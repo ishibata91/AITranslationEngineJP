@@ -48,7 +48,95 @@
 
 - 翻訳成果物を標準的な配布形式および xTranslator 互換形式で出力できること。
 
-## 6. 用語集
+## 6. 業務フロー
+
+このセクションでは、仕様全体を通した業務フローを整理する。
+
+```mermaid
+flowchart TD
+    subgraph S1[基盤構築フロー]
+        A[ベースゲーム NPC 入力] --> B[マスターペルソナ構築]
+        C[xTranslator 形式入力] --> D[マスター辞書構築]
+        B --> E[UIで基盤データを観測]
+        D --> E
+    end
+
+    subgraph S2[mod翻訳フロー]
+        F[mod 翻訳入力データ準備<br/>xEdit 抽出 / 複数ファイル読込] --> G[UIで内容確認]
+        G --> H[翻訳補助メタデータ整備<br/>会話 / クエスト / NPC 属性]
+        H --> I[翻訳ジョブ作成]
+        I --> I1[実行制御<br/>中断 / 再開 / 失敗回復]
+        I --> J[AI基盤選択<br/>LMStudio / Gemini / xAI]
+        J --> J1[実行方式<br/>単発 / Batch API]
+        J --> K[単語翻訳フェーズ<br/>用語を確定して辞書化]
+        K --> L[NPCペルソナ生成フェーズ<br/>NPC 発話と属性から生成]
+        L --> M[本文翻訳フェーズ<br/>翻訳レコード本文を翻訳<br/>※ 保護要素はこの内部で保持する<br/>※ ペルソナを参照して翻訳する]
+        M --> N[結果確認]
+        N -- 修正あり --> I
+        N -- 問題なし --> O[翻訳成果物出力<br/>標準配布形式 / xTranslator 互換形式]
+    end
+
+    O --> P[UIで翻訳結果を観測]
+```
+
+### 6.1 業務フローの要点
+
+- 基盤構築フローでは、ベースゲーム NPC 由来のマスターペルソナと、xTranslator 取り込み済みのマスター辞書を構築する
+- mod 翻訳フローでは、単語翻訳フェーズで訳語を確定し、その結果を本文翻訳フェーズで再利用する
+- NPC ペルソナ生成フェーズは、本文翻訳フェーズの前に実行し、ベースゲーム NPC と mod 追加 NPC の両方に適用する
+- 翻訳ジョブは中断、再開、失敗回復の対象とし、進捗は UI から観測する
+
+## 7. 翻訳ジョブ状態遷移
+
+このセクションでは、翻訳ジョブの状態遷移を整理する。
+
+#### 正常系
+
+```mermaid
+flowchart LR
+    Start((開始)) --> Draft([Draft])
+    Draft -->|ジョブ作成| Ready([Ready])
+    Ready -->|実行開始| Running([Running])
+    Running -->|翻訳完了| Completed([Completed])
+    Completed --> End((終了))
+```
+
+#### 操作系
+
+```mermaid
+flowchart LR
+    Running([Running]) -->|中断| Paused([Paused])
+    Paused -->|再開| Running
+    Ready([Ready]) -->|キャンセル| Canceled([Canceled])
+    Paused -->|キャンセル| Canceled
+    Canceled --> End((終了))
+```
+
+#### 異常系
+
+```mermaid
+flowchart LR
+    Running([Running]) -->|失敗回復可能| RecoverableFailed([RecoverableFailed])
+    RecoverableFailed -->|再開 / リトライ| Running
+    RecoverableFailed -->|再実行準備| Ready([Ready])
+    Running -->|回復不能な失敗| Failed([Failed])
+    Failed --> End((終了))
+```
+
+### 7.1 状態の要点
+
+- `正常系` は `Draft` から `Completed` までの主経路
+- `操作系` は中断、再開、キャンセルのユーザー操作
+- `異常系` は失敗回復可能な状態と回復不能な失敗状態
+- `Ready` はジョブ作成後で、まだ実行していない待機状態
+- `Running` は翻訳フェーズを実行中の状態
+- `Paused` は中断後に再開可能な停止状態
+- `RecoverableFailed` は失敗したが再開またはリトライ可能な状態
+- `Completed` は翻訳と出力が完了した状態
+- `Failed` は回復不能な失敗状態
+- `Canceled` はユーザー操作などで終了した状態
+
+## 8. 用語集
 
 このセクションでは、仕様全体で共通して使う用語を定義する。以後の記述では、原則としてこの語彙に統一する。
 
