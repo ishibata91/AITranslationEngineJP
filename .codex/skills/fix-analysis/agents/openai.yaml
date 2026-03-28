@@ -1,0 +1,3 @@
+version: 1
+agent: ctx_loader
+entry: SKILL.md

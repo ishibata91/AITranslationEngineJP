@@ -6,23 +6,23 @@
 ## Read Order
 
 1. [`../.codex/README.md`](../.codex/README.md)
-2. [`../.codex/skills/architect-direction/SKILL.md`](../.codex/skills/architect-direction/SKILL.md)
-3. [`core-beliefs.md`](./core-beliefs.md)
-4. [`spec.md`](./spec.md)
-5. [`architecture.md`](./architecture.md)
-6. [`tech-selection.md`](./tech-selection.md)
-7. [`er-draft.md`](./er-draft.md)
-8. [`executable-specs.md`](./executable-specs.md)
-9. [`lint-policy.md`](./lint-policy.md)
+2. 実装なら [`../.codex/skills/impl-direction/SKILL.md`](../.codex/skills/impl-direction/SKILL.md)
+3. バグ修正なら [`../.codex/skills/fix-direction/SKILL.md`](../.codex/skills/fix-direction/SKILL.md)
+4. [`core-beliefs.md`](./core-beliefs.md)
+5. [`spec.md`](./spec.md)
+6. [`architecture.md`](./architecture.md)
+7. [`tech-selection.md`](./tech-selection.md)
+8. [`er-draft.md`](./er-draft.md)
+9. [`executable-specs.md`](./executable-specs.md)
+10. [`lint-policy.md`](./lint-policy.md)
 11. Relevant file under [`exec-plans/`](./exec-plans/)
 
 ## Directory Contract
 
 - [`core-beliefs.md`](./core-beliefs.md): agent-first principles, hard rules, and repository habits
 - [`../.codex/`](../.codex/README.md): multi-agent workflow, role contracts, and workflow skills
-- [`../.codex/skills/architect-direction/`](../.codex/skills/architect-direction/SKILL.md): standard architect entrypoint
-- [`../.codex/skills/light-direction/`](../.codex/skills/light-direction/SKILL.md): lightweight fix / tweak entrypoint
-- [`../.codex/skills/workflow-gate/`](../.codex/skills/workflow-gate/SKILL.md): workflow gate for plan/evidence/docs contract checks
+- [`../.codex/skills/impl-direction/`](../.codex/skills/impl-direction/SKILL.md): implementation lane entrypoint that can also settle task-local design
+- [`../.codex/skills/fix-direction/`](../.codex/skills/fix-direction/SKILL.md): bugfix lane entrypoint with optional tracing and logging
 - [`spec.md`](./spec.md): permanent requirements and glossary
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
@@ -37,7 +37,7 @@
 
 ## Choose The Right Record
 
-- task-local な詳細設計や一時的な実装判断は plan に置く。完了後の plan は結果記録であり、恒久的な詳細設計の正本にはしない
+- task-local な詳細設計や一時的な実装判断は plan に置く。実装 task で必要な `UI` / `Scenario` / `Logic` も active plan の section に含める
 - 完了後も保持すべき詳細な振る舞い、制約、受け入れ条件は [`executable-specs.md`](./executable-specs.md) と対応する tests / acceptance checks / validation commands に昇格する
 - Requirement or product boundary changed: update [`spec.md`](./spec.md)
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)

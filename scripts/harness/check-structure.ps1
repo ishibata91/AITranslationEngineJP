@@ -5,6 +5,8 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$repoOwnedExcludePattern = '[\\/](\.git|node_modules|dist|build|coverage|target)[\\/]'
+
 function Assert-PathExists {
     param(
         [string]$Path,
@@ -55,19 +57,40 @@ function Resolve-LinkTarget {
 $requiredPaths = @(
     (Join-Path $RepoRoot "AGENTS.md"),
     (Join-Path $RepoRoot ".codex\README.md"),
-    (Join-Path $RepoRoot ".codex\agents\architect.toml"),
-    (Join-Path $RepoRoot ".codex\agents\research.toml"),
-    (Join-Path $RepoRoot ".codex\agents\coder.toml"),
-    (Join-Path $RepoRoot ".codex\skills\architect-direction\SKILL.md"),
-    (Join-Path $RepoRoot ".codex\skills\architect-direction\agents\openai.yaml"),
-    (Join-Path $RepoRoot ".codex\skills\light-direction\SKILL.md"),
-    (Join-Path $RepoRoot ".codex\skills\light-direction\agents\openai.yaml"),
-    (Join-Path $RepoRoot ".codex\skills\light-work\SKILL.md"),
-    (Join-Path $RepoRoot ".codex\skills\light-work\agents\openai.yaml"),
-    (Join-Path $RepoRoot ".codex\skills\workflow-gate\SKILL.md"),
-    (Join-Path $RepoRoot ".codex\skills\workflow-gate\agents\openai.yaml"),
-    (Join-Path $RepoRoot ".codex\skills\light-review\SKILL.md"),
-    (Join-Path $RepoRoot ".codex\skills\light-review\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\agents\ctx_loader.toml"),
+    (Join-Path $RepoRoot ".codex\agents\workplan_builder.toml"),
+    (Join-Path $RepoRoot ".codex\agents\implementer.toml"),
+    (Join-Path $RepoRoot ".codex\agents\fault_tracer.toml"),
+    (Join-Path $RepoRoot ".codex\agents\log_instrumenter.toml"),
+    (Join-Path $RepoRoot ".codex\agents\review_cycler.toml"),
+    (Join-Path $RepoRoot ".codex\skills\impl-direction\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\impl-direction\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\impl-distill\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\impl-distill\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\impl-workplan\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\impl-workplan\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\impl-frontend-work\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\impl-frontend-work\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\impl-backend-work\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\impl-backend-work\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\impl-review\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\impl-review\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-direction\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-direction\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-distill\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-distill\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-trace\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-trace\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-analysis\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-analysis\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-logging\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-logging\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-work\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-work\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\fix-review\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\fix-review\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\risk-report\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\risk-report\agents\openai.yaml"),
     (Join-Path $RepoRoot "docs\index.md"),
     (Join-Path $RepoRoot "docs\core-beliefs.md"),
     (Join-Path $RepoRoot "docs\spec.md"),
@@ -80,8 +103,8 @@ $requiredPaths = @(
     (Join-Path $RepoRoot "docs\executable-specs.md"),
     (Join-Path $RepoRoot "docs\exec-plans\active\README.md"),
     (Join-Path $RepoRoot "docs\exec-plans\completed\README.md"),
-    (Join-Path $RepoRoot "docs\exec-plans\templates\heavy-plan.md"),
-    (Join-Path $RepoRoot "docs\exec-plans\templates\light-plan.md"),
+    (Join-Path $RepoRoot "docs\exec-plans\templates\impl-plan.md"),
+    (Join-Path $RepoRoot "docs\exec-plans\templates\fix-plan.md"),
     (Join-Path $RepoRoot "scripts\harness\run.ps1"),
     (Join-Path $RepoRoot "scripts\harness\check-structure.ps1"),
     (Join-Path $RepoRoot "scripts\harness\check-design.ps1"),
@@ -99,7 +122,11 @@ Write-Host ""
 Write-Host "== Markdown links ==" -ForegroundColor Cyan
 
 $markdownFiles = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter *.md |
-    Where-Object { $_.FullName -notmatch '[\\/]\.git[\\/]' }
+    Where-Object {
+        $_.FullName -notmatch $repoOwnedExcludePattern -and
+        $_.FullName -notmatch '[\\/]docs[\\/]exec-plans[\\/]completed[\\/]' -and
+        $_.FullName -notmatch '[\\/]\\.codex[\\/]\\.codex[\\/]'
+    }
 
 $linkPattern = '!?'
 $linkPattern += '\[[^\]]*\]\((?<target>[^)]+)\)'

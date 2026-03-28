@@ -1,0 +1,22 @@
+rules:
+  - id: ts-tauri-api-outside-gateway
+    message: Tauri API access should stay inside src/gateway.
+    severity: WARNING
+    languages: [typescript]
+    paths:
+      include:
+        - src/**/*.ts
+      exclude:
+        - src/gateway/**/*.ts
+    patterns:
+      - pattern-either:
+          - pattern: import $X from "@tauri-apps/api/$Y"
+          - pattern: import { ... } from "@tauri-apps/api/$Y"
+  - id: rust-domain-forbidden-apis
+    message: Domain code should not depend on tauri, reqwest, sqlx, or filesystem APIs directly.
+    severity: WARNING
+    languages: [rust]
+    paths:
+      include:
+        - src-tauri/src/domain/**/*.rs
+    pattern-regex: "(tauri::|reqwest::|sqlx::|std::fs::)"

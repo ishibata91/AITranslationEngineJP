@@ -11,17 +11,18 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 ## 最初に読む順序
 
 1. `.codex/README.md`
-2. `.codex/skills/architect-direction/SKILL.md`
-3. `.codex/agents/architect.toml`
-4. 必要なら `.codex/agents/research.toml` または `.codex/agents/coder.toml`
-5. `docs/index.md`
-6. `docs/core-beliefs.md`
-7. `docs/spec.md`
-8. `docs/architecture.md`
-9. `docs/tech-selection.md`
-10. `docs/er-draft.md`
-11. `docs/executable-specs.md`
-12. 必要なら `docs/exec-plans/` 配下の計画
+2. 実装なら `.codex/skills/impl-direction/SKILL.md`
+3. バグ修正なら `.codex/skills/fix-direction/SKILL.md`
+4. 必要なら `.codex/agents/ctx_loader.toml` / `.codex/agents/workplan_builder.toml` / `.codex/agents/implementer.toml`
+5. 必要なら `.codex/agents/fault_tracer.toml` / `.codex/agents/log_instrumenter.toml` / `.codex/agents/review_cycler.toml`
+6. `docs/index.md`
+7. `docs/core-beliefs.md`
+8. `docs/spec.md`
+9. `docs/architecture.md`
+10. `docs/tech-selection.md`
+11. `docs/er-draft.md`
+12. `docs/executable-specs.md`
+13. 必要なら `docs/exec-plans/` 配下の計画
 
 ## 強い制約
 
@@ -29,12 +30,13 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - `docs/` は、スコープ、アーキテクチャ、技術選定、実行可能仕様を記録する正本とする
 - `4humans/` は、人間向けの品質状態と負債整理を記録する正本とする
 - 用語は `docs/spec.md` の用語集に合わせる
-- heavy / light の判定は `.codex/README.md` と `architect-direction` / `light-direction` に従う
+- live workflow は `.codex/README.md` と `impl-direction` / `fix-direction` に従う
 - 非自明な変更は、実装前に `docs/exec-plans/active/` へ計画を置く
 - タスク完了後は計画を `docs/exec-plans/completed/` へ移し、結果を記録する
 - 振る舞いが変わる変更では、関連する仕様文書や設計文書も同じ変更内で更新する
 - 細かな仕様や制約は `docs/executable-specs.md` と対応する test / acceptance checks に寄せる
-- Architect が最終レビュー責任を持つ
+- task-local な `UI` / `Scenario` / `Logic` は active plan の中に置き、別の `changes/` 正本を作らない
+- review は単発で、`仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - エージェントが繰り返し迷うなら、個別修正で終わらせず `.codex/` か `docs/` にルールを昇格させる
 - 暗黙運用より、機械的に検証できる規約を優先する
 
@@ -43,7 +45,7 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 1. `.codex/README.md` と relevant agent / direction skill を読む
 2. `docs/index.md` と対象タスクに関係する設計文書を読む
 3. 既存の active / completed plan に同種タスクがないか確認する
-4. heavy なら `docs/exec-plans/templates/heavy-plan.md`、light なら `docs/exec-plans/templates/light-plan.md` を使って計画を追加または更新する
+4. 実装や設計内包タスクなら `docs/exec-plans/templates/impl-plan.md`、修正タスクなら `docs/exec-plans/templates/fix-plan.md` を使って計画を追加または更新する
 5. `powershell -File scripts/harness/run.ps1 -Suite structure` を実行する
 6. 文書契約や役割契約に触れるなら `powershell -File scripts/harness/run.ps1 -Suite design` も実行する
 
@@ -79,6 +81,7 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 隠れた前提を増やさず、短く明示的な文書更新を優先する
 - タスクが仕様変更を求めていない限り、既存仕様は不用意に書き換えない
 - 新しいルールは短く、見つけやすく保つ
-- heavy では `Architect -> Research -> Plan Stabilization Loop -> Coder -> Workflow Gate -> Architect accept` を標準とする
-- light では `Architect -> Short plan -> Coder -> Workflow Gate -> Architect accept` を標準とする
+- 実装系の標準は `impl-direction -> impl-distill -> impl-workplan -> impl-work -> impl-review -> impl-direction close` とする
+- 修正系の標準は `fix-direction -> fix-distill -> fix-trace -> (必要時 fix-logging / fix-analysis) -> fix-work -> fix-review -> fix-direction close` とする
+- 過去 repo 由来で今の repo に合わない skill / agent / artifact 前提は、互換維持より削除を優先する
 - 実装コードがまだ存在しない段階では、推測で public API を増やすより、ハーネスと文書を改善する

@@ -13,6 +13,12 @@ function Invoke-Step {
         [ref]$Failures
     )
 
+    if (-not (Get-Command $Command -ErrorAction SilentlyContinue)) {
+        Write-Host "FAIL missing command: $Command" -ForegroundColor Red
+        $Failures.Value++
+        return
+    }
+
     Write-Host "RUN $Command $($Arguments -join ' ')" -ForegroundColor Cyan
     Push-Location $WorkingDirectory
     try {
@@ -41,7 +47,7 @@ $failures = 0
 $ranAnything = $false
 
 $cargoTomls = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter Cargo.toml |
-    Where-Object { $_.FullName -notmatch '[\\/](target|\.git)[\\/]' }
+    Where-Object { $_.FullName -notmatch '[\\/](target|node_modules|dist|build|coverage|\.git)[\\/]' }
 
 foreach ($cargoToml in $cargoTomls) {
     $ranAnything = $true
@@ -52,7 +58,7 @@ foreach ($cargoToml in $cargoTomls) {
 }
 
 $packageJsons = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter package.json |
-    Where-Object { $_.FullName -notmatch '[\\/](node_modules|dist|build|coverage|\.git)[\\/]' }
+    Where-Object { $_.FullName -notmatch '[\\/](node_modules|dist|build|coverage|target|\.git)[\\/]' }
 
 foreach ($packageJson in $packageJsons) {
     $ranAnything = $true

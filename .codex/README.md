@@ -1,86 +1,75 @@
 # .codex
 
-このディレクトリは、AITranslationEngineJp のマルチエージェント作業フローの正本です。
-プロダクト仕様と設計は `docs/` を正本とし、agent の役割、入口、handoff、実装フローは `.codex/` を正本とします。
-標準原則は `flow light, gate heavy` とし、品質は review の段数ではなく gate 契約と evidence で担保します。
+このディレクトリは、AITranslationEngineJp の live なマルチエージェント作業フローの正本です。
+プロダクト仕様と設計は `docs/` を正本とし、lane、skill、agent の役割と handoff は `.codex/` を正本とします。
+この repo の workflow は `impl-direction` と `fix-direction` の 2 lane で動かし、過去 repo 固有の packet や review loop は live 契約に戻しません。
 
 ## 入口
 
-- 標準入口: `skills/architect-direction/SKILL.md`
-- 軽量入口: `skills/light-direction/SKILL.md`
-- 実装 skill: `skills/light-work/SKILL.md`
-- Gate skill: `skills/workflow-gate/SKILL.md`
-- 補助 review skill: `skills/light-review/SKILL.md`
-- 役割定義:
-  - `agents/architect.toml`
-  - `agents/research.toml`
-  - `agents/coder.toml`
+- 実装・設計内包の入口: `skills/impl-direction/SKILL.md`
+- バグ修正の入口: `skills/fix-direction/SKILL.md`
+- 補助 skill:
+  - `skills/impl-distill/SKILL.md`
+  - `skills/impl-workplan/SKILL.md`
+  - `skills/impl-review/SKILL.md`
+  - `skills/impl-frontend-work/SKILL.md`
+  - `skills/impl-backend-work/SKILL.md`
+  - `skills/fix-distill/SKILL.md`
+  - `skills/fix-trace/SKILL.md`
+  - `skills/fix-analysis/SKILL.md`
+  - `skills/fix-logging/SKILL.md`
+  - `skills/fix-work/SKILL.md`
+  - `skills/fix-review/SKILL.md`
+  - `skills/risk-report/SKILL.md`
+- agent 契約:
+  - `agents/ctx_loader.toml`
+  - `agents/workplan_builder.toml`
+  - `agents/implementer.toml`
+  - `agents/fault_tracer.toml`
+  - `agents/log_instrumenter.toml`
+  - `agents/review_cycler.toml`
 
 ## 標準フロー
 
-### Heavy flow
+### Impl lane
 
-`User -> Architect -> Research -> Plan Stabilization Loop -> Coder -> Workflow Gate -> Architect accept`
+`User -> impl-direction -> impl-distill -> impl-workplan -> impl-work -> impl-review -> impl-direction close`
 
-- User の要求は Architect が受ける
-- Architect は必要なら Research に調査を委任する
-- Architect は `docs/exec-plans/templates/heavy-plan.md` で heavy plan を固める
-- `Plan Stabilization Loop` では blocking unknown がなくなるまで `Research -> plan update` を反復する
-- Coder は確定した plan を見て実装する
-- `Workflow Gate` は plan 適合性、証跡不足、docs 同期漏れ、reroute 要否だけを判定する
-- Architect が gate 結果を読んで最終 accept / reroute / docs handoff を決める
-- 最終的な accept / reroute / docs handoff は Architect が決める
+- `impl-direction` は実装要求を受け、必要なら active plan の中に `UI` / `Scenario` / `Logic` を埋める
+- task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
+- `impl-distill` は facts、constraints、gaps、docs sync 候補を整理する
+- `impl-workplan` は実装順、owned scope、validation を短い brief に落とす
+- `impl-frontend-work` / `impl-backend-work` は brief と plan に従って実装する
+- `impl-review` は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
+- review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 
-### Light flow
+### Fix lane
 
-`User -> Architect -> Short plan -> Coder -> Workflow Gate -> Architect accept`
+`User -> fix-direction -> fix-distill -> fix-trace -> (必要時 fix-logging / fix-analysis) -> fix-work -> fix-review -> fix-direction close`
 
-- 仕様判断と受け入れ条件が固定済み
-- blocking unknown がない
-- 単一責務
-- 短い plan で実装判断が固定できる
+- `fix-direction` は bugfix 要求を受け、事実不足なら `fix-distill` と `fix-trace` で scope を狭める
+- `fix-logging` は一時観測だけを追加 / 削除し、恒久修正を混ぜない
+- `fix-analysis` は観測結果を事実に圧縮し、fix 対象か docs sync 対象かを整理する
+- `fix-review` も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
+- `risk-report` は残留リスクを短くまとめる補助 skill として扱う
 
-軽量フローでは `light-direction -> light-work -> workflow-gate` を使い、必要なら Architect が `light-review` を補助 checklist として使います。
+## 設計記録の扱い
 
-## 重いフローと軽いフローの使い分け
+- 非自明な変更は `docs/exec-plans/active/` に plan を置く
+- 実装 task でだけ必要になる `UI` / `Scenario` / `Logic` は plan の中に section として置く
+- 完了後も保持すべき詳細は `docs/` の正本、コード、型、tests、acceptance checks へ昇格する
+- active plan を別 artifact 群へ分解しない
 
-`heavy` を使う:
+## Review と reroute
 
-- blocking unknown があり、実装前に plan を固定できない
-- 仕様解釈、acceptance checks、変更境界、docs 同期先、fallback 方針のいずれかが未確定
-- 調査結果がないと safe default か reroute 条件を決められない
-
-`light` を使う:
-
-- 仕様判断と受け入れ条件が固定済み
-- blocking unknown がない
-- 単一責務
-- 短い plan で判断が固定できる
-
-## Unknown の扱い
-
-- unknown は `blocking` と `non-blocking` に分類する
-- `blocking unknown` は scope、acceptance checks、変更境界、docs 同期先、fallback 方針を固定できない unknown を指す
-- `non-blocking unknown` は safe default や assumption で固定でき、実装開始を止めない unknown を指す
-- Heavy flow では blocking unknown が残る間は Coder に handoff しない
-- Light flow では blocking unknown が見つかった時点で heavy へ reroute する
-
-## Gate の役割
-
-- 品質は review の往復回数ではなく、plan / checks / evidence / harness の強さで担保する
-- `workflow-gate` は approved plan、変更要約、checks 結果、docs 更新有無、残る non-blocking unknown を入力として受ける
-- gate の出力は `decision`、`missing_evidence`、`contract_breaks`、`docs_sync`、`recheck` を含む
-- gate は美しさや好みを判定しない
-- 繰り返し見つかる review 指摘は gate や review に残さず、`docs/executable-specs.md` または harness へ昇格する
-- Architect は final closeout で、今の skill / agent 構成で `失敗した部分` と `改善余地` を `Level 1` / `Level 2` / `Level 3` の 3 レベルで報告する
-- `Level 1` は flow break、unsafe handoff、accept を止めるべき失敗、`Level 2` は手戻りや evidence 不足を招いた主要な摩擦、`Level 3` は軽微だが再発しうる改善余地として扱う
+- review は single-pass で、主観レビューや好みの改善提案を主目的にしない
+- review の正式観点は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 つだけ
+- `pass` か `reroute` の判定を返し、必要な再実行は lane 側で扱う
+- 繰り返し見つかる指摘は review loop に残さず `docs/executable-specs.md`、tests、harness に昇格する
 
 ## 守ること
 
-- User からの要求はまず Architect が受ける
-- Architect は自分で実装せず、plan と handoff に責任を持つ
-- Research は read-only で事実だけを集める
-- Coder は plan 外の仕様判断を増やさない
-- 最終 accept は Architect が持つ
-- 作業計画の保存先は `docs/exec-plans/` を使う
-- skill は最小構成を維持し、細かい lane 分割を増やしすぎない
+- live workflow に `architect-direction`、`light-direction`、`workflow-gate`、`context_board`、`tasks.md` を戻さない
+- 過去 repo 由来で今の repo に合わない skill / agent / artifact 前提は、互換維持より削除を優先する
+- docs sync は lane の close 条件として扱い、別の人手前提 lane に押し戻さない
+- harness は repo-owned files だけを検査対象とし、`node_modules`、`dist`、`coverage`、`target`、生成物を含めない

@@ -28,6 +28,32 @@
 - `Semgrep`: `TS` / `Rust` 両方で、責務境界と禁止 API の repository-specific pattern lint を補完する
 - `cargo clippy --all-targets --all-features -- -D warnings`: Rust 側の未使用要素と warning を失敗扱いにする
 
+## Initial Config Placement
+
+- frontend lint config は repo root の frontend package に置く
+  - `eslint.config.mjs`
+  - `knip.json`
+  - `.oxlintrc.json`
+- Rust lint / format config は `src-tauri/` を基準に置く
+  - `Cargo.toml`
+  - `clippy.toml` や `rustfmt.toml` は必要になった時だけ `src-tauri/` に追加する
+- `Semgrep` config は repo root の `semgrep/` を dedicated path として置く
+
+## Initial Gate Split
+
+- gate に入れるもの:
+  - repo root package の `lint`
+  - repo root package の `test`
+  - repo root package の `build`
+  - `src-tauri/` の `cargo fmt --all --check`
+  - `src-tauri/` の `cargo clippy --all-targets --all-features -- -D warnings`
+  - `src-tauri/` の `cargo test --all-features`
+- report-first に留めるもの:
+  - `Semgrep` の `semgrep/semgrep.yml`
+  - future import graph / cycle 専用解析
+
+初期 gate の責務は `Oxlint` / `ESLint` / `Knip` / `clippy` に固定し、`Semgrep` は補助観測層のままとする。
+
 ## Cleanup Policy
 
 - `Knip` の report に出た未参照 export / file / dependency は、同一変更で削除する

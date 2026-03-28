@@ -111,6 +111,25 @@ UI が扱う状態は以下の 3 種に分ける。
 - `画面単位状態`: 一覧、詳細、ロード中、エラー表示など、画面として保持すべき状態
 - `アプリ共有状態`: 実行中ジョブの要約、通知、現在の対象選択など、複数画面で共有する最小限の状態
 
+### 2.1.1 初期実装レイアウト
+
+実装初期化フェーズでは、repo root を frontend package root とし、backend は `src-tauri/` 配下の単一 Rust crate とする。
+初期の concrete layout は以下を正本とする。
+
+- frontend root:
+  - `src/ui/`: `App Shell`、screen、view、screen-local state
+  - `src/application/`: screen usecase、UI が依存する input port、gateway port
+  - `src/gateway/`: Tauri `invoke` / event を閉じ込める adapter
+  - `src/shared/`: UI と gateway 間で共有する DTO / contract
+- backend root `src-tauri/src/`:
+  - `application/`: usecase、DTO、backend 側 input/output port
+  - `domain/`: domain model と domain rule
+  - `infra/`: runtime、DB、file、HTTP、provider adapter
+  - `gateway/`: Tauri command と application usecase の接続点
+
+初期フェーズでは TS 側に `domain` / `infra` は作らない。
+`domain` / `infra` の core responsibility は Rust 側へ集約し、TS 側は UI 境界の orchestration に留める。
+
 ### 2.2 アプリケーション層
 
 アプリケーション層は入力ポートと出力ポートを定義し、具体実装はインフラ層へ委譲する。
@@ -137,6 +156,9 @@ UI が扱う状態は以下の 3 種に分ける。
 - `ドメイン層 -> インフラ層`: TranslationProvider, DictionarySource, PersonaSource などの抽象
 
 各ポートの interface / trait は内側の層で定義し、外側の層で実装する。
+
+初期 bootstrap では、frontend は `src/application/*Port` を input port として持ち、`src/gateway/` がその実装を担う。
+backend は `src-tauri/src/application/` が DTO を返し、`src-tauri/src/gateway/commands.rs` が Tauri command として公開する。
 
 ### 3.1 同層内の依存抑制
 

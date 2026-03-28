@@ -30,13 +30,13 @@
 - Impact: 文書間の高度な矛盾や境界逸脱を自動検知できない
 - Next step: 実装が進んだ段階で、用語辞書チェックや依存規約チェックを追加する
 
-### 4. Execution harness has no code targets yet
+### 4. Execution harness does not cover translation-specific acceptance checks yet
 
 - Status: Open
 - Area: Verification
-- Detail: 現時点では Rust / Svelte の実装ルートや test / lint / build 対象がまだ存在しない
-- Impact: 実行ハーネスは標準入口のみ先行整備され、現在は主に skip を返す
-- Next step: 実装追加時に package manager と cargo ルールを確定する
+- Detail: Rust / Svelte の bootstrap target は追加されたが、翻訳ジョブ、importer、writer、persona 系の acceptance checks はまだ乗っていない
+- Impact: execution harness は基盤 lint / test / build を回せるが、業務フロー成立の検証までは到達していない
+- Next step: 実装進行に応じて fixture と acceptance checks を追加し、execution harness から段階的に呼ぶ
 
 ### 5. Test-level constraints coverage is not started
 
@@ -50,6 +50,6 @@
 
 - Status: Open
 - Area: Multi-agent workflow
-- Detail: `.codex/skills/` は `architect-direction` と light flow を中心に最小構成へ寄せ、agent も Architect / Research / Coder の 3 役へ絞っている
-- Impact: 複雑な lane 分割は減るが、必要な helper を再導入する際は current workflow に合わせて書き直す必要がある
-- Next step: 実運用で本当に必要な helper だけを、Architect 起点の flow に沿って追加し直す
+- Detail: live workflow は `impl-direction` / `fix-direction` に寄せ直したが、旧 `.codex/.codex` 由来の不要 artifact や文言が作業ツリーに残る可能性がある
+- Impact: live 正本と legacy 断片を取り違えると、古い packet 前提や review loop を再導入する危険がある
+- Next step: live `.codex` に参照されない legacy artifact を段階的に整理し、lane 契約に関係ない古い references を残さない
