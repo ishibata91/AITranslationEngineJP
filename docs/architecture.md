@@ -28,11 +28,13 @@
 ### 2.2 アプリケーション層
 
 - xEdit JSON 取込
+- 実行キャッシュ構築
 - ジョブ生成
 - ステージ実行
 - 中断
 - 再開
 - リトライ
+- ジョブ完了時キャッシュ削除
 - xTranslator XML 出力
 
 ### 2.3 ドメイン層
@@ -49,7 +51,8 @@
 - LMStudio アダプタ
 - Gemini アダプタ
 - xAI アダプタ
-- SQLite 永続化
+- SQLite 実行キャッシュ
+- 永続マスターデータ保管
 - XML writer
 - ファイルシステム
 
@@ -77,14 +80,21 @@ trait TranslationProvider {
 
 内部モデルは少なくとも以下を持つ。
 
+- プラグイン入力キャッシュ
 - 翻訳単位
 - 会話グループ
 - NPC ペルソナ
 - 用語辞書
 - クエスト文脈
-- 保護トークン
+- 翻訳ジョブ
+- マスターペルソナ
+- マスター辞書
 
 `dialogue_groups` は文脈付き翻訳の中心単位として独立したドメインモデルで扱う。
+
+`PLUGIN_EXPORT` は xEdit JSON から構築する入力キャッシュの親モデルとして扱う。
+入力キャッシュは再構築可能な一時データとし、JSON 原本はファイルシステムに保持する。
+`MASTER_PERSONA` と `MASTER_DICTIONARY` は入力キャッシュとは別の永続基盤データとして扱う。
 
 ## 5. DTO 境界
 
@@ -92,6 +102,7 @@ trait TranslationProvider {
 
 DTO の対象は少なくとも以下を含む。
 
+- プラグイン取込結果
 - ジョブ作成入力
 - ジョブ状態
 - 進捗情報
@@ -106,5 +117,13 @@ DTO の対象は少なくとも以下を含む。
 - UI は TypeScript の型で定義する
 - xEdit JSON はロード時に型検証する
 - xTranslator XML は内部ドメインモデルから生成する
+- ジョブフェーズ種別は DB テーブルではなくアプリケーション定数として定義する
+- DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
 
-`<10gold>` のような保護対象は独立したトークン型として扱う。
+## 7. 永続化方針
+
+- `PLUGIN_EXPORT` 配下の入力データは SQLite 上の実行キャッシュとして保持する
+- 実行キャッシュは `TRANSLATION_JOB` が参照する
+- `TRANSLATION_JOB` が `Completed`, `Canceled`, `Failed` のいずれかになり、同一 `PLUGIN_EXPORT` に未完了ジョブが残っていない場合は入力キャッシュを削除する
+- JSON 原本は削除せず、必要時に再取り込み可能とする
+- `MASTER_PERSONA`, `MASTER_PERSONA_ENTRY`, `MASTER_DICTIONARY`, `MASTER_DICTIONARY_ENTRY` はジョブ完了後も保持する

@@ -29,3 +29,7 @@
 
 - ローカルデータベースは `SQLite` を採用する
 - DB アクセスは `sqlx` を採用する
+- xEdit 抽出 JSON はファイルシステム上の正本として保持する
+- `SQLite` は `PLUGIN_EXPORT` 配下の入力データを実行キャッシュとして保持する
+- `MASTER_PERSONA` と `MASTER_DICTIONARY` は `SQLite` 上の永続基盤データとして保持する
+- DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
