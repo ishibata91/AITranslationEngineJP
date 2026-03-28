@@ -1,5 +1,7 @@
 # ER 図ドラフト
 
+関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md)
+
 `docs/spec.md` と `extractData.pas` をもとにした、概念レベルの ER 図たたき台。
 
 - `extractData.pas` の抽出ロジックを正として、出力カテゴリと項目を整理

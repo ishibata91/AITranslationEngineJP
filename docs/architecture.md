@@ -1,6 +1,6 @@
 # アーキテクチャ仕様
 
-関連文書: [`spec.md`](./spec.md), [`tech-selection.md`](./tech-selection.md), [`interface-spec.md`](./external-design/interface-spec.md), [`execution-spec.md`](./external-design/execution-spec.md), [`ui-spec.md`](./external-design/ui-spec.md)
+関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-selection.md`](./tech-selection.md), [`executable-specs.md`](./executable-specs.md)
 
 本書は、システムの内部構成と責務分割を定義する。
 

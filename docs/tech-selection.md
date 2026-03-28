@@ -1,6 +1,6 @@
 # 技術選定仕様
 
-関連文書: [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`interface-spec.md`](./external-design/interface-spec.md), [`execution-spec.md`](./external-design/execution-spec.md), [`ui-spec.md`](./external-design/ui-spec.md)
+関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md), [`executable-specs.md`](./executable-specs.md)
 
 本書は、システム実装のために採用する技術と、その適用対象を定義する。
 
