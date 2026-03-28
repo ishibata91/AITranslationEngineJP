@@ -13,6 +13,7 @@
 6. [`tech-selection.md`](./tech-selection.md)
 7. [`er-draft.md`](./er-draft.md)
 8. [`executable-specs.md`](./executable-specs.md)
+9. [`lint-policy.md`](./lint-policy.md)
 11. Relevant file under [`exec-plans/`](./exec-plans/)
 
 ## Directory Contract
@@ -27,6 +28,7 @@
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
 - [`er-draft.md`](./er-draft.md): canonical data model and ER specification
 - [`executable-specs.md`](./executable-specs.md): testable constraints, acceptance checks, and executable-spec policy
+- [`lint-policy.md`](./lint-policy.md): what lint manages, what it does not manage, and tool ownership
 - [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
 - [`exec-plans/completed/`](./exec-plans/completed/README.md): finished plans and outcomes
 - [`../4humans/quality-score.md`](../4humans/quality-score.md): human-facing quality posture and missing coverage
@@ -35,11 +37,14 @@
 
 ## Choose The Right Record
 
+- task-local な詳細設計や一時的な実装判断は plan に置く。完了後の plan は結果記録であり、恒久的な詳細設計の正本にはしない
+- 完了後も保持すべき詳細な振る舞い、制約、受け入れ条件は [`executable-specs.md`](./executable-specs.md) と対応する tests / acceptance checks / validation commands に昇格する
 - Requirement or product boundary changed: update [`spec.md`](./spec.md)
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - Data structure or entity relationship changed: update [`er-draft.md`](./er-draft.md)
 - Detailed behavior or constraint changed: update [`executable-specs.md`](./executable-specs.md) and the corresponding tests or acceptance checks
+- Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
 - Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/`

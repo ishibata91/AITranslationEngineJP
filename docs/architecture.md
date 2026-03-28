@@ -138,6 +138,13 @@ UI が扱う状態は以下の 3 種に分ける。
 
 各ポートの interface / trait は内側の層で定義し、外側の層で実装する。
 
+### 3.1 同層内の依存抑制
+
+- 同一層内でも、別 feature / slice / package の internal module への直接依存は原則禁止する
+- 同一層内で共有が必要な型や処理は、共有 module か明示的な port / DTO / utility へ昇格して参照する
+- ある feature が別 feature の内部実装を直接 import する構造は採用せず、必要なら境界を引き直す
+- この制約は将来の実装で path-based import lint により機械的に検証できる形へ保つ
+
 ## 4. DTO 境界
 
 フロントエンドとバックエンド間のデータ受け渡しは DTO を明示的に定義して行う。

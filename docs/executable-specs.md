@@ -22,10 +22,22 @@
 
 ## Current Policy
 
+- task-local な詳細設計や一時的な実装判断は `docs/exec-plans/` に置いてよいが、完了後も保持すべき詳細仕様の正本にはしない
+- 完了後も残すべき詳細な振る舞い、制約、受け入れ条件は、ここで入口を定義し、対応する tests / acceptance checks / validation commands を正本として管理する
 - UI、実行、DTO、状態遷移の細かな制約は、将来的に対応する test と validation command で表現する
 - plan には `Acceptance Checks` を必須で持たせ、詳細仕様の一時的な置き場にする
 - plan には `Required Evidence` と `Reroute Trigger` を持たせ、workflow gate が pass/fail を判定できるようにする
 - 永続ルールだけを `spec.md` と `architecture.md` に残し、細かな分岐条件はここからテストへ寄せる
+- TypeScript / Svelte の通常 lint は `Oxlint` を基本入口とし、未使用変数、未使用 import、type import hygiene を検出対象にする
+- repo 固有の import 境界は `ESLint` の `no-restricted-imports` または repository-local rule で検証し、同一層の別 feature / slice / package の internal module import を失敗扱いにする
+- 未参照 export / file / dependency は `Knip` を基本入口として検出し、tests / spec entrypoint / fixtures / generated code の明示 allowlist を除いて削除対象として扱う
+- `Semgrep` は将来の責務境界 / 禁止 API 向け validation command として採用し、初期は `TS` と `Rust` の両方を report-first で観測する
+- `Semgrep` の将来の config entrypoint は repo 管理下の専用パスに置き、`Semgrep Registry` の配布ルールと repo-local rule を併用できる構成にする
+- `Semgrep` の将来の実行では `tests` / `fixtures` / `generated` などの path exclude を持てるようにし、誤検知を分類した後にだけ gate へ昇格させる
+- `Semgrep` の rule 結果は、`そのまま採用`、`override / tune`、`repo-specific local rule` に分類して整理する
+- Rust 側の未参照コードと未使用要素は `cargo clippy --all-targets --all-features -- -D warnings` を基本入口として失敗扱いにする
+- `Knip` の report に出た未参照 export / file / dependency は同一変更で削除または allowlist 理由を追加し、放置を許可しない
+- `Knip --fix` はローカル cleanup 手段として許可するが、ファイル削除を伴う結果は review 可能な差分として残す
 - ドメイン / アプリケーション層のルールは Rust の `cargo test` を基本入口として表現する
 - UI コンポーネントと画面内の振る舞いは `Vitest` と `@testing-library/svelte` で表現する
 - デスクトップ統合の acceptance checks は `tauri-driver` と `WebdriverIO` を基本入口とする

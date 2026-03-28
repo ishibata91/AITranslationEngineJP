@@ -17,7 +17,7 @@
 | Repository entrypoint | Green | `AGENTS.md` と `docs/index.md` で読む順序を固定した |
 | Codex workflow source of truth | Green | `.codex/README.md` と workflow skills で plan stabilization loop、workflow gate、heavy/light reroute を固定した |
 | Agent role contracts | Green | `.codex/agents/*.toml` で Architect / Research / Coder の責務境界を固定した |
-| System of record | Yellow | 文書の役割分担は定義したが、詳細設計はまだ薄い |
+| System of record | Green | 恒久契約は `docs/` と `.codex/` に固定し、task-local な詳細設計は plan、永続化すべき詳細は executable specs と tests / acceptance checks に分離した |
 | Structure harness | Green | 必須ファイル、必須ディレクトリ、Markdown リンクの検査入口を追加した |
 | Design harness | Green | workflow gate、unknown 分類、plan template 必須項目まで検査し、設計契約の欠落を検出できる |
 | Execution harness | Yellow | 標準入口を追加したが、実装対象が未存在のため多くは skip になる |

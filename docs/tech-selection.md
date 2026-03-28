@@ -39,6 +39,10 @@
 - DI は `手動 DI` を採用する
 - フロントエンドの標準 lint は `Oxlint` を採用する
 - UI / `Svelte` 変更時の補助 lint として `ESLint` を採用する
+- repo 固有の import 境界 lint は `ESLint Flat Config + repository-local rule` を採用する
+- 未参照 export / file / dependency の検出は `Knip` を採用する
+- `Semgrep` は責務境界と禁止 API 向けの追加静的解析層として採用する
+- `Semgrep` は `TS` と `Rust` の両方を対象とし、import graph / cycle の主担当にはしない
 - Rust の品質基盤は `rustfmt` / `clippy` を採用する
 
 ## 6. テスト技術
