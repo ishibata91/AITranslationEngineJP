@@ -57,7 +57,7 @@
 ## Outcome
 
 - `architect-direction` に、他 skill へ移る時は必ず専用サブエージェントを起動する契約を追加した。
-- `light-direction` にも同じ handoff ルールを追加し、Architect 本体が `light-work` や `workflow-gate` を直接兼務しないようにした。
+- `light-direction` にも同じ handoff ルールを追加し、Architect 本体が `light-work` や `gating-workflow` を直接兼務しないようにした。
 - `.codex/README.md` と `architect.toml` を同期し、workflow 正本と role 契約の両方で同じ前提を明文化した。
 
 ## Evidence
@@ -65,3 +65,4 @@
 - `powershell -File scripts/harness/run.ps1 -Suite structure`
 - `powershell -File scripts/harness/run.ps1 -Suite design`
 - `powershell -File scripts/harness/run.ps1 -Suite all`
+

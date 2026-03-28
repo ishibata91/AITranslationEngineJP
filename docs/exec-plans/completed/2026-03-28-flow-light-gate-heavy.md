@@ -10,7 +10,7 @@
 
 ## Request Summary
 
-- Introduce `flow light, gate heavy`, add `workflow-gate`, and standardize a heavy-only plan stabilization loop.
+- Introduce `flow light, gate heavy`, add `gating-workflow`, and standardize a heavy-only plan stabilization loop.
 
 ## Decision Basis
 
@@ -40,7 +40,7 @@
 
 ## Assumptions / Defaults
 
-- `workflow-gate` is a read-only Architect skill, not a new role.
+- `gating-workflow` is a read-only Architect skill, not a new role.
 - `light-review` remains available as a supplemental checklist, not the default gate.
 
 ## Plan Ready Criteria
@@ -52,7 +52,7 @@
 ## Implementation Plan
 
 - Add an active plan, then update `.codex` workflow docs and role contracts to define `flow light, gate heavy`.
-- Add `workflow-gate`, reframe `light-review` as supplemental, and update plan templates around evidence and unknown classification.
+- Add `gating-workflow`, reframe `light-review` as supplemental, and update plan templates around evidence and unknown classification.
 - Extend structure and design harnesses to enforce the new contracts.
 - Update human-facing quality posture and executable-spec rules to reflect gate-driven quality.
 
@@ -70,7 +70,7 @@
 
 ## Required Evidence
 
-- Structure harness output showing `workflow-gate` is required.
+- Structure harness output showing `gating-workflow` is required.
 - Design harness output showing stabilization loop, gate, and template fields are enforced.
 - Full harness output showing no regressions after docs and script changes.
 
@@ -96,7 +96,7 @@
 
 ## Outcome
 
-- Added `workflow-gate` as the standard read-only gate for heavy and light flows.
+- Added `gating-workflow` as the standard read-only gate for heavy and light flows.
 - Updated `.codex`, `AGENTS.md`, plan templates, and human-facing records to use `flow light, gate heavy`.
 - Standardized heavy-only `Plan Stabilization Loop` with blocking vs non-blocking unknown handling.
 
@@ -106,3 +106,4 @@
 - `powershell -File scripts/harness/run.ps1 -Suite design`
 - `powershell -File scripts/harness/run.ps1 -Suite all`
 - Execution harness still reports `SKIP no Cargo.toml or package.json targets found`, which matches the current repository state.
+

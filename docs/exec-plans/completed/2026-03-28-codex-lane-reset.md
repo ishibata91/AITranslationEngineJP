@@ -7,7 +7,7 @@
 
 ## Request Summary
 
-- Replace the live `.codex` workflow with `impl-direction` and `fix-direction`, keep `UI` / `Scenario` / `Logic` inside exec-plans, and remove current-repo-incompatible legacy assumptions.
+- Replace the live `.codex` workflow with `directing-implementation` and `directing-fixes`, keep `UI` / `Scenario` / `Logic` inside exec-plans, and remove current-repo-incompatible legacy assumptions.
 
 ## Decision Basis
 
@@ -20,8 +20,8 @@
 
 ## Scenario
 
-- `impl-direction` owns task-local design sections, implementation handoff, single-pass review, docs sync, and closeout.
-- `fix-direction` owns bugfix framing, optional tracing/logging, single-pass review, docs sync, and closeout.
+- `directing-implementation` owns task-local design sections, implementation handoff, single-pass review, docs sync, and closeout.
+- `directing-fixes` owns bugfix framing, optional tracing/logging, single-pass review, docs sync, and closeout.
 
 ## Logic
 
@@ -31,9 +31,9 @@
 
 ## Implementation Plan
 
-- Rewrite workflow source-of-truth docs around `impl-direction` and `fix-direction`.
+- Rewrite workflow source-of-truth docs around `directing-implementation` and `directing-fixes`.
 - Replace live `.codex/agents` with specialized contracts for distill, work planning, implementation, tracing, logging, and review.
-- Replace live `.codex/skills` with repo-fitted `impl-*`, `fix-*`, and `risk-report` skills.
+- Replace live `.codex/skills` with repo-fitted `impl-*`, `fix-*`, and `reporting-risks` skills.
 - Replace heavy/light templates with `impl-plan` and `fix-plan`, then update structure and design harness expectations.
 
 ## Acceptance Checks
@@ -60,7 +60,7 @@
 
 ## Outcome
 
-- Replaced the live workflow contract with `impl-direction` and `fix-direction`.
+- Replaced the live workflow contract with `directing-implementation` and `directing-fixes`.
 - Kept task-local `UI` / `Scenario` / `Logic` inside exec-plans instead of reviving `changes/` artifacts.
 - Replaced Architect/Research/Coder contracts with specialized helper agents.
 - Rewrote structure and design harnesses to validate the new lane-based workflow.
@@ -70,3 +70,4 @@
 - `powershell -File scripts/harness/run.ps1 -Suite structure`: pass
 - `powershell -File scripts/harness/run.ps1 -Suite design`: pass
 - `powershell -File scripts/harness/run.ps1 -Suite all`: fail because `cargo` is not installed in the current environment, so the execution harness cannot run the Rust-side commands
+

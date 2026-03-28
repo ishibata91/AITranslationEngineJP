@@ -50,6 +50,7 @@
 
 - Status: Open
 - Area: Multi-agent workflow
-- Detail: live workflow は `impl-direction` / `fix-direction` に寄せ直したが、旧 `.codex/.codex` 由来の不要 artifact や文言が作業ツリーに残る可能性がある
+- Detail: live workflow は `directing-implementation` / `directing-fixes` に寄せ直したが、旧 `.codex/.codex` 由来の不要 artifact や文言が作業ツリーに残る可能性がある
 - Impact: live 正本と legacy 断片を取り違えると、古い packet 前提や review loop を再導入する危険がある
 - Next step: live `.codex` に参照されない legacy artifact を段階的に整理し、lane 契約に関係ない古い references を残さない
+

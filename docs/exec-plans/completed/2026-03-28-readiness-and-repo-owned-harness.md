@@ -6,7 +6,7 @@
 - research: none
 - coder: codex
 - reviewer: architect
-- scope: `.codex/README.md`, `.codex/agents/architect.toml`, `.codex/skills/architect-direction/SKILL.md`, `.codex/skills/light-direction/SKILL.md`, `.codex/skills/workflow-gate/SKILL.md`, `scripts/harness/check-design.ps1`, `scripts/harness/check-structure.ps1`, `scripts/harness/check-execution.ps1`
+- scope: `.codex/README.md`, `.codex/agents/architect.toml`, `.codex/skills/architect-direction/SKILL.md`, `.codex/skills/light-direction/SKILL.md`, `.codex/skills/gating-workflow/SKILL.md`, `scripts/harness/check-design.ps1`, `scripts/harness/check-structure.ps1`, `scripts/harness/check-execution.ps1`
 
 ## Request Summary
 
@@ -53,7 +53,7 @@
 - `.codex/agents/architect.toml`
 - `.codex/skills/architect-direction/SKILL.md`
 - `.codex/skills/light-direction/SKILL.md`
-- `.codex/skills/workflow-gate/SKILL.md`
+- `.codex/skills/gating-workflow/SKILL.md`
 
 ## Record Updates
 
@@ -62,7 +62,7 @@
 ## Outcome
 
 - `.codex/README.md` に `validation readiness check` と `repo-owned files only` の共通ルールを追加した
-- `architect-direction`、`light-direction`、`workflow-gate` に readiness の責務分離と prerequisite gap の扱いを追加した
+- `architect-direction`、`light-direction`、`gating-workflow` に readiness の責務分離と prerequisite gap の扱いを追加した
 - `architect.toml` に implementation handoff 前の readiness 責務を追加した
 - design harness に新契約の存在確認を追加した
 - structure / execution harness に external / generated path の除外方針を追加した
@@ -77,3 +77,4 @@
 
 - `powershell -File scripts/harness/run.ps1 -Suite all` は引き続き `cargo` 未導入の環境差分で失敗する
 - repo-owned files only の方針は structure / execution harness には反映したが、今後 harness を増やす時も同じ除外方針を継続する必要がある
+

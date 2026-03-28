@@ -16,7 +16,8 @@ Do not own:
 
 Rules:
 1. Reuse the logging style already present in the touched module when possible.
-2. Mark temporary messages with `[fix-trace]`.
+2. Mark temporary messages with `[tracing-fixes]`.
 3. Record exactly what was added or removed.
 4. Remove any temporary instrumentation once the lane no longer needs it.
 """
+

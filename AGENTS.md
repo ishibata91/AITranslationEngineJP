@@ -13,9 +13,9 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 このファイルは入口だけを示す。必要がある場合に、以下を読む。
 
 - 作業方法と役割契約の正本: `.codex/README.md`
-- 実装の進め方: `.codex/skills/impl-direction/SKILL.md`
-- 修正の進め方: `.codex/skills/fix-direction/SKILL.md`
-- テスト設計の進め方: `.codex/skills/test-architect/SKILL.md`
+- 実装の進め方: `.codex/skills/directing-implementation/SKILL.md`
+- 修正の進め方: `.codex/skills/directing-fixes/SKILL.md`
+- テスト設計の進め方: `.codex/skills/architecting-tests/SKILL.md`
 - エージェントの役割契約: `.codex/agents/`
 - エージェントの作業フロー: `.codex/skills/`
 - 仕様の入口: `docs/index.md`
@@ -33,7 +33,7 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - `docs/` は、スコープ、アーキテクチャ、技術選定を記録する正本とする
 - `4humans/` は、人間向けの品質状態と負債整理を記録する正本とする
 - 用語は `docs/spec.md` の用語集に合わせる
-- live workflow は `.codex/README.md` と `impl-direction` / `fix-direction` に従う
+- live workflow は `.codex/README.md` と `directing-implementation` / `directing-fixes` に従う
 - 非自明な変更は、実装前に `docs/exec-plans/active/` へ計画を置く
 - タスク完了後は計画を `docs/exec-plans/completed/` へ移し、結果を記録する
 - 振る舞いが変わる変更では、関連する仕様文書や設計文書も同じ変更内で更新する
@@ -66,7 +66,9 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 隠れた前提を増やさず、短く明示的な文書更新を優先する
 - タスクが仕様変更を求めていない限り、既存仕様は不用意に書き換えない
 - 新しいルールは短く、見つけやすく保つ
-- 実装系の標準は `impl-direction -> impl-distill -> impl-workplan -> test-architect -> impl-work -> impl-review -> impl-direction close` とする
-- 修正系の標準は `fix-direction -> fix-distill -> fix-trace -> (必要時 fix-logging / fix-analysis) -> test-architect -> fix-work -> fix-review -> fix-direction close` とする
+- 実装系の標準は `directing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> reviewing-implementation -> directing-implementation close` とする
+- 修正系の標準は `directing-fixes -> distilling-fixes -> tracing-fixes -> (必要時 logging-fixes / analyzing-fixes) -> architecting-tests -> implementing-fixes -> reviewing-fixes -> directing-fixes close` とする
 - 過去 repo 由来で今の repo に合わない skill / agent / artifact 前提は、互換維持より削除を優先する
 - 実装コードがまだ存在しない段階では、推測で public API を増やすより、ハーネスと文書を改善する
+
+

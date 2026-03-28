@@ -11,7 +11,7 @@
 - リポジトリは、エージェントが理解しやすい構造を優先する
 - `AGENTS.md` は短い地図として保ち、作業方法は `.codex/`、プロダクト判断は `docs/` に置く
 - `docs/` は説明資料ではなく、判断履歴と制約の正本として扱う
-- `.codex/` は、`impl-direction` / `fix-direction` と補助 agent 契約の正本として扱う
+- `.codex/` は、`directing-implementation` / `directing-fixes` と補助 agent 契約の正本として扱う
 - 非自明な変更は、実装前に短い計画を残す
 - 仕様変更を伴う実装は、コード変更と同時に文書も更新する
 - 繰り返し起こる失敗は、個別修正ではなくルールへ昇格させる
@@ -49,8 +49,8 @@
 実装前:
 
 - `AGENTS.md` から入り、`.codex/README.md` と relevant direction skill を読む
-- 実装では `impl-direction` を使い、task-local design が要る時だけ active plan に `UI` / `Scenario` / `Logic` を埋める
-- 修正では `fix-direction` を使い、事実不足なら trace と optional logging で scope を狭める
+- 実装では `directing-implementation` を使い、task-local design が要る時だけ active plan に `UI` / `Scenario` / `Logic` を埋める
+- 修正では `directing-fixes` を使い、事実不足なら trace と optional logging で scope を狭める
 - 非自明な変更なら template を使って `docs/exec-plans/active/` に計画を置く
 - 構造ハーネスを先に通す
 
@@ -66,3 +66,4 @@
 - まだ翻訳品質ゲートを repository gate にはしない
 - まだ新しいコード上の public API を先回りして増やさない
 - まだ巨大な単一マニュアルを作らない
+

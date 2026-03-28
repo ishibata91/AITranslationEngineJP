@@ -6,8 +6,8 @@
 ## Read Order
 
 1. [`../.codex/README.md`](../.codex/README.md)
-2. 実装なら [`../.codex/skills/impl-direction/SKILL.md`](../.codex/skills/impl-direction/SKILL.md)
-3. バグ修正なら [`../.codex/skills/fix-direction/SKILL.md`](../.codex/skills/fix-direction/SKILL.md)
+2. 実装なら [`../.codex/skills/directing-implementation/SKILL.md`](../.codex/skills/directing-implementation/SKILL.md)
+3. バグ修正なら [`../.codex/skills/directing-fixes/SKILL.md`](../.codex/skills/directing-fixes/SKILL.md)
 4. [`core-beliefs.md`](./core-beliefs.md)
 5. [`spec.md`](./spec.md)
 6. [`architecture.md`](./architecture.md)
@@ -20,8 +20,8 @@
 
 - [`core-beliefs.md`](./core-beliefs.md): agent-first principles, hard rules, and repository habits
 - [`../.codex/`](../.codex/README.md): multi-agent workflow, role contracts, and workflow skills
-- [`../.codex/skills/impl-direction/`](../.codex/skills/impl-direction/SKILL.md): implementation lane entrypoint that can also settle task-local design
-- [`../.codex/skills/fix-direction/`](../.codex/skills/fix-direction/SKILL.md): bugfix lane entrypoint with optional tracing and logging
+- [`../.codex/skills/directing-implementation/`](../.codex/skills/directing-implementation/SKILL.md): implementation lane entrypoint that can also settle task-local design
+- [`../.codex/skills/directing-fixes/`](../.codex/skills/directing-fixes/SKILL.md): bugfix lane entrypoint with optional tracing and logging
 - [`spec.md`](./spec.md): permanent requirements and glossary
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
@@ -63,3 +63,4 @@
 - The legacy raw API dumps still live under `docs/api-refrences/`. Keep them until they are migrated,
   but do not add new files there.
 - Workflow skills live under [`../.codex/skills/`](../.codex/skills/).
+

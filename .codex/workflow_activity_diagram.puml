@@ -1,0 +1,51 @@
+@startuml WorkflowActivity
+title AITranslationEngineJp Codex Workflow Activity
+skinparam shadowing false
+skinparam linetype ortho
+
+start
+:User request;
+
+if (Request type?) then (feature / change)
+  :directing-implementation;
+  :distilling-implementation;
+  :planning-implementation;
+  :architecting-tests;
+
+  if (Owned scope?) then (frontend)
+    :implementing-frontend;
+  else (backend)
+    :implementing-backend;
+  endif
+
+  :reviewing-implementation;
+  if (Review result?) then (pass)
+    :docs sync + close;
+  else (reroute)
+    :directing-implementation;
+  endif
+else (bug / regression)
+  :directing-fixes;
+  :distilling-fixes;
+  :tracing-fixes;
+
+  if (Temporary logging needed?) then (yes)
+    :logging-fixes;
+    :analyzing-fixes;
+  else (no)
+    :analyzing-fixes;
+  endif
+
+  :architecting-tests;
+  :implementing-fixes;
+  :reviewing-fixes;
+  if (Review result?) then (pass)
+    :reporting-risks + docs sync + close;
+  else (reroute)
+    :directing-fixes;
+  endif
+endif
+
+stop
+@enduml
+

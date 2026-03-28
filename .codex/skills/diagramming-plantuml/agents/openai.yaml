@@ -1,0 +1,4 @@
+interface:
+  display_name: "PlantUML 図作成"
+  short_description: "PlantUML 図を作成・検証する"
+  default_prompt: "$diagramming-plantuml を使って PlantUML 図を作成または修正し、.puml に対して plantuml-check が通るまで確認してください。"
