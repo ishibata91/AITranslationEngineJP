@@ -33,3 +33,10 @@
 - `SQLite` は `PLUGIN_EXPORT` 配下の入力データを実行キャッシュとして保持する
 - `MASTER_PERSONA` と `MASTER_DICTIONARY` は `SQLite` 上の永続基盤データとして保持する
 - DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
+
+## 5. DI と品質基盤
+
+- DI は `手動 DI` を採用する
+- フロントエンドの標準 lint は `Oxlint` を採用する
+- UI / `Svelte` 変更時の補助 lint として `ESLint` を採用する
+- Rust の品質基盤は `rustfmt` / `clippy` を採用する
