@@ -24,3 +24,10 @@
 - UI、実行、DTO、状態遷移の細かな制約は、将来的に対応する test と validation command で表現する
 - plan には `Acceptance Checks` を必須で持たせ、詳細仕様の一時的な置き場にする
 - 永続ルールだけを `spec.md` と `architecture.md` に残し、細かな分岐条件はここからテストへ寄せる
+- ドメイン / アプリケーション層のルールは Rust の `cargo test` を基本入口として表現する
+- UI コンポーネントと画面内の振る舞いは `Vitest` と `@testing-library/svelte` で表現する
+- デスクトップ統合の acceptance checks は `tauri-driver` と `WebdriverIO` を基本入口とする
+- xEdit importer の acceptance checks では、`extractData.pas` の raw JSON に含まれる `cells` 空配列と `voicetype` 互換項目を読み込んでも canonical DB モデルが崩れないことを確認する
+- 複数入力ファイルの acceptance checks では、1 つの `TRANSLATION_JOB` が複数 `PLUGIN_EXPORT` を参照しつつ、出自情報を保持したまま `TRANSLATION_UNIT` を生成できることを確認する
+- 出力 writer の acceptance checks では、複数フィールドを持つ 1 レコードから `TRANSLATION_UNIT` を field 単位で生成し、xTranslator XML の `EDID` / `REC` / `FIELD` / `FORMID` / `Source` / `Dest` / `Status` を lossless に再構成できることを確認する
+- ペルソナ生成の acceptance checks では、`MASTER_PERSONA` と `JOB_PERSONA_ENTRY` が混線せず、mod 追加 NPC のジョブ内ペルソナを UI 観測用 DTO へ分けて出せることを確認する

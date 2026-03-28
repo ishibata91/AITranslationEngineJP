@@ -147,14 +147,17 @@ UI が扱う状態は以下の 3 種に分ける。
 - バックエンドの中核ロジックは Rust の型で定義する
 - UI は TypeScript の型で定義する
 - xEdit JSON はロード時に型検証する
-- xTranslator XML は内部ドメインモデルから生成する
+- xTranslator XML は `TRANSLATION_UNIT` とジョブごとの翻訳結果から生成する
 - ジョブフェーズ種別は DB テーブルではなくアプリケーション定数として定義する
 - DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
 
 ## 6. 永続化方針
 
 - `PLUGIN_EXPORT` 配下の入力データは SQLite 上の実行キャッシュとして保持する
-- 実行キャッシュは `TRANSLATION_JOB` が参照する
-- `TRANSLATION_JOB` が `Completed`, `Canceled`, `Failed` のいずれかになり、同一 `PLUGIN_EXPORT` に未完了ジョブが残っていない場合は入力キャッシュを削除する
+- 実行キャッシュは `TRANSLATION_JOB` が `JOB_PLUGIN_EXPORT` を介して 1 件以上参照する
+- import 時に、各 translatable field を `TRANSLATION_UNIT` として正規化し、翻訳フェーズと出力生成の canonical 単位にする
+- mod 翻訳中に生成したペルソナは `JOB_PERSONA_ENTRY` としてジョブ単位に保持し、基盤の `MASTER_PERSONA` とは分離する
+- 出力生成結果は `JOB_OUTPUT_ARTIFACT` として format ごとに記録する
+- `TRANSLATION_JOB` が `Completed`, `Canceled`, `Failed` のいずれかになり、同一 `PLUGIN_EXPORT` を参照する未完了ジョブが `JOB_PLUGIN_EXPORT` 上に残っていない場合は入力キャッシュを削除する
 - JSON 原本は削除せず、必要時に再取り込み可能とする
 - `MASTER_PERSONA`, `MASTER_PERSONA_ENTRY`, `MASTER_DICTIONARY`, `MASTER_DICTIONARY_ENTRY` はジョブ完了後も保持する

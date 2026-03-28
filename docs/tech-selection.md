@@ -40,3 +40,10 @@
 - フロントエンドの標準 lint は `Oxlint` を採用する
 - UI / `Svelte` 変更時の補助 lint として `ESLint` を採用する
 - Rust の品質基盤は `rustfmt` / `clippy` を採用する
+
+## 6. テスト技術
+
+- Rust の単体テスト / 結合テストは `cargo test` による標準 test harness を採用する
+- UI コンポーネントと画面内インタラクションのテストは `Vitest` を採用する
+- Svelte UI のユーザー視点テストは `@testing-library/svelte` と `jsdom` を採用する
+- Tauri デスクトップの受け入れ検証と end-to-end テストは `tauri-driver` と `WebdriverIO` を採用する

@@ -24,12 +24,12 @@
 - [`spec.md`](./spec.md): permanent requirements and glossary
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
-- [`er-draft.md`](./er-draft.md): concept-level data model draft
+- [`er-draft.md`](./er-draft.md): canonical data model and ER specification
 - [`executable-specs.md`](./executable-specs.md): testable constraints, acceptance checks, and executable-spec policy
 - [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
 - [`exec-plans/completed/`](./exec-plans/completed/README.md): finished plans and outcomes
-- [`quality-score.md`](./quality-score.md): current quality posture and missing coverage
-- [`tech-debt-tracker.md`](./tech-debt-tracker.md): unresolved debt and cleanup backlog
+- [`../4humans/quality-score.md`](../4humans/quality-score.md): human-facing quality posture and missing coverage
+- [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md): human-facing unresolved debt and cleanup backlog
 - [`references/`](./references/index.md): curated reference index and external material policy
 
 ## Choose The Right Record
@@ -43,8 +43,8 @@
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
 - Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/`
 - Product-level confusion keeps recurring: add a rule to [`core-beliefs.md`](./core-beliefs.md) or [`AGENTS.md`](../AGENTS.md)
-- The repository is missing coverage or confidence: update [`quality-score.md`](./quality-score.md)
-- The problem is known but not resolved yet: update [`tech-debt-tracker.md`](./tech-debt-tracker.md)
+- The repository is missing coverage or confidence: update [`../4humans/quality-score.md`](../4humans/quality-score.md)
+- The problem is known but not resolved yet: update [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md)
 
 ## Repository Checks
 

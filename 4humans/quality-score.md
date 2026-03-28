@@ -1,6 +1,6 @@
 # Quality Score
 
-関連文書: [`index.md`](./index.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-debt-tracker.md`](./tech-debt-tracker.md)
+関連文書: [`../docs/index.md`](../docs/index.md), [`../docs/core-beliefs.md`](../docs/core-beliefs.md), [`tech-debt-tracker.md`](./tech-debt-tracker.md)
 
 このファイルは、現在の品質状態を見える化し、不足している検証面を明示する。
 

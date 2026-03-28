@@ -1,6 +1,6 @@
 # References Index
 
-関連文書: [`../index.md`](../index.md), [`../tech-debt-tracker.md`](../tech-debt-tracker.md)
+関連文書: [`../index.md`](../index.md), [`../../4humans/tech-debt-tracker.md`](../../4humans/tech-debt-tracker.md)
 
 このディレクトリは、外部仕様やベンダー資料の参照方針をまとめる。
 
@@ -12,7 +12,7 @@
 
 ## Current Sources
 
-- [`../xtranslator_ref.md`](../xtranslator_ref.md): xTranslator の入出力形式整理
+- [`./xtranslator_ref.md`](./xtranslator_ref.md): xTranslator の入出力形式整理
 - `../api-refrences/`: 既存のベンダー API 参照の legacy 置き場
 
 ## Migration Note

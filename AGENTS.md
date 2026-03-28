@@ -26,7 +26,8 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 ## 強い制約
 
 - `.codex/` は、エージェントの作業方法と役割契約の正本とする
-- `docs/` は、スコープ、アーキテクチャ、技術選定、未解消課題を記録する正本とする
+- `docs/` は、スコープ、アーキテクチャ、技術選定、実行可能仕様を記録する正本とする
+- `4humans/` は、人間向けの品質状態と負債整理を記録する正本とする
 - 用語は `docs/spec.md` の用語集に合わせる
 - heavy / light の判定は `.codex/README.md` と `architect-direction` / `light-direction` に従う
 - 非自明な変更は、実装前に `docs/exec-plans/active/` へ計画を置く
@@ -57,14 +58,14 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 恒久要件: `docs/spec.md`
 - 内部境界と依存方向: `docs/architecture.md`
 - 実装技術の選定: `docs/tech-selection.md`
-- データ構造ドラフト: `docs/er-draft.md`
+- データ構造と ER: `docs/er-draft.md`
 - 実行可能仕様と制約: `docs/executable-specs.md`
 - エージェントの役割契約: `.codex/agents/`
 - エージェントの作業フロー: `.codex/skills/`
 - 作業計画: `docs/exec-plans/`
 - 長期的な原則とガードレール: `docs/core-beliefs.md`
-- 未解消の課題や曖昧さ: `docs/tech-debt-tracker.md`
-- 現在の品質状態と不足: `docs/quality-score.md`
+- 未解消の課題や曖昧さ: `4humans/tech-debt-tracker.md`
+- 現在の品質状態と不足: `4humans/quality-score.md`
 - 外部仕様やベンダー資料: `docs/references/`
 
 ## 検証入口

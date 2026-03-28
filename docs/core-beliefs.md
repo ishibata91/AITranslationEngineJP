@@ -1,6 +1,6 @@
 # Core Beliefs
 
-関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`quality-score.md`](./quality-score.md)
+関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`../4humans/quality-score.md`](../4humans/quality-score.md)
 
 本プロジェクトは `agent-first` を強く採用するが、人間の責務は消えない。
 人間は主に方針、受け入れ条件、境界、記録、レビュー観点、ハーネス改善を担う。
@@ -22,12 +22,13 @@
 - 永続要件は `spec.md` に記録する
 - 内部境界と依存方向は `architecture.md` に記録する
 - 実装技術の選択は `tech-selection.md` に記録する
+- データモデルと ER は `er-draft.md` に記録する
 - 実行可能仕様と制約は `executable-specs.md` と対応する test / acceptance checks に記録する
 - 作業フローは `.codex/skills/` に記録する
 - 役割契約は `.codex/agents/` に記録する
 - 一時的な作業単位は `exec-plans/` に記録する
-- 未整理の課題は `tech-debt-tracker.md` に集約する
-- 品質の現在地と不足は `quality-score.md` に集約する
+- 未整理の課題は `../4humans/tech-debt-tracker.md` に集約する
+- 品質の現在地と不足は `../4humans/quality-score.md` に集約する
 
 ## 3. ルール化するべき失敗
 

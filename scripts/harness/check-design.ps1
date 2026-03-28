@@ -73,7 +73,7 @@ $checks = @(
         Patterns = @("test", "acceptance checks", "fixture", "validation")
     },
     @{
-        File = (Join-Path $RepoRoot "docs\quality-score.md")
+        File = (Join-Path $RepoRoot "4humans\quality-score.md")
         Patterns = @("Codex workflow source of truth", "Agent role contracts", "Executable specs and constraints")
     }
 )

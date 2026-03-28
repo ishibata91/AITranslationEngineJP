@@ -1,6 +1,6 @@
 # Tech Debt Tracker
 
-関連文書: [`index.md`](./index.md), [`quality-score.md`](./quality-score.md), [`references/index.md`](./references/index.md)
+関連文書: [`../docs/index.md`](../docs/index.md), [`quality-score.md`](./quality-score.md), [`../docs/references/index.md`](../docs/references/index.md)
 
 このファイルは、既知だが未解消の構造負債、設計負債、運用負債を集約する。
 
