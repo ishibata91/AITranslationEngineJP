@@ -39,6 +39,7 @@ description: AITranslationEngineJp 専用。ユーザー要求の標準入口。
 5. 調査結果または既知 artifact をもとに `docs/exec-plans/templates/heavy-plan.md` で実装可能な Heavy plan を固める。
 6. plan 完了後だけ Coder へ handoff する。
 7. 実装と検証結果を `workflow-gate` で照合し、Architect が accept / reroute / docs handoff を決める。
+8. 最終 close では、今の skill / agent 構成で `失敗した部分` と `改善余地` を `Level 1` / `Level 2` / `Level 3` の 3 レベルで報告する。
 
 ## Handoff Rules
 
@@ -46,6 +47,7 @@ description: AITranslationEngineJp 専用。ユーザー要求の標準入口。
 - Heavy plan には既知事実、unknown 分類、期待成果物、required evidence を固定する
 - Coder には plan、非対象、検証方法、docs sync を渡す
 - Review 後の最終 accept は Architect が持つ
+- close 時の retrospective report では `Level 1` を flow break / unsafe failure、`Level 2` を主要な摩擦 / evidence gap、`Level 3` を軽微だが再発しうる改善余地として扱う
 
 ## Notes
 

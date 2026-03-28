@@ -72,6 +72,8 @@
 - gate の出力は `decision`、`missing_evidence`、`contract_breaks`、`docs_sync`、`recheck` を含む
 - gate は美しさや好みを判定しない
 - 繰り返し見つかる review 指摘は gate や review に残さず、`docs/executable-specs.md` または harness へ昇格する
+- Architect は final closeout で、今の skill / agent 構成で `失敗した部分` と `改善余地` を `Level 1` / `Level 2` / `Level 3` の 3 レベルで報告する
+- `Level 1` は flow break、unsafe handoff、accept を止めるべき失敗、`Level 2` は手戻りや evidence 不足を招いた主要な摩擦、`Level 3` は軽微だが再発しうる改善余地として扱う
 
 ## 守ること
 

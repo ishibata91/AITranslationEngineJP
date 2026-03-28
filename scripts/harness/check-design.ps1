@@ -24,11 +24,11 @@ function Assert-Patterns {
 }
 
 $checks = @(
-    [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\README.md"); Patterns = @("flow light, gate heavy", "Plan Stabilization Loop", "blocking unknown", "workflow-gate") },
-    [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\agents\architect.toml"); Patterns = @("architect", "Plan Stabilization Loop", "Workflow Gate", "blocking") },
+    [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\README.md"); Patterns = @("flow light, gate heavy", "Plan Stabilization Loop", "blocking unknown", "workflow-gate", "Level 1", "Level 2", "Level 3") },
+    [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\agents\architect.toml"); Patterns = @("architect", "Plan Stabilization Loop", "Workflow Gate", "blocking", "Level 1", "Level 2", "Level 3") },
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\agents\research.toml"); Patterns = @("Research agent", "Read-only", "facts", "blocking") },
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\agents\coder.toml"); Patterns = @("Coder agent", "implementation", "workflow gate", "Do not spawn sub-agents") },
-    [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\skills\architect-direction\SKILL.md"); Patterns = @("Plan Stabilization Loop", "blocking", "workflow-gate", "Heavy plan") },
+    [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\skills\architect-direction\SKILL.md"); Patterns = @("Plan Stabilization Loop", "blocking", "workflow-gate", "Heavy plan", "Level 1", "Level 2", "Level 3") },
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\skills\light-direction\SKILL.md"); Patterns = @("Short Plan", "workflow-gate", "blocking unknown", "reroute") },
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\skills\workflow-gate\SKILL.md"); Patterns = @("decision", "missing_evidence", "contract_breaks", "docs_sync", "recheck") },
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\skills\light-review\SKILL.md"); Patterns = @("supplemental", "workflow-gate", "standard gate") },
