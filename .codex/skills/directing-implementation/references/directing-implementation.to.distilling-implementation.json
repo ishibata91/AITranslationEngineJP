@@ -1,0 +1,51 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "directing-implementation",
+  "to_skill": "distilling-implementation",
+  "purpose": "Implement lane の初期材料を整理し、facts / constraints / gaps を抽出させる。",
+  "required": [
+    {
+      "description": "実装要求の要約と到達したい変更点。",
+      "field": "request_summary",
+      "type": "string"
+    },
+    {
+      "description": "作業中の exec-plan。UI / Scenario / Logic を含む。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "先に読むべき docs / spec / architecture への参照。",
+      "field": "relevant_docs",
+      "type": "string[]"
+    },
+    {
+      "description": "確認対象の code / test / module path。",
+      "field": "related_code",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "既知の制約や避けるべき legacy 前提。",
+      "field": "known_constraints",
+      "type": "string[]"
+    },
+    {
+      "description": "direction 側がまだ確定できていない論点。",
+      "field": "open_questions",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "active plan を別 artifact に分解しない",
+    "changes/ や context_board を前提にしない"
+  ],
+  "completion_signal": [
+    "facts が列挙されている",
+    "constraints が明示されている",
+    "gaps が推測と分離されている",
+    "docs_sync_candidates または required_reading が返る"
+  ]
+}

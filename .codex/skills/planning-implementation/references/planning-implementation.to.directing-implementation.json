@@ -1,0 +1,43 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "planning-implementation",
+  "to_skill": "directing-implementation",
+  "purpose": "direction が test 設計と実装 handoff に使う implementation brief を返す。",
+  "required": [
+    {
+      "description": "実装順序。",
+      "field": "ordered_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "frontend / backend / split の決定。",
+      "field": "owned_scope",
+      "type": "string"
+    },
+    {
+      "description": "次工程が読むべき path。",
+      "field": "required_reading",
+      "type": "string[]"
+    },
+    {
+      "description": "後続 skill が使う検証コマンド。",
+      "field": "validation_commands",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "active plan に反映した短い更新点。",
+      "field": "implementation_plan_updates",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "lane を切り替えない",
+    "実装コードを直接変更しない"
+  ],
+  "completion_signal": [
+    "direction が architecting-tests と implementing-* に handoff できる brief になっている"
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "logging-fixes",
+  "to_skill": "directing-fixes",
+  "purpose": "direction が観測実行と分析に進める logging 変更内容を返す。",
+  "required": [
+    {
+      "description": "log を入れた file。",
+      "field": "instrumented_files",
+      "type": "string[]"
+    },
+    {
+      "description": "追加したメッセージ要約。",
+      "field": "observation_messages",
+      "type": "string[]"
+    },
+    {
+      "description": "除去手順または除去必要箇所。",
+      "field": "cleanup_plan",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "観測用コマンド。",
+      "field": "run_command",
+      "type": "string"
+    }
+  ],
+  "must_not_change": [
+    "根本修正完了扱いにしない"
+  ],
+  "completion_signal": [
+    "direction が analyzing-fixes に必要な観測結果取得へ進める"
+  ]
+}

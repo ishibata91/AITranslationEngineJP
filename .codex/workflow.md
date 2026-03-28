@@ -58,5 +58,7 @@ diagram 上では `analyzing-fixes` は常に通ります。
 - 非自明な変更は `docs/exec-plans/active/` に plan を置く
 - 完了後は `docs/exec-plans/completed/` へ移す
 - 詳細な挙動や制約は docs へ肥大化させず、tests、acceptance checks、validation commands に寄せる
+- `directing-* -> downstream skill` の handoff contract 例は、各 directing skill 配下の `references/*.json` を見る
+- `downstream skill -> directing-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を見る
 - harness は `powershell -File scripts/harness/run.ps1 -Suite structure|design|execution|all` を入口にする
 

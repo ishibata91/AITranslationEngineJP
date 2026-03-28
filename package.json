@@ -4,15 +4,15 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "preview": "vite preview",
+    "dev": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vite/bin/vite.js --config ./vite.config.mjs --configLoader native",
+    "build": "tsc --noEmit && node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vite/bin/vite.js build --config ./vite.config.mjs --configLoader native",
+    "preview": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vite/bin/vite.js preview --config ./vite.config.mjs --configLoader native",
     "lint": "npm run lint:oxlint && npm run lint:eslint && npm run lint:knip",
     "lint:oxlint": "oxlint src --deny-warnings",
-    "lint:eslint": "eslint .",
+    "lint:eslint": "eslint src",
     "lint:knip": "knip --config knip.json",
     "report:semgrep": "semgrep scan --config semgrep/semgrep.yml --error=false",
-    "test": "vitest run",
+    "test": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vitest/vitest.mjs run --pool threads --config ./vite.config.mjs --configLoader native",
     "tauri": "tauri"
   },
   "dependencies": {

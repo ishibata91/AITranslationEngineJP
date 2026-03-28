@@ -93,4 +93,7 @@ Test brief:
 * モックは外部境界に限定し、内部相互作用を固定しない
 * Arrange が肥大化する場合は fixture / helper に分離する
 
+## Reference Use
 
+- impl lane では着手前に `../directing-implementation/references/directing-implementation.to.architecting-tests.json` を参照し、返却時は `references/architecting-tests.to.directing-implementation.json` を使う。
+- fix lane では着手前に `../directing-fixes/references/directing-fixes.to.architecting-tests.json` を参照し、返却時は `references/architecting-tests.to.directing-fixes.json` を使う。

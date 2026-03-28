@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from "node:url";
 export default defineConfig({
   plugins: [svelte()],
   resolve: {
+    preserveSymlinks: true,
     alias: {
       "@application": fileURLToPath(new URL("./src/application", import.meta.url)),
       "@gateway": fileURLToPath(new URL("./src/gateway", import.meta.url)),

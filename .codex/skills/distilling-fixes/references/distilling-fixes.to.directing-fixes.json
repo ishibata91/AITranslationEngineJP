@@ -1,0 +1,41 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "distilling-fixes",
+  "to_skill": "directing-fixes",
+  "purpose": "direction が trace に進める bugfix 事実を返す。",
+  "required": [
+    {
+      "description": "確認済み事実。",
+      "field": "known_facts",
+      "type": "string[]"
+    },
+    {
+      "description": "再現できたか、未再現か。",
+      "field": "reproduction_status",
+      "type": "string"
+    },
+    {
+      "description": "仕様や実装上の制約。",
+      "field": "related_constraints",
+      "type": "string[]"
+    },
+    {
+      "description": "見るべき code path。",
+      "field": "related_code_pointers",
+      "type": "string[]"
+    },
+    {
+      "description": "未解明点。",
+      "field": "open_gaps",
+      "type": "string[]"
+    }
+  ],
+  "optional": [],
+  "must_not_change": [
+    "trace plan を勝手に過剰化しない"
+  ],
+  "completion_signal": [
+    "direction が tracing-fixes に handoff できる"
+  ]
+}

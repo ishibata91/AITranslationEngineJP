@@ -19,4 +19,7 @@ description: bugfix 初期情報を整理し、既知事実、再現条件、関
 - packet file を作らない
 - `changes/` や `context_board` を前提にしない
 
+## Reference Use
 
+- 着手前に `../directing-fixes/references/directing-fixes.to.distilling-fixes.json` を参照して入力契約を確認する。
+- `directing-fixes` へ返す時は `references/distilling-fixes.to.directing-fixes.json` を返却契約として使う。

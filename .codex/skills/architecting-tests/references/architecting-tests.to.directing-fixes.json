@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "architecting-tests",
+  "to_skill": "directing-fixes",
+  "purpose": "fix lane の回帰テスト設計結果を direction へ返す。",
+  "required": [
+    {
+      "description": "先に固定したい回帰 test。",
+      "field": "failing_tests",
+      "type": "string[]"
+    },
+    {
+      "description": "再現 fixture。",
+      "field": "fixtures",
+      "type": "string[]"
+    },
+    {
+      "description": "修正完了確認。",
+      "field": "acceptance_checks",
+      "type": "string[]"
+    },
+    {
+      "description": "テスト実行コマンド。",
+      "field": "validation_commands",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "仕様未確定で残した gap。",
+      "field": "open_test_gaps",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "fix scope を広げない"
+  ],
+  "completion_signal": [
+    "direction が implementing-fixes に handoff できる"
+  ]
+}

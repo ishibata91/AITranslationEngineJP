@@ -15,12 +15,12 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 ## Required Workflow
 
 1. `docs/exec-plans/templates/fix-plan.md` を使って active plan を作成または更新する。
-2. `distilling-fixes` で既知事実、関連仕様、関連コード、再現条件を整理する。
-3. `tracing-fixes` で原因仮説と観測方針を決める。
-4. 観測が必要な時だけ `logging-fixes` と `analyzing-fixes` を使う。
-5. `architecting-tests` で再現条件を failing tests、fixtures、acceptance checks、validation commands に落とす。
-6. scope が固まったら `implementing-fixes` で修正する。
-7. 実装後は `reviewing-fixes` を 1 回だけ実行する。
+2. `<ctx_loader>` を `distilling-fixes` でスポーンし、既知事実、関連仕様、関連コード、再現条件を整理する。
+3. `<fault_tracer>` を `tracing-fixes` でスポーンし、原因仮説と観測方針を決める。
+4. 観測が必要な時だけ `<log_instrumenter>` を `logging-fixes` でスポーンし、その結果をもとに `analyzing-fixes` で観測結果を圧縮する。
+5. `<test_architect>` を `architecting-tests` でスポーンし、再現条件を failing tests、fixtures、acceptance checks、validation commands に落とす。
+6. scope が固まったら `<implementer>` を `implementing-fixes` でスポーンして修正する。
+7. 実装後は `<review_cycler>` を `reviewing-fixes` で 1 回だけ実行する。
 8. docs sync や residual risk を整理して close する。
 
 ## Rules
@@ -31,4 +31,7 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 - review は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを見る
 - score 制の review loop を導入しない
 
+## Reference Use
 
+- downstream skill へ handoff する前に `references/directing-fixes.to.<skill>.json` を参照し、渡す情報を揃える。
+- downstream skill から受け取る時は、各 skill 側の `references/<skill>.to.directing-fixes.json` を返却契約として扱う。

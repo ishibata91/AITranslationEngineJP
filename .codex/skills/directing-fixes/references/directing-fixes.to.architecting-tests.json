@@ -1,0 +1,37 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "directing-fixes",
+  "to_skill": "architecting-tests",
+  "purpose": "fix lane 向け回帰テスト契約を固定する。",
+  "required": [
+    {
+      "description": "fix plan。",
+      "field": "active_fix_plan",
+      "type": "path"
+    },
+    {
+      "description": "再現条件と期待結果。",
+      "field": "reproduction_contract",
+      "type": "string[]"
+    },
+    {
+      "description": "observed facts と fix scope。",
+      "field": "analysis_summary",
+      "type": "object"
+    }
+  ],
+  "optional": [
+    {
+      "description": "unit / integration / acceptance の優先。",
+      "field": "preferred_test_layer",
+      "type": "string"
+    }
+  ],
+  "must_not_change": [
+    "実装修正を混ぜない"
+  ],
+  "completion_signal": [
+    "failing_tests と acceptance_checks が fix scope に結び付いている"
+  ]
+}

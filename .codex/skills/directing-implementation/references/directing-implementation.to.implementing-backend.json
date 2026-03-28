@@ -1,0 +1,43 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "directing-implementation",
+  "to_skill": "implementing-backend",
+  "purpose": "backend 実装 worker へ許可 scope と checks を渡す。",
+  "required": [
+    {
+      "description": "作業対象 plan。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "owned_scope / ordered_scope / validation_commands を含む brief。",
+      "field": "work_brief",
+      "type": "object"
+    },
+    {
+      "description": "変更を許可する backend files / modules。",
+      "field": "allowed_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "実行必須の check。",
+      "field": "checks",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "実装しながら確認すべき docs sync 項目。",
+      "field": "docs_sync_watch",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "frontend owned scope を触らない",
+    "plan の lane を切り替えない"
+  ],
+  "completion_signal": [
+    "実装と checks 実行に必要な境界が明示されている"
+  ]
+}

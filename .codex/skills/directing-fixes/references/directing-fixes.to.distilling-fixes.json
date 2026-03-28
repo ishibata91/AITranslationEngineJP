@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "directing-fixes",
+  "to_skill": "distilling-fixes",
+  "purpose": "bugfix 事実整理の初期材料を渡す。",
+  "required": [
+    {
+      "description": "不具合の要約。",
+      "field": "bug_summary",
+      "type": "string"
+    },
+    {
+      "description": "作業中の fix plan。",
+      "field": "active_fix_plan",
+      "type": "path"
+    },
+    {
+      "description": "既知の再現条件または未再現情報。",
+      "field": "known_reproduction",
+      "type": "string[]"
+    },
+    {
+      "description": "関連コード / docs の候補。",
+      "field": "related_area",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "ユーザー影響や失敗条件。",
+      "field": "reported_impact",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "推測を事実として固定しない"
+  ],
+  "completion_signal": [
+    "known facts と open gaps を分離して返せる"
+  ]
+}

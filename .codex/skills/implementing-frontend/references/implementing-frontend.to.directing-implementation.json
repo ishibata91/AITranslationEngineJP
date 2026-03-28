@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "implementing-frontend",
+  "to_skill": "directing-implementation",
+  "purpose": "frontend 実装結果を review と closeout に引き渡す。",
+  "required": [
+    {
+      "description": "変更した file path。",
+      "field": "changed_files",
+      "type": "string[]"
+    },
+    {
+      "description": "実行した checks。",
+      "field": "checks_run",
+      "type": "string[]"
+    },
+    {
+      "description": "checks の結果要約。",
+      "field": "check_results",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "同変更で更新すべき docs。",
+      "field": "docs_sync_needed",
+      "type": "string[]"
+    },
+    {
+      "description": "direction 判断が必要な未解決点。",
+      "field": "blocked_points",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "review 判定を自分で確定しない"
+  ],
+  "completion_signal": [
+    "direction が reviewing-implementation に handoff できる差分証跡がある"
+  ]
+}

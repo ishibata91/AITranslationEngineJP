@@ -1,6 +1,6 @@
 ---
 name: planning-implementation
-description: `distilling-implementation` と active exec-plan をもとに、ordered scope と validation を短い implementation brief に変換する。
+description: "`distilling-implementation` と active exec-plan をもとに、ordered scope と validation を短い implementation brief に変換する。"
 ---
 
 # Planning Implementation
@@ -14,9 +14,12 @@ description: `distilling-implementation` と active exec-plan をもとに、ord
 ## Rules
 
 - 必要なら active exec-plan の `Implementation Plan` だけを更新してよい
+- `Implementation Plan` はモジュール単位で task section を分ける
+- 各 task section は契約に依存し、そのモジュールの責務だけを実装対象にする
 - `tasks.md` を作らない
-- section 数は最小限にする
 - frontend / backend の責務境界を曖昧にしない
-- 今の repo に不要な legacy schema を持ち込まない
 
+## Reference Use
 
+- 着手前に `../directing-implementation/references/directing-implementation.to.planning-implementation.json` を参照して入力契約を確認する。
+- `directing-implementation` へ返す時は `references/planning-implementation.to.directing-implementation.json` を返却契約として使う。

@@ -65,6 +65,9 @@
 - 実装 task でだけ必要になる `UI` / `Scenario` / `Logic` は plan の中に section として置く
 - 完了後も保持すべき詳細は `docs/` の正本、コード、型、tests、acceptance checks へ昇格する
 - active plan を別 artifact 群へ分解しない
+- `directing-* -> downstream skill` の handoff contract 例は、各 directing skill 配下の `references/*.json` を参照する
+- `downstream skill -> directing-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を参照する
+- reference JSON は説明用であり、live workflow の正本を packet 契約へ戻さない
 
 ## Review と reroute
 

@@ -1,0 +1,43 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "distilling-implementation",
+  "to_skill": "directing-implementation",
+  "purpose": "direction が workplan 化へ進める判断材料を返す。",
+  "required": [
+    {
+      "description": "実装判断に必要な既知事実。",
+      "field": "facts",
+      "type": "string[]"
+    },
+    {
+      "description": "依存方向、既存仕様、触れてはいけない境界。",
+      "field": "constraints",
+      "type": "string[]"
+    },
+    {
+      "description": "未確定事項。確定情報と混在させない。",
+      "field": "gaps",
+      "type": "string[]"
+    },
+    {
+      "description": "次工程が最低限読むべき path。",
+      "field": "required_reading",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "同変更で同期すべき文書候補。",
+      "field": "docs_sync_candidates",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "実装方針を独断で確定しない",
+    "未確認事項を fact 扱いしない"
+  ],
+  "completion_signal": [
+    "direction が planning-implementation に handoff できる情報粒度になっている"
+  ]
+}
