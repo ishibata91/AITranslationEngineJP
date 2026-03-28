@@ -1,6 +1,6 @@
 # 技術選定仕様
 
-関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md), [`executable-specs.md`](./executable-specs.md)
+関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md)
 
 本書は、システム実装のために採用する技術と、その適用対象を定義する。
 

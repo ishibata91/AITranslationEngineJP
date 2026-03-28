@@ -1,0 +1,4 @@
+interface:
+  display_name: "Test Architect"
+  short_description: "Draft spec-aligned tests before implementation"
+  default_prompt: "Use $test-architect to draft failing tests, fixtures, and validation commands from the active exec-plan."

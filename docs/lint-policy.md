@@ -1,9 +1,9 @@
 # Lint Policy
 
-関連文書: [`index.md`](./index.md), [`tech-selection.md`](./tech-selection.md), [`architecture.md`](./architecture.md), [`executable-specs.md`](./executable-specs.md)
+関連文書: [`index.md`](./index.md), [`tech-selection.md`](./tech-selection.md), [`architecture.md`](./architecture.md)
 
 この文書は、lint が何を管理し、何を管理しないかをまとめるための正本とする。
-個別ツールの採用自体は `tech-selection.md`、検証入口と失敗条件は `executable-specs.md` を正本とし、本書は lint の責務範囲を一覧化する。
+個別ツールの採用自体は `tech-selection.md`、検証入口と失敗条件は対応する tests / acceptance checks / validation commands を正本とし、本書は lint の責務範囲を一覧化する。
 
 ## Lint が管理するもの
 
@@ -17,7 +17,7 @@
 
 - runtime の正しさや振る舞い: `cargo test`、`Vitest`、acceptance checks で担保する
 - UI の表示仕様や操作結果: component test、screen-level test、end-to-end check で担保する
-- 業務フローや受け入れ条件の成立: `docs/executable-specs.md` と対応する tests / acceptance checks で担保する
+- 業務フローや受け入れ条件の成立: 対応する tests / acceptance checks / validation commands で担保する
 - formatting の整形結果そのもの: `rustfmt` などの formatter が担当し、lint の主責務には含めない
 
 ## Tool Ownership
@@ -97,5 +97,5 @@
 
 - 採用ツールと品質基盤の決定: [`tech-selection.md`](./tech-selection.md)
 - import 境界の設計原則: [`architecture.md`](./architecture.md)
-- validation command、失敗条件、allowlist 契約: [`executable-specs.md`](./executable-specs.md)
+- validation command、失敗条件、allowlist 契約: 対応する tests / acceptance checks / validation commands
 - task-local な一時判断: [`exec-plans/`](./exec-plans/active/README.md)

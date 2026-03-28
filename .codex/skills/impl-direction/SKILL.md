@@ -21,10 +21,11 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 2. `UI` / `Scenario` / `Logic` が必要な task だけ、その section を active plan に埋める。
 3. `impl-distill` で facts、constraints、gaps、docs sync 候補を整理する。
 4. `impl-workplan` で ordered scope、required reading、validation commands を短い brief にする。
-5. `impl-frontend-work` または `impl-backend-work` へ handoff して実装する。
-6. 実装後は `impl-review` を 1 回だけ実行する。
-7. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
-8. docs sync が必要なら同じ変更内で更新し、plan を `completed/` へ移す。
+5. `test-architect` で failing tests、fixtures、acceptance checks、validation commands を先に固定する。
+6. `impl-frontend-work` または `impl-backend-work` へ handoff して実装する。
+7. 実装後は `impl-review` を 1 回だけ実行する。
+8. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
+9. docs sync が必要なら同じ変更内で更新し、plan を `completed/` へ移す。
 
 ## Rules
 

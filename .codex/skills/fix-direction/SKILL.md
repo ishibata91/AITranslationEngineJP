@@ -18,9 +18,10 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 2. `fix-distill` で既知事実、関連仕様、関連コード、再現条件を整理する。
 3. `fix-trace` で原因仮説と観測方針を決める。
 4. 観測が必要な時だけ `fix-logging` と `fix-analysis` を使う。
-5. scope が固まったら `fix-work` で修正する。
-6. 実装後は `fix-review` を 1 回だけ実行する。
-7. docs sync や residual risk を整理して close する。
+5. `test-architect` で再現条件を failing tests、fixtures、acceptance checks、validation commands に落とす。
+6. scope が固まったら `fix-work` で修正する。
+7. 実装後は `fix-review` を 1 回だけ実行する。
+8. docs sync や residual risk を整理して close する。
 
 ## Rules
 

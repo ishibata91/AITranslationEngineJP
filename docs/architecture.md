@@ -1,8 +1,10 @@
 # アーキテクチャ仕様
 
-関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-selection.md`](./tech-selection.md), [`executable-specs.md`](./executable-specs.md)
+関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-selection.md`](./tech-selection.md)
 
 本書は、システムの内部構成と責務分割を定義する。
+詳細設計や細かな振る舞いは、対応する tests / acceptance checks / validation commands で実行可能な形にする。
+要件レベルではない細かな仕様は、テストで担保し、その成立を主張する。
 
 ## 1. 層構成
 

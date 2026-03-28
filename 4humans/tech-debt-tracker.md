@@ -14,13 +14,13 @@
 - Impact: 新規参加者とエージェントが `references` と `api-refrences` の差を誤解しやすい
 - Next step: `docs/references/` へ段階移行し、互換リンク方針を決めた上でリネームする
 
-### 2. Executable specs are not established
+### 2. Test-level constraints are not established
 
 - Status: Open
 - Area: Design detail
 - Detail: 細かな仕様と制約をテストや acceptance checks と結びつける方針は立てたが、実体はまだ少ない
 - Impact: 実装判断の細部が文書だけでは固定しきれず、実行可能仕様が不足している
-- Next step: `docs/executable-specs.md` を起点に、plan の Acceptance Checks と将来の tests を対応づける
+- Next step: plan の Acceptance Checks と将来の tests を対応づけ、詳細な制約を実行可能な形へ落とす
 
 ### 3. Design harness is rule-based, not semantic
 

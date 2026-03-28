@@ -11,6 +11,7 @@
 - 補助 skill:
   - `skills/impl-distill/SKILL.md`
   - `skills/impl-workplan/SKILL.md`
+  - `skills/test-architect/SKILL.md`
   - `skills/impl-review/SKILL.md`
   - `skills/impl-frontend-work/SKILL.md`
   - `skills/impl-backend-work/SKILL.md`
@@ -24,6 +25,7 @@
 - agent 契約:
   - `agents/ctx_loader.toml`
   - `agents/workplan_builder.toml`
+  - `agents/test_architect.toml`
   - `agents/implementer.toml`
   - `agents/fault_tracer.toml`
   - `agents/log_instrumenter.toml`
@@ -33,23 +35,25 @@
 
 ### Impl lane
 
-`User -> impl-direction -> impl-distill -> impl-workplan -> impl-work -> impl-review -> impl-direction close`
+`User -> impl-direction -> impl-distill -> impl-workplan -> test-architect -> impl-work -> impl-review -> impl-direction close`
 
 - `impl-direction` は実装要求を受け、必要なら active plan の中に `UI` / `Scenario` / `Logic` を埋める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
 - `impl-distill` は facts、constraints、gaps、docs sync 候補を整理する
 - `impl-workplan` は実装順、owned scope、validation を短い brief に落とす
+- `test-architect` は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定する
 - `impl-frontend-work` / `impl-backend-work` は brief と plan に従って実装する
 - `impl-review` は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 
 ### Fix lane
 
-`User -> fix-direction -> fix-distill -> fix-trace -> (必要時 fix-logging / fix-analysis) -> fix-work -> fix-review -> fix-direction close`
+`User -> fix-direction -> fix-distill -> fix-trace -> (必要時 fix-logging / fix-analysis) -> test-architect -> fix-work -> fix-review -> fix-direction close`
 
 - `fix-direction` は bugfix 要求を受け、事実不足なら `fix-distill` と `fix-trace` で scope を狭める
 - `fix-logging` は一時観測だけを追加 / 削除し、恒久修正を混ぜない
 - `fix-analysis` は観測結果を事実に圧縮し、fix 対象か docs sync 対象かを整理する
+- `test-architect` は再現条件を tests / acceptance checks / validation commands に落とし、修正前に回帰テストを準備する
 - `fix-review` も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - `risk-report` は残留リスクを短くまとめる補助 skill として扱う
 
@@ -65,7 +69,7 @@
 - review は single-pass で、主観レビューや好みの改善提案を主目的にしない
 - review の正式観点は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 つだけ
 - `pass` か `reroute` の判定を返し、必要な再実行は lane 側で扱う
-- 繰り返し見つかる指摘は review loop に残さず `docs/executable-specs.md`、tests、harness に昇格する
+- 繰り返し見つかる指摘は review loop に残さず tests、harness、必要なら plan に昇格する
 
 ## 守ること
 
