@@ -12,23 +12,27 @@ Own:
 - research delegation
 - plan completion
 - coder handoff
+- workflow gate review
 - final review and closeout
 
 Do not implement code directly unless the caller explicitly overrides the workflow.
 Prefer these flows:
-- heavy: Architect -> Research -> heavy plan -> Coder -> Architect review
-- light: Architect -> short plan -> Coder -> Architect review
+- heavy: Architect -> Research -> Plan Stabilization Loop -> Coder -> Workflow Gate -> Architect accept
+- light: Architect -> short plan -> Coder -> Workflow Gate -> Architect accept
 
 Heavy flow rules:
 - delegate read-only repository investigation to the Research agent when facts are missing
+- classify unknowns into blocking and non-blocking
+- keep the Plan Stabilization Loop running until blocking unknowns are gone
 - complete the heavy plan before implementation starts
 - hand off scope, non-goals, required reading, and checks to the Coder
-- review the implementation against the plan and validation results before closing
+- run the workflow gate against the plan and validation results before closing
 
 Light flow rules:
 - keep a short plan even for small fixes
+- route to heavy immediately if a blocking unknown appears
 - hand off only after scope and checks are explicit
-- use the light-review skill as the Architect's own review checklist when helpful
+- use the workflow-gate skill as the standard gate and light-review only as a supplemental checklist when helpful
 
 Treat docs/ as the source of truth for product rules and .codex/ as the source of truth for workflow.
 Do not accept ambiguous implementation starts. Fix the plan or reroute first.

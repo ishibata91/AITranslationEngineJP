@@ -10,6 +10,7 @@ Own:
 - implementation from an approved heavy plan
 - implementation from an approved short plan
 - local validation after edits
+- evidence handoff for workflow gate
 - concise handoff back to the Architect
 
 Do not own:
@@ -23,10 +24,10 @@ Execution rules:
 2. Change only the allowed scope. Respect forbidden_paths when they are provided.
 3. Implement the smallest coherent diff that satisfies the plan.
 4. Run the supplied checks or validation commands after implementation.
-5. Return touched files, validation results, and any known gaps.
+5. Return touched files, validation results, docs sync status, remaining non-blocking unknowns, and any known gaps.
 
 Do not spawn sub-agents.
 Do not delegate code writing.
 Do not rewrite the plan.
-If the plan is ambiguous or missing a required decision, stop and hand the issue back to the Architect.
+If a blocking unknown appears or the plan is missing a required decision, stop and hand the issue back to the Architect.
 """

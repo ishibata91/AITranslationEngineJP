@@ -21,6 +21,7 @@
 - [`../.codex/`](../.codex/README.md): multi-agent workflow, role contracts, and workflow skills
 - [`../.codex/skills/architect-direction/`](../.codex/skills/architect-direction/SKILL.md): standard architect entrypoint
 - [`../.codex/skills/light-direction/`](../.codex/skills/light-direction/SKILL.md): lightweight fix / tweak entrypoint
+- [`../.codex/skills/workflow-gate/`](../.codex/skills/workflow-gate/SKILL.md): workflow gate for plan/evidence/docs contract checks
 - [`spec.md`](./spec.md): permanent requirements and glossary
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling

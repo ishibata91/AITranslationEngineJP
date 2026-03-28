@@ -64,6 +64,8 @@ $requiredPaths = @(
     (Join-Path $RepoRoot ".codex\skills\light-direction\agents\openai.yaml"),
     (Join-Path $RepoRoot ".codex\skills\light-work\SKILL.md"),
     (Join-Path $RepoRoot ".codex\skills\light-work\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\workflow-gate\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\workflow-gate\agents\openai.yaml"),
     (Join-Path $RepoRoot ".codex\skills\light-review\SKILL.md"),
     (Join-Path $RepoRoot ".codex\skills\light-review\agents\openai.yaml"),
     (Join-Path $RepoRoot "docs\index.md"),

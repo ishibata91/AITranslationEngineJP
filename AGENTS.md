@@ -79,6 +79,6 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 隠れた前提を増やさず、短く明示的な文書更新を優先する
 - タスクが仕様変更を求めていない限り、既存仕様は不用意に書き換えない
 - 新しいルールは短く、見つけやすく保つ
-- heavy では `Architect -> Research -> Plan -> Coder -> Architect review` を標準とする
-- light では `Architect -> Short plan -> Coder -> Architect review` を標準とする
+- heavy では `Architect -> Research -> Plan Stabilization Loop -> Coder -> Workflow Gate -> Architect accept` を標準とする
+- light では `Architect -> Short plan -> Coder -> Workflow Gate -> Architect accept` を標準とする
 - 実装コードがまだ存在しない段階では、推測で public API を増やすより、ハーネスと文書を改善する

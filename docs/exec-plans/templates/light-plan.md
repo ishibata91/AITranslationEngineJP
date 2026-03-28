@@ -12,6 +12,10 @@
 
 -
 
+## Decision Basis
+
+-
+
 ## Why Light Flow Applies
 
 -
@@ -21,6 +25,18 @@
 -
 
 ## Checks
+
+-
+
+## Required Evidence
+
+-
+
+## Reroute Trigger
+
+-
+
+## Docs Sync
 
 -
 

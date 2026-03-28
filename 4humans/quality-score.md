@@ -15,13 +15,13 @@
 | Area | Score | Reason |
 |---|---|---|
 | Repository entrypoint | Green | `AGENTS.md` と `docs/index.md` で読む順序を固定した |
-| Codex workflow source of truth | Green | `.codex/README.md` と architect/light direction で heavy / light と handoff を固定した |
+| Codex workflow source of truth | Green | `.codex/README.md` と workflow skills で plan stabilization loop、workflow gate、heavy/light reroute を固定した |
 | Agent role contracts | Green | `.codex/agents/*.toml` で Architect / Research / Coder の責務境界を固定した |
 | System of record | Yellow | 文書の役割分担は定義したが、詳細設計はまだ薄い |
 | Structure harness | Green | 必須ファイル、必須ディレクトリ、Markdown リンクの検査入口を追加した |
-| Design harness | Yellow | 重要語と契約の確認はあるが、矛盾検知はまだ浅い |
+| Design harness | Green | workflow gate、unknown 分類、plan template 必須項目まで検査し、設計契約の欠落を検出できる |
 | Execution harness | Yellow | 標準入口を追加したが、実装対象が未存在のため多くは skip になる |
-| Executable specs and constraints | Yellow | 入口文書は追加するが、対応する tests / fixtures / validation commands はまだ未整備 |
+| Executable specs and constraints | Yellow | evidence と reroute 契約は追加したが、対応する tests / fixtures / validation commands はまだ未整備 |
 
 ## Reserved Future Verification Tracks
 
@@ -32,6 +32,6 @@
 ## Exit Criteria For Next Upgrade
 
 - `docs/executable-specs.md` の主要項目が実際の tests / acceptance checks に対応づいている
-- `.codex/` の workflow と role 契約が実運用で手戻りなく使える
+- `.codex/` の workflow、workflow gate、role 契約が実運用で手戻りなく使える
 - 実装コードが追加され、実行ハーネスが test / lint / build を実行できる
-- 設計ハーネスが用語不整合と主要な境界逸脱を検出できる
+- 設計ハーネスが用語不整合、主要な境界逸脱、workflow gate 契約漏れを検出できる

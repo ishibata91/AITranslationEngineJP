@@ -16,6 +16,7 @@
 - 仕様変更を伴う実装は、コード変更と同時に文書も更新する
 - 繰り返し起こる失敗は、個別修正ではなくルールへ昇格させる
 - 暗黙知より機械検証を優先する
+- 品質は review の往復回数ではなく、plan / checks / evidence / harness の強さで担保する
 
 ## 2. 記録システムの扱い
 
@@ -40,14 +41,15 @@
 - 同じ責務を複数文書で別定義している状態
 - エージェントが検証入口を発見できない状態
 - role handoff が曖昧で、Architect / Research / Coder の責務が崩れる状態
+- gate で繰り返し検出される契約違反が harness や executable specs へ昇格されない状態
 
 ## 4. 実装前後の標準動作
 
 実装前:
 
 - `AGENTS.md` から入り、`.codex/README.md` と relevant direction skill を読む
-- heavy では `Architect -> Research -> Plan -> Coder -> Architect review` を使う
-- light では `Architect -> Short plan -> Coder -> Architect review` を使う
+- heavy では `Architect -> Research -> Plan Stabilization Loop -> Coder -> Workflow Gate -> Architect accept` を使う
+- light では `Architect -> Short plan -> Coder -> Workflow Gate -> Architect accept` を使う
 - 非自明な変更なら template を使って `docs/exec-plans/active/` に計画を置く
 - 構造ハーネスを先に通す
 
@@ -56,7 +58,7 @@
 - `scripts/harness/run.ps1 -Suite all` を実行する
 - 必要な記録を更新する
 - 計画を `completed/` へ移す
-- 最終レビューは Architect が持つ
+- 最終 accept は Architect が持つ
 
 ## 5. 今はやらないこと
 
