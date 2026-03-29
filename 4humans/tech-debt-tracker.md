@@ -54,3 +54,11 @@
 - Impact: live 正本と legacy 断片を取り違えると、古い packet 前提や review loop を再導入する危険がある
 - Next step: live `.codex` に参照されない legacy artifact を段階的に整理し、lane 契約に関係ない古い references を残さない
 
+### 7. Execution-cache SQLite path is still temporary
+
+- Status: Open
+- Area: Persistence
+- Detail: `PER-41` で xEdit import の execution cache を SQLite へ保存できるようにしたが、command 境界の既定 path は `%TEMP%/ai-translation-engine-jp-execution-cache.sqlite` のままで、正式な app-owned cache location と retention policy は未固定である
+- Impact: 実行キャッシュの寿命と観測先が OS の temp 運用に依存し、後続の job-linking や cleanup 方針を固める前提がまだ弱い
+- Next step: app-owned execution-cache location、retention policy、job cleanup と `PLUGIN_EXPORT` 削除条件を後続 persistence task で固定する
+

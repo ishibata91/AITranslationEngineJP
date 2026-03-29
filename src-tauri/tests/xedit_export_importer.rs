@@ -2,6 +2,7 @@ use ai_translation_engine_jp_lib::application::dto::ImportXeditExportRequestDto;
 use ai_translation_engine_jp_lib::gateway::commands::import_xedit_export_json;
 use std::fs;
 use std::path::PathBuf;
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 struct FixtureFile {
@@ -36,16 +37,63 @@ impl Drop for FixtureFile {
     }
 }
 
-#[test]
-fn given_valid_xedit_export_json_when_importing_then_returns_plugin_export_and_translation_units() {
+const EXECUTION_CACHE_PATH_ENV: &str = "AI_TRANSLATION_ENGINE_JP_EXECUTION_CACHE_PATH";
+
+fn command_test_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
+
+struct CommandEnvOverrideGuard {
+    _lock: MutexGuard<'static, ()>,
+    previous: Option<String>,
+}
+
+impl CommandEnvOverrideGuard {
+    fn new(cache_path: &str) -> Self {
+        let lock = command_test_lock()
+            .lock()
+            .expect("command test lock should be acquirable");
+        let previous = std::env::var(EXECUTION_CACHE_PATH_ENV).ok();
+        std::env::set_var(EXECUTION_CACHE_PATH_ENV, cache_path);
+
+        Self {
+            _lock: lock,
+            previous,
+        }
+    }
+}
+
+impl Drop for CommandEnvOverrideGuard {
+    fn drop(&mut self) {
+        if let Some(previous) = &self.previous {
+            std::env::set_var(EXECUTION_CACHE_PATH_ENV, previous);
+        } else {
+            std::env::remove_var(EXECUTION_CACHE_PATH_ENV);
+        }
+    }
+}
+
+#[tokio::test]
+async fn given_valid_xedit_export_json_when_importing_then_returns_plugin_export_and_translation_units(
+) {
     let fixture = FixtureFile::new(
         "xedit-export-minimal.json",
         include_str!("fixtures/xedit-export-minimal.json"),
     );
+    let cache_path = std::env::temp_dir().join(format!(
+        "ai-translation-engine-jp-command-cache-{}.sqlite",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos()
+    ));
+    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
 
     let result = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
     })
+    .await
     .expect("valid xedit export import should succeed");
 
     assert_eq!(result.plugin_exports.len(), 1);
@@ -77,31 +125,50 @@ fn given_valid_xedit_export_json_when_importing_then_returns_plugin_export_and_t
         }));
 }
 
-#[test]
-fn given_xedit_export_missing_target_plugin_when_importing_then_returns_validation_error() {
+#[tokio::test]
+async fn given_xedit_export_missing_target_plugin_when_importing_then_returns_validation_error() {
     let fixture = FixtureFile::new(
         "xedit-export-missing-target-plugin.json",
         include_str!("fixtures/xedit-export-missing-target-plugin.json"),
     );
+    let cache_path = std::env::temp_dir().join(format!(
+        "ai-translation-engine-jp-command-cache-{}.sqlite",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos()
+    ));
+    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
 
     let error = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
     })
+    .await
     .expect_err("missing target_plugin should fail the whole import request");
 
     assert!(error.contains("target_plugin"));
 }
 
-#[test]
-fn given_valid_xedit_export_with_blank_editor_id_when_importing_then_preserves_empty_editor_id() {
+#[tokio::test]
+async fn given_valid_xedit_export_with_blank_editor_id_when_importing_then_preserves_empty_editor_id(
+) {
     let fixture = FixtureFile::new(
         "xedit-export-empty-editor-id.json",
         include_str!("fixtures/xedit-export-empty-editor-id.json"),
     );
+    let cache_path = std::env::temp_dir().join(format!(
+        "ai-translation-engine-jp-command-cache-{}.sqlite",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos()
+    ));
+    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
 
     let result = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
     })
+    .await
     .expect("blank editor_id should not fail a valid xedit export import");
 
     assert_eq!(result.plugin_exports.len(), 1);
@@ -110,4 +177,39 @@ fn given_valid_xedit_export_with_blank_editor_id_when_importing_then_preserves_e
         .translation_units
         .iter()
         .all(|unit| unit.editor_id.is_empty()));
+}
+
+#[tokio::test]
+async fn given_directory_as_execution_cache_path_when_importing_then_returns_persistence_error() {
+    let fixture = FixtureFile::new(
+        "xedit-export-minimal.json",
+        include_str!("fixtures/xedit-export-minimal.json"),
+    );
+    let cache_dir = std::env::temp_dir().join(format!(
+        "ai-translation-engine-jp-command-cache-dir-{}",
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .expect("system time should be after unix epoch")
+            .as_nanos()
+    ));
+    fs::create_dir_all(&cache_dir).expect("cache directory fixture should be created");
+    let _cache_guard = CommandEnvOverrideGuard::new(&cache_dir.to_string_lossy());
+
+    let error = import_xedit_export_json(ImportXeditExportRequestDto {
+        file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
+    })
+    .await
+    .expect_err("directory cache path should fail persistence on command boundary");
+
+    assert!(
+        error.starts_with("Failed to ")
+            && (error.contains("execution cache")
+                || error.contains("plugin_exports")
+                || error.contains("plugin_export_raw_records")
+                || error.contains("persist")
+                || error.contains("transaction")
+                || error.contains("commit"))
+    );
+
+    let _ = fs::remove_dir_all(cache_dir);
 }
