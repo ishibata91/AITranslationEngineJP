@@ -1,0 +1,15 @@
+{
+  "pathIgnores": [
+    "dist/**",
+    "coverage/**",
+    "node_modules/**",
+    "src-tauri/**",
+    "semgrep/**"
+  ],
+  "knipIgnoreBinaries": [
+    "sonar-scanner"
+  ],
+  "knipIgnoreDependencies": [
+    "oxlint"
+  ]
+}
