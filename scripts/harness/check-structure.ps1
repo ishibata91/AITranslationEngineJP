@@ -104,7 +104,7 @@ $requiredPaths = @(
     (Join-Path $RepoRoot "docs\spec.md"),
     (Join-Path $RepoRoot "docs\architecture.md"),
     (Join-Path $RepoRoot "docs\tech-selection.md"),
-    (Join-Path $RepoRoot "docs\er-draft.md"),
+    (Join-Path $RepoRoot "docs\er.md"),
     (Join-Path $RepoRoot "4humans\tech-debt-tracker.md"),
     (Join-Path $RepoRoot "4humans\quality-score.md"),
     (Join-Path $RepoRoot "docs\references\index.md"),

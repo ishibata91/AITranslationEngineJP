@@ -43,7 +43,7 @@
 - Ordered scope 3: Add the smallest Rust test coverage that proves one valid xEdit export JSON import succeeds and one invalid input fails, using inline sample JSON or a minimal fixture if reuse is cleaner.
 - Ordered scope 4: Add a TypeScript shared contract only if the Tauri boundary cannot stay backend-local without it; do not add UI wiring, screen state, or app-shell changes in this ticket.
 - Owned scope: `src-tauri/src/gateway/commands.rs`, `src-tauri/src/gateway/mod.rs`, `src-tauri/src/lib.rs`, new importer modules under `src-tauri/src/application/`, `src-tauri/src/domain/`, `src-tauri/src/infra/`, and only boundary contract files in `src/shared/` or `src/gateway/tauri/` if the command signature requires them.
-- Required reading: `docs/exec-plans/active/2026-03-29-per-39-xedit-export-json-importer.md`, `docs/spec.md`, `docs/architecture.md`, `docs/tech-selection.md`, `docs/er-draft.md`, `src-tauri/src/gateway/commands.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/application/bootstrap/get_bootstrap_status.rs`, `src-tauri/Cargo.toml`.
+- Required reading: `docs/exec-plans/active/2026-03-29-per-39-xedit-export-json-importer.md`, `docs/spec.md`, `docs/architecture.md`, `docs/tech-selection.md`, `docs/er.md`, `src-tauri/src/gateway/commands.rs`, `src-tauri/src/lib.rs`, `src-tauri/src/application/bootstrap/get_bootstrap_status.rs`, `src-tauri/Cargo.toml`.
 - Validation commands: `cargo test --manifest-path ./src-tauri/Cargo.toml --all-features`, `cargo clippy --manifest-path ./src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`, `cargo fmt --manifest-path ./src-tauri/Cargo.toml --all --check`, `powershell -File scripts/harness/run.ps1 -Suite execution`.
 
 ## Acceptance Checks

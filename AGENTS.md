@@ -23,7 +23,7 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 恒久要件: `docs/spec.md`
 - 内部境界と依存方向: `docs/architecture.md`
 - 実装技術の選定: `docs/tech-selection.md`
-- データ構造と ER: `docs/er-draft.md`
+- データ構造と ER: `docs/er.md`
 - 詳細な振る舞いと制約: 対応する tests / acceptance checks / validation commands
 - 作業計画: `docs/exec-plans/` と `docs/exec-plans/templates/`
 

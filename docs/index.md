@@ -13,7 +13,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 3. [`spec.md`](./spec.md)
 4. [`architecture.md`](./architecture.md)
 5. [`tech-selection.md`](./tech-selection.md)
-6. [`er-draft.md`](./er-draft.md)
+6. [`er.md`](./er.md)
 7. [`lint-policy.md`](./lint-policy.md)
 8. Relevant file under [`exec-plans/`](./exec-plans/)
 
@@ -24,7 +24,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - [`spec.md`](./spec.md): permanent requirements and glossary
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
-- [`er-draft.md`](./er-draft.md): canonical data model and ER specification
+- [`er.md`](./er.md): canonical data model and ER specification
 - [`lint-policy.md`](./lint-policy.md): what lint manages, what it does not manage, and tool ownership
 - [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
 - [`exec-plans/completed/`](./exec-plans/completed/README.md): finished plans and outcomes
@@ -37,7 +37,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - Requirement or product boundary changed: human-first update [`spec.md`](./spec.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Dependency rule or layering changed: human-first update [`architecture.md`](./architecture.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Technology decision changed: human-first update [`tech-selection.md`](./tech-selection.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
-- Data structure or entity relationship changed: human-first update [`er-draft.md`](./er-draft.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
+- Data structure or entity relationship changed: human-first update [`er.md`](./er.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Detailed behavior or constraint changed: update the corresponding tests or acceptance checks and validation commands
 - Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)

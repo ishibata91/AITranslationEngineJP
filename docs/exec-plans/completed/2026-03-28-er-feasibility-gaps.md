@@ -6,7 +6,7 @@
 - research: none
 - coder: codex
 - reviewer: architect
-- scope: `docs/er-draft.md`, `docs/spec.md`, `docs/architecture.md`, `docs/executable-specs.md`
+- scope: `docs/er.md`, `docs/spec.md`, `docs/architecture.md`, `docs/executable-specs.md`
 
 ## Request Summary
 
@@ -49,14 +49,14 @@
 
 ## Record Updates
 
-- `docs/er-draft.md`
+- `docs/er.md`
 - `docs/spec.md`
 - `docs/architecture.md`
 - `docs/executable-specs.md`
 
 ## Outcome
 
-- `docs/er-draft.md` を raw JSON 互換と DB canonical モデルの差分が分かる形に更新した
+- `docs/er.md` を raw JSON 互換と DB canonical モデルの差分が分かる形に更新した
 - 翻訳ジョブ ER を `JOB_PLUGIN_EXPORT`、`TRANSLATION_UNIT`、`JOB_TRANSLATION_UNIT`、`JOB_PERSONA_ENTRY`、`JOB_OUTPUT_ARTIFACT` を含む構成へ更新した
 - `spec.md`、`architecture.md`、`executable-specs.md` に複数入力ジョブ、job-local persona、xTranslator 出力の成立条件を反映した
 

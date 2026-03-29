@@ -6,15 +6,15 @@
 - research: none
 - coder: codex
 - reviewer: architect
-- scope: `docs/er-draft.md`
+- scope: `docs/er.md`
 
 ## Request Summary
 
-- `docs/er-draft.md` の未解消論点 4 件を確定事項へ更新する
+- `docs/er.md` の未解消論点 4 件を確定事項へ更新する
 
 ## Why Light Flow Applies
 
-- 更新対象は `docs/er-draft.md` のみで、既存の正本文書内の判断を固定する作業に限定できる
+- 更新対象は `docs/er.md` のみで、既存の正本文書内の判断を固定する作業に限定できる
 - 低リスクで、短い plan だけで編集方針を固定できる
 
 ## Short Plan
@@ -32,7 +32,7 @@
 
 ## Record Updates
 
-- `docs/er-draft.md`
+- `docs/er.md`
 
 ## Outcome
 

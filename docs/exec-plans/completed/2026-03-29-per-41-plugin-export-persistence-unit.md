@@ -15,7 +15,7 @@
 - `docs/spec.md`
 - `docs/architecture.md`
 - `docs/tech-selection.md`
-- `docs/er-draft.md`
+- `docs/er.md`
 - Linear `PER-41`
 - `docs/exec-plans/completed/2026-03-29-per-39-xedit-export-json-importer.md`
 - `docs/exec-plans/completed/2026-03-29-per-40-validate-imported-input-data.md`
@@ -36,7 +36,7 @@
 ## Logic
 
 - Persistence stays backend-owned along `gateway/commands.rs -> application use case -> domain persistence model / port -> infra SQLite adapter`, keeping UI and permanent docs unchanged in this task.
-- `PER-41` should introduce a `PLUGIN_EXPORT`-equivalent persistence model that can store the raw imported execution-cache graph described in `docs/er-draft.md`, beginning with the parent `PLUGIN_EXPORT` row and the minimum child tables needed to preserve imported source data categories without loss of provenance.
+- `PER-41` should introduce a `PLUGIN_EXPORT`-equivalent persistence model that can store the raw imported execution-cache graph described in `docs/er.md`, beginning with the parent `PLUGIN_EXPORT` row and the minimum child tables needed to preserve imported source data categories without loss of provenance.
 - `PER-41` must keep raw imported structures and canonical `TRANSLATION_UNIT` records conceptually separate. If current importer code already derives translation units in memory, that derivation may remain for compatibility, but persisted execution-cache truth for this task should be the raw imported `PLUGIN_EXPORT` graph rather than prematurely persisted `TRANSLATION_UNIT` rows.
 - The implementation should use the repository-standard SQLite direction from `docs/tech-selection.md` and keep storage concerns behind an infra adapter so later phases can add normalization and job linkage without replacing the import boundary again.
 
@@ -47,7 +47,7 @@
 - Ordered scope 3: Wire the existing import use case and Tauri command so `file_paths: string[]` still enters through the current backend boundary while successful imports are also written into the execution cache.
 - Ordered scope 4: Add or update backend tests that prove one valid import persists a `PLUGIN_EXPORT` row plus representative raw child data and that provenance fields remain queryable after persistence.
 - Owned scope: `src-tauri/Cargo.toml`, `src-tauri/src/application/dto/import_xedit_export_dto.rs`, `src-tauri/src/application/importer/`, `src-tauri/src/domain/xedit_export.rs`, `src-tauri/src/gateway/commands.rs`, `src-tauri/src/lib.rs` if async command registration changes are required, new or updated persistence modules under `src-tauri/src/infra/`, and importer / persistence tests under `src-tauri/tests/` or `src-tauri/src/infra/`.
-- Required reading: `docs/exec-plans/active/2026-03-29-per-41-plugin-export-persistence-unit.md`, `docs/spec.md`, `docs/architecture.md`, `docs/tech-selection.md`, `docs/er-draft.md`, `docs/exec-plans/completed/2026-03-29-per-39-xedit-export-json-importer.md`, `docs/exec-plans/completed/2026-03-29-per-40-validate-imported-input-data.md`, `src-tauri/src/application/importer/import_xedit_export.rs`, `src-tauri/src/domain/xedit_export.rs`, `src-tauri/src/infra/xedit_export_importer.rs`, `src-tauri/src/gateway/commands.rs`, `src-tauri/Cargo.toml`.
+- Required reading: `docs/exec-plans/active/2026-03-29-per-41-plugin-export-persistence-unit.md`, `docs/spec.md`, `docs/architecture.md`, `docs/tech-selection.md`, `docs/er.md`, `docs/exec-plans/completed/2026-03-29-per-39-xedit-export-json-importer.md`, `docs/exec-plans/completed/2026-03-29-per-40-validate-imported-input-data.md`, `src-tauri/src/application/importer/import_xedit_export.rs`, `src-tauri/src/domain/xedit_export.rs`, `src-tauri/src/infra/xedit_export_importer.rs`, `src-tauri/src/gateway/commands.rs`, `src-tauri/Cargo.toml`.
 - Validation commands: `cargo test --manifest-path ./src-tauri/Cargo.toml --all-features`, `cargo clippy --manifest-path ./src-tauri/Cargo.toml --all-targets --all-features -- -D warnings`, `cargo fmt --manifest-path ./src-tauri/Cargo.toml --all --check`, `powershell -File scripts/harness/run.ps1 -Suite execution`.
 
 ## Acceptance Checks

@@ -6,16 +6,16 @@
 - research: none
 - coder: codex
 - reviewer: architect
-- scope: `docs/er-draft.md`, `docs/index.md`, `docs/core-beliefs.md`, `AGENTS.md`, `docs/references/index.md`
+- scope: `docs/er.md`, `docs/index.md`, `docs/core-beliefs.md`, `AGENTS.md`, `docs/references/index.md`
 
 ## Request Summary
 
-- `docs/er-draft.md` をドラフト扱いから外し、データモデル正本として扱う
+- `docs/er.md` をドラフト扱いから外し、データモデル正本として扱う
 
 ## Investigation Summary
 
 - Facts:
-- `docs/er-draft.md` のタイトルと導入文はドラフト前提になっている
+- `docs/er.md` のタイトルと導入文はドラフト前提になっている
 - `AGENTS.md` と `docs/index.md` も `er-draft.md` をドラフトとして説明している
 - `docs/core-beliefs.md` は記録システム一覧に `er-draft.md` を含めていない
 - `docs/references/index.md` には移動済み `xtranslator_ref.md` への古いリンクが残っている
@@ -46,7 +46,7 @@
 
 ## Record Updates
 
-- `docs/er-draft.md`
+- `docs/er.md`
 - `docs/index.md`
 - `docs/core-beliefs.md`
 - `AGENTS.md`
@@ -54,7 +54,7 @@
 
 ## Outcome
 
-- `docs/er-draft.md` を現行データモデル正本として明記した
+- `docs/er.md` を現行データモデル正本として明記した
 - `AGENTS.md` と `docs/index.md` / `docs/core-beliefs.md` の記録契約を正本前提へ更新した
 - `docs/references/index.md` の移動済み `xtranslator_ref.md` リンクを修正した
 
