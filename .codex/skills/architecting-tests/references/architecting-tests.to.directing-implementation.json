@@ -3,11 +3,16 @@
   "direction": "skill-to-directing",
   "from_skill": "architecting-tests",
   "to_skill": "directing-implementation",
-  "purpose": "impl lane の先行テスト設計結果を direction へ返す。",
+  "purpose": "impl lane の先行テスト設計と test 実装結果を direction へ返す。",
   "required": [
     {
       "description": "先に固定したい最小 failing tests。",
       "field": "failing_tests",
+      "type": "string[]"
+    },
+    {
+      "description": "追加または更新した test / fixture / helper files。",
+      "field": "touched_test_files",
       "type": "string[]"
     },
     {
@@ -37,6 +42,7 @@
     "実装の owned scope を勝手に広げない"
   ],
   "completion_signal": [
-    "direction が implementing-frontend または implementing-backend を起動できる"
+    "direction が implementing-frontend または implementing-backend を起動できる",
+    "必要な test files が先に用意されている"
   ]
 }

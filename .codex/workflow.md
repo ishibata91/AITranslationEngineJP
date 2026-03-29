@@ -23,7 +23,7 @@ feature / change は `directing-implementation` から入り、bug / regression 
 - `designing-implementation`: active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
 - `distilling-implementation`: facts、constraints、gaps、docs sync 候補を圧縮する。
 - `planning-implementation`: 実装順、owned scope、validation を短い brief に落とす。
-- `architecting-tests`: 実装前に tests、fixtures、acceptance checks、validation commands を先に固定する。
+- `architecting-tests`: 実装前に tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する。
 - `implementing-frontend` / `implementing-backend`: owned scope に従って実装する。分岐は frontend / backend の責務で決める。
 - `sonar-scanner + SonarQube MCP issue gate`: project root で scanner を実行して open issue を取得し、issue が残る間は implementing skill に戻す。
 - `reviewing-implementation`: `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを単発で見る。
@@ -40,7 +40,7 @@ Sonar issue が解消し、`reviewing-implementation` が `pass` なら docs syn
 - `tracing-fixes`: 原因仮説を順位付けし、最小の trace 方針を決める。
 - `logging-fixes`: 一時観測ログだけを追加 / 削除する。恒久修正は混ぜない。
 - `analyzing-fixes`: 観測結果を事実へ圧縮し、fix 対象か docs sync 対象かを整理する。
-- `architecting-tests`: 再現条件を tests / acceptance checks / validation commands に落とし、回帰確認を先に固める。
+- `architecting-tests`: 再現条件を tests / acceptance checks / validation commands に落とし、必要な回帰 test / fixture を先に実装する。
 - `implementing-fixes`: 承認済み scope の恒久修正を行う。
 - `reviewing-fixes`: impl lane と同じ 4 観点で単発 review する。
 - `reporting-risks`: 必要な時だけ残留リスクを短くまとめる。

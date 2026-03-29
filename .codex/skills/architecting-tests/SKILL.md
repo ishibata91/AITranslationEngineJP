@@ -1,14 +1,14 @@
 ---
 
 name: architecting-tests
-description: AITranslationEngineJp 専用。impl / fix の実装直前に、active exec-plan と関連仕様から仕様に沿った tests / acceptance checks / fixtures / validation commands を設計し、TDD の先行テストを準備する。
+description: AITranslationEngineJp 専用。impl / fix の実装直前に、active exec-plan と関連仕様から仕様に沿った tests / acceptance checks / fixtures / validation commands を設計し、必要な先行テストと fixture を最小範囲で実装する。
 ---
 
 # Architecting Tests
 
 ## Overview
 
-実装前に、何をテストで証明するかを決める。active exec-plan と関連仕様を読んで、最小の failing tests、acceptance checks、fixtures、validation commands に落とす。
+実装前に、何をテストで証明するかを決めて、その証明に必要な test と fixture を先に置く。active exec-plan と関連仕様を読んで、最小の failing tests、acceptance checks、fixtures、validation commands に落とし、必要な test files / fixture files を最小範囲で追加または更新する。
 
 ## Terms
 
@@ -16,6 +16,7 @@ description: AITranslationEngineJp 専用。impl / fix の実装直前に、acti
 * `fixtures`: テストの入力や前提を作るデータ。JSON、DB 初期データ、モック応答、サンプルファイルなどを含む。
 * `acceptance checks`: 仕様を満たしたと言えるかを、ユーザー視点や業務フロー視点で確認するチェック。
 * `validation commands`: そのテストやチェックを機械的に実行するためのコマンド。
+* `test implementation`: 上で固定した failing tests と fixture を、対象 test files / fixture files へ最小差分で実装すること。
 
 ## Test Style Policy
 
@@ -38,9 +39,10 @@ description: AITranslationEngineJp 専用。impl / fix の実装直前に、acti
 3. テストで担保する観点を、unit / integration / acceptance のどこで見るか決める。
 4. failing tests ごとに観測点（戻り値 / 状態変化 / 外部出力 / エラー）を先に決める。
 5. fixture、acceptance checks、validation command をその観測点に合わせて決める。
-6. 仕様にない振る舞いは追加せず、必要なら docs sync に回す。
-7. 必要なら active exec-plan の `Acceptance Checks` を更新する。
-8. 実装へ handoff する前に、短い test brief を返すか、対象テストを直接書く。
+6. 対象 test files / fixture files を特定し、必要な failing tests と fixture を最小差分で実装する。
+7. 仕様にない振る舞いは追加せず、必要なら docs sync に回す。
+8. 必要なら active exec-plan の `Acceptance Checks` を更新する。
+9. 実装へ handoff する前に、短い test brief、touched test files、残った gap を返す。
 
 ## Lane Rules
 
@@ -48,11 +50,13 @@ description: AITranslationEngineJp 専用。impl / fix の実装直前に、acti
 
 * 先に期待結果を固定し、実装はその failing tests を満たす形に寄せる
 * UI / Scenario / Logic のどれをテストで証明するかを明示する
+* product 実装の前に、必要な failing tests と fixture を実ファイルへ反映する
 
 ### Fix lane
 
 * 再現手順を test に落としてから修正する
 * 回帰を防ぐ最小の test case を優先する
+* 再現 test が未実装なら、修正より前に回帰 test を実ファイルへ反映する
 
 ## Few-Shot
 
@@ -85,6 +89,7 @@ Test brief:
 ## Rules
 
 * 実装コードを広く直さない
+* test / fixture 以外の product code を触らない
 * 仕様を勝手に補完しない
 * test の増やし過ぎで scope を膨らませない
 * 結果は短く、使える形で返す
@@ -92,6 +97,7 @@ Test brief:
 * failing test は常に「次の 1 ケースのみ」を対象にする
 * モックは外部境界に限定し、内部相互作用を固定しない
 * Arrange が肥大化する場合は fixture / helper に分離する
+* touched files は test files / fixture files / test helper files に限定する
 
 ## Reference Use
 

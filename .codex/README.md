@@ -49,7 +49,7 @@
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
 - `distilling-implementation` は facts、constraints、gaps、docs sync 候補を整理する
 - `planning-implementation` は実装順、owned scope、validation を短い brief に落とす
-- `architecting-tests` は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定する
+- `architecting-tests` は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
 - `implementing-frontend` / `implementing-backend` は brief と plan に従って実装する
 - `sonar-scanner + SonarQube MCP issue gate` は server-side analysis を更新し、open issue が残る限り implementing skill へ差し戻す
 - `reviewing-implementation` は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
@@ -63,7 +63,7 @@
 - `directing-fixes` は bugfix 要求を受け、事実不足なら `distilling-fixes` と `tracing-fixes` で scope を狭める
 - `logging-fixes` は一時観測だけを追加 / 削除し、恒久修正を混ぜない
 - `analyzing-fixes` は観測結果を事実に圧縮し、fix 対象か docs sync 対象かを整理する
-- `architecting-tests` は再現条件を tests / acceptance checks / validation commands に落とし、修正前に回帰テストを準備する
+- `architecting-tests` は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する
 - `reviewing-fixes` も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - `reporting-risks` は残留リスクを短くまとめる補助 skill として扱う
 

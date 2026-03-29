@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "directing-fixes",
   "to_skill": "architecting-tests",
-  "purpose": "fix lane 向け回帰テスト契約を固定する。",
+  "purpose": "fix lane 向け回帰テスト契約を固定し、必要な回帰 test / fixture を先に実装させる。",
   "required": [
     {
       "description": "fix plan。",
@@ -29,9 +29,10 @@
     }
   ],
   "must_not_change": [
-    "実装修正を混ぜない"
+    "test / fixture 以外の実装修正を混ぜない"
   ],
   "completion_signal": [
-    "failing_tests と acceptance_checks が fix scope に結び付いている"
+    "failing_tests と acceptance_checks が fix scope に結び付いている",
+    "touched_test_files が定義されている"
   ]
 }

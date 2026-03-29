@@ -3,11 +3,16 @@
   "direction": "skill-to-directing",
   "from_skill": "architecting-tests",
   "to_skill": "directing-fixes",
-  "purpose": "fix lane の回帰テスト設計結果を direction へ返す。",
+  "purpose": "fix lane の回帰テスト設計と test 実装結果を direction へ返す。",
   "required": [
     {
       "description": "先に固定したい回帰 test。",
       "field": "failing_tests",
+      "type": "string[]"
+    },
+    {
+      "description": "追加または更新した回帰 test / fixture / helper files。",
+      "field": "touched_test_files",
       "type": "string[]"
     },
     {
@@ -37,6 +42,7 @@
     "fix scope を広げない"
   ],
   "completion_signal": [
-    "direction が implementing-fixes に handoff できる"
+    "direction が implementing-fixes に handoff できる",
+    "必要な回帰 test files が先に用意されている"
   ]
 }
