@@ -25,7 +25,7 @@
 - `Oxlint`: TypeScript / Svelte の通常 lint。未使用変数、未使用 import、type import hygiene を担当する
 - `ESLint Flat Config + repository-local rule`: repo 固有の import 境界と、path-based な architectural lint を担当する
 - `Knip`: 未参照 export / file / dependency の検出と cleanup の入口を担当する
-- `SonarScanner + SonarQube MCP`: `TS` / `Svelte` / `Rust` を対象に、code smell、complexity、security hotspot などの server-side issue gate を担当する
+- `SonarScanner + Sonar CLI`: `TS` / `Svelte` / `Rust` を対象に、code smell、complexity、security hotspot などの server-side issue gate を担当する
 - `cargo fmt --all --check`: `src-tauri/` の formatter 出力が正本どおりかを gate で確認する
 - `cargo clippy --all-targets --all-features -- -D warnings`: Rust 側の未使用要素と warning を失敗扱いにする
 
@@ -49,7 +49,7 @@
 - report-first に留めるもの:
   - future import graph / cycle 専用解析
 
-初期 gate の責務は `Oxlint` / `ESLint` / `Knip` / `rustfmt check` / `SonarScanner + SonarQube MCP` / `clippy` に固定する。
+初期 gate の責務は `Oxlint` / `ESLint` / `Knip` / `rustfmt check` / `SonarScanner + Sonar CLI` / `clippy` に固定する。
 
 ## Cleanup Policy
 
@@ -61,12 +61,12 @@
 
 ## Sonar Gate Role
 
-- `SonarScanner + SonarQube MCP` は既存の `Oxlint` / `ESLint` / `Knip` / `clippy` を置き換えず、構造解析系 lint で取り切れない issue を補完する追加層として gate に入れる
+- `SonarScanner + Sonar CLI` は既存の `Oxlint` / `ESLint` / `Knip` / `clippy` を置き換えず、構造解析系 lint で取り切れない issue を補完する追加層として gate に入れる
 - 初期導入の主目的は code smell、complexity、security hotspot などの server-side issue を継続的に潰すことであり、repo 固有の責務境界や禁止 API の主担当にはしない
 - repo root の `scan:sonar` は `sonar-project.properties` を正本にして `sonar-scanner` を実行し、execution harness はその script を lint 後段で呼ぶ
-- implementation lane は `SonarQube MCP` で open issue を取得し、issue が残る限り implementing skill に差し戻す
+- implementation lane は `sonar list issues --project ishibata91_AITranslationEngineJP --format json` を helper script 経由で読み、`status == OPEN` の issue が残る限り implementing skill に差し戻す
 - import graph や cycle の主担当は Sonar に移さず、専用 lint / 静的解析に残す
-- project context は `sonar-project.properties` の project key を正本とし、MCP query でも同じ key を使う
+- project context は `sonar-project.properties` の project key を正本とし、Sonar CLI query でも同じ key を使う
 
 ## Sonar First-Wave Targets
 
@@ -80,7 +80,7 @@
 
 - execution harness は repo root の `gate:execution` を優先実行し、fallback の時だけ `lint` / `test` / `build` と `Cargo.toml` command を個別実行する
 - `scan:sonar` は `lint` と Rust lint の後段で実行し、`sonar-project.properties` に定義した project context で server-side analysis を更新する
-- scanner 実行後は implementation lane が `SonarQube MCP` で `OPEN` issue を取得する
+- scanner 実行後は implementation lane が `powershell -File .codex/skills/directing-implementation/scripts/get-open-sonar-issues.ps1 -Project ishibata91_AITranslationEngineJP` を使って `status == OPEN` issue を取得する
 - open issue が残る間は owned scope に応じて `implementing-frontend` または `implementing-backend` に戻して修正する
 - false positive や severity tune は repo-local ルール増設ではなく Sonar project 側の設定を優先する
 - gate failure は同一変更で修正するか、Sonar project 側で理由付き suppression を行う

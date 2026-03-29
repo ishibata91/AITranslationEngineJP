@@ -43,7 +43,7 @@
 
 ### Impl lane
 
-`User -> directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> sonar-scanner + SonarQube MCP issue gate -> reviewing-implementation -> directing-implementation close`
+`User -> directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> sonar-scanner + Sonar CLI open issue gate -> reviewing-implementation -> directing-implementation close`
 
 - `directing-implementation` は実装要求を受け、active plan を作成し、task-local design が必要なら `designing-implementation` へ `UI` / `Scenario` / `Logic` を埋めさせる
 - `designing-implementation` は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
@@ -52,7 +52,7 @@
 - `planning-implementation` は実装順、owned scope、validation を短い brief に落とす
 - `architecting-tests` は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
 - `implementing-frontend` / `implementing-backend` は brief と plan に従って実装する
-- `sonar-scanner + SonarQube MCP issue gate` は server-side analysis を更新し、open issue が残る限り implementing skill へ差し戻す
+- `sonar-scanner + Sonar CLI open issue gate` は server-side analysis を更新し、`sonar list issues --project ishibata91_AITranslationEngineJP --format json` の結果から `status == OPEN` だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
 - `reviewing-implementation` は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 - Sonar issue remediation loop は review の前段で扱い、close 条件に含める

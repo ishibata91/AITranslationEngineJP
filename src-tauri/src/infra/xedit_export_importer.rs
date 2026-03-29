@@ -38,12 +38,14 @@ fn import_single_file(path: &Path) -> Result<ImportedPluginExport, String> {
     })?;
     let raw_export: RawPluginExport = serde_json::from_str(&json).map_err(|error| {
         format!(
-            "Failed to parse xEdit export JSON `{}`: {error}",
-            path.display()
+            "Failed to parse xEdit export JSON `{}`: {error}. Check top-level collection fields such as `dialogue_groups`, `quests`, `items`, `magic`, `locations`, `system`, `messages`, `load_screens`, and `npcs`.",
+            path.display(),
         )
     })?;
 
-    let translation_units = raw_export.translation_units()?;
+    let translation_units = raw_export
+        .translation_units()
+        .map_err(|error| format!("Invalid xEdit export data `{}`: {error}", path.display()))?;
 
     ImportedPluginExport::new(
         path.display().to_string(),
@@ -289,6 +291,12 @@ impl RawQuestObjective {
         quest_editor_id: &str,
         quest_record_type: &str,
     ) -> Result<(), String> {
+        if !self.text.trim().is_empty() && self.objective_index.trim().is_empty() {
+            return Err(
+                "xEdit export import requires `quests[].objectives[].objective_index` when objective text is present.".to_string(),
+            );
+        }
+
         let unit_base = TranslationUnitBase {
             source_entity_type: "quest_objective",
             form_id: quest_id,
@@ -727,6 +735,59 @@ mod tests {
             .unwrap_err();
 
         assert!(error.contains("target_plugin"));
+    }
+
+    #[test]
+    fn given_structurally_invalid_dialogue_groups_when_importing_then_returns_parse_error() {
+        let fixture = TempJsonFixture::new(
+            "invalid-xedit-export-structure",
+            r#"{
+  "target_plugin": "Sample.esp",
+  "dialogue_groups": {
+    "id": "000AAA01"
+  }
+}"#,
+        );
+        let importer = FileSystemXeditExportImporter;
+
+        let error = importer
+            .import_from_paths(&[fixture.path().display().to_string()])
+            .unwrap_err();
+
+        assert!(error.contains("Failed to parse xEdit export JSON"));
+        assert!(error.contains(&fixture.path().display().to_string()));
+        assert!(error.contains("dialogue_groups"));
+    }
+
+    #[test]
+    fn given_blank_quest_objective_index_with_text_when_importing_then_returns_error() {
+        let fixture = TempJsonFixture::new(
+            "invalid-xedit-export-objective-index",
+            r#"{
+  "target_plugin": "Sample.esp",
+  "quests": [
+    {
+      "id": "000BBB01",
+      "editor_id": "SampleQuest",
+      "type": "QUST FULL",
+      "objectives": [
+        {
+          "objective_index": "",
+          "text": "Reach the marker"
+        }
+      ]
+    }
+  ]
+}"#,
+        );
+        let importer = FileSystemXeditExportImporter;
+
+        let error = importer
+            .import_from_paths(&[fixture.path().display().to_string()])
+            .unwrap_err();
+
+        assert!(error.contains(&fixture.path().display().to_string()));
+        assert!(error.contains("quests[].objectives[].objective_index"));
     }
 
     struct TempJsonFixture {

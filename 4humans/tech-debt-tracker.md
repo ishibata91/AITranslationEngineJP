@@ -34,17 +34,17 @@
 
 - Status: Open
 - Area: Verification
-- Detail: Rust / Svelte の bootstrap target は追加されたが、翻訳ジョブ、importer、writer、persona 系の acceptance checks はまだ乗っていない
-- Impact: execution harness は基盤 lint / test / build を回せるが、業務フロー成立の検証までは到達していない
-- Next step: 実装進行に応じて fixture と acceptance checks を追加し、execution harness から段階的に呼ぶ
+- Detail: Rust / Svelte の bootstrap target に加え xEdit importer validation の Rust tests は入ったが、翻訳ジョブ、writer、persona 系の acceptance checks はまだ乗っていない
+- Impact: execution harness は基盤 lint / test / build と importer failure path の一部を回せるが、業務フロー成立の検証までは到達していない
+- Next step: 実装進行に応じて importer 以外の fixture と acceptance checks を追加し、execution harness から段階的に呼ぶ
 
 ### 5. Test-level constraints coverage is not started
 
 - Status: Open
 - Area: Quality
-- Detail: fixture-based checks、scenario regression、contract-level tests は方針化したが未実装
-- Impact: 細かな仕様と制約を実行で確認する面がまだ弱い
-- Next step: 実装追加時に最初の acceptance checks と test fixture を置く
+- Detail: fixture-based checks、scenario regression、contract-level tests は方針化済みで、xEdit importer validation から着手したが coverage はまだ限定的
+- Impact: importer の一部制約は実行で確認できるようになった一方、細かな仕様と制約を広く確認する面はまだ弱い
+- Next step: 実装追加時に translation flow 全体へ acceptance checks と test fixture を広げる
 
 ### 6. Workflow skills are intentionally minimal
 

@@ -1,6 +1,6 @@
 ---
 name: updating-docs
-description: `docs/` 配下の正本更新だけを扱う。human が直接起動した時だけ使い、恒久仕様や設計判断を repo 正本へ反映する。
+description: "`docs/` 配下の正本更新だけを扱う。human が直接起動した時だけ使い、恒久仕様や設計判断を repo 正本へ反映する。"
 ---
 
 # Updating Docs
