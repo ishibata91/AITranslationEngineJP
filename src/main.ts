@@ -1,11 +1,20 @@
 import { mount } from "svelte";
 import App from "./App.svelte";
 import "./app.css";
-import { configureBootstrapStatusPort } from "@application/bootstrap/load-bootstrap-status";
-import { tauriBootstrapStatusGateway } from "@gateway/tauri/bootstrap-status.gateway";
+import { createBootstrapStatusScreenUsecase } from "@application/usecases/bootstrap-status";
+import { createTauriBootstrapStatusGateway } from "@gateway/tauri/bootstrap-status";
+import { createBootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
 
-configureBootstrapStatusPort(tauriBootstrapStatusGateway);
+const bootstrapStatusStore = createBootstrapStatusScreenStore();
+const bootstrapStatusUsecase = createBootstrapStatusScreenUsecase({
+  gateway: createTauriBootstrapStatusGateway(),
+  store: bootstrapStatusStore
+});
 
 mount(App, {
+  props: {
+    bootstrapStatusStore,
+    bootstrapStatusUsecase
+  },
   target: document.getElementById("app")!
 });

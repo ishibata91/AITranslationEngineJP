@@ -1,5 +1,10 @@
 <script lang="ts">
-  import BootstrapScreen from "@ui/screens/bootstrap/BootstrapScreen.svelte";
+  import type { BootstrapStatusScreenInput } from "@application/ports/input/bootstrap-status";
+  import type { BootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
+  import BootstrapStatusScreen from "@ui/screens/bootstrap-status/BootstrapStatusScreen.svelte";
+
+  export let bootstrapStatusStore = undefined as unknown as BootstrapStatusScreenStore;
+  export let bootstrapStatusUsecase = undefined as unknown as BootstrapStatusScreenInput;
 </script>
 
 <svelte:head>
@@ -7,7 +12,7 @@
 </svelte:head>
 
 <main class="shell">
-  <BootstrapScreen />
+  <BootstrapStatusScreen {bootstrapStatusStore} {bootstrapStatusUsecase} />
 </main>
 
 <style>
