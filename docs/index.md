@@ -4,6 +4,7 @@
 新規参加者とエージェントは `AGENTS.md` の後に `.codex/README.md` を読み、その後にこのページを使う。
 workflow の入口は `directing-implementation` と `directing-fixes` で、必要な task-local design は `designing-implementation` を通す。
 詳細な振る舞いと制約は tests / acceptance checks / validation commands を正本として扱う。
+`docs/` 正本は human が先に更新し、agent は human が直接起動した `../.codex/skills/updating-docs/SKILL.md` でだけ同期する。
 
 ## Read Order
 
@@ -33,15 +34,15 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 
 ## Choose The Right Record
 
-- Requirement or product boundary changed: update [`spec.md`](./spec.md)
-- Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
-- Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
-- Data structure or entity relationship changed: update [`er-draft.md`](./er-draft.md)
+- Requirement or product boundary changed: human-first update [`spec.md`](./spec.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
+- Dependency rule or layering changed: human-first update [`architecture.md`](./architecture.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
+- Technology decision changed: human-first update [`tech-selection.md`](./tech-selection.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
+- Data structure or entity relationship changed: human-first update [`er-draft.md`](./er-draft.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Detailed behavior or constraint changed: update the corresponding tests or acceptance checks and validation commands
 - Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
-- Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/`
+- Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/` via `skill-modification`
 - Product-level confusion keeps recurring: add a rule to [`core-beliefs.md`](./core-beliefs.md) or [`AGENTS.md`](../AGENTS.md)
 - The repository is missing coverage or confidence: update [`../4humans/quality-score.md`](../4humans/quality-score.md)
 - The problem is known but not resolved yet: update [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md)

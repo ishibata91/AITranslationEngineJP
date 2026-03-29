@@ -97,6 +97,8 @@ $requiredPaths = @(
     (Join-Path $RepoRoot ".codex\skills\reviewing-fixes\agents\openai.yaml"),
     (Join-Path $RepoRoot ".codex\skills\reporting-risks\SKILL.md"),
     (Join-Path $RepoRoot ".codex\skills\reporting-risks\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\updating-docs\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\updating-docs\agents\openai.yaml"),
     (Join-Path $RepoRoot "docs\index.md"),
     (Join-Path $RepoRoot "docs\core-beliefs.md"),
     (Join-Path $RepoRoot "docs\spec.md"),

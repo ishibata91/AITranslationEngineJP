@@ -37,9 +37,10 @@
 
 -
 
-## Docs Sync
+## 4humans Sync
 
--
+- `4humans/quality-score.md`
+- `4humans/tech-debt-tracker.md`
 
 ## Outcome
 

@@ -16,7 +16,8 @@ description: Handle clearly bounded small tasks. Use when scope, affected files,
 
 - Handle only narrow tasks that are already known to be light.
 - Confirm scope, affected files, and required validation before editing.
-- Keep docs sync in the same change when the narrow task affects workflow or docs.
+- Keep `4humans sync` in the same change when the narrow task affects quality records.
+- Use `skill-modification` for `.codex/` updates and `updating-docs` for `docs/` source-of-truth updates.
 - Stop and reroute when extra investigation or design starts to grow.
 - Do not take on broad refactors, architecture changes, or new lane decisions.
 

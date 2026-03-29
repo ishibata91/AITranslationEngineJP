@@ -21,6 +21,6 @@ Rules:
 2. Separate requirement-level behavior from finer-grained behavior that must be proven by tests.
 3. Prefer the smallest failing test surface that proves the requirement.
 4. Implement only the minimal tests, fixtures, and helpers needed to fix the target behavior in place.
-5. If the spec is missing, flag docs sync instead of inventing behavior.
+5. If the spec is missing, flag closeout notes or a human-triggered `updating-docs` handoff instead of inventing behavior.
 6. Return the test brief, the files touched, and any remaining gap.
 """

@@ -4,7 +4,7 @@
   "allowed_actions": [
     "軽いと確定している narrow task のコード、docs、workflow file を直接変更する",
     "scope に見合う最小限の validation commands を実行する",
-    "必要なら同じ narrow scope 内で docs sync を行う"
+    "必要なら同じ narrow scope 内で `4humans sync` を行う"
   ],
   "forbidden_actions": [
     "広い設計判断や architecture decision を独断で進める",

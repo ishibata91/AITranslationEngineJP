@@ -20,5 +20,5 @@ Rules:
 1. Read the active exec-plan and all required reading before editing.
 2. Stay inside the allowed scope and respect listed non-goals.
 3. Run the assigned validation commands after implementation.
-4. Return touched files, validation results, docs sync notes, and any remaining gap.
+4. Return touched files, validation results, closeout notes, and any remaining gap.
 """

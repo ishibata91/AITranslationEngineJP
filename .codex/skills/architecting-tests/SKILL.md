@@ -40,7 +40,7 @@ description: AITranslationEngineJp 専用。impl / fix の実装直前に、acti
 4. failing tests ごとに観測点（戻り値 / 状態変化 / 外部出力 / エラー）を先に決める。
 5. fixture、acceptance checks、validation command をその観測点に合わせて決める。
 6. 対象 test files / fixture files を特定し、必要な failing tests と fixture を最小差分で実装する。
-7. 仕様にない振る舞いは追加せず、必要なら docs sync に回す。
+7. 仕様にない振る舞いは追加せず、必要なら closeout notes か human-triggered な `updating-docs` へ回す。
 8. 必要なら active exec-plan の `Acceptance Checks` を更新する。
 9. 実装へ handoff する前に、短い test brief、touched test files、残った gap を返す。
 

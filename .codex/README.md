@@ -27,6 +27,7 @@
   - `skills/diagramming-plantuml/SKILL.md`
   - `skills/explore/SKILL.md`
   - `skills/skill-modification/SKILL.md`
+  - `skills/updating-docs/SKILL.md`
   - `skills/working-light/SKILL.md`
 - agent 契約:
   - `agents/task_designer.toml`
@@ -47,7 +48,7 @@
 - `directing-implementation` は実装要求を受け、active plan を作成し、task-local design が必要なら `designing-implementation` へ `UI` / `Scenario` / `Logic` を埋めさせる
 - `designing-implementation` は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
-- `distilling-implementation` は facts、constraints、gaps、docs sync 候補を整理する
+- `distilling-implementation` は facts、constraints、gaps、closeout notes を整理する
 - `planning-implementation` は実装順、owned scope、validation を短い brief に落とす
 - `architecting-tests` は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
 - `implementing-frontend` / `implementing-backend` は brief と plan に従って実装する
@@ -62,7 +63,7 @@
 
 - `directing-fixes` は bugfix 要求を受け、事実不足なら `distilling-fixes` と `tracing-fixes` で scope を狭める
 - `logging-fixes` は一時観測だけを追加 / 削除し、恒久修正を混ぜない
-- `analyzing-fixes` は観測結果を事実に圧縮し、fix 対象か docs sync 対象かを整理する
+- `analyzing-fixes` は観測結果を事実に圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な `updating-docs` 対象かを整理する
 - `architecting-tests` は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する
 - `reviewing-fixes` も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - `reporting-risks` は残留リスクを短くまとめる補助 skill として扱う
@@ -90,7 +91,8 @@
 
 - live workflow に `architect-direction`、`light-direction`、`gating-workflow`、`context_board`、`tasks.md` を戻さない
 - 過去 repo 由来で今の repo に合わない skill / agent / artifact 前提は、互換維持より削除を優先する
-- docs sync は lane の close 条件として扱い、別の人手前提 lane に押し戻さない
+- 通常 lane の close 条件は `4humans sync` として扱う
+- `docs/` 正本更新は human が直接起動した `updating-docs` に限定する
 - harness は repo-owned files だけを検査対象とし、`node_modules`、`dist`、`coverage`、`target`、生成物を含めない
 
 

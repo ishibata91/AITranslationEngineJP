@@ -23,8 +23,8 @@
   ],
   "optional": [
     {
-      "description": "close 前に必要な docs sync。",
-      "field": "docs_sync_needed",
+      "description": "close 前に必要な closeout notes。",
+      "field": "closeout_notes",
       "type": "string[]"
     }
   ],

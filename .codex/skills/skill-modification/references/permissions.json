@@ -15,7 +15,7 @@
     "touched_skill_files",
     "modified_scope",
     "validation_results",
-    "follow_up_docs_sync"
+    "follow_up_workflow_sync"
   ],
   "stop_conditions": [
     "対象 skill や変更目的が不明である",

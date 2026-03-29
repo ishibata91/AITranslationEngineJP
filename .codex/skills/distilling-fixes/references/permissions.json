@@ -8,7 +8,7 @@
   ],
   "forbidden_actions": [
     "未確認の原因を確定する",
-    "コード修正や広い docs sync を始める",
+    "コード修正や広い closeout 変更を始める",
     "packet file や別正本を作る"
   ],
   "expected_outputs": [

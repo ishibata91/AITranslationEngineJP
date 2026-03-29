@@ -16,7 +16,7 @@ description: 実装 lane 用。active exec-plan、関連 docs、コードから�
 - facts
 - constraints
 - gaps
-- docs sync candidates
+- closeout notes
 - required reading
 
 ## Rules

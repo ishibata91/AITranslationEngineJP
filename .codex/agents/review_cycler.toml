@@ -20,5 +20,5 @@ Rules:
 1. Only review these categories: spec deviation, exception handling, resource cleanup, and missing tests.
 2. Return `pass` or `reroute`.
 3. Keep findings concrete and evidence-based.
-4. Point out docs sync needs only when behavior or constraints changed.
+4. Point out closeout notes only when behavior or constraints changed.
 """

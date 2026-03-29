@@ -28,8 +28,8 @@
   ],
   "optional": [
     {
-      "description": "実装しながら確認すべき docs sync 項目。",
-      "field": "docs_sync_watch",
+      "description": "実装しながら確認すべき closeout 項目。",
+      "field": "closeout_watch",
       "type": "string[]"
     }
   ],

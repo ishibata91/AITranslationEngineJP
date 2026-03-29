@@ -1,0 +1,4 @@
+interface:
+  display_name: "Docs Updater"
+  short_description: "Update docs source-of-truth after human-approved decisions"
+  default_prompt: "Use $updating-docs to update only the `docs/` source-of-truth that a human explicitly decided to change."

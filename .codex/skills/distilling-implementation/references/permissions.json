@@ -3,7 +3,7 @@
   "skill": "distilling-implementation",
   "allowed_actions": [
     "active exec-plan、docs、関連コードから facts を抽出する",
-    "constraints、gaps、docs sync candidates を整理する",
+    "constraints、gaps、closeout notes を整理する",
     "required reading を短く提示する"
   ],
   "forbidden_actions": [
@@ -15,7 +15,7 @@
     "facts",
     "constraints",
     "gaps",
-    "docs_sync_candidates",
+    "closeout_notes",
     "required_reading"
   ],
   "stop_conditions": [

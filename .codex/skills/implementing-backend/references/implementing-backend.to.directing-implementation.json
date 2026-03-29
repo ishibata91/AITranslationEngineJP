@@ -23,8 +23,8 @@
   ],
   "optional": [
     {
-      "description": "同変更で更新すべき docs。",
-      "field": "docs_sync_needed",
+      "description": "同変更で direction に伝えるべき closeout notes。",
+      "field": "closeout_notes",
       "type": "string[]"
     },
     {

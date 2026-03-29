@@ -18,7 +18,7 @@ description: bugfix 差分を単発で照合し、`pass` か `reroute` を返す
 - findings
 - recheck
 - residual_risk
-- docs_sync_needed
+- closeout_notes
 
 ## Rules
 

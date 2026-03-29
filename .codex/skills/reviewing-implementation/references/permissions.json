@@ -4,7 +4,7 @@
   "allowed_actions": [
     "仕様逸脱、例外処理、リソース解放、テスト不足の 4 観点で single-pass review を行う",
     "decision を pass または reroute で返す",
-    "再確認が必要な項目や docs sync を指摘する"
+    "再確認が必要な項目や closeout notes を指摘する"
   ],
   "forbidden_actions": [
     "実装修正そのものを行う",
@@ -15,7 +15,7 @@
     "decision",
     "findings",
     "recheck",
-    "docs_sync_needed"
+    "closeout_notes"
   ],
   "stop_conditions": [
     "レビュー対象 diff や期待挙動が不足している",

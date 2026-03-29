@@ -4,7 +4,7 @@
   "allowed_actions": [
     "active fix plan を作成または更新する",
     "distilling、tracing、logging、analyzing、tests、implementing、reviewing、risk reporting へ handoff する",
-    "docs sync と close 条件を整理し、完了時に plan を completed へ移す"
+    "`4humans sync` と close 条件を整理し、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
     "reproduction や trace を飛ばして広い修正に入る",

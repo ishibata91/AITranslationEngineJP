@@ -10,7 +10,7 @@ description: skill 自体の追加、整理、改名、権限調整を行う ski
 - touched skill files
 - modified scope
 - validation results
-- follow-up docs sync
+- follow-up workflow sync
 
 ## Rules
 
@@ -20,4 +20,3 @@ description: skill 自体の追加、整理、改名、権限調整を行う ski
 - live workflow に合わない legacy artifact は持ち込まない
 - 権限境界や handoff が曖昧なら停止して lane owner へ戻す
 - スキルはロールとして扱う｡その役割に関係のない記述は極力排除すること｡
-

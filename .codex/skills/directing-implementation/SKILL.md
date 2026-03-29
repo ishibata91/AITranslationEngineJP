@@ -18,7 +18,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 
 1. `docs/exec-plans/templates/impl-plan.md` を使って active plan を作成または更新する。
 2. `<task_designer>` を `designing-implementation` でスポーンし、active plan の `UI` / `Scenario` / `Logic` を固める。
-3. `<ctx_loader>` を `distilling-implementation` でスポーンし、facts、constraints、gaps、docs sync 候補を整理する。
+3. `<ctx_loader>` を `distilling-implementation` でスポーンし、facts、constraints、gaps、closeout notes を整理する。
 4. `<workplan_builder>` を `planning-implementation` でスポーンし、ordered scope、required reading、validation commands を短い brief にする。
 5. `<test_architect>` を `architecting-tests` でスポーンし、failing tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装させる。
 6. `<implementer>` を `implementing-frontend` または `implementing-backend` でスポーンして実装する。
@@ -27,7 +27,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 9. Sonar issue が解消した後に `<review_cycler>` を `reviewing-implementation` で **1** 回だけ実行する。
 10. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
 11. 差し戻しが修正されたら､再レビューはせず次へ進む｡
-12. plan を `completed/` へ移す。
+12. 必要な `4humans sync` を整理し、plan を `completed/` へ移す。
 
 ## 許可すること
 - 各エージェントのスポーン

@@ -46,6 +46,6 @@
     "facts が列挙されている",
     "constraints が明示されている",
     "gaps が推測と分離されている",
-    "docs_sync_candidates または required_reading が返る"
+    "closeout_notes または required_reading が返る"
   ]
 }
