@@ -4,10 +4,11 @@ import tseslint from "typescript-eslint";
 import svelte from "eslint-plugin-svelte";
 import svelteParser from "svelte-eslint-parser";
 import { repositoryBoundaryPlugin } from "./scripts/eslint/repository-boundary-plugin.mjs";
+import allowlists from "./config/lint/allowlists.json" with { type: "json" };
 
 export default [
   {
-    ignores: ["dist/**", "coverage/**", "node_modules/**", "src-tauri/**"]
+    ignores: allowlists.pathIgnores
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,

@@ -26,32 +26,30 @@
 - `ESLint Flat Config + repository-local rule`: repo 固有の import 境界と、path-based な architectural lint を担当する
 - `Knip`: 未参照 export / file / dependency の検出と cleanup の入口を担当する
 - `SonarScanner + SonarQube MCP`: `TS` / `Svelte` / `Rust` を対象に、code smell、complexity、security hotspot などの server-side issue gate を担当する
+- `cargo fmt --all --check`: `src-tauri/` の formatter 出力が正本どおりかを gate で確認する
 - `cargo clippy --all-targets --all-features -- -D warnings`: Rust 側の未使用要素と warning を失敗扱いにする
 
 ## Initial Config Placement
 
 - frontend lint config は repo root の frontend package に置く
   - `eslint.config.mjs`
-  - `knip.json`
+  - `knip.config.mjs`
   - `.oxlintrc.json`
+  - path allowlist と tool-specific ignore は `config/lint/allowlists.json` を正本にする
 - Rust lint / format config は `src-tauri/` を基準に置く
-  - `Cargo.toml`
-  - `clippy.toml` や `rustfmt.toml` は必要になった時だけ `src-tauri/` に追加する
+  - 現在の repo-local 正本は `src-tauri/Cargo.toml`
+  - `clippy.toml` や `rustfmt.toml` は repo-local override が必要になった時だけ `src-tauri/` に追加する
 - Sonar scanner config は repo root の `sonar-project.properties` を正本とする
 
 ## Initial Gate Split
 
 - gate に入れるもの:
-  - repo root package の `lint`
-  - repo root package の `test`
-  - repo root package の `build`
-  - `src-tauri/` の `cargo fmt --all --check`
-  - `src-tauri/` の `cargo clippy --all-targets --all-features -- -D warnings`
-  - `src-tauri/` の `cargo test --all-features`
+  - repo root package の `gate:execution`
+  - `gate:execution` の内訳として `lint`、`src-tauri/` の `cargo fmt --all --check`、`src-tauri/` の `cargo clippy --all-targets --all-features -- -D warnings`、repo root の `scan:sonar`、`test`、`src-tauri/` の `cargo test --all-features`、`build`
 - report-first に留めるもの:
   - future import graph / cycle 専用解析
 
-初期 gate の責務は `Oxlint` / `ESLint` / `Knip` / `SonarScanner + SonarQube MCP` / `clippy` に固定する。
+初期 gate の責務は `Oxlint` / `ESLint` / `Knip` / `rustfmt check` / `SonarScanner + SonarQube MCP` / `clippy` に固定する。
 
 ## Cleanup Policy
 
@@ -59,12 +57,13 @@
 - 削除しない場合は、allowlist へ理由付きで追加する
 - `Knip --fix` はローカル cleanup 手段として使ってよいが、ファイル削除を伴う結果は review 可能な差分として残す
 - allowlist は恒久逃げ道にせず、tests / spec entrypoint / fixtures / generated code のように静的解析で誤検出しやすい対象へ限定する
+- repo root frontend lint の path ignore と `Knip` binary ignore は `config/lint/allowlists.json` を正本とし、`ESLint` / `Knip` / `Oxlint runner` はその値を参照する
 
 ## Sonar Gate Role
 
 - `SonarScanner + SonarQube MCP` は既存の `Oxlint` / `ESLint` / `Knip` / `clippy` を置き換えず、構造解析系 lint で取り切れない issue を補完する追加層として gate に入れる
 - 初期導入の主目的は code smell、complexity、security hotspot などの server-side issue を継続的に潰すことであり、repo 固有の責務境界や禁止 API の主担当にはしない
-- execution harness は repo root で `sonar-scanner` を実行して server-side analysis を更新する
+- repo root の `scan:sonar` は `sonar-project.properties` を正本にして `sonar-scanner` を実行し、execution harness はその script を lint 後段で呼ぶ
 - implementation lane は `SonarQube MCP` で open issue を取得し、issue が残る限り implementing skill に差し戻す
 - import graph や cycle の主担当は Sonar に移さず、専用 lint / 静的解析に残す
 - project context は `sonar-project.properties` の project key を正本とし、MCP query でも同じ key を使う
@@ -79,7 +78,8 @@
 
 ## Sonar Gate Lifecycle
 
-- execution harness が `lint` / `test` / `build` と並行する repo gate として `sonar-scanner` を実行する
+- execution harness は repo root の `gate:execution` を優先実行し、fallback の時だけ `lint` / `test` / `build` と `Cargo.toml` command を個別実行する
+- `scan:sonar` は `lint` と Rust lint の後段で実行し、`sonar-project.properties` に定義した project context で server-side analysis を更新する
 - scanner 実行後は implementation lane が `SonarQube MCP` で `OPEN` issue を取得する
 - open issue が残る間は owned scope に応じて `implementing-frontend` または `implementing-backend` に戻して修正する
 - false positive や severity tune は repo-local ルール増設ではなく Sonar project 側の設定を優先する

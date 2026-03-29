@@ -15,5 +15,8 @@
 
 ## Execution Notes
 
-- `execution` suite は `package.json` の `lint` / `test` / `build` と `Cargo.toml` の標準 command に加えて、repo root に `sonar-project.properties` がある時は `lint` の後段で `sonar-scanner` を実行する
+- repo root の `package.json` に `gate:execution` がある時、`execution` suite はその script を正規入口として実行する
+- repo root の `gate:execution` は `lint`、`src-tauri/` の Rust gate、`scan:sonar`、`test`、`src-tauri/` の Rust test、`build` をこの順でまとめる
+- `gate:execution` が未定義の repo では、`execution` suite は `package.json` の `lint` / `test` / `build` と `Cargo.toml` の標準 command を個別実行する
+- repo root に `sonar-project.properties` がある時、Sonar step の正本は repo root の `scan:sonar` script とし、未定義の場合だけ `sonar-scanner` を直接実行する
 - Sonar issue の取得と remediation loop は harness ではなく implementation lane の skill 契約で扱う

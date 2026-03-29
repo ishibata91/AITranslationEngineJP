@@ -43,13 +43,45 @@ function Resolve-PackageManager {
     return "npm"
 }
 
+function Test-PackageScript {
+    param(
+        [pscustomobject]$Package,
+        [string]$ScriptName
+    )
+
+    return $null -ne $Package.scripts.PSObject.Properties[$ScriptName]
+}
+
 $failures = 0
 $ranAnything = $false
 $sonarScanned = $false
+$rootExecutionGateRan = $false
+$rootPackage = $null
 $sonarProjectProperties = Join-Path $RepoRoot "sonar-project.properties"
+$rootPackageJsonPath = Join-Path $RepoRoot "package.json"
+$rootCargoTomlPath = Join-Path $RepoRoot "src-tauri\Cargo.toml"
+
+$packageJsons = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter package.json |
+    Where-Object { $_.FullName -notmatch '[\\/](node_modules|dist|build|coverage|target|\.git)[\\/]' }
+
+$rootPackageJson = $packageJsons | Where-Object { $_.FullName -eq $rootPackageJsonPath } | Select-Object -First 1
+if ($null -ne $rootPackageJson) {
+    $rootPackage = Get-Content -LiteralPath $rootPackageJson.FullName -Raw | ConvertFrom-Json
+    if (Test-PackageScript -Package $rootPackage -ScriptName "gate:execution") {
+        $ranAnything = $true
+        $rootExecutionGateRan = $true
+        Invoke-Step -Command (Resolve-PackageManager -Directory $RepoRoot) -Arguments @("run", "gate:execution") -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+        if (Test-PackageScript -Package $rootPackage -ScriptName "scan:sonar") {
+            $sonarScanned = $true
+        }
+    }
+}
 
 $cargoTomls = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter Cargo.toml |
-    Where-Object { $_.FullName -notmatch '[\\/](target|node_modules|dist|build|coverage|\.git)[\\/]' }
+    Where-Object {
+        $_.FullName -notmatch '[\\/](target|node_modules|dist|build|coverage|\.git)[\\/]' -and
+        (-not $rootExecutionGateRan -or $_.FullName -ne $rootCargoTomlPath)
+    }
 
 foreach ($cargoToml in $cargoTomls) {
     $ranAnything = $true
@@ -59,19 +91,20 @@ foreach ($cargoToml in $cargoTomls) {
     Invoke-Step -Command "cargo" -Arguments @("test", "--all-features") -WorkingDirectory $dir -Failures ([ref]$failures)
 }
 
-$packageJsons = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter package.json |
-    Where-Object { $_.FullName -notmatch '[\\/](node_modules|dist|build|coverage|target|\.git)[\\/]' }
-
 foreach ($packageJson in $packageJsons) {
+    if ($rootExecutionGateRan -and $packageJson.FullName -eq $rootPackageJsonPath) {
+        continue
+    }
+
     $ranAnything = $true
     $dir = Split-Path -Parent $packageJson.FullName
     $packageManager = Resolve-PackageManager -Directory $dir
     $package = Get-Content -LiteralPath $packageJson.FullName -Raw | ConvertFrom-Json
     $scripts = @()
 
-    if ($null -ne $package.scripts.lint) { $scripts += "lint" }
-    if ($null -ne $package.scripts.test) { $scripts += "test" }
-    if ($null -ne $package.scripts.build) { $scripts += "build" }
+    if (Test-PackageScript -Package $package -ScriptName "lint") { $scripts += "lint" }
+    if (Test-PackageScript -Package $package -ScriptName "test") { $scripts += "test" }
+    if (Test-PackageScript -Package $package -ScriptName "build") { $scripts += "build" }
 
     if ($scripts.Count -eq 0) {
         Write-Host "SKIP no lint/test/build scripts in $($packageJson.FullName)" -ForegroundColor Yellow
@@ -87,7 +120,11 @@ foreach ($packageJson in $packageJsons) {
             (Test-Path $sonarProjectProperties) -and
             ((Resolve-Path $dir).Path -eq (Resolve-Path $RepoRoot).Path)
         ) {
-            Invoke-Step -Command "sonar-scanner" -Arguments @() -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+            if (Test-PackageScript -Package $package -ScriptName "scan:sonar") {
+                Invoke-Step -Command $packageManager -Arguments @("run", "scan:sonar") -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+            } else {
+                Invoke-Step -Command "sonar-scanner" -Arguments @() -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+            }
             $sonarScanned = $true
         }
     }
@@ -96,13 +133,24 @@ foreach ($packageJson in $packageJsons) {
 $hasPackageLint = $packageJsons |
     Where-Object {
         $package = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json
-        $null -ne $package.scripts.lint
+        Test-PackageScript -Package $package -ScriptName "lint"
     } |
     Select-Object -First 1
 
 if ((Test-Path $sonarProjectProperties) -and -not $sonarScanned -and -not $hasPackageLint) {
     $ranAnything = $true
-    Invoke-Step -Command "sonar-scanner" -Arguments @() -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+    if ($null -ne $rootPackageJson) {
+        $rootPackage = if ($null -ne $rootPackage) { $rootPackage } else { Get-Content -LiteralPath $rootPackageJson.FullName -Raw | ConvertFrom-Json }
+        if (Test-PackageScript -Package $rootPackage -ScriptName "scan:sonar") {
+            Invoke-Step -Command (Resolve-PackageManager -Directory $RepoRoot) -Arguments @("run", "scan:sonar") -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+            $sonarScanned = $true
+        }
+    }
+
+    if (-not $sonarScanned) {
+        Invoke-Step -Command "sonar-scanner" -Arguments @() -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+        $sonarScanned = $true
+    }
 }
 
 if (-not $ranAnything) {

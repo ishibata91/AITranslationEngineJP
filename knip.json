@@ -1,8 +1,0 @@
-{
-  "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": ["index.html"],
-  "project": ["src/**/*.{ts,svelte}", "*.config.{js,mjs,ts}"],
-  "ignoreBinaries": ["sonar-scanner"],
-  "vite": true,
-  "vitest": true
-}

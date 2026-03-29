@@ -8,11 +8,16 @@
     "build": "tsc --noEmit && node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vite/bin/vite.js build --config ./vite.config.mjs --configLoader native",
     "preview": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vite/bin/vite.js preview --config ./vite.config.mjs --configLoader native",
     "lint": "npm run lint:oxlint && npm run lint:eslint && npm run lint:knip",
-    "lint:oxlint": "oxlint src --deny-warnings",
+    "lint:rust": "npm run lint:rust:fmt && npm run lint:rust:clippy",
+    "lint:rust:fmt": "cargo fmt --manifest-path ./src-tauri/Cargo.toml --all --check",
+    "lint:rust:clippy": "cargo clippy --manifest-path ./src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
+    "lint:oxlint": "node ./scripts/lint/run-oxlint.mjs",
     "lint:eslint": "eslint src",
-    "lint:knip": "knip --config knip.json",
+    "lint:knip": "knip --config knip.config.mjs",
     "scan:sonar": "sonar-scanner",
     "test": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vitest/vitest.mjs run --pool threads --config ./vite.config.mjs --configLoader native",
+    "test:rust": "cargo test --manifest-path ./src-tauri/Cargo.toml --all-features",
+    "gate:execution": "npm run lint && npm run lint:rust && npm run scan:sonar && npm run test && npm run test:rust && npm run build",
     "tauri": "tauri"
   },
   "dependencies": {
