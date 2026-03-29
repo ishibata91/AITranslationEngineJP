@@ -1,0 +1,24 @@
+{
+  "target_plugin": "ExampleMod.esp",
+  "dialogue_groups": [],
+  "quests": [],
+  "items": [
+    {
+      "id": "00012345",
+      "editor_id": "ExampleSword",
+      "type": "WEAP",
+      "source": "ExampleMod.esp",
+      "name": "Iron Sword",
+      "description": "A sturdy blade.",
+      "text": "",
+      "type_hint": "WEAP"
+    }
+  ],
+  "magic": [],
+  "locations": [],
+  "cells": [],
+  "system": [],
+  "messages": [],
+  "load_screens": [],
+  "npcs": {}
+}

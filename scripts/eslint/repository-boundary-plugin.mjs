@@ -178,8 +178,8 @@ function splitAliasSpecifier(specifier) {
     return null;
   }
 
-  const [, layer, ...segments] = specifier.split("/");
-  return { layer: layer.slice(1), segments };
+  const [layerAlias, ...segments] = specifier.split("/");
+  return { layer: layerAlias.slice(1), segments };
 }
 
 function stripSrcPrefixSegments(normalizedAbsolutePath) {

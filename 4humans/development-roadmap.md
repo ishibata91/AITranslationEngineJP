@@ -70,7 +70,7 @@
 - `完了`: design harness を追加した
 - `完了`: execution harness を追加した
 - `完了`: `4humans` 記録の格納先を repository 内へ揃えた
-- `未完了`: 初期テンプレートから実業務 feature を量産するための screen / store / usecase 雛形を増やす
+- `完了`: 初期テンプレートから実業務 feature を量産するための screen / store / usecase 雛形を追加した
 
 ### Exit Criteria
 
