@@ -3,20 +3,27 @@ import globals from "globals";
 import tseslint from "typescript-eslint";
 import svelte from "eslint-plugin-svelte";
 import svelteParser from "svelte-eslint-parser";
+import { repositoryBoundaryPlugin } from "./scripts/eslint/repository-boundary-plugin.mjs";
 
 export default [
   {
-    ignores: ["dist/**", "coverage/**", "node_modules/**", "src-tauri/**", "semgrep/**"]
+    ignores: ["dist/**", "coverage/**", "node_modules/**", "src-tauri/**"]
   },
   js.configs.recommended,
   ...tseslint.configs.recommended,
   ...svelte.configs["flat/recommended"],
   {
     files: ["src/**/*.{ts,svelte}"],
+    plugins: {
+      repository: repositoryBoundaryPlugin
+    },
     languageOptions: {
       globals: {
         ...globals.browser
       }
+    },
+    rules: {
+      "repository/enforce-layer-boundaries": "error"
     }
   },
   {

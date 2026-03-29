@@ -11,7 +11,7 @@
     "lint:oxlint": "oxlint src --deny-warnings",
     "lint:eslint": "eslint src",
     "lint:knip": "knip --config knip.json",
-    "report:semgrep": "semgrep scan --config semgrep/semgrep.yml --error=false",
+    "scan:sonar": "sonar-scanner",
     "test": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vitest/vitest.mjs run --pool threads --config ./vite.config.mjs --configLoader native",
     "tauri": "tauri"
   },

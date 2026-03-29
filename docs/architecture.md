@@ -120,9 +120,21 @@ UI が扱う状態は以下の 3 種に分ける。
 
 - frontend root:
   - `src/ui/`: `App Shell`、screen、view、screen-local state
+    - `src/ui/app-shell/`
+    - `src/ui/screens/`
+    - `src/ui/views/`
+    - `src/ui/stores/`
   - `src/application/`: screen usecase、UI が依存する input port、gateway port
+    - `src/application/bootstrap/`
+    - `src/application/usecases/`
+    - `src/application/ports/input/`
+    - `src/application/ports/gateway/`
   - `src/gateway/`: Tauri `invoke` / event を閉じ込める adapter
+    - `src/gateway/tauri/`
+    - `src/gateway/tauri/invoke/`
+    - `src/gateway/tauri/events/`
   - `src/shared/`: UI と gateway 間で共有する DTO / contract
+    - `src/shared/contracts/`
 - backend root `src-tauri/src/`:
   - `application/`: usecase、DTO、backend 側 input/output port
   - `domain/`: domain model と domain rule
@@ -167,7 +179,9 @@ backend は `src-tauri/src/application/` が DTO を返し、`src-tauri/src/gate
 - 同一層内でも、別 feature / slice / package の internal module への直接依存は原則禁止する
 - 同一層内で共有が必要な型や処理は、共有 module か明示的な port / DTO / utility へ昇格して参照する
 - ある feature が別 feature の内部実装を直接 import する構造は採用せず、必要なら境界を引き直す
-- この制約は将来の実装で path-based import lint により機械的に検証できる形へ保つ
+- 同一層で別 public root を参照する場合、許可する import path は `target root` の `index` file か `target root` 直下の file に限定する
+- `target root` 配下の下位 directory (`target root/*/*`) は internal module とみなし、同一層の別 public root から直接 import しない
+- この制約は path-based import lint により機械的に検証できる形へ保つ
 
 ## 4. DTO 境界
 

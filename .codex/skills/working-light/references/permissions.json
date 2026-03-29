@@ -1,0 +1,25 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "working-light",
+  "allowed_actions": [
+    "軽いと確定している narrow task のコード、docs、workflow file を直接変更する",
+    "scope に見合う最小限の validation commands を実行する",
+    "必要なら同じ narrow scope 内で docs sync を行う"
+  ],
+  "forbidden_actions": [
+    "広い設計判断や architecture decision を独断で進める",
+    "複数 lane にまたがる変更や broad refactor を抱え込む",
+    "軽いと断定できない task をそのまま続行する"
+  ],
+  "expected_outputs": [
+    "touched_files",
+    "completed_scope",
+    "validation_results",
+    "reroute_needed"
+  ],
+  "stop_conditions": [
+    "task の scope、affected files、validation が最初に確定できない",
+    "実装中に影響範囲が広がり、軽作業の境界を越える",
+    "追加の task-local design、test design、または lane reroute が必要になる"
+  ]
+}

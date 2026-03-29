@@ -1,0 +1,28 @@
+---
+name: working-light
+description: Handle clearly bounded small tasks. Use when scope, affected files, and validation are obvious upfront and the change can be completed directly without extra planning. Do not use when the task grows, needs spec interpretation, or requires lane-level coordination.
+---
+
+# Working Light
+
+## Output
+
+- touched_files
+- completed_scope
+- validation_results
+- reroute_needed
+
+## Rules
+
+- Handle only narrow tasks that are already known to be light.
+- Confirm scope, affected files, and required validation before editing.
+- Keep docs sync in the same change when the narrow task affects workflow or docs.
+- Stop and reroute when extra investigation or design starts to grow.
+- Do not take on broad refactors, architecture changes, or new lane decisions.
+
+## Reroute
+
+- Specification interpretation is unclear.
+- Touched files or impact area become wider than expected.
+- Multiple skills or lane owners need to coordinate.
+- Minimal validation is no longer enough and test design or a new plan is required.

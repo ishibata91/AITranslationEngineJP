@@ -45,6 +45,8 @@ function Resolve-PackageManager {
 
 $failures = 0
 $ranAnything = $false
+$sonarScanned = $false
+$sonarProjectProperties = Join-Path $RepoRoot "sonar-project.properties"
 
 $cargoTomls = Get-ChildItem -Path $RepoRoot -Recurse -File -Filter Cargo.toml |
     Where-Object { $_.FullName -notmatch '[\\/](target|node_modules|dist|build|coverage|\.git)[\\/]' }
@@ -78,11 +80,33 @@ foreach ($packageJson in $packageJsons) {
 
     foreach ($script in $scripts) {
         Invoke-Step -Command $packageManager -Arguments @("run", $script) -WorkingDirectory $dir -Failures ([ref]$failures)
+
+        if (
+            -not $sonarScanned -and
+            $script -eq "lint" -and
+            (Test-Path $sonarProjectProperties) -and
+            ((Resolve-Path $dir).Path -eq (Resolve-Path $RepoRoot).Path)
+        ) {
+            Invoke-Step -Command "sonar-scanner" -Arguments @() -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+            $sonarScanned = $true
+        }
     }
 }
 
+$hasPackageLint = $packageJsons |
+    Where-Object {
+        $package = Get-Content -LiteralPath $_.FullName -Raw | ConvertFrom-Json
+        $null -ne $package.scripts.lint
+    } |
+    Select-Object -First 1
+
+if ((Test-Path $sonarProjectProperties) -and -not $sonarScanned -and -not $hasPackageLint) {
+    $ranAnything = $true
+    Invoke-Step -Command "sonar-scanner" -Arguments @() -WorkingDirectory $RepoRoot -Failures ([ref]$failures)
+}
+
 if (-not $ranAnything) {
-    Write-Host "SKIP no Cargo.toml or package.json targets found. Execution harness is installed but has nothing to run yet." -ForegroundColor Yellow
+    Write-Host "SKIP no Cargo.toml, package.json, or sonar-project.properties targets found. Execution harness is installed but has nothing to run yet." -ForegroundColor Yellow
 }
 
 if ($failures -gt 0) {

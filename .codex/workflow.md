@@ -17,7 +17,7 @@ feature / change は `directing-implementation` から入り、bug / regression 
 
 ## Impl Lane
 
-標準順序は `directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> reviewing-implementation -> docs sync + close` です。
+標準順序は `directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> sonar-scanner + SonarQube MCP issue gate -> reviewing-implementation -> docs sync + close` です。
 
 - `directing-implementation`: 実装要求の入口。active plan を用意し、task-local design が必要なら `designing-implementation` を起動する。
 - `designing-implementation`: active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
@@ -25,9 +25,10 @@ feature / change は `directing-implementation` から入り、bug / regression 
 - `planning-implementation`: 実装順、owned scope、validation を短い brief に落とす。
 - `architecting-tests`: 実装前に tests、fixtures、acceptance checks、validation commands を先に固定する。
 - `implementing-frontend` / `implementing-backend`: owned scope に従って実装する。分岐は frontend / backend の責務で決める。
+- `sonar-scanner + SonarQube MCP issue gate`: project root で scanner を実行して open issue を取得し、issue が残る間は implementing skill に戻す。
 - `reviewing-implementation`: `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを単発で見る。
 
-`reviewing-implementation` が `pass` なら docs sync と close に進みます。
+Sonar issue が解消し、`reviewing-implementation` が `pass` なら docs sync と close に進みます。
 `reroute` の場合は `directing-implementation` に戻り、同じ lane の中で plan と実装を更新します。
 
 ## Fix Lane

@@ -10,7 +10,9 @@
   "forbidden_actions": [
     "非自明な変更を active plan なしで進める",
     "changes、context_board、tasks.md を live 正本に戻す",
-    "曖昧な scope のまま downstream skill に広い実装を依頼する"
+    "曖昧な scope のまま downstream skill に広い実装を依頼する",
+    "自身で実装を始める",
+    "自身で詳細なコードベース調査を始める"
   ],
   "expected_outputs": [
     "active_or_completed_impl_plan",

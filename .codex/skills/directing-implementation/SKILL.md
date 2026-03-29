@@ -6,7 +6,6 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 # Directing Implementation
 
 この skill は実装 lane の入口です。
-設計だけの別 lane には分けず、必要な task-local design は `designing-implementation` に active plan 内で埋めさせながら実装まで進めます。
 
 ## 使う場面
 
@@ -18,14 +17,17 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 ## Required Workflow
 
 1. `docs/exec-plans/templates/impl-plan.md` を使って active plan を作成または更新する。
-2. task-local design が必要な task だけ、`<task_designer>` を `designing-implementation` でスポーンし、active plan の `UI` / `Scenario` / `Logic` を固める。
+2. `<task_designer>` を `designing-implementation` でスポーンし、active plan の `UI` / `Scenario` / `Logic` を固める。
 3. `<ctx_loader>` を `distilling-implementation` でスポーンし、facts、constraints、gaps、docs sync 候補を整理する。
 4. `<workplan_builder>` を `planning-implementation` でスポーンし、ordered scope、required reading、validation commands を短い brief にする。
 5. `<test_architect>` を `architecting-tests` でスポーンし、failing tests、fixtures、acceptance checks、validation commands を先に固定する。
 6. `<implementer>` を `implementing-frontend` または `implementing-backend` でスポーンして実装する。
-7. 実装後は `<review_cycler>` を `reviewing-implementation` で 1 回だけ実行する。
-8. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
-9. docs sync が必要なら同じ変更内で更新し、plan を `completed/` へ移す。
+7. 実装後は project root で `sonar-scanner` を実行し、SonarQube MCP で `OPEN` issue を取得する。
+8. owned scope の Sonar issue が残る間は lane に差し戻し、同じ active plan を更新して implementing skill を再実行する。
+9. Sonar issue が解消した後に `<review_cycler>` を `reviewing-implementation` で **1** 回だけ実行する。
+10. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
+11. 差し戻しが修正されたら､再レビューはせず次へ進む｡
+12. plan を `completed/` へ移す。
 
 ## 許可すること
 - 各エージェントのスポーン

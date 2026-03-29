@@ -19,11 +19,16 @@ if (Request type?) then (feature / change)
     :implementing-backend;
   endif
 
+  :sonar-scanner;
+  if (Open Sonar issues?) then (yes)
+    :directing-implementation;
+  else (no)
   :reviewing-implementation;
   if (Review result?) then (pass)
     :docs sync + close;
   else (reroute)
     :directing-implementation;
+  endif
   endif
 else (bug / regression)
   :directing-fixes;
