@@ -13,8 +13,8 @@
 ## Current Sources
 
 - [`./xtranslator_ref.md`](./xtranslator_ref.md): xTranslator の入出力形式整理
-- `../api-refrences/`: 既存のベンダー API 参照の legacy 置き場
+- [`./vendor-api/README.md`](./vendor-api/README.md): ベンダー API の生参照とダンプ置き場
 
 ## Migration Note
 
-`docs/api-refrences/` は既存資産として維持するが、今後の新規追加先にはしない。
+`docs/references/` を外部参照資料の正本とし、ベンダー API 参照も `vendor-api/` 配下へ統一する。

@@ -19,7 +19,7 @@
 | Agent role contracts | Green | `.codex/agents/*.toml` で distill、work planning、implementation、trace、logging、review の責務境界を固定した |
 | System of record | Green | 恒久契約は `docs/` と `.codex/` に固定し、task-local な詳細設計は active plan、永続化すべき詳細は tests / acceptance checks / validation commands に分離した |
 | Structure harness | Green | 必須ファイル、必須ディレクトリ、Markdown リンクの検査入口を追加した |
-| Design harness | Green | lane workflow、embedded `UI` / `Scenario` / `Logic`、single-pass review 契約まで検査し、設計契約の欠落を検出できる |
+| Design harness | Green | lane workflow、embedded `UI` / `Scenario` / `Logic`、single-pass review に加え、canonical phrase と architecture bootstrap boundary を検査し、設計契約の欠落と初期境界逸脱を検出できる |
 | Execution harness | Yellow | Rust / frontend の実行対象を追加し、skip 状態は解消したが、Tauri 含む本格的な acceptance checks はまだ未整備 |
 | Test-level constraints and checks | Yellow | bootstrap 用の lint / test / build / cargo command は接続したが、翻訳ドメイン固有の tests / fixtures / acceptance checks はこれから追加する |
 

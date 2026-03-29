@@ -23,6 +23,52 @@ function Assert-Patterns {
     }
 }
 
+function Assert-PathState {
+    param(
+        [string]$Path,
+        [bool]$ShouldExist,
+        [string]$Label,
+        [ref]$Failures
+    )
+
+    $exists = Test-Path -LiteralPath $Path
+    if ($exists -ne $ShouldExist) {
+        $expected = if ($ShouldExist) { "exist" } else { "be absent" }
+        Write-Host "FAIL semantic check '$Label': expected '$Path' to $expected" -ForegroundColor Red
+        $Failures.Value++
+    } else {
+        $state = if ($ShouldExist) { "exists" } else { "is absent" }
+        Write-Host "PASS semantic check '$Label': '$Path' $state" -ForegroundColor Green
+    }
+}
+
+function Assert-CanonicalPhrase {
+    param(
+        [string]$FilePath,
+        [string]$ExpectedPhrase,
+        [string[]]$ForbiddenPhrases,
+        [ref]$Failures
+    )
+
+    $content = Get-Content -LiteralPath $FilePath -Raw
+
+    if ($content -notmatch [regex]::Escape($ExpectedPhrase)) {
+        Write-Host "FAIL semantic phrase '$ExpectedPhrase' missing in $FilePath" -ForegroundColor Red
+        $Failures.Value++
+    } else {
+        Write-Host "PASS semantic phrase '$ExpectedPhrase' found in $FilePath" -ForegroundColor Green
+    }
+
+    foreach ($forbiddenPhrase in $ForbiddenPhrases) {
+        if ($content -match [regex]::Escape($forbiddenPhrase)) {
+            Write-Host "FAIL semantic phrase '$forbiddenPhrase' should not appear in $FilePath" -ForegroundColor Red
+            $Failures.Value++
+        } else {
+            Write-Host "PASS semantic phrase '$forbiddenPhrase' absent from $FilePath" -ForegroundColor Green
+        }
+    }
+}
+
 $checks = @(
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\README.md"); Patterns = @("directing-implementation", "designing-implementation", "directing-fixes", "architecting-tests", "UI", "Scenario", "Logic", "single-pass", "changes/", "tasks.md") },
     [pscustomobject]@{ File = (Join-Path $RepoRoot ".codex\agents\task_designer.toml"); Patterns = @("UI", "Scenario", "Logic", "task-local design", "tasks.md") },
@@ -53,6 +99,45 @@ $failures = 0
 
 foreach ($check in $checks) {
     Assert-Patterns -FilePath $check.File -Patterns $check.Patterns -Failures ([ref]$failures)
+}
+
+$semanticPathChecks = @(
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src\application"); ShouldExist = $true; Label = "frontend application layer root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src\gateway"); ShouldExist = $true; Label = "frontend gateway root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src\shared"); ShouldExist = $true; Label = "frontend shared DTO root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src\ui"); ShouldExist = $true; Label = "frontend ui root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src\domain"); ShouldExist = $false; Label = "frontend domain forbidden during bootstrap" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src\infra"); ShouldExist = $false; Label = "frontend infra forbidden during bootstrap" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src-tauri\src\application"); ShouldExist = $true; Label = "backend application layer root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src-tauri\src\domain"); ShouldExist = $true; Label = "backend domain layer root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src-tauri\src\infra"); ShouldExist = $true; Label = "backend infra layer root" },
+    [pscustomobject]@{ Path = (Join-Path $RepoRoot "src-tauri\src\gateway"); ShouldExist = $true; Label = "backend gateway root" }
+)
+
+foreach ($check in $semanticPathChecks) {
+    Assert-PathState -Path $check.Path -ShouldExist $check.ShouldExist -Label $check.Label -Failures ([ref]$failures)
+}
+
+$semanticPhraseChecks = @(
+    [pscustomobject]@{
+        File = (Join-Path $RepoRoot "docs\core-beliefs.md")
+        ExpectedPhrase = "tests / acceptance checks / validation commands"
+        ForbiddenPhrases = @("test / acceptance checks / validation commands")
+    },
+    [pscustomobject]@{
+        File = (Join-Path $RepoRoot "docs\architecture.md")
+        ExpectedPhrase = "tests / acceptance checks / validation commands"
+        ForbiddenPhrases = @()
+    },
+    [pscustomobject]@{
+        File = (Join-Path $RepoRoot "docs\index.md")
+        ExpectedPhrase = "tests / acceptance checks / validation commands"
+        ForbiddenPhrases = @()
+    }
+)
+
+foreach ($check in $semanticPhraseChecks) {
+    Assert-CanonicalPhrase -FilePath $check.File -ExpectedPhrase $check.ExpectedPhrase -ForbiddenPhrases $check.ForbiddenPhrases -Failures ([ref]$failures)
 }
 
 if ($failures -gt 0) {

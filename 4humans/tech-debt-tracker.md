@@ -8,11 +8,11 @@
 
 ### 1. Legacy reference directory name
 
-- Status: Open
+- Status: Closed (2026-03-29)
 - Area: Documentation structure
-- Detail: 既存の API 参照ファイルは `docs/api-refrences/` にあり、ディレクトリ名に typo がある
-- Impact: 新規参加者とエージェントが `references` と `api-refrences` の差を誤解しやすい
-- Next step: `docs/references/` へ段階移行し、互換リンク方針を決めた上でリネームする
+- Detail: ベンダー API 参照ファイルを `docs/references/vendor-api/` へ移し、typo のある `docs/api-refrences/` を廃止した
+- Impact: 参照資料の導線が `docs/references/` に一本化され、`references` と `api-refrences` の混同が解消された
+- Resolution: `docs/references/index.md` と `docs/index.md` を新配置へ同期した
 
 ### 2. Test-level constraints are not established
 
@@ -24,11 +24,11 @@
 
 ### 3. Design harness is rule-based, not semantic
 
-- Status: Open
+- Status: Closed (2026-03-29)
 - Area: Harness
-- Detail: 現在の設計ハーネスは主要キーワードと基本契約の確認に留まる
-- Impact: 文書間の高度な矛盾や境界逸脱を自動検知できない
-- Next step: 実装が進んだ段階で、用語辞書チェックや依存規約チェックを追加する
+- Detail: 設計ハーネスに canonical phrase 整合チェックと architecture bootstrap boundary チェックを追加した
+- Impact: 主要文書間で executable-spec の正本表現が崩れた場合や、frontend / backend の初期境界が設計契約から逸脱した場合を自動検知できる
+- Resolution: `scripts/harness/check-design.ps1` で semantic checks を実行し、`docs/core-beliefs.md` と `4humans/quality-score.md` を同期した
 
 ### 4. Execution harness does not cover translation-specific acceptance checks yet
 

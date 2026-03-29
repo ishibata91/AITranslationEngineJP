@@ -25,7 +25,7 @@
 - 内部境界と依存方向は `architecture.md` に記録する
 - 実装技術の選択は `tech-selection.md` に記録する
 - データモデルと ER は `er-draft.md` に記録する
-- 詳細な振る舞いと制約は対応する test / acceptance checks / validation commands に記録する
+- 詳細な振る舞いと制約は対応する tests / acceptance checks / validation commands に記録する
 - 作業フローは `.codex/skills/` に記録する
 - 役割契約は `.codex/agents/` に記録する
 - 一時的な作業単位は `exec-plans/` に記録する
@@ -43,5 +43,4 @@
 - エージェントが検証入口を発見できない状態
 - role handoff が曖昧で、lane と補助 skill の責務が崩れる状態
 - review で繰り返し検出される契約違反が harness や executable specs へ昇格されない状態
-
 

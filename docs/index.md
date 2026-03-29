@@ -2,6 +2,8 @@
 
 `docs/` はプロダクト仕様と設計の記録系であり、作業方法の正本は `.codex/` にある。
 新規参加者とエージェントは `AGENTS.md` の後に `.codex/README.md` を読み、その後にこのページを使う。
+workflow の入口は `directing-implementation` と `directing-fixes` で、必要な task-local design は `designing-implementation` を通す。
+詳細な振る舞いと制約は tests / acceptance checks / validation commands を正本として扱う。
 
 ## Read Order
 
@@ -54,7 +56,6 @@
 ## Notes
 
 - New external references should be added under [`references/`](./references/index.md).
-- The legacy raw API dumps still live under `docs/api-refrences/`. Keep them until they are migrated,
-  but do not add new files there.
+- Raw vendor API dumps live under [`references/vendor-api/`](./references/vendor-api/).
 - Workflow skills live under [`../.codex/skills/`](../.codex/skills/).
 
