@@ -6,22 +6,18 @@
 ## Read Order
 
 1. [`../.codex/README.md`](../.codex/README.md)
-2. 実装なら [`../.codex/skills/directing-implementation/SKILL.md`](../.codex/skills/directing-implementation/SKILL.md)
-3. バグ修正なら [`../.codex/skills/directing-fixes/SKILL.md`](../.codex/skills/directing-fixes/SKILL.md)
-4. [`core-beliefs.md`](./core-beliefs.md)
-5. [`spec.md`](./spec.md)
-6. [`architecture.md`](./architecture.md)
-7. [`tech-selection.md`](./tech-selection.md)
-8. [`er-draft.md`](./er-draft.md)
-9. [`lint-policy.md`](./lint-policy.md)
-10. Relevant file under [`exec-plans/`](./exec-plans/)
+2. [`core-beliefs.md`](./core-beliefs.md)
+3. [`spec.md`](./spec.md)
+4. [`architecture.md`](./architecture.md)
+5. [`tech-selection.md`](./tech-selection.md)
+6. [`er-draft.md`](./er-draft.md)
+7. [`lint-policy.md`](./lint-policy.md)
+8. Relevant file under [`exec-plans/`](./exec-plans/)
 
 ## Directory Contract
 
 - [`core-beliefs.md`](./core-beliefs.md): agent-first principles, hard rules, and repository habits
 - [`../.codex/`](../.codex/README.md): multi-agent workflow, role contracts, and workflow skills
-- [`../.codex/skills/directing-implementation/`](../.codex/skills/directing-implementation/SKILL.md): implementation lane entrypoint that can also settle task-local design
-- [`../.codex/skills/directing-fixes/`](../.codex/skills/directing-fixes/SKILL.md): bugfix lane entrypoint with optional tracing and logging
 - [`spec.md`](./spec.md): permanent requirements and glossary
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
@@ -35,8 +31,6 @@
 
 ## Choose The Right Record
 
-- task-local な詳細設計や一時的な実装判断は plan に置く。実装 task で必要な `UI` / `Scenario` / `Logic` も active plan の section に含める
-- 完了後も保持すべき詳細な振る舞い、制約、受け入れ条件は対応する tests / acceptance checks / validation commands に昇格する
 - Requirement or product boundary changed: update [`spec.md`](./spec.md)
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)

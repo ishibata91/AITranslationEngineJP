@@ -1,0 +1,25 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "explore",
+  "allowed_actions": [
+    "関連 docs、コード、差分、validation 結果を read-only で調査する",
+    "confirmed facts と supporting evidence を人間向けに要約する",
+    "未解決点と適切な next step または handoff 先を示す"
+  ],
+  "forbidden_actions": [
+    "コード、docs、plan を直接編集する",
+    "推測だけで結論を確定する",
+    "実装や fix を調査の名目で開始する"
+  ],
+  "expected_outputs": [
+    "confirmed_facts",
+    "relevant_evidence",
+    "open_questions",
+    "recommended_next_step"
+  ],
+  "stop_conditions": [
+    "調査対象や知りたい論点が特定できない",
+    "証拠が不足し read-only 調査だけでは前進しない",
+    "次の必要作業が実装、fix、docs sync であり handoff が必要である"
+  ]
+}

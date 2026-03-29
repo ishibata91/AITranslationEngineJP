@@ -1,0 +1,25 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "architecting-tests",
+  "allowed_actions": [
+    "active exec-plan と関連仕様から failing tests を設計する",
+    "fixtures、acceptance checks、validation commands を最小範囲で定義する",
+    "必要なら active exec-plan の Acceptance Checks を更新する"
+  ],
+  "forbidden_actions": [
+    "仕様にない振る舞いを補完する",
+    "広い実装変更や lane close を始める",
+    "test scope を plan より大きく膨らませる"
+  ],
+  "expected_outputs": [
+    "failing_tests",
+    "fixtures",
+    "acceptance_checks",
+    "validation_commands"
+  ],
+  "stop_conditions": [
+    "plan や関連仕様だけでは期待振る舞いを固定できない",
+    "再現条件や target behavior が未確定である",
+    "ownership が曖昧で実装 lane へ handoff できない"
+  ]
+}

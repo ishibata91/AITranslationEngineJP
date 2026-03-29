@@ -10,6 +10,7 @@
 - バグ修正の入口: `skills/directing-fixes/SKILL.md`
 - workflow 鳥瞰図: `workflow.md`
 - 補助 skill:
+  - `skills/designing-implementation/SKILL.md`
   - `skills/distilling-implementation/SKILL.md`
   - `skills/planning-implementation/SKILL.md`
   - `skills/architecting-tests/SKILL.md`
@@ -24,7 +25,10 @@
   - `skills/reviewing-fixes/SKILL.md`
   - `skills/reporting-risks/SKILL.md`
   - `skills/diagramming-plantuml/SKILL.md`
+  - `skills/explore/SKILL.md`
+  - `skills/skill-modification/SKILL.md`
 - agent 契約:
+  - `agents/task_designer.toml`
   - `agents/ctx_loader.toml`
   - `agents/workplan_builder.toml`
   - `agents/test_architect.toml`
@@ -37,9 +41,10 @@
 
 ### Impl lane
 
-`User -> directing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> reviewing-implementation -> directing-implementation close`
+`User -> directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> reviewing-implementation -> directing-implementation close`
 
-- `directing-implementation` は実装要求を受け、必要なら active plan の中に `UI` / `Scenario` / `Logic` を埋める
+- `directing-implementation` は実装要求を受け、active plan を作成し、task-local design が必要なら `designing-implementation` へ `UI` / `Scenario` / `Logic` を埋めさせる
+- `designing-implementation` は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
 - `distilling-implementation` は facts、constraints、gaps、docs sync 候補を整理する
 - `planning-implementation` は実装順、owned scope、validation を短い brief に落とす
@@ -67,6 +72,8 @@
 - active plan を別 artifact 群へ分解しない
 - `directing-* -> downstream skill` の handoff contract 例は、各 directing skill 配下の `references/*.json` を参照する
 - `downstream skill -> directing-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を参照する
+- 各 skill の `references/permissions.json` は、その skill が実行してよい操作、してはいけない操作、期待される返却、停止条件を表す role contract として扱う
+- skill の権限にない操作や解釈が曖昧な依頼は続行せず、stop and handoff を選ぶ
 - reference JSON は説明用であり、live workflow の正本を packet 契約へ戻さない
 
 ## Review と reroute

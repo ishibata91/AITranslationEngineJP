@@ -1,0 +1,43 @@
+{
+  "contract_version": "2026-03-29",
+  "direction": "directing-to-skill",
+  "from_skill": "directing-implementation",
+  "to_skill": "designing-implementation",
+  "purpose": "task-local design が必要な時に、active exec-plan の UI / Scenario / Logic を固める依頼を渡す。",
+  "required": [
+    {
+      "description": "対象 task の要約と変更意図。",
+      "field": "request_summary",
+      "type": "string"
+    },
+    {
+      "description": "作業中の exec-plan path。",
+      "field": "active_plan_path",
+      "type": "string"
+    },
+    {
+      "description": "task-local design 判断に必要な関連 docs やコード path。",
+      "field": "required_reading",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "UI / Scenario / Logic のうち特に固めたい section。",
+      "field": "focus_sections",
+      "type": "string[]"
+    },
+    {
+      "description": "現時点の制約や避けるべき選択。",
+      "field": "constraints",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "実装コードを直接変更しない",
+    "active exec-plan の UI、Scenario、Logic 以外を広く書き換えない"
+  ],
+  "completion_signal": [
+    "direction が distilling-implementation に handoff できる task-local design が active plan に入っている"
+  ]
+}

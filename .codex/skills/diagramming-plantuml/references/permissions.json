@@ -1,0 +1,24 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "diagramming-plantuml",
+  "allowed_actions": [
+    ".puml ファイルを作成または更新する",
+    "activity 図と component 図を分割する",
+    "plantuml-check で構文確認し、エラーを直す"
+  ],
+  "forbidden_actions": [
+    "画像出力を source of truth にする",
+    "無関係な文書契約や workflow を書き換える",
+    "構文エラーが残ったままレイアウト調整を優先する"
+  ],
+  "expected_outputs": [
+    "updated_puml_files",
+    "diagram_split_decision",
+    "plantuml_validation_result"
+  ],
+  "stop_conditions": [
+    "入力として扱う図や境界が不明である",
+    "PlantUML の表現だけでは要求された内容を表せない",
+    "validation 手段がなく構文妥当性を確認できない"
+  ]
+}

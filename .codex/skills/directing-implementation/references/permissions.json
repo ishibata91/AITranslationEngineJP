@@ -1,0 +1,26 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "directing-implementation",
+  "allowed_actions": [
+    "active impl plan を作成または更新する",
+    "designing-implementation へ task-local design を handoff する",
+    "distilling、planning、tests、implementing、reviewing へ handoff する",
+    "docs sync を同一変更で扱い、完了時に plan を completed へ移す"
+  ],
+  "forbidden_actions": [
+    "非自明な変更を active plan なしで進める",
+    "changes、context_board、tasks.md を live 正本に戻す",
+    "曖昧な scope のまま downstream skill に広い実装を依頼する"
+  ],
+  "expected_outputs": [
+    "active_or_completed_impl_plan",
+    "ordered_handoffs",
+    "docs_sync_status",
+    "validation_summary"
+  ],
+  "stop_conditions": [
+    "要求が fix lane に属し implementation lane では扱えない",
+    "facts、constraints、gaps が不足し plan を安全に固定できない",
+    "必要な次操作が自身の権限外で stop and handoff が必要である"
+  ]
+}

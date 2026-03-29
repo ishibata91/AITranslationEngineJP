@@ -1,0 +1,24 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "reporting-risks",
+  "allowed_actions": [
+    "diff と validation evidence から residual risks を要約する",
+    "なぜ risk が残るかを簡潔に説明する",
+    "必要な recheck suggestion を返す"
+  ],
+  "forbidden_actions": [
+    "証拠のない推測を risk として膨らませる",
+    "新しい修正や別 lane の作業を始める",
+    "plan や packet の別正本を作る"
+  ],
+  "expected_outputs": [
+    "remaining_risks",
+    "why_they_remain",
+    "recheck_suggestion"
+  ],
+  "stop_conditions": [
+    "参照できる diff や validation evidence がない",
+    "risk ではなく未着手の実装判断が主要論点になっている",
+    "要求が residual risk report ではなく追加修正に移っている"
+  ]
+}

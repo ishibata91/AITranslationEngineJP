@@ -1,0 +1,25 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "logging-fixes",
+  "allowed_actions": [
+    "trace に必要な temporary log statements を追加または除去する",
+    "既存の logging style を再利用する",
+    "観測のための最小限の確認コマンドを実行する"
+  ],
+  "forbidden_actions": [
+    "恒久修正や logger 設計変更を混ぜる",
+    "無関係な cleanup を同時に行う",
+    "調査完了後も temporary logging を残し続ける"
+  ],
+  "expected_outputs": [
+    "instrumented_locations",
+    "observation_purpose",
+    "validation_results",
+    "cleanup_status"
+  ],
+  "stop_conditions": [
+    "観測点や確認したい仮説が曖昧である",
+    "必要な logging style や挿入位置が特定できない",
+    "要求が temporary logging ではなく恒久修正に移っている"
+  ]
+}

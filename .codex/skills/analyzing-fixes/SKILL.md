@@ -1,6 +1,6 @@
 ---
 name: analyzing-fixes
-description: 観測結果を圧縮し、修正対象か docs sync 対象かを整理する。
+description: 観測結果を圧縮し、結果を前SKILLにhandoffするSKILL。
 ---
 
 # Analyzing Fixes

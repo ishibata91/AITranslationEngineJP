@@ -1,0 +1,24 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "analyzing-fixes",
+  "allowed_actions": [
+    "観測結果やログを既知事実へ圧縮する",
+    "否定された仮説と残る gap を整理する"
+  ],
+  "forbidden_actions": [
+    "観測のない推測を事実として確定する",
+    "恒久修正を始める",
+    "packet や別の live 正本を新設する"
+  ],
+  "expected_outputs": [
+    "observed_facts",
+    "disproved_hypotheses",
+    "remaining_gaps",
+    "recommended_next_step"
+  ],
+  "stop_conditions": [
+    "信頼できる観測結果がまだ揃っていない",
+    "先に tracing や temporary logging が必要である",
+    "要求が分析ではなく実装修正に移っている"
+  ]
+}

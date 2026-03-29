@@ -1,0 +1,25 @@
+{
+  "contract_version": "2026-03-29",
+  "skill": "planning-implementation",
+  "allowed_actions": [
+    "Implementation Plan を短い ordered scope に整理する",
+    "owned scope、required reading、validation commands を固定する",
+    "必要なら active exec-plan の Implementation Plan だけを更新する"
+  ],
+  "forbidden_actions": [
+    "Implementation Plan 以外の section を広く書き換える",
+    "tasks.md や別の実装管理 artifact を新設する",
+    "frontend と backend の責務境界を曖昧にする"
+  ],
+  "expected_outputs": [
+    "ordered_scope",
+    "owned_scope",
+    "required_reading",
+    "validation_commands"
+  ],
+  "stop_conditions": [
+    "facts や gaps が多く実装順を固定できない",
+    "ownership を安全に切り分けられない",
+    "先に distilling や docs decision が必要である"
+  ]
+}

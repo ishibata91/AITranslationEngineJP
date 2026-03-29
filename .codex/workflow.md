@@ -17,9 +17,10 @@ feature / change は `directing-implementation` から入り、bug / regression 
 
 ## Impl Lane
 
-標準順序は `directing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> reviewing-implementation -> docs sync + close` です。
+標準順序は `directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> reviewing-implementation -> docs sync + close` です。
 
-- `directing-implementation`: 実装要求の入口。必要なら active plan の `UI` / `Scenario` / `Logic` を埋める。
+- `directing-implementation`: 実装要求の入口。active plan を用意し、task-local design が必要なら `designing-implementation` を起動する。
+- `designing-implementation`: active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
 - `distilling-implementation`: facts、constraints、gaps、docs sync 候補を圧縮する。
 - `planning-implementation`: 実装順、owned scope、validation を短い brief に落とす。
 - `architecting-tests`: 実装前に tests、fixtures、acceptance checks、validation commands を先に固定する。

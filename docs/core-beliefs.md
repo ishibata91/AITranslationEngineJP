@@ -34,7 +34,7 @@
 
 ## 3. ルール化するべき失敗
 
-次のものは、見つけた時点でリポジトリルールに引き上げる。
+次のものは、見つけた時点でユーザーに報告する｡
 
 - 同じ前提説明を毎回要求する曖昧な文書構成
 - 参照先が存在しない文書リンク
@@ -44,26 +44,4 @@
 - role handoff が曖昧で、lane と補助 skill の責務が崩れる状態
 - review で繰り返し検出される契約違反が harness や executable specs へ昇格されない状態
 
-## 4. 実装前後の標準動作
-
-実装前:
-
-- `AGENTS.md` から入り、`.codex/README.md` と relevant direction skill を読む
-- 実装では `directing-implementation` を使い、task-local design が要る時だけ active plan に `UI` / `Scenario` / `Logic` を埋める
-- 修正では `directing-fixes` を使い、事実不足なら trace と optional logging で scope を狭める
-- 非自明な変更なら template を使って `docs/exec-plans/active/` に計画を置く
-- 構造ハーネスを先に通す
-
-実装後:
-
-- `scripts/harness/run.ps1 -Suite all` を実行する
-- 必要な記録を更新する
-- 計画を `completed/` へ移す
-- 最終 accept は Architect が持つ
-
-## 5. 今はやらないこと
-
-- まだ翻訳品質ゲートを repository gate にはしない
-- まだ新しいコード上の public API を先回りして増やさない
-- まだ巨大な単一マニュアルを作らない
 

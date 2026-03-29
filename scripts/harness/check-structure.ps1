@@ -57,6 +57,7 @@ function Resolve-LinkTarget {
 $requiredPaths = @(
     (Join-Path $RepoRoot "AGENTS.md"),
     (Join-Path $RepoRoot ".codex\README.md"),
+    (Join-Path $RepoRoot ".codex\agents\task_designer.toml"),
     (Join-Path $RepoRoot ".codex\agents\ctx_loader.toml"),
     (Join-Path $RepoRoot ".codex\agents\workplan_builder.toml"),
     (Join-Path $RepoRoot ".codex\agents\test_architect.toml"),
@@ -66,6 +67,8 @@ $requiredPaths = @(
     (Join-Path $RepoRoot ".codex\agents\review_cycler.toml"),
     (Join-Path $RepoRoot ".codex\skills\directing-implementation\SKILL.md"),
     (Join-Path $RepoRoot ".codex\skills\directing-implementation\agents\openai.yaml"),
+    (Join-Path $RepoRoot ".codex\skills\designing-implementation\SKILL.md"),
+    (Join-Path $RepoRoot ".codex\skills\designing-implementation\agents\openai.yaml"),
     (Join-Path $RepoRoot ".codex\skills\distilling-implementation\SKILL.md"),
     (Join-Path $RepoRoot ".codex\skills\distilling-implementation\agents\openai.yaml"),
     (Join-Path $RepoRoot ".codex\skills\planning-implementation\SKILL.md"),
