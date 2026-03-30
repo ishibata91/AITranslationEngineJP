@@ -1,9 +1,9 @@
 # Task Catalog
 
-関連文書: [`../index.md`](../index.md), [`../../4humans/development-roadmap.md`](../../4humans/development-roadmap.md), [`../exec-plans/templates/impl-plan.md`](../exec-plans/templates/impl-plan.md)
+関連文書: [`../docs/index.md`](../docs/index.md), [`../4humans/development-roadmap.md`](../4humans/development-roadmap.md), [`../docs/exec-plans/templates/impl-plan.md`](../docs/exec-plans/templates/impl-plan.md)
 
 このディレクトリは、並列実行しやすい task 分解を YAML で保持する machine-readable task catalog である。
-人間向けの要約と現在地は [`../../4humans/development-roadmap.md`](../../4humans/development-roadmap.md) を正本とし、phase metadata は `phase-*/phase.yaml`、task の詳細は `phase-*/tasks/*.yaml` を正本とする。
+人間向けの要約と現在地は [`../4humans/development-roadmap.md`](../4humans/development-roadmap.md) を正本とし、phase metadata は `phase-*/phase.yaml`、task の詳細は `phase-*/tasks/*.yaml` を正本とする。
 
 ## File Layout
 

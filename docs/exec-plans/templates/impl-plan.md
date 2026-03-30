@@ -18,7 +18,7 @@
 
 ## Owned Scope
 
-- Prefer repo-root path prefixes or stable scope tokens that match `docs/tasks/phase-*/tasks/*.yaml` when available.
+- Prefer repo-root path prefixes or stable scope tokens that match `tasks/phase-*/tasks/*.yaml` when available.
 
 ## Out Of Scope
 

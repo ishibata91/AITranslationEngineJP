@@ -3,7 +3,7 @@
 - lane_owner: codex
 - scope: Define the minimal Phase 1 job state contract and transition policy shared by create and list paths.
 - task_id: P1-C02
-- task_catalog_ref: docs/tasks/phase-1/tasks/P1-C02.yaml
+- task_catalog_ref: tasks/phase-1/tasks/P1-C02.yaml
 - parent_phase: phase-1
 
 ## Request Summary
@@ -16,12 +16,12 @@
 
 - `docs/spec.md`
 - `docs/architecture.md`
-- `docs/tasks/phase-1/tasks/P1-C02.yaml`
-- `docs/tasks/phase-1/tasks/P1-I04.yaml`
-- `docs/tasks/phase-1/tasks/P1-I05.yaml`
-- `docs/tasks/phase-1/tasks/P1-I06.yaml`
-- `docs/tasks/phase-1/tasks/P1-I07.yaml`
-- `docs/tasks/phase-1/tasks/P1-V02.yaml`
+- `tasks/phase-1/tasks/P1-C02.yaml`
+- `tasks/phase-1/tasks/P1-I04.yaml`
+- `tasks/phase-1/tasks/P1-I05.yaml`
+- `tasks/phase-1/tasks/P1-I06.yaml`
+- `tasks/phase-1/tasks/P1-I07.yaml`
+- `tasks/phase-1/tasks/P1-V02.yaml`
 
 ## Owned Scope
 

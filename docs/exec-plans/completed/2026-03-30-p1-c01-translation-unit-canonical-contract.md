@@ -3,7 +3,7 @@
 - lane_owner: codex
 - scope: Define the canonical TRANSLATION_UNIT contract and DTO/result shape before job creation and UI observation start.
 - task_id: P1-C01
-- task_catalog_ref: docs/tasks/phase-1/tasks/P1-C01.yaml
+- task_catalog_ref: tasks/phase-1/tasks/P1-C01.yaml
 - parent_phase: phase-1
 
 ## Request Summary
@@ -18,7 +18,7 @@
 - `docs/architecture.md`
 - `docs/er.md`
 - `docs/tech-selection.md`
-- `docs/tasks/phase-1/tasks/P1-C01.yaml`
+- `tasks/phase-1/tasks/P1-C01.yaml`
 - `docs/exec-plans/completed/2026-03-29-per-39-xedit-export-json-importer.md`
 - `docs/exec-plans/completed/2026-03-29-per-41-plugin-export-persistence-unit.md`
 

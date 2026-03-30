@@ -1,5 +1,5 @@
 - workflow: impl
-- status: planned
+- status: completed
 - lane_owner: codex
 - scope: Move the parallel-ready task catalog from docs/tasks to tasks at repository root, then sync all references.
 - task_id: TASK-CATALOG-ROOT-MOVE
@@ -91,4 +91,7 @@
 
 ## Outcome
 
-- Pending
+- Moved the parallel-ready task catalog from `docs/tasks/` to `tasks/` at repository root while preserving the per-phase directory layout and per-task YAML files.
+- Updated `4humans/development-roadmap.md`, `docs/index.md`, `docs/exec-plans/templates/impl-plan.md`, and affected completed plan records to reference `tasks/`.
+- Fixed `tasks/README.md` links after the root move so structure validation resolves correctly from the new directory.
+- Validation passed for `powershell -File scripts/harness/run.ps1 -Suite structure`, `powershell -File scripts/harness/run.ps1 -Suite design`, `powershell -File scripts/harness/run.ps1 -Suite all`, Python YAML parsing for `tasks/phase-*/phase.yaml` and `tasks/phase-*/tasks/*.yaml`, and the Phase 1 `owned_scope` disjoint check.
