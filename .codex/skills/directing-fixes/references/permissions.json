@@ -4,7 +4,7 @@
   "allowed_actions": [
     "active fix plan を作成または更新する",
     "distilling、tracing、logging、analyzing、tests、implementing、reviewing、risk reporting へ handoff する",
-    "`4humans sync` と close 条件を整理し、完了時に plan を completed へ移す"
+    "`4humans sync` と close 条件を整理し、close 前に commit し、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
     "reproduction や trace を飛ばして広い修正に入る",
@@ -15,7 +15,7 @@
     "active_or_completed_fix_plan",
     "lane_decision",
     "handoff_targets",
-    "validation_and_close_summary"
+    "validation_and_commit_summary"
   ],
   "stop_conditions": [
     "要求が bugfix ではなく implementation lane に属する",

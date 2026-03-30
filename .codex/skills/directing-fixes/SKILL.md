@@ -1,6 +1,6 @@
 ---
 name: directing-fixes
-description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実整理、trace、必要時 logging、修正、single-pass review、close を管理する。
+description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実整理、trace、必要時 logging、修正、single-pass review、commit、close を管理する。
 ---
 
 # Directing Fixes
@@ -21,12 +21,13 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 5. `<test_architect>` を `architecting-tests` でスポーンし、再現条件を failing tests、fixtures、acceptance checks、validation commands に落とし、必要な回帰 test / fixture を最小範囲で実装させる。
 6. scope が固まったら `<implementer>` を `implementing-fixes` でスポーンして修正する。
 7. 実装後は `<review_cycler>` を `reviewing-fixes` で 1 回だけ実行する。
-8. `4humans sync` や residual risk を整理して close する。
+8. `4humans sync` や residual risk を整理し、この変更を commit してから close する。
 
 ## Rules
 
 - docs-only の問題ならコード修正を始めない
 - temporary logging は最後に除去する
+- review が `pass` でも commit 完了前に close とみなさない
 - `changes/`、`context_board`、`tasks.md` を live 正本にしない
 - review は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを見る
 - score 制の review loop を導入しない

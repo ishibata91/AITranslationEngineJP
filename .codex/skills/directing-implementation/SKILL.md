@@ -1,6 +1,6 @@
 ---
 name: directing-implementation
-description: AITranslationEngineJp 専用。実装要求の正式入口。必要なら `designing-implementation` に active exec-plan の `UI` / `Scenario` / `Logic` を固めさせ、そのまま実装と close まで進める。
+description: AITranslationEngineJp 専用。実装要求の正式入口。必要なら `designing-implementation` に active exec-plan の `UI` / `Scenario` / `Logic` を固めさせ、そのまま実装、commit、close まで進める。
 ---
 
 # Directing Implementation
@@ -28,7 +28,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 10. Sonar issue が解消した後に `<review_cycler>` を `reviewing-implementation` で **1** 回だけ実行する。
 11. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
 12. 差し戻しが修正されたら､再レビューはせず次へ進む｡
-13. 必要な `4humans sync` を整理し、plan を `completed/` へ移す。
+13. 必要な `4humans sync` を整理し、この変更を commit してから plan を `completed/` へ移す。
 
 ## 許可すること
 - 各エージェントのスポーン
@@ -37,6 +37,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 ## Rules
 
 - `changes/`、`context_board`、`tasks.md` を live 正本にしない
+- review が `pass` でも commit 完了前に close とみなさない
 - skill 権限が曖昧な場合は停止して適切な handoff を選ぶ
 
 ## Reference Use
