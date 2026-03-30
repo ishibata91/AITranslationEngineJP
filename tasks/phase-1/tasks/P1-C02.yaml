@@ -1,7 +1,7 @@
 id: P1-C02
 title: Define minimal job state model contract
 type: contract
-status: ready
+status: complete
 goal: Fix the minimal Phase 1 job state and transition boundary used by create and
   list paths.
 owned_scope:

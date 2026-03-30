@@ -1,7 +1,7 @@
 id: P1-C01
 title: Define TRANSLATION_UNIT canonical contract
 type: contract
-status: ready
+status: complete
 goal: Fix the normalized translation-unit boundary before job creation and UI observation
   start.
 owned_scope:
