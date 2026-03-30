@@ -1,7 +1,7 @@
 id: P1-V01
 title: Fix lossless translation-unit preservation fixture
 type: verification
-status: ready
+status: done
 goal: Create a stable fixture and checks for lossless normalized translation-unit
   preservation.
 owned_scope:

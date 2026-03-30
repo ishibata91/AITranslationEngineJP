@@ -1,7 +1,7 @@
 id: P1-V02
 title: Fix import-to-job acceptance anchor
 type: verification
-status: ready
+status: done
 goal: Define the first executable path from imported input to job observation before
   full integration starts.
 owned_scope:

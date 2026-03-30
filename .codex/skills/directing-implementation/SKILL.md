@@ -29,6 +29,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 11. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
 12. 差し戻しが修正されたら､再レビューはせず次へ進む｡
 13. 必要な `4humans sync` を整理し、この変更を commit してから plan を `completed/` へ移す。
+14. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## 許可すること
 - 各エージェントのスポーン

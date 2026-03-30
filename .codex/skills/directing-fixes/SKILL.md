@@ -22,6 +22,7 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 6. scope が固まったら `<implementer>` を `implementing-fixes` でスポーンして修正する。
 7. 実装後は `<review_cycler>` を `reviewing-fixes` で 1 回だけ実行する。
 8. `4humans sync` や residual risk を整理し、この変更を commit してから close する。
+9. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## Rules
 
