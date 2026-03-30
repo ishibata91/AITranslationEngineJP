@@ -14,6 +14,7 @@ description: Handle clearly bounded small tasks. Use when scope, affected files,
 
 ## Rules
 
+- 編集前に `docs/coding-guidelines.md` を読む
 - Handle only narrow tasks that are already known to be light.
 - Confirm scope, affected files, and required validation before editing.
 - Keep `4humans sync` in the same change when the narrow task affects quality records.
