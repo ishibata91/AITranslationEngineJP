@@ -4,7 +4,8 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use crate::domain::xedit_export::{ImportedPluginExport, ImportedRawRecord, TranslationUnit};
+use crate::domain::translation_unit::TranslationUnit;
+use crate::domain::xedit_export::{ImportedPluginExport, ImportedRawRecord};
 
 pub trait XeditExportImporter {
     fn import_from_paths(&self, file_paths: &[String])
@@ -669,6 +670,7 @@ fn push_translation_unit(
         field_name,
         extraction_key,
         source_text,
+        extraction_key,
     )?);
 
     Ok(())

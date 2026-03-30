@@ -107,21 +107,27 @@ async fn given_valid_xedit_export_json_when_importing_then_returns_plugin_export
         .translation_units
         .iter()
         .any(|unit| {
-            unit.form_id == "00012345"
+            unit.source_entity_type == "item"
+                && unit.form_id == "00012345"
                 && unit.editor_id == "ExampleSword"
                 && unit.record_signature == "WEAP"
                 && unit.field_name == "name"
+                && unit.extraction_key == "item:00012345:name"
                 && unit.source_text == "Iron Sword"
+                && unit.sort_key == "item:00012345:name"
         }));
     assert!(result.plugin_exports[0]
         .translation_units
         .iter()
         .any(|unit| {
-            unit.form_id == "00012345"
+            unit.source_entity_type == "item"
+                && unit.form_id == "00012345"
                 && unit.editor_id == "ExampleSword"
                 && unit.record_signature == "WEAP"
                 && unit.field_name == "description"
+                && unit.extraction_key == "item:00012345:description"
                 && unit.source_text == "A sturdy blade."
+                && unit.sort_key == "item:00012345:description"
         }));
 }
 
@@ -177,6 +183,32 @@ async fn given_valid_xedit_export_with_blank_editor_id_when_importing_then_prese
         .translation_units
         .iter()
         .all(|unit| unit.editor_id.is_empty()));
+    assert!(result.plugin_exports[0]
+        .translation_units
+        .iter()
+        .any(|unit| {
+            unit.source_entity_type == "item"
+                && unit.form_id == "00012345"
+                && unit.editor_id.is_empty()
+                && unit.record_signature == "WEAP"
+                && unit.field_name == "name"
+                && unit.extraction_key == "item:00012345:name"
+                && unit.source_text == "Iron Sword"
+                && unit.sort_key == "item:00012345:name"
+        }));
+    assert!(result.plugin_exports[0]
+        .translation_units
+        .iter()
+        .any(|unit| {
+            unit.source_entity_type == "item"
+                && unit.form_id == "00012345"
+                && unit.editor_id.is_empty()
+                && unit.record_signature == "WEAP"
+                && unit.field_name == "description"
+                && unit.extraction_key == "item:00012345:description"
+                && unit.source_text == "A sturdy blade."
+                && unit.sort_key == "item:00012345:description"
+        }));
 }
 
 #[tokio::test]
@@ -208,7 +240,11 @@ async fn given_directory_as_execution_cache_path_when_importing_then_returns_per
                 || error.contains("plugin_export_raw_records")
                 || error.contains("persist")
                 || error.contains("transaction")
-                || error.contains("commit"))
+                || error.contains("commit")
+                || error.contains("database")
+                || error.contains("sqlite")
+                || error.contains("open")),
+        "unexpected persistence error: {error}"
     );
 
     let _ = fs::remove_dir_all(cache_dir);

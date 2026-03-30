@@ -21,7 +21,7 @@
 | Structure harness | Green | 必須ファイル、必須ディレクトリ、Markdown リンクの検査入口を追加した |
 | Design harness | Green | lane workflow、embedded `UI` / `Scenario` / `Logic`、single-pass review に加え、canonical phrase と architecture bootstrap boundary を検査し、設計契約の欠落と初期境界逸脱を検出できる |
 | Execution harness | Yellow | Rust / frontend の実行対象を追加し、skip 状態は解消したが、Tauri 含む本格的な acceptance checks はまだ未整備 |
-| Test-level constraints and checks | Yellow | bootstrap 用の lint / test / build / cargo command に加え、xEdit importer validation の Rust tests を追加したが、翻訳ジョブ全体の fixture / acceptance checks はまだ不足している |
+| Test-level constraints and checks | Yellow | bootstrap 用の lint / test / build / cargo command に加え、xEdit importer validation と canonical `TRANSLATION_UNIT` contract の Rust tests を追加したが、翻訳ジョブ全体の fixture / acceptance checks はまだ不足している |
 
 ## Reserved Future Verification Tracks
 

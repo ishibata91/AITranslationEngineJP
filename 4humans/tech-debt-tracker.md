@@ -42,8 +42,8 @@
 
 - Status: Open
 - Area: Quality
-- Detail: fixture-based checks、scenario regression、contract-level tests は方針化済みで、xEdit importer validation から着手したが coverage はまだ限定的
-- Impact: importer の一部制約は実行で確認できるようになった一方、細かな仕様と制約を広く確認する面はまだ弱い
+- Detail: fixture-based checks、scenario regression、contract-level tests は方針化済みで、xEdit importer validation と canonical `TRANSLATION_UNIT` contract から着手したが coverage はまだ限定的
+- Impact: importer と translation-unit canonical boundary の一部制約は実行で確認できるようになった一方、細かな仕様と制約を広く確認する面はまだ弱い
 - Next step: 実装追加時に translation flow 全体へ acceptance checks と test fixture を広げる
 
 ### 6. Workflow skills are intentionally minimal
