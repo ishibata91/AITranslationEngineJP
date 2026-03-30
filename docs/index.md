@@ -17,6 +17,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 7. [`coding-guidelines.md`](./coding-guidelines.md)
 8. [`lint-policy.md`](./lint-policy.md)
 9. Relevant file under [`exec-plans/`](./exec-plans/)
+10. Relevant file under [`tasks/`](./tasks/README.md) when parallel-ready task decomposition matters
 
 ## Directory Contract
 
@@ -30,6 +31,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - [`lint-policy.md`](./lint-policy.md): what lint manages, what it does not manage, and tool ownership
 - [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
 - [`exec-plans/completed/`](./exec-plans/completed/README.md): finished plans and outcomes
+- [`tasks/`](./tasks/README.md): machine-readable task catalog for parallel-safe decomposition and batch planning
 - [`../4humans/quality-score.md`](../4humans/quality-score.md): human-facing quality posture and missing coverage
 - [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md): human-facing unresolved debt and cleanup backlog
 - [`references/`](./references/index.md): curated reference index and external material policy
@@ -44,6 +46,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - Detailed behavior or constraint changed: update the corresponding tests or acceptance checks and validation commands
 - Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
+- Work needs parallel-safe task decomposition or batch planning: update the relevant file in [`tasks/`](./tasks/README.md)
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
 - Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/` via `skill-modification`
 - Product-level confusion keeps recurring: add a rule to [`core-beliefs.md`](./core-beliefs.md) or [`AGENTS.md`](../AGENTS.md)
@@ -61,5 +64,6 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 
 - New external references should be added under [`references/`](./references/index.md).
 - Raw vendor API dumps live under [`references/vendor-api/`](./references/vendor-api/).
+- Parallel-ready task catalogs live under [`tasks/`](./tasks/README.md).
 - Workflow skills live under [`../.codex/skills/`](../.codex/skills/).
 

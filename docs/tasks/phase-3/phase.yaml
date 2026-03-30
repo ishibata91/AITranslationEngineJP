@@ -1,0 +1,48 @@
+phase_id: phase-3
+phase_name: Translation Flow MVP
+goal: Establish the first end-to-end translation flow with reusable instruction building,
+  word translation, persona generation, body translation, and preview.
+exit_criteria:
+- word translation can feed body translation through a stable reuse contract
+- embedded elements remain preserved through regression checks
+- representative translation scenarios can run through fixture-based regression
+task_types:
+  contract: Layer-boundary contracts for instruction building, element preservation,
+    and phase handoff.
+  verification: Regression fixtures and scenario anchors for preservation and representative
+    flow behavior.
+  impl: Closed-scope implementation for translation phases and preview observation.
+  integ: Composition and scenario proof for the first end-to-end translation flow.
+parallel_batches:
+- id: P3-B1
+  goal: Fix phase contracts and regression anchors.
+  task_ids:
+  - P3-C01
+  - P3-C02
+  - P3-C03
+  - P3-V01
+  - P3-V02
+- id: P3-B2
+  goal: Implement the translation phases and preview path in parallel.
+  task_ids:
+  - P3-I01
+  - P3-I02
+  - P3-I03
+  - P3-I04
+  - P3-I05
+- id: P3-B3
+  goal: Prove the Translation Flow MVP through integrated wiring.
+  task_ids:
+  - P3-G01
+task_files:
+- tasks/P3-C01.yaml
+- tasks/P3-C02.yaml
+- tasks/P3-C03.yaml
+- tasks/P3-V01.yaml
+- tasks/P3-V02.yaml
+- tasks/P3-I01.yaml
+- tasks/P3-I02.yaml
+- tasks/P3-I03.yaml
+- tasks/P3-I04.yaml
+- tasks/P3-I05.yaml
+- tasks/P3-G01.yaml

@@ -1,14 +1,15 @@
 # Development Roadmap
 
-関連文書: [`../docs/index.md`](../docs/index.md), [`quality-score.md`](./quality-score.md), [`tech-debt-tracker.md`](./tech-debt-tracker.md)
+関連文書: [`../docs/index.md`](../docs/index.md), [`../docs/tasks/README.md`](../docs/tasks/README.md), [`../docs/tasks/phase-1/phase.yaml`](../docs/tasks/phase-1/phase.yaml), [`../docs/tasks/phase-1/tasks/P1-C01.yaml`](../docs/tasks/phase-1/tasks/P1-C01.yaml), [`quality-score.md`](./quality-score.md), [`tech-debt-tracker.md`](./tech-debt-tracker.md)
 
-このファイルは、2026-03-29 時点の repository 状態をもとに、人間向けの開発順序、進捗状態、次の着手単位を整理する。
+このファイルは、2026-03-30 時点の repository 状態をもとに、人間向けの開発順序、現在地、直近 batch を整理する。
+詳細な task 分解、依存関係、`owned_scope` は [`../docs/tasks/`](../docs/tasks/README.md) の YAML task catalog を正本とする。
 
 ## Status Legend
 
 - `完了`: 現物または completed plan で成立を確認できる
-- `進行候補`: 次の着手対象として妥当だが、まだ開始していない
-- `未完了`: 必要性は明確だが、実装または検証が不足している
+- `進行候補`: 次の着手対象として妥当で、直近 batch に載せられる
+- `未完了`: 必要性は明確だが、前段 task または検証が不足している
 
 ## Current Snapshot
 
@@ -18,199 +19,66 @@
 | workflow / role 契約 | 完了 | `.codex/README.md` と workflow skills が正本になっている |
 | structure harness | 完了 | required path と markdown link の検査入口がある |
 | design harness | 完了 | semantic checks まで含めて成立している |
-| execution harness | 完了 | lint / test / build / cargo / sonar の入口がある |
-| frontend 実装 | 未完了 | `AppShell` と bootstrap status の最小表示のみ |
-| backend 実装 | 未完了 | bootstrap usecase と Tauri command の最小配線のみ |
-| 翻訳ドメイン実装 | 未完了 | import、job、dictionary、persona、output は未着手に近い |
-| 翻訳業務フロー acceptance checks | 未完了 | `tech-debt-tracker.md` の open item に残っている |
-
-## Progress Summary
-
-### すでに完了した土台
-
-- `完了`: Tauri 2 + Svelte 5 + Rust + TypeScript の bootstrap
-- `完了`: frontend / backend の directory contract 初期化
-- `完了`: lint / test / build / sonar / cargo を束ねる execution harness の追加
-- `完了`: structure harness と design harness の整備
-- `完了`: `4humans/quality-score.md` と `4humans/tech-debt-tracker.md` の運用開始
-
-### まだ終わっていない主要領域
-
-- `未完了`: xEdit 抽出 JSON の import
-- `未完了`: `PLUGIN_EXPORT`、`TRANSLATION_UNIT`、translation job の永続化
-- `未完了`: ジョブ状態遷移の業務実装
-- `未完了`: マスター辞書構築
-- `未完了`: マスターペルソナ構築
-- `未完了`: 単語翻訳フェーズ
-- `未完了`: NPCペルソナ生成フェーズ
-- `未完了`: 本文翻訳フェーズ
-- `未完了`: LMStudio / Gemini / xAI provider 実装
-- `未完了`: 標準配布形式 / xTranslator 互換形式の出力
+| xEdit import 入口 | 完了 | importer、入力 validation、raw `PLUGIN_EXPORT` cache が成立している |
+| job skeleton | 進行候補 | 正規化 contract、job state contract、job create/list、UI、acceptance anchor が残っている |
+| dictionary / persona foundation | 未完了 | task catalog はあるが implementation は未着手である |
+| translation flow MVP | 未完了 | task catalog はあるが translation phases と preview は未着手である |
+| provider / execution expansion | 未完了 | provider adapters と execution control の拡張は未着手である |
+| output / release readiness | 未完了 | writer、cleanup、business-flow harness 統合は未着手である |
 
 ## Roadmap Policy
 
-- 先に `業務フローを成立させる最小縦切り` を作る
-- 次に `翻訳品質に効く基盤データ` を積む
-- その後に `AI provider の拡張` と `運用制御` を広げる
-- 各フェーズで tests / acceptance checks / validation commands を同時に増やす
-- 完了判定は文書宣言ではなく、現物、tests、completed plan で行う
+- `4humans/development-roadmap.md` は人間向け summary と immediate batch の正本である
+- `docs/tasks/phase-*/phase.yaml` は phase metadata と `parallel_batches` の正本である
+- `docs/tasks/phase-*/tasks/*.yaml` は task ID、依存関係、`owned_scope` の正本である
+- batch は `contract -> verification -> impl -> integ` の順で固定し、同一 batch 内の `owned_scope` は重複させない
+- `integ` は `composition / wiring / scenario proof` だけを持ち、新しい仕様判断を持ち込まない
+- 完了判定は文書宣言ではなく、現物、tests、acceptance checks、validation commands、completed plan で行う
 
-## Phase 0: Foundation Stabilization
+## Phase Summary
 
-### Phase Status
+| Phase | Status | Focus | Task Catalog |
+|---|---|---|---|
+| Phase 0: Foundation Stabilization | 完了 | bootstrap、directory contract、harness、feature template | summary only |
+| Phase 1: Input Cache And Job Skeleton | 進行候補 | `TRANSLATION_UNIT` canonical contract、job state contract、job create/list、first acceptance path | [`phase-1/phase.yaml`](../docs/tasks/phase-1/phase.yaml) |
+| Phase 2: Dictionary And Persona Foundation | 未完了 | xTranslator import、master dictionary、master persona、observation UI | [`phase-2/phase.yaml`](../docs/tasks/phase-2/phase.yaml) |
+| Phase 3: Translation Flow MVP | 未完了 | instruction builder、word/persona/body translation、preview、regression | [`phase-3/phase.yaml`](../docs/tasks/phase-3/phase.yaml) |
+| Phase 4: Provider And Execution Expansion | 未完了 | provider adapters、execution control、failure/retry acceptance | [`phase-4/phase.yaml`](../docs/tasks/phase-4/phase.yaml) |
+| Phase 5: Output And Release Readiness | 未完了 | writers、artifact registry、cleanup、harness business-flow checks | [`phase-5/phase.yaml`](../docs/tasks/phase-5/phase.yaml) |
 
-- `進行候補`: 大部分は完了しているが、日常実装を始める前の残件が少しある
+## Immediate Next Batches
 
-### Work Breakdown
+### Batch P1-B1
 
-- `完了`: Tauri 2 / Svelte 5 / Rust / TypeScript の bootstrap 構成を追加した
-- `完了`: frontend root に `src/ui/`、`src/application/`、`src/gateway/`、`src/shared/` を置いた
-- `完了`: backend root に `src-tauri/src/application/`、`domain/`、`infra/`、`gateway/` を置いた
-- `完了`: structure harness を追加した
-- `完了`: design harness を追加した
-- `完了`: execution harness を追加した
-- `完了`: `4humans` 記録の格納先を repository 内へ揃えた
-- `完了`: 初期テンプレートから実業務 feature を量産するための screen / store / usecase 雛形を追加した
+- `進行候補`: `P1-C01` `TRANSLATION_UNIT canonical contract`
+- `進行候補`: `P1-C02` minimal job state model contract
+- `進行候補`: `P1-V01` lossless translation-unit preservation fixture
+- `進行候補`: `P1-V02` import-to-job acceptance anchor
+- 理由: `contract` と `verification` を先に固定し、後続の backend / frontend 実装 batch が shared decision を持たない状態にする
 
-### Exit Criteria
+### Batch P1-B2
 
-- `完了`: 新しい feature を `src/` と `src-tauri/` の正本構成に沿って追加できる
+- `未完了`: `P1-I04` backend job creation usecase
+- `未完了`: `P1-I05` backend job list query
+- `未完了`: `P1-I06` job create screen
+- `未完了`: `P1-I07` job list screen
+- 条件: `P1-B1` 完了後に着手する
+- 理由: backend create、backend list、frontend create、frontend list を別 `owned_scope` で平行に進める
 
-## Phase 1: Input Cache And Job Skeleton
+### Batch P1-B3
 
-### Phase Status
-
-- `進行候補`: 最優先で着手すべきフェーズ
-
-### Work Breakdown
-
-- `未完了`: xEdit 抽出 JSON importer を追加する
-- `未完了`: import 時に入力データを validation する
-- `未完了`: `PLUGIN_EXPORT` 相当の保存単位を実装する
-- `未完了`: translatable field を `TRANSLATION_UNIT` 相当へ正規化する
-- `未完了`: translation job 作成 usecase を実装する
-- `未完了`: `Draft` / `Ready` / `Running` / `Completed` の最小状態遷移を実装する
-- `未完了`: UI で job 作成画面を出す
-- `未完了`: UI で job 一覧と job 状態表示を出す
-- `未完了`: 単一 fixture を使う import-to-job の acceptance check を追加する
-- `未完了`: lossless な翻訳単位保持を test で固定する
-
-### Exit Criteria
-
-- `未完了`: 単一の入力データを import して job 作成から完了まで追跡できる
-- `未完了`: `FormID`、`EditorID`、レコード種別、フィールド種別、原文、訳文、出力ステータスを lossless に保持できる
-- `未完了`: 最初の fixture-based acceptance check が execution harness から実行できる
-
-## Phase 2: Dictionary And Persona Foundation
-
-### Phase Status
-
-- `未完了`: Phase 1 後に着手
-
-### Work Breakdown
-
-- `未完了`: xTranslator 形式 importer を追加する
-- `未完了`: マスター辞書保存構造を追加する
-- `未完了`: 辞書 entry の検索 / 再利用 port を定義する
-- `未完了`: ベースゲーム NPC 入力からマスターペルソナ構築処理を追加する
-- `未完了`: ジョブ単位ペルソナ保持を `MASTER_PERSONA` と分離して保存する
-- `未完了`: UI からマスター辞書を観測できるようにする
-- `未完了`: UI からマスターペルソナを観測できるようにする
-- `未完了`: 基盤データ再構築の validation command を用意する
-
-### Exit Criteria
-
-- `未完了`: マスター辞書とマスターペルソナを個別に再構築できる
-- `未完了`: translation job が基盤データを参照できる
-- `未完了`: UI から基盤データの観測結果を確認できる
-
-## Phase 3: Translation Flow MVP
-
-### Phase Status
-
-- `未完了`: Phase 2 後に着手
-
-### Work Breakdown
-
-- `未完了`: 翻訳レコード種別ごとの翻訳指示構成を実装する
-- `未完了`: 単語翻訳フェーズを実装する
-- `未完了`: NPCペルソナ生成フェーズを実装する
-- `未完了`: 本文翻訳フェーズを実装する
-- `未完了`: 単語翻訳結果を本文翻訳フェーズで再利用する
-- `未完了`: `<10gold>` などの埋め込み要素保持を実装する
-- `未完了`: 翻訳結果 preview を UI で観測できるようにする
-- `未完了`: 代表シナリオの fixture-based regression check を追加する
-
-### Exit Criteria
-
-- `未完了`: 単語翻訳フェーズから本文翻訳フェーズへの再利用が成立する
-- `未完了`: 埋め込み要素を壊さない回帰 check がある
-- `未完了`: 代表的な翻訳レコード種別で scenario regression が回る
-
-## Phase 4: Provider And Execution Expansion
-
-### Phase Status
-
-- `未完了`: Translation Flow MVP 後に着手
-
-### Work Breakdown
-
-- `未完了`: LMStudio provider adapter を追加する
-- `未完了`: Gemini provider adapter を追加する
-- `未完了`: xAI provider adapter を追加する
-- `未完了`: provider 選択 port と設定保持を追加する
-- `未完了`: 単発実行と Batch API 実行の切替を追加する
-- `未完了`: `Paused` / `RecoverableFailed` / `Failed` / `Canceled` の遷移を実装する
-- `未完了`: 再開、リトライ、キャンセルの UI 操作を追加する
-- `未完了`: 進捗観測と失敗理由表示を追加する
-- `未完了`: provider failure / retry の acceptance checks を追加する
-
-### Exit Criteria
-
-- `未完了`: provider を差し替えても application / domain の方針が崩れない
-- `未完了`: job の中断、再開、失敗回復が acceptance check で確認できる
-- `未完了`: provider ごとの接続失敗や再試行条件が test で固定されている
-
-## Phase 5: Output And Release Readiness
-
-### Phase Status
-
-- `未完了`: provider と job 制御の基本成立後に着手
-
-### Work Breakdown
-
-- `未完了`: 標準配布形式 writer を実装する
-- `未完了`: xTranslator 互換形式 writer を実装する
-- `未完了`: `EDID`、`REC`、`FIELD`、`FORMID`、`Source`、`Dest`、`Status` の再構成を固定する
-- `未完了`: job 完了後の出力成果物記録を追加する
-- `未完了`: 未完了 job 参照がない入力キャッシュ削除を実装する
-- `未完了`: 再取り込み可能性を壊さない cleanup check を追加する
-- `未完了`: contract-level tests と scenario regression を execution harness に統合する
-
-### Exit Criteria
-
-- `未完了`: 出力成果物を再利用可能な形で生成できる
-- `未完了`: 未完了 job 参照がない入力キャッシュだけを削除できる
-- `未完了`: execution harness が業務フローの主要シナリオを継続監視できる
-
-## Immediate Next Slice
-
-### Priority 1
-
-- `進行候補`: `入力取込 -> 翻訳単位正規化 -> job 作成 -> job 一覧表示` の縦切り
-
-### Priority 2
-
-- `進行候補`: 上記縦切りに対応する最初の fixture-based acceptance check
+- `未完了`: `P1-G01` import-to-job integrated scenario
+- 条件: `P1-B2` 完了後に着手する
+- 理由: `integ` を最後に隔離し、shared wiring と scenario proof だけに閉じ込める
 
 ## Current Risks
 
-- `未完了`: 翻訳ドメイン固有の tests / fixtures / acceptance checks が薄く、仕様固定より実装が先に走る危険がある
-- `未完了`: provider や補助メタデータへ先に広げると、job 骨格が固まる前に複雑性が上がる
-- `未完了`: phase 単位の進捗管理は始めたが、各 phase の owner task はまだ未分解である
+- `未完了`: importer 周辺を除く translation-domain 固有の tests / fixtures / acceptance checks はまだ薄い
+- `未完了`: `docs/tasks/` の YAML schema は手作業運用であり、lint や structural validation はまだない
+- `未完了`: `contract` と `verification` を飛ばして `impl` から始めると、`integ` が巨大化して並列安全性が崩れる
 
-## Done Definition Per Phase
+## Done Definition
 
-- `未完了`: 実装コードだけでなく、対応する tests / acceptance checks / validation commands が同じ変更に入っている
-- `未完了`: `4humans/` の品質記録と負債記録に必要な差分が同期されている
-- `未完了`: 完了した非自明タスクは completed plan に結果が残っている
+- `未完了`: 非自明な active plan は `task_id` と `owned_scope` を持ち、必要なら `docs/tasks/phase-*/phase.yaml` または `docs/tasks/phase-*/tasks/*.yaml` を参照している
+- `未完了`: 振る舞いが変わる task は、同じ変更で対応する tests / acceptance checks / validation commands を更新している
+- `未完了`: 完了した非自明 task は completed plan に結果が残っている

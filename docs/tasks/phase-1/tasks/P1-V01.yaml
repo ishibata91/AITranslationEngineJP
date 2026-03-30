@@ -1,0 +1,29 @@
+id: P1-V01
+title: Fix lossless translation-unit preservation fixture
+type: verification
+status: ready
+goal: Create a stable fixture and checks for lossless normalized translation-unit
+  preservation.
+owned_scope:
+- src-tauri/tests/fixtures/translation-unit-lossless/
+out_of_scope:
+- UI scenarios
+- provider execution behavior
+depends_on:
+- P1-C01
+produces:
+- fixture proving normalized translation-unit losslessness
+consumes:
+- translation-unit canonical contract
+acceptance_anchor:
+- fixture asserts FormID, EditorID, record signature, field kind, source text, translated
+  text, and output status
+parallel_safe_with:
+- P1-C02
+- P1-V02
+shared_risks:
+- allowing fixture shape drift would invalidate downstream checks and integration
+  work
+done_when:
+- one fixture can prove the canonical translation-unit shape is lossless for Phase
+  1 needs

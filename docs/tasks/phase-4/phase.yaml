@@ -1,0 +1,46 @@
+phase_id: phase-4
+phase_name: Provider And Execution Expansion
+goal: Expand provider support and execution control without breaking the application
+  and domain direction established in earlier phases.
+exit_criteria:
+- provider adapters can be swapped without reshaping application and domain policy
+- jobs can pause, resume, fail, retry, and cancel through stable execution-control
+  behavior
+- provider failure and retry behavior is fixed in acceptance checks
+task_types:
+  contract: Layer-boundary contracts for provider selection, execution control states,
+    and batch mode switching.
+  verification: Provider failure and retry anchors that fix external execution behavior.
+  impl: Closed-scope provider, control, and UI implementations.
+  integ: Composition and scenario proof for provider choice and execution control.
+parallel_batches:
+- id: P4-B1
+  goal: Fix provider and execution-control contracts plus failure anchors.
+  task_ids:
+  - P4-C01
+  - P4-C02
+  - P4-V01
+- id: P4-B2
+  goal: Implement adapters, switching, and UI slices in parallel.
+  task_ids:
+  - P4-I01
+  - P4-I02
+  - P4-I03
+  - P4-I04
+  - P4-I05
+  - P4-I06
+- id: P4-B3
+  goal: Prove provider and execution-control behavior through integrated scenarios.
+  task_ids:
+  - P4-G01
+task_files:
+- tasks/P4-C01.yaml
+- tasks/P4-C02.yaml
+- tasks/P4-V01.yaml
+- tasks/P4-I01.yaml
+- tasks/P4-I02.yaml
+- tasks/P4-I03.yaml
+- tasks/P4-I04.yaml
+- tasks/P4-I05.yaml
+- tasks/P4-I06.yaml
+- tasks/P4-G01.yaml

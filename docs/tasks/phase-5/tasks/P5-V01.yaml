@@ -1,0 +1,24 @@
+id: P5-V01
+title: Fix writer regression anchor
+type: verification
+status: planned
+goal: Create regression fixtures for standard and xTranslator-compatible output.
+owned_scope:
+- src-tauri/tests/regression/output-writers/
+out_of_scope:
+- cache cleanup
+- provider failures
+depends_on:
+- P5-C01
+produces:
+- writer regression anchor
+consumes:
+- output artifact contract
+acceptance_anchor:
+- writers target one stable output regression path
+parallel_safe_with:
+- P5-V02
+shared_risks:
+- including cleanup or provider detail would reduce fixture clarity
+done_when:
+- writer behavior is fixed well enough for implementation and integration

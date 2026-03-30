@@ -1,0 +1,50 @@
+phase_id: phase-2
+phase_name: Dictionary And Persona Foundation
+goal: Establish reusable dictionary and persona foundation data that later translation
+  jobs can consume and the UI can observe.
+exit_criteria:
+- master dictionary and master persona data can be rebuilt independently
+- translation jobs can reference the foundation data without redefining storage boundaries
+- the UI can observe dictionary and persona foundation state
+task_types:
+  contract: Layer-boundary contracts for dictionary import, persona storage split,
+    and reuse ports.
+  verification: Fixtures and validation anchors for rebuild and observation behavior.
+  impl: Closed-scope implementation for importers, storage, builders, and UI observation.
+  integ: Composition and scenario proof across foundation-data build and observation
+    paths.
+parallel_batches:
+- id: P2-B1
+  goal: Fix dictionary and persona contracts plus rebuild anchors.
+  task_ids:
+  - P2-C01
+  - P2-C02
+  - P2-C03
+  - P2-V01
+  - P2-V02
+- id: P2-B2
+  goal: Implement backend and frontend foundation-data slices in parallel.
+  task_ids:
+  - P2-I01
+  - P2-I02
+  - P2-I03
+  - P2-I04
+  - P2-I05
+  - P2-I06
+- id: P2-B3
+  goal: Prove foundation-data rebuild and observation end-to-end.
+  task_ids:
+  - P2-G01
+task_files:
+- tasks/P2-C01.yaml
+- tasks/P2-C02.yaml
+- tasks/P2-C03.yaml
+- tasks/P2-V01.yaml
+- tasks/P2-V02.yaml
+- tasks/P2-I01.yaml
+- tasks/P2-I02.yaml
+- tasks/P2-I03.yaml
+- tasks/P2-I04.yaml
+- tasks/P2-I05.yaml
+- tasks/P2-I06.yaml
+- tasks/P2-G01.yaml

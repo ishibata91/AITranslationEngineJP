@@ -1,0 +1,33 @@
+id: P4-I06
+title: Implement progress and failure observability UI
+type: impl
+status: planned
+goal: Expose execution progress and failure reasons through dedicated observation
+  UI.
+owned_scope:
+- src/ui/screens/execution-observe/
+- src/ui/views/execution-observe/
+- src/application/usecases/execution-observe/
+out_of_scope:
+- pause or retry action handling
+- writer output observation
+depends_on:
+- P4-C02
+- P4-V01
+produces:
+- progress and failure observation UI path
+consumes:
+- execution-control state contract
+- provider failure and retry acceptance anchor
+acceptance_anchor:
+- the UI can observe progress and failure state without relying on adapter internals
+parallel_safe_with:
+- P4-I01
+- P4-I02
+- P4-I03
+- P4-I04
+- P4-I05
+shared_risks:
+- embedding control actions here would merge two clean UI scopes
+done_when:
+- users can observe execution progress and failure state through a stable UI path

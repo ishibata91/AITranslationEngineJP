@@ -1,0 +1,32 @@
+id: P2-I05
+title: Implement dictionary observability UI
+type: impl
+status: planned
+goal: Expose master dictionary foundation data through a dedicated UI observation
+  path.
+owned_scope:
+- src/ui/screens/dictionary-observe/
+- src/ui/views/dictionary-observe/
+- src/application/usecases/dictionary-observe/
+out_of_scope:
+- persona observation
+- dictionary import
+depends_on:
+- P2-I02
+produces:
+- dictionary observation screen
+consumes:
+- dictionary query implementation
+acceptance_anchor:
+- the UI can observe dictionary foundation state
+parallel_safe_with:
+- P2-I01
+- P2-I02
+- P2-I03
+- P2-I04
+- P2-I06
+shared_risks:
+- mixing persona UI work here would erase one of the cleanest frontend splits in Phase
+  2
+done_when:
+- the UI can observe dictionary foundation data through a stable screen path

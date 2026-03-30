@@ -1,0 +1,25 @@
+id: P3-C01
+title: Define translation instruction builder contract
+type: contract
+status: planned
+goal: Fix the boundary used to build translation instructions per record type.
+owned_scope:
+- src-tauri/src/application/dto/translation_instruction/
+out_of_scope:
+- provider adapters
+- preview UI
+depends_on: []
+produces:
+- translation instruction builder contract
+consumes: []
+acceptance_anchor:
+- instruction-building implementation can start without redesigning phase I/O
+parallel_safe_with:
+- P3-C02
+- P3-C03
+- P3-V01
+- P3-V02
+shared_risks:
+- mixing provider-specific logic into the contract would block Phase 4 separation
+done_when:
+- instruction-building tasks can depend on a stable record-type contract

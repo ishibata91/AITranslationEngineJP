@@ -1,0 +1,25 @@
+id: P2-V02
+title: Fix persona rebuild validation anchor
+type: verification
+status: planned
+goal: Create the first rebuild fixture for persona foundation data.
+owned_scope:
+- src-tauri/tests/validation/persona-rebuild/
+out_of_scope:
+- dictionary rebuild
+- translation-phase behavior
+depends_on:
+- P2-C03
+produces:
+- persona rebuild fixture and validation anchor
+consumes:
+- persona storage split contract
+acceptance_anchor:
+- persona rebuild path can be validated independently
+parallel_safe_with:
+- P2-V01
+shared_risks:
+- job-local persona policy slipping in here would blur the master-persona boundary
+done_when:
+- persona rebuild behavior is fixed well enough for implementation and integration
+  tasks

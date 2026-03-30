@@ -1,0 +1,28 @@
+id: P4-V01
+title: Fix provider failure and retry acceptance anchor
+type: verification
+status: planned
+goal: Create fixtures and checks for provider failure, retry, and recovery behavior.
+owned_scope:
+- src-tauri/tests/acceptance/provider-failure-retry/
+out_of_scope:
+- output writer behavior
+- dictionary or persona rebuild
+depends_on:
+- P4-C01
+- P4-C02
+produces:
+- provider failure and retry acceptance anchor
+consumes:
+- provider selection contract
+- execution-control state contract
+acceptance_anchor:
+- provider failure, retry, pause, and recovery behavior are externally fixed before
+  broad implementation
+parallel_safe_with:
+- P4-C01
+- P4-C02
+shared_risks:
+- if the fixture encodes adapter-specific detail, adapter tasks will not stay independent
+done_when:
+- provider and execution-control implementation can target one shared acceptance anchor

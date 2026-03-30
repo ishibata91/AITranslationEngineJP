@@ -1,0 +1,26 @@
+id: P3-V02
+title: Fix representative translation scenario anchor
+type: verification
+status: planned
+goal: Create representative scenario fixtures for the MVP translation flow.
+owned_scope:
+- src-tauri/tests/regression/translation-flow-mvp/
+out_of_scope:
+- provider retry policy
+- output writer detail
+depends_on:
+- P3-C01
+- P3-C03
+produces:
+- representative translation scenario anchor
+consumes:
+- instruction builder contract
+- phase handoff contract
+acceptance_anchor:
+- scenario regression can target the MVP translation flow
+parallel_safe_with:
+- P3-V01
+shared_risks:
+- including output-format or retry policy would pre-couple later phases
+done_when:
+- the MVP flow has one stable scenario anchor for implementation and integration

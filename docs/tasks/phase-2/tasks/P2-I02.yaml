@@ -1,0 +1,31 @@
+id: P2-I02
+title: Implement master dictionary storage and query
+type: impl
+status: planned
+goal: Persist and query dictionary foundation data behind the agreed lookup port.
+owned_scope:
+- src-tauri/src/application/dictionary_query/
+- src-tauri/src/infra/dictionary_repository/
+out_of_scope:
+- xTranslator parsing
+- persona storage
+depends_on:
+- P2-C02
+- P2-V01
+produces:
+- dictionary storage and query implementation
+consumes:
+- dictionary lookup port
+- dictionary rebuild validation anchor
+acceptance_anchor:
+- master dictionary can be rebuilt and queried through one stable path
+parallel_safe_with:
+- P2-I01
+- P2-I03
+- P2-I04
+- P2-I05
+- P2-I06
+shared_risks:
+- mixing persona or UI concerns into dictionary storage would reduce independence
+done_when:
+- dictionary foundation data is persisted and queryable behind the agreed contract

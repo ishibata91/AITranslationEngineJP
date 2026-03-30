@@ -1,0 +1,25 @@
+id: P2-C02
+title: Define dictionary lookup and reuse port
+type: contract
+status: planned
+goal: Fix the lookup boundary consumed by later translation workflow tasks.
+owned_scope:
+- src-tauri/src/application/ports/dictionary_lookup/
+out_of_scope:
+- translation phase policy
+- provider behavior
+depends_on: []
+produces:
+- dictionary lookup and reuse port
+consumes: []
+acceptance_anchor:
+- dictionary implementation and later translation tasks share one lookup shape
+parallel_safe_with:
+- P2-C01
+- P2-C03
+- P2-V01
+- P2-V02
+shared_risks:
+- embedding translation-phase detail here would create avoidable coupling
+done_when:
+- dictionary storage and translation reuse can depend on one stable port

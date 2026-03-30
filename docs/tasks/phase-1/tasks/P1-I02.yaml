@@ -1,0 +1,28 @@
+id: P1-I02
+title: Validate imported input data
+type: impl
+status: done
+goal: Reject malformed or incomplete imported input before it becomes accepted workflow
+  data.
+owned_scope:
+- src-tauri/src/infra/xedit_export_importer.rs
+- src-tauri/src/domain/xedit_export.rs
+out_of_scope:
+- job state handling
+- frontend error display
+depends_on:
+- P1-I01
+produces:
+- deterministic importer validation failures
+consumes:
+- xEdit import entrypoint
+acceptance_anchor:
+- invalid imported input fails whole-request import
+parallel_safe_with:
+- P1-C02
+- P1-V01
+shared_risks:
+- adding UI-facing policy here would couple importer validation to later presentation
+  tasks
+done_when:
+- invalid imported input is rejected before accepted plugin export data is returned

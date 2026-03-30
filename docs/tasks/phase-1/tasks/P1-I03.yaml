@@ -1,0 +1,29 @@
+id: P1-I03
+title: Persist PLUGIN_EXPORT-equivalent raw cache unit
+type: impl
+status: done
+goal: Store imported raw input with provenance before later job normalization starts.
+owned_scope:
+- src-tauri/src/infra/execution_cache/
+- src-tauri/src/application/importer/
+out_of_scope:
+- TRANSLATION_UNIT persistence
+- job state transitions
+depends_on:
+- P1-I01
+- P1-I02
+produces:
+- raw persisted plugin export cache
+consumes:
+- validated imported input
+acceptance_anchor:
+- raw plugin export persistence keeps source path and import provenance
+parallel_safe_with:
+- P1-C01
+- P1-V02
+shared_risks:
+- treating raw cache as canonical translation-unit storage would blur later normalization
+  work
+done_when:
+- validated imported input is stored transactionally with provenance and raw record
+  identity

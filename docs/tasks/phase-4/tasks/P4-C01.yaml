@@ -1,0 +1,24 @@
+id: P4-C01
+title: Define provider selection and configuration contract
+type: contract
+status: planned
+goal: Fix the boundary for provider choice, configuration, and execution mode selection.
+owned_scope:
+- src-tauri/src/application/dto/provider_selection/
+- src-tauri/src/application/ports/provider_runtime/
+out_of_scope:
+- provider adapter internals
+- UI layout
+depends_on: []
+produces:
+- provider selection and runtime configuration contract
+consumes: []
+acceptance_anchor:
+- provider adapters and control UI can depend on one stable runtime boundary
+parallel_safe_with:
+- P4-C02
+- P4-V01
+shared_risks:
+- pulling provider-specific transport detail here would reduce adapter independence
+done_when:
+- provider implementations and UI controls can target one stable selection contract

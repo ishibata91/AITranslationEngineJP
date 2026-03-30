@@ -1,0 +1,28 @@
+id: P4-C02
+title: Define execution-control state expansion contract
+type: contract
+status: planned
+goal: Fix job states and transitions for pause, retry, recoverable failure, failure,
+  and cancel.
+owned_scope:
+- src-tauri/src/domain/execution_control_state/
+- src-tauri/src/application/dto/execution_control/
+out_of_scope:
+- provider transport detail
+- writer output detail
+depends_on:
+- P1-C02
+produces:
+- execution-control state contract
+consumes:
+- minimal job state model
+acceptance_anchor:
+- execution-control implementations and UI paths share one stable state contract
+parallel_safe_with:
+- P4-C01
+- P4-V01
+shared_risks:
+- mixing provider error detail into the state contract would blur the boundary
+done_when:
+- pause, retry, failure, and cancel behavior can be implemented without reopening
+  the state model

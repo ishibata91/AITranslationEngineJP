@@ -1,0 +1,33 @@
+id: P1-I04
+title: Implement backend job creation usecase
+type: impl
+status: planned
+goal: Create jobs from normalized translation units through a backend application
+  path.
+owned_scope:
+- src-tauri/src/application/job/create/
+- src-tauri/src/domain/job/create/
+out_of_scope:
+- job list query
+- UI code
+depends_on:
+- P1-C01
+- P1-C02
+- P1-V02
+produces:
+- backend job creation usecase
+consumes:
+- translation-unit contract
+- job state contract
+- import-to-job acceptance anchor
+acceptance_anchor:
+- jobs can be created from imported normalized translation units
+parallel_safe_with:
+- P1-I05
+- P1-I06
+- P1-I07
+shared_risks:
+- touching job list or UI paths would collapse the Phase 1 implementation batch
+done_when:
+- the backend exposes one stable job creation path aligned with the Phase 1 acceptance
+  anchor

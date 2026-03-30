@@ -4,6 +4,9 @@
 - status: planned
 - lane_owner:
 - scope:
+- task_id:
+- task_catalog_ref:
+- parent_phase:
 
 ## Request Summary
 
@@ -12,6 +15,22 @@
 ## Decision Basis
 
 -
+
+## Owned Scope
+
+- Prefer repo-root path prefixes or stable scope tokens that match `docs/tasks/phase-*/tasks/*.yaml` when available.
+
+## Out Of Scope
+
+-
+
+## Dependencies / Blockers
+
+-
+
+## Parallel Safety Notes
+
+- Note the shared files, shared fixtures, or upstream `contract` / `verification` tasks that must land first.
 
 ## UI
 

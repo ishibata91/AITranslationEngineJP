@@ -1,0 +1,25 @@
+id: P3-V01
+title: Fix embedded-element regression fixture
+type: verification
+status: planned
+goal: Create a regression anchor for embedded-element preservation.
+owned_scope:
+- src-tauri/tests/regression/embedded-elements/
+out_of_scope:
+- provider failure behavior
+- dictionary rebuild
+depends_on:
+- P3-C02
+produces:
+- embedded-element regression fixture
+consumes:
+- embedded-element preservation contract
+acceptance_anchor:
+- regression fixture proves protected elements survive translation flow stages
+parallel_safe_with:
+- P3-V02
+shared_risks:
+- if the fixture encodes implementation detail, it will become brittle during phase
+  implementation
+done_when:
+- embedded-element preservation can be proven independently of provider or UI choices

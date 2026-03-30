@@ -1,0 +1,25 @@
+id: P5-V02
+title: Fix cleanup safety anchor
+type: verification
+status: planned
+goal: Create fixtures and checks for safe cache cleanup.
+owned_scope:
+- src-tauri/tests/regression/cache-cleanup/
+out_of_scope:
+- writer output detail
+- provider control scenarios
+depends_on:
+- P5-C02
+produces:
+- cleanup safety anchor
+consumes:
+- cache cleanup precondition contract
+acceptance_anchor:
+- cleanup behavior can be validated independently of writer behavior
+parallel_safe_with:
+- P5-V01
+shared_risks:
+- if cleanup fixtures encode storage implementation detail, they will block later
+  refactors
+done_when:
+- cleanup behavior is fixed well enough for implementation and integration

@@ -1,0 +1,30 @@
+id: P4-I05
+title: Implement pause, retry, and cancel UI
+type: impl
+status: planned
+goal: Expose execution-control actions through dedicated UI controls.
+owned_scope:
+- src/ui/screens/execution-control/
+- src/ui/views/execution-control/
+- src/application/usecases/execution-control/
+out_of_scope:
+- provider adapter transport
+- writer output UI
+depends_on:
+- P4-C02
+produces:
+- execution-control UI path
+consumes:
+- execution-control state contract
+acceptance_anchor:
+- the UI can trigger pause, retry, and cancel against the stable control contract
+parallel_safe_with:
+- P4-I01
+- P4-I02
+- P4-I03
+- P4-I04
+- P4-I06
+shared_risks:
+- embedding provider-specific behavior here would collapse UI and adapter boundaries
+done_when:
+- users can control execution through a stable UI path

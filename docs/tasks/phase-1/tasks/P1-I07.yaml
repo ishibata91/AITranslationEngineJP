@@ -1,0 +1,31 @@
+id: P1-I07
+title: Implement job list screen
+type: impl
+status: planned
+goal: Add the first UI path for job list observation without absorbing job mutation
+  logic.
+owned_scope:
+- src/ui/screens/job-list/
+- src/ui/views/job-list/
+- src/application/usecases/job-list/
+out_of_scope:
+- job creation mutation handling
+- provider progress detail
+depends_on:
+- P1-C02
+- P1-I05
+produces:
+- job list screen and observation path
+consumes:
+- job list query
+- minimal job state contract
+acceptance_anchor:
+- the UI can observe the first job list and status view
+parallel_safe_with:
+- P1-I04
+- P1-I05
+- P1-I06
+shared_risks:
+- mixing create-screen logic into this task would erase the frontend parallel boundary
+done_when:
+- the UI can render the Phase 1 job list without redesigning the state contract

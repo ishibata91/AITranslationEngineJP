@@ -1,0 +1,30 @@
+id: P3-I01
+title: Implement record-type instruction builder
+type: impl
+status: planned
+goal: Build translation instructions per record type through the agreed contract.
+owned_scope:
+- src-tauri/src/application/translation_instruction_builder/
+out_of_scope:
+- provider transport
+- output writing
+depends_on:
+- P3-C01
+- P3-V02
+produces:
+- record-type instruction builder
+consumes:
+- instruction builder contract
+- representative translation scenario anchor
+acceptance_anchor:
+- instruction building supports representative record types in regression fixtures
+parallel_safe_with:
+- P3-I02
+- P3-I03
+- P3-I04
+- P3-I05
+shared_risks:
+- embedding provider selection here would collapse the Phase 3 and Phase 4 boundary
+done_when:
+- representative record types can produce translation instructions through one stable
+  path

@@ -1,0 +1,28 @@
+id: P5-I03
+title: Implement output artifact registry
+type: impl
+status: planned
+goal: Track generated output artifacts per completed job.
+owned_scope:
+- src-tauri/src/application/output_registry/
+- src-tauri/src/infra/output_registry/
+out_of_scope:
+- cleanup deletion logic
+- provider execution control
+depends_on:
+- P5-C01
+produces:
+- output artifact registry
+consumes:
+- output artifact contract
+acceptance_anchor:
+- generated outputs can be tracked independently of cleanup implementation
+parallel_safe_with:
+- P5-I01
+- P5-I02
+- P5-I04
+- P5-I05
+shared_risks:
+- embedding writer or cleanup internals here would widen the registry task
+done_when:
+- completed jobs can record reusable output artifacts through a stable path

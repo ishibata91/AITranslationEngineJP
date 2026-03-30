@@ -1,0 +1,28 @@
+id: P5-C01
+title: Define output artifact contract
+type: contract
+status: planned
+goal: Fix the output boundary for standard release artifacts and xTranslator-compatible
+  artifacts.
+owned_scope:
+- src-tauri/src/application/dto/output_artifact/
+- src-tauri/src/application/ports/output_writer/
+out_of_scope:
+- provider runtime detail
+- cleanup implementation
+depends_on:
+- P3-G01
+produces:
+- output artifact DTO and writer port contract
+consumes:
+- integrated translated output flow
+acceptance_anchor:
+- writer implementations can start without redesigning output boundaries
+parallel_safe_with:
+- P5-C02
+- P5-V01
+- P5-V02
+shared_risks:
+- pulling provider or cleanup detail into the artifact contract would widen the phase
+done_when:
+- writers and artifact tracking can depend on one stable output boundary

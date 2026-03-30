@@ -1,0 +1,30 @@
+id: P3-C03
+title: Define translation phase handoff contract
+type: contract
+status: planned
+goal: Fix the reuse boundary between word translation, persona generation, and body
+  translation.
+owned_scope:
+- src-tauri/src/application/dto/translation_phase_handoff/
+out_of_scope:
+- provider choice
+- UI preview layout
+depends_on:
+- P2-C02
+- P2-C03
+produces:
+- translation phase handoff contract
+consumes:
+- dictionary lookup contract
+- persona storage split contract
+acceptance_anchor:
+- word translation and persona generation can feed body translation without redesign
+parallel_safe_with:
+- P3-C01
+- P3-C02
+- P3-V01
+- P3-V02
+shared_risks:
+- putting phase-internal helper data here would reduce phase independence
+done_when:
+- the three translation phases can coordinate through one stable handoff boundary

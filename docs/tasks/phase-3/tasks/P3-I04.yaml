@@ -1,0 +1,35 @@
+id: P3-I04
+title: Implement body translation phase
+type: impl
+status: planned
+goal: Translate body text using instruction building, word translation reuse, and
+  persona inputs.
+owned_scope:
+- src-tauri/src/application/body_translation_phase/
+out_of_scope:
+- output writer logic
+- provider retry policy
+depends_on:
+- P3-C01
+- P3-C02
+- P3-C03
+- P3-V01
+- P3-V02
+produces:
+- body translation phase implementation
+consumes:
+- instruction builder contract
+- embedded-element preservation contract
+- translation phase handoff contract
+acceptance_anchor:
+- body translation preserves embedded elements and consumes upstream phase outputs
+parallel_safe_with:
+- P3-I01
+- P3-I02
+- P3-I03
+- P3-I05
+shared_risks:
+- embedding output-format detail here would make later writer tasks harder to isolate
+done_when:
+- body translation can run through representative regression fixtures without reopening
+  upstream contracts

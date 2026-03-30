@@ -1,0 +1,29 @@
+id: P3-I02
+title: Implement word translation phase
+type: impl
+status: planned
+goal: Translate reusable terms ahead of body translation.
+owned_scope:
+- src-tauri/src/application/word_translation_phase/
+out_of_scope:
+- body translation logic
+- provider adapter detail
+depends_on:
+- P3-C03
+- P2-C02
+produces:
+- word translation phase implementation
+consumes:
+- translation phase handoff contract
+- dictionary lookup contract
+acceptance_anchor:
+- word translation output can feed body translation without redesign
+parallel_safe_with:
+- P3-I01
+- P3-I03
+- P3-I04
+- P3-I05
+shared_risks:
+- mixing body translation behavior here would erase phase boundaries
+done_when:
+- word translation results can be reused through the agreed handoff path

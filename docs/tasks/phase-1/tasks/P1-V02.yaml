@@ -1,0 +1,27 @@
+id: P1-V02
+title: Fix import-to-job acceptance anchor
+type: verification
+status: ready
+goal: Define the first executable path from imported input to job observation before
+  full integration starts.
+owned_scope:
+- src-tauri/tests/acceptance/import-job/
+out_of_scope:
+- provider execution
+- dictionary or persona reuse
+depends_on:
+- P1-C01
+- P1-C02
+produces:
+- import-to-job acceptance anchor
+consumes:
+- translation-unit contract
+- job state model
+acceptance_anchor:
+- one fixture-based scenario proves import, job creation, and job visibility
+parallel_safe_with:
+- P1-V01
+shared_risks:
+- embedding UI details here would unnecessarily block backend and frontend implementation
+done_when:
+- Phase 1 implementation tasks can target one agreed import-to-job acceptance path

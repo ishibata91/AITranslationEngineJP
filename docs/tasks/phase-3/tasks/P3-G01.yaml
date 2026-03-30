@@ -1,0 +1,34 @@
+id: P3-G01
+title: Wire Translation Flow MVP scenario
+type: integ
+status: planned
+goal: Prove the first end-to-end translation flow through integrated wiring and representative
+  regression.
+owned_scope:
+- src-tauri/src/lib.rs
+- src/gateway/tauri/
+- src-tauri/tests/regression/
+out_of_scope:
+- new contract design
+- provider-specific retry policy
+depends_on:
+- P3-I01
+- P3-I02
+- P3-I03
+- P3-I04
+- P3-I05
+- P3-V01
+- P3-V02
+produces:
+- integrated Translation Flow MVP proof
+consumes:
+- Phase 3 implementations and regression anchors
+acceptance_anchor:
+- representative translation scenarios run through the agreed integrated path
+parallel_safe_with: []
+shared_risks:
+- if this task must change handoff or preservation contracts, earlier Phase 3 boundaries
+  were not fixed enough
+done_when:
+- the MVP translation flow is proven through integrated wiring and representative
+  regression

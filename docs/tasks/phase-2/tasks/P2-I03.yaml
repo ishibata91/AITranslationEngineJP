@@ -1,0 +1,31 @@
+id: P2-I03
+title: Implement master persona builder
+type: impl
+status: planned
+goal: Build master persona data from base-game NPC input.
+owned_scope:
+- src-tauri/src/application/master_persona/
+- src-tauri/src/infra/master_persona_builder/
+out_of_scope:
+- job-local persona storage
+- dictionary logic
+depends_on:
+- P2-C03
+- P2-V02
+produces:
+- master persona builder
+consumes:
+- persona storage split contract
+- persona rebuild validation anchor
+acceptance_anchor:
+- master persona data can be rebuilt independently
+parallel_safe_with:
+- P2-I01
+- P2-I02
+- P2-I04
+- P2-I05
+- P2-I06
+shared_risks:
+- pulling job-local persona policy into this task would widen the scope
+done_when:
+- master persona data can be built without redefining the storage boundary
