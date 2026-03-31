@@ -1,4 +1,8 @@
+import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
+import { compile } from "svelte/compiler";
 import { render } from "svelte/server";
 import JobCreateScreen from "./index";
 import { JobCreateView } from "@ui/views/job-create";
@@ -57,10 +61,24 @@ function createRenderState(overrides?: Partial<RenderState>): RenderState {
   };
 }
 
-async function renderView(state: RenderState): Promise<string> {
-  const module = await import("@ui/views/job-create/JobCreateView.svelte?server");
-  const ServerView = module.default;
-  const { body } = render(ServerView, { props: { state } });
+async function renderJobCreateView(state: RenderState): Promise<string> {
+  const require = createRequire(import.meta.url);
+  const source = readFileSync("src/ui/views/job-create/JobCreateView.svelte", "utf8");
+  const { js } = compile(source, {
+    filename: "JobCreateView.svelte",
+    generate: "server"
+  });
+  const svelteInternalServerUrl = pathToFileURL(require.resolve("svelte/internal/server")).href;
+  const svelteUrl = pathToFileURL(require.resolve("svelte")).href;
+  const patchedCode = js.code
+    .replace("'svelte/internal/server'", `'${svelteInternalServerUrl}'`)
+    .replace('"svelte"', `'${svelteUrl}'`);
+  const compiledModule = await import(
+    `data:text/javascript;base64,${Buffer.from(patchedCode, "utf8").toString("base64")}`
+  );
+  const { body } = render(compiledModule.default, {
+    props: { state }
+  });
 
   return body;
 }
@@ -72,7 +90,7 @@ describe("job create public roots", () => {
   });
 
   it("Given idle create state When the view is server-rendered Then core create contract labels are present", async () => {
-    const body = await renderView(createRenderState());
+    const body = await renderJobCreateView(createRenderState());
 
     expect(body).toContain("Job Create");
     expect(body).toContain("Create job");
@@ -81,7 +99,7 @@ describe("job create public roots", () => {
   });
 
   it("Given success and failure state When the view is server-rendered Then result and error blocks are rendered", async () => {
-    const body = await renderView(
+    const body = await renderJobCreateView(
       createRenderState({
         error: "Job creation failed. Try again.",
         result: {
