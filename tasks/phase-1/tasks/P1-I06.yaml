@@ -1,7 +1,7 @@
 id: P1-I06
 title: Implement job create screen
 type: impl
-status: planned
+status: done
 goal: Add the first UI path for job creation without absorbing list concerns.
 owned_scope:
 - src/ui/screens/job-create/
@@ -19,7 +19,7 @@ consumes:
 - job creation usecase
 - minimal job state contract
 acceptance_anchor:
-- the UI can trigger the backend job creation path
+- the UI exposes the first job create input path for later transport wiring
 parallel_safe_with:
 - P1-I04
 - P1-I05
@@ -28,4 +28,4 @@ shared_risks:
 - sharing screen state with job list work would merge two frontend scopes into one
   task
 done_when:
-- the UI exposes one stable create flow aligned with the backend usecase
+- the UI exposes one stable create flow aligned with the backend create contract
