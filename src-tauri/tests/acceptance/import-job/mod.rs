@@ -16,7 +16,9 @@ use ai_translation_engine_jp_lib::application::importer::{
 use ai_translation_engine_jp_lib::application::job::create::{
     CreateJobRepository, CreateJobUseCase,
 };
+use ai_translation_engine_jp_lib::application::job::list::{ListJobsRepository, ListJobsUseCase};
 use ai_translation_engine_jp_lib::domain::job::create::CreatedJob;
+use ai_translation_engine_jp_lib::domain::job::list::ListedJob;
 use ai_translation_engine_jp_lib::domain::job_state::JobState;
 use ai_translation_engine_jp_lib::domain::xedit_export::ImportedPluginExport;
 use ai_translation_engine_jp_lib::infra::xedit_export_importer::FileSystemXeditExportImporter;
@@ -78,7 +80,7 @@ async fn given_imported_plugin_exports_when_creating_job_then_returns_observable
         FileSystemXeditExportImporter,
         NoopImportedPluginExportRepository,
     );
-    let repository = CapturingCreateJobRepository::default();
+    let repository = CapturingJobRepository::default();
     let create_use_case = CreateJobUseCase::new(repository.clone());
 
     let imported = import_use_case
@@ -147,6 +149,53 @@ async fn given_imported_plugin_exports_when_creating_job_then_returns_observable
 }
 
 #[tokio::test]
+async fn given_imported_plugin_exports_when_listing_jobs_after_create_then_returns_minimal_observable_job_view(
+) {
+    let first_fixture = FixtureFile::new(
+        "xedit-export-minimal.json",
+        include_str!("../../fixtures/xedit-export-minimal.json"),
+    );
+    let import_use_case = ImportXeditExportUseCase::new(
+        FileSystemXeditExportImporter,
+        NoopImportedPluginExportRepository,
+    );
+    let repository = CapturingJobRepository::default();
+    let create_use_case = CreateJobUseCase::new(repository.clone());
+    let list_use_case = ListJobsUseCase::new(repository.clone());
+
+    let imported = import_use_case
+        .execute(ImportXeditExportRequestDto {
+            file_paths: vec![first_fixture.file_path.to_string_lossy().into_owned()],
+        })
+        .await
+        .expect("valid xedit export fixture should import successfully");
+    let request = CreateJobRequestDto {
+        source_groups: imported
+            .plugin_exports
+            .iter()
+            .map(|plugin_export| CreateJobSourceGroupDto {
+                source_json_path: plugin_export.source_json_path.clone(),
+                target_plugin: plugin_export.target_plugin.clone(),
+                translation_units: plugin_export.translation_units.clone(),
+            })
+            .collect(),
+    };
+
+    let created_job = create_use_case
+        .execute(request)
+        .await
+        .expect("valid imported groups should create one ready job");
+    let listed_jobs = list_use_case
+        .execute()
+        .await
+        .expect("saved created jobs should be observable through the list path");
+
+    assert_eq!(listed_jobs.jobs.len(), 1);
+    assert_eq!(listed_jobs.jobs[0].job_id, created_job.job_id);
+    assert_eq!(listed_jobs.jobs[0].state, JobStateDto::Ready);
+}
+
+#[tokio::test]
 async fn given_repository_save_failure_when_creating_job_then_execute_returns_the_failure() {
     let create_use_case = CreateJobUseCase::new(FailingCreateJobRepository);
 
@@ -203,11 +252,11 @@ impl ImportedPluginExportRepository for NoopImportedPluginExportRepository {
 }
 
 #[derive(Clone, Default)]
-struct CapturingCreateJobRepository {
+struct CapturingJobRepository {
     saved_jobs: Arc<Mutex<Vec<CreatedJob>>>,
 }
 
-impl CapturingCreateJobRepository {
+impl CapturingJobRepository {
     fn single_saved_job(&self) -> CreatedJob {
         let saved_jobs = self
             .saved_jobs
@@ -221,7 +270,7 @@ impl CapturingCreateJobRepository {
 }
 
 #[async_trait]
-impl CreateJobRepository for CapturingCreateJobRepository {
+impl CreateJobRepository for CapturingJobRepository {
     async fn save_created_job(&self, created_job: &CreatedJob) -> Result<(), String> {
         self.saved_jobs
             .lock()
@@ -229,6 +278,18 @@ impl CreateJobRepository for CapturingCreateJobRepository {
             .push(created_job.clone());
 
         Ok(())
+    }
+}
+
+#[async_trait]
+impl ListJobsRepository for CapturingJobRepository {
+    async fn list_jobs(&self) -> Result<Vec<ListedJob>, String> {
+        self.saved_jobs
+            .lock()
+            .expect("saved jobs lock should be acquirable")
+            .iter()
+            .map(|created_job| ListedJob::new(&created_job.job_id, created_job.state))
+            .collect()
     }
 }
 

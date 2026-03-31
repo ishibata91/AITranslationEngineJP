@@ -2,6 +2,7 @@ use serde::Serialize;
 
 use crate::application::dto::translation_unit::TranslationUnitDto;
 use crate::domain::job::create::CreatedJob;
+use crate::domain::job::list::ListedJob;
 use crate::domain::job_state::JobState;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
@@ -47,6 +48,39 @@ impl CreateJobResultDto {
         Self {
             job_id: created_job.job_id.clone(),
             state: JobStateDto::from(created_job.state),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct JobListItemDto {
+    pub job_id: String,
+    pub state: JobStateDto,
+}
+
+impl JobListItemDto {
+    pub fn from_listed_job(listed_job: &ListedJob) -> Self {
+        Self {
+            job_id: listed_job.job_id.clone(),
+            state: JobStateDto::from(listed_job.state),
+        }
+    }
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ListJobsResultDto {
+    pub jobs: Vec<JobListItemDto>,
+}
+
+impl ListJobsResultDto {
+    pub fn from_listed_jobs(listed_jobs: &[ListedJob]) -> Self {
+        Self {
+            jobs: listed_jobs
+                .iter()
+                .map(JobListItemDto::from_listed_job)
+                .collect(),
         }
     }
 }

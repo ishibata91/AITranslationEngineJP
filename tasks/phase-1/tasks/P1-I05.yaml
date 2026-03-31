@@ -1,7 +1,7 @@
 id: P1-I05
 title: Implement backend job list query
 type: impl
-status: planned
+status: done
 goal: Expose a backend query path that returns the minimal job list and status view.
 owned_scope:
 - src-tauri/src/application/job/list/
