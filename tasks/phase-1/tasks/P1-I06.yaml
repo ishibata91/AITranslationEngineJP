@@ -1,7 +1,7 @@
 id: P1-I06
 title: Implement job create screen
 type: impl
-status: planned
+status: done
 goal: Add the first UI path for job creation without absorbing list concerns.
 owned_scope:
 - src/ui/screens/job-create/
