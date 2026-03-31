@@ -5,5 +5,5 @@ pub mod translation_unit;
 
 pub use bootstrap_status_dto::BootstrapStatusDto;
 pub use import_xedit_export_dto::{ImportXeditExportRequestDto, ImportXeditExportResultDto};
-pub use job::JobStateDto;
+pub use job::{CreateJobRequestDto, CreateJobResultDto, CreateJobSourceGroupDto, JobStateDto};
 pub use translation_unit::TranslationUnitDto;

@@ -1,7 +1,7 @@
 id: P1-I04
 title: Implement backend job creation usecase
 type: impl
-status: planned
+status: done
 goal: Create jobs from normalized translation units through a backend application
   path.
 owned_scope:

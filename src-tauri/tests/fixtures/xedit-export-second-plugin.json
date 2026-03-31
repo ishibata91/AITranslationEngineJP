@@ -1,0 +1,24 @@
+{
+  "target_plugin": "SideQuestMod.esp",
+  "dialogue_groups": [],
+  "quests": [],
+  "items": [
+    {
+      "id": "00054321",
+      "editor_id": "SecondSword",
+      "type": "WEAP",
+      "source": "SideQuestMod.esp",
+      "name": "Iron Sword",
+      "description": "A sturdy blade.",
+      "text": "",
+      "type_hint": "WEAP"
+    }
+  ],
+  "magic": [],
+  "locations": [],
+  "cells": [],
+  "system": [],
+  "messages": [],
+  "load_screens": [],
+  "npcs": {}
+}
