@@ -2,6 +2,7 @@ import { mount } from "svelte";
 import App from "./App.svelte";
 import "./app.css";
 import { createBootstrapStatusScreenUsecase } from "@application/usecases/bootstrap-status";
+import { createJobListScreenStore, createJobListScreenUsecase } from "@application/usecases/job-list";
 import {
   createJobCreateScreenStore,
   createJobCreateScreenUsecase
@@ -10,6 +11,16 @@ import { createTauriBootstrapStatusGateway } from "@gateway/tauri/bootstrap-stat
 import { createBootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
 
 let previewJobCounter = 0;
+const previewJobs = [
+  {
+    jobId: "job-observe-101",
+    state: "Ready" as const
+  },
+  {
+    jobId: "job-observe-202",
+    state: "Running" as const
+  }
+];
 
 const bootstrapStatusStore = createBootstrapStatusScreenStore();
 const bootstrapStatusUsecase = createBootstrapStatusScreenUsecase({
@@ -28,13 +39,22 @@ const jobCreateUsecase = createJobCreateScreenUsecase({
   },
   store: jobCreateStore
 });
+const jobListStore = createJobListScreenStore();
+const jobListUsecase = createJobListScreenUsecase({
+  executor: async () => ({
+    jobs: previewJobs
+  }),
+  store: jobListStore
+});
 
 mount(App, {
   props: {
     bootstrapStatusStore,
     bootstrapStatusUsecase,
     jobCreateStore,
-    jobCreateUsecase
+    jobCreateUsecase,
+    jobListStore,
+    jobListUsecase
   },
   target: document.getElementById("app")!
 });
