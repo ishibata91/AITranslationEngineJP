@@ -1,5 +1,5 @@
 - workflow: impl
-- status: completed
+- status: in_progress
 - lane_owner: codex
 - scope: Implement the first frontend job create screen and input path without absorbing job list concerns.
 - task_id: P1-I06
@@ -96,10 +96,8 @@
 
 ## Outcome
 
-- Added `src/application/usecases/job-create/` with the local create request and result contract, a screen-local store, light request validation, and an injected async executor boundary.
-- Added `src/ui/screens/job-create/` and `src/ui/views/job-create/` with a single-panel job create form, pending state, success summary, and failure display.
-- Updated `src/App.svelte`, `src/main.ts`, and `src/ui/app-shell/AppShell.svelte` to surface the job-create screen in the single-window shell while preserving the existing bootstrap status panel.
-- Added frontend coverage in `src/application/usecases/job-create/index.test.ts` and `src/ui/screens/job-create/index.test.ts`, including success, validation, duplicate-submit, and failure-path usecase checks.
-- Final validation passed: `npm test -- src/application/usecases/job-create/index.test.ts src/ui/screens/job-create/index.test.ts`, `npm run build`, `powershell -File scripts/harness/run.ps1 -Suite all`, and owned-path Sonar open issues = `0`.
-- Single-pass review result: `pass`.
-- Remaining integration gap: the current app composition uses a preview executor in `src/main.ts`; concrete frontend-to-backend transport wiring remains for `P1-G01`, which owns `src/gateway/tauri/`.
+- Implemented the frontend-owned `job-create` slice under `src/application/usecases/job-create/`, `src/ui/screens/job-create/`, and `src/ui/views/job-create/`, including light validation, pending state, success summary, failure display, and render-backed tests.
+- `src/App.svelte`, `src/main.ts`, and `src/ui/app-shell/AppShell.svelte` currently surface the screen in the single-window shell with a preview executor so the frontend path is runnable during UI work.
+- Validation passed: `npm test -- src/application/usecases/job-create/index.test.ts src/ui/screens/job-create/index.test.ts`, `npm test -- src/ui/screens/job-create/index.test.ts`, `npm run build`, `powershell -File scripts/harness/run.ps1 -Suite all`, and owned-path Sonar open issues = `0`.
+- Single-pass review result is `reroute`, not `pass`, because `tasks/phase-1/tasks/P1-I06.yaml` requires that the UI can trigger the backend job creation path, while the current `src/main.ts` still fabricates preview `job-preview-*` results instead of calling a real transport boundary.
+- Close blocker: decide whether backend transport wiring must land in `P1-I06` despite the owned-scope split, or keep the wiring in `P1-G01` and reopen the task record until that dependency lands.
