@@ -8,19 +8,9 @@ import {
   createJobCreateScreenUsecase
 } from "@application/usecases/job-create";
 import { createTauriBootstrapStatusGateway } from "@gateway/tauri/bootstrap-status";
+import { createTauriJobCreateExecutor } from "@gateway/tauri/job-create";
+import { createTauriJobListExecutor } from "@gateway/tauri/job-list";
 import { createBootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
-
-let previewJobCounter = 0;
-const previewJobs = [
-  {
-    jobId: "job-observe-101",
-    state: "Ready" as const
-  },
-  {
-    jobId: "job-observe-202",
-    state: "Running" as const
-  }
-];
 
 const bootstrapStatusStore = createBootstrapStatusScreenStore();
 const bootstrapStatusUsecase = createBootstrapStatusScreenUsecase({
@@ -29,21 +19,12 @@ const bootstrapStatusUsecase = createBootstrapStatusScreenUsecase({
 });
 const jobCreateStore = createJobCreateScreenStore();
 const jobCreateUsecase = createJobCreateScreenUsecase({
-  executor: async () => {
-    previewJobCounter += 1;
-
-    return {
-      jobId: `job-preview-${previewJobCounter}`,
-      state: "Ready"
-    };
-  },
+  executor: createTauriJobCreateExecutor(),
   store: jobCreateStore
 });
 const jobListStore = createJobListScreenStore();
 const jobListUsecase = createJobListScreenUsecase({
-  executor: async () => ({
-    jobs: previewJobs
-  }),
+  executor: createTauriJobListExecutor(),
   store: jobListStore
 });
 

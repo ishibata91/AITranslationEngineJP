@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Deserializer, Serialize};
 
 use crate::application::dto::translation_unit::TranslationUnitDto;
 use crate::domain::job::create::CreatedJob;
@@ -34,6 +34,66 @@ pub struct CreateJobSourceGroupDto {
     pub source_json_path: String,
     pub target_plugin: String,
     pub translation_units: Vec<TranslationUnitDto>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateJobRequestWireDto {
+    source_groups: Vec<CreateJobSourceGroupWireDto>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct CreateJobSourceGroupWireDto {
+    source_json_path: String,
+    target_plugin: String,
+    translation_units: Vec<TranslationUnitWireDto>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct TranslationUnitWireDto {
+    source_entity_type: String,
+    form_id: String,
+    editor_id: String,
+    record_signature: String,
+    field_name: String,
+    extraction_key: String,
+    source_text: String,
+    sort_key: String,
+}
+
+impl<'de> Deserialize<'de> for CreateJobRequestDto {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        let wire = CreateJobRequestWireDto::deserialize(deserializer)?;
+        Ok(Self {
+            source_groups: wire
+                .source_groups
+                .into_iter()
+                .map(|group| CreateJobSourceGroupDto {
+                    source_json_path: group.source_json_path,
+                    target_plugin: group.target_plugin,
+                    translation_units: group
+                        .translation_units
+                        .into_iter()
+                        .map(|unit| TranslationUnitDto {
+                            source_entity_type: unit.source_entity_type,
+                            form_id: unit.form_id,
+                            editor_id: unit.editor_id,
+                            record_signature: unit.record_signature,
+                            field_name: unit.field_name,
+                            extraction_key: unit.extraction_key,
+                            source_text: unit.source_text,
+                            sort_key: unit.sort_key,
+                        })
+                        .collect(),
+                })
+                .collect(),
+        })
+    }
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]

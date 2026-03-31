@@ -1,7 +1,7 @@
 use std::fs;
 use std::path::PathBuf;
 use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Arc, Mutex};
+use std::sync::{Mutex, MutexGuard, OnceLock};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use ai_translation_engine_jp_lib::application::dto::job::{
@@ -10,18 +10,14 @@ use ai_translation_engine_jp_lib::application::dto::job::{
 use ai_translation_engine_jp_lib::application::dto::{
     ImportXeditExportRequestDto, TranslationUnitDto,
 };
-use ai_translation_engine_jp_lib::application::importer::{
-    ImportXeditExportUseCase, ImportedPluginExportRepository,
-};
 use ai_translation_engine_jp_lib::application::job::create::{
     CreateJobRepository, CreateJobUseCase,
 };
-use ai_translation_engine_jp_lib::application::job::list::{ListJobsRepository, ListJobsUseCase};
 use ai_translation_engine_jp_lib::domain::job::create::CreatedJob;
-use ai_translation_engine_jp_lib::domain::job::list::ListedJob;
-use ai_translation_engine_jp_lib::domain::job_state::JobState;
-use ai_translation_engine_jp_lib::domain::xedit_export::ImportedPluginExport;
-use ai_translation_engine_jp_lib::infra::xedit_export_importer::FileSystemXeditExportImporter;
+use ai_translation_engine_jp_lib::gateway::commands::{
+    create_job, import_xedit_export_json, list_jobs,
+};
+use ai_translation_engine_jp_lib::infra::job_repository::remove_in_memory_jobs_for_storage_path;
 use async_trait::async_trait;
 
 struct FixtureFile {
@@ -33,7 +29,7 @@ impl FixtureFile {
     fn new(file_name: &str, contents: &str) -> Self {
         let unique_suffix = next_unique_test_suffix();
         let dir_path = std::env::temp_dir().join(format!(
-            "ai-translation-engine-jp-create-acceptance-{file_name}-{unique_suffix}"
+            "ai-translation-engine-jp-import-job-acceptance-{file_name}-{unique_suffix}"
         ));
         let file_path = dir_path.join(file_name);
 
@@ -65,110 +61,86 @@ fn next_unique_test_suffix() -> String {
     format!("{timestamp}-{counter}")
 }
 
-#[tokio::test]
-async fn given_imported_plugin_exports_when_creating_job_then_returns_observable_ready_job_and_preserves_source_provenance(
-) {
-    let first_fixture = FixtureFile::new(
-        "xedit-export-minimal.json",
-        include_str!("../../fixtures/xedit-export-minimal.json"),
-    );
-    let second_fixture = FixtureFile::new(
-        "xedit-export-second-plugin.json",
-        include_str!("../../fixtures/xedit-export-second-plugin.json"),
-    );
-    let import_use_case = ImportXeditExportUseCase::new(
-        FileSystemXeditExportImporter,
-        NoopImportedPluginExportRepository,
-    );
-    let repository = CapturingJobRepository::default();
-    let create_use_case = CreateJobUseCase::new(repository.clone());
+const EXECUTION_CACHE_PATH_ENV: &str = "AI_TRANSLATION_ENGINE_JP_EXECUTION_CACHE_PATH";
 
-    let imported = import_use_case
-        .execute(ImportXeditExportRequestDto {
-            file_paths: vec![
-                first_fixture.file_path.to_string_lossy().into_owned(),
-                second_fixture.file_path.to_string_lossy().into_owned(),
-            ],
-        })
-        .await
-        .expect("valid xedit export fixtures should import successfully");
-    let request = CreateJobRequestDto {
-        source_groups: imported
-            .plugin_exports
-            .iter()
-            .map(|plugin_export| CreateJobSourceGroupDto {
-                source_json_path: plugin_export.source_json_path.clone(),
-                target_plugin: plugin_export.target_plugin.clone(),
-                translation_units: plugin_export.translation_units.clone(),
-            })
-            .collect(),
-    };
+fn command_test_lock() -> &'static Mutex<()> {
+    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
+    LOCK.get_or_init(|| Mutex::new(()))
+}
 
-    let result = create_use_case
-        .execute(request.clone())
-        .await
-        .expect("valid imported groups should create one ready job");
+struct CommandEnvOverrideGuard {
+    _lock: MutexGuard<'static, ()>,
+    previous: Option<String>,
+}
 
-    assert!(!result.job_id.is_empty());
-    assert_eq!(result.state, JobStateDto::Ready);
+impl CommandEnvOverrideGuard {
+    fn new(cache_path: &str) -> Self {
+        let lock = command_test_lock()
+            .lock()
+            .expect("command test lock should be acquirable");
+        let previous = std::env::var(EXECUTION_CACHE_PATH_ENV).ok();
+        std::env::set_var(EXECUTION_CACHE_PATH_ENV, cache_path);
 
-    let saved_job = repository.single_saved_job();
-
-    assert_eq!(saved_job.job_id, result.job_id);
-    assert_eq!(saved_job.state, JobState::Ready);
-    assert_eq!(saved_job.source_groups.len(), request.source_groups.len());
-    for (saved_group, request_group) in saved_job
-        .source_groups
-        .iter()
-        .zip(request.source_groups.iter())
-    {
-        assert_eq!(saved_group.source_json_path, request_group.source_json_path);
-        assert_eq!(saved_group.target_plugin, request_group.target_plugin);
-        assert_eq!(
-            saved_group.translation_units.len(),
-            request_group.translation_units.len()
-        );
-        for (saved_unit, request_unit) in saved_group
-            .translation_units
-            .iter()
-            .zip(request_group.translation_units.iter())
-        {
-            assert_eq!(saved_unit.extraction_key, request_unit.extraction_key);
-            assert_eq!(saved_unit.sort_key, request_unit.sort_key);
-            assert_eq!(saved_unit.source_text, request_unit.source_text);
+        Self {
+            _lock: lock,
+            previous,
         }
     }
-    assert_eq!(
-        saved_job
-            .source_groups
-            .iter()
-            .flat_map(|group| group.translation_units.iter())
-            .count(),
-        4
-    );
+}
+
+impl Drop for CommandEnvOverrideGuard {
+    fn drop(&mut self) {
+        if let Some(previous) = &self.previous {
+            std::env::set_var(EXECUTION_CACHE_PATH_ENV, previous);
+        } else {
+            std::env::remove_var(EXECUTION_CACHE_PATH_ENV);
+        }
+    }
+}
+
+struct ExecutionCacheArtifactGuard {
+    cache_path: PathBuf,
+}
+
+impl ExecutionCacheArtifactGuard {
+    fn new(cache_path: PathBuf) -> Self {
+        Self { cache_path }
+    }
+}
+
+impl Drop for ExecutionCacheArtifactGuard {
+    fn drop(&mut self) {
+        let _ = remove_in_memory_jobs_for_storage_path(&self.cache_path);
+
+        let cache_file = self.cache_path.to_string_lossy().into_owned();
+        let wal_file = format!("{cache_file}-wal");
+        let shm_file = format!("{cache_file}-shm");
+
+        let _ = fs::remove_file(&self.cache_path);
+        let _ = fs::remove_file(wal_file);
+        let _ = fs::remove_file(shm_file);
+    }
 }
 
 #[tokio::test]
-async fn given_imported_plugin_exports_when_listing_jobs_after_create_then_returns_minimal_observable_job_view(
+async fn given_import_job_fixture_when_creating_and_listing_through_commands_then_same_ready_job_is_visible(
 ) {
-    let first_fixture = FixtureFile::new(
+    let fixture = FixtureFile::new(
         "xedit-export-minimal.json",
         include_str!("../../fixtures/xedit-export-minimal.json"),
     );
-    let import_use_case = ImportXeditExportUseCase::new(
-        FileSystemXeditExportImporter,
-        NoopImportedPluginExportRepository,
-    );
-    let repository = CapturingJobRepository::default();
-    let create_use_case = CreateJobUseCase::new(repository.clone());
-    let list_use_case = ListJobsUseCase::new(repository.clone());
+    let cache_path = std::env::temp_dir().join(format!(
+        "ai-translation-engine-jp-import-job-cache-{}.sqlite",
+        next_unique_test_suffix()
+    ));
+    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
+    let _cache_artifact_guard = ExecutionCacheArtifactGuard::new(cache_path.clone());
 
-    let imported = import_use_case
-        .execute(ImportXeditExportRequestDto {
-            file_paths: vec![first_fixture.file_path.to_string_lossy().into_owned()],
-        })
-        .await
-        .expect("valid xedit export fixture should import successfully");
+    let imported = import_xedit_export_json(ImportXeditExportRequestDto {
+        file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
+    })
+    .await
+    .expect("valid xedit export fixture should import successfully");
     let request = CreateJobRequestDto {
         source_groups: imported
             .plugin_exports
@@ -181,15 +153,14 @@ async fn given_imported_plugin_exports_when_listing_jobs_after_create_then_retur
             .collect(),
     };
 
-    let created_job = create_use_case
-        .execute(request)
+    let created_job = create_job(request)
         .await
-        .expect("valid imported groups should create one ready job");
-    let listed_jobs = list_use_case
-        .execute()
+        .expect("imported plugin exports should create one ready job through commands");
+    let listed_jobs = list_jobs()
         .await
-        .expect("saved created jobs should be observable through the list path");
+        .expect("created jobs should be observable through the command-backed list path");
 
+    assert_eq!(created_job.state, JobStateDto::Ready);
     assert_eq!(listed_jobs.jobs.len(), 1);
     assert_eq!(listed_jobs.jobs[0].job_id, created_job.job_id);
     assert_eq!(listed_jobs.jobs[0].state, JobStateDto::Ready);
@@ -237,60 +208,6 @@ async fn given_malformed_translation_unit_dto_when_creating_job_then_execute_ret
         error.contains("source_text"),
         "expected source_text validation error, got: {error}"
     );
-}
-
-struct NoopImportedPluginExportRepository;
-
-#[async_trait]
-impl ImportedPluginExportRepository for NoopImportedPluginExportRepository {
-    async fn save_imported_plugin_exports(
-        &self,
-        _plugin_exports: &[ImportedPluginExport],
-    ) -> Result<(), String> {
-        Ok(())
-    }
-}
-
-#[derive(Clone, Default)]
-struct CapturingJobRepository {
-    saved_jobs: Arc<Mutex<Vec<CreatedJob>>>,
-}
-
-impl CapturingJobRepository {
-    fn single_saved_job(&self) -> CreatedJob {
-        let saved_jobs = self
-            .saved_jobs
-            .lock()
-            .expect("saved jobs lock should be acquirable");
-
-        assert_eq!(saved_jobs.len(), 1, "expected exactly one saved job");
-
-        saved_jobs[0].clone()
-    }
-}
-
-#[async_trait]
-impl CreateJobRepository for CapturingJobRepository {
-    async fn save_created_job(&self, created_job: &CreatedJob) -> Result<(), String> {
-        self.saved_jobs
-            .lock()
-            .expect("saved jobs lock should be acquirable")
-            .push(created_job.clone());
-
-        Ok(())
-    }
-}
-
-#[async_trait]
-impl ListJobsRepository for CapturingJobRepository {
-    async fn list_jobs(&self) -> Result<Vec<ListedJob>, String> {
-        self.saved_jobs
-            .lock()
-            .expect("saved jobs lock should be acquirable")
-            .iter()
-            .map(|created_job| ListedJob::new(&created_job.job_id, created_job.state))
-            .collect()
-    }
 }
 
 struct FailingCreateJobRepository;

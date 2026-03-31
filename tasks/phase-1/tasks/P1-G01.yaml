@@ -1,7 +1,7 @@
 id: P1-G01
 title: Wire import-to-job Phase 1 scenario
 type: integ
-status: planned
+status: done
 goal: Prove the first import-to-job path by composing backend and frontend slices
   without reopening contracts.
 owned_scope:
