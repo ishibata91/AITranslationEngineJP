@@ -24,6 +24,8 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 内部境界と依存方向: `docs/architecture.md`
 - 実装技術の選定: `docs/tech-selection.md`
 - コーディング規約: `docs/coding-guidelines.md`
+- 画面設計の入口: `docs/screen-design/`
+- ワイヤーフレーム: `docs/screen-design/wireframes/`
 - データ構造と ER: `docs/er.md`
 - 詳細な振る舞いと制約: 対応する tests / acceptance checks / validation commands
 - 作業計画: `docs/exec-plans/` と `docs/exec-plans/templates/`

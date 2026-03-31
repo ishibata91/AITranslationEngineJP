@@ -15,9 +15,10 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 5. [`tech-selection.md`](./tech-selection.md)
 6. [`er.md`](./er.md)
 7. [`coding-guidelines.md`](./coding-guidelines.md)
-8. [`lint-policy.md`](./lint-policy.md)
-9. Relevant file under [`exec-plans/`](./exec-plans/)
-10. Relevant file under [`../tasks/`](../tasks/README.md) when parallel-ready task decomposition matters
+8. Relevant file under [`screen-design/`](./screen-design/)
+9. [`lint-policy.md`](./lint-policy.md)
+10. Relevant file under [`exec-plans/`](./exec-plans/)
+11. Relevant file under [`../tasks/`](../tasks/README.md) when parallel-ready task decomposition matters
 
 ## Directory Contract
 
@@ -27,6 +28,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
 - [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
 - [`coding-guidelines.md`](./coding-guidelines.md): repository coding conventions for Tauri 2, Svelte 5, TypeScript, and Rust
+- [`screen-design/`](./screen-design/): screen map, wireframes, and UI layout references
 - [`er.md`](./er.md): canonical data model and ER specification
 - [`lint-policy.md`](./lint-policy.md): what lint manages, what it does not manage, and tool ownership
 - [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
@@ -42,6 +44,7 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - Dependency rule or layering changed: human-first update [`architecture.md`](./architecture.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Technology decision changed: human-first update [`tech-selection.md`](./tech-selection.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Coding conventions or Tauri 2 implementation rules changed: update [`coding-guidelines.md`](./coding-guidelines.md)
+- Screen map, wireframe, or UI layout reference changed: update the relevant file under [`screen-design/`](./screen-design/)
 - Data structure or entity relationship changed: human-first update [`er.md`](./er.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
 - Detailed behavior or constraint changed: update the corresponding tests or acceptance checks and validation commands
 - Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
