@@ -80,7 +80,7 @@
 
 - execution harness は repo root の `gate:execution` を優先実行し、fallback の時だけ `lint` / `test` / `build` と `Cargo.toml` command を個別実行する
 - `scan:sonar` は `lint` と Rust lint の後段で実行し、`sonar-project.properties` に定義した project context で server-side analysis を更新する
-- scanner 実行後は implementation lane が `powershell -File .codex/skills/directing-implementation/scripts/get-open-sonar-issues.ps1 -Project ishibata91_AITranslationEngineJP` を使って `status == OPEN` issue を取得する
+- scanner 実行後は implementation lane が `python3 .codex/skills/directing-implementation/scripts/get-open-sonar-issues.py --project ishibata91_AITranslationEngineJP` を使って `status == OPEN` issue を取得する
 - open issue が残る間は owned scope に応じて `implementing-frontend` または `implementing-backend` に戻して修正する
 - false positive や severity tune は repo-local ルール増設ではなく Sonar project 側の設定を優先する
 - gate failure は同一変更で修正するか、Sonar project 側で理由付き suppression を行う

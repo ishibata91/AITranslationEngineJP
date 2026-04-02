@@ -1,0 +1,4 @@
+interface:
+  display_name: "D2 図作成"
+  short_description: "D2 図を作成・検証し、レビュー用 SVG を生成する"
+  default_prompt: "$diagramming-d2 を使って D2 図を作成または修正し、`.d2` を validate した後に review 用の `.svg` を `d2` コマンドで生成してください。"

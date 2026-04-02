@@ -2,10 +2,10 @@
 
 ## Entry Points
 
-- `powershell -File scripts/harness/run.ps1 -Suite structure`
-- `powershell -File scripts/harness/run.ps1 -Suite design`
-- `powershell -File scripts/harness/run.ps1 -Suite execution`
-- `powershell -File scripts/harness/run.ps1 -Suite all`
+- `python3 scripts/harness/run.py --suite structure`
+- `python3 scripts/harness/run.py --suite design`
+- `python3 scripts/harness/run.py --suite execution`
+- `python3 scripts/harness/run.py --suite all`
 
 ## Suites
 

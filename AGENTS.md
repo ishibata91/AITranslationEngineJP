@@ -52,18 +52,18 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 1. これから使う skill の `references/permissions.json` を最初に確認する
 2. `docs/index.md` から、対象タスクに関係する文書だけを確認する
 3. 既存の active / completed plan に同種タスクがないか確認する
-4. `powershell -File scripts/harness/run.ps1 -Suite structure` を実行する
-5. 文書契約や役割契約に触れるなら `powershell -File scripts/harness/run.ps1 -Suite design` も実行する
+4. `python3 scripts/harness/run.py --suite structure` を実行する
+5. 文書契約や役割契約に触れるなら `python3 scripts/harness/run.py --suite design` も実行する
 
 ## 実装後にやること
 
-1. `powershell -File scripts/harness/run.ps1 -Suite all` を実行する
+1. `python3 scripts/harness/run.py --suite all` を実行する
 2. 必要な負債項目と品質スコアを更新する
 3. `docs/` 正本更新は human 先行の変更だけで行う
 4. タスク完了時は計画を `docs/exec-plans/completed/` へ移す
 
 ## 検証入口
 
-- Structure harness: `powershell -File scripts/harness/run.ps1 -Suite structure`
-- Design harness: `powershell -File scripts/harness/run.ps1 -Suite design`
-- Execution harness: `powershell -File scripts/harness/run.ps1 -Suite execution`
+- Structure harness: `python3 scripts/harness/run.py --suite structure`
+- Design harness: `python3 scripts/harness/run.py --suite design`
+- Execution harness: `python3 scripts/harness/run.py --suite execution`

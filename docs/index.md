@@ -2,7 +2,7 @@
 
 `docs/` はプロダクト仕様と設計の記録系であり、作業方法の正本は `.codex/` にある。
 新規参加者とエージェントは `AGENTS.md` の後に `.codex/README.md` を読み、その後にこのページを使う。
-workflow の入口は `directing-implementation` と `directing-fixes` で、必要な task-local design は `designing-implementation` を通す。
+workflow の入口は implementation lane owner (`directing-implementation`) と fix lane owner (`directing-fixes`) で、必要な task-local design skill (`designing-implementation`) を通す。
 詳細な振る舞いと制約は tests / acceptance checks / validation commands を正本として扱う。
 `docs/` 正本は human が先に更新し、agent は human が直接起動した `../.codex/skills/updating-docs/SKILL.md` でだけ同期する。
 
@@ -52,16 +52,17 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - Work needs parallel-safe task decomposition or batch planning: update the relevant file in [`../tasks/`](../tasks/README.md)
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
 - Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/` via `skill-modification`
+- Workflow text should prefer `論理名 (`actual-name`)` co-location so human review and actual-name search both stay cheap
 - Product-level confusion keeps recurring: add a rule to [`core-beliefs.md`](./core-beliefs.md) or [`AGENTS.md`](../AGENTS.md)
 - The repository is missing coverage or confidence: update [`../4humans/quality-score.md`](../4humans/quality-score.md)
 - The problem is known but not resolved yet: update [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md)
 
 ## Repository Checks
 
-- Structure harness: `powershell -File scripts/harness/run.ps1 -Suite structure`
-- Design harness: `powershell -File scripts/harness/run.ps1 -Suite design`
-- Execution harness: `powershell -File scripts/harness/run.ps1 -Suite execution`
-- Full pass: `powershell -File scripts/harness/run.ps1 -Suite all`
+- Structure harness: `python3 scripts/harness/run.py --suite structure`
+- Design harness: `python3 scripts/harness/run.py --suite design`
+- Execution harness: `python3 scripts/harness/run.py --suite execution`
+- Full pass: `python3 scripts/harness/run.py --suite all`
 
 ## Notes
 
@@ -69,4 +70,4 @@ workflow の入口は `directing-implementation` と `directing-fixes` で、必
 - Raw vendor API dumps live under [`references/vendor-api/`](./references/vendor-api/).
 - Parallel-ready task catalogs live under [`../tasks/`](../tasks/README.md).
 - Workflow skills live under [`../.codex/skills/`](../.codex/skills/).
-
+- Workflow references should prefer logical role labels with actual names together, for example implementation lane owner (`directing-implementation`).

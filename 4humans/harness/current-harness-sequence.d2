@@ -1,0 +1,71 @@
+direction: right
+
+title: "現在のハーネスの論理シーケンス"
+
+harness: {
+  shape: sequence_diagram
+
+  caller: {
+    label: "呼び出し元"
+  }
+
+  entry: {
+    label: "Python 入口"
+  }
+
+  runtime: {
+    label: "Python 実行系"
+  }
+
+  dispatcher: {
+    label: "スイート調停"
+  }
+
+  structure_check: {
+    label: "構造検査"
+  }
+
+  design_check: {
+    label: "設計検査"
+  }
+
+  execution_check: {
+    label: "実行検査"
+  }
+
+  repository: {
+    label: "リポジトリ状態"
+  }
+
+  tools: {
+    label: "外部ツール群"
+  }
+
+  caller -> entry: "suite を指定して起動する"
+  entry -> entry: "repo root を決める\npython3 / python を探す"
+  entry -> runtime: "Python 入口へ制御を渡す"
+  runtime -> dispatcher: "suite と repo root を渡す"
+  dispatcher -> dispatcher: "実行順を決める\nstructure | design | execution | all"
+
+  dispatcher -> structure_check: "structure を含む場合"
+  structure_check -> repository: "必須 path を確認する\nMarkdown link を走査する"
+  repository -> structure_check: "存在確認結果を返す"
+  structure_check -> dispatcher: "pass / fail を返す"
+
+  dispatcher -> design_check: "design を含む場合"
+  design_check -> repository: "契約語を確認する\nsemantic path を確認する\ncanonical phrase を確認する"
+  repository -> design_check: "文書と path の結果を返す"
+  design_check -> dispatcher: "pass / fail を返す"
+
+  dispatcher -> execution_check: "execution を含む場合"
+  execution_check -> repository: "package.json\nCargo.toml\nsonar-project.properties を検出する"
+  repository -> execution_check: "実行対象と script 定義を返す"
+  execution_check -> tools: "gate:execution を優先実行する\n未定義なら lint / test / build と\ncargo fmt / clippy / test を実行する\n必要なら sonar を実行する"
+  tools -> execution_check: "終了コードを返す"
+  execution_check -> dispatcher: "pass / fail / skip を返す"
+
+  dispatcher -> dispatcher: "最初の失敗で停止する"
+  dispatcher -> runtime: "全体の終了コードを返す"
+  runtime -> entry: "終了コードを伝える"
+  entry -> caller: "最終結果を返す"
+}

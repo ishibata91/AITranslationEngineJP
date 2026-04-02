@@ -4,6 +4,13 @@
 プロダクト仕様と設計は `docs/` を正本とし、lane、skill、agent の役割と handoff は `.codex/` を正本とします。
 この repo の workflow は `directing-implementation` と `directing-fixes` の 2 lane で動かし、過去 repo 固有の packet や review loop は live 契約に戻しません。
 
+## Naming Rule
+
+- workflow 文書では、論理名と実名を分離しない
+- 初出または重要な参照は `論理名 (`actual-name`)` を優先する
+- 人間 review で意味が先に読めて、actual skill / agent name でも検索できる記述を優先する
+- 例: implementation lane owner (`directing-implementation`)、fix lane owner (`directing-fixes`)、task-local design skill (`designing-implementation`)
+
 ## 入口
 
 - 実装・設計内包の入口: `skills/directing-implementation/SKILL.md`
@@ -24,6 +31,7 @@
   - `skills/implementing-fixes/SKILL.md`
   - `skills/reviewing-fixes/SKILL.md`
   - `skills/reporting-risks/SKILL.md`
+  - `skills/diagramming-d2/SKILL.md`
   - `skills/diagramming-plantuml/SKILL.md`
   - `skills/explore/SKILL.md`
   - `skills/skill-modification/SKILL.md`
@@ -43,31 +51,31 @@
 
 ### Impl lane
 
-`User -> directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> sonar-scanner + Sonar CLI open issue gate -> reviewing-implementation -> 4humans sync + commit + directing-implementation close`
+`User -> implementation lane owner (`directing-implementation`) -> task-local design skill (`designing-implementation`) -> implementation distill skill (`distilling-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Sonar CLI open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + commit + implementation lane owner (`directing-implementation`) close`
 
-- `directing-implementation` は実装要求を受け、active plan を作成し、task-local design が必要なら `designing-implementation` へ `UI` / `Scenario` / `Logic` を埋めさせる
-- `designing-implementation` は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
+- implementation lane owner (`directing-implementation`) は実装要求を受け、active plan を作成し、task-local design が必要なら task-local design skill (`designing-implementation`) へ `UI` / `Scenario` / `Logic` を埋めさせる
+- task-local design skill (`designing-implementation`) は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
-- `distilling-implementation` は facts、constraints、gaps、closeout notes を整理する
-- `planning-implementation` は実装順、owned scope、validation を短い brief に落とす
-- `architecting-tests` は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
-- `implementing-frontend` / `implementing-backend` は brief と plan に従って実装する
+- implementation distill skill (`distilling-implementation`) は facts、constraints、gaps、closeout notes を整理する
+- implementation workplan skill (`planning-implementation`) は実装順、owned scope、validation を短い brief に落とす
+- test architecture skill (`architecting-tests`) は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
+- frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装する
 - `sonar-scanner + Sonar CLI open issue gate` は server-side analysis を更新し、`sonar list issues --project ishibata91_AITranslationEngineJP --format json` の結果から `status == OPEN` だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
-- `reviewing-implementation` は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
+- implementation review skill (`reviewing-implementation`) は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 - Sonar issue remediation loop は review の前段で扱い、close 条件に含める
 - review が `pass` の時は `4humans sync` の後に commit してから close する
 
 ### Fix lane
 
-`User -> directing-fixes -> distilling-fixes -> tracing-fixes -> (必要時 logging-fixes / analyzing-fixes) -> architecting-tests -> implementing-fixes -> reviewing-fixes -> reporting-risks + 4humans sync + commit + directing-fixes close`
+`User -> fix lane owner (`directing-fixes`) -> fix distill skill (`distilling-fixes`) -> fault trace skill (`tracing-fixes`) -> (必要時 logging skill (`logging-fixes`) / fix analysis skill (`analyzing-fixes`)) -> test architecture skill (`architecting-tests`) -> fix implementer (`implementing-fixes`) -> fix review skill (`reviewing-fixes`) -> risk reporting skill (`reporting-risks`) + 4humans sync + commit + fix lane owner (`directing-fixes`) close`
 
-- `directing-fixes` は bugfix 要求を受け、事実不足なら `distilling-fixes` と `tracing-fixes` で scope を狭める
-- `logging-fixes` は一時観測だけを追加 / 削除し、恒久修正を混ぜない
-- `analyzing-fixes` は観測結果を事実に圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な `updating-docs` 対象かを整理する
-- `architecting-tests` は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する
-- `reviewing-fixes` も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
-- `reporting-risks` は残留リスクを短くまとめる補助 skill として扱う
+- fix lane owner (`directing-fixes`) は bugfix 要求を受け、事実不足なら fix distill skill (`distilling-fixes`) と fault trace skill (`tracing-fixes`) で scope を狭める
+- logging skill (`logging-fixes`) は一時観測だけを追加 / 削除し、恒久修正を混ぜない
+- fix analysis skill (`analyzing-fixes`) は観測結果を事実に圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な docs sync skill (`updating-docs`) 対象かを整理する
+- test architecture skill (`architecting-tests`) は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する
+- fix review skill (`reviewing-fixes`) も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
+- risk reporting skill (`reporting-risks`) は残留リスクを短くまとめる補助 skill として扱う
 - review が `pass` の時は residual risk と `4humans sync` を整理し、commit してから close する
 
 ## 設計記録の扱い
@@ -96,5 +104,3 @@
 - 通常 lane の close 条件は `4humans sync` と commit を含めて扱う
 - `docs/` 正本更新は human が直接起動した `updating-docs` に限定する
 - harness は repo-owned files だけを検査対象とし、`node_modules`、`dist`、`coverage`、`target`、生成物を含めない
-
-

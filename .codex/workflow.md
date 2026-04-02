@@ -9,44 +9,50 @@
 - 鳥瞰図の図版正本は `.codex/workflow_activity_diagram.puml`
 - このページは diagram を読むための索引であり、diagram と矛盾する独自フローを追加しない
 
+## Naming Rule
+
+- workflow 記述では、論理名と実名をできるだけ同じ行に置く
+- 初出または重要な参照は `論理名 (`actual-name`)` を優先する
+- 人間 review で意味が先に分かり、actual name でも検索できる記述を優先する
+
 ## Overall Shape
 
 `User request` を起点に、workflow は `impl lane` と `fix lane` の 2 本に分岐します。
-feature / change は `directing-implementation` から入り、bug / regression は `directing-fixes` から入ります。
+feature / change は implementation lane owner (`directing-implementation`) から入り、bug / regression は fix lane owner (`directing-fixes`) から入ります。
 どちらの lane も最後に review を 1 回だけ行い、`pass` なら `4humans sync` と commit を済ませて close し、`reroute` なら direction に戻します。
 
 ## Impl Lane
 
-標準順序は `directing-implementation -> designing-implementation -> distilling-implementation -> planning-implementation -> architecting-tests -> implementing-frontend or implementing-backend -> sonar-scanner + Sonar CLI open issue gate -> reviewing-implementation -> 4humans sync + commit + close` です。
+標準順序は `implementation lane owner (`directing-implementation`) -> task-local design skill (`designing-implementation`) -> implementation distill skill (`distilling-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Sonar CLI open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + commit + close` です。
 
-- `directing-implementation`: 実装要求の入口。active plan を用意し、task-local design が必要なら `designing-implementation` を起動する。
-- `designing-implementation`: active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
-- `distilling-implementation`: facts、constraints、gaps、closeout notes を圧縮する。
-- `planning-implementation`: 実装順、owned scope、validation を短い brief に落とす。
-- `architecting-tests`: 実装前に tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する。
-- `implementing-frontend` / `implementing-backend`: owned scope に従って実装する。分岐は frontend / backend の責務で決める。
-- `sonar-scanner + Sonar CLI open issue gate`: project root で scanner を実行し、`.codex/skills/directing-implementation/scripts/get-open-sonar-issues.ps1` で `status == OPEN` の issue だけを取得して、issue が残る間は implementing skill に戻す。
-- `reviewing-implementation`: `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを単発で見る。
+- implementation lane owner (`directing-implementation`): 実装要求の入口。active plan を用意し、task-local design が必要なら task-local design skill (`designing-implementation`) を起動する。
+- task-local design skill (`designing-implementation`): active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
+- implementation distill skill (`distilling-implementation`): facts、constraints、gaps、closeout notes を圧縮する。
+- implementation workplan skill (`planning-implementation`): 実装順、owned scope、validation を短い brief に落とす。
+- test architecture skill (`architecting-tests`): 実装前に tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する。
+- frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`): owned scope に従って実装する。分岐は frontend / backend の責務で決める。
+- `sonar-scanner + Sonar CLI open issue gate`: project root で scanner を実行し、`.codex/skills/directing-implementation/scripts/get-open-sonar-issues.py` で `status == OPEN` の issue だけを取得して、issue が残る間は implementing skill に戻す。
+- implementation review skill (`reviewing-implementation`): `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを単発で見る。
 
-Sonar issue が解消し、`reviewing-implementation` が `pass` なら `4humans sync`、commit、close に進みます。
-`reroute` の場合は `directing-implementation` に戻り、同じ lane の中で plan と実装を更新します。
+Sonar issue が解消し、implementation review skill (`reviewing-implementation`) が `pass` なら `4humans sync`、commit、close に進みます。
+`reroute` の場合は implementation lane owner (`directing-implementation`) に戻り、同じ lane の中で plan と実装を更新します。
 
 ## Fix Lane
 
-標準順序は `directing-fixes -> distilling-fixes -> tracing-fixes -> (必要時 logging-fixes / analyzing-fixes) -> architecting-tests -> implementing-fixes -> reviewing-fixes -> reporting-risks + 4humans sync + commit + close` です。
+標準順序は `fix lane owner (`directing-fixes`) -> fix distill skill (`distilling-fixes`) -> fault trace skill (`tracing-fixes`) -> (必要時 logging skill (`logging-fixes`) / fix analysis skill (`analyzing-fixes`)) -> test architecture skill (`architecting-tests`) -> fix implementer (`implementing-fixes`) -> fix review skill (`reviewing-fixes`) -> risk reporting skill (`reporting-risks`) + 4humans sync + commit + close` です。
 
-- `directing-fixes`: bugfix 要求の入口。事実不足なら distill と trace に進める。
-- `distilling-fixes`: 既知事実、再現条件、関連仕様、関連コードを短く整理する。
-- `tracing-fixes`: 原因仮説を順位付けし、最小の trace 方針を決める。
-- `logging-fixes`: 一時観測ログだけを追加 / 削除する。恒久修正は混ぜない。
-- `analyzing-fixes`: 観測結果を事実へ圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な `updating-docs` 対象かを整理する。
-- `architecting-tests`: 再現条件を tests / acceptance checks / validation commands に落とし、必要な回帰 test / fixture を先に実装する。
-- `implementing-fixes`: 承認済み scope の恒久修正を行う。
-- `reviewing-fixes`: impl lane と同じ 4 観点で単発 review する。
-- `reporting-risks`: 必要な時だけ残留リスクを短くまとめる。
+- fix lane owner (`directing-fixes`): bugfix 要求の入口。事実不足なら fix distill skill (`distilling-fixes`) と fault trace skill (`tracing-fixes`) に進める。
+- fix distill skill (`distilling-fixes`): 既知事実、再現条件、関連仕様、関連コードを短く整理する。
+- fault trace skill (`tracing-fixes`): 原因仮説を順位付けし、最小の trace 方針を決める。
+- logging skill (`logging-fixes`): 一時観測ログだけを追加 / 削除する。恒久修正は混ぜない。
+- fix analysis skill (`analyzing-fixes`): 観測結果を事実へ圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な docs sync skill (`updating-docs`) 対象かを整理する。
+- test architecture skill (`architecting-tests`): 再現条件を tests / acceptance checks / validation commands に落とし、必要な回帰 test / fixture を先に実装する。
+- fix implementer (`implementing-fixes`): 承認済み scope の恒久修正を行う。
+- fix review skill (`reviewing-fixes`): impl lane と同じ 4 観点で単発 review する。
+- risk reporting skill (`reporting-risks`): 必要な時だけ残留リスクを短くまとめる。
 
-diagram 上では `analyzing-fixes` は常に通ります。
-`logging-fixes` は temporary logging が必要な時だけ挿入され、不要なら `tracing-fixes` から直接 `analyzing-fixes` に進みます。
+diagram 上では fix analysis skill (`analyzing-fixes`) は常に通ります。
+logging skill (`logging-fixes`) は temporary logging が必要な時だけ挿入され、不要なら fault trace skill (`tracing-fixes`) から直接 fix analysis skill (`analyzing-fixes`) に進みます。
 
 ## Reroute And Close
 
@@ -63,5 +69,4 @@ diagram 上では `analyzing-fixes` は常に通ります。
 - 詳細な挙動や制約は docs へ肥大化させず、tests、acceptance checks、validation commands に寄せる
 - `directing-* -> downstream skill` の handoff contract 例は、各 directing skill 配下の `references/*.json` を見る
 - `downstream skill -> directing-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を見る
-- harness は `powershell -File scripts/harness/run.ps1 -Suite structure|design|execution|all` を入口にする
-
+- harness は `python3 scripts/harness/run.py --suite structure|design|execution|all` を入口にする

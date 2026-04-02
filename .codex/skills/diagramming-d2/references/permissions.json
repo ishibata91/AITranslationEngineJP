@@ -1,0 +1,27 @@
+{
+  "contract_version": "2026-04-02",
+  "skill": "diagramming-d2",
+  "allowed_actions": [
+    ".d2 ファイルを作成または更新する",
+    "図の主題に合わせて `.d2` ファイルを分割する",
+    "`d2 validate` で構文確認し、エラーを直す",
+    "`d2` コマンドで review 用の `.svg` を生成する"
+  ],
+  "forbidden_actions": [
+    ".svg を source of truth にする",
+    "無関係な文書契約や workflow を書き換える",
+    "validate や render が失敗したまま見た目調整を優先する",
+    "`.svg` 生成を省略して完了扱いにする"
+  ],
+  "expected_outputs": [
+    "updated_d2_files",
+    "generated_svg_files",
+    "diagram_split_decision",
+    "d2_validation_result"
+  ],
+  "stop_conditions": [
+    "入力として扱う図や境界が不明である",
+    "D2 の表現だけでは要求された内容を表せない",
+    "`d2` が利用できず validate や render を確認できない"
+  ]
+}
