@@ -1,5 +1,8 @@
-import type { FeatureScreenUsecase } from "@application/ports/input/feature-screen";
-import type { FeatureScreenState, FeatureScreenStorePort } from "@application/ports/input/feature-screen";
+import type {
+  FeatureScreenState,
+  FeatureScreenStorePort,
+  FeatureScreenUsecase
+} from "@application/ports/input/feature-screen";
 
 export type ObservableJobState = "Ready" | "Running" | "Completed";
 
@@ -33,8 +36,7 @@ type CreateJobListScreenUsecaseOptions = {
   toErrorMessage?: (error: unknown) => string;
 };
 
-function defaultToErrorMessage(error: unknown): string {
-  void error;
+function defaultToErrorMessage(): string {
   return "Job list failed to load. Try again.";
 }
 

@@ -66,8 +66,7 @@ type CreateJobCreateScreenUsecaseOptions = {
   toErrorMessage?: (error: unknown) => string;
 };
 
-function defaultToErrorMessage(error: unknown): string {
-  void error;
+function defaultToErrorMessage(): string {
   return "Job creation failed. Try again.";
 }
 
@@ -152,9 +151,7 @@ export function createJobCreateScreenUsecase({
   }
 
   return {
-    async initialize() {
-      return Promise.resolve();
-    },
+    async initialize() {},
     resetResult() {
       const currentState = store.getState();
 
@@ -251,38 +248,43 @@ function validateRequest(request: JobCreateRequest): string | null {
   }
 
   for (const sourceGroup of request.sourceGroups) {
-    if (sourceGroup.sourceJsonPath.trim().length === 0) {
+    if (isSourceGroupInvalid(sourceGroup)) {
       return blankFieldMessage;
-    }
-
-    if (sourceGroup.targetPlugin.trim().length === 0) {
-      return blankFieldMessage;
-    }
-
-    if (sourceGroup.translationUnits.length === 0) {
-      return blankFieldMessage;
-    }
-
-    for (const translationUnit of sourceGroup.translationUnits) {
-      const requiredFields: Record<JobCreateTranslationUnitField, string> = {
-        editorId: translationUnit.editorId,
-        extractionKey: translationUnit.extractionKey,
-        fieldName: translationUnit.fieldName,
-        formId: translationUnit.formId,
-        recordSignature: translationUnit.recordSignature,
-        sortKey: translationUnit.sortKey,
-        sourceEntityType: translationUnit.sourceEntityType,
-        sourceText: translationUnit.sourceText
-      };
-
-      for (const [fieldName, fieldValue] of Object.entries(requiredFields)) {
-        void fieldName;
-        if (fieldValue.trim().length === 0) {
-          return blankFieldMessage;
-        }
-      }
     }
   }
 
   return null;
+}
+
+function isSourceGroupInvalid(sourceGroup: JobCreateSourceGroupRequest): boolean {
+  if (sourceGroup.sourceJsonPath.trim().length === 0) {
+    return true;
+  }
+
+  if (sourceGroup.targetPlugin.trim().length === 0) {
+    return true;
+  }
+
+  if (sourceGroup.translationUnits.length === 0) {
+    return true;
+  }
+
+  return sourceGroup.translationUnits.some((translationUnit) =>
+    hasBlankRequiredTranslationField(translationUnit)
+  );
+}
+
+function hasBlankRequiredTranslationField(translationUnit: JobCreateTranslationUnitRequest): boolean {
+  const requiredFields: Record<JobCreateTranslationUnitField, string> = {
+    editorId: translationUnit.editorId,
+    extractionKey: translationUnit.extractionKey,
+    fieldName: translationUnit.fieldName,
+    formId: translationUnit.formId,
+    recordSignature: translationUnit.recordSignature,
+    sortKey: translationUnit.sortKey,
+    sourceEntityType: translationUnit.sourceEntityType,
+    sourceText: translationUnit.sourceText
+  };
+
+  return Object.values(requiredFields).some((fieldValue) => fieldValue.trim().length === 0);
 }
