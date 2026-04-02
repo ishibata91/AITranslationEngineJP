@@ -1,0 +1,56 @@
+direction: right
+
+title: "Frontend job-list slice class diagram"
+
+ui: {
+  shape: package
+  label: "UI"
+
+  screen: {
+    shape: class
+    label: "ジョブ一覧画面 (`JobListScreen.svelte`)\n- 初期化する (`initialize()`)"
+  }
+
+  view: {
+    shape: class
+    label: "ジョブ一覧ビュー (`JobListView.svelte`)\n- refresh / retry / select を発火する"
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+
+  usecase: {
+    shape: class
+    label: "ジョブ一覧ユースケース (`JobListScreenInput` / `createJobListScreenUsecase()`)\n+ 初期化する (`initialize()`)\n+ 再読込する (`refresh()`)\n+ 再試行する (`retry()`)\n+ ジョブを選択する (`select(selection)`)"
+  }
+
+  store: {
+    shape: class
+    label: "ジョブ一覧ストア (`JobListScreenStore`)\n+ 読込中にする (`setLoading()`)\n+ 読込済みにする (`setLoaded(payload)`)\n+ エラーを設定する (`setError(message)`)\n+ 選択を設定する (`setSelection(selection)`)"
+  }
+
+  result: {
+    shape: class
+    label: "一覧結果 (`JobListResult`)\nジョブ群 (`jobs`)"
+  }
+}
+
+gateway: {
+  shape: package
+  label: "gateway"
+
+  executor: {
+    shape: class
+    label: "ジョブ一覧 gateway (`createTauriJobListExecutor()`)\n- ジョブ一覧を取得する (`invoke(\"list_jobs\")`)"
+  }
+}
+
+ui.screen -> ui.view: 描画する
+ui.view -> application.usecase: refresh / retry / select を渡す
+ui.screen -> application.usecase: 初期化する (`initialize()`)
+application.usecase -> application.store: state を更新する
+application.usecase -> gateway.executor: 一覧取得を依頼する
+gateway.executor -> application.result: 一覧結果を返す
+application.store -> ui.view: 購読済み状態を渡す

@@ -60,6 +60,10 @@
 
 - `4humans/quality-score.md`
 - `4humans/tech-debt-tracker.md`
+- `4humans/class-diagrams/*.d2` と対応する `.svg`
+  コードベース境界、依存、責務分割が変わる時に対象ファイルを明記する。
+- `4humans/sequence-diagrams/*.d2` と対応する `.svg`
+  実行フロー、相互作用順序、主要シナリオが変わる時に対象ファイルを明記する。
 
 ## Outcome
 

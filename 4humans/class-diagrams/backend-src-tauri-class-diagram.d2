@@ -1,214 +1,106 @@
 direction: right
 
-title: "Backend `src-tauri/src/` class diagram"
+title: "Backend `src-tauri/src/` class overview"
 
 gatewayLayer: {
-  label: "Gateway layer"
   shape: package
+  label: "gateway"
 
   commands: {
     shape: class
-    label: "Tauri command 群 (`gateway/commands.rs`)\n+ 起動状態を取得する (`get_bootstrap_status()`)\n+ xEdit export を取り込む (`import_xedit_export_json(request)`)\n+ ジョブを作成する (`create_job(request)`)\n+ ジョブ一覧を取得する (`list_jobs()`)"
+    label: "Tauri command 群 (`gateway/commands.rs`)"
   }
 }
 
 applicationLayer: {
-  label: "Application layer"
   shape: package
+  label: "application"
 
-  getBootstrapStatusUsecase: {
+  bootstrapUsecase: {
     shape: class
-    label: "起動状態取得ユースケース (`GetBootstrapStatusUseCase<P>`)\n+ 起動状態を取得する (`execute() -> BootstrapStatusDto`)"
+    label: "起動状態取得ユースケース\n`GetBootstrapStatusUseCase`"
   }
 
-  importXeditUsecase: {
+  importUsecase: {
     shape: class
-    label: "xEdit export 取込ユースケース (`ImportXeditExportUseCase<I, R>`)\n+ 取込要求 (`request`) を実行する (`execute(request)`)"
+    label: "xEdit 取込ユースケース\n`ImportXeditExportUseCase`"
   }
 
   createJobUsecase: {
     shape: class
-    label: "ジョブ作成ユースケース (`CreateJobUseCase<R>`)\n+ 作成要求 (`request`) を実行する (`execute(request)`)"
+    label: "ジョブ作成ユースケース\n`CreateJobUseCase`"
   }
 
   listJobsUsecase: {
     shape: class
-    label: "ジョブ一覧ユースケース (`ListJobsUseCase<R>`)\n+ 一覧取得を実行する (`execute()`)"
+    label: "ジョブ一覧ユースケース\n`ListJobsUseCase`"
   }
 
-  createJobRepositoryPort: {
+  dtoLayer: {
     shape: class
-    label: "ジョブ作成 repository port (`CreateJobRepository`)\n+ 作成済みジョブを保存する (`save_created_job(created_job)`)"
-  }
-
-  listJobsRepositoryPort: {
-    shape: class
-    label: "ジョブ一覧 repository port (`ListJobsRepository`)\n+ ジョブ一覧を取得する (`list_jobs()`)"
-  }
-
-  importedPluginExportRepositoryPort: {
-    shape: class
-    label: "取込 export repository port (`ImportedPluginExportRepository`)\n+ 取込済み export 群を保存する (`save_imported_plugin_exports(plugin_exports)`)"
-  }
-
-  xeditImporterPort: {
-    shape: class
-    label: "xEdit importer port (`XeditExportImporter`)\n+ ファイル群を取り込む (`import_from_paths(file_paths)`)"
+    label: "DTO 群 (`application/dto`)"
   }
 }
 
 domainLayer: {
-  label: "Domain layer"
   shape: package
+  label: "domain"
 
   bootstrapStatus: {
     shape: class
-    label: "起動状態 (`BootstrapStatus`)\n+ 初期状態を作る (`initial(backend_version)`)"
+    label: "起動状態 (`BootstrapStatus`)"
   }
 
-  jobState: {
+  jobDomain: {
     shape: class
-    label: "ジョブ状態 (`JobState`)\n下書き (`Draft`) -> 実行準備完了 (`Ready`) -> 実行中 (`Running`) -> 完了 (`Completed`)"
+    label: "job domain\n`CreatedJob` / `ListedJob` / `JobState` / `create_ready_job`"
   }
 
-  createdJob: {
+  importDomain: {
     shape: class
-    label: "作成済みジョブ (`CreatedJob`)\nジョブID (`job_id`)\n状態 (`state`)\n入力群 (`source_groups`)"
-  }
-
-  createJobSourceGroup: {
-    shape: class
-    label: "ジョブ作成入力群 (`CreateJobSourceGroup`)\n入力JSONパス (`source_json_path`)\n対象 plugin (`target_plugin`)\n翻訳単位群 (`translation_units`)"
-  }
-
-  listedJob: {
-    shape: class
-    label: "一覧表示ジョブ (`ListedJob`)\nジョブID (`job_id`)\n状態 (`state`)"
-  }
-
-  translationUnit: {
-    shape: class
-    label: "翻訳単位 (`TranslationUnit`)\n元エンティティ種別 (`source_entity_type`)\nFormID (`form_id`)\nレコード署名 (`record_signature`)\n項目名 (`field_name`)\n抽出キー (`extraction_key`)\n原文 (`source_text`)\n整列キー (`sort_key`)"
-  }
-
-  importedPluginExport: {
-    shape: class
-    label: "取込済み plugin export (`ImportedPluginExport`)\n入力JSONパス (`source_json_path`)\n対象 plugin (`target_plugin`)\n翻訳単位群 (`translation_units`)\n生レコード群 (`raw_records`)"
-  }
-
-  importedRawRecord: {
-    shape: class
-    label: "取込済み生レコード (`ImportedRawRecord`)\n元エンティティ種別 (`source_entity_type`)\nFormID (`form_id`)\nEditorID (`editor_id`)\nレコード署名 (`record_signature`)\n生payload (`raw_payload`)"
-  }
-
-  createReadyJobFn: {
-    shape: class
-    label: "実行準備済みジョブを作る (`create_ready_job(job_id, source_groups)`)\n- 入力群を検証する\n- 下書きから準備完了へ遷移する"
+    label: "import domain\n`ImportedPluginExport` / `ImportedRawRecord` / `TranslationUnit`"
   }
 }
 
 infraLayer: {
-  label: "Infra layer"
   shape: package
+  label: "infra"
 
-  runtimeInfoProvider: {
+  runtimeInfo: {
     shape: class
-    label: "実行時情報 provider (`CargoRuntimeInfoProvider`)\n+ backend 版を返す (`backend_version()`)"
+    label: "runtime provider (`CargoRuntimeInfoProvider`)"
   }
 
-  fsXeditImporter: {
+  fileImporter: {
     shape: class
-    label: "filesystem importer (`FileSystemXeditExportImporter`)\n- JSON を解析する\n- 翻訳単位 / 生レコードを組み立てる"
+    label: "filesystem importer (`FileSystemXeditExportImporter`)"
   }
 
-  sqlitePluginExportRepository: {
+  sqliteRepo: {
     shape: class
-    label: "SQLite export repository (`SqlitePluginExportRepository`)\n- export 群を永続化する\n- 生レコード群を永続化する"
+    label: "SQLite export repository (`SqlitePluginExportRepository`)"
   }
 
-  inMemoryJobRepository: {
+  inMemoryRepo: {
     shape: class
-    label: "メモリ上ジョブ repository (`InMemoryJobRepository`)\n- 作成済みジョブを保存する\n- 一覧表示ジョブを列挙する"
+    label: "memory job repository (`InMemoryJobRepository`)"
   }
 }
 
-dtoLayer: {
-  label: "DTO layer"
-  shape: package
-
-  bootstrapStatusDto: {
-    shape: class
-    label: "起動状態 DTO (`BootstrapStatusDto`)"
-  }
-
-  importXeditRequestDto: {
-    shape: class
-    label: "xEdit 取込要求 DTO (`ImportXeditExportRequestDto`)"
-  }
-
-  importXeditResultDto: {
-    shape: class
-    label: "xEdit 取込結果 DTO (`ImportXeditExportResultDto`)"
-  }
-
-  createJobRequestDto: {
-    shape: class
-    label: "ジョブ作成要求 DTO (`CreateJobRequestDto`)"
-  }
-
-  createJobResultDto: {
-    shape: class
-    label: "ジョブ作成結果 DTO (`CreateJobResultDto`)"
-  }
-
-  listJobsResultDto: {
-    shape: class
-    label: "ジョブ一覧結果 DTO (`ListJobsResultDto`)"
-  }
-
-  translationUnitDto: {
-    shape: class
-    label: "翻訳単位 DTO (`TranslationUnitDto`)"
-  }
-}
-
-gatewayLayer.commands -> applicationLayer.getBootstrapStatusUsecase: 起動状態取得を組み立てる
-gatewayLayer.commands -> applicationLayer.importXeditUsecase: 取込処理を組み立てる
-gatewayLayer.commands -> applicationLayer.createJobUsecase: ジョブ作成処理を組み立てる
-gatewayLayer.commands -> applicationLayer.listJobsUsecase: 一覧取得処理を組み立てる
-
-applicationLayer.getBootstrapStatusUsecase -> infraLayer.runtimeInfoProvider: uses
-applicationLayer.getBootstrapStatusUsecase -> domainLayer.bootstrapStatus: creates
-applicationLayer.getBootstrapStatusUsecase -> dtoLayer.bootstrapStatusDto: maps
-
-applicationLayer.importXeditUsecase -> applicationLayer.xeditImporterPort: depends on
-applicationLayer.importXeditUsecase -> applicationLayer.importedPluginExportRepositoryPort: depends on
-infraLayer.fsXeditImporter -> applicationLayer.xeditImporterPort: implements
-infraLayer.sqlitePluginExportRepository -> applicationLayer.importedPluginExportRepositoryPort: implements
-infraLayer.fsXeditImporter -> domainLayer.translationUnit: builds
-infraLayer.fsXeditImporter -> domainLayer.importedRawRecord: builds
-infraLayer.fsXeditImporter -> domainLayer.importedPluginExport: builds
-applicationLayer.importXeditUsecase -> dtoLayer.importXeditRequestDto: consumes
-applicationLayer.importXeditUsecase -> dtoLayer.importXeditResultDto: returns
-dtoLayer.importXeditResultDto -> dtoLayer.translationUnitDto: contains
-
-applicationLayer.createJobUsecase -> applicationLayer.createJobRepositoryPort: depends on
-infraLayer.inMemoryJobRepository -> applicationLayer.createJobRepositoryPort: implements
-applicationLayer.createJobUsecase -> dtoLayer.createJobRequestDto: consumes
-applicationLayer.createJobUsecase -> domainLayer.translationUnit: maps dto to
-applicationLayer.createJobUsecase -> domainLayer.createJobSourceGroup: builds
-applicationLayer.createJobUsecase -> domainLayer.createReadyJobFn: calls
-domainLayer.createReadyJobFn -> domainLayer.createdJob: returns
-domainLayer.createReadyJobFn -> domainLayer.jobState: transitions
-applicationLayer.createJobUsecase -> dtoLayer.createJobResultDto: returns
-
-applicationLayer.listJobsUsecase -> applicationLayer.listJobsRepositoryPort: depends on
-infraLayer.inMemoryJobRepository -> applicationLayer.listJobsRepositoryPort: implements
-infraLayer.inMemoryJobRepository -> domainLayer.createdJob: stores
-infraLayer.inMemoryJobRepository -> domainLayer.listedJob: projects
-applicationLayer.listJobsUsecase -> dtoLayer.listJobsResultDto: returns
-
-domainLayer.createdJob -> domainLayer.createJobSourceGroup: aggregates
-domainLayer.createJobSourceGroup -> domainLayer.translationUnit: aggregates
-domainLayer.importedPluginExport -> domainLayer.translationUnit: aggregates
-domainLayer.importedPluginExport -> domainLayer.importedRawRecord: aggregates
+gatewayLayer.commands -> applicationLayer.bootstrapUsecase: 起動状態取得を呼ぶ
+gatewayLayer.commands -> applicationLayer.importUsecase: 取込を呼ぶ
+gatewayLayer.commands -> applicationLayer.createJobUsecase: ジョブ作成を呼ぶ
+gatewayLayer.commands -> applicationLayer.listJobsUsecase: ジョブ一覧を呼ぶ
+applicationLayer.bootstrapUsecase -> domainLayer.bootstrapStatus: domain を組み立てる
+applicationLayer.bootstrapUsecase -> infraLayer.runtimeInfo: 版情報を使う
+applicationLayer.bootstrapUsecase -> applicationLayer.dtoLayer: DTO へ写す
+applicationLayer.importUsecase -> domainLayer.importDomain: import domain を作る
+applicationLayer.importUsecase -> infraLayer.fileImporter: file を読む
+applicationLayer.importUsecase -> infraLayer.sqliteRepo: 保存する
+applicationLayer.importUsecase -> applicationLayer.dtoLayer: DTO へ写す
+applicationLayer.createJobUsecase -> domainLayer.jobDomain: job domain を作る
+applicationLayer.createJobUsecase -> infraLayer.inMemoryRepo: 保存する
+applicationLayer.createJobUsecase -> applicationLayer.dtoLayer: DTO へ写す
+applicationLayer.listJobsUsecase -> domainLayer.jobDomain: job domain を参照する
+applicationLayer.listJobsUsecase -> infraLayer.inMemoryRepo: 一覧を読む
+applicationLayer.listJobsUsecase -> applicationLayer.dtoLayer: DTO へ写す

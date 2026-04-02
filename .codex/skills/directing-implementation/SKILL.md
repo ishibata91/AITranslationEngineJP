@@ -28,7 +28,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 10. Sonar issue が解消した後に `<review_cycler>` を `reviewing-implementation` で **1** 回だけ実行する。
 11. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
 12. 差し戻しが修正されたら､再レビューはせず次へ進む｡
-13. 必要な `4humans sync` を整理してから plan を `completed/` へ移す。
+13. 必要な `4humans sync` を整理し、コードベース境界や実行フローが変わる時は `<diagrammer>` を `diagramming-d2` でスポーンして `4humans/class-diagrams/` または `4humans/sequence-diagrams/` の `.d2` / `.svg` を同一変更で更新してから plan を `completed/` へ移す。
 14. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## 許可すること
@@ -39,6 +39,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 
 - `changes/`、`context_board`、`tasks.md` を live 正本にしない
 - review が `pass` でも `4humans sync` と plan 完了前に close とみなさない
+- active plan の `4humans Sync` には、必要な `4humans/...diagrams` 更新対象を明記する
 - skill 権限が曖昧な場合は停止して適切な handoff を選ぶ
 
 ## Reference Use

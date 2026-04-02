@@ -1,0 +1,56 @@
+direction: right
+
+title: "Frontend job-create slice class diagram"
+
+ui: {
+  shape: package
+  label: "UI"
+
+  screen: {
+    shape: class
+    label: "ジョブ作成画面 (`JobCreateScreen.svelte`)\n- 初期化する (`initialize()`)\n- submit / update event を転送する"
+  }
+
+  view: {
+    shape: class
+    label: "ジョブ作成ビュー (`JobCreateView.svelte`)\n- 作成要求 (`request`) を編集する\n- submit / reset / update event を発火する"
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+
+  usecase: {
+    shape: class
+    label: "ジョブ作成ユースケース (`JobCreateScreenInput` / `createJobCreateScreenUsecase()`)\n+ 送信する (`submit()`)\n+ 結果を消す (`resetResult()`)\n+ 入力群項目を更新する (`updateSourceGroupField(groupIndex, field, value)`)\n+ 翻訳単位項目を更新する (`updateTranslationUnitField(groupIndex, unitIndex, field, value)`)"
+  }
+
+  store: {
+    shape: class
+    label: "ジョブ作成ストア (`JobCreateScreenStore`)\n+ 購読する (`subscribe(run)`)\n+ 状態を取得する (`getState()`)\n+ 状態を置き換える (`replaceState(nextState)`)"
+  }
+
+  contract: {
+    shape: class
+    label: "作成 contract (`JobCreateRequest` / `JobCreateResult`)\n入力群 (`sourceGroups`)\n翻訳単位群 (`translationUnits`)"
+  }
+}
+
+gateway: {
+  shape: package
+  label: "gateway"
+
+  executor: {
+    shape: class
+    label: "ジョブ作成 gateway (`createTauriJobCreateExecutor()`)\n- ジョブを作成する (`invoke(\"create_job\")`)"
+  }
+}
+
+ui.screen -> ui.view: 描画する
+ui.view -> application.usecase: 送信 / 更新 event を渡す
+ui.screen -> application.usecase: 初期化する (`initialize()`)
+application.usecase -> application.store: state を更新する
+application.usecase -> gateway.executor: 作成要求を渡す
+gateway.executor -> application.contract: request/result を扱う
+application.store -> ui.view: 購読済み状態を渡す
