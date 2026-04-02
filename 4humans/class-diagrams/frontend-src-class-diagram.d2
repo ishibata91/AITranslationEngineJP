@@ -1,0 +1,172 @@
+direction: right
+
+title: "Frontend `src/` class diagram"
+
+app: {
+  label: "App bootstrap"
+  shape: package
+
+  mainTs: {
+    shape: class
+    label: "フロント起動点 (`main.ts`)\n- アプリを mount する (`mount(App)`)\n- store / usecase / gateway を組み立てる"
+  }
+
+  appSvelte: {
+    shape: class
+    label: "アプリ受け口 (`App.svelte`)\n- store / usecase を受け取る\n- AppShell へ props を渡す"
+  }
+
+  appShell: {
+    shape: class
+    label: "画面シェル (`AppShell.svelte`)\n- ジョブ一覧画面を載せる (`JobListScreen`)\n- ジョブ作成画面を載せる (`JobCreateScreen`)\n- 起動状態画面を載せる (`BootstrapStatusScreen`)"
+  }
+}
+
+jobList: {
+  label: "Job List slice"
+  shape: package
+
+  jobListScreen: {
+    shape: class
+    label: "ジョブ一覧画面 (`JobListScreen.svelte`)\n- 初期化する (`initialize()`)\n- 再読込 / 再試行 / 選択を転送する"
+  }
+
+  jobListView: {
+    shape: class
+    label: "ジョブ一覧ビュー (`JobListView.svelte`)\n- refresh / retry / select を発火する\n- 選択中ジョブを描画する"
+  }
+
+  jobListUsecase: {
+    shape: class
+    label: "ジョブ一覧ユースケース (`JobListScreenInput` / `createJobListScreenUsecase()`)\n+ 初期化する (`initialize()`)\n+ 再読込する (`refresh()`)\n+ 再試行する (`retry()`)\n+ ジョブを選択する (`select(selection)`)\n+ フィルタを更新する (`updateFilters(filters, options)`)"
+  }
+
+  jobListStore: {
+    shape: class
+    label: "ジョブ一覧ストア (`JobListScreenStore`)\n+ 購読する (`subscribe(run)`)\n+ 状態を取得する (`getState()`)\n+ 読込中にする (`setLoading()`)\n+ 読込済みにする (`setLoaded(payload)`)\n+ エラーを設定する (`setError(message)`)\n+ 選択を設定する (`setSelection(selection)`)"
+  }
+
+  jobListGateway: {
+    shape: class
+    label: "ジョブ一覧 gateway (`createTauriJobListExecutor()`)\n- ジョブ一覧を取得する (`invoke(\"list_jobs\")`)"
+  }
+}
+
+jobCreate: {
+  label: "Job Create slice"
+  shape: package
+
+  jobCreateScreen: {
+    shape: class
+    label: "ジョブ作成画面 (`JobCreateScreen.svelte`)\n- 初期化する (`initialize()`)\n- submit / update event を転送する"
+  }
+
+  jobCreateView: {
+    shape: class
+    label: "ジョブ作成ビュー (`JobCreateView.svelte`)\n- 作成要求 (`request`) を編集する\n- submit / reset / update event を発火する"
+  }
+
+  jobCreateUsecase: {
+    shape: class
+    label: "ジョブ作成ユースケース (`JobCreateScreenInput` / `createJobCreateScreenUsecase()`)\n+ 送信する (`submit()`)\n+ 結果を消す (`resetResult()`)\n+ 入力群項目を更新する (`updateSourceGroupField(groupIndex, field, value)`)\n+ 翻訳単位項目を更新する (`updateTranslationUnitField(groupIndex, unitIndex, field, value)`)"
+  }
+
+  jobCreateStore: {
+    shape: class
+    label: "ジョブ作成ストア (`JobCreateScreenStore`)\n+ 購読する (`subscribe(run)`)\n+ 状態を取得する (`getState()`)\n+ 状態を置き換える (`replaceState(nextState)`)"
+  }
+
+  jobCreateGateway: {
+    shape: class
+    label: "ジョブ作成 gateway (`createTauriJobCreateExecutor()`)\n- ジョブを作成する (`invoke(\"create_job\")`)"
+  }
+}
+
+bootstrapStatus: {
+  label: "Bootstrap Status slice"
+  shape: package
+
+  bootstrapScreen: {
+    shape: class
+    label: "起動状態画面 (`BootstrapStatusScreen.svelte`)\n- 初期化する (`initialize()`)\n- refresh / retry / select を転送する"
+  }
+
+  bootstrapUsecase: {
+    shape: class
+    label: "起動状態ユースケース (`BootstrapStatusScreenInput`)\n- 共通画面ユースケースで組み立てる (`createFeatureScreenUsecase()`)"
+  }
+
+  bootstrapStore: {
+    shape: class
+    label: "起動状態ストア (`BootstrapStatusScreenStore`)\n- 共通 store を包む (`FeatureScreenStore` wrapper)"
+  }
+
+  featureScreenUsecase: {
+    shape: class
+    label: "共通画面ユースケース (`createFeatureScreenUsecase()`)\n- 読込 / エラー / 選択の共通フロー"
+  }
+
+  featureScreenStore: {
+    shape: class
+    label: "共通画面ストア (`createFeatureScreenStore()`)\n- 画面状態 (`FeatureScreenState`) を writable で保持する"
+  }
+
+  bootstrapGateway: {
+    shape: class
+    label: "起動状態 gateway (`createTauriBootstrapStatusGateway()`)\n- 起動状態を取得する (`invoke(\"get_bootstrap_status\")`)"
+  }
+}
+
+contracts: {
+  label: "Shared contracts"
+  shape: package
+
+  bootstrapStatusDto: {
+    shape: class
+    label: "起動状態 contract (`BootstrapStatus`)\nバックエンド版 (`backendVersion`)\n境界準備済み (`boundaryReady`)\nフロント入口 (`frontendEntry`)"
+  }
+
+  jobCreateRequest: {
+    shape: class
+    label: "ジョブ作成 request/result (`JobCreateRequest` / `JobCreateResult`)\n- UI と backend の DTO 対"
+  }
+
+  jobListResult: {
+    shape: class
+    label: "ジョブ一覧結果 (`JobListResult`)\n- 観測可能なジョブ一覧"
+  }
+}
+
+app.mainTs -> app.appSvelte: mounts
+app.appSvelte -> app.appShell: renders
+
+app.mainTs -> jobList.jobListStore: creates
+app.mainTs -> jobList.jobListUsecase: wires executor + store
+app.appShell -> jobList.jobListScreen: hosts
+jobList.jobListScreen -> jobList.jobListView: renders
+jobList.jobListView -> jobList.jobListUsecase: UI events
+jobList.jobListScreen -> jobList.jobListUsecase: 初期化する (`initialize()`)
+jobList.jobListUsecase -> jobList.jobListStore: state updates
+jobList.jobListUsecase -> jobList.jobListGateway: ジョブ一覧を読み込む
+jobList.jobListGateway -> contracts.jobListResult: 一覧結果を返す
+jobList.jobListStore -> jobList.jobListView: exposes state
+
+app.mainTs -> jobCreate.jobCreateStore: creates
+app.mainTs -> jobCreate.jobCreateUsecase: wires executor + store
+app.appShell -> jobCreate.jobCreateScreen: hosts
+jobCreate.jobCreateScreen -> jobCreate.jobCreateView: renders
+jobCreate.jobCreateView -> jobCreate.jobCreateUsecase: UI events
+jobCreate.jobCreateUsecase -> jobCreate.jobCreateStore: replaces state
+jobCreate.jobCreateUsecase -> jobCreate.jobCreateGateway: ジョブを作成する
+jobCreate.jobCreateGateway -> contracts.jobCreateRequest: 作成要求 / 作成結果をやり取りする
+jobCreate.jobCreateStore -> jobCreate.jobCreateView: exposes state
+
+app.mainTs -> bootstrapStatus.bootstrapStore: creates
+app.mainTs -> bootstrapStatus.bootstrapUsecase: wires gateway + store
+app.appShell -> bootstrapStatus.bootstrapScreen: hosts
+bootstrapStatus.bootstrapScreen -> bootstrapStatus.bootstrapUsecase: 初期化 / 再読込 / 再試行 / 選択
+bootstrapStatus.bootstrapUsecase -> bootstrapStatus.featureScreenUsecase: delegates
+bootstrapStatus.featureScreenUsecase -> bootstrapStatus.bootstrapStore: state updates
+bootstrapStatus.bootstrapStore -> bootstrapStatus.featureScreenStore: specialized by
+bootstrapStatus.featureScreenUsecase -> bootstrapStatus.bootstrapGateway: 起動状態を読み込む
+bootstrapStatus.bootstrapGateway -> contracts.bootstrapStatusDto: 起動状態 contract を返す
