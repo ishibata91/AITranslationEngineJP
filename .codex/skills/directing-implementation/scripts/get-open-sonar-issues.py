@@ -4,21 +4,35 @@ import argparse
 import json
 import subprocess
 import sys
+from pathlib import Path
 
 
-def normalize_repo_path(path: str | None) -> str | None:
+def normalize_repo_path(path: str | None, repo_root: Path) -> str | None:
     if path is None:
         return None
-    normalized = path.replace("\\", "/").lstrip("./").strip()
+    raw = path.replace("\\", "/").strip()
+    if not raw:
+        return None
+
+    candidate = Path(raw)
+    if candidate.is_absolute():
+        try:
+            return candidate.resolve().relative_to(repo_root).as_posix()
+        except ValueError:
+            return candidate.resolve().as_posix()
+
+    normalized = candidate.as_posix()
+    while normalized.startswith("./"):
+        normalized = normalized[2:]
     return normalized or None
 
 
-def get_issue_repo_path(issue: dict, component_path_by_key: dict[str, str]) -> str | None:
+def get_issue_repo_path(issue: dict, component_path_by_key: dict[str, str], repo_root: Path) -> str | None:
     component = issue.get("component")
     if isinstance(component, str) and ":" in component:
-        return normalize_repo_path(component.split(":", 1)[1])
+        return normalize_repo_path(component.split(":", 1)[1], repo_root)
     if isinstance(component, str) and component in component_path_by_key:
-        return normalize_repo_path(component_path_by_key[component])
+        return normalize_repo_path(component_path_by_key[component], repo_root)
     return None
 
 
@@ -35,6 +49,7 @@ def main() -> int:
     parser.add_argument("--project", required=True)
     parser.add_argument("--owned-paths", nargs="*", default=[])
     args = parser.parse_args()
+    repo_root = Path.cwd().resolve()
 
     completed = subprocess.run(
         ["sonar", "list", "issues", "--project", args.project, "--format", "json"],
@@ -56,7 +71,9 @@ def main() -> int:
         and component["path"].strip()
     }
     normalized_owned_paths = [
-        normalized for normalized in (normalize_repo_path(path) for path in args.owned_paths) if normalized is not None
+        normalized
+        for normalized in (normalize_repo_path(path, repo_root) for path in args.owned_paths)
+        if normalized is not None
     ]
 
     open_issues: list[dict] = []
@@ -64,7 +81,7 @@ def main() -> int:
         if not isinstance(issue, dict) or issue.get("status") != "OPEN":
             continue
 
-        repo_path = get_issue_repo_path(issue, component_path_by_key)
+        repo_path = get_issue_repo_path(issue, component_path_by_key, repo_root)
         if not matches_owned_scope(repo_path, normalized_owned_paths):
             continue
 
