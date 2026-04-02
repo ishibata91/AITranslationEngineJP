@@ -5,7 +5,7 @@
     "active impl plan を作成または更新する",
     "designing-implementation へ task-local design を handoff する",
     "distilling、planning、tests、implementing、reviewing へ handoff する",
-    "`4humans sync` を同一変更で扱い、close 前に commit し、完了時に plan を completed へ移す"
+    "`4humans sync` を同一変更で扱い、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
     "非自明な変更を active plan なしで進める",
@@ -17,7 +17,7 @@
   "expected_outputs": [
     "active_or_completed_impl_plan",
     "ordered_handoffs",
-    "closeout_and_commit_status",
+    "closeout_status",
     "validation_summary"
   ],
   "stop_conditions": [

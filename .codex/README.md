@@ -51,7 +51,7 @@
 
 ### Impl lane
 
-`User -> implementation lane owner (`directing-implementation`) -> task-local design skill (`designing-implementation`) -> implementation distill skill (`distilling-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Sonar CLI open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + commit + implementation lane owner (`directing-implementation`) close`
+`User -> implementation lane owner (`directing-implementation`) -> task-local design skill (`designing-implementation`) -> implementation distill skill (`distilling-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Sonar CLI open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + implementation lane owner (`directing-implementation`) close`
 
 - implementation lane owner (`directing-implementation`) は実装要求を受け、active plan を作成し、task-local design が必要なら task-local design skill (`designing-implementation`) へ `UI` / `Scenario` / `Logic` を埋めさせる
 - task-local design skill (`designing-implementation`) は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
@@ -64,11 +64,11 @@
 - implementation review skill (`reviewing-implementation`) は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 - Sonar issue remediation loop は review の前段で扱い、close 条件に含める
-- review が `pass` の時は `4humans sync` の後に commit してから close する
+- review が `pass` の時は `4humans sync` を整理してから close する
 
 ### Fix lane
 
-`User -> fix lane owner (`directing-fixes`) -> fix distill skill (`distilling-fixes`) -> fault trace skill (`tracing-fixes`) -> (必要時 logging skill (`logging-fixes`) / fix analysis skill (`analyzing-fixes`)) -> test architecture skill (`architecting-tests`) -> fix implementer (`implementing-fixes`) -> fix review skill (`reviewing-fixes`) -> risk reporting skill (`reporting-risks`) + 4humans sync + commit + fix lane owner (`directing-fixes`) close`
+`User -> fix lane owner (`directing-fixes`) -> fix distill skill (`distilling-fixes`) -> fault trace skill (`tracing-fixes`) -> (必要時 logging skill (`logging-fixes`) / fix analysis skill (`analyzing-fixes`)) -> test architecture skill (`architecting-tests`) -> fix implementer (`implementing-fixes`) -> fix review skill (`reviewing-fixes`) -> risk reporting skill (`reporting-risks`) + 4humans sync + fix lane owner (`directing-fixes`) close`
 
 - fix lane owner (`directing-fixes`) は bugfix 要求を受け、事実不足なら fix distill skill (`distilling-fixes`) と fault trace skill (`tracing-fixes`) で scope を狭める
 - logging skill (`logging-fixes`) は一時観測だけを追加 / 削除し、恒久修正を混ぜない
@@ -76,7 +76,7 @@
 - test architecture skill (`architecting-tests`) は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する
 - fix review skill (`reviewing-fixes`) も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - risk reporting skill (`reporting-risks`) は残留リスクを短くまとめる補助 skill として扱う
-- review が `pass` の時は residual risk と `4humans sync` を整理し、commit してから close する
+- review が `pass` の時は residual risk と `4humans sync` を整理してから close する
 
 ## 設計記録の扱い
 
@@ -101,6 +101,6 @@
 
 - live workflow に `architect-direction`、`light-direction`、`gating-workflow`、`context_board`、`tasks.md` を戻さない
 - 過去 repo 由来で今の repo に合わない skill / agent / artifact 前提は、互換維持より削除を優先する
-- 通常 lane の close 条件は `4humans sync` と commit を含めて扱う
+- 通常 lane の close 条件は `4humans sync` を含めて扱う
 - `docs/` 正本更新は human が直接起動した `updating-docs` に限定する
 - harness は repo-owned files だけを検査対象とし、`node_modules`、`dist`、`coverage`、`target`、生成物を含めない
