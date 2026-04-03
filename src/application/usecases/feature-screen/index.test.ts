@@ -12,14 +12,14 @@ type ExampleFilters = {
 
 function createStore(
   initialData: ExampleState | null = null,
-  initialSelection: string | null = null
+  initialSelection: string | null = null,
 ): FeatureScreenStorePort<ExampleState, string, ExampleFilters> {
   let state = {
     data: initialData,
     error: null as string | null,
     filters: { query: "bootstrap" },
     loading: false,
-    selection: initialSelection
+    selection: initialSelection,
   };
 
   return {
@@ -30,13 +30,13 @@ function createStore(
       state = {
         ...state,
         error: message,
-        loading: false
+        loading: false,
       };
     },
     setFilters(filters) {
       state = {
         ...state,
-        filters
+        filters,
       };
     },
     setLoaded(payload) {
@@ -45,22 +45,22 @@ function createStore(
         data: payload.data,
         error: null,
         loading: false,
-        selection: payload.selection
+        selection: payload.selection,
       };
     },
     setLoading() {
       state = {
         ...state,
         error: null,
-        loading: true
+        loading: true,
       };
     },
     setSelection(selection) {
       state = {
         ...state,
-        selection
+        selection,
       };
-    }
+    },
   };
 }
 
@@ -76,14 +76,15 @@ describe("createFeatureScreenUsecase", () => {
         async load(request) {
           requests.push(request);
           return { items: ["job-1", "job-2"] };
-        }
+        },
       },
       reconcileSelection({ currentSelection, data }) {
-        return currentSelection !== null && data.items.includes(currentSelection)
+        return currentSelection !== null &&
+          data.items.includes(currentSelection)
           ? currentSelection
           : null;
       },
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -94,7 +95,7 @@ describe("createFeatureScreenUsecase", () => {
       error: null,
       filters: { query: "bootstrap" },
       loading: false,
-      selection: "job-1"
+      selection: "job-1",
     });
   });
 
@@ -107,9 +108,9 @@ describe("createFeatureScreenUsecase", () => {
       gateway: {
         async load() {
           throw new Error("gateway failed");
-        }
+        },
       },
-      store
+      store,
     });
 
     await usecase.refresh();
@@ -119,7 +120,7 @@ describe("createFeatureScreenUsecase", () => {
       error: "gateway failed",
       filters: { query: "bootstrap" },
       loading: false,
-      selection: "dictionary-a"
+      selection: "dictionary-a",
     });
   });
 });

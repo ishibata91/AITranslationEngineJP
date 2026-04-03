@@ -1,7 +1,7 @@
 import type {
   FeatureScreenState,
   FeatureScreenStorePort,
-  FeatureScreenUsecase
+  FeatureScreenUsecase,
 } from "@application/ports/input/feature-screen";
 import type { FeatureScreenGateway } from "@application/ports/gateway/feature-screen";
 
@@ -11,28 +11,38 @@ type FeatureScreenSelectionResolver<TData, TSelection> = (args: {
   previousData: TData | null;
 }) => TSelection | null;
 
-type CreateFeatureScreenUsecaseOptions<TRequest, TData, TSelection, TFilters> = {
-  createRequest: (state: FeatureScreenState<TData, TSelection, TFilters>) => TRequest;
-  gateway: FeatureScreenGateway<TRequest, TData>;
-  reconcileSelection?: FeatureScreenSelectionResolver<TData, TSelection>;
-  store: FeatureScreenStorePort<TData, TSelection, TFilters>;
-  toErrorMessage?: (error: unknown) => string;
-};
+type CreateFeatureScreenUsecaseOptions<TRequest, TData, TSelection, TFilters> =
+  {
+    createRequest: (
+      state: FeatureScreenState<TData, TSelection, TFilters>,
+    ) => TRequest;
+    gateway: FeatureScreenGateway<TRequest, TData>;
+    reconcileSelection?: FeatureScreenSelectionResolver<TData, TSelection>;
+    store: FeatureScreenStorePort<TData, TSelection, TFilters>;
+    toErrorMessage?: (error: unknown) => string;
+  };
 
 function defaultToErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : "Unknown screen failure.";
 }
 
-export function createFeatureScreenUsecase<TRequest, TData, TSelection, TFilters>({
+export function createFeatureScreenUsecase<
+  TRequest,
+  TData,
+  TSelection,
+  TFilters,
+>({
   createRequest,
   gateway,
   reconcileSelection,
   store,
-  toErrorMessage = defaultToErrorMessage
-}: CreateFeatureScreenUsecaseOptions<TRequest, TData, TSelection, TFilters>): FeatureScreenUsecase<
+  toErrorMessage = defaultToErrorMessage,
+}: CreateFeatureScreenUsecaseOptions<
+  TRequest,
+  TData,
   TSelection,
   TFilters
-> {
+>): FeatureScreenUsecase<TSelection, TFilters> {
   async function loadCurrent(): Promise<void> {
     const previousState = store.getState();
 
@@ -45,12 +55,12 @@ export function createFeatureScreenUsecase<TRequest, TData, TSelection, TFilters
         reconcileSelection?.({
           currentSelection: nextState.selection,
           data,
-          previousData: previousState.data
+          previousData: previousState.data,
         }) ?? nextState.selection;
 
       store.setLoaded({
         data,
-        selection
+        selection,
       });
     } catch (error) {
       store.setError(toErrorMessage(error));
@@ -76,6 +86,6 @@ export function createFeatureScreenUsecase<TRequest, TData, TSelection, TFilters
       if (options?.reload === true) {
         await loadCurrent();
       }
-    }
+    },
   };
 }

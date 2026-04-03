@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const invokeMock = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: invokeMock
+  invoke: invokeMock,
 }));
 
 describe("createTauriJobListExecutor", () => {
@@ -16,9 +16,9 @@ describe("createTauriJobListExecutor", () => {
       jobs: [
         {
           jobId: "job-101",
-          state: "Ready"
-        }
-      ]
+          state: "Ready",
+        },
+      ],
     });
 
     const { createTauriJobListExecutor } = await import("./index");
@@ -31,9 +31,9 @@ describe("createTauriJobListExecutor", () => {
       jobs: [
         {
           jobId: "job-101",
-          state: "Ready"
-        }
-      ]
+          state: "Ready",
+        },
+      ],
     });
   });
 });

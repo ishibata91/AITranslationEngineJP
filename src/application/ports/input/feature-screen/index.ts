@@ -20,5 +20,8 @@ export interface FeatureScreenUsecase<TSelection, TFilters> {
   refresh(): Promise<void>;
   retry(): Promise<void>;
   select(selection: TSelection | null): void;
-  updateFilters(filters: TFilters, options?: { reload?: boolean }): Promise<void>;
+  updateFilters(
+    filters: TFilters,
+    options?: { reload?: boolean },
+  ): Promise<void>;
 }

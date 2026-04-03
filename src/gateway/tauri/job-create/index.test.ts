@@ -4,7 +4,7 @@ import { createDefaultJobCreateRequest } from "@application/usecases/job-create"
 const invokeMock = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
-  invoke: invokeMock
+  invoke: invokeMock,
 }));
 
 describe("createTauriJobCreateExecutor", () => {
@@ -16,7 +16,7 @@ describe("createTauriJobCreateExecutor", () => {
     const request = createDefaultJobCreateRequest();
     invokeMock.mockResolvedValue({
       jobId: "job-101",
-      state: "Ready"
+      state: "Ready",
     });
 
     const { createTauriJobCreateExecutor } = await import("./index");
@@ -25,11 +25,11 @@ describe("createTauriJobCreateExecutor", () => {
     const result = await executor(request);
 
     expect(invokeMock).toHaveBeenCalledWith("create_job", {
-      request
+      request,
     });
     expect(result).toEqual({
       jobId: "job-101",
-      state: "Ready"
+      state: "Ready",
     });
   });
 });

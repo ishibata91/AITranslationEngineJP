@@ -1,7 +1,7 @@
 import type {
   FeatureScreenState,
   FeatureScreenStorePort,
-  FeatureScreenUsecase
+  FeatureScreenUsecase,
 } from "@application/ports/input/feature-screen";
 
 export type ObservableJobState = "Ready" | "Running" | "Completed";
@@ -15,15 +15,26 @@ export type JobListResult = {
   jobs: JobListItem[];
 };
 
-export type JobListScreenState = FeatureScreenState<JobListResult, string, undefined>;
+export type JobListScreenState = FeatureScreenState<
+  JobListResult,
+  string,
+  undefined
+>;
 
 type JobListSubscriber = (state: JobListScreenState) => void;
 
-export interface JobListScreenStore extends FeatureScreenStorePort<JobListResult, string, undefined> {
+export interface JobListScreenStore extends FeatureScreenStorePort<
+  JobListResult,
+  string,
+  undefined
+> {
   subscribe(run: JobListSubscriber): () => void;
 }
 
-export interface JobListScreenInput extends FeatureScreenUsecase<string, undefined> {
+export interface JobListScreenInput extends FeatureScreenUsecase<
+  string,
+  undefined
+> {
   initialize(): Promise<void>;
   refresh(): Promise<void>;
   retry(): Promise<void>;
@@ -64,7 +75,7 @@ export function createJobListScreenStore(): JobListScreenStore {
     error: null,
     filters: undefined,
     loading: false,
-    selection: null
+    selection: null,
   };
   const subscribers = new Set<JobListSubscriber>();
 
@@ -88,14 +99,14 @@ export function createJobListScreenStore(): JobListScreenStore {
       state = {
         ...state,
         error: message,
-        loading: false
+        loading: false,
       };
       notify();
     },
     setFilters(filters) {
       state = {
         ...state,
-        filters
+        filters,
       };
       notify();
     },
@@ -105,7 +116,7 @@ export function createJobListScreenStore(): JobListScreenStore {
         data: payload.data,
         error: null,
         loading: false,
-        selection: payload.selection
+        selection: payload.selection,
       };
       notify();
     },
@@ -113,24 +124,24 @@ export function createJobListScreenStore(): JobListScreenStore {
       state = {
         ...state,
         error: null,
-        loading: true
+        loading: true,
       };
       notify();
     },
     setSelection(selection) {
       state = {
         ...state,
-        selection
+        selection,
       };
       notify();
-    }
+    },
   };
 }
 
 export function createJobListScreenUsecase({
   executor,
   store,
-  toErrorMessage = defaultToErrorMessage
+  toErrorMessage = defaultToErrorMessage,
 }: CreateJobListScreenUsecaseOptions): JobListScreenInput {
   async function loadCurrent(): Promise<void> {
     store.setLoading();
@@ -140,12 +151,12 @@ export function createJobListScreenUsecase({
       const currentState = store.getState();
       const selection = reconcileSelection({
         currentSelection: currentState.selection,
-        data
+        data,
       });
 
       store.setLoaded({
         data,
-        selection
+        selection,
       });
     } catch (error) {
       store.setError(toErrorMessage(error));
@@ -171,6 +182,6 @@ export function createJobListScreenUsecase({
       if (options?.reload === true) {
         await loadCurrent();
       }
-    }
+    },
   };
 }

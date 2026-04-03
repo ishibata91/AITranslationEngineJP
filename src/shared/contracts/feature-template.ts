@@ -12,4 +12,3 @@ export type FeatureTemplateQuery = {
 export type FeatureTemplateData = {
   items: FeatureTemplateItem[];
 };
-

@@ -50,25 +50,30 @@ function createRenderState(overrides?: Partial<RenderState>): RenderState {
               recordSignature: "WEAP",
               sortKey: "item:0001:name",
               sourceEntityType: "item",
-              sourceText: "Iron Sword"
-            }
-          ]
-        }
-      ]
+              sourceText: "Iron Sword",
+            },
+          ],
+        },
+      ],
     },
     result: null,
-    ...overrides
+    ...overrides,
   };
 }
 
 async function renderJobCreateView(state: RenderState): Promise<string> {
   const require = createRequire(import.meta.url);
-  const source = readFileSync("src/ui/views/job-create/JobCreateView.svelte", "utf8");
+  const source = readFileSync(
+    "src/ui/views/job-create/JobCreateView.svelte",
+    "utf8",
+  );
   const { js } = compile(source, {
     filename: "JobCreateView.svelte",
-    generate: "server"
+    generate: "server",
   });
-  const svelteInternalServerUrl = pathToFileURL(require.resolve("svelte/internal/server")).href;
+  const svelteInternalServerUrl = pathToFileURL(
+    require.resolve("svelte/internal/server"),
+  ).href;
   const svelteUrl = pathToFileURL(require.resolve("svelte")).href;
   const patchedCode = js.code
     .replace("'svelte/internal/server'", `'${svelteInternalServerUrl}'`)
@@ -77,7 +82,7 @@ async function renderJobCreateView(state: RenderState): Promise<string> {
     `data:text/javascript;base64,${Buffer.from(patchedCode, "utf8").toString("base64")}`
   );
   const { body } = render(compiledModule.default, {
-    props: { state }
+    props: { state },
   });
 
   return body;
@@ -104,9 +109,9 @@ describe("job create public roots", () => {
         error: "Job creation failed. Try again.",
         result: {
           jobId: "job-0001",
-          state: "Ready"
-        }
-      })
+          state: "Ready",
+        },
+      }),
     );
 
     expect(body).toContain("Create failed");

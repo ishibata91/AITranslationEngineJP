@@ -95,10 +95,10 @@ def main() -> int:
         package_dir = package_json.parent
         package_manager = resolve_package_manager(package_dir)
         package = load_json(package_json)
-        scripts_to_run = [script for script in ("lint", "test", "build") if has_script(package, script)]
+        scripts_to_run = [script for script in ("format:check", "lint", "test", "build") if has_script(package, script)]
 
         if not scripts_to_run:
-            report_skip(f"SKIP no lint/test/build scripts in {package_json}")
+            report_skip(f"SKIP no format:check/lint/test/build scripts in {package_json}")
             continue
 
         for script_name in scripts_to_run:

@@ -1,5 +1,11 @@
-import type { FeatureTemplateData, FeatureTemplateQuery } from "@shared/contracts/feature-template";
-import { createFeatureScreenStore, type FeatureScreenStore } from "@ui/stores/feature-screen";
+import type {
+  FeatureTemplateData,
+  FeatureTemplateQuery,
+} from "@shared/contracts/feature-template";
+import {
+  createFeatureScreenStore,
+  type FeatureScreenStore,
+} from "@ui/stores/feature-screen";
 
 export type FeatureTemplateScreenStore = FeatureScreenStore<
   FeatureTemplateData,
@@ -8,9 +14,9 @@ export type FeatureTemplateScreenStore = FeatureScreenStore<
 >;
 
 export function createFeatureTemplateScreenStore(
-  filters: FeatureTemplateQuery
+  filters: FeatureTemplateQuery,
 ): FeatureTemplateScreenStore {
   return createFeatureScreenStore({
-    filters
+    filters,
   });
 }

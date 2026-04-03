@@ -21,25 +21,27 @@ type JobListRenderState = {
   selection: string | null;
 };
 
-function createJobListState(overrides?: Partial<JobListRenderState>): JobListRenderState {
+function createJobListState(
+  overrides?: Partial<JobListRenderState>,
+): JobListRenderState {
   return {
     data: {
       jobs: [
         {
           jobId: "job-101",
-          state: "Ready"
+          state: "Ready",
         },
         {
           jobId: "job-202",
-          state: "Running"
-        }
-      ]
+          state: "Running",
+        },
+      ],
     },
     error: null,
     filters: undefined,
     loading: false,
     selection: "job-202",
-    ...overrides
+    ...overrides,
   };
 }
 
@@ -49,7 +51,7 @@ function createReadableStore<TState>(state: TState) {
       run(state);
 
       return () => undefined;
-    }
+    },
   };
 }
 
@@ -58,10 +60,10 @@ async function renderJobListView(state: JobListRenderState): Promise<string> {
   const compiled = await compileSvelteModule({
     filename: "JobListView.svelte",
     require,
-    source: readFileSync("src/ui/views/job-list/JobListView.svelte", "utf8")
+    source: readFileSync("src/ui/views/job-list/JobListView.svelte", "utf8"),
   });
   const { body } = render(compiled.module.default, {
-    props: { state }
+    props: { state },
   });
 
   return body;
@@ -76,9 +78,11 @@ async function compileSvelteModule(args: {
   const { compile } = await import("svelte/compiler");
   const { js } = compile(args.source, {
     filename: args.filename,
-    generate: "server"
+    generate: "server",
   });
-  const svelteInternalServerUrl = pathToFileURL(args.require.resolve("svelte/internal/server")).href;
+  const svelteInternalServerUrl = pathToFileURL(
+    args.require.resolve("svelte/internal/server"),
+  ).href;
   const svelteUrl = pathToFileURL(args.require.resolve("svelte")).href;
   let patchedCode = js.code
     .replace("'svelte/internal/server'", `'${svelteInternalServerUrl}'`)
@@ -92,7 +96,7 @@ async function compileSvelteModule(args: {
 
   return {
     module: await import(url),
-    url
+    url,
   };
 }
 
@@ -101,32 +105,35 @@ async function renderAppShell(): Promise<string> {
   const compiledJobListView = await compileSvelteModule({
     filename: "JobListView.svelte",
     require,
-    source: readFileSync("src/ui/views/job-list/JobListView.svelte", "utf8")
+    source: readFileSync("src/ui/views/job-list/JobListView.svelte", "utf8"),
   });
   const compiledJobListViewModuleUrl = `data:text/javascript;base64,${Buffer.from(
     `export { default as JobListView } from "${compiledJobListView.url}";`,
-    "utf8"
+    "utf8",
   ).toString("base64")}`;
 
   const compiledJobListScreen = await compileSvelteModule({
     filename: "JobListScreen.svelte",
     replacements: {
-      '"@ui/views/job-list"': `"${compiledJobListViewModuleUrl}"`
+      '"@ui/views/job-list"': `"${compiledJobListViewModuleUrl}"`,
     },
     require,
-    source: readFileSync("src/ui/screens/job-list/JobListScreen.svelte", "utf8")
+    source: readFileSync(
+      "src/ui/screens/job-list/JobListScreen.svelte",
+      "utf8",
+    ),
   });
 
   const compiledBootstrapStub = await compileSvelteModule({
     filename: "BootstrapStatusScreen.svelte",
     require,
-    source: "<h1>Bootstrap Status</h1>"
+    source: "<h1>Bootstrap Status</h1>",
   });
 
   const compiledJobCreateStub = await compileSvelteModule({
     filename: "JobCreateScreen.svelte",
     require,
-    source: "<h1>Job Create</h1>"
+    source: "<h1>Job Create</h1>",
   });
 
   const compiledAppShell = await compileSvelteModule({
@@ -134,10 +141,10 @@ async function renderAppShell(): Promise<string> {
     replacements: {
       '"@ui/screens/bootstrap-status/BootstrapStatusScreen.svelte"': `"${compiledBootstrapStub.url}"`,
       '"@ui/screens/job-create/JobCreateScreen.svelte"': `"${compiledJobCreateStub.url}"`,
-      '"@ui/screens/job-list/JobListScreen.svelte"': `"${compiledJobListScreen.url}"`
+      '"@ui/screens/job-list/JobListScreen.svelte"': `"${compiledJobListScreen.url}"`,
     },
     require,
-    source: readFileSync("src/ui/app-shell/AppShell.svelte", "utf8")
+    source: readFileSync("src/ui/app-shell/AppShell.svelte", "utf8"),
   });
   const { body } = render(compiledAppShell.module.default, {
     props: {
@@ -146,28 +153,28 @@ async function renderAppShell(): Promise<string> {
         error: null,
         filters: undefined,
         loading: false,
-        selection: null
+        selection: null,
       }),
       bootstrapStatusUsecase: {
         initialize: async () => undefined,
         refresh: async () => undefined,
         retry: async () => undefined,
-        select: () => undefined
+        select: () => undefined,
       },
       jobCreateStore: createReadableStore({
         error: null,
         isSubmitting: false,
         request: {
-          sourceGroups: []
+          sourceGroups: [],
         },
-        result: null
+        result: null,
       }),
       jobCreateUsecase: {
         initialize: async () => undefined,
         resetResult: () => undefined,
         submit: async () => undefined,
         updateSourceGroupField: () => undefined,
-        updateTranslationUnitField: () => undefined
+        updateTranslationUnitField: () => undefined,
       },
       jobListStore: createReadableStore(createJobListState()),
       jobListUsecase: {
@@ -175,9 +182,9 @@ async function renderAppShell(): Promise<string> {
         refresh: async () => undefined,
         retry: async () => undefined,
         select: () => undefined,
-        updateFilters: async () => undefined
-      }
-    }
+        updateFilters: async () => undefined,
+      },
+    },
   });
 
   return body;
@@ -194,8 +201,8 @@ describe("job list public roots", () => {
       createJobListState({
         data: null,
         loading: true,
-        selection: null
-      })
+        selection: null,
+      }),
     );
 
     expect(body).toContain("Job List");
@@ -208,10 +215,10 @@ describe("job list public roots", () => {
     const body = await renderJobListView(
       createJobListState({
         data: {
-          jobs: []
+          jobs: [],
         },
-        selection: null
-      })
+        selection: null,
+      }),
     );
 
     expect(body).toContain("No jobs available.");
@@ -234,8 +241,8 @@ describe("job list public roots", () => {
       createJobListState({
         data: null,
         error: "Job list failed to load. Try again.",
-        selection: null
-      })
+        selection: null,
+      }),
     );
 
     expect(body).toContain("Job list failed to load. Try again.");

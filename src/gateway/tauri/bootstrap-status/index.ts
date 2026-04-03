@@ -3,5 +3,7 @@ import { createTauriFeatureScreenGateway } from "@gateway/tauri/feature-screen";
 import type { BootstrapStatus } from "@shared/contracts/bootstrap-status";
 
 export function createTauriBootstrapStatusGateway(): BootstrapStatusGateway {
-  return createTauriFeatureScreenGateway<undefined, BootstrapStatus>("get_bootstrap_status");
+  return createTauriFeatureScreenGateway<undefined, BootstrapStatus>(
+    "get_bootstrap_status",
+  );
 }

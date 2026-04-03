@@ -19,7 +19,7 @@ function createDeferred<T>() {
 
   return {
     promise,
-    resolve
+    resolve,
   };
 }
 
@@ -30,7 +30,7 @@ describe("createJobListScreenUsecase", () => {
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     const initializePromise = usecase.initialize();
@@ -40,20 +40,20 @@ describe("createJobListScreenUsecase", () => {
       error: null,
       filters: undefined,
       loading: true,
-      selection: null
+      selection: null,
     });
 
     deferred.resolve({
       jobs: [
         {
           jobId: "job-101",
-          state: "Ready"
+          state: "Ready",
         },
         {
           jobId: "job-202",
-          state: "Running"
-        }
-      ]
+          state: "Running",
+        },
+      ],
     });
 
     await initializePromise;
@@ -64,18 +64,18 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
+            state: "Ready",
           },
           {
             jobId: "job-202",
-            state: "Running"
-          }
-        ]
+            state: "Running",
+          },
+        ],
       },
       error: null,
       filters: undefined,
       loading: false,
-      selection: "job-101"
+      selection: "job-101",
     });
   });
 
@@ -86,30 +86,30 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
+            state: "Ready",
           },
           {
             jobId: "job-202",
-            state: "Running"
-          }
-        ]
+            state: "Running",
+          },
+        ],
       })
       .mockResolvedValueOnce({
         jobs: [
           {
             jobId: "job-202",
-            state: "Completed"
+            state: "Completed",
           },
           {
             jobId: "job-303",
-            state: "Ready"
-          }
-        ]
+            state: "Ready",
+          },
+        ],
       });
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -121,18 +121,18 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-202",
-            state: "Completed"
+            state: "Completed",
           },
           {
             jobId: "job-303",
-            state: "Ready"
-          }
-        ]
+            state: "Ready",
+          },
+        ],
       },
       error: null,
       filters: undefined,
       loading: false,
-      selection: "job-202"
+      selection: "job-202",
     });
   });
 
@@ -143,30 +143,30 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
+            state: "Ready",
           },
           {
             jobId: "job-202",
-            state: "Running"
-          }
-        ]
+            state: "Running",
+          },
+        ],
       })
       .mockResolvedValueOnce({
         jobs: [
           {
             jobId: "job-404",
-            state: "Running"
+            state: "Running",
           },
           {
             jobId: "job-505",
-            state: "Completed"
-          }
-        ]
+            state: "Completed",
+          },
+        ],
       });
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -178,18 +178,18 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-404",
-            state: "Running"
+            state: "Running",
           },
           {
             jobId: "job-505",
-            state: "Completed"
-          }
-        ]
+            state: "Completed",
+          },
+        ],
       },
       error: null,
       filters: undefined,
       loading: false,
-      selection: "job-404"
+      selection: "job-404",
     });
   });
 
@@ -200,17 +200,17 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
-          }
-        ]
+            state: "Ready",
+          },
+        ],
       })
       .mockResolvedValueOnce({
-        jobs: []
+        jobs: [],
       });
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -218,12 +218,12 @@ describe("createJobListScreenUsecase", () => {
 
     expect(store.getState()).toEqual({
       data: {
-        jobs: []
+        jobs: [],
       },
       error: null,
       filters: undefined,
       loading: false,
-      selection: null
+      selection: null,
     });
   });
 
@@ -232,18 +232,18 @@ describe("createJobListScreenUsecase", () => {
       jobs: [
         {
           jobId: "job-101",
-          state: "Ready"
+          state: "Ready",
         },
         {
           jobId: "job-202",
-          state: "Running"
-        }
-      ]
+          state: "Running",
+        },
+      ],
     });
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -255,37 +255,39 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
+            state: "Ready",
           },
           {
             jobId: "job-202",
-            state: "Running"
-          }
-        ]
+            state: "Running",
+          },
+        ],
       },
       error: null,
       filters: undefined,
       loading: false,
-      selection: "job-202"
+      selection: "job-202",
     });
   });
 
   it("Given a user-facing load failure When initialize and retry run Then the generic error is shown and retry can recover", async () => {
     const executor = vi
       .fn<() => Promise<JobListResult>>()
-      .mockRejectedValueOnce(new Error("transport timeout at F:/imports/secret.json"))
+      .mockRejectedValueOnce(
+        new Error("transport timeout at F:/imports/secret.json"),
+      )
       .mockResolvedValueOnce({
         jobs: [
           {
             jobId: "job-909",
-            state: "Completed"
-          }
-        ]
+            state: "Completed",
+          },
+        ],
       });
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -295,7 +297,7 @@ describe("createJobListScreenUsecase", () => {
       error: "Job list failed to load. Try again.",
       filters: undefined,
       loading: false,
-      selection: null
+      selection: null,
     });
 
     await usecase.retry();
@@ -306,14 +308,14 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-909",
-            state: "Completed"
-          }
-        ]
+            state: "Completed",
+          },
+        ],
       },
       error: null,
       filters: undefined,
       loading: false,
-      selection: "job-909"
+      selection: "job-909",
     });
   });
 
@@ -324,19 +326,21 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
+            state: "Ready",
           },
           {
             jobId: "job-202",
-            state: "Running"
-          }
-        ]
+            state: "Running",
+          },
+        ],
       })
-      .mockRejectedValueOnce(new Error("transport timeout at F:/imports/secret.json"));
+      .mockRejectedValueOnce(
+        new Error("transport timeout at F:/imports/secret.json"),
+      );
     const store = createJobListScreenStore();
     const usecase = createJobListScreenUsecase({
       executor,
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -348,18 +352,18 @@ describe("createJobListScreenUsecase", () => {
         jobs: [
           {
             jobId: "job-101",
-            state: "Ready"
+            state: "Ready",
           },
           {
             jobId: "job-202",
-            state: "Running"
-          }
-        ]
+            state: "Running",
+          },
+        ],
       },
       error: "Job list failed to load. Try again.",
       filters: undefined,
       loading: false,
-      selection: "job-202"
+      selection: "job-202",
     });
   });
 });

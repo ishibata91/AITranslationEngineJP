@@ -1,19 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { createFeatureTemplateScreenUsecase } from "./index";
 import type { FeatureScreenStorePort } from "@application/ports/input/feature-screen";
-import type { FeatureTemplateData, FeatureTemplateQuery } from "@shared/contracts/feature-template";
-
-function createStore(initialFilters: FeatureTemplateQuery): FeatureScreenStorePort<
+import type {
   FeatureTemplateData,
-  string,
-  FeatureTemplateQuery
-> {
+  FeatureTemplateQuery,
+} from "@shared/contracts/feature-template";
+
+function createStore(
+  initialFilters: FeatureTemplateQuery,
+): FeatureScreenStorePort<FeatureTemplateData, string, FeatureTemplateQuery> {
   let state = {
     data: null as FeatureTemplateData | null,
     error: null as string | null,
     filters: initialFilters,
     loading: false,
-    selection: null as string | null
+    selection: null as string | null,
   };
 
   return {
@@ -24,13 +25,13 @@ function createStore(initialFilters: FeatureTemplateQuery): FeatureScreenStorePo
       state = {
         ...state,
         error: message,
-        loading: false
+        loading: false,
       };
     },
     setFilters(filters) {
       state = {
         ...state,
-        filters
+        filters,
       };
     },
     setLoaded(payload) {
@@ -39,29 +40,29 @@ function createStore(initialFilters: FeatureTemplateQuery): FeatureScreenStorePo
         data: payload.data,
         error: null,
         loading: false,
-        selection: payload.selection
+        selection: payload.selection,
       };
     },
     setLoading() {
       state = {
         ...state,
         error: null,
-        loading: true
+        loading: true,
       };
     },
     setSelection(selection) {
       state = {
         ...state,
-        selection
+        selection,
       };
-    }
+    },
   };
 }
 
 describe("createFeatureTemplateScreenUsecase", () => {
   it("Given filters and valid selection When initialize runs Then request and selection are preserved", async () => {
     const store = createStore({
-      query: "job"
+      query: "job",
     });
 
     store.setSelection("job-2");
@@ -78,19 +79,19 @@ describe("createFeatureTemplateScreenUsecase", () => {
                 detail: "queued",
                 id: "job-1",
                 status: "queued",
-                title: "Import job"
+                title: "Import job",
               },
               {
                 detail: "running",
                 id: "job-2",
                 status: "running",
-                title: "Translate job"
-              }
-            ]
+                title: "Translate job",
+              },
+            ],
           };
-        }
+        },
       },
-      store
+      store,
     });
 
     await usecase.initialize();
@@ -103,28 +104,28 @@ describe("createFeatureTemplateScreenUsecase", () => {
             detail: "queued",
             id: "job-1",
             status: "queued",
-            title: "Import job"
+            title: "Import job",
           },
           {
             detail: "running",
             id: "job-2",
             status: "running",
-            title: "Translate job"
-          }
-        ]
+            title: "Translate job",
+          },
+        ],
       },
       error: null,
       filters: {
-        query: "job"
+        query: "job",
       },
       loading: false,
-      selection: "job-2"
+      selection: "job-2",
     });
   });
 
   it("Given loaded data When refresh fails Then error updates without clearing data or selection", async () => {
     const store = createStore({
-      query: "persona"
+      query: "persona",
     });
 
     store.setLoaded({
@@ -134,20 +135,20 @@ describe("createFeatureTemplateScreenUsecase", () => {
             detail: "ready",
             id: "persona-a",
             status: "ready",
-            title: "Persona observation"
-          }
-        ]
+            title: "Persona observation",
+          },
+        ],
       },
-      selection: "persona-a"
+      selection: "persona-a",
     });
 
     const usecase = createFeatureTemplateScreenUsecase({
       gateway: {
         async load() {
           throw new Error("template gateway failed");
-        }
+        },
       },
-      store
+      store,
     });
 
     await usecase.refresh();
@@ -159,16 +160,16 @@ describe("createFeatureTemplateScreenUsecase", () => {
             detail: "ready",
             id: "persona-a",
             status: "ready",
-            title: "Persona observation"
-          }
-        ]
+            title: "Persona observation",
+          },
+        ],
       },
       error: "template gateway failed",
       filters: {
-        query: "persona"
+        query: "persona",
       },
       loading: false,
-      selection: "persona-a"
+      selection: "persona-a",
     });
   });
 });

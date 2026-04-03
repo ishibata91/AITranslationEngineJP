@@ -8,13 +8,13 @@ describe("createFeatureScreenStore", () => {
       string,
       { query: string }
     >({
-      filters: { query: "" }
+      filters: { query: "" },
     });
 
     store.setLoading();
     store.setLoaded({
       data: { items: ["job-1", "job-2"] },
-      selection: "job-2"
+      selection: "job-2",
     });
     store.setError("refresh failed");
 
@@ -23,7 +23,7 @@ describe("createFeatureScreenStore", () => {
       error: "refresh failed",
       filters: { query: "" },
       loading: false,
-      selection: "job-2"
+      selection: "job-2",
     });
   });
 
@@ -33,12 +33,12 @@ describe("createFeatureScreenStore", () => {
       string,
       { query: string }
     >({
-      filters: { query: "old" }
+      filters: { query: "old" },
     });
 
     store.setLoaded({
       data: { items: ["persona-a"] },
-      selection: null
+      selection: null,
     });
     store.setFilters({ query: "new" });
     store.setSelection("persona-a");
@@ -48,7 +48,7 @@ describe("createFeatureScreenStore", () => {
       error: null,
       filters: { query: "new" },
       loading: false,
-      selection: "persona-a"
+      selection: "persona-a",
     });
   });
 });

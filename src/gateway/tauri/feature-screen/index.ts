@@ -1,9 +1,10 @@
 import { invoke } from "@tauri-apps/api/core";
 import type { FeatureScreenGateway } from "@application/ports/gateway/feature-screen";
 
-export function createTauriFeatureScreenGateway<TRequest extends Record<string, unknown> | undefined, TData>(
-  commandName: string
-): FeatureScreenGateway<TRequest, TData> {
+export function createTauriFeatureScreenGateway<
+  TRequest extends Record<string, unknown> | undefined,
+  TData,
+>(commandName: string): FeatureScreenGateway<TRequest, TData> {
   return {
     async load(request: TRequest): Promise<TData> {
       if (request === undefined) {
@@ -11,6 +12,6 @@ export function createTauriFeatureScreenGateway<TRequest extends Record<string, 
       }
 
       return invoke<TData>(commandName, request);
-    }
+    },
   };
 }

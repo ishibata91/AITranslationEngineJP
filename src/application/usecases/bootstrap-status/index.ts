@@ -1,7 +1,7 @@
 import type { BootstrapStatusGateway } from "@application/ports/gateway/bootstrap-status";
 import type {
   BootstrapStatusField,
-  BootstrapStatusScreenInput
+  BootstrapStatusScreenInput,
 } from "@application/ports/input/bootstrap-status";
 import type { FeatureScreenStorePort } from "@application/ports/input/feature-screen";
 import { createFeatureScreenUsecase } from "@application/usecases/feature-screen";
@@ -20,12 +20,12 @@ type CreateBootstrapStatusScreenUsecaseOptions = {
 
 export function createBootstrapStatusScreenUsecase({
   gateway,
-  store
+  store,
 }: CreateBootstrapStatusScreenUsecaseOptions): BootstrapStatusScreenInput {
   return createFeatureScreenUsecase({
     createRequest: () => undefined,
     gateway,
     reconcileSelection: ({ currentSelection }) => currentSelection,
-    store
+    store,
   });
 }

@@ -1,5 +1,11 @@
-import type { FeatureScreenState, FeatureScreenUsecase } from "@application/ports/input/feature-screen";
-import type { FeatureTemplateData, FeatureTemplateQuery } from "@shared/contracts/feature-template";
+import type {
+  FeatureScreenState,
+  FeatureScreenUsecase,
+} from "@application/ports/input/feature-screen";
+import type {
+  FeatureTemplateData,
+  FeatureTemplateQuery,
+} from "@shared/contracts/feature-template";
 
 export type FeatureTemplateScreenState = FeatureScreenState<
   FeatureTemplateData,

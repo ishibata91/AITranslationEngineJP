@@ -50,13 +50,13 @@ export interface JobCreateScreenInput {
   updateSourceGroupField(
     groupIndex: number,
     field: JobCreateSourceGroupField,
-    value: string
+    value: string,
   ): void;
   updateTranslationUnitField(
     groupIndex: number,
     unitIndex: number,
     field: JobCreateTranslationUnitField,
-    value: string
+    value: string,
   ): void;
 }
 
@@ -75,7 +75,7 @@ function createInitialState(request: JobCreateRequest): JobCreateScreenState {
     error: null,
     isSubmitting: false,
     request: cloneRequest(request),
-    result: null
+    result: null,
   };
 }
 
@@ -94,16 +94,16 @@ export function createDefaultJobCreateRequest(): JobCreateRequest {
             fieldName: "name",
             extractionKey: "item:00012345:name",
             sourceText: "Iron Sword",
-            sortKey: "item:00012345:name"
-          }
-        ]
-      }
-    ]
+            sortKey: "item:00012345:name",
+          },
+        ],
+      },
+    ],
   };
 }
 
 export function createJobCreateScreenStore(
-  request = createDefaultJobCreateRequest()
+  request = createDefaultJobCreateRequest(),
 ): JobCreateScreenStore {
   let state = createInitialState(request);
   const subscribers = new Set<JobCreateSubscriber>();
@@ -127,14 +127,14 @@ export function createJobCreateScreenStore(
       return () => {
         subscribers.delete(run);
       };
-    }
+    },
   };
 }
 
 export function createJobCreateScreenUsecase({
   executor,
   store,
-  toErrorMessage = defaultToErrorMessage
+  toErrorMessage = defaultToErrorMessage,
 }: CreateJobCreateScreenUsecaseOptions): JobCreateScreenInput {
   function updateRequest(mutator: (request: JobCreateRequest) => void): void {
     const currentState = store.getState();
@@ -146,7 +146,7 @@ export function createJobCreateScreenUsecase({
       ...currentState,
       error: null,
       request: nextRequest,
-      result: null
+      result: null,
     });
   }
 
@@ -157,7 +157,7 @@ export function createJobCreateScreenUsecase({
 
       store.replaceState({
         ...currentState,
-        result: null
+        result: null,
       });
     },
     async submit() {
@@ -174,7 +174,7 @@ export function createJobCreateScreenUsecase({
         store.replaceState({
           ...currentState,
           error: validationError,
-          result: null
+          result: null,
         });
 
         return;
@@ -184,7 +184,7 @@ export function createJobCreateScreenUsecase({
         ...currentState,
         error: null,
         isSubmitting: true,
-        result: null
+        result: null,
       });
 
       try {
@@ -195,7 +195,7 @@ export function createJobCreateScreenUsecase({
           ...nextState,
           error: null,
           isSubmitting: false,
-          result
+          result,
         });
       } catch (error) {
         const nextState = store.getState();
@@ -204,7 +204,7 @@ export function createJobCreateScreenUsecase({
           ...nextState,
           error: toErrorMessage(error),
           isSubmitting: false,
-          result: null
+          result: null,
         });
       }
     },
@@ -215,9 +215,10 @@ export function createJobCreateScreenUsecase({
     },
     updateTranslationUnitField(groupIndex, unitIndex, field, value) {
       updateRequest((request) => {
-        request.sourceGroups[groupIndex].translationUnits[unitIndex][field] = value;
+        request.sourceGroups[groupIndex].translationUnits[unitIndex][field] =
+          value;
       });
-    }
+    },
   };
 }
 
@@ -234,14 +235,15 @@ function cloneRequest(request: JobCreateRequest): JobCreateRequest {
         recordSignature: translationUnit.recordSignature,
         sortKey: translationUnit.sortKey,
         sourceEntityType: translationUnit.sourceEntityType,
-        sourceText: translationUnit.sourceText
-      }))
-    }))
+        sourceText: translationUnit.sourceText,
+      })),
+    })),
   };
 }
 
 function validateRequest(request: JobCreateRequest): string | null {
-  const blankFieldMessage = "Fill in all required fields before creating a job.";
+  const blankFieldMessage =
+    "Fill in all required fields before creating a job.";
 
   if (request.sourceGroups.length === 0) {
     return blankFieldMessage;
@@ -256,7 +258,9 @@ function validateRequest(request: JobCreateRequest): string | null {
   return null;
 }
 
-function isSourceGroupInvalid(sourceGroup: JobCreateSourceGroupRequest): boolean {
+function isSourceGroupInvalid(
+  sourceGroup: JobCreateSourceGroupRequest,
+): boolean {
   if (sourceGroup.sourceJsonPath.trim().length === 0) {
     return true;
   }
@@ -270,11 +274,13 @@ function isSourceGroupInvalid(sourceGroup: JobCreateSourceGroupRequest): boolean
   }
 
   return sourceGroup.translationUnits.some((translationUnit) =>
-    hasBlankRequiredTranslationField(translationUnit)
+    hasBlankRequiredTranslationField(translationUnit),
   );
 }
 
-function hasBlankRequiredTranslationField(translationUnit: JobCreateTranslationUnitRequest): boolean {
+function hasBlankRequiredTranslationField(
+  translationUnit: JobCreateTranslationUnitRequest,
+): boolean {
   const requiredFields: Record<JobCreateTranslationUnitField, string> = {
     editorId: translationUnit.editorId,
     extractionKey: translationUnit.extractionKey,
@@ -283,8 +289,10 @@ function hasBlankRequiredTranslationField(translationUnit: JobCreateTranslationU
     recordSignature: translationUnit.recordSignature,
     sortKey: translationUnit.sortKey,
     sourceEntityType: translationUnit.sourceEntityType,
-    sourceText: translationUnit.sourceText
+    sourceText: translationUnit.sourceText,
   };
 
-  return Object.values(requiredFields).some((fieldValue) => fieldValue.trim().length === 0);
+  return Object.values(requiredFields).some(
+    (fieldValue) => fieldValue.trim().length === 0,
+  );
 }

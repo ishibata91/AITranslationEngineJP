@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import {
   createDefaultJobCreateRequest,
   createJobCreateScreenStore,
-  createJobCreateScreenUsecase
+  createJobCreateScreenUsecase,
 } from "./index";
 
 function createDeferred<T>() {
@@ -14,7 +14,7 @@ function createDeferred<T>() {
 
   return {
     promise,
-    resolve
+    resolve,
   };
 }
 
@@ -29,7 +29,7 @@ describe("createJobCreateScreenUsecase", () => {
     const executor = vi.fn(() => deferred.promise);
     const usecase = createJobCreateScreenUsecase({
       executor,
-      store
+      store,
     });
 
     const submitPromise = usecase.submit();
@@ -38,12 +38,12 @@ describe("createJobCreateScreenUsecase", () => {
       error: null,
       isSubmitting: true,
       request,
-      result: null
+      result: null,
     });
 
     deferred.resolve({
       jobId: "job-77",
-      state: "Ready"
+      state: "Ready",
     });
 
     await submitPromise;
@@ -55,8 +55,8 @@ describe("createJobCreateScreenUsecase", () => {
       request,
       result: {
         jobId: "job-77",
-        state: "Ready"
-      }
+        state: "Ready",
+      },
     });
   });
 
@@ -65,14 +65,16 @@ describe("createJobCreateScreenUsecase", () => {
     const executor = vi.fn();
     const usecase = createJobCreateScreenUsecase({
       executor,
-      store
+      store,
     });
 
     usecase.updateSourceGroupField(0, "sourceJsonPath", "");
     await usecase.submit();
 
     expect(executor).not.toHaveBeenCalled();
-    expect(store.getState().error).toBe("Fill in all required fields before creating a job.");
+    expect(store.getState().error).toBe(
+      "Fill in all required fields before creating a job.",
+    );
     expect(store.getState().result).toBeNull();
   });
 
@@ -83,7 +85,7 @@ describe("createJobCreateScreenUsecase", () => {
       executor: async () => {
         throw new Error("backend create failed");
       },
-      store
+      store,
     });
 
     await usecase.submit();
@@ -92,7 +94,7 @@ describe("createJobCreateScreenUsecase", () => {
       error: "Job creation failed. Try again.",
       isSubmitting: false,
       request,
-      result: null
+      result: null,
     });
   });
 
@@ -105,7 +107,7 @@ describe("createJobCreateScreenUsecase", () => {
     const store = createJobCreateScreenStore(createDefaultJobCreateRequest());
     const usecase = createJobCreateScreenUsecase({
       executor,
-      store
+      store,
     });
 
     const firstSubmit = usecase.submit();
@@ -115,7 +117,7 @@ describe("createJobCreateScreenUsecase", () => {
 
     deferred.resolve({
       jobId: "job-88",
-      state: "Ready"
+      state: "Ready",
     });
 
     await Promise.all([firstSubmit, secondSubmit]);

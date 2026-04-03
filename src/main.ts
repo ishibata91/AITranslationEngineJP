@@ -2,10 +2,13 @@ import { mount } from "svelte";
 import App from "./App.svelte";
 import "./app.css";
 import { createBootstrapStatusScreenUsecase } from "@application/usecases/bootstrap-status";
-import { createJobListScreenStore, createJobListScreenUsecase } from "@application/usecases/job-list";
+import {
+  createJobListScreenStore,
+  createJobListScreenUsecase,
+} from "@application/usecases/job-list";
 import {
   createJobCreateScreenStore,
-  createJobCreateScreenUsecase
+  createJobCreateScreenUsecase,
 } from "@application/usecases/job-create";
 import { createTauriBootstrapStatusGateway } from "@gateway/tauri/bootstrap-status";
 import { createTauriJobCreateExecutor } from "@gateway/tauri/job-create";
@@ -15,17 +18,17 @@ import { createBootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
 const bootstrapStatusStore = createBootstrapStatusScreenStore();
 const bootstrapStatusUsecase = createBootstrapStatusScreenUsecase({
   gateway: createTauriBootstrapStatusGateway(),
-  store: bootstrapStatusStore
+  store: bootstrapStatusStore,
 });
 const jobCreateStore = createJobCreateScreenStore();
 const jobCreateUsecase = createJobCreateScreenUsecase({
   executor: createTauriJobCreateExecutor(),
-  store: jobCreateStore
+  store: jobCreateStore,
 });
 const jobListStore = createJobListScreenStore();
 const jobListUsecase = createJobListScreenUsecase({
   executor: createTauriJobListExecutor(),
-  store: jobListStore
+  store: jobListStore,
 });
 
 mount(App, {
@@ -35,7 +38,7 @@ mount(App, {
     jobCreateStore,
     jobCreateUsecase,
     jobListStore,
-    jobListUsecase
+    jobListUsecase,
   },
-  target: document.getElementById("app")!
+  target: document.getElementById("app")!,
 });
