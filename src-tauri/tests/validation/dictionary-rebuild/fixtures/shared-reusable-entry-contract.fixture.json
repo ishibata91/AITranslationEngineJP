@@ -1,0 +1,25 @@
+{
+  "dictionaryImportResult": {
+    "dictionaryName": "Skyrim Base Terms",
+    "sourceType": "xtranslator-sst",
+    "entries": [
+      {
+        "sourceText": "Dragonborn",
+        "destText": "ドラゴンボーン"
+      },
+      {
+        "sourceText": "Dragonborn",
+        "destText": "竜の血脈"
+      },
+      {
+        "sourceText": "Whiterun",
+        "destText": "ホワイトラン"
+      }
+    ]
+  },
+  "lookupSourceTexts": [
+    "Dragonborn",
+    "Whiterun",
+    "Unseen phrase"
+  ]
+}

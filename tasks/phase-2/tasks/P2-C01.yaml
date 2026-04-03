@@ -1,7 +1,7 @@
 id: P2-C01
 title: Define xTranslator import contract
 type: contract
-status: planned
+status: done
 goal: Fix the import boundary for dictionary input before implementation starts.
 owned_scope:
 - src-tauri/src/application/dto/dictionary_import/

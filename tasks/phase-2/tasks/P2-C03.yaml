@@ -1,7 +1,7 @@
 id: P2-C03
 title: Define master-persona and job-persona storage split
 type: contract
-status: planned
+status: done
 goal: Fix the storage boundary that separates master persona data from job-local persona
   data.
 owned_scope:

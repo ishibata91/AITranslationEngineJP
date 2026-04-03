@@ -1,7 +1,7 @@
 id: P2-C02
 title: Define dictionary lookup and reuse port
 type: contract
-status: planned
+status: done
 goal: Fix the lookup boundary consumed by later translation workflow tasks.
 owned_scope:
 - src-tauri/src/application/ports/dictionary_lookup/

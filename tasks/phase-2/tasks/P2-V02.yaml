@@ -1,7 +1,7 @@
 id: P2-V02
 title: Fix persona rebuild validation anchor
 type: verification
-status: planned
+status: done
 goal: Create the first rebuild fixture for persona foundation data.
 owned_scope:
 - src-tauri/tests/validation/persona-rebuild/
