@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "directing-implementation",
   "to_skill": "distilling-implementation",
-  "purpose": "Implement lane の初期材料を整理し、facts / constraints / gaps を抽出させる。",
+  "purpose": "Implement lane の入口情報から最小限の repo 文脈を探索させ、facts / constraints / gaps を抽出させる。",
   "required": [
     {
       "description": "実装要求の要約と到達したい変更点。",
@@ -16,13 +16,13 @@
       "type": "path"
     },
     {
-      "description": "先に読むべき docs / spec / architecture への参照。",
-      "field": "relevant_docs",
+      "description": "探索の起点として渡す docs / spec / architecture への参照。",
+      "field": "seed_docs",
       "type": "string[]"
     },
     {
-      "description": "確認対象の code / test / module path。",
-      "field": "related_code",
+      "description": "探索の起点として渡す code / test / module path。",
+      "field": "seed_code",
       "type": "string[]"
     }
   ],
@@ -46,6 +46,7 @@
     "facts が列挙されている",
     "constraints が明示されている",
     "gaps が推測と分離されている",
+    "required_reading が入口 path の単純再掲ではなく次工程の探索コストを下げている",
     "closeout_notes または required_reading が返る"
   ]
 }

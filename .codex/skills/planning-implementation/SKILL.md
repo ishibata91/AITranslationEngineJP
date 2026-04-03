@@ -1,6 +1,6 @@
 ---
 name: planning-implementation
-description: "`distilling-implementation` と active exec-plan をもとに、ordered scope と validation を短い implementation brief に変換する。"
+description: "direction から渡された context summary と active exec-plan をもとに、ordered scope と validation を短い implementation brief に変換する。"
 ---
 
 # Planning Implementation

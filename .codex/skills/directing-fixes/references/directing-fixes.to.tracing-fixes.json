@@ -3,10 +3,10 @@
   "direction": "directing-to-skill",
   "from_skill": "directing-fixes",
   "to_skill": "tracing-fixes",
-  "purpose": "bugfix trace 計画を最小化するための前提を渡す。",
+  "purpose": "direction が整えた前提から bugfix trace 計画を最小化するための情報を渡す。",
   "required": [
     {
-      "description": "distill で確定した事実。",
+      "description": "direction が整えた既知事実。",
       "field": "known_facts",
       "type": "string[]"
     },

@@ -51,12 +51,12 @@
 
 ### Impl lane
 
-`User -> implementation lane owner (`directing-implementation`) -> task-local design skill (`designing-implementation`) -> implementation distill skill (`distilling-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Docker MCP Sonar open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + implementation lane owner (`directing-implementation`) close`
+`User -> implementation lane owner (`directing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Docker MCP Sonar open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + implementation lane owner (`directing-implementation`) close`
 
-- implementation lane owner (`directing-implementation`) は実装要求を受け、active plan を作成し、task-local design が必要なら task-local design skill (`designing-implementation`) へ `UI` / `Scenario` / `Logic` を埋めさせる
-- task-local design skill (`designing-implementation`) は active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
+- implementation lane owner (`directing-implementation`) は実装要求を受け、active plan を作成し、重複確認と handoff に必要な最小限の入口情報だけを整える
+- implementation distill skill (`distilling-implementation`) は入口情報を起点に必要最小限の repo 文脈を探索し、facts、constraints、gaps、closeout notes、required reading を返す
+- task-local design skill (`designing-implementation`) は distill 結果を前提に active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
-- implementation distill skill (`distilling-implementation`) は facts、constraints、gaps、closeout notes を整理する
 - implementation workplan skill (`planning-implementation`) は実装順、owned scope、validation を短い brief に落とす
 - test architecture skill (`architecting-tests`) は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
 - frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装する
@@ -71,7 +71,9 @@
 
 `User -> fix lane owner (`directing-fixes`) -> fix distill skill (`distilling-fixes`) -> fault trace skill (`tracing-fixes`) -> (必要時 logging skill (`logging-fixes`) / fix analysis skill (`analyzing-fixes`)) -> test architecture skill (`architecting-tests`) -> fix implementer (`implementing-fixes`) -> fix review skill (`reviewing-fixes`) -> risk reporting skill (`reporting-risks`) + 4humans sync + fix lane owner (`directing-fixes`) close`
 
-- fix lane owner (`directing-fixes`) は bugfix 要求を受け、事実不足なら fix distill skill (`distilling-fixes`) と fault trace skill (`tracing-fixes`) で scope を狭める
+- fix lane owner (`directing-fixes`) は bugfix 要求を受け、active plan を作成し、重複確認と handoff に必要な最小限の入口情報だけを整える
+- fix distill skill (`distilling-fixes`) は入口情報を起点に必要最小限の repo 文脈を探索し、known facts、reproduction status、related constraints、related code pointers、open gaps、required reading を返す
+- fault trace skill (`tracing-fixes`) は direction が整えた known facts と reproduction status を前提に、最小の trace 計画を返す
 - logging skill (`logging-fixes`) は一時観測だけを追加 / 削除し、恒久修正を混ぜない
 - fix analysis skill (`analyzing-fixes`) は観測結果を事実に圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な docs sync skill (`updating-docs`) 対象かを整理する
 - test architecture skill (`architecting-tests`) は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する

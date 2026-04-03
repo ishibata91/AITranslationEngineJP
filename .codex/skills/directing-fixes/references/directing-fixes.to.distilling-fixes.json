@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "directing-fixes",
   "to_skill": "distilling-fixes",
-  "purpose": "bugfix 事実整理の初期材料を渡す。",
+  "purpose": "bugfix 入口情報から最小限の repo 文脈を探索させる。",
   "required": [
     {
       "description": "不具合の要約。",
@@ -21,8 +21,8 @@
       "type": "string[]"
     },
     {
-      "description": "関連コード / docs の候補。",
-      "field": "related_area",
+      "description": "探索の起点として渡す code / docs / tests の候補。",
+      "field": "seed_area",
       "type": "string[]"
     }
   ],
@@ -37,6 +37,7 @@
     "推測を事実として固定しない"
   ],
   "completion_signal": [
-    "known facts と open gaps を分離して返せる"
+    "known facts と open gaps を分離して返せる",
+    "required reading が入口 path の単純再掲ではなく次工程の探索コストを下げている"
   ]
 }

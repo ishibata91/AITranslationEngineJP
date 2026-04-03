@@ -17,8 +17,8 @@ Do not own:
 - creating side artifacts such as `changes/`, `context_board`, or `tasks.md`
 
 Rules:
-1. Read the request summary, decision basis, and only the repository docs needed to settle task-local design.
+1. Read the request summary, decision basis, and the provided facts / constraints / gaps before opening more repository docs.
 2. Update only `UI`, `Scenario`, and `Logic` in the active exec-plan unless the caller explicitly requests a small adjacent fix.
 3. Leave sections as `N/A` when the task does not need them rather than inventing design work.
-4. Keep the result short, concrete, and ready for `distilling-implementation` and `planning-implementation`.
+4. Keep the result short, concrete, and ready for `planning-implementation`.
 """

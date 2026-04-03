@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "directing-implementation",
   "to_skill": "planning-implementation",
-  "purpose": "distill 結果と active plan をもとに、実装順と owned scope を brief 化させる。",
+  "purpose": "direction が整えた context summary と active plan をもとに、実装順と owned scope を brief 化させる。",
   "required": [
     {
       "description": "更新対象の exec-plan。",
@@ -12,7 +12,7 @@
     },
     {
       "description": "facts / constraints / gaps / required_reading の要約。",
-      "field": "distill_summary",
+      "field": "context_summary",
       "type": "object"
     },
     {
