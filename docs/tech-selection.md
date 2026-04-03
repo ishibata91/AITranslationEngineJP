@@ -42,7 +42,7 @@
 - repo 固有の import 境界 lint は `ESLint Flat Config + repository-local rule` を採用する
 - 未参照 export / file / dependency の検出は `Knip` を採用する
 - `SonarScanner` を code smell / complexity / security hotspot 向け server-side 静的解析の入口として採用する
-- Sonar issue の取得と remediation loop には `Sonar CLI` を採用する
+- Sonar issue の取得と remediation loop には `Docker MCP SonarQube` を採用する
 - Sonar 系 gate は `TS` / `Svelte` / `Rust` を対象とし、構造境界 lint の主担当ではなく generic quality issue の補完層として使う
 - Rust の品質基盤は `rustfmt` / `clippy` を採用する
 

@@ -22,7 +22,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 4. `<workplan_builder>` を `planning-implementation` でスポーンし、ordered scope、required reading、validation commands を短い brief にする。
 5. `<test_architect>` を `architecting-tests` でスポーンし、failing tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装させる。
 6. `<implementer>` を `implementing-frontend` または `implementing-backend` でスポーンして実装する。
-7. 実装後は project root で `sonar-scanner` を実行し、`python3 .codex/skills/directing-implementation/scripts/get-open-sonar-issues.py --project ishibata91_AITranslationEngineJP` で `status == OPEN` issue を取得する。
+7. 実装後は project root で `sonar-scanner` を実行し、`codexmcps` profile の `mcp/sonarqube` を使う `python3 .codex/skills/directing-implementation/scripts/get-open-sonar-issues.py --project ishibata91_AITranslationEngineJP` で `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` issue を取得する。
 8. owned scope の確認が必要な時は `--owned-paths` に touched path を渡し、gate 判定へ `CLOSED` issue を混ぜない。
 9. owned scope の Sonar issue が残る間は lane に差し戻し、同じ active plan を更新して implementing skill を再実行する。
 10. Sonar issue が解消した後に `<review_cycler>` を `reviewing-implementation` で **1** 回だけ実行する。
