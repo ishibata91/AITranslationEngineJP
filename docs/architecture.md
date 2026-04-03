@@ -199,6 +199,10 @@ backend は `src-tauri/src/application/` が DTO を返し、`src-tauri/src/gate
 ## 6. 永続化方針
 
 - `PLUGIN_EXPORT` 配下の入力データは SQLite 上の実行キャッシュとして保持する
+- DB schema の変更は versioned migration で管理し、backend 起動時の専用初期化責務が一度だけ適用する
+- DB schema の準備を request ごとの repository 呼び出しへ混ぜず、repository は DML と transaction に専念する
+- DB 初期化責務は backend-owned な専用初期化責務へ置き、`bootstrap-status` の read model や repository 自体へ混ぜない
+- `bootstrap` と repository が同じ DB path を参照してよいが、接続共有は要件とせず、各責務で個別接続してよい
 - 実行キャッシュは `TRANSLATION_JOB` が `JOB_PLUGIN_EXPORT` を介して 1 件以上参照する
 - import 時に、各 translatable field を `TRANSLATION_UNIT` として正規化し、翻訳フェーズと出力生成の canonical 単位にする
 - mod 翻訳中に生成したペルソナは `JOB_PERSONA_ENTRY` としてジョブ単位に保持し、基盤の `MASTER_PERSONA` とは分離する

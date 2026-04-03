@@ -47,6 +47,9 @@
 - 非同期 command や I/O は `tokio` を前提にし、blocking 処理を UI 応答経路へ混ぜない
 - `serde` / `serde_json` で境界 DTO を定義し、暗黙の field 名変換に依存しすぎない
 - 永続化は `sqlx` を通し、SQL と repository の責務を混ぜない
+- `sqlx` を使う schema 変更は versioned migration へ集約し、repository で `CREATE TABLE` などの DDL を実行しない
+- repository は query と transaction に専念し、schema 準備や migration 実行を通常 command 経路へ混ぜない
+- DB migration は backend 起動初期化で一度だけ実行し、通常の repository 呼び出しで再実行しない
 
 ## 5. 通信とデータ境界
 

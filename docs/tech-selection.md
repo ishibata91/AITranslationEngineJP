@@ -29,10 +29,12 @@
 
 - ローカルデータベースは `SQLite` を採用する
 - DB アクセスは `sqlx` を採用する
+- `SQLite` schema の変更管理は `sqlx` の versioned migration を標準方式とする
 - xEdit 抽出 JSON はファイルシステム上の正本として保持する
 - `SQLite` は `PLUGIN_EXPORT` 配下の入力データを実行キャッシュとして保持する
 - `MASTER_PERSONA` と `MASTER_DICTIONARY` は `SQLite` 上の永続基盤データとして保持する
 - DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
+- DB access では DB path の共有だけで十分とし、connection pool の共有は標準要件に含めない
 
 ## 5. DI と品質基盤
 
