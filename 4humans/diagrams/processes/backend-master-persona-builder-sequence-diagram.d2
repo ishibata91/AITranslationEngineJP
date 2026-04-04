@@ -3,13 +3,18 @@ title: "Backend master persona 再構築シーケンス図"
 masterPersonaRebuildSequence: {
   shape: sequence_diagram
 
-  caller: "呼出し元"
+  frontend: "Tauri executor (`createTauriPersonaObserveExecutor`)"
+  rebuildCommand: "master persona 再構築 command (`gateway::commands::rebuild_master_persona`)"
+  readCommand: "master persona 観測 command (`gateway::commands::read_master_persona`)"
   rebuildUsecase: "master persona 再構築ユースケース (`RebuildMasterPersonaUseCase`)"
   builder: "base-game NPC master persona builder (`BaseGameNpcMasterPersonaBuilder`)"
-  storagePort: "master persona storage port (`MasterPersonaStoragePort`)"
+  storagePort: "master persona repository (`SqliteMasterPersonaRepository`)"
   readResult: "master persona 読込結果 DTO (`MasterPersonaReadResultDto`)"
 
-  caller -> rebuildUsecase: base-game NPC 入力を渡す {
+  frontend -> rebuildCommand: base-game NPC 入力 (`BaseGameNpcRebuildRequest`) を渡す {
+    style.font-size: 22
+  }
+  rebuildCommand -> rebuildUsecase: 再構築を実行する (`execute(request)`) {
     style.font-size: 22
   }
   rebuildUsecase -> builder: 保存要求を構築する {
@@ -42,7 +47,25 @@ masterPersonaRebuildSequence: {
   readResult -> rebuildUsecase: 読込結果を返す {
     style.font-size: 22
   }
-  rebuildUsecase -> caller: 再構築結果を返す {
+  rebuildUsecase -> rebuildCommand: 再構築結果を返す {
+    style.font-size: 22
+  }
+  rebuildCommand -> frontend: 保存後の `entries` を返す {
+    style.font-size: 22
+  }
+  frontend -> readCommand: 観測要求 (`MasterPersonaReadRequestDto`) を渡す {
+    style.font-size: 22
+  }
+  readCommand -> storagePort: 読込だけを実行する {
+    style.font-size: 22
+  }
+  storagePort -> readResult: 保存済み master persona を返す {
+    style.font-size: 22
+  }
+  readResult -> readCommand: 読込結果を返す {
+    style.font-size: 22
+  }
+  readCommand -> frontend: 観測結果を返す {
     style.font-size: 22
   }
 }

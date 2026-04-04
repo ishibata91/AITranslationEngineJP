@@ -11,6 +11,7 @@ use ai_translation_engine_jp_lib::application::ports::dictionary_lookup::{
     DictionaryLookupCandidateGroup, DictionaryLookupPort, DictionaryLookupRequest,
     DictionaryLookupResult,
 };
+use ai_translation_engine_jp_lib::gateway::commands::{lookup_dictionary, rebuild_dictionary};
 use ai_translation_engine_jp_lib::infra::dictionary_repository::SqliteDictionaryRepository;
 use ai_translation_engine_jp_lib::infra::xtranslator_importer::FileSystemXtranslatorImporter;
 use serde::{Deserialize, Serialize};
@@ -106,6 +107,46 @@ async fn given_xtranslator_sst_fixture_when_projecting_import_and_lookup_boundar
             "{}\n",
             serde_json::to_string_pretty(&snapshot)
                 .expect("dictionary rebuild snapshot should serialize")
+        ),
+        include_str!("snapshots/shared-reusable-entry-contract.snapshot.json")
+    );
+}
+
+#[tokio::test]
+async fn given_xtranslator_sst_fixture_when_rebuilding_and_looking_up_dictionary_through_tauri_commands_then_results_match_existing_rebuild_snapshot(
+) {
+    let fixture = load_dictionary_rebuild_fixture();
+    let source_fixture = crate::xtranslator_fixture::shared_contract_fixture_file();
+    let database = crate::execution_cache::TempExecutionCache::new("dictionary-command-rebuild");
+    database
+        .initialize_base_schema()
+        .await
+        .expect("execution cache schema fixture should be initialized");
+    let _env_guard = crate::execution_cache::CommandEnvOverrideGuard::new(database.path());
+
+    let import_result = rebuild_dictionary(DictionaryImportRequestDto {
+        source_type: "xtranslator-sst".to_string(),
+        source_file_path: source_fixture.path_string(),
+    })
+    .await
+    .expect("tauri dictionary rebuild command should import and persist the canonical fixture");
+    let lookup_request = DictionaryLookupRequest {
+        source_texts: fixture.lookup_source_texts.clone(),
+    };
+    let lookup_result = lookup_dictionary(lookup_request.clone())
+        .await
+        .expect("tauri dictionary lookup command should read back the rebuilt dictionary");
+    let snapshot = DictionaryRebuildSnapshot {
+        dictionary_import_result: import_result,
+        dictionary_lookup_request: lookup_request,
+        dictionary_lookup_result: lookup_result,
+    };
+
+    assert_eq!(
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&snapshot)
+                .expect("dictionary command snapshot should serialize")
         ),
         include_str!("snapshots/shared-reusable-entry-contract.snapshot.json")
     );

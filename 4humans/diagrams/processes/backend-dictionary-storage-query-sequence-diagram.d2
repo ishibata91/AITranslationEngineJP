@@ -3,15 +3,23 @@ title: "Backend 辞書保存・検索シーケンス図"
 dictionaryStorageQuerySequence: {
   shape: sequence_diagram
 
+  frontend: "Tauri executor (`createTauriDictionaryObserveExecutor`)"
+  rebuildCommand: "辞書再構築 command (`gateway::commands::rebuild_dictionary`)"
+  lookupCommand: "辞書観測 command (`gateway::commands::lookup_dictionary`)"
   importUsecase: "辞書取込ユースケース (`ImportDictionaryUseCase`)"
   saveUsecase: "辞書保存ユースケース (`SaveImportedDictionaryUseCase`)"
   lookupUsecase: "辞書検索ユースケース (`LookupDictionaryUseCase`)"
   sqliteRepo: "SQLite 辞書 repository (`SqliteDictionaryRepository`)"
   masterDictionary: "辞書親 table (`master_dictionary`)"
   masterDictionaryEntry: "辞書 entry table (`master_dictionary_entry`)"
-  lookupPort: "辞書検索 port (`DictionaryLookupPort`)"
   snapshot: "検索結果スナップショット (`DictionaryLookupResult`)"
 
+  frontend -> rebuildCommand: 辞書再構築要求 (`DictionaryImportRequestDto`) を渡す {
+    style.font-size: 22
+  }
+  rebuildCommand -> importUsecase: 取込を実行する (`execute(request)`) {
+    style.font-size: 22
+  }
   importUsecase -> saveUsecase: 取込結果 (`DictionaryImportResultDto`) を渡す {
     style.font-size: 22
   }
@@ -30,7 +38,16 @@ dictionaryStorageQuerySequence: {
   sqliteRepo -> saveUsecase: transaction 完了を返す {
     style.font-size: 22
   }
-  lookupPort -> lookupUsecase: 検索要求 (`DictionaryLookupRequest`) を渡す {
+  saveUsecase -> rebuildCommand: 保存完了を返す {
+    style.font-size: 22
+  }
+  rebuildCommand -> frontend: 取込結果 DTO を返す {
+    style.font-size: 22
+  }
+  frontend -> lookupCommand: 検索要求 (`DictionaryLookupRequest`) を渡す {
+    style.font-size: 22
+  }
+  lookupCommand -> lookupUsecase: 検索を実行する (`lookup(request)`) {
     style.font-size: 22
   }
   lookupUsecase -> lookupUsecase: 空 request を拒否し重複を集約する {
@@ -52,6 +69,12 @@ dictionaryStorageQuerySequence: {
     style.font-size: 22
   }
   lookupUsecase -> snapshot: 検索結果を渡す {
+    style.font-size: 22
+  }
+  snapshot -> lookupCommand: 検索結果を返す {
+    style.font-size: 22
+  }
+  lookupCommand -> frontend: `candidateGroups` を返す {
     style.font-size: 22
   }
 }

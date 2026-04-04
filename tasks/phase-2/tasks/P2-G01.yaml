@@ -1,7 +1,7 @@
 id: P2-G01
 title: Wire foundation-data rebuild and observation scenario
 type: integ
-status: planned
+status: done
 goal: Prove that dictionary and persona foundation data can be rebuilt and observed
   through integrated wiring.
 owned_scope:

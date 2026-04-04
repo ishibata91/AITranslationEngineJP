@@ -1,0 +1,36 @@
+id: P4-V02
+title: Fix persona-generation provider acceptance anchor
+type: verification
+status: planned
+goal: Create acceptance fixtures and checks for provider-backed persona generation
+  behavior.
+owned_scope:
+- src-tauri/tests/acceptance/persona-generation-runtime/
+out_of_scope:
+- translation body output verification
+- dictionary or persona foundation rebuild validation
+depends_on:
+- P4-C01
+- P4-C02
+- P4-C03
+produces:
+- persona-generation provider acceptance anchor
+consumes:
+- provider selection and runtime configuration contract
+- execution-control state contract
+- persona-generation runtime contract
+acceptance_anchor:
+- master persona generation and job-local persona generation share one external
+  acceptance anchor before broad implementation
+parallel_safe_with:
+- P4-C01
+- P4-C02
+- P4-C03
+- P4-V01
+shared_risks:
+- encoding provider-specific prompt or snapshot detail here would make adapters and
+  phase orchestration brittle
+done_when:
+- provider-backed persona generation implementation can target one shared acceptance
+  anchor for success, failure, and retry behavior
+

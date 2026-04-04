@@ -13,6 +13,9 @@ use ai_translation_engine_jp_lib::application::master_persona::{
 use ai_translation_engine_jp_lib::application::ports::persona_storage::{
     JobPersonaStoragePort, MasterPersonaStoragePort,
 };
+use ai_translation_engine_jp_lib::gateway::commands::{
+    read_master_persona, rebuild_master_persona,
+};
 use ai_translation_engine_jp_lib::infra::job_persona_repository::SqliteJobPersonaRepository;
 use ai_translation_engine_jp_lib::infra::master_persona_builder::BaseGameNpcMasterPersonaBuilder;
 use async_trait::async_trait;
@@ -571,6 +574,41 @@ async fn given_base_game_npc_fixture_when_rebuilding_master_persona_then_save_an
             "{}\n",
             serde_json::to_string_pretty(&rebuilt_persona)
                 .expect("rebuilt master persona should serialize")
+        ),
+        include_str!("snapshots/base-game-master-persona-rebuild.snapshot.json")
+    );
+}
+
+#[tokio::test]
+async fn given_base_game_npc_fixture_when_rebuilding_and_reading_master_persona_through_tauri_commands_then_results_match_existing_rebuild_snapshot(
+) {
+    let fixture = load_base_game_master_persona_rebuild_fixture();
+    let expected_rebuilt_persona = fixture.clone().into_read_result_dto();
+    let database = crate::execution_cache::TempExecutionCache::new("persona-command-rebuild");
+    database
+        .initialize_base_schema()
+        .await
+        .expect("execution cache base schema should be initialized");
+    let _env_guard = crate::execution_cache::CommandEnvOverrideGuard::new(database.path());
+
+    let rebuilt_persona = rebuild_master_persona(fixture.clone().into_rebuild_request())
+        .await
+        .expect(
+            "tauri master persona rebuild command should rebuild and persist the canonical fixture",
+        );
+    let read_result = read_master_persona(MasterPersonaReadRequestDto {
+        persona_name: fixture.persona_name.clone(),
+    })
+    .await
+    .expect("tauri master persona read command should read back the rebuilt persona");
+
+    assert_eq!(rebuilt_persona, expected_rebuilt_persona);
+    assert_eq!(read_result, rebuilt_persona);
+    assert_eq!(
+        format!(
+            "{}\n",
+            serde_json::to_string_pretty(&read_result)
+                .expect("master persona command snapshot should serialize")
         ),
         include_str!("snapshots/base-game-master-persona-rebuild.snapshot.json")
     );

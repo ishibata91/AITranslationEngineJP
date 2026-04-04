@@ -10,7 +10,11 @@ pub fn run() {
             gateway::commands::get_bootstrap_status,
             gateway::commands::import_xedit_export_json,
             gateway::commands::create_job,
-            gateway::commands::list_jobs
+            gateway::commands::list_jobs,
+            gateway::commands::rebuild_dictionary,
+            gateway::commands::lookup_dictionary,
+            gateway::commands::rebuild_master_persona,
+            gateway::commands::read_master_persona
         ])
         .run(tauri::generate_context!())
         .expect("failed to run tauri application");

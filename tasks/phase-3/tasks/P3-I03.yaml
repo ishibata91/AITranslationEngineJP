@@ -2,17 +2,19 @@ id: P3-I03
 title: Implement NPC persona generation phase
 type: impl
 status: planned
-goal: Generate job-local NPC persona data for translation use.
+goal: Orchestrate job-local NPC persona generation for translation use through the
+  agreed phase handoff boundary.
 owned_scope:
 - src-tauri/src/application/npc_persona_generation_phase/
 out_of_scope:
 - master persona rebuild
+- concrete provider adapter implementation
 - body translation output writing
 depends_on:
 - P3-C03
 - P2-C03
 produces:
-- persona generation phase implementation
+- persona generation phase orchestration
 consumes:
 - translation phase handoff contract
 - persona storage split contract
@@ -24,6 +26,8 @@ parallel_safe_with:
 - P3-I04
 - P3-I05
 shared_risks:
-- coupling this task to master persona rebuild would blur Phase 2 and Phase 3 responsibilities
+- coupling this task to master persona rebuild or concrete provider runtime would
+  blur Phase 2 and Phase 3 responsibilities
 done_when:
-- job-local persona data can be produced through the agreed phase handoff boundary
+- job-local persona generation can be orchestrated through the agreed phase handoff
+  boundary without owning concrete provider execution

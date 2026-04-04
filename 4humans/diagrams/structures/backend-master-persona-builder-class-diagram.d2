@@ -3,6 +3,27 @@ direction: right
 
 title: "Backend master persona 再構築クラス図"
 
+gateway: {
+  shape: package
+  label: "gateway"
+  direction: down
+  style.font-size: 22
+
+  rebuildCommand: {
+    shape: class
+    label: "master persona 再構築 command (`rebuild_master_persona`)"
+    "+ Tauri transport から再構築を委譲する": "`rebuild_master_persona(request)`"
+    style.font-size: 22
+  }
+
+  readCommand: {
+    shape: class
+    label: "master persona 観測 command (`read_master_persona`)"
+    "+ Tauri transport から読込を委譲する": "`read_master_persona(request)`"
+    style.font-size: 22
+  }
+}
+
 application: {
   shape: package
   label: "application"
@@ -87,8 +108,34 @@ infra: {
     "+ base-game 入力を保存要求へ変換する": "`build_master_persona_save_request(request)`"
     style.font-size: 22
   }
+
+  sqliteRepository: {
+    shape: class
+    label: "SQLite master persona repository (`SqliteMasterPersonaRepository`)"
+    "+ master persona を保存する": "`save_master_persona(request)`"
+    "+ master persona を読む": "`read_master_persona(request)`"
+    style.font-size: 22
+  }
+
+  masterPersonaTable: {
+    shape: class
+    label: "master persona table (`master_persona`)"
+    style.font-size: 22
+  }
+
+  masterPersonaEntryTable: {
+    shape: class
+    label: "master persona entry table (`master_persona_entry`)"
+    style.font-size: 22
+  }
 }
 
+gateway.rebuildCommand -> application.rebuildUsecase: 再構築を委譲する {
+  style.font-size: 22
+}
+gateway.readCommand -> application.storagePort: 読込だけを委譲する {
+  style.font-size: 22
+}
 application.rebuildUsecase -> application.rebuildRequest: base-game NPC 入力を受け取る {
   style.font-size: 22
 }
@@ -129,5 +176,20 @@ application.storagePort -> dto.readRequest: 読込要求を受け取る {
   style.font-size: 22
 }
 application.storagePort -> dto.readResult: 保存後の master persona を返す {
+  style.font-size: 22
+}
+infra.sqliteRepository -> application.storagePort: 実装する {
+  style.font-size: 22
+}
+infra.sqliteRepository -> infra.masterPersonaTable: `persona_name` upsert を行う {
+  style.font-size: 22
+}
+infra.sqliteRepository -> infra.masterPersonaEntryTable: stale row を置換保存する {
+  style.font-size: 22
+}
+infra.sqliteRepository -> dto.readResult: 保存後読込結果を組み立てる {
+  style.font-size: 22
+}
+infra.masterPersonaEntryTable -> infra.masterPersonaTable: `master_persona_id` で従属する {
   style.font-size: 22
 }

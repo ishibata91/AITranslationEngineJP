@@ -1,27 +1,36 @@
 phase_id: phase-4
 phase_name: Provider And Execution Expansion
-goal: Expand provider support and execution control without breaking the application
-  and domain direction established in earlier phases.
+goal: Expand provider support, execution control, and provider-backed persona generation
+  without breaking the application and domain direction established in earlier phases.
 exit_criteria:
 - provider adapters can be swapped without reshaping application and domain policy
 - jobs can pause, resume, fail, retry, and cancel through stable execution-control
   behavior
 - provider failure and retry behavior is fixed in acceptance checks
+- provider-backed master persona generation and job-local persona generation can
+  run without redesigning earlier phase boundaries
 task_types:
   contract: Layer-boundary contracts for provider selection, execution control states,
-    and batch mode switching.
-  verification: Provider failure and retry anchors that fix external execution behavior.
-  impl: Closed-scope provider, control, and UI implementations.
-  integ: Composition and scenario proof for provider choice and execution control.
+    batch mode switching, and persona-generation runtime.
+  verification: Provider failure, retry, and persona-generation anchors that fix
+    external execution behavior.
+  impl: Closed-scope provider, control, UI, and provider-backed persona-generation
+    implementations.
+  integ: Composition and scenario proof for provider choice, execution control, and
+    provider-backed persona generation.
 parallel_batches:
 - id: P4-B1
-  goal: Fix provider and execution-control contracts plus failure anchors.
+  goal: Fix provider, execution-control, and persona-generation contracts plus failure
+    anchors.
   task_ids:
   - P4-C01
   - P4-C02
+  - P4-C03
   - P4-V01
+  - P4-V02
 - id: P4-B2
-  goal: Implement adapters, switching, and UI slices in parallel.
+  goal: Implement adapters, switching, UI slices, and provider-backed persona-generation
+    paths in parallel.
   task_ids:
   - P4-I01
   - P4-I02
@@ -29,18 +38,27 @@ parallel_batches:
   - P4-I04
   - P4-I05
   - P4-I06
+  - P4-I07
+  - P4-I08
 - id: P4-B3
-  goal: Prove provider and execution-control behavior through integrated scenarios.
+  goal: Prove provider, execution-control, and persona-generation behavior through
+    integrated scenarios.
   task_ids:
   - P4-G01
+  - P4-G02
 task_files:
 - tasks/P4-C01.yaml
 - tasks/P4-C02.yaml
+- tasks/P4-C03.yaml
 - tasks/P4-V01.yaml
+- tasks/P4-V02.yaml
 - tasks/P4-I01.yaml
 - tasks/P4-I02.yaml
 - tasks/P4-I03.yaml
 - tasks/P4-I04.yaml
 - tasks/P4-I05.yaml
 - tasks/P4-I06.yaml
+- tasks/P4-I07.yaml
+- tasks/P4-I08.yaml
 - tasks/P4-G01.yaml
+- tasks/P4-G02.yaml

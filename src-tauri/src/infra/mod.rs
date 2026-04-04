@@ -3,6 +3,7 @@ pub mod execution_cache;
 pub mod job_persona_repository;
 pub mod job_repository;
 pub mod master_persona_builder;
+pub mod master_persona_repository;
 pub mod plugin_export_repository;
 pub mod runtime_info;
 pub mod xedit_export_importer;

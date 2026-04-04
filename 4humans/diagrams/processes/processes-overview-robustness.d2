@@ -153,7 +153,7 @@ dictionaryObserve: {
 
   boundary: {
     shape: class
-    label: "画面境界 (`DictionaryObserveScreen` / `DictionaryObserveView`)"
+    label: "画面・Tauri 境界 (`DictionaryObserveScreen` / `DictionaryObserveView` / `createTauriDictionaryObserveExecutor`)"
     link: "./frontend-dictionary-observe-sequence-diagram.svg"
     style.font-size: 22
   }
@@ -167,8 +167,8 @@ dictionaryObserve: {
 
   entity: {
     shape: class
-    label: "観測結果 (`DictionaryObserveResult`)"
-    link: "./frontend-dictionary-observe-sequence-diagram.svg"
+    label: "観測結果 (`DictionaryObserveResult` / `DictionaryLookupResult`)"
+    link: "./backend-dictionary-storage-query-sequence-diagram.svg"
     style.font-size: 22
   }
 
@@ -178,7 +178,7 @@ dictionaryObserve: {
   boundary -> control: 入力と操作を渡す {
     style.font-size: 22
   }
-  control -> entity: exact match 候補を取得する {
+  control -> entity: Tauri command 経由で exact match 候補を取得する {
     style.font-size: 22
   }
 }
@@ -198,7 +198,7 @@ personaObserve: {
 
   boundary: {
     shape: class
-    label: "画面境界 (`PersonaObserveScreen` / `PersonaObserveView`)"
+    label: "画面・Tauri 境界 (`PersonaObserveScreen` / `PersonaObserveView` / `createTauriPersonaObserveExecutor`)"
     link: "./frontend-persona-observe-sequence-diagram.svg"
     style.font-size: 22
   }
@@ -212,8 +212,8 @@ personaObserve: {
 
   entity: {
     shape: class
-    label: "観測結果 (`PersonaObserveResult`)"
-    link: "./frontend-persona-observe-sequence-diagram.svg"
+    label: "観測結果 (`PersonaObserveResult` / `MasterPersonaReadResultDto`)"
+    link: "./backend-master-persona-builder-sequence-diagram.svg"
     style.font-size: 22
   }
 
@@ -223,7 +223,7 @@ personaObserve: {
   boundary -> control: 入力と操作を渡す {
     style.font-size: 22
   }
-  control -> entity: master persona を取得する {
+  control -> entity: Tauri command 経由で master persona を取得する {
     style.font-size: 22
   }
 }
@@ -288,7 +288,7 @@ dictionaryStorageQuery: {
 
   boundary: {
     shape: class
-    label: "検索 port 境界 (`DictionaryLookupPort`)"
+    label: "command 境界 (`rebuild_dictionary` / `lookup_dictionary`)"
     link: "./backend-dictionary-storage-query-sequence-diagram.svg"
     style.font-size: 22
   }
@@ -302,18 +302,18 @@ dictionaryStorageQuery: {
 
   entity: {
     shape: class
-    label: "辞書結果 (`DictionaryImportResultDto` / `DictionaryLookupResult`)"
+    label: "辞書結果 (`DictionaryImportResultDto` / `DictionaryLookupResult` / `master_dictionary_entry`)"
     link: "./backend-dictionary-storage-query-sequence-diagram.svg"
     style.font-size: 22
   }
 
-  actor -> boundary: 保存後に検索要求を渡す {
+  actor -> boundary: 再構築要求または検索要求を渡す {
     style.font-size: 22
   }
-  boundary -> control: 保存と検索を依頼する {
+  boundary -> control: transport 変換なしで保存と検索を委譲する {
     style.font-size: 22
   }
-  control -> entity: 永続化と exact match を行う {
+  control -> entity: 辞書再構築と exact match 観測を行う {
     style.font-size: 22
   }
 }
@@ -333,32 +333,32 @@ masterPersonaRebuild: {
 
   boundary: {
     shape: class
-    label: "base-game NPC 入力境界 (`BaseGameNpcRebuildRequest`)"
+    label: "command 境界 (`rebuild_master_persona` / `read_master_persona`)"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
     style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "再構築制御 (`RebuildMasterPersonaUseCase` / `BaseGameNpcMasterPersonaBuilder`)"
+    label: "再構築制御 (`RebuildMasterPersonaUseCase` / `BaseGameNpcMasterPersonaBuilder` / `SqliteMasterPersonaRepository`)"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
     style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "再構築結果 (`MasterPersonaSaveRequestDto` / `MasterPersonaReadResultDto`)"
+    label: "再構築結果 (`MasterPersonaSaveRequestDto` / `MasterPersonaReadResultDto` / `master_persona_entry`)"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
     style.font-size: 22
   }
 
-  actor -> boundary: base-game NPC 入力を渡す {
+  actor -> boundary: 再構築要求または観測要求を渡す {
     style.font-size: 22
   }
-  boundary -> control: 再構築を呼ぶ {
+  boundary -> control: transport 境界として save/read を委譲する {
     style.font-size: 22
   }
-  control -> entity: build と save/read を行う {
+  control -> entity: build と save/read 観測を行う {
     style.font-size: 22
   }
 }

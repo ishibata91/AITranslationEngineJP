@@ -11,6 +11,7 @@ owned_scope:
 out_of_scope:
 - new contract design
 - provider-specific retry policy
+- concrete provider-backed persona-generation scenarios
 depends_on:
 - P3-I01
 - P3-I02
@@ -31,4 +32,4 @@ shared_risks:
   were not fixed enough
 done_when:
 - the MVP translation flow is proven through integrated wiring and representative
-  regression
+  regression using the agreed phase orchestration boundaries

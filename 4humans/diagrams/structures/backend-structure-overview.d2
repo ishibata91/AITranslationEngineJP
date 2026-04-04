@@ -9,9 +9,21 @@ gatewayLayer: {
   direction: down
   style.font-size: 22
 
-  tauriCommands: {
+  lifecycleCommands: {
     shape: class
-    label: "Tauri command 群"
+    label: "起動・ジョブ command 群 (`get_bootstrap_status` / `import_xedit_export_json` / `create_job` / `list_jobs`)"
+    style.font-size: 22
+  }
+
+  dictionaryCommands: {
+    shape: class
+    label: "辞書 command 群 (`rebuild_dictionary` / `lookup_dictionary`)"
+    style.font-size: 22
+  }
+
+  personaCommands: {
+    shape: class
+    label: "persona command 群 (`rebuild_master_persona` / `read_master_persona`)"
     style.font-size: 22
   }
 }
@@ -59,14 +71,14 @@ applicationLayer: {
 
   dictionaryStorageQueryUsecase: {
     shape: class
-    label: "辞書保存・検索 (`SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`)"
+    label: "辞書再構築・観測 (`ImportDictionaryUseCase` / `SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`)"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
     style.font-size: 22
   }
 
   masterPersonaRebuildUsecase: {
     shape: class
-    label: "master persona 再構築 (`RebuildMasterPersonaUseCase`)"
+    label: "master persona 再構築・観測 (`RebuildMasterPersonaUseCase` / `MasterPersonaStoragePort`)"
     link: "./backend-master-persona-builder-class-diagram.svg"
     style.font-size: 22
   }
@@ -179,7 +191,7 @@ infraLayer: {
 
   masterPersonaStorageBoundary: {
     shape: class
-    label: "master persona storage"
+    label: "master persona repository (`SqliteMasterPersonaRepository`)"
     link: "./backend-master-persona-builder-class-diagram.svg"
     style.font-size: 22
   }
@@ -192,7 +204,13 @@ infraLayer: {
   }
 }
 
-gatewayLayer.tauriCommands -> applicationLayer: command 入口から usecase を呼ぶ {
+gatewayLayer.lifecycleCommands -> applicationLayer: command 入口から usecase を呼ぶ {
+  style.font-size: 22
+}
+gatewayLayer.dictionaryCommands -> applicationLayer.dictionaryStorageQueryUsecase: 辞書再構築と観測を委譲する {
+  style.font-size: 22
+}
+gatewayLayer.personaCommands -> applicationLayer.masterPersonaRebuildUsecase: persona 再構築と観測を委譲する {
   style.font-size: 22
 }
 applicationLayer -> domainLayer: domain 状態と値を組み立てる {

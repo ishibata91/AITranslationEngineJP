@@ -3,6 +3,27 @@ direction: right
 
 title: "Backend 辞書保存・検索クラス図"
 
+gateway: {
+  shape: package
+  label: "gateway"
+  direction: down
+  style.font-size: 22
+
+  rebuildCommand: {
+    shape: class
+    label: "辞書再構築 command (`rebuild_dictionary`)"
+    "+ Tauri transport から再構築を委譲する": "`rebuild_dictionary(request)`"
+    style.font-size: 22
+  }
+
+  lookupCommand: {
+    shape: class
+    label: "辞書観測 command (`lookup_dictionary`)"
+    "+ Tauri transport から検索を委譲する": "`lookup_dictionary(request)`"
+    style.font-size: 22
+  }
+}
+
 application: {
   shape: package
   label: "application"
@@ -88,6 +109,18 @@ infra: {
   }
 }
 
+gateway.rebuildCommand -> application.importUsecase: 取込を委譲する {
+  style.font-size: 22
+}
+gateway.rebuildCommand -> application.saveUsecase: 保存を直列委譲する {
+  style.font-size: 22
+}
+gateway.lookupCommand -> application.lookupUsecase: 検索を委譲する {
+  style.font-size: 22
+}
+application.importUsecase -> application.importResultDto: 取込結果を返す {
+  style.font-size: 22
+}
 application.saveUsecase -> application.importResultDto: 取込済み辞書を受け取る {
   style.font-size: 22
 }

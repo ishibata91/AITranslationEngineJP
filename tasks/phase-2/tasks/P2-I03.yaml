@@ -1,8 +1,9 @@
 id: P2-I03
-title: Implement master persona builder
+title: Implement master persona foundation builder
 type: impl
 status: done
-goal: Build master persona data from base-game NPC input.
+goal: Build and persist master persona foundation data from base-game NPC input
+  without taking ownership of concrete provider execution.
 owned_scope:
 - src-tauri/src/application/master_persona/
 - src-tauri/src/infra/master_persona_builder/
@@ -13,7 +14,7 @@ depends_on:
 - P2-C03
 - P2-V02
 produces:
-- master persona builder
+- master persona foundation builder
 consumes:
 - persona storage split contract
 - persona rebuild validation anchor
@@ -26,6 +27,8 @@ parallel_safe_with:
 - P2-I05
 - P2-I06
 shared_risks:
-- pulling job-local persona policy into this task would widen the scope
+- pulling job-local persona policy or provider runtime selection into this task would
+  widen the scope
 done_when:
-- master persona data can be built without redefining the storage boundary
+- master persona foundation data can be built without redefining the storage boundary
+  or the later provider-backed generation path
