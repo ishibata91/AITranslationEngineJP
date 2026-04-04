@@ -15,10 +15,18 @@ pub fn execution_cache_path() -> PathBuf {
         }
     }
 
-    std::env::temp_dir().join("ai-translation-engine-jp-execution-cache.sqlite")
+    std::env::current_dir()
+        .unwrap_or_else(|_| std::env::temp_dir())
+        .join("db")
+        .join("ai-translation-engine-jp-execution-cache.sqlite")
 }
 
 pub async fn initialize_execution_cache(path: &Path) -> Result<(), String> {
+    if let Some(parent_directory) = path.parent() {
+        std::fs::create_dir_all(parent_directory)
+            .map_err(|error| format!("Failed to prepare execution cache directory: {error}"))?;
+    }
+
     let mut connection = SqliteConnection::connect_with(
         &SqliteConnectOptions::new()
             .filename(path)

@@ -1,4 +1,5 @@
 dictionaries
+db/
 node_modules
 dist
 coverage
