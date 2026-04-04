@@ -1,54 +1,79 @@
+layout: elk
 direction: right
 
-title: "Backend dictionary-import class diagram"
+title: "Backend 辞書取込クラス図"
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   usecase: {
     shape: class
-    label: "辞書取込ユースケース (`ImportDictionaryUseCase`)\n+ 取込要求を実行する (`execute(request)`) "
+    label: "辞書取込ユースケース (`ImportDictionaryUseCase`)"
+    "+ 取込要求を実行する": "`execute(request)`"
+    style.font-size: 22
   }
 
   requestDto: {
     shape: class
     label: "辞書取込要求 DTO (`DictionaryImportRequestDto`)"
+    style.font-size: 22
   }
 
   resultDto: {
     shape: class
     label: "辞書取込結果 DTO (`DictionaryImportResultDto`)"
+    style.font-size: 22
   }
 
   importerPort: {
     shape: class
-    label: "辞書 importer port (`DictionaryImporter`)\n+ 辞書を取り込む (`import_dictionary(request)`) "
+    label: "辞書 importer port (`DictionaryImporter`)"
+    "+ 辞書を取り込む": "`import_dictionary(request)`"
+    style.font-size: 22
   }
 }
 
 domain: {
   shape: package
   label: "domain-ish DTO"
+  direction: down
+  style.font-size: 22
 
   reusableEntry: {
     shape: class
     label: "再利用辞書 entry (`ReusableDictionaryEntryDto`)"
+    style.font-size: 22
   }
 }
 
 infra: {
   shape: package
   label: "infra"
+  direction: down
+  style.font-size: 22
 
   importerImpl: {
     shape: class
     label: "xTranslator importer (`FileSystemXtranslatorImporter`)"
+    style.font-size: 22
   }
 }
 
-application.usecase -> application.requestDto: request を受け取る
-application.usecase -> application.importerPort: source_type を検証して import を依頼する
-infra.importerImpl -> application.importerPort: 実装する
-infra.importerImpl -> domain.reusableEntry: entry 群を作る
-application.usecase -> application.resultDto: 結果 DTO を返す
+application.usecase -> application.requestDto: request を受け取る {
+  style.font-size: 22
+}
+application.usecase -> application.importerPort: `source_type` を検証して import を依頼する {
+  style.font-size: 22
+}
+infra.importerImpl -> application.importerPort: 実装する {
+  style.font-size: 22
+}
+infra.importerImpl -> domain.reusableEntry: entry 群を作る {
+  style.font-size: 22
+}
+application.usecase -> application.resultDto: 結果 DTO を返す {
+  style.font-size: 22
+}

@@ -1,89 +1,132 @@
+layout: elk
 direction: right
 
-title: "Backend import-xedit class diagram"
+title: "Backend xEdit 取込クラス図"
 
 gateway: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   command: {
     shape: class
     label: "xEdit 取込 command (`import_xedit_export_json(request)`)"
+    style.font-size: 22
   }
 }
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   usecase: {
     shape: class
-    label: "xEdit 取込ユースケース (`ImportXeditExportUseCase`)\n+ 取込要求を実行する (`execute(request)`)"
+    label: "xEdit 取込ユースケース (`ImportXeditExportUseCase`)"
+    "+ 取込要求を実行する": "`execute(request)`"
+    style.font-size: 22
   }
 
   requestDto: {
     shape: class
     label: "xEdit 取込要求 DTO (`ImportXeditExportRequestDto`)"
+    style.font-size: 22
   }
 
   resultDto: {
     shape: class
     label: "xEdit 取込結果 DTO (`ImportXeditExportResultDto`)"
+    style.font-size: 22
   }
 
   importerPort: {
     shape: class
-    label: "importer port (`XeditExportImporter`)\n+ ファイル群を取り込む (`import_from_paths(file_paths)`)"
+    label: "importer port (`XeditExportImporter`)"
+    "+ ファイル群を取り込む": "`import_from_paths(file_paths)`"
+    style.font-size: 22
   }
 
   repoPort: {
     shape: class
-    label: "repository port (`ImportedPluginExportRepository`)\n+ 取込済み export 群を保存する (`save_imported_plugin_exports(plugin_exports)`)"
+    label: "repository port (`ImportedPluginExportRepository`)"
+    "+ 取込済み export 群を保存する": "`save_imported_plugin_exports(plugin_exports)`"
+    style.font-size: 22
   }
 }
 
 domain: {
   shape: package
   label: "domain"
+  direction: down
+  style.font-size: 22
 
   pluginExport: {
     shape: class
     label: "取込済み export (`ImportedPluginExport`)"
+    style.font-size: 22
   }
 
   rawRecord: {
     shape: class
     label: "取込済み生レコード (`ImportedRawRecord`)"
+    style.font-size: 22
   }
 
   translationUnit: {
     shape: class
     label: "翻訳単位 (`TranslationUnit`)"
+    style.font-size: 22
   }
 }
 
 infra: {
   shape: package
   label: "infra"
+  direction: down
+  style.font-size: 22
 
   importerImpl: {
     shape: class
     label: "filesystem importer (`FileSystemXeditExportImporter`)"
+    style.font-size: 22
   }
 
   repoImpl: {
     shape: class
     label: "SQLite export repository (`SqlitePluginExportRepository`)"
+    style.font-size: 22
   }
 }
 
-gateway.command -> application.usecase: 取込要求を渡す
-application.usecase -> application.requestDto: request を受け取る
-application.usecase -> application.importerPort: file import を依頼する
-infra.importerImpl -> application.importerPort: 実装する
-infra.importerImpl -> domain.translationUnit: 翻訳単位を作る
-infra.importerImpl -> domain.rawRecord: 生レコードを作る
-infra.importerImpl -> domain.pluginExport: export を組み立てる
-application.usecase -> application.repoPort: 取込済み export 群を保存する
-infra.repoImpl -> application.repoPort: 実装する
-application.usecase -> application.resultDto: 結果 DTO を返す
+gateway.command -> application.usecase: 取込要求を渡す {
+  style.font-size: 22
+}
+application.usecase -> application.requestDto: request を受け取る {
+  style.font-size: 22
+}
+application.usecase -> application.importerPort: file import を依頼する {
+  style.font-size: 22
+}
+infra.importerImpl -> application.importerPort: 実装する {
+  style.font-size: 22
+}
+infra.importerImpl -> domain.translationUnit: 翻訳単位を作る {
+  style.font-size: 22
+}
+infra.importerImpl -> domain.rawRecord: 生レコードを作る {
+  style.font-size: 22
+}
+infra.importerImpl -> domain.pluginExport: export を組み立てる {
+  style.font-size: 22
+}
+application.usecase -> application.repoPort: 取込済み export 群を保存する {
+  style.font-size: 22
+}
+infra.repoImpl -> application.repoPort: 実装する {
+  style.font-size: 22
+}
+application.usecase -> application.resultDto: 結果 DTO を返す {
+  style.font-size: 22
+}

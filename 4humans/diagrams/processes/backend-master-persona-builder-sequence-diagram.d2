@@ -1,4 +1,4 @@
-title: "Backend master-persona-builder sequence diagram"
+title: "Backend master persona 再構築シーケンス図"
 
 masterPersonaRebuildSequence: {
   shape: sequence_diagram
@@ -9,16 +9,40 @@ masterPersonaRebuildSequence: {
   storagePort: "master persona storage port (`MasterPersonaStoragePort`)"
   readResult: "master persona 読込結果 DTO (`MasterPersonaReadResultDto`)"
 
-  caller -> rebuildUsecase: base-game NPC 入力 (`BaseGameNpcRebuildRequest`) を渡す
-  rebuildUsecase -> builder: 保存要求を構築する (`build_master_persona_save_request(request)`)
-  builder -> builder: `source_type` と必須 field を検証する
-  builder -> builder: entry 順序を保ったまま `MasterPersonaSaveRequestDto` を組み立てる
-  builder -> rebuildUsecase: 保存要求 (`MasterPersonaSaveRequestDto`) を返す
-  rebuildUsecase -> rebuildUsecase: `persona_name` から `MasterPersonaReadRequestDto` を組み立てる
-  rebuildUsecase -> storagePort: master persona を保存する (`save_master_persona(save_request)`)
-  storagePort -> rebuildUsecase: 保存完了または失敗を返す
-  rebuildUsecase -> storagePort: 保存後の master persona を読む (`read_master_persona(read_request)`)
-  storagePort -> readResult: 保存済み master persona を返す
-  readResult -> rebuildUsecase: 読込結果 (`MasterPersonaReadResultDto`) を返す
-  rebuildUsecase -> caller: 再構築結果を返す
+  caller -> rebuildUsecase: base-game NPC 入力を渡す {
+    style.font-size: 22
+  }
+  rebuildUsecase -> builder: 保存要求を構築する {
+    style.font-size: 22
+  }
+  builder -> builder: `source_type` と必須 field を検証する {
+    style.font-size: 22
+  }
+  builder -> builder: entry 順序を保って保存要求を組み立てる {
+    style.font-size: 22
+  }
+  builder -> rebuildUsecase: 保存要求を返す {
+    style.font-size: 22
+  }
+  rebuildUsecase -> rebuildUsecase: `persona_name` から読込要求を組み立てる {
+    style.font-size: 22
+  }
+  rebuildUsecase -> storagePort: master persona を保存する {
+    style.font-size: 22
+  }
+  storagePort -> rebuildUsecase: 保存結果を返す {
+    style.font-size: 22
+  }
+  rebuildUsecase -> storagePort: 保存後の master persona を読む {
+    style.font-size: 22
+  }
+  storagePort -> readResult: 保存済み master persona を返す {
+    style.font-size: 22
+  }
+  readResult -> rebuildUsecase: 読込結果を返す {
+    style.font-size: 22
+  }
+  rebuildUsecase -> caller: 再構築結果を返す {
+    style.font-size: 22
+  }
 }

@@ -1,83 +1,123 @@
+layout: elk
 direction: right
 
-title: "Backend create-job class diagram"
+title: "Backend ジョブ作成クラス図"
 
 gateway: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   command: {
     shape: class
     label: "ジョブ作成 command (`create_job(request)`)"
+    style.font-size: 22
   }
 }
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   usecase: {
     shape: class
-    label: "ジョブ作成ユースケース (`CreateJobUseCase`)\n+ 作成要求を実行する (`execute(request)`)"
+    label: "ジョブ作成ユースケース (`CreateJobUseCase`)"
+    "+ 作成要求を実行する": "`execute(request)`"
+    style.font-size: 22
   }
 
   requestDto: {
     shape: class
     label: "ジョブ作成要求 DTO (`CreateJobRequestDto`)"
+    style.font-size: 22
   }
 
   resultDto: {
     shape: class
     label: "ジョブ作成結果 DTO (`CreateJobResultDto`)"
+    style.font-size: 22
   }
 
   repoPort: {
     shape: class
-    label: "repository port (`CreateJobRepository`)\n+ 作成済みジョブを保存する (`save_created_job(created_job)`)"
+    label: "repository port (`CreateJobRepository`)"
+    "+ 作成済みジョブを保存する": "`save_created_job(created_job)`"
+    style.font-size: 22
   }
 }
 
 domain: {
   shape: package
   label: "domain"
+  direction: down
+  style.font-size: 22
 
   translationUnit: {
     shape: class
     label: "翻訳単位 (`TranslationUnit`)"
+    style.font-size: 22
   }
 
   sourceGroup: {
     shape: class
     label: "ジョブ作成入力群 (`CreateJobSourceGroup`)"
+    style.font-size: 22
   }
 
   createReadyJob: {
     shape: class
-    label: "準備完了ジョブ生成 (`create_ready_job(job_id, source_groups)`)"
+    label: "準備完了ジョブ生成"
+    "+ 準備完了ジョブを作る": "`create_ready_job(job_id, source_groups)`"
+    style.font-size: 22
   }
 
   createdJob: {
     shape: class
     label: "作成済みジョブ (`CreatedJob`)"
+    style.font-size: 22
   }
 }
 
 infra: {
   shape: package
   label: "infra"
+  direction: down
+  style.font-size: 22
 
   repoImpl: {
     shape: class
     label: "memory job repository (`InMemoryJobRepository`)"
+    style.font-size: 22
   }
 }
 
-gateway.command -> application.usecase: 作成要求を渡す
-application.usecase -> application.requestDto: request を受け取る
-application.usecase -> domain.translationUnit: DTO を変換する
-application.usecase -> domain.sourceGroup: source group を組み立てる
-application.usecase -> domain.createReadyJob: 準備完了ジョブを作る
-application.usecase -> application.repoPort: 作成済みジョブを保存する
-infra.repoImpl -> application.repoPort: 実装する
-domain.createReadyJob -> domain.createdJob: 作成済みジョブを返す
-application.usecase -> application.resultDto: 結果 DTO を返す
+gateway.command -> application.usecase: 作成要求を渡す {
+  style.font-size: 22
+}
+application.usecase -> application.requestDto: request を受け取る {
+  style.font-size: 22
+}
+application.usecase -> domain.translationUnit: DTO を変換する {
+  style.font-size: 22
+}
+application.usecase -> domain.sourceGroup: source group を組み立てる {
+  style.font-size: 22
+}
+application.usecase -> domain.createReadyJob: 準備完了ジョブを作る {
+  style.font-size: 22
+}
+application.usecase -> application.repoPort: 作成済みジョブを保存する {
+  style.font-size: 22
+}
+infra.repoImpl -> application.repoPort: 実装する {
+  style.font-size: 22
+}
+domain.createReadyJob -> domain.createdJob: 作成済みジョブを返す {
+  style.font-size: 22
+}
+application.usecase -> application.resultDto: 結果 DTO を返す {
+  style.font-size: 22
+}

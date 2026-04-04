@@ -1,164 +1,183 @@
+layout: elk
 direction: right
 
-title: "Backend `src-tauri/src/` structure overview"
+title: "Backend `src-tauri/src/` 構造 overview"
 
 gatewayLayer: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   tauriCommands: {
     shape: class
     label: "Tauri command 群"
+    style.font-size: 22
   }
 }
 
 applicationLayer: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   bootstrapUsecase: {
     shape: class
-    label: "起動状態取得 usecase"
+    label: "起動状態取得 (`GetBootstrapStatusUseCase`)"
     link: "./backend-bootstrap-status-class-diagram.svg"
+    style.font-size: 22
   }
 
   createJobUsecase: {
     shape: class
-    label: "ジョブ作成 usecase"
+    label: "ジョブ作成 (`CreateJobUseCase`)"
     link: "./backend-create-job-class-diagram.svg"
+    style.font-size: 22
   }
 
   listJobsUsecase: {
     shape: class
-    label: "ジョブ一覧 usecase"
+    label: "ジョブ一覧取得 (`ListJobsUseCase`)"
     link: "./backend-list-jobs-class-diagram.svg"
+    style.font-size: 22
   }
 
   importXeditUsecase: {
     shape: class
-    label: "xEdit 取込 usecase"
+    label: "xEdit 取込 (`ImportXeditExportUseCase`)"
     link: "./backend-import-xedit-class-diagram.svg"
+    style.font-size: 22
   }
 
   dictionaryImportUsecase: {
     shape: class
-    label: "辞書取込 usecase"
+    label: "辞書取込 (`ImportDictionaryUseCase`)"
     link: "./backend-dictionary-import-class-diagram.svg"
+    style.font-size: 22
   }
 
   dictionaryStorageQueryUsecase: {
     shape: class
-    label: "辞書保存 / 検索 usecase"
+    label: "辞書保存・検索 (`SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`)"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
+    style.font-size: 22
   }
 
   masterPersonaRebuildUsecase: {
     shape: class
-    label: "master persona 再構築 usecase"
+    label: "master persona 再構築 (`RebuildMasterPersonaUseCase`)"
     link: "./backend-master-persona-builder-class-diagram.svg"
+    style.font-size: 22
   }
 }
 
 domainLayer: {
   shape: package
   label: "domain"
+  direction: down
+  style.font-size: 22
 
   bootstrapStatus: {
     shape: class
-    label: "起動状態"
+    label: "起動状態 (`BootstrapStatus`)"
+    style.font-size: 22
   }
 
   jobDomain: {
     shape: class
-    label: "job domain"
+    label: "job 集約"
+    style.font-size: 22
   }
 
   importDomain: {
     shape: class
-    label: "xEdit import domain"
+    label: "xEdit 取込結果"
+    style.font-size: 22
   }
 
   dictionaryEntries: {
     shape: class
-    label: "再利用辞書 entry"
+    label: "再利用辞書 entry 群"
+    style.font-size: 22
   }
 
   masterPersonaData: {
     shape: class
-    label: "master persona data"
+    label: "master persona データ"
+    style.font-size: 22
   }
 }
 
 infraLayer: {
   shape: package
   label: "infra"
+  direction: down
+  style.font-size: 22
 
   runtimeInfo: {
     shape: class
     label: "runtime provider"
     link: "./backend-bootstrap-status-class-diagram.svg"
+    style.font-size: 22
   }
 
   jobRepository: {
     shape: class
     label: "job repository"
     link: "./backend-create-job-class-diagram.svg"
+    style.font-size: 22
   }
 
   pluginExportRepository: {
     shape: class
     label: "plugin export repository"
     link: "./backend-import-xedit-class-diagram.svg"
+    style.font-size: 22
   }
 
   xeditImporter: {
     shape: class
     label: "xEdit importer"
     link: "./backend-import-xedit-class-diagram.svg"
+    style.font-size: 22
   }
 
   xtranslatorImporter: {
     shape: class
     label: "xTranslator importer"
     link: "./backend-dictionary-import-class-diagram.svg"
+    style.font-size: 22
   }
 
   dictionaryRepository: {
     shape: class
     label: "dictionary repository"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
+    style.font-size: 22
   }
 
   masterPersonaBuilder: {
     shape: class
     label: "master persona builder"
     link: "./backend-master-persona-builder-class-diagram.svg"
+    style.font-size: 22
   }
 
   masterPersonaStorageBoundary: {
     shape: class
-    label: "master persona storage boundary"
+    label: "master persona storage"
     link: "./backend-master-persona-builder-class-diagram.svg"
+    style.font-size: 22
   }
 }
 
-gatewayLayer.tauriCommands -> applicationLayer.bootstrapUsecase: 起動状態取得を呼ぶ
-gatewayLayer.tauriCommands -> applicationLayer.createJobUsecase: ジョブ作成を呼ぶ
-gatewayLayer.tauriCommands -> applicationLayer.listJobsUsecase: ジョブ一覧を呼ぶ
-gatewayLayer.tauriCommands -> applicationLayer.importXeditUsecase: xEdit 取込を呼ぶ
-applicationLayer.bootstrapUsecase -> domainLayer.bootstrapStatus: status を作る
-applicationLayer.bootstrapUsecase -> infraLayer.runtimeInfo: 版情報を使う
-applicationLayer.createJobUsecase -> domainLayer.jobDomain: job を作る
-applicationLayer.createJobUsecase -> infraLayer.jobRepository: 保存する
-applicationLayer.listJobsUsecase -> domainLayer.jobDomain: job を読む
-applicationLayer.listJobsUsecase -> infraLayer.jobRepository: 一覧を読む
-applicationLayer.importXeditUsecase -> domainLayer.importDomain: export を作る
-applicationLayer.importXeditUsecase -> infraLayer.xeditImporter: file を読む
-applicationLayer.importXeditUsecase -> infraLayer.pluginExportRepository: 保存する
-applicationLayer.dictionaryImportUsecase -> domainLayer.dictionaryEntries: entry を返す
-applicationLayer.dictionaryImportUsecase -> infraLayer.xtranslatorImporter: SST を読む
-applicationLayer.dictionaryStorageQueryUsecase -> domainLayer.dictionaryEntries: entry を保存 / 読み出す
-applicationLayer.dictionaryStorageQueryUsecase -> infraLayer.dictionaryRepository: SQLite を読む / 書く
-applicationLayer.masterPersonaRebuildUsecase -> domainLayer.masterPersonaData: master persona を再構築する
-applicationLayer.masterPersonaRebuildUsecase -> infraLayer.masterPersonaBuilder: base-game NPC 入力を変換する
-applicationLayer.masterPersonaRebuildUsecase -> infraLayer.masterPersonaStorageBoundary: save / read contract を使う
+gatewayLayer.tauriCommands -> applicationLayer: command 入口から usecase を呼ぶ {
+  style.font-size: 22
+}
+applicationLayer -> domainLayer: domain 状態と値を組み立てる {
+  style.font-size: 22
+}
+applicationLayer -> infraLayer: 外部依存へ保存・読込を依頼する {
+  style.font-size: 22
+}

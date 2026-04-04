@@ -1,108 +1,135 @@
+layout: elk
 direction: right
 
-title: "Frontend `src/` structure overview"
+title: "Frontend `src/` 構造 overview"
 
 app: {
   shape: package
   label: "アプリ起動"
+  direction: down
+  style.font-size: 22
 
   entrypoint: {
     shape: class
-    label: "起動と配線\n`main.ts` / `App.svelte` / `AppShell.svelte`"
+    label: "起動と配線 (`main.ts` / `App.svelte` / `AppShell.svelte`)"
+    style.font-size: 22
   }
 }
 
 mountedSlices: {
   shape: package
   label: "配線済み画面 slice"
+  direction: down
+  style.font-size: 22
 
   jobListSlice: {
     shape: class
     label: "ジョブ一覧 slice"
     link: "./frontend-job-list-slice-class-diagram.svg"
+    style.font-size: 22
   }
 
   jobCreateSlice: {
     shape: class
     label: "ジョブ作成 slice"
     link: "./frontend-job-create-slice-class-diagram.svg"
+    style.font-size: 22
   }
 
   bootstrapSlice: {
     shape: class
     label: "起動状態 slice"
     link: "./frontend-bootstrap-status-slice-class-diagram.svg"
+    style.font-size: 22
   }
 }
 
 foundations: {
   shape: package
   label: "再利用基盤"
+  direction: down
+  style.font-size: 22
 
   featureTemplateSlice: {
     shape: class
     label: "テンプレート slice (未配線)"
     link: "./frontend-feature-template-slice-class-diagram.svg"
+    style.font-size: 22
   }
 }
 
 gatewayLayer: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   jobListGateway: {
     shape: class
     label: "一覧取得 gateway"
     link: "./frontend-job-list-slice-class-diagram.svg"
+    style.font-size: 22
   }
 
   jobCreateGateway: {
     shape: class
     label: "作成 gateway"
     link: "./frontend-job-create-slice-class-diagram.svg"
+    style.font-size: 22
   }
 
   bootstrapGateway: {
     shape: class
     label: "起動状態 gateway"
     link: "./frontend-bootstrap-status-slice-class-diagram.svg"
+    style.font-size: 22
   }
 
   featureTemplateGateway: {
     shape: class
     label: "テンプレート gateway"
     link: "./frontend-feature-template-slice-class-diagram.svg"
+    style.font-size: 22
   }
 }
 
 contracts: {
   shape: package
   label: "shared contract"
+  direction: down
+  style.font-size: 22
 
   jobContract: {
     shape: class
     label: "job contract"
+    style.font-size: 22
   }
 
   bootstrapContract: {
     shape: class
     label: "bootstrap contract"
+    style.font-size: 22
   }
 
   featureTemplateContract: {
     shape: class
     label: "feature-template contract"
+    style.font-size: 22
   }
 }
 
-app.entrypoint -> mountedSlices.jobListSlice: props を渡す
-app.entrypoint -> mountedSlices.jobCreateSlice: props を渡す
-app.entrypoint -> mountedSlices.bootstrapSlice: props を渡す
-mountedSlices.jobListSlice -> gatewayLayer.jobListGateway: 一覧取得を依頼する
-mountedSlices.jobCreateSlice -> gatewayLayer.jobCreateGateway: 作成を依頼する
-mountedSlices.bootstrapSlice -> gatewayLayer.bootstrapGateway: 起動状態取得を依頼する
-foundations.featureTemplateSlice -> gatewayLayer.featureTemplateGateway: テンプレート読込を依頼する
-mountedSlices.jobListSlice -> contracts.jobContract: 結果を扱う
-mountedSlices.jobCreateSlice -> contracts.jobContract: request/result を扱う
-mountedSlices.bootstrapSlice -> contracts.bootstrapContract: 状態を扱う
-foundations.featureTemplateSlice -> contracts.featureTemplateContract: query と data を扱う
+app.entrypoint -> mountedSlices: props を渡して画面 slice を配線する {
+  style.font-size: 22
+}
+mountedSlices -> gatewayLayer: 各 slice から gateway を呼ぶ {
+  style.font-size: 22
+}
+mountedSlices -> contracts: 画面 slice が contract を扱う {
+  style.font-size: 22
+}
+foundations.featureTemplateSlice -> gatewayLayer.featureTemplateGateway: テンプレート読込を依頼する {
+  style.font-size: 22
+}
+foundations.featureTemplateSlice -> contracts.featureTemplateContract: query と data を扱う {
+  style.font-size: 22
+}

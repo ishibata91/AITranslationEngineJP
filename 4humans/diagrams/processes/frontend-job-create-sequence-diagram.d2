@@ -1,9 +1,9 @@
-title: "Frontend job-create sequence diagram"
+title: "Frontend ジョブ作成画面シーケンス図"
 
 jobCreateSequence: {
   shape: sequence_diagram
 
-  user: "User"
+  user: "利用者"
   jobCreateView: "ジョブ作成ビュー (`JobCreateView.svelte`)"
   jobCreateScreen: "ジョブ作成画面 (`JobCreateScreen.svelte`)"
   jobCreateUsecase: "ジョブ作成ユースケース (`JobCreateScreenInput`)"
@@ -11,15 +11,37 @@ jobCreateSequence: {
   tauriGateway: "ジョブ作成 gateway (`createTauriJobCreateExecutor()`)"
   tauriBackend: "Tauri command (`create_job`)"
 
-  user -> jobCreateView: 入力群 (`sourceGroups`) と翻訳単位 (`translationUnits`) を入力する
-  user -> jobCreateView: ジョブ作成を押す
-  jobCreateView -> jobCreateScreen: 送信 event (`submit`)
-  jobCreateScreen -> jobCreateUsecase: 送信する (`submit()`)
-  jobCreateUsecase -> jobCreateStore: 送信中状態へ置き換える (`replaceState(nextState)`)
-  jobCreateUsecase -> tauriGateway: 作成要求 (`request: JobCreateRequest`) を渡す
-  tauriGateway -> tauriBackend: ジョブを作成する (`invoke(\"create_job\")`)
-  tauriBackend -> tauriGateway: 作成結果 (`JobCreateResult`) を返す
-  tauriGateway -> jobCreateUsecase: 解決済み結果を返す
-  jobCreateUsecase -> jobCreateStore: 結果反映状態へ置き換える (`replaceState(nextState)`)
-  jobCreateStore -> jobCreateView: 購読済み状態を反映する
+  user -> jobCreateView: 入力群と翻訳単位群を入力する {
+    style.font-size: 22
+  }
+  user -> jobCreateView: ジョブ作成を押す {
+    style.font-size: 22
+  }
+  jobCreateView -> jobCreateScreen: 送信 event (`submit`) を渡す {
+    style.font-size: 22
+  }
+  jobCreateScreen -> jobCreateUsecase: 送信する (`submit()`) {
+    style.font-size: 22
+  }
+  jobCreateUsecase -> jobCreateStore: 送信中状態へ置き換える {
+    style.font-size: 22
+  }
+  jobCreateUsecase -> tauriGateway: 作成要求 (`JobCreateRequest`) を渡す {
+    style.font-size: 22
+  }
+  tauriGateway -> tauriBackend: ジョブを作成する {
+    style.font-size: 22
+  }
+  tauriBackend -> tauriGateway: 作成結果 (`JobCreateResult`) を返す {
+    style.font-size: 22
+  }
+  tauriGateway -> jobCreateUsecase: 解決済み結果を返す {
+    style.font-size: 22
+  }
+  jobCreateUsecase -> jobCreateStore: 結果反映状態へ置き換える {
+    style.font-size: 22
+  }
+  jobCreateStore -> jobCreateView: 購読済み状態を反映する {
+    style.font-size: 22
+  }
 }

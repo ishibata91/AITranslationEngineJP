@@ -1,4 +1,4 @@
 interface:
   display_name: "D2 図作成"
-  short_description: "D2 図を作成・検証し、論理名と actual name を併記したレビュー用 SVG を生成する"
-  default_prompt: "$diagramming-d2 を使って D2 図を作成または修正し、動詞・パラメータ・クラスや型のラベルでは可能な限り `論理名 (`actual-name`)` を併記してください。`.d2` を validate した後に review 用の `.svg` を `d2 -t 201` コマンドで生成してください。"
+  short_description: "D2 図を作成・検証し、shape と論理名 / actual name を使ってレビュー用 SVG を生成する"
+  default_prompt: "$diagramming-d2 を使って D2 図を作成または修正してください。class 図は `shape: class` と member で属性と振る舞いを表し、sequence 図と robustness 図も shape とラベルだけで役割が読めるようにしてください。ER 図は `shape: sql_table` を使い、列、型、制約を table member へ載せてください。関連は通常 edge、集約は白 diamond、合成は黒 diamond で表してください。overview 図では依存 review に必要な edge を削りすぎず、ラベル・配置・分割・情報密度で読みやすさを整えてください。未検証の layout / routing 構文は最小例で確かめ、`.d2` を validate した後は review 用の `.svg` を `d2 -t 201` で生成し、目視確認まで行ってください。"

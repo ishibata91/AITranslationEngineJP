@@ -1,68 +1,106 @@
+layout: elk
 direction: right
 
-title: "Frontend feature-template slice class diagram"
+title: "Frontend テンプレート slice クラス図"
 
 ui: {
   shape: package
   label: "UI"
+  direction: down
+  style.font-size: 22
 
   screen: {
     shape: class
-    label: "テンプレート画面 (`FeatureTemplateScreen.svelte`)\n- 初期化する (`initialize()`)\n- refresh / retry / select / query 更新を転送する"
+    label: "テンプレート画面 (`FeatureTemplateScreen.svelte`)"
+    "- 初期化と event 転送を行う": ""
+    style.font-size: 22
   }
 
   view: {
     shape: class
-    label: "テンプレートビュー (`FeatureTemplateView.svelte`)\n- query を編集する\n- refresh / retry / select / updateQuery event を発火する"
+    label: "テンプレートビュー (`FeatureTemplateView.svelte`)"
+    "- query 編集と event 発火を行う": ""
+    style.font-size: 22
   }
 }
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   usecase: {
     shape: class
-    label: "テンプレートユースケース (`FeatureTemplateScreenInput` / `createFeatureTemplateScreenUsecase()`)\n+ 初期化する (`initialize()`)\n+ 再読込する (`refresh()`)\n+ 再試行する (`retry()`)\n+ 項目を選択する (`select(selection)`)\n+ filter を更新する (`updateFilters(filters, options)`)"
+    label: "テンプレートユースケース (`FeatureTemplateScreenInput` / `createFeatureTemplateScreenUsecase()`)"
+    "+ 読込・再試行・選択・filter 更新を扱う": ""
+    style.font-size: 22
   }
 
   featureFoundation: {
     shape: class
     label: "汎用画面基盤 (`createFeatureScreenUsecase()` / `createFeatureScreenStore()`)"
+    style.font-size: 22
   }
 
   store: {
     shape: class
-    label: "テンプレートストア (`FeatureTemplateScreenStore`)\n+ filter / data / selection を保持する"
+    label: "テンプレートストア (`FeatureTemplateScreenStore`)"
+    "+ filter / data / selection を保持する": ""
+    style.font-size: 22
   }
 
   contract: {
     shape: class
-    label: "テンプレート contract\n`FeatureTemplateData` / `FeatureTemplateItem` / `FeatureTemplateQuery`"
+    label: "テンプレート contract (`FeatureTemplateData` / `FeatureTemplateItem` / `FeatureTemplateQuery`)"
+    style.font-size: 22
   }
 }
 
 gateway: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   templateGateway: {
     shape: class
-    label: "テンプレート gateway (`createTauriFeatureTemplateGateway()`)\n- query 付き `load(request)` を呼ぶ"
+    label: "テンプレート gateway (`createTauriFeatureTemplateGateway()`)"
+    "- query 付き `load(request)` を呼ぶ": ""
+    style.font-size: 22
   }
 
   featureGateway: {
     shape: class
     label: "汎用 Tauri gateway (`createTauriFeatureScreenGateway()`)"
+    style.font-size: 22
   }
 }
 
-ui.screen -> ui.view: 描画する
-ui.view -> application.usecase: event を渡す
-ui.screen -> application.usecase: 初期化する (`initialize()`)
-application.usecase -> application.featureFoundation: 読込状態遷移を再利用する
-application.usecase -> application.store: state を更新する
-application.usecase -> gateway.templateGateway: query 付き読込を依頼する
-gateway.templateGateway -> gateway.featureGateway: 汎用 `load(request)` を使う
-gateway.templateGateway -> application.contract: data を返す
-application.store -> ui.view: 購読済み状態を渡す
+ui.screen -> ui.view: 描画する {
+  style.font-size: 22
+}
+ui.view -> application.usecase: event を渡す {
+  style.font-size: 22
+}
+ui.screen -> application.usecase: 初期化する {
+  style.font-size: 22
+}
+application.usecase -> application.featureFoundation: 読込状態遷移を再利用する {
+  style.font-size: 22
+}
+application.usecase -> application.store: state を更新する {
+  style.font-size: 22
+}
+application.usecase -> gateway.templateGateway: query 付き読込を依頼する {
+  style.font-size: 22
+}
+gateway.templateGateway -> gateway.featureGateway: 汎用 `load(request)` を使う {
+  style.font-size: 22
+}
+gateway.templateGateway -> application.contract: data を返す {
+  style.font-size: 22
+}
+application.store -> ui.view: 購読済み状態を渡す {
+  style.font-size: 22
+}

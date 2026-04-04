@@ -1,25 +1,47 @@
-title: "Backend import-xedit sequence diagram"
+title: "Backend xEdit 取込シーケンス図"
 
 importSequence: {
   shape: sequence_diagram
 
   frontend: "フロント呼出し (`invoke`)"
-  commands: "xEdit 取込 command (`gateway::commands::import_xedit_export_json`)"
+  commands: "xEdit 取込 command 境界 (`gateway::commands::import_xedit_export_json`)"
   importUsecase: "xEdit 取込ユースケース (`ImportXeditExportUseCase`)"
   importer: "filesystem importer (`FileSystemXeditExportImporter`)"
   pluginExport: "取込済み export (`ImportedPluginExport`)"
   sqliteRepo: "SQLite export repository (`SqlitePluginExportRepository`)"
   dto: "xEdit 取込結果 DTO (`ImportXeditExportResultDto`)"
 
-  frontend -> commands: 取込要求 (`request: ImportXeditExportRequestDto`) を渡す
-  commands -> importUsecase: 取込要求を実行する (`execute(request)`)
-  importUsecase -> importer: 入力ファイル群 (`file_paths`) を取り込む (`import_from_paths(file_paths)`)
-  importer -> pluginExport: 翻訳単位群 (`translation_units`) と生レコード群 (`raw_records`) を組み立てる
-  pluginExport -> importer: 検証済み export を返す
-  importer -> importUsecase: 取込済み export 群 (`Vec<ImportedPluginExport>`) を返す
-  importUsecase -> sqliteRepo: 取込済み export 群 (`plugin_exports`) を保存する
-  sqliteRepo -> importUsecase: 永続化完了を返す
-  importUsecase -> dto: export 群から結果 DTO を作る (`from(plugin_exports)`)
-  dto -> commands: xEdit 取込結果 DTO を返す
-  commands -> frontend: 結果 (`Result<ImportXeditExportResultDto, String>`) を返す
+  frontend -> commands: 取込要求 (`ImportXeditExportRequestDto`) を渡す {
+    style.font-size: 22
+  }
+  commands -> importUsecase: 取込要求を実行する (`execute(request)`) {
+    style.font-size: 22
+  }
+  importUsecase -> importer: 入力ファイル群を取り込む {
+    style.font-size: 22
+  }
+  importer -> pluginExport: 翻訳単位群と生レコード群を組み立てる {
+    style.font-size: 22
+  }
+  pluginExport -> importer: 検証済み export を返す {
+    style.font-size: 22
+  }
+  importer -> importUsecase: 取込済み export 群を返す {
+    style.font-size: 22
+  }
+  importUsecase -> sqliteRepo: 取込済み export 群を保存する {
+    style.font-size: 22
+  }
+  sqliteRepo -> importUsecase: 永続化完了を返す {
+    style.font-size: 22
+  }
+  importUsecase -> dto: 結果 DTO を作る {
+    style.font-size: 22
+  }
+  dto -> commands: xEdit 取込結果 DTO を返す {
+    style.font-size: 22
+  }
+  commands -> frontend: 結果を返す {
+    style.font-size: 22
+  }
 }

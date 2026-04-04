@@ -1,56 +1,88 @@
+layout: elk
 direction: right
 
-title: "Frontend job-create slice class diagram"
+title: "Frontend ジョブ作成 slice クラス図"
 
 ui: {
   shape: package
   label: "UI"
+  direction: down
+  style.font-size: 22
 
   screen: {
     shape: class
-    label: "ジョブ作成画面 (`JobCreateScreen.svelte`)\n- 初期化する (`initialize()`)\n- submit / update event を転送する"
+    label: "ジョブ作成画面 (`JobCreateScreen.svelte`)"
+    "- 初期化と submit / update 転送を行う": ""
+    style.font-size: 22
   }
 
   view: {
     shape: class
-    label: "ジョブ作成ビュー (`JobCreateView.svelte`)\n- 作成要求 (`request`) を編集する\n- submit / reset / update event を発火する"
+    label: "ジョブ作成ビュー (`JobCreateView.svelte`)"
+    "- 作成要求編集と event 発火を行う": ""
+    style.font-size: 22
   }
 }
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   usecase: {
     shape: class
-    label: "ジョブ作成ユースケース (`JobCreateScreenInput` / `createJobCreateScreenUsecase()`)\n+ 送信する (`submit()`)\n+ 結果を消す (`resetResult()`)\n+ 入力群項目を更新する (`updateSourceGroupField(groupIndex, field, value)`)\n+ 翻訳単位項目を更新する (`updateTranslationUnitField(groupIndex, unitIndex, field, value)`)"
+    label: "ジョブ作成ユースケース (`JobCreateScreenInput` / `createJobCreateScreenUsecase()`)"
+    "+ 送信・結果消去・入力更新を扱う": ""
+    style.font-size: 22
   }
 
   store: {
     shape: class
-    label: "ジョブ作成ストア (`JobCreateScreenStore`)\n+ 購読する (`subscribe(run)`)\n+ 状態を取得する (`getState()`)\n+ 状態を置き換える (`replaceState(nextState)`)"
+    label: "ジョブ作成ストア (`JobCreateScreenStore`)"
+    "+ 状態の読取と置換を行う": ""
+    style.font-size: 22
   }
 
   contract: {
     shape: class
-    label: "作成 contract (`JobCreateRequest` / `JobCreateResult`)\n入力群 (`sourceGroups`)\n翻訳単位群 (`translationUnits`)"
+    label: "作成 contract (`JobCreateRequest` / `JobCreateResult`)"
+    style.font-size: 22
   }
 }
 
 gateway: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   executor: {
     shape: class
-    label: "ジョブ作成 gateway (`createTauriJobCreateExecutor()`)\n- ジョブを作成する (`invoke(\"create_job\")`)"
+    label: "ジョブ作成 gateway (`createTauriJobCreateExecutor()`)"
+    "- ジョブを作成する": ""
+    style.font-size: 22
   }
 }
 
-ui.screen -> ui.view: 描画する
-ui.view -> application.usecase: 送信 / 更新 event を渡す
-ui.screen -> application.usecase: 初期化する (`initialize()`)
-application.usecase -> application.store: state を更新する
-application.usecase -> gateway.executor: 作成要求を渡す
-gateway.executor -> application.contract: request/result を扱う
-application.store -> ui.view: 購読済み状態を渡す
+ui.screen -> ui.view: 描画する {
+  style.font-size: 22
+}
+ui.view -> application.usecase: 送信と更新 event を渡す {
+  style.font-size: 22
+}
+ui.screen -> application.usecase: 初期化する {
+  style.font-size: 22
+}
+application.usecase -> application.store: state を更新する {
+  style.font-size: 22
+}
+application.usecase -> gateway.executor: 作成要求を渡す {
+  style.font-size: 22
+}
+gateway.executor -> application.contract: request / result を扱う {
+  style.font-size: 22
+}
+application.store -> ui.view: 購読済み状態を渡す {
+  style.font-size: 22
+}

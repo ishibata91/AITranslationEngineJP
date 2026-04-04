@@ -1,65 +1,95 @@
+layout: elk
 direction: right
 
-title: "Backend list-jobs class diagram"
+title: "Backend ジョブ一覧取得クラス図"
 
 gateway: {
   shape: package
   label: "gateway"
+  direction: down
+  style.font-size: 22
 
   command: {
     shape: class
-    label: "ジョブ一覧 command (`list_jobs()`) "
+    label: "ジョブ一覧 command (`list_jobs()`)"
+    style.font-size: 22
   }
 }
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   usecase: {
     shape: class
-    label: "ジョブ一覧ユースケース (`ListJobsUseCase`)\n+ 実行する (`execute()`) "
+    label: "ジョブ一覧ユースケース (`ListJobsUseCase`)"
+    "+ 実行する": "`execute()`"
+    style.font-size: 22
   }
 
   resultDto: {
     shape: class
     label: "ジョブ一覧 DTO (`ListJobsResultDto`)"
+    style.font-size: 22
   }
 
   repoPort: {
     shape: class
-    label: "repository port (`ListJobsRepository`)\n+ 一覧を返す (`list_jobs()`) "
+    label: "repository port (`ListJobsRepository`)"
+    "+ 一覧を返す": "`list_jobs()`"
+    style.font-size: 22
   }
 }
 
 domain: {
   shape: package
   label: "domain"
+  direction: down
+  style.font-size: 22
 
   listedJob: {
     shape: class
     label: "一覧用 job (`ListedJob`)"
+    style.font-size: 22
   }
 
   jobState: {
     shape: class
     label: "ジョブ状態 (`JobState`)"
+    style.font-size: 22
   }
 }
 
 infra: {
   shape: package
   label: "infra"
+  direction: down
+  style.font-size: 22
 
   repoImpl: {
     shape: class
     label: "memory job repository (`InMemoryJobRepository`)"
+    style.font-size: 22
   }
 }
 
-gateway.command -> application.usecase: 一覧取得を呼ぶ
-application.usecase -> application.repoPort: 保存済み job 群を依頼する
-infra.repoImpl -> application.repoPort: 実装する
-application.usecase -> domain.listedJob: 一覧用 job を扱う
-domain.listedJob -> domain.jobState: 状態を参照する
-application.usecase -> application.resultDto: DTO を返す
+gateway.command -> application.usecase: 一覧取得を呼ぶ {
+  style.font-size: 22
+}
+application.usecase -> application.repoPort: 保存済み job 群を依頼する {
+  style.font-size: 22
+}
+infra.repoImpl -> application.repoPort: 実装する {
+  style.font-size: 22
+}
+application.usecase -> domain.listedJob: 一覧用 job を扱う {
+  style.font-size: 22
+}
+domain.listedJob -> domain.jobState: 状態を参照する {
+  style.font-size: 22
+}
+application.usecase -> application.resultDto: DTO を返す {
+  style.font-size: 22
+}

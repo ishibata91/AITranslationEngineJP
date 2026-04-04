@@ -1,201 +1,274 @@
+layout: elk
 direction: down
 
-title: "Process overview robustness diagram"
+title: "主要プロセス overview robustness 図"
 
 bootstrapStatus: {
   shape: package
   label: "起動状態確認"
+  direction: right
+  style.font-size: 22
 
   actor: {
     shape: person
     label: "利用者"
     link: "./frontend-bootstrap-status-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   boundary: {
     shape: class
-    label: "画面境界\n`BootstrapStatusScreen` / `BootstrapStatusView`"
+    label: "画面境界 (`BootstrapStatusScreen` / `BootstrapStatusView`)"
     link: "./frontend-bootstrap-status-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "制御\n`BootstrapStatusScreenInput` / `createBootstrapStatusScreenUsecase()`"
+    label: "画面制御 (`BootstrapStatusScreenInput` / `createBootstrapStatusScreenUsecase()`)"
     link: "./frontend-bootstrap-status-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "状態\n`BootstrapStatus`"
+    label: "起動状態 (`BootstrapStatus`)"
     link: "./frontend-bootstrap-status-sequence-diagram.svg"
+    style.font-size: 22
   }
 
-  actor -> boundary: 画面を開く
-  boundary -> control: 初期化 / 再読込
-  control -> entity: 起動状態を取得する
+  actor -> boundary: 画面を開く {
+    style.font-size: 22
+  }
+  boundary -> control: 初期化と再読込を依頼する {
+    style.font-size: 22
+  }
+  control -> entity: 起動状態を取得する {
+    style.font-size: 22
+  }
 }
 
 jobList: {
   shape: package
   label: "ジョブ一覧確認"
+  direction: right
+  style.font-size: 22
 
   actor: {
     shape: person
     label: "利用者"
     link: "./frontend-job-list-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   boundary: {
     shape: class
-    label: "画面境界\n`JobListScreen` / `JobListView`"
+    label: "画面境界 (`JobListScreen` / `JobListView`)"
     link: "./frontend-job-list-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "制御\n`JobListScreenInput` / `createJobListScreenUsecase()`"
+    label: "画面制御 (`JobListScreenInput` / `createJobListScreenUsecase()`)"
     link: "./frontend-job-list-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "一覧結果\n`JobListResult`"
+    label: "一覧結果 (`JobListResult`)"
     link: "./frontend-job-list-sequence-diagram.svg"
+    style.font-size: 22
   }
 
-  actor -> boundary: 画面を開く / 選択する
-  boundary -> control: 初期化 / refresh / select
-  control -> entity: 一覧を取得する
+  actor -> boundary: 画面を開いて選択する {
+    style.font-size: 22
+  }
+  boundary -> control: 初期化と操作を渡す {
+    style.font-size: 22
+  }
+  control -> entity: 一覧を取得する {
+    style.font-size: 22
+  }
 }
 
 jobCreate: {
   shape: package
   label: "ジョブ作成"
+  direction: right
+  style.font-size: 22
 
   actor: {
     shape: person
     label: "利用者"
     link: "./frontend-job-create-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   boundary: {
     shape: class
-    label: "画面境界\n`JobCreateScreen` / `JobCreateView`"
+    label: "画面境界 (`JobCreateScreen` / `JobCreateView`)"
     link: "./frontend-job-create-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "制御\n`JobCreateScreenInput` / `createJobCreateScreenUsecase()`"
+    label: "画面制御 (`JobCreateScreenInput` / `createJobCreateScreenUsecase()`)"
     link: "./frontend-job-create-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "作成結果\n`JobCreateResult`"
+    label: "作成結果 (`JobCreateResult`)"
     link: "./frontend-job-create-sequence-diagram.svg"
+    style.font-size: 22
   }
 
-  actor -> boundary: 入力して送信する
-  boundary -> control: submit / update
-  control -> entity: ジョブを作成する
+  actor -> boundary: 入力して送信する {
+    style.font-size: 22
+  }
+  boundary -> control: 送信と更新を渡す {
+    style.font-size: 22
+  }
+  control -> entity: ジョブを作成する {
+    style.font-size: 22
+  }
 }
 
 importXedit: {
   shape: package
   label: "xEdit 取込"
+  direction: right
+  style.font-size: 22
 
   actor: {
     shape: person
     label: "呼出し元"
     link: "./backend-import-xedit-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   boundary: {
     shape: class
-    label: "command 境界\n`import_xedit_export_json`"
+    label: "command 境界 (`import_xedit_export_json`)"
     link: "./backend-import-xedit-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "制御\n`ImportXeditExportUseCase`"
+    label: "取込制御 (`ImportXeditExportUseCase`)"
     link: "./backend-import-xedit-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "取込結果\n`ImportedPluginExport` / `TranslationUnit`"
+    label: "取込結果 (`ImportedPluginExport` / `TranslationUnit`)"
     link: "./backend-import-xedit-sequence-diagram.svg"
+    style.font-size: 22
   }
 
-  actor -> boundary: 取込要求を渡す
-  boundary -> control: execute
-  control -> entity: import / validate / persist
+  actor -> boundary: 取込要求を渡す {
+    style.font-size: 22
+  }
+  boundary -> control: 取込処理を呼ぶ {
+    style.font-size: 22
+  }
+  control -> entity: 取込と保存を行う {
+    style.font-size: 22
+  }
 }
 
 dictionaryStorageQuery: {
   shape: package
-  label: "辞書保存 / 検索"
+  label: "辞書保存・検索"
+  direction: right
+  style.font-size: 22
 
   actor: {
     shape: person
     label: "呼出し元"
     link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   boundary: {
     shape: class
-    label: "検索 port 境界\n`DictionaryLookupPort`"
+    label: "検索 port 境界 (`DictionaryLookupPort`)"
     link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "制御\n`SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`"
+    label: "保存・検索制御 (`SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`)"
     link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "辞書結果\n`DictionaryImportResultDto` / `DictionaryLookupResult`"
+    label: "辞書結果 (`DictionaryImportResultDto` / `DictionaryLookupResult`)"
     link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+    style.font-size: 22
   }
 
-  actor -> boundary: 保存後に検索要求を渡す
-  boundary -> control: save / lookup
-  control -> entity: persist / exact-match query
+  actor -> boundary: 保存後に検索要求を渡す {
+    style.font-size: 22
+  }
+  boundary -> control: 保存と検索を依頼する {
+    style.font-size: 22
+  }
+  control -> entity: 永続化と exact match を行う {
+    style.font-size: 22
+  }
 }
 
 masterPersonaRebuild: {
   shape: package
   label: "master persona 再構築"
+  direction: right
+  style.font-size: 22
 
   actor: {
     shape: person
     label: "呼出し元"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   boundary: {
     shape: class
-    label: "base-game NPC 入力境界\n`BaseGameNpcRebuildRequest`"
+    label: "base-game NPC 入力境界 (`BaseGameNpcRebuildRequest`)"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   control: {
     shape: class
-    label: "制御\n`RebuildMasterPersonaUseCase` / `BaseGameNpcMasterPersonaBuilder`"
+    label: "再構築制御 (`RebuildMasterPersonaUseCase` / `BaseGameNpcMasterPersonaBuilder`)"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
+    style.font-size: 22
   }
 
   entity: {
     shape: class
-    label: "master persona 結果\n`MasterPersonaSaveRequestDto` / `MasterPersonaReadResultDto`"
+    label: "再構築結果 (`MasterPersonaSaveRequestDto` / `MasterPersonaReadResultDto`)"
     link: "./backend-master-persona-builder-sequence-diagram.svg"
+    style.font-size: 22
   }
 
-  actor -> boundary: base-game NPC 入力を渡す
-  boundary -> control: rebuild を呼ぶ
-  control -> entity: build / save / read
+  actor -> boundary: base-game NPC 入力を渡す {
+    style.font-size: 22
+  }
+  boundary -> control: 再構築を呼ぶ {
+    style.font-size: 22
+  }
+  control -> entity: build と save/read を行う {
+    style.font-size: 22
+  }
 }

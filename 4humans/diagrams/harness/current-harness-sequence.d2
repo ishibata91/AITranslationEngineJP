@@ -1,71 +1,89 @@
-direction: right
-
-title: "現在のハーネスの論理シーケンス"
+title: "現在のハーネス実行シーケンス"
 
 harness: {
   shape: sequence_diagram
 
-  caller: {
-    label: "呼び出し元"
+  caller: "呼出し元"
+  entry: "Python 入口 (`run.py`)"
+  runtime: "Python 実行系"
+  dispatcher: "スイート調停"
+  structureCheck: "構造検査"
+  designCheck: "設計検査"
+  executionCheck: "実行検査"
+  repository: "リポジトリ状態"
+  tools: "外部ツール群"
+
+  caller -> entry: suite を指定して起動する {
+    style.font-size: 22
+  }
+  entry -> entry: repo root を決める\n`python3` / `python` を探す {
+    style.font-size: 22
+  }
+  entry -> runtime: Python 入口へ制御を渡す {
+    style.font-size: 22
+  }
+  runtime -> dispatcher: suite と repo root を渡す {
+    style.font-size: 22
+  }
+  dispatcher -> dispatcher: 実行順を決める\n`structure | design | execution | all` {
+    style.font-size: 22
   }
 
-  entry: {
-    label: "Python 入口"
+  dispatcher -> structureCheck: `structure` を含む時に呼ぶ {
+    style.font-size: 22
+  }
+  structureCheck -> repository: 必須 path と repo-owned link を確認する {
+    style.font-size: 22
+  }
+  repository -> structureCheck: 存在確認結果を返す {
+    style.font-size: 22
+  }
+  structureCheck -> dispatcher: `pass / fail` を返す {
+    style.font-size: 22
   }
 
-  runtime: {
-    label: "Python 実行系"
+  dispatcher -> designCheck: `design` を含む時に呼ぶ {
+    style.font-size: 22
+  }
+  designCheck -> repository: 契約語と semantic path を確認する {
+    style.font-size: 22
+  }
+  repository -> designCheck: 文書確認結果を返す {
+    style.font-size: 22
+  }
+  designCheck -> dispatcher: `pass / fail` を返す {
+    style.font-size: 22
   }
 
-  dispatcher: {
-    label: "スイート調停"
+  dispatcher -> executionCheck: `execution` を含む時に呼ぶ {
+    style.font-size: 22
+  }
+  executionCheck -> repository: 実行対象と script 定義を検出する {
+    style.font-size: 22
+  }
+  repository -> executionCheck: 実行対象一覧を返す {
+    style.font-size: 22
+  }
+  executionCheck -> tools: `gate:execution` か標準検査を実行する {
+    style.font-size: 22
+  }
+  tools -> executionCheck: 終了コードを返す {
+    style.font-size: 22
+  }
+  executionCheck -> dispatcher: `pass / fail / skip` を返す {
+    style.font-size: 22
   }
 
-  structure_check: {
-    label: "構造検査"
+  dispatcher -> dispatcher: 最初の失敗で停止する {
+    style.font-size: 22
   }
-
-  design_check: {
-    label: "設計検査"
+  dispatcher -> runtime: 全体の終了コードを返す {
+    style.font-size: 22
   }
-
-  execution_check: {
-    label: "実行検査"
+  runtime -> entry: 終了コードを伝える {
+    style.font-size: 22
   }
-
-  repository: {
-    label: "リポジトリ状態"
+  entry -> caller: 最終結果を返す {
+    style.font-size: 22
   }
-
-  tools: {
-    label: "外部ツール群"
-  }
-
-  caller -> entry: "suite を指定して起動する"
-  entry -> entry: "repo root を決める\npython3 / python を探す"
-  entry -> runtime: "Python 入口へ制御を渡す"
-  runtime -> dispatcher: "suite と repo root を渡す"
-  dispatcher -> dispatcher: "実行順を決める\nstructure | design | execution | all"
-
-  dispatcher -> structure_check: "structure を含む場合"
-  structure_check -> repository: "必須 path を確認する\nrepo-owned Markdown link を走査する\n外部 cache は除外する"
-  repository -> structure_check: "存在確認結果を返す"
-  structure_check -> dispatcher: "pass / fail を返す"
-
-  dispatcher -> design_check: "design を含む場合"
-  design_check -> repository: "契約語を確認する\nsemantic path を確認する\ncanonical phrase を確認する"
-  repository -> design_check: "文書と path の結果を返す"
-  design_check -> dispatcher: "pass / fail を返す"
-
-  dispatcher -> execution_check: "execution を含む場合"
-  execution_check -> repository: "repo-owned package.json\nrepo-owned Cargo.toml\nsonar-project.properties を検出する\n.cargo-home などの cache は除外する"
-  repository -> execution_check: "実行対象と script 定義を返す"
-  execution_check -> tools: "gate:execution を優先実行する\n未定義なら lint / test / build と\ncargo fmt / clippy / test を実行する\n必要なら sonar を実行する"
-  tools -> execution_check: "終了コードを返す"
-  execution_check -> dispatcher: "pass / fail / skip を返す"
-
-  dispatcher -> dispatcher: "最初の失敗で停止する"
-  dispatcher -> runtime: "全体の終了コードを返す"
-  runtime -> entry: "終了コードを伝える"
-  entry -> caller: "最終結果を返す"
 }

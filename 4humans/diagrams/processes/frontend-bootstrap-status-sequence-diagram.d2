@@ -1,9 +1,9 @@
-title: "Frontend bootstrap-status sequence diagram"
+title: "Frontend 起動状態画面シーケンス図"
 
 bootstrapStatusSequence: {
   shape: sequence_diagram
 
-  user: "User"
+  user: "利用者"
   bootstrapStatusScreen: "起動状態画面 (`BootstrapStatusScreen.svelte`)"
   bootstrapStatusUsecase: "起動状態ユースケース (`BootstrapStatusScreenInput`)"
   bootstrapStatusStore: "起動状態ストア (`BootstrapStatusScreenStore`)"
@@ -12,18 +12,46 @@ bootstrapStatusSequence: {
   tauriBackend: "Tauri command (`get_bootstrap_status`)"
   bootstrapStatusView: "起動状態ビュー (`BootstrapStatusView.svelte`)"
 
-  user -> bootstrapStatusScreen: 画面を開く
-  bootstrapStatusScreen -> bootstrapStatusUsecase: 初期化する (`initialize()`)
-  bootstrapStatusUsecase -> bootstrapStatusStore: 読込中にする (`setLoading()`)
-  bootstrapStatusUsecase -> bootstrapStatusGateway: 状態取得を依頼する
-  bootstrapStatusGateway -> featureScreenGateway: 汎用 `load()` を呼ぶ
-  featureScreenGateway -> tauriBackend: 起動状態を取得する (`invoke(\"get_bootstrap_status\")`)
-  tauriBackend -> featureScreenGateway: 起動状態 (`BootstrapStatus`) を返す
-  featureScreenGateway -> bootstrapStatusGateway: 解決済み結果を返す
-  bootstrapStatusGateway -> bootstrapStatusUsecase: 解決済み結果を返す
-  bootstrapStatusUsecase -> bootstrapStatusStore: 読込済み状態を設定する (`setLoaded(payload)`)
-  bootstrapStatusStore -> bootstrapStatusView: 購読済み状態を反映する
-  user -> bootstrapStatusView: 項目 (`BootstrapStatusField`) を選ぶ
-  bootstrapStatusView -> bootstrapStatusUsecase: 選択する (`select(selection)`)
-  bootstrapStatusUsecase -> bootstrapStatusStore: 選択状態を設定する (`setSelection(selection)`)
+  user -> bootstrapStatusScreen: 画面を開く {
+    style.font-size: 22
+  }
+  bootstrapStatusScreen -> bootstrapStatusUsecase: 初期化する (`initialize()`) {
+    style.font-size: 22
+  }
+  bootstrapStatusUsecase -> bootstrapStatusStore: 読込中にする (`setLoading()`) {
+    style.font-size: 22
+  }
+  bootstrapStatusUsecase -> bootstrapStatusGateway: 状態取得を依頼する {
+    style.font-size: 22
+  }
+  bootstrapStatusGateway -> featureScreenGateway: 汎用 `load()` を呼ぶ {
+    style.font-size: 22
+  }
+  featureScreenGateway -> tauriBackend: 起動状態を取得する {
+    style.font-size: 22
+  }
+  tauriBackend -> featureScreenGateway: 起動状態を返す {
+    style.font-size: 22
+  }
+  featureScreenGateway -> bootstrapStatusGateway: 解決済み結果を返す {
+    style.font-size: 22
+  }
+  bootstrapStatusGateway -> bootstrapStatusUsecase: 解決済み結果を返す {
+    style.font-size: 22
+  }
+  bootstrapStatusUsecase -> bootstrapStatusStore: 読込済み状態を設定する {
+    style.font-size: 22
+  }
+  bootstrapStatusStore -> bootstrapStatusView: 購読済み状態を反映する {
+    style.font-size: 22
+  }
+  user -> bootstrapStatusView: 項目 (`BootstrapStatusField`) を選ぶ {
+    style.font-size: 22
+  }
+  bootstrapStatusView -> bootstrapStatusUsecase: 選択する (`select(selection)`) {
+    style.font-size: 22
+  }
+  bootstrapStatusUsecase -> bootstrapStatusStore: 選択状態を設定する {
+    style.font-size: 22
+  }
 }

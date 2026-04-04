@@ -1,25 +1,47 @@
-title: "Backend create-job sequence diagram"
+title: "Backend ジョブ作成シーケンス図"
 
 createJobSequence: {
   shape: sequence_diagram
 
   frontend: "フロント呼出し (`invoke`)"
-  commands: "ジョブ作成 command (`gateway::commands::create_job`)"
+  commands: "ジョブ作成 command 境界 (`gateway::commands::create_job`)"
   createJobUsecase: "ジョブ作成ユースケース (`CreateJobUseCase`)"
   translationUnitFactory: "翻訳単位生成 (`TranslationUnit::new`)"
   createReadyJob: "準備完了ジョブ生成 (`create_ready_job`)"
-  jobRepository: "メモリ上 job repository (`InMemoryJobRepository`)"
+  jobRepository: "メモリ job repository (`InMemoryJobRepository`)"
   dto: "ジョブ作成結果 DTO (`CreateJobResultDto`)"
 
-  frontend -> commands: ジョブ作成要求 (`request: CreateJobRequestDto`) を渡す
-  commands -> createJobUsecase: 作成要求を実行する (`execute(request)`)
-  createJobUsecase -> translationUnitFactory: 各 DTO 単位から翻訳単位を作る
-  translationUnitFactory -> createJobUsecase: 検証済み翻訳単位 (`TranslationUnit`) を返す
-  createJobUsecase -> createReadyJob: 準備完了ジョブを作る (`create_ready_job(job_id, source_groups)`)
-  createReadyJob -> createJobUsecase: 作成済みジョブ (`CreatedJob`) を返す
-  createJobUsecase -> jobRepository: 作成済みジョブ (`created_job`) を保存する
-  jobRepository -> createJobUsecase: ok
-  createJobUsecase -> dto: 作成済みジョブから結果 DTO を作る (`from_created_job(created_job)`)
-  dto -> commands: ジョブ作成結果 DTO を返す
-  commands -> frontend: 結果 (`Result<CreateJobResultDto, String>`) を返す
+  frontend -> commands: 作成要求 (`CreateJobRequestDto`) を渡す {
+    style.font-size: 22
+  }
+  commands -> createJobUsecase: 作成要求を実行する (`execute(request)`) {
+    style.font-size: 22
+  }
+  createJobUsecase -> translationUnitFactory: DTO から翻訳単位を作る {
+    style.font-size: 22
+  }
+  translationUnitFactory -> createJobUsecase: 検証済み翻訳単位を返す {
+    style.font-size: 22
+  }
+  createJobUsecase -> createReadyJob: 準備完了ジョブを作る {
+    style.font-size: 22
+  }
+  createReadyJob -> createJobUsecase: 作成済みジョブを返す {
+    style.font-size: 22
+  }
+  createJobUsecase -> jobRepository: 作成済みジョブを保存する {
+    style.font-size: 22
+  }
+  jobRepository -> createJobUsecase: 保存結果を返す {
+    style.font-size: 22
+  }
+  createJobUsecase -> dto: 結果 DTO を作る {
+    style.font-size: 22
+  }
+  dto -> commands: ジョブ作成結果 DTO を返す {
+    style.font-size: 22
+  }
+  commands -> frontend: 結果を返す {
+    style.font-size: 22
+  }
 }

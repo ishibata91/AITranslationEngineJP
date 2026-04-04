@@ -1,80 +1,123 @@
+layout: elk
 direction: right
 
-title: "Backend dictionary-storage-query class diagram"
+title: "Backend 辞書保存・検索クラス図"
 
 application: {
   shape: package
   label: "application"
+  direction: down
+  style.font-size: 22
 
   saveUsecase: {
     shape: class
-    label: "辞書保存ユースケース (`SaveImportedDictionaryUseCase`)\n+ 取込済み辞書を保存する (`execute(imported_dictionary)`) "
+    label: "辞書保存ユースケース (`SaveImportedDictionaryUseCase`)"
+    "+ 取込済み辞書を保存する": "`execute(imported_dictionary)`"
+    style.font-size: 22
   }
 
   lookupUsecase: {
     shape: class
-    label: "辞書検索ユースケース (`LookupDictionaryUseCase`)\n+ 再利用辞書候補を検索する (`lookup(request)`) "
+    label: "辞書検索ユースケース (`LookupDictionaryUseCase`)"
+    "+ 再利用辞書候補を検索する": "`lookup(request)`"
+    style.font-size: 22
   }
 
   queryRepository: {
     shape: class
-    label: "辞書 query repository (`DictionaryQueryRepository`)\n+ 取込済み master dictionary を保存する (`save_imported_master_dictionary(imported_dictionary)`) \n+ source_text 群で再利用 entry を検索する (`lookup_reusable_entries_by_source_texts(source_texts)`) "
+    label: "辞書 query repository (`DictionaryQueryRepository`)"
+    "+ 取込済み辞書を保存する": "`save_imported_master_dictionary(imported_dictionary)`"
+    "+ `source_text` 群で再利用 entry を検索する": "`lookup_reusable_entries_by_source_texts(source_texts)`"
+    style.font-size: 22
   }
 
   importResultDto: {
     shape: class
     label: "辞書取込結果 DTO (`DictionaryImportResultDto`)"
+    style.font-size: 22
   }
 
   lookupRequestDto: {
     shape: class
     label: "辞書検索要求 DTO (`DictionaryLookupRequest`)"
+    style.font-size: 22
   }
 
   lookupResultDto: {
     shape: class
     label: "辞書検索結果 DTO (`DictionaryLookupResult`)"
+    style.font-size: 22
   }
 }
 
 sharedDto: {
   shape: package
   label: "shared DTO"
+  direction: down
+  style.font-size: 22
 
   reusableEntry: {
     shape: class
     label: "再利用辞書 entry (`ReusableDictionaryEntryDto`)"
+    style.font-size: 22
   }
 }
 
 infra: {
   shape: package
   label: "infra"
+  direction: down
+  style.font-size: 22
 
   sqliteRepository: {
     shape: class
     label: "SQLite 辞書 repository (`SqliteDictionaryRepository`)"
+    style.font-size: 22
   }
 
   masterDictionaryTable: {
-    shape: sql_table
-    label: "master dictionary table (`master_dictionary`)"
+    shape: class
+    label: "辞書親 table (`master_dictionary`)"
+    style.font-size: 22
   }
 
   masterDictionaryEntryTable: {
-    shape: sql_table
-    label: "master dictionary entry table (`master_dictionary_entry`)"
+    shape: class
+    label: "辞書 entry table (`master_dictionary_entry`)"
+    style.font-size: 22
   }
 }
 
-application.saveUsecase -> application.importResultDto: 取込済み辞書を受け取る
-application.saveUsecase -> application.queryRepository: 保存を依頼する
-application.lookupUsecase -> application.lookupRequestDto: 検索要求を受け取る
-application.lookupUsecase -> application.queryRepository: exact match 検索を依頼する
-application.lookupUsecase -> application.lookupResultDto: request 順の結果を返す
-application.lookupUsecase -> sharedDto.reusableEntry: 候補群を束ねる
-infra.sqliteRepository -> application.queryRepository: 実装する
-infra.sqliteRepository -> infra.masterDictionaryTable: parent row を transaction で保存する
-infra.sqliteRepository -> infra.masterDictionaryEntryTable: ordered entry row を transaction で保存する
-infra.sqliteRepository -> sharedDto.reusableEntry: query row を DTO に戻す
-infra.masterDictionaryEntryTable -> infra.masterDictionaryTable: `master_dictionary_id` で従属する
+application.saveUsecase -> application.importResultDto: 取込済み辞書を受け取る {
+  style.font-size: 22
+}
+application.saveUsecase -> application.queryRepository: 保存を依頼する {
+  style.font-size: 22
+}
+application.lookupUsecase -> application.lookupRequestDto: 検索要求を受け取る {
+  style.font-size: 22
+}
+application.lookupUsecase -> application.queryRepository: exact match 検索を依頼する {
+  style.font-size: 22
+}
+application.lookupUsecase -> application.lookupResultDto: request 順の結果を返す {
+  style.font-size: 22
+}
+application.lookupUsecase -> sharedDto.reusableEntry: 候補群を束ねる {
+  style.font-size: 22
+}
+infra.sqliteRepository -> application.queryRepository: 実装する {
+  style.font-size: 22
+}
+infra.sqliteRepository -> infra.masterDictionaryTable: 親 row を transaction で保存する {
+  style.font-size: 22
+}
+infra.sqliteRepository -> infra.masterDictionaryEntryTable: ordered entry row を transaction で保存する {
+  style.font-size: 22
+}
+infra.sqliteRepository -> sharedDto.reusableEntry: query row を DTO に戻す {
+  style.font-size: 22
+}
+infra.masterDictionaryEntryTable -> infra.masterDictionaryTable: `master_dictionary_id` で従属する {
+  style.font-size: 22
+}
