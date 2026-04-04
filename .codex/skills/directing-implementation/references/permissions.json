@@ -5,7 +5,7 @@
     "active impl plan を作成または更新する",
     "designing-implementation へ task-local design を handoff する",
     "distilling、planning、tests、implementing、reviewing へ handoff する",
-    "`4humans sync` を同一変更で扱い、diagram 影響時は `4humans/class-diagrams/` と `4humans/sequence-diagrams/` の更新要否も整理して、完了時に plan を completed へ移す"
+    "`4humans sync` を同一変更で扱い、実装の変更または追加では `4humans/diagrams/processes/`、構造の変更または追加では `4humans/diagrams/structures/` の更新要否も整理して、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
     "非自明な変更を active plan なしで進める",

@@ -1,0 +1,29 @@
+title: "Backend dictionary-storage-query sequence diagram"
+
+dictionaryStorageQuerySequence: {
+  shape: sequence_diagram
+
+  importUsecase: "辞書取込ユースケース (`ImportDictionaryUseCase`)"
+  saveUsecase: "辞書保存ユースケース (`SaveImportedDictionaryUseCase`)"
+  lookupUsecase: "辞書検索ユースケース (`LookupDictionaryUseCase`)"
+  sqliteRepo: "SQLite 辞書 repository (`SqliteDictionaryRepository`)"
+  masterDictionary: "master dictionary table (`master_dictionary`)"
+  masterDictionaryEntry: "master dictionary entry table (`master_dictionary_entry`)"
+  lookupPort: "辞書検索 port (`DictionaryLookupPort`)"
+  snapshot: "rebuild snapshot"
+
+  importUsecase -> saveUsecase: 取込結果 (`DictionaryImportResultDto`) を渡す
+  saveUsecase -> sqliteRepo: 取込済み辞書を保存する (`save_imported_master_dictionary(imported_dictionary)`)
+  sqliteRepo -> masterDictionary: parent row を insert する
+  sqliteRepo -> masterDictionaryEntry: entry row 群を順序どおり insert する
+  masterDictionaryEntry -> sqliteRepo: 保存完了または失敗を返す
+  sqliteRepo -> saveUsecase: transaction 完了を返す
+  lookupPort -> lookupUsecase: 検索要求 (`DictionaryLookupRequest`) を渡す
+  lookupUsecase -> lookupUsecase: 空 request を拒否し、重複 request を集約する
+  lookupUsecase -> sqliteRepo: exact match 検索を依頼する (`lookup_reusable_entries_by_source_texts(source_texts)`)
+  sqliteRepo -> masterDictionaryEntry: `source_text IN (...)` で候補 row を読む
+  sqliteRepo -> masterDictionary: dictionary 順序 (`master_dictionary.id ASC`) を参照する
+  sqliteRepo -> lookupUsecase: ordered entry 群 (`Vec<ReusableDictionaryEntryDto>`) を返す
+  lookupUsecase -> lookupUsecase: request 順へ `candidate_groups` を復元する
+  lookupUsecase -> snapshot: 検索結果 (`DictionaryLookupResult`) を渡す
+}

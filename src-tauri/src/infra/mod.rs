@@ -1,3 +1,4 @@
+pub mod dictionary_repository;
 pub mod execution_cache;
 pub mod job_repository;
 pub mod plugin_export_repository;

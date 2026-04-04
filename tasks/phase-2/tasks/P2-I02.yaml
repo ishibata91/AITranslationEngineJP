@@ -1,7 +1,7 @@
 id: P2-I02
 title: Implement master dictionary storage and query
 type: impl
-status: planned
+status: done
 goal: Persist and query dictionary foundation data behind the agreed lookup port.
 owned_scope:
 - src-tauri/src/application/dictionary_query/
