@@ -9,7 +9,9 @@
     "preview": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vite/bin/vite.js preview --config ./vite.config.mjs --configLoader native",
     "format": "prettier --write \"src/**/*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\"",
-    "lint": "npm run lint:oxlint && npm run lint:eslint && npm run lint:knip",
+    "lint": "npm run lint:frontend && npm run lint:backend",
+    "lint:frontend": "npm run lint:oxlint && npm run lint:eslint && npm run lint:knip",
+    "lint:backend": "npm run lint:rust",
     "lint:rust": "npm run lint:rust:fmt && npm run lint:rust:clippy",
     "lint:rust:fmt": "CARGO_HOME=.cargo-home cargo fmt --manifest-path ./src-tauri/Cargo.toml --all --check",
     "lint:rust:clippy": "CARGO_HOME=.cargo-home cargo clippy --manifest-path ./src-tauri/Cargo.toml --all-targets --all-features -- -D warnings",
@@ -19,7 +21,7 @@
     "scan:sonar": "sonar-scanner",
     "test": "node --require ./scripts/node/disable-vite-windows-net-use.cjs ./node_modules/vitest/vitest.mjs run --pool threads --config ./vite.config.mjs --configLoader native",
     "test:rust": "CARGO_HOME=.cargo-home cargo test --manifest-path ./src-tauri/Cargo.toml --all-features",
-    "gate:execution": "npm run format:check && npm run lint && npm run lint:rust && npm run scan:sonar && npm run test && npm run test:rust && npm run build",
+    "gate:execution": "npm run format:check && npm run lint && npm run scan:sonar && npm run test && npm run test:rust && npm run build",
     "tauri": "tauri"
   },
   "dependencies": {

@@ -51,7 +51,7 @@
 
 ### Impl lane
 
-`User -> implementation lane owner (`directing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) -> sonar-scanner + Docker MCP Sonar open issue gate -> implementation review skill (`reviewing-implementation`) -> 4humans sync + implementation lane owner (`directing-implementation`) close`
+`User -> implementation lane owner (`directing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Docker MCP Sonar open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + implementation lane owner (`directing-implementation`) close`
 
 - implementation lane owner (`directing-implementation`) は実装要求を受け、active plan を作成し、重複確認と handoff に必要な最小限の入口情報だけを整える
 - implementation distill skill (`distilling-implementation`) は入口情報を起点に必要最小限の repo 文脈を探索し、facts、constraints、gaps、closeout notes、required reading を返す
@@ -59,12 +59,13 @@
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
 - implementation workplan skill (`planning-implementation`) は実装順、owned scope、validation を短い brief に落とす
 - test architecture skill (`architecting-tests`) は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
-- frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装する
-- `sonar-scanner + Docker MCP Sonar open issue gate` は server-side analysis を更新し、`docker mcp tools call search_sonar_issues_in_projects --gateway-arg=--profile --gateway-arg=codexmcps` を使う helper script から `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
+- frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装し、frontend では `python3 scripts/harness/run.py --suite frontend-lint`、backend では `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する
+- `sonar-scanner + Docker MCP Sonar open issue gate` は implementation lane owner (`directing-implementation`) が server-side analysis を更新し、`docker mcp tools call search_sonar_issues_in_projects --gateway-arg=--profile --gateway-arg=codexmcps` を使う helper script から `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
 - Sonar issue read の前提設定は Sonar CLI 認証ではなく、`codexmcps` profile に入った `mcp/sonarqube` の secret / config とする
 - implementation review skill (`reviewing-implementation`) は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
-- Sonar issue remediation loop は review の前段で扱い、close 条件に含める
+- implementation lane owner (`directing-implementation`) は review が `pass` の後に `python3 scripts/harness/run.py --suite all` を final harness として実行する
+- Sonar issue remediation loop は review の前段で、final harness は review の後段で implementation lane owner (`directing-implementation`) が扱い、どちらも close 条件に含める
 - review が `pass` の時は `4humans sync` を整理し、実装の変更または追加があった時は diagramming D2 skill (`diagramming-d2`) で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
 - `4humans/diagrams/processes/` または `4humans/diagrams/structures/` に new detail `.d2` を追加する時は、`4humans/diagrams/overview-manifest.json` を同じ変更で更新し、manifest で紐づいた overview `.d2` / `.svg` も同じ変更で更新する
 

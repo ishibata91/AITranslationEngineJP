@@ -27,6 +27,7 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 ## Rules
 - spawn_agentのfork_contextはfalseで呼び出すこと。
 - docs-only の問題ならコード修正を始めない
+- `changes/`、`context_board`、`tasks.md` を live 正本にしない
 - temporary logging は最後に除去する
 - review が `pass` でも `4humans sync` と residual risk 整理前に close とみなさない
 

@@ -10,8 +10,7 @@ description: backend 側の allowed scope を直接実装し、指定 checks を
 - 編集前に `docs/coding-guidelines.md` を読む
 - active exec-plan と work brief を読んでから編集する
 - backend owned scope だけを変更する
-- 指定された checks を実行する
-- `sonar-scanner` 実行後に `python3 .codex/skills/directing-implementation/scripts/get-open-sonar-issues.py --project ishibata91_AITranslationEngineJP --owned-paths <backend-owned-paths>` で Docker MCP Sonar issue gate の `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを見て、backend owned scope issue が出た場合はその issue が消えるまで修正を継続する
+- implementation lane owner (`directing-implementation`) から渡された `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する
 - plan の書き換えや lane 切り替えはしない
 
 ## Reference Use

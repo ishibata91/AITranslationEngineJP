@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-05",
   "direction": "skill-to-directing",
   "from_skill": "implementing-backend",
   "to_skill": "directing-implementation",
-  "purpose": "backend 実装結果を review と closeout に引き渡す。",
+  "purpose": "backend 実装結果と backend lint suite の結果を implementation lane owner (`directing-implementation`) の final gate へ引き渡す。",
   "required": [
     {
       "description": "変更した file path。",
@@ -11,12 +11,12 @@
       "type": "string[]"
     },
     {
-      "description": "実行した checks。",
+      "description": "実行した lint suite。",
       "field": "checks_run",
       "type": "string[]"
     },
     {
-      "description": "checks の結果要約。",
+      "description": "lint suite の結果要約。",
       "field": "check_results",
       "type": "string[]"
     }
@@ -37,6 +37,6 @@
     "review 判定を自分で確定しない"
   ],
   "completion_signal": [
-    "direction が reviewing-implementation に handoff できる差分証跡がある"
+    "direction が final harness、Sonar、reviewing-implementation へ進める差分証跡がある"
   ]
 }

@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-05",
   "direction": "directing-to-skill",
   "from_skill": "directing-implementation",
   "to_skill": "implementing-backend",
-  "purpose": "backend 実装 worker へ許可 scope と checks を渡す。",
+  "purpose": "backend 実装 worker へ許可 scope と backend lint suite を渡す。",
   "required": [
     {
       "description": "作業対象 plan。",
@@ -21,7 +21,7 @@
       "type": "string[]"
     },
     {
-      "description": "実行必須の check。",
+      "description": "実行必須の lint suite。`python3 scripts/harness/run.py --suite backend-lint` を渡す。",
       "field": "checks",
       "type": "string[]"
     }
@@ -38,6 +38,6 @@
     "plan の lane を切り替えない"
   ],
   "completion_signal": [
-    "実装と checks 実行に必要な境界が明示されている"
+    "実装と backend lint suite 実行に必要な境界が明示されている"
   ]
 }

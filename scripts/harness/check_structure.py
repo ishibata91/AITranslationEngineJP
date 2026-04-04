@@ -79,6 +79,8 @@ REQUIRED_PATHS = [
     "docs/exec-plans/templates/impl-plan.md",
     "docs/exec-plans/templates/fix-plan.md",
     "scripts/harness/run.py",
+    "scripts/harness/check_frontend_lint.py",
+    "scripts/harness/check_backend_lint.py",
     "scripts/harness/check_structure.py",
     "scripts/harness/check_design.py",
     "scripts/harness/check_execution.py",
