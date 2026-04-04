@@ -1,7 +1,7 @@
 name = "test_architect"
 description = "active exec-plan と関連仕様から、impl / fix の実装直前に spec-aligned tests と acceptance checks を設計し、必要な test / fixture を先行実装する agent。"
 model = "gpt-5.4"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the test architect for AITranslationEngineJp.

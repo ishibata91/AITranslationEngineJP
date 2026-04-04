@@ -1,6 +1,6 @@
 name = "ctx_loader"
 description = "要求、active plan、入口情報から最小限の repo 文脈を探索し、次工程に必要な facts / constraints / gaps を返す read-only agent。"
-model = "gpt-5.3-codex-spark"
+model = "gpt-5.4-mini"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
 developer_instructions = """
