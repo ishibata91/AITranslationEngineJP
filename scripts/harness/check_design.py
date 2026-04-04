@@ -27,7 +27,7 @@ CHECKS = [
     { "file": ".codex/skills/designing-implementation/SKILL.md", "patterns": ["UI", "Scenario", "Logic", "task-local design", "changes/", "tasks.md"] },
     { "file": ".codex/skills/directing-fixes/SKILL.md", "patterns": ["docs/exec-plans/templates/fix-plan.md", "distilling-fixes", "tracing-fixes", "logging-fixes", "architecting-tests", "reviewing-fixes", "tasks.md"] },
     { "file": ".codex/skills/architecting-tests/SKILL.md", "patterns": ["Acceptance Checks", "failing tests", "fixtures", "validation commands", "closeout notes", "updating-docs"] },
-    { "file": ".codex/skills/reviewing-implementation/SKILL.md", "patterns": ["Review Scope", "pass", "reroute", "score"] },
+    { "file": ".codex/skills/reviewing-implementation/SKILL.md", "patterns": ["Review Scope", "pass", "reroute"] },
     { "file": ".codex/skills/reviewing-fixes/SKILL.md", "patterns": ["Review Scope", "pass", "reroute"] },
     { "file": "docs/exec-plans/templates/impl-plan.md", "patterns": ["Decision Basis", "UI", "Scenario", "Logic", "Implementation Plan", "Required Evidence", "4humans Sync", "Outcome"] },
     { "file": "docs/exec-plans/templates/fix-plan.md", "patterns": ["Decision Basis", "Known Facts", "Trace Plan", "Fix Plan", "Required Evidence", "4humans Sync", "Outcome"] },

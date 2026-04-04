@@ -36,6 +36,9 @@
       "4humans/diagrams/structures/frontend-feature-template-slice-class-diagram.d2": [
         "4humans/diagrams/structures/frontend-structure-overview.d2"
       ],
+      "4humans/diagrams/structures/frontend-dictionary-observe-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ],
       "4humans/diagrams/structures/frontend-job-create-slice-class-diagram.d2": [
         "4humans/diagrams/structures/frontend-structure-overview.d2"
       ],
@@ -71,6 +74,9 @@
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-bootstrap-status-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/frontend-dictionary-observe-sequence-diagram.d2": [
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-job-create-sequence-diagram.d2": [

@@ -136,10 +136,17 @@ async function renderAppShell(): Promise<string> {
     source: "<h1>Job Create</h1>",
   });
 
+  const compiledDictionaryObserveStub = await compileSvelteModule({
+    filename: "DictionaryObserveScreen.svelte",
+    require,
+    source: "<h1>Dictionary Observe</h1>",
+  });
+
   const compiledAppShell = await compileSvelteModule({
     filename: "AppShell.svelte",
     replacements: {
       '"@ui/screens/bootstrap-status/BootstrapStatusScreen.svelte"': `"${compiledBootstrapStub.url}"`,
+      '"@ui/screens/dictionary-observe/DictionaryObserveScreen.svelte"': `"${compiledDictionaryObserveStub.url}"`,
       '"@ui/screens/job-create/JobCreateScreen.svelte"': `"${compiledJobCreateStub.url}"`,
       '"@ui/screens/job-list/JobListScreen.svelte"': `"${compiledJobListScreen.url}"`,
     },

@@ -1,0 +1,105 @@
+layout: elk
+direction: right
+
+title: "Frontend 辞書観測 slice クラス図"
+
+shell: {
+  shape: package
+  label: "shell"
+  direction: down
+  style.font-size: 22
+
+  appShell: {
+    shape: class
+    label: "画面配線 (`AppShell.svelte`)"
+    "- 辞書観測 props がある時だけ compose する": ""
+    style.font-size: 22
+  }
+}
+
+ui: {
+  shape: package
+  label: "UI"
+  direction: down
+  style.font-size: 22
+
+  screen: {
+    shape: class
+    label: "辞書観測画面 (`DictionaryObserveScreen.svelte`)"
+    "- 初期化と event 転送を行う": ""
+    style.font-size: 22
+  }
+
+  view: {
+    shape: class
+    label: "辞書観測ビュー (`DictionaryObserveView.svelte`)"
+    "- 入力、観測、再読込、再試行、選択を発火する": ""
+    style.font-size: 22
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+  direction: down
+  style.font-size: 22
+
+  usecase: {
+    shape: class
+    label: "辞書観測ユースケース (`DictionaryObserveScreenInput` / `createDictionaryObserveScreenUsecase()`)"
+    "+ 明示観測、再読込、再試行、選択を扱う": ""
+    style.font-size: 22
+  }
+
+  store: {
+    shape: class
+    label: "辞書観測ストア (`DictionaryObserveScreenStore`)"
+    "+ 入力、最終 request、読込状態、選択 index を保持する": ""
+    style.font-size: 22
+  }
+
+  result: {
+    shape: class
+    label: "観測結果 (`DictionaryObserveResult` / `DictionaryCandidateGroup`)"
+    style.font-size: 22
+  }
+}
+
+gateway: {
+  shape: package
+  label: "executor boundary"
+  direction: down
+  style.font-size: 22
+
+  executor: {
+    shape: class
+    label: "観測 executor (`executor(request) => Promise<DictionaryObserveResult>`)"
+    "- exact match batch lookup を呼ぶ": ""
+    style.font-size: 22
+  }
+}
+
+shell.appShell -> ui.screen: props が揃った時だけ compose する {
+  style.font-size: 22
+}
+ui.screen -> ui.view: 描画する {
+  style.font-size: 22
+}
+ui.view -> application.usecase: event を渡す {
+  style.font-size: 22
+}
+ui.screen -> application.usecase: 初期化する {
+  style.font-size: 22
+}
+application.usecase -> application.store: state を更新する {
+  style.font-size: 22
+}
+application.usecase -> gateway.executor: 観測 request を依頼する {
+  style.font-size: 22
+}
+gateway.executor -> application.result: 候補 group を返す {
+  style.font-size: 22
+}
+application.store -> ui.view: 購読済み状態を渡す {
+  style.font-size: 22
+}

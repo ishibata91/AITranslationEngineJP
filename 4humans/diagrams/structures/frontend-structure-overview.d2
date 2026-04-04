@@ -36,6 +36,13 @@ mountedSlices: {
     style.font-size: 22
   }
 
+  dictionaryObserveSlice: {
+    shape: class
+    label: "辞書観測 slice (条件付き compose)"
+    link: "./frontend-dictionary-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
+
   bootstrapSlice: {
     shape: class
     label: "起動状態 slice"
@@ -91,6 +98,13 @@ gatewayLayer: {
     link: "./frontend-feature-template-slice-class-diagram.svg"
     style.font-size: 22
   }
+
+  dictionaryObserveExecutor: {
+    shape: class
+    label: "辞書観測 executor"
+    link: "./frontend-dictionary-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
 }
 
 contracts: {
@@ -131,5 +145,8 @@ foundations.featureTemplateSlice -> gatewayLayer.featureTemplateGateway: テン�
   style.font-size: 22
 }
 foundations.featureTemplateSlice -> contracts.featureTemplateContract: query と data を扱う {
+  style.font-size: 22
+}
+mountedSlices.dictionaryObserveSlice -> gatewayLayer.dictionaryObserveExecutor: 観測 request を渡す {
   style.font-size: 22
 }
