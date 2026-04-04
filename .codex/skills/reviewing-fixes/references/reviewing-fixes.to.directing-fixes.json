@@ -11,7 +11,7 @@
       "type": "string"
     },
     {
-      "description": "4 観点に基づく指摘。",
+      "description": "5 観点に基づく指摘。",
       "field": "findings",
       "type": "string[]"
     },

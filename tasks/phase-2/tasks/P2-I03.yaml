@@ -1,7 +1,7 @@
 id: P2-I03
 title: Implement master persona builder
 type: impl
-status: planned
+status: done
 goal: Build master persona data from base-game NPC input.
 owned_scope:
 - src-tauri/src/application/master_persona/

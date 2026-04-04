@@ -62,7 +62,7 @@
 - frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装する
 - `sonar-scanner + Docker MCP Sonar open issue gate` は server-side analysis を更新し、`docker mcp tools call search_sonar_issues_in_projects --gateway-arg=--profile --gateway-arg=codexmcps` を使う helper script から `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
 - Sonar issue read の前提設定は Sonar CLI 認証ではなく、`codexmcps` profile に入った `mcp/sonarqube` の secret / config とする
-- implementation review skill (`reviewing-implementation`) は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
+- implementation review skill (`reviewing-implementation`) は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 - Sonar issue remediation loop は review の前段で扱い、close 条件に含める
 - review が `pass` の時は `4humans sync` を整理し、実装の変更または追加があった時は diagramming D2 skill (`diagramming-d2`) で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
@@ -78,7 +78,7 @@
 - logging skill (`logging-fixes`) は一時観測だけを追加 / 削除し、恒久修正を混ぜない
 - fix analysis skill (`analyzing-fixes`) は観測結果を事実に圧縮し、fix 対象か `4humans sync` 対象か、または human-triggered な docs sync skill (`updating-docs`) 対象かを整理する
 - test architecture skill (`architecting-tests`) は再現条件を tests / acceptance checks / validation commands に落とし、修正前に必要な回帰 test / fixture を最小範囲で実装する
-- fix review skill (`reviewing-fixes`) も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
+- fix review skill (`reviewing-fixes`) も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 だけを見る
 - risk reporting skill (`reporting-risks`) は残留リスクを短くまとめる補助 skill として扱う
 - review が `pass` の時は residual risk と `4humans sync` を整理し、実装の変更または追加があった時は diagramming D2 skill (`diagramming-d2`) で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
 - `4humans/diagrams/processes/` または `4humans/diagrams/structures/` に new detail `.d2` を追加する時は、`4humans/diagrams/overview-manifest.json` を同じ変更で更新し、manifest で紐づいた overview `.d2` / `.svg` も同じ変更で更新する
@@ -98,7 +98,7 @@
 ## Review と reroute
 
 - review は single-pass で、主観レビューや好みの改善提案を主目的にしない
-- review の正式観点は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 つだけ
+- review の正式観点は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 の 5 つだけ
 - `pass` か `reroute` の判定を返し、必要な再実行は lane 側で扱う
 - 繰り返し見つかる指摘は review loop に残さず tests、harness、必要なら plan に昇格する
 

@@ -2,7 +2,7 @@
   "contract_version": "2026-03-29",
   "skill": "reviewing-fixes",
   "allowed_actions": [
-    "仕様逸脱、例外処理、リソース解放、テスト不足の 4 観点で single-pass review を行う",
+    "仕様逸脱、例外処理、リソース解放、テスト不足、`4humans` D2 sync 要否と実施有無の 5 観点で single-pass review を行う",
     "decision を pass または reroute で返す",
     "再確認が必要な項目や closeout notes を指摘する"
   ],

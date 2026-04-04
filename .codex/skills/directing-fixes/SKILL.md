@@ -31,7 +31,7 @@ description: AITranslationEngineJp 専用。bugfix lane の正式入口。事実
 - review が `pass` でも `4humans sync` と residual risk 整理前に close とみなさない
 - active plan の `4humans Sync` には、必要な `4humans/diagrams/processes/` と `4humans/diagrams/structures/` の更新対象を明記し、new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と対応 overview `.d2` / `.svg` も必ず列挙する
 - `changes/`、`context_board`、`tasks.md` を live 正本にしない
-- review は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを見る
+- review は `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 の 5 観点だけを見る
 - score 制の review loop を導入しない
 
 ## Reference Use

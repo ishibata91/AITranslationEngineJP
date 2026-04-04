@@ -1,0 +1,83 @@
+direction: right
+
+title: "Backend master-persona-builder class diagram"
+
+application: {
+  shape: package
+  label: "application"
+
+  rebuildUsecase: {
+    shape: class
+    label: "master persona 再構築ユースケース (`RebuildMasterPersonaUseCase`)\n+ base-game NPC 入力から master persona を再構築する (`execute(request)`) "
+  }
+
+  builderPort: {
+    shape: class
+    label: "master persona builder port (`MasterPersonaBuilderPort`)\n+ 保存要求を構築する (`build_master_persona_save_request(request)`) "
+  }
+
+  storagePort: {
+    shape: class
+    label: "master persona storage port (`MasterPersonaStoragePort`)\n+ master persona を保存する (`save_master_persona(request)`) \n+ master persona を読む (`read_master_persona(request)`) "
+  }
+
+  rebuildRequest: {
+    shape: class
+    label: "base-game NPC 再構築要求 (`BaseGameNpcRebuildRequest`)"
+  }
+
+  rebuildEntry: {
+    shape: class
+    label: "base-game NPC 再構築 entry (`BaseGameNpcRebuildEntry`)"
+  }
+}
+
+dto: {
+  shape: package
+  label: "application DTO"
+
+  saveRequest: {
+    shape: class
+    label: "master persona 保存要求 DTO (`MasterPersonaSaveRequestDto`)"
+  }
+
+  readRequest: {
+    shape: class
+    label: "master persona 読込要求 DTO (`MasterPersonaReadRequestDto`)"
+  }
+
+  readResult: {
+    shape: class
+    label: "master persona 読込結果 DTO (`MasterPersonaReadResultDto`)"
+  }
+
+  masterEntry: {
+    shape: class
+    label: "master persona entry DTO (`MasterPersonaEntryDto`)"
+  }
+}
+
+infra: {
+  shape: package
+  label: "infra"
+
+  baseGameBuilder: {
+    shape: class
+    label: "base-game NPC master persona builder (`BaseGameNpcMasterPersonaBuilder`)\n+ base-game 入力を保存要求へ変換する (`build_master_persona_save_request(request)`) "
+  }
+}
+
+application.rebuildUsecase -> application.rebuildRequest: base-game NPC 入力を受け取る
+application.rebuildRequest -> application.rebuildEntry: ordered entry 群を束ねる
+application.rebuildUsecase -> application.builderPort: 保存要求の構築を依頼する
+application.rebuildUsecase -> dto.readRequest: `persona_name` から読込要求を組み立てる
+application.rebuildUsecase -> application.storagePort: save / read を順に依頼する
+application.builderPort -> dto.saveRequest: save contract を返す
+infra.baseGameBuilder -> application.builderPort: 実装する
+infra.baseGameBuilder -> application.rebuildRequest: `source_type` と必須 field を検証する
+infra.baseGameBuilder -> dto.masterEntry: entry を順序そのままで写す
+dto.saveRequest -> dto.masterEntry: `entries` として保存する
+dto.readResult -> dto.masterEntry: 読み戻し entry 群を束ねる
+application.storagePort -> dto.saveRequest: 保存要求を受け取る
+application.storagePort -> dto.readRequest: 読込要求を受け取る
+application.storagePort -> dto.readResult: 保存後の master persona を返す

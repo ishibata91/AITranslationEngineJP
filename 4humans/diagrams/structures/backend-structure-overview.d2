@@ -51,6 +51,12 @@ applicationLayer: {
     label: "辞書保存 / 検索 usecase"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
   }
+
+  masterPersonaRebuildUsecase: {
+    shape: class
+    label: "master persona 再構築 usecase"
+    link: "./backend-master-persona-builder-class-diagram.svg"
+  }
 }
 
 domainLayer: {
@@ -75,6 +81,11 @@ domainLayer: {
   dictionaryEntries: {
     shape: class
     label: "再利用辞書 entry"
+  }
+
+  masterPersonaData: {
+    shape: class
+    label: "master persona data"
   }
 }
 
@@ -117,6 +128,18 @@ infraLayer: {
     label: "dictionary repository"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
   }
+
+  masterPersonaBuilder: {
+    shape: class
+    label: "master persona builder"
+    link: "./backend-master-persona-builder-class-diagram.svg"
+  }
+
+  masterPersonaStorageBoundary: {
+    shape: class
+    label: "master persona storage boundary"
+    link: "./backend-master-persona-builder-class-diagram.svg"
+  }
 }
 
 gatewayLayer.tauriCommands -> applicationLayer.bootstrapUsecase: 起動状態取得を呼ぶ
@@ -136,3 +159,6 @@ applicationLayer.dictionaryImportUsecase -> domainLayer.dictionaryEntries: entry
 applicationLayer.dictionaryImportUsecase -> infraLayer.xtranslatorImporter: SST を読む
 applicationLayer.dictionaryStorageQueryUsecase -> domainLayer.dictionaryEntries: entry を保存 / 読み出す
 applicationLayer.dictionaryStorageQueryUsecase -> infraLayer.dictionaryRepository: SQLite を読む / 書く
+applicationLayer.masterPersonaRebuildUsecase -> domainLayer.masterPersonaData: master persona を再構築する
+applicationLayer.masterPersonaRebuildUsecase -> infraLayer.masterPersonaBuilder: base-game NPC 入力を変換する
+applicationLayer.masterPersonaRebuildUsecase -> infraLayer.masterPersonaStorageBoundary: save / read contract を使う

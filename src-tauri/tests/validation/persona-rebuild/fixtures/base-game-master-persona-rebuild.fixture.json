@@ -1,0 +1,22 @@
+{
+  "personaName": "BaseGameNordLeaders",
+  "sourceType": "base-game-rebuild",
+  "entries": [
+    {
+      "npcFormId": "00013BA1",
+      "npcName": "Jarl Balgruuf",
+      "race": "NordRace",
+      "sex": "Male",
+      "voice": "MaleNord",
+      "personaText": "威厳はあるが民に歩み寄る口調。"
+    },
+    {
+      "npcFormId": "0001B131",
+      "npcName": "Delphine",
+      "race": "NordRace",
+      "sex": "Female",
+      "voice": "FemaleEvenToned",
+      "personaText": "情報を絞って伝えるが、必要なときは率直。"
+    }
+  ]
+}

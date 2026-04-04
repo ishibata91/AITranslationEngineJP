@@ -18,6 +18,9 @@
       "4humans/diagrams/structures/backend-dictionary-storage-query-class-diagram.d2": [
         "4humans/diagrams/structures/backend-structure-overview.d2"
       ],
+      "4humans/diagrams/structures/backend-master-persona-builder-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
       "4humans/diagrams/structures/backend-import-xedit-class-diagram.d2": [
         "4humans/diagrams/structures/backend-structure-overview.d2"
       ],
@@ -50,6 +53,9 @@
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-dictionary-storage-query-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/backend-master-persona-builder-sequence-diagram.d2": [
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-import-xedit-sequence-diagram.d2": [

@@ -29,7 +29,7 @@
     }
   ],
   "must_not_change": [
-    "review scope を 4 観点以外へ広げない"
+    "review scope を 仕様逸脱、例外処理、リソース解放、テスト不足、`4humans` D2 sync 要否と実施有無の 5 観点以外へ広げない"
   ],
   "completion_signal": [
     "reviewer が pass / reroute を判定できる"

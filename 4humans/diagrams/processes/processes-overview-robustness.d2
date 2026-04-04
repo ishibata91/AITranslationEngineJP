@@ -166,3 +166,36 @@ dictionaryStorageQuery: {
   boundary -> control: save / lookup
   control -> entity: persist / exact-match query
 }
+
+masterPersonaRebuild: {
+  shape: package
+  label: "master persona 再構築"
+
+  actor: {
+    shape: person
+    label: "呼出し元"
+    link: "./backend-master-persona-builder-sequence-diagram.svg"
+  }
+
+  boundary: {
+    shape: class
+    label: "base-game NPC 入力境界\n`BaseGameNpcRebuildRequest`"
+    link: "./backend-master-persona-builder-sequence-diagram.svg"
+  }
+
+  control: {
+    shape: class
+    label: "制御\n`RebuildMasterPersonaUseCase` / `BaseGameNpcMasterPersonaBuilder`"
+    link: "./backend-master-persona-builder-sequence-diagram.svg"
+  }
+
+  entity: {
+    shape: class
+    label: "master persona 結果\n`MasterPersonaSaveRequestDto` / `MasterPersonaReadResultDto`"
+    link: "./backend-master-persona-builder-sequence-diagram.svg"
+  }
+
+  actor -> boundary: base-game NPC 入力を渡す
+  boundary -> control: rebuild を呼ぶ
+  control -> entity: build / save / read
+}
