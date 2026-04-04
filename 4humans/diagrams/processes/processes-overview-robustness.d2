@@ -1,0 +1,135 @@
+direction: down
+
+title: "Process overview robustness diagram"
+
+bootstrapStatus: {
+  shape: package
+  label: "起動状態確認"
+
+  actor: {
+    shape: person
+    label: "利用者"
+    link: "./frontend-bootstrap-status-sequence-diagram.svg"
+  }
+
+  boundary: {
+    shape: class
+    label: "画面境界\n`BootstrapStatusScreen` / `BootstrapStatusView`"
+    link: "./frontend-bootstrap-status-sequence-diagram.svg"
+  }
+
+  control: {
+    shape: class
+    label: "制御\n`BootstrapStatusScreenInput` / `createBootstrapStatusScreenUsecase()`"
+    link: "./frontend-bootstrap-status-sequence-diagram.svg"
+  }
+
+  entity: {
+    shape: class
+    label: "状態\n`BootstrapStatus`"
+    link: "./frontend-bootstrap-status-sequence-diagram.svg"
+  }
+
+  actor -> boundary: 画面を開く
+  boundary -> control: 初期化 / 再読込
+  control -> entity: 起動状態を取得する
+}
+
+jobList: {
+  shape: package
+  label: "ジョブ一覧確認"
+
+  actor: {
+    shape: person
+    label: "利用者"
+    link: "./frontend-job-list-sequence-diagram.svg"
+  }
+
+  boundary: {
+    shape: class
+    label: "画面境界\n`JobListScreen` / `JobListView`"
+    link: "./frontend-job-list-sequence-diagram.svg"
+  }
+
+  control: {
+    shape: class
+    label: "制御\n`JobListScreenInput` / `createJobListScreenUsecase()`"
+    link: "./frontend-job-list-sequence-diagram.svg"
+  }
+
+  entity: {
+    shape: class
+    label: "一覧結果\n`JobListResult`"
+    link: "./frontend-job-list-sequence-diagram.svg"
+  }
+
+  actor -> boundary: 画面を開く / 選択する
+  boundary -> control: 初期化 / refresh / select
+  control -> entity: 一覧を取得する
+}
+
+jobCreate: {
+  shape: package
+  label: "ジョブ作成"
+
+  actor: {
+    shape: person
+    label: "利用者"
+    link: "./frontend-job-create-sequence-diagram.svg"
+  }
+
+  boundary: {
+    shape: class
+    label: "画面境界\n`JobCreateScreen` / `JobCreateView`"
+    link: "./frontend-job-create-sequence-diagram.svg"
+  }
+
+  control: {
+    shape: class
+    label: "制御\n`JobCreateScreenInput` / `createJobCreateScreenUsecase()`"
+    link: "./frontend-job-create-sequence-diagram.svg"
+  }
+
+  entity: {
+    shape: class
+    label: "作成結果\n`JobCreateResult`"
+    link: "./frontend-job-create-sequence-diagram.svg"
+  }
+
+  actor -> boundary: 入力して送信する
+  boundary -> control: submit / update
+  control -> entity: ジョブを作成する
+}
+
+importXedit: {
+  shape: package
+  label: "xEdit 取込"
+
+  actor: {
+    shape: person
+    label: "呼出し元"
+    link: "./backend-import-xedit-sequence-diagram.svg"
+  }
+
+  boundary: {
+    shape: class
+    label: "command 境界\n`import_xedit_export_json`"
+    link: "./backend-import-xedit-sequence-diagram.svg"
+  }
+
+  control: {
+    shape: class
+    label: "制御\n`ImportXeditExportUseCase`"
+    link: "./backend-import-xedit-sequence-diagram.svg"
+  }
+
+  entity: {
+    shape: class
+    label: "取込結果\n`ImportedPluginExport` / `TranslationUnit`"
+    link: "./backend-import-xedit-sequence-diagram.svg"
+  }
+
+  actor -> boundary: 取込要求を渡す
+  boundary -> control: execute
+  control -> entity: import / validate / persist
+}

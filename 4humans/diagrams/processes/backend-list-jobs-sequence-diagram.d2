@@ -1,0 +1,22 @@
+title: "Backend list-jobs sequence diagram"
+
+listJobsSequence: {
+  shape: sequence_diagram
+
+  frontend: "フロント呼出し (`invoke`)"
+  commands: "ジョブ一覧 command (`gateway::commands::list_jobs`)"
+  usecase: "ジョブ一覧ユースケース (`ListJobsUseCase`)"
+  repository: "メモリ上 job repository (`InMemoryJobRepository`)"
+  domain: "一覧用 job (`ListedJob`)"
+  dto: "ジョブ一覧 DTO (`ListJobsResultDto`)"
+
+  frontend -> commands: 一覧取得を依頼する
+  commands -> usecase: 実行する (`execute()`)
+  usecase -> repository: 保存済み job 群を読む (`list_jobs()`)
+  repository -> usecase: 一覧用 job 群 (`Vec<ListedJob>`) を返す
+  usecase -> domain: 状態を含む一覧用 job を扱う
+  domain -> usecase: 読み出し結果を返す
+  usecase -> dto: 一覧 DTO を作る
+  dto -> commands: ジョブ一覧 DTO を返す
+  commands -> frontend: 結果 (`Result<ListJobsResultDto, String>`) を返す
+}

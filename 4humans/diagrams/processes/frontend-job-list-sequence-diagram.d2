@@ -1,0 +1,26 @@
+title: "Frontend job-list sequence diagram"
+
+jobListSequence: {
+  shape: sequence_diagram
+
+  user: "User"
+  jobListScreen: "ジョブ一覧画面 (`JobListScreen.svelte`)"
+  jobListUsecase: "ジョブ一覧ユースケース (`JobListScreenInput`)"
+  jobListStore: "ジョブ一覧ストア (`JobListScreenStore`)"
+  tauriGateway: "ジョブ一覧 gateway (`createTauriJobListExecutor()`)"
+  tauriBackend: "Tauri command (`list_jobs`)"
+  jobListView: "ジョブ一覧ビュー (`JobListView.svelte`)"
+
+  user -> jobListScreen: 画面を開く
+  jobListScreen -> jobListUsecase: 初期化する (`initialize()`)
+  jobListUsecase -> jobListStore: 読込中にする (`setLoading()`)
+  jobListUsecase -> tauriGateway: 一覧取得を依頼する
+  tauriGateway -> tauriBackend: ジョブ一覧を取得する (`invoke(\"list_jobs\")`)
+  tauriBackend -> tauriGateway: 一覧結果 (`JobListResult`) を返す
+  tauriGateway -> jobListUsecase: 解決済み結果を返す
+  jobListUsecase -> jobListStore: 読込済み状態を設定する (`setLoaded(payload)`)
+  jobListStore -> jobListView: 購読済み状態を反映する
+  user -> jobListView: ジョブID (`jobId`) を選ぶ
+  jobListView -> jobListUsecase: 選択する (`select(jobId)`)
+  jobListUsecase -> jobListStore: 選択状態を設定する (`setSelection(jobId)`)
+}

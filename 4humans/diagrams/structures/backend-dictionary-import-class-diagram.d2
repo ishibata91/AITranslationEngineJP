@@ -1,0 +1,54 @@
+direction: right
+
+title: "Backend dictionary-import class diagram"
+
+application: {
+  shape: package
+  label: "application"
+
+  usecase: {
+    shape: class
+    label: "辞書取込ユースケース (`ImportDictionaryUseCase`)\n+ 取込要求を実行する (`execute(request)`) "
+  }
+
+  requestDto: {
+    shape: class
+    label: "辞書取込要求 DTO (`DictionaryImportRequestDto`)"
+  }
+
+  resultDto: {
+    shape: class
+    label: "辞書取込結果 DTO (`DictionaryImportResultDto`)"
+  }
+
+  importerPort: {
+    shape: class
+    label: "辞書 importer port (`DictionaryImporter`)\n+ 辞書を取り込む (`import_dictionary(request)`) "
+  }
+}
+
+domain: {
+  shape: package
+  label: "domain-ish DTO"
+
+  reusableEntry: {
+    shape: class
+    label: "再利用辞書 entry (`ReusableDictionaryEntryDto`)"
+  }
+}
+
+infra: {
+  shape: package
+  label: "infra"
+
+  importerImpl: {
+    shape: class
+    label: "xTranslator importer (`FileSystemXtranslatorImporter`)"
+  }
+}
+
+application.usecase -> application.requestDto: request を受け取る
+application.usecase -> application.importerPort: source_type を検証して import を依頼する
+infra.importerImpl -> application.importerPort: 実装する
+infra.importerImpl -> domain.reusableEntry: entry 群を作る
+application.usecase -> application.resultDto: 結果 DTO を返す

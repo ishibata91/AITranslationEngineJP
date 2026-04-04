@@ -60,7 +60,7 @@
 
 ## Outcome
 
-- `frontend-src-class-diagram.d2` と `backend-src-tauri-class-diagram.d2` を overview 用へ簡素化した。
+- `frontend-structure-overview.d2` と `backend-structure-overview.d2` を overview 用へ簡素化した。
 - 線の交差を減らすため、job-create、job-list、backend create-job、backend import-xedit の detail class diagram を追加した。
 - `4humans/class-diagrams/*.d2` はすべて `d2 validate` を通し、対応する `.svg` を再生成した。
 - `python3 scripts/harness/run.py --suite structure` は通過した。

@@ -1,0 +1,68 @@
+direction: right
+
+title: "Frontend bootstrap-status slice class diagram"
+
+ui: {
+  shape: package
+  label: "UI"
+
+  screen: {
+    shape: class
+    label: "起動状態画面 (`BootstrapStatusScreen.svelte`)\n- 初期化する (`initialize()`)\n- refresh / retry / select event を転送する"
+  }
+
+  view: {
+    shape: class
+    label: "起動状態ビュー (`BootstrapStatusView.svelte`)\n- 状態項目を表示する\n- refresh / retry / select event を発火する"
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+
+  usecase: {
+    shape: class
+    label: "起動状態ユースケース (`BootstrapStatusScreenInput` / `createBootstrapStatusScreenUsecase()`)\n+ 初期化する (`initialize()`)\n+ 再読込する (`refresh()`)\n+ 再試行する (`retry()`)\n+ 項目を選択する (`select(selection)`)"
+  }
+
+  featureFoundation: {
+    shape: class
+    label: "汎用画面基盤 (`createFeatureScreenUsecase()`)\n+ 読込中 / 読込済み / エラー遷移を扱う"
+  }
+
+  store: {
+    shape: class
+    label: "起動状態ストア (`BootstrapStatusScreenStore`)\n+ 読込中にする (`setLoading()`)\n+ 読込済みにする (`setLoaded(payload)`)\n+ エラーを設定する (`setError(message)`)\n+ 選択を設定する (`setSelection(selection)`)"
+  }
+
+  contract: {
+    shape: class
+    label: "起動状態 contract (`BootstrapStatus` / `BootstrapStatusField`)"
+  }
+}
+
+gateway: {
+  shape: package
+  label: "gateway"
+
+  bootstrapGateway: {
+    shape: class
+    label: "起動状態 gateway (`createTauriBootstrapStatusGateway()`)\n- 起動状態を取得する (`invoke(\"get_bootstrap_status\")`)"
+  }
+
+  featureGateway: {
+    shape: class
+    label: "汎用 Tauri gateway (`createTauriFeatureScreenGateway()`)\n- `load()` で command を呼ぶ"
+  }
+}
+
+ui.screen -> ui.view: 描画する
+ui.view -> application.usecase: refresh / retry / select を渡す
+ui.screen -> application.usecase: 初期化する (`initialize()`)
+application.usecase -> application.featureFoundation: 読込状態遷移を再利用する
+application.usecase -> application.store: state を更新する
+application.usecase -> gateway.bootstrapGateway: 起動状態取得を依頼する
+gateway.bootstrapGateway -> gateway.featureGateway: 汎用 `load()` を使う
+gateway.bootstrapGateway -> application.contract: 起動状態を返す
+application.store -> ui.view: 購読済み状態を渡す

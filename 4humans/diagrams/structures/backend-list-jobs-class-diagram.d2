@@ -1,0 +1,65 @@
+direction: right
+
+title: "Backend list-jobs class diagram"
+
+gateway: {
+  shape: package
+  label: "gateway"
+
+  command: {
+    shape: class
+    label: "ジョブ一覧 command (`list_jobs()`) "
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+
+  usecase: {
+    shape: class
+    label: "ジョブ一覧ユースケース (`ListJobsUseCase`)\n+ 実行する (`execute()`) "
+  }
+
+  resultDto: {
+    shape: class
+    label: "ジョブ一覧 DTO (`ListJobsResultDto`)"
+  }
+
+  repoPort: {
+    shape: class
+    label: "repository port (`ListJobsRepository`)\n+ 一覧を返す (`list_jobs()`) "
+  }
+}
+
+domain: {
+  shape: package
+  label: "domain"
+
+  listedJob: {
+    shape: class
+    label: "一覧用 job (`ListedJob`)"
+  }
+
+  jobState: {
+    shape: class
+    label: "ジョブ状態 (`JobState`)"
+  }
+}
+
+infra: {
+  shape: package
+  label: "infra"
+
+  repoImpl: {
+    shape: class
+    label: "memory job repository (`InMemoryJobRepository`)"
+  }
+}
+
+gateway.command -> application.usecase: 一覧取得を呼ぶ
+application.usecase -> application.repoPort: 保存済み job 群を依頼する
+infra.repoImpl -> application.repoPort: 実装する
+application.usecase -> domain.listedJob: 一覧用 job を扱う
+domain.listedJob -> domain.jobState: 状態を参照する
+application.usecase -> application.resultDto: DTO を返す

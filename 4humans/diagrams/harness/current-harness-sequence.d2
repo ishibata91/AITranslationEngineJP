@@ -48,7 +48,7 @@ harness: {
   dispatcher -> dispatcher: "実行順を決める\nstructure | design | execution | all"
 
   dispatcher -> structure_check: "structure を含む場合"
-  structure_check -> repository: "必須 path を確認する\nMarkdown link を走査する"
+  structure_check -> repository: "必須 path を確認する\nrepo-owned Markdown link を走査する\n外部 cache は除外する"
   repository -> structure_check: "存在確認結果を返す"
   structure_check -> dispatcher: "pass / fail を返す"
 
@@ -58,7 +58,7 @@ harness: {
   design_check -> dispatcher: "pass / fail を返す"
 
   dispatcher -> execution_check: "execution を含む場合"
-  execution_check -> repository: "package.json\nCargo.toml\nsonar-project.properties を検出する"
+  execution_check -> repository: "repo-owned package.json\nrepo-owned Cargo.toml\nsonar-project.properties を検出する\n.cargo-home などの cache は除外する"
   repository -> execution_check: "実行対象と script 定義を返す"
   execution_check -> tools: "gate:execution を優先実行する\n未定義なら lint / test / build と\ncargo fmt / clippy / test を実行する\n必要なら sonar を実行する"
   tools -> execution_check: "終了コードを返す"

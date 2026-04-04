@@ -1,0 +1,68 @@
+direction: right
+
+title: "Frontend feature-template slice class diagram"
+
+ui: {
+  shape: package
+  label: "UI"
+
+  screen: {
+    shape: class
+    label: "テンプレート画面 (`FeatureTemplateScreen.svelte`)\n- 初期化する (`initialize()`)\n- refresh / retry / select / query 更新を転送する"
+  }
+
+  view: {
+    shape: class
+    label: "テンプレートビュー (`FeatureTemplateView.svelte`)\n- query を編集する\n- refresh / retry / select / updateQuery event を発火する"
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+
+  usecase: {
+    shape: class
+    label: "テンプレートユースケース (`FeatureTemplateScreenInput` / `createFeatureTemplateScreenUsecase()`)\n+ 初期化する (`initialize()`)\n+ 再読込する (`refresh()`)\n+ 再試行する (`retry()`)\n+ 項目を選択する (`select(selection)`)\n+ filter を更新する (`updateFilters(filters, options)`)"
+  }
+
+  featureFoundation: {
+    shape: class
+    label: "汎用画面基盤 (`createFeatureScreenUsecase()` / `createFeatureScreenStore()`)"
+  }
+
+  store: {
+    shape: class
+    label: "テンプレートストア (`FeatureTemplateScreenStore`)\n+ filter / data / selection を保持する"
+  }
+
+  contract: {
+    shape: class
+    label: "テンプレート contract\n`FeatureTemplateData` / `FeatureTemplateItem` / `FeatureTemplateQuery`"
+  }
+}
+
+gateway: {
+  shape: package
+  label: "gateway"
+
+  templateGateway: {
+    shape: class
+    label: "テンプレート gateway (`createTauriFeatureTemplateGateway()`)\n- query 付き `load(request)` を呼ぶ"
+  }
+
+  featureGateway: {
+    shape: class
+    label: "汎用 Tauri gateway (`createTauriFeatureScreenGateway()`)"
+  }
+}
+
+ui.screen -> ui.view: 描画する
+ui.view -> application.usecase: event を渡す
+ui.screen -> application.usecase: 初期化する (`initialize()`)
+application.usecase -> application.featureFoundation: 読込状態遷移を再利用する
+application.usecase -> application.store: state を更新する
+application.usecase -> gateway.templateGateway: query 付き読込を依頼する
+gateway.templateGateway -> gateway.featureGateway: 汎用 `load(request)` を使う
+gateway.templateGateway -> application.contract: data を返す
+application.store -> ui.view: 購読済み状態を渡す

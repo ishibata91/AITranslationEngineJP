@@ -1,0 +1,108 @@
+direction: right
+
+title: "Frontend `src/` structure overview"
+
+app: {
+  shape: package
+  label: "アプリ起動"
+
+  entrypoint: {
+    shape: class
+    label: "起動と配線\n`main.ts` / `App.svelte` / `AppShell.svelte`"
+  }
+}
+
+mountedSlices: {
+  shape: package
+  label: "配線済み画面 slice"
+
+  jobListSlice: {
+    shape: class
+    label: "ジョブ一覧 slice"
+    link: "./frontend-job-list-slice-class-diagram.svg"
+  }
+
+  jobCreateSlice: {
+    shape: class
+    label: "ジョブ作成 slice"
+    link: "./frontend-job-create-slice-class-diagram.svg"
+  }
+
+  bootstrapSlice: {
+    shape: class
+    label: "起動状態 slice"
+    link: "./frontend-bootstrap-status-slice-class-diagram.svg"
+  }
+}
+
+foundations: {
+  shape: package
+  label: "再利用基盤"
+
+  featureTemplateSlice: {
+    shape: class
+    label: "テンプレート slice (未配線)"
+    link: "./frontend-feature-template-slice-class-diagram.svg"
+  }
+}
+
+gatewayLayer: {
+  shape: package
+  label: "gateway"
+
+  jobListGateway: {
+    shape: class
+    label: "一覧取得 gateway"
+    link: "./frontend-job-list-slice-class-diagram.svg"
+  }
+
+  jobCreateGateway: {
+    shape: class
+    label: "作成 gateway"
+    link: "./frontend-job-create-slice-class-diagram.svg"
+  }
+
+  bootstrapGateway: {
+    shape: class
+    label: "起動状態 gateway"
+    link: "./frontend-bootstrap-status-slice-class-diagram.svg"
+  }
+
+  featureTemplateGateway: {
+    shape: class
+    label: "テンプレート gateway"
+    link: "./frontend-feature-template-slice-class-diagram.svg"
+  }
+}
+
+contracts: {
+  shape: package
+  label: "shared contract"
+
+  jobContract: {
+    shape: class
+    label: "job contract"
+  }
+
+  bootstrapContract: {
+    shape: class
+    label: "bootstrap contract"
+  }
+
+  featureTemplateContract: {
+    shape: class
+    label: "feature-template contract"
+  }
+}
+
+app.entrypoint -> mountedSlices.jobListSlice: props を渡す
+app.entrypoint -> mountedSlices.jobCreateSlice: props を渡す
+app.entrypoint -> mountedSlices.bootstrapSlice: props を渡す
+mountedSlices.jobListSlice -> gatewayLayer.jobListGateway: 一覧取得を依頼する
+mountedSlices.jobCreateSlice -> gatewayLayer.jobCreateGateway: 作成を依頼する
+mountedSlices.bootstrapSlice -> gatewayLayer.bootstrapGateway: 起動状態取得を依頼する
+foundations.featureTemplateSlice -> gatewayLayer.featureTemplateGateway: テンプレート読込を依頼する
+mountedSlices.jobListSlice -> contracts.jobContract: 結果を扱う
+mountedSlices.jobCreateSlice -> contracts.jobContract: request/result を扱う
+mountedSlices.bootstrapSlice -> contracts.bootstrapContract: 状態を扱う
+foundations.featureTemplateSlice -> contracts.featureTemplateContract: query と data を扱う

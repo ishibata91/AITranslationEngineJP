@@ -36,6 +36,7 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - [`../tasks/`](../tasks/README.md): machine-readable task catalog for parallel-safe decomposition and batch planning
 - [`../4humans/quality-score.md`](../4humans/quality-score.md): human-facing quality posture and missing coverage
 - [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md): human-facing unresolved debt and cleanup backlog
+- [`../4humans/diagrams/`](../4humans/diagrams): human-facing review diagrams. `structures/` は構造、`processes/` は実装追加などに伴うユースケースフロー説明、`harness/` はハーネスのフロー説明を扱う
 - [`references/`](./references/index.md): curated reference index and external material policy
 
 ## Choose The Right Record
@@ -56,6 +57,9 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - Product-level confusion keeps recurring: add a rule to [`core-beliefs.md`](./core-beliefs.md) or [`AGENTS.md`](../AGENTS.md)
 - The repository is missing coverage or confidence: update [`../4humans/quality-score.md`](../4humans/quality-score.md)
 - The problem is known but not resolved yet: update [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md)
+- 実装や修正で構造が変わった: update the relevant file under [`../4humans/diagrams/structures/`](../4humans/diagrams/structures/)
+- 実装が追加または変更され、ユースケースフローに影響した: update the relevant file under [`../4humans/diagrams/processes/`](../4humans/diagrams/processes/)
+- ハーネス実装が追加または変更された: update the relevant file under [`../4humans/diagrams/harness/`](../4humans/diagrams/harness/)
 
 ## Repository Checks
 

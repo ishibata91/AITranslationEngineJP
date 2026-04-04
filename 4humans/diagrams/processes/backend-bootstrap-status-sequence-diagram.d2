@@ -1,0 +1,22 @@
+title: "Backend bootstrap-status sequence diagram"
+
+bootstrapStatusSequence: {
+  shape: sequence_diagram
+
+  frontend: "フロント呼出し (`invoke`)"
+  commands: "起動状態 command (`gateway::commands::get_bootstrap_status`)"
+  usecase: "起動状態ユースケース (`GetBootstrapStatusUseCase`)"
+  runtimeInfo: "runtime provider (`CargoRuntimeInfoProvider`)"
+  domain: "起動状態 (`BootstrapStatus`)"
+  dto: "起動状態 DTO (`BootstrapStatusDto`)"
+
+  frontend -> commands: command を呼ぶ
+  commands -> usecase: 実行する (`execute()`)
+  usecase -> runtimeInfo: backend 版を取得する
+  runtimeInfo -> usecase: 版情報を返す
+  usecase -> domain: 起動状態を組み立てる
+  domain -> usecase: status を返す
+  usecase -> dto: DTO を作る
+  dto -> commands: 起動状態 DTO を返す
+  commands -> frontend: 結果を返す
+}

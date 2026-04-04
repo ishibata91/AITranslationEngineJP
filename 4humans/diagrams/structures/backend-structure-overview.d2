@@ -1,0 +1,124 @@
+direction: right
+
+title: "Backend `src-tauri/src/` structure overview"
+
+gatewayLayer: {
+  shape: package
+  label: "gateway"
+
+  tauriCommands: {
+    shape: class
+    label: "Tauri command 群"
+  }
+}
+
+applicationLayer: {
+  shape: package
+  label: "application"
+
+  bootstrapUsecase: {
+    shape: class
+    label: "起動状態取得 usecase"
+    link: "./backend-bootstrap-status-class-diagram.svg"
+  }
+
+  createJobUsecase: {
+    shape: class
+    label: "ジョブ作成 usecase"
+    link: "./backend-create-job-class-diagram.svg"
+  }
+
+  listJobsUsecase: {
+    shape: class
+    label: "ジョブ一覧 usecase"
+    link: "./backend-list-jobs-class-diagram.svg"
+  }
+
+  importXeditUsecase: {
+    shape: class
+    label: "xEdit 取込 usecase"
+    link: "./backend-import-xedit-class-diagram.svg"
+  }
+
+  dictionaryImportUsecase: {
+    shape: class
+    label: "辞書取込 usecase"
+    link: "./backend-dictionary-import-class-diagram.svg"
+  }
+}
+
+domainLayer: {
+  shape: package
+  label: "domain"
+
+  bootstrapStatus: {
+    shape: class
+    label: "起動状態"
+  }
+
+  jobDomain: {
+    shape: class
+    label: "job domain"
+  }
+
+  importDomain: {
+    shape: class
+    label: "xEdit import domain"
+  }
+
+  dictionaryEntries: {
+    shape: class
+    label: "再利用辞書 entry"
+  }
+}
+
+infraLayer: {
+  shape: package
+  label: "infra"
+
+  runtimeInfo: {
+    shape: class
+    label: "runtime provider"
+    link: "./backend-bootstrap-status-class-diagram.svg"
+  }
+
+  jobRepository: {
+    shape: class
+    label: "job repository"
+    link: "./backend-create-job-class-diagram.svg"
+  }
+
+  pluginExportRepository: {
+    shape: class
+    label: "plugin export repository"
+    link: "./backend-import-xedit-class-diagram.svg"
+  }
+
+  xeditImporter: {
+    shape: class
+    label: "xEdit importer"
+    link: "./backend-import-xedit-class-diagram.svg"
+  }
+
+  xtranslatorImporter: {
+    shape: class
+    label: "xTranslator importer"
+    link: "./backend-dictionary-import-class-diagram.svg"
+  }
+}
+
+gatewayLayer.tauriCommands -> applicationLayer.bootstrapUsecase: 起動状態取得を呼ぶ
+gatewayLayer.tauriCommands -> applicationLayer.createJobUsecase: ジョブ作成を呼ぶ
+gatewayLayer.tauriCommands -> applicationLayer.listJobsUsecase: ジョブ一覧を呼ぶ
+gatewayLayer.tauriCommands -> applicationLayer.importXeditUsecase: xEdit 取込を呼ぶ
+applicationLayer.bootstrapUsecase -> domainLayer.bootstrapStatus: status を作る
+applicationLayer.bootstrapUsecase -> infraLayer.runtimeInfo: 版情報を使う
+applicationLayer.createJobUsecase -> domainLayer.jobDomain: job を作る
+applicationLayer.createJobUsecase -> infraLayer.jobRepository: 保存する
+applicationLayer.listJobsUsecase -> domainLayer.jobDomain: job を読む
+applicationLayer.listJobsUsecase -> infraLayer.jobRepository: 一覧を読む
+applicationLayer.importXeditUsecase -> domainLayer.importDomain: export を作る
+applicationLayer.importXeditUsecase -> infraLayer.xeditImporter: file を読む
+applicationLayer.importXeditUsecase -> infraLayer.pluginExportRepository: 保存する
+applicationLayer.dictionaryImportUsecase -> domainLayer.dictionaryEntries: entry を返す
+applicationLayer.dictionaryImportUsecase -> infraLayer.xtranslatorImporter: SST を読む
