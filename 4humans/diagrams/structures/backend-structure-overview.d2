@@ -45,6 +45,12 @@ applicationLayer: {
     label: "辞書取込 usecase"
     link: "./backend-dictionary-import-class-diagram.svg"
   }
+
+  dictionaryStorageQueryUsecase: {
+    shape: class
+    label: "辞書保存 / 検索 usecase"
+    link: "./backend-dictionary-storage-query-class-diagram.svg"
+  }
 }
 
 domainLayer: {
@@ -105,6 +111,12 @@ infraLayer: {
     label: "xTranslator importer"
     link: "./backend-dictionary-import-class-diagram.svg"
   }
+
+  dictionaryRepository: {
+    shape: class
+    label: "dictionary repository"
+    link: "./backend-dictionary-storage-query-class-diagram.svg"
+  }
 }
 
 gatewayLayer.tauriCommands -> applicationLayer.bootstrapUsecase: 起動状態取得を呼ぶ
@@ -122,3 +134,5 @@ applicationLayer.importXeditUsecase -> infraLayer.xeditImporter: file を読む
 applicationLayer.importXeditUsecase -> infraLayer.pluginExportRepository: 保存する
 applicationLayer.dictionaryImportUsecase -> domainLayer.dictionaryEntries: entry を返す
 applicationLayer.dictionaryImportUsecase -> infraLayer.xtranslatorImporter: SST を読む
+applicationLayer.dictionaryStorageQueryUsecase -> domainLayer.dictionaryEntries: entry を保存 / 読み出す
+applicationLayer.dictionaryStorageQueryUsecase -> infraLayer.dictionaryRepository: SQLite を読む / 書く

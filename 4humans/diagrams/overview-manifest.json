@@ -1,0 +1,72 @@
+{
+  "version": "2026-04-04",
+  "structures": {
+    "overviews": [
+      "4humans/diagrams/structures/backend-structure-overview.d2",
+      "4humans/diagrams/structures/frontend-structure-overview.d2"
+    ],
+    "detail_to_overviews": {
+      "4humans/diagrams/structures/backend-bootstrap-status-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/backend-create-job-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/backend-dictionary-import-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/backend-dictionary-storage-query-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/backend-import-xedit-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/backend-list-jobs-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/frontend-bootstrap-status-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/frontend-feature-template-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/frontend-job-create-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/frontend-job-list-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ]
+    }
+  },
+  "processes": {
+    "overviews": [
+      "4humans/diagrams/processes/processes-overview-robustness.d2"
+    ],
+    "detail_to_overviews": {
+      "4humans/diagrams/processes/backend-bootstrap-status-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/backend-create-job-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/backend-dictionary-storage-query-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/backend-import-xedit-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/backend-list-jobs-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/frontend-bootstrap-status-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/frontend-job-create-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/frontend-job-list-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ]
+    }
+  }
+}

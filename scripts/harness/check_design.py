@@ -4,7 +4,14 @@ import re
 import sys
 from pathlib import Path
 
-from harness_common import build_parser, default_repo_root, finalize_failures, report_check, read_text
+from harness_common import (
+    build_parser,
+    default_repo_root,
+    finalize_failures,
+    load_json,
+    report_check,
+    read_text,
+)
 
 CHECKS = [
     { "file": ".codex/README.md", "patterns": ["directing-implementation", "designing-implementation", "directing-fixes", "architecting-tests", "UI", "Scenario", "Logic", "single-pass", "changes/", "tasks.md"] },
@@ -28,8 +35,9 @@ CHECKS = [
     { "file": "docs/architecture.md", "patterns": ["Dependency Inversion Principle", "UI Port / UseCase Input", "DTO", "SQLite", "Rust"] },
     { "file": "docs/tech-selection.md", "patterns": ["Tauri 2", "Rust", "Svelte 5", "SQLite", "sqlx"] },
     { "file": "docs/core-beliefs.md", "patterns": ["agent-first", "directing-implementation", "directing-fixes", "single-pass", "evidence"] },
-    { "file": "docs/index.md", "patterns": ["AGENTS.md", ".codex", "directing-implementation", "directing-fixes", "designing-implementation", "quality-score.md", "tests / acceptance checks / validation commands"] },
+    { "file": "docs/index.md", "patterns": ["AGENTS.md", ".codex", "directing-implementation", "directing-fixes", "designing-implementation", "quality-score.md", "overview-manifest.json", "tests / acceptance checks / validation commands"] },
     { "file": "4humans/quality-score.md", "patterns": ["Codex workflow source of truth", "Design harness", "directing-implementation", "directing-fixes"] },
+    { "file": "4humans/diagrams/overview-manifest.json", "patterns": ["structures", "processes", "detail_to_overviews", "overviews"] },
 ]
 
 SEMANTIC_PATH_CHECKS = [
@@ -93,6 +101,88 @@ def assert_canonical_phrase(file_path: Path, expected_phrase: str, forbidden_phr
     return failures
 
 
+def assert_overview_manifest(repo_root: Path) -> int:
+    failures = 0
+    manifest_path = repo_root / "4humans/diagrams/overview-manifest.json"
+    manifest = load_json(manifest_path)
+
+    for section_name in ("structures", "processes"):
+        section = manifest.get(section_name)
+        if not isinstance(section, dict):
+            failures += report_check(
+                False,
+                f"PASS overview manifest section '{section_name}' exists",
+                f"FAIL overview manifest section '{section_name}' is missing or invalid in {manifest_path}",
+            )
+            continue
+
+        overviews = section.get("overviews")
+        detail_to_overviews = section.get("detail_to_overviews")
+        if not isinstance(overviews, list) or not isinstance(detail_to_overviews, dict):
+            failures += report_check(
+                False,
+                f"PASS overview manifest shape for '{section_name}' is valid",
+                f"FAIL overview manifest '{section_name}' must contain list 'overviews' and object 'detail_to_overviews' in {manifest_path}",
+            )
+            continue
+
+        expected_dir = repo_root / "4humans/diagrams" / section_name
+        overview_files = sorted(expected_dir.glob("*overview*.d2"))
+        declared_overviews = {repo_root / path for path in overviews}
+
+        for overview_file in overview_files:
+            failures += report_check(
+                overview_file in declared_overviews,
+                f"PASS overview '{overview_file}' is registered in {manifest_path}",
+                f"FAIL overview '{overview_file}' is not registered in {manifest_path}",
+            )
+
+        for declared_overview in declared_overviews:
+            failures += report_check(
+                declared_overview.exists(),
+                f"PASS declared overview '{declared_overview}' exists",
+                f"FAIL declared overview '{declared_overview}' does not exist",
+            )
+
+        detail_files = [
+            path
+            for path in sorted(expected_dir.glob("*.d2"))
+            if "overview" not in path.name
+        ]
+        declared_detail_files = {repo_root / path for path in detail_to_overviews}
+
+        for detail_file in detail_files:
+            failures += report_check(
+                detail_file in declared_detail_files,
+                f"PASS detail diagram '{detail_file}' is registered in {manifest_path}",
+                f"FAIL detail diagram '{detail_file}' is not registered in {manifest_path}",
+            )
+
+        for detail_path_str, overview_refs in sorted(detail_to_overviews.items()):
+            detail_path = repo_root / detail_path_str
+            failures += report_check(
+                detail_path.exists(),
+                f"PASS declared detail diagram '{detail_path}' exists",
+                f"FAIL declared detail diagram '{detail_path}' does not exist",
+            )
+            failures += report_check(
+                isinstance(overview_refs, list) and len(overview_refs) > 0,
+                f"PASS detail diagram '{detail_path}' has linked overview targets",
+                f"FAIL detail diagram '{detail_path}' must declare at least one overview target in {manifest_path}",
+            )
+            if not isinstance(overview_refs, list):
+                continue
+            for overview_ref in overview_refs:
+                overview_path = repo_root / overview_ref
+                failures += report_check(
+                    overview_path in declared_overviews,
+                    f"PASS detail diagram '{detail_path}' points to registered overview '{overview_path}'",
+                    f"FAIL detail diagram '{detail_path}' points to undeclared overview '{overview_path}' in {manifest_path}",
+                )
+
+    return failures
+
+
 def main() -> int:
     parser = build_parser("Run the design harness.", default_repo_root(__file__))
     args = parser.parse_args()
@@ -108,6 +198,8 @@ def main() -> int:
 
     for check in SEMANTIC_PHRASE_CHECKS:
         failures += assert_canonical_phrase(repo_root / check["file"], check["expected"], check["forbidden"])
+
+    failures += assert_overview_manifest(repo_root)
 
     return finalize_failures("Design harness", failures)
 

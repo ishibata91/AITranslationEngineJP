@@ -66,6 +66,7 @@
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 - Sonar issue remediation loop は review の前段で扱い、close 条件に含める
 - review が `pass` の時は `4humans sync` を整理し、実装の変更または追加があった時は diagramming D2 skill (`diagramming-d2`) で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
+- `4humans/diagrams/processes/` または `4humans/diagrams/structures/` に new detail `.d2` を追加する時は、`4humans/diagrams/overview-manifest.json` を同じ変更で更新し、manifest で紐づいた overview `.d2` / `.svg` も同じ変更で更新する
 
 ### Fix lane
 
@@ -80,6 +81,7 @@
 - fix review skill (`reviewing-fixes`) も単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` だけを見る
 - risk reporting skill (`reporting-risks`) は残留リスクを短くまとめる補助 skill として扱う
 - review が `pass` の時は residual risk と `4humans sync` を整理し、実装の変更または追加があった時は diagramming D2 skill (`diagramming-d2`) で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
+- `4humans/diagrams/processes/` または `4humans/diagrams/structures/` に new detail `.d2` を追加する時は、`4humans/diagrams/overview-manifest.json` を同じ変更で更新し、manifest で紐づいた overview `.d2` / `.svg` も同じ変更で更新する
 
 ## 設計記録の扱い
 
@@ -105,5 +107,6 @@
 - live workflow に `architect-direction`、`light-direction`、`gating-workflow`、`context_board`、`tasks.md` を戻さない
 - 過去 repo 由来で今の repo に合わない skill / agent / artifact 前提は、互換維持より削除を優先する
 - 通常 lane の close 条件は `4humans sync` を含めて扱い、実装の変更または追加に伴う `4humans/diagrams/processes/` と構造の変更または追加に伴う `4humans/diagrams/structures/` の relevant `.d2` / `.svg` 更新も同一変更で完了させる
+- new detail diagram 追加時の overview 更新要否は推測で決めず、`4humans/diagrams/overview-manifest.json` を正本として扱う
 - `docs/` 正本更新は human が直接起動した `updating-docs` に限定する
 - harness は repo-owned files だけを検査対象とし、`node_modules`、`dist`、`coverage`、`target`、生成物を含めない

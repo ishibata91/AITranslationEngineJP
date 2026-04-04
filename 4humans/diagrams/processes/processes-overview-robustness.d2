@@ -133,3 +133,36 @@ importXedit: {
   boundary -> control: execute
   control -> entity: import / validate / persist
 }
+
+dictionaryStorageQuery: {
+  shape: package
+  label: "辞書保存 / 検索"
+
+  actor: {
+    shape: person
+    label: "呼出し元"
+    link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+  }
+
+  boundary: {
+    shape: class
+    label: "検索 port 境界\n`DictionaryLookupPort`"
+    link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+  }
+
+  control: {
+    shape: class
+    label: "制御\n`SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`"
+    link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+  }
+
+  entity: {
+    shape: class
+    label: "辞書結果\n`DictionaryImportResultDto` / `DictionaryLookupResult`"
+    link: "./backend-dictionary-storage-query-sequence-diagram.svg"
+  }
+
+  actor -> boundary: 保存後に検索要求を渡す
+  boundary -> control: save / lookup
+  control -> entity: persist / exact-match query
+}

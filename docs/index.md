@@ -37,6 +37,7 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - [`../4humans/quality-score.md`](../4humans/quality-score.md): human-facing quality posture and missing coverage
 - [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md): human-facing unresolved debt and cleanup backlog
 - [`../4humans/diagrams/`](../4humans/diagrams): human-facing review diagrams. `structures/` は構造、`processes/` は実装追加などに伴うユースケースフロー説明、`harness/` はハーネスのフロー説明を扱う
+- [`../4humans/diagrams/overview-manifest.json`](../4humans/diagrams/overview-manifest.json): new detail diagram を追加した時に、どの overview 図を同じ変更で更新すべきかを固定する正本
 - [`references/`](./references/index.md): curated reference index and external material policy
 
 ## Choose The Right Record
@@ -59,6 +60,7 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - The problem is known but not resolved yet: update [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md)
 - 実装や修正で構造が変わった: update the relevant file under [`../4humans/diagrams/structures/`](../4humans/diagrams/structures/)
 - 実装が追加または変更され、ユースケースフローに影響した: update the relevant file under [`../4humans/diagrams/processes/`](../4humans/diagrams/processes/)
+- `4humans/diagrams/structures/` または `4humans/diagrams/processes/` に new detail `.d2` を追加した: update [`../4humans/diagrams/overview-manifest.json`](../4humans/diagrams/overview-manifest.json) and the linked overview `.d2` / `.svg`
 - ハーネス実装が追加または変更された: update the relevant file under [`../4humans/diagrams/harness/`](../4humans/diagrams/harness/)
 
 ## Repository Checks

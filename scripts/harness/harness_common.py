@@ -46,6 +46,16 @@ def load_json(path: Path) -> dict:
     return json.loads(read_text(path))
 
 
+def run_command_capture(command: str, arguments: list[str], working_directory: Path) -> subprocess.CompletedProcess[str]:
+    return subprocess.run(
+        [command, *arguments],
+        cwd=working_directory,
+        check=False,
+        text=True,
+        capture_output=True,
+    )
+
+
 def is_repo_owned(path: Path) -> bool:
     return not any(part in EXCLUDED_DIR_NAMES for part in path.parts)
 

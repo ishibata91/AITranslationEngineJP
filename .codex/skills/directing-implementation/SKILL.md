@@ -28,7 +28,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 10. Sonar issue が解消した後に `<review_cycler>` を `reviewing-implementation` で **1** 回だけ実行する。
 11. review が `reroute` を返したら lane に差し戻し、同じ active plan を更新して再実行する。
 12. 差し戻しが修正されたら､再レビューはせず次へ進む｡
-13. 必要な `4humans sync` を整理し、実装の変更または追加があった時は `<diagrammer>` を `diagramming-d2` でスポーンして `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を同一変更で更新してから plan を `completed/` へ移す。
+13. 必要な `4humans sync` を整理し、実装の変更または追加があった時は `<diagrammer>` を `diagramming-d2` でスポーンして `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を同一変更で更新してから plan を `completed/` へ移す。new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と manifest で紐づく overview `.d2` / `.svg` も同一変更で更新する。
 14. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## 許可すること
@@ -40,7 +40,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 - active plan と重複確認に必要な最小限の入口情報だけを読み、詳細なコードベース調査は `distilling-implementation` へ委譲する
 - `changes/`、`context_board`、`tasks.md` を live 正本にしない
 - review が `pass` でも `4humans sync` と plan 完了前に close とみなさない
-- active plan の `4humans Sync` には、必要な `4humans/diagrams/processes/` と `4humans/diagrams/structures/` の更新対象を明記する
+- active plan の `4humans Sync` には、必要な `4humans/diagrams/processes/` と `4humans/diagrams/structures/` の更新対象を明記し、new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と対応 overview `.d2` / `.svg` も必ず列挙する
 - skill 権限が曖昧な場合は停止して適切な handoff を選ぶ
 
 ## Reference Use
