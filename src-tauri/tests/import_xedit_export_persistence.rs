@@ -1,6 +1,8 @@
+#[path = "support/execution_cache.rs"]
+mod execution_cache;
+
 use std::fs;
-use std::path::{Path, PathBuf};
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::PathBuf;
 
 use ai_translation_engine_jp_lib::application::dto::ImportXeditExportRequestDto;
 use ai_translation_engine_jp_lib::application::importer::{
@@ -10,6 +12,7 @@ use ai_translation_engine_jp_lib::domain::xedit_export::ImportedPluginExport;
 use ai_translation_engine_jp_lib::infra::plugin_export_repository::SqlitePluginExportRepository;
 use ai_translation_engine_jp_lib::infra::xedit_export_importer::FileSystemXeditExportImporter;
 use async_trait::async_trait;
+use execution_cache::{next_unique_test_suffix, TempExecutionCache};
 use sqlx::{Connection, Row};
 
 struct FixtureFile {
@@ -19,12 +22,9 @@ struct FixtureFile {
 
 impl FixtureFile {
     fn new(file_name: &str, contents: &str) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time should be after unix epoch")
-            .as_nanos();
         let dir_path = std::env::temp_dir().join(format!(
-            "ai-translation-engine-jp-xedit-persistence-{file_name}-{timestamp}"
+            "ai-translation-engine-jp-xedit-persistence-{file_name}-{}",
+            next_unique_test_suffix()
         ));
         let file_path = dir_path.join(file_name);
 
@@ -44,34 +44,6 @@ impl Drop for FixtureFile {
     }
 }
 
-struct TempSqliteDatabase {
-    file_path: PathBuf,
-}
-
-impl TempSqliteDatabase {
-    fn new(name_prefix: &str) -> Self {
-        let timestamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system time should be after unix epoch")
-            .as_nanos();
-        let file_path = std::env::temp_dir().join(format!(
-            "ai-translation-engine-jp-{name_prefix}-{timestamp}.sqlite"
-        ));
-
-        Self { file_path }
-    }
-
-    fn path(&self) -> &Path {
-        &self.file_path
-    }
-}
-
-impl Drop for TempSqliteDatabase {
-    fn drop(&mut self) {
-        let _ = fs::remove_file(&self.file_path);
-    }
-}
-
 #[tokio::test]
 async fn given_valid_xedit_export_json_when_executing_use_case_then_persists_plugin_export_and_raw_records(
 ) {
@@ -79,7 +51,11 @@ async fn given_valid_xedit_export_json_when_executing_use_case_then_persists_plu
         "xedit-export-minimal.json",
         include_str!("fixtures/xedit-export-minimal.json"),
     );
-    let database = TempSqliteDatabase::new("plugin-export-cache");
+    let database = TempExecutionCache::new("plugin-export-cache");
+    database
+        .initialize_base_schema()
+        .await
+        .expect("execution cache schema fixture should be initialized");
     let repository = SqlitePluginExportRepository::new(database.path());
     let use_case = ImportXeditExportUseCase::new(FileSystemXeditExportImporter, repository);
 
@@ -137,6 +113,36 @@ async fn given_valid_xedit_export_json_when_executing_use_case_then_persists_plu
     assert!(raw_record_row
         .get::<String, _>("raw_payload")
         .contains("\"name\":\"Iron Sword\""));
+}
+
+#[tokio::test]
+async fn given_uninitialized_execution_cache_when_executing_use_case_then_returns_missing_schema_error(
+) {
+    let fixture = FixtureFile::new(
+        "xedit-export-minimal.json",
+        include_str!("fixtures/xedit-export-minimal.json"),
+    );
+    let database = TempExecutionCache::new("plugin-export-cache-uninitialized");
+    database
+        .create_empty_database()
+        .await
+        .expect("empty execution cache file should be created");
+    let repository = SqlitePluginExportRepository::new(database.path());
+    let use_case = ImportXeditExportUseCase::new(FileSystemXeditExportImporter, repository);
+
+    let error = use_case
+        .execute(ImportXeditExportRequestDto {
+            file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
+        })
+        .await
+        .expect_err("uninitialized execution cache should fail without schema fixture");
+
+    assert!(
+        error.contains("plugin_exports")
+            || error.contains("plugin_export_raw_records")
+            || error.contains("no such table"),
+        "unexpected missing schema error: {error}"
+    );
 }
 
 #[tokio::test]

@@ -1,8 +1,8 @@
+#[path = "../../support/execution_cache.rs"]
+mod execution_cache;
+
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use ai_translation_engine_jp_lib::application::dto::job::{
     CreateJobRequestDto, CreateJobSourceGroupDto, JobStateDto,
@@ -17,8 +17,8 @@ use ai_translation_engine_jp_lib::domain::job::create::CreatedJob;
 use ai_translation_engine_jp_lib::gateway::commands::{
     create_job, import_xedit_export_json, list_jobs,
 };
-use ai_translation_engine_jp_lib::infra::job_repository::remove_in_memory_jobs_for_storage_path;
 use async_trait::async_trait;
+use execution_cache::{next_unique_test_suffix, CommandEnvOverrideGuard, TempExecutionCache};
 
 struct FixtureFile {
     dir_path: PathBuf,
@@ -49,79 +49,6 @@ impl Drop for FixtureFile {
     }
 }
 
-fn next_unique_test_suffix() -> String {
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system time should be after unix epoch")
-        .as_nanos();
-    let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
-
-    format!("{timestamp}-{counter}")
-}
-
-const EXECUTION_CACHE_PATH_ENV: &str = "AI_TRANSLATION_ENGINE_JP_EXECUTION_CACHE_PATH";
-
-fn command_test_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
-
-struct CommandEnvOverrideGuard {
-    _lock: MutexGuard<'static, ()>,
-    previous: Option<String>,
-}
-
-impl CommandEnvOverrideGuard {
-    fn new(cache_path: &str) -> Self {
-        let lock = command_test_lock()
-            .lock()
-            .expect("command test lock should be acquirable");
-        let previous = std::env::var(EXECUTION_CACHE_PATH_ENV).ok();
-        std::env::set_var(EXECUTION_CACHE_PATH_ENV, cache_path);
-
-        Self {
-            _lock: lock,
-            previous,
-        }
-    }
-}
-
-impl Drop for CommandEnvOverrideGuard {
-    fn drop(&mut self) {
-        if let Some(previous) = &self.previous {
-            std::env::set_var(EXECUTION_CACHE_PATH_ENV, previous);
-        } else {
-            std::env::remove_var(EXECUTION_CACHE_PATH_ENV);
-        }
-    }
-}
-
-struct ExecutionCacheArtifactGuard {
-    cache_path: PathBuf,
-}
-
-impl ExecutionCacheArtifactGuard {
-    fn new(cache_path: PathBuf) -> Self {
-        Self { cache_path }
-    }
-}
-
-impl Drop for ExecutionCacheArtifactGuard {
-    fn drop(&mut self) {
-        let _ = remove_in_memory_jobs_for_storage_path(&self.cache_path);
-
-        let cache_file = self.cache_path.to_string_lossy().into_owned();
-        let wal_file = format!("{cache_file}-wal");
-        let shm_file = format!("{cache_file}-shm");
-
-        let _ = fs::remove_file(&self.cache_path);
-        let _ = fs::remove_file(wal_file);
-        let _ = fs::remove_file(shm_file);
-    }
-}
-
 #[tokio::test]
 async fn given_import_job_fixture_when_creating_and_listing_through_commands_then_same_ready_job_is_visible(
 ) {
@@ -129,12 +56,12 @@ async fn given_import_job_fixture_when_creating_and_listing_through_commands_the
         "xedit-export-minimal.json",
         include_str!("../../fixtures/xedit-export-minimal.json"),
     );
-    let cache_path = std::env::temp_dir().join(format!(
-        "ai-translation-engine-jp-import-job-cache-{}.sqlite",
-        next_unique_test_suffix()
-    ));
-    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
-    let _cache_artifact_guard = ExecutionCacheArtifactGuard::new(cache_path.clone());
+    let cache = TempExecutionCache::new("import-job-cache");
+    cache
+        .initialize_base_schema()
+        .await
+        .expect("execution cache schema fixture should be initialized");
+    let _cache_guard = CommandEnvOverrideGuard::new(cache.path());
 
     let imported = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],

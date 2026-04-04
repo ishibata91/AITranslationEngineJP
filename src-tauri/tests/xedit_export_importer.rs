@@ -1,11 +1,12 @@
+#[path = "support/execution_cache.rs"]
+mod execution_cache;
+
 use ai_translation_engine_jp_lib::application::dto::ImportXeditExportRequestDto;
 use ai_translation_engine_jp_lib::gateway::commands::import_xedit_export_json;
+use execution_cache::{next_unique_test_suffix, CommandEnvOverrideGuard, TempExecutionCache};
 use serde::Deserialize;
 use std::fs;
 use std::path::PathBuf;
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::{Mutex, MutexGuard, OnceLock};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 struct FixtureFile {
     dir_path: PathBuf,
@@ -33,55 +34,6 @@ impl FixtureFile {
 impl Drop for FixtureFile {
     fn drop(&mut self) {
         let _ = fs::remove_dir_all(&self.dir_path);
-    }
-}
-
-fn next_unique_test_suffix() -> String {
-    static COUNTER: AtomicU64 = AtomicU64::new(0);
-
-    let timestamp = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .expect("system time should be after unix epoch")
-        .as_nanos();
-    let counter = COUNTER.fetch_add(1, Ordering::Relaxed);
-
-    format!("{timestamp}-{counter}")
-}
-
-const EXECUTION_CACHE_PATH_ENV: &str = "AI_TRANSLATION_ENGINE_JP_EXECUTION_CACHE_PATH";
-
-fn command_test_lock() -> &'static Mutex<()> {
-    static LOCK: OnceLock<Mutex<()>> = OnceLock::new();
-    LOCK.get_or_init(|| Mutex::new(()))
-}
-
-struct CommandEnvOverrideGuard {
-    _lock: MutexGuard<'static, ()>,
-    previous: Option<String>,
-}
-
-impl CommandEnvOverrideGuard {
-    fn new(cache_path: &str) -> Self {
-        let lock = command_test_lock()
-            .lock()
-            .expect("command test lock should be acquirable");
-        let previous = std::env::var(EXECUTION_CACHE_PATH_ENV).ok();
-        std::env::set_var(EXECUTION_CACHE_PATH_ENV, cache_path);
-
-        Self {
-            _lock: lock,
-            previous,
-        }
-    }
-}
-
-impl Drop for CommandEnvOverrideGuard {
-    fn drop(&mut self) {
-        if let Some(previous) = &self.previous {
-            std::env::set_var(EXECUTION_CACHE_PATH_ENV, previous);
-        } else {
-            std::env::remove_var(EXECUTION_CACHE_PATH_ENV);
-        }
     }
 }
 
@@ -134,11 +86,12 @@ async fn given_valid_xedit_export_json_when_importing_then_returns_plugin_export
         "xedit-export-minimal.json",
         include_str!("fixtures/xedit-export-minimal.json"),
     );
-    let cache_path = std::env::temp_dir().join(format!(
-        "ai-translation-engine-jp-command-cache-{}.sqlite",
-        next_unique_test_suffix()
-    ));
-    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
+    let cache = TempExecutionCache::new("command-cache");
+    cache
+        .initialize_base_schema()
+        .await
+        .expect("execution cache schema fixture should be initialized");
+    let _cache_guard = CommandEnvOverrideGuard::new(cache.path());
 
     let result = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
@@ -187,11 +140,8 @@ async fn given_xedit_export_missing_target_plugin_when_importing_then_returns_va
         "xedit-export-missing-target-plugin.json",
         include_str!("fixtures/xedit-export-missing-target-plugin.json"),
     );
-    let cache_path = std::env::temp_dir().join(format!(
-        "ai-translation-engine-jp-command-cache-{}.sqlite",
-        next_unique_test_suffix()
-    ));
-    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
+    let cache = TempExecutionCache::new("command-cache-validation");
+    let _cache_guard = CommandEnvOverrideGuard::new(cache.path());
 
     let error = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
@@ -209,11 +159,12 @@ async fn given_lossless_translation_unit_fixture_with_blank_editor_id_when_impor
     let source_json = serde_json::to_string_pretty(&lossless_fixture.source_export)
         .expect("fixture source export should serialize");
     let fixture = FixtureFile::new("translation-unit-lossless.json", &source_json);
-    let cache_path = std::env::temp_dir().join(format!(
-        "ai-translation-engine-jp-command-cache-{}.sqlite",
-        next_unique_test_suffix()
-    ));
-    let _cache_guard = CommandEnvOverrideGuard::new(&cache_path.to_string_lossy());
+    let cache = TempExecutionCache::new("command-cache-lossless");
+    cache
+        .initialize_base_schema()
+        .await
+        .expect("execution cache schema fixture should be initialized");
+    let _cache_guard = CommandEnvOverrideGuard::new(cache.path());
 
     let result = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
@@ -252,6 +203,33 @@ async fn given_lossless_translation_unit_fixture_with_blank_editor_id_when_impor
 }
 
 #[tokio::test]
+async fn given_uninitialized_execution_cache_when_importing_then_returns_missing_schema_error() {
+    let fixture = FixtureFile::new(
+        "xedit-export-minimal.json",
+        include_str!("fixtures/xedit-export-minimal.json"),
+    );
+    let cache = TempExecutionCache::new("command-cache-uninitialized");
+    cache
+        .create_empty_database()
+        .await
+        .expect("empty execution cache file should be created");
+    let _cache_guard = CommandEnvOverrideGuard::new(cache.path());
+
+    let error = import_xedit_export_json(ImportXeditExportRequestDto {
+        file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],
+    })
+    .await
+    .expect_err("uninitialized execution cache should fail on command boundary");
+
+    assert!(
+        error.contains("plugin_exports")
+            || error.contains("plugin_export_raw_records")
+            || error.contains("no such table"),
+        "unexpected missing schema error: {error}"
+    );
+}
+
+#[tokio::test]
 async fn given_directory_as_execution_cache_path_when_importing_then_returns_persistence_error() {
     let fixture = FixtureFile::new(
         "xedit-export-minimal.json",
@@ -262,7 +240,7 @@ async fn given_directory_as_execution_cache_path_when_importing_then_returns_per
         next_unique_test_suffix()
     ));
     fs::create_dir_all(&cache_dir).expect("cache directory fixture should be created");
-    let _cache_guard = CommandEnvOverrideGuard::new(&cache_dir.to_string_lossy());
+    let _cache_guard = CommandEnvOverrideGuard::new(&cache_dir);
 
     let error = import_xedit_export_json(ImportXeditExportRequestDto {
         file_paths: vec![fixture.file_path.to_string_lossy().into_owned()],

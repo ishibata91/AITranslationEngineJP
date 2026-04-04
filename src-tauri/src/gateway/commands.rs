@@ -6,13 +6,11 @@ use crate::application::dto::{
 use crate::application::importer::ImportXeditExportUseCase;
 use crate::application::job::create::CreateJobUseCase;
 use crate::application::job::list::ListJobsUseCase;
+use crate::infra::execution_cache::execution_cache_path;
 use crate::infra::job_repository::InMemoryJobRepository;
 use crate::infra::plugin_export_repository::SqlitePluginExportRepository;
 use crate::infra::runtime_info::CargoRuntimeInfoProvider;
 use crate::infra::xedit_export_importer::FileSystemXeditExportImporter;
-use std::path::PathBuf;
-
-const EXECUTION_CACHE_PATH_ENV: &str = "AI_TRANSLATION_ENGINE_JP_EXECUTION_CACHE_PATH";
 
 #[tauri::command]
 pub fn get_bootstrap_status() -> BootstrapStatusDto {
@@ -41,14 +39,4 @@ pub async fn list_jobs() -> Result<ListJobsResultDto, String> {
     let repository = InMemoryJobRepository::new(execution_cache_path());
     let use_case = ListJobsUseCase::new(repository);
     use_case.execute().await
-}
-
-fn execution_cache_path() -> PathBuf {
-    if let Ok(overridden_path) = std::env::var(EXECUTION_CACHE_PATH_ENV) {
-        if !overridden_path.trim().is_empty() {
-            return PathBuf::from(overridden_path);
-        }
-    }
-
-    std::env::temp_dir().join("ai-translation-engine-jp-execution-cache.sqlite")
 }
