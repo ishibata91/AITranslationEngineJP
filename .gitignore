@@ -5,3 +5,4 @@ coverage
 src-tauri/target
 .scannerwork
 .zed
+.cargo-home

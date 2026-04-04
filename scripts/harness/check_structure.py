@@ -107,6 +107,8 @@ def collect_markdown_files(repo_root: Path) -> list[Path]:
             continue
         if "/.codex/.codex/" in path_text:
             continue
+        if "/.cargo-home/" in path_text:
+            continue
         markdown_files.append(path)
     return markdown_files
 

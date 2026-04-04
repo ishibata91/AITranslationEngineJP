@@ -10,6 +10,7 @@
 ## Suites
 
 - `structure`: 必須ファイル、必須ディレクトリ、Markdown リンクの検査
+  repo-local cache や vendor 相当の外部取得物は検査対象に含めない
 - `design`: 主要文書の契約語と最低限の内容確認
 - `execution`: 将来の Rust / frontend 実装に対する標準 format / test / lint / build 入口
 

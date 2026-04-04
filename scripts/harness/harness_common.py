@@ -8,7 +8,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-EXCLUDED_DIR_NAMES = {".git", "node_modules", "dist", "build", "coverage", "target"}
+EXCLUDED_DIR_NAMES = {".git", ".cargo-home", "node_modules", "dist", "build", "coverage", "target"}
 ANSI_COLORS = {
     "cyan": "\033[36m",
     "green": "\033[32m",

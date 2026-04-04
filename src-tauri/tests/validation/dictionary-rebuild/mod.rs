@@ -1,5 +1,6 @@
 use std::fmt::Debug;
 
+use ai_translation_engine_jp_lib::application::dictionary_import::ImportDictionaryUseCase;
 use ai_translation_engine_jp_lib::application::dto::{
     DictionaryImportRequestDto, DictionaryImportResultDto, ReusableDictionaryEntryDto,
 };
@@ -7,6 +8,7 @@ use ai_translation_engine_jp_lib::application::ports::dictionary_lookup::{
     DictionaryLookupCandidateGroup, DictionaryLookupPort, DictionaryLookupRequest,
     DictionaryLookupResult,
 };
+use ai_translation_engine_jp_lib::infra::xtranslator_importer::FileSystemXtranslatorImporter;
 use serde::{Deserialize, Serialize};
 
 fn assert_request_contract<T>()
@@ -50,20 +52,19 @@ fn given_dictionary_import_request_transport_when_deserializing_then_source_iden
     assert_eq!(request.source_file_path, "F:/imports/dictionary/master.sst");
 }
 
-#[test]
-fn given_dictionary_rebuild_fixture_when_projecting_import_and_lookup_boundaries_then_shared_reusable_entry_contract_matches_snapshot(
+#[tokio::test]
+async fn given_xtranslator_sst_fixture_when_projecting_import_and_lookup_boundaries_then_shared_reusable_entry_contract_matches_snapshot(
 ) {
     let fixture = load_dictionary_rebuild_fixture();
-    let import_result = DictionaryImportResultDto {
-        dictionary_name: fixture.dictionary_import_result.dictionary_name,
-        source_type: fixture.dictionary_import_result.source_type,
-        entries: fixture
-            .dictionary_import_result
-            .entries
-            .into_iter()
-            .map(FixtureReusableDictionaryEntry::into_dto)
-            .collect(),
-    };
+    let source_fixture = crate::xtranslator_fixture::shared_contract_fixture_file();
+    let use_case = ImportDictionaryUseCase::new(FileSystemXtranslatorImporter);
+    let import_result = use_case
+        .execute(DictionaryImportRequestDto {
+            source_type: "xtranslator-sst".to_string(),
+            source_file_path: source_fixture.path_string(),
+        })
+        .await
+        .expect("shared xTranslator fixture should import into dictionary rebuild boundary");
     let lookup_request = DictionaryLookupRequest {
         source_texts: fixture.lookup_source_texts.clone(),
     };
@@ -101,32 +102,7 @@ fn given_dictionary_rebuild_fixture_when_projecting_import_and_lookup_boundaries
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct DictionaryRebuildFixture {
-    dictionary_import_result: FixtureDictionaryImportResult,
     lookup_source_texts: Vec<String>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct FixtureDictionaryImportResult {
-    dictionary_name: String,
-    source_type: String,
-    entries: Vec<FixtureReusableDictionaryEntry>,
-}
-
-#[derive(Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct FixtureReusableDictionaryEntry {
-    source_text: String,
-    dest_text: String,
-}
-
-impl FixtureReusableDictionaryEntry {
-    fn into_dto(self) -> ReusableDictionaryEntryDto {
-        ReusableDictionaryEntryDto {
-            source_text: self.source_text,
-            dest_text: self.dest_text,
-        }
-    }
 }
 
 #[derive(Debug, Serialize)]

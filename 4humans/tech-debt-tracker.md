@@ -62,3 +62,10 @@
 - Impact: 実行キャッシュの寿命と観測先が OS の temp 運用に依存し、後続の job-linking や cleanup 方針を固める前提がまだ弱い
 - Next step: app-owned execution-cache location、retention policy、job cleanup と `PLUGIN_EXPORT` 削除条件を後続 persistence task で固定する
 
+### 8. xTranslator SST compatibility is still fixture-scoped
+
+- Status: Open
+- Area: Dictionary foundation
+- Detail: `P2-I01` で xTranslator dictionary importer を追加し、shared reusable-entry snapshot と whitespace-sensitive fixture を通す最小 SST layout は検証したが、metadata 優先規則、旧 version 互換、追加 field semantics はまだ固定していない
+- Impact: 現状の importer は Phase 2 foundation-data の最小 ingest path には使える一方、広い xTranslator SST 実データ互換を前提にすると解釈差分が残る
+- Next step: foundation-data 後続 task で実データ fixture を追加し、`dictionaryName` metadata precedence と version 互換の acceptance checks を固定する

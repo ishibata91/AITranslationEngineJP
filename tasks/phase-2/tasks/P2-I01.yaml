@@ -1,7 +1,7 @@
 id: P2-I01
 title: Implement xTranslator importer
 type: impl
-status: planned
+status: done
 goal: Accept xTranslator input for master dictionary ingestion.
 owned_scope:
 - src-tauri/src/application/dictionary_import/
