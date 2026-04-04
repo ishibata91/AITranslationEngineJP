@@ -1,0 +1,57 @@
+title: "Backend job persona 永続化シーケンス図"
+
+jobPersonaPersistenceSequence: {
+  shape: sequence_diagram
+
+  caller: "呼出し元"
+  persistUsecase: "job persona 永続化ユースケース (`PersistJobPersonaUseCase`)"
+  storage: "job persona storage port / repository (`JobPersonaStoragePort` / `SqliteJobPersonaRepository`)"
+  jobPersonaEntry: "job persona entry table (`job_persona_entry`)"
+  readResult: "job persona 読込結果 DTO (`JobPersonaReadResultDto`)"
+
+  caller -> persistUsecase: job persona 保存要求を渡す {
+    style.font-size: 22
+  }
+  persistUsecase -> persistUsecase: `job_id` / `source_type` / entry 必須 field を検証する {
+    style.font-size: 22
+  }
+  persistUsecase -> persistUsecase: 同じ `job_id` で読込要求を組み立てる {
+    style.font-size: 22
+  }
+  persistUsecase -> storage: job-local snapshot を保存する {
+    style.font-size: 22
+  }
+  storage -> storage: transaction を開始する {
+    style.font-size: 22
+  }
+  storage -> jobPersonaEntry: 対象 `job_id` の既存 rows を削除する {
+    style.font-size: 22
+  }
+  storage -> jobPersonaEntry: request 順に rows を insert する {
+    style.font-size: 22
+  }
+  storage -> storage: rollback なしで commit する {
+    style.font-size: 22
+  }
+  storage -> persistUsecase: 保存完了を返す {
+    style.font-size: 22
+  }
+  persistUsecase -> storage: 同じ `job_id` の snapshot を読む {
+    style.font-size: 22
+  }
+  storage -> jobPersonaEntry: `ORDER BY id ASC` で rows を読む {
+    style.font-size: 22
+  }
+  jobPersonaEntry -> storage: job-local rows だけを返す {
+    style.font-size: 22
+  }
+  storage -> readResult: 保存順を保った読込結果を組み立てる {
+    style.font-size: 22
+  }
+  readResult -> persistUsecase: 読込結果を返す {
+    style.font-size: 22
+  }
+  persistUsecase -> caller: 保存直後の job persona を返す {
+    style.font-size: 22
+  }
+}

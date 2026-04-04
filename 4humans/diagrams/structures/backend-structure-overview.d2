@@ -70,6 +70,13 @@ applicationLayer: {
     link: "./backend-master-persona-builder-class-diagram.svg"
     style.font-size: 22
   }
+
+  jobPersonaPersistenceUsecase: {
+    shape: class
+    label: "job persona 永続化 (`PersistJobPersonaUseCase`)"
+    link: "./backend-job-persona-persistence-class-diagram.svg"
+    style.font-size: 22
+  }
 }
 
 domainLayer: {
@@ -105,6 +112,12 @@ domainLayer: {
   masterPersonaData: {
     shape: class
     label: "master persona データ"
+    style.font-size: 22
+  }
+
+  jobPersonaData: {
+    shape: class
+    label: "job persona データ"
     style.font-size: 22
   }
 }
@@ -168,6 +181,13 @@ infraLayer: {
     shape: class
     label: "master persona storage"
     link: "./backend-master-persona-builder-class-diagram.svg"
+    style.font-size: 22
+  }
+
+  jobPersonaRepository: {
+    shape: class
+    label: "job persona repository"
+    link: "./backend-job-persona-persistence-class-diagram.svg"
     style.font-size: 22
   }
 }

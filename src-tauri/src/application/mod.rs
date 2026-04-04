@@ -4,5 +4,6 @@ pub mod dictionary_query;
 pub mod dto;
 pub mod importer;
 pub mod job;
+pub mod job_persona;
 pub mod master_persona;
 pub mod ports;

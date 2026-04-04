@@ -1,0 +1,140 @@
+layout: elk
+direction: right
+
+title: "Backend job persona 永続化クラス図"
+
+application: {
+  shape: package
+  label: "application"
+  direction: down
+  style.font-size: 22
+
+  persistUsecase: {
+    shape: class
+    label: "job persona 永続化ユースケース (`PersistJobPersonaUseCase`)"
+    "+ 保存要求を検証して save/read を直列実行する": "`execute(request)`"
+    style.font-size: 22
+  }
+
+  storagePort: {
+    shape: class
+    label: "job persona storage port (`JobPersonaStoragePort`)"
+    "+ job persona snapshot を置換保存する": "`save_job_persona(request)`"
+    "+ job persona snapshot を読む": "`read_job_persona(request)`"
+    style.font-size: 22
+  }
+}
+
+dto: {
+  shape: package
+  label: "application DTO"
+  direction: down
+  style.font-size: 22
+
+  saveRequest: {
+    shape: class
+    label: "job persona 保存要求 DTO (`JobPersonaSaveRequestDto`)"
+    style.font-size: 22
+  }
+
+  readRequest: {
+    shape: class
+    label: "job persona 読込要求 DTO (`JobPersonaReadRequestDto`)"
+    style.font-size: 22
+  }
+
+  readResult: {
+    shape: class
+    label: "job persona 読込結果 DTO (`JobPersonaReadResultDto`)"
+    style.font-size: 22
+  }
+
+  entry: {
+    shape: class
+    label: "job persona entry DTO (`JobPersonaEntryDto`)"
+    style.font-size: 22
+  }
+}
+
+infra: {
+  shape: package
+  label: "infra"
+  direction: down
+  style.font-size: 22
+
+  repository: {
+    shape: class
+    label: "SQLite job persona repository (`SqliteJobPersonaRepository`)"
+    "+ 対象 `job_id` の既存 rows を削除して snapshot を保存する": "`save_job_persona(request)`"
+    "+ `id` 順で snapshot を読み戻す": "`read_job_persona(request)`"
+    style.font-size: 22
+  }
+
+  executionCache: {
+    shape: class
+    label: "execution cache SQLite"
+    style.font-size: 22
+  }
+}
+
+storage: {
+  shape: package
+  label: "job persona storage"
+  direction: down
+  style.font-size: 22
+
+  jobPersonaEntryTable: {
+    shape: sql_table
+    label: "job persona entry (`job_persona_entry`)"
+    "id: INTEGER": "primary_key"
+    "job_id: INTEGER": "foreign_key -> `translation_job.id`"
+    "npc_id: INTEGER": "foreign_key -> `npc.id`"
+    "source_type: TEXT": "not_null"
+    "npc_form_id: TEXT": "not_null"
+    "race: TEXT": "not_null"
+    "sex: TEXT": "not_null"
+    "voice: TEXT": "not_null"
+    "persona_text: TEXT": "not_null"
+    style.font-size: 22
+  }
+}
+
+application.persistUsecase -> dto.saveRequest: `job_id` / `source_type` / entry 必須 field を検証する {
+  style.font-size: 22
+}
+application.persistUsecase -> dto.readRequest: 同じ `job_id` で読込要求を組み立てる {
+  style.font-size: 22
+}
+application.persistUsecase -> application.storagePort: save / read を順に依頼する {
+  style.font-size: 22
+}
+application.storagePort -> dto.saveRequest: job-local snapshot を受け取る {
+  style.font-size: 22
+}
+application.storagePort -> dto.readRequest: 同一 `job_id` の読込要求を受け取る {
+  style.font-size: 22
+}
+application.storagePort -> dto.readResult: 保存後 snapshot を返す {
+  style.font-size: 22
+}
+dto.saveRequest -> dto.entry: request 順の `entries` を束ねる {
+  style.font-size: 22
+}
+dto.readResult -> dto.entry: 保存順を保った `entries` を返す {
+  style.font-size: 22
+}
+infra.repository -> application.storagePort: 実装する {
+  style.font-size: 22
+}
+infra.repository -> infra.executionCache: SQLite connection と transaction を開く {
+  style.font-size: 22
+}
+infra.executionCache -> storage.jobPersonaEntryTable: `JOB_PERSONA_ENTRY` だけを保持する {
+  style.font-size: 22
+}
+infra.repository -> storage.jobPersonaEntryTable: 同一 `job_id` rows を delete 後に insert して置換する {
+  style.font-size: 22
+}
+infra.repository -> storage.jobPersonaEntryTable: `ORDER BY id ASC` で job-local rows を読む {
+  style.font-size: 22
+}

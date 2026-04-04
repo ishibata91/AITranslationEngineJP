@@ -1,7 +1,7 @@
 id: P2-I04
 title: Implement job persona persistence
 type: impl
-status: planned
+status: done
 goal: Persist job-local persona data separately from master persona data.
 owned_scope:
 - src-tauri/src/application/job_persona/

@@ -32,7 +32,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 14. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## 許可すること
-- 各エージェントのスポーン
+- 各エージェントのスポーン spawn_agentのfork_contextはfalseで呼び出すこと。
 - 各エージェントの契約パケットを読む
 
 ## Rules

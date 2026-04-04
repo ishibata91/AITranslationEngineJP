@@ -272,3 +272,48 @@ masterPersonaRebuild: {
     style.font-size: 22
   }
 }
+
+jobPersonaPersistence: {
+  shape: package
+  label: "job persona 永続化"
+  direction: right
+  style.font-size: 22
+
+  actor: {
+    shape: person
+    label: "呼出し元"
+    link: "./backend-job-persona-persistence-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  boundary: {
+    shape: class
+    label: "job persona 保存要求境界 (`JobPersonaSaveRequestDto`)"
+    link: "./backend-job-persona-persistence-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  control: {
+    shape: class
+    label: "永続化制御 (`PersistJobPersonaUseCase` / `SqliteJobPersonaRepository`)"
+    link: "./backend-job-persona-persistence-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  entity: {
+    shape: class
+    label: "job-local snapshot (`JobPersonaReadResultDto` / `JOB_PERSONA_ENTRY`)"
+    link: "./backend-job-persona-persistence-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  actor -> boundary: job persona 保存要求を渡す {
+    style.font-size: 22
+  }
+  boundary -> control: save/read を直列実行させる {
+    style.font-size: 22
+  }
+  control -> entity: 置換保存と保存順読込を行う {
+    style.font-size: 22
+  }
+}
