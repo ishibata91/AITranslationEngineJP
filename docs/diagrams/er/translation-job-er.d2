@@ -1,0 +1,206 @@
+direction: right
+
+PLUGIN_EXPORT: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  target_plugin: string
+  source_json_path: string
+  imported_at: datetime
+}
+
+DICTIONARY_ENTRY: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  source_text: string
+  dest_text: string
+}
+
+MASTER_PERSONA: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  persona_name: string
+  source_type: string
+  built_at: datetime
+}
+
+MASTER_DICTIONARY: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  dictionary_name: string
+  source_type: string
+  built_at: datetime
+}
+
+DIALOGUE_GROUP: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  plugin_export_id: bigint {constraint: foreign_key}
+  form_id: string
+  editor_id: string
+  type: string
+  player_text: string
+  source: string
+  quest_id: bigint {constraint: foreign_key}
+  is_services_branch: boolean
+  services_type: string
+}
+
+TRANSLATION_UNIT: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  plugin_export_id: bigint {constraint: foreign_key}
+  source_entity_type: string
+  source_entity_id: bigint
+  form_id: string
+  editor_id: string
+  record_signature: string
+  field_name: string
+  extraction_key: string
+  source_text: string
+  sort_key: string
+}
+
+TRANSLATION_JOB: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  master_persona_id: bigint {constraint: foreign_key}
+  master_dictionary_id: bigint {constraint: foreign_key}
+  job_name: string
+  status: string
+  current_phase: string
+  started_at: datetime
+  finished_at: datetime
+}
+
+JOB_PLUGIN_EXPORT: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  plugin_export_id: bigint {constraint: foreign_key}
+}
+
+JOB_DIALOGUE_GROUP: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  dialogue_group_id: bigint {constraint: foreign_key}
+}
+
+JOB_TRANSLATION_UNIT: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  translation_unit_id: bigint {constraint: foreign_key}
+  status: string
+  retry_count: integer
+  translated_text: string
+  translation_status_code: integer
+}
+
+JOB_PHASE_RUN: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  phase_code: string
+  ai_run_id: bigint {constraint: foreign_key}
+  status: string
+  started_at: datetime
+  finished_at: datetime
+}
+
+AI_PROVIDER: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  provider_name: string
+  provider_type: string
+  supports_batch: boolean
+}
+
+AI_RUN: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  ai_provider_id: bigint {constraint: foreign_key}
+  execution_mode: string
+  provider_run_id: string
+  provider_batch_id: string
+  request_payload_hash: string
+  response_payload_hash: string
+  status: string
+  started_at: datetime
+  finished_at: datetime
+  last_error: string
+}
+
+TRANSLATION_INSTRUCTION: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  job_translation_unit_id: bigint {constraint: foreign_key}
+  phase_code: string
+  instruction_text: text
+}
+
+JOB_DICTIONARY_ENTRY: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  dictionary_entry_id: bigint {constraint: foreign_key}
+}
+
+JOB_PERSONA_ENTRY: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  npc_id: bigint {constraint: foreign_key}
+  npc_form_id: string
+  source_type: string
+  race: string
+  sex: string
+  voice: string
+  persona_text: string
+}
+
+JOB_OUTPUT_ARTIFACT: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  job_id: bigint {constraint: foreign_key}
+  plugin_export_id: bigint {constraint: foreign_key}
+  format_code: string
+  file_path: string
+  status: string
+  generated_at: datetime
+}
+
+FOUNDATION_PHASE_RUN: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  master_persona_id: bigint {constraint: foreign_key}
+  phase_code: string
+  ai_run_id: bigint {constraint: foreign_key}
+  status: string
+  started_at: datetime
+  finished_at: datetime
+}
+
+PLUGIN_EXPORT.id -> TRANSLATION_UNIT.plugin_export_id
+TRANSLATION_JOB.id -> JOB_PLUGIN_EXPORT.job_id
+PLUGIN_EXPORT.id -> JOB_PLUGIN_EXPORT.plugin_export_id
+TRANSLATION_JOB.id -> JOB_DIALOGUE_GROUP.job_id
+DIALOGUE_GROUP.id -> JOB_DIALOGUE_GROUP.dialogue_group_id
+TRANSLATION_JOB.id -> JOB_TRANSLATION_UNIT.job_id
+TRANSLATION_UNIT.id -> JOB_TRANSLATION_UNIT.translation_unit_id
+TRANSLATION_JOB.id -> JOB_PHASE_RUN.job_id
+AI_RUN.id -> JOB_PHASE_RUN.ai_run_id
+AI_PROVIDER.id -> AI_RUN.ai_provider_id
+TRANSLATION_JOB.id -> TRANSLATION_INSTRUCTION.job_id
+JOB_TRANSLATION_UNIT.id -> TRANSLATION_INSTRUCTION.job_translation_unit_id
+TRANSLATION_JOB.id -> JOB_DICTIONARY_ENTRY.job_id
+DICTIONARY_ENTRY.id -> JOB_DICTIONARY_ENTRY.dictionary_entry_id
+MASTER_PERSONA.id -> TRANSLATION_JOB.master_persona_id
+MASTER_DICTIONARY.id -> TRANSLATION_JOB.master_dictionary_id
+TRANSLATION_JOB.id -> JOB_PERSONA_ENTRY.job_id
+NPC.id -> JOB_PERSONA_ENTRY.npc_id
+TRANSLATION_JOB.id -> JOB_OUTPUT_ARTIFACT.job_id
+PLUGIN_EXPORT.id -> JOB_OUTPUT_ARTIFACT.plugin_export_id
+MASTER_PERSONA.id -> FOUNDATION_PHASE_RUN.master_persona_id
+AI_RUN.id -> FOUNDATION_PHASE_RUN.ai_run_id

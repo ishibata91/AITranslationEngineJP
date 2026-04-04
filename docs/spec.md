@@ -60,31 +60,54 @@
 
 このセクションでは、仕様全体を通した業務フローを整理する。
 
-```mermaid
-flowchart TD
-    subgraph S1[基盤構築フロー]
-        A[ベースゲーム NPC 入力] --> B[マスターペルソナ構築]
-        C[xTranslator 形式入力] --> D[マスター辞書構築]
-        B --> E[UIで基盤データを観測]
-        D --> E
-    end
+```d2
+direction: right
 
-    subgraph S2[mod翻訳フロー]
-        F[mod 翻訳入力データ準備<br/>xEdit 抽出 / 複数ファイル読込] --> G[UIで内容確認]
-        G --> H[翻訳補助メタデータ整備<br/>会話 / クエスト / NPC 属性]
-        H --> I[翻訳ジョブ作成]
-        I --> I1[実行制御<br/>中断 / 再開 / 失敗回復]
-        I --> J[AI基盤選択<br/>LMStudio / Gemini / xAI]
-        J --> J1[実行方式<br/>単発 / Batch API]
-        J --> K[単語翻訳フェーズ<br/>用語を確定して辞書化]
-        K --> L[NPCペルソナ生成フェーズ<br/>NPC 発話と属性から生成]
-        L --> M[本文翻訳フェーズ<br/>翻訳レコード本文を翻訳<br/>※ 保護要素はこの内部で保持する<br/>※ ペルソナを参照して翻訳する]
-        M --> N[結果確認]
-        N -- 修正あり --> I
-        N -- 問題なし --> O[翻訳成果物出力<br/>標準配布形式 / xTranslator 互換形式]
-    end
+S1: {
+  label: "基盤構築フロー"
+  direction: down
+  A: "ベースゲーム NPC 入力"
+  B: "マスターペルソナ構築"
+  C: "xTranslator 形式入力"
+  D: "マスター辞書構築"
+  E: "UIで基盤データを観測"
+  A -> B
+  C -> D
+  B -> E
+  D -> E
+}
 
-    O --> P[UIで翻訳結果を観測]
+S2: {
+  label: "mod翻訳フロー"
+  direction: down
+  F: "mod 翻訳入力データ準備\nxEdit 抽出 / 複数ファイル読込"
+  G: "UIで内容確認"
+  H: "翻訳補助メタデータ整備\n会話 / クエスト / NPC 属性"
+  I: "翻訳ジョブ作成"
+  I1: "実行制御\n中断 / 再開 / 失敗回復"
+  J: "AI基盤選択\nLMStudio / Gemini / xAI"
+  J1: "実行方式\n単発 / Batch API"
+  K: "単語翻訳フェーズ\n用語を確定して辞書化"
+  L: "NPCペルソナ生成フェーズ\nNPC 発話と属性から生成"
+  M: "本文翻訳フェーズ\n翻訳レコード本文を翻訳\n保護要素はこの内部で保持する\nペルソナを参照して翻訳する"
+  N: "結果確認"
+  O: "翻訳成果物出力\n標準配布形式 / xTranslator 互換形式"
+  F -> G
+  G -> H
+  H -> I
+  I -> I1
+  I -> J
+  J -> J1
+  J -> K
+  K -> L
+  L -> M
+  M -> N
+  N -> I: "修正あり"
+  N -> O: "問題なし"
+}
+
+P: "UIで翻訳結果を観測"
+S2.O -> P
 ```
 
 ### 6.1 業務フローの要点
@@ -100,35 +123,57 @@ flowchart TD
 
 #### 正常系
 
-```mermaid
-flowchart LR
-    Start((開始)) --> Draft([Draft])
-    Draft -->|ジョブ作成| Ready([Ready])
-    Ready -->|実行開始| Running([Running])
-    Running -->|翻訳完了| Completed([Completed])
-    Completed --> End((終了))
+```d2
+direction: right
+
+Start: "開始"
+Draft: "Draft"
+Ready: "Ready"
+Running: "Running"
+Completed: "Completed"
+End: "終了"
+
+Start -> Draft
+Draft -> Ready: "ジョブ作成"
+Ready -> Running: "実行開始"
+Running -> Completed: "翻訳完了"
+Completed -> End
 ```
 
 #### 操作系
 
-```mermaid
-flowchart LR
-    Running([Running]) -->|中断| Paused([Paused])
-    Paused -->|再開| Running
-    Ready([Ready]) -->|キャンセル| Canceled([Canceled])
-    Paused -->|キャンセル| Canceled
-    Canceled --> End((終了))
+```d2
+direction: right
+
+Running: "Running"
+Paused: "Paused"
+Ready: "Ready"
+Canceled: "Canceled"
+End: "終了"
+
+Running -> Paused: "中断"
+Paused -> Running: "再開"
+Ready -> Canceled: "キャンセル"
+Paused -> Canceled: "キャンセル"
+Canceled -> End
 ```
 
 #### 異常系
 
-```mermaid
-flowchart LR
-    Running([Running]) -->|失敗回復可能| RecoverableFailed([RecoverableFailed])
-    RecoverableFailed -->|再開 / リトライ| Running
-    RecoverableFailed -->|再実行準備| Ready([Ready])
-    Running -->|回復不能な失敗| Failed([Failed])
-    Failed --> End((終了))
+```d2
+direction: right
+
+Running: "Running"
+RecoverableFailed: "RecoverableFailed"
+Ready: "Ready"
+Failed: "Failed"
+End: "終了"
+
+Running -> RecoverableFailed: "失敗回復可能"
+RecoverableFailed -> Running: "再開 / リトライ"
+RecoverableFailed -> Ready: "再実行準備"
+Running -> Failed: "回復不能な失敗"
+Failed -> End
 ```
 
 ### 7.1 状態の要点

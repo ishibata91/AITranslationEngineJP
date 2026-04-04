@@ -149,6 +149,10 @@ UI が扱う状態は以下の 3 種に分ける。
 アプリケーション層は入力ポートと出力ポートを定義し、具体実装はインフラ層へ委譲する。
 ドメイン層のルールを利用するが、SQLite やファイル I/O には直接依存しない。
 
+AI を使う翻訳フローでは、アプリケーション層は phase orchestration と runtime port を分けて持つ。
+`NPCペルソナ生成フェーズ` の phase orchestration は translation flow 側の責務として扱い、concrete provider runtime の選択と接続は AI 実行基盤側の責務として扱う。
+ベースゲーム NPC 由来のマスターペルソナ生成と、翻訳ジョブ中の job-local persona 生成は、同じ persona-generation runtime 境界を共有してよいが、保存先と handoff 境界は共有しない。
+
 ### 2.3 ドメイン層
 
 ドメイン層は最も内側の方針として安定させる。
@@ -158,6 +162,9 @@ UI が扱う状態は以下の 3 種に分ける。
 
 インフラ層は Repository、Provider、Writer などの具体実装を持つ。
 依存は上位層が定義した抽象へ向け、インフラ都合の型を上位層へ漏らさない。
+
+AI 実行基盤の concrete runtime はインフラ層に置く。
+`LMStudio`、`Gemini`、`xAI` の provider adapter は、translation flow 本体へ直接依存させず、persona generation と本文翻訳の両方から利用できる runtime 実装として扱う。
 
 ## 3. 層間ポート方針
 

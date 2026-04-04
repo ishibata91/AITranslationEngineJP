@@ -30,6 +30,7 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - [`coding-guidelines.md`](./coding-guidelines.md): repository coding conventions for Tauri 2, Svelte 5, TypeScript, and Rust
 - [`screen-design/`](./screen-design/): screen map, wireframes, and UI layout references
 - [`er.md`](./er.md): canonical data model and ER specification
+- [`diagrams/er/`](./diagrams/er/): ER 図の D2 source of truth と review 用 SVG
 - [`lint-policy.md`](./lint-policy.md): what lint manages, what it does not manage, and tool ownership
 - [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
 - [`exec-plans/completed/`](./exec-plans/completed/README.md): finished plans and outcomes
@@ -48,6 +49,7 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - Coding conventions or Tauri 2 implementation rules changed: update [`coding-guidelines.md`](./coding-guidelines.md)
 - Screen map, wireframe, or UI layout reference changed: update the relevant file under [`screen-design/`](./screen-design/)
 - Data structure or entity relationship changed: human-first update [`er.md`](./er.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
+- ER 図の source of truth や review 用画像を変えた: update the relevant file under [`diagrams/er/`](./diagrams/er/)
 - Detailed behavior or constraint changed: update the corresponding tests or acceptance checks and validation commands
 - Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
