@@ -4,6 +4,10 @@
     DictionaryObserveScreenInput,
     DictionaryObserveScreenStore,
   } from "@application/usecases/dictionary-observe";
+  import type {
+    PersonaObserveScreenInput,
+    PersonaObserveScreenStore,
+  } from "@application/usecases/persona-observe";
   import type { JobListScreenInput, JobListScreenStore } from "@application/usecases/job-list";
   import type { JobCreateScreenInput, JobCreateScreenStore } from "@application/usecases/job-create";
   import type { BootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
@@ -19,6 +23,10 @@
   export let jobCreateUsecase = undefined as unknown as JobCreateScreenInput;
   export let jobListStore = undefined as unknown as JobListScreenStore;
   export let jobListUsecase = undefined as unknown as JobListScreenInput;
+  export let personaObserveStore =
+    undefined as unknown as PersonaObserveScreenStore | undefined;
+  export let personaObserveUsecase =
+    undefined as unknown as PersonaObserveScreenInput | undefined;
 </script>
 
 <AppShell
@@ -30,4 +38,6 @@
   {jobCreateUsecase}
   {jobListStore}
   {jobListUsecase}
+  {personaObserveStore}
+  {personaObserveUsecase}
 />

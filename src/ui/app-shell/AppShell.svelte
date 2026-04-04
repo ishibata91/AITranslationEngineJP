@@ -6,11 +6,16 @@
     DictionaryObserveScreenInput,
     DictionaryObserveScreenStore,
   } from "@application/usecases/dictionary-observe";
+  import type {
+    PersonaObserveScreenInput,
+    PersonaObserveScreenStore,
+  } from "@application/usecases/persona-observe";
   import type { BootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
   import BootstrapStatusScreen from "@ui/screens/bootstrap-status/BootstrapStatusScreen.svelte";
   import DictionaryObserveScreen from "@ui/screens/dictionary-observe/DictionaryObserveScreen.svelte";
   import JobCreateScreen from "@ui/screens/job-create/JobCreateScreen.svelte";
   import JobListScreen from "@ui/screens/job-list/JobListScreen.svelte";
+  import PersonaObserveScreen from "@ui/screens/persona-observe/PersonaObserveScreen.svelte";
 
   export let bootstrapStatusStore = undefined as unknown as BootstrapStatusScreenStore;
   export let bootstrapStatusUsecase = undefined as unknown as BootstrapStatusScreenInput;
@@ -22,6 +27,10 @@
   export let jobCreateUsecase = undefined as unknown as JobCreateScreenInput;
   export let jobListStore = undefined as unknown as JobListScreenStore;
   export let jobListUsecase = undefined as unknown as JobListScreenInput;
+  export let personaObserveStore =
+    undefined as unknown as PersonaObserveScreenStore | undefined;
+  export let personaObserveUsecase =
+    undefined as unknown as PersonaObserveScreenInput | undefined;
 </script>
 
 <svelte:head>
@@ -31,6 +40,9 @@
 <main class="shell">
   {#if dictionaryObserveStore !== undefined && dictionaryObserveUsecase !== undefined}
     <DictionaryObserveScreen {dictionaryObserveStore} {dictionaryObserveUsecase} />
+  {/if}
+  {#if personaObserveStore !== undefined && personaObserveUsecase !== undefined}
+    <PersonaObserveScreen {personaObserveStore} {personaObserveUsecase} />
   {/if}
   <JobListScreen {jobListStore} {jobListUsecase} />
   <JobCreateScreen {jobCreateStore} {jobCreateUsecase} />

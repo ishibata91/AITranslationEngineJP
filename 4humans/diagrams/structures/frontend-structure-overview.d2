@@ -43,6 +43,13 @@ mountedSlices: {
     style.font-size: 22
   }
 
+  personaObserveSlice: {
+    shape: class
+    label: "ペルソナ観測 slice (条件付き compose)"
+    link: "./frontend-persona-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
+
   bootstrapSlice: {
     shape: class
     label: "起動状態 slice"
@@ -105,6 +112,13 @@ gatewayLayer: {
     link: "./frontend-dictionary-observe-slice-class-diagram.svg"
     style.font-size: 22
   }
+
+  personaObserveExecutor: {
+    shape: class
+    label: "ペルソナ観測 executor"
+    link: "./frontend-persona-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
 }
 
 contracts: {
@@ -148,5 +162,8 @@ foundations.featureTemplateSlice -> contracts.featureTemplateContract: query と
   style.font-size: 22
 }
 mountedSlices.dictionaryObserveSlice -> gatewayLayer.dictionaryObserveExecutor: 観測 request を渡す {
+  style.font-size: 22
+}
+mountedSlices.personaObserveSlice -> gatewayLayer.personaObserveExecutor: 観測 request を渡す {
   style.font-size: 22
 }

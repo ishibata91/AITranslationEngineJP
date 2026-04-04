@@ -3,66 +3,67 @@ import { createRequire } from "node:module";
 import { pathToFileURL } from "node:url";
 import { describe, expect, it } from "vitest";
 import { render } from "svelte/server";
-import DictionaryObserveScreen from "./index";
-import { DictionaryObserveView } from "@ui/views/dictionary-observe";
+import PersonaObserveScreen from "./index";
+import { PersonaObserveView } from "@ui/views/persona-observe";
 
-type DictionaryCandidate = {
-  destText: string;
-  sourceText: string;
+type PersonaObserveEntry = {
+  npcFormId: string;
+  npcName: string;
+  personaText: string;
+  race: string;
+  sex: string;
+  voice: string;
 };
 
-type DictionaryCandidateGroup = {
-  candidates: DictionaryCandidate[];
-  sourceText: string;
-};
-
-type DictionaryObserveRenderState = {
+type PersonaObserveRenderState = {
   data: {
-    candidateGroups: DictionaryCandidateGroup[];
+    entries: PersonaObserveEntry[];
+    personaName: string;
+    sourceType: string;
   } | null;
   error: string | null;
   filters: {
     lastSubmittedRequest: {
-      sourceTexts: string[];
+      personaName: string;
     } | null;
-    sourceTexts: string[];
+    personaName: string;
   };
   loading: boolean;
   selection: number | null;
 };
 
-function createDictionaryObserveState(
-  overrides?: Partial<DictionaryObserveRenderState>,
-): DictionaryObserveRenderState {
+function createPersonaObserveState(
+  overrides?: Partial<PersonaObserveRenderState>,
+): PersonaObserveRenderState {
   return {
     data: {
-      candidateGroups: [
+      entries: [
         {
-          candidates: [
-            {
-              destText: "ドラゴン",
-              sourceText: "dragon",
-            },
-          ],
-          sourceText: "dragon",
+          npcFormId: "00013BA1",
+          npcName: "Lydia",
+          personaText: "Reliable housecarl.",
+          race: "Nord",
+          sex: "Female",
+          voice: "FemaleCommander",
         },
         {
-          candidates: [
-            {
-              destText: "シャウト",
-              sourceText: "Thu'um",
-            },
-          ],
-          sourceText: "Thu'um",
+          npcFormId: "0001A696",
+          npcName: "Balgruuf",
+          personaText: "Measured jarl.",
+          race: "Nord",
+          sex: "Male",
+          voice: "MaleEvenToned",
         },
       ],
+      personaName: "Base Game NPC Persona",
+      sourceType: "base_game",
     },
     error: null,
     filters: {
       lastSubmittedRequest: {
-        sourceTexts: ["dragon", "Thu'um"],
+        personaName: "Base Game NPC Persona",
       },
-      sourceTexts: ["dragon", "Thu'um"],
+      personaName: "Base Game NPC Persona",
     },
     loading: false,
     selection: 1,
@@ -111,15 +112,15 @@ async function compileSvelteModule(args: {
   };
 }
 
-async function renderDictionaryObserveView(
-  state: DictionaryObserveRenderState,
+async function renderPersonaObserveView(
+  state: PersonaObserveRenderState,
 ): Promise<string> {
   const require = createRequire(import.meta.url);
   const compiled = await compileSvelteModule({
-    filename: "DictionaryObserveView.svelte",
+    filename: "PersonaObserveView.svelte",
     require,
     source: readFileSync(
-      "src/ui/views/dictionary-observe/DictionaryObserveView.svelte",
+      "src/ui/views/persona-observe/PersonaObserveView.svelte",
       "utf8",
     ),
   });
@@ -131,32 +132,32 @@ async function renderDictionaryObserveView(
 }
 
 async function renderAppShell(args?: {
-  includeDictionaryObserveDependencies?: boolean;
+  includePersonaObserveDependencies?: boolean;
 }): Promise<string> {
-  const includeDictionaryObserveDependencies =
-    args?.includeDictionaryObserveDependencies ?? true;
+  const includePersonaObserveDependencies =
+    args?.includePersonaObserveDependencies ?? true;
   const require = createRequire(import.meta.url);
-  const compiledDictionaryObserveView = await compileSvelteModule({
-    filename: "DictionaryObserveView.svelte",
+  const compiledPersonaObserveView = await compileSvelteModule({
+    filename: "PersonaObserveView.svelte",
     require,
     source: readFileSync(
-      "src/ui/views/dictionary-observe/DictionaryObserveView.svelte",
+      "src/ui/views/persona-observe/PersonaObserveView.svelte",
       "utf8",
     ),
   });
-  const compiledDictionaryObserveViewModuleUrl = `data:text/javascript;base64,${Buffer.from(
-    `export { default as DictionaryObserveView } from "${compiledDictionaryObserveView.url}";`,
+  const compiledPersonaObserveViewModuleUrl = `data:text/javascript;base64,${Buffer.from(
+    `export { default as PersonaObserveView } from "${compiledPersonaObserveView.url}";`,
     "utf8",
   ).toString("base64")}`;
 
-  const compiledDictionaryObserveScreen = await compileSvelteModule({
-    filename: "DictionaryObserveScreen.svelte",
+  const compiledPersonaObserveScreen = await compileSvelteModule({
+    filename: "PersonaObserveScreen.svelte",
     replacements: {
-      '"@ui/views/dictionary-observe"': `"${compiledDictionaryObserveViewModuleUrl}"`,
+      '"@ui/views/persona-observe"': `"${compiledPersonaObserveViewModuleUrl}"`,
     },
     require,
     source: readFileSync(
-      "src/ui/screens/dictionary-observe/DictionaryObserveScreen.svelte",
+      "src/ui/screens/persona-observe/PersonaObserveScreen.svelte",
       "utf8",
     ),
   });
@@ -165,6 +166,12 @@ async function renderAppShell(args?: {
     filename: "BootstrapStatusScreen.svelte",
     require,
     source: "<h1>Bootstrap Status</h1>",
+  });
+
+  const compiledDictionaryObserveStub = await compileSvelteModule({
+    filename: "DictionaryObserveScreen.svelte",
+    require,
+    source: "<h1>Dictionary Observe</h1>",
   });
 
   const compiledJobCreateStub = await compileSvelteModule({
@@ -179,20 +186,14 @@ async function renderAppShell(args?: {
     source: "<h1>Job List</h1>",
   });
 
-  const compiledPersonaObserveStub = await compileSvelteModule({
-    filename: "PersonaObserveScreen.svelte",
-    require,
-    source: "<h1>Persona Observe</h1>",
-  });
-
   const compiledAppShell = await compileSvelteModule({
     filename: "AppShell.svelte",
     replacements: {
       '"@ui/screens/bootstrap-status/BootstrapStatusScreen.svelte"': `"${compiledBootstrapStub.url}"`,
-      '"@ui/screens/dictionary-observe/DictionaryObserveScreen.svelte"': `"${compiledDictionaryObserveScreen.url}"`,
+      '"@ui/screens/dictionary-observe/DictionaryObserveScreen.svelte"': `"${compiledDictionaryObserveStub.url}"`,
       '"@ui/screens/job-create/JobCreateScreen.svelte"': `"${compiledJobCreateStub.url}"`,
       '"@ui/screens/job-list/JobListScreen.svelte"': `"${compiledJobListStub.url}"`,
-      '"@ui/screens/persona-observe/PersonaObserveScreen.svelte"': `"${compiledPersonaObserveStub.url}"`,
+      '"@ui/screens/persona-observe/PersonaObserveScreen.svelte"': `"${compiledPersonaObserveScreen.url}"`,
     },
     require,
     source: readFileSync("src/ui/app-shell/AppShell.svelte", "utf8"),
@@ -210,6 +211,24 @@ async function renderAppShell(args?: {
       refresh: async () => undefined,
       retry: async () => undefined,
       select: () => undefined,
+    },
+    dictionaryObserveStore: createReadableStore({
+      data: null,
+      error: null,
+      filters: {
+        lastSubmittedRequest: null,
+        sourceTexts: [],
+      },
+      loading: false,
+      selection: null,
+    }),
+    dictionaryObserveUsecase: {
+      initialize: async () => undefined,
+      observe: async () => undefined,
+      refresh: async () => undefined,
+      retry: async () => undefined,
+      select: () => undefined,
+      updateFilters: async () => undefined,
     },
     jobCreateStore: createReadableStore({
       error: null,
@@ -242,11 +261,11 @@ async function renderAppShell(args?: {
     },
   };
 
-  if (includeDictionaryObserveDependencies) {
-    appShellProps.dictionaryObserveStore = createReadableStore(
-      createDictionaryObserveState(),
+  if (includePersonaObserveDependencies) {
+    appShellProps.personaObserveStore = createReadableStore(
+      createPersonaObserveState(),
     );
-    appShellProps.dictionaryObserveUsecase = {
+    appShellProps.personaObserveUsecase = {
       initialize: async () => undefined,
       observe: async () => undefined,
       refresh: async () => undefined,
@@ -264,24 +283,24 @@ async function renderAppShell(args?: {
 }
 
 async function renderAppRoot(args?: {
-  includeDictionaryObserveDependencies?: boolean;
+  includePersonaObserveDependencies?: boolean;
 }): Promise<string> {
-  const includeDictionaryObserveDependencies =
-    args?.includeDictionaryObserveDependencies ?? true;
+  const includePersonaObserveDependencies =
+    args?.includePersonaObserveDependencies ?? true;
   const require = createRequire(import.meta.url);
   const compiledAppShellStub = await compileSvelteModule({
     filename: "AppShell.svelte",
     require,
     source: `
       <script lang="ts">
-        export let dictionaryObserveStore = undefined;
-        export let dictionaryObserveUsecase = undefined;
+        export let personaObserveStore = undefined;
+        export let personaObserveUsecase = undefined;
       </script>
       <p>AppShell Stub</p>
-      {#if dictionaryObserveStore !== undefined && dictionaryObserveUsecase !== undefined}
-        <p>DictionaryDeps:present</p>
+      {#if personaObserveStore !== undefined && personaObserveUsecase !== undefined}
+        <p>PersonaDeps:present</p>
       {:else}
-        <p>DictionaryDeps:absent</p>
+        <p>PersonaDeps:absent</p>
       {/if}
     `,
   });
@@ -309,6 +328,24 @@ async function renderAppRoot(args?: {
       retry: async () => undefined,
       select: () => undefined,
     },
+    dictionaryObserveStore: createReadableStore({
+      data: null,
+      error: null,
+      filters: {
+        lastSubmittedRequest: null,
+        sourceTexts: [],
+      },
+      loading: false,
+      selection: null,
+    }),
+    dictionaryObserveUsecase: {
+      initialize: async () => undefined,
+      observe: async () => undefined,
+      refresh: async () => undefined,
+      retry: async () => undefined,
+      select: () => undefined,
+      updateFilters: async () => undefined,
+    },
     jobCreateStore: createReadableStore({
       error: null,
       isSubmitting: false,
@@ -340,11 +377,11 @@ async function renderAppRoot(args?: {
     },
   };
 
-  if (includeDictionaryObserveDependencies) {
-    appProps.dictionaryObserveStore = createReadableStore(
-      createDictionaryObserveState(),
+  if (includePersonaObserveDependencies) {
+    appProps.personaObserveStore = createReadableStore(
+      createPersonaObserveState(),
     );
-    appProps.dictionaryObserveUsecase = {
+    appProps.personaObserveUsecase = {
       initialize: async () => undefined,
       observe: async () => undefined,
       refresh: async () => undefined,
@@ -361,129 +398,117 @@ async function renderAppRoot(args?: {
   return body;
 }
 
-describe("dictionary observe public roots", () => {
-  it("Given the screen and view roots When imported Then the dictionary observe modules resolve", () => {
-    expect(DictionaryObserveScreen).toBeTruthy();
-    expect(DictionaryObserveView).toBeTruthy();
+describe("persona observe public roots", () => {
+  it("Given the screen and view roots When imported Then the persona observe modules resolve", () => {
+    expect(PersonaObserveScreen).toBeTruthy();
+    expect(PersonaObserveView).toBeTruthy();
   });
 
   it("Given the first observation state When the view is server-rendered Then the empty observation guidance is present without results", async () => {
-    const body = await renderDictionaryObserveView(
-      createDictionaryObserveState({
+    const body = await renderPersonaObserveView(
+      createPersonaObserveState({
         data: null,
         filters: {
           lastSubmittedRequest: null,
-          sourceTexts: [],
+          personaName: "",
         },
         loading: false,
         selection: null,
       }),
     );
 
-    expect(body).toContain("Dictionary Observe");
+    expect(body).toContain("Persona Observe");
     expect(body).toContain("Observe");
-    expect(body).toContain("Source Texts");
-    expect(body).toContain(
-      "Run an observation to inspect dictionary candidates.",
-    );
-    expect(body).toContain("Selected Request");
+    expect(body).toContain("Persona Name");
+    expect(body).toContain("Run an observation to inspect persona entries.");
+    expect(body).toContain("Selected Entry");
   });
 
   it("Given the first observation is running When the view is server-rendered Then the loading layout is rendered inside the fixed panel", async () => {
-    const body = await renderDictionaryObserveView(
-      createDictionaryObserveState({
+    const body = await renderPersonaObserveView(
+      createPersonaObserveState({
         data: null,
         loading: true,
         selection: null,
       }),
     );
 
-    expect(body).toContain("Dictionary Observe");
+    expect(body).toContain("Persona Observe");
     expect(body).toContain("Observe");
-    expect(body).toContain("Observing dictionary...");
-    expect(body).toContain("Selected Request");
+    expect(body).toContain("Observing persona...");
+    expect(body).toContain("Selected Entry");
   });
 
-  it("Given a loaded request with zero candidates When the view is server-rendered Then the request list stays visible and the detail pane shows the candidate-empty state", async () => {
-    const body = await renderDictionaryObserveView(
-      createDictionaryObserveState({
+  it("Given a loaded persona with zero entries When the view is server-rendered Then the metadata stays visible and the detail pane shows the entry-empty state", async () => {
+    const body = await renderPersonaObserveView(
+      createPersonaObserveState({
         data: {
-          candidateGroups: [
-            {
-              candidates: [],
-              sourceText: "dragon",
-            },
-            {
-              candidates: [
-                {
-                  destText: "シャウト",
-                  sourceText: "Thu'um",
-                },
-              ],
-              sourceText: "Thu'um",
-            },
-          ],
+          entries: [],
+          personaName: "Base Game NPC Persona",
+          sourceType: "base_game",
         },
-        selection: 0,
+        selection: null,
       }),
     );
 
-    expect(body).toContain("dragon");
-    expect(body).toContain("Thu'um");
-    expect(body).toContain("Selected Request");
-    expect(body).toContain("No candidates found for this request.");
+    expect(body).toContain("Base Game NPC Persona");
+    expect(body).toContain("base_game");
+    expect(body).toContain("Selected Entry");
+    expect(body).toContain("No persona entries found.");
   });
 
   it("Given a retryable failure after a successful observation When the view is server-rendered Then the generic error and the previous loaded data are rendered together", async () => {
-    const body = await renderDictionaryObserveView(
-      createDictionaryObserveState({
-        error: "Dictionary observation failed. Try again.",
+    const body = await renderPersonaObserveView(
+      createPersonaObserveState({
+        error: "Persona observation failed. Try again.",
       }),
     );
 
-    expect(body).toContain("Dictionary observation failed. Try again.");
+    expect(body).toContain("Persona observation failed. Try again.");
     expect(body).toContain("Retry");
-    expect(body).toContain("dragon");
-    expect(body).toContain("Thu'um");
-    expect(body).toContain("シャウト");
+    expect(body).toContain("Base Game NPC Persona");
+    expect(body).toContain("Lydia");
+    expect(body).toContain("Measured jarl.");
   });
 
-  it("Given the shell receives the dictionary-observe dependencies When server-rendered through the shell path Then the observation panel is composed additively", async () => {
+  it("Given the shell receives the persona-observe dependencies When server-rendered through the shell path Then the observation panel is composed additively", async () => {
     const body = await renderAppShell();
 
+    expect(body).toContain("Persona Observe");
+    expect(body).toContain("Base Game NPC Persona");
     expect(body).toContain("Dictionary Observe");
-    expect(body).toContain("dragon");
     expect(body).toContain("Job List");
     expect(body).toContain("Job Create");
     expect(body).toContain("Bootstrap Status");
   });
 
-  it("Given dictionary-observe dependencies are absent before gateway wiring When server-rendered through the shell path Then the shell does not crash and still renders other screens", async () => {
+  it("Given persona-observe dependencies are absent before gateway wiring When server-rendered through the shell path Then the shell does not crash and still renders other screens", async () => {
     const body = await renderAppShell({
-      includeDictionaryObserveDependencies: false,
+      includePersonaObserveDependencies: false,
     });
 
-    expect(body).not.toContain("Dictionary Observe");
+    expect(body).not.toContain("Persona Observe");
+    expect(body).toContain("Dictionary Observe");
     expect(body).toContain("Job List");
     expect(body).toContain("Job Create");
     expect(body).toContain("Bootstrap Status");
   });
 
-  it("Given App receives dictionary-observe dependencies When server-rendered through the App root Then App passes the dependencies to AppShell", async () => {
+  it("Given App receives persona-observe dependencies When server-rendered through the App root Then App passes the dependencies to AppShell", async () => {
     const body = await renderAppRoot({
-      includeDictionaryObserveDependencies: true,
+      includePersonaObserveDependencies: true,
     });
 
     expect(body).toContain("AppShell Stub");
-    expect(body).toContain("DictionaryDeps:present");
+    expect(body).toContain("PersonaDeps:present");
   });
 
-  it("Given App does not receive dictionary-observe dependencies before gateway wiring When server-rendered through the App root Then App keeps pass-through behavior without local noop wiring", async () => {
+  it("Given App does not receive persona-observe dependencies before gateway wiring When server-rendered through the App root Then App keeps pass-through behavior without local noop wiring", async () => {
     const body = await renderAppRoot({
-      includeDictionaryObserveDependencies: false,
+      includePersonaObserveDependencies: false,
     });
 
     expect(body).toContain("AppShell Stub");
-    expect(body).toContain("DictionaryDeps:absent");
+    expect(body).toContain("PersonaDeps:absent");
   });
 });

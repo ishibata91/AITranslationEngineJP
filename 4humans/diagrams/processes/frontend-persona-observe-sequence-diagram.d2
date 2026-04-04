@@ -1,0 +1,64 @@
+title: "Frontend ペルソナ観測画面シーケンス図"
+
+personaObserveSequence: {
+  shape: sequence_diagram
+
+  user: "利用者"
+  personaObserveScreen: "ペルソナ観測画面 (`PersonaObserveScreen.svelte`)"
+  personaObserveUsecase: "ペルソナ観測ユースケース (`PersonaObserveScreenInput`)"
+  personaObserveStore: "ペルソナ観測ストア (`PersonaObserveScreenStore`)"
+  observeExecutor: "観測 executor (`executor`)"
+  personaObserveView: "ペルソナ観測ビュー (`PersonaObserveView.svelte`)"
+
+  user -> personaObserveScreen: 画面を開く {
+    style.font-size: 22
+  }
+  personaObserveScreen -> personaObserveUsecase: 初期化する (`initialize()`) {
+    style.font-size: 22
+  }
+  personaObserveUsecase -> personaObserveStore: 初期状態を維持する {
+    style.font-size: 22
+  }
+  personaObserveStore -> personaObserveView: empty state を反映する {
+    style.font-size: 22
+  }
+  user -> personaObserveView: `personaName` を入力する {
+    style.font-size: 22
+  }
+  personaObserveView -> personaObserveUsecase: 入力を更新する (`updateFilters()`) {
+    style.font-size: 22
+  }
+  personaObserveUsecase -> personaObserveStore: 現在入力を保存する {
+    style.font-size: 22
+  }
+  user -> personaObserveView: 観測を実行する {
+    style.font-size: 22
+  }
+  personaObserveView -> personaObserveUsecase: 観測する (`observe()`) {
+    style.font-size: 22
+  }
+  personaObserveUsecase -> personaObserveStore: 読込中にする {
+    style.font-size: 22
+  }
+  personaObserveUsecase -> observeExecutor: master persona read を依頼する {
+    style.font-size: 22
+  }
+  observeExecutor -> personaObserveUsecase: `entries` を返す {
+    style.font-size: 22
+  }
+  personaObserveUsecase -> personaObserveStore: 読込済み状態と先頭選択を設定する {
+    style.font-size: 22
+  }
+  personaObserveStore -> personaObserveView: loaded state を反映する {
+    style.font-size: 22
+  }
+  user -> personaObserveView: entry を選択する {
+    style.font-size: 22
+  }
+  personaObserveView -> personaObserveUsecase: 選択する (`select(index)`) {
+    style.font-size: 22
+  }
+  personaObserveUsecase -> personaObserveStore: 選択 index を更新する {
+    style.font-size: 22
+  }
+}

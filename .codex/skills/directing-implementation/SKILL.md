@@ -30,7 +30,7 @@ description: AITranslationEngineJp 専用。実装要求の正式入口。必要
 12. review が `pass` を返した後に implementation lane owner (`directing-implementation`) が project root で `python3 scripts/harness/run.py --suite all` を実行する。
 13. `all` が失敗した時は lane owner が同じ active plan を更新し、implementing skill を再スポーンして修正する。
 14. 差し戻しが修正されたら､再レビューはせず次へ進む｡
-15. 必要な `4humans sync` を整理し、実装の変更または追加があった時は `<diagrammer>` を `diagramming-d2` でスポーンして `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を同一変更で更新してから plan を `completed/` へ移す。new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と manifest で紐づく overview `.d2` / `.svg` も同一変更で更新する。
+15. 必要な `4humans sync` を整理し、実装の変更または追加があった時は  `diagramming-d2` でスポーンして `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を同一変更で更新してから plan を `completed/` へ移す。new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と manifest で紐づく overview `.d2` / `.svg` も同一変更で更新する。
 16. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## 許可すること

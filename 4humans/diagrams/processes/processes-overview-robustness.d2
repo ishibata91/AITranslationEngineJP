@@ -183,6 +183,51 @@ dictionaryObserve: {
   }
 }
 
+personaObserve: {
+  shape: package
+  label: "ペルソナ観測"
+  direction: right
+  style.font-size: 22
+
+  actor: {
+    shape: person
+    label: "利用者"
+    link: "./frontend-persona-observe-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  boundary: {
+    shape: class
+    label: "画面境界 (`PersonaObserveScreen` / `PersonaObserveView`)"
+    link: "./frontend-persona-observe-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  control: {
+    shape: class
+    label: "画面制御 (`PersonaObserveScreenInput` / `createPersonaObserveScreenUsecase()`)"
+    link: "./frontend-persona-observe-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  entity: {
+    shape: class
+    label: "観測結果 (`PersonaObserveResult`)"
+    link: "./frontend-persona-observe-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  actor -> boundary: ペルソナ名を入力して観測する {
+    style.font-size: 22
+  }
+  boundary -> control: 入力と操作を渡す {
+    style.font-size: 22
+  }
+  control -> entity: master persona を取得する {
+    style.font-size: 22
+  }
+}
+
 importXedit: {
   shape: package
   label: "xEdit 取込"
