@@ -1,7 +1,7 @@
 id: P4-C03
 title: Define persona-generation runtime contract
 type: contract
-status: planned
+status: done
 goal: Fix the provider-independent runtime boundary used by master persona generation
   and job-local NPC persona generation.
 owned_scope:
@@ -33,4 +33,3 @@ shared_risks:
 done_when:
 - provider-backed persona generation can be implemented without redesigning Phase
   2 storage or Phase 3 handoff contracts
-

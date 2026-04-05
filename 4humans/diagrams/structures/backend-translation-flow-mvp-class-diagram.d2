@@ -12,7 +12,7 @@ gateway: {
   orchestrationHelper: {
     shape: class
     label: "translation flow MVP orchestration helper (`run_translation_flow_mvp_orchestration`)"
-    "+ regression 専用の integrated path を順に合成する": "`run_translation_flow_mvp_orchestration(request, dictionary_lookup, persona_storage, persona_generator, body_translator)`"
+    "+ integrated path を phase ごとに合成する": "`run_translation_flow_mvp_orchestration(request, dictionary_lookup, persona_storage, persona_runtime, body_translator)`"
     style.font-size: 22
   }
 
@@ -41,7 +41,14 @@ application: {
   personaPhase: {
     shape: class
     label: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
-    "+ cache miss 時だけ persona を補完する": "`execute(request)`"
+    "+ provider-backed runtime と execution control を束ねる": "`execute(request)`"
+    style.font-size: 22
+  }
+
+  personaRuntimeUseCase: {
+    shape: class
+    label: "persona runtime 実行 port caller (`PersonaGenerationRuntimePort` consumer)"
+    "+ provider selection 付き runtime request を実行する": "`generate(request)`"
     style.font-size: 22
   }
 
@@ -80,6 +87,24 @@ dto: {
   reusableTerm: {
     shape: class
     label: "再利用語句 DTO (`ReusableDictionaryEntryDto`)"
+    style.font-size: 22
+  }
+
+  providerSelection: {
+    shape: class
+    label: "provider 選択 DTO (`ProviderSelectionDto`)"
+    style.font-size: 22
+  }
+
+  executionControl: {
+    shape: class
+    label: "execution control DTO (`ExecutionControlStateDto` / `ExecutionControlFailureDto`)"
+    style.font-size: 22
+  }
+
+  personaRuntime: {
+    shape: class
+    label: "persona runtime DTO (`PersonaGenerationRuntimeRequestDto` / `PersonaGenerationRuntimeResultDto`)"
     style.font-size: 22
   }
 
@@ -129,10 +154,17 @@ ports: {
     style.font-size: 22
   }
 
-  personaGenerator: {
+  providerRuntime: {
     shape: class
-    label: "persona generator port (`NpcPersonaGenerationPort`)"
-    "+ persona を生成する": "`generate_job_persona(request)`"
+    label: "provider runtime port (`ProviderRuntimePort`)"
+    "+ provider step を provider 非依存 failure 語彙で実行する": "`run_provider_step(selection)`"
+    style.font-size: 22
+  }
+
+  personaRuntime: {
+    shape: class
+    label: "persona generation runtime port (`PersonaGenerationRuntimePort`)"
+    "+ runtime request を sink-aware result へ解決する": "`generate(request)`"
     style.font-size: 22
   }
 
@@ -144,13 +176,27 @@ ports: {
   }
 }
 
+domain: {
+  shape: package
+  label: "domain"
+  direction: down
+  style.font-size: 22
+
+  executionControlState: {
+    shape: class
+    label: "execution control state (`ExecutionControlState` / `ExecutionControlTransition`)"
+    "+ pause / resume / retry / recover / fail / cancel / complete を判定する": "`can_apply(transition)` / `apply(transition)`"
+    style.font-size: 22
+  }
+}
+
 gateway.orchestrationHelper -> gateway.orchestrationRequest: regression 代表入力を受け取る {
   style.font-size: 22
 }
 gateway.orchestrationHelper -> application.wordPhase: 第 1 phase として reusable terms を取得する {
   style.font-size: 22
 }
-gateway.orchestrationHelper -> application.personaPhase: 第 2 phase として NPC persona を補完する {
+gateway.orchestrationHelper -> application.personaPhase: 第 2 phase として provider-backed persona runtime を実行する {
   style.font-size: 22
 }
 gateway.orchestrationHelper -> application.bodyPhase: 第 3 phase として preview item を確定する {
@@ -171,10 +217,31 @@ application.wordPhase -> dto.reusableTerm: selected reusable terms を返す {
 application.personaPhase -> application.personaPhaseRequest: job / NPC metadata を束ねる {
   style.font-size: 22
 }
-application.personaPhase -> ports.personaStorage: save/read cache を扱う {
+application.personaPhase -> dto.providerSelection: provider 選択と runtime knobs を受け取る {
   style.font-size: 22
 }
-application.personaPhase -> ports.personaGenerator: cache miss のみ生成を依頼する {
+application.personaPhase -> dto.personaRuntime: source / sink 付き runtime request を組み立てる {
+  style.font-size: 22
+}
+application.personaPhase -> domain.executionControlState: retry / cancel / recovery の状態遷移を判定する {
+  style.font-size: 22
+}
+application.personaPhase -> application.personaRuntimeUseCase: cache miss 時だけ runtime port を起動する {
+  style.font-size: 22
+}
+application.personaRuntimeUseCase -> ports.personaRuntime: runtime request を provider-backed execution へ渡す {
+  style.font-size: 22
+}
+ports.personaRuntime -> ports.providerRuntime: provider step を実行する {
+  style.font-size: 22
+}
+ports.providerRuntime -> dto.executionControl: recoverable failure / canceled を返す {
+  style.font-size: 22
+}
+ports.personaRuntime -> dto.personaRuntime: sink-aware result を返す {
+  style.font-size: 22
+}
+application.personaPhase -> ports.personaStorage: save/read cache を扱う {
   style.font-size: 22
 }
 application.personaPhase -> dto.jobPersona: optional persona を返す {

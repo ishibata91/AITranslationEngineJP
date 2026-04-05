@@ -1,7 +1,7 @@
 id: P4-C02
 title: Define execution-control state expansion contract
 type: contract
-status: planned
+status: done
 goal: Fix job states and transitions for pause, retry, recoverable failure, failure,
   and cancel.
 owned_scope:

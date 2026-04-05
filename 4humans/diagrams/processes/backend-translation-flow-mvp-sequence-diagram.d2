@@ -9,7 +9,9 @@ translationFlowMvpSequence: {
   dictionaryLookup: "辞書 lookup port (`DictionaryLookupPort`)"
   personaPhase: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
   personaStorage: "job persona storage port (`JobPersonaStoragePort`)"
-  personaGenerator: "persona generator port (`NpcPersonaGenerationPort`)"
+  personaRuntime: "persona generation runtime port (`PersonaGenerationRuntimePort`)"
+  providerRuntime: "provider runtime port (`ProviderRuntimePort`)"
+  executionControl: "execution control state (`ExecutionControlState`)"
   bodyPhase: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
   bodyTranslator: "body translation port (`BodyTranslationPort`)"
   previewItem: "preview item DTO (`TranslationPreviewItemDto`)"
@@ -29,7 +31,7 @@ translationFlowMvpSequence: {
   wordPhase -> orchestrationHelper: reusable terms を返す {
     style.font-size: 22
   }
-  orchestrationHelper -> personaPhase: NPC metadata と `source_text` を渡す {
+  orchestrationHelper -> personaPhase: NPC metadata と provider selection を渡す {
     style.font-size: 22
   }
   personaPhase -> personaStorage: job-local persona cache を読む {
@@ -38,13 +40,25 @@ translationFlowMvpSequence: {
   personaStorage -> personaPhase: cache miss を返す {
     style.font-size: 22
   }
-  personaPhase -> personaGenerator: deterministic fake へ persona 生成を依頼する {
+  personaPhase -> executionControl: `Running` から retry / cancel 可否を判定する {
     style.font-size: 22
   }
-  personaGenerator -> personaPhase: 補完した `JobPersonaEntryDto` を返す {
+  personaPhase -> personaRuntime: source / sink 付き runtime request を渡す {
     style.font-size: 22
   }
-  personaPhase -> personaStorage: 生成した persona を保存する {
+  personaRuntime -> providerRuntime: provider step を実行する {
+    style.font-size: 22
+  }
+  providerRuntime -> personaRuntime: success または provider 非依存 failure を返す {
+    style.font-size: 22
+  }
+  personaRuntime -> executionControl: `RecoverableFailed` / `Retrying` / `Canceled` / `Completed` を更新する {
+    style.font-size: 22
+  }
+  personaRuntime -> personaPhase: sink-aware runtime result を返す {
+    style.font-size: 22
+  }
+  personaPhase -> personaStorage: job-local path では生成した persona を保存する {
     style.font-size: 22
   }
   personaStorage -> personaPhase: 保存完了を返す {

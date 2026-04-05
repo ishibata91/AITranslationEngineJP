@@ -1,7 +1,7 @@
 id: P4-C01
 title: Define provider selection and configuration contract
 type: contract
-status: planned
+status: done
 goal: Fix the boundary for provider choice, configuration, and execution mode selection.
 owned_scope:
 - src-tauri/src/application/dto/provider_selection/

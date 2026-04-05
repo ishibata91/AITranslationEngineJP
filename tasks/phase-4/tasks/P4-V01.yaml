@@ -1,7 +1,7 @@
 id: P4-V01
 title: Fix provider failure and retry acceptance anchor
 type: verification
-status: planned
+status: done
 goal: Create fixtures and checks for provider failure, retry, and recovery behavior.
 owned_scope:
 - src-tauri/tests/acceptance/provider-failure-retry/

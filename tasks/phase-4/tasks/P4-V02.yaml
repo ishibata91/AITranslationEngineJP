@@ -1,7 +1,7 @@
 id: P4-V02
 title: Fix persona-generation provider acceptance anchor
 type: verification
-status: planned
+status: done
 goal: Create acceptance fixtures and checks for provider-backed persona generation
   behavior.
 owned_scope:
@@ -33,4 +33,3 @@ shared_risks:
 done_when:
 - provider-backed persona generation implementation can target one shared acceptance
   anchor for success, failure, and retry behavior
-
