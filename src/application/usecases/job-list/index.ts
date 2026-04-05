@@ -3,6 +3,8 @@ import type {
   FeatureScreenStorePort,
   FeatureScreenUsecase,
 } from "@application/ports/input/feature-screen";
+import type { FeatureScreenGateway } from "@application/ports/gateway/feature-screen";
+import { createFeatureScreenUsecase } from "@application/usecases/feature-screen";
 
 export type ObservableJobState = "Ready" | "Running" | "Completed";
 
@@ -143,45 +145,41 @@ export function createJobListScreenUsecase({
   store,
   toErrorMessage = defaultToErrorMessage,
 }: CreateJobListScreenUsecaseOptions): JobListScreenInput {
-  async function loadCurrent(): Promise<void> {
-    store.setLoading();
+  const gateway: FeatureScreenGateway<undefined, JobListResult> = {
+    async load() {
+      return executor();
+    },
+  };
 
-    try {
-      const data = await executor();
-      const currentState = store.getState();
+  const featureScreenStore: FeatureScreenStorePort<
+    JobListResult,
+    string,
+    undefined
+  > = {
+    ...store,
+    setLoaded(payload) {
+      const latestSelection = store.getState().selection;
       const selection = reconcileSelection({
-        currentSelection: currentState.selection,
-        data,
+        currentSelection: latestSelection,
+        data: payload.data,
       });
 
       store.setLoaded({
-        data,
+        data: payload.data,
         selection,
       });
-    } catch (error) {
-      store.setError(toErrorMessage(error));
-    }
-  }
-
-  return {
-    initialize() {
-      return loadCurrent();
-    },
-    refresh() {
-      return loadCurrent();
-    },
-    retry() {
-      return loadCurrent();
-    },
-    select(selection) {
-      store.setSelection(selection);
-    },
-    async updateFilters(filters, options) {
-      store.setFilters(filters);
-
-      if (options?.reload === true) {
-        await loadCurrent();
-      }
     },
   };
+
+  return createFeatureScreenUsecase({
+    createRequest: () => undefined,
+    gateway,
+    reconcileSelection: ({ currentSelection, data }) =>
+      reconcileSelection({
+        currentSelection,
+        data,
+      }),
+    store: featureScreenStore,
+    toErrorMessage,
+  });
 }

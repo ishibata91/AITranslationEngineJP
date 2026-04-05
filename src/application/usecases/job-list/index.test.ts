@@ -193,6 +193,72 @@ describe("createJobListScreenUsecase", () => {
     });
   });
 
+  it("Given refresh is in flight When select changes and the refreshed list still contains that job Then the in-flight user selection is preserved", async () => {
+    const deferred = createDeferred<JobListResult>();
+    const executor = vi
+      .fn<() => Promise<JobListResult>>()
+      .mockResolvedValueOnce({
+        jobs: [
+          {
+            jobId: "job-101",
+            state: "Ready",
+          },
+          {
+            jobId: "job-202",
+            state: "Running",
+          },
+          {
+            jobId: "job-303",
+            state: "Completed",
+          },
+        ],
+      })
+      .mockImplementationOnce(() => deferred.promise);
+    const store = createJobListScreenStore();
+    const usecase = createJobListScreenUsecase({
+      executor,
+      store,
+    });
+
+    await usecase.initialize();
+    const refreshPromise = usecase.refresh();
+    usecase.select("job-303");
+
+    deferred.resolve({
+      jobs: [
+        {
+          jobId: "job-202",
+          state: "Completed",
+        },
+        {
+          jobId: "job-303",
+          state: "Running",
+        },
+      ],
+    });
+
+    await refreshPromise;
+
+    expect(store.getState()).toEqual({
+      data: {
+        jobs: [
+          {
+            jobId: "job-202",
+            state: "Completed",
+          },
+          {
+            jobId: "job-303",
+            state: "Running",
+          },
+        ],
+      },
+      error: null,
+      filters: undefined,
+      loading: false,
+      selection: "job-303",
+    });
+  });
+
   it("Given the backend returns zero observable jobs When refresh succeeds Then the list stays successful and the selected job is cleared", async () => {
     const executor = vi
       .fn<() => Promise<JobListResult>>()
@@ -267,6 +333,130 @@ describe("createJobListScreenUsecase", () => {
       filters: undefined,
       loading: false,
       selection: "job-202",
+    });
+  });
+
+  it("Given no local filters When updateFilters reloads Then the same list query reruns and the selected job is reconciled", async () => {
+    const executor = vi
+      .fn<() => Promise<JobListResult>>()
+      .mockResolvedValueOnce({
+        jobs: [
+          {
+            jobId: "job-101",
+            state: "Ready",
+          },
+          {
+            jobId: "job-202",
+            state: "Running",
+          },
+        ],
+      })
+      .mockResolvedValueOnce({
+        jobs: [
+          {
+            jobId: "job-202",
+            state: "Completed",
+          },
+          {
+            jobId: "job-303",
+            state: "Ready",
+          },
+        ],
+      });
+    const store = createJobListScreenStore();
+    const usecase = createJobListScreenUsecase({
+      executor,
+      store,
+    });
+
+    await usecase.initialize();
+    usecase.select("job-202");
+    await usecase.updateFilters(undefined, { reload: true });
+
+    expect(executor).toHaveBeenCalledTimes(2);
+    expect(store.getState()).toEqual({
+      data: {
+        jobs: [
+          {
+            jobId: "job-202",
+            state: "Completed",
+          },
+          {
+            jobId: "job-303",
+            state: "Ready",
+          },
+        ],
+      },
+      error: null,
+      filters: undefined,
+      loading: false,
+      selection: "job-202",
+    });
+  });
+
+  it("Given reload is in flight When select changes and the reloaded list still contains that job Then the in-flight user selection is preserved", async () => {
+    const deferred = createDeferred<JobListResult>();
+    const executor = vi
+      .fn<() => Promise<JobListResult>>()
+      .mockResolvedValueOnce({
+        jobs: [
+          {
+            jobId: "job-101",
+            state: "Ready",
+          },
+          {
+            jobId: "job-202",
+            state: "Running",
+          },
+          {
+            jobId: "job-303",
+            state: "Completed",
+          },
+        ],
+      })
+      .mockImplementationOnce(() => deferred.promise);
+    const store = createJobListScreenStore();
+    const usecase = createJobListScreenUsecase({
+      executor,
+      store,
+    });
+
+    await usecase.initialize();
+    const reloadPromise = usecase.updateFilters(undefined, { reload: true });
+    usecase.select("job-303");
+
+    deferred.resolve({
+      jobs: [
+        {
+          jobId: "job-202",
+          state: "Completed",
+        },
+        {
+          jobId: "job-303",
+          state: "Running",
+        },
+      ],
+    });
+
+    await reloadPromise;
+
+    expect(store.getState()).toEqual({
+      data: {
+        jobs: [
+          {
+            jobId: "job-202",
+            state: "Completed",
+          },
+          {
+            jobId: "job-303",
+            state: "Running",
+          },
+        ],
+      },
+      error: null,
+      filters: undefined,
+      loading: false,
+      selection: "job-303",
     });
   });
 
