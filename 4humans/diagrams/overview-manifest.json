@@ -1,5 +1,5 @@
 {
-  "version": "2026-04-04",
+  "version": "2026-04-05",
   "structures": {
     "overviews": [
       "4humans/diagrams/structures/backend-structure-overview.d2",
@@ -28,6 +28,9 @@
         "4humans/diagrams/structures/backend-structure-overview.d2"
       ],
       "4humans/diagrams/structures/backend-list-jobs-class-diagram.d2": [
+        "4humans/diagrams/structures/backend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/backend-translation-flow-mvp-class-diagram.d2": [
         "4humans/diagrams/structures/backend-structure-overview.d2"
       ],
       "4humans/diagrams/structures/frontend-bootstrap-status-slice-class-diagram.d2": [
@@ -74,6 +77,9 @@
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-list-jobs-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/backend-translation-flow-mvp-sequence-diagram.d2": [
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-bootstrap-status-sequence-diagram.d2": [

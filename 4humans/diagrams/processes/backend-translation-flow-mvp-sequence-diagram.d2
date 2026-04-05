@@ -1,0 +1,77 @@
+title: "Backend translation flow MVP orchestration シーケンス図"
+
+translationFlowMvpSequence: {
+  shape: sequence_diagram
+
+  caller: "回帰呼出し元 (`translation-flow-mvp` regression)"
+  orchestrationHelper: "gateway orchestration helper (`run_translation_flow_mvp_orchestration`)"
+  wordPhase: "単語翻訳 phase (`RunWordTranslationPhaseUseCase`)"
+  dictionaryLookup: "辞書 lookup port (`DictionaryLookupPort`)"
+  personaPhase: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
+  personaStorage: "job persona storage port (`JobPersonaStoragePort`)"
+  personaGenerator: "persona generator port (`NpcPersonaGenerationPort`)"
+  bodyPhase: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
+  bodyTranslator: "body translation port (`BodyTranslationPort`)"
+  previewItem: "preview item DTO (`TranslationPreviewItemDto`)"
+
+  caller -> orchestrationHelper: 代表入力 (`RunTranslationFlowMvpRequestDto`) を渡す {
+    style.font-size: 22
+  }
+  orchestrationHelper -> wordPhase: 単語翻訳 phase を初期化して実行する {
+    style.font-size: 22
+  }
+  wordPhase -> dictionaryLookup: `translation_unit` から reusable terms 候補を検索する {
+    style.font-size: 22
+  }
+  dictionaryLookup -> wordPhase: grouped candidate 群を返す {
+    style.font-size: 22
+  }
+  wordPhase -> orchestrationHelper: reusable terms を返す {
+    style.font-size: 22
+  }
+  orchestrationHelper -> personaPhase: NPC metadata と `source_text` を渡す {
+    style.font-size: 22
+  }
+  personaPhase -> personaStorage: job-local persona cache を読む {
+    style.font-size: 22
+  }
+  personaStorage -> personaPhase: cache miss を返す {
+    style.font-size: 22
+  }
+  personaPhase -> personaGenerator: deterministic fake へ persona 生成を依頼する {
+    style.font-size: 22
+  }
+  personaGenerator -> personaPhase: 補完した `JobPersonaEntryDto` を返す {
+    style.font-size: 22
+  }
+  personaPhase -> personaStorage: 生成した persona を保存する {
+    style.font-size: 22
+  }
+  personaStorage -> personaPhase: 保存完了を返す {
+    style.font-size: 22
+  }
+  personaPhase -> orchestrationHelper: optional job persona を返す {
+    style.font-size: 22
+  }
+  orchestrationHelper -> orchestrationHelper: embedded element policy を `unit_key` 付きで組み立てる {
+    style.font-size: 22
+  }
+  orchestrationHelper -> bodyPhase: `TranslationPhaseHandoffDto` を渡す {
+    style.font-size: 22
+  }
+  bodyPhase -> bodyTranslator: handoff と instruction を渡して本文翻訳する {
+    style.font-size: 22
+  }
+  bodyTranslator -> bodyPhase: translated text を返す {
+    style.font-size: 22
+  }
+  bodyPhase -> previewItem: preview-facing result を固定する {
+    style.font-size: 22
+  }
+  previewItem -> orchestrationHelper: `TranslationPreviewItemDto` を返す {
+    style.font-size: 22
+  }
+  orchestrationHelper -> caller: translation text / terms / persona / embedded policy を返す {
+    style.font-size: 22
+  }
+}

@@ -34,17 +34,17 @@
 
 - Status: Open
 - Area: Verification
-- Detail: Rust / Svelte の bootstrap target に加え xEdit importer validation の Rust tests は入ったが、翻訳ジョブ、writer、persona 系の acceptance checks はまだ乗っていない
-- Impact: execution harness は基盤 lint / test / build と importer failure path の一部を回せるが、業務フロー成立の検証までは到達していない
-- Next step: 実装進行に応じて importer 以外の fixture と acceptance checks を追加し、execution harness から段階的に呼ぶ
+- Detail: Rust / Svelte の bootstrap target に加え xEdit importer validation と translation-flow MVP orchestration regression は入ったが、Tauri transport、writer、provider-backed persona 系の acceptance checks はまだ乗っていない
+- Impact: execution harness は importer failure path と backend-local translation flow proof の一部を回せるようになった一方、実 transport と provider 実体を含む業務フロー成立の検証までは到達していない
+- Next step: 実装進行に応じて Tauri transport と provider 実体を含む fixture / acceptance checks を追加し、execution harness から段階的に呼ぶ
 
 ### 5. Test-level constraints coverage is not started
 
 - Status: Open
 - Area: Quality
-- Detail: fixture-based checks、scenario regression、contract-level tests は方針化済みで、xEdit importer validation と canonical `TRANSLATION_UNIT` contract から着手したが coverage はまだ限定的
-- Impact: importer と translation-unit canonical boundary の一部制約は実行で確認できるようになった一方、細かな仕様と制約を広く確認する面はまだ弱い
-- Next step: 実装追加時に translation flow 全体へ acceptance checks と test fixture を広げる
+- Detail: fixture-based checks、scenario regression、contract-level tests は方針化済みで、xEdit importer validation、canonical `TRANSLATION_UNIT` contract、translation-flow MVP orchestration regression まで着手したが coverage はまだ限定的
+- Impact: importer、translation-unit canonical boundary、translation-flow の代表統合順序の一部制約は実行で確認できるようになった一方、細かな仕様と制約を広く確認する面はまだ弱い
+- Next step: 実装追加時に translation flow 全体へ acceptance checks と test fixture を広げ、transport 境界と provider 実体を含む回帰を増やす
 
 ### 6. Workflow skills are intentionally minimal
 

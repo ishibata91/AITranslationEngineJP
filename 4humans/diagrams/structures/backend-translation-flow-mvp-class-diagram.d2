@@ -1,0 +1,206 @@
+layout: elk
+direction: right
+
+title: "Backend translation flow MVP orchestration クラス図"
+
+gateway: {
+  shape: package
+  label: "gateway"
+  direction: down
+  style.font-size: 22
+
+  orchestrationHelper: {
+    shape: class
+    label: "translation flow MVP orchestration helper (`run_translation_flow_mvp_orchestration`)"
+    "+ regression 専用の integrated path を順に合成する": "`run_translation_flow_mvp_orchestration(request, dictionary_lookup, persona_storage, persona_generator, body_translator)`"
+    style.font-size: 22
+  }
+
+  orchestrationRequest: {
+    shape: class
+    label: "orchestration 要求 DTO (`RunTranslationFlowMvpRequestDto`)"
+    "+ `job_id`, `source_type`, NPC metadata を束ねる"
+    "+ `translation_unit` と `embedded_elements` を渡す"
+    style.font-size: 22
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+  direction: down
+  style.font-size: 22
+
+  wordPhase: {
+    shape: class
+    label: "単語翻訳 phase (`RunWordTranslationPhaseUseCase`)"
+    "+ reusable terms を抽出する": "`execute(translation_unit)`"
+    style.font-size: 22
+  }
+
+  personaPhase: {
+    shape: class
+    label: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
+    "+ cache miss 時だけ persona を補完する": "`execute(request)`"
+    style.font-size: 22
+  }
+
+  bodyPhase: {
+    shape: class
+    label: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
+    "+ handoff を preview item へ固定する": "`execute(request)`"
+    style.font-size: 22
+  }
+
+  personaPhaseRequest: {
+    shape: class
+    label: "persona 生成要求 DTO (`NpcPersonaGenerationPhaseRequestDto`)"
+    style.font-size: 22
+  }
+
+  bodyPhaseRequest: {
+    shape: class
+    label: "本文翻訳要求 DTO (`BodyTranslationPhaseRequestDto`)"
+    style.font-size: 22
+  }
+}
+
+dto: {
+  shape: package
+  label: "application DTO"
+  direction: down
+  style.font-size: 22
+
+  translationUnit: {
+    shape: class
+    label: "翻訳単位 DTO (`TranslationUnitDto`)"
+    style.font-size: 22
+  }
+
+  reusableTerm: {
+    shape: class
+    label: "再利用語句 DTO (`ReusableDictionaryEntryDto`)"
+    style.font-size: 22
+  }
+
+  jobPersona: {
+    shape: class
+    label: "job persona DTO (`JobPersonaEntryDto`)"
+    style.font-size: 22
+  }
+
+  embeddedPolicy: {
+    shape: class
+    label: "埋め込み要素 policy DTO (`EmbeddedElementPolicyDto` / `EmbeddedElementDescriptorDto`)"
+    style.font-size: 22
+  }
+
+  phaseHandoff: {
+    shape: class
+    label: "phase handoff DTO (`TranslationPhaseHandoffDto`)"
+    style.font-size: 22
+  }
+
+  previewItem: {
+    shape: class
+    label: "preview item DTO (`TranslationPreviewItemDto`)"
+    style.font-size: 22
+  }
+}
+
+ports: {
+  shape: package
+  label: "ports / adapters"
+  direction: down
+  style.font-size: 22
+
+  dictionaryLookup: {
+    shape: class
+    label: "辞書 lookup port (`DictionaryLookupPort`)"
+    "+ exact match 候補群を返す": "`lookup(request)`"
+    style.font-size: 22
+  }
+
+  personaStorage: {
+    shape: class
+    label: "job persona storage port (`JobPersonaStoragePort`)"
+    "+ job-local persona を読む": "`read_job_persona(request)`"
+    "+ job-local persona を保存する": "`save_job_persona(request)`"
+    style.font-size: 22
+  }
+
+  personaGenerator: {
+    shape: class
+    label: "persona generator port (`NpcPersonaGenerationPort`)"
+    "+ persona を生成する": "`generate_job_persona(request)`"
+    style.font-size: 22
+  }
+
+  bodyTranslator: {
+    shape: class
+    label: "body translation port (`BodyTranslationPort`)"
+    "+ handoff を translated text へ変換する": "`translate(request)`"
+    style.font-size: 22
+  }
+}
+
+gateway.orchestrationHelper -> gateway.orchestrationRequest: regression 代表入力を受け取る {
+  style.font-size: 22
+}
+gateway.orchestrationHelper -> application.wordPhase: 第 1 phase として reusable terms を取得する {
+  style.font-size: 22
+}
+gateway.orchestrationHelper -> application.personaPhase: 第 2 phase として NPC persona を補完する {
+  style.font-size: 22
+}
+gateway.orchestrationHelper -> application.bodyPhase: 第 3 phase として preview item を確定する {
+  style.font-size: 22
+}
+gateway.orchestrationRequest -> dto.translationUnit: source text と unit key を渡す {
+  style.font-size: 22
+}
+gateway.orchestrationRequest -> dto.embeddedPolicy: descriptor 群の source を供給する {
+  style.font-size: 22
+}
+application.wordPhase -> ports.dictionaryLookup: reusable term 候補を検索する {
+  style.font-size: 22
+}
+application.wordPhase -> dto.reusableTerm: selected reusable terms を返す {
+  style.font-size: 22
+}
+application.personaPhase -> application.personaPhaseRequest: job / NPC metadata を束ねる {
+  style.font-size: 22
+}
+application.personaPhase -> ports.personaStorage: save/read cache を扱う {
+  style.font-size: 22
+}
+application.personaPhase -> ports.personaGenerator: cache miss のみ生成を依頼する {
+  style.font-size: 22
+}
+application.personaPhase -> dto.jobPersona: optional persona を返す {
+  style.font-size: 22
+}
+gateway.orchestrationHelper -> dto.phaseHandoff: reusable terms / persona / embedded policy を合成する {
+  style.font-size: 22
+}
+dto.phaseHandoff -> dto.translationUnit: 原文 translation unit を保持する {
+  style.font-size: 22
+}
+dto.phaseHandoff -> dto.reusableTerm: reusable terms を保持する {
+  style.font-size: 22
+}
+dto.phaseHandoff -> dto.jobPersona: optional persona を保持する {
+  style.font-size: 22
+}
+dto.phaseHandoff -> dto.embeddedPolicy: embedded element policy を保持する {
+  style.font-size: 22
+}
+application.bodyPhase -> application.bodyPhaseRequest: `job_id` と handoff を束ねる {
+  style.font-size: 22
+}
+application.bodyPhase -> ports.bodyTranslator: translated text を取得する {
+  style.font-size: 22
+}
+application.bodyPhase -> dto.previewItem: preview-facing result shape を返す {
+  style.font-size: 22
+}

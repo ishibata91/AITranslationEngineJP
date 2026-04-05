@@ -32,6 +32,13 @@ gatewayLayer: {
     label: "translation preview command (`list_translation_preview`)"
     style.font-size: 22
   }
+
+  translationFlowProofHelper: {
+    shape: class
+    label: "translation flow MVP proof helper (`run_translation_flow_mvp_orchestration`)"
+    link: "./backend-translation-flow-mvp-class-diagram.svg"
+    style.font-size: 22
+  }
 }
 
 applicationLayer: {
@@ -99,18 +106,21 @@ applicationLayer: {
   wordTranslationPhaseUsecase: {
     shape: class
     label: "単語翻訳 phase (`RunWordTranslationPhaseUseCase`)"
+    link: "./backend-translation-flow-mvp-class-diagram.svg"
     style.font-size: 22
   }
 
   npcPersonaGenerationPhaseUsecase: {
     shape: class
     label: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
+    link: "./backend-translation-flow-mvp-class-diagram.svg"
     style.font-size: 22
   }
 
   bodyTranslationPhaseUsecase: {
     shape: class
     label: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
+    link: "./backend-translation-flow-mvp-class-diagram.svg"
     style.font-size: 22
   }
 
@@ -277,6 +287,15 @@ gatewayLayer.personaCommands -> applicationLayer.masterPersonaRebuildUsecase: pe
 gatewayLayer.translationPreviewCommand -> applicationLayer.translationPreviewQueryUsecase: preview 観測 query を委譲する {
   style.font-size: 22
 }
+gatewayLayer.translationFlowProofHelper -> applicationLayer.wordTranslationPhaseUsecase: proof の第 1 phase を起動する {
+  style.font-size: 22
+}
+gatewayLayer.translationFlowProofHelper -> applicationLayer.npcPersonaGenerationPhaseUsecase: proof の第 2 phase を起動する {
+  style.font-size: 22
+}
+gatewayLayer.translationFlowProofHelper -> applicationLayer.bodyTranslationPhaseUsecase: proof の第 3 phase を起動する {
+  style.font-size: 22
+}
 applicationLayer -> domainLayer: domain 状態と値を組み立てる {
   style.font-size: 22
 }
@@ -308,5 +327,8 @@ applicationLayer.bodyTranslationPhaseUsecase -> domainLayer.translationPreviewDa
   style.font-size: 22
 }
 applicationLayer.translationPreviewQueryUsecase -> domainLayer.translationPreviewData: read-only preview result を返す {
+  style.font-size: 22
+}
+gatewayLayer.translationFlowProofHelper -> domainLayer.translationPreviewData: regression proof 結果を gateway local に返す {
   style.font-size: 22
 }

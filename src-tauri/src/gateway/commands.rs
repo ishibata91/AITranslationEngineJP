@@ -1,21 +1,31 @@
+use crate::application::body_translation_phase::{
+    BodyTranslationPhaseRequestDto, BodyTranslationPort, RunBodyTranslationPhaseUseCase,
+};
 use crate::application::bootstrap::GetBootstrapStatusUseCase;
 use crate::application::dictionary_import::ImportDictionaryUseCase;
 use crate::application::dictionary_query::{
     LookupDictionaryUseCase, SaveImportedDictionaryUseCase,
 };
 use crate::application::dto::{
+    embedded_element_policy::{EmbeddedElementDescriptorDto, EmbeddedElementPolicyDto},
     BootstrapStatusDto, CreateJobRequestDto, CreateJobResultDto, ImportXeditExportRequestDto,
     ImportXeditExportResultDto, ListJobsResultDto, MasterPersonaReadRequestDto,
-    MasterPersonaReadResultDto,
+    MasterPersonaReadResultDto, TranslationPhaseHandoffDto, TranslationPreviewItemDto,
+    TranslationUnitDto,
 };
 use crate::application::importer::ImportXeditExportUseCase;
 use crate::application::job::create::CreateJobUseCase;
 use crate::application::job::list::ListJobsUseCase;
 use crate::application::master_persona::{BaseGameNpcRebuildRequest, RebuildMasterPersonaUseCase};
+use crate::application::npc_persona_generation_phase::{
+    NpcPersonaGenerationPhaseRequestDto, NpcPersonaGenerationPort,
+    RunNpcPersonaGenerationPhaseUseCase,
+};
 use crate::application::ports::dictionary_lookup::{
     DictionaryLookupPort, DictionaryLookupRequest, DictionaryLookupResult,
 };
-use crate::application::ports::persona_storage::MasterPersonaStoragePort;
+use crate::application::ports::persona_storage::{JobPersonaStoragePort, MasterPersonaStoragePort};
+use crate::application::word_translation_phase::RunWordTranslationPhaseUseCase;
 use crate::infra::dictionary_repository::SqliteDictionaryRepository;
 use crate::infra::execution_cache::execution_cache_path;
 use crate::infra::job_repository::InMemoryJobRepository;
@@ -44,6 +54,18 @@ struct BaseGameNpcRebuildRequestTransport {
     persona_name: String,
     source_type: String,
     entries: Vec<BaseGameNpcRebuildEntryTransport>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct RunTranslationFlowMvpRequestDto {
+    pub job_id: String,
+    pub source_type: String,
+    pub translation_unit: TranslationUnitDto,
+    pub npc_form_id: String,
+    pub race: String,
+    pub sex: String,
+    pub voice: String,
+    pub embedded_elements: Vec<EmbeddedElementDescriptorDto>,
 }
 
 impl<'de> Deserialize<'de> for crate::application::master_persona::BaseGameNpcRebuildEntry {
@@ -88,6 +110,65 @@ impl<'de> Deserialize<'de> for BaseGameNpcRebuildRequest {
                 .collect(),
         })
     }
+}
+
+pub async fn run_translation_flow_mvp_orchestration<L, S, G, T>(
+    request: RunTranslationFlowMvpRequestDto,
+    dictionary_lookup: L,
+    persona_storage: S,
+    persona_generator: G,
+    body_translator: T,
+) -> Result<TranslationPreviewItemDto, String>
+where
+    L: DictionaryLookupPort,
+    S: JobPersonaStoragePort,
+    G: NpcPersonaGenerationPort,
+    T: BodyTranslationPort,
+{
+    let RunTranslationFlowMvpRequestDto {
+        job_id,
+        source_type,
+        translation_unit,
+        npc_form_id,
+        race,
+        sex,
+        voice,
+        embedded_elements,
+    } = request;
+
+    let word_phase = RunWordTranslationPhaseUseCase::new(dictionary_lookup);
+    let reusable_terms = word_phase.execute(&translation_unit).await?;
+
+    let persona_phase =
+        RunNpcPersonaGenerationPhaseUseCase::new(persona_storage, persona_generator);
+    let job_persona = persona_phase
+        .execute(NpcPersonaGenerationPhaseRequestDto {
+            job_id: job_id.clone(),
+            source_type,
+            npc_form_id,
+            race,
+            sex,
+            voice,
+            source_text: translation_unit.source_text.clone(),
+        })
+        .await?;
+
+    let unit_key = translation_unit.extraction_key.clone();
+    let body_phase = RunBodyTranslationPhaseUseCase::new(body_translator);
+    body_phase
+        .execute(BodyTranslationPhaseRequestDto {
+            job_id,
+            phase_handoff: TranslationPhaseHandoffDto {
+                translation_unit,
+                reusable_terms,
+                job_persona,
+                embedded_element_policy: EmbeddedElementPolicyDto {
+                    unit_key,
+                    descriptors: embedded_elements,
+                },
+            },
+        })
+        .await
 }
 
 #[tauri::command]

@@ -1,7 +1,7 @@
 id: P3-G01
 title: Wire Translation Flow MVP scenario
 type: integ
-status: planned
+status: done
 goal: Prove the first end-to-end translation flow through integrated wiring and representative
   regression.
 owned_scope:
