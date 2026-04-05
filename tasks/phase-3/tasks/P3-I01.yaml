@@ -1,7 +1,7 @@
 id: P3-I01
 title: Implement record-type instruction builder
 type: impl
-status: planned
+status: done
 goal: Build translation instructions per record type through the agreed contract.
 owned_scope:
 - src-tauri/src/application/translation_instruction_builder/
