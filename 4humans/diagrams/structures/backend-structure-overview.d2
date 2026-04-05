@@ -26,6 +26,12 @@ gatewayLayer: {
     label: "persona command 群 (`rebuild_master_persona` / `read_master_persona`)"
     style.font-size: 22
   }
+
+  translationPreviewCommand: {
+    shape: class
+    label: "translation preview command (`list_translation_preview`)"
+    style.font-size: 22
+  }
 }
 
 applicationLayer: {
@@ -89,6 +95,30 @@ applicationLayer: {
     link: "./backend-job-persona-persistence-class-diagram.svg"
     style.font-size: 22
   }
+
+  wordTranslationPhaseUsecase: {
+    shape: class
+    label: "単語翻訳 phase (`RunWordTranslationPhaseUseCase`)"
+    style.font-size: 22
+  }
+
+  npcPersonaGenerationPhaseUsecase: {
+    shape: class
+    label: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
+    style.font-size: 22
+  }
+
+  bodyTranslationPhaseUsecase: {
+    shape: class
+    label: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
+    style.font-size: 22
+  }
+
+  translationPreviewQueryUsecase: {
+    shape: class
+    label: "preview query (`ListTranslationPreviewUseCase`)"
+    style.font-size: 22
+  }
 }
 
 domainLayer: {
@@ -130,6 +160,12 @@ domainLayer: {
   jobPersonaData: {
     shape: class
     label: "job persona データ"
+    style.font-size: 22
+  }
+
+  translationPreviewData: {
+    shape: class
+    label: "preview item DTO 群"
     style.font-size: 22
   }
 }
@@ -202,6 +238,31 @@ infraLayer: {
     link: "./backend-job-persona-persistence-class-diagram.svg"
     style.font-size: 22
   }
+
+  dictionaryLookupPort: {
+    shape: class
+    label: "dictionary lookup port"
+    link: "./backend-dictionary-storage-query-class-diagram.svg"
+    style.font-size: 22
+  }
+
+  npcPersonaGenerator: {
+    shape: class
+    label: "job persona generator boundary"
+    style.font-size: 22
+  }
+
+  bodyTranslationAdapter: {
+    shape: class
+    label: "body translation boundary"
+    style.font-size: 22
+  }
+
+  translationPreviewRepository: {
+    shape: class
+    label: "translation preview read boundary"
+    style.font-size: 22
+  }
 }
 
 gatewayLayer.lifecycleCommands -> applicationLayer: command 入口から usecase を呼ぶ {
@@ -213,9 +274,39 @@ gatewayLayer.dictionaryCommands -> applicationLayer.dictionaryStorageQueryUsecas
 gatewayLayer.personaCommands -> applicationLayer.masterPersonaRebuildUsecase: persona 再構築と観測を委譲する {
   style.font-size: 22
 }
+gatewayLayer.translationPreviewCommand -> applicationLayer.translationPreviewQueryUsecase: preview 観測 query を委譲する {
+  style.font-size: 22
+}
 applicationLayer -> domainLayer: domain 状態と値を組み立てる {
   style.font-size: 22
 }
 applicationLayer -> infraLayer: 外部依存へ保存・読込を依頼する {
+  style.font-size: 22
+}
+applicationLayer.wordTranslationPhaseUsecase -> infraLayer.dictionaryLookupPort: 再利用語句候補を取得する {
+  style.font-size: 22
+}
+applicationLayer.npcPersonaGenerationPhaseUsecase -> infraLayer.jobPersonaRepository: job-local persona を読込・保存する {
+  style.font-size: 22
+}
+applicationLayer.npcPersonaGenerationPhaseUsecase -> infraLayer.npcPersonaGenerator: persona 生成を依頼する {
+  style.font-size: 22
+}
+applicationLayer.bodyTranslationPhaseUsecase -> infraLayer.bodyTranslationAdapter: 本文翻訳を依頼する {
+  style.font-size: 22
+}
+applicationLayer.translationPreviewQueryUsecase -> infraLayer.translationPreviewRepository: job 単位の preview item 群を読む {
+  style.font-size: 22
+}
+applicationLayer.wordTranslationPhaseUsecase -> domainLayer.translationPreviewData: reusable terms handoff を組み立てる {
+  style.font-size: 22
+}
+applicationLayer.npcPersonaGenerationPhaseUsecase -> domainLayer.jobPersonaData: optional persona handoff を組み立てる {
+  style.font-size: 22
+}
+applicationLayer.bodyTranslationPhaseUsecase -> domainLayer.translationPreviewData: preview-facing result shape を固定する {
+  style.font-size: 22
+}
+applicationLayer.translationPreviewQueryUsecase -> domainLayer.translationPreviewData: read-only preview result を返す {
   style.font-size: 22
 }

@@ -6,6 +6,7 @@ pub mod job;
 pub mod persona_storage;
 pub mod translation_instruction;
 pub mod translation_phase_handoff;
+pub mod translation_preview;
 pub mod translation_unit;
 
 pub use bootstrap_status_dto::BootstrapStatusDto;
@@ -24,4 +25,7 @@ pub use persona_storage::{
 };
 pub use translation_instruction::TranslationInstructionDto;
 pub use translation_phase_handoff::TranslationPhaseHandoffDto;
+pub use translation_preview::{
+    TranslationPreviewItemDto, TranslationPreviewQueryRequestDto, TranslationPreviewQueryResultDto,
+};
 pub use translation_unit::TranslationUnitDto;

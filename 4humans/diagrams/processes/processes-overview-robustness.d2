@@ -3,6 +3,15 @@ direction: down
 
 title: "主要プロセス overview robustness 図"
 
+overviewGrid: {
+  shape: package
+  label: ""
+  grid-cols: 5
+  row-gap: 48
+  column-gap: 40
+  style.stroke: transparent
+  style.fill: transparent
+
 bootstrapStatus: {
   shape: package
   label: "起動状態確認"
@@ -406,4 +415,88 @@ jobPersonaPersistence: {
   control -> entity: 置換保存と保存順読込を行う {
     style.font-size: 22
   }
+}
+
+translationPreview: {
+  shape: package
+  label: "translation preview 観測"
+  direction: right
+  style.font-size: 22
+
+  actor: {
+    shape: person
+    label: "利用者"
+    style.font-size: 22
+  }
+
+  boundary: {
+    shape: class
+    label: "画面・query 境界 (`TranslationPreviewScreen` / `TranslationPreviewView` / `ListTranslationPreviewUseCase`)"
+    style.font-size: 22
+  }
+
+  control: {
+    shape: class
+    label: "preview 制御 (`createTranslationPreviewScreenUsecase()` / `translation_preview` query)"
+    style.font-size: 22
+  }
+
+  entity: {
+    shape: class
+    label: "preview item (`TranslationPreviewResult` / `TranslationPreviewItemDto`)"
+    style.font-size: 22
+  }
+
+  actor -> boundary: job id を入力して preview を観測する {
+    style.font-size: 22
+  }
+  boundary -> control: observe / refresh / retry を渡す {
+    style.font-size: 22
+  }
+  control -> entity: 安定順序の preview item 群を取得する {
+    style.font-size: 22
+  }
+}
+
+phaseToPreviewBoundary: {
+  shape: package
+  label: "translation phase と preview の境界"
+  direction: right
+  style.font-size: 22
+
+  actor: {
+    shape: person
+    label: "呼出し元"
+    style.font-size: 22
+  }
+
+  boundary: {
+    shape: class
+    label: "phase entrypoint 群 (`RunWordTranslationPhaseUseCase` / `RunNpcPersonaGenerationPhaseUseCase` / `RunBodyTranslationPhaseUseCase`)"
+    style.font-size: 22
+  }
+
+  control: {
+    shape: class
+    label: "handoff / preview 制御 (`TranslationPhaseHandoffDto` / `TranslationPreviewReadPort`)"
+    style.font-size: 22
+  }
+
+  entity: {
+    shape: class
+    label: "preview-facing shape (`TranslationPreviewItemDto`)"
+    style.font-size: 22
+  }
+
+  actor -> boundary: Phase 3 翻訳処理を進める {
+    style.font-size: 22
+  }
+  boundary -> control: reusable terms と persona を handoff して本文翻訳結果を固定する {
+    style.font-size: 22
+  }
+  control -> entity: preview query が再実行なしで読める結果を残す {
+    style.font-size: 22
+  }
+}
+
 }

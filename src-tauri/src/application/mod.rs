@@ -1,3 +1,4 @@
+pub mod body_translation_phase;
 pub mod bootstrap;
 pub mod dictionary_import;
 pub mod dictionary_query;
@@ -6,5 +7,8 @@ pub mod importer;
 pub mod job;
 pub mod job_persona;
 pub mod master_persona;
+pub mod npc_persona_generation_phase;
 pub mod ports;
 pub mod translation_instruction_builder;
+pub mod translation_preview;
+pub mod word_translation_phase;

@@ -14,6 +14,12 @@ app: {
     label: "起動と配線 (`main.ts` / `App.svelte` / `AppShell.svelte`)"
     style.font-size: 22
   }
+
+  optionalPreviewCompose: {
+    shape: class
+    label: "preview optional compose (`AppShell.svelte`)"
+    style.font-size: 22
+  }
 }
 
 mountedSlices: {
@@ -54,6 +60,12 @@ mountedSlices: {
     shape: class
     label: "起動状態 slice"
     link: "./frontend-bootstrap-status-slice-class-diagram.svg"
+    style.font-size: 22
+  }
+
+  translationPreviewSlice: {
+    shape: class
+    label: "翻訳 preview slice (条件付き compose)"
     style.font-size: 22
   }
 }
@@ -119,6 +131,12 @@ gatewayLayer: {
     link: "./frontend-persona-observe-slice-class-diagram.svg"
     style.font-size: 22
   }
+
+  translationPreviewExecutor: {
+    shape: class
+    label: "翻訳 preview executor"
+    style.font-size: 22
+  }
 }
 
 contracts: {
@@ -144,9 +162,18 @@ contracts: {
     label: "feature-template contract"
     style.font-size: 22
   }
+
+  translationPreviewContract: {
+    shape: class
+    label: "translation-preview contract"
+    style.font-size: 22
+  }
 }
 
 app.entrypoint -> mountedSlices: props を渡して画面 slice を配線する {
+  style.font-size: 22
+}
+app.optionalPreviewCompose -> mountedSlices.translationPreviewSlice: store と usecase がある時だけ preview を compose する {
   style.font-size: 22
 }
 mountedSlices -> gatewayLayer: 各 slice から gateway を呼ぶ {
@@ -165,5 +192,11 @@ mountedSlices.dictionaryObserveSlice -> gatewayLayer.dictionaryObserveExecutor: 
   style.font-size: 22
 }
 mountedSlices.personaObserveSlice -> gatewayLayer.personaObserveExecutor: 観測 request を渡す {
+  style.font-size: 22
+}
+mountedSlices.translationPreviewSlice -> gatewayLayer.translationPreviewExecutor: preview observe / refresh request を渡す {
+  style.font-size: 22
+}
+mountedSlices.translationPreviewSlice -> contracts.translationPreviewContract: preview item と filter state を扱う {
   style.font-size: 22
 }

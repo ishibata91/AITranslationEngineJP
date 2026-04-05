@@ -148,6 +148,12 @@ async function renderAppShell(): Promise<string> {
     source: "<h1>Persona Observe</h1>",
   });
 
+  const compiledTranslationPreviewStub = await compileSvelteModule({
+    filename: "TranslationPreviewScreen.svelte",
+    require,
+    source: "<h1>Translation Preview</h1>",
+  });
+
   const compiledAppShell = await compileSvelteModule({
     filename: "AppShell.svelte",
     replacements: {
@@ -156,6 +162,7 @@ async function renderAppShell(): Promise<string> {
       '"@ui/screens/job-create/JobCreateScreen.svelte"': `"${compiledJobCreateStub.url}"`,
       '"@ui/screens/job-list/JobListScreen.svelte"': `"${compiledJobListScreen.url}"`,
       '"@ui/screens/persona-observe/PersonaObserveScreen.svelte"': `"${compiledPersonaObserveStub.url}"`,
+      '"@ui/screens/translation-preview/TranslationPreviewScreen.svelte"': `"${compiledTranslationPreviewStub.url}"`,
     },
     require,
     source: readFileSync("src/ui/app-shell/AppShell.svelte", "utf8"),
