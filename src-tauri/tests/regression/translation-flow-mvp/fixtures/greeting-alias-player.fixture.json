@@ -1,0 +1,33 @@
+{
+  "translationUnit": {
+    "sourceEntityType": "dialogue_response",
+    "formId": "00013BA3",
+    "editorId": "MQ101BalgruufGreeting",
+    "recordSignature": "INFO",
+    "fieldName": "text",
+    "extractionKey": "dialogue_response:00013BA3:text",
+    "sourceText": "Welcome, <Alias=Player>. The road to Whiterun is safe today.",
+    "sortKey": "dialogue_response:00013BA3:text"
+  },
+  "instructionPhaseCode": "body_translation",
+  "instructionText": "Translate dialogue_response.text as Skyrim NPC dialogue while preserving embedded elements such as <Alias=Player> exactly.",
+  "reusableTerms": [
+    {
+      "sourceText": "Whiterun",
+      "destText": "ホワイトラン"
+    }
+  ],
+  "jobPersona": {
+    "npcFormId": "00013BA1",
+    "race": "NordRace",
+    "sex": "Male",
+    "voice": "MaleNord",
+    "personaText": "威厳はあるが民に歩み寄る口調。"
+  },
+  "embeddedElements": [
+    {
+      "elementId": "embedded-001",
+      "rawText": "<Alias=Player>"
+    }
+  ]
+}

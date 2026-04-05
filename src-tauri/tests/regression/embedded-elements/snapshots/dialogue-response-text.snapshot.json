@@ -1,0 +1,13 @@
+{
+  "sourceText": "Welcome, <Alias=Player>. The road to Whiterun is safe today.",
+  "embeddedElementPolicy": {
+    "unitKey": "dialogue_response:00013BA3:text",
+    "descriptors": [
+      {
+        "elementId": "embedded-001",
+        "rawText": "<Alias=Player>"
+      }
+    ]
+  },
+  "preservedText": "ようこそ、<Alias=Player>。ホワイトランへの道は今日は安全です。"
+}

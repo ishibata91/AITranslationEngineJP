@@ -1,8 +1,11 @@
 mod bootstrap_status_dto;
 pub mod dictionary_import;
+pub mod embedded_element_policy;
 mod import_xedit_export_dto;
 pub mod job;
 pub mod persona_storage;
+pub mod translation_instruction;
+pub mod translation_phase_handoff;
 pub mod translation_unit;
 
 pub use bootstrap_status_dto::BootstrapStatusDto;
@@ -19,4 +22,6 @@ pub use persona_storage::{
     JobPersonaSaveRequestDto, MasterPersonaEntryDto, MasterPersonaReadRequestDto,
     MasterPersonaReadResultDto, MasterPersonaSaveRequestDto,
 };
+pub use translation_instruction::TranslationInstructionDto;
+pub use translation_phase_handoff::TranslationPhaseHandoffDto;
 pub use translation_unit::TranslationUnitDto;
