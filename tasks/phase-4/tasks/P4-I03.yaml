@@ -1,7 +1,7 @@
 id: P4-I03
 title: Implement xAI adapter
 type: impl
-status: planned
+status: done
 goal: Add the xAI runtime adapter behind the provider runtime contract.
 owned_scope:
 - src-tauri/src/infra/provider/xai/
