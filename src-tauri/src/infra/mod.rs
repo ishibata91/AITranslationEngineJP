@@ -5,6 +5,7 @@ pub mod job_repository;
 pub mod master_persona_builder;
 pub mod master_persona_repository;
 pub mod plugin_export_repository;
+pub mod provider;
 pub mod runtime_info;
 pub mod xedit_export_importer;
 pub mod xtranslator_importer;
