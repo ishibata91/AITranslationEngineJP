@@ -50,6 +50,9 @@
       ],
       "4humans/diagrams/structures/frontend-job-list-slice-class-diagram.d2": [
         "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ],
+      "4humans/diagrams/structures/frontend-execution-control-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
       ]
     }
   },
@@ -95,6 +98,9 @@
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-job-list-sequence-diagram.d2": [
+        "4humans/diagrams/processes/processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/frontend-execution-control-sequence-diagram.d2": [
         "4humans/diagrams/processes/processes-overview-robustness.d2"
       ]
     }

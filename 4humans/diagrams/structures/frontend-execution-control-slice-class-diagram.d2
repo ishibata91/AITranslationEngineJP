@@ -1,0 +1,74 @@
+layout: elk
+direction: right
+
+title: "Frontend 実行制御 slice クラス図"
+
+ui: {
+  shape: package
+  label: "UI"
+  direction: down
+  style.font-size: 22
+
+  screen: {
+    shape: class
+    label: "実行制御画面 (`ExecutionControlScreen.svelte`)"
+    "- 初期化を行う": ""
+    style.font-size: 22
+  }
+
+  view: {
+    shape: class
+    label: "実行制御ビュー (`ExecutionControlView.svelte`)"
+    "- pause / resume / retry / cancel を発火する": ""
+    style.font-size: 22
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+  direction: down
+  style.font-size: 22
+
+  usecase: {
+    shape: class
+    label: "実行制御ユースケース (`ExecutionControlScreenInput` / `createExecutionControlScreenUsecase()`)"
+    "+ 初期化と操作可否を扱う": ""
+    style.font-size: 22
+  }
+
+  store: {
+    shape: class
+    label: "実行制御ストア (`ExecutionControlScreenStore`)"
+    "+ control state / failure / pending action を保持する": ""
+    style.font-size: 22
+  }
+
+  snapshot: {
+    shape: class
+    label: "実行制御 snapshot (`ExecutionControlSnapshot`)"
+    style.font-size: 22
+  }
+}
+
+ui.screen -> ui.view: 描画する {
+  style.font-size: 22
+}
+ui.view -> application.usecase: pause / resume / retry / cancel を渡す {
+  style.font-size: 22
+}
+ui.screen -> application.usecase: 初期化する {
+  style.font-size: 22
+}
+application.usecase -> application.store: state を更新する {
+  style.font-size: 22
+}
+application.usecase -> application.snapshot: stable control state を読み込む {
+  style.font-size: 22
+}
+application.snapshot -> application.store: 確定 snapshot を返す {
+  style.font-size: 22
+}
+application.store -> ui.view: 購読済み状態を渡す {
+  style.font-size: 22
+}

@@ -1,0 +1,49 @@
+title: "Frontend 実行制御画面シーケンス図"
+
+executionControlSequence: {
+  shape: sequence_diagram
+
+  user: "利用者"
+  executionControlScreen: "実行制御画面 (`ExecutionControlScreen.svelte`)"
+  executionControlUsecase: "実行制御ユースケース (`ExecutionControlScreenInput`)"
+  executionControlStore: "実行制御ストア (`ExecutionControlScreenStore`)"
+  executionControlSnapshot: "確定 snapshot (`ExecutionControlSnapshot`)"
+  executionControlView: "実行制御ビュー (`ExecutionControlView.svelte`)"
+
+  user -> executionControlScreen: 画面を開く {
+    style.font-size: 22
+  }
+  executionControlScreen -> executionControlUsecase: 初期化する (`initialize()`) {
+    style.font-size: 22
+  }
+  executionControlUsecase -> executionControlSnapshot: 現在の control state を読む {
+    style.font-size: 22
+  }
+  executionControlSnapshot -> executionControlUsecase: 確定 snapshot を返す {
+    style.font-size: 22
+  }
+  executionControlUsecase -> executionControlStore: 画面 state を設定する {
+    style.font-size: 22
+  }
+  executionControlStore -> executionControlView: 購読済み状態を反映する {
+    style.font-size: 22
+  }
+  user -> executionControlView: Pause / Resume / Retry / Cancel を押す {
+    style.font-size: 22
+  }
+  executionControlView -> executionControlUsecase: 操作を渡す {
+    style.font-size: 22
+  }
+  executionControlUsecase -> executionControlStore: pending action 中は全ボタンを無効化する {
+    style.font-size: 22
+  }
+  executionControlUsecase -> executionControlSnapshot: 操作後 snapshot を受け取る {
+    style.font-size: 22
+  }
+  executionControlSnapshot -> executionControlUsecase: 確定 snapshot または generic error を返す {
+    style.font-size: 22
+  }
+  executionControlUsecase -> executionControlStore: 画面 state を再計算する {
+    style.font-size: 22
+  }
+}

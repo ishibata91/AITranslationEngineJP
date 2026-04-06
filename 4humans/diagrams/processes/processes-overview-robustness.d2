@@ -237,6 +237,51 @@ personaObserve: {
   }
 }
 
+executionControl: {
+  shape: package
+  label: "実行制御"
+  direction: right
+  style.font-size: 22
+
+  actor: {
+    shape: person
+    label: "利用者"
+    link: "./frontend-execution-control-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  boundary: {
+    shape: class
+    label: "画面境界 (`ExecutionControlScreen` / `ExecutionControlView`)"
+    link: "./frontend-execution-control-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  control: {
+    shape: class
+    label: "画面制御 (`ExecutionControlScreenInput` / `createExecutionControlScreenUsecase()`)"
+    link: "./frontend-execution-control-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  entity: {
+    shape: class
+    label: "確定 snapshot (`ExecutionControlSnapshot`)"
+    link: "./frontend-execution-control-sequence-diagram.svg"
+    style.font-size: 22
+  }
+
+  actor -> boundary: 現在 state を見て操作する {
+    style.font-size: 22
+  }
+  boundary -> control: 初期化と control action を渡す {
+    style.font-size: 22
+  }
+  control -> entity: stable control state と command 結果を読む {
+    style.font-size: 22
+  }
+}
+
 importXedit: {
   shape: package
   label: "xEdit 取込"

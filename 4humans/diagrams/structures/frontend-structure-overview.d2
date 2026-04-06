@@ -68,6 +68,13 @@ mountedSlices: {
     label: "翻訳 preview slice (条件付き compose)"
     style.font-size: 22
   }
+
+  executionControlSlice: {
+    shape: class
+    label: "実行制御 slice (未配線)"
+    link: "./frontend-execution-control-slice-class-diagram.svg"
+    style.font-size: 22
+  }
 }
 
 foundations: {
@@ -137,6 +144,13 @@ gatewayLayer: {
     label: "翻訳 preview executor"
     style.font-size: 22
   }
+
+  executionControlBoundary: {
+    shape: class
+    label: "実行制御 snapshot / command boundary"
+    link: "./frontend-execution-control-slice-class-diagram.svg"
+    style.font-size: 22
+  }
 }
 
 contracts: {
@@ -198,5 +212,8 @@ mountedSlices.translationPreviewSlice -> gatewayLayer.translationPreviewExecutor
   style.font-size: 22
 }
 mountedSlices.translationPreviewSlice -> contracts.translationPreviewContract: preview item と filter state を扱う {
+  style.font-size: 22
+}
+mountedSlices.executionControlSlice -> gatewayLayer.executionControlBoundary: stable control state と command 結果を受け渡す {
   style.font-size: 22
 }
