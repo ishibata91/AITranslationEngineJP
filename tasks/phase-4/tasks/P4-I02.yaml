@@ -1,7 +1,7 @@
 id: P4-I02
 title: Implement Gemini adapter
 type: impl
-status: planned
+status: done
 goal: Add the Gemini runtime adapter behind the provider runtime contract.
 owned_scope:
 - src-tauri/src/infra/provider/gemini/
