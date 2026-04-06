@@ -19,7 +19,7 @@ if (Request type?) then (feature / change)
     :implementing-backend;
   endif
 
-  :sonar-scanner + Docker MCP Sonar open issue gate;
+  :sonar-scanner + Sonar MCP open issue gate;
   if (Open Sonar issues?) then (yes)
     :directing-implementation;
   else (no)
@@ -54,4 +54,3 @@ endif
 
 stop
 @enduml
-

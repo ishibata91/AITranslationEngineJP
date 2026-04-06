@@ -84,7 +84,6 @@ REQUIRED_PATHS = [
     "scripts/harness/check_structure.py",
     "scripts/harness/check_design.py",
     "scripts/harness/check_execution.py",
-    ".codex/skills/directing-implementation/scripts/get-open-sonar-issues.py",
 ]
 
 

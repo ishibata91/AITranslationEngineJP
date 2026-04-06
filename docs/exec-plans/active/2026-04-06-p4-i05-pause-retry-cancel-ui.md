@@ -108,7 +108,7 @@
 - `npm test -- src/application/usecases/execution-control/index.test.ts src/ui/screens/execution-control/index.test.ts`
 - `python3 scripts/harness/run.py --suite frontend-lint`
 - `sonar-scanner`
-- `python3 .codex/skills/directing-implementation/scripts/get-open-sonar-issues.py --project ishibata91_AITranslationEngineJP --owned-paths src/application/usecases/execution-control src/ui/screens/execution-control src/ui/views/execution-control`
+- Sonar MCP `search_sonar_issues_in_projects` for project `ishibata91_AITranslationEngineJP` scoped to `src/application/usecases/execution-control`, `src/ui/screens/execution-control`, and `src/ui/views/execution-control`
 - `python3 scripts/harness/run.py --suite all`
 
 ## 4humans Sync
