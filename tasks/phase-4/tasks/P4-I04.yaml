@@ -1,7 +1,7 @@
 id: P4-I04
 title: Implement batch and single-shot switching
 type: impl
-status: planned
+status: done
 goal: Switch execution mode without changing provider contracts or job state policy.
 owned_scope:
 - src-tauri/src/application/execution_mode_switch/

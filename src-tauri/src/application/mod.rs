@@ -3,6 +3,7 @@ pub mod bootstrap;
 pub mod dictionary_import;
 pub mod dictionary_query;
 pub mod dto;
+pub mod execution_mode_switch;
 pub mod importer;
 pub mod job;
 pub mod job_persona;
