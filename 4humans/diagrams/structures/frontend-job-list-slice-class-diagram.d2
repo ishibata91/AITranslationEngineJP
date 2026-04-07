@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend ジョブ一覧 slice クラス図"
 
@@ -7,6 +7,7 @@ ui: {
   shape: package
   label: "UI"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   screen: {
@@ -22,25 +23,24 @@ ui: {
     "- refresh / retry / select を発火する": ""
     style.font-size: 22
   }
+
+  screen -> view: 描画する {
+    style.font-size: 22
+  }
 }
 
 application: {
   shape: package
   label: "application"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   usecase: {
     shape: class
     label: "ジョブ一覧ユースケース (`JobListScreenInput` / `createJobListScreenUsecase()`)"
-    "+ 初期化・再読込・再試行・選択を扱う": ""
-    style.font-size: 22
-  }
-
-  store: {
-    shape: class
-    label: "ジョブ一覧ストア (`JobListScreenStore`)"
-    "+ 読込状態と選択を保持する": ""
+    "+ 初期化と再読込を扱う": ""
+    "+ 再試行と選択を扱う": ""
     style.font-size: 22
   }
 
@@ -49,12 +49,28 @@ application: {
     label: "一覧結果 (`JobListResult`)"
     style.font-size: 22
   }
+
+  store: {
+    shape: class
+    label: "ジョブ一覧ストア (`JobListScreenStore`)"
+    "+ 読込状態を保持する": ""
+    "+ 選択状態を保持する": ""
+    style.font-size: 22
+  }
+
+  usecase -> result: 一覧結果を作る {
+    style.font-size: 22
+  }
+  result -> store: 状態を更新する {
+    style.font-size: 22
+  }
 }
 
 gateway: {
   shape: package
   label: "gateway"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   executor: {
@@ -65,24 +81,15 @@ gateway: {
   }
 }
 
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
-ui.view -> application.usecase: refresh / retry / select を渡す {
+ui.view -> application.usecase: 操作 event を渡す {
   style.font-size: 22
 }
 ui.screen -> application.usecase: 初期化する {
   style.font-size: 22
 }
-application.usecase -> application.store: state を更新する {
+application.usecase -> gateway.executor: 一覧取得を依頼 {
   style.font-size: 22
 }
-application.usecase -> gateway.executor: 一覧取得を依頼する {
-  style.font-size: 22
-}
-gateway.executor -> application.result: 一覧結果を返す {
-  style.font-size: 22
-}
-application.store -> ui.view: 購読済み状態を渡す {
+application.store -> ui.view: 購読状態を渡す {
   style.font-size: 22
 }

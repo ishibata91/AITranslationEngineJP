@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend 起動状態 slice クラス図"
 
@@ -20,6 +20,10 @@ ui: {
     shape: class
     label: "起動状態ビュー (`BootstrapStatusView.svelte`)"
     "- 状態表示と event 発火を行う": ""
+    style.font-size: 22
+  }
+
+  screen -> view: 描画する {
     style.font-size: 22
   }
 }
@@ -44,6 +48,12 @@ application: {
     style.font-size: 22
   }
 
+  contract: {
+    shape: class
+    label: "起動状態 contract (`BootstrapStatus` / `BootstrapStatusField`)"
+    style.font-size: 22
+  }
+
   store: {
     shape: class
     label: "起動状態ストア (`BootstrapStatusScreenStore`)"
@@ -51,9 +61,10 @@ application: {
     style.font-size: 22
   }
 
-  contract: {
-    shape: class
-    label: "起動状態 contract (`BootstrapStatus` / `BootstrapStatusField`)"
+  usecase -> featureFoundation: 読込状態遷移を再利用する {
+    style.font-size: 22
+  }
+  contract -> store: 読込済み状態を反映する {
     style.font-size: 22
   }
 }
@@ -77,30 +88,22 @@ gateway: {
     "- `load()` で command を呼ぶ": ""
     style.font-size: 22
   }
+
+  bootstrapGateway -> featureGateway: 汎用 `load()` を使う {
+    style.font-size: 22
+  }
 }
 
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
 ui.view -> application.usecase: event を渡す {
   style.font-size: 22
 }
 ui.screen -> application.usecase: 初期化する {
   style.font-size: 22
 }
-application.usecase -> application.featureFoundation: 読込状態遷移を再利用する {
-  style.font-size: 22
-}
-application.usecase -> application.store: state を更新する {
-  style.font-size: 22
-}
 application.usecase -> gateway.bootstrapGateway: 起動状態取得を依頼する {
   style.font-size: 22
 }
-gateway.bootstrapGateway -> gateway.featureGateway: 汎用 `load()` を使う {
-  style.font-size: 22
-}
-gateway.bootstrapGateway -> application.contract: 起動状態を返す {
+gateway.featureGateway -> application.contract: 起動状態を返す {
   style.font-size: 22
 }
 application.store -> ui.view: 購読済み状態を渡す {

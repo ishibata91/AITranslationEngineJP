@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Backend 辞書取込クラス図"
 
@@ -7,31 +7,49 @@ application: {
   shape: package
   label: "application"
   direction: down
+  grid-cols: 1
   style.font-size: 22
-
-  usecase: {
-    shape: class
-    label: "辞書取込ユースケース (`ImportDictionaryUseCase`)"
-    "+ 取込要求を実行する": "`execute(request)`"
-    style.font-size: 22
-  }
 
   requestDto: {
     shape: class
-    label: "辞書取込要求 DTO (`DictionaryImportRequestDto`)"
+    label: "辞書取込要求 DTO"
+    "+ actual: `DictionaryImportRequestDto`": ""
+    "+ source_type / path を持つ": ""
     style.font-size: 22
   }
 
-  resultDto: {
+  usecase: {
     shape: class
-    label: "辞書取込結果 DTO (`DictionaryImportResultDto`)"
+    label: "辞書取込ユースケース"
+    "+ actual: `ImportDictionaryUseCase`": ""
+    "+ 取込要求を実行する": "`execute(request)`"
+    "+ source_type を検証する": ""
     style.font-size: 22
   }
 
   importerPort: {
     shape: class
-    label: "辞書 importer port (`DictionaryImporter`)"
+    label: "辞書 importer port"
+    "+ actual: `DictionaryImporter`": ""
     "+ 辞書を取り込む": "`import_dictionary(request)`"
+    style.font-size: 22
+  }
+
+  resultDto: {
+    shape: class
+    label: "辞書取込結果 DTO"
+    "+ actual: `DictionaryImportResultDto`": ""
+    "+ import 件数と entry 一覧を返す": ""
+    style.font-size: 22
+  }
+
+  requestDto -> usecase: request を渡す {
+    style.font-size: 22
+  }
+  usecase -> importerPort: import を依頼する {
+    style.font-size: 22
+  }
+  importerPort -> resultDto: 取込結果を返す {
     style.font-size: 22
   }
 }
@@ -40,11 +58,14 @@ domain: {
   shape: package
   label: "domain-ish DTO"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   reusableEntry: {
     shape: class
-    label: "再利用辞書 entry (`ReusableDictionaryEntryDto`)"
+    label: "再利用辞書 entry"
+    "+ actual: `ReusableDictionaryEntryDto`": ""
+    "+ source / target / score を持つ": ""
     style.font-size: 22
   }
 }
@@ -53,27 +74,24 @@ infra: {
   shape: package
   label: "infra"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   importerImpl: {
     shape: class
-    label: "xTranslator importer (`FileSystemXtranslatorImporter`)"
+    label: "xTranslator importer"
+    "+ actual: `FileSystemXtranslatorImporter`": ""
+    "+ DictionaryImporter を実装する": ""
     style.font-size: 22
   }
 }
 
-application.usecase -> application.requestDto: request を受け取る {
-  style.font-size: 22
-}
-application.usecase -> application.importerPort: `source_type` を検証して import を依頼する {
-  style.font-size: 22
-}
+application -> domain
+domain -> infra
+
 infra.importerImpl -> application.importerPort: 実装する {
   style.font-size: 22
 }
 infra.importerImpl -> domain.reusableEntry: entry 群を作る {
-  style.font-size: 22
-}
-application.usecase -> application.resultDto: 結果 DTO を返す {
   style.font-size: 22
 }

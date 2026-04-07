@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Backend ジョブ作成クラス図"
 
@@ -7,6 +7,7 @@ gateway: {
   shape: package
   label: "gateway"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   command: {
@@ -20,31 +21,46 @@ application: {
   shape: package
   label: "application"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   usecase: {
     shape: class
-    label: "ジョブ作成ユースケース (`CreateJobUseCase`)"
+    label: "ジョブ作成ユースケース"
+    "+ actual: `CreateJobUseCase`": ""
     "+ 作成要求を実行する": "`execute(request)`"
     style.font-size: 22
   }
 
   requestDto: {
     shape: class
-    label: "ジョブ作成要求 DTO (`CreateJobRequestDto`)"
+    label: "ジョブ作成要求 DTO"
+    "+ actual: `CreateJobRequestDto`": ""
     style.font-size: 22
   }
 
   resultDto: {
     shape: class
-    label: "ジョブ作成結果 DTO (`CreateJobResultDto`)"
+    label: "ジョブ作成結果 DTO"
+    "+ actual: `CreateJobResultDto`": ""
     style.font-size: 22
   }
 
   repoPort: {
     shape: class
-    label: "repository port (`CreateJobRepository`)"
+    label: "repository port"
+    "+ actual: `CreateJobRepository`": ""
     "+ 作成済みジョブを保存する": "`save_created_job(created_job)`"
+    style.font-size: 22
+  }
+
+  requestDto -> usecase: request を渡す {
+    style.font-size: 22
+  }
+  usecase -> repoPort: 保存を依頼する {
+    style.font-size: 22
+  }
+  repoPort -> resultDto: 結果 DTO を返す {
     style.font-size: 22
   }
 }
@@ -53,17 +69,20 @@ domain: {
   shape: package
   label: "domain"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   translationUnit: {
     shape: class
-    label: "翻訳単位 (`TranslationUnit`)"
+    label: "翻訳単位"
+    "+ actual: `TranslationUnit`": ""
     style.font-size: 22
   }
 
   sourceGroup: {
     shape: class
-    label: "ジョブ作成入力群 (`CreateJobSourceGroup`)"
+    label: "ジョブ作成入力群"
+    "+ actual: `CreateJobSourceGroup`": ""
     style.font-size: 22
   }
 
@@ -76,7 +95,18 @@ domain: {
 
   createdJob: {
     shape: class
-    label: "作成済みジョブ (`CreatedJob`)"
+    label: "作成済みジョブ"
+    "+ actual: `CreatedJob`": ""
+    style.font-size: 22
+  }
+
+  translationUnit -> sourceGroup: source group を組み立てる {
+    style.font-size: 22
+  }
+  sourceGroup -> createReadyJob: 作成要求を渡す {
+    style.font-size: 22
+  }
+  createReadyJob -> createdJob: 作成済みジョブを返す {
     style.font-size: 22
   }
 }
@@ -85,11 +115,13 @@ infra: {
   shape: package
   label: "infra"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   repoImpl: {
     shape: class
-    label: "memory job repository (`InMemoryJobRepository`)"
+    label: "memory job repository"
+    "+ actual: `InMemoryJobRepository`": ""
     style.font-size: 22
   }
 }
@@ -97,27 +129,12 @@ infra: {
 gateway.command -> application.usecase: 作成要求を渡す {
   style.font-size: 22
 }
-application.usecase -> application.requestDto: request を受け取る {
-  style.font-size: 22
-}
 application.usecase -> domain.translationUnit: DTO を変換する {
-  style.font-size: 22
-}
-application.usecase -> domain.sourceGroup: source group を組み立てる {
   style.font-size: 22
 }
 application.usecase -> domain.createReadyJob: 準備完了ジョブを作る {
   style.font-size: 22
 }
-application.usecase -> application.repoPort: 作成済みジョブを保存する {
-  style.font-size: 22
-}
 infra.repoImpl -> application.repoPort: 実装する {
-  style.font-size: 22
-}
-domain.createReadyJob -> domain.createdJob: 作成済みジョブを返す {
-  style.font-size: 22
-}
-application.usecase -> application.resultDto: 結果 DTO を返す {
   style.font-size: 22
 }

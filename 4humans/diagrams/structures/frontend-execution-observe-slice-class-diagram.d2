@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend 実行観測 slice クラス図"
 
@@ -36,6 +36,10 @@ ui: {
     "- progress / failure の read-only dashboard を描画する": ""
     style.font-size: 22
   }
+
+  screen -> view: 描画する {
+    style.font-size: 22
+  }
 }
 
 application: {
@@ -51,6 +55,12 @@ application: {
     style.font-size: 22
   }
 
+  snapshot: {
+    shape: class
+    label: "観測 snapshot (`ExecutionObserveSnapshot`)"
+    style.font-size: 22
+  }
+
   store: {
     shape: class
     label: "実行観測ストア (`ExecutionObserveScreenStore`)"
@@ -58,9 +68,7 @@ application: {
     style.font-size: 22
   }
 
-  snapshot: {
-    shape: class
-    label: "観測 snapshot (`ExecutionObserveSnapshot`)"
+  snapshot -> store: provider-neutral snapshot を反映する {
     style.font-size: 22
   }
 }
@@ -82,9 +90,6 @@ gateway: {
 shell.appShell -> ui.screen: props が揃った時だけ compose する {
   style.font-size: 22
 }
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
 ui.screen -> application.usecase: 初期化する {
   style.font-size: 22
 }
@@ -95,9 +100,6 @@ application.usecase -> gateway.loader: 観測 snapshot を依頼する {
   style.font-size: 22
 }
 gateway.loader -> application.snapshot: provider-neutral snapshot を返す {
-  style.font-size: 22
-}
-application.usecase -> application.store: state を更新する {
   style.font-size: 22
 }
 application.store -> ui.view: 購読済み状態を渡す {

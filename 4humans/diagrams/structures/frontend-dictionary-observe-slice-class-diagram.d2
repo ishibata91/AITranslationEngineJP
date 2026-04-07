@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend 辞書観測 slice クラス図"
 
@@ -7,6 +7,7 @@ shell: {
   shape: package
   label: "shell"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   appShell: {
@@ -21,6 +22,7 @@ ui: {
   shape: package
   label: "UI"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   screen: {
@@ -36,12 +38,17 @@ ui: {
     "- 入力、観測、再読込、再試行、選択を発火する": ""
     style.font-size: 22
   }
+
+  screen -> view: 描画する {
+    style.font-size: 22
+  }
 }
 
 application: {
   shape: package
   label: "application"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   usecase: {
@@ -63,12 +70,17 @@ application: {
     label: "観測結果 (`DictionaryObserveResult` / `DictionaryCandidateGroup`)"
     style.font-size: 22
   }
+
+  result -> store: 観測結果を反映する {
+    style.font-size: 22
+  }
 }
 
 gateway: {
   shape: package
   label: "executor boundary"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   executor: {
@@ -82,16 +94,10 @@ gateway: {
 shell.appShell -> ui.screen: props が揃った時だけ compose する {
   style.font-size: 22
 }
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
 ui.view -> application.usecase: event を渡す {
   style.font-size: 22
 }
 ui.screen -> application.usecase: 初期化する {
-  style.font-size: 22
-}
-application.usecase -> application.store: state を更新する {
   style.font-size: 22
 }
 application.usecase -> gateway.executor: 観測 request を依頼する {

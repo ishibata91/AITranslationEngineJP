@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend ペルソナ観測 slice クラス図"
 
@@ -36,6 +36,10 @@ ui: {
     "- 入力、観測、再読込、再試行、選択を発火する": ""
     style.font-size: 22
   }
+
+  screen -> view: 描画する {
+    style.font-size: 22
+  }
 }
 
 application: {
@@ -51,6 +55,12 @@ application: {
     style.font-size: 22
   }
 
+  result: {
+    shape: class
+    label: "観測結果 (`PersonaObserveResult` / `MasterPersonaEntry`)"
+    style.font-size: 22
+  }
+
   store: {
     shape: class
     label: "ペルソナ観測ストア (`PersonaObserveScreenStore`)"
@@ -58,9 +68,7 @@ application: {
     style.font-size: 22
   }
 
-  result: {
-    shape: class
-    label: "観測結果 (`PersonaObserveResult` / `MasterPersonaEntry`)"
+  result -> store: 観測結果を反映する {
     style.font-size: 22
   }
 }
@@ -82,16 +90,10 @@ gateway: {
 shell.appShell -> ui.screen: props が揃った時だけ compose する {
   style.font-size: 22
 }
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
 ui.view -> application.usecase: event を渡す {
   style.font-size: 22
 }
 ui.screen -> application.usecase: 初期化する {
-  style.font-size: 22
-}
-application.usecase -> application.store: state を更新する {
   style.font-size: 22
 }
 application.usecase -> gateway.executor: 観測 request を依頼する {

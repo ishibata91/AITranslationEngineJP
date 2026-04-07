@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Backend 起動状態取得クラス図"
 
@@ -7,6 +7,7 @@ gateway: {
   shape: package
   label: "gateway"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   command: {
@@ -20,18 +21,14 @@ application: {
   shape: package
   label: "application"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   usecase: {
     shape: class
     label: "起動状態ユースケース (`GetBootstrapStatusUseCase`)"
     "+ 実行する": "`execute()`"
-    style.font-size: 22
-  }
-
-  resultDto: {
-    shape: class
-    label: "起動状態 DTO (`BootstrapStatusDto`)"
+    "+ 表示用状態を組み立てる": ""
     style.font-size: 22
   }
 
@@ -41,17 +38,33 @@ application: {
     "+ backend 版を返す": "`backend_version()`"
     style.font-size: 22
   }
+
+  resultDto: {
+    shape: class
+    label: "起動状態 DTO (`BootstrapStatusDto`)"
+    "+ version / ready を保持する": ""
+    style.font-size: 22
+  }
+
+  usecase -> runtimePort: 版情報を依頼する {
+    style.font-size: 22
+  }
+  usecase -> resultDto: DTO を返す {
+    style.font-size: 22
+  }
 }
 
 domain: {
   shape: package
   label: "domain"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   bootstrapStatus: {
     shape: class
     label: "起動状態 (`BootstrapStatus`)"
+    "+ version / ready / diagnostics を持つ": ""
     style.font-size: 22
   }
 }
@@ -60,27 +73,27 @@ infra: {
   shape: package
   label: "infra"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   runtimeImpl: {
     shape: class
     label: "runtime provider (`CargoRuntimeInfoProvider`)"
+    "+ RuntimeInfoProvider を実装する": ""
     style.font-size: 22
   }
 }
 
+gateway -> application
+application -> domain
+domain -> infra
+
 gateway.command -> application.usecase: 起動状態取得を呼ぶ {
-  style.font-size: 22
-}
-application.usecase -> application.runtimePort: 版情報を依頼する {
   style.font-size: 22
 }
 infra.runtimeImpl -> application.runtimePort: 実装する {
   style.font-size: 22
 }
 application.usecase -> domain.bootstrapStatus: 状態を組み立てる {
-  style.font-size: 22
-}
-application.usecase -> application.resultDto: DTO を返す {
   style.font-size: 22
 }

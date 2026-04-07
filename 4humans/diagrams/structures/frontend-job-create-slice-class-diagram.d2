@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend ジョブ作成 slice クラス図"
 
@@ -22,6 +22,10 @@ ui: {
     "- 作成要求編集と event 発火を行う": ""
     style.font-size: 22
   }
+
+  screen -> view: 描画する {
+    style.font-size: 22
+  }
 }
 
 application: {
@@ -37,6 +41,12 @@ application: {
     style.font-size: 22
   }
 
+  contract: {
+    shape: class
+    label: "作成 contract (`JobCreateRequest` / `JobCreateResult`)"
+    style.font-size: 22
+  }
+
   store: {
     shape: class
     label: "ジョブ作成ストア (`JobCreateScreenStore`)"
@@ -44,9 +54,7 @@ application: {
     style.font-size: 22
   }
 
-  contract: {
-    shape: class
-    label: "作成 contract (`JobCreateRequest` / `JobCreateResult`)"
+  contract -> store: 結果と入力状態を更新する {
     style.font-size: 22
   }
 }
@@ -65,16 +73,10 @@ gateway: {
   }
 }
 
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
 ui.view -> application.usecase: 送信と更新 event を渡す {
   style.font-size: 22
 }
 ui.screen -> application.usecase: 初期化する {
-  style.font-size: 22
-}
-application.usecase -> application.store: state を更新する {
   style.font-size: 22
 }
 application.usecase -> gateway.executor: 作成要求を渡す {

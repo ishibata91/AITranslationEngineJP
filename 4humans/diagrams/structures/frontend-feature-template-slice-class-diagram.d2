@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend テンプレート slice クラス図"
 
@@ -20,6 +20,10 @@ ui: {
     shape: class
     label: "テンプレートビュー (`FeatureTemplateView.svelte`)"
     "- query 編集と event 発火を行う": ""
+    style.font-size: 22
+  }
+
+  screen -> view: 描画する {
     style.font-size: 22
   }
 }
@@ -43,6 +47,12 @@ application: {
     style.font-size: 22
   }
 
+  contract: {
+    shape: class
+    label: "テンプレート contract (`FeatureTemplateData` / `FeatureTemplateItem` / `FeatureTemplateQuery`)"
+    style.font-size: 22
+  }
+
   store: {
     shape: class
     label: "テンプレートストア (`FeatureTemplateScreenStore`)"
@@ -50,9 +60,10 @@ application: {
     style.font-size: 22
   }
 
-  contract: {
-    shape: class
-    label: "テンプレート contract (`FeatureTemplateData` / `FeatureTemplateItem` / `FeatureTemplateQuery`)"
+  usecase -> featureFoundation: 読込状態遷移を再利用する {
+    style.font-size: 22
+  }
+  contract -> store: data / filter / selection を反映する {
     style.font-size: 22
   }
 }
@@ -75,30 +86,22 @@ gateway: {
     label: "汎用 Tauri gateway (`createTauriFeatureScreenGateway()`)"
     style.font-size: 22
   }
+
+  templateGateway -> featureGateway: 汎用 `load(request)` を使う {
+    style.font-size: 22
+  }
 }
 
-ui.screen -> ui.view: 描画する {
-  style.font-size: 22
-}
 ui.view -> application.usecase: event を渡す {
   style.font-size: 22
 }
 ui.screen -> application.usecase: 初期化する {
   style.font-size: 22
 }
-application.usecase -> application.featureFoundation: 読込状態遷移を再利用する {
-  style.font-size: 22
-}
-application.usecase -> application.store: state を更新する {
-  style.font-size: 22
-}
 application.usecase -> gateway.templateGateway: query 付き読込を依頼する {
   style.font-size: 22
 }
-gateway.templateGateway -> gateway.featureGateway: 汎用 `load(request)` を使う {
-  style.font-size: 22
-}
-gateway.templateGateway -> application.contract: data を返す {
+gateway.featureGateway -> application.contract: data を返す {
   style.font-size: 22
 }
 application.store -> ui.view: 購読済み状態を渡す {
