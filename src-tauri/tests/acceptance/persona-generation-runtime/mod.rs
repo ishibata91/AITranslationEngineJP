@@ -141,6 +141,19 @@ fn given_persona_generation_runtime_fixture_when_loading_then_master_and_job_loc
         source_kinds.contains(&PersonaGenerationSourceEnvelopeKindDto::TranslationUnit),
         "fixture must cover translation unit source envelopes"
     );
+    assert!(
+        runtime_requests.iter().all(|request| matches!(
+            (&request.source.kind, &request.sink),
+            (
+                PersonaGenerationSourceEnvelopeKindDto::MasterPersonaSeed,
+                PersonaGenerationSinkKindDto::PersonaStorage
+            ) | (
+                PersonaGenerationSourceEnvelopeKindDto::TranslationUnit,
+                PersonaGenerationSinkKindDto::TranslationPhaseHandoff
+            )
+        )),
+        "persona generation runtime fixture must keep source and sink pairings aligned with master and job-local routes"
+    );
 
     let attempt_vocab: Vec<PersonaGenerationAttemptFixture> = fixture
         .cases

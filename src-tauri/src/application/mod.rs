@@ -8,6 +8,7 @@ pub mod importer;
 pub mod job;
 pub mod job_persona;
 pub mod master_persona;
+pub mod master_persona_generation_runtime;
 pub mod npc_persona_generation_phase;
 pub mod ports;
 pub mod translation_instruction_builder;

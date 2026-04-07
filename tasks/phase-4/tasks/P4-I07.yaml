@@ -1,7 +1,7 @@
 id: P4-I07
 title: Implement provider-backed master persona generation
 type: impl
-status: planned
+status: done
 goal: Generate and persist master persona data through the provider runtime contract.
 owned_scope:
 - src-tauri/src/application/master_persona_generation_runtime/
@@ -37,4 +37,3 @@ shared_risks:
 done_when:
 - provider-backed master persona generation can run without redesigning the Phase
   2 persistence and observation path
-
