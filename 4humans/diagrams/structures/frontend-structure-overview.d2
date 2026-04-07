@@ -3,190 +3,53 @@ direction: down
 
 title: "Frontend `src/` 構造 overview"
 
-appLayer: {
-  shape: package
+appSummary: {
+  shape: class
   label: "app / shell"
-  direction: down
-  grid-cols: 1
+  "+ 起動と配線 (`main.ts` / `App.svelte` / `AppShell.svelte`)": ""
+  "+ 条件付き compose (`AppShell.svelte`)": ""
   style.font-size: 22
-
-  entrypoint: {
-    shape: class
-    label: "起動と配線 (`main.ts` / `App.svelte` / `AppShell.svelte`)"
-    style.font-size: 22
-  }
-  optionalCompose: {
-    shape: class
-    label: "条件付き compose (`AppShell.svelte`)"
-    style.font-size: 22
-  }
 }
 
-sliceLayer: {
-  shape: package
+sliceSummary: {
+  shape: class
   label: "screen slice"
-  direction: down
-  grid-cols: 1
+  "+ 起動状態 slice -> `frontend-bootstrap-status-slice-class-diagram.svg`": ""
+  "+ ジョブ一覧 slice -> `frontend-job-list-slice-class-diagram.svg`": ""
+  "+ ジョブ作成 slice -> `frontend-job-create-slice-class-diagram.svg`": ""
+  "+ 辞書観測 slice -> `frontend-dictionary-observe-slice-class-diagram.svg`": ""
+  "+ ペルソナ観測 slice -> `frontend-persona-observe-slice-class-diagram.svg`": ""
+  "+ 実行観測 slice -> `frontend-execution-observe-slice-class-diagram.svg`": ""
+  "+ 実行制御 slice -> `frontend-execution-control-slice-class-diagram.svg`": ""
   style.font-size: 22
-
-  jobSliceGroup: {
-    shape: package
-    label: "job flow"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    bootstrapSlice: {
-      shape: class
-      label: "起動状態 slice"
-      link: "./frontend-bootstrap-status-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobListSlice: {
-      shape: class
-      label: "ジョブ一覧 slice"
-      link: "./frontend-job-list-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobCreateSlice: {
-      shape: class
-      label: "ジョブ作成 slice"
-      link: "./frontend-job-create-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
-
-  observeSliceGroup: {
-    shape: package
-    label: "observe / control"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    dictionaryObserveSlice: {
-      shape: class
-      label: "辞書観測 slice"
-      link: "./frontend-dictionary-observe-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    personaObserveSlice: {
-      shape: class
-      label: "ペルソナ観測 slice"
-      link: "./frontend-persona-observe-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    executionObserveSlice: {
-      shape: class
-      label: "実行観測 slice"
-      link: "./frontend-execution-observe-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    executionControlSlice: {
-      shape: class
-      label: "実行制御 slice"
-      link: "./frontend-execution-control-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
 }
 
-gatewayLayer: {
-  shape: package
+gatewaySummary: {
+  shape: class
   label: "gateway"
-  direction: down
-  grid-cols: 1
+  "+ 起動状態 / 一覧取得 / 作成 gateway": ""
+  "+ 辞書観測 / ペルソナ観測 executor": ""
+  "+ 実行観測 loader / 実行制御 boundary": ""
   style.font-size: 22
-
-  jobGatewayGroup: {
-    shape: package
-    label: "job gateway"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    bootstrapGateway: {
-      shape: class
-      label: "起動状態 gateway"
-      link: "./frontend-bootstrap-status-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobListGateway: {
-      shape: class
-      label: "一覧取得 gateway"
-      link: "./frontend-job-list-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobCreateGateway: {
-      shape: class
-      label: "作成 gateway"
-      link: "./frontend-job-create-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
-
-  observeGatewayGroup: {
-    shape: package
-    label: "observe gateway"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    dictionaryObserveExecutor: {
-      shape: class
-      label: "辞書観測 executor"
-      link: "./frontend-dictionary-observe-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    personaObserveExecutor: {
-      shape: class
-      label: "ペルソナ観測 executor"
-      link: "./frontend-persona-observe-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    executionObserveLoader: {
-      shape: class
-      label: "実行観測 loader"
-      link: "./frontend-execution-observe-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-    executionControlBoundary: {
-      shape: class
-      label: "実行制御 boundary"
-      link: "./frontend-execution-control-slice-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
 }
 
-sharedLayer: {
-  shape: package
+sharedSummary: {
+  shape: class
   label: "shared / template"
-  direction: down
-  grid-cols: 1
+  "+ テンプレート slice -> `frontend-feature-template-slice-class-diagram.svg`": ""
+  "+ shared contract": ""
   style.font-size: 22
-
-  featureTemplateSlice: {
-    shape: class
-    label: "テンプレート slice"
-    link: "./frontend-feature-template-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-  contracts: {
-    shape: class
-    label: "shared contract"
-    style.font-size: 22
-  }
 }
 
-appLayer -> sliceLayer: slice を配線 {
+appSummary -> sliceSummary: slice を配線 {
   style.font-size: 22
 }
-sliceLayer -> gatewayLayer: gateway を呼ぶ {
+sliceSummary -> gatewaySummary: gateway を呼ぶ {
   style.font-size: 22
 }
-sliceLayer -> sharedLayer.contracts: contract を扱う {
+sliceSummary -> sharedSummary: contract を扱う {
   style.font-size: 22
 }
-sharedLayer.featureTemplateSlice -> gatewayLayer: template を読む {
+sharedSummary -> gatewaySummary: template を読む {
   style.font-size: 22
 }

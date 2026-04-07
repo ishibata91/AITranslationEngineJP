@@ -3,220 +3,54 @@ direction: down
 
 title: "Backend `src-tauri/src/` 構造 overview"
 
-gatewayLayer: {
-  shape: package
+gatewaySummary: {
+  shape: class
   label: "gateway"
-  direction: down
-  grid-cols: 1
+  "+ command 群": ""
+  "+ proof helper -> `backend-translation-flow-mvp-class-diagram.svg`": ""
   style.font-size: 22
-
-  entryGroup: {
-    shape: package
-    label: "entry"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    commandBoundary: {
-      shape: class
-      label: "command 群"
-      style.font-size: 22
-    }
-    proofHelper: {
-      shape: class
-      label: "proof helper"
-      link: "./backend-translation-flow-mvp-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
 }
 
-applicationLayer: {
-  shape: package
+applicationSummary: {
+  shape: class
   label: "application usecase"
-  direction: down
-  grid-cols: 1
+  "+ 起動状態取得": ""
+  "+ ジョブ作成 / ジョブ一覧取得": ""
+  "+ job persona 永続化": ""
+  "+ xEdit 取込": ""
+  "+ 辞書再構築・観測": ""
+  "+ master persona 再構築・観測": ""
+  "+ translation flow MVP proof": ""
   style.font-size: 22
-
-  jobUsecases: {
-    shape: package
-    label: "job"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    bootstrapUsecase: {
-      shape: class
-      label: "起動状態取得"
-      link: "./backend-bootstrap-status-class-diagram.svg"
-      style.font-size: 22
-    }
-    createJobUsecase: {
-      shape: class
-      label: "ジョブ作成"
-      link: "./backend-create-job-class-diagram.svg"
-      style.font-size: 22
-    }
-    listJobsUsecase: {
-      shape: class
-      label: "ジョブ一覧取得"
-      link: "./backend-list-jobs-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobPersonaPersistenceUsecase: {
-      shape: class
-      label: "job persona 永続化"
-      link: "./backend-job-persona-persistence-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
-
-  rebuildUsecases: {
-    shape: package
-    label: "rebuild / observe"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    importXeditUsecase: {
-      shape: class
-      label: "xEdit 取込"
-      link: "./backend-import-xedit-class-diagram.svg"
-      style.font-size: 22
-    }
-    dictionaryStorageQueryUsecase: {
-      shape: class
-      label: "辞書再構築・観測"
-      link: "./backend-dictionary-storage-query-class-diagram.svg"
-      style.font-size: 22
-    }
-    masterPersonaRebuildUsecase: {
-      shape: class
-      label: "master persona 再構築・観測"
-      link: "./backend-master-persona-builder-class-diagram.svg"
-      style.font-size: 22
-    }
-    translationFlowMvp: {
-      shape: class
-      label: "translation flow MVP proof"
-      link: "./backend-translation-flow-mvp-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
 }
 
-domainLayer: {
-  shape: package
+domainSummary: {
+  shape: class
   label: "domain"
-  direction: down
-  grid-cols: 1
+  "+ 起動状態 / job 集約": ""
+  "+ 再利用辞書 entry / master persona / job persona": ""
+  "+ preview item DTO": ""
   style.font-size: 22
-
-  bootstrapStatus: {
-    shape: class
-    label: "起動状態"
-    style.font-size: 22
-  }
-  jobDomain: {
-    shape: class
-    label: "job 集約"
-    style.font-size: 22
-  }
-  dictionaryEntries: {
-    shape: class
-    label: "再利用辞書 entry"
-    style.font-size: 22
-  }
-  masterPersonaData: {
-    shape: class
-    label: "master persona"
-    style.font-size: 22
-  }
-  jobPersonaData: {
-    shape: class
-    label: "job persona"
-    style.font-size: 22
-  }
-  previewData: {
-    shape: class
-    label: "preview item DTO"
-    style.font-size: 22
-  }
 }
 
-infraLayer: {
-  shape: package
+infraSummary: {
+  shape: class
   label: "infra"
-  direction: down
-  grid-cols: 1
-  style.font-size: 22
-
-  runtimeInfra: {
-    shape: package
-    label: "runtime / job"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    runtimeInfo: {
-      shape: class
-      label: "runtime provider"
-      link: "./backend-bootstrap-status-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobRepository: {
-      shape: class
-      label: "job repository"
-      link: "./backend-create-job-class-diagram.svg"
-      style.font-size: 22
-    }
-    jobPersonaRepository: {
-      shape: class
-      label: "job persona repository"
-      link: "./backend-job-persona-persistence-class-diagram.svg"
-      style.font-size: 22
-    }
-  }
-
-  rebuildInfra: {
-    shape: package
-    label: "rebuild / provider"
-    direction: down
-    grid-cols: 1
-    style.font-size: 22
-
-    xeditImporter: {
-      shape: class
-      label: "xEdit importer"
-      link: "./backend-import-xedit-class-diagram.svg"
-      style.font-size: 22
-    }
-    dictionaryRepository: {
-      shape: class
-      label: "dictionary repository"
-      link: "./backend-dictionary-storage-query-class-diagram.svg"
-      style.font-size: 22
-    }
-    masterPersonaBuilder: {
-      shape: class
-      label: "master persona builder"
-      link: "./backend-master-persona-builder-class-diagram.svg"
-      style.font-size: 22
-    }
-    providerBoundaries: {
-      shape: class
-      label: "translation / persona boundary"
-      style.font-size: 22
-    }
-  }
-}
-
-gatewayLayer -> applicationLayer: command 入口 {
+  "+ runtime provider": ""
+  "+ job repository / job persona repository": ""
+  "+ xEdit importer": ""
+  "+ dictionary repository": ""
+  "+ master persona builder": ""
+  "+ translation / persona boundary": ""
   style.font-size: 22
 }
-applicationLayer -> domainLayer: domain を組み立てる {
+
+gatewaySummary -> applicationSummary: command 入口 {
   style.font-size: 22
 }
-applicationLayer -> infraLayer: 保存と外部依存 {
+applicationSummary -> domainSummary: domain を組み立てる {
+  style.font-size: 22
+}
+applicationSummary -> infraSummary: 保存と外部依存 {
   style.font-size: 22
 }

@@ -19,6 +19,8 @@ from harness_common import (
 LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\((?P<target>[^)]+)\)")
 URI_SCHEME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 WINDOWS_DRIVE_PATTERN = re.compile(r"^[a-zA-Z]:[\\\\/]")
+SVG_VIEWBOX_PATTERN = re.compile(r'viewBox="0 0 (?P<width>[0-9.]+) (?P<height>[0-9.]+)"')
+MAX_STRUCTURE_SVG_RATIO = 16 / 9
 
 REQUIRED_PATHS = [
     "AGENTS.md",
@@ -147,6 +149,37 @@ def check_markdown_links(repo_root: Path) -> int:
     return failures
 
 
+def iter_structure_svg_files(repo_root: Path) -> list[Path]:
+    structure_root = repo_root / "4humans/diagrams/structures"
+    return sorted(structure_root.glob("*.svg"))
+
+
+def check_structure_svg_aspect_ratio(repo_root: Path) -> int:
+    failures = 0
+    report_section("Structure SVG aspect ratio")
+    for file_path in iter_structure_svg_files(repo_root):
+        content = read_text(file_path)
+        match = SVG_VIEWBOX_PATTERN.search(content)
+        if match is None:
+            report_fail(f"FAIL missing viewBox: {file_path}")
+            failures += 1
+            continue
+
+        width = float(match.group("width"))
+        height = float(match.group("height"))
+        ratio = width / height
+        if ratio <= MAX_STRUCTURE_SVG_RATIO:
+            report_pass(
+                f"PASS svg ratio <= 16:9: {file_path} ({width:.0f}x{height:.0f}, ratio={ratio:.3f})"
+            )
+        else:
+            report_fail(
+                f"FAIL svg ratio > 16:9: {file_path} ({width:.0f}x{height:.0f}, ratio={ratio:.3f})"
+            )
+            failures += 1
+    return failures
+
+
 def main() -> int:
     parser = build_parser("Run the structure harness.", default_repo_root(__file__))
     args = parser.parse_args()
@@ -154,6 +187,7 @@ def main() -> int:
 
     failures = check_required_paths(repo_root)
     failures += check_markdown_links(repo_root)
+    failures += check_structure_svg_aspect_ratio(repo_root)
     return finalize_failures("Structure harness", failures)
 
 

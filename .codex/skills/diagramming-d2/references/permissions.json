@@ -17,7 +17,8 @@
     "updated_d2_files",
     "generated_svg_files",
     "diagram_split_decision",
-    "d2_validation_result"
+    "d2_validation_result",
+    "class_diagram_ratio_result"
   ],
   "stop_conditions": [
     "入力として扱う図や境界が不明である",

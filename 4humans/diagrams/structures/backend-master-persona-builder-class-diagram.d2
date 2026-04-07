@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Backend master persona 再構築クラス図"
 
@@ -7,19 +7,20 @@ gateway: {
   shape: package
   label: "gateway"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   rebuildCommand: {
     shape: class
-    label: "master persona 再構築 command (`rebuild_master_persona`)"
-    "+ Tauri transport から再構築を委譲する": "`rebuild_master_persona(request)`"
+    label: "master persona 再構築 command"
+    "+ actual: `rebuild_master_persona(request)`": ""
     style.font-size: 22
   }
 
   readCommand: {
     shape: class
-    label: "master persona 観測 command (`read_master_persona`)"
-    "+ Tauri transport から読込を委譲する": "`read_master_persona(request)`"
+    label: "master persona 観測 command"
+    "+ actual: `read_master_persona(request)`": ""
     style.font-size: 22
   }
 }
@@ -28,39 +29,58 @@ application: {
   shape: package
   label: "application"
   direction: down
+  grid-cols: 1
   style.font-size: 22
+
+  rebuildRequest: {
+    shape: class
+    label: "base-game NPC 再構築要求"
+    "+ actual: `BaseGameNpcRebuildRequest`": ""
+    style.font-size: 22
+  }
+
+  rebuildEntry: {
+    shape: class
+    label: "base-game NPC 再構築 entry"
+    "+ actual: `BaseGameNpcRebuildEntry`": ""
+    style.font-size: 22
+  }
 
   rebuildUsecase: {
     shape: class
-    label: "master persona 再構築ユースケース (`RebuildMasterPersonaUseCase`)"
-    "+ base-game NPC 入力から master persona を再構築する": "`execute(request)`"
+    label: "master persona 再構築ユースケース"
+    "+ actual: `RebuildMasterPersonaUseCase`": ""
+    "+ base-game NPC 入力から再構築する": "`execute(request)`"
     style.font-size: 22
   }
 
   builderPort: {
     shape: class
-    label: "master persona builder port (`MasterPersonaBuilderPort`)"
+    label: "master persona builder port"
+    "+ actual: `MasterPersonaBuilderPort`": ""
     "+ 保存要求を構築する": "`build_master_persona_save_request(request)`"
     style.font-size: 22
   }
 
   storagePort: {
     shape: class
-    label: "master persona storage port (`MasterPersonaStoragePort`)"
+    label: "master persona storage port"
+    "+ actual: `MasterPersonaStoragePort`": ""
     "+ master persona を保存する": "`save_master_persona(request)`"
     "+ master persona を読む": "`read_master_persona(request)`"
     style.font-size: 22
   }
 
-  rebuildRequest: {
-    shape: class
-    label: "base-game NPC 再構築要求 (`BaseGameNpcRebuildRequest`)"
+  rebuildRequest -> rebuildEntry: ordered entry 群を束ねる {
     style.font-size: 22
   }
-
-  rebuildEntry: {
-    shape: class
-    label: "base-game NPC 再構築 entry (`BaseGameNpcRebuildEntry`)"
+  rebuildEntry -> rebuildUsecase: 再構築入力を渡す {
+    style.font-size: 22
+  }
+  rebuildUsecase -> builderPort: 保存要求の構築を依頼する {
+    style.font-size: 22
+  }
+  rebuildUsecase -> storagePort: save/read を順に依頼する {
     style.font-size: 22
   }
 }
@@ -69,29 +89,41 @@ dto: {
   shape: package
   label: "application DTO"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   saveRequest: {
     shape: class
-    label: "master persona 保存要求 DTO (`MasterPersonaSaveRequestDto`)"
-    style.font-size: 22
-  }
-
-  readRequest: {
-    shape: class
-    label: "master persona 読込要求 DTO (`MasterPersonaReadRequestDto`)"
-    style.font-size: 22
-  }
-
-  readResult: {
-    shape: class
-    label: "master persona 読込結果 DTO (`MasterPersonaReadResultDto`)"
+    label: "保存要求 DTO"
+    "+ actual: `MasterPersonaSaveRequestDto`": ""
     style.font-size: 22
   }
 
   masterEntry: {
     shape: class
-    label: "master persona entry DTO (`MasterPersonaEntryDto`)"
+    label: "master persona entry DTO"
+    "+ actual: `MasterPersonaEntryDto`": ""
+    style.font-size: 22
+  }
+
+  readRequest: {
+    shape: class
+    label: "読込要求 DTO"
+    "+ actual: `MasterPersonaReadRequestDto`": ""
+    style.font-size: 22
+  }
+
+  readResult: {
+    shape: class
+    label: "読込結果 DTO"
+    "+ actual: `MasterPersonaReadResultDto`": ""
+    style.font-size: 22
+  }
+
+  saveRequest -> masterEntry: `entries` として保存する {
+    style.font-size: 22
+  }
+  readResult -> masterEntry: 読み戻し entry 群を束ねる {
     style.font-size: 22
   }
 }
@@ -100,73 +132,56 @@ infra: {
   shape: package
   label: "infra"
   direction: down
+  grid-cols: 1
   style.font-size: 22
 
   baseGameBuilder: {
     shape: class
-    label: "base-game NPC master persona builder (`BaseGameNpcMasterPersonaBuilder`)"
+    label: "base-game NPC master persona builder"
+    "+ actual: `BaseGameNpcMasterPersonaBuilder`": ""
     "+ base-game 入力を保存要求へ変換する": "`build_master_persona_save_request(request)`"
     style.font-size: 22
   }
 
   sqliteRepository: {
     shape: class
-    label: "SQLite master persona repository (`SqliteMasterPersonaRepository`)"
+    label: "SQLite master persona repository"
+    "+ actual: `SqliteMasterPersonaRepository`": ""
     "+ master persona を保存する": "`save_master_persona(request)`"
     "+ master persona を読む": "`read_master_persona(request)`"
     style.font-size: 22
   }
 
   masterPersonaTable: {
-    shape: class
-    label: "master persona table (`master_persona`)"
+    shape: sql_table
+    label: "master persona table"
+    "actual: `master_persona`": ""
     style.font-size: 22
   }
 
   masterPersonaEntryTable: {
-    shape: class
-    label: "master persona entry table (`master_persona_entry`)"
+    shape: sql_table
+    label: "master persona entry table"
+    "actual: `master_persona_entry`": ""
+    style.font-size: 22
+  }
+
+  masterPersonaEntryTable -> masterPersonaTable: `master_persona_id` で従属する {
     style.font-size: 22
   }
 }
 
-gateway.rebuildCommand -> application.rebuildUsecase: 再構築を委譲する {
+gateway -> application
+application -> dto
+dto -> infra
+
+gateway.rebuildCommand -> application.rebuildRequest: 再構築入力を渡す {
   style.font-size: 22
 }
-gateway.readCommand -> application.storagePort: 読込だけを委譲する {
-  style.font-size: 22
-}
-application.rebuildUsecase -> application.rebuildRequest: base-game NPC 入力を受け取る {
-  style.font-size: 22
-}
-application.rebuildRequest -> application.rebuildEntry: ordered entry 群を束ねる {
-  style.font-size: 22
-}
-application.rebuildUsecase -> application.builderPort: 保存要求の構築を依頼する {
-  style.font-size: 22
-}
-application.rebuildUsecase -> dto.readRequest: `persona_name` から読込要求を組み立てる {
-  style.font-size: 22
-}
-application.rebuildUsecase -> application.storagePort: save / read を順に依頼する {
+gateway.readCommand -> dto.readRequest: 読込要求を渡す {
   style.font-size: 22
 }
 application.builderPort -> dto.saveRequest: save contract を返す {
-  style.font-size: 22
-}
-infra.baseGameBuilder -> application.builderPort: 実装する {
-  style.font-size: 22
-}
-infra.baseGameBuilder -> application.rebuildRequest: `source_type` と必須 field を検証する {
-  style.font-size: 22
-}
-infra.baseGameBuilder -> dto.masterEntry: entry を順序そのままで写す {
-  style.font-size: 22
-}
-dto.saveRequest -> dto.masterEntry: `entries` として保存する {
-  style.font-size: 22
-}
-dto.readResult -> dto.masterEntry: 読み戻し entry 群を束ねる {
   style.font-size: 22
 }
 application.storagePort -> dto.saveRequest: 保存要求を受け取る {
@@ -178,6 +193,15 @@ application.storagePort -> dto.readRequest: 読込要求を受け取る {
 application.storagePort -> dto.readResult: 保存後の master persona を返す {
   style.font-size: 22
 }
+infra.baseGameBuilder -> application.builderPort: 実装する {
+  style.font-size: 22
+}
+infra.baseGameBuilder -> application.rebuildRequest: 必須 field を検証する {
+  style.font-size: 22
+}
+infra.baseGameBuilder -> dto.masterEntry: entry を順序そのままで写す {
+  style.font-size: 22
+}
 infra.sqliteRepository -> application.storagePort: 実装する {
   style.font-size: 22
 }
@@ -185,11 +209,5 @@ infra.sqliteRepository -> infra.masterPersonaTable: `persona_name` upsert を行
   style.font-size: 22
 }
 infra.sqliteRepository -> infra.masterPersonaEntryTable: stale row を置換保存する {
-  style.font-size: 22
-}
-infra.sqliteRepository -> dto.readResult: 保存後読込結果を組み立てる {
-  style.font-size: 22
-}
-infra.masterPersonaEntryTable -> infra.masterPersonaTable: `master_persona_id` で従属する {
   style.font-size: 22
 }

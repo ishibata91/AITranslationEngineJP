@@ -1,273 +1,78 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Backend translation flow MVP orchestration クラス図"
 
-gateway: {
-  shape: package
-  label: "gateway"
-  direction: down
+gatewaySection: {
+  shape: class
+  label: "gateway orchestration"
+  "+ helper: `run_translation_flow_mvp_orchestration`": ""
+  "+ request DTO: `RunTranslationFlowMvpRequestDto`": ""
+  "+ `job_id` / `source_type` / NPC metadata": ""
+  "+ `translation_unit` / `embedded_elements`": ""
   style.font-size: 22
-
-  orchestrationHelper: {
-    shape: class
-    label: "translation flow MVP orchestration helper (`run_translation_flow_mvp_orchestration`)"
-    "+ integrated path を phase ごとに合成する": "`run_translation_flow_mvp_orchestration(request, dictionary_lookup, persona_storage, persona_runtime, body_translator)`"
-    style.font-size: 22
-  }
-
-  orchestrationRequest: {
-    shape: class
-    label: "orchestration 要求 DTO (`RunTranslationFlowMvpRequestDto`)"
-    "+ `job_id`, `source_type`, NPC metadata を束ねる"
-    "+ `translation_unit` と `embedded_elements` を渡す"
-    style.font-size: 22
-  }
 }
 
-application: {
-  shape: package
-  label: "application"
-  direction: down
+phaseSection: {
+  shape: class
+  label: "application phase"
+  "+ word phase: `RunWordTranslationPhaseUseCase`": ""
+  "+ persona phase: `RunNpcPersonaGenerationPhaseUseCase`": ""
+  "+ runtime caller: `PersonaGenerationRuntimePort` consumer": ""
+  "+ body phase: `RunBodyTranslationPhaseUseCase`": ""
+  "+ persona request: `NpcPersonaGenerationPhaseRequestDto`": ""
+  "+ body request: `BodyTranslationPhaseRequestDto`": ""
   style.font-size: 22
-
-  wordPhase: {
-    shape: class
-    label: "単語翻訳 phase (`RunWordTranslationPhaseUseCase`)"
-    "+ reusable terms を抽出する": "`execute(translation_unit)`"
-    style.font-size: 22
-  }
-
-  personaPhase: {
-    shape: class
-    label: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
-    "+ provider-backed runtime と execution control を束ねる": "`execute(request)`"
-    style.font-size: 22
-  }
-
-  personaRuntimeUseCase: {
-    shape: class
-    label: "persona runtime 実行 port caller (`PersonaGenerationRuntimePort` consumer)"
-    "+ provider selection 付き runtime request を実行する": "`generate(request)`"
-    style.font-size: 22
-  }
-
-  bodyPhase: {
-    shape: class
-    label: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
-    "+ handoff を preview item へ固定する": "`execute(request)`"
-    style.font-size: 22
-  }
-
-  personaPhaseRequest: {
-    shape: class
-    label: "persona 生成要求 DTO (`NpcPersonaGenerationPhaseRequestDto`)"
-    style.font-size: 22
-  }
-
-  bodyPhaseRequest: {
-    shape: class
-    label: "本文翻訳要求 DTO (`BodyTranslationPhaseRequestDto`)"
-    style.font-size: 22
-  }
 }
 
-dto: {
-  shape: package
+dtoSection: {
+  shape: class
   label: "application DTO"
-  direction: down
+  "+ `TranslationUnitDto` / `ReusableDictionaryEntryDto`": ""
+  "+ `ProviderSelectionDto` / `ExecutionControlStateDto`": ""
+  "+ `ExecutionControlFailureDto`": ""
+  "+ `PersonaGenerationRuntimeRequestDto`": ""
+  "+ `PersonaGenerationRuntimeResultDto` / `JobPersonaEntryDto`": ""
+  "+ `EmbeddedElementPolicyDto` / `EmbeddedElementDescriptorDto`": ""
+  "+ `TranslationPhaseHandoffDto` / `TranslationPreviewItemDto`": ""
   style.font-size: 22
-
-  translationUnit: {
-    shape: class
-    label: "翻訳単位 DTO (`TranslationUnitDto`)"
-    style.font-size: 22
-  }
-
-  reusableTerm: {
-    shape: class
-    label: "再利用語句 DTO (`ReusableDictionaryEntryDto`)"
-    style.font-size: 22
-  }
-
-  providerSelection: {
-    shape: class
-    label: "provider 選択 DTO (`ProviderSelectionDto`)"
-    style.font-size: 22
-  }
-
-  executionControl: {
-    shape: class
-    label: "execution control DTO (`ExecutionControlStateDto` / `ExecutionControlFailureDto`)"
-    style.font-size: 22
-  }
-
-  personaRuntime: {
-    shape: class
-    label: "persona runtime DTO (`PersonaGenerationRuntimeRequestDto` / `PersonaGenerationRuntimeResultDto`)"
-    style.font-size: 22
-  }
-
-  jobPersona: {
-    shape: class
-    label: "job persona DTO (`JobPersonaEntryDto`)"
-    style.font-size: 22
-  }
-
-  embeddedPolicy: {
-    shape: class
-    label: "埋め込み要素 policy DTO (`EmbeddedElementPolicyDto` / `EmbeddedElementDescriptorDto`)"
-    style.font-size: 22
-  }
-
-  phaseHandoff: {
-    shape: class
-    label: "phase handoff DTO (`TranslationPhaseHandoffDto`)"
-    style.font-size: 22
-  }
-
-  previewItem: {
-    shape: class
-    label: "preview item DTO (`TranslationPreviewItemDto`)"
-    style.font-size: 22
-  }
 }
 
-ports: {
-  shape: package
+portSection: {
+  shape: class
   label: "ports / adapters"
-  direction: down
+  "+ `DictionaryLookupPort`": ""
+  "+ `JobPersonaStoragePort`": ""
+  "+ `ProviderRuntimePort`": ""
+  "+ `PersonaGenerationRuntimePort`": ""
+  "+ `BodyTranslationPort`": ""
   style.font-size: 22
-
-  dictionaryLookup: {
-    shape: class
-    label: "辞書 lookup port (`DictionaryLookupPort`)"
-    "+ exact match 候補群を返す": "`lookup(request)`"
-    style.font-size: 22
-  }
-
-  personaStorage: {
-    shape: class
-    label: "job persona storage port (`JobPersonaStoragePort`)"
-    "+ job-local persona を読む": "`read_job_persona(request)`"
-    "+ job-local persona を保存する": "`save_job_persona(request)`"
-    style.font-size: 22
-  }
-
-  providerRuntime: {
-    shape: class
-    label: "provider runtime port (`ProviderRuntimePort`)"
-    "+ provider step を provider 非依存 failure 語彙で実行する": "`run_provider_step(selection)`"
-    style.font-size: 22
-  }
-
-  personaRuntime: {
-    shape: class
-    label: "persona generation runtime port (`PersonaGenerationRuntimePort`)"
-    "+ runtime request を sink-aware result へ解決する": "`generate(request)`"
-    style.font-size: 22
-  }
-
-  bodyTranslator: {
-    shape: class
-    label: "body translation port (`BodyTranslationPort`)"
-    "+ handoff を translated text へ変換する": "`translate(request)`"
-    style.font-size: 22
-  }
 }
 
-domain: {
-  shape: package
-  label: "domain"
-  direction: down
+domainSection: {
+  shape: class
+  label: "domain execution control"
+  "+ `ExecutionControlState` / `ExecutionControlTransition`": ""
+  "+ pause / resume / retry / recover": ""
+  "+ fail / cancel / complete": ""
   style.font-size: 22
-
-  executionControlState: {
-    shape: class
-    label: "execution control state (`ExecutionControlState` / `ExecutionControlTransition`)"
-    "+ pause / resume / retry / recover / fail / cancel / complete を判定する": "`can_apply(transition)` / `apply(transition)`"
-    style.font-size: 22
-  }
 }
 
-gateway.orchestrationHelper -> gateway.orchestrationRequest: regression 代表入力を受け取る {
+gatewaySection -> phaseSection: phase 1..3 を直列起動する {
   style.font-size: 22
 }
-gateway.orchestrationHelper -> application.wordPhase: 第 1 phase として reusable terms を取得する {
+gatewaySection -> dtoSection: request から translation unit と policy を供給する {
   style.font-size: 22
 }
-gateway.orchestrationHelper -> application.personaPhase: 第 2 phase として provider-backed persona runtime を実行する {
+phaseSection -> dtoSection: reusable terms / persona / handoff / preview を組み立てる {
   style.font-size: 22
 }
-gateway.orchestrationHelper -> application.bodyPhase: 第 3 phase として preview item を確定する {
+phaseSection -> portSection: dictionary lookup / persona runtime / body translation を呼ぶ {
   style.font-size: 22
 }
-gateway.orchestrationRequest -> dto.translationUnit: source text と unit key を渡す {
+phaseSection -> domainSection: execution control の状態遷移を判定する {
   style.font-size: 22
 }
-gateway.orchestrationRequest -> dto.embeddedPolicy: descriptor 群の source を供給する {
-  style.font-size: 22
-}
-application.wordPhase -> ports.dictionaryLookup: reusable term 候補を検索する {
-  style.font-size: 22
-}
-application.wordPhase -> dto.reusableTerm: selected reusable terms を返す {
-  style.font-size: 22
-}
-application.personaPhase -> application.personaPhaseRequest: job / NPC metadata を束ねる {
-  style.font-size: 22
-}
-application.personaPhase -> dto.providerSelection: provider 選択と runtime knobs を受け取る {
-  style.font-size: 22
-}
-application.personaPhase -> dto.personaRuntime: source / sink 付き runtime request を組み立てる {
-  style.font-size: 22
-}
-application.personaPhase -> domain.executionControlState: retry / cancel / recovery の状態遷移を判定する {
-  style.font-size: 22
-}
-application.personaPhase -> application.personaRuntimeUseCase: cache miss 時だけ runtime port を起動する {
-  style.font-size: 22
-}
-application.personaRuntimeUseCase -> ports.personaRuntime: runtime request を provider-backed execution へ渡す {
-  style.font-size: 22
-}
-ports.personaRuntime -> ports.providerRuntime: provider step を実行する {
-  style.font-size: 22
-}
-ports.providerRuntime -> dto.executionControl: recoverable failure / canceled を返す {
-  style.font-size: 22
-}
-ports.personaRuntime -> dto.personaRuntime: sink-aware result を返す {
-  style.font-size: 22
-}
-application.personaPhase -> ports.personaStorage: save/read cache を扱う {
-  style.font-size: 22
-}
-application.personaPhase -> dto.jobPersona: optional persona を返す {
-  style.font-size: 22
-}
-gateway.orchestrationHelper -> dto.phaseHandoff: reusable terms / persona / embedded policy を合成する {
-  style.font-size: 22
-}
-dto.phaseHandoff -> dto.translationUnit: 原文 translation unit を保持する {
-  style.font-size: 22
-}
-dto.phaseHandoff -> dto.reusableTerm: reusable terms を保持する {
-  style.font-size: 22
-}
-dto.phaseHandoff -> dto.jobPersona: optional persona を保持する {
-  style.font-size: 22
-}
-dto.phaseHandoff -> dto.embeddedPolicy: embedded element policy を保持する {
-  style.font-size: 22
-}
-application.bodyPhase -> application.bodyPhaseRequest: `job_id` と handoff を束ねる {
-  style.font-size: 22
-}
-application.bodyPhase -> ports.bodyTranslator: translated text を取得する {
-  style.font-size: 22
-}
-application.bodyPhase -> dto.previewItem: preview-facing result shape を返す {
+portSection -> dtoSection: provider failure と sink-aware result を返す {
   style.font-size: 22
 }
