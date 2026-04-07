@@ -181,6 +181,29 @@ describe("execution control public roots", () => {
     );
   });
 
+  it("Given the public app mount path sources When inspected Then execution-control store and usecase are wired from main through App and AppShell", () => {
+    const mainSource = readFileSync("src/main.ts", "utf8");
+    const appSource = readFileSync("src/App.svelte", "utf8");
+    const appShellSource = readFileSync(
+      "src/ui/app-shell/AppShell.svelte",
+      "utf8",
+    );
+
+    expect(mainSource).toContain("createExecutionControlScreenStore");
+    expect(mainSource).toContain("createExecutionControlScreenUsecase");
+    expect(mainSource).toContain("@gateway/tauri/execution-control");
+    expect(mainSource).toContain("executionControlStore");
+    expect(mainSource).toContain("executionControlUsecase");
+    expect(appSource).toContain("executionControlStore");
+    expect(appSource).toContain("executionControlUsecase");
+    expect(appShellSource).toContain("ExecutionControlScreen");
+    expect(appShellSource).toContain("executionControlStore");
+    expect(appShellSource).toContain("executionControlUsecase");
+    expect(appShellSource).toContain(
+      "{#if executionControlStore !== undefined && executionControlUsecase !== undefined}",
+    );
+  });
+
   it("Given the running state When the view is rendered Then all four controls stay visible and only pause plus cancel are enabled", async () => {
     const body = await renderExecutionControlView(
       createExecutionControlRenderState(),

@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-07",
   "direction": "directing-to-skill",
-  "from_skill": "directing-implementation",
+  "from_skill": "proposing-implementation",
   "to_skill": "distilling-implementation",
-  "purpose": "Implement lane の入口情報から最小限の repo 文脈を探索させ、facts / constraints / gaps を抽出させる。",
+  "purpose": "implementation proposal の入口情報から最小限の repo 文脈を探索させ、facts / constraints / gaps を抽出させる。",
   "required": [
     {
       "description": "実装要求の要約と到達したい変更点。",
@@ -33,7 +33,7 @@
       "type": "string[]"
     },
     {
-      "description": "direction 側がまだ確定できていない論点。",
+      "description": "proposal 側がまだ確定できていない論点。",
       "field": "open_questions",
       "type": "string[]"
     }

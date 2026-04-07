@@ -2,13 +2,12 @@
   "contract_version": "2026-03-29",
   "skill": "directing-implementation",
   "allowed_actions": [
-    "active impl plan を作成または更新する",
-    "designing-implementation へ task-local design を handoff する",
-    "distilling、planning、tests、implementing、reviewing へ handoff する",
+    "承認済み active impl plan を受け取って execution を開始する",
+    "planning、tests、implementing、reviewing へ handoff する",
     "`4humans sync` を同一変更で扱い、実装の変更または追加では `4humans/diagrams/processes/`、構造の変更または追加では `4humans/diagrams/structures/` の更新要否も整理して、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
-    "非自明な変更を active plan なしで進める",
+    "承認前の proposal を execution に進める",
     "changes、context_board、tasks.md を live 正本に戻す",
     "曖昧な scope のまま downstream skill に広い実装を依頼する",
     "自身で実装を始める",
@@ -22,6 +21,7 @@
   ],
   "stop_conditions": [
     "要求が fix lane に属し implementation lane では扱えない",
+    "承認済み active plan や review 用差分図が不足して execution 開始条件を満たさない",
     "facts、constraints、gaps が不足し plan を安全に固定できない",
     "必要な次操作が自身の権限外で stop and handoff が必要である"
   ]

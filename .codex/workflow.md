@@ -17,26 +17,29 @@
 
 ## Overall Shape
 
-`User request` を起点に、workflow は `impl lane` と `fix lane` の 2 本に分岐します。
-feature / change は implementation lane owner (`directing-implementation`) から入り、bug / regression は fix lane owner (`directing-fixes`) から入ります。
+`User request` を起点に、workflow は `implementation proposal lane`、`implementation execution lane`、`fix lane` の 3 役割に分かれます。
+feature / change は implementation proposal lane owner (`proposing-implementation`) から入り、human LGTM の後に implementation execution lane owner (`directing-implementation`) へ渡り、bug / regression は fix lane owner (`directing-fixes`) から入ります。
 どちらの lane も最後に review を 1 回だけ行い、`pass` なら `4humans sync` と commit を済ませて close し、コードベース境界や実行フローが変わる時は diagramming D2 skill (`diagramming-d2`) で `4humans/class-diagrams/` と `4humans/sequence-diagrams/` の `.d2` / `.svg` も同一変更で更新します。new detail diagram を追加する時は `4humans/diagrams/overview-manifest.json` と、manifest で紐づく overview `.d2` / `.svg` も同一変更で更新します。`reroute` なら direction に戻します。
 
 ## Impl Lane
 
-標準順序は `implementation lane owner (`directing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + commit + close` です。
+標準順序は `implementation proposal lane owner (`proposing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> diagrammer (`diagrammer`) + diagramming D2 skill (`diagramming-d2`) -> human LGTM -> implementation execution lane owner (`directing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + commit + close` です。
 
-- implementation lane owner (`directing-implementation`): 実装要求の入口。active plan を用意し、task-local design が必要なら task-local design skill (`designing-implementation`) を起動する。
+- implementation proposal lane owner (`proposing-implementation`): 実装要求の入口。日本語の active plan を用意し、task-local design と human review に必要な最小限の情報を整える。
 - task-local design skill (`designing-implementation`): active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
 - implementation distill skill (`distilling-implementation`): facts、constraints、gaps、closeout notes を圧縮する。
+- diagrammer (`diagrammer`): review 用差分図を担当する。diagramming D2 skill (`diagramming-d2`) を使って、追加は緑、削除は赤で読める D2 / SVG を作る。
+- human LGTM: active plan の `承認記録` と `HITL 状態` に記録し、承認前は execution lane を起動しない。
+- implementation execution lane owner (`directing-implementation`): 承認済み active plan を受け取り、planning 以降の execution、gate、close を管理する。
 - implementation workplan skill (`planning-implementation`): 実装順、owned scope、validation を短い brief に落とす。
 - test architecture skill (`architecting-tests`): 実装前に tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する。
 - frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`): owned scope に従って実装し、frontend は `python3 scripts/harness/run.py --suite frontend-lint`、backend は `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する。分岐は frontend / backend の責務で決める。
-- `sonar-scanner + Sonar MCP open issue gate`: implementation lane owner (`directing-implementation`) が project root で scanner を実行し、その後に Sonar MCP の `search_sonar_issues_in_projects` を直接使って `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを取得して、issue が残る間は implementing skill に戻す。
+- `sonar-scanner + Sonar MCP open issue gate`: implementation execution lane owner (`directing-implementation`) が project root で scanner を実行し、その後に Sonar MCP の `search_sonar_issues_in_projects` を直接使って `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを取得して、issue が残る間は implementing skill に戻す。
 - implementation review skill (`reviewing-implementation`): `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 の 5 観点だけを単発で見る。
-- `full harness`: implementation review skill (`reviewing-implementation`) が `pass` を返した後に、implementation lane owner (`directing-implementation`) が `python3 scripts/harness/run.py --suite all` を実行する。
+- `full harness`: implementation review skill (`reviewing-implementation`) が `pass` を返した後に、implementation execution lane owner (`directing-implementation`) が `python3 scripts/harness/run.py --suite all` を実行する。
 
-Sonar issue が解消し、implementation review skill (`reviewing-implementation`) が `pass` で、さらに full harness が通った時だけ `4humans sync`、必要な `4humans/class-diagrams/` と `4humans/sequence-diagrams/` の `.d2` / `.svg` 更新、new detail diagram 追加時の `4humans/diagrams/overview-manifest.json` と対応 overview 更新、commit、close に進みます。
-`reroute` の場合は implementation lane owner (`directing-implementation`) に戻り、同じ lane の中で plan と実装を更新します。
+Sonar issue が解消し、implementation review skill (`reviewing-implementation`) が `pass` で、さらに full harness が通った時だけ `4humans sync`、必要な `4humans/class-diagrams/` と `4humans/sequence-diagrams/` の `.d2` / `.svg` 更新、new detail diagram 追加時の `4humans/diagrams/overview-manifest.json` と対応 overview 更新、review 用差分図削除、commit、close に進みます。
+`reroute` の場合は implementation execution lane owner (`directing-implementation`) に戻り、proposal のやり直しが必要な時だけ implementation proposal lane owner (`proposing-implementation`) に戻します。
 
 ## Fix Lane
 

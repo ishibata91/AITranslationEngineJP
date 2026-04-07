@@ -7,3 +7,4 @@ src-tauri/target
 .scannerwork
 .zed
 .cargo-home
+.sonar-local

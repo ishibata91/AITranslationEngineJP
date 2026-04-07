@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-07",
   "direction": "skill-to-directing",
   "from_skill": "distilling-implementation",
-  "to_skill": "directing-implementation",
-  "purpose": "direction が workplan 化へ進める判断材料を返す。",
+  "to_skill": "proposing-implementation",
+  "purpose": "proposal 側が task-local design と human review へ進める判断材料を返す。",
   "required": [
     {
       "description": "実装判断に必要な既知事実。",
@@ -38,6 +38,6 @@
     "未確認事項を fact 扱いしない"
   ],
   "completion_signal": [
-    "direction が planning-implementation に handoff できる情報粒度になっている"
+    "proposal 側が task-local design と execution handoff へ進める情報粒度になっている"
   ]
 }

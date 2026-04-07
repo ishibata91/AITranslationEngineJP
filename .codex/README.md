@@ -2,18 +2,19 @@
 
 このディレクトリは、AITranslationEngineJp の live なマルチエージェント作業フローの正本です。
 プロダクト仕様と設計は `docs/` を正本とし、lane、skill、agent の役割と handoff は `.codex/` を正本とします。
-この repo の workflow は `directing-implementation` と `directing-fixes` の 2 lane で動かし、過去 repo 固有の packet や review loop は live 契約に戻しません。
+この repo の workflow は proposal lane (`proposing-implementation`)、execution / fix lane (`directing-implementation` / `directing-fixes`) で動かし、過去 repo 固有の packet や review loop は live 契約に戻しません。
 
 ## Naming Rule
 
 - workflow 文書では、論理名と実名を分離しない
 - 初出または重要な参照は `論理名 (`actual-name`)` を優先する
 - 人間 review で意味が先に読めて、actual skill / agent name でも検索できる記述を優先する
-- 例: implementation lane owner (`directing-implementation`)、fix lane owner (`directing-fixes`)、task-local design skill (`designing-implementation`)
+- 例: implementation proposal lane owner (`proposing-implementation`)、implementation execution lane owner (`directing-implementation`)、fix lane owner (`directing-fixes`)、task-local design skill (`designing-implementation`)
 
 ## 入口
 
-- 実装・設計内包の入口: `skills/directing-implementation/SKILL.md`
+- 実装 proposal の入口: `skills/proposing-implementation/SKILL.md`
+- 実装 execution の入口: `skills/directing-implementation/SKILL.md`
 - バグ修正の入口: `skills/directing-fixes/SKILL.md`
 - workflow 鳥瞰図: `workflow.md`
 - 補助 skill:
@@ -38,6 +39,7 @@
   - `skills/updating-docs/SKILL.md`
   - `skills/working-light/SKILL.md`
 - agent 契約:
+  - `agents/diagrammer.toml`
   - `agents/task_designer.toml`
   - `agents/ctx_loader.toml`
   - `agents/workplan_builder.toml`
@@ -51,23 +53,27 @@
 
 ### Impl lane
 
-`User -> implementation lane owner (`directing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + implementation lane owner (`directing-implementation`) close`
+`User -> implementation proposal lane owner (`proposing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> diagrammer (`diagrammer`) + diagramming D2 skill (`diagramming-d2`) -> human LGTM -> implementation execution lane owner (`directing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + implementation execution lane owner (`directing-implementation`) close`
 
-- implementation lane owner (`directing-implementation`) は実装要求を受け、active plan を作成し、重複確認と handoff に必要な最小限の入口情報だけを整える
+- implementation proposal lane owner (`proposing-implementation`) は実装要求を受け、日本語の active plan を作成し、重複確認と handoff に必要な最小限の入口情報だけを整える
 - implementation distill skill (`distilling-implementation`) は入口情報を起点に必要最小限の repo 文脈を探索し、facts、constraints、gaps、closeout notes、required reading を返す
 - task-local design skill (`designing-implementation`) は distill 結果を前提に active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
+- diagrammer (`diagrammer`) は GPT-5.4 / high で review 用差分図を担当し、diagramming D2 skill (`diagramming-d2`) を使って追加を緑、削除を赤で読める D2 / SVG を作る
+- human LGTM が active plan に記録されるまで implementation execution lane へ進めない
+- implementation execution lane owner (`directing-implementation`) は承認済み active plan を受け取り、execution の handoff、gate、close を管理する
 - implementation workplan skill (`planning-implementation`) は実装順、owned scope、validation を短い brief に落とす
 - test architecture skill (`architecting-tests`) は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
 - frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装し、frontend では `python3 scripts/harness/run.py --suite frontend-lint`、backend では `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する
-- `sonar-scanner + Sonar MCP open issue gate` は implementation lane owner (`directing-implementation`) が server-side analysis を更新し、その後に Sonar MCP の `search_sonar_issues_in_projects` を直接使って `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
+- `sonar-scanner + Sonar MCP open issue gate` は implementation execution lane owner (`directing-implementation`) が server-side analysis を更新し、その後に Sonar MCP の `search_sonar_issues_in_projects` を直接使って `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
 - Sonar issue read の前提設定は Sonar CLI 認証ではなく、`codexmcps` profile に入った `mcp/sonarqube` の secret / config とする
 - implementation review skill (`reviewing-implementation`) は単発で `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足`、`4humans` D2 sync 要否と実施有無 だけを見る
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
-- implementation lane owner (`directing-implementation`) は review が `pass` の後に `python3 scripts/harness/run.py --suite all` を final harness として実行する
-- Sonar issue remediation loop は review の前段で、final harness は review の後段で implementation lane owner (`directing-implementation`) が扱い、どちらも close 条件に含める
-- review が `pass` の時は `4humans sync` を整理し、実装の変更または追加があった時は diagramming D2 skill (`diagramming-d2`) で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
+- implementation execution lane owner (`directing-implementation`) は review が `pass` の後に `python3 scripts/harness/run.py --suite all` を final harness として実行する
+- Sonar issue remediation loop は review の前段で、final harness は review の後段で implementation execution lane owner (`directing-implementation`) が扱い、どちらも close 条件に含める
+- review が `pass` の時は `4humans sync` を整理し、実装の変更または追加があった時は diagrammer (`diagrammer`) を `diagramming-d2` で起動して `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
 - `4humans/diagrams/processes/` または `4humans/diagrams/structures/` に new detail `.d2` を追加する時は、`4humans/diagrams/overview-manifest.json` を同じ変更で更新し、manifest で紐づいた overview `.d2` / `.svg` も同じ変更で更新する
+- review 用に active exec-plan 配下へ置いた差分 D2 / SVG は human LGTM と `4humans` 正本同期が終わったら削除し、completed plan へ持ち越さない
 
 ### Fix lane
 

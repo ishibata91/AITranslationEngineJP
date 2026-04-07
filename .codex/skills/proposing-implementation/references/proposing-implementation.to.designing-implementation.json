@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-29",
+  "contract_version": "2026-04-07",
   "direction": "directing-to-skill",
-  "from_skill": "directing-implementation",
+  "from_skill": "proposing-implementation",
   "to_skill": "designing-implementation",
-  "purpose": "direction が整えた context summary を前提に、task-local design が必要な時に active exec-plan の UI / Scenario / Logic を固める依頼を渡す。",
+  "purpose": "proposal 側が整えた context summary を前提に、task-local design が必要な時に active exec-plan の UI / Scenario / Logic を固める依頼を渡す。",
   "required": [
     {
       "description": "対象 task の要約と変更意図。",
@@ -16,7 +16,7 @@
       "type": "string"
     },
     {
-      "description": "direction が整えた facts / constraints / gaps / required_reading の要約。",
+      "description": "proposal 側が整えた facts / constraints / gaps / required_reading の要約。",
       "field": "context_summary",
       "type": "object"
     },
@@ -43,6 +43,6 @@
     "active exec-plan の UI、Scenario、Logic 以外を広く書き換えない"
   ],
   "completion_signal": [
-    "direction が planning-implementation に handoff できる task-local design が active plan に入っている"
+    "proposal 側が execution handoff 前に固める task-local design が active plan に入っている"
   ]
 }

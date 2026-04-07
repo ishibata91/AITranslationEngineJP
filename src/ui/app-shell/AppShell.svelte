@@ -11,6 +11,10 @@
     PersonaObserveScreenStore,
   } from "@application/usecases/persona-observe";
   import type {
+    ExecutionControlScreenInput,
+    ExecutionControlScreenStore,
+  } from "@application/usecases/execution-control";
+  import type {
     ExecutionObserveScreenInput,
     ExecutionObserveScreenStore,
   } from "@application/usecases/execution-observe";
@@ -24,6 +28,7 @@
   import JobCreateScreen from "@ui/screens/job-create/JobCreateScreen.svelte";
   import JobListScreen from "@ui/screens/job-list/JobListScreen.svelte";
   import PersonaObserveScreen from "@ui/screens/persona-observe/PersonaObserveScreen.svelte";
+  import ExecutionControlScreen from "@ui/screens/execution-control/ExecutionControlScreen.svelte";
   import ExecutionObserveScreen from "@ui/screens/execution-observe/ExecutionObserveScreen.svelte";
   import TranslationPreviewScreen from "@ui/screens/translation-preview/TranslationPreviewScreen.svelte";
 
@@ -33,6 +38,10 @@
     undefined as unknown as DictionaryObserveScreenStore | undefined;
   export let dictionaryObserveUsecase =
     undefined as unknown as DictionaryObserveScreenInput | undefined;
+  export let executionControlStore =
+    undefined as unknown as ExecutionControlScreenStore | undefined;
+  export let executionControlUsecase =
+    undefined as unknown as ExecutionControlScreenInput | undefined;
   export let executionObserveStore =
     undefined as unknown as ExecutionObserveScreenStore | undefined;
   export let executionObserveUsecase =
@@ -61,6 +70,9 @@
   {/if}
   {#if personaObserveStore !== undefined && personaObserveUsecase !== undefined}
     <PersonaObserveScreen {personaObserveStore} {personaObserveUsecase} />
+  {/if}
+  {#if executionControlStore !== undefined && executionControlUsecase !== undefined}
+    <ExecutionControlScreen {executionControlStore} {executionControlUsecase} />
   {/if}
   {#if executionObserveStore !== undefined && executionObserveUsecase !== undefined}
     <ExecutionObserveScreen {executionObserveStore} {executionObserveUsecase} />

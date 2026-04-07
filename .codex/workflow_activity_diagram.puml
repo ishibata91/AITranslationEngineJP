@@ -7,9 +7,12 @@ start
 :User request;
 
 if (Request type?) then (feature / change)
-  :directing-implementation;
-  :designing-implementation;
+  :proposing-implementation;
   :distilling-implementation;
+  :designing-implementation;
+  :diagrammer + diagramming-d2;
+  :human LGTM;
+  :directing-implementation;
   :planning-implementation;
   :architecting-tests;
 

@@ -2,7 +2,7 @@
 
 `docs/` はプロダクト仕様と設計の記録系であり、作業方法の正本は `.codex/` にある。
 新規参加者とエージェントは `AGENTS.md` の後に `.codex/README.md` を読み、その後にこのページを使う。
-workflow の入口は implementation lane owner (`directing-implementation`) と fix lane owner (`directing-fixes`) で、必要な task-local design skill (`designing-implementation`) を通す。
+workflow の入口は implementation proposal lane owner (`proposing-implementation`) と fix lane owner (`directing-fixes`) で、proposal が LGTM された後に implementation execution lane owner (`directing-implementation`) へ渡す。必要な task-local design skill (`designing-implementation`) を通す。
 詳細な振る舞いと制約は tests / acceptance checks / validation commands を正本として扱う。
 `docs/` 正本は human が先に更新し、agent は human が直接起動した `../.codex/skills/updating-docs/SKILL.md` でだけ同期する。
 
@@ -78,4 +78,4 @@ workflow の入口は implementation lane owner (`directing-implementation`) と
 - Raw vendor API dumps live under [`references/vendor-api/`](./references/vendor-api/).
 - Parallel-ready task catalogs live under [`../tasks/`](../tasks/README.md).
 - Workflow skills live under [`../.codex/skills/`](../.codex/skills/).
-- Workflow references should prefer logical role labels with actual names together, for example implementation lane owner (`directing-implementation`).
+- Workflow references should prefer logical role labels with actual names together, for example implementation proposal lane owner (`proposing-implementation`) and implementation execution lane owner (`directing-implementation`).

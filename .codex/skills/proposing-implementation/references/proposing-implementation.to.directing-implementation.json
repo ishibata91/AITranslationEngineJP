@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-04-07",
+  "direction": "directing-to-directing",
+  "from_skill": "proposing-implementation",
+  "to_skill": "directing-implementation",
+  "purpose": "human LGTM を得た implementation proposal を execution lane へ handoff する。",
+  "required": [
+    {
+      "description": "承認済み active exec-plan。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "distill と task-local design を含む proposal context summary。",
+      "field": "context_summary",
+      "type": "object"
+    },
+    {
+      "description": "human LGTM の記録。",
+      "field": "approval_status",
+      "type": "string"
+    },
+    {
+      "description": "review 用差分図の path。",
+      "field": "review_diff_diagrams",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "execution に引き継ぐ closeout notes。",
+      "field": "closeout_notes",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "未承認 plan を execution へ回さない"
+  ],
+  "completion_signal": [
+    "directing-implementation が planning-implementation から開始できる情報がそろっている"
+  ]
+}

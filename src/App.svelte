@@ -9,6 +9,10 @@
     PersonaObserveScreenStore,
   } from "@application/usecases/persona-observe";
   import type {
+    ExecutionControlScreenInput,
+    ExecutionControlScreenStore,
+  } from "@application/usecases/execution-control";
+  import type {
     ExecutionObserveScreenInput,
     ExecutionObserveScreenStore,
   } from "@application/usecases/execution-observe";
@@ -23,6 +27,10 @@
     undefined as unknown as DictionaryObserveScreenStore | undefined;
   export let dictionaryObserveUsecase =
     undefined as unknown as DictionaryObserveScreenInput | undefined;
+  export let executionControlStore =
+    undefined as unknown as ExecutionControlScreenStore | undefined;
+  export let executionControlUsecase =
+    undefined as unknown as ExecutionControlScreenInput | undefined;
   export let executionObserveStore =
     undefined as unknown as ExecutionObserveScreenStore | undefined;
   export let executionObserveUsecase =
@@ -42,6 +50,8 @@
   {bootstrapStatusUsecase}
   {dictionaryObserveStore}
   {dictionaryObserveUsecase}
+  {executionControlStore}
+  {executionControlUsecase}
   {executionObserveStore}
   {executionObserveUsecase}
   {jobCreateStore}

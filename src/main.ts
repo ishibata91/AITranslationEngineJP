@@ -19,11 +19,16 @@ import {
   createPersonaObserveScreenUsecase,
 } from "@application/usecases/persona-observe";
 import {
+  createExecutionControlScreenStore,
+  createExecutionControlScreenUsecase,
+} from "@application/usecases/execution-control";
+import {
   createExecutionObserveScreenStore,
   createExecutionObserveScreenUsecase,
 } from "@application/usecases/execution-observe";
 import { createTauriBootstrapStatusGateway } from "@gateway/tauri/bootstrap-status";
 import { createTauriDictionaryObserveExecutor } from "@gateway/tauri/dictionary-observe";
+import { createTauriExecutionControlGateway } from "@gateway/tauri/execution-control";
 import { createTauriExecutionObserveLoader } from "@gateway/tauri/execution-observe";
 import { createTauriJobCreateExecutor } from "@gateway/tauri/job-create";
 import { createTauriJobListExecutor } from "@gateway/tauri/job-list";
@@ -55,6 +60,11 @@ const personaObserveUsecase = createPersonaObserveScreenUsecase({
   executor: createTauriPersonaObserveExecutor(),
   store: personaObserveStore,
 });
+const executionControlStore = createExecutionControlScreenStore();
+const executionControlUsecase = createExecutionControlScreenUsecase({
+  ...createTauriExecutionControlGateway(),
+  store: executionControlStore,
+});
 const executionObserveStore = createExecutionObserveScreenStore();
 const executionObserveUsecase = createExecutionObserveScreenUsecase({
   loadSnapshot: createTauriExecutionObserveLoader(),
@@ -67,6 +77,8 @@ mount(App, {
     bootstrapStatusUsecase,
     dictionaryObserveStore,
     dictionaryObserveUsecase,
+    executionControlStore,
+    executionControlUsecase,
     executionObserveStore,
     executionObserveUsecase,
     jobCreateStore,

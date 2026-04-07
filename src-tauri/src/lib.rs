@@ -15,7 +15,12 @@ pub fn run() {
             gateway::commands::lookup_dictionary,
             gateway::commands::rebuild_master_persona,
             gateway::commands::read_master_persona,
-            gateway::commands::get_execution_observe_snapshot
+            gateway::commands::get_execution_observe_snapshot,
+            gateway::commands::get_execution_control_snapshot,
+            gateway::commands::pause_execution,
+            gateway::commands::resume_execution,
+            gateway::commands::retry_execution,
+            gateway::commands::cancel_execution
         ])
         .run(tauri::generate_context!())
         .expect("failed to run tauri application");

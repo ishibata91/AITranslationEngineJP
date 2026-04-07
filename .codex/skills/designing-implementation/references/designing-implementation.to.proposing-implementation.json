@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-29",
+  "contract_version": "2026-04-07",
   "direction": "skill-to-directing",
   "from_skill": "designing-implementation",
-  "to_skill": "directing-implementation",
-  "purpose": "direction が distilling-implementation へ進める前に task-local design の固定結果を受け取る。",
+  "to_skill": "proposing-implementation",
+  "purpose": "proposal 側が human review と execution handoff の前に task-local design の固定結果を受け取る。",
   "required": [
     {
       "description": "UI section に入れた要点。",
@@ -23,7 +23,7 @@
   ],
   "optional": [
     {
-      "description": "direction が次の handoff 前に解消すべき未確定事項。",
+      "description": "proposal 側が次の handoff 前に解消すべき未確定事項。",
       "field": "open_questions",
       "type": "string[]"
     }
@@ -33,6 +33,6 @@
     "active exec-plan の UI、Scenario、Logic 以外を広く書き換えない"
   ],
   "completion_signal": [
-    "direction が distilling-implementation に handoff できる task-local design が active plan に反映されている"
+    "proposal 側が human review に回せる task-local design が active plan に反映されている"
   ]
 }

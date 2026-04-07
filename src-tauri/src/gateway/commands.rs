@@ -37,6 +37,7 @@ use crate::infra::runtime_info::CargoRuntimeInfoProvider;
 use crate::infra::xedit_export_importer::FileSystemXeditExportImporter;
 use crate::infra::xtranslator_importer::FileSystemXtranslatorImporter;
 use serde::{Deserialize, Serialize};
+use std::sync::{Mutex, OnceLock};
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -115,14 +116,83 @@ struct ProviderFailureRetryFixture {
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ProviderSelectionFixture {
+    execution_mode: crate::application::dto::ProviderExecutionModeDto,
     provider_id: String,
+    runtime_settings: ProviderRuntimeSettingsFixture,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProviderRuntimeSettingsFixture {
+    max_concurrency: u32,
+    pause_supported: bool,
+    retry_limit: u32,
 }
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct ProviderFailureRetryScenarioFixture {
+    name: String,
     failure_category: ExecutionControlFailureCategoryDto,
     transitions: Vec<ExecutionControlStateDto>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum FixtureScenarioKind {
+    PauseResumeCancel,
+    RecoverableRetry,
+}
+
+#[derive(Debug, Clone)]
+struct ExecutionFixtureRuntimeState {
+    auto_advance_after_observe: bool,
+    current_index: usize,
+    scenario: FixtureScenarioKind,
+}
+
+impl ExecutionFixtureRuntimeState {
+    fn for_scenario(scenario: FixtureScenarioKind, fixture: &ProviderFailureRetryFixture) -> Self {
+        let _ = fixture;
+        let current_index = 0;
+        let auto_advance_after_observe = scenario == FixtureScenarioKind::RecoverableRetry;
+
+        Self {
+            auto_advance_after_observe,
+            current_index,
+            scenario,
+        }
+    }
+}
+
+impl ProviderFailureRetryFixture {
+    fn pause_resume_cancel_scenario(&self) -> &ProviderFailureRetryScenarioFixture {
+        self.scenarios
+            .iter()
+            .find(|scenario| scenario.name == "pause resume and cancel")
+            .unwrap_or_else(|| {
+                self.scenarios
+                    .first()
+                    .expect("provider failure retry fixture must contain at least one scenario")
+            })
+    }
+
+    fn recoverable_scenario(&self) -> &ProviderFailureRetryScenarioFixture {
+        self.scenarios
+            .iter()
+            .find(|scenario| scenario.name == "recoverable failure retry and recovery")
+            .unwrap_or_else(|| {
+                self.scenarios
+                    .first()
+                    .expect("provider failure retry fixture must contain at least one scenario")
+            })
+    }
+
+    fn scenario(&self, kind: FixtureScenarioKind) -> &ProviderFailureRetryScenarioFixture {
+        match kind {
+            FixtureScenarioKind::PauseResumeCancel => self.pause_resume_cancel_scenario(),
+            FixtureScenarioKind::RecoverableRetry => self.recoverable_scenario(),
+        }
+    }
 }
 
 #[derive(Deserialize)]
@@ -331,52 +401,210 @@ pub async fn read_master_persona(
 
 #[tauri::command]
 pub async fn get_execution_observe_snapshot() -> Result<ExecutionObserveSnapshotDto, String> {
-    build_execution_observe_snapshot_from_fixture()
+    let fixture = load_provider_failure_retry_fixture()?;
+    let mut runtime = execution_fixture_runtime()
+        .lock()
+        .map_err(|_| "Failed to lock execution fixture runtime state".to_string())?;
+    let snapshot = build_execution_observe_snapshot_from_fixture(&fixture, &runtime)?;
+
+    advance_fixture_state_after_observe(&fixture, &mut runtime);
+
+    Ok(snapshot)
 }
 
-fn build_execution_observe_snapshot_from_fixture() -> Result<ExecutionObserveSnapshotDto, String> {
+#[tauri::command]
+pub async fn get_execution_control_snapshot() -> Result<ExecutionControlSnapshotDto, String> {
+    with_fixture_runtime_state(|fixture, runtime| {
+        Ok(build_execution_control_snapshot_from_fixture(
+            fixture, runtime,
+        ))
+    })
+}
+
+#[tauri::command]
+pub async fn pause_execution() -> Result<ExecutionControlSnapshotDto, String> {
+    with_fixture_runtime_state(|fixture, runtime| {
+        runtime.scenario = FixtureScenarioKind::PauseResumeCancel;
+        runtime.current_index = fixture
+            .scenario(runtime.scenario)
+            .transitions
+            .iter()
+            .position(|state| *state == ExecutionControlStateDto::Paused)
+            .unwrap_or(1);
+        runtime.auto_advance_after_observe = false;
+
+        Ok(build_execution_control_snapshot_from_fixture(
+            fixture, runtime,
+        ))
+    })
+}
+
+#[tauri::command]
+pub async fn resume_execution() -> Result<ExecutionControlSnapshotDto, String> {
+    with_fixture_runtime_state(|fixture, runtime| {
+        runtime.scenario = FixtureScenarioKind::PauseResumeCancel;
+        runtime.current_index = fixture
+            .scenario(runtime.scenario)
+            .transitions
+            .iter()
+            .rposition(|state| *state == ExecutionControlStateDto::Running)
+            .unwrap_or(0);
+        runtime.auto_advance_after_observe = false;
+
+        Ok(build_execution_control_snapshot_from_fixture(
+            fixture, runtime,
+        ))
+    })
+}
+
+#[tauri::command]
+pub async fn retry_execution() -> Result<ExecutionControlSnapshotDto, String> {
+    with_fixture_runtime_state(|fixture, runtime| {
+        runtime.scenario = FixtureScenarioKind::RecoverableRetry;
+        runtime.current_index = fixture
+            .scenario(runtime.scenario)
+            .transitions
+            .iter()
+            .position(|state| *state == ExecutionControlStateDto::Retrying)
+            .unwrap_or(2);
+        runtime.auto_advance_after_observe = true;
+
+        Ok(build_execution_control_snapshot_from_fixture(
+            fixture, runtime,
+        ))
+    })
+}
+
+#[tauri::command]
+pub async fn cancel_execution() -> Result<ExecutionControlSnapshotDto, String> {
+    with_fixture_runtime_state(|fixture, runtime| {
+        if runtime.scenario != FixtureScenarioKind::PauseResumeCancel {
+            runtime.scenario = FixtureScenarioKind::PauseResumeCancel;
+        }
+        runtime.current_index = fixture
+            .scenario(runtime.scenario)
+            .transitions
+            .iter()
+            .rposition(|state| *state == ExecutionControlStateDto::Canceled)
+            .unwrap_or_else(|| fixture.scenario(runtime.scenario).transitions.len() - 1);
+        runtime.auto_advance_after_observe = false;
+
+        Ok(build_execution_control_snapshot_from_fixture(
+            fixture, runtime,
+        ))
+    })
+}
+
+pub fn reset_execution_fixture_runtime_state() -> Result<(), String> {
+    let fixture = load_provider_failure_retry_fixture()?;
+    let mut runtime = execution_fixture_runtime()
+        .lock()
+        .map_err(|_| "Failed to lock execution fixture runtime state".to_string())?;
+    *runtime =
+        ExecutionFixtureRuntimeState::for_scenario(FixtureScenarioKind::RecoverableRetry, &fixture);
+
+    Ok(())
+}
+
+pub fn reset_execution_fixture_runtime_state_to_pause_scenario() -> Result<(), String> {
+    let fixture = load_provider_failure_retry_fixture()?;
+    let mut runtime = execution_fixture_runtime()
+        .lock()
+        .map_err(|_| "Failed to lock execution fixture runtime state".to_string())?;
+    *runtime = ExecutionFixtureRuntimeState::for_scenario(
+        FixtureScenarioKind::PauseResumeCancel,
+        &fixture,
+    );
+
+    Ok(())
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionControlSnapshotDto {
+    pub failure: Option<ExecutionControlFailureDto>,
+    pub state: ExecutionControlStateDto,
+}
+
+fn with_fixture_runtime_state<T>(
+    callback: impl FnOnce(
+        &ProviderFailureRetryFixture,
+        &mut ExecutionFixtureRuntimeState,
+    ) -> Result<T, String>,
+) -> Result<T, String> {
+    let fixture = load_provider_failure_retry_fixture()?;
+    let mut runtime = execution_fixture_runtime()
+        .lock()
+        .map_err(|_| "Failed to lock execution fixture runtime state".to_string())?;
+    callback(&fixture, &mut runtime)
+}
+
+fn execution_fixture_runtime() -> &'static Mutex<ExecutionFixtureRuntimeState> {
+    static RUNTIME: OnceLock<Mutex<ExecutionFixtureRuntimeState>> = OnceLock::new();
+
+    RUNTIME.get_or_init(|| {
+        let fixture = load_provider_failure_retry_fixture().unwrap_or_else(|error| {
+            panic!("execution fixture runtime should load provider failure retry fixture: {error}")
+        });
+
+        Mutex::new(ExecutionFixtureRuntimeState::for_scenario(
+            FixtureScenarioKind::RecoverableRetry,
+            &fixture,
+        ))
+    })
+}
+
+fn load_provider_failure_retry_fixture() -> Result<ProviderFailureRetryFixture, String> {
     let fixture_source = include_str!(
         "../../tests/acceptance/provider-failure-retry/fixtures/provider-failure-retry.fixture.json"
     );
-    let fixture: ProviderFailureRetryFixture =
-        serde_json::from_str(fixture_source).map_err(|error| {
-            format!("Failed to parse embedded execution observe fixture source: {error}")
-        })?;
+    serde_json::from_str(fixture_source)
+        .map_err(|error| format!("Failed to parse embedded execution fixture source: {error}"))
+}
 
-    let scenario = fixture
-        .scenarios
-        .iter()
-        .find(|scenario| {
-            scenario
-                .transitions
-                .contains(&ExecutionControlStateDto::RecoverableFailed)
-        })
-        .or_else(|| fixture.scenarios.first())
-        .ok_or_else(|| {
-            "Execution observe fixture must contain at least one scenario".to_string()
-        })?;
-    let control_state = scenario
+fn build_execution_control_snapshot_from_fixture(
+    fixture: &ProviderFailureRetryFixture,
+    runtime: &ExecutionFixtureRuntimeState,
+) -> ExecutionControlSnapshotDto {
+    let scenario = fixture.scenario(runtime.scenario);
+    let state = scenario.transitions[runtime.current_index];
+
+    ExecutionControlSnapshotDto {
+        failure: failure_for_state(scenario, state),
+        state,
+    }
+}
+
+fn build_execution_observe_snapshot_from_fixture(
+    fixture: &ProviderFailureRetryFixture,
+    runtime: &ExecutionFixtureRuntimeState,
+) -> Result<ExecutionObserveSnapshotDto, String> {
+    let scenario = fixture.scenario(runtime.scenario);
+    let control_state = *scenario
         .transitions
-        .iter()
-        .copied()
-        .find(|state| *state != ExecutionControlStateDto::Running)
+        .get(runtime.current_index)
         .ok_or_else(|| {
-            "Execution observe fixture must contain at least one non-Running transition".to_string()
+            format!(
+                "Execution fixture runtime index {} is out of range for scenario `{}`",
+                runtime.current_index, scenario.name
+            )
         })?;
-    let failure = Some(ExecutionControlFailureDto {
-        category: scenario.failure_category,
-        message: format!(
-            "Observed {:?} during provider retry acceptance scenario",
-            scenario.failure_category
-        ),
-    });
+    let failure = failure_for_state(scenario, control_state);
+    let provider_label = format_provider_label(
+        &fixture.provider_selection.provider_id,
+        fixture.provider_selection.execution_mode,
+    );
+    let runtime_settings = &fixture.provider_selection.runtime_settings;
 
     Ok(ExecutionObserveSnapshotDto {
         control_state,
         failure,
         footer_metadata: ExecutionObserveFooterMetadataDto {
             last_event_at: "2026-04-07T10:00:00Z".to_string(),
-            manual_recovery_guidance: "Use execution-control to recover or retry.".to_string(),
+            manual_recovery_guidance: format!(
+                "Use execution-control to recover or retry. Retry limit: {}, pause supported: {}.",
+                runtime_settings.retry_limit, runtime_settings.pause_supported
+            ),
             provider_run_id: "run_bootstrap_pending".to_string(),
             run_hash: "run_hash_provider_failure_retry".to_string(),
         },
@@ -407,15 +635,75 @@ fn build_execution_observe_snapshot_from_fixture() -> Result<ExecutionObserveSna
         summary: ExecutionObserveSummaryDto {
             current_phase: "Persona Generation".to_string(),
             job_name: "Execution Observe".to_string(),
-            provider_label: fixture.provider_selection.provider_id,
+            provider_label,
             started_at: "2026-04-07T10:00:00Z".to_string(),
             status_label: format!("{control_state:?}"),
         },
         translation_progress: ExecutionObserveTranslationProgressDto {
             completed_units: 12,
             queued_units: 4,
-            running_units: 1,
+            running_units: runtime_settings.max_concurrency.min(1),
             total_units: 17,
         },
     })
+}
+
+fn failure_for_state(
+    scenario: &ProviderFailureRetryScenarioFixture,
+    state: ExecutionControlStateDto,
+) -> Option<ExecutionControlFailureDto> {
+    match state {
+        ExecutionControlStateDto::RecoverableFailed | ExecutionControlStateDto::Canceled => {
+            Some(ExecutionControlFailureDto {
+                category: scenario.failure_category,
+                message: format!(
+                    "Observed {:?} during {}",
+                    scenario.failure_category, scenario.name
+                ),
+            })
+        }
+        _ => None,
+    }
+}
+
+fn advance_fixture_state_after_observe(
+    fixture: &ProviderFailureRetryFixture,
+    runtime: &mut ExecutionFixtureRuntimeState,
+) {
+    if !runtime.auto_advance_after_observe {
+        return;
+    }
+
+    let transitions = &fixture.scenario(runtime.scenario).transitions;
+    if runtime.current_index + 1 < transitions.len() {
+        runtime.current_index += 1;
+    }
+
+    if runtime.scenario == FixtureScenarioKind::RecoverableRetry {
+        let current_state = transitions[runtime.current_index];
+        if current_state == ExecutionControlStateDto::RecoverableFailed
+            || current_state == ExecutionControlStateDto::Completed
+        {
+            runtime.auto_advance_after_observe = false;
+            return;
+        }
+    }
+
+    if runtime.current_index + 1 >= transitions.len() {
+        runtime.auto_advance_after_observe = false;
+    }
+}
+
+fn format_provider_label(
+    provider_id: &str,
+    execution_mode: crate::application::dto::ProviderExecutionModeDto,
+) -> String {
+    let provider_name = match provider_id {
+        "gemini" => "Gemini",
+        "lmstudio" => "LMStudio",
+        "xai" => "xAI",
+        other => other,
+    };
+
+    format!("{provider_name} {execution_mode:?}")
 }

@@ -22,5 +22,5 @@ description: active exec-plan の `UI` / `Scenario` / `Logic` を task-local des
 
 ## Reference Use
 
-- 着手前に `../directing-implementation/references/directing-implementation.to.designing-implementation.json` を参照して入力契約を確認する。
-- `directing-implementation` へ返す時は `references/designing-implementation.to.directing-implementation.json` を返却契約として使う。
+- 着手前に `../proposing-implementation/references/proposing-implementation.to.designing-implementation.json` を参照して入力契約を確認する。
+- `proposing-implementation` へ返す時は `references/designing-implementation.to.proposing-implementation.json` を返却契約として使う。
