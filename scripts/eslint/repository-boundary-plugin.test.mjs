@@ -24,7 +24,7 @@ describe("repository boundary plugin", () => {
           code: "import { loadBootstrapStatus } from '@application/bootstrap/load-bootstrap-status';"
         },
         {
-          filename: "F:/AITranslationEngineJp/src/gateway/tauri/bootstrap-status.gateway.ts",
+          filename: "F:/AITranslationEngineJp/frontend/src/gateway/wails/bootstrap-status.gateway.ts",
           code: "import { loadBootstrapStatus } from '@application/bootstrap/load-bootstrap-status';"
         },
         {
@@ -40,23 +40,23 @@ describe("repository boundary plugin", () => {
           code: "import { fixture } from '../../fixtures/bootstrap-status';"
         },
         {
-          filename: "F:/AITranslationEngineJp/src/gateway/tauri/bootstrap-status.gateway.ts",
-          code: "import { invoke } from '@tauri-apps/api/core';"
+          filename: "F:/AITranslationEngineJp/frontend/src/gateway/wails/bootstrap-status.gateway.ts",
+          code: "import { GetBootstrapStatus } from '../../wailsjs/go/main/App';"
         }
       ],
       invalid: [
         {
-          filename: "F:/AITranslationEngineJp/src/ui/screens/bootstrap/BootstrapScreen.svelte",
-          code: "import { getBootstrapStatusGateway } from '@gateway/tauri/bootstrap-status.gateway';",
+          filename: "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.svelte",
+          code: "import { getBootstrapStatusGateway } from '@gateway/wails/bootstrap-status.gateway';",
           errors: [{ message: "ui code must not import gateway code directly." }]
         },
         {
-          filename: "F:/AITranslationEngineJp/src/application/bootstrap/load-bootstrap-status.ts",
-          code: "import { invoke } from '@tauri-apps/api/core';",
+          filename: "F:/AITranslationEngineJp/frontend/src/application/bootstrap/load-bootstrap-status.ts",
+          code: "import { GetBootstrapStatus } from '../../wailsjs/go/main/App';",
           errors: [
             {
               message:
-                "application code must not import Tauri APIs directly. Go through gateway ports or gateway adapters instead."
+                "application code must not import Wails bindings directly. Go through gateway ports or gateway adapters instead."
             }
           ]
         },
@@ -76,7 +76,7 @@ describe("repository boundary plugin", () => {
           ]
         },
         {
-          filename: "F:/AITranslationEngineJp/src/gateway/tauri/bootstrap-status.gateway.ts",
+          filename: "F:/AITranslationEngineJp/frontend/src/gateway/wails/bootstrap-status.gateway.ts",
           code: "import type { BootstrapStatus } from '@ui/screens/bootstrap/bootstrap-status';",
           errors: [{ message: "gateway code must not import ui code directly." }]
         },
@@ -146,7 +146,7 @@ describe("repository boundary plugin", () => {
         },
         {
           filename: "F:/AITranslationEngineJp/src/application/usecases/start-import.ts",
-          code: "import { invokeTauri } from '@gateway/tauri/invoke/foo';",
+          code: "import { invokeWails } from '@gateway/wails/invoke/foo';",
           errors: [{ message: "application code must not import gateway code directly." }]
         }
       ]

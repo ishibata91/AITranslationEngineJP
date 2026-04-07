@@ -32,8 +32,8 @@ CHECKS = [
     { "file": "docs/exec-plans/templates/impl-plan.md", "patterns": ["Decision Basis", "UI", "Scenario", "Logic", "Implementation Plan", "Required Evidence", "4humans Sync", "Outcome"] },
     { "file": "docs/exec-plans/templates/fix-plan.md", "patterns": ["Decision Basis", "Known Facts", "Trace Plan", "Fix Plan", "Required Evidence", "4humans Sync", "Outcome"] },
     { "file": "docs/spec.md", "patterns": ["LMStudio", "Gemini", "xAI", "BatchAPI", "xTranslator"] },
-    { "file": "docs/architecture.md", "patterns": ["Dependency Inversion Principle", "UI Port / UseCase Input", "DTO", "SQLite", "Rust"] },
-    { "file": "docs/tech-selection.md", "patterns": ["Tauri 2", "Rust", "Svelte 5", "SQLite", "sqlx"] },
+    { "file": "docs/architecture.md", "patterns": ["Dependency Inversion Principle", "Wails", "DTO", "SQLite", "Go"] },
+    { "file": "docs/tech-selection.md", "patterns": ["Wails v2", "Go", "Svelte 5", "SQLite", "database/sql"] },
     { "file": "docs/core-beliefs.md", "patterns": ["agent-first", "directing-implementation", "directing-fixes", "single-pass", "evidence"] },
     { "file": "docs/index.md", "patterns": ["AGENTS.md", ".codex", "directing-implementation", "directing-fixes", "designing-implementation", "quality-score.md", "overview-manifest.json", "tests / acceptance checks / validation commands"] },
     { "file": "4humans/quality-score.md", "patterns": ["Codex workflow source of truth", "Design harness", "directing-implementation", "directing-fixes"] },
@@ -41,16 +41,16 @@ CHECKS = [
 ]
 
 SEMANTIC_PATH_CHECKS = [
-    {"path": "src/application", "should_exist": True, "label": "frontend application layer root"},
-    {"path": "src/gateway", "should_exist": True, "label": "frontend gateway root"},
-    {"path": "src/shared", "should_exist": True, "label": "frontend shared DTO root"},
-    {"path": "src/ui", "should_exist": True, "label": "frontend ui root"},
-    {"path": "src/domain", "should_exist": False, "label": "frontend domain forbidden during bootstrap"},
-    {"path": "src/infra", "should_exist": False, "label": "frontend infra forbidden during bootstrap"},
-    {"path": "src-tauri/src/application", "should_exist": True, "label": "backend application layer root"},
-    {"path": "src-tauri/src/domain", "should_exist": True, "label": "backend domain layer root"},
-    {"path": "src-tauri/src/infra", "should_exist": True, "label": "backend infra layer root"},
-    {"path": "src-tauri/src/gateway", "should_exist": True, "label": "backend gateway root"},
+    {"path": "frontend/src/application", "should_exist": False, "label": "frontend application layer root"},
+    {"path": "frontend/src/gateway", "should_exist": False, "label": "frontend gateway root"},
+    {"path": "frontend/src/shared", "should_exist": False, "label": "frontend shared DTO root"},
+    {"path": "frontend/src/ui", "should_exist": False, "label": "frontend ui root"},
+    {"path": "frontend/src/domain", "should_exist": False, "label": "frontend domain forbidden during bootstrap"},
+    {"path": "frontend/src/infra", "should_exist": False, "label": "frontend infra forbidden during bootstrap"},
+    {"path": "internal/application", "should_exist": False, "label": "backend application layer root"},
+    {"path": "internal/domain", "should_exist": False, "label": "backend domain layer root"},
+    {"path": "internal/infra", "should_exist": False, "label": "backend infra layer root"},
+    {"path": "internal/gateway/wails", "should_exist": False, "label": "backend gateway root"},
 ]
 
 SEMANTIC_PHRASE_CHECKS = [

@@ -154,10 +154,10 @@ def main() -> int:
 
     sonar_project_properties = repo_root / "sonar-project.properties"
     root_package_json_path = repo_root / "package.json"
-    root_cargo_toml_path = repo_root / "src-tauri/Cargo.toml"
+    root_go_mod_path = repo_root / "go.mod"
 
     package_jsons = iter_files(repo_root, "package.json")
-    cargo_tomls = iter_files(repo_root, "Cargo.toml")
+    go_mods = iter_files(repo_root, "go.mod")
 
     root_package_json = next((path for path in package_jsons if path == root_package_json_path), None)
     if root_package_json is not None:
@@ -170,14 +170,12 @@ def main() -> int:
             if has_script(root_package, "scan:sonar"):
                 sonar_scanned = True
 
-    for cargo_toml in cargo_tomls:
-        if root_execution_gate_ran and cargo_toml == root_cargo_toml_path:
+    for go_mod in go_mods:
+        if root_execution_gate_ran and go_mod == root_go_mod_path:
             continue
         ran_anything = True
-        cargo_dir = cargo_toml.parent
-        failures += invoke_step("cargo", ["fmt", "--all", "--check"], cargo_dir)
-        failures += invoke_step("cargo", ["clippy", "--all-targets", "--all-features", "--", "-D", "warnings"], cargo_dir)
-        failures += invoke_step("cargo", ["test", "--all-features"], cargo_dir)
+        go_dir = go_mod.parent
+        failures += invoke_step("go", ["test", "./..."], go_dir)
 
     for package_json in package_jsons:
         if root_execution_gate_ran and package_json == root_package_json_path:
@@ -221,7 +219,7 @@ def main() -> int:
 
     if not ran_anything:
         report_skip(
-            "SKIP no Cargo.toml, package.json, or sonar-project.properties targets found. Execution harness is installed but has nothing to run yet.",
+            "SKIP no go.mod, package.json, or sonar-project.properties targets found. Execution harness is installed but has nothing to run yet.",
         )
 
     failures += enforce_diagram_overview_sync(repo_root)

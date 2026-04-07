@@ -5,12 +5,12 @@
 本書は、入力データ、基盤マスター、翻訳ジョブを含む現行データモデルの正本とする。
 未解消論点は末尾に明示し、解決までは本書に記載した構造を現行仕様として扱う。
 
-- `extractData.pas` の抽出ロジックを正として、raw JSON の出力カテゴリと項目を整理
+- xEdit 抽出 JSON の出力カテゴリと項目を canonical input として整理する
 - 抽出 JSON は正本、DB は `PLUGIN_EXPORT` 単位の実行キャッシュとして扱う
 - 内部主キーはシーケンシャル PK、外部 FormID は `form_id` として別保持する
-- `dialogue_groups -> responses` の階層をそのままエンティティ化
+- `dialogue_groups -> responses` の階層をそのままエンティティ化する
 - raw JSON 互換項目と、DB 正規化後に採用する canonical 項目を分けて記述する
-- 辞書は単純化して `source_text` / `dest_text` のみ保持
+- 辞書は単純化して `source_text` / `dest_text` のみ保持する
 
 ## 入力データ ER 図
 
@@ -36,19 +36,18 @@
 
 - `PLUGIN_EXPORT` は JSON のルートにある `target_plugin` を表す親エンティティ
 - `PLUGIN_EXPORT` は JSON 原本に対応する実行キャッシュ親であり、ジョブ実行中だけ DB に入力データを保持する
-- `dialogue_groups` は `DIALOGUE_GROUP`、その `responses` は `DIALOGUE_RESPONSE` として分離
-- `quests`, `items`, `magic`, `locations`, `system`, `messages`, `load_screens` は、JSON のトップレベル配列ごとに独立エンティティ化
-- raw JSON には互換のため `cells` ルートも出るが、`extractData.pas` の現行実装では常に空配列であり、DB 取り込み対象にはしない
-- `DIALOGUE_GROUP.nam1` は、`extractData.pas` の `ExtractDialogue` が条件付きで出力する補助項目
-- `QUEST_OBJECTIVE` と `QUEST_STAGE_LOG` は、`extractData.pas` の `ExtractQuest` が出力する `objectives` / `stages` を分解したもの
-- `ITEM.text` と `ITEM.type_hint` は、`extractData.pas` の `ExtractItem` が出力する追加プロパティ
-- `npcs` は配列ではなく ID をキーにしたオブジェクトなので、永続化時は `NPC.id` をキーとして正規化する想定
+- `dialogue_groups` は `DIALOGUE_GROUP`、その `responses` は `DIALOGUE_RESPONSE` として分離する
+- `quests`, `items`, `magic`, `locations`, `system`, `messages`, `load_screens` は、JSON のトップレベル配列ごとに独立エンティティ化する
+- raw JSON には互換のため `cells` ルートも出るが、現行入力では空配列として扱う
+- `DIALOGUE_GROUP.nam1` は抽出 JSON が条件付きで出す補助項目として保持する
+- `QUEST_OBJECTIVE` と `QUEST_STAGE_LOG` は `objectives` / `stages` を分解したものとして扱う
+- `ITEM.text` と `ITEM.type_hint` は item 系レコードの追加プロパティとして扱う
+- `npcs` は配列ではなく ID をキーにしたオブジェクトなので、永続化時は `NPC.id` をキーとして正規化する想定とする
 - `DIALOGUE_GROUP.quest_id` と `MESSAGE.quest_id` は抽出時に正規化し、表示用文字列とは別に `QUEST.id` を参照する FK として保持する
 - `DIALOGUE_RESPONSE.previous_response_id` は抽出時に正規化し、前段応答を自己参照 FK で保持する
-- `extractData.pas` の raw JSON は `speaker_id` と `voicetype` を出すが、DB では `speaker_npc_id` / `speaker_form_id` と `NPC.voice` を canonical とし、`voicetype` は互換入力としてのみ扱う
-- `CELL FULL` は `extractData.pas` では `locations` 配列へ `type = "CELL FULL"` として入るため、独立した `CELL` エンティティは持たず `LOCATION` に集約する
+- raw JSON の `voicetype` は互換入力として扱い、canonical では `speaker_*` と `NPC.voice` を基準にする
+- `CELL FULL` は `locations` 配列へ `type = "CELL FULL"` として入る前提で、独立した `CELL` エンティティは持たず `LOCATION` に集約する
 - `MASTER_PERSONA` と `MASTER_DICTIONARY` は、仕様上の基盤データとして JSON 入力とは独立に持つ
-- 外部 FormID は `form_id` として別保持し、DB の関連は内部シーケンシャル PK で張る
 - `TRANSLATION_UNIT` は import 時に各 translatable field から生成する canonical 翻訳単位であり、xTranslator 出力と標準配布形式出力の両方の基準にする
 - Mermaid では参照先コメントを列に埋め込まず、関係線と `FK` 表記で外部キーを表現する
 

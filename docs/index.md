@@ -1,8 +1,8 @@
 # Repository Index
 
-`docs/` はプロダクト仕様と設計の記録系であり、作業方法の正本は `.codex/` にある。
+`docs/` はプロダクト仕様と設計判断の正本であり、作業方法と役割契約の正本は `.codex/` にある。
 新規参加者とエージェントは `AGENTS.md` の後に `.codex/README.md` を読み、その後にこのページを使う。
-workflow の入口は implementation proposal lane owner (`proposing-implementation`) と fix lane owner (`directing-fixes`) で、proposal が LGTM された後に implementation execution lane owner (`directing-implementation`) へ渡す。必要な task-local design skill (`designing-implementation`) を通す。
+この repo は `Wails + Go + Svelte` 前提で再構成する。
 詳細な振る舞いと制約は tests / acceptance checks / validation commands を正本として扱う。
 `docs/` 正本は human が先に更新し、agent は human が直接起動した `../.codex/skills/updating-docs/SKILL.md` でだけ同期する。
 
@@ -13,57 +13,42 @@ workflow の入口は implementation proposal lane owner (`proposing-implementat
 3. [`spec.md`](./spec.md)
 4. [`architecture.md`](./architecture.md)
 5. [`tech-selection.md`](./tech-selection.md)
-6. [`er.md`](./er.md)
-7. [`coding-guidelines.md`](./coding-guidelines.md)
-8. Relevant file under [`screen-design/`](./screen-design/)
-9. [`lint-policy.md`](./lint-policy.md)
+6. [`coding-guidelines.md`](./coding-guidelines.md)
+7. [`lint-policy.md`](./lint-policy.md)
+8. [`er.md`](./er.md)
+9. Relevant file under [`screen-design/`](./screen-design/)
 10. Relevant file under [`exec-plans/`](./exec-plans/)
-11. Relevant file under [`../tasks/`](../tasks/README.md) when parallel-ready task decomposition matters
+11. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
-- [`core-beliefs.md`](./core-beliefs.md): agent-first principles, hard rules, and repository habits
 - [`../.codex/`](../.codex/README.md): multi-agent workflow, role contracts, and workflow skills
-- [`spec.md`](./spec.md): permanent requirements and glossary
-- [`architecture.md`](./architecture.md): layers, ports, dependency direction, and boundaries
-- [`tech-selection.md`](./tech-selection.md): chosen technologies and quality tooling
-- [`coding-guidelines.md`](./coding-guidelines.md): repository coding conventions for Tauri 2, Svelte 5, TypeScript, and Rust
-- [`screen-design/`](./screen-design/): screen map, wireframes, and UI layout references
-- [`er.md`](./er.md): canonical data model and ER specification
+- [`core-beliefs.md`](./core-beliefs.md): repo の長期原則と記録方針
+- [`spec.md`](./spec.md): 恒久要件と用語集
+- [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向
+- [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
+- [`coding-guidelines.md`](./coding-guidelines.md): Wails + Go + Svelte 前提の実装規約
+- [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担
+- [`er.md`](./er.md): canonical data model と ER 仕様
+- [`screen-design/`](./screen-design/): 画面構成と wireframe
 - [`diagrams/er/`](./diagrams/er/): ER 図の D2 source of truth と review 用 SVG
-- [`lint-policy.md`](./lint-policy.md): what lint manages, what it does not manage, and tool ownership
-- [`exec-plans/active/`](./exec-plans/active/README.md): plans that are not yet complete
-- [`exec-plans/completed/`](./exec-plans/completed/README.md): finished plans and outcomes
-- [`../tasks/`](../tasks/README.md): machine-readable task catalog for parallel-safe decomposition and batch planning
-- [`../4humans/quality-score.md`](../4humans/quality-score.md): human-facing quality posture and missing coverage
-- [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md): human-facing unresolved debt and cleanup backlog
-- [`../4humans/diagrams/`](../4humans/diagrams): human-facing review diagrams. `structures/` は構造、`processes/` は実装追加などに伴うユースケースフロー説明、`harness/` はハーネスのフロー説明を扱う
-- [`../4humans/diagrams/overview-manifest.json`](../4humans/diagrams/overview-manifest.json): new detail diagram を追加した時に、どの overview 図を同じ変更で更新すべきかを固定する正本
-- [`references/`](./references/index.md): curated reference index and external material policy
+- [`references/`](./references/index.md): 外部仕様と参照方針
+- [`exec-plans/active/`](./exec-plans/active/README.md): 未完了の plan
+- [`exec-plans/completed/`](./exec-plans/completed/README.md): 完了した plan と結果
 
 ## Choose The Right Record
 
-- Requirement or product boundary changed: human-first update [`spec.md`](./spec.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
-- Dependency rule or layering changed: human-first update [`architecture.md`](./architecture.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
-- Technology decision changed: human-first update [`tech-selection.md`](./tech-selection.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
-- Coding conventions or Tauri 2 implementation rules changed: update [`coding-guidelines.md`](./coding-guidelines.md)
-- Screen map, wireframe, or UI layout reference changed: update the relevant file under [`screen-design/`](./screen-design/)
-- Data structure or entity relationship changed: human-first update [`er.md`](./er.md) via [`../.codex/skills/updating-docs/SKILL.md`](../.codex/skills/updating-docs/SKILL.md)
-- ER 図の source of truth や review 用画像を変えた: update the relevant file under [`diagrams/er/`](./diagrams/er/)
-- Detailed behavior or constraint changed: update the corresponding tests or acceptance checks and validation commands
-- Lint の責務範囲、allowlist 方針、tool ownership を変えた: update [`lint-policy.md`](./lint-policy.md)
+- Requirement or product boundary changed: update [`spec.md`](./spec.md)
+- Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
+- Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
+- Coding conventions changed: update [`coding-guidelines.md`](./coding-guidelines.md)
+- Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
+- Screen map or wireframe changed: update the relevant file under [`screen-design/`](./screen-design/)
+- Data model or entity relationship changed: update [`er.md`](./er.md) and relevant file under [`diagrams/er/`](./diagrams/er/)
+- External references or vendor specs changed: update [`references/`](./references/index.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
-- Work needs parallel-safe task decomposition or batch planning: update the relevant file in [`../tasks/`](../tasks/README.md)
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
-- Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file in `../.codex/agents/` or `../.codex/skills/` via `skill-modification`
-- Workflow text should prefer `論理名 (`actual-name`)` co-location so human review and actual-name search both stay cheap
-- Product-level confusion keeps recurring: add a rule to [`core-beliefs.md`](./core-beliefs.md) or [`AGENTS.md`](../AGENTS.md)
-- The repository is missing coverage or confidence: update [`../4humans/quality-score.md`](../4humans/quality-score.md)
-- The problem is known but not resolved yet: update [`../4humans/tech-debt-tracker.md`](../4humans/tech-debt-tracker.md)
-- 実装や修正で構造が変わった: update the relevant file under [`../4humans/diagrams/structures/`](../4humans/diagrams/structures/)
-- 実装が追加または変更され、ユースケースフローに影響した: update the relevant file under [`../4humans/diagrams/processes/`](../4humans/diagrams/processes/)
-- `4humans/diagrams/structures/` または `4humans/diagrams/processes/` に new detail `.d2` を追加した: update [`../4humans/diagrams/overview-manifest.json`](../4humans/diagrams/overview-manifest.json) and the linked overview `.d2` / `.svg`
-- ハーネス実装が追加または変更された: update the relevant file under [`../4humans/diagrams/harness/`](../4humans/diagrams/harness/)
+- Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file under `../.codex/`
 
 ## Repository Checks
 
@@ -74,8 +59,6 @@ workflow の入口は implementation proposal lane owner (`proposing-implementat
 
 ## Notes
 
-- New external references should be added under [`references/`](./references/index.md).
-- Raw vendor API dumps live under [`references/vendor-api/`](./references/vendor-api/).
-- Parallel-ready task catalogs live under [`../tasks/`](../tasks/README.md).
-- Workflow skills live under [`../.codex/skills/`](../.codex/skills/).
-- Workflow references should prefer logical role labels with actual names together, for example implementation proposal lane owner (`proposing-implementation`) and implementation execution lane owner (`directing-implementation`).
+- 現行の harness は repo 再構成前提のため、`Wails + Go + Svelte` への移行途中では文書より先に stale になることがある
+- 過去の実装成果物や削除済み directory は source of truth に戻さない
+- library や framework の書き方は、更新前に official docs を `Context7` で確認する

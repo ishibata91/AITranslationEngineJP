@@ -3,54 +3,71 @@
 関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`architecture.md`](./architecture.md), [`core-beliefs.md`](./core-beliefs.md)
 
 本書は、システム実装のために採用する技術と、その適用対象を定義する。
+この repo は `Wails + Go + Svelte` を基盤とする。
 
 ## 1. アプリケーション基盤
 
-- デスクトップアプリ基盤は `Tauri 2` を採用する
-- アプリケーションコア実装言語は `Rust` を採用する
-- Tauri 実行基盤として `WebView2 Fixed Version Runtime` を同梱する
+- デスクトップアプリ基盤は `Wails v2` を採用する
+- バックエンド実装言語は `Go` を採用する
+- frontend asset の配布と desktop packaging は `wails dev` と `wails build` を標準入口とする
+- project config は repo root の `wails.json` を正本とする
 
 ## 2. フロントエンド
 
 - UI フレームワークは `Svelte 5` を採用する
 - UI 実装言語は `TypeScript` を採用する
-- ビルドツールは `Vite` を採用する
-- スタイリングは `Tailwind CSS + DaisyUI` を採用する
+- frontend build tool は `Vite` を採用する
+- frontend package root は `frontend/` を採用する
+- 初期スタイリングは repo-local CSS を採用し、CSS framework は初期必須要件に含めない
 
 ## 3. バックエンド基盤
 
-- 非同期ランタイムは `tokio` を採用する
-- HTTP クライアントは `reqwest` を採用する
-- JSON シリアライズは `serde` / `serde_json` を採用する
-- XML 出力は `quick-xml` を採用する
-- ログ計測は `tracing` を採用する
+- lifecycle と desktop bridge は `Wails Bind` を採用する
+- backend から frontend への push 通知は `Wails runtime events` を採用する
+- HTTP client は `Go standard library` の `net/http` を標準とする
+- JSON シリアライズは `encoding/json` を標準とする
+- XML 出力は `encoding/xml` を第一候補とする
+- ログ計測は `log/slog` を採用する
 
 ## 4. 永続化
 
 - ローカルデータベースは `SQLite` を採用する
-- DB アクセスは `sqlx` を採用する
-- `SQLite` schema の変更管理は `sqlx` の versioned migration を標準方式とする
+- DB access の抽象は `database/sql` を基準にする
+- schema の変更管理は repo-owned SQL migration を採用する
+- migration の適用は app 起動時の専用初期化責務へ集約する
 - xEdit 抽出 JSON はファイルシステム上の正本として保持する
-- `SQLite` は `PLUGIN_EXPORT` 配下の入力データを実行キャッシュとして保持する
-- `MASTER_PERSONA` と `MASTER_DICTIONARY` は `SQLite` 上の永続基盤データとして保持する
-- DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
-- DB access では DB path の共有だけで十分とし、connection pool の共有は標準要件に含めない
+- `SQLite` は入力データ、基盤マスター、翻訳ジョブの実行キャッシュとして使う
+- DB driver の concrete choice は implementation plan で固定するが、上位層へ driver 固有 API を漏らさない
 
 ## 5. DI と品質基盤
 
 - DI は `手動 DI` を採用する
-- フロントエンドの標準 lint は `Oxlint` を採用する
-- UI / `Svelte` 変更時の補助 lint として `ESLint` を採用する
-- repo 固有の import 境界 lint は `ESLint Flat Config + repository-local rule` を採用する
-- 未参照 export / file / dependency の検出は `Knip` を採用する
-- `SonarScanner` を code smell / complexity / security hotspot 向け server-side 静的解析の入口として採用する
-- Sonar issue の取得と remediation loop には `Sonar MCP` を採用する
-- Sonar 系 gate は `TS` / `Svelte` / `Rust` を対象とし、構造境界 lint の主担当ではなく generic quality issue の補完層として使う
-- Rust の品質基盤は `rustfmt` / `clippy` を採用する
+- frontend lint は `ESLint` を採用する
+- `Svelte` / `TypeScript` の静的検証は `svelte-check` を採用する
+- frontend test runner は `Vitest` を採用する
+- backend format は `gofmt` を採用する
+- backend test は `go test` を採用する
+- backend static check の第一波は `go vet` を採用する
+- 過度な quality tooling の追加は避け、必要性が明確になってから増やす
 
 ## 6. テスト技術
 
-- Rust の単体テスト / 結合テストは `cargo test` による標準 test harness を採用する
 - UI コンポーネントと画面内インタラクションのテストは `Vitest` を採用する
 - Svelte UI のユーザー視点テストは `@testing-library/svelte` と `jsdom` を採用する
-- Tauri デスクトップの受け入れ検証と end-to-end テストは `tauri-driver` と `WebdriverIO` を採用する
+- backend の unit test / integration test は `go test ./...` を採用する
+- desktop 受け入れ検証の自動化は未確定とし、最初の実装フェーズでは boot smoke と重要フローの executable spec を優先する
+
+## 7. 公式参照
+
+- Wails official docs:
+  [`Getting Started`](https://wails.io/docs/gettingstarted/firstproject),
+  [`Project Config`](https://wails.io/docs/reference/project-config),
+  [`Application Development`](https://wails.io/docs/guides/application-development)
+- Svelte official docs:
+  [`Svelte 5`](https://svelte.dev/docs/svelte/overview),
+  [`TypeScript`](https://svelte.dev/docs/svelte/typescript),
+  [`Migration Guide`](https://svelte.dev/docs/svelte/v5-migration-guide)
+- Vite official docs:
+  [`Guide`](https://vite.dev/guide/),
+  [`Build`](https://vite.dev/guide/build),
+  [`Config`](https://vite.dev/config/)

@@ -20,8 +20,8 @@
 | System of record | Green | 恒久契約は `docs/` と `.codex/` に固定し、task-local な詳細設計は active plan、永続化すべき詳細は tests / acceptance checks / validation commands に分離した |
 | Structure harness | Green | 必須ファイル、必須ディレクトリ、Markdown リンクの検査入口を追加した |
 | Design harness | Green | lane workflow、embedded `UI` / `Scenario` / `Logic`、single-pass review に加え、canonical phrase と architecture bootstrap boundary を検査し、設計契約の欠落と初期境界逸脱を検出できる |
-| Execution harness | Yellow | Rust / frontend の実行対象を追加し、skip 状態は解消した。Phase 3 では translation-flow MVP regression を追加したが、Tauri transport や provider-backed acceptance checks はまだ未整備 |
-| Test-level constraints and checks | Yellow | bootstrap 用の lint / test / build / cargo command に加え、xEdit importer validation、xTranslator dictionary importer validation、dictionary rebuild snapshot compatibility、canonical `TRANSLATION_UNIT` contract、translation-flow MVP orchestration regression の Rust tests を追加したが、翻訳ジョブ全体の fixture / acceptance checks はまだ不足している |
+| Execution harness | Yellow | frontend と backend の実行対象を追加し、skip 状態は解消した。translation-flow MVP regression はあるが、desktop transport や provider-backed acceptance checks はまだ未整備 |
+| Test-level constraints and checks | Yellow | bootstrap 用の lint / test / build に加え、xEdit importer validation、xTranslator dictionary importer validation、dictionary rebuild snapshot compatibility、canonical `TRANSLATION_UNIT` contract、translation-flow MVP orchestration regression の backend tests を追加したが、翻訳ジョブ全体の fixture / acceptance checks はまだ不足している |
 
 ## Reserved Future Verification Tracks
 

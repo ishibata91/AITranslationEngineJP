@@ -20,200 +20,124 @@
 
 ```mermaid
 flowchart TB
-    UI["UI層<br/>画面・状態管理・入力受付"]
+    UI["UI層<br/>Svelte 画面・状態管理・入力受付"]
     APP["アプリケーション層<br/>ユースケース・ジョブ制御"]
-    DOMAIN["ドメイン層<br/>モデル・ドメインサービス・ルール"]
-    INFRA["インフラ層<br/>DB・ファイル・LLM・外部I/O"]
+    DOMAIN["ドメイン層<br/>モデル・ルール"]
+    INFRA["インフラ層<br/>SQLite・ファイル・AI adapter"]
+    WG["Wails Gateway<br/>Bind / Events"]
 
-    UI_REQ["UI Port / UseCase Input"]
-    APP_OUT["Application Port"]
-    DOMAIN_PORT["Domain Port / Repository / Provider"]
-
-    UI --> UI_REQ
-    UI_REQ --> APP
-    APP --> APP_OUT
-    APP_OUT --> INFRA
+    UI --> WG
+    WG --> APP
     APP --> DOMAIN
-    DOMAIN --> DOMAIN_PORT
-    DOMAIN_PORT --> INFRA
-
-    classDef outer fill:#eef6ff,stroke:#4a6fa5,color:#111;
-    classDef inner fill:#f8f4ea,stroke:#8c6d1f,color:#111;
-    class UI,INFRA outer;
-    class APP,DOMAIN inner;
+    APP --> INFRA
+    DOMAIN --> INFRA
 ```
 
 依存の原則は以下の通りとする。
 
-- `UI層` はアプリケーション層の入力ポートに依存し、具体ユースケース実装に直接依存しない
-- `アプリケーション層` はドメインモデルと出力ポートの抽象に依存し、永続化や外部 API の実装詳細に依存しない
-- `ドメイン層` はドメインルールを保持し、リポジトリや AI プロバイダは抽象としてのみ参照する
-- `インフラ層` は各ポートや trait を実装するが、上位層の方針を変更しない
+- `UI層` はアプリケーション層の input boundary に依存し、Go の具体実装へ直接依存しない
+- `アプリケーション層` はドメインモデルと出力 port の抽象に依存し、永続化や外部 API の実装詳細に依存しない
+- `ドメイン層` はドメインルールを保持し、repository や AI provider は抽象としてのみ参照する
+- `インフラ層` は各 port を実装するが、上位層の方針を変更しない
+- `Wails Gateway` は transport boundary であり、業務判断の置き場にしない
 
-## 2. 各層の境界方針
+## 2. Wails transport boundary
 
-### 2.1 UI層
+Wails の `Bind` は frontend から backend への primary request / response boundary とする。
+frontend は generated `wailsjs` を直接 app 全体へ広げず、`gateway/wails` に閉じ込める。
+
+- request / response: `frontend/src/gateway/wails/` から generated `wailsjs` を呼ぶ
+- backend bind: `internal/gateway/wails/` が public method を公開する
+- push 通知: backend は `runtime.EventsEmit` で frontend へ進捗や通知を送る
+- runtime API や generated wrapper は transport として扱い、domain rule を持ち込まない
+
+Wails event は progress、notification、background completion のような push 用に限定し、通常の query / command の主経路には使わない。
+
+## 3. 各層の境界方針
+
+### 3.1 UI層
 
 UI層はユースケースの interface に依存する。
-具体的なジョブ実行器、Repository、AI プロバイダ実装を直接参照しない。
+具体的な repository、AI provider、SQLite 実装を直接参照しない。
 
 UI層の内部構成は以下を基本とする。
 
-- `App Shell`: デスクトップアプリ全体のレイアウト、主要画面の切替、共有 UI 状態の保持を担う
-- `Screen UseCase`: UI イベントを受け取り、画面操作単位の処理フロー、状態更新、画面遷移を制御する
-- `UI Service`: 画面入力の解釈、表示用データ整形、画面内ルールなどの UI 向けロジックを担う
-- `Presenter / View`: 表示専用とし、受け取った表示データとイベント通知のみを扱う
-- `Screen Store`: 画面単位の表示状態、選択状態、入力状態、ロード状態を保持する
-- `Gateway`: Tauri の `invoke` / event を閉じ込め、DTO の送受信を担う
-
-```mermaid
-flowchart LR
-    subgraph UI["UI層"]
-        SHELL["App Shell"]
-
-        subgraph SCREEN["画面単位"]
-            USECASE["Screen UseCase"]
-            SERVICE["UI Service"]
-            STORE["Screen Store"]
-            VIEW["Presenter / View"]
-        end
-
-        GW["Gateway"]
-        APPSTATE["App Shared State"]
-    end
-
-    SHELL --> USECASE
-    SHELL --> APPSTATE
-    VIEW --> USECASE
-    USECASE --> SERVICE
-    USECASE --> STORE
-    SERVICE --> STORE
-    SERVICE --> GW
-    STORE --> VIEW
-    GW --> STORE
-
-    classDef ui fill:#eef6ff,stroke:#4a6fa5,color:#111;
-    class SHELL,USECASE,SERVICE,STORE,VIEW,GW,APPSTATE ui;
-```
-
-デスクトップ UI はブラウザ的な URL ルーティングを主軸にせず、単一ウィンドウの `App Shell` 配下で画面を切り替える。
-画面ごとに `Screen UseCase` と `Screen Store` を持ち、共有が必要な状態のみを `App Shell` 配下へ引き上げる。
+- `App Shell`: デスクトップアプリ全体のレイアウト、主要画面の切替、共有 UI 状態の保持
+- `Screen UseCase`: 画面操作単位の処理フロー、状態更新、画面遷移の制御
+- `Presenter / View`: 表示専用。受け取った表示データとイベント通知のみを扱う
+- `Screen Store`: 画面単位の表示状態、選択状態、入力状態、ロード状態を保持
+- `Gateway`: Wails bindings と runtime events を閉じ込める adapter
 
 UI層の依存ルールは以下の通りとする。
 
-- `Presenter / View` は入力ポート、`Gateway`、Tauri API に依存しない
-- `Screen UseCase` は `UI Service` と `Screen Store` に依存できる
-- `UI Service` は入力ポート、`Gateway`、`Screen Store` に依存できる
-- `Screen Store` は UI 表示状態の保持に専念し、Tauri API や具体ユースケース呼び出しを直接持たない
-- `Gateway` は UI からバックエンドへの接続境界としてのみ機能し、画面表示ロジックを持たない
+- `Presenter / View` は `wailsjs`、runtime API、永続化、外部通信へ直接依存しない
+- `Screen UseCase` は `Gateway` と `Screen Store` に依存できる
+- `Screen Store` は UI 表示状態の保持に専念し、副作用の起点にならない
+- `Gateway` は UI から backend への接続境界としてのみ機能し、画面表示ロジックを持たない
 
-UI が扱う状態は以下の 3 種に分ける。
+### 3.2 アプリケーション層
 
-- `画面ローカル状態`: 入力値、フィルタ、開閉状態、選択中タブなどの一時的状態
-- `画面単位状態`: 一覧、詳細、ロード中、エラー表示など、画面として保持すべき状態
-- `アプリ共有状態`: 実行中ジョブの要約、通知、現在の対象選択など、複数画面で共有する最小限の状態
+アプリケーション層は input / output port を定義し、具体実装はインフラ層へ委譲する。
+translation flow では phase orchestration と runtime selection を分けて扱う。
 
-### 2.1.1 初期実装レイアウト
+- import、dictionary rebuild、persona generation、body translation は use case 単位で分離する
+- AI provider selection は application layer が受けるが、接続実装は infra に置く
+- job-local persona と master persona は同じ runtime を共有してよいが、保存先の境界は分ける
 
-実装初期化フェーズでは、repo root を frontend package root とし、backend は `src-tauri/` 配下の単一 Rust crate とする。
-初期の concrete layout は以下を正本とする。
-
-- frontend root:
-  - `src/ui/`: `App Shell`、screen、view、screen-local state
-    - `src/ui/app-shell/`
-    - `src/ui/screens/`
-    - `src/ui/views/`
-    - `src/ui/stores/`
-  - `src/application/`: screen usecase、UI が依存する input port、gateway port
-    - `src/application/bootstrap/`
-    - `src/application/usecases/`
-    - `src/application/ports/input/`
-    - `src/application/ports/gateway/`
-  - `src/gateway/`: Tauri `invoke` / event を閉じ込める adapter
-    - `src/gateway/tauri/`
-    - `src/gateway/tauri/invoke/`
-    - `src/gateway/tauri/events/`
-  - `src/shared/`: UI と gateway 間で共有する DTO / contract
-    - `src/shared/contracts/`
-- backend root `src-tauri/src/`:
-  - `application/`: usecase、DTO、backend 側 input/output port
-  - `domain/`: domain model と domain rule
-  - `infra/`: runtime、DB、file、HTTP、provider adapter
-  - `gateway/`: Tauri command と application usecase の接続点
-
-初期フェーズでは TS 側に `domain` / `infra` は作らない。
-`domain` / `infra` の core responsibility は Rust 側へ集約し、TS 側は UI 境界の orchestration に留める。
-
-### 2.2 アプリケーション層
-
-アプリケーション層は入力ポートと出力ポートを定義し、具体実装はインフラ層へ委譲する。
-ドメイン層のルールを利用するが、SQLite やファイル I/O には直接依存しない。
-
-AI を使う翻訳フローでは、アプリケーション層は phase orchestration と runtime port を分けて持つ。
-`NPCペルソナ生成フェーズ` の phase orchestration は translation flow 側の責務として扱い、concrete provider runtime の選択と接続は AI 実行基盤側の責務として扱う。
-ベースゲーム NPC 由来のマスターペルソナ生成と、翻訳ジョブ中の job-local persona 生成は、同じ persona-generation runtime 境界を共有してよいが、保存先と handoff 境界は共有しない。
-
-### 2.3 ドメイン層
+### 3.3 ドメイン層
 
 ドメイン層は最も内側の方針として安定させる。
-永続化、UI、LLM SDK への依存は禁止し、必要な外部機能は trait や interface で抽象化する。
+Wails、SQLite driver、filesystem、LLM SDK への依存は禁止し、必要な外部機能は interface で抽象化する。
 
-### 2.4 インフラ層
+### 3.4 インフラ層
 
 インフラ層は Repository、Provider、Writer などの具体実装を持つ。
 依存は上位層が定義した抽象へ向け、インフラ都合の型を上位層へ漏らさない。
 
-AI 実行基盤の concrete runtime はインフラ層に置く。
-`LMStudio`、`Gemini`、`xAI` の provider adapter は、translation flow 本体へ直接依存させず、persona generation と本文翻訳の両方から利用できる runtime 実装として扱う。
+## 4. 初期レイアウト
 
-## 3. 層間ポート方針
+`Wails + Go + Svelte` の初期レイアウトは以下を正本とする。
 
-4 層すべての接続点はポートで定義する。
+- repo root
+  - `main.go`: Wails bootstrap と app 起動
+  - `wails.json`: Wails project config
+  - `frontend/`: frontend package root
+  - `internal/`: Go の application / domain / infra / gateway
+- `frontend/`
+  - `src/ui/`: App Shell、screen、view、store
+  - `src/application/`: screen usecase、frontend 側 boundary
+  - `src/gateway/wails/`: generated binding wrapper と runtime event adapter
+  - `src/shared/contracts/`: UI が依存する DTO / query model
+  - `wailsjs/`: generated bindings。hand-edit しない
+- `internal/`
+  - `application/`: usecase、DTO、input / output port
+  - `domain/`: model、service、rule
+  - `infra/`: SQLite、file、HTTP、provider adapter
+  - `gateway/wails/`: bound struct と transport mapping
 
-- `UI -> アプリケーション層`: UseCase Input Port
-- `アプリケーション層 -> UI`: Query Model / DTO
-- `アプリケーション層 -> ドメイン層`: Domain Service, Factory, Specification
-- `アプリケーション層 -> インフラ層`: Repository, Unit of Work, Event Store, Output Writer
-- `ドメイン層 -> インフラ層`: TranslationProvider, DictionarySource, PersonaSource などの抽象
+## 5. DTO 境界
 
-各ポートの interface / trait は内側の層で定義し、外側の層で実装する。
+frontend と backend のデータ受け渡しは DTO を明示して行う。
 
-初期 bootstrap では、frontend は `src/application/*Port` を input port として持ち、`src/gateway/` がその実装を担う。
-backend は `src-tauri/src/application/` が DTO を返し、`src-tauri/src/gateway/commands.rs` が Tauri command として公開する。
+- Go 側の public bind method は request / response struct を明示する
+- DTO は `json` tag を付け、field 名を暗黙変換に任せない
+- frontend は generated `wailsjs` の型を `gateway/wails` の中で `src/shared/contracts/` へ写像する
+- UI は shared contract だけを前提にし、generated type や Go 内部構造を直接前提にしない
 
-### 3.1 同層内の依存抑制
+## 6. 型安全方針
 
-- 同一層内でも、別 feature / slice / package の internal module への直接依存は原則禁止する
-- 同一層内で共有が必要な型や処理は、共有 module か明示的な port / DTO / utility へ昇格して参照する
-- ある feature が別 feature の内部実装を直接 import する構造は採用せず、必要なら境界を引き直す
-- 同一層で別 public root を参照する場合、許可する import path は `target root` の `index` file か `target root` 直下の file に限定する
-- `target root` 配下の下位 directory (`target root/*/*`) は internal module とみなし、同一層の別 public root から直接 import しない
-- この制約は path-based import lint により機械的に検証できる形へ保つ
-
-## 4. DTO 境界
-
-フロントエンドとバックエンド間のデータ受け渡しは DTO を明示的に定義して行う。
-
-## 5. 型安全方針
-
-- バックエンドの中核ロジックは Rust の型で定義する
-- UI は TypeScript の型で定義する
+- バックエンドの中核ロジックは `Go` の型で定義する
+- UI は `TypeScript` の型で定義する
 - xEdit JSON はロード時に型検証する
-- xTranslator XML は `TRANSLATION_UNIT` とジョブごとの翻訳結果から生成する
-- ジョブフェーズ種別は DB テーブルではなくアプリケーション定数として定義する
+- xTranslator 互換出力は domain の canonical translation unit から再構成する
+- ジョブフェーズ種別は DB テーブルではなく application constant として保持してよい
 - DB の内部主キーはシーケンシャル整数を採用し、外部 FormID は別列で保持する
 
-## 6. 永続化方針
+## 7. 永続化方針
 
-- `PLUGIN_EXPORT` 配下の入力データは SQLite 上の実行キャッシュとして保持する
-- DB schema の変更は versioned migration で管理し、backend 起動時の専用初期化責務が一度だけ適用する
-- DB schema の準備を request ごとの repository 呼び出しへ混ぜず、repository は DML と transaction に専念する
-- DB 初期化責務は backend-owned な専用初期化責務へ置き、`bootstrap-status` の read model や repository 自体へ混ぜない
-- `bootstrap` と repository が同じ DB path を参照してよいが、接続共有は要件とせず、各責務で個別接続してよい
-- 実行キャッシュは `TRANSLATION_JOB` が `JOB_PLUGIN_EXPORT` を介して 1 件以上参照する
-- import 時に、各 translatable field を `TRANSLATION_UNIT` として正規化し、翻訳フェーズと出力生成の canonical 単位にする
-- mod 翻訳中に生成したペルソナは `JOB_PERSONA_ENTRY` としてジョブ単位に保持し、基盤の `MASTER_PERSONA` とは分離する
-- 出力生成結果は `JOB_OUTPUT_ARTIFACT` として format ごとに記録する
-- `TRANSLATION_JOB` が `Completed`, `Canceled`, `Failed` のいずれかになり、同一 `PLUGIN_EXPORT` を参照する未完了ジョブが `JOB_PLUGIN_EXPORT` 上に残っていない場合は入力キャッシュを削除する
-- JSON 原本は削除せず、必要時に再取り込み可能とする
-- `MASTER_PERSONA`, `MASTER_PERSONA_ENTRY`, `MASTER_DICTIONARY`, `MASTER_DICTIONARY_ENTRY` はジョブ完了後も保持する
+- 入力データの raw JSON はファイルシステム上の正本とする
+- `SQLite` は入力キャッシュ、基盤マスター、翻訳ジョブの実行状態を保持する
+- schema 変更は repo-owned SQL migration で管理し、起動時 bootstrap で一度だけ適用する
+- repository は DML と transaction に専念し、DDL 実行や schema 準備を通常 use case へ混ぜない
+- `MASTER_PERSONA` と `MASTER_DICTIONARY` はジョブ完了後も保持する
+- job-local persona と job output artifact はジョブ単位で保持する

@@ -79,9 +79,9 @@ const PUBLIC_ROOT_SPEC_MATCHERS = [
   {
     layer: "gateway",
     match(segments) {
-      if (segments[0] === "tauri") {
+      if (segments[0] === "wails") {
         return {
-          rootId: "gateway:tauri",
+          rootId: "gateway:wails",
           rootSegmentLength: 1
         };
       }
@@ -146,8 +146,12 @@ function detectResolvedTargetType(resolvedPath) {
 }
 
 function detectTargetType(filename, specifier) {
-  if (specifier === "@tauri-apps/api" || specifier.startsWith("@tauri-apps/api/")) {
-    return "tauri";
+  if (
+    specifier === "wailsjs" ||
+    specifier.startsWith("wailsjs/") ||
+    specifier.includes("/wailsjs/")
+  ) {
+    return "wails";
   }
 
   for (const layer of SOURCE_LAYERS) {
@@ -280,8 +284,8 @@ function isReverseFlowSourceExempt(filename) {
 }
 
 function buildMessage(sourceLayer, targetType) {
-  if (targetType === "tauri") {
-    return `${sourceLayer} code must not import Tauri APIs directly. Go through gateway ports or gateway adapters instead.`;
+  if (targetType === "wails") {
+    return `${sourceLayer} code must not import Wails bindings directly. Go through gateway ports or gateway adapters instead.`;
   }
 
   if (targetType === "reverse-flow") {
@@ -346,7 +350,7 @@ const enforceLayerBoundariesRule = {
           return;
         }
 
-        if (targetType === "tauri" && sourceLayer === "gateway") {
+        if (targetType === "wails" && sourceLayer === "gateway") {
           return;
         }
 

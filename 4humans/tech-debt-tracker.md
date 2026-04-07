@@ -34,9 +34,9 @@
 
 - Status: Open
 - Area: Verification
-- Detail: Rust / Svelte の bootstrap target に加え xEdit importer validation と translation-flow MVP orchestration regression は入ったが、Tauri transport、writer、provider-backed persona 系の acceptance checks はまだ乗っていない
+- Detail: frontend / backend の bootstrap target に加え xEdit importer validation と translation-flow MVP orchestration regression は入ったが、desktop transport、writer、provider-backed persona 系の acceptance checks はまだ乗っていない
 - Impact: execution harness は importer failure path と backend-local translation flow proof の一部を回せるようになった一方、実 transport と provider 実体を含む業務フロー成立の検証までは到達していない
-- Next step: 実装進行に応じて Tauri transport と provider 実体を含む fixture / acceptance checks を追加し、execution harness から段階的に呼ぶ
+- Next step: 実装進行に応じて desktop transport と provider 実体を含む fixture / acceptance checks を追加し、execution harness から段階的に呼ぶ
 
 ### 5. Test-level constraints coverage is not started
 
