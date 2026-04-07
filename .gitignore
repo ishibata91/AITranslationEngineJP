@@ -1,10 +1,2 @@
-dictionaries
-db/
-node_modules
-dist
-coverage
-src-tauri/target
 .scannerwork
-.zed
-.cargo-home
 .sonar-local
