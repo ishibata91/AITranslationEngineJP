@@ -1,0 +1,35 @@
+id: P4-I06-2
+title: Wire execution-observe snapshot path
+type: integ
+status: completed
+goal: Complete the stable execution-observe UI path by wiring provider-neutral observation
+  snapshots through Tauri gateway and composition roots.
+owned_scope:
+- src/gateway/tauri/execution-observe/
+- src-tauri/src/gateway/commands.rs
+- src-tauri/src/lib.rs
+- src/main.ts
+out_of_scope:
+- redesigning execution-control state contracts
+- pause, resume, retry, or cancel UI behavior
+- writer output observation
+depends_on:
+- P4-I06
+- P4-C02
+- P4-V01
+produces:
+- stable execution-observe snapshot path
+consumes:
+- execution-observe frontend slice
+- execution-control state contract
+- provider failure and retry acceptance anchor
+acceptance_anchor:
+- execution-observe UI can load provider-neutral progress and failure snapshots through
+  the integrated Tauri path without adapter internals
+parallel_safe_with: []
+shared_risks:
+- if this task invents new observation contract shape instead of wiring an integrated
+  path, the phase boundaries are underspecified
+done_when:
+- execution-observe UI no longer depends on a placeholder loader and can observe
+  progress and failure state through the integrated path

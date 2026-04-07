@@ -45,6 +45,9 @@
       "4humans/diagrams/structures/frontend-persona-observe-slice-class-diagram.d2": [
         "4humans/diagrams/structures/frontend-structure-overview.d2"
       ],
+      "4humans/diagrams/structures/frontend-execution-observe-slice-class-diagram.d2": [
+        "4humans/diagrams/structures/frontend-structure-overview.d2"
+      ],
       "4humans/diagrams/structures/frontend-job-create-slice-class-diagram.d2": [
         "4humans/diagrams/structures/frontend-structure-overview.d2"
       ],
@@ -58,50 +61,55 @@
   },
   "processes": {
     "overviews": [
+      "4humans/diagrams/processes/backend-processes-overview-robustness.d2",
+      "4humans/diagrams/processes/frontend-processes-overview-robustness.d2",
       "4humans/diagrams/processes/processes-overview-robustness.d2"
     ],
     "detail_to_overviews": {
       "4humans/diagrams/processes/backend-bootstrap-status-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-create-job-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-dictionary-storage-query-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-master-persona-builder-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-job-persona-persistence-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-import-xedit-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-list-jobs-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/backend-translation-flow-mvp-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/backend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-bootstrap-status-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-dictionary-observe-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-persona-observe-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
+      ],
+      "4humans/diagrams/processes/frontend-execution-observe-sequence-diagram.d2": [
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-job-create-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-job-list-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
       ],
       "4humans/diagrams/processes/frontend-execution-control-sequence-diagram.d2": [
-        "4humans/diagrams/processes/processes-overview-robustness.d2"
+        "4humans/diagrams/processes/frontend-processes-overview-robustness.d2"
       ]
     }
   }

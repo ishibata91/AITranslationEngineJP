@@ -1,11 +1,11 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Frontend `src/` 構造 overview"
 
-app: {
+appLayer: {
   shape: package
-  label: "アプリ起動"
+  label: "app / shell"
   direction: down
   style.font-size: 22
 
@@ -14,47 +14,18 @@ app: {
     label: "起動と配線 (`main.ts` / `App.svelte` / `AppShell.svelte`)"
     style.font-size: 22
   }
-
-  optionalPreviewCompose: {
+  optionalCompose: {
     shape: class
-    label: "preview optional compose (`AppShell.svelte`)"
+    label: "条件付き compose (`AppShell.svelte`)"
     style.font-size: 22
   }
 }
 
-mountedSlices: {
+sliceLayer: {
   shape: package
-  label: "配線済み画面 slice"
+  label: "screen slice"
   direction: down
   style.font-size: 22
-
-  jobListSlice: {
-    shape: class
-    label: "ジョブ一覧 slice"
-    link: "./frontend-job-list-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  jobCreateSlice: {
-    shape: class
-    label: "ジョブ作成 slice"
-    link: "./frontend-job-create-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  dictionaryObserveSlice: {
-    shape: class
-    label: "辞書観測 slice (条件付き compose)"
-    link: "./frontend-dictionary-observe-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  personaObserveSlice: {
-    shape: class
-    label: "ペルソナ観測 slice (条件付き compose)"
-    link: "./frontend-persona-observe-slice-class-diagram.svg"
-    style.font-size: 22
-  }
 
   bootstrapSlice: {
     shape: class
@@ -62,31 +33,40 @@ mountedSlices: {
     link: "./frontend-bootstrap-status-slice-class-diagram.svg"
     style.font-size: 22
   }
-
-  translationPreviewSlice: {
+  jobListSlice: {
     shape: class
-    label: "翻訳 preview slice (条件付き compose)"
+    label: "ジョブ一覧 slice"
+    link: "./frontend-job-list-slice-class-diagram.svg"
     style.font-size: 22
   }
-
+  jobCreateSlice: {
+    shape: class
+    label: "ジョブ作成 slice"
+    link: "./frontend-job-create-slice-class-diagram.svg"
+    style.font-size: 22
+  }
+  dictionaryObserveSlice: {
+    shape: class
+    label: "辞書観測 slice"
+    link: "./frontend-dictionary-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
+  personaObserveSlice: {
+    shape: class
+    label: "ペルソナ観測 slice"
+    link: "./frontend-persona-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
+  executionObserveSlice: {
+    shape: class
+    label: "実行観測 slice"
+    link: "./frontend-execution-observe-slice-class-diagram.svg"
+    style.font-size: 22
+  }
   executionControlSlice: {
     shape: class
-    label: "実行制御 slice (未配線)"
+    label: "実行制御 slice"
     link: "./frontend-execution-control-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-}
-
-foundations: {
-  shape: package
-  label: "再利用基盤"
-  direction: down
-  style.font-size: 22
-
-  featureTemplateSlice: {
-    shape: class
-    label: "テンプレート slice (未配線)"
-    link: "./frontend-feature-template-slice-class-diagram.svg"
     style.font-size: 22
   }
 }
@@ -97,123 +77,78 @@ gatewayLayer: {
   direction: down
   style.font-size: 22
 
-  jobListGateway: {
-    shape: class
-    label: "一覧取得 gateway"
-    link: "./frontend-job-list-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  jobCreateGateway: {
-    shape: class
-    label: "作成 gateway"
-    link: "./frontend-job-create-slice-class-diagram.svg"
-    style.font-size: 22
-  }
-
   bootstrapGateway: {
     shape: class
     label: "起動状態 gateway"
     link: "./frontend-bootstrap-status-slice-class-diagram.svg"
     style.font-size: 22
   }
-
-  featureTemplateGateway: {
+  jobListGateway: {
     shape: class
-    label: "テンプレート gateway"
-    link: "./frontend-feature-template-slice-class-diagram.svg"
+    label: "一覧取得 gateway"
+    link: "./frontend-job-list-slice-class-diagram.svg"
     style.font-size: 22
   }
-
+  jobCreateGateway: {
+    shape: class
+    label: "作成 gateway"
+    link: "./frontend-job-create-slice-class-diagram.svg"
+    style.font-size: 22
+  }
   dictionaryObserveExecutor: {
     shape: class
     label: "辞書観測 executor"
     link: "./frontend-dictionary-observe-slice-class-diagram.svg"
     style.font-size: 22
   }
-
   personaObserveExecutor: {
     shape: class
     label: "ペルソナ観測 executor"
     link: "./frontend-persona-observe-slice-class-diagram.svg"
     style.font-size: 22
   }
-
-  translationPreviewExecutor: {
+  executionObserveLoader: {
     shape: class
-    label: "翻訳 preview executor"
+    label: "実行観測 loader"
+    link: "./frontend-execution-observe-slice-class-diagram.svg"
     style.font-size: 22
   }
-
   executionControlBoundary: {
     shape: class
-    label: "実行制御 snapshot / command boundary"
+    label: "実行制御 boundary"
     link: "./frontend-execution-control-slice-class-diagram.svg"
     style.font-size: 22
   }
 }
 
-contracts: {
+sharedLayer: {
   shape: package
-  label: "shared contract"
+  label: "shared / template"
   direction: down
   style.font-size: 22
 
-  jobContract: {
+  featureTemplateSlice: {
     shape: class
-    label: "job contract"
+    label: "テンプレート slice"
+    link: "./frontend-feature-template-slice-class-diagram.svg"
     style.font-size: 22
   }
-
-  bootstrapContract: {
+  contracts: {
     shape: class
-    label: "bootstrap contract"
-    style.font-size: 22
-  }
-
-  featureTemplateContract: {
-    shape: class
-    label: "feature-template contract"
-    style.font-size: 22
-  }
-
-  translationPreviewContract: {
-    shape: class
-    label: "translation-preview contract"
+    label: "shared contract"
     style.font-size: 22
   }
 }
 
-app.entrypoint -> mountedSlices: props を渡して画面 slice を配線する {
+appLayer -> sliceLayer: 画面 slice を配線 {
   style.font-size: 22
 }
-app.optionalPreviewCompose -> mountedSlices.translationPreviewSlice: store と usecase がある時だけ preview を compose する {
+sliceLayer -> gatewayLayer: slice から gateway 呼出 {
   style.font-size: 22
 }
-mountedSlices -> gatewayLayer: 各 slice から gateway を呼ぶ {
+sliceLayer -> sharedLayer.contracts: contract を扱う {
   style.font-size: 22
 }
-mountedSlices -> contracts: 画面 slice が contract を扱う {
-  style.font-size: 22
-}
-foundations.featureTemplateSlice -> gatewayLayer.featureTemplateGateway: テンプレート読込を依頼する {
-  style.font-size: 22
-}
-foundations.featureTemplateSlice -> contracts.featureTemplateContract: query と data を扱う {
-  style.font-size: 22
-}
-mountedSlices.dictionaryObserveSlice -> gatewayLayer.dictionaryObserveExecutor: 観測 request を渡す {
-  style.font-size: 22
-}
-mountedSlices.personaObserveSlice -> gatewayLayer.personaObserveExecutor: 観測 request を渡す {
-  style.font-size: 22
-}
-mountedSlices.translationPreviewSlice -> gatewayLayer.translationPreviewExecutor: preview observe / refresh request を渡す {
-  style.font-size: 22
-}
-mountedSlices.translationPreviewSlice -> contracts.translationPreviewContract: preview item と filter state を扱う {
-  style.font-size: 22
-}
-mountedSlices.executionControlSlice -> gatewayLayer.executionControlBoundary: stable control state と command 結果を受け渡す {
+sharedLayer.featureTemplateSlice -> gatewayLayer: template 読込 {
   style.font-size: 22
 }

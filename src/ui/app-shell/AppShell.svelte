@@ -11,6 +11,10 @@
     PersonaObserveScreenStore,
   } from "@application/usecases/persona-observe";
   import type {
+    ExecutionObserveScreenInput,
+    ExecutionObserveScreenStore,
+  } from "@application/usecases/execution-observe";
+  import type {
     TranslationPreviewScreenInput,
     TranslationPreviewScreenStore,
   } from "@application/usecases/translation-preview";
@@ -20,6 +24,7 @@
   import JobCreateScreen from "@ui/screens/job-create/JobCreateScreen.svelte";
   import JobListScreen from "@ui/screens/job-list/JobListScreen.svelte";
   import PersonaObserveScreen from "@ui/screens/persona-observe/PersonaObserveScreen.svelte";
+  import ExecutionObserveScreen from "@ui/screens/execution-observe/ExecutionObserveScreen.svelte";
   import TranslationPreviewScreen from "@ui/screens/translation-preview/TranslationPreviewScreen.svelte";
 
   export let bootstrapStatusStore = undefined as unknown as BootstrapStatusScreenStore;
@@ -28,6 +33,10 @@
     undefined as unknown as DictionaryObserveScreenStore | undefined;
   export let dictionaryObserveUsecase =
     undefined as unknown as DictionaryObserveScreenInput | undefined;
+  export let executionObserveStore =
+    undefined as unknown as ExecutionObserveScreenStore | undefined;
+  export let executionObserveUsecase =
+    undefined as unknown as ExecutionObserveScreenInput | undefined;
   export let jobCreateStore = undefined as unknown as JobCreateScreenStore;
   export let jobCreateUsecase = undefined as unknown as JobCreateScreenInput;
   export let jobListStore = undefined as unknown as JobListScreenStore;
@@ -52,6 +61,9 @@
   {/if}
   {#if personaObserveStore !== undefined && personaObserveUsecase !== undefined}
     <PersonaObserveScreen {personaObserveStore} {personaObserveUsecase} />
+  {/if}
+  {#if executionObserveStore !== undefined && executionObserveUsecase !== undefined}
+    <ExecutionObserveScreen {executionObserveStore} {executionObserveUsecase} />
   {/if}
   {#if translationPreviewStore !== undefined && translationPreviewUsecase !== undefined}
     <TranslationPreviewScreen {translationPreviewStore} {translationPreviewUsecase} />

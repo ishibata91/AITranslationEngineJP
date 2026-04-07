@@ -1,5 +1,5 @@
-layout: elk
-direction: right
+layout: dagre
+direction: down
 
 title: "Backend `src-tauri/src/` 構造 overview"
 
@@ -9,33 +9,14 @@ gatewayLayer: {
   direction: down
   style.font-size: 22
 
-  lifecycleCommands: {
+  commandBoundary: {
     shape: class
-    label: "起動・ジョブ command 群 (`get_bootstrap_status` / `import_xedit_export_json` / `create_job` / `list_jobs`)"
+    label: "command 群"
     style.font-size: 22
   }
-
-  dictionaryCommands: {
+  proofHelper: {
     shape: class
-    label: "辞書 command 群 (`rebuild_dictionary` / `lookup_dictionary`)"
-    style.font-size: 22
-  }
-
-  personaCommands: {
-    shape: class
-    label: "persona command 群 (`rebuild_master_persona` / `read_master_persona`)"
-    style.font-size: 22
-  }
-
-  translationPreviewCommand: {
-    shape: class
-    label: "translation preview command (`list_translation_preview`)"
-    style.font-size: 22
-  }
-
-  translationFlowProofHelper: {
-    shape: class
-    label: "translation flow MVP proof helper (`run_translation_flow_mvp_orchestration`)"
+    label: "proof helper"
     link: "./backend-translation-flow-mvp-class-diagram.svg"
     style.font-size: 22
   }
@@ -43,90 +24,56 @@ gatewayLayer: {
 
 applicationLayer: {
   shape: package
-  label: "application"
+  label: "application usecase"
   direction: down
   style.font-size: 22
 
   bootstrapUsecase: {
     shape: class
-    label: "起動状態取得 (`GetBootstrapStatusUseCase`)"
+    label: "起動状態取得"
     link: "./backend-bootstrap-status-class-diagram.svg"
     style.font-size: 22
   }
-
   createJobUsecase: {
     shape: class
-    label: "ジョブ作成 (`CreateJobUseCase`)"
+    label: "ジョブ作成"
     link: "./backend-create-job-class-diagram.svg"
     style.font-size: 22
   }
-
   listJobsUsecase: {
     shape: class
-    label: "ジョブ一覧取得 (`ListJobsUseCase`)"
+    label: "ジョブ一覧取得"
     link: "./backend-list-jobs-class-diagram.svg"
     style.font-size: 22
   }
-
   importXeditUsecase: {
     shape: class
-    label: "xEdit 取込 (`ImportXeditExportUseCase`)"
+    label: "xEdit 取込"
     link: "./backend-import-xedit-class-diagram.svg"
     style.font-size: 22
   }
-
-  dictionaryImportUsecase: {
-    shape: class
-    label: "辞書取込 (`ImportDictionaryUseCase`)"
-    link: "./backend-dictionary-import-class-diagram.svg"
-    style.font-size: 22
-  }
-
   dictionaryStorageQueryUsecase: {
     shape: class
-    label: "辞書再構築・観測 (`ImportDictionaryUseCase` / `SaveImportedDictionaryUseCase` / `LookupDictionaryUseCase`)"
+    label: "辞書再構築・観測"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
     style.font-size: 22
   }
-
   masterPersonaRebuildUsecase: {
     shape: class
-    label: "master persona 再構築・観測 (`RebuildMasterPersonaUseCase` / `MasterPersonaStoragePort`)"
+    label: "master persona 再構築・観測"
     link: "./backend-master-persona-builder-class-diagram.svg"
     style.font-size: 22
   }
-
   jobPersonaPersistenceUsecase: {
     shape: class
-    label: "job persona 永続化 (`PersistJobPersonaUseCase`)"
+    label: "job persona 永続化"
     link: "./backend-job-persona-persistence-class-diagram.svg"
     style.font-size: 22
   }
-
-  wordTranslationPhaseUsecase: {
+  translationFlowMvp: {
     shape: class
-    label: "単語翻訳 phase (`RunWordTranslationPhaseUseCase`)"
+    label: "translation flow MVP proof"
     link: "./backend-translation-flow-mvp-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  npcPersonaGenerationPhaseUsecase: {
-    shape: class
-    label: "NPC persona 生成 phase (`RunNpcPersonaGenerationPhaseUseCase`)"
-    link: "./backend-translation-flow-mvp-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  bodyTranslationPhaseUsecase: {
-    shape: class
-    label: "本文翻訳 phase (`RunBodyTranslationPhaseUseCase`)"
-    link: "./backend-translation-flow-mvp-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  translationPreviewQueryUsecase: {
-    shape: class
-    label: "preview query (`ListTranslationPreviewUseCase`)"
     style.font-size: 22
   }
 }
@@ -139,43 +86,32 @@ domainLayer: {
 
   bootstrapStatus: {
     shape: class
-    label: "起動状態 (`BootstrapStatus`)"
+    label: "起動状態"
     style.font-size: 22
   }
-
   jobDomain: {
     shape: class
     label: "job 集約"
     style.font-size: 22
   }
-
-  importDomain: {
-    shape: class
-    label: "xEdit 取込結果"
-    style.font-size: 22
-  }
-
   dictionaryEntries: {
     shape: class
-    label: "再利用辞書 entry 群"
+    label: "再利用辞書 entry"
     style.font-size: 22
   }
-
   masterPersonaData: {
     shape: class
-    label: "master persona データ"
+    label: "master persona"
     style.font-size: 22
   }
-
   jobPersonaData: {
     shape: class
-    label: "job persona データ"
+    label: "job persona"
     style.font-size: 22
   }
-
-  translationPreviewData: {
+  previewData: {
     shape: class
-    label: "preview item DTO 群"
+    label: "preview item DTO"
     style.font-size: 22
   }
 }
@@ -192,143 +128,49 @@ infraLayer: {
     link: "./backend-bootstrap-status-class-diagram.svg"
     style.font-size: 22
   }
-
   jobRepository: {
     shape: class
     label: "job repository"
     link: "./backend-create-job-class-diagram.svg"
     style.font-size: 22
   }
-
-  pluginExportRepository: {
-    shape: class
-    label: "plugin export repository"
-    link: "./backend-import-xedit-class-diagram.svg"
-    style.font-size: 22
-  }
-
   xeditImporter: {
     shape: class
     label: "xEdit importer"
     link: "./backend-import-xedit-class-diagram.svg"
     style.font-size: 22
   }
-
-  xtranslatorImporter: {
-    shape: class
-    label: "xTranslator importer"
-    link: "./backend-dictionary-import-class-diagram.svg"
-    style.font-size: 22
-  }
-
   dictionaryRepository: {
     shape: class
     label: "dictionary repository"
     link: "./backend-dictionary-storage-query-class-diagram.svg"
     style.font-size: 22
   }
-
   masterPersonaBuilder: {
     shape: class
     label: "master persona builder"
     link: "./backend-master-persona-builder-class-diagram.svg"
     style.font-size: 22
   }
-
-  masterPersonaStorageBoundary: {
-    shape: class
-    label: "master persona repository (`SqliteMasterPersonaRepository`)"
-    link: "./backend-master-persona-builder-class-diagram.svg"
-    style.font-size: 22
-  }
-
   jobPersonaRepository: {
     shape: class
     label: "job persona repository"
     link: "./backend-job-persona-persistence-class-diagram.svg"
     style.font-size: 22
   }
-
-  dictionaryLookupPort: {
+  providerBoundaries: {
     shape: class
-    label: "dictionary lookup port"
-    link: "./backend-dictionary-storage-query-class-diagram.svg"
-    style.font-size: 22
-  }
-
-  npcPersonaGenerator: {
-    shape: class
-    label: "job persona generator boundary"
-    style.font-size: 22
-  }
-
-  bodyTranslationAdapter: {
-    shape: class
-    label: "body translation boundary"
-    style.font-size: 22
-  }
-
-  translationPreviewRepository: {
-    shape: class
-    label: "translation preview read boundary"
+    label: "translation / persona boundary"
     style.font-size: 22
   }
 }
 
-gatewayLayer.lifecycleCommands -> applicationLayer: command 入口から usecase を呼ぶ {
+gatewayLayer -> applicationLayer: command 入口と helper 起動 {
   style.font-size: 22
 }
-gatewayLayer.dictionaryCommands -> applicationLayer.dictionaryStorageQueryUsecase: 辞書再構築と観測を委譲する {
+applicationLayer -> domainLayer: domain 組立 {
   style.font-size: 22
 }
-gatewayLayer.personaCommands -> applicationLayer.masterPersonaRebuildUsecase: persona 再構築と観測を委譲する {
-  style.font-size: 22
-}
-gatewayLayer.translationPreviewCommand -> applicationLayer.translationPreviewQueryUsecase: preview 観測 query を委譲する {
-  style.font-size: 22
-}
-gatewayLayer.translationFlowProofHelper -> applicationLayer.wordTranslationPhaseUsecase: proof の第 1 phase を起動する {
-  style.font-size: 22
-}
-gatewayLayer.translationFlowProofHelper -> applicationLayer.npcPersonaGenerationPhaseUsecase: proof の第 2 phase を起動する {
-  style.font-size: 22
-}
-gatewayLayer.translationFlowProofHelper -> applicationLayer.bodyTranslationPhaseUsecase: proof の第 3 phase を起動する {
-  style.font-size: 22
-}
-applicationLayer -> domainLayer: domain 状態と値を組み立てる {
-  style.font-size: 22
-}
-applicationLayer -> infraLayer: 外部依存へ保存・読込を依頼する {
-  style.font-size: 22
-}
-applicationLayer.wordTranslationPhaseUsecase -> infraLayer.dictionaryLookupPort: 再利用語句候補を取得する {
-  style.font-size: 22
-}
-applicationLayer.npcPersonaGenerationPhaseUsecase -> infraLayer.jobPersonaRepository: job-local persona を読込・保存する {
-  style.font-size: 22
-}
-applicationLayer.npcPersonaGenerationPhaseUsecase -> infraLayer.npcPersonaGenerator: persona 生成を依頼する {
-  style.font-size: 22
-}
-applicationLayer.bodyTranslationPhaseUsecase -> infraLayer.bodyTranslationAdapter: 本文翻訳を依頼する {
-  style.font-size: 22
-}
-applicationLayer.translationPreviewQueryUsecase -> infraLayer.translationPreviewRepository: job 単位の preview item 群を読む {
-  style.font-size: 22
-}
-applicationLayer.wordTranslationPhaseUsecase -> domainLayer.translationPreviewData: reusable terms handoff を組み立てる {
-  style.font-size: 22
-}
-applicationLayer.npcPersonaGenerationPhaseUsecase -> domainLayer.jobPersonaData: optional persona handoff を組み立てる {
-  style.font-size: 22
-}
-applicationLayer.bodyTranslationPhaseUsecase -> domainLayer.translationPreviewData: preview-facing result shape を固定する {
-  style.font-size: 22
-}
-applicationLayer.translationPreviewQueryUsecase -> domainLayer.translationPreviewData: read-only preview result を返す {
-  style.font-size: 22
-}
-gatewayLayer.translationFlowProofHelper -> domainLayer.translationPreviewData: regression proof 結果を gateway local に返す {
+applicationLayer -> infraLayer: 保存と外部依存 {
   style.font-size: 22
 }

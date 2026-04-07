@@ -1,0 +1,105 @@
+layout: elk
+direction: right
+
+title: "Frontend 実行観測 slice クラス図"
+
+shell: {
+  shape: package
+  label: "shell"
+  direction: down
+  style.font-size: 22
+
+  appShell: {
+    shape: class
+    label: "画面配線 (`AppShell.svelte`)"
+    "- 実行観測 props がある時だけ compose する": ""
+    style.font-size: 22
+  }
+}
+
+ui: {
+  shape: package
+  label: "UI"
+  direction: down
+  style.font-size: 22
+
+  screen: {
+    shape: class
+    label: "実行観測画面 (`ExecutionObserveScreen.svelte`)"
+    "- 初期化と refresh event 転送を行う": ""
+    style.font-size: 22
+  }
+
+  view: {
+    shape: class
+    label: "実行観測ビュー (`ExecutionObserveView.svelte`)"
+    "- progress / failure の read-only dashboard を描画する": ""
+    style.font-size: 22
+  }
+}
+
+application: {
+  shape: package
+  label: "application"
+  direction: down
+  style.font-size: 22
+
+  usecase: {
+    shape: class
+    label: "実行観測ユースケース (`ExecutionObserveScreenInput` / `createExecutionObserveScreenUsecase()`)"
+    "+ initialize / refresh と確定 snapshot 保持を扱う": ""
+    style.font-size: 22
+  }
+
+  store: {
+    shape: class
+    label: "実行観測ストア (`ExecutionObserveScreenStore`)"
+    "+ loading / error / snapshot を保持する": ""
+    style.font-size: 22
+  }
+
+  snapshot: {
+    shape: class
+    label: "観測 snapshot (`ExecutionObserveSnapshot`)"
+    style.font-size: 22
+  }
+}
+
+gateway: {
+  shape: package
+  label: "Tauri gateway"
+  direction: down
+  style.font-size: 22
+
+  loader: {
+    shape: class
+    label: "観測 loader (`createTauriExecutionObserveLoader()`)"
+    "- `get_execution_observe_snapshot` を invoke する": ""
+    style.font-size: 22
+  }
+}
+
+shell.appShell -> ui.screen: props が揃った時だけ compose する {
+  style.font-size: 22
+}
+ui.screen -> ui.view: 描画する {
+  style.font-size: 22
+}
+ui.screen -> application.usecase: 初期化する {
+  style.font-size: 22
+}
+ui.view -> application.usecase: refresh を渡す {
+  style.font-size: 22
+}
+application.usecase -> gateway.loader: 観測 snapshot を依頼する {
+  style.font-size: 22
+}
+gateway.loader -> application.snapshot: provider-neutral snapshot を返す {
+  style.font-size: 22
+}
+application.usecase -> application.store: state を更新する {
+  style.font-size: 22
+}
+application.store -> ui.view: 購読済み状態を渡す {
+  style.font-size: 22
+}

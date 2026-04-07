@@ -40,6 +40,10 @@ parallel_batches:
   - P4-I06
   - P4-I07
   - P4-I08
+- id: P4-B2A
+  goal: Close integrated wiring gaps left after the Phase 4 UI slices land.
+  task_ids:
+  - P4-I06-2
 - id: P4-B3
   goal: Prove provider, execution-control, and persona-generation behavior through
     integrated scenarios.
@@ -58,6 +62,7 @@ task_files:
 - tasks/P4-I04.yaml
 - tasks/P4-I05.yaml
 - tasks/P4-I06.yaml
+- tasks/P4-I06-2.yaml
 - tasks/P4-I07.yaml
 - tasks/P4-I08.yaml
 - tasks/P4-G01.yaml

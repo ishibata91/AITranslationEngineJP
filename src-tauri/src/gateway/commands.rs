@@ -8,10 +8,11 @@ use crate::application::dictionary_query::{
 };
 use crate::application::dto::{
     embedded_element_policy::{EmbeddedElementDescriptorDto, EmbeddedElementPolicyDto},
-    BootstrapStatusDto, CreateJobRequestDto, CreateJobResultDto, ImportXeditExportRequestDto,
-    ImportXeditExportResultDto, ListJobsResultDto, MasterPersonaReadRequestDto,
-    MasterPersonaReadResultDto, TranslationPhaseHandoffDto, TranslationPreviewItemDto,
-    TranslationUnitDto,
+    BootstrapStatusDto, CreateJobRequestDto, CreateJobResultDto,
+    ExecutionControlFailureCategoryDto, ExecutionControlFailureDto, ExecutionControlStateDto,
+    ImportXeditExportRequestDto, ImportXeditExportResultDto, ListJobsResultDto,
+    MasterPersonaReadRequestDto, MasterPersonaReadResultDto, TranslationPhaseHandoffDto,
+    TranslationPreviewItemDto, TranslationUnitDto,
 };
 use crate::application::importer::ImportXeditExportUseCase;
 use crate::application::job::create::CreateJobUseCase;
@@ -35,7 +36,94 @@ use crate::infra::plugin_export_repository::SqlitePluginExportRepository;
 use crate::infra::runtime_info::CargoRuntimeInfoProvider;
 use crate::infra::xedit_export_importer::FileSystemXeditExportImporter;
 use crate::infra::xtranslator_importer::FileSystemXtranslatorImporter;
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObserveSnapshotDto {
+    pub control_state: ExecutionControlStateDto,
+    pub failure: Option<ExecutionControlFailureDto>,
+    pub footer_metadata: ExecutionObserveFooterMetadataDto,
+    pub phase_runs: Vec<ExecutionObservePhaseRunDto>,
+    pub phase_timeline: Vec<ExecutionObservePhaseTimelineItemDto>,
+    pub selected_unit: Option<ExecutionObserveSelectedUnitDto>,
+    pub summary: ExecutionObserveSummaryDto,
+    pub translation_progress: ExecutionObserveTranslationProgressDto,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObserveFooterMetadataDto {
+    pub last_event_at: String,
+    pub manual_recovery_guidance: String,
+    pub provider_run_id: String,
+    pub run_hash: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObservePhaseRunDto {
+    pub ended_at: Option<String>,
+    pub phase_key: String,
+    pub started_at: String,
+    pub status_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObservePhaseTimelineItemDto {
+    pub is_current: bool,
+    pub label: String,
+    pub status_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObserveSelectedUnitDto {
+    pub dest_text: String,
+    pub form_id: String,
+    pub source_text: String,
+    pub status_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObserveSummaryDto {
+    pub current_phase: String,
+    pub job_name: String,
+    pub provider_label: String,
+    pub started_at: String,
+    pub status_label: String,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ExecutionObserveTranslationProgressDto {
+    pub completed_units: u32,
+    pub queued_units: u32,
+    pub running_units: u32,
+    pub total_units: u32,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProviderFailureRetryFixture {
+    provider_selection: ProviderSelectionFixture,
+    scenarios: Vec<ProviderFailureRetryScenarioFixture>,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProviderSelectionFixture {
+    provider_id: String,
+}
+
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProviderFailureRetryScenarioFixture {
+    failure_category: ExecutionControlFailureCategoryDto,
+    transitions: Vec<ExecutionControlStateDto>,
+}
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -239,4 +327,95 @@ pub async fn read_master_persona(
 ) -> Result<MasterPersonaReadResultDto, String> {
     let repository = SqliteMasterPersonaRepository::new(&execution_cache_path());
     repository.read_master_persona(request).await
+}
+
+#[tauri::command]
+pub async fn get_execution_observe_snapshot() -> Result<ExecutionObserveSnapshotDto, String> {
+    build_execution_observe_snapshot_from_fixture()
+}
+
+fn build_execution_observe_snapshot_from_fixture() -> Result<ExecutionObserveSnapshotDto, String> {
+    let fixture_source = include_str!(
+        "../../tests/acceptance/provider-failure-retry/fixtures/provider-failure-retry.fixture.json"
+    );
+    let fixture: ProviderFailureRetryFixture =
+        serde_json::from_str(fixture_source).map_err(|error| {
+            format!("Failed to parse embedded execution observe fixture source: {error}")
+        })?;
+
+    let scenario = fixture
+        .scenarios
+        .iter()
+        .find(|scenario| {
+            scenario
+                .transitions
+                .contains(&ExecutionControlStateDto::RecoverableFailed)
+        })
+        .or_else(|| fixture.scenarios.first())
+        .ok_or_else(|| {
+            "Execution observe fixture must contain at least one scenario".to_string()
+        })?;
+    let control_state = scenario
+        .transitions
+        .iter()
+        .copied()
+        .find(|state| *state != ExecutionControlStateDto::Running)
+        .ok_or_else(|| {
+            "Execution observe fixture must contain at least one non-Running transition".to_string()
+        })?;
+    let failure = Some(ExecutionControlFailureDto {
+        category: scenario.failure_category,
+        message: format!(
+            "Observed {:?} during provider retry acceptance scenario",
+            scenario.failure_category
+        ),
+    });
+
+    Ok(ExecutionObserveSnapshotDto {
+        control_state,
+        failure,
+        footer_metadata: ExecutionObserveFooterMetadataDto {
+            last_event_at: "2026-04-07T10:00:00Z".to_string(),
+            manual_recovery_guidance: "Use execution-control to recover or retry.".to_string(),
+            provider_run_id: "run_bootstrap_pending".to_string(),
+            run_hash: "run_hash_provider_failure_retry".to_string(),
+        },
+        phase_runs: vec![ExecutionObservePhaseRunDto {
+            ended_at: Some("2026-04-07T10:01:15Z".to_string()),
+            phase_key: "persona_generation".to_string(),
+            started_at: "2026-04-07T10:00:00Z".to_string(),
+            status_label: format!("{control_state:?}"),
+        }],
+        phase_timeline: vec![
+            ExecutionObservePhaseTimelineItemDto {
+                is_current: true,
+                label: "Persona Generation".to_string(),
+                status_label: format!("{control_state:?}"),
+            },
+            ExecutionObservePhaseTimelineItemDto {
+                is_current: false,
+                label: "Body Translation".to_string(),
+                status_label: "Queued".to_string(),
+            },
+        ],
+        selected_unit: Some(ExecutionObserveSelectedUnitDto {
+            dest_text: "Test translated line".to_string(),
+            form_id: "00013ABC".to_string(),
+            source_text: "Test source line".to_string(),
+            status_label: "Recoverable Failure".to_string(),
+        }),
+        summary: ExecutionObserveSummaryDto {
+            current_phase: "Persona Generation".to_string(),
+            job_name: "Execution Observe".to_string(),
+            provider_label: fixture.provider_selection.provider_id,
+            started_at: "2026-04-07T10:00:00Z".to_string(),
+            status_label: format!("{control_state:?}"),
+        },
+        translation_progress: ExecutionObserveTranslationProgressDto {
+            completed_units: 12,
+            queued_units: 4,
+            running_units: 1,
+            total_units: 17,
+        },
+    })
 }

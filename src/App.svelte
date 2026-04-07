@@ -8,6 +8,10 @@
     PersonaObserveScreenInput,
     PersonaObserveScreenStore,
   } from "@application/usecases/persona-observe";
+  import type {
+    ExecutionObserveScreenInput,
+    ExecutionObserveScreenStore,
+  } from "@application/usecases/execution-observe";
   import type { JobListScreenInput, JobListScreenStore } from "@application/usecases/job-list";
   import type { JobCreateScreenInput, JobCreateScreenStore } from "@application/usecases/job-create";
   import type { BootstrapStatusScreenStore } from "@ui/stores/bootstrap-status";
@@ -19,6 +23,10 @@
     undefined as unknown as DictionaryObserveScreenStore | undefined;
   export let dictionaryObserveUsecase =
     undefined as unknown as DictionaryObserveScreenInput | undefined;
+  export let executionObserveStore =
+    undefined as unknown as ExecutionObserveScreenStore | undefined;
+  export let executionObserveUsecase =
+    undefined as unknown as ExecutionObserveScreenInput | undefined;
   export let jobCreateStore = undefined as unknown as JobCreateScreenStore;
   export let jobCreateUsecase = undefined as unknown as JobCreateScreenInput;
   export let jobListStore = undefined as unknown as JobListScreenStore;
@@ -34,6 +42,8 @@
   {bootstrapStatusUsecase}
   {dictionaryObserveStore}
   {dictionaryObserveUsecase}
+  {executionObserveStore}
+  {executionObserveUsecase}
   {jobCreateStore}
   {jobCreateUsecase}
   {jobListStore}

@@ -14,7 +14,8 @@ pub fn run() {
             gateway::commands::rebuild_dictionary,
             gateway::commands::lookup_dictionary,
             gateway::commands::rebuild_master_persona,
-            gateway::commands::read_master_persona
+            gateway::commands::read_master_persona,
+            gateway::commands::get_execution_observe_snapshot
         ])
         .run(tauri::generate_context!())
         .expect("failed to run tauri application");

@@ -186,6 +186,12 @@ async function renderAppShell(args?: {
     source: "<h1>Job List</h1>",
   });
 
+  const compiledExecutionObserveStub = await compileSvelteModule({
+    filename: "ExecutionObserveScreen.svelte",
+    require,
+    source: "<h1>Execution Observe</h1>",
+  });
+
   const compiledTranslationPreviewStub = await compileSvelteModule({
     filename: "TranslationPreviewScreen.svelte",
     require,
@@ -197,6 +203,7 @@ async function renderAppShell(args?: {
     replacements: {
       '"@ui/screens/bootstrap-status/BootstrapStatusScreen.svelte"': `"${compiledBootstrapStub.url}"`,
       '"@ui/screens/dictionary-observe/DictionaryObserveScreen.svelte"': `"${compiledDictionaryObserveStub.url}"`,
+      '"@ui/screens/execution-observe/ExecutionObserveScreen.svelte"': `"${compiledExecutionObserveStub.url}"`,
       '"@ui/screens/job-create/JobCreateScreen.svelte"': `"${compiledJobCreateStub.url}"`,
       '"@ui/screens/job-list/JobListScreen.svelte"': `"${compiledJobListStub.url}"`,
       '"@ui/screens/persona-observe/PersonaObserveScreen.svelte"': `"${compiledPersonaObserveScreen.url}"`,
