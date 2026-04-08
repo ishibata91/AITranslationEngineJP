@@ -2,8 +2,9 @@
   "contract_version": "2026-03-29",
   "skill": "directing-implementation",
   "allowed_actions": [
-    "承認済み active impl plan を受け取って execution を開始する",
+    "承認済み active impl plan と承認済み構造差分図を受け取って execution を開始する",
     "planning、tests、implementing、reviewing へ handoff する",
+    "承認済み構造差分の正本適用のために structure_diagrammer を diagramming-structure-diff へ handoff する",
     "`4humans sync` を同一変更で扱い、実装の変更または追加では `4humans/diagrams/processes/`、構造の変更または追加では `4humans/diagrams/structures/` の更新要否も整理して、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
@@ -21,7 +22,7 @@
   ],
   "stop_conditions": [
     "要求が fix lane に属し implementation lane では扱えない",
-    "承認済み active plan や review 用差分図が不足して execution 開始条件を満たさない",
+    "承認済み active plan、review 用差分図、差分正本適用先が不足して execution 開始条件を満たさない",
     "facts、constraints、gaps が不足し plan を安全に固定できない",
     "必要な次操作が自身の権限外で stop and handoff が必要である"
   ]

@@ -28,6 +28,11 @@
   ],
   "optional": [
     {
+      "description": "implementing skill へ引き継ぐ relevant な MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) の recall。",
+      "field": "mcp_memory_recall",
+      "type": "object"
+    },
+    {
       "description": "active plan に反映した短い更新点。",
       "field": "implementation_plan_updates",
       "type": "string[]"

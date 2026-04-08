@@ -10,7 +10,7 @@ if (Request type?) then (feature / change)
   :proposing-implementation;
   :distilling-implementation;
   :designing-implementation;
-  :diagrammer + diagramming-d2;
+  :structure_diagrammer + diagramming-structure-diff;
   :human LGTM;
   :directing-implementation;
   :planning-implementation;

@@ -11,7 +11,7 @@
       "type": "path"
     },
     {
-      "description": "owned_scope / ordered_scope / validation_commands を含む brief。",
+      "description": "owned_scope / ordered_scope / validation_commands と、必要時は relevant な MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) を含む brief。",
       "field": "work_brief",
       "type": "object"
     },

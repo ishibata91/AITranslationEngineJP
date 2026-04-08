@@ -33,13 +33,14 @@
   - `skills/reviewing-fixes/SKILL.md`
   - `skills/reporting-risks/SKILL.md`
   - `skills/diagramming-d2/SKILL.md`
+  - `skills/diagramming-structure-diff/SKILL.md`
   - `skills/diagramming-plantuml/SKILL.md`
   - `skills/explore/SKILL.md`
   - `skills/skill-modification/SKILL.md`
   - `skills/updating-docs/SKILL.md`
   - `skills/working-light/SKILL.md`
 - agent 契約:
-  - `agents/diagrammer.toml`
+  - `agents/structure_diagrammer.toml`
   - `agents/task_designer.toml`
   - `agents/ctx_loader.toml`
   - `agents/workplan_builder.toml`
@@ -53,16 +54,17 @@
 
 ### Impl lane
 
-`User -> implementation proposal lane owner (`proposing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> diagrammer (`diagrammer`) + diagramming D2 skill (`diagramming-d2`) -> human LGTM -> implementation execution lane owner (`directing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + implementation execution lane owner (`directing-implementation`) close`
+`User -> implementation proposal lane owner (`proposing-implementation`) -> MCP memory recall (`repo_conventions` / `recurring_pitfalls`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> structure diagram agent (`structure_diagrammer`) + structure diagram diff skill (`diagramming-structure-diff`) -> human LGTM -> implementation execution lane owner (`directing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> 4humans sync + MCP memory distill + implementation execution lane owner (`directing-implementation`) close`
 
 - implementation proposal lane owner (`proposing-implementation`) は実装要求を受け、日本語の active plan を作成し、重複確認と handoff に必要な最小限の入口情報だけを整える
+- implementation proposal lane owner (`proposing-implementation`) は MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) を recall 用に読み、今回の task に関係する項目だけを context summary へ持ち込む。MCP memory は repo 作法と再発失敗の recall に限定し、仕様や設計の正本代替には使わない
 - implementation distill skill (`distilling-implementation`) は入口情報を起点に必要最小限の repo 文脈を探索し、facts、constraints、gaps、closeout notes、required reading を返す
 - task-local design skill (`designing-implementation`) は distill 結果を前提に active plan の `UI` / `Scenario` / `Logic` だけを task-local design として固める
 - task-local な設計は `docs/exec-plans/active/*.md` の中だけに置き、`changes/` や `context_board` は live 正本にしない
-- diagrammer (`diagrammer`) は GPT-5.4 / high で review 用差分図を担当し、diagramming D2 skill (`diagramming-d2`) を使って追加を緑、削除を赤で読める D2 / SVG を作る
+- structure diagram agent (`structure_diagrammer`) は GPT-5.4 / high で proposal の構造差分図を担当し、structure diagram diff skill (`diagramming-structure-diff`) を使って active exec-plan 配下に追加を緑、削除を赤で読める D2 / SVG を作る。active exec-plan の task-local design と既存 `diagrams/backend/` を照合し、既存図更新か new detail 図作成かを判断する。execution close では承認済み差分を `diagrams/backend/components.d2` と `diagrams/backend/<component>/<component>.d2` へ適用する
 - human LGTM が active plan に記録されるまで implementation execution lane へ進めない
-- implementation execution lane owner (`directing-implementation`) は承認済み active plan を受け取り、execution の handoff、gate、close を管理する
-- implementation workplan skill (`planning-implementation`) は実装順、owned scope、validation を短い brief に落とす
+- implementation execution lane owner (`directing-implementation`) は承認済み active plan を受け取り、review 用差分図と差分正本適用先を参照しながら execution の handoff、gate、close を管理する
+- implementation workplan skill (`planning-implementation`) は実装順、owned scope、validation、実装前に確認すべき relevant な `repo_conventions` / `recurring_pitfalls` を短い brief に落とす
 - test architecture skill (`architecting-tests`) は active plan と関連仕様から、実装前に必要な failing tests、fixtures、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する
 - frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`) は brief と plan に従って実装し、frontend では `python3 scripts/harness/run.py --suite frontend-lint`、backend では `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する
 - `sonar-scanner + Sonar MCP open issue gate` は implementation execution lane owner (`directing-implementation`) が server-side analysis を更新し、その後に Sonar MCP の `search_sonar_issues_in_projects` を直接使って `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを gate 対象にして、issue が残る限り implementing skill へ差し戻す
@@ -71,9 +73,10 @@
 - review が `reroute` を返したら lane に差し戻すが、score 制の自動 review loop は持たない
 - implementation execution lane owner (`directing-implementation`) は review が `pass` の後に `python3 scripts/harness/run.py --suite all` を final harness として実行する
 - Sonar issue remediation loop は review の前段で、final harness は review の後段で implementation execution lane owner (`directing-implementation`) が扱い、どちらも close 条件に含める
-- review が `pass` の時は `4humans sync` を整理し、実装の変更または追加があった時は diagrammer (`diagrammer`) を `diagramming-d2` で起動して `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
+- review が `pass` の時は `4humans sync` を整理し、backend 構造の変更または追加があった時は structure diagram agent (`structure_diagrammer`) を structure diagram diff skill (`diagramming-structure-diff`) で起動して承認済み差分を `diagrams/backend/` 正本へ適用する。処理の変更または追加があった時は `diagramming-d2` で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造の変更または追加があった時は `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を更新してから close する
 - `4humans/diagrams/processes/` または `4humans/diagrams/structures/` に new detail `.d2` を追加する時は、`4humans/diagrams/overview-manifest.json` を同じ変更で更新し、manifest で紐づいた overview `.d2` / `.svg` も同じ変更で更新する
-- review 用に active exec-plan 配下へ置いた差分 D2 / SVG は human LGTM と `4humans` 正本同期が終わったら削除し、completed plan へ持ち越さない
+- implementation execution lane owner (`directing-implementation`) は close 前に completed work から task-local ではない知識だけを MCP memory bucket (`repo_conventions` または `recurring_pitfalls`) へ蒸留し、次回 task で recall できる MCP memory を更新する
+- review 用に active exec-plan 配下へ置いた差分 D2 / SVG は、`diagrams/backend/` 正本適用と `4humans` 正本同期が終わったら削除し、completed plan へ持ち越さない
 
 ### Fix lane
 

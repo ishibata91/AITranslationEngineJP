@@ -1,10 +1,10 @@
 {
-  "contract_version": "2026-04-07",
+  "contract_version": "2026-04-08",
   "skill": "proposing-implementation",
   "allowed_actions": [
     "active impl plan を作成または更新する",
     "distilling-implementation と designing-implementation へ handoff する",
-    "review 用差分図のために diagrammer を handoff する",
+    "review 用構造差分図のために structure_diagrammer を diagramming-structure-diff へ handoff する",
     "human review と LGTM 前提の active plan 状態を更新する",
     "LGTM 後に directing-implementation へ handoff する"
   ],
@@ -19,12 +19,14 @@
     "active_impl_plan",
     "proposal_context_summary",
     "review_diff_diagrams",
+    "diagram_source_targets",
     "approval_status",
     "handoff_packet_to_directing_implementation"
   ],
   "stop_conditions": [
     "facts、constraints、gaps が不足し plan を安全に固定できない",
     "review 用差分図の対象や出力先が不明である",
+    "差分正本適用先が不明である",
     "human LGTM がないまま execution handoff が要求される"
   ]
 }

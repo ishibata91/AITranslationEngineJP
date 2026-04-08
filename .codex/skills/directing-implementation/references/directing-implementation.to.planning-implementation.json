@@ -23,6 +23,11 @@
   ],
   "optional": [
     {
+      "description": "proposal から引き継いだ relevant な MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) の recall。",
+      "field": "mcp_memory_recall",
+      "type": "object"
+    },
+    {
       "description": "frontend / backend の責務想定。",
       "field": "preferred_split",
       "type": "string"

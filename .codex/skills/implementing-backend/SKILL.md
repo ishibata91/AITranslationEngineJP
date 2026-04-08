@@ -9,6 +9,7 @@ description: backend 側の allowed scope を直接実装し、指定 checks を
 
 - 編集前に `docs/coding-guidelines.md` を読む
 - active exec-plan と work brief を読んでから編集する
+- work brief に `mcp_memory_recall` がある時は、relevant な MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) を先に確認する
 - backend owned scope だけを変更する
 - implementation lane owner (`directing-implementation`) から渡された `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する
 - plan の書き換えや lane 切り替えはしない

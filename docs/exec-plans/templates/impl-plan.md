@@ -74,6 +74,10 @@
 
 - N/A
 
+## 差分正本適用先
+
+- N/A
+
 ## 4humans Sync
 
 - `4humans/quality-score.md`
