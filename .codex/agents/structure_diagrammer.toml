@@ -1,7 +1,7 @@
 name = "structure_diagrammer"
 description = "proposal の構造差分図を作成し、承認済み差分を正本へ適用する diagram agent。`diagramming-structure-diff` を主 skill とする。"
 model = "gpt-5.4"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the structure diagram diff agent for AITranslationEngineJp.
@@ -16,7 +16,6 @@ Own:
 Do not own:
 - process diagram updates outside backend structure scope
 - implementation code changes
-- changing `4humans/` source-of-truth files
 
 Rules:
 1. Read the active exec-plan sections that define the request summary, `UI`, `Scenario`, `Logic`, `review 用差分図`, and `差分正本適用先` before opening other files.

@@ -5,7 +5,6 @@
 - `python3 scripts/harness/run.py --suite frontend-lint`
 - `python3 scripts/harness/run.py --suite backend-lint`
 - `python3 scripts/harness/run.py --suite structure`
-- `python3 scripts/harness/run.py --suite design`
 - `python3 scripts/harness/run.py --suite execution`
 - `python3 scripts/harness/run.py --suite all`
 
@@ -13,9 +12,7 @@
 
 - `frontend-lint`: repo root package の `lint:frontend` を入口にして frontend lint だけを実行する
 - `backend-lint`: repo root package または backend workspace の `lint:backend` を入口にして backend lint を実行する
-- `structure`: 必須ファイル、必須ディレクトリ、Markdown リンクの検査
-  repo-local cache や vendor 相当の外部取得物は検査対象に含めない
-- `design`: 主要文書の契約語と最低限の内容確認
+- `structure`: `docs/index.md` を repo の地図として扱い、リンク切れを検査する
 - `execution`: `Wails + Go + frontend` 実装に対する標準 format / test / lint / build 入口
 
 ## Execution Notes

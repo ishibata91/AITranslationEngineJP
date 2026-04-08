@@ -34,7 +34,6 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 
 - `.codex/` は、エージェントの作業方法と役割契約の正本とする
 - `docs/` は、スコープ、アーキテクチャ、技術選定を記録する正本とする
-- `4humans/` は、人間向けの品質状態と負債整理を記録する正本とする
 - `docs/` の正本更新は human が先に判断し、`updating-docs` を直接起動した時だけ行う
 - 実作業に入る前に、選択した skill の `references/permissions.json` を最優先で読む
 - 各 skill は、自身の `references/permissions.json` に書かれた権限の範囲だけで動く
@@ -54,17 +53,15 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 2. `docs/index.md` から、対象タスクに関係する文書だけを確認する
 3. 既存の active / completed plan に同種タスクがないか確認する
 4. `python3 scripts/harness/run.py --suite structure` を実行する
-5. 文書契約や役割契約に触れるなら `python3 scripts/harness/run.py --suite design` も実行する
 
 ## 実装後にやること
 
 1. `python3 scripts/harness/run.py --suite all` を実行する
-2. 必要な負債項目と品質スコアを更新する
+2. 必要な follow-up を plan や issue に記録する
 3. `docs/` 正本更新は human 先行の変更だけで行う
 4. タスク完了時は計画を `docs/exec-plans/completed/` へ移す
 
 ## 検証入口
 
 - Structure harness: `python3 scripts/harness/run.py --suite structure`
-- Design harness: `python3 scripts/harness/run.py --suite design`
 - Execution harness: `python3 scripts/harness/run.py --suite execution`

@@ -8,7 +8,6 @@ from harness_common import (
     build_parser,
     default_repo_root,
     finalize_failures,
-    iter_markdown_files,
     report_fail,
     report_pass,
     report_section,
@@ -19,74 +18,11 @@ from harness_common import (
 LINK_PATTERN = re.compile(r"!?\[[^\]]*\]\((?P<target>[^)]+)\)")
 URI_SCHEME_PATTERN = re.compile(r"^[a-zA-Z][a-zA-Z0-9+.-]*:")
 WINDOWS_DRIVE_PATTERN = re.compile(r"^[a-zA-Z]:[\\\\/]")
-SVG_VIEWBOX_PATTERN = re.compile(r'viewBox="0 0 (?P<width>[0-9.]+) (?P<height>[0-9.]+)"')
-MAX_STRUCTURE_SVG_RATIO = 16 / 9
-
-REQUIRED_PATHS = [
-    "AGENTS.md",
-    ".codex/README.md",
-    ".codex/agents/task_designer.toml",
-    ".codex/agents/ctx_loader.toml",
-    ".codex/agents/workplan_builder.toml",
-    ".codex/agents/test_architect.toml",
-    ".codex/agents/implementer.toml",
-    ".codex/agents/fault_tracer.toml",
-    ".codex/agents/log_instrumenter.toml",
-    ".codex/agents/review_cycler.toml",
-    ".codex/skills/directing-implementation/SKILL.md",
-    ".codex/skills/directing-implementation/agents/openai.yaml",
-    ".codex/skills/designing-implementation/SKILL.md",
-    ".codex/skills/designing-implementation/agents/openai.yaml",
-    ".codex/skills/distilling-implementation/SKILL.md",
-    ".codex/skills/distilling-implementation/agents/openai.yaml",
-    ".codex/skills/planning-implementation/SKILL.md",
-    ".codex/skills/planning-implementation/agents/openai.yaml",
-    ".codex/skills/architecting-tests/SKILL.md",
-    ".codex/skills/architecting-tests/agents/openai.yaml",
-    ".codex/skills/implementing-frontend/SKILL.md",
-    ".codex/skills/implementing-frontend/agents/openai.yaml",
-    ".codex/skills/implementing-backend/SKILL.md",
-    ".codex/skills/implementing-backend/agents/openai.yaml",
-    ".codex/skills/reviewing-implementation/SKILL.md",
-    ".codex/skills/reviewing-implementation/agents/openai.yaml",
-    ".codex/skills/directing-fixes/SKILL.md",
-    ".codex/skills/directing-fixes/agents/openai.yaml",
-    ".codex/skills/distilling-fixes/SKILL.md",
-    ".codex/skills/distilling-fixes/agents/openai.yaml",
-    ".codex/skills/tracing-fixes/SKILL.md",
-    ".codex/skills/tracing-fixes/agents/openai.yaml",
-    ".codex/skills/analyzing-fixes/SKILL.md",
-    ".codex/skills/analyzing-fixes/agents/openai.yaml",
-    ".codex/skills/logging-fixes/SKILL.md",
-    ".codex/skills/logging-fixes/agents/openai.yaml",
-    ".codex/skills/implementing-fixes/SKILL.md",
-    ".codex/skills/implementing-fixes/agents/openai.yaml",
-    ".codex/skills/reviewing-fixes/SKILL.md",
-    ".codex/skills/reviewing-fixes/agents/openai.yaml",
-    ".codex/skills/reporting-risks/SKILL.md",
-    ".codex/skills/reporting-risks/agents/openai.yaml",
-    ".codex/skills/updating-docs/SKILL.md",
-    ".codex/skills/updating-docs/agents/openai.yaml",
-    "docs/index.md",
-    "docs/core-beliefs.md",
-    "docs/spec.md",
-    "docs/architecture.md",
-    "docs/tech-selection.md",
-    "docs/er.md",
-    "4humans/tech-debt-tracker.md",
-    "4humans/quality-score.md",
-    "docs/references/index.md",
-    "docs/exec-plans/active/README.md",
-    "docs/exec-plans/completed/README.md",
-    "docs/exec-plans/templates/impl-plan.md",
-    "docs/exec-plans/templates/fix-plan.md",
-    "scripts/harness/run.py",
-    "scripts/harness/check_frontend_lint.py",
-    "scripts/harness/check_backend_lint.py",
-    "scripts/harness/check_structure.py",
-    "scripts/harness/check_design.py",
-    "scripts/harness/check_execution.py",
-]
+STRUCTURE_INDEX_PATH = Path("docs/index.md")
+DOCS_ROOT = Path("docs")
+ALWAYS_ALLOWED_DOC_PATHS = {
+    Path("docs/index.md"),
+}
 
 
 def resolve_link_target(source_file: Path, target: str) -> Path | None:
@@ -102,81 +38,87 @@ def resolve_link_target(source_file: Path, target: str) -> Path | None:
     return (source_file.parent / clean_target).resolve()
 
 
-def collect_markdown_files(repo_root: Path) -> list[Path]:
-    markdown_files: list[Path] = []
-    for path in iter_markdown_files(repo_root):
-        path_text = path.as_posix()
-        if "/docs/exec-plans/completed/" in path_text:
-            continue
-        if "/.codex/.codex/" in path_text:
-            continue
-        if "/.cargo-home/" in path_text:
-            continue
-        markdown_files.append(path)
-    return markdown_files
-
-
-def check_required_paths(repo_root: Path) -> int:
+def check_index_map(repo_root: Path) -> int:
     failures = 0
-    report_section("Required paths")
-    for relative_path in REQUIRED_PATHS:
-        path = repo_root / relative_path
-        if path.exists():
-            report_pass(f"PASS path exists: {path}")
+    index_path = repo_root / STRUCTURE_INDEX_PATH
+    report_section("Index map")
+
+    if index_path.exists():
+        report_pass(f"PASS index map exists: {index_path}")
+    else:
+        report_fail(f"FAIL missing index map: {index_path}")
+        return 1
+
+    content = remove_code_blocks(read_text(index_path))
+    for match in LINK_PATTERN.finditer(content):
+        target = match.group("target").strip()
+        if target.startswith("#"):
+            continue
+
+        resolved = resolve_link_target(index_path, target)
+        if resolved is None:
+            continue
+
+        if resolved.exists():
+            report_pass(f"PASS index link: {index_path} -> {target}")
         else:
-            report_fail(f"FAIL missing path: {path}")
+            report_fail(f"FAIL broken index link: {index_path} -> {target}")
             failures += 1
+
     return failures
 
 
-def check_markdown_links(repo_root: Path) -> int:
-    failures = 0
-    report_section("Markdown links")
-    for file_path in collect_markdown_files(repo_root):
-        content = remove_code_blocks(read_text(file_path))
-        for match in LINK_PATTERN.finditer(content):
-            target = match.group("target").strip()
-            if target.startswith("#"):
-                continue
+def collect_index_targets(repo_root: Path) -> tuple[set[Path], set[Path]]:
+    index_path = repo_root / STRUCTURE_INDEX_PATH
+    content = remove_code_blocks(read_text(index_path))
+    allowed_files: set[Path] = set()
+    allowed_directories: set[Path] = set()
 
-            resolved = resolve_link_target(file_path, target)
-            if resolved is None:
-                continue
-
-            if not resolved.exists():
-                report_fail(f"FAIL broken link: {file_path} -> {target}")
-                failures += 1
-    return failures
-
-
-def iter_structure_svg_files(repo_root: Path) -> list[Path]:
-    structure_root = repo_root / "4humans/diagrams/structures"
-    return sorted(structure_root.glob("*.svg"))
-
-
-def check_structure_svg_aspect_ratio(repo_root: Path) -> int:
-    failures = 0
-    report_section("Structure SVG aspect ratio")
-    for file_path in iter_structure_svg_files(repo_root):
-        content = read_text(file_path)
-        match = SVG_VIEWBOX_PATTERN.search(content)
-        if match is None:
-            report_fail(f"FAIL missing viewBox: {file_path}")
-            failures += 1
+    for match in LINK_PATTERN.finditer(content):
+        target = match.group("target").strip()
+        if target.startswith("#"):
             continue
 
-        width = float(match.group("width"))
-        height = float(match.group("height"))
-        ratio = width / height
-        if ratio <= MAX_STRUCTURE_SVG_RATIO:
-            report_pass(
-                f"PASS svg ratio <= 16:9: {file_path} ({width:.0f}x{height:.0f}, ratio={ratio:.3f})"
-            )
+        resolved = resolve_link_target(index_path, target)
+        if resolved is None or not resolved.exists():
+            continue
+        try:
+            resolved.relative_to(repo_root / DOCS_ROOT)
+        except ValueError:
+            continue
+
+        if resolved.is_dir():
+            allowed_directories.add(resolved)
         else:
-            report_fail(
-                f"FAIL svg ratio > 16:9: {file_path} ({width:.0f}x{height:.0f}, ratio={ratio:.3f})"
-            )
+            allowed_files.add(resolved)
+            if resolved.name.lower() == "readme.md":
+                allowed_directories.add(resolved.parent)
+
+    for relative_path in ALWAYS_ALLOWED_DOC_PATHS:
+        allowed_files.add(repo_root / relative_path)
+
+    return allowed_files, allowed_directories
+
+
+def is_allowed_doc_file(file_path: Path, allowed_files: set[Path], allowed_directories: set[Path]) -> bool:
+    if file_path in allowed_files:
+        return True
+    return any(directory in file_path.parents for directory in allowed_directories)
+
+
+def check_docs_coverage(repo_root: Path) -> int:
+    failures = 0
+    docs_root = repo_root / DOCS_ROOT
+    allowed_files, allowed_directories = collect_index_targets(repo_root)
+    report_section("Docs coverage")
+
+    for file_path in sorted(path for path in docs_root.rglob("*") if path.is_file()):
+        if is_allowed_doc_file(file_path, allowed_files, allowed_directories):
+            report_pass(f"PASS docs file is mapped by index: {file_path}")
+        else:
+            report_fail(f"FAIL docs file is not mapped by index: {file_path}")
             failures += 1
+
     return failures
 
 
@@ -185,9 +127,8 @@ def main() -> int:
     args = parser.parse_args()
     repo_root = Path(args.repo_root).resolve()
 
-    failures = check_required_paths(repo_root)
-    failures += check_markdown_links(repo_root)
-    failures += check_structure_svg_aspect_ratio(repo_root)
+    failures = check_index_map(repo_root)
+    failures += check_docs_coverage(repo_root)
     return finalize_failures("Structure harness", failures)
 
 

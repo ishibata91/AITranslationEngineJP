@@ -41,7 +41,7 @@
 
 ## 依存関係・ブロッカー
 
-- `design` / `all` harness は着手前から `docs/core-beliefs.md`、`docs/index.md`、`4humans/diagrams/overview-manifest.json` 由来の failure を含む。
+- `design` / `all` harness は着手前から `docs/core-beliefs.md` と `docs/index.md` 由来の failure を含む。
 
 ## 並行安全メモ
 
@@ -60,7 +60,7 @@
 
 - `structure_diagrammer` は `proposal_diff` と `apply_to_source` の 2 mode を持つ。
 - active plan は review 用差分図と差分正本適用先を記録する。
-- `diagrammer` は workflow から削除し、`4humans` 更新が必要な時は `diagramming-d2` を直接使う。
+- `diagrammer` は workflow から削除し、必要な図更新がある時は `diagramming-d2` を直接使う。
 
 ## 実装計画
 
@@ -100,7 +100,7 @@
 - `diagrams/backend/components.d2`
 - `diagrams/backend/<component>/<component>.d2`
 
-## 4humans Sync
+## Closeout Notes
 
 - N/A
 
@@ -113,4 +113,4 @@
 - `proposing-implementation` は review 用差分図と差分正本適用先を handoff し、`directing-implementation` close は承認済み差分を `diagrams/backend/` 正本へ適用する契約に変更した。
 - `directing-fixes` と `working-light` の `diagrammer` 依存を外し、`diagramming-d2` 直接利用へ変更した。
 - `python3 scripts/harness/run.py --suite structure` は通過した。
-- `python3 scripts/harness/run.py --suite design` と `python3 scripts/harness/run.py --suite all` は、着手前から存在する `docs/core-beliefs.md` / `docs/index.md` の pattern 不足と `4humans/diagrams/overview-manifest.json` 欠如で失敗した。
+- `python3 scripts/harness/run.py --suite design` と `python3 scripts/harness/run.py --suite all` は、着手前から存在する `docs/core-beliefs.md` / `docs/index.md` の pattern 不足で失敗した。

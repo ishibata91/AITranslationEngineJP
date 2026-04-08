@@ -5,7 +5,7 @@
     "承認済み active impl plan と承認済み構造差分図を受け取って execution を開始する",
     "planning、tests、implementing、reviewing へ handoff する",
     "承認済み構造差分の正本適用のために structure_diagrammer を diagramming-structure-diff へ handoff する",
-    "`4humans sync` を同一変更で扱い、実装の変更または追加では `4humans/diagrams/processes/`、構造の変更または追加では `4humans/diagrams/structures/` の更新要否も整理して、完了時に plan を completed へ移す"
+    "承認済み review 用差分図の正本適用と削除を整理し、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [
     "承認前の proposal を execution に進める",

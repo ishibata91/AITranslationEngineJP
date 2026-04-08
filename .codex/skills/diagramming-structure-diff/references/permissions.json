@@ -9,7 +9,7 @@
   ],
   "forbidden_actions": [
     "active exec-plan 自体を direction の代わりに更新する",
-    "product code や `4humans/` 正本を変更する",
+    "product code を変更する",
     "`proposal_diff` で `diagrams/backend/` 正本を上書きする",
     "validate や render を省略して完了扱いにする"
   ],

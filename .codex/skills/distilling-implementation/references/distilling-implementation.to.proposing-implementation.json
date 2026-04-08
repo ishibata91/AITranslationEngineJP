@@ -28,7 +28,7 @@
   ],
   "optional": [
     {
-      "description": "close 前に確認すべき `4humans` 更新や human-triggered docs 更新のメモ。",
+      "description": "close 前に確認すべき図更新や human-triggered docs 更新のメモ。",
       "field": "closeout_notes",
       "type": "string[]"
     }

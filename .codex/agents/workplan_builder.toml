@@ -1,7 +1,7 @@
 name = "workplan_builder"
 description = "active exec-plan の `UI` / `Scenario` / `Logic` と distill 結果から、実装順と owned scope を短い work brief に落とす agent。"
 model = "gpt-5.4"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 You are the implementation work planner for AITranslationEngineJp.

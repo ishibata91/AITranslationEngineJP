@@ -31,7 +31,7 @@ description: AITranslationEngineJp 専用。承認済み implementation proposal
 13. `all` が失敗した時は lane owner が同じ active plan を更新し、implementing skill を再スポーンして修正する。
 14. 差し戻しが修正されたら､再レビューはせず次へ進む｡
 15. close 前に completed work から task-local ではない知識だけを distill し、MCP memory bucket (`repo_conventions` または `recurring_pitfalls`) へ追加する。未承認設計、今回だけの TODO、一時回避策は MCP memory に残さない。
-16. 必要な `4humans sync` を整理し、backend 構造の変更または追加があった時は `<structure_diagrammer>` を `structure diagram diff skill (`diagramming-structure-diff`)` でスポーンして承認済み review 用差分図を `差分正本適用先` に適用する。その後、処理変更がある時は `diagramming-d2` で `4humans/diagrams/processes/` の relevant `.d2` / `.svg` を更新し、構造変更がある時は `diagramming-d2` で `4humans/diagrams/structures/` の relevant `.d2` / `.svg` を同一変更で更新してから review 用差分図を削除し、plan を `completed/` へ移す。new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と manifest で紐づく overview `.d2` / `.svg` も同一変更で更新する。
+16. backend 構造の変更または追加があった時は `<structure_diagrammer>` を `structure diagram diff skill (`diagramming-structure-diff`)` でスポーンして承認済み review 用差分図を `差分正本適用先` に適用する。その後に review 用差分図を削除し、plan を `completed/` へ移す。
 17. タスクがアサインされている場合、タスクのstatusをdoneにする。
 
 ## 許可すること
@@ -46,10 +46,9 @@ description: AITranslationEngineJp 専用。承認済み implementation proposal
 - implementation lane owner (`directing-implementation`) が Sonar issue remediation loop、single-pass review、review pass 後の final harness を一元管理する
 - MCP memory は bucket (`repo_conventions`, `recurring_pitfalls`) の recall / distill に限定し、仕様や architecture の正本代替にしない
 - close 前の MCP memory distill では repo-wide に再利用できる項目だけを残し、task-local な判断や one-off incident を bucket に昇格させない
-- review が `pass` でも `4humans sync` と plan 完了前に close とみなさない
+- review が `pass` でも plan 完了前に close とみなさない
 - `diagrams/backend/` 正本は proposal 中に書き換えず、承認済み差分を close 時に適用する
-- review 用差分図は承認時点の一時 artifact として扱い、正本適用と `4humans` 正本同期後は削除する
-- active plan の `4humans Sync` には、必要な `4humans/diagrams/processes/` と `4humans/diagrams/structures/` の更新対象を明記し、new detail `.d2` を追加する時は `4humans/diagrams/overview-manifest.json` と対応 overview `.d2` / `.svg` も必ず列挙する
+- review 用差分図は承認時点の一時 artifact として扱い、正本適用後は削除する
 - skill 権限が曖昧な場合は停止して適切な handoff を選ぶ
 
 ## Reference Use

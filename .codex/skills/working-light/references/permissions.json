@@ -4,8 +4,8 @@
   "allowed_actions": [
     "軽いと確定している narrow task のコード、docs、workflow file を直接変更する",
     "scope に見合う最小限の validation commands を実行する",
-    "必要なら同じ narrow scope 内で `4humans sync` を行い、review diagram 影響時は `4humans/class-diagrams/` と `4humans/sequence-diagrams/` も更新または更新要否確認する",
-    "コードベース境界や実行フローが変わる narrow task では `diagramming-d2` をスポーンし、必要な `4humans/...diagrams` を同一変更で更新する"
+    "必要なら同じ narrow scope 内で review 用差分図の正本適用や削除を行う",
+    "コードベース境界が変わる narrow task では `diagramming-d2` または `diagramming-structure-diff` を使って必要な図更新を行う"
   ],
   "forbidden_actions": [
     "広い設計判断や architecture decision を独断で進める",

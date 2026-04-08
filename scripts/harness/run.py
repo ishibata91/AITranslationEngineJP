@@ -10,9 +10,8 @@ SUITE_ORDER = {
     "backend-lint": ["check_backend_lint.py"],
     "frontend-lint": ["check_frontend_lint.py"],
     "structure": ["check_structure.py"],
-    "design": ["check_design.py"],
     "execution": ["check_execution.py"],
-    "all": ["check_structure.py", "check_design.py", "check_execution.py"],
+    "all": ["check_structure.py", "check_execution.py"],
 }
 
 

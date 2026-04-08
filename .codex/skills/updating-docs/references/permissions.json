@@ -8,7 +8,7 @@
   ],
   "forbidden_actions": [
     "human の明示判断なしに `docs/` 正本を変更する",
-    "`.codex/`、`4humans/`、product code を更新する",
+    "`.codex/` や product code を更新する",
     "workflow 契約変更や lane close を代行する"
   ],
   "expected_outputs": [
@@ -20,6 +20,6 @@
   "stop_conditions": [
     "human がどの `docs/` 正本をどう変えるか明示していない",
     "依頼が workflow 契約変更で `skill-modification` へ戻すべきである",
-    "product code や `4humans/` の変更が同時に必要で scope が混ざっている"
+    "product code の変更が同時に必要で scope が混ざっている"
   ]
 }

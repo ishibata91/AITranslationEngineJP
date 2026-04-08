@@ -20,6 +20,6 @@
   "stop_conditions": [
     "調査対象や知りたい論点が特定できない",
     "証拠が不足し read-only 調査だけでは前進しない",
-    "次の必要作業が実装、fix、`4humans sync`、または `updating-docs` であり handoff が必要である"
+    "次の必要作業が実装、fix、または `updating-docs` であり handoff が必要である"
   ]
 }

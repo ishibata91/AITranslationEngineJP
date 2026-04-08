@@ -30,7 +30,7 @@
 ## 対象外
 
 - `docs/` 正本の恒久仕様更新
-- product code や `4humans/` の内容変更
+- product code の内容変更
 - 既存 baseline の design harness failure 解消
 
 ## 依存関係・ブロッカー
@@ -98,7 +98,7 @@
 
 - N/A
 
-## 4humans Sync
+## Closeout Notes
 
 - N/A
 
@@ -110,4 +110,4 @@
 - `proposing-implementation` と `directing-implementation` に new handoff JSON を追加し、古い `proposing-implementation.to.diagramming-d2.json` は削除した。
 - `.codex/README.md`、`.codex/workflow.md`、`.codex/workflow_activity_diagram.puml` を new skill 前提へ同期した。
 - `python3 scripts/harness/run.py --suite structure` は通過した。
-- `python3 scripts/harness/run.py --suite design` と `python3 scripts/harness/run.py --suite all` は既存 baseline failure のまま失敗した。失敗内容は `docs/core-beliefs.md`、`docs/index.md` の pattern 不足と `4humans/diagrams/overview-manifest.json` 不在で、今回差分起因ではない。
+- `python3 scripts/harness/run.py --suite design` と `python3 scripts/harness/run.py --suite all` は既存 baseline failure のまま失敗した。失敗内容は `docs/core-beliefs.md`、`docs/index.md` の pattern 不足で、今回差分起因ではない。

@@ -1,0 +1,91 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+  }
+}
+
+direction: right
+
+backend: {
+  label: "backend アーキテクチャ構造図"
+
+  controller: {
+    label: "Controller"
+    shape: class
+    style.font-size: 22
+    + 入力を受ける
+    + request / response を写像する
+  }
+
+  usecase: {
+    label: "UseCase"
+    shape: class
+    style.font-size: 22
+    + ジョブ状態を管理する
+    + 次に何をやるか決める
+    + transaction 境界を持つ
+  }
+
+  service: {
+    label: "Service"
+    shape: class
+    style.font-size: 22
+    + repository を読む
+    + コンテキストを構築する
+    + AI 実行を依頼する
+    + 結果を整形する
+  }
+
+  statemachine: {
+    label: "StateMachine"
+    shape: class
+    style.font-size: 22
+    + 状態遷移規則を持つ
+    + ジョブ状態を判定する
+  }
+
+  job_io_service: {
+    label: "JobIOService"
+    shape: class
+    style.font-size: 22
+    + job 状態を取得する
+    + job 状態を保存する
+  }
+
+  repository: {
+    label: "Repository"
+    shape: class
+    style.font-size: 22
+    + 永続化を担当する
+  }
+
+  ai_provider_interface: {
+    label: "AI Provider Interface"
+    shape: class
+    style.font-size: 22
+    + 翻訳 / 生成 API を定義する
+  }
+
+  ai_provider_adapter: {
+    label: "AI Provider Adapter"
+    shape: class
+    style.font-size: 22
+    + LMStudio / Gemini / xAI を実装する
+  }
+}
+
+backend.controller -> backend.usecase: "起動する"
+backend.usecase -> backend.service: "実処理を依頼する"
+backend.usecase -> backend.statemachine: "状態を判定する"
+backend.usecase -> backend.job_io_service: "job 状態を扱う"
+backend.job_io_service -> backend.repository: "読む / 保存する"
+backend.service -> backend.repository: "読む / 保存する"
+backend.service -> backend.ai_provider_interface: "外部実行を依頼する"
+backend.ai_provider_adapter -> backend.ai_provider_interface: "実装する"
+
+style: {
+  font-size: 22
+}
+edge: {
+  style.font-size: 22
+}

@@ -30,9 +30,12 @@
 - [`coding-guidelines.md`](./coding-guidelines.md): Wails + Go + Svelte 前提の実装規約
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担
 - [`er.md`](./er.md): canonical data model と ER 仕様
+- [`diagrams/backend/`](./diagrams/backend/): backend 構造図の D2 source of truth と review 用 SVG
+- [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の D2 source of truth と review 用 SVG
 - [`screen-design/`](./screen-design/): 画面構成と wireframe
 - [`diagrams/er/`](./diagrams/er/): ER 図の D2 source of truth と review 用 SVG
 - [`references/`](./references/index.md): 外部仕様と参照方針
+- [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
 - [`exec-plans/active/`](./exec-plans/active/README.md): 未完了の plan
 - [`exec-plans/completed/`](./exec-plans/completed/README.md): 完了した plan と結果
 
@@ -45,6 +48,8 @@
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
 - Screen map or wireframe changed: update the relevant file under [`screen-design/`](./screen-design/)
 - Data model or entity relationship changed: update [`er.md`](./er.md) and relevant file under [`diagrams/er/`](./diagrams/er/)
+- Backend structure changed: update the relevant file under [`diagrams/backend/`](./diagrams/backend/)
+- Frontend structure changed: update the relevant file under [`diagrams/frontend/`](./diagrams/frontend/)
 - External references or vendor specs changed: update [`references/`](./references/index.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
 - Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
@@ -53,7 +58,6 @@
 ## Repository Checks
 
 - Structure harness: `python3 scripts/harness/run.py --suite structure`
-- Design harness: `python3 scripts/harness/run.py --suite design`
 - Execution harness: `python3 scripts/harness/run.py --suite execution`
 - Full pass: `python3 scripts/harness/run.py --suite all`
 

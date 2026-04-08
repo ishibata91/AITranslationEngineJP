@@ -3,7 +3,7 @@
   "direction": "skill-to-directing",
   "from_skill": "analyzing-fixes",
   "to_skill": "directing-fixes",
-  "purpose": "direction が fix 実装へ進むか `4humans sync` や human-triggered `updating-docs` に寄せるかを決める分析結果を返す。",
+  "purpose": "direction が fix 実装へ進むか human-triggered `updating-docs` に寄せるかを決める分析結果を返す。",
   "required": [
     {
       "description": "観測から確定した事実。",
@@ -21,7 +21,7 @@
       "type": "string[]"
     },
     {
-      "description": "implementing-fixes / 4humans-sync / request-updating-docs / more trace など。",
+      "description": "implementing-fixes / request-updating-docs / more trace など。",
       "field": "recommended_next_step",
       "type": "string"
     }

@@ -1,0 +1,115 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+  }
+}
+
+direction: right
+
+frontend: {
+  label: "frontend アーキテクチャ構造図"
+
+  view: {
+    label: "View"
+    shape: class
+    style.font-size: 22
+    + 画面を表示する
+    + ユーザー入力を受ける
+  }
+
+  screen_controller: {
+    label: "ScreenController"
+    shape: class
+    style.font-size: 22
+    + 画面操作を受ける
+    + UseCase を起動する
+  }
+
+  usecase: {
+    label: "UseCase"
+    shape: class
+    style.font-size: 22
+    + 画面状態の更新方針を決める
+    + 次に呼ぶ処理を決める
+  }
+
+  store: {
+    label: "Store"
+    shape: class
+    style.font-size: 22
+    + 画面状態を保持する
+    + 表示用状態を公開する
+  }
+
+  presenter: {
+    label: "Presenter"
+    shape: class
+    style.font-size: 22
+    + 受信データを表示用へ整形する
+  }
+
+  gateway: {
+    label: "Gateway"
+    shape: class
+    style.font-size: 22
+    + backend Bind を呼ぶ
+    + request / response を写像する
+  }
+
+  gateway_contract: {
+    label: "GatewayContract"
+    shape: class
+    style.font-size: 22
+    + 呼び出し interface を定義する
+  }
+
+  gateway_dto: {
+    label: "GatewayDTO"
+    shape: class
+    style.font-size: 22
+    + request / response DTO
+  }
+
+  runtime_event_adapter: {
+    label: "RuntimeEventAdapter"
+    shape: class
+    style.font-size: 22
+    + Wails event を購読する
+    + UI 向けイベントへ写像する
+  }
+
+  wailsjs: {
+    label: "generated wailsjs"
+    shape: class
+    style.font-size: 22
+    + backend 呼び出し wrapper
+  }
+
+  wails_runtime: {
+    label: "Wails Runtime"
+    shape: class
+    style.font-size: 22
+    + event 配信
+  }
+}
+
+frontend.view -> frontend.screen_controller: "操作を渡す"
+frontend.screen_controller -> frontend.usecase: "起動する"
+frontend.usecase -> frontend.store: "状態を更新する"
+frontend.usecase -> frontend.presenter: "表示用に整形する"
+frontend.presenter -> frontend.store: "表示用状態を渡す"
+frontend.usecase -> frontend.gateway_contract: "依存する"
+frontend.gateway -> frontend.gateway_contract: "実装する"
+frontend.gateway -> frontend.gateway_dto: "DTO を使う"
+frontend.gateway -> frontend.wailsjs: "Bind を呼ぶ"
+frontend.runtime_event_adapter -> frontend.wails_runtime: "event を購読する"
+frontend.runtime_event_adapter -> frontend.store: "状態を更新する"
+frontend.runtime_event_adapter -> frontend.gateway_dto: "DTO を使う"
+frontend.view -> frontend.store: "状態を読む"
+
+style: {
+  font-size: 22
+}
+edge: {
+  style.font-size: 22
+}
