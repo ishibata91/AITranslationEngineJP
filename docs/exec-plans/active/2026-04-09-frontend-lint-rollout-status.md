@@ -103,13 +103,14 @@
 - 導入済み:
   - `frontend` に `npm run lint` を追加済み。
   - repo root に `frontendlint` と `lint:frontend` を追加し、frontend lint の共通入口を root から実行できるようにした。
-  - `frontend` の `lint` は `lint:eslint`、`lint:types`、`lint:exports` に分割済み。
+  - `frontend` の `lint` は `lint:eslint`、`lint:types`、`lint:exports`、`lint:boundaries` に分割済み。
   - `frontend/eslint.config.js` を追加し、flat config で `ESLint` を起動できる。
   - `TypeScript` / `Svelte` 向けに `typescript-eslint` と `eslint-plugin-svelte` を接続済み。
   - `frontend/tsconfig.json` に `noUnusedLocals: true`、`noUnusedParameters: true`、`allowUnreachableCode: false` を追加済み。
   - `tsc --noEmit` を `lint:types` として lint 経路へ統合済み。
   - 未参照 export は `ESLint` ではなく `knip --production --include-entry-exports` で検出済み。
   - `scripts/eslint/repository-boundary-plugin.mjs` を `src/**/*.{ts,svelte}` に適用済み。
+  - `frontend/repository-boundary-plugin.test.mjs` を追加し、`vitest` で境界 plugin の test を常用 command から実行できる。
   - コメントアウトコード検出は、`ESLint 10` と外部 plugin の互換問題を避けるため `scripts/eslint/repository-boundary-plugin.mjs` の local rule として実装済み。
   - `frontend` に `@ui` / `@application` / `@controller` alias を追加済み。
   - フロントエンドの実構成に合わせて、`ui -> application`、`controller -> application`、`controller -> wailsjs` 以外を禁止する依存制約を導入済み。
@@ -117,8 +118,8 @@
   - `frontend/eslint.config.js` に `reportUnusedDisableDirectives: "error"` を追加済み。
   - `frontend/eslint.config.js` に `no-unreachable` と `no-unreachable-loop` を追加済み。
   - `wailsjs/**`、`dist/**`、`node_modules/**` は lint 対象から除外済み。
+  - `frontend` に `prettier` と `prettier-plugin-svelte` を追加し、`format` / `format:check` を実行できる。
+  - formatter は `dist/**`、`node_modules/**`、`wailsjs/**`、`package-lock.json` を対象外にしている。
   - `npm run lint`、`npm run check` はともに成功済み。
 - 未対応:
   - backend 向け lint command と統合 gate は未追加。
-  - `repository-boundary-plugin` のテスト実行基盤は repo でまだ常用 command に載っていない。
-  - formatter との統合は未整理。

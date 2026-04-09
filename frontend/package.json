@@ -8,10 +8,13 @@
     "dev:wails": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
-    "lint": "npm run lint:eslint && npm run lint:types && npm run lint:exports",
+    "lint": "npm run lint:eslint && npm run lint:types && npm run lint:exports && npm run lint:boundaries",
     "lint:eslint": "eslint . --max-warnings=0",
     "lint:types": "tsc --noEmit",
-    "lint:exports": "knip --production --include-entry-exports"
+    "lint:exports": "knip --production --include-entry-exports",
+    "lint:boundaries": "vitest run ./repository-boundary-plugin.test.mjs",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -23,10 +26,13 @@
     "eslint-plugin-svelte": "^3.17.0",
     "globals": "^17.4.0",
     "knip": "^6.3.1",
+    "prettier": "^3.8.1",
+    "prettier-plugin-svelte": "^3.5.1",
     "svelte": "^5.37.0",
     "svelte-check": "^4.3.1",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.58.1",
-    "vite": "^5.4.21"
+    "vite": "^5.4.21",
+    "vitest": "^4.1.4"
   }
 }

@@ -1,9 +1,9 @@
 interface ShellState {
-	title: string;
+  title: string
 }
 
 export function createShellState(): ShellState {
-	return {
-		title: "Architecture Skeleton"
-	};
+  return {
+    title: "Architecture Skeleton"
+  }
 }
