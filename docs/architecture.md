@@ -143,10 +143,9 @@ Wails event は progress、notification、background completion のような pus
   - `frontend/`: frontend package root
   - `internal/`: Go の backend 実装
 - `frontend/`
-  - `src/ui/`: App Shell、screen、view、store
-  - `src/application/`: frontend 側 use case
-  - `src/controller/wails/`: generated binding wrapper と runtime event adapter
-  - `src/shared/contracts/`: UI が依存する DTO / query model
+  - `src/ui/`: View
+  - `src/application/`: ScreenController、UseCase、Presenter、Store、GatewayContract
+  - `src/controller/wails/`: Gateway、GatewayDTO、RuntimeEventAdapter、generated binding wrapper
   - `wailsjs/`: generated bindings。hand-edit しない
 - `internal/`
   - `controller/`: Wails bind と入出力の受け渡し
@@ -167,8 +166,9 @@ frontend と backend のデータ受け渡しは DTO を明示して行う。
 
 - Go 側の public bind method は request / response struct を明示する
 - DTO は `json` tag を付け、field 名を暗黙変換に任せない
-- frontend は generated `wailsjs` の型を `controller/wails` の中で `src/shared/contracts/` へ写像する
-- UI は shared contract だけを前提にし、Go 内部構造を直接前提にしない
+- frontend は generated `wailsjs` の型を `controller/wails` の中で `GatewayDTO` へ写像する
+- `UseCase` は `GatewayContract` に依存し、`View` は `Store` の表示用状態だけを前提にする
+- UI は Go 内部構造を直接前提にしない
 
 ## 8. 永続化と AI 接続
 
