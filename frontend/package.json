@@ -5,10 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:wails": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json"
   },
   "devDependencies": {
+    "@types/node": "^24.6.1",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "svelte": "^5.37.0",
     "svelte-check": "^4.3.1",
