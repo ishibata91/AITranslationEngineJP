@@ -8,7 +8,7 @@
     "`d2 validate`、`d2 -t 201`、class 図の縦横比確認を実行する"
   ],
   "forbidden_actions": [
-    "active exec-plan 自体を direction の代わりに更新する",
+    "active exec-plan 自体を orchestrator の代わりに更新する",
     "product code を変更する",
     "`proposal_diff` で `diagrams/backend/` 正本を上書きする",
     "validate や render を省略して完了扱いにする"

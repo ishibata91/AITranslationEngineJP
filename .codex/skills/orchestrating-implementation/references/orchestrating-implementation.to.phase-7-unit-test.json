@@ -1,0 +1,21 @@
+{
+  "contract_version": "2026-04-09",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "phase-7-unit-test",
+  "purpose": "実装完了後に unit test を追加または拡張し、主要分岐と coverage gap を補う。",
+  "required": [
+    { "description": "承認済み active exec-plan。", "field": "active_exec_plan", "type": "path" },
+    { "description": "実装済み scope と touched files。", "field": "implemented_scope", "type": "string[]" },
+    { "description": "実装 phase の validation 結果。", "field": "validation_results", "type": "string[]" }
+  ],
+  "optional": [
+    { "description": "coverage gap や未証明分岐のメモ。", "field": "coverage_gaps", "type": "string[]" }
+  ],
+  "must_not_change": [
+    "新しい仕様解釈を追加しない"
+  ],
+  "completion_signal": [
+    "unit test 追加結果と validation 結果が返っている"
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "contract_version": "2026-04-09",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-2.5-design-review",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "詳細設計 AI review の判定結果を orchestrator へ返す。",
+  "required": [
+    { "description": "review 判定。", "field": "decision", "type": "string" },
+    { "description": "指摘一覧。", "field": "findings", "type": "string[]" }
+  ],
+  "optional": [
+    { "description": "human 判断が必要な論点。", "field": "human_open_questions", "type": "string[]" },
+    { "description": "closeout notes。", "field": "closeout_notes", "type": "string[]" }
+  ],
+  "must_not_change": [
+    "design review を複数回ループさせない"
+  ],
+  "completion_signal": [
+    "orchestrator が第3段階か第2段階へ進める"
+  ]
+}

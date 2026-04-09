@@ -1,0 +1,43 @@
+{
+  "contract_version": "2026-04-07",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-2-design",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "orchestrator が human review と execution handoff の前に、第2段階の task-local design と必要時の review 用差分図の固定結果を受け取る。",
+  "required": [
+    {
+      "description": "UI section に入れた要点。",
+      "field": "ui_notes",
+      "type": "string[]"
+    },
+    {
+      "description": "Scenario section に入れた要点。",
+      "field": "scenario_notes",
+      "type": "string[]"
+    },
+    {
+      "description": "Logic section に入れた要点。",
+      "field": "logic_notes",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "第2段階で用意した review 用差分図と差分正本適用先。",
+      "field": "review_diff_diagrams",
+      "type": "object"
+    },
+    {
+      "description": "orchestrator が次の handoff 前に解消すべき未確定事項。",
+      "field": "open_questions",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "実装コードを直接変更しない",
+    "active exec-plan の UI、Scenario、Logic 以外を広く書き換えない"
+  ],
+  "completion_signal": [
+    "proposal 側が human review に回せる task-local design が active plan に反映されている"
+  ]
+}

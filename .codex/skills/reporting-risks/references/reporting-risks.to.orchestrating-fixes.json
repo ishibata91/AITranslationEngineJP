@@ -1,0 +1,31 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "reporting-risks",
+  "to_skill": "orchestrating-fixes",
+  "purpose": "closeout に必要な残留リスク要約を orchestrator へ返す。",
+  "required": [
+    {
+      "description": "残るリスク。",
+      "field": "remaining_risks",
+      "type": "string[]"
+    },
+    {
+      "description": "なぜ残るか。",
+      "field": "why_they_remain",
+      "type": "string[]"
+    },
+    {
+      "description": "再確認提案。",
+      "field": "recheck_suggestion",
+      "type": "string[]"
+    }
+  ],
+  "optional": [],
+  "must_not_change": [
+    "evidence のない推測を書かない"
+  ],
+  "completion_signal": [
+    "orchestrator が closeout コメントに残留リスクを反映できる"
+  ]
+}

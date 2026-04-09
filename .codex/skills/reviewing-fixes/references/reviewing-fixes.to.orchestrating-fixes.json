@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "reviewing-fixes",
+  "to_skill": "orchestrating-fixes",
+  "purpose": "fix review の結果を orchestrator へ返す。",
+  "required": [
+    {
+      "description": "pass または reroute。",
+      "field": "decision",
+      "type": "string"
+    },
+    {
+      "description": "5 観点に基づく指摘。",
+      "field": "findings",
+      "type": "string[]"
+    },
+    {
+      "description": "再確認すべき check。",
+      "field": "recheck",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "なお残るリスク。",
+      "field": "residual_risk",
+      "type": "string[]"
+    },
+    {
+      "description": "close 前に必要な closeout notes。",
+      "field": "closeout_notes",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "score を返さない"
+  ],
+  "completion_signal": [
+    "orchestrator が close / reroute / risk report を決定できる"
+  ]
+}

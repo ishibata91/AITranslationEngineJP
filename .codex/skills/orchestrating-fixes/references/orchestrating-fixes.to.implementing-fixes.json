@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-fixes",
+  "to_skill": "implementing-fixes",
+  "purpose": "narrow fix 実装に必要な scope と evidence を渡す。",
+  "required": [
+    {
+      "description": "fix plan。",
+      "field": "active_fix_plan",
+      "type": "path"
+    },
+    {
+      "description": "今回修正する範囲。",
+      "field": "accepted_fix_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "根拠となる trace / analysis 要約。",
+      "field": "trace_or_analysis_result",
+      "type": "object"
+    },
+    {
+      "description": "実行すべき checks。",
+      "field": "checks",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "同時に除去すべき logging。",
+      "field": "temporary_logging_cleanup",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "broad refactor を混ぜない"
+  ],
+  "completion_signal": [
+    "修正に必要な範囲と根拠が明示されている"
+  ]
+}

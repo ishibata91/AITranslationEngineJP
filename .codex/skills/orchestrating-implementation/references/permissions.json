@@ -1,0 +1,30 @@
+{
+  "contract_version": "2026-04-09",
+  "skill": "orchestrating-implementation",
+  "allowed_actions": [
+    "active impl plan を作成または更新する",
+    "phase-1-distill、phase-2-design、phase-2.5-design-review、phase-4-plan、phase-5-test-implementation、phase-6-implement-*、phase-7-unit-test、phase-8-review へ handoff する",
+    "人間承認の記録、final harness、close を管理する"
+  ],
+  "forbidden_actions": [
+    "詳細設計の固定前に phase-4-plan 以降へ進める",
+    "非自明な変更を active plan なしで進める",
+    "changes、context_board、tasks.md を live 正本に戻す",
+    "自身で product 実装を始める",
+    "自身で詳細なコードベース調査を始める"
+  ],
+  "expected_outputs": [
+    "active_impl_plan",
+    "requirements_summary",
+    "design_review_status",
+    "approval_status",
+    "implementation_brief",
+    "validation_and_closeout_summary"
+  ],
+  "stop_conditions": [
+    "facts、constraints、gaps が不足し plan を安全に固定できない",
+    "review 用差分図の対象や出力先が不明である",
+    "差分正本適用先が不明である",
+    "人間承認が必要な task で承認前に implementation phase の開始が要求される"
+  ]
+}

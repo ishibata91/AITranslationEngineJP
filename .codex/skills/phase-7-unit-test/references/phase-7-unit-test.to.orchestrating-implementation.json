@@ -1,0 +1,22 @@
+{
+  "contract_version": "2026-04-09",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-7-unit-test",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "unit test 追加結果と coverage 補完結果を orchestrator へ返す。",
+  "required": [
+    { "description": "更新した test files。", "field": "touched_test_files", "type": "string[]" },
+    { "description": "追加または補完した unit test scope。", "field": "implemented_test_scope", "type": "string[]" },
+    { "description": "validation 結果。", "field": "validation_results", "type": "string[]" }
+  ],
+  "optional": [
+    { "description": "closeout notes。", "field": "closeout_notes", "type": "string[]" },
+    { "description": "残留リスク。", "field": "residual_risks", "type": "string[]" }
+  ],
+  "must_not_change": [
+    "review 判定を先に進めない"
+  ],
+  "completion_signal": [
+    "orchestrator が第8段階 review に進める"
+  ]
+}

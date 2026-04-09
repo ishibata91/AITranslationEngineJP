@@ -37,5 +37,5 @@ description: bugfix 初期情報を整理し、既知事実、再現条件、関
 
 ## Reference Use
 
-- 着手前に `../directing-fixes/references/directing-fixes.to.distilling-fixes.json` を参照して入力契約を確認する。
-- `directing-fixes` へ返す時は `references/distilling-fixes.to.directing-fixes.json` を返却契約として使う。
+- 着手前に `../orchestrating-fixes/references/orchestrating-fixes.to.distilling-fixes.json` を参照して入力契約を確認する。
+- `orchestrating-fixes` へ返す時は `references/distilling-fixes.to.orchestrating-fixes.json` を返却契約として使う。

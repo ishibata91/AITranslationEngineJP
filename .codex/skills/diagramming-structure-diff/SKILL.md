@@ -35,5 +35,5 @@ description: active exec-plan の task-local design と既存 backend 図から�
 
 ## Reference Use
 
-- proposal lane では着手前に `../proposing-implementation/references/proposing-implementation.to.diagramming-structure-diff.json` を参照し、返却時は `references/diagramming-structure-diff.to.proposing-implementation.json` を使う。
-- execution close では着手前に `../directing-implementation/references/directing-implementation.to.diagramming-structure-diff.json` を参照し、返却時は `references/diagramming-structure-diff.to.directing-implementation.json` を使う。
+- proposal phase では着手前に `../orchestrating-implementation/references/orchestrating-implementation.to.diagramming-structure-diff.proposal.json` を参照し、返却時は `references/diagramming-structure-diff.to.orchestrating-implementation.proposal.json` を使う。
+- close phase では着手前に `../orchestrating-implementation/references/orchestrating-implementation.to.diagramming-structure-diff.json` を参照し、返却時は `references/diagramming-structure-diff.to.orchestrating-implementation.close.json` を使う。

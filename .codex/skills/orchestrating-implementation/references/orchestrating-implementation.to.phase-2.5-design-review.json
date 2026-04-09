@@ -1,0 +1,20 @@
+{
+  "contract_version": "2026-04-09",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "phase-2.5-design-review",
+  "purpose": "task-local design と review 用差分図を詳細設計 AI review にかける。",
+  "required": [
+    { "description": "review 対象の active exec-plan。", "field": "active_exec_plan", "type": "path" },
+    { "description": "UI / Scenario / Logic を含む設計要約。", "field": "context_summary", "type": "object" }
+  ],
+  "optional": [
+    { "description": "review 用差分図 path。", "field": "review_diff_diagrams", "type": "string[]" }
+  ],
+  "must_not_change": [
+    "実装 phase に進む前提を勝手に確定しない"
+  ],
+  "completion_signal": [
+    "詳細設計 AI review の `pass` または `reroute` が返っている"
+  ]
+}

@@ -1,0 +1,25 @@
+{
+  "contract_version": "2026-04-09",
+  "skill": "phase-2.5-design-review",
+  "allowed_actions": [
+    "active exec-plan と review 用差分図を読んで詳細設計 AI review を行う",
+    "要件取りこぼし、責務腐敗、検証不足、構造差分の不整合を指摘する",
+    "human 判断が必要な論点を切り出して返す"
+  ],
+  "forbidden_actions": [
+    "実装コードや plan 以外の artifact を直接更新する",
+    "新しい要件や改善案を広げる",
+    "review loop を複数回まわす"
+  ],
+  "expected_outputs": [
+    "decision",
+    "findings",
+    "human_open_questions",
+    "closeout_notes"
+  ],
+  "stop_conditions": [
+    "review 対象の UI、Scenario、Logic が未確定である",
+    "review 用差分図の有無が不明である",
+    "入力だけでは詳細設計を評価できない"
+  ]
+}

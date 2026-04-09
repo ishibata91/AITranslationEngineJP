@@ -1,0 +1,37 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-fixes",
+  "to_skill": "tracing-fixes",
+  "purpose": "orchestrator が整えた前提から bugfix trace 計画を最小化するための情報を渡す。",
+  "required": [
+    {
+      "description": "orchestrator が整えた既知事実。",
+      "field": "known_facts",
+      "type": "string[]"
+    },
+    {
+      "description": "再現状況。",
+      "field": "reproduction_status",
+      "type": "string"
+    },
+    {
+      "description": "原因候補の領域。",
+      "field": "suspected_areas",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "既存ログや観測できる信号。",
+      "field": "existing_logs",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "恒久修正を混ぜない"
+  ],
+  "completion_signal": [
+    "hypotheses と observation_points が返る"
+  ]
+}

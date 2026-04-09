@@ -1,9 +1,36 @@
-# Codex Workflow Overview
+# Codex ワークフロー概要
 
 この文書は `../workflow-docs/codex/` 配下の workflow 図を文章で補足する鳥瞰図です。
 図は流れを示し、このページは lane ごとの目的、分岐条件、close 条件を短く固定します。
 
-## Source Of Truth
+```mermaid
+flowchart TD
+    A[要求整理]
+    B[詳細設計]
+    C[詳細設計 AI review]
+    D[人間承認]
+    E[実装計画]
+    F[検証設計]
+    G[実装と品質通過]
+    H[単体テスト作成]
+    I[実装レビュー]
+    J[完了]
+
+    A --> B --> C --> D --> E --> F --> G --> H --> I --> J
+
+    C -- 差し戻し --> B
+    D -- 設計差し戻し --> B
+    F -- 解釈不能 --> B
+    F -- 要件判断が必要 --> D
+    G -- 実装修正 --> G
+    G -- 設計前提が崩れた --> B
+    H -- テスト不足 --> H
+    H -- 構造見直しが必要 --> G
+    I -- 実装差分あり --> G
+    I -- 設計差分あり --> B
+```
+
+## 正本
 
 - live workflow の正本は `.codex/README.md` と各 `SKILL.md`
 - 鳥瞰図の図版正本は `../workflow-docs/codex/workflow_overview.d2`
@@ -11,73 +38,183 @@
 - fix detail の図版正本は `../workflow-docs/codex/fix_skill_flow.d2`
 - このページは diagram を読むための索引であり、diagram と矛盾する独自フローを追加しない
 
-## Diagram Set
+## 図版一覧
 
-- overview: `../workflow-docs/codex/workflow_overview.d2`
-- implementation detail: `../workflow-docs/codex/implementation_skill_flow.d2`
-- fix detail: `../workflow-docs/codex/fix_skill_flow.d2`
+- 鳥瞰図: `../workflow-docs/codex/workflow_overview.d2`
+- 実装詳細図: `../workflow-docs/codex/implementation_skill_flow.d2`
+- 修正詳細図: `../workflow-docs/codex/fix_skill_flow.d2`
 
-## Naming Rule
+## 命名規則
 
 - workflow 記述では、論理名と実名をできるだけ同じ行に置く
 - 初出または重要な参照は `論理名 (`actual-name`)` を優先する
 - 人間 review で意味が先に分かり、actual name でも検索できる記述を優先する
 
-## Overall Shape
+## 用語集
 
-`User request` を起点に、workflow は `implementation proposal lane`、`implementation execution lane`、`fix lane` の 3 役割に分かれます。
-feature / change は implementation proposal lane owner (`proposing-implementation`) から入り、human LGTM の後に implementation execution lane owner (`directing-implementation`) へ渡り、bug / regression は fix lane owner (`directing-fixes`) から入ります。
-どちらの lane も最後に review を 1 回だけ行い、`pass` なら commit して close します。`reroute` なら direction に戻します。
+- この章では、本文で日本語化する用語と、対応する英語の呼び方を残します。
 
-## Impl Lane
+- 実装レーン: `implementation lane`
+- 修正レーン: `fix lane`
+- 要求整理: `requirements definition`
+- 詳細設計: `detailed design`
+- 詳細設計 AI review: `detailed design AI review`
+- 人間承認: `human approval`
+- 実装計画: `implementation planning`
+- 検証設計: `verification design`
+- 実装と品質通過: `implementation and gate`
+- 完了: `close`
+- 作業計画: `active plan`
+- 参照必須資料: `required reading`
+- 文脈要約: `context summary`
+- 実装要約: `implementation brief`
+- 受け入れ確認: `acceptance checks`
+- 検証コマンド: `validation commands`
+- 品質通過条件: `gate`
+- 差し戻し: `reroute`
+- 全体検証: `full harness`
+- 人間 review: `human review`
+- AI review: `AI review`
 
-標準順序は `implementation proposal lane owner (`proposing-implementation`) -> implementation distill skill (`distilling-implementation`) -> task-local design skill (`designing-implementation`) -> structure diagram agent (`structure_diagrammer`) + structure diagram diff skill (`diagramming-structure-diff`) -> human LGTM -> implementation execution lane owner (`directing-implementation`) -> implementation workplan skill (`planning-implementation`) -> test architecture skill (`architecting-tests`) -> frontend implementer (`implementing-frontend`) or backend implementer (`implementing-backend`) + assigned lint suite -> sonar-scanner + Sonar MCP open issue gate -> implementation review skill (`reviewing-implementation`) -> full harness -> commit + close` です。
+## 全体像
 
-- implementation proposal lane owner (`proposing-implementation`): 実装要求の入口。日本語の active plan を用意し、task-local design と human review に必要な最小限の情報を整える。
-- task-local design skill (`designing-implementation`): active plan の `UI` / `Scenario` / `Logic` を task-local design として固める。
-- implementation distill skill (`distilling-implementation`): facts、constraints、gaps、closeout notes を圧縮する。
-- structure diagram agent (`structure_diagrammer`): proposal の構造差分図を担当する。structure diagram diff skill (`diagramming-structure-diff`) を使って、active exec-plan の task-local design と既存 `diagrams/backend/` から更新対象または new detail 図を判断し、active exec-plan 配下へ追加は緑、削除は赤で読める D2 / SVG を作る。close では承認済み差分を `diagrams/backend/components.d2` と `diagrams/backend/<component>/<component>.d2` の正本へ適用する。
-- human LGTM: active plan の `承認記録` と `HITL 状態` に記録し、承認前は execution lane を起動しない。
-- implementation execution lane owner (`directing-implementation`): 承認済み active plan を受け取り、review 用差分図と差分正本適用先を参照しながら planning 以降の execution、gate、close を管理する。
-- implementation workplan skill (`planning-implementation`): 実装順、owned scope、validation を短い brief に落とす。
-- test architecture skill (`architecting-tests`): 実装前に tests、fixtures、acceptance checks、validation commands を先に固定し、必要な test / fixture を最小範囲で実装する。
-- frontend implementer (`implementing-frontend`) / backend implementer (`implementing-backend`): owned scope に従って実装し、frontend は `python3 scripts/harness/run.py --suite frontend-lint`、backend は `python3 scripts/harness/run.py --suite backend-lint` だけを local validation として実行する。分岐は frontend / backend の責務で決める。
-- `sonar-scanner + Sonar MCP open issue gate`: implementation execution lane owner (`directing-implementation`) が project root で scanner を実行し、その後に Sonar MCP の `search_sonar_issues_in_projects` を直接使って `project == ishibata91_AITranslationEngineJP` かつ `status == OPEN` の issue だけを取得して、issue が残る間は implementing skill に戻す。
-- implementation review skill (`reviewing-implementation`): `仕様逸脱`、`例外処理`、`リソース解放`、`テスト不足` の 4 観点だけを単発で見る。
-- `full harness`: implementation review skill (`reviewing-implementation`) が `pass` を返した後に、implementation execution lane owner (`directing-implementation`) が `python3 scripts/harness/run.py --suite all` を実行する。
+`User request` を起点に、workflow は `実装レーン` と `修正レーン` の 2 系統に分かれます。
+feature / change は、要求整理から入り、詳細設計を固定し、人間 review を通した後に実装へ進みます。bug / regression は、事実整理、原因確認、回帰防止、修正、review の順で進みます。
+どちらの lane も最後に review を 1 回だけ行い、`pass` なら close します。`reroute` なら直前の適切な工程へ戻します。
 
-Sonar issue が解消し、implementation review skill (`reviewing-implementation`) が `pass` で、さらに full harness が通った時だけ承認済み差分の `diagrams/backend/` 正本適用、review 用差分図削除、commit、close に進みます。
-`reroute` の場合は implementation execution lane owner (`directing-implementation`) に戻り、proposal のやり直しが必要な時だけ implementation proposal lane owner (`proposing-implementation`) に戻します。
+## 実装レーン
 
-## Fix Lane
+標準順序は `要求整理 -> 詳細設計 -> 詳細設計 AI review -> 人間承認 -> 実装計画 -> 検証設計 -> 実装と品質通過 -> 単体テスト作成 -> 実装レビュー -> 完了` の段階で固定します。
 
-標準順序は `fix lane owner (`directing-fixes`) -> fix distill skill (`distilling-fixes`) -> fault trace skill (`tracing-fixes`) -> (必要時 logging skill (`logging-fixes`) / fix analysis skill (`analyzing-fixes`)) -> test architecture skill (`architecting-tests`) -> fix implementer (`implementing-fixes`) -> fix review skill (`reviewing-fixes`) -> risk reporting skill (`reporting-risks`) + commit + close` です。
+ウォーターフォールとしての原則は次の 4 点です。
 
-- fix lane owner (`directing-fixes`): bugfix 要求の入口。事実不足なら fix distill skill (`distilling-fixes`) と fault trace skill (`tracing-fixes`) に進める。
-- fix distill skill (`distilling-fixes`): 既知事実、再現条件、関連仕様、関連コードを短く整理する。
-- fault trace skill (`tracing-fixes`): 原因仮説を順位付けし、最小の trace 方針を決める。
-- logging skill (`logging-fixes`): 一時観測ログだけを追加 / 削除する。恒久修正は混ぜない。
-- fix analysis skill (`analyzing-fixes`): 観測結果を事実へ圧縮し、fix 対象か human-triggered な docs sync skill (`updating-docs`) 対象かを整理する。
-- test architecture skill (`architecting-tests`): 再現条件を tests / acceptance checks / validation commands に落とし、必要な回帰 test / fixture を先に実装する。
-- fix implementer (`implementing-fixes`): 承認済み scope の恒久修正を行う。
-- fix review skill (`reviewing-fixes`): impl lane と同じ 5 観点で単発 review する。
-- risk reporting skill (`reporting-risks`): 必要な時だけ残留リスクを短くまとめる。
+- 前工程の成果物を固定してから次工程へ進む。
+- 実装工程は承認済み作業計画を実装へ落とす工程であり、詳細設計工程をやり直さない。
+- 差し戻しは直前工程へ戻す。詳細設計のやり直しが必要な時だけ上流へ戻す。
+- 完了条件は `成果物固定`、`品質通過条件の通過`、`記録更新` の 3 つを同時に満たすこととする。
 
-diagram 上では fix analysis skill (`analyzing-fixes`) は常に通ります。
-logging skill (`logging-fixes`) は temporary logging が必要な時だけ挿入され、不要なら fault trace skill (`tracing-fixes`) から直接 fix analysis skill (`analyzing-fixes`) に進みます。
+### 第1段階 要求整理
 
-## Reroute And Close
+- 実装要求の入口として、要求、制約、未確定事項、関連文書を整理する。
+- この段階では、詳細設計に進むために必要な前提だけを固定する。
+- この段階で固定する成果物は、日本語の作業計画、参照必須資料、文脈要約、詳細設計に必要な前提である。
+- 要求が不足している時は、詳細設計へ進めずこの段階で止める。
 
-- review は score 制の loop にしない
-- `pass` なら commit して close する
-- `reroute` なら direction skill に戻し、plan、tests、実装を必要最小限で更新する
+### 第2段階 詳細設計
+
+- 詳細設計として、作業計画の `UI` / `Scenario` / `Logic` を固める。
+- 実作業では task-local design phase (`phase-2-design`) がこの段階を担当する。
+- `UI`、`Scenario`、`Logic` は、オーケストレーターが並列で進める設計対象とする。
+- オーケストレーターは、3 つの設計対象の依存関係を見ながら、必要な同期点だけを設けて詳細設計全体をまとめる。
+- `UI` は、画面実装の正本ではなく、モック HTML を CSS だけで見せるワイヤーフレームとして扱う。画面構造、情報の優先順位、主要な操作の置き場所を固定し、実装都合の component 名や framework 記法は持ち込まない。
+- `Scenario` は、説明文の列挙ではなく、要件から見出されるホワイトボックステストの一覧として扱う。正常系、主要な例外系、状態遷移、責務境界の確認点を test case 単位で固定し、後続工程はこの一覧を証明対象として引き継ぐ。
+- `Logic` は、責務腐敗を検知するための component 設計として扱う。どこで、何をやるかが分かるように、component ごとの責務、主要な振る舞い、振る舞いを担う member を対応づけて固定する。
+- `Logic` を図で review したい時は、正本図をコピーした review 用差分図を作り、追加、削除、移動が読める形で変更意図を表す。
+- この段階の出口成果物は、並列に固めたモック HTML wireframe としての `UI`、ホワイトボックステスト一覧としての `Scenario`、component responsibility map としての `Logic`、必要な時だけ作る review 用差分図、差分正本適用先である。
+- 設計判断が揺れている間は次工程に渡さない。
+
+### 第2.5段階 詳細設計 AI review
+
+- 詳細設計が固まった後に、AI review を 1 回だけ行う。
+- 実作業では detailed design AI review (`phase-2.5-design-review`) がこの段階を担当する。
+- review の対象は `UI`、`Scenario`、`Logic`、必要なら review 用差分図を含む詳細設計全体とする。
+- review では、要件取りこぼし、責務腐敗、検証不足、構造差分の不整合を確認する。
+- review の時点で、要件が最後まで揺れている、要件が曖昧である、またはここを決めないと先へ進められない論点が残る場合は、人間確認が必要な論点として明示する。
+- AI review で差し戻しが出た時は詳細設計へ戻し、修正後に再度この段階を通す。
+- AI review が `pass` でも、人間確認が必要な論点が残る時は、その論点を第3段階へ持ち上げて固定する。
+- AI review が `pass` で、人間確認が必要な論点も整理済みの時だけ人間承認に進む。
+
+### 第3段階 人間承認
+
+- human LGTM は作業計画の `承認記録` と `HITL 状態` に記録する。
+- 詳細設計と要件の摩擦が残った場合は、人間確認が必要な論点をこの段階で明示し、承認または決定として固定する。
+- 実装工程は承認前に起動しない。
+- human review で設計差し戻しが出た時は詳細設計へ戻す。
+- 人間確認が必要な論点が未決のままなら、この段階を通過したとみなさない。
+- この段階の品質通過条件は `承認済み作業計画` の 1 点である。
+
+### 第4段階 実装計画
+
+- 承認済み作業計画を受け取り、実装順、担当範囲、検証内容を短い実装要約に落とす。
+- 実作業では implementation workplan phase (`phase-4-plan`) がこの段階を担当する。
+- タスクは、並列実装可能な形になるように、コンポーネント単位で組み立てる。
+- 各タスクは、それぞれのワーカーが独立したコンテキストで実装できるように、責務境界、入出力、依存先、完了条件が分かる粒度まで分解する。
+- 実装工程では詳細設計を再作成しない。
+- この段階の出口成果物は、実装順、担当範囲、検証コマンドが固定された実装要約である。
+
+### 第5段階 検証設計
+
+- この段階は、第2段階で固定した `Scenario` のホワイトボックステスト一覧を、そのまま tests、fixtures、受け入れ確認、検証コマンドへ適用する工程とする。
+- 実作業では test implementation phase (`phase-5-test-implementation`) がこの段階を担当する。
+- この段階では、新しい検証観点や新しい要件解釈を増やさない。
+- 必要な test / fixture は最小範囲で用意し、第2段階で決めた証明対象を機械的に実行できる状態にする。
+- `Scenario` の一覧をそのまま適用できない時は、第5段階で解釈を足さず、第2段階または第3段階へ戻す。
+
+### 第6段階 実装と品質通過
+
+- 担当範囲に従って実装する。
+- 実作業では implementation phase (`phase-6-implement-frontend` / `phase-6-implement-backend`) がこの段階を担当する。
+- この段階の各タスクは、ワーカーごとに独立したコンテキストで実装可能であることを前提にする。
+- ただし、第7段階と同時に進める必要はなく、段階としては第6段階を先に完了させる。
+- ローカル検証を通した後に、品質通過条件、静的検査、単発 review、全体検証を順に通す。
+- 品質通過条件、review、全体検証のいずれかで失敗した時は実装工程へ戻り、必要最小限の修正後に品質通過条件へ復帰する。設計前提が崩れた時だけ詳細設計工程へ戻す。
+
+### 第7段階 単体テスト作成
+
+- 第6段階を通過した後に、単体テストを追加または拡張する。
+- 実作業では unit test phase (`phase-7-unit-test`) がこの段階を担当する。
+- この段階の各タスクも、ワーカーごとに独立したコンテキストで実装可能であることを前提にする。
+- ただし、第6段階と並列に進める必要はなく、実装完了後に順番に進める。
+- 単体テストは、実装した責務と主要な分岐を対象にして、詳細設計で固定した `Logic` と矛盾しない範囲で作成する。
+- カバレッジは 70% を目標ではなく通過基準として扱い、70% 未満はハーネスで失敗とする。
+- カバレッジ不足が見つかった時は、この段階で単体テストを補い、必要なら実装工程へ戻って観測しやすい構造へ整える。
+
+### 第8段階 実装レビュー
+
+- 第7段階を通過した後に、実装レビューを 1 回だけ行う。
+- 実作業では implementation review phase (`phase-8-review`) がこの段階を担当する。
+- この review は、実装が詳細設計と違うことをしていないか、だけを確認するゲートとする。
+- review では、新しい改善提案や新しい要件解釈は追加しない。
+- 詳細設計との差分が見つかった時は、実装工程へ戻すか、必要なら第2段階または第3段階へ戻して設計を固定し直す。
+- 詳細設計との整合が確認できた時だけ最終段階へ進む。
+
+### 最終段階 完了
+
+- 品質通過条件が解消し、review が `pass` で、さらに全体検証が通った時だけ承認済み差分の正本適用、review 用差分図削除、commit、完了に進む。
+- 単体テスト作成の結果として、カバレッジ 70% 以上を満たしていることを完了条件に含める。
+- 実装レビューで、詳細設計との差分がないことを確認していることを完了条件に含める。
+- review 用差分図を使った時は、完了で承認済み差分を正本図へ適用する。
+- コンポーネント図を製本した後は、AST ベースの構造解析にかけ、実際のコード構造とコンポーネント図に乖離があれば失敗として落とす。
+- AST ベースの構造解析で乖離が見つかった時は、図の修正だけでなく、詳細設計、実装、または図の正本化手順のどこに差分原因があるかを戻り先として確定してからやり直す。
+- `reroute` は実装工程で受け、詳細設計のやり直しが必要な時だけ上流へ戻す。
+
+## 修正レーン
+
+標準順序は `事実整理 -> 原因分析 -> 再現と回帰防止の検証設計 -> 修正実装 -> review -> 完了` です。
+
+- bugfix 要求の入口では、既知事実、再現条件、関連仕様、関連コードを整理する。
+- 原因分析では、原因仮説を順位付けし、必要な観測だけを最小限で行う。一時観測は恒久修正と混ぜない。
+- 修正前に、再現条件を tests / 受け入れ確認 / 検証コマンド に落とし、必要な回帰 test / fixture を先に実装する。
+- 実装では、承認済み範囲の恒久修正を行う。
+- review は impl lane と同じ正式観点で単発 review する。
+- 必要な時だけ残留リスクを短くまとめる。
+
+diagram 上では、原因分析は常に通ります。
+一時観測は temporary logging が必要な時だけ挿入され、不要なら直接分析に進みます。
+
+## 差し戻しと完了
+
+- `pass` なら commit して完了する
+- `reroute` なら方向づけ工程に戻し、作業計画、tests、実装を必要最小限で更新する
 - `docs/` 正本更新は通常 lane の close 条件に含めず、human が `updating-docs` を直接起動した時だけ扱う
 
-## Records And Evidence
+## 記録と証跡
 
 - 非自明な変更は `docs/exec-plans/active/` に plan を置く
 - 完了後は `docs/exec-plans/completed/` へ移す
-- 詳細な挙動や制約は docs へ肥大化させず、tests、acceptance checks、validation commands に寄せる
-- `directing-* -> downstream skill` の handoff contract 例は、各 directing skill 配下の `references/*.json` を見る
-- `downstream skill -> directing-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を見る
+- `UI` はモック HTML を CSS だけで見せるワイヤーフレームとして残し、画面仕様の prose を増やしすぎない
+- `Scenario` は要件から見出したホワイトボックステスト一覧として残し、詳細な振る舞い説明は test / 受け入れ確認 / 検証コマンド に寄せる
+- `Logic` は component ごとの責務、振る舞い、member 対応が読める形で残し、責務境界の崩れを review で検知できる状態にする
+- `orchestrating-* -> downstream skill` の handoff contract 例は、各 orchestrating skill 配下の `references/*.json` を見る
+- `downstream skill -> orchestrating-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を見る
 - harness は `python3 scripts/harness/run.py --suite structure|design|execution|all` を入口にする

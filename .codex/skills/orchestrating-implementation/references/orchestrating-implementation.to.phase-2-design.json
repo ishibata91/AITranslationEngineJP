@@ -1,0 +1,53 @@
+{
+  "contract_version": "2026-04-07",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "phase-2-design",
+  "purpose": "要求整理で整えた context summary を前提に、第2段階として active exec-plan の UI / Scenario / Logic を固め、必要な時は review 用差分図まで揃える依頼を渡す。",
+  "required": [
+    {
+      "description": "対象 task の要約と変更意図。",
+      "field": "request_summary",
+      "type": "string"
+    },
+    {
+      "description": "作業中の exec-plan path。",
+      "field": "active_plan_path",
+      "type": "string"
+    },
+    {
+      "description": "proposal 側が整えた facts / constraints / gaps / required_reading の要約。",
+      "field": "context_summary",
+      "type": "object"
+    },
+    {
+      "description": "task-local design 判断に必要な関連 docs やコード path。",
+      "field": "required_reading",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "UI / Scenario / Logic のうち特に固めたい section。",
+      "field": "focus_sections",
+      "type": "string[]"
+    },
+    {
+      "description": "現時点の制約や避けるべき選択。",
+      "field": "constraints",
+      "type": "string[]"
+    },
+    {
+      "description": "Logic の図 review が必要な時に参照する入力図や出力先。",
+      "field": "diagram_context",
+      "type": "object"
+    }
+  ],
+  "must_not_change": [
+    "実装コードを直接変更しない",
+    "active exec-plan の UI、Scenario、Logic 以外を広く書き換えない"
+  ],
+  "completion_signal": [
+    "proposal 側が execution handoff 前に固める task-local design が active plan に入っている"
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-fixes",
+  "to_skill": "analyzing-fixes",
+  "purpose": "観測結果を事実へ圧縮させ、次ステップを決める。",
+  "required": [
+    {
+      "description": "trace 仮説と observation_points。",
+      "field": "trace_context",
+      "type": "object"
+    },
+    {
+      "description": "実際のログまたは観測結果。",
+      "field": "observation_results",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "distill / trace 時点の未解明点。",
+      "field": "previous_gaps",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "推測を観測事実に混ぜない"
+  ],
+  "completion_signal": [
+    "observed_facts と recommended_next_step が返る"
+  ]
+}

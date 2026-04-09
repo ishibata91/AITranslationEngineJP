@@ -1,0 +1,57 @@
+{
+  "contract_version": "2026-04-08",
+  "direction": "directing-to-directing",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "human LGTM を得た implementation proposal を execution lane へ handoff する。",
+  "required": [
+    {
+      "description": "承認済み active exec-plan。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "distill と task-local design を含む proposal context summary。",
+      "field": "context_summary",
+      "type": "object"
+    },
+    {
+      "description": "human LGTM の記録。",
+      "field": "approval_status",
+      "type": "string"
+    },
+    {
+      "description": "承認済み差分を適用する repo-root 正本 path。",
+      "field": "diagram_source_targets",
+      "type": "string[]"
+    },
+    {
+      "description": "review 用差分図の path。",
+      "field": "review_diff_diagrams",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "proposal 中に MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) から recall した relevant な項目。",
+      "field": "mcp_memory_recall",
+      "type": "object"
+    },
+    {
+      "description": "既存図更新か new detail 図作成かを含む target 判断メモ。",
+      "field": "diagram_target_decision",
+      "type": "string[]"
+    },
+    {
+      "description": "execution に引き継ぐ closeout notes。",
+      "field": "closeout_notes",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "未承認 plan を execution へ回さない"
+  ],
+  "completion_signal": [
+    "orchestrating-implementation が phase-4-plan から開始できる情報がそろっている"
+  ]
+}

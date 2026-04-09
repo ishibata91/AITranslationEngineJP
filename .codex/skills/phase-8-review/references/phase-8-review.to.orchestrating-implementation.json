@@ -1,0 +1,37 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-8-review",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "review 結果を orchestrator へ返し、close か reroute を決めさせる。",
+  "required": [
+    {
+      "description": "pass または reroute。",
+      "field": "decision",
+      "type": "string"
+    },
+    {
+      "description": "5 観点に基づく指摘。",
+      "field": "findings",
+      "type": "string[]"
+    },
+    {
+      "description": "再確認すべき check。",
+      "field": "recheck",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "close 前に必要な closeout notes。",
+      "field": "closeout_notes",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "score を返さない"
+  ],
+  "completion_signal": [
+    "orchestrator が close または reroute を決定できる"
+  ]
+}

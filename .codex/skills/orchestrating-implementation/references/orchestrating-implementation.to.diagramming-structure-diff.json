@@ -1,0 +1,45 @@
+{
+  "contract_version": "2026-04-08",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "diagramming-structure-diff",
+  "purpose": "承認済み構造差分図を `diagrams/backend/` 正本へ適用させる。",
+  "required": [
+    {
+      "description": "承認済み active exec-plan path。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "`apply_to_source` を示す mode。",
+      "field": "diagram_mode",
+      "type": "string"
+    },
+    {
+      "description": "承認済み review 用差分図 path。",
+      "field": "review_diff_diagrams",
+      "type": "string[]"
+    },
+    {
+      "description": "適用対象の `diagrams/backend/` source path。",
+      "field": "diagram_source_targets",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "source 適用時に参照する docs / code / diagram path。",
+      "field": "source_context",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "承認されていない差分を source に適用しない",
+    "正本適用後の validate / render を省略しない"
+  ],
+  "completion_signal": [
+    "指定された source `.d2` が更新されている",
+    "対応する `.svg` が更新されている",
+    "orchestrator が close 手順へ進める"
+  ]
+}

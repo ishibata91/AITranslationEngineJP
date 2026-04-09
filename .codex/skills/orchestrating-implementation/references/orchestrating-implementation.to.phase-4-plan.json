@@ -1,0 +1,45 @@
+{
+  "contract_version": "2026-03-28",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "phase-4-plan",
+  "purpose": "orchestrator が整えた context summary と active plan をもとに、実装順と owned scope を brief 化させる。",
+  "required": [
+    {
+      "description": "更新対象の exec-plan。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "facts / constraints / gaps / required_reading の要約。",
+      "field": "context_summary",
+      "type": "object"
+    },
+    {
+      "description": "実装対象として残ったスコープ候補。",
+      "field": "candidate_scope",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "proposal から引き継いだ relevant な MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) の recall。",
+      "field": "mcp_memory_recall",
+      "type": "object"
+    },
+    {
+      "description": "frontend / backend の責務想定。",
+      "field": "preferred_split",
+      "type": "string"
+    }
+  ],
+  "must_not_change": [
+    "tasks.md を作らない",
+    "legacy schema を持ち込まない"
+  ],
+  "completion_signal": [
+    "ordered_scope が定義されている",
+    "owned_scope が明示されている",
+    "validation_commands が定義されている"
+  ]
+}
