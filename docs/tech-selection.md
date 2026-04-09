@@ -32,7 +32,7 @@
 ## 4. 永続化
 
 - ローカルデータベースは `SQLite` を採用する
-- DB access の抽象は `database/sql` を基準にする
+- DB access の抽象は `sqlc` を基準にする
 - schema の変更管理は repo-owned SQL migration を採用する
 - migration の適用は app 起動時の専用初期化責務へ集約する
 - xEdit 抽出 JSON はファイルシステム上の正本として保持する
@@ -43,6 +43,7 @@
 
 - DI は `手動 DI` を採用する
 - frontend lint は `ESLint` を採用する
+- frontend formatterは`prettier`を採用する
 - `Svelte` / `TypeScript` の静的検証は `svelte-check` を採用する
 - frontend test runner は `Vitest` を採用する
 - backend format は `gofmt` を採用する
@@ -55,7 +56,11 @@
 - UI コンポーネントと画面内インタラクションのテストは `Vitest` を採用する
 - Svelte UI のユーザー視点テストは `@testing-library/svelte` と `jsdom` を採用する
 - backend の unit test / integration test は `go test ./...` を採用する
-- desktop 受け入れ検証の自動化は未確定とし、最初の実装フェーズでは boot smoke と重要フローの executable spec を優先する
+- system test 用の結合テスト基盤は `Playwright` を採用する
+- `Playwright` は frontend の browser automation、主要フローの executable spec、boot smoke の自動化に使う
+- system test の実行対象は、初期段階では `wails dev -browser` または frontend dev server で公開した browser surface を正本とする
+- Wails の native window 固有挙動は `Playwright` の primary scope に含めず、必要になるまで manual verification または別途専用手段で補う
+- `Playwright` の test runner、fixture、web-first assertion を system test の標準入口とする
 
 ## 7. 公式参照
 
@@ -71,3 +76,7 @@
   [`Guide`](https://vite.dev/guide/),
   [`Build`](https://vite.dev/guide/build),
   [`Config`](https://vite.dev/config/)
+- Playwright official docs:
+  [`Getting Started`](https://playwright.dev/docs/intro),
+  [`Test Runner`](https://playwright.dev/docs/test-intro),
+  [`Assertions`](https://playwright.dev/docs/test-assertions)

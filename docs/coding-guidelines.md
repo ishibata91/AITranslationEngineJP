@@ -2,82 +2,79 @@
 
 関連文書: [`index.md`](./index.md), [`architecture.md`](./architecture.md), [`tech-selection.md`](./tech-selection.md), [`lint-policy.md`](./lint-policy.md)
 
-本書は、`AITranslationEngineJp` の実装時に守るべきコーディング規約を定義する。
-外部の一般論をそのまま持ち込まず、本 repo の `Wails`、`Go`、`Svelte 5`、`TypeScript`、4 層構成に合わせて必要な規約だけを残す。
+本書は、`AITranslationEngineJp` の実装時に守るべき横断的なコーディング規約を定義する。
+本書では構造や directory 構成の説明は扱わず、実装時に常に効く判断基準だけを記録する。
+構造責務の正本は [`architecture.md`](./architecture.md) とする。
 
 ## 1. 基本原則
 
-- 実装は `UI層`、`アプリケーション層`、`ドメイン層`、`インフラ層` の境界を壊さない
-- フロントエンドは `frontend/src/ui`、`frontend/src/application`、`frontend/src/gateway`、`frontend/src/shared` の責務分離を維持する
-- バックエンドは `internal/application`、`internal/domain`、`internal/infra`、`internal/gateway/wails` の責務分離を維持する
+- 実装は採用技術と正本仕様に合わせ、外部テンプレートや一般論を無検証で持ち込まない
 - コメントは `何をしているか` ではなく、`なぜその判断が必要か` を短く補足する
-- 命名は略語より意味を優先し、UseCase、Gateway、Port、Repository の役割が読める名前にする
-- generated file は hand-edit せず、source of truth から再生成する
+- 命名は略語より意味を優先し、役割と責務が読める名前にする
 
-## 2. Wails 固有ルール
+## 2. 命名と記述
 
-- `main.go` は Wails bootstrap と wiring に集中させる
-- `Bind` する public method は transport boundary として扱い、業務ロジックや DB 操作を直書きしない
-- bound struct の責務は request validation、DTO mapping、use case 呼び出しまでに留める
-- frontend から backend を呼ぶ入口は generated `wailsjs` に限定し、UI から直接呼ばず `frontend/src/gateway/wails/` に閉じ込める
-- `wailsjs` は generated output として扱い、`frontend/src/gateway/wails/` の外から直接 import しない
+- `Go`、`TypeScript`、`Svelte` それぞれの標準的な命名慣習を崩さない
+- public に見える名前は省略しすぎず、利用側が文脈なしで意味を追える粒度にする
+- boolean は状態が読める名前にし、否定の二重表現を避ける
+- 一時変数は寿命を短く保ち、意味のない短縮名を使い回さない
+- 1 つの関数や component に複数の責務を詰め込まず、読む側が追える単位へ分ける
+
+## 3. エラー処理
+
+- 通常フローの失敗は戻り値や明示的な失敗表現で扱い、`panic` を制御フローに使わない
+- 失敗を握りつぶさず、必要な文脈を付けて上位へ返す
+- validation error、外部依存の実行失敗、想定外障害を同じ重さで混ぜず、原因の層が分かる形で扱う
+- user-facing message と internal diagnostic は分け、内部詳細を UI や外部境界へそのまま出さない
+- 再試行、フォールバック、握りつぶしを入れる場合は、理由と境界をコード上で読める状態にする
+- cleanup が必要な処理では、途中失敗時にも後始末が漏れないようにする
+
+## 4. 入出力と validation
+
+- request、response、設定値、外部入力は境界で形を固定し、optional field の意味を曖昧にしない
+- frontend で整形や制約をかけても、最終 validation は backend で再実行する
+- file path、外部 URL、provider 設定値、外部プロセス入力は使用直前に再検証する
+- 無検証の type assertion、`any`、暗黙変換に依存しすぎず、失敗可能性を型または validation で表現する
+- 文字列連結や ad-hoc な map 構築で契約を表現せず、契約があるデータは DTO や struct に寄せる
+
+## 5. 技術別ルール
+
+### 5.1 Wails
+
+- `Bind` する public method は transport boundary として扱い、重い業務処理や永続化詳細を直書きしない
+- frontend から backend を呼ぶ入口は generated `wailsjs` を経由し、generated output を hand-edit しない
 - backend から frontend への通知は `runtime.EventsEmit` を使ってよいが、通常の query / command を event へ逃がさない
-- lifecycle hook (`OnStartup`, `OnShutdown`) は薄く保ち、重い初期化や domain 判断を抱え込まない
+- lifecycle hook (`OnStartup`, `OnShutdown`) は薄く保ち、重い初期化や長い判断を抱え込まない
 
-## 3. TypeScript / Svelte 規約
+### 5.2 TypeScript / Svelte
 
 - `Svelte 5` と `TypeScript` を前提にし、`any` と無検証の type assertion を常用しない
 - component state は `\$state`、派生値は `\$derived`、副作用は `\$effect` を基本にする
 - component event は callback prop を優先し、`createEventDispatcher` の新規採用は避ける
 - event handler は `onclick` などの標準 event 属性を優先する
-- `.svelte` は表示とイベント配線に集中させ、画面フローや取得判断は use case へ寄せる
-- `Presenter / View` は pure に保ち、Wails runtime、永続化、外部通信へ直接依存しない
-- `Screen Store` は表示状態の保持に専念し、副作用の起点にしない
-- `frontend/src/shared/contracts/` の型を UI と Gateway の共有 DTO とし、Go 側の内部型や generated type を直接前提にしない
-- 別 feature の内部 module を直接 import せず、公開 root を経由する
+- `.svelte` は表示とイベント配線に集中させ、副作用や取得判断を template 内へ散らさない
 
-## 4. Go / Backend 規約
+### 5.3 Go
 
-- `domain` は最も内側の方針として保ち、Wails、SQLite driver、ファイル I/O、HTTP 実装へ依存しない
-- `application` は UseCase と DTO を持ち、外部依存は port 越しに扱う
-- `infra` は DB、ファイル、runtime、外部 API の具体実装だけを持ち、上位層へインフラ都合の型を漏らさない
-- `internal/gateway/wails` は Wails binding と application usecase の接続点に限定し、ドメイン判断を持たない
-- `error` を返して失敗を明示し、`panic` を通常フローの制御に使わない
-- `context.Context` が必要な runtime 操作は gateway と infra で明示的に扱う
-- 永続化は repository に閉じ込め、use case や bound method に SQL を直書きしない
-- migration 実行は backend 起動初期化で一度だけ行い、通常 request 経路へ混ぜない
+- `error` は無視せず、呼び出し側が判断できる形で返す
+- SQL、filesystem、HTTP、外部プロセス呼び出しは文字列直書きや場当たり実装を増やさず、責務をまとめて扱う
+- migration や schema 更新のような初期化処理は通常の request 経路へ混ぜない
 
-## 5. 通信とデータ境界
+## 6. ログと機密情報
 
-- frontend と backend の主通信路は `Wails bindings` とする
-- backend からの push 通知が必要な場合だけ `Wails runtime events` を使う
-- request / response は DTO と validation で形を固定し、optional field の意味を曖昧にしない
-- versioning が必要な外部連携は Go 側 adapter に閉じ込め、UI 契約へ直接漏らさない
-- user-facing message と internal diagnostic は分け、内部詳細をそのまま表示しない
+- ログは原因追跡に必要な情報を残しつつ、機密値、API key、token、ローカル絶対パスを無加工で出さない
+- debug 用の詳細と user-facing な表示文言を混同しない
+- ログ message は検索しやすい語彙を使い、同じ失敗を複数の曖昧な表現で記録しない
+- 観測のための一時ログは恒久仕様へしない
 
-## 6. セキュリティ規約
-
-- file path、外部 URL、provider 設定値は backend 側で再度検証する
-- frontend 入力は UI で整形しても、最終 validation は Go 側で再実行する
-- 機密値、API key、ローカル絶対パスをログや UI へ無加工で出さない
-- filesystem、shell、外部プロセス、HTTP 通信は必要最小限の責務に閉じ込める
-- Wails の public bind surface は広げすぎず、必要な method だけを公開する
-
-## 7. テストと品質ゲート
-
-- 振る舞いを変える変更では、対応する `Vitest`、`go test`、acceptance checks、validation commands を同じ変更で更新する
-- UI の画面フローは use case と store の unit test を優先し、gateway は mock する
-- `.svelte` の表示仕様は `@testing-library/svelte` を使い、利用者の見える結果で検証する
-- backend の use case、repository、provider adapter は `go test ./...` で回帰を固定する
-- `eslint`、`svelte-check`、`gofmt`、`go vet`、`go test` を通らない変更は完了扱いにしない
 
 ## 8. 禁止事項
 
-- UI から generated `wailsjs` や runtime API を直接呼び、`frontend/src/gateway/wails/` を迂回する実装
-- `main.go` や bound method に DB 接続生成、SQL、ファイル操作、業務判定を直書きする実装
-- `frontend/src/ui` から Go 内部型や backend directory 構造を直接前提にする実装
-- テストを更新せずに仕様だけをコメントや口頭説明で補う変更
-- repo の層境界、採用技術、validation を無視して外部テンプレートをそのまま流用する実装
+- 失敗を無視して処理を継続する実装
+- テストを更新せずに仕様変更をコメントや口頭説明だけで補う実装
+- generated file を hand-edit する実装
+- 機密値や内部診断情報を UI、ログ、外部境界へ無加工で出す実装
+- 採用技術、正本仕様、validation を無視して外部テンプレートをそのまま流用する実装
 
 ## 9. 参照元
 
