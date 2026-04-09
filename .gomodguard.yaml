@@ -1,0 +1,13 @@
+blocked:
+  modules:
+    - github.com/pkg/errors:
+        recommendations:
+          - errors
+          - fmt
+        reason: "standard library error wrapping is the project default."
+  versions:
+    - github.com/mitchellh/go-homedir:
+        version: "<= 1.1.0"
+        reason: "old versions are not allowed."
+
+local_replace_directives: true

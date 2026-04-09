@@ -1,3 +1,4 @@
+// Package main wires the desktop application entrypoint.
 package main
 
 import (
@@ -24,7 +25,7 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: frontendAssets,
 		},
-		OnStartup: appController.OnStartup,
+		OnStartup:  appController.OnStartup,
 		OnShutdown: appController.OnShutdown,
 		Bind: []interface{}{
 			appController,

@@ -1,0 +1,326 @@
+version: "2"
+
+run:
+  go: "1.24"
+  relative-path-mode: cfg
+
+linters:
+  default: none
+  enable:
+    - bodyclose
+    - copyloopvar
+    - depguard
+    - durationcheck
+    - errcheck
+    - errorlint
+    - gocritic
+    - gosec
+    - govet
+    - ineffassign
+    - makezero
+    - misspell
+    - nilerr
+    - noctx
+    - revive
+    - rowserrcheck
+    - sqlclosecheck
+    - staticcheck
+    - unconvert
+    - unparam
+    - unused
+    - usestdlibvars
+    - wastedassign
+    - wrapcheck
+  settings:
+    depguard:
+      rules:
+        controller:
+          list-mode: lax
+          files:
+            - internal/controller/*.go
+            - internal/controller/**/*.go
+          allow:
+            - $gostd
+            - aitranslationenginejp/internal/usecase
+          deny:
+            - pkg: aitranslationenginejp/internal/service
+              desc: controller must call usecase instead of service directly
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: controller must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: controller must not depend on jobio
+            - pkg: aitranslationenginejp/internal/repository
+              desc: controller must not depend on repository
+            - pkg: aitranslationenginejp/internal/aiprovider
+              desc: controller must not depend on aiprovider
+            - pkg: aitranslationenginejp/internal/infra
+              desc: controller must not depend on infrastructure packages
+            - pkg: github.com/stretchr/testify
+              desc: controller production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: controller production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: controller must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: controller must use standard library error wrapping
+        usecase:
+          list-mode: lax
+          files:
+            - internal/usecase/*.go
+            - internal/usecase/**/*.go
+          allow:
+            - $gostd
+            - aitranslationenginejp/internal/service
+            - aitranslationenginejp/internal/statemachine
+            - aitranslationenginejp/internal/jobio
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: usecase must not depend on controller
+            - pkg: aitranslationenginejp/internal/repository
+              desc: usecase must not query repository directly
+            - pkg: aitranslationenginejp/internal/aiprovider
+              desc: usecase must not depend on aiprovider directly
+            - pkg: aitranslationenginejp/internal/infra
+              desc: usecase must not depend on infrastructure packages
+            - pkg: github.com/stretchr/testify
+              desc: usecase production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: usecase production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: usecase must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: usecase must use standard library error wrapping
+        service:
+          list-mode: lax
+          files:
+            - internal/service/*.go
+            - internal/service/**/*.go
+          allow:
+            - $gostd
+            - aitranslationenginejp/internal/repository
+            - aitranslationenginejp/internal/aiprovider
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: service must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: service must not depend on usecase
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: service must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: service must not depend on jobio
+            - pkg: aitranslationenginejp/internal/infra
+              desc: service must not depend on infrastructure packages directly
+            - pkg: github.com/stretchr/testify
+              desc: service production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: service production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: service must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: service must use standard library error wrapping
+        statemachine:
+          list-mode: lax
+          files:
+            - internal/statemachine/*.go
+            - internal/statemachine/**/*.go
+          allow:
+            - $gostd
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: statemachine must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: statemachine must not depend on usecase
+            - pkg: aitranslationenginejp/internal/service
+              desc: statemachine must not depend on service
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: statemachine must not depend on jobio
+            - pkg: aitranslationenginejp/internal/repository
+              desc: statemachine must not depend on repository
+            - pkg: aitranslationenginejp/internal/aiprovider
+              desc: statemachine must not depend on aiprovider
+            - pkg: aitranslationenginejp/internal/infra
+              desc: statemachine must not depend on infrastructure packages
+            - pkg: github.com/stretchr/testify
+              desc: statemachine production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: statemachine production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: statemachine must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: statemachine must use standard library error wrapping
+        jobio:
+          list-mode: lax
+          files:
+            - internal/jobio/*.go
+            - internal/jobio/**/*.go
+          allow:
+            - $gostd
+            - aitranslationenginejp/internal/repository
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: jobio must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: jobio must not depend on usecase
+            - pkg: aitranslationenginejp/internal/service
+              desc: jobio must not depend on service
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: jobio must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/aiprovider
+              desc: jobio must not depend on aiprovider
+            - pkg: aitranslationenginejp/internal/infra
+              desc: jobio must not depend on infrastructure packages directly
+            - pkg: github.com/stretchr/testify
+              desc: jobio production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: jobio production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: jobio must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: jobio must use standard library error wrapping
+        repository:
+          list-mode: lax
+          files:
+            - internal/repository/*.go
+            - internal/repository/**/*.go
+          allow:
+            - $gostd
+            - aitranslationenginejp/internal/infra/runtime
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: repository must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: repository must not depend on usecase
+            - pkg: aitranslationenginejp/internal/service
+              desc: repository must not depend on service
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: repository must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: repository must not depend on jobio
+            - pkg: aitranslationenginejp/internal/aiprovider
+              desc: repository must not depend on aiprovider
+            - pkg: aitranslationenginejp/internal/infra/ai
+              desc: repository must not depend on ai infrastructure
+            - pkg: github.com/stretchr/testify
+              desc: repository production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: repository production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: repository must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: repository must use standard library error wrapping
+        aiprovider:
+          list-mode: lax
+          files:
+            - internal/aiprovider/*.go
+            - internal/aiprovider/**/*.go
+          allow:
+            - $gostd
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: aiprovider interface must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: aiprovider interface must not depend on usecase
+            - pkg: aitranslationenginejp/internal/service
+              desc: aiprovider interface must not depend on service
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: aiprovider interface must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: aiprovider interface must not depend on jobio
+            - pkg: aitranslationenginejp/internal/repository
+              desc: aiprovider interface must not depend on repository
+            - pkg: aitranslationenginejp/internal/infra
+              desc: aiprovider interface must not depend on infrastructure packages
+            - pkg: github.com/stretchr/testify
+              desc: aiprovider production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: aiprovider production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: aiprovider must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: aiprovider must use standard library error wrapping
+        infra_ai:
+          list-mode: lax
+          files:
+            - internal/infra/ai/*.go
+            - internal/infra/ai/**/*.go
+          allow:
+            - $gostd
+            - aitranslationenginejp/internal/aiprovider
+            - aitranslationenginejp/internal/infra/runtime
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: infra ai must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: infra ai must not depend on usecase
+            - pkg: aitranslationenginejp/internal/service
+              desc: infra ai must not depend on service
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: infra ai must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: infra ai must not depend on jobio
+            - pkg: aitranslationenginejp/internal/repository
+              desc: infra ai must not depend on repository
+            - pkg: github.com/stretchr/testify
+              desc: infra ai production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: infra ai production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: infra ai must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: infra ai must use standard library error wrapping
+        infra_runtime:
+          list-mode: lax
+          files:
+            - internal/infra/runtime/*.go
+            - internal/infra/runtime/**/*.go
+          allow:
+            - $gostd
+          deny:
+            - pkg: aitranslationenginejp/internal/controller
+              desc: infra runtime must not depend on controller
+            - pkg: aitranslationenginejp/internal/usecase
+              desc: infra runtime must not depend on usecase
+            - pkg: aitranslationenginejp/internal/service
+              desc: infra runtime must not depend on service
+            - pkg: aitranslationenginejp/internal/statemachine
+              desc: infra runtime must not depend on statemachine
+            - pkg: aitranslationenginejp/internal/jobio
+              desc: infra runtime must not depend on jobio
+            - pkg: aitranslationenginejp/internal/repository
+              desc: infra runtime must not depend on repository
+            - pkg: aitranslationenginejp/internal/aiprovider
+              desc: infra runtime must not depend on aiprovider
+            - pkg: aitranslationenginejp/internal/infra/ai
+              desc: infra runtime must not depend on ai infrastructure
+            - pkg: github.com/stretchr/testify
+              desc: infra runtime production code must not depend on test libraries
+            - pkg: github.com/google/go-cmp
+              desc: infra runtime production code must not depend on test libraries
+            - pkg: io/ioutil
+              desc: infra runtime must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: infra runtime must use standard library error wrapping
+        tests:
+          list-mode: lax
+          files:
+            - $test
+          allow:
+            - $gostd
+            - github.com/stretchr/testify
+            - github.com/google/go-cmp
+          deny:
+            - pkg: io/ioutil
+              desc: tests must not use deprecated io/ioutil
+            - pkg: github.com/pkg/errors
+              desc: tests should use standard library error wrapping
+    govet:
+      enable:
+        - shadow
+    staticcheck:
+      checks:
+        - all
+  exclusions:
+    generated: strict
+    paths:
+      - frontend/node_modules
+      - frontend/wailsjs

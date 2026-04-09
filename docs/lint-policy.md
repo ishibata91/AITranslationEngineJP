@@ -10,7 +10,7 @@
 - import 境界: UI が generated binding や backend 内部構造へ直接依存しないこと
 - import の健全性: 未使用 import、危険な import パターン、雑な path alias の増殖
 - 型と構文の破綻: `TypeScript` / `Svelte` の静的に検出できる問題
-- Go の基本静的品質: コンパイルエラー、未使用要素、`go vet` で検出できる明確な問題
+- backend の静的品質: format 逸脱、未使用要素、危険な記述、境界違反、禁止 import、非推奨依存、test と production の依存混入
 - format の逸脱: repo が採用した formatter の出力との不一致
 
 ## 2. Lint と静的チェックが管理しないもの
@@ -26,8 +26,9 @@
 - `TypeScript compiler`: `tsc --noEmit` により、未使用 local / parameter と到達不能コードを含む型レベルの静的診断を担当する
 - `knip`: 未使用 export、未使用 file、未使用 dependency を担当し、type export も検出対象に含める
 - `svelte-check`: Svelte component と TypeScript 境界の診断を担当する
-- `gofmt`: Go の formatter 出力を担当する
-- `go vet`: Go の基本静的チェックを担当する
+- backend format check: backend package の formatter 出力との不一致を担当する
+- backend static check: backend package の未使用、危険な記述、error 処理不備、非推奨 API、禁止 import を担当する
+- backend architecture / dependency check: backend package の依存方向、横方向依存、test と production の依存分離、禁止 module / local replace の混入を担当する
 - `go test`: backend の executable spec を担当する
 - `Vitest`: frontend の executable spec を担当する
 
@@ -48,14 +49,23 @@
   - `npm run test`
   - `npm run build`
 - backend のゲート:
-  - `gofmt` による format 確認
-  - `go vet ./...`
-  - `go test ./...`
+  - backend package に対する format 確認
+  - backend package に対する静的品質確認
+  - backend package に対する architecture / dependency 確認
+  - backend package に対する executable spec
 - desktop packaging:
   - `wails build`
 
-初期ゲートの責務は `ESLint`、`svelte-check`、`gofmt`、`go vet`、`Vitest`、`go test` に固定する。
+初期ゲートの責務は `ESLint`、`svelte-check`、backend format check、backend static check、backend architecture / dependency check、`Vitest`、`go test` に固定する。
 追加ツールは、繰り返し同種の失敗が出た時だけ導入を検討する。
+
+### 5.2 backend lint の内訳
+
+- backend lint は、format、静的品質、architecture / dependency の 3 系統を分けて実行する
+- format では backend package の整形逸脱だけを検出する
+- 静的品質では backend package の未使用、危険な記述、error 処理不備、非推奨 API を検出する
+- architecture / dependency では backend package の依存方向、横方向依存、禁止 import、非推奨依存、test と production の依存混入を検出する
+- backend lint の主対象は backend package に限定し、frontend dependency directory や generated directory を巻き込まない
 
 ### 5.1 frontend lint の内訳
 

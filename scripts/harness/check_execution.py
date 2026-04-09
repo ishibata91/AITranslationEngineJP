@@ -49,6 +49,13 @@ def has_script(package: dict, script_name: str) -> bool:
     return isinstance(scripts, dict) and script_name in scripts
 
 
+def resolve_go_test_arguments(go_dir: Path) -> list[str]:
+    internal_dir = go_dir / "internal"
+    if internal_dir.exists():
+        return ["test", "./internal/..."]
+    return ["test", "./..."]
+
+
 def main() -> int:
     parser = build_parser("Run the execution harness.", default_repo_root(__file__))
     args = parser.parse_args()
@@ -83,7 +90,7 @@ def main() -> int:
             continue
         ran_anything = True
         go_dir = go_mod.parent
-        failures += invoke_step("go", ["test", "./..."], go_dir)
+        failures += invoke_step("go", resolve_go_test_arguments(go_dir), go_dir)
 
     for package_json in package_jsons:
         if root_execution_gate_ran and package_json == root_package_json_path:

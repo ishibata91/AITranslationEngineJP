@@ -1,0 +1,46 @@
+version: 3
+workdir: internal
+
+components:
+  controller:
+    in: controller/**
+  usecase:
+    in: usecase/**
+  service:
+    in: service/**
+  statemachine:
+    in: statemachine/**
+  jobio:
+    in: jobio/**
+  repository:
+    in: repository/**
+  aiprovider:
+    in: aiprovider/**
+  infra_ai:
+    in: infra/ai/**
+  infra_runtime:
+    in: infra/runtime/**
+
+deps:
+  controller:
+    mayDependOn:
+      - usecase
+  usecase:
+    mayDependOn:
+      - service
+      - statemachine
+      - jobio
+  service:
+    mayDependOn:
+      - repository
+      - aiprovider
+  jobio:
+    mayDependOn:
+      - repository
+  repository:
+    mayDependOn:
+      - infra_runtime
+  infra_ai:
+    mayDependOn:
+      - aiprovider
+      - infra_runtime

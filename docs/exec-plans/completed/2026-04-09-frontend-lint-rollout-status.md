@@ -28,15 +28,13 @@
 
 ## 対象外
 
-- backend 向け lint command の追加
-- root package script の追加
 - `docs/lint-policy.md` の正本更新
 - alias 設計や architecture 判断の拡張
 
 ## 依存関係・ブロッカー
 
-- backend 側には npm ベースの lint 実行基盤がまだ存在しない。
 - `frontend` 側でも `@ui` / `@application` / `@gateway` / `@shared` alias は未導入で、境界ルールの一部は将来構成を先取りしている。
+- backend 側の lint は `gofmt` と `go vet` の入口までは追加済みだが、`scripts/` 配下の Go file や `go test` との backend gate 分離は未整理である。
 
 ## 並行安全メモ
 
@@ -94,7 +92,7 @@
 
 ## Closeout Notes
 
-- backend lint と repo root 集約は軽作業の範囲を超える可能性があり、必要なら別 plan へ分離する。
+- backend lint の初期導入は完了したが、backend gate の責務整理は必要なら別 plan へ分離する。
 
 ## 結果
 
@@ -121,5 +119,10 @@
   - `frontend` に `prettier` と `prettier-plugin-svelte` を追加し、`format` / `format:check` を実行できる。
   - formatter は `dist/**`、`node_modules/**`、`wailsjs/**`、`package-lock.json` を対象外にしている。
   - `npm run lint`、`npm run check` はともに成功済み。
+  - repo root の `package.json` に `lint:backend` と `backendlint` を追加済み。
+  - `lint:backend` は `gofmt -l main.go internal` による format 逸脱検出と `go vet ./...` をまとめて実行する。
+  - `scripts/harness/check_backend_lint.py` から `npm run lint:backend` を実行できる状態である。
+  - `npm run lint:backend` と `python3 scripts/harness/check_backend_lint.py` は成功済み。
 - 未対応:
-  - backend 向け lint command と統合 gate は未追加。
+  - backend lint は `go vet` までであり、`go test ./...` を含む backend gate の統合入口は未分離である。
+  - `go vet ./...` と `go test ./...` は現状 `frontend/node_modules` 配下の Go package まで拾っており、backend 実装だけを対象にした package 範囲の固定は未対応である。

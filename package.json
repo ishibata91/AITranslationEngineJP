@@ -2,6 +2,13 @@
   "name": "aitranslationenginejp",
   "private": true,
   "scripts": {
+    "backendlint": "npm run lint:backend",
+    "lint:backend": "npm run lint:backend:format && npm run lint:backend:vet && npm run lint:backend:static && npm run lint:backend:arch && npm run lint:backend:module",
+    "lint:backend:arch": "sh ./scripts/lint/run-go-backend-lint.sh arch",
+    "lint:backend:format": "sh ./scripts/lint/run-go-backend-lint.sh format-check",
+    "lint:backend:module": "sh ./scripts/lint/run-go-backend-lint.sh module",
+    "lint:backend:vet": "sh ./scripts/lint/run-go-backend-lint.sh vet",
+    "lint:backend:static": "sh ./scripts/lint/run-go-backend-lint.sh static",
     "frontendlint": "npm --prefix frontend run lint",
     "lint:frontend": "npm run frontendlint"
   }
