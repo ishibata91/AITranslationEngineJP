@@ -7,14 +7,26 @@
     "dev": "vite",
     "dev:wails": "vite --host 127.0.0.1 --port 5173 --strictPort",
     "build": "vite build",
-    "check": "svelte-check --tsconfig ./tsconfig.json"
+    "check": "svelte-check --tsconfig ./tsconfig.json",
+    "lint": "npm run lint:eslint && npm run lint:types && npm run lint:exports",
+    "lint:eslint": "eslint . --max-warnings=0",
+    "lint:types": "tsc --noEmit",
+    "lint:exports": "knip --production --include-entry-exports"
   },
   "devDependencies": {
-    "@types/node": "^24.6.1",
+    "@eslint/js": "^10.0.1",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
+    "@types/node": "^24.6.1",
+    "eslint": "^10.2.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import-x": "^4.16.2",
+    "eslint-plugin-svelte": "^3.17.0",
+    "globals": "^17.4.0",
+    "knip": "^6.3.1",
     "svelte": "^5.37.0",
     "svelte-check": "^4.3.1",
     "typescript": "^5.8.3",
+    "typescript-eslint": "^8.58.1",
     "vite": "^5.4.21"
   }
 }

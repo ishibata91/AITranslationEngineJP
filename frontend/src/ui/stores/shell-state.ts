@@ -1,4 +1,4 @@
-export interface ShellState {
+interface ShellState {
 	title: string;
 }
 

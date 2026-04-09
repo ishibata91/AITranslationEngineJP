@@ -1,0 +1,8 @@
+{
+  "name": "aitranslationenginejp",
+  "private": true,
+  "scripts": {
+    "frontendlint": "npm --prefix frontend run lint",
+    "lint:frontend": "npm run frontendlint"
+  }
+}
