@@ -16,7 +16,7 @@
 6. [`coding-guidelines.md`](./coding-guidelines.md)
 7. [`lint-policy.md`](./lint-policy.md)
 8. [`er.md`](./er.md)
-9. Relevant file under [`screen-design/`](./screen-design/)
+9. Relevant file under [`screen-design/`](./screen-design/README.md)
 10. Relevant file under [`exec-plans/`](./exec-plans/)
 11. Relevant file under [`references/`](./references/)
 
@@ -32,7 +32,7 @@
 - [`er.md`](./er.md): canonical data model と ER 仕様
 - [`diagrams/backend/`](./diagrams/backend/): backend 構造図の D2 source of truth と review 用 SVG
 - [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の D2 source of truth と review 用 SVG
-- [`screen-design/`](./screen-design/): 画面構成と wireframe
+- [`screen-design/`](./screen-design/README.md): 画面構成、visual design、design mock
 - [`diagrams/er/`](./diagrams/er/): ER 図の D2 source of truth と review 用 SVG
 - [`references/`](./references/index.md): 外部仕様と参照方針
 - [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
@@ -46,7 +46,7 @@
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - Coding conventions changed: update [`coding-guidelines.md`](./coding-guidelines.md)
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
-- Screen map or wireframe changed: update the relevant file under [`screen-design/`](./screen-design/)
+- Screen map, visual design, or design mock changed: update the relevant file under [`screen-design/`](./screen-design/README.md)
 - Data model or entity relationship changed: update [`er.md`](./er.md) and relevant file under [`diagrams/er/`](./diagrams/er/)
 - Backend structure changed: update the relevant file under [`diagrams/backend/`](./diagrams/backend/)
 - Frontend structure changed: update the relevant file under [`diagrams/frontend/`](./diagrams/frontend/)

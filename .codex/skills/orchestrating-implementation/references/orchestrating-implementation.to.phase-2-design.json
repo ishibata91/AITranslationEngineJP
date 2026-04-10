@@ -21,7 +21,7 @@
       "type": "object"
     },
     {
-      "description": "task-local design 判断に必要な関連 docs やコード path。",
+      "description": "task-local design 判断に必要な関連 docs やコード path。UI を固める task では `docs/screen-design/code.html` と design doc (`docs/screen-design/design-system-ethereal-archive.md`) を含める。",
       "field": "required_reading",
       "type": "string[]"
     }

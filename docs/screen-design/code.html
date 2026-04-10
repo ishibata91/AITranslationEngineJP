@@ -1,0 +1,269 @@
+<!DOCTYPE html><html class="dark" lang="ja"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700;900&amp;family=Noto+Serif:ital,wght@0,400;0,700;1,700&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "on-tertiary-fixed-variant": "#881f00",
+                    "tertiary-fixed": "#ffdbd1",
+                    "surface-variant": "#393431",
+                    "tertiary": "#ffb5a1",
+                    "primary": "#ffba38",
+                    "surface-container-high": "#2e2927",
+                    "on-primary-container": "#432c00",
+                    "surface-container-highest": "#393431",
+                    "on-primary": "#432c00",
+                    "secondary-fixed": "#ffdad2",
+                    "on-secondary-container": "#d2ada4",
+                    "on-secondary": "#432a25",
+                    "secondary-container": "#5c403a",
+                    "tertiary-container": "#ff683f",
+                    "on-secondary-fixed-variant": "#5c403a",
+                    "inverse-on-surface": "#342f2d",
+                    "surface": "#161311",
+                    "surface-container-low": "#1f1b19",
+                    "inverse-primary": "#7e5700",
+                    "background": "#161311",
+                    "inverse-surface": "#eae1dd",
+                    "secondary": "#e5beb5",
+                    "tertiary-fixed-dim": "#ffb5a1",
+                    "surface-container-lowest": "#110d0c",
+                    "on-secondary-fixed": "#2b1611",
+                    "on-tertiary-fixed": "#3b0800",
+                    "outline": "#a08e7b",
+                    "on-error": "#690005",
+                    "error-container": "#93000a",
+                    "on-error-container": "#ffdad6",
+                    "on-primary-fixed": "#281900",
+                    "surface-container": "#231f1d",
+                    "on-primary-fixed-variant": "#604100",
+                    "secondary-fixed-dim": "#e5beb5",
+                    "surface-bright": "#3d3836",
+                    "error": "#ffb4ab",
+                    "outline-variant": "#524435",
+                    "primary-fixed": "#ffdeac",
+                    "surface-dim": "#161311",
+                    "on-background": "#eae1dd",
+                    "on-surface": "#eae1dd",
+                    "on-tertiary-container": "#611400",
+                    "surface-tint": "#ffba38",
+                    "primary-fixed-dim": "#ffba38",
+                    "on-surface-variant": "#d8c3ae",
+                    "primary-container": "#ca8d00",
+                    "on-tertiary": "#601300"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "fontFamily": {
+                    "headline": ["Noto Serif JP", "Noto Serif", "serif"],
+                    "body": ["Noto Serif JP", "Noto Serif", "serif"],
+                    "label": ["Noto Serif JP", "Noto Serif", "serif"]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #161311;
+            font-family: 'Noto Serif JP', 'Noto Serif', serif;
+            color: #eae1dd;
+        }
+        .glass-panel {
+            background: rgba(22, 19, 17, 0.4);
+            backdrop-filter: blur(40px);
+            border: 0.5px solid rgba(255, 186, 56, 0.2);
+        }
+        .ember-glow {
+            box-shadow: 0 0 15px rgba(255, 186, 56, 0.3);
+        }
+        .runic-accent::before {
+            content: "✧";
+            position: absolute;
+            top: 4px;
+            left: 4px;
+            font-size: 10px;
+            color: rgba(255, 186, 56, 0.4);
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+<!-- DOM annotation contract:
+  - data-dom-action="remove" marks blocks to strip before AI interpretation.
+  - data-design-status="placeholder" marks unresolved copy or sample data to keep in DOM but not treat as fixed product truth.
+-->
+<!-- TopNavBar Implementation -->
+<nav class="fixed top-0 w-full z-50 bg-stone-950/40 backdrop-blur-[40px] border-b-[0.5px] border-amber-500/20 shadow-[0_20px_50px_rgba(0,0,0,0.5)]">
+<div class="flex justify-between items-center w-full px-8 h-20 max-w-none">
+<div class="text-2xl font-bold text-amber-500 italic font-serif tracking-tight" data-design-status="placeholder" data-placeholder-kind="brand" style="">
+                The Ethereal Archive
+            </div>
+<div class="hidden md:flex items-center space-x-8 text-stone-400">
+<a class="text-amber-400 font-bold border-b-2 border-amber-500 pb-1 transition-colors" data-design-status="placeholder" data-placeholder-kind="nav-label" href="#" style="">ダッシュボード</a>
+<a class="text-stone-400 hover:text-stone-200 transition-colors" data-design-status="placeholder" data-placeholder-kind="nav-label" href="#" style="">基盤データ</a>
+<a class="text-stone-400 hover:text-stone-200 transition-colors" data-design-status="placeholder" data-placeholder-kind="nav-label" href="#" style="">翻訳成果物</a>
+<a class="text-stone-400 hover:text-stone-200 transition-colors" data-design-status="placeholder" data-placeholder-kind="nav-label" href="#" style="">設定</a>
+</div>
+<div class="flex items-center space-x-6">
+<div class="relative">
+<input class="bg-surface-container-highest/30 border-none border-b-[0.5px] border-amber-500/20 text-on-surface text-sm px-4 py-1.5 focus:ring-0 focus:border-amber-500 w-64 rounded-none italic" data-design-status="placeholder" data-placeholder-kind="copy" placeholder="Search archive..." type="text">
+</div>
+<button class="bg-primary-container text-on-primary font-bold px-6 py-2 hover:bg-amber-500/10 transition-all duration-300 active:scale-95 cursor-pointer flex items-center gap-2" data-design-status="placeholder" data-placeholder-kind="cta-label" style="">
+<span class="material-symbols-outlined text-sm" style="">add</span>
+                    New Job
+                </button>
+<div class="text-amber-500 cursor-pointer hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl" style="">account_circle</span>
+</div>
+</div>
+</div>
+</nav>
+<main class="pt-32 pb-20 px-8 max-w-7xl mx-auto">
+<!-- Hero Section -->
+<header class="mb-16 relative">
+<div class="absolute -top-20 -left-20 w-96 h-96 bg-primary/10 rounded-full blur-[120px] pointer-events-none"></div>
+<h1 class="text-6xl font-black text-on-surface tracking-tighter mb-4 italic" data-design-status="placeholder" data-placeholder-kind="title" style="">ダッシュボード</h1>
+<p class="text-on-surface-variant text-lg max-w-2xl leading-relaxed" data-design-status="placeholder" data-placeholder-kind="copy" style="">ダッシュボード説明</p>
+</header>
+<!-- Bento Grid Layout -->
+<div class="grid grid-cols-12 gap-6">
+<!-- Active Jobs (翻訳ジョブ) -->
+<section class="col-span-12 lg:col-span-8 space-y-6">
+<div class="flex items-center justify-between px-2">
+<h2 class="text-2xl font-bold flex items-center gap-3" style="">
+<span class="material-symbols-outlined text-primary" style="">auto_stories</span>
+                        翻訳ジョブ
+                    </h2>
+<span class="text-sm text-primary-fixed italic" data-design-status="placeholder" data-placeholder-kind="sample-data" style="">3 進行中</span>
+</div>
+<div class="space-y-4">
+<!-- Job Card 1 -->
+<div class="glass-panel p-6 relative overflow-hidden runic-accent" data-design-status="placeholder" data-placeholder-kind="sample-data">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-xl font-bold text-on-surface" style="">The Forgotten City - Dialogues</h3>
+<p class="text-sm text-on-surface-variant mt-1 italic" style="">Phase: 各翻訳フェーズ - 本文翻訳</p>
+</div>
+<span class="text-primary font-bold" style="">78%</span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-tertiary-container w-[78%] ember-glow"></div>
+</div>
+<div class="flex justify-between mt-4 text-xs text-on-surface-variant uppercase tracking-widest">
+<span class="" style="">2,450 / 3,142 センテンス</span>
+<span class="" style="">最終更新: 2時間前</span>
+</div>
+</div>
+<!-- Job Card 2 -->
+<div class="glass-panel p-6 relative overflow-hidden runic-accent" data-design-status="placeholder" data-placeholder-kind="sample-data">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-xl font-bold text-on-surface" style="">Legacy of the Dragonborn - Museum Guide</h3>
+<p class="text-sm text-on-surface-variant mt-1 italic" style="">Phase: 各翻訳フェーズ - 単語翻訳</p>
+</div>
+<span class="text-primary font-bold" style="">42%</span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-tertiary-container w-[42%] ember-glow"></div>
+</div>
+<div class="flex justify-between mt-4 text-xs text-on-surface-variant uppercase tracking-widest">
+<span class="" style="">1,120 / 2,660 センテンス</span>
+<span class="" style="">最終更新: 1日前</span>
+</div>
+</div>
+<!-- Job Card 3 -->
+<div class="glass-panel p-6 relative overflow-hidden opacity-80" data-design-status="placeholder" data-placeholder-kind="sample-data">
+<div class="flex justify-between items-start mb-6">
+<div>
+<h3 class="text-xl font-bold text-on-surface" style="">Ordinator - Perks Description</h3>
+<p class="text-sm text-on-surface-variant mt-1 italic" style="">Phase: 各翻訳フェーズ - NPCペルソナ生成</p>
+</div>
+<span class="text-secondary font-bold" style="">準備中</span>
+</div>
+<div class="w-full bg-surface-container-lowest h-1.5 rounded-full overflow-hidden">
+<div class="h-full bg-secondary-container w-[5%]"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Sidebar Widgets -->
+<aside class="col-span-12 lg:col-span-4 space-y-6">
+<!-- AI Catalysts (触媒 Status) -->
+<div class="glass-panel p-6 runic-accent" data-dom-action="remove" data-remove-reason="mock-status">
+<h2 class="text-lg font-bold mb-6 flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-primary" style="">flare</span>
+                        触媒ステータス
+                    </h2>
+<div class="space-y-4">
+<div class="flex items-center justify-between p-3 bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-primary ember-glow"></div>
+<span class="font-bold" style="">Gemini 1.5 Pro</span>
+</div>
+<span class="text-xs text-on-surface-variant" style="">Active</span>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low">
+<div class="flex items-center gap-3">
+<div class="w-2 h-2 rounded-full bg-stone-600"></div>
+<span class="font-bold" style="">xAI Grok-1</span>
+</div>
+<span class="text-xs text-on-surface-variant" style="">Standby</span>
+</div>
+</div>
+</div>
+<!-- Foundation Data (基盤データ) -->
+<div class="glass-panel p-6 border-l-2 border-primary/40">
+<h2 class="text-lg font-bold mb-6 flex items-center gap-2" style="">
+<span class="material-symbols-outlined text-primary" style="">storm</span>
+                        基盤データ
+                    </h2>
+<div class="grid grid-cols-1 gap-3">
+<a class="group flex items-center justify-between p-4 bg-surface-container-low hover:bg-amber-500/10 transition-all" href="#" style="">
+<div>
+<p class="text-xs text-primary-fixed uppercase tracking-tighter" data-design-status="placeholder" data-placeholder-kind="copy" style="">Repository</p>
+<p class="font-bold" style="">マスターペルソナ</p>
+</div>
+<span class="material-symbols-outlined text-stone-500 group-hover:text-primary transition-colors" style="">arrow_forward_ios</span>
+</a>
+<a class="group flex items-center justify-between p-4 bg-surface-container-low hover:bg-amber-500/10 transition-all" href="#" style="">
+<div>
+<p class="text-xs text-primary-fixed uppercase tracking-tighter" data-design-status="placeholder" data-placeholder-kind="copy" style="">Archive</p>
+<p class="font-bold" style="">マスター辞書</p>
+</div>
+<span class="material-symbols-outlined text-stone-500 group-hover:text-primary transition-colors" style="">arrow_forward_ios</span>
+</a>
+</div>
+</div>
+<!-- Decorative Illustration -->
+<div class="relative h-64 overflow-hidden group" data-dom-action="remove" data-remove-reason="decorative">
+<img alt="Ancient scroll on dark wood" class="w-full h-full object-cover grayscale opacity-40 group-hover:grayscale-0 group-hover:opacity-60 transition-all duration-700" data-alt="Close-up of an ancient magical scroll with golden glowing runes on a dark rustic wooden table with soft warm ember lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCDDiuevM3qWaD2_1BWZ5VjonJ3kWn3oboSExk1aXnhJ1JoaSmiiQCJveK97zJBYFnbOTbrqCICOmeZkSBfEkbBT3YCShQknXW8UY-1W4bHA0yHTwNnxtBAjTh7Ijb213Sw28a107CChfn5YZpJpR043Zsq0sORRKYeMGpQPlERDcfDxCfcxlp6CANk-NAM4DePZqYcHoU_UDgexy36nRvdA0orePNGMPHyuyc5hF3d2fMVpZn-96MgrIw0meYgtsPv2KyRadjAJYwv" style="">
+<div class="absolute inset-0 bg-gradient-to-t from-background to-transparent"></div>
+<div class="absolute bottom-4 left-4">
+<p class="text-xs font-bold text-primary italic uppercase tracking-[0.2em]" style="">Archivist Wisdom</p>
+<p class="text-sm italic" style="">"The right word is a key to the soul of Nirn."</p>
+</div>
+</div>
+</aside>
+</div>
+<!-- Floating Decorative Element -->
+<div class="fixed bottom-10 right-10 pointer-events-none opacity-20" data-dom-action="remove" data-remove-reason="decorative">
+<span class="material-symbols-outlined text-[120px] text-primary" style="font-variation-settings: &quot;FILL&quot; 0;">auto_fix_high</span>
+</div>
+</main>
+<!-- Visual Artifacts -->
+<div class="fixed inset-0 pointer-events-none z-[-1]" data-dom-action="remove" data-remove-reason="decorative">
+<div class="absolute top-[20%] right-[10%] w-64 h-64 bg-tertiary/5 rounded-full blur-[100px]"></div>
+<div class="absolute bottom-[10%] left-[5%] w-80 h-80 bg-primary/5 rounded-full blur-[120px]"></div>
+</div>
+</body></html>
