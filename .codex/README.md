@@ -27,8 +27,9 @@
 - `phase-2-design` は `UI` / `Scenario` / `Logic` を task-local design として固定し、必要な時は review 用差分図もこの段階で揃える
 - `phase-2.5-design-review` は詳細設計全体を単発 review し、`pass` または `reroute` を返す
 - 人間確認が必要な論点は第3段階で active plan に固定する
-- `phase-4-plan` は承認済み作業計画を実装順、担当範囲、検証コマンドを持つ implementation brief に変える
+- `phase-4-plan` は承認済み作業計画を実装順、並列 task group、依存関係、担当範囲、検証コマンドを持つ implementation brief に変える
 - `phase-5-test-implementation` は `Scenario` を tests / fixtures / acceptance checks / validation commands へ適用し、必要な test / fixture を最小範囲で実装する
+- `orchestrating-implementation` は第4段階で固定した並列 task group と依存関係に従って implementation phase を並列 handoff する
 - `phase-6-implement-frontend` / `phase-6-implement-backend` は担当範囲だけを実装し、local validation を返す
 - `phase-6.5-ui-check` は `chrome-devtools` で主要導線と画面状態を確認し、UI 逸脱の証跡を返す
 - `phase-7-unit-test` は unit test と coverage gap を補う

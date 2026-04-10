@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-4-plan",
-  "purpose": "orchestrator が整えた context summary と active plan をもとに、実装順と owned scope を brief 化させる。",
+  "purpose": "orchestrator が整えた context summary と active plan をもとに、並列実行順、依存関係、owned scope を brief 化させる。",
   "required": [
     {
       "description": "更新対象の exec-plan。",
@@ -39,6 +39,8 @@
   ],
   "completion_signal": [
     "ordered_scope が定義されている",
+    "parallel_task_groups が定義されている",
+    "task_dependencies が定義されている",
     "owned_scope が明示されている",
     "validation_commands が定義されている"
   ]

@@ -2,8 +2,8 @@
   "contract_version": "2026-03-29",
   "skill": "phase-4-plan",
   "allowed_actions": [
-    "Implementation Plan を短い ordered scope に整理する",
-    "owned scope、required reading、validation commands を固定する",
+    "Implementation Plan を短い ordered scope と並列 task group に整理する",
+    "owned scope、task dependency、required reading、validation commands を固定する",
     "必要なら active exec-plan の Implementation Plan だけを更新する"
   ],
   "forbidden_actions": [
@@ -13,6 +13,8 @@
   ],
   "expected_outputs": [
     "ordered_scope",
+    "parallel_task_groups",
+    "task_dependencies",
     "owned_scope",
     "required_reading",
     "validation_commands"

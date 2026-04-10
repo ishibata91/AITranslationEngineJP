@@ -11,6 +11,16 @@
       "type": "string[]"
     },
     {
+      "description": "並列実行できる task group。",
+      "field": "parallel_task_groups",
+      "type": "object[]"
+    },
+    {
+      "description": "task ごとの依存関係。",
+      "field": "task_dependencies",
+      "type": "object[]"
+    },
+    {
       "description": "frontend / backend / split の決定。",
       "field": "owned_scope",
       "type": "string"
@@ -43,6 +53,6 @@
     "実装コードを直接変更しない"
   ],
   "completion_signal": [
-    "orchestrator が phase-5-test-implementation と phase-6-implement-* に handoff できる brief になっている"
+    "orchestrator が phase-5-test-implementation と phase-6-implement-* を並列または直列で handoff できる brief になっている"
   ]
 }

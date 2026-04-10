@@ -50,7 +50,18 @@
 
 <!-- Implementation Plan -->
 
--
+- `parallel_task_groups`:
+  - `group_id`:
+  - `can_run_in_parallel_with`:
+  - `blocked_by`:
+  - `completion_signal`:
+- `tasks`:
+  - `task_id`:
+  - `owned_scope`:
+  - `depends_on`:
+  - `parallel_group`:
+  - `required_reading`:
+  - `validation_commands`:
 
 ## 受け入れ確認
 
