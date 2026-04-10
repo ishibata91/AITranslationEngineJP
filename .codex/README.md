@@ -20,7 +20,7 @@
 
 ### Impl lane
 
-`User -> implementation orchestrator (`orchestrating-implementation`) -> phase-1-distill -> phase-2-design -> phase-2.5-design-review -> human approval -> phase-4-plan -> phase-5-test-implementation -> phase-6-implement-frontend / phase-6-implement-backend -> phase-7-unit-test -> phase-8-review -> full harness -> close`
+`User -> implementation orchestrator (`orchestrating-implementation`) -> phase-1-distill -> phase-2-design -> phase-2.5-design-review -> human approval -> phase-4-plan -> phase-5-test-implementation -> phase-6-implement-frontend / phase-6-implement-backend -> phase-6.5-ui-check -> phase-7-unit-test -> phase-8-review -> full harness -> close`
 
 - implementation orchestrator (`orchestrating-implementation`) は active plan を起点に、各 phase を `workflow.md` の順序で進める
 - `phase-1-distill` は要求整理として facts / constraints / gaps / required reading を返す
@@ -30,15 +30,17 @@
 - `phase-4-plan` は承認済み作業計画を実装順、担当範囲、検証コマンドを持つ implementation brief に変える
 - `phase-5-test-implementation` は `Scenario` を tests / fixtures / acceptance checks / validation commands へ適用し、必要な test / fixture を最小範囲で実装する
 - `phase-6-implement-frontend` / `phase-6-implement-backend` は担当範囲だけを実装し、local validation を返す
+- `phase-6.5-ui-check` は `chrome-devtools` で主要導線と画面状態を確認し、UI 逸脱の証跡を返す
 - `phase-7-unit-test` は unit test と coverage gap を補う
 - `phase-8-review` は実装が詳細設計と整合しているかだけを単発で確認する
 - review 用差分図は `phase-2-design` が必要時に `diagramming-structure-diff` で用意し、完了時に承認済み差分を正本へ適用する
 
 ### Fix lane
 
-`User -> fix orchestrator (`orchestrating-fixes`) -> distilling-fixes -> tracing-fixes -> (必要時 logging-fixes / analyzing-fixes) -> phase-5-test-implementation -> implementing-fixes -> reviewing-fixes -> reporting-risks -> close`
+User -> fix orchestrator (`orchestrating-fixes`) -> `chrome-devtools` 再現確認 -> `distilling-fixes` -> `tracing-fixes` -> (必要時 `logging-fixes` / `analyzing-fixes`) -> `phase-5-test-implementation` -> `implementing-fixes` -> `reviewing-fixes` -> `reporting-risks` -> close
 
 - fix orchestrator (`orchestrating-fixes`) は active plan を起点に、`workflow.md` の修正レーンを順番に進める
+- 画面で確認できる bug の再現確認は、人間依頼より先に `chrome-devtools` で行い、証跡を plan に残す
 - `distilling-fixes` は既知事実、再現条件、関連仕様、関連コードを整理する
 - `tracing-fixes` は原因仮説と観測方針を返す
 - `logging-fixes` と `analyzing-fixes` は必要時だけ使う

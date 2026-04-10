@@ -16,6 +16,7 @@
 ## Known Facts
 
 -
+- `chrome-devtools` で確認した再現結果があればここに記録する。
 
 ## Trace Plan
 
@@ -32,6 +33,7 @@
 ## Required Evidence
 
 -
+- `chrome-devtools` の確認結果、console、network、screen capture のうち必要な証跡をここに記録する。
 
 ## Closeout Notes
 

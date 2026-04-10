@@ -1,0 +1,22 @@
+{
+  "contract_version": "2026-04-10",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "phase-6.5-ui-check",
+  "purpose": "実装済み UI を `chrome-devtools` で確認し、主要導線と画面状態の証跡を返させる。",
+  "required": [
+    { "description": "承認済み active exec-plan。", "field": "active_exec_plan", "type": "path" },
+    { "description": "実装済み scope と touched files。", "field": "implemented_scope", "type": "string[]" },
+    { "description": "第6段階の validation 結果。", "field": "validation_results", "type": "string[]" }
+  ],
+  "optional": [
+    { "description": "起動 URL、起動手順、確認対象導線。", "field": "ui_entry_points", "type": "string[]" },
+    { "description": "UI確認で優先すべき論点。", "field": "focus_points", "type": "string[]" }
+  ],
+  "must_not_change": [
+    "新しい仕様解釈を追加しない"
+  ],
+  "completion_signal": [
+    "orchestrator が unit test phase か implementation phase への戻し先を決められる"
+  ]
+}
