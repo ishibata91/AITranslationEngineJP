@@ -11,7 +11,7 @@
       "type": "string"
     },
     {
-      "description": "作業中の exec-plan。UI / Scenario / Logic を含む。",
+      "description": "作業中の exec-plan。`UI モック` / `Scenario テスト一覧` / `実装計画` の参照欄を含む。",
       "field": "active_exec_plan",
       "type": "path"
     },

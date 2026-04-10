@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-10",
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
-  "to_skill": "phase-4-plan",
-  "purpose": "orchestrator が整えた context summary と active plan をもとに、並列実行順、依存関係、owned scope を brief 化させる。",
+  "to_skill": "phase-2-logic",
+  "purpose": "要求整理と phase-2-ui / phase-2-scenario の成果物を前提に、第2段階で implementation brief を固定する依頼を渡す。",
   "required": [
     {
       "description": "更新対象の exec-plan。",
@@ -19,6 +19,16 @@
       "description": "実装対象として残ったスコープ候補。",
       "field": "candidate_scope",
       "type": "string[]"
+    },
+    {
+      "description": "第2段階の UI モック artifact path。",
+      "field": "ui_artifact_path",
+      "type": "string"
+    },
+    {
+      "description": "第2段階の Scenario テスト一覧 artifact path。",
+      "field": "scenario_artifact_path",
+      "type": "string"
     }
   ],
   "optional": [
@@ -31,6 +41,11 @@
       "description": "frontend / backend の責務想定。",
       "field": "preferred_split",
       "type": "string"
+    },
+    {
+      "description": "Logic の図 review が必要な時に参照する入力図や出力先。",
+      "field": "diagram_context",
+      "type": "object"
     }
   ],
   "must_not_change": [

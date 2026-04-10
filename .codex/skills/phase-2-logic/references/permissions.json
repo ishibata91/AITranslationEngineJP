@@ -1,0 +1,29 @@
+{
+  "contract_version": "2026-04-10",
+  "skill": "phase-2-logic",
+  "allowed_actions": [
+    "active exec-plan の `実装計画` を短い ordered scope と並列 task group に整理する",
+    "owned scope、task dependency、required reading、validation commands を固定する",
+    "必要な時だけ `diagramming-structure-diff` を使って review 用差分図と差分正本適用先を揃える"
+  ],
+  "forbidden_actions": [
+    "active exec-plan の `実装計画` 以外を広く書き換える",
+    "HTML モックや Scenario artifact の本文を変更する",
+    "tasks.md や別の実装管理 artifact を新設する"
+  ],
+  "expected_outputs": [
+    "ordered_scope",
+    "parallel_task_groups",
+    "task_dependencies",
+    "owned_scope",
+    "required_reading",
+    "validation_commands",
+    "implementation_plan_updates",
+    "review_diff_diagrams"
+  ],
+  "stop_conditions": [
+    "facts や gaps が多く実装順を固定できない",
+    "ownership を安全に切り分けられない",
+    "先に distilling や docs decision が必要である"
+  ]
+}

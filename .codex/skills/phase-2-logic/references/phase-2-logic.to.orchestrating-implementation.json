@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-10",
   "direction": "skill-to-directing",
-  "from_skill": "phase-4-plan",
+  "from_skill": "phase-2-logic",
   "to_skill": "orchestrating-implementation",
-  "purpose": "orchestrator が test 設計と実装 handoff に使う implementation brief を返す。",
+  "purpose": "orchestrator が test 設計と実装 handoff に使う implementation brief を第2段階で受け取る。",
   "required": [
     {
       "description": "実装順序。",
@@ -38,13 +38,18 @@
   ],
   "optional": [
     {
-      "description": "implementing skill へ引き継ぐ relevant な MCP memory bucket (`repo_conventions`, `recurring_pitfalls`) の recall。",
-      "field": "mcp_memory_recall",
+      "description": "active plan に反映した短い更新点。",
+      "field": "implementation_plan_updates",
+      "type": "string[]"
+    },
+    {
+      "description": "第2段階で用意した review 用差分図と差分正本適用先。",
+      "field": "review_diff_diagrams",
       "type": "object"
     },
     {
-      "description": "active plan に反映した短い更新点。",
-      "field": "implementation_plan_updates",
+      "description": "orchestrator が次の handoff 前に解消すべき未確定事項。",
+      "field": "open_questions",
       "type": "string[]"
     }
   ],
@@ -53,6 +58,6 @@
     "実装コードを直接変更しない"
   ],
   "completion_signal": [
-    "orchestrator が phase-5-test-implementation と phase-6-implement-* を並列または直列で handoff できる brief になっている"
+    "orchestrator が phase-5-test-implementation と phase-6-implement-* を handoff できる implementation brief になっている"
   ]
 }

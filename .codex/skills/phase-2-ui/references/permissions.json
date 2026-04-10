@@ -1,0 +1,24 @@
+{
+  "contract_version": "2026-04-10",
+  "skill": "phase-2-ui",
+  "allowed_actions": [
+    "HTML モック artifact を `docs/exec-plans/active/` 配下に追加または更新する",
+    "active exec-plan の `UI モック` section に path と要点を固定する",
+    "downstream skill が読める最小限の UI 判断を固定する"
+  ],
+  "forbidden_actions": [
+    "実装コードを変更する",
+    "active exec-plan の `UI モック` 以外を広く書き換える",
+    "framework 実装や component 設計を HTML モックへ持ち込む"
+  ],
+  "expected_outputs": [
+    "ui_artifact_path",
+    "ui_notes",
+    "open_questions"
+  ],
+  "stop_conditions": [
+    "画面要件や参照資料が不足して UI モックを安全に固定できない",
+    "UI 以外の大きな仕様判断が必要である",
+    "implementation lane ではなく fix lane や human decision が必要である"
+  ]
+}

@@ -1,5 +1,5 @@
 name = "workplan_builder"
-description = "active exec-plan の `UI` / `Scenario` / `Logic` と distill 結果から短い implementation brief を組み立てる planning specialist。"
+description = "active exec-plan と第2段階 artifact、distill 結果から短い implementation brief を組み立てる planning specialist。"
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"

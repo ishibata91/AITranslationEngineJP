@@ -2,7 +2,7 @@
   "contract_version": "2026-04-08",
   "skill": "diagramming-structure-diff",
   "allowed_actions": [
-    "active exec-plan と `diagrams/backend/` 正本を読んで更新対象または新規作成対象を特定する",
+    "active exec-plan、関連 artifact、`diagrams/backend/` 正本を読んで更新対象または新規作成対象を特定する",
     "review 用構造差分 `.d2` / `.svg` を active exec-plan 配下に作成または更新する",
     "`apply_to_source` の明示指示がある時だけ `diagrams/backend/` 正本の `.d2` / `.svg` を更新する",
     "`d2 validate`、`d2 -t 201`、class 図の縦横比確認を実行する"
@@ -22,7 +22,7 @@
     "applied_source_diagrams"
   ],
   "stop_conditions": [
-    "active exec-plan に task-local design や差分意図が不足している",
+    "active exec-plan の `実装計画` や関連 artifact に差分意図が不足している",
     "更新対象の component や source path を安全に特定できない",
     "D2 では要求された差分表現を安全に表せない",
     "`d2` が利用できず validate や render を確認できない"

@@ -3,12 +3,17 @@
   "direction": "orchestrating-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-5-test-implementation",
-  "purpose": "第2段階で固定した `Scenario` を tests / fixtures / acceptance checks / validation commands へ適用し、必要な test / fixture を最小範囲で実装させる。",
+  "purpose": "第2段階で固定した Scenario テスト一覧 artifact を tests / fixtures / acceptance checks / validation commands へ適用し、必要な test / fixture を最小範囲で実装させる。",
   "required": [
     {
-      "description": "`UI` / `Scenario` / `Logic` を含む active exec-plan。",
+      "description": "`UI モック` / `Scenario テスト一覧` 参照と `実装計画` を含む active exec-plan。",
       "field": "active_exec_plan",
       "type": "path"
+    },
+    {
+      "description": "第2段階の Scenario テスト一覧 artifact path。",
+      "field": "scenario_artifact_path",
+      "type": "string"
     },
     {
       "description": "ordered_scope / owned_scope / validation_commands を含む implementation brief。",
@@ -23,7 +28,7 @@
   ],
   "optional": [
     {
-      "description": "`Scenario` のうち優先して適用する観点。",
+      "description": "Scenario テスト一覧のうち優先して適用する観点。",
       "field": "focus_area",
       "type": "string"
     }

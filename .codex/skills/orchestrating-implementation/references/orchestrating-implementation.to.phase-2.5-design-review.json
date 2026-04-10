@@ -6,7 +6,9 @@
   "purpose": "task-local design と review 用差分図を詳細設計 AI review にかける。",
   "required": [
     { "description": "review 対象の active exec-plan。", "field": "active_exec_plan", "type": "path" },
-    { "description": "UI / Scenario / Logic を含む設計要約。", "field": "context_summary", "type": "object" }
+    { "description": "HTML モック / Scenario テスト一覧 / 実装計画 を含む設計要約。", "field": "context_summary", "type": "object" },
+    { "description": "第2段階の HTML モック artifact path。", "field": "ui_artifact_path", "type": "string" },
+    { "description": "第2段階の Scenario テスト一覧 artifact path。", "field": "scenario_artifact_path", "type": "string" }
   ],
   "optional": [
     { "description": "review 用差分図 path。", "field": "review_diff_diagrams", "type": "string[]" }

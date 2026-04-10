@@ -34,17 +34,15 @@
 
 - Note the shared files, shared fixtures, or upstream `contract` / `verification` tasks that must land first.
 
-## UI
+## UI モック
 
-- Use only when the task changes screen structure, presentation, or interaction flow.
+- `artifact_path`: `docs/exec-plans/active/<task-id>.ui.html`
+- `summary`:
 
-## Scenario
+## Scenario テスト一覧
 
-- Use only when the task changes user-visible behavior, state transitions, or execution flow.
-
-## Logic
-
-- Use only when the task changes domain logic, contracts, validation, or dependency boundaries.
+- `artifact_path`: `docs/exec-plans/active/<task-id>.scenario.md`
+- `summary`:
 
 ## 実装計画
 
@@ -92,6 +90,7 @@
 ## Closeout Notes
 
 - review 用に active exec-plan 配下へ置いた差分 D2 / SVG copy は、`diagrams/backend/` 正本適用後に削除し、completed plan へ持ち越さない。
+- 第2段階で作った HTML モック artifact と Scenario artifact は、plan と同じ `task-id` の basename を保ったまま `completed/` へ移す。
 
 ## 結果
 

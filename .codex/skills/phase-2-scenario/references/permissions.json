@@ -1,0 +1,24 @@
+{
+  "contract_version": "2026-04-10",
+  "skill": "phase-2-scenario",
+  "allowed_actions": [
+    "Scenario テスト一覧 artifact を `docs/exec-plans/active/` 配下に追加または更新する",
+    "active exec-plan の `Scenario テスト一覧` section に path と要点を固定する",
+    "後続工程の証明対象になる最小限の test case 一覧を固定する"
+  ],
+  "forbidden_actions": [
+    "実装コードや test file の詳細実装を変更する",
+    "active exec-plan の `Scenario テスト一覧` 以外を広く書き換える",
+    "説明 prose を増やして test case 一覧を曖昧にする"
+  ],
+  "expected_outputs": [
+    "scenario_artifact_path",
+    "scenario_notes",
+    "open_questions"
+  ],
+  "stop_conditions": [
+    "要件や状態遷移の前提が不足して Scenario を安全に固定できない",
+    "Scenario 以外の大きな仕様判断が必要である",
+    "implementation lane ではなく fix lane や human decision が必要である"
+  ]
+}

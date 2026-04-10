@@ -1,0 +1,33 @@
+{
+  "contract_version": "2026-04-10",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-2-scenario",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "orchestrator が詳細設計 AI review と検証設計の前提に使う Scenario テスト一覧固定結果を受け取る。",
+  "required": [
+    {
+      "description": "生成または更新した Scenario テスト一覧 artifact path。",
+      "field": "scenario_artifact_path",
+      "type": "string"
+    },
+    {
+      "description": "active exec-plan の `Scenario テスト一覧` section に反映した要点。",
+      "field": "scenario_notes",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "orchestrator が次の handoff 前に解消すべき未確定事項。",
+      "field": "open_questions",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "実装コードを直接変更しない",
+    "active exec-plan の `Scenario テスト一覧` 以外を広く書き換えない"
+  ],
+  "completion_signal": [
+    "proposal 側が詳細設計 AI review に回せる Scenario テスト一覧 artifact と参照情報が反映されている"
+  ]
+}

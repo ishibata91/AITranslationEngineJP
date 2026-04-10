@@ -2,7 +2,7 @@
   "contract_version": "2026-03-29",
   "skill": "phase-5-test-implementation",
   "allowed_actions": [
-    "active exec-plan と関連仕様から failing tests を設計する",
+    "active exec-plan、Scenario テスト一覧 artifact、関連仕様から failing tests を設計する",
     "必要な test files、fixture files、test helper files を最小範囲で追加または更新する",
     "fixtures、acceptance checks、validation commands を最小範囲で定義する",
     "必要なら active exec-plan の Acceptance Checks を更新する"
@@ -20,7 +20,7 @@
     "validation_commands"
   ],
   "stop_conditions": [
-    "plan や関連仕様だけでは期待振る舞いを固定できない",
+    "plan、Scenario テスト一覧 artifact、関連仕様だけでは期待振る舞いを固定できない",
     "再現条件や target behavior が未確定である",
     "ownership が曖昧で実装 lane へ handoff できない"
   ]

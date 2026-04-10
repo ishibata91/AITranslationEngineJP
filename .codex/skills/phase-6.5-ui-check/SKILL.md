@@ -8,7 +8,7 @@ description: 実装完了後に `chrome-devtools` で主要導線と画面状態
 ## Goal
 
 - 実装済み UI を `chrome-devtools` から操作し、主要導線と画面状態を確認する
-- active exec-plan の `UI`、`Scenario`、受け入れ確認と実装結果を照合する
+- HTML モック artifact、Scenario テスト一覧 artifact、受け入れ確認と実装結果を照合する
 - UI 逸脱、console error、network failure、設計差分を切り分けて返す
 
 ## Rules

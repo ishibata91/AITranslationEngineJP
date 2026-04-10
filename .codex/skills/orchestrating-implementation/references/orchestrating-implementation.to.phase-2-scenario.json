@@ -1,0 +1,53 @@
+{
+  "contract_version": "2026-04-10",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-implementation",
+  "to_skill": "phase-2-scenario",
+  "purpose": "要求整理で整えた context summary を前提に、第2段階の Scenario テスト一覧 artifact と active exec-plan の参照情報を固める依頼を渡す。",
+  "required": [
+    {
+      "description": "対象 task の要約と変更意図。",
+      "field": "request_summary",
+      "type": "string"
+    },
+    {
+      "description": "作業中の exec-plan path。",
+      "field": "active_exec_plan",
+      "type": "string"
+    },
+    {
+      "description": "proposal 側が整えた facts / constraints / gaps / required_reading の要約。",
+      "field": "context_summary",
+      "type": "object"
+    },
+    {
+      "description": "Scenario テスト一覧 artifact の出力 path。",
+      "field": "scenario_artifact_path",
+      "type": "string"
+    },
+    {
+      "description": "Scenario 判断に必要な関連 docs やコード path。",
+      "field": "required_reading",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "特に優先して固めたい挙動や例外系。",
+      "field": "focus_behaviors",
+      "type": "string[]"
+    },
+    {
+      "description": "現時点の制約や避けるべき解釈。",
+      "field": "constraints",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "実装コードを直接変更しない",
+    "active exec-plan の `Scenario テスト一覧` 以外を広く書き換えない"
+  ],
+  "completion_signal": [
+    "proposal 側が詳細設計 AI review 前に参照できる Scenario テスト一覧 artifact と plan 参照情報が入っている"
+  ]
+}

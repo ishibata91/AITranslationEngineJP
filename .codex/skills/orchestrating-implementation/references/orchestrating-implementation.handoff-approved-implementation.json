@@ -52,6 +52,6 @@
     "未承認 plan を execution へ回さない"
   ],
   "completion_signal": [
-    "orchestrating-implementation が phase-4-plan から開始できる情報がそろっている"
+    "orchestrating-implementation が phase-5-test-implementation と phase-6-implement-* から開始できる情報がそろっている"
   ]
 }

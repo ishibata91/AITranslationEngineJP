@@ -3,11 +3,11 @@
   "skill": "orchestrating-implementation",
   "allowed_actions": [
     "active impl plan を作成または更新する",
-    "phase-1-distill、phase-2-design、phase-2.5-design-review、phase-4-plan、phase-5-test-implementation、phase-6-implement-*、phase-6.5-ui-check、phase-7-unit-test、phase-8-review へ handoff する",
+    "phase-1-distill、phase-2-ui、phase-2-scenario、phase-2-logic、phase-2.5-design-review、phase-5-test-implementation、phase-6-implement-*、phase-6.5-ui-check、phase-7-unit-test、phase-8-review へ handoff する",
     "人間承認の記録、final harness、close を管理する"
   ],
   "forbidden_actions": [
-    "詳細設計の固定前に phase-4-plan 以降へ進める",
+    "第2段階の artifact と実装計画の固定前に phase-5-test-implementation 以降へ進める",
     "非自明な変更を active plan なしで進める",
     "changes、context_board、tasks.md を live 正本に戻す",
     "自身で product 実装を始める",
@@ -18,6 +18,7 @@
     "requirements_summary",
     "design_review_status",
     "approval_status",
+    "design_artifacts",
     "implementation_brief",
     "validation_and_closeout_summary"
   ],
