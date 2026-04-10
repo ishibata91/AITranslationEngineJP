@@ -15,3 +15,12 @@
 - 実装レーンの入口: `skills/orchestrating-implementation/SKILL.md`
 - バグ修正の入口: `skills/orchestrating-fixes/SKILL.md`
 - workflow 鳥瞰図: `workflow.md`
+
+## Task-Local Artifact 正本
+
+- 共通の画面設計と visual design の正本は `docs/screen-design/` に置く
+- task-local の UI モック working copy は `docs/exec-plans/active/<task-id>.ui.html` に置く
+- task-local の Scenario テスト一覧 working copy は `docs/exec-plans/active/<task-id>.scenario.md` に置く
+- 実装完了後の UI モック正本は `docs/mocks/<page-id>/index.html` に置く
+- 実装完了後の Scenario テスト一覧正本は `docs/scenario-tests/<topic-id>.md` に置く
+- active exec-plan には artifact 本文を埋め込まず、path、最終正本 path、要点だけを残す

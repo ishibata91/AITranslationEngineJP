@@ -3,7 +3,7 @@
   "skill": "phase-2-ui",
   "allowed_actions": [
     "HTML モック artifact を `docs/exec-plans/active/` 配下に追加または更新する",
-    "active exec-plan の `UI モック` section に path と要点を固定する",
+    "active exec-plan の `UI モック` section に working copy path、最終正本 path、要点を固定する",
     "downstream skill が読める最小限の UI 判断を固定する"
   ],
   "forbidden_actions": [

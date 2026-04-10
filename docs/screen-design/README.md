@@ -12,4 +12,5 @@
 
 - visual design は `docs/spec.md` の用語と衝突させない
 - `design-system-ethereal-archive.md` は見た目とコンポーネント規約の正本として扱う
-- `code.html` は画面骨格と未確定要素の境界を確認する mock として扱う
+- `code.html` は画面骨格と未確定要素の境界を確認する共通 design mock として扱う
+- page ごとの主要導線と状態変化を再現する mock 正本は `docs/mocks/` に置く

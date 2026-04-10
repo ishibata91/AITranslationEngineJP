@@ -2,8 +2,8 @@
   "contract_version": "2026-04-09",
   "skill": "phase-2.5-design-review",
   "allowed_actions": [
-    "active exec-plan、HTML モック artifact、Scenario テスト一覧 artifact、review 用差分図を読んで詳細設計 AI review を行う",
-    "要件取りこぼし、責務腐敗、検証不足、構造差分の不整合を指摘する",
+    "active exec-plan、主要なページの動きまである程度再現した UI モック artifact、Scenario テスト一覧 artifact、review 用差分図を読んで詳細設計 AI review を行う",
+    "要件取りこぼし、責務腐敗、検証不足、構造差分の不整合、主要導線と状態変化の再現不足を指摘する",
     "human 判断が必要な論点を切り出して返す"
   ],
   "forbidden_actions": [
@@ -18,7 +18,7 @@
     "closeout_notes"
   ],
   "stop_conditions": [
-    "review 対象の HTML モック、Scenario テスト一覧、実装計画が未確定である",
+    "review 対象の UI モック、Scenario テスト一覧、実装計画が未確定である",
     "review 用差分図の有無が不明である",
     "入力だけでは詳細設計を評価できない"
   ]

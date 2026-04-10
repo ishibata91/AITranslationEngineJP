@@ -3,7 +3,7 @@
   "skill": "phase-2-scenario",
   "allowed_actions": [
     "Scenario テスト一覧 artifact を `docs/exec-plans/active/` 配下に追加または更新する",
-    "active exec-plan の `Scenario テスト一覧` section に path と要点を固定する",
+    "active exec-plan の `Scenario テスト一覧` section に working copy path、最終正本 path、要点を固定する",
     "後続工程の証明対象になる最小限の test case 一覧を固定する"
   ],
   "forbidden_actions": [

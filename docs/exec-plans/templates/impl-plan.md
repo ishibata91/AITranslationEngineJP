@@ -37,11 +37,13 @@
 ## UI モック
 
 - `artifact_path`: `docs/exec-plans/active/<task-id>.ui.html`
+- `final_artifact_path`: `docs/mocks/<page-id>/index.html`
 - `summary`:
 
 ## Scenario テスト一覧
 
 - `artifact_path`: `docs/exec-plans/active/<task-id>.scenario.md`
+- `final_artifact_path`: `docs/scenario-tests/<topic-id>.md`
 - `summary`:
 
 ## 実装計画
@@ -90,7 +92,8 @@
 ## Closeout Notes
 
 - review 用に active exec-plan 配下へ置いた差分 D2 / SVG copy は、`diagrams/backend/` 正本適用後に削除し、completed plan へ持ち越さない。
-- 第2段階で作った HTML モック artifact と Scenario artifact は、plan と同じ `task-id` の basename を保ったまま `completed/` へ移す。
+- 第2段階で作った UI モック working copy は、完了前に `docs/mocks/<page-id>/index.html` へ移す。
+- 第2段階で作った Scenario artifact working copy は、完了前に `docs/scenario-tests/<topic-id>.md` へ移す。
 
 ## 結果
 

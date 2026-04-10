@@ -7,7 +7,7 @@
   "required": [
     { "description": "review 対象の active exec-plan。", "field": "active_exec_plan", "type": "path" },
     { "description": "HTML モック / Scenario テスト一覧 / 実装計画 を含む設計要約。", "field": "context_summary", "type": "object" },
-    { "description": "第2段階の HTML モック artifact path。", "field": "ui_artifact_path", "type": "string" },
+    { "description": "第2段階の主要なページの動きまである程度再現した UI モック artifact path。", "field": "ui_artifact_path", "type": "string" },
     { "description": "第2段階の Scenario テスト一覧 artifact path。", "field": "scenario_artifact_path", "type": "string" }
   ],
   "optional": [
