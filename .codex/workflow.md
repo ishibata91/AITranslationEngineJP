@@ -89,6 +89,7 @@ feature / change は、要求整理から入り、詳細設計を固定し、人
 ## 実装レーン
 
 標準順序は `要求整理 -> 詳細設計 -> 詳細設計 AI review -> 人間承認 -> 実装計画 -> 検証設計 -> 実装と品質通過 -> UI確認 -> 単体テスト作成 -> 実装レビュー -> 完了` の段階で固定します。
+implementation orchestrator (`orchestrating-implementation`) は自身で実装や詳細調査を抱え込まず、各 phase skill を `fork_context: false` のサブエージェントで呼び出す配線役として扱います。
 
 ウォーターフォールとしての原則は次の 4 点です。
 
@@ -207,6 +208,7 @@ feature / change は、要求整理から入り、詳細設計を固定し、人
 ## 修正レーン
 
 標準順序は `事実整理 -> 原因分析 -> 再現と回帰防止の検証設計 -> 修正実装 -> review -> 完了` です。
+fix orchestrator (`orchestrating-fixes`) は自身で恒久修正や詳細調査を抱え込まず、各 skill を `fork_context: false` のサブエージェントで呼び出す配線役として扱います。
 
 - bugfix 要求の入口では、既知事実、再現条件、関連仕様、関連コードを整理する。
 - 画面起点で確認できる bug は、事実整理の中で `chrome-devtools` により先に再現確認し、結果を `Known Facts` と `Required Evidence` に残す。
