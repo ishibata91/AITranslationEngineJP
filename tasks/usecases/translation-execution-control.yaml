@@ -1,0 +1,23 @@
+id: translation-execution-control
+title: 翻訳実行と制御
+usecase: translation-execution-control
+related_screens:
+  - app-shell.md
+  - job-run.md
+goal: 実行中ジョブの phase 管理、進捗観測、操作制御、失敗回復を扱えるようにする。
+preconditions:
+  - 翻訳準備が完了している
+  - 実行中または回復可能な job が存在する
+completion_criteria:
+  - current phase を確認できる
+  - progress を確認できる
+  - pause、resume、retry、cancel の可否を確認できる
+  - recoverable failure の情報を確認できる
+depends_on:
+  - translation-preparation
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - app-shell から Job Run を開く
+  - progress と phase timeline を確認する
+  - pause、resume、retry、cancel の state を切り替える

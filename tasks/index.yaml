@@ -1,0 +1,17 @@
+version: 1
+catalog_type: implementation_task_catalog
+summary: 粗い実装スライスを順番付きで管理する task catalog
+default_order:
+  - foundation-data-management
+  - translation-preparation
+  - translation-execution-control
+  - translation-output-management
+entries:
+  - id: foundation-data-management
+    path: usecases/foundation-data-management.yaml
+  - id: translation-preparation
+    path: usecases/translation-preparation.yaml
+  - id: translation-execution-control
+    path: usecases/translation-execution-control.yaml
+  - id: translation-output-management
+    path: usecases/translation-output-management.yaml

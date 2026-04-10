@@ -1,0 +1,25 @@
+id: translation-preparation
+title: 翻訳準備
+usecase: translation-preparation
+related_screens:
+  - app-shell.md
+  - input-review.md
+  - job-setup.md
+goal: 入力確認からジョブ作成前 validation 完了までを 1 つの実装スライスとして扱う。
+preconditions:
+  - 基盤データ管理が成立している
+  - import 済み入力データが少なくとも 1 件存在する
+completion_criteria:
+  - input file の一覧を参照できる
+  - translation unit の件数とカテゴリを確認できる
+  - 基盤参照、AI 基盤、実行方式を選択できる
+  - create job の前に validation を通せる
+depends_on:
+  - foundation-data-management
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - app-shell から Input Review を開く
+  - import 済みファイルと sample unit を確認する
+  - Job Setup へ進み、基盤参照と AI runtime を選ぶ
+  - validation の pass 状態を確認して job 作成準備が完了する

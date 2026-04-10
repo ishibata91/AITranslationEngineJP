@@ -1,0 +1,23 @@
+id: translation-output-management
+title: 翻訳結果と出力管理
+usecase: translation-output-management
+related_screens:
+  - app-shell.md
+  - output-review.md
+goal: 完了ジョブの結果確認、差分確認、再生成、成果物確認をまとめて扱う。
+preconditions:
+  - 翻訳実行と制御が完了している
+  - completed job が少なくとも 1 件存在する
+completion_criteria:
+  - completed job を一覧できる
+  - result summary を確認できる
+  - translation unit 単位の差分と再生成操作を確認できる
+  - output artifact の状態と再出力導線を確認できる
+depends_on:
+  - translation-execution-control
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - app-shell から Output Review を開く
+  - completed job と output artifact を選択する
+  - diff preview と再生成操作を確認する

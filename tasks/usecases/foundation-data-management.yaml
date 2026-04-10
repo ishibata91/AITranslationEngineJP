@@ -1,0 +1,21 @@
+id: foundation-data-management
+title: 基盤データ管理
+usecase: foundation-data-management
+related_screens:
+  - app-shell.md
+  - foundation-data.md
+goal: マスターペルソナとマスター辞書を観測、編集、再構築できるようにする。
+preconditions:
+  - 基盤データを読み込める
+completion_criteria:
+  - マスターペルソナ一覧を参照できる
+  - マスター辞書一覧を参照できる
+  - 選択中の基盤エントリの詳細を確認できる
+  - 基盤データの編集と再構築の導線を確認できる
+depends_on: []
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - app-shell から Foundation Data を開く
+  - Persona と Dictionary を切り替えて観測する
+  - 編集導線と Rebuild 導線を確認する
