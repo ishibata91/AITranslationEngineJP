@@ -1,0 +1,24 @@
+id: master-dictionary-management
+title: マスター辞書管理
+usecase: master-dictionary-management
+related_screens:
+  - master-dictionary.md
+goal: マスター辞書を作成、参照、更新、削除、取り込みできるようにする。
+preconditions:
+  - マスター辞書を読み込める
+completion_criteria:
+  - マスター辞書一覧を参照できる
+  - マスター辞書を作成できる
+  - 選択中の辞書エントリの詳細を確認できる
+  - 選択中の辞書エントリを更新できる
+  - 選択中の辞書エントリを削除できる
+  - XML からの取り込み導線を確認できる
+depends_on:
+  - dashboard-and-app-shell
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - マスター辞書ページを開く
+  - 一覧と検索を観測する
+  - 作成、更新、削除の導線を確認する
+  - XML からの取り込み導線を確認する

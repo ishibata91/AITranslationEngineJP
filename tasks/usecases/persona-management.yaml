@@ -1,0 +1,24 @@
+id: persona-management
+title: マスターペルソナ管理
+usecase: persona-management
+related_screens:
+  - persona-management.md
+goal: マスターペルソナを作成、参照、更新、削除、再構築できるようにする。
+preconditions:
+  - extractData.pas を使った JSON を読み込める
+completion_criteria:
+  - マスターペルソナ一覧を参照できる
+  - マスターペルソナを作成できる
+  - 選択中のペルソナエントリの詳細を確認できる
+  - 選択中のペルソナエントリを更新できる
+  - 選択中のペルソナエントリを削除できる
+  - JSON からの再構築導線を確認できる
+depends_on:
+  - dashboard-and-app-shell
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - マスターペルソナページを開く
+  - 一覧と検索を観測する
+  - 作成、更新、削除の導線を確認する
+  - extractData.pas 由来 JSON からの再構築導線を確認する

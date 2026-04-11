@@ -15,7 +15,8 @@ completion_criteria:
   - 基盤参照、AI 基盤、実行方式を選択できる
   - create job の前に validation を通せる
 depends_on:
-  - foundation-data-management
+  - dashboard-and-app-shell
+  - master-dictionary-management
 related_exec_plans: []
 related_tests: []
 manual_check_steps:

@@ -15,6 +15,9 @@ description: 第1.6段階の UI モック作成を担当し、承認前の機能
 ## Rules
 
 - 更新対象は `docs/exec-plans/active/<task-id>.ui.html` と active exec-plan の `UI モック` section に限定する
+- UIモックは画面がどうあるべきか、を定義する。UIの実装方針を持ち込まないこと。
+    - ユーザーから画面がどう見えるか、を意識すること。
+    - 文言の意味が一目で理解できるかを意識すること。
 - 前段で承認済みの `機能要件` を主要導線と状態変化へ写像する
 - task-local の page mock working copy は `docs/exec-plans/active/<task-id>.ui.html` とする
 - 完了後の UI モック正本は `docs/mocks/<page-id>/index.html` とする
