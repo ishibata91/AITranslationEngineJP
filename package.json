@@ -1,8 +1,12 @@
 {
   "name": "aitranslationenginejp",
   "private": true,
+  "devDependencies": {
+    "@playwright/test": "^1.51.0"
+  },
   "scripts": {
     "backendlint": "npm run lint:backend",
+    "backendtest": "npm run test:backend",
     "lint:backend": "npm run lint:backend:format && npm run lint:backend:vet && npm run lint:backend:static && npm run lint:backend:arch && npm run lint:backend:module",
     "lint:backend:arch": "sh ./scripts/lint/run-go-backend-lint.sh arch",
     "lint:backend:format": "sh ./scripts/lint/run-go-backend-lint.sh format-check",
@@ -10,6 +14,11 @@
     "lint:backend:vet": "sh ./scripts/lint/run-go-backend-lint.sh vet",
     "lint:backend:static": "sh ./scripts/lint/run-go-backend-lint.sh static",
     "frontendlint": "npm --prefix frontend run lint",
-    "lint:frontend": "npm run frontendlint"
+    "frontendtest": "npm run test:frontend",
+    "lint:frontend": "npm run frontendlint",
+    "test:backend": "sh ./scripts/test/run-go-backend-test.sh",
+    "test:frontend": "npm --prefix frontend run test",
+    "test:system": "sh ./scripts/test/run-system-test.sh",
+    "test:system:install": "playwright install chromium"
   }
 }

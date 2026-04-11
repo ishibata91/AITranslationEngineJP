@@ -10,7 +10,7 @@
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "allowUnreachableCode": false,
-    "types": ["vite/client", "node"],
+    "types": ["vite/client", "node", "vitest/globals", "vitest/jsdom"],
     "allowJs": false,
     "paths": {
       "@ui/*": ["src/ui/*"],
@@ -21,7 +21,10 @@
   "include": [
     "src/**/*.ts",
     "src/**/*.svelte",
+    "src/**/*.test.ts",
     "vite.config.ts",
+    "vitest.boundary.config.ts",
+    "vitest.config.ts",
     "wailsjs/**/*.ts"
   ]
 }

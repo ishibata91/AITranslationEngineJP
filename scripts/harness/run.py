@@ -8,10 +8,13 @@ from harness_common import default_repo_root, report_pass, report_section, run_p
 
 SUITE_ORDER = {
     "backend-lint": ["check_backend_lint.py"],
+    "backend-test": ["check_backend_test.py"],
     "frontend-lint": ["check_frontend_lint.py"],
+    "frontend-test": ["check_frontend_test.py"],
+    "system-test": ["check_system_test.py"],
     "structure": ["check_structure.py"],
     "execution": ["check_execution.py"],
-    "all": ["check_structure.py", "check_execution.py"],
+    "all": ["check_structure.py", "check_execution.py", "check_system_test.py"],
 }
 
 

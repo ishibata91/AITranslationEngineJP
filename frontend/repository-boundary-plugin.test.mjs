@@ -1,7 +1,6 @@
 // @vitest-environment node
 
 import { RuleTester } from "eslint"
-import { describe, it } from "vitest"
 import tseslint from "typescript-eslint"
 import { repositoryBoundaryPlugin } from "../scripts/eslint/repository-boundary-plugin.mjs"
 
@@ -15,103 +14,85 @@ const ruleTester = new RuleTester({
   }
 })
 
-describe("repository boundary plugin", () => {
-  it("enforces current frontend layer boundaries", () => {
-    ruleTester.run("enforce-layer-boundaries", rule, {
-      valid: [
+ruleTester.run("enforce-layer-boundaries", rule, {
+  valid: [
+    {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
+      code: "import { createShellState } from '@ui/stores/shell-state'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.svelte",
+      code: "import type { BootstrapGatewayContract } from '@application/gateway-contract'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/controller/wails/bootstrap.gateway.ts",
+      code: "import type { BootstrapGatewayContract } from '@application/gateway-contract'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/controller/wails/bootstrap.gateway.ts",
+      code: "import { AppController } from '../../wailsjs/go/wails/AppController'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.test.ts",
+      code: "import { fixture } from '../../fixtures/bootstrap'"
+    },
+    {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
+      code: "import AppShell from '@ui/views/AppShell.svelte'"
+    }
+  ],
+  invalid: [
+    {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
+      code: "import { invokeBootstrap } from '@controller/wails/bootstrap.gateway'",
+      errors: [{ message: "ui code must not import controller code directly." }]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.ts",
+      code: "import { invokeBootstrap } from '@controller/wails/bootstrap.gateway'",
+      errors: [
         {
-          filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
-          code: "import { createShellState } from '@ui/stores/shell-state'"
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.svelte",
-          code: "import type { BootstrapGatewayContract } from '@application/gateway-contract'"
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/controller/wails/bootstrap.gateway.ts",
-          code: "import type { BootstrapGatewayContract } from '@application/gateway-contract'"
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/controller/wails/bootstrap.gateway.ts",
-          code: "import { AppController } from '../../wailsjs/go/wails/AppController'"
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.test.ts",
-          code: "import { fixture } from '../../fixtures/bootstrap'"
-        }
-      ],
-      invalid: [
-        {
-          filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
-          code: "import { invokeBootstrap } from '@controller/wails/bootstrap.gateway'",
-          errors: [
-            { message: "ui code must not import controller code directly." }
-          ]
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.ts",
-          code: "import { invokeBootstrap } from '@controller/wails/bootstrap.gateway'",
-          errors: [
-            {
-              message:
-                "application code must not import controller code directly."
-            }
-          ]
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.ts",
-          code: "import { AppController } from '../../wailsjs/go/wails/AppController'",
-          errors: [
-            {
-              message:
-                "application code must not import Wails bindings directly. Go through gateway ports or gateway adapters instead."
-            }
-          ]
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/controller/wails/bootstrap.gateway.ts",
-          code: "import AppShell from '@ui/views/AppShell.svelte'",
-          errors: [
-            { message: "controller code must not import ui code directly." }
-          ]
-        },
-        {
-          filename:
-            "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.ts",
-          code: "import { fixture } from '../../fixtures/bootstrap'",
-          errors: [
-            {
-              message:
-                "application production code must not import test, fixture, or generated support files."
-            }
-          ]
+          message: "application code must not import controller code directly."
         }
       ]
-    })
-  })
-
-  it("keeps same-layer imports on public entrypoints", () => {
-    ruleTester.run("enforce-layer-boundaries", rule, {
-      valid: [
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.ts",
+      code: "import { AppController } from '../../wailsjs/go/wails/AppController'",
+      errors: [
         {
-          filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
-          code: "import AppShell from '@ui/views/AppShell.svelte'"
-        }
-      ],
-      invalid: [
-        {
-          filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
-          code: "import { buildScreenState } from '@ui/screens/bootstrap/internal/build-screen-state'",
-          errors: [{ messageId: "forbiddenImport" }]
+          message:
+            "application code must not import Wails bindings directly. Go through gateway ports or gateway adapters instead."
         }
       ]
-    })
-  })
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/controller/wails/bootstrap.gateway.ts",
+      code: "import AppShell from '@ui/views/AppShell.svelte'",
+      errors: [{ message: "controller code must not import ui code directly." }]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/gateway-contract/index.ts",
+      code: "import { fixture } from '../../fixtures/bootstrap'",
+      errors: [
+        {
+          message:
+            "application production code must not import test, fixture, or generated support files."
+        }
+      ]
+    },
+    {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
+      code: "import { buildScreenState } from '@ui/screens/bootstrap/internal/build-screen-state'",
+      errors: [{ messageId: "forbiddenImport" }]
+    }
+  ]
 })

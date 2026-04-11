@@ -1,9 +1,10 @@
 import { defineConfig } from "vite"
 import { svelte } from "@sveltejs/vite-plugin-svelte"
+import { svelteTesting } from "@testing-library/svelte/vite"
 import { fileURLToPath, URL } from "node:url"
 
 export default defineConfig({
-  plugins: [svelte()],
+  plugins: [svelte(), svelteTesting()],
   resolve: {
     alias: {
       "@ui": fileURLToPath(new URL("./src/ui", import.meta.url)),

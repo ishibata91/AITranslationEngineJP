@@ -66,6 +66,18 @@ def main() -> int:
     else:
         report_skip(f"SKIP no lint:frontend script in {root_package_json_path}")
 
+    if has_script(root_package, "test:backend"):
+        ran_anything = True
+        failures += invoke_step(package_manager, ["run", "test:backend"], repo_root)
+    else:
+        report_skip(f"SKIP no test:backend script in {root_package_json_path}")
+
+    if has_script(root_package, "test:frontend"):
+        ran_anything = True
+        failures += invoke_step(package_manager, ["run", "test:frontend"], repo_root)
+    else:
+        report_skip(f"SKIP no test:frontend script in {root_package_json_path}")
+
     if sonar_project_properties.exists():
         ran_anything = True
         if has_script(root_package, "scan:sonar"):

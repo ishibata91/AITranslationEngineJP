@@ -1,13 +1,13 @@
 ---
 name: phase-5-test-implementation
-description: 第5段階の検証設計を担当し、`Scenario` を tests / fixtures / acceptance checks / validation commands へ適用し、必要な test / fixture を最小範囲で実装する。
+description: 第5段階の検証設計を担当し、`Scenario` を playwright E2Eテスト へ適用し、必要なシナリオテスト を最小範囲で実装する。
 ---
 
 # Phase 5 Test Implementation
 
 ## Overview
 
-第2段階で固定した Scenario テスト一覧 artifact を、そのまま tests / fixtures / acceptance checks / validation commands へ適用する工程です。新しい検証観点や新しい要件解釈は増やさず、証明対象を機械的に実行できる状態へ変えます。
+第2段階で固定した Scenario テスト一覧 artifact を、そのまま playwright E2Eテストへ適用する工程です。新しい検証観点や新しい要件解釈は増やさず、証明対象を機械的に実行できる状態へ変えます。
 
 ## Workflow
 
