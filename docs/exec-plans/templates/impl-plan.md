@@ -34,6 +34,14 @@
 
 - Note the shared files, shared fixtures, or upstream `contract` / `verification` tasks that must land first.
 
+## 機能要件
+
+- `summary`:
+- `in_scope`:
+- `out_of_scope`:
+- `open_questions`:
+- `required_reading`:
+
 ## UI モック
 
 - `artifact_path`: `docs/exec-plans/active/<task-id>.ui.html`
@@ -74,11 +82,19 @@
 
 -
 
-## HITL 状態
+## 機能要件 HITL 状態
 
 - N/A
 
-## 承認記録
+## 機能要件 承認記録
+
+- N/A
+
+## 詳細設計 HITL 状態
+
+- N/A
+
+## 詳細設計 承認記録
 
 - N/A
 
@@ -93,7 +109,7 @@
 ## Closeout Notes
 
 - review 用に active exec-plan 配下へ置いた差分 D2 / SVG copy は、`diagrams/backend/` 正本適用後に削除し、completed plan へ持ち越さない。
-- 第2段階で作った UI モック working copy は、完了前に `docs/mocks/<page-id>/index.html` へ移す。
+- 第1.6段階で作った UI モック working copy は、完了前に `docs/mocks/<page-id>/index.html` へ移す。
 - 第2段階で作った Scenario artifact working copy は、完了前に `docs/scenario-tests/<topic-id>.md` へ移す。
 
 ## 結果

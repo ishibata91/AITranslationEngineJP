@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-2-ui",
-  "purpose": "要求整理で整えた context summary を前提に、第2段階の UI モック artifact と active exec-plan の参照情報を固める依頼を渡す。",
+  "purpose": "phase-1 と phase-1.5 で整えた context summary と機能要件を前提に、前段 UI モック artifact と active exec-plan の参照情報を固める依頼を渡す。",
   "required": [
     {
       "description": "対象 task の要約と変更意図。",
@@ -19,6 +19,11 @@
       "description": "proposal 側が整えた facts / constraints / gaps / required_reading の要約。",
       "field": "context_summary",
       "type": "object"
+    },
+    {
+      "description": "前段で固定した機能要件の要約。",
+      "field": "functional_requirements_summary",
+      "type": "string[]"
     },
     {
       "description": "UI モック artifact の出力 path。",
@@ -48,6 +53,6 @@
     "active exec-plan の `UI モック` 以外を広く書き換えない"
   ],
   "completion_signal": [
-    "proposal 側が詳細設計 AI review 前に参照できる HTML モック artifact と plan 参照情報が入っている"
+    "proposal 側が前段 HITL と後段 detailed design の前提に使える HTML モック artifact と plan 参照情報が入っている"
   ]
 }

@@ -3,7 +3,7 @@
   "direction": "skill-to-directing",
   "from_skill": "phase-2.5-design-review",
   "to_skill": "orchestrating-implementation",
-  "purpose": "詳細設計 AI review の判定結果を orchestrator へ返す。",
+  "purpose": "前段承認済み要件を前提にした詳細設計 AI review の判定結果を orchestrator へ返す。",
   "required": [
     { "description": "review 判定。", "field": "decision", "type": "string" },
     { "description": "指摘一覧。", "field": "findings", "type": "string[]" }

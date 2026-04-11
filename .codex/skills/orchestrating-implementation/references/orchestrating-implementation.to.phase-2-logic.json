@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-2-logic",
-  "purpose": "要求整理と phase-2-ui / phase-2-scenario の成果物を前提に、第2段階で implementation brief を固定する依頼を渡す。",
+  "purpose": "前段 HITL を通過した機能要件と UI モック、および phase-2-scenario の成果物を前提に、第2段階で implementation brief を固定する依頼を渡す。",
   "required": [
     {
       "description": "更新対象の exec-plan。",
@@ -14,6 +14,11 @@
       "description": "facts / constraints / gaps / required_reading の要約。",
       "field": "context_summary",
       "type": "object"
+    },
+    {
+      "description": "前段で承認済みの機能要件の要約。",
+      "field": "functional_requirements_summary",
+      "type": "string[]"
     },
     {
       "description": "実装対象として残ったスコープ候補。",

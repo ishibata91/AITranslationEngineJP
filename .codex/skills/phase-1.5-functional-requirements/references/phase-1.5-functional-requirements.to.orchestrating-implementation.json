@@ -1,0 +1,41 @@
+{
+  "contract_version": "2026-04-11",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-1.5-functional-requirements",
+  "to_skill": "orchestrating-implementation",
+  "purpose": "orchestrator が前段 UI モック作成と前段 HITL に使う機能要件固定結果を受け取る。",
+  "required": [
+    {
+      "description": "active exec-plan の `機能要件` section に反映した短い要約。",
+      "field": "functional_requirements_summary",
+      "type": "string[]"
+    },
+    {
+      "description": "対象に含める機能要件。",
+      "field": "in_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "対象外として固定した項目。",
+      "field": "out_of_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "human 判断が必要な論点を含む未確定事項。",
+      "field": "open_questions",
+      "type": "string[]"
+    },
+    {
+      "description": "次工程が最低限読むべき path。",
+      "field": "required_reading",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "実装方針を独断で確定しない",
+    "未確定事項を in-scope へ混ぜない"
+  ],
+  "completion_signal": [
+    "orchestrator が UI モック作成と前段 HITL へ進める情報粒度になっている"
+  ]
+}

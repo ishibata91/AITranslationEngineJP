@@ -3,10 +3,11 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-2.5-design-review",
-  "purpose": "task-local design と review 用差分図を詳細設計 AI review にかける。",
+  "purpose": "前段で承認済みの機能要件と task-local design、review 用差分図を詳細設計 AI review にかける。",
   "required": [
     { "description": "review 対象の active exec-plan。", "field": "active_exec_plan", "type": "path" },
     { "description": "HTML モック / Scenario テスト一覧 / 実装計画 を含む設計要約。", "field": "context_summary", "type": "object" },
+    { "description": "前段で承認済みの機能要件の要約。", "field": "functional_requirements_summary", "type": "string[]" },
     { "description": "第2段階の主要なページの動きまである程度再現した UI モック artifact path。", "field": "ui_artifact_path", "type": "string" },
     { "description": "第2段階の Scenario テスト一覧 artifact path。", "field": "scenario_artifact_path", "type": "string" }
   ],

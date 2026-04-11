@@ -4,12 +4,13 @@
   "allowed_actions": [
     "HTML モック artifact を `docs/exec-plans/active/` 配下に追加または更新する",
     "active exec-plan の `UI モック` section に working copy path、最終正本 path、要点を固定する",
-    "downstream skill が読める最小限の UI 判断を固定する"
+    "前段で固定した機能要件を UI 導線と状態変化へ写像し、downstream skill が読める最小限の UI 判断を固定する"
   ],
   "forbidden_actions": [
     "実装コードを変更する",
     "active exec-plan の `UI モック` 以外を広く書き換える",
-    "framework 実装や component 設計を HTML モックへ持ち込む"
+    "framework 実装や component 設計を HTML モックへ持ち込む",
+    "前段で承認されていない機能要件を UI モックへ追加する"
   ],
   "expected_outputs": [
     "ui_artifact_path",
@@ -18,6 +19,7 @@
   ],
   "stop_conditions": [
     "画面要件や参照資料が不足して UI モックを安全に固定できない",
+    "前段で固定した機能要件が不足して UI 導線を安全に再現できない",
     "UI 以外の大きな仕様判断が必要である",
     "implementation lane ではなく fix lane や human decision が必要である"
   ]

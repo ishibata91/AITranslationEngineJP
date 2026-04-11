@@ -3,7 +3,7 @@
   "direction": "skill-to-directing",
   "from_skill": "phase-2-ui",
   "to_skill": "orchestrating-implementation",
-  "purpose": "orchestrator が詳細設計 AI review と UI check の前提に使う HTML モック固定結果を受け取る。",
+  "purpose": "orchestrator が前段 HITL と後段 detailed design の前提に使う HTML モック固定結果を受け取る。",
   "required": [
     {
       "description": "生成または更新した HTML モック artifact path。",

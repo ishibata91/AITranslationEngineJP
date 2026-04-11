@@ -1,0 +1,26 @@
+{
+  "contract_version": "2026-04-11",
+  "skill": "phase-1.5-functional-requirements",
+  "allowed_actions": [
+    "active exec-plan と phase-1 の整理結果から機能要件を抽出する",
+    "active exec-plan の `機能要件` section に summary、in-scope、out-of-scope、open questions を固定する",
+    "後続の UI モック作成と前段 HITL が読む required reading を短く提示する"
+  ],
+  "forbidden_actions": [
+    "UI モック、Scenario テスト一覧、実装計画、review 用差分図を作る",
+    "実装コードや test file を変更する",
+    "未確定事項を確定要件として固定する"
+  ],
+  "expected_outputs": [
+    "functional_requirements_summary",
+    "in_scope",
+    "out_of_scope",
+    "open_questions",
+    "required_reading"
+  ],
+  "stop_conditions": [
+    "機能要件を安全に固定するための facts や constraints が不足している",
+    "human 判断が必要な論点が多く、前段 HITL なしでは次工程へ進めない",
+    "UI 以外の詳細設計や実装計画の決定が要求されている"
+  ]
+}

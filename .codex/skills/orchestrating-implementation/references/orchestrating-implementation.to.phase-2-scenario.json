@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-2-scenario",
-  "purpose": "要求整理で整えた context summary を前提に、第2段階の Scenario テスト一覧 artifact と active exec-plan の参照情報を固める依頼を渡す。",
+  "purpose": "前段 HITL を通過した機能要件と UI モックを前提に、第2段階の Scenario テスト一覧 artifact と active exec-plan の参照情報を固める依頼を渡す。",
   "required": [
     {
       "description": "対象 task の要約と変更意図。",
@@ -19,6 +19,11 @@
       "description": "proposal 側が整えた facts / constraints / gaps / required_reading の要約。",
       "field": "context_summary",
       "type": "object"
+    },
+    {
+      "description": "前段で承認済みの機能要件の要約。",
+      "field": "functional_requirements_summary",
+      "type": "string[]"
     },
     {
       "description": "Scenario テスト一覧 artifact の出力 path。",

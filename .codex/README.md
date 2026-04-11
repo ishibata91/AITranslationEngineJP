@@ -2,7 +2,7 @@
 
 このディレクトリは、AITranslationEngineJp の live workflow の正本です。
 プロダクト仕様と設計は `docs/` を正本とし、lane、skill、agent の役割と handoff は `.codex/` を正本とします。
-実装レーンは `workflow.md` の段階番号に合わせた `phase-*` skill と `orchestrating-*` skill で進めます。過去運用の独自 packet や独自 loop は持ち込みません。
+実装レーンは `workflow.md` の段階番号に合わせた `phase-*` skill と `orchestrating-*` skill で進めます。`phase-1-distill` の後に `phase-1.5-functional-requirements` と前段 HITL を置き、その後に detailed design へ進みます。過去運用の独自 packet や独自 loop は持ち込みません。
 
 ## Naming Rule
 
