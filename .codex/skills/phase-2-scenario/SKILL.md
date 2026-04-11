@@ -17,6 +17,7 @@ description: 第2段階の Scenario テスト一覧作成を担当し、exec-pla
 - 更新対象は `docs/exec-plans/active/<task-id>.scenario.md` と active exec-plan の `Scenario テスト一覧` section に限定する
 - task-local の Scenario テスト一覧 working copy は `docs/exec-plans/active/<task-id>.scenario.md` とする
 - 完了後の Scenario テスト一覧正本は `docs/scenario-tests/<topic-id>.md` とする
+- working copy を新規作成する時は `docs/exec-plans/templates/scenario-tests.md` の縦型テンプレートに従う
 - `Scenario` は説明 prose ではなく test case の一覧として書く
 - 正常系、主要例外系、状態遷移、責務境界の確認点を test case 単位で固定する
 - active exec-plan には artifact 本文を埋め込まず、working copy path、最終正本 path、要点だけを残す

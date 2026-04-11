@@ -8,6 +8,7 @@
 
 - 非自明な変更は、実装前にここへ短い計画を追加する
 - 実装や設計内包タスクは `templates/impl-plan.md`、修正タスクは `templates/fix-plan.md` を使う
+- `Scenario テスト一覧` artifact を作る時は `templates/scenario-tests.md` の縦型テンプレートを使う
 - ファイル名は `YYYY-MM-DD-topic.md` を基本とする
 - 1 つの計画には、目的、対象、受け入れ条件、更新対象文書を含める
 - 実装 task で必要な `UI` / `Scenario` / `Logic` は plan 本文の section として保持する

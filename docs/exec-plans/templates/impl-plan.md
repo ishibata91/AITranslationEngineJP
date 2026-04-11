@@ -44,6 +44,7 @@
 
 - `artifact_path`: `docs/exec-plans/active/<task-id>.scenario.md`
 - `final_artifact_path`: `docs/scenario-tests/<topic-id>.md`
+- `template_path`: `docs/exec-plans/templates/scenario-tests.md`
 - `summary`:
 
 ## 実装計画

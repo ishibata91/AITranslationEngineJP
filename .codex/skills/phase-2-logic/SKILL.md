@@ -16,7 +16,6 @@ description: 第2段階の Logic 実装計画作成を担当し、承認前の a
 - 更新対象は原則として active exec-plan の `実装計画`、`review 用差分図`、`差分正本適用先` に限定する
 - `phase-2-ui` と `phase-2-scenario` の artifact を読み、実装に必要な依存関係と証明対象を崩さない implementation brief を作る
 - 各 task は独立したコンテキストで実装できる粒度まで分解する
-- `Logic` を図で review したい時は、この段階の責務として `diagramming-structure-diff` を使い、review 用差分図と差分正本適用先を揃える
 - 実装コード、HTML モック、Scenario artifact、test file の詳細実装は持たない
 - `tasks.md` や別の実装管理 artifact を作らない
 
