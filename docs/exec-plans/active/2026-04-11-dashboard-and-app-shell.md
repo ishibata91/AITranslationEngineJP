@@ -1,7 +1,7 @@
 # 実装計画テンプレート
 
 - workflow: impl
-- status: completed
+- status: in_progress
 - lane_owner: orchestrating-implementation
 - scope: dashboard-and-app-shell
 - task_id: dashboard-and-app-shell
@@ -218,10 +218,7 @@
 
 <!-- Outcome -->
 
-- completed
-- `phase-6.5-ui-check`: 初回は `reroute`。`AppShell` のダッシュボード常時表示と hash 未同期を修正後、再実行で `pass`。
-- `phase-7-unit-test`: `/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/App.test.ts` を拡張し、無効 hash 正規化、ダッシュボード専用領域の非表示、承認済み 5 導線を証明。
-- `phase-8-review`: `pass`。承認済み design bundle と実装差分の整合を確認。
-- final harness: `python3 scripts/harness/run.py --suite all` pass。
-- source diagrams: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.d2` と `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.svg` を追加。
-- final artifacts: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/dashboard-and-app-shell/index.html`、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/dashboard-and-app-shell.md` へ移動。
+- in_progress
+- 2026-04-12 human review: 承認済みモック `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/dashboard-and-app-shell/index.html` と実装 `/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/views/AppShell.svelte` の視覚構造差分を理由に、第6段階 frontend 実装へ差し戻し。
+- 差し戻し論点: header 3 カラム構造、hero 情報ブロック、dashboard entry-card 構造、placeholder 構造、mobile nav affordance、route metadata がモック準拠でない。
+- 次回再開位置: `phase-6-implement-frontend`
