@@ -46,6 +46,11 @@
       "description": "現時点の制約や避けるべき選択。",
       "field": "constraints",
       "type": "string[]"
+    },
+    {
+      "description": "HTML モック本文に入れてはいけない設計注釈や説明の制約。",
+      "field": "artifact_content_constraints",
+      "type": "string[]"
     }
   ],
   "must_not_change": [

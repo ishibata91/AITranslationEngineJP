@@ -28,6 +28,7 @@
     "active exec-plan の `UI モック` 以外を広く書き換えない"
   ],
   "completion_signal": [
-    "proposal 側が詳細設計 AI review に回せる HTML モック artifact と参照情報が反映されている"
+    "proposal 側が詳細設計 AI review に回せる HTML モック artifact と参照情報が反映されている",
+    "HTML モック本文が reviewer 向け設計注釈ではなく、画面要素と導線だけで構成されている"
   ]
 }
