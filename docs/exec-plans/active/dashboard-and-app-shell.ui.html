@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ダッシュボードと共通ナビゲーション モック</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #161311;
+      --bg-strong: #110d0c;
+      --surface: rgba(35, 31, 29, 0.78);
+      --surface-low: rgba(17, 13, 12, 0.4);
+      --text: #eae1dd;
+      --muted: #d8c3ae;
+      --primary: #ffba38;
+      --primary-strong: #ca8d00;
+      --secondary: #e5beb5;
+      --line: rgba(255, 186, 56, 0.18);
+      --line-strong: rgba(255, 186, 56, 0.32);
+      --shadow: 0 24px 64px rgba(0, 0, 0, 0.42);
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --radius-sm: 10px;
+      --transition: 180ms ease;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Noto Serif JP", serif;
+      background:
+        radial-gradient(circle at top left, rgba(255, 186, 56, 0.16), transparent 28%),
+        radial-gradient(circle at 85% 18%, rgba(255, 104, 63, 0.14), transparent 24%),
+        linear-gradient(180deg, #1c1715 0%, var(--bg) 100%);
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    button {
+      font: inherit;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    .shell {
+      min-height: 100vh;
+    }
+
+    .shell-bar {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(38px);
+      background: rgba(22, 19, 17, 0.78);
+      border-bottom: 0.5px solid var(--line);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.38);
+    }
+
+    .shell-bar-inner {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 18px 24px;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .brand {
+      display: grid;
+      gap: 2px;
+    }
+
+    .brand-eyebrow,
+    .page-label,
+    .card-tag {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .brand strong {
+      font-size: 20px;
+      color: var(--primary);
+      font-style: italic;
+      font-weight: 900;
+    }
+
+    .nav-toggle {
+      display: none;
+      min-height: 42px;
+      padding: 0 16px;
+      border: 0;
+      border-radius: 999px;
+      color: #432c00;
+      background: linear-gradient(135deg, var(--primary) 0%, #f3a114 100%);
+      cursor: pointer;
+    }
+
+    .global-nav {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .nav-link {
+      min-height: 42px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: var(--muted);
+      border: 0.5px solid transparent;
+      transition: background var(--transition), color var(--transition), border-color var(--transition), transform var(--transition);
+    }
+
+    .nav-link:hover,
+    .nav-link:focus-visible {
+      color: var(--text);
+      border-color: rgba(255, 186, 56, 0.14);
+      background: rgba(255, 255, 255, 0.04);
+      outline: none;
+    }
+
+    .nav-link.is-active {
+      color: var(--bg-strong);
+      background: linear-gradient(135deg, var(--primary) 0%, #e8a31d 100%);
+      box-shadow: 0 0 20px rgba(255, 186, 56, 0.18);
+    }
+
+    .bar-status {
+      display: flex;
+      justify-content: flex-end;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .status-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 38px;
+      padding: 0 14px;
+      border-radius: 999px;
+      border: 0.5px solid var(--line);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+    }
+
+    .status-chip strong {
+      color: var(--text);
+      font-size: 13px;
+    }
+
+    .page {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 32px 24px 56px;
+      display: grid;
+      gap: 20px;
+    }
+
+    .panel {
+      background: var(--surface);
+      border: 0.5px solid var(--line);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(38px);
+      box-shadow: var(--shadow);
+    }
+
+    .hero-panel {
+      position: relative;
+      overflow: hidden;
+      padding: 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .hero-panel::before {
+      content: "";
+      position: absolute;
+      inset: 0 auto auto 0;
+      width: 220px;
+      height: 220px;
+      background: radial-gradient(circle, rgba(255, 186, 56, 0.14) 0%, transparent 72%);
+      pointer-events: none;
+    }
+
+    .hero-top,
+    .section-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .hero-panel h1 {
+      font-size: clamp(40px, 6vw, 72px);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+      font-style: italic;
+    }
+
+    .hero-lead,
+    .entry-card p,
+    .placeholder-content p {
+      color: var(--muted);
+      line-height: 1.7;
+      font-size: 14px;
+    }
+
+    .hero-meta {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .hero-grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: 1fr;
+    }
+
+    .entry-panel,
+    .placeholder-content {
+      padding: 24px;
+    }
+
+    .section-head {
+      margin-bottom: 18px;
+    }
+
+    .section-head h2 {
+      font-size: 24px;
+    }
+
+    .entry-grid,
+    .action-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .entry-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .entry-card {
+      position: relative;
+      overflow: hidden;
+      padding: 18px;
+      border-radius: var(--radius-md);
+      border: 0.5px solid rgba(255, 186, 56, 0.12);
+      background: rgba(17, 13, 12, 0.34);
+      transition: transform var(--transition), border-color var(--transition), background var(--transition), box-shadow var(--transition);
+    }
+
+    .entry-card::before {
+      content: "✦";
+      position: absolute;
+      top: 14px;
+      right: 16px;
+      color: rgba(255, 186, 56, 0.26);
+      font-size: 12px;
+    }
+
+    .entry-card:hover,
+    .entry-card:focus-visible {
+      transform: translateY(-2px);
+      border-color: rgba(255, 186, 56, 0.24);
+      background: rgba(255, 186, 56, 0.08);
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.26);
+      outline: none;
+    }
+
+    .entry-card.is-active {
+      background: linear-gradient(180deg, rgba(255, 186, 56, 0.18), rgba(17, 13, 12, 0.42));
+      border-color: var(--line-strong);
+    }
+
+    .entry-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+
+    .entry-card h3 {
+      font-size: 20px;
+    }
+
+    .entry-state {
+      display: inline-flex;
+      align-items: center;
+      min-height: 28px;
+      padding: 0 10px;
+      border-radius: 999px;
+      border: 0.5px solid rgba(255, 186, 56, 0.14);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .entry-action {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 14px;
+      color: var(--primary);
+      font-size: 13px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .placeholder-content {
+      display: grid;
+      gap: 20px;
+    }
+
+    .placeholder-card {
+      padding: 28px;
+      display: grid;
+      gap: 16px;
+    }
+
+    .placeholder-card h2 {
+      font-size: clamp(30px, 4vw, 48px);
+      line-height: 1.05;
+      font-style: italic;
+    }
+
+    .action-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .action-link {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+      padding: 0 16px;
+      border-radius: 999px;
+      border: 0.5px solid rgba(255, 186, 56, 0.12);
+      background: rgba(255, 255, 255, 0.02);
+      color: var(--text);
+      text-align: center;
+      transition: background var(--transition), border-color var(--transition), transform var(--transition);
+    }
+
+    .action-link:hover,
+    .action-link:focus-visible {
+      background: rgba(255, 186, 56, 0.08);
+      border-color: rgba(255, 186, 56, 0.24);
+      transform: translateY(-1px);
+      outline: none;
+    }
+
+    [hidden] {
+      display: none !important;
+    }
+
+    @media (max-width: 1120px) {
+      .shell-bar-inner,
+      .hero-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .bar-status {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .nav-toggle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+
+      .global-nav {
+        display: none;
+        justify-content: flex-start;
+      }
+
+      .shell-bar.is-open .global-nav {
+        display: flex;
+      }
+
+      .entry-grid,
+      .action-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <header class="shell-bar" id="shellBar">
+      <div class="shell-bar-inner">
+        <div class="brand">
+          <p class="brand-eyebrow">AITranslationEngineJp</p>
+          <strong>翻訳エンジン</strong>
+        </div>
+        <nav class="global-nav" aria-label="グローバルナビゲーション" id="globalNav">
+          <a class="nav-link" data-route-link href="#dashboard">ダッシュボード</a>
+          <a class="nav-link" data-route-link href="#master-dictionary">マスター辞書</a>
+          <a class="nav-link" data-route-link href="#master-persona">マスターペルソナ</a>
+          <a class="nav-link" data-route-link href="#translation-management">翻訳管理</a>
+          <a class="nav-link" data-route-link href="#output-management">出力管理</a>
+        </nav>
+        <div class="bar-status">
+          <span class="status-chip"><span>現在地</span><strong id="currentLocationChip">ダッシュボード</strong></span>
+          <button class="nav-toggle" id="navToggle" type="button" aria-expanded="false" aria-controls="globalNav">主要ページ</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="page">
+      <section class="panel hero-panel">
+        <div class="hero-top">
+          <div>
+            <p class="page-label">現在のページ</p>
+            <h1 id="pageTitle">ダッシュボード</h1>
+          </div>
+          <div class="hero-meta">
+            <span class="status-chip"><span>起動時</span><strong>ダッシュボード</strong></span>
+            <span class="status-chip"><span>状態</span><strong id="routeState">既定表示</strong></span>
+          </div>
+        </div>
+        <p class="hero-lead" id="pageLead">最初に移動したい作業を選び、共通ナビゲーションからいつでも別の主要ページへ切り替えられます。</p>
+      </section>
+
+      <section class="hero-grid" id="dashboardView">
+        <section class="panel entry-panel">
+          <div class="section-head">
+            <div>
+              <p class="page-label">主要ページ</p>
+              <h2>作業を選ぶ</h2>
+            </div>
+          </div>
+          <div class="entry-grid" id="entryGrid"></div>
+        </section>
+      </section>
+
+      <section class="placeholder-content" id="placeholderView" hidden>
+        <section class="panel placeholder-card">
+          <p class="page-label">現在のページ</p>
+          <h2 id="placeholderTitle">マスター辞書</h2>
+          <p id="placeholderLead">このページはまだ準備中です。上のナビゲーションまたは下の移動から別の主要ページへ進めます。</p>
+          <div class="action-grid" id="placeholderActions"></div>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const routes = {
+      dashboard: {
+        id: "dashboard",
+        label: "ダッシュボード",
+        state: "既定表示",
+        lead: "最初に移動したい作業を選び、共通ナビゲーションからいつでも別の主要ページへ切り替えられます。",
+        description: "主要ページへの入口をまとめて確認します。"
+      },
+      "master-dictionary": {
+        id: "master-dictionary",
+        label: "マスター辞書",
+        state: "準備中",
+        lead: "用語と訳語の基盤データを確認するページです。",
+        description: "用語と訳語の基盤データを確認します。"
+      },
+      "master-persona": {
+        id: "master-persona",
+        label: "マスターペルソナ",
+        state: "準備中",
+        lead: "翻訳に使うペルソナ設定を確認するページです。",
+        description: "翻訳に使うペルソナ設定を確認します。"
+      },
+      "translation-management": {
+        id: "translation-management",
+        label: "翻訳管理",
+        state: "準備中",
+        lead: "翻訳準備と実行状況をまとめて確認するページです。",
+        description: "準備状況と翻訳ジョブの進行をまとめて確認します。"
+      },
+      "output-management": {
+        id: "output-management",
+        label: "出力管理",
+        state: "準備中",
+        lead: "生成された成果物を確認するページです。",
+        description: "生成物と書き出し結果を確認します。"
+      }
+    };
+
+    const routeOrder = [
+      "dashboard",
+      "master-dictionary",
+      "master-persona",
+      "translation-management",
+      "output-management"
+    ];
+
+    const pageTitle = document.getElementById("pageTitle");
+    const pageLead = document.getElementById("pageLead");
+    const routeState = document.getElementById("routeState");
+    const currentLocationChip = document.getElementById("currentLocationChip");
+    const dashboardView = document.getElementById("dashboardView");
+    const placeholderView = document.getElementById("placeholderView");
+    const entryGrid = document.getElementById("entryGrid");
+    const placeholderTitle = document.getElementById("placeholderTitle");
+    const placeholderLead = document.getElementById("placeholderLead");
+    const placeholderActions = document.getElementById("placeholderActions");
+    const shellBar = document.getElementById("shellBar");
+    const navToggle = document.getElementById("navToggle");
+    const navLinks = Array.from(document.querySelectorAll("[data-route-link]"));
+
+    function normalizeRoute() {
+      const hash = window.location.hash.replace(/^#/, "");
+      return routes[hash] ? hash : "dashboard";
+    }
+
+    function renderDashboardEntries(activeRoute) {
+      entryGrid.innerHTML = "";
+      routeOrder.forEach((key) => {
+        const route = routes[key];
+        const link = document.createElement("a");
+        link.className = "entry-card";
+        if (key === activeRoute) {
+          link.classList.add("is-active");
+        }
+        link.href = "#" + key;
+        link.innerHTML = `
+          <div class="entry-head">
+            <div>
+              <p class="card-tag">${route.id}</p>
+              <h3>${route.label}</h3>
+            </div>
+            <span class="entry-state">${route.state}</span>
+          </div>
+          <p>${route.description}</p>
+          <span class="entry-action">開く</span>
+        `;
+        entryGrid.appendChild(link);
+      });
+    }
+
+    function renderPlaceholder(routeKey) {
+      const route = routes[routeKey];
+      placeholderTitle.textContent = route.label;
+      placeholderLead.textContent = "このページはまだ準備中です。上のナビゲーションまたは下の移動から別の主要ページへ進めます。";
+      placeholderActions.innerHTML = "";
+
+      routeOrder.forEach((key) => {
+        const link = document.createElement("a");
+        link.className = "action-link";
+        link.href = "#" + key;
+        link.textContent = routes[key].label;
+        placeholderActions.appendChild(link);
+      });
+    }
+
+    function render() {
+      const routeKey = normalizeRoute();
+      const route = routes[routeKey];
+      const isDashboard = routeKey === "dashboard";
+
+      pageTitle.textContent = route.label;
+      pageLead.textContent = route.lead;
+      routeState.textContent = route.state;
+      currentLocationChip.textContent = route.label;
+
+      navLinks.forEach((link) => {
+        const active = link.getAttribute("href") === "#" + routeKey;
+        link.classList.toggle("is-active", active);
+        link.setAttribute("aria-current", active ? "page" : "false");
+      });
+
+      renderDashboardEntries(routeKey);
+      dashboardView.hidden = !isDashboard;
+      placeholderView.hidden = isDashboard;
+      if (!isDashboard) {
+        renderPlaceholder(routeKey);
+      }
+
+      shellBar.classList.remove("is-open");
+      navToggle.setAttribute("aria-expanded", "false");
+    }
+
+    navToggle.addEventListener("click", () => {
+      const next = !shellBar.classList.contains("is-open");
+      shellBar.classList.toggle("is-open", next);
+      navToggle.setAttribute("aria-expanded", String(next));
+    });
+
+    if (!window.location.hash || !routes[window.location.hash.replace(/^#/, "")]) {
+      window.history.replaceState(null, "", "#dashboard");
+    }
+
+    window.addEventListener("hashchange", render);
+    render();
+  </script>
+</body>
+</html>
