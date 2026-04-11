@@ -34,6 +34,8 @@
 - [`er.md`](./er.md): canonical data model と ER 仕様
 - [`diagrams/backend/`](./diagrams/backend/): backend 構造図の D2 source of truth と review 用 SVG
 - [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の D2 source of truth と review 用 SVG
+- [`diagrams/components/backend/`](./diagrams/components/backend/): backend component detail 図の正本
+- [`diagrams/components/frontend/`](./diagrams/components/frontend/): frontend component detail 図の正本
 - [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
 - [`mocks/`](./mocks/README.md): page mock の正本
 - [`scenario-tests/`](./scenario-tests/README.md): Scenario テスト一覧の正本

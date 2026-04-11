@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-6.5-ui-check",
-  "purpose": "実装済み UI を `chrome-devtools` で確認し、主要導線と画面状態の証跡を返させる。",
+  "purpose": "実装済み UI を `chrome-devtools` で確認し、主要導線、画面状態、承認済み HTML モック artifact に対する視覚構造差分の証跡を返させる。",
   "required": [
     {
       "description": "承認済み active exec-plan。",
@@ -48,12 +48,12 @@
   ],
   "optional": [
     {
-      "description": "起動 URL、起動手順、確認対象導線。",
+      "description": "起動 URL、起動手順、確認対象導線。既定では `wails dev` 後の `http://localhost:34115` を渡す。",
       "field": "ui_entry_points",
       "type": "string[]"
     },
     {
-      "description": "UI確認で優先すべき論点。",
+      "description": "UI確認で優先すべき論点。視覚構造差分の確認対象を含めてよい。",
       "field": "focus_points",
       "type": "string[]"
     }
@@ -63,6 +63,7 @@
     "承認済み artifact と差分図にない設計差分を推測で補わない"
   ],
   "completion_signal": [
-    "orchestrator が承認済み design bundle 基準で unit test phase か implementation phase への戻し先を決められる"
+    "orchestrator が承認済み design bundle 基準で unit test phase か implementation phase への戻し先を決められる",
+    "orchestrator が承認済み HTML モック artifact に対する視覚構造差分の有無を基準に第6段階への reroute を決められる"
   ]
 }

@@ -2,14 +2,16 @@
   "contract_version": "2026-04-10",
   "skill": "phase-6.5-ui-check",
   "allowed_actions": [
-    "`chrome-devtools` で主要導線と画面状態を確認する",
+    "`wails dev` 起動後の `http://localhost:34115` を MCP 経由の `chrome-devtools` で開き、主要導線と画面状態を確認する",
+    "承認済み HTML モック artifact と実装画面の視覚構造を照合し、layout、主要情報ブロック、表示状態切替、主要導線配置の一致を確認する",
     "console、network、screen capture、DOM 状態の必要証跡を整理する",
     "decision を pass または reroute で返す"
   ],
   "forbidden_actions": [
     "恒久修正や test 追加を行う",
     "新しい仕様解釈や改善提案を足す",
-    "好み中心の UI review を行う"
+    "好み中心の UI review を行う",
+    "承認済み HTML モック artifact に対する視覚構造差分を未確認のまま pass とする"
   ],
   "expected_outputs": [
     "decision",
@@ -19,6 +21,7 @@
   ],
   "stop_conditions": [
     "起動 URL や確認対象導線が不足している",
+    "`wails dev` 後の `http://localhost:34115` へ接続できず、MCP 経由の `chrome-devtools` で確認できない",
     "第6段階の実装結果や active exec-plan が不足している",
     "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
     "UI確認ではなく先に実装修正が必要である"

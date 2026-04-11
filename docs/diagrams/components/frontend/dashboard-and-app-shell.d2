@@ -1,0 +1,120 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+  }
+}
+
+direction: right
+
+title: "dashboard-and-app-shell frontend component detail"
+
+frontend_shell_detail: {
+  label: "dashboard-and-app-shell component detail"
+  direction: down
+  style.stroke: "#2e7d32"
+  style.stroke-width: 2
+  style.fill: "#f7fff7"
+  style.font-color: "#1b5e20"
+
+  view_package: {
+    label: "package: View"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    app: {
+      shape: class
+      label: "frontend/src/ui/App.svelte"
+      +shellState: ShellState
+      +createShellState(): ShellState
+      +render(): "AppShell(shellState)"
+    }
+
+    shell: {
+      shape: class
+      label: "frontend/src/ui/views/AppShell.svelte"
+      +shellState: ShellState
+      +renderShellFrame(): void
+      +renderCurrentLocation(): void
+      +renderNavigation(): void
+      +renderCurrentView(): void
+    }
+
+    dashboard_view: {
+      shape: class
+      label: "DashboardView responsibilities"
+      +entryCards: five RouteCard entries
+      +defaultOnStartup: true
+      +activeCardRoute: RouteId
+      +openDestination(route: RouteId): void
+      +excludeJobListAndProgressSummary(): void
+    }
+
+    placeholder_view: {
+      shape: class
+      label: "PlaceholderView responsibilities"
+      +pageLabel: string
+      +statusText: "準備中"
+      +showNavigationBackstop(): void
+      +renderNonDashboardDestination(): void
+    }
+
+    navigation_surface: {
+      shape: class
+      label: "Navigation / current-location surface"
+      +destinations: five RouteId destinations
+      +activeRoute: RouteId
+      +currentLocationChip: string
+      +selectDestination(route: RouteId): void
+    }
+  }
+
+  store_package: {
+    label: "package: Store"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    state: {
+      shape: class
+      label: "frontend/src/ui/stores/shell-state.ts"
+      +routeOrder: RouteId list
+      +currentRoute: RouteId = dashboard
+      +currentPageLabel: string
+      +currentLocationLabel: string
+      +placeholderStatus: string
+      +navigate(destination: RouteId): void
+      +getRouteMeta(route: RouteId): RouteMeta
+    }
+  }
+
+  view_package.app -> store_package.state: "shell state を生成"
+  view_package.app -> view_package.shell: "shellState を渡す"
+  store_package.state -> view_package.shell: "現在地と描画条件を供給"
+  view_package.shell -> view_package.navigation_surface: "共通 header / nav を描画"
+  view_package.shell -> view_package.dashboard_view: "route = dashboard のとき描画"
+  view_package.shell -> view_package.placeholder_view: "route != dashboard のとき描画"
+  view_package.navigation_surface -> store_package.state: "navigate(destination)"
+  view_package.dashboard_view -> store_package.state: "openDestination(route)"
+  store_package.state -> view_package.navigation_surface: "activeRoute / currentLocationLabel" {
+    style.stroke-dash: 4
+  }
+  store_package.state -> view_package.dashboard_view: "entryCards / activeCardRoute" {
+    style.stroke-dash: 4
+  }
+  store_package.state -> view_package.placeholder_view: "pageLabel / placeholderStatus" {
+    style.stroke-dash: 4
+  }
+}
+
+style: {
+  font-size: 20
+}
+
+edge: {
+  style.font-size: 18
+}

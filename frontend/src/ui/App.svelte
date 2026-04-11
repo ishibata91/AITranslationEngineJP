@@ -5,4 +5,4 @@
   const shellState = createShellState()
 </script>
 
-<AppShell title={shellState.title} />
+<AppShell defaultRouteId={shellState.defaultRouteId} routes={shellState.routes} />

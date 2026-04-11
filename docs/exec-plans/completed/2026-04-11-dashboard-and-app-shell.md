@@ -1,7 +1,7 @@
 # 実装計画テンプレート
 
 - workflow: impl
-- status: planned
+- status: completed
 - lane_owner: orchestrating-implementation
 - scope: dashboard-and-app-shell
 - task_id: dashboard-and-app-shell
@@ -76,7 +76,7 @@
 
 ## UI モック
 
-- `artifact_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/dashboard-and-app-shell.ui.html`
+- `artifact_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/dashboard-and-app-shell/index.html`
 - `final_artifact_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/dashboard-and-app-shell/index.html`
 - `summary`:
   - アプリ起動直後の既定表示を `dashboard` に固定した単一 HTML モックへ更新し、hash 遷移で共通シェル配下の主要ページ切替を再現した。
@@ -85,7 +85,7 @@
 
 ## Scenario テスト一覧
 
-- `artifact_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/dashboard-and-app-shell.scenario.md`
+- `artifact_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/dashboard-and-app-shell.md`
 - `final_artifact_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/dashboard-and-app-shell.md`
 - `template_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/scenario-tests.md`
 - `summary`:
@@ -201,8 +201,7 @@
 
 ## review 用差分図
 
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/dashboard-and-app-shell-structure-diff.d2`
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/dashboard-and-app-shell-structure-diff.svg`
+- closeout で `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.d2` と `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.svg` へ正本適用済み。review copy は active plan 配下から退避済み。
 
 ## 差分正本適用先
 
@@ -219,4 +218,10 @@
 
 <!-- Outcome -->
 
-- in_progress
+- completed
+- `phase-6.5-ui-check`: 初回は `reroute`。`AppShell` のダッシュボード常時表示と hash 未同期を修正後、再実行で `pass`。
+- `phase-7-unit-test`: `/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/App.test.ts` を拡張し、無効 hash 正規化、ダッシュボード専用領域の非表示、承認済み 5 導線を証明。
+- `phase-8-review`: `pass`。承認済み design bundle と実装差分の整合を確認。
+- final harness: `python3 scripts/harness/run.py --suite all` pass。
+- source diagrams: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.d2` と `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.svg` を追加。
+- final artifacts: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/dashboard-and-app-shell/index.html`、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/dashboard-and-app-shell.md` へ移動。
