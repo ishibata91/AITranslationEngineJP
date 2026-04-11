@@ -21,6 +21,7 @@
   "stop_conditions": [
     "対象責務や coverage gap が特定できない",
     "必要な validation が不足している",
+    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading が不足している",
     "実装コード側の再設計が必要で別 phase への reroute が必要である"
   ]
 }

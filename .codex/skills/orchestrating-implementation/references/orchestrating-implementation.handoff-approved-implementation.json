@@ -1,5 +1,5 @@
 {
-  "contract_version": "2026-04-08",
+  "contract_version": "2026-04-12",
   "direction": "directing-to-directing",
   "from_skill": "orchestrating-implementation",
   "to_skill": "orchestrating-implementation",
@@ -9,6 +9,16 @@
       "description": "承認済み active exec-plan。",
       "field": "active_exec_plan",
       "type": "path"
+    },
+    {
+      "description": "承認済み UI モック artifact path。",
+      "field": "ui_artifact_path",
+      "type": "string"
+    },
+    {
+      "description": "承認済み Scenario テスト一覧 artifact path。",
+      "field": "scenario_artifact_path",
+      "type": "string"
     },
     {
       "description": "distill と task-local design を含む proposal context summary。",
@@ -28,6 +38,16 @@
     {
       "description": "review 用差分図の path。",
       "field": "review_diff_diagrams",
+      "type": "string[]"
+    },
+    {
+      "description": "第2段階で承認済みの実装 task_id 一覧。",
+      "field": "implementation_task_ids",
+      "type": "string[]"
+    },
+    {
+      "description": "第2段階で承認済みの required_reading 一覧。",
+      "field": "implementation_required_reading",
       "type": "string[]"
     }
   ],
@@ -49,9 +69,10 @@
     }
   ],
   "must_not_change": [
-    "未承認 plan を execution へ回さない"
+    "未承認 plan を execution へ回さない",
+    "実装 task_id にない scope を downstream phase へ渡さない"
   ],
   "completion_signal": [
-    "orchestrating-implementation が phase-5-test-implementation と phase-6-implement-* から開始できる情報がそろっている"
+    "orchestrating-implementation が phase-5-test-implementation と phase-6-implement-*、phase-6.5-ui-check、phase-7-unit-test、phase-8-review を承認済み design bundle 付きで開始できる"
   ]
 }

@@ -1,10 +1,40 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-12",
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-8-review",
   "purpose": "実装差分 review に必要な証跡を単発 review skill へ渡す。",
   "required": [
+    {
+      "description": "承認済み active exec-plan。",
+      "field": "active_exec_plan",
+      "type": "path"
+    },
+    {
+      "description": "承認済み UI モック artifact path。",
+      "field": "ui_artifact_path",
+      "type": "string"
+    },
+    {
+      "description": "承認済み Scenario テスト一覧 artifact path。",
+      "field": "scenario_artifact_path",
+      "type": "string"
+    },
+    {
+      "description": "review 対象の承認済み task_id 一覧。active exec-plan の `実装計画.tasks[].task_id` に一致していること。",
+      "field": "implementation_task_ids",
+      "type": "string[]"
+    },
+    {
+      "description": "review 前に読む承認済み required reading 一覧。",
+      "field": "implementation_required_reading",
+      "type": "string[]"
+    },
+    {
+      "description": "設計差分照合に使う review 用差分図 path。差分図がない task では空配列を渡す。",
+      "field": "review_diff_diagrams",
+      "type": "string[]"
+    },
     {
       "description": "何を変えたかの短い要約。",
       "field": "change_summary",
@@ -29,9 +59,10 @@
     }
   ],
   "must_not_change": [
-    "review scope を 仕様逸脱、例外処理、リソース解放、テスト不足の 4 観点以外へ広げない"
+    "review scope を 仕様逸脱、例外処理、リソース解放、テスト不足の 4 観点以外へ広げない",
+    "承認済み design bundle にない仕様を review 基準へ足さない"
   ],
   "completion_signal": [
-    "reviewer が pass / reroute を判定できる"
+    "reviewer が承認済み design bundle 基準で pass / reroute を判定できる"
   ]
 }

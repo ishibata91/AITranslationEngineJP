@@ -19,6 +19,7 @@
   ],
   "stop_conditions": [
     "レビュー対象 diff や期待挙動が不足している",
+    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
     "先に plan や ownership の整理が必要である",
     "レビューではなく実装 lane への reroute が先である"
   ]

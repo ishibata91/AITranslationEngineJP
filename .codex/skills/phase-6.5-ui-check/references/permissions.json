@@ -20,6 +20,7 @@
   "stop_conditions": [
     "起動 URL や確認対象導線が不足している",
     "第6段階の実装結果や active exec-plan が不足している",
+    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
     "UI確認ではなく先に実装修正が必要である"
   ]
 }

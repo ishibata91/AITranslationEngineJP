@@ -21,6 +21,7 @@
   "stop_conditions": [
     "frontend owned scope が確定していない",
     "必要な test brief や validation が欠けている",
+    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading が欠けている",
     "変更が backend や architecture decision に波及して handoff が必要になる"
   ]
 }
