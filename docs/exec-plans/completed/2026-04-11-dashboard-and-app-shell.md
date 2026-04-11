@@ -1,7 +1,7 @@
 # 実装計画テンプレート
 
 - workflow: impl
-- status: in_progress
+- status: completed
 - lane_owner: orchestrating-implementation
 - scope: dashboard-and-app-shell
 - task_id: dashboard-and-app-shell
@@ -218,7 +218,8 @@
 
 <!-- Outcome -->
 
-- in_progress
-- 2026-04-12 human review: 承認済みモック `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/dashboard-and-app-shell/index.html` と実装 `/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/views/AppShell.svelte` の視覚構造差分を理由に、第6段階 frontend 実装へ差し戻し。
-- 差し戻し論点: header 3 カラム構造、hero 情報ブロック、dashboard entry-card 構造、placeholder 構造、mobile nav affordance、route metadata がモック準拠でない。
-- 次回再開位置: `phase-6-implement-frontend`
+- completed
+- 2026-04-12 human review に基づく差し戻し後、ダッシュボードの作業選択肢から `ダッシュボード` 自身を除外し、`起動時` / `状態` / `現在地` 表示を削除。
+- frontend 実装反映先: `/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/views/AppShell.svelte`
+- test 反映先: `/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/App.test.ts`, `/Users/iorishibata/Repositories/AITranslationEngineJP/tests/system/app-shell.spec.ts`
+- 最終確認: `npm --prefix frontend run test`, `npm --prefix frontend run check`, `npm --prefix frontend run build` pass。
