@@ -12,7 +12,7 @@ description: 第8段階の実装レビューを担当し、実装差分が詳細
 - [ ] fix lane では active fix plan、accepted fix scope、再現条件、spec refs、validation evidence の前提を崩す差分がなく、未承認の仕様追加や仕様欠落がない
 - [ ] 第7段階までの証明を見直し、主要責務と主要分岐に未証明が残っていない
 - [ ] coverage は 70% 超過を前提に、`test-results/coverage-manifest.json` と関連 test 差分から、数字合わせだけの悪いテストが混入していない
-- [ ] sonar MCP で open issue がなく、review 時点の品質ゲート阻害要因が残っていない
+- [ ] sonar MCP で Security open issue が 0 件、Reliability open issue が 0 件、Maintainability の HIGH/BLOCKER open issue が 0 件である
 
 ## Output
 

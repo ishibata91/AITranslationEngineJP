@@ -15,9 +15,9 @@ description: 第6段階の実装と品質通過を担当し、frontend の担当
 - fix lane では accepted fix scope を超えて設計や scope を広げない
 - orchestrator から渡された local validation は必要時だけ使い、途中での重い harness 実行を前提にしない
 - phase closeout 前に `python3 scripts/harness/run.py --suite all` を実行して問題がないか確認する
-- phase closeout 前に Sonar MCP で open issue がないことを確認し、review gate 阻害要因を持ち越さない
+- phase closeout 前に Sonar MCP で Security open issue が 0 件、Reliability open issue が 0 件、Maintainability の HIGH/BLOCKER open issue が 0 件であることを確認する
 - plan の書き換えや lane 切り替えはしない
-- validation results には closeout 前の `--suite all` と Sonar MCP による open issue 確認の結果を含める
+- validation results には closeout 前の `--suite all` と Sonar MCP による Security / Reliability / Maintainability(HIGH,BLOCKER) の件数確認結果を含める
 
 ## Reference Use
 

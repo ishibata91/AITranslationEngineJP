@@ -3,7 +3,7 @@
   "skill": "phase-6-implement-frontend",
   "allowed_actions": [
     "frontend owned scope のコードと最小限の関連 test を変更する",
-    "phase closeout 前に `python3 scripts/harness/run.py --suite all` と Sonar MCP による open issue 確認を実行する",
+    "phase closeout 前に `python3 scripts/harness/run.py --suite all` と Sonar MCP による Security / Reliability / Maintainability(HIGH,BLOCKER) 件数確認を実行する",
     "closeout notes や residual risks を返却時に明示する"
   ],
   "forbidden_actions": [
