@@ -4,7 +4,7 @@ vars: {
   }
 }
 
-direction: right
+direction: down
 
 title: "dashboard-and-app-shell frontend component detail"
 
@@ -24,50 +24,64 @@ frontend_shell_detail: {
     style.fill: "#eef9ef"
     style.font-color: "#1b5e20"
 
-    app: {
+    shell_entry: {
       shape: class
-      label: "frontend/src/ui/App.svelte"
+      label: "App entry"
+      +actual: App.svelte
       +shellState: ShellState
-      +createShellState(): ShellState
-      +render(): "AppShell(shellState)"
+      +createShellState(): void
+      +renderShell(): void
     }
 
-    shell: {
+    shell_frame: {
       shape: class
-      label: "frontend/src/ui/views/AppShell.svelte"
-      +shellState: ShellState
-      +renderShellFrame(): void
-      +renderCurrentLocation(): void
+      label: "App shell"
+      +actual: AppShell.svelte
+      +renderHeader(): void
       +renderNavigation(): void
-      +renderCurrentView(): void
+      +renderRouteView(): RouteView
     }
 
-    dashboard_view: {
-      shape: class
-      label: "DashboardView responsibilities"
-      +entryCards: five RouteCard entries
-      +defaultOnStartup: true
-      +activeCardRoute: RouteId
-      +openDestination(route: RouteId): void
-      +excludeJobListAndProgressSummary(): void
-    }
+    route_views: {
+      label: "package: Route Views"
+      direction: down
+      style.stroke: "#2e7d32"
+      style.stroke-dash: 4
+      style.fill: "#f4fbf4"
+      style.font-color: "#1b5e20"
 
-    placeholder_view: {
-      shape: class
-      label: "PlaceholderView responsibilities"
-      +pageLabel: string
-      +statusText: "準備中"
-      +showNavigationBackstop(): void
-      +renderNonDashboardDestination(): void
+      dashboard_view: {
+        shape: class
+        label: "Dashboard view"
+        +routeId: dashboard
+        +entryCards: five cards
+        +openDestination(route): void
+      }
+
+      master_dictionary_view: {
+        shape: class
+        label: "Master dictionary view"
+        +routeId: master_dictionary
+        +pageLabel: "マスター辞書"
+        +renderImportAndList(): void
+        +keepStateInsidePage(): void
+      }
+
+      placeholder_view: {
+        shape: class
+        label: "Placeholder view"
+        +statusText: "準備中"
+        +renderRemainingRoutes(): void
+      }
     }
 
     navigation_surface: {
       shape: class
-      label: "Navigation / current-location surface"
-      +destinations: five RouteId destinations
+      label: "Navigation surface"
+      +destinations: five routes
       +activeRoute: RouteId
-      +currentLocationChip: string
-      +selectDestination(route: RouteId): void
+      +currentLocation: string
+      +selectDestination(route): void
     }
   }
 
@@ -79,34 +93,42 @@ frontend_shell_detail: {
     style.fill: "#eef9ef"
     style.font-color: "#1b5e20"
 
-    state: {
+    shell_state: {
       shape: class
-      label: "frontend/src/ui/stores/shell-state.ts"
+      label: "Shell state"
+      +actual: shell-state.ts
       +routeOrder: RouteId list
-      +currentRoute: RouteId = dashboard
+      +currentRoute: dashboard
       +currentPageLabel: string
       +currentLocationLabel: string
       +placeholderStatus: string
-      +navigate(destination: RouteId): void
-      +getRouteMeta(route: RouteId): RouteMeta
+      +navigate(route): void
+      +getRouteMeta(route): RouteMeta
     }
   }
 
-  view_package.app -> store_package.state: "shell state を生成"
-  view_package.app -> view_package.shell: "shellState を渡す"
-  store_package.state -> view_package.shell: "現在地と描画条件を供給"
-  view_package.shell -> view_package.navigation_surface: "共通 header / nav を描画"
-  view_package.shell -> view_package.dashboard_view: "route = dashboard のとき描画"
-  view_package.shell -> view_package.placeholder_view: "route != dashboard のとき描画"
-  view_package.navigation_surface -> store_package.state: "navigate(destination)"
-  view_package.dashboard_view -> store_package.state: "openDestination(route)"
-  store_package.state -> view_package.navigation_surface: "activeRoute / currentLocationLabel" {
+  view_package.shell_entry -> store_package.shell_state: "shell state を生成"
+  view_package.shell_entry -> view_package.shell_frame: "shellState を渡す"
+  store_package.shell_state -> view_package.shell_frame: "現在地と描画条件"
+
+  view_package.shell_frame -> view_package.navigation_surface: "header / nav を描画"
+  view_package.shell_frame -> view_package.route_views.dashboard_view: "dashboard route"
+  view_package.shell_frame -> view_package.route_views.master_dictionary_view: "master_dictionary route"
+  view_package.shell_frame -> view_package.route_views.placeholder_view: "remaining routes"
+
+  view_package.navigation_surface -> store_package.shell_state: "navigate(route)"
+  view_package.route_views.dashboard_view -> store_package.shell_state: "openDestination(route)"
+
+  store_package.shell_state -> view_package.navigation_surface: "activeRoute / currentLocation" {
     style.stroke-dash: 4
   }
-  store_package.state -> view_package.dashboard_view: "entryCards / activeCardRoute" {
+  store_package.shell_state -> view_package.route_views.dashboard_view: "entryCards / activeRoute" {
     style.stroke-dash: 4
   }
-  store_package.state -> view_package.placeholder_view: "pageLabel / placeholderStatus" {
+  store_package.shell_state -> view_package.route_views.master_dictionary_view: "activeRoute / pageLabel" {
+    style.stroke-dash: 4
+  }
+  store_package.shell_state -> view_package.route_views.placeholder_view: "pageLabel / placeholderStatus" {
     style.stroke-dash: 4
   }
 }

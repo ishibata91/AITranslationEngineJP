@@ -7,6 +7,11 @@ phase2 で固定した証明対象を task-local working copy から昇格させ
 
 - Scenario テスト一覧は `docs/scenario-tests/<topic-id>.md` を正本とする
 
+## Topics
+
+- [`dashboard-and-app-shell.md`](./dashboard-and-app-shell.md)
+- [`master-dictionary-management.md`](./master-dictionary-management.md)
+
 ## Notes
 
 - 実装前の working copy は `docs/exec-plans/active/<task-id>.scenario.md` に置く

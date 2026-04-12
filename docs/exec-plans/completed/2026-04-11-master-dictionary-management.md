@@ -1,7 +1,7 @@
 # 実装計画テンプレート
 
 - workflow: impl
-- status: planned
+- status: completed
 - lane_owner: orchestrating-implementation
 - scope: master-dictionary-management
 - task_id: master-dictionary-management
@@ -281,12 +281,19 @@
 
 ## Closeout Notes
 
-- review 用に active exec-plan 配下へ置いた差分 D2 / SVG copy は、`diagrams/backend/` または `diagrams/frontend/` 正本適用後に削除し、completed plan へ持ち越さない。
-- 第1.6段階で作った UI モック working copy は、完了前に `docs/mocks/master-dictionary/index.html` へ移す。
-- 第2段階で作った Scenario artifact working copy は、完了前に `docs/scenario-tests/master-dictionary-management.md` へ移す。
+- review 用差分図 copy は source 正本適用後に live docs から外し、`.codex/.trash/master-dictionary-management/` へ退避した。
+- 第1.6段階で作った UI モック working copy は `docs/mocks/master-dictionary/index.html` へ移した。
+- 第2段階で作った Scenario artifact working copy は `docs/scenario-tests/master-dictionary-management.md` へ移した。
+- 機能要件と非機能要件は `docs/detail-specs/master-dictionary.md` へ移した。
 
 ## 結果
 
 <!-- Outcome -->
 
-- in_progress
+- completed
+- 2026-04-12: `python3 scripts/harness/run.py --suite all` は pass。
+- page mock 正本: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/master-dictionary/index.html`
+- Scenario テスト一覧正本: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/master-dictionary-management.md`
+- detail-spec 正本: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/master-dictionary.md`
+- component 図正本: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/dashboard-and-app-shell.d2`, `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/frontend/master-dictionary-management.d2`, `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/components/backend/master-dictionary-management.d2`
+- close 時の実装 review は再実施しない。user 指示により、既に終わっている実装の残タスク整理として close した。

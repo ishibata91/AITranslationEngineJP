@@ -1,0 +1,172 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+  }
+}
+
+direction: down
+
+title: "master-dictionary-management frontend component detail"
+
+frontend_master_dictionary_detail: {
+  label: "master-dictionary-management frontend component detail"
+  direction: down
+  style.stroke: "#2e7d32"
+  style.stroke-width: 2
+  style.fill: "#f7fff7"
+  style.font-color: "#1b5e20"
+
+  view_package: {
+    label: "package: View"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    page_shell: {
+      shape: class
+      label: "独立ページシェル"
+      +pageLabel: "マスター辞書"
+      +renderImportCard(): void
+      +renderListPane(): void
+      +renderDetailPane(): void
+      +keepStateVisibleInsidePage(): void
+    }
+
+    import_card: {
+      shape: class
+      label: "XML 取り込みカード"
+      +selectedFileName: string or null
+      +importStage: "待機中 | 取込待ち | 取込中 | 完了"
+      +progressPercent: number
+      +selectXmlFile(): void
+      +startImport(): void
+      +resetImport(): void
+    }
+
+    list_pane: {
+      shape: class
+      label: "一覧 / 検索ペイン"
+      +query: string
+      +category: string
+      +pageSize: 30
+      +visibleEntries: MasterDictionaryEntry list
+      +selectEntry(entryId): void
+      +openCreateModal(): void
+    }
+
+    detail_pane: {
+      shape: class
+      label: "詳細ペイン"
+      +selectedEntryId: string or null
+      +renderEntryDetail(): void
+      +openEditModal(): void
+      +openDeleteModal(): void
+    }
+
+    edit_modal: {
+      shape: class
+      label: "編集モーダル"
+      +mode: "create | edit"
+      +draft: MasterDictionaryDraft
+      +submitMutation(): void
+      +close(): void
+    }
+
+    delete_modal: {
+      shape: class
+      label: "削除確認モーダル"
+      +targetEntryId: string
+      +confirmDelete(): void
+      +close(): void
+    }
+  }
+
+  store_package: {
+    label: "package: Store"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    screen_state: {
+      shape: class
+      label: "画面状態ストア"
+      +entries: MasterDictionaryEntry list
+      +query: string
+      +category: string
+      +page: number
+      +pageSize: 30
+      +selectedEntryId: string or null
+      +modalState: "none | create | edit | delete"
+      +importState: ImportBarState
+      +loadPage(): void
+      +applySearch(): void
+      +applyCreateResult(): void
+      +applyUpdateResult(): void
+      +applyDeleteResult(): void
+      +applyImportResult(): void
+    }
+  }
+
+  gateway_package: {
+    label: "package: Gateway"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    screen_gateway: {
+      shape: class
+      label: "Wails gateway 契約"
+      +fetchEntries(params): MasterDictionaryPageResult
+      +fetchDetail(entryId): MasterDictionaryDetail
+      +createEntry(draft): MasterDictionaryMutationResult
+      +updateEntry(entryId と draft): MasterDictionaryMutationResult
+      +deleteEntry(entryId): MasterDictionaryMutationResult
+      +importXml(filePath): MasterDictionaryImportResult
+    }
+  }
+
+  view_package.page_shell -> view_package.import_card: "取込状態を表示"
+  view_package.page_shell -> view_package.list_pane: "一覧と検索を表示"
+  view_package.page_shell -> view_package.detail_pane: "選択詳細を表示"
+  view_package.list_pane -> view_package.edit_modal: "新規登録を開く"
+  view_package.detail_pane -> view_package.edit_modal: "更新を開く"
+  view_package.detail_pane -> view_package.delete_modal: "削除確認を開く"
+
+  view_package.import_card -> store_package.screen_state: "selectXmlFile / startImport / resetImport"
+  view_package.list_pane -> store_package.screen_state: "検索、ページング、選択、新規登録"
+  view_package.detail_pane -> store_package.screen_state: "更新 / 削除導線"
+  view_package.edit_modal -> store_package.screen_state: "create/update を送る"
+  view_package.delete_modal -> store_package.screen_state: "delete を確定"
+
+  store_package.screen_state -> gateway_package.screen_gateway: "一覧、詳細、CRUD、XML 取り込み API を呼ぶ"
+
+  store_package.screen_state -> view_package.import_card: "選択ファイル、進捗、完了結果" {
+    style.stroke-dash: 4
+  }
+  store_package.screen_state -> view_package.list_pane: "一覧、検索条件、30 件ページング、選択行" {
+    style.stroke-dash: 4
+  }
+  store_package.screen_state -> view_package.detail_pane: "選択詳細、空状態、完了後再選択" {
+    style.stroke-dash: 4
+  }
+  store_package.screen_state -> view_package.edit_modal: "編集中 draft と submit 状態" {
+    style.stroke-dash: 4
+  }
+  store_package.screen_state -> view_package.delete_modal: "削除対象と確認状態" {
+    style.stroke-dash: 4
+  }
+}
+
+style: {
+  font-size: 20
+}
+
+edge: {
+  style.font-size: 18
+}

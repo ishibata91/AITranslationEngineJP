@@ -1,0 +1,152 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+  }
+}
+
+direction: down
+
+title: "master-dictionary-management backend component detail"
+
+backend_master_dictionary_detail: {
+  label: "master-dictionary-management backend component detail"
+  direction: down
+  style.stroke: "#2e7d32"
+  style.stroke-width: 2
+  style.fill: "#f7fff7"
+  style.font-color: "#1b5e20"
+
+  controller_package: {
+    label: "package: Controller"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    dictionary_controller: {
+      shape: class
+      label: "Wails controller"
+      +listEntries(request): MasterDictionaryPageResult
+      +getEntryDetail(entryId): MasterDictionaryDetail
+      +createEntry(draft): MasterDictionaryMutationResult
+      +updateEntry(entryId と draft): MasterDictionaryMutationResult
+      +deleteEntry(entryId): MasterDictionaryMutationResult
+      +importXml(filePath): MasterDictionaryImportResult
+    }
+  }
+
+  usecase_package: {
+    label: "package: UseCase"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    crud_usecase: {
+      shape: class
+      label: "CRUD / 一覧ユースケース"
+      +listEntries(request): MasterDictionaryPageResult
+      +getEntryDetail(entryId): MasterDictionaryDetail
+      +createEntry(draft): MasterDictionaryMutationResult
+      +updateEntry(entryId, draft): MasterDictionaryMutationResult
+      +deleteEntry(entryId): MasterDictionaryMutationResult
+      +buildRefreshPayload(): SamePageRefreshPayload
+    }
+
+    import_usecase: {
+      shape: class
+      label: "XML 取り込みユースケース"
+      +readXml(filePath): XmlDocument
+      +filterAllowedRec(records): XmlRecord list
+      +extractDictionaryEntries(records): MasterDictionaryEntry list
+      +persistImportedEntries(entries): ImportPersistenceResult
+      +buildImportRefreshPayload(): MasterDictionaryImportResult
+    }
+  }
+
+  repository_package: {
+    label: "package: Repository"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    dictionary_repository: {
+      shape: class
+      label: "マスター辞書 repository"
+      +searchEntries(request): MasterDictionaryPage
+      +getById(entryId): MasterDictionaryEntry or null
+      +create(entry): MasterDictionaryEntry
+      +update(entry): MasterDictionaryEntry
+      +delete(entryId): DeleteResult
+      +upsertImportedEntries(entries): ImportPersistenceResult
+    }
+  }
+
+  import_pipeline_package: {
+    label: "package: Import Pipeline"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    xml_reader: {
+      shape: class
+      label: "XML reader"
+      +load(filePath): XmlDocument
+    }
+
+    rec_allow_list: {
+      shape: class
+      label: "REC 許可リスト"
+      +allowedRecGroup1: "BOOK | NPC_ | ARMO | WEAP"
+      +allowedRecGroup2: "LCTN | CELL | CONT | MISC"
+      +allowedRecGroup3: "ALCH | FURN | DOOR | RACE"
+      +allowedRecGroup4: "INGR | FLOR | SHOU"
+      +isAllowed(rec): bool
+    }
+
+    import_mapper: {
+      shape: class
+      label: "辞書 entry mapper"
+      +toDictionaryEntry(record): MasterDictionaryEntry
+    }
+  }
+
+  controller_package.dictionary_controller -> usecase_package.crud_usecase: "一覧、詳細、CRUD を委譲"
+  controller_package.dictionary_controller -> usecase_package.import_usecase: "XML 取り込みを委譲"
+
+  usecase_package.crud_usecase -> repository_package.dictionary_repository: "検索、詳細、作成、更新、削除を呼ぶ"
+  usecase_package.import_usecase -> import_pipeline_package.xml_reader: "XML を読む"
+  usecase_package.import_usecase -> import_pipeline_package.rec_allow_list: "許可された REC だけ残す"
+  usecase_package.import_usecase -> import_pipeline_package.import_mapper: "辞書 entry へ変換"
+  usecase_package.import_usecase -> repository_package.dictionary_repository: "取り込み結果を永続化"
+
+  repository_package.dictionary_repository -> usecase_package.crud_usecase: "一覧 / 詳細 / mutation 結果" {
+    style.stroke-dash: 4
+  }
+  repository_package.dictionary_repository -> usecase_package.import_usecase: "再同期 payload" {
+    style.stroke-dash: 4
+  }
+  import_pipeline_package.xml_reader -> usecase_package.import_usecase: "XML document" {
+    style.stroke-dash: 4
+  }
+  import_pipeline_package.rec_allow_list -> usecase_package.import_usecase: "許可済み record" {
+    style.stroke-dash: 4
+  }
+  import_pipeline_package.import_mapper -> usecase_package.import_usecase: "抽出済み entries" {
+    style.stroke-dash: 4
+  }
+}
+
+style: {
+  font-size: 20
+}
+
+edge: {
+  style.font-size: 18
+}

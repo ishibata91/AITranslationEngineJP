@@ -8,6 +8,11 @@
 - page mock は `docs/mocks/<page-id>/index.html` を正本とする
 - 補助 asset が必要な時は同じ `docs/mocks/<page-id>/` 配下へ置く
 
+## Pages
+
+- [`dashboard-and-app-shell/index.html`](./dashboard-and-app-shell/index.html)
+- [`master-dictionary/index.html`](./master-dictionary/index.html)
+
 ## Notes
 
 - framework 記法や component 名は持ち込まない

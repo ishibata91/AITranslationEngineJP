@@ -23,21 +23,27 @@
 - user 報告ではカテゴリ検索に `装備` と `NPC` しか表示されない。
 - user 報告では本来は `アイテム` など他カテゴリも存在する。
 - user 報告では画面上のデータ量集計も実データ量と食い違っている。
-- `playwright MCP` で確認した再現結果があればここに記録する。
+- Playwright MCP で `http://host.docker.internal:34115` に到達し、Wails frontend の backend 接続済み表示を確認した。
+- `Dawnguard_english_japanese.xml` 取り込み後、UI は `完了` と `XML取り込みを一覧と詳細へ反映しました。` を表示した。
+- 取り込み結果カードには `700 件`、`一覧件数 740`、`選択状態 Ancient Vampire`、`詳細表示 太古の吸血鬼` が表示された。
+- 取り込み前の辞書一覧は `40 件から絞り込みます。` で、取り込み後は `740 件から絞り込みます。` に変化した。
+- 取り込み後のカテゴリ候補として観測できたのは `すべて`、`NPC`、`装備`、`地名` だった。
+- 取り込み後のカテゴリ候補に `アイテム` は観測できなかった。
 
 ## Trace Plan
 
-- まず Playwright MCP で XML 取込後のカテゴリ候補と件数表示を再現し、console と必要なら Wails ログを採取する。
-- 次に `distilling-fixes` で import、カテゴリ集計、件数集計の関連コードと仕様の入口を絞る。
-- その後 `tracing-fixes` で frontend 側集計異常か backend 側集計異常かを分離する最小観測点を決める。
+- Playwright MCP で XML 取込後のカテゴリ候補と件数表示を再現し、console と Wails ログを採取した。
+- `distilling-fixes` で import、カテゴリ集計、件数集計の関連コードを絞り、カテゴリ候補が `state.entries` 依存で生成される事実を確認した。
+- `tracing-fixes` と追加観測で、取込結果件数表示が `importedCount` と `totalCount` の別指標を混在表示していることを確認した。
+- XML 実体には `CONT:FULL` と `BOOK:FULL` が含まれており、少なくとも `アイテム` と `書籍` が候補から欠ける UI は不自然であると判断した。
 
 ## Fix Plan
 
-- `reproduce-issues` で画面再現と証跡取得を行う。
-- `distilling-fixes` で既知事実、関連コード、関連仕様、open gap を整理する。
-- `tracing-fixes` で原因仮説と観測点を決める。
-- 必要時のみ logging を挟み、その後に再度 `reproduce-issues` を行う。
-- ownership に応じて backend または frontend の phase-6 実装へ handoff する。
+- `reproduce-issues` で画面再現と証跡取得を行った。
+- `distilling-fixes` で既知事実、関連コード、関連仕様、open gap を整理した。
+- `tracing-fixes` で原因仮説と観測点を決め、追加 logging 不要と判断した。
+- frontend の accepted scope として、カテゴリ候補生成を現在ページ依存から外し、取込結果件数の表示ラベルを誤読しにくい形へ修正する。
+- frontend phase-6 実装後に UI check、回帰 test、review を順に実施する。
 
 ## Acceptance Checks
 
@@ -50,7 +56,11 @@
 - Playwright MCP による再現結果。
 - カテゴリ候補 UI と件数表示 UI の screen capture または同等証跡。
 - console と既定では `tmp/logs/wails-dev.log` を使う Wails ログ。
-- `playwright MCP` の確認結果、console、network、screen capture のうち必要な証跡をここに記録する。
+- browser console では `favicon.ico` の 404 以外に import 失敗や runtime exception を観測していない。
+- Wails ログでは起動時の binding 生成関連の `Not found: struct ...` が複数回出ているが、今回の import 成功・失敗に直接結びつく専用ログは観測していない。
+- Wails ログには `runtime:ready -> Unknown message from front end: runtime:ready` があるが、UI は操作継続可能だった。
+- 再取込時の direct bridge response は `importedCount: 0`、`updatedCount: 947`、`skippedCount: 7235`、`lastEntryId: 740`、`page.totalCount: 740` を返した。
+- XML 実体に `CONT:FULL` と `BOOK:FULL` が存在することを確認した。
 
 ## Closeout Notes
 
