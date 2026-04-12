@@ -2,8 +2,8 @@
   "contract_version": "2026-04-11",
   "skill": "phase-1.5-functional-requirements",
   "allowed_actions": [
-    "active exec-plan と phase-1 の整理結果から機能要件を抽出する",
-    "active exec-plan の `機能要件` section に summary、in-scope、out-of-scope、open questions を固定する",
+    "active exec-plan と phase-1 の整理結果から機能要件と非機能要件を抽出する",
+    "active exec-plan の `機能要件` section に summary、in-scope、non-functional requirements、out-of-scope、open questions を固定する",
     "後続の UI モック作成と前段 HITL が読む required reading を短く提示する"
   ],
   "forbidden_actions": [
@@ -14,6 +14,7 @@
   "expected_outputs": [
     "functional_requirements_summary",
     "in_scope",
+    "non_functional_requirements",
     "out_of_scope",
     "open_questions",
     "required_reading"

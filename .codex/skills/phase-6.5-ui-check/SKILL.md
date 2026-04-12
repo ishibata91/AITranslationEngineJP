@@ -1,13 +1,13 @@
 ---
 name: phase-6.5-ui-check
-description: 実装完了後に `chrome-devtools` で主要導線と画面状態を確認し、UI 逸脱の証跡を返す。
+description: 実装完了後に Playwright MCP で主要導線と画面状態を確認し、UI 逸脱の証跡を返す。
 ---
 
 # Phase 6.5 UI Check
 
 ## Goal
 
-- `wails dev` 起動後の `http://localhost:34115` を MCP 経由の `chrome-devtools` から操作し、主要導線と画面状態を確認する
+- `npm run dev:wails:docker-mcp` 起動後の `http://host.docker.internal:34115` を Playwright MCP から操作し、主要導線と画面状態を確認する
 - 承認済み HTML モック artifact、承認済み Scenario テスト一覧 artifact、承認済み task_id、review 用差分図、受け入れ確認と実装結果を照合する
 - UI 逸脱、console error、network failure、設計差分を切り分けて返す
 - 承認済み HTML モック artifact と実装画面の視覚構造を照合し、layout、主要情報ブロック、表示状態切替、主要導線の配置が一致しているかを確認する
@@ -15,8 +15,8 @@ description: 実装完了後に `chrome-devtools` で主要導線と画面状態
 ## Rules
 
 - 第6段階の完了後に進める
-- UI確認前に `wails dev` が起動済みで、`http://localhost:34115` を開ける状態を確認する
-- MCP 経由の `chrome-devtools` を使った確認と証跡整理に限定する
+- UI確認前に `npm run dev:wails:docker-mcp` が起動済みで、`http://host.docker.internal:34115` を開ける状態を確認する
+- Playwright MCP を使った確認と証跡整理に限定する
 - 新しい仕様解釈や見た目の好みを追加しない
 - 恒久修正や test 追加は行わない
 - UI 逸脱は第6段階へ戻し、設計差分だけを上流へ戻す

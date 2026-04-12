@@ -16,6 +16,11 @@
       "type": "string[]"
     },
     {
+      "description": "後続工程が満たすべき非機能要件。",
+      "field": "non_functional_requirements",
+      "type": "string[]"
+    },
+    {
       "description": "対象外として固定した項目。",
       "field": "out_of_scope",
       "type": "string[]"

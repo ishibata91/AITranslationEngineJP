@@ -3,7 +3,7 @@
   "direction": "directing-to-skill",
   "from_skill": "orchestrating-implementation",
   "to_skill": "phase-6.5-ui-check",
-  "purpose": "実装済み UI を `chrome-devtools` で確認し、主要導線、画面状態、承認済み HTML モック artifact に対する視覚構造差分の証跡を返させる。",
+  "purpose": "実装済み UI を Playwright MCP で確認し、主要導線、画面状態、承認済み HTML モック artifact に対する視覚構造差分の証跡を返させる。",
   "required": [
     {
       "description": "承認済み active exec-plan。",
@@ -48,7 +48,7 @@
   ],
   "optional": [
     {
-      "description": "起動 URL、起動手順、確認対象導線。既定では `wails dev` 後の `http://localhost:34115` を渡す。",
+      "description": "起動 URL、起動手順、確認対象導線。既定では `npm run dev:wails:docker-mcp` 後の `http://host.docker.internal:34115` を渡す。",
       "field": "ui_entry_points",
       "type": "string[]"
     },
