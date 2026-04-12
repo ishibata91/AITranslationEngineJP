@@ -1,0 +1,53 @@
+{
+  "contract_version": "2026-04-12",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-fixes",
+  "to_skill": "phase-6.5-ui-check",
+  "purpose": "画面起点の bugfix で UI確認に必要な再現条件と実装結果を渡す。",
+  "required": [
+    {
+      "description": "active fix plan。",
+      "field": "active_fix_plan",
+      "type": "path"
+    },
+    {
+      "description": "再現条件と期待結果。",
+      "field": "reproduction_contract",
+      "type": "string[]"
+    },
+    {
+      "description": "確認対象の fix scope。",
+      "field": "accepted_fix_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "実装済み scope と touched files。",
+      "field": "implemented_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "第6段階の validation 結果。",
+      "field": "validation_results",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "起動 URL、起動手順、確認対象導線。",
+      "field": "ui_entry_points",
+      "type": "string[]"
+    },
+    {
+      "description": "UI確認で優先すべき論点。",
+      "field": "focus_points",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "新しい仕様解釈を追加しない",
+    "fix plan にない UI 要件を推測で補わない"
+  ],
+  "completion_signal": [
+    "orchestrator が UI確認結果を基準に第6段階へ戻すか closeout review へ進めるかを決められる"
+  ]
+}

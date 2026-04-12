@@ -121,7 +121,6 @@ test("SCN-MDM-003/004/005 新規登録・更新・削除モーダルを完了で
   await expect(page.locator("#editModalTitle")).toHaveText("新規登録")
   await createDialog.getByLabel("原文").fill(sourceText)
   await createDialog.getByLabel("訳語").fill(createdTranslation)
-  await createDialog.getByLabel("カテゴリ").selectOption("NPC")
   await createDialog.getByLabel("由来").selectOption("手動登録")
   await clickEditModalSave(page)
   await expect(createDialog).toBeHidden()

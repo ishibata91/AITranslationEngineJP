@@ -1,0 +1,46 @@
+{
+  "contract_version": "2026-04-12",
+  "direction": "skill-to-directing",
+  "from_skill": "reproduce-issues",
+  "to_skill": "orchestrating-fixes",
+  "purpose": "orchestrator が fix 実装へ進むか、追加 trace を行うかを決める再現結果を返す。",
+  "required": [
+    {
+      "description": "browser console で確認した所見。",
+      "field": "browser_console_findings",
+      "type": "string[]"
+    },
+    {
+      "description": "Wails ログで確認した所見。",
+      "field": "wails_log_findings",
+      "type": "string[]"
+    },
+    {
+      "description": "観測から確定した事実。",
+      "field": "observed_facts",
+      "type": "string[]"
+    },
+    {
+      "description": "否定できた仮説。",
+      "field": "disproved_hypotheses",
+      "type": "string[]"
+    },
+    {
+      "description": "残る未解明点。",
+      "field": "remaining_gaps",
+      "type": "string[]"
+    },
+    {
+      "description": "phase-6-implement-* / more trace など。",
+      "field": "recommended_next_step",
+      "type": "string"
+    }
+  ],
+  "optional": [],
+  "must_not_change": [
+    "修正コードを直接混ぜない"
+  ],
+  "completion_signal": [
+    "orchestrator が phase-6-implement-* か reroute を決定できる"
+  ]
+}

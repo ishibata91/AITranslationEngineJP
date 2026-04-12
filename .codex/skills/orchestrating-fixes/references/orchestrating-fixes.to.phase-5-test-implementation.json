@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-04-09",
+  "contract_version": "2026-04-12",
   "direction": "orchestrating-to-skill",
   "from_skill": "orchestrating-fixes",
   "to_skill": "phase-5-test-implementation",
-  "purpose": "再現条件を tests / fixtures / acceptance checks / validation commands へ適用し、必要な回帰 test / fixture を先に実装させる。",
+  "purpose": "修正後の再現条件を tests / fixtures / acceptance checks / validation commands へ適用し、review 前の回帰防止 test / fixture を実装させる。",
   "required": [
     {
       "description": "active fix plan。",
@@ -16,9 +16,14 @@
       "type": "string[]"
     },
     {
-      "description": "observed facts と fix scope。",
+      "description": "observed facts、fix scope、実装結果の要約。",
       "field": "analysis_summary",
       "type": "object"
+    },
+    {
+      "description": "第6段階と UI確認の validation 結果。",
+      "field": "validation_results",
+      "type": "string[]"
     }
   ],
   "optional": [
@@ -26,6 +31,11 @@
       "description": "優先する test layer。",
       "field": "preferred_test_layer",
       "type": "string"
+    },
+    {
+      "description": "UI確認で見た再現解消の証跡。",
+      "field": "ui_check_summary",
+      "type": "string[]"
     }
   ],
   "must_not_change": [
@@ -33,7 +43,7 @@
     "再現条件にない新しい要件解釈を足さない"
   ],
   "completion_signal": [
-    "failing_tests と acceptance_checks が fix scope に結び付いている",
+    "acceptance_checks と validation_commands が review 前の fix scope 証明に結び付いている",
     "touched_test_files が定義されている"
   ]
 }

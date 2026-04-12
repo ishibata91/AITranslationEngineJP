@@ -8,23 +8,25 @@ description: 第5段階の検証設計を担当し、`Scenario` を playwright E
 ## Overview
 
 第2段階で固定した Scenario テスト一覧 artifact を、そのまま playwright E2Eテストへ適用する工程です。新しい検証観点や新しい要件解釈は増やさず、証明対象を機械的に実行できる状態へ変えます。
+fix lane では修正後、UI確認の後、review の前に回帰防止の test / fixture を置く工程として扱います。
 
 ## Workflow
 
-1. active exec-plan、Scenario テスト一覧 artifact、関連文書を読む。
-2. Scenario テスト一覧をそのまま適用できる test layer と観測点を決める。
-3. fixture、acceptance checks、validation commands をその観測点に合わせて決める。
-4. Wails runtime event を使う非同期処理の完了は、同期 response や見かけの画面更新だけで判定せず、completion event の発火または受信を主要観測点として固定する。
-5. 対象 test files / fixture files を特定し、必要な test と fixture を最小差分で実装する。
-6. Scenario テスト一覧 artifact をそのまま適用できない時は解釈を足さず、orchestrator へ戻す。
-7. 必要なら active exec-plan の `Acceptance Checks` を更新する。
-8. 実装へ handoff する前に、短い test result、touched test files、残った gap を返す。
+1. implementation lane では active exec-plan、Scenario テスト一覧 artifact、関連文書を読む。
+2. fix lane では active fix plan、再現条件、実装結果、UI確認結果、関連文書を読む。
+3. Scenario テスト一覧または fix 再現条件をそのまま適用できる test layer と観測点を決める。
+4. fixture、acceptance checks、validation commands をその観測点に合わせて決める。
+5. Wails runtime event を使う非同期処理の完了は、同期 response や見かけの画面更新だけで判定せず、completion event の発火または受信を主要観測点として固定する。
+6. 対象 test files / fixture files を特定し、必要な test と fixture を最小差分で実装する。
+7. Scenario テスト一覧 artifact や fix 再現条件をそのまま適用できない時は解釈を足さず、orchestrator へ戻す。
+8. 必要なら active exec-plan または active fix plan の `Acceptance Checks` を更新する。
+9. review へ handoff する前に、短い test result、touched test files、残った gap を返す。
 
 ## Rules
 
 - 実装コードを広く直さない
 - test / fixture 以外の product code を触らない
-- Scenario テスト一覧を越える新しい要件解釈を足さない
+- Scenario テスト一覧や fix 再現条件を越える新しい要件解釈を足さない
 - test の増やし過ぎで scope を膨らませない
 - 1 test = 1 behavior を守る
 - Wails runtime event を使う非同期完了の検証では、completion event を完了証明の中心に置く

@@ -1,5 +1,5 @@
 {
-  "contract_version": "2026-03-29",
+  "contract_version": "2026-04-12",
   "skill": "phase-8-review",
   "allowed_actions": [
     "仕様逸脱、例外処理、リソース解放、テスト不足の 4 観点で single-pass review を行う",
@@ -19,7 +19,8 @@
   ],
   "stop_conditions": [
     "レビュー対象 diff や期待挙動が不足している",
-    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
+    "implementation lane なのに承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
+    "fix lane なのに active_fix_plan / accepted_fix_scope / change_summary / spec_refs / validation_evidence が不足している",
     "先に plan や ownership の整理が必要である",
     "レビューではなく実装 lane への reroute が先である"
   ]

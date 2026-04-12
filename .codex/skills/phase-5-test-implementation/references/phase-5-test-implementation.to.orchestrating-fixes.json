@@ -1,12 +1,12 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-12",
   "direction": "skill-to-directing",
   "from_skill": "phase-5-test-implementation",
   "to_skill": "orchestrating-fixes",
   "purpose": "fix lane の回帰テスト設計と test 実装結果を orchestrator へ返す。",
   "required": [
     {
-      "description": "先に固定したい回帰 test。",
+      "description": "review 前に固定した回帰 test。",
       "field": "failing_tests",
       "type": "string[]"
     },
@@ -42,7 +42,7 @@
     "fix scope を広げない"
   ],
   "completion_signal": [
-    "orchestrator が implementing-fixes に handoff できる",
-    "必要な回帰 test files が先に用意されている"
+    "orchestrator が phase-8-review に handoff できる",
+    "必要な回帰 test files が review 前に用意されている"
   ]
 }

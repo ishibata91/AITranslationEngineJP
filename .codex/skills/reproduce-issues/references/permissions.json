@@ -1,0 +1,27 @@
+{
+  "contract_version": "2026-04-12",
+  "skill": "reproduce-issues",
+  "allowed_actions": [
+    "Playwright MCP で browser console を確認する",
+    "Wails のログ file または起動ログを直接確認する",
+    "観測結果を observed facts、remaining gaps、recommended next step へ整理する"
+  ],
+  "forbidden_actions": [
+    "観測のない推測を事実として確定する",
+    "恒久修正を始める",
+    "packet や別の live 正本を新設する"
+  ],
+  "expected_outputs": [
+    "browser_console_findings",
+    "wails_log_findings",
+    "observed_facts",
+    "disproved_hypotheses",
+    "remaining_gaps",
+    "recommended_next_step"
+  ],
+  "stop_conditions": [
+    "信頼できる再現条件がまだ揃っていない",
+    "先に tracing や temporary logging が必要である",
+    "要求が再現確認ではなく実装修正に移っている"
+  ]
+}

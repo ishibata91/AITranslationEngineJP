@@ -1,9 +1,10 @@
 {
-  "contract_version": "2026-04-10",
+  "contract_version": "2026-04-12",
   "skill": "phase-6.5-ui-check",
   "allowed_actions": [
     "`npm run dev:wails:docker-mcp` 起動後の `http://host.docker.internal:34115` を Playwright MCP で開き、主要導線と画面状態を確認する",
-    "承認済み HTML モック artifact と実装画面の視覚構造を照合し、layout、主要情報ブロック、表示状態切替、主要導線配置の一致を確認する",
+    "implementation lane では承認済み HTML モック artifact と実装画面の視覚構造を照合し、layout、主要情報ブロック、表示状態切替、主要導線配置の一致を確認する",
+    "fix lane では fix plan の再現条件と期待結果に沿って画面状態を確認する",
     "console、network、screen capture、DOM 状態の必要証跡を整理する",
     "decision を pass または reroute で返す"
   ],
@@ -11,7 +12,7 @@
     "恒久修正や test 追加を行う",
     "新しい仕様解釈や改善提案を足す",
     "好み中心の UI review を行う",
-    "承認済み HTML モック artifact に対する視覚構造差分を未確認のまま pass とする"
+    "implementation lane で承認済み HTML モック artifact に対する視覚構造差分を未確認のまま pass とする"
   ],
   "expected_outputs": [
     "decision",
@@ -22,8 +23,9 @@
   "stop_conditions": [
     "起動 URL や確認対象導線が不足している",
     "`npm run dev:wails:docker-mcp` 後の `http://host.docker.internal:34115` へ接続できず、Playwright MCP で確認できない",
-    "第6段階の実装結果や active exec-plan が不足している",
-    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
+    "第6段階の実装結果や active plan が不足している",
+    "implementation lane なのに承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading / review_diff_diagrams が不足している",
+    "fix lane なのに active_fix_plan / reproduction_contract / accepted_fix_scope / implemented_scope / validation_results が不足している",
     "UI確認ではなく先に実装修正が必要である"
   ]
 }

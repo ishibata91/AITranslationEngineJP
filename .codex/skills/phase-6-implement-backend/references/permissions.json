@@ -1,5 +1,5 @@
 {
-  "contract_version": "2026-03-29",
+  "contract_version": "2026-04-12",
   "skill": "phase-6-implement-backend",
   "allowed_actions": [
     "backend owned scope のコードと最小限の関連 test を変更する",
@@ -21,7 +21,8 @@
   "stop_conditions": [
     "backend owned scope が確定していない",
     "必要な test brief や validation が欠けている",
-    "承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading が欠けている",
+    "implementation lane なのに承認済み ui_artifact_path / scenario_artifact_path / implementation_task_ids / implementation_required_reading が欠けている",
+    "fix lane なのに active_fix_plan / accepted_fix_scope / trace_or_analysis_result が欠けている",
     "変更が frontend や architecture decision に波及して handoff が必要になる"
   ]
 }

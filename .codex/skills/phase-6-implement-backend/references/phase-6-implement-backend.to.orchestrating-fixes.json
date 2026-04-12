@@ -1,0 +1,42 @@
+{
+  "contract_version": "2026-04-12",
+  "direction": "skill-to-directing",
+  "from_skill": "phase-6-implement-backend",
+  "to_skill": "orchestrating-fixes",
+  "purpose": "backend 側の fix 実装結果と validation 結果を fix orchestrator へ返す。",
+  "required": [
+    {
+      "description": "変更した file path。",
+      "field": "changed_files",
+      "type": "string[]"
+    },
+    {
+      "description": "実行した checks。",
+      "field": "checks_run",
+      "type": "string[]"
+    },
+    {
+      "description": "checks の結果要約。",
+      "field": "check_results",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "fix closeout に伝えるべき notes。",
+      "field": "closeout_notes",
+      "type": "string[]"
+    },
+    {
+      "description": "direction 判断が必要な未解決点。",
+      "field": "blocked_points",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "review 判定を自分で確定しない"
+  ],
+  "completion_signal": [
+    "orchestrator が UI確認または phase-8-review へ進める差分証跡がある"
+  ]
+}

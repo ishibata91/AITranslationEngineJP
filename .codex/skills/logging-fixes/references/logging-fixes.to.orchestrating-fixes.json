@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-03-28",
+  "contract_version": "2026-04-12",
   "direction": "skill-to-directing",
   "from_skill": "logging-fixes",
   "to_skill": "orchestrating-fixes",
-  "purpose": "orchestrator が観測実行と分析に進める logging 変更内容を返す。",
+  "purpose": "orchestrator が再現確認と追加分析に進める logging 変更内容を返す。",
   "required": [
     {
       "description": "log を入れた file。",
@@ -26,12 +26,17 @@
       "description": "観測用コマンド。",
       "field": "run_command",
       "type": "string"
+    },
+    {
+      "description": "Wails ログの path や確認コマンド。",
+      "field": "wails_log_targets",
+      "type": "string[]"
     }
   ],
   "must_not_change": [
     "根本修正完了扱いにしない"
   ],
   "completion_signal": [
-    "orchestrator が analyzing-fixes に必要な観測結果取得へ進める"
+    "orchestrator が reproduce-issues に必要な観測結果取得へ進める"
   ]
 }

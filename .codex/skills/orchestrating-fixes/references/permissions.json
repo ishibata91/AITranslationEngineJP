@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-04-09",
+  "contract_version": "2026-04-12",
   "skill": "orchestrating-fixes",
   "allowed_actions": [
     "active fix plan を作成または更新する",
-    "distilling-fixes、tracing-fixes、logging-fixes、analyzing-fixes、phase-5-test-implementation、implementing-fixes、reviewing-fixes、reporting-risks へ handoff する",
+    "distilling-fixes、tracing-fixes、logging-fixes、reproduce-issues、phase-5-test-implementation、phase-6-implement-backend、phase-6-implement-frontend、phase-6.5-ui-check、phase-8-review へ handoff する",
     "close 条件を整理し、完了時に plan を completed へ移す"
   ],
   "forbidden_actions": [

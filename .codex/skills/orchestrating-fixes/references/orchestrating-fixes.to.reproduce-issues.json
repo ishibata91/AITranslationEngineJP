@@ -1,0 +1,48 @@
+{
+  "contract_version": "2026-04-12",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-fixes",
+  "to_skill": "reproduce-issues",
+  "purpose": "Playwright MCP の console と Wails ログ確認で issue の再現証跡を取る。",
+  "required": [
+    {
+      "description": "active fix plan。",
+      "field": "active_fix_plan",
+      "type": "path"
+    },
+    {
+      "description": "再現条件と期待結果。",
+      "field": "reproduction_contract",
+      "type": "string[]"
+    },
+    {
+      "description": "原因仮説と観測点。",
+      "field": "trace_plan",
+      "type": "object"
+    },
+    {
+      "description": "logging-fixes の結果。instrumented_files、observation_messages、cleanup_plan、run_command を含めてよい。",
+      "field": "logging_result",
+      "type": "object"
+    }
+  ],
+  "optional": [
+    {
+      "description": "Wails ログの path や確認コマンド。",
+      "field": "wails_log_targets",
+      "type": "string[]"
+    },
+    {
+      "description": "確認対象の URL や画面導線。",
+      "field": "ui_entry_points",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "恒久修正を混ぜない",
+    "fix plan にない再現条件を勝手に足さない"
+  ],
+  "completion_signal": [
+    "orchestrator が phase-5-test-implementation か more trace を決められる"
+  ]
+}

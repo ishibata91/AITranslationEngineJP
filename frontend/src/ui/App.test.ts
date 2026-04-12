@@ -89,6 +89,61 @@ function createXmlFile(contents: string, name = "mixed-rec.xml"): File {
   return file
 }
 
+const MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT = "master-dictionary:import-progress"
+const MASTER_DICTIONARY_IMPORT_COMPLETED_EVENT = "master-dictionary:import-completed"
+
+type RuntimeEventPayload = Record<string, unknown>
+
+function installRuntimeEventBridgeMock() {
+  const callbacks = new Map<string, Array<(...args: unknown[]) => void>>()
+  const progressEvents: RuntimeEventPayload[] = []
+  const completionEvents: RuntimeEventPayload[] = []
+  const previousRuntime = (window as Window & { runtime?: unknown }).runtime
+
+  Object.defineProperty(window, "runtime", {
+    configurable: true,
+    writable: true,
+    value: {
+      EventsOnMultiple: (eventName: string, callback: (...args: unknown[]) => void) => {
+        const listeners = callbacks.get(eventName) ?? []
+        listeners.push(callback)
+        callbacks.set(eventName, listeners)
+        return () => {
+          const current = callbacks.get(eventName) ?? []
+          callbacks.set(
+            eventName,
+            current.filter((candidate) => candidate !== callback)
+          )
+        }
+      }
+    }
+  })
+
+  return {
+    emitImportProgress: (payload: RuntimeEventPayload) => {
+      progressEvents.push(payload)
+      for (const callback of callbacks.get(MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT) ?? []) {
+        callback(payload)
+      }
+    },
+    emitImportCompleted: (payload: RuntimeEventPayload) => {
+      completionEvents.push(payload)
+      for (const callback of callbacks.get(MASTER_DICTIONARY_IMPORT_COMPLETED_EVENT) ?? []) {
+        callback(payload)
+      }
+    },
+    progressEventCount: () => progressEvents.length,
+    completionEventCount: () => completionEvents.length,
+    restore: () => {
+      if (previousRuntime === undefined) {
+        delete (window as Window & { runtime?: unknown }).runtime
+        return
+      }
+      ;(window as Window & { runtime?: unknown }).runtime = previousRuntime
+    }
+  }
+}
+
 function createPagedSeedEntries(total: number): TestEntry[] {
   return Array.from({ length: total }, (_, index) => {
     const id = String(1000 + index)
@@ -780,6 +835,73 @@ describe("App dashboard shell", () => {
         pageSize: 30
       }
     })
+  })
+
+  test("runtime completion event 到達まで import 完了へ遷移しない", async () => {
+    const gateway = createTestGateway()
+    const capturedImportResponse: { value: ImportMasterDictionaryXmlResponse | null } = {
+      value: null
+    }
+    const baseImport = gateway.importMasterDictionaryXml.bind(gateway)
+    const importSpy = vi.fn(async (request: ImportMasterDictionaryXmlRequest) => {
+      const payload = await baseImport(request)
+      capturedImportResponse.value = payload
+      return payload
+    })
+    gateway.importMasterDictionaryXml = importSpy
+
+    const runtimeBridge = installRuntimeEventBridgeMock()
+    const user = userEvent.setup()
+
+    try {
+      renderAppWithGateway(gateway)
+
+      const globalNavigation = screen.getByRole("navigation", {
+        name: "グローバルナビゲーション"
+      })
+      await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+
+      const xmlInput = document.querySelector("#xmlFileInput")
+      if (!(xmlInput instanceof HTMLInputElement)) {
+        throw new Error("xmlFileInput が見つかりません")
+      }
+
+      const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+      await user.upload(xmlInput, xmlFile)
+      await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+
+      await waitFor(() => {
+        expect(importSpy).toHaveBeenCalledTimes(1)
+      })
+
+      expect(document.querySelector("#importResult")).toHaveAttribute("hidden")
+      expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+
+      runtimeBridge.emitImportProgress({ progress: 78 })
+      await waitFor(() => {
+        expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+        expect(runtimeBridge.progressEventCount()).toBe(1)
+      })
+
+      const responsePayload = capturedImportResponse.value
+      if (!responsePayload) {
+        throw new Error("import 応答 payload を取得できませんでした")
+      }
+
+      runtimeBridge.emitImportCompleted({
+        page: responsePayload.page,
+        summary: responsePayload.summary
+      })
+
+      await waitFor(() => {
+        expect(screen.getByText("完了")).toBeInTheDocument()
+        expect(screen.getByRole("searchbox", { name: "検索" })).toHaveValue("")
+        expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue("すべて")
+        expect(runtimeBridge.completionEventCount()).toBe(1)
+      })
+    } finally {
+      runtimeBridge.restore()
+    }
   })
 
   test("page.selectedId がない import payload は summary.lastEntryId で同一ページ再選択する", async () => {

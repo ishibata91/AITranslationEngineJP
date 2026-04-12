@@ -1,0 +1,58 @@
+{
+  "contract_version": "2026-04-12",
+  "direction": "directing-to-skill",
+  "from_skill": "orchestrating-fixes",
+  "to_skill": "phase-6-implement-backend",
+  "purpose": "backend 側の narrow fix 実装に必要な scope と根拠を implementation phase へ渡す。",
+  "required": [
+    {
+      "description": "fix plan。",
+      "field": "active_fix_plan",
+      "type": "path"
+    },
+    {
+      "description": "今回修正する backend 側の accepted fix scope。",
+      "field": "accepted_fix_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "根拠となる trace / analysis 要約。",
+      "field": "trace_or_analysis_result",
+      "type": "object"
+    },
+    {
+      "description": "implementation phase が読む work brief。owned_scope、ordered_scope、validation_commands を含める。",
+      "field": "work_brief",
+      "type": "object"
+    },
+    {
+      "description": "backend 側で変更を許可する files / modules。",
+      "field": "allowed_scope",
+      "type": "string[]"
+    },
+    {
+      "description": "実行すべき checks。",
+      "field": "checks",
+      "type": "string[]"
+    }
+  ],
+  "optional": [
+    {
+      "description": "同時に除去すべき logging。",
+      "field": "temporary_logging_cleanup",
+      "type": "string[]"
+    },
+    {
+      "description": "UI 起点の bug で実装時に参照する再現操作や画面観点。",
+      "field": "ui_repro_refs",
+      "type": "string[]"
+    }
+  ],
+  "must_not_change": [
+    "frontend owned scope を触らない",
+    "broad refactor を混ぜない"
+  ],
+  "completion_signal": [
+    "修正に必要な backend 側の範囲、根拠、validation が明示されている"
+  ]
+}
