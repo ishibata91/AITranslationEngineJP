@@ -3,6 +3,8 @@
   "skill": "reproduce-issues",
   "allowed_actions": [
     "Playwright MCP で browser console を確認する",
+    "ファイル送信が必要な時は `docker --context desktop-linux cp <host-path> <container-id>:/home/node/<file-name>` で Playwright MCP コンテナの `/home/node` へ配置し、その後に `browser_file_upload` を使う",
+    "`docker ps` で対象コンテナが見えない時は `docker --context desktop-linux ps` を優先する",
     "Wails のログ file または起動ログを直接確認する",
     "初動再現と logging 後の追加観測の両方を担当する",
     "観測結果を observed facts、remaining gaps、recommended next step へ整理する"

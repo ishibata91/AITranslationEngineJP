@@ -3,6 +3,8 @@
   "skill": "phase-6.5-ui-check",
   "allowed_actions": [
     "`npm run dev:wails:docker-mcp` 起動後の `http://host.docker.internal:34115` を Playwright MCP で開き、主要導線と画面状態を確認する",
+    "ファイル送信が必要な時は `docker --context desktop-linux cp <host-path> <container-id>:/home/node/<file-name>` で Playwright MCP コンテナの `/home/node` へ配置し、その後に `browser_file_upload` を使う",
+    "`docker ps` で対象コンテナが見えない時は `docker --context desktop-linux ps` を優先する",
     "implementation lane では承認済み HTML モック artifact と実装画面の視覚構造を照合し、layout、主要情報ブロック、表示状態切替、主要導線配置の一致を確認する",
     "fix lane では fix plan の再現条件と期待結果に沿って画面状態を確認する",
     "console、network、screen capture、DOM 状態の必要証跡を整理する",
