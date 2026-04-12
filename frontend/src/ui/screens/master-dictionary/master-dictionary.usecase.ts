@@ -313,7 +313,7 @@ export class MasterDictionaryUseCase {
     } catch (error) {
       this.store.update((draft) => {
         draft.importStage = "ready"
-        draft.importProgress = 12
+        draft.importProgress = 0
         draft.importSummary = null
         draft.errorMessage = toErrorMessage(error, "XML 取り込みに失敗しました。")
       })

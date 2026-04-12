@@ -16,7 +16,13 @@ type ViewModelListener = (viewModel: MasterDictionaryScreenViewModel) => void
 
 function resolveFileReference(file: File): string {
   const pathRecord = file as File & { path?: string; webkitRelativePath?: string }
-  return pathRecord.path ?? pathRecord.webkitRelativePath ?? file.name
+  const candidates = [pathRecord.path, pathRecord.webkitRelativePath, file.name]
+  for (const candidate of candidates) {
+    if (typeof candidate === "string" && candidate.trim() !== "") {
+      return candidate
+    }
+  }
+  return file.name
 }
 
 class MasterDictionaryScreenController {
@@ -201,7 +207,7 @@ class MasterDictionaryScreenController {
       draft.selectedFileName = file ? file.name : "未選択"
       draft.selectedFileReference = file ? resolveFileReference(file) : null
       draft.importStage = file ? "ready" : "idle"
-      draft.importProgress = file ? 12 : 0
+      draft.importProgress = 0
       draft.importSummary = null
       draft.errorMessage = ""
     })

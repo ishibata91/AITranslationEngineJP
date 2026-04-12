@@ -27,6 +27,7 @@ async function clickEditModalSave(page: Page): Promise<void> {
 async function importDawnguardXml(page: Page): Promise<void> {
   const xmlFileInput = page.locator("#xmlFileInput")
   const importStatusValue = page.locator("#importStatusValue")
+  const importProgressFill = page.locator("#importProgressFill")
   const startImportButton = page.locator("#startImportButton")
 
   const stageXmlWithResolvedReference = async (usePathInjection: boolean): Promise<void> => {
@@ -58,22 +59,27 @@ async function importDawnguardXml(page: Page): Promise<void> {
     await expect(page.locator("#selectedFileName")).toHaveText("Dawnguard_english_japanese.xml")
     await expect(page.locator("#importBar")).toBeVisible()
     await expect(importStatusValue).toHaveText("取込待ち")
+    await expect(importProgressFill).toHaveAttribute("style", /width:\s*0%/)
   }
 
   for (let attempt = 0; attempt < 3; attempt += 1) {
     await stageXmlWithResolvedReference(attempt > 0)
     await startImportButton.click()
 
+    let observedRunning = false
     let observedStatus = "取込待ち"
     for (let poll = 0; poll < 10; poll += 1) {
       observedStatus = (await importStatusValue.innerText()).trim()
+      if (observedStatus === "取込中") {
+        observedRunning = true
+      }
       if (observedStatus !== "取込待ち") {
         break
       }
       await page.waitForTimeout(250)
     }
 
-    if (observedStatus === "待機中" || observedStatus === "取込待ち") {
+    if (!observedRunning) {
       continue
     }
 

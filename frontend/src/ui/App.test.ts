@@ -788,11 +788,54 @@ describe("App dashboard shell", () => {
     expect(importBar).not.toHaveAttribute("hidden")
     expect(screen.getByRole("button", { name: "この XML を取り込む" })).toBeInTheDocument()
     expect(screen.getByText("取込待ち")).toBeInTheDocument()
+    expect(document.querySelector("#importProgressFill")).toHaveAttribute("style", "width: 0%;")
 
     await user.click(screen.getByRole("button", { name: "選び直す" }))
 
     expect(importBar).toHaveAttribute("hidden")
     expect(screen.queryByRole("button", { name: "この XML を取り込む" })).not.toBeInTheDocument()
+  })
+
+  test("path が空文字の file でも fileReference は file.name へ fallback して取込開始する", async () => {
+    const gateway = createTestGateway()
+    const user = userEvent.setup()
+    renderAppWithGateway(gateway)
+
+    const globalNavigation = screen.getByRole("navigation", {
+      name: "グローバルナビゲーション"
+    })
+    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+
+    const xmlInput = document.querySelector("#xmlFileInput")
+    if (!(xmlInput instanceof HTMLInputElement)) {
+      throw new Error("xmlFileInput が見つかりません")
+    }
+
+    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    Object.defineProperty(xmlFile, "path", {
+      value: "",
+      configurable: true
+    })
+    Object.defineProperty(xmlFile, "webkitRelativePath", {
+      value: "",
+      configurable: true
+    })
+    await user.upload(xmlInput, xmlFile)
+    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+
+    await waitFor(() => {
+      expect(gateway.__mocks.importMasterDictionaryXml).toHaveBeenCalledTimes(1)
+    })
+    expect(gateway.__mocks.importMasterDictionaryXml).toHaveBeenCalledWith({
+      filePath: "Dawnguard_english_japanese.xml",
+      fileReference: "Dawnguard_english_japanese.xml",
+      refresh: {
+        query: "",
+        category: "",
+        page: 1,
+        pageSize: 30
+      }
+    })
   })
 
   test("SCN-MDM-006/009: XML取込完了時にbackend応答で再同期し、検索とカテゴリを初期化する", async () => {
@@ -834,6 +877,66 @@ describe("App dashboard shell", () => {
         page: 1,
         pageSize: 30
       }
+    })
+  })
+
+  test("import 開始表示を描画してから XML import binding を呼ぶ", async () => {
+    const gateway = createTestGateway()
+    const baseImport = gateway.importMasterDictionaryXml.bind(gateway)
+    const importDeferred: {
+      resolve: (value: ImportMasterDictionaryXmlResponse) => void
+    } = {
+      resolve: () => {
+        throw new Error("import resolve handler が見つかりません")
+      }
+    }
+    const importGatewaySpy = vi.fn(
+      () =>
+        new Promise<ImportMasterDictionaryXmlResponse>((resolve) => {
+          importDeferred.resolve = resolve
+        })
+    )
+    gateway.importMasterDictionaryXml = importGatewaySpy
+
+    const user = userEvent.setup()
+
+    renderAppWithGateway(gateway)
+
+    const globalNavigation = screen.getByRole("navigation", {
+      name: "グローバルナビゲーション"
+    })
+    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+
+    const xmlInput = document.querySelector("#xmlFileInput")
+    if (!(xmlInput instanceof HTMLInputElement)) {
+      throw new Error("xmlFileInput が見つかりません")
+    }
+
+    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    await user.upload(xmlInput, xmlFile)
+    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+
+    expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+
+    await waitFor(() => {
+      expect(importGatewaySpy).toHaveBeenCalledTimes(1)
+    })
+
+    importDeferred.resolve(
+      await baseImport({
+        filePath: "Dawnguard_english_japanese.xml",
+        fileReference: "Dawnguard_english_japanese.xml",
+        refresh: {
+          query: "",
+          category: "",
+          page: 1,
+          pageSize: 30
+        }
+      })
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("完了")).toBeInTheDocument()
     })
   })
 

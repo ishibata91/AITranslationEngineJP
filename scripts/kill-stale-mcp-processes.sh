@@ -31,9 +31,6 @@ is_target_command() {
   case "$command_text" in
     *"docker mcp gateway run --profile codexmcps"*) return 0 ;;
     *"docker-mcp mcp gateway run --profile codexmcps"*) return 0 ;;
-    *"chrome-devtools-mcp"*) return 0 ;;
-    *"npm exec chrome-devtools-mcp"*) return 0 ;;
-    *"/node_modules/chrome-devtools-mcp/"*) return 0 ;;
     *) return 1 ;;
   esac
 }

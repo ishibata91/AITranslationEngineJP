@@ -15,7 +15,7 @@ SUITE_ORDER = {
     "coverage": ["check_coverage.py"],
     "structure": ["check_structure.py"],
     "execution": ["check_execution.py"],
-    "all": ["check_structure.py", "check_execution.py", "check_system_test.py"],
+    "all": ["check_structure.py", "check_execution.py", "check_system_test.py", "check_coverage.py"],
 }
 
 

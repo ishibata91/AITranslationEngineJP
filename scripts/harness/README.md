@@ -27,7 +27,7 @@
 
 - implementation lane の implementer は `frontend-lint` または `backend-lint` を local validation に使い、direction は review が `pass` になった後で `all` を final harness として実行する
 - `execution` suite は repo root の `package.json` を唯一の入口として扱い、`lint:backend`、`lint:frontend`、`test:backend`、`test:frontend`、Sonar step をこの順で実行する
-- `all` suite は `structure`、`execution`、`system-test` をこの順で実行する
-- `coverage` suite は phase7 用の独立 gate として扱い、baseline が揃うまで `execution` と `all` には含めない
+- `all` suite は `structure`、`execution`、`system-test`、`coverage` をこの順で実行する
+- `coverage` suite は単独でも実行できる独立 gate として維持しつつ、`all` からも実行する
 - repo root に `sonar-project.properties` がある時、Sonar step の正本は repo root の `scan:sonar` script とし、未定義の場合だけ `sonar-scanner` を直接実行する
 - Sonar issue の取得と remediation loop は harness ではなく implementation lane の skill 契約で扱う
