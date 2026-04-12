@@ -11,6 +11,7 @@ export type ImportStage = "idle" | "ready" | "running" | "done"
 export interface ImportSummary {
   fileName: string
   importedCount: number
+  updatedCount: number
   totalCount: number
   selectedSource: string
 }

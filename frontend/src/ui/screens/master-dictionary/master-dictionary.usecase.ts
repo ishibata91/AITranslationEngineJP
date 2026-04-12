@@ -351,6 +351,7 @@ export class MasterDictionaryUseCase {
         importedCount:
           payload.summary?.importedCount ??
           Math.max(nextState.totalCount - stateBefore.totalCount, 0),
+        updatedCount: payload.summary?.updatedCount ?? 0,
         totalCount: payload.page?.totalCount ?? nextState.totalCount,
         selectedSource: nextState.selectedEntry?.source ?? "-"
       }

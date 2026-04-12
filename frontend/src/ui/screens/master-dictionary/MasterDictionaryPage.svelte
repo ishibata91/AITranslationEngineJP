@@ -138,7 +138,7 @@
       <div class="import-result" hidden={!viewModel.importSummary} id="importResult">
         <div class="import-result-head">
           <strong id="importResultHeadline">XML取り込みを一覧と詳細へ反映しました。</strong>
-          <span class="status-pill" id="importResultCount">{viewModel.importSummary?.importedCount ?? 0} 件</span>
+          <span class="status-pill" id="importResultCount">新規取込 {viewModel.importSummary?.importedCount ?? 0} 件</span>
         </div>
         <p id="importResultMessage">
           {viewModel.importSummary
@@ -147,7 +147,11 @@
         </p>
         <dl class="result-grid">
           <div>
-            <dt>一覧件数</dt>
+            <dt>更新件数</dt>
+            <dd id="importResultUpdatedCount">{viewModel.importSummary?.updatedCount ?? "-"}</dd>
+          </div>
+          <div>
+            <dt>取込後の一覧総件数</dt>
             <dd id="importResultListCount">{viewModel.importSummary?.totalCount ?? "-"}</dd>
           </div>
           <div>

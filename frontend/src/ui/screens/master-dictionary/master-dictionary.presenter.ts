@@ -26,10 +26,25 @@ const DETAIL_SUBLINE_BY_MODAL_STATE: Record<Exclude<ModalState, null>, string> =
   delete: "削除確認モーダルを開いています。"
 }
 
+const MASTER_DICTIONARY_BASE_CATEGORIES = [
+  "固有名詞",
+  "NPC",
+  "地名",
+  "装備",
+  "アイテム",
+  "書籍",
+  "設備",
+  "シャウト",
+  "その他"
+]
+
 function buildCategoryOptions(state: MasterDictionaryScreenState): string[] {
-  const options = Array.from(new Set(state.entries.map((entry) => entry.category))).sort(
-    (left, right) => left.localeCompare(right, "ja")
-  )
+  const dynamicCategories = state.entries.map((entry) => entry.category)
+  const selectedCategory = state.selectedEntry?.category ? [state.selectedEntry.category] : []
+
+  const options = Array.from(
+    new Set([...MASTER_DICTIONARY_BASE_CATEGORIES, ...dynamicCategories, ...selectedCategory])
+  ).sort((left, right) => left.localeCompare(right, "ja"))
 
   return ["すべて", ...options]
 }
