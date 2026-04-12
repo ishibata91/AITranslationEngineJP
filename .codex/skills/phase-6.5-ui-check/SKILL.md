@@ -16,6 +16,7 @@ description: 実装完了後に Playwright MCP で主要導線と画面状態を
 ## Rules
 
 - 第6段階の完了後に進める
+- ファイル送信が必要な場合、権限で引っかかるのでhome/nodeにファイルをコピーしてアップロードすること。
 - UI確認前に `npm run dev:wails:docker-mcp` が起動済みで、`http://host.docker.internal:34115` を開ける状態を確認する
 - Playwright MCP を使った確認と証跡整理に限定する
 - 新しい仕様解釈や見た目の好みを追加しない

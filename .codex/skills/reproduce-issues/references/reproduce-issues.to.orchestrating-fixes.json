@@ -3,7 +3,7 @@
   "direction": "skill-to-directing",
   "from_skill": "reproduce-issues",
   "to_skill": "orchestrating-fixes",
-  "purpose": "orchestrator が fix 実装へ進むか、追加 trace を行うかを決める再現結果を返す。",
+  "purpose": "orchestrator が事実整理、原因分析、fix 実装、追加 trace のどれへ進むかを決める再現結果を返す。",
   "required": [
     {
       "description": "browser console で確認した所見。",
@@ -31,7 +31,7 @@
       "type": "string[]"
     },
     {
-      "description": "phase-6-implement-* / more trace など。",
+      "description": "distilling-fixes / tracing-fixes / phase-6-implement-* / more trace など。",
       "field": "recommended_next_step",
       "type": "string"
     }
@@ -41,6 +41,6 @@
     "修正コードを直接混ぜない"
   ],
   "completion_signal": [
-    "orchestrator が phase-6-implement-* か reroute を決定できる"
+    "orchestrator が distilling-fixes、tracing-fixes、phase-6-implement-*、reroute のいずれかを決定できる"
   ]
 }

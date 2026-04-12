@@ -4,6 +4,7 @@
   "allowed_actions": [
     "Playwright MCP で browser console を確認する",
     "Wails のログ file または起動ログを直接確認する",
+    "初動再現と logging 後の追加観測の両方を担当する",
     "観測結果を observed facts、remaining gaps、recommended next step へ整理する"
   ],
   "forbidden_actions": [
@@ -20,8 +21,8 @@
     "recommended_next_step"
   ],
   "stop_conditions": [
-    "信頼できる再現条件がまだ揃っていない",
-    "先に tracing や temporary logging が必要である",
+    "最小限の再現条件と期待結果がない",
+    "追加観測に必要な trace plan や temporary logging の有無が曖昧で観測対象を決められない",
     "要求が再現確認ではなく実装修正に移っている"
   ]
 }

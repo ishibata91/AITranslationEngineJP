@@ -1,5 +1,5 @@
 name = "ui_checker"
-description = "`chrome-devtools` で主要導線と画面状態を検証し、UI 逸脱の証跡を返す UI verification specialist。"
+description = "`playwright MCP` で主要導線と画面状態を検証し、UI 逸脱の証跡を返す UI verification specialist。"
 model = "gpt-5.4"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"
