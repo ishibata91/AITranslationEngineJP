@@ -12,8 +12,11 @@ description: 第6段階の実装と品質通過を担当し、frontend の担当
 - frontend owned scope だけを変更する
 - 第2段階で固定した設計をこの段階で作り直さない
 - `implementation_task_ids` に含まれない task の設計や scope を実装対象へ広げない
-- implementation orchestrator (`orchestrating-implementation`) から渡された local validation だけを実行する
+- implementation orchestrator (`orchestrating-implementation`) から渡された local validation は必要時だけ使い、途中での重い harness 実行を前提にしない
+- phase closeout 前に `python3 scripts/harness/run.py --suite all` を実行して問題がないか確認する
+- phase closeout 前に Sonar MCP で open issue がないことを確認し、review gate 阻害要因を持ち越さない
 - plan の書き換えや lane 切り替えはしない
+- validation results には closeout 前の `--suite all` と Sonar MCP による open issue 確認の結果を含める
 
 ## Reference Use
 

@@ -29,9 +29,11 @@ description: 第8段階の実装レビューを担当し、実装差分が詳細
 - 承認済み design bundle にない仕様や好みで判定しない
 - coverage については `python3 scripts/harness/run.py --suite coverage` と `test-results/coverage-manifest.json` を参照し、70% 超過を確認した上で次も見る
 - [ ] 追加または更新された test が、承認済み design bundle にある責務、失敗条件、主要分岐の証明に結び付いている
+- [ ] Wails runtime event を使う非同期処理の完了が同期 response や見かけの画面更新だけで判定されておらず、completion event の発火または受信で証明されている
 - [ ] assertion が行数消化ではなく期待される振る舞い、出力、状態遷移、エラー条件を検証している
 - [ ] private implementation detail、呼び出し回数、無意味に細かい内部順序、過剰な snapshot に依存していない
 - [ ] mock、stub、fixture が対象責務を素通りさせておらず、line hit だけを増やす空疎な setup になっていない
+- [ ] response fallback や別経路の成功が Wails runtime event 不達を隠し、完了したように見える構造になっていない
 - [ ] 同種の trivial case を重複させて coverage を水増ししていない
 - [ ] coverage 超過でも主要責務や主要分岐に未証明が残る場合は `pass` にしない
 
