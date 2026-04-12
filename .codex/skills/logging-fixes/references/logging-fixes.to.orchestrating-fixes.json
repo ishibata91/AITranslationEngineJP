@@ -28,7 +28,7 @@
       "type": "string"
     },
     {
-      "description": "Wails ログの path や確認コマンド。",
+      "description": "Wails ログの path や確認コマンド。既定は起動毎に削除される `tmp/logs/wails-dev.log`。",
       "field": "wails_log_targets",
       "type": "string[]"
     }

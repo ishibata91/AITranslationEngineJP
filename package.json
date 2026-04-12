@@ -6,7 +6,7 @@
   },
   "scripts": {
     "backendlint": "npm run lint:backend",
-    "dev:wails:docker-mcp": "VITE_HOST=0.0.0.0 VITE_PORT=5173 wails dev -devserver 0.0.0.0:34115",
+    "dev:wails:docker-mcp": "sh ./scripts/dev/run-wails-docker-mcp.sh",
     "backendtest": "npm run test:backend",
     "lint:backend": "npm run lint:backend:format && npm run lint:backend:vet && npm run lint:backend:static && npm run lint:backend:arch && npm run lint:backend:module",
     "lint:backend:arch": "sh ./scripts/lint/run-go-backend-lint.sh arch",

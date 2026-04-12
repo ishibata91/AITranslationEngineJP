@@ -11,7 +11,7 @@
       "type": "string[]"
     },
     {
-      "description": "Wails ログで確認した所見。",
+      "description": "既定では起動毎に削除される `tmp/logs/wails-dev.log` で確認した所見。",
       "field": "wails_log_findings",
       "type": "string[]"
     },
