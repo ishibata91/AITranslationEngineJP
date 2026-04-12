@@ -281,4 +281,4 @@ diagram 上では、原因分析は常に通ります。
 - `実装計画` は active exec-plan の `実装計画` section に残し、後続 skill はこの section を implementation brief として使う
 - `orchestrating-* -> downstream skill` の handoff contract 例は、各 orchestrating skill 配下の `references/*.json` を見る
 - `downstream skill -> orchestrating-*` の返却 contract 例は、各 downstream skill 配下の `references/*.json` を見る
-- harness は `python3 scripts/harness/run.py --suite structure|design|execution|all` を入口にする
+- harness は `python3 scripts/harness/run.py --suite structure|design|execution|coverage|all` を入口にする

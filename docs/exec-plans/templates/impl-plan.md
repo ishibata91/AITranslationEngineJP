@@ -38,6 +38,7 @@
 
 - `summary`:
 - `in_scope`:
+- `non_functional_requirements`:
 - `out_of_scope`:
 - `open_questions`:
 - `required_reading`:

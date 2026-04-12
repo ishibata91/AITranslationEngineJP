@@ -5,7 +5,11 @@ set -eu
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$repo_root"
 
-devserver_url="http://127.0.0.1:34115"
+devserver_bind="${WAILS_DEVSERVER_BIND:-localhost:34115}"
+devserver_url="${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:34115}"
+frontend_devserver_url="${WAILS_FRONTEND_DEVSERVER_URL:-http://127.0.0.1:5173}"
+vite_host="${VITE_HOST:-127.0.0.1}"
+vite_port="${VITE_PORT:-5173}"
 log_file="$repo_root/test-results/wails-dev.log"
 
 mkdir -p "$repo_root/test-results"
@@ -19,7 +23,8 @@ cleanup() {
 
 trap cleanup EXIT INT TERM
 
-wails dev -browser -devserver localhost:34115 >"$log_file" 2>&1 &
+VITE_HOST="$vite_host" VITE_PORT="$vite_port" \
+  wails dev -browser -devserver "$devserver_bind" -frontenddevserverurl "$frontend_devserver_url" >"$log_file" 2>&1 &
 wails_pid=$!
 
 ready=0
