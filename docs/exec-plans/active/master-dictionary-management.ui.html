@@ -3,259 +3,588 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Master Dictionary Mock</title>
+  <title>マスター辞書</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&display=swap" rel="stylesheet">
   <style>
     :root {
-      --bg: #161311;
-      --surface: rgba(35, 31, 29, 0.8);
-      --surface-low: rgba(17, 13, 12, 0.46);
-      --text: #eae1dd;
-      --muted: #d8c3ae;
-      --line: rgba(255, 186, 56, 0.18);
-      --primary: #ffba38;
-      --secondary: #e5beb5;
-      --shadow: 0 24px 60px rgba(0, 0, 0, 0.42);
+      --bg: #11100e;
+      --panel: rgba(35, 30, 24, 0.9);
+      --panel-strong: rgba(23, 20, 17, 0.96);
+      --panel-low: rgba(45, 38, 31, 0.56);
+      --line: rgba(245, 196, 116, 0.16);
+      --line-strong: rgba(245, 196, 116, 0.3);
+      --text: #f5ede2;
+      --muted: #d2c1a9;
+      --accent: #f5c474;
+      --accent-strong: #ffb84a;
+      --danger: #ff9c7c;
+      --danger-soft: rgba(255, 156, 124, 0.12);
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.42);
+      --radius-xl: 24px;
       --radius-lg: 18px;
       --radius-md: 12px;
-      --radius-sm: 8px;
+      --radius-sm: 10px;
     }
 
-    * { box-sizing: border-box; }
+    * {
+      box-sizing: border-box;
+    }
+
     body {
       margin: 0;
       min-height: 100vh;
       color: var(--text);
-      font-family: "Noto Serif JP", serif;
+      font-family: "Shippori Mincho", serif;
       background:
-        radial-gradient(circle at top left, rgba(255, 186, 56, 0.12), transparent 28%),
-        radial-gradient(circle at 80% 20%, rgba(255, 104, 63, 0.11), transparent 24%),
-        linear-gradient(180deg, #1a1513 0%, var(--bg) 100%);
+        radial-gradient(circle at top left, rgba(245, 196, 116, 0.12), transparent 26%),
+        radial-gradient(circle at 85% 18%, rgba(255, 156, 124, 0.1), transparent 22%),
+        linear-gradient(180deg, #171411 0%, var(--bg) 100%);
     }
 
-    .page {
-      max-width: 1440px;
-      margin: 0 auto;
-      padding: 32px 24px 48px;
-    }
-
-    .panel, .action-bar {
-      background: var(--surface);
-      border: 0.5px solid var(--line);
-      border-radius: var(--radius-lg);
-      backdrop-filter: blur(38px);
-      box-shadow: var(--shadow);
-    }
-
-    .hero {
-      padding: 28px;
-      margin-bottom: 20px;
-    }
-
-    .eyebrow, .section-title span {
-      color: var(--muted);
-      font-size: 12px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-    }
-
-    .hero h1 {
-      margin: 10px 0 14px;
-      font-size: clamp(40px, 5vw, 64px);
-      line-height: 1.04;
-      letter-spacing: -0.04em;
-      font-style: italic;
-    }
-
-    .hero p, .action-bar p, .detail-list dd, .entry-subtitle {
-      margin: 0;
-      color: var(--muted);
-      line-height: 1.7;
-      font-size: 14px;
-    }
-
-    .action-strip {
-      margin-bottom: 20px;
-    }
-
-    .action-bar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      padding: 14px 18px;
-      border-radius: var(--radius-md);
-      background: var(--surface-low);
-    }
-
-    .action-bar h3 {
-      margin: 0 0 4px;
-      font-size: 16px;
-    }
-
-    .inline-actions, .detail-ribbon {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      align-items: center;
-    }
-
-    .button-primary, .button-secondary, .tag {
-      border-radius: 999px;
+    button,
+    input,
+    select,
+    textarea {
       font: inherit;
     }
 
-    .button-primary, .button-secondary {
-      min-height: 42px;
-      padding: 0 18px;
-      border: 0;
+    .page {
+      max-width: 1580px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px);
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      padding: 28px;
+      margin-bottom: 18px;
+    }
+
+    .hero-top,
+    .toolbar-head,
+    .import-top,
+    .import-bar-head,
+    .detail-head,
+    .pager-shell,
+    .modal-actions,
+    .detail-actions,
+    .import-actions,
+    .import-top-actions,
+    .toolbar-head-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 10px;
+      max-width: 760px;
+    }
+
+    .eyebrow,
+    .meta-label,
+    .field-label,
+    .column-row span,
+    .mini-label,
+    .status-line strong {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1,
+    h2,
+    h3,
+    h4 {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: clamp(38px, 4vw, 56px);
+      line-height: 1.05;
+      font-weight: 900;
+    }
+
+    h2 {
+      font-size: 28px;
+    }
+
+    h3 {
+      font-size: 24px;
+    }
+
+    p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .button-danger,
+    .file-trigger,
+    .status-pill {
+      border-radius: 999px;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .button-danger,
+    .file-trigger {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid transparent;
       cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, opacity 160ms ease;
+      white-space: nowrap;
+    }
+
+    .button-primary:hover,
+    .button-secondary:hover,
+    .button-danger:hover,
+    .file-trigger:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary:disabled,
+    .button-secondary:disabled,
+    .button-danger:disabled,
+    .file-trigger:disabled {
+      opacity: 0.46;
+      cursor: default;
+      transform: none;
     }
 
     .button-primary {
-      color: #432c00;
-      background: linear-gradient(135deg, var(--primary) 0%, #e59f12 100%);
+      color: #3c2400;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
     }
 
-    .button-secondary {
+    .button-secondary,
+    .file-trigger {
       color: var(--text);
-      background: rgba(255, 255, 255, 0.02);
-      border: 0.5px solid rgba(255, 186, 56, 0.24);
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--line);
+    }
+
+    .button-danger {
+      color: #35150d;
+      background: linear-gradient(135deg, #ffc0ab 0%, var(--danger) 100%);
+    }
+
+    .import-shell {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 18px;
+      padding: 18px;
+      background: rgba(19, 16, 13, 0.85);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+    }
+
+    .import-panel {
+      display: grid;
+      gap: 14px;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: var(--panel-low);
+      border: 1px solid var(--line);
+    }
+
+    .import-bar,
+    .modal-backdrop.is-visible {
+      display: grid;
+    }
+
+    .file-picker {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .file-input {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .file-name,
+    .status-pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .import-bar {
+      display: none;
+      gap: 12px;
+      padding: 16px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+    }
+
+    .import-bar.is-visible {
+      display: grid;
+    }
+
+    .progress-track {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0;
+      border-radius: 999px;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+      transition: width 180ms ease;
     }
 
     .workspace {
       display: grid;
-      grid-template-columns: minmax(320px, 0.95fr) minmax(420px, 1.05fr);
+      grid-template-columns: minmax(700px, 1.45fr) minmax(340px, 0.8fr);
       gap: 18px;
+      align-items: start;
     }
 
-    .list-panel, .detail-panel {
+    .list-panel,
+    .detail-panel {
       padding: 20px;
-      min-height: 720px;
     }
 
-    .section-title {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
+    .toolbar {
+      display: grid;
+      gap: 14px;
+      margin-bottom: 14px;
+      padding: 16px;
+      background: rgba(18, 16, 13, 0.72);
+      border-radius: var(--radius-lg);
+      border: 1px solid var(--line);
+      position: sticky;
+      top: 18px;
+      z-index: 1;
+    }
+
+    .toolbar-grid,
+    .modal-grid,
+    .detail-grid {
+      display: grid;
+      gap: 12px;
+    }
+
+    .toolbar-grid {
+      grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.7fr);
+    }
+
+    .modal-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       margin-bottom: 14px;
     }
 
-    .section-title h2 {
-      margin: 0;
-      font-size: 22px;
+    .field-group {
+      display: grid;
+      gap: 8px;
     }
 
-    .search-box {
-      margin-bottom: 18px;
-    }
-
-    .field {
+    .search-field,
+    .select-field,
+    .text-field,
+    .textarea-field {
       width: 100%;
-      min-height: 46px;
+      min-height: 42px;
       padding: 0 14px;
       border-radius: var(--radius-sm);
-      border: 0.5px solid rgba(255, 186, 56, 0.18);
-      background: rgba(57, 52, 49, 0.28);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
       color: var(--text);
-      font: inherit;
+    }
+
+    .textarea-field {
+      min-height: 120px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+
+    .list-shell {
+      display: grid;
+      gap: 8px;
+    }
+
+    .column-row,
+    .list-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) minmax(220px, 1.4fr) minmax(150px, 0.8fr) 90px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .column-row {
+      padding: 0 12px;
+      color: var(--muted);
     }
 
     .list-stack {
       display: grid;
-      gap: 12px;
+      gap: 6px;
     }
 
-    .list-item {
+    .list-row {
       width: 100%;
-      padding: 16px;
+      padding: 7px 12px;
       text-align: left;
       color: inherit;
-      background: rgba(17, 13, 12, 0.28);
-      border: 0.5px solid rgba(255, 186, 56, 0.08);
-      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(245, 196, 116, 0.08);
+      border-radius: var(--radius-sm);
       cursor: pointer;
-      font: inherit;
     }
 
-    .list-item.is-selected {
-      background: linear-gradient(180deg, rgba(255, 186, 56, 0.13), rgba(17, 13, 12, 0.42));
-      border-color: rgba(255, 186, 56, 0.34);
+    .list-row.is-selected {
+      background: linear-gradient(180deg, rgba(245, 196, 116, 0.16), rgba(255, 255, 255, 0.04));
+      border-color: var(--line-strong);
     }
 
-    .list-item strong, .entry-headline strong {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 18px;
+    .row-cell {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
     }
 
-    .tag {
-      padding: 8px 12px;
-      border: 0.5px solid rgba(255, 186, 56, 0.12);
-      background: rgba(255, 255, 255, 0.03);
+    .row-value {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.3;
+    }
+
+    .row-meta,
+    .row-id {
       color: var(--muted);
       font-size: 12px;
+      line-height: 1.3;
+      letter-spacing: 0.04em;
     }
 
-    .detail-headline {
-      display: grid;
+    .row-id {
+      text-align: right;
+    }
+
+    .mini-text,
+    .empty-state {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.5;
+    }
+
+    .pager {
+      display: flex;
       gap: 10px;
-      padding-bottom: 18px;
-      margin-bottom: 18px;
-      border-bottom: 0.5px solid rgba(255, 186, 56, 0.12);
+      flex-wrap: wrap;
+      align-items: center;
     }
 
-    .detail-grid {
+    .detail-head {
+      margin-bottom: 16px;
+    }
+
+    .detail-title {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 12px;
-      margin-bottom: 18px;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding: 16px;
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
     }
 
-    .detail-card, .detail-list div {
+    .detail-title strong,
+    .detail-card strong,
+    .delete-target strong,
+    .import-file strong {
+      font-size: 15px;
+      color: var(--text);
+    }
+
+    .detail-card,
+    .detail-note,
+    .delete-target,
+    .import-result-card {
       padding: 16px;
       border-radius: var(--radius-md);
-      background: var(--surface-low);
-      border: 0.5px solid rgba(255, 186, 56, 0.1);
+      background: var(--panel-low);
+      border: 1px solid var(--line);
     }
 
-    .detail-card strong {
-      display: block;
-      margin-top: 8px;
-      font-size: 20px;
+    .import-result {
+      display: none;
+      gap: 12px;
+      padding: 16px;
+      border-radius: var(--radius-md);
+      background: rgba(245, 196, 116, 0.08);
+      border: 1px solid var(--line-strong);
+    }
+
+    .import-result.is-visible {
+      display: grid;
+    }
+
+    .import-result-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .detail-note {
+      display: grid;
+      gap: 12px;
+    }
+
+    .detail-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
     }
 
     .detail-list {
       display: grid;
-      gap: 12px;
+      gap: 10px;
       margin: 0;
     }
 
+    .detail-list div {
+      display: grid;
+      gap: 6px;
+      padding: 14px 16px;
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+    }
+
     .detail-list dt {
-      margin-bottom: 6px;
-      color: var(--secondary);
       font-size: 12px;
       letter-spacing: 0.12em;
       text-transform: uppercase;
+      color: var(--muted);
     }
 
-    .banner {
-      padding: 14px 16px;
+    .detail-list dd {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .empty-state {
+      padding: 18px;
       border-radius: var(--radius-md);
-      background: rgba(255, 186, 56, 0.08);
-      border: 0.5px solid rgba(255, 186, 56, 0.16);
-      color: var(--muted);
-      font-size: 14px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px dashed var(--line-strong);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background: rgba(10, 9, 7, 0.74);
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-card {
+      width: min(100%, 720px);
+      padding: 22px;
+      background: var(--panel-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+    }
+
+    .modal-head,
+    .modal-form,
+    .delete-body {
+      display: grid;
+      gap: 14px;
+    }
+
+    .delete-target {
+      background: var(--danger-soft);
+      border-color: rgba(255, 156, 124, 0.2);
+    }
+
+    @media (max-width: 1180px) {
+      .workspace,
+      .toolbar-grid,
+      .detail-grid,
+      .modal-grid,
+      .import-result-grid {
+        grid-template-columns: 1fr;
+      }
     }
 
     @media (max-width: 980px) {
-      .action-bar, .workspace {
+      .page {
+        padding: 20px 14px 32px;
+      }
+
+      .workspace {
         grid-template-columns: 1fr;
-        flex-direction: column;
-        align-items: stretch;
+      }
+
+      .toolbar {
+        position: static;
+      }
+
+      .column-row {
+        display: none;
+      }
+
+      .list-row {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      .row-id {
+        text-align: left;
       }
     }
   </style>
@@ -263,183 +592,860 @@
 <body>
   <main class="page">
     <section class="panel hero">
-      <div class="eyebrow">Master Dictionary</div>
-      <h1>マスター辞書を独立ページで整理する。</h1>
-      <p>辞書を一覧から探し、選択中エントリの内容を確認しながら、取り込みや編集を進める。</p>
-    </section>
-
-    <div class="action-strip">
-      <div class="action-bar">
-        <div>
-          <h3>取り込みと操作</h3>
-          <p>XMLから取り込み、新規作成、更新、削除をここから行う。</p>
-        </div>
-        <div class="inline-actions">
-          <button class="button-primary" type="button">XMLから取り込み</button>
-          <button class="button-secondary" type="button">新規作成</button>
-          <button class="button-secondary" type="button">更新</button>
-          <button class="button-secondary" type="button">削除</button>
+      <div class="hero-top">
+        <div class="hero-copy">
+          <span class="eyebrow">基盤データ</span>
+          <h1>マスター辞書</h1>
+          <p>原文と訳語を、一つの画面で絞り込み、選択し、作成、更新、削除できます。</p>
         </div>
       </div>
-    </div>
+    </section>
+
+    <section class="import-shell panel">
+      <div class="import-top">
+        <div>
+          <h2>XML取り込み</h2>
+          <p>辞書 XML を選択すると、同じ画面で取込状態と反映結果を確認できます。</p>
+        </div>
+        <div class="import-top-actions">
+          <button class="button-secondary" id="chooseXmlButton" type="button">ファイルを選択</button>
+          <p class="mini-text" id="importStateText">ファイルを選ぶと取込バーが表示されます。</p>
+        </div>
+      </div>
+      <div class="import-panel">
+        <input class="file-input" id="xmlFileInput" type="file" accept=".xml,text/xml,application/xml">
+        <div class="file-picker">
+          <span class="meta-label">選択中の XML</span>
+          <span class="file-name" id="selectedFileName">未選択</span>
+        </div>
+        <div class="import-bar" id="importBar">
+          <div class="import-bar-head">
+            <div class="import-file">
+              <div class="meta-label">取込対象</div>
+              <strong id="importFileTitle">-</strong>
+            </div>
+            <div class="import-actions">
+              <button class="button-primary" id="startImportButton" type="button">この XML を取り込む</button>
+              <button class="button-secondary" id="resetImportButton" type="button">選び直す</button>
+            </div>
+          </div>
+          <div class="status-line">
+            <p id="importStatusText">ファイルを選択すると、ここに取込状態が表示されます。</p>
+            <strong id="importStatusValue">待機中</strong>
+          </div>
+          <div class="progress-track" aria-hidden="true">
+            <div class="progress-fill" id="importProgressFill"></div>
+          </div>
+          <div class="import-result" id="importResult" aria-live="polite">
+            <div class="import-bar-head">
+              <div>
+                <div class="meta-label">反映結果</div>
+                <strong id="importResultHeadline">-</strong>
+              </div>
+              <span class="status-pill" id="importResultCount">-</span>
+            </div>
+            <p id="importResultMessage">-</p>
+            <div class="import-result-grid">
+              <div class="import-result-card">
+                <div class="meta-label">一覧件数</div>
+                <strong id="importResultListCount">-</strong>
+              </div>
+              <div class="import-result-card">
+                <div class="meta-label">一覧位置</div>
+                <strong id="importResultSelection">-</strong>
+              </div>
+              <div class="import-result-card">
+                <div class="meta-label">詳細表示</div>
+                <strong id="importResultDetail">-</strong>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
 
     <section class="workspace">
       <section class="panel list-panel">
-        <div class="section-title">
-          <h2>マスター辞書一覧</h2>
-          <span>Archive</span>
+        <div class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <h2>辞書一覧</h2>
+              <p id="listHeadline">28,641 件から絞り込みます。</p>
+            </div>
+            <div class="toolbar-head-actions">
+              <button class="button-primary" id="createButton" type="button">新規登録</button>
+              <p class="mini-text" id="pageStatusText">1 - 30 件を表示</p>
+            </div>
+          </div>
+          <div class="toolbar-grid">
+            <label class="field-group">
+              <span class="field-label">検索</span>
+              <input class="search-field" id="searchInput" type="search" placeholder="原文・訳語・IDで検索">
+            </label>
+            <label class="field-group">
+              <span class="field-label">カテゴリ</span>
+              <select class="select-field" id="categorySelect"></select>
+            </label>
+          </div>
         </div>
-        <div class="search-box">
-          <input class="field" id="entrySearch" type="search" placeholder="辞書エントリを検索">
+
+        <div class="list-shell">
+          <div class="column-row">
+            <span>訳語</span>
+            <span>原文</span>
+            <span>区分</span>
+            <span>ID</span>
+          </div>
+          <div class="list-stack" id="listStack" aria-live="polite"></div>
+          <div class="pager-shell">
+            <div class="mini-text" id="selectionStatus">選択中のエントリを右側に表示しています。</div>
+            <div class="pager">
+              <button class="button-secondary" id="prevPageButton" type="button">前の30件</button>
+              <button class="button-secondary" id="nextPageButton" type="button">次の30件</button>
+            </div>
+          </div>
         </div>
-        <div class="list-stack" id="entryList" aria-live="polite"></div>
       </section>
 
       <section class="panel detail-panel">
-        <div class="section-title">
-          <h2>選択中エントリ</h2>
-          <span>Detail</span>
-        </div>
-        <div class="detail-headline">
-          <div class="detail-ribbon" id="detailRibbon"></div>
-          <div class="entry-headline">
-            <strong id="entryTitle">---</strong>
-            <p class="entry-subtitle" id="entrySubtitle">---</p>
+        <div class="detail-head">
+          <div>
+            <h2>選択中のエントリ</h2>
+            <p id="detailSubline">一覧で選んだ内容をここで確認できます。</p>
+          </div>
+          <div class="detail-actions">
+            <button class="button-secondary" id="editButton" type="button">更新</button>
+            <button class="button-danger" id="deleteButton" type="button">削除</button>
           </div>
         </div>
+        <div class="detail-title">
+          <div class="detail-tags" id="detailTags"></div>
+          <strong id="detailTitle">-</strong>
+          <p id="detailTranslation">-</p>
+        </div>
         <div class="detail-grid" id="detailGrid"></div>
-        <dl class="detail-list" id="detailList"></dl>
+        <div class="detail-note">
+          <div>
+            <div class="mini-label">現在の状態</div>
+            <p id="detailStatusMessage">一覧から別のエントリを選択すると、ここも切り替わります。</p>
+          </div>
+          <dl class="detail-list" id="detailList"></dl>
+        </div>
       </section>
     </section>
   </main>
 
+  <div class="modal-backdrop" id="editModal" aria-hidden="true">
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="editModalTitle">
+      <div class="modal-head">
+        <div class="eyebrow" id="editModalEyebrow">辞書エントリ</div>
+        <h3 id="editModalTitle">新規登録</h3>
+        <p id="editModalDescription">辞書エントリの内容を入力します。</p>
+      </div>
+      <form class="modal-form">
+        <div class="modal-grid">
+          <label class="field-group">
+            <span class="field-label">原文</span>
+            <input class="text-field" id="formSource" type="text">
+          </label>
+          <label class="field-group">
+            <span class="field-label">カテゴリ</span>
+            <select class="select-field" id="formCategory"></select>
+          </label>
+          <label class="field-group">
+            <span class="field-label">由来</span>
+            <select class="select-field" id="formOrigin"></select>
+          </label>
+        </div>
+        <label class="field-group">
+          <span class="field-label">訳語</span>
+          <textarea class="textarea-field" id="formTranslation"></textarea>
+        </label>
+        <div class="modal-actions">
+          <button class="button-secondary" id="closeEditModalButton" type="button">閉じる</button>
+          <button class="button-primary" id="saveEntryButton" type="button">保存する</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="deleteModal" aria-hidden="true">
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="deleteModalTitle">
+      <div class="modal-head">
+        <div class="eyebrow">削除</div>
+        <h3 id="deleteModalTitle">削除の確認</h3>
+        <p>このエントリを削除すると、一覧から見えなくなります。</p>
+      </div>
+      <div class="delete-body">
+        <div class="delete-target">
+          <div class="meta-label">削除対象</div>
+          <strong id="deleteTargetTitle">-</strong>
+          <p id="deleteTargetMeta">-</p>
+        </div>
+        <div class="modal-actions">
+          <button class="button-secondary" id="closeDeleteModalButton" type="button">やめる</button>
+          <button class="button-danger" id="confirmDeleteButton" type="button">削除する</button>
+        </div>
+      </div>
+    </section>
+  </div>
+
   <script>
-    const dictionaryEntries = [
-      {
-        title: "Dragon Priest",
-        subtitle: "固有名詞",
-        tags: ["固有名詞"],
-        cards: [
-          { label: "原文", value: "Dragon Priest" },
-          { label: "訳語", value: "ドラゴン・プリースト" },
-          { label: "最終更新", value: "2026-04-10 21:03" },
-          { label: "由来", value: "xTranslator 取込" }
-        ],
-        details: [
-          { term: "カテゴリ", desc: "固有名詞" },
-          { term: "由来", desc: "xTranslator 取込" }
-        ]
-      },
-      {
-        title: "The Reach",
-        subtitle: "地名 / 一貫訳語",
-        tags: ["地名"],
-        cards: [
-          { label: "原文", value: "The Reach" },
-          { label: "訳語", value: "リーチ地方" },
-          { label: "最終更新", value: "2026-04-08 09:44" },
-          { label: "由来", value: "xTranslator 取込" }
-        ],
-        details: [
-          { term: "カテゴリ", desc: "地名" },
-          { term: "由来", desc: "xTranslator 取込" }
-        ]
-      },
-      {
-        title: "Stormcloak Officer",
-        subtitle: "肩書 / 役職語",
-        tags: ["役職語"],
-        cards: [
-          { label: "原文", value: "Stormcloak Officer" },
-          { label: "訳語", value: "ストームクローク将校" },
-          { label: "最終更新", value: "2026-04-05 16:28" },
-          { label: "由来", value: "xTranslator 取込" }
-        ],
-        details: [
-          { term: "カテゴリ", desc: "役職語" },
-          { term: "由来", desc: "xTranslator 取込" }
-        ]
-      }
+    const seedEntries = [
+      { source: "Dragon Priest", translation: "ドラゴン・プリースト", category: "固有名詞" },
+      { source: "The Reach", translation: "リーチ地方", category: "地名" },
+      { source: "Stormcloak Officer", translation: "ストームクローク将校", category: "役職語" },
+      { source: "Muffle", translation: "消音", category: "魔法" },
+      { source: "Ebony Mail", translation: "黒檀の鎧", category: "装備" },
+      { source: "Companions", translation: "同胞団", category: "派閥" },
+      { source: "A Night to Remember", translation: "忘れられぬ夜", category: "クエスト" },
+      { source: "Arcane Enchanter", translation: "付呪器", category: "設備" },
+      { source: "Frostfall", translation: "凍てつく季節", category: "固有名詞" },
+      { source: "Whiterun Guard", translation: "ホワイトラン衛兵", category: "役職語" },
+      { source: "Soul Gem", translation: "魂石", category: "アイテム" },
+      { source: "Bleak Falls Barrow", translation: "ブリーク・フォール墓地", category: "地名" }
     ];
 
-    const state = { selectedIndex: 0 };
-    const entrySearch = document.getElementById("entrySearch");
-    const entryList = document.getElementById("entryList");
-    const detailRibbon = document.getElementById("detailRibbon");
-    const entryTitle = document.getElementById("entryTitle");
-    const entrySubtitle = document.getElementById("entrySubtitle");
-    const detailGrid = document.getElementById("detailGrid");
-    const detailList = document.getElementById("detailList");
+    const origins = ["XML取込", "手動登録", "確認待ち"];
+    const categories = ["すべて", "固有名詞", "地名", "役職語", "魔法", "装備", "派閥", "クエスト", "設備", "アイテム"];
+    const totalEntryCount = 28641;
 
-    function currentItem() {
-      return dictionaryEntries[state.selectedIndex];
+    const entries = Array.from({ length: totalEntryCount }, (_, index) => {
+      const seed = seedEntries[index % seedEntries.length];
+      const batch = Math.floor(index / seedEntries.length) + 1;
+      const date = new Date(Date.UTC(2026, index % 12, (index % 27) + 1, 9 + (index % 10), index % 60));
+      const updatedAt = date.toISOString().slice(0, 16).replace("T", " ");
+      return {
+        id: index + 1,
+        source: batch === 1 ? seed.source : seed.source + " " + String(batch).padStart(4, "0"),
+        translation: batch === 1 ? seed.translation : seed.translation + " " + String(batch).padStart(4, "0"),
+        category: seed.category,
+        origin: origins[index % origins.length],
+        updatedAt,
+        note: batch % 3 === 0 ? "訳語確認中" : "現在の訳語で運用中"
+      };
+    });
+
+    const state = {
+      query: "",
+      category: "すべて",
+      page: 0,
+      pageSize: 30,
+      selectedId: 1,
+      importFileName: "",
+      importStage: "idle",
+      importProgress: 0,
+      lastImportSummary: null,
+      modal: null,
+      importTimer: null,
+      feedbackHeadline: "一覧と詳細は同じ選択内容を表示しています。",
+      feedbackDetail: "一覧から別のエントリを選択すると、ここも切り替わります。"
+    };
+
+    let nextEntryId = entries.length + 1;
+
+    const chooseXmlButton = document.getElementById("chooseXmlButton");
+    const createButton = document.getElementById("createButton");
+    const importStateText = document.getElementById("importStateText");
+    const xmlFileInput = document.getElementById("xmlFileInput");
+    const selectedFileName = document.getElementById("selectedFileName");
+    const importBar = document.getElementById("importBar");
+    const importFileTitle = document.getElementById("importFileTitle");
+    const importStatusText = document.getElementById("importStatusText");
+    const importStatusValue = document.getElementById("importStatusValue");
+    const importProgressFill = document.getElementById("importProgressFill");
+    const importResult = document.getElementById("importResult");
+    const importResultHeadline = document.getElementById("importResultHeadline");
+    const importResultCount = document.getElementById("importResultCount");
+    const importResultMessage = document.getElementById("importResultMessage");
+    const importResultListCount = document.getElementById("importResultListCount");
+    const importResultSelection = document.getElementById("importResultSelection");
+    const importResultDetail = document.getElementById("importResultDetail");
+    const startImportButton = document.getElementById("startImportButton");
+    const resetImportButton = document.getElementById("resetImportButton");
+    const searchInput = document.getElementById("searchInput");
+    const categorySelect = document.getElementById("categorySelect");
+    const listHeadline = document.getElementById("listHeadline");
+    const pageStatusText = document.getElementById("pageStatusText");
+    const listStack = document.getElementById("listStack");
+    const selectionStatus = document.getElementById("selectionStatus");
+    const prevPageButton = document.getElementById("prevPageButton");
+    const nextPageButton = document.getElementById("nextPageButton");
+    const detailSubline = document.getElementById("detailSubline");
+    const detailTags = document.getElementById("detailTags");
+    const detailTitle = document.getElementById("detailTitle");
+    const detailTranslation = document.getElementById("detailTranslation");
+    const detailGrid = document.getElementById("detailGrid");
+    const detailStatusMessage = document.getElementById("detailStatusMessage");
+    const detailList = document.getElementById("detailList");
+    const editButton = document.getElementById("editButton");
+    const deleteButton = document.getElementById("deleteButton");
+    const editModal = document.getElementById("editModal");
+    const editModalEyebrow = document.getElementById("editModalEyebrow");
+    const editModalTitle = document.getElementById("editModalTitle");
+    const editModalDescription = document.getElementById("editModalDescription");
+    const formSource = document.getElementById("formSource");
+    const formCategory = document.getElementById("formCategory");
+    const formOrigin = document.getElementById("formOrigin");
+    const formTranslation = document.getElementById("formTranslation");
+    const closeEditModalButton = document.getElementById("closeEditModalButton");
+    const saveEntryButton = document.getElementById("saveEntryButton");
+    const deleteModal = document.getElementById("deleteModal");
+    const deleteTargetTitle = document.getElementById("deleteTargetTitle");
+    const deleteTargetMeta = document.getElementById("deleteTargetMeta");
+    const closeDeleteModalButton = document.getElementById("closeDeleteModalButton");
+    const confirmDeleteButton = document.getElementById("confirmDeleteButton");
+
+    function escapeHtml(value) {
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/\"/g, "&quot;")
+        .replace(/'/g, "&#39;");
     }
 
-    function renderList() {
-      entryList.innerHTML = "";
-      const query = entrySearch.value.trim().toLowerCase();
-      const filteredItems = dictionaryEntries
-        .map((item, index) => ({ item, index }))
-        .filter(({ item }) => [item.title, item.subtitle, item.tags.join(" ")].join(" ").toLowerCase().includes(query));
+    function formatCount(value) {
+      return value.toLocaleString("ja-JP");
+    }
 
-      filteredItems.forEach(({ item, index }) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.className = "list-item" + (index === state.selectedIndex ? " is-selected" : "");
-        button.innerHTML =
-          "<strong>" + item.title + "</strong>" +
-          "<p class=\"entry-subtitle\">" + item.subtitle + "</p>" +
-          "<div class=\"detail-ribbon\">" + item.tags.map((tag) => "<span class=\"tag\">" + tag + "</span>").join("") + "</div>";
-        button.addEventListener("click", () => {
-          state.selectedIndex = index;
-          render();
-        });
-        entryList.appendChild(button);
+    function formatTimestamp(date) {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const day = String(date.getDate()).padStart(2, "0");
+      const hour = String(date.getHours()).padStart(2, "0");
+      const minute = String(date.getMinutes()).padStart(2, "0");
+      return year + "-" + month + "-" + day + " " + hour + ":" + minute;
+    }
+
+    function setFeedback(headline, detail) {
+      state.feedbackHeadline = headline;
+      state.feedbackDetail = detail;
+    }
+
+    function resetFeedback() {
+      setFeedback(
+        "一覧と詳細は同じ選択内容を表示しています。",
+        "一覧から別のエントリを選択すると、ここも切り替わります。"
+      );
+    }
+
+    function syncFilterControls() {
+      searchInput.value = state.query;
+      categorySelect.value = state.category;
+    }
+
+    function populateOptions() {
+      categorySelect.innerHTML = "";
+      formCategory.innerHTML = "";
+      formOrigin.innerHTML = "";
+
+      categories.forEach((category) => {
+        const option = document.createElement("option");
+        option.value = category;
+        option.textContent = category;
+        categorySelect.appendChild(option);
+
+        if (category !== "すべて") {
+          const formOption = document.createElement("option");
+          formOption.value = category;
+          formOption.textContent = category;
+          formCategory.appendChild(formOption);
+        }
       });
 
-      if (!filteredItems.length) {
-        const empty = document.createElement("div");
-        empty.className = "banner";
-        empty.textContent = "一致するエントリがありません。検索条件を変えてください。";
-        entryList.appendChild(empty);
+      origins.forEach((origin) => {
+        const option = document.createElement("option");
+        option.value = origin;
+        option.textContent = origin;
+        formOrigin.appendChild(option);
+      });
+    }
+
+    function getFilteredEntries() {
+      const query = state.query.trim().toLowerCase();
+      return entries.filter((entry) => {
+        const matchesCategory = state.category === "すべて" || entry.category === state.category;
+        const haystack = [entry.source, entry.translation, String(entry.id)].join(" ").toLowerCase();
+        const matchesQuery = !query || haystack.includes(query);
+        return matchesCategory && matchesQuery;
+      });
+    }
+
+    function getPageEntries(filtered) {
+      const maxPage = Math.max(Math.ceil(filtered.length / state.pageSize) - 1, 0);
+      if (state.page > maxPage) state.page = maxPage;
+      const start = state.page * state.pageSize;
+      return {
+        items: filtered.slice(start, start + state.pageSize),
+        start,
+        end: Math.min(start + state.pageSize, filtered.length),
+        maxPage
+      };
+    }
+
+    function getSelectedEntry(filtered) {
+      if (!filtered.length) return null;
+      const found = filtered.find((entry) => entry.id === state.selectedId);
+      if (found) return found;
+      state.selectedId = filtered[0].id;
+      return filtered[0];
+    }
+
+    function revealEntry(entryId) {
+      let filtered = getFilteredEntries();
+      let index = filtered.findIndex((entry) => entry.id === entryId);
+
+      if (index === -1) {
+        state.query = "";
+        state.category = "すべて";
+        syncFilterControls();
+        filtered = getFilteredEntries();
+        index = filtered.findIndex((entry) => entry.id === entryId);
+      }
+
+      state.selectedId = entryId;
+      state.page = index > -1 ? Math.floor(index / state.pageSize) : 0;
+    }
+
+    function buildEntryFromForm(existingEntry) {
+      const source = formSource.value.trim() || "未入力";
+      const translation = formTranslation.value.trim() || "未入力";
+      return {
+        id: existingEntry ? existingEntry.id : nextEntryId++,
+        source,
+        translation,
+        category: formCategory.value || "固有名詞",
+        origin: formOrigin.value || "手動登録",
+        updatedAt: formatTimestamp(new Date()),
+        note: existingEntry ? "更新内容を反映済み" : "新規登録を反映済み"
+      };
+    }
+
+    function createImportedEntries(fileName) {
+      const importLabel = fileName.replace(/\.[^.]+$/, "") || "新規XML";
+      const importedSeeds = [
+        { source: "Ancient Nord Bow", translation: "古代ノルドの弓", category: "装備" },
+        { source: "Raven Rock Smith", translation: "レイヴン・ロックの鍛冶屋", category: "役職語" },
+        { source: "Aetherial Lantern", translation: "星霊のランタン", category: "アイテム" }
+      ];
+      return importedSeeds.map((seed, index) => ({
+        id: nextEntryId++,
+        source: index === 0 ? seed.source : seed.source + " " + importLabel,
+        translation: index === 0 ? seed.translation : seed.translation + " " + importLabel,
+        category: seed.category,
+        origin: "XML取込",
+        updatedAt: formatTimestamp(new Date()),
+        note: "「" + importLabel + "」から取り込みました"
+      }));
+    }
+
+    function renderImport() {
+      selectedFileName.textContent = state.importFileName || "未選択";
+      importBar.classList.toggle("is-visible", Boolean(state.importFileName));
+      importFileTitle.textContent = state.importFileName || "-";
+
+      const stateLineMap = {
+        idle: "ファイルを選ぶと取込バーが表示されます。",
+        ready: "選択した XML を確認してから取り込みを開始できます。",
+        running: "取込バーで進行中の状態を確認できます。",
+        done: "取り込み結果を同じ画面で確認できます。"
+      };
+      const statusTextMap = {
+        idle: "ファイルを選択すると、ここに取込状態が表示されます。",
+        ready: "選択した XML を確認してから取り込みを開始できます。",
+        running: "選択した XML を取り込んでいます。",
+        done: "取り込みが完了しました。内容を確認してください。"
+      };
+      const statusValueMap = {
+        idle: "待機中",
+        ready: "取込待ち",
+        running: "取込中",
+        done: "完了"
+      };
+
+      if (state.importStage === "done" && state.lastImportSummary) {
+        importStateText.textContent = "「" + state.lastImportSummary.fileName + "」を反映し、一覧と詳細を同じ画面で更新しました。";
+        importStatusText.textContent = state.lastImportSummary.count + " 件を追加し、一覧を先頭 30 件へ戻して、先頭の追加エントリを選択しています。";
+      } else {
+        importStateText.textContent = stateLineMap[state.importStage];
+        importStatusText.textContent = statusTextMap[state.importStage];
+      }
+      importStatusValue.textContent = statusValueMap[state.importStage];
+      importProgressFill.style.width = state.importProgress + "%";
+      chooseXmlButton.disabled = state.importStage === "running";
+      startImportButton.disabled = !state.importFileName || state.importStage === "running" || state.importStage === "done";
+      resetImportButton.disabled = state.importStage === "running" || (!state.importFileName && state.importStage === "idle");
+
+      const hasImportSummary = state.importStage === "done" && Boolean(state.lastImportSummary);
+      importResult.classList.toggle("is-visible", hasImportSummary);
+      if (hasImportSummary) {
+        importResultHeadline.textContent = state.lastImportSummary.fileName;
+        importResultCount.textContent = state.lastImportSummary.count + " 件を追加";
+        importResultMessage.textContent = "一覧件数を更新し、追加内容が見える先頭ページへ切り替えました。";
+        importResultListCount.textContent = formatCount(state.lastImportSummary.total) + " 件へ更新";
+        importResultSelection.textContent = "先頭 30 件 / 「" + state.lastImportSummary.selectedTranslation + "」を選択";
+        importResultDetail.textContent = state.lastImportSummary.selectedSource + " を表示";
       }
     }
 
-    function renderDetail() {
-      const item = currentItem();
-      detailRibbon.innerHTML = "";
-      item.tags.forEach((tag) => {
-        const chip = document.createElement("span");
-        chip.className = "tag";
-        chip.textContent = tag;
-        detailRibbon.appendChild(chip);
-      });
-      entryTitle.textContent = item.title;
-      entrySubtitle.textContent = item.subtitle;
+    function renderList(filtered, pageInfo, selected) {
+      listStack.innerHTML = "";
+      listHeadline.textContent = formatCount(filtered.length) + " 件を表示しています。";
+      pageStatusText.textContent = filtered.length
+        ? (pageInfo.start + 1) + " - " + pageInfo.end + " 件を表示"
+        : "表示できるエントリがありません";
+      prevPageButton.disabled = state.page === 0;
+      nextPageButton.disabled = pageInfo.end >= filtered.length;
 
+      if (!pageInfo.items.length) {
+        selectionStatus.textContent = state.feedbackHeadline;
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "一致するエントリがありません。検索条件を変更してください。";
+        listStack.appendChild(empty);
+        return;
+      }
+
+      selectionStatus.textContent = selected
+        ? "選択中: " + selected.translation + " / " + selected.source + " / ID " + selected.id
+        : state.feedbackHeadline;
+
+      pageInfo.items.forEach((entry) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "list-row" + (selected && entry.id === selected.id ? " is-selected" : "");
+        button.innerHTML =
+          '<div class="row-cell"><div class="row-value">' + escapeHtml(entry.translation) + "</div></div>" +
+          '<div class="row-cell"><div class="row-value">' + escapeHtml(entry.source) + "</div></div>" +
+          '<div class="row-meta">' + escapeHtml(entry.category + " / " + entry.origin) + "</div>" +
+          '<div class="row-id">#' + String(entry.id).padStart(5, "0") + "</div>";
+        button.addEventListener("click", () => {
+          state.selectedId = entry.id;
+          resetFeedback();
+          render();
+        });
+        listStack.appendChild(button);
+      });
+    }
+
+    function renderDetail(selected) {
+      detailSubline.textContent = state.feedbackHeadline;
+      detailTags.innerHTML = "";
       detailGrid.innerHTML = "";
-      item.cards.forEach((card) => {
+      detailList.innerHTML = "";
+      editButton.disabled = !selected;
+      deleteButton.disabled = !selected;
+
+      if (!selected) {
+        detailTitle.textContent = "表示できるエントリがありません";
+        detailTranslation.textContent = "検索条件を変更してください。";
+        detailStatusMessage.textContent = state.feedbackDetail;
+        const empty = document.createElement("div");
+        empty.className = "empty-state";
+        empty.textContent = "一覧に表示できるエントリが戻ると、詳細も同じ画面で切り替わります。";
+        detailGrid.appendChild(empty);
+        return;
+      }
+
+      detailTitle.textContent = selected.source;
+      detailTranslation.textContent = selected.translation;
+      detailStatusMessage.textContent = state.feedbackDetail + " / " + selected.origin + " / 最終更新 " + selected.updatedAt;
+
+      [selected.category, selected.origin].forEach((label) => {
+        const tag = document.createElement("span");
+        tag.className = "status-pill";
+        tag.textContent = label;
+        detailTags.appendChild(tag);
+      });
+
+      const cards = [
+        { label: "ID", value: selected.id },
+        { label: "カテゴリ", value: selected.category },
+        { label: "原文", value: selected.source },
+        { label: "最終更新", value: selected.updatedAt }
+      ];
+      cards.forEach((card) => {
         const node = document.createElement("div");
         node.className = "detail-card";
-        node.innerHTML = "<span class=\"eyebrow\">" + card.label + "</span><strong>" + card.value + "</strong>";
+        node.innerHTML = '<div class="meta-label">' + escapeHtml(card.label) + "</div><strong>" + escapeHtml(card.value) + "</strong>";
         detailGrid.appendChild(node);
       });
 
-      detailList.innerHTML = "";
-      item.details.forEach((detail) => {
-        const row = document.createElement("div");
-        row.innerHTML = "<dt>" + detail.term + "</dt><dd>" + detail.desc + "</dd>";
-        detailList.appendChild(row);
+      const rows = [
+        { term: "訳語", desc: selected.translation },
+        { term: "由来", desc: selected.origin },
+        { term: "現在の扱い", desc: selected.note }
+      ];
+      rows.forEach((row) => {
+        const wrapper = document.createElement("div");
+        wrapper.innerHTML = "<dt>" + escapeHtml(row.term) + "</dt><dd>" + escapeHtml(row.desc) + "</dd>";
+        detailList.appendChild(wrapper);
       });
     }
 
-    function render() {
-      renderList();
-      renderDetail();
+    function openEditModal(mode, selected) {
+      state.modal = mode;
+      editModal.classList.add("is-visible");
+      editModal.setAttribute("aria-hidden", "false");
+      if (mode === "create") {
+        editModalEyebrow.textContent = "新規登録";
+        editModalTitle.textContent = "新規登録";
+        editModalDescription.textContent = "辞書エントリの内容を入力します。";
+        formSource.value = "";
+        formCategory.value = "固有名詞";
+        formOrigin.value = "手動登録";
+        formTranslation.value = "";
+      } else if (selected) {
+        editModalEyebrow.textContent = "更新";
+        editModalTitle.textContent = "更新";
+        editModalDescription.textContent = "選択中の辞書エントリを編集します。";
+        formSource.value = selected.source;
+        formCategory.value = selected.category;
+        formOrigin.value = selected.origin;
+        formTranslation.value = selected.translation;
+      }
     }
 
-    entrySearch.addEventListener("input", () => {
-      renderList();
+    function closeEditModal() {
+      state.modal = null;
+      editModal.classList.remove("is-visible");
+      editModal.setAttribute("aria-hidden", "true");
+    }
+
+    function openDeleteModal(selected) {
+      state.modal = "delete";
+      deleteTargetTitle.textContent = selected.source;
+      deleteTargetMeta.textContent = selected.translation + " / ID " + selected.id;
+      deleteModal.classList.add("is-visible");
+      deleteModal.setAttribute("aria-hidden", "false");
+    }
+
+    function closeDeleteModal() {
+      state.modal = null;
+      deleteModal.classList.remove("is-visible");
+      deleteModal.setAttribute("aria-hidden", "true");
+    }
+
+    function stopImportTimer() {
+      if (state.importTimer) {
+        clearInterval(state.importTimer);
+        state.importTimer = null;
+      }
+    }
+
+    function finishImport() {
+      const importedEntries = createImportedEntries(state.importFileName);
+      for (let index = importedEntries.length - 1; index >= 0; index -= 1) {
+        entries.unshift(importedEntries[index]);
+      }
+      state.importProgress = 100;
+      state.importStage = "done";
+      state.query = "";
+      state.category = "すべて";
+      state.page = 0;
+      state.selectedId = importedEntries[0].id;
+      state.lastImportSummary = {
+        fileName: state.importFileName,
+        count: importedEntries.length,
+        total: entries.length,
+        selectedTranslation: importedEntries[0].translation,
+        selectedSource: importedEntries[0].source
+      };
+      setFeedback(
+        "XML取り込みを一覧と詳細へ反映しました。",
+        "「" + state.importFileName + "」から " + importedEntries.length + " 件を追加し、先頭の「" + importedEntries[0].translation + "」を表示しています。"
+      );
+    }
+
+    function startImport() {
+      stopImportTimer();
+      state.importStage = "running";
+      state.importProgress = 12;
+      render();
+      state.importTimer = setInterval(() => {
+        state.importProgress += 18;
+        if (state.importProgress >= 100) {
+          stopImportTimer();
+          finishImport();
+        }
+        render();
+      }, 260);
+    }
+
+    function saveCurrentEntry() {
+      const mode = state.modal;
+      if (mode === "create") {
+        const newEntry = buildEntryFromForm();
+        entries.unshift(newEntry);
+        revealEntry(newEntry.id);
+        setFeedback(
+          "新規登録を一覧と詳細へ反映しました。",
+          "「" + newEntry.translation + "」を追加し、同じページで確認できます。"
+        );
+        closeEditModal();
+        render();
+        return;
+      }
+
+      const current = entries.find((entry) => entry.id === state.selectedId);
+      if (!current) return;
+      const nextState = buildEntryFromForm(current);
+      Object.assign(current, nextState);
+      revealEntry(current.id);
+      setFeedback(
+        "更新内容を一覧と詳細へ反映しました。",
+        "「" + current.translation + "」へ更新し、選択中の内容も同期しています。"
+      );
+      closeEditModal();
+      render();
+    }
+
+    function deleteCurrentEntry() {
+      const filteredBefore = getFilteredEntries();
+      const selected = getSelectedEntry(filteredBefore);
+      if (!selected) return;
+
+      const visibleIndex = filteredBefore.findIndex((entry) => entry.id === selected.id);
+      const entryIndex = entries.findIndex((entry) => entry.id === selected.id);
+      if (entryIndex === -1) return;
+
+      const removed = entries.splice(entryIndex, 1)[0];
+      closeDeleteModal();
+
+      const filteredAfter = getFilteredEntries();
+      const nextSelected = filteredAfter[visibleIndex] || filteredAfter[visibleIndex - 1] || filteredAfter[0] || null;
+
+      if (nextSelected) {
+        state.selectedId = nextSelected.id;
+        const nextIndex = filteredAfter.findIndex((entry) => entry.id === nextSelected.id);
+        state.page = nextIndex > -1 ? Math.floor(nextIndex / state.pageSize) : 0;
+        setFeedback(
+          "削除内容を一覧へ反映し、詳細を次のエントリへ切り替えました。",
+          "「" + removed.translation + "」を削除しました。現在は「" + nextSelected.translation + "」を表示しています。"
+        );
+      } else {
+        state.selectedId = null;
+        state.page = 0;
+        setFeedback(
+          "削除内容を一覧へ反映しました。",
+          "「" + removed.translation + "」を削除しました。現在は表示できるエントリがありません。"
+        );
+      }
+
+      render();
+    }
+
+    function render() {
+      const filtered = getFilteredEntries();
+      const pageInfo = getPageEntries(filtered);
+      const selected = getSelectedEntry(filtered);
+      syncFilterControls();
+      renderImport();
+      renderList(filtered, pageInfo, selected);
+      renderDetail(selected);
+    }
+
+    populateOptions();
+    syncFilterControls();
+
+    searchInput.addEventListener("input", () => {
+      state.query = searchInput.value;
+      state.page = 0;
+      resetFeedback();
+      render();
+    });
+
+    categorySelect.addEventListener("change", () => {
+      state.category = categorySelect.value;
+      state.page = 0;
+      resetFeedback();
+      render();
+    });
+
+    prevPageButton.addEventListener("click", () => {
+      if (state.page > 0) {
+        state.page -= 1;
+        resetFeedback();
+        render();
+      }
+    });
+
+    nextPageButton.addEventListener("click", () => {
+      state.page += 1;
+      resetFeedback();
+      render();
+    });
+
+    chooseXmlButton.addEventListener("click", () => {
+      if (state.importStage === "running") return;
+      xmlFileInput.click();
+    });
+
+    xmlFileInput.addEventListener("change", () => {
+      const file = xmlFileInput.files && xmlFileInput.files[0];
+      stopImportTimer();
+      state.importFileName = file ? file.name : "";
+      state.importStage = file ? "ready" : "idle";
+      state.importProgress = file ? 28 : 0;
+      state.lastImportSummary = null;
+      render();
+    });
+
+    startImportButton.addEventListener("click", () => {
+      if (!state.importFileName || state.importStage === "running" || state.importStage === "done") return;
+      startImport();
+    });
+
+    resetImportButton.addEventListener("click", () => {
+      if (state.importStage === "running") return;
+      stopImportTimer();
+      xmlFileInput.value = "";
+      state.importFileName = "";
+      state.importStage = "idle";
+      state.importProgress = 0;
+      state.lastImportSummary = null;
+      render();
+    });
+
+    createButton.addEventListener("click", () => {
+      openEditModal("create");
+    });
+
+    editButton.addEventListener("click", () => {
+      const selected = getSelectedEntry(getFilteredEntries());
+      if (!selected) return;
+      openEditModal("edit", selected);
+    });
+
+    deleteButton.addEventListener("click", () => {
+      const selected = getSelectedEntry(getFilteredEntries());
+      if (!selected) return;
+      openDeleteModal(selected);
+    });
+
+    closeEditModalButton.addEventListener("click", () => {
+      closeEditModal();
+    });
+
+    saveEntryButton.addEventListener("click", () => {
+      saveCurrentEntry();
+    });
+
+    closeDeleteModalButton.addEventListener("click", () => {
+      closeDeleteModal();
+    });
+
+    confirmDeleteButton.addEventListener("click", () => {
+      deleteCurrentEntry();
+    });
+
+    editModal.addEventListener("click", (event) => {
+      if (event.target === editModal) closeEditModal();
+    });
+
+    deleteModal.addEventListener("click", (event) => {
+      if (event.target === deleteModal) closeDeleteModal();
     });
 
     render();

@@ -8,3 +8,5 @@ frontend/wailsjs
 frontend/package.json.md5
 playwright-report
 test-results
+dictionaries
+.zed

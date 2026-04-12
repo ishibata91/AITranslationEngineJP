@@ -1,6 +1,8 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
+  import type { MasterDictionaryGatewayContract } from "@application/gateway-contract/master-dictionary"
+  import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import type {
     ShellRouteContract,
     ShellRouteId
@@ -9,9 +11,10 @@
   interface Props {
     defaultRouteId: ShellRouteId
     routes: ShellRouteContract[]
+    masterDictionaryGateway: MasterDictionaryGatewayContract | null
   }
 
-  let { defaultRouteId, routes }: Props = $props()
+  let { defaultRouteId, routes, masterDictionaryGateway }: Props = $props()
 
   const PLACEHOLDER_LEAD =
     "このページはまだ準備中です。上のナビゲーションまたは下の移動から別の主要ページへ進めます。"
@@ -35,6 +38,9 @@
     routeById.get(currentRouteId) ?? routes[0] ?? fallbackRoute
   )
   const isDashboard = $derived(currentRoute.id === "dashboard")
+  const RouteComponent = $derived(
+    currentRoute.id === "master-dictionary" ? MasterDictionaryPage : null
+  )
   const dashboardEntryRoutes = $derived(routes.filter((route) => route.id !== "dashboard"))
 
   function normalizeRouteId(hashValue: string): ShellRouteId {
@@ -156,7 +162,11 @@
       </section>
     {/if}
 
-    {#if !isDashboard}
+    {#if !isDashboard && RouteComponent}
+      <RouteComponent gateway={masterDictionaryGateway} />
+    {/if}
+
+    {#if !isDashboard && !RouteComponent}
       <section class="placeholder-content" id="placeholderView">
         <section class="panel placeholder-card">
           <p class="page-label">現在のページ</p>

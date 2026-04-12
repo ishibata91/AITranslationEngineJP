@@ -6,6 +6,7 @@
   },
   "scripts": {
     "backendlint": "npm run lint:backend",
+    "dev:wails:docker-mcp": "VITE_HOST=0.0.0.0 VITE_PORT=5173 wails dev -devserver 0.0.0.0:34115",
     "backendtest": "npm run test:backend",
     "lint:backend": "npm run lint:backend:format && npm run lint:backend:vet && npm run lint:backend:static && npm run lint:backend:arch && npm run lint:backend:module",
     "lint:backend:arch": "sh ./scripts/lint/run-go-backend-lint.sh arch",
@@ -17,7 +18,9 @@
     "frontendtest": "npm run test:frontend",
     "lint:frontend": "npm run frontendlint",
     "test:backend": "sh ./scripts/test/run-go-backend-test.sh",
+    "test:backend:coverage": "sh ./scripts/test/run-go-backend-coverage.sh",
     "test:frontend": "npm --prefix frontend run test",
+    "test:frontend:coverage": "sh ./scripts/test/run-frontend-coverage.sh",
     "test:system": "sh ./scripts/test/run-system-test.sh",
     "test:system:install": "playwright install chromium"
   }

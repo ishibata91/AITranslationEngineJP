@@ -6,6 +6,13 @@ export default mergeConfig(viteConfig, defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.test.ts"]
+    include: ["src/**/*.test.ts"],
+    coverage: {
+      provider: "v8",
+      reportsDirectory: "../test-results/frontend-coverage",
+      reporter: ["text", "json-summary", "lcov"],
+      include: ["src/**/*.ts"],
+      exclude: ["src/**/*.test.ts", "src/test/**"]
+    }
   }
 }))

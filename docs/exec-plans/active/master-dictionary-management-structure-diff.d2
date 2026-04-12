@@ -1,0 +1,481 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+  }
+}
+
+direction: down
+
+title: "master-dictionary-management structure diff review only"
+
+classes: {
+  addition: {
+    style: {
+      stroke: "#2e7d32"
+      fill: "#f1fbf1"
+      font-color: "#1b5e20"
+      stroke-width: 2
+    }
+  }
+  removal: {
+    style: {
+      stroke: "#c62828"
+      fill: "#fff2f2"
+      font-color: "#8e1b1b"
+      stroke-width: 2
+      stroke-dash: 4
+    }
+  }
+  neutral: {
+    style: {
+      stroke: "#546e7a"
+      fill: "#f7f9fb"
+      font-color: "#24323a"
+      stroke-width: 2
+    }
+  }
+  package_addition: {
+    style: {
+      stroke: "#2e7d32"
+      fill: "#eef9ef"
+      font-color: "#1b5e20"
+      stroke-dash: 4
+      stroke-width: 2
+    }
+  }
+  package_neutral: {
+    style: {
+      stroke: "#607d8b"
+      fill: "#f2f5f7"
+      font-color: "#24323a"
+      stroke-dash: 4
+      stroke-width: 2
+    }
+  }
+}
+
+review_note: {
+  shape: class
+  class: neutral
+  label: "review note"
+  +proposalDiffOnly: true
+  +sourceOfTruth: false
+  +additions: "green"
+  +removals: "red"
+}
+
+frontend_diff: {
+  label: "frontend diff"
+  direction: down
+  class: neutral
+
+  shell_update: {
+    label: "existing source target update\ndashboard-and-app-shell.d2"
+    direction: down
+    class: package_neutral
+
+    shell_view_package: {
+      label: "package: View"
+      direction: down
+      class: package_neutral
+
+      app_shell: {
+        shape: class
+        class: addition
+        label: "AppShell route update"
+        +renderMasterDictionaryRoute(): void
+        +showIndependentMasterDictionaryPage(): void
+      }
+
+      placeholder_fallback_removed: {
+        shape: class
+        class: removal
+        label: "Placeholder fallback for master-dictionary"
+        -routeToPlaceholder("master-dictionary"): void
+      }
+    }
+
+    shell_store_package: {
+      label: "package: Store"
+      direction: down
+      class: package_neutral
+
+      shell_state: {
+        shape: class
+        class: addition
+        label: "shell-state route update"
+        +currentRoute: RouteId
+        +masterDictionaryRouteMeta: RouteMeta
+        +currentLocationLabel: "マスター辞書"
+      }
+    }
+
+    shell_view_package.app_shell -> shell_store_package.shell_state: "route state を読む"
+    shell_store_package.shell_state -> shell_view_package.app_shell: "master-dictionary route を供給" {
+      style.stroke: "#2e7d32"
+      style.font-color: "#1b5e20"
+      style.stroke-width: 2
+    }
+    shell_view_package.app_shell -> shell_view_package.placeholder_fallback_removed: "旧 fallback 責務を除外" {
+      style.stroke: "#c62828"
+      style.font-color: "#8e1b1b"
+      style.stroke-width: 2
+      style.stroke-dash: 4
+    }
+  }
+
+  page_detail_addition: {
+    label: "new source target\ncomponents/frontend/master-dictionary-management.d2"
+    direction: down
+    class: package_addition
+
+    view_package: {
+      label: "package: View"
+      direction: down
+      class: package_addition
+
+      master_dictionary_page: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryPage.svelte"
+        +renderImportCard(): void
+        +renderImportBar(): void
+        +renderListPane(): void
+        +renderDetailPane(): void
+        +renderCreateEditModal(): void
+        +renderDeleteModal(): void
+      }
+    }
+
+    screen_controller_package: {
+      label: "package: ScreenController"
+      direction: down
+      class: package_addition
+
+      master_dictionary_screen_controller: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryScreenController"
+        +loadPage(): void
+        +selectEntry(id): void
+        +submitSearch(query, category): void
+        +openCreate(): void
+        +openEdit(id): void
+        +openDelete(id): void
+        +stageXmlImport(fileRef): void
+        +startXmlImport(): void
+      }
+    }
+
+    usecase_package: {
+      label: "package: UseCase"
+      direction: down
+      class: package_addition
+
+      master_dictionary_usecase: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryUseCase"
+        +refreshList(filters): void
+        +loadDetail(id): void
+        +createEntry(payload): DetailResult
+        +updateEntry(id, payload): DetailResult
+        +deleteEntry(id): DeleteResult
+        +stageXmlImport(fileRef): void
+        +startStagedXmlImport(): ImportAccepted
+        +handleImportCompleted(result): void
+      }
+
+      crud_refresh_policy: {
+        shape: class
+        class: addition
+        label: "CRUD success refresh policy"
+        +afterCreate(createdId): refresh list and reselect detail
+        +afterUpdate(updatedId): refresh list and reload selected detail
+        +afterDelete(nextId?): refresh list and reselect or clear detail
+      }
+
+      import_completion_refresh_policy: {
+        shape: class
+        class: addition
+        label: "XML import completion refresh policy"
+        +afterImportCompleted(result): clear search/filter context and refresh list
+        +resetListWindow(): return to first 30 entries on page 1
+        +reselectImportedDetail(importedEntryId): imported detail visible after refresh
+        +preserveFileSelectionFirstFlow(): no import start before file selection
+      }
+    }
+
+    presenter_package: {
+      label: "package: Presenter"
+      direction: down
+      class: package_addition
+
+      master_dictionary_presenter: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryPresenter"
+        +toListViewModel(): ListViewModel
+        +toDetailViewModel(): DetailViewModel
+        +toImportBarViewModel(): ImportBarViewModel
+        +toImportStatusViewModel(): ImportStatusViewModel
+      }
+    }
+
+    store_package: {
+      label: "package: Store"
+      direction: down
+      class: package_addition
+
+      master_dictionary_store: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryStore"
+        +filters: query + category + page
+        +selectedEntryId: string?
+        +detailRefreshTargetId: string?
+        +importRefreshTargetId: importedEntryId
+        +importResetToDefaultList: clear query/category and page 1
+        +listState: loading / ready / empty
+        +detailState: ready / editing / deleting / cleared
+        +selectedImportFile: FileRef?
+        +importState: idle / ready / running / done
+        +lastImportSummary: imported / updated / skipped
+      }
+    }
+
+    gateway_contract_package: {
+      label: "package: GatewayContract"
+      direction: down
+      class: package_addition
+
+      master_dictionary_gateway_contract: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryGatewayContract"
+        +fetchList(filters): Promise
+        +fetchDetail(id): Promise
+        +createEntry(payload): Promise
+        +updateEntry(id, payload): Promise
+        +deleteEntry(id): Promise
+        +importXml(fileRef): Promise
+      }
+    }
+
+    gateway_package: {
+      label: "package: Gateway"
+      direction: down
+      class: package_addition
+
+      master_dictionary_gateway: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryGateway"
+        +mapRequestResponseDto(): void
+        +callMasterDictionaryBind(): void
+      }
+
+      gateway_dto: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryGatewayDTO"
+        +listRequest / listResponse
+        +detailResponse
+        +upsertRequest
+        +deleteRequest
+        +importRequest / importProgressEvent
+      }
+    }
+
+    runtime_event_adapter_package: {
+      label: "package: RuntimeEventAdapter"
+      direction: down
+      class: package_addition
+
+      master_dictionary_runtime_event_adapter: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryRuntimeEventAdapter"
+        +subscribeImportProgress(): void
+        +subscribeImportCompleted(): void
+        +pushImportStateToStore(): void
+        +forwardImportCompleted(result): void
+      }
+    }
+
+    external_frontend: {
+      label: "Wails boundary"
+      direction: down
+      class: package_neutral
+
+      wailsjs: {
+        shape: class
+        class: neutral
+        label: "generated wailsjs"
+        +masterDictionary bind wrapper
+      }
+
+      wails_runtime: {
+        shape: class
+        class: neutral
+        label: "Wails Runtime"
+        +import progress event delivery
+      }
+    }
+
+    view_package.master_dictionary_page -> screen_controller_package.master_dictionary_screen_controller: "一覧 / 詳細 / modal / import bar 操作を渡す"
+    screen_controller_package.master_dictionary_screen_controller -> usecase_package.master_dictionary_usecase: "一覧 / 詳細 / CRUD / import を起動"
+    usecase_package.master_dictionary_usecase -> usecase_package.crud_refresh_policy: "CRUD 成功後の再取得 / 再選択方針を使う"
+    usecase_package.crud_refresh_policy -> store_package.master_dictionary_store: "detailRefreshTargetId と詳細クリア方針を更新"
+    runtime_event_adapter_package.master_dictionary_runtime_event_adapter -> usecase_package.master_dictionary_usecase: "import completed event を渡す"
+    usecase_package.master_dictionary_usecase -> usecase_package.import_completion_refresh_policy: "XML 完了後の同一ページ再取得 / 再選択方針を使う"
+    usecase_package.import_completion_refresh_policy -> store_package.master_dictionary_store: "search/filter を解除し page 1 と importRefreshTargetId を更新"
+    usecase_package.master_dictionary_usecase -> presenter_package.master_dictionary_presenter: "表示用へ整形を依頼"
+    presenter_package.master_dictionary_presenter -> store_package.master_dictionary_store: "list / detail / import bar view model を反映"
+    usecase_package.master_dictionary_usecase -> gateway_contract_package.master_dictionary_gateway_contract: "list / detail / CRUD / import backend 呼び出しに依存"
+    gateway_package.master_dictionary_gateway -> gateway_contract_package.master_dictionary_gateway_contract: "実装する"
+    gateway_package.master_dictionary_gateway -> gateway_package.gateway_dto: "DTO を使う"
+    gateway_package.master_dictionary_gateway -> external_frontend.wailsjs: "Bind を呼ぶ"
+    runtime_event_adapter_package.master_dictionary_runtime_event_adapter -> external_frontend.wails_runtime: "import progress / completed event を購読する"
+    runtime_event_adapter_package.master_dictionary_runtime_event_adapter -> gateway_package.gateway_dto: "event DTO を使う"
+    runtime_event_adapter_package.master_dictionary_runtime_event_adapter -> store_package.master_dictionary_store: "取込中 progress と完了 summary を反映"
+    store_package.master_dictionary_store -> view_package.master_dictionary_page: "一覧 / 詳細 / modal / file-selected import bar state"
+  }
+}
+
+backend_diff: {
+  label: "backend diff"
+  direction: down
+  class: neutral
+
+  backend_detail_addition: {
+    label: "new source target\ncomponents/backend/master-dictionary-management.d2"
+    direction: down
+    class: package_addition
+
+    controller_package: {
+      label: "package: Controller"
+      direction: down
+      class: package_addition
+
+      master_dictionary_controller: {
+        shape: class
+        class: addition
+        label: "internal/controller/wails/MasterDictionaryController"
+        +ListMasterDictionaryEntries(request): response
+        +GetMasterDictionaryEntry(request): response
+        +CreateMasterDictionaryEntry(request): response
+        +UpdateMasterDictionaryEntry(request): response
+        +DeleteMasterDictionaryEntry(request): response
+        +ImportMasterDictionaryXml(request): response
+      }
+    }
+
+    usecase_package: {
+      label: "package: UseCase"
+      direction: down
+      class: package_addition
+
+      master_dictionary_usecase_backend: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryUseCase"
+        +listEntries(filters): ListResult
+        +getEntry(id): DetailResult
+        +createEntry(payload): DetailResult
+        +updateEntry(id, payload): DetailResult
+        +deleteEntry(id): DeleteResult
+        +importXml(fileRef): ImportAccepted
+        +buildImportCompletedEvent(result): reset filters/page 1 + importedEntryId
+      }
+    }
+
+    service_package: {
+      label: "package: Service"
+      direction: down
+      class: package_addition
+
+      master_dictionary_query_service: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryQueryService"
+        +searchEntries(filters): paged list
+        +loadEntryDetail(id): entry detail
+      }
+
+      master_dictionary_command_service: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryCommandService"
+        +createEntry(payload): entry
+        +updateEntry(id, payload): entry
+        +deleteEntry(id): void
+      }
+
+      master_dictionary_import_service: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryImportService"
+        +acceptSelectedFile(fileRef): import input
+        +parseXml(fileRef): import batch
+        +upsertImportedEntries(batch): ImportResult
+        +buildRefreshTarget(result): importedEntryId
+        +emitImportProgress(): void
+        +emitImportCompleted(): void
+      }
+    }
+
+    repository_package: {
+      label: "package: Repository"
+      direction: down
+      class: package_addition
+
+      master_dictionary_repository: {
+        shape: class
+        class: addition
+        label: "MasterDictionaryRepository"
+        +findEntries(filters, page): rows
+        +findEntry(id): row
+        +insertEntry(payload): row
+        +updateEntry(id, payload): row
+        +deleteEntry(id): void
+        +upsertImportedEntries(batch): counts
+      }
+    }
+
+    runtime_boundary: {
+      label: "runtime boundary"
+      direction: down
+      class: package_neutral
+
+      wails_events_emit: {
+        shape: class
+        class: neutral
+        label: "runtime.EventsEmit"
+        +publish import progress
+        +publish import completed with reset filters/page 1 + refresh target
+      }
+    }
+
+    controller_package.master_dictionary_controller -> usecase_package.master_dictionary_usecase_backend: "操作単位で起動する"
+    usecase_package.master_dictionary_usecase_backend -> service_package.master_dictionary_query_service: "一覧 / 詳細を依頼"
+    usecase_package.master_dictionary_usecase_backend -> service_package.master_dictionary_command_service: "作成 / 更新 / 削除を依頼"
+    usecase_package.master_dictionary_usecase_backend -> service_package.master_dictionary_import_service: "選択済み XML の取込開始を依頼"
+    service_package.master_dictionary_query_service -> repository_package.master_dictionary_repository: "検索 / 詳細を読む"
+    service_package.master_dictionary_command_service -> repository_package.master_dictionary_repository: "作成 / 更新 / 削除を保存"
+    service_package.master_dictionary_import_service -> repository_package.master_dictionary_repository: "取込結果を upsert し imported entry の refresh target を得る"
+    usecase_package.master_dictionary_usecase_backend -> runtime_boundary.wails_events_emit: "完了 event payload を構成する"
+    service_package.master_dictionary_import_service -> runtime_boundary.wails_events_emit: "進捗と完了を通知する"
+  }
+}
+
+review_note -> frontend_diff
+review_note -> backend_diff
+
+style: {
+  font-size: 18
+}
+
+edge: {
+  style.font-size: 16
+}

@@ -14,6 +14,9 @@ export default defineConfig({
       "@controller": fileURLToPath(new URL("./src/controller", import.meta.url))
     }
   },
+  server: {
+    allowedHosts: ["host.docker.internal"]
+  },
   build: {
     outDir: "dist"
   }

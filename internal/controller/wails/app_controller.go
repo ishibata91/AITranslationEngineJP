@@ -4,21 +4,24 @@ import "context"
 
 // AppController exposes Wails-bound backend entrypoints.
 type AppController struct {
-	ctx context.Context
+	*MasterDictionaryController
 }
 
 // NewAppController builds the root Wails controller.
 func NewAppController() *AppController {
-	return &AppController{}
+	return &AppController{
+		MasterDictionaryController: NewMasterDictionaryController(),
+	}
 }
 
-// OnStartup captures the application context for later runtime integrations.
+// OnStartup matches the Wails lifecycle hook.
 func (controller *AppController) OnStartup(ctx context.Context) {
-	controller.ctx = ctx
+	controller.setRuntimeContext(ctx)
 }
 
 // OnShutdown matches the Wails lifecycle hook.
 func (controller *AppController) OnShutdown(_ context.Context) {
+	controller.clearRuntimeContext()
 }
 
 // HealthResponse describes the backend health probe payload.
@@ -28,7 +31,5 @@ type HealthResponse struct {
 
 // Health returns a minimal backend health response for the frontend bridge.
 func (controller *AppController) Health() HealthResponse {
-	return HealthResponse{
-		Status: "ok",
-	}
+	return HealthResponse{Status: "ok"}
 }

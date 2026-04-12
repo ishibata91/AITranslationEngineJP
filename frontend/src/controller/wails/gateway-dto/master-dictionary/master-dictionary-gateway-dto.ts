@@ -1,0 +1,41 @@
+import type {
+  CreateMasterDictionaryEntryRequest,
+  CreateMasterDictionaryEntryResponse,
+  DeleteMasterDictionaryEntryRequest,
+  DeleteMasterDictionaryEntryResponse,
+  GetMasterDictionaryEntryRequest,
+  GetMasterDictionaryEntryResponse,
+  ImportMasterDictionaryXmlRequest,
+  ImportMasterDictionaryXmlResponse,
+  ListMasterDictionaryEntriesRequest,
+  ListMasterDictionaryEntriesResponse,
+  UpdateMasterDictionaryEntryRequest,
+  UpdateMasterDictionaryEntryResponse
+} from "@application/gateway-contract/master-dictionary"
+
+export type ListMasterDictionaryEntriesRequestDto =
+  ListMasterDictionaryEntriesRequest
+export type ListMasterDictionaryEntriesResponseDto =
+  ListMasterDictionaryEntriesResponse
+
+export type GetMasterDictionaryEntryRequestDto = GetMasterDictionaryEntryRequest
+export type GetMasterDictionaryEntryResponseDto = GetMasterDictionaryEntryResponse
+
+export type CreateMasterDictionaryEntryRequestDto =
+  CreateMasterDictionaryEntryRequest
+export type CreateMasterDictionaryEntryResponseDto =
+  CreateMasterDictionaryEntryResponse
+
+export type UpdateMasterDictionaryEntryRequestDto =
+  UpdateMasterDictionaryEntryRequest
+export type UpdateMasterDictionaryEntryResponseDto =
+  UpdateMasterDictionaryEntryResponse
+
+export type DeleteMasterDictionaryEntryRequestDto =
+  DeleteMasterDictionaryEntryRequest
+export type DeleteMasterDictionaryEntryResponseDto =
+  DeleteMasterDictionaryEntryResponse
+
+export type ImportMasterDictionaryXmlRequestDto = ImportMasterDictionaryXmlRequest
+export type ImportMasterDictionaryXmlResponseDto = ImportMasterDictionaryXmlResponse
+

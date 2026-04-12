@@ -1,3 +1,4 @@
+import { createMasterDictionaryGateway } from "@controller/wails/master-dictionary.gateway"
 import { mount } from "svelte"
 import App from "@ui/App.svelte"
 
@@ -7,4 +8,11 @@ if (!target) {
   throw new Error("app root not found")
 }
 
-mount(App, { target })
+const masterDictionaryGateway = createMasterDictionaryGateway()
+
+mount(App, {
+  target,
+  props: {
+    masterDictionaryGateway
+  }
+})

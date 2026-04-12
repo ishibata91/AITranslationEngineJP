@@ -4,7 +4,7 @@ test("renders dashboard app shell in browser mode", async ({ page }) => {
   await page.goto("/")
 
   await expect(page.getByText("AITranslationEngineJp")).toBeVisible()
-  await expect(page.getByRole("button", { name: "主要ページ" })).toBeVisible()
+  await expect(page.locator("#dashboardView .page-label", { hasText: "主要ページ" })).toBeVisible()
   await expect(
     page.getByRole("navigation", { name: "グローバルナビゲーション" })
   ).toBeVisible()

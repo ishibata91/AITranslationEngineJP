@@ -5,10 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "dev:wails": "vite --host 127.0.0.1 --port 5173 --strictPort",
+    "dev:wails": "vite --host ${VITE_HOST:-127.0.0.1} --port ${VITE_PORT:-5173} --strictPort",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:watch": "vitest",
     "lint": "npm run lint:eslint && npm run lint:types && npm run lint:exports && npm run lint:boundaries",
     "lint:eslint": "eslint . --max-warnings=0",
@@ -19,14 +20,15 @@
     "format:check": "prettier --check ."
   },
   "devDependencies": {
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.51.0",
+    "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.2.8",
     "@testing-library/user-event": "^14.6.1",
-    "@eslint/js": "^10.0.1",
-    "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.6.1",
+    "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^10.2.0",
     "eslint-import-resolver-typescript": "^4.4.4",
     "eslint-plugin-import-x": "^4.16.2",
@@ -44,6 +46,8 @@
     "vitest": "^4.1.4"
   },
   "knip": {
-    "ignore": ["src/test/setup.ts"]
+    "ignore": [
+      "src/test/setup.ts"
+    ]
   }
 }
