@@ -16,13 +16,11 @@
     "active_or_completed_plan",
     "task_mode_decision",
     "handoff_targets",
+    "implementation_scope_splits",
     "hitl_status",
     "validation_and_closeout_summary"
   ],
   "stop_conditions": [
-    "task mode を安全に分類できない",
-    "plan を固定するための facts や constraints が不足している",
-    "必要な downstream skill が不明で handoff contract を組めない",
     "human decision が必要なのに HITL の記録先が定まらない"
   ]
 }

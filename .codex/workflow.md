@@ -281,6 +281,7 @@ legacy lane の文書、skill、plan template を直ちに廃止しません。
 - 必須なのは `plan` の作成または更新である
 - 必須なのは `plan 上の HITL` の記録である
 - orchestrator 自身は product 実装、恒久修正、詳細調査、docs 正本更新を担当しない
+- HITL 以外の理由では user への停止確認を返さず、暫定判断を plan に残して前進する
 - close は `required evidence`、`required validation`、`review result` を満たした時だけ許可する
 
 ### task mode
@@ -298,8 +299,10 @@ legacy lane の文書、skill、plan template を直ちに廃止しません。
 3. `implement` は `phase-1-distill` を起点にし、必要な時だけ `phase-1.5-functional-requirements`、`phase-2-ui`、`phase-2-scenario`、`phase-2-logic`、`phase-2.5-design-review`、`phase-5-test-implementation`、`phase-6-implement-*`、`phase-6.5-ui-check`、`phase-7-unit-test`、`phase-8-review` を使う。
 4. `fix` は `distilling-fixes` を起点にし、必要な時だけ `reproduce-issues`、`tracing-fixes`、`logging-fixes`、`phase-6-implement-*`、`phase-6.5-ui-check`、`phase-5-test-implementation`、`phase-8-review` を使う。
 5. `refactor` は `phase-1-distill` を起点にし、必要な時だけ `phase-2-logic`、`phase-2-scenario`、`phase-2.5-design-review`、`phase-6-implement-*`、`phase-7-unit-test`、`phase-8-review` を使う。振る舞い変更の可能性がある時は `implement` 相当の HITL を通す。
-6. `investigate` は `phase-1-distill` または `distilling-fixes` を起点にし、必要な時だけ `reproduce-issues`、`tracing-fixes`、`reporting-risks` を使う。修正未実施でも evidence 固定で close してよい。
-7. `docs-only` は human 先行で承認済みの時だけ `updating-docs` を使う。未承認なら close せず停止理由を plan に残す。
+6. `phase-6-implement-*` へ渡す scope は狭く保ち、1 handoff で複数責務や広い横断変更をまとめない。ownership、対象ファイル、完了条件、依存関係を明示し、必要なら複数 implementer に分割する。
+7. unified workflow で不足情報があっても、HITL が不要なら停止せず、暫定判断と未解消リスクを plan に残して次の skill へ進める。
+8. `investigate` は `phase-1-distill` または `distilling-fixes` を起点にし、必要な時だけ `reproduce-issues`、`tracing-fixes`、`reporting-risks` を使う。修正未実施でも evidence 固定で close してよい。
+9. `docs-only` は human 先行で承認済みの時だけ `updating-docs` を使う。未承認なら close せず停止理由を plan に残す。
 
 ### HITL と差し戻し
 
@@ -307,6 +310,7 @@ legacy lane の文書、skill、plan template を直ちに廃止しません。
 - `implement` で要件または UI の合意が必要な時は、実装前に HITL を通す
 - `fix` で narrow scope が作れない時は、`investigate` に切り替えて evidence を先に固める
 - `refactor` で設計差分や振る舞い変更が見えた時は、`implement` に切り替える
+- implementer へ渡す scope が広いと判断した時は、review 前に orchestrator が分割し直す
 - review が `reroute` の時は、orchestrator が downstream skill の最小戻り先を決める
 
 ### 共存ルール
