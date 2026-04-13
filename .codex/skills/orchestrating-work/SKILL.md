@@ -13,7 +13,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 - active plan を作成または更新する
 - task mode を選び、plan に判断根拠を残す
-- task の規模と依存に合わせて downstream skill を選ぶ
+- 最初に distill を行い、task の規模と依存に合わせて downstream skill を選ぶ
 - `HITL`、validation、close 条件だけを管理する
 
 ## 使う場面
@@ -41,6 +41,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 ## 出力
 
 - task mode decision
+- distill summary
 - handoff targets
 - implementation scope splits
 - `HITL` 状態
@@ -56,6 +57,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## よく使う判断ガイド
 
+- どの mode でも、まず distill で facts、constraints、gaps、required reading を固める
 - 要件や UI の合意が必要なら `implement` として扱い、実装前に `HITL` を置く
 - narrow scope の修正なら `fix` を優先する
 - 原因や修正境界が曖昧なら `fix` より先に `investigate` を使う
@@ -64,11 +66,13 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## skill 選択ガイド
 
-- facts、constraints、gaps を先に固めたい時は `phase-1-distill` または `distilling-fixes`
+- distill は全 mode の共通入口とし、通常は `phase-1-distill` を優先する
+- bug の再現条件、既知症状、fix 向け evidence 圧縮を強めたい時だけ `distilling-fixes` を使う
 - 要件や UI の合意材料が必要な時は `phase-1.5-functional-requirements` と `phase-2-ui`
 - scenario、implementation brief、設計整合を固めたい時は `phase-2-scenario`、`phase-2-logic`、`phase-2.5-design-review`
 - bug の再現、trace、観測が必要な時は `reproduce-issues`、`tracing-fixes`、`logging-fixes`
-- 実装、回帰防止、UI 確認、最終照合が必要な時は `phase-6-implement-*`、`phase-5-test-implementation`、`phase-6.5-ui-check`、`phase-7-unit-test`、`phase-8-review`
+- 実装、回帰防止、最終照合が必要な時は `phase-6-implement-*`、`phase-5-test-implementation`、`phase-7-unit-test`、`phase-8-review`
+- frontend を含む task の最終確認では `phase-6.5-ui-check` を必ず使う
 - risk を短く閉じたい時は `reporting-risks`
 
 ## 実装 scope ガイド
@@ -81,10 +85,12 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## 停止と前進のガイド
 
-- `plan` と `plan 上の HITL` だけを必須ゲートとして扱う
+- `planとplan review` と `plan 上の HITL` だけを必須ゲートとして扱う
 - `HITL` 以外の理由で user へ停止確認を返さない
 - 不足情報があっても、暫定判断と未解消リスクを plan に残して前進する
 - close 条件、required evidence、required validation は mode ごとに plan へ固定する
+- 全 task で `review` は必須とし、close 前に必ず `phase-8-review` か同等の review evidence を残す
+- frontend を含む task では `phase-6.5-ui-check` を必須とし、close 前に UI evidence を残す
 - `fix` で narrow scope を作れない時は、直接実装へ進めず `investigate` に切り替える
 
 ## Rules
@@ -98,8 +104,8 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## Handoff Agents
 
-- `ctx_loader` `phase-1-distill`
-- `ctx_loader` `distilling-fixes`
+- `ctx_loader` `phase-1-distill`  # default distill
+- `ctx_loader` `distilling-fixes`  # fix-specific distill
 - `task_designer` `phase-1.5-functional-requirements`
 - `task_designer` `phase-2-ui`
 - `test_architect` `phase-2-scenario`
