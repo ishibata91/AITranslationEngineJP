@@ -1,6 +1,6 @@
 name = "implementer"
 description = "approved brief と active exec-plan の担当範囲だけを実装する implementation specialist。"
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """

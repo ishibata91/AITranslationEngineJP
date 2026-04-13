@@ -1,6 +1,6 @@
 name = "test_architect"
 description = "active exec-plan と関連仕様から spec-aligned tests と acceptance checks を組み立てる test design specialist。"
-model = "gpt-5.3-codex"
+model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """

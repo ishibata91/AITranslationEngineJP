@@ -3,6 +3,7 @@
 このディレクトリは、AITranslationEngineJp の live workflow の正本です。
 プロダクト仕様と設計は `docs/` を正本とし、lane、skill、agent の役割と handoff は `.codex/` を正本とします。
 実装レーンは `workflow.md` の段階番号に合わせた `phase-*` skill と `orchestrating-*` skill で進めます。`phase-1-distill` の後に `phase-1.5-functional-requirements` と前段 HITL を置き、その後に detailed design へ進みます。過去運用の独自 packet や独自 loop は持ち込みません。
+試験導入として、task mode に応じて skill を選ぶ単一入口 `orchestrating-work` も併設します。既存の `orchestrating-implementation` と `orchestrating-fixes` は legacy 入口として残します。
 
 ## Naming Rule
 
@@ -14,6 +15,7 @@
 
 - 実装レーンの入口: `skills/orchestrating-implementation/SKILL.md`
 - バグ修正の入口: `skills/orchestrating-fixes/SKILL.md`
+- 試験導入の単一入口: `skills/orchestrating-work/SKILL.md`
 - workflow 鳥瞰図: `workflow.md`
 
 ## Task-Local Artifact 正本

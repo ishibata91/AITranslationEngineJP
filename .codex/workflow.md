@@ -103,9 +103,13 @@ flowchart TD
 
 ## 全体像
 
-`User request` を起点に、workflow は `実装レーン` と `修正レーン` の 2 系統に分かれます。
-feature / change は、要求整理から入り、詳細設計を固定し、人間 review を通した後に実装へ進みます。bug / regression は、事実整理、原因確認、回帰防止、修正、review の順で進みます。
-どちらの lane も最後に review を 1 回だけ行い、`pass` なら close します。`reroute` なら直前の適切な工程へ戻します。
+`User request` を起点に、live workflow は 2 つの運用形態を持ちます。
+1 つは既存の `実装レーン` と `修正レーン` です。
+もう 1 つは、単一入口の work orchestrator (`orchestrating-work`) を使う試験導入の unified workflow です。
+
+既存 lane は、段階順序を強く固定した legacy 入口として残します。
+unified workflow は、`plan` と `plan 上の HITL` を必須にし、それ以外の skill 呼び出し順序を orchestrator に委ねます。
+どちらの運用形態でも、最後は `evidence`、`validation`、`review` を満たした時だけ `pass` で close します。
 
 ## 実装レーン
 
@@ -265,6 +269,53 @@ fix orchestrator (`orchestrating-fixes`) は自身で恒久修正や詳細調査
 
 diagram 上では、原因分析は常に通ります。
 一時観測は temporary logging が必要な時だけ挿入され、不要なら直接再現確認または実装に進みます。
+
+## 統合オーケストレーター試験導入
+
+この章は、work orchestrator (`orchestrating-work`) を使う試験導入の unified workflow を定義します。
+既存の `実装レーン` と `修正レーン` はそのまま残し、新規 task で試したい時だけ unified workflow を選べる形にします。
+legacy lane の文書、skill、plan template を直ちに廃止しません。
+
+### 必須ゲート
+
+- 必須なのは `plan` の作成または更新である
+- 必須なのは `plan 上の HITL` の記録である
+- orchestrator 自身は product 実装、恒久修正、詳細調査、docs 正本更新を担当しない
+- close は `required evidence`、`required validation`、`review result` を満たした時だけ許可する
+
+### task mode
+
+- `implement`: 新機能、既存機能拡張、振る舞い追加
+- `fix`: bug、regression、narrow scope の恒久修正
+- `refactor`: 主目的が構造改善で、要求追加が主ではない変更
+- `investigate`: 原因切り分け、事実整理、再現確認、risk 報告
+- `docs-only`: human 先行で承認済みの docs 正本変更だけを扱う task
+
+### 基本手順
+
+1. work orchestrator (`orchestrating-work`) は active plan を作成または更新し、task mode、goal、constraints、required reading、close 条件を固定する。
+2. work orchestrator (`orchestrating-work`) は task mode を 1 つ選び、選んだ理由を plan に残す。
+3. `implement` は `phase-1-distill` を起点にし、必要な時だけ `phase-1.5-functional-requirements`、`phase-2-ui`、`phase-2-scenario`、`phase-2-logic`、`phase-2.5-design-review`、`phase-5-test-implementation`、`phase-6-implement-*`、`phase-6.5-ui-check`、`phase-7-unit-test`、`phase-8-review` を使う。
+4. `fix` は `distilling-fixes` を起点にし、必要な時だけ `reproduce-issues`、`tracing-fixes`、`logging-fixes`、`phase-6-implement-*`、`phase-6.5-ui-check`、`phase-5-test-implementation`、`phase-8-review` を使う。
+5. `refactor` は `phase-1-distill` を起点にし、必要な時だけ `phase-2-logic`、`phase-2-scenario`、`phase-2.5-design-review`、`phase-6-implement-*`、`phase-7-unit-test`、`phase-8-review` を使う。振る舞い変更の可能性がある時は `implement` 相当の HITL を通す。
+6. `investigate` は `phase-1-distill` または `distilling-fixes` を起点にし、必要な時だけ `reproduce-issues`、`tracing-fixes`、`reporting-risks` を使う。修正未実施でも evidence 固定で close してよい。
+7. `docs-only` は human 先行で承認済みの時だけ `updating-docs` を使う。未承認なら close せず停止理由を plan に残す。
+
+### HITL と差し戻し
+
+- unified workflow の HITL は lane 固定ではなく、task mode とリスクで決める
+- `implement` で要件または UI の合意が必要な時は、実装前に HITL を通す
+- `fix` で narrow scope が作れない時は、`investigate` に切り替えて evidence を先に固める
+- `refactor` で設計差分や振る舞い変更が見えた時は、`implement` に切り替える
+- review が `reroute` の時は、orchestrator が downstream skill の最小戻り先を決める
+
+### 共存ルール
+
+- 既存 `orchestrating-implementation` と `orchestrating-fixes` は legacy 入口として残す
+- 既存 lane を使う task では、従来の phase 順序と gate を維持する
+- unified workflow を使う task でも、downstream skill は既存 skill を再利用する
+- unified workflow は trial であり、handoff contract の不足は plan に明示する
+- legacy lane でしか表現できない gate が必要な task では、unified workflow へ無理に寄せない
 
 ## 差し戻しと完了
 
