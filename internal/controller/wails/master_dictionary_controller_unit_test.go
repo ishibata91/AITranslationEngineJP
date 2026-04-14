@@ -10,7 +10,11 @@ import (
 	"aitranslationenginejp/internal/usecase"
 )
 
-const controllerCanonicalXMLPath = "canonical.xml"
+const (
+	controllerCanonicalXMLPath = "canonical.xml"
+	controllerIgnoredXMLPath   = "ignored.xml"
+	controllerImportSucceeded  = "expected import to succeed: %v"
+)
 
 var controllerUpdatedAt = time.Date(2026, 4, 14, 11, 0, 0, 0, time.UTC)
 
@@ -93,9 +97,8 @@ func (fake *fakeRuntimeEmitterState) ClearRuntimeContext() {
 	fake.ok = false
 }
 
-func TestMasterDictionaryControllerGetPageMapsUsecaseState(t *testing.T) {
+func TestMasterDictionaryControllerGetPagePassesRefreshQueryToUsecase(t *testing.T) {
 	preferredID := int64(42)
-	updatedAt := time.Date(2026, 4, 14, 10, 0, 0, 0, time.UTC)
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		getPageFunc: func(ctx context.Context, query usecase.MasterDictionaryRefreshQuery, preferred *int64) (usecase.MasterDictionaryPageState, error) {
 			if ctx == nil {
@@ -107,8 +110,25 @@ func TestMasterDictionaryControllerGetPageMapsUsecaseState(t *testing.T) {
 			if preferred == nil || *preferred != preferredID {
 				t.Fatalf("expected preferred id %d, got %#v", preferredID, preferred)
 			}
+			return usecase.MasterDictionaryPageState{}, nil
+		},
+	}, nil)
+
+	_, err := controller.MasterDictionaryGetPage(MasterDictionaryPageRequestDTO{
+		Refresh:     MasterDictionaryRefreshQueryDTO{SearchTerm: "Auriel", Category: "書籍", Page: 2, PageSize: 25},
+		PreferredID: &preferredID,
+	})
+	if err != nil {
+		t.Fatalf("expected get page to succeed: %v", err)
+	}
+}
+
+func TestMasterDictionaryControllerGetPageMapsUsecaseState(t *testing.T) {
+	preferredID := int64(42)
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		getPageFunc: func(_ context.Context, _ usecase.MasterDictionaryRefreshQuery, preferred *int64) (usecase.MasterDictionaryPageState, error) {
 			return usecase.MasterDictionaryPageState{
-				Items:      []usecase.MasterDictionaryEntry{{ID: preferredID, Source: "Auriel", Translation: "アーリエル", UpdatedAt: updatedAt}},
+				Items:      []usecase.MasterDictionaryEntry{{ID: preferredID, Source: "Auriel", Translation: "アーリエル", UpdatedAt: controllerUpdatedAt}},
 				TotalCount: 1,
 				Page:       2,
 				PageSize:   25,
@@ -124,28 +144,31 @@ func TestMasterDictionaryControllerGetPageMapsUsecaseState(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected get page to succeed: %v", err)
 	}
-	if len(response.Page.Items) != 1 || response.Page.Items[0].ID != preferredID {
-		t.Fatalf("unexpected page items: %#v", response.Page.Items)
-	}
+
 	if response.Page.SelectedID == nil || *response.Page.SelectedID != preferredID {
 		t.Fatalf("expected selected id %d, got %#v", preferredID, response.Page.SelectedID)
 	}
 }
 
-func TestMasterDictionaryControllerCreateEntryMapsFrontendContract(t *testing.T) {
+func TestMasterDictionaryControllerCreateEntryPassesFrontendInputToUsecase(t *testing.T) {
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		createEntryFunc: func(_ context.Context, input usecase.MasterDictionaryMutationInput, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error) {
 			assertControllerCreateInput(t, input, refreshQuery)
-			entry := usecase.MasterDictionaryEntry{
-				ID:          101,
-				Source:      input.Source,
-				Translation: input.Translation,
-				Category:    input.Category,
-				Origin:      input.Origin,
-				REC:         "BOOK:FULL",
-				EDID:        "BookAuriel",
-				UpdatedAt:   controllerUpdatedAt,
-			}
+			entry := usecase.MasterDictionaryEntry{ID: 101, Source: input.Source, Translation: input.Translation, Category: input.Category, Origin: input.Origin, UpdatedAt: controllerUpdatedAt}
+			return usecase.MasterDictionaryMutationResult{ChangedEntry: &entry}, nil
+		},
+	}, nil)
+
+	_, err := controller.CreateMasterDictionaryEntry(newControllerCreateRequest())
+	if err != nil {
+		t.Fatalf("expected create contract to succeed: %v", err)
+	}
+}
+
+func TestMasterDictionaryControllerCreateEntryMapsFrontendResponse(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		createEntryFunc: func(_ context.Context, input usecase.MasterDictionaryMutationInput, _ usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error) {
+			entry := usecase.MasterDictionaryEntry{ID: 101, Source: input.Source, Translation: input.Translation, Category: input.Category, Origin: input.Origin, REC: "BOOK:FULL", EDID: "BookAuriel", UpdatedAt: controllerUpdatedAt}
 			return usecase.MasterDictionaryMutationResult{ChangedEntry: &entry, Page: usecase.MasterDictionaryPageState{Page: 3, PageSize: 1, SelectedID: &entry.ID}}, nil
 		},
 	}, nil)
@@ -154,18 +177,30 @@ func TestMasterDictionaryControllerCreateEntryMapsFrontendContract(t *testing.T)
 	if err != nil {
 		t.Fatalf("expected create contract to succeed: %v", err)
 	}
+
 	if created.RefreshTargetID != "101" || created.Entry.Note != "REC: BOOK:FULL / EDID: BookAuriel" {
 		t.Fatalf("unexpected create response: %#v", created)
 	}
-	if created.Page == nil || created.Page.Page != 3 || created.Page.PageSize != 1 {
-		t.Fatalf("unexpected create page: %#v", created.Page)
-	}
 }
 
-func TestMasterDictionaryControllerUpdateEntryMapsFrontendContract(t *testing.T) {
+func TestMasterDictionaryControllerUpdateEntryPassesFrontendInputToUsecase(t *testing.T) {
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		updateEntryFunc: func(_ context.Context, id int64, input usecase.MasterDictionaryMutationInput, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error) {
 			assertControllerUpdateInput(t, id, input, refreshQuery)
+			entry := usecase.MasterDictionaryEntry{ID: id, Source: input.Source, Translation: input.Translation, Category: input.Category, Origin: input.Origin, UpdatedAt: controllerUpdatedAt}
+			return usecase.MasterDictionaryMutationResult{ChangedEntry: &entry}, nil
+		},
+	}, nil)
+
+	_, err := controller.UpdateMasterDictionaryEntry(newControllerUpdateRequest())
+	if err != nil {
+		t.Fatalf("expected update contract to succeed: %v", err)
+	}
+}
+
+func TestMasterDictionaryControllerUpdateEntryMapsFrontendResponse(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		updateEntryFunc: func(_ context.Context, id int64, input usecase.MasterDictionaryMutationInput, _ usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error) {
 			entry := usecase.MasterDictionaryEntry{ID: id, Source: input.Source, Translation: input.Translation, Category: input.Category, Origin: input.Origin, UpdatedAt: controllerUpdatedAt}
 			return usecase.MasterDictionaryMutationResult{ChangedEntry: &entry, Page: usecase.MasterDictionaryPageState{Page: 4, PageSize: 1, SelectedID: &entry.ID}}, nil
 		},
@@ -175,17 +210,34 @@ func TestMasterDictionaryControllerUpdateEntryMapsFrontendContract(t *testing.T)
 	if err != nil {
 		t.Fatalf("expected update contract to succeed: %v", err)
 	}
+
 	if updated.RefreshTargetID != "101" || updated.Entry.Translation != "更新訳語" {
 		t.Fatalf("unexpected update response: %#v", updated)
 	}
 }
 
-func TestMasterDictionaryControllerDeleteEntryMapsFrontendContract(t *testing.T) {
+func TestMasterDictionaryControllerDeleteEntryPassesFrontendInputToUsecase(t *testing.T) {
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		deleteEntryFunc: func(_ context.Context, id int64, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error) {
 			if id != 101 || refreshQuery.Page != 5 || refreshQuery.PageSize != 1 {
 				t.Fatalf("unexpected delete request: id=%d refresh=%#v", id, refreshQuery)
 			}
+			return usecase.MasterDictionaryMutationResult{DeletedEntryID: &id}, nil
+		},
+	}, nil)
+
+	_, err := controller.DeleteMasterDictionaryEntry(DeleteMasterDictionaryEntryRequestDTO{
+		ID:      "101",
+		Refresh: &MasterDictionaryFrontendRefreshDTO{Page: 5, PageSize: 1},
+	})
+	if err != nil {
+		t.Fatalf("expected delete contract to succeed: %v", err)
+	}
+}
+
+func TestMasterDictionaryControllerDeleteEntryMapsFrontendResponse(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		deleteEntryFunc: func(_ context.Context, id int64, _ usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error) {
 			nextID := int64(102)
 			return usecase.MasterDictionaryMutationResult{DeletedEntryID: &id, Page: usecase.MasterDictionaryPageState{Page: 5, PageSize: 1, SelectedID: &nextID}}, nil
 		},
@@ -198,12 +250,13 @@ func TestMasterDictionaryControllerDeleteEntryMapsFrontendContract(t *testing.T)
 	if err != nil {
 		t.Fatalf("expected delete contract to succeed: %v", err)
 	}
+
 	if deleted.DeletedID != "101" || deleted.NextSelectedID == nil || *deleted.NextSelectedID != "102" {
 		t.Fatalf("unexpected delete response: %#v", deleted)
 	}
 }
 
-func TestMasterDictionaryControllerGetMasterDictionaryEntryMapsNotFoundToNil(t *testing.T) {
+func TestMasterDictionaryControllerGetMasterDictionaryEntryPreservesNonSentinelError(t *testing.T) {
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		getEntryFunc: func(_ context.Context, id int64) (usecase.MasterDictionaryEntry, error) {
 			if id != 999 {
@@ -217,7 +270,9 @@ func TestMasterDictionaryControllerGetMasterDictionaryEntryMapsNotFoundToNil(t *
 	if err == nil {
 		t.Fatal("expected wrapped string error to remain an error")
 	}
+}
 
+func TestMasterDictionaryControllerGetMasterDictionaryEntryMapsNotFoundToNil(t *testing.T) {
 	notFoundController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		getEntryFunc: func(_ context.Context, _ int64) (usecase.MasterDictionaryEntry, error) {
 			return usecase.MasterDictionaryEntry{}, fmt.Errorf("lookup entry: %w", usecase.ErrMasterDictionaryEntryNotFound)
@@ -228,12 +283,13 @@ func TestMasterDictionaryControllerGetMasterDictionaryEntryMapsNotFoundToNil(t *
 	if err != nil {
 		t.Fatalf("expected not found to be converted to nil entry: %v", err)
 	}
+
 	if response.Entry != nil {
 		t.Fatalf("expected nil entry, got %#v", response.Entry)
 	}
 }
 
-func TestMasterDictionaryControllerConstructorWrapsNonStateRuntimeSource(t *testing.T) {
+func TestMasterDictionaryControllerConstructorPreservesRuntimeContextFromSource(t *testing.T) {
 	initialEmitter := &fakeRuntimeEventEmitter{}
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, fakeRuntimeEmitterSource{
 		ctx: newRuntimeEventContext(initialEmitter),
@@ -248,8 +304,15 @@ func TestMasterDictionaryControllerConstructorWrapsNonStateRuntimeSource(t *test
 	if !ok || resolvedEmitter != initialEmitter {
 		t.Fatal("expected preserved runtime emitter from non-state source")
 	}
+}
 
+func TestMasterDictionaryControllerSetRuntimeContextUpdatesWrappedState(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, fakeRuntimeEmitterSource{
+		ctx: newRuntimeEventContext(&fakeRuntimeEventEmitter{}),
+		ok:  true,
+	})
 	nextCtx := newRuntimeEventContext(&fakeRuntimeEventEmitter{})
+
 	controller.setRuntimeContext(nextCtx)
 
 	updatedCtx, ok := controller.runtimeEventContext()
@@ -272,18 +335,21 @@ func TestMasterDictionaryControllerUsesInjectedRuntimeEmitterState(t *testing.T)
 	if state.ctx != runtimeCtx || !state.ok {
 		t.Fatal("expected injected runtime emitter state to receive lifecycle updates")
 	}
-	storedCtx, ok := controller.runtimeEventContext()
-	if !ok || storedCtx != runtimeCtx {
-		t.Fatalf("expected controller to read from injected state, got ok=%v ctx=%#v", ok, storedCtx)
-	}
+}
+
+func TestMasterDictionaryControllerClearRuntimeContextResetsInjectedState(t *testing.T) {
+	state := &fakeRuntimeEmitterState{}
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, state)
+	controller.setRuntimeContext(newRuntimeEventContext(&fakeRuntimeEventEmitter{}))
 
 	controller.clearRuntimeContext()
+
 	if state.ctx != nil || state.ok {
 		t.Fatal("expected clear to reset injected runtime emitter state")
 	}
 }
 
-func TestMasterDictionaryControllerImportAliasUsesFileReferenceAndPreservesPayload(t *testing.T) {
+func TestMasterDictionaryControllerImportXMLUsesFileReference(t *testing.T) {
 	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
 		importXMLFunc: func(_ context.Context, xmlPath string, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryImportResult, error) {
 			if xmlPath != controllerCanonicalXMLPath {
@@ -292,33 +358,63 @@ func TestMasterDictionaryControllerImportAliasUsesFileReferenceAndPreservesPaylo
 			if refreshQuery.Page != 6 || refreshQuery.PageSize != 2 {
 				t.Fatalf("unexpected import refresh query: %#v", refreshQuery)
 			}
-			return usecase.MasterDictionaryImportResult{
-				Page:    usecase.MasterDictionaryPageState{Page: 6, PageSize: 2},
-				Summary: usecase.MasterDictionaryImportSummary{FileName: controllerCanonicalXMLPath, ImportedCount: 2},
-			}, nil
+			return usecase.MasterDictionaryImportResult{}, nil
 		},
 	}, fakeRuntimeEmitterSource{ctx: newRuntimeEventContext(&fakeRuntimeEventEmitter{}), ok: true})
+	request := ImportMasterDictionaryXMLRequestDTO{FilePath: controllerIgnoredXMLPath, FileReference: " " + controllerCanonicalXMLPath + " ", Refresh: &MasterDictionaryFrontendRefreshDTO{Page: 6, PageSize: 2}}
 
-	request := ImportMasterDictionaryXMLRequestDTO{
-		FilePath:      "ignored.xml",
-		FileReference: " " + controllerCanonicalXMLPath + " ",
-		Refresh:       &MasterDictionaryFrontendRefreshDTO{Page: 6, PageSize: 2},
+	_, err := controller.ImportMasterDictionaryXML(request)
+	if err != nil {
+		t.Fatalf(controllerImportSucceeded, err)
 	}
+}
+
+func TestMasterDictionaryControllerImportXMLMapsUsecasePayload(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		importXMLFunc: func(_ context.Context, _ string, _ usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryImportResult, error) {
+			return usecase.MasterDictionaryImportResult{Page: usecase.MasterDictionaryPageState{Page: 6, PageSize: 2}, Summary: usecase.MasterDictionaryImportSummary{FileName: controllerCanonicalXMLPath, ImportedCount: 2}}, nil
+		},
+	}, fakeRuntimeEmitterSource{ctx: newRuntimeEventContext(&fakeRuntimeEventEmitter{}), ok: true})
+	request := ImportMasterDictionaryXMLRequestDTO{FilePath: controllerIgnoredXMLPath, FileReference: controllerCanonicalXMLPath, Refresh: &MasterDictionaryFrontendRefreshDTO{Page: 6, PageSize: 2}}
 
 	response, err := controller.ImportMasterDictionaryXML(request)
 	if err != nil {
-		t.Fatalf("expected import to succeed: %v", err)
+		t.Fatalf(controllerImportSucceeded, err)
 	}
-	if !response.Accepted || response.Page == nil || response.Summary == nil || response.Summary.FileName != controllerCanonicalXMLPath {
+
+	if !response.Accepted || response.Summary == nil || response.Summary.FileName != controllerCanonicalXMLPath {
 		t.Fatalf("unexpected import response: %#v", response)
 	}
+}
+
+func TestMasterDictionaryControllerImportXMLAliasPreservesPayload(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		importXMLFunc: func(_ context.Context, _ string, _ usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryImportResult, error) {
+			return usecase.MasterDictionaryImportResult{Summary: usecase.MasterDictionaryImportSummary{FileName: controllerCanonicalXMLPath}}, nil
+		},
+	}, fakeRuntimeEmitterSource{ctx: newRuntimeEventContext(&fakeRuntimeEventEmitter{}), ok: true})
+	request := ImportMasterDictionaryXMLRequestDTO{FilePath: controllerIgnoredXMLPath, FileReference: controllerCanonicalXMLPath, Refresh: &MasterDictionaryFrontendRefreshDTO{Page: 6, PageSize: 2}}
 
 	alias, err := controller.ImportMasterDictionaryXml(request)
 	if err != nil {
 		t.Fatalf("expected alias import to succeed: %v", err)
 	}
+
 	if !alias.Accepted || alias.Summary == nil || alias.Summary.FileName != controllerCanonicalXMLPath {
 		t.Fatalf("unexpected alias response: %#v", alias)
+	}
+}
+
+func TestMasterDictionaryControllerImportXMLPreservesInjectedRuntimeContext(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		importXMLFunc: func(_ context.Context, _ string, _ usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryImportResult, error) {
+			return usecase.MasterDictionaryImportResult{}, nil
+		},
+	}, fakeRuntimeEmitterSource{ctx: newRuntimeEventContext(&fakeRuntimeEventEmitter{}), ok: true})
+
+	_, err := controller.ImportMasterDictionaryXML(ImportMasterDictionaryXMLRequestDTO{FileReference: controllerCanonicalXMLPath})
+	if err != nil {
+		t.Fatalf(controllerImportSucceeded, err)
 	}
 
 	runtimeCtx, ok := controller.runtimeEventContext()

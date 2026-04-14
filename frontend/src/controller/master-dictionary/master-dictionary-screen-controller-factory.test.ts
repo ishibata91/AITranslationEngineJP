@@ -59,26 +59,41 @@ describe("createMasterDictionaryScreenControllerFactory", () => {
     delete (window as Window & { runtime?: unknown }).runtime
   })
 
-  test("gateway null は未接続 view model を返す", () => {
+  test("gateway null は未接続 status を返す", () => {
+    // Arrange
     const controller = createMasterDictionaryScreenControllerFactory(null)()
 
-    expect(controller.getViewModel().gatewayStatus).toBe("未接続")
+    // Act
+    const viewModel = controller.getViewModel()
+
+    // Assert
+    expect(viewModel.gatewayStatus).toBe("未接続")
   })
 
-  test("gateway ありの mount は runtime 購読と初期一覧取得を配線する", async () => {
-    const { gateway, listMasterDictionaryEntries, getMasterDictionaryEntry } =
-      createGateway()
-    const detach = vi.fn()
-    ;(window as Window & { runtime?: unknown }).runtime = {
-      EventsOnMultiple: vi.fn(() => detach)
-    }
-
+  test("gateway ありの controller は接続準備済み status を返す", () => {
+    // Arrange
+    const { gateway } = createGateway()
     const controller = createMasterDictionaryScreenControllerFactory(gateway)()
 
-    expect(controller.getViewModel().gatewayStatus).toBe("接続準備済み")
+    // Act
+    const viewModel = controller.getViewModel()
 
+    // Assert
+    expect(viewModel.gatewayStatus).toBe("接続準備済み")
+  })
+
+  test("mount は初期一覧取得に既定 filter を渡す", async () => {
+    // Arrange
+    const { gateway, listMasterDictionaryEntries } = createGateway()
+    ;(window as Window & { runtime?: unknown }).runtime = {
+      EventsOnMultiple: vi.fn(() => vi.fn())
+    }
+    const controller = createMasterDictionaryScreenControllerFactory(gateway)()
+
+    // Act
     await controller.mount()
 
+    // Assert
     expect(listMasterDictionaryEntries).toHaveBeenCalledWith({
       filters: {
         query: "",
@@ -87,12 +102,55 @@ describe("createMasterDictionaryScreenControllerFactory", () => {
         pageSize: 30
       }
     })
+  })
+
+  test("mount は初期選択エントリの詳細取得を呼ぶ", async () => {
+    // Arrange
+    const { gateway, getMasterDictionaryEntry } = createGateway()
+    ;(window as Window & { runtime?: unknown }).runtime = {
+      EventsOnMultiple: vi.fn(() => vi.fn())
+    }
+    const controller = createMasterDictionaryScreenControllerFactory(gateway)()
+
+    // Act
+    await controller.mount()
+
+    // Assert
     expect(getMasterDictionaryEntry).toHaveBeenCalledWith({
       id: "101"
     })
+  })
 
+  test("mount は runtime listener を登録する", async () => {
+    // Arrange
+    const { gateway } = createGateway()
+    const eventsOnMultiple = vi.fn(() => vi.fn())
+    ;(window as Window & { runtime?: unknown }).runtime = {
+      EventsOnMultiple: eventsOnMultiple
+    }
+    const controller = createMasterDictionaryScreenControllerFactory(gateway)()
+
+    // Act
+    await controller.mount()
+
+    // Assert
+    expect(eventsOnMultiple).toHaveBeenCalledTimes(2)
+  })
+
+  test("dispose は登録済み runtime listener を解除する", async () => {
+    // Arrange
+    const { gateway } = createGateway()
+    const detach = vi.fn()
+    ;(window as Window & { runtime?: unknown }).runtime = {
+      EventsOnMultiple: vi.fn(() => detach)
+    }
+    const controller = createMasterDictionaryScreenControllerFactory(gateway)()
+    await controller.mount()
+
+    // Act
     controller.dispose()
 
+    // Assert
     expect(detach).toHaveBeenCalledTimes(2)
   })
 })

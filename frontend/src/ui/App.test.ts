@@ -209,8 +209,58 @@ function renderApp(
   return controller
 }
 
+function renderAppView(
+  controller = new MasterDictionaryScreenControllerFake()
+): {
+  controller: MasterDictionaryScreenControllerFake
+  unmount: () => void
+} {
+  const view = render(App, {
+    props: {
+      createMasterDictionaryScreenController: () => controller
+    }
+  })
+
+  return {
+    controller,
+    unmount: () => view.unmount()
+  }
+}
+
 function createXmlFile(contents: string, name = "master-dictionary.xml"): File {
   return new File([contents], name, { type: "text/xml" })
+}
+
+function getGlobalNavigation(): HTMLElement {
+  return screen.getByRole("navigation", {
+    name: "グローバルナビゲーション"
+  })
+}
+
+function getDashboardCardSection(): HTMLElement {
+  const dashboardCardSection = screen
+    .getByRole("heading", { name: "作業を選ぶ" })
+    .closest("section")
+
+  if (!dashboardCardSection) {
+    throw new Error("ダッシュボード入口カードのセクションが見つかりません")
+  }
+
+  return dashboardCardSection
+}
+
+function getDashboardCardLink(routeLabel: string): HTMLAnchorElement {
+  const cardHeading = within(getDashboardCardSection()).getByRole("heading", {
+    level: 3,
+    name: routeLabel
+  })
+  const cardLink = cardHeading.closest("a")
+
+  if (!(cardLink instanceof HTMLAnchorElement)) {
+    throw new Error(`入口カードのリンクが見つかりません: ${routeLabel}`)
+  }
+
+  return cardLink
 }
 
 describe("App dashboard shell", () => {
@@ -218,94 +268,151 @@ describe("App dashboard shell", () => {
     window.history.replaceState(null, "", "#")
   })
 
-  test("SCN-DAS-001: 起動時にダッシュボードを既定表示する", () => {
+  test("SCN-DAS-001: 起動時にダッシュボード見出しを表示する", () => {
+    // Arrange
     renderApp()
 
-    expect(
-      screen.getByRole("heading", { name: "ダッシュボード" })
-    ).toBeInTheDocument()
-    expect(window.location.hash).toBe("#dashboard")
+    // Act
+    const dashboardHeading = screen.getByRole("heading", { name: "ダッシュボード" })
+
+    // Assert
+    expect(dashboardHeading).toBeInTheDocument()
   })
 
-  test("invalid hash は dashboard に正規化される", () => {
+  test("SCN-DAS-001: 起動時に hash を dashboard へ正規化する", () => {
+    // Arrange
+    renderApp()
+
+    // Act
+    const hash = window.location.hash
+
+    // Assert
+    expect(hash).toBe("#dashboard")
+  })
+
+  test("invalid hash はダッシュボード見出しを表示する", () => {
+    // Arrange
     window.history.replaceState(null, "", "#not-approved-route")
 
+    // Act
     renderApp()
 
-    expect(
-      screen.getByRole("heading", { name: "ダッシュボード" })
-    ).toBeInTheDocument()
-    expect(window.location.hash).toBe("#dashboard")
+    // Assert
+    expect(screen.getByRole("heading", { name: "ダッシュボード" })).toBeInTheDocument()
   })
 
-  test("SCN-DAS-002/003: グローバルナビゲーションと入口カードから承認済みルートへ移動できる", async () => {
-    const user = userEvent.setup()
+  test("invalid hash は dashboard hash へ正規化する", () => {
+    // Arrange
+    window.history.replaceState(null, "", "#not-approved-route")
     renderApp()
 
-    const globalNavigation = screen.getByRole("navigation", {
-      name: "グローバルナビゲーション"
-    })
+    // Act
+    const hash = window.location.hash
 
-    expect(within(globalNavigation).getAllByRole("link")).toHaveLength(
-      DASHBOARD_SHELL_PRIMARY_ROUTES.length
-    )
+    // Assert
+    expect(hash).toBe("#dashboard")
+  })
 
-    for (const route of DASHBOARD_ENTRY_ROUTES) {
-      await user.click(
-        within(globalNavigation).getByRole("link", { name: route.label })
-      )
-      expect(
-        screen.getByRole("heading", { level: 1, name: route.label })
-      ).toBeInTheDocument()
-      expect(window.location.hash).toBe(`#${route.id}`)
+  test("SCN-DAS-002: グローバルナビゲーションに承認済みルートを並べる", () => {
+    // Arrange
+    renderApp()
 
-      await user.click(
-        within(globalNavigation).getByRole("link", { name: "ダッシュボード" })
-      )
+    // Act
+    const links = within(getGlobalNavigation()).getAllByRole("link")
 
-      const dashboardCardSection = screen
-        .getByRole("heading", { name: "作業を選ぶ" })
-        .closest("section")
-      if (!dashboardCardSection) {
-        throw new Error("ダッシュボード入口カードのセクションが見つかりません")
-      }
+    // Assert
+    expect(links).toHaveLength(DASHBOARD_SHELL_PRIMARY_ROUTES.length)
+  })
 
-      const cardHeading = within(dashboardCardSection).getByRole("heading", {
-        level: 3,
-        name: route.label
-      })
-      const cardLink = cardHeading.closest("a")
-      if (!cardLink) {
-        throw new Error(`入口カードのリンクが見つかりません: ${route.label}`)
-      }
+  test.each(DASHBOARD_ENTRY_ROUTES)(
+    "SCN-DAS-002: グローバルナビゲーションから $label 見出しへ移動できる",
+    async ({ label }) => {
+      // Arrange
+      const user = userEvent.setup()
+      renderApp()
 
-      await user.click(cardLink)
-      expect(
-        screen.getByRole("heading", { level: 1, name: route.label })
-      ).toBeInTheDocument()
-      expect(window.location.hash).toBe(`#${route.id}`)
+      // Act
+      await user.click(within(getGlobalNavigation()).getByRole("link", { name: label }))
+
+      // Assert
+      expect(screen.getByRole("heading", { level: 1, name: label })).toBeInTheDocument()
     }
-  })
+  )
 
-  test("SCN-DAS-004/005: プレースホルダー画面でも共通シェルを保持して再移動できる", async () => {
+  test.each(DASHBOARD_ENTRY_ROUTES)(
+    "SCN-DAS-002: グローバルナビゲーションから $id hash へ移動できる",
+    async ({ id, label }) => {
+      // Arrange
+      const user = userEvent.setup()
+      renderApp()
+
+      // Act
+      await user.click(within(getGlobalNavigation()).getByRole("link", { name: label }))
+
+      // Assert
+      expect(window.location.hash).toBe(`#${id}`)
+    }
+  )
+
+  test.each(DASHBOARD_ENTRY_ROUTES)(
+    "SCN-DAS-003: 入口カードから $label 見出しへ移動できる",
+    async ({ label }) => {
+      // Arrange
+      const user = userEvent.setup()
+      renderApp()
+
+      // Act
+      await user.click(getDashboardCardLink(label))
+
+      // Assert
+      expect(screen.getByRole("heading", { level: 1, name: label })).toBeInTheDocument()
+    }
+  )
+
+  test.each(DASHBOARD_ENTRY_ROUTES)(
+    "SCN-DAS-003: 入口カードから $id hash へ移動できる",
+    async ({ id, label }) => {
+      // Arrange
+      const user = userEvent.setup()
+      renderApp()
+
+      // Act
+      await user.click(getDashboardCardLink(label))
+
+      // Assert
+      expect(window.location.hash).toBe(`#${id}`)
+    }
+  )
+
+  test("SCN-DAS-004: プレースホルダー画面でも共通 lead を表示する", async () => {
+    // Arrange
     const user = userEvent.setup()
     renderApp()
 
-    const globalNavigation = screen.getByRole("navigation", {
-      name: "グローバルナビゲーション"
-    })
-
+    // Act
     await user.click(
-      within(globalNavigation).getByRole("link", { name: "翻訳管理" })
+      within(getGlobalNavigation()).getByRole("link", { name: "翻訳管理" })
     )
-    expect(
-      screen.getByRole("heading", { level: 1, name: "翻訳管理" })
-    ).toBeInTheDocument()
+
+    // Assert
     expect(screen.getByText(PLACEHOLDER_LEAD)).toBeInTheDocument()
+  })
+
+  test("SCN-DAS-005: プレースホルダー画面から別の主要ページへ再移動できる", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    renderApp()
 
     await user.click(
-      within(globalNavigation).getByRole("link", { name: "出力管理" })
+      within(getGlobalNavigation()).getByRole("link", { name: "翻訳管理" })
     )
+
+    // Act
+    await user.click(
+      within(getGlobalNavigation()).getByRole("link", { name: "出力管理" })
+    )
+
+    // Assert
     expect(
       screen.getByRole("heading", { level: 1, name: "出力管理" })
     ).toBeInTheDocument()
@@ -317,7 +424,8 @@ describe("App master dictionary screen", () => {
     window.history.replaceState(null, "", "#master-dictionary")
   })
 
-  test("contract factory から受け取った view model を描画し mount/dispose を呼ぶ", async () => {
+  test("contract factory から受け取った view model で辞書一覧見出しを描画する", () => {
+    // Arrange
     const controller = new MasterDictionaryScreenControllerFake(
       buildMasterDictionaryScreenViewModel({
         importSummary: {
@@ -332,34 +440,115 @@ describe("App master dictionary screen", () => {
       })
     )
 
-    const view = render(App, {
-      props: {
-        createMasterDictionaryScreenController: () => controller
-      }
-    })
+    // Act
+    renderApp(controller)
 
+    // Assert
+    expect(screen.getByRole("heading", { level: 3, name: "辞書一覧" })).toBeInTheDocument()
+  })
+
+  test("render 時に controller.mount を呼ぶ", async () => {
+    // Arrange
+    const controller = new MasterDictionaryScreenControllerFake()
+
+    // Act
+    renderApp(controller)
+
+    // Assert
     await waitFor(() => {
       expect(controller.mount).toHaveBeenCalledTimes(1)
     })
-    expect(
-      screen.getByRole("heading", { level: 3, name: "辞書一覧" })
-    ).toBeInTheDocument()
-    expect(document.querySelector("#detailTitle")).toHaveTextContent(
-      "Dragon Priest"
-    )
-    expect(document.querySelector("#importStatusValue")).toHaveTextContent(
-      "完了"
-    )
-    expect(document.querySelector("#importResultSelection")).toHaveTextContent(
-      "Dragon Priest"
-    )
+  })
 
+  test("unmount 時に controller.dispose を呼ぶ", () => {
+    // Arrange
+    const controller = new MasterDictionaryScreenControllerFake()
+    const view = renderAppView(controller)
+
+    // Act
     view.unmount()
 
+    // Assert
     expect(controller.dispose).toHaveBeenCalledTimes(1)
   })
 
-  test("一覧と主要操作は controller contract を呼び出す", async () => {
+  test("選択中エントリの detail title を描画する", () => {
+    // Arrange
+    renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          importSummary: {
+            fileName: "master.xml",
+            importedCount: 2,
+            updatedCount: 1,
+            totalCount: 3,
+            selectedSource: "Dragon Priest"
+          },
+          importStage: "done",
+          importStatusValue: "完了"
+        })
+      )
+    )
+
+    // Act
+    const detailTitle = document.querySelector("#detailTitle")
+
+    // Assert
+    expect(detailTitle).toHaveTextContent("Dragon Priest")
+  })
+
+  test("import 完了 status value を描画する", () => {
+    // Arrange
+    renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          importSummary: {
+            fileName: "master.xml",
+            importedCount: 2,
+            updatedCount: 1,
+            totalCount: 3,
+            selectedSource: "Dragon Priest"
+          },
+          importStage: "done",
+          importStatusValue: "完了"
+        })
+      )
+    )
+
+    // Act
+    const importStatusValue = document.querySelector("#importStatusValue")
+
+    // Assert
+    expect(importStatusValue).toHaveTextContent("完了")
+  })
+
+  test("import 完了 summary の選択ソースを描画する", () => {
+    // Arrange
+    renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          importSummary: {
+            fileName: "master.xml",
+            importedCount: 2,
+            updatedCount: 1,
+            totalCount: 3,
+            selectedSource: "Dragon Priest"
+          },
+          importStage: "done",
+          importStatusValue: "完了"
+        })
+      )
+    )
+
+    // Act
+    const importResultSelection = document.querySelector("#importResultSelection")
+
+    // Assert
+    expect(importResultSelection).toHaveTextContent("Dragon Priest")
+  })
+
+  test("一覧行クリックで controller.selectRow を呼ぶ", async () => {
+    // Arrange
     const user = userEvent.setup()
     const controller = renderApp()
 
@@ -367,18 +556,51 @@ describe("App master dictionary screen", () => {
       expect(controller.mount).toHaveBeenCalledTimes(1)
     })
 
+    // Act
     await user.click(screen.getByRole("button", { name: /ドラゴン・プリースト/ }))
+
+    // Assert
+    expect(controller.selectRow).toHaveBeenCalledWith("101")
+  })
+
+  test("新規登録ボタンで controller.openCreateModal を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const controller = renderApp()
+
+    // Act
     await user.click(screen.getByRole("button", { name: "新規登録" }))
+
+    // Assert
+    expect(controller.openCreateModal).toHaveBeenCalledTimes(1)
+  })
+
+  test("更新ボタンで controller.openEditModal を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const controller = renderApp()
+
+    // Act
     await user.click(screen.getByRole("button", { name: "更新" }))
+
+    // Assert
+    expect(controller.openEditModal).toHaveBeenCalledTimes(1)
+  })
+
+  test("削除ボタンで controller.openDeleteModal を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const controller = renderApp()
+
+    // Act
     await user.click(screen.getByRole("button", { name: "削除" }))
 
-    expect(controller.selectRow).toHaveBeenCalledWith("101")
-    expect(controller.openCreateModal).toHaveBeenCalledTimes(1)
-    expect(controller.openEditModal).toHaveBeenCalledTimes(1)
+    // Assert
     expect(controller.openDeleteModal).toHaveBeenCalledTimes(1)
   })
 
-  test("検索、カテゴリ変更、ページ移動は controller contract を通す", async () => {
+  test("検索入力で controller.handleSearchInput を呼ぶ", async () => {
+    // Arrange
     const user = userEvent.setup()
     const controller = renderApp(
       new MasterDictionaryScreenControllerFake(
@@ -390,30 +612,102 @@ describe("App master dictionary screen", () => {
       )
     )
 
+    // Act
     await user.type(screen.getByRole("searchbox", { name: "検索" }), "Reach")
+
+    // Assert
+    expect(controller.handleSearchInput).toHaveBeenCalled()
+  })
+
+  test("カテゴリ変更で controller.handleCategoryChange を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const controller = renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          totalCount: 60,
+          totalPages: 2,
+          pageStatusText: "1 - 30 件を表示"
+        })
+      )
+    )
+
+    // Act
     await user.selectOptions(
       screen.getByRole("combobox", { name: "カテゴリ" }),
       "地名"
     )
+
+    // Assert
+    expect(controller.handleCategoryChange).toHaveBeenCalled()
+  })
+
+  test("次ページボタンで controller.goToNextPage を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const controller = renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          totalCount: 60,
+          totalPages: 2,
+          pageStatusText: "1 - 30 件を表示"
+        })
+      )
+    )
+
+    // Act
     await user.click(screen.getByRole("button", { name: "次の30件" }))
 
-    expect(controller.handleSearchInput).toHaveBeenCalled()
-    expect(controller.handleCategoryChange).toHaveBeenCalled()
+    // Assert
     expect(controller.goToNextPage).toHaveBeenCalledTimes(1)
   })
 
-  test("XML 選択と選び直しは controller contract を通す", async () => {
+  test("XML 選択で controller.stageXmlImport を呼ぶ", async () => {
+    // Arrange
     const user = userEvent.setup()
     const controller = renderApp()
     const xmlInput = document.querySelector("#xmlFileInput")
     if (!(xmlInput instanceof HTMLInputElement)) {
       throw new Error("xmlFileInput が見つかりません")
     }
-
     const xmlFile = createXmlFile("<Root />")
+
+    // Act
     await user.upload(xmlInput, xmlFile)
 
+    // Assert
     expect(controller.stageXmlImport).toHaveBeenCalledWith(xmlFile)
+  })
+
+  test("staged file を受けると import 実行ボタンを表示する", async () => {
+    // Arrange
+    const controller = renderApp()
+    const xmlFile = createXmlFile("<Root />")
+
+    // Act
+    controller.pushViewModel(
+      buildMasterDictionaryScreenViewModel({
+        hasStagedFile: true,
+        selectedFileName: xmlFile.name,
+        selectedFileReference: xmlFile.name,
+        importStage: "ready",
+        importStatusValue: "取込待ち"
+      })
+    )
+
+    // Assert
+    await waitFor(() => {
+      expect(
+        screen.getByRole("button", { name: "この XML を取り込む" })
+      ).toBeInTheDocument()
+    })
+  })
+
+  test("選び直す操作で controller.resetImportSelection を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const controller = renderApp()
+    const xmlFile = createXmlFile("<Root />")
 
     controller.pushViewModel(
       buildMasterDictionaryScreenViewModel({
@@ -431,12 +725,15 @@ describe("App master dictionary screen", () => {
       ).toBeInTheDocument()
     })
 
+    // Act
     await user.click(screen.getByRole("button", { name: "選び直す" }))
 
+    // Assert
     expect(controller.resetImportSelection).toHaveBeenCalledTimes(1)
   })
 
-  test("import 状態の表示更新は controller の view model push だけで反映する", async () => {
+  test("import 実行操作で controller.startImport を呼ぶ", async () => {
+    // Arrange
     const user = userEvent.setup()
     const controller = renderApp(
       new MasterDictionaryScreenControllerFake(
@@ -450,10 +747,28 @@ describe("App master dictionary screen", () => {
       )
     )
 
+    // Act
     await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
 
+    // Assert
     expect(controller.startImport).toHaveBeenCalledTimes(1)
+  })
 
+  test("running view model push で import status value を更新する", async () => {
+    // Arrange
+    const controller = renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          hasStagedFile: true,
+          selectedFileName: "master.xml",
+          selectedFileReference: "master.xml",
+          importStage: "ready",
+          importStatusValue: "取込待ち"
+        })
+      )
+    )
+
+    // Act
     controller.pushViewModel(
       buildMasterDictionaryScreenViewModel({
         hasStagedFile: true,
@@ -466,16 +781,53 @@ describe("App master dictionary screen", () => {
       })
     )
 
+    // Assert
     await waitFor(() => {
-      expect(document.querySelector("#importStatusValue")).toHaveTextContent(
-        "取込中"
+      expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+    })
+  })
+
+  test("running view model push で import progress bar 幅を更新する", async () => {
+    // Arrange
+    const controller = renderApp(
+      new MasterDictionaryScreenControllerFake(
+        buildMasterDictionaryScreenViewModel({
+          hasStagedFile: true,
+          selectedFileName: "master.xml",
+          selectedFileReference: "master.xml",
+          importStage: "ready",
+          importStatusValue: "取込待ち"
+        })
       )
+    )
+
+    // Act
+    controller.pushViewModel(
+      buildMasterDictionaryScreenViewModel({
+        hasStagedFile: true,
+        selectedFileName: "master.xml",
+        selectedFileReference: "master.xml",
+        importStage: "running",
+        isImportRunning: true,
+        importProgress: 78,
+        importStatusValue: "取込中"
+      })
+    )
+
+    // Assert
+    await waitFor(() => {
       expect(document.querySelector("#importProgressFill")).toHaveAttribute(
         "style",
         "width: 78%;"
       )
     })
+  })
 
+  test("完了 view model push で完了表示を反映する", async () => {
+    // Arrange
+    const controller = renderApp()
+
+    // Act
     controller.pushViewModel(
       buildMasterDictionaryScreenViewModel({
         entries: [
@@ -520,12 +872,173 @@ describe("App master dictionary screen", () => {
       })
     )
 
+    // Assert
     await waitFor(() => {
       expect(screen.getByText("完了")).toBeInTheDocument()
+    })
+  })
+
+  test("完了 view model push で検索入力値を初期状態へ反映する", async () => {
+    // Arrange
+    const controller = renderApp()
+
+    // Act
+    controller.pushViewModel(
+      buildMasterDictionaryScreenViewModel({
+        entries: [
+          {
+            id: "201",
+            source: "Allowed Book Source",
+            translation: "許可された本の訳語",
+            category: "書籍",
+            origin: "XML取込",
+            updatedAt: "2026-04-12 00:00"
+          }
+        ],
+        selectedEntry: {
+          id: "201",
+          source: "Allowed Book Source",
+          translation: "許可された本の訳語",
+          category: "書籍",
+          origin: "XML取込",
+          updatedAt: "2026-04-12 00:00",
+          note: "REC: BOOK:FULL / EDID: ImportBook"
+        },
+        selectedId: "201",
+        totalCount: 1,
+        query: "",
+        category: "すべて",
+        hasStagedFile: true,
+        selectedFileName: "master.xml",
+        selectedFileReference: "master.xml",
+        importStage: "done",
+        importProgress: 100,
+        importStatusValue: "完了",
+        importSummary: {
+          fileName: "master.xml",
+          importedCount: 1,
+          updatedCount: 0,
+          totalCount: 1,
+          selectedSource: "Allowed Book Source"
+        },
+        listHeadline: "1 件のエントリを表示しています。",
+        selectionStatusText: "Allowed Book Source を選択中",
+        detailSublineText: "XML取込 / 最終更新 2026-04-12 00:00"
+      })
+    )
+
+    // Assert
+    await waitFor(() => {
       expect(screen.getByRole("searchbox", { name: "検索" })).toHaveValue("")
-      expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue(
-        "すべて"
-      )
+    })
+  })
+
+  test("完了 view model push でカテゴリ選択値を初期状態へ反映する", async () => {
+    // Arrange
+    const controller = renderApp()
+
+    // Act
+    controller.pushViewModel(
+      buildMasterDictionaryScreenViewModel({
+        entries: [
+          {
+            id: "201",
+            source: "Allowed Book Source",
+            translation: "許可された本の訳語",
+            category: "書籍",
+            origin: "XML取込",
+            updatedAt: "2026-04-12 00:00"
+          }
+        ],
+        selectedEntry: {
+          id: "201",
+          source: "Allowed Book Source",
+          translation: "許可された本の訳語",
+          category: "書籍",
+          origin: "XML取込",
+          updatedAt: "2026-04-12 00:00",
+          note: "REC: BOOK:FULL / EDID: ImportBook"
+        },
+        selectedId: "201",
+        totalCount: 1,
+        query: "",
+        category: "すべて",
+        hasStagedFile: true,
+        selectedFileName: "master.xml",
+        selectedFileReference: "master.xml",
+        importStage: "done",
+        importProgress: 100,
+        importStatusValue: "完了",
+        importSummary: {
+          fileName: "master.xml",
+          importedCount: 1,
+          updatedCount: 0,
+          totalCount: 1,
+          selectedSource: "Allowed Book Source"
+        },
+        listHeadline: "1 件のエントリを表示しています。",
+        selectionStatusText: "Allowed Book Source を選択中",
+        detailSublineText: "XML取込 / 最終更新 2026-04-12 00:00"
+      })
+    )
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue("すべて")
+    })
+  })
+
+  test("完了 view model push で detail title を更新する", async () => {
+    // Arrange
+    const controller = renderApp()
+
+    // Act
+    controller.pushViewModel(
+      buildMasterDictionaryScreenViewModel({
+        entries: [
+          {
+            id: "201",
+            source: "Allowed Book Source",
+            translation: "許可された本の訳語",
+            category: "書籍",
+            origin: "XML取込",
+            updatedAt: "2026-04-12 00:00"
+          }
+        ],
+        selectedEntry: {
+          id: "201",
+          source: "Allowed Book Source",
+          translation: "許可された本の訳語",
+          category: "書籍",
+          origin: "XML取込",
+          updatedAt: "2026-04-12 00:00",
+          note: "REC: BOOK:FULL / EDID: ImportBook"
+        },
+        selectedId: "201",
+        totalCount: 1,
+        query: "",
+        category: "すべて",
+        hasStagedFile: true,
+        selectedFileName: "master.xml",
+        selectedFileReference: "master.xml",
+        importStage: "done",
+        importProgress: 100,
+        importStatusValue: "完了",
+        importSummary: {
+          fileName: "master.xml",
+          importedCount: 1,
+          updatedCount: 0,
+          totalCount: 1,
+          selectedSource: "Allowed Book Source"
+        },
+        listHeadline: "1 件のエントリを表示しています。",
+        selectionStatusText: "Allowed Book Source を選択中",
+        detailSublineText: "XML取込 / 最終更新 2026-04-12 00:00"
+      })
+    )
+
+    // Assert
+    await waitFor(() => {
       expect(document.querySelector("#detailTitle")).toHaveTextContent(
         "Allowed Book Source"
       )

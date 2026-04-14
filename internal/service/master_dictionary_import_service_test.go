@@ -17,22 +17,117 @@ var importServiceRecords = []xmlStringRecord{
 
 var importServiceExpectedProgress = []int{0, 25, 50, 75, 100, 100}
 
-func TestMasterDictionaryImportServiceImportsWithFakePorts(t *testing.T) {
-	repo := newImportRepositoryStub()
-	xmlFiles := newImportXMLFileStub()
-	xmlRecords := newImportXMLRecordReaderStub(importServiceRecords)
-	runtime := &importProgressRecorder{}
-	service := NewMasterDictionaryImportService(repo, xmlFiles, xmlRecords, runtime, fixedMasterDictionaryNow)
+type importServiceSuccessResult struct {
+	repo       *repositoryStub
+	xmlFiles   *xmlFilePortStub
+	xmlRecords *xmlRecordReaderStub
+	runtime    *importProgressRecorder
+	summary    MasterDictionaryImportSummary
+}
 
-	summary, err := service.ImportXML(context.Background(), " input/import.xml ")
-	if err != nil {
-		t.Fatalf("expected import to succeed: %v", err)
+func TestMasterDictionaryImportServiceResolvesOriginalXMLPath(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.xmlFiles.resolvedPaths[0] != " input/import.xml " {
+		t.Fatalf("expected one resolve call with raw path, got %v", result.xmlFiles.resolvedPaths)
 	}
+}
 
-	assertImportXMLPorts(t, xmlFiles, xmlRecords)
-	assertImportSummary(t, summary)
-	assertImportRecords(t, repo.upsertRecords)
-	assertImportProgress(t, runtime.values)
+func TestMasterDictionaryImportServiceOpensXMLForCountAndRead(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if len(result.xmlFiles.openedPaths) != 2 {
+		t.Fatalf("expected xml file to be opened for count and read, got %v", result.xmlFiles.openedPaths)
+	}
+}
+
+func TestMasterDictionaryImportServiceCountsAndReadsXMLRecordsOnce(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.xmlRecords.countCalls != 1 || result.xmlRecords.readCalls != 1 {
+		t.Fatalf("expected one count/read call, got count=%d read=%d", result.xmlRecords.countCalls, result.xmlRecords.readCalls)
+	}
+}
+
+func TestMasterDictionaryImportServiceReturnsResolvedFileInfo(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.summary.FilePath != "/resolved/import.xml" || result.summary.FileName != "import.xml" {
+		t.Fatalf("expected resolved file info, got %+v", result.summary)
+	}
+}
+
+func TestMasterDictionaryImportServiceReturnsImportCounters(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.summary.ImportedCount != 1 || result.summary.UpdatedCount != 1 || result.summary.SkippedCount != 2 {
+		t.Fatalf("unexpected summary: %+v", result.summary)
+	}
+}
+
+func TestMasterDictionaryImportServiceReturnsLastEntryID(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.summary.LastEntryID != 2 {
+		t.Fatalf("expected last entry id 2, got %d", result.summary.LastEntryID)
+	}
+}
+
+func TestMasterDictionaryImportServiceUpsertsOnlyImportableRecords(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if len(result.repo.upsertRecords) != 2 {
+		t.Fatalf("expected 2 upsert calls, got %d", len(result.repo.upsertRecords))
+	}
+}
+
+func TestMasterDictionaryImportServiceMapsWeaponCategory(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.repo.upsertRecords[0].Category != "装備" {
+		t.Fatalf("expected WEAP record category 装備, got %q", result.repo.upsertRecords[0].Category)
+	}
+}
+
+func TestMasterDictionaryImportServiceMapsBookCategory(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if result.repo.upsertRecords[1].Category != "書籍" {
+		t.Fatalf("expected BOOK record category 書籍, got %q", result.repo.upsertRecords[1].Category)
+	}
+}
+
+func TestMasterDictionaryImportServiceAssignsXMLImportOrigin(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	for _, record := range result.repo.upsertRecords {
+		if record.Origin != "XML取込" {
+			t.Fatalf("expected import origin XML取込, got %q", record.Origin)
+		}
+	}
+}
+
+func TestMasterDictionaryImportServiceAssignsFixedImportTimestamp(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	for _, record := range result.repo.upsertRecords {
+		if !record.UpdatedAt.Equal(fixedMasterDictionaryNow()) {
+			t.Fatalf("expected import timestamp %s, got %s", fixedMasterDictionaryNow(), record.UpdatedAt)
+		}
+	}
+}
+
+func TestMasterDictionaryImportServicePublishesExpectedProgressValues(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if len(result.runtime.values) != len(importServiceExpectedProgress) {
+		t.Fatalf("expected %d progress events, got %d: %v", len(importServiceExpectedProgress), len(result.runtime.values), result.runtime.values)
+	}
+	for index, progress := range importServiceExpectedProgress {
+		if result.runtime.values[index] != progress {
+			t.Fatalf("expected progress[%d]=%d, got %d", index, progress, result.runtime.values[index])
+		}
+	}
 }
 
 func TestMasterDictionaryImportServicePropagatesReadFailure(t *testing.T) {
@@ -64,6 +159,29 @@ func TestMasterDictionaryImportServicePropagatesReadFailure(t *testing.T) {
 	}
 	if len(repo.upsertRecords) != 0 {
 		t.Fatalf("expected no upsert on read failure, got %d", len(repo.upsertRecords))
+	}
+}
+
+func runSuccessfulImport(t *testing.T) importServiceSuccessResult {
+	t.Helper()
+
+	repo := newImportRepositoryStub()
+	xmlFiles := newImportXMLFileStub()
+	xmlRecords := newImportXMLRecordReaderStub(importServiceRecords)
+	runtime := &importProgressRecorder{}
+	service := NewMasterDictionaryImportService(repo, xmlFiles, xmlRecords, runtime, fixedMasterDictionaryNow)
+
+	summary, err := service.ImportXML(context.Background(), " input/import.xml ")
+	if err != nil {
+		t.Fatalf("expected import to succeed: %v", err)
+	}
+
+	return importServiceSuccessResult{
+		repo:       repo,
+		xmlFiles:   xmlFiles,
+		xmlRecords: xmlRecords,
+		runtime:    runtime,
+		summary:    summary,
 	}
 }
 
@@ -109,68 +227,5 @@ func newImportXMLRecordReaderStub(records []xmlStringRecord) *xmlRecordReaderStu
 			}
 			return nil
 		},
-	}
-}
-
-func assertImportXMLPorts(t *testing.T, xmlFiles *xmlFilePortStub, xmlRecords *xmlRecordReaderStub) {
-	t.Helper()
-
-	if len(xmlFiles.resolvedPaths) != 1 || xmlFiles.resolvedPaths[0] != " input/import.xml " {
-		t.Fatalf("expected one resolve call with raw path, got %v", xmlFiles.resolvedPaths)
-	}
-	if len(xmlFiles.openedPaths) != 2 {
-		t.Fatalf("expected xml file to be opened for count and read, got %v", xmlFiles.openedPaths)
-	}
-	if xmlRecords.countCalls != 1 || xmlRecords.readCalls != 1 {
-		t.Fatalf("expected one count/read call, got count=%d read=%d", xmlRecords.countCalls, xmlRecords.readCalls)
-	}
-}
-
-func assertImportSummary(t *testing.T, summary MasterDictionaryImportSummary) {
-	t.Helper()
-
-	if summary.FilePath != "/resolved/import.xml" || summary.FileName != "import.xml" {
-		t.Fatalf("expected resolved file info, got %+v", summary)
-	}
-	if summary.ImportedCount != 1 || summary.UpdatedCount != 1 || summary.SkippedCount != 2 {
-		t.Fatalf("unexpected summary: %+v", summary)
-	}
-	if summary.LastEntryID != 2 {
-		t.Fatalf("expected last entry id 2, got %d", summary.LastEntryID)
-	}
-}
-
-func assertImportRecords(t *testing.T, records []MasterDictionaryImportRecord) {
-	t.Helper()
-
-	if len(records) != 2 {
-		t.Fatalf("expected 2 upsert calls, got %d", len(records))
-	}
-	if records[0].Category != "装備" {
-		t.Fatalf("expected WEAP record category 装備, got %q", records[0].Category)
-	}
-	if records[1].Category != "書籍" {
-		t.Fatalf("expected BOOK record category 書籍, got %q", records[1].Category)
-	}
-	for _, record := range records {
-		if record.Origin != "XML取込" {
-			t.Fatalf("expected import origin XML取込, got %q", record.Origin)
-		}
-		if !record.UpdatedAt.Equal(fixedMasterDictionaryNow()) {
-			t.Fatalf("expected import timestamp %s, got %s", fixedMasterDictionaryNow(), record.UpdatedAt)
-		}
-	}
-}
-
-func assertImportProgress(t *testing.T, values []int) {
-	t.Helper()
-
-	if len(values) != len(importServiceExpectedProgress) {
-		t.Fatalf("expected %d progress events, got %d: %v", len(importServiceExpectedProgress), len(values), values)
-	}
-	for index, progress := range importServiceExpectedProgress {
-		if values[index] != progress {
-			t.Fatalf("expected progress[%d]=%d, got %d", index, progress, values[index])
-		}
 	}
 }

@@ -10,44 +10,62 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-const sqliteTestDatabaseFileName = "master-dictionary.sqlite3"
+const (
+	sqliteTestDatabaseFileName = "master-dictionary.sqlite3"
+	errInitialSQLiteClose      = "expected initial sqlite close to succeed: %v"
+)
 
-func TestOpenMasterDictionaryDatabaseCreatesDatabaseAndSeedsOnce(t *testing.T) {
+func TestOpenMasterDictionaryDatabaseCreatesDatabaseFile(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
+	firstSeedTime := time.Date(2026, 4, 15, 9, 0, 0, 0, time.UTC)
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Whiterun", firstSeedTime)})
+
+	err := database.Close()
+	if err != nil {
+		t.Fatalf(errInitialSQLiteClose, err)
+	}
+
+	_, err = os.Stat(databasePath)
+	if err != nil {
+		t.Fatalf("expected sqlite database file to exist: %v", err)
+	}
+}
+
+func TestOpenMasterDictionaryDatabaseSeedsOnlyOnce(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
 	firstSeedTime := time.Date(2026, 4, 15, 9, 0, 0, 0, time.UTC)
 	secondSeedTime := firstSeedTime.Add(24 * time.Hour)
-
-	database, err := OpenMasterDictionaryDatabase(context.Background(), databasePath, []MasterDictionarySeedEntry{seedEntry("Whiterun", firstSeedTime)})
-	if err != nil {
-		t.Fatalf("expected initial sqlite open to succeed: %v", err)
-	}
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Whiterun", firstSeedTime)})
 	assertSeedCount(t, database, 1)
-	closeErr := database.Close()
-	if closeErr != nil {
-		t.Fatalf("expected initial sqlite close to succeed: %v", closeErr)
-	}
-	_, statErr := os.Stat(databasePath)
-	if statErr != nil {
-		t.Fatalf("expected sqlite database file to exist: %v", statErr)
+
+	err := database.Close()
+	if err != nil {
+		t.Fatalf(errInitialSQLiteClose, err)
 	}
 
-	reopenedDatabase, err := OpenMasterDictionaryDatabase(context.Background(), databasePath, []MasterDictionarySeedEntry{seedEntry("Solitude", secondSeedTime)})
-	if err != nil {
-		t.Fatalf("expected reopened sqlite open to succeed: %v", err)
-	}
-	t.Cleanup(func() {
-		reopenCloseErr := reopenedDatabase.Close()
-		if reopenCloseErr != nil {
-			t.Fatalf("expected reopened sqlite close to succeed: %v", reopenCloseErr)
-		}
-	})
+	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Solitude", secondSeedTime)})
 	assertSeedCount(t, reopenedDatabase, 1)
+}
+
+func TestOpenMasterDictionaryDatabasePreservesOriginalSeedDataOnReopen(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
+	firstSeedTime := time.Date(2026, 4, 15, 9, 0, 0, 0, time.UTC)
+	secondSeedTime := firstSeedTime.Add(24 * time.Hour)
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Whiterun", firstSeedTime)})
+
+	err := database.Close()
+	if err != nil {
+		t.Fatalf(errInitialSQLiteClose, err)
+	}
+
+	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Solitude", secondSeedTime)})
 
 	var source string
-	queryErr := reopenedDatabase.QueryRowContext(context.Background(), "SELECT source FROM master_dictionary_entries LIMIT 1").Scan(&source)
-	if queryErr != nil {
-		t.Fatalf("expected to load seeded row after reopen: %v", queryErr)
+	err = reopenedDatabase.QueryRowContext(context.Background(), "SELECT source FROM master_dictionary_entries LIMIT 1").Scan(&source)
+	if err != nil {
+		t.Fatalf("expected to load seeded row after reopen: %v", err)
 	}
+
 	if source != "Whiterun" {
 		t.Fatalf("expected original seed row to remain, got %q", source)
 	}
@@ -55,11 +73,9 @@ func TestOpenMasterDictionaryDatabaseCreatesDatabaseAndSeedsOnce(t *testing.T) {
 
 func TestOpenMasterDictionaryDatabaseReappliesMigrationsOnExistingDatabase(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
-	database, err := OpenMasterDictionaryDatabase(context.Background(), databasePath, nil)
-	if err != nil {
-		t.Fatalf("expected initial sqlite open to succeed: %v", err)
-	}
-	_, execErr := database.ExecContext(
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+
+	_, err := database.ExecContext(
 		context.Background(),
 		"INSERT INTO master_dictionary_entries (source, translation, category, origin, rec, edid, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
 		"Riften",
@@ -70,26 +86,34 @@ func TestOpenMasterDictionaryDatabaseReappliesMigrationsOnExistingDatabase(t *te
 		"LocRiften",
 		time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC).Format(masterDictionaryTimestampLayout),
 	)
-	if execErr != nil {
-		t.Fatalf("expected insert before reopen to succeed: %v", execErr)
-	}
-	closeErr := database.Close()
-	if closeErr != nil {
-		t.Fatalf("expected initial sqlite close to succeed: %v", closeErr)
+	if err != nil {
+		t.Fatalf("expected insert before reopen to succeed: %v", err)
 	}
 
-	reopenedDatabase, err := OpenMasterDictionaryDatabase(context.Background(), databasePath, nil)
+	err = database.Close()
 	if err != nil {
-		t.Fatalf("expected reopened sqlite open to succeed: %v", err)
+		t.Fatalf(errInitialSQLiteClose, err)
 	}
+
+	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+	assertSeedCount(t, reopenedDatabase, 1)
+}
+
+func openMasterDictionaryDatabaseForTest(t *testing.T, databasePath string, seeds []MasterDictionarySeedEntry) *sqlx.DB {
+	t.Helper()
+
+	database, err := OpenMasterDictionaryDatabase(context.Background(), databasePath, seeds)
+	if err != nil {
+		t.Fatalf("expected sqlite open to succeed: %v", err)
+	}
+
 	t.Cleanup(func() {
-		reopenCloseErr := reopenedDatabase.Close()
-		if reopenCloseErr != nil {
-			t.Fatalf("expected reopened sqlite close to succeed: %v", reopenCloseErr)
+		if closeErr := database.Close(); closeErr != nil {
+			t.Fatalf("expected sqlite close to succeed: %v", closeErr)
 		}
 	})
 
-	assertSeedCount(t, reopenedDatabase, 1)
+	return database
 }
 
 func seedEntry(source string, updatedAt time.Time) MasterDictionarySeedEntry {

@@ -27,6 +27,10 @@ description: implementation_target と owned scope に従い、frontend / backen
 - ownership が曖昧なら停止して orchestrate へ返す
 - plan の書き換えや lane 切り替えはしない
 - 関連 test の更新は同一変更で行う
+- 関連 test を追加または更新する時は、各 test method を Arrange / Act / Assert で判別できる構造にする
+- 関連 test を追加または更新する時は、各 test method を 1 つの振る舞いと 1 つの検証対象に絞る。複数の検証対象が必要なら test case を分割する
+- 関連 test の assertion bundle は、1 つの output object、1 つの state object、1 つの event payload を確認する場合だけに限る
+- 関連 test の setup は決定的にし、test body に条件分岐を持ち込まない
 - closeout 前に `python3 scripts/harness/run.py --suite all` を実行する
 - backend を含む task は closeout 前に Sonar MCP で open `HIGH` / `BLOCKER`、open reliability、open security を確認し、すべて 0 件にする
 - backend を含む task は `sonar_gate_result` に件数、対象 project、補足 issue を含めて返す

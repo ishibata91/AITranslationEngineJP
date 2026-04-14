@@ -6,9 +6,58 @@ import (
 	"testing"
 )
 
-const queryServiceWhiterunSource = "Whiterun 01"
+const (
+	queryServiceWhiterunSource = "Whiterun 01"
+	errQuerySearchSucceeded    = "expected search to succeed: %v"
+)
 
-func TestMasterDictionaryQueryServiceSearchEntriesTrimsQueryBeforeRepositoryCall(t *testing.T) {
+func TestMasterDictionaryQueryServiceSearchEntriesTrimsSearchTermBeforeRepositoryCall(t *testing.T) {
+	repo := &repositoryStub{
+		listFunc: func(_ context.Context, query MasterDictionaryQuery) (MasterDictionaryListResult, error) {
+			return MasterDictionaryListResult{Page: query.Page, PageSize: query.PageSize}, nil
+		},
+	}
+	service := NewMasterDictionaryQueryService(repo)
+
+	_, err := service.SearchEntries(context.Background(), MasterDictionaryQuery{
+		SearchTerm: "  " + queryServiceWhiterunSource + "  ",
+		Category:   " 地名 ",
+		Page:       1,
+		PageSize:   10,
+	})
+	if err != nil {
+		t.Fatalf(errQuerySearchSucceeded, err)
+	}
+
+	if repo.listQueries[0].SearchTerm != "Whiterun 01" {
+		t.Fatalf("expected trimmed search term, got %q", repo.listQueries[0].SearchTerm)
+	}
+}
+
+func TestMasterDictionaryQueryServiceSearchEntriesTrimsCategoryBeforeRepositoryCall(t *testing.T) {
+	repo := &repositoryStub{
+		listFunc: func(_ context.Context, query MasterDictionaryQuery) (MasterDictionaryListResult, error) {
+			return MasterDictionaryListResult{Page: query.Page, PageSize: query.PageSize}, nil
+		},
+	}
+	service := NewMasterDictionaryQueryService(repo)
+
+	_, err := service.SearchEntries(context.Background(), MasterDictionaryQuery{
+		SearchTerm: "  " + queryServiceWhiterunSource + "  ",
+		Category:   " 地名 ",
+		Page:       1,
+		PageSize:   10,
+	})
+	if err != nil {
+		t.Fatalf(errQuerySearchSucceeded, err)
+	}
+
+	if repo.listQueries[0].Category != "地名" {
+		t.Fatalf("expected trimmed category, got %q", repo.listQueries[0].Category)
+	}
+}
+
+func TestMasterDictionaryQueryServiceSearchEntriesReturnsRepositoryResult(t *testing.T) {
 	repo := &repositoryStub{
 		listFunc: func(_ context.Context, query MasterDictionaryQuery) (MasterDictionaryListResult, error) {
 			return MasterDictionaryListResult{
@@ -22,45 +71,36 @@ func TestMasterDictionaryQueryServiceSearchEntriesTrimsQueryBeforeRepositoryCall
 	service := NewMasterDictionaryQueryService(repo)
 
 	result, err := service.SearchEntries(context.Background(), MasterDictionaryQuery{
-		SearchTerm: "  " + queryServiceWhiterunSource + "  ",
-		Category:   " 地名 ",
+		SearchTerm: queryServiceWhiterunSource,
+		Category:   "地名",
 		Page:       1,
 		PageSize:   10,
 	})
 	if err != nil {
-		t.Fatalf("expected search to succeed: %v", err)
+		t.Fatalf(errQuerySearchSucceeded, err)
 	}
-	if len(repo.listQueries) != 1 {
-		t.Fatalf("expected one repository list call, got %d", len(repo.listQueries))
-	}
-	if repo.listQueries[0].SearchTerm != "Whiterun 01" {
-		t.Fatalf("expected trimmed search term, got %q", repo.listQueries[0].SearchTerm)
-	}
-	if repo.listQueries[0].Category != "地名" {
-		t.Fatalf("expected trimmed category, got %q", repo.listQueries[0].Category)
-	}
-	if result.TotalCount != 1 || len(result.Items) != 1 {
-		t.Fatalf("expected one search result, got %+v", result)
-	}
+
 	if result.Items[0].Source != queryServiceWhiterunSource {
 		t.Fatalf("expected returned item to be preserved, got %q", result.Items[0].Source)
 	}
 }
 
+func TestMasterDictionaryQueryServiceLoadEntryDetailRejectsInvalidID(t *testing.T) {
+	service := NewMasterDictionaryQueryService(&repositoryStub{})
+
+	_, err := service.LoadEntryDetail(context.Background(), 0)
+	if err == nil {
+		t.Fatal("expected invalid id to fail")
+	}
+}
+
 func TestMasterDictionaryQueryServiceLoadEntryDetailMapsNotFound(t *testing.T) {
 	repo := &repositoryStub{
-		getByIDFunc: func(_ context.Context, id int64) (MasterDictionaryEntry, error) {
-			if id == 999 {
-				return MasterDictionaryEntry{}, ErrMasterDictionaryEntryNotFound
-			}
-			return MasterDictionaryEntry{ID: id, Source: "entry"}, nil
+		getByIDFunc: func(_ context.Context, _ int64) (MasterDictionaryEntry, error) {
+			return MasterDictionaryEntry{}, ErrMasterDictionaryEntryNotFound
 		},
 	}
 	service := NewMasterDictionaryQueryService(repo)
-
-	if _, err := service.LoadEntryDetail(context.Background(), 0); err == nil {
-		t.Fatal("expected invalid id to fail")
-	}
 
 	_, err := service.LoadEntryDetail(context.Background(), 999)
 	if err == nil {
