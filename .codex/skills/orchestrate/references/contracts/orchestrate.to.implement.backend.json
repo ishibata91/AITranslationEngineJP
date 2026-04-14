@@ -6,5 +6,5 @@
   "required_inputs": ["active_work_plan", "task_mode", "owned_scope"],
   "optional_inputs": ["design_bundle", "accepted_fix_scope", "reproduction_evidence", "trace_or_analysis_result", "local_validation"],
   "mode_notes": ["implement と refactor では design_bundle を必須とし、fix では accepted_fix_scope と evidence を必須とする"],
-  "completion_signal": ["touched_files", "implemented_scope", "validation_results", "closeout_notes", "residual_risks"]
+  "completion_signal": ["touched_files", "implemented_scope", "validation_results", "sonar_gate_result", "closeout_notes", "residual_risks"]
 }

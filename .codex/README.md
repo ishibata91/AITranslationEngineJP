@@ -20,6 +20,9 @@ live workflow は role-based skill に圧縮し、入口は `orchestrate` だけ
 - workflow 契約変更: `skills/skill-modification/SKILL.md`
 - docs 正本更新: `skills/updating-docs/SKILL.md`
 
+backend の Sonar close gate は独立 skill にせず、`implement` と `review` の backend contract に内包する。
+旧 `sonar-gate` skill は live workflow から外し、独立 handoff を禁止する。
+
 ## Asset Layout
 
 - 共通判断ルールは各 `SKILL.md` に残す

@@ -16,6 +16,24 @@ backend_master_dictionary_detail: {
   style.fill: "#f7fff7"
   style.font-color: "#1b5e20"
 
+  bootstrap_package: {
+    label: "package: Bootstrap"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+
+    composition_root: {
+      shape: class
+      label: "AppController composition root"
+      +wireController(): MasterDictionaryController
+      +wireUsecase(): MasterDictionaryUsecase
+      +wireServices(): Query/Command/Import Services
+      +wireAdapters(): Repository/XML/Wails adapters
+    }
+  }
+
   controller_package: {
     label: "package: Controller"
     direction: down
@@ -27,12 +45,23 @@ backend_master_dictionary_detail: {
     dictionary_controller: {
       shape: class
       label: "Wails controller"
-      +listEntries(request): MasterDictionaryPageResult
-      +getEntryDetail(entryId): MasterDictionaryDetail
-      +createEntry(draft): MasterDictionaryMutationResult
-      +updateEntry(entryId と draft): MasterDictionaryMutationResult
-      +deleteEntry(entryId): MasterDictionaryMutationResult
-      +importXml(filePath): MasterDictionaryImportResult
+      +MasterDictionaryGetPage(request)
+      +MasterDictionaryGetDetail(entryId)
+      +MasterDictionaryCreate(draft)
+      +MasterDictionaryUpdate(entryId, draft)
+      +MasterDictionaryDelete(entryId)
+      +MasterDictionaryImportXML(filePath)
+    }
+
+    usecase_port: {
+      shape: class
+      label: "caller-owned UsecasePort"
+      +GetPage(query)
+      +GetEntry(entryId)
+      +CreateEntry(input)
+      +UpdateEntry(input)
+      +DeleteEntry(input)
+      +ImportXML(input)
     }
   }
 
@@ -44,101 +73,174 @@ backend_master_dictionary_detail: {
     style.fill: "#eef9ef"
     style.font-color: "#1b5e20"
 
-    crud_usecase: {
+    master_dictionary_usecase: {
       shape: class
-      label: "CRUD / 一覧ユースケース"
-      +listEntries(request): MasterDictionaryPageResult
-      +getEntryDetail(entryId): MasterDictionaryDetail
-      +createEntry(draft): MasterDictionaryMutationResult
-      +updateEntry(entryId, draft): MasterDictionaryMutationResult
-      +deleteEntry(entryId): MasterDictionaryMutationResult
-      +buildRefreshPayload(): SamePageRefreshPayload
+      label: "MasterDictionaryUsecase"
+      +GetPage(query)
+      +GetEntry(entryId)
+      +CreateEntry(input)
+      +UpdateEntry(input)
+      +DeleteEntry(input)
+      +ImportXML(input)
     }
 
-    import_usecase: {
+    service_ports: {
       shape: class
-      label: "XML 取り込みユースケース"
-      +readXml(filePath): XmlDocument
-      +filterAllowedRec(records): XmlRecord list
-      +extractDictionaryEntries(records): MasterDictionaryEntry list
-      +persistImportedEntries(entries): ImportPersistenceResult
-      +buildImportRefreshPayload(): MasterDictionaryImportResult
+      label: "caller-owned service ports"
+      +QueryServicePort
+      +CommandServicePort
+      +ImportServicePort
+      +RuntimeEventPublisherPort
     }
   }
 
-  repository_package: {
-    label: "package: Repository"
+  service_package: {
+    label: "package: Service"
     direction: down
     style.stroke: "#2e7d32"
     style.stroke-dash: 4
     style.fill: "#eef9ef"
     style.font-color: "#1b5e20"
 
-    dictionary_repository: {
+    query_service: {
       shape: class
-      label: "マスター辞書 repository"
-      +searchEntries(request): MasterDictionaryPage
-      +getById(entryId): MasterDictionaryEntry or null
-      +create(entry): MasterDictionaryEntry
-      +update(entry): MasterDictionaryEntry
-      +delete(entryId): DeleteResult
-      +upsertImportedEntries(entries): ImportPersistenceResult
+      label: "Query service"
+      +SearchEntries(query)
+      +LoadEntryDetail(entryId)
+    }
+
+    command_service: {
+      shape: class
+      label: "Command service"
+      +CreateEntry(input)
+      +UpdateEntry(input)
+      +DeleteEntry(input)
+    }
+
+    import_service: {
+      shape: class
+      label: "Import service"
+      +ImportXML(input)
+      +emitImportProgress(progress)
+    }
+
+    service_ports_owned: {
+      shape: class
+      label: "caller-owned adapter ports"
+      +RepositoryPort
+      +XMLFilePort
+      +XMLRecordReaderPort
+      +RuntimeContextPort
     }
   }
 
-  import_pipeline_package: {
-    label: "package: Import Pipeline"
+  adapter_package: {
+    label: "package: Adapter"
     direction: down
     style.stroke: "#2e7d32"
     style.stroke-dash: 4
     style.fill: "#eef9ef"
     style.font-color: "#1b5e20"
 
-    xml_reader: {
+    repository_adapter: {
       shape: class
-      label: "XML reader"
-      +load(filePath): XmlDocument
+      label: "repository adapter"
+      +List(query)
+      +GetByID(entryId)
+      +Create(entry)
+      +Update(entry)
+      +Delete(entryId)
+      +UpsertBySourceAndREC(entry)
     }
 
-    rec_allow_list: {
+    xml_file_adapter: {
       shape: class
-      label: "REC 許可リスト"
-      +allowedRecGroup1: "BOOK | NPC_ | ARMO | WEAP"
-      +allowedRecGroup2: "LCTN | CELL | CONT | MISC"
-      +allowedRecGroup3: "ALCH | FURN | DOOR | RACE"
-      +allowedRecGroup4: "INGR | FLOR | SHOU"
-      +isAllowed(rec): bool
+      label: "filesystem / XML file adapter"
+      +ResolvePath(filePath)
+      +Open(filePath)
     }
 
-    import_mapper: {
+    xml_record_reader_adapter: {
       shape: class
-      label: "辞書 entry mapper"
-      +toDictionaryEntry(record): MasterDictionaryEntry
+      label: "XML record reader adapter"
+      +CountStringRecords(reader)
+      +ReadStringRecords(reader)
+    }
+
+    runtime_event_adapter: {
+      shape: class
+      label: "Wails runtime adapter"
+      +PublishImportProgress(payload)
+      +PublishImportCompleted(payload)
     }
   }
 
-  controller_package.dictionary_controller -> usecase_package.crud_usecase: "一覧、詳細、CRUD を委譲"
-  controller_package.dictionary_controller -> usecase_package.import_usecase: "XML 取り込みを委譲"
+  testing_boundary: {
+    label: "test boundary"
+    direction: down
+    style.stroke: "#2e7d32"
+    style.stroke-dash: 4
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
 
-  usecase_package.crud_usecase -> repository_package.dictionary_repository: "検索、詳細、作成、更新、削除を呼ぶ"
-  usecase_package.import_usecase -> import_pipeline_package.xml_reader: "XML を読む"
-  usecase_package.import_usecase -> import_pipeline_package.rec_allow_list: "許可された REC だけ残す"
-  usecase_package.import_usecase -> import_pipeline_package.import_mapper: "辞書 entry へ変換"
-  usecase_package.import_usecase -> repository_package.dictionary_repository: "取り込み結果を永続化"
+    upper_unit_tests: {
+      shape: class
+      label: "controller/usecase/service unit tests"
+      +fake ports only
+    }
 
-  repository_package.dictionary_repository -> usecase_package.crud_usecase: "一覧 / 詳細 / mutation 結果" {
+    lower_integration_tests: {
+      shape: class
+      label: "bootstrap / repository / XML wiring tests"
+      +manual DI proof
+      +concrete adapter proof
+    }
+  }
+
+  bootstrap_package.composition_root -> controller_package.dictionary_controller: "manual DI で生成"
+  bootstrap_package.composition_root -> usecase_package.master_dictionary_usecase: "manual DI で生成"
+  bootstrap_package.composition_root -> service_package.query_service: "manual DI で生成"
+  bootstrap_package.composition_root -> service_package.command_service: "manual DI で生成"
+  bootstrap_package.composition_root -> service_package.import_service: "manual DI で生成"
+  bootstrap_package.composition_root -> adapter_package.repository_adapter: "concrete adapter を生成"
+  bootstrap_package.composition_root -> adapter_package.xml_file_adapter: "concrete adapter を生成"
+  bootstrap_package.composition_root -> adapter_package.xml_record_reader_adapter: "concrete adapter を生成"
+  bootstrap_package.composition_root -> adapter_package.runtime_event_adapter: "concrete adapter を生成"
+
+  controller_package.dictionary_controller -> controller_package.usecase_port: "caller-owned port に依存"
+  controller_package.usecase_port -> usecase_package.master_dictionary_usecase: "query / command / import を委譲"
+
+  usecase_package.master_dictionary_usecase -> usecase_package.service_ports: "caller-owned port に依存"
+  usecase_package.service_ports -> service_package.query_service: "query"
+  usecase_package.service_ports -> service_package.command_service: "command"
+  usecase_package.service_ports -> service_package.import_service: "import"
+  usecase_package.service_ports -> adapter_package.runtime_event_adapter: "import 完了通知"
+
+  service_package.query_service -> service_package.service_ports_owned: "caller-owned port に依存"
+  service_package.command_service -> service_package.service_ports_owned: "caller-owned port に依存"
+  service_package.import_service -> service_package.service_ports_owned: "caller-owned port に依存"
+
+  service_package.service_ports_owned -> adapter_package.repository_adapter: "repository access"
+  service_package.service_ports_owned -> adapter_package.xml_file_adapter: "filesystem access"
+  service_package.service_ports_owned -> adapter_package.xml_record_reader_adapter: "XML decoding"
+  service_package.service_ports_owned -> adapter_package.runtime_event_adapter: "runtime context / progress"
+
+  testing_boundary.upper_unit_tests -> controller_package.dictionary_controller: "fake port で unit test" {
     style.stroke-dash: 4
   }
-  repository_package.dictionary_repository -> usecase_package.import_usecase: "再同期 payload" {
+  testing_boundary.upper_unit_tests -> usecase_package.master_dictionary_usecase: "fake port で unit test" {
     style.stroke-dash: 4
   }
-  import_pipeline_package.xml_reader -> usecase_package.import_usecase: "XML document" {
+  testing_boundary.upper_unit_tests -> service_package.import_service: "fake port で unit test" {
     style.stroke-dash: 4
   }
-  import_pipeline_package.rec_allow_list -> usecase_package.import_usecase: "許可済み record" {
+  testing_boundary.lower_integration_tests -> bootstrap_package.composition_root: "manual DI wiring を検証" {
     style.stroke-dash: 4
   }
-  import_pipeline_package.import_mapper -> usecase_package.import_usecase: "抽出済み entries" {
+  testing_boundary.lower_integration_tests -> adapter_package.repository_adapter: "repository concrete を検証" {
+    style.stroke-dash: 4
+  }
+  testing_boundary.lower_integration_tests -> adapter_package.xml_file_adapter: "filesystem / XML concrete を検証" {
     style.stroke-dash: 4
   }
 }

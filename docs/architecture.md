@@ -2,8 +2,8 @@
 
 関連文書: [`index.md`](./index.md), [`spec.md`](./spec.md), [`core-beliefs.md`](./core-beliefs.md), [`tech-selection.md`](./tech-selection.md)
 
-本書は、システムの内部構成と責務分割を定義する。
-本書では要件ドメインやデータ項目の詳細には入らず、backend と frontend の構造だけを扱う。
+本書は、システムの内部境界、依存方向、手動 DI の正本を定義する。
+本書では backend と frontend のレイヤー関係だけを扱い、要件フローや画面仕様は扱わない。
 
 関連図:
 
@@ -12,169 +12,169 @@
 
 ## 1. 構造の主語
 
-本 repo の backend は、次の主語で構成する。
+本 repo の構造主語は次の通りとする。
 
-- `Controller`: request / response を受け、`UseCase` を起動する入口
-- `UseCase`: ジョブ状態の管理と、次に何をやるかの決定を担う
+- `Frontend Bootstrap`: `frontend/src/main.ts`。gateway を生成し、root view へ注入する frontend 側の手動 DI 入口
+- `View`: Svelte component。表示と DOM event を扱う
+- `ScreenController`: 画面操作の入口。screen local な依存を束ね、`UseCase` を起動する
+- `Frontend UseCase`: 画面状態の更新手順を決め、`GatewayContract` と `Store` を使う
+- `Presenter`: `Store` の状態を view model へ整形する
+- `Store`: 画面状態を保持する
+- `Gateway`: Wails Bind を呼ぶ frontend adapter
+- `RuntimeEventAdapter`: Wails event を購読し、screen local な handler へ流す frontend adapter
+- `Backend Bootstrap`: `internal/bootstrap/`。production graph を手動 DI で組み立てる composition root
+- `Controller`: backend の入口。Wails Bind の request / response DTO を内部境界へ写像する
+- `Backend UseCase`: 操作単位の orchestration を担う
 - `Service`: 実処理を担う
 - `StateMachine`: 状態遷移規則だけを保持する
-- `JobIOService`: job 状態の取得と保存だけを担当する
-- `Repository`: 永続化責務を持つ
-- `AIProvider`: AI 実行責務を持つ
+- `JobIOService`: job 状態の取得と保存だけを扱う
+- `Repository` / `XML adapter` / `Runtime adapter` / `AIProvider`: backend の adapter 群
 
-本書でいう構造図は、この主語同士の依存と呼び出しだけを示す。
-DB テーブル、翻訳対象の概念、要件フロー、画面遷移は構造図へ混ぜない。
+本書でいう構造図は、この主語同士の依存方向だけを示す。
+DB テーブル、DTO 項目、要件フロー、画面遷移は構造図へ混ぜない。
 
-## 2. 基本構造
+## 2. システム全体の依存方向
 
-backend の基本構造は次の通りとする。
+全体の依存方向は次の通りとする。
 
-- `Controller -> UseCase`
-- `UseCase -> Service`
-- `UseCase -> StateMachine`
-- `UseCase -> JobIOService`
-- `Service -> Repository`
-- `Service -> AIProvider`
+- `frontend/main.ts -> Gateway -> root View`
+- `View -> ScreenController`
+- `ScreenController -> Frontend UseCase / Presenter / Store / RuntimeEventAdapter`
+- `Frontend UseCase -> GatewayContract / Store`
+- `Gateway -> generated wailsjs -> backend Controller`
+- `Backend Bootstrap -> Controller / UseCase / Service / adapter concrete`
+- `Controller -> UseCasePort`
+- `Backend UseCase -> ServicePort / StateMachine / JobIOService / RuntimeEventPublisherPort`
+- `Service -> RepositoryPort / XMLFilePort / XMLRecordReaderPort / RuntimeContextPort / AIProvider`
 
-この構造では、`UseCase` を薄いオーケストレータとして扱う。
-`UseCase` は「何をするか」「今それをしてよいか」に集中し、処理の中身を `Service` へ渡す。
+`Bootstrap` 以外の層は concrete 実装を new しない。
+DI コンテナは使わず、frontend と backend の両方で手動 DI を使う。
 
-## 3. 各責務
+## 3. Frontend アーキテクチャ
 
-### 3.1 Controller
+### 3.1 Frontend Bootstrap
 
-- request / response を受ける
-- Wails の request / response DTO を内部入力へ写像する
+`frontend/src/main.ts` は production 用 gateway を生成し、root view へ注入する。
+frontend 全体の composition root はここに置き、DI コンテナは使わない。
+
+### 3.2 View
+
+- 画面を表示する
+- DOM event を `ScreenController` へ渡す
+- view model だけを前提に描画する
+
+View は backend DTO や generated binding を直接扱わない。
+
+### 3.3 ScreenController
+
+- screen local な composition root として `UseCase`、`Store`、`Presenter`、`RuntimeEventAdapter` を束ねる
 - `UseCase` を起動する
-- 業務判断を持たない
+- `Store` の状態を `Presenter` で view model へ変換して View へ返す
+- gateway 差し替えや mount / dispose を管理する
 
-### 3.2 UseCase
+`ScreenController` は画面境界の制御を持つが、Wails 呼び出しの詳細や DTO 変換は持たない。
 
-- 操作単位を表す
-- ジョブ状態を確認する
-- 実行可否を判断する
-- 次に呼ぶ `Service` を決める
-- `JobIOService` を使って job 状態を取得し、保存する
-- `StateMachine` を使って状態更新を確定する
-- transaction 境界を持つ
+### 3.4 Frontend UseCase
 
-`UseCase` は repository 読み取り、AI 呼び出し、コンテキスト構築の詳細を直接持たない。
+- 画面操作ごとの更新手順を決める
+- `GatewayContract` を呼ぶ
+- `Store` を更新する
+- runtime event 完了時の再読込条件を管理する
 
-### 3.3 Service
+`Frontend UseCase` は generated `wailsjs` や backend DTO に直接依存しない。
 
-`Service` は再利用可能な実処理を担う。
+### 3.5 Presenter と Store
 
-- repository から必要データを読む
-- 実行用コンテキストを構築する
-- AI 実行を依頼する
-- 結果を整形して返す
+- `Store` は screen state の正本を保持する
+- `Presenter` は `Store` の state と接続状態から view model を組み立てる
+- View は `Store` を直接加工しない
 
-`Service` は広い util 置き場にしない。
-責務名で読める単位に分け、`ContextService`、`TranslationService`、`PersonaGenerationService` のように役割を明確にする。
+### 3.6 Gateway と RuntimeEventAdapter
 
-### 3.4 StateMachine
+- `Gateway` は `GatewayContract` を実装する
+- `Gateway` は `GatewayDTO` と generated `wailsjs` を `frontend/src/controller/wails/` に閉じ込める
+- `RuntimeEventAdapter` は Wails runtime event を購読し、screen local handler へ写像する
+- query / command の主経路は Bind call とし、event は push 通知専用に使う
 
-- 状態遷移規則だけを持つ
-- 遷移可否を判定する
-- 遷移結果を返す
+## 4. Backend アーキテクチャ
 
-`StateMachine` は I/O を持たない。
+### 4.1 Backend Bootstrap
 
-### 3.5 Repository
+`internal/bootstrap/` は backend の唯一の composition root とする。
+`internal/bootstrap/` だけが concrete 実装を生成し、手動 DI で依存グラフを接続する。
 
-- 永続化を担当する
-- `SQLite` 前提の具象依存を許容する
-- schema 準備や migration 実行を通常 use case に混ぜない
+### 4.2 Controller
 
-現時点では repository 全体へ DIP を強制しない。
-差し替え需要が明確になるまでは具象のままでよい。
+- Wails Bind の入口になる
+- request / response DTO を usecase 境界へ写像する
+- caller-owned の `UseCasePort` を起動する
+- runtime context を受け取り、必要な emitter state へ橋渡しする
 
-### 3.6 JobIOService
+`Controller` は service concrete や repository concrete を直接 new しない。
 
-- job 状態の取得と保存だけを担当する
-- `StateMachine` の純粋性を担保するためのトレードオフとして導入する
-- 状態遷移規則、業務判断、AI 実行は持たない
+### 4.3 Backend UseCase
 
-`JobIOService` は job に関する I/O だけを扱い、汎用 service へ広げない。
+- 操作単位の orchestration を担う
+- `ServicePort` を使って query / command / import を起動する
+- `StateMachine` と `JobIOService` を使って job 状態を扱う
+- runtime event 完了 payload を組み立てる
 
-### 3.7 AIProvider
+`Backend UseCase` は adapter concrete を直接参照しない。
 
-- AI 実行の interface を定義する
-- `LMStudio`、`Gemini`、`xAI` などの実装差異を吸収する
-- 単発実行と batch 実行の差異を吸収する
+### 4.4 Service
 
-AI 基盤接続だけは複数実装が前提なので、`AIProvider` 境界で DIP を適用する。
+- 永続化 port を通して master data を読む、書く
+- XML file / reader port を通して import を実行する
+- runtime port を通して進捗を通知する
+- AI 実行が必要な機能では `AIProvider` を使う
 
-## 4. 依存方針
+`Service` core は filesystem、Wails runtime、XML decoder、driver 固有 API を直接参照しない。
 
-- `Controller` は `UseCase` に依存する
-- `UseCase` は `Service`、`StateMachine`、`JobIOService` に依存する
-- `Service` は `Repository` と `AIProvider` に依存する
-- `JobIOService` は `Repository` に依存する
-- `Repository` は driver や filesystem に依存してよい
-- `AIProvider` 実装は HTTP client や SDK に依存してよい
+### 4.5 Adapter 群
 
-依存の強い制約は次の通りとする。
+- `Repository` は SQLite などの永続化実装を持つ
+- `XML adapter` は path 解決、file open、record 読み出しを持つ
+- `Runtime adapter` は Wails runtime event の具体送信を持つ
+- `AIProvider` は provider ごとの差異を吸収する
 
-- `UseCase` から `AIProvider` 実装を直接参照しない
-- `UseCase` から `Repository` の細かい問い合わせ手順を直接広げない
-- `Controller` に状態遷移や処理順序を持ち込まない
-- `Service` を汎用 helper 集合にしない
-- `JobIOService` に状態遷移や AI 実行を持ち込まない
+adapter concrete は `internal/repository/`、`internal/service/`、`internal/infra/` に閉じ込める。
 
-## 5. Wails 境界
+## 5. 強い制約
 
-Wails の `Bind` は frontend から backend への request / response boundary とする。
-この境界は出口ではなく入口なので、`Controller` と呼ぶ。
+- frontend / backend ともに DI コンテナを使わない
+- `Bootstrap` 以外の層で concrete 実装を new しない
+- `View` は generated `wailsjs` と backend DTO を直接扱わない
+- `Frontend UseCase` は `GatewayContract` と `Store` だけに依存する
+- `Backend Controller` は caller-owned `UseCasePort` だけに依存する
+- `Backend UseCase` は caller-owned `ServicePort` と純粋な rule object に依存する
+- `Service` core は concrete driver や runtime API を直接参照しない
+- Wails event は push 通知専用に限定し、通常の query / command を置き換えない
 
-- request / response: `frontend/src/controller/wails/` から generated `wailsjs` を呼ぶ
-- backend bind: `internal/controller/wails/` が public method を公開する
-- push 通知: backend は `runtime.EventsEmit` で frontend へ進捗や通知を送る
+## 6. 現在のディレクトリ正本
 
-Wails event は progress、notification、background completion のような push 用に限定し、通常の query / command の主経路には使わない。
+- `frontend/src/main.ts`: frontend bootstrap
+- `frontend/src/ui/`: View と screen local な controller / usecase / presenter / store
+- `frontend/src/application/`: shared な gateway contract などの frontend 境界定義
+- `frontend/src/controller/wails/`: gateway、DTO、generated binding wrapper、runtime 連携 adapter
+- `frontend/wailsjs/`: generated bindings。hand-edit しない
+- `internal/bootstrap/`: backend bootstrap と default wiring
+- `internal/controller/`: backend bind と入出力の受け渡し
+- `internal/usecase/`: 操作単位の orchestration
+- `internal/service/`: 実処理と adapter port
+- `internal/statemachine/`: 状態遷移規則
+- `internal/jobio/`: job 状態の取得と保存
+- `internal/repository/`: 永続化 adapter
+- `internal/aiprovider/`: AI provider 境界
+- `internal/infra/`: runtime、HTTP client、filesystem、database driver などの concrete 実装
 
-## 6. 初期レイアウト
+現在の frontend は screen local な application object を `frontend/src/ui/screens/` に置いている。
+shared contract と Wails adapter だけを別 directory に分ける構成を正本とする。
 
-`Wails + Go + Svelte` の初期レイアウトは以下を正本とする。
+## 7. Wails 境界
 
-- repo root
-  - `main.go`: Wails bootstrap と app 起動
-  - `wails.json`: Wails project config
-  - `frontend/`: frontend package root
-  - `internal/`: Go の backend 実装
-- `frontend/`
-  - `src/ui/`: View
-  - `src/application/`: ScreenController、UseCase、Presenter、Store、GatewayContract
-  - `src/controller/wails/`: Gateway、GatewayDTO、RuntimeEventAdapter、generated binding wrapper
-  - `wailsjs/`: generated bindings。hand-edit しない
-- `internal/`
-  - `controller/`: Wails bind と入出力の受け渡し
-  - `usecase/`: 操作単位とジョブ状態管理
-  - `service/`: 実処理
-  - `statemachine/`: 状態遷移規則
-  - `jobio/`: job 状態の取得と保存
-  - `repository/`: 永続化
-  - `aiprovider/`: AI provider interface
-  - `infra/ai/`: AI provider 実装
-  - `infra/runtime/`: driver、HTTP client、filesystem、SQLite 接続
+- frontend の query / command は `frontend/src/controller/wails/` から generated `wailsjs` を呼ぶ
+- backend の bind 公開面は `internal/controller/wails/` とする
+- backend から frontend への push は runtime event adapter 経由で送る
+- runtime の concrete handle は bootstrap と adapter に閉じ込める
 
-directory 名は責務を優先して解釈する。
-
-## 7. DTO 境界
-
-frontend と backend のデータ受け渡しは DTO を明示して行う。
-
-- Go 側の public bind method は request / response struct を明示する
-- DTO は `json` tag を付け、field 名を暗黙変換に任せない
-- frontend は generated `wailsjs` の型を `controller/wails` の中で `GatewayDTO` へ写像する
-- `UseCase` は `GatewayContract` に依存し、`View` は `Store` の表示用状態だけを前提にする
-- UI は Go 内部構造を直接前提にしない
-
-## 8. 永続化と AI 接続
-
-- 入力データの raw JSON はファイルシステム上の正本とする
-- `SQLite` は入力キャッシュ、基盤マスター、翻訳ジョブの実行状態を保持する
-- schema 変更は repo-owned SQL migration で管理し、起動時 bootstrap で一度だけ適用する
-- repository は DML と transaction に専念し、DDL 実行や schema 準備を通常 use case へ混ぜない
-- AI provider は provider ごとの差異を adapter 側へ閉じ込める
-- provider の選択は use case / service 側で決め、接続詳細は provider 実装側へ閉じ込める
+Wails は transport boundary であり、domain rule や画面状態の正本ではない。

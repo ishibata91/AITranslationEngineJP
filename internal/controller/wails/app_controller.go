@@ -8,10 +8,8 @@ type AppController struct {
 }
 
 // NewAppController builds the root Wails controller.
-func NewAppController() *AppController {
-	return &AppController{
-		MasterDictionaryController: NewMasterDictionaryController(),
-	}
+func NewAppController(masterDictionaryController *MasterDictionaryController) *AppController {
+	return &AppController{MasterDictionaryController: masterDictionaryController}
 }
 
 // OnStartup matches the Wails lifecycle hook.

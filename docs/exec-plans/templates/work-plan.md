@@ -1,0 +1,80 @@
+# Work Plan Template
+
+- workflow: work
+- status: planned
+- lane_owner:
+- scope:
+- task_id:
+- task_catalog_ref:
+- parent_phase:
+
+## Request Summary
+
+-
+
+## Decision Basis
+
+-
+
+## Task Mode
+
+- `task_mode`:
+- `goal`:
+- `constraints`:
+- `close_conditions`:
+
+## Facts
+
+-
+
+## Functional Requirements
+
+- `summary`:
+- `in_scope`:
+- `non_functional_requirements`:
+- `out_of_scope`:
+- `open_questions`:
+- `required_reading`:
+
+## Artifacts
+
+- `ui_artifact_path`:
+- `scenario_artifact_path`:
+- `review_diff_diagrams`:
+- `source_diagram_targets`:
+
+## Work Brief
+
+- `implementation_target`:
+- `accepted_scope`:
+- `parallel_task_groups`:
+- `tasks`:
+- `validation_commands`:
+
+## Investigation
+
+- `reproduction_status`:
+- `trace_hypotheses`:
+- `observation_points`:
+- `residual_risks`:
+
+## Acceptance Checks
+
+-
+
+## Required Evidence
+
+-
+
+## HITL Status
+
+- `functional_or_design_hitl`:
+- `approval_record`:
+
+## Closeout Notes
+
+-
+
+## Outcome
+
+-

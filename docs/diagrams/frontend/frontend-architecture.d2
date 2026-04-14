@@ -9,58 +9,66 @@ direction: right
 frontend: {
   label: "frontend アーキテクチャ構造図"
 
+  bootstrap: {
+    label: "Frontend Bootstrap"
+    shape: class
+    style.font-size: 22
+    + entrypoint で gateway を生成する
+    + root view へ注入する
+  }
+
   view: {
     label: "View"
     shape: class
     style.font-size: 22
     + 画面を表示する
-    + ユーザー入力を受ける
+    + DOM event を controller へ渡す
   }
 
   screen_controller: {
     label: "ScreenController"
     shape: class
     style.font-size: 22
-    + 画面操作を受ける
+    + screen local な依存を束ねる
     + UseCase を起動する
+    + Presenter で view model を返す
   }
 
   usecase: {
-    label: "UseCase"
+    label: "Frontend UseCase"
     shape: class
     style.font-size: 22
-    + 画面状態の更新方針を決める
-    + 次に呼ぶ処理を決める
+    + 画面更新手順を決める
+    + GatewayContract と Store を使う
   }
 
   store: {
     label: "Store"
     shape: class
     style.font-size: 22
-    + 画面状態を保持する
-    + 表示用状態を公開する
+    + screen state の正本を保持する
   }
 
   presenter: {
     label: "Presenter"
     shape: class
     style.font-size: 22
-    + 受信データを表示用へ整形する
-  }
-
-  gateway: {
-    label: "Gateway"
-    shape: class
-    style.font-size: 22
-    + backend Bind を呼ぶ
-    + request / response を写像する
+    + state を view model へ整形する
   }
 
   gateway_contract: {
     label: "GatewayContract"
     shape: class
     style.font-size: 22
-    + 呼び出し interface を定義する
+    + usecase 依存境界
+  }
+
+  gateway: {
+    label: "Wails Gateway"
+    shape: class
+    style.font-size: 22
+    + backend Bind を呼ぶ
+    + DTO 変換を閉じ込める
   }
 
   gateway_dto: {
@@ -75,7 +83,7 @@ frontend: {
     shape: class
     style.font-size: 22
     + Wails event を購読する
-    + UI 向けイベントへ写像する
+    + screen handler へ写像する
   }
 
   wailsjs: {
@@ -89,23 +97,28 @@ frontend: {
     label: "Wails Runtime"
     shape: class
     style.font-size: 22
-    + event 配信
+    + push event を配信する
   }
 }
 
+frontend.bootstrap -> frontend.gateway: "手動 DI"
+frontend.bootstrap -> frontend.view: "gateway を渡す"
+
 frontend.view -> frontend.screen_controller: "操作を渡す"
 frontend.screen_controller -> frontend.usecase: "起動する"
-frontend.usecase -> frontend.store: "状態を更新する"
-frontend.usecase -> frontend.presenter: "表示用に整形する"
-frontend.presenter -> frontend.store: "表示用状態を渡す"
+frontend.screen_controller -> frontend.store: "状態を購読する"
+frontend.screen_controller -> frontend.presenter: "view model を組み立てる"
+frontend.screen_controller -> frontend.runtime_event_adapter: "mount / detach を管理する"
+
 frontend.usecase -> frontend.gateway_contract: "依存する"
+frontend.usecase -> frontend.store: "状態を更新する"
 frontend.gateway -> frontend.gateway_contract: "実装する"
 frontend.gateway -> frontend.gateway_dto: "DTO を使う"
 frontend.gateway -> frontend.wailsjs: "Bind を呼ぶ"
+
 frontend.runtime_event_adapter -> frontend.wails_runtime: "event を購読する"
-frontend.runtime_event_adapter -> frontend.store: "状態を更新する"
-frontend.runtime_event_adapter -> frontend.gateway_dto: "DTO を使う"
-frontend.view -> frontend.store: "状態を読む"
+frontend.runtime_event_adapter -> frontend.usecase: "完了 handler を呼ぶ"
+frontend.runtime_event_adapter -> frontend.store: "進捗を反映する"
 
 style: {
   font-size: 22

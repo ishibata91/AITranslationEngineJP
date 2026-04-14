@@ -11,45 +11,58 @@ import (
 	"aitranslationenginejp/internal/usecase"
 )
 
+// MasterDictionaryUsecasePort defines the operations required by the Wails controller.
+type MasterDictionaryUsecasePort interface {
+	GetPage(ctx context.Context, query usecase.MasterDictionaryRefreshQuery, preferredID *int64) (usecase.MasterDictionaryPageState, error)
+	GetEntry(ctx context.Context, id int64) (usecase.MasterDictionaryEntry, error)
+	CreateEntry(ctx context.Context, input usecase.MasterDictionaryMutationInput, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error)
+	UpdateEntry(ctx context.Context, id int64, input usecase.MasterDictionaryMutationInput, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error)
+	DeleteEntry(ctx context.Context, id int64, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryMutationResult, error)
+	ImportXML(ctx context.Context, xmlPath string, refreshQuery usecase.MasterDictionaryRefreshQuery) (usecase.MasterDictionaryImportResult, error)
+}
+
+// RuntimeEmitterSource provides access to the current Wails runtime emitter.
+type RuntimeEmitterSource interface {
+	RuntimeEventContext() (context.Context, bool)
+}
+
+// RuntimeEmitterStatePort manages the current runtime emitter state.
+type RuntimeEmitterStatePort interface {
+	RuntimeEmitterSource
+	SetRuntimeContext(ctx context.Context)
+	ClearRuntimeContext()
+}
+
+type runtimeEmitterStatePort = RuntimeEmitterStatePort
+
 // MasterDictionaryController exposes Wails-bound master dictionary entrypoints.
 type MasterDictionaryController struct {
-	masterDictionaryUsecase *usecase.MasterDictionaryUsecase
-
-	runtimeEventEmitterMu sync.RWMutex
-	runtimeEventEmitter   runtimeEventEmitter
+	masterDictionaryUsecase MasterDictionaryUsecasePort
+	runtimeEmitterSource    RuntimeEmitterSource
+	runtimeEmitterState     runtimeEmitterStatePort
 }
 
 // NewMasterDictionaryController builds a master dictionary controller.
-func NewMasterDictionaryController() *MasterDictionaryController {
-	controller := &MasterDictionaryController{}
-	eventPublisher := usecase.NewWailsMasterDictionaryRuntimeEventPublisher(
-		controller.runtimeEventContext,
-	)
-	controller.masterDictionaryUsecase = usecase.NewDefaultMasterDictionaryUsecase(
-		func() time.Time { return time.Now().UTC() },
-		eventPublisher,
-	)
-	return controller
+func NewMasterDictionaryController(
+	masterDictionaryUsecase MasterDictionaryUsecasePort,
+	runtimeEmitterSource RuntimeEmitterSource,
+) *MasterDictionaryController {
+	runtimeEmitterState := resolveRuntimeEmitterState(runtimeEmitterSource)
+	return &MasterDictionaryController{
+		masterDictionaryUsecase: masterDictionaryUsecase,
+		runtimeEmitterSource:    runtimeEmitterState,
+		runtimeEmitterState:     runtimeEmitterState,
+	}
 }
 
 // setRuntimeContext stores Wails runtime emitter for runtime.EventsEmit.
 func (controller *MasterDictionaryController) setRuntimeContext(ctx context.Context) {
-	emitter, ok := extractRuntimeEventEmitter(ctx)
-	if !ok {
-		controller.clearRuntimeContext()
-		return
-	}
-
-	controller.runtimeEventEmitterMu.Lock()
-	defer controller.runtimeEventEmitterMu.Unlock()
-	controller.runtimeEventEmitter = emitter
+	controller.runtimeEmitterState.SetRuntimeContext(ctx)
 }
 
 // clearRuntimeContext clears stored Wails runtime emitter.
 func (controller *MasterDictionaryController) clearRuntimeContext() {
-	controller.runtimeEventEmitterMu.Lock()
-	defer controller.runtimeEventEmitterMu.Unlock()
-	controller.runtimeEventEmitter = nil
+	controller.runtimeEmitterState.ClearRuntimeContext()
 }
 
 // MasterDictionaryRefreshQueryDTO describes same-page refresh conditions.
@@ -561,14 +574,9 @@ func (controller *MasterDictionaryController) requestContext() context.Context {
 	return context.Background()
 }
 
+// runtimeEventContext returns the current runtime event context for Wails event publication.
 func (controller *MasterDictionaryController) runtimeEventContext() (context.Context, bool) {
-	controller.runtimeEventEmitterMu.RLock()
-	emitter := controller.runtimeEventEmitter
-	controller.runtimeEventEmitterMu.RUnlock()
-	if emitter == nil {
-		return nil, false
-	}
-	return newRuntimeEventContext(emitter), true
+	return controller.runtimeEmitterSource.RuntimeEventContext()
 }
 
 func extractRuntimeEventEmitter(ctx context.Context) (runtimeEventEmitter, bool) {
@@ -615,6 +623,64 @@ const (
 	runtimeEventEmitterContextKey      runtimeEventContextKey = "events"
 	runtimeEventEmitterValueContextKey string                 = "events"
 )
+
+type masterDictionaryRuntimeEmitterState struct {
+	runtimeEventEmitterMu sync.RWMutex
+	runtimeEventEmitter   runtimeEventEmitter
+}
+
+// NewRuntimeEmitterState creates a runtime emitter state shared by controller and publisher wiring.
+func NewRuntimeEmitterState() RuntimeEmitterStatePort {
+	return &masterDictionaryRuntimeEmitterState{}
+}
+
+func newMasterDictionaryRuntimeEmitterState() *masterDictionaryRuntimeEmitterState {
+	return &masterDictionaryRuntimeEmitterState{}
+}
+
+func resolveRuntimeEmitterState(runtimeEmitterSource RuntimeEmitterSource) runtimeEmitterStatePort {
+	if runtimeEmitterState, ok := runtimeEmitterSource.(runtimeEmitterStatePort); ok {
+		return runtimeEmitterState
+	}
+
+	runtimeEmitterState := newMasterDictionaryRuntimeEmitterState()
+	if runtimeEmitterSource == nil {
+		return runtimeEmitterState
+	}
+
+	if runtimeCtx, ok := runtimeEmitterSource.RuntimeEventContext(); ok && runtimeCtx != nil {
+		runtimeEmitterState.SetRuntimeContext(runtimeCtx)
+	}
+	return runtimeEmitterState
+}
+
+func (state *masterDictionaryRuntimeEmitterState) SetRuntimeContext(ctx context.Context) {
+	emitter, ok := extractRuntimeEventEmitter(ctx)
+	if !ok {
+		state.ClearRuntimeContext()
+		return
+	}
+
+	state.runtimeEventEmitterMu.Lock()
+	defer state.runtimeEventEmitterMu.Unlock()
+	state.runtimeEventEmitter = emitter
+}
+
+func (state *masterDictionaryRuntimeEmitterState) ClearRuntimeContext() {
+	state.runtimeEventEmitterMu.Lock()
+	defer state.runtimeEventEmitterMu.Unlock()
+	state.runtimeEventEmitter = nil
+}
+
+func (state *masterDictionaryRuntimeEmitterState) RuntimeEventContext() (context.Context, bool) {
+	state.runtimeEventEmitterMu.RLock()
+	emitter := state.runtimeEventEmitter
+	state.runtimeEventEmitterMu.RUnlock()
+	if emitter == nil {
+		return nil, false
+	}
+	return newRuntimeEventContext(emitter), true
+}
 
 func parseStringID(rawID string) (int64, error) {
 	trimmed := strings.TrimSpace(rawID)

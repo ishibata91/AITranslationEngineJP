@@ -2,7 +2,7 @@
 
 - workflow: fix
 - status: planned
-- lane_owner: orchestrating-fixes
+- lane_owner: orchestrate
 - scope: master-dictionary-category-and-count-bug
 
 ## Request Summary
@@ -13,7 +13,7 @@
 
 ## Decision Basis
 
-- 画面起点で再現確認できる不具合であり、`orchestrating-fixes` の required workflow に従って `reproduce-issues` を先行させる。
+- 画面起点で再現確認できる不具合であり、`orchestrate` の `fix` workflow に従って `investigate` の `reproduce` を先行させる。
 - カテゴリ検索と件数集計の不整合は frontend 表示だけでなく import 後の backend 集計値やカテゴリ正規化の異常でも起きうるため、再現証跡と関連コードの切り分けが必要である。
 - 対象画面は既存の master dictionary 実装範囲に含まれるため、先行 plan と実装成果物を seed area に含める。
 
@@ -33,17 +33,17 @@
 ## Trace Plan
 
 - Playwright MCP で XML 取込後のカテゴリ候補と件数表示を再現し、console と Wails ログを採取した。
-- `distilling-fixes` で import、カテゴリ集計、件数集計の関連コードを絞り、カテゴリ候補が `state.entries` 依存で生成される事実を確認した。
-- `tracing-fixes` と追加観測で、取込結果件数表示が `importedCount` と `totalCount` の別指標を混在表示していることを確認した。
+- `distill` で import、カテゴリ集計、件数集計の関連コードを絞り、カテゴリ候補が `state.entries` 依存で生成される事実を確認した。
+- `investigate` の `trace` と追加観測で、取込結果件数表示が `importedCount` と `totalCount` の別指標を混在表示していることを確認した。
 - XML 実体には `CONT:FULL` と `BOOK:FULL` が含まれており、少なくとも `アイテム` と `書籍` が候補から欠ける UI は不自然であると判断した。
 
 ## Fix Plan
 
-- `reproduce-issues` で画面再現と証跡取得を行った。
-- `distilling-fixes` で既知事実、関連コード、関連仕様、open gap を整理した。
-- `tracing-fixes` で原因仮説と観測点を決め、追加 logging 不要と判断した。
+- `investigate` の `reproduce` で画面再現と証跡取得を行った。
+- `distill` で既知事実、関連コード、関連仕様、open gap を整理した。
+- `investigate` の `trace` で原因仮説と観測点を決め、追加 logging 不要と判断した。
 - frontend の accepted scope として、カテゴリ候補生成を現在ページ依存から外し、取込結果件数の表示ラベルを誤読しにくい形へ修正する。
-- frontend phase-6 実装後に UI check、回帰 test、review を順に実施する。
+- frontend 実装後に `review` の `ui-check`、`tests`、`review` の `implementation-review` を順に実施する。
 
 ## Acceptance Checks
 

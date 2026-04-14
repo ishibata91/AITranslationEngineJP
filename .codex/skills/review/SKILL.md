@@ -23,6 +23,9 @@ description: design review、UI check、implementation review を mode 分岐で
 - `design-review` は要件取りこぼし、設計不整合、検証不足、構造差分の不整合だけを見る
 - `ui-check` は `http://host.docker.internal:34115` を使い、主要導線と画面状態の証跡だけを返す
 - `implementation-review` は design bundle や accepted fix scope にない仕様や好みで判定しない
+- backend を含む `implementation-review` は Sonar MCP で open `HIGH` / `BLOCKER`、open reliability、open security を確認する
+- backend を含む `implementation-review` は `sonar_gate_result` に件数、対象 project、supporting issue を含める
+- backend を含む `implementation-review` は いずれかが非 0 件なら `reroute` とする
 - UI 逸脱や導線不整合は `reroute` とし、恒久修正は `implement` へ戻す
 - 新しい改善提案や新しい要件解釈は追加しない
 - 役割を再確定せず、呼び出し元で確定した `review_mode` を前提に進める
@@ -32,6 +35,7 @@ description: design review、UI check、implementation review を mode 分岐で
 - `decision`: `pass` | `reroute`
 - `findings`
 - `recheck`
+- `sonar_gate_result`
 - `closeout_notes`
 - `human_open_questions`
 - `ui_evidence`

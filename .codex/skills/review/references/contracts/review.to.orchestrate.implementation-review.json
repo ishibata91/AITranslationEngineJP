@@ -3,6 +3,6 @@
   "from_skill": "review",
   "to_skill": "orchestrate",
   "mode": "implementation-review",
-  "returned_fields": ["decision", "findings", "recheck", "closeout_notes", "human_open_questions"],
+  "returned_fields": ["decision", "findings", "recheck", "sonar_gate_result", "closeout_notes", "human_open_questions"],
   "ready_when": ["orchestrate が reroute か close を決められる"]
 }

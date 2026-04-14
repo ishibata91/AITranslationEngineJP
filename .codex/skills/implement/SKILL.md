@@ -29,7 +29,9 @@ description: implementation_target と owned scope に従い、frontend / backen
 - plan の書き換えや lane 切り替えはしない
 - 関連 test の更新は同一変更で行う
 - closeout 前に `python3 scripts/harness/run.py --suite all` を実行する
-- closeout 前に Sonar MCP で Security / Reliability / Maintainability の重大項目を確認する
+- backend を含む task は closeout 前に Sonar MCP で open `HIGH` / `BLOCKER`、open reliability、open security を確認し、すべて 0 件にする
+- backend を含む task は `sonar_gate_result` に件数、対象 project、補足 issue を含めて返す
+- backend を含む task は Sonar 件数ゲートを validation の一部として返す
 - 役割を再確定せず、呼び出し元で確定した `implementation_target` と `task_mode` を前提に進める
 
 ## Target Notes
@@ -44,6 +46,7 @@ description: implementation_target と owned scope に従い、frontend / backen
 - `touched_files`
 - `implemented_scope`
 - `validation_results`
+- `sonar_gate_result`
 - `closeout_notes`
 - `residual_risks`
 

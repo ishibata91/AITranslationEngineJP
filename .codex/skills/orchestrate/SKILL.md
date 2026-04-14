@@ -8,6 +8,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 この skill は live workflow の唯一入口です。
 自身では product 実装、恒久修正、詳細 trace、docs 正本更新を抱えません。
 役割は routing と gate 管理に限定します。
+何があっても自身で調査・実装を始めないこと。必ずサブエージェントに全て解決させること。
 
 ## 役割
 
@@ -62,6 +63,13 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - narrow scope を安全に定義できない
 - docs-only で `approval_record` がない
 
+## close条件
+- review が `pass` を返すこと
+- backend を含む task は implement と review の両方で Sonar 件数ゲートを確認すること
+- `HIGH` / `BLOCKER` の open issue が 0 件であること
+- open reliability issue が 0 件であること
+- open security issue が 0 件であること
+
 ## Rules
 
 - orchestrate 自身でコードを書かない
@@ -69,6 +77,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - downstream skill は `fork_context: false` で呼ぶ
 - `changes/`、`context_board`、`tasks.md` を live 正本にしない
 - 別 skill を増やさない
+- Sonar close gate を独立 skill に切り出さない
 - 旧 skill directory は復活させない
 - 旧 specialized skill の知識は live skill の `SKILL.md` と `references/` に残す
 
@@ -91,5 +100,5 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 - quick overview は `references/orchestrate.to.<skill>.json` を使う
 - mode 別 contract は `references/contracts/` を正本とする
-- downstream からの返却は各 skill 側 `references/contracts/<skill>.to.orchestrate.<mode>.json` を正本とする
+- downstream からの返却は各 skill 側 `references/contracts/<skill>.to.orchestrate.<mode>.json` または single-role skill の `references/contracts/<skill>.to.orchestrate.json` を正本とする
 - 旧名対応は `.codex/README.md` と `.codex/workflow.md` の対応表だけに残す

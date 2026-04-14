@@ -9,79 +9,157 @@ direction: right
 backend: {
   label: "backend アーキテクチャ構造図"
 
+  bootstrap: {
+    label: "Backend Bootstrap"
+    shape: class
+    style.font-size: 22
+    + production graph を手動 DI で組み立てる
+    + concrete 実装を接続する
+  }
+
   controller: {
     label: "Controller"
     shape: class
     style.font-size: 22
-    + 入力を受ける
-    + request / response を写像する
+    + Wails Bind の入口
+    + request / response DTO を写像する
+    + caller-owned UseCasePort を起動する
+  }
+
+  usecase_port: {
+    label: "UseCasePort"
+    shape: class
+    style.font-size: 22
+    + controller 依存境界
   }
 
   usecase: {
-    label: "UseCase"
+    label: "Backend UseCase"
     shape: class
     style.font-size: 22
-    + ジョブ状態を管理する
-    + 次に何をやるか決める
-    + transaction 境界を持つ
+    + query / command / import を orchestrate する
+    + job 状態と完了 payload を扱う
   }
 
-  service: {
-    label: "Service"
+  service_port: {
+    label: "ServicePort"
     shape: class
     style.font-size: 22
-    + repository を読む
-    + コンテキストを構築する
-    + AI 実行を依頼する
-    + 結果を整形する
+    + usecase 依存境界
   }
 
-  statemachine: {
+  state_machine: {
     label: "StateMachine"
     shape: class
     style.font-size: 22
-    + 状態遷移規則を持つ
-    + ジョブ状態を判定する
+    + 状態遷移規則だけを持つ
   }
 
   job_io_service: {
     label: "JobIOService"
     shape: class
     style.font-size: 22
-    + job 状態を取得する
-    + job 状態を保存する
+    + job 状態を取得 / 保存する
   }
 
-  repository: {
-    label: "Repository"
+  service: {
+    label: "Service"
     shape: class
     style.font-size: 22
-    + 永続化を担当する
+    + CRUD / import の実処理を担う
+    + concrete API を直接持たない
   }
 
-  ai_provider_interface: {
-    label: "AI Provider Interface"
+  repository_port: {
+    label: "RepositoryPort"
     shape: class
     style.font-size: 22
-    + 翻訳 / 生成 API を定義する
+    + 永続化境界
   }
 
-  ai_provider_adapter: {
-    label: "AI Provider Adapter"
+  xml_file_port: {
+    label: "XMLFilePort"
     shape: class
     style.font-size: 22
-    + LMStudio / Gemini / xAI を実装する
+    + path 解決 / file open 境界
+  }
+
+  xml_reader_port: {
+    label: "XMLRecordReaderPort"
+    shape: class
+    style.font-size: 22
+    + XML record 読み出し境界
+  }
+
+  runtime_port: {
+    label: "RuntimeContextPort"
+    shape: class
+    style.font-size: 22
+    + progress event 境界
+  }
+
+  ai_provider: {
+    label: "AIProvider"
+    shape: class
+    style.font-size: 22
+    + provider 差異を吸収する境界
+  }
+
+  repository_adapter: {
+    label: "Repository Adapter"
+    shape: class
+    style.font-size: 22
+    + SQLite などの concrete 永続化
+  }
+
+  xml_file_adapter: {
+    label: "XML File Adapter"
+    shape: class
+    style.font-size: 22
+    + file path / open の concrete 実装
+  }
+
+  xml_reader_adapter: {
+    label: "XML Reader Adapter"
+    shape: class
+    style.font-size: 22
+    + decoder の concrete 実装
+  }
+
+  runtime_adapter: {
+    label: "Runtime Event Adapter"
+    shape: class
+    style.font-size: 22
+    + Wails runtime へ event を送る
   }
 }
 
-backend.controller -> backend.usecase: "起動する"
-backend.usecase -> backend.service: "実処理を依頼する"
-backend.usecase -> backend.statemachine: "状態を判定する"
+backend.bootstrap -> backend.controller: "手動 DI"
+backend.bootstrap -> backend.usecase: "手動 DI"
+backend.bootstrap -> backend.service: "手動 DI"
+backend.bootstrap -> backend.repository_adapter: "concrete を生成"
+backend.bootstrap -> backend.xml_file_adapter: "concrete を生成"
+backend.bootstrap -> backend.xml_reader_adapter: "concrete を生成"
+backend.bootstrap -> backend.runtime_adapter: "concrete を生成"
+
+backend.controller -> backend.usecase_port: "依存する"
+backend.usecase -> backend.usecase_port: "実装する"
+
+backend.usecase -> backend.service_port: "依存する"
+backend.service -> backend.service_port: "実装する"
+backend.usecase -> backend.state_machine: "状態遷移を使う"
 backend.usecase -> backend.job_io_service: "job 状態を扱う"
-backend.job_io_service -> backend.repository: "読む / 保存する"
-backend.service -> backend.repository: "読む / 保存する"
-backend.service -> backend.ai_provider_interface: "外部実行を依頼する"
-backend.ai_provider_adapter -> backend.ai_provider_interface: "実装する"
+
+backend.service -> backend.repository_port: "依存する"
+backend.service -> backend.xml_file_port: "依存する"
+backend.service -> backend.xml_reader_port: "依存する"
+backend.service -> backend.runtime_port: "依存する"
+backend.service -> backend.ai_provider: "必要時に依存する"
+
+backend.repository_adapter -> backend.repository_port: "実装する"
+backend.xml_file_adapter -> backend.xml_file_port: "実装する"
+backend.xml_reader_adapter -> backend.xml_reader_port: "実装する"
+backend.runtime_adapter -> backend.runtime_port: "実装する"
 
 style: {
   font-size: 22

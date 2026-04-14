@@ -1,0 +1,455 @@
+vars: {
+  d2-config: {
+    theme-id: 201
+    layout-engine: dagre
+  }
+}
+
+direction: down
+
+title: "backend DIP/manual DI review diff"
+
+classes: {
+  layer_package: {
+    style.stroke: "#5f6b7a"
+    style.stroke-dash: 4
+    style.fill: "#f7f9fc"
+    style.font-color: "#243447"
+  }
+  runtime_package: {
+    style.stroke: "#546e7a"
+    style.stroke-dash: 2
+    style.fill: "#f4f7fa"
+    style.font-color: "#243447"
+  }
+  add_node: {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.fill: "#eef9ef"
+    style.font-color: "#1b5e20"
+  }
+  remove_node: {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.fill: "#fff1f1"
+    style.font-color: "#7f1d1d"
+  }
+  neutral_note: {
+    style.stroke: "#607d8b"
+    style.fill: "#f4f7fa"
+    style.font-color: "#1f2933"
+  }
+}
+
+review_diff: {
+  label: "implemented master-dictionary flow only"
+  direction: down
+  style.stroke: "#5f6b7a"
+  style.fill: "#ffffff"
+  style.font-color: "#243447"
+
+  legend: {
+    label: "legend"
+    direction: right
+    added: "+ target" {
+      class: add_node
+    }
+    removed: "- current" {
+      class: remove_node
+    }
+    note: "manual bootstrap" {
+      class: neutral_note
+    }
+  }
+
+  bootstrap_boundary: {
+    label: "bootstrap"
+    class: runtime_package
+    direction: down
+
+    main_bootstrap: {
+      shape: class
+      class: add_node
+      label: "main + AppController"
+      +wires: controller, usecase, services, adapters
+      +binds: Wails lifecycle
+      +keeps: manual DI only
+    }
+
+    inline_default_wiring: {
+      shape: class
+      class: remove_node
+      label: "inline default wiring"
+      -in: controller and usecase constructors
+    }
+  }
+
+  controller_layer: {
+    label: "controller/wails"
+    class: layer_package
+    direction: down
+
+    controller_usecase_port: {
+      shape: class
+      class: add_node
+      label: "UsecasePort"
+      +GetPage
+      +GetEntry
+      +Create / Update / Delete
+      +ImportXML
+    }
+
+    controller_runtime_port: {
+      shape: class
+      class: add_node
+      label: "RuntimeEmitterSource"
+      +runtime context lookup
+      +stores Wails emitter handle
+    }
+
+    controller_concrete: {
+      shape: class
+      class: remove_node
+      label: "MasterDictionaryController"
+      -holds concrete usecase
+      -builds default usecase and Wails publisher
+    }
+  }
+
+  usecase_layer: {
+    label: "usecase"
+    class: layer_package
+    direction: down
+
+    usecase_query_port: {
+      shape: class
+      class: add_node
+      label: "QueryServicePort"
+      +SearchEntries
+      +LoadEntryDetail
+    }
+
+    usecase_command_port: {
+      shape: class
+      class: add_node
+      label: "CommandServicePort"
+      +Create / Update / Delete
+    }
+
+    usecase_import_port: {
+      shape: class
+      class: add_node
+      label: "ImportServicePort"
+      +ImportXML
+    }
+
+    usecase_event_port: {
+      shape: class
+      class: add_node
+      label: "RuntimeEventPublisherPort"
+      +PublishProgress
+      +PublishCompleted
+    }
+
+    usecase_concrete: {
+      shape: class
+      class: remove_node
+      label: "MasterDictionaryUsecase"
+      -holds concrete query / command / import services
+      -creates default service graph
+    }
+  }
+
+  service_layer: {
+    label: "service"
+    class: layer_package
+    direction: down
+
+    service_repository_port: {
+      shape: class
+      class: add_node
+      label: "RepositoryPort"
+      +List / Get / Create / Update / Delete
+      +UpsertBySourceAndREC
+    }
+
+    service_file_port: {
+      shape: class
+      class: add_node
+      label: "XMLFilePort"
+      +resolve path
+      +open stream
+      +count records
+    }
+
+    service_decoder_port: {
+      shape: class
+      class: add_node
+      label: "XMLRecordReaderPort"
+      +next String record
+      +decode tokens
+    }
+
+    service_runtime_port: {
+      shape: class
+      class: add_node
+      label: "RuntimeContextPort"
+      +provides event context to adapter
+    }
+
+    service_concrete: {
+      shape: class
+      class: remove_node
+      label: "MasterDictionaryService family"
+      -holds concrete repository
+      -calls os and xml directly
+      -uses inline progress callback
+    }
+  }
+
+  repository_layer: {
+    label: "repository"
+    class: layer_package
+    direction: down
+
+    repository_adapter: {
+      shape: class
+      class: add_node
+      label: "repository adapter"
+      +implements repository interface
+      +current impl: in-memory seed store
+    }
+
+    repository_concrete_leak: {
+      shape: class
+      class: remove_node
+      label: "repository concrete leak"
+      -reachable via default graph
+    }
+  }
+
+  runtime_adapters: {
+    label: "runtime adapters"
+    class: runtime_package
+    direction: down
+
+    wails_runtime_adapter: {
+      shape: class
+      class: add_node
+      label: "Wails event adapter"
+      +current impl: WailsMasterDictionaryRuntimeEventPublisher
+      +handle: startup emitter context
+    }
+
+    filesystem_xml_adapter: {
+      shape: class
+      class: add_node
+      label: "filesystem/XML adapter"
+      +current scope: os and encoding/xml
+      +handles: file and decoder
+    }
+
+    runtime_handle_coupling: {
+      shape: class
+      class: remove_node
+      label: "runtime handle coupling"
+      -Wails emitter pulled from context value
+      -file and decoder created inside service core
+    }
+  }
+
+  test_boundary: {
+    shape: class
+    class: neutral_note
+    label: "tests"
+    +unit: replace caller-owned ports with doubles
+    +integration: bootstrap, Wails adapter, filesystem/XML, repository adapter
+    +omit: DB and HTTP handles, not instantiated today
+  }
+
+  bootstrap_boundary.inline_default_wiring -> controller_layer.controller_concrete: "- self-wire" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+  bootstrap_boundary.inline_default_wiring -> usecase_layer.usecase_concrete: "- self-wire" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+  controller_layer.controller_concrete -> usecase_layer.usecase_concrete: "- concrete field" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+  usecase_layer.usecase_concrete -> service_layer.service_concrete: "- concrete services" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+  service_layer.service_concrete -> repository_layer.repository_concrete_leak: "- concrete repo" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+  service_layer.service_concrete -> runtime_adapters.runtime_handle_coupling: "- os/xml inline" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+  controller_layer.controller_concrete -> runtime_adapters.runtime_handle_coupling: "- Wails inline" {
+    style.stroke: "#c62828"
+    style.stroke-width: 2
+    style.stroke-dash: 4
+    style.font-color: "#7f1d1d"
+  }
+
+  bootstrap_boundary.main_bootstrap -> controller_layer.controller_usecase_port: "+ inject usecase" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> controller_layer.controller_runtime_port: "+ inject runtime source" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> usecase_layer.usecase_query_port: "+ inject query" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> usecase_layer.usecase_command_port: "+ inject command" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> usecase_layer.usecase_import_port: "+ inject import" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> usecase_layer.usecase_event_port: "+ inject event adapter" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> service_layer.service_repository_port: "+ inject repo" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> service_layer.service_file_port: "+ inject file adapter" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> service_layer.service_decoder_port: "+ inject xml adapter" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  bootstrap_boundary.main_bootstrap -> service_layer.service_runtime_port: "+ inject runtime ctx" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+
+  controller_layer.controller_usecase_port -> usecase_layer.usecase_concrete: "+ caller owns seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  controller_layer.controller_runtime_port -> runtime_adapters.wails_runtime_adapter: "+ emitter source" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+
+  usecase_layer.usecase_query_port -> service_layer.service_concrete: "+ query seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  usecase_layer.usecase_command_port -> service_layer.service_concrete: "+ command seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  usecase_layer.usecase_import_port -> service_layer.service_concrete: "+ import seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  usecase_layer.usecase_event_port -> runtime_adapters.wails_runtime_adapter: "+ event seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+
+  service_layer.service_repository_port -> repository_layer.repository_adapter: "+ persistence seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  service_layer.service_file_port -> runtime_adapters.filesystem_xml_adapter: "+ file seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  service_layer.service_decoder_port -> runtime_adapters.filesystem_xml_adapter: "+ decode seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+  service_layer.service_runtime_port -> runtime_adapters.wails_runtime_adapter: "+ runtime seam" {
+    style.stroke: "#2e7d32"
+    style.stroke-width: 2
+    style.font-color: "#1b5e20"
+  }
+
+  test_boundary -> bootstrap_boundary.main_bootstrap: "integration" {
+    style.stroke: "#607d8b"
+    style.stroke-dash: 3
+    style.font-color: "#1f2933"
+  }
+  test_boundary -> controller_layer.controller_usecase_port: "unit" {
+    style.stroke: "#607d8b"
+    style.stroke-dash: 3
+    style.font-color: "#1f2933"
+  }
+  test_boundary -> usecase_layer.usecase_query_port: "unit" {
+    style.stroke: "#607d8b"
+    style.stroke-dash: 3
+    style.font-color: "#1f2933"
+  }
+  test_boundary -> usecase_layer.usecase_command_port: "unit" {
+    style.stroke: "#607d8b"
+    style.stroke-dash: 3
+    style.font-color: "#1f2933"
+  }
+  test_boundary -> usecase_layer.usecase_import_port: "unit" {
+    style.stroke: "#607d8b"
+    style.stroke-dash: 3
+    style.font-color: "#1f2933"
+  }
+  test_boundary -> service_layer.service_repository_port: "unit" {
+    style.stroke: "#607d8b"
+    style.stroke-dash: 3
+    style.font-color: "#1f2933"
+  }
+}
+
+style: {
+  font-size: 16
+}
+
+edge: {
+  style.font-size: 12
+}

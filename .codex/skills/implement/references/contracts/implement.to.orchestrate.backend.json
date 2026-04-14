@@ -3,6 +3,6 @@
   "from_skill": "implement",
   "to_skill": "orchestrate",
   "mode": "backend",
-  "returned_fields": ["touched_files", "implemented_scope", "validation_results", "closeout_notes", "residual_risks"],
-  "ready_when": ["orchestrate が tests と implementation-review の次手を決められる"]
+  "returned_fields": ["touched_files", "implemented_scope", "validation_results", "sonar_gate_result", "closeout_notes", "residual_risks"],
+  "ready_when": ["orchestrate が implementation-review と close 可否を決められる"]
 }

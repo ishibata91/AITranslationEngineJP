@@ -2,6 +2,8 @@ version: 3
 workdir: internal
 
 components:
+  bootstrap:
+    in: bootstrap/**
   controller:
     in: controller/**
   usecase:
@@ -22,6 +24,12 @@ components:
     in: infra/runtime/**
 
 deps:
+  bootstrap:
+    mayDependOn:
+      - controller
+      - usecase
+      - service
+      - repository
   controller:
     mayDependOn:
       - usecase

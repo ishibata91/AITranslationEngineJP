@@ -3,7 +3,6 @@ package usecase
 import (
 	"context"
 	"fmt"
-	"time"
 
 	"aitranslationenginejp/internal/service"
 )
@@ -14,43 +13,47 @@ const (
 	masterDictionaryDefaultImportPageSize = 30
 )
 
-// MasterDictionaryUsecase orchestrates operations for master dictionary management.
-type MasterDictionaryUsecase struct {
-	queryService   *service.MasterDictionaryQueryService
-	commandService *service.MasterDictionaryCommandService
-	importService  *service.MasterDictionaryImportService
-	events         service.MasterDictionaryRuntimeEventPublisher
+// ErrMasterDictionaryEntryNotFound reports that the requested entry does not exist.
+var ErrMasterDictionaryEntryNotFound = service.ErrMasterDictionaryEntryNotFound
+
+// QueryServicePort defines read-only operations required by the usecase.
+type QueryServicePort interface {
+	SearchEntries(ctx context.Context, query service.MasterDictionaryQuery) (service.MasterDictionaryListResult, error)
+	LoadEntryDetail(ctx context.Context, id int64) (service.MasterDictionaryEntry, error)
 }
 
-// NewDefaultMasterDictionaryUsecase creates a usecase with default backend wiring.
-func NewDefaultMasterDictionaryUsecase(
-	now func() time.Time,
-	events service.MasterDictionaryRuntimeEventPublisher,
-) *MasterDictionaryUsecase {
-	core := service.NewDefaultMasterDictionaryService(now)
-	queryService := service.NewMasterDictionaryQueryService(core)
-	commandService := service.NewMasterDictionaryCommandService(core)
-	importService := service.NewMasterDictionaryImportService(core)
-	if events != nil {
-		importService.SetProgressEmitter(func(ctx context.Context, progress int) {
-			events.PublishImportProgress(ctx, progress)
-		})
-	}
+// CommandServicePort defines mutation operations required by the usecase.
+type CommandServicePort interface {
+	CreateEntry(ctx context.Context, input service.MasterDictionaryMutationInput) (service.MasterDictionaryEntry, error)
+	UpdateEntry(ctx context.Context, id int64, input service.MasterDictionaryMutationInput) (service.MasterDictionaryEntry, error)
+	DeleteEntry(ctx context.Context, id int64) error
+}
 
-	return NewMasterDictionaryUsecase(
-		queryService,
-		commandService,
-		importService,
-		events,
-	)
+// ImportServicePort defines XML import operations required by the usecase.
+type ImportServicePort interface {
+	ImportXML(ctx context.Context, xmlPath string) (service.MasterDictionaryImportSummary, error)
+}
+
+// RuntimeEventPublisherPort defines runtime event publication required by the usecase.
+type RuntimeEventPublisherPort interface {
+	PublishImportProgress(ctx context.Context, progress int)
+	PublishImportCompleted(ctx context.Context, payload service.MasterDictionaryImportCompletedPayload)
+}
+
+// MasterDictionaryUsecase orchestrates operations for master dictionary management.
+type MasterDictionaryUsecase struct {
+	queryService   QueryServicePort
+	commandService CommandServicePort
+	importService  ImportServicePort
+	events         RuntimeEventPublisherPort
 }
 
 // NewMasterDictionaryUsecase creates a new usecase.
 func NewMasterDictionaryUsecase(
-	queryService *service.MasterDictionaryQueryService,
-	commandService *service.MasterDictionaryCommandService,
-	importService *service.MasterDictionaryImportService,
-	events service.MasterDictionaryRuntimeEventPublisher,
+	queryService QueryServicePort,
+	commandService CommandServicePort,
+	importService ImportServicePort,
+	events RuntimeEventPublisherPort,
 ) *MasterDictionaryUsecase {
 	return &MasterDictionaryUsecase{
 		queryService:   queryService,
@@ -97,10 +100,13 @@ type MasterDictionaryMutationResult struct {
 	DeletedEntryID *int64
 }
 
+// MasterDictionaryImportSummary is the import summary at the usecase boundary.
+type MasterDictionaryImportSummary = service.MasterDictionaryImportSummary
+
 // MasterDictionaryImportResult contains import summary and refreshed page payload.
 type MasterDictionaryImportResult struct {
 	Page    MasterDictionaryPageState
-	Summary service.MasterDictionaryImportSummary
+	Summary MasterDictionaryImportSummary
 }
 
 // GetPage returns list and selected entry state.

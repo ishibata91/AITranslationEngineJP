@@ -1,0 +1,16 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "sonar-gate",
+  "to_skill": "orchestrate",
+  "returned_fields": [
+    "decision",
+    "open_high_or_blocker_count",
+    "open_reliability_count",
+    "open_security_count",
+    "quality_gate_status",
+    "supporting_issues",
+    "recheck",
+    "closeout_notes"
+  ],
+  "ready_when": ["orchestrate が backend task の close を判断できる"]
+}

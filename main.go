@@ -5,7 +5,7 @@ import (
 	"embed"
 	"log"
 
-	controllerwails "aitranslationenginejp/internal/controller/wails"
+	"aitranslationenginejp/internal/bootstrap"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -16,7 +16,7 @@ import (
 var frontendAssets embed.FS
 
 func main() {
-	appController := controllerwails.NewAppController()
+	appController := bootstrap.NewAppController()
 
 	err := wails.Run(&options.App{
 		Title:  "AITranslationEngineJp",
