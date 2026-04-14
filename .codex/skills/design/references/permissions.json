@@ -18,10 +18,13 @@
     "out_of_scope",
     "open_questions",
     "ui_artifact_path",
+    "final_mock_path",
     "scenario_artifact_path",
+    "final_scenario_path",
     "implementation_brief",
     "review_diff_diagrams",
-    "source_diagram_targets"
+    "source_diagram_targets",
+    "canonicalization_targets"
   ],
   "stop_conditions": [
     "active work plan や distill 結果が不足している",

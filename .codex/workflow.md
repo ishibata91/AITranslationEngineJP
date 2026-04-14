@@ -50,6 +50,14 @@ flowchart TD
 - `diagramming`: `diagram_mode: structure-diff|d2|plantuml` を扱う
 - `updating-docs`: human 承認済み docs-only の docs 正本更新を扱う
 
+## Artifact Canonicalization
+
+- task-local UI mock がある時だけ `docs/mocks/<page-id>/index.html` へ反映する
+- task-local Scenario 一覧がある時だけ `docs/scenario-tests/<topic-id>.md` へ反映する
+- architecture 成果物がある時だけ `docs/architecture.md` と対象 `docs/diagrams/backend|frontend/*.d2` へ反映する
+- review 用差分図は正本ではなく、D2 正本へ反映した事実だけを plan に残す
+- 3 種類すべては必須ではなく、存在しない artifact は close を妨げない
+
 ## task_mode ごとの標準順序
 
 ### implement
@@ -59,6 +67,7 @@ flowchart TD
 - 構造差分や source 更新が必要な時だけ `diagramming` を使う
 - `review design-review` を通す
 - `implement`、`tests`、`review ui-check`、`review implementation-review` の順に進む
+- close では存在する artifact だけを `docs/` 正本へ昇格させる
 
 ### fix
 
@@ -75,6 +84,7 @@ flowchart TD
 - `design implementation-brief` を固める
 - 振る舞い変更の可能性がある時は requirements と design-review を追加する
 - `implement`、必要な `tests`、`review` を通す
+- close では存在する artifact だけを `docs/` 正本へ昇格させる
 
 ### investigate
 

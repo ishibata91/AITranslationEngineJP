@@ -17,7 +17,7 @@ description: implementation_target と owned scope に従い、frontend / backen
 - `task_mode`: `implement` | `fix` | `refactor`
 - `implementation_target`: `frontend` | `backend` | `mixed`
 - `owned_scope`
-- `implement` / `refactor` では承認済み design bundle
+- `implement` / `refactor` では承認済み requirements、存在する ui-mock / scenario、implementation-brief
 - `fix` では accepted scope と trace / reproduce evidence
 
 ## Common Rules

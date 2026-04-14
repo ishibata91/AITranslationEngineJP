@@ -21,9 +21,9 @@ description: 機能要件、UI モック、Scenario、implementation brief を m
 ## Common Rules
 
 - `requirements` は active work plan の要件 section だけを更新する
-- `ui-mock` は `docs/exec-plans/active/<task-id>.ui.html` と plan 参照だけを更新する
-- `scenario` は `docs/exec-plans/active/<task-id>.scenario.md` と plan 参照だけを更新する
-- `implementation-brief` は active work plan の `Work Brief` と diagram 参照だけを更新する
+- `ui-mock` は `docs/exec-plans/active/<task-id>.ui.html` と `docs/mocks/<page-id>/index.html` の最終適用先を plan に更新する
+- `scenario` は `docs/exec-plans/active/<task-id>.scenario.md` と `docs/scenario-tests/<topic-id>.md` の最終適用先を plan に更新する
+- `implementation-brief` は active work plan の `Work Brief` と diagram 参照だけを更新し、architecture 変更が必要な時だけ `docs/architecture.md` と対象 D2 を `source_diagram_targets` に載せる
 - 実装コード、product test、docs 正本は変更しない
 - human 判断が必要な論点は `open_questions` に分離する
 - diagram が必要な時だけ `diagramming` を起動する
@@ -37,10 +37,13 @@ description: 機能要件、UI モック、Scenario、implementation brief を m
 - `out_of_scope`
 - `open_questions`
 - `ui_artifact_path`
+- `final_mock_path`
 - `scenario_artifact_path`
+- `final_scenario_path`
 - `implementation_brief`
 - `review_diff_diagrams`
 - `source_diagram_targets`
+- `canonicalization_targets`
 
 ## Detailed Guides
 

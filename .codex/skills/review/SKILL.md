@@ -13,16 +13,17 @@ description: design review、UI check、implementation review を mode 分岐で
 
 ## Modes
 
-- `design-review`: task-local design と review 用差分図を照合する
+- `design-review`: task-local requirements、存在する UI / scenario artifact、review 用差分図を照合する
 - `ui-check`: Playwright MCP で主要導線、画面状態、console、必要証跡を確認する
-- `implementation-review`: 実装差分が design bundle または accepted fix scope と整合するか確認する
+- `implementation-review`: 実装差分が design artifact 群 または accepted fix scope と整合するか確認する
 
 ## Common Rules
 
 - review は mode ごとに独立して行う
-- `design-review` は要件取りこぼし、設計不整合、検証不足、構造差分の不整合だけを見る
+- `design-review` は要件取りこぼし、存在する artifact の設計不整合、検証不足、構造差分の不整合だけを見る
+- architecture 対象がある時は `docs/architecture.md` と対象 D2 の整合を確認する
 - `ui-check` は `http://host.docker.internal:34115` を使い、主要導線と画面状態の証跡だけを返す
-- `implementation-review` は design bundle や accepted fix scope にない仕様や好みで判定しない
+- `implementation-review` は design artifact 群や accepted fix scope にない仕様や好みで判定しない
 - backend を含む `implementation-review` は Sonar MCP で open `HIGH` / `BLOCKER`、open reliability、open security を確認する
 - backend を含む `implementation-review` は `sonar_gate_result` に件数、対象 project、supporting issue を含める
 - backend を含む `implementation-review` は いずれかが非 0 件なら `reroute` とする

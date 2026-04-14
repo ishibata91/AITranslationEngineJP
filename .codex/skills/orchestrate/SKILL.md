@@ -17,6 +17,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - `docs-only` 以外は入口を `distill` とし、次工程を最小構成で選ぶ
 - `docs-only` は human 承認済みの時だけ `updating-docs` へ handoff する
 - `HITL`、required evidence、required validation、close 条件を管理する
+- 存在する task-local artifact だけを `docs/` 正本へ反映する close summary を残す
 - 広い task は downstream skill に投げる前に分割する
 
 ## Task Modes
@@ -29,7 +30,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## Routing Rules
 
-- `implement` と `refactor` は `distill` の後に design bundle を揃えてから `implement` へ進む
+- `implement` と `refactor` は `distill` の後に requirements、必要時 ui-mock、scenario、implementation-brief を揃え、人間レビューをはさんで `implement` へ進む
 - `fix` は `distill` で known facts を固め、narrow scope を作れない時は `investigate` に切り替える
 - `investigate` は evidence だけで close してよい
 - `docs-only` は `distill` を通さず、`approval_record` を確認してから `updating-docs` を起動する
@@ -69,18 +70,18 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - `HIGH` / `BLOCKER` の open issue が 0 件であること
 - open reliability issue が 0 件であること
 - open security issue が 0 件であること
+- `ui_artifact_path` がある時だけ `docs/mocks/<page-id>/index.html` への反映を確認すること
+- `scenario_artifact_path` がある時だけ `docs/scenario-tests/<topic-id>.md` への反映を確認すること
+- `source_diagram_targets` がある時だけ `docs/architecture.md` と対象 D2 正本への反映を確認すること
+- close summary に `canonicalized_artifacts` を残すこと
 
 ## Rules
 
 - orchestrate 自身でコードを書かない
 - orchestrate 自身で詳細調査を抱え込まない
 - downstream skill は `fork_context: false` で呼ぶ
-- `changes/`、`context_board`、`tasks.md` を live 正本にしない
 - 別 skill を増やさない
-- Sonar close gate を独立 skill に切り出さない
-- 旧 skill directory は復活させない
-- 旧 specialized skill の知識は live skill の `SKILL.md` と `references/` に残す
-
+- 
 ## Handoff Agents
 
 - `ctx_loader` -> `distill`

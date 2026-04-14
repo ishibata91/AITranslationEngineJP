@@ -38,8 +38,10 @@ backend の Sonar close gate は独立 skill にせず、`implement` と `review
 
 - UI モック working copy は `docs/exec-plans/active/<task-id>.ui.html`
 - Scenario テスト一覧 working copy は `docs/exec-plans/active/<task-id>.scenario.md`
+- architecture 変更がある時だけ `docs/architecture.md` と対象 D2 を plan の `source_diagram_targets` に記録する
 - active work plan は `docs/exec-plans/templates/work-plan.md`
 - active work plan には artifact 本文を埋め込まず、path と要点だけを残す
+- close 時は存在する artifact だけを `docs/mocks/`、`docs/scenario-tests/`、`docs/architecture.md` と対象 D2 へ反映する
 
 ## Naming Rule
 

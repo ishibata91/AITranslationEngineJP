@@ -4,6 +4,6 @@
   "to_skill": "design",
   "mode": "ui-mock",
   "required_inputs": ["active_work_plan", "task_mode"],
-  "optional_inputs": ["functional_requirements_summary", "ui_artifact_path", "required_reading"],
-  "completion_signal": ["ui_artifact_path", "open_questions"]
+  "optional_inputs": ["functional_requirements_summary", "ui_artifact_path", "final_mock_path", "required_reading", "canonicalization_targets"],
+  "completion_signal": ["ui_artifact_path", "final_mock_path", "canonicalization_targets", "open_questions"]
 }

@@ -3,6 +3,6 @@
   "from_skill": "design",
   "to_skill": "orchestrate",
   "mode": "scenario",
-  "returned_fields": ["scenario_artifact_path", "open_questions"],
+  "returned_fields": ["scenario_artifact_path", "final_scenario_path", "canonicalization_targets", "open_questions"],
   "ready_when": ["orchestrate が tests か review への次手を決められる"]
 }

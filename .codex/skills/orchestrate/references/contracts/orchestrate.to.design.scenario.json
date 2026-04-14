@@ -4,6 +4,6 @@
   "to_skill": "design",
   "mode": "scenario",
   "required_inputs": ["active_work_plan", "task_mode", "functional_requirements_summary"],
-  "optional_inputs": ["scenario_artifact_path", "acceptance_targets"],
-  "completion_signal": ["scenario_artifact_path", "open_questions"]
+  "optional_inputs": ["scenario_artifact_path", "final_scenario_path", "acceptance_targets", "canonicalization_targets"],
+  "completion_signal": ["scenario_artifact_path", "final_scenario_path", "canonicalization_targets", "open_questions"]
 }

@@ -8,4 +8,6 @@
 
 - `active/` から移動した計画のみを置く
 - 完了時点の成果と未解消項目を記録する
+- `canonicalized_artifacts` に、実際に `docs/` 正本へ反映した mock / scenario / architecture だけを記録する
+- review 用差分図は履歴として残ってよいが、正本適用先は `docs/architecture.md` と対象 D2 で管理する
 - 後続タスクが必要なら plan 本文か issue tracker へ記録する

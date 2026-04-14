@@ -39,9 +39,12 @@
 ## Artifacts
 
 - `ui_artifact_path`:
+- `final_mock_path`:
 - `scenario_artifact_path`:
+- `final_scenario_path`:
 - `review_diff_diagrams`:
 - `source_diagram_targets`:
+- `canonicalization_targets`:
 
 ## Work Brief
 
@@ -73,7 +76,7 @@
 
 ## Closeout Notes
 
--
+- `canonicalized_artifacts`:
 
 ## Outcome
 
