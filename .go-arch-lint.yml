@@ -22,6 +22,8 @@ components:
     in: infra/ai/**
   infra_runtime:
     in: infra/runtime/**
+  infra_sqlite:
+    in: infra/sqlite/**
 
 deps:
   bootstrap:
@@ -48,7 +50,10 @@ deps:
   repository:
     mayDependOn:
       - infra_runtime
+      - infra_sqlite
   infra_ai:
     mayDependOn:
       - aiprovider
       - infra_runtime
+allow:
+  depOnAnyVendor: true

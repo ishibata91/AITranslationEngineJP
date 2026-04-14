@@ -30,6 +30,7 @@ description: 機能要件、UI モック、Scenario、implementation brief、imp
 - human 判断が必要な論点は `open_questions` に分離する
 - diagram が必要な時だけ `diagramming` を起動する
 - 役割を再確定せず、呼び出し元で確定した design mode をそのまま進める
+- docsのER図やアーキテクチャと詳細設計に矛盾がある場合、人間に確認を取ること。
 
 ## Output
 

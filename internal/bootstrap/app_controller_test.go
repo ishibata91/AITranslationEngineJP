@@ -27,6 +27,7 @@ const (
 	bootstrapCreatedSource        = "Auriel's Bow"
 	bootstrapCreatedTranslation   = "アーリエルの弓"
 	bootstrapUpdatedTranslation   = "更新済みアーリエルの弓"
+	bootstrapPersistedSource      = "Castle Volkihar"
 	bootstrapImportProgressEvent  = "master-dictionary:import-progress"
 	bootstrapImportCompletedEvent = "master-dictionary:import-completed"
 )
@@ -43,6 +44,7 @@ func (ctx runtimeEventsTestContext) Value(key interface{}) interface{} {
 }
 
 func TestNewAppControllerBuildsMasterDictionaryProductionGraph(t *testing.T) {
+	databasePath := configureBootstrapTestDatabase(t)
 	controller := NewAppController()
 
 	page, err := controller.MasterDictionaryGetPage(controllerwails.MasterDictionaryPageRequestDTO{
@@ -62,6 +64,9 @@ func TestNewAppControllerBuildsMasterDictionaryProductionGraph(t *testing.T) {
 	if page.Page.SelectedID == nil || *page.Page.SelectedID != page.Page.Items[0].ID {
 		t.Fatalf("expected selected id to match first page item, got selected=%#v items=%#v", page.Page.SelectedID, page.Page.Items)
 	}
+	if _, statErr := os.Stat(databasePath); statErr != nil {
+		t.Fatalf("expected sqlite database file to exist: %v", statErr)
+	}
 
 	detail, err := controller.MasterDictionaryGetDetail(controllerwails.MasterDictionaryDetailRequestDTO{ID: page.Page.Items[0].ID})
 	if err != nil {
@@ -73,6 +78,7 @@ func TestNewAppControllerBuildsMasterDictionaryProductionGraph(t *testing.T) {
 }
 
 func TestNewAppControllerSharesRuntimeEmitterStateWithPublisher(t *testing.T) {
+	configureBootstrapTestDatabase(t)
 	xmlPath := writeBootstrapImportFixture(t)
 	controller := NewAppController()
 	emitter := &recordingRuntimeEventEmitter{}
@@ -120,6 +126,7 @@ func TestNewAppControllerSharesRuntimeEmitterStateWithPublisher(t *testing.T) {
 }
 
 func TestNewAppControllerRunsMutationPathsThroughProductionGraph(t *testing.T) {
+	configureBootstrapTestDatabase(t)
 	controller := NewAppController()
 
 	createRequest := controllerwails.CreateMasterDictionaryEntryRequestDTO{}
@@ -216,6 +223,62 @@ func writeBootstrapImportFixture(t *testing.T) string {
 		t.Fatalf("write xml fixture: %v", err)
 	}
 	return xmlPath
+}
+
+func TestNewAppControllerPersistsEntriesAcrossControllerRecreation(t *testing.T) {
+	configureBootstrapTestDatabase(t)
+	firstController := NewAppController()
+
+	createRequest := controllerwails.CreateMasterDictionaryEntryRequestDTO{}
+	createRequest.Payload.Source = bootstrapPersistedSource
+	createRequest.Payload.Translation = "ヴォルキハル城"
+	createRequest.Payload.Category = "地名"
+	createRequest.Payload.Origin = "手動登録"
+	createRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{
+		Query:    bootstrapPersistedSource,
+		Category: "地名",
+		Page:     1,
+		PageSize: 10,
+	}
+	created, err := firstController.CreateMasterDictionaryEntry(createRequest)
+	if err != nil {
+		t.Fatalf("expected create through first controller to succeed: %v", err)
+	}
+
+	firstController.OnShutdown(context.Background())
+
+	secondController := NewAppController()
+	loaded, err := secondController.GetMasterDictionaryEntry(controllerwails.GetMasterDictionaryEntryRequestDTO{ID: created.RefreshTargetID})
+	if err != nil {
+		t.Fatalf("expected persisted entry lookup through second controller to succeed: %v", err)
+	}
+	if loaded.Entry == nil || loaded.Entry.Source != bootstrapPersistedSource {
+		t.Fatalf("expected recreated controller to read persisted entry, got %#v", loaded.Entry)
+	}
+
+	secondController.OnShutdown(context.Background())
+}
+
+func TestMasterDictionaryDatabasePathDefaultsToRepositoryRootDB(t *testing.T) {
+	t.Setenv("AITRANSLATIONENGINEJP_MASTER_DICTIONARY_DB_PATH", "")
+
+	repositoryRoot, err := repositoryRootDirectory()
+	if err != nil {
+		t.Fatalf("expected repository root directory to resolve: %v", err)
+	}
+	got := masterDictionaryDatabasePath()
+	want := filepath.Join(repositoryRoot, "db", "master-dictionary.sqlite3")
+	if got != want {
+		t.Fatalf("expected database path %q, got %q", want, got)
+	}
+}
+
+func configureBootstrapTestDatabase(t *testing.T) string {
+	t.Helper()
+
+	databasePath := filepath.Join(t.TempDir(), "db", "master-dictionary.sqlite3")
+	t.Setenv("AITRANSLATIONENGINEJP_MASTER_DICTIONARY_DB_PATH", databasePath)
+	return databasePath
 }
 
 func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...string) {

@@ -32,7 +32,7 @@
 ## 4. 永続化
 
 - ローカルデータベースは `SQLite` を採用する
-- DB access の抽象は `sqlc` を基準にする
+- DB access の抽象は `sqlx` を基準にし、query builder language は導入しない
 - schema の変更管理は repo-owned SQL migration を採用する
 - migration の適用は app 起動時の専用初期化責務へ集約する
 - xEdit 抽出 JSON はファイルシステム上の正本として保持する

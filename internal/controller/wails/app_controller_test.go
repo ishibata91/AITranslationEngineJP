@@ -16,7 +16,7 @@ func (emitter *fakeRuntimeEventEmitter) Emit(eventName string, _ ...interface{})
 func TestNewAppControllerUsesInjectedMasterDictionaryController(t *testing.T) {
 	masterDictionaryController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, nil)
 
-	controller := NewAppController(masterDictionaryController)
+	controller := NewAppController(masterDictionaryController, nil)
 
 	if controller.MasterDictionaryController != masterDictionaryController {
 		t.Fatal("expected app controller to embed the injected master dictionary controller")
@@ -26,7 +26,11 @@ func TestNewAppControllerUsesInjectedMasterDictionaryController(t *testing.T) {
 func TestAppControllerLifecycleHooksManageRuntimeContext(t *testing.T) {
 	runtimeState := NewRuntimeEmitterState()
 	masterDictionaryController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, runtimeState)
-	controller := NewAppController(masterDictionaryController)
+	shutdownCalled := false
+	controller := NewAppController(masterDictionaryController, func(context.Context) error {
+		shutdownCalled = true
+		return nil
+	})
 	emitter := &fakeRuntimeEventEmitter{}
 
 	controller.OnStartup(newRuntimeEventContext(emitter))
@@ -46,10 +50,13 @@ func TestAppControllerLifecycleHooksManageRuntimeContext(t *testing.T) {
 	if ok || clearedCtx != nil {
 		t.Fatal("expected shutdown to clear runtime event context")
 	}
+	if !shutdownCalled {
+		t.Fatal("expected shutdown hook to run cleanup callback")
+	}
 }
 
 func TestAppControllerHealthReturnsOkStatus(t *testing.T) {
-	controller := NewAppController(NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, nil))
+	controller := NewAppController(NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, nil), nil)
 
 	response := controller.Health()
 

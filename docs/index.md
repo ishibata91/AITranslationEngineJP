@@ -31,7 +31,7 @@
 - [`architecture.md`](./architecture.md): 層構成、transport boundary、依存方向
 - [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
 - [`coding-guidelines.md`](./coding-guidelines.md): Wails + Go + Svelte 前提の実装規約
-- [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担
+- [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担1
 - [`er.md`](./er.md): canonical data model と ER 仕様
 - [`diagrams/backend/`](./diagrams/backend/): backend 構造図の D2 source of truth と review 用 SVG
 - [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の D2 source of truth と review 用 SVG
