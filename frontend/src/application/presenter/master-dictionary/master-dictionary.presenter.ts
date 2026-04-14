@@ -1,10 +1,10 @@
-import { PAGE_SIZE } from "./master-dictionary-screen-constants"
+import { PAGE_SIZE } from "@application/contract/master-dictionary"
 import type {
   ImportStage,
   MasterDictionaryScreenState,
   MasterDictionaryScreenViewModel,
   ModalState
-} from "./master-dictionary-screen-types"
+} from "@application/contract/master-dictionary/master-dictionary-screen-types"
 
 const IMPORT_STATUS_BY_STAGE: Record<ImportStage, string> = {
   idle: "待機中",
@@ -20,7 +20,10 @@ const IMPORT_STATUS_TEXT_BY_STAGE: Record<ImportStage, string> = {
   done: "取り込み結果を同じ画面へ反映しました。"
 }
 
-const DETAIL_SUBLINE_BY_MODAL_STATE: Record<Exclude<ModalState, null>, string> = {
+const DETAIL_SUBLINE_BY_MODAL_STATE: Record<
+  Exclude<ModalState, null>,
+  string
+> = {
   create: "一覧で選んだ内容をここで確認できます。",
   edit: "更新モーダルを開いています。",
   delete: "削除確認モーダルを開いています。"
@@ -40,10 +43,16 @@ const MASTER_DICTIONARY_BASE_CATEGORIES = [
 
 function buildCategoryOptions(state: MasterDictionaryScreenState): string[] {
   const dynamicCategories = state.entries.map((entry) => entry.category)
-  const selectedCategory = state.selectedEntry?.category ? [state.selectedEntry.category] : []
+  const selectedCategory = state.selectedEntry?.category
+    ? [state.selectedEntry.category]
+    : []
 
   const options = Array.from(
-    new Set([...MASTER_DICTIONARY_BASE_CATEGORIES, ...dynamicCategories, ...selectedCategory])
+    new Set([
+      ...MASTER_DICTIONARY_BASE_CATEGORIES,
+      ...dynamicCategories,
+      ...selectedCategory
+    ])
   ).sort((left, right) => left.localeCompare(right, "ja"))
 
   return ["すべて", ...options]

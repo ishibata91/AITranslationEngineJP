@@ -12,6 +12,7 @@ import type {
   MasterDictionaryGatewayContract,
   UpdateMasterDictionaryEntryRequest
 } from "@application/gateway-contract/master-dictionary"
+import { createTestMasterDictionaryScreenControllerFactory } from "../test/setup"
 import App from "@ui/App.svelte"
 
 const DASHBOARD_SHELL_PRIMARY_ROUTES = [
@@ -89,8 +90,10 @@ function createXmlFile(contents: string, name = "mixed-rec.xml"): File {
   return file
 }
 
-const MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT = "master-dictionary:import-progress"
-const MASTER_DICTIONARY_IMPORT_COMPLETED_EVENT = "master-dictionary:import-completed"
+const MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT =
+  "master-dictionary:import-progress"
+const MASTER_DICTIONARY_IMPORT_COMPLETED_EVENT =
+  "master-dictionary:import-completed"
 
 type RuntimeEventPayload = Record<string, unknown>
 
@@ -104,7 +107,10 @@ function installRuntimeEventBridgeMock() {
     configurable: true,
     writable: true,
     value: {
-      EventsOnMultiple: (eventName: string, callback: (...args: unknown[]) => void) => {
+      EventsOnMultiple: (
+        eventName: string,
+        callback: (...args: unknown[]) => void
+      ) => {
         const listeners = callbacks.get(eventName) ?? []
         listeners.push(callback)
         callbacks.set(eventName, listeners)
@@ -122,13 +128,17 @@ function installRuntimeEventBridgeMock() {
   return {
     emitImportProgress: (payload: RuntimeEventPayload) => {
       progressEvents.push(payload)
-      for (const callback of callbacks.get(MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT) ?? []) {
+      for (const callback of callbacks.get(
+        MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT
+      ) ?? []) {
         callback(payload)
       }
     },
     emitImportCompleted: (payload: RuntimeEventPayload) => {
       completionEvents.push(payload)
-      for (const callback of callbacks.get(MASTER_DICTIONARY_IMPORT_COMPLETED_EVENT) ?? []) {
+      for (const callback of callbacks.get(
+        MASTER_DICTIONARY_IMPORT_COMPLETED_EVENT
+      ) ?? []) {
         callback(payload)
       }
     },
@@ -182,31 +192,30 @@ interface TestGateway extends MasterDictionaryGatewayContract {
 }
 
 function createTestGateway(seedEntries?: TestEntry[]): TestGateway {
-  let entries =
-    seedEntries ?? [
-      {
-        id: "101",
-        source: "Dragon Priest",
-        translation: "ドラゴン・プリースト",
-        category: "固有名詞",
-        origin: "初期データ",
-        updatedAt: "2026-01-01 00:00",
-        note: "REC: NPC_:FULL / EDID: SeedDragonPriest",
-        rec: "NPC_:FULL",
-        edid: "SeedDragonPriest"
-      },
-      {
-        id: "102",
-        source: "The Reach",
-        translation: "リーチ地方",
-        category: "地名",
-        origin: "初期データ",
-        updatedAt: "2026-01-02 00:00",
-        note: "REC: LCTN:FULL / EDID: SeedReach",
-        rec: "LCTN:FULL",
-        edid: "SeedReach"
-      }
-    ]
+  let entries = seedEntries ?? [
+    {
+      id: "101",
+      source: "Dragon Priest",
+      translation: "ドラゴン・プリースト",
+      category: "固有名詞",
+      origin: "初期データ",
+      updatedAt: "2026-01-01 00:00",
+      note: "REC: NPC_:FULL / EDID: SeedDragonPriest",
+      rec: "NPC_:FULL",
+      edid: "SeedDragonPriest"
+    },
+    {
+      id: "102",
+      source: "The Reach",
+      translation: "リーチ地方",
+      category: "地名",
+      origin: "初期データ",
+      updatedAt: "2026-01-02 00:00",
+      note: "REC: LCTN:FULL / EDID: SeedReach",
+      rec: "LCTN:FULL",
+      edid: "SeedReach"
+    }
+  ]
 
   let nextId = 1000
   const importEntries: TestEntry[] = [
@@ -237,7 +246,11 @@ function createTestGateway(seedEntries?: TestEntry[]): TestGateway {
   const filterEntries = (query: string, category: string): TestEntry[] => {
     const normalizedQuery = query.trim().toLowerCase()
     return entries.filter((entry) => {
-      if (category !== "" && category !== "すべて" && entry.category !== category) {
+      if (
+        category !== "" &&
+        category !== "すべて" &&
+        entry.category !== category
+      ) {
         return false
       }
       if (normalizedQuery === "") {
@@ -251,7 +264,9 @@ function createTestGateway(seedEntries?: TestEntry[]): TestGateway {
   }
 
   const toPageState = (
-    refresh: { query: string; category: string; page: number; pageSize: number } | undefined,
+    refresh:
+      | { query: string; category: string; page: number; pageSize: number }
+      | undefined,
     preferredId: string | null
   ) => {
     const query = refresh?.query ?? ""
@@ -268,7 +283,9 @@ function createTestGateway(seedEntries?: TestEntry[]): TestGateway {
     const selectedCandidate =
       (preferredId
         ? pageItems.find((entry) => entry.id === preferredId)
-        : null) ?? pageItems[0] ?? null
+        : null) ??
+      pageItems[0] ??
+      null
 
     return {
       items: pageItems.map((entry) => ({
@@ -284,110 +301,131 @@ function createTestGateway(seedEntries?: TestEntry[]): TestGateway {
       totalCount: filtered.length,
       page: resolvedPage,
       pageSize,
-      selectedId: selectedCandidate ? Number.parseInt(selectedCandidate.id, 10) : undefined
+      selectedId: selectedCandidate
+        ? Number.parseInt(selectedCandidate.id, 10)
+        : undefined
     }
   }
 
-  const listMasterDictionaryEntries = vi.fn((request: ListMasterDictionaryEntriesRequest) => {
-    const filtered = filterEntries(request.filters.query, request.filters.category)
-    const requestPage = Math.max(request.filters.page, 1)
-    const pageSize = request.filters.pageSize
-    const start = (requestPage - 1) * pageSize
-    const pageItems = filtered.slice(start, start + pageSize)
-    return Promise.resolve({
-      entries: pageItems.map((entry) => ({
-        id: entry.id,
-        source: entry.source,
-        translation: entry.translation,
-        category: entry.category,
-        origin: entry.origin,
-        updatedAt: entry.updatedAt
-      })),
-      totalCount: filtered.length,
-      page: requestPage,
-      pageSize
-    })
-  })
-
-  const getMasterDictionaryEntry = vi.fn((request: GetMasterDictionaryEntryRequest) => {
-    const entry = entries.find((candidate) => candidate.id === request.id) ?? null
-    return Promise.resolve({ entry })
-  })
-
-  const createMasterDictionaryEntry = vi.fn((request: CreateMasterDictionaryEntryRequest) => {
-    const entry: TestEntry = {
-      id: String(nextId++),
-      source: request.payload.source,
-      translation: request.payload.translation,
-      category: request.payload.category,
-      origin: request.payload.origin,
-      updatedAt: "2026-04-12 01:00",
-      note: "マスター辞書エントリ",
-      rec: "",
-      edid: ""
+  const listMasterDictionaryEntries = vi.fn(
+    (request: ListMasterDictionaryEntriesRequest) => {
+      const filtered = filterEntries(
+        request.filters.query,
+        request.filters.category
+      )
+      const requestPage = Math.max(request.filters.page, 1)
+      const pageSize = request.filters.pageSize
+      const start = (requestPage - 1) * pageSize
+      const pageItems = filtered.slice(start, start + pageSize)
+      return Promise.resolve({
+        entries: pageItems.map((entry) => ({
+          id: entry.id,
+          source: entry.source,
+          translation: entry.translation,
+          category: entry.category,
+          origin: entry.origin,
+          updatedAt: entry.updatedAt
+        })),
+        totalCount: filtered.length,
+        page: requestPage,
+        pageSize
+      })
     }
-    entries = [entry, ...entries]
-    return Promise.resolve({
-      entry,
-      refreshTargetId: entry.id,
-      page: toPageState(request.refresh, entry.id)
-    })
-  })
+  )
 
-  const updateMasterDictionaryEntry = vi.fn((request: UpdateMasterDictionaryEntryRequest) => {
-    entries = entries.map((entry) =>
-      entry.id === request.id
-        ? {
-            ...entry,
-            source: request.payload.source,
-            translation: request.payload.translation,
-            category: request.payload.category,
-            origin: request.payload.origin,
-            updatedAt: "2026-04-12 01:30"
-          }
-        : entry
-    )
-    const entry = entries.find((candidate) => candidate.id === request.id)
-    if (!entry) {
-      return Promise.reject(new Error("entry not found"))
+  const getMasterDictionaryEntry = vi.fn(
+    (request: GetMasterDictionaryEntryRequest) => {
+      const entry =
+        entries.find((candidate) => candidate.id === request.id) ?? null
+      return Promise.resolve({ entry })
     }
-    return Promise.resolve({
-      entry,
-      refreshTargetId: request.id,
-      page: toPageState(request.refresh, request.id)
-    })
-  })
+  )
 
-  const deleteMasterDictionaryEntry = vi.fn((request: DeleteMasterDictionaryEntryRequest) => {
-    entries = entries.filter((entry) => entry.id !== request.id)
-    const page = toPageState(request.refresh, null)
-    return Promise.resolve({
-      deletedId: request.id,
-      nextSelectedId: page.selectedId ? String(page.selectedId) : null,
-      page
-    })
-  })
-
-  const importMasterDictionaryXml = vi.fn((request: ImportMasterDictionaryXmlRequest) => {
-    if (!request.filePath || !request.fileReference) {
-      return Promise.reject(new Error("ファイル参照が不足しています。"))
+  const createMasterDictionaryEntry = vi.fn(
+    (request: CreateMasterDictionaryEntryRequest) => {
+      const entry: TestEntry = {
+        id: String(nextId++),
+        source: request.payload.source,
+        translation: request.payload.translation,
+        category: request.payload.category,
+        origin: request.payload.origin,
+        updatedAt: "2026-04-12 01:00",
+        note: "マスター辞書エントリ",
+        rec: "",
+        edid: ""
+      }
+      entries = [entry, ...entries]
+      return Promise.resolve({
+        entry,
+        refreshTargetId: entry.id,
+        page: toPageState(request.refresh, entry.id)
+      })
     }
-    entries = [...importEntries, ...entries.filter((entry) => entry.origin !== "XML取込")]
-    const page = toPageState(request.refresh, importEntries[0]?.id ?? null)
-    return Promise.resolve({
-      accepted: true,
-      summary: {
-        filePath: request.fileReference ?? request.filePath,
-        fileName: request.filePath,
-        importedCount: importEntries.length,
-        updatedCount: 0,
-        skippedCount: 2,
-        selectedRec: ["BOOK:FULL", "WEAP:FULL"],
-        lastEntryId: Number.parseInt(importEntries[0]?.id ?? "0", 10)
-      },
-      page
-    })
-  })
+  )
+
+  const updateMasterDictionaryEntry = vi.fn(
+    (request: UpdateMasterDictionaryEntryRequest) => {
+      entries = entries.map((entry) =>
+        entry.id === request.id
+          ? {
+              ...entry,
+              source: request.payload.source,
+              translation: request.payload.translation,
+              category: request.payload.category,
+              origin: request.payload.origin,
+              updatedAt: "2026-04-12 01:30"
+            }
+          : entry
+      )
+      const entry = entries.find((candidate) => candidate.id === request.id)
+      if (!entry) {
+        return Promise.reject(new Error("entry not found"))
+      }
+      return Promise.resolve({
+        entry,
+        refreshTargetId: request.id,
+        page: toPageState(request.refresh, request.id)
+      })
+    }
+  )
+
+  const deleteMasterDictionaryEntry = vi.fn(
+    (request: DeleteMasterDictionaryEntryRequest) => {
+      entries = entries.filter((entry) => entry.id !== request.id)
+      const page = toPageState(request.refresh, null)
+      return Promise.resolve({
+        deletedId: request.id,
+        nextSelectedId: page.selectedId ? String(page.selectedId) : null,
+        page
+      })
+    }
+  )
+
+  const importMasterDictionaryXml = vi.fn(
+    (request: ImportMasterDictionaryXmlRequest) => {
+      if (!request.filePath || !request.fileReference) {
+        return Promise.reject(new Error("ファイル参照が不足しています。"))
+      }
+      entries = [
+        ...importEntries,
+        ...entries.filter((entry) => entry.origin !== "XML取込")
+      ]
+      const page = toPageState(request.refresh, importEntries[0]?.id ?? null)
+      return Promise.resolve({
+        accepted: true,
+        summary: {
+          filePath: request.fileReference ?? request.filePath,
+          fileName: request.filePath,
+          importedCount: importEntries.length,
+          updatedCount: 0,
+          skippedCount: 2,
+          selectedRec: ["BOOK:FULL", "WEAP:FULL"],
+          lastEntryId: Number.parseInt(importEntries[0]?.id ?? "0", 10)
+        },
+        page
+      })
+    }
+  )
 
   return {
     listMasterDictionaryEntries,
@@ -402,8 +440,15 @@ function createTestGateway(seedEntries?: TestEntry[]): TestGateway {
   }
 }
 
-function renderAppWithGateway(gateway: MasterDictionaryGatewayContract) {
-  return render(App, { props: { masterDictionaryGateway: gateway } })
+function renderAppWithGateway(
+  gateway: MasterDictionaryGatewayContract | null = null
+) {
+  return render(App, {
+    props: {
+      createMasterDictionaryScreenController:
+        createTestMasterDictionaryScreenControllerFactory(gateway)
+    }
+  })
 }
 
 function expectRouteLinksMatch(
@@ -428,9 +473,11 @@ describe("App dashboard shell", () => {
   })
 
   test("SCN-DAS-001: 起動時にダッシュボードを既定表示する", () => {
-    render(App)
+    renderAppWithGateway()
 
-    expect(screen.getByRole("heading", { name: "ダッシュボード" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "ダッシュボード" })
+    ).toBeInTheDocument()
     expect(window.location.hash).toBe("#dashboard")
     for (const excludedText of DASHBOARD_EXCLUDED_TEXTS) {
       expect(screen.queryByText(excludedText)).not.toBeInTheDocument()
@@ -440,22 +487,26 @@ describe("App dashboard shell", () => {
   test("invalid hash は dashboard に正規化される", () => {
     window.history.replaceState(null, "", "#not-approved-route")
 
-    render(App)
+    renderAppWithGateway()
 
-    expect(screen.getByRole("heading", { name: "ダッシュボード" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "ダッシュボード" })
+    ).toBeInTheDocument()
     expect(window.location.hash).toBe("#dashboard")
   })
 
   test("SCN-DAS-002: グローバルナビゲーションから主要 5 ページへ遷移できる", async () => {
     const user = userEvent.setup()
-    render(App)
+    renderAppWithGateway()
 
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
 
     for (const route of DASHBOARD_SHELL_PRIMARY_ROUTES) {
-      await user.click(within(globalNavigation).getByRole("link", { name: route.label }))
+      await user.click(
+        within(globalNavigation).getByRole("link", { name: route.label })
+      )
       expect(
         screen.getByRole("heading", { level: 1, name: route.label })
       ).toBeInTheDocument()
@@ -465,17 +516,22 @@ describe("App dashboard shell", () => {
 
   test("SCN-DAS-003: ダッシュボード入口カードから主要 5 ページへ遷移できる", async () => {
     const user = userEvent.setup()
-    render(App)
+    renderAppWithGateway()
 
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
 
     for (const route of DASHBOARD_ENTRY_ROUTES) {
-      await user.click(within(globalNavigation).getByRole("link", { name: "ダッシュボード" }))
+      await user.click(
+        within(globalNavigation).getByRole("link", { name: "ダッシュボード" })
+      )
 
-      const dashboardCardSectionHeading = screen.getByRole("heading", { name: "作業を選ぶ" })
-      const dashboardCardSection = dashboardCardSectionHeading.closest("section")
+      const dashboardCardSectionHeading = screen.getByRole("heading", {
+        name: "作業を選ぶ"
+      })
+      const dashboardCardSection =
+        dashboardCardSectionHeading.closest("section")
 
       if (!dashboardCardSection) {
         throw new Error("ダッシュボード入口カードのセクションが見つかりません")
@@ -488,12 +544,12 @@ describe("App dashboard shell", () => {
       const cardLink = cardHeading.closest("a")
 
       if (!cardLink) {
-        throw new Error(`ダッシュボード入口カードのリンクが見つかりません: ${route.label}`)
+        throw new Error(
+          `ダッシュボード入口カードのリンクが見つかりません: ${route.label}`
+        )
       }
 
-      await user.click(
-        cardLink
-      )
+      await user.click(cardLink)
       expect(
         screen.getByRole("heading", { level: 1, name: route.label })
       ).toBeInTheDocument()
@@ -502,7 +558,7 @@ describe("App dashboard shell", () => {
   })
 
   test("主要導線は承認済み 5 ルートに固定される", () => {
-    render(App)
+    renderAppWithGateway()
 
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
@@ -510,7 +566,9 @@ describe("App dashboard shell", () => {
     const globalLinks = within(globalNavigation).getAllByRole("link")
     expectRouteLinksMatch(globalLinks)
 
-    const dashboardCardSectionHeading = screen.getByRole("heading", { name: "作業を選ぶ" })
+    const dashboardCardSectionHeading = screen.getByRole("heading", {
+      name: "作業を選ぶ"
+    })
     const dashboardCardSection = dashboardCardSectionHeading.closest("section")
 
     if (!dashboardCardSection) {
@@ -520,16 +578,24 @@ describe("App dashboard shell", () => {
     const dashboardLinks = within(dashboardCardSection).getAllByRole("link")
     expectRouteLinksMatch(dashboardLinks, DASHBOARD_ENTRY_ROUTES)
 
-    expect(within(dashboardCardSection).queryByRole("link", { name: "ダッシュボード" })).not.toBeInTheDocument()
+    expect(
+      within(dashboardCardSection).queryByRole("link", {
+        name: "ダッシュボード"
+      })
+    ).not.toBeInTheDocument()
 
     for (const route of DASHBOARD_ENTRY_ROUTES) {
-      expect(within(dashboardCardSection).getAllByText(route.state).length).toBeGreaterThan(0)
-      expect(within(dashboardCardSection).getByText(route.description)).toBeInTheDocument()
+      expect(
+        within(dashboardCardSection).getAllByText(route.state).length
+      ).toBeGreaterThan(0)
+      expect(
+        within(dashboardCardSection).getByText(route.description)
+      ).toBeInTheDocument()
     }
   })
 
   test("mobile nav トグルの表示契約を持つ", () => {
-    render(App)
+    renderAppWithGateway()
 
     const mobileToggle = screen.getByRole("button", { name: "主要ページ" })
     expect(mobileToggle).toHaveAttribute("aria-controls", "globalNav")
@@ -538,7 +604,7 @@ describe("App dashboard shell", () => {
 
   test("非ダッシュボード遷移先ではダッシュボード専用領域を表示しない", async () => {
     const user = userEvent.setup()
-    render(App)
+    renderAppWithGateway()
 
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
@@ -547,14 +613,20 @@ describe("App dashboard shell", () => {
     for (const route of DASHBOARD_SHELL_PRIMARY_ROUTES.filter(
       ({ id }) => id !== "dashboard"
     )) {
-      await user.click(within(globalNavigation).getByRole("link", { name: route.label }))
+      await user.click(
+        within(globalNavigation).getByRole("link", { name: route.label })
+      )
       expect(
         screen.getByRole("heading", { level: 1, name: route.label })
       ).toBeInTheDocument()
-      expect(screen.queryByRole("heading", { name: "作業を選ぶ" })).not.toBeInTheDocument()
+      expect(
+        screen.queryByRole("heading", { name: "作業を選ぶ" })
+      ).not.toBeInTheDocument()
 
       if (route.id === "master-dictionary") {
-        expect(screen.getByRole("heading", { level: 3, name: "辞書一覧" })).toBeInTheDocument()
+        expect(
+          screen.getByRole("heading", { level: 3, name: "辞書一覧" })
+        ).toBeInTheDocument()
         expect(screen.queryByText(PLACEHOLDER_LEAD)).not.toBeInTheDocument()
         continue
       }
@@ -571,15 +643,21 @@ describe("App dashboard shell", () => {
       name: "グローバルナビゲーション"
     })
 
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
-    expect(screen.getByRole("heading", { level: 3, name: "辞書一覧" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 3, name: "辞書一覧" })
+    ).toBeInTheDocument()
     expect(document.querySelector("#xmlFileInput")).toBeInTheDocument()
     expect(document.querySelector("#listStack")).toBeInTheDocument()
     expect(document.querySelector("#detailTitle")).toBeInTheDocument()
     expect(document.querySelector("#createButton")).toBeInTheDocument()
     await waitFor(() => {
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("Dragon Priest")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "Dragon Priest"
+      )
     })
   })
 
@@ -592,19 +670,29 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     await waitFor(() => {
       expect(screen.getByText("1 - 30 件を表示")).toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("Source-01")
-      expect(document.querySelector("#detailTranslation")).toHaveTextContent("訳語-01")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "Source-01"
+      )
+      expect(document.querySelector("#detailTranslation")).toHaveTextContent(
+        "訳語-01"
+      )
     })
 
     await user.click(screen.getByRole("button", { name: /訳語-02/ }))
 
     await waitFor(() => {
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("Source-02")
-      expect(document.querySelector("#detailTranslation")).toHaveTextContent("訳語-02")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "Source-02"
+      )
+      expect(document.querySelector("#detailTranslation")).toHaveTextContent(
+        "訳語-02"
+      )
     })
   })
 
@@ -615,7 +703,9 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     await user.type(screen.getByRole("searchbox", { name: "検索" }), "Reach")
     await waitFor(() => {
@@ -624,37 +714,57 @@ describe("App dashboard shell", () => {
         throw new Error("listStack が見つかりません")
       }
       expect(within(listStack).getByText("リーチ地方")).toBeInTheDocument()
-      expect(within(listStack).queryByText("ドラゴン・プリースト")).not.toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("The Reach")
+      expect(
+        within(listStack).queryByText("ドラゴン・プリースト")
+      ).not.toBeInTheDocument()
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "The Reach"
+      )
     })
 
-    await user.selectOptions(screen.getByRole("combobox", { name: "カテゴリ" }), "地名")
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "カテゴリ" }),
+      "地名"
+    )
     await waitFor(() => {
       const listStack = document.querySelector("#listStack")
       if (!(listStack instanceof HTMLElement)) {
         throw new Error("listStack が見つかりません")
       }
       expect(within(listStack).getByText("リーチ地方")).toBeInTheDocument()
-      expect(document.querySelector("#selectionStatus")).toHaveTextContent("The Reach")
+      expect(document.querySelector("#selectionStatus")).toHaveTextContent(
+        "The Reach"
+      )
     })
 
     const searchBox = screen.getByRole("searchbox", { name: "検索" })
     await user.clear(searchBox)
     await user.type(searchBox, "not-found-entry")
     await waitFor(() => {
-      expect(screen.getByText("一致するエントリがありません")).toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("表示できるエントリがありません")
+      expect(
+        screen.getByText("一致するエントリがありません")
+      ).toBeInTheDocument()
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "表示できるエントリがありません"
+      )
     })
 
     await user.clear(searchBox)
-    await user.selectOptions(screen.getByRole("combobox", { name: "カテゴリ" }), "すべて")
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "カテゴリ" }),
+      "すべて"
+    )
     await waitFor(() => {
       const listStack = document.querySelector("#listStack")
       if (!(listStack instanceof HTMLElement)) {
         throw new Error("listStack が見つかりません")
       }
-      expect(within(listStack).getByText("ドラゴン・プリースト")).toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).not.toHaveTextContent("表示できるエントリがありません")
+      expect(
+        within(listStack).getByText("ドラゴン・プリースト")
+      ).toBeInTheDocument()
+      expect(document.querySelector("#detailTitle")).not.toHaveTextContent(
+        "表示できるエントリがありません"
+      )
     })
   })
 
@@ -665,23 +775,37 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     await waitFor(() => {
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("Dragon Priest")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "Dragon Priest"
+      )
     })
 
     await user.click(screen.getByRole("button", { name: "新規登録" }))
-    expect(screen.getByRole("heading", { name: "新規登録" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "新規登録" })
+    ).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "閉じる" }))
-    expect(screen.queryByRole("heading", { name: "新規登録" })).not.toBeInTheDocument()
-    expect(document.querySelector("#detailTitle")).toHaveTextContent("Dragon Priest")
+    expect(
+      screen.queryByRole("heading", { name: "新規登録" })
+    ).not.toBeInTheDocument()
+    expect(document.querySelector("#detailTitle")).toHaveTextContent(
+      "Dragon Priest"
+    )
 
     await user.click(screen.getByRole("button", { name: "更新" }))
     expect(screen.getByRole("heading", { name: "更新" })).toBeInTheDocument()
     await user.click(screen.getByRole("button", { name: "閉じる" }))
-    expect(screen.queryByRole("heading", { name: "更新" })).not.toBeInTheDocument()
-    expect(document.querySelector("#detailTitle")).toHaveTextContent("Dragon Priest")
+    expect(
+      screen.queryByRole("heading", { name: "更新" })
+    ).not.toBeInTheDocument()
+    expect(document.querySelector("#detailTitle")).toHaveTextContent(
+      "Dragon Priest"
+    )
 
     await user.click(screen.getByRole("button", { name: "新規登録" }))
     const editModal = document.querySelector("#editModal")
@@ -690,9 +814,17 @@ describe("App dashboard shell", () => {
     }
     await user.type(within(editModal).getByLabelText("原文"), "New Source")
     await user.type(within(editModal).getByLabelText("訳語"), "新規訳語")
-    await user.selectOptions(within(editModal).getByLabelText("カテゴリ"), "地名")
-    await user.selectOptions(within(editModal).getByLabelText("由来"), "確認待ち")
-    await user.click(within(editModal).getByRole("button", { name: "保存する" }))
+    await user.selectOptions(
+      within(editModal).getByLabelText("カテゴリ"),
+      "地名"
+    )
+    await user.selectOptions(
+      within(editModal).getByLabelText("由来"),
+      "確認待ち"
+    )
+    await user.click(
+      within(editModal).getByRole("button", { name: "保存する" })
+    )
 
     await waitFor(() => {
       const listStack = document.querySelector("#listStack")
@@ -700,8 +832,12 @@ describe("App dashboard shell", () => {
         throw new Error("listStack が見つかりません")
       }
       expect(within(listStack).getByText("新規訳語")).toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("New Source")
-      expect(document.querySelector("#detailTranslation")).toHaveTextContent("新規訳語")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "New Source"
+      )
+      expect(document.querySelector("#detailTranslation")).toHaveTextContent(
+        "新規訳語"
+      )
     })
 
     await user.click(screen.getByRole("button", { name: "更新" }))
@@ -712,7 +848,9 @@ describe("App dashboard shell", () => {
     const translationInput = within(editModalForUpdate).getByLabelText("訳語")
     await user.clear(translationInput)
     await user.type(translationInput, "更新後訳語")
-    await user.click(within(editModalForUpdate).getByRole("button", { name: "保存する" }))
+    await user.click(
+      within(editModalForUpdate).getByRole("button", { name: "保存する" })
+    )
 
     await waitFor(() => {
       const listStack = document.querySelector("#listStack")
@@ -720,7 +858,9 @@ describe("App dashboard shell", () => {
         throw new Error("listStack が見つかりません")
       }
       expect(within(listStack).getByText("更新後訳語")).toBeInTheDocument()
-      expect(document.querySelector("#detailTranslation")).toHaveTextContent("更新後訳語")
+      expect(document.querySelector("#detailTranslation")).toHaveTextContent(
+        "更新後訳語"
+      )
       expect(window.location.hash).toBe("#master-dictionary")
     })
   })
@@ -732,20 +872,30 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     await waitFor(() => {
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("Dragon Priest")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "Dragon Priest"
+      )
     })
 
     await user.click(screen.getByRole("button", { name: "削除" }))
-    expect(screen.getByRole("heading", { name: "削除の確認" })).toBeInTheDocument()
-    expect(document.querySelector("#deleteTargetTitle")).toHaveTextContent("Dragon Priest")
+    expect(
+      screen.getByRole("heading", { name: "削除の確認" })
+    ).toBeInTheDocument()
+    expect(document.querySelector("#deleteTargetTitle")).toHaveTextContent(
+      "Dragon Priest"
+    )
     await user.click(screen.getByRole("button", { name: "削除する" }))
 
     await waitFor(() => {
       expect(screen.queryByText("ドラゴン・プリースト")).not.toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("The Reach")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "The Reach"
+      )
       expect(window.location.hash).toBe("#master-dictionary")
     })
 
@@ -753,10 +903,18 @@ describe("App dashboard shell", () => {
     await user.click(screen.getByRole("button", { name: "削除する" }))
 
     await waitFor(() => {
-      expect(screen.getByText("一致するエントリがありません")).toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("表示できるエントリがありません")
-      expect(screen.getByRole("heading", { name: "取り込み導線" })).toBeInTheDocument()
-      expect(screen.getByRole("heading", { name: "辞書一覧" })).toBeInTheDocument()
+      expect(
+        screen.getByText("一致するエントリがありません")
+      ).toBeInTheDocument()
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "表示できるエントリがありません"
+      )
+      expect(
+        screen.getByRole("heading", { name: "取り込み導線" })
+      ).toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { name: "辞書一覧" })
+      ).toBeInTheDocument()
       expect(screen.getByRole("heading", { name: "詳細" })).toBeInTheDocument()
     })
   })
@@ -768,7 +926,9 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     const importBar = document.querySelector("#importBar")
     const xmlInput = document.querySelector("#xmlFileInput")
@@ -780,20 +940,32 @@ describe("App dashboard shell", () => {
     }
 
     expect(importBar).toHaveAttribute("hidden")
-    expect(screen.queryByRole("button", { name: "この XML を取り込む" })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "この XML を取り込む" })
+    ).not.toBeInTheDocument()
 
-    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    const xmlFile = createXmlFile(
+      IMPORT_XML_WITH_MIXED_REC,
+      "Dawnguard_english_japanese.xml"
+    )
     await user.upload(xmlInput, xmlFile)
 
     expect(importBar).not.toHaveAttribute("hidden")
-    expect(screen.getByRole("button", { name: "この XML を取り込む" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "この XML を取り込む" })
+    ).toBeInTheDocument()
     expect(screen.getByText("取込待ち")).toBeInTheDocument()
-    expect(document.querySelector("#importProgressFill")).toHaveAttribute("style", "width: 0%;")
+    expect(document.querySelector("#importProgressFill")).toHaveAttribute(
+      "style",
+      "width: 0%;"
+    )
 
     await user.click(screen.getByRole("button", { name: "選び直す" }))
 
     expect(importBar).toHaveAttribute("hidden")
-    expect(screen.queryByRole("button", { name: "この XML を取り込む" })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "この XML を取り込む" })
+    ).not.toBeInTheDocument()
   })
 
   test("path が空文字の file でも fileReference は file.name へ fallback して取込開始する", async () => {
@@ -804,14 +976,19 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     const xmlInput = document.querySelector("#xmlFileInput")
     if (!(xmlInput instanceof HTMLInputElement)) {
       throw new Error("xmlFileInput が見つかりません")
     }
 
-    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    const xmlFile = createXmlFile(
+      IMPORT_XML_WITH_MIXED_REC,
+      "Dawnguard_english_japanese.xml"
+    )
     Object.defineProperty(xmlFile, "path", {
       value: "",
       configurable: true
@@ -821,7 +998,9 @@ describe("App dashboard shell", () => {
       configurable: true
     })
     await user.upload(xmlInput, xmlFile)
-    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+    await user.click(
+      screen.getByRole("button", { name: "この XML を取り込む" })
+    )
 
     await waitFor(() => {
       expect(gateway.__mocks.importMasterDictionaryXml).toHaveBeenCalledTimes(1)
@@ -847,27 +1026,41 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     await user.type(screen.getByRole("searchbox", { name: "検索" }), "Dragon")
-    await user.selectOptions(screen.getByRole("combobox", { name: "カテゴリ" }), "固有名詞")
+    await user.selectOptions(
+      screen.getByRole("combobox", { name: "カテゴリ" }),
+      "固有名詞"
+    )
 
     const xmlInput = document.querySelector("#xmlFileInput")
     if (!(xmlInput instanceof HTMLInputElement)) {
       throw new Error("xmlFileInput が見つかりません")
     }
 
-    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    const xmlFile = createXmlFile(
+      IMPORT_XML_WITH_MIXED_REC,
+      "Dawnguard_english_japanese.xml"
+    )
     await user.upload(xmlInput, xmlFile)
-    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+    await user.click(
+      screen.getByRole("button", { name: "この XML を取り込む" })
+    )
 
     await waitFor(() => {
       expect(screen.getByText("完了")).toBeInTheDocument()
       expect(screen.getByRole("searchbox", { name: "検索" })).toHaveValue("")
-      expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue("すべて")
+      expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue(
+        "すべて"
+      )
     })
 
-    expect(screen.queryByText("Denied Activator Source")).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("Denied Activator Source")
+    ).not.toBeInTheDocument()
     expect(gateway.__mocks.importMasterDictionaryXml).toHaveBeenCalledWith({
       filePath: "Dawnguard_english_japanese.xml",
       fileReference: "Dawnguard_english_japanese.xml",
@@ -905,18 +1098,27 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     const xmlInput = document.querySelector("#xmlFileInput")
     if (!(xmlInput instanceof HTMLInputElement)) {
       throw new Error("xmlFileInput が見つかりません")
     }
 
-    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    const xmlFile = createXmlFile(
+      IMPORT_XML_WITH_MIXED_REC,
+      "Dawnguard_english_japanese.xml"
+    )
     await user.upload(xmlInput, xmlFile)
-    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+    await user.click(
+      screen.getByRole("button", { name: "この XML を取り込む" })
+    )
 
-    expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+    expect(document.querySelector("#importStatusValue")).toHaveTextContent(
+      "取込中"
+    )
 
     await waitFor(() => {
       expect(importGatewaySpy).toHaveBeenCalledTimes(1)
@@ -942,15 +1144,19 @@ describe("App dashboard shell", () => {
 
   test("runtime completion event 到達まで import 完了へ遷移しない", async () => {
     const gateway = createTestGateway()
-    const capturedImportResponse: { value: ImportMasterDictionaryXmlResponse | null } = {
+    const capturedImportResponse: {
+      value: ImportMasterDictionaryXmlResponse | null
+    } = {
       value: null
     }
     const baseImport = gateway.importMasterDictionaryXml.bind(gateway)
-    const importSpy = vi.fn(async (request: ImportMasterDictionaryXmlRequest) => {
-      const payload = await baseImport(request)
-      capturedImportResponse.value = payload
-      return payload
-    })
+    const importSpy = vi.fn(
+      async (request: ImportMasterDictionaryXmlRequest) => {
+        const payload = await baseImport(request)
+        capturedImportResponse.value = payload
+        return payload
+      }
+    )
     gateway.importMasterDictionaryXml = importSpy
 
     const runtimeBridge = installRuntimeEventBridgeMock()
@@ -962,27 +1168,38 @@ describe("App dashboard shell", () => {
       const globalNavigation = screen.getByRole("navigation", {
         name: "グローバルナビゲーション"
       })
-      await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+      await user.click(
+        within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+      )
 
       const xmlInput = document.querySelector("#xmlFileInput")
       if (!(xmlInput instanceof HTMLInputElement)) {
         throw new Error("xmlFileInput が見つかりません")
       }
 
-      const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+      const xmlFile = createXmlFile(
+        IMPORT_XML_WITH_MIXED_REC,
+        "Dawnguard_english_japanese.xml"
+      )
       await user.upload(xmlInput, xmlFile)
-      await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+      await user.click(
+        screen.getByRole("button", { name: "この XML を取り込む" })
+      )
 
       await waitFor(() => {
         expect(importSpy).toHaveBeenCalledTimes(1)
       })
 
       expect(document.querySelector("#importResult")).toHaveAttribute("hidden")
-      expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+      expect(document.querySelector("#importStatusValue")).toHaveTextContent(
+        "取込中"
+      )
 
       runtimeBridge.emitImportProgress({ progress: 78 })
       await waitFor(() => {
-        expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+        expect(document.querySelector("#importStatusValue")).toHaveTextContent(
+          "取込中"
+        )
         expect(runtimeBridge.progressEventCount()).toBe(1)
       })
 
@@ -999,7 +1216,9 @@ describe("App dashboard shell", () => {
       await waitFor(() => {
         expect(screen.getByText("完了")).toBeInTheDocument()
         expect(screen.getByRole("searchbox", { name: "検索" })).toHaveValue("")
-        expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue("すべて")
+        expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue(
+          "すべて"
+        )
         expect(runtimeBridge.completionEventCount()).toBe(1)
       })
     } finally {
@@ -1010,18 +1229,21 @@ describe("App dashboard shell", () => {
   test("page.selectedId がない import payload は summary.lastEntryId で同一ページ再選択する", async () => {
     const gateway = createTestGateway()
     const baseImport = gateway.importMasterDictionaryXml.bind(gateway)
-    gateway.importMasterDictionaryXml = vi.fn(async (request: ImportMasterDictionaryXmlRequest) => {
-      const payload: ImportMasterDictionaryXmlResponse = await baseImport(request)
-      return {
-        ...payload,
-        page: payload.page
-          ? {
-              ...payload.page,
-              selectedId: undefined
-            }
-          : undefined
+    gateway.importMasterDictionaryXml = vi.fn(
+      async (request: ImportMasterDictionaryXmlRequest) => {
+        const payload: ImportMasterDictionaryXmlResponse =
+          await baseImport(request)
+        return {
+          ...payload,
+          page: payload.page
+            ? {
+                ...payload.page,
+                selectedId: undefined
+              }
+            : undefined
+        }
       }
-    })
+    )
 
     const user = userEvent.setup()
     renderAppWithGateway(gateway)
@@ -1029,21 +1251,32 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
 
     const xmlInput = document.querySelector("#xmlFileInput")
     if (!(xmlInput instanceof HTMLInputElement)) {
       throw new Error("xmlFileInput が見つかりません")
     }
 
-    const xmlFile = createXmlFile(IMPORT_XML_WITH_MIXED_REC, "Dawnguard_english_japanese.xml")
+    const xmlFile = createXmlFile(
+      IMPORT_XML_WITH_MIXED_REC,
+      "Dawnguard_english_japanese.xml"
+    )
     await user.upload(xmlInput, xmlFile)
-    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+    await user.click(
+      screen.getByRole("button", { name: "この XML を取り込む" })
+    )
 
     await waitFor(() => {
       expect(screen.getByText("完了")).toBeInTheDocument()
-      expect(document.querySelector("#detailTitle")).toHaveTextContent("Allowed Book Source")
-      expect(document.querySelector("#importResultSelection")).toHaveTextContent("Allowed Book Source")
+      expect(document.querySelector("#detailTitle")).toHaveTextContent(
+        "Allowed Book Source"
+      )
+      expect(
+        document.querySelector("#importResultSelection")
+      ).toHaveTextContent("Allowed Book Source")
     })
   })
 
@@ -1058,7 +1291,9 @@ describe("App dashboard shell", () => {
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "マスター辞書" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "マスター辞書" })
+    )
     await user.click(screen.getByRole("button", { name: "新規登録" }))
     await user.type(screen.getByLabelText("原文"), "Failure Source")
     await user.type(screen.getByLabelText("訳語"), "失敗訳語")
@@ -1067,23 +1302,29 @@ describe("App dashboard shell", () => {
     await waitFor(() => {
       expect(screen.getByText("create failed")).toBeInTheDocument()
     })
-    expect(document.querySelector("#detailTitle")).not.toHaveTextContent("Failure Source")
+    expect(document.querySelector("#detailTitle")).not.toHaveTextContent(
+      "Failure Source"
+    )
     expect(document.querySelector("#importResult")).toHaveAttribute("hidden")
   })
 
   test("SCN-DAS-004: 非ダッシュボード遷移先はプレースホルダーで導線切れを起こさない", async () => {
     const user = userEvent.setup()
-    render(App)
+    renderAppWithGateway()
 
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
-    await user.click(within(globalNavigation).getByRole("link", { name: "翻訳管理" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "翻訳管理" })
+    )
     expect(
       screen.getByRole("heading", { level: 1, name: "翻訳管理" })
     ).toBeInTheDocument()
     expect(screen.getByText(PLACEHOLDER_LEAD)).toBeInTheDocument()
-    expect(screen.queryByRole("heading", { name: "作業を選ぶ" })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "作業を選ぶ" })
+    ).not.toBeInTheDocument()
 
     const placeholderLead = screen.getByText(PLACEHOLDER_LEAD)
     const placeholderCard = placeholderLead.closest("section")
@@ -1092,7 +1333,9 @@ describe("App dashboard shell", () => {
       throw new Error("プレースホルダー導線のセクションが見つかりません")
     }
 
-    await user.click(within(placeholderCard).getByRole("link", { name: "出力管理" }))
+    await user.click(
+      within(placeholderCard).getByRole("link", { name: "出力管理" })
+    )
     expect(
       screen.getByRole("heading", { level: 1, name: "出力管理" })
     ).toBeInTheDocument()
@@ -1101,23 +1344,29 @@ describe("App dashboard shell", () => {
 
   test("SCN-DAS-005: プレースホルダー表示中も共通シェルを保持して再移動できる", async () => {
     const user = userEvent.setup()
-    render(App)
+    renderAppWithGateway()
 
     const globalNavigation = screen.getByRole("navigation", {
       name: "グローバルナビゲーション"
     })
 
-    await user.click(within(globalNavigation).getByRole("link", { name: "翻訳管理" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "翻訳管理" })
+    )
     expect(
       screen.getByRole("heading", { level: 1, name: "翻訳管理" })
     ).toBeInTheDocument()
 
-    await user.click(within(globalNavigation).getByRole("link", { name: "ダッシュボード" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "ダッシュボード" })
+    )
     expect(
       screen.getByRole("heading", { level: 1, name: "ダッシュボード" })
     ).toBeInTheDocument()
 
-    await user.click(within(globalNavigation).getByRole("link", { name: "出力管理" }))
+    await user.click(
+      within(globalNavigation).getByRole("link", { name: "出力管理" })
+    )
     expect(
       screen.getByRole("heading", { level: 1, name: "出力管理" })
     ).toBeInTheDocument()

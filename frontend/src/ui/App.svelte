@@ -1,19 +1,19 @@
 <script lang="ts">
-  import type { MasterDictionaryGatewayContract } from "@application/gateway-contract/master-dictionary"
+  import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import { createShellState } from "@ui/stores/shell-state"
   import AppShell from "@ui/views/AppShell.svelte"
 
   interface Props {
-    masterDictionaryGateway?: MasterDictionaryGatewayContract | null
+    createMasterDictionaryScreenController?: CreateMasterDictionaryScreenController | null
   }
 
-  let { masterDictionaryGateway = null }: Props = $props()
+  let { createMasterDictionaryScreenController = null }: Props = $props()
 
   const shellState = createShellState()
 </script>
 
 <AppShell
   defaultRouteId={shellState.defaultRouteId}
-  masterDictionaryGateway={masterDictionaryGateway}
+  {createMasterDictionaryScreenController}
   routes={shellState.routes}
 />

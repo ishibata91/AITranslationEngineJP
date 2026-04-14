@@ -4,21 +4,21 @@ import type {
   MasterDictionaryPageEntry,
   MasterDictionaryPageState
 } from "@application/gateway-contract/master-dictionary"
-
-import { MasterDictionaryStore } from "./master-dictionary.store"
 import {
   buildRefreshPayload,
   buildUpsertPayload
-} from "./master-dictionary-screen-constants"
+} from "@application/contract/master-dictionary"
 import type {
   RuntimeImportCompletedPayload,
   RuntimeImportProgressPayload
-} from "./master-dictionary-screen-types"
+} from "@application/contract/master-dictionary/master-dictionary-screen-types"
+import { MasterDictionaryStore } from "@application/store/master-dictionary"
 
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim() !== "") {
     return error.message
   }
+
   return fallback
 }
 
@@ -33,7 +33,9 @@ function buildEntryNote(entry: MasterDictionaryPageEntry): string {
   return note
 }
 
-function toDetailFromPageEntry(entry: MasterDictionaryPageEntry): MasterDictionaryEntryDetail {
+function toDetailFromPageEntry(
+  entry: MasterDictionaryPageEntry
+): MasterDictionaryEntryDetail {
   return {
     id: String(entry.id),
     source: entry.source,
@@ -86,10 +88,6 @@ export class MasterDictionaryUseCase {
     gateway: MasterDictionaryGatewayContract | null,
     private readonly store: MasterDictionaryStore
   ) {
-    this.gateway = gateway
-  }
-
-  setGateway(gateway: MasterDictionaryGatewayContract | null): void {
     this.gateway = gateway
   }
 
@@ -194,7 +192,10 @@ export class MasterDictionaryUseCase {
   async saveCurrentEntry(): Promise<void> {
     const state = this.store.snapshot()
 
-    if (!this.gateway || (state.modalState !== "create" && state.modalState !== "edit")) {
+    if (
+      !this.gateway ||
+      (state.modalState !== "create" && state.modalState !== "edit")
+    ) {
       return
     }
 
@@ -211,12 +212,23 @@ export class MasterDictionaryUseCase {
     })
 
     try {
-      const refresh = buildRefreshPayload(state.query, state.category, state.page + 1)
+      const refresh = buildRefreshPayload(
+        state.query,
+        state.category,
+        state.page + 1
+      )
 
       if (state.modalState === "create") {
-        const response = await this.gateway.createMasterDictionaryEntry({ payload, refresh })
+        const response = await this.gateway.createMasterDictionaryEntry({
+          payload,
+          refresh
+        })
         if (response.page) {
-          this.applyRefreshPage(response.page, response.entry, response.refreshTargetId)
+          this.applyRefreshPage(
+            response.page,
+            response.entry,
+            response.refreshTargetId
+          )
         } else {
           await this.loadEntries(response.refreshTargetId)
         }
@@ -239,7 +251,11 @@ export class MasterDictionaryUseCase {
         refresh
       })
       if (response.page) {
-        this.applyRefreshPage(response.page, response.entry, response.refreshTargetId)
+        this.applyRefreshPage(
+          response.page,
+          response.entry,
+          response.refreshTargetId
+        )
       } else {
         await this.loadEntries(response.refreshTargetId)
       }
@@ -266,7 +282,11 @@ export class MasterDictionaryUseCase {
     try {
       const response = await this.gateway.deleteMasterDictionaryEntry({
         id: state.selectedId,
-        refresh: buildRefreshPayload(state.query, state.category, state.page + 1)
+        refresh: buildRefreshPayload(
+          state.query,
+          state.category,
+          state.page + 1
+        )
       })
       if (response.page) {
         this.applyRefreshPage(response.page, null, response.nextSelectedId)
@@ -285,7 +305,11 @@ export class MasterDictionaryUseCase {
 
   async startStagedXmlImport(waitForRuntimeCompletion: boolean): Promise<void> {
     const state = this.store.snapshot()
-    if (!this.gateway || !state.selectedFileReference || state.importStage !== "ready") {
+    if (
+      !this.gateway ||
+      !state.selectedFileReference ||
+      state.importStage !== "ready"
+    ) {
       return
     }
 
@@ -315,12 +339,17 @@ export class MasterDictionaryUseCase {
         draft.importStage = "ready"
         draft.importProgress = 0
         draft.importSummary = null
-        draft.errorMessage = toErrorMessage(error, "XML 取り込みに失敗しました。")
+        draft.errorMessage = toErrorMessage(
+          error,
+          "XML 取り込みに失敗しました。"
+        )
       })
     }
   }
 
-  async handleImportCompleted(payload: RuntimeImportCompletedPayload): Promise<void> {
+  async handleImportCompleted(
+    payload: RuntimeImportCompletedPayload
+  ): Promise<void> {
     const stateBefore = this.store.snapshot()
 
     this.store.update((draft) => {
@@ -382,7 +411,9 @@ export class MasterDictionaryUseCase {
     )
 
     const selectedPageEntry = resolvedSelectedId
-      ? pageState.items.find((candidate) => String(candidate.id) === resolvedSelectedId)
+      ? pageState.items.find(
+          (candidate) => String(candidate.id) === resolvedSelectedId
+        )
       : null
 
     this.store.update((draft) => {
@@ -407,7 +438,9 @@ export class MasterDictionaryUseCase {
         return
       }
 
-      draft.selectedEntry = selectedPageEntry ? toDetailFromPageEntry(selectedPageEntry) : null
+      draft.selectedEntry = selectedPageEntry
+        ? toDetailFromPageEntry(selectedPageEntry)
+        : null
     })
   }
 }

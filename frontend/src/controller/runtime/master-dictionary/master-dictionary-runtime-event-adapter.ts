@@ -1,7 +1,7 @@
 import type {
   RuntimeImportCompletedPayload,
   RuntimeImportProgressPayload
-} from "./master-dictionary-screen-types"
+} from "@application/contract/master-dictionary/master-dictionary-screen-types"
 
 const MASTER_DICTIONARY_IMPORT_PROGRESS_EVENT =
   "master-dictionary:import-progress"
@@ -34,8 +34,9 @@ function resolveRuntimeBridge(): WailsRuntimeEventBridge | null {
     return null
   }
 
-  const runtime = (document.defaultView as (Window & { runtime?: unknown }) | null)
-    ?.runtime
+  const runtime = (
+    document.defaultView as (Window & { runtime?: unknown }) | null
+  )?.runtime
 
   if (
     !runtime ||

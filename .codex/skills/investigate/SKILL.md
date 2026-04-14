@@ -22,7 +22,7 @@ description: 再現、trace、一時観測、再観測、risk 整理を mode 分
 ## Common Rules
 
 - `reproduce` と `reobserve` では Playwright MCP を使い `http://host.docker.internal:34115` に接続する
-- Wails 起動は `npm run dev:wails:docker-mcp` を前提にし、`tmp/logs/wails-dev.log` を source of truth とする
+- Wails 起動は `npm run dev:wails:docker-mcp` を前提にし、`tmp/logs/wails-dev.log` でバックエンドのログ観測を行うものとする
 - `temporary-logging` では恒久修正、test 追加、refactor を混ぜない
 - `trace` と `risk-report` は evidence のない推測を書かない
 - 再現不能ならその事実を返し、無理に結論を作らない

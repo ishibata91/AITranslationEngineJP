@@ -1,21 +1,21 @@
-import type { MasterDictionaryGatewayContract } from "@application/gateway-contract/master-dictionary"
-
-import { MasterDictionaryPresenter } from "./master-dictionary.presenter"
-import {
-  MasterDictionaryRuntimeEventAdapter
-} from "./master-dictionary-runtime-event-adapter"
-import { MasterDictionaryStore } from "./master-dictionary.store"
 import {
   DEFAULT_CATEGORY,
   DEFAULT_ORIGIN
-} from "./master-dictionary-screen-constants"
-import type { MasterDictionaryScreenViewModel } from "./master-dictionary-screen-types"
-import { MasterDictionaryUseCase } from "./master-dictionary.usecase"
-
-type ViewModelListener = (viewModel: MasterDictionaryScreenViewModel) => void
+} from "@application/contract/master-dictionary"
+import type {
+  MasterDictionaryScreenControllerContract,
+  MasterDictionaryScreenViewModelListener
+} from "@application/contract/master-dictionary/master-dictionary-screen-contract"
+import type {
+  MasterDictionaryScreenState,
+  MasterDictionaryScreenViewModel
+} from "@application/contract/master-dictionary/master-dictionary-screen-types"
 
 function resolveFileReference(file: File): string {
-  const pathRecord = file as File & { path?: string; webkitRelativePath?: string }
+  const pathRecord = file as File & {
+    path?: string
+    webkitRelativePath?: string
+  }
   const candidates = [pathRecord.path, pathRecord.webkitRelativePath, file.name]
   for (const candidate of candidates) {
     if (typeof candidate === "string" && candidate.trim() !== "") {
@@ -25,67 +25,81 @@ function resolveFileReference(file: File): string {
   return file.name
 }
 
-class MasterDictionaryScreenController {
-  private gateway: MasterDictionaryGatewayContract | null
+interface MasterDictionaryStoreLike {
+  subscribe(listener: (state: MasterDictionaryScreenState) => void): () => void
+  snapshot(): MasterDictionaryScreenState
+  update(mutator: (draft: MasterDictionaryScreenState) => void): void
+}
 
-  private readonly store = new MasterDictionaryStore()
+interface MasterDictionaryPresenterLike {
+  toViewModel(
+    state: MasterDictionaryScreenState,
+    isGatewayConnected: boolean
+  ): MasterDictionaryScreenViewModel
+}
 
-  private readonly presenter = new MasterDictionaryPresenter()
+interface MasterDictionaryUseCaseLike {
+  loadEntries(preferredId?: string | null): Promise<void>
+  selectEntry(id: string): Promise<void>
+  saveCurrentEntry(): Promise<void>
+  deleteCurrentEntry(): Promise<void>
+  startStagedXmlImport(waitForRuntimeCompletion: boolean): Promise<void>
+}
 
-  private readonly useCase: MasterDictionaryUseCase
+interface MasterDictionaryRuntimeEventAdapterLike {
+  subscribe(): boolean
+  detach(): void
+}
 
-  private readonly runtimeEventAdapter: MasterDictionaryRuntimeEventAdapter
+interface MasterDictionaryScreenControllerDependencies {
+  isGatewayConnected: boolean
+  store: MasterDictionaryStoreLike
+  presenter: MasterDictionaryPresenterLike
+  useCase: MasterDictionaryUseCaseLike
+  runtimeEventAdapter: MasterDictionaryRuntimeEventAdapterLike
+}
 
+export class MasterDictionaryScreenController implements MasterDictionaryScreenControllerContract {
   private runtimeEventSubscribed = false
 
-  constructor(gateway: MasterDictionaryGatewayContract | null) {
-    this.gateway = gateway
-    this.useCase = new MasterDictionaryUseCase(gateway, this.store)
-    this.runtimeEventAdapter = new MasterDictionaryRuntimeEventAdapter({
-      onImportProgress: (payload) => {
-        this.useCase.handleImportProgress(payload)
-      },
-      onImportCompleted: (payload) => {
-        void this.useCase.handleImportCompleted(payload)
-      }
-    })
-  }
+  constructor(
+    private readonly dependencies: MasterDictionaryScreenControllerDependencies
+  ) {}
 
   async mount(): Promise<void> {
-    this.runtimeEventSubscribed = this.runtimeEventAdapter.subscribe()
-    await this.useCase.loadEntries()
+    this.runtimeEventSubscribed =
+      this.dependencies.runtimeEventAdapter.subscribe()
+    await this.dependencies.useCase.loadEntries()
   }
 
   dispose(): void {
-    this.runtimeEventAdapter.detach()
+    this.dependencies.runtimeEventAdapter.detach()
   }
 
-  updateGateway(gateway: MasterDictionaryGatewayContract | null): void {
-    if (this.gateway === gateway) {
-      return
-    }
-
-    this.gateway = gateway
-    this.useCase.setGateway(gateway)
-    void this.useCase.loadEntries()
-  }
-
-  subscribe(listener: ViewModelListener): () => void {
-    return this.store.subscribe((state) => {
-      listener(this.presenter.toViewModel(state, Boolean(this.gateway)))
+  subscribe(listener: MasterDictionaryScreenViewModelListener): () => void {
+    return this.dependencies.store.subscribe((state) => {
+      listener(
+        this.dependencies.presenter.toViewModel(
+          state,
+          this.dependencies.isGatewayConnected
+        )
+      )
     })
   }
 
   getViewModel(): MasterDictionaryScreenViewModel {
-    return this.presenter.toViewModel(this.store.snapshot(), Boolean(this.gateway))
+    return this.dependencies.presenter.toViewModel(
+      this.dependencies.store.snapshot(),
+      this.dependencies.isGatewayConnected
+    )
   }
 
   async selectRow(id: string): Promise<void> {
-    await this.useCase.selectEntry(id)
+    await this.dependencies.useCase.selectEntry(id)
   }
 
   openCreateModal(): void {
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.modalState = "create"
       draft.formSource = ""
       draft.formCategory = DEFAULT_CATEGORY
@@ -96,12 +110,12 @@ class MasterDictionaryScreenController {
   }
 
   openEditModal(): void {
-    const state = this.store.snapshot()
+    const state = this.dependencies.store.snapshot()
     if (!state.selectedEntry) {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.modalState = "edit"
       draft.formSource = state.selectedEntry?.source ?? ""
       draft.formCategory = state.selectedEntry?.category ?? DEFAULT_CATEGORY
@@ -112,19 +126,19 @@ class MasterDictionaryScreenController {
   }
 
   openDeleteModal(): void {
-    const state = this.store.snapshot()
+    const state = this.dependencies.store.snapshot()
     if (!state.selectedEntry) {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.modalState = "delete"
       draft.errorMessage = ""
     })
   }
 
   closeEditModal(): void {
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       if (draft.modalState === "create" || draft.modalState === "edit") {
         draft.modalState = null
       }
@@ -132,7 +146,7 @@ class MasterDictionaryScreenController {
   }
 
   closeDeleteModal(): void {
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       if (draft.modalState === "delete") {
         draft.modalState = null
       }
@@ -140,11 +154,11 @@ class MasterDictionaryScreenController {
   }
 
   async saveCurrentEntry(): Promise<void> {
-    await this.useCase.saveCurrentEntry()
+    await this.dependencies.useCase.saveCurrentEntry()
   }
 
   async deleteCurrentEntry(): Promise<void> {
-    await this.useCase.deleteCurrentEntry()
+    await this.dependencies.useCase.deleteCurrentEntry()
   }
 
   handleSearchInput(event: Event): void {
@@ -153,13 +167,13 @@ class MasterDictionaryScreenController {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.query = target.value
       draft.page = 0
       draft.errorMessage = ""
     })
 
-    void this.useCase.loadEntries()
+    void this.dependencies.useCase.loadEntries()
   }
 
   handleCategoryChange(event: Event): void {
@@ -168,42 +182,42 @@ class MasterDictionaryScreenController {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.category = target.value
       draft.page = 0
       draft.errorMessage = ""
     })
 
-    void this.useCase.loadEntries()
+    void this.dependencies.useCase.loadEntries()
   }
 
   goToPrevPage(): void {
-    const state = this.store.snapshot()
+    const state = this.dependencies.store.snapshot()
     if (state.page <= 0) {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.page -= 1
     })
-    void this.useCase.loadEntries()
+    void this.dependencies.useCase.loadEntries()
   }
 
   goToNextPage(): void {
-    const state = this.store.snapshot()
+    const state = this.dependencies.store.snapshot()
     const totalPages = Math.max(1, Math.ceil(state.totalCount / 30))
     if (state.page + 1 >= totalPages) {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.page += 1
     })
-    void this.useCase.loadEntries()
+    void this.dependencies.useCase.loadEntries()
   }
 
   stageXmlImport(file: File | null): void {
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.selectedFileName = file ? file.name : "未選択"
       draft.selectedFileReference = file ? resolveFileReference(file) : null
       draft.importStage = file ? "ready" : "idle"
@@ -214,12 +228,12 @@ class MasterDictionaryScreenController {
   }
 
   resetImportSelection(): void {
-    const state = this.store.snapshot()
+    const state = this.dependencies.store.snapshot()
     if (state.importStage === "running") {
       return
     }
 
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.selectedFileName = "未選択"
       draft.selectedFileReference = null
       draft.importStage = "idle"
@@ -229,7 +243,9 @@ class MasterDictionaryScreenController {
   }
 
   async startImport(): Promise<void> {
-    await this.useCase.startStagedXmlImport(this.runtimeEventSubscribed)
+    await this.dependencies.useCase.startStagedXmlImport(
+      this.runtimeEventSubscribed
+    )
   }
 
   setFormSource(event: Event): void {
@@ -237,7 +253,7 @@ class MasterDictionaryScreenController {
     if (!(target instanceof HTMLInputElement)) {
       return
     }
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.formSource = target.value
     })
   }
@@ -247,7 +263,7 @@ class MasterDictionaryScreenController {
     if (!(target instanceof HTMLSelectElement)) {
       return
     }
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.formCategory = target.value
     })
   }
@@ -257,7 +273,7 @@ class MasterDictionaryScreenController {
     if (!(target instanceof HTMLSelectElement)) {
       return
     }
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.formOrigin = target.value
     })
   }
@@ -267,14 +283,8 @@ class MasterDictionaryScreenController {
     if (!(target instanceof HTMLTextAreaElement)) {
       return
     }
-    this.store.update((draft) => {
+    this.dependencies.store.update((draft) => {
       draft.formTranslation = target.value
     })
   }
-}
-
-export function createMasterDictionaryScreenController(
-  gateway: MasterDictionaryGatewayContract | null
-): MasterDictionaryScreenController {
-  return new MasterDictionaryScreenController(gateway)
 }

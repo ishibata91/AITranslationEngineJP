@@ -1,25 +1,32 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
-  import type { MasterDictionaryGatewayContract } from "@application/gateway-contract/master-dictionary"
-
-  import { createMasterDictionaryScreenController } from "./master-dictionary-screen-controller"
+  import type {
+    CreateMasterDictionaryScreenController,
+    MasterDictionaryScreenControllerContract
+  } from "@application/contract/master-dictionary"
 
   interface Props {
-    gateway: MasterDictionaryGatewayContract | null
+    createController: CreateMasterDictionaryScreenController | null
   }
 
-  let { gateway }: Props = $props()
+  let { createController }: Props = $props()
 
-  const controller = createMasterDictionaryScreenController(null)
+  function resolveController(): MasterDictionaryScreenControllerContract {
+    if (!createController) {
+      throw new Error(
+        "master dictionary screen controller factory is not provided"
+      )
+    }
+
+    return createController()
+  }
+
+  const controller = resolveController()
   let viewModel = $state(controller.getViewModel())
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
     viewModel = nextViewModel
-  })
-
-  $effect(() => {
-    controller.updateGateway(gateway)
   })
 
   onMount(() => {
@@ -73,10 +80,20 @@
         <p class="eyebrow">基盤データ</p>
         <h2>マスター辞書</h2>
       </div>
-      <p class="gateway-status" id="gatewayStatus">Gateway: {viewModel.gatewayStatus}</p>
+      <p class="gateway-status" id="gatewayStatus">
+        Gateway: {viewModel.gatewayStatus}
+      </p>
     </div>
-    <p class="lead">一覧、詳細、作成、更新、削除、XML 取り込みを同じ画面で操作できます。</p>
-    <p class="error-text" hidden={!viewModel.errorMessage} id="masterDictionaryError">{viewModel.errorMessage}</p>
+    <p class="lead">
+      一覧、詳細、作成、更新、削除、XML 取り込みを同じ画面で操作できます。
+    </p>
+    <p
+      class="error-text"
+      hidden={!viewModel.errorMessage}
+      id="masterDictionaryError"
+    >
+      {viewModel.errorMessage}
+    </p>
   </section>
 
   <section class="shell-card import-shell" aria-labelledby="importHeading">
@@ -85,11 +102,18 @@
         <p class="eyebrow">XMLから取り込み</p>
         <h3 id="importHeading">取り込み導線</h3>
       </div>
-      <button class="button-secondary" id="chooseXmlButton" onclick={chooseXmlFile} type="button">
+      <button
+        class="button-secondary"
+        id="chooseXmlButton"
+        onclick={chooseXmlFile}
+        type="button"
+      >
         ファイルを選択
       </button>
     </div>
-    <p class="mini-text" id="importStateText">ファイルを選ぶと取込バーが表示されます。</p>
+    <p class="mini-text" id="importStateText">
+      ファイルを選ぶと取込バーが表示されます。
+    </p>
 
     <input
       accept=".xml,text/xml,application/xml"
@@ -101,7 +125,9 @@
 
     <div class="file-picker">
       <span class="eyebrow">選択ファイル</span>
-      <span class="file-name" id="selectedFileName">{viewModel.selectedFileName}</span>
+      <span class="file-name" id="selectedFileName"
+        >{viewModel.selectedFileName}</span
+      >
     </div>
 
     <div class="import-bar" hidden={!viewModel.hasStagedFile} id="importBar">
@@ -133,12 +159,24 @@
         <strong id="importStatusValue">{viewModel.importStatusValue}</strong>
       </div>
       <div class="progress-track">
-        <div class="progress-fill" id="importProgressFill" style={`width: ${viewModel.importProgress}%;`}></div>
+        <div
+          class="progress-fill"
+          id="importProgressFill"
+          style={`width: ${viewModel.importProgress}%;`}
+        ></div>
       </div>
-      <div class="import-result" hidden={!viewModel.importSummary} id="importResult">
+      <div
+        class="import-result"
+        hidden={!viewModel.importSummary}
+        id="importResult"
+      >
         <div class="import-result-head">
-          <strong id="importResultHeadline">XML取り込みを一覧と詳細へ反映しました。</strong>
-          <span class="status-pill" id="importResultCount">新規取込 {viewModel.importSummary?.importedCount ?? 0} 件</span>
+          <strong id="importResultHeadline"
+            >XML取り込みを一覧と詳細へ反映しました。</strong
+          >
+          <span class="status-pill" id="importResultCount"
+            >新規取込 {viewModel.importSummary?.importedCount ?? 0} 件</span
+          >
         </div>
         <p id="importResultMessage">
           {viewModel.importSummary
@@ -148,19 +186,27 @@
         <dl class="result-grid">
           <div>
             <dt>更新件数</dt>
-            <dd id="importResultUpdatedCount">{viewModel.importSummary?.updatedCount ?? "-"}</dd>
+            <dd id="importResultUpdatedCount">
+              {viewModel.importSummary?.updatedCount ?? "-"}
+            </dd>
           </div>
           <div>
             <dt>取込後の一覧総件数</dt>
-            <dd id="importResultListCount">{viewModel.importSummary?.totalCount ?? "-"}</dd>
+            <dd id="importResultListCount">
+              {viewModel.importSummary?.totalCount ?? "-"}
+            </dd>
           </div>
           <div>
             <dt>選択状態</dt>
-            <dd id="importResultSelection">{viewModel.importSummary?.selectedSource ?? "-"}</dd>
+            <dd id="importResultSelection">
+              {viewModel.importSummary?.selectedSource ?? "-"}
+            </dd>
           </div>
           <div>
             <dt>詳細表示</dt>
-            <dd id="importResultDetail">{viewModel.selectedEntry?.translation ?? "-"}</dd>
+            <dd id="importResultDetail">
+              {viewModel.selectedEntry?.translation ?? "-"}
+            </dd>
           </div>
         </dl>
       </div>
@@ -175,8 +221,15 @@
           <p id="listHeadline">{viewModel.listHeadline}</p>
         </div>
         <div class="toolbar-head-actions">
-          <button class="button-primary" id="createButton" onclick={() => controller.openCreateModal()} type="button">新規登録</button>
-          <p class="mini-text" id="pageStatusText">{viewModel.pageStatusText}</p>
+          <button
+            class="button-primary"
+            id="createButton"
+            onclick={() => controller.openCreateModal()}
+            type="button">新規登録</button
+          >
+          <p class="mini-text" id="pageStatusText">
+            {viewModel.pageStatusText}
+          </p>
         </div>
       </div>
 
@@ -192,7 +245,12 @@
         />
 
         <label class="field-label" for="categorySelect">カテゴリ</label>
-        <select class="select-field" id="categorySelect" onchange={(event) => controller.handleCategoryChange(event)} value={viewModel.category}>
+        <select
+          class="select-field"
+          id="categorySelect"
+          onchange={(event) => controller.handleCategoryChange(event)}
+          value={viewModel.category}
+        >
           {#each viewModel.categoryOptions as option (option)}
             <option value={option}>{option}</option>
           {/each}
@@ -210,8 +268,12 @@
               onclick={() => void controller.selectRow(entry.id)}
               type="button"
             >
-              <div class="row-cell"><div class="row-value">{entry.translation}</div></div>
-              <div class="row-cell"><div class="row-value">{entry.source}</div></div>
+              <div class="row-cell">
+                <div class="row-value">{entry.translation}</div>
+              </div>
+              <div class="row-cell">
+                <div class="row-value">{entry.source}</div>
+              </div>
               <div class="row-meta">{entry.category} / {entry.origin}</div>
               <div class="row-id">#{entry.id}</div>
             </button>
@@ -220,9 +282,17 @@
       </div>
 
       <div class="pager-shell">
-        <div class="mini-text" id="selectionStatus">{viewModel.selectionStatusText}</div>
+        <div class="mini-text" id="selectionStatus">
+          {viewModel.selectionStatusText}
+        </div>
         <div class="pager-actions">
-          <button class="button-secondary" disabled={viewModel.page === 0} id="prevPageButton" onclick={() => controller.goToPrevPage()} type="button">
+          <button
+            class="button-secondary"
+            disabled={viewModel.page === 0}
+            id="prevPageButton"
+            onclick={() => controller.goToPrevPage()}
+            type="button"
+          >
             前の30件
           </button>
           <button
@@ -245,10 +315,22 @@
           <p id="detailSubline">{viewModel.detailSublineText}</p>
         </div>
         <div class="detail-actions">
-          <button class="button-secondary" disabled={!viewModel.selectedEntry} id="editButton" onclick={() => controller.openEditModal()} type="button">
+          <button
+            class="button-secondary"
+            disabled={!viewModel.selectedEntry}
+            id="editButton"
+            onclick={() => controller.openEditModal()}
+            type="button"
+          >
             更新
           </button>
-          <button class="button-danger" disabled={!viewModel.selectedEntry} id="deleteButton" onclick={() => controller.openDeleteModal()} type="button">
+          <button
+            class="button-danger"
+            disabled={!viewModel.selectedEntry}
+            id="deleteButton"
+            onclick={() => controller.openDeleteModal()}
+            type="button"
+          >
             削除
           </button>
         </div>
@@ -260,8 +342,13 @@
           <span class="status-pill">{viewModel.selectedEntry.origin}</span>
         {/if}
       </div>
-      <strong id="detailTitle">{viewModel.selectedEntry?.source ?? "表示できるエントリがありません"}</strong>
-      <p id="detailTranslation">{viewModel.selectedEntry?.translation ?? "検索条件を変更してください。"}</p>
+      <strong id="detailTitle"
+        >{viewModel.selectedEntry?.source ??
+          "表示できるエントリがありません"}</strong
+      >
+      <p id="detailTranslation">
+        {viewModel.selectedEntry?.translation ?? "検索条件を変更してください。"}
+      </p>
       <div class="detail-grid" id="detailGrid">
         {#if viewModel.selectedEntry}
           <div class="detail-card">
@@ -273,7 +360,9 @@
             <strong>{viewModel.selectedEntry.updatedAt}</strong>
           </div>
         {:else}
-          <div class="empty-state">一覧に表示できるエントリが戻ると、詳細も同じ画面で切り替わります。</div>
+          <div class="empty-state">
+            一覧に表示できるエントリが戻ると、詳細も同じ画面で切り替わります。
+          </div>
         {/if}
       </div>
       <p id="detailStatusMessage">
@@ -298,42 +387,83 @@
 </section>
 
 <div
-  aria-hidden={!(viewModel.modalState === "create" || viewModel.modalState === "edit")}
+  aria-hidden={!(
+    viewModel.modalState === "create" || viewModel.modalState === "edit"
+  )}
   class="modal-backdrop"
-  hidden={!(viewModel.modalState === "create" || viewModel.modalState === "edit")}
+  hidden={!(
+    viewModel.modalState === "create" || viewModel.modalState === "edit"
+  )}
   id="editModal"
   role="dialog"
 >
   <section aria-labelledby="editModalTitle" class="modal-card">
-    <div class="eyebrow" id="editModalEyebrow">{viewModel.modalState === "create" ? "新規登録" : "更新"}</div>
-    <h3 id="editModalTitle">{viewModel.modalState === "create" ? "新規登録" : "更新"}</h3>
+    <div class="eyebrow" id="editModalEyebrow">
+      {viewModel.modalState === "create" ? "新規登録" : "更新"}
+    </div>
+    <h3 id="editModalTitle">
+      {viewModel.modalState === "create" ? "新規登録" : "更新"}
+    </h3>
     <p id="editModalDescription">
-      {viewModel.modalState === "create" ? "辞書エントリの内容を入力します。" : "選択中の辞書エントリを編集します。"}
+      {viewModel.modalState === "create"
+        ? "辞書エントリの内容を入力します。"
+        : "選択中の辞書エントリを編集します。"}
     </p>
     <div class="field-grid">
       <label class="field-label" for="formSource">原文</label>
-      <input class="text-field" id="formSource" type="text" value={viewModel.formSource} oninput={(event) => controller.setFormSource(event)} />
+      <input
+        class="text-field"
+        id="formSource"
+        type="text"
+        value={viewModel.formSource}
+        oninput={(event) => controller.setFormSource(event)}
+      />
 
       <label class="field-label" for="formCategory">カテゴリ</label>
-      <select class="select-field" id="formCategory" value={viewModel.formCategory} onchange={(event) => controller.setFormCategory(event)}>
+      <select
+        class="select-field"
+        id="formCategory"
+        value={viewModel.formCategory}
+        onchange={(event) => controller.setFormCategory(event)}
+      >
         {#each viewModel.categoryOptions.filter((item) => item !== "すべて") as option (option)}
           <option value={option}>{option}</option>
         {/each}
       </select>
 
       <label class="field-label" for="formOrigin">由来</label>
-      <select class="select-field" id="formOrigin" value={viewModel.formOrigin} onchange={(event) => controller.setFormOrigin(event)}>
+      <select
+        class="select-field"
+        id="formOrigin"
+        value={viewModel.formOrigin}
+        onchange={(event) => controller.setFormOrigin(event)}
+      >
         <option value="手動登録">手動登録</option>
         <option value="確認待ち">確認待ち</option>
         <option value="XML取込">XML取込</option>
       </select>
 
       <label class="field-label" for="formTranslation">訳語</label>
-      <textarea class="textarea-field" id="formTranslation" value={viewModel.formTranslation} oninput={(event) => controller.setFormTranslation(event)}></textarea>
+      <textarea
+        class="textarea-field"
+        id="formTranslation"
+        value={viewModel.formTranslation}
+        oninput={(event) => controller.setFormTranslation(event)}
+      ></textarea>
     </div>
     <div class="modal-actions">
-      <button class="button-secondary" id="closeEditModalButton" onclick={() => controller.closeEditModal()} type="button">閉じる</button>
-      <button class="button-primary" id="saveEntryButton" onclick={() => void controller.saveCurrentEntry()} type="button">保存する</button>
+      <button
+        class="button-secondary"
+        id="closeEditModalButton"
+        onclick={() => controller.closeEditModal()}
+        type="button">閉じる</button
+      >
+      <button
+        class="button-primary"
+        id="saveEntryButton"
+        onclick={() => void controller.saveCurrentEntry()}
+        type="button">保存する</button
+      >
     </div>
   </section>
 </div>
@@ -349,12 +479,28 @@
     <h3 id="deleteModalTitle">削除の確認</h3>
     <p>このエントリを削除すると、一覧から見えなくなります。</p>
     <div class="delete-target">
-      <strong id="deleteTargetTitle">{viewModel.selectedEntry?.source ?? "-"}</strong>
-      <p id="deleteTargetMeta">{viewModel.selectedEntry ? `${viewModel.selectedEntry.translation} / ID ${viewModel.selectedEntry.id}` : "-"}</p>
+      <strong id="deleteTargetTitle"
+        >{viewModel.selectedEntry?.source ?? "-"}</strong
+      >
+      <p id="deleteTargetMeta">
+        {viewModel.selectedEntry
+          ? `${viewModel.selectedEntry.translation} / ID ${viewModel.selectedEntry.id}`
+          : "-"}
+      </p>
     </div>
     <div class="modal-actions">
-      <button class="button-secondary" id="closeDeleteModalButton" onclick={() => controller.closeDeleteModal()} type="button">やめる</button>
-      <button class="button-danger" id="confirmDeleteButton" onclick={() => void controller.deleteCurrentEntry()} type="button">削除する</button>
+      <button
+        class="button-secondary"
+        id="closeDeleteModalButton"
+        onclick={() => controller.closeDeleteModal()}
+        type="button">やめる</button
+      >
+      <button
+        class="button-danger"
+        id="confirmDeleteButton"
+        onclick={() => void controller.deleteCurrentEntry()}
+        type="button">削除する</button
+      >
     </div>
   </section>
 </div>
@@ -538,7 +684,9 @@
   .list-row {
     width: 100%;
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.9fr) auto;
+    grid-template-columns:
+      minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.9fr)
+      auto;
     gap: 10px;
     align-items: center;
     border: 1px solid rgba(255, 186, 56, 0.12);

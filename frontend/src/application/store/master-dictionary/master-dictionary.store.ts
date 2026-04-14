@@ -1,8 +1,8 @@
 import {
   DEFAULT_CATEGORY,
   DEFAULT_ORIGIN
-} from "./master-dictionary-screen-constants"
-import type { MasterDictionaryScreenState } from "./master-dictionary-screen-types"
+} from "@application/contract/master-dictionary"
+import type { MasterDictionaryScreenState } from "@application/contract/master-dictionary/master-dictionary-screen-types"
 
 type Listener = (state: MasterDictionaryScreenState) => void
 
@@ -46,8 +46,12 @@ export class MasterDictionaryStore {
     return {
       ...this.state,
       entries: [...this.state.entries],
-      selectedEntry: this.state.selectedEntry ? { ...this.state.selectedEntry } : null,
-      importSummary: this.state.importSummary ? { ...this.state.importSummary } : null
+      selectedEntry: this.state.selectedEntry
+        ? { ...this.state.selectedEntry }
+        : null,
+      importSummary: this.state.importSummary
+        ? { ...this.state.importSummary }
+        : null
     }
   }
 

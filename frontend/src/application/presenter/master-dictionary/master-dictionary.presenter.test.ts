@@ -1,9 +1,12 @@
 import { describe, expect, test } from "vitest"
 
-import { MasterDictionaryPresenter } from "./master-dictionary.presenter"
-import type { MasterDictionaryScreenState } from "./master-dictionary-screen-types"
+import type { MasterDictionaryScreenState } from "@application/contract/master-dictionary/master-dictionary-screen-types"
 
-function createState(overrides: Partial<MasterDictionaryScreenState> = {}): MasterDictionaryScreenState {
+import { MasterDictionaryPresenter } from "./master-dictionary.presenter"
+
+function createState(
+  overrides: Partial<MasterDictionaryScreenState> = {}
+): MasterDictionaryScreenState {
   return {
     entries: [],
     selectedEntry: null,
@@ -71,6 +74,8 @@ describe("MasterDictionaryPresenter", () => {
       expect(viewModel.categoryOptions).toContain(category)
     }
 
-    expect(new Set(viewModel.categoryOptions).size).toBe(viewModel.categoryOptions.length)
+    expect(new Set(viewModel.categoryOptions).size).toBe(
+      viewModel.categoryOptions.length
+    )
   })
 })

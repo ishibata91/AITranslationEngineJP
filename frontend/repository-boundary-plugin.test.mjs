@@ -41,8 +41,37 @@ ruleTester.run("enforce-layer-boundaries", rule, {
       code: "import { fixture } from '../../fixtures/bootstrap'"
     },
     {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.test.ts",
+      code: "import { createTestMasterDictionaryScreenControllerFactory } from '../test/setup'"
+    },
+    {
       filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
       code: "import AppShell from '@ui/views/AppShell.svelte'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/master-dictionary/MasterDictionaryPage.svelte",
+      code: "import type { CreateMasterDictionaryScreenController } from '@application/contract/master-dictionary'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/usecase/master-dictionary/master-dictionary.usecase.ts",
+      code: "import type { MasterDictionaryGatewayContract } from '@application/gateway-contract/master-dictionary'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/usecase/master-dictionary/master-dictionary.usecase.ts",
+      code: "import { MasterDictionaryStore } from '@application/store/master-dictionary'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/store/master-dictionary/master-dictionary.store.ts",
+      code: "import { DEFAULT_CATEGORY } from '@application/contract/master-dictionary'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/controller/master-dictionary/master-dictionary-screen-controller-factory.ts",
+      code: "import { MasterDictionaryRuntimeEventAdapter } from '@controller/runtime/master-dictionary'"
     }
   ],
   invalid: [
@@ -93,6 +122,49 @@ ruleTester.run("enforce-layer-boundaries", rule, {
       filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
       code: "import { buildScreenState } from '@ui/screens/bootstrap/internal/build-screen-state'",
       errors: [{ messageId: "forbiddenImport" }]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/usecase/master-dictionary/master-dictionary.usecase.ts",
+      code: "import { createMasterDictionaryScreenControllerFactory } from '@controller/master-dictionary'",
+      errors: [
+        {
+          message: "application code must not import controller code directly."
+        }
+      ]
+    },
+    {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.test.ts",
+      code: "import { createMasterDictionaryScreenControllerFactory } from '@controller/master-dictionary'",
+      errors: [{ message: "ui code must not import controller code directly." }]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/application/usecase/master-dictionary/master-dictionary.usecase.ts",
+      code: "import { OtherFeaturePresenter } from '@application/presenter/other-feature'",
+      errors: [
+        {
+          message:
+            "application code must not import other application roots directly."
+        }
+      ]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/controller/master-dictionary/master-dictionary-screen-controller.ts",
+      code: "import App from '@ui/App.svelte'",
+      errors: [{ message: "controller code must not import ui code directly." }]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/controller/master-dictionary/master-dictionary-screen-controller-factory.ts",
+      code: "import { helper } from '@controller/wails/internal/helper'",
+      errors: [
+        {
+          message:
+            "controller code must not import other controller roots directly."
+        }
+      ]
     }
   ]
 })

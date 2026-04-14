@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest"
 
-import { MasterDictionaryStore } from "./master-dictionary.store"
+import { MasterDictionaryStore } from "@application/store/master-dictionary"
+
 import { MasterDictionaryUseCase } from "./master-dictionary.usecase"
 
 describe("MasterDictionaryUseCase", () => {

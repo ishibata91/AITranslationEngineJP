@@ -21,20 +21,26 @@ cleanup() {
   fi
 }
 
+wait_for_devserver() {
+  ready=0
+  for _ in $(seq 1 120); do
+    if curl -fsS "$devserver_url" >/dev/null 2>&1; then
+      ready=1
+      break
+    fi
+    sleep 1
+  done
+}
+
 trap cleanup EXIT INT TERM
 
-VITE_HOST="$vite_host" VITE_PORT="$vite_port" \
-  wails dev -browser -devserver "$devserver_bind" -frontenddevserverurl "$frontend_devserver_url" >"$log_file" 2>&1 &
-wails_pid=$!
+if ! curl -fsS "$devserver_url" >/dev/null 2>&1; then
+  VITE_HOST="$vite_host" VITE_PORT="$vite_port" \
+    wails dev -devserver "$devserver_bind" -frontenddevserverurl "$frontend_devserver_url" >"$log_file" 2>&1 &
+  wails_pid=$!
+fi
 
-ready=0
-for _ in $(seq 1 120); do
-  if curl -fsS "$devserver_url" >/dev/null 2>&1; then
-    ready=1
-    break
-  fi
-  sleep 1
-done
+wait_for_devserver
 
 if [ "$ready" -ne 1 ]; then
   echo "Wails dev server did not become ready: $devserver_url" >&2

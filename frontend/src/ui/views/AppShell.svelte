@@ -1,20 +1,21 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
-  import type { MasterDictionaryGatewayContract } from "@application/gateway-contract/master-dictionary"
+  import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
-  import type {
-    ShellRouteContract,
-    ShellRouteId
-  } from "@ui/stores/shell-state"
+  import type { ShellRouteContract, ShellRouteId } from "@ui/stores/shell-state"
 
   interface Props {
     defaultRouteId: ShellRouteId
     routes: ShellRouteContract[]
-    masterDictionaryGateway: MasterDictionaryGatewayContract | null
+    createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
   }
 
-  let { defaultRouteId, routes, masterDictionaryGateway }: Props = $props()
+  let {
+    defaultRouteId,
+    routes,
+    createMasterDictionaryScreenController
+  }: Props = $props()
 
   const PLACEHOLDER_LEAD =
     "このページはまだ準備中です。上のナビゲーションまたは下の移動から別の主要ページへ進めます。"
@@ -41,7 +42,9 @@
   const RouteComponent = $derived(
     currentRoute.id === "master-dictionary" ? MasterDictionaryPage : null
   )
-  const dashboardEntryRoutes = $derived(routes.filter((route) => route.id !== "dashboard"))
+  const dashboardEntryRoutes = $derived(
+    routes.filter((route) => route.id !== "dashboard")
+  )
 
   function normalizeRouteId(hashValue: string): ShellRouteId {
     const routeId = hashValue.replace(/^#/, "") as ShellRouteId
@@ -92,7 +95,11 @@
         <p class="brand-eyebrow">AITranslationEngineJp</p>
         <strong>翻訳エンジン</strong>
       </div>
-      <nav aria-label="グローバルナビゲーション" class="global-nav" id="globalNav">
+      <nav
+        aria-label="グローバルナビゲーション"
+        class="global-nav"
+        id="globalNav"
+      >
         {#each routes as route (route.id)}
           <a
             aria-current={route.id === currentRoute.id ? "page" : undefined}
@@ -163,7 +170,9 @@
     {/if}
 
     {#if !isDashboard && RouteComponent}
-      <RouteComponent gateway={masterDictionaryGateway} />
+      <RouteComponent
+        createController={createMasterDictionaryScreenController}
+      />
     {/if}
 
     {#if !isDashboard && !RouteComponent}
@@ -174,7 +183,11 @@
           <p>{PLACEHOLDER_LEAD}</p>
           <div class="action-grid">
             {#each routes as route (route.id)}
-              <a class="action-link" href={`#${route.id}`} onclick={() => selectRoute(route.id)}>
+              <a
+                class="action-link"
+                href={`#${route.id}`}
+                onclick={() => selectRoute(route.id)}
+              >
                 {route.label}
               </a>
             {/each}
@@ -192,8 +205,16 @@
     color: var(--text);
     font-family: "Noto Serif JP", serif;
     background:
-      radial-gradient(circle at top left, rgba(255, 186, 56, 0.16), transparent 28%),
-      radial-gradient(circle at 85% 18%, rgba(255, 104, 63, 0.14), transparent 24%),
+      radial-gradient(
+        circle at top left,
+        rgba(255, 186, 56, 0.16),
+        transparent 28%
+      ),
+      radial-gradient(
+        circle at 85% 18%,
+        rgba(255, 104, 63, 0.14),
+        transparent 24%
+      ),
       linear-gradient(180deg, #1c1715 0%, var(--bg) 100%);
   }
 
@@ -359,7 +380,11 @@
     inset: 0 auto auto 0;
     width: 220px;
     height: 220px;
-    background: radial-gradient(circle, rgba(255, 186, 56, 0.14) 0%, transparent 72%);
+    background: radial-gradient(
+      circle,
+      rgba(255, 186, 56, 0.14) 0%,
+      transparent 72%
+    );
     pointer-events: none;
   }
 

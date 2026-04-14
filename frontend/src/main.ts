@@ -1,4 +1,5 @@
 import { createMasterDictionaryGateway } from "@controller/wails/master-dictionary.gateway"
+import { createMasterDictionaryScreenControllerFactory } from "@controller/master-dictionary"
 import { mount } from "svelte"
 import App from "@ui/App.svelte"
 
@@ -9,10 +10,13 @@ if (!target) {
 }
 
 const masterDictionaryGateway = createMasterDictionaryGateway()
+const masterDictionaryScreenControllerFactory =
+  createMasterDictionaryScreenControllerFactory(masterDictionaryGateway)
 
 mount(App, {
   target,
   props: {
-    masterDictionaryGateway
+    createMasterDictionaryScreenController:
+      masterDictionaryScreenControllerFactory
   }
 })

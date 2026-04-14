@@ -4,8 +4,18 @@ const SOURCE_LAYERS = ["ui", "application", "controller"];
 const ALLOWED_IMPORTS = {
   ui: new Set(["ui", "application"]),
   application: new Set(["application"]),
-  controller: new Set(["controller", "application"])
+  controller: new Set(["controller", "application"]),
 };
+const MASTER_DICTIONARY_APPLICATION_ROOT_IDS = new Set([
+  "application:contract/master-dictionary",
+  "application:presenter/master-dictionary",
+  "application:store/master-dictionary",
+  "application:usecase/master-dictionary",
+]);
+const MASTER_DICTIONARY_CONTROLLER_ROOT_IDS = new Set([
+  "controller:master-dictionary",
+  "controller:runtime/master-dictionary",
+]);
 const PUBLIC_ROOT_SPEC_MATCHERS = [
   {
     layer: "ui",
@@ -13,40 +23,40 @@ const PUBLIC_ROOT_SPEC_MATCHERS = [
       if (segments[0] === "App.svelte") {
         return {
           rootId: "ui:app",
-          rootSegmentLength: 1
+          rootSegmentLength: 1,
         };
       }
 
       if (segments[0] === "app-shell") {
         return {
           rootId: "ui:app-shell",
-          rootSegmentLength: 1
+          rootSegmentLength: 1,
         };
       }
 
       if (segments[0] === "screens" && segments[1]) {
         return {
           rootId: `ui:screens/${segments[1]}`,
-          rootSegmentLength: 2
+          rootSegmentLength: 2,
         };
       }
 
       if (segments[0] === "views") {
         return {
           rootId: "ui:views",
-          rootSegmentLength: 1
+          rootSegmentLength: 1,
         };
       }
 
       if (segments[0] === "stores") {
         return {
           rootId: "ui:stores",
-          rootSegmentLength: 1
+          rootSegmentLength: 1,
         };
       }
 
       return null;
-    }
+    },
   },
   {
     layer: "application",
@@ -54,32 +64,57 @@ const PUBLIC_ROOT_SPEC_MATCHERS = [
       if (segments[0] === "gateway-contract") {
         return {
           rootId: "application:gateway-contract",
-          rootSegmentLength: 1
+          rootSegmentLength: 1,
+        };
+      }
+
+      if (
+        ["contract", "presenter", "store", "usecase"].includes(segments[0]) &&
+        segments[1]
+      ) {
+        return {
+          rootId: `application:${segments[0]}/${segments[1]}`,
+          rootSegmentLength: 2,
         };
       }
 
       return null;
-    }
+    },
   },
   {
     layer: "controller",
     match(segments) {
-      if (segments[0] === "wails") {
-        return {
-          rootId: "controller:wails",
-          rootSegmentLength: 1
-        };
-      }
       if (segments[0] === "wails" && segments[1] === "gateway-dto") {
         return {
           rootId: "controller:wails/gateway-dto",
-          rootSegmentLength: 2
+          rootSegmentLength: 2,
+        };
+      }
+
+      if (segments[0] === "wails") {
+        return {
+          rootId: "controller:wails",
+          rootSegmentLength: 1,
+        };
+      }
+
+      if (segments[0] === "runtime" && segments[1]) {
+        return {
+          rootId: `controller:runtime/${segments[1]}`,
+          rootSegmentLength: 2,
+        };
+      }
+
+      if (segments[0]) {
+        return {
+          rootId: `controller:${segments[0]}`,
+          rootSegmentLength: 1,
         };
       }
 
       return null;
-    }
-  }
+    },
+  },
 ];
 
 function normalizePath(value) {
@@ -139,7 +174,9 @@ function detectTargetType(filename, specifier) {
   }
 
   if (specifier.startsWith(".")) {
-    return detectResolvedTargetType(path.resolve(path.dirname(filename), specifier));
+    return detectResolvedTargetType(
+      path.resolve(path.dirname(filename), specifier),
+    );
   }
 
   return null;
@@ -174,7 +211,7 @@ function stripSrcPrefixSegments(normalizedAbsolutePath) {
 
   return {
     layer: segments[srcIndex + 1],
-    segments: segments.slice(srcIndex + 2)
+    segments: segments.slice(srcIndex + 2),
   };
 }
 
@@ -190,7 +227,7 @@ function detectPublicRoot(layer, segments) {
       return {
         layer,
         rootId: result.rootId,
-        remainderSegments: segments.slice(result.rootSegmentLength)
+        remainderSegments: segments.slice(result.rootSegmentLength),
       };
     }
   }
@@ -224,7 +261,9 @@ function detectTargetPublicRoot(filename, specifier) {
     return null;
   }
 
-  const resolvedPath = normalizePath(path.resolve(path.dirname(filename), specifier));
+  const resolvedPath = normalizePath(
+    path.resolve(path.dirname(filename), specifier),
+  );
   const parsed = stripSrcPrefixSegments(resolvedPath);
 
   if (parsed === null) {
@@ -243,6 +282,51 @@ function isPublicEntrypointImport(targetPublicRoot) {
 
   if (depth === 1) {
     return true;
+  }
+
+  return false;
+}
+
+function isAllowedMasterDictionaryCrossRootImport(
+  sourcePublicRoot,
+  targetPublicRoot,
+  allowedRootIds,
+) {
+  return (
+    sourcePublicRoot !== null &&
+    allowedRootIds.has(sourcePublicRoot.rootId) &&
+    allowedRootIds.has(targetPublicRoot.rootId) &&
+    isPublicEntrypointImport(targetPublicRoot)
+  );
+}
+
+function isAllowedSameLayerCrossRootImport(sourcePublicRoot, targetPublicRoot) {
+  if (sourcePublicRoot === null) {
+    return false;
+  }
+
+  if (sourcePublicRoot.layer === "application") {
+    return (
+      (targetPublicRoot.rootId === "application:gateway-contract" &&
+        isPublicEntrypointImport(targetPublicRoot)) ||
+      isAllowedMasterDictionaryCrossRootImport(
+        sourcePublicRoot,
+        targetPublicRoot,
+        MASTER_DICTIONARY_APPLICATION_ROOT_IDS,
+      )
+    );
+  }
+
+  if (sourcePublicRoot.layer === "controller") {
+    return (
+      (targetPublicRoot.rootId === "controller:wails/gateway-dto" &&
+        isPublicEntrypointImport(targetPublicRoot)) ||
+      isAllowedMasterDictionaryCrossRootImport(
+        sourcePublicRoot,
+        targetPublicRoot,
+        MASTER_DICTIONARY_CONTROLLER_ROOT_IDS,
+      )
+    );
   }
 
   return false;
@@ -273,7 +357,10 @@ function buildMessage(sourceLayer, targetType) {
   return `${sourceLayer} code must not import ${targetType} code directly.`;
 }
 
-function buildSameLayerInternalImportMessage(sourcePublicRoot, targetPublicRoot) {
+function buildSameLayerInternalImportMessage(
+  sourcePublicRoot,
+  targetPublicRoot,
+) {
   return `${sourcePublicRoot.rootId} must not import internal modules of ${targetPublicRoot.rootId}. Use the target root index or a direct child file.`;
 }
 
@@ -304,7 +391,7 @@ function looksLikeCommentedOutCode(commentText) {
     /=>/u,
     /\{[\s\S]*:[\s\S]*\}/u,
     /\[[^\]]+\]\s*;?$/u,
-    /^[\w$]+\([^)]*\)\s*;?$/u
+    /^[\w$]+\([^)]*\)\s*;?$/u,
   ];
 
   return patterns.some((pattern) => pattern.test(normalized));
@@ -314,12 +401,13 @@ const noCommentedOutCodeRule = {
   meta: {
     type: "problem",
     docs: {
-      description: "Disallow commented-out code."
+      description: "Disallow commented-out code.",
     },
     schema: [],
     messages: {
-      commentedOutCode: "Commented-out code must be removed instead of left in comments."
-    }
+      commentedOutCode:
+        "Commented-out code must be removed instead of left in comments.",
+    },
   },
   create(context) {
     return {
@@ -334,24 +422,25 @@ const noCommentedOutCodeRule = {
 
           context.report({
             loc: comment.loc,
-            messageId: "commentedOutCode"
+            messageId: "commentedOutCode",
           });
         }
-      }
+      },
     };
-  }
+  },
 };
 
 const enforceLayerBoundariesRule = {
   meta: {
     type: "problem",
     docs: {
-      description: "Enforce repository layer boundaries for frontend source code."
+      description:
+        "Enforce repository layer boundaries for frontend source code.",
     },
     schema: [],
     messages: {
-      forbiddenImport: "{{message}}"
-    }
+      forbiddenImport: "{{message}}",
+    },
   },
   create(context) {
     const filename = context.filename ?? context.getFilename();
@@ -387,8 +476,8 @@ const enforceLayerBoundariesRule = {
             node: node.source,
             messageId: "forbiddenImport",
             data: {
-              message: buildMessage(sourceLayer, targetType)
-            }
+              message: buildMessage(sourceLayer, targetType),
+            },
           });
           return;
         }
@@ -402,8 +491,8 @@ const enforceLayerBoundariesRule = {
             node: node.source,
             messageId: "forbiddenImport",
             data: {
-              message: buildMessage(sourceLayer, targetType)
-            }
+              message: buildMessage(sourceLayer, targetType),
+            },
           });
           return;
         }
@@ -431,12 +520,21 @@ const enforceLayerBoundariesRule = {
         }
 
         if (sourceLayer !== "ui") {
+          if (
+            isAllowedSameLayerCrossRootImport(
+              sourcePublicRoot,
+              targetPublicRoot,
+            )
+          ) {
+            return;
+          }
+
           context.report({
             node: node.source,
             messageId: "forbiddenImport",
             data: {
-              message: buildSameLayerCrossRootMessage(sourceLayer)
-            }
+              message: buildSameLayerCrossRootMessage(sourceLayer),
+            },
           });
           return;
         }
@@ -446,21 +544,24 @@ const enforceLayerBoundariesRule = {
             node: node.source,
             messageId: "forbiddenImport",
             data: {
-              message: buildSameLayerInternalImportMessage(sourcePublicRoot, targetPublicRoot)
-            }
+              message: buildSameLayerInternalImportMessage(
+                sourcePublicRoot,
+                targetPublicRoot,
+              ),
+            },
           });
         }
-      }
+      },
     };
-  }
+  },
 };
 
 export const repositoryBoundaryPlugin = {
   meta: {
-    name: "repository-boundary-plugin"
+    name: "repository-boundary-plugin",
   },
   rules: {
     "enforce-layer-boundaries": enforceLayerBoundariesRule,
-    "no-commented-out-code": noCommentedOutCodeRule
-  }
+    "no-commented-out-code": noCommentedOutCodeRule,
+  },
 };
