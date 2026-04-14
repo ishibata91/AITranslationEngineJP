@@ -1,5 +1,5 @@
 name = "task_designer"
-description = "第2段階の HTML モックを task-local artifact として固める design specialist。"
+description = "requirements と ui-mock を中心に task-local design を固める design specialist。"
 model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

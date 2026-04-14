@@ -1,0 +1,10 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "implement",
+  "mode": "mixed",
+  "required_inputs": ["active_work_plan", "task_mode", "owned_scope"],
+  "optional_inputs": ["design_bundle", "accepted_fix_scope", "reproduction_evidence", "trace_or_analysis_result", "ui_artifact_path", "scenario_artifact_path", "local_validation"],
+  "mode_notes": ["implement と refactor では design_bundle を必須とし、fix では accepted_fix_scope と evidence を必須とする"],
+  "completion_signal": ["touched_files", "implemented_scope", "validation_results", "closeout_notes", "residual_risks"]
+}

@@ -1,0 +1,30 @@
+{
+  "contract_version": "2026-04-14",
+  "skill": "design",
+  "allowed_actions": [
+    "機能要件と非機能要件を active work plan に固定する",
+    "task-local UI モックと Scenario artifact を作成または更新する",
+    "implementation brief と diagram 参照を active work plan に固定する"
+  ],
+  "forbidden_actions": [
+    "実装コードや product test を更新する",
+    "docs 正本を human 判断なしに更新する",
+    "未確定事項を承認済み要件として固定する"
+  ],
+  "expected_outputs": [
+    "functional_requirements_summary",
+    "in_scope",
+    "non_functional_requirements",
+    "out_of_scope",
+    "open_questions",
+    "ui_artifact_path",
+    "scenario_artifact_path",
+    "implementation_brief",
+    "review_diff_diagrams",
+    "source_diagram_targets"
+  ],
+  "stop_conditions": [
+    "active work plan や distill 結果が不足している",
+    "human 判断が必要な論点が unresolved のまま残る"
+  ]
+}

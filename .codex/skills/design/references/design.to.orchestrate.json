@@ -1,0 +1,7 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "design",
+  "to_skill": "orchestrate",
+  "returned_fields": ["functional_requirements_summary", "in_scope", "non_functional_requirements", "out_of_scope", "open_questions", "ui_artifact_path", "scenario_artifact_path", "implementation_brief", "review_diff_diagrams", "source_diagram_targets"],
+  "ready_when": ["orchestrate が HITL、implement、tests、review、diagramming の次手を決められる"]
+}

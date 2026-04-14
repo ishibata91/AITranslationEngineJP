@@ -1,0 +1,7 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "review",
+  "to_skill": "orchestrate",
+  "returned_fields": ["decision", "findings", "recheck", "closeout_notes", "human_open_questions", "ui_evidence"],
+  "ready_when": ["orchestrate が reroute か close かを決められる"]
+}

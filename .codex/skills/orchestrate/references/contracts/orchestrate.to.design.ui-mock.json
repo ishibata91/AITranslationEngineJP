@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "design",
+  "mode": "ui-mock",
+  "required_inputs": ["active_work_plan", "task_mode"],
+  "optional_inputs": ["functional_requirements_summary", "ui_artifact_path", "required_reading"],
+  "completion_signal": ["ui_artifact_path", "open_questions"]
+}

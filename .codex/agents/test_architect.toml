@@ -1,5 +1,5 @@
 name = "test_architect"
-description = "active exec-plan と関連仕様から spec-aligned tests と acceptance checks を組み立てる test design specialist。"
+description = "Scenario 設計と unit test 方針を組み立てる test design specialist。"
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"

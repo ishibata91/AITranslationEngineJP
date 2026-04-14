@@ -1,0 +1,28 @@
+{
+  "contract_version": "2026-04-14",
+  "skill": "orchestrate",
+  "allowed_actions": [
+    "active work plan を作成または更新する",
+    "task mode と close 条件を固定する",
+    "distill、investigate、design、implement、tests、review、diagramming、updating-docs へ handoff する"
+  ],
+  "forbidden_actions": [
+    "自身で product 実装を始める",
+    "自身で詳細なコードベース調査を始める",
+    "required evidence や required validation を満たさずに close する",
+    "changes、context_board、tasks.md を live 正本に戻す"
+  ],
+  "expected_outputs": [
+    "active_or_completed_plan",
+    "task_mode_decision",
+    "handoff_targets",
+    "implementation_scope_splits",
+    "hitl_status",
+    "validation_and_closeout_summary"
+  ],
+  "stop_conditions": [
+    "human decision が必要なのに HITL の記録先が定まらない",
+    "task scope が広すぎて ownership を安全に分割できない",
+    "docs-only に必要な approval_record が不足している"
+  ]
+}

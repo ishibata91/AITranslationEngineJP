@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "distill",
+  "to_skill": "orchestrate",
+  "mode": "refactor",
+  "returned_fields": ["facts", "constraints", "gaps", "required_reading", "related_code_pointers", "recommended_next_skill"],
+  "ready_when": ["orchestrate が design implementation-brief か implement への次手を決められる"]
+}

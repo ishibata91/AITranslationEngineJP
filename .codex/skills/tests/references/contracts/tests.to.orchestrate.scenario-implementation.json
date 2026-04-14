@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "tests",
+  "to_skill": "orchestrate",
+  "mode": "scenario-implementation",
+  "returned_fields": ["touched_test_files", "implemented_test_scope", "validation_results", "remaining_gaps"],
+  "ready_when": ["orchestrate が review か implement 戻しを決められる"]
+}

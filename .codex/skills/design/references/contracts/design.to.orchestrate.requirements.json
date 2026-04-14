@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "design",
+  "to_skill": "orchestrate",
+  "mode": "requirements",
+  "returned_fields": ["functional_requirements_summary", "in_scope", "non_functional_requirements", "out_of_scope", "open_questions"],
+  "ready_when": ["orchestrate が ui-mock、scenario、implementation-brief の次手を決められる"]
+}

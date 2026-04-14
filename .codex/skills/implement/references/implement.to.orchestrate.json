@@ -1,0 +1,7 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "implement",
+  "to_skill": "orchestrate",
+  "returned_fields": ["touched_files", "implemented_scope", "validation_results", "closeout_notes", "residual_risks"],
+  "ready_when": ["orchestrate が tests、review、close の次手を決められる"]
+}

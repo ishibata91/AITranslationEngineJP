@@ -1,5 +1,5 @@
 name = "ctx_loader"
-description = "要求、active plan、入口情報から必要最小限の repo 文脈を抽出する context specialist。"
+description = "要求、active work plan、入口情報から必要最小限の repo 文脈を抽出する distill specialist。"
 model = "gpt-5.4"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"

@@ -1,4 +1,0 @@
-interface:
-  display_name: "D2 図作成"
-  short_description: "D2 図を作成・検証し、日本語優先のラベルと shape でレビュー用 SVG を生成する"
-  default_prompt: "$diagramming-d2 を使って D2 図を作成または修正してください。図中ラベルは日本語を既定とし、同じ意味領域で英日混在を避け、actual name は区別や検索に必要な時だけ補助的に使ってください。class 図は `shape: class` と member で属性と振る舞いを表し、sequence 図と robustness 図も shape とラベルだけで役割が読めるようにしてください。ER 図は `shape: sql_table` を使い、列、型、制約を table member へ載せてください。関連は通常 edge、集約は白 diamond、合成は黒 diamond で表してください。overview 図では依存 review に必要な edge を削りすぎず、ラベル・配置・分割・情報密度で読みやすさを整えてください。`展開する` や `固定する` のような抽象語より、`取り出す` `組み立てる` `渡す` `返す` などの具体語を優先してください。未検証の layout / routing 構文は最小例で確かめ、`.d2` を validate した後は review 用の `.svg` を `d2 -t 201` で生成し、目視確認まで行ってください。"

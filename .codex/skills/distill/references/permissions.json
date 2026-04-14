@@ -1,0 +1,28 @@
+{
+  "contract_version": "2026-04-14",
+  "skill": "distill",
+  "allowed_actions": [
+    "active work plan、docs、関連コードから facts を抽出する",
+    "constraints、gaps、required reading を整理する",
+    "fix / investigate では reproduction status と関連コード pointer を返す",
+    "next handoff を決めるための recommended_next_skill を返す"
+  ],
+  "forbidden_actions": [
+    "未確認の設計判断を事実として固定する",
+    "広いコード変更や lane close を始める",
+    "別の正本 artifact を増やす"
+  ],
+  "expected_outputs": [
+    "facts",
+    "constraints",
+    "gaps",
+    "required_reading",
+    "reproduction_status",
+    "related_code_pointers",
+    "recommended_next_skill"
+  ],
+  "stop_conditions": [
+    "active work plan や関連 docs が不足している",
+    "主要な設計判断が未確定で事実整理だけでは前進しない"
+  ]
+}

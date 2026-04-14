@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "design",
+  "to_skill": "orchestrate",
+  "mode": "ui-mock",
+  "returned_fields": ["ui_artifact_path", "open_questions"],
+  "ready_when": ["orchestrate が design-review か implement への次手を決められる"]
+}

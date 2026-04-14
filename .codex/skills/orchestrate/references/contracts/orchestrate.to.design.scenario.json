@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "design",
+  "mode": "scenario",
+  "required_inputs": ["active_work_plan", "task_mode", "functional_requirements_summary"],
+  "optional_inputs": ["scenario_artifact_path", "acceptance_targets"],
+  "completion_signal": ["scenario_artifact_path", "open_questions"]
+}

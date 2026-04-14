@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "investigate",
+  "mode": "reproduce",
+  "required_inputs": ["active_work_plan", "task_mode", "goal"],
+  "optional_inputs": ["reproduction_steps", "ui_entry_path", "current_evidence"],
+  "completion_signal": ["observed_facts", "browser_console_findings", "wails_log_findings", "recommended_next_step"]
+}

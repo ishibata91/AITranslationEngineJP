@@ -1,0 +1,4 @@
+version: 1
+# Use `default` only for top-level routing. Downstream specialist selection is defined in SKILL.md.
+agent: default
+entry: SKILL.md

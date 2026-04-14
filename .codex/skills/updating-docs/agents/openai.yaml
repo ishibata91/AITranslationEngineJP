@@ -1,4 +1,5 @@
-interface:
-  display_name: "Docs Updater"
-  short_description: "Update docs source-of-truth after human-approved decisions"
-  default_prompt: "Use $updating-docs to update only the `docs/` source-of-truth that a human explicitly decided to change."
+version: 1
+# Use when a human-approved docs-only task is started directly,
+# or when `orchestrate` routes a docs-only task here.
+agent: default
+entry: SKILL.md

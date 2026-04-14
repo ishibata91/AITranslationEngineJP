@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "investigate",
+  "to_skill": "orchestrate",
+  "mode": "reobserve",
+  "returned_fields": ["observed_facts", "wails_log_findings", "remaining_gaps", "recommended_next_step"],
+  "ready_when": ["orchestrate が implement か close を決められる"]
+}

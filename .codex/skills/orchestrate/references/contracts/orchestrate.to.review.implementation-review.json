@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "review",
+  "mode": "implementation-review",
+  "required_inputs": ["active_work_plan", "task_mode", "validation_evidence"],
+  "optional_inputs": ["design_bundle", "accepted_fix_scope", "review_diff_diagrams"],
+  "completion_signal": ["decision", "findings", "recheck", "closeout_notes", "human_open_questions"]
+}

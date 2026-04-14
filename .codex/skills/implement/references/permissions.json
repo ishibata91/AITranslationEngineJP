@@ -1,0 +1,26 @@
+{
+  "contract_version": "2026-04-14",
+  "skill": "implement",
+  "allowed_actions": [
+    "owned scope のコードと最小限の関連 test を変更する",
+    "full harness と Sonar MCP による gate を実行する",
+    "closeout notes と residual risks を返却する"
+  ],
+  "forbidden_actions": [
+    "brief を超える broad refactor や仕様追加を行う",
+    "ownership が曖昧な変更を独断で抱え込む",
+    "plan や lane decision を勝手に書き換える"
+  ],
+  "expected_outputs": [
+    "touched_files",
+    "implemented_scope",
+    "validation_results",
+    "closeout_notes",
+    "residual_risks"
+  ],
+  "stop_conditions": [
+    "owned scope や implementation target が確定していない",
+    "必要な design bundle または fix 根拠が欠けている",
+    "変更が広がりすぎて再分割が必要になる"
+  ]
+}

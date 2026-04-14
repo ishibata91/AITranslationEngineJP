@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "design",
+  "mode": "requirements",
+  "required_inputs": ["active_work_plan", "task_mode", "distill_result"],
+  "optional_inputs": ["seed_requirements", "required_reading"],
+  "completion_signal": ["functional_requirements_summary", "in_scope", "out_of_scope", "open_questions"]
+}

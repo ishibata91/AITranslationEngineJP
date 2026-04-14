@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "review",
+  "mode": "design-review",
+  "required_inputs": ["active_work_plan", "task_mode", "design_bundle"],
+  "optional_inputs": ["review_diff_diagrams", "source_diagram_targets"],
+  "completion_signal": ["decision", "findings", "recheck"]
+}

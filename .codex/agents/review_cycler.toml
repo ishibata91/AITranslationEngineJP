@@ -1,5 +1,5 @@
 name = "review_cycler"
-description = "single-pass review と residual risk 抽出に特化した review specialist。"
+description = "design review、implementation review、risk 抽出に特化した review specialist。"
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"

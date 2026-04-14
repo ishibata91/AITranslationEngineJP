@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "review",
+  "to_skill": "orchestrate",
+  "mode": "design-review",
+  "returned_fields": ["decision", "findings", "recheck", "human_open_questions"],
+  "ready_when": ["orchestrate が design 続行か implement 移行かを決められる"]
+}

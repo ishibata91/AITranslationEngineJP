@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "tests",
+  "mode": "unit",
+  "required_inputs": ["active_work_plan", "task_mode", "implementation_task_ids"],
+  "optional_inputs": ["validation_targets", "related_code_pointers"],
+  "completion_signal": ["touched_test_files", "implemented_test_scope", "remaining_gaps"]
+}

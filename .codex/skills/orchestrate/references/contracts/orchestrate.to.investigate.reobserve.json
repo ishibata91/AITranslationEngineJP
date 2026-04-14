@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "investigate",
+  "mode": "reobserve",
+  "required_inputs": ["active_work_plan", "task_mode", "goal"],
+  "optional_inputs": ["reproduction_steps", "current_evidence", "expected_log_points"],
+  "completion_signal": ["observed_facts", "wails_log_findings", "remaining_gaps", "recommended_next_step"]
+}

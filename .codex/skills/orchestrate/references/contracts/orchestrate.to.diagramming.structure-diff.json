@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "diagramming",
+  "mode": "structure-diff",
+  "required_inputs": ["active_work_plan", "diagram_mode", "operation_mode"],
+  "optional_inputs": ["source_diagram_targets", "review_diff_diagrams"],
+  "completion_signal": ["diagram_target_decision", "review_diff_diagrams", "validation_results"]
+}

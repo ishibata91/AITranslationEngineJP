@@ -1,8 +1,9 @@
 {
-  "contract_version": "2026-03-29",
+  "contract_version": "2026-04-14",
   "skill": "updating-docs",
   "allowed_actions": [
     "human が明示した `docs/` 配下の正本文書だけを更新する",
+    "human 直起動または `orchestrate` handoff の docs-only task を同じ contract で扱う",
     "更新対象に対応する tests / acceptance checks / validation commands を参照して記述を揃える",
     "対象 docs に必要な validation を実行する"
   ],

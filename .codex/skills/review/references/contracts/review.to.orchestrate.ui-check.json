@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "review",
+  "to_skill": "orchestrate",
+  "mode": "ui-check",
+  "returned_fields": ["decision", "ui_evidence", "findings", "recheck"],
+  "ready_when": ["orchestrate が implement 戻しまたは close を決められる"]
+}

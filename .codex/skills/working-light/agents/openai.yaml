@@ -1,4 +1,0 @@
-interface:
-  display_name: "Working Light"
-  short_description: "Handle clearly bounded small tasks"
-  default_prompt: "Use $working-light to complete a clearly bounded small task with only the required checks."
