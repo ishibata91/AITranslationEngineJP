@@ -20,7 +20,7 @@
   ],
   "stop_conditions": [
     "owned scope や implementation target が確定していない",
-    "必要な design artifact 群 または fix 根拠が欠けている",
+    "必要な implementation-scope または fix 根拠が欠けている",
     "変更が広がりすぎて再分割が必要になる"
   ]
 }

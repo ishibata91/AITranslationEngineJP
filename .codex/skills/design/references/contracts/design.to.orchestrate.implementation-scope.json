@@ -1,0 +1,8 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "design",
+  "to_skill": "orchestrate",
+  "mode": "implementation-scope",
+  "returned_fields": ["implementation_scope_artifact_path", "implementation_scope_splits", "open_questions"],
+  "ready_when": ["orchestrate が implement へ渡す handoff 単位と順序を決められる"]
+}

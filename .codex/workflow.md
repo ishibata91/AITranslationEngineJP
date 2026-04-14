@@ -19,7 +19,8 @@ flowchart TD
 
     A --> B --> F
     B --> C --> F
-    F --> D --> E --> G --> H --> J
+    F --> L[design implementation-scope]
+    L --> D --> E --> G --> H --> J
     A --> I --> D
     I --> E
     I --> H
@@ -43,7 +44,7 @@ flowchart TD
 
 - `distill`: facts、constraints、gaps、required reading、related code pointer、recommended next skill を返す
 - `investigate`: reproduce、trace、temporary-logging、reobserve、risk-report を扱う
-- `design`: requirements、ui-mock、scenario、implementation-brief を扱う
+- `design`: requirements、ui-mock、scenario、implementation-brief、implementation-scope を扱う
 - `implement`: `task_mode` と `implementation_target: frontend|backend|mixed` に従って実装する
 - `tests`: `test_mode: scenario-implementation|unit` を扱う
 - `review`: `review_mode: design-review|ui-check|implementation-review` を扱う
@@ -66,6 +67,7 @@ flowchart TD
 - `design` で requirements、必要時 ui-mock、scenario、implementation-brief を固める
 - 構造差分や source 更新が必要な時だけ `diagramming` を使う
 - `review design-review` を通す
+- HITL 後に `design implementation-scope` で実装 handoff を確定する
 - `implement`、`tests`、`review ui-check`、`review implementation-review` の順に進む
 - close では存在する artifact だけを `docs/` 正本へ昇格させる
 
@@ -83,6 +85,7 @@ flowchart TD
 - `distill` で影響範囲と不変条件を整理する
 - `design implementation-brief` を固める
 - 振る舞い変更の可能性がある時は requirements と design-review を追加する
+- HITL 後に `design implementation-scope` で実装 handoff を確定する
 - `implement`、必要な `tests`、`review` を通す
 - close では存在する artifact だけを `docs/` 正本へ昇格させる
 

@@ -2,16 +2,15 @@
 
 ## Goal
 
-- 実装 task の順序、ownership、validation を固定する
+- 実装 task の順序、review 前提、diagram need を固定する
 
 ## Capture
 
 - accepted scope
-- task split
-- validation commands
+- design-review 前に確認したい論点
 - diagram need
 - architecture 変更時だけ `docs/architecture.md` と対象 D2 を `source_diagram_targets` に載せる
-- review handoff condition
+- implementation-scope へ渡す前提
 
 ## Avoid
 

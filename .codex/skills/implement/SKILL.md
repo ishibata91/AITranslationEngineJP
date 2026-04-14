@@ -17,14 +17,13 @@ description: implementation_target と owned scope に従い、frontend / backen
 - `task_mode`: `implement` | `fix` | `refactor`
 - `implementation_target`: `frontend` | `backend` | `mixed`
 - `owned_scope`
-- `implement` / `refactor` では承認済み requirements、存在する ui-mock / scenario、implementation-brief
+- `implement` / `refactor` では承認済み requirements、存在する ui-mock / scenario、implementation-brief、implementation-scope
 - `fix` では accepted scope と trace / reproduce evidence
 
 ## Common Rules
 
 - 編集前に `docs/coding-guidelines.md` を読む
-- `mixed` は狭い横断変更に限る
-- brief を超える broad refactor や仕様追加を行わない
+- `implementation-scope` を超える broad refactor や仕様追加を行わない
 - ownership が曖昧なら停止して orchestrate へ返す
 - plan の書き換えや lane 切り替えはしない
 - 関連 test の更新は同一変更で行う
@@ -38,7 +37,7 @@ description: implementation_target と owned scope に従い、frontend / backen
 
 - `frontend`: 画面導線、state、UI event、Wails bridge 周辺を主対象にする
 - `backend`: usecase、service、repository、adapter、validation を主対象にする
-- `mixed`: 変更境界が narrow で、1 skill で収束できる時だけ許可する
+- 実装 task があるものは `implementation_target` に関係なく、scope freeze 済みの `owned_scope` を処理する
 - `fix` では narrow permanent fix を優先し、ついでの整理を入れない
 
 ## Output

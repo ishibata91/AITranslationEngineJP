@@ -4,5 +4,5 @@
   "to_skill": "orchestrate",
   "mode": "implementation-brief",
   "returned_fields": ["implementation_brief", "review_diff_diagrams", "source_diagram_targets", "canonicalization_targets", "open_questions"],
-  "ready_when": ["orchestrate が implement、diagramming、review の次手を決められる"]
+  "ready_when": ["orchestrate が design-review、diagramming、implementation-scope の次手を決められる"]
 }

@@ -3,6 +3,6 @@
   "from_skill": "orchestrate",
   "to_skill": "design",
   "required_inputs": ["active_work_plan", "task_mode", "design_mode", "distill_result"],
-  "optional_inputs": ["ui_artifact_path", "final_mock_path", "scenario_artifact_path", "final_scenario_path", "required_reading", "accepted_scope", "canonicalization_targets"],
-  "completion_signal": ["functional_requirements_summary", "in_scope", "non_functional_requirements", "out_of_scope", "open_questions", "ui_artifact_path", "final_mock_path", "scenario_artifact_path", "final_scenario_path", "implementation_brief", "review_diff_diagrams", "source_diagram_targets", "canonicalization_targets"]
+  "optional_inputs": ["ui_artifact_path", "final_mock_path", "scenario_artifact_path", "final_scenario_path", "implementation_scope_artifact_path", "required_reading", "accepted_scope", "canonicalization_targets", "hitl_status", "design_review_result"],
+  "completion_signal": ["functional_requirements_summary", "in_scope", "non_functional_requirements", "out_of_scope", "open_questions", "ui_artifact_path", "final_mock_path", "scenario_artifact_path", "final_scenario_path", "implementation_brief", "implementation_scope_artifact_path", "implementation_scope_splits", "review_diff_diagrams", "source_diagram_targets", "canonicalization_targets"]
 }

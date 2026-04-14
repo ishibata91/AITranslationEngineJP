@@ -1,0 +1,9 @@
+{
+  "contract_version": "2026-04-14",
+  "from_skill": "orchestrate",
+  "to_skill": "design",
+  "mode": "implementation-scope",
+  "required_inputs": ["active_work_plan", "task_mode", "hitl_status"],
+  "optional_inputs": ["functional_requirements_summary", "implementation_brief", "design_review_result", "source_diagram_targets", "implementation_scope_artifact_path"],
+  "completion_signal": ["implementation_scope_artifact_path", "implementation_scope_splits", "open_questions"]
+}

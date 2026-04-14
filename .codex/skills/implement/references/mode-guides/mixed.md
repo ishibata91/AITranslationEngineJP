@@ -2,10 +2,10 @@
 
 ## Focus
 
-- narrow な frontend-backend 横断変更だけを扱う
+- scope freeze 済みの frontend-backend 横断変更を扱う
 
 ## Rules
 
-- 片側だけで閉じないことを brief で確認する
-- touched scope を限定し、task split 不能な理由を持つ
+- `implementation-scope` に従って `owned_scope` を守る
+- 片側だけで閉じないことを scope artifact で確認する
 - validation は両側の証跡を返す

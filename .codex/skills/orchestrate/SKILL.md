@@ -30,8 +30,8 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## Routing Rules
 
-- `implement` と `refactor` は `distill` の後に requirements、必要時 ui-mock、scenario、implementation-brief を揃え、人間レビューをはさんで `implement` へ進む
-- `fix` は `distill` で known facts を固め、narrow scope を作れない時は `investigate` に切り替える
+- `implement` と `refactor` は `design-review` と 人間レビューの後に `implementation-scope` を確定し、狭い `owned_scope` で `implement` を並列でスポーンし実装する。`review`で`pass`したのちに正本同期し`close`する。
+- `fix` は`reproduce`で不具合を再現し、`trace`で原因を解析し、必要なら`temporary-logging`を使ってログを仕込み、`reobserve`と`review`で修正を確認する。
 - `investigate` は evidence だけで close してよい
 - `docs-only` は `distill` を通さず、`approval_record` を確認してから `updating-docs` を起動する
 - frontend を含む task は close 前に `review_mode: ui-check` を必須とする
@@ -40,7 +40,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 ## Downstream Selection
 
 - `distill`: implement、fix、refactor、investigate の入口整理
-- `design`: requirements、ui-mock、scenario、implementation-brief
+- `design`: requirements、ui-mock、scenario、implementation-brief、implementation-scope
 - `investigate`: reproduce、trace、temporary-logging、reobserve、risk-report
 - `implement`: frontend、backend、mixed の実装
 - `tests`: scenario-implementation、unit
@@ -50,8 +50,8 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 
 ## Scope Rules
 
-- `implementation_target: mixed` は狭い横断 task に限定する
 - 広い変更は orchestrate 側で frontend / backend / docs / review 単位へ分割する
+- 実装前の scope freeze は design の `implementation-scope` で行う
 - 各 handoff には `owned_scope`、対象ファイル、完了条件、依存、validation を明示する
 - depends_on が未解消の task は handoff しない
 - compact 後も呼び出し元で確定済みの役割を引き継ぎ、配下 skill に再判定させない
@@ -87,7 +87,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - `ctx_loader` -> `distill`
 - `task_designer` -> `design`  # requirements, ui-mock
 - `test_architect` -> `design` / `tests`  # scenario, unit
-- `workplan_builder` -> `design`  # implementation-brief
+- `workplan_builder` -> `design`  # implementation-brief, implementation-scope
 - `ui_checker` -> `investigate` / `review`  # reproduce, reobserve, ui-check
 - `fault_tracer` -> `investigate`  # trace
 - `log_instrumenter` -> `investigate`  # temporary-logging

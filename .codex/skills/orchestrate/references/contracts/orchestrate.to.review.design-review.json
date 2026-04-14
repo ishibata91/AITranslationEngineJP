@@ -5,5 +5,5 @@
   "mode": "design-review",
   "required_inputs": ["active_work_plan", "task_mode"],
   "optional_inputs": ["functional_requirements_summary", "ui_artifact_path", "scenario_artifact_path", "review_diff_diagrams", "source_diagram_targets"],
-  "completion_signal": ["decision", "findings", "recheck"]
+  "completion_signal": ["decision", "findings", "recheck", "human_open_questions"]
 }

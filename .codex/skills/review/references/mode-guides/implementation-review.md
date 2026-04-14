@@ -2,7 +2,7 @@
 
 ## Focus
 
-- design artifact 群 または accepted fix scope と diff の整合
+- implementation-scope artifact または accepted fix scope と diff の整合
 
 ## Rules
 
