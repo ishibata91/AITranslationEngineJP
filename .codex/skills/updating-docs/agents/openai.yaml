@@ -1,5 +1,3 @@
 version: 1
-# Use when a human-approved docs-only task is started directly,
-# or when `orchestrate` routes a docs-only task here.
-agent: default
+agent: docs_updater
 entry: SKILL.md

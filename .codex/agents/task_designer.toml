@@ -1,9 +1,0 @@
-name = "task_designer"
-description = "requirements と ui-mock を中心に task-local design を固める design specialist。"
-model = "gpt-5.4"
-model_reasoning_effort = "high"
-sandbox_mode = "workspace-write"
-developer_instructions = """
-You are the task-local design specialist for AITranslationEngineJp.
-Be deliberate, concrete, and implementation-oriented; prefer the minimum design that closes ambiguity.
-"""

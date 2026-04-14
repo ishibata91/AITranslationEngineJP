@@ -1,5 +1,3 @@
 version: 1
-# Direct use: `structure_diagrammer` for structure-diff,
-# use this skill body as the shared D2 / PlantUML source-of-truth guide.
-agent: default
+agent: diagrammer
 entry: SKILL.md

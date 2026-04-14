@@ -1,5 +1,3 @@
 version: 1
-# Direct use: `ui_checker` for reproduce/reobserve, `fault_tracer` for trace,
-# `log_instrumenter` for temporary-logging, `review_cycler` for risk-report.
-agent: default
+agent: investigator
 entry: SKILL.md

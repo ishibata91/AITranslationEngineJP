@@ -1,14 +1,14 @@
 ---
 name: orchestrate
-description: AITranslationEngineJp 専用。implement、fix、refactor、investigate、docs-only を 1 つの入口で受け、task に応じて role-based skill へ handoff する orchestrator。
+description: AITranslationEngineJp 専用。唯一入口として task mode、primary skill-agent mapping、close 条件を固定し、role-based skill へ handoff する orchestrator。
 ---
 
 # Orchestrate
 
 この skill は live workflow の唯一入口です。
 自身では product 実装、恒久修正、詳細 trace、docs 正本更新を抱えません。
-役割は routing と gate 管理に限定します。
-何があっても自身で調査・実装を始めないこと。必ずサブエージェントに全て解決させること。
+役割は routing、primary handoff、gate 管理に限定します。
+何があっても自身で調査・実装を始めないこと。必ず downstream skill に解決させること。
 
 ## 役割
 
@@ -28,10 +28,22 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - `investigate`: まず evidence を集めるべき調査
 - `docs-only`: human 承認済みの docs 正本変更
 
+## Primary Skill-Agent Mapping
+
+- `distill` -> `distiller`
+- `design` -> `designer`
+- `investigate` -> `investigator`
+- `implement` -> `implementer`
+- `tests` -> `tester`
+- `review` -> `reviewer`
+- `diagramming` -> `diagrammer`
+- `updating-docs` -> `docs_updater`
+
 ## Routing Rules
 
-- `implement` と `refactor` は `design-review` と 人間レビューの後に `implementation-scope` を確定し、狭い `owned_scope` で `implement` を並列でスポーンし実装する。`review`で`pass`したのちに正本同期し`close`する。
-- `fix` は`reproduce`で不具合を再現し、`trace`で原因を解析し、必要なら`temporary-logging`を使ってログを仕込み、`reobserve`と`review`で修正を確認する。
+- 1 downstream skill には 1 primary agent だけを割り当てる
+- `implement` と `refactor` は `design-review` と human review の後に `implementation-scope` を確定し、狭い `owned_scope` で `implement` を実行する。`review` が `pass` を返した後に正本同期し `close` する
+- `fix` は `reproduce` で不具合を再現し、`trace` で原因を解析し、必要なら `temporary-logging` を使って観測点を補強し、`reobserve` と `review` で修正を確認する
 - `investigate` は evidence だけで close してよい
 - `docs-only` は `distill` を通さず、`approval_record` を確認してから `updating-docs` を起動する
 - frontend を含む task は close 前に `review_mode: ui-check` を必須とする
@@ -65,6 +77,7 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - docs-only で `approval_record` がない
 
 ## close条件
+
 - review が `pass` を返すこと
 - backend を含む task は implement と review の両方で Sonar 件数ゲートを確認すること
 - `HIGH` / `BLOCKER` の open issue が 0 件であること
@@ -80,22 +93,8 @@ description: AITranslationEngineJp 専用。implement、fix、refactor、investi
 - orchestrate 自身でコードを書かない
 - orchestrate 自身で詳細調査を抱え込まない
 - downstream skill は `fork_context: false` で呼ぶ
+- primary skill-agent mapping を複数 skill で共有しない
 - 別 skill を増やさない
-- 
-## Handoff Agents
-
-- `ctx_loader` -> `distill`
-- `task_designer` -> `design`  # requirements, ui-mock
-- `test_architect` -> `design` / `tests`  # scenario, unit
-- `workplan_builder` -> `design`  # implementation-brief, implementation-scope
-- `ui_checker` -> `investigate` / `review`  # reproduce, reobserve, ui-check
-- `fault_tracer` -> `investigate`  # trace
-- `log_instrumenter` -> `investigate`  # temporary-logging
-- `review_cycler` -> `investigate` / `review`  # risk-report, design-review, implementation-review
-- `implementer` -> `implement`
-- `implementer` -> `tests`  # scenario-implementation
-- `structure_diagrammer` -> `diagramming`  # structure-diff
-- `default` -> `updating-docs`
 
 ## Reference Use
 

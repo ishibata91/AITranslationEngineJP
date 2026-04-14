@@ -1,5 +1,3 @@
 version: 1
-# Direct use: `review_cycler` for design-review/implementation-review,
-# `ui_checker` for ui-check.
-agent: default
+agent: reviewer
 entry: SKILL.md

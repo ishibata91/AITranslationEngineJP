@@ -1,5 +1,3 @@
 version: 1
-# Direct use: `task_designer` for requirements/ui-mock,
-# `test_architect` for scenario, `workplan_builder` for implementation-brief/implementation-scope.
-agent: default
+agent: designer
 entry: SKILL.md
