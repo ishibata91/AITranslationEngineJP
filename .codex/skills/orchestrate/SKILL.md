@@ -14,8 +14,9 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 
 - active work plan を作成または更新する
 - `task_mode` を決め、判断根拠を plan に残す
-- plan 作成直後に `functional_or_design_hitl: required-after-plan` と `approval_record: pending` を記録し、human review 完了まで停止する
-- `docs-only` 以外は human review 完了後に入口を `distill` とし、次工程を最小構成で選ぶ
+- design bundle として `requirements`、`ui-mock`、`scenario`、`implementation-brief` を揃える
+- design bundle 完了後に `functional_or_design_hitl: required-after-design-bundle` と `approval_record: pending-after-design-bundle` を記録し、human review 完了まで停止する
+- `docs-only` 以外は human review 完了後に `implementation-scope` 以降の次工程を最小構成で選ぶ
 - `docs-only` は human 承認済みの時だけ `updating-docs` へ handoff する
 - `HITL`、required evidence、required validation、close 条件を管理する
 - 存在する task-local artifact だけを `docs/` 正本へ反映する close summary を残す
@@ -24,7 +25,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 ## Task Modes
 
 - `implement`: 新機能、既存機能拡張、明確な振る舞い追加
-- `fix`: bug、regression、narrow scope の恒久修正
+- `fix`: bug、regressionの恒久修正
 - `refactor`: 主目的が構造改善で、要件追加が主ではない変更
 - `investigate`: まず evidence を集めるべき調査
 - `docs-only`: human 承認済みの docs 正本変更
@@ -42,14 +43,39 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 
 ## Routing Rules
 
-- 1 downstream skill には 1 primary agent だけを割り当てる
-- `docs-only` 以外の全 task は active work plan 作成または更新の直後に human review gate を立てる。`approval_record` が埋まるまで downstream handoff を開始しない
-- `implement` と `refactor` は `design-review` と human review の後に `implementation-scope` を確定し、狭い `owned_scope` で `implement` を実行する。`review` が `pass` を返した後に正本同期し `close` する
-- `fix` は `reproduce` で不具合を再現し、`trace` で原因を解析し、必要なら `temporary-logging` を使って観測点を補強し、`reobserve` と `review` で修正を確認する
-- `investigate` は evidence だけで close してよい
-- `docs-only` は `distill` を通さず、`approval_record` を確認してから `updating-docs` を起動する
-- frontend を含む task は close 前に `review_mode: ui-check` を必須とする
-- 全 task で `review_mode: implementation-review` を必須とする
+- 共通ルール: 1 downstream skill には 1 primary agent だけを割り当てる
+- 共通ルール: frontend を含む task は close 前に `review_mode: ui-check` を必須とする
+- 共通ルール: 全 task で `review_mode: implementation-review` を必須とする
+
+### `implement` / `refactor`
+
+1. `distill` (`distiller`) に渡し、入口文脈を最小化する。
+2. `design` (`designer`) で design bundle として `requirements`、`ui-mock`、`scenario`、`implementation-brief` を揃える。
+3. design bundle 完了後に human review gate を立てる。
+4. `review` (`reviewer`) の `design-review` と human review を通した後、`design` (`designer`) で `implementation-scope` を確定する。
+5. 狭い `owned_scope` で `implement` (`implementer`) を実行する。
+6. 必須 review が `pass` を返した後に正本同期し `close` する。
+
+### `fix`
+
+1. `distill` (`distiller`) に渡し、参照物と入口文脈を確定する。
+2. `investigate` (`investigator`) で `reproduce` を行い、不具合を再現する。
+3. 同じく `investigate` (`investigator`) で `trace` を行い、原因を解析する。
+4. 必要な時だけ `temporary-logging` で観測点を補強する。
+5. 修正後に `reobserve` と `review` で結果を確認する。
+6. 修正方針が確定したら`implement`で修正し、`review`が`pass`を返したら`close`とする
+
+### `investigate`
+
+1. `distill` (`distiller`) で入口文脈を整理する。
+2. `investigate` (`investigator`) で evidence を集める。
+3. evidence のみで close してよい。
+
+### `docs-only`
+
+1. `distill` は通さない。
+2. `approval_record` を確認する。
+3. `updating-docs` (`docs_updater`) を起動する。
 
 ## Downstream Selection
 
@@ -65,7 +91,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 ## Scope Rules
 
 - 広い変更は orchestrate 側で frontend / backend / docs / review 単位へ分割する
-- plan review に必要な判断材料は active work plan へ先に固定し、human review 完了前に downstream へ渡さない
+- human review に必要な判断材料は design bundle 完了時点で active work plan へ固定し、human review 完了前に `implementation-scope` 以降へ渡さない
 - 実装前の scope freeze は design の `implementation-scope` で行う
 - 各 handoff には `owned_scope`、対象ファイル、完了条件、依存、validation を明示する
 - depends_on が未解消の task は handoff しない
@@ -76,7 +102,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - plan が破綻している
 - user 承認済み判断と衝突する
 - skill 権限境界を超える
-- plan 作成後に `functional_or_design_hitl` が `required-after-plan` のまま、または `approval_record` が `pending` のままになっている
+- design bundle 完了後に `functional_or_design_hitl` が `required-after-design-bundle` のまま、または `approval_record` が `pending-after-design-bundle` のままになっている
 - narrow scope を安全に定義できない
 - docs-only で `approval_record` がない
 
@@ -96,7 +122,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 
 - orchestrate 自身でコードを書かない
 - orchestrate 自身で詳細調査を抱え込まない
-- human review 未完了の plan を downstream handoff で迂回しない
+- human review 未完了の design bundle を `implementation-scope` 以降の downstream handoff で迂回しない
 - downstream skill は `fork_context: false` で呼ぶ
 - primary skill-agent mapping を複数 skill で共有しない
 - 別 skill を増やさない
