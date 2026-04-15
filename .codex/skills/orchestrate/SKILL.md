@@ -16,6 +16,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - design bundle として `requirements`、`ui-mock`、`scenario`、`implementation-brief` を揃える
 - design bundle 完了後に `functional_or_design_hitl: required-after-design-bundle` と `approval_record: pending-after-design-bundle` を記録し、human review 完了まで停止する
 - `docs-only` 以外は human review 完了後にだけ `implementation-scope` 以降の次工程を選ぶ
+- human review 後の handoff は `implementation-scope` を唯一の実行正本として扱う
 - `docs-only` は human 承認済みの時だけ `updating-docs` へ handoff する
 - `HITL`、required evidence、required validation、close 条件を管理する
 - 存在する task-local artifact だけを `docs/` 正本へ反映する close summary を残す
@@ -26,6 +27,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - `implementation-brief` は human review と実装者 handoff の両方に使う仕様書として扱う
 - `implementation-brief` には背景、選択肢、推奨案、理由、未解消事項を分離して書かせる
 - `implementation-scope` は human review 後に作る AI handoff 専用資料として扱う
+- `implementation-scope` の各 handoff 見出しを downstream 実行単位として扱う。orchestrate は handoff を束ね直さない
 - human review 前は `implementation-scope`、`owned_scope`、対象ファイル、完了条件を確定しない
 - human review は design bundle が揃った後に 1 回だけ行う
 
@@ -64,8 +66,9 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 4. `review` (`reviewer`) の `design-review` を行う。
 5. design bundle が揃った後に human review を 1 回だけ行う。
 6. human review 完了後に `design` (`designer`) で `implementation-scope` を確定する。
-7. 狭い `owned_scope` で `implement` (`implementer`) を実行する。
-8. `tests`、`review ui-check`、`review implementation-review` を通した後に close する。
+7. `implementation-scope` に並んだ handoff を見出し単位で順に実行する。各 `implement` (`implementer`) handoff は 1 つの `owned_scope` だけを担当する。
+8. `depends_on` が完了した handoff だけを次に進める。未完了 handoff を並行起動しない。
+9. `tests`、`review ui-check`、`review implementation-review` を通した後に close する。
 
 ### `refactor`
 
@@ -75,7 +78,8 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 4. `review` (`reviewer`) の `design-review` を行う。
 5. design bundle が揃った後に human review を 1 回だけ行う。
 6. human review 完了後に `design` (`designer`) で `implementation-scope` を確定する。
-7. `implement`、必要な `tests`、必要な `review` を通した後に close する。
+7. `implementation-scope` に並んだ handoff を見出し単位で順に実行する。各 `implement` (`implementer`) handoff は 1 つの `owned_scope` だけを担当する。
+8. `depends_on` が完了した handoff だけを次に進め、必要な `tests`、必要な `review` を通した後に close する。
 
 ### `fix`
 
@@ -117,6 +121,9 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - scope freeze は human review 後の `implementation-scope` で行う
 - `implementation-brief` には人間が判断できる粒度の論点と理由を残す
 - `implementation-scope` には AI が再解釈せず実装できる粒度の handoff だけを残す
+- orchestrate は `implementation-scope` の handoff 見出しをそのまま実行単位として扱う。複数 handoff を 1 回の依頼へ束ねない
+- orchestrate は `implementation-scope` の `implementation_target`、`owned_scope`、`depends_on`、`validation_commands` を handoff ごとにそのまま転写する
+- orchestrate は `implementation-scope` に書かれた handoff 順を優先し、`depends_on` 完了前に後続 handoff を起動しない
 - 各 handoff には `owned_scope`、対象、依存、validation を明示する
 - `depends_on` が未解消の task は handoff しない
 - compact 後も呼び出し元で確定済みの役割を引き継ぎ、配下 skill に再判定させない
@@ -128,6 +135,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - skill 権限境界を超える
 - design bundle 完了後に `functional_or_design_hitl` が `required-after-design-bundle` のまま、または `approval_record` が `pending-after-design-bundle` のままになっている
 - narrow scope を安全に定義できない
+- `implementation-scope` の handoff 単位へ安全に落とせず、束ね直しや再解釈が必要になっている
 - docs-only で `approval_record` がない
 
 ## close 条件
@@ -148,6 +156,9 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - orchestrate 自身で詳細調査を抱え込まない
 - human review 未完了の design bundle を `implementation-scope` 以降の downstream handoff で迂回しない
 - downstream skill は `fork_context: false` で呼ぶ
+- human review 後の handoff は `implementation-scope` の見出し単位で 1 回ずつ起動する
+- human review 後の handoff は `implementation-scope` に書かれた `depends_on` 解消順を必ず守る
+- orchestrate は `implementation-scope` の handoff を task group や便宜上のまとまりで再束ねしない
 - primary skill-agent mapping を複数 skill で共有しない
 - 別 skill を増やさない
 
