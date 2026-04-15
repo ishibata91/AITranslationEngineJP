@@ -54,6 +54,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - 共通ルール: frontend を含む task は close 前に `review_mode: ui-check` を必須とする
 - 共通ルール: 全 task で `review_mode: implementation-review` を必須とする
 - 共通ルール: 本文と補足は日本語優先で書く。固有名詞、既存 key、既存 contract 名、mode 名だけを例外とする
+- 共通ルール: レビューバックがあった場合、前ステップの適切なエージェントに修正を依頼すること
 
 ### `implement`
 
