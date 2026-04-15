@@ -7,6 +7,20 @@ import type {
 
 import { MasterDictionaryScreenController } from "./master-dictionary-screen-controller"
 
+function createSelectedEntry() {
+  return {
+    id: "101",
+    source: "Dragon Priest",
+    translation: "ドラゴン・プリースト",
+    category: "地名",
+    origin: "確認待ち",
+    rec: "NPC_:FULL",
+    edid: "SeedDragonPriest",
+    updatedAt: "2026-01-01 00:00",
+    note: "note"
+  }
+}
+
 function createState(
   overrides: Partial<MasterDictionaryScreenState> = {}
 ): MasterDictionaryScreenState {
@@ -275,15 +289,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openEditModal は selectedEntry の source をフォームへ反映する", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(createState({ selectedEntry }))
 
     // Act
@@ -295,15 +301,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openEditModal は selectedEntry の category をフォームへ反映する", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(createState({ selectedEntry }))
 
     // Act
@@ -315,15 +313,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openEditModal は selectedEntry の origin をフォームへ反映する", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(createState({ selectedEntry }))
 
     // Act
@@ -335,15 +325,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openEditModal は selectedEntry の translation をフォームへ反映する", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(createState({ selectedEntry }))
 
     // Act
@@ -355,15 +337,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openEditModal は modalState を edit へ切り替える", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(createState({ selectedEntry }))
 
     // Act
@@ -375,15 +349,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openEditModal は errorMessage をクリアする", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(
       createState({ selectedEntry, errorMessage: "error" })
     )
@@ -408,15 +374,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openDeleteModal は modalState を delete へ切り替える", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(createState({ selectedEntry }))
 
     // Act
@@ -428,15 +386,7 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openDeleteModal は errorMessage をクリアする", () => {
     // Arrange
-    const selectedEntry = {
-      id: "101",
-      source: "Dragon Priest",
-      translation: "ドラゴン・プリースト",
-      category: "地名",
-      origin: "確認待ち",
-      updatedAt: "2026-01-01 00:00",
-      note: "note"
-    }
+    const selectedEntry = createSelectedEntry()
     const harness = createControllerHarness(
       createState({ selectedEntry, errorMessage: "error" })
     )

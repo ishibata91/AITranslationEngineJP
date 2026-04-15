@@ -57,8 +57,24 @@ function createDefaultSelectedEntry(): MasterDictionaryEntryDetail {
     translation: "ドラゴン・プリースト",
     category: "固有名詞",
     origin: "初期データ",
+    rec: "NPC_:FULL",
+    edid: "SeedDragonPriest",
     updatedAt: "2026-01-01 00:00",
     note: "REC: NPC_:FULL / EDID: SeedDragonPriest"
+  }
+}
+
+function createImportedBookSelectedEntry(): MasterDictionaryEntryDetail {
+  return {
+    id: "201",
+    source: "Allowed Book Source",
+    translation: "許可された本の訳語",
+    category: "書籍",
+    origin: "XML取込",
+    rec: "BOOK:FULL",
+    edid: "ImportBook",
+    updatedAt: "2026-04-12 00:00",
+    note: "REC: BOOK:FULL / EDID: ImportBook"
   }
 }
 
@@ -840,15 +856,7 @@ describe("App master dictionary screen", () => {
             updatedAt: "2026-04-12 00:00"
           }
         ],
-        selectedEntry: {
-          id: "201",
-          source: "Allowed Book Source",
-          translation: "許可された本の訳語",
-          category: "書籍",
-          origin: "XML取込",
-          updatedAt: "2026-04-12 00:00",
-          note: "REC: BOOK:FULL / EDID: ImportBook"
-        },
+        selectedEntry: createImportedBookSelectedEntry(),
         selectedId: "201",
         totalCount: 1,
         query: "",
@@ -895,15 +903,7 @@ describe("App master dictionary screen", () => {
             updatedAt: "2026-04-12 00:00"
           }
         ],
-        selectedEntry: {
-          id: "201",
-          source: "Allowed Book Source",
-          translation: "許可された本の訳語",
-          category: "書籍",
-          origin: "XML取込",
-          updatedAt: "2026-04-12 00:00",
-          note: "REC: BOOK:FULL / EDID: ImportBook"
-        },
+        selectedEntry: createImportedBookSelectedEntry(),
         selectedId: "201",
         totalCount: 1,
         query: "",
@@ -953,15 +953,7 @@ describe("App master dictionary screen", () => {
             updatedAt: "2026-04-12 00:00"
           }
         ],
-        selectedEntry: {
-          id: "201",
-          source: "Allowed Book Source",
-          translation: "許可された本の訳語",
-          category: "書籍",
-          origin: "XML取込",
-          updatedAt: "2026-04-12 00:00",
-          note: "REC: BOOK:FULL / EDID: ImportBook"
-        },
+        selectedEntry: createImportedBookSelectedEntry(),
         selectedId: "201",
         totalCount: 1,
         query: "",
@@ -1008,15 +1000,7 @@ describe("App master dictionary screen", () => {
             updatedAt: "2026-04-12 00:00"
           }
         ],
-        selectedEntry: {
-          id: "201",
-          source: "Allowed Book Source",
-          translation: "許可された本の訳語",
-          category: "書籍",
-          origin: "XML取込",
-          updatedAt: "2026-04-12 00:00",
-          note: "REC: BOOK:FULL / EDID: ImportBook"
-        },
+        selectedEntry: createImportedBookSelectedEntry(),
         selectedId: "201",
         totalCount: 1,
         query: "",
@@ -1063,15 +1047,7 @@ describe("App master dictionary screen", () => {
             updatedAt: "2026-04-12 00:00"
           }
         ],
-        selectedEntry: {
-          id: "201",
-          source: "Allowed Book Source",
-          translation: "許可された本の訳語",
-          category: "書籍",
-          origin: "XML取込",
-          updatedAt: "2026-04-12 00:00",
-          note: "REC: BOOK:FULL / EDID: ImportBook"
-        },
+        selectedEntry: createImportedBookSelectedEntry(),
         selectedId: "201",
         totalCount: 1,
         query: "",

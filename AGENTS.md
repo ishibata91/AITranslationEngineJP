@@ -69,7 +69,7 @@ AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `
 - 資料は日本語で記載すること。思考やエージェント間の通信は英語で行うこと。
 - wailsの起動は、`npm run dev:wails:docker-mcp`で行うこと。
 - playwright MCPでは、権限の問題により次のリンクからでしかwailsに接続できないので、次のリンクから接続すること`http://host.docker.internal:34115` 
-- playwright MCP使用時、LMstudio以外のプロバイダを選択しないこと
+- sonar projetは`ishibata91_AITranslationEngineJP`
 
 ## 実装前に確認すること
 

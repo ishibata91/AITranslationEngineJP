@@ -34,6 +34,8 @@ function createGateway(): {
         translation: "ドラゴン・プリースト",
         category: "固有名詞",
         origin: "初期データ",
+        rec: "NPC_:FULL",
+        edid: "SeedDragonPriest",
         updatedAt: "2026-01-01 00:00",
         note: "REC: NPC_:FULL / EDID: SeedDragonPriest"
       }
