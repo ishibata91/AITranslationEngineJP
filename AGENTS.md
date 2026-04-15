@@ -1,5 +1,26 @@
 # AGENTS.md
 
+## memory
+まずは開始前にタスクに関連する記憶をmemory MCPで思い出すこと。
+次のイベントがあった場合、memory MCPで記憶すること
+
+- 人間から明示的に修正された判断基準や禁止事項
+- 同じ原因で2回以上起きた失敗や見落とし
+- 解決までに長時間かかった問題の原因
+- 次回も再利用できる有効な対処、確認順、探索順
+- 正本、責務、権限境界の取り違えで起きた失敗
+- 検証不足、確認漏れ、質問不足で起きた失敗
+- memory には one-off の作業メモ、未承認の設計案、今回だけの TODO、一時回避策を入れない
+- entity 名は抽象語を避け、対象 task や論点が検索語として残る短い名前にする。例: `master-persona pitfalls`、`test safety rules`
+- observation は 1 件 1 ルールに分ける。1 observation に複数の判断、複数の例外、複数の手順を詰め込まない
+- observation には、次回の検索で使う固有語を明示的に入れる。例: `master-persona`、`overwrite しない`、`zero-dialogue skip`、`plugin filter`
+- task 名、画面名、契約名、禁止語、確認順など、再検索に使う語を observation から省略しない
+- relation を使える時は bucket と task 固有 memory をつなぐ。例: `recurring_pitfalls` -> `master-persona pitfalls`
+- memory は recall 用であり、`docs/` や active exec-plan の正本代替にしない。仕様、設計、実装スコープの正本は既存ルールどおり `docs/` と `.codex/` に置く
+- 良い例: `master-persona では plugin filter を generation state filter の代わりに使う`
+- 良い例: `ui-check/system test/E2E では paid な real AI API を呼ばない`
+- 悪い例: `今回の件で気をつける`
+- 悪い例: `いろいろ問題があったので直した`
 ## 目的
 
 AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `agent-first` リポジトリです。
