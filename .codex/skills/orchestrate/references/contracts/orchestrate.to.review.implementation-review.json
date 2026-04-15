@@ -1,9 +1,13 @@
 {
-  "contract_version": "2026-04-14",
+  "contract_version": "2026-04-15",
   "from_skill": "orchestrate",
   "to_skill": "review",
   "mode": "implementation-review",
   "required_inputs": ["active_work_plan", "task_mode", "validation_evidence"],
   "optional_inputs": ["implementation_scope_artifact_path", "accepted_fix_scope", "review_diff_diagrams"],
+  "mode_notes": [
+    "implement と refactor では implementation_scope_artifact_path を AI handoff 正本として扱う",
+    "implementation-review は implementation-scope や accepted fix scope にない仕様や好みで判定しない"
+  ],
   "completion_signal": ["decision", "findings", "recheck", "sonar_gate_result", "closeout_notes", "human_open_questions"]
 }

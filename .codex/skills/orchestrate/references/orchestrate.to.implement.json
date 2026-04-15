@@ -1,9 +1,12 @@
 {
-  "contract_version": "2026-04-14",
+  "contract_version": "2026-04-15",
   "from_skill": "orchestrate",
   "to_skill": "implement",
   "required_inputs": ["active_work_plan", "task_mode", "implementation_target", "owned_scope"],
   "optional_inputs": ["implementation_scope_artifact_path", "implementation_brief", "ui_artifact_path", "scenario_artifact_path", "accepted_fix_scope", "trace_or_analysis_result", "reproduction_evidence", "local_validation"],
-  "mode_notes": ["implement と refactor では implementation_scope_artifact_path を必須とし、fix では accepted_fix_scope と evidence を必須とする"],
+  "mode_notes": [
+    "implement と refactor では implementation_scope_artifact_path を AI handoff 正本として必須にし、fix では accepted_fix_scope と evidence を必須にする",
+    "implementation-brief は実装理由と制約の参照元、implementation-scope は実行単位と owned_scope の参照元として扱う"
+  ],
   "completion_signal": ["touched_files", "implemented_scope", "validation_results", "closeout_notes", "residual_risks"]
 }

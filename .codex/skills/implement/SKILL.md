@@ -17,7 +17,9 @@ description: implementation_target と owned scope に従い、frontend / backen
 - `task_mode`: `implement` | `fix` | `refactor`
 - `implementation_target`: `frontend` | `backend` | `mixed`
 - `owned_scope`
-- `implement` / `refactor` では承認済み requirements、存在する ui-mock / scenario、implementation-brief、implementation-scope
+- `implement` / `refactor` では承認済み requirements、存在する `ui-mock` / `scenario`、`implementation-brief`、`implementation-scope`
+- `implementation-brief` は背景、制約、判断理由の参照元として扱う
+- `implementation-scope` は AI handoff 専用資料として扱い、実行単位、依存、validation の参照元とする
 - `fix` では accepted scope と trace / reproduce evidence
 
 ## Common Rules

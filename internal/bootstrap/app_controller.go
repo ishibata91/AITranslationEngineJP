@@ -19,12 +19,19 @@ import (
 // NewAppController builds the default backend graph for the desktop app.
 func NewAppController() *controllerwails.AppController {
 	now := func() time.Time { return time.Now().UTC() }
+	return newAppControllerWithMasterDictionarySeed(repository.DefaultMasterDictionarySeed(now()), now)
+}
+
+func newAppControllerWithMasterDictionarySeed(
+	masterDictionarySeed []repository.MasterDictionaryEntry,
+	now func() time.Time,
+) *controllerwails.AppController {
 	runtimeEmitterState := controllerwails.NewRuntimeEmitterState()
 	runtimePublisher := usecase.NewWailsMasterDictionaryRuntimeEventPublisher(runtimeEmitterState.RuntimeEventContext)
 	repositoryAdapter, err := service.NewSQLiteMasterDictionaryRepositoryPort(
 		context.Background(),
 		masterDictionaryDatabasePath(),
-		repository.DefaultMasterDictionarySeed(now()),
+		masterDictionarySeed,
 	)
 	if err != nil {
 		panic(fmt.Errorf("build sqlite master dictionary repository: %w", err))

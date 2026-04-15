@@ -10,11 +10,11 @@
 
 ## Request Summary
 
--
+- 日本語で、依頼の目的と前提を短く書く
 
 ## Decision Basis
 
--
+- 根拠になる既存仕様、既存実装、未確認契約を書く
 
 ## Task Mode
 
@@ -25,7 +25,7 @@
 
 ## Facts
 
--
+- 実際に確認した事実だけを書く
 
 ## Functional Requirements
 
@@ -42,18 +42,18 @@
 - `final_mock_path`:
 - `scenario_artifact_path`:
 - `final_scenario_path`:
-- `implementation_scope_artifact_path`:
+- `implementation_scope_artifact_path`: AI handoff 専用資料の path だけを書く。本文はここへ埋め込まない
 - `review_diff_diagrams`:
 - `source_diagram_targets`:
 - `canonicalization_targets`:
 
 ## Work Brief
 
-- `implementation_target`:
-- `accepted_scope`:
-- `parallel_task_groups`:
-- `tasks`:
-- `validation_commands`:
+- `implementation_target`: 日本語で意図が分かるように補足する
+- `accepted_scope`: human review 後に扱う初期実装範囲を日本語で書く
+- `parallel_task_groups`: 分割単位を日本語で書く
+- `tasks`: 人が判断できる粒度で書く
+- `validation_commands`: 実行コマンドだけを書く
 
 ## Investigation
 
@@ -64,11 +64,11 @@
 
 ## Acceptance Checks
 
--
+- 人が読んで確認できる完了条件を書く
 
 ## Required Evidence
 
--
+- review や close に必要な証跡を書く
 
 ## HITL Status
 
@@ -81,4 +81,4 @@
 
 ## Outcome
 
--
+- 結果を短く追記する

@@ -1,9 +1,13 @@
 {
-  "contract_version": "2026-04-14",
+  "contract_version": "2026-04-15",
   "from_skill": "orchestrate",
   "to_skill": "design",
   "mode": "requirements",
   "required_inputs": ["active_work_plan", "task_mode", "distill_result"],
   "optional_inputs": ["seed_requirements", "required_reading"],
-  "completion_signal": ["functional_requirements_summary", "in_scope", "out_of_scope", "open_questions"]
+  "mode_notes": [
+    "決定事項、未確定事項、対象外、open_questions を分離する",
+    "各論点は背景、選択肢、推奨案、理由、未解消事項を分離して書く"
+  ],
+  "completion_signal": ["functional_requirements_summary", "in_scope", "non_functional_requirements", "out_of_scope", "open_questions", "required_reading"]
 }

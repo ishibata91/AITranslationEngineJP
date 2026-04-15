@@ -1,11 +1,11 @@
 {
-  "contract_version": "2026-04-14",
+  "contract_version": "2026-04-15",
   "skill": "design",
   "allowed_actions": [
     "機能要件と非機能要件を active work plan に固定する",
     "task-local UI モックと Scenario artifact を作成または更新する",
-    "implementation brief と diagram 参照を active work plan に固定する",
-    "implementation scope artifact と handoff split を active plan に固定する"
+    "human review と実装者 handoff の両方に使う implementation-brief を active work plan に固定する",
+    "AI handoff 専用の implementation-scope artifact と handoff split を active plan に固定する"
   ],
   "forbidden_actions": [
     "実装コードや product test を更新する",

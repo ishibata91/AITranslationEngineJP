@@ -1,9 +1,13 @@
 {
-  "contract_version": "2026-04-14",
+  "contract_version": "2026-04-15",
   "from_skill": "orchestrate",
   "to_skill": "design",
   "mode": "implementation-scope",
-  "required_inputs": ["active_work_plan", "task_mode", "hitl_status"],
-  "optional_inputs": ["functional_requirements_summary", "implementation_brief", "design_review_result", "source_diagram_targets", "implementation_scope_artifact_path"],
+  "required_inputs": ["active_work_plan", "task_mode", "hitl_status", "implementation_brief"],
+  "optional_inputs": ["functional_requirements_summary", "ui_artifact_path", "scenario_artifact_path", "design_review_result", "source_diagram_targets", "implementation_scope_artifact_path"],
+  "mode_notes": [
+    "implementation-scope は human review 後にだけ作る AI handoff 専用資料として扱う",
+    "本文は英語で圧縮し、owned_scope と validation_commands を再解釈不要な粒度で固定する"
+  ],
   "completion_signal": ["implementation_scope_artifact_path", "implementation_scope_splits", "open_questions"]
 }

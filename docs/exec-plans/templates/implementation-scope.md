@@ -1,20 +1,22 @@
-# 実装スコープ固定テンプレート
+# Implementation Scope Template
 
 - `task_id`:
 - `task_mode`:
 - `design_review_status`:
 - `hitl_status`:
 - `summary`:
+- `source_brief`: path to the approved implementation-brief
 
-## 共通ルール
+## Rules
 
-- 実装 handoff ごとに `implementation_target`、`owned_scope`、`depends_on`、`validation_commands` を明示する
-- `owned_scope` はファイル、ディレクトリ、責務境界のいずれかで再解釈不要な粒度にする
-- `implementation_target` は `frontend`、`backend`、`mixed` のいずれかを使う
-- 実装 task があるものは `implementation_target` に関係なく `owned_scope` を固定する
-- `docs/` 正本更新だけの task はここへ載せない
+- This file is for AI handoff only.
+- Keep prose short and in English.
+- Do not restate full requirements or review rationale.
+- Use only the information needed to execute without re-interpretation.
+- Keep the file in `active/` while work is ongoing.
+- Move the file with the plan when the task is completed.
 
-## 実装 handoff 一覧
+## Handoffs
 
 ### `handoff_id`:
 

@@ -8,29 +8,35 @@ description: 機能要件、UI モック、Scenario、implementation brief、imp
 ## Goal
 
 - 実装前に task-local design を固定する
-- requirements、UI、Scenario、implementation brief、implementation scope を mode ごとに作り分ける
-- 実装と docs 正本更新を混ぜず、active plan と task-local artifact に閉じる
+- `requirements`、`ui-mock`、`scenario`、`implementation-brief`、`implementation-scope` を役割別に作り分ける
+- human review 用の判断材料と AI handoff 用の資料を混ぜない
 
 ## Modes
 
 - `requirements`: 機能要件と非機能要件を固定する
-- `ui-mock`: task-local UI モック working copy と plan 参照を固定する
-- `scenario`: Scenario テスト一覧 working copy と plan 参照を固定する
-- `implementation-brief`: 実装順、review 前提、diagram need を brief 化する
-- `implementation-scope`: HITL 後の実装 handoff、ownership、validation を独立 artifact に固定する
+- `ui-mock`: task-local UI mock working copy と plan 参照を固定する
+- `scenario`: Scenario 一覧 working copy と plan 参照を固定する
+- `implementation-brief`: human review と実装者 handoff の両方に使う仕様書を固定する
+- `implementation-scope`: human review 後の AI handoff 専用資料を固定する
 
 ## Common Rules
 
-- `requirements` は active work plan の要件 section だけを更新する
+- 文書は初見の human が判断でき、同時に実装者が補完なしで着手できる粒度で書く
+- 各論点は `issue`、`background`、`options`、`recommendation`、`reasoning`、`open_risks` の形にする
+- 1 項目 1 論点を守り、複数カテゴリを 1 文に混ぜない
+- カテゴリは `Form / UI fields`、`Domain / data model`、`Commands / action semantics`、`State transitions`、`History / operations`、`API / DTO / contracts` を使う
+- 各論点には判断基準を明示する
+- 固有名詞、既存 field 名、既存 contract 名、mode 名を除き、日本語優先で書く
+- `requirements` は active work plan の要件 section を更新する
 - `ui-mock` は `docs/exec-plans/active/<task-id>.ui.html` と `docs/mocks/<page-id>/index.html` の最終適用先を plan に更新する
 - `scenario` は `docs/exec-plans/active/<task-id>.scenario.md` と `docs/scenario-tests/<topic-id>.md` の最終適用先を plan に更新する
-- `implementation-brief` は active work plan の `Work Brief` と diagram 参照だけを更新し、architecture 変更が必要な時だけ `docs/architecture.md` と対象 D2 を `source_diagram_targets` に載せる
-- `implementation-scope` は `docs/exec-plans/active/<task-id>.implementation-scope.md` と plan 参照だけを更新する
+- `implementation-brief` は active work plan の `Request Summary`、`Decision Basis`、`Facts`、`Functional Requirements`、`Work Brief`、`Acceptance Checks`、`Required Evidence`、`HITL Status` と diagram 参照を更新する
+- `implementation-scope` は `docs/exec-plans/active/<task-id>.implementation-scope.md` と plan の path 参照だけを更新する
+- `implementation-scope` の本文は AI handoff 専用のため英語で圧縮してよい
 - 実装コード、product test、docs 正本は変更しない
 - human 判断が必要な論点は `open_questions` に分離する
-- diagram が必要な時だけ `diagramming` を起動する
-- 役割を再確定せず、呼び出し元で確定した design mode をそのまま進める
-- docsのER図やアーキテクチャと詳細設計に矛盾がある場合、人間に確認を取ること。
+- docs の ER 図や architecture と詳細設計に矛盾がある場合は human に確認する
+- 役割を再確定せず、呼び出し元で確定した `design_mode` をそのまま進める
 
 ## Output
 

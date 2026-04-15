@@ -38,7 +38,7 @@ backend の Sonar close gate は独立 skill にせず、`implement` と `review
 
 - UI モック working copy は `docs/exec-plans/active/<task-id>.ui.html`
 - Scenario テスト一覧 working copy は `docs/exec-plans/active/<task-id>.scenario.md`
-- 実装スコープ固定資料は `docs/exec-plans/active/<task-id>.implementation-scope.md`
+- `implementation-scope` は AI handoff 専用資料として `docs/exec-plans/active/<task-id>.implementation-scope.md` に置く
 - architecture 変更がある時だけ `docs/architecture.md` と対象 D2 を plan の `source_diagram_targets` に記録する
 - active work plan は `docs/exec-plans/templates/work-plan.md`
 - active work plan には artifact 本文を埋め込まず、path と要点だけを残す

@@ -19,8 +19,9 @@ flowchart TD
 
     A --> B --> F
     B --> C --> F
-    F --> L[design implementation-scope]
-    L --> D --> E --> G --> H --> J
+    F --> L[human review]
+    L --> M[design implementation-scope]
+    M --> D --> E --> G --> H --> J
     A --> I --> D
     I --> E
     I --> H
@@ -36,66 +37,78 @@ flowchart TD
 ## 全体像
 
 `orchestrate` が唯一入口です。
-`docs-only` 以外の task_mode は共通入口として `distill` を呼びます。
+`docs-only` 以外の `task_mode` は共通入口として `distill` を呼びます。
 `docs-only` は human 承認済みの時だけ `updating-docs` へ handoff します。
 その後は role ごとの skill を最小構成で呼び、close 条件と validation だけを管理します。
 
 ## Skill Roles
 
 - `distill`: facts、constraints、gaps、required reading、related code pointer、recommended next skill を返す
-- `investigate`: reproduce、trace、temporary-logging、reobserve、risk-report を扱う
-- `design`: requirements、ui-mock、scenario、implementation-brief、implementation-scope を扱う
+- `investigate`: `reproduce`、`trace`、`temporary-logging`、`reobserve`、`risk-report` を扱う
+- `design`: `requirements`、`ui-mock`、`scenario`、`implementation-brief`、`implementation-scope` を扱う
 - `implement`: `task_mode` と `implementation_target: frontend|backend|mixed` に従って実装する
 - `tests`: `test_mode: scenario-implementation|unit` を扱う
 - `review`: `review_mode: design-review|ui-check|implementation-review` を扱う
 - `diagramming`: `diagram_mode: structure-diff|d2|plantuml` を扱う
 - `updating-docs`: human 承認済み docs-only の docs 正本更新を扱う
 
+## design bundle の責務
+
+- `requirements` は決定事項、未確定事項、対象外、open questions を分離する
+- `ui-mock` は主要操作、状態差分、失敗時、再実行時を読める working copy を作る
+- `scenario` は正常系、失敗系、再実行系を acceptance check と接続する
+- `implementation-brief` は human review と実装者 handoff の両方に使う仕様書として扱う
+- `implementation-scope` は human review 後に作る AI handoff 専用資料として扱う
+- human review は design bundle が揃った後に 1 回だけ行う
+
 ## Artifact Canonicalization
 
 - task-local UI mock がある時だけ `docs/mocks/<page-id>/index.html` へ反映する
 - task-local Scenario 一覧がある時だけ `docs/scenario-tests/<topic-id>.md` へ反映する
+- AI handoff 用の `implementation-scope` は active/completed plan 配下に保持し、`docs/` 正本へ昇格しない
 - architecture 成果物がある時だけ `docs/architecture.md` と対象 `docs/diagrams/backend|frontend/*.d2` へ反映する
 - review 用差分図は正本ではなく、D2 正本へ反映した事実だけを plan に残す
 - 3 種類すべては必須ではなく、存在しない artifact は close を妨げない
 
-## task_mode ごとの標準順序
+## `task_mode` ごとの標準順序
 
-### implement
+### `implement`
 
 - `distill` で facts / constraints / gaps を固定する
-- `design` で requirements、必要時 ui-mock、scenario、implementation-brief を固める
+- `design` で `requirements`、必要時 `ui-mock`、`scenario`、`implementation-brief` を固める
 - 構造差分や source 更新が必要な時だけ `diagramming` を使う
 - `review design-review` を通す
-- HITL 後に `design implementation-scope` で実装 handoff を確定する
+- human review を 1 回だけ行う
+- human review 後に `design implementation-scope` で AI handoff を確定する
 - `implement`、`tests`、`review ui-check`、`review implementation-review` の順に進む
 - close では存在する artifact だけを `docs/` 正本へ昇格させる
 
-### fix
+### `fix`
 
 - `distill` で known facts と関連コードを絞る
-- `investigate` で reproduce、trace、必要時 temporary-logging / reobserve を行う
+- `investigate` で `reproduce`、`trace`、必要時 `temporary-logging` / `reobserve` を行う
 - narrow scope が作れたら `implement` へ進む
 - 修正後に `tests` を行う
 - `review ui-check` と `review implementation-review` を通す
 - residual risk が残る時だけ `investigate risk-report` を使う
 
-### refactor
+### `refactor`
 
 - `distill` で影響範囲と不変条件を整理する
-- `design implementation-brief` を固める
-- 振る舞い変更の可能性がある時は requirements と design-review を追加する
-- HITL 後に `design implementation-scope` で実装 handoff を確定する
+- 必要な `requirements` と `implementation-brief` を固める
+- 振る舞い変更の可能性がある時は `ui-mock`、`scenario`、`design-review` を追加する
+- human review を 1 回だけ行う
+- human review 後に `design implementation-scope` で AI handoff を確定する
 - `implement`、必要な `tests`、`review` を通す
 - close では存在する artifact だけを `docs/` 正本へ昇格させる
 
-### investigate
+### `investigate`
 
 - `distill` を起点にする
 - `investigate` だけで evidence を固定して close してよい
 - 修正が必要と確定した時だけ `task_mode` を切り替える
 
-### docs-only
+### `docs-only`
 
 - human 承認済みの時だけ `updating-docs` を使う
 - `distill` は通さない

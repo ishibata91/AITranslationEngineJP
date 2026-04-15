@@ -4,9 +4,12 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	controllerwails "aitranslationenginejp/internal/controller/wails"
+	"aitranslationenginejp/internal/repository"
 )
 
 type recordedRuntimeEvent struct {
@@ -24,13 +27,18 @@ type runtimeEventsTestContext struct {
 }
 
 const (
-	bootstrapCreatedSource        = "Auriel's Bow"
-	bootstrapCreatedTranslation   = "アーリエルの弓"
-	bootstrapUpdatedTranslation   = "更新済みアーリエルの弓"
-	bootstrapPersistedSource      = "Castle Volkihar"
-	bootstrapImportProgressEvent  = "master-dictionary:import-progress"
-	bootstrapImportCompletedEvent = "master-dictionary:import-completed"
-	bootstrapPageQuerySucceeded   = "expected production graph page query to succeed: %v"
+	bootstrapCreatedSource         = "Auriel's Bow"
+	bootstrapCreatedTranslation    = "アーリエルの弓"
+	bootstrapUpdatedTranslation    = "更新済みアーリエルの弓"
+	bootstrapPersistedSource       = "Relic Hammer"
+	bootstrapPersistedTranslation  = "遺物の鎚"
+	bootstrapSeedSearchTerm        = "Relic"
+	bootstrapSeedCategory          = "武器"
+	bootstrapSeedNewestSource      = "Relic Blade"
+	bootstrapSeedNewestTranslation = "遺物の剣"
+	bootstrapImportProgressEvent   = "master-dictionary:import-progress"
+	bootstrapImportCompletedEvent  = "master-dictionary:import-completed"
+	bootstrapPageQuerySucceeded    = "expected bootstrap graph page query to succeed: %v"
 )
 
 func (emitter *recordingRuntimeEventEmitter) Emit(eventName string, optionalData ...interface{}) {
@@ -46,10 +54,15 @@ func (ctx runtimeEventsTestContext) Value(key interface{}) interface{} {
 
 func TestNewAppControllerCreatesSQLiteDatabaseFile(t *testing.T) {
 	databasePath := configureBootstrapTestDatabase(t)
-	controller := NewAppController()
+	controller := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 
 	_, err := controller.MasterDictionaryGetPage(controllerwails.MasterDictionaryPageRequestDTO{
-		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{SearchTerm: "Whiterun", Category: "地名", Page: 1, PageSize: 5},
+		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{
+			SearchTerm: bootstrapSeedSearchTerm,
+			Category:   bootstrapSeedCategory,
+			Page:       1,
+			PageSize:   5,
+		},
 	})
 	if err != nil {
 		t.Fatalf(bootstrapPageQuerySucceeded, err)
@@ -61,28 +74,60 @@ func TestNewAppControllerCreatesSQLiteDatabaseFile(t *testing.T) {
 	}
 }
 
-func TestNewAppControllerReturnsSeededPageItems(t *testing.T) {
+func TestNewAppControllerUsesProductionSeedByDefault(t *testing.T) {
 	configureBootstrapTestDatabase(t)
 	controller := NewAppController()
 
 	page, err := controller.MasterDictionaryGetPage(controllerwails.MasterDictionaryPageRequestDTO{
-		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{SearchTerm: "Whiterun", Category: "地名", Page: 1, PageSize: 5},
+		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{
+			SearchTerm: "Whiterun",
+			Category:   "地名",
+			Page:       1,
+			PageSize:   5,
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected direct constructor query to succeed: %v", err)
+	}
+
+	if page.Page.TotalCount == 0 || len(page.Page.Items) == 0 {
+		t.Fatalf("expected production-seeded page items, got %#v", page.Page)
+	}
+	if !strings.Contains(page.Page.Items[0].Source, "Whiterun") || page.Page.Items[0].Category != "地名" {
+		t.Fatalf("expected production-seeded Whiterun location entry, got %#v", page.Page.Items[0])
+	}
+}
+
+func TestNewAppControllerReturnsSeededPageItems(t *testing.T) {
+	controller := newBootstrapTestController(t)
+
+	page, err := controller.MasterDictionaryGetPage(controllerwails.MasterDictionaryPageRequestDTO{
+		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{
+			SearchTerm: bootstrapSeedSearchTerm,
+			Category:   bootstrapSeedCategory,
+			Page:       1,
+			PageSize:   5,
+		},
 	})
 	if err != nil {
 		t.Fatalf(bootstrapPageQuerySucceeded, err)
 	}
 
-	if page.Page.TotalCount == 0 || len(page.Page.Items) == 0 {
+	if page.Page.TotalCount != len(bootstrapTestSeed()) || len(page.Page.Items) == 0 {
 		t.Fatalf("expected seeded page items, got %#v", page.Page)
 	}
 }
 
 func TestNewAppControllerSelectsFirstPageItemByDefault(t *testing.T) {
-	configureBootstrapTestDatabase(t)
-	controller := NewAppController()
+	controller := newBootstrapTestController(t)
 
 	page, err := controller.MasterDictionaryGetPage(controllerwails.MasterDictionaryPageRequestDTO{
-		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{SearchTerm: "Whiterun", Category: "地名", Page: 1, PageSize: 5},
+		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{
+			SearchTerm: bootstrapSeedSearchTerm,
+			Category:   bootstrapSeedCategory,
+			Page:       1,
+			PageSize:   5,
+		},
 	})
 	if err != nil {
 		t.Fatalf(bootstrapPageQuerySucceeded, err)
@@ -94,10 +139,14 @@ func TestNewAppControllerSelectsFirstPageItemByDefault(t *testing.T) {
 }
 
 func TestNewAppControllerReturnsDetailForSeededEntry(t *testing.T) {
-	configureBootstrapTestDatabase(t)
-	controller := NewAppController()
+	controller := newBootstrapTestController(t)
 	page, err := controller.MasterDictionaryGetPage(controllerwails.MasterDictionaryPageRequestDTO{
-		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{SearchTerm: "Whiterun", Category: "地名", Page: 1, PageSize: 5},
+		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{
+			SearchTerm: bootstrapSeedSearchTerm,
+			Category:   bootstrapSeedCategory,
+			Page:       1,
+			PageSize:   5,
+		},
 	})
 	if err != nil {
 		t.Fatalf(bootstrapPageQuerySucceeded, err)
@@ -108,14 +157,13 @@ func TestNewAppControllerReturnsDetailForSeededEntry(t *testing.T) {
 		t.Fatalf("expected detail query to succeed: %v", err)
 	}
 
-	if detail.Entry.Source == "" || detail.Entry.Translation == "" {
-		t.Fatalf("expected populated detail entry, got %#v", detail.Entry)
+	if detail.Entry.Source != bootstrapSeedNewestSource || detail.Entry.Translation != bootstrapSeedNewestTranslation {
+		t.Fatalf("expected newest seeded entry, got %#v", detail.Entry)
 	}
 }
 
 func TestNewAppControllerStartupDoesNotEmitRuntimeEvents(t *testing.T) {
-	configureBootstrapTestDatabase(t)
-	controller := NewAppController()
+	controller := newBootstrapTestController(t)
 	emitter := &recordingRuntimeEventEmitter{}
 
 	controller.OnStartup(runtimeEventsTestContext{Context: context.Background(), emitter: emitter})
@@ -247,13 +295,13 @@ func TestNewAppControllerDeleteMutationMapsMissingDetailToNil(t *testing.T) {
 }
 
 func TestNewAppControllerPersistsEntriesAcrossControllerRecreation(t *testing.T) {
-	configureBootstrapTestDatabase(t)
-	firstController := NewAppController()
+	databasePath := configureBootstrapTestDatabase(t)
+	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 	created := mustBootstrapCreatePersistedEntry(t, firstController)
 
 	firstController.OnShutdown(context.Background())
 
-	secondController := NewAppController()
+	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 	loaded, err := secondController.GetMasterDictionaryEntry(controllerwails.GetMasterDictionaryEntryRequestDTO{ID: created.RefreshTargetID})
 	if err != nil {
 		t.Fatalf("expected persisted entry lookup through second controller to succeed: %v", err)
@@ -283,9 +331,8 @@ func TestMasterDictionaryDatabasePathDefaultsToRepositoryRootDB(t *testing.T) {
 func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportResponseDTO, *recordingRuntimeEventEmitter, *controllerwails.AppController) {
 	t.Helper()
 
-	configureBootstrapTestDatabase(t)
 	xmlPath := writeBootstrapImportFixture(t)
-	controller := NewAppController()
+	controller := newBootstrapTestController(t)
 	emitter := &recordingRuntimeEventEmitter{}
 	controller.OnStartup(runtimeEventsTestContext{Context: context.Background(), emitter: emitter})
 
@@ -294,7 +341,7 @@ func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportRes
 		Refresh: controllerwails.MasterDictionaryRefreshQueryDTO{Category: "すべて", Page: 1, PageSize: 30},
 	})
 	if err != nil {
-		t.Fatalf("expected import through production graph to succeed: %v", err)
+		t.Fatalf("expected import through bootstrap graph to succeed: %v", err)
 	}
 
 	return result, emitter, controller
@@ -303,8 +350,7 @@ func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportRes
 func runBootstrapCreate(t *testing.T) (controllerwails.CreateMasterDictionaryEntryResponseDTO, *controllerwails.AppController) {
 	t.Helper()
 
-	configureBootstrapTestDatabase(t)
-	controller := NewAppController()
+	controller := newBootstrapTestController(t)
 	return mustBootstrapCreateEntry(t, controller), controller
 }
 
@@ -314,12 +360,12 @@ func mustBootstrapCreateEntry(t *testing.T, controller *controllerwails.AppContr
 	createRequest := controllerwails.CreateMasterDictionaryEntryRequestDTO{}
 	createRequest.Payload.Source = bootstrapCreatedSource
 	createRequest.Payload.Translation = bootstrapCreatedTranslation
-	createRequest.Payload.Category = "武器"
+	createRequest.Payload.Category = bootstrapSeedCategory
 	createRequest.Payload.Origin = "手動登録"
-	createRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapCreatedSource, Category: "武器", Page: 1, PageSize: 10}
+	createRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapCreatedSource, Category: bootstrapSeedCategory, Page: 1, PageSize: 10}
 	created, err := controller.CreateMasterDictionaryEntry(createRequest)
 	if err != nil {
-		t.Fatalf("expected create through production graph to succeed: %v", err)
+		t.Fatalf("expected create through bootstrap graph to succeed: %v", err)
 	}
 	return created
 }
@@ -330,12 +376,12 @@ func runBootstrapUpdate(t *testing.T, controller *controllerwails.AppController,
 	updateRequest := controllerwails.UpdateMasterDictionaryEntryRequestDTO{ID: entryID}
 	updateRequest.Payload.Source = bootstrapCreatedSource
 	updateRequest.Payload.Translation = bootstrapUpdatedTranslation
-	updateRequest.Payload.Category = "武器"
+	updateRequest.Payload.Category = bootstrapSeedCategory
 	updateRequest.Payload.Origin = "手動登録"
-	updateRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapCreatedSource, Category: "武器", Page: 1, PageSize: 10}
+	updateRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapCreatedSource, Category: bootstrapSeedCategory, Page: 1, PageSize: 10}
 	updated, err := controller.UpdateMasterDictionaryEntry(updateRequest)
 	if err != nil {
-		t.Fatalf("expected update through production graph to succeed: %v", err)
+		t.Fatalf("expected update through bootstrap graph to succeed: %v", err)
 	}
 	return updated
 }
@@ -345,10 +391,10 @@ func runBootstrapDelete(t *testing.T, controller *controllerwails.AppController,
 
 	deleted, err := controller.DeleteMasterDictionaryEntry(controllerwails.DeleteMasterDictionaryEntryRequestDTO{
 		ID:      entryID,
-		Refresh: &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapCreatedSource, Category: "武器", Page: 1, PageSize: 10},
+		Refresh: &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapCreatedSource, Category: bootstrapSeedCategory, Page: 1, PageSize: 10},
 	})
 	if err != nil {
-		t.Fatalf("expected delete through production graph to succeed: %v", err)
+		t.Fatalf("expected delete through bootstrap graph to succeed: %v", err)
 	}
 	return deleted
 }
@@ -358,10 +404,10 @@ func mustBootstrapCreatePersistedEntry(t *testing.T, controller *controllerwails
 
 	createRequest := controllerwails.CreateMasterDictionaryEntryRequestDTO{}
 	createRequest.Payload.Source = bootstrapPersistedSource
-	createRequest.Payload.Translation = "ヴォルキハル城"
-	createRequest.Payload.Category = "地名"
+	createRequest.Payload.Translation = bootstrapPersistedTranslation
+	createRequest.Payload.Category = bootstrapSeedCategory
 	createRequest.Payload.Origin = "手動登録"
-	createRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapPersistedSource, Category: "地名", Page: 1, PageSize: 10}
+	createRequest.Refresh = &controllerwails.MasterDictionaryFrontendRefreshDTO{Query: bootstrapPersistedSource, Category: bootstrapSeedCategory, Page: 1, PageSize: 10}
 	created, err := controller.CreateMasterDictionaryEntry(createRequest)
 	if err != nil {
 		t.Fatalf("expected create through first controller to succeed: %v", err)
@@ -389,12 +435,62 @@ func writeBootstrapImportFixture(t *testing.T) string {
 	return xmlPath
 }
 
+func newBootstrapTestController(t *testing.T) *controllerwails.AppController {
+	t.Helper()
+
+	databasePath := configureBootstrapTestDatabase(t)
+	return newBootstrapTestControllerWithDatabasePath(t, databasePath)
+}
+
+func newBootstrapTestControllerWithDatabasePath(t *testing.T, databasePath string) *controllerwails.AppController {
+	t.Helper()
+
+	setBootstrapTestDatabasePath(t, databasePath)
+	return newAppControllerWithMasterDictionarySeed(bootstrapTestSeed(), bootstrapTestNow)
+}
+
 func configureBootstrapTestDatabase(t *testing.T) string {
 	t.Helper()
 
 	databasePath := filepath.Join(t.TempDir(), "db", "master-dictionary.sqlite3")
-	t.Setenv("AITRANSLATIONENGINEJP_MASTER_DICTIONARY_DB_PATH", databasePath)
+	setBootstrapTestDatabasePath(t, databasePath)
 	return databasePath
+}
+
+func setBootstrapTestDatabasePath(t *testing.T, databasePath string) {
+	t.Helper()
+
+	t.Setenv("AITRANSLATIONENGINEJP_MASTER_DICTIONARY_DB_PATH", databasePath)
+}
+
+func bootstrapTestNow() time.Time {
+	return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC)
+}
+
+func bootstrapTestSeed() []repository.MasterDictionaryEntry {
+	baseTime := time.Date(2026, 4, 15, 9, 0, 0, 0, time.UTC)
+	return []repository.MasterDictionaryEntry{
+		{
+			ID:          1,
+			Source:      "Relic Bow",
+			Translation: "遺物の弓",
+			Category:    bootstrapSeedCategory,
+			Origin:      "テスト初期データ",
+			REC:         "WEAP:FULL",
+			EDID:        "RelicBow",
+			UpdatedAt:   baseTime,
+		},
+		{
+			ID:          2,
+			Source:      bootstrapSeedNewestSource,
+			Translation: bootstrapSeedNewestTranslation,
+			Category:    bootstrapSeedCategory,
+			Origin:      "テスト初期データ",
+			REC:         "WEAP:FULL",
+			EDID:        "RelicBlade",
+			UpdatedAt:   baseTime.Add(time.Minute),
+		},
+	}
 }
 
 func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...string) {
