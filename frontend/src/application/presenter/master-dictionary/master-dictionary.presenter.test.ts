@@ -43,6 +43,20 @@ const EXPECTED_BASE_CATEGORIES = [
 ]
 
 describe("MasterDictionaryPresenter", () => {
+  test("取込完了時の status text は XML集計と一覧件数の別指標を示す", () => {
+    const presenter = new MasterDictionaryPresenter()
+    const viewModel = presenter.toViewModel(
+      createState({
+        importStage: "done"
+      }),
+      true
+    )
+
+    expect(viewModel.importStatusText).toBe(
+      "XML集計と一覧件数を分けて、取り込み結果を同じ画面へ反映しました。"
+    )
+  })
+
   test("カテゴリ候補はページ外の backend 正規化カテゴリも含む", () => {
     const presenter = new MasterDictionaryPresenter()
     const viewModel = presenter.toViewModel(

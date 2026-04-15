@@ -878,6 +878,64 @@ describe("App master dictionary screen", () => {
     })
   })
 
+  test("完了 view model push で entry 単位の import 集計ラベルを表示する", async () => {
+    // Arrange
+    const controller = renderApp()
+
+    // Act
+    controller.pushViewModel(
+      buildMasterDictionaryScreenViewModel({
+        entries: [
+          {
+            id: "201",
+            source: "Allowed Book Source",
+            translation: "許可された本の訳語",
+            category: "書籍",
+            origin: "XML取込",
+            updatedAt: "2026-04-12 00:00"
+          }
+        ],
+        selectedEntry: {
+          id: "201",
+          source: "Allowed Book Source",
+          translation: "許可された本の訳語",
+          category: "書籍",
+          origin: "XML取込",
+          updatedAt: "2026-04-12 00:00",
+          note: "REC: BOOK:FULL / EDID: ImportBook"
+        },
+        selectedId: "201",
+        totalCount: 1,
+        query: "",
+        category: "すべて",
+        hasStagedFile: true,
+        selectedFileName: "master.xml",
+        selectedFileReference: "master.xml",
+        importStage: "done",
+        importProgress: 100,
+        importStatusValue: "完了",
+        importSummary: {
+          fileName: "master.xml",
+          importedCount: 1,
+          updatedCount: 947,
+          totalCount: 740,
+          selectedSource: "Allowed Book Source"
+        },
+        listHeadline: "740 件のエントリを表示しています。",
+        selectionStatusText: "Allowed Book Source を選択中",
+        detailSublineText: "XML取込 / 最終更新 2026-04-12 00:00"
+      })
+    )
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByText("更新済みエントリ件数")).toBeInTheDocument()
+      expect(screen.getByText("取込後の保存済み一覧件数")).toBeInTheDocument()
+      expect(screen.getByText("新規追加 1 件")).toBeInTheDocument()
+      expect(screen.getByText(/件数は保存済みエントリ単位で集計しています。/)).toBeInTheDocument()
+    })
+  })
+
   test("完了 view model push で検索入力値を初期状態へ反映する", async () => {
     // Arrange
     const controller = renderApp()

@@ -175,23 +175,23 @@
             >XML取り込みを一覧と詳細へ反映しました。</strong
           >
           <span class="status-pill" id="importResultCount"
-            >新規取込 {viewModel.importSummary?.importedCount ?? 0} 件</span
+            >新規追加 {viewModel.importSummary?.importedCount ?? 0} 件</span
           >
         </div>
         <p id="importResultMessage">
           {viewModel.importSummary
-            ? `「${viewModel.importSummary.fileName}」の取込を完了し、同じ画面に反映しました。`
+            ? `「${viewModel.importSummary.fileName}」の取込を完了し、同じ画面に反映しました。件数は保存済みエントリ単位で集計しています。`
             : "-"}
         </p>
         <dl class="result-grid">
           <div>
-            <dt>更新件数</dt>
+            <dt>更新済みエントリ件数</dt>
             <dd id="importResultUpdatedCount">
               {viewModel.importSummary?.updatedCount ?? "-"}
             </dd>
           </div>
           <div>
-            <dt>取込後の一覧総件数</dt>
+            <dt>取込後の保存済み一覧件数</dt>
             <dd id="importResultListCount">
               {viewModel.importSummary?.totalCount ?? "-"}
             </dd>
@@ -214,101 +214,116 @@
   </section>
 
   <section class="content-grid">
-    <section class="shell-card" aria-labelledby="listHeading">
-      <div class="toolbar-head">
-        <div>
-          <h3 id="listHeading">辞書一覧</h3>
-          <p id="listHeadline">{viewModel.listHeadline}</p>
-        </div>
-        <div class="toolbar-head-actions">
-          <button
-            class="button-primary"
-            id="createButton"
-            onclick={() => controller.openCreateModal()}
-            type="button">新規登録</button
-          >
-          <p class="mini-text" id="pageStatusText">
-            {viewModel.pageStatusText}
-          </p>
-        </div>
-      </div>
-
-      <div class="filter-grid">
-        <label class="field-label" for="searchInput">検索</label>
-        <input
-          class="search-field"
-          id="searchInput"
-          oninput={(event) => controller.handleSearchInput(event)}
-          placeholder="原文・訳語・IDで検索"
-          type="search"
-          value={viewModel.query}
-        />
-
-        <label class="field-label" for="categorySelect">カテゴリ</label>
-        <select
-          class="select-field"
-          id="categorySelect"
-          onchange={(event) => controller.handleCategoryChange(event)}
-          value={viewModel.category}
-        >
-          {#each viewModel.categoryOptions as option (option)}
-            <option value={option}>{option}</option>
-          {/each}
-        </select>
-      </div>
-
-      <div class="list-stack" id="listStack" aria-live="polite">
-        {#if viewModel.entries.length === 0}
-          <div class="empty-state">一致するエントリがありません</div>
-        {:else}
-          {#each viewModel.entries as entry (entry.id)}
+    <section class="shell-card list-panel" aria-labelledby="listHeading">
+      <div class="toolbar">
+        <div class="toolbar-head">
+          <div>
+            <h3 id="listHeading">辞書一覧</h3>
+            <p id="listHeadline">{viewModel.listHeadline}</p>
+          </div>
+          <div class="toolbar-head-actions">
             <button
-              class="list-row"
-              class:is-selected={viewModel.selectedId === entry.id}
-              onclick={() => void controller.selectRow(entry.id)}
+              class="button-primary"
+              id="createButton"
+              onclick={() => controller.openCreateModal()}
+              type="button">新規登録</button
+            >
+            <p class="mini-text" id="pageStatusText">
+              {viewModel.pageStatusText}
+            </p>
+          </div>
+        </div>
+
+        <div class="toolbar-grid">
+          <label class="field-group" for="searchInput">
+            <span class="field-label">検索</span>
+            <input
+              class="search-field"
+              id="searchInput"
+              oninput={(event) => controller.handleSearchInput(event)}
+              placeholder="原文・訳語・IDで検索"
+              type="search"
+              value={viewModel.query}
+            />
+          </label>
+
+          <label class="field-group" for="categorySelect">
+            <span class="field-label">カテゴリ</span>
+            <select
+              class="select-field"
+              id="categorySelect"
+              onchange={(event) => controller.handleCategoryChange(event)}
+              value={viewModel.category}
+            >
+              {#each viewModel.categoryOptions as option (option)}
+                <option value={option}>{option}</option>
+              {/each}
+            </select>
+          </label>
+        </div>
+      </div>
+
+      <div class="list-shell">
+        <div class="column-row" aria-hidden="true">
+          <span>訳語</span>
+          <span>原文</span>
+          <span>カテゴリ</span>
+          <span>ID</span>
+        </div>
+
+        <div class="list-stack" id="listStack" aria-live="polite">
+          {#if viewModel.entries.length === 0}
+            <div class="empty-state">一致するエントリがありません</div>
+          {:else}
+            {#each viewModel.entries as entry (entry.id)}
+              <button
+                class="list-row"
+                class:is-selected={viewModel.selectedId === entry.id}
+                onclick={() => void controller.selectRow(entry.id)}
+                type="button"
+              >
+                <div class="row-cell">
+                  <div class="row-value">{entry.translation}</div>
+                </div>
+                <div class="row-cell">
+                  <div class="row-value">{entry.source}</div>
+                </div>
+                <div class="row-meta">{entry.category} / {entry.origin}</div>
+                <div class="row-id">#{entry.id}</div>
+              </button>
+            {/each}
+          {/if}
+        </div>
+
+        <div class="pager-shell">
+          <div class="mini-text" id="selectionStatus">
+            {viewModel.selectionStatusText}
+          </div>
+          <div class="pager-actions">
+            <button
+              class="button-secondary"
+              disabled={viewModel.page === 0}
+              id="prevPageButton"
+              onclick={() => controller.goToPrevPage()}
               type="button"
             >
-              <div class="row-cell">
-                <div class="row-value">{entry.translation}</div>
-              </div>
-              <div class="row-cell">
-                <div class="row-value">{entry.source}</div>
-              </div>
-              <div class="row-meta">{entry.category} / {entry.origin}</div>
-              <div class="row-id">#{entry.id}</div>
+              前の30件
             </button>
-          {/each}
-        {/if}
-      </div>
-
-      <div class="pager-shell">
-        <div class="mini-text" id="selectionStatus">
-          {viewModel.selectionStatusText}
-        </div>
-        <div class="pager-actions">
-          <button
-            class="button-secondary"
-            disabled={viewModel.page === 0}
-            id="prevPageButton"
-            onclick={() => controller.goToPrevPage()}
-            type="button"
-          >
-            前の30件
-          </button>
-          <button
-            class="button-secondary"
-            disabled={viewModel.page + 1 >= viewModel.totalPages}
-            id="nextPageButton"
-            onclick={() => controller.goToNextPage()}
-            type="button"
-          >
-            次の30件
-          </button>
+            <button
+              class="button-secondary"
+              disabled={viewModel.page + 1 >= viewModel.totalPages}
+              id="nextPageButton"
+              onclick={() => controller.goToNextPage()}
+              type="button"
+            >
+              次の30件
+            </button>
+          </div>
         </div>
       </div>
     </section>
 
-    <section class="shell-card" aria-labelledby="detailHeading">
+    <section class="shell-card detail-panel" aria-labelledby="detailHeading">
       <div class="detail-head">
         <div>
           <h3 id="detailHeading">詳細</h3>
@@ -336,28 +351,31 @@
         </div>
       </div>
 
-      <div class="detail-tags" id="detailTags">
-        {#if viewModel.selectedEntry}
-          <span class="status-pill">{viewModel.selectedEntry.category}</span>
-          <span class="status-pill">{viewModel.selectedEntry.origin}</span>
-        {/if}
+      <div class="detail-title">
+        <div class="detail-tags" id="detailTags">
+          {#if viewModel.selectedEntry}
+            <span class="status-pill">{viewModel.selectedEntry.category}</span>
+            <span class="status-pill">{viewModel.selectedEntry.origin}</span>
+          {/if}
+        </div>
+        <strong id="detailTitle"
+          >{viewModel.selectedEntry?.source ??
+            "表示できるエントリがありません"}</strong
+        >
+        <p id="detailTranslation">
+          {viewModel.selectedEntry?.translation ?? "検索条件を変更してください。"}
+        </p>
       </div>
-      <strong id="detailTitle"
-        >{viewModel.selectedEntry?.source ??
-          "表示できるエントリがありません"}</strong
-      >
-      <p id="detailTranslation">
-        {viewModel.selectedEntry?.translation ?? "検索条件を変更してください。"}
-      </p>
+
       <div class="detail-grid" id="detailGrid">
         {#if viewModel.selectedEntry}
-          <div class="detail-card">
+          <div class="detail-card detail-meta-card">
             <div class="field-label">ID</div>
-            <strong>{viewModel.selectedEntry.id}</strong>
+            <strong class="detail-meta-value">{viewModel.selectedEntry.id}</strong>
           </div>
-          <div class="detail-card">
+          <div class="detail-card detail-meta-card">
             <div class="field-label">最終更新</div>
-            <strong>{viewModel.selectedEntry.updatedAt}</strong>
+            <strong class="detail-meta-value">{viewModel.selectedEntry.updatedAt}</strong>
           </div>
         {:else}
           <div class="empty-state">
@@ -377,8 +395,12 @@
             <dd>{viewModel.selectedEntry.translation}</dd>
           </div>
           <div>
-            <dt>現在の扱い</dt>
-            <dd>{viewModel.selectedEntry.note}</dd>
+            <dt>EDID</dt>
+            <dd>{viewModel.selectedEntry.edid || "-"}</dd>
+          </div>
+          <div>
+            <dt>REC</dt>
+            <dd>{viewModel.selectedEntry.rec || "-"}</dd>
           </div>
         {/if}
       </dl>
@@ -593,11 +615,17 @@
   .import-shell,
   .import-bar,
   .content-grid,
-  .filter-grid,
   .field-grid,
   .result-grid,
   .detail-grid,
-  .detail-list {
+  .detail-list,
+  .toolbar,
+  .toolbar-grid,
+  .field-group,
+  .list-shell,
+  .list-panel,
+  .detail-panel,
+  .detail-title {
     display: grid;
     gap: 10px;
   }
@@ -651,7 +679,43 @@
   }
 
   .content-grid {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1.45fr) minmax(320px, 0.8fr);
+    gap: 18px;
+    align-items: start;
+  }
+
+  .list-panel,
+  .detail-panel {
+    min-width: 0;
+    padding: 20px;
+    gap: 14px;
+  }
+
+  .toolbar {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    position: sticky;
+    top: 18px;
+    z-index: 1;
+    gap: 14px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(18, 16, 13, 0.72);
+  }
+
+  .toolbar-grid {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.7fr);
+    gap: 12px;
+  }
+
+  .field-group {
+    min-width: 0;
+    gap: 8px;
   }
 
   .search-field,
@@ -672,28 +736,101 @@
     padding: 10px;
   }
 
-  .list-stack,
-  .detail-grid {
+  .list-shell {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    gap: 8px;
+    padding: 16px;
     border: 1px solid var(--line);
-    border-radius: 10px;
+    border-radius: 18px;
+    background: rgba(18, 16, 13, 0.72);
+    overflow: hidden;
+  }
+
+  .column-row,
+  .list-row {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1.4fr) minmax(0, 1.4fr) minmax(0, 0.8fr)
+      90px;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .column-row {
+    padding: 0 12px;
+  }
+
+  .list-stack {
     min-height: 200px;
+    padding: 0;
+    gap: 6px;
+  }
+
+  .detail-title {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    gap: 8px;
+    padding: 16px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .detail-grid {
+    min-height: 0;
     padding: 10px;
+    gap: 10px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: stretch;
+    border: 1px solid var(--line);
+    border-radius: 12px;
     background: rgba(0, 0, 0, 0.2);
+  }
+
+  .detail-card {
+    min-width: 0;
+    min-height: 118px;
+    box-sizing: border-box;
+    display: grid;
+    align-content: start;
+    gap: 10px;
+    padding: 18px 20px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .detail-meta-card {
+    align-items: start;
+  }
+
+  .detail-meta-value {
+    display: flex;
+    width: 100%;
+    min-height: 56px;
+    box-sizing: border-box;
+    align-items: center;
+    font-size: 0.92rem;
+    line-height: 1.35;
+    padding: 10px 14px;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.04);
+    overflow-wrap: anywhere;
   }
 
   .list-row {
     width: 100%;
-    display: grid;
-    grid-template-columns:
-      minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.9fr)
-      auto;
-    gap: 10px;
-    align-items: center;
     border: 1px solid rgba(255, 186, 56, 0.12);
-    border-radius: 8px;
+    border-radius: 10px;
     background: rgba(255, 255, 255, 0.03);
     color: var(--text);
-    padding: 8px 10px;
+    padding: 8px 12px;
     text-align: left;
     cursor: pointer;
   }
@@ -705,6 +842,8 @@
 
   .row-cell {
     min-width: 0;
+    display: grid;
+    gap: 2px;
   }
 
   .row-value {
@@ -723,6 +862,12 @@
     text-align: right;
   }
 
+  .detail-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
   .empty-state {
     color: var(--muted);
     padding: 8px;
@@ -736,8 +881,8 @@
   }
 
   .detail-list div {
-    padding: 10px;
-    border-radius: 8px;
+    padding: 14px 16px;
+    border-radius: 12px;
     border: 1px solid var(--line);
     background: rgba(255, 255, 255, 0.03);
   }
@@ -766,13 +911,30 @@
     gap: 12px;
   }
 
+  @media (max-width: 1180px) {
+    .content-grid,
+    .toolbar-grid,
+    .detail-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
   @media (max-width: 980px) {
     .content-grid {
       grid-template-columns: 1fr;
     }
 
+    .toolbar {
+      position: static;
+    }
+
+    .column-row {
+      display: none;
+    }
+
     .list-row {
       grid-template-columns: 1fr;
+      gap: 5px;
     }
 
     .row-id {

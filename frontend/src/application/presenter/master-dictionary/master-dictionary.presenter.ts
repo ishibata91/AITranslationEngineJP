@@ -17,7 +17,7 @@ const IMPORT_STATUS_TEXT_BY_STAGE: Record<ImportStage, string> = {
   idle: "ファイルを選択すると、ここに取込状態が表示されます。",
   ready: "この XML を取り込むと、同じ画面で進捗を更新します。",
   running: "取り込みを実行しています。",
-  done: "取り込み結果を同じ画面へ反映しました。"
+  done: "XML集計と一覧件数を分けて、取り込み結果を同じ画面へ反映しました。"
 }
 
 const DETAIL_SUBLINE_BY_MODAL_STATE: Record<

@@ -245,10 +245,52 @@ func normalizeImportProgress(processedCount, totalCount int) int {
 }
 
 type masterDictionaryImportCounters struct {
-	importedCount int
-	updatedCount  int
-	skippedCount  int
-	lastEntryID   int64
+	importedCount     int
+	updatedCount      int
+	skippedCount      int
+	lastEntryID       int64
+	importedEntryKeys map[string]struct{}
+	updatedEntryKeys  map[string]struct{}
+}
+
+func (counters *masterDictionaryImportCounters) trackImportedEntry(
+	entry MasterDictionaryEntry,
+	record xmlStringRecord,
+) {
+	key := importEntryKey(entry.ID, record.Source, record.REC)
+	if counters.importedEntryKeys == nil {
+		counters.importedEntryKeys = map[string]struct{}{}
+	}
+	if _, exists := counters.importedEntryKeys[key]; exists {
+		return
+	}
+	counters.importedEntryKeys[key] = struct{}{}
+	counters.importedCount++
+}
+
+func (counters *masterDictionaryImportCounters) trackUpdatedEntry(
+	entry MasterDictionaryEntry,
+	record xmlStringRecord,
+) {
+	key := importEntryKey(entry.ID, record.Source, record.REC)
+	if _, exists := counters.importedEntryKeys[key]; exists {
+		return
+	}
+	if _, exists := counters.updatedEntryKeys[key]; exists {
+		return
+	}
+	if counters.updatedEntryKeys == nil {
+		counters.updatedEntryKeys = map[string]struct{}{}
+	}
+	counters.updatedEntryKeys[key] = struct{}{}
+	counters.updatedCount++
+}
+
+func importEntryKey(entryID int64, source string, rec string) string {
+	if entryID > 0 {
+		return fmt.Sprintf("id:%d", entryID)
+	}
+	return strings.ToLower(strings.TrimSpace(source)) + "\x00" + strings.ToLower(strings.TrimSpace(rec))
 }
 
 type xmlStringRecord struct {

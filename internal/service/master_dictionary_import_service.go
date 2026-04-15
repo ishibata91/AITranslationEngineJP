@@ -132,9 +132,9 @@ func (service *MasterDictionaryImportService) importXMLRecord(
 
 	counters.lastEntryID = entry.ID
 	if created {
-		counters.importedCount++
+		counters.trackImportedEntry(entry, record)
 	} else {
-		counters.updatedCount++
+		counters.trackUpdatedEntry(entry, record)
 	}
 	return nil
 }

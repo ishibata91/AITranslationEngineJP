@@ -38,6 +38,8 @@ export interface GetMasterDictionaryEntryRequest {
 
 export interface MasterDictionaryEntryDetail extends MasterDictionaryEntrySummary {
   note: string
+  rec: string
+  edid: string
 }
 
 export interface GetMasterDictionaryEntryResponse {

@@ -42,6 +42,8 @@ function toDetailFromPageEntry(
     translation: entry.translation,
     category: entry.category,
     origin: entry.origin,
+    rec: entry.rec,
+    edid: entry.edid,
     updatedAt: entry.updatedAt,
     note: buildEntryNote(entry)
   }

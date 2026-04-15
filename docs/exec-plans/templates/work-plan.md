@@ -72,8 +72,8 @@
 
 ## HITL Status
 
-- `functional_or_design_hitl`: `required-after-plan` / `approved` / `not-required`
-- `approval_record`: `pending` または human review の記録
+- `functional_or_design_hitl`: `required-after-design-bundle` / `approved` / `not-required`
+- `approval_record`: `pending-after-design-bundle` または human review の記録
 
 ## Closeout Notes
 

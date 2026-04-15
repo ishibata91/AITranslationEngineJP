@@ -8,9 +8,18 @@ import (
 	"testing"
 )
 
+const (
+	importServiceWeaponREC  = "WEAP:FULL"
+	importServiceBookREC    = "BOOK:FULL"
+	importServiceBowSource  = "Auriel's Bow"
+	importServiceBookSource = "Snow Elf History"
+	importServiceBowKey     = "auriel's bow\x00weap:full"
+	importServiceBookKey    = "snow elf history\x00book:full"
+)
+
 var importServiceRecords = []xmlStringRecord{
-	{REC: "WEAP:FULL", EDID: "DLC1AurielsBow", Source: "Auriel's Bow", Dest: "アーリエルの弓"},
-	{REC: "BOOK:FULL", EDID: "BookSnowElf", Source: "Snow Elf History", Dest: "スノーエルフ史"},
+	{REC: importServiceWeaponREC, EDID: "DLC1AurielsBow", Source: importServiceBowSource, Dest: "アーリエルの弓"},
+	{REC: importServiceBookREC, EDID: "BookSnowElf", Source: importServiceBookSource, Dest: "スノーエルフ史"},
 	{REC: "ACTI:FULL", EDID: "DeniedActi", Source: "Crossbow Mount", Dest: "クロスボウ台座"},
 	{REC: "NPC_:FULL", EDID: "MissingDest", Source: "Missing Translation", Dest: "   "},
 }
@@ -70,6 +79,74 @@ func TestMasterDictionaryImportServiceReturnsLastEntryID(t *testing.T) {
 
 	if result.summary.LastEntryID != 2 {
 		t.Fatalf("expected last entry id 2, got %d", result.summary.LastEntryID)
+	}
+}
+
+func TestMasterDictionaryImportServiceCountsDistinctUpdatedEntries(t *testing.T) {
+	// Arrange.
+	records := []xmlStringRecord{
+		{REC: importServiceWeaponREC, EDID: "Bow01", Source: importServiceBowSource, Dest: "アーリエルの弓"},
+		{REC: importServiceWeaponREC, EDID: "Bow02", Source: importServiceBowSource, Dest: "アーリエルの弓・改"},
+		{REC: importServiceBookREC, EDID: "Book01", Source: importServiceBookSource, Dest: "スノーエルフ史"},
+	}
+	repo := &repositoryStub{}
+	entryIDs := map[string]int64{
+		importServiceBowKey:  11,
+		importServiceBookKey: 12,
+	}
+	repo.upsertBySourceAndRECFunc = func(_ context.Context, record MasterDictionaryImportRecord) (MasterDictionaryEntry, bool, error) {
+		key := strings.ToLower(strings.TrimSpace(record.Source)) + "\x00" + strings.ToLower(strings.TrimSpace(record.REC))
+		return MasterDictionaryEntry{ID: entryIDs[key]}, false, nil
+	}
+	service := NewMasterDictionaryImportService(
+		repo,
+		newImportXMLFileStub(),
+		newImportXMLRecordReaderStub(records),
+		nil,
+		fixedMasterDictionaryNow,
+	)
+
+	// Act.
+	summary, err := service.ImportXML(context.Background(), "duplicates.xml")
+	if err != nil {
+		t.Fatalf("expected import to succeed: %v", err)
+	}
+
+	// Assert.
+	if summary.UpdatedCount != 2 {
+		t.Fatalf("expected 2 distinct updated entries, got %+v", summary)
+	}
+}
+
+func TestMasterDictionaryImportServiceDoesNotCountCreatedEntryAsUpdatedLaterInSameRun(t *testing.T) {
+	// Arrange.
+	records := []xmlStringRecord{
+		{REC: importServiceWeaponREC, EDID: "Bow01", Source: importServiceBowSource, Dest: "アーリエルの弓"},
+		{REC: importServiceWeaponREC, EDID: "Bow02", Source: importServiceBowSource, Dest: "アーリエルの弓・改"},
+	}
+	repo := &repositoryStub{}
+	callCount := 0
+	repo.upsertBySourceAndRECFunc = func(_ context.Context, _ MasterDictionaryImportRecord) (MasterDictionaryEntry, bool, error) {
+		callCount++
+		return MasterDictionaryEntry{ID: 21}, callCount == 1, nil
+	}
+	service := NewMasterDictionaryImportService(
+		repo,
+		newImportXMLFileStub(),
+		newImportXMLRecordReaderStub(records),
+		nil,
+		fixedMasterDictionaryNow,
+	)
+
+	// Act.
+	summary, err := service.ImportXML(context.Background(), "duplicates-created.xml")
+	if err != nil {
+		t.Fatalf("expected import to succeed: %v", err)
+	}
+
+	// Assert.
+	if summary.ImportedCount != 1 || summary.UpdatedCount != 0 {
+		t.Fatalf("expected created entry to avoid updated double-count, got %+v", summary)
 	}
 }
 
@@ -198,7 +275,7 @@ func newImportRepositoryStub() *repositoryStub {
 			EDID:        record.EDID,
 			UpdatedAt:   record.UpdatedAt,
 		}
-		return entry, record.Source == "Snow Elf History", nil
+		return entry, record.Source == importServiceBookSource, nil
 	}
 	return repo
 }

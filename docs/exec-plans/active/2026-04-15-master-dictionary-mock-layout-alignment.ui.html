@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2026-04-15 master dictionary mock layout alignment</title>
+  <style>
+    :root {
+      --bg: #11100e;
+      --panel: rgba(35, 30, 24, 0.9);
+      --panel-low: rgba(45, 38, 31, 0.56);
+      --line: rgba(245, 196, 116, 0.16);
+      --line-strong: rgba(245, 196, 116, 0.3);
+      --text: #f5ede2;
+      --muted: #d2c1a9;
+      --accent: #f5c474;
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.42);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Hiragino Mincho ProN", "Yu Mincho", serif;
+      background:
+        radial-gradient(circle at top left, rgba(245, 196, 116, 0.12), transparent 26%),
+        linear-gradient(180deg, #171411 0%, var(--bg) 100%);
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    main {
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .review-note,
+    .panel,
+    .toolbar,
+    .list-shell,
+    .detail-title,
+    .detail-card,
+    .detail-list div,
+    .pager-shell {
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px);
+    }
+
+    .review-note,
+    .panel {
+      background: var(--panel);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+    }
+
+    .review-note {
+      display: grid;
+      gap: 8px;
+    }
+
+    .review-note strong,
+    .field-label,
+    .section-label,
+    .column-row span,
+    .detail-list dt {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .review-note p,
+    .mini-text,
+    .detail-list dd,
+    .detail-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .workspace {
+      display: grid;
+      grid-template-columns: minmax(700px, 1.45fr) minmax(340px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .list-panel,
+    .detail-panel {
+      padding: 20px;
+      display: grid;
+      gap: 14px;
+    }
+
+    .toolbar,
+    .list-shell,
+    .detail-title,
+    .pager-shell {
+      background: rgba(18, 16, 13, 0.72);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 18px;
+      z-index: 1;
+    }
+
+    .toolbar-head,
+    .detail-head,
+    .pager-shell,
+    .toolbar-head-actions,
+    .detail-actions,
+    .pager {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .toolbar-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.7fr);
+      gap: 12px;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .search-field,
+    .select-field {
+      width: 100%;
+      min-height: 42px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 0 14px;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .button-danger,
+    .status-pill {
+      border-radius: 999px;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .button-danger {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .button-primary {
+      color: #3c2400;
+      background: linear-gradient(135deg, var(--accent) 0%, #ffb84a 100%);
+    }
+
+    .button-secondary {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--line);
+    }
+
+    .button-danger {
+      color: #35150d;
+      background: linear-gradient(135deg, #ffc0ab 0%, #ff9c7c 100%);
+    }
+
+    .list-shell {
+      display: grid;
+      gap: 8px;
+    }
+
+    .column-row,
+    .list-row {
+      display: grid;
+      grid-template-columns: minmax(220px, 1.4fr) minmax(220px, 1.4fr) minmax(150px, 0.8fr) 90px;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .column-row {
+      padding: 0 12px;
+    }
+
+    .list-stack {
+      display: grid;
+      gap: 6px;
+    }
+
+    .list-row {
+      width: 100%;
+      padding: 8px 12px;
+      text-align: left;
+      color: inherit;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(245, 196, 116, 0.08);
+      background: rgba(255, 255, 255, 0.025);
+    }
+
+    .list-row.is-selected {
+      background: linear-gradient(180deg, rgba(245, 196, 116, 0.16), rgba(255, 255, 255, 0.04));
+      border-color: var(--line-strong);
+    }
+
+    .row-cell {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .row-value {
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+
+    .row-meta,
+    .row-id {
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .row-id {
+      text-align: right;
+    }
+
+    .detail-head {
+      margin-bottom: 2px;
+    }
+
+    .detail-title {
+      display: grid;
+      gap: 8px;
+    }
+
+    .detail-tags {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .status-pill {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .detail-card,
+    .detail-list div {
+      background: var(--panel-low);
+      border-radius: var(--radius-md);
+      padding: 16px;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .detail-list dt,
+    .detail-list dd {
+      margin: 0;
+    }
+
+    .marker {
+      display: inline-flex;
+      align-items: center;
+      min-height: 26px;
+      padding: 0 10px;
+      border-radius: 999px;
+      background: rgba(245, 196, 116, 0.1);
+      color: var(--accent);
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    @media (max-width: 1180px) {
+      .workspace,
+      .toolbar-grid,
+      .detail-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 980px) {
+      main {
+        padding: 20px 14px 32px;
+      }
+
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        position: static;
+      }
+
+      .column-row {
+        display: none;
+      }
+
+      .list-row {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      .row-id {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="review-note">
+      <strong>task local ui mock</strong>
+      <p>sticky toolbar は alignment scope に含めます。</p>
+      <p>`h3#listHeading`、`#searchInput`、`#categorySelect`、`#detailTitle`、主要 button、pager button を近実装のまま追えるようにします。</p>
+    </section>
+
+    <section class="workspace">
+      <section class="panel list-panel" aria-labelledby="listHeading">
+        <div class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <div class="section-label">mock carry-over</div>
+              <h3 id="listHeading">辞書一覧</h3>
+              <p class="mini-text" id="listHeadline">2 件のエントリを表示しています。</p>
+            </div>
+            <div class="toolbar-head-actions">
+              <button class="button-primary" id="createButton" type="button">新規登録</button>
+              <p class="mini-text" id="pageStatusText">1 - 30 件を表示</p>
+            </div>
+          </div>
+          <div class="toolbar-grid">
+            <label class="field-group" for="searchInput">
+              <span class="field-label">検索</span>
+              <input class="search-field" id="searchInput" type="search" value="" placeholder="原文・訳語・IDで検索">
+            </label>
+            <label class="field-group" for="categorySelect">
+              <span class="field-label">カテゴリ</span>
+              <select class="select-field" id="categorySelect">
+                <option selected>すべて</option>
+                <option>固有名詞</option>
+                <option>地名</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="list-shell">
+          <div class="column-row">
+            <span>訳語</span>
+            <span>原文</span>
+            <span>カテゴリ</span>
+            <span>ID</span>
+          </div>
+          <div class="list-stack" id="listStack" aria-live="polite">
+            <button class="list-row is-selected" type="button">
+              <div class="row-cell">
+                <strong class="row-value">ドラゴン・プリースト</strong>
+                <span class="row-meta">選択中の行</span>
+              </div>
+              <div class="row-cell">
+                <span class="row-value">Dragon Priest</span>
+                <span class="row-meta">原文</span>
+              </div>
+              <div class="row-meta">固有名詞 / XML取込</div>
+              <div class="row-id">#101</div>
+            </button>
+            <button class="list-row" type="button">
+              <div class="row-cell">
+                <strong class="row-value">ホワイトラン</strong>
+                <span class="row-meta">通常行</span>
+              </div>
+              <div class="row-cell">
+                <span class="row-value">Whiterun</span>
+                <span class="row-meta">原文</span>
+              </div>
+              <div class="row-meta">地名 / 手動登録</div>
+              <div class="row-id">#102</div>
+            </button>
+          </div>
+          <div class="pager-shell">
+            <span class="mini-text" id="selectionStatus">Dragon Priest を選択中</span>
+            <div class="pager">
+              <button class="button-secondary" id="prevPageButton" type="button">前の30件</button>
+              <button class="button-secondary" id="nextPageButton" type="button">次の30件</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel detail-panel" aria-labelledby="reviewDetailHeading">
+        <div class="detail-head">
+          <div>
+            <div class="section-label">mock carry-over</div>
+            <h2 id="reviewDetailHeading">選択中のエントリ</h2>
+            <p class="mini-text" id="detailSubline">XML取込 / 最終更新 2026-04-12 00:00</p>
+          </div>
+          <div class="detail-actions">
+            <button class="button-secondary" id="editButton" type="button">更新</button>
+            <button class="button-danger" id="deleteButton" type="button">削除</button>
+          </div>
+        </div>
+
+        <div class="detail-title">
+          <div class="detail-tags" id="detailTags">
+            <span class="status-pill">固有名詞</span>
+            <span class="status-pill">XML取込</span>
+          </div>
+          <strong id="detailTitle">Dragon Priest</strong>
+          <p class="detail-copy" id="detailTranslation">ドラゴン・プリースト</p>
+        </div>
+
+        <div class="detail-grid" id="detailGrid">
+          <div class="detail-card">
+            <div class="section-label">id</div>
+            <strong>101</strong>
+          </div>
+          <div class="detail-card">
+            <div class="section-label">最終更新</div>
+            <strong>2026-04-12 00:00</strong>
+          </div>
+        </div>
+
+        <dl class="detail-list" id="detailList">
+          <div>
+            <dt>訳語</dt>
+            <dd>ドラゴン・プリースト</dd>
+          </div>
+          <div>
+            <dt>現在の扱い</dt>
+            <dd>REC: NPC_:FULL / EDID: SeedDragonPriest</dd>
+          </div>
+        </dl>
+        <span class="marker">detail-title wrapper kept before metadata</span>
+      </section>
+    </section>
+  </main>
+</body>
+</html>
