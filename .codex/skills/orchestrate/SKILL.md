@@ -14,7 +14,8 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 
 - active work plan を作成または更新する
 - `task_mode` を決め、判断根拠を plan に残す
-- `docs-only` 以外は入口を `distill` とし、次工程を最小構成で選ぶ
+- plan 作成直後に `functional_or_design_hitl: required-after-plan` と `approval_record: pending` を記録し、human review 完了まで停止する
+- `docs-only` 以外は human review 完了後に入口を `distill` とし、次工程を最小構成で選ぶ
 - `docs-only` は human 承認済みの時だけ `updating-docs` へ handoff する
 - `HITL`、required evidence、required validation、close 条件を管理する
 - 存在する task-local artifact だけを `docs/` 正本へ反映する close summary を残す
@@ -42,6 +43,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 ## Routing Rules
 
 - 1 downstream skill には 1 primary agent だけを割り当てる
+- `docs-only` 以外の全 task は active work plan 作成または更新の直後に human review gate を立てる。`approval_record` が埋まるまで downstream handoff を開始しない
 - `implement` と `refactor` は `design-review` と human review の後に `implementation-scope` を確定し、狭い `owned_scope` で `implement` を実行する。`review` が `pass` を返した後に正本同期し `close` する
 - `fix` は `reproduce` で不具合を再現し、`trace` で原因を解析し、必要なら `temporary-logging` を使って観測点を補強し、`reobserve` と `review` で修正を確認する
 - `investigate` は evidence だけで close してよい
@@ -63,6 +65,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 ## Scope Rules
 
 - 広い変更は orchestrate 側で frontend / backend / docs / review 単位へ分割する
+- plan review に必要な判断材料は active work plan へ先に固定し、human review 完了前に downstream へ渡さない
 - 実装前の scope freeze は design の `implementation-scope` で行う
 - 各 handoff には `owned_scope`、対象ファイル、完了条件、依存、validation を明示する
 - depends_on が未解消の task は handoff しない
@@ -73,6 +76,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 - plan が破綻している
 - user 承認済み判断と衝突する
 - skill 権限境界を超える
+- plan 作成後に `functional_or_design_hitl` が `required-after-plan` のまま、または `approval_record` が `pending` のままになっている
 - narrow scope を安全に定義できない
 - docs-only で `approval_record` がない
 
@@ -92,6 +96,7 @@ description: AITranslationEngineJp 専用。唯一入口として task mode、pr
 
 - orchestrate 自身でコードを書かない
 - orchestrate 自身で詳細調査を抱え込まない
+- human review 未完了の plan を downstream handoff で迂回しない
 - downstream skill は `fork_context: false` で呼ぶ
 - primary skill-agent mapping を複数 skill で共有しない
 - 別 skill を増やさない

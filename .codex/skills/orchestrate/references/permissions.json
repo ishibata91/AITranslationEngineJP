@@ -4,7 +4,8 @@
   "allowed_actions": [
     "active work plan を作成または更新する",
     "task mode と close 条件を固定する",
-    "distill、investigate、design、implement、tests、review、diagramming、updating-docs へ handoff する"
+    "plan 作成直後に HITL を `required-after-plan` と `pending` で記録し、human review 完了まで停止する",
+    "human review 完了後に distill、investigate、design、implement、tests、review、diagramming、updating-docs へ handoff する"
   ],
   "forbidden_actions": [
     "自身で product 実装を始める",
@@ -22,6 +23,7 @@
   ],
   "stop_conditions": [
     "human decision が必要なのに HITL の記録先が定まらない",
+    "active work plan 作成後に `functional_or_design_hitl` が `required-after-plan` のまま、または `approval_record` が `pending` のままである",
     "task scope が広すぎて ownership を安全に分割できない",
     "docs-only に必要な approval_record が不足している"
   ]
