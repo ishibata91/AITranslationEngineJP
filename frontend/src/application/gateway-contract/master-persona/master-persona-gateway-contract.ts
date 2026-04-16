@@ -175,13 +175,14 @@ export interface MasterPersonaScreenViewModel extends MasterPersonaScreenState {
   canMutate: boolean
   isRunActive: boolean
   hasPreview: boolean
+  aiProviderLabel: string
   promptTemplateDescription: string
   progressPercent: number
 }
 
 export const MASTER_PERSONA_PAGE_SIZE = 30
-const MASTER_PERSONA_DEFAULT_PROVIDER = "fake"
-const MASTER_PERSONA_DEFAULT_MODEL = "fake-master-persona"
+const MASTER_PERSONA_DEFAULT_PROVIDER = ""
+const MASTER_PERSONA_DEFAULT_MODEL = ""
 export const MASTER_PERSONA_IDLE_RUN_STATE = "入力待ち"
 export const MASTER_PERSONA_PROMPT_TEMPLATE_DESCRIPTION =
   "プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。"

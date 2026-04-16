@@ -16,8 +16,11 @@ var (
 )
 
 const (
-	masterPersonaDefaultPageSize = 30
-	masterPersonaMaxPageSize     = 100
+	masterPersonaDefaultPageSize      = 30
+	masterPersonaMaxPageSize          = 100
+	masterPersonaIdentityKeyErrorFmt  = "%w: identity_key=%s"
+	masterPersonaSeedFollowersPlugin  = "FollowersPlus.esp"
+	masterPersonaSeedNightCourtPlugin = "NightCourt.esp"
 )
 
 // MasterPersonaEntry stores one master persona record.
@@ -137,6 +140,7 @@ type MasterPersonaRunRepository interface {
 type SecretStore interface {
 	Load(ctx context.Context, key string) (string, error)
 	Save(ctx context.Context, key string, value string) error
+	Delete(ctx context.Context, key string) error
 }
 
 // InMemoryMasterPersonaRepository provides an in-memory backend seam for master persona data.
@@ -245,7 +249,7 @@ func (repository *InMemoryMasterPersonaRepository) GetByIdentityKey(
 
 	entry, ok := repository.entries[strings.TrimSpace(identityKey)]
 	if !ok {
-		return MasterPersonaEntry{}, fmt.Errorf("%w: identity_key=%s", ErrMasterPersonaEntryNotFound, identityKey)
+		return MasterPersonaEntry{}, fmt.Errorf(masterPersonaIdentityKeyErrorFmt, ErrMasterPersonaEntryNotFound, identityKey)
 	}
 	return cloneMasterPersonaEntry(entry), nil
 }
@@ -278,7 +282,7 @@ func (repository *InMemoryMasterPersonaRepository) Update(
 
 	trimmedIdentityKey := strings.TrimSpace(identityKey)
 	if _, exists := repository.entries[trimmedIdentityKey]; !exists {
-		return MasterPersonaEntry{}, fmt.Errorf("%w: identity_key=%s", ErrMasterPersonaEntryNotFound, identityKey)
+		return MasterPersonaEntry{}, fmt.Errorf(masterPersonaIdentityKeyErrorFmt, ErrMasterPersonaEntryNotFound, identityKey)
 	}
 
 	nextIdentityKey := strings.TrimSpace(draft.IdentityKey)
@@ -301,7 +305,7 @@ func (repository *InMemoryMasterPersonaRepository) Delete(_ context.Context, ide
 
 	trimmedIdentityKey := strings.TrimSpace(identityKey)
 	if _, exists := repository.entries[trimmedIdentityKey]; !exists {
-		return fmt.Errorf("%w: identity_key=%s", ErrMasterPersonaEntryNotFound, identityKey)
+		return fmt.Errorf(masterPersonaIdentityKeyErrorFmt, ErrMasterPersonaEntryNotFound, identityKey)
 	}
 	delete(repository.entries, trimmedIdentityKey)
 	return nil
@@ -352,6 +356,14 @@ func (store *InMemorySecretStore) Save(_ context.Context, key string, value stri
 	return nil
 }
 
+// Delete removes one secret value by key.
+func (store *InMemorySecretStore) Delete(_ context.Context, key string) error {
+	store.mu.Lock()
+	defer store.mu.Unlock()
+	delete(store.secrets, strings.TrimSpace(key))
+	return nil
+}
+
 // DefaultMasterPersonaSeed returns deterministic seed entries for bootstrap wiring.
 func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 	lysmarenRace := "Breton"
@@ -360,8 +372,8 @@ func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 	kaelSex := "Male"
 	return []MasterPersonaEntry{
 		{
-			IdentityKey:    BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"),
-			TargetPlugin:   "FollowersPlus.esp",
+			IdentityKey:    BuildMasterPersonaIdentityKey(masterPersonaSeedFollowersPlugin, "FE01A812", "NPC_"),
+			TargetPlugin:   masterPersonaSeedFollowersPlugin,
 			FormID:         "FE01A812",
 			RecordType:     "NPC_",
 			EditorID:       "FP_LysMaren",
@@ -370,7 +382,7 @@ func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 			Sex:            &lysmarenSex,
 			VoiceType:      "FemaleYoungEager",
 			ClassName:      "FPScoutClass",
-			SourcePlugin:   "FollowersPlus.esp",
+			SourcePlugin:   masterPersonaSeedFollowersPlugin,
 			PersonaSummary: "乾いた率直さで応じ、必要な場面だけ短く本音を置く。",
 			PersonaBody:    "口調は丁寧語へ寄せず、中性的な温度を保つ。会話の主導権は急いで取らず、相手の出方を見てから短く返す。",
 			DialogueCount:  3,
@@ -382,8 +394,8 @@ func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 			UpdatedAt: now,
 		},
 		{
-			IdentityKey:    BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A813", "NPC_"),
-			TargetPlugin:   "FollowersPlus.esp",
+			IdentityKey:    BuildMasterPersonaIdentityKey(masterPersonaSeedFollowersPlugin, "FE01A813", "NPC_"),
+			TargetPlugin:   masterPersonaSeedFollowersPlugin,
 			FormID:         "FE01A813",
 			RecordType:     "NPC_",
 			EditorID:       "FP_KaelRuun",
@@ -392,7 +404,7 @@ func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 			Sex:            &kaelSex,
 			VoiceType:      "MaleCommander",
 			ClassName:      "FPMercenaryClass",
-			SourcePlugin:   "FollowersPlus.esp",
+			SourcePlugin:   masterPersonaSeedFollowersPlugin,
 			PersonaSummary: "判断を先に示し、無駄なく短く指示を伝える。",
 			PersonaBody:    "判断を先に述べ、必要な指示だけを短く渡す。曖昧な慰めより役割と責任を優先する。",
 			DialogueCount:  2,
@@ -403,15 +415,15 @@ func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 			UpdatedAt: now.Add(-time.Minute),
 		},
 		{
-			IdentityKey:     BuildMasterPersonaIdentityKey("NightCourt.esp", "FE01A814", "NPC_"),
-			TargetPlugin:    "NightCourt.esp",
+			IdentityKey:     BuildMasterPersonaIdentityKey(masterPersonaSeedNightCourtPlugin, "FE01A814", "NPC_"),
+			TargetPlugin:    masterPersonaSeedNightCourtPlugin,
 			FormID:          "FE01A814",
 			RecordType:      "NPC_",
 			EditorID:        "FP_WatcherHusk",
 			DisplayName:     "Watcher Husk",
 			VoiceType:       "FemaleCondescending",
 			ClassName:       "FPOccultClass",
-			SourcePlugin:    "NightCourt.esp",
+			SourcePlugin:    masterPersonaSeedNightCourtPlugin,
 			PersonaSummary:  "含みのある言い回しで相手を試し、答えを急がせない。",
 			PersonaBody:     "含みを残した言い回しで相手の反応を測る。欠落属性は見せず、観察を優先する話し方に寄せる。",
 			BaselineApplied: true,

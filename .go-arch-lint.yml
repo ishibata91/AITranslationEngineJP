@@ -16,8 +16,6 @@ components:
     in: jobio/**
   repository:
     in: repository/**
-  aiprovider:
-    in: aiprovider/**
   infra_ai:
     in: infra/ai/**
   infra_runtime:
@@ -27,11 +25,13 @@ components:
 
 deps:
   bootstrap:
+    deepScan: false
     mayDependOn:
       - controller
       - usecase
       - service
       - repository
+      - infra_ai
   controller:
     mayDependOn:
       - usecase
@@ -41,9 +41,9 @@ deps:
       - statemachine
       - jobio
   service:
+    deepScan: false
     mayDependOn:
       - repository
-      - aiprovider
   jobio:
     mayDependOn:
       - repository
@@ -53,7 +53,6 @@ deps:
       - infra_sqlite
   infra_ai:
     mayDependOn:
-      - aiprovider
       - infra_runtime
 allow:
   depOnAnyVendor: true

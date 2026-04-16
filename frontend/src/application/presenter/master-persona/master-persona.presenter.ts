@@ -3,6 +3,12 @@ import * as MasterPersonaGateway from "@application/gateway-contract/master-pers
 type MasterPersonaScreenState = MasterPersonaGateway.MasterPersonaScreenState
 type MasterPersonaScreenViewModel = MasterPersonaGateway.MasterPersonaScreenViewModel
 
+const AI_PROVIDER_LABEL_BY_ID: Record<string, string> = {
+  gemini: "Gemini",
+  lm_studio: "LM Studio",
+  xai: "xAI"
+}
+
 function buildPluginOptions(state: MasterPersonaScreenState): Array<{
   value: string
   label: string
@@ -41,6 +47,28 @@ function buildDetailStatusText(state: MasterPersonaScreenState): string {
 
 function isRunActive(runState: string): boolean {
   return runState === "生成中"
+}
+
+function normalizeProviderId(provider: string): string {
+  return provider.trim().toLowerCase()
+}
+
+function buildAIProviderLabel(provider: string): string {
+  const providerId = normalizeProviderId(provider)
+  if (providerId === "") {
+    return ""
+  }
+  return AI_PROVIDER_LABEL_BY_ID[providerId] ?? provider.trim()
+}
+
+function isAISettingsComplete(state: MasterPersonaScreenState): boolean {
+  const providerId = normalizeProviderId(state.aiSettings.provider)
+  const hasProvider = providerId !== ""
+  const hasModel = state.aiSettings.model.trim() !== ""
+  const requiresAPIKey = providerId !== "lm_studio"
+  const hasAPIKey = state.aiSettings.apiKey.trim() !== ""
+
+  return hasProvider && hasModel && (!requiresAPIKey || hasAPIKey)
 }
 
 function buildProgressPercent(state: MasterPersonaScreenState): number {
@@ -82,12 +110,14 @@ export class MasterPersonaPresenter {
       detailStatusText: buildDetailStatusText(state),
       canStartPreview: state.selectedFileReference !== null,
       canStartGeneration:
+        isAISettingsComplete(state) &&
         state.preview !== null &&
         state.preview.status === "生成可能" &&
         !activeRun,
       canMutate: !activeRun && state.selectedEntry !== null,
       isRunActive: activeRun,
       hasPreview,
+      aiProviderLabel: buildAIProviderLabel(state.aiSettings.provider),
       promptTemplateDescription:
         MasterPersonaGateway.MASTER_PERSONA_PROMPT_TEMPLATE_DESCRIPTION,
       progressPercent: buildProgressPercent(state),

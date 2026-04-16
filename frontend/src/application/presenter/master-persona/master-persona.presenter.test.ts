@@ -21,8 +21,8 @@ function createState(
     totalCount: 0,
     errorMessage: "",
     aiSettings: {
-      provider: "fake",
-      model: "fake-master-persona",
+      provider: "gemini",
+      model: "gemini-2.5-pro",
       apiKey: ""
     },
     aiSettingsMessage: "",
@@ -65,6 +65,23 @@ describe("MasterPersonaPresenter", () => {
       label: "すべてのプラグイン"
     })
     expect(viewModel.pluginOptions[1]?.label).toContain("FollowersPlus.esp")
+  })
+
+  test("AI provider label は canonical provider ID を表示名へ変換する", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "lm_studio",
+          model: "llama3",
+          apiKey: ""
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.aiProviderLabel).toBe("LM Studio")
   })
 
   test("生成中は更新と削除を行えませんを返す", () => {
@@ -156,5 +173,172 @@ describe("MasterPersonaPresenter", () => {
     expect(viewModel.selectedEntry?.sex).toBeUndefined()
     expect(viewModel.items[0]?.race).toBeUndefined()
     expect(viewModel.items[0]?.sex).toBeUndefined()
+  })
+
+  test("preview が生成可能でも AI 設定が未完了なら生成ボタンは無効", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          apiKey: ""
+        },
+        preview: {
+          fileName: "sample.json",
+          targetPlugin: "FollowersPlus.esp",
+          totalNpcCount: 10,
+          generatableCount: 7,
+          existingSkipCount: 2,
+          zeroDialogueSkipCount: 1,
+          genericNpcCount: 0,
+          status: "生成可能"
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.canStartGeneration).toBe(false)
+  })
+
+  test("AI 設定完了かつ preview 成功時だけ生成ボタンを有効化する", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          apiKey: "secret-key"
+        },
+        preview: {
+          fileName: "sample.json",
+          targetPlugin: "FollowersPlus.esp",
+          totalNpcCount: 10,
+          generatableCount: 7,
+          existingSkipCount: 2,
+          zeroDialogueSkipCount: 1,
+          genericNpcCount: 0,
+          status: "生成可能"
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.canStartGeneration).toBe(true)
+  })
+
+  test("LM Studio は API キー未入力でも preview 成功時に生成ボタンを有効化する", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "lm_studio",
+          model: "llama3",
+          apiKey: ""
+        },
+        preview: {
+          fileName: "sample.json",
+          targetPlugin: "FollowersPlus.esp",
+          totalNpcCount: 10,
+          generatableCount: 7,
+          existingSkipCount: 2,
+          zeroDialogueSkipCount: 1,
+          genericNpcCount: 0,
+          status: "生成可能"
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.canStartGeneration).toBe(true)
+  })
+
+  test("xAI は API キー未入力なら生成ボタンを有効化しない", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "xai",
+          model: "grok-4",
+          apiKey: ""
+        },
+        preview: {
+          fileName: "sample.json",
+          targetPlugin: "FollowersPlus.esp",
+          totalNpcCount: 10,
+          generatableCount: 7,
+          existingSkipCount: 2,
+          zeroDialogueSkipCount: 1,
+          genericNpcCount: 0,
+          status: "生成可能"
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.canStartGeneration).toBe(false)
+  })
+
+  test("AI 設定未完了 preview は集計を残して生成ボタンを無効にする", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          apiKey: ""
+        },
+        preview: {
+          fileName: "sample.json",
+          targetPlugin: "FollowersPlus.esp",
+          totalNpcCount: 10,
+          generatableCount: 7,
+          existingSkipCount: 2,
+          zeroDialogueSkipCount: 1,
+          genericNpcCount: 0,
+          status: "設定未完了"
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.preview).toEqual({
+      fileName: "sample.json",
+      targetPlugin: "FollowersPlus.esp",
+      totalNpcCount: 10,
+      generatableCount: 7,
+      existingSkipCount: 2,
+      zeroDialogueSkipCount: 1,
+      genericNpcCount: 0,
+      status: "設定未完了"
+    })
+    expect(viewModel.hasPreview).toBe(true)
+    expect(viewModel.canStartGeneration).toBe(false)
+  })
+
+  test("preview error 後は生成ボタンを無効にする", () => {
+    const presenter = new MasterPersonaPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        aiSettings: {
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          apiKey: "secret-key"
+        },
+        errorMessage: "parse extractData json: invalid",
+        preview: null
+      }),
+      true
+    )
+
+    expect(viewModel.errorMessage).toBe("parse extractData json: invalid")
+    expect(viewModel.hasPreview).toBe(false)
+    expect(viewModel.canStartGeneration).toBe(false)
   })
 })

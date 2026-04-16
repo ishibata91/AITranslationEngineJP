@@ -1,4 +1,3 @@
-import { createDefaultMasterPersonaAISettings } from "@application/contract/master-persona/master-persona-screen-constants"
 import type {
   MasterPersonaEditableFieldMap,
   MasterPersonaScreenControllerContract,
@@ -171,6 +170,12 @@ export class MasterPersonaScreenController
         }
       }
     })
+
+    if (!file) {
+      return
+    }
+
+    void this.dependencies.useCase.previewGeneration()
   }
 
   resetJsonSelection(): void {
@@ -209,9 +214,6 @@ export class MasterPersonaScreenController
     }
     this.dependencies.store.update((draft) => {
       draft.aiSettings.provider = target.value
-      if (target.value === "fake" && draft.aiSettings.model.trim() === "") {
-        draft.aiSettings.model = createDefaultMasterPersonaAISettings().model
-      }
       draft.aiSettingsMessage = ""
     })
   }

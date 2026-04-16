@@ -134,7 +134,7 @@ func TestMasterPersonaUsecaseGetDialogueListReturnsDialogueCountAndRows(t *testi
 	}
 }
 
-func TestMasterPersonaUsecasePreviewGenerationPassesThroughFakeProviderRequest(t *testing.T) {
+func TestMasterPersonaUsecasePreviewGenerationPassesThroughProviderRequest(t *testing.T) {
 	usecase := NewMasterPersonaUsecase(
 		fakeMasterPersonaQueryService{},
 		fakeMasterPersonaGenerationService{
@@ -142,7 +142,7 @@ func TestMasterPersonaUsecasePreviewGenerationPassesThroughFakeProviderRequest(t
 				if filePath != "/tmp/sample.json" {
 					t.Fatalf("unexpected file path: %q", filePath)
 				}
-				if requestSettings.Provider != "fake" || requestSettings.APIKey != "" {
+				if requestSettings.Provider != "gemini" || requestSettings.APIKey != "" {
 					t.Fatalf("unexpected preview settings: %#v", requestSettings)
 				}
 				return service.MasterPersonaPreviewResult{Status: service.MasterPersonaStatusReady}, nil
@@ -151,7 +151,7 @@ func TestMasterPersonaUsecasePreviewGenerationPassesThroughFakeProviderRequest(t
 		fakeMasterPersonaRunStatusService{},
 	)
 
-	result, err := usecase.PreviewGeneration(context.Background(), "/tmp/sample.json", MasterPersonaAISettings{Provider: "fake", Model: "fake-master-persona", APIKey: ""})
+	result, err := usecase.PreviewGeneration(context.Background(), "/tmp/sample.json", MasterPersonaAISettings{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: ""})
 	if err != nil {
 		t.Fatalf("expected preview generation to succeed: %v", err)
 	}

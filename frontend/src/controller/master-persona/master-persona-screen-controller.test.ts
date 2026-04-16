@@ -24,8 +24,8 @@ function createState(
     totalCount: 0,
     errorMessage: "",
     aiSettings: {
-      provider: "fake",
-      model: "fake-master-persona",
+      provider: "gemini",
+      model: "gemini-2.5-pro",
       apiKey: ""
     },
     aiSettingsMessage: "",
@@ -73,6 +73,7 @@ function createViewModel(state: MasterPersonaScreenState): MasterPersonaScreenVi
     canMutate: false,
     isRunActive: false,
     hasPreview: false,
+    aiProviderLabel: "Gemini",
     promptTemplateDescription:
       "プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。",
     progressPercent: 0
@@ -207,6 +208,26 @@ describe("MasterPersonaScreenController", () => {
     expect(harness.useCase.loadPage).toHaveBeenCalledTimes(1)
   })
 
+  test("setAIProvider は canonical provider ID を state へ保持する", () => {
+    const harness = createControllerHarness(createState())
+    const select = document.createElement("select")
+    const option = document.createElement("option")
+    option.value = "lm_studio"
+    select.append(option)
+    select.value = "lm_studio"
+
+    const event = new Event("change")
+    Object.defineProperty(event, "currentTarget", {
+      value: select,
+      configurable: true
+    })
+
+    harness.controller.setAIProvider(event)
+
+    expect(harness.getState().aiSettings.provider).toBe("lm_studio")
+    expect(harness.getState().aiSettingsMessage).toBe("")
+  })
+
   test("stageJsonSelection は preview をクリアして file reference を保持する", () => {
     const harness = createControllerHarness(
       createState({
@@ -232,5 +253,16 @@ describe("MasterPersonaScreenController", () => {
     expect(harness.getState().selectedFileName).toBe("sample.json")
     expect(harness.getState().selectedFileReference).toBe("/tmp/sample.json")
     expect(harness.getState().preview).toBeNull()
+    expect(harness.useCase.previewGeneration).toHaveBeenCalledTimes(1)
+  })
+
+  test("stageJsonSelection は file 未選択時に自動 preview を呼ばない", () => {
+    const harness = createControllerHarness(createState())
+
+    harness.controller.stageJsonSelection(null)
+
+    expect(harness.getState().selectedFileName).toBe("未選択")
+    expect(harness.getState().selectedFileReference).toBeNull()
+    expect(harness.useCase.previewGeneration).not.toHaveBeenCalled()
   })
 })

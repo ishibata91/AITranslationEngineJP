@@ -176,6 +176,7 @@ type MasterPersonaGenerationService struct {
 	settingsRepository MasterPersonaAISettingsRepository
 	runRepository      MasterPersonaRunRepository
 	secretStore        MasterPersonaSecretStore
+	bodyGenerator      MasterPersonaBodyGenerator
 	now                func() time.Time
 	testMode           bool
 }
@@ -229,8 +230,9 @@ func NewMasterPersonaGenerationService(
 	secretStore MasterPersonaSecretStore,
 	now func() time.Time,
 	testMode bool,
+	options ...MasterPersonaGenerationServiceOption,
 ) *MasterPersonaGenerationService {
-	return &MasterPersonaGenerationService{
+	service := &MasterPersonaGenerationService{
 		commandRepository:  commandRepository,
 		settingsRepository: settingsRepository,
 		runRepository:      runRepository,
@@ -238,6 +240,13 @@ func NewMasterPersonaGenerationService(
 		now:                normalizeMasterPersonaClock(now),
 		testMode:           testMode,
 	}
+	for _, option := range options {
+		if option == nil {
+			continue
+		}
+		option(service)
+	}
+	return service
 }
 
 // NewMasterPersonaRunStatusService creates a master persona run status service.
@@ -319,15 +328,26 @@ func (service *MasterPersonaGenerationService) SaveSettings(ctx context.Context,
 	if err != nil {
 		return MasterPersonaAISettings{}, err
 	}
-	if err := service.settingsRepository.SaveAISettings(ctx, repository.MasterPersonaAISettingsRecord{
+	if saveSettingsErr := service.settingsRepository.SaveAISettings(ctx, repository.MasterPersonaAISettingsRecord{
 		Provider: normalized.Provider,
 		Model:    normalized.Model,
-	}); err != nil {
-		return MasterPersonaAISettings{}, fmt.Errorf("save master persona ai settings: %w", err)
+	}); saveSettingsErr != nil {
+		return MasterPersonaAISettings{}, fmt.Errorf("save master persona ai settings: %w", saveSettingsErr)
 	}
-	if err := service.secretStore.Save(ctx, masterPersonaSecretKey(normalized.Provider), normalized.APIKey); err != nil {
-		return MasterPersonaAISettings{}, fmt.Errorf("save master persona ai secret: %w", err)
+
+	secretKey := masterPersonaSecretKey(normalized.Provider)
+	if strings.TrimSpace(normalized.APIKey) != "" {
+		if saveSecretErr := service.secretStore.Save(ctx, secretKey, normalized.APIKey); saveSecretErr != nil {
+			return MasterPersonaAISettings{}, fmt.Errorf("save master persona ai secret: %w", saveSecretErr)
+		}
+		return normalized, nil
 	}
+
+	persistedAPIKey, loadSecretErr := service.secretStore.Load(ctx, secretKey)
+	if loadSecretErr != nil {
+		return MasterPersonaAISettings{}, fmt.Errorf("load persisted master persona ai secret: %w", loadSecretErr)
+	}
+	normalized.APIKey = persistedAPIKey
 	return normalized, nil
 }
 
@@ -337,16 +357,17 @@ func (service *MasterPersonaGenerationService) Preview(
 	filePath string,
 	requestSettings MasterPersonaAISettings,
 ) (MasterPersonaPreviewResult, error) {
-	status, err := service.resolveSettingsForRun(ctx, requestSettings)
+	_, settingsStatus, err := service.resolveSettingsForRun(ctx, requestSettings)
 	if err != nil {
-		return MasterPersonaPreviewResult{Status: status}, err
+		return MasterPersonaPreviewResult{Status: settingsStatus}, err
 	}
-	if status == MasterPersonaStatusSettingsIncomplete {
-		return MasterPersonaPreviewResult{Status: status}, nil
-	}
-	analysis, status, err := service.analyzePreview(ctx, filePath)
+	analysis, previewStatus, err := service.analyzePreview(ctx, filePath)
 	if err != nil {
-		return MasterPersonaPreviewResult{Status: status}, err
+		return MasterPersonaPreviewResult{Status: previewStatus}, err
+	}
+	status := previewStatus
+	if settingsStatus == MasterPersonaStatusSettingsIncomplete {
+		status = settingsStatus
 	}
 	return MasterPersonaPreviewResult{
 		FileName:              analysis.fileName,
@@ -366,47 +387,86 @@ func (service *MasterPersonaGenerationService) Execute(
 	filePath string,
 	requestSettings MasterPersonaAISettings,
 ) (MasterPersonaRunStatus, error) {
-	currentStatus, err := service.runRepository.LoadRunStatus(ctx)
-	if err != nil {
-		return MasterPersonaRunStatus{}, fmt.Errorf("load master persona run status before execute: %w", err)
-	}
-	if currentStatus.RunState == MasterPersonaStatusRunning {
-		return MasterPersonaRunStatus{}, ErrMasterPersonaActiveRun
+	if err := service.ensureRunInactive(ctx); err != nil {
+		return MasterPersonaRunStatus{}, err
 	}
 
-	settingsStatus, err := service.resolveSettingsForRun(ctx, requestSettings)
+	resolvedSettings, settingsStatus, err := service.resolveSettingsForRun(ctx, requestSettings)
 	if err != nil {
 		return MasterPersonaRunStatus{RunState: settingsStatus}, err
 	}
 	if settingsStatus == MasterPersonaStatusSettingsIncomplete {
-		status := MasterPersonaRunStatus{RunState: settingsStatus, Message: "AI設定を完了してください"}
-		if saveErr := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); saveErr != nil {
-			return MasterPersonaRunStatus{}, fmt.Errorf("persist master persona settings incomplete status: %w", saveErr)
-		}
-		return status, nil
+		return service.persistSettingsIncompleteStatus(ctx)
 	}
 
 	analysis, previewStatus, err := service.analyzePreview(ctx, filePath)
 	if err != nil {
-		status := MasterPersonaRunStatus{RunState: previewStatus, Message: err.Error()}
-		_ = service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status))
-		return status, err
+		return service.persistPreviewFailureStatus(ctx, previewStatus, err)
 	}
 	if previewStatus == MasterPersonaStatusNoTargets {
-		status := MasterPersonaRunStatus{
-			RunState:              MasterPersonaStatusNoTargets,
-			TargetPlugin:          analysis.targetPlugin,
-			ExistingSkipCount:     analysis.existingSkipCount,
-			ZeroDialogueSkipCount: analysis.zeroDialogueSkipCount,
-			GenericNPCCount:       analysis.genericNPCCount,
-			Message:               "生成対象がありません",
-		}
-		if saveErr := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); saveErr != nil {
-			return MasterPersonaRunStatus{}, fmt.Errorf("persist master persona no target status: %w", saveErr)
-		}
-		return status, nil
+		return service.persistNoTargetStatus(ctx, analysis)
 	}
 
+	status, err := service.startRunStatus(ctx, analysis)
+	if err != nil {
+		return MasterPersonaRunStatus{}, err
+	}
+	return service.executeGeneratableNPCs(ctx, resolvedSettings, analysis, status)
+}
+
+func (service *MasterPersonaGenerationService) ensureRunInactive(ctx context.Context) error {
+	currentStatus, err := service.runRepository.LoadRunStatus(ctx)
+	if err != nil {
+		return fmt.Errorf("load master persona run status before execute: %w", err)
+	}
+	if currentStatus.RunState == MasterPersonaStatusRunning {
+		return ErrMasterPersonaActiveRun
+	}
+	return nil
+}
+
+func (service *MasterPersonaGenerationService) persistSettingsIncompleteStatus(
+	ctx context.Context,
+) (MasterPersonaRunStatus, error) {
+	status := MasterPersonaRunStatus{RunState: MasterPersonaStatusSettingsIncomplete, Message: "AI設定を完了してください"}
+	if err := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); err != nil {
+		return MasterPersonaRunStatus{}, fmt.Errorf("persist master persona settings incomplete status: %w", err)
+	}
+	return status, nil
+}
+
+func (service *MasterPersonaGenerationService) persistPreviewFailureStatus(
+	ctx context.Context,
+	previewStatus string,
+	previewErr error,
+) (MasterPersonaRunStatus, error) {
+	status := MasterPersonaRunStatus{RunState: previewStatus, Message: previewErr.Error()}
+	_ = service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status))
+	return status, previewErr
+}
+
+func (service *MasterPersonaGenerationService) persistNoTargetStatus(
+	ctx context.Context,
+	analysis masterPersonaPreviewAnalysis,
+) (MasterPersonaRunStatus, error) {
+	status := MasterPersonaRunStatus{
+		RunState:              MasterPersonaStatusNoTargets,
+		TargetPlugin:          analysis.targetPlugin,
+		ExistingSkipCount:     analysis.existingSkipCount,
+		ZeroDialogueSkipCount: analysis.zeroDialogueSkipCount,
+		GenericNPCCount:       analysis.genericNPCCount,
+		Message:               "生成対象がありません",
+	}
+	if err := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); err != nil {
+		return MasterPersonaRunStatus{}, fmt.Errorf("persist master persona no target status: %w", err)
+	}
+	return status, nil
+}
+
+func (service *MasterPersonaGenerationService) startRunStatus(
+	ctx context.Context,
+	analysis masterPersonaPreviewAnalysis,
+) (MasterPersonaRunStatus, error) {
 	startedAt := service.now().UTC()
 	status := MasterPersonaRunStatus{
 		RunState:              MasterPersonaStatusRunning,
@@ -420,18 +480,35 @@ func (service *MasterPersonaGenerationService) Execute(
 	if err := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); err != nil {
 		return MasterPersonaRunStatus{}, fmt.Errorf("persist master persona running status: %w", err)
 	}
+	return status, nil
+}
 
+func (service *MasterPersonaGenerationService) executeGeneratableNPCs(
+	ctx context.Context,
+	settings MasterPersonaAISettings,
+	analysis masterPersonaPreviewAnalysis,
+	status MasterPersonaRunStatus,
+) (MasterPersonaRunStatus, error) {
 	for _, npc := range analysis.generatableNPCs {
-		liveStatus, loadErr := service.runRepository.LoadRunStatus(ctx)
-		if loadErr != nil {
-			return MasterPersonaRunStatus{}, fmt.Errorf("poll master persona run status: %w", loadErr)
+		cancelledStatus, cancelled, err := service.checkRunCancellation(ctx)
+		if err != nil {
+			return MasterPersonaRunStatus{}, err
 		}
-		if liveStatus.RunState == MasterPersonaStatusInterrupted || liveStatus.RunState == MasterPersonaStatusCancelled {
-			return fromRunStatusRecord(liveStatus), nil
+		if cancelled {
+			return cancelledStatus, nil
 		}
 
 		status.ProcessedCount++
 		status.CurrentActorLabel = currentMasterPersonaActorLabel(npc)
+		if persistErr := service.persistRunProgress(ctx, status); persistErr != nil {
+			return MasterPersonaRunStatus{}, persistErr
+		}
+
+		personaBody, err := service.generatePersonaBody(ctx, settings, npc)
+		if err != nil {
+			return service.failRunStatus(ctx, status, fmt.Errorf("generate master persona body: %w", err))
+		}
+
 		draft := repository.MasterPersonaDraft{
 			IdentityKey:          repository.BuildMasterPersonaIdentityKey(analysis.targetPlugin, npc.FormID, npc.RecordType),
 			TargetPlugin:         analysis.targetPlugin,
@@ -444,30 +521,65 @@ func (service *MasterPersonaGenerationService) Execute(
 			VoiceType:            npc.VoiceType,
 			ClassName:            npc.ClassName,
 			SourcePlugin:         npc.SourcePlugin,
-			PersonaSummary:       buildMasterPersonaSummary(npc),
-			PersonaBody:          buildMasterPersonaBody(npc),
+			PersonaSummary:       buildMasterPersonaSummaryFromBody(npc.DisplayName, personaBody),
+			PersonaBody:          personaBody,
 			GenerationSourceJSON: analysis.fileName,
 			BaselineApplied:      npc.Race == nil || npc.Sex == nil,
 			Dialogues:            append([]string(nil), npc.Dialogues...),
 			UpdatedAt:            service.now().UTC(),
 		}
-		_, created, createErr := service.commandRepository.UpsertIfAbsent(ctx, draft)
-		if createErr != nil {
-			finishedAt := service.now().UTC()
-			status.RunState = MasterPersonaStatusFailed
-			status.Message = createErr.Error()
-			status.FinishedAt = &finishedAt
-			_ = service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status))
-			return status, fmt.Errorf("create master persona entry from preview target: %w", createErr)
+		_, created, err := service.commandRepository.UpsertIfAbsent(ctx, draft)
+		if err != nil {
+			return service.failRunStatus(ctx, status, fmt.Errorf("create master persona entry from preview target: %w", err))
 		}
-		if created {
-			status.SuccessCount++
-		}
-		if err := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); err != nil {
-			return MasterPersonaRunStatus{}, fmt.Errorf("persist master persona run progress: %w", err)
+		status.SuccessCount += masterPersonaCreatedIncrement(created)
+		if persistErr := service.persistRunProgress(ctx, status); persistErr != nil {
+			return MasterPersonaRunStatus{}, persistErr
 		}
 	}
+	return service.completeRunStatus(ctx, status)
+}
 
+func (service *MasterPersonaGenerationService) checkRunCancellation(
+	ctx context.Context,
+) (MasterPersonaRunStatus, bool, error) {
+	liveStatus, err := service.runRepository.LoadRunStatus(ctx)
+	if err != nil {
+		return MasterPersonaRunStatus{}, false, fmt.Errorf("poll master persona run status: %w", err)
+	}
+	if liveStatus.RunState == MasterPersonaStatusInterrupted || liveStatus.RunState == MasterPersonaStatusCancelled {
+		return fromRunStatusRecord(liveStatus), true, nil
+	}
+	return MasterPersonaRunStatus{}, false, nil
+}
+
+func (service *MasterPersonaGenerationService) persistRunProgress(
+	ctx context.Context,
+	status MasterPersonaRunStatus,
+) error {
+	if err := service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status)); err != nil {
+		return fmt.Errorf("persist master persona run progress: %w", err)
+	}
+	return nil
+}
+
+func (service *MasterPersonaGenerationService) failRunStatus(
+	ctx context.Context,
+	status MasterPersonaRunStatus,
+	cause error,
+) (MasterPersonaRunStatus, error) {
+	finishedAt := service.now().UTC()
+	status.RunState = MasterPersonaStatusFailed
+	status.Message = cause.Error()
+	status.FinishedAt = &finishedAt
+	_ = service.runRepository.SaveRunStatus(ctx, toRunStatusRecord(status))
+	return status, cause
+}
+
+func (service *MasterPersonaGenerationService) completeRunStatus(
+	ctx context.Context,
+	status MasterPersonaRunStatus,
+) (MasterPersonaRunStatus, error) {
 	finishedAt := service.now().UTC()
 	status.RunState = MasterPersonaStatusCompleted
 	status.FinishedAt = &finishedAt
@@ -596,12 +708,12 @@ func normalizeMasterPersonaClock(now func() time.Time) func() time.Time {
 }
 
 func normalizeMasterPersonaSettings(settings MasterPersonaAISettings) (MasterPersonaAISettings, error) {
-	provider := strings.TrimSpace(settings.Provider)
+	provider, err := normalizeMasterPersonaProvider(settings.Provider)
+	if err != nil {
+		return MasterPersonaAISettings{}, err
+	}
 	model := strings.TrimSpace(settings.Model)
 	apiKey := strings.TrimSpace(settings.APIKey)
-	if provider == "" {
-		return MasterPersonaAISettings{}, fmt.Errorf("%w: provider is required", ErrMasterPersonaValidation)
-	}
 	if model == "" {
 		return MasterPersonaAISettings{}, fmt.Errorf("%w: model is required", ErrMasterPersonaValidation)
 	}
@@ -611,56 +723,58 @@ func normalizeMasterPersonaSettings(settings MasterPersonaAISettings) (MasterPer
 func (service *MasterPersonaGenerationService) resolveSettingsForRun(
 	ctx context.Context,
 	requestSettings MasterPersonaAISettings,
-) (string, error) {
+) (MasterPersonaAISettings, string, error) {
 	if strings.TrimSpace(requestSettings.Provider) != "" || strings.TrimSpace(requestSettings.Model) != "" || strings.TrimSpace(requestSettings.APIKey) != "" {
 		settings, err := normalizeMasterPersonaSettings(requestSettings)
 		if err != nil {
-			return MasterPersonaStatusSettingsIncomplete, err
+			return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, err
 		}
 		return service.validateProviderAccess(ctx, settings)
 	}
 	loaded, err := service.LoadSettings(ctx)
 	if err != nil {
-		return MasterPersonaStatusSettingsIncomplete, err
+		return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, err
 	}
 	if strings.TrimSpace(loaded.Provider) == "" || strings.TrimSpace(loaded.Model) == "" {
-		return MasterPersonaStatusSettingsIncomplete, nil
+		return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, nil
 	}
-	return service.validateProviderAccess(ctx, loaded)
+	normalized, err := normalizeMasterPersonaSettings(loaded)
+	if err != nil {
+		return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, err
+	}
+	return service.validateProviderAccess(ctx, normalized)
 }
 
 func (service *MasterPersonaGenerationService) validateProviderAccess(
 	ctx context.Context,
 	settings MasterPersonaAISettings,
-) (string, error) {
-	provider := strings.TrimSpace(settings.Provider)
-	apiKey := strings.TrimSpace(settings.APIKey)
+) (MasterPersonaAISettings, string, error) {
+	resolved := settings
+	if service.testMode && !service.providerRequestsAreTestSafe() {
+		return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, ErrMasterPersonaRealProviderDenied
+	}
+	if service.testMode {
+		resolved.APIKey = ""
+		return resolved, MasterPersonaStatusReady, nil
+	}
+
+	apiKey := strings.TrimSpace(resolved.APIKey)
 	if apiKey == "" {
-		loadedSecret, err := service.secretStore.Load(ctx, masterPersonaSecretKey(provider))
+		loadedSecret, err := service.secretStore.Load(ctx, masterPersonaSecretKey(resolved.Provider))
 		if err != nil {
-			return MasterPersonaStatusSettingsIncomplete, fmt.Errorf("load master persona provider secret: %w", err)
+			return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, fmt.Errorf("load master persona provider secret: %w", err)
 		}
 		apiKey = strings.TrimSpace(loadedSecret)
 	}
-	if isFakeMasterPersonaProvider(provider) {
-		return MasterPersonaStatusReady, nil
-	}
-	if service.testMode {
-		return MasterPersonaStatusSettingsIncomplete, ErrMasterPersonaRealProviderDenied
-	}
 	if apiKey == "" {
-		return MasterPersonaStatusSettingsIncomplete, nil
+		if resolved.Provider == MasterPersonaProviderLMStudio {
+			resolved.APIKey = ""
+			return resolved, MasterPersonaStatusReady, nil
+		}
+		return MasterPersonaAISettings{}, MasterPersonaStatusSettingsIncomplete, nil
 	}
-	return MasterPersonaStatusReady, nil
-}
-
-func isFakeMasterPersonaProvider(provider string) bool {
-	switch strings.ToLower(strings.TrimSpace(provider)) {
-	case "fake", "stub", "mock":
-		return true
-	default:
-		return false
-	}
+	resolved.APIKey = apiKey
+	return resolved, MasterPersonaStatusReady, nil
 }
 
 func masterPersonaSecretKey(provider string) string {
@@ -715,46 +829,71 @@ func readMasterPersonaExtractDocument(path string) (masterPersonaExtractDocument
 	if err != nil {
 		return masterPersonaExtractDocument{}, "", err
 	}
-	//nolint:gosec // validatedPath is normalized and restricted to json input before read.
-	content, err := os.ReadFile(validatedPath)
+	payload, err := loadMasterPersonaExtractPayload(validatedPath)
 	if err != nil {
-		return masterPersonaExtractDocument{}, "", fmt.Errorf("read extractData json: %w", err)
+		return masterPersonaExtractDocument{}, "", err
 	}
-	var payload map[string]interface{}
-	if err := json.Unmarshal(content, &payload); err != nil {
-		return masterPersonaExtractDocument{}, "", fmt.Errorf("parse extractData json: %w", err)
-	}
-	document := masterPersonaExtractDocument{
-		TargetPlugin: readStringField(payload, "target_plugin", "targetPlugin"),
-	}
-	if document.TargetPlugin == "" {
+	targetPlugin := readStringField(payload, "target_plugin", "targetPlugin")
+	if targetPlugin == "" {
 		return masterPersonaExtractDocument{}, "", fmt.Errorf("%w: target_plugin is required", ErrMasterPersonaValidation)
 	}
-	for _, key := range []string{"npcs", "actors", "entries"} {
-		rawEntries, ok := payload[key].([]interface{})
-		if !ok {
-			continue
-		}
-		for _, rawEntry := range rawEntries {
-			entryMap, ok := rawEntry.(map[string]interface{})
-			if !ok {
-				continue
-			}
-			npc, npcErr := parseMasterPersonaExtractNPC(document.TargetPlugin, entryMap)
-			if npcErr != nil {
-				return masterPersonaExtractDocument{}, "", npcErr
-			}
-			document.NPCs = append(document.NPCs, npc)
-		}
-		break
+	npcs, err := parseMasterPersonaExtractNPCList(targetPlugin, payload)
+	if err != nil {
+		return masterPersonaExtractDocument{}, "", err
 	}
-	if len(document.NPCs) == 0 {
-		return masterPersonaExtractDocument{}, "", fmt.Errorf("%w: npc list is required", ErrMasterPersonaValidation)
-	}
+	document := masterPersonaExtractDocument{TargetPlugin: targetPlugin, NPCs: npcs}
 	sort.Slice(document.NPCs, func(left, right int) bool {
 		return document.NPCs[left].FormID < document.NPCs[right].FormID
 	})
 	return document, filepath.Base(validatedPath), nil
+}
+
+func loadMasterPersonaExtractPayload(validatedPath string) (map[string]interface{}, error) {
+	//nolint:gosec // validatedPath is normalized and restricted to json input before read.
+	content, err := os.ReadFile(validatedPath)
+	if err != nil {
+		return nil, fmt.Errorf("read extractData json: %w", err)
+	}
+	payload := map[string]interface{}{}
+	if err := json.Unmarshal(content, &payload); err != nil {
+		return nil, fmt.Errorf("parse extractData json: %w", err)
+	}
+	return payload, nil
+}
+
+func parseMasterPersonaExtractNPCList(
+	targetPlugin string,
+	payload map[string]interface{},
+) ([]masterPersonaExtractNPC, error) {
+	rawEntries := findMasterPersonaExtractEntries(payload)
+	if len(rawEntries) == 0 {
+		return nil, fmt.Errorf("%w: npc list is required", ErrMasterPersonaValidation)
+	}
+	npcs := make([]masterPersonaExtractNPC, 0, len(rawEntries))
+	for _, rawEntry := range rawEntries {
+		entryMap, ok := rawEntry.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		npc, err := parseMasterPersonaExtractNPC(targetPlugin, entryMap)
+		if err != nil {
+			return nil, err
+		}
+		npcs = append(npcs, npc)
+	}
+	if len(npcs) == 0 {
+		return nil, fmt.Errorf("%w: npc list is required", ErrMasterPersonaValidation)
+	}
+	return npcs, nil
+}
+
+func findMasterPersonaExtractEntries(payload map[string]interface{}) []interface{} {
+	for _, key := range []string{"npcs", "actors", "entries"} {
+		if rawEntries, ok := payload[key].([]interface{}); ok {
+			return rawEntries
+		}
+	}
+	return nil
 }
 
 func validateMasterPersonaExtractPath(path string) (string, error) {
@@ -863,27 +1002,6 @@ func normalizeOptionalString(value *string) *string {
 	return &trimmed
 }
 
-func buildMasterPersonaSummary(npc masterPersonaExtractNPC) string {
-	body := buildMasterPersonaBody(npc)
-	return buildMasterPersonaSummaryFromBody(npc.DisplayName, body)
-}
-
-func buildMasterPersonaBody(npc masterPersonaExtractNPC) string {
-	_ = masterPersonaNeutralBaseline
-	return strings.TrimSpace(buildMasterPersonaDialogueSynthesis(npc.Dialogues))
-}
-
-func buildMasterPersonaDialogueSynthesis(dialogues []string) string {
-	if len(dialogues) == 0 {
-		return "会話が不足しています。"
-	}
-	first := dialogues[0]
-	if len(dialogues) == 1 {
-		return "会話例『" + first + "』から、短く要点を返す話し方として整理する。"
-	}
-	return "会話例『" + first + "』などから、間を詰めすぎず自然体で応じる話し方として整理する。"
-}
-
 func buildMasterPersonaSummaryFromBody(displayName string, body string) string {
 	trimmedBody := strings.TrimSpace(body)
 	if trimmedBody == "" {
@@ -947,6 +1065,13 @@ func (service *MasterPersonaGenerationService) rejectWhenRunActive(ctx context.C
 		return ErrMasterPersonaActiveRun
 	}
 	return nil
+}
+
+func masterPersonaCreatedIncrement(created bool) int {
+	if created {
+		return 1
+	}
+	return 0
 }
 
 func firstNonEmpty(values ...string) string {

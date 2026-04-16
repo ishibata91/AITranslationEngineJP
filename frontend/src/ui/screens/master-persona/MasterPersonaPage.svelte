@@ -87,7 +87,7 @@
           <p class="eyebrow">AI 設定</p>
           <h3 id="settingsHeading">この画面で使う設定</h3>
         </div>
-        <span class="status-pill">{viewModel.aiSettings.provider}</span>
+        <span class="status-pill">{viewModel.aiProviderLabel}</span>
       </div>
 
       <label class="field-group" for="providerSelect">
@@ -98,10 +98,9 @@
           onchange={(event) => controller.setAIProvider(event)}
           value={viewModel.aiSettings.provider}
         >
-          <option value="fake">fake</option>
-          <option value="Gemini">Gemini</option>
-          <option value="xAI">xAI</option>
-          <option value="OpenAI">OpenAI</option>
+          <option value="gemini">Gemini</option>
+          <option value="lm_studio">LM Studio</option>
+          <option value="xai">xAI</option>
         </select>
       </label>
 
@@ -121,7 +120,7 @@
           class="text-field"
           id="apiKeyInput"
           oninput={(event) => controller.setAPIKey(event)}
-          placeholder="fake provider では空のままで使えます"
+          placeholder="選択した AI サービスの API キーを入力"
           value={viewModel.aiSettings.apiKey}
         />
       </label>
@@ -206,7 +205,12 @@
       </div>
 
       <div class="status-row preview-actions">
-        <span class="status-pill">作成済みのペルソナはスキップされます</span>
+        <div class="inline-actions compact-actions">
+          <span class="status-pill">作成済みのペルソナはスキップされます</span>
+          <span class="status-pill"
+            >preview 状態: {viewModel.preview?.status ?? "入力待ち"}</span
+          >
+        </div>
         <div class="inline-actions compact-actions">
           <button
             class="button-secondary"

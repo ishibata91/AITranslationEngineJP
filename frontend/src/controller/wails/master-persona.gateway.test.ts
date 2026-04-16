@@ -34,8 +34,8 @@ describe("createMasterPersonaGateway", () => {
   test("no-arg bindings は request なしで Wails binding を呼ぶ", async () => {
     const loadMasterPersonaAISettings = vi.fn(() =>
       Promise.resolve({
-        provider: "fake",
-        model: "fake-master-persona",
+        provider: "gemini",
+        model: "gemini-2.5-pro",
         apiKey: ""
       })
     )
@@ -65,8 +65,8 @@ describe("createMasterPersonaGateway", () => {
     const gateway = createMasterPersonaGateway()
 
     await expect(gateway.loadMasterPersonaAISettings()).resolves.toEqual({
-      provider: "fake",
-      model: "fake-master-persona",
+      provider: "gemini",
+      model: "gemini-2.5-pro",
       apiKey: ""
     })
     await expect(gateway.getMasterPersonaRunStatus()).resolves.toEqual({

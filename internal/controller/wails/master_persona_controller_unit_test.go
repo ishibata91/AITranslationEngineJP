@@ -171,14 +171,14 @@ func TestMasterPersonaControllerGetDialogueListMapsCountAndRows(t *testing.T) {
 func TestMasterPersonaControllerPreviewGenerationMapsResponse(t *testing.T) {
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		previewGenerationFunc: func(_ context.Context, filePath string, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error) {
-			if filePath != "/tmp/sample.json" || settings.Provider != "fake" || settings.Model != "fake-model" {
+			if filePath != "/tmp/sample.json" || settings.Provider != "gemini" || settings.Model != "gemini-2.5-pro" {
 				t.Fatalf("unexpected preview request: path=%q settings=%#v", filePath, settings)
 			}
 			return usecase.MasterPersonaPreviewResult{FileName: "sample.json", TargetPlugin: "FollowersPlus.esp", TotalNPCCount: 4, GeneratableCount: 2, ExistingSkipCount: 1, ZeroDialogueSkipCount: 1, GenericNPCCount: 1, Status: "生成可能"}, nil
 		},
 	})
 
-	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{FilePath: "/tmp/sample.json", AISettings: MasterPersonaAISettingsDTO{Provider: "fake", Model: "fake-model"}})
+	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{FilePath: "/tmp/sample.json", AISettings: MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"}})
 	if err != nil {
 		t.Fatalf("expected preview generation to succeed: %v", err)
 	}

@@ -195,8 +195,8 @@ function buildMasterPersonaScreenViewModel(
     totalCount: 1,
     errorMessage: "",
     aiSettings: {
-      provider: "fake",
-      model: "fake-master-persona",
+      provider: "gemini",
+      model: "gemini-2.5-pro",
       apiKey: ""
     },
     aiSettingsMessage: "",
@@ -240,6 +240,7 @@ function buildMasterPersonaScreenViewModel(
     canMutate: true,
     isRunActive: false,
     hasPreview: false,
+    aiProviderLabel: "Gemini",
     promptTemplateDescription:
       "プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。",
     progressPercent: 0,
@@ -680,6 +681,71 @@ describe("App master persona screen", () => {
     })
   })
 
+  test("AI service dropdown は real provider 3件だけを表示し fake provider を表示しない", async () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        aiSettings: {
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          apiKey: ""
+        }
+      })
+    )
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    const aiServiceSelect = await screen.findByRole("combobox", {
+      name: "AI サービス"
+    })
+    const options = within(aiServiceSelect).getAllByRole("option")
+    const optionValues = options.map((option) => option.getAttribute("value") ?? "")
+    const optionLabels = options.map((option) => option.textContent?.trim() ?? "")
+
+    expect(optionValues).toEqual(["gemini", "lm_studio", "xai"])
+    expect(optionLabels).toEqual(["Gemini", "LM Studio", "xAI"])
+    expect(optionValues).not.toContain("fake")
+  })
+
+  test("AI service pill は canonical provider ID ではなく表示名を表示する", async () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        aiSettings: {
+          provider: "lm_studio",
+          model: "llama3",
+          apiKey: ""
+        },
+        aiProviderLabel: "LM Studio"
+      })
+    )
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    const settingsHeading = await screen.findByRole("heading", {
+      level: 3,
+      name: "この画面で使う設定"
+    })
+    const settingsHeader = settingsHeading.closest(".section-head")
+    if (!(settingsHeader instanceof HTMLElement)) {
+      throw new Error("AI 設定 header が見つかりません")
+    }
+
+    const providerPill = settingsHeader.querySelector(".status-pill")
+    expect(providerPill).toHaveTextContent("LM Studio")
+    expect(providerPill).not.toHaveTextContent("lm_studio")
+  })
+
   test("plugin dropdown は plugin filter option だけを表示する", async () => {
     const masterPersonaController = new MasterPersonaScreenControllerFake(
       buildMasterPersonaScreenViewModel({
@@ -857,7 +923,7 @@ describe("App master persona screen", () => {
     const masterPersonaController = new MasterPersonaScreenControllerFake(
       buildMasterPersonaScreenViewModel({
         aiSettings: {
-          provider: "fake",
+          provider: "gemini",
           model: "persona-only-model",
           apiKey: ""
         }

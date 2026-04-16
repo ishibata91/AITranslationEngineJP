@@ -3,6 +3,7 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	controllerwails "aitranslationenginejp/internal/controller/wails"
+	ai "aitranslationenginejp/internal/infra/ai"
 	"aitranslationenginejp/internal/repository"
 	"aitranslationenginejp/internal/service"
 	"aitranslationenginejp/internal/usecase"
@@ -40,9 +42,10 @@ func newAppControllerWithSeeds(
 ) *controllerwails.AppController {
 	runtimeEmitterState := controllerwails.NewRuntimeEmitterState()
 	runtimePublisher := usecase.NewWailsMasterDictionaryRuntimeEventPublisher(runtimeEmitterState.RuntimeEventContext)
+	databasePath := masterDictionaryDatabasePath()
 	repositoryAdapter, err := service.NewSQLiteMasterDictionaryRepositoryPort(
 		context.Background(),
-		masterDictionaryDatabasePath(),
+		databasePath,
 		masterDictionarySeed,
 	)
 	if err != nil {
@@ -68,18 +71,45 @@ func newAppControllerWithSeeds(
 		runtimeEmitterState,
 	)
 
-	masterPersonaRepository := repository.NewInMemoryMasterPersonaRepository(masterPersonaSeed)
-	masterPersonaSecretStore := repository.NewInMemorySecretStore()
-	masterPersonaQueryService := service.NewMasterPersonaQueryService(masterPersonaRepository)
+	masterPersonaRepositories, err := repository.NewSQLiteMasterPersonaRepositories(
+		context.Background(),
+		databasePath,
+		masterPersonaSeed,
+	)
+	if err != nil {
+		closeMasterDictionary := service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter)
+		if closeMasterDictionary != nil {
+			_ = closeMasterDictionary(context.Background())
+		}
+		panic(fmt.Errorf("build sqlite master persona repositories: %w", err))
+	}
+	masterPersonaSecretStore, err := repository.NewMasterPersonaKeyringSecretStore()
+	if err != nil {
+		closeMasterDictionary := service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter)
+		if closeMasterDictionary != nil {
+			_ = closeMasterDictionary(context.Background())
+		}
+		if closeErr := masterPersonaRepositories.Close(); closeErr != nil {
+			panic(fmt.Errorf("build master persona keyring secret store: %w", errors.Join(err, closeErr)))
+		}
+		panic(fmt.Errorf("build master persona keyring secret store: %w", err))
+	}
+	masterPersonaQueryService := service.NewMasterPersonaQueryService(masterPersonaRepositories.EntryRepository)
+	masterPersonaTestModeEnabled := masterPersonaTestMode()
+	aiProviderClient := newAIProviderClientFromMasterPersonaEnv()
+	masterPersonaServiceOptions := []service.MasterPersonaGenerationServiceOption{
+		service.WithMasterPersonaBodyGenerator(masterPersonaBodyGenerator{client: aiProviderClient}),
+	}
 	masterPersonaGenerationService := service.NewMasterPersonaGenerationService(
-		masterPersonaRepository,
-		masterPersonaRepository,
-		masterPersonaRepository,
+		masterPersonaRepositories.EntryRepository,
+		masterPersonaRepositories.AISettingsRepository,
+		masterPersonaRepositories.RunStatusRepository,
 		masterPersonaSecretStore,
 		now,
-		masterPersonaTestMode(),
+		masterPersonaTestModeEnabled,
+		masterPersonaServiceOptions...,
 	)
-	masterPersonaRunStatusService := service.NewMasterPersonaRunStatusService(masterPersonaRepository, now)
+	masterPersonaRunStatusService := service.NewMasterPersonaRunStatusService(masterPersonaRepositories.RunStatusRepository, now)
 	masterPersonaUsecase := usecase.NewMasterPersonaUsecase(
 		masterPersonaQueryService,
 		masterPersonaGenerationService,
@@ -90,8 +120,31 @@ func newAppControllerWithSeeds(
 	return controllerwails.NewAppController(
 		masterDictionaryController,
 		masterPersonaController,
-		service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter),
+		composeShutdownHooks(
+			service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter),
+			func(context.Context) error {
+				if err := masterPersonaRepositories.Close(); err != nil {
+					return fmt.Errorf("close sqlite master persona repositories: %w", err)
+				}
+				return nil
+			},
+		),
 	)
+}
+
+func composeShutdownHooks(shutdownHooks ...func(context.Context) error) func(context.Context) error {
+	return func(ctx context.Context) error {
+		var joinedErr error
+		for _, shutdownHook := range shutdownHooks {
+			if shutdownHook == nil {
+				continue
+			}
+			if err := shutdownHook(ctx); err != nil {
+				joinedErr = errors.Join(joinedErr, err)
+			}
+		}
+		return joinedErr
+	}
 }
 
 func masterDictionaryDatabasePath() string {
@@ -105,6 +158,75 @@ func masterDictionaryDatabasePath() string {
 		panic(fmt.Errorf("resolve repository root directory: %w", err))
 	}
 	return filepath.Join(repositoryRoot, "db", "master-dictionary.sqlite3")
+}
+
+type masterPersonaBodyGenerator struct {
+	client *ai.ProviderClient
+}
+
+func (generator masterPersonaBodyGenerator) GenerateMasterPersonaBody(
+	ctx context.Context,
+	provider string,
+	model string,
+	apiKey string,
+	prompt string,
+) (string, error) {
+	response, err := generator.client.GenerateText(ctx, provider, ai.ProviderRequest{
+		Model:  model,
+		APIKey: apiKey,
+		Prompt: prompt,
+	})
+	if err != nil {
+		return "", fmt.Errorf("generate master persona body through ai provider: %w", err)
+	}
+	return response.Text, nil
+}
+
+func (generator masterPersonaBodyGenerator) MasterPersonaProviderRequestsAreTestSafe() bool {
+	return generator.client.ProviderRequestsAreTestSafe()
+}
+
+const (
+	masterPersonaAIModeEnv          = "AITRANSLATIONENGINEJP_MASTER_PERSONA_AI_MODE"
+	masterPersonaAIModeReal         = "real"
+	masterPersonaAIModeFake         = "fake"
+	masterPersonaFakeResponseEnv    = "AITRANSLATIONENGINEJP_MASTER_PERSONA_FAKE_RESPONSE"
+	masterPersonaLMStudioBaseURLEnv = "AITRANSLATIONENGINEJP_MASTER_PERSONA_LM_STUDIO_BASE_URL"
+	masterPersonaXAIBaseURLEnv      = "AITRANSLATIONENGINEJP_MASTER_PERSONA_XAI_BASE_URL"
+)
+
+func newAIProviderClientFromMasterPersonaEnv() *ai.ProviderClient {
+	return newAIProviderClientFromMasterPersonaEnvWithTransport(nil)
+}
+
+func newAIProviderClientFromMasterPersonaEnvWithTransport(
+	transport ai.HTTPTransport,
+) *ai.ProviderClient {
+	clientOptions := []ai.ProviderClientOption{
+		ai.WithLMStudioBaseURL(strings.TrimSpace(os.Getenv(masterPersonaLMStudioBaseURLEnv))),
+		ai.WithXAIBaseURL(strings.TrimSpace(os.Getenv(masterPersonaXAIBaseURLEnv))),
+	}
+	if masterPersonaAIMode() == masterPersonaAIModeFake {
+		if transport == nil {
+			transport = ai.NewTestSafeHTTPTransportWithResponse(
+				strings.TrimSpace(os.Getenv(masterPersonaFakeResponseEnv)),
+			)
+		}
+		return ai.NewProviderClient(transport, clientOptions...)
+	}
+	return ai.NewProviderClient(transport, clientOptions...)
+}
+
+func masterPersonaAIMode() string {
+	mode := strings.ToLower(strings.TrimSpace(os.Getenv(masterPersonaAIModeEnv)))
+	switch mode {
+	case masterPersonaAIModeFake:
+		return masterPersonaAIModeFake
+	case "", masterPersonaAIModeReal:
+		return masterPersonaAIModeReal
+	default:
+		return masterPersonaAIModeReal
+	}
 }
 
 func masterPersonaTestMode() bool {

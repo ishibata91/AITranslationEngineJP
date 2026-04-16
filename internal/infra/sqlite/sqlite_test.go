@@ -99,6 +99,15 @@ func TestOpenMasterDictionaryDatabaseReappliesMigrationsOnExistingDatabase(t *te
 	assertSeedCount(t, reopenedDatabase, 1)
 }
 
+func TestOpenMasterDictionaryDatabaseCreatesMasterPersonaTables(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+
+	assertTableExists(t, database, "master_persona_entries")
+	assertTableExists(t, database, "master_persona_ai_settings")
+	assertTableExists(t, database, "master_persona_run_status")
+}
+
 func openMasterDictionaryDatabaseForTest(t *testing.T, databasePath string, seeds []MasterDictionarySeedEntry) *sqlx.DB {
 	t.Helper()
 
@@ -138,5 +147,22 @@ func assertSeedCount(t *testing.T, database *sqlx.DB, expected int) {
 	}
 	if count != expected {
 		t.Fatalf("expected %d rows, got %d", expected, count)
+	}
+}
+
+func assertTableExists(t *testing.T, database *sqlx.DB, tableName string) {
+	t.Helper()
+
+	var count int
+	queryErr := database.QueryRowContext(
+		context.Background(),
+		"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name = ?",
+		tableName,
+	).Scan(&count)
+	if queryErr != nil {
+		t.Fatalf("expected sqlite table existence query to succeed: %v", queryErr)
+	}
+	if count != 1 {
+		t.Fatalf("expected sqlite table %q to exist", tableName)
 	}
 }

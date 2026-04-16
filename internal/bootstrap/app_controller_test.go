@@ -1,7 +1,10 @@
 package bootstrap
 
 import (
+	"bytes"
 	"context"
+	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
@@ -9,6 +12,7 @@ import (
 	"time"
 
 	controllerwails "aitranslationenginejp/internal/controller/wails"
+	ai "aitranslationenginejp/internal/infra/ai"
 	"aitranslationenginejp/internal/repository"
 )
 
@@ -26,19 +30,35 @@ type runtimeEventsTestContext struct {
 	emitter *recordingRuntimeEventEmitter
 }
 
+type bootstrapProviderCaptureTransport struct {
+	lastRequest *http.Request
+}
+
+func (transport *bootstrapProviderCaptureTransport) Do(req *http.Request) (*http.Response, error) {
+	transport.lastRequest = req
+	return &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       io.NopCloser(bytes.NewBufferString(`{"choices":[{"message":{"content":"ok"}}]}`)),
+		Header:     make(http.Header),
+	}, nil
+}
+
 const (
-	bootstrapCreatedSource         = "Auriel's Bow"
-	bootstrapCreatedTranslation    = "アーリエルの弓"
-	bootstrapUpdatedTranslation    = "更新済みアーリエルの弓"
-	bootstrapPersistedSource       = "Relic Hammer"
-	bootstrapPersistedTranslation  = "遺物の鎚"
-	bootstrapSeedSearchTerm        = "Relic"
-	bootstrapSeedCategory          = "武器"
-	bootstrapSeedNewestSource      = "Relic Blade"
-	bootstrapSeedNewestTranslation = "遺物の剣"
-	bootstrapImportProgressEvent   = "master-dictionary:import-progress"
-	bootstrapImportCompletedEvent  = "master-dictionary:import-completed"
-	bootstrapPageQuerySucceeded    = "expected bootstrap graph page query to succeed: %v"
+	bootstrapCreatedSource               = "Auriel's Bow"
+	bootstrapCreatedTranslation          = "アーリエルの弓"
+	bootstrapUpdatedTranslation          = "更新済みアーリエルの弓"
+	bootstrapPersistedSource             = "Relic Hammer"
+	bootstrapPersistedTranslation        = "遺物の鎚"
+	bootstrapSeedSearchTerm              = "Relic"
+	bootstrapSeedCategory                = "武器"
+	bootstrapSeedNewestSource            = "Relic Blade"
+	bootstrapSeedNewestTranslation       = "遺物の剣"
+	bootstrapImportProgressEvent         = "master-dictionary:import-progress"
+	bootstrapImportCompletedEvent        = "master-dictionary:import-completed"
+	bootstrapPageQuerySucceeded          = "expected bootstrap graph page query to succeed: %v"
+	bootstrapMasterPersonaIdentityKey    = "FollowersPlus.esp:FE01A812:NPC_"
+	bootstrapMasterPersonaPersistedBody  = "再生成後も保持されるペルソナ本文"
+	bootstrapMasterPersonaPersistedModel = "persisted-master-persona-model"
 )
 
 func (emitter *recordingRuntimeEventEmitter) Emit(eventName string, optionalData ...interface{}) {
@@ -95,6 +115,21 @@ func TestNewAppControllerUsesProductionSeedByDefault(t *testing.T) {
 	}
 	if !strings.Contains(page.Page.Items[0].Source, "Whiterun") || page.Page.Items[0].Category != "地名" {
 		t.Fatalf("expected production-seeded Whiterun location entry, got %#v", page.Page.Items[0])
+	}
+}
+
+func TestNewAppControllerMasterPersonaProductionWiringDoesNotUseInMemoryConcrete(t *testing.T) {
+	content, err := os.ReadFile("app_controller.go")
+	if err != nil {
+		t.Fatalf("expected app controller source to be readable: %v", err)
+	}
+
+	source := string(content)
+	if strings.Contains(source, "NewInMemoryMasterPersonaRepository") {
+		t.Fatalf("production wiring must not use in-memory master persona repository")
+	}
+	if strings.Contains(source, "NewInMemorySecretStore") {
+		t.Fatalf("production wiring must not use in-memory master persona secret store")
 	}
 }
 
@@ -328,6 +363,78 @@ func TestMasterDictionaryDatabasePathDefaultsToRepositoryRootDB(t *testing.T) {
 	}
 }
 
+func TestMasterPersonaAIModeDefaultsToReal(t *testing.T) {
+	t.Setenv(masterPersonaAIModeEnv, "")
+	if got := masterPersonaAIMode(); got != masterPersonaAIModeReal {
+		t.Fatalf("expected ai mode to default to real, got %q", got)
+	}
+}
+
+func TestMasterPersonaAIModeFakeWhenConfigured(t *testing.T) {
+	t.Setenv(masterPersonaAIModeEnv, masterPersonaAIModeFake)
+	if got := masterPersonaAIMode(); got != masterPersonaAIModeFake {
+		t.Fatalf("expected ai mode fake, got %q", got)
+	}
+}
+
+func TestNewAIProviderClientFromMasterPersonaEnvUsesFakeModeResponseOverride(t *testing.T) {
+	t.Setenv(masterPersonaAIModeEnv, masterPersonaAIModeFake)
+	t.Setenv(masterPersonaFakeResponseEnv, "env fake response")
+	client := newAIProviderClientFromMasterPersonaEnv()
+
+	geminiResponse, err := client.GenerateText(context.Background(), "gemini", ai.ProviderRequest{Model: "gemini-2.5-pro", Prompt: "prompt"})
+	if err != nil {
+		t.Fatalf("expected fake mode gemini generation to succeed: %v", err)
+	}
+	if geminiResponse.Text != "env fake response" {
+		t.Fatalf("expected fake response override text, got %q", geminiResponse.Text)
+	}
+
+	xaiResponse, err := client.GenerateText(context.Background(), "xai", ai.ProviderRequest{Model: "grok-2", Prompt: "prompt"})
+	if err != nil {
+		t.Fatalf("expected fake mode xai generation to succeed without api key: %v", err)
+	}
+	if xaiResponse.Text != "env fake response" {
+		t.Fatalf("expected fake response override text for xai, got %q", xaiResponse.Text)
+	}
+}
+
+func TestNewAIProviderClientFromMasterPersonaEnvAppliesBaseURLOverrides(t *testing.T) {
+	t.Setenv(masterPersonaAIModeEnv, masterPersonaAIModeReal)
+	t.Setenv(masterPersonaXAIBaseURLEnv, "https://gateway.example.com/custom/v1")
+	t.Setenv(masterPersonaLMStudioBaseURLEnv, "http://127.0.0.1:1234/proxy/v1")
+
+	xaiTransport := &bootstrapProviderCaptureTransport{}
+	xaiClient := newAIProviderClientFromMasterPersonaEnvWithTransport(xaiTransport)
+	if _, err := xaiClient.GenerateText(context.Background(), "xai", ai.ProviderRequest{Model: "grok-2", APIKey: "x-key", Prompt: "prompt"}); err != nil {
+		t.Fatalf("expected xai generation with override base url to succeed: %v", err)
+	}
+	if xaiTransport.lastRequest == nil {
+		t.Fatalf("expected xai provider request capture")
+	}
+	if got := xaiTransport.lastRequest.URL.String(); got != "https://gateway.example.com/custom/v1/chat/completions" {
+		t.Fatalf("expected xai request url override, got %q", got)
+	}
+	if got := xaiTransport.lastRequest.Header.Get("Authorization"); got != "Bearer x-key" {
+		t.Fatalf("expected xai authorization header, got %q", got)
+	}
+
+	lmStudioTransport := &bootstrapProviderCaptureTransport{}
+	lmStudioClient := newAIProviderClientFromMasterPersonaEnvWithTransport(lmStudioTransport)
+	if _, err := lmStudioClient.GenerateText(context.Background(), "lm_studio", ai.ProviderRequest{Model: "local-model", Prompt: "prompt"}); err != nil {
+		t.Fatalf("expected lm studio generation with override base url to succeed: %v", err)
+	}
+	if lmStudioTransport.lastRequest == nil {
+		t.Fatalf("expected lm studio provider request capture")
+	}
+	if got := lmStudioTransport.lastRequest.URL.String(); got != "http://127.0.0.1:1234/proxy/v1/chat/completions" {
+		t.Fatalf("expected lm studio request url override, got %q", got)
+	}
+	if got := lmStudioTransport.lastRequest.Header.Get("Authorization"); got != "" {
+		t.Fatalf("expected lm studio authorization header to be omitted when api key blank, got %q", got)
+	}
+}
+
 func TestNewAppControllerProvidesMasterPersonaPage(t *testing.T) {
 	controller := newBootstrapTestController(t)
 
@@ -345,11 +452,11 @@ func TestNewAppControllerProvidesMasterPersonaPage(t *testing.T) {
 func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T) {
 	controller := newBootstrapTestController(t)
 
-	saved, err := controller.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{Provider: "fake", Model: "fake-model", APIKey: "test-key"})
+	saved, err := controller.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "test-key"})
 	if err != nil {
 		t.Fatalf("expected master persona ai settings save to succeed: %v", err)
 	}
-	if saved.Provider != "fake" || saved.Model != "fake-model" {
+	if saved.Provider != "gemini" || saved.Model != "gemini-2.5-pro" {
 		t.Fatalf("unexpected saved settings: %#v", saved)
 	}
 
@@ -360,6 +467,127 @@ func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T
 	if loaded.APIKey != "test-key" {
 		t.Fatalf("expected saved api key to load, got %#v", loaded)
 	}
+}
+
+func TestNewAppControllerPersistsMasterPersonaEntryAcrossControllerRecreation(t *testing.T) {
+	databasePath := configureBootstrapTestDatabase(t)
+	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+	originalDetail, err := firstController.MasterPersonaGetDetail(controllerwails.MasterPersonaDetailRequestDTO{IdentityKey: bootstrapMasterPersonaIdentityKey})
+	if err != nil {
+		t.Fatalf("expected master persona detail lookup through first controller to succeed: %v", err)
+	}
+
+	_, err = firstController.MasterPersonaUpdate(controllerwails.MasterPersonaUpdateRequestDTO{
+		IdentityKey: bootstrapMasterPersonaIdentityKey,
+		Entry: controllerwails.MasterPersonaUpdateInputDTO{
+			FormID:       originalDetail.Entry.FormID,
+			EditorID:     originalDetail.Entry.EditorID,
+			DisplayName:  originalDetail.Entry.DisplayName,
+			Race:         originalDetail.Entry.Race,
+			Sex:          originalDetail.Entry.Sex,
+			VoiceType:    originalDetail.Entry.VoiceType,
+			ClassName:    originalDetail.Entry.ClassName,
+			SourcePlugin: originalDetail.Entry.SourcePlugin,
+			PersonaBody:  bootstrapMasterPersonaPersistedBody,
+		},
+		Refresh: controllerwails.MasterPersonaListQueryDTO{PluginFilter: "FollowersPlus.esp", Page: 1, PageSize: 10},
+	})
+	if err != nil {
+		t.Fatalf("expected master persona update through first controller to succeed: %v", err)
+	}
+	firstController.OnShutdown(context.Background())
+
+	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+	persistedDetail, err := secondController.MasterPersonaGetDetail(controllerwails.MasterPersonaDetailRequestDTO{IdentityKey: bootstrapMasterPersonaIdentityKey})
+	if err != nil {
+		t.Fatalf("expected master persona detail lookup through second controller to succeed: %v", err)
+	}
+	if persistedDetail.Entry.PersonaBody != bootstrapMasterPersonaPersistedBody {
+		t.Fatalf("expected updated master persona body to persist, got %#v", persistedDetail.Entry)
+	}
+
+	secondController.OnShutdown(context.Background())
+}
+
+func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreation(t *testing.T) {
+	databasePath := configureBootstrapTestDatabase(t)
+	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+
+	_, err := firstController.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{
+		Provider: "gemini",
+		Model:    bootstrapMasterPersonaPersistedModel,
+		APIKey:   "volatile-key",
+	})
+	if err != nil {
+		t.Fatalf("expected master persona ai settings save through first controller to succeed: %v", err)
+	}
+	firstController.OnShutdown(context.Background())
+
+	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+	loaded, err := secondController.MasterPersonaLoadAISettings()
+	if err != nil {
+		t.Fatalf("expected master persona ai settings load through second controller to succeed: %v", err)
+	}
+	if loaded.Provider != "gemini" || loaded.Model != bootstrapMasterPersonaPersistedModel {
+		t.Fatalf("expected provider/model settings to persist, got %#v", loaded)
+	}
+	if loaded.APIKey != "volatile-key" {
+		t.Fatalf("expected api key to persist through keyring backend, got %#v", loaded)
+	}
+
+	secondController.OnShutdown(context.Background())
+}
+
+func TestNewAppControllerPersistsMasterPersonaRunStatusAcrossControllerRecreation(t *testing.T) {
+	databasePath := configureBootstrapTestDatabase(t)
+	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
+  "target_plugin": "FollowersPlus.esp",
+  "npcs": [
+    {
+      "form_id": "FE01AFF0",
+      "record_type": "NPC_",
+      "editor_id": "FP_Persist",
+      "display_name": "Persist",
+      "dialogues": ["hello"]
+    }
+  ]
+}`)
+
+	executed, err := firstController.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
+		FilePath: extractPath,
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{
+			Provider: "gemini",
+			Model:    "gemini-2.5-pro",
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected master persona execute through first controller to succeed: %v", err)
+	}
+	if executed.RunState != "完了" || executed.SuccessCount != 1 {
+		t.Fatalf("expected completed run status through first controller, got %#v", executed)
+	}
+	firstController.OnShutdown(context.Background())
+
+	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+	loadedStatus, err := secondController.MasterPersonaGetRunStatus()
+	if err != nil {
+		t.Fatalf("expected master persona run status load through second controller to succeed: %v", err)
+	}
+	if loadedStatus.RunState != "完了" || loadedStatus.SuccessCount != 1 || loadedStatus.ProcessedCount != 1 {
+		t.Fatalf("expected run status to persist after controller recreation, got %#v", loadedStatus)
+	}
+
+	persistedIdentityKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01AFF0", "NPC_")
+	persistedDetail, err := secondController.MasterPersonaGetDetail(controllerwails.MasterPersonaDetailRequestDTO{IdentityKey: persistedIdentityKey})
+	if err != nil {
+		t.Fatalf("expected generated master persona entry to persist across controller recreation: %v", err)
+	}
+	if persistedDetail.Entry.DisplayName != "Persist" {
+		t.Fatalf("expected generated master persona entry to persist, got %#v", persistedDetail.Entry)
+	}
+
+	secondController.OnShutdown(context.Background())
 }
 
 func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportResponseDTO, *recordingRuntimeEventEmitter, *controllerwails.AppController) {
@@ -469,6 +697,16 @@ func writeBootstrapImportFixture(t *testing.T) string {
 	return xmlPath
 }
 
+func writeBootstrapMasterPersonaExtractFixture(t *testing.T, content string) string {
+	t.Helper()
+
+	extractPath := filepath.Join(t.TempDir(), "extract.json")
+	if err := os.WriteFile(extractPath, []byte(content), 0o600); err != nil {
+		t.Fatalf("write master persona extract fixture: %v", err)
+	}
+	return extractPath
+}
+
 func newBootstrapTestController(t *testing.T) *controllerwails.AppController {
 	t.Helper()
 
@@ -480,6 +718,7 @@ func newBootstrapTestControllerWithDatabasePath(t *testing.T, databasePath strin
 	t.Helper()
 
 	setBootstrapTestDatabasePath(t, databasePath)
+	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
 	return newAppControllerWithMasterDictionarySeed(bootstrapTestSeed(), bootstrapTestNow)
 }
 
@@ -495,6 +734,19 @@ func setBootstrapTestDatabasePath(t *testing.T, databasePath string) {
 	t.Helper()
 
 	t.Setenv("AITRANSLATIONENGINEJP_MASTER_DICTIONARY_DB_PATH", databasePath)
+}
+
+func setBootstrapTestMasterPersonaSecretStore(t *testing.T, databasePath string) {
+	t.Helper()
+
+	t.Setenv("AITRANSLATIONENGINEJP_TEST_MODE", "true")
+	t.Setenv(masterPersonaAIModeEnv, masterPersonaAIModeFake)
+	t.Setenv("AITRANSLATIONENGINEJP_MASTER_PERSONA_SECRET_BACKEND", "file")
+	t.Setenv(
+		"AITRANSLATIONENGINEJP_MASTER_PERSONA_SECRET_FILE_DIR",
+		filepath.Join(filepath.Dir(databasePath), "master-persona-keyring"),
+	)
+	t.Setenv("AITRANSLATIONENGINEJP_MASTER_PERSONA_SECRET_FILE_PASSWORD", "bootstrap-test-keyring-password")
 }
 
 func bootstrapTestNow() time.Time {

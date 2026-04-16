@@ -22,8 +22,8 @@ function createStore(initialState?: Partial<MasterPersonaScreenState>) {
     totalCount: 0,
     errorMessage: "",
     aiSettings: {
-      provider: "fake",
-      model: "fake-master-persona",
+      provider: "gemini",
+      model: "gemini-2.5-pro",
       apiKey: ""
     },
     aiSettingsMessage: "",
@@ -127,8 +127,8 @@ function createGateway() {
     ),
     loadMasterPersonaAISettings: vi.fn(() =>
       Promise.resolve({
-        provider: "fake",
-        model: "fake-master-persona",
+        provider: "gemini",
+        model: "gemini-2.5-pro",
         apiKey: ""
       })
     ),
@@ -225,14 +225,14 @@ function createGateway() {
 }
 
 describe("MasterPersonaUseCase", () => {
-  test("loadScreen は fake provider を page-local AI settings へ反映する", async () => {
+  test("loadScreen は transport seam provider を page-local AI settings へ反映する", async () => {
     const store = createStore()
     const gateway = createGateway()
     const useCase = new MasterPersonaUseCase(gateway, store)
 
     await useCase.loadScreen()
 
-    expect(store.snapshot().aiSettings.provider).toBe("fake")
+    expect(store.snapshot().aiSettings.provider).toBe("gemini")
     expect(gateway.loadMasterPersonaAISettings).toHaveBeenCalledTimes(1)
   })
 
@@ -274,7 +274,7 @@ describe("MasterPersonaUseCase", () => {
   test("saveAISettings は prompt template を送らず page-local settings だけを保存する", async () => {
     const store = createStore({
       aiSettings: {
-        provider: "fake",
+        provider: "gemini",
         model: "persona-only-model",
         apiKey: ""
       }
@@ -285,7 +285,7 @@ describe("MasterPersonaUseCase", () => {
     await useCase.saveAISettings()
 
     expect(gateway.saveMasterPersonaAISettings).toHaveBeenCalledWith({
-      provider: "fake",
+      provider: "gemini",
       model: "persona-only-model",
       apiKey: ""
     })
@@ -294,13 +294,13 @@ describe("MasterPersonaUseCase", () => {
     )
   })
 
-  test("executeGeneration は fake provider の完了結果を受け取り page を再取得する", async () => {
+  test("executeGeneration は transport seam provider の完了結果を受け取り page を再取得する", async () => {
     const store = createStore({
       selectedFileReference: "/tmp/sample.json",
       selectedIdentityKey: "FollowersPlus.esp:FE01A812:NPC_",
       aiSettings: {
-        provider: "fake",
-        model: "fake-master-persona",
+        provider: "gemini",
+        model: "gemini-2.5-pro",
         apiKey: ""
       },
       preview: {
@@ -322,12 +322,74 @@ describe("MasterPersonaUseCase", () => {
     expect(gateway.executeMasterPersonaGeneration).toHaveBeenCalledWith({
       filePath: "/tmp/sample.json",
       aiSettings: {
-        provider: "fake",
-        model: "fake-master-persona",
+        provider: "gemini",
+        model: "gemini-2.5-pro",
         apiKey: ""
       }
     })
     expect(gateway.getMasterPersonaPage).toHaveBeenCalled()
     expect(store.snapshot().runStatus.runState).toBe("完了")
+  })
+
+  test("previewGeneration は AI 設定未完了でも集計 preview を保持する", async () => {
+    const store = createStore({
+      selectedFileReference: "/tmp/sample.json",
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        apiKey: ""
+      }
+    })
+    const gateway = createGateway()
+    gateway.previewMasterPersonaGeneration.mockResolvedValueOnce({
+      fileName: "sample.json",
+      targetPlugin: "FollowersPlus.esp",
+      totalNpcCount: 10,
+      generatableCount: 7,
+      existingSkipCount: 2,
+      zeroDialogueSkipCount: 1,
+      genericNpcCount: 0,
+      status: "設定未完了"
+    })
+    const useCase = new MasterPersonaUseCase(gateway, store)
+
+    await useCase.previewGeneration()
+
+    expect(store.snapshot().preview).toEqual({
+      fileName: "sample.json",
+      targetPlugin: "FollowersPlus.esp",
+      totalNpcCount: 10,
+      generatableCount: 7,
+      existingSkipCount: 2,
+      zeroDialogueSkipCount: 1,
+      genericNpcCount: 0,
+      status: "設定未完了"
+    })
+  })
+
+  test("previewGeneration 失敗時は preview を消して error message を保持する", async () => {
+    const store = createStore({
+      selectedFileReference: "/tmp/broken.json",
+      preview: {
+        fileName: "sample.json",
+        targetPlugin: "FollowersPlus.esp",
+        totalNpcCount: 10,
+        generatableCount: 7,
+        existingSkipCount: 2,
+        zeroDialogueSkipCount: 1,
+        genericNpcCount: 0,
+        status: "生成可能"
+      }
+    })
+    const gateway = createGateway()
+    gateway.previewMasterPersonaGeneration.mockRejectedValueOnce(
+      new Error("parse extractData json: invalid")
+    )
+    const useCase = new MasterPersonaUseCase(gateway, store)
+
+    await useCase.previewGeneration()
+
+    expect(store.snapshot().preview).toBeNull()
+    expect(store.snapshot().errorMessage).toBe("parse extractData json: invalid")
   })
 })

@@ -10,6 +10,7 @@ coverage_profile="$coverage_dir/coverage.out"
 coverage_summary="$coverage_dir/coverage-summary.txt"
 
 mkdir -p "$coverage_dir"
+rm -f "$coverage_profile" "$coverage_summary"
 
 packages=$(go list ./internal/... | sed '/^$/d')
 
@@ -18,5 +19,5 @@ if [ -z "$packages" ]; then
   exit 0
 fi
 
-go test -coverpkg=./internal/... -coverprofile="$coverage_profile" $packages
+go test -count=1 -coverpkg=./internal/... -coverprofile="$coverage_profile" $packages
 go tool cover -func="$coverage_profile" | tee "$coverage_summary"
