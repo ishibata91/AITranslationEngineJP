@@ -328,6 +328,40 @@ func TestMasterDictionaryDatabasePathDefaultsToRepositoryRootDB(t *testing.T) {
 	}
 }
 
+func TestNewAppControllerProvidesMasterPersonaPage(t *testing.T) {
+	controller := newBootstrapTestController(t)
+
+	page, err := controller.MasterPersonaGetPage(controllerwails.MasterPersonaPageRequestDTO{
+		Refresh: controllerwails.MasterPersonaListQueryDTO{PluginFilter: "FollowersPlus.esp", Page: 1, PageSize: 10},
+	})
+	if err != nil {
+		t.Fatalf("expected master persona page query to succeed: %v", err)
+	}
+	if page.Page.TotalCount == 0 || len(page.Page.Items) == 0 {
+		t.Fatalf("expected master persona seed entries, got %#v", page.Page)
+	}
+}
+
+func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T) {
+	controller := newBootstrapTestController(t)
+
+	saved, err := controller.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{Provider: "fake", Model: "fake-model", APIKey: "test-key"})
+	if err != nil {
+		t.Fatalf("expected master persona ai settings save to succeed: %v", err)
+	}
+	if saved.Provider != "fake" || saved.Model != "fake-model" {
+		t.Fatalf("unexpected saved settings: %#v", saved)
+	}
+
+	loaded, err := controller.MasterPersonaLoadAISettings()
+	if err != nil {
+		t.Fatalf("expected master persona ai settings load to succeed: %v", err)
+	}
+	if loaded.APIKey != "test-key" {
+		t.Fatalf("expected saved api key to load, got %#v", loaded)
+	}
+}
+
 func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportResponseDTO, *recordingRuntimeEventEmitter, *controllerwails.AppController) {
 	t.Helper()
 

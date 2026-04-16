@@ -19,11 +19,23 @@ import (
 // NewAppController builds the default backend graph for the desktop app.
 func NewAppController() *controllerwails.AppController {
 	now := func() time.Time { return time.Now().UTC() }
-	return newAppControllerWithMasterDictionarySeed(repository.DefaultMasterDictionarySeed(now()), now)
+	return newAppControllerWithSeeds(
+		repository.DefaultMasterDictionarySeed(now()),
+		repository.DefaultMasterPersonaSeed(now()),
+		now,
+	)
 }
 
 func newAppControllerWithMasterDictionarySeed(
 	masterDictionarySeed []repository.MasterDictionaryEntry,
+	now func() time.Time,
+) *controllerwails.AppController {
+	return newAppControllerWithSeeds(masterDictionarySeed, repository.DefaultMasterPersonaSeed(now()), now)
+}
+
+func newAppControllerWithSeeds(
+	masterDictionarySeed []repository.MasterDictionaryEntry,
+	masterPersonaSeed []repository.MasterPersonaEntry,
 	now func() time.Time,
 ) *controllerwails.AppController {
 	runtimeEmitterState := controllerwails.NewRuntimeEmitterState()
@@ -55,7 +67,31 @@ func newAppControllerWithMasterDictionarySeed(
 		masterDictionaryUsecase,
 		runtimeEmitterState,
 	)
-	return controllerwails.NewAppController(masterDictionaryController, service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
+
+	masterPersonaRepository := repository.NewInMemoryMasterPersonaRepository(masterPersonaSeed)
+	masterPersonaSecretStore := repository.NewInMemorySecretStore()
+	masterPersonaQueryService := service.NewMasterPersonaQueryService(masterPersonaRepository)
+	masterPersonaGenerationService := service.NewMasterPersonaGenerationService(
+		masterPersonaRepository,
+		masterPersonaRepository,
+		masterPersonaRepository,
+		masterPersonaSecretStore,
+		now,
+		masterPersonaTestMode(),
+	)
+	masterPersonaRunStatusService := service.NewMasterPersonaRunStatusService(masterPersonaRepository, now)
+	masterPersonaUsecase := usecase.NewMasterPersonaUsecase(
+		masterPersonaQueryService,
+		masterPersonaGenerationService,
+		masterPersonaRunStatusService,
+	)
+	masterPersonaController := controllerwails.NewMasterPersonaController(masterPersonaUsecase)
+
+	return controllerwails.NewAppController(
+		masterDictionaryController,
+		masterPersonaController,
+		service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter),
+	)
 }
 
 func masterDictionaryDatabasePath() string {
@@ -69,6 +105,10 @@ func masterDictionaryDatabasePath() string {
 		panic(fmt.Errorf("resolve repository root directory: %w", err))
 	}
 	return filepath.Join(repositoryRoot, "db", "master-dictionary.sqlite3")
+}
+
+func masterPersonaTestMode() bool {
+	return strings.EqualFold(strings.TrimSpace(os.Getenv("AITRANSLATIONENGINEJP_TEST_MODE")), "true")
 }
 
 func repositoryRootDirectory() (string, error) {

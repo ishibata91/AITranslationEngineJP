@@ -9,17 +9,20 @@ import (
 )
 
 const (
-	importServiceWeaponREC  = "WEAP:FULL"
-	importServiceBookREC    = "BOOK:FULL"
-	importServiceBowSource  = "Auriel's Bow"
-	importServiceBookSource = "Snow Elf History"
-	importServiceBowKey     = "auriel's bow\x00weap:full"
-	importServiceBookKey    = "snow elf history\x00book:full"
+	importServiceWeaponREC       = "WEAP:FULL"
+	importServiceBookREC         = "BOOK:FULL"
+	importServiceBowSource       = "Auriel's Bow"
+	importServiceBowTranslation  = "アーリエルの弓"
+	importServiceBookSource      = "Snow Elf History"
+	importServiceBookTranslation = "スノーエルフ史"
+	importServiceBowKey          = "auriel's bow\x00weap:full"
+	importServiceBookKey         = "snow elf history\x00book:full"
+	importServiceSuccessMessage  = "expected import to succeed: %v"
 )
 
 var importServiceRecords = []xmlStringRecord{
-	{REC: importServiceWeaponREC, EDID: "DLC1AurielsBow", Source: importServiceBowSource, Dest: "アーリエルの弓"},
-	{REC: importServiceBookREC, EDID: "BookSnowElf", Source: importServiceBookSource, Dest: "スノーエルフ史"},
+	{REC: importServiceWeaponREC, EDID: "DLC1AurielsBow", Source: importServiceBowSource, Dest: importServiceBowTranslation},
+	{REC: importServiceBookREC, EDID: "BookSnowElf", Source: importServiceBookSource, Dest: importServiceBookTranslation},
 	{REC: "ACTI:FULL", EDID: "DeniedActi", Source: "Crossbow Mount", Dest: "クロスボウ台座"},
 	{REC: "NPC_:FULL", EDID: "MissingDest", Source: "Missing Translation", Dest: "   "},
 }
@@ -85,9 +88,9 @@ func TestMasterDictionaryImportServiceReturnsLastEntryID(t *testing.T) {
 func TestMasterDictionaryImportServiceCountsDistinctUpdatedEntries(t *testing.T) {
 	// Arrange.
 	records := []xmlStringRecord{
-		{REC: importServiceWeaponREC, EDID: "Bow01", Source: importServiceBowSource, Dest: "アーリエルの弓"},
+		{REC: importServiceWeaponREC, EDID: "Bow01", Source: importServiceBowSource, Dest: importServiceBowTranslation},
 		{REC: importServiceWeaponREC, EDID: "Bow02", Source: importServiceBowSource, Dest: "アーリエルの弓・改"},
-		{REC: importServiceBookREC, EDID: "Book01", Source: importServiceBookSource, Dest: "スノーエルフ史"},
+		{REC: importServiceBookREC, EDID: "Book01", Source: importServiceBookSource, Dest: importServiceBookTranslation},
 	}
 	repo := &repositoryStub{}
 	entryIDs := map[string]int64{
@@ -109,7 +112,7 @@ func TestMasterDictionaryImportServiceCountsDistinctUpdatedEntries(t *testing.T)
 	// Act.
 	summary, err := service.ImportXML(context.Background(), "duplicates.xml")
 	if err != nil {
-		t.Fatalf("expected import to succeed: %v", err)
+		t.Fatalf(importServiceSuccessMessage, err)
 	}
 
 	// Assert.
@@ -121,7 +124,7 @@ func TestMasterDictionaryImportServiceCountsDistinctUpdatedEntries(t *testing.T)
 func TestMasterDictionaryImportServiceDoesNotCountCreatedEntryAsUpdatedLaterInSameRun(t *testing.T) {
 	// Arrange.
 	records := []xmlStringRecord{
-		{REC: importServiceWeaponREC, EDID: "Bow01", Source: importServiceBowSource, Dest: "アーリエルの弓"},
+		{REC: importServiceWeaponREC, EDID: "Bow01", Source: importServiceBowSource, Dest: importServiceBowTranslation},
 		{REC: importServiceWeaponREC, EDID: "Bow02", Source: importServiceBowSource, Dest: "アーリエルの弓・改"},
 	}
 	repo := &repositoryStub{}
@@ -141,7 +144,7 @@ func TestMasterDictionaryImportServiceDoesNotCountCreatedEntryAsUpdatedLaterInSa
 	// Act.
 	summary, err := service.ImportXML(context.Background(), "duplicates-created.xml")
 	if err != nil {
-		t.Fatalf("expected import to succeed: %v", err)
+		t.Fatalf(importServiceSuccessMessage, err)
 	}
 
 	// Assert.
@@ -250,7 +253,7 @@ func runSuccessfulImport(t *testing.T) importServiceSuccessResult {
 
 	summary, err := service.ImportXML(context.Background(), " input/import.xml ")
 	if err != nil {
-		t.Fatalf("expected import to succeed: %v", err)
+		t.Fatalf(importServiceSuccessMessage, err)
 	}
 
 	return importServiceSuccessResult{

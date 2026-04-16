@@ -2,19 +2,23 @@
   import { onMount } from "svelte"
 
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
+  import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
+  import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
   import type { ShellRouteContract, ShellRouteId } from "@ui/stores/shell-state"
 
   interface Props {
     defaultRouteId: ShellRouteId
     routes: ShellRouteContract[]
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
+    createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
   }
 
   let {
     defaultRouteId,
     routes,
-    createMasterDictionaryScreenController
+    createMasterDictionaryScreenController,
+    createMasterPersonaScreenController
   }: Props = $props()
 
   const PLACEHOLDER_LEAD =
@@ -39,10 +43,8 @@
     routeById.get(currentRouteId) ?? routes[0] ?? fallbackRoute
   )
   const isDashboard = $derived(currentRoute.id === "dashboard")
-  const RouteComponent = $derived(
-    currentRoute.id === "master-dictionary" ? MasterDictionaryPage : null
-  )
   const dashboardEntryRoutes = $derived(
+  
     routes.filter((route) => route.id !== "dashboard")
   )
 
@@ -169,13 +171,19 @@
       </section>
     {/if}
 
-    {#if !isDashboard && RouteComponent}
-      <RouteComponent
+    {#if !isDashboard && currentRoute.id === "master-dictionary"}
+      <MasterDictionaryPage
         createController={createMasterDictionaryScreenController}
       />
     {/if}
 
-    {#if !isDashboard && !RouteComponent}
+    {#if !isDashboard && currentRoute.id === "master-persona"}
+      <MasterPersonaPage
+        createController={createMasterPersonaScreenController}
+      />
+    {/if}
+
+    {#if !isDashboard && currentRoute.id !== "master-dictionary" && currentRoute.id !== "master-persona"}
       <section class="placeholder-content" id="placeholderView">
         <section class="panel placeholder-card">
           <p class="page-label">現在のページ</p>

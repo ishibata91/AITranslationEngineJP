@@ -1,7 +1,7 @@
 # Work Plan
 
 - workflow: work
-- status: in_progress
+- status: completed
 - lane_owner: orchestrate
 - scope: master-persona-management
 - task_id: persona-management
@@ -181,10 +181,13 @@
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: 未確定
+- `canonicalized_artifacts`: なし
+- `review_result`: implementation-review pass / ui-check pass
+- `validation_result`: `python3 scripts/harness/run.py --suite all` pass / Sonar open reliability=0 / open security=0 / open HIGH/BLOCKER=0
 
 ## Outcome
 
 - active plan を current approved decisions と current UI mock に合わせて更新した。
 - requirements、scenario、implementation-scope の obsolete な create / rebuild / overwrite 前提を除去した。
-- 一覧の plugin filter、detail の dialogue modal、AI生成 wording と lock wording を task-local design に固定した。
+- マスターペルソナの backend / frontend / tests を implementation-scope に沿って実装し、fake provider 既定、extractData.pas preview、same-page refresh、plugin filter、dialogue modal、run lock、no-overwrite rule を通した。
+- review reroute で no-arg Wails binding と hidden modal の pointer-events 問題を解消し、implementation-review と ui-check を pass した。

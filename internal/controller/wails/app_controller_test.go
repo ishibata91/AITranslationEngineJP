@@ -13,20 +13,24 @@ func (emitter *fakeRuntimeEventEmitter) Emit(eventName string, _ ...interface{})
 	emitter.events = append(emitter.events, eventName)
 }
 
-func TestNewAppControllerUsesInjectedMasterDictionaryController(t *testing.T) {
+func TestNewAppControllerUsesInjectedControllers(t *testing.T) {
 	masterDictionaryController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, nil)
+	masterPersonaController := NewMasterPersonaController(fakeMasterPersonaUsecase{})
 
-	controller := NewAppController(masterDictionaryController, nil)
+	controller := NewAppController(masterDictionaryController, masterPersonaController, nil)
 
 	if controller.MasterDictionaryController != masterDictionaryController {
 		t.Fatal("expected app controller to embed the injected master dictionary controller")
+	}
+	if controller.MasterPersonaController != masterPersonaController {
+		t.Fatal("expected app controller to embed the injected master persona controller")
 	}
 }
 
 func TestAppControllerOnStartupRetainsRuntimeContext(t *testing.T) {
 	runtimeState := NewRuntimeEmitterState()
 	masterDictionaryController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, runtimeState)
-	controller := NewAppController(masterDictionaryController, nil)
+	controller := NewAppController(masterDictionaryController, NewMasterPersonaController(fakeMasterPersonaUsecase{}), nil)
 	emitter := &fakeRuntimeEventEmitter{}
 
 	controller.OnStartup(newRuntimeEventContext(emitter))
@@ -44,7 +48,7 @@ func TestAppControllerOnStartupRetainsRuntimeContext(t *testing.T) {
 func TestAppControllerOnShutdownClearsRuntimeContext(t *testing.T) {
 	runtimeState := NewRuntimeEmitterState()
 	masterDictionaryController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, runtimeState)
-	controller := NewAppController(masterDictionaryController, nil)
+	controller := NewAppController(masterDictionaryController, NewMasterPersonaController(fakeMasterPersonaUsecase{}), nil)
 	controller.OnStartup(newRuntimeEventContext(&fakeRuntimeEventEmitter{}))
 
 	controller.OnShutdown(context.Background())
@@ -57,10 +61,14 @@ func TestAppControllerOnShutdownClearsRuntimeContext(t *testing.T) {
 
 func TestAppControllerOnShutdownRunsCleanupCallback(t *testing.T) {
 	shutdownCalled := false
-	controller := NewAppController(NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, NewRuntimeEmitterState()), func(context.Context) error {
-		shutdownCalled = true
-		return nil
-	})
+	controller := NewAppController(
+		NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, NewRuntimeEmitterState()),
+		NewMasterPersonaController(fakeMasterPersonaUsecase{}),
+		func(context.Context) error {
+			shutdownCalled = true
+			return nil
+		},
+	)
 
 	controller.OnShutdown(context.Background())
 
@@ -70,7 +78,11 @@ func TestAppControllerOnShutdownRunsCleanupCallback(t *testing.T) {
 }
 
 func TestAppControllerHealthReturnsOkStatus(t *testing.T) {
-	controller := NewAppController(NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, nil), nil)
+	controller := NewAppController(
+		NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, nil),
+		NewMasterPersonaController(fakeMasterPersonaUsecase{}),
+		nil,
+	)
 
 	response := controller.Health()
 

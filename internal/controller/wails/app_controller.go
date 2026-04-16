@@ -5,28 +5,34 @@ import "context"
 // AppController exposes Wails-bound backend entrypoints.
 type AppController struct {
 	*MasterDictionaryController
+	*MasterPersonaController
 	shutdown func(context.Context) error
 }
 
 // NewAppController builds the root Wails controller.
-func NewAppController(masterDictionaryController *MasterDictionaryController, shutdown func(context.Context) error) *AppController {
+func NewAppController(masterDictionaryController *MasterDictionaryController, masterPersonaController *MasterPersonaController, shutdown func(context.Context) error) *AppController {
 	if shutdown == nil {
 		shutdown = func(context.Context) error { return nil }
 	}
 	return &AppController{
 		MasterDictionaryController: masterDictionaryController,
+		MasterPersonaController:    masterPersonaController,
 		shutdown:                   shutdown,
 	}
 }
 
 // OnStartup matches the Wails lifecycle hook.
 func (controller *AppController) OnStartup(ctx context.Context) {
-	controller.setRuntimeContext(ctx)
+	if controller.MasterDictionaryController != nil {
+		controller.setRuntimeContext(ctx)
+	}
 }
 
 // OnShutdown matches the Wails lifecycle hook.
 func (controller *AppController) OnShutdown(ctx context.Context) {
-	controller.clearRuntimeContext()
+	if controller.MasterDictionaryController != nil {
+		controller.clearRuntimeContext()
+	}
 	_ = controller.shutdown(ctx)
 }
 

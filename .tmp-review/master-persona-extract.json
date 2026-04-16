@@ -1,0 +1,35 @@
+{
+  "target_plugin": "ReviewPlugin.esp",
+  "npcs": [
+    {
+      "form_id": "FE0AAA01",
+      "record_type": "NPC_",
+      "editor_id": "RV_NewOne",
+      "display_name": "Review New",
+      "voice_type": "FemaleYoungEager",
+      "class_name": "ReviewScout",
+      "source_plugin": "ReviewPlugin.esp",
+      "dialogues": ["first line", "second line"]
+    },
+    {
+      "form_id": "FE0AAA02",
+      "record_type": "NPC_",
+      "editor_id": "RV_Zero",
+      "display_name": "Review Zero",
+      "voice_type": "MaleNord",
+      "class_name": "ReviewZero",
+      "source_plugin": "ReviewPlugin.esp",
+      "dialogues": []
+    },
+    {
+      "form_id": "FE01A812",
+      "record_type": "NPC_",
+      "editor_id": "FP_LysMaren",
+      "display_name": "Lys Maren",
+      "voice_type": "FemaleYoungEager",
+      "class_name": "FPScoutClass",
+      "source_plugin": "FollowersPlus.esp",
+      "dialogues": ["existing"]
+    }
+  ]
+}
