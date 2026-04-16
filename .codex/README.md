@@ -10,6 +10,7 @@ live workflow は role-based skill に圧縮し、入口は `orchestrate` だけ
 ## Live Skills
 
 - 入口: `skills/orchestrate/SKILL.md`
+- 設計壁打ち: `skills/wall-discussion/SKILL.md`
 - 文脈整理: `skills/distill/SKILL.md`
 - 再現・trace・risk: `skills/investigate/SKILL.md`
 - 要件・UI・Scenario・brief: `skills/design/SKILL.md`
@@ -32,6 +33,7 @@ backend の Sonar close gate は独立 skill にせず、`implement` と `review
 - single-mode skill は minimal 構成でよい
 - ただし `updating-docs` は `docs-only` handoff を formalize するため single-mode でも guide / contract を持つ
 - `skill-modification` は mode を持たない single-role skill のため minimal 構成を維持する
+- `wall-discussion` は read-only の single-role skill として minimal 構成を維持する
 - 旧 specialized skill の知識は新 skill 名の配下で検索できる状態にする
 
 ## Task-Local Artifact
