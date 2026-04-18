@@ -1,0 +1,170 @@
+@startuml
+
+hide methods
+skinparam classAttributeIconSize 0
+
+' Runtime
+class "翻訳AI" as TranslationAi {
+    プロバイダ: AiProviderType
+    モデル名: string
+    実行方式: AiExecutionMode
+}
+note right of TranslationAi::プロバイダ
+    LMStudio, Gemini, xAI
+end note
+
+class "AI実行リクエスト" as AiExecutionRequest {
+    リクエストID: string
+    リクエスト種別: AiRequestType
+    失敗時再試行可能: boolean
+}
+note right of AiExecutionRequest::リクエスト種別
+    本文翻訳, ペルソナ生成, 用語生成
+end note
+
+class "本文翻訳リクエスト" as BodyTranslationRequest {
+    翻訳対象種別: TranslationTargetKind
+    レコード種別: RecordType
+    フィールド種別: FieldType
+    出力制約: OutputConstraint
+}
+note right of BodyTranslationRequest::翻訳対象種別
+    会話文, クエスト文, 説明文, 固有名詞など
+end note
+
+class "ペルソナ生成リクエスト" as PersonaGenerationRequest {
+    対象NPCFormID: HexString8
+    対象プラグイン: PluginName
+    生成目的: PersonaGenerationPurpose
+}
+
+class "用語生成リクエスト" as TermGenerationRequest {
+    対象範囲: TermExtractionScope
+    再利用先フェーズ: TranslationPhase
+}
+
+' Primary input
+class "翻訳対象テキスト" as TranslationTargetText {
+    FormID: HexString8
+    EditorID: string
+    原文: SourceText
+    レコード種別: RecordType
+    フィールド種別: FieldType
+}
+note right of TranslationTargetText::FormID
+    8桁16進文字列として扱う
+end note
+
+class "原文発話" as SourceUtterance {
+    発話者FormID: HexString8
+    原文: SourceText
+    発話順: integer
+}
+
+class "用語候補" as TermCandidate {
+    原文: SourceTerm
+    出現箇所: TextLocation
+    種別: TermKind
+}
+
+class "埋め込み要素" as EmbeddedElement {
+    表記: string
+    出現位置: TextSpan
+    保持必須: boolean
+}
+note right of EmbeddedElement::表記
+    例: <10gold>
+end note
+
+class "埋め込み保持制約" as EmbeddedElementConstraint {
+    原文表記維持: boolean
+    順序維持: boolean
+    欠落禁止: boolean
+}
+
+' Reference context
+class "参照ペルソナ" as PersonaReference {
+    NPCFormID: HexString8
+    話し方: SpeechStyle
+    性格傾向: PersonalitySummary
+    由来: PersonaSource
+}
+
+class "参照用語" as DictionaryReference {
+    原文: SourceTerm
+    訳文: TranslatedTerm
+    由来: DictionarySource
+}
+
+class "会話コンテキスト" as DialogueContext {
+    発話者FormID: HexString8
+    前後関係: DialogueRelation
+    応答関係: ResponseRelation
+}
+
+class "クエストコンテキスト" as QuestContext {
+    クエストID: string
+    目標: QuestObjective
+    進行状況: QuestProgress
+}
+
+class "NPC属性" as NpcAttribute {
+    NPCFormID: HexString8
+    種族: Race
+    性別: Sex
+    立場: NpcRole
+}
+
+' Output
+class "本文翻訳結果" as BodyTranslationResult {
+    FormID: HexString8
+    訳文: TranslatedText
+    出力ステータス: OutputStatus
+    辞書置換あり: boolean
+}
+
+class "生成ペルソナ" as GeneratedPersona {
+    NPCFormID: HexString8
+    ペルソナ説明: PersonaDescription
+    話し方: SpeechStyle
+    性格傾向: PersonalitySummary
+    根拠発話数: integer
+}
+
+class "生成辞書項目" as GeneratedDictionaryEntry {
+    原文: SourceTerm
+    訳文: TranslatedTerm
+    種別: TermKind
+    再利用可能: boolean
+}
+
+' Relations
+AiExecutionRequest "1" -- "1" TranslationAi : 実行先AI
+AiExecutionRequest "1" -- "0..1" BodyTranslationRequest : 本文翻訳要求
+AiExecutionRequest "1" -- "0..1" PersonaGenerationRequest : ペルソナ生成要求
+AiExecutionRequest "1" -- "0..1" TermGenerationRequest : 用語生成要求
+
+BodyTranslationRequest "1" -- "1..*" TranslationTargetText : 翻訳対象テキスト
+BodyTranslationRequest "1" -- "0..*" PersonaReference : 参考ペルソナ
+BodyTranslationRequest "1" -- "0..*" DictionaryReference : 参考用語
+BodyTranslationRequest "1" -- "0..*" DialogueContext : 参考会話文脈
+BodyTranslationRequest "1" -- "0..*" QuestContext : 参考クエスト文脈
+BodyTranslationRequest "1" -- "0..*" NpcAttribute : 参考NPC属性
+BodyTranslationRequest "1" -- "1" EmbeddedElementConstraint : 埋め込み保持制約
+BodyTranslationRequest "1" -- "1..*" BodyTranslationResult : 本文翻訳出力
+
+TranslationTargetText "1" -- "0..*" EmbeddedElement : 含まれる埋め込み要素
+BodyTranslationResult "1" -- "0..*" EmbeddedElement : 保持済み埋め込み要素
+
+PersonaGenerationRequest "1" -- "1..*" SourceUtterance : ペルソナ根拠発話
+PersonaGenerationRequest "1" -- "0..*" NpcAttribute : ペルソナ根拠属性
+PersonaGenerationRequest "1" -- "1" GeneratedPersona : ペルソナ生成出力
+
+TermGenerationRequest "1" -- "1..*" TermCandidate : 用語候補入力
+TermGenerationRequest "1" -- "0..*" TranslationTargetText : 用語抽出元テキスト
+TermGenerationRequest "1" -- "1..*" GeneratedDictionaryEntry : 用語生成出力
+
+GeneratedPersona "0..*" -- "0..*" PersonaReference : 後続翻訳の参考ペルソナ
+GeneratedDictionaryEntry "0..*" -- "0..*" DictionaryReference : 後続翻訳の参考用語
+
+@enduml

@@ -1,0 +1,139 @@
+@startuml
+
+hide methods
+skinparam classAttributeIconSize 0
+
+' External tools
+class "xEdit" as XEdit {
+}
+
+class "xTranslator" as XTranslator {
+}
+
+' Input
+class "プラグイン" as Plugin {
+    プラグイン名: PluginName
+    プラグイン種別: PluginType
+}
+note right of Plugin::プラグイン種別
+    ESP, ESM, ESLなど
+end note
+
+class "xEdit抽出データ" as XEditExtractedData {
+    抽出元プラグイン: PluginName
+    抽出JSON: JsonFilePath
+    レコード数: integer
+}
+
+class "xTranslator抽出データ" as XTranslatorExportedData {
+    取込元ファイル: FilePath
+    形式: XTranslatorFormat
+    用語数: integer
+}
+
+class "翻訳レコード" as TranslationRecord {
+    FormID: HexString8
+    EditorID: string
+    レコード種別: RecordType
+    フィールド種別: FieldType
+    原文: SourceText
+    訳文: TranslatedText
+    出力ステータス: OutputStatus
+}
+note left of TranslationRecord::FormID
+    8桁16進文字列として扱う
+end note
+
+' Metadata and dictionaries
+class "ペルソナ" as Persona {
+    NPCFormID: HexString8
+    属性: NpcAttributeMetadata
+    ペルソナ説明: PersonaDescription
+    ペルソナ種別: PersonaType
+}
+note left of Persona::ペルソナ種別
+    マスターペルソナかジョブ内生成ペルソナか
+end note
+
+class "マスターペルソナ" as MasterPersona {
+    名前: string
+    対象プラグイン: PluginName
+}
+
+class "用語辞書" as Dictionary {
+    原文: SourceTerm
+    訳文: TranslatedTerm
+    辞書種別: DictionaryType
+}
+note right of Dictionary::辞書種別
+    マスター辞書由来かジョブ内生成語か
+end note
+
+class "マスター辞書" as MasterDictionary {
+    名前: string
+    取込元ファイル: FilePath
+}
+
+' Execution
+class "翻訳ジョブ" as TranslationJob {
+    状態: JobState
+    現在フェーズ: TranslationPhase
+    実行方式: AiExecutionMode
+    進捗: ProgressPercent
+}
+note right of TranslationJob::状態
+    Draft, Ready, Running, Paused,
+    RecoverableFailed, Completed,
+    Failed, Canceled
+end note
+
+class "AI基盤" as AiRuntime {
+    プロバイダ: AiProviderType
+    モデル名: string
+    APIKey保存済み: boolean
+    BatchAPI使用: boolean
+}
+note right of AiRuntime::プロバイダ
+    LMStudio, Gemini, xAI
+end note
+
+' Output
+class "翻訳成果物" as TranslationArtifact {
+    出力形式: ArtifactFormat
+    対象ゲーム: TargetGame
+    ファイルパス: FilePath
+}
+note left of TranslationArtifact::出力形式
+    標準配布形式は xTranslator互換XML
+end note
+
+class "xTranslator出力行" as XTranslatorOutputRow {
+    EDID: string
+    REC: RecordType
+    FIELD: FieldType
+    FORMID: HexString8
+    Source: SourceText
+    Dest: TranslatedText
+    Status: XTranslatorStatus
+}
+
+' Relations
+Plugin "0..*" -- "1" XEdit : xEdit抽出元
+Plugin "0..*" -- "1" XTranslator : xTranslator取込元
+XEdit "1" -- "0..*" XEditExtractedData : xEdit抽出結果
+XTranslator "1" -- "0..*" XTranslatorExportedData : xTranslator抽出結果
+
+XEditExtractedData "1..*" -- "1" TranslationJob : 翻訳ジョブ入力
+TranslationJob "1" -- "0..*" TranslationRecord : 翻訳対象レコード
+TranslationJob "1" -- "0..*" Dictionary : ジョブ内で生成された辞書項目｜翻訳に使う辞書項目
+TranslationJob "1" -- "0..*" Persona : 会話の翻訳に使われるペルソナ
+TranslationJob "1" -- "1" AiRuntime : ジョブに使うAI基盤
+TranslationJob "1" -- "1..*" TranslationArtifact : 翻訳成果物
+XEditExtractedData "0..*" -- "0..*" MasterPersona : ペルソナ生成データの取込元
+XTranslatorExportedData "0..*" -- "0..*" MasterDictionary : 辞書項目の取込元
+
+MasterDictionary "1" -- "0..*" Dictionary : 辞書項目
+MasterPersona "1" -- "0..*" Persona : ペルソナ項目
+TranslationArtifact "1" -- "1..*" XTranslatorOutputRow : xTranslator出力行
+
+@enduml

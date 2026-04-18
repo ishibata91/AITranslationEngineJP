@@ -1,0 +1,211 @@
+@startuml
+
+hide methods
+skinparam classAttributeIconSize 0
+skinparam nodesep 80
+skinparam ranksep 90
+
+' User-visible inputs
+class "xEdit抽出データ" as XEditExtractedData {
+    取込元ファイル: FilePath
+    sourceTool: ExternalTool
+    対象プラグイン名: PluginName
+    対象プラグイン種別: PluginType
+    レコード数: integer
+}
+note right of XEditExtractedData::sourceTool
+    xEdit
+end note
+
+class "xTranslator翻訳XML" as XTranslatorTranslationXml {
+    ファイルパス: FilePath
+    対象プラグイン名: PluginName
+    対象プラグイン種別: PluginType
+    用語数: integer
+}
+
+' Input records
+class "翻訳レコード" as TranslationRecord {
+    FormID: HexString8
+    EditorID: string
+    レコード種別: RecordType
+}
+note left of TranslationRecord::FormID
+    8桁16進文字列として扱う
+end note
+note right of TranslationRecord
+    Skyrim/xTranslator 上で識別できるレコード本体。
+    Book, Item, Magic, Quest, Dialogue, Message,
+    Location などは標準の TranslationRecord として扱う。
+    専用派生はレコード固有属性を持つ場合だけ作る。
+end note
+
+class "NPCレコード" as NpcRecord {
+    種族: Race
+    性別: Sex
+    クラス: Class
+    VoiceType: VoiceType
+}
+note right of NpcRecord
+    NPC名も TranslationField として扱う。
+    NPC属性と関連フィールドはペルソナ生成の根拠になる。
+end note
+
+class "翻訳フィールド" as TranslationField {
+    サブレコード種別: SubrecordType
+    原文: SourceText
+    訳文: TranslatedText
+    出力ステータス: OutputStatus
+    並び順: integer
+}
+note right of TranslationField::サブレコード種別
+    FULL, DESC, DNAM, NAM1,
+    CNAM, NNAM など。
+    親レコードのレコード種別と組み合わせて
+    xTranslator 出力行を復元する。
+end note
+note right of TranslationField::並び順
+    順序ありのフィールド定義で使う。
+    例: INFO:NAM1 の会話順、
+    QUST:CNAM のステージ順。
+end note
+
+class "翻訳対象フィールド定義" as TranslationFieldDefinition {
+    レコード種別: RecordType
+    サブレコード種別: SubrecordType
+    表示名: string
+    AI向け説明: string
+    翻訳対象: boolean
+    順序あり: boolean
+    順序スコープ: FieldOrderScope
+    参照要件: FieldReferenceRequirement
+}
+note right of TranslationFieldDefinition
+    ジョブごとのデータではなく、
+    アプリが持つ Skyrim/xTranslator の
+    翻訳対象フィールド説明テーブル。
+    例: BOOK:DESC, MGEF:DNAM, INFO:NAM1
+end note
+note right of TranslationFieldDefinition::参照要件
+    AI翻訳に使う参照文脈を定義する。
+    例: 発話者NPC, 親クエスト, 会話トピック,
+    前後の翻訳フィールド。
+end note
+
+' Job and phase runtime
+class "翻訳ジョブ" as TranslationJob {
+    状態: JobState
+    進捗: ProgressPercent
+}
+note right of TranslationJob::状態
+    フェーズ実行の状態から集約する
+end note
+
+class "フェーズ実行" as PhaseRun {
+    フェーズ種別: TranslationPhaseType
+    状態: PhaseRunState
+    実行順: integer
+    進捗: ProgressPercent
+    AIプロバイダ: AiProviderType
+    モデル名: string
+    実行方式: AiExecutionMode
+    認証情報参照: CredentialRef
+    指示構成種別: AiInstructionKind
+    最終AI実行ID: ExternalRunId
+    最終エラー: string
+}
+note right of PhaseRun::フェーズ種別
+    用語生成, NPCペルソナ生成,
+    本文翻訳, 出力生成
+end note
+note right of PhaseRun::状態
+    Pending, Ready, Running, Paused,
+    RecoverableFailed, Completed,
+    Failed, Skipped, Canceled
+end note
+
+' Metadata and dictionary
+class "ペルソナ" as Persona {
+    適用種別: PersonaKind
+    適用範囲: PersonaScope
+    作成経路: PersonaSource
+    ペルソナ説明: PersonaDescription
+    話し方: SpeechStyle
+    性格傾向: PersonalitySummary
+    根拠発話数: integer
+}
+note right of Persona::適用種別
+    マスター, ジョブ内
+end note
+note right of Persona::作成経路
+    事前生成, ジョブ内生成
+end note
+
+class "用語辞書" as Dictionary {
+    適用種別: DictionaryKind
+    適用範囲: DictionaryScope
+    作成経路: DictionarySource
+    原文: SourceTerm
+    訳文: TranslatedTerm
+    用語種別: TermKind
+    再利用可能: boolean
+}
+note right of Dictionary::適用種別
+    マスター, ジョブ内
+end note
+note right of Dictionary::作成経路
+    xTranslator取込, 用語生成
+end note
+
+' User-visible output
+class "翻訳成果物" as TranslationArtifact {
+    出力形式: ArtifactFormat
+    対象ゲーム: TargetGame
+    ファイルパス: FilePath
+}
+note left of TranslationArtifact::出力形式
+    標準配布形式は xTranslator互換XML
+end note
+
+class "xTranslator出力行" as XTranslatorOutputRow {
+    EDID: string
+    REC: RecordType
+    FIELD: SubrecordType
+    FORMID: HexString8
+    Source: SourceText
+    Dest: TranslatedText
+    Status: XTranslatorStatus
+}
+
+' Inheritance
+TranslationRecord <|-- NpcRecord
+
+' Input relations
+XEditExtractedData "1" -- "0..*" TranslationRecord : 入力JSONから復元されたSkyrimレコード
+TranslationRecord "1" -- "1..*" TranslationField : レコード内の翻訳可能フィールド
+TranslationField "0..*" -- "1" TranslationFieldDefinition : レコード種別 + サブレコード種別で参照
+TranslationField "0..*" -- "0..1" TranslationField : 前の翻訳フィールド
+TranslationField "0..*" -- "0..1" TranslationField : 次の翻訳フィールド
+TranslationField "0..*" --> "0..*" TranslationRecord : 別レコードの参照
+NpcRecord "1" -- "0..*" TranslationField : NPC名とNPCに紐づく根拠フィールド
+
+' Job and phase relations
+TranslationJob "1" -- "1" XEditExtractedData : このジョブが翻訳する入力データ
+TranslationJob "1" -- "1..*" PhaseRun : ジョブ内フェーズ実行
+TranslationJob "1" -- "1" TranslationArtifact : このジョブが生成する出力ファイル
+
+' Phase effects and references
+PhaseRun "0..*" -- "0..*" TranslationField : 翻訳または解析対象フィールド
+PhaseRun "0..*" -- "0..*" Persona : 生成または参照するペルソナ
+PhaseRun "0..*" -- "0..*" Dictionary : 生成または参照する用語辞書
+
+' Persona and dictionary relations
+NpcRecord "1" -- "1" Persona : NPCが持つペルソナ
+Persona "1" -- "0..*" TranslationField : 生成根拠フィールド
+XTranslatorTranslationXml "1" -- "0..*" Dictionary : 既存翻訳XMLから取り込むマスター辞書項目
+
+' Artifact relations
+TranslationArtifact "1" -- "1..*" XTranslatorOutputRow : xTranslator互換XMLを構成する出力行
+TranslationField "1" -- "1" XTranslatorOutputRow : 1翻訳フィールドに対応する出力行
+
+@enduml
