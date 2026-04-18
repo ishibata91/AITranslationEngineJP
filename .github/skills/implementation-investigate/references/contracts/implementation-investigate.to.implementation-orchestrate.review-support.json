@@ -1,0 +1,7 @@
+{
+  "legacy": true,
+  "legacy_mode": "review-support",
+  "reason": "mode 別 active contract は廃止した。知識差分は implementation-investigate-review-support skill に移し、output obligation は investigator agent contract に統合した。",
+  "focused_skill_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate-review-support/SKILL.md",
+  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/investigator/contracts/investigator.contract.json"
+}

@@ -1,9 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "orchestrate",
-  "to_skill": "investigate",
-  "mode": "temporary-logging",
-  "required_inputs": ["active_work_plan", "task_mode", "observation_points"],
-  "optional_inputs": ["target_files", "cleanup_expectation"],
-  "completion_signal": ["observed_facts", "recommended_next_step"]
-}

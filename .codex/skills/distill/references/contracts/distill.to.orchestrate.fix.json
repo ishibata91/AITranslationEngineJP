@@ -1,8 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "distill",
-  "to_skill": "orchestrate",
-  "mode": "fix",
-  "returned_fields": ["facts", "gaps", "reproduction_status", "related_code_pointers", "recommended_next_skill"],
-  "ready_when": ["orchestrate が reproduce または trace の次手を決められる"]
-}

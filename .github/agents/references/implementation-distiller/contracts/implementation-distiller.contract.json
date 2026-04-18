@@ -1,0 +1,30 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "implementation-distiller",
+  "runtime": "github-copilot",
+  "contract_policy": "active contract は agent 1:1。implement / fix / refactor の差分は focused skill で扱い、output obligation はこの contract に固定する。",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-distiller/permissions.json",
+  "required_inputs": ["active_work_plan", "implementation_scope", "approval_record", "owned_scope", "depends_on", "validation_commands", "source_artifacts"],
+  "optional_inputs": ["knowledge_focus", "reproduction_evidence", "trace_or_analysis_result"],
+  "input_notes": {
+    "knowledge_focus": "implementation-distill-implement、implementation-distill-fix、implementation-distill-refactor の参照ヒント。contract と完了条件は変えない。"
+  },
+  "knowledge_refs": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill-implement/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill-fix/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill-refactor/SKILL.md"
+  ],
+  "handoff_targets": ["implementation-orchestrate"],
+  "expected_outputs": ["implementation_facts", "constraints", "gaps", "required_reading", "related_code_pointers", "validation_entry", "recommended_next_skill"],
+  "field_requirements": {
+    "implementation_facts": "facts、inferred、gap を混ぜずに書く",
+    "required_reading": "実装者が最初に読む file と順序を返す",
+    "validation_entry": "最初に実行する validation command と完了条件を返す"
+  },
+  "required_evidence": ["implementation-scope handoff", "owned_scope", "source_artifacts"],
+  "rejection_conditions": ["missing approved implementation-scope", "missing approval_record", "unclear owned_scope"],
+  "stop_conditions": ["設計判断が不足している", "変更が docs や workflow へ広がる"],
+  "completion_signal": "implementation-orchestrate が implement、tests、review の次 handoff を判断できる",
+  "residual_risk_key": "gaps"
+}

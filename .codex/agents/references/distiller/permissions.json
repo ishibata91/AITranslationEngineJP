@@ -1,0 +1,46 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "distiller",
+  "runtime": "codex",
+  "allowed_actions": [
+    "active work plan、docs、設計関連 file から facts を抽出する",
+    "入口情報を catalog、summary、full の粒度で段階的に圧縮する",
+    "重複 instruction を除き、canonical source と source path を残す",
+    "design bundle に必要な constraints、gaps、required reading を整理する",
+    "investigate へ渡す observation_targets を返す",
+    "next handoff を決めるための recommended_next_skill を返す"
+  ],
+  "forbidden_actions": [
+    "未確認の設計判断を事実として固定する",
+    "圧縮のために根拠 path や未確認状態を捨てる",
+    "implementation-scope 承認後の実装前整理を扱う",
+    "fix や refactor の実装方針を整理する",
+    "広いコード変更や lane close を始める",
+    "別の正本 artifact を増やす"
+  ],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": [
+    "product code",
+    "product test",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"
+  ],
+  "required_source_of_truth": [
+    "user の現在指示",
+    "active work plan または caller-provided task context",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md",
+    "関連 skill と focused skill"
+  ],
+  "stop_conditions": [
+    "active work plan や関連 docs が不足している",
+    "重要な fact の根拠 path を確認できない",
+    "主要な設計判断が未確定で事実整理だけでは前進しない",
+    "作業が Copilot 側 implementation-distill の責務である"
+  ],
+  "reroute_targets": [
+    "propose-plans",
+    "implementation-orchestrate"
+  ]
+}

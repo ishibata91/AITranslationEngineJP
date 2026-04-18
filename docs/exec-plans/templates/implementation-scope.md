@@ -1,28 +1,16 @@
 # Implementation Scope Template
 
-- `task_id`:
-- `task_mode`:
-- `design_review_status`:
-- `hitl_status`:
-- `summary`:
-- `source_brief`: path to the approved implementation-brief
+新規 task の implementation-scope は、task folder 内の次の path に作る。
+
+`docs/exec-plans/active/<task-id>/implementation-scope.md`
+
+正本 template は次を使う。
+
+`docs/exec-plans/templates/task-folder/implementation-scope.md`
 
 ## Rules
 
-- This file is for AI handoff only.
-- Keep prose short and in English.
-- Do not restate full requirements or review rationale.
-- Use only the information needed to execute without re-interpretation.
-- Keep the file in `active/` while work is ongoing.
-- Move the file with the plan when the task is completed.
-
-## Handoffs
-
-### `handoff_id`:
-
-- `implementation_target`:
-- `owned_scope`:
-- `depends_on`:
-- `validation_commands`:
-- `completion_signal`:
-- `notes`:
+- この file は互換用の案内であり、新規 handoff 本体を書かない
+- `implementation-scope.md` は human review 後だけ作る
+- Copilot handoff は folder 内の source artifact へ relative path で参照する
+- docs 正本化、`.codex/`、`.github/skills`、`.github/agents` の変更を handoff に含めない

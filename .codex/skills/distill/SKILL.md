@@ -1,60 +1,87 @@
 ---
 name: distill
-description: task の入口情報を圧縮し、facts / constraints / gaps / required reading を次工程へ渡す role skill。
+description: Codex 側の共通文脈圧縮 skill。入口情報を facts、constraints、gaps、required_reading へ整理するための共通知識と圧縮パターンを提供する。
 ---
 
 # Distill
 
-## Goal
+## 目的
 
-- active plan と入口情報から次工程に必要な repo 文脈だけを抽出する
-- facts、constraints、gaps、required_reading を downstream が使える粒度で返す
-- implement / fix / investigate / refactor の入口差分を mode で吸収する
+`distill` は、入口情報を短く整理するための共通知識である。
+圧縮粒度、重複除去、facts / inferred / gap の分離、downstream が読む順番の作り方を扱う。
 
-## What Stays Here
+設計向けの観点は `distill-design` が持つ。
+調査向けの観点は `distill-investigate` が持つ。
+`distill` 本体は、どちらにも共通する圧縮の見方だけを持つ。
 
-- facts と推測の分離
-- required reading の最小化
-- 関連 code pointer の明示
-- reproduction context の有無判断
-- task を再設計せず、次工程が動ける最小 packet を返すこと
+## いつ参照するか
 
-## Outputs
+- `propose-plans` の次判断に必要な repo 文脈を圧縮する時
+- 設計向けまたは調査向けの詳細観点を読む前に、共通の圧縮粒度をそろえる時
+- user request、active plan、docs、関連 skill の重複を短く整理する時
 
-- `facts`
-- `constraints`
-- `gaps`
-- `required_reading`
-- `reproduction_status`
-- `related_code_pointers`
-- `recommended_next_skill`
+## 参照しない場合
 
-## Rules
+- requirements、UI、scenario、diagram の詳細観点だけが必要な時
+- 観測対象、再現条件、未観測情報の詳細観点だけが必要な時
+- human review 済み `implementation-scope` から実装前 context を作る時
+- fix、refactor、product code 実装のために文脈を整理する時
 
-- 実装コード、test、diagram source を変更しない
-- `design`、`implement`、`tests`、`review` の成果物を先回りで作らない
-- 入口で渡された path だけで不足する時に限って最小限の追加探索を行う
-- fix / investigate では事実と推測を分ける
-- `packet file` を作らない
-- `changes/` や `context_board` を前提にしない
-- 役割を再確定せず、呼び出し元で確定した `task_mode` を前提に整理する
+## 知識範囲
 
-## Mode Notes
+- `catalog`、`summary`、`full` の圧縮粒度
+- canonical source への重複寄せ
+- `confirmed`、`inferred`、`gap` の分離
+- downstream が読む順番の整理
 
-- `implement`: requirements / affected surface / validation entry を拾う
-- `fix`: 再現条件、既知症状、関連ログ経路、近傍コードを拾う
-- `refactor`: 境界、依存方向、非目的の振る舞い変更を拾う
-- `investigate`: 仮説形成に必要な観測点だけを返す
+## 圧縮方針
 
-## Detailed Guides
+- 先に対象を機械的に棚卸しし、その後で判断する
+- 読む粒度は `catalog`、`summary`、`full` の順で上げる
+- 重複 instruction は正本だけを残し、重複元は path で退避する
+- downstream の次判断に必要な情報だけを残す
+- 出力ごとに `confirmed`、`inferred`、`gap` の状態を明示する
 
-- `references/mode-guides/implement.md`
-- `references/mode-guides/fix.md`
-- `references/mode-guides/refactor.md`
-- `references/mode-guides/investigate.md`
+## 標準パターン
 
-## Reference Use
+1. caller goal、入口 artifact、lane owner を確認する。
+2. docs、plan、skill、関連 file を path catalog として棚卸しする。
+3. 正本、重複、任意参照、未確認事項を分類する。
+4. 必要なものだけ `summary` または `full` に展開する。
+5. facts、constraints、gaps、required_reading へ圧縮する。
+6. 次に読むべき情報または停止理由を明示する。
 
-- quick overview は `../orchestrate/references/orchestrate.to.distill.json` を使う
-- mode 別 contract は `../orchestrate/references/contracts/orchestrate.to.distill.<mode>.json` を正本とする
-- 返却 contract は `references/contracts/distill.to.orchestrate.<mode>.json` を正本とする
+この手順は知識上の標準例である。
+実行順、必須 input、完了条件は `distiller` agent contract に従う。
+
+## DO / DON'T
+
+DO:
+- 確認済み事実と推測を分ける
+- 重要な fact には根拠 path を付ける
+- 必要な参照先を読む順番つきで返す
+
+DON'T:
+- 設計向けまたは調査向けの詳細観点を共通 skill に戻さない
+- broad な repo tour をしない
+- product code、product test、docs 正本の変更に進まない
+
+## Checklist
+
+- [distill-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/references/checklists/distill-checklist.md) を参照する。
+- checklist は知識確認用であり、実行義務は `distiller` agent contract が決める。
+
+## References
+
+- 圧縮判断: [compression-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/references/compression-patterns.md)
+- 設計向け観点: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-design/SKILL.md)
+- 調査向け観点: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md)
+- agent spec: [distiller.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.agent.md)
+- agent contract: [distiller.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/contracts/distiller.contract.json)
+
+## Maintenance
+
+- `distill` は共通圧縮知識だけを持つ。
+- 設計向け、調査向けの観点は focused skill に分ける。
+- 長い例や判断表は references に分離する。
+- 実装前 context の整理は Copilot 側 [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill/SKILL.md) に残す。

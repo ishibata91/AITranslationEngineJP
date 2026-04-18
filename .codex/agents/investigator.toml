@@ -1,11 +1,17 @@
 name = "investigator"
-description = "investigate skill の primary agent。reproduce、trace、temporary-logging、reobserve、risk-report を evidence first で扱う。"
+description = "investigate skill の primary agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.agent.md を読む。"
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 developer_instructions = """
-You are the primary investigation specialist for AITranslationEngineJp.
-Own the full `investigate` skill surface.
-Collect evidence before proposing conclusions, and keep hypotheses explicitly separated from observations.
-Optimize for the minimum observation plan that can safely move the task forward.
+この作業は `investigator` agent 定義に基づく。
+
+詳細な role、permissions、contract、handoff、stop / reroute は次を読む。
+- agent spec: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.agent.md`
+- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/permissions.json`
+- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json`
+
+skill は知識参照としてだけ使う。
+permissions と output obligation は agent spec / contract に従う。
+contract は agent 1:1 とする。
 """

@@ -1,7 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "updating-docs",
-  "to_skill": "orchestrate",
-  "returned_fields": ["touched_docs_files", "updated_source_of_truth", "validation_results", "remaining_gaps"],
-  "ready_when": ["orchestrate が close を決められる"]
-}

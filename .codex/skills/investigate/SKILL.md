@@ -1,54 +1,80 @@
 ---
 name: investigate
-description: 再現、trace、一時観測、再観測、risk 整理を mode 分岐で扱い、evidence を work plan へ返す role skill。
+description: Codex 側の設計前調査知識 package。再現、UI 証跡、trace、risk-report を evidence first で扱う判断基準を提供する。
 ---
 
 # Investigate
 
-## Goal
+## 目的
 
-- fix や調査に必要な evidence を最小コストで集める
-- 再現、trace、一時 logging、再観測、risk 整理を mode ごとに切り替える
-- 恒久修正ではなく観測と判断材料の返却に集中する
+`investigate` は知識 package である。
+`investigator` agent が設計前に必要な証拠を集めるための、観測事実、UI 証跡、仮説、remaining gap の分け方を提供する。
 
-## Modes
+UI check 専用 skill / agent は置かない。
+設計前の UI evidence は `investigator` が `investigate` の一部として扱う。
 
-- `reproduce`: 初動再現証跡を取得する
-- `trace`: 原因仮説と最小観測計画を返す
-- `temporary-logging`: trace に必要な一時観測ログだけを add / remove する
-- `reobserve`: 一時観測後の console、Wails log、画面状態を確認する
-- `risk-report`: 実装後または調査後の residual risk を evidence 付きで要約する
+## いつ参照するか
 
-## Common Rules
+- 設計前に再現可否を確認する時
+- UI evidence、console、画面状態を設計判断の証跡として確認する時
+- trace の観測点と不足情報を整理する時
+- design continuation の risk を短く返す時
 
-- `reproduce` と `reobserve` では Playwright MCP を使い `http://host.docker.internal:34115` に接続する
-- Wails 起動は `npm run dev:wails:docker-mcp` を前提にし、`tmp/logs/wails-dev.log` でバックエンドのログ観測を行うものとする
-- `temporary-logging` では恒久修正、test 追加、refactor を混ぜない
-- `trace` と `risk-report` は evidence のない推測を書かない
-- 再現不能ならその事実を返し、無理に結論を作らない
-- 役割を再確定せず、呼び出し元で確定した investigate mode だけを遂行する
+## 参照しない場合
 
-## Output
+- implementation-scope 承認後の再現や再観測を扱う時
+- 恒久修正や product test 追加が必要な時
+- implementation review が主目的の時
 
-- `observed_facts`
-- `hypotheses`
-- `observation_points`
-- `browser_console_findings`
-- `wails_log_findings`
-- `remaining_gaps`
-- `residual_risks`
-- `recommended_next_step`
+## 知識範囲
 
-## Detailed Guides
+- `reproduce`、`ui-evidence`、`trace`、`risk-report` の観点
+- observed fact、UI evidence、hypothesis の分離
+- evidence path と再現条件の残し方
+- 設計を止める residual risk の表現
 
-- `references/mode-guides/reproduce.md`
-- `references/mode-guides/trace.md`
-- `references/mode-guides/temporary-logging.md`
-- `references/mode-guides/reobserve.md`
-- `references/mode-guides/risk-report.md`
+## 原則
 
-## Reference Use
+- evidence のない結論を書かない
+- 観測事実と仮説を混ぜない
+- UI evidence は画面状態、console、screenshot、操作条件を分けて残す
+- 実装 lane の調査は Copilot 側へ戻す
 
-- quick overview は `../orchestrate/references/orchestrate.to.investigate.json` を使う
-- mode 別 contract は `../orchestrate/references/contracts/orchestrate.to.investigate.<mode>.json` を正本とする
-- 返却 contract は `references/contracts/investigate.to.orchestrate.<mode>.json` を正本とする
+## 標準パターン
+
+1. 調査目的と設計判断への影響を確認する。
+2. 既知 facts、再現条件、UI check scope、未観測情報を分ける。
+3. 最小の観測を行い、根拠 path を残す。
+4. hypothesis は evidence level を明示する。
+5. designer が次判断できる形で gaps と risks を返す。
+
+この手順は知識上の標準例である。
+実行順、必須 input、完了条件は `investigator` agent contract に従う。
+
+## DO / DON'T
+
+DO:
+- observed、UI evidence、inferred を分ける
+- 証跡 path と再現条件を優先する
+- 設計継続可否に効く gap を残す
+
+DON'T:
+- 恒久修正を始めない
+- implementation-time investigation を扱わない
+- owned_scope や対象 file を確定しない
+
+## Checklist
+
+- [investigate-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/references/checklists/investigate-checklist.md) を参照する。
+- checklist は知識確認用であり、実行義務は `investigator` agent contract が決める。
+
+## References
+
+- agent spec: [investigator.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.agent.md)
+- agent contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
+
+## Maintenance
+
+- 権限、write scope、output obligation を skill 本体へ戻さない。
+- 実装時調査は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate/SKILL.md) へ分ける。
+- UI check 専用 skill / agent を戻さない。

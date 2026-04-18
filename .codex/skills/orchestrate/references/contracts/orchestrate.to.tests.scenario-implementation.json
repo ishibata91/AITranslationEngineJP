@@ -1,9 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "orchestrate",
-  "to_skill": "tests",
-  "mode": "scenario-implementation",
-  "required_inputs": ["active_work_plan", "task_mode", "scenario_artifact_path"],
-  "optional_inputs": ["fix_reproduction_context", "validation_targets"],
-  "completion_signal": ["touched_test_files", "implemented_test_scope", "validation_results"]
-}

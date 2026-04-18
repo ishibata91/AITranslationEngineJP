@@ -1,8 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "distill",
-  "to_skill": "orchestrate",
-  "mode": "investigate",
-  "returned_fields": ["facts", "gaps", "required_reading", "related_code_pointers", "recommended_next_skill"],
-  "ready_when": ["orchestrate が investigate mode を選べる"]
-}

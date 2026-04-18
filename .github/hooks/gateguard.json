@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "node ./scripts/gateguard.js",
+        "cwd": ".github/hooks",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

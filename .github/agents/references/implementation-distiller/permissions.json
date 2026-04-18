@@ -1,0 +1,32 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "implementation-distiller",
+  "runtime": "github-copilot",
+  "allowed_actions": [
+    "承認済み implementation-scope から implementation_facts を抽出する",
+    "owned_scope 内外の関連 file を catalog、summary、full の粒度で段階的に整理する",
+    "focused skill に応じて implement、fix、refactor の実装前 constraints、gaps、required_reading を返す",
+    "related_code_pointers と validation_entry を返す",
+    "実装に必要な設計不足を implementation-orchestrate へ戻す"
+  ],
+  "forbidden_actions": [
+    "product code または product test を変更する",
+    "docs 配下を変更する",
+    ".codex 配下を変更する",
+    ".github/skills または .github/agents を変更する",
+    "implementation-scope を書き換える",
+    "要件や設計を追加する",
+    "owned_scope を広げる"
+  ],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": ["product code", "product test", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"],
+  "required_source_of_truth": ["human review 済みの implementation-scope", "approval_record", "owned_scope", "source_artifacts"],
+  "stop_conditions": [
+    "implementation-scope が存在しない",
+    "approval_record が不足している",
+    "owned_scope が曖昧である",
+    "設計判断が不足していて実装前整理だけでは前進しない",
+    "変更が docs や workflow へ広がる"
+  ],
+  "reroute_targets": ["implementation-orchestrate"]
+}

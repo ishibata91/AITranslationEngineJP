@@ -1,7 +1,0 @@
-{
-  "contract_version": "2026-04-15",
-  "from_skill": "design",
-  "to_skill": "orchestrate",
-  "returned_fields": ["functional_requirements_summary", "in_scope", "non_functional_requirements", "out_of_scope", "open_questions", "ui_artifact_path", "final_mock_path", "scenario_artifact_path", "final_scenario_path", "implementation_brief", "implementation_scope_artifact_path", "implementation_scope_splits", "review_diff_diagrams", "source_diagram_targets", "canonicalization_targets"],
-  "ready_when": ["orchestrate が human review と downstream handoff の次手を誤解なく決められる"]
-}

@@ -1,0 +1,20 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "investigator",
+  "runtime": "codex",
+  "contract_policy": "active contract は agent に対して 1 ファイルだけ置く。調査種別は selector で扱う。",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/permissions.json",
+  "required_inputs": ["caller", "investigation_goal", "known_context"],
+  "optional_inputs": ["investigation_mode", "reproduction_steps", "candidate_paths"],
+  "selectors": {"investigation_mode": ["reproduce", "ui-evidence", "trace", "risk-report"]},
+  "required_artifacts": ["active task context or caller-provided investigation context"],
+  "knowledge_refs": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md"
+  ],
+  "expected_outputs": ["mode", "observed_facts", "ui_evidence", "hypotheses", "observation_points", "remaining_gaps", "residual_risks", "recommended_next_step"],
+  "required_evidence": ["observed fact evidence", "UI evidence when mode is ui-evidence", "reproduction condition", "source path when used"],
+  "rejection_conditions": ["implementation-time investigation", "permanent fix request", "source artifact missing"],
+  "completion_signal": "designer が設計継続か停止かを判断できる",
+  "residual_risk_key": "residual_risks"
+}

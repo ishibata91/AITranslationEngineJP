@@ -1,57 +1,78 @@
 ---
 name: wall-discussion
-description: 人間との設計壁打ちを行う read-only skill。資料を読み、深読みし、質問を返し、時々まとめる。
+description: Codex 側の設計壁打ち知識 package。read-only で資料を読み、論点、質問、短い整理を返す基準を提供する。
 ---
 
 # Wall Discussion
 
-## Goal
+## 目的
 
-- human の設計判断を深掘りする
-- 資料を読み、前提、制約、矛盾、未決事項を見つける
-- 早すぎる結論、設計固定、実装着手を避ける
-- 質問を主行動にし、必要なタイミングで短く整理する
+`wall-discussion` は知識 package である。
+`designer` agent が人間と設計壁打ちをする時に、質問、深読み、事実と推測の分離、短いまとめの作り方を提供する。
 
-## Role Boundary
+実行権限、agent contract、handoff、stop / reroute は [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md) が持つ。
 
-- この skill は read-only の壁打ち役である
-- 実装、docs 正本更新、plan 作成、diagram 作成、test 作成はしない
-- human の prompt が成果物作成を求めても、未確認の論点が残る場合は質問を優先する
+## いつ参照するか
 
-## Conversation Rules
+- human の設計判断を深掘りする時
+- 資料を読み、前提、制約、矛盾、未決事項を見つける時
+- 早すぎる設計固定を避け、質問を主行動にする時
 
-- 1 回の応答では質問を 1〜3 個に絞る
-- 質問は目的、制約、利用者、失敗条件、代替案、検証方法を優先する
-- human の案をそのまま採用せず、根拠と反例を確認する
-- 3〜6 往復ごとに、決まったこと、揺れていること、次に聞くことをまとめる
-- 資料から読み取れる事実と、AI の推測を分けて述べる
-- 同じ質問を繰り返さず、回答で増えた情報から次の論点を選ぶ
+## 参照しない場合
 
-## Reading Rules
+- 成果物作成、実装、docs 更新が明示された時
+- 設計判断を artifact に固定する段階に入った時
+- 必要資料が読めず、質問だけでは前進しない時
 
-- まず user が指定した資料を読む
-- 読んだ資料の path と、判断に使った箇所を明示する
+## 知識範囲
 
-## Summary Shape
+- 1〜3 個の深掘り質問
+- current understanding の短い整理
+- confirmed decisions と open questions の分離
+- risks / tensions の見つけ方
 
-- `current_understanding`: 現時点の理解
-- `confirmed_decisions`: human が明示的に認めた判断
-- `open_questions`: まだ聞くべき論点
-- `risks_or_tensions`: 矛盾、過剰設計、検証不足
-- `handoff_candidate`: 固定や実装が必要になった時の次 skill
+## 原則
 
-## Stop Conditions
+- human の案をそのまま固定せず根拠と反例を確認する
+- 資料から読める事実と AI の推測を分ける
+- 同じ質問を繰り返さない
+- 3〜6 往復ごとに短くまとめる
 
-- human が明示的に成果物作成、実装、docs 更新を求めた
-- 設計判断の固定が必要になり、read-only の範囲を超える
-- 必要資料が読めず、質問だけでは前進しない
-- 権限境界が曖昧になった
+## 標準パターン
 
-## Output
+1. user が指定した資料を読む。
+2. 前提、制約、矛盾、未決事項を分ける。
+3. 目的、制約、利用者、失敗条件、検証方法から質問を選ぶ。
+4. 質問は 1〜3 個に絞る。
+5. 固定が必要になったら `propose-plans` へ進む候補を示す。
 
-- `questions`
-- `current_understanding`
-- `confirmed_decisions`
-- `open_questions`
-- `risks_or_tensions`
-- `handoff_candidate`
+この手順は知識上の標準例である。
+実行順、必須 input、完了条件は `designer` agent contract に従う。
+
+## DO / DON'T
+
+DO:
+- 事実と推測を分ける
+- human の明示判断だけを confirmed にする
+- 次に聞くべき論点を絞る
+
+DON'T:
+- read-only 範囲で成果物を作らない
+- 未確認の論点を設計として固定しない
+- 実装や docs 正本更新へ進まない
+
+## Checklist
+
+- [wall-discussion-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/references/checklists/wall-discussion-checklist.md) を参照する。
+- checklist は知識確認用であり、実行義務は `designer` agent contract が決める。
+
+## References
+
+- agent spec: [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md)
+- agent contract: [designer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/contracts/designer.contract.json)
+
+## Maintenance
+
+- read-only skill として保つ。
+- artifact 作成が必要なら `propose-plans` の設計 flow へ分ける。
+- long examples は references に分離する。

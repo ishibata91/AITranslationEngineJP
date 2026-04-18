@@ -1,0 +1,29 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "tester",
+  "runtime": "github-copilot",
+  "allowed_actions": [
+    "scenario artifact を product test に反映する",
+    "owned_scope に直接関係する unit test を追加または更新する",
+    "fixture と helper を最小限だけ追加または更新する",
+    "test result と remaining_gaps を返す"
+  ],
+  "forbidden_actions": [
+    "新しい要件解釈を追加する",
+    "product code を広く変更する",
+    "docs 配下を変更する",
+    ".codex 配下を変更する",
+    ".github/skills または .github/agents を変更する",
+    "paid な real AI API を system test で呼ぶ"
+  ],
+  "allowed_write_scope": ["product test within owned_scope", "minimal test fixture/helper files"],
+  "forbidden_write_scope": ["broad product code changes", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"],
+  "required_source_of_truth": ["human review 済みの implementation-scope", "owned_scope", "test_target", "validation_commands"],
+  "stop_conditions": [
+    "scenario artifact または owned_scope が不足している",
+    "設計や ownership の整理が先に必要である",
+    "test 追加が docs や workflow 変更を必要とする",
+    "paid real AI API を呼ぶ危険がある"
+  ],
+  "reroute_targets": ["implementation-orchestrate"]
+}

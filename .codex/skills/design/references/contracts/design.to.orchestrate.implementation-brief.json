@@ -1,8 +1,0 @@
-{
-  "contract_version": "2026-04-15",
-  "from_skill": "design",
-  "to_skill": "orchestrate",
-  "mode": "implementation-brief",
-  "returned_fields": ["implementation_brief", "review_diff_diagrams", "source_diagram_targets", "canonicalization_targets", "open_questions"],
-  "ready_when": ["orchestrate が design-review と human review へ渡す判断材料を固定できる"]
-}

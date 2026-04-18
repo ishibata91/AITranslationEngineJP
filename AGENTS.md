@@ -1,91 +1,76 @@
 # AGENTS.md
 
-## memory
-まずは開始前にタスクに関連する記憶をmemory MCPで思い出すこと。
-次のイベントがあった場合、memory MCPで記憶すること
+会話と作業は日本語を基本にする。
+英語の key、既存名、command は必要な時だけ使う。
 
-- 人間から明示的に修正された判断基準や禁止事項
-- 同じ原因で2回以上起きた失敗や見落とし
-- 解決までに長時間かかった問題の原因
-- 次回も再利用できる有効な対処、確認順、探索順
-- 正本、責務、権限境界の取り違えで起きた失敗
-- 検証不足、確認漏れ、質問不足で起きた失敗
-- memory には one-off の作業メモ、未承認の設計案、今回だけの TODO、一時回避策を入れない
-- entity 名は抽象語を避け、対象 task や論点が検索語として残る短い名前にする。例: `master-persona pitfalls`、`test safety rules`
-- observation は 1 件 1 ルールに分ける。1 observation に複数の判断、複数の例外、複数の手順を詰め込まない
-- observation には、次回の検索で使う固有語を明示的に入れる。例: `master-persona`、`overwrite しない`、`zero-dialogue skip`、`plugin filter`
-- task 名、画面名、契約名、禁止語、確認順など、再検索に使う語を observation から省略しない
-- relation を使える時は bucket と task 固有 memory をつなぐ。例: `recurring_pitfalls` -> `master-persona pitfalls`
-- memory は recall 用であり、`docs/` や active exec-plan の正本代替にしない。仕様、設計、実装スコープの正本は既存ルールどおり `docs/` と `.codex/` に置く
-- 良い例: `master-persona では plugin filter を generation state filter の代わりに使う`
-- 良い例: `ui-check/system test/E2E では paid な real AI API を呼ばない`
-- 悪い例: `今回の件で気をつける`
-- 悪い例: `いろいろ問題があったので直した`
+## 会話ルール
+
+- 見出しなしの長文を避け、2〜4 個の短い見出しに分ける
+- 見出しは `##` を使う
+- 箇条書きは 3〜6 件に抑える
+- 1 段落は 3 文以内にする
+- 変更報告は 1 行 1 ファイルにする
+- 長い出力の末尾には `SUMMARY` を付ける
+
+## memory
+
+開始前に task に関係する記憶を memory MCP で確認する。
+次に再利用できる判断だけを memory に残す。
+
+memory に残す対象は次です。
+
+- 人間から明示された判断基準や禁止事項
+- 同じ原因で 2 回以上起きた失敗
+- 解決に時間がかかった問題の原因
+- 次回も使える確認順や探索順
+- 正本、責務、権限境界の取り違え
+
+one-off の作業メモ、未承認案、今回だけの TODO は memory に入れない。
+
 ## 目的
 
-AITranslationEngineJp は、Skyrim Mod 向け翻訳エンジンを構築する `agent-first` リポジトリです。
-このファイルは最初に参照する地図として扱います。
-作業方法と役割契約の正本は `.codex/` に置きます。
+AITranslationEngineJp は Skyrim Mod 向け翻訳エンジンです。
+この repo は agent-first で進めます。
 
 ## 参照マップ
 
-このファイルは入口だけを示す。必要がある場合に、以下を読む。
-まず最初に、これから使う skill の `references/permissions.json` を読み、その後に lane の `SKILL.md` と関連文書へ進む。
+最初に使う skill の `references/permissions.json` を読む。
+その後、必要な文書だけ読む。
 
-- 作業方法と役割契約の正本: `.codex/README.md`
-- 実装の進め方: `.codex/skills/directing-implementation/SKILL.md`
-- 修正の進め方: `.codex/skills/directing-fixes/SKILL.md`
-- テスト設計の進め方: `.codex/skills/architecting-tests/SKILL.md`
-- `docs/` 正本更新の進め方: `.codex/skills/updating-docs/SKILL.md`
-- エージェントの役割契約: `.codex/agents/`
-- エージェントの作業フロー: `.codex/skills/`
-- 仕様の入口: `docs/index.md`
+- workflow 正本: `.codex/README.md`
+- Codex 入口: `.codex/skills/propose-plans/SKILL.md`
+- Copilot 実装入口: `.github/skills/implementation-orchestrate/SKILL.md`
+- 仕様入口: `docs/index.md`
 - 長期原則: `docs/core-beliefs.md`
 - 恒久要件: `docs/spec.md`
-- 内部境界と依存方向: `docs/architecture.md`
-- 実装技術の選定: `docs/tech-selection.md`
-- コーディング規約: `docs/coding-guidelines.md`
-- 画面設計の入口: `docs/screen-design/`
-- ワイヤーフレーム: `docs/screen-design/wireframes/`
-- データ構造と ER: `docs/er.md` と `docs/diagrams/er/`
-- 詳細な振る舞いと制約: 対応する tests / acceptance checks / validation commands
-- 作業計画: `docs/exec-plans/` と `docs/exec-plans/templates/`
+- architecture: `docs/architecture.md`
+- 作業計画: `docs/exec-plans/`
 
 ## 強い制約
 
-- `.codex/` は、エージェントの作業方法と役割契約の正本とする
-- `docs/` は、スコープ、アーキテクチャ、技術選定を記録する正本とする
-- `docs/` の正本更新は human が先に判断し、`updating-docs` を直接起動した時だけ行う
-- 実作業に入る前に、選択した skill の `references/permissions.json` を最優先で読む
-- 各 skill は、自身の `references/permissions.json` に書かれた権限の範囲だけで動く
-- skill の権限にないことはしない。権限解釈が曖昧な場合は停止し、適切な lane、skill、または human へ handoff する
-- 用語は `docs/spec.md` の用語集に合わせる
-- 非自明な変更は、実装前に `docs/exec-plans/active/` へ計画を置く
-- タスク完了後は計画を `docs/exec-plans/completed/` へ移し、結果を記録する
-- 振る舞いが変わる変更では、関連する tests / acceptance checks / validation commands を同じ変更内で更新する
-- 恒久仕様や設計判断そのものを変える時だけ、human 先行で `docs/` 正本を更新する
-- 暗黙運用より、機械的に検証できる規約を優先する
-- できるだけ指示代名詞は使わない｡
-- 資料は日本語で記載すること。思考やエージェント間の通信は英語で行うこと。
-- wailsの起動は、`npm run dev:wails:docker-mcp`で行うこと。
-- playwright MCPでは、権限の問題により次のリンクからでしかwailsに接続できないので、次のリンクから接続すること`http://host.docker.internal:34115` 
-- sonar projetは`ishibata91_AITranslationEngineJP`
+- Codex は設計、計画、handoff、docs 正本化を担当する
+- GitHub Copilot は承認済み `implementation-scope` から実装する
+- AI design review は行わず、人間が design bundle を review する
+- Copilot は `docs/`、`.codex/`、`.github/skills`、`.github/agents` を変更しない
+- docs 正本化は Codex の `updating-docs` だけが扱う
+- file read / write / edit は MCP 経由に限定する
 
 ## 実装前に確認すること
 
-1. これから使う skill の `references/permissions.json` を最初に確認する
-2. `docs/index.md` から、対象タスクに関係する文書だけを確認する
-3. 既存の active / completed plan に同種タスクがないか確認する
-4. `python3 scripts/harness/run.py --suite structure` を実行する
+1. 使う skill の `references/permissions.json` を読む
+2. `docs/index.md` から関係する文書だけ読む
+3. active / completed plan に同種 task がないか確認する
+4. 編集前に gateguard の事実確認を行う
 
 ## 実装後にやること
 
-1. `python3 scripts/harness/run.py --suite all` を実行する
-2. 必要な follow-up を plan や issue に記録する
-3. `docs/` 正本更新は human 先行の変更だけで行う
-4. タスク完了時は計画を `docs/exec-plans/completed/` へ移す
+1. 必要な follow-up を plan か issue に記録する
+2. docs 正本更新は human 承認済みの時だけ行う
+3. 完了した plan を `docs/exec-plans/completed/` へ移す
 
-## 検証入口
+## 補足
 
-- Structure harness: `python3 scripts/harness/run.py --suite structure`
-- Execution harness: `python3 scripts/harness/run.py --suite execution`
+- d2 や library の書き方は MCP_DOCKER 経由で Context7 を確認する
+- wails は `npm run dev:wails:docker-mcp` で起動する
+- Playwright MCP は `http://host.docker.internal:34115` に接続する
+- Sonar project は `ishibata91_AITranslationEngineJP`

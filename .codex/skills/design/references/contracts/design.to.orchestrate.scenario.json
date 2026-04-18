@@ -1,8 +1,0 @@
-{
-  "contract_version": "2026-04-15",
-  "from_skill": "design",
-  "to_skill": "orchestrate",
-  "mode": "scenario",
-  "returned_fields": ["scenario_artifact_path", "final_scenario_path", "canonicalization_targets", "open_questions"],
-  "ready_when": ["orchestrate が implementation-brief、design-review、acceptance check の判断材料を揃えられる"]
-}

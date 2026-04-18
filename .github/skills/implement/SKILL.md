@@ -1,0 +1,91 @@
+---
+name: implement
+description: GitHub Copilot 側の product code 実装の共通知識 package。承認済み owned_scope を実装する判断基準を提供する。
+---
+
+# Implement
+
+## 目的
+
+`implement` は知識 package である。
+`implementer` agent が、承認済み `implementation-scope` の handoff 1 件を owned_scope 内へ実装する時の共通判断を提供する。
+
+実行権限、write scope、active contract、handoff は [implementer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/implementer.agent.md) が持つ。
+
+## いつ参照するか
+
+- owned_scope 内の product code を実装する時
+- 実装に伴う最小 test fixture / expectation adjustment を行う時
+- validation と Sonar gate の扱いを確認する時
+
+## 参照しない場合
+
+- 実装前 context 整理だけを行う時
+- UI check や implementation review を行う時
+- docs や workflow 文書を変更する時
+
+## 知識範囲
+
+- owned_scope を超えない実装判断
+- handoff 資料のスコープ粒度に合わせる判断
+- coding guidelines と既存 pattern の確認
+- boundary、error path、test surface の実装品質判断
+- validation result と residual risk の返し方
+- coverage 70%、Sonar gate、harness suite の扱い
+- focused skill の選び方
+
+## 原則
+
+- `implementation-scope` と owned_scope を超えない
+- handoff 資料のスコープ粒度で実装する
+- 既存 pattern、naming、layer、test style に合わせる
+- broad refactor を混ぜない
+- product test の新規 scope は tester が扱う。implementer は実装に伴う最小 fixture / expectation adjustment に限る
+- docs 正本化をしない
+
+## Focused Skills
+
+- [implement-backend](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-backend/SKILL.md): backend layer と Sonar gate
+- [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-frontend/SKILL.md): UI state と Wails bridge
+- [implement-mixed](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-mixed/SKILL.md): API / Wails / DTO / gateway など frontend と backend の接合点 scope
+- [implement-fix-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-fix-lane/SKILL.md): accepted fix scope の恒久修正
+
+## DO / DON'T
+
+DO:
+- 実装前に [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) を読む
+- entry point、call site、data flow、error path、test surface を確認する
+- 既存 pattern に naming、constructor、DI、error return を合わせる
+- validation 結果を返す
+- `python3 scripts/harness/run.py --suite all` を closeout gate として扱う
+- coverage は Sonar-compatible coverage 70% 以上を確認する
+- Sonar は Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0 を確認する
+
+DON'T:
+- 要件や設計を追加しない
+- config、lint、test、coverage 設定を変更して gate を回避しない
+- owned_scope 外の cleanup、rename、format を混ぜない
+- docs、`.codex`、`.github/skills`、`.github/agents` を変更しない
+- mode 別 active contract を使わない
+
+## 参照パターン
+
+- [implementation-quality-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement/references/patterns/implementation-quality-patterns.md) を参照する。
+- 対象は readability、KISS、DRY、YAGNI、error handling、backend / frontend boundary、minimal build fix である。
+- Svelte、Wails gateway、Go backend の責務境界に沿って判断する。
+
+## Checklist
+
+- [implement-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement/references/checklists/implement-checklist.md) を参照する。
+- checklist は知識確認用であり、実行義務は agent contract が決める。
+
+## Agent が持つもの
+
+- active contract: [implementer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementer/contracts/implementer.contract.json)
+- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementer/permissions.json)
+
+## Maintenance
+
+- backend / frontend / mixed / fix-lane の知識差分は focused skill に置く。
+- output obligation を skill 本体へ戻さない。
+- 旧 mode guide は active 正本として扱わない。

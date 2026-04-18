@@ -1,0 +1,37 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "implementation-orchestrate",
+  "runtime": "github-copilot",
+  "contract_policy": "active contract は agent 1:1。mode / variant ごとの active contract file は作らない。責務、権限、handoff、output obligation が分かれる場合は別 agent に切る。implementation-orchestrate 自身は RunSubagent と戻り値集約だけを行い、直接 file read / search / edit / validation execution を行わない。",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-orchestrate/permissions.json",
+  "required_inputs": ["active_work_plan", "implementation_scope", "approval_record", "handoffs", "validation_commands"],
+  "tool_policy": {
+    "allowed_tools": ["RunSubagent"],
+    "forbidden_tools": ["edit", "search/codebase", "search/usages", "read/terminalLastCommand", "terminal", "validation command execution"],
+    "notes": "GitHub Copilot frontmatter では RunSubagent 相当を agent tool として表す。オーケストレーターは subagent 起動以外の tool を使わない。"
+  },
+  "optional_inputs": ["parallelization_hint", "previous_completion_packet", "investigation_request"],
+  "knowledge_refs": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-orchestrate/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/review/SKILL.md"
+  ],
+  "handoff_targets": ["implementation-distiller", "investigator", "implementer", "tester", "reviewer", "propose-plans"],
+  "expected_outputs": ["completed_handoffs", "implementation_context_packets", "touched_files", "implemented_scope", "test_results", "implementation_investigation", "ui_evidence", "implementation_review_result", "coverage_gate_result", "sonar_gate_result", "harness_gate_result", "residual_risks", "docs_changes"],
+  "field_requirements": {
+    "completed_handoffs": "implementation-scope の handoff 見出し単位で完了、未完了、依存待ちを返す。status は subagent 戻り値または depends_on 判定だけから決める",
+    "docs_changes": "必ず none を返す。docs 正本化が必要な場合は residual_risks と reroute reason に書く",
+    "coverage_gate_result": "Sonar-compatible coverage 70% 以上。未実行なら blocked reason を返す",
+    "sonar_gate_result": "Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0。未実行なら blocked reason を返す",
+    "harness_gate_result": "`python3 scripts/harness/run.py --suite all` の結果。未実行なら blocked reason を返す",
+    "residual_risks": "design 不足、未実行 validation、human open question を分ける。オーケストレーター自身の推測で補わない"
+  },
+  "required_evidence": ["implementation-scope path", "approval_record", "RunSubagent request", "RunSubagent response", "validation command result when returned by subagent", "coverage gate result or blocked reason", "Sonar gate result or blocked reason", "harness all result or blocked reason"],
+  "rejection_conditions": ["missing approved implementation-scope", "missing approval_record", "design-only request", "docs canonicalization request"],
+  "stop_conditions": ["owned_scope が曖昧である", "設計判断が不足している", "docs または workflow の変更が必要になる"],
+  "completion_signal": "Codex が close または docs 正本化判断へ進める completion packet が返っている",
+  "residual_risk_key": "residual_risks"
+}

@@ -1,0 +1,3 @@
+version: 1
+agent: distiller
+entry: SKILL.md

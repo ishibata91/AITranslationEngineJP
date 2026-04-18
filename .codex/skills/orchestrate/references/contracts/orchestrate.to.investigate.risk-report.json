@@ -1,9 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "orchestrate",
-  "to_skill": "investigate",
-  "mode": "risk-report",
-  "required_inputs": ["active_work_plan", "task_mode", "current_evidence"],
-  "optional_inputs": ["validation_results", "closeout_notes"],
-  "completion_signal": ["residual_risks", "recommended_next_step"]
-}

@@ -1,9 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "orchestrate",
-  "to_skill": "distill",
-  "mode": "implement",
-  "required_inputs": ["active_work_plan", "task_mode", "request_summary"],
-  "optional_inputs": ["seed_docs", "seed_code", "seed_tests", "task_catalog_ref"],
-  "completion_signal": ["facts", "constraints", "gaps", "required_reading", "recommended_next_skill"]
-}

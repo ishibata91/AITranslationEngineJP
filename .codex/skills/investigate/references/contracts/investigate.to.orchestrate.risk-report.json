@@ -1,8 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "investigate",
-  "to_skill": "orchestrate",
-  "mode": "risk-report",
-  "returned_fields": ["residual_risks", "recommended_next_step"],
-  "ready_when": ["orchestrate が close か follow-up を決められる"]
-}

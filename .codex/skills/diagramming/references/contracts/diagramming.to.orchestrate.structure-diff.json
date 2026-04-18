@@ -1,8 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "diagramming",
-  "to_skill": "orchestrate",
-  "mode": "structure-diff",
-  "returned_fields": ["diagram_target_decision", "review_diff_diagrams", "validation_results", "applied_source_diagrams"],
-  "ready_when": ["orchestrate が design-review か close を決められる"]
-}

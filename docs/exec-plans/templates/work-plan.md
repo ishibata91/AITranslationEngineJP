@@ -1,84 +1,27 @@
 # Work Plan Template
 
-- workflow: work
-- status: planned
-- lane_owner:
-- scope:
-- task_id:
-- task_catalog_ref:
-- parent_phase:
+新規 task はこの file を大きな plan 本文として使わない。
+`docs/exec-plans/templates/task-folder/` をコピーし、task ごとの folder として作る。
 
-## Request Summary
+## 作成先
 
-- 日本語で、依頼の目的と前提を短く書く
+- active: `docs/exec-plans/active/<task-id>/`
+- completed: `docs/exec-plans/completed/<task-id>/`
 
-## Decision Basis
+## 最小構成
 
-- 根拠になる既存仕様、既存実装、未確認契約を書く
+- `plan.md`: task 全体の索引、状態、HITL、validation、closeout
+- `requirements-design.md`: 要件、制約、不変条件、未決事項
+- `scenario-design.md`: system test 観点、受け入れ条件、観測点
 
-## Task Mode
+## 条件付き構成
 
-- `task_mode`:
-- `goal`:
-- `constraints`:
-- `close_conditions`:
+- `ui-design.html`: UI がある task だけ作る
+- `implementation-scope.md`: human review 後だけ作る
+- `diagramming/`: diagramming artifact がある task だけ作る
 
-## Facts
+## 読み込みルール
 
-- 実際に確認した事実だけを書く
-
-## Functional Requirements
-
-- `summary`:
-- `in_scope`:
-- `non_functional_requirements`:
-- `out_of_scope`:
-- `open_questions`:
-- `required_reading`:
-
-## Artifacts
-
-- `ui_artifact_path`:
-- `final_mock_path`:
-- `scenario_artifact_path`:
-- `final_scenario_path`:
-- `implementation_scope_artifact_path`: AI handoff 専用資料の path だけを書く。本文はここへ埋め込まない
-- `review_diff_diagrams`:
-- `source_diagram_targets`:
-- `canonicalization_targets`:
-
-## Work Brief
-
-- `implementation_target`: 日本語で意図が分かるように補足する
-- `accepted_scope`: human review 後に扱う初期実装範囲を日本語で書く
-- `parallel_task_groups`: 分割単位を日本語で書く
-- `tasks`: 人が判断できる粒度で書く
-- `validation_commands`: 実行コマンドだけを書く
-
-## Investigation
-
-- `reproduction_status`:
-- `trace_hypotheses`:
-- `observation_points`:
-- `residual_risks`:
-
-## Acceptance Checks
-
-- 人が読んで確認できる完了条件を書く
-
-## Required Evidence
-
-- review や close に必要な証跡を書く
-
-## HITL Status
-
-- `functional_or_design_hitl`: `required-after-design-bundle` / `approved` / `not-required`
-- `approval_record`: `pending-after-design-bundle` または human review の記録
-
-## Closeout Notes
-
-- `canonicalized_artifacts`:
-
-## Outcome
-
-- 結果を短く追記する
+- AI は最初に `plan.md` だけ読む
+- 追加 context は必要な skill 資料だけ読む
+- Copilot handoff では `implementation-scope.md` と参照された source artifact だけ読む

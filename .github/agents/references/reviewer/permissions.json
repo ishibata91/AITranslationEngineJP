@@ -1,0 +1,30 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "reviewer",
+  "runtime": "github-copilot",
+  "allowed_actions": [
+    "ui-check を行う",
+    "implementation-review を行う",
+    "decision を pass または reroute で返す",
+    "findings、recheck、ui_evidence、sonar_gate_result を返す",
+    "追加証跡が必要な場合は implementation-orchestrate へ戻す"
+  ],
+  "forbidden_actions": [
+    "design review を行う",
+    "実装修正を行う",
+    "新しい要件解釈を追加する",
+    "docs 配下を変更する",
+    ".codex 配下を変更する",
+    ".github/skills または .github/agents を変更する"
+  ],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": ["product code", "product test", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"],
+  "required_source_of_truth": ["human review 済みの implementation-scope", "review target diff", "validation_results"],
+  "stop_conditions": [
+    "review 対象 diff や期待挙動が不足している",
+    "implementation-scope が不足している",
+    "review ではなく設計差分の整理が先である",
+    "review ではなく追加の再現または trace が先である"
+  ],
+  "reroute_targets": ["implementation-orchestrate"]
+}

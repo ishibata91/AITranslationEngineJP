@@ -2,17 +2,21 @@
 
 関連文書: [`../../index.md`](../../index.md), [`../../core-beliefs.md`](../../core-beliefs.md)
 
-このディレクトリには未完了の計画を置きます。
-role-based skill へ統合した後も、専門運用の知識は plan ではなく各 skill の `SKILL.md` と `references/` に残します。
+このディレクトリには未完了の task folder を置く。
+新規 task は flat file ではなく、`docs/exec-plans/active/<task-id>/` を作る。
 
 ## Rules
 
-- 非自明な変更は、実装前にここへ `templates/work-plan.md` ベースの計画を追加する
-- task-local UI mock は `docs/exec-plans/active/<task-id>.ui.html` に置く
-- task-local Scenario 一覧は `docs/exec-plans/active/<task-id>.scenario.md` に置く
-- `implementation-scope` は AI handoff 専用資料として `docs/exec-plans/active/<task-id>.implementation-scope.md` に置く
-- architecture 変更がある時は `docs/architecture.md` と対象 D2 を `source_diagram_targets` に記録する
-- plan 本文には artifact の path、最終適用先、validation、close 条件だけを残す
-- `implementation_scope_artifact_path` には path だけを書き、本体を plan へ埋め込まない
-- `canonicalization_targets` には存在する artifact だけを列挙する
-- 完了したら `../completed/` へ移動し、結果を追記する
+- 非自明な変更は `templates/task-folder/` ベースの folder として作る
+- `plan.md` は索引、状態、HITL、validation、closeout だけを書く
+- skill ごとの内容は `requirements-design.md`、`ui-design.md`、`scenario-design.md`、`implementation-scope.md` に分ける
+- UI がある task は Figma file/node を主 artifact とし、`ui-design.md` に参照、判断、状態差分、確認証跡を残す
+- UI がない task は `ui-design.md` を作らない
+- `implementation-scope.md` は human review 後だけ作る
+- AI は最初に `plan.md` だけ読み、必要な skill 資料だけ追加で読む
+- 完了したら folder ごと `../completed/<task-id>/` へ移動し、`plan.md` に結果を追記する
+
+## Legacy
+
+- 既存の flat file 形式の active / completed plan は履歴として無視してよい
+- 新規 task へ flat file 形式を持ち込まない

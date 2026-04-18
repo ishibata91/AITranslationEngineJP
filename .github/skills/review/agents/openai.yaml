@@ -1,0 +1,3 @@
+version: 1
+agent: reviewer
+entry: SKILL.md

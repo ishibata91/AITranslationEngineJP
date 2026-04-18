@@ -1,0 +1,38 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "docs_updater",
+  "runtime": "codex",
+  "allowed_actions": [
+    "Copilot の修正完了が分かっている task の human 承認済み docs-only artifact を docs 正本へ反映する",
+    "docs validation を実行または記録する",
+    "remaining gaps を propose_plans へ返す"
+  ],
+  "forbidden_actions": [
+    "Copilot の修正完了が不明なまま正本化する",
+    "product code と product test を変更する",
+    "workflow contract を変更する",
+    "未承認仕様を補完する"
+  ],
+  "allowed_write_scope": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/"
+  ],
+  "forbidden_write_scope": [
+    "product code",
+    "product test",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"
+  ],
+  "required_source_of_truth": [
+    "copilot completion report",
+    "human approval record",
+    "approved task-local artifact",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md"
+  ],
+  "stop_conditions": [
+    "Copilot の修正完了が分からない",
+    "human approval がない",
+    "docs-only scope ではない",
+    "workflow 変更が混ざっている"
+  ],
+  "reroute_targets": ["propose_plans"]
+}

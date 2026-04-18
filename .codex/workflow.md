@@ -1,135 +1,113 @@
 # Codex ワークフロー概要
 
-この文書は live workflow の鳥瞰図です。
-本文は新 skill 名だけで書き、旧名は末尾の対応表だけに残します。
+Codex は設計を担当します。
+GitHub Copilot は実装を担当します。
 
 ```mermaid
 flowchart TD
-    A[distill]
-    B[design]
-    C[diagramming]
-    D[implement]
-    E[tests]
-    F[review design-review]
-    G[review ui-check]
-    H[review implementation-review]
-    I[investigate]
-    K[updating-docs]
+    A[propose-plans]
+    P[task folder plan.md]
+    B[distill]
+    C[investigate]
+    R[requirements-design.md]
+    U[ui-design.md + Figma node]
+    S[scenario-design.md]
+    D[diagramming artifacts]
+    F[human review]
+    G[implementation-scope.md]
+    H[GitHub Copilot implementation-orchestrate]
+    K[GitHub Copilot implementation-distill]
+    I[updating-docs]
     J[close]
 
-    A --> B --> F
-    B --> C --> F
-    F --> L[human review]
-    L --> M[design implementation-scope]
-    M --> D --> E --> G --> H --> J
-    A --> I --> D
-    I --> E
-    I --> H
-    G -- ui逸脱 --> D
-    H -- 実装差分 --> D
-    H -- 設計差分 --> B
-    F -- 設計差分 --> B
-    F -- 図差分 --> C
-    I -- scope再定義 --> A
-    K --> J
+    A --> P
+    P --> B --> R
+    P --> C --> R
+    R --> U
+    R --> S
+    U --> S
+    R --> D
+    U --> D
+    S --> F
+    D --> F
+    F --> G
+    G --> H
+    H --> K --> H
+    H --> A
+    A --> I --> J
+    A --> J
 ```
 
 ## 全体像
 
-`orchestrate` が唯一入口です。
-`docs-only` 以外の `task_mode` は共通入口として `distill` を呼びます。
-`docs-only` は human 承認済みの時だけ `updating-docs` へ handoff します。
-その後は role ごとの skill を最小構成で呼び、close 条件と validation だけを管理します。
+`propose-plans` が Codex 側の入口です。
+要件、UI、シナリオ、実装スコープを task folder に分けて固定します。
 
-## Skill Roles
+実装と実装時調査は `.github/skills/implementation-orchestrate/SKILL.md` に渡します。
+実装前の文脈整理は `.github/skills/implementation-distill/SKILL.md` が扱います。
+Codex は product code と product test を変更しません。
 
-- `distill`: facts、constraints、gaps、required reading、related code pointer、recommended next skill を返す
-- `investigate`: `reproduce`、`trace`、`temporary-logging`、`reobserve`、`risk-report` を扱う
-- `design`: `requirements`、`ui-mock`、`scenario`、`implementation-brief`、`implementation-scope` を扱う
-- `implement`: `task_mode` と `implementation_target: frontend|backend|mixed` に従って実装する
-- `tests`: `test_mode: scenario-implementation|unit` を扱う
-- `review`: `review_mode: design-review|ui-check|implementation-review` を扱う
-- `diagramming`: `diagram_mode: structure-diff|d2|plantuml` を扱う
-- `updating-docs`: human 承認済み docs-only の docs 正本更新を扱う
+## Codex 側 skill
 
-## design bundle の責務
+- `propose-plans`: task folder、設計 gate、handoff、close を管理する
+- `distill`: 設計前の入口情報を facts、constraints、gaps に圧縮する
+- `investigate`: 設計前の再現、trace、risk を evidence として返す
+- `requirements-design`: capability、制約、不変条件、未決事項を固定する
+- `ui-design`: Figma file/node、主要操作、状態差分、確認証跡を固定する
+- `scenario-design`: system test 観点、受け入れ条件、観測点を固定する
+- `implementation-scope`: human review 後に Copilot handoff を固定する
+- `diagramming`: 必要な図だけ作成または更新する
+- `updating-docs`: human 承認済み docs 正本だけを更新する
 
-- `requirements` は決定事項、未確定事項、対象外、open questions を分離する
-- `ui-mock` は主要操作、状態差分、失敗時、再実行時を読める working copy を作る
-- `scenario` は正常系、失敗系、再実行系を acceptance check と接続する
-- `implementation-brief` は human review と実装者 handoff の両方に使う仕様書として扱う
-- `implementation-scope` は human review 後に作る AI handoff 専用資料として扱う
-- human review は design bundle が揃った後に 1 回だけ行う
+## Exec Plan Folder
 
-## Artifact Canonicalization
+新規 task は `docs/exec-plans/active/<task-id>/` に置きます。
+`plan.md` は索引として扱い、詳細は skill ごとの資料に分けます。
 
-- task-local UI mock がある時だけ `docs/mocks/<page-id>/index.html` へ反映する
-- task-local Scenario 一覧がある時だけ `docs/scenario-tests/<topic-id>.md` へ反映する
-- AI handoff 用の `implementation-scope` は active/completed plan 配下に保持し、`docs/` 正本へ昇格しない
-- architecture 成果物がある時だけ `docs/architecture.md` と対象 `docs/diagrams/backend|frontend/*.d2` へ反映する
-- review 用差分図は正本ではなく、D2 正本へ反映した事実だけを plan に残す
-- 3 種類すべては必須ではなく、存在しない artifact は close を妨げない
+標準構成は次です。
 
-## `task_mode` ごとの標準順序
+- `plan.md`
+- `requirements-design.md`
+- `ui-design.md` または `N/A`
+- `scenario-design.md`
+- `implementation-scope.md` は human review 後だけ
 
-### `implement`
+## 設計の流れ
 
-- `distill` で facts / constraints / gaps を固定する
-- `design` で `requirements`、必要時 `ui-mock`、`scenario`、`implementation-brief` を固める
-- 構造差分や source 更新が必要な時だけ `diagramming` を使う
-- `review design-review` を通す
-- human review を 1 回だけ行う
-- human review 後に `design implementation-scope` で AI handoff を確定する
-- `implement`、`tests`、`review ui-check`、`review implementation-review` の順に進む
-- close では存在する artifact だけを `docs/` 正本へ昇格させる
+- `plan.md` を作る
+- `requirements-design.md` で要件、制約、不変条件、非目標、未決事項を整理する
+- UI が関係する場合は Figma file/node を主 artifact とし、`ui-design.md` に参照、判断、状態差分、確認証跡を残す
+- `scenario-design.md` でシステムテストの観点と期待結果を scenario に含める
+- 必要な図だけ同じ task folder に作る
+- AI design review は行わない
+- design bundle 完了後に human review で停止する
+- human 承認後に `implementation-scope.md` を作る
 
-### `fix`
+## Copilot handoff
 
-- `distill` で known facts と関連コードを絞る
-- `investigate` で `reproduce`、`trace`、必要時 `temporary-logging` / `reobserve` を行う
-- narrow scope が作れたら `implement` へ進む
-- 修正後に `tests` を行う
-- `review ui-check` と `review implementation-review` を通す
-- residual risk が残る時だけ `investigate risk-report` を使う
+`implementation-scope.md` は Copilot への唯一の実行正本です。
+実装前の文脈整理は Copilot 側 `implementation-distill` が扱います。
+実装時の再現、trace、再観測、review 補助は Copilot 側 `implementation-investigate` が扱います。
+次を必ず含めます。
 
-### `refactor`
+- `copilot_entry`
+- `handoff_runtime`
+- `source_artifacts`
+- `owned_scope`
+- `depends_on`
+- `validation_commands`
+- `completion_signal`
 
-- `distill` で影響範囲と不変条件を整理する
-- 必要な `requirements` と `implementation-brief` を固める
-- 振る舞い変更の可能性がある時は `ui-mock`、`scenario`、`design-review` を追加する
-- human review を 1 回だけ行う
-- human review 後に `design implementation-scope` で AI handoff を確定する
-- `implement`、必要な `tests`、`review` を通す
-- close では存在する artifact だけを `docs/` 正本へ昇格させる
+## docs 正本化
 
-### `investigate`
+Copilot は docs 正本を書きません。
+Codex は human 承認済み artifact だけを `updating-docs` に渡します。
 
-- `distill` を起点にする
-- `investigate` だけで evidence を固定して close してよい
-- 修正が必要と確定した時だけ `task_mode` を切り替える
+## 旧名対応
 
-### `docs-only`
-
-- human 承認済みの時だけ `updating-docs` を使う
-- `distill` は通さない
-- 未承認なら停止理由を plan に残す
-
-## Contract Layout
-
-- quick overview contract は `orchestrate/references/orchestrate.to.<skill>.json`
-- mode 別 handoff 正本は `orchestrate/references/contracts/orchestrate.to.<skill>.<mode>.json`
-- mode 別返却正本は `<skill>/references/contracts/<skill>.to.orchestrate.<mode>.json`
-- detailed guide は `<skill>/references/mode-guides/` に置く
-- `updating-docs` は single-mode だが docs-only formalization のため guide / contract を持つ
-
-## Legacy Name Map
-
-- `orchestrating-*` -> `orchestrate`
-- `phase-1-distill` / `distilling-fixes` / `explore` -> `distill`
-- `reproduce-issues` / `tracing-fixes` / `logging-fixes` / `reporting-risks` / `analyzing-fixes` -> `investigate`
-- `phase-1.5-functional-requirements` / `phase-2-ui` / `phase-2-scenario` / `phase-2-logic` -> `design`
-- `phase-6-implement-*` / `implementing-fixes` -> `implement`
-- `phase-5-test-implementation` / `phase-7-unit-test` -> `tests`
-- `phase-2.5-design-review` / `phase-6.5-ui-check` / `phase-8-review` / `reviewing-fixes` -> `review`
-- `diagramming-*` -> `diagramming`
-- `working-light` -> `orchestrate` routing
+- `orchestrate` -> `propose-plans`
+- `design` -> `requirements-design` / `ui-design` / `scenario-design` / `implementation-scope`
+- 旧 flat file 形式の exec-plan -> task folder 形式
+- Codex `implement` / `tests` / `review` -> GitHub Copilot 側へ移管
+- Codex `distill` の implement / fix / refactor mode -> Copilot `implementation-distill`
+- Copilot `orchestrate` -> `implementation-orchestrate`

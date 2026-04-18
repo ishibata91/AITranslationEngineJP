@@ -1,9 +1,0 @@
-{
-  "contract_version": "2026-04-14",
-  "from_skill": "orchestrate",
-  "to_skill": "distill",
-  "required_inputs": ["active_work_plan", "task_mode", "request_summary"],
-  "optional_inputs": ["seed_docs", "seed_code", "seed_tests"],
-  "mode_notes": ["implement、fix、refactor、investigate を扱う。fix と investigate では reproduction context を含める"],
-  "completion_signal": ["facts", "constraints", "gaps", "required_reading", "reproduction_status", "related_code_pointers", "recommended_next_skill"]
-}

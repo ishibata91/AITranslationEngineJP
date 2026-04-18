@@ -1,38 +1,86 @@
 ---
 name: updating-docs
-description: "`docs/` 配下の正本更新だけを扱う。human 承認済みの docs-only task を、human 直起動または orchestrate handoff で処理する。"
+description: Codex 側の docs 正本化知識 package。Copilot 修正完了後に、human 承認済み docs-only artifact を正本へ反映する判断基準を提供する。
 ---
 
 # Updating Docs
 
-## Output
+## 目的
 
-- `touched_docs_files`
-- `updated_source_of_truth`
-- `validation_results`
-- `remaining_gaps`
+`updating-docs` は知識 package である。
+`docs_updater` agent が Copilot 修正完了後に human 承認済み artifact を docs 正本へ反映するための、source of truth、承認確認、validation の見方を提供する。
 
-## Rules
+実行権限、agent contract、handoff、stop / reroute は [docs_updater.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.agent.md) が持つ。
 
-- `docs/` 配下の正本更新だけを扱う
-- human 承認済みの `docs-only` task でだけ使う
-- human が直接起動した時も、`orchestrate` から handoff された時も同じ contract で扱う
-- 変更前に対象の正本文書と関連する tests / acceptance checks / validation commands を読む
-- `.codex/` と product code は更新しない
-- 未確定の仕様を agent が独断で補完しない
-- workflow 契約変更は `skill-modification` へ戻す
+## いつ参照するか
 
-## Reroute
+- Copilot の修正完了が分かっている時
+- human 承認済み docs-only artifact を docs 正本へ移す時
+- canonicalization target と validation を整理する時
+- task-local artifact と docs source of truth の対応を確認する時
 
-- 更新対象が `docs/` ではなく `.codex/` である
-- human の明示判断なしに恒久仕様を追加または変更しようとしている
-- product code の更新を同時に要求している
+## 参照しない場合
 
-## Detailed Guides
+- Copilot の修正完了が未確認の時
+- workflow contract や skill / agent を変更する時
+- product code や product test の変更が必要な時
+- human approval が不足している時
 
-- `references/mode-guides/docs-only.md`
+## 知識範囲
 
-## Reference Use
+- Copilot completion report の確認
+- docs source of truth の選び方
+- human approval record の確認
+- approved artifact と canonical target の対応
+- validation と remaining gaps の記録
 
-- quick overview は `references/updating-docs.to.orchestrate.json` を使う
-- mode 別 contract は `references/contracts/updating-docs.to.orchestrate.docs-only.json` を正本とする
+## 原則
+
+- Copilot 修正完了後にだけ正本化へ進む
+- human 承認済み artifact だけを反映する
+- docs-only scope を超えない
+- implementation-scope を docs 正本へ自動昇格しない
+- 未確定仕様を独断で補完しない
+
+## 標準パターン
+
+1. Copilot completion report を確認する。
+2. approval record と docs-only scope を確認する。
+3. `docs/index.md` から canonical target を選ぶ。
+4. approved artifact と target の差分だけを反映する。
+5. validation を実行または記録する。
+6. remaining gaps と reroute reason を返す。
+
+この手順は知識上の標準例である。
+実行順、必須 input、完了条件は `docs_updater` agent contract に従う。
+
+## DO / DON'T
+
+DO:
+- Copilot completion report を根拠として残す
+- approval record を根拠として残す
+- source of truth と task-local artifact を分ける
+- validation 結果を残す
+
+DON'T:
+- Copilot 修正完了前に正本化しない
+- 未承認 draft を正本化しない
+- workflow 変更を docs 更新に混ぜない
+- product implementation を同時に進めない
+
+## Checklist
+
+- [updating-docs-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/updating-docs/references/checklists/updating-docs-checklist.md) を参照する。
+- checklist は知識確認用であり、実行義務は `docs_updater` agent contract が決める。
+
+## References
+
+- docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
+- agent spec: [docs_updater.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.agent.md)
+- agent contract: [docs_updater.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/contracts/docs_updater.contract.json)
+
+## Maintenance
+
+- 権限、write scope、output obligation を skill 本体へ戻さない。
+- workflow 変更は `skill-modification` へ分ける。
+- Copilot 実装 workflow からは使わない。

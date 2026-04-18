@@ -1,0 +1,72 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "distiller",
+  "runtime": "codex",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/permissions.json",
+  "required_inputs": [
+    "caller",
+    "user_instruction_or_task_summary",
+    "entrance_artifacts",
+    "lane_owner"
+  ],
+  "optional_inputs": [
+    "active_work_plan",
+    "candidate_source_paths",
+    "known_gaps",
+    "knowledge_focus"
+  ],
+  "input_notes": {
+    "knowledge_focus": "設計向けまたは調査向けの知識参照を選ぶための任意ヒント。未指定なら caller context から判断し、迷う場合は両方の focused skill を読む。"
+  },
+  "required_artifacts": [
+    "user の現在指示または task summary",
+    "active work plan または caller-provided task context",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md"
+  ],
+  "knowledge_refs": {
+    "common": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/SKILL.md",
+    "focused_optional": [
+      "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-design/SKILL.md",
+      "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md"
+    ]
+  },
+  "expected_outputs": [
+    "facts",
+    "constraints",
+    "gaps",
+    "required_reading",
+    "related_design_pointers",
+    "observation_targets",
+    "recommended_next_skill"
+  ],
+  "output_policy": "同じ output keys を常に使う。該当しない field は空にし、空である理由を短く残す。",
+  "field_requirements": {
+    "facts": "confirmed / inferred / gap の状態と根拠 path を含める",
+    "constraints": "正本 path と、重複元があれば source note を含める",
+    "gaps": "未確認事項を事実として混ぜずに列挙する",
+    "required_reading": "downstream が読む順番が分かる形で返す",
+    "related_design_pointers": "requirements、UI、scenario、diagram に関係する path があれば返す。関係しない場合は空にする",
+    "observation_targets": "観測対象、入口、未観測情報があれば返す。関係しない場合は空にする",
+    "recommended_next_skill": "propose-plans が次に呼ぶ skill または停止理由を返す"
+  },
+  "required_evidence": [
+    "重要な fact の根拠 path",
+    "参照した正本 path",
+    "未確認事項の理由"
+  ],
+  "rejection_conditions": [
+    "implementation-scope 承認後の実装前整理である",
+    "caller が propose-plans ではなく実装 lane である",
+    "source artifact が不足し、根拠 path を確認できない",
+    "圧縮ではなく設計判断、調査実行、実装が求められている"
+  ],
+  "stop_conditions": [
+    "active work plan や関連 docs が不足している",
+    "重要な fact の根拠 path を確認できない",
+    "主要な設計判断が未確定で事実整理だけでは前進しない",
+    "作業が Copilot 側 implementation-distill の責務である"
+  ],
+  "completion_signal": "propose-plans が次の設計または調査を判断できる",
+  "residual_risk_key": "gaps"
+}

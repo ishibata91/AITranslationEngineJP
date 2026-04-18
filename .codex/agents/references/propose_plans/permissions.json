@@ -1,0 +1,61 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "propose_plans",
+  "runtime": "codex",
+  "allowed_actions": [
+    "user request を Codex workflow の task folder、必要判定、agent spawn、human review、human 向け Copilot handoff、正本化入口に分解する",
+    "memory、/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md、/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md、active / completed task folder を確認する",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/<task-id>/plan.md を作成または更新する",
+    "distiller、designer、investigator が必要か最初に判定する",
+    "必要な agent を context 継承なしで spawn するための handoff packet を作る",
+    "downstream agent の結果を task-local workflow state に反映する",
+    "human review が必要な地点で停止し、再開条件を明示する",
+    "承認済み implementation-scope から人間向け Copilot handoff packet を作る",
+    "Copilot の修正完了が分かった後に正本化の必要性を判定する",
+    "MCP file mutation 前に gateguard を確認する"
+  ],
+  "forbidden_actions": [
+    "product code または product test を変更する",
+    "human 承認なしで docs 正本を更新する",
+    "requirements、UI、scenario、implementation-scope、diagram の本文をこの agent が代筆する",
+    "再現、trace、実画面 observation をこの agent が実施する",
+    "Codex から Copilot へ直接 handoff する",
+    "承認済み implementation-scope なしで人間向け Copilot handoff packet を作る",
+    "Copilot の修正完了が不明なまま正本化へ進む",
+    "AI design review を挟む",
+    "spawn 先 agent に暗黙の会話文脈を引き継がせる"
+  ],
+  "allowed_write_scope": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/completed/"
+  ],
+  "forbidden_write_scope": [
+    "product code",
+    "product test",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/ without human-approved docs canonicalization",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/ workflow contracts unless the current task is explicitly skill / agent modification"
+  ],
+  "spawn_context_policy": "distiller、designer、investigator、docs_updater は context を引き継がずに spawn する。必要な情報は handoff packet に明示し、暗黙の会話文脈に依存しない。",
+  "required_source_of_truth": [
+    "user の現在指示",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md",
+    "active task folder または caller-provided task context"
+  ],
+  "stop_conditions": [
+    "distill、designer、investigator の必要判定ができない",
+    "human review が必要な判断を AI だけで確定しそうである",
+    "承認済み implementation-scope がないまま人間向け Copilot handoff が必要である",
+    "Copilot の修正完了が不明なまま正本化が必要である",
+    "product 実装が直接求められている",
+    "docs 正本更新の承認がない"
+  ],
+  "reroute_targets": [
+    "distiller",
+    "designer",
+    "investigator",
+    "docs_updater",
+    "human"
+  ]
+}

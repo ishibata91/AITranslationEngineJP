@@ -1,0 +1,3 @@
+version: 1
+agent: propose_plans
+entry: SKILL.md
