@@ -1,0 +1,11 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "codex: apply tmp/codex to .codex",
+      "type": "shell",
+      "command": "python3 ${workspaceFolder}/scripts/codex/apply_tmp_codex.py",
+      "problemMatcher": []
+    }
+  ]
+}

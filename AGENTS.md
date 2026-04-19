@@ -55,7 +55,7 @@ AITranslationEngineJp は Skyrim Mod 向け翻訳エンジンです。
 
 ## 補足
 
-- d2 や library の書き方は MCP_DOCKER 経由で Context7 を確認する
+- library の書き方は MCP_DOCKER 経由で Context7 を確認する
 - wails は `npm run dev:wails:docker-mcp` で起動する
 - Playwright MCP は `http://host.docker.internal:34115` に接続する
 - Sonar project は `ishibata91_AITranslationEngineJP`

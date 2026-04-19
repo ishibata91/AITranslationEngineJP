@@ -33,6 +33,7 @@
 - [`coding-guidelines.md`](./coding-guidelines.md): Wails + Go + Svelte 前提の実装規約
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担1
 - [`er.md`](./er.md): canonical data model と ER 仕様
+- [`diagrams/conceptual/`](./diagrams/conceptual/): conceptual perspective 図の PlantUML source of truth
 - [`diagrams/backend/`](./diagrams/backend/): backend 構造図の D2 source of truth と review 用 SVG
 - [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の D2 source of truth と review 用 SVG
 - [`diagrams/components/backend/`](./diagrams/components/backend/): backend component detail 図の正本
@@ -59,6 +60,7 @@
 - Scenario test source of truth changed: update the relevant file under [`scenario-tests/`](./scenario-tests/README.md)
 - Page-level functional requirements changed: update the relevant file under [`detail-specs/`](./detail-specs/README.md)
 - Data model or entity relationship changed: update [`er.md`](./er.md) and relevant file under [`diagrams/er/`](./diagrams/er/)
+- Conceptual perspective changed: update the relevant file under [`diagrams/conceptual/`](./diagrams/conceptual/)
 - Backend structure changed: update the relevant file under [`diagrams/backend/`](./diagrams/backend/)
 - Frontend structure changed: update the relevant file under [`diagrams/frontend/`](./diagrams/frontend/)
 - External references or vendor specs changed: update [`references/`](./references/index.md)
