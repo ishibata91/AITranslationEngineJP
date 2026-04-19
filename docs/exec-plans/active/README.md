@@ -10,7 +10,7 @@
 - 非自明な変更は `templates/task-folder/` ベースの folder として作る
 - `plan.md` は索引、状態、HITL、validation、closeout だけを書く
 - skill ごとの内容は `requirements-design.md`、`ui-design.md`、`scenario-design.md`、`implementation-scope.md` に分ける
-- UI がある task は Figma file/node を主 artifact とし、`ui-design.md` に参照、判断、状態差分、確認証跡を残す
+- UI がある task は task-local HTML mock を主 artifact とし、`ui-design.md` に参照、判断、状態差分、確認証跡を残す
 - UI がない task は `ui-design.md` を作らない
 - `implementation-scope.md` は human review 後だけ作る
 - AI は最初に `plan.md` だけ読み、必要な skill 資料だけ追加で読む

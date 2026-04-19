@@ -10,7 +10,7 @@ flowchart TD
     B[distill]
     C[investigate]
     R[requirements-design.md]
-    U[ui-design.md + Figma node]
+    U[ui-design.md + HTML mock]
     S[scenario-design.md]
     D[diagramming artifacts]
     F[human review]
@@ -53,7 +53,7 @@ Codex は product code と product test を変更しません。
 - `distill`: 設計前の入口情報を facts、constraints、gaps に圧縮する
 - `investigate`: 設計前の再現、trace、risk を evidence として返す
 - `requirements-design`: capability、制約、不変条件、未決事項を固定する
-- `ui-design`: Figma file/node、主要操作、状態差分、確認証跡を固定する
+- `ui-design`: HTML mock、主要操作、状態差分、確認証跡を固定する
 - `scenario-design`: system test 観点、受け入れ条件、観測点を固定する
 - `implementation-scope`: human review 後に Copilot handoff を固定する
 - `diagramming`: 必要な図だけ作成または更新する
@@ -76,7 +76,7 @@ Codex は product code と product test を変更しません。
 
 - `plan.md` を作る
 - `requirements-design.md` で要件、制約、不変条件、非目標、未決事項を整理する
-- UI が関係する場合は Figma file/node を主 artifact とし、`ui-design.md` に参照、判断、状態差分、確認証跡を残す
+- UI が関係する場合は task-local HTML mock を主 artifact とし、`ui-design.md` に参照、判断、状態差分、確認証跡を残す
 - `scenario-design.md` でシステムテストの観点と期待結果を scenario に含める
 - 必要な図だけ同じ task folder に作る
 - AI design review は行わない

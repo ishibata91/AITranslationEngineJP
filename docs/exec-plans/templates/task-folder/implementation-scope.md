@@ -12,7 +12,7 @@
 
 - `requirements_design`: `./requirements-design.md`
 - `ui_design`: `./ui-design.md` または `N/A`
-- `figma_artifact`: `<figma-file-url>#<node-id>` または `N/A`
+- `ui_mock_artifact`: `./<task-id>.ui.html` または `N/A`
 - `scenario_design`: `./scenario-design.md`
 - `diagramming`: `./diagramming/` または `N/A`
 

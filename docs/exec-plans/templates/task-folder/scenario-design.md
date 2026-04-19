@@ -5,7 +5,7 @@
 - `source_plan`: `./plan.md`
 - `requirements_source`: `./requirements-design.md`
 - `ui_source`: `./ui-design.md` または `N/A`
-- `figma_source`: `<figma-file-url>#<node-id>` または `N/A`
+- `ui_mock_source`: `./<task-id>.ui.html` または `N/A`
 - `final_artifact_path`: `docs/scenario-tests/<topic-id>.md`
 - `topic_abbrev`: `<TOPIC>`
 

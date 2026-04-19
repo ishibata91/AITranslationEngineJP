@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マスター管理</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Shippori+Mincho:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #11100e;
+      --panel: rgba(35, 30, 24, 0.9);
+      --panel-strong: rgba(23, 20, 17, 0.96);
+      --panel-low: rgba(45, 38, 31, 0.56);
+      --line: rgba(245, 196, 116, 0.16);
+      --line-strong: rgba(245, 196, 116, 0.3);
+      --text: #f5ede2;
+      --muted: #d2c1a9;
+      --accent: #f5c474;
+      --accent-strong: #ffb84a;
+      --danger: #ff9c7c;
+      --danger-soft: rgba(255, 156, 124, 0.12);
+      --info: #a8d7ff;
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.42);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-sm: 10px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: "Shippori Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+      background:
+        radial-gradient(circle at top left, rgba(245, 196, 116, 0.12), transparent 26%),
+        radial-gradient(circle at 85% 18%, rgba(255, 156, 124, 0.1), transparent 22%),
+        linear-gradient(180deg, #171411 0%, var(--bg) 100%);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    h1,
+    h2,
+    h3,
+    p,
+    dl,
+    dd,
+    dt {
+      margin: 0;
+    }
+
+    .page {
+      max-width: 1580px;
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+      display: grid;
+      gap: 18px;
+    }
+
+    .panel,
+    .toolbar,
+    .list-shell,
+    .detail-title,
+    .detail-card,
+    .detail-list div,
+    .pager-shell,
+    .import-shell,
+    .import-panel,
+    .generator-shell,
+    .run-panel,
+    .stat-card,
+    .notice-card,
+    .modal-card {
+      border: 1px solid var(--line);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px);
+    }
+
+    .panel {
+      background: var(--panel);
+      border-radius: var(--radius-xl);
+      padding: 20px;
+    }
+
+    .hero {
+      display: grid;
+      gap: 18px;
+      padding: 28px;
+    }
+
+    .hero-top,
+    .toolbar-head,
+    .import-top,
+    .import-bar-head,
+    .detail-head,
+    .pager-shell,
+    .detail-actions,
+    .import-actions,
+    .import-top-actions,
+    .toolbar-head-actions,
+    .generator-head,
+    .run-head,
+    .run-actions,
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      gap: 14px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .hero-copy {
+      display: grid;
+      gap: 10px;
+      max-width: 760px;
+    }
+
+    .eyebrow,
+    .meta-label,
+    .field-label,
+    .column-row span,
+    .mini-label,
+    .status-line strong,
+    .section-label,
+    .detail-list dt {
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    h1,
+    h2,
+    h3 {
+      margin: 0;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    h1 {
+      font-size: clamp(38px, 4vw, 56px);
+      line-height: 1.05;
+      font-weight: 800;
+    }
+
+    h2 {
+      font-size: 28px;
+    }
+
+    h3 {
+      font-size: 22px;
+    }
+
+    p,
+    .mini-text,
+    .helper-text,
+    .detail-copy,
+    .row-meta,
+    .row-id {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .button-danger,
+    .file-trigger,
+    .status-pill {
+      border-radius: 999px;
+    }
+
+    .button-primary,
+    .button-secondary,
+    .button-danger,
+    .file-trigger {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, opacity 160ms ease;
+      white-space: nowrap;
+    }
+
+    .button-primary:hover,
+    .button-secondary:hover,
+    .button-danger:hover,
+    .file-trigger:hover {
+      transform: translateY(-1px);
+    }
+
+    .button-primary:disabled,
+    .button-secondary:disabled,
+    .button-danger:disabled,
+    .file-trigger:disabled {
+      opacity: 0.46;
+      cursor: default;
+      transform: none;
+    }
+
+    .button-primary {
+      color: #3c2400;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    }
+
+    .button-secondary,
+    .file-trigger {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.03);
+      border-color: var(--line);
+    }
+
+    .button-danger {
+      color: #35150d;
+      background: linear-gradient(135deg, #ffc0ab 0%, var(--danger) 100%);
+    }
+
+    .status-pill,
+    .file-name {
+      min-height: 34px;
+      display: inline-flex;
+      align-items: center;
+      padding: 0 12px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-pill.is-accent {
+      color: #2b1b00;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+      border-color: transparent;
+    }
+
+    .status-pill.is-info {
+      color: #d9efff;
+      border-color: rgba(168, 215, 255, 0.36);
+      background: rgba(168, 215, 255, 0.08);
+    }
+
+    .status-pill.is-danger {
+      color: #ffd0c0;
+      border-color: rgba(255, 156, 124, 0.34);
+      background: rgba(255, 156, 124, 0.08);
+    }
+
+    .import-shell,
+    .generator-panel {
+      display: grid;
+      gap: 14px;
+    }
+
+    .import-panel,
+    .generator-shell,
+    .run-panel,
+    .toolbar,
+    .list-shell,
+    .detail-title,
+    .detail-card,
+    .notice-card,
+    .modal-card {
+      background: rgba(18, 16, 13, 0.72);
+      border-radius: var(--radius-lg);
+      padding: 16px;
+    }
+
+    .file-picker {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .import-result,
+    .workspace,
+    .toolbar-grid,
+    .generator-grid,
+    .preview-grid,
+    .run-grid,
+    .detail-grid,
+    .modal-grid {
+      display: grid;
+      gap: 14px;
+    }
+
+    .workspace {
+      grid-template-columns: minmax(0, 1.34fr) minmax(300px, 0.78fr);
+      align-items: start;
+    }
+
+    .toolbar {
+      display: grid;
+      gap: 14px;
+      position: sticky;
+      top: 18px;
+      z-index: 1;
+    }
+
+    .toolbar-grid {
+      grid-template-columns: minmax(0, 1.5fr) minmax(220px, 0.6fr);
+      align-items: end;
+    }
+
+    .generator-grid {
+      grid-template-columns: minmax(320px, 1fr) minmax(460px, 1.18fr) minmax(320px, 1fr);
+      align-items: stretch;
+    }
+
+    .preview-grid,
+    .run-grid,
+    .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .modal-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .text-field,
+    .search-field,
+    .select-field,
+    .textarea-field {
+      width: 100%;
+      min-height: 42px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--line);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      padding: 0 14px;
+    }
+
+    .textarea-field {
+      min-height: 120px;
+      padding: 12px 14px;
+      resize: vertical;
+    }
+
+    .dictionary-table .column-row,
+    .dictionary-table .list-row {
+      grid-template-columns: minmax(220px, 1.4fr) minmax(220px, 1.4fr) minmax(150px, 0.8fr) 90px;
+    }
+
+    .persona-table .column-row,
+    .persona-table .list-row {
+      grid-template-columns: minmax(150px, 1fr) minmax(160px, 0.98fr) minmax(190px, 1.12fr) minmax(96px, 0.62fr);
+    }
+
+    .column-row,
+    .list-row {
+      display: grid;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .column-row {
+      padding: 0 12px;
+      color: var(--muted);
+    }
+
+    .list-stack {
+      display: grid;
+      gap: 6px;
+    }
+
+    .list-row {
+      width: 100%;
+      padding: 8px 12px;
+      text-align: left;
+      color: inherit;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid rgba(245, 196, 116, 0.08);
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+
+    .list-row.is-selected {
+      background: linear-gradient(180deg, rgba(245, 196, 116, 0.16), rgba(255, 255, 255, 0.04));
+      border-color: var(--line-strong);
+    }
+
+    .row-cell {
+      min-width: 0;
+      display: grid;
+      gap: 2px;
+    }
+
+    .row-value,
+    .row-meta,
+    .row-id,
+    .detail-list dd,
+    .stat-card strong,
+    .detail-card strong,
+    .run-metric strong {
+      overflow-wrap: anywhere;
+      word-break: break-word;
+    }
+
+    .row-value {
+      color: var(--text);
+      font-size: 13px;
+      line-height: 1.35;
+    }
+
+    .row-meta,
+    .row-id {
+      font-size: 12px;
+    }
+
+    .row-id {
+      text-align: right;
+    }
+
+    .pager-shell {
+      background: rgba(255, 255, 255, 0.03);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+    }
+
+    .detail-title {
+      display: grid;
+      gap: 8px;
+      margin-bottom: 16px;
+    }
+
+    .detail-tags,
+    .status-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .stat-card,
+    .detail-card,
+    .detail-list div {
+      background: var(--panel-low);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      border: 1px solid var(--line);
+    }
+
+    .stat-card strong,
+    .detail-card strong,
+    .run-metric strong {
+      display: block;
+      font-size: 24px;
+      line-height: 1.3;
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+    }
+
+    .detail-list dt,
+    .detail-list dd {
+      margin: 0;
+    }
+
+    .progress {
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--line);
+      overflow: hidden;
+    }
+
+    .progress span {
+      display: block;
+      width: 73%;
+      height: 100%;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    }
+
+    .notice-card {
+      display: grid;
+      gap: 12px;
+      border-color: rgba(255, 156, 124, 0.28);
+      background: var(--danger-soft);
+    }
+
+    @media (max-width: 1240px) {
+      .generator-grid,
+      .workspace,
+      .toolbar-grid,
+      .preview-grid,
+      .run-grid,
+      .detail-grid,
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 980px) {
+      .page {
+        padding: 20px 14px 32px;
+      }
+
+      .toolbar {
+        position: static;
+      }
+
+      .column-row {
+        display: none;
+      }
+
+      .list-row {
+        grid-template-columns: 1fr;
+        gap: 5px;
+      }
+
+      .row-id {
+        text-align: left;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <section class="panel hero">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <span class="eyebrow">基盤データ</span>
+          <h1>マスター辞書</h1>
+          <p>原文と訳語を、一つの画面で絞り込み、選択し、作成、更新、削除できます。</p>
+        </div>
+      </div>
+    </section>
+
+    <section class="import-shell panel">
+      <div class="import-top">
+        <div>
+          <h2>XML取り込み</h2>
+          <p>辞書 XML を選択すると、同じ画面で取込状態と反映結果を確認できます。</p>
+        </div>
+        <div class="import-top-actions">
+          <button class="button-secondary" type="button">ファイルを選択</button>
+          <p class="mini-text">選択した XML を確認してから取り込みを開始できます。</p>
+        </div>
+      </div>
+      <div class="import-panel">
+        <div class="file-picker">
+          <span class="meta-label">選択中の XML</span>
+          <span class="file-name">dragonborn-items.xml</span>
+        </div>
+        <div class="import-bar-head">
+          <strong>dragonborn-items.xml</strong>
+          <div class="import-actions">
+            <button class="button-primary" type="button">この XML を取り込む</button>
+            <button class="button-secondary" type="button">選び直す</button>
+          </div>
+        </div>
+        <div class="progress"><span></span></div>
+        <div class="import-result preview-grid">
+          <div class="stat-card">
+            <span class="meta-label">新規追加</span>
+            <strong>148 件</strong>
+          </div>
+          <div class="stat-card">
+            <span class="meta-label">更新済み</span>
+            <strong>36 件</strong>
+          </div>
+          <div class="stat-card">
+            <span class="meta-label">一覧件数</span>
+            <strong>5,284 件</strong>
+          </div>
+          <div class="stat-card">
+            <span class="meta-label">詳細表示</span>
+            <strong>黒檀の剣</strong>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <h2>辞書一覧</h2>
+              <p class="mini-text">5,284 件から絞り込みます。</p>
+            </div>
+            <div class="toolbar-head-actions">
+              <button class="button-primary" type="button">新規登録</button>
+            </div>
+          </div>
+          <div class="toolbar-grid">
+            <label class="field-group">
+              <span class="field-label">検索</span>
+              <input class="search-field" value="Ebony">
+            </label>
+            <label class="field-group">
+              <span class="field-label">カテゴリ</span>
+              <select class="select-field">
+                <option selected>アイテム</option>
+                <option>すべて</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="list-shell dictionary-table">
+          <div class="column-row">
+            <span>訳語</span>
+            <span>原文</span>
+            <span>カテゴリ</span>
+            <span>ID</span>
+          </div>
+          <div class="list-stack">
+            <button class="list-row is-selected" type="button">
+              <span class="row-cell">
+                <span class="row-value">黒檀の剣</span>
+                <span class="row-meta">XML取込</span>
+              </span>
+              <span class="row-cell">
+                <span class="row-value">Ebony Sword</span>
+                <span class="row-meta">最終更新 2026-04-20</span>
+              </span>
+              <span class="row-meta">アイテム</span>
+              <span class="row-id">#4821</span>
+            </button>
+            <button class="list-row" type="button">
+              <span class="row-cell">
+                <span class="row-value">黒檀の盾</span>
+                <span class="row-meta">XML取込</span>
+              </span>
+              <span class="row-cell">
+                <span class="row-value">Ebony Shield</span>
+                <span class="row-meta">最終更新 2026-04-20</span>
+              </span>
+              <span class="row-meta">アイテム</span>
+              <span class="row-id">#4822</span>
+            </button>
+          </div>
+          <div class="pager-shell">
+            <span class="mini-text">黒檀の剣を選択中</span>
+            <div class="import-actions">
+              <button class="button-secondary" type="button">前の30件</button>
+              <button class="button-secondary" type="button">次の30件</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="detail-head">
+          <div>
+            <h2>詳細</h2>
+            <p class="mini-text">一覧で選んだ内容をここで確認できます。</p>
+          </div>
+          <div class="detail-actions">
+            <button class="button-secondary" type="button">更新</button>
+            <button class="button-danger" type="button">削除</button>
+          </div>
+        </div>
+        <div class="detail-title">
+          <div class="detail-tags">
+            <span class="status-pill">アイテム</span>
+            <span class="status-pill">XML取込</span>
+          </div>
+          <strong>Ebony Sword</strong>
+          <p>黒檀の剣</p>
+        </div>
+        <dl class="detail-list">
+          <div>
+            <dt>訳語</dt>
+            <dd>黒檀の剣</dd>
+          </div>
+          <div>
+            <dt>原文</dt>
+            <dd>Ebony Sword</dd>
+          </div>
+          <div>
+            <dt>登録元</dt>
+            <dd>XML取込</dd>
+          </div>
+          <div>
+            <dt>最終更新</dt>
+            <dd>2026-04-20 10:18</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="panel hero">
+      <div class="hero-top">
+        <div class="hero-copy">
+          <span class="eyebrow">マスターペルソナ</span>
+          <h1>JSONから NPC ペルソナを生成</h1>
+          <p>JSONから、AIを用いて指定したプラグインに含まれるNPCのペルソナを生成できます。</p>
+        </div>
+        <div class="status-row">
+          <span class="status-pill is-info">設定保存済み</span>
+          <span class="status-pill">対象プラグイン: Dawnguard.esm</span>
+        </div>
+      </div>
+
+      <div class="generator-grid">
+        <section class="generator-shell">
+          <div class="field-group">
+            <div>
+              <div class="section-label">AI 設定</div>
+              <h2>この画面で使う設定</h2>
+            </div>
+            <label class="field-group">
+              <span class="field-label">AI サービス</span>
+              <select class="select-field">
+                <option selected>Gemini</option>
+                <option>xAI</option>
+              </select>
+            </label>
+            <label class="field-group">
+              <span class="field-label">モデル</span>
+              <input class="text-field" value="gemini-2.5-pro">
+            </label>
+            <label class="field-group">
+              <span class="field-label">API キー</span>
+              <input class="text-field" type="password" value="********">
+            </label>
+            <div class="run-actions">
+              <span class="mini-text">設定はこの画面で使います。</span>
+              <button class="button-secondary" type="button">設定を保存</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="generator-shell">
+          <div class="generator-head">
+            <div>
+              <div class="section-label">入力ファイル</div>
+              <h2>Skyrim_Actors.json</h2>
+            </div>
+            <button class="button-secondary" type="button">JSON を選ぶ</button>
+          </div>
+          <div class="preview-grid">
+            <article class="stat-card">
+              <span class="field-label">ペルソナ候補</span>
+              <strong>840</strong>
+            </article>
+            <article class="stat-card">
+              <span class="field-label">新規に追加できる数</span>
+              <strong>228</strong>
+            </article>
+            <article class="stat-card">
+              <span class="field-label">既に作成済み</span>
+              <strong>612</strong>
+            </article>
+          </div>
+          <div class="run-actions">
+            <span class="status-pill">作成済みのペルソナはスキップされます</span>
+            <button class="button-primary" type="button">この JSON で生成</button>
+          </div>
+        </section>
+
+        <section class="run-panel">
+          <div class="run-head">
+            <div>
+              <div class="section-label">進行状況</div>
+              <h2>生成前の確認</h2>
+            </div>
+            <span class="status-pill is-info">待機中</span>
+          </div>
+          <p class="helper-text">生成が完了したNPCだけが一覧に追加されます。</p>
+          <div class="run-grid">
+            <div class="run-metric">
+              <span class="field-label">入力 JSON</span>
+              <strong>Skyrim_Actors.json</strong>
+            </div>
+            <div class="run-metric">
+              <span class="field-label">追加候補</span>
+              <strong>228</strong>
+            </div>
+          </div>
+          <div class="run-actions">
+            <span class="mini-text">一覧と詳細は見続けられます。</span>
+            <button class="button-secondary" type="button">生成を開始</button>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section class="workspace">
+      <section class="panel">
+        <div class="toolbar">
+          <div class="toolbar-head">
+            <div>
+              <div class="section-label">一覧</div>
+              <h2>ペルソナ一覧</h2>
+              <p class="mini-text">Dawnguard.esm のペルソナを表示しています。</p>
+            </div>
+          </div>
+          <div class="toolbar-grid">
+            <label class="field-group">
+              <span class="field-label">検索</span>
+              <input class="search-field" value="Serana">
+            </label>
+            <label class="field-group">
+              <span class="field-label">プラグイン</span>
+              <select class="select-field">
+                <option selected>Dawnguard.esm</option>
+                <option>すべてのプラグイン</option>
+              </select>
+            </label>
+          </div>
+        </div>
+
+        <div class="list-shell persona-table">
+          <div class="column-row">
+            <span>NPC</span>
+            <span>識別情報</span>
+            <span>ペルソナ要約</span>
+            <span>収録先</span>
+          </div>
+          <div class="list-stack">
+            <button class="list-row is-selected" type="button">
+              <span class="row-cell">
+                <span class="row-value">Serana</span>
+                <span class="row-meta">FemaleYoungEager</span>
+              </span>
+              <span class="row-cell">
+                <span class="row-value">02002B6C / DLC1Serana</span>
+                <span class="row-meta">クラス: Vampire</span>
+              </span>
+              <span class="row-cell">
+                <span class="row-value">警戒心が強く、必要な時だけ距離を詰める。</span>
+                <span class="row-meta">Nord</span>
+              </span>
+              <span class="row-id">Dawnguard.esm</span>
+            </button>
+            <button class="list-row" type="button">
+              <span class="row-cell">
+                <span class="row-value">Isran</span>
+                <span class="row-meta">MaleCommander</span>
+              </span>
+              <span class="row-cell">
+                <span class="row-value">0200336A / DLC1Isran</span>
+                <span class="row-meta">クラス: DawnguardLeader</span>
+              </span>
+              <span class="row-cell">
+                <span class="row-value">現実主義で、脅威への備えを優先する。</span>
+                <span class="row-meta">Nord</span>
+              </span>
+              <span class="row-id">Dawnguard.esm</span>
+            </button>
+          </div>
+          <div class="pager-shell">
+            <span class="mini-text">Serana を選択中</span>
+            <div class="run-actions">
+              <button class="button-secondary" type="button">前の30件</button>
+              <button class="button-secondary" type="button">次の30件</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <aside class="panel">
+        <div class="detail-head">
+          <div>
+            <div class="section-label">詳細</div>
+            <h2>選択中のペルソナ</h2>
+            <p class="mini-text">更新と削除を行えます。</p>
+          </div>
+          <div class="detail-actions">
+            <button class="button-secondary" type="button">更新</button>
+            <button class="button-danger" type="button">削除</button>
+          </div>
+        </div>
+        <div class="detail-title">
+          <div class="detail-tags">
+            <span class="status-pill">FemaleYoungEager</span>
+            <span class="status-pill">Dawnguard.esm</span>
+          </div>
+          <strong>Serana</strong>
+          <p>FormID 02002B6C / EditorID DLC1Serana</p>
+        </div>
+        <div class="detail-grid">
+          <article class="detail-card">
+            <span class="section-label">voice</span>
+            <strong>FemaleYoungEager</strong>
+          </article>
+          <article class="detail-card">
+            <span class="section-label">クラス</span>
+            <strong>Vampire</strong>
+          </article>
+        </div>
+        <dl class="detail-list">
+          <div>
+            <dt>名前</dt>
+            <dd>Serana</dd>
+          </div>
+          <div>
+            <dt>ペルソナ要約</dt>
+            <dd>警戒心が強く、必要な時だけ距離を詰める。</dd>
+          </div>
+          <div>
+            <dt>ペルソナ本文</dt>
+            <dd>長い孤立経験を背景に、相手を観察してから信頼する。軽口には反応するが、核心に触れる話題では慎重になる。</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+
+    <section class="panel">
+      <div class="detail-head">
+        <div>
+          <div class="section-label">更新</div>
+          <h2>ペルソナを編集</h2>
+          <p class="mini-text">ペルソナの要約、話し方、本文を更新できます。</p>
+        </div>
+        <button class="button-secondary" type="button">閉じる</button>
+      </div>
+      <div class="modal-grid">
+        <label class="field-group">
+          <span class="field-label">ペルソナ要約</span>
+          <input class="text-field" value="警戒心が強く、必要な時だけ距離を詰める。">
+        </label>
+        <label class="field-group">
+          <span class="field-label">話し方</span>
+          <input class="text-field" value="短く皮肉を含める">
+        </label>
+        <label class="field-group" style="grid-column: 1 / -1;">
+          <span class="field-label">ペルソナ本文</span>
+          <textarea class="textarea-field">長い孤立経験を背景に、相手を観察してから信頼する。軽口には反応するが、核心に触れる話題では慎重になる。</textarea>
+        </label>
+      </div>
+      <div class="run-actions" style="margin-top: 14px;">
+        <button class="button-secondary" type="button">キャンセル</button>
+        <button class="button-primary" type="button">更新する</button>
+      </div>
+    </section>
+
+    <section class="notice-card">
+      <div class="detail-head">
+        <div>
+          <div class="section-label">入力ファイル</div>
+          <h2>入力 JSON が未選択です</h2>
+          <p>生成を始めるには JSON を選び、新規に追加できるNPCがいるか確認してください。</p>
+        </div>
+        <button class="button-primary" type="button">JSON を選び直す</button>
+      </div>
+    </section>
+  </main>
+</body>
+</html>

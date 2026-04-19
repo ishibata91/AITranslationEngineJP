@@ -28,7 +28,7 @@ product code と product test は変更しない。
 ## 参照 skill
 
 - `requirements-design`: capability、制約、不変条件の整理を参照する。
-- `ui-design`: Figma primary の UI 判断を参照する。
+- `ui-design`: HTML mock primary の UI 判断を参照する。
 - `scenario-design`: system test 観点を参照する。
 - `implementation-scope`: human review 後の人間向け Copilot handoff 粒度を参照する。
 - `diagramming`: diagram source と review artifact の判断基準を参照する。

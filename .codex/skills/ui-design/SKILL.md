@@ -1,6 +1,6 @@
 ---
 name: ui-design
-description: Codex 側の UI 設計知識 package。Figma file / node を primary artifact として主要操作、状態差分、visual system 判断を固定する基準を提供する。
+description: Codex 側の UI 設計知識 package。HTML mock を primary artifact として主要操作、状態差分、visual system 判断を固定する基準を提供する。
 ---
 
 # UI Design
@@ -8,15 +8,15 @@ description: Codex 側の UI 設計知識 package。Figma file / node を primar
 ## 目的
 
 `ui-design` は知識 package である。
-`designer` agent が Figma file / node を UI design の primary artifact として扱うための、構造、状態差分、visual system、evidence の見方を提供する。
+`designer` agent が HTML mock を UI design の primary artifact として扱うための、構造、状態差分、visual system、evidence の見方を提供する。
 
 実行権限、agent contract、handoff、stop / reroute は [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md) が持つ。
 
 ## いつ参照するか
 
-- UI が関係する task で Figma artifact を固定する時
+- UI が関係する task で HTML mock artifact を固定する時
 - state、variant、responsive、accessibility の差分を整理する時
-- repo 側 `ui-design.md` に Figma 参照と証跡を残す時
+- repo 側 `ui-design.md` に HTML mock 参照と証跡を残す時
 
 ## 参照しない場合
 
@@ -26,24 +26,24 @@ description: Codex 側の UI 設計知識 package。Figma file / node を primar
 
 ## 知識範囲
 
-- Figma file URL、node id、review frame ids
-- frame hierarchy、component、variant、variables
+- HTML mock file path、preview URL、screenshot artifacts
+- page structure、component-like sections、state variant、visual tokens
 - loading、empty、error、disabled、progress、retry、success
 - desktop / mobile frame と overflow risk
 
 ## 原則
 
-- Figma file / node を UI design の primary artifact にする
-- repo file は参照、判断、状態差分、証跡に限定する
-- 既存 Figma / design system を優先する
+- task-local HTML mock を UI design の primary artifact にする
+- `ui-design.md` は参照、判断、状態差分、証跡に限定する
+- 既存 `docs/mocks/` と `docs/screen-design/` を優先する
 - generic な AI 風 UI や過剰な装飾を避ける
 
 ## 標準パターン
 
 1. interface の目的、利用者、主要 workflow を定義する。
-2. Figma file URL、node id、review frame を固定する。
-3. Figma context、variables、screenshot evidence を確認する。
-4. 状態差分を frame または variant として示す。
+2. HTML mock path、preview URL、review screenshot を固定する。
+3. HTML / CSS / interaction state と screenshot evidence を確認する。
+4. 状態差分を HTML mock の section、state control、または別表示として示す。
 5. human review が必要な visual decision を open question に残す。
 
 この手順は知識上の標準例である。
@@ -52,12 +52,12 @@ description: Codex 側の UI 設計知識 package。Figma file / node を primar
 ## DO / DON'T
 
 DO:
-- Figma artifact と repo-side index の責務を分ける
+- HTML mock と `ui-design.md` の責務を分ける
 - desktop と mobile の破綻を evidence で確認する
 - user-facing text は日本語を優先する
 
 DON'T:
-- Figma 以外へ UI 構造正本を分散しない
+- product frontend code を UI 構造正本にしない
 - product code 実装へ踏み込まない
 - 未承認で docs 正本化しない
 
@@ -69,11 +69,12 @@ DON'T:
 ## References
 
 - template: [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/ui-design.md)
+- mock canonicalization: [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/README.md)
 - agent spec: [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md)
 - agent contract: [designer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/contracts/designer.contract.json)
 
 ## Maintenance
 
 - 権限、write scope、output obligation を skill 本体へ戻さない。
-- Figma-primary 方針を崩さない。
+- HTML mock primary 方針を崩さない。
 - 長い visual 判断表は references に分離する。
