@@ -2,7 +2,8 @@
 name: tester
 description: subagent。承認済み owned_scope を証明する product test だけを追加または更新する。
 target: vscode
-tools: ['search/codebase', 'search/usages', 'edit', 'read/terminalLastCommand']
+tools: [execute, read/problems, read/readFile, read/terminalLastCommand, edit, search/codebase, search/usages, 'mcp_docker/*', todo]
+model: Claude Sonnet 4.6 (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false

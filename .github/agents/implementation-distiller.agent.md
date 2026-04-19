@@ -2,7 +2,8 @@
 name: implementation-distiller
 description: subagent。承認済み implementation-scope から実装前 context packet を作る。
 target: vscode
-tools: ['search/codebase', 'search/usages', 'read/terminalLastCommand']
+tools: [read, search]
+model: Gemini 3 Flash (Preview) (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false

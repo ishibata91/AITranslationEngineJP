@@ -2,6 +2,7 @@
 
 会話と作業は日本語を基本にする。
 英語の key、既存名、command は必要な時だけ使う。
+tmp/code-map/index.jsonにコード地図がある
 
 ## 会話ルール
 
@@ -11,21 +12,6 @@
 - 1 段落は 3 文以内にする
 - 変更報告は 1 行 1 ファイルにする
 - 長い出力の末尾には `SUMMARY` を付ける
-
-## memory
-
-開始前に task に関係する記憶を memory MCP で確認する。
-次に再利用できる判断だけを memory に残す。
-
-memory に残す対象は次です。
-
-- 人間から明示された判断基準や禁止事項
-- 同じ原因で 2 回以上起きた失敗
-- 解決に時間がかかった問題の原因
-- 次回も使える確認順や探索順
-- 正本、責務、権限境界の取り違え
-
-one-off の作業メモ、未承認案、今回だけの TODO は memory に入れない。
 
 ## 目的
 
@@ -53,7 +39,6 @@ AITranslationEngineJp は Skyrim Mod 向け翻訳エンジンです。
 - AI design review は行わず、人間が design bundle を review する
 - Copilot は `docs/`、`.codex/`、`.github/skills`、`.github/agents` を変更しない
 - docs 正本化は Codex の `updating-docs` だけが扱う
-- file read / write / edit は MCP 経由に限定する
 
 ## 実装前に確認すること
 

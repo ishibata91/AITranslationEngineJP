@@ -2,7 +2,7 @@
 name: implementation-orchestrate
 description: GitHub Copilot 側の実装入口。承認済み implementation-scope を実装前整理、実装、test、review へ分配する。
 target: vscode
-tools: ['agent']
+tools: [read/readFile, agent, 'mcp_docker/*', todo]
 agents: ['implementation-distiller', 'implementer', 'investigator', 'tester', 'reviewer']
 user-invocable: true
 disable-model-invocation: false

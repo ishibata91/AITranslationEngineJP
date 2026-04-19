@@ -33,9 +33,23 @@ TRANSLATION_RECORD: {
   record_type: string
 }
 
+# Unique candidate: target_plugin_name + form_id + record_type
+NPC_PROFILE: {
+  shape: sql_table
+  id: bigint {constraint: primary_key}
+  target_plugin_name: string
+  form_id: string
+  record_type: string
+  editor_id: string
+  display_name: string
+  created_at: datetime
+  updated_at: datetime
+}
+
 NPC_RECORD: {
   shape: sql_table
   translation_record_id: bigint {constraint: [primary_key, foreign_key]}
+  npc_profile_id: bigint {constraint: foreign_key}
   race: string
   sex: string
   npc_class: string
@@ -75,12 +89,13 @@ TRANSLATION_FIELD_RECORD_REFERENCE: {
   reference_role: string
 }
 
+# translation_job_id is set only for job_local lifecycle rows.
 PERSONA: {
   shape: sql_table
   id: bigint {constraint: primary_key}
-  npc_record_id: bigint {constraint: [foreign_key, unique]}
+  npc_profile_id: bigint {constraint: [foreign_key, unique]}
   translation_job_id: bigint {constraint: foreign_key}
-  persona_kind: string
+  persona_lifecycle: string
   persona_scope: string
   persona_source: string
   persona_description: text
@@ -99,12 +114,14 @@ PERSONA_FIELD_EVIDENCE: {
   evidence_role: string
 }
 
+# translation_job_id is set only for job_local lifecycle rows.
+# xtranslator_translation_xml_id is import provenance, not ownership.
 DICTIONARY_ENTRY: {
   shape: sql_table
   id: bigint {constraint: primary_key}
   xtranslator_translation_xml_id: bigint {constraint: foreign_key}
   translation_job_id: bigint {constraint: foreign_key}
-  dictionary_kind: string
+  dictionary_lifecycle: string
   dictionary_scope: string
   dictionary_source: string
   source_term: text
@@ -210,6 +227,7 @@ XTRANSLATOR_OUTPUT_ROW: {
 # Input data and extracted records
 X_EDIT_EXTRACTED_DATA.id -> TRANSLATION_RECORD.x_edit_extracted_data_id
 TRANSLATION_RECORD.id -> NPC_RECORD.translation_record_id
+NPC_PROFILE.id -> NPC_RECORD.npc_profile_id
 TRANSLATION_RECORD.id -> TRANSLATION_FIELD.translation_record_id
 TRANSLATION_FIELD_DEFINITION.id -> TRANSLATION_FIELD.translation_field_definition_id
 TRANSLATION_FIELD.id -> TRANSLATION_FIELD.previous_translation_field_id
@@ -217,8 +235,8 @@ TRANSLATION_FIELD.id -> TRANSLATION_FIELD.next_translation_field_id
 TRANSLATION_FIELD.id -> TRANSLATION_FIELD_RECORD_REFERENCE.translation_field_id
 TRANSLATION_RECORD.id -> TRANSLATION_FIELD_RECORD_REFERENCE.referenced_translation_record_id
 
-# Persona and dictionary masters / job-local generated data
-NPC_RECORD.translation_record_id -> PERSONA.npc_record_id
+# Persona and dictionary shared / job-local generated data
+NPC_PROFILE.id -> PERSONA.npc_profile_id
 PERSONA.id -> PERSONA_FIELD_EVIDENCE.persona_id
 TRANSLATION_FIELD.id -> PERSONA_FIELD_EVIDENCE.translation_field_id
 XTRANSLATOR_TRANSLATION_XML.id -> DICTIONARY_ENTRY.xtranslator_translation_xml_id

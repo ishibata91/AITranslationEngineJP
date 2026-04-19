@@ -2,7 +2,8 @@
 name: investigator
 description: subagent。承認済み owned_scope 内で、実装前再現、実装中 trace、修正後再観測、review 補助を行う。
 target: vscode
-tools: ['search/codebase', 'search/usages', 'edit', 'read/terminalLastCommand']
+tools: [execute, read, edit, search, browser, 'mcp_docker/*']
+model: Gemini 3 Flash (Preview) (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false

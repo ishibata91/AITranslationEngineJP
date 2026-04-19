@@ -40,6 +40,20 @@ note right of TranslationRecord
     専用派生はレコード固有属性を持つ場合だけ作る。
 end note
 
+class "NPCプロファイル" as NpcProfile {
+    対象プラグイン名: PluginName
+    FormID: HexString8
+    レコード種別: RecordType
+    EditorID: string
+    表示名: string
+}
+note right of NpcProfile
+    抽出スナップショットをまたいで
+    同じ NPC と見なすための根。
+    共通ペルソナはこのプロファイルに紐づき、
+    入力キャッシュやジョブ内生成物の flush 後も残る。
+end note
+
 class "NPCレコード" as NpcRecord {
     種族: Race
     性別: Sex
@@ -48,6 +62,8 @@ class "NPCレコード" as NpcRecord {
 }
 note right of NpcRecord
     NPC名も TranslationField として扱う。
+    抽出スナップショット上の NPC 表現であり、
+    NPCプロファイルを参照する。
     NPC属性と関連フィールドはペルソナ生成の根拠になる。
 end note
 
@@ -126,7 +142,7 @@ end note
 
 ' Metadata and dictionary
 class "ペルソナ" as Persona {
-    適用種別: PersonaKind
+    ライフサイクル: PersonaLifecycle
     適用範囲: PersonaScope
     作成経路: PersonaSource
     ペルソナ説明: PersonaDescription
@@ -134,15 +150,17 @@ class "ペルソナ" as Persona {
     性格傾向: PersonalitySummary
     根拠発話数: integer
 }
-note right of Persona::適用種別
-    マスター, ジョブ内
+note right of Persona::ライフサイクル
+    共通(shared), ジョブ内(job_local)。
+    共通はジョブをまたいで残り、
+    ジョブ内は翻訳完了後の flush 対象になる。
 end note
 note right of Persona::作成経路
     事前生成, ジョブ内生成
 end note
 
 class "用語辞書" as Dictionary {
-    適用種別: DictionaryKind
+    ライフサイクル: DictionaryLifecycle
     適用範囲: DictionaryScope
     作成経路: DictionarySource
     原文: SourceTerm
@@ -150,8 +168,10 @@ class "用語辞書" as Dictionary {
     用語種別: TermKind
     再利用可能: boolean
 }
-note right of Dictionary::適用種別
-    マスター, ジョブ内
+note right of Dictionary::ライフサイクル
+    共通(shared), ジョブ内(job_local)。
+    共通はジョブをまたいで残り、
+    ジョブ内は翻訳完了後の flush 対象になる。
 end note
 note right of Dictionary::作成経路
     xTranslator取込, 用語生成
@@ -182,6 +202,7 @@ TranslationRecord <|-- NpcRecord
 
 ' Input relations
 XEditExtractedData "1" -- "0..*" TranslationRecord : 入力JSONから復元されたSkyrimレコード
+NpcProfile "1" -- "0..*" NpcRecord : 抽出ごとのNPCレコード
 TranslationRecord "1" -- "1..*" TranslationField : レコード内の翻訳可能フィールド
 TranslationField "0..*" -- "1" TranslationFieldDefinition : レコード種別 + サブレコード種別で参照
 TranslationField "0..*" -- "0..1" TranslationField : 前の翻訳フィールド
@@ -200,9 +221,9 @@ PhaseRun "0..*" -- "0..*" Persona : 生成または参照するペルソナ
 PhaseRun "0..*" -- "0..*" Dictionary : 生成または参照する用語辞書
 
 ' Persona and dictionary relations
-NpcRecord "1" -- "1" Persona : NPCが持つペルソナ
+NpcProfile "1" -- "0..1" Persona : NPCが持つペルソナ
 Persona "1" -- "0..*" TranslationField : 生成根拠フィールド
-XTranslatorTranslationXml "1" -- "0..*" Dictionary : 既存翻訳XMLから取り込むマスター辞書項目
+XTranslatorTranslationXml "1" -- "0..*" Dictionary : 既存翻訳XMLの取り込み元
 
 ' Artifact relations
 TranslationArtifact "1" -- "1..*" XTranslatorOutputRow : xTranslator互換XMLを構成する出力行

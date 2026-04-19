@@ -2,7 +2,8 @@
 name: reviewer
 description: subagent。UI check と implementation review だけを行う。design review は行わない。
 target: vscode
-tools: ['search/codebase', 'search/usages', 'read/terminalLastCommand']
+tools: [execute, read, search, browser, 'mcp_docker/*', todo]
+model: GPT-5.4 (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false
