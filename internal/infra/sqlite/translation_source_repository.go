@@ -1,0 +1,567 @@
+package sqlite
+
+import (
+	"context"
+	"database/sql"
+	"errors"
+	"fmt"
+	"strings"
+	"time"
+
+	"github.com/jmoiron/sqlx"
+
+	"aitranslationenginejp/internal/repository"
+)
+
+// SQLiteTranslationSourceRepository は repository.TranslationSourceRepository の SQLite 実装。
+type SQLiteTranslationSourceRepository struct {
+	db *sqlx.DB
+}
+
+// NewSQLiteTranslationSourceRepository は repository.TranslationSourceRepository を返す。
+func NewSQLiteTranslationSourceRepository(db *sqlx.DB) repository.TranslationSourceRepository {
+	return &SQLiteTranslationSourceRepository{db: db}
+}
+
+// ---------------------------------------------------------------------------
+// 内部 row 型 (db タグで SQL カラムとマッピング)
+// ---------------------------------------------------------------------------
+
+type xEditExtractedDataRow struct {
+	ID               int64  `db:"id"`
+	SourceFilePath   string `db:"source_file_path"`
+	SourceTool       string `db:"source_tool"`
+	TargetPluginName string `db:"target_plugin_name"`
+	TargetPluginType string `db:"target_plugin_type"`
+	RecordCount      int    `db:"record_count"`
+	ImportedAt       string `db:"imported_at"`
+}
+
+func (r xEditExtractedDataRow) toModel() (repository.XEditExtractedData, error) {
+	importedAt, err := time.Parse(time.RFC3339, r.ImportedAt)
+	if err != nil {
+		return repository.XEditExtractedData{}, fmt.Errorf("parse imported_at: %w", err)
+	}
+	return repository.XEditExtractedData{
+		ID:               r.ID,
+		SourceFilePath:   r.SourceFilePath,
+		SourceTool:       r.SourceTool,
+		TargetPluginName: r.TargetPluginName,
+		TargetPluginType: r.TargetPluginType,
+		RecordCount:      r.RecordCount,
+		ImportedAt:       importedAt,
+	}, nil
+}
+
+type translationRecordRow struct {
+	ID                   int64  `db:"id"`
+	XEditExtractedDataID int64  `db:"x_edit_extracted_data_id"`
+	FormID               string `db:"form_id"`
+	EditorID             string `db:"editor_id"`
+	RecordType           string `db:"record_type"`
+}
+
+func (r translationRecordRow) toModel() repository.TranslationRecord {
+	return repository.TranslationRecord{
+		ID:                   r.ID,
+		XEditExtractedDataID: r.XEditExtractedDataID,
+		FormID:               r.FormID,
+		EditorID:             r.EditorID,
+		RecordType:           r.RecordType,
+	}
+}
+
+type npcProfileRow struct {
+	ID               int64  `db:"id"`
+	TargetPluginName string `db:"target_plugin_name"`
+	FormID           string `db:"form_id"`
+	RecordType       string `db:"record_type"`
+	EditorID         string `db:"editor_id"`
+	DisplayName      string `db:"display_name"`
+	CreatedAt        string `db:"created_at"`
+	UpdatedAt        string `db:"updated_at"`
+}
+
+func (r npcProfileRow) toModel() (repository.NpcProfile, error) {
+	createdAt, err := time.Parse(time.RFC3339, r.CreatedAt)
+	if err != nil {
+		return repository.NpcProfile{}, fmt.Errorf("parse created_at: %w", err)
+	}
+	updatedAt, err := time.Parse(time.RFC3339, r.UpdatedAt)
+	if err != nil {
+		return repository.NpcProfile{}, fmt.Errorf("parse updated_at: %w", err)
+	}
+	return repository.NpcProfile{
+		ID:               r.ID,
+		TargetPluginName: r.TargetPluginName,
+		FormID:           r.FormID,
+		RecordType:       r.RecordType,
+		EditorID:         r.EditorID,
+		DisplayName:      r.DisplayName,
+		CreatedAt:        createdAt,
+		UpdatedAt:        updatedAt,
+	}, nil
+}
+
+type npcRecordRow struct {
+	TranslationRecordID int64   `db:"translation_record_id"`
+	NpcProfileID        int64   `db:"npc_profile_id"`
+	Race                *string `db:"race"`
+	Sex                 *string `db:"sex"`
+	NpcClass            *string `db:"npc_class"`
+	VoiceType           string  `db:"voice_type"`
+}
+
+func (r npcRecordRow) toModel() repository.NpcRecord {
+	return repository.NpcRecord{
+		TranslationRecordID: r.TranslationRecordID,
+		NpcProfileID:        r.NpcProfileID,
+		Race:                r.Race,
+		Sex:                 r.Sex,
+		NpcClass:            r.NpcClass,
+		VoiceType:           r.VoiceType,
+	}
+}
+
+type translationFieldRow struct {
+	ID                           int64  `db:"id"`
+	TranslationRecordID          int64  `db:"translation_record_id"`
+	TranslationFieldDefinitionID *int64 `db:"translation_field_definition_id"`
+	SubrecordType                string `db:"subrecord_type"`
+	SourceText                   string `db:"source_text"`
+	FieldOrder                   int    `db:"field_order"`
+	PreviousTranslationFieldID   *int64 `db:"previous_translation_field_id"`
+	NextTranslationFieldID       *int64 `db:"next_translation_field_id"`
+}
+
+func (r translationFieldRow) toModel() repository.TranslationField {
+	return repository.TranslationField{
+		ID:                           r.ID,
+		TranslationRecordID:          r.TranslationRecordID,
+		TranslationFieldDefinitionID: r.TranslationFieldDefinitionID,
+		SubrecordType:                r.SubrecordType,
+		SourceText:                   r.SourceText,
+		FieldOrder:                   r.FieldOrder,
+		PreviousTranslationFieldID:   r.PreviousTranslationFieldID,
+		NextTranslationFieldID:       r.NextTranslationFieldID,
+	}
+}
+
+type translationFieldRecordReferenceRow struct {
+	ID                            int64  `db:"id"`
+	TranslationFieldID            int64  `db:"translation_field_id"`
+	ReferencedTranslationRecordID int64  `db:"referenced_translation_record_id"`
+	ReferenceRole                 string `db:"reference_role"`
+}
+
+func (r translationFieldRecordReferenceRow) toModel() repository.TranslationFieldRecordReference {
+	return repository.TranslationFieldRecordReference{
+		ID:                            r.ID,
+		TranslationFieldID:            r.TranslationFieldID,
+		ReferencedTranslationRecordID: r.ReferencedTranslationRecordID,
+		ReferenceRole:                 r.ReferenceRole,
+	}
+}
+
+// ---------------------------------------------------------------------------
+// エラー変換ヘルパー
+// ---------------------------------------------------------------------------
+
+func isUniqueConstraintError(err error) bool {
+	return strings.Contains(err.Error(), "UNIQUE constraint failed")
+}
+
+func mapSQLError(err error, label string) error {
+	if errors.Is(err, sql.ErrNoRows) {
+		return fmt.Errorf("%s: %w", label, repository.ErrNotFound)
+	}
+	if isUniqueConstraintError(err) {
+		return fmt.Errorf("%s: %w", label, repository.ErrConflict)
+	}
+	return fmt.Errorf("%s: %w", label, err)
+}
+
+// ---------------------------------------------------------------------------
+// SQL 定数
+// ---------------------------------------------------------------------------
+
+const (
+	insertXEditExtractedData = `
+INSERT INTO X_EDIT_EXTRACTED_DATA
+  (source_file_path, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at)
+VALUES
+  (:source_file_path, :source_tool, :target_plugin_name, :target_plugin_type, :record_count, :imported_at)`
+
+	selectXEditExtractedDataByID = `
+SELECT id, source_file_path, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
+FROM X_EDIT_EXTRACTED_DATA WHERE id = ?`
+
+	insertTranslationRecord = `
+INSERT INTO TRANSLATION_RECORD
+  (x_edit_extracted_data_id, form_id, editor_id, record_type)
+VALUES
+  (:x_edit_extracted_data_id, :form_id, :editor_id, :record_type)`
+
+	selectTranslationRecordByID = `
+SELECT id, x_edit_extracted_data_id, form_id, editor_id, record_type
+FROM TRANSLATION_RECORD WHERE id = ?`
+
+	selectTranslationRecordsByXEditID = `
+SELECT id, x_edit_extracted_data_id, form_id, editor_id, record_type
+FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?`
+
+	upsertNpcProfile = `
+INSERT INTO NPC_PROFILE
+  (target_plugin_name, form_id, record_type, editor_id, display_name, created_at, updated_at)
+VALUES
+  (:target_plugin_name, :form_id, :record_type, :editor_id, :display_name, :created_at, :updated_at)
+ON CONFLICT(target_plugin_name, form_id, record_type) DO UPDATE SET
+  editor_id    = excluded.editor_id,
+  display_name = excluded.display_name,
+  updated_at   = excluded.updated_at`
+
+	selectNpcProfileByUnique = `
+SELECT id, target_plugin_name, form_id, record_type, editor_id, display_name, created_at, updated_at
+FROM NPC_PROFILE WHERE target_plugin_name = ? AND form_id = ? AND record_type = ?`
+
+	selectNpcProfileByID = `
+SELECT id, target_plugin_name, form_id, record_type, editor_id, display_name, created_at, updated_at
+FROM NPC_PROFILE WHERE id = ?`
+
+	insertNpcRecord = `
+INSERT INTO NPC_RECORD
+  (translation_record_id, npc_profile_id, race, sex, npc_class, voice_type)
+VALUES
+  (:translation_record_id, :npc_profile_id, :race, :sex, :npc_class, :voice_type)`
+
+	selectNpcRecordByTranslationRecordID = `
+SELECT translation_record_id, npc_profile_id, race, sex, npc_class, voice_type
+FROM NPC_RECORD WHERE translation_record_id = ?`
+
+	insertTranslationField = `
+INSERT INTO TRANSLATION_FIELD
+  (translation_record_id, translation_field_definition_id, subrecord_type, source_text,
+   field_order, previous_translation_field_id, next_translation_field_id)
+VALUES
+  (:translation_record_id, :translation_field_definition_id, :subrecord_type, :source_text,
+   :field_order, :previous_translation_field_id, :next_translation_field_id)`
+
+	selectTranslationFieldByID = `
+SELECT id, translation_record_id, translation_field_definition_id, subrecord_type, source_text,
+       field_order, previous_translation_field_id, next_translation_field_id
+FROM TRANSLATION_FIELD WHERE id = ?`
+
+	selectTranslationFieldsByTranslationRecordID = `
+SELECT id, translation_record_id, translation_field_definition_id, subrecord_type, source_text,
+       field_order, previous_translation_field_id, next_translation_field_id
+FROM TRANSLATION_FIELD WHERE translation_record_id = ?`
+
+	insertTranslationFieldRecordReference = `
+INSERT INTO TRANSLATION_FIELD_RECORD_REFERENCE
+  (translation_field_id, referenced_translation_record_id, reference_role)
+VALUES
+  (:translation_field_id, :referenced_translation_record_id, :reference_role)`
+
+	selectTranslationFieldRecordReferencesByFieldID = `
+SELECT id, translation_field_id, referenced_translation_record_id, reference_role
+FROM TRANSLATION_FIELD_RECORD_REFERENCE WHERE translation_field_id = ?`
+)
+
+// ---------------------------------------------------------------------------
+// XEditExtractedData
+// ---------------------------------------------------------------------------
+
+func (r *SQLiteTranslationSourceRepository) CreateXEditExtractedData(
+	ctx context.Context,
+	draft repository.XEditExtractedDataDraft,
+) (repository.XEditExtractedData, error) {
+	ext := extractTx(ctx, r.db)
+	row := xEditExtractedDataRow{
+		SourceFilePath:   draft.SourceFilePath,
+		SourceTool:       draft.SourceTool,
+		TargetPluginName: draft.TargetPluginName,
+		TargetPluginType: draft.TargetPluginType,
+		RecordCount:      draft.RecordCount,
+		ImportedAt:       draft.ImportedAt.UTC().Format(time.RFC3339),
+	}
+	q, args, err := sqlx.Named(insertXEditExtractedData, row)
+	if err != nil {
+		return repository.XEditExtractedData{}, fmt.Errorf("create x_edit_extracted_data named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, args...)
+	if err != nil {
+		return repository.XEditExtractedData{}, mapSQLError(err, "create x_edit_extracted_data")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return repository.XEditExtractedData{}, fmt.Errorf("create x_edit_extracted_data last insert id: %w", err)
+	}
+	return r.GetXEditExtractedDataByID(ctx, id)
+}
+
+func (r *SQLiteTranslationSourceRepository) GetXEditExtractedDataByID(
+	ctx context.Context,
+	id int64,
+) (repository.XEditExtractedData, error) {
+	ext := extractTx(ctx, r.db)
+	var row xEditExtractedDataRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectXEditExtractedDataByID, id); err != nil {
+		return repository.XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by id")
+	}
+	return row.toModel()
+}
+
+// ---------------------------------------------------------------------------
+// TranslationRecord
+// ---------------------------------------------------------------------------
+
+func (r *SQLiteTranslationSourceRepository) CreateTranslationRecord(
+	ctx context.Context,
+	draft repository.TranslationRecordDraft,
+) (repository.TranslationRecord, error) {
+	ext := extractTx(ctx, r.db)
+	row := translationRecordRow{
+		XEditExtractedDataID: draft.XEditExtractedDataID,
+		FormID:               draft.FormID,
+		EditorID:             draft.EditorID,
+		RecordType:           draft.RecordType,
+	}
+	q, args, err := sqlx.Named(insertTranslationRecord, row)
+	if err != nil {
+		return repository.TranslationRecord{}, fmt.Errorf("create translation_record named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, args...)
+	if err != nil {
+		return repository.TranslationRecord{}, mapSQLError(err, "create translation_record")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return repository.TranslationRecord{}, fmt.Errorf("create translation_record last insert id: %w", err)
+	}
+	return r.GetTranslationRecordByID(ctx, id)
+}
+
+func (r *SQLiteTranslationSourceRepository) GetTranslationRecordByID(
+	ctx context.Context,
+	id int64,
+) (repository.TranslationRecord, error) {
+	ext := extractTx(ctx, r.db)
+	var row translationRecordRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationRecordByID, id); err != nil {
+		return repository.TranslationRecord{}, mapSQLError(err, "get translation_record by id")
+	}
+	return row.toModel(), nil
+}
+
+func (r *SQLiteTranslationSourceRepository) ListTranslationRecordsByXEditID(
+	ctx context.Context,
+	xEditID int64,
+) ([]repository.TranslationRecord, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []translationRecordRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationRecordsByXEditID, xEditID); err != nil {
+		return nil, mapSQLError(err, "list translation_records by x_edit_id")
+	}
+	result := make([]repository.TranslationRecord, len(rows))
+	for i, row := range rows {
+		result[i] = row.toModel()
+	}
+	return result, nil
+}
+
+// ---------------------------------------------------------------------------
+// NpcProfile
+// ---------------------------------------------------------------------------
+
+func (r *SQLiteTranslationSourceRepository) UpsertNpcProfile(
+	ctx context.Context,
+	draft repository.NpcProfileDraft,
+) (repository.NpcProfile, error) {
+	ext := extractTx(ctx, r.db)
+	now := time.Now().UTC().Format(time.RFC3339)
+	row := npcProfileRow{
+		TargetPluginName: draft.TargetPluginName,
+		FormID:           draft.FormID,
+		RecordType:       draft.RecordType,
+		EditorID:         draft.EditorID,
+		DisplayName:      draft.DisplayName,
+		CreatedAt:        now,
+		UpdatedAt:        now,
+	}
+	q, args, err := sqlx.Named(upsertNpcProfile, row)
+	if err != nil {
+		return repository.NpcProfile{}, fmt.Errorf("upsert npc_profile named: %w", err)
+	}
+	if _, err := ext.ExecContext(ctx, q, args...); err != nil {
+		return repository.NpcProfile{}, mapSQLError(err, "upsert npc_profile")
+	}
+	var fetched npcProfileRow
+	if err := sqlx.GetContext(ctx, ext, &fetched, selectNpcProfileByUnique,
+		draft.TargetPluginName, draft.FormID, draft.RecordType,
+	); err != nil {
+		return repository.NpcProfile{}, mapSQLError(err, "upsert npc_profile fetch")
+	}
+	return fetched.toModel()
+}
+
+func (r *SQLiteTranslationSourceRepository) GetNpcProfileByID(
+	ctx context.Context,
+	id int64,
+) (repository.NpcProfile, error) {
+	ext := extractTx(ctx, r.db)
+	var row npcProfileRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectNpcProfileByID, id); err != nil {
+		return repository.NpcProfile{}, mapSQLError(err, "get npc_profile by id")
+	}
+	return row.toModel()
+}
+
+// ---------------------------------------------------------------------------
+// NpcRecord
+// ---------------------------------------------------------------------------
+
+func (r *SQLiteTranslationSourceRepository) CreateNpcRecord(
+	ctx context.Context,
+	draft repository.NpcRecordDraft,
+) (repository.NpcRecord, error) {
+	ext := extractTx(ctx, r.db)
+	row := npcRecordRow{
+		TranslationRecordID: draft.TranslationRecordID,
+		NpcProfileID:        draft.NpcProfileID,
+		Race:                draft.Race,
+		Sex:                 draft.Sex,
+		NpcClass:            draft.NpcClass,
+		VoiceType:           draft.VoiceType,
+	}
+	q, args, err := sqlx.Named(insertNpcRecord, row)
+	if err != nil {
+		return repository.NpcRecord{}, fmt.Errorf("create npc_record named: %w", err)
+	}
+	if _, err := ext.ExecContext(ctx, q, args...); err != nil {
+		return repository.NpcRecord{}, mapSQLError(err, "create npc_record")
+	}
+	return row.toModel(), nil
+}
+
+func (r *SQLiteTranslationSourceRepository) GetNpcRecordByTranslationRecordID(
+	ctx context.Context,
+	translationRecordID int64,
+) (repository.NpcRecord, error) {
+	ext := extractTx(ctx, r.db)
+	var row npcRecordRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectNpcRecordByTranslationRecordID, translationRecordID); err != nil {
+		return repository.NpcRecord{}, mapSQLError(err, "get npc_record by translation_record_id")
+	}
+	return row.toModel(), nil
+}
+
+// ---------------------------------------------------------------------------
+// TranslationField
+// ---------------------------------------------------------------------------
+
+func (r *SQLiteTranslationSourceRepository) CreateTranslationField(
+	ctx context.Context,
+	draft repository.TranslationFieldDraft,
+) (repository.TranslationField, error) {
+	ext := extractTx(ctx, r.db)
+	row := translationFieldRow{
+		TranslationRecordID:          draft.TranslationRecordID,
+		TranslationFieldDefinitionID: draft.TranslationFieldDefinitionID,
+		SubrecordType:                draft.SubrecordType,
+		SourceText:                   draft.SourceText,
+		FieldOrder:                   draft.FieldOrder,
+		PreviousTranslationFieldID:   draft.PreviousTranslationFieldID,
+		NextTranslationFieldID:       draft.NextTranslationFieldID,
+	}
+	q, args, err := sqlx.Named(insertTranslationField, row)
+	if err != nil {
+		return repository.TranslationField{}, fmt.Errorf("create translation_field named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, args...)
+	if err != nil {
+		return repository.TranslationField{}, mapSQLError(err, "create translation_field")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return repository.TranslationField{}, fmt.Errorf("create translation_field last insert id: %w", err)
+	}
+	return r.GetTranslationFieldByID(ctx, id)
+}
+
+func (r *SQLiteTranslationSourceRepository) GetTranslationFieldByID(
+	ctx context.Context,
+	id int64,
+) (repository.TranslationField, error) {
+	ext := extractTx(ctx, r.db)
+	var row translationFieldRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationFieldByID, id); err != nil {
+		return repository.TranslationField{}, mapSQLError(err, "get translation_field by id")
+	}
+	return row.toModel(), nil
+}
+
+func (r *SQLiteTranslationSourceRepository) ListTranslationFieldsByTranslationRecordID(
+	ctx context.Context,
+	translationRecordID int64,
+) ([]repository.TranslationField, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []translationFieldRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationFieldsByTranslationRecordID, translationRecordID); err != nil {
+		return nil, mapSQLError(err, "list translation_fields by translation_record_id")
+	}
+	result := make([]repository.TranslationField, len(rows))
+	for i, row := range rows {
+		result[i] = row.toModel()
+	}
+	return result, nil
+}
+
+// ---------------------------------------------------------------------------
+// TranslationFieldRecordReference
+// ---------------------------------------------------------------------------
+
+func (r *SQLiteTranslationSourceRepository) CreateTranslationFieldRecordReference(
+	ctx context.Context,
+	draft repository.TranslationFieldRecordReferenceDraft,
+) (repository.TranslationFieldRecordReference, error) {
+	ext := extractTx(ctx, r.db)
+	row := translationFieldRecordReferenceRow{
+		TranslationFieldID:            draft.TranslationFieldID,
+		ReferencedTranslationRecordID: draft.ReferencedTranslationRecordID,
+		ReferenceRole:                 draft.ReferenceRole,
+	}
+	q, args, err := sqlx.Named(insertTranslationFieldRecordReference, row)
+	if err != nil {
+		return repository.TranslationFieldRecordReference{}, fmt.Errorf("create translation_field_record_reference named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, args...)
+	if err != nil {
+		return repository.TranslationFieldRecordReference{}, mapSQLError(err, "create translation_field_record_reference")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return repository.TranslationFieldRecordReference{}, fmt.Errorf("create translation_field_record_reference last insert id: %w", err)
+	}
+	return repository.TranslationFieldRecordReference{
+		ID:                            id,
+		TranslationFieldID:            draft.TranslationFieldID,
+		ReferencedTranslationRecordID: draft.ReferencedTranslationRecordID,
+		ReferenceRole:                 draft.ReferenceRole,
+	}, nil
+}
+
+func (r *SQLiteTranslationSourceRepository) ListTranslationFieldRecordReferencesByFieldID(
+	ctx context.Context,
+	fieldID int64,
+) ([]repository.TranslationFieldRecordReference, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []translationFieldRecordReferenceRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationFieldRecordReferencesByFieldID, fieldID); err != nil {
+		return nil, mapSQLError(err, "list translation_field_record_references by field_id")
+	}
+	result := make([]repository.TranslationFieldRecordReference, len(rows))
+	for i, row := range rows {
+		result[i] = row.toModel()
+	}
+	return result, nil
+}

@@ -25,6 +25,9 @@ from harness_common import (
 )
 
 MINIMUM_COVERAGE = 70.0
+MAX_SECURITY_ISSUES = 0
+MAX_RELIABILITY_ISSUES = 0
+MAX_MAINTAINABILITY_HIGH_ISSUES = 0
 FRONTEND_SUMMARY_PATH = Path("test-results/frontend-coverage/coverage-summary.json")
 FRONTEND_LCOV_PATH = Path("test-results/frontend-coverage/lcov.info")
 BACKEND_SUMMARY_PATH = Path("test-results/backend-coverage/coverage-summary.txt")
@@ -74,6 +77,13 @@ class OverallCoverage:
     covered_lines: int
     branches_to_cover: int
     covered_branches: int
+
+
+@dataclass(frozen=True)
+class SonarIssues:
+    security: int
+    reliability: int
+    maintainability_high: int
 
 
 @dataclass(frozen=True)
@@ -319,6 +329,44 @@ def load_sonar_coverage(report_task_path: Path, timeout_seconds: int = 60) -> So
         return None
 
 
+def load_sonar_issues(report_task_path: Path) -> SonarIssues | None:
+    report_task = parse_properties(report_task_path)
+    server_url = report_task.get("serverUrl")
+    project_key = report_task.get("projectKey")
+    if not server_url or not project_key:
+        return None
+
+    def count_issues(qualities: list[str], severities: list[str] | None = None) -> int | None:
+        params: dict[str, str] = {
+            "componentKeys": project_key,
+            "impactSoftwareQualities": ",".join(qualities),
+            "resolved": "false",
+            "ps": "1",
+        }
+        if severities:
+            params["impactSeverities"] = ",".join(severities)
+        query = urllib.parse.urlencode(params)
+        url = f"{server_url}/api/issues/search?{query}"
+        payload = request_json(url)
+        if payload is None:
+            return None
+        total = payload.get("total")
+        return int(total) if isinstance(total, int | float) else None
+
+    security = count_issues(["SECURITY"])
+    reliability = count_issues(["RELIABILITY"])
+    maintainability_high = count_issues(["MAINTAINABILITY"], ["HIGH"])
+
+    if security is None or reliability is None or maintainability_high is None:
+        return None
+
+    return SonarIssues(
+        security=security,
+        reliability=reliability,
+        maintainability_high=maintainability_high,
+    )
+
+
 def run_sonar_scan(repo_root: Path, package_manager: str, root_package: dict) -> SonarCoverage | None:
     if not (repo_root / SONAR_PROPERTIES_PATH).exists():
         return None
@@ -344,7 +392,13 @@ def run_sonar_scan(repo_root: Path, package_manager: str, root_package: dict) ->
     return sonar_coverage
 
 
-def check_threshold(overall: OverallCoverage | None, sonar: SonarCoverage | None) -> int:
+def check_threshold(
+    overall: OverallCoverage | None,
+    sonar: SonarCoverage | None,
+    issues: SonarIssues | None,
+) -> int:
+    failures = 0
+
     if sonar is not None:
         if sonar.coverage_pct < MINIMUM_COVERAGE:
             report_fail(
@@ -352,33 +406,55 @@ def check_threshold(overall: OverallCoverage | None, sonar: SonarCoverage | None
                 f"{sonar.coverage_pct:.1f}% < {MINIMUM_COVERAGE:.1f}% "
                 f"(line={sonar.line_coverage_pct:.1f}%, branch={sonar.branch_coverage_pct:.1f}%)"
             )
-            return 1
-
-        report_pass(
-            "PASS Sonar coverage "
-            f"{sonar.coverage_pct:.1f}% >= {MINIMUM_COVERAGE:.1f}% "
-            f"(line={sonar.line_coverage_pct:.1f}%, branch={sonar.branch_coverage_pct:.1f}%)"
-        )
-        return 0
-
-    if overall is None:
+            failures += 1
+        else:
+            report_pass(
+                "PASS Sonar coverage "
+                f"{sonar.coverage_pct:.1f}% >= {MINIMUM_COVERAGE:.1f}% "
+                f"(line={sonar.line_coverage_pct:.1f}%, branch={sonar.branch_coverage_pct:.1f}%)"
+            )
+    elif overall is None:
         report_fail("FAIL Sonar-compatible coverage summary could not be parsed")
-        return 1
-
-    if overall.coverage_pct < MINIMUM_COVERAGE:
+        failures += 1
+    elif overall.coverage_pct < MINIMUM_COVERAGE:
         report_fail(
             "FAIL Sonar-compatible coverage "
             f"{overall.coverage_pct:.1f}% < {MINIMUM_COVERAGE:.1f}% "
             f"(line={overall.line_coverage_pct:.1f}%, branches={overall.covered_branches}/{overall.branches_to_cover})"
         )
-        return 1
+        failures += 1
+    else:
+        report_pass(
+            "PASS Sonar-compatible coverage "
+            f"{overall.coverage_pct:.1f}% >= {MINIMUM_COVERAGE:.1f}% "
+            f"(line={overall.line_coverage_pct:.1f}%, branches={overall.covered_branches}/{overall.branches_to_cover})"
+        )
 
-    report_pass(
-        "PASS Sonar-compatible coverage "
-        f"{overall.coverage_pct:.1f}% >= {MINIMUM_COVERAGE:.1f}% "
-        f"(line={overall.line_coverage_pct:.1f}%, branches={overall.covered_branches}/{overall.branches_to_cover})"
-    )
-    return 0
+    # issues gate (Sonar から取得できた場合のみ)
+    if issues is not None:
+        if issues.security > MAX_SECURITY_ISSUES:
+            report_fail(f"FAIL Sonar security issues {issues.security} > {MAX_SECURITY_ISSUES}")
+            failures += 1
+        else:
+            report_pass(f"PASS Sonar security issues {issues.security} <= {MAX_SECURITY_ISSUES}")
+
+        if issues.reliability > MAX_RELIABILITY_ISSUES:
+            report_fail(f"FAIL Sonar reliability issues {issues.reliability} > {MAX_RELIABILITY_ISSUES}")
+            failures += 1
+        else:
+            report_pass(f"PASS Sonar reliability issues {issues.reliability} <= {MAX_RELIABILITY_ISSUES}")
+
+        if issues.maintainability_high > MAX_MAINTAINABILITY_HIGH_ISSUES:
+            report_fail(
+                f"FAIL Sonar maintainability HIGH issues {issues.maintainability_high} > {MAX_MAINTAINABILITY_HIGH_ISSUES}"
+            )
+            failures += 1
+        else:
+            report_pass(
+                f"PASS Sonar maintainability HIGH issues {issues.maintainability_high} <= {MAX_MAINTAINABILITY_HIGH_ISSUES}"
+            )
+
+    return failures
 
 
 def write_manifest(
@@ -387,6 +463,7 @@ def write_manifest(
     backend: BackendCoverage | None,
     overall: OverallCoverage | None,
     sonar: SonarCoverage | None,
+    issues: SonarIssues | None,
 ) -> None:
     manifest = {
         "minimum_sonar_coverage": MINIMUM_COVERAGE,
@@ -404,6 +481,11 @@ def write_manifest(
             "branch_coverage_pct": None if sonar is None else sonar.branch_coverage_pct,
             "lines_to_cover": None if sonar is None else sonar.lines_to_cover,
             "uncovered_lines": None if sonar is None else sonar.uncovered_lines,
+        },
+        "sonar_issues": {
+            "security": None if issues is None else issues.security,
+            "reliability": None if issues is None else issues.reliability,
+            "maintainability_high": None if issues is None else issues.maintainability_high,
         },
         "frontend": {
             "statements_pct": None if frontend is None else frontend.statements_pct,
@@ -491,8 +573,9 @@ def main() -> int:
             sonar = run_sonar_scan(repo_root, package_manager, package)
             if sonar is None:
                 failures += 1
-        failures += check_threshold(overall, sonar)
-        write_manifest(repo_root, frontend, backend, overall, sonar)
+        issues = load_sonar_issues(repo_root / SONAR_REPORT_TASK_PATH) if sonar is not None else None
+        failures += check_threshold(overall, sonar, issues)
+        write_manifest(repo_root, frontend, backend, overall, sonar, issues)
         report_pass(f"PASS wrote coverage manifest: {repo_root / MANIFEST_PATH}")
     else:
         report_skip("SKIP no coverage scripts found. Coverage harness is installed but has nothing to run yet.")

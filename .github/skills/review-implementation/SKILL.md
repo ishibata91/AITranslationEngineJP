@@ -41,6 +41,21 @@ DON'T:
 - 新しい要件解釈を追加しない
 - active contract をこの skill に置かない
 
+## Sonar Gate 確認方法
+
+backend を含む handoff の review では、次の手順で Sonar gate を確認する。
+
+1. `mcp_mcp_docker_mcp-exec` で `python3 scripts/harness/run.py --suite all` を実行する。
+2. `--suite all` は `check_coverage.py` を含み、内部で `sonar-scanner` を起動する。
+3. `sonar-scanner` 完了後、SonarQube API をポーリングして以下のゲート条件を確認する:
+   - coverage >= 70.0%
+   - Security issue 0 件
+   - Reliability issue 0 件
+   - Maintainability HIGH issue 0 件
+4. issue 確認は `check_coverage.py` が `api/issues/search` エンドポイントで自動チェックする。
+5. `check_coverage.py` が PASS を返した場合に Sonar gate PASS とみなす。
+6. `sonar-project.properties` が repo root に存在することが前提条件。
+
 ## Checklist
 
 - [review-implementation-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/review-implementation/references/checklists/review-implementation-checklist.md) を参照する。

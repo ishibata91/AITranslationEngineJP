@@ -16,3 +16,4 @@ db/master-dictionary.sqlite3
 db/master-dictionary.sqlite3-shm
 db/master-dictionary.sqlite3-wal
 .env
+db

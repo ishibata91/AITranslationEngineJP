@@ -21,6 +21,17 @@ agent contract の権限や output obligation は上書きしない。
 - refactor: distiller -> tester -> implementer -> reviewer。
 - UI / mixed: backend handoff を先行し、接合点 evidence を集めてから reviewer へ渡す。
 
+## Harness と Sonar gate の確認方法
+
+- `python3 scripts/harness/run.py --suite all` は `check_structure`, `check_execution`, `check_system_test`, `check_coverage` を順に実行する。
+- `check_coverage.py` が `sonar-scanner` を起動し、`api/issues/search` 経由で以下の Sonar gate 条件を確認する:
+  - coverage >= 70%
+  - Security issue = 0
+  - Reliability issue = 0
+  - Maintainability HIGH issue = 0
+- harness と Sonar gate の確認は `mcp_mcp_docker_mcp-exec` ツールで実行する。
+- `sonar-project.properties` が存在しない場合は sonar-scanner をスキップする。
+
 ## 赤旗
 
 - handoff が owned_scope、depends_on、validation command を持たない。
