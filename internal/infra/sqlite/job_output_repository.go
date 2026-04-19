@@ -139,12 +139,12 @@ func (r *SQLiteJobOutputRepository) UpdateJobTranslationField(
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	args := map[string]interface{}{
-		"id":                id,
+		"id":                 id,
 		"applied_persona_id": draft.AppliedPersonaID,
-		"translated_text":   draft.TranslatedText,
-		"output_status":     draft.OutputStatus,
-		"retry_count":       draft.RetryCount,
-		"updated_at":        now,
+		"translated_text":    draft.TranslatedText,
+		"output_status":      draft.OutputStatus,
+		"retry_count":        draft.RetryCount,
+		"updated_at":         now,
 	}
 	q, qArgs, err := sqlx.Named(updateJobTranslationField, args)
 	if err != nil {

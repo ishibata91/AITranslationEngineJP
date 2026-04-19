@@ -10,6 +10,7 @@ import (
 	"time"
 
 	sqliteinfra "aitranslationenginejp/internal/infra/sqlite/dbinit"
+
 	"github.com/jmoiron/sqlx"
 )
 

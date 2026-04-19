@@ -394,13 +394,13 @@ func (r *SQLiteJobLifecycleRepository) UpdateJobPhaseRun(
 		finishedAt = &s
 	}
 	args := map[string]interface{}{
-		"id":                      id,
-		"state":                   draft.State,
-		"progress_percent":        draft.ProgressPercent,
-		"latest_external_run_id":  draft.LatestExternalRunID,
-		"latest_error":            draft.LatestError,
-		"started_at":              startedAt,
-		"finished_at":             finishedAt,
+		"id":                     id,
+		"state":                  draft.State,
+		"progress_percent":       draft.ProgressPercent,
+		"latest_external_run_id": draft.LatestExternalRunID,
+		"latest_error":           draft.LatestError,
+		"started_at":             startedAt,
+		"finished_at":            finishedAt,
 	}
 	q, qArgs, err := sqlx.Named(updateJobPhaseRun, args)
 	if err != nil {

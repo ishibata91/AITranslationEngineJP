@@ -12,6 +12,7 @@ import (
 
 	"aitranslationenginejp/internal/infra/sqlite"
 	"aitranslationenginejp/internal/repository"
+
 	"github.com/jmoiron/sqlx"
 )
 
