@@ -1,0 +1,124 @@
+@startuml
+
+title master-dictionary-management frontend component detail
+
+top to bottom direction
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 55
+skinparam ranksep 65
+skinparam ArrowFontSize 11
+
+skinparam package {
+    BackgroundColor #f7f9fc
+    BorderColor #546e7a
+    FontColor #243447
+}
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #546e7a
+    FontColor #243447
+}
+
+package "master-dictionary-management frontend component detail" as FrontendMasterDictionaryDetail {
+    package "package: View" as ViewPackage {
+        class "独立ページシェル" as PageShell {
+            + pageLabel: マスター辞書
+            + renderImportCard(): void
+            + renderListPane(): void
+            + renderDetailPane(): void
+            + keepStateVisibleInsidePage(): void
+        }
+
+        class "XML 取り込みカード" as ImportCard {
+            + selectedFileName: string or null
+            + importStage: 待機中 | 取込待ち | 取込中 | 完了
+            + progressPercent: number
+            + selectXmlFile(): void
+            + startImport(): void
+            + resetImport(): void
+        }
+
+        class "一覧 / 検索ペイン" as ListPane {
+            + query: string
+            + category: string
+            + pageSize: 30
+            + visibleEntries: MasterDictionaryEntry list
+            + selectEntry(entryId): void
+            + openCreateModal(): void
+        }
+
+        class "詳細ペイン" as DetailPane {
+            + selectedEntryId: string or null
+            + renderEntryDetail(): void
+            + openEditModal(): void
+            + openDeleteModal(): void
+        }
+
+        class "編集モーダル" as EditModal {
+            + mode: create | edit
+            + draft: MasterDictionaryDraft
+            + submitMutation(): void
+            + close(): void
+        }
+
+        class "削除確認モーダル" as DeleteModal {
+            + targetEntryId: string
+            + confirmDelete(): void
+            + close(): void
+        }
+    }
+
+    package "package: Store" as StorePackage {
+        class "画面状態ストア" as ScreenState {
+            + entries: MasterDictionaryEntry list
+            + query: string
+            + category: string
+            + page: number
+            + pageSize: 30
+            + selectedEntryId: string or null
+            + modalState: none | create | edit | delete
+            + importState: ImportBarState
+            + loadPage(): void
+            + applySearch(): void
+            + applyCreateResult(): void
+            + applyUpdateResult(): void
+            + applyDeleteResult(): void
+            + applyImportResult(): void
+        }
+    }
+
+    package "package: Gateway" as GatewayPackage {
+        class "Wails gateway 契約" as ScreenGateway {
+            + fetchEntries(params): MasterDictionaryPageResult
+            + fetchDetail(entryId): MasterDictionaryDetail
+            + createEntry(draft): MasterDictionaryMutationResult
+            + updateEntry(entryId と draft): MasterDictionaryMutationResult
+            + deleteEntry(entryId): MasterDictionaryMutationResult
+            + importXml(filePath): MasterDictionaryImportResult
+        }
+    }
+}
+
+PageShell --> ImportCard : import panel
+PageShell --> ListPane : list/search
+PageShell --> DetailPane : detail
+ListPane --> EditModal : create
+DetailPane --> EditModal : update
+DetailPane --> DeleteModal : delete confirm
+
+ImportCard --> ScreenState : import actions
+ListPane --> ScreenState : list actions
+DetailPane --> ScreenState : detail actions
+EditModal --> ScreenState : create/update
+DeleteModal --> ScreenState : delete
+
+ScreenState --> ScreenGateway : API calls
+
+ScreenState -[#607d8b,dashed]-> ImportCard
+ScreenState -[#607d8b,dashed]-> ListPane
+ScreenState -[#607d8b,dashed]-> DetailPane
+ScreenState -[#607d8b,dashed]-> EditModal
+ScreenState -[#607d8b,dashed]-> DeleteModal
+
+@enduml

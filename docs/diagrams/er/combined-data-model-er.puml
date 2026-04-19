@@ -1,0 +1,264 @@
+@startuml
+
+title combined data model ER
+
+' Source of truth: docs/diagrams/conceptual/combined_perspective.puml
+' This ER stays one sheet, but it is grouped by data lifecycle to reduce crossings.
+
+hide methods
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 80
+skinparam ranksep 90
+skinparam ArrowFontSize 10
+
+skinparam package {
+    BackgroundColor #f7f9fc
+    BorderColor #546e7a
+    FontColor #243447
+}
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #546e7a
+    FontColor #243447
+}
+
+package "input snapshot" as InputSnapshot {
+    class "X_EDIT_EXTRACTED_DATA" as XEditExtractedData {
+        id: bigint <<PK>>
+        source_file_path: string
+        source_tool: string
+        target_plugin_name: string
+        target_plugin_type: string
+        record_count: integer
+        imported_at: datetime
+    }
+
+    class "TRANSLATION_RECORD" as TranslationRecord {
+        id: bigint <<PK>>
+        x_edit_extracted_data_id: bigint <<FK>>
+        form_id: string
+        editor_id: string
+        record_type: string
+    }
+
+    class "NPC_RECORD" as NpcRecord {
+        translation_record_id: bigint <<PK, FK>>
+        npc_profile_id: bigint <<FK>>
+        race: string
+        sex: string
+        npc_class: string
+        voice_type: string
+    }
+
+    class "TRANSLATION_FIELD_DEFINITION" as TranslationFieldDefinition {
+        id: bigint <<PK>>
+        record_type: string
+        subrecord_type: string
+        display_name: string
+        ai_description: text
+        translatable: boolean
+        ordered: boolean
+        order_scope: string
+        reference_requirement: string
+    }
+
+    class "TRANSLATION_FIELD" as TranslationField {
+        id: bigint <<PK>>
+        translation_record_id: bigint <<FK>>
+        translation_field_definition_id: bigint <<FK>>
+        subrecord_type: string
+        source_text: text
+        field_order: integer
+        previous_translation_field_id: bigint <<FK>>
+        next_translation_field_id: bigint <<FK>>
+    }
+
+    class "TRANSLATION_FIELD_RECORD_REFERENCE" as TranslationFieldRecordReference {
+        id: bigint <<PK>>
+        translation_field_id: bigint <<FK>>
+        referenced_translation_record_id: bigint <<FK>>
+        reference_role: string
+    }
+}
+
+package "foundation data" as FoundationData {
+    class "NPC_PROFILE" as NpcProfile {
+        id: bigint <<PK>>
+        target_plugin_name: string
+        form_id: string
+        record_type: string
+        editor_id: string
+        display_name: string
+        created_at: datetime
+        updated_at: datetime
+    }
+
+    class "PERSONA" as Persona {
+        id: bigint <<PK>>
+        npc_profile_id: bigint <<FK, UNIQUE>>
+        translation_job_id: bigint <<FK>>
+        persona_lifecycle: string
+        persona_scope: string
+        persona_source: string
+        persona_description: text
+        speech_style: text
+        personality_summary: text
+        evidence_utterance_count: integer
+        created_at: datetime
+        updated_at: datetime
+    }
+
+    class "PERSONA_FIELD_EVIDENCE" as PersonaFieldEvidence {
+        id: bigint <<PK>>
+        persona_id: bigint <<FK>>
+        translation_field_id: bigint <<FK>>
+        evidence_role: string
+    }
+
+    class "XTRANSLATOR_TRANSLATION_XML" as XTranslatorTranslationXml {
+        id: bigint <<PK>>
+        file_path: string
+        target_plugin_name: string
+        target_plugin_type: string
+        term_count: integer
+        imported_at: datetime
+    }
+
+    class "DICTIONARY_ENTRY" as DictionaryEntry {
+        id: bigint <<PK>>
+        xtranslator_translation_xml_id: bigint <<FK>>
+        translation_job_id: bigint <<FK>>
+        dictionary_lifecycle: string
+        dictionary_scope: string
+        dictionary_source: string
+        source_term: text
+        translated_term: text
+        term_kind: string
+        reusable: boolean
+        created_at: datetime
+        updated_at: datetime
+    }
+}
+
+package "job runtime" as JobRuntime {
+    class "TRANSLATION_JOB" as TranslationJob {
+        id: bigint <<PK>>
+        x_edit_extracted_data_id: bigint <<FK>>
+        job_name: string
+        state: string
+        progress_percent: integer
+        created_at: datetime
+        started_at: datetime
+        finished_at: datetime
+    }
+
+    class "JOB_TRANSLATION_FIELD" as JobTranslationField {
+        id: bigint <<PK>>
+        translation_job_id: bigint <<FK>>
+        translation_field_id: bigint <<FK>>
+        applied_persona_id: bigint <<FK>>
+        translated_text: text
+        output_status: string
+        retry_count: integer
+        updated_at: datetime
+    }
+
+    class "JOB_PHASE_RUN" as JobPhaseRun {
+        id: bigint <<PK>>
+        translation_job_id: bigint <<FK>>
+        phase_type: string
+        state: string
+        execution_order: integer
+        progress_percent: integer
+        ai_provider: string
+        model_name: string
+        execution_mode: string
+        credential_ref: string
+        instruction_kind: string
+        latest_external_run_id: string
+        latest_error: text
+        started_at: datetime
+        finished_at: datetime
+    }
+
+    class "PHASE_RUN_TRANSLATION_FIELD" as PhaseRunTranslationField {
+        id: bigint <<PK>>
+        phase_run_id: bigint <<FK>>
+        job_translation_field_id: bigint <<FK>>
+        role: string
+    }
+
+    class "PHASE_RUN_PERSONA" as PhaseRunPersona {
+        id: bigint <<PK>>
+        phase_run_id: bigint <<FK>>
+        persona_id: bigint <<FK>>
+        role: string
+    }
+
+    class "PHASE_RUN_DICTIONARY_ENTRY" as PhaseRunDictionaryEntry {
+        id: bigint <<PK>>
+        phase_run_id: bigint <<FK>>
+        dictionary_entry_id: bigint <<FK>>
+        role: string
+    }
+}
+
+package "output" as Output {
+    class "TRANSLATION_ARTIFACT" as TranslationArtifact {
+        id: bigint <<PK>>
+        translation_job_id: bigint <<FK, UNIQUE>>
+        artifact_format: string
+        target_game: string
+        file_path: string
+        status: string
+        generated_at: datetime
+    }
+
+    class "XTRANSLATOR_OUTPUT_ROW" as XTranslatorOutputRow {
+        id: bigint <<PK>>
+        translation_artifact_id: bigint <<FK>>
+        job_translation_field_id: bigint <<FK, UNIQUE>>
+        edid: string
+        rec: string
+        field: string
+        formid: string
+        source: text
+        dest: text
+        status: integer
+    }
+}
+
+InputSnapshot -[hidden]-> FoundationData
+FoundationData -[hidden]-> JobRuntime
+JobRuntime -[hidden]-> Output
+
+XEditExtractedData --> TranslationRecord
+TranslationRecord --> NpcRecord
+TranslationRecord --> TranslationField
+TranslationFieldDefinition --> TranslationField
+TranslationField --> TranslationFieldRecordReference
+
+NpcProfile --> NpcRecord
+NpcProfile --> Persona
+Persona --> PersonaFieldEvidence
+XTranslatorTranslationXml --> DictionaryEntry
+
+XEditExtractedData --> TranslationJob
+TranslationJob --> JobTranslationField
+TranslationJob --> JobPhaseRun
+JobPhaseRun --> PhaseRunTranslationField
+JobPhaseRun --> PhaseRunPersona
+JobPhaseRun --> PhaseRunDictionaryEntry
+
+TranslationJob --> TranslationArtifact
+TranslationArtifact --> XTranslatorOutputRow
+JobTranslationField --> XTranslatorOutputRow
+
+legend bottom
+    FK columns are listed in each table.
+    Only main lifecycle relationships are drawn.
+    Auxiliary FK links are kept as columns to avoid line crossings.
+endlegend
+
+@enduml

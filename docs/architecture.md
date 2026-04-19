@@ -7,8 +7,8 @@
 
 関連図:
 
-- [`diagrams/backend/backend-architecture.d2`](./diagrams/backend/backend-architecture.d2)
-- [`diagrams/frontend/frontend-architecture.d2`](./diagrams/frontend/frontend-architecture.d2)
+- [`diagrams/backend/backend-architecture.puml`](./diagrams/backend/backend-architecture.puml)
+- [`diagrams/frontend/frontend-architecture.puml`](./diagrams/frontend/frontend-architecture.puml)
 
 ## 1. 構造の主語
 

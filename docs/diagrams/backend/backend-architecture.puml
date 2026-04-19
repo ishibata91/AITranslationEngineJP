@@ -1,0 +1,166 @@
+@startuml
+
+title backend アーキテクチャ構造図
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam ArrowFontSize 10
+
+skinparam package {
+    BackgroundColor #f7f9fc
+    BorderColor #546e7a
+    FontColor #243447
+}
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #546e7a
+    FontColor #243447
+}
+
+package "Backend Bootstrap" as BootstrapLayer {
+    class "Backend Bootstrap" as BackendBootstrap {
+        + production graph を手動 DI で組み立てる
+        + concrete 実装を接続する
+    }
+}
+
+package "Controller" as TransportLayer {
+    class "Controller" as Controller {
+        + Wails Bind の入口
+        + request / response DTO を写像する
+        + caller-owned UseCasePort を起動する
+    }
+
+    class "UseCasePort" as UseCasePort {
+        + controller 依存境界
+    }
+
+    Controller -[hidden]down-> UseCasePort
+}
+
+package "Backend UseCase" as ApplicationLayer {
+    class "Backend UseCase" as BackendUseCase {
+        + query / command / import を orchestrate する
+        + job 状態と完了 payload を扱う
+    }
+
+    class "ServicePort" as ServicePort {
+        + usecase 依存境界
+    }
+
+    class "RuntimeEventPublisherPort" as RuntimeEventPublisherPort {
+        + runtime event 完了 payload 境界
+    }
+
+    class "StateMachine" as StateMachine {
+        + 状態遷移規則だけを持つ
+    }
+
+    class "JobIOService" as JobIOService {
+        + job 状態を取得 / 保存する
+    }
+
+    BackendUseCase -[hidden]down-> ServicePort
+    ServicePort -[hidden]right-> RuntimeEventPublisherPort
+    RuntimeEventPublisherPort -[hidden]right-> StateMachine
+    StateMachine -[hidden]right-> JobIOService
+}
+
+package "Service" as ServiceLayer {
+    class "Service" as Service {
+        + CRUD / import の実処理を担う
+        + concrete API を直接持たない
+    }
+
+    class "RepositoryPort" as RepositoryPort {
+        + 永続化境界
+    }
+
+    class "XMLFilePort" as XmlFilePort {
+        + path 解決 / file open 境界
+    }
+
+    class "XMLRecordReaderPort" as XmlRecordReaderPort {
+        + XML record 読み出し境界
+    }
+
+    class "RuntimeContextPort" as RuntimeContextPort {
+        + progress event 境界
+    }
+
+    RepositoryPort -[hidden]right-> XmlFilePort
+    XmlFilePort -[hidden]right-> XmlRecordReaderPort
+    XmlRecordReaderPort -[hidden]right-> RuntimeContextPort
+}
+
+package "Adapter 群" as AdapterLayer {
+    class "Repository" as RepositoryAdapter {
+        + SQLite などの concrete 永続化
+    }
+
+    class "XML adapter: file" as XmlFileAdapter {
+        + file path / open の concrete 実装
+    }
+
+    class "XML adapter: reader" as XmlReaderAdapter {
+        + decoder の concrete 実装
+    }
+
+    class "Runtime adapter" as RuntimeAdapter {
+        + Wails runtime へ event を送る
+    }
+
+    class "AIProvider" as AiProvider {
+        + provider 差異を吸収する
+    }
+
+    RepositoryAdapter -[hidden]right-> XmlFileAdapter
+    XmlFileAdapter -[hidden]right-> XmlReaderAdapter
+    XmlReaderAdapter -[hidden]right-> RuntimeAdapter
+    RuntimeAdapter -[hidden]right-> AiProvider
+}
+
+BackendBootstrap --> Controller : 手動 DI
+
+Controller --> UseCasePort : 依存する
+UseCasePort --> BackendUseCase : 実装する
+
+BackendUseCase --> ServicePort : 依存する
+ServicePort --> Service : 実装する
+BackendUseCase --> StateMachine : 状態遷移を使う
+BackendUseCase --> JobIOService : job 状態を扱う
+BackendUseCase --> RuntimeEventPublisherPort : 完了 payload を扱う
+
+Service --> RepositoryPort : 依存する
+Service --> XmlFilePort : 依存する
+Service --> XmlRecordReaderPort : 依存する
+Service --> RuntimeContextPort : 依存する
+Service --> AiProvider : 必要時に依存する
+
+RepositoryPort --> RepositoryAdapter : 実装する
+XmlFilePort --> XmlFileAdapter : 実装する
+XmlRecordReaderPort --> XmlReaderAdapter : 実装する
+RuntimeContextPort --> RuntimeAdapter : 実装する
+RuntimeEventPublisherPort --> RuntimeAdapter : 実装する
+
+BootstrapLayer -[hidden]down-> TransportLayer
+TransportLayer -[hidden]down-> ApplicationLayer
+ApplicationLayer -[hidden]down-> ServiceLayer
+ServiceLayer -[hidden]down-> AdapterLayer
+
+BackendBootstrap -[hidden]down-> Controller
+Controller -[hidden]down-> BackendUseCase
+BackendUseCase -[hidden]down-> Service
+Service -[hidden]down-> RepositoryAdapter
+
+legend bottom
+    architecture.md の構造主語と節名に合わせる。
+    層をまたぐ主依存は上から下に読む。
+    Bootstrap の concrete 生成線は見やすさのため要約する。
+endlegend
+
+@enduml

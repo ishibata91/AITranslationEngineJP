@@ -34,15 +34,15 @@
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担1
 - [`er.md`](./er.md): canonical data model と ER 仕様
 - [`diagrams/conceptual/`](./diagrams/conceptual/): conceptual perspective 図の PlantUML source of truth
-- [`diagrams/backend/`](./diagrams/backend/): backend 構造図の D2 source of truth と review 用 SVG
-- [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の D2 source of truth と review 用 SVG
+- [`diagrams/backend/`](./diagrams/backend/): backend 構造図の PlantUML source of truth
+- [`diagrams/frontend/`](./diagrams/frontend/): frontend 構造図の PlantUML source of truth
 - [`diagrams/components/backend/`](./diagrams/components/backend/): backend component detail 図の正本
 - [`diagrams/components/frontend/`](./diagrams/components/frontend/): frontend component detail 図の正本
 - [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
 - [`mocks/`](./mocks/README.md): page mock の正本
 - [`scenario-tests/`](./scenario-tests/README.md): Scenario テスト一覧の正本
 - [`detail-specs/`](./detail-specs/README.md): page ごとの機能要件と非機能要件の正本
-- [`diagrams/er/`](./diagrams/er/): ER 図の D2 source of truth と review 用 SVG
+- [`diagrams/er/`](./diagrams/er/): ER 図の PlantUML source of truth
 - [`references/`](./references/index.md): 外部仕様と参照方針
 - [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
 - [`exec-plans/active/`](./exec-plans/active/README.md): 未完了の plan

@@ -1,0 +1,138 @@
+@startuml
+
+title frontend アーキテクチャ構造図
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 40
+skinparam ranksep 80
+skinparam ArrowFontSize 10
+
+skinparam package {
+    BackgroundColor #f7f9fc
+    BorderColor #546e7a
+    FontColor #243447
+}
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #546e7a
+    FontColor #243447
+}
+
+package "Frontend Bootstrap" as BootstrapLayer {
+    class "Frontend Bootstrap" as FrontendBootstrap {
+        + entrypoint で gateway を生成する
+        + root view へ注入する
+    }
+}
+
+package "View" as ViewLayer {
+    class "View" as View {
+        + 画面を表示する
+        + DOM event を controller へ渡す
+    }
+}
+
+package "ScreenController" as ScreenControllerLayer {
+    class "ScreenController" as ScreenController {
+        + screen local な依存を束ねる
+        + UseCase を起動する
+        + Presenter で view model を返す
+    }
+}
+
+package "Frontend UseCase" as FrontendUseCaseLayer {
+    class "Frontend UseCase" as FrontendUseCase {
+        + 画面更新手順を決める
+        + GatewayContract と Store を使う
+    }
+
+    class "GatewayContract" as GatewayContract {
+        + usecase 依存境界
+    }
+
+    FrontendUseCase -[hidden]down-> GatewayContract
+}
+
+package "Presenter と Store" as PresenterStoreLayer {
+    class "Store" as Store {
+        + screen state の正本を保持する
+    }
+
+    class "Presenter" as Presenter {
+        + state を view model へ整形する
+    }
+
+    Store -[hidden]right-> Presenter
+}
+
+package "Gateway と RuntimeEventAdapter" as TransportAdapterLayer {
+    package "Gateway" as GatewayAdapterGroup {
+        class "Gateway" as WailsGateway {
+            + backend Bind を呼ぶ
+            + DTO 変換を閉じ込める
+        }
+
+        class "GatewayDTO" as GatewayDto {
+            + request / response DTO
+        }
+
+        class "generated wailsjs" as WailsJs {
+            + backend 呼び出し wrapper
+        }
+
+        WailsGateway -[hidden]down-> GatewayDto
+        GatewayDto -[hidden]right-> WailsJs
+    }
+
+    package "RuntimeEventAdapter" as RuntimeAdapterGroup {
+        class "RuntimeEventAdapter" as RuntimeEventAdapter {
+            + Wails event を購読する
+            + screen handler へ写像する
+        }
+
+        class "Wails Runtime" as WailsRuntime {
+            + push event を配信する
+        }
+
+        RuntimeEventAdapter -[hidden]down-> WailsRuntime
+    }
+
+    GatewayAdapterGroup -[hidden]right-> RuntimeAdapterGroup
+}
+
+FrontendBootstrap --> View : gateway を渡す
+
+View --> ScreenController : 操作を渡す
+ScreenController --> FrontendUseCase : 起動する
+ScreenController --> Store : 状態を購読する
+ScreenController --> Presenter : view model を組み立てる
+
+FrontendUseCase --> GatewayContract : 依存する
+FrontendUseCase --> Store : 状態を更新する
+GatewayContract --> WailsGateway : 実装する
+WailsGateway --> GatewayDto : DTO を使う
+WailsGateway --> WailsJs : Bind を呼ぶ
+
+RuntimeEventAdapter --> WailsRuntime : event を購読する
+
+BootstrapLayer -[hidden]down-> ViewLayer
+ViewLayer -[hidden]down-> ScreenControllerLayer
+ScreenControllerLayer -[hidden]down-> FrontendUseCaseLayer
+FrontendUseCaseLayer -[hidden]down-> PresenterStoreLayer
+PresenterStoreLayer -[hidden]down-> TransportAdapterLayer
+
+FrontendBootstrap -[hidden]down-> View
+View -[hidden]down-> ScreenController
+ScreenController -[hidden]down-> FrontendUseCase
+FrontendUseCase -[hidden]down-> WailsGateway
+
+legend bottom
+    architecture.md の構造主語と節名に合わせる。
+    層をまたぐ主依存は上から下に読む。
+    RuntimeEventAdapter の handler / store 更新線は見やすさのため要約する。
+endlegend
+
+@enduml

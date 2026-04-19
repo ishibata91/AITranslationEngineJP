@@ -1,0 +1,98 @@
+@startuml
+
+title dashboard-and-app-shell frontend component detail
+
+top to bottom direction
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 55
+skinparam ranksep 65
+skinparam ArrowFontSize 11
+
+skinparam package {
+    BackgroundColor #f7f9fc
+    BorderColor #546e7a
+    FontColor #243447
+}
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #546e7a
+    FontColor #243447
+}
+
+package "dashboard-and-app-shell component detail" as ShellDetail {
+    package "package: View" as ViewPackage {
+        class "App entry" as ShellEntry {
+            + actual: App.svelte
+            + shellState: ShellState
+            + createShellState(): void
+            + renderShell(): void
+        }
+
+        class "App shell" as ShellFrame {
+            + actual: AppShell.svelte
+            + renderHeader(): void
+            + renderNavigation(): void
+            + renderRouteView(): RouteView
+        }
+
+        package "package: Route Views" as RouteViews {
+            class "Dashboard view" as DashboardView {
+                + routeId: dashboard
+                + entryCards: five cards
+                + openDestination(route): void
+            }
+
+            class "Master dictionary view" as MasterDictionaryView {
+                + routeId: master_dictionary
+                + pageLabel: マスター辞書
+                + renderImportAndList(): void
+                + keepStateInsidePage(): void
+            }
+
+            class "Placeholder view" as PlaceholderView {
+                + statusText: 準備中
+                + renderRemainingRoutes(): void
+            }
+        }
+
+        class "Navigation surface" as NavigationSurface {
+            + destinations: five routes
+            + activeRoute: RouteId
+            + currentLocation: string
+            + selectDestination(route): void
+        }
+    }
+
+    package "package: Store" as StorePackage {
+        class "Shell state" as ShellState {
+            + actual: shell-state.ts
+            + routeOrder: RouteId list
+            + currentRoute: dashboard
+            + currentPageLabel: string
+            + currentLocationLabel: string
+            + placeholderStatus: string
+            + navigate(route): void
+            + getRouteMeta(route): RouteMeta
+        }
+    }
+}
+
+ShellEntry --> ShellState
+ShellEntry --> ShellFrame
+ShellState --> ShellFrame
+
+ShellFrame --> NavigationSurface
+ShellFrame --> DashboardView
+ShellFrame --> MasterDictionaryView
+ShellFrame --> PlaceholderView
+
+NavigationSurface --> ShellState
+DashboardView --> ShellState
+
+ShellState -[#607d8b,dashed]-> NavigationSurface
+ShellState -[#607d8b,dashed]-> DashboardView
+ShellState -[#607d8b,dashed]-> MasterDictionaryView
+ShellState -[#607d8b,dashed]-> PlaceholderView
+
+@enduml

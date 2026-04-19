@@ -1,0 +1,169 @@
+@startuml
+
+title master-dictionary-management backend component detail
+
+top to bottom direction
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+skinparam nodesep 55
+skinparam ranksep 65
+skinparam ArrowFontSize 11
+
+skinparam package {
+    BackgroundColor #f7f9fc
+    BorderColor #546e7a
+    FontColor #243447
+}
+skinparam class {
+    BackgroundColor #ffffff
+    BorderColor #546e7a
+    FontColor #243447
+}
+
+package "master-dictionary-management backend component detail" as BackendMasterDictionaryDetail {
+    package "package: Bootstrap" as BootstrapPackage {
+        class "AppController composition root" as CompositionRoot {
+            + wireController(): MasterDictionaryController
+            + wireUsecase(): MasterDictionaryUsecase
+            + wireServices(): Query/Command/Import Services
+            + wireAdapters(): Repository/XML/Wails adapters
+        }
+    }
+
+    package "package: Controller" as ControllerPackage {
+        class "Wails controller" as DictionaryController {
+            + MasterDictionaryGetPage(request)
+            + MasterDictionaryGetDetail(entryId)
+            + MasterDictionaryCreate(draft)
+            + MasterDictionaryUpdate(entryId, draft)
+            + MasterDictionaryDelete(entryId)
+            + MasterDictionaryImportXML(filePath)
+        }
+
+        class "caller-owned UsecasePort" as UsecasePort {
+            + GetPage(query)
+            + GetEntry(entryId)
+            + CreateEntry(input)
+            + UpdateEntry(input)
+            + DeleteEntry(input)
+            + ImportXML(input)
+        }
+    }
+
+    package "package: UseCase" as UsecasePackage {
+        class "MasterDictionaryUsecase" as MasterDictionaryUsecase {
+            + GetPage(query)
+            + GetEntry(entryId)
+            + CreateEntry(input)
+            + UpdateEntry(input)
+            + DeleteEntry(input)
+            + ImportXML(input)
+        }
+
+        class "caller-owned service ports" as ServicePorts {
+            + QueryServicePort
+            + CommandServicePort
+            + ImportServicePort
+            + RuntimeEventPublisherPort
+        }
+    }
+
+    package "package: Service" as ServicePackage {
+        class "Query service" as QueryService {
+            + SearchEntries(query)
+            + LoadEntryDetail(entryId)
+        }
+
+        class "Command service" as CommandService {
+            + CreateEntry(input)
+            + UpdateEntry(input)
+            + DeleteEntry(input)
+        }
+
+        class "Import service" as ImportService {
+            + ImportXML(input)
+            + emitImportProgress(progress)
+        }
+
+        class "caller-owned adapter ports" as AdapterPorts {
+            + RepositoryPort
+            + XMLFilePort
+            + XMLRecordReaderPort
+            + RuntimeContextPort
+        }
+    }
+
+    package "package: Adapter" as AdapterPackage {
+        class "repository adapter" as RepositoryAdapter {
+            + List(query)
+            + GetByID(entryId)
+            + Create(entry)
+            + Update(entry)
+            + Delete(entryId)
+            + UpsertBySourceAndREC(entry)
+        }
+
+        class "filesystem / XML file adapter" as XmlFileAdapter {
+            + ResolvePath(filePath)
+            + Open(filePath)
+        }
+
+        class "XML record reader adapter" as XmlRecordReaderAdapter {
+            + CountStringRecords(reader)
+            + ReadStringRecords(reader)
+        }
+
+        class "Wails runtime adapter" as RuntimeEventAdapter {
+            + PublishImportProgress(payload)
+            + PublishImportCompleted(payload)
+        }
+    }
+
+    package "test boundary" as TestingBoundary {
+        class "controller/usecase/service unit tests" as UpperUnitTests {
+            + fake ports only
+        }
+
+        class "bootstrap / repository / XML wiring tests" as LowerIntegrationTests {
+            + manual DI proof
+            + concrete adapter proof
+        }
+    }
+}
+
+CompositionRoot --> DictionaryController : wire
+CompositionRoot --> MasterDictionaryUsecase : wire
+CompositionRoot --> QueryService : wire
+CompositionRoot --> CommandService : wire
+CompositionRoot --> ImportService : wire
+CompositionRoot --> RepositoryAdapter : adapter
+CompositionRoot --> XmlFileAdapter : adapter
+CompositionRoot --> XmlRecordReaderAdapter : adapter
+CompositionRoot --> RuntimeEventAdapter : adapter
+
+DictionaryController --> UsecasePort : depends
+UsecasePort --> MasterDictionaryUsecase : delegates
+
+MasterDictionaryUsecase --> ServicePorts : depends
+ServicePorts --> QueryService : query
+ServicePorts --> CommandService : command
+ServicePorts --> ImportService : import
+ServicePorts --> RuntimeEventAdapter : events
+
+QueryService --> AdapterPorts : depends
+CommandService --> AdapterPorts : depends
+ImportService --> AdapterPorts : depends
+
+AdapterPorts --> RepositoryAdapter : repository
+AdapterPorts --> XmlFileAdapter : filesystem
+AdapterPorts --> XmlRecordReaderAdapter : XML decoding
+AdapterPorts --> RuntimeEventAdapter : runtime
+
+UpperUnitTests -[#607d8b,dashed]-> DictionaryController : unit
+UpperUnitTests -[#607d8b,dashed]-> MasterDictionaryUsecase : unit
+UpperUnitTests -[#607d8b,dashed]-> ImportService : unit
+LowerIntegrationTests -[#607d8b,dashed]-> CompositionRoot : wiring
+LowerIntegrationTests -[#607d8b,dashed]-> RepositoryAdapter : repository
+LowerIntegrationTests -[#607d8b,dashed]-> XmlFileAdapter : filesystem/XML
+
+@enduml

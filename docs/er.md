@@ -7,12 +7,13 @@
 
 ## ER 図
 
-正本: [`combined-data-model-er.d2`](./diagrams/er/combined-data-model-er.d2)
+正本: [`combined-data-model-er.puml`](./diagrams/er/combined-data-model-er.puml)
 
-review artifact: [`combined-data-model-er.svg`](./diagrams/er/combined-data-model-er.svg)
+review artifact は正本にしない。
+必要時だけ `tmp/` へ一時生成する。
 
 ER 図の正本は 1 枚だけとする。
-旧分割 ER の `input-data-er.d2`、`foundation-master-er.d2`、`translation-job-er.d2` は廃止済みの pointer として扱う。
+旧分割 ER の `input-data-er.puml`、`foundation-master-er.puml`、`translation-job-er.puml` は廃止済みの pointer として扱う。
 
 ## 全体方針
 
@@ -77,7 +78,7 @@ Attempt 履歴テーブルは持たない。
 
 ## Migration 化時の注意
 
-- D2 は概念 ER の正本であり、SQLite migration では `NOT NULL`、`UNIQUE`、index、cascade 方針を別途固定する
+- PlantUML は概念 ER の正本であり、SQLite migration では `NOT NULL`、`UNIQUE`、index、cascade 方針を別途固定する
 - `NPC_PROFILE` は `target_plugin_name + form_id + record_type` を初期同一性キーとして unique 化する
 - `lifecycle`、`scope`、`source`、`state`、`phase_type` は初期 migration では文字列列として扱い、定数はアプリケーション側で管理する
 - `credential_ref` は暗号化済み API key そのものではなく、secret store への参照だけを保持する

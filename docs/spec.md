@@ -70,54 +70,57 @@
 
 このセクションでは、仕様全体を通した業務フローを整理する。
 
-```d2
-direction: right
+```plantuml
+@startuml
 
-S1: {
-  label: "基盤構築フロー"
-  direction: down
-  A: "任意のプラグインの NPC 入力"
-  B: "共通ペルソナ構築"
-  C: "xTranslator 形式入力"
-  D: "共通辞書構築"
-  E: "UIで共通基盤データを観測"
-  A -> B
-  C -> D
-  B -> E
-  D -> E
+top to bottom direction
+skinparam packageStyle rectangle
+
+rectangle "基盤構築フロー" as FoundationFlow {
+    rectangle "任意のプラグインの NPC 入力" as FoundationNpcInput
+    rectangle "共通ペルソナ構築" as SharedPersonaBuild
+    rectangle "xTranslator 形式入力" as XTranslatorInput
+    rectangle "共通辞書構築" as SharedDictionaryBuild
+    rectangle "UIで共通基盤データを観測" as ObserveFoundationData
+
+    FoundationNpcInput --> SharedPersonaBuild
+    XTranslatorInput --> SharedDictionaryBuild
+    SharedPersonaBuild --> ObserveFoundationData
+    SharedDictionaryBuild --> ObserveFoundationData
 }
 
-S2: {
-  label: "mod翻訳フロー"
-  direction: down
-  F: "mod 翻訳入力データ準備\nxEdit 抽出 / 入力データ登録"
-  G: "UIで内容確認"
-  H: "翻訳補助メタデータ整備\n会話 / クエスト / NPC 属性"
-  I: "翻訳ジョブ作成\n1入力ごとに1ジョブ"
-  I1: "ジョブ管理と実行制御\n複数ジョブ / 中断 / 再開 / 失敗回復"
-  J: "AI基盤選択\nLMStudio / Gemini / xAI"
-  J1: "実行方式\n単発 / Batch API"
-  K: "単語翻訳フェーズ\n用語を確定して辞書化"
-  L: "NPCペルソナ生成フェーズ\nNPC 発話と属性から生成"
-  M: "本文翻訳フェーズ\n翻訳レコード本文を翻訳\n保護要素はこの内部で保持する\nペルソナを参照して翻訳する"
-  N: "結果確認"
-  O: "翻訳成果物出力\n標準配布形式 / xTranslator 互換形式"
-  F -> G
-  G -> H
-  H -> I
-  I -> I1
-  I -> J
-  J -> J1
-  J -> K
-  K -> L
-  L -> M
-  M -> N
-  N -> I: "修正あり"
-  N -> O: "問題なし"
+rectangle "mod翻訳フロー" as ModTranslationFlow {
+    rectangle "mod 翻訳入力データ準備\nxEdit 抽出 / 入力データ登録" as PrepareInput
+    rectangle "UIで内容確認" as ConfirmInput
+    rectangle "翻訳補助メタデータ整備\n会話 / クエスト / NPC 属性" as PrepareMetadata
+    rectangle "翻訳ジョブ作成\n1入力ごとに1ジョブ" as CreateJob
+    rectangle "ジョブ管理と実行制御\n複数ジョブ / 中断 / 再開 / 失敗回復" as ControlJob
+    rectangle "AI基盤選択\nLMStudio / Gemini / xAI" as SelectAiRuntime
+    rectangle "実行方式\n単発 / Batch API" as SelectExecutionMode
+    rectangle "単語翻訳フェーズ\n用語を確定して辞書化" as TermTranslationPhase
+    rectangle "NPCペルソナ生成フェーズ\nNPC 発話と属性から生成" as PersonaGenerationPhase
+    rectangle "本文翻訳フェーズ\n翻訳レコード本文を翻訳\n保護要素はこの内部で保持する\nペルソナを参照して翻訳する" as BodyTranslationPhase
+    rectangle "結果確認" as ReviewResult
+    rectangle "翻訳成果物出力\n標準配布形式 / xTranslator 互換形式" as ExportArtifact
+
+    PrepareInput --> ConfirmInput
+    ConfirmInput --> PrepareMetadata
+    PrepareMetadata --> CreateJob
+    CreateJob --> ControlJob
+    CreateJob --> SelectAiRuntime
+    SelectAiRuntime --> SelectExecutionMode
+    SelectAiRuntime --> TermTranslationPhase
+    TermTranslationPhase --> PersonaGenerationPhase
+    PersonaGenerationPhase --> BodyTranslationPhase
+    BodyTranslationPhase --> ReviewResult
+    ReviewResult --> CreateJob : 修正あり
+    ReviewResult --> ExportArtifact : 問題なし
 }
 
-P: "UIで翻訳結果を観測"
-S2.O -> P
+rectangle "UIで翻訳結果を観測" as ObserveTranslationResult
+ExportArtifact --> ObserveTranslationResult
+
+@enduml
 ```
 
 ### 6.1 業務フローの要点
@@ -135,57 +138,50 @@ S2.O -> P
 
 #### 正常系
 
-```d2
-direction: right
+```plantuml
+@startuml
 
-Start: "開始"
-Draft: "Draft"
-Ready: "Ready"
-Running: "Running"
-Completed: "Completed"
-End: "終了"
+top to bottom direction
 
-Start -> Draft
-Draft -> Ready: "ジョブ作成"
-Ready -> Running: "実行開始"
-Running -> Completed: "翻訳完了"
-Completed -> End
+[*] --> Draft : 開始
+Draft --> Ready : ジョブ作成
+Ready --> Running : 実行開始
+Running --> Completed : 翻訳完了
+Completed --> [*] : 終了
+
+@enduml
 ```
 
 #### 操作系
 
-```d2
-direction: right
+```plantuml
+@startuml
 
-Running: "Running"
-Paused: "Paused"
-Ready: "Ready"
-Canceled: "Canceled"
-End: "終了"
+top to bottom direction
 
-Running -> Paused: "中断"
-Paused -> Running: "再開"
-Ready -> Canceled: "キャンセル"
-Paused -> Canceled: "キャンセル"
-Canceled -> End
+Running --> Paused : 中断
+Paused --> Running : 再開
+Ready --> Canceled : キャンセル
+Paused --> Canceled : キャンセル
+Canceled --> [*] : 終了
+
+@enduml
 ```
 
 #### 異常系
 
-```d2
-direction: right
+```plantuml
+@startuml
 
-Running: "Running"
-RecoverableFailed: "RecoverableFailed"
-Ready: "Ready"
-Failed: "Failed"
-End: "終了"
+top to bottom direction
 
-Running -> RecoverableFailed: "失敗回復可能"
-RecoverableFailed -> Running: "再開 / リトライ"
-RecoverableFailed -> Ready: "再実行準備"
-Running -> Failed: "回復不能な失敗"
-Failed -> End
+Running --> RecoverableFailed : 失敗回復可能
+RecoverableFailed --> Running : 再開 / リトライ
+RecoverableFailed --> Ready : 再実行準備
+Running --> Failed : 回復不能な失敗
+Failed --> [*] : 終了
+
+@enduml
 ```
 
 ### 7.1 状態の要点

@@ -85,6 +85,17 @@ DON'T:
 - AI が画像を確認し、線、文字、余白、線長、交差、legend の干渉を確認する。
 - 可読性が悪い場合は、配置調整ではなく図の分割を先に検討する。
 
+## Readability Patterns
+
+- 正本図の用語、package 名、layer 名は、対象 docs の構造主語と節名に合わせる。
+- architecture 図では [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の構造主語、依存方向、節名を優先する。
+- 正本図では可読性のために node を勝手に畳まず、まず edge、legend、note の粒度で調整する。
+- package / group は意味単位または layer 単位で作り、上から下に主依存を読める順序に固定する。
+- 長距離の wiring や bootstrap の concrete 生成線は、全 edge を描くより legend へ要約する。
+- ER 図は table の意味単位で group を作り、関係線を最小限にして読む順序を安定させる。
+- docs 正本図は neutral な構造図にし、差分図 style は `docs/exec-plans/` 配下の review artifact に限定する。
+- `skinparam linetype ortho` のような角ばった線指定は、読みやすさが下がる場合があるため既定では使わない。
+
 ## Split Rule
 
 - primary node が 12 個を超える時は分割する。
