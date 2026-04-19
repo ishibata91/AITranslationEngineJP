@@ -1,14 +1,14 @@
 # Task Plan: 2026-04-19-sqlite-migration-repositories
 
 - `workflow`: propose-plans
-- `status`: design-bundle-draft
+- `status`: completed
 - `lane_owner`: Codex が handoff を設計し、人間承認後に GitHub Copilot が実装する。
 - `task_id`: `2026-04-19-sqlite-migration-repositories`
 - `task_mode`: backend-persistence
 - `request_summary`: ER ベースで SQLite の canonical schema migration と repository を作成する計画を作る。
 - `goal`: 統合 ER を SQLite migration と repository contract / implementation / test に落とす。既存 service、bootstrap、UI への接続変更は含めない。
 - `constraints`: product code はこの plan 作成では変更しない。実装 scope でも旧 master 名 schema / repository / service / UI の修正、削除、切替は行わない。旧資産の移行は別 TODO plan に分ける。
-- `close_conditions`: design bundle が active plan に存在する。human review 後に implementation-scope を migration + repository 作成の Copilot handoff として使える。
+- `close_conditions`: met. design bundle が存在し、human review 後に implementation-scope を migration + repository 作成の Copilot handoff として使える。
 
 ## Artifact Index
 
@@ -37,31 +37,35 @@
 ## HITL Status
 
 - `functional_or_design_hitl`: `required-after-design-bundle`
-- `approval_record`: `pending-after-design-bundle`
+- `approval_record`: `approved-by-user-close-request-2026-04-19`
 
 ## Related TODO Plan
 
-- `legacy_schema_ui_migration`: `../2026-04-19-legacy-schema-ui-migration-todo/plan.md`
+- `legacy_schema_ui_migration`: `../../active/2026-04-19-legacy-schema-ui-migration-todo/plan.md`
 - `purpose`: 新 schema / repository 作成後に、旧 master 名 schema / repository / service / UI を canonical schema へ寄せる作業を別 task として設計する。
 
 ## Copilot Result
 
-- `completed_handoffs`: pending
-- `touched_files`: pending
-- `implemented_scope`: pending
-- `test_results`: pending
-- `implementation_investigation`: pending
+- `completed_handoffs`: N/A. design-only close.
+- `touched_files`: N/A. product code was not changed by this plan close.
+- `implemented_scope`: N/A. implementation-scope is ready for human-to-Copilot handoff.
+- `test_results`: N/A for plan close.
+- `implementation_investigation`: N/A
 - `ui_evidence`: N/A
-- `implementation_review_result`: pending
-- `sonar_gate_result`: pending
-- `residual_risks`: pending
-- `docs_changes`: pending. Copilot must not change docs.
+- `implementation_review_result`: N/A
+- `sonar_gate_result`: N/A
+- `residual_risks`: 旧 master 名 schema / repository / service / UI の移行は follow-up plan で扱う。
+- `docs_changes`: task-local exec plan only. Copilot must not change docs.
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: pending after implementation review.
-- `follow_up`: 旧 schema / repository / service / UI の移行は TODO plan で扱う。
+- `canonicalized_artifacts`: N/A
+- `follow_up`: `../../active/2026-04-19-legacy-schema-ui-migration-todo/plan.md`
 
 ## Outcome
 
-- Active plan was narrowed to canonical SQLite migration and repository creation only.
+- Canonical SQLite migration and repository design bundle was closed.
+- `requirements-design.md`, `scenario-design.md`, and `implementation-scope.md` remain task-local handoff artifacts.
+- Product code and product tests were not changed by Codex during this closeout.
+- Legacy schema / repository / service / UI migration was handed to `2026-04-19-legacy-schema-ui-migration-todo`.
+- `completed_at`: 2026-04-19

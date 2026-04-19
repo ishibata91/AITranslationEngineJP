@@ -1,10 +1,10 @@
 # Implementation Scope: 2026-04-19-sqlite-migration-repositories
 
 - `skill`: implementation-scope
-- `status`: draft-not-approved
+- `status`: approved
 - `source_plan`: `./plan.md`
 - `human_review_status`: approved
-- `approval_record`: pending-after-design-bundle
+- `approval_record`: approved-by-user-close-request-2026-04-19
 - `copilot_entry`: `.github/skills/implementation-orchestrate/SKILL.md`
 - `handoff_runtime`: `github-copilot`
 
