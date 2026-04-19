@@ -59,7 +59,7 @@
 ## HITL Status
 
 - `functional_or_design_hitl`: `approved-for-implementation-scope`
-- `approval_record`: `approved-by-user-2026-04-20-handoff-prompt-request`
+- `approval_record`: `approved-by-user-2026-04-20-usecase-scope-handoff`
 
 ## Copilot Result
 
@@ -84,4 +84,4 @@
 - TODO stub was promoted to design-bundle draft.
 - `requirements-design.md` and `scenario-design.md` were started.
 - Human-approved design decisions were reflected into `implementation-scope.md`.
-- Copilot handoff prompt is ready in `implementation-scope.md`.
+- Oversized Copilot handoffs were compressed into 10 use-case vertical-slice RunSubagent units and approved for implementation.

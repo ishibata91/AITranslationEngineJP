@@ -71,6 +71,28 @@ product code と product test は変更しない。
 入出力の詳細は [designer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/contracts/designer.contract.json) を読む。
 `designer` は design artifact の状態、human review に必要な情報、戻し先を返す。
 
+## Implementation Scope Gate
+
+implementation-scope を扱う時は、Copilot 側 RunSubagent の token 量を事前計算しない。
+代わりに `implementation-scope` skill の Handoff Split Rule と Size Gate に従い、論理境界と規模の目安で分割する。
+
+各 handoff は原則として `1 e2e use case × 1 validation intent` に収める。
+use case は domain 名や画面名ではなく、人間または system が開始する処理単位として扱う。
+e2e use case は、1 つの操作または system process が、必要な backend / frontend layer を通って完了判定できる単位である。
+
+各 handoff は想定 touched files と changed lines で規模を確認する。
+normal は `15 files` 以下、かつ `800 changed lines` 以下とする。
+caution は `16-25 files` または `801-1500 changed lines` とし、1 件にする理由を `notes` に書く。
+split required は `26 files` 以上、または `1501 changed lines` 以上とし、handoff 前に分割する。
+hard stop は `40 files` 以上、または `2500 changed lines` 以上とし、1 handoff として渡さず propose-plans へ戻す。
+
+import、generation、settings save、preview、create / update / delete、export のように use case や failure mode が違う処理は、同じ layer でも分割する。
+domain 名や画面名だけを根拠に、複数 use case を同じ handoff にまとめない。
+layer だけを根拠に、単体では完了判定できない micro handoff を量産しない。
+
+Copilot 側から scope 過大で reroute された場合は、既存 approval を維持せず `pending-human-review` に戻す。
+分割後の `approval_record` は human review 後に更新する。
+
 ## 進め方
 
 1. `propose_plans` から渡された handoff packet を確認する。

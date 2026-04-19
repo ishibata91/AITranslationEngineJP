@@ -4,7 +4,8 @@
 - `status`: approved
 - `source_plan`: `./plan.md`
 - `human_review_status`: approved
-- `approval_record`: approved-by-user-2026-04-20-handoff-prompt-request
+- `approval_record`: approved-by-user-2026-04-20-usecase-scope-handoff
+- `scope_revision_reason`: implementation-orchestrate rerouted broad handoffs, then the 67-step layer split was judged over-fragmented. This revision uses use-case vertical slices with one validation intent per handoff.
 - `copilot_entry`: `.github/skills/implementation-orchestrate/SKILL.md`
 - `handoff_runtime`: `github-copilot`
 
@@ -39,28 +40,36 @@
 - 原文 trim は全 dictionary 登録経路で必須にする。
 - 訳語の前後ノイズ除去は frontend の手動新規登録だけに限定する。
 
+## Handoff Split Basis
+
+- split_rule: `1 independently verifiable use-case slice x 1 validation intent`
+- use_case_definition: domain 名や画面名ではなく、人間または system が開始する処理単位で切る。
+- layer_policy: この plan では layer 単位の 67 分割は過剰なため、1 use case の完了に必要な backend / frontend 変更を同じ handoff に含める。
+- fallback_policy: それでも context が不足する場合だけ、当該 use case を backend contract と frontend UI / state に二分して propose-plans へ戻す。
+- object_names: `dictionary` / `persona` は対象 object 名としてだけ使い、分割根拠にはしない。
+
 ## Handoff Order
 
-1. `backend-dictionary-canonical-cutover`
-2. `backend-persona-canonical-cutover`
-3. `frontend-contract-ui-cutover`
-4. `tests-legacy-schema-ui-migration`
-5. `review-legacy-schema-ui-migration`
+1. `schema-legacy-cutover`
+2. `dictionary-read-detail-cutover`
+3. `dictionary-create-update-delete-cutover`
+4. `dictionary-xml-import-cutover`
+5. `persona-read-detail-cutover`
+6. `persona-ai-settings-restart-cutover`
+7. `persona-json-preview-cutover`
+8. `persona-generation-cutover`
+9. `persona-edit-delete-cutover`
+10. `final-validation-and-review`
 
 ## Handoffs
 
-### `backend-dictionary-canonical-cutover`
+### `schema-legacy-cutover`
 
-- `implementation_target`: backend dictionary persistence / service / Wails boundary
+- `implementation_target`: schema lifecycle cutover
 - `owned_scope`:
-  - `internal/infra/sqlite/migrations/` legacy master dictionary drop and canonical schema wiring if needed
-  - `internal/repository/` dictionary repository adapters or removals needed for canonical `DICTIONARY_ENTRY`
-  - `internal/infra/sqlite/` dictionary SQLite concrete and tests
-  - `internal/service/master_dictionary_*`
-  - `internal/usecase/master_dictionary_*`
-  - `internal/controller/wails/master_dictionary*_controller.go`
-  - `internal/bootstrap/app_controller.go`
-  - related backend tests under the same packages
+  - `internal/infra/sqlite/migrations/` legacy drop and `PERSONA_GENERATION_SETTINGS` creation
+  - `internal/infra/sqlite/dbinit/` migration registration only if the local migration mechanism requires it
+  - schema / migration tests under the same backend packages
 - `depends_on`:
   - `./requirements-design.md`
   - `./scenario-design.md`
@@ -68,116 +77,207 @@
 - `validation_commands`:
   - `go test ./internal/infra/sqlite ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap`
   - `python3 scripts/harness/run.py --suite structure`
-- `completion_signal`: master dictionary read / create / update / delete / XML import reads and writes canonical `DICTIONARY_ENTRY` and `XTRANSLATOR_TRANSLATION_XML`. New writes to old `master_dictionary_entries` are gone. `REC` / `EDID` are absent from frontend / Wails contract and UI-facing response fields. Duplicate detection uses `trim(source_term) + translated_term`.
+- `completion_signal`: legacy dictionary / persona master tables are dropped without backfill, `PERSONA_GENERATION_SETTINGS(id = 1)` exists, and no persisted run status table is created.
 - `notes`:
-  - Do not create a new REC / EDID provenance schema.
-  - Do not normalize XML import translated terms globally.
-  - Frontend manual new registration may strip obvious translated-term edge noise, but backend must not broaden that rule to XML import or update paths.
+  - Use case: schema cutover.
+  - Do not create dual-write compatibility tables.
   - Do not update canonical docs in this handoff.
 
-### `backend-persona-canonical-cutover`
+### `dictionary-read-detail-cutover`
 
-- `implementation_target`: backend persona persistence / generation / service / Wails boundary
+- `implementation_target`: dictionary list / search / filter / detail
 - `owned_scope`:
-  - `internal/infra/sqlite/migrations/` legacy master persona table drop and `PERSONA_GENERATION_SETTINGS` creation
-  - `internal/repository/` persona query / command / AI settings repositories and adapters
-  - `internal/infra/sqlite/` persona SQLite concrete and tests
-  - `internal/service/master_persona_*`
-  - `internal/usecase/master_persona_*`
-  - `internal/controller/wails/master_persona_controller.go`
-  - `internal/bootstrap/app_controller.go`
-  - related backend tests under the same packages
+  - backend repository / SQLite / service / usecase / Wails read paths for canonical `DICTIONARY_ENTRY`
+  - `internal/bootstrap/app_controller.go` wiring needed only for dictionary read paths
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller read paths
+  - `frontend/src/ui/screens/master-dictionary/` read / detail display
+  - focused backend and frontend tests for read / detail
 - `depends_on`:
-  - `backend-dictionary-canonical-cutover`
-- `validation_commands`:
-  - `go test ./internal/infra/sqlite ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap`
-  - `python3 scripts/harness/run.py --suite structure`
-- `completion_signal`: master persona list / detail read from `PERSONA` + `NPC_PROFILE` + needed `NPC_RECORD`. `master_persona_entries`, `master_persona_ai_settings`, and `master_persona_run_status` are no longer used for new reads / writes. `PERSONA_GENERATION_SETTINGS(id = 1)` persists provider / model only. API key remains behind the existing secret-store seam. No `PERSONA_GENERATION_RUN_STATUS` table / row is created. Runtime run state stays in memory only.
-- `notes`:
-  - Existing persona identity must be `target_plugin_name + form_id + record_type`.
-  - `target_plugin_name` is identity / filter key, not persona lifecycle ownership.
-  - Preview and execute must exclude no-dialogue NPCs at parse time.
-  - Preview / Wails contract must not return zero-dialogue or generic NPC skip counts.
-  - Preview should expose persona candidate count, newly addable count, existing count, target plugin, file name, and status as needed.
-  - Generation must re-check existing `PERSONA` immediately before write and must never overwrite existing persona.
-  - Create `NPC_PROFILE` and `PERSONA` in the same transaction only after AI output is complete for that NPC.
-  - A failed or partial generation must not leave `NPC_PROFILE` or `PERSONA` rows for that NPC.
-  - Edit/update accepts only persona summary, speech style, and persona body fields.
-  - Remove `generation_source_json`, `baseline_applied`, dialogue payload, dialogue modal support, and dialogue count from product-facing contracts.
-  - Do not update canonical docs in this handoff.
-
-### `frontend-contract-ui-cutover`
-
-- `implementation_target`: frontend gateway contract, presenter, state, and UI screens
-- `owned_scope`:
-  - `frontend/src/application/gateway-contract/master-dictionary/`
-  - `frontend/src/application/gateway-contract/master-persona/`
-  - `frontend/src/application/contract/` affected dictionary / persona contracts
-  - `frontend/src/application/store/` affected dictionary / persona state
-  - `frontend/src/application/presenter/` affected dictionary / persona presenters
-  - `frontend/src/application/usecase/` affected dictionary / persona usecases
-  - `frontend/src/controller/master-dictionary/`
-  - `frontend/src/controller/master-persona/`
-  - `frontend/src/controller/runtime/master-*`
-  - `frontend/src/controller/wails/` affected dictionary / persona gateways and DTO mapping
-  - `frontend/src/ui/screens/master-dictionary/`
-  - `frontend/src/ui/screens/master-persona/`
-  - affected app shell route wiring
-- `depends_on`:
-  - `backend-dictionary-canonical-cutover`
-  - `backend-persona-canonical-cutover`
-- `validation_commands`:
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
-- `completion_signal`: UI matches the task-local HTML mock at the behavioral level. Dictionary UI no longer shows or submits `REC` / `EDID`. Persona preview shows candidate count, newly addable count, and existing count only. No-dialogue / generic skip count UI is gone. Persona detail no longer shows generation source, baseline, dialogue count, or dialogue modal. Persona edit form exposes only summary, speech style, and body. Restarted app state starts from JSON unselected state while saved AI provider / model is restored.
-- `notes`:
-  - Do not reintroduce manual persona creation.
-  - Do not show implementation planning text in the UI.
-  - Existing read-only NPC identity / snapshot fields may be displayed if supplied by backend, but they must not be editable.
-  - Keep UI controls close to the current screen structure; this is not a layout redesign.
-  - Tests must not require real AI API credentials.
-  - Do not update canonical docs in this handoff.
-
-### `tests-legacy-schema-ui-migration`
-
-- `implementation_target`: backend and frontend tests for migration behavior
-- `owned_scope`:
-  - backend repository / service / usecase / controller / bootstrap tests affected by the cutover
-  - frontend gateway / presenter / usecase / screen controller tests affected by the cutover
-  - focused UI tests for the changed dictionary and persona views where existing structure places them
-- `depends_on`:
-  - `backend-dictionary-canonical-cutover`
-  - `backend-persona-canonical-cutover`
-  - `frontend-contract-ui-cutover`
+  - `schema-legacy-cutover`
 - `validation_commands`:
   - `go test ./internal/...`
   - `npm --prefix frontend run check`
   - `npm --prefix frontend run test -- --runInBand`
   - `python3 scripts/harness/run.py --suite structure`
-- `completion_signal`: Tests prove canonical read / write, old table drop, no backfill, no old master write, dictionary trim + duplicate rule, no REC / EDID contract, frontend-only translated-term edge noise cleanup, persona identity key, no overwrite, no-dialogue parse exclusion, no zero-dialogue / generic skip count contract, no run status persistence, settings persistence, transient run state, and no partial `NPC_PROFILE` / `PERSONA` rows on generation failure.
+- `completion_signal`: dictionary list / search / filter / detail reads canonical data and no product-facing contract or UI exposes `REC` / `EDID`.
 - `notes`:
-  - Use fake AI transport only.
-  - Use temp DB fixtures.
-  - Include at least one failure case proving transaction rollback for persona generation.
-  - Include at least one restart/bootstrap recreation case proving JSON unselected state and restored provider / model.
+  - Use case: read / detail.
+  - Layer exception: this vertical slice crosses layers so the read behavior can be validated end to end in one lane.
   - Do not update canonical docs in this handoff.
 
-### `review-legacy-schema-ui-migration`
+### `dictionary-create-update-delete-cutover`
 
-- `implementation_target`: implementation review and UI evidence
+- `implementation_target`: dictionary create / update / delete
 - `owned_scope`:
-  - implementation-review record
-  - UI evidence record using existing local review conventions
+  - backend repository / SQLite / service / usecase / Wails command paths for canonical `DICTIONARY_ENTRY`
+  - `internal/bootstrap/app_controller.go` wiring needed only for dictionary command paths
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller command paths
+  - `frontend/src/ui/screens/master-dictionary/` create / edit / delete UI
+  - focused backend and frontend tests for mutation and duplicate detection
 - `depends_on`:
-  - `tests-legacy-schema-ui-migration`
+  - `dictionary-read-detail-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: create / update / delete writes canonical dictionary data, trims source terms on all registration paths, and detects duplicates by `trim(source_term) + translated_term`.
+- `notes`:
+  - Use case: create / update / delete.
+  - Translated-term edge cleanup is limited to frontend manual new registration.
+  - Do not normalize XML import or update translated terms globally.
+  - Do not update canonical docs in this handoff.
+
+### `dictionary-xml-import-cutover`
+
+- `implementation_target`: dictionary XML import
+- `owned_scope`:
+  - backend XML parse / repository / SQLite / service / usecase / Wails import paths
+  - canonical `XTRANSLATOR_TRANSLATION_XML` provenance and imported `DICTIONARY_ENTRY` persistence
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller import paths
+  - `frontend/src/ui/screens/master-dictionary/` import UI and summary
+  - focused backend and frontend tests with small XML fixtures
+- `depends_on`:
+  - `dictionary-create-update-delete-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: XML import stores provenance and entries canonically while keeping `REC` / `EDID` parser-only, with no `selectedRec` or `EDID` in product-facing import UI / contract.
+- `notes`:
+  - Use case: import.
+  - This handoff closes dictionary migration; later handoffs must not modify dictionary behavior except for shared compile fixes.
+  - Do not update canonical docs in this handoff.
+
+### `persona-read-detail-cutover`
+
+- `implementation_target`: persona list / filter / detail
+- `owned_scope`:
+  - backend repository / SQLite / service / usecase / Wails read paths for `PERSONA` + `NPC_PROFILE` + needed `NPC_RECORD`
+  - `internal/bootstrap/app_controller.go` wiring needed only for persona read paths
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller read paths
+  - `frontend/src/ui/screens/master-persona/` list / detail display
+  - focused backend and frontend tests for read / detail and plugin filter
+- `depends_on`:
+  - `dictionary-xml-import-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: persona list / detail reads canonical join data and removes generation source, baseline, dialogue payload, dialogue count, and dialogue modal support.
+- `notes`:
+  - Use case: read / detail.
+  - Identity / snapshot fields may be read-only display data, but must not become generic editable fields.
+  - Do not update canonical docs in this handoff.
+
+### `persona-ai-settings-restart-cutover`
+
+- `implementation_target`: persona AI settings save / restore and restart state
+- `owned_scope`:
+  - backend repository / SQLite / service / usecase / Wails settings save / restore paths
+  - existing secret-store boundary for API key handling
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller settings paths
+  - `frontend/src/ui/screens/master-persona/` settings UI and restart state display
+  - focused backend and frontend tests for settings persistence and restart behavior
+- `depends_on`:
+  - `persona-read-detail-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: provider / model are restored after restart, API key stays outside DB, JSON selection returns to unselected state, and run state is not persisted.
+- `notes`:
+  - Use case: settings save / restore.
+  - Do not create `PERSONA_GENERATION_RUN_STATUS`.
+  - Do not update canonical docs in this handoff.
+
+### `persona-json-preview-cutover`
+
+- `implementation_target`: persona JSON load / parse / preview
+- `owned_scope`:
+  - backend JSON parse / existing identity lookup / service / usecase / Wails preview paths
+  - canonical identity lookup by `target_plugin_name + form_id + record_type`
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller preview paths
+  - `frontend/src/ui/screens/master-persona/` JSON selection and preview UI
+  - focused backend and frontend tests with JSON fixtures
+- `depends_on`:
+  - `persona-ai-settings-restart-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: preview excludes no-dialogue NPCs at parse time and returns candidate count, newly addable count, and existing count without zero-dialogue / generic skip counts.
+- `notes`:
+  - Use case: preview.
+  - `target_plugin_name` is identity / filter key only, not lifecycle ownership.
+  - Do not update canonical docs in this handoff.
+
+### `persona-generation-cutover`
+
+- `implementation_target`: persona AI generation and canonical write
+- `owned_scope`:
+  - backend AI generation orchestration, existing identity re-check, transaction write, and Wails generation command
+  - repository / SQLite command paths for atomic `NPC_PROFILE` + `PERSONA` creation
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller generation paths
+  - `frontend/src/ui/screens/master-persona/` generation progress and result UI
+  - focused backend and frontend tests using fake AI transport
+- `depends_on`:
+  - `persona-json-preview-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: generation never overwrites existing persona, writes `NPC_PROFILE` + `PERSONA` only after complete AI output, and leaves no partial rows on failure.
+- `notes`:
+  - Use case: generation.
+  - Run state remains screen memory only.
+  - Tests must not require real AI API credentials.
+  - Do not update canonical docs in this handoff.
+
+### `persona-edit-delete-cutover`
+
+- `implementation_target`: persona edit / delete
+- `owned_scope`:
+  - backend repository / SQLite / service / usecase / Wails edit / delete paths
+  - frontend gateway contract / DTO mapping / state / presenter / usecase / controller edit / delete paths
+  - `frontend/src/ui/screens/master-persona/` edit modal and delete UI
+  - focused backend and frontend tests for editable fields and delete behavior
+- `depends_on`:
+  - `persona-generation-cutover`
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- --runInBand`
+  - `python3 scripts/harness/run.py --suite structure`
+- `completion_signal`: edit accepts only persona summary, speech style, and persona body; identity / snapshot fields remain read-only and manual persona creation is not reintroduced.
+- `notes`:
+  - Use case: update / delete.
+  - This handoff closes persona migration; later handoffs must not modify persona behavior except for shared compile fixes.
+  - Do not update canonical docs in this handoff.
+
+### `final-validation-and-review`
+
+- `implementation_target`: final implementation review and UI evidence
+- `owned_scope`:
+  - final implementation review record
+  - UI evidence record using existing local review conventions
+  - completion packet aggregation
+- `depends_on`:
+  - `schema-legacy-cutover`
+  - `dictionary-xml-import-cutover`
+  - `persona-edit-delete-cutover`
 - `validation_commands`:
   - `python3 scripts/harness/run.py --suite structure`
   - `go test ./internal/...`
   - `npm --prefix frontend run check`
   - `npm --prefix frontend run test -- --runInBand`
   - `npm run dev:wails:docker-mcp`
-- `completion_signal`: Review confirms the implemented behavior matches the approved design bundle and HTML mock. No old `master_*` read / write path remains for the migrated surfaces. `PERSONA_GENERATION_RUN_STATUS` is absent. Run state is transient. UI no longer exposes removed DB-backed fields or removed skip counts.
+- `completion_signal`: review confirms every use-case handoff is complete, no old `master_*` read / write path remains for migrated surfaces, UI evidence matches the HTML mock behaviorally, and completion packet includes validation, UI evidence, residual risks, and `docs_changes: none`.
 - `notes`:
   - Playwright MCP should connect through `http://host.docker.internal:34115` when UI evidence is needed.
   - Use fake AI / fixture data for UI evidence.
@@ -206,7 +306,7 @@
 Use the approved implementation scope:
 docs/exec-plans/active/2026-04-19-legacy-schema-ui-migration-todo/implementation-scope.md
 
-Implement the handoffs in order. Treat each handoff as the owned scope for one implementation lane. Do not edit docs, .codex, .github/skills, or .github/agents. Use fake AI transport in tests. Return the completion packet defined in the implementation scope.
+Implement the handoffs in order. Treat each handoff as one RunSubagent lane. Do not edit docs, .codex, .github/skills, or .github/agents. Use fake AI transport in tests. If a lane is still too large, stop and return a proposed backend-contract / frontend-UI split for that lane instead of continuing partially. Return the completion packet defined in the implementation scope.
 ```
 
 ## Completion Packet
