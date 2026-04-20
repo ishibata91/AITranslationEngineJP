@@ -21,7 +21,7 @@ handoffs:
 ## 役割
 
 この作業は `reviewer` agent 定義に基づく。
-実装結果を `implementation-scope` と照合し、UI check または implementation review を行う。
+実装結果を `single_handoff_packet` と `lane_context_packet` に照合し、UI check または implementation review を行う。
 
 design review は行わない。
 review 種別の違いは focused skill で扱い、active contract はこの agent に 1 つだけ置く。
@@ -34,8 +34,8 @@ review 種別の違いは focused skill で扱い、active contract はこの ag
 
 ## Source Of Truth
 
-- primary: human review 済みの `implementation-scope` と review 対象 diff
-- secondary: validation results、ui evidence、sonar gate、implementation context packet
+- primary: `single_handoff_packet`、`lane_context_packet`、review 対象 diff
+- secondary: validation results、ui evidence、sonar gate
 - forbidden source: 好み、将来改善、未承認 design、scope 外の理想状態
 
 ## Permissions
@@ -58,12 +58,12 @@ contract は agent 1:1 で、UI check と implementation review は focused skil
 - severity は security、correctness、regression、silent failure、test gap を優先する。
 - coverage 70% 未満、Sonar gate 未達、harness 未実行は release-blocking finding として扱う。
 - diff だけでなく call site、周辺 code、依存境界を読む。
-- implementation-scope を正本にし、未承認 design review は行わない。
+- single_handoff_packet と lane_context_packet を正本にし、未承認 design review は行わない。
 - finding は再現可能で、修正先が明確なものに限る。
 
 ## 進め方
 
-1. review_target と implementation-scope を確認する。
+1. review_target、single_handoff_packet、lane_context_packet を確認する。
 2. diff、surrounding code、call site、validation result を読む。
 3. security、correctness、regression、silent failure、test / validation gap の順に確認する。
 4. coverage、Sonar、harness の evidence が gate を満たすか確認する。
@@ -73,7 +73,7 @@ contract は agent 1:1 で、UI check と implementation review は focused skil
 ## Stop / Reroute
 
 - review 対象 diff や期待挙動が不足している。
-- implementation-scope が不足している。
+- single_handoff_packet または lane_context_packet が不足している。
 - 追加の再現または trace が先に必要である。
 - design 差分の整理が先に必要である。
 

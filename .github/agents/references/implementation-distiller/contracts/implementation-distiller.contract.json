@@ -4,9 +4,10 @@
   "runtime": "github-copilot",
   "contract_policy": "active contract は agent 1:1。implement / fix / refactor の差分は focused skill で扱い、output obligation はこの contract に固定する。",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-distiller/permissions.json",
-  "required_inputs": ["active_work_plan", "implementation_scope", "approval_record", "owned_scope", "depends_on", "validation_commands", "source_artifacts"],
+  "required_inputs": ["single_handoff_packet", "approval_record", "owned_scope", "depends_on_resolved", "validation_commands"],
   "optional_inputs": ["knowledge_focus", "reproduction_evidence", "trace_or_analysis_result"],
   "input_notes": {
+    "single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。",
     "knowledge_focus": "implementation-distill-implement、implementation-distill-fix、implementation-distill-refactor の参照ヒント。contract と完了条件は変えない。"
   },
   "knowledge_refs": [
@@ -16,15 +17,17 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill-refactor/SKILL.md"
   ],
   "handoff_targets": ["implementation-orchestrate"],
-  "expected_outputs": ["implementation_facts", "constraints", "gaps", "required_reading", "related_code_pointers", "validation_entry", "recommended_next_skill"],
+  "expected_outputs": ["lane_context_packet", "implementation_facts", "constraints", "gaps", "required_reading", "related_code_pointers", "validation_entry", "recommended_next_skill"],
   "field_requirements": {
+    "lane_context_packet": "single_handoff_packet 1 件だけから作る。tester / implementer に渡せる facts、constraints、gaps、required_reading、validation_entry を含める",
     "implementation_facts": "facts、inferred、gap を混ぜずに書く",
     "required_reading": "実装者が最初に読む file と順序を返す",
     "validation_entry": "最初に実行する validation command と完了条件を返す"
   },
-  "required_evidence": ["implementation-scope handoff", "owned_scope", "source_artifacts"],
-  "rejection_conditions": ["missing approved implementation-scope", "missing approval_record", "unclear owned_scope"],
+  "required_evidence": ["single_handoff_packet", "owned_scope", "validation_commands"],
+  "rejection_conditions": ["missing single_handoff_packet", "missing approval_record", "unclear owned_scope"],
   "stop_conditions": ["設計判断が不足している", "変更が docs や workflow へ広がる"],
+  "contract_violation_conditions": ["full implementation-scope を入力として要求する", "active work plan 全文を入力として要求する", "source_artifacts または後続 handoff を入力として要求する"],
   "completion_signal": "implementation-orchestrate が implement、tests、review の次 handoff を判断できる",
   "residual_risk_key": "gaps"
 }

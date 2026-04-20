@@ -27,6 +27,7 @@ description: GitHub Copilot 側の fix lane 恒久修正知識 package。
 - accepted_fix_scope を超えない
 - 再現条件に関係しない整理を入れない
 - trace_or_analysis_result と矛盾しない変更に限る
+- lane_context_packet と tester output を確認して product code だけを変更する
 - 未解消ケースを closeout に残す
 
 ## DO / DON'T
@@ -39,6 +40,7 @@ DO:
 DON'T:
 - unrelated cleanup を混ぜない
 - 原因断定を evidence なしに広げない
+- product test、fixture、snapshot、test helper を変更しない
 - active contract をこの skill に置かない
 
 ## Checklist

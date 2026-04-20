@@ -8,7 +8,7 @@ description: GitHub Copilot 側の review 共通知識 package。UI check と im
 ## 目的
 
 `review` は知識 package である。
-`reviewer` agent が、実装結果を `implementation-scope` と照合する時の共通判断を提供する。
+`reviewer` agent が、実装結果を `single_handoff_packet` と `lane_context_packet` に照合する時の共通判断を提供する。
 
 実行権限、write scope、active contract、handoff は [reviewer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/reviewer.agent.md) が持つ。
 
@@ -26,14 +26,14 @@ description: GitHub Copilot 側の review 共通知識 package。UI check と im
 
 ## 知識範囲
 
-- implementation-scope に基づく review 判断
+- single_handoff_packet と lane_context_packet に基づく review 判断
 - actionable finding の返し方
 - UI evidence、coverage 70%、Sonar gate、harness evidence の扱い
 - focused skill の選び方
 
 ## 原則
 
-- `implementation-scope` を判定の正本にする
+- `single_handoff_packet` と `lane_context_packet` を判定の正本にする
 - 好みや将来改善で判定しない
 - design review をしない
 - 修正と review を混ぜない

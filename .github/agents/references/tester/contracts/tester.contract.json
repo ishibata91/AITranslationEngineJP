@@ -4,9 +4,11 @@
   "runtime": "github-copilot",
   "contract_policy": "active contract は agent 1:1。scenario / unit の差分は focused skill で扱い、output obligation はこの contract に固定する。",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/tester/permissions.json",
-  "required_inputs": ["active_work_plan", "implementation_scope", "approval_record", "owned_scope", "test_target", "validation_commands"],
+  "required_inputs": ["single_handoff_packet", "lane_context_packet", "approval_record", "owned_scope", "test_target", "validation_commands"],
   "optional_inputs": ["knowledge_focus", "scenario_artifact", "implemented_scope", "reproduction_evidence", "existing_test_pointers"],
   "input_notes": {
+    "single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。",
+    "lane_context_packet": "implementation-distiller が single_handoff_packet 1 件だけから作った実装前整理。test の観点抽出に使う。",
     "knowledge_focus": "tests-scenario または tests-unit の参照ヒント。contract と完了条件は変えない。"
   },
   "knowledge_refs": [
@@ -18,13 +20,13 @@
   "expected_outputs": ["touched_test_files", "implemented_test_scope", "validation_results", "coverage_gate_result", "harness_gate_result", "remaining_gaps"],
   "field_requirements": {
     "touched_test_files": "handoff 資料のスコープ粒度に対応する product test と必要最小限の fixture / helper だけを返す",
-    "implemented_test_scope": "implementation-scope handoff 1 件または scenario artifact の観点と対応づけ、複数 handoff を束ねない",
+    "implemented_test_scope": "single_handoff_packet 1 件または scenario artifact の観点と対応づけ、複数 handoff を束ねない",
     "coverage_gate_result": "`python3 scripts/harness/run.py --suite coverage` で Sonar-compatible coverage 70% 以上。未実行なら blocked reason を返す",
     "harness_gate_result": "必要に応じて `python3 scripts/harness/run.py --suite all` の結果。未実行なら blocked reason を返す",
     "remaining_gaps": "未証明の振る舞い、未実行 validation、blocked reason を分ける"
   },
-  "required_evidence": ["handoff scope granularity", "owned_scope", "test_target", "test command result when executed", "coverage gate result or blocked reason", "harness all result or blocked reason"],
-  "rejection_conditions": ["missing test_target", "missing owned_scope", "paid real AI API risk"],
+  "required_evidence": ["single_handoff_packet id", "lane_context_packet id", "handoff scope granularity", "owned_scope", "test_target", "test command result when executed", "coverage gate result or blocked reason", "harness all result or blocked reason"],
+  "rejection_conditions": ["missing single_handoff_packet", "missing lane_context_packet", "missing test_target", "missing owned_scope", "paid real AI API risk"],
   "stop_conditions": ["設計や ownership の整理が先に必要である", "product code の広い変更が必要になる", "paid real AI API を呼ぶ危険がある"],
   "completion_signal": "implementation-orchestrate が implementer、review、reroute の次 action を判断できる",
   "residual_risk_key": "remaining_gaps"

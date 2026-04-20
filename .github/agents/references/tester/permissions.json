@@ -18,9 +18,9 @@
   ],
   "allowed_write_scope": ["product test within owned_scope", "minimal test fixture/helper files"],
   "forbidden_write_scope": ["broad product code changes", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"],
-  "required_source_of_truth": ["human review 済みの implementation-scope", "owned_scope", "test_target", "validation_commands"],
+  "required_source_of_truth": ["single_handoff_packet", "lane_context_packet", "owned_scope", "test_target", "validation_commands"],
   "stop_conditions": [
-    "scenario artifact または owned_scope が不足している",
+    "single_handoff_packet、lane_context_packet、owned_scope のいずれかが不足している",
     "設計や ownership の整理が先に必要である",
     "test 追加が docs や workflow 変更を必要とする",
     "paid real AI API を呼ぶ危険がある"

@@ -11,7 +11,7 @@ agent contract の権限や output obligation は上書きしない。
 - KISS、DRY、YAGNI を守り、必要になった時だけ抽象化する。
 - error path、empty state、boundary value を実装時に明示する。
 - build / type error の解消は最小差分にする。
-- 変更前に既存の naming、layer、test pattern、dependency direction を確認する。
+- 変更前に既存の naming、layer、dependency direction、lane_context_packet、tester output を確認する。
 - 大きい関数、深いネスト、magic number、silent fallback を赤旗として扱う。
 - 振る舞いを変えない整理は、可読性が明確に上がる場合だけ行う。
 
@@ -23,7 +23,7 @@ agent contract の権限や output obligation は上書きしない。
 - validation、error mapping、transaction boundary を実装の一部として扱う。
 - N+1、unbounded query、timeout なしの外部呼び出しを避ける。
 - internal error を user-facing response へ漏らさない。
-- backend 変更では Sonar gate の Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0 を確認する。
+- backend 変更では lane-local validation result または未実行理由を返す。
 
 ## Frontend 適用
 
@@ -32,26 +32,26 @@ agent contract の権限や output obligation は上書きしない。
 - Wails gateway を迂回せず、transport boundary を守る。
 - component は表示、screen controller は状態遷移、gateway は Wails binding 境界に責務を分ける。
 - UI check に必要な stable selector、visible state、console evidence を残す。
-- frontend 変更では `test:frontend:coverage` と harness coverage の結果を確認する。
+- frontend 変更では lane-local validation result または未実行理由を返す。
 
 ## 品質赤旗
 
 - owned_scope 外の cleanup、rename、format が混ざっている。
 - broad refactor なしでは説明できない差分になっている。
 - validation failure を握りつぶす fallback がある。
-- new code path に test または explicit validation がない。
-- Sonar-compatible coverage 70% 未満を放置している。
-- `python3 scripts/harness/run.py --suite all` の失敗または未実行理由がない。
+- product test、fixture、snapshot、test helper を implementer が変更している。
+- lane-local validation の失敗または未実行理由がない。
 - public API、Wails binding、DTO、storage schema の変更が call site と test に反映されていない。
 - config、lint、test、coverage 設定を変更して gate を回避している。
 
 ## 実装前確認
 
 - handoff 資料のスコープ粒度と owned_scope を確認する。
+- lane_context_packet と tester output を確認する。
 - 入口、call site、data flow、error path、test surface を確認する。
 - 既存の似た実装を探し、naming、constructor、DI、error return の形を合わせる。
 - 追加する抽象化が既存 pattern と一致するか確認する。
-- 変更後に必要な validation command と harness gate を先に確認する。
+- 変更後に必要な lane-local validation command を先に確認する。
 
 ## 実装中の品質基準
 

@@ -19,19 +19,31 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/review/SKILL.md"
   ],
-  "handoff_targets": ["implementation-distiller", "investigator", "implementer", "tester", "reviewer", "propose-plans"],
+  "handoff_targets": ["implementation-distiller", "tester", "implementer", "reviewer", "investigator", "propose-plans"],
   "expected_outputs": ["completed_handoffs", "implementation_context_packets", "touched_files", "implemented_scope", "test_results", "implementation_investigation", "ui_evidence", "implementation_review_result", "coverage_gate_result", "sonar_gate_result", "harness_gate_result", "residual_risks", "docs_changes"],
   "field_requirements": {
     "completed_handoffs": "implementation-scope の handoff 見出し単位で完了、未完了、依存待ちを返す。status は subagent 戻り値または depends_on 判定だけから決める",
+    "implementation_context_packets": "各 implementation handoff で tester / implementer より先に起動した implementation-distiller の lane_context_packet を返す。distiller input は single_handoff_packet 1 件だけに限定する",
+    "test_results": "各 implementation handoff で distiller 後、implementer より先に起動した tester の結果を返す",
+    "implemented_scope": "implementer へ渡した single_handoff_packet 1 件と lane_context_packet に対応づける。full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡していないことを前提にする",
     "docs_changes": "必ず none を返す。docs 正本化が必要な場合は residual_risks と reroute reason に書く",
     "coverage_gate_result": "Sonar-compatible coverage 70% 以上。未実行なら blocked reason を返す",
     "sonar_gate_result": "Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0。未実行なら blocked reason を返す",
     "harness_gate_result": "`python3 scripts/harness/run.py --suite all` の結果。未実行なら blocked reason を返す",
     "residual_risks": "design 不足、未実行 validation、human open question を分ける。オーケストレーター自身の推測で補わない"
   },
-  "required_evidence": ["implementation-scope path", "approval_record", "RunSubagent request", "RunSubagent response", "validation command result when returned by subagent", "coverage gate result or blocked reason", "Sonar gate result or blocked reason", "harness all result or blocked reason"],
+  "required_evidence": ["implementation-scope path", "approval_record", "single_handoff_packet", "implementation-distiller RunSubagent request before tester", "implementation-distiller RunSubagent response", "lane_context_packet", "tester RunSubagent request after distiller and before implementer", "tester RunSubagent response", "implementer RunSubagent request with lane_context_packet and tester output", "implementer RunSubagent response", "reviewer RunSubagent response or blocked reason", "validation command result when returned by subagent", "coverage gate result or blocked reason", "Sonar gate result or blocked reason", "harness all result or blocked reason"],
   "rejection_conditions": ["missing approved implementation-scope", "missing approval_record", "design-only request", "docs canonicalization request"],
-  "stop_conditions": ["owned_scope が曖昧である", "設計判断が不足している", "docs または workflow の変更が必要になる"],
+  "stop_conditions": ["owned_scope が曖昧である", "設計判断が不足している", "docs または workflow の変更が必要になる", "single_handoff_packet を作れない", "single_handoff_packet 1 件だけでは lane_context_packet を作れない", "implementation-distiller を tester より先に起動できない", "tester を implementer より先に起動できない"],
+  "handoff_constraints": [
+    "RunSubagent の source scope は single_handoff_packet 1 件と lane_context_packet に限定する",
+    "implementation-distiller は tester / implementer より先に必ず起動する",
+    "implementation-distiller には single_handoff_packet 1 件だけを渡す",
+    "tester は implementer より先に必ず起動する",
+    "implementer には single_handoff_packet、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す",
+    "implementer へ full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡さない",
+    "implementer へ product test、fixture、snapshot、test helper の作成または更新を依頼しない"
+  ],
   "completion_signal": "Codex が close または docs 正本化判断へ進める completion packet が返っている",
   "residual_risk_key": "residual_risks"
 }

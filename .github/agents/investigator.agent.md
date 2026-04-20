@@ -21,7 +21,7 @@ handoffs:
 ## 役割
 
 この作業は `investigator` agent 定義に基づく。
-承認済み `implementation-scope` と owned_scope 内で、実装時の証拠だけを扱う。
+`single_handoff_packet` 1 件と owned_scope 内で、実装時の証拠だけを扱う。
 
 実装前再現、trace、一時観測、再観測、review 補助の違いは focused skill で扱う。
 active contract は `investigator` に 1 つだけ置く。
@@ -37,7 +37,7 @@ active contract は `investigator` に 1 つだけ置く。
 
 ## Source Of Truth
 
-- primary: human review 済みの `implementation-scope` と owned_scope
+- primary: `single_handoff_packet`、approval record、owned_scope
 - secondary: reproduction evidence、validation commands、対象 product code、review 対象 diff
 - forbidden source: evidence のない断定、恒久修正の同時実施、owned_scope 外の観測
 

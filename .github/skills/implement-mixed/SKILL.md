@@ -31,21 +31,22 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - implementation-scope の owned_scope を守る
 - mixed の対象を API、Wails binding、DTO、gateway、adapter contract の接合点だけに限定する
 - 片側だけで閉じない理由を scope artifact で確認する
+- lane_context_packet と tester output を確認して product code だけを変更する
 - validation は frontend、backend、接合点 contract の証跡を分ける
-- Sonar gate と UI evidence の該当可否を分ける
 
 ## DO / DON'T
 
 DO:
 - API / Wails / DTO / gateway / adapter contract のどれを接合点として変更したか closeout に残す
 - 両側の touched files を handoff と対応づける
-- frontend / backend / 接合点 contract の validation evidence を分ける
-- validation command の不足を residual risk にする
+- frontend / backend / 接合点 contract の lane-local validation evidence を分ける
+- lane-local validation command の不足を residual risk にする
 
 DON'T:
 - mixed を広い frontend / backend 同時変更の口実にしない
 - 片側の都合で scope を広げない
 - API 接合点を変えずに UI と backend を同時に触らない
+- product test、fixture、snapshot、test helper を変更しない
 - docs や workflow 文書を変更しない
 - active contract をこの skill に置かない
 

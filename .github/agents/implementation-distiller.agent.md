@@ -1,6 +1,6 @@
 ---
 name: implementation-distiller
-description: subagent。承認済み implementation-scope から実装前 context packet を作る。
+description: subagent。single_handoff_packet 1 件から lane_context_packet を作る。
 target: vscode
 tools: [read, search]
 model: Gemini 3 Flash (Preview) (copilot)
@@ -21,7 +21,8 @@ handoffs:
 ## 役割
 
 この作業は `implementation-distiller` agent 定義に基づく。
-承認済み `implementation-scope` の handoff 1 件から、実装前 context packet を作る。
+`single_handoff_packet` 1 件から、tester / implementer が読む `lane_context_packet` を作る。
+full `implementation-scope`、active work plan 全文、source artifacts、後続 handoff は読まない。
 
 実装、test 追加、review、設計追加は行わない。
 focus の違いは focused skill で扱い、active contract はこの agent に 1 つだけ置く。
@@ -38,20 +39,20 @@ focus の違いは focused skill で扱い、active contract はこの agent に
 - entry point、execution flow、architecture layer、dependency を分けて読む。
 - facts、inferred、gap を混ぜない。
 - 実装者が最初に読む file と順番を返す。
-- source artifact の引用ではなく、実装に必要な制約へ圧縮する。
+- handoff の引用ではなく、実装に必要な制約へ圧縮する。
 
 ## 進め方
 
-1. handoff 1 件、owned_scope、validation command を固定する。
+1. `single_handoff_packet` 1 件、owned_scope、validation command を固定する。
 2. path catalog を作り、必要 file だけ summary / full に上げる。
 3. 既存 pattern、call site、error path、test surface を探す。
-4. implementation_facts、constraints、gaps、required_reading を分ける。
+4. lane_context_packet、implementation_facts、constraints、gaps、required_reading を分ける。
 5. recommended_next_skill を根拠付きで返す。
 
 ## Source Of Truth
 
-- primary: human review 済みの `implementation-scope` の handoff 1 件
-- secondary: active work plan、approval record、source artifacts、対象 code pointer
+- primary: `single_handoff_packet` 1 件、approval record、owned_scope
+- secondary: validation commands、対象 code pointer
 - forbidden source: owned_scope 外の広い探索、未承認設計、独自の実装案
 
 ## Permissions
@@ -70,7 +71,7 @@ contract は agent 1:1 で、implement / fix / refactor は focused skill とし
 
 ## Stop / Reroute
 
-- `implementation-scope`、approval record、owned_scope が不足している。
+- `single_handoff_packet`、approval record、owned_scope が不足している。
 - 設計不足を実装側で補う必要がある。
 - 変更が docs や workflow 文書へ広がる。
 
@@ -78,4 +79,4 @@ contract は agent 1:1 で、implement / fix / refactor は focused skill とし
 
 - handoff 先: `implementation-orchestrate`
 - 渡す contract: [implementation-distiller.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-distiller/contracts/implementation-distiller.contract.json)
-- 渡す scope: implementation context packet と remaining gaps
+- 渡す scope: lane_context_packet と remaining gaps

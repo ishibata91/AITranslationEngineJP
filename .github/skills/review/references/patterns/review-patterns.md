@@ -2,7 +2,7 @@
 
 ## 目的
 
-`reviewer` が implementation-scope と実装差分を照合するための判断パターンをまとめる。
+`reviewer` が single_handoff_packet、lane_context_packet、実装差分を照合するための判断パターンをまとめる。
 agent contract の権限や output obligation は上書きしない。
 
 ## 採用する考え方
@@ -15,7 +15,7 @@ agent contract の権限や output obligation は上書きしない。
 
 ## 適用ルール
 
-- implementation-scope と owned_scope を review の正本にする。
+- single_handoff_packet、lane_context_packet、owned_scope を review の正本にする。
 - docs、`.codex`、`.github` workflow 文書の変更が混ざっていないか見る。
 - backend では layer boundary、secret logging、error leakage、Sonar gate を見る。
 - frontend では Wails gateway、state、console error、visible UI evidence を見る。

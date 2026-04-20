@@ -24,7 +24,7 @@ description: GitHub Copilot 側の implementation review 知識 package。
 
 ## 原則
 
-- implementation-scope と review target diff を照合する
+- single_handoff_packet、lane_context_packet、review target diff を照合する
 - 好みや将来改善で reroute しない
 - finding は再現できる形で返す
 - 修正は行わない

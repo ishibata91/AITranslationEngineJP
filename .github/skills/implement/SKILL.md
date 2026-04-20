@@ -15,8 +15,8 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 ## いつ参照するか
 
 - owned_scope 内の product code を実装する時
-- 実装に伴う最小 test fixture / expectation adjustment を行う時
-- validation と Sonar gate の扱いを確認する時
+- lane_context_packet と tester output に基づいて product code を実装する時
+- lane-local validation の扱いを確認する時
 
 ## 参照しない場合
 
@@ -31,21 +31,21 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 - coding guidelines と既存 pattern の確認
 - boundary、error path、test surface の実装品質判断
 - validation result と residual risk の返し方
-- coverage 70%、Sonar gate、harness suite の扱い
 - focused skill の選び方
 
 ## 原則
 
 - `implementation-scope` と owned_scope を超えない
 - handoff 資料のスコープ粒度で実装する
-- 既存 pattern、naming、layer、test style に合わせる
+- lane_context_packet と tester output に合わせて product code だけを変更する
+- 既存 pattern、naming、layer に合わせる
 - broad refactor を混ぜない
-- product test の新規 scope は tester が扱う。implementer は実装に伴う最小 fixture / expectation adjustment に限る
+- product test、fixture、snapshot、test helper は tester が扱う
 - docs 正本化をしない
 
 ## Focused Skills
 
-- [implement-backend](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-backend/SKILL.md): backend layer と Sonar gate
+- [implement-backend](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-backend/SKILL.md): backend layer と lane-local validation
 - [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-frontend/SKILL.md): UI state と Wails bridge
 - [implement-mixed](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-mixed/SKILL.md): API / Wails / DTO / gateway など frontend と backend の接合点 scope
 - [implement-fix-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-fix-lane/SKILL.md): accepted fix scope の恒久修正
@@ -56,14 +56,14 @@ DO:
 - 実装前に [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) を読む
 - entry point、call site、data flow、error path、test surface を確認する
 - 既存 pattern に naming、constructor、DI、error return を合わせる
-- validation 結果を返す
-- `python3 scripts/harness/run.py --suite all` を closeout gate として扱う
-- coverage は Sonar-compatible coverage 70% 以上を確認する
-- Sonar は Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0 を確認する
+- lane-local validation 結果または未実行理由を返す
+- touched files は product code だけにする
 
 DON'T:
 - 要件や設計を追加しない
 - config、lint、test、coverage 設定を変更して gate を回避しない
+- product test、fixture、snapshot、test helper を変更しない
+- coverage、harness all、Sonar gate を implementer の必須 closeout にしない
 - owned_scope 外の cleanup、rename、format を混ぜない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない
 - mode 別 active contract を使わない

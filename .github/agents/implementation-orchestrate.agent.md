@@ -11,23 +11,23 @@ contract: /Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/r
 handoffs:
   - label: Prepare implementation context
     agent: implementation-distiller
-    prompt: implementation-orchestrate contract と承認済み implementation-scope の handoff 1 件を渡し、implementation context packet を作る。product code、product test、docs、.codex、.github/skills、.github/agents は変更しない。
+    prompt: tester と implementer より先に必ず起動する。single_handoff_packet 1 件だけを渡して lane_context_packet を作る。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。product code、product test、docs、.codex、.github/skills、.github/agents は変更しない。
     send: false
   - label: Investigate implementation evidence
     agent: investigator
     prompt: implementation-orchestrate contract と owned_scope を渡し、実装前再現、trace、再観測、review 補助のいずれかに必要な証跡だけを返す。恒久修正はしない。
     send: false
-  - label: Implement scope
-    agent: implementer
-    prompt: implementer contract と承認済み implementation-scope の handoff 1 件だけを渡す。handoff 資料のスコープ粒度で実装し、owned_scope を超えない。
-    send: false
   - label: Add product tests
     agent: tester
-    prompt: tester contract と承認済み implementation-scope の handoff 1 件、owned_scope、test target を渡し、handoff 資料のスコープ粒度で product test だけを追加または更新する。新しい要件解釈はしない。
+    prompt: tester contract と single_handoff_packet 1 件、lane_context_packet、owned_scope、test target だけを渡す。handoff 資料のスコープ粒度で product test だけを追加または更新する。new requirement interpretation、full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。
+    send: false
+  - label: Implement scope
+    agent: implementer
+    prompt: implementer contract と single_handoff_packet 1 件、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。product code だけを実装し、product test、fixture、snapshot、test helper は変更しない。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。
     send: false
   - label: Review implementation
     agent: reviewer
-    prompt: reviewer contract と review 対象を渡し、UI check または implementation review だけを行う。design review は行わない。
+    prompt: reviewer contract と lane-local の implementation result、tester output、review 対象だけを渡し、UI check または implementation review だけを行う。design review は行わない。全体 closeout は final validation lane に限定する。
     send: false
 ---
 
@@ -55,6 +55,9 @@ handoffs:
 
 - 実行パターンは `implementation-orchestrate` skill を参照する。
 - handoff は「独立して検証できる最小単位」へ保つ。
+- 各 implementation handoff は必ず distiller -> tester -> implementer -> reviewer の順で扱う。
+- subagent へ渡す source scope は lane-local な `single_handoff_packet` 1 件と、その distill 結果に限定する。
+- implementer へ渡してよい追加情報は `lane_context_packet` と tester output だけである。
 - RunSubagent 以外では実装、test、調査、review、validation を進めない。
 - coverage、Sonar、harness は subagent 戻り値または blocked reason だけを集約する。
 - 設計判断、docs 正本化、scope 変更は実装 lane で吸収しない。
@@ -63,16 +66,19 @@ handoffs:
 
 1. `implementation-scope` の handoff 見出し、owned_scope、depends_on、validation command だけを読む。
 2. depends_on が未解消なら対象 handoff を起動しない。
-3. 次の 1 handoff に必要な agent を 1 つ選ぶ。
-4. RunSubagent に active contract、handoff 1 件、禁止事項、期待 output を渡す。
-5. subagent の戻り値だけを completion packet に転記する。
-6. coverage、Sonar、harness の gate 結果と未実行理由を集約する。
-7. 不足、矛盾、scope 超過は自分で補わず reroute reason にする。
+3. 対象 handoff 1 件だけを `single_handoff_packet` に抽出する。
+4. `implementation-distiller` に active contract と single_handoff_packet だけを渡し、lane_context_packet を受け取る。
+5. `tester` に active contract、single_handoff_packet、lane_context_packet、owned_scope、test target、禁止事項、期待 output を渡す。
+6. `implementer` に active contract、single_handoff_packet、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項、期待 output を渡す。
+7. `reviewer` に lane-local の実装結果、tester output、review 対象だけを渡す。
+8. subagent の戻り値だけを completion packet に転記する。
+9. coverage、Sonar、harness の gate 結果と未実行理由を集約する。
+10. 不足、矛盾、scope 超過は自分で補わず reroute reason にする。
 
 ## Source Of Truth
 
 - primary: human review 済みの `implementation-scope`
-- secondary: active work plan、approval record、validation commands、subagent が返した product code / product test evidence
+- secondary: approval record、validation commands、subagent が返した lane_context_packet / product code / product test evidence
 - forbidden source: 未承認 design、implementation-scope の独自変更、docs 正本化の推測
 
 ## Permissions
@@ -98,6 +104,6 @@ contract は agent 1:1 で、mode 別 contract は active 正本にしない。
 
 ## Handoff
 
-- handoff 先: `implementation-distiller`、`investigator`、`implementer`、`tester`、`reviewer`
+- handoff 先: `implementation-distiller`、`tester`、`implementer`、`reviewer`、必要時のみ `investigator`
 - 渡す contract: 各 agent の active contract
-- 渡す scope: `implementation-scope` の handoff 1 件、owned_scope、depends_on、validation commands
+- 渡す scope: `single_handoff_packet` 1 件、lane_context_packet、owned_scope、depends_on 解消結果、validation commands、tester output

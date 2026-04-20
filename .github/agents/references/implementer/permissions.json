@@ -4,27 +4,30 @@
   "runtime": "github-copilot",
   "allowed_actions": [
     "owned_scope の product code を変更する",
-    "実装に伴う最小 test fixture / expectation adjustment だけを変更する",
-    "validation command を実行する",
-    "backend を含む場合は Sonar 件数 gate を確認する",
+    "lane-local validation command を必要に応じて実行する",
     "validation 結果と residual risk を返す"
   ],
   "forbidden_actions": [
     "要件や設計を追加する",
     "owned_scope を超える broad refactor を行う",
+    "product test を追加または更新する",
+    "test fixture、snapshot、test helper、expectation を変更する",
+    "coverage、harness all、Sonar gate を implementer closeout の必須作業にする",
     "docs 配下を変更する",
     ".codex 配下を変更する",
     ".github/skills または .github/agents を変更する",
     "implementation-scope を書き換える"
   ],
-  "allowed_write_scope": ["product code within owned_scope", "minimal test fixture / expectation adjustment within owned_scope"],
-  "forbidden_write_scope": ["/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/"],
-  "required_source_of_truth": ["human review 済みの implementation-scope", "approval_record", "owned_scope", "validation_commands"],
+  "allowed_write_scope": ["product code within owned_scope"],
+  "forbidden_write_scope": ["product test files", "test fixtures", "snapshots", "test helpers", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/"],
+  "required_source_of_truth": ["single_handoff_packet", "lane_context_packet", "approval_record", "owned_scope", "tester_output"],
   "stop_conditions": [
     "owned_scope が確定していない",
-    "implementation-scope または approval_record が不足している",
+    "single_handoff_packet、lane_context_packet、approval_record のいずれかが不足している",
+    "tester_output が不足している",
     "設計判断が不足している",
-    "変更が docs や workflow へ広がる"
+    "変更が docs や workflow へ広がる",
+    "product test、fixture、snapshot、test helper の変更が必要になる"
   ],
   "reroute_targets": ["implementation-orchestrate"]
 }

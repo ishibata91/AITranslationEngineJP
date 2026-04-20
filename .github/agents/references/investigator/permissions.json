@@ -3,7 +3,7 @@
   "agent": "investigator",
   "runtime": "github-copilot",
   "allowed_actions": [
-    "承認済み implementation-scope と owned_scope 内で実装前再現を行う",
+    "single_handoff_packet 1 件と owned_scope 内で実装前再現を行う",
     "実装中の原因仮説と観測点を整理する",
     "owned_scope 内に限って一時観測点を add / remove する",
     "実装後または test 後に再観測する",
@@ -22,9 +22,9 @@
   ],
   "allowed_write_scope": ["temporary observation changes inside owned_scope only"],
   "forbidden_write_scope": ["permanent product code changes", "product test", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"],
-  "required_source_of_truth": ["human review 済みの implementation-scope", "approval_record", "owned_scope", "validation_commands"],
+  "required_source_of_truth": ["single_handoff_packet", "approval_record", "owned_scope", "validation_commands"],
   "stop_conditions": [
-    "implementation-scope または approval_record が不足している",
+    "single_handoff_packet または approval_record が不足している",
     "owned_scope が曖昧である",
     "設計判断が不足していて実装側で調査できない",
     "調査が docs または workflow の変更を必要とする",

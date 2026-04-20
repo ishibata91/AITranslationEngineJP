@@ -8,7 +8,7 @@ description: GitHub Copilot 側の product test 共通知識 package。承認済
 ## 目的
 
 `tests` は知識 package である。
-`tester` agent が、承認済み owned_scope または実装済み scope を product test で証明する時の共通判断を提供する。
+`tester` agent が、single_handoff_packet と lane_context_packet の owned_scope を product test で証明する時の共通判断を提供する。
 
 実行権限、write scope、active contract、handoff は [tester.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/tester.agent.md) が持つ。
 

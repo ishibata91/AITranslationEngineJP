@@ -2,12 +2,12 @@
 
 ## 目的
 
-`tester` が implementation-scope の handoff 1 件を product test で証明するための判断パターンをまとめる。
+`tester` が single_handoff_packet 1 件と lane_context_packet を product test で証明するための判断パターンをまとめる。
 agent contract の権限や output obligation は上書きしない。
 
 ## 採用する考え方
 
-- Red / Green / Refactor の考え方を、既存 implementation-scope と owned_scope の範囲で使う。
+- Red / Green / Refactor の考え方を、single_handoff_packet、lane_context_packet、owned_scope の範囲で使う。
 - test は behavior を証明し、implementation detail を固定しない。
 - null、empty、invalid、boundary、error path、concurrency をリスクに応じて含める。
 - E2E は critical user flow と browser surface の証跡に絞る。

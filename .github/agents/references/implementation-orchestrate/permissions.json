@@ -4,7 +4,9 @@
   "runtime": "github-copilot",
   "allowed_actions": [
     "承認済み implementation-scope の handoff 見出し、owned_scope、depends_on、validation command だけを確認する",
-    "RunSubagent で implementation-distiller、investigator、implementer、tester、reviewer のいずれか 1 agent へ handoff 1 件を渡す",
+    "RunSubagent で implementation-distiller、tester、implementer、reviewer の順に single_handoff_packet 1 件を渡す",
+    "implementation-distiller には single_handoff_packet 1 件だけを渡して lane_context_packet を受け取る",
+    "必要時だけ investigator へ single_handoff_packet 1 件を渡す",
     "depends_on の解消順を判断し、未解消 handoff を起動しない",
     "subagent が返した validation command、UI evidence、coverage gate、Sonar gate、harness gate、review result を集約する",
     "不足、矛盾、scope 超過を補わず reroute reason として completion packet に返す"
@@ -13,6 +15,10 @@
     "RunSubagent 以外の tool を使う",
     "product code、product test、docs、.codex、.github/skills、.github/agents を直接読む、検索する、編集する",
     "validation command、coverage harness、Sonar scan、test、lint を自分で実行する",
+    "RunSubagent に full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡す",
+    "implementation-distiller に full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡す",
+    "implementer を tester より先に起動する",
+    "implementer に product test、fixture、snapshot、test helper の変更を依頼する",
     "要件や設計を追加する",
     "implementation-scope を書き換える",
     "docs 正本化を行う",
