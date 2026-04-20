@@ -68,12 +68,14 @@ handoffs:
 2. depends_on が未解消なら対象 handoff を起動しない。
 3. 対象 handoff 1 件だけを `single_handoff_packet` に抽出する。
 4. `implementation-distiller` に active contract と single_handoff_packet だけを渡し、lane_context_packet を受け取る。
-5. `tester` に active contract、single_handoff_packet、lane_context_packet、owned_scope、test target、禁止事項、期待 output を渡す。
-6. `implementer` に active contract、single_handoff_packet、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項、期待 output を渡す。
-7. `reviewer` に lane-local の実装結果、tester output、review 対象だけを渡す。
-8. subagent の戻り値だけを completion packet に転記する。
-9. coverage、Sonar、harness の gate 結果と未実行理由を集約する。
-10. 不足、矛盾、scope 超過は自分で補わず reroute reason にする。
+5. lane_context_packet に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、symbol / line number 付き related_code_pointers があることを確認する。first_action が 1 clause に固定され、推測 method が fact 化されず、existing_patterns と validation_entry の探索理由があることも確認する。
+6. 不足していれば implementer へ渡さず reroute reason にする。
+7. `tester` に active contract、single_handoff_packet、lane_context_packet、owned_scope、test target、禁止事項、期待 output を渡す。
+8. `implementer` に active contract、single_handoff_packet、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項、期待 output を渡す。
+9. `reviewer` に lane-local の実装結果、tester output、review 対象だけを渡す。
+10. subagent の戻り値だけを completion packet に転記する。
+11. coverage、Sonar、harness の gate 結果と未実行理由を集約する。
+12. 不足、矛盾、scope 超過は自分で補わず reroute reason にする。
 
 ## Source Of Truth
 

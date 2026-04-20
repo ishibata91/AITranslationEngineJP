@@ -3,7 +3,7 @@ name: implementation-distiller
 description: subagent。single_handoff_packet 1 件から lane_context_packet を作る。
 target: vscode
 tools: [read, search]
-model: Gemini 3 Flash (Preview) (copilot)
+model: GPT-5.4 mini (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false
@@ -38,16 +38,30 @@ focus の違いは focused skill で扱い、active contract はこの agent に
 
 - entry point、execution flow、architecture layer、dependency を分けて読む。
 - facts、inferred、gap を混ぜない。
-- 実装者が最初に読む file と順番を返す。
+- 実装者が最初に触る file、symbol、line、変更種別を返す。
+- patch 生成に必要な `fix_ingredients` を構造単位で残す。
+- 類似しているが修正に使わない `distracting_context` を明示する。
+- repository method、interface、field の有無は実 code で確認し、推測を fact にしない。
+- `first_action` は 1 completion_signal clause に限定し、partial と書かない。
+- 既存 pattern が見つからない場合も、探索範囲と実装判断への影響を返す。
+- validation は最初に試せる cheap check を優先し、広い command だけなら理由を書く。
+- 実 code を読んだ証拠なしに handoff の文章を言い換えない。
+- 要件、実装方針、決定事項は要約し、implementer に原文再読を丸投げしない。
 - handoff の引用ではなく、実装に必要な制約へ圧縮する。
 
 ## 進め方
 
 1. `single_handoff_packet` 1 件、owned_scope、validation command を固定する。
-2. path catalog を作り、必要 file だけ summary / full に上げる。
-3. 既存 pattern、call site、error path、test surface を探す。
-4. lane_context_packet、implementation_facts、constraints、gaps、required_reading を分ける。
-5. recommended_next_skill を根拠付きで返す。
+2. owned_scope の実 code を読み、entry point、call site、既存 pattern を確認する。
+3. file / function / block の構造単位で `fix_ingredients` を特定する。
+4. 類似しているが今回不要な `distracting_context` を切り分ける。
+5. method / interface / field 追加が必要に見える場合は、定義を読んで present / absent を fact として確認する。
+6. first_action、change_targets、related_code_pointers に path、symbol、line number、structural_unit を入れる。
+7. first_action は 1 clause に固定し、必要なら同じ clause の最小 closure chain を change_targets に入れる。
+8. 要件、実装方針、決定事項、out of scope、禁止事項を requirements_policy_decisions に要約する。
+9. 既存 pattern、call site、error path、test surface、cheap validation entry を探す。
+10. lane_context_packet、implementation_facts、constraints、gaps、required_reading を分ける。
+11. recommended_next_skill を根拠付きで返す。
 
 ## Source Of Truth
 

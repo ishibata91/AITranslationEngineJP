@@ -38,6 +38,8 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 - `implementation-scope` と owned_scope を超えない
 - handoff 資料のスコープ粒度で実装する
 - lane_context_packet と tester output に合わせて product code だけを変更する
+- fix_ingredients に対応する code path を優先し、distracting_context へ寄り道しない
+- first_action と change_targets から着手する
 - 既存 pattern、naming、layer に合わせる
 - broad refactor を混ぜない
 - product test、fixture、snapshot、test helper は tester が扱う
@@ -54,6 +56,7 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 
 DO:
 - 実装前に [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) を読む
+- lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、related_code_pointers を確認する
 - entry point、call site、data flow、error path、test surface を確認する
 - 既存 pattern に naming、constructor、DI、error return を合わせる
 - lane-local validation 結果または未実行理由を返す
@@ -61,6 +64,9 @@ DO:
 
 DON'T:
 - 要件や設計を追加しない
+- fix_ingredients がないまま実装を始めない
+- distracting_context を実装対象に混ぜない
+- first_action がないまま広い調査を始めない
 - config、lint、test、coverage 設定を変更して gate を回避しない
 - product test、fixture、snapshot、test helper を変更しない
 - coverage、harness all、Sonar gate を implementer の必須 closeout にしない

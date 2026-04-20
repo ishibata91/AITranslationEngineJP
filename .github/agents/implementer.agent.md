@@ -43,6 +43,8 @@ active contract は `implementer` に 1 つだけ置く。
 - entry point、call site、data flow、error path、test surface を確認してから実装する。
 - error path、empty state、boundary value を実装から落とさない。
 - lane_context_packet と tester output に基づいて product code だけを変更する。
+- fix_ingredients に対応する code path を優先し、distracting_context を寄り道として扱う。
+- lane_context_packet の first_action と change_targets から着手し、広い再調査を開始条件にしない。
 - product test、fixture、snapshot、test helper は変更しない。
 - mixed は API / Wails / DTO / gateway など frontend と backend の接合点だけに使う。
 - build / type / lint error の修正は目的外 refactor に広げない。
@@ -50,10 +52,10 @@ active contract は `implementer` に 1 つだけ置く。
 ## 進め方
 
 1. `single_handoff_packet` 1 件、lane_context_packet、owned_scope、depends_on 解消結果、tester output を読む。
-2. handoff 資料のスコープ粒度と owned_scope を確認する。
-3. 既存実装の naming、layer、dependency direction を確認する。
-4. entry point、call site、data flow、error path、test surface を確認する。
-5. production code を owned_scope 内だけ変更する。
+2. lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、related_code_pointers を確認する。
+3. handoff 資料のスコープ粒度と owned_scope を確認する。
+4. first_action の file / symbol / line から production code を変更する。
+5. 必要最小限で entry point、call site、data flow、error path、test surface を確認する。
 6. product test、fixture、snapshot、test helper を変更していないことを確認する。
 7. lane-local validation を実行した場合は結果を、未実行なら理由を返す。
 8. touched_files、implemented_scope、validation_results、residual_risks を返す。

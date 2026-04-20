@@ -17,6 +17,26 @@
         "/^python3 -m py_compile scripts/harness/check_coverage\\.py && echo \"OK\"$/": {
             "approve": true,
             "matchCommandLine": true
+        },
+        "/^python3 scripts/harness/run\\.py --suite structure 2>&1 \\| tail -30$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^python3 scripts/harness/run\\.py --suite coverage 2>&1 \\| tail -40$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cat test-results/coverage-manifest\\.json \\| python3 -c \"import json,sys; d=json\\.load\\(sys\\.stdin\\); print\\(json\\.dumps\\(\\[x for x in d\\.get\\('sonar_issues',\\[\\]\\) if x\\.get\\('severity'\\) in \\('HIGH','BLOCKER'\\) or x\\.get\\('type'\\) == 'CODE_SMELL'\\], indent=2\\)\\)\" 2>&1 \\| head -80$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/iorishibata/Repositories/AITranslationEngineJP && python3 -c \"\nimport json\nwith open\\('test-results/coverage-manifest\\.json'\\) as f:\n    d = json\\.load\\(f\\)\nissues = d\\.get\\('sonar_maintainability_high_issues', d\\.get\\('issues', \\[\\]\\)\\)\nprint\\(type\\(d\\)\\)\nprint\\(list\\(d\\.keys\\(\\)\\)\\[:10\\]\\)\n\" 2>&1$/": {
+            "approve": true,
+            "matchCommandLine": true
+        },
+        "/^cd /Users/iorishibata/Repositories/AITranslationEngineJP && python3 -c \"\nimport json\nwith open\\('test-results/coverage-manifest\\.json'\\) as f:\n    d = json\\.load\\(f\\)\nfor issue in d\\.get\\('sonar_issues', \\[\\]\\):\n    if isinstance\\(issue, dict\\) and issue\\.get\\('impactSoftwareQualities'\\):\n        for iq in issue\\.get\\('impactSoftwareQualities', \\[\\]\\):\n            if iq\\.get\\('softwareQuality'\\) == 'MAINTAINABILITY' and iq\\.get\\('severity'\\) in \\('HIGH', 'BLOCKER'\\):\n                print\\(json\\.dumps\\(issue, indent=2\\)\\)\n\" 2>&1 \\| head -60$/": {
+            "approve": true,
+            "matchCommandLine": true
         }
     }
 }

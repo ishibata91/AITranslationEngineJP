@@ -50,11 +50,14 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 2. `depends_on` を解消し、実行可能な handoff を 1 件だけ選ぶ。
 3. 選んだ handoff から `single_handoff_packet` を作る。
 4. `implementation-distiller` に `single_handoff_packet` だけを渡し、`lane_context_packet` を作る。
-5. `tester` に `single_handoff_packet`、`lane_context_packet`、owned_scope、test target だけを渡す。
-6. `implementer` に `single_handoff_packet`、`lane_context_packet`、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。
-7. `reviewer` に lane-local の実装結果と test result だけを渡す。
-8. validation、coverage、Sonar、harness evidence は subagent の戻り値だけから集約する。
-9. subagent result に docs 変更がないこと、または reroute 理由があることを明記する。
+5. `lane_context_packet` に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、symbol / line number 付き related_code_pointers があることを確認する。
+6. first_action が 1 clause に固定され、推測 method が fact 化されず、existing_patterns と validation_entry の探索理由があることを確認する。
+7. 不足していれば tester / implementer へ渡さず reroute reason にする。
+8. `tester` に `single_handoff_packet`、`lane_context_packet`、owned_scope、test target だけを渡す。
+9. `implementer` に `single_handoff_packet`、`lane_context_packet`、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。
+10. `reviewer` に lane-local の実装結果と test result だけを渡す。
+11. validation、coverage、Sonar、harness evidence は subagent の戻り値だけから集約する。
+12. subagent result に docs 変更がないこと、または reroute 理由があることを明記する。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は agent contract に従う。
@@ -108,6 +111,7 @@ backend 完了前に frontend handoff を先行しない。
 `implementation-distiller` は default path で必ず使う。
 ただし distiller に渡す input は `single_handoff_packet` 1 件だけに限定する。
 distiller は full implementation-scope、active work plan 全文、source artifacts、後続 handoff を読まず、tester / implementer が使う `lane_context_packet` だけを返す。
+`lane_context_packet` は fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含める。
 handoff 1 件だけでは `lane_context_packet` を作れない設計不足は `propose-plans` へ戻す。
 
 ## DO / DON'T
@@ -116,6 +120,13 @@ DO:
 - handoff 見出しを RunSubagent 単位にする
 - depends_on を守る
 - distiller に `single_handoff_packet` 1 件だけを渡す
+- distiller output が patch 生成に必要な fix_ingredients を持つことを確認する
+- distiller output が distracting_context を required_reading から分離していることを確認する
+- distiller output が具体的な first_action と code pointer を持つことを確認する
+- distiller output の first_action が 1 clause に固定されていることを確認する
+- distiller output が推測 method を fact にしていないことを確認する
+- distiller output の existing_patterns と validation_entry が探索理由を持つことを確認する
+- distiller output が要件、実装方針、決定事項を要約していることを確認する
 - tester を implementer より先に起動する
 - implementer へ `single_handoff_packet`、`lane_context_packet`、tester output だけを渡す
 - subagent 戻り値だけを集約する
@@ -126,6 +137,12 @@ DON'T:
 - `implementation-scope` を書き換えない
 - RunSubagent に full `implementation-scope`、active work plan 全文、source artifacts、後続 handoff を渡さない
 - distiller に full `implementation-scope` や source artifacts を渡さない
+- handoff 文面の言い換えだけの distiller output を implementer に渡さない
+- fix_ingredients がない distiller output を implementer に渡さない
+- first_action が partial または複数 clause の distiller output を implementer に渡さない
+- 推測 method を fact にした distiller output を implementer に渡さない
+- 類似 context を required_reading に混ぜた distiller output を implementer に渡さない
+- 要件、実装方針、決定事項を required_reading に丸投げした distiller output を implementer に渡さない
 - implementer に product test の新規作成、更新、fixture 調整を依頼しない
 - file read / search / edit / validation 実行をしない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない

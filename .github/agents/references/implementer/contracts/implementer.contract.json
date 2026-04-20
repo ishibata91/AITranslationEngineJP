@@ -8,7 +8,7 @@
   "optional_inputs": ["knowledge_focus", "lane_local_validation_commands"],
   "input_notes": {
     "single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。",
-    "lane_context_packet": "implementation-distiller が single_handoff_packet 1 件だけから作った実装前整理。full implementation-scope、active work plan 全文、source artifacts、後続 handoff 由来の情報を含めない。",
+    "lane_context_packet": "implementation-distiller が single_handoff_packet 1 件だけから作った実装前整理。fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含む。full implementation-scope、active work plan 全文、source artifacts、後続 handoff 由来の情報を含めない。",
     "tester_output": "同じ handoff について tester が先に返した product test result または no-test-needed 理由。",
     "knowledge_focus": "implement-backend、implement-frontend、implement-mixed、implement-fix-lane の参照ヒント。contract と完了条件は変えない。implement-mixed は API / Wails / DTO / gateway など接合点 scope に限定する。"
   },
@@ -28,8 +28,8 @@
     "closeout_notes": "entry point、call site、data flow、error path、test surface、既存 pattern への整合を簡潔に返す。mixed の場合は接合点 contract を明記する",
     "residual_risks": "未実行 validation、scope 超過、設計不足、test / fixture 変更が必要になった場合の blocked reason を分ける"
   },
-  "required_evidence": ["single_handoff_packet id", "lane_context_packet id", "owned_scope", "tester_output", "entry point", "call site", "data flow or boundary", "error path", "test surface", "lane-local validation result or blocked reason"],
-  "rejection_conditions": ["missing single_handoff_packet", "missing lane_context_packet", "missing approval_record", "missing tester_output", "unclear owned_scope"],
+  "required_evidence": ["single_handoff_packet id", "lane_context_packet id", "fix_ingredients", "distracting_context", "first_action", "change_targets", "requirements_policy_decisions", "owned_scope", "tester_output", "entry point", "call site", "data flow or boundary", "error path", "test surface", "lane-local validation result or blocked reason"],
+  "rejection_conditions": ["missing single_handoff_packet", "missing lane_context_packet", "missing fix_ingredients", "missing distracting_context", "missing first_action", "missing change_targets", "missing requirements_policy_decisions", "missing approval_record", "missing tester_output", "unclear owned_scope"],
   "stop_conditions": ["設計判断が不足している", "docs または workflow の変更が必要になる", "broad refactor なしでは実装できない", "product test、fixture、snapshot、test helper の変更が必要になる"],
   "contract_violation_conditions": ["touched_test_files を返す", "product test、fixture、snapshot、test helper を変更する", "full implementation-scope または後続 handoff を入力として要求する"],
   "completion_signal": "implementation-orchestrate が review へ進める product code 実装結果が返っている",
