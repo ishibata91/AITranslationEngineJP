@@ -5,6 +5,10 @@ set -eu
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$repo_root"
 
+GOCACHE=/tmp/aitranslationenginejp-go-build
+export GOCACHE
+mkdir -p "$GOCACHE"
+
 coverage_dir="$repo_root/test-results/backend-coverage"
 coverage_profile="$coverage_dir/coverage.out"
 coverage_summary="$coverage_dir/coverage-summary.txt"

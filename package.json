@@ -17,6 +17,7 @@
     "frontendlint": "npm --prefix frontend run lint",
     "frontendtest": "npm run test:frontend",
     "lint:frontend": "npm run frontendlint",
+    "scan:sonar": "node ./scripts/node/run-sonar-scanner.mjs",
     "test:backend": "sh ./scripts/test/run-go-backend-test.sh",
     "test:backend:coverage": "sh ./scripts/test/run-go-backend-coverage.sh",
     "test:frontend": "npm --prefix frontend run test",

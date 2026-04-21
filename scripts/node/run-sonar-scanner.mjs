@@ -2,15 +2,18 @@ import { mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawn } from "node:child_process";
 
-const sonarUserHome = resolve(process.cwd(), ".sonar-local");
+const sonarUserHome = resolve("/tmp", "aitranslationenginejp-sonar");
+const goCache = resolve("/tmp", "aitranslationenginejp-go-build");
 const sonarScannerCommand = process.platform === "win32" ? "sonar-scanner.cmd" : "sonar-scanner";
 
 mkdirSync(sonarUserHome, { recursive: true });
+mkdirSync(goCache, { recursive: true });
 
 const child = spawn(sonarScannerCommand, {
   stdio: "inherit",
   env: {
     ...process.env,
+    GOCACHE: goCache,
     SONAR_USER_HOME: sonarUserHome,
   },
 });
