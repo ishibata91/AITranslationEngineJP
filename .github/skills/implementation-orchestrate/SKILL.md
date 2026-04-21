@@ -39,7 +39,12 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 - RunSubagent に渡す source scope は `single_handoff_packet` 1 件と、その distill 結果に限定する
 - implementation-distiller は tester / implementer より先に lane-local context を作る
 - tester は全 implementation handoff で implementer より先に起動する
+- tester へは tester_context_packet と test_subscope だけを渡し、implementer 用 full context は渡さない
 - implementer へ full `implementation-scope`、active work plan 全文、source artifacts、後続 handoff を渡さない
+- tester / implementer の無応答、timeout、空 output、required field 欠落、insufficient_context は同一 handoff 内の autonomous narrowing trigger として扱う
+- insufficient_context は各 agent contract の insufficient_context_criteria に一致する場合だけ autonomous narrowing trigger として扱う
+- criteria mismatch は contract violation として completion packet に残す
+- autonomous narrowing は completion_signal を削らず、remaining subscopes と blocked_after_narrowing を返す
 - オーケストレーター自身は file read / search / edit / validation 実行をしない
 - design 不足は実装せず戻す
 - docs 正本化を implementation lane に混ぜない
@@ -49,15 +54,20 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 1. `approval_record` と `implementation-scope` の handoff 見出し、owned_scope、depends_on、validation command だけを確認する。
 2. `depends_on` を解消し、実行可能な handoff を 1 件だけ選ぶ。
 3. 選んだ handoff から `single_handoff_packet` を作る。
-4. `implementation-distiller` に `single_handoff_packet` だけを渡し、`lane_context_packet` を作る。
+4. `implementation-distiller` に `single_handoff_packet` だけを渡し、`lane_context_packet` と `tester_context_packet` を作る。
 5. `lane_context_packet` に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、symbol / line number 付き related_code_pointers があることを確認する。
-6. first_action が 1 clause に固定され、推測 method が fact 化されず、existing_patterns と validation_entry の探索理由があることを確認する。
-7. 不足していれば tester / implementer へ渡さず reroute reason にする。
-8. `tester` に `single_handoff_packet`、`lane_context_packet`、owned_scope、test target だけを渡す。
-9. `implementer` に `single_handoff_packet`、`lane_context_packet`、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。
-10. `reviewer` に lane-local の実装結果と test result だけを渡す。
-11. validation、coverage、Sonar、harness evidence は subagent の戻り値だけから集約する。
-12. subagent result に docs 変更がないこと、または reroute 理由があることを明記する。
+6. `tester_context_packet` に test_ingredients、test_required_reading、test_validation_entry があることを確認する。
+7. first_action が 1 clause に固定され、推測 method が fact 化されず、existing_patterns と validation_entry の探索理由があることを確認する。
+8. 不足していれば tester / implementer へ渡さず reroute reason にする。
+9. `tester` に `single_handoff_packet`、`tester_context_packet`、test_subscope、owned_scope、test target だけを渡す。
+10. tester が無応答、timeout、空 output、required field 欠落を返した場合は、同一 handoff 内で test_subscope を狭めて最大 2 回再実行する。
+11. tester が insufficient_context を返した場合は、reason が tester insufficient_context_criteria に一致するか確認し、一致する場合だけ narrowing trigger にする。一致しない場合は criteria mismatch として completion packet に残す。
+12. `implementer` に `single_handoff_packet`、`lane_context_packet`、implementation_subscope、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。
+13. implementer が無応答、timeout、空 output、required field 欠落を返した場合は、同一 handoff 内で implementation_subscope を狭めて最大 2 回再実行する。
+14. implementer が insufficient_context を返した場合は、reason が implementer insufficient_context_criteria に一致するか確認し、一致する場合だけ narrowing trigger にする。一致しない場合は criteria mismatch として completion packet に残す。
+15. `reviewer` に lane-local の実装結果と test result だけを渡す。
+16. validation、coverage、Sonar、harness evidence は subagent の戻り値だけから集約する。
+17. subagent result に docs 変更がないこと、または reroute 理由があることを明記する。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は agent contract に従う。
@@ -110,9 +120,19 @@ backend 完了前に frontend handoff を先行しない。
 
 `implementation-distiller` は default path で必ず使う。
 ただし distiller に渡す input は `single_handoff_packet` 1 件だけに限定する。
-distiller は full implementation-scope、active work plan 全文、source artifacts、後続 handoff を読まず、tester / implementer が使う `lane_context_packet` だけを返す。
-`lane_context_packet` は fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含める。
+distiller は full implementation-scope、active work plan 全文、source artifacts、後続 handoff を読まず、implementer 用の `lane_context_packet` と tester 用の `tester_context_packet` だけを返す。
+`lane_context_packet` は implementer 用の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含める。
+tester 用には `tester_context_packet` を別に返し、test_ingredients、test_required_reading、test_existing_patterns、test_distracting_context、test_validation_entry を含める。
 handoff 1 件だけでは `lane_context_packet` を作れない設計不足は `propose-plans` へ戻す。
+
+### Autonomous Narrowing パターン
+
+tester / implementer が context 枯渇で進まない場合、orchestrator は同じ `single_handoff_packet` 内で sub-scope を狭めて再実行してよい。
+narrowing trigger は無応答、timeout、空 output、required field 欠落、`insufficient_context` である。
+`insufficient_context` は agent contract の insufficient_context_criteria に一致する場合だけ trigger にする。
+criteria mismatch は contract violation として completion packet に残し、narrowing trigger にしない。
+narrowing 軸は `completion_signal` clause、public seam / API boundary、test target file、change target / symbol、validation command のいずれか 1 つに限定する。
+最大 2 回狭めても進まない場合は、`blocked_after_narrowing` と remaining subscopes を completion packet に残す。
 
 ## DO / DON'T
 
@@ -123,11 +143,14 @@ DO:
 - distiller output が patch 生成に必要な fix_ingredients を持つことを確認する
 - distiller output が distracting_context を required_reading から分離していることを確認する
 - distiller output が具体的な first_action と code pointer を持つことを確認する
+- distiller output が tester_context_packet と tester 用 focused validation を持つことを確認する
 - distiller output の first_action が 1 clause に固定されていることを確認する
 - distiller output が推測 method を fact にしていないことを確認する
 - distiller output の existing_patterns と validation_entry が探索理由を持つことを確認する
 - distiller output が要件、実装方針、決定事項を要約していることを確認する
 - tester を implementer より先に起動する
+- tester / implementer の insufficient_context は sub-scope narrowing trigger として扱う
+- insufficient_context の reason を insufficient_context_criteria と照合する
 - implementer へ `single_handoff_packet`、`lane_context_packet`、tester output だけを渡す
 - subagent 戻り値だけを集約する
 - design 不足は `propose-plans` へ戻す
@@ -139,11 +162,16 @@ DON'T:
 - distiller に full `implementation-scope` や source artifacts を渡さない
 - handoff 文面の言い換えだけの distiller output を implementer に渡さない
 - fix_ingredients がない distiller output を implementer に渡さない
+- tester_context_packet がない distiller output を tester に渡さない
+- tester へ implementer 用 full context を渡さない
 - first_action が partial または複数 clause の distiller output を implementer に渡さない
 - 推測 method を fact にした distiller output を implementer に渡さない
 - 類似 context を required_reading に混ぜた distiller output を implementer に渡さない
 - 要件、実装方針、決定事項を required_reading に丸投げした distiller output を implementer に渡さない
 - implementer に product test の新規作成、更新、fixture 調整を依頼しない
+- criteria mismatch の insufficient_context を narrowing trigger にしない
+- narrowing で completion_signal を削らない
+- narrowing を理由に docs、implementation-scope、active work plan を書き換えない
 - file read / search / edit / validation 実行をしない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない
 - design review を行わない

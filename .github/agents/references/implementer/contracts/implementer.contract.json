@@ -5,10 +5,11 @@
   "contract_policy": "active contract は agent 1:1。backend / frontend / mixed / fix-lane の差分は focused skill で扱い、output obligation はこの contract に固定する。implementer は distiller と tester の後の product code 実装だけを扱い、product test / fixture / snapshot / test helper を変更しない。",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementer/permissions.json",
   "required_inputs": ["single_handoff_packet", "lane_context_packet", "approval_record", "implementation_target", "owned_scope", "depends_on_resolved", "tester_output"],
-  "optional_inputs": ["knowledge_focus", "lane_local_validation_commands"],
+  "optional_inputs": ["implementation_subscope", "knowledge_focus", "lane_local_validation_commands"],
   "input_notes": {
     "single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。",
     "lane_context_packet": "implementation-distiller が single_handoff_packet 1 件だけから作った実装前整理。fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含む。full implementation-scope、active work plan 全文、source artifacts、後続 handoff 由来の情報を含めない。",
+    "implementation_subscope": "implementation-orchestrate が context 枯渇時に同一 handoff 内で狭めた implementer 用 sub-scope。completion_signal clause、public seam / API boundary、change target / symbol、validation command のいずれか 1 軸で切られる。completion_signal を削るものではない。",
     "tester_output": "同じ handoff について tester が先に返した product test result または no-test-needed 理由。",
     "knowledge_focus": "implement-backend、implement-frontend、implement-mixed、implement-fix-lane の参照ヒント。contract と完了条件は変えない。implement-mixed は API / Wails / DTO / gateway など接合点 scope に限定する。"
   },
@@ -20,18 +21,38 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement-fix-lane/SKILL.md"
   ],
   "handoff_targets": ["implementation-orchestrate"],
-  "expected_outputs": ["touched_files", "implemented_scope", "validation_results", "closeout_notes", "residual_risks"],
+  "expected_outputs": ["touched_files", "implemented_scope", "implemented_subscope", "remaining_implementation_subscopes", "validation_results", "closeout_notes", "insufficient_context", "reason", "needed_context", "suggested_narrowing_axis", "residual_risks"],
+  "insufficient_context_criteria": {
+    "gate": "structural_gate",
+    "return_insufficient_context_when": [
+      "lane_context_packet に fix_ingredients、first_action、change_targets、requirements_policy_decisions、existing pattern、validation_entry のいずれかが欠けている",
+      "first_action が 1 completion_signal clause に固定されていない、line / symbol / public seam が不明、または必要な closure chain がない",
+      "実装に owned_scope 拡張、product test / fixture / snapshot / test helper 変更、docs / workflow 変更、新規設計判断、broad refactor が必要になる"
+    ],
+    "not_insufficient_context_when": [
+      "listed required_reading 内の局所確認だけで first edit に入れる",
+      "既存 pattern への通常追従で実装できる",
+      "lane-local validation failure を product code 内の scope で修正できる"
+    ],
+    "required_when_true": ["reason", "needed_context", "suggested_narrowing_axis", "implemented_subscope", "remaining_implementation_subscopes"]
+  },
   "field_requirements": {
     "touched_files": "single_handoff_packet の owned_scope に対応する product code だけを返す。product test、fixture、snapshot、test helper は含めない",
-    "implemented_scope": "single_handoff_packet 1 件と lane_context_packet に対応づけ、複数 handoff を束ねない",
+    "implemented_scope": "single_handoff_packet 1 件、lane_context_packet、implementation_subscope に対応づけ、複数 handoff を束ねない",
+    "implemented_subscope": "実際に実装した completion_signal clause、public seam / API boundary、change target / symbol、validation command を返す。implementation_subscope が入力された場合はそれに対応づける",
+    "remaining_implementation_subscopes": "同じ handoff 内で未実装の sub-scope を返す。completion_signal は削らず、未処理分を明示する",
     "validation_results": "lane-local validation を実行した場合は結果を返す。未実行なら blocked reason を返す。coverage、Sonar、harness all は implementer の必須 closeout にしない",
     "closeout_notes": "entry point、call site、data flow、error path、test surface、既存 pattern への整合を簡潔に返す。mixed の場合は接合点 contract を明記する",
+    "insufficient_context": "insufficient_context_criteria の structural_gate に一致する場合だけ true とし、reason、needed_context、suggested_narrowing_axis、implemented_subscope、remaining_implementation_subscopes を返す。自力で広く調査して埋めない。criteria に一致しない不安、通常の局所確認、lane-local validation failure だけでは true にしない。問題がなければ false または none",
+    "reason": "insufficient_context true 時は insufficient_context_criteria のどの structural gate に一致したかを返す。false 時は none または未使用にする",
+    "needed_context": "insufficient_context 時に不足している fix_ingredients、first_action、change target、public seam、existing pattern、validation command を列挙する",
+    "suggested_narrowing_axis": "insufficient_context 時に orchestrator が次に狭めるべき軸を completion_signal clause、public seam / API boundary、change target / symbol、validation command のいずれかで返す",
     "residual_risks": "未実行 validation、scope 超過、設計不足、test / fixture 変更が必要になった場合の blocked reason を分ける"
   },
-  "required_evidence": ["single_handoff_packet id", "lane_context_packet id", "fix_ingredients", "distracting_context", "first_action", "change_targets", "requirements_policy_decisions", "owned_scope", "tester_output", "entry point", "call site", "data flow or boundary", "error path", "test surface", "lane-local validation result or blocked reason"],
+  "required_evidence": ["single_handoff_packet id", "lane_context_packet id", "fix_ingredients", "distracting_context", "first_action", "change_targets", "requirements_policy_decisions", "owned_scope", "tester_output", "implemented_subscope or insufficient_context reason", "entry point", "call site", "data flow or boundary", "error path", "test surface", "lane-local validation result or blocked reason"],
   "rejection_conditions": ["missing single_handoff_packet", "missing lane_context_packet", "missing fix_ingredients", "missing distracting_context", "missing first_action", "missing change_targets", "missing requirements_policy_decisions", "missing approval_record", "missing tester_output", "unclear owned_scope"],
   "stop_conditions": ["設計判断が不足している", "docs または workflow の変更が必要になる", "broad refactor なしでは実装できない", "product test、fixture、snapshot、test helper の変更が必要になる"],
-  "contract_violation_conditions": ["touched_test_files を返す", "product test、fixture、snapshot、test helper を変更する", "full implementation-scope または後続 handoff を入力として要求する"],
+  "contract_violation_conditions": ["touched_test_files を返す", "product test、fixture、snapshot、test helper を変更する", "full implementation-scope または後続 handoff を入力として要求する", "insufficient_context を返さず広く調査して不足 context を埋める", "criteria mismatch: insufficient_context_criteria に一致しない理由で insufficient_context を返す", "remaining_implementation_subscopes を隠して完了扱いにする"],
   "completion_signal": "implementation-orchestrate が review へ進める product code 実装結果が返っている",
   "residual_risk_key": "residual_risks"
 }

@@ -4,11 +4,12 @@
   "runtime": "github-copilot",
   "contract_policy": "active contract は agent 1:1。scenario / unit の差分は focused skill で扱い、output obligation はこの contract に固定する。",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/tester/permissions.json",
-  "required_inputs": ["single_handoff_packet", "lane_context_packet", "approval_record", "owned_scope", "test_target", "validation_commands"],
-  "optional_inputs": ["knowledge_focus", "scenario_artifact", "implemented_scope", "reproduction_evidence", "existing_test_pointers"],
+  "required_inputs": ["single_handoff_packet", "tester_context_packet", "approval_record", "owned_scope", "test_target", "validation_commands"],
+  "optional_inputs": ["test_subscope", "knowledge_focus", "scenario_artifact", "implemented_scope", "reproduction_evidence", "existing_test_pointers"],
   "input_notes": {
     "single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。",
-    "lane_context_packet": "implementation-distiller が single_handoff_packet 1 件だけから作った実装前整理。test の観点抽出に使う。",
+    "tester_context_packet": "implementation-distiller が single_handoff_packet 1 件だけから作った tester 専用 context。test_ingredients、test_required_reading、test_existing_patterns、test_distracting_context、test_validation_entry を含む。full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を主入力にしない。",
+    "test_subscope": "implementation-orchestrate が context 枯渇時に同一 handoff 内で狭めた tester 用 sub-scope。completion_signal clause、public seam / API boundary、test target file、validation command のいずれか 1 軸で切られる。",
     "knowledge_focus": "tests-scenario または tests-unit の参照ヒント。contract と完了条件は変えない。"
   },
   "knowledge_refs": [
@@ -17,17 +18,37 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests-unit/SKILL.md"
   ],
   "handoff_targets": ["implementation-orchestrate"],
-  "expected_outputs": ["touched_test_files", "implemented_test_scope", "validation_results", "coverage_gate_result", "harness_gate_result", "remaining_gaps"],
+  "expected_outputs": ["touched_test_files", "implemented_test_scope", "tested_subscope", "remaining_test_subscopes", "validation_results", "coverage_gate_result", "harness_gate_result", "insufficient_context", "reason", "needed_context", "remaining_gaps"],
+  "insufficient_context_criteria": {
+    "gate": "structural_gate",
+    "return_insufficient_context_when": [
+      "tester_context_packet に behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation のいずれかが欠けている",
+      "test_subscope が completion_signal clause、public seam / API boundary、test target file、validation command のいずれにも対応していない",
+      "test 作成に full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers、owned_scope 外探索、product code 変更、paid API 呼び出しが必要になる"
+    ],
+    "not_insufficient_context_when": [
+      "期待どおり fail する product test を追加できる",
+      "局所的な import 修正または既存 test file 内の軽微な確認だけで進められる",
+      "tester_context_packet の listed files / symbols 内で test seam を確認できる"
+    ],
+    "required_when_true": ["reason", "needed_context", "tested_subscope", "remaining_test_subscopes"]
+  },
   "field_requirements": {
     "touched_test_files": "handoff 資料のスコープ粒度に対応する product test と必要最小限の fixture / helper だけを返す",
-    "implemented_test_scope": "single_handoff_packet 1 件または scenario artifact の観点と対応づけ、複数 handoff を束ねない",
-    "coverage_gate_result": "`python3 scripts/harness/run.py --suite coverage` で Sonar-compatible coverage 70% 以上。未実行なら blocked reason を返す",
-    "harness_gate_result": "必要に応じて `python3 scripts/harness/run.py --suite all` の結果。未実行なら blocked reason を返す",
+    "implemented_test_scope": "single_handoff_packet 1 件、tester_context_packet、test_subscope の観点と対応づけ、複数 handoff を束ねない",
+    "tested_subscope": "実際に test で証明した completion_signal clause、public seam / API boundary、test target file、validation command を返す。test_subscope が入力された場合はそれに対応づける",
+    "remaining_test_subscopes": "同じ handoff 内で未証明の tester sub-scope を返す。completion_signal は削らず、未処理分を明示する",
+    "insufficient_context": "insufficient_context_criteria の structural_gate に一致する場合だけ true とし、reason、needed_context、tested_subscope、remaining_test_subscopes を返す。自力で広く調査して埋めない。criteria に一致しない不安や通常の局所確認では true にしない。問題がなければ false または none",
+    "reason": "insufficient_context true 時は insufficient_context_criteria のどの structural gate に一致したかを返す。false 時は none または未使用にする",
+    "needed_context": "insufficient_context 時に不足している public seam、existing test target、fixture/helper、assertion focus、validation command を列挙する",
+    "coverage_gate_result": "final validation lane に defer する。実行した場合だけ結果を返し、未実行なら final_validation_deferred と理由を返す",
+    "harness_gate_result": "final validation lane に defer する。実行した場合だけ結果を返し、未実行なら final_validation_deferred と理由を返す",
     "remaining_gaps": "未証明の振る舞い、未実行 validation、blocked reason を分ける"
   },
-  "required_evidence": ["single_handoff_packet id", "lane_context_packet id", "handoff scope granularity", "owned_scope", "test_target", "test command result when executed", "coverage gate result or blocked reason", "harness all result or blocked reason"],
-  "rejection_conditions": ["missing single_handoff_packet", "missing lane_context_packet", "missing test_target", "missing owned_scope", "paid real AI API risk"],
+  "required_evidence": ["single_handoff_packet id", "tester_context_packet id", "test_ingredients", "test_required_reading", "test_validation_entry", "handoff scope granularity", "owned_scope", "test_target", "tested_subscope or insufficient_context reason", "test command result when executed or blocked reason"],
+  "rejection_conditions": ["missing single_handoff_packet", "missing tester_context_packet", "missing test_target", "missing owned_scope", "paid real AI API risk"],
   "stop_conditions": ["設計や ownership の整理が先に必要である", "product code の広い変更が必要になる", "paid real AI API を呼ぶ危険がある"],
+  "contract_violation_conditions": ["full lane_context_packet を主入力にする", "fix_ingredients、change_targets、broad related_code_pointers を直接追う", "insufficient_context を返さず広く調査する", "criteria mismatch: insufficient_context_criteria に一致しない理由で insufficient_context を返す", "remaining_test_subscopes を隠して完了扱いにする"],
   "completion_signal": "implementation-orchestrate が implementer、review、reroute の次 action を判断できる",
   "residual_risk_key": "remaining_gaps"
 }

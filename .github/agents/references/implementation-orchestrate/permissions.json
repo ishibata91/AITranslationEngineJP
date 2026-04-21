@@ -5,7 +5,9 @@
   "allowed_actions": [
     "承認済み implementation-scope の handoff 見出し、owned_scope、depends_on、validation command だけを確認する",
     "RunSubagent で implementation-distiller、tester、implementer、reviewer の順に single_handoff_packet 1 件を渡す",
-    "implementation-distiller には single_handoff_packet 1 件だけを渡して lane_context_packet を受け取る",
+    "implementation-distiller には single_handoff_packet 1 件だけを渡して lane_context_packet と tester_context_packet を受け取る",
+    "tester / implementer の insufficient_context が insufficient_context_criteria に一致する場合だけ autonomous narrowing trigger として扱う",
+    "criteria mismatch の insufficient_context を contract violation として completion packet に残す",
     "必要時だけ investigator へ single_handoff_packet 1 件を渡す",
     "depends_on の解消順を判断し、未解消 handoff を起動しない",
     "subagent が返した validation command、UI evidence、coverage gate、Sonar gate、harness gate、review result を集約する",
@@ -18,6 +20,7 @@
     "RunSubagent に full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡す",
     "implementation-distiller に full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡す",
     "implementer を tester より先に起動する",
+    "criteria mismatch の insufficient_context を narrowing trigger として扱う",
     "implementer に product test、fixture、snapshot、test helper の変更を依頼する",
     "要件や設計を追加する",
     "implementation-scope を書き換える",

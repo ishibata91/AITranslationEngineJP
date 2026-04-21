@@ -19,11 +19,11 @@ handoffs:
     send: false
   - label: Add product tests
     agent: tester
-    prompt: tester contract と single_handoff_packet 1 件、lane_context_packet、owned_scope、test target だけを渡す。handoff 資料のスコープ粒度で product test だけを追加または更新する。new requirement interpretation、full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。
+    prompt: tester contract と single_handoff_packet 1 件、tester_context_packet、test_subscope、owned_scope、test target だけを渡す。handoff 資料のスコープ粒度で product test だけを追加または更新する。full lane_context_packet、fix_ingredients 全体、change_targets 全体、new requirement interpretation、full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。
     send: false
   - label: Implement scope
     agent: implementer
-    prompt: implementer contract と single_handoff_packet 1 件、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。product code だけを実装し、product test、fixture、snapshot、test helper は変更しない。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。
+    prompt: implementer contract と single_handoff_packet 1 件、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。product code だけを実装し、product test、fixture、snapshot、test helper は変更しない。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は渡さない。
     send: false
   - label: Review implementation
     agent: reviewer
@@ -57,7 +57,12 @@ handoffs:
 - handoff は「独立して検証できる最小単位」へ保つ。
 - 各 implementation handoff は必ず distiller -> tester -> implementer -> reviewer の順で扱う。
 - subagent へ渡す source scope は lane-local な `single_handoff_packet` 1 件と、その distill 結果に限定する。
-- implementer へ渡してよい追加情報は `lane_context_packet` と tester output だけである。
+- tester へは `tester_context_packet` を渡し、implementer 用 full context は渡さない。
+- implementer へ渡してよい追加情報は `lane_context_packet`、implementation_subscope、tester output だけである。
+- tester / implementer の無応答、timeout、空 output、required field 欠落、`insufficient_context` は同一 handoff 内の sub-scope narrowing trigger として扱う。
+- `insufficient_context` は各 agent contract の insufficient_context_criteria に一致する場合だけ narrowing trigger として扱う。
+- criteria mismatch の `insufficient_context` は agent contract violation として completion packet に残す。
+- narrowing は completion_signal を削らず、remaining subscopes として未処理分を残す。
 - RunSubagent 以外では実装、test、調査、review、validation を進めない。
 - coverage、Sonar、harness は subagent 戻り値または blocked reason だけを集約する。
 - 設計判断、docs 正本化、scope 変更は実装 lane で吸収しない。
@@ -67,20 +72,26 @@ handoffs:
 1. `implementation-scope` の handoff 見出し、owned_scope、depends_on、validation command だけを読む。
 2. depends_on が未解消なら対象 handoff を起動しない。
 3. 対象 handoff 1 件だけを `single_handoff_packet` に抽出する。
-4. `implementation-distiller` に active contract と single_handoff_packet だけを渡し、lane_context_packet を受け取る。
+4. `implementation-distiller` に active contract と single_handoff_packet だけを渡し、lane_context_packet と tester_context_packet を受け取る。
 5. lane_context_packet に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、symbol / line number 付き related_code_pointers があることを確認する。first_action が 1 clause に固定され、推測 method が fact 化されず、existing_patterns と validation_entry の探索理由があることも確認する。
-6. 不足していれば implementer へ渡さず reroute reason にする。
-7. `tester` に active contract、single_handoff_packet、lane_context_packet、owned_scope、test target、禁止事項、期待 output を渡す。
-8. `implementer` に active contract、single_handoff_packet、lane_context_packet、owned_scope、depends_on 解消結果、tester output、禁止事項、期待 output を渡す。
-9. `reviewer` に lane-local の実装結果、tester output、review 対象だけを渡す。
-10. subagent の戻り値だけを completion packet に転記する。
-11. coverage、Sonar、harness の gate 結果と未実行理由を集約する。
-12. 不足、矛盾、scope 超過は自分で補わず reroute reason にする。
+6. tester_context_packet に test_ingredients、test_required_reading、test_validation_entry、assertion focus、focused validation があることを確認する。
+7. 不足していれば tester / implementer へ渡さず reroute reason にする。
+8. `tester` に active contract、single_handoff_packet、tester_context_packet、test_subscope、owned_scope、test target、禁止事項、期待 output を渡す。
+9. tester が無応答、timeout、空 output、required field 欠落を返した場合は、同一 handoff 内で test_subscope を狭めて最大 2 回再実行する。
+10. tester が insufficient_context を返した場合は、reason が tester insufficient_context_criteria に一致するか確認し、一致する場合だけ narrowing trigger にする。一致しない場合は criteria mismatch として completion packet に残す。
+11. `implementer` に active contract、single_handoff_packet、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果、tester output、禁止事項、期待 output を渡す。
+12. implementer が無応答、timeout、空 output、required field 欠落を返した場合は、同一 handoff 内で implementation_subscope を狭めて最大 2 回再実行する。
+13. implementer が insufficient_context を返した場合は、reason が implementer insufficient_context_criteria に一致するか確認し、一致する場合だけ narrowing trigger にする。一致しない場合は criteria mismatch として completion packet に残す。
+14. `reviewer` に lane-local の実装結果、tester output、review 対象だけを渡す。
+15. subagent の戻り値だけを completion packet に転記する。
+16. coverage、Sonar、harness の gate 結果と未実行理由を集約する。
+17. narrowing で残った未処理分は remaining_test_subscopes または remaining_implementation_subscopes と blocked_after_narrowing に残す。
+18. 不足、矛盾、scope 超過は自分で補わず reroute reason にする。
 
 ## Source Of Truth
 
 - primary: human review 済みの `implementation-scope`
-- secondary: approval record、validation commands、subagent が返した lane_context_packet / product code / product test evidence
+- secondary: approval record、validation commands、subagent が返した lane_context_packet / tester_context_packet / product code / product test evidence
 - forbidden source: 未承認 design、implementation-scope の独自変更、docs 正本化の推測
 
 ## Permissions
@@ -108,4 +119,4 @@ contract は agent 1:1 で、mode 別 contract は active 正本にしない。
 
 - handoff 先: `implementation-distiller`、`tester`、`implementer`、`reviewer`、必要時のみ `investigator`
 - 渡す contract: 各 agent の active contract
-- 渡す scope: `single_handoff_packet` 1 件、lane_context_packet、owned_scope、depends_on 解消結果、validation commands、tester output
+- 渡す scope: `single_handoff_packet` 1 件、tester_context_packet、lane_context_packet、test_subscope、implementation_subscope、owned_scope、depends_on 解消結果、validation commands、tester output

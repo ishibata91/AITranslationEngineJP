@@ -3,7 +3,7 @@ name: implementation-distiller
 description: subagent。single_handoff_packet 1 件から lane_context_packet を作る。
 target: vscode
 tools: [read, search]
-model: GPT-5.4 mini (copilot)
+model: GPT-5.4 (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false
@@ -21,7 +21,7 @@ handoffs:
 ## 役割
 
 この作業は `implementation-distiller` agent 定義に基づく。
-`single_handoff_packet` 1 件から、tester / implementer が読む `lane_context_packet` を作る。
+`single_handoff_packet` 1 件から、implementer が読む `lane_context_packet` と tester が読む `tester_context_packet` を作る。
 full `implementation-scope`、active work plan 全文、source artifacts、後続 handoff は読まない。
 
 実装、test 追加、review、設計追加は行わない。
@@ -41,6 +41,8 @@ focus の違いは focused skill で扱い、active contract はこの agent に
 - 実装者が最初に触る file、symbol、line、変更種別を返す。
 - patch 生成に必要な `fix_ingredients` を構造単位で残す。
 - 類似しているが修正に使わない `distracting_context` を明示する。
+- tester 向けには `tester_context_packet` を別に作り、test_ingredients、test_required_reading、test_validation_entry に圧縮する。
+- tester には fix_ingredients、change_targets、broad related_code_pointers を丸ごと渡さない。
 - repository method、interface、field の有無は実 code で確認し、推測を fact にしない。
 - `first_action` は 1 completion_signal clause に限定し、partial と書かない。
 - 既存 pattern が見つからない場合も、探索範囲と実装判断への影響を返す。
@@ -60,8 +62,9 @@ focus の違いは focused skill で扱い、active contract はこの agent に
 7. first_action は 1 clause に固定し、必要なら同じ clause の最小 closure chain を change_targets に入れる。
 8. 要件、実装方針、決定事項、out of scope、禁止事項を requirements_policy_decisions に要約する。
 9. 既存 pattern、call site、error path、test surface、cheap validation entry を探す。
-10. lane_context_packet、implementation_facts、constraints、gaps、required_reading を分ける。
-11. recommended_next_skill を根拠付きで返す。
+10. tester 用の public seam、既存 test target、fixture/helper、assertion focus、focused validation を tester_context_packet に分ける。
+11. lane_context_packet、tester_context_packet、implementation_facts、constraints、gaps、required_reading を分ける。
+12. recommended_next_skill を根拠付きで返す。
 
 ## Source Of Truth
 
@@ -93,4 +96,4 @@ contract は agent 1:1 で、implement / fix / refactor は focused skill とし
 
 - handoff 先: `implementation-orchestrate`
 - 渡す contract: [implementation-distiller.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-distiller/contracts/implementation-distiller.contract.json)
-- 渡す scope: lane_context_packet と remaining gaps
+- 渡す scope: lane_context_packet、tester_context_packet、remaining gaps
