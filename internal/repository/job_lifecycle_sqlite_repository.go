@@ -1,4 +1,4 @@
-package sqlite
+package repository
 
 import (
 	"context"
@@ -6,17 +6,15 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-
-	"aitranslationenginejp/internal/repository"
 )
 
-// SQLiteJobLifecycleRepository は repository.JobLifecycleRepository の SQLite 実装。
+// SQLiteJobLifecycleRepository は JobLifecycleRepository の SQLite 実装。
 type SQLiteJobLifecycleRepository struct {
 	db *sqlx.DB
 }
 
-// NewSQLiteJobLifecycleRepository は repository.JobLifecycleRepository を返す。
-func NewSQLiteJobLifecycleRepository(db *sqlx.DB) repository.JobLifecycleRepository {
+// NewSQLiteJobLifecycleRepository は JobLifecycleRepository を返す。
+func NewSQLiteJobLifecycleRepository(db *sqlx.DB) JobLifecycleRepository {
 	return &SQLiteJobLifecycleRepository{db: db}
 }
 
@@ -35,16 +33,16 @@ type translationJobRow struct {
 	FinishedAt           *string `db:"finished_at"`
 }
 
-func (r translationJobRow) toModel() (repository.TranslationJob, error) {
+func (r translationJobRow) toModel() (TranslationJob, error) {
 	createdAt, err := time.Parse(time.RFC3339, r.CreatedAt)
 	if err != nil {
-		return repository.TranslationJob{}, fmt.Errorf("parse created_at: %w", err)
+		return TranslationJob{}, fmt.Errorf("parse created_at: %w", err)
 	}
 	var startedAt *time.Time
 	if r.StartedAt != nil {
 		t, err := time.Parse(time.RFC3339, *r.StartedAt)
 		if err != nil {
-			return repository.TranslationJob{}, fmt.Errorf("parse started_at: %w", err)
+			return TranslationJob{}, fmt.Errorf("parse started_at: %w", err)
 		}
 		startedAt = &t
 	}
@@ -52,11 +50,11 @@ func (r translationJobRow) toModel() (repository.TranslationJob, error) {
 	if r.FinishedAt != nil {
 		t, err := time.Parse(time.RFC3339, *r.FinishedAt)
 		if err != nil {
-			return repository.TranslationJob{}, fmt.Errorf("parse finished_at: %w", err)
+			return TranslationJob{}, fmt.Errorf("parse finished_at: %w", err)
 		}
 		finishedAt = &t
 	}
-	return repository.TranslationJob{
+	return TranslationJob{
 		ID:                   r.ID,
 		XEditExtractedDataID: r.XEditExtractedDataID,
 		JobName:              r.JobName,
@@ -86,12 +84,12 @@ type jobPhaseRunRow struct {
 	FinishedAt          *string `db:"finished_at"`
 }
 
-func (r jobPhaseRunRow) toModel() (repository.JobPhaseRun, error) {
+func (r jobPhaseRunRow) toModel() (JobPhaseRun, error) {
 	var startedAt *time.Time
 	if r.StartedAt != nil {
 		t, err := time.Parse(time.RFC3339, *r.StartedAt)
 		if err != nil {
-			return repository.JobPhaseRun{}, fmt.Errorf("parse started_at: %w", err)
+			return JobPhaseRun{}, fmt.Errorf("parse started_at: %w", err)
 		}
 		startedAt = &t
 	}
@@ -99,11 +97,11 @@ func (r jobPhaseRunRow) toModel() (repository.JobPhaseRun, error) {
 	if r.FinishedAt != nil {
 		t, err := time.Parse(time.RFC3339, *r.FinishedAt)
 		if err != nil {
-			return repository.JobPhaseRun{}, fmt.Errorf("parse finished_at: %w", err)
+			return JobPhaseRun{}, fmt.Errorf("parse finished_at: %w", err)
 		}
 		finishedAt = &t
 	}
-	return repository.JobPhaseRun{
+	return JobPhaseRun{
 		ID:                  r.ID,
 		TranslationJobID:    r.TranslationJobID,
 		PhaseType:           r.PhaseType,
@@ -129,15 +127,6 @@ type phaseRunTranslationFieldRow struct {
 	Role                  string `db:"role"`
 }
 
-func (r phaseRunTranslationFieldRow) toModel() repository.PhaseRunTranslationField {
-	return repository.PhaseRunTranslationField{
-		ID:                    r.ID,
-		PhaseRunID:            r.PhaseRunID,
-		JobTranslationFieldID: r.JobTranslationFieldID,
-		Role:                  r.Role,
-	}
-}
-
 type phaseRunPersonaRow struct {
 	ID         int64  `db:"id"`
 	PhaseRunID int64  `db:"phase_run_id"`
@@ -145,29 +134,11 @@ type phaseRunPersonaRow struct {
 	Role       string `db:"role"`
 }
 
-func (r phaseRunPersonaRow) toModel() repository.PhaseRunPersona {
-	return repository.PhaseRunPersona{
-		ID:         r.ID,
-		PhaseRunID: r.PhaseRunID,
-		PersonaID:  r.PersonaID,
-		Role:       r.Role,
-	}
-}
-
 type phaseRunDictionaryEntryRow struct {
 	ID                int64  `db:"id"`
 	PhaseRunID        int64  `db:"phase_run_id"`
 	DictionaryEntryID int64  `db:"dictionary_entry_id"`
 	Role              string `db:"role"`
-}
-
-func (r phaseRunDictionaryEntryRow) toModel() repository.PhaseRunDictionaryEntry {
-	return repository.PhaseRunDictionaryEntry{
-		ID:                r.ID,
-		PhaseRunID:        r.PhaseRunID,
-		DictionaryEntryID: r.DictionaryEntryID,
-		Role:              r.Role,
-	}
 }
 
 // ---------------------------------------------------------------------------
@@ -249,10 +220,11 @@ VALUES
 // TranslationJob
 // ---------------------------------------------------------------------------
 
+// CreateTranslationJob は TranslationJob レコードを作成する。
 func (r *SQLiteJobLifecycleRepository) CreateTranslationJob(
 	ctx context.Context,
-	draft repository.TranslationJobDraft,
-) (repository.TranslationJob, error) {
+	draft TranslationJobDraft,
+) (TranslationJob, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	row := translationJobRow{
@@ -266,36 +238,38 @@ func (r *SQLiteJobLifecycleRepository) CreateTranslationJob(
 	}
 	q, args, err := sqlx.Named(insertTranslationJob, row)
 	if err != nil {
-		return repository.TranslationJob{}, fmt.Errorf("create translation_job named: %w", err)
+		return TranslationJob{}, fmt.Errorf("create translation_job named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.TranslationJob{}, mapFoundationSQLError(err, "create translation_job")
+		return TranslationJob{}, mapFoundationSQLError(err, "create translation_job")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.TranslationJob{}, fmt.Errorf("create translation_job last insert id: %w", err)
+		return TranslationJob{}, fmt.Errorf("create translation_job last insert id: %w", err)
 	}
 	return r.GetTranslationJobByID(ctx, id)
 }
 
+// GetTranslationJobByID は ID で TranslationJob を取得する。
 func (r *SQLiteJobLifecycleRepository) GetTranslationJobByID(
 	ctx context.Context,
 	id int64,
-) (repository.TranslationJob, error) {
+) (TranslationJob, error) {
 	ext := extractTx(ctx, r.db)
 	var row translationJobRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationJobByID, id); err != nil {
-		return repository.TranslationJob{}, mapSQLError(err, "get translation_job by id")
+		return TranslationJob{}, mapSQLError(err, "get translation_job by id")
 	}
 	return row.toModel()
 }
 
+// UpdateTranslationJob は TranslationJob を更新する。
 func (r *SQLiteJobLifecycleRepository) UpdateTranslationJob(
 	ctx context.Context,
 	id int64,
-	draft repository.TranslationJobUpdateDraft,
-) (repository.TranslationJob, error) {
+	draft TranslationJobUpdateDraft,
+) (TranslationJob, error) {
 	ext := extractTx(ctx, r.db)
 	var startedAt *string
 	if draft.StartedAt != nil {
@@ -317,10 +291,10 @@ func (r *SQLiteJobLifecycleRepository) UpdateTranslationJob(
 	}
 	q, qArgs, err := sqlx.Named(updateTranslationJob, args)
 	if err != nil {
-		return repository.TranslationJob{}, fmt.Errorf("update translation_job named: %w", err)
+		return TranslationJob{}, fmt.Errorf("update translation_job named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, qArgs...); err != nil {
-		return repository.TranslationJob{}, mapFoundationSQLError(err, "update translation_job")
+		return TranslationJob{}, mapFoundationSQLError(err, "update translation_job")
 	}
 	return r.GetTranslationJobByID(ctx, id)
 }
@@ -329,10 +303,11 @@ func (r *SQLiteJobLifecycleRepository) UpdateTranslationJob(
 // JobPhaseRun
 // ---------------------------------------------------------------------------
 
+// CreateJobPhaseRun は JobPhaseRun レコードを作成する。
 func (r *SQLiteJobLifecycleRepository) CreateJobPhaseRun(
 	ctx context.Context,
-	draft repository.JobPhaseRunDraft,
-) (repository.JobPhaseRun, error) {
+	draft JobPhaseRunDraft,
+) (JobPhaseRun, error) {
 	ext := extractTx(ctx, r.db)
 	row := jobPhaseRunRow{
 		TranslationJobID:    draft.TranslationJobID,
@@ -352,36 +327,38 @@ func (r *SQLiteJobLifecycleRepository) CreateJobPhaseRun(
 	}
 	q, args, err := sqlx.Named(insertJobPhaseRun, row)
 	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("create job_phase_run named: %w", err)
+		return JobPhaseRun{}, fmt.Errorf("create job_phase_run named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.JobPhaseRun{}, mapFoundationSQLError(err, "create job_phase_run")
+		return JobPhaseRun{}, mapFoundationSQLError(err, "create job_phase_run")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("create job_phase_run last insert id: %w", err)
+		return JobPhaseRun{}, fmt.Errorf("create job_phase_run last insert id: %w", err)
 	}
 	return r.GetJobPhaseRunByID(ctx, id)
 }
 
+// GetJobPhaseRunByID は ID で JobPhaseRun を取得する。
 func (r *SQLiteJobLifecycleRepository) GetJobPhaseRunByID(
 	ctx context.Context,
 	id int64,
-) (repository.JobPhaseRun, error) {
+) (JobPhaseRun, error) {
 	ext := extractTx(ctx, r.db)
 	var row jobPhaseRunRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectJobPhaseRunByID, id); err != nil {
-		return repository.JobPhaseRun{}, mapSQLError(err, "get job_phase_run by id")
+		return JobPhaseRun{}, mapSQLError(err, "get job_phase_run by id")
 	}
 	return row.toModel()
 }
 
+// UpdateJobPhaseRun は JobPhaseRun を更新する。
 func (r *SQLiteJobLifecycleRepository) UpdateJobPhaseRun(
 	ctx context.Context,
 	id int64,
-	draft repository.JobPhaseRunUpdateDraft,
-) (repository.JobPhaseRun, error) {
+	draft JobPhaseRunUpdateDraft,
+) (JobPhaseRun, error) {
 	ext := extractTx(ctx, r.db)
 	var startedAt *string
 	if draft.StartedAt != nil {
@@ -404,24 +381,25 @@ func (r *SQLiteJobLifecycleRepository) UpdateJobPhaseRun(
 	}
 	q, qArgs, err := sqlx.Named(updateJobPhaseRun, args)
 	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("update job_phase_run named: %w", err)
+		return JobPhaseRun{}, fmt.Errorf("update job_phase_run named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, qArgs...); err != nil {
-		return repository.JobPhaseRun{}, mapFoundationSQLError(err, "update job_phase_run")
+		return JobPhaseRun{}, mapFoundationSQLError(err, "update job_phase_run")
 	}
 	return r.GetJobPhaseRunByID(ctx, id)
 }
 
+// ListJobPhaseRunsByJobID は JobID に紐づく JobPhaseRun 一覧を返す。
 func (r *SQLiteJobLifecycleRepository) ListJobPhaseRunsByJobID(
 	ctx context.Context,
 	jobID int64,
-) ([]repository.JobPhaseRun, error) {
+) ([]JobPhaseRun, error) {
 	ext := extractTx(ctx, r.db)
 	var rows []jobPhaseRunRow
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectJobPhaseRunsByJobID, jobID); err != nil {
 		return nil, mapSQLError(err, "list job_phase_runs by job_id")
 	}
-	result := make([]repository.JobPhaseRun, len(rows))
+	result := make([]JobPhaseRun, len(rows))
 	for i, row := range rows {
 		m, err := row.toModel()
 		if err != nil {
@@ -436,10 +414,11 @@ func (r *SQLiteJobLifecycleRepository) ListJobPhaseRunsByJobID(
 // PhaseRunTranslationField
 // ---------------------------------------------------------------------------
 
+// CreatePhaseRunTranslationField は PhaseRunTranslationField レコードを作成する。
 func (r *SQLiteJobLifecycleRepository) CreatePhaseRunTranslationField(
 	ctx context.Context,
-	draft repository.PhaseRunTranslationFieldDraft,
-) (repository.PhaseRunTranslationField, error) {
+	draft PhaseRunTranslationFieldDraft,
+) (PhaseRunTranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	row := phaseRunTranslationFieldRow{
 		PhaseRunID:            draft.PhaseRunID,
@@ -448,17 +427,17 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunTranslationField(
 	}
 	q, args, err := sqlx.Named(insertPhaseRunTranslationField, row)
 	if err != nil {
-		return repository.PhaseRunTranslationField{}, fmt.Errorf("create phase_run_translation_field named: %w", err)
+		return PhaseRunTranslationField{}, fmt.Errorf("create phase_run_translation_field named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.PhaseRunTranslationField{}, mapFoundationSQLError(err, "create phase_run_translation_field")
+		return PhaseRunTranslationField{}, mapFoundationSQLError(err, "create phase_run_translation_field")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.PhaseRunTranslationField{}, fmt.Errorf("create phase_run_translation_field last insert id: %w", err)
+		return PhaseRunTranslationField{}, fmt.Errorf("create phase_run_translation_field last insert id: %w", err)
 	}
-	return repository.PhaseRunTranslationField{
+	return PhaseRunTranslationField{
 		ID:                    id,
 		PhaseRunID:            draft.PhaseRunID,
 		JobTranslationFieldID: draft.JobTranslationFieldID,
@@ -470,10 +449,11 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunTranslationField(
 // PhaseRunPersona
 // ---------------------------------------------------------------------------
 
+// CreatePhaseRunPersona は PhaseRunPersona レコードを作成する。
 func (r *SQLiteJobLifecycleRepository) CreatePhaseRunPersona(
 	ctx context.Context,
-	draft repository.PhaseRunPersonaDraft,
-) (repository.PhaseRunPersona, error) {
+	draft PhaseRunPersonaDraft,
+) (PhaseRunPersona, error) {
 	ext := extractTx(ctx, r.db)
 	row := phaseRunPersonaRow{
 		PhaseRunID: draft.PhaseRunID,
@@ -482,17 +462,17 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunPersona(
 	}
 	q, args, err := sqlx.Named(insertPhaseRunPersona, row)
 	if err != nil {
-		return repository.PhaseRunPersona{}, fmt.Errorf("create phase_run_persona named: %w", err)
+		return PhaseRunPersona{}, fmt.Errorf("create phase_run_persona named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.PhaseRunPersona{}, mapFoundationSQLError(err, "create phase_run_persona")
+		return PhaseRunPersona{}, mapFoundationSQLError(err, "create phase_run_persona")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.PhaseRunPersona{}, fmt.Errorf("create phase_run_persona last insert id: %w", err)
+		return PhaseRunPersona{}, fmt.Errorf("create phase_run_persona last insert id: %w", err)
 	}
-	return repository.PhaseRunPersona{
+	return PhaseRunPersona{
 		ID:         id,
 		PhaseRunID: draft.PhaseRunID,
 		PersonaID:  draft.PersonaID,
@@ -504,10 +484,11 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunPersona(
 // PhaseRunDictionaryEntry
 // ---------------------------------------------------------------------------
 
+// CreatePhaseRunDictionaryEntry は PhaseRunDictionaryEntry レコードを作成する。
 func (r *SQLiteJobLifecycleRepository) CreatePhaseRunDictionaryEntry(
 	ctx context.Context,
-	draft repository.PhaseRunDictionaryEntryDraft,
-) (repository.PhaseRunDictionaryEntry, error) {
+	draft PhaseRunDictionaryEntryDraft,
+) (PhaseRunDictionaryEntry, error) {
 	ext := extractTx(ctx, r.db)
 	row := phaseRunDictionaryEntryRow{
 		PhaseRunID:        draft.PhaseRunID,
@@ -516,17 +497,17 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunDictionaryEntry(
 	}
 	q, args, err := sqlx.Named(insertPhaseRunDictionaryEntry, row)
 	if err != nil {
-		return repository.PhaseRunDictionaryEntry{}, fmt.Errorf("create phase_run_dictionary_entry named: %w", err)
+		return PhaseRunDictionaryEntry{}, fmt.Errorf("create phase_run_dictionary_entry named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.PhaseRunDictionaryEntry{}, mapFoundationSQLError(err, "create phase_run_dictionary_entry")
+		return PhaseRunDictionaryEntry{}, mapFoundationSQLError(err, "create phase_run_dictionary_entry")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.PhaseRunDictionaryEntry{}, fmt.Errorf("create phase_run_dictionary_entry last insert id: %w", err)
+		return PhaseRunDictionaryEntry{}, fmt.Errorf("create phase_run_dictionary_entry last insert id: %w", err)
 	}
-	return repository.PhaseRunDictionaryEntry{
+	return PhaseRunDictionaryEntry{
 		ID:                id,
 		PhaseRunID:        draft.PhaseRunID,
 		DictionaryEntryID: draft.DictionaryEntryID,

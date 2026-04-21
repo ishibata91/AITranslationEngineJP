@@ -83,7 +83,6 @@ func (publisher *WailsMasterDictionaryRuntimeEventPublisher) PublishImportComple
 				ImportedCount: payload.Summary.ImportedCount,
 				UpdatedCount:  payload.Summary.UpdatedCount,
 				SkippedCount:  payload.Summary.SkippedCount,
-				SelectedREC:   payload.Summary.SelectedREC,
 				LastEntryID:   payload.Summary.LastEntryID,
 			},
 			Refresh: masterDictionaryImportCompletedRefreshDTO{
@@ -137,13 +136,12 @@ type masterDictionaryPageDTO struct {
 }
 
 type masterDictionaryImportSummaryDTO struct {
-	FilePath      string   `json:"filePath"`
-	FileName      string   `json:"fileName"`
-	ImportedCount int      `json:"importedCount"`
-	UpdatedCount  int      `json:"updatedCount"`
-	SkippedCount  int      `json:"skippedCount"`
-	SelectedREC   []string `json:"selectedRec"`
-	LastEntryID   int64    `json:"lastEntryId"`
+	FilePath      string `json:"filePath"`
+	FileName      string `json:"fileName"`
+	ImportedCount int    `json:"importedCount"`
+	UpdatedCount  int    `json:"updatedCount"`
+	SkippedCount  int    `json:"skippedCount"`
+	LastEntryID   int64  `json:"lastEntryId"`
 }
 
 type masterDictionaryImportCompletedRefreshDTO struct {

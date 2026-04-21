@@ -232,6 +232,109 @@ func TestSQLiteMasterDictionaryRepositoryUpsertBySourceAndRECCreatesNewRecord(t 
 	}
 }
 
+func TestSQLiteMasterDictionaryRepositoryUpsertBySourceAndRECPersistsProvenanceIDOnCreate(t *testing.T) {
+	repo := newSQLiteMasterDictionaryRepositoryForTest(t, filepath.Join(t.TempDir(), "db", sqliteRepositoryTestDatabaseFileName), nil)
+
+	// Arrange: FK 制約を満たすため XTRANSLATOR_TRANSLATION_XML 親行を先行挿入する。
+	xmlResult, err := repo.database.ExecContext(context.Background(),
+		`INSERT INTO XTRANSLATOR_TRANSLATION_XML (file_path, target_plugin_name, target_plugin_type, term_count, imported_at)
+		 VALUES (?, ?, ?, ?, ?)`,
+		"skyrim_jp.xml", "Skyrim.esm", "ESM", 1, "2026-04-15T10:00:00Z",
+	)
+	if err != nil {
+		t.Fatalf("expected parent XML row insert to succeed: %v", err)
+	}
+	xmlRowID, err := xmlResult.LastInsertId()
+	if err != nil {
+		t.Fatalf("expected to read last insert id: %v", err)
+	}
+
+	// Act: provenance ID を持つ import record を作成方向で upsert する。
+	createdEntry, created, err := repo.UpsertBySourceAndREC(context.Background(), MasterDictionaryImportRecord{
+		Source:                      "Iron Sword",
+		Translation:                 "アイアンソード",
+		Category:                    sqliteRepositoryWeaponCategory,
+		Origin:                      "XML取込",
+		REC:                         sqliteRepositoryWeaponREC,
+		EDID:                        "WeapIronSword",
+		UpdatedAt:                   time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC),
+		XTranslatorTranslationXMLID: &xmlRowID,
+	})
+	if err != nil {
+		t.Fatalf("expected upsert create to succeed: %v", err)
+	}
+	if !created {
+		t.Fatal("expected new record to be created")
+	}
+
+	// Assert: DB の xtranslator_translation_xml_id が挿入した値と一致する。
+	var storedXMLID *int64
+	if err := repo.database.GetContext(context.Background(), &storedXMLID,
+		"SELECT xtranslator_translation_xml_id FROM DICTIONARY_ENTRY WHERE id = ?", createdEntry.ID,
+	); err != nil {
+		t.Fatalf("expected to read xtranslator_translation_xml_id from DB: %v", err)
+	}
+	if storedXMLID == nil || *storedXMLID != xmlRowID {
+		t.Fatalf("expected xtranslator_translation_xml_id=%d persisted, got %v", xmlRowID, storedXMLID)
+	}
+}
+
+func TestSQLiteMasterDictionaryRepositoryUpsertBySourceAndRECPersistsProvenanceIDOnUpdate(t *testing.T) {
+	repo := newSQLiteMasterDictionaryRepositoryForTest(t, filepath.Join(t.TempDir(), "db", sqliteRepositoryTestDatabaseFileName), []MasterDictionaryEntry{{
+		ID:          1,
+		Source:      sqliteRepositoryAurielsBow,
+		Translation: "旧訳",
+		Category:    sqliteRepositoryWeaponCategory,
+		Origin:      "初期データ",
+		REC:         sqliteRepositoryWeaponREC,
+		EDID:        "DLC1AurielsBow",
+		UpdatedAt:   time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC),
+	}})
+
+	// Arrange: FK 制約を満たすため XTRANSLATOR_TRANSLATION_XML 親行を先行挿入する。
+	xmlResult, err := repo.database.ExecContext(context.Background(),
+		`INSERT INTO XTRANSLATOR_TRANSLATION_XML (file_path, target_plugin_name, target_plugin_type, term_count, imported_at)
+		 VALUES (?, ?, ?, ?, ?)`,
+		"dawnguard_jp.xml", "Dawnguard.esm", "ESM", 5, "2026-04-15T10:00:00Z",
+	)
+	if err != nil {
+		t.Fatalf("expected parent XML row insert to succeed: %v", err)
+	}
+	xmlRowID, err := xmlResult.LastInsertId()
+	if err != nil {
+		t.Fatalf("expected to read last insert id: %v", err)
+	}
+
+	// Act: provenance ID を持つ import record を更新方向で upsert する。
+	updatedEntry, created, err := repo.UpsertBySourceAndREC(context.Background(), MasterDictionaryImportRecord{
+		Source:                      sqliteRepositoryAurielsBow,
+		Translation:                 "アーリエルの弓",
+		Category:                    sqliteRepositoryWeaponCategory,
+		Origin:                      "XML取込",
+		REC:                         sqliteRepositoryWeaponREC,
+		EDID:                        "DLC1AurielsBow",
+		UpdatedAt:                   time.Date(2026, 4, 15, 10, 1, 0, 0, time.UTC),
+		XTranslatorTranslationXMLID: &xmlRowID,
+	})
+	if err != nil {
+		t.Fatalf("expected upsert update to succeed: %v", err)
+	}
+	if created {
+		t.Fatal("expected existing record to be updated, not created")
+	}
+
+	// Assert: DB の xtranslator_translation_xml_id が挿入した値と一致する。
+	var storedXMLID *int64
+	if err := repo.database.GetContext(context.Background(), &storedXMLID,
+		"SELECT xtranslator_translation_xml_id FROM DICTIONARY_ENTRY WHERE id = ?", updatedEntry.ID,
+	); err != nil {
+		t.Fatalf("expected to read xtranslator_translation_xml_id from DB: %v", err)
+	}
+	if storedXMLID == nil || *storedXMLID != xmlRowID {
+		t.Fatalf("expected xtranslator_translation_xml_id=%d persisted, got %v", xmlRowID, storedXMLID)
+	}
+}
+
 func TestSQLiteMasterDictionaryRepositorySeedsEmptyDatabase(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteRepositoryTestDatabaseFileName)
 	firstSeedTime := time.Date(2026, 4, 15, 9, 0, 0, 0, time.UTC)

@@ -2,7 +2,6 @@ import type {
   MasterPersonaAISettings,
   MasterPersonaDeleteRequest,
   MasterPersonaDetailResponse,
-  MasterPersonaDialogueListResponse,
   MasterPersonaIdentityRequest,
   MasterPersonaMutationResponse,
   MasterPersonaPageRequest,
@@ -17,7 +16,6 @@ export type MasterPersonaPageRequestDto = MasterPersonaPageRequest
 export type MasterPersonaPageResponseDto = MasterPersonaPageResponse
 export type MasterPersonaIdentityRequestDto = MasterPersonaIdentityRequest
 export type MasterPersonaDetailResponseDto = MasterPersonaDetailResponse
-export type MasterPersonaDialogueListResponseDto = MasterPersonaDialogueListResponse
 export type MasterPersonaAISettingsDto = MasterPersonaAISettings
 export type MasterPersonaPreviewRequestDto = MasterPersonaPreviewRequest
 export type MasterPersonaPreviewResultDto = MasterPersonaPreviewResult

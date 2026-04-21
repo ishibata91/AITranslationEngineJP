@@ -121,16 +121,22 @@ type MasterPersonaRunStatus struct {
 }
 
 // MasterPersonaUpdateInput stores editable persona fields.
+// Identity/snapshot fields (FormID, EditorID, VoiceType, ClassName, SourcePlugin, DisplayName, Race, Sex) are
+// retained for compile compatibility but are ignored in UpdateEntry; identity linkage and
+// display name / race / sex are resolved from the existing entry fetched by identityKey.
+// Only PersonaSummary, SpeechStyle, and PersonaBody are taken from the caller.
 type MasterPersonaUpdateInput struct {
-	FormID       string
-	EditorID     string
-	DisplayName  string
-	Race         *string
-	Sex          *string
-	VoiceType    string
-	ClassName    string
-	SourcePlugin string
-	PersonaBody  string
+	FormID         string
+	EditorID       string
+	DisplayName    string
+	Race           *string
+	Sex            *string
+	VoiceType      string
+	ClassName      string
+	SourcePlugin   string
+	PersonaSummary string
+	SpeechStyle    string
+	PersonaBody    string
 }
 
 // MasterPersonaQueryRepository defines read-only repository dependencies for services.
@@ -177,6 +183,7 @@ type MasterPersonaGenerationService struct {
 	runRepository      MasterPersonaRunRepository
 	secretStore        MasterPersonaSecretStore
 	bodyGenerator      MasterPersonaBodyGenerator
+	transactor         repository.Transactor
 	now                func() time.Time
 	testMode           bool
 }
@@ -188,8 +195,9 @@ type MasterPersonaRunStatusService struct {
 }
 
 type masterPersonaExtractDocument struct {
-	TargetPlugin string
-	NPCs         []masterPersonaExtractNPC
+	TargetPlugin              string
+	NPCs                      []masterPersonaExtractNPC
+	ZeroDialogueFilteredCount int
 }
 
 type masterPersonaExtractNPC struct {
@@ -287,26 +295,6 @@ func (service *MasterPersonaQueryService) LoadEntryDetail(
 		return MasterPersonaEntry{}, fmt.Errorf("get master persona detail: %w", err)
 	}
 	return entry, nil
-}
-
-// LoadDialogueList returns one persona dialogue list.
-func (service *MasterPersonaQueryService) LoadDialogueList(
-	ctx context.Context,
-	identityKey string,
-) (MasterPersonaDialogueList, error) {
-	entry, err := service.LoadEntryDetail(ctx, identityKey)
-	if err != nil {
-		return MasterPersonaDialogueList{}, err
-	}
-	lines := make([]MasterPersonaDialogueLine, 0, len(entry.Dialogues))
-	for index, dialogue := range entry.Dialogues {
-		lines = append(lines, MasterPersonaDialogueLine{Index: index + 1, Text: dialogue})
-	}
-	return MasterPersonaDialogueList{
-		IdentityKey:   entry.IdentityKey,
-		DialogueCount: entry.DialogueCount,
-		Dialogues:     lines,
-	}, nil
 }
 
 // LoadSettings loads page-local AI settings.
@@ -489,6 +477,27 @@ func (service *MasterPersonaGenerationService) executeGeneratableNPCs(
 	analysis masterPersonaPreviewAnalysis,
 	status MasterPersonaRunStatus,
 ) (MasterPersonaRunStatus, error) {
+	if service.transactor == nil {
+		return service.executeGeneratableNPCsLoop(ctx, settings, analysis, status)
+	}
+	var finalStatus MasterPersonaRunStatus
+	txErr := service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+		var loopErr error
+		finalStatus, loopErr = service.executeGeneratableNPCsLoop(txCtx, settings, analysis, status)
+		return loopErr
+	})
+	if txErr != nil {
+		return finalStatus, fmt.Errorf("execute transaction: %w", txErr)
+	}
+	return finalStatus, nil
+}
+
+func (service *MasterPersonaGenerationService) executeGeneratableNPCsLoop(
+	ctx context.Context,
+	settings MasterPersonaAISettings,
+	analysis masterPersonaPreviewAnalysis,
+	status MasterPersonaRunStatus,
+) (MasterPersonaRunStatus, error) {
 	for _, npc := range analysis.generatableNPCs {
 		cancelledStatus, cancelled, err := service.checkRunCancellation(ctx)
 		if err != nil {
@@ -603,27 +612,32 @@ func (service *MasterPersonaGenerationService) UpdateEntry(
 	if err != nil {
 		return MasterPersonaEntry{}, fmt.Errorf("load master persona before update: %w", err)
 	}
-	formID := strings.TrimSpace(input.FormID)
-	if formID == "" {
-		return MasterPersonaEntry{}, fmt.Errorf("%w: form_id is required", ErrMasterPersonaValidation)
+	nextDisplayName := entry.DisplayName
+	nextPersonaSummary := entry.PersonaSummary
+	if trimmedSummary := strings.TrimSpace(input.PersonaSummary); trimmedSummary != "" {
+		nextPersonaSummary = trimmedSummary
 	}
-	nextIdentityKey := repository.BuildMasterPersonaIdentityKey(entry.TargetPlugin, formID, entry.RecordType)
+	nextSpeechStyle := entry.SpeechStyle
+	if trimmedSpeechStyle := strings.TrimSpace(input.SpeechStyle); trimmedSpeechStyle != "" {
+		nextSpeechStyle = trimmedSpeechStyle
+	}
 	nextDraft := repository.MasterPersonaDraft{
-		IdentityKey:          nextIdentityKey,
+		IdentityKey:          entry.IdentityKey,
 		TargetPlugin:         entry.TargetPlugin,
-		FormID:               formID,
+		FormID:               entry.FormID,
 		RecordType:           entry.RecordType,
-		EditorID:             strings.TrimSpace(input.EditorID),
-		DisplayName:          strings.TrimSpace(input.DisplayName),
-		Race:                 normalizeOptionalString(input.Race),
-		Sex:                  normalizeOptionalString(input.Sex),
-		VoiceType:            strings.TrimSpace(input.VoiceType),
-		ClassName:            strings.TrimSpace(input.ClassName),
-		SourcePlugin:         strings.TrimSpace(input.SourcePlugin),
-		PersonaSummary:       buildMasterPersonaSummaryFromBody(strings.TrimSpace(input.DisplayName), strings.TrimSpace(input.PersonaBody)),
+		EditorID:             entry.EditorID,
+		DisplayName:          nextDisplayName,
+		Race:                 entry.Race,
+		Sex:                  entry.Sex,
+		VoiceType:            entry.VoiceType,
+		ClassName:            entry.ClassName,
+		SourcePlugin:         entry.SourcePlugin,
+		PersonaSummary:       nextPersonaSummary,
+		SpeechStyle:          nextSpeechStyle,
 		PersonaBody:          strings.TrimSpace(input.PersonaBody),
 		GenerationSourceJSON: entry.GenerationSourceJSON,
-		BaselineApplied:      input.Race == nil || input.Sex == nil,
+		BaselineApplied:      entry.Race == nil || entry.Sex == nil,
 		Dialogues:            append([]string(nil), entry.Dialogues...),
 		UpdatedAt:            service.now().UTC(),
 	}
@@ -798,6 +812,9 @@ func (service *MasterPersonaGenerationService) analyzePreview(
 		targetPlugin:  document.TargetPlugin,
 		totalNPCCount: len(document.NPCs),
 	}
+	if len(document.NPCs) == 0 {
+		analysis.zeroDialogueSkipCount = document.ZeroDialogueFilteredCount
+	}
 	for _, npc := range document.NPCs {
 		identityKey := repository.BuildMasterPersonaIdentityKey(document.TargetPlugin, npc.FormID, npc.RecordType)
 		_, err := service.commandRepository.GetByIdentityKey(ctx, identityKey)
@@ -837,11 +854,11 @@ func readMasterPersonaExtractDocument(path string) (masterPersonaExtractDocument
 	if targetPlugin == "" {
 		return masterPersonaExtractDocument{}, "", fmt.Errorf("%w: target_plugin is required", ErrMasterPersonaValidation)
 	}
-	npcs, err := parseMasterPersonaExtractNPCList(targetPlugin, payload)
+	npcs, zeroDialogueCount, err := parseMasterPersonaExtractNPCList(targetPlugin, payload)
 	if err != nil {
 		return masterPersonaExtractDocument{}, "", err
 	}
-	document := masterPersonaExtractDocument{TargetPlugin: targetPlugin, NPCs: npcs}
+	document := masterPersonaExtractDocument{TargetPlugin: targetPlugin, NPCs: npcs, ZeroDialogueFilteredCount: zeroDialogueCount}
 	sort.Slice(document.NPCs, func(left, right int) bool {
 		return document.NPCs[left].FormID < document.NPCs[right].FormID
 	})
@@ -864,12 +881,13 @@ func loadMasterPersonaExtractPayload(validatedPath string) (map[string]interface
 func parseMasterPersonaExtractNPCList(
 	targetPlugin string,
 	payload map[string]interface{},
-) ([]masterPersonaExtractNPC, error) {
+) ([]masterPersonaExtractNPC, int, error) {
 	rawEntries := findMasterPersonaExtractEntries(payload)
 	if len(rawEntries) == 0 {
-		return nil, fmt.Errorf("%w: npc list is required", ErrMasterPersonaValidation)
+		return nil, 0, fmt.Errorf("%w: npc list is required", ErrMasterPersonaValidation)
 	}
 	npcs := make([]masterPersonaExtractNPC, 0, len(rawEntries))
+	zeroDialogueCount := 0
 	for _, rawEntry := range rawEntries {
 		entryMap, ok := rawEntry.(map[string]interface{})
 		if !ok {
@@ -877,14 +895,15 @@ func parseMasterPersonaExtractNPCList(
 		}
 		npc, err := parseMasterPersonaExtractNPC(targetPlugin, entryMap)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
+		}
+		if len(npc.Dialogues) == 0 {
+			zeroDialogueCount++
+			continue
 		}
 		npcs = append(npcs, npc)
 	}
-	if len(npcs) == 0 {
-		return nil, fmt.Errorf("%w: npc list is required", ErrMasterPersonaValidation)
-	}
-	return npcs, nil
+	return npcs, zeroDialogueCount, nil
 }
 
 func findMasterPersonaExtractEntries(payload map[string]interface{}) []interface{} {

@@ -10,18 +10,15 @@ import (
 	"strings"
 )
 
-// NewTestSafeHTTPTransport creates a deterministic test-safe transport seam.
+// NewTestSafeHTTPTransport creates a deterministic test-safe transport seam with the default response text.
 func NewTestSafeHTTPTransport() HTTPTransport {
-	return NewTestSafeHTTPTransportWithResponse("")
+	return &deterministicHTTPTransport{responseText: defaultTestSafeText}
 }
 
-// NewTestSafeHTTPTransportWithResponse creates a deterministic test-safe transport seam with override response text.
+// NewTestSafeHTTPTransportWithResponse creates a deterministic test-safe transport seam with the given response text.
+// Passing an empty string yields an empty-text response, which causes provider parsers to return an empty-response error.
 func NewTestSafeHTTPTransportWithResponse(responseText string) HTTPTransport {
-	resolvedText := strings.TrimSpace(responseText)
-	if resolvedText == "" {
-		resolvedText = defaultTestSafeText
-	}
-	return &deterministicHTTPTransport{responseText: resolvedText}
+	return &deterministicHTTPTransport{responseText: strings.TrimSpace(responseText)}
 }
 
 type deterministicHTTPTransport struct {

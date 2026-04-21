@@ -34,10 +34,8 @@ function createGateway(): {
         translation: "ドラゴン・プリースト",
         category: "固有名詞",
         origin: "初期データ",
-        rec: "NPC_:FULL",
-        edid: "SeedDragonPriest",
-        updatedAt: "2026-01-01 00:00",
-        note: "REC: NPC_:FULL / EDID: SeedDragonPriest"
+        note: "マスター辞書エントリ",
+        updatedAt: "2026-01-01 00:00"
       }
     })
   )
@@ -121,6 +119,10 @@ describe("createMasterDictionaryScreenControllerFactory", () => {
     expect(getMasterDictionaryEntry).toHaveBeenCalledWith({
       id: "101"
     })
+    const viewModel = controller.getViewModel()
+    const selectedEntryRecord = viewModel.selectedEntry as Record<string, unknown> | null
+    expect(selectedEntryRecord?.["rec"]).toBeUndefined()
+    expect(selectedEntryRecord?.["edid"]).toBeUndefined()
   })
 
   test("mount は runtime listener を登録する", async () => {

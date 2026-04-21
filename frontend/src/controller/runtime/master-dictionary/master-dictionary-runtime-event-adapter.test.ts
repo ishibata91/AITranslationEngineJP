@@ -132,7 +132,6 @@ describe("MasterDictionaryRuntimeEventAdapter", () => {
         importedCount: 2,
         updatedCount: 0,
         skippedCount: 1,
-        selectedRec: ["BOOK:FULL"],
         lastEntryId: 201
       }
     })
@@ -145,7 +144,6 @@ describe("MasterDictionaryRuntimeEventAdapter", () => {
         importedCount: 2,
         updatedCount: 0,
         skippedCount: 1,
-        selectedRec: ["BOOK:FULL"],
         lastEntryId: 201
       }
     })

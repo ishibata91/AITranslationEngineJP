@@ -1,4 +1,4 @@
-package sqlite_test
+package repository_test
 
 // integration_test.go は SCN-SMR-002〜005 の SQLite repository integration test を提供する。
 // 実装ファイル (transactor.go, *_repository.go) が追加されるとコンパイルが通る。
@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	"aitranslationenginejp/internal/infra/sqlite"
+	sqlitedbinit "aitranslationenginejp/internal/infra/sqlite/dbinit"
 	"aitranslationenginejp/internal/repository"
 
 	"github.com/jmoiron/sqlx"
@@ -23,7 +23,7 @@ var fixedNow = time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
 // openIntegrationDB は integration test 用の一時 SQLite DB を返す。
 func openIntegrationDB(t *testing.T) *sqlx.DB {
 	t.Helper()
-	db, err := sqlite.OpenMasterDictionaryDatabase(
+	db, err := sqlitedbinit.OpenMasterDictionaryDatabase(
 		context.Background(),
 		filepath.Join(t.TempDir(), "integration.sqlite3"),
 		nil,
@@ -48,7 +48,7 @@ func openIntegrationDB(t *testing.T) *sqlx.DB {
 func TestSCN_SMR_002_CreateCommonDictionaryEntry(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	repo := sqlite.NewSQLiteFoundationDataRepository(db)
+	repo := repository.NewSQLiteFoundationDataRepository(db)
 
 	draft := repository.DictionaryEntryDraft{
 		XTranslatorTranslationXMLID: nil,
@@ -93,9 +93,9 @@ func TestSCN_SMR_002_CreateCommonDictionaryEntry(t *testing.T) {
 func TestSCN_SMR_002_CreateJobLocalDictionaryEntry(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
-	foundRepo := sqlite.NewSQLiteFoundationDataRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "Skyrim.esp",
@@ -153,8 +153,8 @@ func TestSCN_SMR_002_CreateJobLocalDictionaryEntry(t *testing.T) {
 func TestSCN_SMR_002_DuplicatePersonaRejected(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	foundRepo := sqlite.NewSQLiteFoundationDataRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
 	profile, err := sourceRepo.UpsertNpcProfile(ctx, repository.NpcProfileDraft{
 		TargetPluginName: "Skyrim.esm",
@@ -202,7 +202,7 @@ func TestSCN_SMR_002_DuplicatePersonaRejected(t *testing.T) {
 func TestSCN_SMR_003_SaveTranslationSourceAllTables(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	repo := sqlite.NewSQLiteTranslationSourceRepository(db)
+	repo := repository.NewSQLiteTranslationSourceRepository(db)
 
 	xEdit, err := repo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "Dragonborn.esp",
@@ -294,11 +294,11 @@ func TestSCN_SMR_003_ReopenPersistence(t *testing.T) {
 	var savedID int64
 
 	// --- 第1オープン: データ保存 ---
-	db1, err := sqlite.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
+	db1, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
 	if err != nil {
 		t.Fatalf("first open failed: %v", err)
 	}
-	repo1 := sqlite.NewSQLiteTranslationSourceRepository(db1)
+	repo1 := repository.NewSQLiteTranslationSourceRepository(db1)
 	saved, err := repo1.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "skyrim.esp",
 		SourceTool:       "xEdit",
@@ -317,13 +317,13 @@ func TestSCN_SMR_003_ReopenPersistence(t *testing.T) {
 	}
 
 	// --- 第2オープン: データ読み込み ---
-	db2, err := sqlite.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
+	db2, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
 	if err != nil {
 		t.Fatalf("reopen failed: %v", err)
 	}
 	t.Cleanup(func() { _ = db2.Close() })
 
-	repo2 := sqlite.NewSQLiteTranslationSourceRepository(db2)
+	repo2 := repository.NewSQLiteTranslationSourceRepository(db2)
 	got, err := repo2.GetXEditExtractedDataByID(ctx, savedID)
 	if err != nil {
 		t.Fatalf("GetXEditExtractedDataByID after reopen failed: %v", err)
@@ -345,8 +345,8 @@ func TestSCN_SMR_003_ReopenPersistence(t *testing.T) {
 func TestSCN_SMR_004_CreateJobAndPhaseRun(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
 
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "HearthFires.esp",
@@ -408,9 +408,9 @@ func TestSCN_SMR_004_CreateJobAndPhaseRun(t *testing.T) {
 func TestSCN_SMR_004_SaveJobTranslationField(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
-	outputRepo := sqlite.NewSQLiteJobOutputRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+	outputRepo := repository.NewSQLiteJobOutputRepository(db)
 
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "Dawnguard.esp",
@@ -492,7 +492,7 @@ func TestSCN_SMR_004_SaveJobTranslationField(t *testing.T) {
 func TestSCN_SMR_004_JobSingleSourceFK(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
 
 	_, err := jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
 		XEditExtractedDataID: 99999, // 存在しない ID
@@ -514,9 +514,9 @@ func TestSCN_SMR_004_JobSingleSourceFK(t *testing.T) {
 func TestSCN_SMR_005_TransactionRollbackOnFKError(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	transactor := sqlite.NewSQLiteTransactor(db)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
+	transactor := repository.NewSQLiteTransactor(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
 
 	err := transactor.WithTransaction(ctx, func(txCtx context.Context) error {
 		// 有効な insert: X_EDIT_EXTRACTED_DATA
@@ -576,11 +576,11 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 	var fieldID, field2ID, refRecID int64
 
 	// --- 第1オープン: データ保存 ---
-	db1, err := sqlite.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
+	db1, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
 	if err != nil {
 		t.Fatalf("first open failed: %v", err)
 	}
-	repo1 := sqlite.NewSQLiteTranslationSourceRepository(db1)
+	repo1 := repository.NewSQLiteTranslationSourceRepository(db1)
 
 	xEdit, err := repo1.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "ref-test.esp",
@@ -663,13 +663,13 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 	}
 
 	// --- 第2オープン: 読み込み確認 ---
-	db2, err := sqlite.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
+	db2, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
 	if err != nil {
 		t.Fatalf("reopen failed: %v", err)
 	}
 	t.Cleanup(func() { _ = db2.Close() })
 
-	repo2 := sqlite.NewSQLiteTranslationSourceRepository(db2)
+	repo2 := repository.NewSQLiteTranslationSourceRepository(db2)
 
 	refs, err := repo2.ListTranslationFieldRecordReferencesByFieldID(ctx, fieldID)
 	if err != nil {
@@ -705,7 +705,7 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 func TestSCN_SMR_003_NpcProfileAndRecord(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	repo := sqlite.NewSQLiteTranslationSourceRepository(db)
+	repo := repository.NewSQLiteTranslationSourceRepository(db)
 
 	xEdit, err := repo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "npc-lookup.esp",
@@ -802,8 +802,8 @@ func TestSCN_SMR_003_NpcProfileAndRecord(t *testing.T) {
 func TestSCN_SMR_002_PersonaLifecycle(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	foundRepo := sqlite.NewSQLiteFoundationDataRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "persona-lifecycle.esp",
@@ -921,7 +921,7 @@ func TestSCN_SMR_002_PersonaLifecycle(t *testing.T) {
 func TestSCN_SMR_002_DictionaryEntryUpdateDelete(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	foundRepo := sqlite.NewSQLiteFoundationDataRepository(db)
+	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
 	entry, err := foundRepo.CreateDictionaryEntry(ctx, repository.DictionaryEntryDraft{
 		DictionaryLifecycle: "permanent",
@@ -970,7 +970,7 @@ func TestSCN_SMR_002_DictionaryEntryUpdateDelete(t *testing.T) {
 func TestSCN_SMR_002_XTranslatorTranslationXML(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	foundRepo := sqlite.NewSQLiteFoundationDataRepository(db)
+	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
 	xml, err := foundRepo.CreateXTranslatorTranslationXML(ctx, repository.XTranslatorTranslationXMLDraft{
 		FilePath:         "Skyrim_Dialogs.xml",
@@ -1011,10 +1011,10 @@ func TestSCN_SMR_002_XTranslatorTranslationXML(t *testing.T) {
 func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
-	outputRepo := sqlite.NewSQLiteJobOutputRepository(db)
-	foundRepo := sqlite.NewSQLiteFoundationDataRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+	outputRepo := repository.NewSQLiteJobOutputRepository(db)
+	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
 	// --- Arrange ---
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
@@ -1198,9 +1198,9 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 func TestSCN_SMR_004_JobUpdateAndOutput(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
-	sourceRepo := sqlite.NewSQLiteTranslationSourceRepository(db)
-	jobRepo := sqlite.NewSQLiteJobLifecycleRepository(db)
-	outputRepo := sqlite.NewSQLiteJobOutputRepository(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+	outputRepo := repository.NewSQLiteJobOutputRepository(db)
 
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "job-update.esp",

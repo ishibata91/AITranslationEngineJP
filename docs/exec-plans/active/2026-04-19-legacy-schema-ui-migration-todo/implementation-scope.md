@@ -46,6 +46,7 @@
 - use_case_definition: domain 名や画面名ではなく、人間または system が開始する処理単位で切る。
 - layer_policy: この plan では layer 単位の 67 分割は過剰なため、1 use case の完了に必要な backend / frontend 変更を同じ handoff に含める。
 - fallback_policy: それでも context が不足する場合だけ、当該 use case を backend contract と frontend UI / state に二分して propose-plans へ戻す。
+- validation_ownership_policy: 中間 handoff の validation は `completion_signal` を直接検証する focused test に限定し、全体 `go test`、frontend check / 全体 test、structure harness、UI 起動確認は `final-validation-and-review` に寄せる。
 - object_names: `dictionary` / `persona` は対象 object 名としてだけ使い、分割根拠にはしない。
 
 ## Handoff Order
@@ -75,11 +76,11 @@
   - `./scenario-design.md`
   - `./legacy-schema-ui-migration.review-er-diff.puml`
 - `validation_commands`:
-  - `go test ./internal/infra/sqlite ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/infra/sqlite -run 'TestSchemaCutover'`
 - `completion_signal`: legacy dictionary / persona master tables are dropped without backfill, `PERSONA_GENERATION_SETTINGS(id = 1)` exists, and no persisted run status table is created.
 - `notes`:
   - Use case: schema cutover.
+  - Validation intent: schema / migration completion only. Downstream repository, service, controller, and bootstrap cutover is validated by later use-case handoffs and final validation.
   - Do not create dual-write compatibility tables.
   - Do not update canonical docs in this handoff.
 
@@ -95,10 +96,8 @@
 - `depends_on`:
   - `schema-legacy-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*DictionaryReadDetailCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/presenter/master-dictionary/master-dictionary.presenter.test.ts src/application/usecase/master-dictionary/master-dictionary.usecase.test.ts src/controller/master-dictionary/master-dictionary-screen-controller-factory.test.ts src/controller/master-dictionary/master-dictionary-screen-controller.test.ts src/ui/App.test.ts -t 'dictionary-read-detail-cutover'`
 - `completion_signal`: dictionary list / search / filter / detail reads canonical data and no product-facing contract or UI exposes `REC` / `EDID`.
 - `notes`:
   - Use case: read / detail.
@@ -117,10 +116,8 @@
 - `depends_on`:
   - `dictionary-read-detail-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*DictionaryCreateUpdateDeleteCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/usecase/master-dictionary/master-dictionary.usecase.test.ts src/controller/master-dictionary/master-dictionary-screen-controller.test.ts src/ui/App.test.ts -t 'dictionary-create-update-delete-cutover'`
 - `completion_signal`: create / update / delete writes canonical dictionary data, trims source terms on all registration paths, and detects duplicates by `trim(source_term) + translated_term`.
 - `notes`:
   - Use case: create / update / delete.
@@ -140,10 +137,8 @@
 - `depends_on`:
   - `dictionary-create-update-delete-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*DictionaryXMLImportCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/usecase/master-dictionary/master-dictionary.usecase.test.ts src/controller/master-dictionary/master-dictionary-screen-controller.test.ts src/controller/wails/master-dictionary.gateway.test.ts src/ui/App.test.ts -t 'dictionary-xml-import-cutover'`
 - `completion_signal`: XML import stores provenance and entries canonically while keeping `REC` / `EDID` parser-only, with no `selectedRec` or `EDID` in product-facing import UI / contract.
 - `notes`:
   - Use case: import.
@@ -162,10 +157,8 @@
 - `depends_on`:
   - `dictionary-xml-import-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*PersonaReadDetailCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/presenter/master-persona/master-persona.presenter.test.ts src/application/usecase/master-persona/master-persona.usecase.test.ts src/controller/master-persona/master-persona-screen-controller.test.ts src/controller/wails/master-persona.gateway.test.ts src/ui/App.test.ts -t 'persona-read-detail-cutover'`
 - `completion_signal`: persona list / detail reads canonical join data and removes generation source, baseline, dialogue payload, dialogue count, and dialogue modal support.
 - `notes`:
   - Use case: read / detail.
@@ -184,10 +177,8 @@
 - `depends_on`:
   - `persona-read-detail-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*PersonaAISettingsRestartCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/presenter/master-persona/master-persona.presenter.test.ts src/application/usecase/master-persona/master-persona.usecase.test.ts src/controller/master-persona/master-persona-screen-controller.test.ts src/controller/wails/master-persona.gateway.test.ts src/ui/App.test.ts -t 'persona-ai-settings-restart-cutover'`
 - `completion_signal`: provider / model are restored after restart, API key stays outside DB, JSON selection returns to unselected state, and run state is not persisted.
 - `notes`:
   - Use case: settings save / restore.
@@ -206,10 +197,8 @@
 - `depends_on`:
   - `persona-ai-settings-restart-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*PersonaJSONPreviewCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/presenter/master-persona/master-persona.presenter.test.ts src/application/usecase/master-persona/master-persona.usecase.test.ts src/controller/master-persona/master-persona-screen-controller.test.ts src/controller/wails/master-persona.gateway.test.ts src/ui/App.test.ts -t 'persona-json-preview-cutover'`
 - `completion_signal`: preview excludes no-dialogue NPCs at parse time and returns candidate count, newly addable count, and existing count without zero-dialogue / generic skip counts.
 - `notes`:
   - Use case: preview.
@@ -228,10 +217,8 @@
 - `depends_on`:
   - `persona-json-preview-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*PersonaGenerationCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/presenter/master-persona/master-persona.presenter.test.ts src/application/usecase/master-persona/master-persona.usecase.test.ts src/controller/master-persona/master-persona-screen-controller.test.ts src/controller/wails/master-persona.gateway.test.ts src/ui/App.test.ts -t 'persona-generation-cutover'`
 - `completion_signal`: generation never overwrites existing persona, writes `NPC_PROFILE` + `PERSONA` only after complete AI output, and leaves no partial rows on failure.
 - `notes`:
   - Use case: generation.
@@ -250,10 +237,8 @@
 - `depends_on`:
   - `persona-generation-cutover`
 - `validation_commands`:
-  - `go test ./internal/...`
-  - `npm --prefix frontend run check`
-  - `npm --prefix frontend run test -- --runInBand`
-  - `python3 scripts/harness/run.py --suite structure`
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails ./internal/bootstrap -run 'Test.*PersonaEditDeleteCutover'`
+  - `npm --prefix frontend run test -- --runInBand src/application/presenter/master-persona/master-persona.presenter.test.ts src/application/usecase/master-persona/master-persona.usecase.test.ts src/controller/master-persona/master-persona-screen-controller.test.ts src/controller/wails/master-persona.gateway.test.ts src/ui/App.test.ts -t 'persona-edit-delete-cutover'`
 - `completion_signal`: edit accepts only persona summary, speech style, and persona body; identity / snapshot fields remain read-only and manual persona creation is not reintroduced.
 - `notes`:
   - Use case: update / delete.

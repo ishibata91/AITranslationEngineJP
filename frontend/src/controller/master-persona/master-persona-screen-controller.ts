@@ -39,7 +39,6 @@ interface MasterPersonaUseCaseLike {
   loadScreen(): Promise<void>
   loadPage(preferredIdentityKey?: string | null): Promise<void>
   selectEntry(identityKey: string): Promise<void>
-  loadDialogueList(): Promise<void>
   previewGeneration(): Promise<void>
   executeGeneration(): Promise<void>
   loadRunStatus(): Promise<void>
@@ -48,7 +47,6 @@ interface MasterPersonaUseCaseLike {
   saveAISettings(): Promise<void>
   saveCurrentEntry(): Promise<void>
   deleteCurrentEntry(): Promise<void>
-  closeDialogueModal(): void
   setModalState(modalState: "edit" | "delete" | null): void
 }
 
@@ -238,14 +236,6 @@ export class MasterPersonaScreenController
       draft.aiSettings.apiKey = target.value
       draft.aiSettingsMessage = ""
     })
-  }
-
-  async openDialogueModal(): Promise<void> {
-    await this.dependencies.useCase.loadDialogueList()
-  }
-
-  closeDialogueModal(): void {
-    this.dependencies.useCase.closeDialogueModal()
   }
 
   openEditModal(): void {

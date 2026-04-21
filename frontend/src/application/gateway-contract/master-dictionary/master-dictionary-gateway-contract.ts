@@ -38,8 +38,6 @@ export interface GetMasterDictionaryEntryRequest {
 
 export interface MasterDictionaryEntryDetail extends MasterDictionaryEntrySummary {
   note: string
-  rec: string
-  edid: string
 }
 
 export interface GetMasterDictionaryEntryResponse {
@@ -52,8 +50,6 @@ export interface MasterDictionaryPageEntry {
   translation: string
   category: string
   origin: string
-  rec: string
-  edid: string
   updatedAt: string
 }
 
@@ -118,7 +114,6 @@ export interface MasterDictionaryImportSummary {
   importedCount: number
   updatedCount: number
   skippedCount: number
-  selectedRec: string[]
   lastEntryId: number
 }
 

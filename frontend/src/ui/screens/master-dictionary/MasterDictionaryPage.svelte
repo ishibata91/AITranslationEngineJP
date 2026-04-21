@@ -394,14 +394,6 @@
             <dt>訳語</dt>
             <dd>{viewModel.selectedEntry.translation}</dd>
           </div>
-          <div>
-            <dt>EDID</dt>
-            <dd>{viewModel.selectedEntry.edid || "-"}</dd>
-          </div>
-          <div>
-            <dt>REC</dt>
-            <dd>{viewModel.selectedEntry.rec || "-"}</dd>
-          </div>
         {/if}
       </dl>
     </section>

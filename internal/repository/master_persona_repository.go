@@ -37,6 +37,7 @@ type MasterPersonaEntry struct {
 	ClassName            string
 	SourcePlugin         string
 	PersonaSummary       string
+	SpeechStyle          string
 	PersonaBody          string
 	GenerationSourceJSON string
 	BaselineApplied      bool
@@ -82,6 +83,7 @@ type MasterPersonaDraft struct {
 	ClassName            string
 	SourcePlugin         string
 	PersonaSummary       string
+	SpeechStyle          string
 	PersonaBody          string
 	GenerationSourceJSON string
 	BaselineApplied      bool
@@ -364,6 +366,35 @@ func (store *InMemorySecretStore) Delete(_ context.Context, key string) error {
 	return nil
 }
 
+// InMemoryMasterPersonaRunStatusRepository provides a session-local, non-persistent run status store.
+// It satisfies MasterPersonaRunRepository and resets to idle on construction, so app restart clears state.
+type InMemoryMasterPersonaRunStatusRepository struct {
+	mu        sync.RWMutex
+	runStatus MasterPersonaRunStatusRecord
+}
+
+// NewInMemoryMasterPersonaRunStatusRepository creates a session-local run status repository seeded with idle state.
+func NewInMemoryMasterPersonaRunStatusRepository() *InMemoryMasterPersonaRunStatusRepository {
+	return &InMemoryMasterPersonaRunStatusRepository{
+		runStatus: MasterPersonaRunStatusRecord{RunState: "入力待ち"},
+	}
+}
+
+// LoadRunStatus returns the current session run status.
+func (r *InMemoryMasterPersonaRunStatusRepository) LoadRunStatus(_ context.Context) (MasterPersonaRunStatusRecord, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	return cloneMasterPersonaRunStatus(r.runStatus), nil
+}
+
+// SaveRunStatus stores the current session run status.
+func (r *InMemoryMasterPersonaRunStatusRepository) SaveRunStatus(_ context.Context, status MasterPersonaRunStatusRecord) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.runStatus = cloneMasterPersonaRunStatus(status)
+	return nil
+}
+
 // DefaultMasterPersonaSeed returns deterministic seed entries for bootstrap wiring.
 func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
 	lysmarenRace := "Breton"
@@ -481,6 +512,7 @@ func entryFromDraft(draft MasterPersonaDraft) MasterPersonaEntry {
 		ClassName:            strings.TrimSpace(draft.ClassName),
 		SourcePlugin:         strings.TrimSpace(draft.SourcePlugin),
 		PersonaSummary:       strings.TrimSpace(draft.PersonaSummary),
+		SpeechStyle:          strings.TrimSpace(draft.SpeechStyle),
 		PersonaBody:          strings.TrimSpace(draft.PersonaBody),
 		GenerationSourceJSON: strings.TrimSpace(draft.GenerationSourceJSON),
 		BaselineApplied:      draft.BaselineApplied,

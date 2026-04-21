@@ -165,8 +165,8 @@ func TestInMemoryMasterPersonaRepositoryLoadSaveAISettings(t *testing.T) {
 	}
 
 	want := MasterPersonaAISettingsRecord{Provider: "openai", Model: "gpt-4o"}
-	if err := repo.SaveAISettings(context.Background(), want); err != nil {
-		t.Fatalf("SaveAISettings failed: %v", err)
+	if saveErr := repo.SaveAISettings(context.Background(), want); saveErr != nil {
+		t.Fatalf("SaveAISettings failed: %v", saveErr)
 	}
 
 	got, err := repo.LoadAISettings(context.Background())
@@ -190,8 +190,8 @@ func TestInMemoryMasterPersonaRepositoryLoadSaveRunStatus(t *testing.T) {
 	}
 
 	want := MasterPersonaRunStatusRecord{RunState: "running", ProcessedCount: 5}
-	if err := repo.SaveRunStatus(context.Background(), want); err != nil {
-		t.Fatalf("SaveRunStatus failed: %v", err)
+	if saveErr := repo.SaveRunStatus(context.Background(), want); saveErr != nil {
+		t.Fatalf("SaveRunStatus failed: %v", saveErr)
 	}
 
 	got, err := repo.LoadRunStatus(context.Background())

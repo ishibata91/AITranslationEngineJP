@@ -2,7 +2,6 @@ export type {
   MasterPersonaAISettingsDto,
   MasterPersonaDeleteRequestDto,
   MasterPersonaDetailResponseDto,
-  MasterPersonaDialogueListResponseDto,
   MasterPersonaIdentityRequestDto,
   MasterPersonaMutationResponseDto,
   MasterPersonaPageRequestDto,

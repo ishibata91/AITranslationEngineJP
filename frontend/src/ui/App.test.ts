@@ -10,7 +10,7 @@ import type {
   MasterPersonaScreenControllerContract,
   MasterPersonaScreenViewModelListener
 } from "@application/contract/master-persona/master-persona-screen-contract"
-import type { MasterPersonaScreenViewModel } from "@application/gateway-contract/master-persona"
+import type { MasterPersonaScreenViewModel, MasterPersonaDetail } from "@application/gateway-contract/master-persona"
 import type { MasterDictionaryEntryDetail } from "@application/gateway-contract/master-dictionary"
 import App from "@ui/App.svelte"
 import { vi } from "vitest"
@@ -62,10 +62,8 @@ function createDefaultSelectedEntry(): MasterDictionaryEntryDetail {
     translation: "ドラゴン・プリースト",
     category: "固有名詞",
     origin: "初期データ",
-    rec: "NPC_:FULL",
-    edid: "SeedDragonPriest",
-    updatedAt: "2026-01-01 00:00",
-    note: "REC: NPC_:FULL / EDID: SeedDragonPriest"
+    note: "マスター辞書エントリ",
+    updatedAt: "2026-01-01 00:00"
   }
 }
 
@@ -76,10 +74,8 @@ function createImportedBookSelectedEntry(): MasterDictionaryEntryDetail {
     translation: "許可された本の訳語",
     category: "書籍",
     origin: "XML取込",
-    rec: "BOOK:FULL",
-    edid: "ImportBook",
-    updatedAt: "2026-04-12 00:00",
-    note: "REC: BOOK:FULL / EDID: ImportBook"
+    note: "マスター辞書エントリ",
+    updatedAt: "2026-04-12 00:00"
   }
 }
 
@@ -162,7 +158,6 @@ function buildMasterPersonaScreenViewModel(
         className: "FPScoutClass",
         sourcePlugin: "FollowersPlus.esp",
         personaSummary: "乾いた率直さで応じる。",
-        dialogueCount: 44,
         updatedAt: "2026-04-15T09:42:00Z"
       }
     ],
@@ -179,15 +174,10 @@ function buildMasterPersonaScreenViewModel(
       className: "FPScoutClass",
       sourcePlugin: "FollowersPlus.esp",
       personaSummary: "乾いた率直さで応じる。",
-      dialogueCount: 44,
       updatedAt: "2026-04-15T09:42:00Z",
       personaBody: "短く本音を置く。",
-      generationSourceJson: "FollowersPlus.esp.extract.json",
-      baselineApplied: false,
       runLockReason: "更新と削除を行えます"
-    },
-    dialogueModalOpen: false,
-    dialogues: [],
+    } as MasterPersonaDetail,
     keyword: "",
     pluginFilter: "",
     page: 1,
@@ -245,7 +235,7 @@ function buildMasterPersonaScreenViewModel(
       "プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。",
     progressPercent: 0,
     ...overrides
-  }
+  } as MasterPersonaScreenViewModel
 }
 
 class MasterDictionaryScreenControllerFake
@@ -642,23 +632,6 @@ describe("App master persona screen", () => {
     })
   })
 
-  test("dialogue button で controller.openDialogueModal を呼ぶ", async () => {
-    const user = userEvent.setup()
-    const masterPersonaController = new MasterPersonaScreenControllerFake()
-
-    render(App, {
-      props: {
-        createMasterDictionaryScreenController: () =>
-          new MasterDictionaryScreenControllerFake(),
-        createMasterPersonaScreenController: () => masterPersonaController
-      }
-    })
-
-    await user.click(screen.getByRole("button", { name: "ダイアログ一覧" }))
-
-    expect(masterPersonaController.openDialogueModal).toHaveBeenCalledTimes(1)
-  })
-
   test("create 導線を出さず prompt template は説明だけを表示する", async () => {
     const masterPersonaController = new MasterPersonaScreenControllerFake()
 
@@ -792,70 +765,7 @@ describe("App master persona screen", () => {
     expect(optionTexts).not.toContain("完了")
   })
 
-  test("欠落属性を露出せず dialogue modal 用データを同じ画面で表示する", async () => {
-    const masterPersonaController = new MasterPersonaScreenControllerFake(
-      buildMasterPersonaScreenViewModel({
-        items: [
-          {
-            identityKey: "NightCourt.esp:FE01A814:NPC_",
-            targetPlugin: "NightCourt.esp",
-            formId: "FE01A814",
-            recordType: "NPC_",
-            editorId: "NC_WatcherHusk",
-            displayName: "Watcher Husk",
-            voiceType: "FemaleCondescending",
-            className: "FPOccultClass",
-            sourcePlugin: "NightCourt.esp",
-            personaSummary: "含みのある言い回しで相手を試す。",
-            dialogueCount: 2,
-            updatedAt: "2026-04-15T09:42:00Z"
-          }
-        ],
-        selectedIdentityKey: "NightCourt.esp:FE01A814:NPC_",
-        selectedEntry: {
-          identityKey: "NightCourt.esp:FE01A814:NPC_",
-          targetPlugin: "NightCourt.esp",
-          formId: "FE01A814",
-          recordType: "NPC_",
-          editorId: "NC_WatcherHusk",
-          displayName: "Watcher Husk",
-          voiceType: "FemaleCondescending",
-          className: "FPOccultClass",
-          sourcePlugin: "NightCourt.esp",
-          personaSummary: "含みのある言い回しで相手を試す。",
-          dialogueCount: 2,
-          updatedAt: "2026-04-15T09:42:00Z",
-          personaBody: "観察を優先し、相手を急がせない。",
-          generationSourceJson: "nightcourt.json",
-          baselineApplied: true,
-          runLockReason: "更新と削除を行えます"
-        },
-        dialogueModalOpen: true,
-        dialogues: [
-          { index: 1, text: "急いで答えを出す必要はないわ。" },
-          { index: 2, text: "迷い方にも価値がある。" }
-        ]
-      })
-    )
-
-    render(App, {
-      props: {
-        createMasterDictionaryScreenController: () =>
-          new MasterDictionaryScreenControllerFake(),
-        createMasterPersonaScreenController: () => masterPersonaController
-      }
-    })
-
-    await waitFor(() => {
-      expect(screen.getByText("ダイアログ 2行")).toBeInTheDocument()
-      expect(screen.getByText("2行のダイアログを確認できます。")).toBeInTheDocument()
-      expect(screen.getByText("急いで答えを出す必要はないわ。")).toBeInTheDocument()
-      expect(screen.queryByText("不明")).toBeNull()
-      expect(screen.queryByText("敬語なしで中性的")).toBeNull()
-    })
-  })
-
-  test("closed-by-default modal は hidden 時に非表示で非対話のままにする", () => {
+  test("closed-by-default modal は hidden 時に編集削除 modal は非表示で非対話のままにする", () => {
     render(App, {
       props: {
         createMasterDictionaryScreenController: () =>
@@ -863,19 +773,15 @@ describe("App master persona screen", () => {
         createMasterPersonaScreenController: () =>
           new MasterPersonaScreenControllerFake(
             buildMasterPersonaScreenViewModel({
-              dialogueModalOpen: false,
               modalState: null
             })
           )
       }
     })
 
-    const dialogueModal = document.querySelector("#dialogueModal")
     const editModal = document.querySelector("#editModal")
     const deleteModal = document.querySelector("#deleteModal")
 
-    expect(dialogueModal).toHaveAttribute("hidden")
-    expect(dialogueModal).not.toHaveClass("is-open")
     expect(editModal).toHaveAttribute("hidden")
     expect(editModal).not.toHaveClass("is-open")
     expect(deleteModal).toHaveAttribute("hidden")
@@ -948,6 +854,332 @@ describe("App master persona screen", () => {
       expect(screen.getByRole("heading", { level: 1, name: "マスター辞書" })).toBeInTheDocument()
       expect(screen.queryByDisplayValue("persona-only-model")).toBeNull()
       expect(screen.queryByRole("combobox", { name: "AI サービス" })).toBeNull()
+    })
+  })
+
+  test("persona-read-detail-cutover: plugin filter dropdown を表示する", async () => {
+    // Arrange
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        pluginOptions: [
+          { value: "", label: "すべてのプラグイン" },
+          { value: "FollowersPlus.esp", label: "FollowersPlus.esp (1)" }
+        ]
+      })
+    )
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    // Assert
+    const pluginSelect = await screen.findByRole("combobox", { name: "プラグイン" })
+    expect(pluginSelect).toBeInTheDocument()
+    expect(within(pluginSelect).getAllByRole("option")).toHaveLength(2)
+  })
+
+  test("persona-read-detail-cutover: selectedEntry の FormID と EditorID を詳細に表示する", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake(buildMasterPersonaScreenViewModel())
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      const identityText = document.querySelector("#detailIdentityText")
+      expect(identityText).toBeInTheDocument()
+      expect(identityText?.textContent).toContain("FE01A812")
+      expect(identityText?.textContent).toContain("FP_LysMaren")
+    })
+  })
+
+  test("persona-read-detail-cutover: ダイアログ一覧ボタンは表示されない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake()
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.queryByRole("button", { name: "ダイアログ一覧" })).toBeNull()
+    })
+  })
+
+  test("persona-read-detail-cutover: 詳細グリッドに 収録元ファイル ラベルは表示されない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake()
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.queryByText("収録元ファイル")).toBeNull()
+    })
+  })
+
+  test("persona-read-detail-cutover: 詳細グリッドに ダイアログ数 ラベルは表示されない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake()
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.queryByText("ダイアログ数")).toBeNull()
+    })
+  })
+
+  test("persona-read-detail-cutover: edit modal は identity / snapshot fields を editable input として表示しない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake(
+            buildMasterPersonaScreenViewModel({ modalState: "edit" })
+          )
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(document.querySelector("#editFormIdInput")).toBeNull()
+      expect(document.querySelector("#editEditorIdInput")).toBeNull()
+      expect(document.querySelector("#editRaceInput")).toBeNull()
+      expect(document.querySelector("#editSexInput")).toBeNull()
+      expect(document.querySelector("#editVoiceTypeInput")).toBeNull()
+      expect(document.querySelector("#editClassNameInput")).toBeNull()
+      expect(document.querySelector("#editSourcePluginInput")).toBeNull()
+    })
+  })
+
+  test("persona-json-preview-cutover: previewStats に 会話が見つからない ラベルは表示されない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake()
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      const previewStats = document.querySelector("#previewStats")
+      expect(previewStats).toBeInTheDocument()
+      expect(within(previewStats as HTMLElement).queryByText("会話が見つからない")).toBeNull()
+    })
+  })
+
+  test("persona-json-preview-cutover: previewStats に 汎用NPC ラベルは表示されない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake()
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      const previewStats = document.querySelector("#previewStats")
+      expect(previewStats).toBeInTheDocument()
+      expect(within(previewStats as HTMLElement).queryByText("汎用NPC")).toBeNull()
+    })
+  })
+
+  test("persona-generation-cutover: この JSON で生成 ボタンをクリックすると controller.executeGeneration を呼ぶ", async () => {
+    // Arrange
+    const user = userEvent.setup()
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        canStartGeneration: true,
+        isRunActive: false
+      })
+    )
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    // Act
+    const generateButton = await screen.findByRole("button", {
+      name: "この JSON で生成"
+    })
+    await user.click(generateButton)
+
+    // Assert
+    expect(masterPersonaController.executeGeneration).toHaveBeenCalledTimes(1)
+  })
+
+  test("persona-generation-cutover: isRunActive false のとき 一時停止 と 停止 ボタンは disabled", async () => {
+    // Arrange
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({ isRunActive: false })
+    )
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "一時停止" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "停止" })).toBeDisabled()
+    })
+  })
+
+  test("persona-generation-cutover: isRunActive true のとき 一時停止 と 停止 ボタンは enabled", async () => {
+    // Arrange
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        isRunActive: true,
+        runStatus: {
+          runState: "生成中",
+          targetPlugin: "FollowersPlus.esp",
+          processedCount: 2,
+          successCount: 2,
+          existingSkipCount: 0,
+          zeroDialogueSkipCount: 0,
+          genericNpcCount: 0,
+          currentActorLabel: "Lys Maren",
+          message: "ペルソナを作成中"
+        }
+      })
+    )
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    // Assert
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "一時停止" })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: "停止" })).not.toBeDisabled()
+    })
+  })
+
+  test("persona-generation-cutover: runStatus.existingSkipCount を 既に作成済み として表示する", async () => {
+    // Arrange
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        runStatus: {
+          runState: "完了",
+          targetPlugin: "FollowersPlus.esp",
+          processedCount: 7,
+          successCount: 7,
+          existingSkipCount: 3,
+          zeroDialogueSkipCount: 0,
+          genericNpcCount: 0,
+          currentActorLabel: "",
+          message: "完了"
+        }
+      })
+    )
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    // Assert: generation never overwrites existing — existingSkipCount が UI に表示される
+    await waitFor(() => {
+      expect(screen.getByText(/既に作成済み/)).toBeInTheDocument()
+    })
+  })
+
+  test("persona-edit-delete-cutover: edit modal は displayName を editable input として表示しない", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake(
+            buildMasterPersonaScreenViewModel({ modalState: "edit" })
+          )
+      }
+    })
+
+    // Assert: displayName 入力は edit modal から除去されている (RED: 現在は存在する)
+    await waitFor(() => {
+      expect(document.querySelector("#editDisplayNameInput")).toBeNull()
+    })
+  })
+
+  test("persona-edit-delete-cutover: edit modal は personaSummary を editable input として表示する", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake(
+            buildMasterPersonaScreenViewModel({ modalState: "edit" })
+          )
+      }
+    })
+
+    // Assert: personaSummary 入力が edit modal に追加されている (RED: 現在は存在しない)
+    await waitFor(() => {
+      expect(document.querySelector("#editPersonaSummaryInput")).not.toBeNull()
+    })
+  })
+
+  test("persona-edit-delete-cutover: edit modal は speechStyle を editable input として表示する", async () => {
+    // Arrange
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () =>
+          new MasterPersonaScreenControllerFake(
+            buildMasterPersonaScreenViewModel({ modalState: "edit" })
+          )
+      }
+    })
+
+    // Assert: speechStyle 入力が edit modal に追加されている (RED: 現在は存在しない)
+    await waitFor(() => {
+      expect(document.querySelector("#editSpeechStyleInput")).not.toBeNull()
     })
   })
 })

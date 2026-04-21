@@ -80,14 +80,15 @@ type MasterDictionaryPageRequestDTO struct {
 }
 
 // MasterDictionaryEntryDTO is a transport DTO for one master dictionary entry.
+// REC and EDID are excluded from JSON output; callers that need them use toEntryDetailDTO.
 type MasterDictionaryEntryDTO struct {
 	ID          int64  `json:"id"`
 	Source      string `json:"source"`
 	Translation string `json:"translation"`
 	Category    string `json:"category"`
 	Origin      string `json:"origin"`
-	REC         string `json:"rec"`
-	EDID        string `json:"edid"`
+	REC         string `json:"-"`
+	EDID        string `json:"-"`
 	UpdatedAt   string `json:"updatedAt"`
 }
 
@@ -159,13 +160,12 @@ type MasterDictionaryImportRequestDTO struct {
 
 // MasterDictionaryImportSummaryDTO reports XML import summary.
 type MasterDictionaryImportSummaryDTO struct {
-	FilePath      string   `json:"filePath"`
-	FileName      string   `json:"fileName"`
-	ImportedCount int      `json:"importedCount"`
-	UpdatedCount  int      `json:"updatedCount"`
-	SkippedCount  int      `json:"skippedCount"`
-	SelectedREC   []string `json:"selectedRec"`
-	LastEntryID   int64    `json:"lastEntryId"`
+	FilePath      string `json:"filePath"`
+	FileName      string `json:"fileName"`
+	ImportedCount int    `json:"importedCount"`
+	UpdatedCount  int    `json:"updatedCount"`
+	SkippedCount  int    `json:"skippedCount"`
+	LastEntryID   int64  `json:"lastEntryId"`
 }
 
 // MasterDictionaryImportResponseDTO returns import summary and refreshed page state.
@@ -717,17 +717,9 @@ func toEntrySummaryDTO(entry MasterDictionaryEntryDTO) MasterDictionaryEntrySumm
 }
 
 func toEntryDetailDTO(entry MasterDictionaryEntryDTO) MasterDictionaryEntryDetailDTO {
-	note := "マスター辞書エントリ"
-	if entry.REC != "" {
-		note = fmt.Sprintf("REC: %s", entry.REC)
-	}
-	if entry.EDID != "" {
-		note = fmt.Sprintf("%s / EDID: %s", note, entry.EDID)
-	}
-
 	return MasterDictionaryEntryDetailDTO{
 		MasterDictionaryEntrySummaryDTO: toEntrySummaryDTO(entry),
-		Note:                            note,
+		Note:                            "マスター辞書エントリ",
 	}
 }
 
@@ -763,7 +755,6 @@ func toImportSummaryDTO(result usecase.MasterDictionaryImportResult) MasterDicti
 		ImportedCount: result.Summary.ImportedCount,
 		UpdatedCount:  result.Summary.UpdatedCount,
 		SkippedCount:  result.Summary.SkippedCount,
-		SelectedREC:   result.Summary.SelectedREC,
 		LastEntryID:   result.Summary.LastEntryID,
 	}
 }

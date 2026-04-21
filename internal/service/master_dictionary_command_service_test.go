@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"testing"
 	"time"
 )
@@ -198,4 +199,113 @@ func TestMasterDictionaryCommandServiceDeleteRejectsInvalidID(t *testing.T) {
 
 func fixedMasterDictionaryNow() time.Time {
 	return time.Date(2026, 4, 12, 10, 0, 0, 0, time.UTC)
+}
+
+// --- Update path: trim behavior ---
+
+func TestMasterDictionaryCommandServiceUpdateTrimsMutationInputBeforeRepositoryCall(t *testing.T) {
+	repo := &repositoryStub{}
+	repo.updateFunc = func(_ context.Context, _ int64, draft MasterDictionaryDraft) (MasterDictionaryEntry, error) {
+		return MasterDictionaryEntry{ID: 1, Source: draft.Source, Translation: draft.Translation}, nil
+	}
+	service := NewMasterDictionaryCommandService(repo, fixedMasterDictionaryNow)
+
+	_, err := service.UpdateEntry(context.Background(), 1, MasterDictionaryMutationInput{
+		Source:      "  " + commandServiceUpdatedSource + "  ",
+		Translation: "  訳語B  ",
+	})
+	if err != nil {
+		t.Fatalf("expected update to succeed: %v", err)
+	}
+
+	updatedDraft := repo.updateCalls[0].draft
+	if updatedDraft.Source != commandServiceUpdatedSource {
+		t.Fatalf("expected update to trim source, got %q", updatedDraft.Source)
+	}
+	if updatedDraft.Translation != "訳語B" {
+		t.Fatalf("expected update to trim translation, got %q", updatedDraft.Translation)
+	}
+}
+
+// --- Update path: validation rejection after trim ---
+
+func TestMasterDictionaryCommandServiceUpdateRejectsEmptySourceAfterTrim(t *testing.T) {
+	service := NewMasterDictionaryCommandService(&repositoryStub{}, fixedMasterDictionaryNow)
+
+	_, err := service.UpdateEntry(context.Background(), 1, MasterDictionaryMutationInput{Source: "  ", Translation: "訳語"})
+	if err == nil {
+		t.Fatal("expected update with spaces-only source to fail after trim")
+	}
+	if !errors.Is(err, ErrMasterDictionaryValidation) {
+		t.Fatalf("expected ErrMasterDictionaryValidation, got: %v", err)
+	}
+}
+
+func TestMasterDictionaryCommandServiceUpdateRejectsEmptyTranslationAfterTrim(t *testing.T) {
+	service := NewMasterDictionaryCommandService(&repositoryStub{}, fixedMasterDictionaryNow)
+
+	_, err := service.UpdateEntry(context.Background(), 1, MasterDictionaryMutationInput{Source: "Source", Translation: "  "})
+	if err == nil {
+		t.Fatal("expected update with spaces-only translation to fail after trim")
+	}
+	if !errors.Is(err, ErrMasterDictionaryValidation) {
+		t.Fatalf("expected ErrMasterDictionaryValidation, got: %v", err)
+	}
+}
+
+// --- Repository error propagation (duplicate detection gap) ---
+
+func TestMasterDictionaryCommandServiceCreatePropagatesRepositoryError(t *testing.T) {
+	repoErr := errors.New("UNIQUE constraint failed: master_dictionary_entries.source, master_dictionary_entries.translation")
+	repo := &repositoryStub{}
+	repo.createFunc = func(_ context.Context, _ MasterDictionaryDraft) (MasterDictionaryEntry, error) {
+		return MasterDictionaryEntry{}, repoErr
+	}
+	service := NewMasterDictionaryCommandService(repo, fixedMasterDictionaryNow)
+
+	_, err := service.CreateEntry(context.Background(), MasterDictionaryMutationInput{
+		Source: commandServiceCreateSource, Translation: "訳語A",
+	})
+	if err == nil {
+		t.Fatal("expected create to propagate repository error")
+	}
+	if !errors.Is(err, repoErr) {
+		t.Fatalf("expected repository error wrapped in service error, got: %v", err)
+	}
+}
+
+func TestMasterDictionaryCommandServiceUpdatePropagatesRepositoryError(t *testing.T) {
+	repoErr := errors.New("UNIQUE constraint failed: master_dictionary_entries.source, master_dictionary_entries.translation")
+	repo := &repositoryStub{}
+	repo.updateFunc = func(_ context.Context, _ int64, _ MasterDictionaryDraft) (MasterDictionaryEntry, error) {
+		return MasterDictionaryEntry{}, repoErr
+	}
+	service := NewMasterDictionaryCommandService(repo, fixedMasterDictionaryNow)
+
+	_, err := service.UpdateEntry(context.Background(), 1, MasterDictionaryMutationInput{
+		Source: commandServiceUpdatedSource, Translation: "訳語B",
+	})
+	if err == nil {
+		t.Fatal("expected update to propagate repository error")
+	}
+	if !errors.Is(err, repoErr) {
+		t.Fatalf("expected repository error wrapped in service error, got: %v", err)
+	}
+}
+
+func TestMasterDictionaryCommandServiceDeletePropagatesRepositoryError(t *testing.T) {
+	repoErr := errors.New("delete master dictionary entry: db locked")
+	repo := &repositoryStub{}
+	repo.deleteFunc = func(_ context.Context, _ int64) error {
+		return repoErr
+	}
+	service := NewMasterDictionaryCommandService(repo, fixedMasterDictionaryNow)
+
+	err := service.DeleteEntry(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected delete to propagate repository error")
+	}
+	if !errors.Is(err, repoErr) {
+		t.Fatalf("expected repository error wrapped in service error, got: %v", err)
+	}
 }

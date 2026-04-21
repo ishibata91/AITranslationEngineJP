@@ -1,4 +1,4 @@
-package sqlite
+package dbinit
 
 import (
 	"context"
@@ -699,5 +699,68 @@ func TestCanonicalSchemaTranslationJobRequiresExtractedDataId(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "NOT NULL constraint failed") {
 		t.Fatalf("expected NOT NULL constraint error, got: %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Schema cutover completion_signal tests (handoff: schema-legacy-cutover)
+// ---------------------------------------------------------------------------
+
+// TestSchemaCutoverLegacyDictionaryTableAbsent は legacy master_dictionary_entries テーブルが
+// migration 適用後に存在しないことを検証する (completion_signal: no legacy dictionary table)。
+func TestSchemaCutoverLegacyDictionaryTableAbsent(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+	assertTableNotExists(t, db, "master_dictionary_entries")
+}
+
+// TestSchemaCutoverLegacyPersonaEntriesTableAbsent は legacy master_persona_entries テーブルが
+// migration 適用後に存在しないことを検証する。
+func TestSchemaCutoverLegacyPersonaEntriesTableAbsent(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+	assertTableNotExists(t, db, "master_persona_entries")
+}
+
+// TestSchemaCutoverLegacyPersonaAISettingsTableAbsent は legacy master_persona_ai_settings テーブルが
+// migration 適用後に存在しないことを検証する。
+func TestSchemaCutoverLegacyPersonaAISettingsTableAbsent(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+	assertTableNotExists(t, db, "master_persona_ai_settings")
+}
+
+// TestSchemaCutoverLegacyPersonaRunStatusTableAbsent は legacy master_persona_run_status テーブルが
+// migration 適用後に存在しないことを検証する (completion_signal: no persisted run status table)。
+func TestSchemaCutoverLegacyPersonaRunStatusTableAbsent(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+	assertTableNotExists(t, db, "master_persona_run_status")
+}
+
+// TestSchemaCutoverPersonaGenerationSettingsTableExists は PERSONA_GENERATION_SETTINGS テーブルが
+// migration 適用後に存在することを検証する (completion_signal: PERSONA_GENERATION_SETTINGS exists)。
+func TestSchemaCutoverPersonaGenerationSettingsTableExists(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+	assertTableExists(t, db, "PERSONA_GENERATION_SETTINGS")
+}
+
+// TestSchemaCutoverPersonaGenerationSettingsSingletonConstraintEnforced は
+// PERSONA_GENERATION_SETTINGS の id = 1 singleton 制約が機能することを検証する。
+// id = 1 は挿入できるが、id = 2 は CHECK 制約で拒否されなければならない。
+func TestSchemaCutoverPersonaGenerationSettingsSingletonConstraintEnforced(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+
+	_, err := db.ExecContext(context.Background(),
+		`INSERT INTO PERSONA_GENERATION_SETTINGS (id, provider, model) VALUES (1, 'openai', 'gpt-4o')`,
+	)
+	if err != nil {
+		t.Fatalf("expected PERSONA_GENERATION_SETTINGS insert with id=1 to succeed: %v", err)
+	}
+
+	_, err = db.ExecContext(context.Background(),
+		`INSERT INTO PERSONA_GENERATION_SETTINGS (id, provider, model) VALUES (2, 'openai', 'gpt-4o')`,
+	)
+	if err == nil {
+		t.Fatal("expected PERSONA_GENERATION_SETTINGS insert with id=2 to fail due to CHECK constraint")
+	}
+	if !strings.Contains(err.Error(), "CHECK constraint failed") {
+		t.Fatalf("expected CHECK constraint error for id=2, got: %v", err)
 	}
 }

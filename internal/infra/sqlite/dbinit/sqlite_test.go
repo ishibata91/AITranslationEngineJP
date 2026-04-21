@@ -1,4 +1,4 @@
-package sqlite
+package dbinit
 
 import (
 	"context"
@@ -36,7 +36,7 @@ func TestOpenMasterDictionaryDatabaseSeedsOnlyOnce(t *testing.T) {
 	firstSeedTime := time.Date(2026, 4, 15, 9, 0, 0, 0, time.UTC)
 	secondSeedTime := firstSeedTime.Add(24 * time.Hour)
 	database := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Whiterun", firstSeedTime)})
-	assertSeedCount(t, database, 1)
+	assertTableNotExists(t, database, "master_dictionary_entries")
 
 	err := database.Close()
 	if err != nil {
@@ -44,7 +44,7 @@ func TestOpenMasterDictionaryDatabaseSeedsOnlyOnce(t *testing.T) {
 	}
 
 	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Solitude", secondSeedTime)})
-	assertSeedCount(t, reopenedDatabase, 1)
+	assertTableNotExists(t, reopenedDatabase, "master_dictionary_entries")
 }
 
 func TestOpenMasterDictionaryDatabasePreservesOriginalSeedDataOnReopen(t *testing.T) {
@@ -59,53 +59,43 @@ func TestOpenMasterDictionaryDatabasePreservesOriginalSeedDataOnReopen(t *testin
 	}
 
 	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, []MasterDictionarySeedEntry{seedEntry("Solitude", secondSeedTime)})
-
-	var source string
-	err = reopenedDatabase.QueryRowContext(context.Background(), "SELECT source FROM master_dictionary_entries LIMIT 1").Scan(&source)
-	if err != nil {
-		t.Fatalf("expected to load seeded row after reopen: %v", err)
-	}
-
-	if source != "Whiterun" {
-		t.Fatalf("expected original seed row to remain, got %q", source)
-	}
+	assertTableNotExists(t, reopenedDatabase, "master_dictionary_entries")
+	assertTableExists(t, reopenedDatabase, "PERSONA_GENERATION_SETTINGS")
 }
 
 func TestOpenMasterDictionaryDatabaseReappliesMigrationsOnExistingDatabase(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
 	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
 
-	_, err := database.ExecContext(
-		context.Background(),
-		"INSERT INTO master_dictionary_entries (source, translation, category, origin, rec, edid, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
-		"Riften",
-		"リフテン",
-		"地名",
-		"手動登録",
-		"LCTN:FULL",
-		"LocRiften",
-		time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC).Format(masterDictionaryTimestampLayout),
-	)
-	if err != nil {
-		t.Fatalf("expected insert before reopen to succeed: %v", err)
-	}
-
-	err = database.Close()
+	err := database.Close()
 	if err != nil {
 		t.Fatalf(errInitialSQLiteClose, err)
 	}
 
 	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
-	assertSeedCount(t, reopenedDatabase, 1)
+	assertTableNotExists(t, reopenedDatabase, "master_dictionary_entries")
+	assertTableExists(t, reopenedDatabase, "PERSONA_GENERATION_SETTINGS")
 }
 
-func TestOpenMasterDictionaryDatabaseCreatesMasterPersonaTables(t *testing.T) {
+// TestSchemaCutoverDropsLegacyPersonaAndDictionaryTables は schema cutover 後に
+// legacy master_* テーブルが存在しないことを検証する (completion_signal)。
+func TestSchemaCutoverDropsLegacyPersonaAndDictionaryTables(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
 	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
 
-	assertTableExists(t, database, "master_persona_entries")
-	assertTableExists(t, database, "master_persona_ai_settings")
-	assertTableExists(t, database, "master_persona_run_status")
+	assertTableNotExists(t, database, "master_dictionary_entries")
+	assertTableNotExists(t, database, "master_persona_entries")
+	assertTableNotExists(t, database, "master_persona_ai_settings")
+	assertTableNotExists(t, database, "master_persona_run_status")
+}
+
+// TestSchemaCutoverCreatesPersonaGenerationSettingsTable は schema cutover 後に
+// PERSONA_GENERATION_SETTINGS テーブルが存在することを検証する (completion_signal)。
+func TestSchemaCutoverCreatesPersonaGenerationSettingsTable(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+
+	assertTableExists(t, database, "PERSONA_GENERATION_SETTINGS")
 }
 
 func openMasterDictionaryDatabaseForTest(t *testing.T, databasePath string, seeds []MasterDictionarySeedEntry) *sqlx.DB {
@@ -137,19 +127,6 @@ func seedEntry(source string, updatedAt time.Time) MasterDictionarySeedEntry {
 	}
 }
 
-func assertSeedCount(t *testing.T, database *sqlx.DB, expected int) {
-	t.Helper()
-
-	var count int
-	queryErr := database.QueryRowContext(context.Background(), "SELECT COUNT(*) FROM master_dictionary_entries").Scan(&count)
-	if queryErr != nil {
-		t.Fatalf("expected count query to succeed: %v", queryErr)
-	}
-	if count != expected {
-		t.Fatalf("expected %d rows, got %d", expected, count)
-	}
-}
-
 func assertTableExists(t *testing.T, database *sqlx.DB, tableName string) {
 	t.Helper()
 
@@ -164,5 +141,22 @@ func assertTableExists(t *testing.T, database *sqlx.DB, tableName string) {
 	}
 	if count != 1 {
 		t.Fatalf("expected sqlite table %q to exist", tableName)
+	}
+}
+
+func assertTableNotExists(t *testing.T, database *sqlx.DB, tableName string) {
+	t.Helper()
+
+	var count int
+	queryErr := database.QueryRowContext(
+		context.Background(),
+		"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name = ?",
+		tableName,
+	).Scan(&count)
+	if queryErr != nil {
+		t.Fatalf("expected sqlite table non-existence query to succeed: %v", queryErr)
+	}
+	if count != 0 {
+		t.Fatalf("expected sqlite table %q to not exist, but it was found", tableName)
 	}
 }

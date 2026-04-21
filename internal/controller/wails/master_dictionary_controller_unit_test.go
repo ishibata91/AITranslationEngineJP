@@ -2,8 +2,10 @@ package wails
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -178,7 +180,7 @@ func TestMasterDictionaryControllerCreateEntryMapsFrontendResponse(t *testing.T)
 		t.Fatalf("expected create contract to succeed: %v", err)
 	}
 
-	if created.RefreshTargetID != "101" || created.Entry.Note != "REC: BOOK:FULL / EDID: BookAuriel" {
+	if created.RefreshTargetID != "101" || created.Entry.Note != "マスター辞書エントリ" {
 		t.Fatalf("unexpected create response: %#v", created)
 	}
 }
@@ -462,5 +464,119 @@ func assertControllerUpdateInput(t *testing.T, id int64, input usecase.MasterDic
 	}
 	if refreshQuery.Page != 4 || refreshQuery.PageSize != 1 {
 		t.Fatalf("unexpected update refresh query: %#v", refreshQuery)
+	}
+}
+
+// --- dictionary-read-detail-cutover: Wails page / detail transport REC/EDID 非露出証明 ---
+
+func TestListMasterDictionaryEntriesPageTransportDoesNotExposeRECOrEDID(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		getPageFunc: func(_ context.Context, _ usecase.MasterDictionaryRefreshQuery, _ *int64) (usecase.MasterDictionaryPageState, error) {
+			return usecase.MasterDictionaryPageState{
+				Items: []usecase.MasterDictionaryEntry{
+					{ID: 1, Source: "Auriel", Translation: "アーリエル", Category: "神", Origin: "手動登録", REC: "BOOK:FULL", EDID: "BookAuriel", UpdatedAt: controllerUpdatedAt},
+				},
+				TotalCount: 1,
+				Page:       1,
+				PageSize:   25,
+			}, nil
+		},
+	}, nil)
+
+	request := ListMasterDictionaryEntriesRequestDTO{}
+	request.Filters.Page = 1
+	request.Filters.PageSize = 25
+
+	response, err := controller.ListMasterDictionaryEntries(request)
+	if err != nil {
+		t.Fatalf("expected list to succeed: %v", err)
+	}
+
+	data, marshalErr := json.Marshal(response.Entries)
+	if marshalErr != nil {
+		t.Fatalf("failed to marshal entries: %v", marshalErr)
+	}
+	encoded := string(data)
+	if strings.Contains(encoded, `"rec":`) || strings.Contains(encoded, `"edid":`) {
+		t.Fatalf("page transport items must not expose rec or edid fields, got: %s", encoded)
+	}
+}
+
+func TestGetMasterDictionaryEntryDetailTransportNoteIsDefaultWhenRECAndEDIDPresent(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		getEntryFunc: func(_ context.Context, id int64) (usecase.MasterDictionaryEntry, error) {
+			return usecase.MasterDictionaryEntry{
+				ID: id, Source: "Auriel", Translation: "アーリエル", Category: "神", Origin: "手動登録",
+				REC: "BOOK:FULL", EDID: "BookAuriel", UpdatedAt: controllerUpdatedAt,
+			}, nil
+		},
+	}, nil)
+
+	response, err := controller.GetMasterDictionaryEntry(GetMasterDictionaryEntryRequestDTO{ID: "1"})
+	if err != nil {
+		t.Fatalf("expected detail to succeed: %v", err)
+	}
+	if response.Entry == nil {
+		t.Fatal("expected entry in response")
+	}
+
+	// note は REC/EDID の値に関わらず常に "マスター辞書エントリ" を返す
+	if response.Entry.Note != "マスター辞書エントリ" {
+		t.Fatalf("expected default note regardless of REC and EDID, got: %q", response.Entry.Note)
+	}
+
+	data, marshalErr := json.Marshal(response.Entry)
+	if marshalErr != nil {
+		t.Fatalf("failed to marshal entry: %v", marshalErr)
+	}
+	encoded := string(data)
+	if strings.Contains(encoded, `"rec":`) || strings.Contains(encoded, `"edid":`) {
+		t.Fatalf("detail transport must not expose rec or edid fields, got: %s", encoded)
+	}
+}
+
+func TestGetMasterDictionaryEntryDetailTransportNoteIsDefaultWhenRECOnlyPresent(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		getEntryFunc: func(_ context.Context, id int64) (usecase.MasterDictionaryEntry, error) {
+			return usecase.MasterDictionaryEntry{
+				ID: id, Source: "Auriel", Translation: "アーリエル",
+				REC: "BOOK:FULL", EDID: "", UpdatedAt: controllerUpdatedAt,
+			}, nil
+		},
+	}, nil)
+
+	response, err := controller.GetMasterDictionaryEntry(GetMasterDictionaryEntryRequestDTO{ID: "1"})
+	if err != nil {
+		t.Fatalf("expected detail to succeed: %v", err)
+	}
+	if response.Entry == nil {
+		t.Fatal("expected entry in response")
+	}
+
+	if response.Entry.Note != "マスター辞書エントリ" {
+		t.Fatalf("expected default note regardless of REC only, got: %q", response.Entry.Note)
+	}
+}
+
+func TestGetMasterDictionaryEntryDetailTransportDefaultNoteWhenNoRECOrEDID(t *testing.T) {
+	controller := NewMasterDictionaryController(fakeMasterDictionaryUsecase{
+		getEntryFunc: func(_ context.Context, id int64) (usecase.MasterDictionaryEntry, error) {
+			return usecase.MasterDictionaryEntry{
+				ID: id, Source: "Auriel", Translation: "アーリエル",
+				REC: "", EDID: "", UpdatedAt: controllerUpdatedAt,
+			}, nil
+		},
+	}, nil)
+
+	response, err := controller.GetMasterDictionaryEntry(GetMasterDictionaryEntryRequestDTO{ID: "1"})
+	if err != nil {
+		t.Fatalf("expected detail to succeed: %v", err)
+	}
+	if response.Entry == nil {
+		t.Fatal("expected entry in response")
+	}
+
+	if response.Entry.Note != "マスター辞書エントリ" {
+		t.Fatalf("expected default note when no REC or EDID, got: %q", response.Entry.Note)
 	}
 }

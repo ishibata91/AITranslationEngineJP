@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"io"
 	"net/http"
 	"os"
@@ -14,6 +15,8 @@ import (
 	controllerwails "aitranslationenginejp/internal/controller/wails"
 	ai "aitranslationenginejp/internal/infra/ai"
 	"aitranslationenginejp/internal/repository"
+	"aitranslationenginejp/internal/service"
+	"aitranslationenginejp/internal/usecase"
 )
 
 type recordedRuntimeEvent struct {
@@ -538,56 +541,273 @@ func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreati
 	secondController.OnShutdown(context.Background())
 }
 
-func TestNewAppControllerPersistsMasterPersonaRunStatusAcrossControllerRecreation(t *testing.T) {
+// persona-ai-settings-restart-cutover: run state は再起動後に "入力待ち" へ戻ることを actual repository path で証明する。
+// SaveRunStatus は no-op のため、DB を再オープンすると run state は常にデフォルト値に戻る。
+func TestNewAppControllerPersonaAISettingsRestartCutoverRunStatusIsInputWaitingAfterRepositoryRecreation(t *testing.T) {
+	// Arrange: 1 セッションで run state = "完了" を書き込む (SaveRunStatus は no-op だが呼び出す)。
 	databasePath := configureBootstrapTestDatabase(t)
-	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
-	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
-  "npcs": [
-    {
-      "form_id": "FE01AFF0",
-      "record_type": "NPC_",
-      "editor_id": "FP_Persist",
-      "display_name": "Persist",
-      "dialogues": ["hello"]
-    }
-  ]
-}`)
-
-	executed, err := firstController.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
-		FilePath: extractPath,
-		AISettings: controllerwails.MasterPersonaAISettingsDTO{
-			Provider: "gemini",
-			Model:    "gemini-2.5-pro",
-		},
-	})
+	repos1, err := repository.NewSQLiteMasterPersonaRepositories(context.Background(), databasePath, nil)
 	if err != nil {
-		t.Fatalf("expected master persona execute through first controller to succeed: %v", err)
+		t.Fatalf("expected repository open to succeed: %v", err)
 	}
-	if executed.RunState != "完了" || executed.SuccessCount != 1 {
-		t.Fatalf("expected completed run status through first controller, got %#v", executed)
+	startedAt := time.Date(2026, 4, 21, 10, 0, 0, 0, time.UTC)
+	finishedAt := startedAt.Add(time.Minute)
+	if saveErr := repos1.RunStatusRepository.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState:       "完了",
+		SuccessCount:   1,
+		ProcessedCount: 1,
+		StartedAt:      &startedAt,
+		FinishedAt:     &finishedAt,
+	}); saveErr != nil {
+		_ = repos1.Close()
+		t.Fatalf("expected run status save to succeed: %v", saveErr)
+	}
+	if closeErr := repos1.Close(); closeErr != nil {
+		t.Fatalf("expected repos1 close to succeed: %v", closeErr)
+	}
+
+	// Act: 同じ DB パスで repository を再作成する (再起動をシミュレートする)。
+	repos2, err := repository.NewSQLiteMasterPersonaRepositories(context.Background(), databasePath, nil)
+	if err != nil {
+		t.Fatalf("expected repository reopen to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := repos2.Close(); closeErr != nil {
+			t.Fatalf("expected repos2 close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Assert: 再起動後の run state は "入力待ち" に戻る (run state は永続化されない)。
+	loaded, loadErr := repos2.RunStatusRepository.LoadRunStatus(context.Background())
+	if loadErr != nil {
+		t.Fatalf("expected run status load after reopen to succeed: %v", loadErr)
+	}
+	if loaded.RunState == "完了" {
+		t.Fatalf("expected run state to reset after restart (run state must not persist), but got %q", loaded.RunState)
+	}
+}
+
+// persona-ai-settings-restart-cutover: PERSONA_GENERATION_SETTINGS に json_file_path 列がないことを証明する。
+// JSON ファイル選択は DB に保存されないため、再起動後は frontend 側で "未選択" に戻る。
+func TestNewAppControllerPersonaAISettingsRestartCutoverJSONFilePathIsAbsentFromDB(t *testing.T) {
+	// Arrange: bootstrap テスト用 DB パスを確保する。
+	databasePath := configureBootstrapTestDatabase(t)
+	db, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected db open to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Act: PERSONA_GENERATION_SETTINGS の列情報を取得する。
+	rows, err := db.QueryContext(context.Background(), "PRAGMA table_info(PERSONA_GENERATION_SETTINGS)")
+	if err != nil {
+		t.Fatalf("expected PRAGMA table_info query to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			t.Fatalf("expected rows.Close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Assert: file_path / json_path / json_file_path など JSON 選択に関わる列は存在しない。
+	for rows.Next() {
+		var cid, notNull, pk int
+		var name, colType string
+		var defaultValue sql.NullString
+		if scanErr := rows.Scan(&cid, &name, &colType, &notNull, &defaultValue, &pk); scanErr != nil {
+			t.Fatalf("expected column row scan to succeed: %v", scanErr)
+		}
+		lower := strings.ToLower(name)
+		if strings.Contains(lower, "file") || strings.Contains(lower, "json") || strings.Contains(lower, "path") {
+			t.Fatalf("expected PERSONA_GENERATION_SETTINGS to have no file/json/path column (JSON selection must not persist), found: %q", name)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("expected table_info rows iteration to succeed: %v", err)
+	}
+}
+
+// persona-ai-settings-restart-cutover: PERSONA_GENERATION_SETTINGS に保存された provider/model が
+// DB 再オープン後に復元されることを bootstrap DB パス経由で証明する。
+func TestNewAppControllerPersonaAISettingsRestartCutoverProviderModelRestoredAfterControllerRecreation(t *testing.T) {
+	// Arrange: bootstrap テスト用 DB パスを確保し、最初のセッションで provider/model を書き込む。
+	databasePath := configureBootstrapTestDatabase(t)
+	db1, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected db open to succeed: %v", err)
+	}
+	_, err = db1.ExecContext(context.Background(),
+		"INSERT OR REPLACE INTO PERSONA_GENERATION_SETTINGS (id, provider, model) VALUES (1, 'gemini', 'restart-cutover-model')")
+	if err != nil {
+		_ = db1.Close()
+		t.Fatalf("expected PERSONA_GENERATION_SETTINGS insert to succeed: %v", err)
+	}
+	if closeErr := db1.Close(); closeErr != nil {
+		t.Fatalf("expected db1 close to succeed: %v", closeErr)
+	}
+
+	// Act: 同じ DB パスで DB を再オープンする。
+	db2, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected db reopen to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := db2.Close(); closeErr != nil {
+			t.Fatalf("expected db2 close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Assert: provider と model が復元されている。
+	var provider, model string
+	if err := db2.QueryRowContext(context.Background(),
+		"SELECT provider, model FROM PERSONA_GENERATION_SETTINGS WHERE id = 1").Scan(&provider, &model); err != nil {
+		t.Fatalf("expected PERSONA_GENERATION_SETTINGS load after reopen to succeed: %v", err)
+	}
+	if provider != "gemini" || model != "restart-cutover-model" {
+		t.Fatalf("expected provider/model restored after db reopen, got provider=%q model=%q", provider, model)
+	}
+}
+
+// persona-ai-settings-restart-cutover: run state は DB に保存されないことを bootstrap DB 経由で証明する。
+// run status テーブルが存在しないことで、DB の外側がデフォルトの入力待ちに局限されることを確認する。
+func TestNewAppControllerPersonaAISettingsRestartCutoverRunStatusIsInputWaitingOnFreshController(t *testing.T) {
+	// Arrange: bootstrap テスト用 DB パスを確保する。
+	databasePath := configureBootstrapTestDatabase(t)
+	db, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected db open to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Assert: run state 永続化テーブルが存在しない。
+	for _, tableName := range []string{"master_persona_run_status", "PERSONA_GENERATION_RUN_STATUS"} {
+		var count int
+		if err := db.QueryRowContext(context.Background(),
+			"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name=?", tableName).Scan(&count); err != nil {
+			t.Fatalf("expected table existence check to succeed for %q: %v", tableName, err)
+		}
+		if count != 0 {
+			t.Fatalf("expected no run status table %q in bootstrap db (run state must not be persisted), but table exists", tableName)
+		}
+	}
+}
+
+// persona-ai-settings-restart-cutover: PERSONA_GENERATION_SETTINGS に api_key 列がないことを
+// bootstrap DB 経由で証明する。API key は DB の外 (keyring) に保管される。
+func TestNewAppControllerPersonaAISettingsRestartCutoverAPIKeyStaysOutsideDB(t *testing.T) {
+	// Arrange: bootstrap テスト用 DB パスを確保する。
+	databasePath := configureBootstrapTestDatabase(t)
+	db, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected db open to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Act: PERSONA_GENERATION_SETTINGS の列情報を取得する。
+	rows, err := db.QueryContext(context.Background(), "PRAGMA table_info(PERSONA_GENERATION_SETTINGS)")
+	if err != nil {
+		t.Fatalf("expected PRAGMA table_info query to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := rows.Close(); closeErr != nil {
+			t.Fatalf("expected rows.Close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Assert: api_key 列は存在しない。
+	var foundAPIKeyColumn bool
+	for rows.Next() {
+		var cid, notNull, pk int
+		var name, colType string
+		var defaultValue sql.NullString
+		if err := rows.Scan(&cid, &name, &colType, &notNull, &defaultValue, &pk); err != nil {
+			t.Fatalf("expected column row scan to succeed: %v", err)
+		}
+		if strings.Contains(strings.ToLower(name), "api_key") {
+			foundAPIKeyColumn = true
+		}
+	}
+	if err := rows.Err(); err != nil {
+		t.Fatalf("expected table_info rows iteration to succeed: %v", err)
+	}
+	if foundAPIKeyColumn {
+		t.Fatalf("expected PERSONA_GENERATION_SETTINGS to have no api_key column in bootstrap db (API key stays outside DB)")
+	}
+}
+
+// persona-ai-settings-restart-cutover: 実際の bootstrap/controller/repository wiring を通じて
+// GetRunStatus が "入力待ち" を返すことを同一インスタンスで証明する。
+// また、同一インスタンス内で Execute を呼ぶと run status が "入力待ち" 以外へ遷移することを確認する。
+// SQLiteMasterPersonaRunStatusRepository.LoadRunStatus は常にデフォルト値を返す (DB 永続化なし)。
+func TestNewAppControllerPersonaAISettingsRestartCutoverSameInstanceRunStatusIsInputWaitingViaActualControllerWiring(t *testing.T) {
+	// Arrange: 実 SQLite wiring で AppController を構築する (persona entry seed なし)。
+	databasePath := configureBootstrapTestDatabase(t)
+	controller := newBootstrapRunStatusTestController(t, databasePath)
+	defer controller.OnShutdown(context.Background())
+
+	// Act: 実 controller → usecase → service → SQLiteRunStatusRepository の経路で run status を取得する。
+	status, err := controller.MasterPersonaGetRunStatus()
+
+	// Assert: 初期 run state は "入力待ち" である (stub ではなく実 SQLite wiring 経由)。
+	if err != nil {
+		t.Fatalf("expected MasterPersonaGetRunStatus to succeed via actual controller wiring: %v", err)
+	}
+	if status.RunState != "入力待ち" {
+		t.Fatalf("expected initial run state %q via actual controller wiring, got %q", "入力待ち", status.RunState)
+	}
+
+	// Act: 設定未設定の状態で ExecuteGeneration を呼ぶ。
+	// AI 設定が空のため "設定未完了" ステータスが返り、run state が idle から遷移することを観測する。
+	execStatus, execErr := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{})
+
+	// Assert: Execute が返す run state は "入力待ち" 以外である (run status が non-idle に遷移できることを証明する)。
+	if execErr != nil {
+		t.Fatalf("expected MasterPersonaExecuteGeneration with empty settings to succeed (returning settings-incomplete): %v", execErr)
+	}
+	if execStatus.RunState == "入力待ち" {
+		t.Fatalf("expected run state to move away from %q after execute with empty settings, got %q (run status must be observable as non-idle)", "入力待ち", execStatus.RunState)
+	}
+}
+
+// persona-ai-settings-restart-cutover: controller を再作成すると run status が "入力待ち" にリセットされることを
+// 実 AppController wiring で証明する。SQLite の run state は永続化されないため常にデフォルトに戻る。
+func TestNewAppControllerPersonaAISettingsRestartCutoverRecreatedControllerRunStatusResetsToInputWaiting(t *testing.T) {
+	// Arrange: 最初のコントローラーを構築して run status を確認後にシャットダウンする (persona entry seed なし)。
+	databasePath := configureBootstrapTestDatabase(t)
+	firstController := newBootstrapRunStatusTestController(t, databasePath)
+	firstStatus, err := firstController.MasterPersonaGetRunStatus()
+	if err != nil {
+		t.Fatalf("expected MasterPersonaGetRunStatus to succeed on first controller: %v", err)
+	}
+	if firstStatus.RunState != "入力待ち" {
+		t.Fatalf("expected first controller initial run state %q, got %q", "入力待ち", firstStatus.RunState)
 	}
 	firstController.OnShutdown(context.Background())
 
-	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
-	loadedStatus, err := secondController.MasterPersonaGetRunStatus()
-	if err != nil {
-		t.Fatalf("expected master persona run status load through second controller to succeed: %v", err)
-	}
-	if loadedStatus.RunState != "完了" || loadedStatus.SuccessCount != 1 || loadedStatus.ProcessedCount != 1 {
-		t.Fatalf("expected run status to persist after controller recreation, got %#v", loadedStatus)
-	}
+	// Act: 同じ DB パスで controller を再作成する (再起動をシミュレート)。
+	secondController := newBootstrapRunStatusTestController(t, databasePath)
+	defer secondController.OnShutdown(context.Background())
+	secondStatus, err := secondController.MasterPersonaGetRunStatus()
 
-	persistedIdentityKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01AFF0", "NPC_")
-	persistedDetail, err := secondController.MasterPersonaGetDetail(controllerwails.MasterPersonaDetailRequestDTO{IdentityKey: persistedIdentityKey})
+	// Assert: 再起動後の run state も "入力待ち" に戻る (run state は DB に永続化されない)。
 	if err != nil {
-		t.Fatalf("expected generated master persona entry to persist across controller recreation: %v", err)
+		t.Fatalf("expected MasterPersonaGetRunStatus to succeed on recreated controller: %v", err)
 	}
-	if persistedDetail.Entry.DisplayName != "Persist" {
-		t.Fatalf("expected generated master persona entry to persist, got %#v", persistedDetail.Entry)
+	if secondStatus.RunState != "入力待ち" {
+		t.Fatalf("expected run state to reset to %q after controller recreation (restart must not carry run state), got %q", "入力待ち", secondStatus.RunState)
 	}
-
-	secondController.OnShutdown(context.Background())
 }
 
 func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportResponseDTO, *recordingRuntimeEventEmitter, *controllerwails.AppController) {
@@ -779,6 +999,16 @@ func bootstrapTestSeed() []repository.MasterDictionaryEntry {
 	}
 }
 
+// newBootstrapRunStatusTestController builds a test AppController with nil master persona seed.
+// persona entry seed を nil にすることで、migration 002 で DROP された master_persona_entries テーブルへの
+// アクセスを回避する。run status と AI settings のみを扱うテストで使用する。
+func newBootstrapRunStatusTestController(t *testing.T, databasePath string) *controllerwails.AppController {
+	t.Helper()
+	setBootstrapTestDatabasePath(t, databasePath)
+	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
+	return newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+}
+
 func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...string) {
 	t.Helper()
 
@@ -789,5 +1019,313 @@ func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...s
 		if events[index].name != eventName {
 			t.Fatalf("expected event[%d]=%q, got %q", index, eventName, events[index].name)
 		}
+	}
+}
+
+// newBootstrapInMemoryRunStatusControllerWithRepo builds an AppController backed by
+// InMemoryMasterPersonaRepository so that SaveRunStatus / LoadRunStatus are live
+// within the session. The returned repo pointer allows callers to seed run state
+// before invoking controller methods.
+func newBootstrapInMemoryRunStatusControllerWithRepo(t *testing.T) (*controllerwails.AppController, *repository.InMemoryMasterPersonaRepository) {
+	t.Helper()
+
+	inMemoryRepo := repository.NewInMemoryMasterPersonaRepository(nil)
+	inMemorySecretStore := repository.NewInMemorySecretStore()
+
+	queryService := service.NewMasterPersonaQueryService(inMemoryRepo)
+	generationService := service.NewMasterPersonaGenerationService(
+		inMemoryRepo,
+		inMemoryRepo,
+		inMemoryRepo,
+		inMemorySecretStore,
+		bootstrapTestNow,
+		true, // testMode: paid real AI API を呼ばない
+	)
+	runStatusService := service.NewMasterPersonaRunStatusService(inMemoryRepo, bootstrapTestNow)
+
+	masterPersonaUsecase := usecase.NewMasterPersonaUsecase(
+		queryService,
+		generationService,
+		runStatusService,
+	)
+	masterPersonaController := controllerwails.NewMasterPersonaController(masterPersonaUsecase)
+	controller := controllerwails.NewAppController(nil, masterPersonaController, nil)
+	return controller, inMemoryRepo
+}
+
+// persona-ai-settings-restart-cutover: same controller instance で ExecuteGeneration 後に
+// MasterPersonaGetRunStatus を再読込しても non-idle を保つことを証明する。
+// InMemoryMasterPersonaRepository は SaveRunStatus を実際に保存するため、
+// 同一セッション内での live run status readback が可能である。
+func TestNewAppControllerPersonaAISettingsRestartCutoverSameInstanceGetRunStatusAfterExecuteIsNonIdle(t *testing.T) {
+	// Arrange: InMemory wiring で AppController を構築する (空 AI 設定)。
+	controller, _ := newBootstrapInMemoryRunStatusControllerWithRepo(t)
+	defer controller.OnShutdown(context.Background())
+
+	// Act: 空設定で ExecuteGeneration を呼ぶ → "設定未完了" が返り、InMemory に保存される。
+	execResult, err := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{})
+	if err != nil {
+		t.Fatalf("expected ExecuteGeneration with empty settings to succeed: %v", err)
+	}
+	if execResult.RunState == "入力待ち" {
+		t.Fatalf("expected ExecuteGeneration to return non-idle run state, got %q", execResult.RunState)
+	}
+
+	// Act: 同一インスタンスで MasterPersonaGetRunStatus を再読込する。
+	readbackStatus, err := controller.MasterPersonaGetRunStatus()
+	if err != nil {
+		t.Fatalf("expected GetRunStatus readback to succeed: %v", err)
+	}
+
+	// Assert: 再読込しても non-idle を保つ (InMemory SaveRunStatus が live state を保持するため)。
+	if readbackStatus.RunState == "入力待ち" {
+		t.Fatalf("expected GetRunStatus readback to maintain non-idle after ExecuteGeneration, got %q (live run status must reflect last execute outcome)", readbackStatus.RunState)
+	}
+}
+
+// persona-ai-settings-restart-cutover: same controller instance で running 状態のとき
+// InterruptGeneration が current state を見て "中断済み" へ遷移することを証明する。
+func TestNewAppControllerPersonaAISettingsRestartCutoverInterruptSeesCurrentRunningStateAndTransitions(t *testing.T) {
+	// Arrange: InMemory wiring + "生成中" で run status を事前設定する。
+	controller, inMemoryRepo := newBootstrapInMemoryRunStatusControllerWithRepo(t)
+	defer controller.OnShutdown(context.Background())
+
+	if err := inMemoryRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: service.MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("expected run status seed to running state to succeed: %v", err)
+	}
+
+	// Act: running 状態で InterruptGeneration を呼ぶ。
+	result, err := controller.MasterPersonaInterruptGeneration()
+	if err != nil {
+		t.Fatalf("expected InterruptGeneration from running state to succeed: %v", err)
+	}
+
+	// Assert: current state ("生成中") を見て "中断済み" へ遷移する。
+	if result.RunState != service.MasterPersonaStatusInterrupted {
+		t.Fatalf("expected InterruptGeneration to transition running→interrupted, got %q", result.RunState)
+	}
+}
+
+// persona-ai-settings-restart-cutover: same controller instance で running 状態のとき
+// CancelGeneration が current state を見て "中止済み" へ遷移することを証明する。
+func TestNewAppControllerPersonaAISettingsRestartCutoverCancelSeesCurrentRunningStateAndTransitions(t *testing.T) {
+	// Arrange: InMemory wiring + "生成中" で run status を事前設定する。
+	controller, inMemoryRepo := newBootstrapInMemoryRunStatusControllerWithRepo(t)
+	defer controller.OnShutdown(context.Background())
+
+	if err := inMemoryRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: service.MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("expected run status seed to running state to succeed: %v", err)
+	}
+
+	// Act: running 状態で CancelGeneration を呼ぶ。
+	result, err := controller.MasterPersonaCancelGeneration()
+	if err != nil {
+		t.Fatalf("expected CancelGeneration from running state to succeed: %v", err)
+	}
+
+	// Assert: current state ("生成中") を見て "中止済み" へ遷移する。
+	if result.RunState != service.MasterPersonaStatusCancelled {
+		t.Fatalf("expected CancelGeneration to transition running→cancelled, got %q", result.RunState)
+	}
+}
+
+// persona-generation-cutover: bootstrap controller を通じた Execute が canonical NPC_PROFILE 行を書き込むことを証明する。
+// 現在は shipped sqlite repository が master_persona_entries を参照しているため FAIL する。
+// canonical write path 実装後に PASS となる (RED テスト)。
+func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalNPCProfileRow(t *testing.T) {
+	// Arrange: nil persona seed (master_persona_entries へのアクセスを回避) + fake AI mode。
+	databasePath := configureBootstrapTestDatabase(t)
+	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
+	t.Setenv(masterPersonaFakeResponseEnv, "cutover-npc-profile-persona-description")
+	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+
+	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
+  "target_plugin": "CutoverPlugin.esp",
+  "npcs": [
+    {
+      "form_id": "FE01BB01",
+      "record_type": "NPC_",
+      "editor_id": "CO_TestNPC",
+      "display_name": "Cutover NPC",
+      "dialogues": ["Hello", "Goodbye"]
+    }
+  ]
+}`)
+
+	// Act: canonical write path を通じてペルソナ生成を実行する。
+	execResult, execErr := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
+		FilePath:   extractPath,
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "cutover-test-key"},
+	})
+	controller.OnShutdown(context.Background())
+
+	// Assert: 生成が成功する (canonical write path が実装されるまで FAIL する)。
+	if execErr != nil {
+		t.Fatalf("expected generation to succeed via canonical NPC_PROFILE write path, got error: %v", execErr)
+	}
+	if execResult.RunState != "完了" {
+		t.Fatalf("expected run state 完了, got %q (message: %q)", execResult.RunState, execResult.Message)
+	}
+
+	// Assert: NPC_PROFILE に canonical 行が書き込まれている。
+	db, openErr := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if openErr != nil {
+		t.Fatalf("expected db open to succeed: %v", openErr)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	var npcProfileCount int
+	if err := db.QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM NPC_PROFILE WHERE target_plugin_name = ? AND form_id = ? AND record_type = ?",
+		"CutoverPlugin.esp", "FE01BB01", "NPC_").Scan(&npcProfileCount); err != nil {
+		t.Fatalf("expected NPC_PROFILE count query to succeed: %v", err)
+	}
+	if npcProfileCount != 1 {
+		t.Fatalf("expected 1 NPC_PROFILE row after generation cutover, got %d (write sink must be NPC_PROFILE, not master_persona_entries)", npcProfileCount)
+	}
+}
+
+// persona-generation-cutover: bootstrap controller を通じた Execute が canonical PERSONA 行を書き込むことを証明する。
+// 現在は shipped sqlite repository が master_persona_entries を参照しているため FAIL する。
+// canonical write path 実装後に PASS となる (RED テスト)。
+func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalPersonaRow(t *testing.T) {
+	// Arrange: nil persona seed + fake AI mode。
+	databasePath := configureBootstrapTestDatabase(t)
+	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
+	t.Setenv(masterPersonaFakeResponseEnv, "cutover-persona-row-description")
+	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+
+	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
+  "target_plugin": "CutoverPlugin.esp",
+  "npcs": [
+    {
+      "form_id": "FE01BB01",
+      "record_type": "NPC_",
+      "editor_id": "CO_TestNPC",
+      "display_name": "Cutover NPC",
+      "dialogues": ["Hello", "Goodbye"]
+    }
+  ]
+}`)
+
+	// Act: canonical write path を通じてペルソナ生成を実行する。
+	execResult, execErr := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
+		FilePath:   extractPath,
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "cutover-test-key"},
+	})
+	controller.OnShutdown(context.Background())
+
+	// Assert: 生成が成功する。
+	if execErr != nil {
+		t.Fatalf("expected generation to succeed via canonical PERSONA write path, got error: %v", execErr)
+	}
+	if execResult.RunState != "完了" {
+		t.Fatalf("expected run state 完了, got %q (message: %q)", execResult.RunState, execResult.Message)
+	}
+
+	// Assert: PERSONA に NPC_PROFILE に紐づく canonical 行が書き込まれている。
+	db, openErr := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if openErr != nil {
+		t.Fatalf("expected db open to succeed: %v", openErr)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	var personaCount int
+	if err := db.QueryRowContext(context.Background(),
+		`SELECT COUNT(*) FROM PERSONA p
+		 JOIN NPC_PROFILE np ON p.npc_profile_id = np.id
+		 WHERE np.target_plugin_name = ? AND np.form_id = ? AND np.record_type = ?`,
+		"CutoverPlugin.esp", "FE01BB01", "NPC_").Scan(&personaCount); err != nil {
+		t.Fatalf("expected PERSONA join NPC_PROFILE count query to succeed: %v", err)
+	}
+	if personaCount != 1 {
+		t.Fatalf("expected 1 PERSONA row linked to NPC_PROFILE after generation cutover, got %d", personaCount)
+	}
+}
+
+// persona-generation-cutover: bootstrap DB schema に master_persona_entries が存在しないことを証明する。
+// generation write sink は canonical NPC_PROFILE + PERSONA であり、legacy table は migration 002 で削除済み。
+func TestNewAppControllerPersonaGenerationCutoverLegacyMasterPersonaEntriesAbsentFromSchema(t *testing.T) {
+	// Arrange: bootstrap テスト用 DB を開く。
+	databasePath := configureBootstrapTestDatabase(t)
+	db, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected db open to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	// Assert: master_persona_entries テーブルは schema に存在しない (migration 002 で削除済み)。
+	var count int
+	if err := db.QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='master_persona_entries'").Scan(&count); err != nil {
+		t.Fatalf("expected table existence check to succeed: %v", err)
+	}
+	if count != 0 {
+		t.Fatalf("expected master_persona_entries to be absent from bootstrap DB schema (generation write sink must be canonical NPC_PROFILE + PERSONA), but table was found")
+	}
+}
+
+// persona-generation-cutover: Execute が失敗したとき、bootstrap DB に partial canonical rows が残らないことを証明する。
+// canonical write path はアトミックであるべきであり、失敗後の NPC_PROFILE + PERSONA に孤立行が存在してはならない。
+func TestNewAppControllerPersonaGenerationCutoverFailedExecutionLeavesNoPartialCanonicalRows(t *testing.T) {
+	// Arrange: nil persona seed + fake AI mode (fake response 未設定で空の body)。
+	databasePath := configureBootstrapTestDatabase(t)
+	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
+	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+
+	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
+  "target_plugin": "FailPlugin.esp",
+  "npcs": [
+    {
+      "form_id": "FE01CC01",
+      "record_type": "NPC_",
+      "editor_id": "FP_FailNPC",
+      "display_name": "Fail NPC",
+      "dialogues": ["line"]
+    }
+  ]
+}`)
+
+	// Act: 生成を試みる (canonical write path が未実装の場合、UpsertIfAbsent で失敗する)。
+	_, _ = controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
+		FilePath:   extractPath,
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "cutover-fail-key"},
+	})
+	controller.OnShutdown(context.Background())
+
+	// Assert: 失敗後に partial canonical rows が存在しない (write はアトミックであるべき)。
+	db, openErr := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if openErr != nil {
+		t.Fatalf("expected db open to succeed: %v", openErr)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected db close to succeed: %v", closeErr)
+		}
+	}()
+
+	var npcProfileCount int
+	if err := db.QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM NPC_PROFILE WHERE target_plugin_name = 'FailPlugin.esp'").Scan(&npcProfileCount); err != nil {
+		t.Fatalf("expected NPC_PROFILE count query to succeed: %v", err)
+	}
+	if npcProfileCount != 0 {
+		t.Fatalf("expected no partial NPC_PROFILE rows after failed generation, got %d (canonical write must be atomic)", npcProfileCount)
 	}
 }

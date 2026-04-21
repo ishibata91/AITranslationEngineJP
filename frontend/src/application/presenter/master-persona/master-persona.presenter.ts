@@ -75,9 +75,7 @@ function buildProgressPercent(state: MasterPersonaScreenState): number {
   const processed = state.runStatus.processedCount
   const total =
     processed +
-    state.runStatus.existingSkipCount +
-    state.runStatus.zeroDialogueSkipCount +
-    state.runStatus.genericNpcCount
+    state.runStatus.existingSkipCount
   if (total <= 0) {
     return state.runStatus.runState === "完了" ? 100 : 0
   }

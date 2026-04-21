@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"sort"
 	"strings"
+
+	"aitranslationenginejp/internal/repository"
 )
 
 const (
@@ -43,6 +45,16 @@ func WithMasterPersonaBodyGenerator(generator MasterPersonaBodyGenerator) Master
 			return
 		}
 		service.bodyGenerator = generator
+	}
+}
+
+// WithMasterPersonaTransactor injects a shared transactor for Execute atomicity.
+func WithMasterPersonaTransactor(transactor repository.Transactor) MasterPersonaGenerationServiceOption {
+	return func(service *MasterPersonaGenerationService) {
+		if transactor == nil {
+			return
+		}
+		service.transactor = transactor
 	}
 }
 

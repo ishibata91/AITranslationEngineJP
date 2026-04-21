@@ -42,14 +42,8 @@ function chooseSelectedIdentityKey(
 
 function createEditFormFromEntry(entry: MasterPersonaDetail) {
   return {
-    formId: entry.formId,
-    editorId: entry.editorId,
-    displayName: entry.displayName,
-    race: entry.race,
-    sex: entry.sex,
-    voiceType: entry.voiceType,
-    className: entry.className,
-    sourcePlugin: entry.sourcePlugin,
+    personaSummary: entry.personaSummary,
+    speechStyle: entry.speechStyle ?? "",
     personaBody: entry.personaBody
   }
 }
@@ -83,7 +77,6 @@ export class MasterPersonaUseCase {
     }
 
     await this.loadAISettings()
-    await this.loadRunStatus()
     await this.loadPage()
   }
 
@@ -215,39 +208,10 @@ export class MasterPersonaUseCase {
   async selectEntry(identityKey: string): Promise<void> {
     this.store.update((draft) => {
       draft.selectedIdentityKey = identityKey
-      draft.dialogueModalOpen = false
-      draft.dialogues = []
       draft.errorMessage = ""
     })
 
     await this.loadDetail(identityKey)
-  }
-
-  async loadDialogueList(): Promise<void> {
-    const state = this.store.snapshot()
-    if (!this.gateway || !state.selectedIdentityKey) {
-      return
-    }
-
-    try {
-      const response = await this.gateway.getMasterPersonaDialogueList({
-        identityKey: state.selectedIdentityKey
-      })
-      this.store.update((draft) => {
-        draft.dialogues = response.dialogues
-        draft.dialogueModalOpen = true
-        draft.errorMessage = ""
-      })
-    } catch (error) {
-      this.store.update((draft) => {
-        draft.dialogueModalOpen = false
-        draft.dialogues = []
-        draft.errorMessage = toErrorMessage(
-          error,
-          "ダイアログ一覧の取得に失敗しました。"
-        )
-      })
-    }
   }
 
   async previewGeneration(): Promise<void> {
@@ -374,9 +338,9 @@ export class MasterPersonaUseCase {
     }
 
     const input = MasterPersonaGateway.buildMasterPersonaUpdateInput(state)
-    if (!input.formId || !input.displayName || !input.personaBody) {
+    if (!input.personaSummary || !input.personaBody) {
       this.store.update((draft) => {
-        draft.errorMessage = "FormID、名前、ペルソナ本文を入力してください。"
+        draft.errorMessage = "ペルソナ概要と本文を入力してください。"
       })
       return
     }
@@ -432,12 +396,6 @@ export class MasterPersonaUseCase {
         draft.errorMessage = toErrorMessage(error, "削除に失敗しました。")
       })
     }
-  }
-
-  closeDialogueModal(): void {
-    this.store.update((draft) => {
-      draft.dialogueModalOpen = false
-    })
   }
 
   setModalState(modalState: MasterPersonaModalState): void {

@@ -146,3 +146,16 @@ type importProgressRecorder struct {
 func (recorder *importProgressRecorder) EmitImportProgress(_ context.Context, progress int) {
 	recorder.values = append(recorder.values, progress)
 }
+
+type foundationDataPortStub struct {
+	createFunc     func(context.Context, XMLProvenanceDraft) (int64, error)
+	capturedDrafts []XMLProvenanceDraft
+}
+
+func (s *foundationDataPortStub) CreateXTranslatorTranslationXML(ctx context.Context, draft XMLProvenanceDraft) (int64, error) {
+	s.capturedDrafts = append(s.capturedDrafts, draft)
+	if s.createFunc != nil {
+		return s.createFunc(ctx, draft)
+	}
+	return 0, nil
+}

@@ -3,7 +3,6 @@ export type {
   MasterPersonaDeleteRequest,
   MasterPersonaDetail,
   MasterPersonaDetailResponse,
-  MasterPersonaDialogueListResponse,
   MasterPersonaGatewayContract,
   MasterPersonaIdentityRequest,
   MasterPersonaModalState,
@@ -18,6 +17,8 @@ export type {
   MasterPersonaScreenViewModel,
   MasterPersonaUpdateRequest
 } from "./master-persona-gateway-contract"
+/** @public */
+export type { MasterPersonaPreviewStateEntry } from "./master-persona-gateway-contract"
 export {
   MASTER_PERSONA_IDLE_RUN_STATE,
   MASTER_PERSONA_PAGE_SIZE,

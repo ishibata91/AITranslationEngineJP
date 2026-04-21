@@ -22,17 +22,6 @@ function toErrorMessage(error: unknown, fallback: string): string {
   return fallback
 }
 
-function buildEntryNote(entry: MasterDictionaryPageEntry): string {
-  let note = "マスター辞書エントリ"
-  if (entry.rec.trim() !== "") {
-    note = `REC: ${entry.rec}`
-  }
-  if (entry.edid.trim() !== "") {
-    note = `${note} / EDID: ${entry.edid}`
-  }
-  return note
-}
-
 function toDetailFromPageEntry(
   entry: MasterDictionaryPageEntry
 ): MasterDictionaryEntryDetail {
@@ -42,10 +31,8 @@ function toDetailFromPageEntry(
     translation: entry.translation,
     category: entry.category,
     origin: entry.origin,
-    rec: entry.rec,
-    edid: entry.edid,
     updatedAt: entry.updatedAt,
-    note: buildEntryNote(entry)
+    note: "マスター辞書エントリ"
   }
 }
 

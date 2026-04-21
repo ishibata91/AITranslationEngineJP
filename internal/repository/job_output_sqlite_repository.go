@@ -1,4 +1,4 @@
-package sqlite
+package repository
 
 import (
 	"context"
@@ -6,17 +6,15 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-
-	"aitranslationenginejp/internal/repository"
 )
 
-// SQLiteJobOutputRepository は repository.JobOutputRepository の SQLite 実装。
+// SQLiteJobOutputRepository は JobOutputRepository の SQLite 実装。
 type SQLiteJobOutputRepository struct {
 	db *sqlx.DB
 }
 
-// NewSQLiteJobOutputRepository は repository.JobOutputRepository を返す。
-func NewSQLiteJobOutputRepository(db *sqlx.DB) repository.JobOutputRepository {
+// NewSQLiteJobOutputRepository は JobOutputRepository を返す。
+func NewSQLiteJobOutputRepository(db *sqlx.DB) JobOutputRepository {
 	return &SQLiteJobOutputRepository{db: db}
 }
 
@@ -35,12 +33,12 @@ type jobTranslationFieldRow struct {
 	UpdatedAt          string `db:"updated_at"`
 }
 
-func (r jobTranslationFieldRow) toModel() (repository.JobTranslationField, error) {
+func (r jobTranslationFieldRow) toModel() (JobTranslationField, error) {
 	updatedAt, err := time.Parse(time.RFC3339, r.UpdatedAt)
 	if err != nil {
-		return repository.JobTranslationField{}, fmt.Errorf("parse updated_at: %w", err)
+		return JobTranslationField{}, fmt.Errorf("parse updated_at: %w", err)
 	}
-	return repository.JobTranslationField{
+	return JobTranslationField{
 		ID:                 r.ID,
 		TranslationJobID:   r.TranslationJobID,
 		TranslationFieldID: r.TranslationFieldID,
@@ -89,10 +87,11 @@ FROM JOB_TRANSLATION_FIELD WHERE translation_job_id = ?`
 // JobTranslationField
 // ---------------------------------------------------------------------------
 
+// CreateJobTranslationField は JobTranslationField レコードを作成する。
 func (r *SQLiteJobOutputRepository) CreateJobTranslationField(
 	ctx context.Context,
-	draft repository.JobTranslationFieldDraft,
-) (repository.JobTranslationField, error) {
+	draft JobTranslationFieldDraft,
+) (JobTranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	row := jobTranslationFieldRow{
@@ -106,36 +105,38 @@ func (r *SQLiteJobOutputRepository) CreateJobTranslationField(
 	}
 	q, args, err := sqlx.Named(insertJobTranslationField, row)
 	if err != nil {
-		return repository.JobTranslationField{}, fmt.Errorf("create job_translation_field named: %w", err)
+		return JobTranslationField{}, fmt.Errorf("create job_translation_field named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.JobTranslationField{}, mapFoundationSQLError(err, "create job_translation_field")
+		return JobTranslationField{}, mapFoundationSQLError(err, "create job_translation_field")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.JobTranslationField{}, fmt.Errorf("create job_translation_field last insert id: %w", err)
+		return JobTranslationField{}, fmt.Errorf("create job_translation_field last insert id: %w", err)
 	}
 	return r.GetJobTranslationFieldByID(ctx, id)
 }
 
+// GetJobTranslationFieldByID は ID で JobTranslationField を取得する。
 func (r *SQLiteJobOutputRepository) GetJobTranslationFieldByID(
 	ctx context.Context,
 	id int64,
-) (repository.JobTranslationField, error) {
+) (JobTranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	var row jobTranslationFieldRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectJobTranslationFieldByID, id); err != nil {
-		return repository.JobTranslationField{}, mapSQLError(err, "get job_translation_field by id")
+		return JobTranslationField{}, mapSQLError(err, "get job_translation_field by id")
 	}
 	return row.toModel()
 }
 
+// UpdateJobTranslationField は JobTranslationField を更新する。
 func (r *SQLiteJobOutputRepository) UpdateJobTranslationField(
 	ctx context.Context,
 	id int64,
-	draft repository.JobTranslationFieldUpdateDraft,
-) (repository.JobTranslationField, error) {
+	draft JobTranslationFieldUpdateDraft,
+) (JobTranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	args := map[string]interface{}{
@@ -148,24 +149,25 @@ func (r *SQLiteJobOutputRepository) UpdateJobTranslationField(
 	}
 	q, qArgs, err := sqlx.Named(updateJobTranslationField, args)
 	if err != nil {
-		return repository.JobTranslationField{}, fmt.Errorf("update job_translation_field named: %w", err)
+		return JobTranslationField{}, fmt.Errorf("update job_translation_field named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, qArgs...); err != nil {
-		return repository.JobTranslationField{}, mapFoundationSQLError(err, "update job_translation_field")
+		return JobTranslationField{}, mapFoundationSQLError(err, "update job_translation_field")
 	}
 	return r.GetJobTranslationFieldByID(ctx, id)
 }
 
+// ListJobTranslationFieldsByJobID は JobID に紐づく JobTranslationField 一覧を返す。
 func (r *SQLiteJobOutputRepository) ListJobTranslationFieldsByJobID(
 	ctx context.Context,
 	jobID int64,
-) ([]repository.JobTranslationField, error) {
+) ([]JobTranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	var rows []jobTranslationFieldRow
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectJobTranslationFieldsByJobID, jobID); err != nil {
 		return nil, mapSQLError(err, "list job_translation_fields by job_id")
 	}
-	result := make([]repository.JobTranslationField, len(rows))
+	result := make([]JobTranslationField, len(rows))
 	for i, row := range rows {
 		m, err := row.toModel()
 		if err != nil {

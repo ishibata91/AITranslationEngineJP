@@ -9,8 +9,6 @@ function createInitialState(): MasterPersonaScreenState {
     pluginGroups: [],
     selectedIdentityKey: null,
     selectedEntry: null,
-    dialogueModalOpen: false,
-    dialogues: [],
     keyword: "",
     pluginFilter: "",
     page: 1,
@@ -28,8 +26,6 @@ function createInitialState(): MasterPersonaScreenState {
       processedCount: 0,
       successCount: 0,
       existingSkipCount: 0,
-      zeroDialogueSkipCount: 0,
-      genericNpcCount: 0,
       currentActorLabel: "",
       message: "入力ファイルを選ぶと状態を表示します。"
     },
@@ -59,7 +55,6 @@ export class MasterPersonaStore {
       selectedEntry: this.state.selectedEntry
         ? { ...this.state.selectedEntry }
         : null,
-      dialogues: this.state.dialogues.map((dialogue) => ({ ...dialogue })),
       aiSettings: { ...this.state.aiSettings },
       preview: this.state.preview ? { ...this.state.preview } : null,
       runStatus: { ...this.state.runStatus },

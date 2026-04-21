@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"reflect"
 	"testing"
 	"time"
 
@@ -224,28 +225,6 @@ func TestMasterPersonaGenerationServiceDeleteEntrySuccess(t *testing.T) {
 	}
 }
 
-func TestMasterPersonaQueryServiceLoadDialogueList(t *testing.T) {
-	now := time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC)
-	repositoryStore := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now))
-	queryService := NewMasterPersonaQueryService(repositoryStore)
-
-	dialogueList, err := queryService.LoadDialogueList(
-		context.Background(),
-		repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"),
-	)
-	if err != nil {
-		t.Fatalf("expected dialogue list load success: %v", err)
-	}
-	if dialogueList.DialogueCount != 3 || len(dialogueList.Dialogues) != 3 || dialogueList.Dialogues[0].Index != 1 {
-		t.Fatalf("unexpected dialogue list payload: %#v", dialogueList)
-	}
-
-	_, err = queryService.LoadDialogueList(context.Background(), " ")
-	if !errors.Is(err, ErrMasterPersonaValidation) {
-		t.Fatalf("expected identity_key validation error, got %v", err)
-	}
-}
-
 func TestMasterPersonaRunStatusServiceInterruptLoadError(t *testing.T) {
 	service := NewMasterPersonaRunStatusService(&stubMasterPersonaRunRepository{loadErr: errors.New("load failed")}, fixedMasterPersonaStatusClock())
 	if _, err := service.Interrupt(context.Background()); err == nil {
@@ -382,4 +361,141 @@ func (repositoryStub *stubMasterPersonaCommandRepository) Delete(_ context.Conte
 		return repositoryStub.deleteErr
 	}
 	return nil
+}
+
+// persona-ai-settings-restart-cutover: live in-process run state semantics.
+// Proves that after a Save transition in the same process, GetRunStatus, Interrupt, and Cancel
+// observe the current in-memory state rather than always returning idle.
+
+func TestMasterPersonaAISettingsRestartCutoverGetStatusReflectsRunningAfterSave(t *testing.T) {
+	// Arrange: shared repository starts empty; save Running state (simulating GenerationService.startRunStatus)
+	sharedRepo := &stubMasterPersonaRunRepository{}
+	statusService := NewMasterPersonaRunStatusService(sharedRepo, fixedMasterPersonaStatusClock())
+	if err := sharedRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("unexpected save error: %v", err)
+	}
+
+	// Act
+	status, err := statusService.GetStatus(context.Background())
+
+	// Assert: GetStatus must reflect the Running state saved in the same process, not idle
+	if err != nil {
+		t.Fatalf("expected GetStatus success: %v", err)
+	}
+	if status.RunState != MasterPersonaStatusRunning {
+		t.Fatalf("expected GetStatus to return Running after in-process save, got: %s", status.RunState)
+	}
+}
+
+func TestMasterPersonaAISettingsRestartCutoverInterruptObservesInMemoryRunningState(t *testing.T) {
+	// Arrange: save Running state to shared repository
+	sharedRepo := &stubMasterPersonaRunRepository{}
+	statusService := NewMasterPersonaRunStatusService(sharedRepo, fixedMasterPersonaStatusClock())
+	if err := sharedRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("unexpected save error: %v", err)
+	}
+
+	// Act
+	status, err := statusService.Interrupt(context.Background())
+
+	// Assert: Interrupt must observe Running and transition to Interrupted, not be a noop
+	if err != nil {
+		t.Fatalf("expected Interrupt success: %v", err)
+	}
+	if status.RunState != MasterPersonaStatusInterrupted {
+		t.Fatalf("expected Interrupted (not noop) when in-process state is Running, got: %s", status.RunState)
+	}
+	if status.FinishedAt == nil {
+		t.Fatalf("expected FinishedAt to be set on Interrupted status")
+	}
+}
+
+func TestMasterPersonaAISettingsRestartCutoverCancelObservesInMemoryRunningState(t *testing.T) {
+	// Arrange: save Running state to shared repository
+	sharedRepo := &stubMasterPersonaRunRepository{}
+	statusService := NewMasterPersonaRunStatusService(sharedRepo, fixedMasterPersonaStatusClock())
+	if err := sharedRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("unexpected save error: %v", err)
+	}
+
+	// Act
+	status, err := statusService.Cancel(context.Background())
+
+	// Assert: Cancel must observe Running and transition to Cancelled, not be a noop
+	if err != nil {
+		t.Fatalf("expected Cancel success: %v", err)
+	}
+	if status.RunState != MasterPersonaStatusCancelled {
+		t.Fatalf("expected Cancelled (not noop) when in-process state is Running, got: %s", status.RunState)
+	}
+	if status.FinishedAt == nil {
+		t.Fatalf("expected FinishedAt to be set on Cancelled status")
+	}
+}
+
+func TestMasterPersonaAISettingsRestartCutoverGetStatusAfterInterrupt(t *testing.T) {
+	// Arrange: save Running then Interrupt within same process
+	sharedRepo := &stubMasterPersonaRunRepository{}
+	statusService := NewMasterPersonaRunStatusService(sharedRepo, fixedMasterPersonaStatusClock())
+	if err := sharedRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("unexpected save error: %v", err)
+	}
+	if _, err := statusService.Interrupt(context.Background()); err != nil {
+		t.Fatalf("unexpected Interrupt error: %v", err)
+	}
+
+	// Act
+	status, err := statusService.GetStatus(context.Background())
+
+	// Assert: GetStatus must reflect Interrupted, not revert to Running
+	if err != nil {
+		t.Fatalf("expected GetStatus success after Interrupt: %v", err)
+	}
+	if status.RunState != MasterPersonaStatusInterrupted {
+		t.Fatalf("expected GetStatus to return Interrupted after in-process Interrupt, got: %s", status.RunState)
+	}
+}
+
+func TestMasterPersonaAISettingsRestartCutoverGetStatusAfterCancel(t *testing.T) {
+	// Arrange: save Running then Cancel within same process
+	sharedRepo := &stubMasterPersonaRunRepository{}
+	statusService := NewMasterPersonaRunStatusService(sharedRepo, fixedMasterPersonaStatusClock())
+	if err := sharedRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
+		RunState: MasterPersonaStatusRunning,
+	}); err != nil {
+		t.Fatalf("unexpected save error: %v", err)
+	}
+	if _, err := statusService.Cancel(context.Background()); err != nil {
+		t.Fatalf("unexpected Cancel error: %v", err)
+	}
+
+	// Act
+	status, err := statusService.GetStatus(context.Background())
+
+	// Assert: GetStatus must reflect Cancelled, not revert to Running
+	if err != nil {
+		t.Fatalf("expected GetStatus success after Cancel: %v", err)
+	}
+	if status.RunState != MasterPersonaStatusCancelled {
+		t.Fatalf("expected GetStatus to return Cancelled after in-process Cancel, got: %s", status.RunState)
+	}
+}
+
+// persona-read-detail-cutover: MasterPersonaQueryService から LoadDialogueList が除去されることを証明する。
+// MasterPersonaQueryService が LoadDialogueList を保持している間は失敗する。
+func TestMasterPersonaQueryServicePersonaReadDetailCutoverServiceHasNoLoadDialogueList(t *testing.T) {
+	serviceType := reflect.TypeOf(&MasterPersonaQueryService{})
+	for i := 0; i < serviceType.NumMethod(); i++ {
+		if serviceType.Method(i).Name == "LoadDialogueList" {
+			t.Fatal("MasterPersonaQueryService still exposes LoadDialogueList; persona-read-detail-cutover requires removal from read-detail service seam")
+		}
+	}
 }

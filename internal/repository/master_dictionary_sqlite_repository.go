@@ -17,81 +17,93 @@ const (
 	masterDictionaryTimestampLayout = time.RFC3339Nano
 	countMasterDictionaryEntriesSQL = `
 SELECT COUNT(*)
-FROM master_dictionary_entries
-WHERE (
+FROM DICTIONARY_ENTRY
+WHERE dictionary_lifecycle = 'master'
+AND (
   ? = ''
-  OR lower(source || ' ' || translation || ' ' || edid || ' ' || CAST(id AS TEXT)) LIKE ?
+  OR lower(source_term || ' ' || translated_term || ' ' || CAST(id AS TEXT)) LIKE ?
 )
 AND (
   ? = ''
   OR ? = 'すべて'
-  OR category = ?
+  OR term_kind = ?
 );`
 	listMasterDictionaryEntriesSQL = `
-SELECT id, source, translation, category, origin, rec, edid, updated_at
-FROM master_dictionary_entries
-WHERE (
+SELECT id, source_term, translated_term, term_kind, dictionary_source, dictionary_scope, updated_at
+FROM DICTIONARY_ENTRY
+WHERE dictionary_lifecycle = 'master'
+AND (
   ? = ''
-  OR lower(source || ' ' || translation || ' ' || edid || ' ' || CAST(id AS TEXT)) LIKE ?
+  OR lower(source_term || ' ' || translated_term || ' ' || CAST(id AS TEXT)) LIKE ?
 )
 AND (
   ? = ''
   OR ? = 'すべて'
-  OR category = ?
+  OR term_kind = ?
 )
 ORDER BY updated_at DESC, id DESC
 LIMIT ?
 OFFSET ?;`
 	getMasterDictionaryEntrySQL = `
-SELECT id, source, translation, category, origin, rec, edid, updated_at
-FROM master_dictionary_entries
-WHERE id = ?
+SELECT id, source_term, translated_term, term_kind, dictionary_source, dictionary_scope, updated_at
+FROM DICTIONARY_ENTRY
+WHERE dictionary_lifecycle = 'master'
+  AND id = ?
 LIMIT 1;`
 	findMasterDictionaryEntryBySourceAndRECSQL = `
-SELECT id, source, translation, category, origin, rec, edid, updated_at
-FROM master_dictionary_entries
-WHERE lower(trim(source)) = lower(trim(?))
-  AND lower(trim(rec)) = lower(trim(?))
+SELECT id, source_term, translated_term, term_kind, dictionary_source, dictionary_scope, updated_at
+FROM DICTIONARY_ENTRY
+WHERE dictionary_lifecycle = 'master'
+  AND lower(trim(source_term)) = lower(trim(?))
+  AND lower(trim(dictionary_scope)) = lower(trim(?))
 LIMIT 1;`
 	createMasterDictionaryEntrySQL = `
-INSERT INTO master_dictionary_entries (
-  source,
-  translation,
-  category,
-  origin,
-  rec,
-  edid,
+INSERT INTO DICTIONARY_ENTRY (
+  xtranslator_translation_xml_id,
+  dictionary_lifecycle,
+  dictionary_scope,
+  dictionary_source,
+  source_term,
+  translated_term,
+  term_kind,
+  reusable,
+  created_at,
   updated_at
 ) VALUES (
-  :source,
-  :translation,
-  :category,
-  :origin,
-  :rec,
-  :edid,
+  :xtranslator_translation_xml_id,
+  'master',
+  :dictionary_scope,
+  :dictionary_source,
+  :source_term,
+  :translated_term,
+  :term_kind,
+  1,
+  :created_at,
   :updated_at
 );`
 	updateMasterDictionaryEntrySQL = `
-UPDATE master_dictionary_entries
-SET source = :source,
-    translation = :translation,
-    category = :category,
-    origin = :origin,
-    rec = :rec,
-    edid = :edid,
+UPDATE DICTIONARY_ENTRY
+SET source_term = :source_term,
+    translated_term = :translated_term,
+    term_kind = :term_kind,
+    dictionary_source = :dictionary_source,
+    dictionary_scope = :dictionary_scope,
     updated_at = :updated_at
-WHERE id = :id;`
+WHERE id = :id
+  AND dictionary_lifecycle = 'master';`
 	updateImportedMasterDictionaryEntrySQL = `
-UPDATE master_dictionary_entries
-SET translation = :translation,
-    category = :category,
-    origin = :origin,
-    edid = :edid,
+UPDATE DICTIONARY_ENTRY
+SET xtranslator_translation_xml_id = :xtranslator_translation_xml_id,
+    translated_term = :translated_term,
+    term_kind = :term_kind,
+    dictionary_source = :dictionary_source,
     updated_at = :updated_at
-WHERE id = :id;`
+WHERE id = :id
+  AND dictionary_lifecycle = 'master';`
 	deleteMasterDictionaryEntrySQL = `
-DELETE FROM master_dictionary_entries
-WHERE id = ?;`
+DELETE FROM DICTIONARY_ENTRY
+WHERE id = ?
+  AND dictionary_lifecycle = 'master';`
 )
 
 // SQLiteMasterDictionaryRepository persists master dictionary entries into SQLite.
@@ -101,24 +113,24 @@ type SQLiteMasterDictionaryRepository struct {
 
 type sqliteMasterDictionaryRow struct {
 	ID          int64  `db:"id"`
-	Source      string `db:"source"`
-	Translation string `db:"translation"`
-	Category    string `db:"category"`
-	Origin      string `db:"origin"`
-	REC         string `db:"rec"`
-	EDID        string `db:"edid"`
+	Source      string `db:"source_term"`
+	Translation string `db:"translated_term"`
+	Category    string `db:"term_kind"`
+	Origin      string `db:"dictionary_source"`
+	REC         string `db:"dictionary_scope"`
 	UpdatedAt   string `db:"updated_at"`
 }
 
 type sqliteMasterDictionaryMutationParams struct {
-	ID          int64  `db:"id"`
-	Source      string `db:"source"`
-	Translation string `db:"translation"`
-	Category    string `db:"category"`
-	Origin      string `db:"origin"`
-	REC         string `db:"rec"`
-	EDID        string `db:"edid"`
-	UpdatedAt   string `db:"updated_at"`
+	ID                          int64  `db:"id"`
+	Source                      string `db:"source_term"`
+	Translation                 string `db:"translated_term"`
+	Category                    string `db:"term_kind"`
+	Origin                      string `db:"dictionary_source"`
+	REC                         string `db:"dictionary_scope"`
+	UpdatedAt                   string `db:"updated_at"`
+	CreatedAt                   string `db:"created_at"`
+	XTranslatorTranslationXMLID *int64 `db:"xtranslator_translation_xml_id"`
 }
 
 // NewSQLiteMasterDictionaryRepository opens the SQLite database after startup initialization has run.
@@ -275,12 +287,12 @@ func (repository *SQLiteMasterDictionaryRepository) UpsertBySourceAndREC(
 	)
 	if err == nil {
 		result, updateErr := repository.database.NamedExecContext(ctx, updateImportedMasterDictionaryEntrySQL, sqliteMasterDictionaryMutationParams{
-			ID:          row.ID,
-			Translation: record.Translation,
-			Category:    record.Category,
-			Origin:      record.Origin,
-			EDID:        record.EDID,
-			UpdatedAt:   record.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout),
+			ID:                          row.ID,
+			Translation:                 record.Translation,
+			Category:                    record.Category,
+			Origin:                      record.Origin,
+			UpdatedAt:                   record.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout),
+			XTranslatorTranslationXMLID: record.XTranslatorTranslationXMLID,
 		})
 		if updateErr != nil {
 			return MasterDictionaryEntry{}, false, fmt.Errorf("update imported master dictionary entry: %w", updateErr)
@@ -303,13 +315,14 @@ func (repository *SQLiteMasterDictionaryRepository) UpsertBySourceAndREC(
 	}
 
 	entry, createErr := repository.Create(ctx, MasterDictionaryDraft{
-		Source:      strings.TrimSpace(record.Source),
-		Translation: record.Translation,
-		Category:    record.Category,
-		Origin:      record.Origin,
-		REC:         strings.TrimSpace(record.REC),
-		EDID:        record.EDID,
-		UpdatedAt:   record.UpdatedAt,
+		Source:                      strings.TrimSpace(record.Source),
+		Translation:                 record.Translation,
+		Category:                    record.Category,
+		Origin:                      record.Origin,
+		REC:                         strings.TrimSpace(record.REC),
+		EDID:                        record.EDID,
+		UpdatedAt:                   record.UpdatedAt,
+		XTranslatorTranslationXMLID: record.XTranslatorTranslationXMLID,
 	})
 	if createErr != nil {
 		return MasterDictionaryEntry{}, true, createErr
@@ -329,21 +342,23 @@ func fromSQLiteRow(row sqliteMasterDictionaryRow) (MasterDictionaryEntry, error)
 		Category:    row.Category,
 		Origin:      row.Origin,
 		REC:         row.REC,
-		EDID:        row.EDID,
+		EDID:        "",
 		UpdatedAt:   updatedAt.UTC(),
 	}, nil
 }
 
 func mutationParamsFromDraft(id int64, draft MasterDictionaryDraft) sqliteMasterDictionaryMutationParams {
+	ts := draft.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout)
 	return sqliteMasterDictionaryMutationParams{
-		ID:          id,
-		Source:      draft.Source,
-		Translation: draft.Translation,
-		Category:    draft.Category,
-		Origin:      draft.Origin,
-		REC:         draft.REC,
-		EDID:        draft.EDID,
-		UpdatedAt:   draft.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout),
+		ID:                          id,
+		Source:                      draft.Source,
+		Translation:                 draft.Translation,
+		Category:                    draft.Category,
+		Origin:                      draft.Origin,
+		REC:                         draft.REC,
+		UpdatedAt:                   ts,
+		CreatedAt:                   ts,
+		XTranslatorTranslationXMLID: draft.XTranslatorTranslationXMLID,
 	}
 }
 

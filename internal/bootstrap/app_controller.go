@@ -51,6 +51,15 @@ func newAppControllerWithSeeds(
 	if err != nil {
 		panic(fmt.Errorf("build sqlite master dictionary repository: %w", err))
 	}
+	foundationDataDB, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		closeMasterDictionary := service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter)
+		if closeMasterDictionary != nil {
+			_ = closeMasterDictionary(context.Background())
+		}
+		panic(fmt.Errorf("open sqlite foundation data database: %w", err))
+	}
+	foundationDataPort := service.NewSQLiteFoundationDataPort(repository.NewSQLiteFoundationDataRepository(foundationDataDB))
 	queryService := service.NewMasterDictionaryQueryService(repositoryAdapter)
 	commandService := service.NewMasterDictionaryCommandService(repositoryAdapter, now)
 	importService := service.NewMasterDictionaryImportService(
@@ -59,7 +68,7 @@ func newAppControllerWithSeeds(
 		service.NewXMLDecoderMasterDictionaryRecordReader(),
 		usecase.NewImportProgressEmitter(runtimePublisher),
 		now,
-	)
+	).WithFoundationData(foundationDataPort)
 	masterDictionaryUsecase := usecase.NewMasterDictionaryUsecase(
 		queryService,
 		commandService,
@@ -97,19 +106,22 @@ func newAppControllerWithSeeds(
 	masterPersonaQueryService := service.NewMasterPersonaQueryService(masterPersonaRepositories.EntryRepository)
 	masterPersonaTestModeEnabled := masterPersonaTestMode()
 	aiProviderClient := newAIProviderClientFromMasterPersonaEnv()
+	masterPersonaTransactor := repository.NewSQLiteTransactor(masterPersonaRepositories.Database())
 	masterPersonaServiceOptions := []service.MasterPersonaGenerationServiceOption{
 		service.WithMasterPersonaBodyGenerator(masterPersonaBodyGenerator{client: aiProviderClient}),
+		service.WithMasterPersonaTransactor(masterPersonaTransactor),
 	}
+	masterPersonaRunStatusRepository := repository.NewInMemoryMasterPersonaRunStatusRepository()
 	masterPersonaGenerationService := service.NewMasterPersonaGenerationService(
 		masterPersonaRepositories.EntryRepository,
 		masterPersonaRepositories.AISettingsRepository,
-		masterPersonaRepositories.RunStatusRepository,
+		masterPersonaRunStatusRepository,
 		masterPersonaSecretStore,
 		now,
 		masterPersonaTestModeEnabled,
 		masterPersonaServiceOptions...,
 	)
-	masterPersonaRunStatusService := service.NewMasterPersonaRunStatusService(masterPersonaRepositories.RunStatusRepository, now)
+	masterPersonaRunStatusService := service.NewMasterPersonaRunStatusService(masterPersonaRunStatusRepository, now)
 	masterPersonaUsecase := usecase.NewMasterPersonaUsecase(
 		masterPersonaQueryService,
 		masterPersonaGenerationService,
@@ -122,6 +134,12 @@ func newAppControllerWithSeeds(
 		masterPersonaController,
 		composeShutdownHooks(
 			service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter),
+			func(context.Context) error {
+				if err := foundationDataDB.Close(); err != nil {
+					return fmt.Errorf("close foundation data database: %w", err)
+				}
+				return nil
+			},
 			func(context.Context) error {
 				if err := masterPersonaRepositories.Close(); err != nil {
 					return fmt.Errorf("close sqlite master persona repositories: %w", err)

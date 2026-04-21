@@ -403,7 +403,7 @@ func runSuccessfulUsecaseImport(t *testing.T) (MasterDictionaryImportResult, *fa
 			if xmlPath != usecaseDictionaryXML {
 				t.Fatalf("expected xml path %s, got %q", usecaseDictionaryXML, xmlPath)
 			}
-			return service.MasterDictionaryImportSummary{FilePath: usecaseDictionaryXML, FileName: usecaseDictionaryXML, ImportedCount: 3, UpdatedCount: 1, SkippedCount: 2, SelectedREC: []string{usecaseBookREC}, LastEntryID: 88}, nil
+			return service.MasterDictionaryImportSummary{FilePath: usecaseDictionaryXML, FileName: usecaseDictionaryXML, ImportedCount: 3, UpdatedCount: 1, SkippedCount: 2, LastEntryID: 88}, nil
 		}},
 		publisher,
 	)

@@ -24,8 +24,6 @@ export interface MasterPersonaScreenControllerContract {
   setAIProvider(event: Event): void
   setAIModel(event: Event): void
   setAPIKey(event: Event): void
-  openDialogueModal(): Promise<void>
-  closeDialogueModal(): void
   openEditModal(): void
   closeEditModal(): void
   openDeleteModal(): void
@@ -36,14 +34,8 @@ export interface MasterPersonaScreenControllerContract {
 }
 
 export interface MasterPersonaEditableFieldMap {
-  formId: HTMLInputElement
-  editorId: HTMLInputElement
-  displayName: HTMLInputElement
-  race: HTMLInputElement
-  sex: HTMLInputElement
-  voiceType: HTMLInputElement
-  className: HTMLInputElement
-  sourcePlugin: HTMLInputElement
+  personaSummary: HTMLTextAreaElement
+  speechStyle: HTMLInputElement
   personaBody: HTMLTextAreaElement
 }
 

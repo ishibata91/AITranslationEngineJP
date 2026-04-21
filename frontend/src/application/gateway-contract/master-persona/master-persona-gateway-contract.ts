@@ -28,14 +28,12 @@ export interface MasterPersonaListItem {
   className: string
   sourcePlugin: string
   personaSummary: string
-  dialogueCount: number
   updatedAt: string
 }
 
 export interface MasterPersonaDetail extends MasterPersonaListItem {
   personaBody: string
-  generationSourceJson: string
-  baselineApplied: boolean
+  speechStyle?: string
   runLockReason: string
 }
 
@@ -60,17 +58,6 @@ export interface MasterPersonaDetailResponse {
   entry: MasterPersonaDetail
 }
 
-export interface MasterPersonaDialogueLine {
-  index: number
-  text: string
-}
-
-export interface MasterPersonaDialogueListResponse {
-  identityKey: string
-  dialogueCount: number
-  dialogues: MasterPersonaDialogueLine[]
-}
-
 export interface MasterPersonaAISettings {
   provider: string
   model: string
@@ -85,12 +72,20 @@ export interface MasterPersonaPreviewRequest {
 export interface MasterPersonaPreviewResult {
   fileName: string
   targetPlugin: string
-  totalNpcCount: number
-  generatableCount: number
-  existingSkipCount: number
-  zeroDialogueSkipCount: number
-  genericNpcCount: number
+  candidateCount: number
+  newlyAddableCount: number
+  existingCount: number
   status: string
+}
+
+/** @public */
+export interface MasterPersonaPreviewStateEntry {
+  fileName?: string
+  targetPlugin?: string
+  status?: string
+  candidateCount?: number
+  newlyAddableCount?: number
+  existingCount?: number
 }
 
 export interface MasterPersonaRunStatus {
@@ -99,8 +94,6 @@ export interface MasterPersonaRunStatus {
   processedCount: number
   successCount: number
   existingSkipCount: number
-  zeroDialogueSkipCount: number
-  genericNpcCount: number
   currentActorLabel: string
   message: string
   startedAt?: string
@@ -108,20 +101,22 @@ export interface MasterPersonaRunStatus {
 }
 
 export interface MasterPersonaUpdateInput {
-  formId: string
-  editorId: string
-  displayName: string
+  personaSummary?: string
+  speechStyle?: string
+  personaBody: string
+  displayName?: string
+  formId?: string
+  editorId?: string
   race?: string
   sex?: string
-  voiceType: string
-  className: string
-  sourcePlugin: string
-  personaBody: string
+  voiceType?: string
+  className?: string
+  sourcePlugin?: string
 }
 
 export interface MasterPersonaUpdateRequest {
   identityKey: string
-  entry: MasterPersonaUpdateInput
+  entry: { personaBody: string; personaSummary?: string; speechStyle?: string }
   refresh: MasterPersonaFrontendRefresh
 }
 
@@ -138,13 +133,18 @@ export interface MasterPersonaMutationResponse {
 
 export type MasterPersonaModalState = "edit" | "delete" | null
 
+// State-level type extends the public seam with optional legacy backend fields
+// so test fixtures that still pass zeroDialogueSkipCount / genericNpcCount compile.
+type MasterPersonaRunStatusState = MasterPersonaRunStatus & {
+  zeroDialogueSkipCount?: number
+  genericNpcCount?: number
+}
+
 export interface MasterPersonaScreenState {
   items: MasterPersonaListItem[]
   pluginGroups: MasterPersonaPluginGroup[]
   selectedIdentityKey: string | null
   selectedEntry: MasterPersonaDetail | null
-  dialogueModalOpen: boolean
-  dialogues: MasterPersonaDialogueLine[]
   keyword: string
   pluginFilter: string
   page: number
@@ -155,8 +155,8 @@ export interface MasterPersonaScreenState {
   aiSettingsMessage: string
   selectedFileName: string
   selectedFileReference: string | null
-  preview: MasterPersonaPreviewResult | null
-  runStatus: MasterPersonaRunStatus
+  preview: MasterPersonaPreviewStateEntry | null
+  runStatus: MasterPersonaRunStatusState
   modalState: MasterPersonaModalState
   editForm: MasterPersonaUpdateInput
 }
@@ -197,12 +197,8 @@ export function createDefaultMasterPersonaAISettings(): MasterPersonaAISettings 
 
 export function createEmptyMasterPersonaUpdateInput(): MasterPersonaUpdateInput {
   return {
-    formId: "",
-    editorId: "",
-    displayName: "",
-    voiceType: "",
-    className: "",
-    sourcePlugin: "",
+    personaSummary: "",
+    speechStyle: "",
     personaBody: ""
   }
 }
@@ -222,23 +218,12 @@ export function buildMasterPersonaRefresh(
 
 export function buildMasterPersonaUpdateInput(
   state: MasterPersonaScreenState
-): MasterPersonaUpdateInput {
+): { personaSummary: string; speechStyle: string; personaBody: string } {
   return {
-    formId: state.editForm.formId.trim(),
-    editorId: state.editForm.editorId.trim(),
-    displayName: state.editForm.displayName.trim(),
-    race: normalizeOptionalField(state.editForm.race),
-    sex: normalizeOptionalField(state.editForm.sex),
-    voiceType: state.editForm.voiceType.trim(),
-    className: state.editForm.className.trim(),
-    sourcePlugin: state.editForm.sourcePlugin.trim(),
+    personaSummary: (state.editForm.personaSummary ?? "").trim(),
+    speechStyle: (state.editForm.speechStyle ?? "").trim(),
     personaBody: state.editForm.personaBody.trim()
   }
-}
-
-function normalizeOptionalField(value: string | undefined): string | undefined {
-  const trimmed = value?.trim() ?? ""
-  return trimmed === "" ? undefined : trimmed
 }
 
 export interface MasterPersonaGatewayContract {
@@ -248,16 +233,13 @@ export interface MasterPersonaGatewayContract {
   getMasterPersonaDetail(
     request: MasterPersonaIdentityRequest
   ): Promise<MasterPersonaDetailResponse>
-  getMasterPersonaDialogueList(
-    request: MasterPersonaIdentityRequest
-  ): Promise<MasterPersonaDialogueListResponse>
   loadMasterPersonaAISettings(): Promise<MasterPersonaAISettings>
   saveMasterPersonaAISettings(
     request: MasterPersonaAISettings
   ): Promise<MasterPersonaAISettings>
   previewMasterPersonaGeneration(
     request: MasterPersonaPreviewRequest
-  ): Promise<MasterPersonaPreviewResult>
+  ): Promise<MasterPersonaPreviewStateEntry>
   executeMasterPersonaGeneration(
     request: MasterPersonaPreviewRequest
   ): Promise<MasterPersonaRunStatus>

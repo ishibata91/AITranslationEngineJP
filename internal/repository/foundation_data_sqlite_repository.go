@@ -1,4 +1,4 @@
-package sqlite
+package repository
 
 import (
 	"context"
@@ -7,17 +7,15 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-
-	"aitranslationenginejp/internal/repository"
 )
 
-// SQLiteFoundationDataRepository は repository.FoundationDataRepository の SQLite 実装。
+// SQLiteFoundationDataRepository は FoundationDataRepository の SQLite 実装。
 type SQLiteFoundationDataRepository struct {
 	db *sqlx.DB
 }
 
-// NewSQLiteFoundationDataRepository は repository.FoundationDataRepository を返す。
-func NewSQLiteFoundationDataRepository(db *sqlx.DB) repository.FoundationDataRepository {
+// NewSQLiteFoundationDataRepository は FoundationDataRepository を返す。
+func NewSQLiteFoundationDataRepository(db *sqlx.DB) FoundationDataRepository {
 	return &SQLiteFoundationDataRepository{db: db}
 }
 
@@ -34,12 +32,12 @@ type xTranslatorTranslationXMLRow struct {
 	ImportedAt       string `db:"imported_at"`
 }
 
-func (r xTranslatorTranslationXMLRow) toModel() (repository.XTranslatorTranslationXML, error) {
+func (r xTranslatorTranslationXMLRow) toModel() (XTranslatorTranslationXML, error) {
 	importedAt, err := time.Parse(time.RFC3339, r.ImportedAt)
 	if err != nil {
-		return repository.XTranslatorTranslationXML{}, wrapParseError("imported_at", err)
+		return XTranslatorTranslationXML{}, wrapParseError("imported_at", err)
 	}
-	return repository.XTranslatorTranslationXML{
+	return XTranslatorTranslationXML{
 		ID:               r.ID,
 		FilePath:         r.FilePath,
 		TargetPluginName: r.TargetPluginName,
@@ -64,16 +62,16 @@ type personaRow struct {
 	UpdatedAt              string `db:"updated_at"`
 }
 
-func (r personaRow) toModel() (repository.Persona, error) {
+func (r personaRow) toModel() (Persona, error) {
 	createdAt, err := time.Parse(time.RFC3339, r.CreatedAt)
 	if err != nil {
-		return repository.Persona{}, wrapParseError("created_at", err)
+		return Persona{}, wrapParseError("created_at", err)
 	}
 	updatedAt, err := time.Parse(time.RFC3339, r.UpdatedAt)
 	if err != nil {
-		return repository.Persona{}, wrapParseError("updated_at", err)
+		return Persona{}, wrapParseError("updated_at", err)
 	}
-	return repository.Persona{
+	return Persona{
 		ID:                     r.ID,
 		NpcProfileID:           r.NpcProfileID,
 		TranslationJobID:       r.TranslationJobID,
@@ -96,8 +94,8 @@ type personaFieldEvidenceRow struct {
 	EvidenceRole       string `db:"evidence_role"`
 }
 
-func (r personaFieldEvidenceRow) toModel() repository.PersonaFieldEvidence {
-	return repository.PersonaFieldEvidence{
+func (r personaFieldEvidenceRow) toModel() PersonaFieldEvidence {
+	return PersonaFieldEvidence{
 		ID:                 r.ID,
 		PersonaID:          r.PersonaID,
 		TranslationFieldID: r.TranslationFieldID,
@@ -120,16 +118,16 @@ type dictionaryEntryRow struct {
 	UpdatedAt                   string `db:"updated_at"`
 }
 
-func (r dictionaryEntryRow) toModel() (repository.DictionaryEntry, error) {
+func (r dictionaryEntryRow) toModel() (DictionaryEntry, error) {
 	createdAt, err := time.Parse(time.RFC3339, r.CreatedAt)
 	if err != nil {
-		return repository.DictionaryEntry{}, wrapParseError("created_at", err)
+		return DictionaryEntry{}, wrapParseError("created_at", err)
 	}
 	updatedAt, err := time.Parse(time.RFC3339, r.UpdatedAt)
 	if err != nil {
-		return repository.DictionaryEntry{}, wrapParseError("updated_at", err)
+		return DictionaryEntry{}, wrapParseError("updated_at", err)
 	}
-	return repository.DictionaryEntry{
+	return DictionaryEntry{
 		ID:                          r.ID,
 		XTranslatorTranslationXMLID: r.XTranslatorTranslationXMLID,
 		TranslationJobID:            r.TranslationJobID,
@@ -233,7 +231,7 @@ WHERE id = :id`
 )
 
 // ---------------------------------------------------------------------------
-// エラーヘルパー (パッケージ内共通)
+// エラーヘルパー
 // ---------------------------------------------------------------------------
 
 func wrapParseError(field string, err error) error {
@@ -246,7 +244,7 @@ func isFKConstraintError(err error) bool {
 
 func mapFoundationSQLError(err error, label string) error {
 	if isFKConstraintError(err) {
-		return fmt.Errorf("%s: %w", label, repository.ErrConflict)
+		return fmt.Errorf("%s: %w", label, ErrConflict)
 	}
 	return mapSQLError(err, label)
 }
@@ -255,10 +253,11 @@ func mapFoundationSQLError(err error, label string) error {
 // XTranslatorTranslationXML
 // ---------------------------------------------------------------------------
 
+// CreateXTranslatorTranslationXML は XTranslatorTranslationXML レコードを作成する。
 func (r *SQLiteFoundationDataRepository) CreateXTranslatorTranslationXML(
 	ctx context.Context,
-	draft repository.XTranslatorTranslationXMLDraft,
-) (repository.XTranslatorTranslationXML, error) {
+	draft XTranslatorTranslationXMLDraft,
+) (XTranslatorTranslationXML, error) {
 	ext := extractTx(ctx, r.db)
 	row := xTranslatorTranslationXMLRow{
 		FilePath:         draft.FilePath,
@@ -269,27 +268,28 @@ func (r *SQLiteFoundationDataRepository) CreateXTranslatorTranslationXML(
 	}
 	q, args, err := sqlx.Named(insertXTranslatorTranslationXML, row)
 	if err != nil {
-		return repository.XTranslatorTranslationXML{}, fmt.Errorf("create xtranslator_translation_xml named: %w", err)
+		return XTranslatorTranslationXML{}, fmt.Errorf("create xtranslator_translation_xml named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.XTranslatorTranslationXML{}, mapFoundationSQLError(err, "create xtranslator_translation_xml")
+		return XTranslatorTranslationXML{}, mapFoundationSQLError(err, "create xtranslator_translation_xml")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.XTranslatorTranslationXML{}, fmt.Errorf("create xtranslator_translation_xml last insert id: %w", err)
+		return XTranslatorTranslationXML{}, fmt.Errorf("create xtranslator_translation_xml last insert id: %w", err)
 	}
 	return r.GetXTranslatorTranslationXMLByID(ctx, id)
 }
 
+// GetXTranslatorTranslationXMLByID は ID で XTranslatorTranslationXML を取得する。
 func (r *SQLiteFoundationDataRepository) GetXTranslatorTranslationXMLByID(
 	ctx context.Context,
 	id int64,
-) (repository.XTranslatorTranslationXML, error) {
+) (XTranslatorTranslationXML, error) {
 	ext := extractTx(ctx, r.db)
 	var row xTranslatorTranslationXMLRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectXTranslatorTranslationXMLByID, id); err != nil {
-		return repository.XTranslatorTranslationXML{}, mapSQLError(err, "get xtranslator_translation_xml by id")
+		return XTranslatorTranslationXML{}, mapSQLError(err, "get xtranslator_translation_xml by id")
 	}
 	return row.toModel()
 }
@@ -298,10 +298,11 @@ func (r *SQLiteFoundationDataRepository) GetXTranslatorTranslationXMLByID(
 // Persona
 // ---------------------------------------------------------------------------
 
+// CreatePersona は Persona レコードを作成する。
 func (r *SQLiteFoundationDataRepository) CreatePersona(
 	ctx context.Context,
-	draft repository.PersonaDraft,
-) (repository.Persona, error) {
+	draft PersonaDraft,
+) (Persona, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	row := personaRow{
@@ -319,48 +320,51 @@ func (r *SQLiteFoundationDataRepository) CreatePersona(
 	}
 	q, args, err := sqlx.Named(insertPersona, row)
 	if err != nil {
-		return repository.Persona{}, fmt.Errorf("create persona named: %w", err)
+		return Persona{}, fmt.Errorf("create persona named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.Persona{}, mapFoundationSQLError(err, "create persona")
+		return Persona{}, mapFoundationSQLError(err, "create persona")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.Persona{}, fmt.Errorf("create persona last insert id: %w", err)
+		return Persona{}, fmt.Errorf("create persona last insert id: %w", err)
 	}
 	return r.GetPersonaByID(ctx, id)
 }
 
+// GetPersonaByID は ID で Persona を取得する。
 func (r *SQLiteFoundationDataRepository) GetPersonaByID(
 	ctx context.Context,
 	id int64,
-) (repository.Persona, error) {
+) (Persona, error) {
 	ext := extractTx(ctx, r.db)
 	var row personaRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectPersonaByID, id); err != nil {
-		return repository.Persona{}, mapSQLError(err, "get persona by id")
+		return Persona{}, mapSQLError(err, "get persona by id")
 	}
 	return row.toModel()
 }
 
+// GetPersonaByNpcProfileID は NpcProfileID で Persona を取得する。
 func (r *SQLiteFoundationDataRepository) GetPersonaByNpcProfileID(
 	ctx context.Context,
 	npcProfileID int64,
-) (repository.Persona, error) {
+) (Persona, error) {
 	ext := extractTx(ctx, r.db)
 	var row personaRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectPersonaByNpcProfileID, npcProfileID); err != nil {
-		return repository.Persona{}, mapSQLError(err, "get persona by npc_profile_id")
+		return Persona{}, mapSQLError(err, "get persona by npc_profile_id")
 	}
 	return row.toModel()
 }
 
+// UpdatePersona は Persona を更新する。
 func (r *SQLiteFoundationDataRepository) UpdatePersona(
 	ctx context.Context,
 	id int64,
-	draft repository.PersonaUpdateDraft,
-) (repository.Persona, error) {
+	draft PersonaUpdateDraft,
+) (Persona, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	args := map[string]interface{}{
@@ -376,10 +380,10 @@ func (r *SQLiteFoundationDataRepository) UpdatePersona(
 	}
 	q, qArgs, err := sqlx.Named(updatePersona, args)
 	if err != nil {
-		return repository.Persona{}, fmt.Errorf("update persona named: %w", err)
+		return Persona{}, fmt.Errorf("update persona named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, qArgs...); err != nil {
-		return repository.Persona{}, mapFoundationSQLError(err, "update persona")
+		return Persona{}, mapFoundationSQLError(err, "update persona")
 	}
 	return r.GetPersonaByID(ctx, id)
 }
@@ -388,10 +392,11 @@ func (r *SQLiteFoundationDataRepository) UpdatePersona(
 // PersonaFieldEvidence
 // ---------------------------------------------------------------------------
 
+// CreatePersonaFieldEvidence は PersonaFieldEvidence レコードを作成する。
 func (r *SQLiteFoundationDataRepository) CreatePersonaFieldEvidence(
 	ctx context.Context,
-	draft repository.PersonaFieldEvidenceDraft,
-) (repository.PersonaFieldEvidence, error) {
+	draft PersonaFieldEvidenceDraft,
+) (PersonaFieldEvidence, error) {
 	ext := extractTx(ctx, r.db)
 	row := personaFieldEvidenceRow{
 		PersonaID:          draft.PersonaID,
@@ -400,17 +405,17 @@ func (r *SQLiteFoundationDataRepository) CreatePersonaFieldEvidence(
 	}
 	q, args, err := sqlx.Named(insertPersonaFieldEvidence, row)
 	if err != nil {
-		return repository.PersonaFieldEvidence{}, fmt.Errorf("create persona_field_evidence named: %w", err)
+		return PersonaFieldEvidence{}, fmt.Errorf("create persona_field_evidence named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.PersonaFieldEvidence{}, mapFoundationSQLError(err, "create persona_field_evidence")
+		return PersonaFieldEvidence{}, mapFoundationSQLError(err, "create persona_field_evidence")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.PersonaFieldEvidence{}, fmt.Errorf("create persona_field_evidence last insert id: %w", err)
+		return PersonaFieldEvidence{}, fmt.Errorf("create persona_field_evidence last insert id: %w", err)
 	}
-	return repository.PersonaFieldEvidence{
+	return PersonaFieldEvidence{
 		ID:                 id,
 		PersonaID:          draft.PersonaID,
 		TranslationFieldID: draft.TranslationFieldID,
@@ -418,16 +423,17 @@ func (r *SQLiteFoundationDataRepository) CreatePersonaFieldEvidence(
 	}, nil
 }
 
+// ListPersonaFieldEvidenceByPersonaID は PersonaID に紐づく PersonaFieldEvidence 一覧を返す。
 func (r *SQLiteFoundationDataRepository) ListPersonaFieldEvidenceByPersonaID(
 	ctx context.Context,
 	personaID int64,
-) ([]repository.PersonaFieldEvidence, error) {
+) ([]PersonaFieldEvidence, error) {
 	ext := extractTx(ctx, r.db)
 	var rows []personaFieldEvidenceRow
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectPersonaFieldEvidenceByPersonaID, personaID); err != nil {
 		return nil, mapSQLError(err, "list persona_field_evidence by persona_id")
 	}
-	result := make([]repository.PersonaFieldEvidence, len(rows))
+	result := make([]PersonaFieldEvidence, len(rows))
 	for i, row := range rows {
 		result[i] = row.toModel()
 	}
@@ -438,10 +444,11 @@ func (r *SQLiteFoundationDataRepository) ListPersonaFieldEvidenceByPersonaID(
 // DictionaryEntry
 // ---------------------------------------------------------------------------
 
+// CreateDictionaryEntry は DictionaryEntry レコードを作成する。
 func (r *SQLiteFoundationDataRepository) CreateDictionaryEntry(
 	ctx context.Context,
-	draft repository.DictionaryEntryDraft,
-) (repository.DictionaryEntry, error) {
+	draft DictionaryEntryDraft,
+) (DictionaryEntry, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	row := dictionaryEntryRow{
@@ -459,36 +466,38 @@ func (r *SQLiteFoundationDataRepository) CreateDictionaryEntry(
 	}
 	q, args, err := sqlx.Named(insertDictionaryEntry, row)
 	if err != nil {
-		return repository.DictionaryEntry{}, fmt.Errorf("create dictionary_entry named: %w", err)
+		return DictionaryEntry{}, fmt.Errorf("create dictionary_entry named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.DictionaryEntry{}, mapFoundationSQLError(err, "create dictionary_entry")
+		return DictionaryEntry{}, mapFoundationSQLError(err, "create dictionary_entry")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.DictionaryEntry{}, fmt.Errorf("create dictionary_entry last insert id: %w", err)
+		return DictionaryEntry{}, fmt.Errorf("create dictionary_entry last insert id: %w", err)
 	}
 	return r.GetDictionaryEntryByID(ctx, id)
 }
 
+// GetDictionaryEntryByID は ID で DictionaryEntry を取得する。
 func (r *SQLiteFoundationDataRepository) GetDictionaryEntryByID(
 	ctx context.Context,
 	id int64,
-) (repository.DictionaryEntry, error) {
+) (DictionaryEntry, error) {
 	ext := extractTx(ctx, r.db)
 	var row dictionaryEntryRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectDictionaryEntryByID, id); err != nil {
-		return repository.DictionaryEntry{}, mapSQLError(err, "get dictionary_entry by id")
+		return DictionaryEntry{}, mapSQLError(err, "get dictionary_entry by id")
 	}
 	return row.toModel()
 }
 
+// UpdateDictionaryEntry は DictionaryEntry を更新する。
 func (r *SQLiteFoundationDataRepository) UpdateDictionaryEntry(
 	ctx context.Context,
 	id int64,
-	draft repository.DictionaryEntryUpdateDraft,
-) (repository.DictionaryEntry, error) {
+	draft DictionaryEntryUpdateDraft,
+) (DictionaryEntry, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	args := map[string]interface{}{
@@ -504,14 +513,15 @@ func (r *SQLiteFoundationDataRepository) UpdateDictionaryEntry(
 	}
 	q, qArgs, err := sqlx.Named(updateDictionaryEntry, args)
 	if err != nil {
-		return repository.DictionaryEntry{}, fmt.Errorf("update dictionary_entry named: %w", err)
+		return DictionaryEntry{}, fmt.Errorf("update dictionary_entry named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, qArgs...); err != nil {
-		return repository.DictionaryEntry{}, mapFoundationSQLError(err, "update dictionary_entry")
+		return DictionaryEntry{}, mapFoundationSQLError(err, "update dictionary_entry")
 	}
 	return r.GetDictionaryEntryByID(ctx, id)
 }
 
+// DeleteDictionaryEntry は DictionaryEntry を削除する。
 func (r *SQLiteFoundationDataRepository) DeleteDictionaryEntry(
 	ctx context.Context,
 	id int64,

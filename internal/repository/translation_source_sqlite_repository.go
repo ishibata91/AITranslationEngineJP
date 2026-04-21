@@ -1,4 +1,4 @@
-package sqlite
+package repository
 
 import (
 	"context"
@@ -9,17 +9,15 @@ import (
 	"time"
 
 	"github.com/jmoiron/sqlx"
-
-	"aitranslationenginejp/internal/repository"
 )
 
-// SQLiteTranslationSourceRepository は repository.TranslationSourceRepository の SQLite 実装。
+// SQLiteTranslationSourceRepository は TranslationSourceRepository の SQLite 実装。
 type SQLiteTranslationSourceRepository struct {
 	db *sqlx.DB
 }
 
-// NewSQLiteTranslationSourceRepository は repository.TranslationSourceRepository を返す。
-func NewSQLiteTranslationSourceRepository(db *sqlx.DB) repository.TranslationSourceRepository {
+// NewSQLiteTranslationSourceRepository は TranslationSourceRepository を返す。
+func NewSQLiteTranslationSourceRepository(db *sqlx.DB) TranslationSourceRepository {
 	return &SQLiteTranslationSourceRepository{db: db}
 }
 
@@ -37,12 +35,12 @@ type xEditExtractedDataRow struct {
 	ImportedAt       string `db:"imported_at"`
 }
 
-func (r xEditExtractedDataRow) toModel() (repository.XEditExtractedData, error) {
+func (r xEditExtractedDataRow) toModel() (XEditExtractedData, error) {
 	importedAt, err := time.Parse(time.RFC3339, r.ImportedAt)
 	if err != nil {
-		return repository.XEditExtractedData{}, fmt.Errorf("parse imported_at: %w", err)
+		return XEditExtractedData{}, fmt.Errorf("parse imported_at: %w", err)
 	}
-	return repository.XEditExtractedData{
+	return XEditExtractedData{
 		ID:               r.ID,
 		SourceFilePath:   r.SourceFilePath,
 		SourceTool:       r.SourceTool,
@@ -61,8 +59,8 @@ type translationRecordRow struct {
 	RecordType           string `db:"record_type"`
 }
 
-func (r translationRecordRow) toModel() repository.TranslationRecord {
-	return repository.TranslationRecord{
+func (r translationRecordRow) toModel() TranslationRecord {
+	return TranslationRecord{
 		ID:                   r.ID,
 		XEditExtractedDataID: r.XEditExtractedDataID,
 		FormID:               r.FormID,
@@ -82,16 +80,16 @@ type npcProfileRow struct {
 	UpdatedAt        string `db:"updated_at"`
 }
 
-func (r npcProfileRow) toModel() (repository.NpcProfile, error) {
+func (r npcProfileRow) toModel() (NpcProfile, error) {
 	createdAt, err := time.Parse(time.RFC3339, r.CreatedAt)
 	if err != nil {
-		return repository.NpcProfile{}, fmt.Errorf("parse created_at: %w", err)
+		return NpcProfile{}, fmt.Errorf("parse created_at: %w", err)
 	}
 	updatedAt, err := time.Parse(time.RFC3339, r.UpdatedAt)
 	if err != nil {
-		return repository.NpcProfile{}, fmt.Errorf("parse updated_at: %w", err)
+		return NpcProfile{}, fmt.Errorf("parse updated_at: %w", err)
 	}
-	return repository.NpcProfile{
+	return NpcProfile{
 		ID:               r.ID,
 		TargetPluginName: r.TargetPluginName,
 		FormID:           r.FormID,
@@ -112,8 +110,8 @@ type npcRecordRow struct {
 	VoiceType           string  `db:"voice_type"`
 }
 
-func (r npcRecordRow) toModel() repository.NpcRecord {
-	return repository.NpcRecord{
+func (r npcRecordRow) toModel() NpcRecord {
+	return NpcRecord{
 		TranslationRecordID: r.TranslationRecordID,
 		NpcProfileID:        r.NpcProfileID,
 		Race:                r.Race,
@@ -134,8 +132,8 @@ type translationFieldRow struct {
 	NextTranslationFieldID       *int64 `db:"next_translation_field_id"`
 }
 
-func (r translationFieldRow) toModel() repository.TranslationField {
-	return repository.TranslationField{
+func (r translationFieldRow) toModel() TranslationField {
+	return TranslationField{
 		ID:                           r.ID,
 		TranslationRecordID:          r.TranslationRecordID,
 		TranslationFieldDefinitionID: r.TranslationFieldDefinitionID,
@@ -154,8 +152,8 @@ type translationFieldRecordReferenceRow struct {
 	ReferenceRole                 string `db:"reference_role"`
 }
 
-func (r translationFieldRecordReferenceRow) toModel() repository.TranslationFieldRecordReference {
-	return repository.TranslationFieldRecordReference{
+func (r translationFieldRecordReferenceRow) toModel() TranslationFieldRecordReference {
+	return TranslationFieldRecordReference{
 		ID:                            r.ID,
 		TranslationFieldID:            r.TranslationFieldID,
 		ReferencedTranslationRecordID: r.ReferencedTranslationRecordID,
@@ -173,10 +171,10 @@ func isUniqueConstraintError(err error) bool {
 
 func mapSQLError(err error, label string) error {
 	if errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("%s: %w", label, repository.ErrNotFound)
+		return fmt.Errorf("%s: %w", label, ErrNotFound)
 	}
 	if isUniqueConstraintError(err) {
-		return fmt.Errorf("%s: %w", label, repository.ErrConflict)
+		return fmt.Errorf("%s: %w", label, ErrConflict)
 	}
 	return fmt.Errorf("%s: %w", label, err)
 }
@@ -271,10 +269,11 @@ FROM TRANSLATION_FIELD_RECORD_REFERENCE WHERE translation_field_id = ?`
 // XEditExtractedData
 // ---------------------------------------------------------------------------
 
+// CreateXEditExtractedData は XEditExtractedData レコードを作成する。
 func (r *SQLiteTranslationSourceRepository) CreateXEditExtractedData(
 	ctx context.Context,
-	draft repository.XEditExtractedDataDraft,
-) (repository.XEditExtractedData, error) {
+	draft XEditExtractedDataDraft,
+) (XEditExtractedData, error) {
 	ext := extractTx(ctx, r.db)
 	row := xEditExtractedDataRow{
 		SourceFilePath:   draft.SourceFilePath,
@@ -286,27 +285,28 @@ func (r *SQLiteTranslationSourceRepository) CreateXEditExtractedData(
 	}
 	q, args, err := sqlx.Named(insertXEditExtractedData, row)
 	if err != nil {
-		return repository.XEditExtractedData{}, fmt.Errorf("create x_edit_extracted_data named: %w", err)
+		return XEditExtractedData{}, fmt.Errorf("create x_edit_extracted_data named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.XEditExtractedData{}, mapSQLError(err, "create x_edit_extracted_data")
+		return XEditExtractedData{}, mapSQLError(err, "create x_edit_extracted_data")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.XEditExtractedData{}, fmt.Errorf("create x_edit_extracted_data last insert id: %w", err)
+		return XEditExtractedData{}, fmt.Errorf("create x_edit_extracted_data last insert id: %w", err)
 	}
 	return r.GetXEditExtractedDataByID(ctx, id)
 }
 
+// GetXEditExtractedDataByID は ID で XEditExtractedData を取得する。
 func (r *SQLiteTranslationSourceRepository) GetXEditExtractedDataByID(
 	ctx context.Context,
 	id int64,
-) (repository.XEditExtractedData, error) {
+) (XEditExtractedData, error) {
 	ext := extractTx(ctx, r.db)
 	var row xEditExtractedDataRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectXEditExtractedDataByID, id); err != nil {
-		return repository.XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by id")
+		return XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by id")
 	}
 	return row.toModel()
 }
@@ -315,10 +315,11 @@ func (r *SQLiteTranslationSourceRepository) GetXEditExtractedDataByID(
 // TranslationRecord
 // ---------------------------------------------------------------------------
 
+// CreateTranslationRecord は TranslationRecord レコードを作成する。
 func (r *SQLiteTranslationSourceRepository) CreateTranslationRecord(
 	ctx context.Context,
-	draft repository.TranslationRecordDraft,
-) (repository.TranslationRecord, error) {
+	draft TranslationRecordDraft,
+) (TranslationRecord, error) {
 	ext := extractTx(ctx, r.db)
 	row := translationRecordRow{
 		XEditExtractedDataID: draft.XEditExtractedDataID,
@@ -328,41 +329,43 @@ func (r *SQLiteTranslationSourceRepository) CreateTranslationRecord(
 	}
 	q, args, err := sqlx.Named(insertTranslationRecord, row)
 	if err != nil {
-		return repository.TranslationRecord{}, fmt.Errorf("create translation_record named: %w", err)
+		return TranslationRecord{}, fmt.Errorf("create translation_record named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.TranslationRecord{}, mapSQLError(err, "create translation_record")
+		return TranslationRecord{}, mapSQLError(err, "create translation_record")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.TranslationRecord{}, fmt.Errorf("create translation_record last insert id: %w", err)
+		return TranslationRecord{}, fmt.Errorf("create translation_record last insert id: %w", err)
 	}
 	return r.GetTranslationRecordByID(ctx, id)
 }
 
+// GetTranslationRecordByID は ID で TranslationRecord を取得する。
 func (r *SQLiteTranslationSourceRepository) GetTranslationRecordByID(
 	ctx context.Context,
 	id int64,
-) (repository.TranslationRecord, error) {
+) (TranslationRecord, error) {
 	ext := extractTx(ctx, r.db)
 	var row translationRecordRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationRecordByID, id); err != nil {
-		return repository.TranslationRecord{}, mapSQLError(err, "get translation_record by id")
+		return TranslationRecord{}, mapSQLError(err, "get translation_record by id")
 	}
 	return row.toModel(), nil
 }
 
+// ListTranslationRecordsByXEditID は XEditID に紐づく TranslationRecord 一覧を返す。
 func (r *SQLiteTranslationSourceRepository) ListTranslationRecordsByXEditID(
 	ctx context.Context,
 	xEditID int64,
-) ([]repository.TranslationRecord, error) {
+) ([]TranslationRecord, error) {
 	ext := extractTx(ctx, r.db)
 	var rows []translationRecordRow
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationRecordsByXEditID, xEditID); err != nil {
 		return nil, mapSQLError(err, "list translation_records by x_edit_id")
 	}
-	result := make([]repository.TranslationRecord, len(rows))
+	result := make([]TranslationRecord, len(rows))
 	for i, row := range rows {
 		result[i] = row.toModel()
 	}
@@ -373,10 +376,11 @@ func (r *SQLiteTranslationSourceRepository) ListTranslationRecordsByXEditID(
 // NpcProfile
 // ---------------------------------------------------------------------------
 
+// UpsertNpcProfile は NpcProfile を upsert する。
 func (r *SQLiteTranslationSourceRepository) UpsertNpcProfile(
 	ctx context.Context,
-	draft repository.NpcProfileDraft,
-) (repository.NpcProfile, error) {
+	draft NpcProfileDraft,
+) (NpcProfile, error) {
 	ext := extractTx(ctx, r.db)
 	now := time.Now().UTC().Format(time.RFC3339)
 	row := npcProfileRow{
@@ -390,28 +394,29 @@ func (r *SQLiteTranslationSourceRepository) UpsertNpcProfile(
 	}
 	q, args, err := sqlx.Named(upsertNpcProfile, row)
 	if err != nil {
-		return repository.NpcProfile{}, fmt.Errorf("upsert npc_profile named: %w", err)
+		return NpcProfile{}, fmt.Errorf("upsert npc_profile named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, args...); err != nil {
-		return repository.NpcProfile{}, mapSQLError(err, "upsert npc_profile")
+		return NpcProfile{}, mapSQLError(err, "upsert npc_profile")
 	}
 	var fetched npcProfileRow
 	if err := sqlx.GetContext(ctx, ext, &fetched, selectNpcProfileByUnique,
 		draft.TargetPluginName, draft.FormID, draft.RecordType,
 	); err != nil {
-		return repository.NpcProfile{}, mapSQLError(err, "upsert npc_profile fetch")
+		return NpcProfile{}, mapSQLError(err, "upsert npc_profile fetch")
 	}
 	return fetched.toModel()
 }
 
+// GetNpcProfileByID は ID で NpcProfile を取得する。
 func (r *SQLiteTranslationSourceRepository) GetNpcProfileByID(
 	ctx context.Context,
 	id int64,
-) (repository.NpcProfile, error) {
+) (NpcProfile, error) {
 	ext := extractTx(ctx, r.db)
 	var row npcProfileRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectNpcProfileByID, id); err != nil {
-		return repository.NpcProfile{}, mapSQLError(err, "get npc_profile by id")
+		return NpcProfile{}, mapSQLError(err, "get npc_profile by id")
 	}
 	return row.toModel()
 }
@@ -420,10 +425,11 @@ func (r *SQLiteTranslationSourceRepository) GetNpcProfileByID(
 // NpcRecord
 // ---------------------------------------------------------------------------
 
+// CreateNpcRecord は NpcRecord レコードを作成する。
 func (r *SQLiteTranslationSourceRepository) CreateNpcRecord(
 	ctx context.Context,
-	draft repository.NpcRecordDraft,
-) (repository.NpcRecord, error) {
+	draft NpcRecordDraft,
+) (NpcRecord, error) {
 	ext := extractTx(ctx, r.db)
 	row := npcRecordRow{
 		TranslationRecordID: draft.TranslationRecordID,
@@ -435,22 +441,23 @@ func (r *SQLiteTranslationSourceRepository) CreateNpcRecord(
 	}
 	q, args, err := sqlx.Named(insertNpcRecord, row)
 	if err != nil {
-		return repository.NpcRecord{}, fmt.Errorf("create npc_record named: %w", err)
+		return NpcRecord{}, fmt.Errorf("create npc_record named: %w", err)
 	}
 	if _, err := ext.ExecContext(ctx, q, args...); err != nil {
-		return repository.NpcRecord{}, mapSQLError(err, "create npc_record")
+		return NpcRecord{}, mapSQLError(err, "create npc_record")
 	}
 	return row.toModel(), nil
 }
 
+// GetNpcRecordByTranslationRecordID は TranslationRecordID で NpcRecord を取得する。
 func (r *SQLiteTranslationSourceRepository) GetNpcRecordByTranslationRecordID(
 	ctx context.Context,
 	translationRecordID int64,
-) (repository.NpcRecord, error) {
+) (NpcRecord, error) {
 	ext := extractTx(ctx, r.db)
 	var row npcRecordRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectNpcRecordByTranslationRecordID, translationRecordID); err != nil {
-		return repository.NpcRecord{}, mapSQLError(err, "get npc_record by translation_record_id")
+		return NpcRecord{}, mapSQLError(err, "get npc_record by translation_record_id")
 	}
 	return row.toModel(), nil
 }
@@ -459,10 +466,11 @@ func (r *SQLiteTranslationSourceRepository) GetNpcRecordByTranslationRecordID(
 // TranslationField
 // ---------------------------------------------------------------------------
 
+// CreateTranslationField は TranslationField レコードを作成する。
 func (r *SQLiteTranslationSourceRepository) CreateTranslationField(
 	ctx context.Context,
-	draft repository.TranslationFieldDraft,
-) (repository.TranslationField, error) {
+	draft TranslationFieldDraft,
+) (TranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	row := translationFieldRow{
 		TranslationRecordID:          draft.TranslationRecordID,
@@ -475,41 +483,43 @@ func (r *SQLiteTranslationSourceRepository) CreateTranslationField(
 	}
 	q, args, err := sqlx.Named(insertTranslationField, row)
 	if err != nil {
-		return repository.TranslationField{}, fmt.Errorf("create translation_field named: %w", err)
+		return TranslationField{}, fmt.Errorf("create translation_field named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.TranslationField{}, mapSQLError(err, "create translation_field")
+		return TranslationField{}, mapSQLError(err, "create translation_field")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.TranslationField{}, fmt.Errorf("create translation_field last insert id: %w", err)
+		return TranslationField{}, fmt.Errorf("create translation_field last insert id: %w", err)
 	}
 	return r.GetTranslationFieldByID(ctx, id)
 }
 
+// GetTranslationFieldByID は ID で TranslationField を取得する。
 func (r *SQLiteTranslationSourceRepository) GetTranslationFieldByID(
 	ctx context.Context,
 	id int64,
-) (repository.TranslationField, error) {
+) (TranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	var row translationFieldRow
 	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationFieldByID, id); err != nil {
-		return repository.TranslationField{}, mapSQLError(err, "get translation_field by id")
+		return TranslationField{}, mapSQLError(err, "get translation_field by id")
 	}
 	return row.toModel(), nil
 }
 
+// ListTranslationFieldsByTranslationRecordID は TranslationRecordID に紐づく TranslationField 一覧を返す。
 func (r *SQLiteTranslationSourceRepository) ListTranslationFieldsByTranslationRecordID(
 	ctx context.Context,
 	translationRecordID int64,
-) ([]repository.TranslationField, error) {
+) ([]TranslationField, error) {
 	ext := extractTx(ctx, r.db)
 	var rows []translationFieldRow
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationFieldsByTranslationRecordID, translationRecordID); err != nil {
 		return nil, mapSQLError(err, "list translation_fields by translation_record_id")
 	}
-	result := make([]repository.TranslationField, len(rows))
+	result := make([]TranslationField, len(rows))
 	for i, row := range rows {
 		result[i] = row.toModel()
 	}
@@ -520,10 +530,11 @@ func (r *SQLiteTranslationSourceRepository) ListTranslationFieldsByTranslationRe
 // TranslationFieldRecordReference
 // ---------------------------------------------------------------------------
 
+// CreateTranslationFieldRecordReference は TranslationFieldRecordReference レコードを作成する。
 func (r *SQLiteTranslationSourceRepository) CreateTranslationFieldRecordReference(
 	ctx context.Context,
-	draft repository.TranslationFieldRecordReferenceDraft,
-) (repository.TranslationFieldRecordReference, error) {
+	draft TranslationFieldRecordReferenceDraft,
+) (TranslationFieldRecordReference, error) {
 	ext := extractTx(ctx, r.db)
 	row := translationFieldRecordReferenceRow{
 		TranslationFieldID:            draft.TranslationFieldID,
@@ -532,17 +543,17 @@ func (r *SQLiteTranslationSourceRepository) CreateTranslationFieldRecordReferenc
 	}
 	q, args, err := sqlx.Named(insertTranslationFieldRecordReference, row)
 	if err != nil {
-		return repository.TranslationFieldRecordReference{}, fmt.Errorf("create translation_field_record_reference named: %w", err)
+		return TranslationFieldRecordReference{}, fmt.Errorf("create translation_field_record_reference named: %w", err)
 	}
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
-		return repository.TranslationFieldRecordReference{}, mapSQLError(err, "create translation_field_record_reference")
+		return TranslationFieldRecordReference{}, mapSQLError(err, "create translation_field_record_reference")
 	}
 	id, err := result.LastInsertId()
 	if err != nil {
-		return repository.TranslationFieldRecordReference{}, fmt.Errorf("create translation_field_record_reference last insert id: %w", err)
+		return TranslationFieldRecordReference{}, fmt.Errorf("create translation_field_record_reference last insert id: %w", err)
 	}
-	return repository.TranslationFieldRecordReference{
+	return TranslationFieldRecordReference{
 		ID:                            id,
 		TranslationFieldID:            draft.TranslationFieldID,
 		ReferencedTranslationRecordID: draft.ReferencedTranslationRecordID,
@@ -550,16 +561,17 @@ func (r *SQLiteTranslationSourceRepository) CreateTranslationFieldRecordReferenc
 	}, nil
 }
 
+// ListTranslationFieldRecordReferencesByFieldID は FieldID に紐づく TranslationFieldRecordReference 一覧を返す。
 func (r *SQLiteTranslationSourceRepository) ListTranslationFieldRecordReferencesByFieldID(
 	ctx context.Context,
 	fieldID int64,
-) ([]repository.TranslationFieldRecordReference, error) {
+) ([]TranslationFieldRecordReference, error) {
 	ext := extractTx(ctx, r.db)
 	var rows []translationFieldRecordReferenceRow
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationFieldRecordReferencesByFieldID, fieldID); err != nil {
 		return nil, mapSQLError(err, "list translation_field_record_references by field_id")
 	}
-	result := make([]repository.TranslationFieldRecordReference, len(rows))
+	result := make([]TranslationFieldRecordReference, len(rows))
 	for i, row := range rows {
 		result[i] = row.toModel()
 	}

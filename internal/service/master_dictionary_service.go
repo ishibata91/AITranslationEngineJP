@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 	"time"
 )
@@ -94,13 +93,14 @@ type MasterDictionaryDraft struct {
 
 // MasterDictionaryImportRecord describes one XML-derived dictionary record.
 type MasterDictionaryImportRecord struct {
-	Source      string
-	Translation string
-	REC         string
-	EDID        string
-	Category    string
-	Origin      string
-	UpdatedAt   time.Time
+	Source                      string
+	Translation                 string
+	REC                         string
+	EDID                        string
+	Category                    string
+	Origin                      string
+	UpdatedAt                   time.Time
+	XTranslatorTranslationXMLID *int64
 }
 
 // MasterDictionaryImportSummary returns import execution results.
@@ -139,6 +139,20 @@ type XMLRecordReaderPort interface {
 // RuntimeContextPort allows import service to emit runtime progress without knowing Wails.
 type RuntimeContextPort interface {
 	EmitImportProgress(ctx context.Context, progress int)
+}
+
+// XMLProvenanceDraft is the service-layer payload for persisting XML import provenance.
+type XMLProvenanceDraft struct {
+	FilePath         string
+	TargetPluginName string
+	TargetPluginType string
+	TermCount        int
+	ImportedAt       time.Time
+}
+
+// FoundationDataPort defines provenance persistence for XML imports.
+type FoundationDataPort interface {
+	CreateXTranslatorTranslationXML(ctx context.Context, draft XMLProvenanceDraft) (int64, error)
 }
 
 // IsNotFoundError reports whether the error means entry not found.
@@ -216,15 +230,6 @@ func categoryFromREC(rec string) string {
 	default:
 		return "その他"
 	}
-}
-
-func allowedRECList() []string {
-	items := make([]string, 0, len(allowedImportREC))
-	for rec := range allowedImportREC {
-		items = append(items, rec)
-	}
-	sort.Strings(items)
-	return items
 }
 
 func normalizeImportProgress(processedCount, totalCount int) int {

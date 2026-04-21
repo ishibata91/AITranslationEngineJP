@@ -47,24 +47,26 @@ type MasterDictionaryListResult struct {
 
 // MasterDictionaryDraft is an input payload for create or update.
 type MasterDictionaryDraft struct {
-	Source      string
-	Translation string
-	Category    string
-	Origin      string
-	REC         string
-	EDID        string
-	UpdatedAt   time.Time
+	Source                      string
+	Translation                 string
+	Category                    string
+	Origin                      string
+	REC                         string
+	EDID                        string
+	UpdatedAt                   time.Time
+	XTranslatorTranslationXMLID *int64
 }
 
 // MasterDictionaryImportRecord describes one XML-derived dictionary record.
 type MasterDictionaryImportRecord struct {
-	Source      string
-	Translation string
-	REC         string
-	EDID        string
-	Category    string
-	Origin      string
-	UpdatedAt   time.Time
+	Source                      string
+	Translation                 string
+	REC                         string
+	EDID                        string
+	Category                    string
+	Origin                      string
+	UpdatedAt                   time.Time
+	XTranslatorTranslationXMLID *int64
 }
 
 // MasterDictionaryRepository defines persistence operations for master dictionary CRUD.

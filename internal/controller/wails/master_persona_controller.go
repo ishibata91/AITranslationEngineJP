@@ -13,7 +13,6 @@ import (
 type MasterPersonaUsecasePort interface {
 	GetPage(ctx context.Context, query usecase.MasterPersonaListQuery, preferredIdentityKey *string) (usecase.MasterPersonaPageState, error)
 	GetDetail(ctx context.Context, identityKey string) (usecase.MasterPersonaEntry, error)
-	GetDialogueList(ctx context.Context, identityKey string) (usecase.MasterPersonaDialogueList, error)
 	LoadAISettings(ctx context.Context) (usecase.MasterPersonaAISettings, error)
 	SaveAISettings(ctx context.Context, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaAISettings, error)
 	PreviewGeneration(ctx context.Context, filePath string, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error)
@@ -69,7 +68,7 @@ type MasterPersonaListItemDTO struct {
 	ClassName      string  `json:"className"`
 	SourcePlugin   string  `json:"sourcePlugin"`
 	PersonaSummary string  `json:"personaSummary"`
-	DialogueCount  int     `json:"dialogueCount"`
+	DialogueCount  int     `json:"-"`
 	UpdatedAt      string  `json:"updatedAt"`
 }
 
@@ -77,8 +76,9 @@ type MasterPersonaListItemDTO struct {
 type MasterPersonaDetailDTO struct {
 	MasterPersonaListItemDTO
 	PersonaBody          string `json:"personaBody"`
-	GenerationSourceJSON string `json:"generationSourceJson"`
-	BaselineApplied      bool   `json:"baselineApplied"`
+	SpeechStyle          string `json:"speechStyle,omitempty"`
+	GenerationSourceJSON string `json:"-"`
+	BaselineApplied      bool   `json:"-"`
 	RunLockReason        string `json:"runLockReason"`
 }
 
@@ -107,19 +107,6 @@ type MasterPersonaDetailResponseDTO struct {
 	Entry MasterPersonaDetailDTO `json:"entry"`
 }
 
-// MasterPersonaDialogueLineDTO carries one dialogue line.
-type MasterPersonaDialogueLineDTO struct {
-	Index int    `json:"index"`
-	Text  string `json:"text"`
-}
-
-// MasterPersonaDialogueListResponseDTO returns one dialogue list payload.
-type MasterPersonaDialogueListResponseDTO struct {
-	IdentityKey   string                         `json:"identityKey"`
-	DialogueCount int                            `json:"dialogueCount"`
-	Dialogues     []MasterPersonaDialogueLineDTO `json:"dialogues"`
-}
-
 // MasterPersonaAISettingsDTO carries page-local AI settings.
 type MasterPersonaAISettingsDTO struct {
 	Provider string `json:"provider"`
@@ -137,11 +124,11 @@ type MasterPersonaPreviewRequestDTO struct {
 type MasterPersonaPreviewResponseDTO struct {
 	FileName              string `json:"fileName"`
 	TargetPlugin          string `json:"targetPlugin"`
-	TotalNPCCount         int    `json:"totalNpcCount"`
-	GeneratableCount      int    `json:"generatableCount"`
-	ExistingSkipCount     int    `json:"existingSkipCount"`
-	ZeroDialogueSkipCount int    `json:"zeroDialogueSkipCount"`
-	GenericNPCCount       int    `json:"genericNpcCount"`
+	TotalNPCCount         int    `json:"candidateCount"`
+	GeneratableCount      int    `json:"newlyAddableCount"`
+	ExistingSkipCount     int    `json:"existingCount"`
+	ZeroDialogueSkipCount int    `json:"-"`
+	GenericNPCCount       int    `json:"-"`
 	Status                string `json:"status"`
 }
 
@@ -158,8 +145,8 @@ type MasterPersonaRunStatusDTO struct {
 	ProcessedCount        int    `json:"processedCount"`
 	SuccessCount          int    `json:"successCount"`
 	ExistingSkipCount     int    `json:"existingSkipCount"`
-	ZeroDialogueSkipCount int    `json:"zeroDialogueSkipCount"`
-	GenericNPCCount       int    `json:"genericNpcCount"`
+	ZeroDialogueSkipCount int    `json:"-"`
+	GenericNPCCount       int    `json:"-"`
 	CurrentActorLabel     string `json:"currentActorLabel"`
 	Message               string `json:"message"`
 	StartedAt             string `json:"startedAt,omitempty"`
@@ -167,16 +154,23 @@ type MasterPersonaRunStatusDTO struct {
 }
 
 // MasterPersonaUpdateInputDTO carries update payload fields.
+// Identity/snapshot fields (FormID, EditorID, DisplayName, Race, Sex, VoiceType, ClassName, SourcePlugin)
+// are retained for compile compatibility with existing callers but carry json:"-" so they are
+// never serialized to or from JSON; identity linkage and display name / race / sex are resolved
+// server-side from the existing entry fetched by identityKey.
+// Only PersonaSummary, SpeechStyle, and PersonaBody are accepted from the public JSON payload.
 type MasterPersonaUpdateInputDTO struct {
-	FormID       string  `json:"formId"`
-	EditorID     string  `json:"editorId"`
-	DisplayName  string  `json:"displayName"`
-	Race         *string `json:"race,omitempty"`
-	Sex          *string `json:"sex,omitempty"`
-	VoiceType    string  `json:"voiceType"`
-	ClassName    string  `json:"className"`
-	SourcePlugin string  `json:"sourcePlugin"`
-	PersonaBody  string  `json:"personaBody"`
+	FormID         string  `json:"-"`
+	EditorID       string  `json:"-"`
+	DisplayName    string  `json:"-"`
+	Race           *string `json:"-"`
+	Sex            *string `json:"-"`
+	VoiceType      string  `json:"-"`
+	ClassName      string  `json:"-"`
+	SourcePlugin   string  `json:"-"`
+	PersonaSummary string  `json:"personaSummary"`
+	SpeechStyle    string  `json:"speechStyle,omitempty"`
+	PersonaBody    string  `json:"personaBody"`
 }
 
 // MasterPersonaUpdateRequestDTO requests one update plus refresh.
@@ -219,19 +213,6 @@ func (controller *MasterPersonaController) MasterPersonaGetDetail(request Master
 		return MasterPersonaDetailResponseDTO{}, fmt.Errorf("master persona get run status for detail: %w", statusErr)
 	}
 	return MasterPersonaDetailResponseDTO{Entry: toMasterPersonaDetailDTO(entry, status.RunState)}, nil
-}
-
-// MasterPersonaGetDialogueList returns the dialogue list for one persona.
-func (controller *MasterPersonaController) MasterPersonaGetDialogueList(request MasterPersonaDetailRequestDTO) (MasterPersonaDialogueListResponseDTO, error) {
-	result, err := controller.masterPersonaUsecase.GetDialogueList(context.Background(), strings.TrimSpace(request.IdentityKey))
-	if err != nil {
-		return MasterPersonaDialogueListResponseDTO{}, fmt.Errorf("master persona get dialogue list: %w", err)
-	}
-	lines := make([]MasterPersonaDialogueLineDTO, 0, len(result.Dialogues))
-	for _, line := range result.Dialogues {
-		lines = append(lines, MasterPersonaDialogueLineDTO{Index: line.Index, Text: line.Text})
-	}
-	return MasterPersonaDialogueListResponseDTO{IdentityKey: result.IdentityKey, DialogueCount: result.DialogueCount, Dialogues: lines}, nil
 }
 
 // MasterPersonaLoadAISettings returns page-local AI settings.
@@ -353,7 +334,6 @@ func toMasterPersonaListItemDTO(entry usecase.MasterPersonaEntry) MasterPersonaL
 		ClassName:      entry.ClassName,
 		SourcePlugin:   entry.SourcePlugin,
 		PersonaSummary: entry.PersonaSummary,
-		DialogueCount:  entry.DialogueCount,
 		UpdatedAt:      entry.UpdatedAt.UTC().Format(time.RFC3339),
 	}
 }
@@ -366,8 +346,7 @@ func toMasterPersonaDetailDTO(entry usecase.MasterPersonaEntry, runState string)
 	return MasterPersonaDetailDTO{
 		MasterPersonaListItemDTO: toMasterPersonaListItemDTO(entry),
 		PersonaBody:              entry.PersonaBody,
-		GenerationSourceJSON:     entry.GenerationSourceJSON,
-		BaselineApplied:          entry.BaselineApplied,
+		SpeechStyle:              entry.SpeechStyle,
 		RunLockReason:            lockReason,
 	}
 }
@@ -408,15 +387,9 @@ func toMasterPersonaRunStatusDTO(result usecase.MasterPersonaRunStatus) MasterPe
 
 func toMasterPersonaUpdateInput(dto MasterPersonaUpdateInputDTO) usecase.MasterPersonaUpdateInput {
 	return usecase.MasterPersonaUpdateInput{
-		FormID:       dto.FormID,
-		EditorID:     dto.EditorID,
-		DisplayName:  dto.DisplayName,
-		Race:         dto.Race,
-		Sex:          dto.Sex,
-		VoiceType:    dto.VoiceType,
-		ClassName:    dto.ClassName,
-		SourcePlugin: dto.SourcePlugin,
-		PersonaBody:  dto.PersonaBody,
+		PersonaSummary: dto.PersonaSummary,
+		SpeechStyle:    dto.SpeechStyle,
+		PersonaBody:    dto.PersonaBody,
 	}
 }
 

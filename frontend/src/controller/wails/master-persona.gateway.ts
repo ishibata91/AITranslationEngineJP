@@ -3,7 +3,6 @@ import type {
   MasterPersonaAISettingsDto,
   MasterPersonaDeleteRequestDto,
   MasterPersonaDetailResponseDto,
-  MasterPersonaDialogueListResponseDto,
   MasterPersonaIdentityRequestDto,
   MasterPersonaMutationResponseDto,
   MasterPersonaPageRequestDto,
@@ -17,7 +16,6 @@ import type {
 type MasterPersonaBindingName =
   | "MasterPersonaGetPage"
   | "MasterPersonaGetDetail"
-  | "MasterPersonaGetDialogueList"
   | "MasterPersonaLoadAISettings"
   | "MasterPersonaSaveAISettings"
   | "MasterPersonaPreviewGeneration"
@@ -107,12 +105,6 @@ class MasterPersonaGateway implements MasterPersonaGatewayContract {
     request: MasterPersonaIdentityRequestDto
   ): Promise<MasterPersonaDetailResponseDto> {
     return this.invokeBinding("MasterPersonaGetDetail", request)
-  }
-
-  getMasterPersonaDialogueList(
-    request: MasterPersonaIdentityRequestDto
-  ): Promise<MasterPersonaDialogueListResponseDto> {
-    return this.invokeBinding("MasterPersonaGetDialogueList", request)
   }
 
   loadMasterPersonaAISettings(): Promise<MasterPersonaAISettingsDto> {

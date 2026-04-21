@@ -210,6 +210,34 @@ func TestMasterDictionaryImportServicePublishesExpectedProgressValues(t *testing
 	}
 }
 
+func TestMasterDictionaryImportServiceStoresRECAndEDIDInUpsertedRecord(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	// WEAP:FULL レコード（1件目）
+	if result.repo.upsertRecords[0].REC != importServiceWeaponREC {
+		t.Fatalf("expected REC %q in first upserted record, got %q", importServiceWeaponREC, result.repo.upsertRecords[0].REC)
+	}
+	if result.repo.upsertRecords[0].EDID != "DLC1AurielsBow" {
+		t.Fatalf("expected EDID %q in first upserted record, got %q", "DLC1AurielsBow", result.repo.upsertRecords[0].EDID)
+	}
+
+	// BOOK:FULL レコード（2件目）
+	if result.repo.upsertRecords[1].REC != importServiceBookREC {
+		t.Fatalf("expected REC %q in second upserted record, got %q", importServiceBookREC, result.repo.upsertRecords[1].REC)
+	}
+	if result.repo.upsertRecords[1].EDID != "BookSnowElf" {
+		t.Fatalf("expected EDID %q in second upserted record, got %q", "BookSnowElf", result.repo.upsertRecords[1].EDID)
+	}
+}
+
+func TestMasterDictionaryImportServiceSummaryHasNoSelectedREC(t *testing.T) {
+	result := runSuccessfulImport(t)
+
+	if len(result.summary.SelectedREC) != 0 {
+		t.Fatalf("expected import summary to have no SelectedREC (parser-only), got %v", result.summary.SelectedREC)
+	}
+}
+
 func TestMasterDictionaryImportServicePropagatesReadFailure(t *testing.T) {
 	repo := &repositoryStub{}
 	xmlFiles := &xmlFilePortStub{
@@ -307,5 +335,225 @@ func newImportXMLRecordReaderStub(records []xmlStringRecord) *xmlRecordReaderStu
 			}
 			return nil
 		},
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Provenance persistence tests (dictionary-xml-import-cutover lane)
+// ---------------------------------------------------------------------------
+
+func newImportServiceWithFoundationData(fd FoundationDataPort) *MasterDictionaryImportService {
+	return NewMasterDictionaryImportService(
+		newImportRepositoryStub(),
+		newImportXMLFileStub(),
+		newImportXMLRecordReaderStub(importServiceRecords),
+		nil,
+		fixedMasterDictionaryNow,
+	).WithFoundationData(fd)
+}
+
+func TestMasterDictionaryImportServiceCallsCreateXTranslatorTranslationXMLOnImport(t *testing.T) {
+	// Arrange.
+	fd := &foundationDataPortStub{}
+	service := newImportServiceWithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+	if err != nil {
+		t.Fatalf(importServiceSuccessMessage, err)
+	}
+
+	// Assert.
+	if len(fd.capturedDrafts) != 1 {
+		t.Fatalf("expected CreateXTranslatorTranslationXML called once, got %d", len(fd.capturedDrafts))
+	}
+}
+
+func TestMasterDictionaryImportServicePassesResolvedFilePathToProvenanceDraft(t *testing.T) {
+	// Arrange.
+	fd := &foundationDataPortStub{}
+	service := newImportServiceWithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+	if err != nil {
+		t.Fatalf(importServiceSuccessMessage, err)
+	}
+
+	// Assert.
+	if fd.capturedDrafts[0].FilePath != "/resolved/import.xml" {
+		t.Fatalf("expected provenance FilePath /resolved/import.xml, got %q", fd.capturedDrafts[0].FilePath)
+	}
+}
+
+func TestMasterDictionaryImportServicePassesImportedTermCountToProvenanceDraft(t *testing.T) {
+	// Arrange.
+	fd := &foundationDataPortStub{}
+	service := newImportServiceWithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+	if err != nil {
+		t.Fatalf(importServiceSuccessMessage, err)
+	}
+
+	// Assert: importedCount(1) + updatedCount(1) = 2.
+	if fd.capturedDrafts[0].TermCount != 2 {
+		t.Fatalf("expected provenance TermCount 2, got %d", fd.capturedDrafts[0].TermCount)
+	}
+}
+
+func TestMasterDictionaryImportServicePassesImportTimestampToProvenanceDraft(t *testing.T) {
+	// Arrange.
+	fd := &foundationDataPortStub{}
+	service := newImportServiceWithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+	if err != nil {
+		t.Fatalf(importServiceSuccessMessage, err)
+	}
+
+	// Assert.
+	if !fd.capturedDrafts[0].ImportedAt.Equal(fixedMasterDictionaryNow().UTC()) {
+		t.Fatalf("expected provenance ImportedAt %s, got %s", fixedMasterDictionaryNow().UTC(), fd.capturedDrafts[0].ImportedAt)
+	}
+}
+
+func TestMasterDictionaryImportServicePropagatesProvenanceCreateError(t *testing.T) {
+	// Arrange.
+	fd := &foundationDataPortStub{
+		createFunc: func(_ context.Context, _ XMLProvenanceDraft) (int64, error) {
+			return 0, fmt.Errorf("db unavailable")
+		},
+	}
+	service := newImportServiceWithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+
+	// Assert.
+	if err == nil {
+		t.Fatal("expected ImportXML to fail when provenance create returns error")
+	}
+	if !strings.Contains(err.Error(), "persist xml provenance") {
+		t.Fatalf("expected persist xml provenance context in error, got %v", err)
+	}
+}
+
+func TestMasterDictionaryImportServiceSkipsProvenanceWhenFoundationDataIsNil(t *testing.T) {
+	// Arrange: no WithFoundationData wired — nil path should not panic.
+	service := NewMasterDictionaryImportService(
+		newImportRepositoryStub(),
+		newImportXMLFileStub(),
+		newImportXMLRecordReaderStub(importServiceRecords),
+		nil,
+		fixedMasterDictionaryNow,
+	)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+
+	// Assert.
+	if err != nil {
+		t.Fatalf("expected import to succeed without foundationData, got %v", err)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Provenance linkage / partial-commit blocker tests
+// (dictionary-xml-import-cutover lane residual blockers)
+// ---------------------------------------------------------------------------
+
+// TestMasterDictionaryImportServiceCreatesProvenanceBeforeEntriesForCanonicalLinkage は
+// XTRANSLATOR_TRANSLATION_XML が MASTER_DICTIONARY の upsert より先に作成されることを証明する。
+// entries が xtranslator_translation_xml_id を持つためには XML row が先に存在していなければならない。
+// 現状は entries upsert → provenance create の順序のためこのテストは RED となる。
+func TestMasterDictionaryImportServiceCreatesProvenanceBeforeEntriesForCanonicalLinkage(t *testing.T) {
+	// Arrange.
+	var callOrder []string
+
+	repo := &repositoryStub{}
+	repo.upsertBySourceAndRECFunc = func(_ context.Context, _ MasterDictionaryImportRecord) (MasterDictionaryEntry, bool, error) {
+		callOrder = append(callOrder, "upsert")
+		return MasterDictionaryEntry{ID: int64(len(callOrder))}, true, nil
+	}
+
+	fd := &foundationDataPortStub{
+		createFunc: func(_ context.Context, _ XMLProvenanceDraft) (int64, error) {
+			callOrder = append(callOrder, "provenance")
+			return 0, nil
+		},
+	}
+
+	singleRecord := []xmlStringRecord{
+		{REC: importServiceWeaponREC, EDID: "DLC1AurielsBow", Source: importServiceBowSource, Dest: importServiceBowTranslation},
+	}
+	service := NewMasterDictionaryImportService(
+		repo,
+		newImportXMLFileStub(),
+		newImportXMLRecordReaderStub(singleRecord),
+		nil,
+		fixedMasterDictionaryNow,
+	).WithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+	if err != nil {
+		t.Fatalf("expected import to succeed: %v", err)
+	}
+
+	// Assert: provenance must be created BEFORE any upsert call.
+	// entries に xtranslator_translation_xml_id をセットするには XML row が先に必要。
+	// 現状は upsert が先なので canonical linkage が確立できない。
+	if len(callOrder) == 0 {
+		t.Fatal("expected at least one call to be recorded")
+	}
+	if callOrder[0] != "provenance" {
+		t.Fatalf(
+			"provenance linkage blocker: expected CreateXTranslatorTranslationXML before UpsertBySourceAndREC "+
+				"so entries can carry xtranslator_translation_xml_id; got first call %q (order: %v)",
+			callOrder[0], callOrder,
+		)
+	}
+}
+
+// TestMasterDictionaryImportServiceDoesNotLeavePartialRowsWhenProvenanceCreateFails は
+// provenance create が失敗した場合に entries が commit 済みにならないことを証明する。
+// 現状は entries を先に upsert してから provenance を作成するため、
+// provenance 失敗時に orphan rows が残る partial commit が発生する。このテストは RED となる。
+func TestMasterDictionaryImportServiceDoesNotLeavePartialRowsWhenProvenanceCreateFails(t *testing.T) {
+	// Arrange.
+	repo := newImportRepositoryStub()
+	fd := &foundationDataPortStub{
+		createFunc: func(_ context.Context, _ XMLProvenanceDraft) (int64, error) {
+			return 0, fmt.Errorf("provenance db write failed")
+		},
+	}
+	service := NewMasterDictionaryImportService(
+		repo,
+		newImportXMLFileStub(),
+		newImportXMLRecordReaderStub(importServiceRecords),
+		nil,
+		fixedMasterDictionaryNow,
+	).WithFoundationData(fd)
+
+	// Act.
+	_, err := service.ImportXML(context.Background(), " input/import.xml ")
+
+	// Assert: import must return an error.
+	if err == nil {
+		t.Fatal("expected import to fail when provenance create returns error")
+	}
+
+	// Assert: no entries must be committed when provenance create fails.
+	// partial commit blocker: provenance 失敗時に entries が残ると canonical 関連のない orphan rows が生まれる。
+	// 現状は entries が先に upsert 済みのためこのアサーションは失敗する。
+	if len(repo.upsertRecords) != 0 {
+		t.Fatalf(
+			"partial commit blocker: expected no entries committed when provenance create fails, "+
+				"got %d upserted records (orphaned without xtranslator_translation_xml_id)",
+			len(repo.upsertRecords),
+		)
 	}
 }

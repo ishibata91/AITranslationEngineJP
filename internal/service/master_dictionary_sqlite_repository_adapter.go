@@ -35,6 +35,32 @@ func SQLiteMasterDictionaryRepositoryPortCloser(port RepositoryPort) func(contex
 	}
 }
 
+// NewSQLiteFoundationDataPort wraps a FoundationDataRepository as a FoundationDataPort.
+func NewSQLiteFoundationDataPort(repo repository.FoundationDataRepository) FoundationDataPort {
+	return foundationDataRepositoryPort{repository: repo}
+}
+
+type foundationDataRepositoryPort struct {
+	repository repository.FoundationDataRepository
+}
+
+func (adapter foundationDataRepositoryPort) CreateXTranslatorTranslationXML(
+	ctx context.Context,
+	draft XMLProvenanceDraft,
+) (int64, error) {
+	row, err := adapter.repository.CreateXTranslatorTranslationXML(ctx, repository.XTranslatorTranslationXMLDraft{
+		FilePath:         draft.FilePath,
+		TargetPluginName: draft.TargetPluginName,
+		TargetPluginType: draft.TargetPluginType,
+		TermCount:        draft.TermCount,
+		ImportedAt:       draft.ImportedAt,
+	})
+	if err != nil {
+		return 0, fmt.Errorf("create xtranslator translation xml: %w", err)
+	}
+	return row.ID, nil
+}
+
 type sqliteMasterDictionaryRepositoryPort struct {
 	repository interface {
 		repository.MasterDictionaryRepository
@@ -123,13 +149,14 @@ func (adapter sqliteMasterDictionaryRepositoryPort) UpsertBySourceAndREC(
 	record MasterDictionaryImportRecord,
 ) (MasterDictionaryEntry, bool, error) {
 	entry, created, err := adapter.repository.UpsertBySourceAndREC(ctx, repository.MasterDictionaryImportRecord{
-		Source:      record.Source,
-		Translation: record.Translation,
-		REC:         record.REC,
-		EDID:        record.EDID,
-		Category:    record.Category,
-		Origin:      record.Origin,
-		UpdatedAt:   record.UpdatedAt,
+		Source:                      record.Source,
+		Translation:                 record.Translation,
+		REC:                         record.REC,
+		EDID:                        record.EDID,
+		Category:                    record.Category,
+		Origin:                      record.Origin,
+		UpdatedAt:                   record.UpdatedAt,
+		XTranslatorTranslationXMLID: record.XTranslatorTranslationXMLID,
 	})
 	if err != nil {
 		return MasterDictionaryEntry{}, false, fmt.Errorf("upsert repository import record: %w", err)

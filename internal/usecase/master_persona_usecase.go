@@ -32,12 +32,6 @@ type MasterPersonaPageState struct {
 	SelectedIdentityKey *string
 }
 
-// MasterPersonaDialogueLine aliases the service-layer dialogue line.
-type MasterPersonaDialogueLine = service.MasterPersonaDialogueLine
-
-// MasterPersonaDialogueList aliases the service-layer dialogue list.
-type MasterPersonaDialogueList = service.MasterPersonaDialogueList
-
 // MasterPersonaAISettings aliases the service-layer page-local AI settings.
 type MasterPersonaAISettings = service.MasterPersonaAISettings
 
@@ -61,7 +55,6 @@ type MasterPersonaMutationResult struct {
 type MasterPersonaQueryServicePort interface {
 	SearchEntries(ctx context.Context, query service.MasterPersonaListQuery) (service.MasterPersonaListResult, error)
 	LoadEntryDetail(ctx context.Context, identityKey string) (service.MasterPersonaEntry, error)
-	LoadDialogueList(ctx context.Context, identityKey string) (service.MasterPersonaDialogueList, error)
 }
 
 // MasterPersonaGenerationServicePort defines master persona generation and mutation dependencies.
@@ -134,15 +127,6 @@ func (usecase *MasterPersonaUsecase) GetDetail(ctx context.Context, identityKey 
 		return MasterPersonaEntry{}, fmt.Errorf("get master persona detail: %w", err)
 	}
 	return entry, nil
-}
-
-// GetDialogueList returns one persona dialogue list payload.
-func (usecase *MasterPersonaUsecase) GetDialogueList(ctx context.Context, identityKey string) (MasterPersonaDialogueList, error) {
-	result, err := usecase.queryService.LoadDialogueList(ctx, identityKey)
-	if err != nil {
-		return MasterPersonaDialogueList{}, fmt.Errorf("get master persona dialogue list: %w", err)
-	}
-	return result, nil
 }
 
 // LoadAISettings loads page-local AI settings.

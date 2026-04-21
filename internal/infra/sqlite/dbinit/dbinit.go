@@ -23,23 +23,27 @@ import (
 const (
 	sqliteDriverName                = "sqlite"
 	masterDictionaryTimestampLayout = time.RFC3339Nano
-	countAllMasterDictionaryEntries = `SELECT COUNT(*) FROM master_dictionary_entries;`
+	countAllMasterDictionaryEntries = `SELECT COUNT(*) FROM DICTIONARY_ENTRY WHERE dictionary_lifecycle = 'master';`
 	insertMasterDictionaryEntry     = `
-INSERT INTO master_dictionary_entries (
-  source,
-  translation,
-  category,
-  origin,
-  rec,
-  edid,
+INSERT INTO DICTIONARY_ENTRY (
+  dictionary_lifecycle,
+  dictionary_scope,
+  dictionary_source,
+  source_term,
+  translated_term,
+  term_kind,
+  reusable,
+  created_at,
   updated_at
 ) VALUES (
-  :source,
-  :translation,
-  :category,
-  :origin,
-  :rec,
-  :edid,
+  'master',
+  :dictionary_scope,
+  :dictionary_source,
+  :source_term,
+  :translated_term,
+  :term_kind,
+  1,
+  :created_at,
   :updated_at
 );`
 )
@@ -59,13 +63,13 @@ type MasterDictionarySeedEntry struct {
 }
 
 type masterDictionarySeedRow struct {
-	Source      string `db:"source"`
-	Translation string `db:"translation"`
-	Category    string `db:"category"`
-	Origin      string `db:"origin"`
-	REC         string `db:"rec"`
-	EDID        string `db:"edid"`
+	Source      string `db:"source_term"`
+	Translation string `db:"translated_term"`
+	Category    string `db:"term_kind"`
+	Origin      string `db:"dictionary_source"`
+	REC         string `db:"dictionary_scope"`
 	UpdatedAt   string `db:"updated_at"`
+	CreatedAt   string `db:"created_at"`
 }
 
 // OpenMasterDictionaryDatabase opens the SQLite database, reapplies migrations, and seeds an empty database.
@@ -170,35 +174,26 @@ func seedMasterDictionaryEntries(
 
 	var count int
 	if err := database.GetContext(ctx, &count, countAllMasterDictionaryEntries); err != nil {
-		return fmt.Errorf("count sqlite seed target rows: %w", err)
+		return fmt.Errorf("count master dictionary seed entries: %w", err)
 	}
 	if count > 0 {
 		return nil
 	}
 
-	transaction, err := database.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("begin sqlite seed transaction: %w", err)
-	}
-
 	for _, entry := range seed {
-		if _, err := transaction.NamedExecContext(ctx, insertMasterDictionaryEntry, masterDictionarySeedRow{
+		ts := entry.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout)
+		row := masterDictionarySeedRow{
 			Source:      entry.Source,
 			Translation: entry.Translation,
 			Category:    entry.Category,
 			Origin:      entry.Origin,
 			REC:         entry.REC,
-			EDID:        entry.EDID,
-			UpdatedAt:   entry.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout),
-		}); err != nil {
-			if rollbackErr := transaction.Rollback(); rollbackErr != nil {
-				return fmt.Errorf("insert sqlite seed entry: %w", errors.Join(err, rollbackErr))
-			}
-			return fmt.Errorf("insert sqlite seed entry: %w", err)
+			UpdatedAt:   ts,
+			CreatedAt:   ts,
 		}
-	}
-	if err := transaction.Commit(); err != nil {
-		return fmt.Errorf("commit sqlite seed transaction: %w", err)
+		if _, err := database.NamedExecContext(ctx, insertMasterDictionaryEntry, row); err != nil {
+			return fmt.Errorf("seed master dictionary entry: %w", err)
+		}
 	}
 	return nil
 }

@@ -179,28 +179,16 @@
 
       <div class="stats-grid" id="previewStats">
         <article class="stat-card">
-          <span class="field-label">総 NPC 数</span>
-          <strong>{viewModel.preview?.totalNpcCount ?? 0}</strong>
+          <span class="field-label">候補数</span>
+          <strong>{viewModel.preview?.candidateCount ?? 0}</strong>
         </article>
         <article class="stat-card">
-          <span class="field-label">今回生成する数</span>
-          <strong>{viewModel.preview?.generatableCount ?? 0}</strong>
+          <span class="field-label">新規追加可能</span>
+          <strong>{viewModel.preview?.newlyAddableCount ?? 0}</strong>
         </article>
         <article class="stat-card">
-          <span class="field-label">既に作成済み</span>
-          <strong>{viewModel.preview?.existingSkipCount ?? 0}</strong>
-        </article>
-        <article class="stat-card">
-          <span class="field-label">会話が見つからない</span>
-          <strong>{viewModel.preview?.zeroDialogueSkipCount ?? 0}</strong>
-        </article>
-        <article class="stat-card">
-          <span class="field-label">汎用NPC</span>
-          <strong>{viewModel.preview?.genericNpcCount ?? 0}</strong>
-        </article>
-        <article class="stat-card">
-          <span class="field-label">対象プラグイン</span>
-          <strong>{viewModel.preview?.targetPlugin || "-"}</strong>
+          <span class="field-label">既存</span>
+          <strong>{viewModel.preview?.existingCount ?? 0}</strong>
         </article>
       </div>
 
@@ -269,8 +257,6 @@
       <div class="status-row">
         <span class="status-pill">作成済み {viewModel.runStatus.successCount}</span>
         <span class="status-pill">既に作成済み {viewModel.runStatus.existingSkipCount}</span>
-        <span class="status-pill">会話なし {viewModel.runStatus.zeroDialogueSkipCount}</span>
-        <span class="status-pill">汎用NPC {viewModel.runStatus.genericNpcCount}</span>
       </div>
 
       <div class="inline-actions run-actions">
@@ -357,7 +343,7 @@
             >
               <div class="row-cell">
                 <strong>{item.displayName}</strong>
-                <span>{item.voiceType} / ダイアログ {item.dialogueCount}行</span>
+                <span>{item.voiceType}</span>
               </div>
               <div class="row-cell">
                 <span>{item.formId} / {item.editorId}</span>
@@ -408,15 +394,6 @@
         <div class="inline-actions compact-actions">
           <button
             class="button-secondary"
-            disabled={!viewModel.selectedEntry}
-            id="dialogueListButton"
-            onclick={() => void controller.openDialogueModal()}
-            type="button"
-          >
-            ダイアログ一覧
-          </button>
-          <button
-            class="button-secondary"
             disabled={!viewModel.canMutate}
             id="editButton"
             onclick={() => controller.openEditModal()}
@@ -440,7 +417,6 @@
         <div class="status-row">
           {#if viewModel.selectedEntry}
             <span class="status-pill">{viewModel.selectedEntry.voiceType}</span>
-            <span class="status-pill">ダイアログ {viewModel.selectedEntry.dialogueCount}行</span>
           {/if}
         </div>
         <strong id="detailTitle"
@@ -456,14 +432,6 @@
       </div>
 
       <div class="detail-grid">
-        <article class="detail-card">
-          <span class="field-label">収録元ファイル</span>
-          <strong>{viewModel.selectedEntry?.generationSourceJson || "-"}</strong>
-        </article>
-        <article class="detail-card">
-          <span class="field-label">ダイアログ数</span>
-          <strong>{viewModel.selectedEntry?.dialogueCount ?? 0}行</strong>
-        </article>
         <article class="detail-card">
           <span class="field-label">voice</span>
           <strong>{viewModel.selectedEntry?.voiceType || "-"}</strong>
@@ -497,41 +465,6 @@
 </section>
 
 <div
-  aria-hidden={!viewModel.dialogueModalOpen}
-  class="modal-backdrop"
-  class:is-open={viewModel.dialogueModalOpen}
-  hidden={!viewModel.dialogueModalOpen}
-  id="dialogueModal"
-  role="dialog"
->
-  <section class="modal-card">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">ダイアログ一覧</p>
-        <h3>{viewModel.selectedEntry?.displayName ?? "-"}</h3>
-      </div>
-      <button
-        class="button-secondary"
-        id="closeDialogueModalButton"
-        onclick={() => controller.closeDialogueModal()}
-        type="button"
-      >
-        閉じる
-      </button>
-    </div>
-    <p class="mini-text">{viewModel.selectedEntry?.dialogueCount ?? 0}行のダイアログを確認できます。</p>
-    <div class="dialog-list">
-      {#each viewModel.dialogues as dialogue (dialogue.index)}
-        <article class="dialog-row">
-          <span class="dialog-index">{dialogue.index}</span>
-          <p>{dialogue.text}</p>
-        </article>
-      {/each}
-    </div>
-  </section>
-</div>
-
-<div
   aria-hidden={viewModel.modalState !== "edit"}
   class="modal-backdrop"
   class:is-open={viewModel.modalState === "edit"}
@@ -556,76 +489,22 @@
     </div>
 
     <div class="form-grid">
-      <label class="field-group" for="editFormIdInput">
-        <span class="field-label">FormID</span>
-        <input
-          class="text-field"
-          id="editFormIdInput"
-          oninput={(event) => controller.setEditFormField("formId", event)}
-          value={viewModel.editForm.formId}
-        />
+      <label class="field-group textarea-group" for="editPersonaSummaryInput">
+        <span class="field-label">ペルソナ概要</span>
+        <textarea
+          class="textarea-field"
+          id="editPersonaSummaryInput"
+          oninput={(event) => controller.setEditFormField("personaSummary", event)}
+          value={viewModel.editForm.personaSummary ?? ""}
+        ></textarea>
       </label>
-      <label class="field-group" for="editEditorIdInput">
-        <span class="field-label">EditorID</span>
+      <label class="field-group" for="editSpeechStyleInput">
+        <span class="field-label">話し方</span>
         <input
           class="text-field"
-          id="editEditorIdInput"
-          oninput={(event) => controller.setEditFormField("editorId", event)}
-          value={viewModel.editForm.editorId}
-        />
-      </label>
-      <label class="field-group" for="editDisplayNameInput">
-        <span class="field-label">名前</span>
-        <input
-          class="text-field"
-          id="editDisplayNameInput"
-          oninput={(event) => controller.setEditFormField("displayName", event)}
-          value={viewModel.editForm.displayName}
-        />
-      </label>
-      <label class="field-group" for="editRaceInput">
-        <span class="field-label">種族</span>
-        <input
-          class="text-field"
-          id="editRaceInput"
-          oninput={(event) => controller.setEditFormField("race", event)}
-          value={viewModel.editForm.race ?? ""}
-        />
-      </label>
-      <label class="field-group" for="editSexInput">
-        <span class="field-label">性別</span>
-        <input
-          class="text-field"
-          id="editSexInput"
-          oninput={(event) => controller.setEditFormField("sex", event)}
-          value={viewModel.editForm.sex ?? ""}
-        />
-      </label>
-      <label class="field-group" for="editVoiceTypeInput">
-        <span class="field-label">voice</span>
-        <input
-          class="text-field"
-          id="editVoiceTypeInput"
-          oninput={(event) => controller.setEditFormField("voiceType", event)}
-          value={viewModel.editForm.voiceType}
-        />
-      </label>
-      <label class="field-group" for="editClassNameInput">
-        <span class="field-label">class</span>
-        <input
-          class="text-field"
-          id="editClassNameInput"
-          oninput={(event) => controller.setEditFormField("className", event)}
-          value={viewModel.editForm.className}
-        />
-      </label>
-      <label class="field-group" for="editSourcePluginInput">
-        <span class="field-label">source</span>
-        <input
-          class="text-field"
-          id="editSourcePluginInput"
-          oninput={(event) => controller.setEditFormField("sourcePlugin", event)}
-          value={viewModel.editForm.sourcePlugin}
+          id="editSpeechStyleInput"
+          oninput={(event) => controller.setEditFormField("speechStyle", event)}
+          value={viewModel.editForm.speechStyle ?? ""}
         />
       </label>
       <label class="field-group textarea-group" for="editPersonaBodyInput">
@@ -739,8 +618,7 @@
   .run-grid,
   .detail-grid,
   .toolbar-grid,
-  .form-grid,
-  .dialog-list {
+  .form-grid {
     display: grid;
     gap: 14px;
   }
@@ -791,7 +669,6 @@
   .prompt-copy,
   .detail-list dd,
   .row-cell span,
-  .dialog-row p,
   .error-text {
     color: var(--muted);
     line-height: 1.6;
@@ -897,7 +774,6 @@
   .stat-card,
   .detail-card,
   .run-card,
-  .dialog-row,
   .list-row {
     border-radius: 14px;
     border: 0.5px solid rgba(255, 186, 56, 0.12);
@@ -1011,28 +887,6 @@
     gap: 14px;
   }
 
-  .dialog-list {
-    max-height: 420px;
-    overflow: auto;
-  }
-
-  .dialog-row {
-    display: grid;
-    grid-template-columns: 64px 1fr;
-    gap: 14px;
-    align-items: start;
-  }
-
-  .dialog-index {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 34px;
-    border-radius: 999px;
-    border: 0.5px solid var(--line);
-    color: var(--muted);
-  }
-
   .form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1066,10 +920,6 @@
 
     .column-row {
       display: none;
-    }
-
-    .dialog-row {
-      grid-template-columns: 1fr;
     }
   }
 </style>
