@@ -44,6 +44,8 @@ CODE_MAP_EXPECTED_LAYER_IDS = {
     "backend-state-jobio",
     "backend-repository",
     "backend-infra-provider",
+    # integration test 専用ディレクトリ。production code を置かない。
+    "backend-integration-test",
 }
 ALWAYS_ALLOWED_DOC_PATHS = {
     Path("docs/index.md"),

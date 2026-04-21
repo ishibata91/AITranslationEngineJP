@@ -1,4 +1,4 @@
-package repository_test
+package integrationtest
 
 // integration_test.go は SCN-SMR-002〜005 の SQLite repository integration test を提供する。
 // 実装ファイル (transactor.go, *_repository.go) が追加されるとコンパイルが通る。

@@ -22,6 +22,11 @@ components:
     in: infra/runtime/**
   infra_sqlite:
     in: infra/sqlite/**
+  # integration test 専用ディレクトリ。
+  # 複数コンポーネントをまたぐ SQLite integration test だけを置く場所。
+  # production code を置いてはいけない。
+  integrationtest:
+    in: integrationtest/**
 
 deps:
   bootstrap:
@@ -54,5 +59,11 @@ deps:
   infra_ai:
     mayDependOn:
       - infra_runtime
+  # integration test 専用コンポーネント。
+  # infra_sqlite (dbinit) と repository の両方への依存をここだけに許可する。
+  integrationtest:
+    mayDependOn:
+      - infra_sqlite
+      - repository
 allow:
   depOnAnyVendor: true

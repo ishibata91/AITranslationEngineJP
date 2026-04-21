@@ -140,6 +140,15 @@ LAYER_DEFINITIONS = (
         paths=(Path("internal/infra"),),
         default_next=(),
     ),
+    # integration test 専用ディレクトリ。
+    # 複数コンポーネントをまたぐ SQLite integration test だけを置く場所。
+    LayerDefinition(
+        id="backend-integration-test",
+        name="Integration Test",
+        root="internal",
+        paths=(Path("internal/integrationtest"),),
+        default_next=(),
+    ),
 )
 
 LAYER_BY_ID = {layer.id: layer for layer in LAYER_DEFINITIONS}
