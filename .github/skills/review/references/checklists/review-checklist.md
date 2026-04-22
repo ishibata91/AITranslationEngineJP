@@ -4,7 +4,7 @@
 
 - [ ] single_handoff_packet、lane_context_packet、review target diff を照合した
 - [ ] actionable finding だけを返した
-- [ ] UI evidence と Sonar gate の該当可否を分けた
+- [ ] UI evidence と repo-local Sonar issue gate の該当可否を分けた
 
 ## Common Pitfalls
 

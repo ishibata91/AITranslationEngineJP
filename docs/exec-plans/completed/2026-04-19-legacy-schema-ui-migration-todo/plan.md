@@ -1,7 +1,7 @@
 # Task Plan: 2026-04-19-legacy-schema-ui-migration-todo
 
 - `workflow`: propose-plans
-- `status`: implementation-scope-approved
+- `status`: closed-with-environment-validation-blocker
 - `lane_owner`: Codex owns the approved design bundle and implementation handoff. GitHub Copilot implements only from the approved implementation-scope.
 - `task_id`: `2026-04-19-legacy-schema-ui-migration-todo`
 - `task_mode`: backend-frontend-migration
@@ -63,21 +63,22 @@
 
 ## Copilot Result
 
-- `completed_handoffs`: N/A
-- `touched_files`: N/A
-- `implemented_scope`: N/A
-- `test_results`: N/A
-- `implementation_investigation`: N/A
-- `ui_evidence`: N/A
-- `implementation_review_result`: N/A
-- `sonar_gate_result`: N/A
-- `residual_risks`: N/A
-- `docs_changes`: N/A
+- `completed_handoffs`: `schema-legacy-cutover`, `dictionary-read-detail-cutover`, `dictionary-create-update-delete-cutover`, `dictionary-xml-import-cutover`, `persona-read-detail-cutover`, `persona-ai-settings-restart-cutover`, `persona-json-preview-cutover`, `persona-generation-cutover`, `persona-edit-delete-cutover`, `final-validation-and-review`
+- `touched_files`: `internal/` repository / service / usecase / controller / bootstrap、`frontend/src/` gateway contract / usecase / controller / presenter / UI、`internal/integrationtest/` integration tests、closeout 時の backend lint 補正。
+- `implemented_scope`: canonical schema への cutover、legacy dictionary / persona master table drop、dictionary canonical read / mutation / XML import、persona canonical read / settings / preview / generation / edit-delete、public contract / UI field slimming。
+- `test_results`: `python3 scripts/harness/run.py --suite structure` PASS、`npm run lint:backend` PASS、`npm run lint:frontend` PASS、`npm run test:backend` PASS、`npm run test:frontend` PASS、`npm run scan:sonar` PASS。`python3 scripts/harness/run.py --suite all` は最後の `npm run test:system` で未完了。
+- `implementation_investigation`: stale test、arch lint、Sonar maintainability、persona generation atomicity、dictionary XML provenance、canonical / legacy read-write path の切り分けを実施。
+- `ui_evidence`: Copilot final review では HTML mock と migrated UI behavior の整合を確認済み。Codex closeout では `test:system` が Wails dev server 起動前に止まり、追加 UI 実機証跡は取得できていない。
+- `implementation_review_result`: all listed handoffs reached reviewer pass; final validation lane passed except Codex sandbox system-test blocker.
+- `sonar_gate_result`: scanner execution PASS。Copilot report 時点で coverage 83.6%、maintainability HIGH / BLOCKER 0。
+- `residual_risks`: Codex sandbox では `sysctl kern.osproductversion` が `Operation not permitted` になり、Wails CLI の OS version detection が失敗するため `npm run test:system` を完走できない。product-facing system test は sandbox 外で再実行が必要。
+- `docs_changes`: product docs 正本化なし。workflow / report 義務追加は `.codex/`、`.github/`、`work_history/` に記録。
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: N/A
-- `follow_up`: 人間が `implementation-scope.md` の Copilot Handoff Prompt を Copilot に渡す。実装完了後、Copilot completion packet を plan に反映し、必要なら Codex が docs 正本化を扱う。
+- `canonicalized_artifacts`: none. `implementation-scope.md` は handoff 履歴であり docs 正本へ昇格しない。
+- `closeout_adjustments`: Codex closeout で backend lint の機械的補正と Darwin Wails build helper を追加した。挙動変更ではなく validation unblock 用の最小修正。
+- `follow_up`: port 5173 を空けた上で、sandbox 外、または Wails CLI の `sysctl` 依存を回避できる環境で `npm run test:system` と `python3 scripts/harness/run.py --suite all` を再実行する。
 
 ## Outcome
 
@@ -85,3 +86,5 @@
 - `requirements-design.md` and `scenario-design.md` were started.
 - Human-approved design decisions were reflected into `implementation-scope.md`.
 - Oversized Copilot handoffs were compressed into 10 use-case vertical-slice RunSubagent units and approved for implementation.
+- Copilot implementation completed the approved cutover scope and reviewer pass state was recorded.
+- Codex closeout recorded the report obligation and closed this plan with a Wails system-test environment blocker.

@@ -575,7 +575,7 @@ type refRoundTripIDs struct {
 
 // setupRefRoundTripDB1Phase は TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip の
 // 第1オープン保存フェーズを切り出す。認知複雑度を分散させるためのヘルパー。
-func setupRefRoundTripDB1Phase(t *testing.T, ctx context.Context, dbPath string) refRoundTripIDs {
+func setupRefRoundTripDB1Phase(ctx context.Context, t *testing.T, dbPath string) refRoundTripIDs {
 	t.Helper()
 	db1, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
 	if err != nil {
@@ -655,7 +655,7 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 	dbPath := filepath.Join(t.TempDir(), "ref_roundtrip.sqlite3")
 
 	// --- 第1オープン: データ保存 ---
-	ids := setupRefRoundTripDB1Phase(t, ctx, dbPath)
+	ids := setupRefRoundTripDB1Phase(ctx, t, dbPath)
 
 	// --- 第2オープン: 読み込み確認 ---
 	db2, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
@@ -1010,7 +1010,7 @@ type phaseRunFixture struct {
 
 // arrangePhaseRunFixture は TestSCN_SMR_004_PhaseRunAssociations の Arrange フェーズを切り出す。
 // 認知複雑度を分散させるためのヘルパー。
-func arrangePhaseRunFixture(t *testing.T, ctx context.Context, db *sqlx.DB) phaseRunFixture {
+func arrangePhaseRunFixture(ctx context.Context, t *testing.T, db *sqlx.DB) phaseRunFixture {
 	t.Helper()
 	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
 	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
@@ -1122,7 +1122,7 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
 
 	// --- Arrange ---
-	fix := arrangePhaseRunFixture(t, ctx, db)
+	fix := arrangePhaseRunFixture(ctx, t, db)
 
 	// --- Act ---
 	prtf, err := jobRepo.CreatePhaseRunTranslationField(ctx, repository.PhaseRunTranslationFieldDraft{

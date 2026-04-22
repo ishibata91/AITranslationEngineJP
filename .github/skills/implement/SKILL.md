@@ -78,7 +78,7 @@ DON'T:
 - first_action がないまま広い調査を始めない
 - config、lint、test、coverage 設定を変更して gate を回避しない
 - product test、fixture、snapshot、test helper を変更しない
-- coverage、harness all、Sonar gate を implementer の必須 closeout にしない
+- coverage、harness all、repo-local Sonar issue gate を implementer の必須 closeout にしない
 - owned_scope 外の cleanup、rename、format を混ぜない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない
 - mode 別 active contract を使わない

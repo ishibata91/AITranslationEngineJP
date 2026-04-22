@@ -28,7 +28,7 @@ description: GitHub Copilot 側の review 共通知識 package。UI check と im
 
 - single_handoff_packet と lane_context_packet に基づく review 判断
 - actionable finding の返し方
-- UI evidence、coverage 70%、Sonar gate、harness evidence の扱い
+- UI evidence、coverage 70%、repo-local Sonar issue gate、harness evidence の扱い
 - focused skill の選び方
 
 ## 原則
@@ -47,7 +47,7 @@ description: GitHub Copilot 側の review 共通知識 package。UI check と im
 
 DO:
 - findings は再現できる形で返す
-- coverage 70%、Sonar gate、harness evidence を確認する
+- coverage 70%、repo-local Sonar issue gate、harness evidence を確認する
 - 追加証跡が必要なら investigator へ戻せる理由を書く
 - pass の場合も残リスクを明記する
 

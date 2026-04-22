@@ -35,6 +35,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 - distiller、designer、investigator の独立 spawn 判断
 - context を引き継がない handoff packet の作り方
 - design bundle、human review、human Copilot handoff、Copilot 完了後正本化の順序
+- work_history 用の Codex report 材料を整理するタイミング
 
 ## 原則
 
@@ -45,6 +46,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 - spawned agent へ context を引き継がず、必要情報を packet に明示する
 - Copilot handoff は Codex が直接渡さず、人間へ返す
 - Copilot の修正完了が分かってから正本化へ進む
+- closeout、停止、reroute 時は `codex-work-reporting` を参照し、最後に必ず報告材料を作る
 
 ## 標準パターン
 
@@ -58,6 +60,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 8. design bundle 完了後に human review で停止する。
 9. 承認後、人間が Copilot に渡せる handoff packet を返す。
 10. Copilot の修正完了が分かった後、必要なら正本化へ進む。
+11. closeout、停止、reroute 時は `codex-work-reporting` を参照し、`work_history` へ転記できる Codex report 材料を最後に必ず作る。
 
 ## DO / DON'T
 
@@ -83,6 +86,7 @@ DON'T:
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - agent spec: [propose_plans.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/propose_plans.agent.md)
 - agent contract: [propose_plans.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/contracts/propose_plans.contract.json)
+- report skill: [codex-work-reporting](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md)
 
 ## Maintenance
 

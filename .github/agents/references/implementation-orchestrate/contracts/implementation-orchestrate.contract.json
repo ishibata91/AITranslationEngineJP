@@ -17,25 +17,30 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests/SKILL.md",
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/review/SKILL.md"
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/review/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/copilot-work-reporting/SKILL.md"
   ],
-  "handoff_targets": ["implementation-distiller", "tester", "implementer", "reviewer", "investigator", "propose-plans"],
-  "expected_outputs": ["completed_handoffs", "implementation_context_packets", "narrowing_results", "touched_files", "implemented_scope", "test_results", "implementation_investigation", "ui_evidence", "implementation_review_result", "coverage_gate_result", "sonar_gate_result", "harness_gate_result", "residual_risks", "docs_changes"],
+  "handoff_targets": ["implementation-distiller", "tester", "implementer", "reviewer", "investigator"],
+  "exceptional_handoff_targets": ["propose-plans"],
+  "expected_outputs": ["completed_handoffs", "implementation_context_packets", "narrowing_results", "pre_review_gate_result", "touched_files", "implemented_scope", "test_results", "implementation_investigation", "ui_evidence", "implementation_review_result", "coverage_gate_result", "sonar_gate_result", "harness_gate_result", "residual_risks", "docs_changes", "requires_codex_replan", "copilot_work_report"],
   "field_requirements": {
     "completed_handoffs": "implementation-scope の handoff 見出し単位で完了、未完了、依存待ちを返す。status は subagent 戻り値または depends_on 判定だけから決める",
     "implementation_context_packets": "各 implementation handoff で tester / implementer より先に起動した implementation-distiller の lane_context_packet と tester_context_packet を返す。distiller input は single_handoff_packet 1 件だけに限定する。implementer 用 lane_context_packet に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、related_code_pointers、required_reading が具体化されていない場合は implementer へ渡さない。tester_context_packet に test_ingredients、test_required_reading、test_validation_entry が具体化されていない場合は tester へ渡さない",
-    "narrowing_results": "tester / implementer の無応答、timeout、空 output、required field 欠落、insufficient_context を trigger として実施した sub-scope narrowing を返す。insufficient_context の場合は reason が各 agent の insufficient_context_criteria に一致することを確認してから trigger にする。criteria mismatch は contract violation として completion packet に残す。axis、attempt_count、test_subscope または implementation_subscope、remaining_test_subscopes、remaining_implementation_subscopes、blocked_after_narrowing を含める",
+    "narrowing_results": "tester / implementer の無応答、timeout、空 output、required field 欠落、insufficient_context、reviewer finding、broad validation failure を trigger として実施した Copilot 内 sub-scope narrowing を返す。insufficient_context の場合は reason が各 agent の insufficient_context_criteria に一致することを確認してから trigger にする。criteria mismatch は contract violation として completion packet に残す。axis、attempt_count、test_subscope または implementation_subscope、remaining_test_subscopes、remaining_implementation_subscopes、blocked_after_narrowing を含める",
     "test_results": "各 implementation handoff で distiller 後、implementer より先に起動した tester の結果を返す。tester へ渡した tester_context_packet、test_subscope、insufficient_context、remaining_test_subscopes と対応づける",
     "implemented_scope": "implementer へ渡した single_handoff_packet 1 件、lane_context_packet、implementation_subscope に対応づける。full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡していないことを前提にする",
-    "docs_changes": "必ず none を返す。docs 正本化が必要な場合は residual_risks と reroute reason に書く",
-    "coverage_gate_result": "Sonar-compatible coverage 70% 以上。未実行なら blocked reason を返す",
-    "sonar_gate_result": "Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0。未実行なら blocked reason を返す",
-    "harness_gate_result": "`python3 scripts/harness/run.py --suite all` の結果。未実行なら blocked reason を返す",
-    "residual_risks": "design 不足、未実行 validation、human open question を分ける。オーケストレーター自身の推測で補わない"
+    "pre_review_gate_result": "全 implementation handoff 完了後、reviewer 投入前に実施した review 前 gate lane の結果を返す。対象は coverage、repo-local Sonar issue、arch、broad validation の修正だけに限定し、feature 実装、product behavior 変更、新要件判断を混ぜない",
+    "docs_changes": "必ず none を返す。docs 正本化が実装完了の前提になる場合だけ requires_codex_replan の hard stop reason に書く",
+    "coverage_gate_result": "Sonar-compatible coverage 70% 以上。Sonar サーバ側 Quality Gate ではなく repo-local coverage gate として扱う。未実行なら blocked reason を返す",
+    "sonar_gate_result": "互換 field 名として残すが、意味は repo-local Sonar issue gate であり Sonar サーバ側 Quality Gate ではない。Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0。未実行なら blocked reason を返す",
+    "harness_gate_result": "`python3 scripts/harness/run.py --suite all` の結果。`npm run test:system` または harness all が Wails、sandbox、OS 権限で止まる場合は FAIL_ENVIRONMENT とし、product failure として reroute しない。未実行なら blocked reason、再実行環境、再実行コマンドを返す",
+    "residual_risks": "未実行 validation、FAIL_ENVIRONMENT、human open question、blocked_after_narrowing、remaining subscopes を分ける。オーケストレーター自身の推測で補わない",
+    "requires_codex_replan": "通常は false。Copilot から Codex を直接呼べないため、approved scope にない新要件、human 承認済み design と実装対象の矛盾、未承認 public behavior 判断、docs 正本化または workflow 変更が実装完了の前提、2 回の autonomous narrowing 後も single_handoff_packet 内で first_action を確定できない、のいずれかに該当する場合だけ true にし、該当 hard stop 条件と evidence を返す",
+    "copilot_work_report": "最後に必ず返す。work_history/templates/run/copilot.md へ転記できる報告材料として、改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、implementation-scope の読み取り、実装分割、調査、validation、reroute、完了報告の不足、人間が次に見るべき場所を subagent 戻り値だけから整理する"
   },
-  "required_evidence": ["implementation-scope path", "approval_record", "single_handoff_packet", "implementation-distiller RunSubagent request before tester", "implementation-distiller RunSubagent response", "lane_context_packet", "tester_context_packet", "tester RunSubagent request after distiller and before implementer", "tester RunSubagent response or narrowing trigger", "insufficient_context_criteria match or criteria mismatch reason", "narrowing axis and attempt count when used", "implementer RunSubagent request with lane_context_packet, implementation_subscope, and tester output", "implementer RunSubagent response or narrowing trigger", "reviewer RunSubagent response or blocked reason", "validation command result when returned by subagent", "coverage gate result or blocked reason", "Sonar gate result or blocked reason", "harness all result or blocked reason"],
+  "required_evidence": ["implementation-scope path", "approval_record", "single_handoff_packet", "implementation-distiller RunSubagent request before tester", "implementation-distiller RunSubagent response", "lane_context_packet", "tester_context_packet", "tester RunSubagent request after distiller and before implementer", "tester RunSubagent response or narrowing trigger", "insufficient_context_criteria match or criteria mismatch reason", "narrowing axis and attempt count when used", "implementer RunSubagent request with lane_context_packet, implementation_subscope, and tester output", "implementer RunSubagent response or narrowing trigger", "review 前 gate lane result or blocked reason", "reviewer RunSubagent response or blocked reason", "validation command result when returned by subagent", "coverage gate result or blocked reason", "repo-local Sonar issue gate result or blocked reason", "harness all result or FAIL_ENVIRONMENT blocked reason", "requires_codex_replan false or hard stop condition with evidence", "copilot_work_report source fields from subagent results"],
   "rejection_conditions": ["missing approved implementation-scope", "missing approval_record", "design-only request", "docs canonicalization request"],
-  "stop_conditions": ["owned_scope が曖昧である", "設計判断が不足している", "docs または workflow の変更が必要になる", "single_handoff_packet を作れない", "single_handoff_packet 1 件だけでは lane_context_packet を作れない", "lane_context_packet に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、symbol / line number 付き related_code_pointers がない", "tester_context_packet に test_ingredients、test_required_reading、test_validation_entry がない", "lane_context_packet の first_action が partial、複数 clause、または曖昧な advance 表現である", "lane_context_packet が存在確認していない method / interface / field を fact として扱っている", "lane_context_packet の existing_patterns none に探索範囲と impact がない", "lane_context_packet の validation_entry に cheap check または broader command の理由がない", "implementation-distiller を tester より先に起動できない", "tester を implementer より先に起動できない"],
+  "stop_conditions": ["approved scope に存在しない新要件が必要である", "human 承認済み design と実装対象が矛盾している", "public behavior の仕様判断が未承認で、実装側が選ぶと product decision になる", "docs 正本化または workflow 変更が実装完了の前提になる", "2 回の autonomous narrowing 後も single_handoff_packet 内で first_action を確定できない", "implementation-distiller を tester より先に起動できない", "tester を implementer より先に起動できない"],
   "handoff_constraints": [
     "RunSubagent の source scope は single_handoff_packet 1 件、lane_context_packet、tester_context_packet に限定する",
     "implementation-distiller は tester / implementer より先に必ず起動する",
@@ -57,13 +62,13 @@
     "tester または implementer が無応答、timeout、空 output、required field 欠落、insufficient_context を返した場合、同じ single_handoff_packet 内で sub-scope を狭めて再実行してよい",
     "insufficient_context の reason が tester / implementer の insufficient_context_criteria に一致する場合だけ narrowing trigger として扱う",
     "insufficient_context の reason が insufficient_context_criteria に一致しない場合は criteria mismatch の contract violation として completion packet に残し、narrowing trigger にしない",
-    "narrowing 軸は completion_signal clause、public seam / API boundary、test target file、change target / symbol、validation command のいずれか 1 つに限定する",
+    "narrowing 軸は backend / frontend、product regression / test drift、transport / DTO / gateway boundary、persistence command / transaction / DI wiring、architecture ownership / test placement、environment blocker / product failure、completion_signal clause、test target file、change target / symbol、validation command のいずれか 1 つに限定する",
     "narrowing は最大 2 回までとし、進まない場合は blocked_after_narrowing と remaining subscopes を返す",
     "narrowing は completion_signal を削らず、docs、implementation-scope、active work plan を書き換えない",
     "implementer には single_handoff_packet、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す",
     "implementer へ full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡さない",
     "implementer へ product test、fixture、snapshot、test helper の作成または更新を依頼しない"
   ],
-  "completion_signal": "Codex が close または docs 正本化判断へ進める completion packet が返っている",
+  "completion_signal": "human が close、docs 正本化判断、または例外的な Codex replan 要否を判断できる completion packet が返っており、最後に必ず copilot_work_report と requires_codex_replan が含まれている",
   "residual_risk_key": "residual_risks"
 }

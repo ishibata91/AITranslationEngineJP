@@ -23,6 +23,7 @@
   ],
   "knowledge_refs": [
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md"
   ],
   "spawn_order": [
@@ -57,6 +58,7 @@
     "canonicalization_status",
     "touched_artifacts",
     "validation_and_closeout_summary",
+    "codex_work_report",
     "open_questions"
   ],
   "field_requirements": {
@@ -72,6 +74,7 @@
     "canonicalization_status": "Copilot 修正完了後に docs 正本化が必要か、必要なら docs_updater へ渡す scope を返す",
     "touched_artifacts": "作成または更新した task-local artifact path を返す",
     "validation_and_closeout_summary": "実行した確認、未実行なら理由、closeout 条件を返す",
+    "codex_work_report": "最後に必ず返す。work_history/templates/run/codex.md と run README へ転記できる報告材料として、改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、HITL、handoff、docs 正本化判断、spawn / 調査の必要判定、人間が次に見るべき場所を整理する",
     "open_questions": "workflow を進めるために human 判断が必要な事項を返す"
   },
   "required_evidence": [

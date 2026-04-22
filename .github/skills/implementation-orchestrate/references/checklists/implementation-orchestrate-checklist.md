@@ -22,7 +22,8 @@
 
 ## Common Pitfalls
 
-- [ ] design 不足を実装側で補わなかった
+- [ ] 通常の不足や validation failure を Codex return 前提にせず Copilot 内 narrowing で扱った
+- [ ] hard stop 条件に該当する場合だけ requires_codex_replan を true にした
 - [ ] distiller に full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡さなかった
 - [ ] handoff 文面の言い換えだけの distiller output を implementer に渡さなかった
 - [ ] fix_ingredients がない distiller output を implementer に渡さなかった

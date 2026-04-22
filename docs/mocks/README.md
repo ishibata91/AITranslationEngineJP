@@ -12,6 +12,7 @@
 
 - [`dashboard-and-app-shell/index.html`](./dashboard-and-app-shell/index.html)
 - [`master-dictionary/index.html`](./master-dictionary/index.html)
+- [`master-persona/index.html`](./master-persona/index.html)
 
 ## Notes
 

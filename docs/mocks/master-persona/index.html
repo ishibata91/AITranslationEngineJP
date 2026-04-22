@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>マスターペルソナ</title>
+  <style>
+    :root {
+      --bg: #11100e;
+      --panel: rgba(35, 30, 24, 0.9);
+      --panel-soft: rgba(35, 30, 24, 0.62);
+      --panel-low: rgba(255, 255, 255, 0.035);
+      --line: rgba(245, 196, 116, 0.16);
+      --line-strong: rgba(245, 196, 116, 0.32);
+      --text: #f5ede2;
+      --muted: #d2c1a9;
+      --accent: #f5c474;
+      --accent-strong: #ffb84a;
+      --danger: #ff9c7c;
+      --danger-soft: rgba(255, 156, 124, 0.12);
+      --ok: #93d18b;
+      --shadow: 0 26px 70px rgba(0, 0, 0, 0.42);
+      --radius-xl: 22px;
+      --radius-lg: 16px;
+      --radius-md: 12px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--text);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Hiragino Sans", sans-serif;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(245, 196, 116, 0.12), transparent 24%),
+        radial-gradient(circle at 90% 18%, rgba(147, 209, 139, 0.08), transparent 22%),
+        linear-gradient(180deg, #171411 0%, var(--bg) 100%);
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      min-height: 40px;
+      padding: 0 16px;
+      border: 1px solid transparent;
+      border-radius: 999px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: transform 160ms ease, opacity 160ms ease, border-color 160ms ease;
+    }
+
+    button:hover:not(:disabled) {
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      cursor: default;
+      opacity: 0.45;
+    }
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+    h1 {
+      font-size: clamp(34px, 4vw, 54px);
+      line-height: 1.08;
+    }
+
+    h2 {
+      font-size: 26px;
+    }
+
+    h3 {
+      font-size: 22px;
+    }
+
+    p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .page {
+      width: min(1580px, 100%);
+      margin: 0 auto;
+      padding: 28px 24px 40px;
+    }
+
+    .master-persona-shell {
+      display: grid;
+      gap: 18px;
+    }
+
+    .master-persona-panel,
+    .modal-card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(28px);
+    }
+
+    .master-persona-panel {
+      padding: 20px;
+    }
+
+    .overview-panel {
+      display: grid;
+      gap: 14px;
+      padding: 28px;
+    }
+
+    .hero-top,
+    .section-head,
+    .status-row,
+    .inline-actions,
+    .pager-shell {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .eyebrow,
+    .field-label,
+    .column-row,
+    dt {
+      font-size: 12px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    .lead {
+      max-width: 720px;
+      font-size: 16px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      min-height: 34px;
+      padding: 0 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: var(--panel-low);
+      font-size: 13px;
+    }
+
+    .status-accent {
+      color: #3c2400;
+      border-color: transparent;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    }
+
+    .status-danger {
+      color: #ffd1c5;
+      border-color: rgba(255, 156, 124, 0.32);
+      background: var(--danger-soft);
+    }
+
+    .button-primary {
+      color: #3c2400;
+      background: linear-gradient(135deg, var(--accent) 0%, var(--accent-strong) 100%);
+    }
+
+    .button-secondary {
+      color: var(--text);
+      border-color: var(--line);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .button-danger {
+      color: #35150d;
+      background: linear-gradient(135deg, #ffc0ab 0%, var(--danger) 100%);
+    }
+
+    .generator-grid {
+      display: grid;
+      grid-template-columns: minmax(250px, 0.9fr) minmax(320px, 1.3fr) minmax(300px, 1fr);
+      gap: 18px;
+      align-items: stretch;
+    }
+
+    .field-group {
+      display: grid;
+      gap: 8px;
+    }
+
+    .master-persona-panel .field-group + .field-group {
+      margin-top: 12px;
+    }
+
+    .text-field,
+    .select-field,
+    .search-field,
+    .textarea-field {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      outline: none;
+    }
+
+    .text-field,
+    .select-field,
+    .search-field {
+      min-height: 42px;
+      padding: 0 12px;
+    }
+
+    .textarea-field {
+      min-height: 110px;
+      resize: vertical;
+      padding: 12px;
+      line-height: 1.6;
+    }
+
+    .prompt-copy,
+    .error-text,
+    .empty-state {
+      margin-top: 14px;
+      padding: 12px;
+      border-radius: var(--radius-md);
+      color: var(--muted);
+      background: rgba(255, 255, 255, 0.035);
+      border: 1px solid var(--line);
+      line-height: 1.55;
+    }
+
+    .error-text {
+      color: #ffd1c5;
+      border-color: rgba(255, 156, 124, 0.32);
+      background: var(--danger-soft);
+    }
+
+    .stats-grid,
+    .run-grid,
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .stat-card,
+    .run-card,
+    .detail-card {
+      min-height: 92px;
+      display: grid;
+      gap: 8px;
+      align-content: center;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: var(--panel-low);
+    }
+
+    .stat-card strong,
+    .run-card strong,
+    .detail-card strong {
+      font-size: 26px;
+    }
+
+    .preview-actions,
+    .run-actions {
+      margin-top: 14px;
+    }
+
+    .compact-actions {
+      justify-content: flex-start;
+    }
+
+    .progress-track {
+      height: 14px;
+      margin-top: 16px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.045);
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent) 0%, var(--ok) 100%);
+      transition: width 180ms ease;
+    }
+
+    .workspace-grid {
+      display: grid;
+      grid-template-columns: minmax(520px, 1.2fr) minmax(360px, 0.8fr);
+      gap: 18px;
+      align-items: start;
+    }
+
+    .toolbar-grid {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(220px, 0.7fr);
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .column-row,
+    .list-row {
+      display: grid;
+      grid-template-columns: 1fr 1.15fr 1.3fr minmax(140px, 0.7fr);
+      gap: 12px;
+      align-items: center;
+    }
+
+    .column-row {
+      padding: 14px 12px 8px;
+    }
+
+    .list-stack {
+      display: grid;
+      gap: 10px;
+    }
+
+    .list-row {
+      width: 100%;
+      min-height: 78px;
+      padding: 12px;
+      color: var(--text);
+      text-align: left;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-lg);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .list-row.is-selected {
+      border-color: var(--line-strong);
+      background: rgba(245, 196, 116, 0.08);
+    }
+
+    .row-cell {
+      display: grid;
+      gap: 5px;
+      min-width: 0;
+    }
+
+    .row-cell span,
+    .row-id,
+    .mini-text {
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .row-cell strong,
+    .detail-title strong {
+      overflow-wrap: anywhere;
+    }
+
+    .pager-shell {
+      margin-top: 14px;
+    }
+
+    .detail-title {
+      display: grid;
+      gap: 8px;
+      margin-top: 16px;
+    }
+
+    .detail-title strong {
+      font-size: 32px;
+    }
+
+    .detail-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .detail-list {
+      display: grid;
+      gap: 12px;
+      margin: 16px 0 0;
+    }
+
+    .detail-list div {
+      display: grid;
+      gap: 6px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    dd {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.6;
+    }
+
+    .notice-card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-xl);
+      background: rgba(255, 255, 255, 0.035);
+    }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      place-items: center;
+      padding: 22px;
+      background: rgba(0, 0, 0, 0.62);
+      z-index: 10;
+    }
+
+    .modal-backdrop.is-open {
+      display: grid;
+    }
+
+    .modal-card {
+      width: min(760px, 100%);
+      max-height: min(760px, 92vh);
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 16px;
+    }
+
+    .textarea-group {
+      grid-column: 1 / -1;
+    }
+
+    body[data-state="no-json"] .json-selected-only,
+    body[data-state="empty"] .has-results-only {
+      display: none;
+    }
+
+    body[data-state="running"] .mutate-action,
+    body[data-state="running"] #executeGenerationButton {
+      pointer-events: none;
+      opacity: 0.45;
+    }
+
+    @media (max-width: 1080px) {
+      .generator-grid,
+      .workspace-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .column-row,
+      .list-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media (max-width: 720px) {
+      .page {
+        padding: 18px 14px 30px;
+      }
+
+      .overview-panel,
+      .master-persona-panel {
+        padding: 16px;
+      }
+
+      .toolbar-grid,
+      .stats-grid,
+      .run-grid,
+      .detail-grid,
+      .form-grid,
+      .column-row,
+      .list-row {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body data-state="ready">
+  <main class="page">
+    <section class="master-persona-shell" id="masterPersonaView">
+      <section class="master-persona-panel overview-panel">
+        <div class="hero-top">
+          <div>
+            <p class="eyebrow">AI生成</p>
+            <h1>JSONから NPC ペルソナを生成</h1>
+          </div>
+          <div class="status-row">
+            <span class="status-pill status-accent" id="runStatePill">入力待ち</span>
+            <span class="status-pill">Gateway: 接続準備済み</span>
+          </div>
+        </div>
+        <p class="lead">
+          extractData.pas JSON を入力にして、未生成のマスターペルソナだけを追加します。
+        </p>
+        <p class="error-text" id="masterPersonaError" hidden>
+          JSON を選び直してから preview を更新してください。
+        </p>
+      </section>
+
+      <section class="generator-grid">
+        <section class="master-persona-panel" aria-labelledby="settingsHeading">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">AI 設定</p>
+              <h2 id="settingsHeading">この画面で使う設定</h2>
+            </div>
+            <span class="status-pill">Gemini</span>
+          </div>
+
+          <label class="field-group" for="providerSelect">
+            <span class="field-label">AI サービス</span>
+            <select class="select-field" id="providerSelect">
+              <option selected>Gemini</option>
+              <option>LM Studio</option>
+              <option>xAI</option>
+            </select>
+          </label>
+
+          <label class="field-group" for="modelInput">
+            <span class="field-label">モデル</span>
+            <input class="text-field" id="modelInput" value="gemini-2.5-pro">
+          </label>
+
+          <label class="field-group" for="apiKeyInput">
+            <span class="field-label">API キー</span>
+            <input class="text-field" id="apiKeyInput" value="********" type="password">
+          </label>
+
+          <div class="prompt-copy">
+            プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。
+          </div>
+
+          <div class="inline-actions run-actions">
+            <span class="mini-text">設定保存済み</span>
+            <button class="button-secondary" type="button">設定を保存</button>
+          </div>
+        </section>
+
+        <section class="master-persona-panel" aria-labelledby="previewHeading">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">入力ファイル</p>
+              <h2 id="previewHeading">Skyrim_Actors.json</h2>
+            </div>
+            <div class="inline-actions compact-actions">
+              <button class="button-secondary" id="chooseJsonButton" type="button">JSON を選ぶ</button>
+              <button class="button-secondary json-selected-only" id="resetJsonButton" type="button">選び直す</button>
+            </div>
+          </div>
+
+          <div class="stats-grid" id="previewStats">
+            <article class="stat-card">
+              <span class="field-label">候補数</span>
+              <strong id="candidateCount">840</strong>
+            </article>
+            <article class="stat-card">
+              <span class="field-label">新規追加可能</span>
+              <strong id="newlyAddableCount">228</strong>
+            </article>
+            <article class="stat-card">
+              <span class="field-label">既存</span>
+              <strong id="existingCount">612</strong>
+            </article>
+          </div>
+
+          <div class="status-row preview-actions">
+            <div class="inline-actions compact-actions">
+              <span class="status-pill">作成済みのペルソナはスキップされます</span>
+              <span class="status-pill" id="previewStatus">preview 状態: 生成可能</span>
+            </div>
+            <div class="inline-actions compact-actions">
+              <button class="button-secondary json-selected-only" id="previewButton" type="button">preview を更新</button>
+              <button class="button-primary json-selected-only" id="executeGenerationButton" type="button">この JSON で生成</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="master-persona-panel run-panel" aria-labelledby="runHeading">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">進行状況</p>
+              <h2 id="runHeading">生成前の確認</h2>
+            </div>
+            <span class="status-pill" id="detailLockText">更新と削除を行えます</span>
+          </div>
+
+          <div class="progress-track">
+            <div class="progress-fill" id="runProgressFill"></div>
+          </div>
+
+          <div class="run-grid">
+            <div class="run-card">
+              <span class="field-label">完了件数</span>
+              <strong id="processedCount">0</strong>
+            </div>
+            <div class="run-card">
+              <span class="field-label">いま処理中の NPC</span>
+              <strong id="currentActorLabel">-</strong>
+            </div>
+            <div class="run-card">
+              <span class="field-label">現在の状態</span>
+              <strong id="runStateText">入力待ち</strong>
+            </div>
+          </div>
+
+          <div class="status-row run-actions">
+            <span class="status-pill">作成済み <span id="successCount">0</span></span>
+            <span class="status-pill">既に作成済み <span id="existingSkipCount">612</span></span>
+          </div>
+
+          <div class="inline-actions run-actions">
+            <span class="mini-text">一覧と詳細は見続けられます。</span>
+            <div class="inline-actions compact-actions">
+              <button class="button-secondary" id="interruptGenerationButton" type="button" disabled>一時停止</button>
+              <button class="button-secondary" id="cancelGenerationButton" type="button" disabled>停止</button>
+            </div>
+          </div>
+        </section>
+      </section>
+
+      <section class="workspace-grid">
+        <section class="master-persona-panel" aria-labelledby="listHeading">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">一覧</p>
+              <h2 id="listHeading">ペルソナ一覧</h2>
+              <p class="mini-text" id="pageStatusText">1 - 30 件を表示しています。</p>
+            </div>
+            <span class="status-pill" id="listHeadline">840 件から絞り込みます。</span>
+          </div>
+
+          <div class="toolbar-grid">
+            <label class="field-group" for="masterPersonaSearchInput">
+              <span class="field-label">検索</span>
+              <input class="search-field" id="masterPersonaSearchInput" type="search" value="Serana" placeholder="名前 / FormID / EditorID / 種族 / voice で検索">
+            </label>
+            <label class="field-group" for="masterPersonaPluginSelect">
+              <span class="field-label">プラグイン</span>
+              <select class="select-field" id="masterPersonaPluginSelect">
+                <option>Dawnguard.esm (612)</option>
+                <option selected>すべてのプラグイン</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="column-row" aria-hidden="true">
+            <span>NPC</span>
+            <span>識別情報</span>
+            <span>ペルソナ要約</span>
+            <span>収録先</span>
+          </div>
+
+          <div class="list-stack has-results-only" aria-live="polite">
+            <button class="list-row is-selected" type="button">
+              <div class="row-cell">
+                <strong>Serana</strong>
+                <span>FemaleYoungEager</span>
+              </div>
+              <div class="row-cell">
+                <span>02002B6C / DLC1Serana</span>
+                <span>クラス: Vampire</span>
+              </div>
+              <div class="row-cell">
+                <span>警戒心が強く、必要な時だけ距離を詰める。</span>
+                <span>Nord</span>
+              </div>
+              <div class="row-id">Dawnguard.esm</div>
+            </button>
+
+            <button class="list-row" type="button">
+              <div class="row-cell">
+                <strong>Isran</strong>
+                <span>MaleCommander</span>
+              </div>
+              <div class="row-cell">
+                <span>0200336A / DLC1Isran</span>
+                <span>クラス: DawnguardLeader</span>
+              </div>
+              <div class="row-cell">
+                <span>現実主義で、脅威への備えを優先する。</span>
+                <span>Nord</span>
+              </div>
+              <div class="row-id">Dawnguard.esm</div>
+            </button>
+          </div>
+
+          <div class="empty-state" id="emptyState" hidden>一致するペルソナがありません</div>
+
+          <div class="pager-shell">
+            <span class="mini-text" id="selectionStatusText">Serana を選択中</span>
+            <div class="inline-actions compact-actions">
+              <button class="button-secondary" type="button" disabled>前の30件</button>
+              <button class="button-secondary" type="button">次の30件</button>
+            </div>
+          </div>
+        </section>
+
+        <section class="master-persona-panel" aria-labelledby="detailHeading">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">詳細</p>
+              <h2 id="detailHeading">選択中のペルソナ</h2>
+              <p class="mini-text" id="detailStatusText">更新と削除を行えます。</p>
+            </div>
+            <div class="inline-actions compact-actions">
+              <button class="button-secondary mutate-action" id="editButton" type="button">更新</button>
+              <button class="button-danger mutate-action" id="deleteButton" type="button">削除</button>
+            </div>
+          </div>
+
+          <div class="detail-title">
+            <div class="status-row">
+              <span class="status-pill">FemaleYoungEager</span>
+            </div>
+            <strong id="detailTitle">Serana</strong>
+            <p class="mini-text">FormID 02002B6C / EditorID DLC1Serana / Dawnguard.esm</p>
+          </div>
+
+          <div class="detail-grid">
+            <article class="detail-card">
+              <span class="field-label">voice</span>
+              <strong>FemaleYoungEager</strong>
+            </article>
+            <article class="detail-card">
+              <span class="field-label">class</span>
+              <strong>Vampire</strong>
+            </article>
+          </div>
+
+          <dl class="detail-list">
+            <div>
+              <dt>名前</dt>
+              <dd>Serana</dd>
+            </div>
+            <div>
+              <dt>source</dt>
+              <dd>Dawnguard.esm</dd>
+            </div>
+            <div>
+              <dt>ペルソナ要約</dt>
+              <dd>警戒心が強く、必要な時だけ距離を詰める。</dd>
+            </div>
+            <div>
+              <dt>ペルソナ本文</dt>
+              <dd>長い孤立経験を背景に、相手を観察してから信頼する。軽口には反応するが、核心に触れる話題では慎重になる。</dd>
+            </div>
+          </dl>
+        </section>
+      </section>
+
+      <section class="notice-card no-json-only" id="noJsonNotice" hidden>
+        <div class="section-head">
+          <div>
+            <p class="eyebrow">入力ファイル</p>
+            <h2>入力 JSON が未選択です</h2>
+            <p>生成を始めるには JSON を選び、新規に追加できる NPC がいるか確認してください。</p>
+          </div>
+          <button class="button-primary" id="chooseJsonFromNoticeButton" type="button">JSON を選ぶ</button>
+        </div>
+      </section>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="editModal" role="dialog" aria-hidden="true">
+    <section class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">更新</p>
+          <h2>ペルソナを編集</h2>
+        </div>
+        <button class="button-secondary close-modal" type="button">閉じる</button>
+      </div>
+
+      <div class="form-grid">
+        <label class="field-group textarea-group" for="editPersonaSummaryInput">
+          <span class="field-label">ペルソナ概要</span>
+          <textarea class="textarea-field" id="editPersonaSummaryInput">警戒心が強く、必要な時だけ距離を詰める。</textarea>
+        </label>
+        <label class="field-group" for="editSpeechStyleInput">
+          <span class="field-label">話し方</span>
+          <input class="text-field" id="editSpeechStyleInput" value="短く皮肉を含める">
+        </label>
+        <label class="field-group textarea-group" for="editPersonaBodyInput">
+          <span class="field-label">ペルソナ本文</span>
+          <textarea class="textarea-field" id="editPersonaBodyInput">長い孤立経験を背景に、相手を観察してから信頼する。軽口には反応するが、核心に触れる話題では慎重になる。</textarea>
+        </label>
+      </div>
+
+      <div class="inline-actions compact-actions run-actions">
+        <button class="button-secondary close-modal" type="button">キャンセル</button>
+        <button class="button-primary close-modal" type="button">更新する</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="deleteModal" role="dialog" aria-hidden="true">
+    <section class="modal-card">
+      <div class="section-head">
+        <div>
+          <p class="eyebrow">削除</p>
+          <h2>ペルソナを削除しますか</h2>
+        </div>
+        <button class="button-secondary close-modal" type="button">閉じる</button>
+      </div>
+
+      <dl class="detail-list">
+        <div>
+          <dt>名前</dt>
+          <dd>Serana</dd>
+        </div>
+        <div>
+          <dt>FormID</dt>
+          <dd>02002B6C</dd>
+        </div>
+        <div>
+          <dt>EditorID</dt>
+          <dd>DLC1Serana</dd>
+        </div>
+      </dl>
+
+      <div class="inline-actions compact-actions run-actions">
+        <button class="button-secondary close-modal" type="button">キャンセル</button>
+        <button class="button-danger close-modal" type="button">削除する</button>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const body = document.body
+    const runStatePill = document.getElementById("runStatePill")
+    const runStateText = document.getElementById("runStateText")
+    const runHeading = document.getElementById("runHeading")
+    const runProgressFill = document.getElementById("runProgressFill")
+    const processedCount = document.getElementById("processedCount")
+    const currentActorLabel = document.getElementById("currentActorLabel")
+    const successCount = document.getElementById("successCount")
+    const previewHeading = document.getElementById("previewHeading")
+    const previewStatus = document.getElementById("previewStatus")
+    const detailLockText = document.getElementById("detailLockText")
+    const detailStatusText = document.getElementById("detailStatusText")
+    const noJsonNotice = document.getElementById("noJsonNotice")
+    const emptyState = document.getElementById("emptyState")
+    const interruptButton = document.getElementById("interruptGenerationButton")
+    const cancelButton = document.getElementById("cancelGenerationButton")
+    const errorText = document.getElementById("masterPersonaError")
+
+    function setState(nextState) {
+      body.dataset.state = nextState
+      const noJson = nextState === "no-json"
+      const running = nextState === "running"
+      const empty = nextState === "empty"
+
+      noJsonNotice.hidden = !noJson
+      emptyState.hidden = !empty
+      errorText.hidden = nextState !== "error"
+
+      previewHeading.textContent = noJson ? "JSON 未選択" : "Skyrim_Actors.json"
+      previewStatus.textContent = noJson ? "preview 状態: 入力待ち" : "preview 状態: 生成可能"
+      runStatePill.textContent = running ? "生成中" : "入力待ち"
+      runStateText.textContent = running ? "生成中" : "入力待ち"
+      runHeading.textContent = running ? "ペルソナを作成中" : "生成前の確認"
+      runProgressFill.style.width = running ? "42%" : "0%"
+      processedCount.textContent = running ? "372" : "0"
+      currentActorLabel.textContent = running ? "Serana" : "-"
+      successCount.textContent = running ? "372" : "0"
+      detailLockText.textContent = running ? "更新と削除を行えません" : "更新と削除を行えます"
+      detailLockText.classList.toggle("status-danger", running)
+      detailStatusText.textContent = running ? "更新と削除を行えません" : "更新と削除を行えます。"
+      interruptButton.disabled = !running
+      cancelButton.disabled = !running
+    }
+
+    function openModal(id) {
+      const modal = document.getElementById(id)
+      modal.classList.add("is-open")
+      modal.setAttribute("aria-hidden", "false")
+    }
+
+    function closeModals() {
+      for (const modal of document.querySelectorAll(".modal-backdrop")) {
+        modal.classList.remove("is-open")
+        modal.setAttribute("aria-hidden", "true")
+      }
+    }
+
+    document.getElementById("chooseJsonButton").addEventListener("click", () => setState("ready"))
+    document.getElementById("chooseJsonFromNoticeButton").addEventListener("click", () => setState("ready"))
+    document.getElementById("resetJsonButton").addEventListener("click", () => setState("no-json"))
+    document.getElementById("previewButton").addEventListener("click", () => setState("ready"))
+    document.getElementById("executeGenerationButton").addEventListener("click", () => setState("running"))
+    interruptButton.addEventListener("click", () => setState("ready"))
+    cancelButton.addEventListener("click", () => setState("ready"))
+    document.getElementById("editButton").addEventListener("click", () => openModal("editModal"))
+    document.getElementById("deleteButton").addEventListener("click", () => openModal("deleteModal"))
+
+    for (const button of document.querySelectorAll(".close-modal")) {
+      button.addEventListener("click", closeModals)
+    }
+  </script>
+</body>
+</html>

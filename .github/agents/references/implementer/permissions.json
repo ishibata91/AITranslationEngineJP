@@ -16,7 +16,7 @@
     "criteria mismatch: insufficient_context_criteria に一致しない理由で insufficient_context を返す",
     "product test を追加または更新する",
     "test fixture、snapshot、test helper、expectation を変更する",
-    "coverage、harness all、Sonar gate を implementer closeout の必須作業にする",
+    "coverage、harness all、repo-local Sonar issue gate を implementer closeout の必須作業にする",
     "docs 配下を変更する",
     ".codex 配下を変更する",
     ".github/skills または .github/agents を変更する",

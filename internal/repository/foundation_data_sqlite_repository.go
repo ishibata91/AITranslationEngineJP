@@ -95,12 +95,7 @@ type personaFieldEvidenceRow struct {
 }
 
 func (r personaFieldEvidenceRow) toModel() PersonaFieldEvidence {
-	return PersonaFieldEvidence{
-		ID:                 r.ID,
-		PersonaID:          r.PersonaID,
-		TranslationFieldID: r.TranslationFieldID,
-		EvidenceRole:       r.EvidenceRole,
-	}
+	return PersonaFieldEvidence(r)
 }
 
 type dictionaryEntryRow struct {

@@ -17,7 +17,7 @@ agent contract の権限や output obligation は上書きしない。
 
 - single_handoff_packet、lane_context_packet、owned_scope を review の正本にする。
 - docs、`.codex`、`.github` workflow 文書の変更が混ざっていないか見る。
-- backend では layer boundary、secret logging、error leakage、Sonar gate を見る。
+- backend では layer boundary、secret logging、error leakage、repo-local Sonar issue gate を見る。
 - frontend では Wails gateway、state、console error、visible UI evidence を見る。
 - coverage は Sonar-compatible coverage 70% 以上を pass 条件にする。
 - harness は `python3 scripts/harness/run.py --suite all` の evidence を確認する。
@@ -28,6 +28,6 @@ agent contract の権限や output obligation は上書きしない。
 - hardcoded secret、token、API key、個人情報 log がある。
 - input validation、authorization、transaction / rollback、timeout が抜けている。
 - empty catch、silent fallback、generic success が failure を隠している。
-- Sonar Security / Reliability issue または Maintainability HIGH/BLOCKER が残っている。
+- repo-local gate 上の Sonar Security / Reliability issue または Maintainability HIGH/BLOCKER が残っている。
 - coverage 70% 未満、または harness all 未実行のまま pass 判定している。
 - review finding が scope 外の好みや将来改善になっている。

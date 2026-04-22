@@ -60,13 +60,7 @@ type translationRecordRow struct {
 }
 
 func (r translationRecordRow) toModel() TranslationRecord {
-	return TranslationRecord{
-		ID:                   r.ID,
-		XEditExtractedDataID: r.XEditExtractedDataID,
-		FormID:               r.FormID,
-		EditorID:             r.EditorID,
-		RecordType:           r.RecordType,
-	}
+	return TranslationRecord(r)
 }
 
 type npcProfileRow struct {
@@ -111,14 +105,7 @@ type npcRecordRow struct {
 }
 
 func (r npcRecordRow) toModel() NpcRecord {
-	return NpcRecord{
-		TranslationRecordID: r.TranslationRecordID,
-		NpcProfileID:        r.NpcProfileID,
-		Race:                r.Race,
-		Sex:                 r.Sex,
-		NpcClass:            r.NpcClass,
-		VoiceType:           r.VoiceType,
-	}
+	return NpcRecord(r)
 }
 
 type translationFieldRow struct {
@@ -133,16 +120,7 @@ type translationFieldRow struct {
 }
 
 func (r translationFieldRow) toModel() TranslationField {
-	return TranslationField{
-		ID:                           r.ID,
-		TranslationRecordID:          r.TranslationRecordID,
-		TranslationFieldDefinitionID: r.TranslationFieldDefinitionID,
-		SubrecordType:                r.SubrecordType,
-		SourceText:                   r.SourceText,
-		FieldOrder:                   r.FieldOrder,
-		PreviousTranslationFieldID:   r.PreviousTranslationFieldID,
-		NextTranslationFieldID:       r.NextTranslationFieldID,
-	}
+	return TranslationField(r)
 }
 
 type translationFieldRecordReferenceRow struct {
@@ -153,12 +131,7 @@ type translationFieldRecordReferenceRow struct {
 }
 
 func (r translationFieldRecordReferenceRow) toModel() TranslationFieldRecordReference {
-	return TranslationFieldRecordReference{
-		ID:                            r.ID,
-		TranslationFieldID:            r.TranslationFieldID,
-		ReferencedTranslationRecordID: r.ReferencedTranslationRecordID,
-		ReferenceRole:                 r.ReferenceRole,
-	}
+	return TranslationFieldRecordReference(r)
 }
 
 // ---------------------------------------------------------------------------
@@ -433,14 +406,7 @@ func (r *SQLiteTranslationSourceRepository) CreateNpcRecord(
 	draft NpcRecordDraft,
 ) (NpcRecord, error) {
 	ext := extractTx(ctx, r.db)
-	row := npcRecordRow{
-		TranslationRecordID: draft.TranslationRecordID,
-		NpcProfileID:        draft.NpcProfileID,
-		Race:                draft.Race,
-		Sex:                 draft.Sex,
-		NpcClass:            draft.NpcClass,
-		VoiceType:           draft.VoiceType,
-	}
+	row := npcRecordRow(draft)
 	q, args, err := sqlx.Named(insertNpcRecord, row)
 	if err != nil {
 		return NpcRecord{}, fmt.Errorf("create npc_record named: %w", err)

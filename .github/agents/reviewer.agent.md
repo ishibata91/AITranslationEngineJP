@@ -35,7 +35,7 @@ review 種別の違いは focused skill で扱い、active contract はこの ag
 ## Source Of Truth
 
 - primary: `single_handoff_packet`、`lane_context_packet`、review 対象 diff
-- secondary: validation results、ui evidence、sonar gate
+- secondary: validation results、ui evidence、repo-local Sonar issue gate
 - forbidden source: 好み、将来改善、未承認 design、scope 外の理想状態
 
 ## Permissions
@@ -56,7 +56,8 @@ contract は agent 1:1 で、UI check と implementation review は focused skil
 
 - confidence の高い finding だけを返し、好みや推測を混ぜない。
 - severity は security、correctness、regression、silent failure、test gap を優先する。
-- coverage 70% 未満、Sonar gate 未達、harness 未実行は release-blocking finding として扱う。
+- coverage 70% 未満、repo-local Sonar issue gate 未達、blocked reason のない harness 未実行は release-blocking finding として扱う。
+- `npm run test:system` または harness all が Wails、sandbox、OS 権限で止まる場合は `FAIL_ENVIRONMENT` とし、product failure として reroute しない。
 - diff だけでなく call site、周辺 code、依存境界を読む。
 - single_handoff_packet と lane_context_packet を正本にし、未承認 design review は行わない。
 - finding は再現可能で、修正先が明確なものに限る。
@@ -66,7 +67,7 @@ contract は agent 1:1 で、UI check と implementation review は focused skil
 1. review_target、single_handoff_packet、lane_context_packet を確認する。
 2. diff、surrounding code、call site、validation result を読む。
 3. security、correctness、regression、silent failure、test / validation gap の順に確認する。
-4. coverage、Sonar、harness の evidence が gate を満たすか確認する。
+4. coverage、repo-local Sonar issue gate、harness の evidence が gate を満たすか確認する。
 5. confidence の低い style 指摘や将来改善は捨てる。
 6. decision、findings、recheck、evidence、open_questions を返す。
 

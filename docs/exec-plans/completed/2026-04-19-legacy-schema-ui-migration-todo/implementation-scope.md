@@ -289,7 +289,7 @@
 [$implementation-orchestrate](.github/skills/implementation-orchestrate/SKILL.md)
 
 Use the approved implementation scope:
-docs/exec-plans/active/2026-04-19-legacy-schema-ui-migration-todo/implementation-scope.md
+docs/exec-plans/completed/2026-04-19-legacy-schema-ui-migration-todo/implementation-scope.md
 
 Implement the handoffs in order. Treat each handoff as one RunSubagent lane. Do not edit docs, .codex, .github/skills, or .github/agents. Use fake AI transport in tests. If a lane is still too large, stop and return a proposed backend-contract / frontend-UI split for that lane instead of continuing partially. Return the completion packet defined in the implementation scope.
 ```
