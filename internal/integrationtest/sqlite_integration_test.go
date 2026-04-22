@@ -566,20 +566,26 @@ func TestSCN_SMR_005_TransactionRollbackOnFKError(t *testing.T) {
 // SCN-SMR-003 補強: TranslationFieldRecordReference ラウンドトリップ
 // ---------------------------------------------------------------------------
 
-// TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip は
-// ordered field (previous_translation_field_id) と別 record への reference を保存し、
-// DB reopen 後に ListTranslationFieldRecordReferencesByFieldID で復元できることを検証する。
-func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
-	ctx := context.Background()
-	dbPath := filepath.Join(t.TempDir(), "ref_roundtrip.sqlite3")
+// refRoundTripIDs は setupRefRoundTripDB1Phase が返す ID 群。
+type refRoundTripIDs struct {
+	fieldID  int64
+	field2ID int64
+	refRecID int64
+}
 
-	var fieldID, field2ID, refRecID int64
-
-	// --- 第1オープン: データ保存 ---
+// setupRefRoundTripDB1Phase は TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip の
+// 第1オープン保存フェーズを切り出す。認知複雑度を分散させるためのヘルパー。
+func setupRefRoundTripDB1Phase(t *testing.T, ctx context.Context, dbPath string) refRoundTripIDs {
+	t.Helper()
 	db1, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
 	if err != nil {
 		t.Fatalf("first open failed: %v", err)
 	}
+	defer func() {
+		if closeErr := db1.Close(); closeErr != nil {
+			t.Fatalf("close db1 failed: %v", closeErr)
+		}
+	}()
 	repo1 := repository.NewSQLiteTranslationSourceRepository(db1)
 
 	xEdit, err := repo1.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
@@ -591,11 +597,8 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 		ImportedAt:       fixedNow,
 	})
 	if err != nil {
-		_ = db1.Close()
 		t.Fatalf("CreateXEditExtractedData failed: %v", err)
 	}
-
-	// ソースレコード
 	rec1, err := repo1.CreateTranslationRecord(ctx, repository.TranslationRecordDraft{
 		XEditExtractedDataID: xEdit.ID,
 		FormID:               "000001AA",
@@ -603,11 +606,8 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 		RecordType:           "NPC_",
 	})
 	if err != nil {
-		_ = db1.Close()
 		t.Fatalf("CreateTranslationRecord (rec1) failed: %v", err)
 	}
-
-	// 参照先レコード
 	rec2, err := repo1.CreateTranslationRecord(ctx, repository.TranslationRecordDraft{
 		XEditExtractedDataID: xEdit.ID,
 		FormID:               "000002BB",
@@ -615,12 +615,8 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 		RecordType:           "NPC_",
 	})
 	if err != nil {
-		_ = db1.Close()
 		t.Fatalf("CreateTranslationRecord (rec2) failed: %v", err)
 	}
-	refRecID = rec2.ID
-
-	// field1 (order 0)
 	field1, err := repo1.CreateTranslationField(ctx, repository.TranslationFieldDraft{
 		TranslationRecordID: rec1.ID,
 		SubrecordType:       "FULL",
@@ -628,12 +624,8 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 		FieldOrder:          0,
 	})
 	if err != nil {
-		_ = db1.Close()
 		t.Fatalf("CreateTranslationField (field1) failed: %v", err)
 	}
-	fieldID = field1.ID
-
-	// field2 は previous = field1 (ordered field の previous/next 検証)
 	field2, err := repo1.CreateTranslationField(ctx, repository.TranslationFieldDraft{
 		TranslationRecordID:        rec1.ID,
 		SubrecordType:              "DESC",
@@ -642,25 +634,28 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 		PreviousTranslationFieldID: &field1.ID,
 	})
 	if err != nil {
-		_ = db1.Close()
 		t.Fatalf("CreateTranslationField (field2) failed: %v", err)
 	}
-	field2ID = field2.ID
-
-	// record reference を保存
 	_, err = repo1.CreateTranslationFieldRecordReference(ctx, repository.TranslationFieldRecordReferenceDraft{
 		TranslationFieldID:            field1.ID,
 		ReferencedTranslationRecordID: rec2.ID,
 		ReferenceRole:                 "target",
 	})
 	if err != nil {
-		_ = db1.Close()
 		t.Fatalf("CreateTranslationFieldRecordReference failed: %v", err)
 	}
+	return refRoundTripIDs{fieldID: field1.ID, field2ID: field2.ID, refRecID: rec2.ID}
+}
 
-	if closeErr := db1.Close(); closeErr != nil {
-		t.Fatalf("close db1 failed: %v", closeErr)
-	}
+// TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip は
+// ordered field (previous_translation_field_id) と別 record への reference を保存し、
+// DB reopen 後に ListTranslationFieldRecordReferencesByFieldID で復元できることを検証する。
+func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
+	ctx := context.Background()
+	dbPath := filepath.Join(t.TempDir(), "ref_roundtrip.sqlite3")
+
+	// --- 第1オープン: データ保存 ---
+	ids := setupRefRoundTripDB1Phase(t, ctx, dbPath)
 
 	// --- 第2オープン: 読み込み確認 ---
 	db2, err := sqlitedbinit.OpenMasterDictionaryDatabase(ctx, dbPath, nil)
@@ -671,32 +666,32 @@ func TestSCN_SMR_003_TranslationFieldRecordReferenceRoundTrip(t *testing.T) {
 
 	repo2 := repository.NewSQLiteTranslationSourceRepository(db2)
 
-	refs, err := repo2.ListTranslationFieldRecordReferencesByFieldID(ctx, fieldID)
+	refs, err := repo2.ListTranslationFieldRecordReferencesByFieldID(ctx, ids.fieldID)
 	if err != nil {
 		t.Fatalf("ListTranslationFieldRecordReferencesByFieldID failed: %v", err)
 	}
 	if len(refs) != 1 {
 		t.Fatalf("expected 1 record reference, got %d", len(refs))
 	}
-	if refs[0].ReferencedTranslationRecordID != refRecID {
-		t.Fatalf("expected ReferencedTranslationRecordID=%d, got %d", refRecID, refs[0].ReferencedTranslationRecordID)
+	if refs[0].ReferencedTranslationRecordID != ids.refRecID {
+		t.Fatalf("expected ReferencedTranslationRecordID=%d, got %d", ids.refRecID, refs[0].ReferencedTranslationRecordID)
 	}
 	if refs[0].ReferenceRole != "target" {
 		t.Fatalf("expected ReferenceRole=target, got %q", refs[0].ReferenceRole)
 	}
-	if refs[0].TranslationFieldID != fieldID {
-		t.Fatalf("expected TranslationFieldID=%d, got %d", fieldID, refs[0].TranslationFieldID)
+	if refs[0].TranslationFieldID != ids.fieldID {
+		t.Fatalf("expected TranslationFieldID=%d, got %d", ids.fieldID, refs[0].TranslationFieldID)
 	}
 
 	// ordered field の previous link 復元確認
-	gotField2, err := repo2.GetTranslationFieldByID(ctx, field2ID)
+	gotField2, err := repo2.GetTranslationFieldByID(ctx, ids.field2ID)
 	if err != nil {
 		t.Fatalf("GetTranslationFieldByID (field2) after reopen failed: %v", err)
 	}
 	if gotField2.PreviousTranslationFieldID == nil {
 		t.Error("expected non-nil PreviousTranslationFieldID for field2 after reopen, got nil")
-	} else if *gotField2.PreviousTranslationFieldID != fieldID {
-		t.Errorf("expected PreviousTranslationFieldID=%d, got %d", fieldID, *gotField2.PreviousTranslationFieldID)
+	} else if *gotField2.PreviousTranslationFieldID != ids.fieldID {
+		t.Errorf("expected PreviousTranslationFieldID=%d, got %d", ids.fieldID, *gotField2.PreviousTranslationFieldID)
 	}
 }
 
@@ -1005,18 +1000,23 @@ func TestSCN_SMR_002_XTranslatorTranslationXML(t *testing.T) {
 // SCN-SMR-004 補強: PhaseRun associations と metadata 保持
 // ---------------------------------------------------------------------------
 
-// TestSCN_SMR_004_PhaseRunAssociations は CreatePhaseRunTranslationField、
-// CreatePhaseRunPersona、CreatePhaseRunDictionaryEntry、UpdateJobPhaseRun の
-// metadata (LatestExternalRunID, LatestError) 保持を検証する。
-func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
-	ctx := context.Background()
-	db := openIntegrationDB(t)
+// phaseRunFixture は arrangePhaseRunFixture が返す Arrange 結果。
+type phaseRunFixture struct {
+	phase   repository.JobPhaseRun
+	jtf     repository.JobTranslationField
+	persona repository.Persona
+	entry   repository.DictionaryEntry
+}
+
+// arrangePhaseRunFixture は TestSCN_SMR_004_PhaseRunAssociations の Arrange フェーズを切り出す。
+// 認知複雑度を分散させるためのヘルパー。
+func arrangePhaseRunFixture(t *testing.T, ctx context.Context, db *sqlx.DB) phaseRunFixture {
+	t.Helper()
 	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
 	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
 	outputRepo := repository.NewSQLiteJobOutputRepository(db)
 	foundRepo := repository.NewSQLiteFoundationDataRepository(db)
 
-	// --- Arrange ---
 	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
 		SourceFilePath:   "phase-assoc.esp",
 		SourceTool:       "xEdit",
@@ -1028,7 +1028,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateXEditExtractedData failed: %v", err)
 	}
-
 	rec, err := sourceRepo.CreateTranslationRecord(ctx, repository.TranslationRecordDraft{
 		XEditExtractedDataID: xEdit.ID,
 		FormID:               "01000ABC",
@@ -1038,7 +1037,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTranslationRecord failed: %v", err)
 	}
-
 	field, err := sourceRepo.CreateTranslationField(ctx, repository.TranslationFieldDraft{
 		TranslationRecordID: rec.ID,
 		SubrecordType:       "FULL",
@@ -1048,7 +1046,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTranslationField failed: %v", err)
 	}
-
 	job, err := jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
 		XEditExtractedDataID: xEdit.ID,
 		JobName:              "phase-assoc-job",
@@ -1058,7 +1055,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateTranslationJob failed: %v", err)
 	}
-
 	jtf, err := outputRepo.CreateJobTranslationField(ctx, repository.JobTranslationFieldDraft{
 		TranslationJobID:   job.ID,
 		TranslationFieldID: field.ID,
@@ -1069,7 +1065,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateJobTranslationField failed: %v", err)
 	}
-
 	profile, err := sourceRepo.UpsertNpcProfile(ctx, repository.NpcProfileDraft{
 		TargetPluginName: "PhaseAssoc.esm",
 		FormID:           "01000ABC",
@@ -1080,7 +1075,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("UpsertNpcProfile failed: %v", err)
 	}
-
 	persona, err := foundRepo.CreatePersona(ctx, repository.PersonaDraft{
 		NpcProfileID:     profile.ID,
 		PersonaLifecycle: "job",
@@ -1090,7 +1084,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreatePersona failed: %v", err)
 	}
-
 	entry, err := foundRepo.CreateDictionaryEntry(ctx, repository.DictionaryEntryDraft{
 		DictionaryLifecycle: "job",
 		DictionaryScope:     "job_local",
@@ -1103,7 +1096,6 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateDictionaryEntry failed: %v", err)
 	}
-
 	phase, err := jobRepo.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
 		TranslationJobID: job.ID,
 		PhaseType:        "translation",
@@ -1118,11 +1110,24 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	if err != nil {
 		t.Fatalf("CreateJobPhaseRun failed: %v", err)
 	}
+	return phaseRunFixture{phase: phase, jtf: jtf, persona: persona, entry: entry}
+}
+
+// TestSCN_SMR_004_PhaseRunAssociations は CreatePhaseRunTranslationField、
+// CreatePhaseRunPersona、CreatePhaseRunDictionaryEntry、UpdateJobPhaseRun の
+// metadata (LatestExternalRunID, LatestError) 保持を検証する。
+func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
+	ctx := context.Background()
+	db := openIntegrationDB(t)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+
+	// --- Arrange ---
+	fix := arrangePhaseRunFixture(t, ctx, db)
 
 	// --- Act ---
 	prtf, err := jobRepo.CreatePhaseRunTranslationField(ctx, repository.PhaseRunTranslationFieldDraft{
-		PhaseRunID:            phase.ID,
-		JobTranslationFieldID: jtf.ID,
+		PhaseRunID:            fix.phase.ID,
+		JobTranslationFieldID: fix.jtf.ID,
 		Role:                  "target",
 	})
 	if err != nil {
@@ -1130,8 +1135,8 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	}
 
 	prp, err := jobRepo.CreatePhaseRunPersona(ctx, repository.PhaseRunPersonaDraft{
-		PhaseRunID: phase.ID,
-		PersonaID:  persona.ID,
+		PhaseRunID: fix.phase.ID,
+		PersonaID:  fix.persona.ID,
 		Role:       "primary",
 	})
 	if err != nil {
@@ -1139,15 +1144,15 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	}
 
 	prde, err := jobRepo.CreatePhaseRunDictionaryEntry(ctx, repository.PhaseRunDictionaryEntryDraft{
-		PhaseRunID:        phase.ID,
-		DictionaryEntryID: entry.ID,
+		PhaseRunID:        fix.phase.ID,
+		DictionaryEntryID: fix.entry.ID,
 		Role:              "context",
 	})
 	if err != nil {
 		t.Fatalf("CreatePhaseRunDictionaryEntry failed: %v", err)
 	}
 
-	updated, err := jobRepo.UpdateJobPhaseRun(ctx, phase.ID, repository.JobPhaseRunUpdateDraft{
+	updated, err := jobRepo.UpdateJobPhaseRun(ctx, fix.phase.ID, repository.JobPhaseRunUpdateDraft{
 		State:               "failed",
 		ProgressPercent:     10,
 		LatestExternalRunID: "batch-run-001",
@@ -1158,17 +1163,17 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	}
 
 	// --- Assert ---
-	if prtf.PhaseRunID != phase.ID {
-		t.Fatalf("expected PhaseRunID=%d, got %d", phase.ID, prtf.PhaseRunID)
+	if prtf.PhaseRunID != fix.phase.ID {
+		t.Fatalf("expected PhaseRunID=%d, got %d", fix.phase.ID, prtf.PhaseRunID)
 	}
-	if prtf.JobTranslationFieldID != jtf.ID {
-		t.Fatalf("expected JobTranslationFieldID=%d, got %d", jtf.ID, prtf.JobTranslationFieldID)
+	if prtf.JobTranslationFieldID != fix.jtf.ID {
+		t.Fatalf("expected JobTranslationFieldID=%d, got %d", fix.jtf.ID, prtf.JobTranslationFieldID)
 	}
-	if prp.PersonaID != persona.ID {
-		t.Fatalf("expected PersonaID=%d, got %d", persona.ID, prp.PersonaID)
+	if prp.PersonaID != fix.persona.ID {
+		t.Fatalf("expected PersonaID=%d, got %d", fix.persona.ID, prp.PersonaID)
 	}
-	if prde.DictionaryEntryID != entry.ID {
-		t.Fatalf("expected DictionaryEntryID=%d, got %d", entry.ID, prde.DictionaryEntryID)
+	if prde.DictionaryEntryID != fix.entry.ID {
+		t.Fatalf("expected DictionaryEntryID=%d, got %d", fix.entry.ID, prde.DictionaryEntryID)
 	}
 	if updated.State != "failed" {
 		t.Fatalf("expected State=failed, got %q", updated.State)
@@ -1181,7 +1186,7 @@ func TestSCN_SMR_004_PhaseRunAssociations(t *testing.T) {
 	}
 
 	// GetJobPhaseRunByID で永続化確認
-	got, err := jobRepo.GetJobPhaseRunByID(ctx, phase.ID)
+	got, err := jobRepo.GetJobPhaseRunByID(ctx, fix.phase.ID)
 	if err != nil {
 		t.Fatalf("GetJobPhaseRunByID failed: %v", err)
 	}

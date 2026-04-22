@@ -53,10 +53,7 @@ func newAppControllerWithSeeds(
 	}
 	foundationDataDB, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
 	if err != nil {
-		closeMasterDictionary := service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter)
-		if closeMasterDictionary != nil {
-			_ = closeMasterDictionary(context.Background())
-		}
+		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
 		panic(fmt.Errorf("open sqlite foundation data database: %w", err))
 	}
 	foundationDataPort := service.NewSQLiteFoundationDataPort(repository.NewSQLiteFoundationDataRepository(foundationDataDB))
@@ -86,18 +83,12 @@ func newAppControllerWithSeeds(
 		masterPersonaSeed,
 	)
 	if err != nil {
-		closeMasterDictionary := service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter)
-		if closeMasterDictionary != nil {
-			_ = closeMasterDictionary(context.Background())
-		}
+		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
 		panic(fmt.Errorf("build sqlite master persona repositories: %w", err))
 	}
 	masterPersonaSecretStore, err := repository.NewMasterPersonaKeyringSecretStore()
 	if err != nil {
-		closeMasterDictionary := service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter)
-		if closeMasterDictionary != nil {
-			_ = closeMasterDictionary(context.Background())
-		}
+		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
 		if closeErr := masterPersonaRepositories.Close(); closeErr != nil {
 			panic(fmt.Errorf("build master persona keyring secret store: %w", errors.Join(err, closeErr)))
 		}
@@ -148,6 +139,13 @@ func newAppControllerWithSeeds(
 			},
 		),
 	)
+}
+
+// tryClose は nil チェック付きで closer を Background コンテキストで呼び出す。
+func tryClose(closer func(context.Context) error) {
+	if closer != nil {
+		_ = closer(context.Background())
+	}
 }
 
 func composeShutdownHooks(shutdownHooks ...func(context.Context) error) func(context.Context) error {

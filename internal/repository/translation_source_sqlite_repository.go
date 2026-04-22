@@ -165,18 +165,20 @@ func (r translationFieldRecordReferenceRow) toModel() TranslationFieldRecordRefe
 // エラー変換ヘルパー
 // ---------------------------------------------------------------------------
 
+const labeledErrorFmt = "%s: %w"
+
 func isUniqueConstraintError(err error) bool {
 	return strings.Contains(err.Error(), "UNIQUE constraint failed")
 }
 
 func mapSQLError(err error, label string) error {
 	if errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("%s: %w", label, ErrNotFound)
+		return fmt.Errorf(labeledErrorFmt, label, ErrNotFound)
 	}
 	if isUniqueConstraintError(err) {
-		return fmt.Errorf("%s: %w", label, ErrConflict)
+		return fmt.Errorf(labeledErrorFmt, label, ErrConflict)
 	}
-	return fmt.Errorf("%s: %w", label, err)
+	return fmt.Errorf(labeledErrorFmt, label, err)
 }
 
 // ---------------------------------------------------------------------------
