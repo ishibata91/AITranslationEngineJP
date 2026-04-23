@@ -10,7 +10,7 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 `updating-docs` は知識 package である。
 `docs_updater` agent が Copilot 修正完了後に human 承認済み artifact を docs 正本へ反映するための、source of truth、承認確認、validation の見方を提供する。
 
-実行権限、agent contract、handoff、stop / reroute は [docs_updater.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.agent.md) が持つ。
+人間可読な実行境界、handoff、stop / reroute はこの skill を正本にする。
 
 ## いつ参照するか
 
@@ -42,6 +42,15 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 - implementation-scope を docs 正本へ自動昇格しない
 - 未確定仕様を独断で補完しない
 
+## Runtime Boundary
+
+- binding: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
+- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/permissions.json)
+- contract: [docs_updater.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/contracts/docs_updater.contract.json)
+- allowed: approved docs-only scope の docs 更新
+- forbidden: product code、product test、workflow contract の変更
+- write scope: `docs/` の承認済み正本だけ
+
 ## 標準パターン
 
 1. Copilot completion report を確認する。
@@ -53,6 +62,19 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は `docs_updater` agent contract に従う。
+
+## Stop / Reroute
+
+- Copilot の修正完了が分からない場合は停止する。
+- approval がない場合は停止する。
+- workflow 変更なら `propose_plans` へ戻す。
+- product 実装が必要なら `propose_plans` へ戻す。
+
+## Handoff
+
+- handoff 先: `propose_plans`
+- 渡す contract: [docs_updater.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/contracts/docs_updater.contract.json)
+- 渡す scope: docs 更新結果、validation、remaining gaps
 
 ## DO / DON'T
 
@@ -76,7 +98,7 @@ DON'T:
 ## References
 
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
-- agent spec: [docs_updater.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.agent.md)
+- binding: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - agent contract: [docs_updater.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/contracts/docs_updater.contract.json)
 
 ## Maintenance

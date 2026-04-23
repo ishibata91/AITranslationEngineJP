@@ -1,11 +1,11 @@
 # Mocks
 
-この directory は、主要導線と状態変化をある程度再現する page mock の正本を置く。
-共通の visual design は `docs/screen-design/` を参照し、この directory では page ごとの挙動つき mock を管理する。
+この directory は、過去に作成した page mock を保管する legacy area である。
+新規 workflow では実装前の見た目 artifact を UI の必須 artifact または正本にしない。
 
 ## Naming
 
-- page mock は `docs/mocks/<page-id>/index.html` を正本とする
+- 既存 page mock は履歴資料として `docs/mocks/<page-id>/index.html` に残す
 - 補助 asset が必要な時は同じ `docs/mocks/<page-id>/` 配下へ置く
 
 ## Pages
@@ -16,6 +16,6 @@
 
 ## Notes
 
-- framework 記法や component 名は持ち込まない
-- HTML / CSS / 必要最小限の素の JavaScript だけで主要導線と状態変化を再現する
-- 実装前の working copy は `docs/exec-plans/active/<task-id>.ui.html` に置き、完了時にこの directory へ移す
+- 新規 task は `ui-design.md` に UI 要件契約と実装後確認観点を残す
+- 実装前の見た目 artifact の新規作成や正本化は live workflow の標準手順に含めない
+- 既存 mock を参照する場合も、実装が満たす契約は `ui-design.md` や page-level requirement に書く

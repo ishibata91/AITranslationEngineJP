@@ -1,30 +1,30 @@
 # Codex agent TOML placeholder.
 # Shape follows /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml.
-# Detailed agent contract should live in the Markdown agent spec created from /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/agent-template.md.
+# Human-readable runtime guidance should live in /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/<skill-name>/SKILL.md.
 # File paths in developer_instructions should be full paths unless the runtime requires a relative schema value.
 # Contract is agent 1:1. Do not add mode-specific active contract paths here.
 # If contract-level responsibilities diverge, create a separate agent instead of selector requirements.
 
 name = "<actual-agent-name>"
-description = "<この Codex agent の主責務を 1 文で書く。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/<agent-name>.agent.md を読む。>"
+description = "<この Codex agent の主責務を 1 文で書く。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/<skill-name>/SKILL.md を読む。>"
 model = "<runtime-model-name>"
 model_reasoning_effort = "<low|medium|high|xhigh>"
 sandbox_mode = "<read-only|workspace-write|danger-full-access>"
 
 developer_instructions = """
-この作業は `<actual-agent-name>` agent 定義に基づく。
+この作業は `<actual-agent-name>` agent と `<skill-name>` skill に基づく。
 
-詳細な role、permissions、contract、handoff、stop / reroute は次を読む。
-- agent spec: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/<agent-name>.agent.md`
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/<skill-name>/SKILL.md`
 - permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/<agent-name>/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/<agent-name>/contracts/<agent-name>.contract.json`
 
-skill は知識参照としてだけ使う。
-permissions と output obligation は agent spec / contract に従う。
+必要に応じて focused skill を追加で読む。
+source of truth、handoff、stop / reroute は skill に従う。
+permissions と output obligation は permissions / contract に従う。
 contract は agent 1:1 とする。
 contract-level の責務、権限、handoff、output obligation が分かれる場合は、contract を分けず別 agent に切る。
 差分が知識参照だけなら、単一 contract のまま focused skill を読む。
 
-起動時は最初に agent spec を読み、自分がこの agent として動くことを確認する。
 default_prompt は置かない。
 """

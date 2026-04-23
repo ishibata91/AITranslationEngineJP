@@ -3,11 +3,19 @@
 - `skill`: scenario-design
 - `status`: draft
 - `source_plan`: `./plan.md`
-- `requirements_source`: `./requirements-design.md`
 - `ui_source`: `./ui-design.md` または `N/A`
-- `ui_mock_source`: `./<task-id>.ui.html` または `N/A`
 - `final_artifact_path`: `docs/scenario-tests/<topic-id>.md`
 - `topic_abbrev`: `<TOPIC>`
+
+## Fixed Requirements
+
+- `must_pass_requirements`:
+- `non_goals`:
+
+## Risks
+
+- `implementation_risks`:
+- `test_data_risks`:
 
 ## Rules
 
@@ -50,7 +58,7 @@
 
 ## Acceptance Checks
 
-- `requirements-design` の acceptance basis と scenario ID の対応を書く
+- 必ず通す要件と scenario ID の対応を書く
 
 ## Validation Commands
 
@@ -58,4 +66,4 @@
 
 ## Open Questions
 
-- test data、観測点、fake 方針の未決事項だけを書く
+- human 判断が必要な未決事項だけを書く

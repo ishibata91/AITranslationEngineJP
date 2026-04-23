@@ -1,5 +1,5 @@
 {
-  "contract_version": "2026-04-18",
+  "contract_version": "2026-04-24",
   "agent": "propose_plans",
   "runtime": "codex",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/permissions.json",
@@ -29,9 +29,10 @@
   "spawn_order": [
     "必要判定",
     "distiller_if_needed",
-    "designer_if_needed",
+    "designer_required_unless_approved_design_bundle_exists",
     "investigator_if_needed",
     "human_review",
+    "designer_for_implementation_scope_after_human_review",
     "human_copilot_handoff",
     "docs_updater_after_copilot_completion_if_needed"
   ],
@@ -62,10 +63,10 @@
     "open_questions"
   ],
   "field_requirements": {
-    "initial_necessity_decision": "distiller、designer、investigator が必要かを最初に判定し、不要なら理由を返す",
+    "initial_necessity_decision": "distiller と investigator の要否を最初に判定し、designer は承認済み design bundle がない限り必要とする。不要とする場合は既存 artifact と理由を返す",
     "workflow_state": "task が new / active / waiting_human / handoff_packet_ready / waiting_copilot / canonicalization_ready / completed / blocked のどれかを返す",
     "active_or_completed_task_folder": "task folder path と plan.md path を返す。未作成なら理由を返す",
-    "spawn_packets": "spawn 先ごとに task id、読む file、禁止事項、期待出力を返す。context 継承なしで足りる情報にする",
+    "spawn_packets": "spawn 先ごとに task id、読む file、禁止事項、期待出力を返す。context 継承なしで足りる情報にする。distiller 向け packet では task_frame、canonical_evidence、code_evidence、effective_prior_decisions、observation_evidence の available input を明示する",
     "next_action": "次に行う spawn、human review、human handoff、正本化、停止のいずれかを返す",
     "handoff_target": "次に渡す agent または human を返す。不要な場合は空にする",
     "handoff_scope": "task id、読むべき artifact、禁止事項、期待される返却内容を含める",

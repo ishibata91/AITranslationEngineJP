@@ -12,16 +12,13 @@
 
 ## Artifact Index
 
-- `requirements_design`: `./requirements-design.md`
 - `ui_design`: `./ui-design.md` または `N/A`
-- `scenario_design`: `./scenario-design.md` または `N/A`
-- `diagramming`: `./diagramming/` または `N/A`
-- `implementation_scope`: `./implementation-scope.md` または `N/A`
+- `scenario_design`: `./scenario-design.md`
+- `implementation_scope`: `pending-after-human-review` または `./implementation-scope.md`
 
 ## Routing Notes
 
 - `required_reading`:
-- `source_diagram_targets`:
 - `canonicalization_targets`:
 - `validation_commands`:
 

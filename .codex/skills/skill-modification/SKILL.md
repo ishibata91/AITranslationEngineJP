@@ -8,14 +8,14 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 ## 目的
 
 `skill-modification` は知識 package である。
-`designer` agent が skill と agent を整理する時に、配置、path policy、agent-owned contract、legacy references の扱いを判断するための知識を提供する。
+`.codex` の skill と agent runtime を整理する時に、配置、path policy、skill 正本、agent TOML、agent-owned contract の扱いを判断するための知識を提供する。
 
-実行権限、agent contract、handoff、stop / reroute は [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md) が持つ。
+実行境界、source of truth、handoff、stop / reroute は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
 ## いつ参照するか
 
 - skill 自体を追加、整理、改名、分割する時
-- agent spec、permissions、contract の配置を変える時
+- skill、agent TOML、permissions、contract の配置を変える時
 - workflow docs と skill / agent の責務を同期する時
 - `.codex` を直接変更できず、`tmp/codex` staged apply が必要な時
 
@@ -28,15 +28,16 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 ## 知識範囲
 
 - [skill-agent-concept.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/skill-agent-concept.md) の概念分担
-- skill template と agent template
+- skill template と agent runtime template
 - Markdown / JSON / TOML の path policy
 - agent 1:1 contract と legacy references の扱い
 - `tmp/codex` staged apply と人間実行 script の扱い
 
 ## 原則
 
-- agent は実行主体、skill は知識 package として扱う
-- permissions、contract、handoff、stop / reroute は agent 側に置く
+- skill は人間可読な正本、agent は runtime binding と機械契約の owner として扱う
+- permissions と contract は agent 側に置く
+- handoff、stop / reroute、source of truth の人間可読説明は skill 側に置く
 - contract は agent 1:1 にする
 - mode / variant ごとの active contract file を増やさない
 - live workflow にない legacy artifact を復活させない
@@ -46,9 +47,9 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 
 1. `skill-agent-concept.md` と対象 agent の permissions を読む。
 2. 既存 workflow と対象 skill / agent の責務を確認する。
-3. skill 本体から権限、write scope、output obligation を外す。
-4. agent 側へ spec、permissions、1:1 contract を置く。
-5. checklist を skill references に置き、旧 permissions / contract は退避する。
+3. role、source of truth、handoff、stop / reroute の人間可読説明を skill 側へ集約する。
+4. agent 側には TOML binding、permissions、1:1 contract を置く。
+5. checklist を skill references に置き、旧 `.agent.md` は削除する。
 6. path policy と workflow 名の actual name 対応を確認する。
 
 この手順は知識上の標準例である。
@@ -58,6 +59,9 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 
 `.codex` へ直接書けない時は、[staged-apply-flow.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/patterns/staged-apply-flow.md) を使う。
 反映済み file は `tmp/codex/files/<repo-relative-path>` に置き、人間が `scripts/codex/apply_tmp_codex.py` または VSCode task で正本へ上書き、追加、削除する。
+通常 apply は基本的に人間が実行する。
+Codex は staged file の作成と `--check-only` による final gate 確認までを担当する。
+人間から明示指示がある場合だけ、Codex が通常 apply を試行できる。
 
 反映 script は最終チェックとして次を行う。
 
@@ -67,6 +71,7 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 - 記載削除または file 削除が必要な時は `tmp/codex/deletion-rationale.md` に削除対象、理由、代替参照先を記録してから再実行する
 - JSON / TOML / Markdown / PlantUML など、対象 file の最低限の構文確認を行う
 - `.codex` へ直接反映しない段階では `--check-only` で同じ final gate だけを確認する
+- 通常 apply は人間実行を基本とし、Codex は明示指示なしに通常 apply へ進まない
 - 通常 apply が成功したら `tmp/codex` を全削除する
 
 ## DO / DON'T
@@ -78,7 +83,7 @@ DO:
 - staged apply script は copy 前に diff と削除行を見せる
 
 DON'T:
-- skill 本体へ permissions や active contract を戻さない
+- skill 本体へ hard permissions や active contract を戻さない
 - product 実装や docs product 仕様変更を混ぜない
 - default_prompt を導入しない
 - staged apply script で反映元 directory を削除しない
@@ -95,7 +100,7 @@ DON'T:
 - agent template: [agent-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/agent-template.md)
 - Codex TOML template: [codex-agent-template.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/codex-agent-template.toml)
 - staged apply pattern: [staged-apply-flow.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/patterns/staged-apply-flow.md)
-- agent spec: [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md)
+- design runtime: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 
 ## Maintenance
 

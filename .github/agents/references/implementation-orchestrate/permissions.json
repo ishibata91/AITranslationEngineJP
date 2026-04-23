@@ -11,7 +11,7 @@
     "必要時だけ investigator へ single_handoff_packet 1 件を渡す",
     "depends_on の解消順を判断し、未解消 handoff を起動しない",
     "subagent が返した validation command、UI evidence、coverage gate、repo-local Sonar issue gate、harness gate、review result を集約する",
-    "不足、矛盾、scope 超過を補わず blocked_after_narrowing、remaining subscopes、residual risks、または requires_codex_replan として completion packet に返す"
+    "不足、矛盾、scope 超過を補わず blocked_after_narrowing、remaining subscopes、residual risks、または requires_codex_replan として completion packet に返し、人間が relay 先を判断できる材料を残す"
   ],
   "forbidden_actions": [
     "RunSubagent 以外の tool を使う",
@@ -46,6 +46,5 @@
     "public behavior の仕様判断が未承認で、実装側が選ぶと product decision になる",
     "docs または workflow の変更が実装完了の前提になる",
     "2 回の autonomous narrowing 後も single_handoff_packet 内で first_action を確定できない"
-  ],
-  "exceptional_replan_targets": ["propose-plans"]
+  ]
 }

@@ -40,7 +40,6 @@
     "作業が Copilot 側 implementation-distill の責務である"
   ],
   "reroute_targets": [
-    "propose-plans",
-    "implementation-orchestrate"
+    "propose-plans"
   ]
 }

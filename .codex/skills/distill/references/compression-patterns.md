@@ -34,5 +34,7 @@
 - 重要な fact は根拠 path を持つ
 - 推測は `inferred` として facts から分ける
 - 未確認事項は gaps に残し、事実として書かない
+- 過去判断は検索と object 抽出で扱い、未確認または失効したものは残さない
+- 有効な過去判断が見つからないことだけで gap にしない
 - downstream が最初に読む順番が分かる
 - product code と product test の変更に進まない

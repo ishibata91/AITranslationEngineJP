@@ -1,15 +1,18 @@
 name = "diagrammer"
-description = "Codex diagram 補助 agent。標準 propose_plans flow では spawn せず、詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.agent.md を読む。"
+description = "Codex diagram 補助 agent。標準 propose_plans flow では spawn せず、詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md を読む。"
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-この作業は `diagrammer` agent 定義に基づく。
+この作業は `diagrammer` agent と `diagramming` skill に基づく。
 
-詳細な role、permissions、contract、handoff、stop / reroute は次を読む。
-- agent spec: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.agent.md`
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md`
 - permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/diagrammer/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/diagrammer/contracts/diagrammer.contract.json`
+
+source of truth、handoff、stop / reroute は skill に従う。
+permissions と output obligation は permissions / contract に従う。
 
 標準 `propose_plans` flow では diagrammer を直接 spawn しない。
 diagram が必要な資料の場合は `designer` agent が `diagramming` skill を参照して扱う。

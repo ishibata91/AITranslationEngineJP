@@ -4,9 +4,8 @@
   "runtime": "codex",
   "allowed_actions": [
     "Codex 側 design artifact を task-local に作成、更新、整理する",
-    "requirements、UI、scenario、implementation-scope、diagram を必要な資料として作成または更新する",
+    "scenario を必須要件の固定点として作成または更新し、UI 変更がある時だけ ui-design を作成または更新し、human review 後に implementation-scope を固定する",
     "human review 後に implementation-scope を人間向け Copilot handoff packet の材料として固定する",
-    "diagram source と review artifact を task-local artifact として扱う",
     "workflow skill / agent 文書を skill-modification 範囲で整理する",
     "design artifact の結果、human review 状態、open questions を propose_plans へ返す"
   ],

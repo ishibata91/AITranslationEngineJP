@@ -3,15 +3,15 @@
 - `skill`: ui-design
 - `status`: draft
 - `source_plan`: `./plan.md`
-- `requirements_source`: `./requirements-design.md`
+- `scenario_source`: `./scenario-design.md`
 
-## HTML Mock Artifact
+## UI Contract
 
-- `working_mock_path`: `./<task-id>.ui.html`
-- `preview_url`:
-- `desktop_screenshot_artifacts`:
-- `mobile_screenshot_artifacts`:
-- `final_mock_path`: `docs/mocks/<page-id>/index.html` または `N/A`
+- `display_items`:
+- `primary_actions`:
+- `button_enablement`:
+- `state_variants`:
+- `post_implementation_review`:
 
 ## Interface Frame
 
@@ -25,10 +25,9 @@
 ## Structure Notes
 
 - `page_sections`:
-- `component_like_sections`:
-- `state_variants`:
 - `layout_constraints`:
-- `visual_tokens`:
+- `responsive_constraints`:
+- `accessibility_constraints`:
 
 ## Interaction States
 
@@ -40,22 +39,17 @@
 - `retry`:
 - `success`:
 
-## Review Evidence
+## Post Implementation Review
 
-- `desktop_screenshot`:
-- `mobile_screenshot`:
-- `interaction_notes`:
-- `known_gaps`:
-
-## Canonicalization
-
-- `final_mock_path`: `docs/mocks/<page-id>/index.html` または `N/A`
-- `canonicalization_targets`:
+- `desktop_review_points`:
+- `mobile_review_points`:
+- `overflow_risks`:
+- `visual_polish_open_questions`:
 
 ## Rules
 
-- task-local HTML mock を UI artifact の主入力にする
-- working mock は `docs/exec-plans/active/<task-id>/<task-id>.ui.html` に置く
-- HTML / CSS / 必要最小限の素の JavaScript だけで主要導線と状態変化を再現する
-- framework 記法や product component 名を mock の正本に持ち込まない
+- UI は実装前の mock ではなく、実装が満たす要件契約として書く
+- 実装前の見た目 artifact を新規必須にしない
+- 細かな visual polish は実装後に人間が実物を確認して直す
+- product component 名や owned scope は、implementation-scope で必要な時だけ扱う
 - implementation-scope の `owned_scope` や product code 対象 file は書かない

@@ -11,9 +11,8 @@
 ## 標準ファイル
 
 - `plan.md`: task 全体の索引、状態、HITL、validation、closeout
-- `requirements-design.md`: `requirements-design` の要件、制約、不変条件、未決事項
-- `ui-design.md`: `ui-design` の HTML mock 参照、UI 判断、状態差分、確認証跡。UI が不要な task では作らない
-- `scenario-design.md`: `scenario-design` の system test 観点と受け入れ条件
+- `ui-design.md`: `ui-design` の UI 要件契約、状態差分、実装後確認観点。UI が不要な task では作らない
+- `scenario-design.md`: `scenario-design` の必須要件、system test 観点、受け入れ条件
 - `implementation-scope.md`: `implementation-scope` の Copilot handoff。human review 後だけ作る
 
 ## 読み方

@@ -34,7 +34,7 @@ description: GitHub Copilot 側の review 補助証跡知識 package。
 DO:
 - review target と evidence の対応を残す
 - console、screenshot、command result の出所を残す
-- next step を reviewer または orchestrate へ戻す
+- next step を reviewer または implementation-orchestrate へ戻す
 
 DON'T:
 - pass / fail を investigator が確定しない

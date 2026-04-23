@@ -6,7 +6,7 @@
     "user request を Codex workflow の task folder、必要判定、agent spawn、human review、human 向け Copilot handoff、正本化入口に分解する",
     "memory、/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md、/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md、active / completed task folder を確認する",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/<task-id>/plan.md を作成または更新する",
-    "distiller、designer、investigator が必要か最初に判定する",
+    "distiller と investigator の要否を最初に判定し、承認済み design bundle がない限り designer を使う",
     "必要な agent を context 継承なしで spawn するための handoff packet を作る",
     "downstream agent の結果を task-local workflow state に反映する",
     "human review が必要な地点で停止し、再開条件を明示する",
@@ -17,7 +17,7 @@
   "forbidden_actions": [
     "product code または product test を変更する",
     "human 承認なしで docs 正本を更新する",
-    "requirements、UI、scenario、implementation-scope、diagram の本文をこの agent が代筆する",
+    "UI、scenario、implementation-scope の本文をこの agent が代筆する",
     "再現、trace、実画面 observation をこの agent が実施する",
     "Codex から Copilot へ直接 handoff する",
     "承認済み implementation-scope なしで人間向け Copilot handoff packet を作る",

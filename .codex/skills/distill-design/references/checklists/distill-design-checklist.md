@@ -2,7 +2,7 @@
 
 ## Knowledge Check
 
-- [ ] requirements、UI、scenario、diagram の入口が分かれている
+- [ ] 必須要件、UI、scenario の入口が分かれている
 - [ ] design bundle 作成に必要な正本 path が残っている
 - [ ] constraints と gaps が facts に混ざっていない
 

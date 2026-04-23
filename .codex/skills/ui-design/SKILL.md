@@ -1,6 +1,6 @@
 ---
 name: ui-design
-description: Codex 側の UI 設計知識 package。HTML mock を primary artifact として主要操作、状態差分、visual system 判断を固定する基準を提供する。
+description: Codex 側の UI 設計知識 package。UI 要件契約として主要操作、表示項目、状態差分、実装後確認観点を固定する基準を提供する。
 ---
 
 # UI Design
@@ -8,15 +8,15 @@ description: Codex 側の UI 設計知識 package。HTML mock を primary artifa
 ## 目的
 
 `ui-design` は知識 package である。
-`designer` agent が HTML mock を UI design の primary artifact として扱うための、構造、状態差分、visual system、evidence の見方を提供する。
+`designer` agent が UI を実装前の見た目 artifact ではなく UI 要件契約として扱うための、表示項目、操作、状態差分、実装後確認観点の見方を提供する。
 
-実行権限、agent contract、handoff、stop / reroute は [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md) が持つ。
+実行境界、source of truth、handoff、stop / reroute は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
 ## いつ参照するか
 
-- UI が関係する task で HTML mock artifact を固定する時
+- UI が関係する task で表示項目、操作、状態差分を固定する時
 - state、variant、responsive、accessibility の差分を整理する時
-- repo 側 `ui-design.md` に HTML mock 参照と証跡を残す時
+- repo 側 `ui-design.md` に UI 契約と実装後確認観点を残す時
 
 ## 参照しない場合
 
@@ -26,25 +26,25 @@ description: Codex 側の UI 設計知識 package。HTML mock を primary artifa
 
 ## 知識範囲
 
-- HTML mock file path、preview URL、screenshot artifacts
-- page structure、component-like sections、state variant、visual tokens
+- user-facing text、表示項目、主要 action、button enablement
+- page section、state variant、layout constraints、accessibility
 - loading、empty、error、disabled、progress、retry、success
-- desktop / mobile frame と overflow risk
+- desktop / mobile で破綻してはいけない条件と実装後確認観点
 
 ## 原則
 
-- task-local HTML mock を UI design の primary artifact にする
-- `ui-design.md` は参照、判断、状態差分、証跡に限定する
-- 既存 `docs/mocks/` と `docs/screen-design/` を優先する
-- generic な AI 風 UI や過剰な装飾を避ける
+- UI は見た目 artifact ではなく実装が満たす契約として固定する
+- 実装前の見た目 artifact を新規必須にしない
+- 細かな visual polish は実装後に人間が実物を確認して直す
+- generic な AI 風 UI や過剰な装飾を要求しない
 
 ## 標準パターン
 
 1. interface の目的、利用者、主要 workflow を定義する。
-2. HTML mock path、preview URL、review screenshot を固定する。
-3. HTML / CSS / interaction state と screenshot evidence を確認する。
-4. 状態差分を HTML mock の section、state control、または別表示として示す。
-5. human review が必要な visual decision を open question に残す。
+2. 表示項目、主要 action、button enablement を固定する。
+3. loading、empty、error、disabled、success などの状態差分を固定する。
+4. responsive、overflow、accessibility の実装後確認観点を残す。
+5. human が実装後に確認して直す visual polish を open question に残す。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は `designer` agent contract に従う。
@@ -52,12 +52,12 @@ description: Codex 側の UI 設計知識 package。HTML mock を primary artifa
 ## DO / DON'T
 
 DO:
-- HTML mock と `ui-design.md` の責務を分ける
-- desktop と mobile の破綻を evidence で確認する
+- UI contract と scenario の責務を分ける
+- desktop と mobile の破綻条件を実装後確認観点として残す
 - user-facing text は日本語を優先する
 
 DON'T:
-- product frontend code を UI 構造正本にしない
+- 実装前の見た目 artifact を UI の必須 artifact にしない
 - product code 実装へ踏み込まない
 - 未承認で docs 正本化しない
 
@@ -69,12 +69,11 @@ DON'T:
 ## References
 
 - template: [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/ui-design.md)
-- mock canonicalization: [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/README.md)
-- agent spec: [designer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.agent.md)
+- runtime skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - agent contract: [designer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/contracts/designer.contract.json)
 
 ## Maintenance
 
 - 権限、write scope、output obligation を skill 本体へ戻さない。
-- HTML mock primary 方針を崩さない。
-- 長い visual 判断表は references に分離する。
+- UI 要件契約を primary とし、見た目 artifact 必須へ戻さない。
+- 長い判断表は references に分離する。

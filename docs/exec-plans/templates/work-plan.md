@@ -11,14 +11,12 @@
 ## 最小構成
 
 - `plan.md`: task 全体の索引、状態、HITL、validation、closeout
-- `requirements-design.md`: 要件、制約、不変条件、未決事項
-- `scenario-design.md`: system test 観点、受け入れ条件、観測点
+- `scenario-design.md`: 必須要件、system test 観点、受け入れ条件、観測点
 
 ## 条件付き構成
 
-- `ui-design.html`: UI がある task だけ作る
+- `ui-design.md`: UI 要件契約が必要な task だけ作る
 - `implementation-scope.md`: human review 後だけ作る
-- `diagramming/`: diagramming artifact がある task だけ作る
 
 ## 読み込みルール
 

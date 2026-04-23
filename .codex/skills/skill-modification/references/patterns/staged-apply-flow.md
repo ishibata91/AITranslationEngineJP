@@ -4,6 +4,9 @@
 
 `.codex` へ直接書けない環境では、反映済み file を `tmp/codex/files/` に置く。
 人間が VSCode task または `scripts/codex/apply_tmp_codex.py` を実行して、正本へ上書き、追加、削除する。
+通常 apply は基本的に人間が実行する。
+Codex は staged file の作成と `--check-only` による final gate 確認までを担当する。
+人間から明示指示がある場合だけ、Codex が通常 apply を試行できる。
 
 この flow は緊急回避ではなく、最終反映前に差分を明示するための安全手順である。
 
@@ -62,6 +65,7 @@ script は copy 前に次を確認する。
 
 Codex は `.codex` へ直接書けない場合、この mode で staging の妥当性を確認する。
 人間は確認後に通常実行する。
+Codex は人間から明示指示がない限り、通常実行へ進まない。
 
 ## Deletion Rationale
 

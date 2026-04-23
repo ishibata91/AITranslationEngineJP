@@ -24,11 +24,9 @@
     "active task folder"
   ],
   "knowledge_refs": [
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/requirements-design/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md",
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md"
@@ -43,7 +41,7 @@
     "open_questions"
   ],
   "field_requirements": {
-    "design_artifact_status": "requirements、UI、scenario、implementation-scope、diagram、skill-modification のどれを扱ったかと状態を返す",
+    "design_artifact_status": "scenario、UI、implementation-scope、skill-modification のどれを扱ったかと状態を返す",
     "touched_artifacts": "作成または更新した task-local artifact path を返す",
     "human_review_requirements": "human review が必要な判断、承認待ち、承認済みの状態を返す",
     "validation_summary": "実行した確認と未実行理由を返す",

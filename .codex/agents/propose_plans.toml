@@ -1,23 +1,24 @@
 name = "propose_plans"
-description = "Codex workflow orchestration agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/propose_plans.agent.md を読む。"
+description = "Codex workflow orchestration agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md を読む。"
 model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """
-この作業は `propose_plans` agent 定義に基づく。
+この作業は `propose_plans` agent と `propose-plans` skill に基づく。
 
-詳細な role、permissions、contract、handoff、stop / reroute は次を読む。
-- agent spec: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/propose_plans.agent.md`
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md`
 - permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/contracts/propose_plans.contract.json`
+- support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md`
+- support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md`
 
-次の skill は workflow orchestration の知識として読む。
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md`
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md`
+source of truth、handoff、stop / reroute は skill に従う。
+permissions と output obligation は permissions / contract に従う。
 
-最初に distiller、designer、investigator が必要か判定する。
+最初に distiller と investigator の必要判定を行い、承認済み design bundle がない限り designer を使う。
 必要な agent は context を引き継がずに spawn し、必要情報は handoff packet に明示する。
-資料作成は `designer` に渡し、diagram もその scope に含める。
+資料作成は `designer` に渡す。
 実画面 observation が必要な場合だけ `investigator` に渡す。
 最後に Copilot handoff packet を人間へ返し、人間が Copilot へ引き渡す。
 Copilot の修正完了が分かった後にだけ、必要な正本化へ進む。

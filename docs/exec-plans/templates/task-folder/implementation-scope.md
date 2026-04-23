@@ -10,11 +10,8 @@
 
 ## Source Artifacts
 
-- `requirements_design`: `./requirements-design.md`
 - `ui_design`: `./ui-design.md` または `N/A`
-- `ui_mock_artifact`: `./<task-id>.ui.html` または `N/A`
 - `scenario_design`: `./scenario-design.md`
-- `diagramming`: `./diagramming/` または `N/A`
 
 ## Fixed Decisions
 

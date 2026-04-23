@@ -8,5 +8,5 @@
   "forbidden_write_scope": ["product code", "product test", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"],
   "required_source_of_truth": ["user instruction", "active task context", "reproduction condition or UI check scope", "observed evidence"],
   "stop_conditions": ["再現条件が不足している", "根拠 path を確認できない", "実装時調査である"],
-  "reroute_targets": ["designer", "implementation-orchestrate"]
+  "reroute_targets": ["designer"]
 }

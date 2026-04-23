@@ -7,7 +7,6 @@
 
 - `task-folder/README.md`
 - `task-folder/plan.md`
-- `task-folder/requirements-design.md`
 - `task-folder/ui-design.md`
 - `task-folder/scenario-design.md`
 - `task-folder/implementation-scope.md`

@@ -11,8 +11,8 @@
 agent は実行主体として扱う。
 skill は知識の集積地として扱う。
 
-権限、agent contract、handoff、stop / reroute は agent が持つ。
-skill は agent の判断を助けるが、agent の契約を上書きしない。
+permissions と agent contract は agent が持つ。
+人間可読な runtime 説明、handoff、stop / reroute は skill が持つ。
 
 ## Agent の概念
 
@@ -22,11 +22,9 @@ agent は actor である。
 agent は次を定義する。
 
 - 何を実行する agent なのか
-- どの tool を使えるのか
-- どの source of truth を読むのか
+- どの runtime binding で動くのか
 - どこまで書き換えてよいのか
 - 何を入力として受け取り、何を出力として返すのか
-- どこで停止し、どこへ reroute するのか
 
 agent は責任の境界を持つ。
 そのため permissions と agent contract は agent 側に置く。
@@ -57,20 +55,20 @@ skill は次を定義する。
 - どの checklist で見落としを防ぐのか
 
 skill は実行主体ではない。
-そのため write scope、handoff contract、completion packet の責任を持たない。
+ただし `.codex` では、人間可読な runtime 説明の正本としても扱う。
 
 ## 分担
 
 | 項目 | Agent | Skill |
 | --- | --- | --- |
 | 概念 | 実行主体 | 知識の集積地 |
-| 主な責任 | 実行、権限、契約、handoff | 判断基準、例、pattern、checklist |
+| 主な責任 | 実行、binding、権限、契約 | 判断基準、runtime 説明、例、pattern、checklist |
 | permissions | 持つ | 持たない |
 | contract | agent 1:1 で持つ | 持たない |
 | tool 権限 | 持つ | 持たない |
-| source of truth | 実行時に固定する | 読み方や判断軸を説明する |
+| source of truth | 機械契約に必要な参照を持つ | 読み方と優先順位を説明する |
 | checklist | 実行義務を決める | 知識確認として提供する |
-| handoff | agent 間契約として持つ | 持たない |
+| handoff / stop | 機械契約を補助する | 人間可読な正本として持つ |
 
 この分担により、agent は「何をしてよいか」を明確にする。
 skill は「どう考えるとよいか」を再利用可能にする。
@@ -83,13 +81,13 @@ skill は「どう考えるとよいか」を再利用可能にする。
 contract-level の差分を selector として単一 contract に詰めると、実質的には複数 agent の責務が混ざる。
 差分が実行責務なら別 agent に切る方が、責任境界と読み順が安定する。
 
-skill に権限を置くと、知識と実行責任が混ざる。
+skill に hard permission や contract を置くと、知識と実行責任が混ざる。
 その結果、同じ skill を複数 agent が参照した時に、どの権限が正しいのか分かりにくくなる。
 
 agent-owned contract にすると、責任境界が読みやすい。
-agent は自分の input、output、write scope、reroute 条件を一か所で確認できる。
+agent は自分の input、output、write scope を一か所で確認できる。
 
-skill を知識に寄せると、再利用しやすい。
+skill を知識と runtime 説明に寄せると、再利用しやすい。
 同じ API 設計 skill、調査 skill、review skill を、違う agent が別 contract で参照できる。
 
 ## everything-claude-code からの学び
@@ -104,7 +102,7 @@ agent は persona、tools、workflow、判断基準、output format を持つ。
 AITranslationEngineJP では、そこから次の方針を採る。
 
 - agent は実行責任を持つ
-- skill は知識責任を持つ
+- skill は知識責任と人間可読な runtime 説明を持つ
 - 契約と権限は agent に寄せる
 - contract は agent 1:1 にする
 - 具体例と判断基準は skill に寄せる
@@ -116,7 +114,7 @@ agent-owned の情報は agent 側 references に置く。
 
 ```text
 <agent-root>/
-├── <agent-name>.agent.md
+├── <agent-name>.toml
 └── references/
     └── <agent-name>/
         ├── permissions.json
@@ -144,14 +142,14 @@ skill-owned の情報は skill 側 references に置く。
 
 ## 設計上の注意
 
-agent と skill に同じ項目を重複して書かない。
+agent と skill に同じ hard contract を重複して書かない。
 重複させると、どちらが正本か分からなくなる。
 
 skill に output obligation を戻さない。
 skill の checklist は知識確認であり、出力義務は agent contract が決める。
 
 agent に長い知識集を持たせない。
-長い判断表、例、anti-pattern は skill の references に分離する。
+長い判断表、例、anti-pattern、handoff 説明、stop / reroute は skill に分離する。
 
 既存 repo には、skill 配下に `permissions.json` を置く旧方針が残っている。
 この concept を live workflow に採用する場合は、既存方針を別 task で同期する。
@@ -159,7 +157,7 @@ agent に長い知識集を持たせない。
 ## まとめ
 
 agent は「誰が、何を、どこまで実行してよいか」を定義する。
-skill は「その仕事をどう考え、何を良い判断と見るか」を定義する。
+skill は「その仕事をどう考え、どう進め、いつ止まり、どこへ戻すか」を定義する。
 
 contract は agent ごとに 1 ファイルへ固定する。
 contract-level の差分があるなら別 agent に切り、知識差分だけなら focused skill として扱う。

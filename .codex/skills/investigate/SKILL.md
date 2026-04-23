@@ -40,6 +40,15 @@ UI check 専用 skill / agent は置かない。
 - UI evidence は画面状態、console、screenshot、操作条件を分けて残す
 - 実装 lane の調査は Copilot 側へ戻す
 
+## Runtime Boundary
+
+- binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
+- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/permissions.json)
+- contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
+- allowed: read-only の再現、UI 証跡収集、観測、trace 計画、risk report
+- forbidden: product code、product test、docs 正本の変更
+- write scope: なし
+
 ## 標準パターン
 
 1. 調査目的と設計判断への影響を確認する。
@@ -50,6 +59,18 @@ UI check 専用 skill / agent は置かない。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は `investigator` agent contract に従う。
+
+## Stop / Reroute
+
+- 観測条件が不足する場合は停止する。
+- 恒久修正が必要なら `designer` へ戻す。
+- 実装時調査なら、Copilot 側 [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
+
+## Handoff
+
+- handoff 先: `designer`
+- 渡す contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
+- 渡す scope: observed facts、hypotheses、remaining gaps、residual risks
 
 ## DO / DON'T
 
@@ -70,7 +91,7 @@ DON'T:
 
 ## References
 
-- agent spec: [investigator.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.agent.md)
+- binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - agent contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
 
 ## Maintenance
