@@ -1,5 +1,0 @@
-{
-  "legacy": true,
-  "reason": "completion packet obligation は implementation-orchestrate agent の 1:1 active contract に統合した。",
-  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-orchestrate/contracts/implementation-orchestrate.contract.json"
-}

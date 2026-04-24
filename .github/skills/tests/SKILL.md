@@ -90,4 +90,3 @@ DON'T:
 
 - scenario / unit の知識差分は focused skill に置く。
 - output obligation を skill 本体へ戻さない。
-- 旧 mode contract は active 正本として扱わない。

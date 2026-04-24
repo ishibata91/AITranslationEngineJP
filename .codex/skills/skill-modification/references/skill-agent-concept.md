@@ -153,6 +153,7 @@ agent に長い知識集を持たせない。
 
 既存 repo には、skill 配下に `permissions.json` を置く旧方針が残っている。
 この concept を live workflow に採用する場合は、既存方針を別 task で同期する。
+廃止する file や directory は削除し、説明用の pointer や stub は残さない。
 
 ## まとめ
 

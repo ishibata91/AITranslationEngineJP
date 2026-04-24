@@ -1,0 +1,11 @@
+{
+  "contract_version": "2026-04-25",
+  "agent": "review_state_invariant",
+  "runtime": "codex",
+  "allowed_actions": ["review target diff と周辺実コードを read-only で確認する", "状態・データ不変条件観点だけを score / confidence / findings で返す"],
+  "forbidden_actions": ["file mutation", "SQLの見た目を主判定にする", "命名や UI 文言を主判定にする", "内部設計の美しさを主判定にする"],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": ["/Users/iorishibata/Repositories/AITranslationEngineJP/"],
+  "required_source_of_truth": ["review target diff", "implementation_scope_path", "state transition evidence"],
+  "stop_conditions": ["diff がない", "状態変更の対象有無を判定できない"]
+}

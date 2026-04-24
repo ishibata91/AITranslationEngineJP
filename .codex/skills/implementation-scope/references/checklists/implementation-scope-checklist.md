@@ -3,6 +3,8 @@
 ## Knowledge Check
 
 - [ ] human review approval を確認した
+- [ ] scenario-design に `needs_human_decision` が残っていないことを確認した
+- [ ] 承認済み詳細要求タイプを validation intent の根拠にした
 - [ ] handoff を owned_scope、depends_on、validation で分けた
 - [ ] 各 handoff が `1 e2e use case × 1 validation intent` に収まっている
 - [ ] 各 validation command が `completion_signal` を直接検証している
@@ -21,6 +23,7 @@
 ## Common Pitfalls
 
 - [ ] human review 前に implementation-scope を作らなかった
+- [ ] 人間判断が残る scenario-design から implementation-scope を作らなかった
 - [ ] layer だけを根拠に micro handoff を量産しなかった
 - [ ] file 数と changed lines の基準を超える handoff を根拠なしに残さなかった
 - [ ] Codex から Copilot へ直接 handoff しなかった

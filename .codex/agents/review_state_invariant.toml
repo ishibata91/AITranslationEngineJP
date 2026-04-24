@@ -1,0 +1,15 @@
+name = "review_state_invariant"
+description = "Codex review agent for state and data invariants。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-state-invariant/SKILL.md を読む。"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+sandbox_mode = "read-only"
+developer_instructions = """
+この作業は `review_state_invariant` agent と `codex-review-state-invariant` skill に基づく。
+
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-state-invariant/SKILL.md`
+- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_state_invariant/permissions.json`
+- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_state_invariant/contracts/review_state_invariant.contract.json`
+
+diff から取得した実コードを読み、状態・データ不変条件だけを score / confidence / findings で返す。
+"""

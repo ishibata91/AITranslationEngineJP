@@ -109,4 +109,3 @@ DON'T:
 
 - implement / fix / refactor の知識差分は focused skill に置く。
 - output obligation を skill 本体へ戻さない。
-- 旧 mode guide は active 正本として扱わない。

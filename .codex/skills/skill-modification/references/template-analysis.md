@@ -70,16 +70,16 @@ mode や variant として分けたくなる知識は focused skill に分ける
 
 ## 現行 repo との衝突
 
-現行には旧方式の skill-side `permissions.json` や contract slice が残っている。
-これは互換用 legacy として残し、新しい正本にはしない。
+現行に旧方式の skill-side `permissions.json` や contract slice が残っている場合は削除する。
+廃止対象を説明用 file として残さない。
 
 この draft を広く採用する場合は、次を別 task で同期する必要がある。
 
 - [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md)
 - [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)
 - [.github/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/) と [.github/skills](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/) の配置規約
-- 既存 skill 配下の `references/permissions.json` の扱い
-- 既存 mode / variant contract slice の扱い
+- 既存 skill 配下の `references/permissions.json` の削除
+- 既存 mode / variant contract slice の削除
 
 今回は template draft と `distiller` trial の再定義だけで、既存 workflow 全体には適用しない。
 
@@ -98,7 +98,7 @@ skill は知識として複数 agent から再利用しやすくなる。
 
 - agent-owned references の配置を [.github/agents/references](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/) に固定するか。
 - Codex 側にも [.codex/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/) を作るか。
-- 既存 skill の `permissions.json` を legacy として残すか移すか。
+- 既存 skill の `permissions.json` を削除し、必要な権限は agent 側へ寄せるか。
 - checklist を skill 必須にするか、agent contract が参照する時だけ作るか。
 - 現行 live workflow にいつ適用するか。
 

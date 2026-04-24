@@ -1,0 +1,40 @@
+{
+  "contract_version": "2026-04-25",
+  "agent": "review_conductor",
+  "runtime": "codex",
+  "allowed_actions": [
+    "Copilot から codex exec で渡された review payload を確認する",
+    "観点グループ別 review agent を context 継承なしで並列 spawn する",
+    "各 review result の score、confidence、findings、hard_gate を集約する",
+    "overall_decision、overall_score、blocking_findings、next_actions を返す"
+  ],
+  "forbidden_actions": [
+    "product code または product test を変更する",
+    "docs 正本化を行う",
+    "Copilot implementation-scope を変更する",
+    "観点グループ別 review を自分で代替する",
+    "AI design review を行う"
+  ],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": [
+    "product code",
+    "product test",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"
+  ],
+  "required_source_of_truth": [
+    "implementation_scope_path",
+    "approval_record",
+    "review target diff",
+    "implementation_result",
+    "final_validation_result"
+  ],
+  "stop_conditions": [
+    "review target diff がない",
+    "implementation_scope_path がない",
+    "final_validation_result がない",
+    "観点グループ別 review agent を spawn できない"
+  ],
+  "reroute_targets": ["human", "implementation-orchestrate"]
+}

@@ -1,5 +1,0 @@
-{
-  "legacy": true,
-  "reason": "handoff output obligation は tester agent の 1:1 active contract に統合した。",
-  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/tester/contracts/tester.contract.json"
-}

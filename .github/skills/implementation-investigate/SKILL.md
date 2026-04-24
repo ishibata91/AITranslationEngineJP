@@ -14,7 +14,7 @@ description: GitHub Copilot 側の実装時調査の共通知識 package。singl
 
 ## いつ参照するか
 
-- 実装前再現、trace、再観測、review 補助を行う時
+- 実装前再現、trace、再観測を行う時
 - 一時観測点を add / remove する時
 - evidence と仮説を分けて返す時
 
@@ -44,8 +44,6 @@ description: GitHub Copilot 側の実装時調査の共通知識 package。singl
 - [implementation-investigate-trace](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate-trace/SKILL.md): 実装中 trace
 - [implementation-investigate-observe](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate-observe/SKILL.md): 一時観測点
 - [implementation-investigate-reobserve](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate-reobserve/SKILL.md): 修正後再観測
-- [implementation-investigate-review-support](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate-review-support/SKILL.md): review 補助証跡
-
 ## DO / DON'T
 
 DO:
@@ -78,4 +76,3 @@ DON'T:
 
 - 調査種別の知識差分は focused skill に置く。
 - output obligation を skill 本体へ戻さない。
-- 旧 mode contract は active 正本として扱わない。

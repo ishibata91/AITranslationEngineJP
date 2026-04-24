@@ -1,6 +1,0 @@
-{
-  "legacy": true,
-  "reason": "permissions は agent-owned references に移動した。skill は knowledge package であり active permissions を持たない。",
-  "active_permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementer/permissions.json",
-  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementer/contracts/implementer.contract.json"
-}

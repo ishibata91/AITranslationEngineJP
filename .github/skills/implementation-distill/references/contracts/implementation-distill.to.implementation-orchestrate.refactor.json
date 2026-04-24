@@ -1,7 +1,0 @@
-{
-  "legacy": true,
-  "legacy_mode": "refactor",
-  "reason": "mode 別 active contract は廃止した。知識差分は implementation-distill-refactor skill に移し、output obligation は implementation-distiller agent contract に統合した。",
-  "focused_skill_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill-refactor/SKILL.md",
-  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-distiller/contracts/implementation-distiller.contract.json"
-}

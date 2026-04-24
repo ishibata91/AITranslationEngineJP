@@ -1,6 +1,6 @@
 name = "designer"
 description = "Codex design artifact agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md を読む。"
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 developer_instructions = """

@@ -1,0 +1,29 @@
+{
+  "contract_version": "2026-04-25",
+  "agent": "review_conductor",
+  "runtime": "codex",
+  "contract_policy": "active contract は agent 1:1。review_conductor は観点グループ別 review agent の spawn と結果集約だけを行う。",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_conductor/permissions.json",
+  "required_inputs": ["implementation_scope_path", "approval_record", "review_target_diff", "implementation_result", "final_validation_result"],
+  "optional_inputs": ["touched_files", "ui_evidence", "copilot_completion_packet"],
+  "knowledge_refs": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-conductor/SKILL.md"
+  ],
+  "spawn_targets": ["review_behavior", "review_contract", "review_trust_boundary", "review_state_invariant"],
+  "spawn_context_policy": "観点グループ別 review agent は context を引き継がない。必要な diff、scope、validation、観点定義を handoff packet に明示する。",
+  "expected_outputs": ["overall_decision", "overall_score", "threshold", "group_results", "blocking_findings", "confidence_notes", "next_actions"],
+  "field_requirements": {
+    "overall_decision": "pass / fail / blocked のいずれか。pass は全観点 score が 0.85 より大きい場合だけ返す",
+    "overall_score": "観点 group score の最小値を返す。hard gate の低 score が平均で相殺されないようにする",
+    "threshold": "0.85 より大きい score を pass とする",
+    "group_results": "各 review agent の score、confidence、decision、findings、evidence_paths を含める",
+    "blocking_findings": "score <= 0.85、blocked、hard gate failure を分ける",
+    "confidence_notes": "仕様不足、diff 不足、validation 不足による confidence 低下を分ける",
+    "next_actions": "Copilot へ戻す修正候補、人間判断、再実行コマンドを分ける"
+  },
+  "required_evidence": ["review target diff", "implementation scope path", "final validation result", "each group review result"],
+  "rejection_conditions": ["missing review target diff", "missing implementation scope", "missing final validation result"],
+  "stop_conditions": ["観点グループ別 review を spawn できない", "diff から実コードを取得できない"],
+  "completion_signal": "Copilot が修正、close、人間判断、または再 review 要否を判断できる review result を返している",
+  "residual_risk_key": "confidence_notes"
+}

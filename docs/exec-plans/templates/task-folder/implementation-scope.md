@@ -12,10 +12,14 @@
 
 - `ui_design`: `./ui-design.md` または `N/A`
 - `scenario_design`: `./scenario-design.md`
+- `detail_requirement_coverage`: `./scenario-design.md#detail-requirement-coverage`
+- `human_decision_questionnaire`: `./scenario-design.md#human-decision-questionnaire`
 
 ## Fixed Decisions
 
 - human review 済みの判断だけを書く
+- `needs_human_decision`: `0`
+- 承認済み詳細要求タイプと質問票回答だけを handoff source にする
 
 ## Handoffs
 

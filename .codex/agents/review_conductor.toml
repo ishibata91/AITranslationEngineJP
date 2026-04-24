@@ -1,0 +1,17 @@
+name = "review_conductor"
+description = "Codex implementation review conductor。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-conductor/SKILL.md を読む。"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+developer_instructions = """
+この作業は `review_conductor` agent と `codex-review-conductor` skill に基づく。
+
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-conductor/SKILL.md`
+- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_conductor/permissions.json`
+- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_conductor/contracts/review_conductor.contract.json`
+
+観点グループ別 review agent は context を引き継がずに並列 spawn する。
+source of truth、handoff、stop / reroute は skill に従う。
+permissions と output obligation は permissions / contract に従う。
+"""

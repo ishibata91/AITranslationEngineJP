@@ -30,7 +30,7 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 - [skill-agent-concept.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/skill-agent-concept.md) の概念分担
 - skill template と agent runtime template
 - Markdown / JSON / TOML の path policy
-- agent 1:1 contract と legacy references の扱い
+- agent 1:1 contract と廃止対象の削除判断
 - `tmp/codex` staged apply と人間実行 script の扱い
 
 ## 原則
@@ -40,7 +40,8 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 - handoff、stop / reroute、source of truth の人間可読説明は skill 側に置く
 - contract は agent 1:1 にする
 - mode / variant ごとの active contract file を増やさない
-- live workflow にない legacy artifact を復活させない
+- live workflow にない artifact は説明文を残さず削除する
+- 廃止対象に「使わない」「廃止済み」「legacy」などの残存説明を置かない
 - staged apply は反映元を破壊せず、削除差分を明示確認してから正本へ写す
 
 ## 標準パターン
@@ -49,7 +50,7 @@ description: Codex 側の skill / agent 変更知識 package。skill を knowled
 2. 既存 workflow と対象 skill / agent の責務を確認する。
 3. role、source of truth、handoff、stop / reroute の人間可読説明を skill 側へ集約する。
 4. agent 側には TOML binding、permissions、1:1 contract を置く。
-5. checklist を skill references に置き、旧 `.agent.md` は削除する。
+5. checklist を skill references に置き、廃止対象の file / directory は削除する。
 6. path policy と workflow 名の actual name 対応を確認する。
 
 この手順は知識上の標準例である。
@@ -68,7 +69,7 @@ Codex は staged file の作成と `--check-only` による final gate 確認ま
 - 反映元 file の hash を反映前後で比較し、反映元を破壊していないことを確認する
 - 反映先と反映元の diff を表示し、削除行があれば停止する
 - file 削除が必要な時は `tmp/codex/delete-paths.txt` に対象を列挙する
-- 記載削除または file 削除が必要な時は `tmp/codex/deletion-rationale.md` に削除対象、理由、代替参照先を記録してから再実行する
+- 記載削除または file 削除が必要な時は `tmp/codex/deletion-rationale.md` に削除対象、理由、削除後の正本確認先を記録してから再実行する
 - JSON / TOML / Markdown / PlantUML など、対象 file の最低限の構文確認を行う
 - `.codex` へ直接反映しない段階では `--check-only` で同じ final gate だけを確認する
 - 通常 apply は人間実行を基本とし、Codex は明示指示なしに通常 apply へ進まない
@@ -86,6 +87,7 @@ DON'T:
 - skill 本体へ hard permissions や active contract を戻さない
 - product 実装や docs product 仕様変更を混ぜない
 - default_prompt を導入しない
+- 廃止対象を pointer、stub、legacy 説明、禁止文言として残さない
 - staged apply script で反映元 directory を削除しない
 
 ## Checklist

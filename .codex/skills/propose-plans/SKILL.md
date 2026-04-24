@@ -21,6 +21,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 - 実画面観測は必要なら `investigator` に渡す
 - spawned agent へ context を引き継がず、必要情報を packet に明示する
 - human review 前に `implementation-scope` を作らない
+- scenario-design の `needs_human_decision` が残る場合は、design bundle review へ進めず質問票回答待ちにする
 - Copilot handoff は Codex が直接渡さず、人間へ返す
 - Copilot の修正完了が分かってから正本化へ進む
 - closeout、停止、reroute 時は `codex-work-reporting` を参照し、最後に必ず報告材料を作る
@@ -40,10 +41,10 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 2. active / completed task folder に同種 task がないか確認する。
 3. distiller と investigator の要否を判定し、承認済み design bundle がない限り `designer` を使う。
 4. `distiller` を context 継承なしで spawn し、`task_frame`、`canonical_evidence`、`code_evidence`、`effective_prior_decisions`、`observation_evidence` の available input を packet に明示して渡す。
-5. `designer` を context 継承なしで spawn し、`scenario-design` を必須で作り、UI 変更がある時だけ `ui-design` を追加する。
+5. `designer` を context 継承なしで spawn し、`scenario-design` を必須で作り、詳細要求タイプの未決検出と質問票出力を含める。UI 変更がある時だけ `ui-design` を追加する。
 6. 必要なら `investigator` を context 継承なしで spawn し、実画面や観測対象を確認する。
 7. 戻りを `plan.md` の workflow state に反映する。
-8. design bundle 完了後に human review で停止する。
+8. `needs_human_decision` が残る場合は質問票を人間へ返して停止し、0 件になった design bundle だけ human review へ進める。
 9. 承認後に `designer` を再度 context 継承なしで spawn し、`implementation-scope` を固定する。
 10. 人間が Copilot に渡せる handoff packet を返す。
 11. Copilot の修正完了が分かった後、必要なら正本化へ進む。
@@ -53,6 +54,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 
 - distill、資料作成、実画面観測の必要判定ができない場合は停止する。
 - human review が必要な判断を AI だけで確定しそうな場合は停止する。
+- scenario-design の質問票に未回答項目がある場合は停止する。
 - Copilot handoff packet を人間へ返す前に implementation-scope が不足している場合は停止する。
 - Copilot の修正完了が分からない場合は正本化へ進まない。
 

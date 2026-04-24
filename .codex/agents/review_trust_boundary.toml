@@ -1,0 +1,15 @@
+name = "review_trust_boundary"
+description = "Codex review agent for permission and trust boundaries。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md を読む。"
+model = "gpt-5.4"
+model_reasoning_effort = "high"
+sandbox_mode = "read-only"
+developer_instructions = """
+この作業は `review_trust_boundary` agent と `codex-review-trust-boundary` skill に基づく。
+
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md`
+- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_trust_boundary/permissions.json`
+- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_trust_boundary/contracts/review_trust_boundary.contract.json`
+
+diff から取得した実コードを読み、権限・信頼境界だけを hard gate score / confidence / findings で返す。
+"""

@@ -1,7 +1,0 @@
-{
-  "legacy": true,
-  "legacy_mode": "scenario-implementation",
-  "reason": "mode 別 active contract は廃止した。知識差分は tests-scenario skill に移し、output obligation は tester agent contract に統合した。",
-  "focused_skill_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests-scenario/SKILL.md",
-  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/tester/contracts/tester.contract.json"
-}

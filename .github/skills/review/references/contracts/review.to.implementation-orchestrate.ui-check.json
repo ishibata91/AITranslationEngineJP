@@ -1,7 +1,0 @@
-{
-  "legacy": true,
-  "legacy_mode": "ui-check",
-  "reason": "mode 別 active contract は廃止した。知識差分は review-ui-check skill に移し、output obligation は reviewer agent contract に統合した。",
-  "focused_skill_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/review-ui-check/SKILL.md",
-  "active_contract_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/reviewer/contracts/reviewer.contract.json"
-}

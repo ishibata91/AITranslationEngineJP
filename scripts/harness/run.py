@@ -12,10 +12,17 @@ SUITE_ORDER = {
     "frontend-lint": ["check_frontend_lint.py"],
     "frontend-test": ["check_frontend_test.py"],
     "system-test": ["check_system_test.py"],
+    "scenario-gate": ["check_scenario_requirement_gate.py"],
     "coverage": ["check_coverage.py"],
     "structure": ["check_structure.py"],
     "execution": ["check_execution.py"],
-    "all": ["check_structure.py", "check_execution.py", "check_system_test.py", "check_coverage.py"],
+    "all": [
+        "check_structure.py",
+        "check_scenario_requirement_gate.py",
+        "check_execution.py",
+        "check_system_test.py",
+        "check_coverage.py",
+    ],
 }
 
 

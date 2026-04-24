@@ -1,6 +1,6 @@
 ---
 name: implementation-orchestrate
-description: GitHub Copilot 側の実装入口知識 package。承認済み implementation-scope を実装 lane に分配する判断基準を提供する。
+description: GitHub Copilot 側の実装入口知識 package。承認済み implementation-scope を実装、test、final validation、Codex review 呼び出しへ分配する判断基準を提供する。
 ---
 
 # Implementation Orchestrate
@@ -8,7 +8,7 @@ description: GitHub Copilot 側の実装入口知識 package。承認済み impl
 ## 目的
 
 `implementation-orchestrate` は知識 package である。
-GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `implementation-scope` を実装前整理、調査、実装、test、review へ分配する時の判断基準を提供する。
+GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `implementation-scope` を実装前整理、調査、実装、test、final validation、Codex review 呼び出しへ分配する時の判断基準を提供する。
 
 実行権限、write scope、active contract、handoff は [implementation-orchestrate.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/implementation-orchestrate.agent.md) が持つ。
 
@@ -16,7 +16,7 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 
 - 承認済み implementation-scope の handoff を RunSubagent 実行順へ並べる時
 - depends_on と並行可能な owned_scope を確認する時
-- implementation-distiller、investigator、implementer、tester、review 前 gate lane、reviewer のどれへ渡すか判断する時
+- implementation-distiller、investigator、implementer、tester、final validation lane、Codex review conductor のどれへ渡すか判断する時
 
 ## 参照しない場合
 
@@ -28,55 +28,32 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 
 - handoff を RunSubagent 実行単位として扱う判断
 - depends_on の解消順
-- lane-local result と final validation lane の closeout 判断
-- subagent 戻り値だけから completion packet を作る判断
+- 全 implementation handoff 完了後の suite-all と Sonar check
+- `codex exec` による Codex review conductor 呼び出し
 - Copilot 内 narrowing と例外的な Codex replan 判断
 
 ## 原則
 
 - `implementation-scope` を唯一の実行正本にする
 - 1 handoff を 1 RunSubagent 実行単位として扱う
-- RunSubagent に渡す source scope は `single_handoff_packet` 1 件と、その distill 結果に限定する
-- implementation-distiller は tester / implementer より先に lane-local context を作る
+- distiller は tester / implementer より先に lane-local context を作る
 - tester は全 implementation handoff で implementer より先に起動する
-- tester へは tester_context_packet と test_subscope だけを渡し、implementer 用 full context は渡さない
-- implementer へ full `implementation-scope`、active work plan 全文、source artifacts、後続 handoff を渡さない
-- 全 implementation handoff 完了後、reviewer 投入前に review 前 gate lane を置く
-- review 前 gate lane は coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う
-- review 前 gate lane は feature 実装、product behavior 変更、新要件判断を扱わない
-- tester / implementer の無応答、timeout、空 output、required field 欠落、insufficient_context は同一 handoff 内の autonomous narrowing trigger として扱う
-- reviewer finding と broad validation failure も、まず同一 handoff 内または review 前 gate lane の narrowing trigger として扱う
-- insufficient_context は各 agent contract の insufficient_context_criteria に一致する場合だけ autonomous narrowing trigger として扱う
-- criteria mismatch は contract violation として completion packet に残す
-- autonomous narrowing は completion_signal を削らず、remaining subscopes と blocked_after_narrowing を返す
-- オーケストレーター自身は file read / search / edit / validation 実行をしない
-- Codex replan は hard stop 条件に一致する例外だけで使う
-- 通常の不足、矛盾、scope 超過は `blocked_after_narrowing`、`remaining_subscopes`、`residual_risks` として返す
+- suite-all と Sonar check は全 implementation handoff 完了後だけ実行する
+- Codex review は final validation 後に `codex exec` で呼び出す
+- オーケストレーター自身の validation 実行は suite-all と Sonar check だけに限定する
 - docs 正本化を implementation lane に混ぜない
-- completion packet には `copilot-work-reporting` を参照して、最後に必ず `copilot_work_report` を含める
 
 ## 標準パターン
 
 1. `approval_record` と `implementation-scope` の handoff 見出し、owned_scope、depends_on、validation command だけを確認する。
-2. `depends_on` を解消し、実行可能な handoff を 1 件だけ選ぶ。
-3. 選んだ handoff から `single_handoff_packet` を作る。
-4. `implementation-distiller` に `single_handoff_packet` だけを渡し、`lane_context_packet` と `tester_context_packet` を作る。
-5. `lane_context_packet` に fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、symbol / line number 付き related_code_pointers があることを確認する。
-6. `tester_context_packet` に test_ingredients、test_required_reading、test_validation_entry があることを確認する。
-7. first_action が 1 clause に固定され、推測 method が fact 化されず、existing_patterns と validation_entry の探索理由があることを確認する。
-8. 不足していれば tester / implementer へ渡さず、同一 handoff 内で narrowing 軸を選ぶ。
-9. `tester` に `single_handoff_packet`、`tester_context_packet`、test_subscope、owned_scope、test target だけを渡す。
-10. tester が無応答、timeout、空 output、required field 欠落を返した場合は、同一 handoff 内で test_subscope を狭めて最大 2 回再実行する。
-11. tester が insufficient_context を返した場合は、reason が tester insufficient_context_criteria に一致するか確認し、一致する場合だけ narrowing trigger にする。一致しない場合は criteria mismatch として completion packet に残す。
-12. `implementer` に `single_handoff_packet`、`lane_context_packet`、implementation_subscope、owned_scope、depends_on 解消結果、tester output、禁止事項だけを渡す。
-13. implementer が無応答、timeout、空 output、required field 欠落を返した場合は、同一 handoff 内で implementation_subscope を狭めて最大 2 回再実行する。
-14. implementer が insufficient_context を返した場合は、reason が implementer insufficient_context_criteria に一致するか確認し、一致する場合だけ narrowing trigger にする。一致しない場合は criteria mismatch として completion packet に残す。
-15. 全 implementation handoff 完了後、review 前 gate lane で coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う。
-16. review 前 gate lane の結果を `pre_review_gate_result` として残す。
-17. `reviewer` に lane-local の実装結果、test result、review 前 gate lane の結果だけを渡す。
-18. validation、coverage、repo-local Sonar issue、harness evidence は subagent の戻り値だけから集約する。
-19. subagent result に docs 変更がないこと、または `blocked_after_narrowing` / `residual_risks` があることを明記する。
-20. `copilot-work-reporting` を参照し、Codex が `work_history` へ転記できる `copilot_work_report` を completion packet に必ず含める。
+2. 実行可能な handoff 1 件から `single_handoff_packet` を作る。
+3. `implementation-distiller` で `lane_context_packet` と `tester_context_packet` を作る。
+4. `tester` に `single_handoff_packet`、`tester_context_packet`、test_subscope、owned_scope、test target だけを渡す。
+5. `implementer` に `single_handoff_packet`、`lane_context_packet`、implementation_subscope、owned_scope、depends_on 解消結果、tester output だけを渡す。
+6. 全 implementation handoff 完了後、`python3 scripts/harness/run.py --suite all` を実行する。
+7. Sonar check を実行し、repo-local gate と Sonar server Quality Gate を混同しない。
+8. `codex exec` で `review_conductor` を呼び出し、diff、scope、implementation result、validation result を渡す。
+9. `copilot-work-reporting` を参照し、completion packet に `codex_review_result` と `copilot_work_report` を必ず含める。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は agent contract に従う。
@@ -86,130 +63,77 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 ### 通常パターン
 
 新規実装または機能拡張の標準順である。
-1 handoff の scope が広い場合は、同一 handoff 内で backend / frontend、test target、public boundary、change target、validation command のいずれか 1 軸に狭める。
+広すぎる handoff は、backend / frontend、test target、public boundary、change target、validation command のいずれか 1 軸に狭める。
 
-1. `implementation-distiller` に渡し、handoff 1 件だけから `lane_context_packet` を作る。
-2. `tester` に渡し、handoff 資料のスコープ粒度で product test を追加または更新する。
+1. `implementation-distiller` に渡し、handoff 1 件だけから context packet を作る。
+2. `tester` に渡し、handoff 粒度で product test を追加または更新する。
 3. `implementer` に渡し、同じ handoff 粒度で product code だけを実装する。
-4. review 前 gate lane で coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う。
-5. `reviewer` に渡し、implementation review または UI check を行う。
-6. lane-local result を completion packet に集約する。
+4. 全 implementation handoff 完了後、suite-all と Sonar check を実行する。
+5. `codex exec` で Codex review conductor を呼び出す。
 
 ### 修正パターン
 
 bug fix、regression、validation failure の標準順である。
 原因不明のまま implementer へ渡さない。
 
-1. `investigator` に渡し、再現条件、error output、log、UI state を集める。
-2. `implementation-distiller` に渡し、調査結果を足さず handoff 1 件だけから `lane_context_packet` を作る。
-3. `tester` に渡し、再現を証明する failing test または regression test を handoff 粒度で追加する。
+1. 必要なら `investigator` に渡し、再現条件、error output、log、UI state を集める。
+2. `implementation-distiller` に渡し、handoff 1 件だけから context packet を作る。
+3. `tester` に渡し、failing test または regression test を handoff 粒度で追加する。
 4. `implementer` に渡し、accepted fix scope だけを恒久修正する。
-5. review 前 gate lane で coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う。
-6. `reviewer` に渡し、再現が閉じたことと lane-local validation の未達がないことを確認する。
+5. 全 implementation handoff 完了後、suite-all、Sonar check、Codex review を順に行う。
 
 ### Refactor パターン
 
 外部 behavior を変えない整理の標準順である。
 不変条件が未定義なら実行しない。
 
-1. `implementation-distiller` に渡し、handoff 1 件だけから不変条件の `lane_context_packet` を作る。
-2. `tester` に渡し、不変条件を証明する既存 test または補強 test を handoff 粒度で整える。
+1. `implementation-distiller` に渡し、不変条件を context packet に固定する。
+2. `tester` に渡し、不変条件を証明する test を handoff 粒度で整える。
 3. `implementer` に渡し、owned_scope 内だけを refactor する。
-4. review 前 gate lane で coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う。
-5. `reviewer` に渡し、behavior drift と broad refactor がないことを確認する。
+4. 全 implementation handoff 完了後、suite-all、Sonar check、Codex review を順に行う。
 
 ### UI / Mixed パターン
 
 frontend / backend 横断や UI evidence が必要な時の標準順である。
 backend 完了前に frontend handoff を先行しない。
 
-1. backend 側 handoff があれば、先に `implementation-distiller`、`tester`、`implementer` へ渡す。
-2. frontend 側 handoff も `implementation-distiller`、`tester`、`implementer` へ渡し、visible state と test seam をそろえる。
+1. backend 側 handoff を先に distiller、tester、implementer へ渡す。
+2. frontend 側 handoff も distiller、tester、implementer へ渡す。
 3. 必要なら `investigator` に渡し、UI state、console、Wails binding evidence を集める。
-4. review 前 gate lane で coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う。
-5. `reviewer` に渡し、UI check と implementation review を scope 内で行う。
+4. 全 implementation handoff 完了後、suite-all、Sonar check、Codex review を順に行う。
 
-### Distill パターン
+## Codex Review 呼び出し
 
-`implementation-distiller` は default path で必ず使う。
-ただし distiller に渡す input は `single_handoff_packet` 1 件だけに限定する。
-distiller は full implementation-scope、active work plan 全文、source artifacts、後続 handoff を読まず、implementer 用の `lane_context_packet` と tester 用の `tester_context_packet` だけを返す。
-`lane_context_packet` は implementer 用の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含める。
-tester 用には `tester_context_packet` を別に返し、test_ingredients、test_required_reading、test_existing_patterns、test_distracting_context、test_validation_entry を含める。
-handoff 1 件だけでは `lane_context_packet` を作れない場合も、まず同一 handoff 内で completion_signal clause、public boundary、change target、validation command のいずれか 1 軸に狭める。
-2 回狭めても first_action を確定できない場合だけ、`requires_codex_replan: true` を completion packet に残す。
+`codex exec` は Copilot の実装完了後に呼び出す。
+Copilot の課金形態では待機が request cost にならないため、実装完了後の同期 review として扱う。
 
-### Autonomous Narrowing パターン
+渡す payload は次を含める。
 
-tester / implementer が context 枯渇で進まない場合、orchestrator は同じ `single_handoff_packet` 内で sub-scope を狭めて再実行してよい。
-narrowing trigger は無応答、timeout、空 output、required field 欠落、`insufficient_context` である。
-`insufficient_context` は agent contract の insufficient_context_criteria に一致する場合だけ trigger にする。
-criteria mismatch は contract violation として completion packet に残し、narrowing trigger にしない。
-narrowing 軸は `completion_signal` clause、public seam / API boundary、test target file、change target / symbol、validation command のいずれか 1 つに限定する。
-最大 2 回狭めても進まない場合は、`blocked_after_narrowing` と remaining subscopes を completion packet に残す。
-
-### Codex Replan 例外パターン
-
-Copilot から Codex を直接呼べないため、Codex replan は通常 flow に含めない。
-次の hard stop 条件に一致する場合だけ、completion packet に `requires_codex_replan: true` と該当条件を残す。
-
-- approved scope に存在しない新要件が必要である
-- human 承認済み design と実装対象が矛盾している
-- public behavior の仕様判断が未承認で、実装側が選ぶと product decision になる
-- docs 正本化や workflow 変更が実装完了の前提になる
-- 2 回の autonomous narrowing 後も `single_handoff_packet` 内で first_action を確定できない
+- `implementation_scope_path`
+- `approval_record`
+- `implementation_result`
+- `diff_summary` または review 対象 diff
+- `final_validation_result`
+- `touched_files`
 
 ## DO / DON'T
 
 DO:
-- handoff 見出しを RunSubagent 単位にする
-- 最後に必ず `copilot-work-reporting` で completion packet の報告材料を作らせる
-- depends_on を守る
-- distiller に `single_handoff_packet` 1 件だけを渡す
-- distiller output が patch 生成に必要な fix_ingredients を持つことを確認する
-- distiller output が distracting_context を required_reading から分離していることを確認する
-- distiller output が具体的な first_action と code pointer を持つことを確認する
-- distiller output が tester_context_packet と tester 用 focused validation を持つことを確認する
-- distiller output の first_action が 1 clause に固定されていることを確認する
-- distiller output が推測 method を fact にしていないことを確認する
-- distiller output の existing_patterns と validation_entry が探索理由を持つことを確認する
-- distiller output が要件、実装方針、決定事項を要約していることを確認する
+- distiller を tester / implementer より先に起動する
 - tester を implementer より先に起動する
-- tester / implementer の insufficient_context は sub-scope narrowing trigger として扱う
-- insufficient_context の reason を insufficient_context_criteria と照合する
-- implementer へ `single_handoff_packet`、`lane_context_packet`、tester output だけを渡す
-- review 前 gate lane では coverage、repo-local Sonar issue、arch、broad validation の修正だけを扱う
-- subagent 戻り値だけを集約する
-- 通常の不足、矛盾、scope 超過は Copilot 内 narrowing と residual reporting で閉じる
-- hard stop 条件だけ `requires_codex_replan: true` として返す
+- suite-all と Sonar check を全 implementation handoff 完了後に実行する
+- `codex exec` の review payload に diff と validation result を含める
+- 最後に必ず `copilot-work-reporting` で completion packet の報告材料を作る
 
 DON'T:
-- RunSubagent 以外の tool を使う
-- `implementation-scope` を書き換えない
-- RunSubagent に full `implementation-scope`、active work plan 全文、source artifacts、後続 handoff を渡さない
-- distiller に full `implementation-scope` や source artifacts を渡さない
-- handoff 文面の言い換えだけの distiller output を implementer に渡さない
-- fix_ingredients がない distiller output を implementer に渡さない
-- tester_context_packet がない distiller output を tester に渡さない
-- tester へ implementer 用 full context を渡さない
-- first_action が partial または複数 clause の distiller output を implementer に渡さない
-- 推測 method を fact にした distiller output を implementer に渡さない
-- 類似 context を required_reading に混ぜた distiller output を implementer に渡さない
-- 要件、実装方針、決定事項を required_reading に丸投げした distiller output を implementer に渡さない
-- implementer に product test の新規作成、更新、fixture 調整を依頼しない
-- review 前 gate lane に feature 実装、product behavior 変更、新要件判断を混ぜない
-- 通常の validation failure や reviewer finding を Codex return 前提にしない
-- criteria mismatch の insufficient_context を narrowing trigger にしない
-- narrowing で completion_signal を削らない
-- narrowing を理由に docs、implementation-scope、active work plan を書き換えない
-- file read / search / edit / validation 実行をしない
+- RunSubagent 以外で実装、test 追加、調査をしない
+- final validation 前に suite-all や Sonar check を実行しない
+- repo-local Sonar issue gate と Sonar server Quality Gate を混同しない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない
-- design review を行わない
 
 ## 参照パターン
 
 - [orchestration-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-orchestrate/references/patterns/orchestration-patterns.md) を参照する。
-- 対象は handoff 分割、depends_on 解消、validation failure の最小 narrowing、closeout gate の判断である。
 - coverage は repo の `MINIMUM_COVERAGE = 70.0` を正本にする。
 - `sonar_gate_result` は互換 field 名として残る場合があるが、意味は repo-local Sonar issue gate であり Sonar サーバ側 Quality Gate ではない。
 - report: [copilot-work-reporting](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/copilot-work-reporting/SKILL.md) を参照する。
@@ -228,4 +152,3 @@ DON'T:
 
 - output obligation を skill 本体へ戻さない。
 - mode / variant contract を skill 配下の active 正本にしない。
-- 実装責務が分かれる場合は agent 側の handoff で分ける。

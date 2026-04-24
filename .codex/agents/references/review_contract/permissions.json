@@ -1,0 +1,11 @@
+{
+  "contract_version": "2026-04-25",
+  "agent": "review_contract",
+  "runtime": "codex",
+  "allowed_actions": ["review target diff と周辺実コードを read-only で確認する", "契約・互換性観点だけを score / confidence / findings で返す"],
+  "forbidden_actions": ["file mutation", "内部実装の綺麗さを主判定にする", "テスト十分性を主判定にする", "性能最適化を主判定にする"],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": ["/Users/iorishibata/Repositories/AITranslationEngineJP/"],
+  "required_source_of_truth": ["review target diff", "implementation_scope_path", "public boundary evidence"],
+  "stop_conditions": ["diff がない", "public boundary を判定できない"]
+}
