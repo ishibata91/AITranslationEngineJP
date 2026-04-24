@@ -1,0 +1,37 @@
+id: body-translation-phase
+title: 本文翻訳フェーズ
+usecase: body-translation-phase
+flow_order: 5
+flow_stage: translation_phase
+related_screens:
+  - app-shell.md
+  - job-run.md
+goal: 確定訳語、ペルソナ、翻訳補助メタデータを参照して、翻訳フィールド本文を翻訳する。
+inputs:
+  - 翻訳ジョブ
+  - 翻訳フィールド
+  - 確定訳語
+  - ジョブ内辞書
+  - ジョブ内ペルソナ
+  - 翻訳補助メタデータ
+outputs:
+  - 訳文
+  - 出力ステータス
+  - 保護要素検証結果
+preconditions:
+  - NPC ペルソナ生成フェーズが完了している
+completion_criteria:
+  - current phase と progress を確認できる
+  - 翻訳レコード種別に応じた翻訳指示を構成できる
+  - 埋め込み要素を損なわずに訳文を生成できる
+  - pause、resume、retry、cancel の可否を確認できる
+  - recoverable failure の情報を確認できる
+depends_on:
+  - persona-generation-phase
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - Job Run を開く
+  - 本文翻訳フェーズを開始する
+  - progress と failure state を確認する
+  - 訳文、出力ステータス、保護要素検証結果を確認する

@@ -1,0 +1,39 @@
+id: translation-job-setup
+title: 翻訳ジョブ作成
+usecase: translation-job-setup
+flow_order: 2
+flow_stage: preparation
+related_screens:
+  - app-shell.md
+  - input-review.md
+  - job-setup.md
+goal: 1 入力データに対して 1 翻訳ジョブを作成し、実行前 validation を完了する。
+inputs:
+  - 入力データ
+  - 翻訳レコード
+  - 翻訳フィールド
+  - 共通辞書
+  - 共通ペルソナ
+  - AI 基盤設定
+outputs:
+  - 翻訳ジョブ
+  - 実行設定
+  - validation 結果
+preconditions:
+  - 翻訳入力取り込みが完了している
+completion_criteria:
+  - 1 入力データごとに 1 翻訳ジョブを作成できる
+  - 基盤参照、AI 基盤、実行方式を選択できる
+  - create job の前に validation を通せる
+  - validation failure の理由を確認できる
+depends_on:
+  - translation-input-intake
+  - master-dictionary-management
+  - persona-management
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - Job Setup を開く
+  - 入力データ、基盤参照、AI runtime を選ぶ
+  - validation の pass 状態を確認する
+  - 翻訳ジョブを作成する

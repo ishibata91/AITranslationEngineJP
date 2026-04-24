@@ -1,0 +1,34 @@
+id: translation-input-intake
+title: 翻訳入力取り込み
+usecase: translation-input-intake
+flow_order: 1
+flow_stage: input
+related_screens:
+  - app-shell.md
+  - input-review.md
+goal: xEdit 抽出 JSON を入力データとして登録し、翻訳ジョブで再利用できる translation unit へ展開する。
+inputs:
+  - xEdit 抽出 JSON
+  - 入力ファイルの出自情報
+outputs:
+  - 入力データ
+  - 翻訳レコード
+  - 翻訳フィールド
+  - 再構築可能な入力キャッシュ
+preconditions:
+  - 基盤データ管理が成立している
+completion_criteria:
+  - input file の一覧を参照できる
+  - 1 入力データを 1 翻訳ジョブ候補として識別できる
+  - translation unit の件数とカテゴリを確認できる
+  - 入力キャッシュを削除しても抽出 JSON から再構築できる
+depends_on:
+  - foundation-data-management
+  - dashboard-and-app-shell
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - app-shell から Input Review を開く
+  - xEdit 抽出 JSON を登録する
+  - import 済みファイルと sample unit を確認する
+  - 入力データ、翻訳レコード、翻訳フィールドの件数を確認する

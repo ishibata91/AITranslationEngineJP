@@ -1,0 +1,35 @@
+id: translation-output-artifact
+title: 翻訳成果物出力
+usecase: translation-output-artifact
+flow_order: 6
+flow_stage: output
+related_screens:
+  - app-shell.md
+  - output-review.md
+goal: 完了ジョブの翻訳結果を確認し、xTranslator 互換の成果物として出力する。
+inputs:
+  - 完了済み翻訳ジョブ
+  - 訳文
+  - 出力ステータス
+  - 入力ファイルの出自情報
+outputs:
+  - xTranslator 互換成果物
+  - result summary
+  - diff preview
+  - 再出力状態
+preconditions:
+  - 本文翻訳フェーズが完了している
+completion_criteria:
+  - completed job を一覧できる
+  - result summary を確認できる
+  - translation unit 単位の差分と再生成操作を確認できる
+  - output artifact の状態と再出力導線を確認できる
+depends_on:
+  - body-translation-phase
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - Output Review を開く
+  - completed job と output artifact を選択する
+  - diff preview と再生成操作を確認する
+  - xTranslator 互換成果物の出力状態を確認する

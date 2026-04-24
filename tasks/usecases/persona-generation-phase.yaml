@@ -1,0 +1,34 @@
+id: persona-generation-phase
+title: NPC ペルソナ生成フェーズ
+usecase: persona-generation-phase
+flow_order: 4
+flow_stage: translation_phase
+related_screens:
+  - app-shell.md
+  - job-run.md
+goal: NPC の原文発話と属性から、本文翻訳フェーズで参照するジョブ内ペルソナを生成する。
+inputs:
+  - 翻訳ジョブ
+  - NPC 発話の原文
+  - NPC 属性メタデータ
+  - 会話文脈
+  - 共通ペルソナ
+outputs:
+  - ジョブ内ペルソナ
+  - 翻訳時参照用 persona snapshot
+preconditions:
+  - 単語翻訳フェーズが完了している
+completion_criteria:
+  - current phase と progress を確認できる
+  - NPC ごとの生成対象を確認できる
+  - 生成済みペルソナを本文翻訳フェーズの入力として参照できる
+  - ジョブ内ペルソナを共通ペルソナと分離して保持できる
+depends_on:
+  - term-translation-phase
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - Job Run を開く
+  - NPC ペルソナ生成フェーズを開始する
+  - progress と phase result を確認する
+  - ジョブ内ペルソナの参照状態を確認する

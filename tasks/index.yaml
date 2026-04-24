@@ -3,15 +3,24 @@ catalog_type: implementation_task_catalog
 summary: 粗い実装スライスを順番付きで管理する task catalog
 default_order:
   - foundation-data-management
-  - translation-preparation
-  - translation-execution-control
-  - translation-output-management
+  - translation-input-intake
+  - translation-job-setup
+  - term-translation-phase
+  - persona-generation-phase
+  - body-translation-phase
+  - translation-output-artifact
 entries:
   - id: foundation-data-management
     path: usecases/foundation-data-management.yaml
-  - id: translation-preparation
-    path: usecases/translation-preparation.yaml
-  - id: translation-execution-control
-    path: usecases/translation-execution-control.yaml
-  - id: translation-output-management
-    path: usecases/translation-output-management.yaml
+  - id: translation-input-intake
+    path: usecases/translation-input-intake.yaml
+  - id: translation-job-setup
+    path: usecases/translation-job-setup.yaml
+  - id: term-translation-phase
+    path: usecases/term-translation-phase.yaml
+  - id: persona-generation-phase
+    path: usecases/persona-generation-phase.yaml
+  - id: body-translation-phase
+    path: usecases/body-translation-phase.yaml
+  - id: translation-output-artifact
+    path: usecases/translation-output-artifact.yaml
