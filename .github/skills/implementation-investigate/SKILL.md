@@ -29,14 +29,91 @@ description: GitHub Copilot 側の実装時調査の共通知識 package。singl
 - evidence first の観測
 - observed facts と hypotheses の分離
 - temporary observation の cleanup
+- `agent-browser` CLI による UI / console / screenshot evidence
 - focused skill の選び方
 
 ## 原則
 
 - `single_handoff_packet` 1 件と owned_scope を超えない
 - evidence のない結論を固定しない
+- Copilot のブラウザ操作は Playwright MCP ではなく `agent-browser` CLI で行う
 - 一時観測点は返却前に除去する
 - 恒久修正と product test 追加を混ぜない
+
+## Browser Evidence
+
+UI state、console、screenshot の観測は `execute` から `agent-browser` CLI を使う。
+Playwright MCP の `browser` tool に依存しない。
+
+標準入口は次の通りである。
+
+```bash
+npm run dev:wails:agent-browser
+agent-browser doctor --offline --quick
+agent-browser open http://localhost:34115
+agent-browser snapshot
+agent-browser console
+agent-browser screenshot tmp/agent-browser/ui-evidence.png
+```
+
+観測後は `agent-browser close` を実行する。
+system test の Playwright runner は product test 用の別入口として扱う。
+
+### 操作コマンド一覧
+
+起動と終了:
+
+```bash
+agent-browser open http://localhost:34115
+agent-browser open http://localhost:34115/#dashboard
+agent-browser reload
+agent-browser close
+agent-browser close --all
+```
+
+状態確認:
+
+```bash
+agent-browser snapshot
+agent-browser get title
+agent-browser get url
+agent-browser get text "#root"
+agent-browser is visible "#root"
+```
+
+操作:
+
+```bash
+agent-browser click "@e2"
+agent-browser fill "#input-id" "value"
+agent-browser find role button click --name "保存"
+agent-browser find text "辞書" click
+agent-browser press Enter
+```
+
+証跡:
+
+```bash
+agent-browser console
+agent-browser errors
+agent-browser screenshot tmp/agent-browser/ui-evidence.png
+agent-browser screenshot --annotate --screenshot-dir tmp/agent-browser
+agent-browser network requests
+```
+
+複数手順をまとめる場合:
+
+```bash
+agent-browser batch --bail \
+  "open http://localhost:34115" \
+  "snapshot" \
+  "console" \
+  "screenshot tmp/agent-browser/ui-evidence.png"
+```
+
+`@e2` のような ref は直前の `snapshot` の結果から選ぶ。
+selector が安定している場合だけ CSS selector を使う。
+console / errors / screenshot / network requests は completion packet の evidence に command と結果を残す。
 
 ## Focused Skills
 

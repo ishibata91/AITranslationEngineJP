@@ -17,6 +17,7 @@ agent contract の権限や output obligation は上書きしない。
 
 - Wails binding、frontend gateway、backend service、infra adapter のどこで失敗したかを分ける。
 - console、backend log、test output、UI state を evidence として区別する。
+- UI state、console、screenshot は Playwright MCP ではなく `agent-browser` CLI の command output として残す。
 - paid real AI API を調査で呼ばない。fake / DI seam / test mode を使う。
 - 一時観測点は返却前に除去し、cleanup_status を必ず返す。
 

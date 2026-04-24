@@ -6,7 +6,8 @@
 - [ ] tester_context_packet の test_ingredients、test_required_reading、test_validation_entry を確認した
 - [ ] test_subscope がある場合はその範囲だけを証明した
 - [ ] insufficient_context_criteria の structural gate に一致する場合だけ insufficient_context、needed_context、remaining_test_subscopes を返した
-- [ ] not_insufficient_context に該当する局所確認や期待どおり fail する test を停止理由にしなかった
+- [ ] not_insufficient_context に該当する局所確認や承認済み scenario 由来の fail test を停止理由にしなかった
+- [ ] 原因未確定の regression test を実装前に書かなかった
 - [ ] deterministic setup にした
 - [ ] focused skill の知識だけを追加で参照した
 

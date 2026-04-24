@@ -15,7 +15,8 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 ## いつ参照するか
 
 - owned_scope 内の product code を実装する時
-- lane_context_packet と tester output に基づいて product code を実装する時
+- lane_context_packet に基づいて product code を実装する時
+- scenario 先行時の tester output を product code 実装へ反映する時
 - lane-local validation の扱いを確認する時
 
 ## 参照しない場合
@@ -37,8 +38,10 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 
 - `implementation-scope` と owned_scope を超えない
 - handoff 資料のスコープ粒度で実装する
-- lane_context_packet と tester output に合わせて product code だけを変更する
+- lane_context_packet に合わせて product code だけを変更する
+- scenario 先行時だけ tester output も確認する
 - implementation_subscope が渡された場合はその sub-scope 内だけを実装する
+- 実装完了後、handoff を終える前に touched layer に対応する local validation を実行する
 - fix_ingredients に対応する code path を優先し、distracting_context へ寄り道しない
 - first_action と change_targets から着手する
 - insufficient_context_criteria は structural gate とし、fix_ingredients、first_action、change_targets、requirements_policy_decisions、existing pattern、validation_entry の不足時に返す
@@ -66,6 +69,8 @@ DO:
 - entry point、call site、data flow、error path、test surface を確認する
 - 既存 pattern に naming、constructor、DI、error return を合わせる
 - lane-local validation 結果または未実行理由を返す
+- backend handoff は `python3 scripts/harness/run.py --suite backend-local`、frontend handoff は `python3 scripts/harness/run.py --suite frontend-local` を使う
+- mixed handoff は touched layer に応じて両方を実行する
 - touched files は product code だけにする
 
 DON'T:

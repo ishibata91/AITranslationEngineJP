@@ -4,6 +4,7 @@
 
 - [ ] implementation-orchestrate の最後に必ず `copilot_work_report` を作らせた
 - [ ] `work_history/templates/run/copilot.md` の必須項目を確認した
+- [ ] `copilot_work_report` の report skeleton field を同じ順序で返した
 - [ ] subagent 戻り値だけから report 材料を集約した
 - [ ] 改善、時間、無駄、困りごとを分けた
 - [ ] validation 未実行理由と reroute reason を残した

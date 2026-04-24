@@ -8,25 +8,33 @@ agent contract の権限や output obligation は上書きしない。
 ## 適用ルール
 
 - `implementation-scope` の handoff 見出しを RunSubagent 実行単位にする。
+- Ready Waves 表または `ready_wave` から、実行可能な最小番号の wave を選ぶ。
+- `first_action` を含む `single_handoff_packet` だけを subagent に渡す。
 - distiller は tester / implementer より先に必ず起動する。
-- tester は implementer より先に必ず起動する。
+- tester を implementer より先に起動できるのは、承認済み scenario artifact を product test 化する場合だけである。
+- unit test と原因未確定の regression test は、implementer 完了後に tester が追加または更新する。
 - subagent に渡す source scope は `single_handoff_packet` 1 件と、その distill 結果に限定する。
-- suite-all と Sonar check は全 implementation handoff 完了後だけ実行する。
+- scenario validation、suite-all、Sonar check は全 implementation handoff 完了後だけ実行する。
+- scenario validation が fail した場合は close せず、Copilot 側 blocker として返す。
 - Codex review は final validation 後に `codex exec` で呼び出す。
 - closeout では final validation と Codex review の evidence または blocked reason を必ず返す。
 
 ## 実行順パターン
 
-- 通常: distiller -> tester -> implementer。
-- 修正: investigator -> distiller -> tester -> implementer。
-- refactor: distiller -> tester -> implementer。
-- mixed: backend handoff を先行し、各 handoff を distiller -> tester -> implementer で扱う。
-- final validation: 全 implementation handoff 完了後に suite-all -> Sonar check を実行する。
+- 通常: distiller -> implementer -> tester。
+- 修正: investigator -> distiller -> implementer -> tester。
+- refactor: distiller -> implementer -> tester。
+- scenario 先行: distiller -> tester -> implementer。
+- mixed: backend handoff を先行し、各 handoff を通常順または scenario 先行順で扱う。
+- final validation: 全 implementation handoff 完了後に scenario validation -> suite-all -> Sonar check を実行する。
 - Codex review: final validation 後に `codex exec` で `review_conductor` を呼び出す。
 
 ## Final Validation
 
+- scenario validation の default は `python3 scripts/harness/run.py --suite scenario-gate` を使う。
+- task 固有の product scenario test command が `implementation-scope` にある場合は、scenario validation result に含める。
 - suite-all は `python3 scripts/harness/run.py --suite all` を使う。
+- suite-all は既に scenario-gate を含むが、completion packet では scenario validation result を別 field として抜き出す。
 - Sonar check は repo root の `scan:sonar` script を優先する。
 - repo-local gate は Sonar サーバ側 Quality Gate ではない。
 - `npm run test:system` または harness all が Wails、sandbox、OS 権限で止まる場合は `FAIL_ENVIRONMENT` として扱う。
@@ -45,7 +53,10 @@ agent contract の権限や output obligation は上書きしない。
 
 ## 赤旗
 
-- final validation 前に suite-all または Sonar check を実行している。
+- final validation 前に scenario validation、suite-all、Sonar check を実行している。
+- scenario validation failure を close 可能な residual risk として扱っている。
+- `first_action` 欠落を広い調査で補っている。
+- `parallelizable_with` がない handoff を同一 wave という理由で並列実行している。
 - Codex review payload に diff または scope path がない。
 - repo-local Sonar issue gate と Sonar server Quality Gate を混同している。
 - coverage、Sonar、harness、Codex review の未実行理由が completion packet にない。

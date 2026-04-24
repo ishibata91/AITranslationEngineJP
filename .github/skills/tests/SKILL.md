@@ -41,8 +41,10 @@ description: GitHub Copilot 側の product test 共通知識 package。承認済
 - listed files / symbols 外を探索して context 不足を埋めない
 - insufficient_context_criteria は structural gate とし、behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation の不足時に返す
 - test_subscope が completion_signal clause、public seam、test target file、validation command のいずれにも対応しない場合は insufficient_context を返す
-- 期待どおり fail する test、局所的 import 修正、既存 test file 内の軽微な確認は not_insufficient_context として扱う
+- 承認済み scenario を元に期待どおり fail する test、局所的 import 修正、既存 test file 内の軽微な確認は not_insufficient_context として扱う
+- 原因未確定の regression test は実装前に書かない
 - setup は決定的にする
+- test 追加または更新後、handoff を終える前に touched layer に対応する local validation を実行する
 - paid real AI API を呼ばない
 - 新しい要件解釈を足さない
 
@@ -60,6 +62,8 @@ DO:
 - fixture の入力値、clock、runtime 応答、seed を固定する
 - test body に条件分岐を入れない
 - `python3 scripts/harness/run.py --suite coverage` で Sonar-compatible coverage 70% 以上を確認する
+- backend handoff は `python3 scripts/harness/run.py --suite backend-local`、frontend handoff は `python3 scripts/harness/run.py --suite frontend-local` を使う
+- mixed handoff は touched layer に応じて両方を実行する
 - validation result と remaining gaps を返す
 
 DON'T:
@@ -73,7 +77,7 @@ DON'T:
 ## 参照パターン
 
 - [test-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests/references/patterns/test-patterns.md) を参照する。
-- 対象は Red / Green / Refactor、edge-case inventory、AAA、flaky test avoidance、E2E artifact handling である。
+- 対象は scenario 先行 test、post-implementation unit / regression、edge-case inventory、AAA、flaky test avoidance、E2E artifact handling である。
 - coverage は repo の `MINIMUM_COVERAGE = 70.0`、validation command、Wails test seam に従う。
 
 ## Checklist

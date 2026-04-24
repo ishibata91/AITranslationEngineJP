@@ -4,7 +4,8 @@
 
 - [ ] layer 責務と dependency direction を確認した
 - [ ] validation と error path を owned_scope 内で確認した
-- [ ] lane_context_packet、tester output、lane-local validation を確認した
+- [ ] lane_context_packet と lane-local validation を確認した
+- [ ] scenario 先行時だけ tester output を確認した
 
 ## Common Pitfalls
 

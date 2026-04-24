@@ -29,13 +29,14 @@ file mutation、RunSubagent、完了条件、停止条件は参照元 agent の 
 
 - `work_history/templates/run/copilot.md` の記入観点
 - implementation-scope の読み取り、実装分割、調査、test、final validation、Codex review、reroute の記録
-- touched files、validation、完了報告不足の整理
+- touched files、validation、完了報告不足、report skeleton の整理
 - Codex が work_history に転記するための report-ready summary
 
 ## 原則
 
 - implementation-orchestrate は最後に必ず `copilot_work_report` を作らせる。
 - 置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/copilot.md` に固定する。
+- completion packet 直下の `copilot_work_report` は report-ready skeleton として返す。
 - subagent 戻り値だけから報告材料を集約する。
 - 推測で作業時間、変更 file、validation 結果を補わない。
 - `docs_changes` は implementation-orchestrate contract に従い `none` を返す。
@@ -46,8 +47,8 @@ file mutation、RunSubagent、完了条件、停止条件は参照元 agent の 
 
 1. report path を `work_history/runs/YYYY-MM-DD-<task-id>-run/copilot.md` に固定する。
 2. file には直接書かず、completion packet の `copilot_work_report.report_path` に固定 path を返す。
-3. completed handoff、touched files、implemented scope、test results、final validation result、Codex review result を completion packet から集める。
-4. `改善すべきこと`、`時間がかかったこと`、`無駄だったこと`、`困ったこと` を分ける。
+3. `copilot_work_report` に `report_path`、`status`、`改善すべきこと`、`時間がかかったこと`、`無駄だったこと`、`困ったこと`、`次に見るべき場所` を同じ順序で返す。
+4. completed handoff、touched files、implemented scope、test results、final validation result、Codex review result を completion packet から集める。
 5. implementation-scope の読み取り、実装分割、調査、validation、reroute を整理する。
 6. `docs/exec-plans/`、`.codex/history/`、handoff file を report path にしない。
 
@@ -59,6 +60,7 @@ file mutation、RunSubagent、完了条件、停止条件は参照元 agent の 
 DO:
 - implementation-orchestrate の最後に必ず `copilot_work_report` を作らせる
 - `copilot_work_report.report_path` を `work_history/runs/YYYY-MM-DD-<task-id>-run/copilot.md` に固定する
+- report skeleton の field 順序を固定する
 - tester、implementer、investigator、final validation、Codex review の戻り値を根拠にする
 - reroute と blocked reason を report 材料として残す
 - 未実行 validation は未実行理由と一緒に書く

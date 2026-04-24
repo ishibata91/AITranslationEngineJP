@@ -3,7 +3,7 @@ name: implementation-distiller
 description: subagent。single_handoff_packet 1 件から lane_context_packet を作る。
 target: vscode
 tools: [read, search]
-model: GPT-5.4 (copilot)
+model: GPT-5.4 mini (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false

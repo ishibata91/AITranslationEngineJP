@@ -11,7 +11,8 @@ agent contract の権限や output obligation は上書きしない。
 - KISS、DRY、YAGNI を守り、必要になった時だけ抽象化する。
 - error path、empty state、boundary value を実装時に明示する。
 - build / type error の解消は最小差分にする。
-- 変更前に lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、既存の naming、layer、dependency direction、tester output を確認する。
+- 変更前に lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、既存の naming、layer、dependency direction を確認する。
+- scenario 先行時だけ tester output も確認する。
 - 大きい関数、深いネスト、magic number、silent fallback を赤旗として扱う。
 - 振る舞いを変えない整理は、可読性が明確に上がる場合だけ行う。
 
@@ -47,7 +48,8 @@ agent contract の権限や output obligation は上書きしない。
 ## 実装前確認
 
 - handoff 資料のスコープ粒度と owned_scope を確認する。
-- lane_context_packet と tester output を確認する。
+- lane_context_packet を確認する。
+- scenario 先行時だけ tester output を確認する。
 - fix_ingredients に対応する path、symbol、line number を確認する。
 - distracting_context に挙がった周辺 context を実装対象から外す。
 - first_action の path、symbol、line number から着手する。

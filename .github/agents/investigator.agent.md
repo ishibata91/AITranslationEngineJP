@@ -2,7 +2,7 @@
 name: investigator
 description: subagent。承認済み owned_scope 内で、実装前再現、実装中 trace、修正後再観測を行う。
 target: vscode
-tools: [execute, read, edit, search, browser, 'mcp_docker/*']
+tools: [execute, read, edit, search, 'mcp_docker/*']
 model: GPT-5.4 (copilot)
 agents: []
 user-invocable: false
@@ -58,6 +58,7 @@ contract は agent 1:1 で、調査種別の違いは focused skill として参
 
 - evidence first。観測した事実、仮説、不足情報を混ぜない。
 - entry point、call chain、state boundary、external boundary を優先して追う。
+- UI state、console、screenshot は `execute` から `agent-browser` CLI で取得する。
 - silent failure、empty catch、dangerous fallback、error propagation の欠落を疑う。
 - temporary observation は目的、対象 path、除去状態を必ず残す。
 - 恒久修正、product test 追加、owned_scope 外の調査は行わない。
@@ -66,7 +67,7 @@ contract は agent 1:1 で、調査種別の違いは focused skill として参
 
 1. investigation_request、owned_scope、調査種別を固定する。
 2. entry point と observation point を特定する。
-3. command、log、UI state、trace を evidence として記録する。
+3. command、log、UI state、trace を evidence として記録する。UI state は `agent-browser` CLI の実行結果として残す。
 4. temporary observation を入れる場合は、cleanup 可能性を先に確認する。
 5. observed_facts、hypotheses、remaining_gaps、recommended_next_step を返す。
 

@@ -4,6 +4,8 @@
 
 - `python3 scripts/harness/run.py --suite frontend-lint`
 - `python3 scripts/harness/run.py --suite backend-lint`
+- `python3 scripts/harness/run.py --suite frontend-local`
+- `python3 scripts/harness/run.py --suite backend-local`
 - `python3 scripts/harness/run.py --suite frontend-test`
 - `python3 scripts/harness/run.py --suite backend-test`
 - `python3 scripts/harness/run.py --suite system-test`
@@ -17,6 +19,8 @@
 
 - `frontend-lint`: repo root package の `lint:frontend` を入口にして frontend lint だけを実行する
 - `backend-lint`: repo root package または backend workspace の `lint:backend` を入口にして backend lint を実行する
+- `frontend-local`: `frontend-lint`、`frontend-test` をこの順で実行する実装中の軽量 gate
+- `backend-local`: `backend-lint`、`backend-test` をこの順で実行する実装中の軽量 gate
 - `frontend-test`: repo root package の `test:frontend` を入口にして frontend test を実行する
 - `backend-test`: repo root package の `test:backend` を入口にして backend test を実行する
 - `system-test`: repo root package の `test:system` を入口にして Playwright system test を実行する
@@ -27,7 +31,10 @@
 
 ## Execution Notes
 
-- implementation lane の implementer は `frontend-lint` または `backend-lint` を local validation に使い、direction は review が `pass` になった後で `all` を final harness として実行する
+- implementation lane の implementer / tester は backend handoff で `backend-local`、frontend handoff で `frontend-local` を local validation に使う
+- mixed handoff は touched layer に応じて `backend-local` と `frontend-local` の両方を実行する
+- local validation は実装中の feedback 用であり、`execution`、`coverage`、`system-test`、`all`、Sonar check は final validation lane に残す
+- implementer / tester は local validation の結果、または未実行理由を completion output に残す
 - `execution` suite は repo root の `package.json` を唯一の入口として扱い、`lint:backend`、`lint:frontend`、`test:backend`、`test:frontend`、Sonar step をこの順で実行する
 - `all` suite は `structure`、`scenario-gate`、`execution`、`system-test`、`coverage` をこの順で実行する
 - `coverage` suite は単独でも実行できる独立 gate として維持しつつ、`all` からも実行する

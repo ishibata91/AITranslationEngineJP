@@ -42,7 +42,7 @@ active contract は `implementer` に 1 つだけ置く。
 - 既存 pattern、naming、constructor、DI、error return に合わせる。
 - entry point、call site、data flow、error path、test surface を確認してから実装する。
 - error path、empty state、boundary value を実装から落とさない。
-- lane_context_packet と tester output に基づいて product code だけを変更する。
+- lane_context_packet に基づいて product code だけを変更する。scenario 先行時だけ tester output も確認する。
 - fix_ingredients に対応する code path を優先し、distracting_context を寄り道として扱う。
 - lane_context_packet の first_action と change_targets から着手し、広い再調査を開始条件にしない。
 - implementation_subscope が渡された場合は、その sub-scope 内だけを実装し、残りは remaining_implementation_subscopes に返す。
@@ -53,23 +53,28 @@ active contract は `implementer` に 1 つだけ置く。
 - product test、fixture、snapshot、test helper は変更しない。
 - mixed は API / Wails / DTO / gateway など frontend と backend の接合点だけに使う。
 - build / type / lint error の修正は目的外 refactor に広げない。
+- 実装完了後、handoff を終える前に touched layer に対応する local validation を実行する。
+- backend だけを触った場合は `python3 scripts/harness/run.py --suite backend-local` を実行する。
+- frontend だけを触った場合は `python3 scripts/harness/run.py --suite frontend-local` を実行する。
+- mixed scope の場合は touched layer に応じて `backend-local` と `frontend-local` の両方を実行する。
 
 ## 進め方
 
-1. `single_handoff_packet` 1 件、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果、tester output を読む。
+1. `single_handoff_packet` 1 件、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果を読む。scenario 先行時だけ tester output も読む。
 2. lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、related_code_pointers を確認する。
 3. handoff 資料のスコープ粒度、owned_scope、implementation_subscope を確認する。
 4. structural gate に一致する context 不足があれば、product code を広く探さず insufficient_context、reason、needed_context、suggested_narrowing_axis、remaining_implementation_subscopes を返す。
 5. first_action の file / symbol / line から production code を変更する。
 6. 必要最小限で entry point、call site、data flow、error path、test surface を確認する。
 7. product test、fixture、snapshot、test helper を変更していないことを確認する。
-8. lane-local validation を実行した場合は結果を、未実行なら理由を返す。
-9. touched_files、implemented_scope、implemented_subscope、remaining_implementation_subscopes、validation_results、residual_risks を返す。
+8. 実装完了後、handoff を終える前に touched layer に対応する local validation を実行する。
+9. lane-local validation の結果、または未実行理由を返す。
+10. touched_files、implemented_scope、implemented_subscope、remaining_implementation_subscopes、validation_results、residual_risks を返す。
 
 ## Source Of Truth
 
-- primary: `single_handoff_packet`、lane_context_packet、owned_scope、tester output
-- secondary: docs/coding-guidelines.md、lane-local validation commands、対象 product code
+- primary: `single_handoff_packet`、lane_context_packet、owned_scope
+- secondary: scenario 先行時の tester output、docs/coding-guidelines.md、lane-local validation commands、対象 product code
 - forbidden source: 未承認設計、owned_scope 外の broad refactor、docs 正本化の推測
 
 ## Permissions

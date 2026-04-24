@@ -31,7 +31,8 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - implementation-scope の owned_scope を守る
 - mixed の対象を API、Wails binding、DTO、gateway、adapter contract の接合点だけに限定する
 - 片側だけで閉じない理由を scope artifact で確認する
-- lane_context_packet と tester output を確認して product code だけを変更する
+- lane_context_packet を確認して product code だけを変更する
+- scenario 先行時だけ tester output も確認する
 - validation は frontend、backend、接合点 contract の証跡を分ける
 
 ## DO / DON'T

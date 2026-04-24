@@ -15,6 +15,16 @@
 - `role`: `<implementation / test / review / investigate / other>`
 - `status`: `<completed / partial / rerouted / failed / not-run>`
 
+## Completion Packet Skeleton
+
+- `copilot_work_report.report_path`: `work_history/runs/YYYY-MM-DD-<task-id>-run/copilot.md`
+- `copilot_work_report.status`: `<completed / partial / rerouted / failed / not-run>`
+- `copilot_work_report.改善すべきこと`: `<次回の進め方で直すこと>`
+- `copilot_work_report.時間がかかったこと`: `<重かった実装、調査、検証>`
+- `copilot_work_report.無駄だったこと`: `<不要だった確認、重複、遠回り>`
+- `copilot_work_report.困ったこと`: `<情報不足、tool、scope、テスト失敗>`
+- `copilot_work_report.次に見るべき場所`: `<path / issue / command>`
+
 ## Expected Role
 
 - `期待された役割`: `<Copilot が担うべきこと>`

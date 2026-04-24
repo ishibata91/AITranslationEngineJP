@@ -21,6 +21,12 @@
 - `needs_human_decision`: `0`
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
 
+## Ready Waves
+
+| ready_wave | handoffs | depends_on_done_before_start | parallel_pairs | blockers |
+| --- | --- | --- | --- | --- |
+| `wave-1` | `<handoff_id>` | `なし` | `<handoff_id> <-> <handoff_id>` または `なし` | `<parallel_blockers>` または `なし` |
+
 ## Handoffs
 
 ### `handoff_id`:
@@ -28,14 +34,33 @@
 - `implementation_target`:
 - `owned_scope`:
 - `depends_on`:
+- `execution_group`:
+- `ready_wave`:
+- `parallelizable_with`:
+- `parallel_blockers`:
+- `first_action`:
 - `validation_commands`:
 - `completion_signal`:
-- `notes`: backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み backend contract / DTO / gateway 境界に depends_on する。必要な場合だけ `本番経路` を書く。`本番経路` は実行時に通る public API / DTO / controller / UI entry / persistence path を指し、domain 固有知識はここへ一般例として増やさない。
+- `notes`:
+  - backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み backend contract / DTO / gateway 境界に depends_on する。
+  - `execution_group` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ作る。同じ wave 内でも `parallelizable_with` に列挙しない handoff は並列実行しない。
+  - `ready_wave` は Ready Waves 表と一致させる。Copilot は最小番号の実行可能 wave から開始する。
+  - `first_action` は Copilot が最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
+  - 並列不可の理由は `parallel_blockers` に `depends_on`、`owned_scope_overlap`、`shared_contract_change`、`validation_owner_ambiguous`、`backend_frontend_order`、`broad_gate_shared` のいずれかで書く。
+  - 必要な場合だけ `本番経路` を書く。`本番経路` は実行時に通る public API / DTO / controller / UI entry / persistence path を指し、domain 固有知識はここへ一般例として増やさない。
 
 ## Completion Packet
 
 Copilot は完了時に次を返す。
 
+- `copilot_work_report`:
+  - `report_path`: `work_history/runs/YYYY-MM-DD-<task-id>-run/copilot.md`
+  - `status`:
+  - `改善すべきこと`:
+  - `時間がかかったこと`:
+  - `無駄だったこと`:
+  - `困ったこと`:
+  - `次に見るべき場所`:
 - `completed_handoffs`
 - `touched_files`
 - `implemented_scope`

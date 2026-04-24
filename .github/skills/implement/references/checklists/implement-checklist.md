@@ -3,7 +3,8 @@
 ## Knowledge Check
 
 - [ ] owned_scope と implementation target を確認した
-- [ ] single_handoff_packet、lane_context_packet、tester output を確認した
+- [ ] single_handoff_packet と lane_context_packet を確認した
+- [ ] scenario 先行時だけ tester output を確認した
 - [ ] implementation_subscope がある場合はその範囲だけを実装した
 - [ ] fix_ingredients と distracting_context を確認した
 - [ ] insufficient_context_criteria の structural gate に一致する場合だけ insufficient_context、needed_context、suggested_narrowing_axis を返した
