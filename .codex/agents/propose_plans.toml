@@ -10,7 +10,6 @@ developer_instructions = """
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md`
 - permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/contracts/propose_plans.contract.json`
-- support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md`
 - support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md`
 
 source of truth、handoff、stop / reroute は skill に従う。

@@ -11,8 +11,7 @@
     "downstream agent の結果を task-local workflow state に反映する",
     "human review が必要な地点で停止し、再開条件を明示する",
     "承認済み implementation-scope から人間向け Copilot handoff packet を作る",
-    "Copilot の修正完了が分かった後に正本化の必要性を判定する",
-    "MCP file mutation 前に gateguard を確認する"
+    "Copilot の修正完了が分かった後に正本化の必要性を判定する"
   ],
   "forbidden_actions": [
     "product code または product test を変更する",

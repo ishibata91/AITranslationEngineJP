@@ -28,8 +28,7 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md",
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md",
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md"
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md"
   ],
   "handoff_targets": ["propose_plans"],
   "expected_outputs": [

@@ -21,7 +21,6 @@ product code と product test は変更しない。
 - `wall-discussion`: read-only 壁打ちの質問設計を参照する。
 - `diagramming`: diagram を必要資料として扱う時に参照する。
 - `skill-modification`: skill / agent の境界整理を参照する。
-- `gateguard`: file mutation 前の fact gate を参照する。
 
 ## Source Of Truth
 

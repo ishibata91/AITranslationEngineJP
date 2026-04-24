@@ -23,8 +23,7 @@
   ],
   "knowledge_refs": [
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md",
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md",
-    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/gateguard/SKILL.md"
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md"
   ],
   "spawn_order": [
     "必要判定",
