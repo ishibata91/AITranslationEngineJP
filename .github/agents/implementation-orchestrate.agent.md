@@ -67,6 +67,7 @@ handoffs:
 - tester / implementer の無応答、timeout、空 output、required field 欠落、`insufficient_context` は同一 handoff 内の sub-scope narrowing trigger として扱う。
 - final validation failure は、まず Copilot 内 narrowing trigger として扱う。
 - scenario validation failure は close せず、まず Copilot 側 blocker として扱う。
+- Codex review の戻り値は `copilot_action` で受け取り、再解釈しない。
 - `insufficient_context` は各 agent contract の insufficient_context_criteria に一致する場合だけ narrowing trigger として扱う。
 - criteria mismatch の `insufficient_context` は agent contract violation として completion packet に残す。
 - narrowing は completion_signal を削らず、remaining subscopes として未処理分を残す。
@@ -101,10 +102,14 @@ handoffs:
 20. final validation が Wails、sandbox、OS 権限で止まる場合は `FAIL_ENVIRONMENT` とする。
 21. final validation 後、`codex exec` で `review_conductor` を呼び出し、implementation result、diff、validation result、scope artifact path を渡す。
 22. Codex review の戻り値を `codex_review_result` として completion packet に転記する。
-23. narrowing で残った未処理分は remaining_test_subscopes または remaining_implementation_subscopes と blocked_after_narrowing に残す。
-24. 不足、矛盾、scope 超過は自分で補わず、`blocked_after_narrowing`、`remaining_subscopes`、`residual_risks`、または `requires_codex_replan` に分ける。
-25. hard stop 条件に該当する場合だけ `requires_codex_replan: true` と該当条件を返す。
-26. 最後に必ず `copilot_work_report` を作り、改善、時間、無駄、困りごと、narrowing、validation 不足、人間が次に見るべき場所を含める。
+23. `copilot_action: fix` の場合は、`copilot_patch_scope` 内だけを修正し、final validation と Codex review を再実行する。
+24. `copilot_action: rerun_validation` の場合は、指定された不足 validation だけを再実行し、Codex review を再実行する。
+25. `copilot_action: rerun_codex_review` の場合は、不足 payload を補い、product code を変更せず Codex review だけを再実行する。
+26. `copilot_action: close` または `report_residual` の場合は、completion packet に review result と residual risk を残して終了する。
+27. narrowing で残った未処理分は remaining_test_subscopes または remaining_implementation_subscopes と blocked_after_narrowing に残す。
+28. 不足、矛盾、scope 超過は自分で補わず、`blocked_after_narrowing`、`remaining_subscopes`、`residual_risks`、または `requires_codex_replan` に分ける。
+29. hard stop 条件に該当する場合だけ `requires_codex_replan: true` と該当条件を返す。
+30. 最後に必ず `copilot_work_report` を作り、改善、時間、無駄、困りごと、narrowing、validation 不足、人間が次に見るべき場所を含める。
 
 ## Source Of Truth
 

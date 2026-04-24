@@ -11,19 +11,36 @@
   ],
   "spawn_targets": ["review_behavior", "review_contract", "review_trust_boundary", "review_state_invariant"],
   "spawn_context_policy": "観点グループ別 review agent は context を引き継がない。必要な diff、scope、validation、観点定義を handoff packet に明示する。",
-  "expected_outputs": ["overall_decision", "overall_score", "threshold", "group_results", "blocking_findings", "confidence_notes", "next_actions"],
+  "priority_order": ["trust_boundary", "behavior", "contract", "state_invariant"],
+  "early_return_conditions": {
+    "rerun_codex_review": ["missing review target diff", "missing implementation scope", "unreadable implementation scope", "missing implementation result"],
+    "rerun_validation": ["missing final validation result", "final validation result does not cover required scenario validation, suite-all, or Sonar check"],
+    "blocked": ["観点グループ別 review を spawn できない", "diff から実コードを取得できない"]
+  },
+  "conflict_resolution": {
+    "policy": "priority_order の上位観点と下位観点の finding が同時に満たせない場合、上位観点を採用して pass を許可できる。ただし trust_boundary failure は override できない。",
+    "priority_override_pass": "上位観点を採用して pass する場合は decision_basis に priority_override_pass を返し、退けた finding を priority_overrides と residual_risks に残す。",
+    "non_conflict_fail": "競合していない score <= 0.85、blocked、hard gate failure は fail または blocked として返す。"
+  },
+  "expected_outputs": ["overall_decision", "decision_basis", "overall_score", "threshold", "priority_order", "group_results", "blocking_findings", "priority_overrides", "confidence_notes", "residual_risks", "copilot_action", "copilot_patch_scope", "next_actions"],
   "field_requirements": {
-    "overall_decision": "pass / fail / blocked のいずれか。pass は全観点 score が 0.85 より大きい場合だけ返す",
-    "overall_score": "観点 group score の最小値を返す。hard gate の低 score が平均で相殺されないようにする",
+    "overall_decision": "pass / fail / blocked のいずれか。pass は strict_pass または priority_override_pass の場合だけ返す",
+    "decision_basis": "strict_pass / priority_override_pass / fail / early_return / blocked のいずれか。early_return は観点別 review を起動せず copilot_action を返す",
+    "overall_score": "観点 group score の最小値を返す。priority_override_pass でも下位観点の低 score は隠さない",
     "threshold": "0.85 より大きい score を pass とする",
+    "priority_order": "trust_boundary、behavior、contract、state_invariant の順で conflict を裁定する。trust_boundary は override 不可",
     "group_results": "各 review agent の score、confidence、decision、findings、evidence_paths を含める",
-    "blocking_findings": "score <= 0.85、blocked、hard gate failure を分ける",
+    "blocking_findings": "score <= 0.85、blocked、hard gate failure を分ける。priority override で退けた finding はここから外し priority_overrides に移す",
+    "priority_overrides": "priority_order で退けた下位観点 finding、退けた理由、残余影響、関連 evidence を返す",
     "confidence_notes": "仕様不足、diff 不足、validation 不足による confidence 低下を分ける",
-    "next_actions": "Copilot へ戻す修正候補、人間判断、再実行コマンドを分ける"
+    "residual_risks": "priority_override_pass、FAIL_ENVIRONMENT、低 confidence、採用しなかった下位 finding の残余リスクを分ける",
+    "copilot_action": "close / fix / rerun_validation / rerun_codex_review / report_residual のいずれかを返す",
+    "copilot_patch_scope": "copilot_action が fix の時だけ、Copilot が修正してよい file、symbol、validation command を返す。それ以外は none を返す",
+    "next_actions": "copilot_action に従い、Copilot 修正、validation 再実行、Codex review 再実行、residual report、close を分ける"
   },
   "required_evidence": ["review target diff", "implementation scope path", "final validation result", "each group review result"],
   "rejection_conditions": ["missing review target diff", "missing implementation scope", "missing final validation result"],
   "stop_conditions": ["観点グループ別 review を spawn できない", "diff から実コードを取得できない"],
-  "completion_signal": "Copilot が修正、close、人間判断、または再 review 要否を判断できる review result を返している",
-  "residual_risk_key": "confidence_notes"
+  "completion_signal": "Copilot が copilot_action から fix、close、report_residual、rerun_validation、rerun_codex_review のいずれかを再解釈なしで判断できる review result を返している",
+  "residual_risk_key": "residual_risks"
 }

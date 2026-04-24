@@ -4,9 +4,10 @@
   "runtime": "codex",
   "allowed_actions": [
     "Copilot から codex exec で渡された review payload を確認する",
+    "payload または validation 不足時に観点グループ別 review agent を起動せず早期 return する",
     "観点グループ別 review agent を context 継承なしで並列 spawn する",
     "各 review result の score、confidence、findings、hard_gate を集約する",
-    "overall_decision、overall_score、blocking_findings、next_actions を返す"
+    "overall_decision、decision_basis、copilot_action、overall_score、blocking_findings、priority_overrides、residual_risks、next_actions を返す"
   ],
   "forbidden_actions": [
     "product code または product test を変更する",

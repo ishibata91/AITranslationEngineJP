@@ -18,6 +18,7 @@ agent contract の権限や output obligation は上書きしない。
 - scenario validation が fail した場合は close せず、Copilot 側 blocker として返す。
 - Codex review は final validation 後に `codex exec` で呼び出す。
 - closeout では final validation と Codex review の evidence または blocked reason を必ず返す。
+- Codex review の戻り値は `copilot_action` で受け取り、再解釈しない。
 
 ## 実行順パターン
 
@@ -51,6 +52,16 @@ agent contract の権限や output obligation は上書きしない。
 - `final_validation_result`
 - `touched_files`
 
+## Codex Review Result
+
+`codex_review_result.copilot_action` は次の分岐だけに使う。
+
+- `close`: completion packet に review result を残して終了する。
+- `report_residual`: priority override または confidence residual を residual risk に残して終了する。
+- `fix`: `copilot_patch_scope` 内だけを修正し、final validation と Codex review を再実行する。
+- `rerun_validation`: 指定された不足 validation だけを再実行し、Codex review を再実行する。
+- `rerun_codex_review`: payload を補い、product code を変更せず Codex review だけを再実行する。
+
 ## 赤旗
 
 - final validation 前に scenario validation、suite-all、Sonar check を実行している。
@@ -58,5 +69,7 @@ agent contract の権限や output obligation は上書きしない。
 - `first_action` 欠落を広い調査で補っている。
 - `parallelizable_with` がない handoff を同一 wave という理由で並列実行している。
 - Codex review payload に diff または scope path がない。
+- `rerun_codex_review` で product code を変更している。
+- `fix` で `copilot_patch_scope` 外を変更している。
 - repo-local Sonar issue gate と Sonar server Quality Gate を混同している。
 - coverage、Sonar、harness、Codex review の未実行理由が completion packet にない。
