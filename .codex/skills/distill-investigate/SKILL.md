@@ -54,7 +54,7 @@ DO:
 - observation target を次に調べる入口として返す
 
 DON'T:
-- 設計向けの入口整理に使わない
+- requirements、UI、scenario そのものの入口整理に使わない
 - 深い trace をこの skill の範囲で実施しない
 - 憶測ベースの結論を facts に混ぜない
 
@@ -68,5 +68,5 @@ DON'T:
 
 ## Maintenance
 
-- 設計向けの観点は `distill-design` に置く。
+- requirements、UI、scenario の入口整理は `distill-design` に置く。
 - 長い例や判断表は [references](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/references/) に分離する。

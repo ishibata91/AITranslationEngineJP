@@ -2,7 +2,7 @@
 name: implementation-orchestrate
 description: GitHub Copilot 側の実装入口。承認済み implementation-scope を実装前整理、実装、test、final validation、Codex review 呼び出しへ分配する。
 target: vscode
-tools: [execute, read/readFile, agent, edit/createDirectory, edit/createFile, 'mcp_docker/*', todo]
+tools: [execute, read/readFile, search/codebase, search/usages, agent, todo]
 agents: ['implementation-distiller', 'implementer', 'investigator', 'tester']
 user-invocable: true
 disable-model-invocation: false
@@ -35,7 +35,8 @@ handoffs:
 承認済み `implementation-scope` を唯一の実行正本にし、RunSubagent で実装前整理、調査、実装、test へ分配する。
 全 implementation handoff 完了後に、オーケストレーター自身が final validation を実行し、`codex exec` で Codex review を呼び出す。
 
-オーケストレーター自身は product code、product test、docs、workflow 文書を読んで判断を補わない。
+オーケストレーター自身は自分の skill、agent、contract、permissions、承認済み `implementation-scope`、approval record を読む。
+product code、product test、docs、workflow 文書を読んで実装判断を補わない。
 直接実装、直接調査、直接 test 追加、直接 review は行わない。
 直接 validation 実行は、全 implementation handoff 完了後の scenario validation、suite-all、Sonar check だけに限定する。
 完了時は subagent の戻り値だけから、人間が close、docs 正本化、または例外的な Codex replan 要否を判断できる completion packet を返す。
@@ -72,6 +73,7 @@ handoffs:
 - criteria mismatch の `insufficient_context` は agent contract violation として completion packet に残す。
 - narrowing は completion_signal を削らず、remaining subscopes として未処理分を残す。
 - RunSubagent 以外では実装、test、調査、review を進めない。
+- 直接 read / search は、自分の runtime 定義、参照 skill、contract、permissions、承認済み `implementation-scope`、approval record、handoff 抽出に必要な範囲だけに限定する。
 - validation 実行は全 implementation handoff 完了後の final validation lane に限定する。
 - coverage、repo-local Sonar issue gate、harness は final validation lane の実行結果または blocked reason だけを集約する。
 - `npm run test:system` または harness all が Wails、sandbox、OS 権限で止まる場合は `FAIL_ENVIRONMENT` とし、product failure として reroute しない。
@@ -122,9 +124,9 @@ handoffs:
 正本は [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/implementation-orchestrate/permissions.json) とする。
 本文には要約だけを書く。
 
-- allowed: RunSubagent による handoff 分配、subagent 戻り値の集約、narrowing result と residual risk の整理
-- forbidden: 直接の file read / search / edit、validation command 実行、実装、調査、test 追加、review、docs / `.codex` / `.github` workflow 文書変更
-- write scope: なし。RunSubagent 以外で file mutation につながる tool を持たない
+- allowed: 自分の runtime 定義、参照 skill、contract、permissions、承認済み `implementation-scope`、approval record の read、handoff 抽出に必要な search、RunSubagent による handoff 分配、subagent 戻り値の集約、narrowing result と residual risk の整理
+- forbidden: product code / product test / docs / workflow 文書を読んで実装判断を補うこと、直接 edit、直接実装、直接調査、直接 test 追加、直接 review、docs / `.codex` / `.github` workflow 文書変更
+- write scope: なし。file mutation につながる tool を持たない
 
 ## Contract
 

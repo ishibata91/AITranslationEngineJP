@@ -30,7 +30,7 @@ description: GitHub Copilot 側の product test 共通知識 package。承認済
 - tester_context_packet の読み順
 - insufficient_context の返し方
 - deterministic setup
-- coverage 70% と harness coverage suite の扱い
+- final validation lane へ defer する coverage / harness all の扱い
 - Arrange / Act / Assert の読みやすさ
 - focused skill の選び方
 
@@ -61,7 +61,7 @@ DO:
 - insufficient_context を返す場合は reason、needed_context、remaining_test_subscopes を structural gate に対応づける
 - fixture の入力値、clock、runtime 応答、seed を固定する
 - test body に条件分岐を入れない
-- `python3 scripts/harness/run.py --suite coverage` で Sonar-compatible coverage 70% 以上を確認する
+- coverage、harness all、repo-local Sonar issue gate は final validation lane へ defer する
 - backend handoff は `python3 scripts/harness/run.py --suite backend-local`、frontend handoff は `python3 scripts/harness/run.py --suite frontend-local` を使う
 - mixed handoff は touched layer に応じて両方を実行する
 - validation result と remaining gaps を返す
@@ -78,7 +78,7 @@ DON'T:
 
 - [test-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/tests/references/patterns/test-patterns.md) を参照する。
 - 対象は scenario 先行 test、post-implementation unit / regression、edge-case inventory、AAA、flaky test avoidance、E2E artifact handling である。
-- coverage は repo の `MINIMUM_COVERAGE = 70.0`、validation command、Wails test seam に従う。
+- coverage は final validation lane が repo の `MINIMUM_COVERAGE = 70.0` に従って確認する。
 
 ## Checklist
 

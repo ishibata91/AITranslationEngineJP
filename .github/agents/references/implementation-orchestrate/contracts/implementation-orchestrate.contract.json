@@ -7,9 +7,9 @@
   "required_inputs": ["active_work_plan", "implementation_scope", "approval_record", "handoffs", "validation_commands"],
   "optional_inputs": ["parallelization_hint", "ready_waves", "previous_completion_packet", "investigation_request"],
   "tool_policy": {
-    "allowed_tools": ["RunSubagent", "execute"],
-    "forbidden_tools": ["edit", "search/codebase", "search/usages", "read/terminalLastCommand"],
-    "notes": "execute は全 implementation handoff 完了後の scenario validation、suite-all、Sonar check、codex exec review 呼び出しだけに使う。"
+    "allowed_tools": ["agent", "execute", "read/readFile", "search/codebase", "search/usages", "todo"],
+    "forbidden_tools": ["edit", "edit/createDirectory", "edit/createFile", "read/terminalLastCommand", "mcp_docker/*"],
+    "notes": "agent は RunSubagent 用に使う。read/search は自分の runtime 定義、参照 skill、contract、permissions、承認済み implementation-scope、approval record、handoff 抽出に必要な範囲だけに使う。execute は全 implementation handoff 完了後の scenario validation、suite-all、Sonar check、codex exec review 呼び出しだけに使う。"
   },
   "knowledge_refs": [
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-orchestrate/SKILL.md",

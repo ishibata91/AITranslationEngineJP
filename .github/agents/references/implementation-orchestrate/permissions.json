@@ -12,11 +12,14 @@
     "scenario validation が pass した後に python3 scripts/harness/run.py --suite all を実行する",
     "全 implementation handoff 完了後に Sonar check を実行する",
     "final validation 後に codex exec で Codex review_conductor を呼び出す",
+    "自分の runtime 定義、参照 skill、contract、permissions、承認済み implementation-scope、approval record を読む",
+    "handoff 抽出に必要な範囲だけ search する",
     "subagent、final validation、Codex review の結果を completion packet に集約する"
   ],
   "forbidden_actions": [
-    "RunSubagent、final validation command、codex exec review 呼び出し以外の tool を使う",
-    "product code、product test、docs、.codex、.github/skills、.github/agents を直接読む、検索する、編集する",
+    "許可された read/search、RunSubagent、final validation command、codex exec review 呼び出し以外の tool を使う",
+    "product code、product test、docs、.codex、.github/skills、.github/agents を読んで実装判断を補う",
+    "file を直接編集する",
     "全 implementation handoff 完了前に scenario validation、suite-all、Sonar check を実行する",
     "RunSubagent に full implementation-scope、active work plan 全文、source artifacts、後続 handoff を渡す",
     "承認済み scenario artifact、public seam、観測点、期待 outcome が固定されていない handoff で tester を implementer より先に起動する",

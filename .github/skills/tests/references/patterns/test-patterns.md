@@ -25,9 +25,9 @@ agent contract の権限や output obligation は上書きしない。
 - not_insufficient_context: 承認済み scenario を元に期待どおり fail する test、局所的 import 修正、既存 test file 内の軽微な確認は停止理由にしない。
 - 原因未確定の regression test を実装前に書く必要がある場合は停止し、post-implementation test として orchestrator へ返す。
 - backend service / usecase / controller と frontend gateway / screen controller を主戦場にする。
-- Playwright は必要最小限の UI evidence に使い、mock 不能な Wails binding は専用 bootstrap を前提にする。
-- coverage は `python3 scripts/harness/run.py --suite coverage` で Sonar-compatible coverage 70% 以上を確認する。
-- closeout では `python3 scripts/harness/run.py --suite all` の evidence を残す。
+- UI 操作証跡は `agent-browser` CLI を使い、Playwright MCP には依存しない。
+- product test runner としての Playwright は、既存 test が必要とする場合だけ使う。
+- coverage と `python3 scripts/harness/run.py --suite all` は final validation lane へ defer する。
 - AAA を守り、1 test は 1 behavior / branch / scenario outcome を証明する。
 
 ## 赤旗
@@ -35,8 +35,7 @@ agent contract の権限や output obligation は上書きしない。
 - test name が `works` など曖昧で、何を証明したか分からない。
 - test body に条件分岐がある。
 - external AI / network / clock / random に依存している。
-- coverage 70% 未満を test gap として扱っていない。
-- harness coverage / all の失敗または未実行理由がない。
+- coverage / harness all の未実行理由を final validation lane へ渡していない。
 - assertion が弱く、壊れても pass する。
 - listed files / symbols 外を探索して context を膨らませている。
 - insufficient_context を返さず broad investigation を始めている。
