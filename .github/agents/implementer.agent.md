@@ -3,7 +3,7 @@ name: implementer
 description: subagent。承認済み owned_scope だけを product code に実装する。
 target: vscode
 tools: [execute, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, edit, search, 'mcp_docker/*']
-model: Claude Sonnet 4.6 (copilot)
+model: GPT-5.4 (copilot)
 agents: []
 user-invocable: false
 disable-model-invocation: false
