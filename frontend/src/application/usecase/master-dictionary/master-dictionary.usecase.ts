@@ -19,6 +19,25 @@ function toErrorMessage(error: unknown, fallback: string): string {
     return error.message
   }
 
+  if (typeof error === "string" && error.trim() !== "") {
+    return error
+  }
+
+  if (error && typeof error === "object") {
+    const errorFields = error as {
+      message?: unknown
+      error?: unknown
+      cause?: unknown
+    }
+
+    for (const key of ["message", "error", "cause"] as const) {
+      const value = errorFields[key]
+      if (typeof value === "string" && value.trim() !== "") {
+        return value
+      }
+    }
+  }
+
   return fallback
 }
 

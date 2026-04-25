@@ -1,0 +1,1 @@
+export { TranslationInputStore } from "./translation-input.store"

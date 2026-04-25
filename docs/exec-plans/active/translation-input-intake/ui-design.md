@@ -26,6 +26,8 @@
 - `state_variants`:
   - loading、empty、progress、success、error、disabled、retry を持つ。
   - duplicate input、invalid JSON、source file missing、cache missing を error variant として区別する。
+  - response の warnings、categories、sample fields が null の場合は空配列として扱う。
+  - 初回 import では browser file input から bare filename だけが渡る可能性を考慮し、backend へ file content または解決可能な source handle を渡す。
   - app-shell 導線は `dashboard-and-app-shell` 側の責務とし、Input Review はページ内で完結する。
 - `post_implementation_review`:
   - input file 一覧、件数、カテゴリ、sample field が 1 画面で追えるか確認する。
@@ -75,7 +77,8 @@
   - xEdit 抽出 JSON の登録 action を有効にする。
 - `error`:
   - invalid JSON、non-xEdit JSON、source file missing、cache rebuild failed を区別する。
-  - error 詳細は Q-TII-004 の回答後に固定する。
+  - 初回 import request が bare filename だけで content も source handle もない場合は invalid request として扱う。
+  - source file missing は cache rebuild 時に保存済み正本が見つからない場合に限定する。
 - `disabled`:
   - 基盤データ管理が未成立の場合は登録 action を disabled にする。
   - disabled 理由を画面上に短く表示する。
@@ -95,7 +98,7 @@
 - `unsupported_extract_shape`: JSON だが xEdit 抽出形式として必要な構造がない。
 - `missing_required_field`: 必須 field 欠落。拒否粒度は Q-TII-004 の回答待ち。
 - `duplicate_input`: 同一抽出 JSON の再登録。扱いは Q-TII-003 の回答待ち。
-- `source_file_missing`: cache 再構築に必要な抽出 JSON 正本が見つからない。
+- `source_file_missing`: cache 再構築に必要な抽出 JSON 正本が見つからない。初回 import の bare filename では使わない。
 - `unknown_field_definition`: 未定義 RecordType + SubrecordType。扱いは Q-TII-006 の回答待ち。
 
 ## Post Implementation Review
@@ -108,6 +111,8 @@
   - input list から detail へ移動しても文脈を失わない。
   - action が折り返されても押し間違えにくい。
   - sample field の横長値が画面外にはみ出さない。
+  - browser file input 経由の実ファイル登録で source file missing にならない。
+  - null 配列 response で console error が出ない。
 - `overflow_risks`:
   - file path、plugin 名、EditorID、error message、category label。
   - record / field 件数が多い時の list scroll。

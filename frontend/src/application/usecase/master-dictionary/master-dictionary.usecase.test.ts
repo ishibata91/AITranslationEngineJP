@@ -666,3 +666,63 @@ describe("deleteCurrentEntry", () => {
     expect(store.snapshot().modalState).toBe("delete")
   })
 })
+
+describe("startStagedXmlImport", () => {
+  test("import 失敗時は plain object の message を errorMessage に表示する", async () => {
+    // Arrange
+    const store = new MasterDictionaryStore()
+    const gateway = makeGateway({
+      importMasterDictionaryXml: vi.fn().mockRejectedValue({
+        message: "import failed from plain object"
+      })
+    })
+    const useCase = new MasterDictionaryUseCase(gateway, store)
+    store.update((draft) => {
+      draft.selectedFileName = "broken.xml"
+      draft.selectedFileReference = "/tmp/broken.xml"
+      draft.importStage = "ready"
+      draft.importProgress = 10
+      draft.importSummary = {
+        fileName: "old.xml",
+        importedCount: 1,
+        updatedCount: 2,
+        totalCount: 3,
+        selectedSource: "Old"
+      }
+    })
+
+    // Act
+    await useCase.startStagedXmlImport(false)
+
+    // Assert
+    expect(store.snapshot().importStage).toBe("ready")
+    expect(store.snapshot().importProgress).toBe(0)
+    expect(store.snapshot().importSummary).toBeNull()
+    expect(store.snapshot().errorMessage).toBe("import failed from plain object")
+  })
+
+  test("import 失敗時は string reject を errorMessage に表示する", async () => {
+    // Arrange
+    const store = new MasterDictionaryStore()
+    const gateway = makeGateway({
+      importMasterDictionaryXml: vi.fn().mockRejectedValue(
+        "import failed from string"
+      )
+    })
+    const useCase = new MasterDictionaryUseCase(gateway, store)
+    store.update((draft) => {
+      draft.selectedFileName = "broken.xml"
+      draft.selectedFileReference = "/tmp/broken.xml"
+      draft.importStage = "ready"
+    })
+
+    // Act
+    await useCase.startStagedXmlImport(false)
+
+    // Assert
+    expect(store.snapshot().importStage).toBe("ready")
+    expect(store.snapshot().importProgress).toBe(0)
+    expect(store.snapshot().importSummary).toBeNull()
+    expect(store.snapshot().errorMessage).toBe("import failed from string")
+  })
+})

@@ -7,23 +7,25 @@ import (
 
 // XEditExtractedData は X_EDIT_EXTRACTED_DATA テーブルの 1 レコードを表す。
 type XEditExtractedData struct {
-	ID               int64
-	SourceFilePath   string
-	SourceTool       string
-	TargetPluginName string
-	TargetPluginType string
-	RecordCount      int
-	ImportedAt       time.Time
+	ID                int64
+	SourceFilePath    string
+	SourceContentHash string
+	SourceTool        string
+	TargetPluginName  string
+	TargetPluginType  string
+	RecordCount       int
+	ImportedAt        time.Time
 }
 
 // XEditExtractedDataDraft は X_EDIT_EXTRACTED_DATA の作成ペイロードを表す。
 type XEditExtractedDataDraft struct {
-	SourceFilePath   string
-	SourceTool       string
-	TargetPluginName string
-	TargetPluginType string
-	RecordCount      int
-	ImportedAt       time.Time
+	SourceFilePath    string
+	SourceContentHash string
+	SourceTool        string
+	TargetPluginName  string
+	TargetPluginType  string
+	RecordCount       int
+	ImportedAt        time.Time
 }
 
 // TranslationRecord は TRANSLATION_RECORD テーブルの 1 レコードを表す。

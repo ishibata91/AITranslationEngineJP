@@ -60,7 +60,11 @@ LAYER_DEFINITIONS = (
         id="frontend-controller",
         name="ScreenController",
         root="frontend/src",
-        paths=(Path("frontend/src/controller/master-dictionary"), Path("frontend/src/controller/master-persona")),
+        paths=(
+            Path("frontend/src/controller/master-dictionary"),
+            Path("frontend/src/controller/master-persona"),
+            Path("frontend/src/controller/translation-input"),
+        ),
         default_next=("frontend-usecase", "frontend-presenter-store", "frontend-contract", "frontend-wails-adapter"),
     ),
     LayerDefinition(

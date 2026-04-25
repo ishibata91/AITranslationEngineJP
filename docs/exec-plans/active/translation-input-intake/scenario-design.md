@@ -70,6 +70,8 @@
 - `test_data_risks`:
   - xEdit 抽出 JSON の最小 fixture schema は小 fixture 前提で固定する必要がある。
   - 未定義 field、重複 import、不正 JSON は fixture を分ける必要がある。
+  - browser file input は環境により absolute path ではなく bare filename だけを渡すため、実ランタイム経路を fixture だけで代替しない。
+  - frontend response の `warnings`、`categories`、`sampleFields` などの配列項目は null で返る可能性を guard する。
   - app-shell の screen-design 正本がなく、UI system test の入口導線は dashboard-and-app-shell 側に残る。
 
 ## Rules
@@ -189,12 +191,47 @@
 - `fake_or_stub`: UI fixture state、fixed backend response。
 - `責務境界メモ`: visual polish は実装後 human review で確認する。
 
+### SCN-TII-007 browser file input が bare filename でも source file missing にしない
+
+- `分類`: 実ランタイム主要失敗系
+- `観点`: frontend file input から absolute path ではなく bare filename だけが渡る環境でも、初回登録を source file missing と誤判定しない。
+- `事前条件`: browser surface の file input で Lucien など実ファイル相当の JSON を選択できる。frontend から backend へ渡る request には file name と file content または backend が解決可能な source handle がある。
+- `手順`:
+  1. Input Review の file input から JSON file を選択する。
+  2. frontend が backend import request を作る。
+  3. backend が request を import する。
+- `期待結果`:
+  1. backend は bare filename をそのまま OS path として読まない。
+  2. file content または解決可能な source handle で import する。
+  3. request が bare filename だけで content も source handle もない場合は invalid request として拒否し、source file missing にはしない。
+  4. source file missing は cache rebuild 時に保存済み正本が見つからない場合だけ返す。
+- `観測点`: browser file input、backend import request、error kind、input file 一覧。
+- `fake_or_stub`: browser file input fixture、bare filename request、content付き request。
+- `責務境界メモ`: OS absolute path 取得を browser に要求しない。Wails / browser surface の差分を backend contract で吸収する。
+
+### SCN-TII-008 response の配列項目が null でも frontend は落ちない
+
+- `分類`: UI 主要失敗系
+- `観点`: backend response の `warnings`、`categories`、`sampleFields` などが null の場合でも、frontend は空配列として扱い spread error を起こさない。
+- `事前条件`: Input Review UI が backend response を受け取れる。null 配列項目を含む response fixture がある。
+- `手順`:
+  1. `warnings: null`、`categories: null`、`sampleFields: null` の response fixture を frontend gateway へ返す。
+  2. frontend usecase / presenter / store が response を view model へ変換する。
+  3. Input Review を表示する。
+- `期待結果`:
+  1. frontend は null 配列項目を `[]` に正規化する。
+  2. spread error が発生しない。
+  3. UI は warning なし、カテゴリなし、sample field なしの状態を表示できる。
+- `観測点`: frontend unit test、browser console error、Input Review 表示。
+- `fake_or_stub`: null array response fixture。
+- `責務境界メモ`: backend は配列を空配列で返すことを基本とするが、frontend も外部境界として null guard を持つ。
+
 ## Acceptance Checks
 
 - `REQ-TII-001`: `SCN-TII-001`、`SCN-TII-004`、`SCN-TII-005`
 - `REQ-TII-002`: `SCN-TII-002`
 - `REQ-TII-003`: `SCN-TII-003`
-- `REQ-TII-004`: `SCN-TII-006`
+- `REQ-TII-004`: `SCN-TII-006`、`SCN-TII-007`、`SCN-TII-008`
 
 ## Validation Commands
 

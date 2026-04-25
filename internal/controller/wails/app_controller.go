@@ -6,6 +6,7 @@ import "context"
 type AppController struct {
 	*MasterDictionaryController
 	*MasterPersonaController
+	*TranslationInputController
 	shutdown func(context.Context) error
 }
 
@@ -17,6 +18,7 @@ func NewAppController(masterDictionaryController *MasterDictionaryController, ma
 	return &AppController{
 		MasterDictionaryController: masterDictionaryController,
 		MasterPersonaController:    masterPersonaController,
+		TranslationInputController: nil,
 		shutdown:                   shutdown,
 	}
 }

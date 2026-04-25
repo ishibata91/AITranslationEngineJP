@@ -199,6 +199,52 @@ func TestSQLiteMasterDictionaryRepositoryUpsertBySourceAndRECUpdatesExistingReco
 	}
 }
 
+func TestSQLiteMasterDictionaryRepositoryUpsertBySourceAndRECFallsBackToSourceAndTranslationMatch(t *testing.T) {
+	repository := newSQLiteMasterDictionaryRepositoryForTest(t, filepath.Join(t.TempDir(), "db", sqliteRepositoryTestDatabaseFileName), []MasterDictionaryEntry{{
+		ID:          1,
+		Source:      sqliteRepositoryAurielsBow,
+		Translation: "アーリエルの弓",
+		Category:    sqliteRepositoryWeaponCategory,
+		Origin:      "初期データ",
+		REC:         "WEAP:OLD",
+		EDID:        "DLC1AurielsBow",
+		UpdatedAt:   time.Date(2026, 4, 15, 10, 0, 0, 0, time.UTC),
+	}})
+
+	updatedEntry, created, err := repository.UpsertBySourceAndREC(context.Background(), MasterDictionaryImportRecord{
+		Source:      "  Auriel's Bow ",
+		Translation: " アーリエルの弓 ",
+		Category:    sqliteRepositoryWeaponCategory,
+		Origin:      "XML取込",
+		REC:         sqliteRepositoryWeaponREC,
+		EDID:        "DLC1AurielsBow",
+		UpdatedAt:   time.Date(2026, 4, 15, 10, 1, 0, 0, time.UTC),
+	})
+	if err != nil {
+		t.Fatalf("expected fallback update upsert to succeed: %v", err)
+	}
+
+	if created {
+		t.Fatal("expected canonical fallback to update existing record")
+	}
+	if updatedEntry.ID != 1 {
+		t.Fatalf("expected existing id to be reused, got %#v", updatedEntry)
+	}
+	if updatedEntry.REC != sqliteRepositoryWeaponREC {
+		t.Fatalf("expected REC to be updated, got %q", updatedEntry.REC)
+	}
+
+	var totalCount int
+	if err := repository.database.GetContext(context.Background(), &totalCount,
+		"SELECT COUNT(*) FROM DICTIONARY_ENTRY WHERE dictionary_lifecycle = 'master'",
+	); err != nil {
+		t.Fatalf("expected master dictionary count query to succeed: %v", err)
+	}
+	if totalCount != 1 {
+		t.Fatalf("expected fallback upsert to avoid create, got count %d", totalCount)
+	}
+}
+
 func TestSQLiteMasterDictionaryRepositoryUpsertBySourceAndRECCreatesNewRecord(t *testing.T) {
 	repository := newSQLiteMasterDictionaryRepositoryForTest(t, filepath.Join(t.TempDir(), "db", sqliteRepositoryTestDatabaseFileName), []MasterDictionaryEntry{{
 		ID:          1,

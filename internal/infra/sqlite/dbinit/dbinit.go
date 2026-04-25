@@ -157,10 +157,21 @@ func applyMigrations(ctx context.Context, database *sqlx.DB) error {
 			continue
 		}
 		if _, err := database.ExecContext(ctx, string(migrationSQL)); err != nil {
+			if shouldIgnoreMigrationError(migrationPath, err) {
+				continue
+			}
 			return fmt.Errorf("apply sqlite migration %s: %w", migrationPath, err)
 		}
 	}
 	return nil
+}
+
+func shouldIgnoreMigrationError(migrationPath string, err error) bool {
+	if migrationPath != "migrations/005_translation_input_source_hash.sql" {
+		return false
+	}
+
+	return strings.Contains(err.Error(), "duplicate column name")
 }
 
 func seedMasterDictionaryEntries(

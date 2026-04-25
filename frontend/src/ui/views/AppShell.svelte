@@ -3,8 +3,10 @@
 
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+  import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
+  import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
   import type { ShellRouteContract, ShellRouteId } from "@ui/stores/shell-state"
 
   interface Props {
@@ -12,13 +14,15 @@
     routes: ShellRouteContract[]
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
+    createTranslationInputScreenController: CreateTranslationInputScreenController | null
   }
 
   let {
     defaultRouteId,
     routes,
     createMasterDictionaryScreenController,
-    createMasterPersonaScreenController
+    createMasterPersonaScreenController,
+    createTranslationInputScreenController
   }: Props = $props()
 
   const PLACEHOLDER_LEAD =
@@ -183,7 +187,13 @@
       />
     {/if}
 
-    {#if !isDashboard && currentRoute.id !== "master-dictionary" && currentRoute.id !== "master-persona"}
+    {#if !isDashboard && currentRoute.id === "translation-management"}
+      <InputReviewPage
+        createController={createTranslationInputScreenController}
+      />
+    {/if}
+
+    {#if !isDashboard && currentRoute.id !== "master-dictionary" && currentRoute.id !== "master-persona" && currentRoute.id !== "translation-management"}
       <section class="placeholder-content" id="placeholderView">
         <section class="panel placeholder-card">
           <p class="page-label">現在のページ</p>

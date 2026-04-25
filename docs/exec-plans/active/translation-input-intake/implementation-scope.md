@@ -25,6 +25,8 @@
 - 未定義 RecordType + SubrecordType は異常として警告し、非翻訳対象として観測可能に保持する。
 - 初期受け入れは小 fixture のみ固定する。
 - Input Review はページ内で完結させ、app-shell 導線詳細は `dashboard-and-app-shell` 側に deferred とする。
+- 初回 import では browser file input 由来の bare filename を OS path として読まない。
+- frontend は response の null 配列項目を空配列へ正規化する。
 
 ## Ready Waves
 
@@ -61,6 +63,7 @@
   - 小 fixture の xEdit JSON を登録すると、入力データ、翻訳レコード、翻訳フィールド、件数、カテゴリ、sample field が返る。
   - 同一 hash の再登録は拒否され、入力データ件数は増えない。
   - 不正 JSON、非 xEdit JSON、必須 field 欠落は登録前に全体拒否され、error kind が返る。
+  - 初回 import request が bare filename だけで content も source handle も持たない場合は invalid request として拒否し、source file missing にはしない。
   - 未定義 RecordType + SubrecordType は警告として返り、非翻訳対象 field として観測できる。
   - キャッシュ削除後に抽出 JSON 正本から再構築でき、件数とカテゴリが一致する。
 - `notes`:
@@ -69,6 +72,7 @@
   - `本番経路`: Wails controller / DTO -> usecase -> service -> `TranslationSourceRepository` -> SQLite。
   - 既存 `TranslationSourceRepository` 境界を使う。`JOB_TRANSLATION_FIELD`、翻訳ジョブ作成、AI 実行、出力生成は含めない。
   - extractData.pas で使うデータだけを正規入力として扱う。未定義 field は異常警告にする。
+  - `source_file_missing` は cache rebuild 用 error として扱う。初回 import の file input では file content または source handle を使う。
 
 ### `frontend-input-review`
 
@@ -98,12 +102,15 @@
   - input file 一覧に file name、file path、file hash、import timestamp、登録状態、再構築可否が表示される。
   - 選択した入力データの翻訳レコード件数、翻訳フィールド件数、カテゴリ別件数、sample field が表示される。
   - duplicate input、invalid JSON、non-xEdit JSON、missing required field、unknown field definition、source file missing、cache missing を区別して表示する。
+  - `warnings`、`categories`、`sampleFields` などの response 配列項目が null でも empty state として表示し、spread error を出さない。
+  - browser file input が absolute path ではなく bare filename を返す環境でも、backend へ file content または解決可能な source handle を渡す。
   - job 作成、翻訳開始、出力生成の action を表示しない。
 - `notes`:
   - 想定規模は caution。想定 `16-25 files`、`801-1500 changed lines`。理由は既存 frontend が contract / store / presenter / usecase / controller / Wails gateway / Svelte screen の分割を採るため。
   - ただし backend contract 確定後の Input Review UI 1 use case に閉じるため 1 handoff にする。
   - `本番経路`: Wails gateway -> frontend usecase -> store / presenter -> Input Review screen。
   - app-shell navigation 上の詳細位置は `dashboard-and-app-shell` 側へ deferred。今回の UI はページ内完結を満たす。
+  - null 配列 response と browser file input は frontend handoff の必須 test target とする。
 
 ### `final-validation-and-report`
 

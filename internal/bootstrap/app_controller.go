@@ -57,6 +57,15 @@ func newAppControllerWithSeeds(
 		panic(fmt.Errorf("open sqlite foundation data database: %w", err))
 	}
 	foundationDataPort := service.NewSQLiteFoundationDataPort(repository.NewSQLiteFoundationDataRepository(foundationDataDB))
+	translationSourceRepository := repository.NewSQLiteTranslationSourceRepository(foundationDataDB)
+	translationInputImportService := service.NewTranslationInputImportService(
+		translationSourceRepository,
+		repository.NewSQLiteTransactor(foundationDataDB),
+		nil,
+		now,
+	)
+	translationInputUsecase := usecase.NewTranslationInputUsecase(translationInputImportService)
+	translationInputController := controllerwails.NewTranslationInputController(translationInputUsecase)
 	queryService := service.NewMasterDictionaryQueryService(repositoryAdapter)
 	commandService := service.NewMasterDictionaryCommandService(repositoryAdapter, now)
 	importService := service.NewMasterDictionaryImportService(
@@ -120,7 +129,7 @@ func newAppControllerWithSeeds(
 	)
 	masterPersonaController := controllerwails.NewMasterPersonaController(masterPersonaUsecase)
 
-	return controllerwails.NewAppController(
+	appController := controllerwails.NewAppController(
 		masterDictionaryController,
 		masterPersonaController,
 		composeShutdownHooks(
@@ -139,6 +148,8 @@ func newAppControllerWithSeeds(
 			},
 		),
 	)
+	appController.TranslationInputController = translationInputController
+	return appController
 }
 
 // tryClose は nil チェック付きで closer を Background コンテキストで呼び出す。

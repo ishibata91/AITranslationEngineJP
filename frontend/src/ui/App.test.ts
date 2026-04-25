@@ -567,7 +567,7 @@ describe("App dashboard shell", () => {
 
     // Act
     await user.click(
-      within(getGlobalNavigation()).getByRole("link", { name: "翻訳管理" })
+      within(getGlobalNavigation()).getByRole("link", { name: "出力管理" })
     )
 
     // Assert

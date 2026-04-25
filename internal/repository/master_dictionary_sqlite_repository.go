@@ -57,6 +57,13 @@ WHERE dictionary_lifecycle = 'master'
   AND lower(trim(source_term)) = lower(trim(?))
   AND lower(trim(dictionary_scope)) = lower(trim(?))
 LIMIT 1;`
+	findMasterDictionaryEntryBySourceAndTranslationSQL = `
+SELECT id, source_term, translated_term, term_kind, dictionary_source, dictionary_scope, updated_at
+FROM DICTIONARY_ENTRY
+WHERE dictionary_lifecycle = 'master'
+	AND lower(trim(source_term)) = lower(trim(?))
+	AND translated_term = ?
+LIMIT 1;`
 	createMasterDictionaryEntrySQL = `
 INSERT INTO DICTIONARY_ENTRY (
   xtranslator_translation_xml_id,
@@ -100,6 +107,17 @@ SET xtranslator_translation_xml_id = :xtranslator_translation_xml_id,
     updated_at = :updated_at
 WHERE id = :id
   AND dictionary_lifecycle = 'master';`
+	updateImportedMasterDictionaryEntryCanonicalMatchSQL = `
+UPDATE DICTIONARY_ENTRY
+SET xtranslator_translation_xml_id = :xtranslator_translation_xml_id,
+		source_term = :source_term,
+		translated_term = :translated_term,
+		term_kind = :term_kind,
+		dictionary_source = :dictionary_source,
+		dictionary_scope = :dictionary_scope,
+		updated_at = :updated_at
+WHERE id = :id
+	AND dictionary_lifecycle = 'master';`
 	deleteMasterDictionaryEntrySQL = `
 DELETE FROM DICTIONARY_ENTRY
 WHERE id = ?
@@ -277,49 +295,54 @@ func (repository *SQLiteMasterDictionaryRepository) UpsertBySourceAndREC(
 	ctx context.Context,
 	record MasterDictionaryImportRecord,
 ) (MasterDictionaryEntry, bool, error) {
+	normalizedSource := strings.TrimSpace(record.Source)
+	normalizedREC := strings.TrimSpace(record.REC)
+	normalizedTranslation := strings.TrimSpace(record.Translation)
+	updateParams := sqliteMasterDictionaryMutationParams{
+		Source:                      normalizedSource,
+		Translation:                 normalizedTranslation,
+		Category:                    record.Category,
+		Origin:                      record.Origin,
+		REC:                         normalizedREC,
+		UpdatedAt:                   record.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout),
+		XTranslatorTranslationXMLID: record.XTranslatorTranslationXMLID,
+	}
+
 	row := sqliteMasterDictionaryRow{}
 	err := repository.database.GetContext(
 		ctx,
 		&row,
 		findMasterDictionaryEntryBySourceAndRECSQL,
-		record.Source,
-		record.REC,
+		normalizedSource,
+		normalizedREC,
 	)
 	if err == nil {
-		result, updateErr := repository.database.NamedExecContext(ctx, updateImportedMasterDictionaryEntrySQL, sqliteMasterDictionaryMutationParams{
-			ID:                          row.ID,
-			Translation:                 record.Translation,
-			Category:                    record.Category,
-			Origin:                      record.Origin,
-			UpdatedAt:                   record.UpdatedAt.UTC().Format(masterDictionaryTimestampLayout),
-			XTranslatorTranslationXMLID: record.XTranslatorTranslationXMLID,
-		})
-		if updateErr != nil {
-			return MasterDictionaryEntry{}, false, fmt.Errorf("update imported master dictionary entry: %w", updateErr)
-		}
-		rowsAffected, rowsErr := result.RowsAffected()
-		if rowsErr != nil {
-			return MasterDictionaryEntry{}, false, fmt.Errorf("read updated imported master dictionary rows affected: %w", rowsErr)
-		}
-		if rowsAffected == 0 {
-			return MasterDictionaryEntry{}, false, fmt.Errorf(masterDictionaryErrIDFormat, ErrMasterDictionaryEntryNotFound, row.ID)
-		}
-		entry, getErr := repository.GetByID(ctx, row.ID)
-		if getErr != nil {
-			return MasterDictionaryEntry{}, false, getErr
-		}
-		return entry, false, nil
+		return repository.updateImportedEntry(ctx, row.ID, updateImportedMasterDictionaryEntrySQL, updateParams)
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
 		return MasterDictionaryEntry{}, false, fmt.Errorf("find master dictionary entry by source and REC: %w", err)
 	}
 
+	err = repository.database.GetContext(
+		ctx,
+		&row,
+		findMasterDictionaryEntryBySourceAndTranslationSQL,
+		normalizedSource,
+		normalizedTranslation,
+	)
+	if err == nil {
+		return repository.updateImportedEntry(ctx, row.ID, updateImportedMasterDictionaryEntryCanonicalMatchSQL, updateParams)
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return MasterDictionaryEntry{}, false, fmt.Errorf("find master dictionary entry by source and translation: %w", err)
+	}
+
 	entry, createErr := repository.Create(ctx, MasterDictionaryDraft{
-		Source:                      strings.TrimSpace(record.Source),
-		Translation:                 record.Translation,
+		Source:                      normalizedSource,
+		Translation:                 normalizedTranslation,
 		Category:                    record.Category,
 		Origin:                      record.Origin,
-		REC:                         strings.TrimSpace(record.REC),
+		REC:                         normalizedREC,
 		EDID:                        record.EDID,
 		UpdatedAt:                   record.UpdatedAt,
 		XTranslatorTranslationXMLID: record.XTranslatorTranslationXMLID,
@@ -328,6 +351,31 @@ func (repository *SQLiteMasterDictionaryRepository) UpsertBySourceAndREC(
 		return MasterDictionaryEntry{}, true, createErr
 	}
 	return entry, true, nil
+}
+
+func (repository *SQLiteMasterDictionaryRepository) updateImportedEntry(
+	ctx context.Context,
+	id int64,
+	statement string,
+	params sqliteMasterDictionaryMutationParams,
+) (MasterDictionaryEntry, bool, error) {
+	params.ID = id
+	result, err := repository.database.NamedExecContext(ctx, statement, params)
+	if err != nil {
+		return MasterDictionaryEntry{}, false, fmt.Errorf("update imported master dictionary entry: %w", err)
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return MasterDictionaryEntry{}, false, fmt.Errorf("read updated imported master dictionary rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return MasterDictionaryEntry{}, false, fmt.Errorf(masterDictionaryErrIDFormat, ErrMasterDictionaryEntryNotFound, id)
+	}
+	entry, err := repository.GetByID(ctx, id)
+	if err != nil {
+		return MasterDictionaryEntry{}, false, err
+	}
+	return entry, false, nil
 }
 
 func fromSQLiteRow(row sqliteMasterDictionaryRow) (MasterDictionaryEntry, error) {

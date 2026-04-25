@@ -1,0 +1,1 @@
+export { TranslationInputUseCase } from "./translation-input.usecase"

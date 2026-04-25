@@ -17,6 +17,29 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+type translationCacheFixture struct {
+	xEditID int64
+}
+
+type translationCacheRecordFixture struct {
+	record           repository.TranslationRecord
+	referencedRecord repository.TranslationRecord
+	profile          repository.NpcProfile
+	field            repository.TranslationField
+}
+
+type translationCacheJobFixture struct {
+	job             repository.TranslationJob
+	persona         repository.Persona
+	dictionaryEntry repository.DictionaryEntry
+	jobField        repository.JobTranslationField
+	phaseRun        repository.JobPhaseRun
+}
+
+type translationCacheCleaner interface {
+	DeleteTranslationCacheByXEditID(ctx context.Context, xEditID int64) error
+}
+
 // fixedNow は integration test 全体で共通の決定的タイムスタンプ。
 var fixedNow = time.Date(2026, 4, 19, 12, 0, 0, 0, time.UTC)
 
@@ -37,6 +60,320 @@ func openIntegrationDB(t *testing.T) *sqlx.DB {
 		}
 	})
 	return db
+}
+
+func createTranslationCacheFixture(ctx context.Context, t *testing.T, db *sqlx.DB, suffix string) translationCacheFixture {
+	t.Helper()
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+	foundationRepo := repository.NewSQLiteFoundationDataRepository(db)
+	outputRepo := repository.NewSQLiteJobOutputRepository(db)
+
+	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
+		SourceFilePath:   fmt.Sprintf("cache-%s.esp", suffix),
+		SourceTool:       "xEdit",
+		TargetPluginName: fmt.Sprintf("Cache%s.esm", suffix),
+		TargetPluginType: "ESM",
+		RecordCount:      2,
+		ImportedAt:       fixedNow,
+	})
+	if err != nil {
+		t.Fatalf("CreateXEditExtractedData failed: %v", err)
+	}
+
+	recordFixture := createTranslationCacheRecordFixture(ctx, t, sourceRepo, xEdit.ID, suffix)
+	jobFixture := createTranslationCacheJobFixture(ctx, t, jobRepo, foundationRepo, outputRepo, xEdit.ID, recordFixture, suffix)
+	createTranslationCacheArtifactFixture(ctx, t, db, jobFixture.job.ID, jobFixture.dictionaryEntry.ID, jobFixture.jobField, recordFixture, suffix)
+
+	return translationCacheFixture{xEditID: xEdit.ID}
+}
+
+func createTranslationCacheRecordFixture(
+	ctx context.Context,
+	t *testing.T,
+	sourceRepo repository.TranslationSourceRepository,
+	xEditID int64,
+	suffix string,
+) translationCacheRecordFixture {
+	t.Helper()
+
+	record, err := sourceRepo.CreateTranslationRecord(ctx, repository.TranslationRecordDraft{
+		XEditExtractedDataID: xEditID,
+		FormID:               fmt.Sprintf("FORM-%s", suffix),
+		EditorID:             fmt.Sprintf("NPC_%s", suffix),
+		RecordType:           "NPC_",
+	})
+	if err != nil {
+		t.Fatalf("CreateTranslationRecord failed: %v", err)
+	}
+
+	referencedRecord, err := sourceRepo.CreateTranslationRecord(ctx, repository.TranslationRecordDraft{
+		XEditExtractedDataID: xEditID,
+		FormID:               fmt.Sprintf("REF-%s", suffix),
+		EditorID:             fmt.Sprintf("NPC_REF_%s", suffix),
+		RecordType:           "NPC_",
+	})
+	if err != nil {
+		t.Fatalf("CreateTranslationRecord (reference) failed: %v", err)
+	}
+
+	profile, err := sourceRepo.UpsertNpcProfile(ctx, repository.NpcProfileDraft{
+		TargetPluginName: fmt.Sprintf("Cache%s.esm", suffix),
+		FormID:           record.FormID,
+		RecordType:       record.RecordType,
+		EditorID:         record.EditorID,
+		DisplayName:      fmt.Sprintf("NPC %s", suffix),
+	})
+	if err != nil {
+		t.Fatalf("UpsertNpcProfile failed: %v", err)
+	}
+
+	_, err = sourceRepo.CreateNpcRecord(ctx, repository.NpcRecordDraft{
+		TranslationRecordID: record.ID,
+		NpcProfileID:        profile.ID,
+		VoiceType:           fmt.Sprintf("Voice%s", suffix),
+	})
+	if err != nil {
+		t.Fatalf("CreateNpcRecord failed: %v", err)
+	}
+
+	field, err := sourceRepo.CreateTranslationField(ctx, repository.TranslationFieldDraft{
+		TranslationRecordID: record.ID,
+		SubrecordType:       "FULL",
+		SourceText:          fmt.Sprintf("Source %s", suffix),
+		FieldOrder:          0,
+	})
+	if err != nil {
+		t.Fatalf("CreateTranslationField failed: %v", err)
+	}
+
+	_, err = sourceRepo.CreateTranslationFieldRecordReference(ctx, repository.TranslationFieldRecordReferenceDraft{
+		TranslationFieldID:            field.ID,
+		ReferencedTranslationRecordID: referencedRecord.ID,
+		ReferenceRole:                 "context",
+	})
+	if err != nil {
+		t.Fatalf("CreateTranslationFieldRecordReference failed: %v", err)
+	}
+
+	return translationCacheRecordFixture{
+		record:           record,
+		referencedRecord: referencedRecord,
+		profile:          profile,
+		field:            field,
+	}
+}
+
+func createTranslationCacheJobFixture(
+	ctx context.Context,
+	t *testing.T,
+	jobRepo repository.JobLifecycleRepository,
+	foundationRepo repository.FoundationDataRepository,
+	outputRepo repository.JobOutputRepository,
+	xEditID int64,
+	recordFixture translationCacheRecordFixture,
+	suffix string,
+) translationCacheJobFixture {
+	t.Helper()
+
+	job, err := jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
+		XEditExtractedDataID: xEditID,
+		JobName:              fmt.Sprintf("job-%s", suffix),
+		State:                "running",
+		ProgressPercent:      10,
+	})
+	if err != nil {
+		t.Fatalf("CreateTranslationJob failed: %v", err)
+	}
+
+	persona, err := foundationRepo.CreatePersona(ctx, repository.PersonaDraft{
+		NpcProfileID:           recordFixture.profile.ID,
+		TranslationJobID:       &job.ID,
+		PersonaLifecycle:       "job",
+		PersonaScope:           "job_local",
+		PersonaSource:          "ai",
+		PersonaDescription:     fmt.Sprintf("persona %s", suffix),
+		SpeechStyle:            "plain",
+		PersonalitySummary:     "summary",
+		EvidenceUtteranceCount: 1,
+	})
+	if err != nil {
+		t.Fatalf("CreatePersona failed: %v", err)
+	}
+
+	_, err = foundationRepo.CreatePersonaFieldEvidence(ctx, repository.PersonaFieldEvidenceDraft{
+		PersonaID:          persona.ID,
+		TranslationFieldID: recordFixture.field.ID,
+		EvidenceRole:       "source",
+	})
+	if err != nil {
+		t.Fatalf("CreatePersonaFieldEvidence failed: %v", err)
+	}
+
+	dictionaryEntry, err := foundationRepo.CreateDictionaryEntry(ctx, repository.DictionaryEntryDraft{
+		TranslationJobID:    &job.ID,
+		DictionaryLifecycle: "job",
+		DictionaryScope:     "job_local",
+		DictionarySource:    "ai",
+		SourceTerm:          fmt.Sprintf("term-%s", suffix),
+		TranslatedTerm:      fmt.Sprintf("訳語-%s", suffix),
+		TermKind:            "name",
+		Reusable:            false,
+	})
+	if err != nil {
+		t.Fatalf("CreateDictionaryEntry failed: %v", err)
+	}
+
+	jobField, err := outputRepo.CreateJobTranslationField(ctx, repository.JobTranslationFieldDraft{
+		TranslationJobID:   job.ID,
+		TranslationFieldID: recordFixture.field.ID,
+		AppliedPersonaID:   &persona.ID,
+		TranslatedText:     fmt.Sprintf("translated-%s", suffix),
+		OutputStatus:       "translated",
+		RetryCount:         0,
+	})
+	if err != nil {
+		t.Fatalf("CreateJobTranslationField failed: %v", err)
+	}
+
+	phaseRun, err := jobRepo.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
+		TranslationJobID: job.ID,
+		PhaseType:        "translation",
+		State:            "completed",
+		ExecutionOrder:   1,
+		AIProvider:       "openai",
+		ModelName:        "gpt-4.1",
+		ExecutionMode:    "batch",
+		CredentialRef:    "test-key",
+		InstructionKind:  "default",
+	})
+	if err != nil {
+		t.Fatalf("CreateJobPhaseRun failed: %v", err)
+	}
+
+	_, err = jobRepo.CreatePhaseRunTranslationField(ctx, repository.PhaseRunTranslationFieldDraft{
+		PhaseRunID:            phaseRun.ID,
+		JobTranslationFieldID: jobField.ID,
+		Role:                  "input",
+	})
+	if err != nil {
+		t.Fatalf("CreatePhaseRunTranslationField failed: %v", err)
+	}
+
+	_, err = jobRepo.CreatePhaseRunPersona(ctx, repository.PhaseRunPersonaDraft{
+		PhaseRunID: phaseRun.ID,
+		PersonaID:  persona.ID,
+		Role:       "active",
+	})
+	if err != nil {
+		t.Fatalf("CreatePhaseRunPersona failed: %v", err)
+	}
+
+	_, err = jobRepo.CreatePhaseRunDictionaryEntry(ctx, repository.PhaseRunDictionaryEntryDraft{
+		PhaseRunID:        phaseRun.ID,
+		DictionaryEntryID: dictionaryEntry.ID,
+		Role:              "applied",
+	})
+	if err != nil {
+		t.Fatalf("CreatePhaseRunDictionaryEntry failed: %v", err)
+	}
+
+	return translationCacheJobFixture{
+		job:             job,
+		persona:         persona,
+		dictionaryEntry: dictionaryEntry,
+		jobField:        jobField,
+		phaseRun:        phaseRun,
+	}
+}
+
+func createTranslationCacheArtifactFixture(
+	ctx context.Context,
+	t *testing.T,
+	db *sqlx.DB,
+	jobID int64,
+	_ int64,
+	jobField repository.JobTranslationField,
+	recordFixture translationCacheRecordFixture,
+	suffix string,
+) {
+	t.Helper()
+
+	artifactResult, err := db.ExecContext(
+		ctx,
+		`INSERT INTO TRANSLATION_ARTIFACT
+			(translation_job_id, artifact_format, target_game, file_path, status, generated_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		jobID,
+		"xtranslator",
+		"skyrim",
+		fmt.Sprintf("artifact-%s.xml", suffix),
+		"completed",
+		fixedNow.Format(time.RFC3339),
+	)
+	if err != nil {
+		t.Fatalf("insert TRANSLATION_ARTIFACT failed: %v", err)
+	}
+	artifactID, err := artifactResult.LastInsertId()
+	if err != nil {
+		t.Fatalf("TRANSLATION_ARTIFACT LastInsertId failed: %v", err)
+	}
+
+	if _, err := db.ExecContext(
+		ctx,
+		`INSERT INTO XTRANSLATOR_OUTPUT_ROW
+			(translation_artifact_id, job_translation_field_id, edid, rec, field, formid, source, dest, status)
+		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+		artifactID,
+		jobField.ID,
+		fmt.Sprintf("EDID_%s", suffix),
+		"NPC_",
+		"FULL",
+		recordFixture.record.FormID,
+		recordFixture.field.SourceText,
+		jobField.TranslatedText,
+		1,
+	); err != nil {
+		t.Fatalf("insert XTRANSLATOR_OUTPUT_ROW failed: %v", err)
+	}
+}
+
+func countRowsForXEdit(ctx context.Context, t *testing.T, db *sqlx.DB, query string, xEditID int64) int {
+	t.Helper()
+	var count int
+	if err := db.QueryRowContext(ctx, query, xEditID).Scan(&count); err != nil {
+		t.Fatalf("count query failed: %v", err)
+	}
+	return count
+}
+
+func assertTranslationCacheCounts(ctx context.Context, t *testing.T, db *sqlx.DB, xEditID int64, expected map[string]int) {
+	t.Helper()
+	queries := map[string]string{
+		"x_edit_extracted_data":              `SELECT COUNT(*) FROM X_EDIT_EXTRACTED_DATA WHERE id = ?`,
+		"translation_record":                 `SELECT COUNT(*) FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?`,
+		"translation_field":                  `SELECT COUNT(*) FROM TRANSLATION_FIELD WHERE translation_record_id IN (SELECT id FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?)`,
+		"translation_field_record_reference": `SELECT COUNT(*) FROM TRANSLATION_FIELD_RECORD_REFERENCE WHERE translation_field_id IN (SELECT id FROM TRANSLATION_FIELD WHERE translation_record_id IN (SELECT id FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?))`,
+		"translation_job":                    `SELECT COUNT(*) FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?`,
+		"job_translation_field":              `SELECT COUNT(*) FROM JOB_TRANSLATION_FIELD WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?)`,
+		"job_phase_run":                      `SELECT COUNT(*) FROM JOB_PHASE_RUN WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?)`,
+		"phase_run_translation_field":        `SELECT COUNT(*) FROM PHASE_RUN_TRANSLATION_FIELD WHERE phase_run_id IN (SELECT id FROM JOB_PHASE_RUN WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?))`,
+		"phase_run_persona":                  `SELECT COUNT(*) FROM PHASE_RUN_PERSONA WHERE phase_run_id IN (SELECT id FROM JOB_PHASE_RUN WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?))`,
+		"phase_run_dictionary_entry":         `SELECT COUNT(*) FROM PHASE_RUN_DICTIONARY_ENTRY WHERE phase_run_id IN (SELECT id FROM JOB_PHASE_RUN WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?))`,
+		"persona":                            `SELECT COUNT(*) FROM PERSONA WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?)`,
+		"persona_field_evidence":             `SELECT COUNT(*) FROM PERSONA_FIELD_EVIDENCE WHERE persona_id IN (SELECT id FROM PERSONA WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?))`,
+		"dictionary_entry":                   `SELECT COUNT(*) FROM DICTIONARY_ENTRY WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?)`,
+		"translation_artifact":               `SELECT COUNT(*) FROM TRANSLATION_ARTIFACT WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?)`,
+		"xtranslator_output_row":             `SELECT COUNT(*) FROM XTRANSLATOR_OUTPUT_ROW WHERE translation_artifact_id IN (SELECT id FROM TRANSLATION_ARTIFACT WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?))`,
+		"npc_record":                         `SELECT COUNT(*) FROM NPC_RECORD WHERE translation_record_id IN (SELECT id FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?)`,
+	}
+
+	for name, want := range expected {
+		got := countRowsForXEdit(ctx, t, db, queries[name], xEditID)
+		if got != want {
+			t.Fatalf("expected %s count=%d for xEditID=%d, got %d", name, want, xEditID, got)
+		}
+	}
 }
 
 // ---------------------------------------------------------------------------
@@ -1296,4 +1633,64 @@ func TestSCN_SMR_004_JobUpdateAndOutput(t *testing.T) {
 	if updatedJtf.OutputStatus != "revised" {
 		t.Fatalf("expected OutputStatus=revised, got %q", updatedJtf.OutputStatus)
 	}
+}
+
+// TestSCN_SMR_003_DeleteTranslationCacheByXEditIDRemovesDownstreamState は
+// 同一 x_edit_extracted_data_id に紐づく downstream job data を再構築前に一掃し、
+// 別 xEdit のキャッシュには影響しないことを検証する。
+func TestSCN_SMR_003_DeleteTranslationCacheByXEditIDRemovesDownstreamState(t *testing.T) {
+	ctx := context.Background()
+	db := openIntegrationDB(t)
+	cacheCleaner, ok := repository.NewSQLiteTranslationSourceRepository(db).(translationCacheCleaner)
+	if !ok {
+		t.Fatal("expected SQLiteTranslationSourceRepository to implement DeleteTranslationCacheByXEditID")
+	}
+
+	target := createTranslationCacheFixture(ctx, t, db, "0000AAA1")
+	control := createTranslationCacheFixture(ctx, t, db, "0000BBB2")
+
+	oneFixtureCounts := map[string]int{
+		"x_edit_extracted_data":              1,
+		"translation_record":                 2,
+		"translation_field":                  1,
+		"translation_field_record_reference": 1,
+		"translation_job":                    1,
+		"job_translation_field":              1,
+		"job_phase_run":                      1,
+		"phase_run_translation_field":        1,
+		"phase_run_persona":                  1,
+		"phase_run_dictionary_entry":         1,
+		"persona":                            1,
+		"persona_field_evidence":             1,
+		"dictionary_entry":                   1,
+		"translation_artifact":               1,
+		"xtranslator_output_row":             1,
+		"npc_record":                         1,
+	}
+	assertTranslationCacheCounts(ctx, t, db, target.xEditID, oneFixtureCounts)
+	assertTranslationCacheCounts(ctx, t, db, control.xEditID, oneFixtureCounts)
+
+	if err := cacheCleaner.DeleteTranslationCacheByXEditID(ctx, target.xEditID); err != nil {
+		t.Fatalf("DeleteTranslationCacheByXEditID failed: %v", err)
+	}
+
+	assertTranslationCacheCounts(ctx, t, db, target.xEditID, map[string]int{
+		"x_edit_extracted_data":              1,
+		"translation_record":                 0,
+		"translation_field":                  0,
+		"translation_field_record_reference": 0,
+		"translation_job":                    0,
+		"job_translation_field":              0,
+		"job_phase_run":                      0,
+		"phase_run_translation_field":        0,
+		"phase_run_persona":                  0,
+		"phase_run_dictionary_entry":         0,
+		"persona":                            0,
+		"persona_field_evidence":             0,
+		"dictionary_entry":                   0,
+		"translation_artifact":               0,
+		"xtranslator_output_row":             0,
+		"npc_record":                         0,
+	})
+	assertTranslationCacheCounts(ctx, t, db, control.xEditID, oneFixtureCounts)
 }

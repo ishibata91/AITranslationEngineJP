@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -75,6 +76,102 @@ func TestOpenMasterDictionaryDatabaseReappliesMigrationsOnExistingDatabase(t *te
 	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
 	assertTableNotExists(t, reopenedDatabase, "master_dictionary_entries")
 	assertTableExists(t, reopenedDatabase, "PERSONA_GENERATION_SETTINGS")
+	assertColumnExists(t, reopenedDatabase, "X_EDIT_EXTRACTED_DATA", "source_content_hash")
+	assertIndexExists(t, reopenedDatabase, "idx_x_edit_extracted_data_source_content_hash")
+}
+
+func TestOpenMasterDictionaryDatabaseCreatesSourceContentHashUniqueIndex(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+
+	assertColumnExists(t, database, "X_EDIT_EXTRACTED_DATA", "source_content_hash")
+	assertIndexExists(t, database, "idx_x_edit_extracted_data_source_content_hash")
+
+	insertExtractedDataRow(t, database, "/mods/source-1.json", "hash-shared")
+
+	_, err := database.ExecContext(context.Background(),
+		`INSERT INTO X_EDIT_EXTRACTED_DATA (
+			source_file_path,
+			source_tool,
+			target_plugin_name,
+			target_plugin_type,
+			record_count,
+			imported_at,
+			source_content_hash
+		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		"/mods/source-2.json",
+		"xEdit",
+		"Skyrim.esm",
+		"esm",
+		1,
+		"2026-04-26T09:31:00Z",
+		"hash-shared",
+	)
+	if err == nil {
+		t.Fatal("expected duplicate source_content_hash to fail due to unique index")
+	}
+	if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		t.Fatalf("expected UNIQUE constraint error, got: %v", err)
+	}
+
+	insertExtractedDataRow(t, database, "/mods/source-empty-1.json", "")
+	insertExtractedDataRow(t, database, "/mods/source-empty-2.json", "")
+}
+
+func TestOpenMasterDictionaryDatabaseRecreatesSourceContentHashIndexWhenColumnAlreadyExists(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
+	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+
+	err := database.Close()
+	if err != nil {
+		t.Fatalf(errInitialSQLiteClose, err)
+	}
+
+	rawDatabase, err := sqlx.Open(sqliteDriverName, buildSQLiteDSN(databasePath))
+	if err != nil {
+		t.Fatalf("expected raw sqlite open to succeed: %v", err)
+	}
+
+	_, err = rawDatabase.ExecContext(context.Background(), `DROP INDEX IF EXISTS idx_x_edit_extracted_data_source_content_hash`)
+	if err != nil {
+		t.Fatalf("expected source_content_hash index drop to succeed: %v", err)
+	}
+
+	if closeErr := rawDatabase.Close(); closeErr != nil {
+		t.Fatalf("expected raw sqlite close to succeed: %v", closeErr)
+	}
+
+	reopenedDatabase := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+
+	assertColumnExists(t, reopenedDatabase, "X_EDIT_EXTRACTED_DATA", "source_content_hash")
+	assertIndexExists(t, reopenedDatabase, "idx_x_edit_extracted_data_source_content_hash")
+
+	insertExtractedDataRow(t, reopenedDatabase, "/mods/reopened-1.json", "rehydrated-hash")
+
+	_, err = reopenedDatabase.ExecContext(context.Background(),
+		`INSERT INTO X_EDIT_EXTRACTED_DATA (
+			source_file_path,
+			source_tool,
+			target_plugin_name,
+			target_plugin_type,
+			record_count,
+			imported_at,
+			source_content_hash
+		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		"/mods/reopened-2.json",
+		"xEdit",
+		"Skyrim.esm",
+		"esm",
+		2,
+		"2026-04-26T09:32:00Z",
+		"rehydrated-hash",
+	)
+	if err == nil {
+		t.Fatal("expected duplicate source_content_hash to fail after migrations reapply")
+	}
+	if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
+		t.Fatalf("expected UNIQUE constraint error after migrations reapply, got: %v", err)
+	}
 }
 
 // TestSchemaCutoverDropsLegacyPersonaAndDictionaryTables は schema cutover 後に
@@ -127,6 +224,32 @@ func seedEntry(source string, updatedAt time.Time) MasterDictionarySeedEntry {
 	}
 }
 
+func insertExtractedDataRow(t *testing.T, database *sqlx.DB, sourceFilePath string, sourceContentHash string) {
+	t.Helper()
+
+	_, err := database.ExecContext(context.Background(),
+		`INSERT INTO X_EDIT_EXTRACTED_DATA (
+			source_file_path,
+			source_tool,
+			target_plugin_name,
+			target_plugin_type,
+			record_count,
+			imported_at,
+			source_content_hash
+		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		sourceFilePath,
+		"xEdit",
+		"Skyrim.esm",
+		"esm",
+		1,
+		"2026-04-26T09:30:00Z",
+		sourceContentHash,
+	)
+	if err != nil {
+		t.Fatalf("expected X_EDIT_EXTRACTED_DATA insert to succeed: %v", err)
+	}
+}
+
 func assertTableExists(t *testing.T, database *sqlx.DB, tableName string) {
 	t.Helper()
 
@@ -158,5 +281,39 @@ func assertTableNotExists(t *testing.T, database *sqlx.DB, tableName string) {
 	}
 	if count != 0 {
 		t.Fatalf("expected sqlite table %q to not exist, but it was found", tableName)
+	}
+}
+
+func assertColumnExists(t *testing.T, database *sqlx.DB, tableName string, columnName string) {
+	t.Helper()
+
+	var count int
+	queryErr := database.QueryRowContext(
+		context.Background(),
+		"SELECT COUNT(*) FROM pragma_table_info('"+tableName+"') WHERE name = ?",
+		columnName,
+	).Scan(&count)
+	if queryErr != nil {
+		t.Fatalf("expected sqlite column existence query to succeed: %v", queryErr)
+	}
+	if count != 1 {
+		t.Fatalf("expected sqlite column %q to exist on table %q", columnName, tableName)
+	}
+}
+
+func assertIndexExists(t *testing.T, database *sqlx.DB, indexName string) {
+	t.Helper()
+
+	var count int
+	queryErr := database.QueryRowContext(
+		context.Background(),
+		"SELECT COUNT(*) FROM sqlite_master WHERE type='index' AND name = ?",
+		indexName,
+	).Scan(&count)
+	if queryErr != nil {
+		t.Fatalf("expected sqlite index existence query to succeed: %v", queryErr)
+	}
+	if count != 1 {
+		t.Fatalf("expected sqlite index %q to exist", indexName)
 	}
 }

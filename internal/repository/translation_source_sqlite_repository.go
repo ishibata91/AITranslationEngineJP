@@ -26,13 +26,14 @@ func NewSQLiteTranslationSourceRepository(db *sqlx.DB) TranslationSourceReposito
 // ---------------------------------------------------------------------------
 
 type xEditExtractedDataRow struct {
-	ID               int64  `db:"id"`
-	SourceFilePath   string `db:"source_file_path"`
-	SourceTool       string `db:"source_tool"`
-	TargetPluginName string `db:"target_plugin_name"`
-	TargetPluginType string `db:"target_plugin_type"`
-	RecordCount      int    `db:"record_count"`
-	ImportedAt       string `db:"imported_at"`
+	ID                int64  `db:"id"`
+	SourceFilePath    string `db:"source_file_path"`
+	SourceContentHash string `db:"source_content_hash"`
+	SourceTool        string `db:"source_tool"`
+	TargetPluginName  string `db:"target_plugin_name"`
+	TargetPluginType  string `db:"target_plugin_type"`
+	RecordCount       int    `db:"record_count"`
+	ImportedAt        string `db:"imported_at"`
 }
 
 func (r xEditExtractedDataRow) toModel() (XEditExtractedData, error) {
@@ -41,13 +42,14 @@ func (r xEditExtractedDataRow) toModel() (XEditExtractedData, error) {
 		return XEditExtractedData{}, fmt.Errorf("parse imported_at: %w", err)
 	}
 	return XEditExtractedData{
-		ID:               r.ID,
-		SourceFilePath:   r.SourceFilePath,
-		SourceTool:       r.SourceTool,
-		TargetPluginName: r.TargetPluginName,
-		TargetPluginType: r.TargetPluginType,
-		RecordCount:      r.RecordCount,
-		ImportedAt:       importedAt,
+		ID:                r.ID,
+		SourceFilePath:    r.SourceFilePath,
+		SourceContentHash: r.SourceContentHash,
+		SourceTool:        r.SourceTool,
+		TargetPluginName:  r.TargetPluginName,
+		TargetPluginType:  r.TargetPluginType,
+		RecordCount:       r.RecordCount,
+		ImportedAt:        importedAt,
 	}, nil
 }
 
@@ -161,13 +163,142 @@ func mapSQLError(err error, label string) error {
 const (
 	insertXEditExtractedData = `
 INSERT INTO X_EDIT_EXTRACTED_DATA
-  (source_file_path, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at)
+	(source_file_path, source_content_hash, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at)
 VALUES
-  (:source_file_path, :source_tool, :target_plugin_name, :target_plugin_type, :record_count, :imported_at)`
+	(:source_file_path, :source_content_hash, :source_tool, :target_plugin_name, :target_plugin_type, :record_count, :imported_at)`
 
 	selectXEditExtractedDataByID = `
-SELECT id, source_file_path, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
+SELECT id, source_file_path, source_content_hash, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
 FROM X_EDIT_EXTRACTED_DATA WHERE id = ?`
+
+	selectXEditExtractedDataBySourceContentHash = `
+SELECT id, source_file_path, source_content_hash, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
+FROM X_EDIT_EXTRACTED_DATA WHERE source_content_hash = ?`
+
+	updateXEditExtractedDataMetadata = `
+UPDATE X_EDIT_EXTRACTED_DATA
+SET source_file_path = ?,
+	source_content_hash = ?,
+	source_tool = ?,
+	target_plugin_name = ?,
+	target_plugin_type = ?,
+	record_count = ?
+WHERE id = ?`
+
+	deleteTranslationFieldRecordReferencesByXEditID = `
+DELETE FROM TRANSLATION_FIELD_RECORD_REFERENCE
+WHERE translation_field_id IN (
+	SELECT translation_field.id
+	FROM TRANSLATION_FIELD AS translation_field
+	INNER JOIN TRANSLATION_RECORD AS translation_record
+		ON translation_record.id = translation_field.translation_record_id
+	WHERE translation_record.x_edit_extracted_data_id = ?
+)`
+
+	deletePersonaFieldEvidenceByXEditID = `
+DELETE FROM PERSONA_FIELD_EVIDENCE
+	WHERE persona_id IN (
+		SELECT id
+		FROM PERSONA
+		WHERE translation_job_id IN (
+			SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+		)
+	)
+	OR translation_field_id IN (
+	SELECT translation_field.id
+	FROM TRANSLATION_FIELD AS translation_field
+	INNER JOIN TRANSLATION_RECORD AS translation_record
+		ON translation_record.id = translation_field.translation_record_id
+	WHERE translation_record.x_edit_extracted_data_id = ?
+)`
+
+	deleteXTranslatorOutputRowsByXEditID = `
+DELETE FROM XTRANSLATOR_OUTPUT_ROW
+	WHERE translation_artifact_id IN (
+		SELECT id
+		FROM TRANSLATION_ARTIFACT
+		WHERE translation_job_id IN (
+			SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+		)
+)`
+
+	deletePhaseRunTranslationFieldsByXEditID = `
+DELETE FROM PHASE_RUN_TRANSLATION_FIELD
+	WHERE phase_run_id IN (
+		SELECT id
+		FROM JOB_PHASE_RUN
+		WHERE translation_job_id IN (
+			SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+		)
+)`
+
+	deletePhaseRunPersonasByXEditID = `
+	DELETE FROM PHASE_RUN_PERSONA
+	WHERE phase_run_id IN (
+		SELECT id
+		FROM JOB_PHASE_RUN
+		WHERE translation_job_id IN (
+			SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+		)
+	)`
+
+	deletePhaseRunDictionaryEntriesByXEditID = `
+	DELETE FROM PHASE_RUN_DICTIONARY_ENTRY
+	WHERE phase_run_id IN (
+		SELECT id
+		FROM JOB_PHASE_RUN
+		WHERE translation_job_id IN (
+			SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+		)
+	)`
+
+	deleteJobPhaseRunsByXEditID = `
+	DELETE FROM JOB_PHASE_RUN
+	WHERE translation_job_id IN (
+		SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+	)`
+
+	deleteJobTranslationFieldsByXEditID = `
+DELETE FROM JOB_TRANSLATION_FIELD
+WHERE translation_job_id IN (
+	SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+)`
+
+	deleteTranslationArtifactsByXEditID = `
+	DELETE FROM TRANSLATION_ARTIFACT
+	WHERE translation_job_id IN (
+		SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+	)`
+
+	deletePersonasByXEditID = `
+	DELETE FROM PERSONA
+	WHERE translation_job_id IN (
+		SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+	)`
+
+	deleteDictionaryEntriesByXEditID = `
+	DELETE FROM DICTIONARY_ENTRY
+	WHERE translation_job_id IN (
+		SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?
+	)`
+
+	deleteTranslationJobsByXEditID = `
+	DELETE FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?`
+
+	deleteNpcRecordsByXEditID = `
+DELETE FROM NPC_RECORD
+WHERE translation_record_id IN (
+	SELECT id FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?
+)`
+
+	deleteTranslationFieldsByXEditID = `
+DELETE FROM TRANSLATION_FIELD
+WHERE translation_record_id IN (
+	SELECT id FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?
+)`
+
+	deleteTranslationRecordsByXEditID = `
+DELETE FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?`
 
 	insertTranslationRecord = `
 INSERT INTO TRANSLATION_RECORD
@@ -251,12 +382,13 @@ func (r *SQLiteTranslationSourceRepository) CreateXEditExtractedData(
 ) (XEditExtractedData, error) {
 	ext := extractTx(ctx, r.db)
 	row := xEditExtractedDataRow{
-		SourceFilePath:   draft.SourceFilePath,
-		SourceTool:       draft.SourceTool,
-		TargetPluginName: draft.TargetPluginName,
-		TargetPluginType: draft.TargetPluginType,
-		RecordCount:      draft.RecordCount,
-		ImportedAt:       draft.ImportedAt.UTC().Format(time.RFC3339),
+		SourceFilePath:    draft.SourceFilePath,
+		SourceContentHash: draft.SourceContentHash,
+		SourceTool:        draft.SourceTool,
+		TargetPluginName:  draft.TargetPluginName,
+		TargetPluginType:  draft.TargetPluginType,
+		RecordCount:       draft.RecordCount,
+		ImportedAt:        draft.ImportedAt.UTC().Format(time.RFC3339),
 	}
 	q, args, err := sqlx.Named(insertXEditExtractedData, row)
 	if err != nil {
@@ -284,6 +416,78 @@ func (r *SQLiteTranslationSourceRepository) GetXEditExtractedDataByID(
 		return XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by id")
 	}
 	return row.toModel()
+}
+
+// FindXEditExtractedDataBySourceContentHash は source_content_hash で XEditExtractedData を取得する。
+func (r *SQLiteTranslationSourceRepository) FindXEditExtractedDataBySourceContentHash(
+	ctx context.Context,
+	sourceContentHash string,
+) (XEditExtractedData, error) {
+	ext := extractTx(ctx, r.db)
+	var row xEditExtractedDataRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectXEditExtractedDataBySourceContentHash, sourceContentHash); err != nil {
+		return XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by source_content_hash")
+	}
+	return row.toModel()
+}
+
+// UpdateXEditExtractedDataMetadata は既存入力メタデータを更新する。
+func (r *SQLiteTranslationSourceRepository) UpdateXEditExtractedDataMetadata(
+	ctx context.Context,
+	id int64,
+	draft XEditExtractedDataDraft,
+) (XEditExtractedData, error) {
+	ext := extractTx(ctx, r.db)
+	_, err := ext.ExecContext(
+		ctx,
+		updateXEditExtractedDataMetadata,
+		draft.SourceFilePath,
+		draft.SourceContentHash,
+		draft.SourceTool,
+		draft.TargetPluginName,
+		draft.TargetPluginType,
+		draft.RecordCount,
+		id,
+	)
+	if err != nil {
+		return XEditExtractedData{}, mapSQLError(err, "update x_edit_extracted_data metadata")
+	}
+	return r.GetXEditExtractedDataByID(ctx, id)
+}
+
+// DeleteTranslationCacheByXEditID は入力に紐づく翻訳キャッシュを削除する。
+func (r *SQLiteTranslationSourceRepository) DeleteTranslationCacheByXEditID(
+	ctx context.Context,
+	xEditID int64,
+) error {
+	ext := extractTx(ctx, r.db)
+	statements := []struct {
+		query string
+		label string
+		args  []any
+	}{
+		{query: deleteTranslationFieldRecordReferencesByXEditID, label: "delete translation_field_record_reference by x_edit_id", args: []any{xEditID}},
+		{query: deletePersonaFieldEvidenceByXEditID, label: "delete persona_field_evidence by x_edit_id", args: []any{xEditID, xEditID}},
+		{query: deleteXTranslatorOutputRowsByXEditID, label: "delete xtranslator_output_row by x_edit_id", args: []any{xEditID}},
+		{query: deletePhaseRunTranslationFieldsByXEditID, label: "delete phase_run_translation_field by x_edit_id", args: []any{xEditID}},
+		{query: deletePhaseRunPersonasByXEditID, label: "delete phase_run_persona by x_edit_id", args: []any{xEditID}},
+		{query: deletePhaseRunDictionaryEntriesByXEditID, label: "delete phase_run_dictionary_entry by x_edit_id", args: []any{xEditID}},
+		{query: deleteJobPhaseRunsByXEditID, label: "delete job_phase_run by x_edit_id", args: []any{xEditID}},
+		{query: deleteTranslationArtifactsByXEditID, label: "delete translation_artifact by x_edit_id", args: []any{xEditID}},
+		{query: deleteJobTranslationFieldsByXEditID, label: "delete job_translation_field by x_edit_id", args: []any{xEditID}},
+		{query: deletePersonasByXEditID, label: "delete persona by x_edit_id", args: []any{xEditID}},
+		{query: deleteDictionaryEntriesByXEditID, label: "delete dictionary_entry by x_edit_id", args: []any{xEditID}},
+		{query: deleteTranslationJobsByXEditID, label: "delete translation_job by x_edit_id", args: []any{xEditID}},
+		{query: deleteNpcRecordsByXEditID, label: "delete npc_record by x_edit_id", args: []any{xEditID}},
+		{query: deleteTranslationFieldsByXEditID, label: "delete translation_field by x_edit_id", args: []any{xEditID}},
+		{query: deleteTranslationRecordsByXEditID, label: "delete translation_record by x_edit_id", args: []any{xEditID}},
+	}
+	for _, statement := range statements {
+		if _, err := ext.ExecContext(ctx, statement.query, statement.args...); err != nil {
+			return mapSQLError(err, statement.label)
+		}
+	}
+	return nil
 }
 
 // ---------------------------------------------------------------------------
