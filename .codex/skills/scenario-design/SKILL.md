@@ -24,6 +24,8 @@ description: Codex 側のシナリオ設計知識 package。必須要件、syste
 - happy path だけにしない
 - 観測点がない scenario を書かない
 - implementation owned_scope を混ぜない
+- 端から端までのシナリオは、ユーザーまたは外部システムの実際の開始入力を模倣する
+- UI が入口の機能では、裏側の直接呼び出しや fixture 直接投入だけで成立するものを端から端までのシナリオと呼ばない
 
 ## 詳細要求タイプ
 
@@ -134,6 +136,7 @@ AI推奨:
 5. 人間判断が残らない場合だけ、user journey を role、action、benefit で書く。
 6. scenario を正常系、主要失敗系、境界条件へ分ける。
 7. 開始条件、操作、期待結果、観測点、validation command を明示する。
+8. UI が入口のシナリオは、ユーザー操作、入力方法、入力から得られる値を開始条件に含める。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は `designer` agent contract に従う。
@@ -148,6 +151,7 @@ DO:
 - deterministic fixture と fake provider を優先する
 - acceptance と validation を結びつける
 - canonicalization target を記録する
+- UI が入口の場合は、画面操作から得られる入力値をシナリオの検証対象にする
 
 DON'T:
 - 人間判断が必要な暗黙要求を AI 判断で固定しない
@@ -155,6 +159,7 @@ DON'T:
 - real paid API を前提にしない
 - product test の実装詳細へ踏み込まない
 - 観測不能な期待結果を書かない
+- 裏側の直接呼び出しだけの検証を、UI 入口の端から端までのシナリオとして扱わない
 
 ## Checklist
 

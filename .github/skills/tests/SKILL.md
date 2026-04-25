@@ -40,6 +40,7 @@ description: GitHub Copilot 側の product test 共通知識 package。承認済
 - tester_context_packet の test_ingredients、test_required_reading、requirements_policy_decisions の test impact、test_validation_entry の順に読む
 - listed files / symbols 外を探索して context 不足を埋めない
 - insufficient_context_criteria は structural gate とし、behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation の不足時に返す
+- シナリオ試験で開始操作、検証対象の入口、入力模倣方針が不足する場合は insufficient_context を返す
 - test_subscope が completion_signal clause、public seam、test target file、validation command のいずれにも対応しない場合は insufficient_context を返す
 - 承認済み scenario を元に期待どおり fail する test、局所的 import 修正、既存 test file 内の軽微な確認は not_insufficient_context として扱う
 - 原因未確定の regression test は実装前に書かない
@@ -57,6 +58,7 @@ description: GitHub Copilot 側の product test 共通知識 package。承認済
 
 DO:
 - test_ingredients の completion_signal clause、behavior_to_prove、public seam、assertion_focus に沿って test を作る
+- シナリオ試験では、承認済みシナリオの開始操作と入力模倣方針に沿って試験を作る
 - test_subscope が渡された場合はその sub-scope だけを証明し、残りを remaining_test_subscopes に残す
 - insufficient_context を返す場合は reason、needed_context、remaining_test_subscopes を structural gate に対応づける
 - fixture の入力値、clock、runtime 応答、seed を固定する
@@ -69,6 +71,7 @@ DO:
 DON'T:
 - full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を直接追わない
 - insufficient_context を返さず広く調査しない
+- UI 入口のシナリオ試験を裏側の直接呼び出しだけで代替しない
 - criteria mismatch になる不安や通常の局所確認を insufficient_context にしない
 - product code を広く直さない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない

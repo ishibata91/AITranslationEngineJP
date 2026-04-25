@@ -18,6 +18,7 @@
 - [ ] import / generation / settings save / preview / create / update / delete / export のうち、別 use case になっている処理を同一 handoff に混ぜていない
 - [ ] domain 名や画面名だけを根拠に、複数 use case を同一 handoff にまとめていない
 - [ ] layer をまたぐ handoff は、e2e completion_signal で完了判定できる
+- [ ] UI が入口の handoff は、ユーザー入力の模倣を completion_signal に含めた
 - [ ] `depends_on` から依存 DAG を作り、ready wave を `execution_group` と `ready_wave` にした
 - [ ] Ready Waves 表に handoff、開始前依存、並列 pair、blocker を書いた
 - [ ] 並列可能な handoff だけを `parallelizable_with` に列挙した
@@ -36,6 +37,7 @@
 - [ ] Codex から Copilot へ直接 handoff しなかった
 - [ ] docs 正本化を Copilot handoff に混ぜなかった
 - [ ] validation command なしで handoff しなかった
+- [ ] UI 入口の handoff で、裏側の直接呼び出しだけを完了条件にしなかった
 - [ ] 未実装の後続 handoff を必要とする validation command を途中 handoff に入れなかった
 - [ ] final validation で見るべき broad command を lane-local validation として扱わなかった
 - [ ] 同じ `execution_group` という理由だけで並列実行可能として扱わなかった

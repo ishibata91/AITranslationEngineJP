@@ -9,6 +9,7 @@
 - [ ] `needs_human_decision` だけを `scenario-design.questions.md` へ集約した
 - [ ] user journey と scenario matrix を分けた
 - [ ] 開始条件、操作、期待結果、観測点を明示した
+- [ ] UI が入口のシナリオは、ユーザー操作と入力から得られる値を開始条件に含めた
 - [ ] fake / fixture / validation command を確認した
 
 ## Common Pitfalls
@@ -18,3 +19,4 @@
 - [ ] paid な real AI API を前提にしなかった
 - [ ] happy path だけにしなかった
 - [ ] product test 実装詳細を書かなかった
+- [ ] 裏側の直接呼び出しだけの検証を、UI 入口の端から端までのシナリオとして扱わなかった
