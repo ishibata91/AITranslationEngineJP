@@ -5,7 +5,8 @@
 - [ ] 必ず通す要件と risk を分けた
 - [ ] 抽象要件を詳細要求タイプへ展開した
 - [ ] 各詳細要求タイプを `explicit`、`derived`、`not_applicable`、`deferred`、`needs_human_decision` に分類した
-- [ ] `needs_human_decision` だけを質問票へ集約した
+- [ ] 仕様網羅を `scenario-design.requirement-coverage.json` に分離した
+- [ ] `needs_human_decision` だけを `scenario-design.questions.md` へ集約した
 - [ ] user journey と scenario matrix を分けた
 - [ ] 開始条件、操作、期待結果、観測点を明示した
 - [ ] fake / fixture / validation command を確認した

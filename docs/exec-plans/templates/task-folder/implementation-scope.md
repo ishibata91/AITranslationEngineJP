@@ -12,8 +12,8 @@
 
 - `ui_design`: `./ui-design.md` または `N/A`
 - `scenario_design`: `./scenario-design.md`
-- `detail_requirement_coverage`: `./scenario-design.md#detail-requirement-coverage`
-- `human_decision_questionnaire`: `./scenario-design.md#human-decision-questionnaire`
+- `detail_requirement_coverage`: `./scenario-design.requirement-coverage.json`
+- `human_decision_questionnaire`: `./scenario-design.questions.md`
 
 ## Fixed Decisions
 

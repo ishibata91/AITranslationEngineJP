@@ -15,6 +15,9 @@ def candidate_scenario_files(repo_root: Path) -> list[Path]:
 
 
 def has_requirement_coverage(path: Path) -> bool:
+    coverage_path = path.with_suffix(".requirement-coverage.json")
+    if coverage_path.exists():
+        return True
     return "```json requirement-coverage" in path.read_text(encoding="utf-8")
 
 
@@ -61,7 +64,7 @@ def main() -> int:
     failures = 0
     for scenario_path in scenario_files:
         if not has_requirement_coverage(scenario_path):
-            report_fail(f"FAIL missing requirement-coverage block: {scenario_path.relative_to(repo_root)}")
+            report_fail(f"FAIL missing requirement coverage JSON: {scenario_path.with_suffix('.requirement-coverage.json').relative_to(repo_root)}")
             failures += 1
             continue
         if run_gate(repo_root, scenario_path) != 0:

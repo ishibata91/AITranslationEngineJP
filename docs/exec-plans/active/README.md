@@ -13,6 +13,8 @@
 - UI がある task は `ui-design.md` に UI 要件契約、状態差分、実装後確認観点を残す
 - UI がない task は `ui-design.md` を作らない
 - `scenario-design.md` は常に作り、必須要件と受け入れ条件を固定する
+- 詳細要求タイプの仕様網羅は `scenario-design.requirement-coverage.json` に分ける
+- 質問票は `scenario-design.questions.md` に分ける
 - `implementation-scope.md` は human review 後だけ作る
 - AI は最初に `plan.md` だけ読み、必要な skill 資料だけ追加で読む
 - 完了したら folder ごと `../completed/<task-id>/` へ移動し、`plan.md` に結果を追記する

@@ -1,0 +1,333 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TII-001",
+      "title": "xEdit 抽出 JSON の入力データ登録",
+      "kind": "operation",
+      "source_requirement": "xEdit 抽出 JSON を入力データとして登録し、1 入力データを 1 翻訳ジョブ候補として識別できる。",
+      "required_detail_types": [
+        "idempotency_requirement",
+        "security_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-input-intake.yaml の goal と completion_criteria。docs/spec.md は複数入力データを登録し、それぞれを独立 job として管理できることを明示する。",
+          "verification_hint": "登録後に input file 一覧へ表示され、1 入力データが 1 翻訳ジョブ候補として識別できる。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: 選択肢1。登録前に全体拒否する。理由は壊れた入力データを作らず、後続 job 候補へ混ぜないため。",
+          "verification_hint": "選択肢1。登録前に全体拒否する。理由は壊れた入力データを作らず、後続 job 候補へ混ぜないため。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: 選択肢1。1 file = 1 入力データに固定する。",
+          "verification_hint": "選択肢1。1 file = 1 入力データに固定する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "tasks/usecases/translation-input-intake.yaml の preconditions は基盤データ管理成立。depends_on は foundation-data-management と dashboard-and-app-shell。",
+          "verification_hint": "前提未成立の状態では登録操作を有効化しない、または不足状態を表示する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: 選択肢1。file path と file hash を採用する。UI 表示と再構築判断のため file name と import timestamp も保持する。",
+          "verification_hint": "選択肢1。file path と file hash を採用する。UI 表示と再構築判断のため file name と import timestamp も保持する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/spec.md は 1 job が 1 xEdit 抽出データだけを対象にすると明示する。docs/er.md は `TRANSLATION_JOB` が 1 つの `X_EDIT_EXTRACTED_DATA` だけを参照すると明示する。",
+          "verification_hint": "登録済み入力データが job 候補として一意に参照できる。後続 job 作成は実行しない。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 source は local desktop app 前提で、ユーザー権限や multi-user 操作を定義していない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/tech-selection.md は JSON シリアライズに `encoding/json`、SQLite、Playwright を採用している。real AI API は不要。",
+          "verification_hint": "固定 fixture の xEdit 抽出 JSON と temp DB で検証する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: 選択肢1。同一 hash は拒否する。",
+          "verification_hint": "選択肢1。同一 hash は拒否する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/tech-selection.md は xEdit 抽出 JSON をファイルシステム上の正本として保持すると明示する。入力取り込みでは外部 API 送信や secret 参照を行わない。",
+          "verification_hint": "取り込み処理が入力 file を翻訳 API に送らず、保存対象が入力データとキャッシュに限定される。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "completion_criteria は input file 一覧、translation unit 件数、カテゴリ確認を要求する。",
+          "verification_hint": "UI または API で入力データ ID、表示名、件数、カテゴリ、登録状態を観測できる。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TII-002",
+      "title": "翻訳レコードと翻訳フィールドへの展開",
+      "kind": "persistence",
+      "source_requirement": "入力データから翻訳レコード、翻訳フィールド、再構築可能な入力キャッシュを作る。",
+      "required_detail_types": [
+        "observability_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-input-intake.yaml の outputs は入力データ、翻訳レコード、翻訳フィールド、再構築可能な入力キャッシュを明示する。",
+          "verification_hint": "取り込み後に `X_EDIT_EXTRACTED_DATA`、`TRANSLATION_RECORD`、`TRANSLATION_FIELD` 相当のデータが保存される。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: 選択肢1を採用する。ただし extractData.pas で使うデータだけを取ってくるべきであり、未定義 RecordType + SubrecordType は明確な異常として警告する。入力の正本性確認のため非翻訳対象として観測可能に保持する。",
+          "verification_hint": "選択肢1を採用する。ただし extractData.pas で使うデータだけを取ってくるべきであり、未定義 RecordType + SubrecordType は明確な異常として警告する。入力の正本性確認のため非翻訳対象として観測可能に保持する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md は Book、Item、Magic、Quest、Dialogue、Message、Location などを標準の `TRANSLATION_RECORD` と `TRANSLATION_FIELD` で扱うと明示する。",
+          "verification_hint": "複数 record type の fixture で派生専用 table なしに field 展開できる。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "入力データ登録成功後にだけ翻訳レコードと翻訳フィールドが展開済み状態になる。",
+          "verification_hint": "未登録状態では件数確認ができず、登録完了後に件数が表示される。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は `X_EDIT_EXTRACTED_DATA`、`TRANSLATION_RECORD`、`TRANSLATION_FIELD`、`TRANSLATION_FIELD_DEFINITION` を入力取り込みの主要実体として定義する。",
+          "verification_hint": "FormID、EditorID、RecordType、SubrecordType、原文 field が欠落しない。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md は訳文と出力ステータスを `JOB_TRANSLATION_FIELD` に保持し、入力取り込みでは原文 field を `TRANSLATION_FIELD` に保持すると明示する。",
+          "verification_hint": "取り込み時点では訳文と出力ステータスを作らない。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "deferred",
+          "source_or_rationale": "同時複数 import の制御は UI と backend queue の具体設計が必要であり、今回の handoff packet では固定できない。",
+          "owner": "human review 後の implementation-scope",
+          "recheck_condition": "複数 import を UI で同時開始可能にする判断が出た時"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "REQ-TII-001 の重複取り込み判断に従う。詳細は Q-TII-003 の回答後に固定する。",
+          "verification_hint": "同一 input に対する record / field の二重生成が発生しない。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/spec.md は抽出 JSON を正本として保持し、SQLite を再構築可能な実行キャッシュとして扱うと明示する。",
+          "verification_hint": "キャッシュ削除後に抽出 JSON から同じ件数の record / field を再構築できる。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "prior decision は `TranslationSourceRepository` が入力データ、翻訳レコード、NPC_RECORD、翻訳フィールド、field reference、NPC_PROFILE link を扱う境界だと示す。",
+          "verification_hint": "small fixture と temp DB で repository または service 境界の保存、再読込、rollback を検証する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "completion_criteria は translation unit の件数とカテゴリ確認を要求する。ただし正本語彙は翻訳レコードと翻訳フィールドに寄せる。",
+          "verification_hint": "UI では翻訳レコード件数、翻訳フィールド件数、カテゴリ別件数を表示する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "入力展開は local data processing であり、認証、secret、外部 API 呼び出しを含まない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TII-003",
+      "title": "入力キャッシュの再構築",
+      "kind": "workflow",
+      "source_requirement": "入力キャッシュを削除しても抽出 JSON から再構築できる。",
+      "required_detail_types": [
+        "performance_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-input-intake.yaml の completion_criteria と docs/spec.md の抽出 JSON 正本、SQLite 実行キャッシュ要件。",
+          "verification_hint": "キャッシュ削除後の再取込で入力データ、翻訳レコード、翻訳フィールドの件数が一致する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "正本は抽出 JSON だけであり、別正本からの再構築 route は今回の source artifact にない。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "抽出 JSON が存在しない、読めない、改変されて hash が一致しない場合は再構築不能として扱う必要がある。",
+          "verification_hint": "再構築不能状態を返し、壊れた cache を job 候補にしない。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "抽出 JSON が正本であり、SQLite cache は削除可能な対象である。",
+          "verification_hint": "SQLite row 削除後も file system 上の抽出 JSON があれば再構築できる。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "登録済み入力データに抽出 JSON の出自情報が保持されている時だけ再構築できる。",
+          "verification_hint": "出自情報不足の入力は再構築不可として扱う。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "REQ-TII-001 の Q-TII-002 で固定する出自情報が再構築の前提になる。",
+          "verification_hint": "source path または保存済み source copy と hash を使って再構築できる。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同一抽出 JSON から再構築した record / field 件数とカテゴリは削除前と一致すべきである。",
+          "verification_hint": "再構築前後で入力データ ID、件数、カテゴリ集計の同一性を検証する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "再構築は cache を復元する操作であり、新しい入力データを増やさない。",
+          "verification_hint": "再構築を複数回実行しても input file 一覧の件数が増えない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "completion_criteria は input file 一覧と件数確認を要求するため、再構築結果も観測できる必要がある。",
+          "verification_hint": "再構築後に登録状態、件数、カテゴリ、再構築時刻を確認できる。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳ジョブ完了後に未完了ジョブが参照していない入力キャッシュを削除して再構築可能な状態を維持できることを明示する。",
+          "verification_hint": "cache 削除後の復旧 path を scenario で検証する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: 選択肢1。初期受け入れは小 fixture のみ固定する。",
+          "verification_hint": "選択肢1。初期受け入れは小 fixture のみ固定する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "SQLite は再構築可能な実行キャッシュであるため、temp DB と固定 JSON fixture で検証できる。",
+          "verification_hint": "temp DB の cache row を削除し、同じ JSON fixture から再構築する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "再構築は local file と local SQLite のみを使う。外部 API と secret は対象外。",
+          "verification_hint": "再構築時に AI API や credential 参照が発生しない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TII-004",
+      "title": "Input Review UI での入力確認",
+      "kind": "display",
+      "source_requirement": "app-shell から Input Review を開き、import 済みファイルと sample unit、入力データ、翻訳レコード、翻訳フィールドの件数を確認する。",
+      "required_detail_types": [
+        "data_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-input-intake.yaml の manual_check_steps と completion_criteria。",
+          "verification_hint": "Input Review 画面で import 済み入力、件数、カテゴリ、sample field を確認できる。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "deferred",
+          "source_or_rationale": "app-shell と input-review の画面正本 file が現行 `docs/screen-design/` に存在しないため、詳細導線は UI 契約で一時固定する。",
+          "owner": "human review",
+          "recheck_condition": "dashboard-and-app-shell または input-review の screen-design 正本が作られた時"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "入力登録や再構築に失敗する可能性があるため、UI は error 状態と retry 導線を持つ必要がある。",
+          "verification_hint": "不正 JSON、読み取り不可、再構築不可をユーザーが判別できる。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧、件数、カテゴリ、sample field は completion_criteria の観測対象であり、後続 job setup 操作は含めない。",
+          "verification_hint": "翻訳開始や output 生成の操作が Input Review の必須条件にならない。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "UI は loading、empty、error、disabled、progress、retry、success の差分を持つ必要がある。",
+          "verification_hint": "各状態で主要 action の有効、無効、表示文言が破綻しない。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "local desktop app 前提で、画面操作権限の区別は source artifact にない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "deferred",
+          "source_or_rationale": "Input Review はページ内で完結させる。app-shell 導線は dashboard-and-app-shell 側の責務であり、translation-input-intake では Input Review 内の UI 契約だけを固定する。",
+          "owner": "dashboard-and-app-shell",
+          "recheck_condition": "app-shell.md または dashboard/app-shell の task-local UI 契約が作られた時"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/tech-selection.md は system test に Playwright を採用する。UI 契約は post implementation review と browser surface で確認できる。",
+          "verification_hint": "固定 fixture を取り込み、Input Review の一覧、件数、カテゴリ、sample field を画面上で検証する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "UI は入力データ、翻訳レコード、翻訳フィールドの件数とカテゴリを表示する必要がある。",
+          "verification_hint": "表示値が backend の取り込み結果と一致する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "manual_check_steps は import 済みファイル、sample unit、入力データ、翻訳レコード、翻訳フィールドの件数確認を求める。",
+          "verification_hint": "ユーザーが取り込み結果を翻訳開始前に観測できる。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "Input Review 表示は local desktop UI の取り込み結果確認であり、secret 表示や外部 API 送信を含まない。"
+        }
+      ]
+    }
+  ]
+}

@@ -130,11 +130,30 @@ class Finding:
     message: str
 
 
-def read_json_coverage(markdown_path: Path) -> dict[str, Any]:
+def default_coverage_path(markdown_path: Path) -> Path:
+    return markdown_path.with_suffix(".requirement-coverage.json")
+
+
+def read_json_coverage_file(coverage_path: Path) -> dict[str, Any]:
+    try:
+        parsed = json.loads(coverage_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"invalid requirement coverage JSON: {exc}") from exc
+
+    if not isinstance(parsed, dict):
+        raise ValueError("requirement coverage JSON must be an object")
+    return parsed
+
+
+def read_json_coverage(markdown_path: Path, coverage_path: Path | None = None) -> dict[str, Any]:
+    sidecar_path = coverage_path or default_coverage_path(markdown_path)
+    if sidecar_path.exists():
+        return read_json_coverage_file(sidecar_path)
+
     text = markdown_path.read_text(encoding="utf-8")
     match = re.search(r"```json\s+requirement-coverage\s*\n(.*?)\n```", text, flags=re.DOTALL)
     if not match:
-        raise ValueError("missing fenced block: ```json requirement-coverage")
+        raise ValueError(f"missing requirement coverage JSON: {sidecar_path.as_posix()}")
 
     try:
         parsed = json.loads(match.group(1))
@@ -158,6 +177,34 @@ def option_count(value: Any) -> int:
     if not isinstance(value, list):
         return 0
     return len([item for item in value if isinstance(item, dict) and non_empty(item.get("label"))])
+
+
+def question_title(question: dict[str, Any]) -> str:
+    for key in ("question_title", "title", "unresolved_decision"):
+        value = question.get(key)
+        if isinstance(value, str) and value.strip():
+            return value.strip()
+    return "未決判断"
+
+
+def recommended_option_text(question: dict[str, Any]) -> str:
+    value = question.get("recommended_option")
+    if isinstance(value, int):
+        return str(value)
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return str(question.get("recommended", "")).strip()
+
+
+def recommendation_reason_text(question: dict[str, Any]) -> str:
+    value = question.get("recommendation_reason")
+    if isinstance(value, str) and value.strip():
+        return value.strip()
+    return str(question.get("recommended", "")).strip()
+
+
+def sorted_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    return sorted(questions, key=lambda question: str(question.get("id", "")))
 
 
 def requirement_id(requirement: dict[str, Any], index: int) -> str:
@@ -239,12 +286,17 @@ def validate_requirement(requirement: dict[str, Any], index: int) -> tuple[list[
             findings.append(Finding("error", req_id, detail_type, "human decision is required before scenario completion"))
             question = {
                 "id": detail.get("question_id") or f"Q-{req_id}-{detail_type}",
+                "question_title": detail.get("question_title") or requirement.get("title", ""),
                 "source_requirement": requirement.get("source_requirement", ""),
                 "detail_requirement_type": detail_type,
                 "unresolved_decision": detail.get("unresolved_decision", ""),
+                "user_goal": detail.get("user_goal") or requirement.get("source_requirement", ""),
                 "reason": detail.get("reason", ""),
                 "options": detail.get("options", []),
+                "recommended_option": detail.get("recommended_option", ""),
                 "recommended": detail.get("recommended", ""),
+                "recommendation_reason": detail.get("recommendation_reason", ""),
+                "uncertainty": detail.get("uncertainty", ""),
                 "after_answer_generates": detail.get("after_answer_generates", [detail_type]),
             }
             questions.append(question)
@@ -253,10 +305,14 @@ def validate_requirement(requirement: dict[str, Any], index: int) -> tuple[list[
                 findings.append(Finding("error", req_id, detail_type, "question requires unresolved_decision"))
             if not non_empty(question["reason"]):
                 findings.append(Finding("error", req_id, detail_type, "question requires reason"))
-            if not 2 <= option_count(question["options"]) <= 4:
-                findings.append(Finding("error", req_id, detail_type, "question requires 2 to 4 options"))
+            if option_count(question["options"]) != 3:
+                findings.append(Finding("error", req_id, detail_type, "question requires 3 options before その他"))
             if not non_empty(question["recommended"]):
                 findings.append(Finding("error", req_id, detail_type, "question requires recommended"))
+            if not non_empty(question["user_goal"]):
+                findings.append(Finding("error", req_id, detail_type, "question requires user_goal"))
+            if not non_empty(question["uncertainty"]):
+                findings.append(Finding("error", req_id, detail_type, "question requires uncertainty"))
             if not non_empty(question["after_answer_generates"]):
                 findings.append(Finding("error", req_id, detail_type, "question requires after_answer_generates"))
 
@@ -300,9 +356,10 @@ def render_report(path: Path, findings: list[Finding], questions: list[dict[str,
     else:
         lines.append("- none")
 
-    lines.extend(["", "## Questionnaire", ""])
+    lines.extend(["", "## Questions", ""])
     if questions:
-        lines.append(render_questionnaire(questions).rstrip())
+        for question in sorted_questions(questions):
+            lines.append(f"- `{question.get('id', '')}` {question_title(question)}")
     else:
         lines.append("- none")
 
@@ -315,31 +372,47 @@ def render_questionnaire(questions: list[dict[str, Any]]) -> str:
         lines.append("- none")
         return "\n".join(lines) + "\n"
 
-    for question in questions:
+    for question in sorted_questions(questions):
+        options = question.get("options", [])
         lines.extend(
             [
-                f"## `{question['id']}`",
+                f"## [{question['id']}] {question_title(question)}",
                 "",
-                f"- `source_requirement`: {question.get('source_requirement', '')}",
-                f"- `detail_requirement_type`: `{question.get('detail_requirement_type', '')}`",
-                f"- `unresolved_decision`: {question.get('unresolved_decision', '')}",
-                f"- `reason`: {question.get('reason', '')}",
-                "- `options`:",
+                "質問:",
+                str(question.get("unresolved_decision", "")),
+                "",
+                "やりたいこと:",
+                str(question.get("user_goal") or question.get("source_requirement", "")),
+                "",
+                "背景:",
+                str(question.get("reason", "")),
+                "",
+                "選択肢:",
             ]
         )
-        options = question.get("options", [])
         if isinstance(options, list) and options:
             for index, option in enumerate(options, start=1):
                 if isinstance(option, dict):
                     label = option.get("label", "")
-                    impact = option.get("impact", "")
-                    lines.append(f"  {index}. {label}: {impact}")
+                    lines.append(f"{index}. {label}")
         else:
-            lines.append("  1. TODO: option is missing")
+            lines.append("1. TODO: option is missing")
+        lines.append("4. その他")
         lines.extend(
             [
-                f"- `recommended`: {question.get('recommended', '')}",
-                f"- `after_answer_generates`: {', '.join(question.get('after_answer_generates', []))}",
+                "",
+                "AI推奨:",
+                recommended_option_text(question),
+                "",
+                "推奨理由:",
+                recommendation_reason_text(question),
+                "",
+                "不確実性:",
+                str(question.get("uncertainty", "")),
+                "",
+                "回答形式:",
+                "選択肢番号を選んでください。",
+                "4 の場合は、採用したい業務ルールを1〜3文で記入してください。",
                 "",
             ]
         )
@@ -358,6 +431,7 @@ def write_if_requested(path: str | None, content: str) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate scenario-design detail requirement coverage.")
     parser.add_argument("input", help="Path to scenario-design.md")
+    parser.add_argument("--coverage", help="Path to requirement coverage JSON. Defaults to scenario-design.requirement-coverage.json")
     parser.add_argument("--report-out", help="Write a markdown gate report to this path")
     parser.add_argument("--questionnaire-out", help="Write a markdown questionnaire to this path")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON result")
@@ -368,9 +442,10 @@ def main() -> int:
     parser = build_parser()
     args = parser.parse_args()
     input_path = Path(args.input).resolve()
+    coverage_path = Path(args.coverage).resolve() if args.coverage else None
 
     try:
-        coverage = read_json_coverage(input_path)
+        coverage = read_json_coverage(input_path, coverage_path)
         findings, questions = validate_coverage(coverage)
     except ValueError as exc:
         findings = [Finding("error", "-", "-", str(exc))]
@@ -389,7 +464,7 @@ def main() -> int:
                     "finding_count": len(findings),
                     "question_count": len(questions),
                     "findings": [finding.__dict__ for finding in findings],
-                    "questions": questions,
+                    "questions": sorted_questions(questions),
                 },
                 ensure_ascii=False,
                 indent=2,

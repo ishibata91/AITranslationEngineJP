@@ -17,6 +17,8 @@ description: Codex 側のシナリオ設計知識 package。必須要件、syste
 - 必ず通す要件を先に固定する
 - 抽象要件を scenario へ進める前に、詳細要求タイプごとの明示状態を確認する
 - 人間判断が必要な暗黙要求は `needs_human_decision` とし、質問票へ集約する
+- 仕様網羅 JSON は `scenario-design.md` に埋め込まず、`scenario-design.requirement-coverage.json` に分ける
+- 質問票は `scenario-design.md` に埋め込まず、`scenario-design.questions.md` に分ける
 - 実装方針の迷いは要件にせず risk として管理する
 - paid な real AI API を system test 前提にしない
 - happy path だけにしない
@@ -68,27 +70,67 @@ repo-local gate は [requirement_gate.py](/Users/iorishibata/Repositories/AITran
 active task 全体は `python3 scripts/harness/run.py --suite scenario-gate` で検査する。
 単体 file は `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md` で検査する。
 
+`scenario-design.requirement-coverage.json` がある場合、gate はその JSON を読む。
+旧形式の fenced JSON は互換用に読めるが、新規 artifact では使わない。
+
 ## 質問票
 
 質問票は、明示的ではない判断だけを対象にする。
-人間が全 artifact を読み直さなくても答えられるように、選択肢、推奨案、回答後に生成される要求タイプを添える。
+人間が全 artifact を読み直さなくても答えられるように、質問、やりたいこと、背景、選択肢、AI 推奨、推奨理由、不確実性、回答形式を添える。
 
-質問票の各項目は次を持つ。
+`scenario-design.requirement-coverage.json` の `needs_human_decision` は次を持つ。
 
-- `source_requirement`: 元の抽象要件
-- `detail_requirement_type`: 未決の詳細要求タイプ
-- `unresolved_decision`: 人間に決めてほしい判断
-- `reason`: なぜ明示情報だけでは決められないか
-- `options`: 2 から 4 件の選択肢と影響
-- `recommended`: AI の推奨案と根拠
+- `question_id`: `Q-001` 形式の連番
+- `question_title`: 短い質問名
+- `unresolved_decision`: 「質問」に出す判断
+- `user_goal`: 「やりたいこと」に出す業務・操作
+- `reason`: 「背景」に出す未決理由と影響
+- `options`: 3 件の選択肢と影響。`その他` は gate が 4 番として末尾に追加する
+- `recommended_option`: AI 推奨の選択肢番号
+- `recommendation_reason`: 推奨理由
+- `uncertainty`: 推奨が外れる可能性
 - `after_answer_generates`: 回答後に固定できる要求タイプまたは scenario
+
+質問票の出力形式は次を固定形にする。
+
+```markdown
+## [Q-001] <短い質問名>
+
+質問:
+<人間に決めてほしい判断>
+
+やりたいこと:
+<実現したい業務・操作>
+
+背景:
+<未決理由と影響>
+
+選択肢:
+1. <選択肢A>
+2. <選択肢B>
+3. <選択肢C>
+4. その他
+
+AI推奨:
+<選択肢番号>
+
+推奨理由:
+<推奨理由>
+
+不確実性:
+<推奨が外れる可能性>
+
+回答形式:
+選択肢番号を選んでください。
+4 の場合は、採用したい業務ルールを1〜3文で記入してください。
+```
 
 ## 標準パターン
 
 1. 必ず通す要件と non-goal を固定する。
 2. 抽象要件を要件種別へ分類し、必要な詳細要求タイプを展開する。
-3. 詳細要求タイプごとに `explicit`、`derived`、`not_applicable`、`deferred`、`needs_human_decision` を判定する。
-4. `needs_human_decision` だけを質問票にまとめる。
+3. 詳細要求タイプごとの明示状態を `scenario-design.requirement-coverage.json` に書く。
+4. `needs_human_decision` だけを `scenario-design.questions.md` に出力する。
 5. 人間判断が残らない場合だけ、user journey を role、action、benefit で書く。
 6. scenario を正常系、主要失敗系、境界条件へ分ける。
 7. 開始条件、操作、期待結果、観測点、validation command を明示する。
@@ -101,7 +143,8 @@ active task 全体は `python3 scripts/harness/run.py --suite scenario-gate` で
 DO:
 - 必ず通す要件と risk を分ける
 - 詳細要求タイプの明示状態を scenario 前に確認する
-- `needs_human_decision` は質問票に集約する
+- `needs_human_decision` は別 file の質問票に集約する
+- 仕様網羅 JSON は別 file にし、Markdown 本文へ埋め込まない
 - deterministic fixture と fake provider を優先する
 - acceptance と validation を結びつける
 - canonicalization target を記録する

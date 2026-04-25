@@ -14,10 +14,16 @@
 
 ## Detail Requirement Coverage
 
+正本: `./scenario-design.requirement-coverage.json`
+
 各抽象要件について、必要な詳細要求タイプを `explicit`、`derived`、`not_applicable`、`deferred`、`needs_human_decision` に分類する。
 `needs_human_decision` が残る場合は scenario matrix を完了扱いにしない。
 
-```json requirement-coverage
+`scenario-design.md` 内に仕様網羅 JSON を埋め込まない。
+
+`scenario-design.requirement-coverage.json` は次の形にする。
+
+```json
 {
   "requirements": [
     {
@@ -36,7 +42,10 @@
         {
           "type": "failure_handling_requirement",
           "status": "needs_human_decision",
+          "question_id": "Q-001",
+          "question_title": "<短い質問名>",
           "unresolved_decision": "<人間に決めてほしい判断>",
+          "user_goal": "<実現したい業務・操作>",
           "reason": "<明示情報だけでは決められない理由>",
           "options": [
             {
@@ -46,9 +55,16 @@
             {
               "label": "<選択肢B>",
               "impact": "<影響>"
+            },
+            {
+              "label": "<選択肢C>",
+              "impact": "<影響>"
             }
           ],
-          "recommended": "<推奨案と根拠>",
+          "recommended_option": 1,
+          "recommended": "<推奨案>",
+          "recommendation_reason": "<推奨理由>",
+          "uncertainty": "<推奨が外れる可能性>",
           "after_answer_generates": [
             "failure_handling_requirement",
             "system_test_obligation"
@@ -72,20 +88,45 @@
 
 ## Human Decision Questionnaire
 
-`needs_human_decision` だけを書く。
+正本: `./scenario-design.questions.md`
+
+`needs_human_decision` だけを gate で出力する。
 未決がない場合は `none` と書く。
+`scenario-design.md` 内に質問票本文を埋め込まない。
 
-### `Q-<topic-abbrev>-001`
+質問票は次の形式にする。
 
-- `source_requirement`:
-- `detail_requirement_type`:
-- `unresolved_decision`:
-- `reason`:
-- `options`:
-  1.
-  2.
-- `recommended`:
-- `after_answer_generates`:
+```markdown
+## [Q-001] <短い質問名>
+
+質問:
+<人間に決めてほしい判断>
+
+やりたいこと:
+<実現したい業務・操作>
+
+背景:
+<未決理由と影響>
+
+選択肢:
+1. <選択肢A>
+2. <選択肢B>
+3. <選択肢C>
+4. その他
+
+AI推奨:
+<選択肢番号>
+
+推奨理由:
+<推奨理由>
+
+不確実性:
+<推奨が外れる可能性>
+
+回答形式:
+選択肢番号を選んでください。
+4 の場合は、採用したい業務ルールを1〜3文で記入してください。
+```
 
 ## Risks
 
@@ -140,6 +181,7 @@
 ## Validation Commands
 
 - Copilot handoff で使う検証入口を書く
+- `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md`
 
 ## Open Questions
 

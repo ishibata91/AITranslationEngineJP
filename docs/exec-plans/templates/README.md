@@ -9,6 +9,8 @@
 - `task-folder/plan.md`
 - `task-folder/ui-design.md`
 - `task-folder/scenario-design.md`
+- `task-folder/scenario-design.requirement-coverage.json`
+- `task-folder/scenario-design.questions.md`
 - `task-folder/implementation-scope.md`
 
 ## Legacy Compatibility
