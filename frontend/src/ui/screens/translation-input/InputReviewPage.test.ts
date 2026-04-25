@@ -329,10 +329,6 @@ describe("InputReviewPage", () => {
       throw new Error("translation input file element not found")
     }
 
-    Object.defineProperty(file, "path", {
-      value: "/mods/uploaded.json"
-    })
-
     await user.upload(input, file)
     await user.click(screen.getByRole("button", { name: "選び直す" }))
     await user.click(screen.getByRole("button", { name: "この JSON を登録" }))
@@ -343,6 +339,18 @@ describe("InputReviewPage", () => {
 
     expect(controller.mount).toHaveBeenCalledTimes(1)
     expect(controller.stageJsonImport).toHaveBeenCalledWith(file)
+    const uploadedFile = (
+      controller.stageJsonImport as unknown as {
+        mock: { calls: unknown[][] }
+      }
+    ).mock.calls[0]?.[0]
+
+    if (!(uploadedFile instanceof File)) {
+      throw new Error("uploaded file was not passed to controller")
+    }
+
+    expect(uploadedFile.name).toBe("uploaded.json")
+    expect((uploadedFile as File & { path?: string }).path).toBeUndefined()
     expect(controller.resetImportSelection).toHaveBeenCalledTimes(1)
     expect(controller.startImport).toHaveBeenCalledTimes(1)
     expect(controller.rebuildSelected).toHaveBeenCalledTimes(1)
@@ -351,5 +359,36 @@ describe("InputReviewPage", () => {
     unmount()
 
     expect(controller.dispose).toHaveBeenCalledTimes(1)
+  })
+  test("空配列の view model でも empty state を表示して UI が破綻しない", () => {
+    const item = createItem({
+      warnings: [],
+      summary: {
+        ...createItem().summary!,
+        categories: [],
+        sampleFields: [],
+        warnings: []
+      }
+    })
+    const controller = new TranslationInputScreenControllerFake(
+      createViewModel({
+        items: [item],
+        selectedItemId: item.localId,
+        selectedItem: item,
+        canRebuildSelected: true,
+        latestOutcomeTitle: "結果: 登録済み",
+        latestOutcomeText: "翻訳レコード件数、カテゴリ別件数、sample field を確認できます。"
+      })
+    )
+
+    render(InputReviewPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    expect(screen.getByText("カテゴリ別件数はまだありません。")).toBeInTheDocument()
+    expect(screen.getByText("sample field はまだありません。")).toBeInTheDocument()
+    expect(screen.getByText("問題なし")).toBeInTheDocument()
   })
 })

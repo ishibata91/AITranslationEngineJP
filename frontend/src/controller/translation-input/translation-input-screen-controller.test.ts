@@ -122,6 +122,27 @@ describe("TranslationInputScreenController", () => {
     digestSpy.mockRestore()
   })
 
+  test("stageJsonImport は path がない file で bare filename を stagedFile.filePath へ保持する", async () => {
+    const digestSpy = vi
+      .spyOn(globalThis.crypto.subtle, "digest")
+      .mockResolvedValue(new Uint8Array([0xaa, 0xbb]).buffer)
+    const harness = createHarness()
+    const file = new File(["{}"], "uploaded.json", {
+      type: "application/json"
+    })
+
+    Object.defineProperty(file, "arrayBuffer", {
+      value: vi.fn(() => Promise.resolve(new TextEncoder().encode("{}").buffer))
+    })
+
+    await harness.controller.stageJsonImport(file)
+
+    expect(harness.getState().stagedFile?.fileName).toBe("uploaded.json")
+    expect(harness.getState().stagedFile?.filePath).toBe("uploaded.json")
+
+    digestSpy.mockRestore()
+  })
+
   test("resetImportSelection は importing 中でない時に stagedFile をクリアする", () => {
     const harness = createHarness(
       createState({

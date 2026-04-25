@@ -184,6 +184,47 @@ describe("TranslationInputUseCase", () => {
     expect(state.selectedItemId).toBe(state.items[0]?.localId)
   })
 
+  test("startImport は null 配列を空配列へ正規化して保持する", async () => {
+    const store = createStore()
+    const importTranslationInput = vi.fn().mockResolvedValue({
+      accepted: true,
+      warnings: null,
+      summary: {
+        ...createSummary(),
+        categories: null,
+        sampleFields: null,
+        warnings: null
+      }
+    } as unknown as TestCommandResponse)
+    const gateway = makeGateway({ importTranslationInput })
+    const useCase = new TranslationInputUseCase(gateway, store)
+
+    store.update((draft) => {
+      draft.stagedFile = {
+        fileName: "input-review.json",
+        filePath: "uploaded.json",
+        fileHash: "hash-71"
+      }
+      draft.operationState = "ready"
+    })
+
+    await useCase.startImport()
+
+    const state = store.snapshot()
+
+    expect(importTranslationInput).toHaveBeenCalledWith({
+      filePath: "uploaded.json"
+    })
+    expect(state.latestResponse?.warnings).toEqual([])
+    expect(state.latestResponse?.summary?.categories).toEqual([])
+    expect(state.latestResponse?.summary?.sampleFields).toEqual([])
+    expect(state.latestResponse?.summary?.warnings).toEqual([])
+    expect(state.items[0]?.warnings).toEqual([])
+    expect(state.items[0]?.summary?.categories).toEqual([])
+    expect(state.items[0]?.summary?.sampleFields).toEqual([])
+    expect(state.items[0]?.summary?.warnings).toEqual([])
+  })
+
   test("rebuildSelected は inputId がない時に cache missing を保持する", async () => {
     const store = createStore()
     const useCase = new TranslationInputUseCase(null, store)
