@@ -12,8 +12,6 @@
 - [ ] scenario validation が fail した場合は close せず blocker として返した
 - [ ] `codex exec` で Codex review conductor を呼び出した
 - [ ] `codex_review_result.copilot_action` に従って close / report_residual / fix / rerun_validation / rerun_codex_review を分岐した
-- [ ] completion packet に final validation、Codex review、copilot_work_report を含めた
-
 ## Common Pitfalls
 
 - [ ] final validation 前に scenario validation、suite-all、Sonar check を実行しなかった

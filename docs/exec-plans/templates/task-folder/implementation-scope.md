@@ -53,14 +53,6 @@
 
 Copilot は完了時に次を返す。
 
-- `copilot_work_report`:
-  - `report_path`: `work_history/runs/YYYY-MM-DD-<task-id>-run/copilot.md`
-  - `status`:
-  - `改善すべきこと`:
-  - `時間がかかったこと`:
-  - `無駄だったこと`:
-  - `困ったこと`:
-  - `次に見るべき場所`:
 - `completed_handoffs`
 - `touched_files`
 - `implemented_scope`
@@ -73,4 +65,6 @@ Copilot は完了時に次を返す。
 - `sonar_gate_result`: 互換 field 名。意味は repo-local Sonar issue gate であり、Sonar サーバ側 Quality Gate ではない。
 - `harness_gate_result`: system test が Wails / sandbox / OS 権限で止まる場合は `FAIL_ENVIRONMENT` とし、blocked reason、再実行環境、再実行コマンドを残す。
 - `residual_risks`
+- `completion_evidence`: Codex 側 `work_reporter` が読む実装事実。report 文面ではなく、completed_handoffs、touched_files、validation、residual、blocked reason、人間が次に見るべき場所を含める。
+- `telemetry_events`: `runtime: copilot` の `assistant_response` event。速度や欠落は次回改善用であり、初期 close 判定には使わない。
 - `docs_changes: none`

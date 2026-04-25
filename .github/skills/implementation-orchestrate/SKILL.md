@@ -63,7 +63,6 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 10. Sonar check を実行し、repo-local gate と Sonar server Quality Gate を混同しない。
 11. `codex exec` で `review_conductor` を呼び出し、diff、scope、implementation result、validation result を渡す。
 12. `codex_review_result.copilot_action` に従い、close、residual report、修正、validation 再実行、Codex review 再実行のいずれかへ分岐する。
-13. `copilot-work-reporting` を参照し、completion packet に `codex_review_result` と `copilot_work_report` を必ず含める。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は agent contract に従う。
@@ -159,7 +158,6 @@ DO:
 - scenario validation、suite-all、Sonar check を全 implementation handoff 完了後に実行する
 - `codex exec` の review payload に diff と validation result を含める
 - `codex_review_result.copilot_action` に従って受け取り分岐を固定する
-- 最後に必ず `copilot-work-reporting` で completion packet の報告材料を作る
 
 DON'T:
 - RunSubagent 以外で実装、test 追加、調査をしない
@@ -177,8 +175,6 @@ DON'T:
 - [orchestration-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-orchestrate/references/patterns/orchestration-patterns.md) を参照する。
 - coverage は repo の `MINIMUM_COVERAGE = 70.0` を正本にする。
 - `sonar_gate_result` は互換 field 名として残る場合があるが、意味は repo-local Sonar issue gate であり Sonar サーバ側 Quality Gate ではない。
-- report: [copilot-work-reporting](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/copilot-work-reporting/SKILL.md) を参照する。
-
 ## Checklist
 
 - [implementation-orchestrate-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-orchestrate/references/checklists/implementation-orchestrate-checklist.md) を参照する。

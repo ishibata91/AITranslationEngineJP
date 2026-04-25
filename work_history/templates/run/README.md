@@ -31,6 +31,24 @@
 - `待ち時間`: `<tool / review / test / user decision / なし>`
 - `再作業`: `<reroute / re-run / rollback / なし>`
 
+## Telemetry
+
+- `telemetry_file`: `./telemetry.jsonl`
+- `telemetry_status`: `<available / partial / missing>`
+- `runtime_scope`: `codex / copilot`
+- `telemetry_gap`: `<次回改善 finding or なし>`
+
+## Benchmark
+
+- `response_count_by_runtime`: `<codex: n, copilot: n, unknown: n>`
+- `elapsed_ms_total`: `<ms or 不明>`
+- `phase_elapsed_ms`: `<phase: ms or 不明>`
+- `runtime_elapsed_ms`: `<runtime: ms or 不明>`
+- `blocked_elapsed_ms`: `<ms or 不明>`
+- `reroute_count`: `<count or 不明>`
+- `validation_elapsed_ms`: `<ms or 不明>`
+- `benchmark_use`: `次回改善用。初期 close 判定には使わない。`
+
 ## Role Reports
 
 - `Codex`: `./codex.md`

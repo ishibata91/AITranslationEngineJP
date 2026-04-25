@@ -1,0 +1,65 @@
+{
+  "contract_version": "2026-04-26",
+  "agent": "work_reporter",
+  "runtime": "codex",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/work_reporter/permissions.json",
+  "required_inputs": [
+    "run_folder",
+    "telemetry_events",
+    "codex_completion_evidence",
+    "copilot_completion_evidence"
+  ],
+  "optional_inputs": [
+    "related_plan",
+    "related_handoff",
+    "validation_results",
+    "known_gaps"
+  ],
+  "required_artifacts": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/README.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/copilot.md"
+  ],
+  "knowledge_refs": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md"
+  ],
+  "expected_outputs": [
+    "run_report_paths",
+    "benchmark_summary",
+    "codex_report_summary",
+    "copilot_report_summary",
+    "cross_role_findings",
+    "telemetry_quality_findings",
+    "next_improvements",
+    "residual_gaps"
+  ],
+  "field_requirements": {
+    "run_report_paths": "README.md、codex.md、copilot.md、telemetry.jsonl の path を返す",
+    "benchmark_summary": "response_count_by_runtime、elapsed_ms_total、phase_elapsed_ms、runtime_elapsed_ms、blocked_elapsed_ms、reroute_count、validation_elapsed_ms を分かる範囲で返す。不足は blocker ではなく improvement finding にする",
+    "codex_report_summary": "Codex evidence から確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す",
+    "copilot_report_summary": "Copilot evidence から確認できる completed_handoffs、touched_files、validation_result、residual_risks、次に見るべき場所を返す。推測で補わない",
+    "cross_role_findings": "改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、検証で不足したことを run-wide に返す",
+    "telemetry_quality_findings": "telemetry / evidence / report 欠落、壊れた JSONL、runtime 欠落、elapsed 欠落を次回改善 finding として返す",
+    "next_improvements": "prompt、handoff、template、telemetry の次回改善を返す",
+    "residual_gaps": "未確認、不明、なしを区別して返す"
+  },
+  "required_evidence": [
+    "telemetry events or telemetry missing reason",
+    "Codex completion evidence",
+    "Copilot completion evidence",
+    "report template paths",
+    "validation result when available"
+  ],
+  "rejection_conditions": [
+    "run_folder missing",
+    "Codex and Copilot evidence both missing",
+    "write target outside work_history/runs"
+  ],
+  "stop_conditions": [
+    "Copilot facts cannot be distinguished from inference",
+    "required report path cannot be determined",
+    "report generation would require product or docs mutation"
+  ],
+  "completion_signal": "work_history/runs/<run>/README.md、codex.md、copilot.md が evidence と telemetry から生成され、次回改善 finding が明示されている",
+  "residual_risk_key": "residual_gaps"
+}

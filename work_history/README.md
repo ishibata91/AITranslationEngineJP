@@ -12,14 +12,14 @@ Codex と Copilot の報告を同じラン単位で並べ、次回の設計、ha
 
 - 実レポートの唯一の置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/` とする。
 - 複製元は `work_history/templates/run/` に置く。
-- 1ランの folder には `README.md`、`codex.md`、`copilot.md` を置く。
+- 1ランの folder には `README.md`、`codex.md`、`copilot.md`、必要なら `telemetry.jsonl` を置く。
 - `README.md` は全体 index、`codex.md` と `copilot.md` は役割別報告にする。
 
 ## 配置判断
 
 - 既存の同一 run folder がある場合は、そこへ追記または更新する。
 - run folder がない場合は、`work_history/templates/run/` を複製して作る。
-- Codex の報告は `codex.md`、Copilot の報告は `copilot.md` だけに書く。
+- Codex 側 `work_reporter` が `codex.md`、`copilot.md`、`README.md` を evidence から生成する。
 - 両者の比較、重複、遅延、次回改善は run folder の `README.md` に集約する。
 - `docs/exec-plans/`、`.codex/history/`、handoff file には run report を置かない。
 
@@ -40,10 +40,18 @@ Codex と Copilot の報告を同じラン単位で並べ、次回の設計、ha
 ## 運用
 
 - ラン終了直後に、Codex と Copilot の両方の報告を埋める。
-- Codex / Copilot のオーケストレーターは、最後に必ず該当 lane のレポートを作る、または作らせる。
+- Codex 側 `work_reporter` は、最後に必ず Codex / Copilot 両 lane のレポートを作る、または作成不能理由を残す。
+- Copilot は report を作らず、completion evidence と telemetry events だけを返す。
 - 片方だけ実行した場合も、未実行側には `未実行` と書く。
 - 比較はラン folder の `README.md` に集約する。
 - product code、product test、docs 正本、workflow contract の代わりには使わない。
+
+## Telemetry
+
+- `telemetry.jsonl` は機械集計の一次データにする。
+- `runtime` は `codex` または `copilot` にする。
+- 集計 helper は `python3 scripts/work-history/aggregate_telemetry.py work_history/runs/<run>/telemetry.jsonl` を使う。
+- 欠落や壊れた event は次回改善 finding として扱い、初期 close 判定には使わない。
 
 ## SUMMARY
 

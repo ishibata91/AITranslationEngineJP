@@ -1,0 +1,43 @@
+{
+  "contract_version": "2026-04-26",
+  "agent": "work_reporter",
+  "runtime": "codex",
+  "allowed_actions": [
+    "work_history/runs/<run>/telemetry.jsonl を読み、run-wide benchmark を集計する",
+    "Codex completion evidence と Copilot completion evidence を読む",
+    "work_history/runs/<run>/README.md、codex.md、copilot.md を作成または更新する",
+    "telemetry 欠落、evidence 欠落、検証不足を次回改善 finding として記録する",
+    "report 生成に必要な範囲だけ templates と active / completed task folder を読む"
+  ],
+  "forbidden_actions": [
+    "product code または product test を変更する",
+    "docs 正本を変更する",
+    ".github の implementation lane 契約を実行時に変更する",
+    "Copilot の実装事実を推測で補う",
+    "telemetry の速度数値を close 判定として扱う",
+    "work_history 以外を report 置き場所にする"
+  ],
+  "allowed_write_scope": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/"
+  ],
+  "forbidden_write_scope": [
+    "product code",
+    "product test",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/"
+  ],
+  "required_source_of_truth": [
+    "work_history/runs/<run>/telemetry.jsonl",
+    "Codex completion evidence",
+    "Copilot completion evidence",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/"
+  ],
+  "stop_conditions": [
+    "run folder が特定できない",
+    "Codex / Copilot evidence の出所が不明である",
+    "Copilot 事実を evidence から確認できない",
+    "work_history 以外への書き込みが必要である"
+  ],
+  "reroute_targets": ["propose_plans", "human"]
+}

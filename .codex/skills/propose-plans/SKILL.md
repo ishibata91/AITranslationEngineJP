@@ -24,14 +24,14 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 - scenario-design の `needs_human_decision` が残る場合は、design bundle review へ進めず質問票回答待ちにする
 - Copilot handoff は Codex が直接渡さず、人間へ返す
 - Copilot の修正完了が分かってから正本化へ進む
-- closeout、停止、reroute 時は `codex-work-reporting` を参照し、最後に必ず報告材料を作る
+- closeout、停止、reroute 時は `work_reporter` に渡す telemetry と completion evidence を整理し、最後に必ず報告材料を作る
 
 ## Runtime Boundary
 
 - binding: [propose_plans.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/propose_plans.toml)
 - permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/permissions.json)
 - contract: [propose_plans.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/contracts/propose_plans.contract.json)
-- allowed: task folder と `plan.md` の作成、更新、closeout、独立 agent spawn の packet 作成、人間向け handoff packet 作成
+- allowed: task folder と `plan.md` の作成、更新、closeout、独立 agent spawn の packet 作成、人間向け handoff packet 作成、work_reporter への report packet 作成
 - forbidden: product code、product test、docs 正本、詳細設計 artifact 本文の代筆、Copilot への直接 handoff
 - write scope: `docs/exec-plans/active/` と `docs/exec-plans/completed/` の workflow state
 
@@ -48,7 +48,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 9. 承認後に `designer` を再度 context 継承なしで spawn し、`implementation-scope` を固定する。
 10. 人間が Copilot に渡せる handoff packet を返す。
 11. Copilot の修正完了が分かった後、必要なら正本化へ進む。
-12. closeout、停止、reroute 時は `codex-work-reporting` を参照し、`work_history` へ転記できる Codex report 材料を最後に必ず作る。
+12. closeout、停止、reroute 時は `work_reporter` へ渡せる telemetry と completion evidence を整理し、`work_history` へ転記できる report 材料を最後に必ず作る。
 
 ## Stop / Reroute
 
@@ -60,7 +60,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 
 ## Handoff
 
-- Codex spawn 先: `distiller`, `designer`, `investigator`, `docs_updater`
+- Codex spawn 先: `distiller`, `designer`, `investigator`, `docs_updater`, `work_reporter`
 - human handoff 先: `human`
 - Copilot handoff: `propose_plans` は直接渡さず、人間に packet を返す
 - 渡す contract: [propose_plans.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/propose_plans/contracts/propose_plans.contract.json)
