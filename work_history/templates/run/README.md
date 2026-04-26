@@ -31,23 +31,33 @@
 - `待ち時間`: `<tool / review / test / user decision / なし>`
 - `再作業`: `<reroute / re-run / rollback / なし>`
 
-## Telemetry
+## Benchmark Score
 
-- `telemetry_file`: `./telemetry.jsonl`
-- `telemetry_status`: `<available / partial / missing>`
+- `benchmark_score`: `./analysis/benchmark-score.json`
+- `transcript_refs`: `./transcript_refs.json`
+- `transcript_status`: `<available / partial / missing>`
 - `runtime_scope`: `codex / copilot`
-- `telemetry_gap`: `<次回改善 finding or なし>`
+- `session_scope`: `<session-id list or 不明>`
+- `transcript_gap`: `<次回改善 finding or なし>`
 
 ## Benchmark
 
-- `response_count_by_runtime`: `<codex: n, copilot: n, unknown: n>`
-- `elapsed_ms_total`: `<ms or 不明>`
-- `phase_elapsed_ms`: `<phase: ms or 不明>`
-- `runtime_elapsed_ms`: `<runtime: ms or 不明>`
-- `blocked_elapsed_ms`: `<ms or 不明>`
-- `reroute_count`: `<count or 不明>`
-- `validation_elapsed_ms`: `<ms or 不明>`
+- `session_count`: `<count or 不明>`
+- `time_cost`: `<0-100 or 不明>`
+- `interaction_cost`: `<0-100 or 不明>`
+- `tool_churn`: `<0-100 or 不明>`
+- `rework_cost`: `<0-100 or 不明>`
+- `duration_ms_total`: `<metrics.duration_ms_total or 不明>`
+- `active_duration_ms_total`: `<metrics.active_duration_ms_total or 不明>`
+- `user_turns`: `<count or 不明>`
+- `assistant_turns`: `<count or 不明>`
+- `tool_calls`: `<count or 不明>`
+- `subagent_calls`: `<count or 不明>`
+- `nonzero_tool_results`: `<count or 不明>`
+- `long_idle_gaps`: `<count or 不明>`
+- `repeated_tool_commands`: `<count or 不明>`
 - `benchmark_use`: `次回改善用。初期 close 判定には使わない。`
+- `idle_gap_use`: `長い待機は evidence に残すが、score には入れない。`
 
 ## Role Reports
 

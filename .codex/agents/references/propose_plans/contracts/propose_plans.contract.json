@@ -76,7 +76,7 @@
     "canonicalization_status": "Copilot 修正完了後に docs 正本化が必要か、必要なら docs_updater へ渡す scope を返す",
     "touched_artifacts": "作成または更新した task-local artifact path を返す",
     "validation_and_closeout_summary": "実行した確認、未実行なら理由、closeout 条件を返す",
-    "work_report_packet": "最後に必ず返す。work_reporter が work_history/templates/run/README.md、codex.md、copilot.md へ転記できる報告材料として、telemetry、Codex evidence、Copilot evidence、改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、HITL、handoff、docs 正本化判断、spawn / 調査の必要判定、人間が次に見るべき場所を整理する",
+    "work_report_packet": "最後に必ず返す。work_reporter が work_history/templates/run/README.md、codex.md、copilot.md へ転記できる報告材料として、benchmark score、Codex evidence、Copilot evidence、改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、HITL、handoff、docs 正本化判断、spawn / 調査の必要判定、人間が次に見るべき場所を整理する",
     "open_questions": "workflow を進めるために human 判断が必要な事項を返す"
   },
   "required_evidence": [

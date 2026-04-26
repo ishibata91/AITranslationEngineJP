@@ -24,7 +24,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 - scenario-design の `needs_human_decision` が残る場合は、design bundle review へ進めず質問票回答待ちにする
 - Copilot handoff は Codex が直接渡さず、人間へ返す
 - Copilot の修正完了が分かってから正本化へ進む
-- closeout、停止、reroute 時は `work_reporter` に渡す telemetry と completion evidence を整理し、最後に必ず報告材料を作る
+- closeout、停止、reroute 時は `work_reporter` に渡す benchmark score と completion evidence を整理し、最後に必ず報告材料を作る
 
 ## Runtime Boundary
 
@@ -48,7 +48,7 @@ description: Codex workflow orchestration 知識 package。必要判定、distil
 9. 承認後に `designer` を再度 context 継承なしで spawn し、`implementation-scope` を固定する。
 10. 人間が Copilot に渡せる handoff packet を返す。
 11. Copilot の修正完了が分かった後、必要なら正本化へ進む。
-12. closeout、停止、reroute 時は `work_reporter` へ渡せる telemetry と completion evidence を整理し、`work_history` へ転記できる report 材料を最後に必ず作る。
+12. closeout、停止、reroute 時は `work_reporter` へ渡せる benchmark score と completion evidence を整理し、`work_history` へ転記できる report 材料を最後に必ず作る。
 
 ## Stop / Reroute
 

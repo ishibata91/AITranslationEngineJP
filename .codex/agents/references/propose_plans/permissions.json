@@ -12,7 +12,7 @@
     "human review が必要な地点で停止し、再開条件を明示する",
     "承認済み implementation-scope から人間向け Copilot handoff packet を作る",
     "Copilot の修正完了が分かった後に正本化の必要性を判定する",
-    "closeout、停止、reroute 時に work_reporter へ渡す telemetry と completion evidence を整理する"
+    "closeout、停止、reroute 時に work_reporter へ渡す benchmark score と completion evidence を整理する"
   ],
   "forbidden_actions": [
     "product code または product test を変更する",

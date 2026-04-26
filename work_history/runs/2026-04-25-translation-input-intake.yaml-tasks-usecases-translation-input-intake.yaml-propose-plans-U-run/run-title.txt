@@ -1,0 +1,1 @@
+[translation-input-intake.yaml](tasks/usecases/translation-input-intake.yaml) [$propose-plans](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md)

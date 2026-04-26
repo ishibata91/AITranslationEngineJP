@@ -1,0 +1,128 @@
+{
+  "evidence_refs": {
+    "long_idle_gaps": [
+      {
+        "from_source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:705",
+        "from_timestamp": "2026-04-25T14:22:05Z",
+        "gap_ms": 16120704,
+        "to_source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:706",
+        "to_timestamp": "2026-04-25T18:50:46Z"
+      }
+    ],
+    "nonzero_tool_results": [
+      {
+        "excerpt": "Chunk ID: 82f5b8 Wall time: 0.0000 seconds Process exited with code 1 Original token count: 2798 Output: { \"status\": \"fail\", \"finding_count\": 7, \"question_count\": 7, \"findings\": [ { \"severity\": \"error\", \"requirement_id\"…",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:141",
+        "timestamp": "2026-04-25T13:47:42Z"
+      },
+      {
+        "excerpt": "Chunk ID: 4a4b1a Wall time: 0.0000 seconds Process exited with code 1 Original token count: 3776 Output: { \"status\": \"fail\", \"finding_count\": 7, \"question_count\": 7, \"findings\": [ { \"severity\": \"error\", \"requirement_id\"…",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:243",
+        "timestamp": "2026-04-25T13:57:14Z"
+      },
+      {
+        "excerpt": "Chunk ID: fcde7f Wall time: 0.0000 seconds Process exited with code 1 Original token count: 3776 Output: { \"status\": \"fail\", \"finding_count\": 7, \"question_count\": 7, \"findings\": [ { \"severity\": \"error\", \"requirement_id\"…",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:322",
+        "timestamp": "2026-04-25T13:59:27Z"
+      },
+      {
+        "excerpt": "Chunk ID: 0dbf2a Wall time: 0.0000 seconds Process exited with code 1 Original token count: 3826 Output: { \"status\": \"fail\", \"finding_count\": 7, \"question_count\": 7, \"findings\": [ { \"severity\": \"error\", \"requirement_id\"…",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:372",
+        "timestamp": "2026-04-25T14:01:18Z"
+      },
+      {
+        "excerpt": "Chunk ID: 73c214 Wall time: 0.0000 seconds Process exited with code 1 Original token count: 5 Output: zsh:1: unmatched \"",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:388",
+        "timestamp": "2026-04-25T14:01:34Z"
+      },
+      {
+        "excerpt": "Chunk ID: 1f114e Wall time: 0.0000 seconds Process exited with code 1 Original token count: 3826 Output: Total output lines: 273 { \"status\": \"fail\", \"finding_count\": 7, \"question_count\": 7, \"findings\": [ { \"severity\": \"…",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:440",
+        "timestamp": "2026-04-25T14:03:16Z"
+      },
+      {
+        "excerpt": "Chunk ID: f16ddf Wall time: 0.0000 seconds Process exited with code 1 Original token count: 5 Output: zsh:1: unmatched \"",
+        "source_ref": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl:695",
+        "timestamp": "2026-04-25T14:21:50Z"
+      }
+    ],
+    "repeated_tool_commands": [
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"git status --short\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,\"max_output_tokens\":8000}",
+        "count": 7
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/translation-input-intake/scenario-design.md --report-out docs/exec-plans/active/translation-input-intake/scenario-design.requireme…",
+        "count": 5
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"git status --short\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,\"max_output_tokens\":4000}",
+        "count": 3
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"python3 -m py_compile scripts/scenario/requirement_gate.py scripts/harness/check_scenario_requirement_gate.py\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,…",
+        "count": 2
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"python3 -m json.tool docs/exec-plans/active/translation-input-intake/scenario-design.requirement-coverage.json >/tmp/tii-coverage-json-ok.txt\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslatio…",
+        "count": 2
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"git diff --stat\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,\"max_output_tokens\":8000}",
+        "count": 2
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"find docs/exec-plans/active/translation-input-intake -maxdepth 1 -type f -print | sort\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,\"max_output_tokens\":400…",
+        "count": 2
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"python3 -m json.tool docs/exec-plans/active/translation-input-intake/scenario-design.requirement-coverage.json >/tmp/tii-coverage-json-ok.txt\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslatio…",
+        "count": 2
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"python3 scripts/harness/run.py --suite scenario-gate\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,\"max_output_tokens\":8000}",
+        "count": 2
+      },
+      {
+        "command_excerpt": "exec_command {\"cmd\":\"python3 scripts/harness/run.py --suite scenario-gate\",\"workdir\":\"/Users/iorishibata/Repositories/AITranslationEngineJP\",\"yield_time_ms\":1000,\"max_output_tokens\":6000}",
+        "count": 2
+      }
+    ],
+    "user_corrections": []
+  },
+  "metrics": {
+    "active_duration_ms_total": 4496003,
+    "assistant_turns": 48,
+    "duration_ms_total": 20616707,
+    "long_idle_gaps": 1,
+    "nonzero_tool_results": 7,
+    "repeated_tool_commands": 19,
+    "subagent_calls": 2,
+    "tool_calls": 170,
+    "user_corrections": 0,
+    "user_turns": 14
+  },
+  "run_title": "[translation-input-intake.yaml](tasks/usecases/translation-input-intake.yaml) [$propose-plans](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/propose-plans/SKILL.md)",
+  "scores": {
+    "interaction_cost": 52,
+    "rework_cost": 56,
+    "time_cost": 21,
+    "tool_churn": 44
+  },
+  "scoring_notes": [
+    "スコアは close gate ではなく次回改善用の機械指標である。",
+    "script は原因推定、責務判断、改善案を出さない。",
+    "必要な時は evidence_refs の source_ref から transcript 原文へ戻る。"
+  ],
+  "sessions": [
+    {
+      "duration_ms": 20616707,
+      "ended_at": "2026-04-25T19:22:04Z",
+      "runtime": "codex",
+      "session_id": "019dc4dc-f309-74b0-91d5-6d8b1ac239e0",
+      "started_at": "2026-04-25T13:38:27Z",
+      "transcript_path": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl"
+    }
+  ],
+  "transcript_gaps": []
+}

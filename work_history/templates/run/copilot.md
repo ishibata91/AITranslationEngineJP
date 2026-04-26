@@ -19,7 +19,7 @@
 
 - `source`: `Codex work_reporter が Copilot completion evidence から生成する`
 - `completion_evidence`: `<completed_handoffs / touched_files / validation / residual>`
-- `telemetry_events`: `<runtime: copilot の assistant_response event or 未確認>`
+- `benchmark_score`: `<analysis/benchmark-score.json の Copilot session metrics or 未確認>`
 - `report_author`: `work_reporter`
 
 ## Expected Role

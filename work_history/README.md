@@ -12,7 +12,8 @@ Codex と Copilot の報告を同じラン単位で並べ、次回の設計、ha
 
 - 実レポートの唯一の置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/` とする。
 - 複製元は `work_history/templates/run/` に置く。
-- 1ランの folder には `README.md`、`codex.md`、`copilot.md`、必要なら `telemetry.jsonl` を置く。
+- 1ランの folder には `README.md`、`codex.md`、`copilot.md`、`analysis/`、`transcript_refs.json` を置く。
+- benchmark score は `analysis/benchmark-score.json` に置く。
 - `README.md` は全体 index、`codex.md` と `copilot.md` は役割別報告にする。
 
 ## 配置判断
@@ -41,17 +42,20 @@ Codex と Copilot の報告を同じラン単位で並べ、次回の設計、ha
 
 - ラン終了直後に、Codex と Copilot の両方の報告を埋める。
 - Codex 側 `work_reporter` は、最後に必ず Codex / Copilot 両 lane のレポートを作る、または作成不能理由を残す。
-- Copilot は report を作らず、completion evidence と telemetry events だけを返す。
+- Copilot は report を作らず、completion evidence と transcript path だけを返す。
 - 片方だけ実行した場合も、未実行側には `未実行` と書く。
 - 比較はラン folder の `README.md` に集約する。
 - product code、product test、docs 正本、workflow contract の代わりには使わない。
 
-## Telemetry
+## Benchmark Score
 
-- `telemetry.jsonl` は機械集計の一次データにする。
-- `runtime` は `codex` または `copilot` にする。
-- 集計 helper は `python3 scripts/work-history/aggregate_telemetry.py work_history/runs/<run>/telemetry.jsonl` を使う。
-- 欠落や壊れた event は次回改善 finding として扱い、初期 close 判定には使わない。
+- home の Codex / Copilot transcript を一次データにする。
+- score helper は `python3 scripts/work-history/score_transcripts.py --codex-transcript <path> --copilot-transcript <path> --output-root work_history/runs` を使う。
+- folder 名は最初の user prompt を安全化して作る。
+- 同名 folder がある場合は merge し、`transcript_refs.json` に session 一覧を残す。
+- AI はまず `analysis/benchmark-score.json` を読む。
+- 必要な時だけ `source_ref` から transcript 原文へ戻る。
+- 欠落や壊れた transcript は次回改善 finding として扱い、初期 close 判定には使わない。
 
 ## SUMMARY
 

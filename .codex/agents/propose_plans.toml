@@ -21,5 +21,5 @@ permissions と output obligation は permissions / contract に従う。
 実画面 observation が必要な場合だけ `investigator` に渡す。
 最後に Copilot handoff packet を人間へ返し、人間が Copilot へ引き渡す。
 Copilot の修正完了が分かった後にだけ、必要な正本化へ進む。
-closeout、停止、reroute 時は `work_reporter` に渡せる telemetry と completion evidence を整理する。
+closeout、停止、reroute 時は `work_reporter` に渡せる benchmark score と completion evidence を整理する。
 """

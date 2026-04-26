@@ -1,6 +1,6 @@
 ---
 name: codex-work-reporting
-description: Codex 側の run-wide reporting 知識 package。Codex / Copilot telemetry と completion evidence から work_history report と次回改善 finding を残す判断基準を提供する。
+description: Codex 側の run-wide reporting 知識 package。Codex / Copilot benchmark score と completion evidence から work_history report と次回改善 finding を残す判断基準を提供する。
 ---
 
 # Codex Work Reporting
@@ -9,7 +9,7 @@ description: Codex 側の run-wide reporting 知識 package。Codex / Copilot te
 
 `codex-work-reporting` は知識 package である。
 Codex workflow の完了、停止、reroute 時に、`work_history` へ残す run-wide report 材料を整理する。
-Codex と Copilot の telemetry、completion evidence、validation result を同じ run 単位で集約する。
+Codex と Copilot の benchmark score、completion evidence、validation result を同じ run 単位で集約する。
 
 この skill は実行主体ではない。
 書き込み権限、完了条件、停止条件は参照元 agent の contract に従う。
@@ -18,7 +18,7 @@ Codex と Copilot の telemetry、completion evidence、validation result を同
 
 - Codex run の closeout、停止、reroute を記録する時
 - Copilot completion evidence を受けて `copilot.md` へ転記する時
-- `telemetry.jsonl` から run-wide benchmark を作る時
+- `analysis/benchmark-score.json` から run-wide benchmark を作る時
 - `README.md`、`codex.md`、`copilot.md` の記入観点を確認する時
 
 ## 参照しない場合
@@ -33,7 +33,7 @@ Codex と Copilot の telemetry、completion evidence、validation result を同
 - `work_history/templates/run/README.md` の run-wide 要約と benchmark block
 - `work_history/templates/run/codex.md` の記入観点
 - `work_history/templates/run/copilot.md` の記入観点
-- `telemetry.jsonl` の assistant response event
+- `analysis/benchmark-score.json` の session、metrics、scores、evidence_refs
 - 改善、時間、無駄、困りごとの分離
 - Codex 固有の design、HITL、handoff、正本化判断の記録
 - Copilot 固有の completed_handoffs、touched_files、validation、residual の記録
@@ -42,13 +42,13 @@ Codex と Copilot の telemetry、completion evidence、validation result を同
 
 - `work_reporter` は最後に必ず run-wide report を作る。
 - 置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/` に固定する。
-- 一次データは `telemetry.jsonl` と completion evidence とする。
+- 一次データは home の Codex / Copilot transcript、`analysis/benchmark-score.json`、completion evidence とする。
 - `README.md` は人間向け run-wide report と benchmark summary にする。
 - `codex.md` と `copilot.md` は `work_reporter` が evidence から生成する。
 - 事実と判断材料を分ける。
 - 分からない項目は `未確認`、`不明`、`なし` のいずれかで明示する。
 - Copilot 側の実装事実は Copilot completion evidence からだけ転記する。
-- telemetry 欠落、event field 欠落、壊れた JSONL は次回改善 finding として扱う。
+- benchmark score 欠落、source_ref 欠落、壊れた transcript JSONL は次回改善 finding として扱う。
 - 速度指標は改善観測であり、初期 close 判定には使わない。
 - `.codex/history` には触れず、`work_history/` を使う。
 - レポートは次回の prompt、handoff、template 改善へ戻せる粒度にする。
@@ -57,62 +57,80 @@ Codex と Copilot の telemetry、completion evidence、validation result を同
 
 1. `work_history/runs/YYYY-MM-DD-<task-id>-run/` があるか確認する。
 2. なければ `work_history/templates/run/` を複製して run folder を作る。
-3. `telemetry.jsonl` を読み、`runtime: codex | copilot` ごとの response 数と elapsed を集計する。
-4. Codex completion evidence から `codex.md` を作る。
-5. Copilot completion evidence から `copilot.md` を作る。
-6. 両 lane の比較と benchmark summary は `README.md` へ集約する。
-7. `docs/exec-plans/`、`.codex/history/`、handoff file には run report を置かない。
-8. telemetry / evidence 欠落は close 判定ではなく、次回改善 finding にする。
+3. 必要なら `scripts/work-history/score_transcripts.py` で Codex / Copilot transcript を score 化する。
+4. `analysis/benchmark-score.json` を先に読む。
+5. 必要な時だけ `source_ref` から transcript 原文へ戻る。
+6. Codex completion evidence から `codex.md` を作る。
+7. Copilot completion evidence から `copilot.md` を作る。
+8. 両 lane の比較と benchmark summary は `README.md` へ集約する。
+9. `docs/exec-plans/`、`.codex/history/`、handoff file には run report を置かない。
+10. benchmark score / evidence 欠落は close 判定ではなく、次回改善 finding にする。
 
-telemetry 集計は必要なら次の helper を使う。
+benchmark score は必要なら次の helper を使う。
 
 ```bash
-python3 scripts/work-history/aggregate_telemetry.py work_history/runs/<run>/telemetry.jsonl
+python3 scripts/work-history/score_transcripts.py \
+  --codex-transcript /Users/<user>/.codex/sessions/YYYY/MM/DD/<session>.jsonl \
+  --copilot-transcript "/Users/<user>/Library/Application Support/Code/User/workspaceStorage/<workspace>/GitHub.copilot-chat/transcripts/<session>.jsonl" \
+  --output-root work_history/runs
 ```
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は agent contract に従う。
 
-## Telemetry Event
+## Benchmark Score
 
-初期 event は assistant response 単位で扱う。
-event は OpenTelemetry 風の trace / event / aggregate に寄せるが、外部 service への送信は必須にしない。
+hook は使わない。
+Codex / Copilot の home transcript を正本にし、スコア script で時間と摩擦の機械指標を出す。
 
-必須 field:
-- `event_type`: `assistant_response`
-- `run_id`
-- `runtime`: `codex` または `copilot`
-- `elapsed_ms_from_run_start`
-- `phase`
-- `status`
-- `mechanical_summary`
+Codex transcript は `session_meta`、`event_msg`、`response_item` を読む。
+Copilot transcript は `session.start`、`user.message`、`assistant.message`、`tool.execution_*` を読む。
+script は時刻、turn 数、tool 数、非 0 終了、長い idle、再実行、user correction を数える。
+script は改善案、原因推定、責務判断は行わない。
 
-任意 field:
-- `turn_index`
-- `related_paths`
-- `commands`
-- `blocked_reason`
+生成物:
+- `run-title.txt`
+- `transcript_refs.json`
+- `analysis/benchmark-score.json`
+
+folder 名は最初の user prompt を安全化して作る。
+同名 folder がある場合は merge し、`transcript_refs.json` に session を追記する。
 
 ## Benchmark
 
 benchmark は次回改善用の観測値である。
-速度の閾値や event 欠落を初期 close 判定には使わない。
+速度の閾値や benchmark score 欠落を初期 close 判定には使わない。
 
 集計対象:
-- `response_count_by_runtime`
-- `elapsed_ms_total`
-- `phase_elapsed_ms`
-- `runtime_elapsed_ms`
-- `blocked_elapsed_ms`
-- `reroute_count`
-- `validation_elapsed_ms`
+- `session_count`
+- `metrics.duration_ms_total`
+- `metrics.active_duration_ms_total`
+- `metrics.user_turns`
+- `metrics.assistant_turns`
+- `metrics.tool_calls`
+- `metrics.subagent_calls`
+- `metrics.nonzero_tool_results`
+- `metrics.user_corrections`
+- `metrics.long_idle_gaps`
+- `metrics.repeated_tool_commands`
+- `scores.time_cost`
+- `scores.interaction_cost`
+- `scores.tool_churn`
+- `scores.rework_cost`
+- `evidence_refs`
+- `transcript_gaps`
+
+`time_cost` は `active_duration_ms_total` から算出する。
+`long_idle_gaps` は evidence として残すが、score には加算しない。
+`user_corrections` は人間の実メッセージだけを数え、skill payload、subagent notification、approval reviewer 用 payload は除外する。
 
 ## DO / DON'T
 
 DO:
 - `work_reporter` で run-wide report を作る
 - `work_history/runs/YYYY-MM-DD-<task-id>-run/` を唯一の report 置き場所にする
-- `telemetry.jsonl` を機械集計の一次データとして扱う
+- `analysis/benchmark-score.json` を agent が最初に読む材料として扱う
+- 必要な時だけ `source_ref` から transcript 原文へ戻る
 - Codex が実際に見た evidence と推測を分ける
 - Copilot facts は Copilot completion evidence からだけ扱う
 - 人間が次に見るべき path や command を残す
@@ -123,7 +141,7 @@ DON'T:
 - docs 正本化や implementation-scope の代わりにしない
 - `docs/exec-plans/`、`.codex/history/`、handoff file に run report を置かない
 - `.codex/history` へ移行や参照ルールを追加しない
-- Markdown report を telemetry の一次データにしない
+- Markdown report を benchmark score の一次データにしない
 - 速度指標を初期 close 判定に使わない
 - 長い経緯説明や感想を増やさない
 
@@ -138,7 +156,7 @@ DON'T:
 - Codex report template: [codex.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md)
 - Copilot report template: [copilot.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/copilot.md)
 - runtime agent: [work_reporter.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/work_reporter.toml)
-- telemetry aggregator: [aggregate_telemetry.py](/Users/iorishibata/Repositories/AITranslationEngineJP/scripts/work-history/aggregate_telemetry.py)
+- benchmark scorer: [score_transcripts.py](/Users/iorishibata/Repositories/AITranslationEngineJP/scripts/work-history/score_transcripts.py)
 
 ## Agent が持つもの
 

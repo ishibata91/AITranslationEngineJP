@@ -37,7 +37,7 @@
     "docs_changes",
     "requires_codex_replan",
     "completion_evidence",
-    "telemetry_events"
+    "copilot_transcript_path"
   ],
   "field_requirements": {
     "completed_handoffs": "implementation-scope の handoff 見出し単位で完了、未完了、依存待ちを返す。status は subagent 戻り値、Ready Waves 表、または depends_on 判定だけから決める",
@@ -55,7 +55,7 @@
     "residual_risks": "未実行 validation、FAIL_ENVIRONMENT、Codex review 未実行、Codex review priority override、human open question、blocked_after_narrowing、remaining subscopes を分ける",
     "requires_codex_replan": "通常は false。approved scope にない新要件、human 承認済み design と実装対象の矛盾、未承認 public behavior 判断、docs 正本化または workflow 変更が実装完了の前提、2 回の autonomous narrowing 後も first_action を確定できない場合だけ true にする",
     "completion_evidence": "Codex 側 work_reporter が読む implementation evidence を返す。completed_handoffs、touched_files、implemented_scope、test_results、implementation_investigation、final_validation_result、codex_review_result、residual_risks、blocked_after_narrowing、人間が次に見るべき場所を含める。work_history report skeleton は作らない",
-    "telemetry_events": "assistant_response event を返す。runtime は copilot、elapsed_ms_from_run_start、phase、status、mechanical_summary を含める。欠落がある場合は blocked reason ではなく telemetry gap として返す"
+    "copilot_transcript_path": "Codex 側 work_reporter が benchmark score を作るために読む Copilot transcript path を返す。取得できない場合は blocked reason ではなく transcript gap として返す"
   },
   "required_evidence": [
     "implementation-scope path",
@@ -72,7 +72,8 @@
     "codex exec review request payload",
     "codex_review_result or blocked reason",
     "requires_codex_replan false or hard stop condition with evidence",
-    "completion_evidence source fields from subagent and validation results"
+    "completion_evidence source fields from subagent and validation results",
+    "copilot_transcript_path or transcript gap reason"
   ],
   "rejection_conditions": ["missing approved implementation-scope", "missing approval_record", "design-only request", "docs canonicalization request"],
   "stop_conditions": [
@@ -101,6 +102,6 @@
     "rerun_validation": "Codex が指定した不足 validation だけを再実行し、その結果を含む payload で Codex review を再実行する",
     "rerun_codex_review": "diff、scope、implementation result など不足 payload を補い、product code を変更せず Codex review だけを再実行する"
   },
-  "completion_signal": "human と Codex 側 work_reporter が close、docs 正本化判断、例外的な Codex replan 要否、または Codex review 再実行要否を判断できる completion packet が返っており、scenario validation pass、suite-all pass または FAIL_ENVIRONMENT、Sonar check result、codex_review_result、completion_evidence、telemetry_events、requires_codex_replan が含まれている。codex_review_result.copilot_action が rerun_validation または rerun_codex_review の場合は、再実行した結果または再実行不能理由が含まれている。scenario validation が fail した場合は close せず Copilot 側 blocker として返っている",
+  "completion_signal": "human と Codex 側 work_reporter が close、docs 正本化判断、例外的な Codex replan 要否、または Codex review 再実行要否を判断できる completion packet が返っており、scenario validation pass、suite-all pass または FAIL_ENVIRONMENT、Sonar check result、codex_review_result、completion_evidence、copilot_transcript_path、requires_codex_replan が含まれている。codex_review_result.copilot_action が rerun_validation または rerun_codex_review の場合は、再実行した結果または再実行不能理由が含まれている。scenario validation が fail した場合は close せず Copilot 側 blocker として返っている",
   "residual_risk_key": "residual_risks"
 }
