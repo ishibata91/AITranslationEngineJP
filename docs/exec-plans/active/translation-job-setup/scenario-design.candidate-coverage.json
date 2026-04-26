@@ -1,0 +1,455 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TJS-001",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-TJS-001",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-001",
+      "decision_rationale": "中核 happy path は lifecycle と state-transition の create / Ready 候補へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJS-002",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-TJS-002",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "validation pass / fail の観測は SCN-TJS-001 と SCN-TJS-002 へ分離して統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJS-003",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-TJS-003",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJS-003",
+      "decision_rationale": "複数入力の混線防止は 1 input = 1 job の acceptance として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJS-004",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-TJS-004",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "共通基盤と AI 実行方式の選択は secret redaction と合わせて SCN-TJS-004 に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJS-005",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-TJS-005",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "failure reason を見て修正し再 validation する利用者回復導線として SCN-TJS-002 に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJS-001",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-TJS-001",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-001",
+      "decision_rationale": "Draft は UI 未保存状態で、DB job は validation pass 後の create で初めて作るため、setup 開始から Ready job 作成までを SCN-TJS-001 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJS-002",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-TJS-002",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "設定変更ごとの再 validation は validation failure / dirty state として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJS-003",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-TJS-003",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-001",
+      "decision_rationale": "validation pass から Ready job 作成までの主経路に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJS-004",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-TJS-004",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-001",
+      "decision_rationale": "Ready job は再表示だけ許可し、再編集は許可しないため、作成後の確認 outcome として SCN-TJS-001 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJS-005",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-TJS-005",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "保存済み AI 設定の復元は Job Setup の runtime 表示と secret redaction に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJS-001",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-TJS-001",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-001",
+      "decision_rationale": "Draft は UI 未保存状態で、DB job は validation pass 後の create で初めて Ready として作るため、Draft -> Ready は UI 状態から永続 job 作成への遷移として SCN-TJS-001 へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJS-002",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-TJS-002",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "validation failure 中は Ready へ進まない禁止遷移として SCN-TJS-002 に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJS-003",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-TJS-003",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-003",
+      "decision_rationale": "同一入力への 2 件目 job 作成は禁止し、過去 job の廃棄手段は別途必要事項として残すため、重複防止 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJS-004",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-TJS-004",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "rejected",
+      "decision_rationale": "Ready から Canceled への操作は job setup の作成完了後の job management に属する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJS-005",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-TJS-005",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJS-005",
+      "decision_rationale": "Ready 未成立では Running へ進めない境界は後続 phase との責務分離に必要である。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJS-006",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-TJS-006",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "rejected",
+      "decision_rationale": "RecoverableFailed から Ready へ戻す操作は phase 実行後の job management / recovery に属する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJS-001",
+      "generator": "failure",
+      "original_candidate_id": "CAND-TJS-001",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "cache 欠落時は Job Setup をブロックし、Input Review の再構築導線へ戻すため、validation failure scenario へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJS-002",
+      "generator": "failure",
+      "original_candidate_id": "CAND-TJS-002",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-003",
+      "decision_rationale": "同一入力への 2 件目 job 作成は禁止し、過去 job の廃棄手段は別途必要事項として残すため、重複防止 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJS-003",
+      "generator": "failure",
+      "original_candidate_id": "CAND-TJS-003",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "provider capability と execution mode 不整合は AI runtime validation として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJS-004",
+      "generator": "failure",
+      "original_candidate_id": "CAND-TJS-004",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "credential 解決、provider capability、ネットワーク到達性はすべて Job Setup validation の blocking 条件にするため、AI runtime validation scenario へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJS-005",
+      "generator": "failure",
+      "original_candidate_id": "CAND-TJS-005",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "job 作成時は共通基盤の snapshot / bind / lock を扱わないが、参照不能は validation blocking として扱うため、参照不能 gate を SCN-TJS-002 へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJS-006",
+      "generator": "failure",
+      "original_candidate_id": "CAND-TJS-006",
+      "source_requirement_id": "REQ-TJS-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJS-006",
+      "decision_rationale": "create 途中の保存失敗で partial state を残さない acceptance として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJS-001",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-TJS-001",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "保存済み AI 設定と secret store 参照の復元は SCN-TJS-004 に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJS-002",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-TJS-002",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "provider capability と execution mode の整合は SCN-TJS-004 に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJS-003",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-TJS-003",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJS-007",
+      "decision_rationale": "paid API 非依存の validation 経路は lower-level acceptance として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJS-004",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-TJS-004",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "credential 解決、provider capability、ネットワーク到達性はすべて Job Setup validation の blocking 条件にするため、secret 参照不能と provider mismatch の gate を SCN-TJS-004 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-001",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-TJS-001",
+      "source_requirement_id": "REQ-TJS-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-001",
+      "decision_rationale": "作成時の設定断面再確認は create success outcome と job detail 表示へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-002",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-TJS-002",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "validation failure 理由の後追いは、直近 validation 結果、対象設定断面、失敗カテゴリをアプリ状態に保持し、実行履歴は structured log へ送る方針で SCN-TJS-002 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-003",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-TJS-003",
+      "source_requirement_id": "REQ-TJS-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJS-004",
+      "decision_rationale": "secret 非露出は Job Setup の AI runtime 表示に必須である。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-004",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-TJS-004",
+      "source_requirement_id": "REQ-TJS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-002",
+      "decision_rationale": "validation pass 断面は job 作成時の pass 断面として保持し、設定変更後の dirty 状態は直近 validation 結果の失効として SCN-TJS-002 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-005",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-TJS-005",
+      "source_requirement_id": "REQ-TJS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJS-003",
+      "decision_rationale": "1 input = 1 job の出自追跡は複数入力混線防止 scenario に統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-TJS-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-TJS-001",
+        "state-transition:CAND-TJS-001"
+      ],
+      "conflict_type": "state_transition",
+      "resolution": "Draft は UI 未保存状態とし、DB job は validation pass 後の create で初めて作る。",
+      "reason": "Q-006 human answer により Draft の保存単位が固定された。",
+      "resolution_rationale": "Q-006 の回答により Draft は UI 未保存状態、DB job は validation pass 後の create で初めて作成するため、Draft 永続化前提の conflict は解消した。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJS-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJS-003",
+        "state-transition:CAND-TJS-003",
+        "failure:CAND-TJS-002"
+      ],
+      "conflict_type": "state_transition",
+      "resolution": "状態に関係なく同一入力への 2 件目 job 作成は禁止する。ただし、過去 job の廃棄手段は別途必要事項として残す。",
+      "reason": "Q-005 human answer により terminal job 後の再作成可否が固定された。",
+      "resolution_rationale": "Q-005 の回答により同一入力への 2 件目 job 作成は禁止し、過去 job の廃棄手段は別必要事項として扱うため、terminal job 後再作成の conflict は解消した。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJS-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-TJS-005",
+        "operation-audit:CAND-TJS-004"
+      ],
+      "conflict_type": "consistency",
+      "resolution": "job 作成時は共通基盤の snapshot / bind / lock を扱わない。phase 実行中の lock は later phase execution design へ deferred とする。",
+      "reason": "Q-003 human answer により job setup scope での共通基盤固定方式が対象外として固定された。",
+      "resolution_rationale": "Q-003 の回答により job 作成時は共通基盤の snapshot / bind / lock を扱わず、phase 実行中の lock は後続 phase design へ送るため、固定方式の conflict は解消した。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJS-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-TJS-004",
+        "external-integration:CAND-TJS-004"
+      ],
+      "conflict_type": "external_integration",
+      "resolution": "credential 解決、provider capability、ネットワーク到達性はすべて Job Setup validation の blocking 条件にする。",
+      "reason": "Q-002 human answer により provider 検証範囲が固定された。",
+      "resolution_rationale": "Q-002 の回答により credential 解決、provider capability、ネットワーク到達性をすべて blocking validation 条件にするため、provider 検証範囲の conflict は解消した。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJS-005",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-TJS-004",
+        "state-transition:CAND-TJS-006"
+      ],
+      "conflict_type": "state_transition",
+      "resolution": "Ready job は再表示だけ許可し、入力、基盤参照、AI runtime、実行方式の再編集は許可しない。recovery 時の設定再利用は job management / recovery scope とする。",
+      "reason": "Q-007 human answer により Ready job の再編集可否が固定された。",
+      "resolution_rationale": "Q-007 の回答により Ready job は再表示だけ許可し、再編集は許可しないため、Ready 再編集と recovery の conflict は解消した。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJS-006",
+      "status": "resolved",
+      "candidate_ids": [
+        "operation-audit:CAND-TJS-002",
+        "operation-audit:CAND-TJS-004"
+      ],
+      "conflict_type": "observability",
+      "resolution": "validation 実行ごとの履歴は business table ではなく structured log に残す。アプリ状態として保持するのは、直近 validation 結果、対象設定断面、失敗カテゴリ、job 作成時の pass 断面だけにする。",
+      "reason": "Q-008 human answer により、validation failure 理由と pass 断面の保持粒度が固定された。",
+      "resolution_rationale": "Q-008 の回答により validation 実行履歴は structured log、アプリ状態は直近結果、対象設定断面、失敗カテゴリ、job 作成時 pass 断面だけに限定するため、履歴粒度の conflict は解消した。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TJS-001",
+      "candidate_ids": [
+        "actor-goal:CAND-TJS-001",
+        "lifecycle:CAND-TJS-001",
+        "lifecycle:CAND-TJS-003",
+        "lifecycle:CAND-TJS-004",
+        "state-transition:CAND-TJS-001",
+        "operation-audit:CAND-TJS-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJS-002",
+      "candidate_ids": [
+        "actor-goal:CAND-TJS-002",
+        "actor-goal:CAND-TJS-005",
+        "lifecycle:CAND-TJS-002",
+        "state-transition:CAND-TJS-002",
+        "failure:CAND-TJS-001",
+        "failure:CAND-TJS-005",
+        "operation-audit:CAND-TJS-002",
+        "operation-audit:CAND-TJS-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJS-003",
+      "candidate_ids": [
+        "actor-goal:CAND-TJS-003",
+        "state-transition:CAND-TJS-003",
+        "failure:CAND-TJS-002",
+        "operation-audit:CAND-TJS-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJS-004",
+      "candidate_ids": [
+        "actor-goal:CAND-TJS-004",
+        "lifecycle:CAND-TJS-005",
+        "failure:CAND-TJS-003",
+        "failure:CAND-TJS-004",
+        "external-integration:CAND-TJS-001",
+        "external-integration:CAND-TJS-002",
+        "external-integration:CAND-TJS-004",
+        "operation-audit:CAND-TJS-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJS-005",
+      "candidate_ids": [
+        "state-transition:CAND-TJS-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJS-006",
+      "candidate_ids": [
+        "failure:CAND-TJS-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJS-007",
+      "candidate_ids": [
+        "external-integration:CAND-TJS-003"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

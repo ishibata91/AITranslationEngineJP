@@ -1,0 +1,395 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TJS-001",
+      "title": "1 入力データから 1 翻訳ジョブを作成する",
+      "kind": "operation",
+      "source_requirement": "tasks/usecases/translation-job-setup.yaml の goal と completion_criteria。docs/spec.md の 1 job = 1 xEdit extracted data。docs/er.md の TRANSLATION_JOB -> X_EDIT_EXTRACTED_DATA。",
+      "required_detail_types": [
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "1 入力データに対して 1 翻訳ジョブを作成し、実行前 validation を完了する。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "validation failure の理由を確認できる。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-input-intake は job 作成を含めないため、Job Setup の開始条件は input intake 完了後である。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer Q-006: Draft は UI 未保存状態とし、DB job は validation pass 後の create で初めて作る。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "outputs は 翻訳ジョブ、実行設定、validation 結果である。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer Q-005: 状態に関係なく同一入力への 2 件目 job 作成は禁止する。ただし、過去の job を廃棄できる手段が別途必要である。",
+          "verification_hint": "SCN-TJS-003"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現 source に multi-user 権限や role 差分はない。ローカル作業者の操作として扱う。",
+          "verification_hint": "権限差分は scenario 対象外。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "paid な real AI API を前提にせず、input / foundation / runtime fixture で検証する。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-007"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "入力出自、実行設定、validation 結果を UI から確認できる必要がある。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-003"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJS-002",
+      "title": "create 前 validation を通す",
+      "kind": "workflow",
+      "source_requirement": "tasks/usecases/translation-job-setup.yaml の create job の前に validation を通せる、validation failure の理由を確認できる。",
+      "required_detail_types": [
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "create job 前に validation pass を確認できる。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "validation failure の理由を見て設定を修正し、再 validation できる。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer Q-001: 必須設定不足、参照不能、provider / mode 不整合、credential 参照不能はすべて create job 禁止の blocking validation failure にする。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "validation は create job の前に行う。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-002"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "validation failure 中は Ready へ進まない。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "validation 結果は usecase output である。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-002"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "deferred",
+          "source_or_rationale": "human answer Q-003: phase 実行中は参照中の共通基盤を lock すべきだが、job 作成時は snapshot / bind / lock の考慮自体を本 scope に含めない。",
+          "owner": "later phase execution design",
+          "recheck_condition": "phase 実行または共通基盤更新中の参照 lock を設計する時。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "設定変更後は古い validation pass を再利用せず、最新設定で再 validation する。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer: validation 実行ごとの履歴は business table ではなく structured log に残す。アプリ状態として保持するのは、直近 validation 結果、対象設定断面、失敗カテゴリ、job 作成時の pass 断面だけにする。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-002"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "validation failure 後は設定修正と再 validation で create 可能状態へ戻す。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "validation failure reason、button enablement、job 未作成を fixture で観測する。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "credential failure を表示しても API key 平文は露出しない。",
+          "verification_hint": "SCN-TJS-004"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJS-003",
+      "title": "AI 基盤と実行方式を選ぶ",
+      "kind": "external_integration",
+      "source_requirement": "tasks/usecases/translation-job-setup.yaml の基盤参照、AI 基盤、実行方式を選択できる。docs/spec.md の LMStudio / Gemini / xAI と Batch API 要件。",
+      "required_detail_types": [
+        "consistency_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "基盤参照、AI 基盤、実行方式を選択できる。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存済み AI 設定を再利用し、必要時のみ変更できる。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer Q-002: credential 解決、provider capability、ネットワーク到達性はすべて Job Setup validation の blocking 条件にする。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Setup は AI 設定の参照と validation に絞り、API key 保存 UI は別責務にする。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "runtime / mode 不整合がある場合は Ready へ進まない。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIKey は暗号化して保存し、ER では credential_ref だけを保持する。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ保存済み runtime 設定を次の Job Setup で再利用できる。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "翻訳補助メタデータ、辞書、共通基盤データは実行前 UI から観測可能である。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "credential 参照不能や runtime 不整合は設定修正後の再 validation で回復する。",
+          "verification_hint": "SCN-TJS-002, SCN-TJS-004"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "deferred",
+          "source_or_rationale": "provider validation の速度目標は source に明示がないため、実装後観測で再確認する。",
+          "owner": "propose_plans",
+          "recheck_condition": "human が provider validation latency を acceptance に含める判断をした時。",
+          "verification_hint": "現 design bundle では数値目標を固定しない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "paid な real AI API を system test 前提にしない。",
+          "verification_hint": "SCN-TJS-007"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider capability と execution mode の整合を validation で扱う。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "master persona gap closure の secret store と fake transport seam の判断を壊さない。",
+          "verification_hint": "SCN-TJS-004, SCN-TJS-007"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJS-004",
+      "title": "job setup の状態と永続化を壊さない",
+      "kind": "persistence",
+      "source_requirement": "docs/er.md の TRANSLATION_JOB、JOB_PHASE_RUN、JOB_TRANSLATION_FIELD の責務分離。docs/spec.md の Draft / Ready / Running 状態遷移。",
+      "required_detail_types": [
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "TRANSLATION_JOB は 1 つの X_EDIT_EXTRACTED_DATA だけを参照する。",
+          "verification_hint": "SCN-TJS-003"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "create 途中の保存失敗で partial state を残さない。",
+          "verification_hint": "SCN-TJS-006"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "JOB_PHASE_RUN は翻訳 job phase のみを表し、共通基盤構築は含めない。",
+          "verification_hint": "SCN-TJS-005"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer Q-007: Ready job は再表示だけ許可し、入力、基盤参照、AI runtime、実行方式の再編集は許可しない。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "訳文と出力ステータスは JOB_TRANSLATION_FIELD に保持するが、job setup では更新しない。",
+          "verification_hint": "SCN-TJS-005"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Ready 未成立では Running へ遷移しない。",
+          "verification_hint": "SCN-TJS-005"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "create job は input 参照の重複作成を防ぎ、同時 create でも partial state を残さない必要がある。",
+          "verification_hint": "SCN-TJS-003, SCN-TJS-006"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存失敗後の再試行で重複 partial job を作らない。",
+          "verification_hint": "SCN-TJS-006"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "human answer Q-004: cache 欠落時は Job Setup をブロックし、Input Review の再構築導線へ戻す。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "temp DB、state fixture、failure injection で観測する。",
+          "verification_hint": "SCN-TJS-003, SCN-TJS-006"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "ジョブ、API の実行進捗と設定断面を UI から確認できる。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-004"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJS-005",
+      "title": "Job Setup UI で確認と修正を完結する",
+      "kind": "display",
+      "source_requirement": "tasks/usecases/translation-job-setup.yaml の manual_check_steps と related_screens。docs/screen-design/job-setup.md は未存在。",
+      "required_detail_types": [
+        "observability_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Job Setup を開き、入力データ、基盤参照、AI runtime を選び、validation pass 状態を確認する。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "validation failure 後に設定を修正して再 validation する。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "validation failure の理由を確認できる。",
+          "verification_hint": "SCN-TJS-002"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "共通辞書 / 共通ペルソナ管理 UI は job setup に混ぜない。",
+          "verification_hint": "ui-design.md"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "loading、empty、error、disabled、progress、retry、success、dirty-validation を UI state として区別する。",
+          "verification_hint": "ui-design.md"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現 source に user role 差分はない。",
+          "verification_hint": "権限差分は UI scenario 対象外。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "dashboard-and-app-shell の共通導線と translation-input-intake の Input Review 境界を壊さない。",
+          "verification_hint": "SCN-TJS-001"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "UI-visible outcome、button enablement、error reason を browser surface で確認する。",
+          "verification_hint": "SCN-TJS-001, SCN-TJS-002"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "実行前の翻訳補助メタデータ、辞書、共通基盤データは UI から観測可能である。",
+          "verification_hint": "SCN-TJS-004"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "API key 平文を UI や監査表示に出さない。",
+          "verification_hint": "SCN-TJS-004"
+        }
+      ]
+    }
+  ]
+}
