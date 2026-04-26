@@ -1,10 +1,11 @@
 # Implementation Scope: translation-input-intake
 
 - `skill`: implementation-scope
-- `status`: ready-for-human-copilot-handoff
+- `status`: completed
 - `source_plan`: `./plan.md`
 - `human_review_status`: approved
 - `approval_record`: human message `おk，次へ進んで`
+- `closeout_record`: Copilot transcript `/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/GitHub.copilot-chat/transcripts/a7d6df9f-8ff7-4af3-80ba-adcca3249db8.jsonl`
 - `copilot_entry`: `.github/skills/implementation-orchestrate/SKILL.md`
 - `handoff_runtime`: `github-copilot`
 

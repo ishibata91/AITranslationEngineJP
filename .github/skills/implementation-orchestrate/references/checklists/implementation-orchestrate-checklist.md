@@ -6,10 +6,11 @@
 - [ ] Ready Waves 表または `ready_wave` から実行可能 wave を選んだ
 - [ ] `single_handoff_packet` に `first_action` が含まれていることを確認した
 - [ ] distiller を tester / implementer より先に起動した
-- [ ] scenario 先行条件を満たす場合だけ tester を implementer より先に起動した
+- [ ] `APIテスト` 先行条件を満たす場合だけ tester を implementer より先に起動した
 - [ ] unit test と原因未確定の regression test を実装後の tester に回した
 - [ ] scenario validation、suite-all、Sonar check を全 implementation handoff 完了後に実行した
 - [ ] scenario validation が fail した場合は close せず blocker として返した
+- [ ] `UI人間操作E2E` を final validation lane で扱った
 - [ ] `codex exec` で Codex review conductor を呼び出した
 - [ ] `codex_review_result.copilot_action` に従って close / report_residual / fix / rerun_validation / rerun_codex_review を分岐した
 ## Common Pitfalls

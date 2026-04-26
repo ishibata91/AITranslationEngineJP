@@ -20,6 +20,9 @@
 - human review 済みの判断だけを書く
 - `needs_human_decision`: `0`
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
+- downstream handoff が依存する public seam は `contract_freeze` として固定する
+- `E2E` は UI 人間操作起点だけを指す
+- `APIテスト` は public seam 起点の system-level test とする
 
 ## Ready Waves
 
@@ -32,6 +35,10 @@
 ### `handoff_id`:
 
 - `implementation_target`:
+- `contract_freeze`:
+  - `status`: `required | not_required | done`
+  - `freeze_source`:
+  - `frozen_public_seams`:
 - `owned_scope`:
 - `depends_on`:
 - `execution_group`:
@@ -41,8 +48,14 @@
 - `first_action`:
 - `validation_commands`:
 - `completion_signal`:
+- `acceptance_test`: `required`
+- `execution_test_classification`: `APIテスト | UI人間操作E2E | lower-level only`
+- `execution_stage`: `実装前 | 実装後 | final validation`
 - `notes`:
-  - backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み backend contract / DTO / gateway 境界に depends_on する。
+  - backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み `contract_freeze` に depends_on する。
+  - `APIテスト` を tester 先行対象にできるのは、受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの時だけにする。
+  - `UI人間操作E2E` は final validation で証明し、frontend handoff の直接 owner にしない。
+  - `contract_freeze.status: required` の handoff では、downstream が参照してよい public API / DTO / gateway / controller entry / state contract を `frozen_public_seams` に列挙する。
   - `execution_group` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ作る。同じ wave 内でも `parallelizable_with` に列挙しない handoff は並列実行しない。
   - `ready_wave` は Ready Waves 表と一致させる。Copilot は最小番号の実行可能 wave から開始する。
   - `first_action` は Copilot が最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。

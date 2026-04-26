@@ -27,7 +27,8 @@
   "stop_conditions": [
     "single_handoff_packet、tester_context_packet、owned_scope のいずれかが不足している",
     "tester_context_packet に behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation のいずれかが欠けている",
-    "シナリオ試験で開始操作、検証対象の入口、入力模倣方針のいずれかが欠けている",
+    "`UI人間操作E2E` で開始操作、検証対象の入口、入力模倣方針のいずれかが欠けている",
+    "`APIテスト` で public seam、request / response contract、入力開始点、主要観測点のいずれかが欠けている",
     "test_subscope が completion_signal clause、public seam / API boundary、test target file、validation command のいずれにも対応していない",
     "設計や ownership の整理が先に必要である",
     "test 追加が docs や workflow 変更を必要とする",

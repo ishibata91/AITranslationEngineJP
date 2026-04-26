@@ -12,13 +12,15 @@ agent contract の権限や output obligation は上書きしない。
 - error path、empty state、boundary value を実装時に明示する。
 - build / type error の解消は最小差分にする。
 - 変更前に lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、既存の naming、layer、dependency direction を確認する。
-- scenario 先行時だけ tester output も確認する。
+- 変更前に `docs/lint-policy.md` のうち今回の touched layer に効く rule を確認する。
+- `APIテスト` 先行時だけ tester output も確認する。
 - 大きい関数、深いネスト、magic number、silent fallback を赤旗として扱う。
 - 振る舞いを変えない整理は、可読性が明確に上がる場合だけ行う。
 
 ## Backend 適用
 
 - service / usecase / repository / infra adapter の責務を混ぜない。
+- usecase から repository concrete や runtime concrete を直接参照しない。
 - usecase は orchestration、port usage、business invariant を担当し、SDK / DB / file system 詳細を持たない。
 - outbound dependency は consuming side の小さい interface / port で受ける。
 - validation、error mapping、transaction boundary を実装の一部として扱う。
@@ -31,6 +33,7 @@ agent contract の権限や output obligation は上書きしない。
 - state update は明示的にし、stale closure と直接 mutation を避ける。
 - loading、error、empty、success の状態を implementation-scope に沿って扱う。
 - Wails gateway を迂回せず、transport boundary を守る。
+- generated `wailsjs` は `frontend/src/controller/wails/` に閉じ込め、View、ScreenController、Frontend UseCase から直接 import しない。
 - component は表示、screen controller は状態遷移、gateway は Wails binding 境界に責務を分ける。
 - UI check に必要な stable selector、visible state、console evidence を残す。
 - frontend 変更では lane-local validation result または未実行理由を返す。
@@ -44,12 +47,13 @@ agent contract の権限や output obligation は上書きしない。
 - lane-local validation の失敗または未実行理由がない。
 - public API、Wails binding、DTO、storage schema の変更が call site と test に反映されていない。
 - config、lint、test、coverage 設定を変更して gate を回避している。
+- format、boundary rule、禁止 import のどれで止まるかを知らずに差分を広げている。
 
 ## 実装前確認
 
 - handoff 資料のスコープ粒度と owned_scope を確認する。
 - lane_context_packet を確認する。
-- scenario 先行時だけ tester output を確認する。
+- `APIテスト` 先行時だけ tester output を確認する。
 - fix_ingredients に対応する path、symbol、line number を確認する。
 - distracting_context に挙がった周辺 context を実装対象から外す。
 - first_action の path、symbol、line number から着手する。

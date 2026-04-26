@@ -11,7 +11,7 @@ agent contract の権限や output obligation は上書きしない。
 - Ready Waves 表または `ready_wave` から、実行可能な最小番号の wave を選ぶ。
 - `first_action` を含む `single_handoff_packet` だけを subagent に渡す。
 - distiller は tester / implementer より先に必ず起動する。
-- tester を implementer より先に起動できるのは、承認済み scenario artifact を product test 化する場合だけである。
+- tester を implementer より先に起動できるのは、承認済み `APIテスト` を product test 化する場合だけである。
 - unit test と原因未確定の regression test は、implementer 完了後に tester が追加または更新する。
 - subagent に渡す source scope は `single_handoff_packet` 1 件と、その distill 結果に限定する。
 - scenario validation、suite-all、Sonar check は全 implementation handoff 完了後だけ実行する。
@@ -25,14 +25,15 @@ agent contract の権限や output obligation は上書きしない。
 - 通常: distiller -> implementer -> tester。
 - 修正: investigator -> distiller -> implementer -> tester。
 - refactor: distiller -> implementer -> tester。
-- scenario 先行: distiller -> tester -> implementer。
-- mixed: backend handoff を先行し、各 handoff を通常順または scenario 先行順で扱う。
+- APIテスト先行: distiller -> tester -> implementer。
+- mixed: backend handoff を先行し、各 handoff を通常順または APIテスト先行順で扱う。
 - final validation: 全 implementation handoff 完了後に scenario validation -> suite-all -> Sonar check を実行する。
 - Codex review: final validation 後に `codex exec` で `review_conductor` を呼び出す。
 
 ## Final Validation
 
 - scenario validation の default は `python3 scripts/harness/run.py --suite scenario-gate` を使う。
+- scenario validation result は `APIテスト群 + UI人間操作E2E 群` の集約結果として扱う。
 - task 固有の product scenario test command が `implementation-scope` にある場合は、scenario validation result に含める。
 - suite-all は `python3 scripts/harness/run.py --suite all` を使う。
 - suite-all は既に scenario-gate を含むが、completion packet では scenario validation result を別 field として抜き出す。

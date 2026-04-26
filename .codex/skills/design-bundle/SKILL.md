@@ -15,7 +15,7 @@ product code と product test は変更しない。
 
 ## 参照 skill
 
-- `scenario-design`: 必須要件、system test 観点、validation を参照する。
+- `scenario-design`: 必須要件、受け入れテスト観点、システムテスト分類、validation を参照する。
 - `ui-design`: UI 要件契約と実装後確認観点を参照する。
 - `implementation-scope`: human review 後の人間向け Copilot handoff 粒度を参照する。
 - `wall-discussion`: read-only 壁打ちの質問設計を参照する。
@@ -41,7 +41,7 @@ product code と product test は変更しない。
 implementation-scope を扱う時は、Copilot 側 RunSubagent の token 量を事前計算しない。
 代わりに [implementation-scope](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md) の Handoff Split Rule と Size Gate に従い、論理境界と規模の目安で分割する。
 
-各 handoff は原則として `1 e2e use case × 1 validation intent` に収める。
+各 handoff は原則として `1 受け入れユースケース × 1 validation intent` に収める。
 Copilot 側から scope 過大で reroute された場合は、既存 approval を維持せず `pending-human-review` に戻す。
 
 ## Scenario Completeness Gate

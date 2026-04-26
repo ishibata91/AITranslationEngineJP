@@ -28,7 +28,7 @@
   "stop_conditions": [
     "owned_scope が確定していない",
     "single_handoff_packet、lane_context_packet、approval_record のいずれかが不足している",
-    "scenario 先行 handoff なのに tester_output が不足している",
+    "`APIテスト` 先行 handoff なのに tester_output が不足している",
     "設計判断が不足している",
     "変更が docs や workflow へ広がる",
     "lane_context_packet に fix_ingredients、first_action、change_targets、requirements_policy_decisions、existing pattern、validation_entry のいずれかが欠けている",

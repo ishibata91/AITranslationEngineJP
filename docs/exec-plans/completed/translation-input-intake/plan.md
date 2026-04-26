@@ -3,7 +3,7 @@
 ## 状態
 
 - `task_id`: `translation-input-intake`
-- `workflow_state`: `handoff_packet_ready`
+- `workflow_state`: `completed`
 - `lane_owner`: `Codex`
 - `source_task`: [`tasks/usecases/translation-input-intake.yaml`](../../../../tasks/usecases/translation-input-intake.yaml)
 - `human_review_status`: `approved`
@@ -22,9 +22,9 @@
 - [`docs/spec.md`](../../../spec.md)
 - [`docs/er.md`](../../../er.md)
 - [`docs/tech-selection.md`](../../../tech-selection.md)
-- [`docs/exec-plans/completed/2026-04-19-sqlite-migration-repositories/plan.md`](../../completed/2026-04-19-sqlite-migration-repositories/plan.md)
-- [`docs/exec-plans/completed/2026-04-19-sqlite-migration-repositories/scenario-design.md`](../../completed/2026-04-19-sqlite-migration-repositories/scenario-design.md)
-- [`docs/exec-plans/completed/2026-04-19-sqlite-migration-repositories/implementation-scope.md`](../../completed/2026-04-19-sqlite-migration-repositories/implementation-scope.md)
+- [`docs/exec-plans/completed/2026-04-19-sqlite-migration-repositories/plan.md`](../2026-04-19-sqlite-migration-repositories/plan.md)
+- [`docs/exec-plans/completed/2026-04-19-sqlite-migration-repositories/scenario-design.md`](../2026-04-19-sqlite-migration-repositories/scenario-design.md)
+- [`docs/exec-plans/completed/2026-04-19-sqlite-migration-repositories/implementation-scope.md`](../2026-04-19-sqlite-migration-repositories/implementation-scope.md)
 
 ## spawn packet
 
@@ -64,8 +64,8 @@
 - [`ui-design.md`](./ui-design.md): 作成済み。Input Review はページ内で完結し、app-shell 導線は dashboard-and-app-shell 側に deferred。
 - [`implementation-scope.md`](./implementation-scope.md): 作成済み。backend / frontend / final validation の 3 wave に分割。
 - `requirement_gate`: pass。
-- `next_action`: human が [`implementation-scope.md`](./implementation-scope.md) の Human Copilot Handoff Packet を Copilot へ渡す。
-- `resume_condition`: Copilot 完了 report を受け取ってから Codex review または docs 正本化判断へ進む。
+- `next_action`: completed。Copilot 実装と追加の workflow 改善を受けて close 済み。
+- `resume_condition`: N/A。
 
 ## closeout 材料
 
@@ -73,7 +73,17 @@
 - `時間がかかったこと`: task catalog と既存 SQLite plan の責務境界確認。
 - `無駄だったこと`: 実画面観測は現段階では不要。
 - `困ったこと`: `related_screens` にある `app-shell.md` / `input-review.md` の正本 file が未確認。
-- `HITL`: design bundle 完了後に human review が必要。
-- `handoff`: `implementation-scope.md` の Human Copilot Handoff Packet を人間が Copilot へ渡す。
-- `docs正本化判断`: Copilot 修正完了後まで実施しない。
+- `HITL`: design bundle は approved。
+- `handoff`: Copilot 実装は実施済み。Copilot transcript は work history に記録する。
+- `docs正本化判断`: product docs 正本化は今回未実施。workflow / skill 改善は別差分として残す。
 - `次に見るべき場所`: この folder の `implementation-scope.md`
+
+## Closeout Notes
+
+- `completed_at`: 2026-04-26
+- `completed_handoffs`: `backend-input-intake`, `frontend-input-review`, `final-validation-and-report`
+- `copilot_transcript`: `/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/GitHub.copilot-chat/transcripts/a7d6df9f-8ff7-4af3-80ba-adcca3249db8.jsonl`
+- `codex_report`: `work_history/runs/2026-04-25-translation-input-intake.yaml-tasks-usecases-translation-input-intake.yaml-propose-plans-U-run/codex.md`
+- `copilot_report`: `work_history/runs/2026-04-25-translation-input-intake.yaml-tasks-usecases-translation-input-intake.yaml-propose-plans-U-run/copilot.md`
+- `validation`: `python3 scripts/harness/run.py --suite structure` PASS、`python3 scripts/harness/run.py --suite scenario-gate` PASS。
+- `residual`: SCN-TII-007 の完全な system test は別 scope。今回 close では frontend scope 内の user input mimic test と workflow 改善を記録した。

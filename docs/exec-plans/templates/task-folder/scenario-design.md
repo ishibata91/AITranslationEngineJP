@@ -137,6 +137,9 @@ AI推奨:
 
 - ケース ID は `SCN-<topic-abbrev>-NNN` 形式にする
 - Markdown table は使わず、1 ケースごとの縦型ブロックで書く
+- 受け入れテストは全ケースで先に固定する
+- `実行テスト種別` は `APIテスト | UI人間操作E2E | lower-level only` に固定する
+- `実行段階` は `実装前 | 実装後 | final validation` に固定する
 - `期待結果` は観測可能な結果にする
 - `needs_human_decision` が残る場合は scenario 完了にしない
 - `not_applicable` と `deferred` は理由なしで通さない
@@ -147,8 +150,19 @@ AI推奨:
 ### SCN-<topic-abbrev>-001 <正常系の観点名>
 
 - `分類`: 正常系
+- `受け入れテスト`: `required`
+- `実行テスト種別`: `APIテスト | UI人間操作E2E | lower-level only`
+- `実行段階`: `実装前 | 実装後 | final validation`
 - `観点`:
+- `受け入れ条件`:
 - `事前条件`:
+- `public_seam_or_api_boundary`:
+- `contract_freeze`:
+- `入力開始点`:
+- `主要 outcome`:
+- `開始操作`:
+- `入力方法`:
+- `主要操作列`:
 - `手順`:
   1.
   2.
@@ -156,14 +170,26 @@ AI推奨:
   1.
   2.
 - `観測点`:
+- `UI-visible outcome`:
 - `fake_or_stub`:
 - `責務境界メモ`:
 
 ### SCN-<topic-abbrev>-002 <主要失敗系の観点名>
 
 - `分類`: 主要失敗系
+- `受け入れテスト`: `required`
+- `実行テスト種別`: `APIテスト | UI人間操作E2E | lower-level only`
+- `実行段階`: `実装前 | 実装後 | final validation`
 - `観点`:
+- `受け入れ条件`:
 - `事前条件`:
+- `public_seam_or_api_boundary`:
+- `contract_freeze`:
+- `入力開始点`:
+- `主要 outcome`:
+- `開始操作`:
+- `入力方法`:
+- `主要操作列`:
 - `手順`:
   1.
   2.
@@ -171,6 +197,7 @@ AI推奨:
   1.
   2.
 - `観測点`:
+- `UI-visible outcome`:
 - `fake_or_stub`:
 - `責務境界メモ`:
 

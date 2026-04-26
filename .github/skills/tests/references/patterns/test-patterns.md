@@ -7,12 +7,12 @@ agent contract の権限や output obligation は上書きしない。
 
 ## 採用する考え方
 
-- 実装前 tester は、承認済み scenario artifact、public seam、観測点、期待 outcome が固定済みの範囲だけで使う。
+- 実装前 tester は、承認済み受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの `APIテスト` だけで使う。
 - unit test と原因未確定の regression test は実装後に追加または更新する。
 - tester_context_packet は test_ingredients、test_required_reading、requirements_policy_decisions の test impact、test_validation_entry の順に読む。
 - test は behavior を証明し、implementation detail を固定しない。
 - null、empty、invalid、boundary、error path、concurrency をリスクに応じて含める。
-- E2E は critical user flow と browser surface の証跡に絞る。
+- E2E は `UI人間操作E2E` として critical user flow と browser surface の証跡に絞る。
 - flaky test は arbitrary wait ではなく、明確な condition wait へ直す。
 
 ## 適用ルール

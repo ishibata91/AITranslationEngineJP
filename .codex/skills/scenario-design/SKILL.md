@@ -1,6 +1,6 @@
 ---
 name: scenario-design
-description: Codex 側のシナリオ設計知識 package。必須要件、system test 観点、受け入れ条件、検証入口を task-local artifact に固定する基準を提供する。
+description: Codex 側のシナリオ設計知識 package。必須要件、受け入れテスト観点、システムテスト分類、受け入れ条件、検証入口を task-local artifact に固定する基準を提供する。
 ---
 
 # Scenario Design
@@ -8,7 +8,7 @@ description: Codex 側のシナリオ設計知識 package。必須要件、syste
 ## 目的
 
 `scenario-design` は知識 package である。
-`designer` agent が必須要件、scenario、acceptance を固定するための、観測点、fake / stub、validation command、risk の見方を提供する。
+`designer` agent が必須要件、scenario、acceptance を固定するための、観測点、テスト語彙、fake / stub、validation command、risk の見方を提供する。
 
 実行境界、source of truth、handoff、stop / reroute は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
@@ -24,8 +24,16 @@ description: Codex 側のシナリオ設計知識 package。必須要件、syste
 - happy path だけにしない
 - 観測点がない scenario を書かない
 - implementation owned_scope を混ぜない
-- 端から端までのシナリオは、ユーザーまたは外部システムの実際の開始入力を模倣する
-- UI が入口の機能では、裏側の直接呼び出しや fixture 直接投入だけで成立するものを端から端までのシナリオと呼ばない
+- 用語体系は `受け入れテスト > システムテスト > UI人間操作E2E / APIテスト` を正本にする
+- `E2E` は UI 人間操作起点だけを指す
+- `APIテスト` は public seam 起点の system-level test として扱う
+- 受け入れテストは全 scenario case で先に固定する
+- 各 scenario case に `実行テスト種別` と `実行段階` を必ず書く
+- `実行テスト種別` は `APIテスト`、`UI人間操作E2E`、`lower-level only` だけを使う
+- `実行段階` は `実装前`、`実装後`、`final validation` だけを使う
+- `APIテスト` では、受け入れ条件、public seam / API boundary、入力開始点、主要 outcome、主要観測点、contract freeze の有無を固定する
+- `UI人間操作E2E` では、開始操作、入力方法、主要操作列、主要観測点、UI-visible outcome、fake / stub 方針を固定する
+- UI が入口の機能では、裏側の直接呼び出しや fixture 直接投入だけで成立するものを UI人間操作E2E と呼ばない
 
 ## 詳細要求タイプ
 
@@ -135,8 +143,11 @@ AI推奨:
 4. `needs_human_decision` だけを `scenario-design.questions.md` に出力する。
 5. 人間判断が残らない場合だけ、user journey を role、action、benefit で書く。
 6. scenario を正常系、主要失敗系、境界条件へ分ける。
-7. 開始条件、操作、期待結果、観測点、validation command を明示する。
-8. UI が入口のシナリオは、ユーザー操作、入力方法、入力から得られる値を開始条件に含める。
+7. 受け入れテストを全 scenario case で先に固定する。
+8. 各 scenario case に `実行テスト種別` と `実行段階` を書く。
+9. `APIテスト` では public seam、request / response contract、外部入力開始、主要観測点を固定する。
+10. `UI人間操作E2E` ではユーザー操作、入力方法、主要操作列、UI-visible outcome を固定する。
+11. 開始条件、操作、期待結果、観測点、validation command を明示する。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は `designer` agent contract に従う。
@@ -151,7 +162,8 @@ DO:
 - deterministic fixture と fake provider を優先する
 - acceptance と validation を結びつける
 - canonicalization target を記録する
-- UI が入口の場合は、画面操作から得られる入力値をシナリオの検証対象にする
+- `APIテスト` と `UI人間操作E2E` の必須情報を混同しない
+- UI が入口の場合は、画面操作から得られる入力値を `UI人間操作E2E` の検証対象にする
 
 DON'T:
 - 人間判断が必要な暗黙要求を AI 判断で固定しない
@@ -159,7 +171,7 @@ DON'T:
 - real paid API を前提にしない
 - product test の実装詳細へ踏み込まない
 - 観測不能な期待結果を書かない
-- 裏側の直接呼び出しだけの検証を、UI 入口の端から端までのシナリオとして扱わない
+- 裏側の直接呼び出しだけの検証を、UI 入口の `UI人間操作E2E` として扱わない
 
 ## Checklist
 

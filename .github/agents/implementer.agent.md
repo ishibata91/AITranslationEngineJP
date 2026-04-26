@@ -42,7 +42,7 @@ active contract は `implementer` に 1 つだけ置く。
 - 既存 pattern、naming、constructor、DI、error return に合わせる。
 - entry point、call site、data flow、error path、test surface を確認してから実装する。
 - error path、empty state、boundary value を実装から落とさない。
-- lane_context_packet に基づいて product code だけを変更する。scenario 先行時だけ tester output も確認する。
+- lane_context_packet に基づいて product code だけを変更する。`APIテスト` 先行時だけ tester output も確認する。
 - fix_ingredients に対応する code path を優先し、distracting_context を寄り道として扱う。
 - lane_context_packet の first_action と change_targets から着手し、広い再調査を開始条件にしない。
 - implementation_subscope が渡された場合は、その sub-scope 内だけを実装し、残りは remaining_implementation_subscopes に返す。
@@ -60,7 +60,7 @@ active contract は `implementer` に 1 つだけ置く。
 
 ## 進め方
 
-1. `single_handoff_packet` 1 件、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果を読む。scenario 先行時だけ tester output も読む。
+1. `single_handoff_packet` 1 件、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果を読む。`APIテスト` 先行時だけ tester output も読む。
 2. lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、related_code_pointers を確認する。
 3. handoff 資料のスコープ粒度、owned_scope、implementation_subscope を確認する。
 4. structural gate に一致する context 不足があれば、product code を広く探さず insufficient_context、reason、needed_context、suggested_narrowing_axis、remaining_implementation_subscopes を返す。
@@ -74,7 +74,7 @@ active contract は `implementer` に 1 つだけ置く。
 ## Source Of Truth
 
 - primary: `single_handoff_packet`、lane_context_packet、owned_scope
-- secondary: scenario 先行時の tester output、docs/coding-guidelines.md、lane-local validation commands、対象 product code
+- secondary: `APIテスト` 先行時の tester output、docs/coding-guidelines.md、lane-local validation commands、対象 product code
 - forbidden source: 未承認設計、owned_scope 外の broad refactor、docs 正本化の推測
 
 ## Permissions

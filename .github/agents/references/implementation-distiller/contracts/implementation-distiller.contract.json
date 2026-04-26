@@ -31,7 +31,7 @@
     "implementation_facts": "facts、inferred、gap を混ぜずに書く",
     "required_reading": "実装者が読む順番を返す。各項目は path、symbol/type/function、line number、structural_unit、読む目的を含める。最初の項目は first_action と対応する実 code にする。要件、実装方針、決定事項の文書は requirements_policy_decisions に要約し、原文確認が必要な場合だけ required_reading に残す",
     "validation_entry": "最初に実行する cheap validation command と完了条件を返す。validation_commands から lane-local に最も狭い command を優先し、広い command しか返せない場合は narrower command を見つけられなかった理由と final validation との役割差を明記する",
-    "test_ingredients": "tester が証明すべき最小 context を completion_signal clause、behavior_to_prove、public seam/API boundary、シナリオ開始操作、入力模倣方針、existing test target、fixture/helper、assertion_focus、validation command で返す。implementation 内部の fix_ingredients は test seam 特定に必要な場合だけ参照元として含める",
+    "test_ingredients": "tester が証明すべき最小 context を completion_signal clause、behavior_to_prove、public seam/API boundary、request / response contract、入力開始点、主要観測点、`UI人間操作E2E` の開始操作、入力模倣方針、existing test target、fixture/helper、assertion_focus、validation command で返す。implementation 内部の fix_ingredients は test seam 特定に必要な場合だけ参照元として含める",
     "test_required_reading": "tester が読む最小 file / symbol / line を返す。既存 product test、public contract、gateway/controller/usecase seam を優先し、implementation 内部の broad code path を読ませない",
     "test_existing_patterns": "踏襲する既存 test pattern を path、test name / helper、line number、踏襲する理由で返す。見つからない場合は none と探索範囲、test 実装への影響を返す",
     "test_distracting_context": "test 作成に不要な implementation detail、similar but unrelated test、後続 handoff context を why_excluded、risk_if_read 付きで返す",

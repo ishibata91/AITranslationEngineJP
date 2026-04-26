@@ -6,7 +6,7 @@
 - [ ] scenario-design に `needs_human_decision` が残っていないことを確認した
 - [ ] 承認済み詳細要求タイプを validation intent の根拠にした
 - [ ] handoff を owned_scope、depends_on、validation で分けた
-- [ ] 各 handoff が `1 e2e use case × 1 validation intent` に収まっている
+- [ ] 各 handoff が `1 受け入れユースケース × 1 validation intent` に収まっている
 - [ ] 各 validation command が `completion_signal` を直接検証している
 - [ ] 各 validation command が `owned_scope` と解消済み `depends_on` だけで pass できる
 - [ ] 各 handoff に 1 clause だけを閉じる `first_action` を書いた
@@ -17,8 +17,8 @@
 - [ ] `40 files` 以上または `2500 changed lines` 以上の hard stop handoff は propose-plans へ戻した
 - [ ] import / generation / settings save / preview / create / update / delete / export のうち、別 use case になっている処理を同一 handoff に混ぜていない
 - [ ] domain 名や画面名だけを根拠に、複数 use case を同一 handoff にまとめていない
-- [ ] layer をまたぐ handoff は、e2e completion_signal で完了判定できる
-- [ ] UI が入口の handoff は、ユーザー入力の模倣を completion_signal に含めた
+- [ ] layer をまたぐ handoff は、受け入れユースケース completion_signal で完了判定できる
+- [ ] frontend handoff は `UI人間操作E2E` を直接 owner にせず、final validation で証明する形にした
 - [ ] `depends_on` から依存 DAG を作り、ready wave を `execution_group` と `ready_wave` にした
 - [ ] Ready Waves 表に handoff、開始前依存、並列 pair、blocker を書いた
 - [ ] 並列可能な handoff だけを `parallelizable_with` に列挙した

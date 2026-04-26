@@ -3,6 +3,10 @@
     {
       "runtime": "codex",
       "transcript_path": "/Users/iorishibata/.codex/sessions/2026/04/25/rollout-2026-04-25T22-38-27-019dc4dc-f309-74b0-91d5-6d8b1ac239e0.jsonl"
+    },
+    {
+      "runtime": "copilot",
+      "transcript_path": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/GitHub.copilot-chat/transcripts/a7d6df9f-8ff7-4af3-80ba-adcca3249db8.jsonl"
     }
   ]
 }

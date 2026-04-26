@@ -27,6 +27,7 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 ## 知識範囲
 
 - handoff を RunSubagent 実行単位として扱う判断
+- contract freeze を downstream 実装開始条件として扱う判断
 - depends_on の解消順
 - `execution_group` / `ready_wave` を ready wave として扱う判断
 - 全 implementation handoff 完了後の scenario validation、suite-all、Sonar check
@@ -37,10 +38,11 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 
 - `implementation-scope` を唯一の実行正本にする
 - 1 handoff を 1 RunSubagent 実行単位として扱う
+- `contract_freeze.status: required` の handoff は、対応する `completion_signal` が揃うまで downstream handoff を開始しない
 - `execution_group` / `ready_wave` は必要な数だけある ready wave として扱い、同じ wave 内でも `parallelizable_with` に列挙された handoff だけを並列化する
 - `first_action` がない handoff は実装開始せず、Copilot 内 narrowing の対象にする
 - distiller は tester / implementer より先に lane-local context を作る
-- tester を実装前に起動できるのは、承認済み scenario artifact を product test 化する handoff だけである
+- tester を実装前に起動できるのは、承認済み `APIテスト` を product test 化する handoff だけである
 - unit test と原因未確定の regression test は、implementer 完了後に tester が追加または更新する
 - scenario validation、suite-all、Sonar check は全 implementation handoff 完了後だけ実行する
 - Codex review は final validation 後に `codex exec` で呼び出す
@@ -49,14 +51,15 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 
 ## 標準パターン
 
-1. `approval_record` と `implementation-scope` の Ready Waves 表、handoff 見出し、owned_scope、depends_on、execution_group、ready_wave、parallelizable_with、parallel_blockers、first_action、validation command だけを確認する。
+1. `approval_record` と `implementation-scope` の Ready Waves 表、handoff 見出し、contract_freeze、owned_scope、depends_on、execution_group、ready_wave、parallelizable_with、parallel_blockers、first_action、validation command だけを確認する。
 2. Ready Waves 表、`execution_group`、`depends_on` から、未完了 wave のうち実行可能な最小番号の ready wave を選ぶ。
 3. 実行可能な handoff 1 件から `single_handoff_packet` を作る。
    - 同じ ready wave 内では、互いに `parallelizable_with` に列挙された handoff だけを RunSubagent 並列実行の候補にする。
    - `parallel_blockers` がある handoff は、blocker の理由が解消するまで単独または後続 wave として扱う。
+   - downstream handoff は、依存先 handoff の `contract_freeze.status: done` と対応する `completion_signal` が揃うまで着手しない。
 4. `implementation-distiller` で `lane_context_packet` と `tester_context_packet` を作る。
-5. scenario 先行条件を満たす場合だけ、`tester` に `single_handoff_packet`、`tester_context_packet`、test_subscope、owned_scope、test target だけを渡す。
-6. `implementer` に `single_handoff_packet`、`lane_context_packet`、implementation_subscope、owned_scope、depends_on 解消結果を渡す。scenario 先行時だけ tester output も渡す。
+5. `APIテスト` 先行条件を満たす場合だけ、`tester` に `single_handoff_packet`、`tester_context_packet`、test_subscope、owned_scope、test target だけを渡す。
+6. `implementer` に `single_handoff_packet`、`lane_context_packet`、implementation_subscope、owned_scope、depends_on 解消結果を渡す。`APIテスト` 先行時だけ tester output も渡す。
 7. unit test と regression test が必要な場合は、implementer 完了後に `tester` へ実装済み scope と tester_context_packet を渡す。
 8. 全 implementation handoff 完了後、`python3 scripts/harness/run.py --suite scenario-gate` を実行し、task 固有の product scenario test command がある場合は同じ結果へ含める。
 9. scenario validation が pass した場合だけ、`python3 scripts/harness/run.py --suite all` を実行する。
@@ -111,15 +114,15 @@ backend 完了前に frontend handoff を先行しない。
 3. 必要なら `investigator` に渡し、`agent-browser` CLI で UI state、console、Wails binding evidence を集める。
 4. 全 implementation handoff 完了後、scenario validation、suite-all、Sonar check、Codex review を順に行う。
 
-### Scenario 先行パターン
+### APIテスト先行パターン
 
-承認済み scenario artifact を product test 化する時だけ使う。
-原因未確定の regression test や unit test には使わない。
+承認済み `APIテスト` を product test 化する時だけ使う。
+原因未確定の regression test や unit test、`UI人間操作E2E` には使わない。
 
 1. `implementation-distiller` に渡し、handoff 1 件だけから context packet を作る。
-2. 承認済み scenario、public seam、観測点、期待 outcome が固定済みであることを確認する。
-3. `tester` に渡し、scenario outcome を fail 前提の product test にする。
-4. `implementer` に渡し、scenario test を満たす product code だけを実装する。
+2. 承認済み受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みであることを確認する。
+3. `tester` に渡し、API contract outcome を fail 前提の product test にする。
+4. `implementer` に渡し、API test を満たす product code だけを実装する。
 5. 実装後に必要な unit / regression test は tester へ戻す。
 
 ## Codex Review 呼び出し
@@ -151,17 +154,20 @@ Copilot は `decision_basis` を再解釈せず、次の分岐だけを行う。
 
 DO:
 - distiller を tester / implementer より先に起動する
-- scenario 先行条件を満たす時だけ tester を implementer より先に起動する
+- `APIテスト` 先行条件を満たす時だけ tester を implementer より先に起動する
 - unit test と原因未確定の regression test は実装後に tester へ渡す
 - execution_group、parallelizable_with、parallel_blockers を見て ready wave を決める
+- contract freeze 完了前の downstream handoff を開始しない
 - `first_action` を含む `single_handoff_packet` だけを tester / implementer へ渡す
 - scenario validation、suite-all、Sonar check を全 implementation handoff 完了後に実行する
 - `codex exec` の review payload に diff と validation result を含める
 - `codex_review_result.copilot_action` に従って受け取り分岐を固定する
+- `UI人間操作E2E` は final validation lane でだけ証明する
 
 DON'T:
 - RunSubagent 以外で実装、test 追加、調査をしない
 - `first_action` がない handoff を広い調査で補わない
+- `contract_freeze.status: required` を単なる notes として無視しない
 - `parallelizable_with` に列挙されていない handoff を同じ wave という理由だけで並列実行しない
 - final validation 前に scenario validation、suite-all、Sonar check を実行しない
 - scenario validation failure を residual risk として close しない

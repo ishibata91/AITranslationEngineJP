@@ -16,7 +16,7 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 
 - owned_scope 内の product code を実装する時
 - lane_context_packet に基づいて product code を実装する時
-- scenario 先行時の tester output を product code 実装へ反映する時
+- `APIテスト` 先行時の tester output を product code 実装へ反映する時
 - lane-local validation の扱いを確認する時
 
 ## 参照しない場合
@@ -30,6 +30,7 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 - owned_scope を超えない実装判断
 - handoff 資料のスコープ粒度に合わせる判断
 - coding guidelines と既存 pattern の確認
+- lint policy と architecture constraint の局所確認
 - boundary、error path、test surface の実装品質判断
 - validation result と residual risk の返し方
 - focused skill の選び方
@@ -39,7 +40,7 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 - `implementation-scope` と owned_scope を超えない
 - handoff 資料のスコープ粒度で実装する
 - lane_context_packet に合わせて product code だけを変更する
-- scenario 先行時だけ tester output も確認する
+- `APIテスト` 先行時だけ tester output も確認する
 - implementation_subscope が渡された場合はその sub-scope 内だけを実装する
 - 実装完了後、handoff を終える前に touched layer に対応する local validation を実行する
 - fix_ingredients に対応する code path を優先し、distracting_context へ寄り道しない
@@ -63,11 +64,14 @@ description: GitHub Copilot 側の product code 実装の共通知識 package。
 
 DO:
 - 実装前に [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) を読む
+- 実装前に [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) を読み、handoff に効く静的 check の責務を確認する
 - lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、related_code_pointers を確認する
+- requirements_policy_decisions に architecture constraint がある場合は、その範囲だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を局所確認する
 - implementation_subscope があれば completion_signal clause、public seam、change target / symbol、validation command を確認する
 - insufficient_context を返す場合は reason、needed_context、suggested_narrowing_axis、remaining_implementation_subscopes を structural gate に対応づける
 - entry point、call site、data flow、error path、test surface を確認する
 - 既存 pattern に naming、constructor、DI、error return を合わせる
+- generated import、layer 依存、boundary rule、format 逸脱など、touched layer で踏みやすい lint 観点を先に確認する
 - lane-local validation 結果または未実行理由を返す
 - backend handoff は `python3 scripts/harness/run.py --suite backend-local`、frontend handoff は `python3 scripts/harness/run.py --suite frontend-local` を使う
 - mixed handoff は touched layer に応じて両方を実行する
@@ -81,6 +85,7 @@ DON'T:
 - implementation_subscope 外へ実装を広げない
 - distracting_context を実装対象に混ぜない
 - first_action がないまま広い調査を始めない
+- lint を知らないまま実装して local validation で初めて境界違反を知る進め方をしない
 - config、lint、test、coverage 設定を変更して gate を回避しない
 - product test、fixture、snapshot、test helper を変更しない
 - coverage、harness all、repo-local Sonar issue gate を implementer の必須 closeout にしない
@@ -93,6 +98,7 @@ DON'T:
 - [implementation-quality-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implement/references/patterns/implementation-quality-patterns.md) を参照する。
 - 対象は readability、KISS、DRY、YAGNI、error handling、backend / frontend boundary、minimal build fix である。
 - Svelte、Wails gateway、Go backend の責務境界に沿って判断する。
+- lint と static check の責務分担は [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) を正本にする。
 
 ## Checklist
 

@@ -5,7 +5,7 @@
 - [ ] API / Wails / DTO / gateway / adapter contract の接合点 scope が承認済みであることを確認した
 - [ ] 両側の touched files を handoff と対応づけた
 - [ ] lane_context_packet と lane-local validation evidence を分けた
-- [ ] scenario 先行時だけ tester output を確認した
+- [ ] `APIテスト` 先行時だけ tester output を確認した
 
 ## Common Pitfalls
 

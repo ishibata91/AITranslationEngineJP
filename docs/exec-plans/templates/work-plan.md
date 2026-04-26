@@ -11,7 +11,7 @@
 ## 最小構成
 
 - `plan.md`: task 全体の索引、状態、HITL、validation、closeout
-- `scenario-design.md`: 必須要件、system test 観点、受け入れ条件、観測点
+- `scenario-design.md`: 必須要件、受け入れテスト観点、システムテスト分類、受け入れ条件、観測点
 
 ## 条件付き構成
 

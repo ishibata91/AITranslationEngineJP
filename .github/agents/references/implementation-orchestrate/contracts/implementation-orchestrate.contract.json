@@ -43,9 +43,9 @@
     "completed_handoffs": "implementation-scope の handoff 見出し単位で完了、未完了、依存待ちを返す。status は subagent 戻り値、Ready Waves 表、または depends_on 判定だけから決める",
     "implementation_context_packets": "各 implementation handoff で tester / implementer より先に起動した implementation-distiller の lane_context_packet と tester_context_packet を返す。distiller input は first_action を含む single_handoff_packet 1 件だけに限定する",
     "narrowing_results": "first_action 欠落、tester / implementer の無応答、timeout、空 output、required field 欠落、insufficient_context、final validation failure を trigger として実施した Copilot 内 sub-scope narrowing を返す",
-    "test_results": "pre_implementation_scenario_tests と post_implementation_tests を分けて返す。pre_implementation_scenario_tests は承認済み scenario artifact、public seam、観測点、期待 outcome が固定済みの handoff だけに限定する。post_implementation_tests は unit test と原因、修正 seam、観測点が実装側で確定した regression test を返す",
-    "implemented_scope": "implementer へ渡した single_handoff_packet 1 件、lane_context_packet、implementation_subscope、任意の pre_implementation_scenario_tests に対応づける",
-    "scenario_validation_result": "全 implementation handoff 完了後に実行した `python3 scripts/harness/run.py --suite scenario-gate` の結果を返す。task 固有の product scenario test command が implementation-scope にある場合は同じ field に含める。fail した場合は close せず Copilot 側 blocker として返す",
+    "test_results": "pre_implementation_api_tests と post_implementation_tests を分けて返す。pre_implementation_api_tests は承認済み受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの `APIテスト` handoff だけに限定する。post_implementation_tests は unit test と原因、修正 seam、観測点が実装側で確定した regression test を返す",
+    "implemented_scope": "implementer へ渡した single_handoff_packet 1 件、lane_context_packet、implementation_subscope、任意の pre_implementation_api_tests に対応づける",
+    "scenario_validation_result": "全 implementation handoff 完了後に実行した `python3 scripts/harness/run.py --suite scenario-gate` の結果を返す。意味は `APIテスト群 + UI人間操作E2E 群` の集約結果である。task 固有の product scenario test command が implementation-scope にある場合は同じ field に含める。fail した場合は close せず Copilot 側 blocker として返す",
     "final_validation_result": "scenario_validation_result、suite-all、Sonar check の結果を返す。suite-all は scenario validation pass 後だけ実行する。feature 実装、product behavior 変更、新要件判断、review 判断を混ぜない",
     "coverage_gate_result": "Sonar-compatible coverage 70% 以上。Sonar サーバ側 Quality Gate ではなく repo-local coverage gate として扱う。未実行なら blocked reason を返す",
     "sonar_gate_result": "互換 field 名として残すが、意味は repo-local Sonar issue gate であり Sonar サーバ側 Quality Gate ではない。Security 0、Reliability 0、Maintainability HIGH/BLOCKER 0。未実行なら blocked reason を返す",
@@ -83,14 +83,15 @@
     "docs 正本化または workflow 変更が実装完了の前提になる",
     "2 回の autonomous narrowing 後も single_handoff_packet 内で first_action を確定できない",
     "implementation-distiller を tester より先に起動できない",
-    "scenario 先行条件を満たす handoff で tester を implementer より先に起動できない"
+    "`APIテスト` 先行条件を満たす handoff で tester を implementer より先に起動できない"
   ],
   "handoff_constraints": [
     "RunSubagent の source scope は first_action を含む single_handoff_packet 1 件、lane_context_packet、tester_context_packet に限定する",
     "implementation-distiller は tester / implementer より先に必ず起動する",
-    "tester を implementer より先に起動できるのは、承認済み scenario artifact、public seam、観測点、期待 outcome が固定済みの handoff だけである",
+    "tester を implementer より先に起動できるのは、承認済み受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの `APIテスト` handoff だけである",
     "unit test と原因未確定の regression test は implementer 完了後に tester へ渡す",
-    "implementer には single_handoff_packet、first_action、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果、禁止事項だけを渡す。scenario 先行時だけ tester output も渡す",
+    "implementer には single_handoff_packet、first_action、lane_context_packet、implementation_subscope、owned_scope、depends_on 解消結果、禁止事項だけを渡す。`APIテスト` 先行時だけ tester output も渡す",
+    "`UI人間操作E2E` は final validation lane でだけ証明する",
     "scenario validation、suite-all、Sonar check は全 implementation handoff 完了後にだけ実行する",
     "suite-all は scenario validation pass 後だけ実行する",
     "Codex review は final validation 後に codex exec で review_conductor を呼び出す"
