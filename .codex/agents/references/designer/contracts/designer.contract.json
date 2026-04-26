@@ -15,6 +15,7 @@
     "human_review_record",
     "target_skill",
     "existing_design_artifacts",
+    "scenario_candidate_artifacts",
     "known_gaps"
   ],
   "input_policy": "handoff_packet だけで作業できること。引き継いでいない会話文脈に依存しない。",
@@ -40,7 +41,7 @@
     "open_questions"
   ],
   "field_requirements": {
-    "design_artifact_status": "scenario、UI、implementation-scope、skill-modification のどれを扱ったかと状態を返す",
+    "design_artifact_status": "scenario、scenario candidate integration、UI、implementation-scope、skill-modification のどれを扱ったかと状態を返す",
     "touched_artifacts": "作成または更新した task-local artifact path を返す",
     "human_review_requirements": "human review が必要な判断、承認待ち、承認済みの状態を返す",
     "validation_summary": "実行した確認と未実行理由を返す",
@@ -61,6 +62,8 @@
   ],
   "stop_conditions": [
     "human review が必要な判断を AI だけで確定しそうである",
+    "scenario-design に必要な scenario_candidate_artifacts が不足している",
+    "scenario candidate coverage に未解決 conflict が残っている",
     "active task folder が不足している",
     "design_scope が不明である",
     "handoff_packet だけでは作業できない",

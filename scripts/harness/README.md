@@ -24,7 +24,7 @@
 - `frontend-test`: repo root package の `test:frontend` を入口にして frontend test を実行する
 - `backend-test`: repo root package の `test:backend` を入口にして backend test を実行する
 - `system-test`: repo root package の `test:system` を入口にして Playwright system test を実行する
-- `scenario-gate`: active task の `scenario-design.md` にある詳細要求 coverage を検査し、漏れ report と人間質問票を生成する
+- `scenario-gate`: active task の `scenario-design.md` にある candidate coverage と詳細要求 coverage を検査し、漏れ report と人間質問票を生成する
 - `coverage`: repo root package の `test:frontend:coverage` と `test:backend:coverage` を入口にして Sonar 互換の project coverage を 70% 基準で検査し、Sonar 用 report path と集計値を `test-results/coverage-manifest.json` にまとめる
 - `structure`: `docs/index.md` を repo の地図として扱い、リンク切れを検査する
 - `execution`: `lint:backend`、`lint:frontend`、`test:backend`、`test:frontend`、Sonar をまとめて確認する入口

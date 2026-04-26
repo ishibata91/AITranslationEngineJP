@@ -4,13 +4,14 @@
   "runtime": "codex",
   "allowed_actions": [
     "Codex 側 design artifact を task-local に作成、更新、整理する",
-    "scenario を必須要件の固定点として作成または更新し、UI 変更がある時だけ ui-design を作成または更新し、human review 後に implementation-scope を固定する",
+    "propose_plans が揃えた scenario candidate artifact を統合し、scenario を必須要件の固定点として作成または更新し、UI 変更がある時だけ ui-design を作成または更新し、human review 後に implementation-scope を固定する",
     "human review 後に implementation-scope を人間向け Copilot handoff packet の材料として固定する",
     "workflow skill / agent 文書を skill-modification 範囲で整理する",
     "design artifact の結果、human review 状態、open questions を propose_plans へ返す"
   ],
   "forbidden_actions": [
     "workflow orchestration と次 action 判断を designer が主導する",
+    "scenario candidate generator を designer が再 spawn する",
     "handoff packet にない暗黙の会話文脈へ依存する",
     "product code と product test を変更する",
     "human 承認なしで docs 正本を更新する",

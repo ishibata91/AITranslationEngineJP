@@ -1,0 +1,53 @@
+{
+  "contract_version": "2026-04-26",
+  "agent": "scenario_external_integration_generator",
+  "runtime": "codex",
+  "viewpoint": "external-integration",
+  "allowed_actions": [
+    "propose_plans から渡された handoff packet、distiller result、task-local artifact を読む",
+    "external-integration viewpoint だけで scenario candidate を生成する",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/<task-id>/scenario-candidates.external-integration.md を作成または更新する",
+    "source requirement、観測点、関連 detail requirement type、conflict hint、human decision candidate を候補に残す",
+    "生成結果、未決事項、不足 source を propose_plans へ返す"
+  ],
+  "forbidden_actions": [
+    "最終 scenario matrix を確定する",
+    "candidate の採用、不採用、統合を確定する",
+    "scenario-design.candidate-coverage.json を作成または更新する",
+    "scenario-design.requirement-coverage.json を作成または更新する",
+    "scenario-design.questions.md を作成または更新する",
+    "他の scenario candidate generator を spawn する",
+    "designer、distiller、investigator、docs_updater、work_reporter を spawn する",
+    "product code または product test を変更する",
+    "human 承認なしで docs 正本を更新する",
+    "Copilot へ直接 handoff する"
+  ],
+  "allowed_write_scope": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/completed/"
+  ],
+  "forbidden_write_scope": [
+    "product code",
+    "product test",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/ without human-approved docs canonicalization",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"
+  ],
+  "spawn_context_policy": "この agent は下位 agent を spawn しない。必要な情報は propose_plans からの handoff packet に明示されていること。",
+  "required_source_of_truth": [
+    "propose_plans から渡された handoff packet",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-external-integration-generation/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md",
+    "active task folder"
+  ],
+  "stop_conditions": [
+    "handoff packet だけでは source requirement を特定できない",
+    "active task folder が不足している",
+    "最終 scenario の採否判断が必要である",
+    "product 実装が必要である",
+    "docs 正本更新の承認がない"
+  ],
+  "reroute_targets": [
+    "propose_plans"
+  ]
+}

@@ -1,0 +1,25 @@
+name = "scenario_state_transition_generator"
+description = "Codex scenario state-transition generator agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md を読む。"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
+sandbox_mode = "workspace-write"
+developer_instructions = """
+この作業は `scenario_state_transition_generator` agent と `scenario-state-transition-generation` skill に基づく。
+
+最初に次を読む。
+- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md`
+- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_state_transition_generator/permissions.json`
+- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_state_transition_generator/contracts/scenario_state_transition_generator.contract.json`
+
+必要に応じて次の support skill を読む。
+- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md`
+- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md`
+
+source of truth、handoff、stop / reroute は skill に従う。
+permissions と output obligation は permissions / contract に従う。
+
+`propose_plans` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
+`state-transition` viewpoint の scenario 候補だけを `scenario-candidates.state-transition.md` に書く。
+最終 scenario matrix、採否、統合、競合解消は `designer` に残す。
+他の scenario candidate generator を spawn しない。
+"""

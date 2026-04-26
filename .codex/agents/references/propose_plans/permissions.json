@@ -6,7 +6,8 @@
     "user request を Codex workflow の task folder、必要判定、agent spawn、human review、human 向け Copilot handoff、正本化入口に分解する",
     "memory、/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md、/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md、active / completed task folder を確認する",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/<task-id>/plan.md を作成または更新する",
-    "distiller と investigator の要否を最初に判定し、承認済み design bundle がない限り designer を使う",
+    "designer 前に 6 種の scenario candidate generator を context 継承なしで並列 spawn し、candidate artifact を task folder に揃える",
+    "distiller と investigator の要否を最初に判定し、承認済み design bundle がない限り scenario candidate generator 6 体と designer を使う",
     "必要な agent を context 継承なしで spawn するための handoff packet を作る",
     "downstream agent の結果を task-local workflow state に反映する",
     "human review が必要な地点で停止し、再開条件を明示する",
@@ -17,7 +18,7 @@
   "forbidden_actions": [
     "product code または product test を変更する",
     "human 承認なしで docs 正本を更新する",
-    "UI、scenario、implementation-scope の本文をこの agent が代筆する",
+    "UI、最終 scenario matrix、implementation-scope の本文をこの agent が代筆する",
     "再現、trace、実画面 observation をこの agent が実施する",
     "Codex から Copilot へ直接 handoff する",
     "承認済み implementation-scope なしで人間向け Copilot handoff packet を作る",
@@ -36,7 +37,7 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/ workflow contracts unless the current task is explicitly skill / agent modification"
   ],
-  "spawn_context_policy": "distiller、designer、investigator、docs_updater は context を引き継がずに spawn する。必要な情報は handoff packet に明示し、暗黙の会話文脈に依存しない。",
+  "spawn_context_policy": "distiller、scenario candidate generator 6 体、designer、investigator、docs_updater は context を引き継がずに spawn する。必要な情報は handoff packet に明示し、暗黙の会話文脈に依存しない。",
   "required_source_of_truth": [
     "user の現在指示",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md",
@@ -57,6 +58,12 @@
     "investigator",
     "docs_updater",
     "work_reporter",
+    "scenario_actor_goal_generator",
+    "scenario_lifecycle_generator",
+    "scenario_state_transition_generator",
+    "scenario_failure_generator",
+    "scenario_external_integration_generator",
+    "scenario_operation_audit_generator",
     "human"
   ]
 }

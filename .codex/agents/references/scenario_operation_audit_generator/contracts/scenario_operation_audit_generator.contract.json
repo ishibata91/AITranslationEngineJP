@@ -1,0 +1,65 @@
+{
+  "contract_version": "2026-04-26",
+  "agent": "scenario_operation_audit_generator",
+  "runtime": "codex",
+  "viewpoint": "operation-audit",
+  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_operation_audit_generator/permissions.json",
+  "required_inputs": [
+    "caller",
+    "handoff_packet",
+    "active_task_folder",
+    "lane_owner"
+  ],
+  "optional_inputs": [
+    "distiller_result",
+    "candidate_source_paths",
+    "known_gaps"
+  ],
+  "required_artifacts": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-candidates.viewpoint.md",
+    "active task folder または caller-provided task context"
+  ],
+  "knowledge_refs": [
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md"
+  ],
+  "expected_outputs": [
+    "viewpoint",
+    "candidate_artifact_path",
+    "candidate_count",
+    "source_requirement_coverage",
+    "conflict_hints",
+    "human_decision_candidates",
+    "missing_source_or_stop_reason"
+  ],
+  "field_requirements": {
+    "viewpoint": "operation-audit を返す",
+    "candidate_artifact_path": "docs/exec-plans/active/<task-id>/scenario-candidates.operation-audit.md を返す",
+    "candidate_count": "生成した candidate scenario 数を返す。0 件なら missing_source_or_stop_reason を必ず返す",
+    "source_requirement_coverage": "candidate ごとの source requirement、関連 detail requirement type、観測点を返す",
+    "conflict_hints": "他 viewpoint や最終 scenario 統合時に競合しうる前提、状態、outcome、検証段階を返す",
+    "human_decision_candidates": "AI が確定できない業務判断、状態遷移、外部連携、監査保存対象を返す",
+    "missing_source_or_stop_reason": "必要 source が不足して候補生成できない場合だけ返す"
+  },
+  "required_evidence": [
+    "source requirement path or task-local artifact path",
+    "candidate artifact path",
+    "viewpoint"
+  ],
+  "rejection_conditions": [
+    "final scenario matrix の確定が求められている",
+    "candidate 採否または統合判断が求められている",
+    "product implementation request",
+    "unapproved docs canonicalization"
+  ],
+  "stop_conditions": [
+    "handoff_packet だけでは source requirement を特定できない",
+    "active task folder が不足している",
+    "candidate artifact の書き先が active task folder 外である",
+    "human review が必要な判断を AI だけで確定しそうである"
+  ],
+  "completion_signal": "propose_plans が designer packet に入れる candidate artifact path、候補数、conflict hint、human decision candidate を判断できる",
+  "residual_risk_key": "human_decision_candidates"
+}

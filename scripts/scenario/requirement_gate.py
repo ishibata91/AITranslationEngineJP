@@ -10,6 +10,19 @@ from typing import Any
 
 VALID_STATUSES = {"explicit", "derived", "not_applicable", "deferred", "needs_human_decision"}
 
+EXPECTED_CANDIDATE_GENERATORS = {
+    "actor-goal",
+    "lifecycle",
+    "state-transition",
+    "failure",
+    "external-integration",
+    "operation-audit",
+}
+
+VALID_CANDIDATE_DECISIONS = {"adopted", "merged", "rejected", "conflicted", "needs_human_decision"}
+
+VALID_CONFLICT_STATUSES = {"resolved", "unresolved"}
+
 DETAIL_REQUIREMENT_TYPES = {
     "success_requirement",
     "alternative_success_requirement",
@@ -134,6 +147,10 @@ def default_coverage_path(markdown_path: Path) -> Path:
     return markdown_path.with_suffix(".requirement-coverage.json")
 
 
+def default_candidate_coverage_path(markdown_path: Path) -> Path:
+    return markdown_path.with_suffix(".candidate-coverage.json")
+
+
 def read_json_coverage_file(coverage_path: Path) -> dict[str, Any]:
     try:
         parsed = json.loads(coverage_path.read_text(encoding="utf-8"))
@@ -143,6 +160,13 @@ def read_json_coverage_file(coverage_path: Path) -> dict[str, Any]:
     if not isinstance(parsed, dict):
         raise ValueError("requirement coverage JSON must be an object")
     return parsed
+
+
+def read_json_candidate_coverage(markdown_path: Path, coverage_path: Path | None = None) -> dict[str, Any]:
+    sidecar_path = coverage_path or default_candidate_coverage_path(markdown_path)
+    if not sidecar_path.exists():
+        raise ValueError(f"missing candidate coverage JSON: {sidecar_path.as_posix()}")
+    return read_json_coverage_file(sidecar_path)
 
 
 def read_json_coverage(markdown_path: Path, coverage_path: Path | None = None) -> dict[str, Any]:
@@ -204,7 +228,7 @@ def recommendation_reason_text(question: dict[str, Any]) -> str:
 
 
 def sorted_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    return sorted(questions, key=lambda question: str(question.get("id", "")))
+    return sorted(questions, key=lambda question: str(question.get("id") or question.get("question_id") or ""))
 
 
 def requirement_id(requirement: dict[str, Any], index: int) -> str:
@@ -337,6 +361,197 @@ def validate_coverage(data: dict[str, Any]) -> tuple[list[Finding], list[dict[st
     return all_findings, all_questions
 
 
+def normalize_generators(value: Any) -> dict[str, dict[str, Any]]:
+    if isinstance(value, dict):
+        normalized: dict[str, dict[str, Any]] = {}
+        for name, item in value.items():
+            if isinstance(name, str):
+                normalized[name] = item if isinstance(item, dict) else {"status": item}
+        return normalized
+
+    if isinstance(value, list):
+        normalized = {}
+        for item in value:
+            if not isinstance(item, dict):
+                continue
+            name = item.get("name") or item.get("generator")
+            if isinstance(name, str) and name.strip():
+                normalized[name.strip()] = item
+        return normalized
+
+    return {}
+
+
+def normalize_questions(value: Any) -> dict[str, dict[str, Any]]:
+    if not isinstance(value, list):
+        return {}
+
+    normalized: dict[str, dict[str, Any]] = {}
+    for item in value:
+        if not isinstance(item, dict):
+            continue
+        question_id = item.get("question_id") or item.get("id")
+        if isinstance(question_id, str) and question_id.strip():
+            normalized[question_id.strip()] = {**item, "id": question_id.strip()}
+    return normalized
+
+
+def candidate_artifact_exists(base_dir: Path, artifact_path: Any) -> bool:
+    if not isinstance(artifact_path, str) or not artifact_path.strip():
+        return False
+    path = Path(artifact_path)
+    if not path.is_absolute():
+        path = base_dir / path
+    return path.exists() and path.is_file() and non_empty(path.read_text(encoding="utf-8"))
+
+
+def question_from_candidate(
+    question_id: str,
+    source_id: str,
+    detail_type: str,
+    question_lookup: dict[str, dict[str, Any]],
+    fallback_title: str,
+) -> dict[str, Any]:
+    question = question_lookup.get(question_id, {})
+    return {
+        "id": question_id,
+        "question_title": question.get("question_title") or question.get("title") or fallback_title,
+        "source_requirement": question.get("source_requirement", source_id),
+        "detail_requirement_type": detail_type,
+        "unresolved_decision": question.get("unresolved_decision", ""),
+        "user_goal": question.get("user_goal") or question.get("source_requirement") or source_id,
+        "reason": question.get("reason", ""),
+        "options": question.get("options", []),
+        "recommended_option": question.get("recommended_option", ""),
+        "recommended": question.get("recommended", ""),
+        "recommendation_reason": question.get("recommendation_reason", ""),
+        "uncertainty": question.get("uncertainty", ""),
+        "after_answer_generates": question.get("after_answer_generates", [detail_type]),
+    }
+
+
+def validate_question_shape(findings: list[Finding], question: dict[str, Any], source_id: str, detail_type: str) -> None:
+    if not non_empty(question.get("unresolved_decision")):
+        findings.append(Finding("error", source_id, detail_type, "question requires unresolved_decision"))
+    if not non_empty(question.get("reason")):
+        findings.append(Finding("error", source_id, detail_type, "question requires reason"))
+    if option_count(question.get("options")) != 3:
+        findings.append(Finding("error", source_id, detail_type, "question requires 3 options before その他"))
+    if not non_empty(question.get("recommended")):
+        findings.append(Finding("error", source_id, detail_type, "question requires recommended"))
+    if not non_empty(question.get("user_goal")):
+        findings.append(Finding("error", source_id, detail_type, "question requires user_goal"))
+    if not non_empty(question.get("uncertainty")):
+        findings.append(Finding("error", source_id, detail_type, "question requires uncertainty"))
+    if not non_empty(question.get("after_answer_generates")):
+        findings.append(Finding("error", source_id, detail_type, "question requires after_answer_generates"))
+
+
+def validate_candidate_coverage(data: dict[str, Any], base_dir: Path) -> tuple[list[Finding], list[dict[str, Any]]]:
+    findings: list[Finding] = []
+    questions: list[dict[str, Any]] = []
+
+    generators = normalize_generators(data.get("generators"))
+    if not generators:
+        findings.append(Finding("error", "candidate-coverage", "generators", "generators must be a non-empty list or object"))
+
+    for generator_name in sorted(EXPECTED_CANDIDATE_GENERATORS):
+        generator = generators.get(generator_name)
+        if generator is None:
+            findings.append(Finding("error", "candidate-coverage", generator_name, "required generator is missing"))
+            continue
+        if generator.get("status") != "completed":
+            findings.append(Finding("error", "candidate-coverage", generator_name, "generator status must be completed"))
+        if not candidate_artifact_exists(base_dir, generator.get("artifact_path")):
+            findings.append(Finding("error", "candidate-coverage", generator_name, "generator artifact is missing or empty"))
+
+    candidates = data.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
+        findings.append(Finding("error", "candidate-coverage", "candidates", "candidates must be a non-empty list"))
+        candidates = []
+
+    question_lookup = normalize_questions(data.get("unresolved_questions"))
+    seen_questions: set[str] = set()
+
+    for index, candidate in enumerate(candidates, start=1):
+        if not isinstance(candidate, dict):
+            findings.append(Finding("error", f"candidate[{index}]", "-", "candidate must be an object"))
+            continue
+
+        candidate_id = str(candidate.get("candidate_id") or candidate.get("id") or f"candidate[{index}]")
+        generator_name = candidate.get("generator")
+        source_requirement_id = candidate.get("source_requirement_id")
+        decision = candidate.get("decision")
+
+        if generator_name not in EXPECTED_CANDIDATE_GENERATORS:
+            findings.append(Finding("error", candidate_id, "generator", f"unknown generator: {generator_name}"))
+        if not non_empty(source_requirement_id):
+            findings.append(Finding("error", candidate_id, "source_requirement_id", "source_requirement_id is required"))
+        if decision not in VALID_CANDIDATE_DECISIONS:
+            findings.append(Finding("error", candidate_id, "decision", f"invalid candidate decision: {decision}"))
+            continue
+
+        if decision in {"adopted", "merged"} and not non_empty(candidate.get("final_scenario_id")):
+            findings.append(Finding("error", candidate_id, "final_scenario_id", f"{decision} requires final_scenario_id"))
+        if decision == "rejected" and not non_empty(candidate.get("decision_rationale")):
+            findings.append(Finding("error", candidate_id, "decision_rationale", "rejected requires decision_rationale"))
+        if decision in {"conflicted", "needs_human_decision"}:
+            question_id = candidate.get("question_id")
+            if not isinstance(question_id, str) or not question_id.strip():
+                findings.append(Finding("error", candidate_id, "question_id", f"{decision} requires question_id"))
+            else:
+                question_id = question_id.strip()
+                if question_id not in seen_questions:
+                    question = question_from_candidate(
+                        question_id,
+                        str(source_requirement_id or candidate_id),
+                        "scenario_candidate_conflict",
+                        question_lookup,
+                        "scenario candidate conflict",
+                    )
+                    questions.append(question)
+                    seen_questions.add(question_id)
+                    validate_question_shape(findings, question, candidate_id, "scenario_candidate_conflict")
+            findings.append(Finding("error", candidate_id, "decision", f"{decision} requires human decision before scenario completion"))
+
+    conflicts = data.get("conflicts", [])
+    if not isinstance(conflicts, list):
+        findings.append(Finding("error", "candidate-coverage", "conflicts", "conflicts must be a list"))
+        conflicts = []
+
+    for index, conflict in enumerate(conflicts, start=1):
+        if not isinstance(conflict, dict):
+            findings.append(Finding("error", f"conflict[{index}]", "-", "conflict must be an object"))
+            continue
+        conflict_id = str(conflict.get("conflict_id") or conflict.get("id") or f"conflict[{index}]")
+        status = conflict.get("status")
+        if status not in VALID_CONFLICT_STATUSES:
+            findings.append(Finding("error", conflict_id, "status", f"invalid conflict status: {status}"))
+            continue
+        if status == "resolved" and not non_empty(conflict.get("resolution_rationale")):
+            findings.append(Finding("error", conflict_id, "resolution_rationale", "resolved conflict requires resolution_rationale"))
+        if status == "unresolved":
+            question_id = conflict.get("question_id")
+            if not isinstance(question_id, str) or not question_id.strip():
+                findings.append(Finding("error", conflict_id, "question_id", "unresolved conflict requires question_id"))
+            else:
+                question_id = question_id.strip()
+                if question_id not in seen_questions:
+                    question = question_from_candidate(
+                        question_id,
+                        conflict_id,
+                        "scenario_candidate_conflict",
+                        question_lookup,
+                        "scenario candidate conflict",
+                    )
+                    questions.append(question)
+                    seen_questions.add(question_id)
+                    validate_question_shape(findings, question, conflict_id, "scenario_candidate_conflict")
+            findings.append(Finding("error", conflict_id, "status", "unresolved conflict requires human decision before scenario completion"))
+
+    return findings, questions
+
+
 def render_report(path: Path, findings: list[Finding], questions: list[dict[str, Any]]) -> str:
     lines = [
         "# Requirement Gate Report",
@@ -373,10 +588,11 @@ def render_questionnaire(questions: list[dict[str, Any]]) -> str:
         return "\n".join(lines) + "\n"
 
     for question in sorted_questions(questions):
+        question_id = question.get("id") or question.get("question_id")
         options = question.get("options", [])
         lines.extend(
             [
-                f"## [{question['id']}] {question_title(question)}",
+                f"## [{question_id}] {question_title(question)}",
                 "",
                 "質問:",
                 str(question.get("unresolved_decision", "")),
@@ -432,6 +648,10 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate scenario-design detail requirement coverage.")
     parser.add_argument("input", help="Path to scenario-design.md")
     parser.add_argument("--coverage", help="Path to requirement coverage JSON. Defaults to scenario-design.requirement-coverage.json")
+    parser.add_argument(
+        "--candidate-coverage",
+        help="Path to scenario candidate coverage JSON. Defaults to scenario-design.candidate-coverage.json",
+    )
     parser.add_argument("--report-out", help="Write a markdown gate report to this path")
     parser.add_argument("--questionnaire-out", help="Write a markdown questionnaire to this path")
     parser.add_argument("--json", action="store_true", help="Print machine-readable JSON result")
@@ -443,10 +663,15 @@ def main() -> int:
     args = parser.parse_args()
     input_path = Path(args.input).resolve()
     coverage_path = Path(args.coverage).resolve() if args.coverage else None
+    candidate_coverage_path = Path(args.candidate_coverage).resolve() if args.candidate_coverage else None
 
     try:
         coverage = read_json_coverage(input_path, coverage_path)
         findings, questions = validate_coverage(coverage)
+        candidate_coverage = read_json_candidate_coverage(input_path, candidate_coverage_path)
+        candidate_findings, candidate_questions = validate_candidate_coverage(candidate_coverage, input_path.parent)
+        findings.extend(candidate_findings)
+        questions.extend(candidate_questions)
     except ValueError as exc:
         findings = [Finding("error", "-", "-", str(exc))]
         questions = []

@@ -6,18 +6,156 @@
 - `ui_source`: `./ui-design.md` または `N/A`
 - `final_artifact_path`: `docs/scenario-tests/<topic-id>.md`
 - `topic_abbrev`: `<TOPIC>`
+- `candidate_sources`:
+  - `./scenario-candidates.actor-goal.md`
+  - `./scenario-candidates.lifecycle.md`
+  - `./scenario-candidates.state-transition.md`
+  - `./scenario-candidates.failure.md`
+  - `./scenario-candidates.external-integration.md`
+  - `./scenario-candidates.operation-audit.md`
 
 ## Fixed Requirements
 
 - `must_pass_requirements`:
 - `non_goals`:
 
+## Scenario Candidate Coverage
+
+正本: `./scenario-design.candidate-coverage.json`
+
+`propose_plans` が `designer` 前に生成した 6 種の candidate artifact を読む。
+`designer` は候補生成器を再 spawn しない。
+
+candidate artifact は次を必須にする。
+
+- `source requirement`
+- `viewpoint`
+- `candidate scenario id`
+- `actor`
+- `trigger`
+- `expected outcome`
+- `observable point`
+- `related detail requirement type`
+- `adoption hint`
+
+`scenario-design.candidate-coverage.json` は次の形にする。
+
+```json
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "CAND-<topic-abbrev>-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-<topic-abbrev>-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-<topic-abbrev>-001",
+      "decision_rationale": "<採用、統合、不採用、競合判断の理由>"
+    },
+    {
+      "candidate_id": "CAND-<topic-abbrev>-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-<topic-abbrev>-001",
+      "decision": "conflicted",
+      "question_id": "Q-<topic-abbrev>-001",
+      "decision_rationale": "<競合理由>"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-<topic-abbrev>-001",
+      "status": "unresolved",
+      "candidate_ids": [
+        "CAND-<topic-abbrev>-001",
+        "CAND-<topic-abbrev>-002"
+      ],
+      "conflict_type": "state_transition",
+      "question_id": "Q-<topic-abbrev>-001",
+      "reason": "<競合理由>"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-<topic-abbrev>-001",
+      "candidate_ids": [
+        "CAND-<topic-abbrev>-001"
+      ]
+    }
+  ],
+  "unresolved_questions": [
+    {
+      "question_id": "Q-<topic-abbrev>-001",
+      "question_title": "<短い質問名>",
+      "unresolved_decision": "<人間に決めてほしい判断>",
+      "user_goal": "<実現したい業務・操作>",
+      "reason": "<競合または未決理由>",
+      "options": [
+        {
+          "label": "<選択肢A>",
+          "impact": "<影響>"
+        },
+        {
+          "label": "<選択肢B>",
+          "impact": "<影響>"
+        },
+        {
+          "label": "<選択肢C>",
+          "impact": "<影響>"
+        }
+      ],
+      "recommended_option": 1,
+      "recommended": "<推奨案>",
+      "recommendation_reason": "<推奨理由>",
+      "uncertainty": "<推奨が外れる可能性>",
+      "after_answer_generates": [
+        "scenario_candidate_conflict",
+        "SCN-<topic-abbrev>-001"
+      ]
+    }
+  ]
+}
+```
+
+`decision` は `adopted | merged | rejected | conflicted | needs_human_decision` に固定する。
+`conflicted` または `needs_human_decision` が残る場合は scenario matrix を完了扱いにしない。
+
 ## Detail Requirement Coverage
 
 正本: `./scenario-design.requirement-coverage.json`
 
 各抽象要件について、必要な詳細要求タイプを `explicit`、`derived`、`not_applicable`、`deferred`、`needs_human_decision` に分類する。
-`needs_human_decision` が残る場合は scenario matrix を完了扱いにしない。
+`needs_human_decision` または未解決 conflict が残る場合は scenario matrix を完了扱いにしない。
 
 `scenario-design.md` 内に仕様網羅 JSON を埋め込まない。
 
@@ -142,6 +280,7 @@ AI推奨:
 - `実行段階` は `実装前 | 実装後 | final validation` に固定する
 - `期待結果` は観測可能な結果にする
 - `needs_human_decision` が残る場合は scenario 完了にしない
+- 未解決 conflict が残る場合は scenario 完了にしない
 - `not_applicable` と `deferred` は理由なしで通さない
 - paid な real AI API を前提にしない
 
@@ -208,7 +347,7 @@ AI推奨:
 ## Validation Commands
 
 - Copilot handoff で使う検証入口を書く
-- `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md`
+- `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --coverage docs/exec-plans/active/<task-id>/scenario-design.requirement-coverage.json --candidate-coverage docs/exec-plans/active/<task-id>/scenario-design.candidate-coverage.json --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md`
 
 ## Open Questions
 
