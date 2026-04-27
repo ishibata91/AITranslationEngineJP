@@ -60,7 +60,7 @@ agent contract の権限や output obligation は上書きしない。
 
 - `close`: completion packet に review result を残して終了する。
 - `report_residual`: priority override または confidence residual を residual risk に残して終了する。
-- `fix`: `copilot_patch_scope` 内だけを修正し、final validation と Codex review request を再作成する。
+- `fix`: remediation handoff を読み、chosen strategy、chosen scope、why_not_narrower、why_not_wider、planned changes、invariant tests を決めてから修正し、final validation と Codex review request を再作成する。
 - `rerun_validation`: 指定された不足 validation だけを再実行し、Codex review request を再作成する。
 - `rerun_codex_review`: payload を補い、product code を変更せず Codex review request だけを再作成する。
 
@@ -72,6 +72,7 @@ agent contract の権限や output obligation は上書きしない。
 - `parallelizable_with` がない handoff を同一 wave という理由で並列実行している。
 - Codex review request payload に diff または scope path がない。
 - `rerun_codex_review` で product code を変更している。
-- `fix` で `copilot_patch_scope` 外を変更している。
+- `fix` で symptoms だけを潰す局所修正に閉じている。
+- `fix` で why_not_narrower と why_not_wider なしに scope を選んでいる。
 - repo-local Sonar issue gate と Sonar server Quality Gate を混同している。
 - coverage、Sonar、harness、Codex review request の未実行理由が completion packet にない。

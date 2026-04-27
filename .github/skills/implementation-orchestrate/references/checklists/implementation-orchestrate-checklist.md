@@ -13,6 +13,7 @@
 - [ ] `UI人間操作E2E` を final validation lane で扱った
 - [ ] 人間実行用 Codex review request payload と `codex exec` command を返した
 - [ ] 人間から `codex_review_result` が戻された場合だけ、`copilot_action` に従って close / report_residual / fix / rerun_validation / rerun_codex_review を分岐した
+- [ ] `fix` では remediation handoff から chosen strategy、chosen scope、why_not_narrower、why_not_wider を返した
 ## Common Pitfalls
 
 - [ ] final validation 前に scenario validation、suite-all、Sonar check を実行しなかった
@@ -21,5 +22,5 @@
 - [ ] repo-local Sonar issue gate と Sonar server Quality Gate を混同しなかった
 - [ ] Codex review request payload に diff、scope、validation result を含めた
 - [ ] `rerun_codex_review` で product code を変更しなかった
-- [ ] `fix` で `copilot_patch_scope` 外を変更しなかった
+- [ ] `fix` で symptoms だけを潰す局所修正に閉じなかった
 - [ ] docs / workflow 文書変更を implementation lane に混ぜなかった

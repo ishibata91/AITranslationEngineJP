@@ -5,3 +5,5 @@
 - [ ] cache invalidation と event 発行を確認した
 - [ ] partial failure、soft delete、集計値を確認した
 - [ ] 二重作成または二重課金の可能性を確認した
+- [ ] violated invariant と root cause hypothesis を分けた
+- [ ] local patch assessment と invariant tests を返した

@@ -3,7 +3,9 @@
 - [ ] diff、implementation-scope、implementation result、final validation result を確認した
 - [ ] payload または validation 不足時は観点 group を spawn せず早期 return した
 - [ ] review 可能な時だけ 4 観点 group を context 継承なしで並列 spawn した
+- [ ] 各 group result に observed scope、violated invariant、root cause hypothesis、local patch assessment があることを確認した
+- [ ] primary failure mode、dominant invariant、minimum durable fix boundary を統合した
 - [ ] `strict_pass` と `priority_override_pass` を分けた
 - [ ] priority override した finding を `priority_overrides` と `residual_risks` に残した
 - [ ] hard gate failure を平均 score で相殺しなかった
-- [ ] `copilot_action` を返し、Copilot の受け取り分岐を再解釈不要にした
+- [ ] `copilot_action` と remediation handoff を返し、Copilot の chosen strategy 判断に必要な材料を残した

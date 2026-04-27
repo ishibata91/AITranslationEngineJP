@@ -1,9 +1,9 @@
 {
-  "contract_version": "2026-04-25",
+  "contract_version": "2026-04-28",
   "agent": "review_behavior",
   "runtime": "codex",
-  "allowed_actions": ["review target diff と周辺実コードを read-only で確認する", "挙動正しさ観点だけを score / confidence / findings で返す"],
-  "forbidden_actions": ["file mutation", "契約・互換性を主判定にする", "権限・信頼境界を主判定にする", "テスト網羅性や命名を主判定にする"],
+  "allowed_actions": ["review target diff と周辺実コードを read-only で確認する", "挙動正しさ観点だけを score / confidence / findings / violated_invariant / root_cause_hypotheses / local_patch_assessment で返す"],
+  "forbidden_actions": ["file mutation", "契約・互換性を主判定にする", "権限・信頼境界を主判定にする", "テスト網羅性や命名を主判定にする", "修正範囲を命令する"],
   "allowed_write_scope": [],
   "forbidden_write_scope": ["/Users/iorishibata/Repositories/AITranslationEngineJP/"],
   "required_source_of_truth": ["review target diff", "implementation_scope_path", "implementation_result"],

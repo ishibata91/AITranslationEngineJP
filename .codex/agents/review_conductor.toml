@@ -12,6 +12,7 @@ developer_instructions = """
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_conductor/contracts/review_conductor.contract.json`
 
 観点グループ別 review agent は context を引き継がずに並列 spawn する。
+観点別の判断材料を remediation aggregation と remediation handoff に統合する。
 source of truth、handoff、stop / reroute は skill に従う。
 permissions と output obligation は permissions / contract に従う。
 """

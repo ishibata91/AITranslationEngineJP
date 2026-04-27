@@ -1,19 +1,26 @@
 {
-  "contract_version": "2026-04-25",
+  "contract_version": "2026-04-28",
   "agent": "review_behavior",
   "runtime": "codex",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_behavior/permissions.json",
   "required_inputs": ["review_target_diff", "implementation_scope_path", "implementation_result"],
   "optional_inputs": ["final_validation_result", "touched_files"],
   "knowledge_refs": ["/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-behavior/SKILL.md"],
-  "expected_outputs": ["group", "decision", "score", "confidence", "findings", "evidence_paths", "not_reviewed"],
+  "expected_outputs": ["group", "decision", "score", "confidence", "observed_scope", "violated_invariant", "root_cause_hypotheses", "local_patch_assessment", "exploration_scope", "remediation_considerations", "invariant_tests", "findings", "evidence_paths", "not_reviewed"],
   "field_requirements": {
     "group": "behavior_correctness",
     "decision": "pass / fail / blocked のいずれか。score > 0.85 の場合だけ pass",
     "score": "PR 目的に対する実コードの挙動一致度を 0.0 から 1.0 で返す",
     "confidence": "根拠十分性を 0.0 から 1.0 で返す",
+    "observed_scope": "確認した実コード、主要経路、未確認範囲を分ける",
+    "violated_invariant": "PR目的、既存挙動、受け入れ条件のどれが破られたかを書く。未特定なら不明理由を書く",
+    "root_cause_hypotheses": "症状を生む原因候補、根拠、反証余地を分ける",
+    "local_patch_assessment": "局所修正で閉じるか、他層へ波及するか、局所修正が危険な理由を書く",
+    "exploration_scope": "追加で読むべき範囲と読まない範囲を書く",
+    "remediation_considerations": "修正者が考慮すべき candidate control points、durable fix signal、local patch risk を返す。修正範囲を命令しない",
+    "invariant_tests": "破れた挙動 invariant を固定する test 観点を返す",
     "findings": "正常系、条件分岐、境界値、例外系、既存挙動差分、bug 原因対応だけを書く"
   },
-  "completion_signal": "挙動正しさの score と根拠が返っている",
+  "completion_signal": "挙動正しさの score、破られた invariant、root cause hypothesis、local patch assessment、根拠が返っている",
   "residual_risk_key": "not_reviewed"
 }

@@ -67,7 +67,7 @@ GitHub Copilot 側の `implementation-orchestrate` agent が、承認済み `imp
 10. scenario validation が pass した場合だけ、`python3 scripts/harness/run.py --suite all` を実行する。
 11. Sonar check を実行し、repo-local gate と Sonar server Quality Gate を混同しない。
 12. 人間実行用 Codex review request payload と `codex exec` command を completion packet に含める。
-13. 人間から `codex_review_result` が戻された場合だけ、`codex_review_result.copilot_action` に従い、close、residual report、修正、validation 再実行、Codex review request 再作成のいずれかへ分岐する。
+13. 人間から `codex_review_result` が戻された場合だけ、`codex_review_result.copilot_action` に従い、close、residual report、修正者判断、validation 再実行、Codex review request 再作成のいずれかへ分岐する。
 
 この手順は知識上の標準例である。
 実行順、必須 input、完了条件は agent contract に従う。
@@ -151,9 +151,20 @@ Copilot は `decision_basis` を再解釈せず、次の分岐だけを行う。
 
 - `close`: completion packet に `codex_review_result` を転記して終了する
 - `report_residual`: `priority_overrides` と `residual_risks` を completion packet に残して終了する
-- `fix`: `copilot_patch_scope` 内だけを修正し、final validation と Codex review request payload を再作成する
+- `fix`: `remediation_handoff` を読み、chosen strategy、chosen scope、狭すぎない理由、広げすぎない理由、planned changes、invariant tests を決めてから修正する
 - `rerun_validation`: 指定された不足 validation だけを再実行し、Codex review request payload を再作成する
 - `rerun_codex_review`: 不足 payload を補い、product code を変更せず Codex review request payload だけを再作成する
+
+`fix` では、Codex review の `minimum_durable_fix_boundary` を修正範囲の最終命令として扱わない。
+Copilot は修正者として次を completion packet に返す。
+
+- `chosen_strategy`
+- `chosen_scope`
+- `why_this_scope`
+- `why_not_narrower`
+- `why_not_wider`
+- `planned_changes`
+- `invariant_tests`
 
 ## DO / DON'T
 
@@ -169,6 +180,7 @@ DO:
 - scenario validation、suite-all、Sonar check を全 implementation handoff 完了後に実行する
 - 人間実行用 Codex review request payload に diff と validation result を含める
 - 人間から `codex_review_result` が戻された時だけ、`codex_review_result.copilot_action` に従って受け取り分岐を固定する
+- `fix` では remediation handoff から chosen strategy と chosen scope を説明してから修正する
 - `UI人間操作E2E` は final validation lane でだけ証明する
 
 DON'T:
@@ -182,7 +194,8 @@ DON'T:
 - repo-local Sonar issue gate と Sonar server Quality Gate を混同しない
 - Copilot が `codex exec` を直接呼び出さない
 - `rerun_codex_review` で product code を変更しない
-- `fix` で `copilot_patch_scope` の外を変更しない
+- `fix` で symptoms だけを潰す局所修正に閉じない
+- `fix` で why_not_narrower と why_not_wider なしに scope を選ばない
 - docs、`.codex`、`.github/skills`、`.github/agents` を変更しない
 
 ## 参照パターン

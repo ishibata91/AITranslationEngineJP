@@ -30,6 +30,18 @@ description: Codex 実装後 review の契約・互換性グループ知識 pack
 `score > 0.85` を pass とする。
 既存 field の意味変更や nullable / required の変更は高い減点対象にする。
 
+## 出力責務
+
+この reviewer は修正範囲を命令しない。
+修正判断に必要な情報として次を返す。
+
+- `observed_scope`: 確認した public boundary と未確認範囲
+- `violated_invariant`: 破られた API、schema、nullable / required、versioning の invariant
+- `root_cause_hypotheses`: 契約破壊を生む原因候補と根拠
+- `local_patch_assessment`: 局所 shim で足りるか、public seam 固定が必要か
+- `exploration_scope`: contract 影響確認に必要な読む範囲
+- `remediation_considerations`: 修正者が考慮すべき支配点、互換 risk、invariant tests
+
 ## Checklist
 
 - [codex-review-contract-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-contract/references/checklists/codex-review-contract-checklist.md) を参照する。

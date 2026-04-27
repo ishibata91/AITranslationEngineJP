@@ -11,5 +11,5 @@ developer_instructions = """
 - permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_state_invariant/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_state_invariant/contracts/review_state_invariant.contract.json`
 
-diff から取得した実コードを読み、状態・データ不変条件だけを score / confidence / findings で返す。
+diff から取得した実コードを読み、状態・データ不変条件だけを score / confidence / findings / violated_invariant / root_cause_hypotheses / local_patch_assessment で返す。
 """
