@@ -1,2 +1,5 @@
 approval_policy = "never"
 max_depth = 2
+
+[features]
+codex_hooks = true

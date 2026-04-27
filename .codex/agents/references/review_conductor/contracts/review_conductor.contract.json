@@ -36,7 +36,7 @@
     "residual_risks": "priority_override_pass、FAIL_ENVIRONMENT、低 confidence、採用しなかった下位 finding の残余リスクを分ける",
     "copilot_action": "close / fix / rerun_validation / rerun_codex_review / report_residual のいずれかを返す",
     "copilot_patch_scope": "copilot_action が fix の時だけ、Copilot が修正してよい file、symbol、validation command を返す。それ以外は none を返す",
-    "next_actions": "copilot_action に従い、Copilot 修正、validation 再実行、Codex review 再実行、residual report、close を分ける"
+    "next_actions": "copilot_action に従い、Copilot 修正、validation 再実行、人間実行用 Codex review request 再作成、residual report、close を分ける"
   },
   "required_evidence": ["review target diff", "implementation scope path", "final validation result", "each group review result"],
   "rejection_conditions": ["missing review target diff", "missing implementation scope", "missing final validation result"],

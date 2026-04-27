@@ -64,6 +64,7 @@ LAYER_DEFINITIONS = (
             Path("frontend/src/controller/master-dictionary"),
             Path("frontend/src/controller/master-persona"),
             Path("frontend/src/controller/translation-input"),
+            Path("frontend/src/controller/translation-job-setup"),
         ),
         default_next=("frontend-usecase", "frontend-presenter-store", "frontend-contract", "frontend-wails-adapter"),
     ),

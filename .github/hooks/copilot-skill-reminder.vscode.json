@@ -1,0 +1,12 @@
+{
+  "hooks": {
+    "UserPromptSubmit": [
+      {
+        "type": "command",
+        "command": "node ./scripts/skill-reminder.js",
+        "cwd": ".github/hooks",
+        "timeout": 5
+      }
+    ]
+  }
+}

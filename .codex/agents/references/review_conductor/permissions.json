@@ -3,7 +3,7 @@
   "agent": "review_conductor",
   "runtime": "codex",
   "allowed_actions": [
-    "Copilot から codex exec で渡された review payload を確認する",
+    "人間が codex exec で渡した Copilot review request payload を確認する",
     "payload または validation 不足時に観点グループ別 review agent を起動せず早期 return する",
     "観点グループ別 review agent を context 継承なしで並列 spawn する",
     "各 review result の score、confidence、findings、hard_gate を集約する",
