@@ -36,14 +36,13 @@ description: GitHub Copilot 側の実装時調査の共通知識 package。singl
 
 - `single_handoff_packet` 1 件と owned_scope を超えない
 - evidence のない結論を固定しない
-- Copilot のブラウザ操作は Playwright MCP ではなく `agent-browser` CLI で行う
+- Copilot のブラウザ操作は `agent-browser` CLI で行う
 - 一時観測点は返却前に除去する
 - 恒久修正と product test 追加を混ぜない
 
 ## Browser Evidence
 
 UI state、console、screenshot の観測は `execute` から `agent-browser` CLI を使う。
-Playwright MCP の `browser` tool に依存しない。
 
 標準入口は次の通りである。
 

@@ -2,7 +2,7 @@
 name: tester
 description: subagent。承認済み owned_scope を証明する product test だけを追加または更新する。
 target: vscode
-tools: [execute, read/problems, read/readFile, read/terminalLastCommand, edit, search/codebase, search/usages, 'mcp_docker/*', todo]
+tools: [execute, read/problems, read/readFile, read/terminalLastCommand, edit, search/codebase, search/usages, todo]
 model: GPT-5.4 (copilot)
 agents: []
 user-invocable: false

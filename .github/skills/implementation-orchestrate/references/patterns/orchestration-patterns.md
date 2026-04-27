@@ -60,7 +60,7 @@ agent contract の権限や output obligation は上書きしない。
 
 - `close`: completion packet に review result を残して終了する。
 - `report_residual`: priority override または confidence residual を residual risk に残して終了する。
-- `fix`: remediation handoff を読み、chosen strategy、chosen scope、why_not_narrower、why_not_wider、planned changes、invariant tests を決めてから修正し、final validation と Codex review request を再作成する。
+- `fix`: reviewer result bundle、aggregation trace、remediation handoff を読み、chosen strategy、chosen scope、why_not_narrower、why_not_wider、planned changes、invariant tests、used review signals を決めてから修正し、final validation と Codex review request を再作成する。
 - `rerun_validation`: 指定された不足 validation だけを再実行し、Codex review request を再作成する。
 - `rerun_codex_review`: payload を補い、product code を変更せず Codex review request だけを再作成する。
 

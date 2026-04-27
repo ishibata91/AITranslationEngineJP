@@ -2,7 +2,7 @@
 name: investigator
 description: subagent。承認済み owned_scope 内で、実装前再現、実装中 trace、修正後再観測を行う。
 target: vscode
-tools: [execute, read, edit, search, 'mcp_docker/*']
+tools: [execute, read, edit, search]
 model: GPT-5.4 (copilot)
 agents: []
 user-invocable: false

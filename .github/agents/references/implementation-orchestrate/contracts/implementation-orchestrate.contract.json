@@ -8,7 +8,7 @@
   "optional_inputs": ["parallelization_hint", "ready_waves", "previous_completion_packet", "investigation_request"],
   "tool_policy": {
     "allowed_tools": ["agent", "execute", "read/readFile", "search/codebase", "search/usages", "todo"],
-    "forbidden_tools": ["edit", "edit/createDirectory", "edit/createFile", "read/terminalLastCommand", "mcp_docker/*"],
+    "forbidden_tools": ["edit", "edit/createDirectory", "edit/createFile", "read/terminalLastCommand"],
     "notes": "agent は RunSubagent 用に使う。read/search は自分の runtime 定義、参照 skill、contract、permissions、承認済み implementation-scope、approval record、handoff 抽出に必要な範囲だけに使う。execute は全 implementation handoff 完了後の scenario validation、suite-all、Sonar check だけに使う。codex exec review は Copilot が直接実行しない。"
   },
   "knowledge_refs": [
@@ -57,8 +57,8 @@
     "harness_gate_result": "`python3 scripts/harness/run.py --suite all` の結果。suite-all は scenario-gate を含むが、scenario validation result は別 field として抜き出す。Wails、sandbox、OS 権限で止まる場合は FAIL_ENVIRONMENT とし、product failure として reroute しない",
     "codex_review_request_payload": "人間が Codex 側で review_conductor を起動するための payload を返す。implementation_scope_path、approval_record、review_target_diff、implementation_result、final_validation_result、touched_files を含める",
     "human_codex_exec_command": "人間が実行する codex exec command を返す。payload の渡し方、cwd、再実行条件を含める",
-    "codex_review_result": "人間から戻された Codex review_conductor の結果がある場合だけ返す。decision_basis、copilot_action、priority_overrides、residual_risks、remediation_aggregation、remediation_handoff を含める。未実行なら pending_human_codex_review として、human_codex_exec_command と渡すべき payload を返す",
-    "remediation_decision": "copilot_action が fix の場合だけ返す。chosen_strategy、chosen_scope、why_this_scope、why_not_narrower、why_not_wider、planned_changes、invariant_tests を含める。close、report_residual、rerun_validation、rerun_codex_review では none を返す",
+    "codex_review_result": "人間から戻された Codex review_conductor の結果がある場合だけ返す。decision_basis、copilot_action、priority_overrides、residual_risks、reviewer_result_bundle、aggregation_trace、information_loss_notes、remediation_aggregation、remediation_handoff を含める。未実行なら pending_human_codex_review として、human_codex_exec_command と渡すべき payload を返す",
+    "remediation_decision": "copilot_action が fix の場合だけ返す。chosen_strategy、chosen_scope、why_this_scope、why_not_narrower、why_not_wider、planned_changes、invariant_tests、used_review_signals を含める。used_review_signals は reviewer_result_bundle と aggregation_trace の参照元を示す。close、report_residual、rerun_validation、rerun_codex_review では none を返す",
     "docs_changes": "必ず none を返す。docs 正本化が実装完了の前提になる場合だけ requires_codex_replan の hard stop reason に書く",
     "residual_risks": "未実行 validation、FAIL_ENVIRONMENT、human Codex review 未実行、Codex review priority override、human open question、blocked_after_narrowing、remaining subscopes を分ける",
     "requires_codex_replan": "通常は false。approved scope にない新要件、human 承認済み design と実装対象の矛盾、未承認 public behavior 判断、docs 正本化または workflow 変更が実装完了の前提、2 回の autonomous narrowing 後も first_action を確定できない場合だけ true にする",
@@ -113,7 +113,7 @@
   "codex_review_action_policy": {
     "close": "人間から戻された codex_review_result を completion packet に転記して終了する",
     "report_residual": "人間から戻された priority_overrides または confidence residual を completion packet の residual_risks と completion_evidence に転記して終了する",
-    "fix": "人間から戻された remediation_handoff を読み、chosen_strategy、chosen_scope、why_this_scope、why_not_narrower、why_not_wider、planned_changes、invariant_tests を決めてから修正し、final validation と Codex review request payload を再作成する",
+    "fix": "人間から戻された reviewer_result_bundle、aggregation_trace、remediation_handoff を読み、chosen_strategy、chosen_scope、why_this_scope、why_not_narrower、why_not_wider、planned_changes、invariant_tests、used_review_signals を決めてから修正し、final validation と Codex review request payload を再作成する",
     "rerun_validation": "人間から戻された不足 validation だけを再実行し、その結果を含む Codex review request payload を再作成する",
     "rerun_codex_review": "diff、scope、implementation result など不足 payload を補い、product code を変更せず Codex review request payload だけを再作成する"
   },

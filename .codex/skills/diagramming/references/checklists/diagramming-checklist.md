@@ -4,7 +4,7 @@
 
 - [ ] 図の source of truth と review artifact を分けた
 - [ ] diagram kind と読者を明示した
-- [ ] PlantUML や library が関係する場合は Context7 を確認した
+- [ ] PlantUML や library が関係する場合は `npx ctx7 library` / `npx ctx7 docs` で確認した
 - [ ] 一時 PNG を生成し、AI が画像で可読性を確認した
 - [ ] 図の分割条件に当たらないことを確認した
 - [ ] 正本 docs の用語、構造主語、layer 名と diagram の package 名を揃えた

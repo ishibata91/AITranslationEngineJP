@@ -25,7 +25,7 @@ agent contract の権限や output obligation は上書きしない。
 - not_insufficient_context: 承認済み scenario を元に期待どおり fail する test、局所的 import 修正、既存 test file 内の軽微な確認は停止理由にしない。
 - 原因未確定の regression test を実装前に書く必要がある場合は停止し、post-implementation test として orchestrator へ返す。
 - backend service / usecase / controller と frontend gateway / screen controller を主戦場にする。
-- UI 操作証跡は `agent-browser` CLI を使い、Playwright MCP には依存しない。
+- UI 操作証跡は `agent-browser` CLI を使う。
 - product test runner としての Playwright は、既存 test が必要とする場合だけ使う。
 - coverage と `python3 scripts/harness/run.py --suite all` は final validation lane へ defer する。
 - AAA を守り、1 test は 1 behavior / branch / scenario outcome を証明する。

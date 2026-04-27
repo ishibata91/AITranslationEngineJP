@@ -151,7 +151,7 @@ Copilot は `decision_basis` を再解釈せず、次の分岐だけを行う。
 
 - `close`: completion packet に `codex_review_result` を転記して終了する
 - `report_residual`: `priority_overrides` と `residual_risks` を completion packet に残して終了する
-- `fix`: `remediation_handoff` を読み、chosen strategy、chosen scope、狭すぎない理由、広げすぎない理由、planned changes、invariant tests を決めてから修正する
+- `fix`: `reviewer_result_bundle`、`aggregation_trace`、`remediation_handoff` を読み、chosen strategy、chosen scope、狭すぎない理由、広げすぎない理由、planned changes、invariant tests を決めてから修正する
 - `rerun_validation`: 指定された不足 validation だけを再実行し、Codex review request payload を再作成する
 - `rerun_codex_review`: 不足 payload を補い、product code を変更せず Codex review request payload だけを再作成する
 
@@ -165,6 +165,7 @@ Copilot は修正者として次を completion packet に返す。
 - `why_not_wider`
 - `planned_changes`
 - `invariant_tests`
+- `used_review_signals`
 
 ## DO / DON'T
 
@@ -180,7 +181,7 @@ DO:
 - scenario validation、suite-all、Sonar check を全 implementation handoff 完了後に実行する
 - 人間実行用 Codex review request payload に diff と validation result を含める
 - 人間から `codex_review_result` が戻された時だけ、`codex_review_result.copilot_action` に従って受け取り分岐を固定する
-- `fix` では remediation handoff から chosen strategy と chosen scope を説明してから修正する
+- `fix` では reviewer result bundle と aggregation trace から chosen strategy と chosen scope を説明してから修正する
 - `UI人間操作E2E` は final validation lane でだけ証明する
 
 DON'T:
