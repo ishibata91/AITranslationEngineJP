@@ -41,6 +41,11 @@ class TranscriptRef:
 
 
 def parse_timestamp(value: Any) -> datetime | None:
+    if isinstance(value, int | float):
+        seconds = float(value)
+        if seconds > 10_000_000_000:
+            seconds = seconds / 1000
+        return datetime.fromtimestamp(seconds, UTC)
     if not isinstance(value, str) or not value.strip():
         return None
     try:
@@ -374,6 +379,60 @@ def extract_copilot(ref: TranscriptRef, long_idle_ms: int) -> tuple[dict[str, An
     commands: Counter[str] = Counter()
 
     for line_number, event in events:
+        request_events = event.get("v") if event.get("k") == ["requests"] and isinstance(event.get("v"), list) else None
+        if request_events is not None:
+            for request in request_events:
+                if not isinstance(request, dict):
+                    continue
+                timestamp = parse_timestamp(request.get("timestamp"))
+                started_at, ended_at = add_timestamp(timestamps, timestamp, source_ref(path, line_number), started_at, ended_at)
+                result = request.get("result") if isinstance(request.get("result"), dict) else {}
+                metadata = result.get("metadata") if isinstance(result.get("metadata"), dict) else {}
+                if isinstance(metadata.get("sessionId"), str):
+                    session_id = metadata["sessionId"]
+                message = request.get("message") if isinstance(request.get("message"), dict) else {}
+                text = normalize_text(coerce_text(message.get("text") or message.get("content")))
+                if text and is_human_prompt(text):
+                    metrics["user_turns"] += 1
+                    if not first_user_prompt:
+                        first_user_prompt = text
+                    if any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
+                        metrics["user_corrections"] += 1
+                        evidence_refs["user_corrections"].append(evidence(path, line_number, timestamp, text))
+
+                assistant_text_parts: list[str] = []
+                for item in request.get("response") or []:
+                    if isinstance(item, dict):
+                        assistant_text_parts.append(coerce_text(item.get("value") or item.get("content") or item.get("text")))
+                assistant_text = normalize_text("\n".join(part for part in assistant_text_parts if part))
+                if assistant_text:
+                    metrics["assistant_turns"] += 1
+
+                for round_data in request.get("toolCallRounds") or []:
+                    if not isinstance(round_data, dict):
+                        continue
+                    for tool_call in round_data.get("toolCalls") or []:
+                        if not isinstance(tool_call, dict):
+                            continue
+                        metrics["tool_calls"] += 1
+                        command = normalize_text(coerce_text(tool_call.get("name") or tool_call.get("arguments")))
+                        if command:
+                            commands[command_key(command)] += 1
+                        if any(keyword.lower() in command.lower() for keyword in SUBAGENT_KEYWORDS):
+                            metrics["subagent_calls"] += 1
+                    for tool_result in (round_data.get("toolCallResults") or {}).values():
+                        result_text = normalize_text(coerce_text(tool_result))
+                        if is_nonzero_tool_result(result_text):
+                            metrics["nonzero_tool_results"] += 1
+                            evidence_refs["nonzero_tool_results"].append(evidence(path, line_number, timestamp, result_text))
+
+                if isinstance(result.get("errorDetails"), dict):
+                    error_text = normalize_text(coerce_text(result["errorDetails"]))
+                    if error_text:
+                        metrics["nonzero_tool_results"] += 1
+                        evidence_refs["nonzero_tool_results"].append(evidence(path, line_number, timestamp, error_text))
+            continue
+
         timestamp = parse_timestamp(event.get("timestamp") or event.get("createdAt") or event.get("time"))
         started_at, ended_at = add_timestamp(timestamps, timestamp, source_ref(path, line_number), started_at, ended_at)
         event_type = str(event.get("type") or event.get("event") or "")

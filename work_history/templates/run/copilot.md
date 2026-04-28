@@ -17,8 +17,9 @@
 
 ## Completion Evidence
 
-- `source`: `Codex work_reporter が Copilot completion evidence から生成する`
+- `source`: `Codex work_reporter が Copilot completion evidence または Copilot transcript / chat session source_ref から生成する`
 - `completion_evidence`: `<completed_handoffs / touched_files / validation / residual>`
+- `transcript_source_refs`: `<Copilot transcript / chat session source_ref list or 未確認>`
 - `benchmark_score`: `<analysis/benchmark-score.json の Copilot session metrics or 未確認>`
 - `report_author`: `work_reporter`
 

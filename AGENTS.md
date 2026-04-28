@@ -55,7 +55,7 @@ agent の `permissions.json` と contract は、skill 本文から agent-owned r
 
 ## 補足
 
-- library の書き方は MCP_DOCKER 経由で Context7 を確認する
+- library の書き方は `npx ctx7 library` / `npx ctx7 docs` で Context7 を確認する
 - wails は `npm run dev:wails:agent-browser` で起動する
 - ブラウザ操作は `agent-browser` CLI を使う
 - UI 証跡は `agent-browser open http://localhost:34115` から取得する

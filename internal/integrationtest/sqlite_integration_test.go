@@ -842,6 +842,63 @@ func TestSCN_SMR_004_JobSingleSourceFK(t *testing.T) {
 	}
 }
 
+// TestSCN_TJS_CreateTranslationJobRejectsDuplicateInput は create persistence slice で
+// 同一 input への 2 件目 create が拒否され、1 job しか残らないことを検証する。
+func TestSCN_TJS_CreateTranslationJobRejectsDuplicateInput(t *testing.T) {
+	ctx := context.Background()
+	db := openIntegrationDB(t)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+
+	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
+		SourceFilePath:   "duplicate-job.esp",
+		SourceTool:       "xEdit",
+		TargetPluginName: "DuplicateJob.esm",
+		TargetPluginType: "ESM",
+		RecordCount:      12,
+		ImportedAt:       fixedNow,
+	})
+	if err != nil {
+		t.Fatalf("CreateXEditExtractedData failed: %v", err)
+	}
+
+	firstJob, err := jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
+		XEditExtractedDataID: xEdit.ID,
+		JobName:              "duplicate-guard-job-1",
+		State:                "pending",
+		ProgressPercent:      0,
+	})
+	if err != nil {
+		t.Fatalf("first CreateTranslationJob failed: %v", err)
+	}
+
+	_, err = jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
+		XEditExtractedDataID: xEdit.ID,
+		JobName:              "duplicate-guard-job-2",
+		State:                "pending",
+		ProgressPercent:      0,
+	})
+
+	if err == nil {
+		t.Fatal("expected duplicate create for same x_edit_extracted_data_id to fail, got nil")
+	}
+
+	var jobCount int
+	if scanErr := db.QueryRowContext(
+		ctx,
+		"SELECT COUNT(*) FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?",
+		xEdit.ID,
+	).Scan(&jobCount); scanErr != nil {
+		t.Fatalf("count TRANSLATION_JOB after duplicate rejection failed: %v", scanErr)
+	}
+	if jobCount != 1 {
+		t.Fatalf("expected 1 TRANSLATION_JOB after duplicate rejection, got %d", jobCount)
+	}
+	if firstJob.XEditExtractedDataID != xEdit.ID {
+		t.Fatalf("expected created job to reference xEdit %d, got %d", xEdit.ID, firstJob.XEditExtractedDataID)
+	}
+}
+
 // ---------------------------------------------------------------------------
 // SCN-SMR-005 Transaction rollback
 // ---------------------------------------------------------------------------
@@ -896,6 +953,85 @@ func TestSCN_SMR_005_TransactionRollbackOnFKError(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("expected 0 rows in X_EDIT_EXTRACTED_DATA after rollback, got %d", count)
+	}
+}
+
+// TestSCN_TJS_CreateTranslationJobRollsBackOnDownstreamSaveFailure は create persistence slice で
+// downstream 保存が失敗した場合に TRANSLATION_JOB と JOB_PHASE_RUN の両方が rollback されることを検証する。
+func TestSCN_TJS_CreateTranslationJobRollsBackOnDownstreamSaveFailure(t *testing.T) {
+	ctx := context.Background()
+	db := openIntegrationDB(t)
+	transactor := repository.NewSQLiteTransactor(db)
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
+
+	xEdit, err := sourceRepo.CreateXEditExtractedData(ctx, repository.XEditExtractedDataDraft{
+		SourceFilePath:   "create-rollback.esp",
+		SourceTool:       "xEdit",
+		TargetPluginName: "CreateRollback.esm",
+		TargetPluginType: "ESM",
+		RecordCount:      7,
+		ImportedAt:       fixedNow,
+	})
+	if err != nil {
+		t.Fatalf("CreateXEditExtractedData failed: %v", err)
+	}
+
+	err = transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+		job, createJobErr := jobRepo.CreateTranslationJob(txCtx, repository.TranslationJobDraft{
+			XEditExtractedDataID: xEdit.ID,
+			JobName:              "rollback-job",
+			State:                "pending",
+			ProgressPercent:      0,
+		})
+		if createJobErr != nil {
+			return fmt.Errorf("CreateTranslationJob: %w", createJobErr)
+		}
+
+		phase, createPhaseErr := jobRepo.CreateJobPhaseRun(txCtx, repository.JobPhaseRunDraft{
+			TranslationJobID: job.ID,
+			PhaseType:        "translation",
+			State:            "pending",
+			ExecutionOrder:   1,
+			AIProvider:       "openai",
+			ModelName:        "gpt-4o",
+			ExecutionMode:    "batch",
+			CredentialRef:    "test-key",
+			InstructionKind:  "default",
+		})
+		if createPhaseErr != nil {
+			return fmt.Errorf("CreateJobPhaseRun: %w", createPhaseErr)
+		}
+
+		_, createLinkErr := jobRepo.CreatePhaseRunTranslationField(txCtx, repository.PhaseRunTranslationFieldDraft{
+			PhaseRunID:            phase.ID,
+			JobTranslationFieldID: 99999,
+			Role:                  "input",
+		})
+		if createLinkErr != nil {
+			return fmt.Errorf("CreatePhaseRunTranslationField: %w", createLinkErr)
+		}
+
+		return nil
+	})
+	if err == nil {
+		t.Fatal("expected downstream save failure to rollback transaction, got nil")
+	}
+
+	jobCount := countRowsForXEdit(ctx, t, db, `SELECT COUNT(*) FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?`, xEdit.ID)
+	if jobCount != 0 {
+		t.Fatalf("expected 0 TRANSLATION_JOB rows after rollback, got %d", jobCount)
+	}
+
+	phaseCount := countRowsForXEdit(
+		ctx,
+		t,
+		db,
+		`SELECT COUNT(*) FROM JOB_PHASE_RUN WHERE translation_job_id IN (SELECT id FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?)`,
+		xEdit.ID,
+	)
+	if phaseCount != 0 {
+		t.Fatalf("expected 0 JOB_PHASE_RUN rows after rollback, got %d", phaseCount)
 	}
 }
 

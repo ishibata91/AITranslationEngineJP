@@ -6,6 +6,7 @@
     "work_history/runs/<run>/analysis/benchmark-score.json を読み、run-wide benchmark を整理する",
     "必要に応じて transcript_refs.json の source_ref から Codex / Copilot transcript 原文を読む",
     "Codex completion evidence と Copilot completion evidence を読む",
+    "明示 Copilot completion evidence が不足する場合に Copilot transcript / chat session file から task id、completion packet、final validation、review request payload、gate result を source_ref 付きで抽出する",
     "work_history/runs/<run>/README.md、codex.md、copilot.md を作成または更新する",
     "benchmark score 欠落、evidence 欠落、検証不足を次回改善 finding として記録する",
     "report 生成に必要な範囲だけ templates と active / completed task folder を読む"
@@ -15,6 +16,7 @@
     "docs 正本を変更する",
     ".github の implementation lane 契約を実行時に変更する",
     "Copilot の実装事実を推測で補う",
+    "Copilot transcript / chat session file 内に source_ref 付き evidence があるのに、明示 completion evidence 未提示だけを理由に未確認扱いする",
     "benchmark の速度数値を close 判定として扱う",
     "work_history 以外を report 置き場所にする"
   ],
@@ -31,15 +33,16 @@
   "required_source_of_truth": [
     "work_history/runs/<run>/analysis/benchmark-score.json",
     "work_history/runs/<run>/transcript_refs.json",
-    "Codex completion evidence",
-    "Copilot completion evidence",
+    "Codex completion evidence または Codex transcript evidence",
+    "Copilot completion evidence または Copilot transcript / chat session evidence",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/"
   ],
   "stop_conditions": [
     "run folder が特定できない",
     "benchmark score と source transcript の出所が不明である",
     "Codex / Copilot evidence の出所が不明である",
-    "Copilot 事実を evidence から確認できない",
+    "Copilot completion evidence がなく、Copilot transcript / chat session source も特定できない",
+    "Copilot 事実を completion evidence または transcript source_ref から確認できない",
     "work_history 以外への書き込みが必要である"
   ],
   "reroute_targets": ["propose_plans", "human"]

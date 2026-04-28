@@ -5,11 +5,19 @@ export type ShellRouteId =
   | "translation-management"
   | "output-management"
 
+export type TranslationManagementViewId = "input-review" | "job-setup"
+
 export interface ShellRouteContract {
   id: ShellRouteId
   label: string
   state: string
   lead: string
+  description: string
+}
+
+export interface TranslationManagementViewContract {
+  id: TranslationManagementViewId
+  label: string
   description: string
 }
 
@@ -38,9 +46,9 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "translation-management",
     label: "翻訳管理",
-    state: "準備中",
-    lead: "翻訳準備と実行状況をまとめて確認するページです。",
-    description: "準備状況と翻訳ジョブの進行をまとめて確認します。"
+    state: "Job Setup 追加",
+    lead: "Input Review と Job Setup を切り替え、翻訳準備から ready job 作成までを確認するページです。",
+    description: "入力確認、validation、ready job 作成をまとめて確認します。"
   },
   {
     id: "output-management",
@@ -51,14 +59,33 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   }
 ]
 
+const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementViewContract> = [
+  {
+    id: "input-review",
+    label: "Input Review",
+    description: "入力ファイルの登録と cache 再構築を確認します。"
+  },
+  {
+    id: "job-setup",
+    label: "Job Setup",
+    description: "validation と ready job 作成を確認します。"
+  }
+]
+
 interface ShellState {
   defaultRouteId: ShellRouteId
   routes: ShellRouteContract[]
+  defaultTranslationManagementViewId: TranslationManagementViewId
+  translationManagementViews: TranslationManagementViewContract[]
 }
 
 export function createShellState(): ShellState {
   return {
     defaultRouteId: "dashboard",
-    routes: SHELL_ROUTE_CONTRACT.map((route) => ({ ...route }))
+    routes: SHELL_ROUTE_CONTRACT.map((route) => ({ ...route })),
+    defaultTranslationManagementViewId: "input-review",
+    translationManagementViews: TRANSLATION_MANAGEMENT_VIEW_CONTRACT.map((view) => ({
+      ...view
+    }))
   }
 }

@@ -124,7 +124,7 @@ CREATE TABLE IF NOT EXISTS TRANSLATION_JOB (
   finished_at              TEXT
 );
 
-CREATE INDEX IF NOT EXISTS idx_translation_job_x_edit
+CREATE UNIQUE INDEX IF NOT EXISTS idx_translation_job_x_edit
   ON TRANSLATION_JOB(x_edit_extracted_data_id);
 
 -- ---------------------------------------------------------------------------

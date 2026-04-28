@@ -77,4 +77,4 @@
 
 - 現行の harness は repo 再構成前提のため、`Wails + Go + Svelte` への移行途中では文書より先に stale になることがある
 - 過去の実装成果物や削除済み directory は source of truth に戻さない
-- library や framework の書き方は、更新前に official docs を `Context7` で確認する
+- library や framework の書き方は、更新前に `npx ctx7 library` / `npx ctx7 docs` で official docs を確認する

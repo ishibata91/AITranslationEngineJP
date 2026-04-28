@@ -3,25 +3,38 @@
 
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+  import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
+  import JobSetupPage from "@ui/screens/translation-job-setup/JobSetupPage.svelte"
   import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
-  import type { ShellRouteContract, ShellRouteId } from "@ui/stores/shell-state"
+  import type {
+    ShellRouteContract,
+    ShellRouteId,
+    TranslationManagementViewContract,
+    TranslationManagementViewId
+  } from "@ui/stores/shell-state"
 
   interface Props {
     defaultRouteId: ShellRouteId
+    defaultTranslationManagementViewId: TranslationManagementViewId
     routes: ShellRouteContract[]
+    translationManagementViews: TranslationManagementViewContract[]
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
+    createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController | null
     createTranslationInputScreenController: CreateTranslationInputScreenController | null
   }
 
   let {
     defaultRouteId,
+    defaultTranslationManagementViewId,
     routes,
+    translationManagementViews,
     createMasterDictionaryScreenController,
     createMasterPersonaScreenController,
+    createTranslationJobSetupScreenController,
     createTranslationInputScreenController
   }: Props = $props()
 
@@ -33,6 +46,7 @@
   )
 
   let currentRouteId = $state<ShellRouteId>("dashboard")
+  let selectedTranslationManagementViewId = $state<TranslationManagementViewId | null>(null)
   let isMobileNavOpen = $state(false)
 
   const fallbackRoute: ShellRouteContract = {
@@ -47,6 +61,9 @@
     routeById.get(currentRouteId) ?? routes[0] ?? fallbackRoute
   )
   const isDashboard = $derived(currentRoute.id === "dashboard")
+  const currentTranslationManagementViewId = $derived(
+    selectedTranslationManagementViewId ?? defaultTranslationManagementViewId
+  )
   const dashboardEntryRoutes = $derived(
   
     routes.filter((route) => route.id !== "dashboard")
@@ -78,6 +95,16 @@
 
   function toggleMobileNav(): void {
     isMobileNavOpen = !isMobileNavOpen
+  }
+
+  function selectTranslationManagementView(
+    viewId: TranslationManagementViewId
+  ): void {
+    selectedTranslationManagementViewId = viewId
+  }
+
+  function openTranslationInputReview(): void {
+    selectedTranslationManagementViewId = "input-review"
   }
 
   onMount(() => {
@@ -188,9 +215,44 @@
     {/if}
 
     {#if !isDashboard && currentRoute.id === "translation-management"}
-      <InputReviewPage
-        createController={createTranslationInputScreenController}
-      />
+      <section class="translation-management-shell">
+        <section class="panel section-switcher">
+          <div class="section-head">
+            <div>
+              <p class="page-label">translation management sections</p>
+              <h2>Input Review / Job Setup</h2>
+            </div>
+          </div>
+          <div class="section-tab-row" role="tablist" aria-label="Translation Management sections">
+            {#each translationManagementViews as view (view.id)}
+              <button
+                aria-selected={view.id === currentTranslationManagementViewId ? "true" : "false"}
+                class="section-tab"
+                class:is-active={view.id === currentTranslationManagementViewId}
+                onclick={() => selectTranslationManagementView(view.id)}
+                role="tab"
+                type="button"
+              >
+                <span>{view.label}</span>
+                <small>{view.description}</small>
+              </button>
+            {/each}
+          </div>
+        </section>
+
+        {#if currentTranslationManagementViewId === "input-review"}
+          <InputReviewPage
+            createController={createTranslationInputScreenController}
+          />
+        {/if}
+
+        {#if currentTranslationManagementViewId === "job-setup"}
+          <JobSetupPage
+            createController={createTranslationJobSetupScreenController}
+            onReturnToInputReview={openTranslationInputReview}
+          />
+        {/if}
+      </section>
     {/if}
 
     {#if !isDashboard && currentRoute.id !== "master-dictionary" && currentRoute.id !== "master-persona" && currentRoute.id !== "translation-management"}
@@ -436,6 +498,11 @@
     grid-template-columns: 1fr;
   }
 
+  .translation-management-shell {
+    display: grid;
+    gap: 1.5rem;
+  }
+
   .entry-panel,
   .placeholder-content {
     padding: 24px;
@@ -453,6 +520,39 @@
   .action-grid {
     display: grid;
     gap: 14px;
+  }
+
+  .section-switcher {
+    padding: 24px;
+    display: grid;
+    gap: 1rem;
+  }
+
+  .section-tab-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 14px;
+  }
+
+  .section-tab {
+    display: grid;
+    gap: 0.35rem;
+    padding: 18px;
+    border-radius: var(--radius-md);
+    border: 0.5px solid rgba(255, 186, 56, 0.12);
+    background: rgba(17, 13, 12, 0.34);
+    color: var(--text);
+    text-align: left;
+  }
+
+  .section-tab small {
+    color: var(--muted);
+    overflow-wrap: anywhere;
+  }
+
+  .section-tab.is-active {
+    border-color: rgba(255, 186, 56, 0.24);
+    background: rgba(255, 186, 56, 0.08);
   }
 
   .entry-grid {

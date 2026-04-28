@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -58,9 +59,11 @@ func newAppControllerWithSeeds(
 	}
 	foundationDataPort := service.NewSQLiteFoundationDataPort(repository.NewSQLiteFoundationDataRepository(foundationDataDB))
 	translationSourceRepository := repository.NewSQLiteTranslationSourceRepository(foundationDataDB)
+	jobLifecycleRepository := repository.NewSQLiteJobLifecycleRepository(foundationDataDB)
+	foundationTransactor := repository.NewSQLiteTransactor(foundationDataDB)
 	translationInputImportService := service.NewTranslationInputImportService(
 		translationSourceRepository,
-		repository.NewSQLiteTransactor(foundationDataDB),
+		foundationTransactor,
 		nil,
 		now,
 	)
@@ -128,6 +131,18 @@ func newAppControllerWithSeeds(
 		masterPersonaRunStatusService,
 	)
 	masterPersonaController := controllerwails.NewMasterPersonaController(masterPersonaUsecase)
+	translationJobSetupController := controllerwails.NewTranslationJobSetupController(
+		usecase.NewTranslationJobSetupUsecase(service.NewPersistentTranslationJobSetupService(
+			jobLifecycleRepository,
+			translationSourceRepository,
+			repositoryAdapter,
+			masterPersonaRepositories.EntryRepository,
+			masterPersonaRepositories.AISettingsRepository,
+			masterPersonaSecretStore,
+			foundationTransactor,
+			service.WithTranslationJobSetupProviderReachabilityTransport(&http.Client{Timeout: 5 * time.Second}),
+		)),
+	)
 
 	appController := controllerwails.NewAppController(
 		masterDictionaryController,
@@ -149,6 +164,7 @@ func newAppControllerWithSeeds(
 		),
 	)
 	appController.TranslationInputController = translationInputController
+	appController.TranslationJobSetupController = translationJobSetupController
 	return appController
 }
 

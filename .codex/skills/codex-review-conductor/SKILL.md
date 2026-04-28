@@ -75,20 +75,21 @@ Copilot は戻された `copilot_action` を再解釈せず分岐する。
 
 `review_conductor` の返答は、score や blocking findings から始めない。
 人間と Copilot が「何が問題で、なぜ局所修正では足りないか」を先に読める順にする。
+最終返答では、次の top-level section または top-level JSON field をこの順に必ず置く。
 
 `fix` の時は、次の順で返す。
 
 1. `problem_statement`: 問題の中心を 2-3 文で書く。
 2. `why_it_matters`: 破られる仕様、不変条件、ユーザー影響を書く。
-3. `primary_failure_mode`: 複数 finding を 1 つの failure mode に束ねる。
-4. `dominant_invariant`: 最も支配的な invariant を 1 つ書く。
-5. `root_cause_chain`: 症状ではなく、原因が層をまたいで伝播する流れを書く。
-6. `evidence_map`: 根拠 file、line、観点 group を対応づける。
-7. `why_not_narrower`: 局所修正では durable にならない理由を書く。
-8. `minimum_durable_fix_boundary`: この範囲未満では直らない境界を書く。
-9. `why_not_wider`: 過剰な refactor や scope 拡大を避ける理由を書く。
-10. `invariant_tests`: 修正後に守るべき test 観点を書く。
-11. `review_decision`: `overall_decision`、`decision_basis`、`copilot_action`、score を最後にまとめる。
+3. `remediation_handoff`: `primary_failure_mode`、`dominant_invariant`、`root_cause_chain`、`evidence_map`、`why_not_narrower`、`minimum_durable_fix_boundary`、`why_not_wider`、`invariant_tests`、`review_decision` を含める。
+4. `reviewer_result_bundle`: 4 観点の raw result を group 名ごとにそのまま置く。
+5. `aggregation_trace`: 派生 field ごとの参照元 group、source field、採用理由を置く。
+6. `remediation_aggregation`: 統合結果を置く。
+7. `blocking_findings`: blocking 判定だけを置く。
+8. `priority_overrides`: override した finding と理由を置く。
+9. `confidence_notes`: confidence 低下理由を置く。
+10. `residual_risks`: 残余 risk を置く。
+11. `next_actions`: `copilot_action` ごとの次 action を置く。
 
 `blocking_findings` は `evidence_map` の補助情報として扱う。
 先頭に置かない。
@@ -110,6 +111,7 @@ Copilot が `chosen_strategy`、`chosen_scope`、`why_not_narrower`、`why_not_w
 
 `remediation_aggregation` と `remediation_handoff` は派生結果である。
 派生結果だけを返し、raw result を落とすことは禁止する。
+`reviewer_result_bundle` または `aggregation_trace` を作れない場合は、`blocked` として `rerun_codex_review` を返す。
 
 ## DO / DON'T
 

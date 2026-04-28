@@ -7,6 +7,7 @@ type AppController struct {
 	*MasterDictionaryController
 	*MasterPersonaController
 	*TranslationInputController
+	*TranslationJobSetupController
 	shutdown func(context.Context) error
 }
 
@@ -16,10 +17,11 @@ func NewAppController(masterDictionaryController *MasterDictionaryController, ma
 		shutdown = func(context.Context) error { return nil }
 	}
 	return &AppController{
-		MasterDictionaryController: masterDictionaryController,
-		MasterPersonaController:    masterPersonaController,
-		TranslationInputController: nil,
-		shutdown:                   shutdown,
+		MasterDictionaryController:    masterDictionaryController,
+		MasterPersonaController:       masterPersonaController,
+		TranslationInputController:    nil,
+		TranslationJobSetupController: nil,
+		shutdown:                      shutdown,
 	}
 }
 

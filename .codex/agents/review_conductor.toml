@@ -13,6 +13,8 @@ developer_instructions = """
 
 観点グループ別 review agent は context を引き継がずに並列 spawn する。
 観点別の判断材料を remediation aggregation と remediation handoff に統合する。
+最終出力は contract の strict_output_order に従う。
+reviewer_result_bundle と aggregation_trace が作れない場合は fix を返さず blocked / rerun_codex_review を返す。
 source of truth、handoff、stop / reroute は skill に従う。
 permissions と output obligation は permissions / contract に従う。
 """

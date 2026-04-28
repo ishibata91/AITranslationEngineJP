@@ -149,8 +149,13 @@ const (
 	insertTranslationJob = `
 INSERT INTO TRANSLATION_JOB
   (x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at)
-VALUES
-  (:x_edit_extracted_data_id, :job_name, :state, :progress_percent, :created_at, :started_at, :finished_at)`
+SELECT
+	:x_edit_extracted_data_id, :job_name, :state, :progress_percent, :created_at, :started_at, :finished_at
+WHERE NOT EXISTS (
+	SELECT 1
+	FROM TRANSLATION_JOB
+	WHERE x_edit_extracted_data_id = :x_edit_extracted_data_id
+)`
 
 	selectTranslationJobByID = `
 SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
@@ -243,6 +248,13 @@ func (r *SQLiteJobLifecycleRepository) CreateTranslationJob(
 	result, err := ext.ExecContext(ctx, q, args...)
 	if err != nil {
 		return TranslationJob{}, mapFoundationSQLError(err, "create translation_job")
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return TranslationJob{}, fmt.Errorf("create translation_job rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return TranslationJob{}, fmt.Errorf("create translation_job duplicate input: %w", ErrConflict)
 	}
 	id, err := result.LastInsertId()
 	if err != nil {

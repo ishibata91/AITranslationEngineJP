@@ -7,7 +7,7 @@
 ## Rules
 
 - 新しい参照資料は、原則として `docs/references/` 配下に追加する
-- library や framework の書き方を docs に反映する前に、official docs を `Context7` で確認する
+- library や framework の書き方を docs に反映する前に、`npx ctx7 library` / `npx ctx7 docs` で official docs を確認する
 - vendor dump を置く場合でも、用途、出典、参照先文書を短く説明する
 - implementation を拘束する外部仕様は、どの source-of-truth doc から参照するかを明示する
 

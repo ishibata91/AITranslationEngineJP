@@ -6,10 +6,15 @@
   "required_inputs": [
     "run_folder",
     "benchmark_score",
-    "codex_completion_evidence",
-    "copilot_completion_evidence"
+    "codex_evidence_source",
+    "copilot_evidence_source"
   ],
   "optional_inputs": [
+    "codex_completion_evidence",
+    "copilot_completion_evidence",
+    "codex_transcript_refs",
+    "copilot_transcript_refs",
+    "copilot_chat_session_refs",
     "related_plan",
     "related_handoff",
     "validation_results",
@@ -36,8 +41,8 @@
   "field_requirements": {
     "run_report_paths": "README.md、codex.md、copilot.md、analysis/benchmark-score.json、transcript_refs.json の path を返す",
     "benchmark_summary": "session_count、metrics、scores、evidence_refs を分かる範囲で返す。不足は blocker ではなく improvement finding にする",
-    "codex_report_summary": "Codex evidence から確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す",
-    "copilot_report_summary": "Copilot evidence から確認できる completed_handoffs、touched_files、validation_result、residual_risks、次に見るべき場所を返す。推測で補わない",
+    "codex_report_summary": "Codex completion evidence または Codex transcript source_ref から確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す",
+    "copilot_report_summary": "Copilot completion evidence または Copilot transcript / chat session source_ref から確認できる completed_handoffs、touched_files、validation_result、residual_risks、次に見るべき場所を返す。推測で補わない",
     "cross_role_findings": "改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、検証で不足したことを run-wide に返す",
     "benchmark_quality_findings": "benchmark score / evidence / report 欠落、壊れた JSONL、runtime 欠落、source_ref 欠落、読めない transcript を次回改善 finding として返す",
     "next_improvements": "prompt、handoff、template、benchmark scoring の次回改善を返す",
@@ -45,18 +50,19 @@
   },
   "required_evidence": [
     "benchmark score json or benchmark score missing reason",
-    "Codex completion evidence",
-    "Copilot completion evidence",
+    "Codex completion evidence or Codex transcript source_ref",
+    "Copilot completion evidence or Copilot transcript / chat session source_ref",
     "report template paths",
     "validation result when available"
   ],
   "rejection_conditions": [
     "run_folder missing",
-    "Codex and Copilot evidence both missing",
+    "Codex and Copilot evidence sources both missing",
     "report write target outside work_history/runs"
   ],
   "stop_conditions": [
-    "Copilot facts cannot be distinguished from inference",
+    "Copilot completion evidence is missing and Copilot transcript / chat session source cannot be determined",
+    "Copilot facts cannot be distinguished from inference after checking available completion evidence and transcript / chat session source_ref",
     "required report path cannot be determined",
     "report generation would require product or docs mutation"
   ],

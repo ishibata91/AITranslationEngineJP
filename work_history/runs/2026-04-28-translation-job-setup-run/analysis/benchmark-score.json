@@ -1,0 +1,61 @@
+{
+  "status": "partial",
+  "missing_reason": "Codex transcript source は未提示。Copilot session metrics は helper output を benchmark input source として取り込み、provided source_ref と照合した。",
+  "session_count": 1,
+  "metrics": {
+    "active_duration_ms_total": 0,
+    "assistant_turns": 1,
+    "duration_ms_total": 0,
+    "long_idle_gaps": 0,
+    "nonzero_tool_results": 1,
+    "repeated_tool_commands": 0,
+    "subagent_calls": 0,
+    "tool_calls": 0,
+    "user_corrections": 0,
+    "user_turns": 1
+  },
+  "scores": {
+    "interaction_cost": 2,
+    "rework_cost": 4,
+    "time_cost": 0,
+    "tool_churn": 0
+  },
+  "evidence_refs": {
+    "benchmark_input_source": [
+      {
+        "source_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/2026-04-26-file-plan.md-run/analysis/benchmark-score.json:1",
+        "note": "Copilot session metrics の入力元"
+      }
+    ],
+    "nonzero_tool_results": [
+      {
+        "excerpt": "Canceled",
+        "source_ref": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl:3",
+        "timestamp": "2026-04-26T16:21:00Z"
+      }
+    ],
+    "long_idle_gaps": [],
+    "repeated_tool_commands": [],
+    "user_corrections": []
+  },
+  "sessions": [
+    {
+      "runtime": "copilot",
+      "session_id": "e99f40a5-3b35-4992-b6de-05b2c378c38e",
+      "started_at": "2026-04-26T16:21:00Z",
+      "ended_at": "2026-04-26T16:21:00Z",
+      "duration_ms": 0,
+      "transcript_path": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl",
+      "source_ref": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl:3"
+    }
+  ],
+  "transcript_gaps": [
+    "Codex transcript source 未確認",
+    "Copilot completion packet / final report / validation result は source_ref から確認できない"
+  ],
+  "scoring_notes": [
+    "benchmark は次回改善用の観測値であり close gate ではない。",
+    "active_duration_ms_total は helper output 由来で 0ms だった。",
+    "session source は partial で、Copilot lane の completion facts を補強する用途には使えなかった。"
+  ]
+}

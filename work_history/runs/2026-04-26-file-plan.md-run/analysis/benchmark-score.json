@@ -1,0 +1,49 @@
+{
+  "evidence_refs": {
+    "long_idle_gaps": [],
+    "nonzero_tool_results": [
+      {
+        "excerpt": "Canceled",
+        "source_ref": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl:3",
+        "timestamp": "2026-04-26T16:21:00Z"
+      }
+    ],
+    "repeated_tool_commands": [],
+    "user_corrections": []
+  },
+  "metrics": {
+    "active_duration_ms_total": 0,
+    "assistant_turns": 1,
+    "duration_ms_total": 0,
+    "long_idle_gaps": 0,
+    "nonzero_tool_results": 1,
+    "repeated_tool_commands": 0,
+    "subagent_calls": 0,
+    "tool_calls": 0,
+    "user_corrections": 0,
+    "user_turns": 1
+  },
+  "run_title": "@file:plan.md",
+  "scores": {
+    "interaction_cost": 2,
+    "rework_cost": 4,
+    "time_cost": 0,
+    "tool_churn": 0
+  },
+  "scoring_notes": [
+    "スコアは close gate ではなく次回改善用の機械指標である。",
+    "script は原因推定、責務判断、改善案を出さない。",
+    "必要な時は evidence_refs の source_ref から transcript 原文へ戻る。"
+  ],
+  "sessions": [
+    {
+      "duration_ms": 0,
+      "ended_at": "2026-04-26T16:21:00Z",
+      "runtime": "copilot",
+      "session_id": "e99f40a5-3b35-4992-b6de-05b2c378c38e",
+      "started_at": "2026-04-26T16:21:00Z",
+      "transcript_path": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl"
+    }
+  ],
+  "transcript_gaps": []
+}

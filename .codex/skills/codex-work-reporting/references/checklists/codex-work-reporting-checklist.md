@@ -9,7 +9,8 @@
 - [ ] `analysis/benchmark-score.json` を run-wide benchmark の入力として扱った
 - [ ] 改善、時間、無駄、困りごとを分けた
 - [ ] HITL、handoff、docs 正本化判断を記録対象にした
-- [ ] Copilot 事実を completion evidence からだけ扱った
+- [ ] Copilot 事実を completion evidence または Copilot transcript / chat session file の source_ref 付き抽出からだけ扱った
+- [ ] 明示 completion evidence が不足する場合は Copilot transcript / chat session file を確認した
 
 ## Common Pitfalls
 

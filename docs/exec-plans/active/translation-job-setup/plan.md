@@ -3,7 +3,7 @@
 ## 状態
 
 - `task_id`: `translation-job-setup`
-- `workflow_state`: `design-bundle-approved`
+- `workflow_state`: `closeout-blocked-missing-completion-packet`
 - `lane_owner`: `Codex`
 - `source_task`: [`tasks/usecases/translation-job-setup.yaml`](../../../../tasks/usecases/translation-job-setup.yaml)
 - `human_review_status`: `approved`
@@ -95,10 +95,10 @@
 - [`scenario-design.requirement-coverage.json`](./scenario-design.requirement-coverage.json): `needs_human_decision` 0 件。
 - [`scenario-design.questions.md`](./scenario-design.questions.md): Q-001 から Q-008 まで回答済み。回答履歴として保持する。
 - [`ui-design.md`](./ui-design.md): approved。scenario 未決解消後の UI 契約へ再同期済み。
-- `implementation-scope.md`: pending-create
+- [`implementation-scope.md`](./implementation-scope.md): ready-for-copilot。contract freeze、backend、frontend、final validation の 4 handoff に分割。
 - [`scenario-design.requirement-gate.md`](./scenario-design.requirement-gate.md): pass。finding 0 件、question 0 件。
-- `next_action`: create implementation-scope
-- `resume_condition`: `implementation-scope.md` を作成すること。
+- `next_action`: `translation-job-setup` の Copilot completion packet と work report を提示すること。
+- `resume_condition`: Copilot completion packet を受け取り、Codex review、docs 正本化判断、work_reporter report 作成、completed 移動へ進むこと。
 
 ## closeout 材料
 
@@ -107,6 +107,9 @@
 - `無駄だったこと`: `requirement_gate.py --questionnaire-out` は同じ質問 ID を要件側と conflict 側で重複出力したため、人間回答用質問票は手動で 8 件に戻した。
 - `困ったこと`: job 作成時の共通基盤 lock は対象外にしたため、phase 実行時の lock 設計へ送る必要がある。
 - `HITL`: design bundle は approved。
-- `handoff`: Copilot handoff は未作成。
-- `docs正本化判断`: Copilot 修正完了前なので未実施。
-- `次に見るべき場所`: [`scenario-design.md`](./scenario-design.md)
+- `handoff`: Copilot handoff は [`implementation-scope.md`](./implementation-scope.md) に作成済み。2026-04-28 時点で source_ref 付き completion packet は未確認。
+- `docs正本化判断`: Copilot completion packet 未確認のため未実施。
+- `closeout_attempt`: 2026-04-28 に scenario gate、structure harness、backend targeted test、frontend targeted test、frontend check は pass。Copilot formal completion packet がないため completed 移動は保留。
+- `work_reporter`: spawned 2026-04-28。[`work_history/runs/2026-04-28-translation-job-setup-run/README.md`](../../../../work_history/runs/2026-04-28-translation-job-setup-run/README.md) を作成済み。
+- `work_reporter_close_judgement`: close不可。Copilot chat session は canceled request のみ、Copilot transcript は session.start のみで、completion packet / final report / validation result を source_ref から確認できない。
+- `次に見るべき場所`: [`implementation-scope.md`](./implementation-scope.md) の Completion Packet、[`work_history/runs/2026-04-28-translation-job-setup-run/copilot.md`](../../../../work_history/runs/2026-04-28-translation-job-setup-run/copilot.md)、[`work_history/runs/2026-04-28-translation-job-setup-run/transcript_refs.json`](../../../../work_history/runs/2026-04-28-translation-job-setup-run/transcript_refs.json)

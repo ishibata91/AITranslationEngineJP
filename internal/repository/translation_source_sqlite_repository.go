@@ -61,6 +61,11 @@ type translationRecordRow struct {
 	RecordType           string `db:"record_type"`
 }
 
+type existingTranslationJobRow struct {
+	ID    int64  `db:"id"`
+	State string `db:"state"`
+}
+
 func (r translationRecordRow) toModel() TranslationRecord {
 	return TranslationRecord(r)
 }
@@ -170,6 +175,11 @@ VALUES
 	selectXEditExtractedDataByID = `
 SELECT id, source_file_path, source_content_hash, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
 FROM X_EDIT_EXTRACTED_DATA WHERE id = ?`
+
+	selectAllXEditExtractedData = `
+SELECT id, source_file_path, source_content_hash, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
+FROM X_EDIT_EXTRACTED_DATA
+ORDER BY imported_at DESC, id DESC`
 
 	selectXEditExtractedDataBySourceContentHash = `
 SELECT id, source_file_path, source_content_hash, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at
@@ -314,6 +324,20 @@ FROM TRANSLATION_RECORD WHERE id = ?`
 SELECT id, x_edit_extracted_data_id, form_id, editor_id, record_type
 FROM TRANSLATION_RECORD WHERE x_edit_extracted_data_id = ?`
 
+	selectExistingTranslationJob = `
+SELECT id, state
+FROM TRANSLATION_JOB
+WHERE x_edit_extracted_data_id = ?
+ORDER BY created_at DESC, id DESC
+LIMIT 1`
+
+	selectTranslationCachePresenceByXEditID = `
+SELECT EXISTS(
+	SELECT 1
+	FROM TRANSLATION_RECORD
+	WHERE x_edit_extracted_data_id = ?
+)`
+
 	upsertNpcProfile = `
 INSERT INTO NPC_PROFILE
   (target_plugin_name, form_id, record_type, editor_id, display_name, created_at, updated_at)
@@ -416,6 +440,52 @@ func (r *SQLiteTranslationSourceRepository) GetXEditExtractedDataByID(
 		return XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by id")
 	}
 	return row.toModel()
+}
+
+// ListXEditExtractedData returns all imported translation inputs ordered by most recent import first.
+func (r *SQLiteTranslationSourceRepository) ListXEditExtractedData(
+	ctx context.Context,
+) ([]XEditExtractedData, error) {
+	ext := extractTx(ctx, r.db)
+	rows := []xEditExtractedDataRow{}
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectAllXEditExtractedData); err != nil {
+		return nil, mapSQLError(err, "list x_edit_extracted_data")
+	}
+	results := make([]XEditExtractedData, 0, len(rows))
+	for _, row := range rows {
+		model, err := row.toModel()
+		if err != nil {
+			return nil, err
+		}
+		results = append(results, model)
+	}
+	return results, nil
+}
+
+// GetExistingTranslationJob returns the newest persisted translation job for Job Setup display.
+func (r *SQLiteTranslationSourceRepository) GetExistingTranslationJob(
+	ctx context.Context,
+	xEditID int64,
+) (TranslationJob, error) {
+	ext := extractTx(ctx, r.db)
+	var row existingTranslationJobRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectExistingTranslationJob, xEditID); err != nil {
+		return TranslationJob{}, mapSQLError(err, "get existing translation_job")
+	}
+	return TranslationJob{ID: row.ID, State: row.State}, nil
+}
+
+// HasTranslationCacheByXEditID reports whether at least one cached translation record remains for the input.
+func (r *SQLiteTranslationSourceRepository) HasTranslationCacheByXEditID(
+	ctx context.Context,
+	xEditID int64,
+) (bool, error) {
+	ext := extractTx(ctx, r.db)
+	var exists bool
+	if err := sqlx.GetContext(ctx, ext, &exists, selectTranslationCachePresenceByXEditID, xEditID); err != nil {
+		return false, mapSQLError(err, "check translation cache by x_edit_id")
+	}
+	return exists, nil
 }
 
 // FindXEditExtractedDataBySourceContentHash は source_content_hash で XEditExtractedData を取得する。

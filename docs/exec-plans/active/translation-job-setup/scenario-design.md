@@ -45,7 +45,7 @@ candidate id は generator 間で重複しているため、coverage JSON では
 正本: `./scenario-design.requirement-coverage.json`
 
 各抽象要件の詳細要求タイプは sidecar JSON に分離する。
-質問票回答を反映済みで、detail requirement coverage は human review 待ちである。
+質問票回答と human review 承認を反映済みである。
 
 ### `REQ-TJS-001` 1 入力データから 1 翻訳ジョブを作成する
 
@@ -117,7 +117,7 @@ candidate id は generator 間で重複しているため、coverage JSON では
 ## Scenario Matrix
 
 質問票回答を反映済みである。
-この scenario matrix は human review 待ちである。
+この scenario matrix は human review 承認済みである。
 
 ### SCN-TJS-001 validation pass 済み setup から Ready job を作成する
 

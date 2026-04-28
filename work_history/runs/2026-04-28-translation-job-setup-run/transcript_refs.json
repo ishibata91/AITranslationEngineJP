@@ -1,0 +1,27 @@
+{
+  "status": "partial",
+  "missing_reason": "Codex transcript source は未提示。Copilot transcript source は読めたが、session.start と canceled request だけで completion packet / final report は見つからなかった。",
+  "sessions": [
+    {
+      "runtime": "copilot",
+      "session_id": "e99f40a5-3b35-4992-b6de-05b2c378c38e",
+      "transcript_kind": "chat_session",
+      "transcript_path": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl",
+      "source_ref": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl:3",
+      "evidence": "request_3869d428-785b-49a1-a9da-608d8758267f は Canceled。completion packet はなし。"
+    },
+    {
+      "runtime": "copilot",
+      "session_id": "e99f40a5-3b35-4992-b6de-05b2c378c38e",
+      "transcript_kind": "transcript",
+      "transcript_path": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/GitHub.copilot-chat/transcripts/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl",
+      "source_ref": "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/GitHub.copilot-chat/transcripts/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl:1",
+      "evidence": "session.start のみ。completion packet / validation result はなし。"
+    }
+  ],
+  "sources": [
+    "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/chatSessions/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl",
+    "/Users/iorishibata/Library/Application Support/Code/User/workspaceStorage/b338f9e7be869d4d7dcef74eb766974f/GitHub.copilot-chat/transcripts/e99f40a5-3b35-4992-b6de-05b2c378c38e.jsonl",
+    "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/2026-04-26-file-plan.md-run/transcript_refs.json"
+  ]
+}

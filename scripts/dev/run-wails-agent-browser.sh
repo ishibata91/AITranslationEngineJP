@@ -5,7 +5,7 @@ set -eu
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$repo_root"
 
-# Load repo-local development env vars for docker-mcp startup.
+# Load repo-local development env vars for agent-browser startup.
 if [ -f "$repo_root/.env" ]; then
   set -a
   # shellcheck disable=SC1091

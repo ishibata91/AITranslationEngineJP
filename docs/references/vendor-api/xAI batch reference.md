@@ -486,7 +486,7 @@ print("\\nTotal cost: $%.4f" % cost_usd)
 
 Both [server-side tools](/developers/guides/tools/overview) and client-side function tools are supported in batch requests.
 
-* **Server-side tools** (web search, code execution, MCP, etc.) work the same as in the real-time API — they are executed during processing and the final response is returned.
+* **Server-side tools** (web search, code execution, and similar tools) work the same as in the real-time API — they are executed during processing and the final response is returned.
 * **Client-side function tools** are supported: the model returns `tool_calls` in the response for you to handle offline. Multi-turn tool calling requires submitting a new batch request with the tool result messages included in the conversation.
 
 ## Related

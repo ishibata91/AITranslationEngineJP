@@ -23,6 +23,13 @@
     "non_conflict_fail": "競合していない score <= 0.85、blocked、hard gate failure は fail または blocked として返す。"
   },
   "expected_outputs": ["problem_statement", "why_it_matters", "overall_decision", "decision_basis", "overall_score", "threshold", "priority_order", "reviewer_result_bundle", "group_results", "aggregation_trace", "unselected_group_signals", "information_loss_notes", "blocking_findings", "priority_overrides", "confidence_notes", "residual_risks", "remediation_aggregation", "remediation_handoff", "copilot_action", "next_actions"],
+  "strict_output_order": ["problem_statement", "why_it_matters", "remediation_handoff", "reviewer_result_bundle", "aggregation_trace", "remediation_aggregation", "blocking_findings", "priority_overrides", "confidence_notes", "residual_risks", "review_decision", "next_actions"],
+  "strict_output_policy": {
+    "policy": "final answer は strict_output_order の順に top-level section または top-level JSON field として返す。score、group summary、blocking findings から始めない。",
+    "lossless_required": "reviewer_result_bundle は各 group raw result の保持場所であり、省略、要約置換、remediation_handoff への吸収は禁止する。",
+    "trace_required": "remediation_aggregation、problem_statement、why_it_matters、blocking_findings は aggregation_trace から reviewer_result_bundle の source field へ辿れること。",
+    "missing_required_fields": "reviewer_result_bundle または aggregation_trace を作れない場合、overall_decision は blocked、decision_basis は blocked、copilot_action は rerun_codex_review にする。"
+  },
   "field_requirements": {
     "problem_statement": "score や finding の列挙より先に、問題の中心を 2-3 文で返す。何が壊れているか、根はどの概念かを直接書く",
     "why_it_matters": "破られる仕様、不変条件、ユーザー影響、close 不可理由を返す",
@@ -46,7 +53,7 @@
     "next_actions": "copilot_action に従い、Copilot 修正者判断、validation 再実行、人間実行用 Codex review request 再作成、residual report、close を分ける"
   },
   "required_evidence": ["review target diff", "implementation scope path", "final validation result", "each group raw review result", "aggregation trace"],
-  "rejection_conditions": ["missing review target diff", "missing implementation scope", "missing final validation result"],
+  "rejection_conditions": ["missing review target diff", "missing implementation scope", "missing final validation result", "missing reviewer_result_bundle", "missing aggregation_trace"],
   "stop_conditions": ["観点グループ別 review を spawn できない", "diff から実コードを取得できない"],
   "completion_signal": "Copilot が copilot_action から fix、close、report_residual、rerun_validation、rerun_codex_review のいずれかを判断でき、fix の場合は reviewer_result_bundle、aggregation_trace、problem_statement、remediation_handoff から chosen strategy と chosen scope を説明できる review result を返している",
   "residual_risk_key": "residual_risks"

@@ -28,6 +28,7 @@ MINIMUM_COVERAGE = 70.0
 MAX_SECURITY_ISSUES = 0
 MAX_RELIABILITY_ISSUES = 0
 MAX_MAINTAINABILITY_HIGH_ISSUES = 0
+SONAR_ISSUE_DETAIL_LIMIT = 20
 FRONTEND_SUMMARY_PATH = Path("test-results/frontend-coverage/coverage-summary.json")
 FRONTEND_LCOV_PATH = Path("test-results/frontend-coverage/lcov.info")
 BACKEND_SUMMARY_PATH = Path("test-results/backend-coverage/coverage-summary.txt")
@@ -80,10 +81,29 @@ class OverallCoverage:
 
 
 @dataclass(frozen=True)
+class SonarIssue:
+    key: str
+    quality: str
+    severity: str
+    component: str
+    path: str
+    line: int | None
+    rule: str
+    message: str
+    url: str
+
+
+@dataclass(frozen=True)
+class SonarIssueGroup:
+    total: int
+    details: list[SonarIssue]
+
+
+@dataclass(frozen=True)
 class SonarIssues:
-    security: int
-    reliability: int
-    maintainability_high: int
+    security: SonarIssueGroup
+    reliability: SonarIssueGroup
+    maintainability_high: SonarIssueGroup
 
 
 @dataclass(frozen=True)
@@ -273,6 +293,49 @@ def request_json(url: str) -> dict | None:
         return None
 
 
+def sonar_issue_url(server_url: str, project_key: str, issue_key: str) -> str:
+    query = urllib.parse.urlencode(
+        {
+            "id": project_key,
+            "issues": issue_key,
+            "open": issue_key,
+        }
+    )
+    return f"{server_url}/project/issues?{query}"
+
+
+def relative_sonar_component(project_key: str, component: str) -> str:
+    prefix = f"{project_key}:"
+    if component.startswith(prefix):
+        return component[len(prefix) :]
+    return component
+
+
+def parse_issue_impact(issue: dict, fallback_quality: str, fallback_severity: str) -> tuple[str, str]:
+    impacts = issue.get("impacts")
+    if isinstance(impacts, list):
+        for impact in impacts:
+            if not isinstance(impact, dict):
+                continue
+            quality = impact.get("softwareQuality")
+            severity = impact.get("severity")
+            if isinstance(quality, str) and isinstance(severity, str):
+                return quality, severity
+
+    severity = issue.get("impactSeverity") or issue.get("severity") or fallback_severity
+    return fallback_quality, severity if isinstance(severity, str) else fallback_severity
+
+
+def format_sonar_issue(issue: SonarIssue) -> str:
+    location = issue.path
+    if issue.line is not None:
+        location = f"{location}:{issue.line}"
+    return (
+        f"{issue.key} [{issue.quality}/{issue.severity}] "
+        f"{location} {issue.rule}: {issue.message} ({issue.url})"
+    )
+
+
 def load_sonar_coverage(report_task_path: Path, timeout_seconds: int = 60) -> SonarCoverage | None:
     report_task = parse_properties(report_task_path)
     server_url = report_task.get("serverUrl")
@@ -336,12 +399,19 @@ def load_sonar_issues(report_task_path: Path) -> SonarIssues | None:
     if not server_url or not project_key:
         return None
 
-    def count_issues(qualities: list[str], severities: list[str] | None = None) -> int | None:
+    def fetch_issues(
+        qualities: list[str],
+        severities: list[str] | None = None,
+    ) -> SonarIssueGroup | None:
+        fallback_quality = qualities[0] if qualities else "UNKNOWN"
+        fallback_severity = severities[0] if severities else "UNKNOWN"
         params: dict[str, str] = {
             "componentKeys": project_key,
             "impactSoftwareQualities": ",".join(qualities),
             "resolved": "false",
-            "ps": "1",
+            "ps": str(SONAR_ISSUE_DETAIL_LIMIT),
+            "s": "FILE_LINE",
+            "asc": "true",
         }
         if severities:
             params["impactSeverities"] = ",".join(severities)
@@ -351,11 +421,44 @@ def load_sonar_issues(report_task_path: Path) -> SonarIssues | None:
         if payload is None:
             return None
         total = payload.get("total")
-        return int(total) if isinstance(total, int | float) else None
+        if not isinstance(total, int | float):
+            return None
 
-    security = count_issues(["SECURITY"])
-    reliability = count_issues(["RELIABILITY"])
-    maintainability_high = count_issues(["MAINTAINABILITY"], ["HIGH"])
+        details: list[SonarIssue] = []
+        raw_issues = payload.get("issues")
+        if isinstance(raw_issues, list):
+            for raw_issue in raw_issues:
+                if not isinstance(raw_issue, dict):
+                    continue
+                key = raw_issue.get("key")
+                component = raw_issue.get("component")
+                rule = raw_issue.get("rule")
+                message = raw_issue.get("message")
+                line = raw_issue.get("line")
+                if not isinstance(key, str) or not isinstance(component, str):
+                    continue
+                if not isinstance(rule, str) or not isinstance(message, str):
+                    continue
+                quality, severity = parse_issue_impact(raw_issue, fallback_quality, fallback_severity)
+                details.append(
+                    SonarIssue(
+                        key=key,
+                        quality=quality,
+                        severity=severity,
+                        component=component,
+                        path=relative_sonar_component(project_key, component),
+                        line=line if isinstance(line, int) else None,
+                        rule=rule,
+                        message=message,
+                        url=sonar_issue_url(server_url, project_key, key),
+                    )
+                )
+
+        return SonarIssueGroup(total=int(total), details=details)
+
+    security = fetch_issues(["SECURITY"])
+    reliability = fetch_issues(["RELIABILITY"])
+    maintainability_high = fetch_issues(["MAINTAINABILITY"], ["HIGH"])
 
     if security is None or reliability is None or maintainability_high is None:
         return None
@@ -365,6 +468,16 @@ def load_sonar_issues(report_task_path: Path) -> SonarIssues | None:
         reliability=reliability,
         maintainability_high=maintainability_high,
     )
+
+
+def report_sonar_issue_details(label: str, group: SonarIssueGroup) -> None:
+    if group.total == 0:
+        return
+    for issue in group.details:
+        report_fail(f"FAIL Sonar {label} issue detail: {format_sonar_issue(issue)}")
+    hidden_count = group.total - len(group.details)
+    if hidden_count > 0:
+        report_fail(f"FAIL Sonar {label} issue detail: {hidden_count} more issues not shown")
 
 
 def run_sonar_scan(repo_root: Path, package_manager: str, root_package: dict) -> SonarCoverage | None:
@@ -432,26 +545,29 @@ def check_threshold(
 
     # issues gate (Sonar から取得できた場合のみ)
     if issues is not None:
-        if issues.security > MAX_SECURITY_ISSUES:
-            report_fail(f"FAIL Sonar security issues {issues.security} > {MAX_SECURITY_ISSUES}")
+        if issues.security.total > MAX_SECURITY_ISSUES:
+            report_fail(f"FAIL Sonar security issues {issues.security.total} > {MAX_SECURITY_ISSUES}")
+            report_sonar_issue_details("security", issues.security)
             failures += 1
         else:
-            report_pass(f"PASS Sonar security issues {issues.security} <= {MAX_SECURITY_ISSUES}")
+            report_pass(f"PASS Sonar security issues {issues.security.total} <= {MAX_SECURITY_ISSUES}")
 
-        if issues.reliability > MAX_RELIABILITY_ISSUES:
-            report_fail(f"FAIL Sonar reliability issues {issues.reliability} > {MAX_RELIABILITY_ISSUES}")
+        if issues.reliability.total > MAX_RELIABILITY_ISSUES:
+            report_fail(f"FAIL Sonar reliability issues {issues.reliability.total} > {MAX_RELIABILITY_ISSUES}")
+            report_sonar_issue_details("reliability", issues.reliability)
             failures += 1
         else:
-            report_pass(f"PASS Sonar reliability issues {issues.reliability} <= {MAX_RELIABILITY_ISSUES}")
+            report_pass(f"PASS Sonar reliability issues {issues.reliability.total} <= {MAX_RELIABILITY_ISSUES}")
 
-        if issues.maintainability_high > MAX_MAINTAINABILITY_HIGH_ISSUES:
+        if issues.maintainability_high.total > MAX_MAINTAINABILITY_HIGH_ISSUES:
             report_fail(
-                f"FAIL Sonar maintainability HIGH issues {issues.maintainability_high} > {MAX_MAINTAINABILITY_HIGH_ISSUES}"
+                f"FAIL Sonar maintainability HIGH issues {issues.maintainability_high.total} > {MAX_MAINTAINABILITY_HIGH_ISSUES}"
             )
+            report_sonar_issue_details("maintainability HIGH", issues.maintainability_high)
             failures += 1
         else:
             report_pass(
-                f"PASS Sonar maintainability HIGH issues {issues.maintainability_high} <= {MAX_MAINTAINABILITY_HIGH_ISSUES}"
+                f"PASS Sonar maintainability HIGH issues {issues.maintainability_high.total} <= {MAX_MAINTAINABILITY_HIGH_ISSUES}"
             )
 
     return failures
@@ -465,6 +581,32 @@ def write_manifest(
     sonar: SonarCoverage | None,
     issues: SonarIssues | None,
 ) -> None:
+    def issue_group_manifest(group: SonarIssueGroup | None) -> dict:
+        if group is None:
+            return {
+                "total": None,
+                "details": [],
+            }
+        return {
+            "total": group.total,
+            "shown": len(group.details),
+            "detail_limit": SONAR_ISSUE_DETAIL_LIMIT,
+            "details": [
+                {
+                    "key": issue.key,
+                    "quality": issue.quality,
+                    "severity": issue.severity,
+                    "component": issue.component,
+                    "path": issue.path,
+                    "line": issue.line,
+                    "rule": issue.rule,
+                    "message": issue.message,
+                    "url": issue.url,
+                }
+                for issue in group.details
+            ],
+        }
+
     manifest = {
         "minimum_sonar_coverage": MINIMUM_COVERAGE,
         "overall": {
@@ -483,9 +625,9 @@ def write_manifest(
             "uncovered_lines": None if sonar is None else sonar.uncovered_lines,
         },
         "sonar_issues": {
-            "security": None if issues is None else issues.security,
-            "reliability": None if issues is None else issues.reliability,
-            "maintainability_high": None if issues is None else issues.maintainability_high,
+            "security": issue_group_manifest(None if issues is None else issues.security),
+            "reliability": issue_group_manifest(None if issues is None else issues.reliability),
+            "maintainability_high": issue_group_manifest(None if issues is None else issues.maintainability_high),
         },
         "frontend": {
             "statements_pct": None if frontend is None else frontend.statements_pct,

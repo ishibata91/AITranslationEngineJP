@@ -17,6 +17,7 @@
     "観点グループ別 review を自分で代替する",
     "Copilot の chosen strategy または chosen scope を最終命令する",
     "観点別 raw result を要約で上書きする",
+    "reviewer_result_bundle または aggregation_trace がないまま fix を返す",
     "score、group result、blocking findings から返答を始める",
     "AI design review を行う"
   ],
