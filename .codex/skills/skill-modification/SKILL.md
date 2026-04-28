@@ -1,112 +1,75 @@
 ---
 name: skill-modification
-description: Codex 側の skill / agent 変更知識 package。skill を knowledge package、agent を実行主体として整理する基準を提供する。
+description: Codex 側の workflow / skill / agent 変更で、何を受け取り、何へ従い、どう判断し、何を返し、どこで止まるかを固定する。
 ---
 
 # Skill Modification
 
 ## 目的
 
-`skill-modification` は知識 package である。
-`.codex` の skill と agent runtime を整理する時に、配置、path policy、skill 正本、agent TOML、agent-owned contract の扱いを判断するための知識を提供する。
+`skill-modification` は、`.codex` 配下の workflow、skill、agent runtime、実行権限を変更するための作業プロトコルである。
 
-実行境界、source of truth、handoff、stop / reroute は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
+担当ロールが、skill / agent の責務境界、正本配置、入力規約、出力規約、廃止対象の削除を判断する時に使う。
 
-## いつ参照するか
+## 対応ロール
 
-- skill 自体を追加、整理、改名、分割する時
-- skill、agent TOML、permissions、contract の配置を変える時
-- workflow docs と skill / agent の責務を同期する時
-- `.codex` を直接変更できず、`tmp/codex` staged apply が必要な時
+- この skill は人間から直接依頼された Codex 本体だけが使う。
+- サブエージェントまたは別 agent から呼び出された場合は拒否する。
+- この skill は `.codex` 配下の workflow / skill / agent 変更 task を対象にする。
 
-## 参照しない場合
+## 入力規約
 
-- product code または product test を変更する時
-- docs 正本の product 仕様を変更する時
-- 権限境界が不明で lane owner 判断が必要な時
+- 入力は、変更目的、変更対象パス、非対象、残す正本、削除してよい対象を含む。
+- skill / agent / 実行権限を変更する場合は、変更対象名とファイルパスを必須にする。
+- 削除がある場合は、削除理由と削除後の正本確認先を必須にする。
+- 入力が不足する場合は、推測で変更せず、人間へ不足項目を返す。
 
-## 知識範囲
+## 外部参照規約
 
-- [skill-agent-concept.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/skill-agent-concept.md) の概念分担
-- skill template と agent runtime template
-- Markdown / JSON / TOML の path policy
-- agent 1:1 contract と廃止対象の削除判断
-- `tmp/codex` staged apply と人間実行 script の扱い
+- 最上位の workflow 正本は `.codex/README.md` とする。
+- skill 形式の正本は `.codex/skill-template.md` とする。
+- agent runtime の正本形式は `.codex/agent-template.toml` とする。
+- agent binding と実行権限の配置は `.codex/README.md` の agent / skill 配置規約に従う。
+- product 仕様の正本は `docs/` であり、この skill は product 仕様を変更しない。
+- 外部正本が衝突する場合は、`.codex/README.md` を優先し、衝突内容を人間へ返す。
 
-## 原則
+## 内部参照規約
 
-- skill は人間可読な正本、agent は runtime binding と機械契約の owner として扱う
-- permissions と contract は agent 側に置く
-- handoff、stop / reroute、source of truth の人間可読説明は skill 側に置く
-- contract は agent 1:1 にする
-- mode / variant ごとの active contract file を増やさない
-- live workflow にない artifact は説明文を残さず削除する
-- 廃止対象に「使わない」「廃止済み」「legacy」などの残存説明を置かない
-- staged apply は反映元を破壊せず、削除差分を明示確認してから正本へ写す
+- なし。
 
-## 標準パターン
+## 判断規約
 
-1. `skill-agent-concept.md` と対象 agent の permissions を読む。
-2. 既存 workflow と対象 skill / agent の責務を確認する。
-3. role、source of truth、handoff、stop / reroute の人間可読説明を skill 側へ集約する。
-4. agent 側には TOML binding、permissions、1:1 contract を置く。
-5. checklist を skill references に置き、廃止対象の file / directory は削除する。
-6. path policy と workflow 名の actual name 対応を確認する。
+- skill は作業プロトコルであり、手順、標準 pattern、参照タイミング一覧、知識範囲一覧を持たない。
+- `.codex/skill-template.md` の `Maintenance（テンプレート外）` は、個別 skill や agent に書き込む内容ではない。
+- agent は実行主体であり、agent runtime と実行権限を持つ。
+- 入力規約、出力規約、完了規約、停止規約は skill 側へ統合する。
+- 固定ファイル名、固定ディレクトリ名、既存 key、既存 command、既存 runtime 名以外は日本語で書く。
+- 英語名を併記する必要がある場合は、先に日本語の意味を書き、括弧内に固定名を書く。
+- 責務、権限、入力、出力が分かれる場合は、分岐記述ではなく skill または agent の分割を選ぶ。
+- live workflow にない artifact、廃止ファイル、legacy pointer、stub、禁止文言だけの説明ファイルは残さない。
+- 論理名と変更対象名は、同じ判断単位で対応が分かるように書く。
 
-この手順は知識上の標準例である。
-実行順、必須 input、完了条件は `designer` agent contract に従う。
+## 出力規約
 
-## Staged Apply Pattern
+- 出力は、更新する `.codex` 配下ファイル、削除するファイル、削除理由、検証方法を含む。
+- skill 本体を更新する場合は、`.codex/skill-template.md` の分類順に合わせる。
+- agent を更新する場合は、agent runtime、binding、実行権限の所有者を分けて示す。
+- 削除対象がある場合は、削除後にどの正本を見ればよいかを示す。
+- 出力に product code、product test、product 仕様 docs の変更を含めてはいけない。
 
-`.codex` へ直接書けない時は、[staged-apply-flow.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/patterns/staged-apply-flow.md) を使う。
-反映済み file は `tmp/codex/files/<repo-relative-path>` に置き、人間が `scripts/codex/apply_tmp_codex.py` または VSCode task で正本へ上書き、追加、削除する。
-通常 apply は基本的に人間が実行する。
-Codex は staged file の作成と `--check-only` による final gate 確認までを担当する。
-人間から明示指示がある場合だけ、Codex が通常 apply を試行できる。
+## 完了規約
 
-反映 script は最終チェックとして次を行う。
+- `.codex/README.md`、`.codex/skill-template.md`、`.codex/agent-template.toml`、対象 `SKILL.md` との矛盾がない時に完了とする。
+- skill 本体に手順、標準 pattern、参照タイミング一覧、知識範囲一覧が残っていないことを確認する。
+- 実行権限、書き込み範囲、出力義務が skill 側へ混入していないことを確認する。
+- 削除対象に legacy pointer、stub、禁止文言だけのファイルが残っていないことを確認する。
 
-- 反映元 file の hash を反映前後で比較し、反映元を破壊していないことを確認する
-- 反映先と反映元の diff を表示し、削除行があれば停止する
-- file 削除が必要な時は `tmp/codex/delete-paths.txt` に対象を列挙する
-- 記載削除または file 削除が必要な時は `tmp/codex/deletion-rationale.md` に削除対象、理由、削除後の正本確認先を記録してから再実行する
-- JSON / TOML / Markdown / PlantUML など、対象 file の最低限の構文確認を行う
-- `.codex` へ直接反映しない段階では `--check-only` で同じ final gate だけを確認する
-- 通常 apply は人間実行を基本とし、Codex は明示指示なしに通常 apply へ進まない
-- 通常 apply が成功したら `tmp/codex` を全削除する
+## 停止規約
 
-## DO / DON'T
-
-DO:
-- 論理名と actual skill / agent 名を同じ行に置く
-- Markdown 本文の file reference はフルパスリンクにする
-- 権限境界が曖昧なら停止する
-- staged apply script は copy 前に diff と削除行を見せる
-
-DON'T:
-- skill 本体へ hard permissions や active contract を戻さない
-- product 実装や docs product 仕様変更を混ぜない
-- default_prompt を導入しない
-- 廃止対象を pointer、stub、legacy 説明、禁止文言として残さない
-- staged apply script で反映元 directory を削除しない
-
-## Checklist
-
-- [skill-modification-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/checklists/skill-modification-checklist.md) を参照する。
-- checklist は知識確認用であり、実行義務は `designer` agent contract が決める。
-
-## References
-
-- concept: [skill-agent-concept.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/skill-agent-concept.md)
-- skill template: [skill-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/skill-template.md)
-- agent template: [agent-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/agent-template.md)
-- Codex TOML template: [codex-agent-template.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/codex-agent-template.toml)
-- staged apply pattern: [staged-apply-flow.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/references/patterns/staged-apply-flow.md)
-- design runtime: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
-
-## Maintenance
-
-- template 方針と実適用の差分を放置しない。
-- skill は knowledge package、agent は actor という分担を崩さない。
-- workflow docs の同期が必要なら範囲を明示する。
-- staged apply 手順は、反映元保全と削除妥当性確認を外さない。
+- サブエージェントまたは別 agent から呼び出された場合は拒否する。
+- product code または product test の変更が混ざる場合は停止する。
+- product 仕様 docs の正本化が混ざる場合は停止する。
+- 対応する実行権限ファイルが必要だが見つからない場合は停止し、不足ファイルを返す。
+- 権限境界、書き込み範囲、agent 所有者が不明な場合は停止する。
+- `.codex/README.md` と変更方針が衝突する場合は停止し、衝突箇所を返す。
+- 削除理由または削除後の正本確認先がない削除は停止する。
