@@ -60,6 +60,6 @@
     "candidate artifact の書き先が active task folder 外である",
     "human review が必要な判断を AI だけで確定しそうである"
   ],
-  "completion_signal": "propose_plans が designer packet に入れる candidate artifact path、候補数、conflict hint、human decision candidate を判断できる",
+  "completion_signal": "implement_lane が designer packet に入れる candidate artifact path、候補数、conflict hint、human decision candidate を判断できる",
   "residual_risk_key": "human_decision_candidates"
 }

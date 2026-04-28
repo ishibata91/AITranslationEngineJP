@@ -4,10 +4,10 @@
   "runtime": "codex",
   "allowed_actions": [
     "Codex 側 design artifact を task-local に作成、更新、整理する",
-    "propose_plans が揃えた scenario candidate artifact を統合し、scenario を必須要件の固定点として作成または更新し、UI 変更がある時だけ ui-design を作成または更新し、human review 後に implementation-scope を固定する",
-    "human review 後に implementation-scope を人間向け Copilot handoff packet の材料として固定する",
+    "implement_lane が揃えた scenario candidate artifact を統合し、scenario を必須要件の固定点として作成または更新し、UI 変更がある時だけ ui-design を作成または更新し、human review 後に implementation-scope を固定する",
+    "human review 後に implementation-scope を人間向け Codex implementation lane handoff packet の材料として固定する",
     "workflow skill / agent 文書を skill-modification 範囲で整理する",
-    "design artifact の結果、human review 状態、open questions を propose_plans へ返す"
+    "design artifact の結果、human review 状態、open questions を implement_lane へ返す"
   ],
   "forbidden_actions": [
     "workflow orchestration と次 action 判断を designer が主導する",
@@ -16,7 +16,7 @@
     "product code と product test を変更する",
     "human 承認なしで docs 正本を更新する",
     "AI design review を挟む",
-    "Copilot へ直接 handoff する"
+    "Codex implementation lane へ直接 handoff する"
   ],
   "allowed_write_scope": [
     "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
@@ -30,7 +30,7 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.github/"
   ],
   "required_source_of_truth": [
-    "propose_plans から渡された handoff packet",
+    "implement_lane から渡された handoff packet",
     "user の現在指示",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md",
@@ -42,7 +42,7 @@
     "human review が必要な判断を AI だけで確定しそうである",
     "product 実装が必要である",
     "docs 正本更新の承認がない",
-    "Codex と Copilot の責務境界が曖昧である"
+    "Codex と Codex implementation lane の責務境界が曖昧である"
   ],
-  "reroute_targets": ["propose_plans"]
+  "reroute_targets": ["implement_lane"]
 }

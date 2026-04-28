@@ -10,24 +10,24 @@ description: Codex 側の design artifact 進行 skill。必須要件、UI、sce
 `design-bundle` は知識 package である。
 `designer` agent と top-level Codex が、必須要件、UI、scenario、implementation-scope を task-local artifact として固定する時の、人間可読な実行説明の正本として使う。
 
-workflow の次 action 判断、task folder orchestration、人間向け Copilot handoff の返却は `propose_plans` が担当する。
+workflow の次 action 判断、task folder orchestration、人間向け Codex implementation lane handoff の返却は `implement_lane` が担当する。
 product code と product test は変更しない。
 
 ## 参照 skill
 
-- `scenario-candidate-generation`: `propose_plans` が designer 前に作る候補 artifact の形を参照する。
+- `scenario-candidate-generation`: `implement_lane` が designer 前に作る候補 artifact の形を参照する。
 - `scenario-design`: scenario 候補 coverage、必須要件、受け入れテスト観点、システムテスト分類、validation を参照する。
 - `ui-design`: UI 要件契約と実装後確認観点を参照する。
-- `implementation-scope`: human review 後の人間向け Copilot handoff 粒度を参照する。
+- `implementation-scope`: human review 後の人間向け Codex implementation lane handoff 粒度を参照する。
 - `wall-discussion`: read-only 壁打ちの質問設計を参照する。
 - `diagramming`: diagram を必要資料として扱う時に参照する。
 - `skill-modification`: skill / agent の境界整理を参照する。
 
 ## Source Of Truth
 
-- primary: `propose_plans` から渡された handoff packet、active task folder、[README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)、[index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
+- primary: `implement_lane` から渡された handoff packet、active task folder、[README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)、[index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - secondary: packet に明示された関連 docs、関連 skill、human の現在指示
-- forbidden source: 未承認の design review、旧 flat plan、Copilot の独自再設計、引き継いでいない会話文脈
+- forbidden source: 未承認の design review、Codex implementation lane の独自再設計、引き継いでいない会話文脈
 
 ## Runtime Boundary
 
@@ -39,16 +39,16 @@ product code と product test は変更しない。
 
 ## Implementation Scope Gate
 
-implementation-scope を扱う時は、Copilot 側 RunSubagent の token 量を事前計算しない。
+implementation-scope を扱う時は、Codex implementation lane spawn_agent の token 量を事前計算しない。
 代わりに [implementation-scope](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md) の Handoff Split Rule と Size Gate に従い、論理境界と規模の目安で分割する。
 
 各 handoff は原則として `1 受け入れユースケース × 1 validation intent` に収める。
-Copilot 側から scope 過大で reroute された場合は、既存 approval を維持せず `pending-human-review` に戻す。
+Codex implementation laneから scope 過大で reroute された場合は、既存 approval を維持せず `pending-human-review` に戻す。
 
 ## Scenario Completeness Gate
 
 scenario-design は、抽象要件から直接 scenario を作って完了にしない。
-`designer` は `propose_plans` が揃えた 6 種の `scenario-candidates.<viewpoint>.md` を読み、候補の重複、採用、統合、不採用、競合を固定してから scenario matrix を作る。
+`designer` は `implement_lane` が揃えた 6 種の `scenario-candidates.<viewpoint>.md` を読み、候補の重複、採用、統合、不採用、競合を固定してから scenario matrix を作る。
 `designer` は候補生成器を再 spawn しない。
 [scenario-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md) の詳細要求タイプを使い、明示的ではない判断を先に検出する。
 詳細要求タイプの仕様網羅は `scenario-design.requirement-coverage.json` に分ける。
@@ -68,28 +68,28 @@ design bundle を human review へ進める条件は次の通り。
 
 ## 標準パターン
 
-1. `propose_plans` から渡された handoff packet を確認する。
+1. `implement_lane` から渡された handoff packet を確認する。
 2. handoff packet にない暗黙の会話文脈へ依存しない。
 3. 必要な design skill と checklist を読む。
 4. `scenario-design` を必須にし、candidate coverage、詳細要求タイプ、明示性 gate を通す。
 5. UI 変更がある時だけ `ui-design` を扱い、`implementation-scope` は human review 後にだけ扱う。
 6. task-local artifact と source of truth を分ける。
 7. human review が必要な地点で停止する。
-8. 作成、更新、未決事項、検証結果を `propose_plans` へ返す。
+8. 作成、更新、未決事項、検証結果を `implement_lane` へ返す。
 
 ## Stop / Reroute
 
 - scenario-design に `needs_human_decision` または未解決 conflict が残る場合は、質問票を返して human 回答待ちにする。
-- scenario candidate artifact が不足する場合は、`propose_plans` に戻し、候補生成器の不足を解消してから再開する。
-- workflow sequencing や task folder orchestration が主目的なら `propose_plans` へ戻す。
-- 文脈圧縮が必要なら `propose_plans` へ戻す。
-- 実画面 observation が必要なら `investigator` を使う前提で `propose_plans` へ戻す。
-- docs 正本化が必要なら human 承認後に `docs_updater` を使う前提で `propose_plans` へ戻す。
-- product 実装が必要なら `propose_plans` へ戻し、人間向け Copilot handoff の扱いを判断させる。
+- scenario candidate artifact が不足する場合は、`implement_lane` に戻し、候補生成器の不足を解消してから再開する。
+- workflow sequencing や task folder orchestration が主目的なら `implement_lane` へ戻す。
+- 文脈圧縮が必要なら `implement_lane` へ戻す。
+- 実画面 observation が必要なら `investigator` を使う前提で `implement_lane` へ戻す。
+- docs 正本化が必要なら human 承認後に `docs_updater` を使う前提で `implement_lane` へ戻す。
+- product 実装が必要なら `implement_lane` へ戻し、人間向け Codex implementation lane handoff の扱いを判断させる。
 
 ## Handoff
 
-- handoff 先: `propose_plans`
+- handoff 先: `implement_lane`
 - 渡す contract: [designer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/contracts/designer.contract.json)
 - 渡す scope: design artifact、human review 状態、open questions
 

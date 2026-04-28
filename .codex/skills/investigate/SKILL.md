@@ -38,7 +38,7 @@ UI check 専用 skill / agent は置かない。
 - evidence のない結論を書かない
 - 観測事実と仮説を混ぜない
 - UI evidence は画面状態、console、screenshot、操作条件を分けて残す
-- 実装 lane の調査は Copilot 側へ戻す
+- 実装 lane の調査は Codex implementation laneへ戻す
 
 ## Runtime Boundary
 
@@ -64,7 +64,7 @@ UI check 専用 skill / agent は置かない。
 
 - 観測条件が不足する場合は停止する。
 - 恒久修正が必要なら `designer` へ戻す。
-- 実装時調査なら、Copilot 側 [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
+- 実装時調査なら、Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
 
 ## Handoff
 
@@ -97,5 +97,5 @@ DON'T:
 ## Maintenance
 
 - 権限、write scope、output obligation を skill 本体へ戻さない。
-- 実装時調査は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-investigate/SKILL.md) へ分ける。
+- 実装時調査は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) へ分ける。
 - UI check 専用 skill / agent を戻さない。

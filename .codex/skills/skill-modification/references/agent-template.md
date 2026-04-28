@@ -62,7 +62,7 @@ agent contract は必要に応じて `knowledge_refs` や任意の `knowledge_fo
 ```
 
 Codex 用 agent 定義は [.codex/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/) に置く。
-GitHub Copilot 用 agent 定義は [.github/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/) に置く。
+Codex implementation lane 用 agent 定義は [.codex/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/) に置く。
 
 ## Agent TOML
 
@@ -94,7 +94,7 @@ contract は agent 1:1 とする。
 {
   "contract_version": "YYYY-MM-DD",
   "agent": "<actual-agent-name>",
-  "runtime": "<codex|github-copilot|other>",
+  "runtime": "<codex|codex|other>",
   "contract_policy": "active contract は agent 1:1。責務、権限、handoff、output obligation が分かれる場合は別 agent に切る。差分が知識参照だけなら focused skill を分けて参照する。",
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/<agent-name>/permissions.json",
   "required_inputs": [

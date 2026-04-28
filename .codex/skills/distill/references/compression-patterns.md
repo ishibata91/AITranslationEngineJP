@@ -3,7 +3,7 @@
 ## 採用する考え方
 
 `distill` は Codex 側の設計前 context だけを圧縮する。
-実装前の context 圧縮は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill/SKILL.md) が扱う。
+実装前の context 圧縮は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill/SKILL.md) が扱う。
 
 - `context-budget`: 先に棚卸しし、重い入力と重複を見つける
 - `strategic-compact`: phase 境界で残す情報を選び、途中の探索ノイズを捨てる

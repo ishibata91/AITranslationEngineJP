@@ -37,9 +37,9 @@
     "active work plan や関連 docs が不足している",
     "重要な fact の根拠 path を確認できない",
     "主要な設計判断が未確定で事実整理だけでは前進しない",
-    "作業が Copilot 側 implementation-distill の責務である"
+    "作業が Codex implementation lane implementation-distill の責務である"
   ],
   "reroute_targets": [
-    "propose-plans"
+    "implement-lane"
   ]
 }

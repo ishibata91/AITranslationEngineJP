@@ -4,7 +4,7 @@
 テンプレートを読む前に、この文書で前提をそろえる。
 
 この文書は draft である。
-既存 workflow へ適用するには、別 task で [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)、[.github/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/)、[.github/skills](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/)、既存 permissions の扱いを同期する。
+既存 workflow へ適用するには、別 task で [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)、[.codex/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/)、[.codex/skills](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/)、既存 permissions の扱いを同期する。
 
 ## 基本方針
 

@@ -16,7 +16,7 @@ description: Codex 側の共通文脈圧縮 skill。入口情報を facts、cons
 
 ## いつ参照するか
 
-- `propose-plans` の次判断に必要な repo 文脈を圧縮する時
+- `implement-lane` の次判断に必要な repo 文脈を圧縮する時
 - 設計向けまたは調査向けの詳細観点を読む前に、共通の圧縮粒度をそろえる時
 - user request、active plan、docs、関連 skill の重複を短く整理する時
 
@@ -69,12 +69,12 @@ description: Codex 側の共通文脈圧縮 skill。入口情報を facts、cons
 
 - active work plan や関連 docs が不足している場合は停止する。
 - 重要な fact の根拠 path を確認できない場合は停止する。
-- 主要な設計判断が未確定で事実整理だけでは前進しない場合は `propose_plans` へ戻す。
-- 実装前の文脈整理が目的なら、Copilot 側 [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill/SKILL.md) を使う前提で `propose_plans` へ戻す。
+- 主要な設計判断が未確定で事実整理だけでは前進しない場合は `implement_lane` へ戻す。
+- 実装前の文脈整理が目的なら、Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill/SKILL.md) を使う前提で `implement_lane` へ戻す。
 
 ## Handoff
 
-- handoff 先: `propose_plans`
+- handoff 先: `implement_lane`
 - 渡す contract: [distiller.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/contracts/distiller.contract.json)
 - 渡す scope: 次の設計または調査を判断するための圧縮済み facts と gaps
 
@@ -109,4 +109,4 @@ DON'T:
 - `distill` は共通圧縮知識だけを持つ。
 - 設計向け、調査向けの観点は focused skill に分ける。
 - 長い例や判断表は references に分離する。
-- 実装前 context の整理は Copilot 側 [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/implementation-distill/SKILL.md) に残す。
+- 実装前 context の整理は Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill/SKILL.md) に残す。

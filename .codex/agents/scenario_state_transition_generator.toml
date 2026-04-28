@@ -18,7 +18,7 @@ developer_instructions = """
 source of truth、handoff、stop / reroute は skill に従う。
 permissions と output obligation は permissions / contract に従う。
 
-`propose_plans` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
+`implement_lane` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
 `state-transition` viewpoint の scenario 候補だけを `scenario-candidates.state-transition.md` に書く。
 最終 scenario matrix、採否、統合、競合解消は `designer` に残す。
 他の scenario candidate generator を spawn しない。

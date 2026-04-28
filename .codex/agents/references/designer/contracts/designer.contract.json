@@ -31,7 +31,7 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md"
   ],
-  "handoff_targets": ["propose_plans"],
+  "handoff_targets": ["implement_lane"],
   "expected_outputs": [
     "design_artifact_status",
     "touched_artifacts",
@@ -45,7 +45,7 @@
     "touched_artifacts": "作成または更新した task-local artifact path を返す",
     "human_review_requirements": "human review が必要な判断、承認待ち、承認済みの状態を返す",
     "validation_summary": "実行した確認と未実行理由を返す",
-    "handoff_or_stop_reason": "propose_plans へ戻す理由または停止理由を返す",
+    "handoff_or_stop_reason": "implement_lane へ戻す理由または停止理由を返す",
     "open_questions": "設計継続に必要な未決事項を返す"
   },
   "required_evidence": [
@@ -58,7 +58,7 @@
     "missing handoff packet",
     "product implementation request",
     "unapproved docs canonicalization",
-    "Copilot-owned implementation-time work"
+    "implementation-owned implementation-time work"
   ],
   "stop_conditions": [
     "human review が必要な判断を AI だけで確定しそうである",
@@ -69,6 +69,6 @@
     "handoff_packet だけでは作業できない",
     "product 実装が必要である"
   ],
-  "completion_signal": "propose_plans が次の workflow action、human review、または人間向け Copilot handoff を判断できる",
+  "completion_signal": "implement_lane が次の workflow action、human review、または人間向け Codex implementation lane handoff を判断できる",
   "residual_risk_key": "open_questions"
 }

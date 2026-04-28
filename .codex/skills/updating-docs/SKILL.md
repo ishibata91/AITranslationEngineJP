@@ -1,6 +1,6 @@
 ---
 name: updating-docs
-description: Codex 側の docs 正本化知識 package。Copilot 修正完了後に、human 承認済み docs-only artifact を正本へ反映する判断基準を提供する。
+description: Codex 側の docs 正本化知識 package。implementation completion後に、human 承認済み docs-only artifact を正本へ反映する判断基準を提供する。
 ---
 
 # Updating Docs
@@ -8,27 +8,27 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 ## 目的
 
 `updating-docs` は知識 package である。
-`docs_updater` agent が Copilot 修正完了後に human 承認済み artifact を docs 正本へ反映するための、source of truth、承認確認、validation の見方を提供する。
+`docs_updater` agent が implementation completion後に human 承認済み artifact を docs 正本へ反映するための、source of truth、承認確認、validation の見方を提供する。
 
 人間可読な実行境界、handoff、stop / reroute はこの skill を正本にする。
 
 ## いつ参照するか
 
-- Copilot の修正完了が分かっている時
+- Codex implementation lane の修正完了が分かっている時
 - human 承認済み docs-only artifact を docs 正本へ移す時
 - canonicalization target と validation を整理する時
 - task-local artifact と docs source of truth の対応を確認する時
 
 ## 参照しない場合
 
-- Copilot の修正完了が未確認の時
+- Codex implementation lane の修正完了が未確認の時
 - workflow contract や skill / agent を変更する時
 - product code や product test の変更が必要な時
 - human approval が不足している時
 
 ## 知識範囲
 
-- Copilot completion report の確認
+- Codex implementation completion report の確認
 - docs source of truth の選び方
 - human approval record の確認
 - approved artifact と canonical target の対応
@@ -36,7 +36,7 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 
 ## 原則
 
-- Copilot 修正完了後にだけ正本化へ進む
+- implementation completion後にだけ正本化へ進む
 - human 承認済み artifact だけを反映する
 - docs-only scope を超えない
 - implementation-scope を docs 正本へ自動昇格しない
@@ -53,7 +53,7 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 
 ## 標準パターン
 
-1. Copilot completion report を確認する。
+1. Codex implementation completion report を確認する。
 2. approval record と docs-only scope を確認する。
 3. `docs/index.md` から canonical target を選ぶ。
 4. approved artifact と target の差分だけを反映する。
@@ -65,27 +65,27 @@ description: Codex 側の docs 正本化知識 package。Copilot 修正完了後
 
 ## Stop / Reroute
 
-- Copilot の修正完了が分からない場合は停止する。
+- Codex implementation lane の修正完了が分からない場合は停止する。
 - approval がない場合は停止する。
-- workflow 変更なら `propose_plans` へ戻す。
-- product 実装が必要なら `propose_plans` へ戻す。
+- workflow 変更なら `implement_lane` へ戻す。
+- product 実装が必要なら `implement_lane` へ戻す。
 
 ## Handoff
 
-- handoff 先: `propose_plans`
+- handoff 先: `implement_lane`
 - 渡す contract: [docs_updater.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/contracts/docs_updater.contract.json)
 - 渡す scope: docs 更新結果、validation、remaining gaps
 
 ## DO / DON'T
 
 DO:
-- Copilot completion report を根拠として残す
+- Codex implementation completion report を根拠として残す
 - approval record を根拠として残す
 - source of truth と task-local artifact を分ける
 - validation 結果を残す
 
 DON'T:
-- Copilot 修正完了前に正本化しない
+- implementation completion前に正本化しない
 - 未承認 draft を正本化しない
 - workflow 変更を docs 更新に混ぜない
 - product implementation を同時に進めない
@@ -105,4 +105,4 @@ DON'T:
 
 - 権限、write scope、output obligation を skill 本体へ戻さない。
 - workflow 変更は `skill-modification` へ分ける。
-- Copilot 実装 workflow からは使わない。
+- Codex implementation lane 実装 workflow からは使わない。

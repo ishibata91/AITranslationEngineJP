@@ -22,8 +22,8 @@ developer_instructions = """
 source of truth、handoff、stop / reroute は skill に従う。
 permissions と output obligation は permissions / contract に従う。
 
-`propose_plans` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
-`propose_plans` が揃えた scenario candidate artifact を統合し、scenario を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、human review 後に `implementation-scope` を固定する。
+`implement_lane` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
+`implement_lane` が揃えた scenario candidate artifact を統合し、scenario を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、human review 後に `implementation-scope` を固定する。
 scenario candidate generator は designer から spawn しない。
-workflow orchestration、次 action 判断、人間向け Copilot handoff は `propose_plans` に戻す。
+workflow orchestration、次 action 判断、implementation handoff は `implement_lane` に戻す。
 """

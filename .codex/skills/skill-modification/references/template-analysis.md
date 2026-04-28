@@ -77,7 +77,7 @@ mode や variant として分けたくなる知識は focused skill に分ける
 
 - [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md)
 - [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)
-- [.github/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/) と [.github/skills](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/skills/) の配置規約
+- [.codex/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/) と [.codex/skills](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/) の配置規約
 - 既存 skill 配下の `references/permissions.json` の削除
 - 既存 mode / variant contract slice の削除
 
@@ -96,7 +96,7 @@ skill は知識として複数 agent から再利用しやすくなる。
 
 ## 次の判断ポイント
 
-- agent-owned references の配置を [.github/agents/references](/Users/iorishibata/Repositories/AITranslationEngineJP/.github/agents/references/) に固定するか。
+- agent-owned references の配置を [.codex/agents/references](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/) に固定するか。
 - Codex 側にも [.codex/agents](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/) を作るか。
 - 既存 skill の `permissions.json` を削除し、必要な権限は agent 側へ寄せるか。
 - checklist を skill 必須にするか、agent contract が参照する時だけ作るか。

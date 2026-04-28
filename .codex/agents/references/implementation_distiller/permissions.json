@@ -1,0 +1,49 @@
+{
+  "contract_version": "2026-04-18",
+  "agent": "implementation_distiller",
+  "runtime": "codex",
+  "allowed_actions": [
+    "single_handoff_packet 1 件から lane_context_packet と implementation_facts を抽出する",
+    "owned_scope 内外の関連 file を catalog、summary、full の粒度で段階的に整理する",
+    "patch 生成に必要な fix_ingredients を file / function / block の構造単位で抽出する",
+    "類似しているが修正に不要な distracting_context を明示する",
+    "owned_scope の実 code を読んで first_action、change_targets、related_code_pointers を具体化する",
+    "repository method、interface、field の present / absent を実 code fact として確認する",
+    "first_action を 1 completion_signal clause に限定し、必要な最小 clause_closure_chain を整理する",
+    "existing_patterns の有無と探索範囲、cheap validation entry を整理する",
+    "要件、実装方針、決定事項を requirements_policy_decisions に要約する",
+    "focused skill に応じて implement、fix、refactor の実装前 constraints、gaps、required_reading を返す",
+    "related_code_pointers と validation_entry を返す",
+    "実装に必要な設計不足を implementation_orchestrator へ戻す"
+  ],
+  "forbidden_actions": [
+    "product code または product test を変更する",
+    "docs 配下を変更する",
+    ".codex 配下を変更する",
+    ".codex/skills または .codex/agents を変更する",
+    "implementation-scope を書き換える",
+    "full implementation-scope、active work plan 全文、source artifacts、後続 handoff を入力として要求する",
+    "実 code を読まず handoff 文面の言い換えだけを返す",
+    "fix_ingredients を特定せず first_action または change_targets を返す",
+    "類似 context を distracting_context に分けず required_reading へ混ぜる",
+    "存在確認していない repository method、interface、field を fact として返す",
+    "partial または複数 clause の first_action を返す",
+    "existing_patterns の none を探索範囲と影響なしで返す",
+    "cheap validation entry を検討せず広い validation command だけを返す",
+    "要件、実装方針、決定事項を要約せず required_reading に丸投げする",
+    "ファイル名だけの required_reading または symbol / line number のない related_code_pointers を返す",
+    "要件や設計を追加する",
+    "owned_scope を広げる"
+  ],
+  "allowed_write_scope": [],
+  "forbidden_write_scope": ["product code", "product test", "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/", "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/"],
+  "required_source_of_truth": ["single_handoff_packet", "approval_record", "owned_scope", "validation_commands"],
+  "stop_conditions": [
+    "single_handoff_packet が存在しない",
+    "approval_record が不足している",
+    "owned_scope が曖昧である",
+    "設計判断が不足していて実装前整理だけでは前進しない",
+    "変更が docs や workflow へ広がる"
+  ],
+  "reroute_targets": ["implementation_orchestrator"]
+}

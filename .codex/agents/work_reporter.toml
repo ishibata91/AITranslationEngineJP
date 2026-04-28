@@ -15,7 +15,7 @@ developer_instructions = """
 source of truth、handoff、stop / reroute は skill に従う。
 permissions と output obligation は permissions / contract に従う。
 
-analysis/benchmark-score.json、Codex / Copilot evidence packet から work_history report を作る。
-Copilot の実装事実は推測で補わない。
+analysis/benchmark-score.json と Codex evidence packet から work_history report を作る。
+implementation lane の実装事実は推測で補わない。
 benchmark は次回改善用の観測値として扱い、数値閾値で close 可否を決めない。
 """

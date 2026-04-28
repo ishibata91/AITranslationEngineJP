@@ -25,7 +25,7 @@ agent の `permissions.json` と contract は、skill 本文から agent-owned r
 
 - workflow 正本: `.codex/README.md`
 - Codex 入口: `.codex/skills/propose-plans/SKILL.md`
-- Copilot 実装入口: `.github/skills/implementation-orchestrate/SKILL.md`
+- Codex implementation lane 実装入口: `.codex/skills/implementation-orchestrate/SKILL.md`
 - 仕様入口: `docs/index.md`
 - 長期原則: `docs/core-beliefs.md`
 - 恒久要件: `docs/spec.md`
@@ -35,9 +35,9 @@ agent の `permissions.json` と contract は、skill 本文から agent-owned r
 ## 強い制約
 
 - Codex は設計、計画、handoff、docs 正本化を担当する
-- GitHub Copilot は承認済み `implementation-scope` から実装する
+- Codex implementation lane は承認済み `implementation-scope` から実装する
 - AI design review は行わず、人間が design bundle を review する
-- Copilot は `docs/`、`.codex/`、`.github/skills`、`.github/agents` を変更しない
+- Codex implementation lane は `docs/`、`.codex/`、`.codex/skills`、`.codex/agents` を変更しない
 - docs 正本化は Codex の `updating-docs` だけが扱う
 
 ## 実装前に確認すること

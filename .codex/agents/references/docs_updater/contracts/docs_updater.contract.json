@@ -5,7 +5,7 @@
   "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/permissions.json",
   "required_inputs": [
     "caller",
-    "copilot_completion_report",
+    "implementation_completion_report",
     "approval_record",
     "approved_artifact",
     "canonicalization_targets"
@@ -15,7 +15,7 @@
     "source_docs"
   ],
   "required_artifacts": [
-    "copilot completion report",
+    "Codex implementation completion report",
     "approved docs-only artifact",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md"
   ],
@@ -29,22 +29,22 @@
     "remaining_gaps"
   ],
   "required_evidence": [
-    "copilot completion report",
+    "Codex implementation completion report",
     "approval record",
     "source artifact path",
     "validation result"
   ],
   "rejection_conditions": [
-    "copilot completion missing",
+    "Codex implementation completion missing",
     "approval missing",
     "product implementation required",
     "workflow contract change"
   ],
   "stop_conditions": [
-    "Copilot の修正完了が分からない",
+    "Codex implementation lane の修正完了が分からない",
     "docs-only scope ではない",
     "human approval がない"
   ],
-  "completion_signal": "Copilot 修正完了後の docs 正本が approved artifact と同期している",
+  "completion_signal": "implementation completion後の docs 正本が approved artifact と同期している",
   "residual_risk_key": "remaining_gaps"
 }

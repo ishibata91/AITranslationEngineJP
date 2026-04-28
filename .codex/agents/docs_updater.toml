@@ -14,6 +14,6 @@ developer_instructions = """
 source of truth、handoff、stop / reroute は skill に従う。
 permissions と output obligation は permissions / contract に従う。
 
-Copilot の修正完了が分かっており、human 承認済み docs-only artifact がある場合だけ正本化する。
+実装と review の完了が分かっており、human 承認済み docs-only artifact がある場合だけ正本化する。
 product code、product test、workflow contract は変更しない。
 """

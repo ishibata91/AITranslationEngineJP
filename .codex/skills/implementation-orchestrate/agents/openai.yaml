@@ -1,0 +1,3 @@
+version: 1
+agent: implementation_orchestrator
+entry: SKILL.md

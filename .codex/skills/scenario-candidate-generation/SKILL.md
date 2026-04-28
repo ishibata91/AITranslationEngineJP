@@ -1,6 +1,6 @@
 ---
 name: scenario-candidate-generation
-description: Codex 側の scenario 候補生成 skill。propose_plans が designer 前に viewpoint 別 candidate artifact を作るための source of truth、出力形式、禁止事項を提供する。
+description: Codex 側の scenario 候補生成 skill。implement_lane が designer 前に viewpoint 別 candidate artifact を作るための source of truth、出力形式、禁止事項を提供する。
 ---
 
 # Scenario Candidate Generation
@@ -27,7 +27,7 @@ description: Codex 側の scenario 候補生成 skill。propose_plans が design
 | `operation-audit` | `scenario-candidates.operation-audit.md` | 運用・監査 |
 
 scenario candidate generator は 6 agent に分ける。
-`propose_plans` が 6 agent を直接並列 spawn する。
+`implement_lane` が 6 agent を直接並列 spawn する。
 2 層 subagent は使わない。
 
 | agent | viewpoint |
@@ -41,9 +41,9 @@ scenario candidate generator は 6 agent に分ける。
 
 ## Source Of Truth
 
-- primary: `propose_plans` から渡された handoff packet、distiller result、active task folder
+- primary: `implement_lane` から渡された handoff packet、distiller result、active task folder
 - secondary: packet に明示された docs、task-local artifact、関連 source path
-- forbidden source: 引き継いでいない会話文脈、未承認の design review、Copilot の独自再設計
+- forbidden source: 引き継いでいない会話文脈、未承認の design review、Codex implementation lane の独自再設計
 
 ## Output
 
@@ -77,6 +77,6 @@ DON'T:
 
 ## Handoff
 
-- handoff 先: `propose_plans`
+- handoff 先: `implement_lane`
 - 渡す contract: 各 agent の `agents/references/<agent>/contracts/<agent>.contract.json`
 - 渡す scope: candidate artifact path、viewpoint、source requirement coverage、conflict hint、human decision candidate
