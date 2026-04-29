@@ -3,13 +3,12 @@
   "agent": "implementation_implementer",
   "runtime": "codex",
   "contract_policy": "active contract は agent 1:1。backend / frontend / mixed / fix-lane の差分は focused skill で扱い、output obligation はこの contract に固定する。implementation_implementer は distiller 後の product code 実装を扱い、`APIテスト` 先行時だけ implementation_tester output を受け取る。product test / fixture / snapshot / test helper は変更しない。",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_implementer/permissions.json",
   "required_inputs": ["single_handoff_packet", "lane_context_packet", "approval_record", "implementation_target", "owned_scope", "depends_on_resolved"],
   "optional_inputs": ["implementation_subscope", "knowledge_focus", "lane_local_validation_commands", "implementation_tester_output"],
   "input_notes": {
     "single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。",
     "lane_context_packet": "implementation_distiller が single_handoff_packet 1 件だけから作った実装前整理。fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含む。full implementation-scope、active work plan 全文、source artifacts、後続 handoff 由来の情報を含めない。",
-    "implementation_subscope": "implementation_orchestrator が context 枯渇時に同一 handoff 内で狭めた implementation_implementer 用 sub-scope。completion_signal clause、public seam / API boundary、change target / symbol、validation command のいずれか 1 軸で切られる。completion_signal を削るものではない。",
+    "implementation_subscope": "implement_lane が context 枯渇時に同一 handoff 内で狭めた implementation_implementer 用 sub-scope。completion_signal clause、public seam / API boundary、change target / symbol、validation command のいずれか 1 軸で切られる。completion_signal を削るものではない。",
     "implementation_tester_output": "`APIテスト` 先行 handoff で implementation_tester が先に返した product test result。通常、unit、原因未確定の regression handoff では入力に含めない。",
     "knowledge_focus": "implement-backend、implement-frontend、implement-mixed、implement-fix-lane の参照ヒント。contract と完了条件は変えない。implement-mixed は API / Wails / DTO / gateway など接合点 scope に限定する。"
   },
@@ -20,7 +19,7 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-mixed/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-fix-lane/SKILL.md"
   ],
-  "handoff_targets": ["implementation_orchestrator"],
+  "handoff_targets": ["implement_lane"],
   "expected_outputs": ["touched_files", "implemented_scope", "implemented_subscope", "remaining_implementation_subscopes", "validation_results", "closeout_notes", "insufficient_context", "reason", "needed_context", "suggested_narrowing_axis", "residual_risks"],
   "insufficient_context_criteria": {
     "gate": "structural_gate",
@@ -53,6 +52,6 @@
   "rejection_conditions": ["missing single_handoff_packet", "missing lane_context_packet", "missing fix_ingredients", "missing distracting_context", "missing first_action", "missing change_targets", "missing requirements_policy_decisions", "missing approval_record", "missing implementation_tester_output for API test pre-implementation handoff", "unclear owned_scope"],
   "stop_conditions": ["設計判断が不足している", "docs または workflow の変更が必要になる", "broad refactor なしでは実装できない", "product test、fixture、snapshot、test helper の変更が必要になる"],
   "contract_violation_conditions": ["touched_test_files を返す", "product test、fixture、snapshot、test helper を変更する", "full implementation-scope または後続 handoff を入力として要求する", "insufficient_context を返さず広く調査して不足 context を埋める", "criteria mismatch: insufficient_context_criteria に一致しない理由で insufficient_context を返す", "remaining_implementation_subscopes を隠して完了扱いにする", "実装完了後に touched layer の local validation 結果または未実行理由を返さない"],
-  "completion_signal": "implementation_orchestrator が review へ進める product code 実装結果と touched-layer local validation 結果が返っている",
+  "completion_signal": "implement_lane が review へ進める product code 実装結果と touched-layer local validation 結果が返っている",
   "residual_risk_key": "residual_risks"
 }

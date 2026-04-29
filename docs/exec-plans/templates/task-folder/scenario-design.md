@@ -346,7 +346,7 @@ AI推奨:
 
 ## Validation Commands
 
-- Copilot handoff で使う検証入口を書く
+- Codex implementation handoff で使う検証入口を書く
 - `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --coverage docs/exec-plans/active/<task-id>/scenario-design.requirement-coverage.json --candidate-coverage docs/exec-plans/active/<task-id>/scenario-design.candidate-coverage.json --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md`
 
 ## Open Questions

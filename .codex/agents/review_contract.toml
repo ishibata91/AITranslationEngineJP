@@ -3,12 +3,13 @@ description = "Codex review agent for contract compatibility。詳細は /Users/
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
+allowed_write_paths = []
+allowed_commands = []
 developer_instructions = """
 この作業は `review_contract` agent と `codex-review-contract` skill に基づく。
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-contract/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_contract/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_contract/contracts/review_contract.contract.json`
 
 diff から取得した実コードを読み、契約・互換性だけを score / confidence / findings / violated_invariant / root_cause_hypotheses / local_patch_assessment で返す。

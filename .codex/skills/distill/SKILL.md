@@ -46,11 +46,11 @@ description: Codex 側の共通文脈圧縮 skill。入口情報を facts、cons
 ## Runtime Boundary
 
 - binding: [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml)
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/permissions.json)
+- agent runtime: [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml)
 - contract: [distiller.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/contracts/distiller.contract.json)
 - allowed: repo 文脈を read-only で棚卸しし、必要最小限に圧縮する
 - forbidden: product code / product test / docs 正本 / workflow 正本を変更しない
-- write scope: なし
+- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
 
 ## 標準パターン
 

@@ -45,11 +45,11 @@ description: Codex 側の docs 正本化知識 package。implementation completi
 ## Runtime Boundary
 
 - binding: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/permissions.json)
+- agent runtime: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - contract: [docs_updater.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/contracts/docs_updater.contract.json)
 - allowed: approved docs-only scope の docs 更新
 - forbidden: product code、product test、workflow contract の変更
-- write scope: `docs/` の承認済み正本だけ
+- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
 
 ## 標準パターン
 
@@ -103,6 +103,6 @@ DON'T:
 
 ## Maintenance
 
-- 権限、write scope、output obligation を skill 本体へ戻さない。
+- tool policy と output obligation を skill 本体へ戻さない。
 - workflow 変更は `skill-modification` へ分ける。
 - Codex implementation lane 実装 workflow からは使わない。

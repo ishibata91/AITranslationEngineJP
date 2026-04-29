@@ -3,12 +3,13 @@ description = "Codex implementation context distiller agent。詳細は /Users/i
 model = "gpt-5.4-mini"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
+allowed_write_paths = []
+allowed_commands = []
 developer_instructions = """
 この作業は `implementation_distiller` agent と `implementation-distill` skill に基づく。
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_distiller/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_distiller/contracts/implementation_distiller.contract.json`
 
 必要に応じて focused skill を追加で読む。
@@ -17,7 +18,8 @@ developer_instructions = """
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill-refactor/SKILL.md`
 
 source of truth、handoff、stop / reroute は skill に従う。
-permissions と output obligation は permissions / contract に従う。
+tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+output obligation は contract に従う。
 contract は agent 1:1 とする。
 single_handoff_packet 1 件から lane_context_packet と tester_context_packet を作る。
 """

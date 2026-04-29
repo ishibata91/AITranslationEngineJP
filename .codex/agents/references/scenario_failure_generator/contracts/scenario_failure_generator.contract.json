@@ -3,7 +3,6 @@
   "agent": "scenario_failure_generator",
   "runtime": "codex",
   "viewpoint": "failure",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_failure_generator/permissions.json",
   "required_inputs": [
     "caller",
     "handoff_packet",

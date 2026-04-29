@@ -48,11 +48,11 @@ description: Codex 側の図作成知識 package。PlantUML と structure diff �
 
 - standard caller: [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - explicit helper binding: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/diagrammer/permissions.json)
+- agent runtime: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
 - contract: [diagrammer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/diagrammer/contracts/diagrammer.contract.json)
 - allowed: diagram source と review artifact の作成、更新、検証
 - forbidden: product code と product test の変更
-- write scope: diagram source、task-local review diagram
+- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
 
 ## 標準パターン
 
@@ -123,6 +123,6 @@ DON'T:
 
 ## Maintenance
 
-- 権限、write scope、output obligation を skill 本体へ戻さない。
+- tool policy と output obligation を skill 本体へ戻さない。
 - mode-specific active contract を skill 側に増やさない。
 - 標準 flow に diagram を戻さない。

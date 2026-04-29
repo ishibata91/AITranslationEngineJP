@@ -17,7 +17,7 @@
 - `scenario-design.candidate-coverage.json`: scenario 候補の採否、統合、競合、最終 scenario 対応
 - `scenario-design.requirement-coverage.json`: 詳細要求タイプの仕様網羅
 - `scenario-design.questions.md`: 人間判断が必要な項目だけの質問票
-- `implementation-scope.md`: `implementation-scope` の Copilot handoff。human review 後だけ作る
+- `implementation-scope.md`: `implementation-scope` の Codex implementation handoff。human review 後だけ作る
 
 ## 読み方
 

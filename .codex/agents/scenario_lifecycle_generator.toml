@@ -3,12 +3,16 @@ description = "Codex scenario lifecycle generator agent。詳細は /Users/ioris
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
+allowed_write_paths = [
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/completed/",
+]
+allowed_commands = []
 developer_instructions = """
 この作業は `scenario_lifecycle_generator` agent と `scenario-lifecycle-generation` skill に基づく。
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-lifecycle-generation/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_lifecycle_generator/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_lifecycle_generator/contracts/scenario_lifecycle_generator.contract.json`
 
 必要に応じて次の support skill を読む。
@@ -16,7 +20,8 @@ developer_instructions = """
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md`
 
 source of truth、handoff、stop / reroute は skill に従う。
-permissions と output obligation は permissions / contract に従う。
+tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+output obligation は contract に従う。
 
 `implement_lane` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
 `lifecycle` viewpoint の scenario 候補だけを `scenario-candidates.lifecycle.md` に書く。

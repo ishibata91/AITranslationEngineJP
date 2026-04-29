@@ -43,11 +43,11 @@ UI check 専用 skill / agent は置かない。
 ## Runtime Boundary
 
 - binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/permissions.json)
+- agent runtime: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
 - allowed: read-only の再現、UI 証跡収集、観測、trace 計画、risk report
 - forbidden: product code、product test、docs 正本の変更
-- write scope: なし
+- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
 
 ## 標準パターン
 
@@ -96,6 +96,6 @@ DON'T:
 
 ## Maintenance
 
-- 権限、write scope、output obligation を skill 本体へ戻さない。
+- tool policy と output obligation を skill 本体へ戻さない。
 - 実装時調査は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) へ分ける。
 - UI check 専用 skill / agent を戻さない。

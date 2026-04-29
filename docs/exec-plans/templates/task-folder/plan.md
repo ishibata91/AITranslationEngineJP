@@ -27,7 +27,7 @@
 - `functional_or_design_hitl`: `required-after-design-bundle` / `approved` / `not-required`
 - `approval_record`: `pending-after-design-bundle` または human review の記録
 
-## Copilot Result
+## Codex Implementation Result
 
 - `completed_handoffs`:
 - `touched_files`:
@@ -35,7 +35,7 @@
 - `test_results`:
 - `implementation_investigation`:
 - `ui_evidence`:
-- `implementation_review_result`:
+- `codex_review_result`:
 - `sonar_gate_result`:
 - `residual_risks`:
 - `docs_changes`:

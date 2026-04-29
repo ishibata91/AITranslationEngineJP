@@ -12,5 +12,5 @@
 
 - この file は互換用の案内であり、新規 handoff 本体を書かない
 - `implementation-scope.md` は human review 後だけ作る
-- Copilot handoff は folder 内の source artifact へ relative path で参照する
+- Codex implementation handoff は folder 内の source artifact へ relative path で参照する
 - docs 正本化、`.codex/`、`.github/skills`、`.github/agents` の変更を handoff に含めない

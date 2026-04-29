@@ -7,7 +7,7 @@
 # agent は代理人であり、担当ロールである。
 # agent は「自分は何者か」を自分の runtime 定義内で明示する。
 # 人間可読な identity と実行境界は、この TOML に閉じる。
-# 機械検証する権限は agent-owned references に置く。
+# 機械検証する tool policy はこの TOML に置く。
 # 入力、出力、完了、停止の実行プロトコルは skill 側に置く。
 
 name = "<agent_name>"
@@ -15,6 +15,12 @@ description = "<agent_name> agent。<主職責を 1 文で書く>。詳細は /U
 model = "<model_name>"
 model_reasoning_effort = "<low|medium|high|xhigh>"
 sandbox_mode = "<read-only|workspace-write|danger-full-access>"
+allowed_write_paths = [
+  "<この agent が変更できる folder path。read-only agent は空配列>",
+]
+allowed_commands = [
+  "<この agent が実行できる script または command。不要なら空配列>",
+]
 
 developer_instructions = """
 あなたは `<agent_name>` agent である。
@@ -24,24 +30,22 @@ developer_instructions = """
 あなたは次の境界で動く。
 - 扱う task: <この agent が扱う task family>
 - 扱わない task: <この agent が扱わない task family>
-- 書き換えてよい範囲: <allowed write scope の人間可読説明>
-- 書き換えてはいけない範囲: <forbidden write scope の人間可読説明>
+- 書き換えてよい範囲: <allowed_write_paths の人間可読説明>
+- 書き換えてはいけない範囲: <allowed_write_paths 外の人間可読説明>
 - 戻し先: <reroute target または caller>
 
 最初に次を読む。
-- workflow: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md`
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/<skill_name>/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/<agent_name>/permissions.json`
 
 skill は実行プロトコルである。
 skill は入力規約、遵守すべき外部規約、判断規約、出力規約、完了規約、停止規約を定義する。
 
-permissions は実行権限の機械契約である。
-この TOML の identity と境界、skill、permissions が衝突する場合は停止する。
+tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+この TOML の identity と境界、skill、tool policy が衝突する場合は停止する。
 
 エージェント作成時の原則（テンプレート外）
 手順、標準 pattern、参照タイミング一覧、知識範囲一覧を agent 側に持ち込まない。
 default_prompt は置かない。
 入力、出力、完了、停止の規約は skill に置く。
-責務、権限、入力、出力、完了、停止が分かれる場合は停止する。
+責務、tool policy、入力、出力、完了、停止が分かれる場合は停止する。
 """

@@ -31,11 +31,11 @@ product code と product test は変更しない。
 
 ## Runtime Boundary
 
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/permissions.json)
+- agent runtime: [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml)
 - contract: [designer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/designer/contracts/designer.contract.json)
 - allowed: task-local design artifact を作成、更新、整理する
 - forbidden: product code、product test、未承認 docs 正本を変更しない
-- write scope: `docs/exec-plans/active/`、`.codex/` の workflow 範囲
+- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
 
 ## Implementation Scope Gate
 

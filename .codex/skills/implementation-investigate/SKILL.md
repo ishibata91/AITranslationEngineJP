@@ -10,7 +10,7 @@ description: Codex implementation lane 側の実装時調査の共通知識 pack
 `implementation-investigate` は知識 package である。
 `implementation_investigator` agent が、`single_handoff_packet` 1 件と owned_scope 内で実装時の証拠を集める時の共通判断を提供する。
 
-実行権限、write scope、active contract、handoff は [implementation_investigator.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.agent.md) が持つ。
+tool policy は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) が持ち、active contract と handoff は contract / skill に従う。
 
 ## いつ参照するか
 
@@ -146,7 +146,7 @@ DON'T:
 ## Agent が持つもの
 
 - active contract: [implementation_investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_investigator/contracts/implementation_investigator.contract.json)
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_investigator/permissions.json)
+- agent runtime: [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml)
 
 ## Maintenance
 

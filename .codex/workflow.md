@@ -16,7 +16,7 @@ flowchart TD
     S[scenario-design.md]
     F[human review]
     G[implementation-scope.md]
-    H[Codex implementation lane implementation-orchestrate]
+    H[Codex implementation lane implement-lane]
     K[Codex implementation lane implementation-distill]
     M[human relay or close judgment]
     I[updating-docs]
@@ -46,5 +46,5 @@ live の role 境界、handoff、stop 条件、docs 正本化判断は [README.m
 ## 参照先
 
 - Codex workflow 正本: [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)
-- Codex implementation lane 実装入口: [implementation-orchestrate](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-orchestrate/SKILL.md)
+- Codex implementation lane 実装入口: [implement-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
 - docs 仕様入口: [docs/index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)

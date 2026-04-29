@@ -2,7 +2,6 @@
   "contract_version": "2026-04-18",
   "agent": "docs_updater",
   "runtime": "codex",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/docs_updater/permissions.json",
   "required_inputs": [
     "caller",
     "implementation_completion_report",

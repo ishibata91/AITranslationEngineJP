@@ -13,7 +13,7 @@ Codex と Codex implementation lane の benchmark score、completion evidence、
 completion evidence は明示 packet だけでなく、Codex / Codex implementation lane transcript から source_ref 付きで抽出した完了報告も含む。
 
 この skill は実行主体ではない。
-書き込み権限、完了条件、停止条件は参照元 agent の contract に従う。
+tool policy は参照元 agent TOML に従い、完了条件と停止条件は参照元 agent の contract に従う。
 
 ## いつ参照するか
 
@@ -167,14 +167,14 @@ DON'T:
 
 ## Agent が持つもの
 
-- 実行権限
+- tool policy
 - agent 1:1 contract
-- write scope
+- tool policy
 - stop / reroute 条件
 
 ## Maintenance
 
-- 権限や contract を skill 本体へ戻さない。
+- tool policy や contract を skill 本体へ戻さない。
 - template 変更時は checklist の観点も同期する。
 - Codex implementation lane 固有の実装事実は completion evidence から受ける。
 - completion evidence が明示入力にない場合は、Codex implementation lane transcript / chat session file から task id と completion packet 欄を確認し、source_ref 付きで抽出する。

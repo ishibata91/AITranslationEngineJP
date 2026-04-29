@@ -3,7 +3,6 @@
   "agent": "implementation_distiller",
   "runtime": "codex",
   "contract_policy": "active contract は agent 1:1。implement / fix / refactor の差分は focused skill で扱い、output obligation はこの contract に固定する。",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_distiller/permissions.json",
   "required_inputs": ["single_handoff_packet", "approval_record", "owned_scope", "depends_on_resolved", "validation_commands"],
   "optional_inputs": ["knowledge_focus", "reproduction_evidence", "trace_or_analysis_result"],
   "input_notes": {
@@ -16,7 +15,7 @@
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill-fix/SKILL.md",
     "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill-refactor/SKILL.md"
   ],
-  "handoff_targets": ["implementation_orchestrator"],
+  "handoff_targets": ["implement_lane"],
   "expected_outputs": ["lane_context_packet", "implementation_tester_context_packet", "fix_ingredients", "distracting_context", "first_action", "change_targets", "requirements_policy_decisions", "required_reading", "related_code_pointers", "existing_patterns", "implementation_facts", "constraints", "gaps", "validation_entry", "test_ingredients", "test_required_reading", "test_existing_patterns", "test_distracting_context", "test_validation_entry", "recommended_next_skill"],
   "field_requirements": {
     "lane_context_packet": "single_handoff_packet 1 件だけから作る。implementation_implementer に渡せる fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、related_code_pointers、existing_patterns、facts、constraints、gaps、validation_entry を含める。implementation_tester 向けには full lane_context_packet ではなく implementation_tester_context_packet を別に返す",
@@ -41,6 +40,6 @@
   "rejection_conditions": ["missing single_handoff_packet", "missing approval_record", "unclear owned_scope"],
   "stop_conditions": ["設計判断が不足している", "変更が docs や workflow へ広がる"],
   "contract_violation_conditions": ["full implementation-scope を入力として要求する", "active work plan 全文を入力として要求する", "source_artifacts または後続 handoff を入力として要求する", "実 code を読まず handoff 文面の言い換えだけを返す", "fix_ingredients がない、または path / symbol / line number / why_needed_for_patch がない", "distracting_context を確認せず類似 context を required_reading に混ぜる", "implementation_tester_context_packet がない、または test_ingredients / test_required_reading / test_validation_entry がない", "implementation_tester_context_packet に fix_ingredients、change_targets、broad related_code_pointers を丸ごと混ぜる", "要件、実装方針、決定事項を要約せず required_reading に丸投げする", "required_reading がファイル名の列挙だけである", "related_code_pointers に symbol/type/function または line number がない", "存在確認していない repository method / interface / field を fact として扱う", "first_action がなく implementation_implementer に調査開始を委ねる", "first_action の clause_closed が partial、複数 clause、または曖昧な advance 表現である", "first_action が 1 clause の最小 closure chain を示さない", "existing_patterns が none なのに探索範囲と実装判断への影響がない", "validation_entry が広い command だけで cheap check の探索理由がない", "change_targets がなく実装可能に見せる"],
-  "completion_signal": "implementation_orchestrator が implement、tests、review の次 handoff を判断できる",
+  "completion_signal": "implement_lane が implement、tests、review の次 handoff を判断できる",
   "residual_risk_key": "gaps"
 }

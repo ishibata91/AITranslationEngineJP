@@ -3,7 +3,6 @@
   "agent": "scenario_state_transition_generator",
   "runtime": "codex",
   "viewpoint": "state-transition",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/scenario_state_transition_generator/permissions.json",
   "required_inputs": [
     "caller",
     "handoff_packet",

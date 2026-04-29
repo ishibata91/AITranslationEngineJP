@@ -3,6 +3,8 @@ description = "distill 系 skill の primary agent。詳細は /Users/iorishibat
 model = "gpt-5.4"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"
+allowed_write_paths = []
+allowed_commands = []
 developer_instructions = """
 この作業は `distiller` agent と `distill` skill に基づく。
 
@@ -10,11 +12,11 @@ developer_instructions = """
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/SKILL.md`
 - support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-design/SKILL.md`
 - support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/distiller/contracts/distiller.contract.json`
 
 source of truth、handoff、stop / reroute は skill に従う。
-permissions と output obligation は permissions / contract に従う。
+tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+output obligation は contract に従う。
 
 入口情報から、次工程に必要な repo facts、constraints、gaps、required reading だけを抽出する。
 確認済み事実と推測を分け、根拠 path を残す。

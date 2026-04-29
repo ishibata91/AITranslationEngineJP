@@ -2,7 +2,6 @@
   "contract_version": "2026-04-28",
   "agent": "review_trust_boundary",
   "runtime": "codex",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_trust_boundary/permissions.json",
   "required_inputs": ["review_target_diff", "implementation_scope_path", "implementation_result"],
   "optional_inputs": ["final_validation_result", "touched_files"],
   "knowledge_refs": ["/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md"],

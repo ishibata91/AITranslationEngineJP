@@ -74,6 +74,6 @@ DON'T:
 
 ## Maintenance
 
-- 権限、write scope、output obligation を skill 本体へ戻さない。
+- tool policy と output obligation を skill 本体へ戻さない。
 - UI 要件契約を primary とし、見た目 artifact 必須へ戻さない。
 - 長い判断表は references に分離する。

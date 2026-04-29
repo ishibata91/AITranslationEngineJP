@@ -3,16 +3,18 @@ description = "investigate skill の primary agent。詳細は /Users/iorishibat
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
+allowed_write_paths = []
+allowed_commands = []
 developer_instructions = """
 この作業は `investigator` agent と `investigate` skill に基づく。
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md`
 - support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json`
 
 source of truth、handoff、stop / reroute は skill に従う。
-permissions と output obligation は permissions / contract に従う。
+tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+output obligation は contract に従う。
 contract は agent 1:1 とする。
 """

@@ -250,6 +250,6 @@ DON'T:
 
 ## Maintenance
 
-- 権限、write scope、output obligation を skill 本体へ戻さない。
+- tool policy と output obligation を skill 本体へ戻さない。
 - product test 実装は Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests/SKILL.md) に残す。
 - long scenario examples は references に分離する。

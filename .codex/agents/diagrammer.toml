@@ -3,16 +3,23 @@ description = "Codex diagram 補助 agent。標準 implement_lane flow では sp
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
+allowed_write_paths = [
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
+]
+allowed_commands = [
+  "d2 -t 201 <diagram_source>",
+]
 developer_instructions = """
 この作業は `diagrammer` agent と `diagramming` skill に基づく。
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md`
-- permissions: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/diagrammer/permissions.json`
 - contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/diagrammer/contracts/diagrammer.contract.json`
 
 source of truth、handoff、stop / reroute は skill に従う。
-permissions と output obligation は permissions / contract に従う。
+tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+output obligation は contract に従う。
 
 標準 `implement_lane` flow では diagrammer を直接 spawn しない。
 diagram が必要な資料の場合は `designer` agent が `diagramming` skill を参照して扱う。

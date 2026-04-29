@@ -5,8 +5,8 @@
 - `source_plan`: `./plan.md`
 - `human_review_status`:
 - `approval_record`:
-- `copilot_entry`: `.github/skills/implementation-orchestrate/SKILL.md`
-- `handoff_runtime`: `github-copilot`
+- `codex_entry`: `.codex/skills/implement-lane/SKILL.md`
+- `handoff_runtime`: `codex`
 
 ## Source Artifacts
 
@@ -57,14 +57,14 @@
   - `UI人間操作E2E` は final validation で証明し、frontend handoff の直接 owner にしない。
   - `contract_freeze.status: required` の handoff では、downstream が参照してよい public API / DTO / gateway / controller entry / state contract を `frozen_public_seams` に列挙する。
   - `execution_group` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ作る。同じ wave 内でも `parallelizable_with` に列挙しない handoff は並列実行しない。
-  - `ready_wave` は Ready Waves 表と一致させる。Copilot は最小番号の実行可能 wave から開始する。
-  - `first_action` は Copilot が最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
+  - `ready_wave` は Ready Waves 表と一致させる。Codex は最小番号の実行可能 wave から開始する。
+  - `first_action` は Codex implementation lane が最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
   - 並列不可の理由は `parallel_blockers` に `depends_on`、`owned_scope_overlap`、`shared_contract_change`、`validation_owner_ambiguous`、`backend_frontend_order`、`broad_gate_shared` のいずれかで書く。
   - 必要な場合だけ `本番経路` を書く。`本番経路` は実行時に通る public API / DTO / controller / UI entry / persistence path を指し、domain 固有知識はここへ一般例として増やさない。
 
 ## Completion Packet
 
-Copilot は完了時に次を返す。
+Codex implementation lane は完了時に次を返す。
 
 - `completed_handoffs`
 - `touched_files`
@@ -72,12 +72,12 @@ Copilot は完了時に次を返す。
 - `test_results`
 - `implementation_investigation`
 - `ui_evidence`
-- `pre_review_gate_result`
-- `implementation_review_result`
+- `final_validation_result`
+- `codex_review_result`
 - `coverage_gate_result`
 - `sonar_gate_result`: 互換 field 名。意味は repo-local Sonar issue gate であり、Sonar サーバ側 Quality Gate ではない。
 - `harness_gate_result`: system test が Wails / sandbox / OS 権限で止まる場合は `FAIL_ENVIRONMENT` とし、blocked reason、再実行環境、再実行コマンドを残す。
 - `residual_risks`
 - `completion_evidence`: Codex 側 `work_reporter` が読む実装事実。report 文面ではなく、completed_handoffs、touched_files、validation、residual、blocked reason、人間が次に見るべき場所を含める。
-- `telemetry_events`: `runtime: copilot` の `assistant_response` event。速度や欠落は次回改善用であり、初期 close 判定には使わない。
+- `telemetry_events`: `runtime: codex` の response event。速度や欠落は次回改善用であり、初期 close 判定には使わない。
 - `docs_changes: none`

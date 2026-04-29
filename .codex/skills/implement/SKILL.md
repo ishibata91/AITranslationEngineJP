@@ -10,7 +10,7 @@ description: Codex implementation lane 側の product code 実装の共通知識
 `implement` は知識 package である。
 `implementation_implementer` agent が、承認済み `implementation-scope` の handoff 1 件を owned_scope 内へ実装する時の共通判断を提供する。
 
-実行権限、write scope、active contract、handoff は [implementation_implementer.agent.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.agent.md) が持つ。
+tool policy は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) が持ち、active contract と handoff は contract / skill に従う。
 
 ## いつ参照するか
 
@@ -108,7 +108,7 @@ DON'T:
 ## Agent が持つもの
 
 - active contract: [implementation_implementer.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_implementer/contracts/implementation_implementer.contract.json)
-- permissions: [permissions.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_implementer/permissions.json)
+- agent runtime: [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml)
 
 ## Maintenance
 

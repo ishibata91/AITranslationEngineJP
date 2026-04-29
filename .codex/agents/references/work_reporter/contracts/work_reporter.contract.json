@@ -2,7 +2,6 @@
   "contract_version": "2026-04-26",
   "agent": "work_reporter",
   "runtime": "codex",
-  "permissions_ref": "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/work_reporter/permissions.json",
   "required_inputs": [
     "run_folder",
     "benchmark_score",
