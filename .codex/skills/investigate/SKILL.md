@@ -20,15 +20,11 @@ UI check 専用 skill / agent は置かない。
 
 ## 入力規約
 
-- 設計前に再現可否を確認する時
-- UI 根拠、console、画面状態を設計判断の証跡として確認する時
-- trace の観測点と不足情報を整理する時
-- design continuation の リスク を短く返す時
-- 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 必須入力: 呼び出し元, investigation_goal, known_context
-- 任意入力: investigation_mode, reproduction_steps, candidate_paths
-- selector: {"investigation_mode": ["再現", "UI 根拠", "trace", "リスク報告"]}
-- 必須 成果物: active task 文脈 or 呼び出し元提供 investigation 文脈
+- 必須入力: 呼び出し元、investigation_goal、known_context を受け取る。
+- 任意入力: investigation_mode、reproduction_steps、candidate_paths を受け取る。
+- selector: `investigation_mode` は `再現`、`UI 根拠`、`trace`、`リスク報告` のいずれかを受け取る。
+- 必須成果物: active task 文脈 または 呼び出し元提供 investigation 文脈を受け取る。
+- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -72,21 +68,18 @@ UI check 専用 skill / agent は置かない。
 
 ## 出力規約
 
-- 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
-- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
-
-### Handoff
-
-- 引き継ぎ先: `designer`
-- 渡す対象範囲: 観測済み事実、仮説、残り 不足、残留 risks
+- 基本出力: 判断結果、根拠参照、不足情報、次 agent が判断できる材料を返す。
+- 引き継ぎ先: `designer` を返す。
+- 渡す対象範囲: 観測済み事実、仮説、残り 不足、残留 risks を返す。
 - 調査 mode: 実施した調査の種類を返す。
 - 観測事実: 観測済み事実だけを返す。
 - UI 証跡: UI を確認した場合は証跡と参照先を返す。
 - 仮説: 事実と分けて原因候補を返す。
 - 観測点: 確認した入口、経路、対象を返す。
-- 残り 不足: 未確認事項と理由を返す。
+- 残り不足: 未確認事項と理由を返す。
 - 残留リスク: 設計判断に残る リスク を返す。
 - 推奨 next step: 設計継続、追加調査、停止のどれが妥当かを返す。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 

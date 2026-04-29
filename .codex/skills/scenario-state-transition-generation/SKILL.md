@@ -20,8 +20,8 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 
 ## 入力規約
 
-- 入力は `task 枠`、根拠要件、対象 観点 を含む。
-- 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
+- 入力一式: 入力は `task 枠`、根拠要件、対象 観点 を含む。
+- 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 - 必須入力: 呼び出し元, 引き継ぎ入力, active_task_folder, レーン担当
 - 任意入力: candidate_source_paths, 既知不足
 - 必須 成果物: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-candidates.viewpoint.md, 進行中 task folder または 呼び出し元提供 task 文脈
@@ -57,7 +57,7 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 - `観点`: `state-transition`
 - `成果物`: `scenario-candidates.state-transition.md`
 - `候補`: before 状態、trigger、after 状態、observable point を必ず持つ
-- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 - 観点名: state-transition 観点であることを返す。
 - 候補 成果物: `docs/exec-plans/active/<task-id>/scenario-candidates.state-transition.md` を返す。
 - 候補数: 生成した 候補 シナリオ 数を返す。0 件なら不足理由を返す。

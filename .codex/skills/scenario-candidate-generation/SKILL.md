@@ -21,8 +21,8 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 
 ## 入力規約
 
-- 入力は 呼び出し元 から渡された task 内成果物、根拠参照、必要な承認状態を含む。
-- 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
+- 入力一式: 呼び出し元 から渡された task 内成果物、根拠参照、必要な承認状態を受け取る。
+- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -31,7 +31,7 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 
 ## 内部参照規約
 
-### Viewpoints
+### 観点表
 
 `観点` は次の 6 種に固定する。
 
@@ -72,21 +72,18 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 
 ## 出力規約
 
-- `根拠要件`
-- `観点`
-- `候補 シナリオ id`
-- `実行者`
-- `trigger`
-- `expected 結果`
-- `observable point`
-- `related detail requirement type`
-- `adoption hint`
-- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
-
-### Handoff
-
-- 引き継ぎ先: `implement_lane`
-- 渡す対象範囲: 候補成果物 path、観点、根拠要件 coverage、競合候補、人間判断候補
+- 根拠要件: 候補の根拠になった要件を返す。
+- 観点: 候補を作った固定観点を返す。
+- 候補シナリオ id: 候補を一意に参照できる id を返す。
+- 実行者: 候補シナリオの主体を返す。
+- trigger: 候補シナリオの開始条件を返す。
+- expected 結果: 候補シナリオの期待結果を返す。
+- observable point: 候補シナリオの観測点を返す。
+- related detail requirement type: 関連する詳細要求タイプを返す。
+- adoption hint: designer が採否を判断するための補助情報を返す。
+- 引き継ぎ先: `implement_lane` を返す。
+- 渡す対象範囲: 候補成果物 path、観点、根拠要件 coverage、競合候補、人間判断候補を返す。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 

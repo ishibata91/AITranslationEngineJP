@@ -20,12 +20,7 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 
 ## 入力規約
 
-- 人間が明示的に図を求めた時
-- `wall-discussion` の結論として図が必要になった時
-- structure diff を レビュー 可能な図にする時
-- PlantUML source を作成、更新する時
-- diagram source と rendered 成果物 の責務を分ける時
-- 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
+- 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 - 必須入力: 呼び出し元, diagram_goal, source_of_truth
 - 任意入力: diagram_kind, target_task_folder, 検証コマンド
 - selector: {"diagram_kind": ["structure-diff", "plantuml"]}
@@ -105,8 +100,8 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 
 ## 出力規約
 
-- 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
-- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 基本出力: 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 - 図化対象判断: どの diagram 成果物 を扱うかを返す。
 - source 対象: 図の根拠にした 根拠 path を返す。
 - レビュー diff diagram: レビュー に使う差分図を返す。
