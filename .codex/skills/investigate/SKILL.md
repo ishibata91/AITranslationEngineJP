@@ -33,10 +33,10 @@ UI check 専用 skill / agent は置かない。
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) の 書き込み許可 / 実行許可 とする。
-- 紐づけ: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - エージェント実行定義: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - ツール権限: エージェント実行定義の 書き込み許可 / 実行許可 に従う
-- 紐づけ: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
+- Codex in-app browser の操作規約は [browser-use skill](/Users/iorishibata/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1/skills/browser/SKILL.md) とする。
+- `allowed_commands = []` は shell command 不使用を意味し、`browser-use` は Codex runtime のブラウザ操作として扱う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md
 
@@ -53,7 +53,9 @@ UI check 専用 skill / agent は置かない。
 
 - 根拠 のない結論を書かない
 - 観測事実と仮説を混ぜない
+- 設計前の UI 根拠 は Codex in-app browser の `browser-use` で確認する
 - UI 根拠 は画面状態、console、screenshot、操作条件を分けて残す
+- `agent-browser` CLI は Codex implementation レーン の実装時調査でだけ使う
 - 実装 レーン の調査は Codex implementation レーンへ戻す
 
 - observed、UI 根拠、inferred を分ける
@@ -102,9 +104,9 @@ UI check 専用 skill / agent は置かない。
 - implementation-time investigation を扱わない
 - 承認済み実装範囲 や対象 file を確定しない
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- 根拠 なしの結論を書かなかった場合は停止する。
-- UI check 専用 agent 前提にしなかった場合は停止する。
-- implementation-time investigation を扱わなかった場合は停止する。
+- 根拠 なしの結論を書く必要がある場合は停止する。
+- UI check 専用 agent を前提にする場合は停止する。
+- implementation-time investigation を扱う場合は停止する。
 - 拒否条件: implementation-time investigation
 - 拒否条件: permanent fix request
 - 拒否条件: 根拠成果物 不足

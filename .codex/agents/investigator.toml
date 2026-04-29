@@ -8,6 +8,9 @@ allowed_write_paths = []
 allowed_commands = []
 developer_instructions = """
 この作業は `investigator` agent と `investigate` skill に基づく。
+設計前の UI 根拠 が必要な時は Codex in-app browser の `browser-use` を使う。
+`agent-browser` CLI は Codex implementation レーン の実装時調査用であり、この agent では使わない。
+`allowed_commands = []` は shell command 不使用を意味し、`browser-use` は Codex runtime のブラウザ操作として扱う。
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md`
