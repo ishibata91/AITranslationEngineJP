@@ -10,7 +10,7 @@ description: Codex 側の design artifact 進行 skill。必須要件、UI、sce
 `designer` agent と top-level Codex が、必須要件、UI、scenario、implementation-scope を task-local artifact として固定する時の、人間可読な実行説明の正本として使う。
 
 workflow の次 action 判断、task folder orchestration、人間向け Codex implementation lane handoff の返却は `implement_lane` が担当する。
-product code と product test は変更しない。
+プロダクトコードとプロダクトテスト は変更しない。
 
 ## 対応ロール
 
@@ -30,10 +30,10 @@ product code と product test は変更しない。
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - secondary: packet に明示された関連 docs、関連 skill、human の現在指示
-- agent runtime: [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml)
-- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
+- エージェント実行定義: [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml)
+- ツール権限: エージェント実行定義の `allowed_write_paths` / `allowed_commands` に従う
 - ui: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md)
 - candidate common: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md)
 - candidate focused: [actor-goal](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md)、[lifecycle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-lifecycle-generation/SKILL.md)、[state-transition](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md)、[failure](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-failure-generation/SKILL.md)、[external-integration](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-external-integration-generation/SKILL.md)、[operation-audit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md)
@@ -78,28 +78,32 @@ design bundle を human review へ進める条件は次の通り。
 ## 判断規約
 
 - 判断は入力 artifact、外部参照規約、対象 agent の責務境界に従う。
-- 対象外の成果物、tool policy、product 仕様正本はこの skill で変更しない。
+- 対象外の成果物、ツール権限、product 仕様正本はこの skill で変更しない。
 
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ### Handoff
 
 - handoff 先: `implement_lane`
 - 渡す scope: design artifact、human review 状態、open questions
 - 返却先: implement_lane
-- 必須出力: design_artifact_status, touched_artifacts, human_review_requirements, validation_summary, handoff_or_stop_reason, open_questions
-- 出力 field 要件: {"design_artifact_status": "scenario、scenario candidate integration、UI、implementation-scope、skill-modification のどれを扱ったかと状態を返す", "touched_artifacts": "作成または更新した task-local artifact path を返す", "human_review_requirements": "human review が必要な判断、承認待ち、承認済みの状態を返す", "validation_summary": "実行した確認と未実行理由を返す", "handoff_or_stop_reason": "implement_lane へ戻す理由または停止理由を返す", "open_questions": "設計継続に必要な未決事項を返す"}
+- 対象成果物: 扱った scenario、scenario candidate integration、UI、implementation-scope、skill-modification の状態を返す。
+- 変更成果物: 作成または更新した task-local artifact path を返す。
+- human review 状態: human review が必要な判断、承認待ち、承認済みの状態を返す。
+- 確認結果: 実行した確認と未実行理由を返す。
+- handoff または停止理由: `implement_lane` へ戻す理由または停止理由を返す。
+- 未決事項: 設計継続に必要な未決事項を返す。
 
 ## 完了規約
 
 - task-local artifact が承認状態、source_ref、未決事項を含んでいる。
 - human review が必要な判断を AI だけで完了扱いにしていない。
-- 必須 evidence: source artifact path, human approval record when required, validation result when executed
-- completion signal: implement_lane が次の workflow action、human review、または人間向け Codex implementation lane handoff を判断できる
-- residual risk key: open_questions
+- 必須根拠として、source artifact path、必要な human approval record、実行した validation result がある。
+- 完了判断材料として、`implement_lane` が次の workflow action、human review、人間向け Codex implementation lane handoff を判断できる情報が返っている。
+- 残留リスクとして、設計継続に必要な未決事項が返っている。
 
 ## 停止規約
 
@@ -110,7 +114,7 @@ design bundle を human review へ進める条件は次の通り。
 - 実画面 observation が必要なら `investigator` を使う前提で `implement_lane` へ戻す。
 - docs 正本化が必要なら human 承認後に `docs_updater` を使う前提で `implement_lane` へ戻す。
 - product 実装が必要なら `implement_lane` へ戻し、人間向け Codex implementation lane handoff の扱いを判断させる。
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 拒否条件: workflow orchestration request
 - 拒否条件: missing handoff packet
 - 拒否条件: product implementation request

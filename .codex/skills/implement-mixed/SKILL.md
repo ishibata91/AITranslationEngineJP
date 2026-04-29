@@ -28,7 +28,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -38,7 +38,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - implementation-scope の owned_scope を守る
 - mixed の対象を API、Wails binding、DTO、gateway、adapter contract の接合点だけに限定する
 - 片側だけで閉じない理由を scope artifact で確認する
-- lane_context_packet を確認して product code だけを変更する
+- lane_context_packet を確認して プロダクトコード だけを変更する
 - `APIテスト` 先行時だけ implementation_tester output も確認する
 - validation は frontend、backend、接合点 contract の証跡を分ける
 
@@ -50,7 +50,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -70,10 +70,10 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - mixed を広い frontend / backend 同時変更の口実にしない
 - 片側の都合で scope を広げない
 - API 接合点を変えずに UI と backend を同時に触らない
-- product test、fixture、snapshot、test helper を変更しない
+- プロダクトテスト、fixture、snapshot、test helper を変更しない
 - docs や workflow 文書を変更しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - mixed を広い frontend / backend 同時変更の口実にしなかった場合は停止する。
 - API 接合点を変えずに UI と backend を同時に触らなかった場合は停止する。
-- product test、fixture、snapshot、test helper を変更しなかった場合は停止する。
+- プロダクトテスト、fixture、snapshot、test helper を変更しなかった場合は停止する。
 - docs / workflow 文書を変更しなかった場合は停止する。

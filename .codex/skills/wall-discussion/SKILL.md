@@ -25,7 +25,7 @@ description: Codex 側の設計壁打ち作業プロトコル。read-only で資
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - runtime skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -45,7 +45,7 @@ description: Codex 側の設計壁打ち作業プロトコル。read-only で資
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -60,7 +60,7 @@ description: Codex 側の設計壁打ち作業プロトコル。read-only で資
 - read-only 範囲で成果物を作らない
 - 未確認の論点を設計として固定しない
 - 実装や docs 正本更新へ進まない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - read-only 範囲で成果物を作らなかった場合は停止する。
 - 未確認論点を設計として固定しなかった場合は停止する。
 - 同じ質問を繰り返さなかった場合は停止する。

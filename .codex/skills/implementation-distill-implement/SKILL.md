@@ -25,7 +25,7 @@ description: Codex implementation lane 側の新規実装・拡張向け context
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [implementation_distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [implementation_distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -38,7 +38,7 @@ description: Codex implementation lane 側の新規実装・拡張向け context
 - patch 生成に必要な fix_ingredients を構造単位で残す
 - 類似していても実装不要な context は distracting_context に分ける
 - 新規 method、interface、field が必要そうな時は、既存定義の present / absent を code fact として確認する
-- first_action は 1 completion_signal clause に限定し、同じ clause の最小 closure chain を示す
+- first_action は 1 完了条件 clause に限定し、同じ clause の最小 closure chain を示す
 - existing_patterns と cheap validation entry を実装開始前 context に残す
 - 実装者が最初に触る file、symbol、line number、変更種別を残す
 - 要件、実装方針、決定事項は implementation_implementer が再読不要な粒度で要約する
@@ -57,12 +57,12 @@ description: Codex implementation lane 側の新規実装・拡張向け context
 - validation command は最初の cheap check を優先する
 - requirements_policy_decisions に implementation_implementer impact を残す
 - local validation 前に踏みやすい lint 規約があれば、どの command で拾われるかまで要約する
-- validation command と completion signal を残す
+- validation command と 完了条件 を残す
 
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -76,7 +76,7 @@ description: Codex implementation lane 側の新規実装・拡張向け context
 
 - fix の再現症状を整理する時
 - refactor の不変条件を整理する時
-- product code / product test を変更する時
+- プロダクトコード / プロダクトテスト を変更する時
 - 要件や設計を追加しない
 - 実 code を読まず handoff の文章を言い換えない
 - 類似 context を required_reading に混ぜない
@@ -85,7 +85,7 @@ description: Codex implementation lane 側の新規実装・拡張向け context
 - first_action に partial、複数 clause、曖昧な advance を書かない
 - 要件、実装方針、決定事項を required_reading に丸投げしない
 - owned_scope 外を広く探索しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 要件や設計を追加しなかった場合は停止する。
 - owned_scope 外の broad tour をしなかった場合は停止する。
-- product code / product test を変更しなかった場合は停止する。
+- プロダクトコード / プロダクトテスト を変更しなかった場合は停止する。

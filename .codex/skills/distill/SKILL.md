@@ -32,10 +32,10 @@ description: Codex 側の共通文脈圧縮 skill。入口情報を facts、cons
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - binding: [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml)
-- agent runtime: [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml)
-- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
+- エージェント実行定義: [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml)
+- ツール権限: エージェント実行定義の `allowed_write_paths` / `allowed_commands` に従う
 - 圧縮判断: [compression-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/references/compression-patterns.md)
 - 設計向け観点: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-design/SKILL.md)
 - 調査向け観点: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md)
@@ -78,14 +78,19 @@ description: Codex 側の共通文脈圧縮 skill。入口情報を facts、cons
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ### Handoff
 
 - handoff 先: `implement_lane`
 - 渡す scope: 次の設計または調査を判断するための圧縮済み facts と gaps
-- 必須出力: facts, constraints, gaps, required_reading, related_design_pointers, observation_targets, recommended_next_skill
-- 出力 field 要件: {"facts": "confirmed / inferred / gap の状態と根拠 path を含める。過去判断を含める時は、有効な判断だけを採用する", "constraints": "正本 path と、重複元があれば source note を含める", "gaps": "未確認事項を事実として混ぜずに列挙する。有効な過去判断が見つからないことだけでは gap にしない", "required_reading": "downstream が読む順番が分かる形で返す", "related_design_pointers": "requirements、UI、scenario に関係する path があれば返す。関係しない場合は空にする", "observation_targets": "観測対象、入口、未観測情報があれば返す。関係しない場合は空にする", "recommended_next_skill": "implement-lane が次に呼ぶ skill または停止理由を返す"}
+- 事実: confirmed、inferred、gap の状態と根拠 path を含める。過去判断を含める時は、有効な判断だけを採用する。
+- 制約: 正本 path と、重複元があれば source note を含める。
+- 不足情報: 未確認事項を事実として混ぜずに列挙する。有効な過去判断が見つからないことだけでは不足情報にしない。
+- 必読資料: downstream が読む順番が分かる形で返す。
+- 関連 design pointer: requirements、UI、scenario に関係する path があれば返す。関係しない場合は空にする。
+- 観測対象: 観測対象、入口、未観測情報があれば返す。関係しない場合は空にする。
+- 推奨 next skill: implement-lane が次に呼ぶ skill または停止理由を返す。
 
 ## 完了規約
 
@@ -95,26 +100,26 @@ description: Codex 側の共通文脈圧縮 skill。入口情報を facts、cons
 - 重要な fact に根拠 path がある。
 - `confirmed`、`inferred`、`gap` が混ざっていない。
 - 必須 evidence: 重要な fact の根拠 path, 採用した有効な過去判断の source_path と source_lines, 参照した正本 path, 未確認事項の理由
-- completion signal: implement-lane が次の設計または調査を判断できる
-- residual risk key: gaps
+- 完了判断材料: implement-lane が次の設計または調査を判断できる。
+- 残留リスク: 未確認事項と理由が返っている。
 
 ## 停止規約
 
 - requirements、UI、scenario、diagram の詳細観点だけが必要な時
 - 観測対象、再現条件、未観測情報の詳細観点だけが必要な時
 - human review 済み `implementation-scope` から実装前 context を作る時
-- fix、refactor、product code 実装のために文脈を整理する時
+- fix、refactor、プロダクトコード 実装のために文脈を整理する時
 - active work plan や関連 docs が不足している場合は停止する。
 - 重要な fact の根拠 path を確認できない場合は停止する。
 - 主要な設計判断が未確定で事実整理だけでは前進しない場合は `implement_lane` へ戻す。
 - 実装前の文脈整理が目的なら、Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill/SKILL.md) を使う前提で `implement_lane` へ戻す。
 - 設計向けまたは調査向けの詳細観点を共通 skill に戻さない
 - broad な repo tour をしない
-- product code、product test、docs 正本の変更に進まない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- プロダクトコード、プロダクトテスト、docs 正本の変更に進まない
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - focused skill が持つ詳細観点を共通 skill に戻していない場合は停止する。
 - implementation-scope 承認後の実装前整理を扱っていない場合は停止する。
-- product code、product test、docs 正本の変更に進んでいない場合は停止する。
+- プロダクトコード、プロダクトテスト、docs 正本の変更に進んでいない場合は停止する。
 - 拒否条件: implementation-scope 承認後の実装前整理である
 - 拒否条件: caller が implement-lane ではなく実装 lane である
 - 拒否条件: source artifact が不足し、根拠 path を確認できない

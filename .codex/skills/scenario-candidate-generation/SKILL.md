@@ -26,7 +26,7 @@ description: Codex 側の scenario 候補生成 skill。implement_lane が desig
 
 ## 外部参照規約
 
-- agent runtime と tool policy は `scenario candidate generators` runtime の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は `scenario candidate generators` runtime の `allowed_write_paths` / `allowed_commands` とする。
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -75,7 +75,7 @@ scenario candidate generator は 6 agent に分ける。
 - `observable point`
 - `related detail requirement type`
 - `adoption hint`
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ### Handoff
 
@@ -92,5 +92,5 @@ scenario candidate generator は 6 agent に分ける。
 - 最終 scenario matrix を確定しない
 - candidate の採用、不採用、統合を確定しない
 - 他の scenario candidate generator を spawn しない
-- product code、product test、docs 正本を変更しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- プロダクトコード、プロダクトテスト、docs 正本を変更しない
+- 停止時は不足項目、衝突箇所、戻し先を返す。

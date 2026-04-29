@@ -25,7 +25,7 @@ description: Codex implementation lane 側の unit test 補強作業プロトコ
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -44,7 +44,7 @@ description: Codex implementation lane 側の unit test 補強作業プロトコ
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -57,11 +57,11 @@ description: Codex implementation lane 側の unit test 補強作業プロトコ
 ## 停止規約
 
 - scenario artifact の outcome を test にする時
-- test のためだけに広い product code 変更が必要な時
+- test のためだけに広い プロダクトコード 変更が必要な時
 - integration flow を証明する時
 - 新しい要件解釈を足さない
-- test のためだけの product code 変更を広げない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- test のためだけの プロダクトコード 変更を広げない
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - test body に条件分岐を入れなかった場合は停止する。
-- test のためだけの product code 変更を広げなかった場合は停止する。
+- test のためだけの プロダクトコード 変更を広げなかった場合は停止する。
 - 新しい要件解釈を足さなかった場合は停止する。

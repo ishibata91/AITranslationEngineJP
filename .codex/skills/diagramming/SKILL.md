@@ -33,11 +33,11 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - standard caller: [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - explicit helper binding: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
-- agent runtime: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
-- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
+- エージェント実行定義: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
+- ツール権限: エージェント実行定義の `allowed_write_paths` / `allowed_commands` に従う
 - primary runtime skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md
@@ -98,8 +98,12 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
-- 必須出力: diagram_target_decision, diagram_source_targets, review_diff_diagrams, validation_results, open_questions
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 図化対象判断: どの diagram artifact を扱うかを返す。
+- source target: 図の根拠にした source path を返す。
+- review diff diagram: review に使う差分図を返す。
+- 確認結果: render または validation の結果を返す。
+- 未決事項: 採否判断に必要な open question を返す。
 
 ## 完了規約
 
@@ -113,22 +117,22 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 - 正本 docs の用語、構造主語、layer 名と diagram の package 名を揃えた。
 - 正本図では node を勝手に畳まず、edge、legend、note の粒度で調整した。
 - 必須 evidence: source path, render or validation result
-- completion signal: designer が diagram artifact の採否を判断できる
-- residual risk key: open_questions
+- 完了判断材料: designer が diagram artifact の採否を判断できる。
+- 残留リスク: 採否判断に必要な未決事項が返っている。
 
 ## 停止規約
 
 - UI 要件契約だけで diagram が不要な時
-- product code の構造を実装で変更する時
+- プロダクトコードの構造を実装で変更する時
 - docs 正本化だけが目的の時
 - review 用 artifact を正本にしない
-- product code 変更を diagramming に混ぜない
+- プロダクトコード 変更を diagramming に混ぜない
 - source 不明のまま図を更新しない
 - PlantUML 以外の diagram source を新規作成しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - review 用 SVG / PNG を正本にしなかった場合は停止する。
 - validation なしで完了扱いにしなかった場合は停止する。
-- product code 変更を diagramming に混ぜなかった場合は停止する。
+- プロダクトコード 変更を diagramming に混ぜなかった場合は停止する。
 - 線、文字、legend、note の重なりを放置しなかった場合は停止する。
 - docs 正本図を差分図 style にしなかった場合は停止する。
 - 可読性向上を理由に正本 node を消さなかった場合は停止する。

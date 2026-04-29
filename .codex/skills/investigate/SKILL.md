@@ -32,10 +32,10 @@ UI check 専用 skill / agent は置かない。
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- agent runtime: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
+- エージェント実行定義: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
+- ツール権限: エージェント実行定義の `allowed_write_paths` / `allowed_commands` に従う
 - binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md
@@ -64,13 +64,20 @@ UI check 専用 skill / agent は置かない。
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ### Handoff
 
 - handoff 先: `designer`
 - 渡す scope: observed facts、hypotheses、remaining gaps、residual risks
-- 必須出力: mode, observed_facts, ui_evidence, hypotheses, observation_points, remaining_gaps, residual_risks, recommended_next_step
+- 調査 mode: 実施した調査の種類を返す。
+- 観測事実: 観測済み事実だけを返す。
+- UI 証跡: UI を確認した場合は証跡と参照先を返す。
+- 仮説: 事実と分けて原因候補を返す。
+- 観測点: 確認した入口、経路、対象を返す。
+- 残り gap: 未確認事項と理由を返す。
+- 残留リスク: 設計判断に残る risk を返す。
+- 推奨 next step: 設計継続、追加調査、停止のどれが妥当かを返す。
 
 ## 完了規約
 
@@ -80,13 +87,13 @@ UI check 専用 skill / agent は置かない。
 - evidence path、再現条件、UI check scope を残した。
 - design continuation に必要な risk を返した。
 - 必須 evidence: observed fact evidence, UI evidence when mode is ui-evidence, reproduction condition, source path when used
-- completion signal: designer が設計継続か停止かを判断できる
-- residual risk key: residual_risks
+- 完了判断材料: designer が設計継続か停止かを判断できる。
+- 残留リスク: 設計判断に残る risk が返っている。
 
 ## 停止規約
 
 - implementation-scope 承認後の再現や再観測を扱う時
-- 恒久修正や product test 追加が必要な時
+- 恒久修正や プロダクトテスト 追加が必要な時
 - implementation review が主目的の時
 - 観測条件が不足する場合は停止する。
 - 恒久修正が必要なら `designer` へ戻す。
@@ -94,7 +101,7 @@ UI check 専用 skill / agent は置かない。
 - 恒久修正を始めない
 - implementation-time investigation を扱わない
 - owned_scope や対象 file を確定しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - evidence なしの結論を書かなかった場合は停止する。
 - UI check 専用 agent 前提にしなかった場合は停止する。
 - implementation-time investigation を扱わなかった場合は停止する。

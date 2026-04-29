@@ -30,11 +30,11 @@ description: Codex 側の docs 正本化作業プロトコル。implementation c
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - binding: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
-- agent runtime: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
-- forbidden: product code、product test、workflow / skill / agent runtime の変更
-- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
+- エージェント実行定義: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
+- forbidden: プロダクトコード、プロダクトテスト、workflow / skill / エージェント実行定義の変更
+- ツール権限: エージェント実行定義の `allowed_write_paths` / `allowed_commands` に従う
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - binding: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -66,13 +66,16 @@ description: Codex 側の docs 正本化作業プロトコル。implementation c
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ### Handoff
 
 - handoff 先: `implement_lane`
 - 渡す scope: docs 更新結果、validation、remaining gaps
-- 必須出力: touched_docs_files, updated_source_of_truth, validation_results, remaining_gaps
+- 変更 docs: 更新した docs ファイルを返す。
+- 更新した正本: 反映した source of truth を返す。
+- 確認結果: 実行した validation と未実行理由を返す。
+- 残留 gap: 未反映、未確認、判断待ちを返す。
 
 ## 完了規約
 
@@ -83,14 +86,14 @@ description: Codex 側の docs 正本化作業プロトコル。implementation c
 - approved artifact と canonical target を対応づけた。
 - validation 結果と remaining gaps を記録した。
 - 必須 evidence: Codex implementation completion report, approval record, source artifact path, validation result
-- completion signal: implementation completion後の docs 正本が approved artifact と同期している
-- residual risk key: remaining_gaps
+- 完了判断材料: implementation completion 後の docs 正本が approved artifact と同期している。
+- 残留リスク: 未反映、未確認、判断待ちが返っている。
 
 ## 停止規約
 
 - Codex implementation lane の修正完了が未確認の時
-- workflow / skill / agent runtime や skill / agent を変更する時
-- product code や product test の変更が必要な時
+- workflow / skill / エージェント実行定義 や skill / agent を変更する時
+- プロダクトコードやプロダクトテストの変更が必要な時
 - human approval が不足している時
 - Codex implementation lane の修正完了が分からない場合は停止する。
 - approval がない場合は停止する。
@@ -100,7 +103,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation c
 - 未承認 draft を正本化しない
 - workflow 変更を docs 更新に混ぜない
 - product implementation を同時に進めない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - implementation completion前に正本化しなかった場合は停止する。
 - 未承認 draft を正本化しなかった場合は停止する。
 - implementation-scope を自動昇格しなかった場合は停止する。
@@ -108,7 +111,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation c
 - 拒否条件: Codex implementation completion missing
 - 拒否条件: approval missing
 - 拒否条件: product implementation required
-- 拒否条件: workflow / skill / agent runtime change
+- 拒否条件: workflow / skill / エージェント実行定義 change
 - 停止条件: Codex implementation lane の修正完了が分からない
 - 停止条件: docs-only scope ではない
 - 停止条件: human approval がない

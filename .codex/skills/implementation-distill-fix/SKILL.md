@@ -25,7 +25,7 @@ description: Codex implementation lane 側の fix 向け context 圧縮作業プ
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [implementation_distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [implementation_distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -51,7 +51,7 @@ description: Codex implementation lane 側の fix 向け context 圧縮作業プ
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -70,8 +70,8 @@ description: Codex implementation lane 側の fix 向け context 圧縮作業プ
 - 実 code を読まず handoff の文章を言い換えない
 - 類似 context を required_reading に混ぜない
 - fix 方針や決定事項を required_reading に丸投げしない
-- product code / product test を変更しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- プロダクトコード / プロダクトテスト を変更しない
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 原因断定を先取りしなかった場合は停止する。
 - 再現条件に関係しない整理を入れなかった場合は停止する。
-- product code / product test を変更しなかった場合は停止する。
+- プロダクトコード / プロダクトテスト を変更しなかった場合は停止する。

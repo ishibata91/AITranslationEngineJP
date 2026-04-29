@@ -1,15 +1,15 @@
 ---
 name: tests
-description: Codex implementation lane 側の product test 共通作業プロトコル。承認済み owned_scope を test で証明する判断基準を提供する。
+description: Codex implementation lane 側の プロダクトテスト 共通作業プロトコル。承認済み owned_scope を test で証明する判断基準を提供する。
 ---
 # Tests
 
 ## 目的
 
 `tests` は作業プロトコルである。
-`implementation_tester` agent が、single_handoff_packet と implementation_tester_context_packet の owned_scope を product test で証明する時の共通判断を提供する。
+`implementation_tester` agent が、single_handoff_packet と implementation_tester_context_packet の owned_scope を プロダクトテスト で証明する時の共通判断を提供する。
 
-tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) が持ち、handoff は skill に従う。
+ツール権限 は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) が持ち、handoff は skill に従う。
 
 ## 対応ロール
 
@@ -20,19 +20,19 @@ tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AIT
 
 ## 入力規約
 
-- 承認済み handoff または実装済み scope を product test で証明する時
+- 承認済み handoff または実装済み scope を プロダクトテスト で証明する時
 - scenario artifact または unit responsibility を test に落とす時
 - fake provider や DI seam で paid real AI API を避ける時
 - 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
 - 必須入力: single_handoff_packet, implementation_tester_context_packet, approval_record, owned_scope, test_target, validation_commands
 - 任意入力: test_subscope, knowledge_focus, scenario_artifact, implemented_scope, reproduction_evidence, existing_test_pointers
-- input_notes: {"single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。", "implementation_tester_context_packet": "implementation_distiller が single_handoff_packet 1 件だけから作った implementation_tester 専用 context。test_ingredients、test_required_reading、test_existing_patterns、test_distracting_context、test_validation_entry を含む。full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を主入力にしない。", "test_subscope": "implement_lane が context 枯渇時に同一 handoff 内で狭めた implementation_tester 用 sub-scope。completion_signal clause、public seam / API boundary、test target file、validation command のいずれか 1 軸で切られる。", "knowledge_focus": "tests-scenario または tests-unit の参照ヒント。共通規約と完了条件は変えない。"}
-- insufficient_context_criteria: {"gate": "structural_gate", "return_insufficient_context_when": ["implementation_tester_context_packet に behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation のいずれかが欠けている", "`UI人間操作E2E` で開始操作、検証対象の入口、入力模倣方針のいずれかが欠けている", "`APIテスト` で public seam、request / response contract、入力開始点、主要観測点のいずれかが欠けている", "test_subscope が completion_signal clause、public seam / API boundary、test target file、validation command のいずれにも対応していない", "test 作成に full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers、owned_scope 外探索、product code 変更、paid API 呼び出しが必要になる"], "not_insufficient_context_when": ["承認済み scenario を元に期待どおり fail する product test を追加できる", "局所的な import 修正または既存 test file 内の軽微な確認だけで進められる", "implementation_tester_context_packet の listed files / symbols 内で test seam を確認できる"], "required_when_true": ["reason", "needed_context", "tested_subscope", "remaining_test_subscopes"]}
+- input_notes: {"single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。", "implementation_tester_context_packet": "implementation_distiller が single_handoff_packet 1 件だけから作った implementation_tester 専用 context。test_ingredients、test_required_reading、test_existing_patterns、test_distracting_context、test_validation_entry を含む。full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を主入力にしない。", "test_subscope": "implement_lane が context 枯渇時に同一 handoff 内で狭めた implementation_tester 用 sub-scope。完了条件 clause、public seam / API boundary、test target file、validation command のいずれか 1 軸で切られる。", "knowledge_focus": "tests-scenario または tests-unit の参照ヒント。共通規約と完了条件は変えない。"}
+- insufficient_context_criteria: {"gate": "structural_gate", "return_insufficient_context_when": ["implementation_tester_context_packet に behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation のいずれかが欠けている", "`UI人間操作E2E` で開始操作、検証対象の入口、入力模倣方針のいずれかが欠けている", "`APIテスト` で public seam、request / response contract、入力開始点、主要観測点のいずれかが欠けている", "test_subscope が 完了条件 clause、public seam / API boundary、test target file、validation command のいずれにも対応していない", "test 作成に full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers、owned_scope 外探索、プロダクトコード 変更、paid API 呼び出しが必要になる"], "not_insufficient_context_when": ["承認済み scenario を元に期待どおり fail する プロダクトテスト を追加できる", "局所的な import 修正または既存 test file 内の軽微な確認だけで進められる", "implementation_tester_context_packet の listed files / symbols 内で test seam を確認できる"], "required_when_true": ["reason", "needed_context", "tested_subscope", "remaining_test_subscopes"]}
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) の `allowed_write_paths` / `allowed_commands` とする。
-- agent runtime: [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml)
+- エージェント実行定義とツール権限は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義: [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-scenario/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-unit/SKILL.md
 
@@ -58,7 +58,7 @@ tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AIT
 - insufficient_context_criteria は structural gate とし、behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation の不足時に返す
 - `UI人間操作E2E` で開始操作、検証対象の入口、入力模倣方針が不足する場合は insufficient_context を返す
 - `APIテスト` で public seam、request / response contract、入力開始点、主要観測点が不足する場合は insufficient_context を返す
-- test_subscope が completion_signal clause、public seam、test target file、validation command のいずれにも対応しない場合は insufficient_context を返す
+- test_subscope が 完了条件 clause、public seam、test target file、validation command のいずれにも対応しない場合は insufficient_context を返す
 - 承認済み scenario を元に期待どおり fail する test、局所的 import 修正、既存 test file 内の軽微な確認は not_insufficient_context として扱う
 - 原因未確定の regression test は実装前に書かない
 - setup は決定的にする
@@ -66,7 +66,7 @@ tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AIT
 - paid real AI API を呼ばない
 - 新しい要件解釈を足さない
 
-- test_ingredients の completion_signal clause、behavior_to_prove、public seam、assertion_focus に沿って test を作る
+- test_ingredients の 完了条件 clause、behavior_to_prove、public seam、assertion_focus に沿って test を作る
 - `UI人間操作E2E` では、承認済みシナリオの開始操作と入力模倣方針に沿って試験を作る
 - `APIテスト` では、承認済み受け入れ条件、public seam、request / response contract、入力開始点、主要観測点に沿って試験を作る
 - test_subscope が渡された場合はその sub-scope だけを証明し、残りを remaining_test_subscopes に残す
@@ -82,10 +82,19 @@ tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AIT
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 - 返却先: implement_lane
-- 必須出力: touched_test_files, implemented_test_scope, tested_subscope, remaining_test_subscopes, validation_results, coverage_gate_result, harness_gate_result, insufficient_context, reason, needed_context, remaining_gaps
-- 出力 field 要件: {"touched_test_files": "handoff 資料のスコープ粒度に対応する product test と必要最小限の fixture / helper だけを返す", "implemented_test_scope": "single_handoff_packet 1 件、implementation_tester_context_packet、test_subscope の観点と対応づけ、複数 handoff を束ねない", "tested_subscope": "実際に test で証明した completion_signal clause、public seam / API boundary、test target file、validation command を返す。test_subscope が入力された場合はそれに対応づける", "remaining_test_subscopes": "同じ handoff 内で未証明の implementation_tester sub-scope を返す。completion_signal は削らず、未処理分を明示する", "validation_results": "test 追加または更新後、handoff を終える前に touched layer に対応する local validation 結果を返す。backend は `python3 scripts/harness/run.py --suite backend-local`、frontend は `python3 scripts/harness/run.py --suite frontend-local`、mixed は touched layer に応じて両方を実行する。未実行なら blocked reason を返す", "insufficient_context": "insufficient_context_criteria の structural_gate に一致する場合だけ true とし、reason、needed_context、tested_subscope、remaining_test_subscopes を返す。自力で広く調査して埋めない。criteria に一致しない不安や通常の局所確認では true にしない。問題がなければ false または none", "reason": "insufficient_context true 時は insufficient_context_criteria のどの structural gate に一致したかを返す。false 時は none または未使用にする", "needed_context": "insufficient_context 時に不足している public seam、request / response contract、existing test target、fixture/helper、assertion focus、validation command、`UI人間操作E2E` の開始操作、検証対象の入口、入力模倣方針、`APIテスト` の入力開始点、主要観測点を列挙する", "coverage_gate_result": "final validation lane に defer する。実行した場合だけ結果を返し、未実行なら final_validation_deferred と理由を返す", "harness_gate_result": "final validation lane に defer する。実行した場合だけ結果を返し、未実行なら final_validation_deferred と理由を返す", "remaining_gaps": "未証明の振る舞い、未実行 validation、blocked reason を分ける"}
+- handoff 資料のスコープ粒度に対応する プロダクトテスト と必要最小限の fixture / helper だけを返す
+- single_handoff_packet 1 件、implementation_tester_context_packet、test_subscope の観点と対応づけ、複数 handoff を束ねない
+- 実際に test で証明した 完了条件 clause、public seam / API boundary、test target file、validation command を返す。test_subscope が入力された場合はそれに対応づける
+- 同じ handoff 内で未証明の implementation_tester sub-scope を返す。完了条件は削らず、未処理分を明示する
+- test 追加または更新後、handoff を終える前に touched layer に対応する local validation 結果を返す。backend は `python3 scripts/harness/run.py --suite backend-local`、frontend は `python3 scripts/harness/run.py --suite frontend-local`、mixed は touched layer に応じて両方を実行する。未実行なら blocked reason を返す
+- insufficient_context_criteria の structural_gate に一致する場合だけ true とし、reason、needed_context、tested_subscope、remaining_test_subscopes を返す。自力で広く調査して埋めない。criteria に一致しない不安や通常の局所確認では true にしない。問題がなければ false または none
+- insufficient_context true 時は insufficient_context_criteria のどの structural gate に一致したかを返す。false 時は none または未使用にする
+- insufficient_context 時に不足している public seam、request / response contract、existing test target、fixture/helper、assertion focus、validation command、`UI人間操作E2E` の開始操作、検証対象の入口、入力模倣方針、`APIテスト` の入力開始点、主要観測点を列挙する
+- final validation lane に defer する。実行した場合だけ結果を返し、未実行なら final_validation_deferred と理由を返す
+- final validation lane に defer する。実行した場合だけ結果を返し、未実行なら final_validation_deferred と理由を返す
+- 未証明の振る舞い、未実行 validation、blocked reason を分ける
 
 ## 完了規約
 
@@ -102,21 +111,21 @@ tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AIT
 - deterministic setup にした。
 - focused skill の知識だけを追加で参照した。
 - 必須 evidence: single_handoff_packet id, implementation_tester_context_packet id, test_ingredients, test_required_reading, test_validation_entry, handoff scope granularity, owned_scope, test_target, tested_subscope or insufficient_context reason, touched-layer local validation result or blocked reason
-- completion signal: implement_lane が implementation_implementer、review、reroute の次 action を touched-layer local validation 結果込みで判断できる
-- residual risk key: remaining_gaps
+- 完了判断材料: implement_lane が implementation_implementer、review、reroute の次 action を touched-layer local validation 結果込みで判断できる
+- 残留リスク: remaining_gaps
 
 ## 停止規約
 
-- product code の恒久修正が主目的の時
+- プロダクトコードの恒久修正が主目的の時
 - design や scenario artifact を新規に作る時
 - review だけを行う時
 - full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を直接追わない
 - insufficient_context を返さず広く調査しない
 - UI 入口の `UI人間操作E2E` を裏側の直接呼び出しだけで代替しない
 - criteria mismatch になる不安や通常の局所確認を insufficient_context にしない
-- product code を広く直さない
+- プロダクトコード を広く直さない
 - docs、`.codex`、`.codex/skills`、`.codex/agents` を変更しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 新しい要件解釈を足さなかった場合は停止する。
 - full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を直接追わなかった場合は停止する。
 - insufficient_context を広い調査で埋めなかった場合は停止する。
@@ -131,7 +140,7 @@ tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AIT
 - 拒否条件: missing required context for UI人間操作E2E or APIテスト
 - 拒否条件: paid real AI API risk
 - 停止条件: 設計や ownership の整理が先に必要である
-- 停止条件: product code の広い変更が必要になる
+- 停止条件: プロダクトコードの広い変更が必要になる
 - 停止条件: paid real AI API を呼ぶ危険がある
 - 規約違反条件: full lane_context_packet を主入力にする
 - 規約違反条件: fix_ingredients、change_targets、broad related_code_pointers を直接追う

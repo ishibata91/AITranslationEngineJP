@@ -1,13 +1,13 @@
 ---
 name: tests-scenario
-description: Codex implementation lane 側の scenario artifact を product test に反映する作業プロトコル。
+description: Codex implementation lane 側の scenario artifact を プロダクトテスト に反映する作業プロトコル。
 ---
 # Tests Scenario
 
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_tester` agent が承認済みシステムテスト設計を product test に落とす時に、主要 outcome を決定的に証明する判断基準を提供する。
+`implementation_tester` agent が承認済みシステムテスト設計を プロダクトテスト に落とす時に、主要 outcome を決定的に証明する判断基準を提供する。
 この skill の主対象は `UI人間操作E2E` と `APIテスト` である。
 
 ## 対応ロール
@@ -19,13 +19,13 @@ description: Codex implementation lane 側の scenario artifact を product test
 
 ## 入力規約
 
-- scenario artifact の観点を product test にする時
+- scenario artifact の観点を プロダクトテスト にする時
 - happy path と主要 failure path を整理する時
 - 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [implementation_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_tester.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -50,7 +50,7 @@ description: Codex implementation lane 側の scenario artifact を product test
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -67,11 +67,11 @@ description: Codex implementation lane 側の scenario artifact を product test
 - unit branch だけを補う時
 - scenario artifact が未承認の時
 - 原因未確定の regression test を書く時
-- product code の修正が主目的の時
+- プロダクトコードの修正が主目的の時
 - 新しい要件解釈を足さない
 - paid real AI API を呼ばない
 - UI 入口の `UI人間操作E2E` を裏側の直接呼び出しだけで代替しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 新しい要件解釈を足さなかった場合は停止する。
 - test body に条件分岐を入れなかった場合は停止する。
 - UI 入口の `UI人間操作E2E` を裏側の直接呼び出しだけで代替しなかった場合は停止する。

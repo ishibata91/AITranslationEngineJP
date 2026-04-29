@@ -27,7 +27,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - template: [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/ui-design.md)
 - runtime skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -55,7 +55,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -71,9 +71,9 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 - product frontend code を実装する時
 - docs 正本へ UI 仕様を反映するだけの時
 - 実装前の見た目 artifact を UI の必須 artifact にしない
-- product code 実装へ踏み込まない
+- プロダクトコード 実装へ踏み込まない
 - 未承認で docs 正本化しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 実装前の見た目 artifact を必須 artifact として復活させなかった場合は停止する。
 - product frontend implementation に踏み込まなかった場合は停止する。
 - human が実装後に確認すべき visual polish を隠さなかった場合は停止する。

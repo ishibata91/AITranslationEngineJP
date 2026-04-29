@@ -25,7 +25,7 @@ description: Codex 側の設計用文脈圧縮 skill。必須要件、UI、scena
 
 ## 外部参照規約
 
-- agent runtime と tool policy は [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- エージェント実行定義とツール権限は [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
 - 共通圧縮: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/SKILL.md)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -43,7 +43,7 @@ description: Codex 側の設計用文脈圧縮 skill。必須要件、UI、scena
 ## 出力規約
 
 - 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
-- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約
 
@@ -58,7 +58,7 @@ description: Codex 側の設計用文脈圧縮 skill。必須要件、UI、scena
 - 実装案を確定しない
 - owned_scope や対象ファイルを確定しない
 - UI モックや scenario 本文を作成しない
-- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 停止時は不足項目、衝突箇所、戻し先を返す。
 - 実装案を設計前の事実として固定していない場合は停止する。
 - owned_scope や対象ファイルを確定していない場合は停止する。
 - UI モックや scenario 本文の作成へ進んでいない場合は停止する。
