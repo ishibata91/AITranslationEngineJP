@@ -1,6 +1,6 @@
 ---
 name: codex-review-behavior
-description: Codex 実装後 review の挙動正しさグループ作業プロトコル。
+description: Codex 実装後 レビュー の挙動正しさグループ作業プロトコル。
 ---
 # Codex Review Behavior
 
@@ -13,8 +13,8 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 
 - `review_behavior` が使う。
 - 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` の review aggregation とする。
-- owner artifact は `codex-review-behavior` の出力規約で固定する。
+- 返却先は `implement_lane` の レビュー 集約 とする。
+- 担当成果物は `codex-review-behavior` の出力規約で固定する。
 
 ## 入力規約
 
@@ -23,14 +23,14 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 - 例外系
 - 既存挙動との差分
 - bug 修正の場合の原因対応
-- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
-- 必須入力: review_target_diff, implementation_scope_path, implementation_result
-- 任意入力: final_validation_result, touched_files
+- 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
+- 必須入力: レビュー対象差分, implementation-scope の場所, 実装結果
+- 任意入力: 最終検証結果, 変更ファイル
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [review_behavior.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_behavior.toml) の `allowed_write_paths` / `allowed_commands` とする。
-- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
+- エージェント実行定義とツール権限は [review_behavior.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_behavior.toml) の 書き込み許可 / 実行許可 とする。
+- 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-behavior/SKILL.md
 
 ## 内部参照規約
@@ -62,7 +62,7 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 
 ## 完了規約
 
-- 対象 review 観点の指摘、挙動一致度、根拠、残留リスクが返却されている。
+- 対象 レビュー 観点の指摘、挙動一致度、根拠、残留リスクが返却されている。
 - 権限・信頼境界系の強制停止条件は、他観点の高評価で相殺せず明示されている。
 - PR 目的と実コードの主要経路を照合した。
 - 正常系、条件分岐、境界値、例外系を確認した。

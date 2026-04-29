@@ -1,6 +1,6 @@
 ---
 name: codex-review-state-invariant
-description: Codex 実装後 review の状態・データ不変条件グループ作業プロトコル。
+description: Codex 実装後 レビュー の状態・データ不変条件グループ作業プロトコル。
 ---
 # Codex Review State Invariant
 
@@ -13,24 +13,24 @@ DB、キャッシュ、非同期処理、再実行、同時実行で壊れない
 
 - `review_state_invariant` が使う。
 - 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` の review aggregation とする。
-- owner artifact は `codex-review-state-invariant` の出力規約で固定する。
+- 返却先は `implement_lane` の レビュー 集約 とする。
+- 担当成果物は `codex-review-state-invariant` の出力規約で固定する。
 
 ## 入力規約
 
-- transaction、lock、retry、idempotency
-- race condition と DB 更新順序
-- cache invalidation と event 発行
-- queue consumer と partial failure
-- soft delete、集計値、二重作成、二重課金
-- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
-- 必須入力: review_target_diff, implementation_scope_path, implementation_result
-- 任意入力: final_validation_result, touched_files
+- トランザクション、ロック、再試行、冪等性
+- 競合状態 と DB 更新順序
+- キャッシュ無効化 と イベント発行
+- queue consumer と 部分失敗
+- 論理削除、集計値、二重作成、二重課金
+- 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
+- 必須入力: レビュー対象差分, implementation-scope の場所, 実装結果
+- 任意入力: 最終検証結果, 変更ファイル
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [review_state_invariant.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_state_invariant.toml) の `allowed_write_paths` / `allowed_commands` とする。
-- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
+- エージェント実行定義とツール権限は [review_state_invariant.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_state_invariant.toml) の 書き込み許可 / 実行許可 とする。
+- 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-state-invariant/SKILL.md
 
 ## 内部参照規約
@@ -38,7 +38,7 @@ DB、キャッシュ、非同期処理、再実行、同時実行で壊れない
 ## 判断規約
 
 不変条件の維持度が 0.85 を超える場合だけ通過とする。
-再実行不能、partial failure、二重処理の可能性は高い減点対象にする。
+再実行不能、部分失敗、二重処理の可能性は高い減点対象にする。
 
 ## 出力規約
 
@@ -52,21 +52,21 @@ DB、キャッシュ、非同期処理、再実行、同時実行で壊れない
 - 根拠: 判断へ使ったファイルと参照先を返す。
 - 破られた不変条件: 状態、再実行、二重処理、整合性のどれが破られたかを返す。
 - 原因候補: 状態破壊を生む原因候補と根拠を返す。
-- 指摘: transaction、lock、idempotency、retry、race condition、cache invalidation、event、queue、partial failure、soft delete、集計値、二重作成、二重課金の問題だけを返す。
+- 指摘: トランザクション、ロック、冪等性、再試行、競合状態、キャッシュ無効化、イベント、キュー、部分失敗、論理削除、集計値、二重作成、二重課金の問題だけを返す。
 - 局所修正評価: 局所修正で不変条件が戻るか、状態境界の再固定が必要かを返す。
 - 追加確認範囲: 状態遷移、永続化、cache、queue で追加確認すべき範囲と読まない範囲を返す。
-- 修正時の考慮点: 修正者が考慮すべき支配点、partial failure リスク、恒久修正の判断材料を返す。
+- 修正時の考慮点: 修正者が考慮すべき支配点、部分失敗 リスク、恒久修正の判断材料を返す。
 - 不変条件テスト: 破れた状態不変条件を固定するテスト観点を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務、修正範囲の命令を含めない。
 
 ## 完了規約
 
-- 対象 review 観点の指摘、不変条件維持度、根拠、残留リスクが返却されている。
+- 対象 レビュー 観点の指摘、不変条件維持度、根拠、残留リスクが返却されている。
 - 権限・信頼境界系の強制停止条件は、他観点の高評価で相殺せず明示されている。
-- transaction、lock、idempotency、retry を確認した。
-- race condition と DB 更新順序を確認した。
-- cache invalidation と event 発行を確認した。
-- partial failure、soft delete、集計値を確認した。
+- トランザクション、ロック、冪等性、retry を確認した。
+- 競合状態 と DB 更新順序を確認した。
+- キャッシュ無効化 と イベント発行を確認した。
+- 部分失敗、論理削除、集計値を確認した。
 - 二重作成または二重課金の可能性を確認した。
 - 破られた不変条件と原因候補を分けた。
 - 局所修正評価と不変条件テスト観点を返した。

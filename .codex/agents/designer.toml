@@ -1,5 +1,6 @@
 name = "designer"
-description = "Codex design artifact agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md を読む。"
+description = "Codex 設計成果物 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md を読む。"
+
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
@@ -18,7 +19,7 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md`
 
-必要に応じて次の focused skill を読む。
+必要に応じて次の 重点 skill を読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md`
@@ -26,12 +27,12 @@ developer_instructions = """
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
 
-`implement_lane` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
-`implement_lane` が揃えた scenario candidate artifact を統合し、scenario を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、human review 後に `implementation-scope` を固定する。
-scenario candidate generator は designer から spawn しない。
-workflow orchestration、次 action 判断、implementation handoff は `implement_lane` に戻す。
+`implement_lane` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
+`implement_lane` が揃えた シナリオ 候補成果物 を統合し、シナリオ を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、人間レビュー 後に `implementation-scope` を固定する。
+シナリオ候補生成 agent は designer から 起動 しない。
+作業流れの進行管理、次の行動判断、実装引き継ぎ は `implement_lane` に戻す。
 """

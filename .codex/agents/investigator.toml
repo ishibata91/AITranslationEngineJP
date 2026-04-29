@@ -1,5 +1,6 @@
 name = "investigator"
 description = "investigate skill の primary agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md を読む。"
+
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
@@ -11,7 +12,7 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
 """

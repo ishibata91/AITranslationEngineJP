@@ -1,5 +1,6 @@
 name = "review_trust_boundary"
-description = "Codex review agent for permission and trust boundaries。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md を読む。"
+description = "Codex レビュー agent 権限・信頼境界用。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md を読む。"
+
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "read-only"
@@ -11,5 +12,5 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md`
 
-diff から取得した実コードを読み、権限・信頼境界だけを hard gate score / confidence / findings / violated_invariant / root_cause_hypotheses / local_patch_assessment で返す。
+diff から取得した実コードを読み、権限・信頼境界だけを hard gate 評価値、確信度、指摘、違反不変条件、原因仮説、局所修正評価 で返す。
 """

@@ -1,10 +1,11 @@
 name = "implementation_investigator"
 description = "Codex implementation investigation agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md を読む。"
+
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
-  "temporary observation changes inside owned_scope only",
+  "承認済み実装範囲内の一時観測変更だけ",
 ]
 allowed_commands = [
   "python3 scripts/harness/run.py --suite backend-local",
@@ -23,14 +24,14 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md`
 
-必要に応じて focused skill を追加で読む。
+必要に応じて 重点 skill を追加で読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reproduce/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-trace/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-observe/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reobserve/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
-恒久修正や product test 追加は行わず、実装時の証跡だけを扱う。
+恒久修正や プロダクトテスト 追加は行わず、実装時の証跡だけを扱う。
 """

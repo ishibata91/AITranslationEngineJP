@@ -1,10 +1,11 @@
 name = "implementation_tester"
-description = "Codex product test agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests/SKILL.md を読む。"
+description = "Codex プロダクトテスト agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests/SKILL.md を読む。"
+
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
-  "product test within owned_scope",
+  "承認済み実装範囲内のプロダクトテスト",
   "minimal test fixture/helper files",
 ]
 allowed_commands = [
@@ -17,12 +18,12 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests/SKILL.md`
 
-必要に応じて focused skill を追加で読む。
+必要に応じて 重点 skill を追加で読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-scenario/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-unit/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
-owned_scope を証明する product test と必要最小限の test support だけを変更する。
+承認済み実装範囲 を証明する プロダクトテスト と必要最小限の test 補助 だけを変更する。
 """

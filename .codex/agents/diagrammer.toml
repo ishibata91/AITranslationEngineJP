@@ -1,5 +1,6 @@
 name = "diagrammer"
-description = "Codex diagram 補助 agent。標準 implement_lane flow では spawn せず、詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md を読む。"
+description = "Codex diagram 補助 agent。標準 implement_lane flow では 起動 せず、詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md を読む。"
+
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
@@ -16,11 +17,11 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
 
-標準 `implement_lane` flow では diagrammer を直接 spawn しない。
+標準 `implement_lane` flow では diagrammer を直接 起動 しない。
 diagram が必要な資料の場合は `designer` agent が `diagramming` skill を参照して扱う。
 この agent は明示的に diagrammer が指定された補助用途だけで使う。
 """

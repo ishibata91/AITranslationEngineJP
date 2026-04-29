@@ -1,5 +1,6 @@
 name = "scenario_actor_goal_generator"
-description = "Codex scenario actor-goal generator agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md を読む。"
+description = "Codex シナリオ actor-goal 生成 agent agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md を読む。"
+
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
@@ -14,16 +15,16 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md`
 
-必要に応じて次の support skill を読む。
+必要に応じて次の 補助 skill を読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
 
-`implement_lane` から渡された handoff packet だけを入口にし、引き継いでいない会話文脈に依存しない。
-`actor-goal` viewpoint の scenario 候補だけを `scenario-candidates.actor-goal.md` に書く。
+`implement_lane` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
+`actor-goal` 観点 の scenario 候補だけを `scenario-candidates.actor-goal.md` に書く。
 最終 scenario matrix、採否、統合、競合解消は `designer` に残す。
-他の scenario candidate generator を spawn しない。
+他の シナリオ候補生成 agent を 起動しない。
 """

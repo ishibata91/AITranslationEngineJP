@@ -1,10 +1,11 @@
 name = "implementation_implementer"
-description = "Codex product implementation agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement/SKILL.md を読む。"
+description = "Codex プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement/SKILL.md を読む。"
+
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
-  "product code within owned_scope",
+  "承認済み実装範囲内のプロダクトコード",
 ]
 allowed_commands = [
   "python3 scripts/harness/run.py --suite backend-local",
@@ -16,14 +17,14 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement/SKILL.md`
 
-必要に応じて focused skill を追加で読む。
+必要に応じて 重点 skill を追加で読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-mixed/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-fix-lane/SKILL.md`
 
-handoff、stop / reroute は skill に従う。
-tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
+引き継ぎ、停止、戻しは skill に従う。
+ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
-owned_scope 内の product code だけを変更し、product test と docs 正本は変更しない。
+承認済み実装範囲 内の プロダクトコード だけを変更し、プロダクトテスト と docs 正本は変更しない。
 """
