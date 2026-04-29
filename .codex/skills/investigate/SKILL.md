@@ -63,6 +63,13 @@ UI check 専用 skill / agent は置かない。
 - 設計継続可否に効く 不足 を残す
 - active 規約 は agent に対して 1 ファイルだけ置く。調査種別は selector で扱う。
 
+## 非対象規約
+
+- implementation-scope 承認後の再現、再観測、実装時調査は扱わない。
+- 恒久修正、プロダクトテスト追加、implementation レビューは扱わない。
+- 承認済み実装範囲や対象 file は確定しない。
+- UI check 専用 agent を前提にしない。
+
 ## 出力規約
 
 - 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
@@ -100,9 +107,6 @@ UI check 専用 skill / agent は置かない。
 - 観測条件が不足する場合は停止する。
 - 恒久修正が必要なら `designer` へ戻す。
 - 実装時調査なら、Codex implementation レーン [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
-- 恒久修正を始めない
-- implementation-time investigation を扱わない
-- 承認済み実装範囲 や対象 file を確定しない
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - 根拠 なしの結論を書く必要がある場合は停止する。
 - UI check 専用 agent を前提にする場合は停止する。

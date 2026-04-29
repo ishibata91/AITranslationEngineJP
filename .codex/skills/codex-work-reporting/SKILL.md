@@ -127,6 +127,14 @@ benchmark は次回改善用の観測値である。
 - 人間が次に見るべき path や コマンド を残す
 - 重要エラーと未実行 検証 を短く明示する
 
+## 非対象規約
+
+- プロダクトコード、プロダクトテスト、docs 正本化は扱わない。
+- docs 正本化の承認、対象範囲、implementation-scope を代替しない。
+- `docs/exec-plans/`、`.codex/history/`、引き継ぎ file を run レポート置き場にしない。
+- Markdown レポートをベンチマーク値の一次データにしない。
+- 速度指標を初期 close 判定に使わない。
+
 ## 出力規約
 
 - 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
@@ -162,20 +170,7 @@ benchmark は次回改善用の観測値である。
 - Codex implementation レーン 側 implementation レーン の事実を推測で補う時
 - docs 正本化の承認や 対象範囲 を代替する時
 - 速度の数値閾値で close 可否を判定する時
-- Codex implementation レーン の作業時間や実装内容を推測で埋めない
-- Codex implementation レーン 会話ログ / chat session file を読めるのに読まず、完了報告入力 未提示だけで close 阻害要因 にしない
-- docs 正本化や implementation-scope の代わりにしない
-- `docs/exec-plans/`、`.codex/history/`、引き継ぎ file に run レポート を置かない
-- `.codex/history` へ移行や参照ルールを追加しない
-- Markdown レポート を ベンチマーク値 の一次データにしない
-- 速度指標を初期 close 判定に使わない
-- 長い経緯説明や感想を増やさない
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- `.codex/history` へ記録先を戻さなかった場合は停止する。
-- 推測で Codex implementation レーンの実装事実を補わなかった場合は停止する。
-- レポートを docs 正本や implementation-scope の代替にしなかった場合は停止する。
-- Markdown レポート を ベンチマーク値 の一次データにしなかった場合は停止する。
-- 速度指標を初期 close 判定に使わなかった場合は停止する。
 - 拒否条件: 実行記録 folder 不足
 - 拒否条件: Codex and implementation 根拠 sources both 不足
 - 拒否条件: レポート write 対象 outside work_history/runs

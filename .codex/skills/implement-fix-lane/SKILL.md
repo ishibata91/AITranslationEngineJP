@@ -43,6 +43,12 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 残留リスク を明示する
 - fix 対象範囲 と touched files を対応づける
 
+## 非対象規約
+
+- 新機能、refactor、unrelated cleanup は扱わない。
+- 根拠なしの原因断定や、再現条件に関係しない整理は扱わない。
+- プロダクトテスト、検証データ、スナップショット、test helper は変更しない。
+
 ## 出力規約
 
 - 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
@@ -61,10 +67,5 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 新機能や refactor の実装を行う時
 - 再現条件が不足している時
 - 原因が未確認なのに恒久修正する時
-- unrelated cleanup を混ぜない
-- 原因断定を 根拠 なしに広げない
-- プロダクトテスト、検証データ、スナップショット、test helper を変更しない
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- unrelated cleanup を混ぜなかった場合は停止する。
-- 原因断定を 根拠 なしに広げなかった場合は停止する。
 - task_mode が fix であることを確認した。

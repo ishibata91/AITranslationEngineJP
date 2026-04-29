@@ -47,6 +47,14 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - frontend / backend / 接合点 契約 の レーン内検証 根拠 を分ける
 - レーン内検証 コマンド の不足を 残留リスク にする
 
+## 非対象規約
+
+- frontend または backend の片側だけで閉じる変更は扱わない。
+- mixed を広い frontend / backend 同時変更の口実にしない。
+- 承認済み接合点外の API / Wails / DTO / gateway / adapter 契約変更は扱わない。
+- プロダクトテスト、検証データ、スナップショット、test helper は変更しない。
+- docs や作業流れ文書は変更しない。
+
 ## 出力規約
 
 - 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
@@ -64,16 +72,8 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 ## 停止規約
 
 - frontend または backend の片側だけで閉じる時
-- API / Wails / DTO / gateway / adapter 契約 の接合点を変更しない時
+- API / Wails / DTO / gateway / adapter 契約 の接合点変更がない時
 - 横断範囲が未承認の時
 - 追加設計で横断 対象範囲 を広げる時
-- mixed を広い frontend / backend 同時変更の口実にしない
-- 片側の都合で 対象範囲 を広げない
 - API 接合点を変えずに UI と backend を同時に触らない
-- プロダクトテスト、検証データ、スナップショット、test helper を変更しない
-- docs や 作業流れ 文書を変更しない
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- mixed を広い frontend / backend 同時変更の口実にしなかった場合は停止する。
-- API 接合点を変えずに UI と backend を同時に触らなかった場合は停止する。
-- プロダクトテスト、検証データ、スナップショット、test helper を変更しなかった場合は停止する。
-- docs / 作業流れ 文書を変更しなかった場合は停止する。

@@ -25,14 +25,6 @@ normalize_heading() {
 
 extract_markdown_body() {
   local file="$1"
-  local body
-
-  body="$(mq -F text '.code' "$file")"
-  if [ -n "$(printf '%s' "$body" | tr -d '[:space:]')" ]; then
-    printf '%s\n' "$body"
-    return
-  fi
-
   cat "$file"
 }
 

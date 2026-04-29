@@ -44,6 +44,13 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - usecase から repository concrete、実行定義 concrete、driver API を直接参照しない
 - レーン内検証 を実行した場合は結果を 終了処理 に残す
 
+## 非対象規約
+
+- frontend だけの変更、UI check、backend 境界の再設計は扱わない。
+- 承認済み実装範囲外の層 refactor は扱わない。
+- プロダクトテスト、検証データ、スナップショット、test helper は変更しない。
+- docs や作業流れ文書は変更しない。
+
 ## 出力規約
 
 - 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
@@ -64,13 +71,6 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - frontend だけの変更を実装する時
 - UI check を行う時
 - backend 境界を設計し直す時
-- 承認済み実装範囲 外の 層 refactor を混ぜない
-- controller、usecase、service で concrete 実装を new しない
-- service core から filesystem、Wails 実行定義、DB driver の concrete API を直接呼ばない
-- プロダクトテスト、検証データ、スナップショット、test helper を変更しない
-- docs や 作業流れ 文書を変更しない
+- controller、usecase、service で concrete 実装を new する必要がある場合は停止する。
+- service core から filesystem、Wails 実行定義、DB driver の concrete API を直接呼ぶ必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- 承認済み実装範囲 外の 層 refactor を混ぜなかった場合は停止する。
-- usecase、service、controller で concrete 実装を new しなかった場合は停止する。
-- プロダクトテスト、検証データ、スナップショット、test helper を変更しなかった場合は停止する。
-- docs / 作業流れ 文書を変更しなかった場合は停止する。
