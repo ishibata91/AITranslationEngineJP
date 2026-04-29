@@ -1,28 +1,36 @@
 ---
 name: implementation-distill-implement
-description: Codex implementation lane 側の新規実装・拡張向け context 圧縮知識 package。
+description: Codex implementation lane 側の新規実装・拡張向け context 圧縮作業プロトコル。
 ---
-
 # Implementation Distill Implement
 
 ## 目的
 
-この skill は知識 package である。
+この skill は作業プロトコルである。
 `implementation_distiller` agent が新規実装や拡張の handoff を整理する時に、implementation facts、constraints、validation entry を抽出する判断基準を提供する。
 
-## いつ参照するか
+## 対応ロール
+
+- `implementation_distiller` が使う。
+- 呼び出し元は `implement_lane` とする。
+- 返却先は `implement_lane` とする。
+- owner artifact は `implementation-distill-implement` の出力規約で固定する。
+
+## 入力規約
 
 - single_handoff_packet 1 件を実装可能な facts へ落とす時
 - handoff、owned_scope、validation entry を明示する時
 - 変更対象 package / component / test surface を整理する時
+- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
 
-## 参照しない場合
+## 外部参照規約
 
-- fix の再現症状を整理する時
-- refactor の不変条件を整理する時
-- product code / product test を変更する時
+- agent runtime と tool policy は [implementation_distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 原則
+## 内部参照規約
+
+## 判断規約
 
 - single_handoff_packet、owned_scope、validation entry を先に固定する
 - 既存境界と依存方向を、handoff に効く最小単位の architecture constraint として実装前 context に残す
@@ -36,9 +44,6 @@ description: Codex implementation lane 側の新規実装・拡張向け context
 - 要件、実装方針、決定事項は implementation_implementer が再読不要な粒度で要約する
 - docs や design artifact は必要な判断だけに圧縮する
 
-## DO / DON'T
-
-DO:
 - path catalog から必要 file だけ summary / full に上げる
 - owned_scope に直接関係する code pointer を優先する
 - implementation_implementer が architecture 正本を全文再読しなくてよいよう、今回の handoff に効く境界だけを `requirements_policy_decisions` へ圧縮する
@@ -54,7 +59,24 @@ DO:
 - local validation 前に踏みやすい lint 規約があれば、どの command で拾われるかまで要約する
 - validation command と completion signal を残す
 
-DON'T:
+## 出力規約
+
+- 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
+- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+
+## 完了規約
+
+- 承認済み owned_scope 内の成果だけが返却されている。
+- validation、未実行項目、residual risk が source_ref 付きで整理されている。
+- handoff、owned_scope、validation entry を明示した。
+- 変更対象 package / component / test surface を整理した。
+- 実装者が最初に読む file と順序を残した。
+
+## 停止規約
+
+- fix の再現症状を整理する時
+- refactor の不変条件を整理する時
+- product code / product test を変更する時
 - 要件や設計を追加しない
 - 実 code を読まず handoff の文章を言い換えない
 - 類似 context を required_reading に混ぜない
@@ -63,9 +85,7 @@ DON'T:
 - first_action に partial、複数 clause、曖昧な advance を書かない
 - 要件、実装方針、決定事項を required_reading に丸投げしない
 - owned_scope 外を広く探索しない
-- active contract をこの skill に置かない
-
-## Checklist
-
-- [implementation-distill-implement-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-distill-implement/references/checklists/implementation-distill-implement-checklist.md) を参照する。
-- checklist は知識確認用であり、実行義務は agent contract が決める。
+- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 要件や設計を追加しなかった場合は停止する。
+- owned_scope 外の broad tour をしなかった場合は停止する。
+- product code / product test を変更しなかった場合は停止する。

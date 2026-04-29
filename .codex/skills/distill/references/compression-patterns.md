@@ -14,7 +14,7 @@
 
 - `catalog`: path、名前、役割、状態だけ。最初の棚卸しに使う
 - `summary`: 最初の意味のある段落、主要見出し、重要な箇条書きだけ。次工程の判断に使う
-- `full`: downstream が直接依存する正本、contract、schema、観測入口だけ。広く読まない
+- `full`: downstream が直接依存する正本、規約、schema、観測入口だけ。広く読まない
 
 ## 判断順
 
@@ -22,7 +22,7 @@
 2. 読む候補を catalog 化する
 3. 正本、重複、任意参照、未確認を分類する
 4. 必要な候補だけ summary / full に上げる
-5. contract の field に圧縮する
+5. 規約の field に圧縮する
 
 ## 重複除去
 

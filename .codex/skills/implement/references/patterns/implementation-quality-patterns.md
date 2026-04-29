@@ -3,7 +3,7 @@
 ## 目的
 
 `implementation_implementer` が owned_scope 内で product code を実装するための品質判断パターンをまとめる。
-agent TOML の tool policy と contract の output obligation は上書きしない。
+agent TOML の tool policy と skill の出力規約は上書きしない。
 
 ## 採用する考え方
 

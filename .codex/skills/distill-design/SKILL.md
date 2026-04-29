@@ -2,7 +2,6 @@
 name: distill-design
 description: Codex 側の設計用文脈圧縮 skill。必須要件、UI、scenario の入口を整理するための知識を提供する。
 ---
-
 # Distill Design
 
 ## 目的
@@ -13,41 +12,53 @@ description: Codex 側の設計用文脈圧縮 skill。必須要件、UI、scena
 共通の圧縮粒度、重複除去、facts / inferred / gap の分離は `distill` を参照する。
 この skill は設計向けの観点だけを持つ。
 
-## 原則
+## 対応ロール
+
+- `distiller` が使う。
+- 返却先は caller または次 agent とする。
+- owner artifact は `distill-design` の出力規約で固定する。
+
+## 入力規約
+
+- 入力は caller から渡された task-local artifact、source_ref、必要な承認状態を含む。
+- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
+
+## 外部参照規約
+
+- agent runtime と tool policy は [distiller.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/distiller.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- 共通圧縮: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/SKILL.md)
+- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
+
+## 内部参照規約
+
+## 判断規約
 
 - request を設計可能な facts と constraints に落とす
 - 実装案ではなく、design bundle 作成に必要な事実だけを残す
-- [AGENTS.md](/Users/iorishibata/Repositories/AITranslationEngineJP/AGENTS.md)、[README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/README.md)、関連 skill の重複制約は canonical source へ寄せる
 
-## 標準パターン
-
-1. request と active work plan から設計対象を catalog 化する。
-2. 必須要件、UI、scenario に関係する入口を分ける。
-3. 正本、制約、未確認事項を分離する。
-4. 必要な正本だけ `summary` または `full` に上げる。
-5. `related_design_pointers` に入れるべき path と理由を整理する。
-
-## DO / DON'T
-
-DO:
 - 必須要件、UI、scenario の入口を分ける
 - 変更禁止の境界を constraints として残す
 - downstream が読む順番を明示する
 
-DON'T:
+## 出力規約
+
+- 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
+- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+
+## 完了規約
+
+- 出力規約を満たし、次の actor が再解釈なしで判断できる。
+- 不足情報または停止理由がある場合は明示されている。
+- 必須要件、UI、scenario の入口が分かれている。
+- design bundle 作成に必要な正本 path が残っている。
+- constraints と gaps が facts に混ざっていない。
+
+## 停止規約
+
 - 実装案を確定しない
 - owned_scope や対象ファイルを確定しない
 - UI モックや scenario 本文を作成しない
-
-## Checklist
-
-- [distill-design-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-design/references/checklists/distill-design-checklist.md) を参照する。
-
-## References
-
-- 共通圧縮: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill/SKILL.md)
-
-## Maintenance
-
-- 調査向けの観点は `distill-investigate` に置く。
-- 長い例や判断表は [references](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-design/references/) に分離する。
+- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 実装案を設計前の事実として固定していない場合は停止する。
+- owned_scope や対象ファイルを確定していない場合は停止する。
+- UI モックや scenario 本文の作成へ進んでいない場合は停止する。

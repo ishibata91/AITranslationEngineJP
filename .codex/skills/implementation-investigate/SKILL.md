@@ -1,30 +1,43 @@
 ---
 name: implementation-investigate
-description: Codex implementation lane 側の実装時調査の共通知識 package。single_handoff_packet 1 件内で evidence first に調査する判断基準を提供する。
+description: Codex implementation lane 側の実装時調査の共通作業プロトコル。single_handoff_packet 1 件内で evidence first に調査する判断基準を提供する。
 ---
-
 # Implementation Investigate
 
 ## 目的
 
-`implementation-investigate` は知識 package である。
+`implementation-investigate` は作業プロトコルである。
 `implementation_investigator` agent が、`single_handoff_packet` 1 件と owned_scope 内で実装時の証拠を集める時の共通判断を提供する。
 
-tool policy は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) が持ち、active contract と handoff は contract / skill に従う。
+tool policy は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) が持ち、handoff は skill に従う。
 
-## いつ参照するか
+## 対応ロール
+
+- `implementation_investigator` が使う。
+- 呼び出し元は `implement_lane` とする。
+- 返却先は `implement_lane` とする。
+- owner artifact は `implementation-investigate` の出力規約で固定する。
+
+## 入力規約
 
 - 実装前再現、trace、再観測を行う時
 - 一時観測点を add / remove する時
 - evidence と仮説を分けて返す時
+- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
+- 必須入力: single_handoff_packet, approval_record, owned_scope, investigation_request, validation_commands
+- 任意入力: knowledge_focus, reproduction_evidence, temporary_observation_plan
+- input_notes: {"single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。", "knowledge_focus": "implementation-investigate-reproduce、trace、observe、reobserve の参照ヒント。共通規約と完了条件は変えない。"}
 
-## 参照しない場合
+## 外部参照規約
 
-- 恒久修正を行う時
-- product test を追加する時
-- design-time investigation を行う時
+- agent runtime と tool policy は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- agent runtime: [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml)
+- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
+- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reproduce/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-trace/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-observe/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reobserve/SKILL.md
 
-## 知識範囲
+## 内部参照規約
+
+### 拘束観点
 
 - evidence first の観測
 - observed facts と hypotheses の分離
@@ -32,15 +45,7 @@ tool policy は [implementation_investigator.toml](/Users/iorishibata/Repositori
 - `agent-browser` CLI による UI / console / screenshot evidence
 - focused skill の選び方
 
-## 原則
-
-- `single_handoff_packet` 1 件と owned_scope を超えない
-- evidence のない結論を固定しない
-- Codex implementation lane のブラウザ操作は `agent-browser` CLI で行う
-- 一時観測点は返却前に除去する
-- 恒久修正と product test 追加を混ぜない
-
-## Browser Evidence
+### Browser Evidence
 
 UI state、console、screenshot の観測は `execute` から `agent-browser` CLI を使う。
 
@@ -114,41 +119,54 @@ agent-browser batch --bail \
 selector が安定している場合だけ CSS selector を使う。
 console / errors / screenshot / network requests は completion packet の evidence に command と結果を残す。
 
-## Focused Skills
+- 参照 pattern は [investigation-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/references/patterns/investigation-patterns.md) とする。
 
-- [implementation-investigate-reproduce](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reproduce/SKILL.md): 実装前再現
-- [implementation-investigate-trace](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-trace/SKILL.md): 実装中 trace
-- [implementation-investigate-observe](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-observe/SKILL.md): 一時観測点
-- [implementation-investigate-reobserve](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reobserve/SKILL.md): 修正後再観測
-## DO / DON'T
+## 判断規約
 
-DO:
+- `single_handoff_packet` 1 件と owned_scope を超えない
+- evidence のない結論を固定しない
+- Codex implementation lane のブラウザ操作は `agent-browser` CLI で行う
+- 一時観測点は返却前に除去する
+- 恒久修正と product test 追加を混ぜない
+
 - 観測条件、command、結果を残す
 - temporary changes と cleanup_status を返す
 - recommended next step を根拠付きで返す
+- active 規約 は agent 1:1。調査種別の差分は focused skill で扱い、output obligation はこの 規約 に固定する。
 
-DON'T:
+## 出力規約
+
+- 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
+- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+- 返却先: implement_lane
+- 必須出力: investigation_focus, reproduction_status, observed_facts, hypotheses, observation_points, temporary_changes, cleanup_status, validation_results, remaining_gaps, residual_risks, recommended_next_step
+- 出力 field 要件: {"observed_facts": "観測済み事実だけを書く。仮説と混ぜない", "temporary_changes": "一時観測点を使った場合だけ path と目的を返す。未使用なら none", "cleanup_status": "一時観測点の除去状態を必ず返す。未使用なら not_applicable", "recommended_next_step": "implement、tests、reroute のどれかを根拠付きで返す"}
+
+## 完了規約
+
+- 承認済み owned_scope 内の成果だけが返却されている。
+- validation、未実行項目、residual risk が source_ref 付きで整理されている。
+- observed facts と hypotheses を分けた。
+- owned_scope 内の evidence だけを扱った。
+- temporary changes と cleanup_status を確認した。
+- 必須 evidence: owned_scope, command or observation evidence when executed
+- completion signal: implement_lane が implement、tests、または implement-lane reroute を判断できる
+- residual risk key: remaining_gaps
+
+## 停止規約
+
+- 恒久修正を行う時
+- product test を追加する時
+- design-time investigation を行う時
 - 恒久修正を同時に行わない
 - product test を追加しない
-- mode 別 active contract を使わない
-
-## 参照パターン
-
-- [investigation-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/references/patterns/investigation-patterns.md) を参照する。
-- 対象は execution path tracing、silent failure hunting、temporary observation、minimal error isolation である。
-- validation は repo の command と agent contract の出力要件に従って扱う。
-
-## Checklist
-
-- [implementation-investigate-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/references/checklists/implementation-investigate-checklist.md) を参照する。
-- checklist は知識確認用であり、実行義務は agent contract が決める。
-
-## Agent が持つもの
-
-- active contract: [implementation_investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_investigator/contracts/implementation_investigator.contract.json)
-- agent runtime: [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml)
-
-## Maintenance
-
-- 調査種別の知識差分は focused skill に置く。
-- output obligation を skill 本体へ戻さない。
+- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- 恒久修正を同時に行わなかった場合は停止する。
+- product test を追加しなかった場合は停止する。
+- mode 別 個別 JSON 規約 を使わなかった場合は停止する。
+- 拒否条件: missing single_handoff_packet
+- 拒否条件: missing approval_record
+- 拒否条件: unclear owned_scope
+- 停止条件: 一時観測点を安全に除去できない
+- 停止条件: 設計判断が不足している
+- 停止条件: owned_scope 外の調査が必要である

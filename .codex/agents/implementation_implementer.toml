@@ -15,7 +15,6 @@ developer_instructions = """
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement/SKILL.md`
-- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/implementation_implementer/contracts/implementation_implementer.contract.json`
 
 必要に応じて focused skill を追加で読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md`
@@ -23,9 +22,8 @@ developer_instructions = """
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-mixed/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-fix-lane/SKILL.md`
 
-source of truth、handoff、stop / reroute は skill に従う。
+handoff、stop / reroute は skill に従う。
 tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
-output obligation は contract に従う。
-contract は agent 1:1 とする。
+出力規約、完了規約、停止規約は skill に従う。
 owned_scope 内の product code だけを変更し、product test と docs 正本は変更しない。
 """

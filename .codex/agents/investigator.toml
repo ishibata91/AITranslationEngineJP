@@ -11,10 +11,8 @@ developer_instructions = """
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md`
 - support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md`
-- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json`
 
-source of truth、handoff、stop / reroute は skill に従う。
+handoff、stop / reroute は skill に従う。
 tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。
-output obligation は contract に従う。
-contract は agent 1:1 とする。
+出力規約、完了規約、停止規約は skill に従う。
 """

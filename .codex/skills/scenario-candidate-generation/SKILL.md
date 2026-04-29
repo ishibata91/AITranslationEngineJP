@@ -2,18 +2,36 @@
 name: scenario-candidate-generation
 description: Codex 側の scenario 候補生成 skill。implement_lane が designer 前に viewpoint 別 candidate artifact を作るための source of truth、出力形式、禁止事項を提供する。
 ---
-
 # Scenario Candidate Generation
 
 ## 目的
 
-`scenario-candidate-generation` は知識 package である。
+`scenario-candidate-generation` は作業プロトコルである。
 6 体の scenario candidate generator agent が、それぞれ固定 viewpoint だけで scenario 候補母集団を作るための基準を提供する。
 
 最終 scenario の採否、統合、競合解消は `designer` が [scenario-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md) を参照して扱う。
 この skill は最終 scenario matrix を確定しない。
 
-## Viewpoints
+## 対応ロール
+
+- `scenario candidate generators` が使う。
+- 呼び出し元は `implement_lane` とする。
+- 返却先は `designer` とする。
+- owner artifact は `scenario-candidate-generation` の出力規約で固定する。
+
+## 入力規約
+
+- 入力は caller から渡された task-local artifact、source_ref、必要な承認状態を含む。
+- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
+
+## 外部参照規約
+
+- agent runtime と tool policy は `scenario candidate generators` runtime の `allowed_write_paths` / `allowed_commands` とする。
+- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
+
+## 内部参照規約
+
+### Viewpoints
 
 `viewpoint` は次の 6 種に固定する。
 
@@ -39,17 +57,14 @@ scenario candidate generator は 6 agent に分ける。
 | `scenario_external_integration_generator` | `external-integration` |
 | `scenario_operation_audit_generator` | `operation-audit` |
 
-## Source Of Truth
+## 判断規約
 
-- primary: `implement_lane` から渡された handoff packet、distiller result、active task folder
-- secondary: packet に明示された docs、task-local artifact、関連 source path
-- forbidden source: 引き継いでいない会話文脈、未承認の design review、Codex implementation lane の独自再設計
+- viewpoint から見える scenario 候補を複数出す
+- source requirement と観測点を必ず結びつける
+- conflict hint と merge candidate を残す
+- 不足情報は human decision candidate として残す
 
-## Output
-
-candidate file は [scenario-candidates.viewpoint.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-candidates.viewpoint.md) の形で書く。
-
-各 candidate は次を必須にする。
+## 出力規約
 
 - `source requirement`
 - `viewpoint`
@@ -60,23 +75,22 @@ candidate file は [scenario-candidates.viewpoint.md](/Users/iorishibata/Reposit
 - `observable point`
 - `related detail requirement type`
 - `adoption hint`
+- 出力に tool policy、agent runtime、product code の変更義務を含めない。
 
-## DO / DON'T
+### Handoff
 
-DO:
-- viewpoint から見える scenario 候補を複数出す
-- source requirement と観測点を必ず結びつける
-- conflict hint と merge candidate を残す
-- 不足情報は human decision candidate として残す
+- handoff 先: `implement_lane`
+- 渡す scope: candidate artifact path、viewpoint、source requirement coverage、conflict hint、human decision candidate
 
-DON'T:
+## 完了規約
+
+- 指定 viewpoint の candidate artifact が出力規約の必須項目を満たしている。
+- 採否や統合判断を行わず、designer が判断できる候補として返却されている。
+
+## 停止規約
+
 - 最終 scenario matrix を確定しない
 - candidate の採用、不採用、統合を確定しない
 - 他の scenario candidate generator を spawn しない
 - product code、product test、docs 正本を変更しない
-
-## Handoff
-
-- handoff 先: `implement_lane`
-- 渡す contract: 各 agent の `agents/references/<agent>/contracts/<agent>.contract.json`
-- 渡す scope: candidate artifact path、viewpoint、source requirement coverage、conflict hint、human decision candidate
+- 停止時は不足項目、衝突箇所、reroute 先を返す。

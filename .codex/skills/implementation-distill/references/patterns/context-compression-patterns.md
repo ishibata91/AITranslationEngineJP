@@ -3,7 +3,7 @@
 ## 目的
 
 `implementation_distiller` が single_handoff_packet 1 件を実装可能な lane_context_packet へ圧縮するための判断パターンをまとめる。
-agent TOML の tool policy と contract の output obligation は上書きしない。
+agent TOML の tool policy と skill の出力規約は上書きしない。
 
 ## 採用する考え方
 
@@ -47,7 +47,7 @@ agent TOML の tool policy と contract の output obligation は上書きしな
 - 類似 context を distracting_context に分けず、implementation_implementer の読む対象に混ぜている。
 - repository method が必要、と推測だけで書いている。
 - first_action の clause_closed が partial 相当で、1 手目が何を閉じるか曖昧である。
-- first_action が leaf contract だけ、または複数 clause をまとめて触っている。
+- first_action が leaf 規約 だけ、または複数 clause をまとめて触っている。
 - existing_patterns が none だけで、探索範囲と実装影響がない。
 - validation entry が broad command だけで、cheap check の検討がない。
 - 実 code を読まず handoff の文章を言い換えている。

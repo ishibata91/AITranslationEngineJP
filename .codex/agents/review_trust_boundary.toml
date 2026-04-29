@@ -10,7 +10,6 @@ developer_instructions = """
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md`
-- contract: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/review_trust_boundary/contracts/review_trust_boundary.contract.json`
 
 diff から取得した実コードを読み、権限・信頼境界だけを hard gate score / confidence / findings / violated_invariant / root_cause_hypotheses / local_patch_assessment で返す。
 """

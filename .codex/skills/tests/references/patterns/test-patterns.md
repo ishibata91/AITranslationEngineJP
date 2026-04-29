@@ -3,7 +3,7 @@
 ## 目的
 
 `implementation_tester` が single_handoff_packet 1 件と implementation_tester_context_packet を product test で証明するための判断パターンをまとめる。
-agent TOML の tool policy と contract の output obligation は上書きしない。
+agent TOML の tool policy と skill の出力規約は上書きしない。
 
 ## 採用する考え方
 

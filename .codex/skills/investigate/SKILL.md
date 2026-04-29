@@ -1,101 +1,103 @@
 ---
 name: investigate
-description: Codex 側の設計前調査知識 package。再現、UI 証跡、trace、risk-report を evidence first で扱う判断基準を提供する。
+description: Codex 側の設計前調査作業プロトコル。再現、UI 証跡、trace、risk-report を evidence first で扱う判断基準を提供する。
 ---
-
 # Investigate
 
 ## 目的
 
-`investigate` は知識 package である。
+`investigate` は作業プロトコルである。
 `investigator` agent が設計前に必要な証拠を集めるための、観測事実、UI 証跡、仮説、remaining gap の分け方を提供する。
 
 UI check 専用 skill / agent は置かない。
 設計前の UI evidence は `investigator` が `investigate` の一部として扱う。
 
-## いつ参照するか
+## 対応ロール
+
+- `investigator` が使う。
+- 返却先は caller または次 agent とする。
+- owner artifact は `investigate` の出力規約で固定する。
+
+## 入力規約
 
 - 設計前に再現可否を確認する時
 - UI evidence、console、画面状態を設計判断の証跡として確認する時
 - trace の観測点と不足情報を整理する時
 - design continuation の risk を短く返す時
+- 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
+- 必須入力: caller, investigation_goal, known_context
+- 任意入力: investigation_mode, reproduction_steps, candidate_paths
+- selectors: {"investigation_mode": ["reproduce", "ui-evidence", "trace", "risk-report"]}
+- 必須 artifact: active task context or caller-provided investigation context
 
-## 参照しない場合
+## 外部参照規約
 
-- implementation-scope 承認後の再現や再観測を扱う時
-- 恒久修正や product test 追加が必要な時
-- implementation review が主目的の時
+- agent runtime と tool policy は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) の `allowed_write_paths` / `allowed_commands` とする。
+- binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
+- agent runtime: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
+- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
+- binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
+- 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
+- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md
 
-## 知識範囲
+## 内部参照規約
+
+### 拘束観点
 
 - `reproduce`、`ui-evidence`、`trace`、`risk-report` の観点
 - observed fact、UI evidence、hypothesis の分離
 - evidence path と再現条件の残し方
 - 設計を止める residual risk の表現
 
-## 原則
+## 判断規約
 
 - evidence のない結論を書かない
 - 観測事実と仮説を混ぜない
 - UI evidence は画面状態、console、screenshot、操作条件を分けて残す
 - 実装 lane の調査は Codex implementation laneへ戻す
 
-## Runtime Boundary
-
-- binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- agent runtime: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
-- allowed: read-only の再現、UI 証跡収集、観測、trace 計画、risk report
-- forbidden: product code、product test、docs 正本の変更
-- tool policy: agent runtime の `allowed_write_paths` / `allowed_commands` に従う
-
-## 標準パターン
-
-1. 調査目的と設計判断への影響を確認する。
-2. 既知 facts、再現条件、UI check scope、未観測情報を分ける。
-3. 最小の観測を行い、根拠 path を残す。
-4. hypothesis は evidence level を明示する。
-5. designer が次判断できる形で gaps と risks を返す。
-
-この手順は知識上の標準例である。
-実行順、必須 input、完了条件は `investigator` agent contract に従う。
-
-## Stop / Reroute
-
-- 観測条件が不足する場合は停止する。
-- 恒久修正が必要なら `designer` へ戻す。
-- 実装時調査なら、Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
-
-## Handoff
-
-- handoff 先: `designer`
-- 渡す contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
-- 渡す scope: observed facts、hypotheses、remaining gaps、residual risks
-
-## DO / DON'T
-
-DO:
 - observed、UI evidence、inferred を分ける
 - 証跡 path と再現条件を優先する
 - 設計継続可否に効く gap を残す
+- active 規約 は agent に対して 1 ファイルだけ置く。調査種別は selector で扱う。
 
-DON'T:
+## 出力規約
+
+- 出力は判断結果、根拠 source_ref、不足情報、次 agent が判断できる材料を含む。
+- 出力に tool policy、agent runtime、product code の変更義務を含めない。
+
+### Handoff
+
+- handoff 先: `designer`
+- 渡す scope: observed facts、hypotheses、remaining gaps、residual risks
+- 必須出力: mode, observed_facts, ui_evidence, hypotheses, observation_points, remaining_gaps, residual_risks, recommended_next_step
+
+## 完了規約
+
+- 出力規約を満たし、次の actor が再解釈なしで判断できる。
+- 不足情報または停止理由がある場合は明示されている。
+- 観測事実、UI evidence、仮説、未観測 gap を分けた。
+- evidence path、再現条件、UI check scope を残した。
+- design continuation に必要な risk を返した。
+- 必須 evidence: observed fact evidence, UI evidence when mode is ui-evidence, reproduction condition, source path when used
+- completion signal: designer が設計継続か停止かを判断できる
+- residual risk key: residual_risks
+
+## 停止規約
+
+- implementation-scope 承認後の再現や再観測を扱う時
+- 恒久修正や product test 追加が必要な時
+- implementation review が主目的の時
+- 観測条件が不足する場合は停止する。
+- 恒久修正が必要なら `designer` へ戻す。
+- 実装時調査なら、Codex implementation lane [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
 - 恒久修正を始めない
 - implementation-time investigation を扱わない
 - owned_scope や対象 file を確定しない
-
-## Checklist
-
-- [investigate-checklist.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/references/checklists/investigate-checklist.md) を参照する。
-- checklist は知識確認用であり、実行義務は `investigator` agent contract が決める。
-
-## References
-
-- binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- agent contract: [investigator.contract.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/references/investigator/contracts/investigator.contract.json)
-
-## Maintenance
-
-- tool policy と output obligation を skill 本体へ戻さない。
-- 実装時調査は [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) へ分ける。
-- UI check 専用 skill / agent を戻さない。
+- 停止時は不足項目、衝突箇所、reroute 先を返す。
+- evidence なしの結論を書かなかった場合は停止する。
+- UI check 専用 agent 前提にしなかった場合は停止する。
+- implementation-time investigation を扱わなかった場合は停止する。
+- 拒否条件: implementation-time investigation
+- 拒否条件: permanent fix request
+- 拒否条件: source artifact missing
