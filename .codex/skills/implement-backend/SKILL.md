@@ -32,7 +32,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - 層 責務と依存方向を守る
 - エラー経路 と 検証 を 承認済み実装範囲 内で閉じる
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
-- `APIテスト` 先行時だけ implementation_tester 出力 も確認する
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 - レーン内検証 結果 または未実行理由を返す
 - `lint:backend` の format、vet、static、arch、module で落ちる境界違反を事前に避ける
 
@@ -62,7 +62,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - backend lint の format、static、arch、module 観点を確認した。
 - 検証 と エラー経路 を 承認済み実装範囲 内で確認した。
 - 単一引き継ぎ入力 と レーン内検証 を確認した。
-- `APIテスト` 先行時だけ implementation_tester 出力 を確認した。
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 
 ## 停止規約
 

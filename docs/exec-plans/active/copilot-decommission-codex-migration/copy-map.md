@@ -12,7 +12,6 @@
 - `.github/skills/implement-frontend/` -> `.codex/skills/implement-frontend/`
 - `.github/skills/implement-mixed/` -> `.codex/skills/implement-mixed/`
 - `.github/skills/implement-fix-lane/` -> `.codex/skills/implement-fix-lane/`
-- `.github/skills/tests/` -> `.codex/skills/tests/`
 - `.github/skills/tests-unit/` -> `.codex/skills/tests-unit/`
 - `.github/skills/tests-scenario/` -> `.codex/skills/tests-scenario/`
 
@@ -20,4 +19,5 @@
 
 - `.github/agents/references/implementer/` -> `.codex/agents/references/implementation_implementer/`
 - `.github/agents/references/investigator/` -> `.codex/agents/references/implementation_investigator/`
-- `.github/agents/references/tester/` -> `.codex/agents/references/implementation_tester/`
+- `.github/agents/references/tester-scenario/` -> `.codex/agents/references/implementation_scenario_tester/`
+- `.github/agents/references/tester-unit/` -> `.codex/agents/references/implementation_unit_tester/`

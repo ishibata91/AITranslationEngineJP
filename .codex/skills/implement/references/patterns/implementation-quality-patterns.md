@@ -13,7 +13,7 @@ agent TOML の ツール権限 と skill の出力規約は上書きしない。
 - build / type エラー の解消は最小差分にする。
 - 変更前に 単一引き継ぎ入力 の完了条件、実装対象、承認済み実装範囲、既存の naming、層、依存方向 を確認する。
 - 変更前に `docs/lint-policy.md` のうち今回の touched 層 に効く rule を確認する。
-- `APIテスト` 先行時だけ implementation_tester 出力 も確認する。
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する。
 - 大きい関数、深いネスト、magic number、silent 代替処理 を赤旗として扱う。
 - 振る舞いを変えない整理は、可読性が明確に上がる場合だけ行う。
 
@@ -53,7 +53,7 @@ agent TOML の ツール権限 と skill の出力規約は上書きしない。
 
 - 引き継ぎ 資料のスコープ粒度と 承認済み実装範囲 を確認する。
 - 単一引き継ぎ入力 を確認する。
-- `APIテスト` 先行時だけ implementation_tester 出力 を確認する。
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認する。
 - 実装対象 に対応する path、symbol、line number を確認する。
 - 承認済み実装範囲 外の周辺 文脈 を実装対象から外す。
 - 実装対象 の path、symbol、line number から着手する。

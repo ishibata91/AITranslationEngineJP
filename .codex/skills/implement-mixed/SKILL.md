@@ -36,7 +36,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - mixed の対象を API、Wails 紐づけ、DTO、gateway、adapter 契約 の接合点だけに限定する
 - 片側だけで閉じない理由を 対象範囲 成果物 で確認する
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
-- `APIテスト` 先行時だけ implementation_tester 出力 も確認する
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 - 検証 は frontend、backend、接合点 契約 の証跡を分ける
 
 - API / Wails / DTO / gateway / adapter 契約 のどれを接合点として変更したか 終了処理 に残す
@@ -64,7 +64,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - API / Wails / DTO / gateway / adapter 契約 の接合点 対象範囲 が承認済みであることを確認した。
 - 両側の touched files を 引き継ぎ と対応づけた。
 - 単一引き継ぎ入力 と レーン内検証 根拠 を分けた。
-- `APIテスト` 先行時だけ implementation_tester 出力 を確認した。
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 
 ## 停止規約
 

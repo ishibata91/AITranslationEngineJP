@@ -34,7 +34,7 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 再現条件に関係しない整理を入れない
 - trace_or_analysis_result と矛盾しない変更に限る
 - 単一引き継ぎ入力 と 承認済み修正範囲 を確認して プロダクトコード だけを変更する
-- `APIテスト` 先行時だけ implementation_tester 出力 も確認する
+- `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 - 未解消ケースを 終了処理 に残す
 
 - 修正前後で同じ条件の 検証 を比較する
