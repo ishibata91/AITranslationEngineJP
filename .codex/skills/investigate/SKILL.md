@@ -38,7 +38,7 @@ UI check 専用 skill / agent は置かない。
 - ツール権限: エージェント実行定義の `allowed_write_paths` / `allowed_commands` に従う
 - binding: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - 外部 artifact が不足または衝突する場合は停止し、衝突箇所を返す。
-- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md
+- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md
 
 ## 内部参照規約
 

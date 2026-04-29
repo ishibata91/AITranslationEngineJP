@@ -110,7 +110,7 @@ design bundle を human review へ進める条件は次の通り。
 - scenario-design に `needs_human_decision` または未解決 conflict が残る場合は、質問票を返して human 回答待ちにする。
 - scenario candidate artifact が不足する場合は、`implement_lane` に戻し、候補生成器の不足を解消してから再開する。
 - workflow sequencing や task folder orchestration が主目的なら `implement_lane` へ戻す。
-- 文脈圧縮が必要なら `implement_lane` へ戻す。
+- 作業前の影響範囲、実行計画、検証方法の確認が不足する場合は `implement_lane` へ戻す。
 - 実画面 observation が必要なら `investigator` を使う前提で `implement_lane` へ戻す。
 - docs 正本化が必要なら human 承認後に `docs_updater` を使う前提で `implement_lane` へ戻す。
 - product 実装が必要なら `implement_lane` へ戻し、人間向け Codex implementation lane handoff の扱いを判断させる。

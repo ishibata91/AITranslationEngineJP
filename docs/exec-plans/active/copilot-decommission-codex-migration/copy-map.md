@@ -2,10 +2,6 @@
 
 ## Skills
 
-- `.github/skills/implementation-distill/` -> `.codex/skills/implementation-distill/`
-- `.github/skills/implementation-distill-implement/` -> `.codex/skills/implementation-distill-implement/`
-- `.github/skills/implementation-distill-fix/` -> `.codex/skills/implementation-distill-fix/`
-- `.github/skills/implementation-distill-refactor/` -> `.codex/skills/implementation-distill-refactor/`
 - `.github/skills/implementation-investigate/` -> `.codex/skills/implementation-investigate/`
 - `.github/skills/implementation-investigate-reproduce/` -> `.codex/skills/implementation-investigate-reproduce/`
 - `.github/skills/implementation-investigate-trace/` -> `.codex/skills/implementation-investigate-trace/`
@@ -22,7 +18,6 @@
 
 ## Contracts And Permissions
 
-- `.github/agents/references/implementation-distiller/` -> `.codex/agents/references/implementation_distiller/`
 - `.github/agents/references/implementer/` -> `.codex/agents/references/implementation_implementer/`
 - `.github/agents/references/investigator/` -> `.codex/agents/references/implementation_investigator/`
 - `.github/agents/references/tester/` -> `.codex/agents/references/implementation_tester/`

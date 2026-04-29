@@ -10,27 +10,24 @@ Codex implementation lane は実装を担当します。
 flowchart TD
     A[implement-lane]
     P[task folder plan.md]
-    B[distill]
     C[investigate]
     U[ui-design.md]
     S[scenario-design.md]
     F[human review]
     G[implementation-scope.md]
     H[Codex implementation lane implement-lane]
-    K[Codex implementation lane implementation-distill]
     M[human relay or close judgment]
     I[updating-docs]
     J[close]
 
     A --> P
-    P --> B --> S
+    P --> S
     P --> C --> S
     S --> U
     U --> S
     S --> F
     F --> G
     G --> H
-    H --> K --> H
     H --> M
     M --> A
     M --> J

@@ -10,7 +10,6 @@ developer_instructions = """
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md`
-- support skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/distill-investigate/SKILL.md`
 
 handoff、stop / reroute は skill に従う。
 tool policy はこの TOML の `allowed_write_paths` / `allowed_commands` に従う。

@@ -21,14 +21,13 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 ## 入力規約
 
 - owned_scope 内の プロダクトコード を実装する時
-- lane_context_packet に基づいて プロダクトコード を実装する時
 - `APIテスト` 先行時の implementation_tester output を プロダクトコード 実装へ反映する時
 - lane-local validation の扱いを確認する時
 - 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
-- 必須入力: single_handoff_packet, lane_context_packet, approval_record, implementation_target, owned_scope, depends_on_resolved
+- 必須入力: single_handoff_packet, approval_record, implementation_target, owned_scope, depends_on_resolved
 - 任意入力: implementation_subscope, knowledge_focus, lane_local_validation_commands, implementation_tester_output
-- input_notes: {"single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。", "lane_context_packet": "implementation_distiller が single_handoff_packet 1 件だけから作った実装前整理。fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、required_reading、symbol / line number 付き related_code_pointers を含む。full implementation-scope、active work plan 全文、source artifacts、後続 handoff 由来の情報を含めない。", "implementation_subscope": "implement_lane が context 枯渇時に同一 handoff 内で狭めた implementation_implementer 用 sub-scope。完了条件 clause、public seam / API boundary、change target / symbol、validation command のいずれか 1 軸で切られる。完了条件 を削るものではない。", "implementation_tester_output": "`APIテスト` 先行 handoff で implementation_tester が先に返した プロダクトテスト result。通常、unit、原因未確定の regression handoff では入力に含めない。", "knowledge_focus": "implement-backend、implement-frontend、implement-mixed、implement-fix-lane の参照ヒント。共通規約と完了条件は変えない。implement-mixed は API / Wails / DTO / gateway など接合点 scope に限定する。"}
-- insufficient_context_criteria: {"gate": "structural_gate", "return_insufficient_context_when": ["lane_context_packet に fix_ingredients、first_action、change_targets、requirements_policy_decisions、existing pattern、validation_entry のいずれかが欠けている", "first_action が 1 完了条件 clause に固定されていない、line / symbol / public seam が不明、または必要な closure chain がない", "実装に owned_scope 拡張、プロダクトテスト / fixture / snapshot / test helper 変更、docs / workflow 変更、新規設計判断、broad refactor が必要になる"], "not_insufficient_context_when": ["listed required_reading 内の局所確認だけで first edit に入れる", "既存 pattern への通常追従で実装できる", "lane-local validation failure を プロダクトコード 内の scope で修正できる"], "required_when_true": ["reason", "needed_context", "suggested_narrowing_axis", "implemented_subscope", "remaining_implementation_subscopes"]}
+- input_notes: {"single_handoff_packet": "implementation-scope から抽出済みの handoff 1 件だけ。full implementation-scope、active work plan 全文、source artifacts、後続 handoff は入力に含めない。", "implementation_subscope": "implement_lane が context 枯渇時に同一 handoff 内で狭めた implementation_implementer 用 sub-scope。完了条件 clause、public seam / API boundary、change target / symbol、validation command のいずれか 1 軸で切られる。完了条件 を削るものではない。", "implementation_tester_output": "`APIテスト` 先行 handoff で implementation_tester が先に返した プロダクトテスト result。通常、unit、原因未確定の regression handoff では入力に含めない。", "knowledge_focus": "implement-backend、implement-frontend、implement-mixed、implement-fix-lane の参照ヒント。共通規約と完了条件は変えない。implement-mixed は API / Wails / DTO / gateway など接合点 scope に限定する。"}
+- insufficient_context_criteria: {"gate": "structural_gate", "return_insufficient_context_when": ["single_handoff_packet に完了条件、public seam / API boundary、implementation_target、owned_scope、validation command のいずれかが欠けている", "implementation_target が file / symbol / public seam のいずれにも対応していない", "実装に owned_scope 拡張、プロダクトテスト / fixture / snapshot / test helper 変更、docs / workflow 変更、新規設計判断、broad refactor が必要になる"], "not_insufficient_context_when": ["single_handoff_packet 内の局所確認だけで first edit に入れる", "既存 pattern への通常追従で実装できる", "lane-local validation failure を プロダクトコード 内の scope で修正できる"], "required_when_true": ["reason", "needed_context", "suggested_narrowing_axis", "implemented_subscope", "remaining_implementation_subscopes"]}
 
 ## 外部参照規約
 
@@ -55,15 +54,15 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 
 - `implementation-scope` と owned_scope を超えない
 - handoff 資料のスコープ粒度で実装する
-- lane_context_packet に合わせて プロダクトコード だけを変更する
+- single_handoff_packet と implementation_target に合わせて プロダクトコード だけを変更する
 - `APIテスト` 先行時だけ implementation_tester output も確認する
 - implementation_subscope が渡された場合はその sub-scope 内だけを実装する
 - 実装完了後、handoff を終える前に touched layer に対応する local validation を実行する
-- fix_ingredients に対応する code path を優先し、distracting_context へ寄り道しない
-- first_action と change_targets から着手する
-- insufficient_context_criteria は structural gate とし、fix_ingredients、first_action、change_targets、requirements_policy_decisions、existing pattern、validation_entry の不足時に返す
-- first_action が 1 clause に固定されていない、line / symbol / public seam が不明、closure chain がない場合は insufficient_context を返す
-- listed required_reading 内の局所確認、既存 pattern への通常追従、lane-local validation failure は not_insufficient_context として扱う
+- implementation_target に対応する code path を優先し、owned_scope 外へ寄り道しない
+- single_handoff_packet の完了条件、public seam、validation command から着手する
+- insufficient_context_criteria は structural gate とし、完了条件、public seam、implementation_target、owned_scope、validation command の不足時に返す
+- implementation_target が file / symbol / public seam に対応していない場合は insufficient_context を返す
+- single_handoff_packet 内の局所確認、既存 pattern への通常追従、lane-local validation failure は not_insufficient_context として扱う
 - 既存 pattern、naming、layer に合わせる
 - broad refactor を混ぜない
 - プロダクトテスト、fixture、snapshot、test helper は implementation_tester が扱う
@@ -71,8 +70,8 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 
 - 実装前に [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) を読む
 - 実装前に [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) を読み、handoff に効く静的 check の責務を確認する
-- lane_context_packet の fix_ingredients、distracting_context、first_action、change_targets、requirements_policy_decisions、related_code_pointers を確認する
-- requirements_policy_decisions に architecture constraint がある場合は、その範囲だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を局所確認する
+- single_handoff_packet の完了条件、owned_scope、implementation_target、関連 source_ref、validation command を確認する
+- handoff に architecture constraint がある場合は、その範囲だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を局所確認する
 - implementation_subscope があれば 完了条件 clause、public seam、change target / symbol、validation command を確認する
 - insufficient_context を返す場合は reason、needed_context、suggested_narrowing_axis、remaining_implementation_subscopes を structural gate に対応づける
 - entry point、call site、data flow、error path、test surface を確認する
@@ -82,7 +81,7 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 - backend handoff は `python3 scripts/harness/run.py --suite backend-local`、frontend handoff は `python3 scripts/harness/run.py --suite frontend-local` を使う
 - mixed handoff は touched layer に応じて両方を実行する
 - touched files は プロダクトコード だけにする
-- active 規約 は agent 1:1。backend / frontend / mixed / fix-lane の差分は focused skill で扱い、output obligation はこの 規約 に固定する。implementation_implementer は distiller 後の プロダクトコード 実装を扱い、`APIテスト` 先行時だけ implementation_tester output を受け取る。プロダクトテスト / fixture / snapshot / test helper は変更しない。
+- active 規約 は agent 1:1。backend / frontend / mixed / fix-lane の差分は focused skill で扱い、output obligation はこの 規約 に固定する。implementation_implementer は承認済み handoff 1 件の プロダクトコード 実装を扱い、`APIテスト` 先行時だけ implementation_tester output を受け取る。プロダクトテスト / fixture / snapshot / test helper は変更しない。
 
 ## 出力規約
 
@@ -90,14 +89,14 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 - 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 - 返却先: implement_lane
 - single_handoff_packet の owned_scope に対応する プロダクトコード だけを返す。プロダクトテスト、fixture、snapshot、test helper は含めない
-- single_handoff_packet 1 件、lane_context_packet、implementation_subscope に対応づけ、複数 handoff を束ねない
+- single_handoff_packet 1 件と implementation_subscope に対応づけ、複数 handoff を束ねない
 - 実際に実装した 完了条件 clause、public seam / API boundary、change target / symbol、validation command を返す。implementation_subscope が入力された場合はそれに対応づける
 - 同じ handoff 内で未実装の sub-scope を返す。完了条件は削らず、未処理分を明示する
 - 実装完了後、handoff を終える前に touched layer に対応する local validation 結果を返す。backend は `python3 scripts/harness/run.py --suite backend-local`、frontend は `python3 scripts/harness/run.py --suite frontend-local`、mixed は touched layer に応じて両方を実行する。未実行なら blocked reason を返す。coverage、Sonar、harness all は implementation_implementer の必須 closeout にしない
 - entry point、call site、data flow、error path、test surface、既存 pattern への整合を簡潔に返す。mixed の場合は接合点 contract を明記する
 - insufficient_context_criteria の structural_gate に一致する場合だけ true とし、reason、needed_context、suggested_narrowing_axis、implemented_subscope、remaining_implementation_subscopes を返す。自力で広く調査して埋めない。criteria に一致しない不安、通常の局所確認、lane-local validation failure だけでは true にしない。問題がなければ false または none
 - insufficient_context true 時は insufficient_context_criteria のどの structural gate に一致したかを返す。false 時は none または未使用にする
-- insufficient_context 時に不足している fix_ingredients、first_action、change target、public seam、existing pattern、validation command を列挙する
+- insufficient_context 時に不足している完了条件、implementation_target、public seam、owned_scope、existing pattern、validation command を列挙する
 - insufficient_context 時に orchestrator が次に狭めるべき軸を 完了条件 clause、public seam / API boundary、change target / symbol、validation command のいずれかで返す
 - 未実行 validation、scope 超過、設計不足、test / fixture 変更が必要になった場合の blocked reason を分ける
 
@@ -106,33 +105,29 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 - 承認済み owned_scope 内の成果だけが返却されている。
 - validation、未実行項目、residual risk が source_ref 付きで整理されている。
 - owned_scope と implementation target を確認した。
-- single_handoff_packet と lane_context_packet を確認した。
+- single_handoff_packet を確認した。
 - `APIテスト` 先行時だけ implementation_tester output を確認した。
 - implementation_subscope がある場合はその範囲だけを実装した。
-- fix_ingredients と distracting_context を確認した。
 - insufficient_context_criteria の structural gate に一致する場合だけ insufficient_context、needed_context、suggested_narrowing_axis を返した。
 - not_insufficient_context に該当する局所確認、既存 pattern 追従、lane-local validation failure を停止理由にしなかった。
-- first_action と change_targets から着手した。
+- implementation_target と public seam から着手した。
 - coding guidelines、lint policy、lane-local validation commands を確認した。
-- requirements_policy_decisions にある architecture constraint を局所確認した。
+- handoff にある architecture constraint を局所確認した。
 - focused skill の知識だけを追加で参照した。
 - touched files が プロダクトコード だけであることを確認した。
-- 必須 evidence: single_handoff_packet id, lane_context_packet id, fix_ingredients, distracting_context, first_action, change_targets, requirements_policy_decisions, owned_scope, implementation_tester_output when API test pre-implementation test exists, implemented_subscope or insufficient_context reason, entry point, call site, data flow or boundary, error path, test surface, touched-layer local validation result or blocked reason
+- 必須 evidence: single_handoff_packet id, implementation_target, owned_scope, approval_record, implementation_tester_output when API test pre-implementation test exists, implemented_subscope or insufficient_context reason, entry point, call site, data flow or boundary, error path, test surface, touched-layer local validation result or blocked reason
 - 完了判断材料: implement_lane が review へ進める プロダクトコード 実装結果と touched-layer local validation 結果が返っている
 - 残留リスク: residual_risks
 
 ## 停止規約
 
-- 実装前 context 整理だけを行う時
 - UI check や implementation review を行う時
 - docs や workflow 文書を変更する時
 - 要件や設計を追加しない
-- fix_ingredients がないまま実装を始めない
 - insufficient_context を返さず広い調査で不足 context を埋めない
 - criteria mismatch になる不安や通常の局所確認を insufficient_context にしない
 - implementation_subscope 外へ実装を広げない
-- distracting_context を実装対象に混ぜない
-- first_action がないまま広い調査を始めない
+- implementation_target がないまま広い調査を始めない
 - lint を知らないまま実装して local validation で初めて境界違反を知る進め方をしない
 - config、lint、test、coverage 設定を変更して gate を回避しない
 - プロダクトテスト、fixture、snapshot、test helper を変更しない
@@ -144,18 +139,12 @@ description: Codex implementation lane 側の プロダクトコード 実装の
 - insufficient_context を広い調査で埋めなかった場合は停止する。
 - criteria mismatch になる insufficient_context を返さなかった場合は停止する。
 - implementation_subscope 外へ実装を広げなかった場合は停止する。
-- distracting_context を実装対象に混ぜなかった場合は停止する。
-- first_action 不足を広い調査で埋めなかった場合は停止する。
+- implementation_target 不足を広い調査で埋めなかった場合は停止する。
 - プロダクトテスト、fixture、snapshot、test helper を変更しなかった場合は停止する。
 - docs / workflow 文書を変更しなかった場合は停止する。
 - mode 別 個別 JSON 規約 を使わなかった場合は停止する。
 - 拒否条件: missing single_handoff_packet
-- 拒否条件: missing lane_context_packet
-- 拒否条件: missing fix_ingredients
-- 拒否条件: missing distracting_context
-- 拒否条件: missing first_action
-- 拒否条件: missing change_targets
-- 拒否条件: missing requirements_policy_decisions
+- 拒否条件: missing implementation_target
 - 拒否条件: missing approval_record
 - 拒否条件: missing implementation_tester_output for API test pre-implementation handoff
 - 拒否条件: unclear owned_scope

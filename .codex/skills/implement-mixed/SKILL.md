@@ -38,7 +38,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - implementation-scope の owned_scope を守る
 - mixed の対象を API、Wails binding、DTO、gateway、adapter contract の接合点だけに限定する
 - 片側だけで閉じない理由を scope artifact で確認する
-- lane_context_packet を確認して プロダクトコード だけを変更する
+- single_handoff_packet と owned_scope を確認して プロダクトコード だけを変更する
 - `APIテスト` 先行時だけ implementation_tester output も確認する
 - validation は frontend、backend、接合点 contract の証跡を分ける
 
@@ -58,7 +58,7 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - validation、未実行項目、residual risk が source_ref 付きで整理されている。
 - API / Wails / DTO / gateway / adapter contract の接合点 scope が承認済みであることを確認した。
 - 両側の touched files を handoff と対応づけた。
-- lane_context_packet と lane-local validation evidence を分けた。
+- single_handoff_packet と lane-local validation evidence を分けた。
 - `APIテスト` 先行時だけ implementation_tester output を確認した。
 
 ## 停止規約

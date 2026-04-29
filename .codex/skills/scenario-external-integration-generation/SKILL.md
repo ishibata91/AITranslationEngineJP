@@ -20,10 +20,10 @@ description: Codex 側の external-integration scenario 候補生成 skill。外
 
 ## 入力規約
 
-- 入力は `task_frame`、`context_distill?`、source requirement、対象 viewpoint を含む。
+- 入力は `task_frame`、source requirement、対象 viewpoint を含む。
 - 入力に source_ref、owner、承認状態が不足する場合は推測で補わない。
 - 必須入力: caller, handoff_packet, active_task_folder, lane_owner
-- 任意入力: distiller_result, candidate_source_paths, known_gaps
+- 任意入力: candidate_source_paths, known_gaps
 - 必須 artifact: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-external-integration-generation/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-candidates.viewpoint.md, active task folder または caller-provided task context
 
 ## 外部参照規約

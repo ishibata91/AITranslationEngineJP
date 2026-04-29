@@ -2,14 +2,14 @@
 
 ## 目的
 
-`implementation_tester` が single_handoff_packet 1 件と implementation_tester_context_packet を product test で証明するための判断パターンをまとめる。
+`implementation_tester` が single_handoff_packet 1 件を product test で証明するための判断パターンをまとめる。
 agent TOML の tool policy と skill の出力規約は上書きしない。
 
 ## 採用する考え方
 
 - 実装前 implementation_tester は、承認済み受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの `APIテスト` だけで使う。
 - unit test と原因未確定の regression test は実装後に追加または更新する。
-- implementation_tester_context_packet は test_ingredients、test_required_reading、requirements_policy_decisions の test impact、test_validation_entry の順に読む。
+- single_handoff_packet は完了条件、public seam、test target、validation command の順に読む。
 - test は behavior を証明し、implementation detail を固定しない。
 - null、empty、invalid、boundary、error path、concurrency をリスクに応じて含める。
 - E2E は `UI人間操作E2E` として critical user flow と browser surface の証跡に絞る。
@@ -18,7 +18,7 @@ agent TOML の tool policy と skill の出力規約は上書きしない。
 ## 適用ルール
 
 - paid real AI API は test で呼ばない。fake provider、DI seam、test bootstrap を使う。
-- full lane_context_packet、fix_ingredients、change_targets、broad related_code_pointers を直接読んで test scope を広げない。
+- owned_scope 外を直接読んで test scope を広げない。
 - test_subscope が渡された場合は、その sub-scope の completion_signal clause、public seam、test target file、validation command だけを証明する。
 - insufficient_context_criteria は structural gate とし、behavior_to_prove、public seam、test target、assertion focus、fixture/helper 方針、focused validation の不足時だけ insufficient_context を返す。
 - test_subscope が completion_signal clause、public seam、test target file、validation command のいずれにも対応しない場合は insufficient_context を返す。
