@@ -9,7 +9,9 @@ allowed_write_paths = [
   "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
 ]
 allowed_commands = [
-  "d2 -t 201 <diagram_source>",
+  "plantuml --check-syntax --no-error-image <diagram_source>",
+  "plantuml -tsvg <diagram_source>",
+  "plantuml -tpng <diagram_source>",
 ]
 developer_instructions = """
 この作業は `diagrammer` agent と `diagramming` skill に基づく。

@@ -21,10 +21,9 @@ UI check 専用 skill / agent は置かない。
 ## 入力規約
 
 - 必須入力: 呼び出し元、investigation_goal、known_context を受け取る。
-- 任意入力: investigation_mode、reproduction_steps、candidate_paths を受け取る。
-- selector: `investigation_mode` は `再現`、`UI 根拠`、`trace`、`リスク報告` のいずれかを受け取る。
+- 非必須入力: investigation_mode、reproduction_steps、candidate_paths を受け取る。
+- 非必須調査種別: `investigation_mode` は `再現`、`UI 根拠`、`trace`、`リスク報告` のいずれかを受け取る。
 - 必須成果物: active task 文脈 または 呼び出し元提供 investigation 文脈を受け取る。
-- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -68,7 +67,10 @@ UI check 専用 skill / agent は置かない。
 
 ## 出力規約
 
-- 基本出力: 判断結果、根拠参照、不足情報、次 agent が判断できる材料を返す。
+- 判断結果: 設計前調査の完了、未完了、停止の判定を返す。
+- 根拠参照: 調査判断に使った資料、画面、観測結果を返す。
+- 不足情報: 設計判断に不足している項目を返す。
+- 次判断材料: 次 agent が判断できる材料を返す。
 - 引き継ぎ先: `designer` を返す。
 - 渡す対象範囲: 観測済み事実、仮説、残り 不足、残留 risks を返す。
 - 調査 mode: 実施した調査の種類を返す。
@@ -98,6 +100,7 @@ UI check 専用 skill / agent は置かない。
 - 恒久修正や プロダクトテスト 追加が必要な時
 - implementation レビュー が主目的の時
 - 観測条件が不足する場合は停止する。
+- 必須入力または必須成果物が不足する場合は停止する。
 - 恒久修正が必要なら `designer` へ戻す。
 - 実装時調査なら、Codex implementation レーン [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

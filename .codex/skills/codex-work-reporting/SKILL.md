@@ -24,13 +24,11 @@ work_reporter は benchmark script 結果とレビュー差し戻しレポート
 ## 入力規約
 
 - run 対象: run 全体レポートを作る `work_history/runs/YYYY-MM-DD-<task-id>-run/`。
-- 不足時の扱い: `run 対象` が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
 - run index 雛形: [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/README.md)
 - Codex レポート 雛形: [codex.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md)
-- Codex implementation レーン レポート 雛形: [codex.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md)
 - 実行定義 agent: [work_reporter.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/work_reporter.toml)
 - エージェント実行定義とツール権限は [work_reporter.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/work_reporter.toml) の 書き込み許可 / 実行許可 とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -96,7 +94,7 @@ benchmark は次回改善用の観測値である。
 - 置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/` に固定する。
 - 問題点の抽出は `analysis/benchmark-score.json` と `review-reject-*.md` を主材料にする。
 - `README.md` は人間向け run 全体レポート と benchmark summary にする。
-- `codex.md` と `codex.md` は `work_reporter` が 根拠 から生成する。
+- `codex.md` は `work_reporter` が 根拠 から生成する。
 - 事実と判断材料を分ける。
 - 分からない項目は `未確認`、`不明`、`なし` のいずれかで明示する。
 - Codex implementation レーン 側の実装事実は、run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる範囲だけ転記する。
@@ -129,7 +127,7 @@ benchmark は次回改善用の観測値である。
 - 不足情報: レポート生成を完了できない不足項目を返す。
 - 次判断材料: 人間または `implement_lane` が次を判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
-- レポートパス: README.md、codex.md、codex.md、analysis/benchmark-score.json、review-reject-*.md のパスまたは未作成確認を返す。
+- レポートパス: README.md、codex.md、analysis/benchmark-score.json、review-reject-*.md のパスまたは未作成確認を返す。
 - benchmark summary: session count、metrics、scores を分かる範囲で返す。不足は 阻害要因 ではなく次回改善事項にする。
 - Codex レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す。
 - Codex implementation レーン レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる完了 引き継ぎ、変更ファイル、検証結果、統合 レビュー 結果、残留リスク、次に見るべき場所を返す。
@@ -152,7 +150,7 @@ benchmark は次回改善用の観測値である。
 - 人間介入、引き継ぎ、docs 正本化判断を記録対象にした。
 - implementation レーンの事実を run 内レポート、benchmark script 結果、レビュー差し戻しレポートからだけ扱った。
 - 必須根拠として、ベンチマーク値 json または不足理由、レビュー差し戻しレポートまたは未作成確認、レポート 雛形 paths、利用可能な 検証結果 がある。
-- 完了判断材料として、work_history/runs/<run>/README.md、codex.md、codex.md が ベンチマーク値 と 根拠 から生成され、次回改善事項が明示されている。
+- 完了判断材料として、work_history/runs/<run>/README.md と codex.md が ベンチマーク値 と 根拠 から生成され、次回改善事項が明示されている。
 - 残留リスクとして、未確認または不明な 不足 が返っている。
 
 ## 停止規約

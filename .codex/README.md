@@ -63,6 +63,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `designer` は シナリオ 候補を統合し、design bundle と implementation-scope の task 内成果物 を作る
 - `investigator` は必要な場合だけ実画面や観測対象を確認し、観測事実と リスク を返す
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、観点別 レビュー agent の並列 起動、欠落なし集約、`implementation_action` 分岐を進める
+- `implement_lane` は観点別 レビュー結果を behavior、security、その他 の優先度で集約し、上位観点の失敗または停止を下位観点の通過で相殺しない
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う
 - `implementation_implementer` は 承認済み実装範囲 内の プロダクトコード だけを変更する
 - `implementation_implementer` は backend、frontend、integration、fix-lane のいずれか 1 つの実装 skill を主契約として選ぶ。共通親 skill は置かない

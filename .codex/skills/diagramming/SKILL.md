@@ -1,6 +1,6 @@
 ---
 name: diagramming
-description: Codex 側の図作成作業プロトコル。PlantUML と structure diff の source と レビュー 成果物 の扱いを提供する。
+description: Codex 側の図作成作業プロトコル。PlantUML source と レビュー 成果物 の扱いを提供する。
 ---
 # Diagramming
 
@@ -20,11 +20,13 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 
 ## 入力規約
 
-- 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 必須入力: 呼び出し元, diagram_goal, source_of_truth
-- 任意入力: diagram_kind, target_task_folder, 検証コマンド
-- selector: {"diagram_kind": ["structure-diff", "plantuml"]}
-- 必須 成果物: diagram source or 対象 task folder
+- 必須呼び出し元: 図作成を依頼した agent または人間。
+- 必須図化目的: 図で固定する判断または比較対象。
+- 必須正本参照: 図の根拠にする正本または task 内成果物。
+- 必須成果物: PlantUML source または対象 task folder。
+- 非必須図種別: structure-diff または plantuml。
+- 非必須対象フォルダ: 図を置く task folder。
+- 非必須検証コマンド: PlantUML source を検証または描画する command。
 
 ## 外部参照規約
 
@@ -41,7 +43,7 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 
 ### 拘束観点
 
-- PlantUML を使った structure diff と設計補助図
+- PlantUML source を使った structure diff と設計補助図
 - 正本 と レビュー 成果物 の分離
 - render、validate、差分確認の扱い
 - 一時 PNG と AI 目視による可読性確認
@@ -100,7 +102,10 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 
 ## 出力規約
 
-- 基本出力: 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
+- 判断結果: 図作成または図確認の完了、未完了、停止の判定を返す。
+- 根拠参照: 図の根拠にした正本または task 内成果物を返す。
+- 不足情報: 図作成または図確認を完了できない不足項目を返す。
+- 次判断材料: 次 agent が判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 - 図化対象判断: どの diagram 成果物 を扱うかを返す。
 - source 対象: 図の根拠にした 根拠 path を返す。
@@ -126,6 +131,7 @@ description: Codex 側の図作成作業プロトコル。PlantUML と structure
 ## 停止規約
 
 - UI 要件契約だけで diagram が不要な時
+- 必須呼び出し元、必須図化目的、必須正本参照、必須成果物が不足する時
 - プロダクトコードの構造を実装で変更する時
 - docs 正本化だけが目的の時
 - source が不明な場合は停止する。

@@ -24,7 +24,6 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 - 対象テスト範囲: 変更してよい シナリオテスト と必要最小限の テスト補助 の path。
 - 証明対象: シナリオ ID、実行テスト種別、入力開始点、主要観測点、期待結果。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
-- 不足時の扱い: 上記の実行情報が不足する場合は推測で補わない。
 
 ## 外部参照規約
 

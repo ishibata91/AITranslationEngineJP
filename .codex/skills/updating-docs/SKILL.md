@@ -24,9 +24,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 承認記録: 人間が docs 正本化を承認した記録。
 - 承認済み成果物: docs 正本へ反映してよい成果物。
 - 正本化対象: 更新してよい docs 正本。
-- 任意入力: 検証コマンド、根拠 docs を受け取る。
+- 非必須入力: 検証コマンド、根拠 docs を受け取る。
 - 必須成果物: Codex implementation 完了 レポート、承認済み docs-only 成果物、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md` を受け取る。
-- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 
 ## 外部参照規約
 

@@ -24,7 +24,6 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された frontend-local の harness command。
-- 不足時の扱い: 上記の実行情報が不足する場合は推測で補わない。
 
 ## 外部参照規約
 

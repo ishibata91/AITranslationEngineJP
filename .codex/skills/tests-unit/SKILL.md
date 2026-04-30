@@ -24,7 +24,6 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 実装済み対象: implementation_implementer が変更済みのファイル、公開接点、symbol。
 - 証明対象: 公開振る舞い、分岐、エラー経路 のいずれを証明するかを示す対象。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
-- 不足時の扱い: 上記の実行情報が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
