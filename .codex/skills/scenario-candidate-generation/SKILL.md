@@ -2,12 +2,12 @@
 name: scenario-candidate-generation
 description: Codex 側の シナリオ 候補生成 skill。implement_lane が designer 前に 観点 別 候補成果物 を作るための 正本、出力形式、禁止事項を提供する。
 ---
-# Scenario Candidate Generation
+# シナリオ候補生成
 
 ## 目的
 
 `scenario-candidate-generation` は作業プロトコルである。
-6 体の シナリオ候補生成 agent agent が、それぞれ固定 観点 だけで シナリオ 候補母集団を作るための基準を提供する。
+6 体の シナリオ候補生成 agent が、それぞれ固定 観点 だけで シナリオ 候補母集団を作るための基準を提供する。
 
 最終 シナリオ の採否、統合、競合解消は `designer` が [scenario-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md) を参照して扱う。
 この skill は最終 シナリオ表 を確定しない。
@@ -35,7 +35,7 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 
 `観点` は次の 6 種に固定する。
 
-| 観点 | 出力 file | 観点 |
+| 観点 | 出力ファイル | 観点 |
 | --- | --- | --- |
 | `actor-goal` | `scenario-candidates.actor-goal.md` | アクター目的ベース |
 | `lifecycle` | `scenario-candidates.lifecycle.md` | ライフサイクルベース |
@@ -46,7 +46,7 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 
 シナリオ候補生成 agent は 6 agent に分ける。
 `implement_lane` が 6 agent を直接並列 起動 する。
-2 層 subagent は使わない。
+2 層の子 agent は使わない。
 
 | agent | 観点 |
 | --- | --- |
@@ -61,7 +61,7 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 
 - 観点 から見える シナリオ 候補を複数出す
 - 根拠要件 と観測点を必ず結びつける
-- 競合候補 と merge 候補 を残す
+- 競合候補 と 統合候補 を残す
 - 不足情報は 人間判断候補 として残す
 
 ## 非対象規約
@@ -76,13 +76,13 @@ description: Codex 側の シナリオ 候補生成 skill。implement_lane が d
 - 観点: 候補を作った固定観点を返す。
 - 候補シナリオ id: 候補を一意に参照できる id を返す。
 - 実行者: 候補シナリオの主体を返す。
-- trigger: 候補シナリオの開始条件を返す。
-- expected 結果: 候補シナリオの期待結果を返す。
-- observable point: 候補シナリオの観測点を返す。
-- related detail requirement type: 関連する詳細要求タイプを返す。
-- adoption hint: designer が採否を判断するための補助情報を返す。
-- 引き継ぎ先: `implement_lane` を返す。
-- 渡す対象範囲: 候補成果物 path、観点、根拠要件 coverage、競合候補、人間判断候補を返す。
+- 開始条件: `trigger` として候補シナリオの開始条件を返す。
+- 期待結果: `expected outcome` として候補シナリオの期待結果を返す。
+- 観測点: `observable point` として候補シナリオの観測点を返す。
+- 関連詳細要求タイプ: `related detail requirement type` として関連する詳細要求タイプを返す。
+- 採否補助情報: `adoption hint` として designer が採否を判断するための補助情報を返す。
+- 引き継ぎ先: `designer` を返す。
+- 渡す対象範囲: 候補成果物 path、観点、根拠要件網羅、競合候補、人間判断候補を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
 ## 完了規約

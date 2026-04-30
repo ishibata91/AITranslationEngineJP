@@ -2,14 +2,14 @@
 name: scenario-design
 description: Codex 側のシナリオ設計作業プロトコル。必須要件、受け入れテスト観点、システムテスト分類、受け入れ条件、検証入口を task 内成果物 に固定する基準を提供する。
 ---
-# Scenario Design
+# シナリオ設計
 
 ## 目的
 
 `scenario-design` は作業プロトコルである。
-`designer` agent が必須要件、シナリオ、acceptance を固定するための、観測点、テスト語彙、fake / stub、検証コマンド、リスク の見方を提供する。
+`designer` agent が必須要件、シナリオ、受け入れ条件を固定するための、観測点、テスト語彙、fake / stub、検証コマンド、リスク の見方を提供する。
 
-実行境界、正本、引き継ぎ、stop / 戻し は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
+実行境界、正本、引き継ぎ、停止 / 戻し は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
 ## 対応ロール
 
@@ -28,14 +28,14 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 - エージェント実行定義とツール権限は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) の 書き込み許可 / 実行許可 とする。
 - 雛形: [scenario-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-design.md)
 - 候補 雛形: [scenario-candidates.viewpoint.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-candidates.viewpoint.md)
-- 候補 generation common skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md)
-- 候補 focused skills: [actor-goal](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md)、[lifecycle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-lifecycle-generation/SKILL.md)、[state-transition](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md)、[失敗](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-failure-generation/SKILL.md)、[external-integration](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-external-integration-generation/SKILL.md)、[operation-audit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md)
+- 候補生成 共通 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md)
+- 候補生成 観点別 skill: [actor-goal](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md)、[lifecycle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-lifecycle-generation/SKILL.md)、[state-transition](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md)、[失敗](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-failure-generation/SKILL.md)、[external-integration](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-external-integration-generation/SKILL.md)、[operation-audit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
 
-### Scenario Candidate Generation
+### シナリオ候補生成
 
 シナリオ 候補生成は `implement_lane` が `designer` の前に指揮する。
 `designer` は候補生成器を再 起動 せず、task folder に揃った 候補成果物 を統合する。
@@ -69,7 +69,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 `rejected` は `decision_rationale` を持つ。
 `conflicted` と `needs_human_decision` は `question_id` を持ち、質問票へ出す。
 
-### Conflict Handling
+### 競合処理
 
 競合は `scenario-design.questions.md` に流す。
 質問票は詳細要求タイプ未決と シナリオ 候補競合を同じ file にまとめる。
@@ -80,10 +80,10 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 - 状態遷移の前提が 生成 agent 間で矛盾している
 - 異常系が正常系の受け入れ条件を否定している
 - 外部連携の失敗扱いが lifecycle と矛盾している
-- 運用・監査の保存対象が security / data requirement と衝突している
+- 運用・監査の保存対象が `security_requirement` / `data_requirement` と衝突している
 - UI / API / lower-level の検証段階が シナリオ 間で食い違っている
 
-未解決 conflict が 1 件でもあれば シナリオ 完了 にしない。
+未解決競合が 1 件でもあれば シナリオ 完了 にしない。
 
 ### 詳細要求タイプ
 
@@ -112,7 +112,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 要件種別ごとに、各詳細要求タイプを `必須`、`条件付き`、`optional`、`not_applicable` に分類する。
 常に全タイプを必須にせず、対象外にする場合も理由を明示する。
 
-### 明示性 Gate
+### 明示性判定
 
 各詳細要求タイプは次のいずれかに分類する。
 
@@ -133,7 +133,7 @@ active task 全体は `python3 scripts/harness/run.py --suite scenario-gate` で
 `scenario-design.requirement-coverage.json` がある場合、判定条件 はその JSON を読む。
 旧形式の fenced JSON は互換用に読めるが、新規 成果物 では使わない。
 `scenario-design.candidate-coverage.json` は新規 成果物 で必須とする。
-判定条件 は 6 生成 agent の出力、候補 採否、未解決 conflict、conflict 質問票を検査する。
+判定条件 は 6 生成 agent の出力、候補 採否、未解決競合、競合質問票を検査する。
 
 ### 質問票
 
@@ -197,15 +197,15 @@ AI推奨:
 - 人間判断が必要な暗黙要求は `needs_human_decision` とし、質問票へ集約する
 - 仕様網羅 JSON は `scenario-design.md` に埋め込まず、`scenario-design.requirement-coverage.json` に分ける
 - 質問票は `scenario-design.md` に埋め込まず、`scenario-design.questions.md` に分ける
-- 未解決 conflict は シナリオ 完了にせず、`scenario-design.questions.md` へ集約する
+- 未解決競合は シナリオ 完了にせず、`scenario-design.questions.md` へ集約する
 - 実装方針の迷いは要件にせず リスク として管理する
-- paid な real AI API を system test 前提にしない
-- happy path だけにしない
+- 有料の実AI API を システムテスト 前提にしない
+- 正常系だけにしない
 - 観測点がない シナリオ を書かない
 - implementation 承認済み実装範囲 を混ぜない
 - 用語体系は `受け入れテスト > システムテスト > UI人間操作E2E / APIテスト` を正本にする
 - `E2E` は UI 人間操作起点だけを指す
-- `APIテスト` は 公開接点 起点の system-level test として扱う
+- `APIテスト` は 公開接点 起点の システムレベルテスト として扱う
 - 受け入れテストは全 シナリオ case で先に固定する
 - 各 シナリオ case に `実行テスト種別` と `実行段階` を必ず書く
 - `実行テスト種別` は `APIテスト`、`UI人間操作E2E`、`lower-level only` だけを使う
@@ -217,21 +217,21 @@ AI推奨:
 - 必ず通す要件と リスク を分ける
 - `implement_lane` 由来の 候補成果物 を統合してから シナリオ表 を作る
 - 詳細要求タイプの明示状態を シナリオ 前に確認する
-- 候補 coverage と conflict を JSON sidecar に分ける
+- 候補網羅 と 競合 を JSON 別ファイルに分ける
 - `needs_human_decision` は別 file の質問票に集約する
 - 仕様網羅 JSON は別 file にし、Markdown 本文へ埋め込まない
-- deterministic 検証データ と fake provider を優先する
-- acceptance と 検証 を結びつける
+- 再現可能な 検証データ と fake provider を優先する
+- 受け入れ条件 と 検証 を結びつける
 - 正本化 対象 を記録する
 - `APIテスト` と `UI人間操作E2E` の必須情報を混同しない
 - UI が入口の場合は、画面操作から得られる入力値を `UI人間操作E2E` の検証対象にする
 
 ## 非対象規約
 
-- 人間判断が必要な暗黙要求や未解決 conflict を AI 判断で固定しない。
+- 人間判断が必要な暗黙要求や未解決競合を AI 判断で固定しない。
 - `designer` から候補生成器を再起動しない。
 - 実装方針、implementation 承認済み実装範囲、プロダクトテスト実装詳細は扱わない。
-- real paid API 前提や観測不能な期待結果は扱わない。
+- 有料の実API 前提や観測不能な期待結果は扱わない。
 - 裏側の直接呼び出しだけの検証を UI 入口の `UI人間操作E2E` として扱わない。
 
 ## 出力規約
@@ -248,7 +248,7 @@ AI推奨:
 - 各詳細要求タイプを `explicit`、`derived`、`not_applicable`、`deferred`、`needs_human_decision` に分類した。
 - 仕様網羅を `scenario-design.requirement-coverage.json` に分離した。
 - `needs_human_decision` だけを `scenario-design.questions.md` へ集約した。
-- user journey と シナリオ表 を分けた。
+- 利用者操作の流れ と シナリオ表 を分けた。
 - 受け入れテストを全 シナリオ case で先に固定した。
 - 各 シナリオ case に `実行テスト種別` と `実行段階` を書いた。
 - 開始条件、操作、期待結果、観測点を明示した。
@@ -259,7 +259,7 @@ AI推奨:
 ## 停止規約
 
 - 人間判断が必要な暗黙要求を AI 判断で固定する必要がある場合は停止する。
-- 未解決 conflict を AI 判断で解消する必要がある場合は停止する。
+- 未解決競合を AI 判断で解消する必要がある場合は停止する。
 - `designer` から候補生成器を再起動する必要がある場合は停止する。
 - 観測不能な期待結果を書く必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
