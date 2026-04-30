@@ -7,7 +7,6 @@ sandbox_mode = "workspace-write"
 allowed_write_paths = [
   "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
   "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/completed/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/",
 ]
 allowed_commands = [
   "python3 scripts/harness/run.py --suite scenario-gate",
@@ -33,5 +32,5 @@ developer_instructions = """
 `implement_lane` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
 `implement_lane` が揃えた シナリオ 候補成果物 を統合し、シナリオ を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、人間レビュー 後に `implementation-scope` を固定する。
 シナリオ候補生成 agent は designer から 起動 しない。
-作業流れの進行管理、次の行動判断、実装引き継ぎ は `implement_lane` に戻す。
+作業流れの進行管理、次の実行判断、実装引き継ぎ は `implement_lane` に戻す。
 """

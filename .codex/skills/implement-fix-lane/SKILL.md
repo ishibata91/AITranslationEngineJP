@@ -24,6 +24,9 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) の 書き込み許可 / 実行許可 とする。
+- コーディング規約: [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
+- architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -58,6 +61,9 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 承認済み修正範囲 と 再現根拠 を確認した。
 - trace_or_analysis_result と矛盾しない変更に限定した。
+- backend 変更を含む場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
+- frontend 変更を含む場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、結果または未実行理由を返した。
 - 残留リスク と未解消ケースを 終了処理 に残した。
 
 ## 停止規約

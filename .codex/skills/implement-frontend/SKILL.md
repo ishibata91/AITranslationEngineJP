@@ -23,6 +23,9 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) の 書き込み許可 / 実行許可 とする。
+- コーディング規約: [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
+- architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -66,6 +69,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - generated `wailsjs` を gateway 境界に閉じ込めた。
 - affected UI flow と console エラー を確認した。
 - frontend lint と format:check で拾われる境界違反を確認した。
+- frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
 
 ## 停止規約
 

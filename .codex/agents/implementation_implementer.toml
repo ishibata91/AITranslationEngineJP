@@ -5,7 +5,11 @@ model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
-  "承認済み実装範囲内のプロダクトコード",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/internal/",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/main.go",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/wails_darwin_link.go",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/test-results/",
 ]
 allowed_commands = [
   "python3 scripts/harness/run.py --suite backend-local",
@@ -27,4 +31,5 @@ developer_instructions = """
 ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
 承認済み実装範囲 内の プロダクトコード だけを変更し、プロダクトテスト と docs 正本は変更しない。
+書き込み許可は `internal/`、`frontend/src/`、root の Wails 起点ファイル、検証出力の `test-results/` に限る。
 """

@@ -32,6 +32,9 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [implementation_scenario_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_scenario_tester.toml) の 書き込み許可 / 実行許可 とする。
+- コーディング規約: [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
+- architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -70,13 +73,13 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 ## 出力規約
 
 - 判断結果: シナリオテストを実装したか、文脈不足で停止したかを返す。
-- 根拠参照: 単一引き継ぎ入力、承認記録、承認済みシナリオ、変更 file を返す。
+- 根拠参照: 単一引き継ぎ入力、承認記録、承認済みシナリオ、変更ファイルを返す。
 - 不足情報: 不足した入力項目、衝突した根拠、戻し先を返す。
 - テスト成果物: 承認済みシナリオに対応する シナリオテスト と必要最小限の 検証データ / 補助 だけを返す。
 - 証明済み完了条件: テストで証明した シナリオ結果、公開接点、入力開始点、主要観測点、検証コマンドを返す。
 - 未証明小範囲: 同じ 引き継ぎ 内で未証明のシナリオ結果を返す。
 - レーン内検証結果: テスト追加または更新後、変更層 に対応する 局所検証 結果または未実行理由を返す。
-- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
 
@@ -88,6 +91,9 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 - 成功経路 と 失敗経路 を別 テストケース にした。
 - 実行定義 event 完了の観測点を明示した。
 - 変更対象が シナリオテスト と必要最小限の テスト補助だけである。
+- backend 側のシナリオテストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
+- frontend 側のシナリオテストを変更した場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、結果または未実行理由を返した。
 - レーン内検証 結果または未実行理由を返した。
 
 ## 停止規約

@@ -20,7 +20,9 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 
 ## 入力規約
 
-- 入力一式: 入力は 呼び出し元 から渡された task 内成果物、根拠参照、必要な承認状態を含む。
+- task 内成果物: 呼び出し元から渡された設計成果物。
+- 根拠参照: シナリオ設計の根拠にする要件、候補成果物、観測事実。
+- 承認状態: 呼び出し元が渡す承認済みまたは未承認の状態。
 - 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
 
 ## 外部参照規約
@@ -38,11 +40,11 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 ### シナリオ候補生成
 
 シナリオ 候補生成は `implement_lane` が `designer` の前に指揮する。
-`designer` は候補生成器を再 起動 せず、task folder に揃った 候補成果物 を統合する。
+`designer` は候補生成器を再 起動 せず、作業計画フォルダに揃った 候補成果物 を統合する。
 
 候補生成 agent は次の 6 体に固定する。
 
-| agent | 出力 file | 観点 |
+| agent | 出力ファイル | 観点 |
 | --- | --- | --- |
 | `scenario_actor_goal_generator` | `scenario-candidates.actor-goal.md` | アクター目的ベース |
 | `scenario_lifecycle_generator` | `scenario-candidates.lifecycle.md` | ライフサイクルベース |
@@ -51,7 +53,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 | `scenario_external_integration_generator` | `scenario-candidates.external-integration.md` | 外部連携 |
 | `scenario_operation_audit_generator` | `scenario-candidates.operation-audit.md` | 運用・監査 |
 
-各 候補 file は同じ 雛形 で書く。
+各 候補ファイル は同じ 雛形 で書く。
 必須項目は `根拠要件`、`観点`、`候補 シナリオ id`、`実行者`、`trigger`、`expected 結果`、`observable point`、`related detail requirement type`、`adoption hint` とする。
 
 `designer` は候補を読んで、最終 シナリオ表 の前に `scenario-design.candidate-coverage.json` を作る。
@@ -72,7 +74,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 ### 競合処理
 
 競合は `scenario-design.questions.md` に流す。
-質問票は詳細要求タイプ未決と シナリオ 候補競合を同じ file にまとめる。
+質問票は詳細要求タイプ未決と シナリオ 候補競合を同じファイルにまとめる。
 
 競合検知対象は次にする。
 
@@ -128,7 +130,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 
 repo-local 判定条件 は [requirement_gate.py](/Users/iorishibata/Repositories/AITranslationEngineJP/scripts/scenario/requirement_gate.py) を使う。
 active task 全体は `python3 scripts/harness/run.py --suite scenario-gate` で検査する。
-単体 file は `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md` で検査する。
+単体ファイルは `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/<task-id>/scenario-design.md --report-out docs/exec-plans/active/<task-id>/scenario-design.requirement-gate.md --questionnaire-out docs/exec-plans/active/<task-id>/scenario-design.questions.md` で検査する。
 
 `scenario-design.requirement-coverage.json` がある場合、判定条件 はその JSON を読む。
 旧形式の fenced JSON は互換用に読めるが、新規 成果物 では使わない。
@@ -202,7 +204,7 @@ AI推奨:
 - 有料の実AI API を システムテスト 前提にしない
 - 正常系だけにしない
 - 観測点がない シナリオ を書かない
-- implementation 承認済み実装範囲 を混ぜない
+- implementation-scope の承認済み実装範囲 を混ぜない
 - 用語体系は `受け入れテスト > システムテスト > UI人間操作E2E / APIテスト` を正本にする
 - `E2E` は UI 人間操作起点だけを指す
 - `APIテスト` は 公開接点 起点の システムレベルテスト として扱う
@@ -218,8 +220,8 @@ AI推奨:
 - `implement_lane` 由来の 候補成果物 を統合してから シナリオ表 を作る
 - 詳細要求タイプの明示状態を シナリオ 前に確認する
 - 候補網羅 と 競合 を JSON 別ファイルに分ける
-- `needs_human_decision` は別 file の質問票に集約する
-- 仕様網羅 JSON は別 file にし、Markdown 本文へ埋め込まない
+- `needs_human_decision` は別ファイルの質問票に集約する
+- 仕様網羅 JSON は別ファイルにし、Markdown 本文へ埋め込まない
 - 再現可能な 検証データ と fake provider を優先する
 - 受け入れ条件 と 検証 を結びつける
 - 正本化 対象 を記録する
@@ -230,14 +232,17 @@ AI推奨:
 
 - 人間判断が必要な暗黙要求や未解決競合を AI 判断で固定しない。
 - `designer` から候補生成器を再起動しない。
-- 実装方針、implementation 承認済み実装範囲、プロダクトテスト実装詳細は扱わない。
+- 実装方針、implementation-scope の承認済み実装範囲、プロダクトテスト実装詳細は扱わない。
 - 有料の実API 前提や観測不能な期待結果は扱わない。
 - 裏側の直接呼び出しだけの検証を UI 入口の `UI人間操作E2E` として扱わない。
 
 ## 出力規約
 
-- 基本出力: 出力は判断結果、根拠参照、不足情報、次 agent が判断できる材料を含む。
-- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 判断結果: シナリオ設計の完了、未完了、停止の判定を返す。
+- 根拠参照: シナリオ設計の根拠にした要件、候補成果物、観測事実を返す。
+- 不足情報: シナリオ設計を固定できない不足項目を返す。
+- 次判断材料: `designer` または `implement_lane` が次を判断できる材料を返す。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
 

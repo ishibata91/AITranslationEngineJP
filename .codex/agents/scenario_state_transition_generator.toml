@@ -1,5 +1,5 @@
 name = "scenario_state_transition_generator"
-description = "Codex シナリオ state-transition 生成 agent agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md を読む。"
+description = "Codex シナリオ state-transition 生成 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md を読む。"
 
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
@@ -24,7 +24,7 @@ developer_instructions = """
 出力規約、完了規約、停止規約は skill に従う。
 
 `implement_lane` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
-`state-transition` 観点 の scenario 候補だけを `scenario-candidates.state-transition.md` に書く。
-最終 scenario matrix、採否、統合、競合解消は `designer` に残す。
+`state-transition` 観点 の シナリオ 候補だけを `scenario-candidates.state-transition.md` に書く。
+最終シナリオ表、採否、統合、競合解消は `designer` に残す。
 他の シナリオ候補生成 agent を 起動しない。
 """

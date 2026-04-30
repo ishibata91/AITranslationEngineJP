@@ -26,6 +26,9 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) の 書き込み許可 / 実行許可 とする。
+- コーディング規約: [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
+- architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の接合点境界だけを参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -64,6 +67,9 @@ mixed は広い frontend / backend 同時変更の許可ではない。
 - API / Wails / DTO / gateway / adapter 契約 の接合点 対象範囲 が承認済みであることを確認した。
 - 両側の touched files を 引き継ぎ と対応づけた。
 - 単一引き継ぎ入力 と レーン内検証 根拠 を分けた。
+- backend 側の変更がある場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
+- frontend 側の変更がある場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、結果または未実行理由を返した。
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 
 ## 停止規約

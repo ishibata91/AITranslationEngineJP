@@ -23,6 +23,9 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) の 書き込み許可 / 実行許可 とする。
+- コーディング規約: [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
+- architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の backend 境界だけを参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -61,6 +64,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - 層 責務と 依存方向 を確認した。
 - backend lint の format、static、arch、module 観点を確認した。
 - 検証 と エラー経路 を 承認済み実装範囲 内で確認した。
+- backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
 - 単一引き継ぎ入力 と レーン内検証 を確認した。
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 

@@ -1,15 +1,15 @@
 ---
 name: updating-docs
-description: Codex 側の docs 正本化作業プロトコル。implementation 完了後に、human 承認済み docs-only 成果物 を正本へ反映する判断基準を提供する。
+description: Codex 側の docs 正本化作業プロトコル。implementation 完了後に、人間承認済み docs-only 成果物 を正本へ反映する判断基準を提供する。
 ---
 # Updating Docs
 
 ## 目的
 
 `updating-docs` は作業プロトコルである。
-`docs_updater` agent が implementation 完了後に human 承認済み 成果物 を docs 正本へ反映するための、正本、承認確認、検証 の見方を提供する。
+`docs_updater` agent が implementation 完了後に人間承認済み 成果物 を docs 正本へ反映するための、正本、承認確認、検証 の見方を提供する。
 
-人間可読な実行境界、引き継ぎ、stop / 戻し はこの skill を正本にする。
+人間可読な実行境界、引き継ぎ、停止 / 戻し はこの skill を正本にする。
 
 ## 対応ロール
 
@@ -19,7 +19,11 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 
 ## 入力規約
 
-- 必須入力: 呼び出し元、implementation_completion_report、承認記録、承認済み成果物、正本化対象を受け取る。
+- 呼び出し元: docs 正本化を依頼した agent または人間。
+- 実装完了レポート: implementation 完了後の根拠レポート。
+- 承認記録: 人間が docs 正本化を承認した記録。
+- 承認済み成果物: docs 正本へ反映してよい成果物。
+- 正本化対象: 更新してよい docs 正本。
 - 任意入力: 検証コマンド、根拠 docs を受け取る。
 - 必須成果物: Codex implementation 完了 レポート、承認済み docs-only 成果物、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md` を受け取る。
 - 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
@@ -29,7 +33,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - エージェント実行定義とツール権限は [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml) の 書き込み許可 / 実行許可 とする。
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - エージェント実行定義: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
-- forbidden: プロダクトコード、プロダクトテスト、作業流れ / skill / エージェント実行定義の変更
+- 禁止対象: プロダクトコード、プロダクトテスト、作業流れ / skill / エージェント実行定義の変更
 - ツール権限: エージェント実行定義の 書き込み許可 / 実行許可 に従う
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
@@ -49,7 +53,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 ## 判断規約
 
 - implementation 完了後にだけ正本化へ進む
-- human 承認済み 成果物 だけを反映する
+- 人間承認済み 成果物 だけを反映する
 - docs-only 対象範囲 を超えない
 - implementation-scope を docs 正本へ自動昇格しない
 - 未確定仕様を独断で補完しない
@@ -68,14 +72,17 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 
 ## 出力規約
 
-- 基本出力: 判断結果、根拠参照、不足情報、次 agent が判断できる材料を返す。
+- 判断結果: docs 正本化の完了、未完了、停止の判定を返す。
+- 根拠参照: docs 更新の根拠にした承認記録と成果物を返す。
+- 不足情報: docs 正本化を完了できない不足項目を返す。
+- 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 引き継ぎ先: `implement_lane` を返す。
 - 渡す対象範囲: docs 更新結果、検証、残り 不足を返す。
 - 変更 docs: 更新した docs ファイルを返す。
 - 更新した正本: 反映した 正本 を返す。
 - 確認結果: 実行した 検証 と未実行理由を返す。
 - 残留不足: 未反映、未確認、判断待ちを返す。
-- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
 
@@ -85,7 +92,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 人間承認 記録 を確認した。
 - 承認済み 成果物 と 正本 対象 を対応づけた。
 - 検証 結果と 残り 不足 を記録した。
-- 必須 根拠: Codex implementation 完了 レポート, 承認 記録, 根拠成果物 path, 検証結果
+- 必須 根拠: Codex implementation 完了 レポート、承認 記録、根拠成果物パス、検証結果。
 - 完了判断材料: implementation 完了 後の docs 正本が 承認済み 成果物 と同期している。
 - 残留リスク: 未反映、未確認、判断待ちが返っている。
 
@@ -100,10 +107,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 作業流れ 変更なら `implement_lane` へ戻す。
 - プロダクト 実装が必要なら `implement_lane` へ戻す。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- 拒否条件: Codex implementation 完了 不足
-- 拒否条件: 承認 不足
-- 拒否条件: プロダクト実装 必須
-- 拒否条件: 作業流れ / skill / エージェント実行定義 変更
-- 停止条件: Codex implementation レーン の修正完了が分からない
-- 停止条件: docs-only 対象範囲 ではない
-- 停止条件: 人間承認 がない
+- Codex implementation 完了が不足する場合は停止する。
+- 承認が不足する場合は停止する。
+- プロダクト実装が必要な場合は停止する。
+- 作業流れ / skill / エージェント実行定義 の変更が必要な場合は停止する。
+- docs-only 対象範囲ではない場合は停止する。

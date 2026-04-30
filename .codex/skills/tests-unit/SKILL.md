@@ -21,9 +21,9 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 単一引き継ぎ入力: `implementation-scope` から抽出済みの 引き継ぎ 1 件だけを受け取る。
 - 承認記録: 人間が承認した 実装範囲 の根拠参照を受け取る。
 - 承認済み実装範囲: 変更してよい 単体テスト と テスト補助 の範囲を受け取る。
-- 実装済み範囲: implementation_implementer が実装した file、公開接点、振る舞いを受け取る。
+- 実装済み範囲: implementation_implementer が実装したファイル、公開接点、振る舞いを受け取る。
 - 証明対象: 公開振る舞い、分岐、エラー経路 のいずれを証明するかを受け取る。
-- テスト対象: 追加または更新してよい test file と対象 symbol を受け取る。
+- テスト対象: 追加または更新してよいテストファイルと対象 symbol を受け取る。
 - 検証データ方針: 検証データ、補助、clock、random、ID、repository 応答順序の固定方針を受け取る。
 - 検証コマンド: 対象限定検証 と レーン内検証 のコマンドを受け取る。
 - 不足時の扱い: いずれかの入力、根拠参照、担当者、承認状態が不足する場合は推測で補わない。
@@ -31,6 +31,9 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 外部参照規約
 
 - エージェント実行定義とツール権限は [implementation_unit_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_unit_tester.toml) の 書き込み許可 / 実行許可 とする。
+- コーディング規約: [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
+- architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -51,7 +54,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 
 - Arrange / Act / Assert を空行または短いコメントで判別できる状態にする
 - 分岐 ごとに テストケース を分ける
-- cロック、random、ID、repository 応答順序を固定する
+- clock、random、ID、repository 応答順序を固定する
 
 ## 非対象規約
 
@@ -61,22 +64,25 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 出力規約
 
 - 判断結果: 単体テストを実装したか、文脈不足で停止したかを返す。
-- 根拠参照: 単一引き継ぎ入力、承認記録、実装済み範囲、変更 file を返す。
+- 根拠参照: 単一引き継ぎ入力、承認記録、実装済み範囲、変更ファイルを返す。
 - 不足情報: 不足した入力項目、衝突した根拠、戻し先を返す。
 - テスト成果物: 実装済み範囲に対応する 単体テスト と必要最小限の 検証データ / 補助 だけを返す。
-- 証明済み完了条件: テストで証明した 公開振る舞い、分岐、エラー経路、テスト対象 file、検証コマンドを返す。
+- 証明済み完了条件: テストで証明した 公開振る舞い、分岐、エラー経路、テスト対象ファイル、検証コマンドを返す。
 - 未証明小範囲: 同じ 引き継ぎ 内で未証明の 公開振る舞い、分岐、エラー経路を返す。
 - レーン内検証結果: テスト追加または更新後、変更層 に対応する 局所検証 結果または未実行理由を返す。
-- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
+- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 1 テストで 1 公開振る舞い / 分岐 / エラー経路 だけを証明した。
-- setup の cロック、random、ID、repository 応答順序を固定した。
+- setup の clock、random、ID、repository 応答順序を固定した。
 - implementation_task_ids の外へ広げなかった。
 - 変更対象が 単体テスト と必要最小限の テスト補助だけである。
+- backend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
+- frontend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、結果または未実行理由を返した。
 - レーン内検証 結果または未実行理由を返した。
 
 ## 停止規約

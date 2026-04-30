@@ -5,8 +5,9 @@ model = "gpt-5.5"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
-  "承認済み実装範囲内の単体テスト",
-  "必要最小限の検証データ / テスト補助",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/internal/",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/",
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/test-results/",
 ]
 allowed_commands = [
   "python3 scripts/harness/run.py --suite backend-local",
@@ -33,4 +34,5 @@ skill は入力規約、遵守すべき外部規約、判断規約、出力規�
 
 ツール権限はこの TOML の書き込み許可と実行許可に従う。
 この TOML の 身元定義 と境界、skill、ツール権限 が衝突する場合は停止する。
+書き込み許可は `internal/` と `frontend/src/` 内の承認済み単体テストと補助、検証出力の `test-results/` に限る。
 """
