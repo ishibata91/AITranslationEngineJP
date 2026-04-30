@@ -15,7 +15,6 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - 新規実装レーン (`implement-lane`): `skills/implement-lane/SKILL.md`
 - 設計壁打ち: `skills/wall-discussion/SKILL.md`
 - design bundle 進行: `skills/design-bundle/SKILL.md`
-- シナリオ候補生成共通 (`scenario-candidate-generation`): `skills/scenario-candidate-generation/SKILL.md`
 - シナリオ候補生成 6 観点: `skills/scenario-actor-goal-generation/SKILL.md`、`skills/scenario-lifecycle-generation/SKILL.md`、`skills/scenario-state-transition-generation/SKILL.md`、`skills/scenario-failure-generation/SKILL.md`、`skills/scenario-external-integration-generation/SKILL.md`、`skills/scenario-operation-audit-generation/SKILL.md`
 - 設計前調査: `skills/investigate/SKILL.md`
 - UI 設計 (`ui-design`): `skills/ui-design/SKILL.md`

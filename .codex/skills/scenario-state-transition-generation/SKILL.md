@@ -9,7 +9,7 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 `scenario-state-transition-generation` は作業プロトコルである。
 `scenario_state_transition_generator` が state-transition 観点 の シナリオ 候補だけを作る時に使う。
 
-共通規約と出力形は [scenario-candidate-generation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md) に従う。
+出力形、完了条件、停止条件はこの skill に従う。
 
 ## 対応ロール
 
@@ -20,15 +20,9 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 
 ## 入力規約
 
-- task 枠: 新規実装または機能拡張の対象範囲。
-- 根拠要件: 候補生成の根拠にする要件または task 内成果物。
-- 対象観点: `state-transition` 観点。
-- 承認状態: 呼び出し元が渡す承認済みまたは未承認の状態。
-- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 呼び出し元: `implement_lane` を受け取る。
-- 引き継ぎ入力: task 枠、根拠要件、作業計画フォルダ、承認状態を受け取る。
-- 候補参照: 既存の候補参照パスがある場合だけ受け取る。
-- 既知不足: 呼び出し元が把握している不足項目を受け取る。
+- 実行中タスク成果物場所: 候補成果物を読み書きする作業計画フォルダまたは run 成果物フォルダ。
+- 対象差分: シナリオ候補生成の対象にする変更差分。
+- 不足時の扱い: 実行中タスク成果物場所または対象差分が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -39,19 +33,22 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
+- 候補成果物雛形: [scenario-candidates.viewpoint.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/assets/scenario-candidates.viewpoint.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
-- 共通規約: [scenario-candidate-generation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md) に従う。
 - 統合先規約: [scenario-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md) を参照する。
 
 ## 内部参照規約
 
 ### 観点
 
-- 状態と遷移条件を起点にする
-- 許可遷移、禁止遷移、冪等再送を分ける
-- 状態変更の永続化と表示の一致を拾う
-- 遷移前提が他候補と矛盾する場合は 競合候補 にする
-- 状態一覧が不足する場合は 人間判断候補 にする
+| 観点 | 説明 |
+| --- | --- |
+| 遷移前状態 | 操作または処理を開始できる永続化状態と画面状態を候補の起点にする。 |
+| 許可遷移 | 実行してよい遷移を、開始条件、遷移後状態、観測点へ分けて書く。 |
+| 禁止遷移 | 実行してはいけない遷移を、拒否条件、拒否結果、状態不変の観測点へ分けて書く。 |
+| 冪等再実行 | 同じ入力や再送で状態が重複作成、二重実行、破損しないことを候補化する。 |
+| 競合候補 | 遷移前提、遷移後状態、表示状態が他候補と衝突する場合に残す。 |
+| 人間判断候補 | 状態一覧、許可遷移、禁止遷移が外部正本と対象差分だけで決められない場合に残す。 |
 
 ## 判断規約
 
@@ -78,7 +75,7 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 
 - 指定 観点 の 候補成果物 が出力規約の必須項目を満たしている。
 - 採否や統合判断を行わず、designer が判断できる候補として返却されている。
-- 必須 根拠: 根拠要件パス、task 内成果物パス、候補成果物パス、観点を返している。
+- 必須 根拠: 実行中タスク成果物場所、対象差分、候補成果物パス、観点を返している。
 - 完了判断材料: implement_lane が designer 起動入力に入れる 候補成果物パス、候補数、競合候補、人間判断候補 を判断できる。
 - 残留リスク: AI が確定できない判断候補が返っている。
 
@@ -89,7 +86,7 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 - 候補 採否または統合判断が求められている場合は停止する。
 - プロダクト実装が求められている場合は停止する。
 - 未承認 docs 正本化が求められている場合は停止する。
-- 引き継ぎ入力 だけでは 根拠要件 を特定できない場合は停止する。
-- 作業計画フォルダが不足している場合は停止する。
-- 候補成果物 の書き先が 作業計画フォルダ 外である場合は停止する。
+- 実行中タスク成果物場所が不足している場合は停止する。
+- 対象差分が不足している場合は停止する。
+- 候補成果物 の書き先が 実行中タスク成果物場所 外である場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。

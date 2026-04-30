@@ -6,7 +6,7 @@
 
 正本 template は次を使う。
 
-`docs/exec-plans/templates/task-folder/implementation-scope.md`
+`.codex/skills/implementation-scope/assets/implementation-scope.md`
 
 ## Rules
 

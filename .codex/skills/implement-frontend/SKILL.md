@@ -18,13 +18,13 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 
 ## 入力規約
 
-- 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 単一引き継ぎ入力: implementation-scope から抽出済みの 引き継ぎ 1 件。
-- 承認記録: 人間が承認した実装範囲の根拠参照。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件。
+- 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
-- 承認済み実装範囲: 実装してよい frontend プロダクトコード範囲。
-- 依存解消状態: 依存対象が完了済みかを示す状態。
-- 任意入力: 実装小範囲、レーン内検証コマンド、implementation_scenario_tester 出力。
+- 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
+- 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
+- 検証コマンド: 実行を許可された frontend-local の harness command。
+- 不足時の扱い: 上記の実行情報が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -80,7 +80,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
-- 単一引き継ぎ入力、承認記録、実装対象、承認済み実装範囲を確認した。
+- 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
 - 画面導線と 状態 反映を確認した。
 - Wails bridge 境界を確認した。
 - generated `wailsjs` を gateway 境界に閉じ込めた。
@@ -94,7 +94,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - backend だけの変更を実装する時
 - design mock を作る時
 - UI check だけを行う時
-- 単一引き継ぎ入力、実装対象、承認記録、承認済み実装範囲が不足する場合は停止する。
+- 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
 - 通信境界を迂回する必要がある場合は停止する。
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接 import する必要がある場合は停止する。
 - gateway 以外で backend DTO 変換が必要な場合は停止する。

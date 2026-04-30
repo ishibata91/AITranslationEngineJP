@@ -16,7 +16,6 @@ developer_instructions = """
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md`
 
 必要に応じて次の 補助 skill を読む。
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md`
 
 引き継ぎ、停止、戻しは skill に従う。

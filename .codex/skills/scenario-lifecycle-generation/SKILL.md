@@ -9,7 +9,7 @@ description: Codex 側の lifecycle シナリオ 候補生成 skill。作成、�
 `scenario-lifecycle-generation` は作業プロトコルである。
 `scenario_lifecycle_generator` が lifecycle 観点 の シナリオ 候補だけを作る時に使う。
 
-共通規約と出力形は [scenario-candidate-generation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md) に従う。
+出力形、完了条件、停止条件はこの skill に従う。
 
 ## 対応ロール
 
@@ -20,15 +20,9 @@ description: Codex 側の lifecycle シナリオ 候補生成 skill。作成、�
 
 ## 入力規約
 
-- task 枠: 新規実装または機能拡張の対象範囲。
-- 根拠要件: 候補生成の根拠にする要件または task 内成果物。
-- 対象観点: `lifecycle` 観点。
-- 承認状態: 呼び出し元が渡す承認済みまたは未承認の状態。
-- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 呼び出し元: `implement_lane` を受け取る。
-- 引き継ぎ入力: task 枠、根拠要件、作業計画フォルダ、承認状態を受け取る。
-- 候補参照: 既存の候補参照パスがある場合だけ受け取る。
-- 既知不足: 呼び出し元が把握している不足項目を受け取る。
+- 実行中タスク成果物場所: 候補成果物を読み書きする作業計画フォルダまたは run 成果物フォルダ。
+- 対象差分: シナリオ候補生成の対象にする変更差分。
+- 不足時の扱い: 実行中タスク成果物場所または対象差分が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -39,19 +33,21 @@ description: Codex 側の lifecycle シナリオ 候補生成 skill。作成、�
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
+- 候補成果物雛形: [scenario-candidates.viewpoint.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-lifecycle-generation/assets/scenario-candidates.viewpoint.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
-- 共通規約: [scenario-candidate-generation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md) に従う。
 - 統合先規約: [scenario-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md) を参照する。
 
 ## 内部参照規約
 
 ### 観点
 
-- 対象が生成されてから終了するまでの流れを起点にする
-- 作成、編集、保存、実行、完了、取消、再開を分ける
-- lifecycle の途中で必要な 検証 を拾う
-- 終了後の再利用、再実行、履歴参照を拾う
-- lifecycle の終点が不明な場合は 人間判断候補 にする
+| 観点 | 説明 |
+| --- | --- |
+| 生成から終了 | 対象が作られてから使い終わるまでの時間順の流れを候補の起点にする。 |
+| 段階分割 | 作成、編集、保存、実行、完了、取消、再開を混ぜず、候補ごとに 1 つの段階へ分ける。 |
+| 段階内検証 | lifecycle の途中で必要な検証を、段階開始条件、完了条件、失敗時状態に分けて拾う。 |
+| 終了後利用 | 終了後の再利用、再実行、履歴参照を、通常の完了候補とは別の候補として残す。 |
+| 人間判断候補 | lifecycle の終点、再開可否、取消後の扱いが外部正本と対象差分だけで決められない場合に残す。 |
 
 ## 判断規約
 
@@ -78,7 +74,7 @@ description: Codex 側の lifecycle シナリオ 候補生成 skill。作成、�
 
 - 指定 観点 の 候補成果物 が出力規約の必須項目を満たしている。
 - 採否や統合判断を行わず、designer が判断できる候補として返却されている。
-- 必須 根拠: 根拠要件パス、task 内成果物パス、候補成果物パス、観点を返している。
+- 必須 根拠: 実行中タスク成果物場所、対象差分、候補成果物パス、観点を返している。
 - 完了判断材料: implement_lane が designer 起動入力に入れる 候補成果物パス、候補数、競合候補、人間判断候補 を判断できる。
 - 残留リスク: AI が確定できない判断候補が返っている。
 
@@ -89,7 +85,7 @@ description: Codex 側の lifecycle シナリオ 候補生成 skill。作成、�
 - 候補 採否または統合判断が求められている場合は停止する。
 - プロダクト実装が求められている場合は停止する。
 - 未承認 docs 正本化が求められている場合は停止する。
-- 引き継ぎ入力 だけでは 根拠要件 を特定できない場合は停止する。
-- 作業計画フォルダが不足している場合は停止する。
-- 候補成果物 の書き先が 作業計画フォルダ 外である場合は停止する。
+- 実行中タスク成果物場所が不足している場合は停止する。
+- 対象差分が不足している場合は停止する。
+- 候補成果物 の書き先が 実行中タスク成果物場所 外である場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。

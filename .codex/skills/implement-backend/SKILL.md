@@ -18,13 +18,13 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 
 ## 入力規約
 
-- 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 単一引き継ぎ入力: implementation-scope から抽出済みの 引き継ぎ 1 件。
-- 承認記録: 人間が承認した実装範囲の根拠参照。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された backend 実装用 引き継ぎ 1 件。
+- 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい backend ファイル、symbol、公開接点。
-- 承認済み実装範囲: 実装してよい backend プロダクトコード範囲。
-- 依存解消状態: 依存対象が完了済みかを示す状態。
-- 任意入力: 実装小範囲、レーン内検証コマンド、implementation_scenario_tester 出力。
+- 対象変更範囲: 実装してよい backend プロダクトコード範囲。
+- 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
+- 検証コマンド: 実行を許可された backend-local の harness command。
+- 不足時の扱い: 上記の実行情報が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -73,7 +73,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
-- 単一引き継ぎ入力、承認記録、実装対象、承認済み実装範囲を確認した。
+- 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
 - 層 責務と 依存方向 を確認した。
 - backend lint の format、static、arch、module 観点を確認した。
 - 検証 と エラー経路 を 承認済み実装範囲 内で確認した。
@@ -86,7 +86,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - frontend だけの変更を実装する時
 - UI check を行う時
 - backend 境界を設計し直す時
-- 単一引き継ぎ入力、実装対象、承認記録、承認済み実装範囲が不足する場合は停止する。
+- 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
 - controller、usecase、service で concrete 実装を new する必要がある場合は停止する。
 - service core から filesystem、Wails 実行定義、DB driver の concrete API を直接呼ぶ必要がある場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。

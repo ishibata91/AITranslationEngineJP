@@ -34,7 +34,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
-- 雛形: [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/implementation-scope.md)
+- 実装スコープ雛形: [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/assets/implementation-scope.md)
 - Codex implementation レーン 入口: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 分割参照 architecture: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の層構造、transport boundary、依存方向を参照する。

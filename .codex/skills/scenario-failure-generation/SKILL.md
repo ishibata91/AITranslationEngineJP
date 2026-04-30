@@ -9,7 +9,7 @@ description: Codex 側の 失敗 シナリオ 候補生成 skill。失敗、入�
 `scenario-failure-generation` は作業プロトコルである。
 `scenario_failure_generator` が 失敗 観点 の シナリオ 候補だけを作る時に使う。
 
-共通規約と出力形は [scenario-candidate-generation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md) に従う。
+出力形、完了条件、停止条件はこの skill に従う。
 
 ## 対応ロール
 
@@ -20,15 +20,9 @@ description: Codex 側の 失敗 シナリオ 候補生成 skill。失敗、入�
 
 ## 入力規約
 
-- task 枠: 新規実装または機能拡張の対象範囲。
-- 根拠要件: 候補生成の根拠にする要件または task 内成果物。
-- 対象観点: `failure` 観点。
-- 承認状態: 呼び出し元が渡す承認済みまたは未承認の状態。
-- 不足時の扱い: 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 呼び出し元: `implement_lane` を受け取る。
-- 引き継ぎ入力: task 枠、根拠要件、作業計画フォルダ、承認状態を受け取る。
-- 候補参照: 既存の候補参照パスがある場合だけ受け取る。
-- 既知不足: 呼び出し元が把握している不足項目を受け取る。
+- 実行中タスク成果物場所: 候補成果物を読み書きする作業計画フォルダまたは run 成果物フォルダ。
+- 対象差分: シナリオ候補生成の対象にする変更差分。
+- 不足時の扱い: 実行中タスク成果物場所または対象差分が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -39,19 +33,23 @@ description: Codex 側の 失敗 シナリオ 候補生成 skill。失敗、入�
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
+- 候補成果物雛形: [scenario-candidates.viewpoint.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-failure-generation/assets/scenario-candidates.viewpoint.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
-- 共通規約: [scenario-candidate-generation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md) に従う。
 - 統合先規約: [scenario-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md) を参照する。
 
 ## 内部参照規約
 
 ### 観点
 
-- 失敗入力、参照不能、設定不整合、保存失敗を起点にする
-- 失敗時閉鎖、部分成功、再試行、回復を分ける
-- ユーザーに見える理由とシステムに残る状態を分ける
-- 正常系の受け入れ条件を否定する場合は 競合候補 にする
-- 失敗時の業務判断が不明な場合は 人間判断候補 にする
+| 観点 | 説明 |
+| --- | --- |
+| 失敗入力 | 不正値、欠損、重複、範囲外など、入力そのものが失敗を起こす条件を候補化する。 |
+| 参照不能 | ファイル、外部設定、既存データ、外部応答を参照できない条件を候補化する。 |
+| 設定不整合 | 設定同士、状態と設定、利用可能機能と設定が矛盾する条件を候補化する。 |
+| 保存失敗 | 永続化、更新、削除、履歴保存が失敗した時の表示、状態、回復を候補化する。 |
+| 回復動作 | 閉鎖、部分成功、再試行、ロールバック、手動復旧を混ぜず、失敗後の次操作として候補化する。 |
+| 競合候補 | 失敗時の期待結果が正常系の受け入れ条件を否定する場合に残す。 |
+| 人間判断候補 | 失敗時の業務判断、表示理由、保存状態が外部正本と対象差分だけで決められない場合に残す。 |
 
 ## 判断規約
 
@@ -78,7 +76,7 @@ description: Codex 側の 失敗 シナリオ 候補生成 skill。失敗、入�
 
 - 指定 観点 の 候補成果物 が出力規約の必須項目を満たしている。
 - 採否や統合判断を行わず、designer が判断できる候補として返却されている。
-- 必須 根拠: 根拠要件パス、task 内成果物パス、候補成果物パス、観点を返している。
+- 必須 根拠: 実行中タスク成果物場所、対象差分、候補成果物パス、観点を返している。
 - 完了判断材料: implement_lane が designer 起動入力に入れる 候補成果物パス、候補数、競合候補、人間判断候補 を判断できる。
 - 残留リスク: AI が確定できない判断候補が返っている。
 
@@ -89,7 +87,7 @@ description: Codex 側の 失敗 シナリオ 候補生成 skill。失敗、入�
 - 候補 採否または統合判断が求められている場合は停止する。
 - プロダクト実装が求められている場合は停止する。
 - 未承認 docs 正本化が求められている場合は停止する。
-- 引き継ぎ入力 だけでは 根拠要件 を特定できない場合は停止する。
-- 作業計画フォルダが不足している場合は停止する。
-- 候補成果物 の書き先が 作業計画フォルダ 外である場合は停止する。
+- 実行中タスク成果物場所が不足している場合は停止する。
+- 対象差分が不足している場合は停止する。
+- 候補成果物 の書き先が 実行中タスク成果物場所 外である場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。

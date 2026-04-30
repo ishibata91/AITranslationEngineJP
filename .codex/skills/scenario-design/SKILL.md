@@ -34,9 +34,8 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
-- 雛形: [scenario-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-design.md)
-- 候補 雛形: [scenario-candidates.viewpoint.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/scenario-candidates.viewpoint.md)
-- 候補生成 共通 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-candidate-generation/SKILL.md)
+- シナリオ設計雛形: [scenario-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/assets/scenario-design.md)
+- 候補網羅 JSON 雛形: [scenario-design.candidate-coverage.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/assets/scenario-design.candidate-coverage.json)
 - 候補生成 観点別 skill: [actor-goal](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md)、[lifecycle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-lifecycle-generation/SKILL.md)、[state-transition](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-state-transition-generation/SKILL.md)、[失敗](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-failure-generation/SKILL.md)、[external-integration](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-external-integration-generation/SKILL.md)、[operation-audit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-operation-audit-generation/SKILL.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -59,7 +58,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 | `scenario_external_integration_generator` | `scenario-candidates.external-integration.md` | 外部連携 |
 | `scenario_operation_audit_generator` | `scenario-candidates.operation-audit.md` | 運用・監査 |
 
-各 候補ファイル は同じ 雛形 で書く。
+各 候補ファイル は、対応する観点別 skill の `assets/scenario-candidates.viewpoint.md` で書く。
 必須項目は `根拠要件`、`観点`、`候補 シナリオ id`、`実行者`、`trigger`、`expected 結果`、`observable point`、`related detail requirement type`、`adoption hint` とする。
 
 `designer` は候補を読んで、最終 シナリオ表 の前に `scenario-design.candidate-coverage.json` を作る。
