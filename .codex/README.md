@@ -26,7 +26,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - シナリオテスト 実装 (`tests-scenario`): `skills/tests-scenario/SKILL.md`
 - 単体テスト 実装 (`tests-unit`): `skills/tests-unit/SKILL.md`
 - docs 正本化: `skills/updating-docs/SKILL.md`
-- 作業流れ 契約変更: `skills/skill-modification/SKILL.md`
+- 作業流れ 契約保守 (`workflow-contract-maintenance`): `skills/workflow-contract-maintenance/SKILL.md`
 - run 全体レポート (`work_reporter`): `skills/codex-work-reporting/SKILL.md`
 - 実装後 レビュー 観点: `skills/codex-review-behavior/SKILL.md`、`skills/codex-review-contract/SKILL.md`、`skills/codex-review-trust-boundary/SKILL.md`、`skills/codex-review-state-invariant/SKILL.md`
 

@@ -25,7 +25,6 @@ developer_instructions = """
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md`
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md`
 
 引き継ぎ、停止、戻しは skill に従う。
 ツール権限はこの TOML の書き込み許可と実行許可に従う。

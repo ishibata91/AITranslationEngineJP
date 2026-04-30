@@ -42,7 +42,7 @@ description: Codex 側の 設計成果物 進行 skill。必須要件、UI、シ
 - wall discussion: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md)
 - diagramming: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
-- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/skill-modification/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md
+- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/wall-discussion/SKILL.md
 
 ## 内部参照規約
 
@@ -91,7 +91,7 @@ design bundle を 人間レビュー へ進める条件は次の通り。
 - 引き継ぎ先: `implement_lane` を返す。
 - 渡す対象範囲: 設計成果物、人間レビュー 状態、未回答質問を返す。
 - 返却先: `implement_lane` を返す。
-- 対象成果物: 扱った シナリオ、シナリオ候補 統合、UI、implementation-scope、skill-modification の状態を返す。
+- 対象成果物: 扱った シナリオ、シナリオ候補 統合、UI、implementation-scope の状態を返す。
 - 変更成果物: 作成または更新した task 内成果物 path を返す。
 - 人間レビュー状態: 人間レビュー が必要な判断、承認待ち、承認済みの状態を返す。
 - 確認結果: 実行した確認と未実行理由を返す。
