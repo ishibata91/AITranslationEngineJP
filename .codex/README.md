@@ -73,6 +73,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `work_reporter` は Codex ベンチマーク値 と 完了根拠 から `work_history` の run 全体レポート を生成する。明示 完了根拠 が不足する場合は Codex 会話ログ または chat session file を 根拠参照 付き 根拠 として確認する
 - `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価値 化し、レビュー結果一式、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
 - 観点別 レビュー agent は挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件のいずれか 1 つだけを扱い、修正範囲を命令せず修正判断に必要な情報を返す
+- 観点別 レビュー agent は 失敗 または 停止 の出力全文を `work_history/runs/<run>/review-reject-<観点>.md` に追記する
 - `implement_lane`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `implementation_implementer` だけが 承認済み実装範囲 内で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる

@@ -66,7 +66,7 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 不足情報: 実装を完了できない不足項目を返す。
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み修正範囲 に対応するプロダクトコードだけを返す。
-- レーン内検証結果: 変更層に対応する局所検証結果または未実行理由を返す。
+- レーン内検証結果: 変更層に対応する局所検証の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -76,9 +76,9 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 単一引き継ぎ入力、承認記録、実装対象、承認済み修正範囲を確認した。
 - 承認済み修正範囲 と 再現根拠 を確認した。
 - trace_or_analysis_result と矛盾しない変更に限定した。
-- backend 変更を含む場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
-- frontend 変更を含む場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
-- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、結果または未実行理由を返した。
+- backend 変更を含む場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み修正範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- frontend 変更を含む場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み修正範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み修正範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - 残留リスク と未解消ケースを 終了処理 に残した。
 
 ## 停止規約
@@ -88,6 +88,7 @@ description: Codex implementation レーン 側の fix レーン 恒久修正作
 - 原因が未確認なのに恒久修正する時
 - 単一引き継ぎ入力、実装対象、承認記録、承認済み修正範囲が不足する場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
+- `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み修正範囲 外にある場合は停止する。
 - 承認済み修正範囲外へ実装を広げる必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - task_mode が fix であることを確認した。

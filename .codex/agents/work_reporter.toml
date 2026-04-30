@@ -7,9 +7,7 @@ sandbox_mode = "workspace-write"
 allowed_write_paths = [
   "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/",
 ]
-allowed_commands = [
-  "python3 scripts/work-history/score_transcripts.py --codex-transcript <path> --implementation-transcript <path> --output-root work_history/runs",
-]
+allowed_commands = []
 
 developer_instructions = """
 この作業は `work_reporter` agent と `codex-work-reporting` skill に基づく。
@@ -21,7 +19,8 @@ developer_instructions = """
 ツール権限はこの TOML の書き込み許可と実行許可に従う。
 出力規約、完了規約、停止規約は skill に従う。
 
-analysis/benchmark-score.json と Codex 根拠入力から work_history レポート を作る。
+analysis/benchmark-score.json と review-reject-*.md から問題点を抽出し、work_history レポート を作る。
+benchmark script 結果とレビュー差し戻しレポートだけを前提にする。
 implementation レーン の実装事実は推測で補わない。
 ベンチマークは次回改善用の観測値として扱い、数値閾値で終了可否を決めない。
 """

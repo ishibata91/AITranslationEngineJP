@@ -43,6 +43,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - generated `wailsjs` は gateway 境界に閉じ込める
 - affected UI の manual flow を確認できる状態にする
 - UI check に必要な 根拠 を残す
+- ユーザーが利用することを前提に、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせる
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 
@@ -50,6 +51,8 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認する
 - console エラー の有無を 終了処理 に残す
 - UI 状態 の初期値と更新条件を確認する
+- 主要操作、取消、戻る、破壊的操作のボタン配置と文言がユーザーの作業順に沿っていることを確認する
+- ページ見出し、ラベル、説明、エラー、空状態、完了状態のテキストがユーザーの次の行動を示すことを確認する
 - [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) の frontend lint 内訳を確認し、`npm run lint` と `format:check` で拾われる観点を先に意識する
 - [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界に従い、View、ScreenController、Frontend UseCase、Gateway の責務を跨がない
 - generated `wailsjs` と backend DTO の import は `frontend/src/controller/wails/` に閉じ込める
@@ -70,7 +73,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 不足情報: 実装を完了できない不足項目を返す。
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
-- レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の結果または未実行理由を返す。
+- レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -82,8 +85,9 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - Wails bridge 境界を確認した。
 - generated `wailsjs` を gateway 境界に閉じ込めた。
 - affected UI flow と console エラー を確認した。
+- ユーザーが利用することを意識し、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせて実装した。
 - frontend lint と format:check で拾われる境界違反を確認した。
-- frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
+- frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 
 ## 停止規約
 
@@ -95,6 +99,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接 import する必要がある場合は停止する。
 - gateway 以外で backend DTO 変換が必要な場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
+- `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - UI check に必要な 根拠 を残した。

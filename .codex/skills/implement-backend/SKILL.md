@@ -66,7 +66,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - 不足情報: 実装を完了できない不足項目を返す。
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する backend プロダクトコードだけを返す。
-- レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の結果または未実行理由を返す。
+- レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -77,7 +77,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - 層 責務と 依存方向 を確認した。
 - backend lint の format、static、arch、module 観点を確認した。
 - 検証 と エラー経路 を 承認済み実装範囲 内で確認した。
-- backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
+- backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - 単一引き継ぎ入力 と レーン内検証 を確認した。
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 
@@ -90,5 +90,6 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - controller、usecase、service で concrete 実装を new する必要がある場合は停止する。
 - service core から filesystem、Wails 実行定義、DB driver の concrete API を直接呼ぶ必要がある場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
+- `python3 scripts/harness/run.py --suite backend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

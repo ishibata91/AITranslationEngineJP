@@ -1,6 +1,6 @@
 ---
 name: codex-work-reporting
-description: Codex 側の run 全体レポート作業プロトコル。Codex / Codex implementation レーン ベンチマーク値 と 完了根拠 から work_history レポート と次回改善事項を残す判断基準を提供する。
+description: Codex 側の run 全体レポート作業プロトコル。Codex / Codex implementation レーン ベンチマーク値 と レビュー差し戻しレポート から work_history レポート と次回改善事項を残す判断基準を提供する。
 ---
 # Codex Work Reporting
 
@@ -8,8 +8,9 @@ description: Codex 側の run 全体レポート作業プロトコル。Codex / 
 
 `codex-work-reporting` は作業プロトコルである。
 Codex 作業流れ の完了、停止、戻し時に、`work_history` へ残す run 全体レポート 材料を整理する。
-Codex と Codex implementation レーン の ベンチマーク値、完了根拠、検証結果 を同じ run 単位で集約する。
-完了根拠 は明示入力だけでなく、Codex / Codex implementation レーン 会話ログ から 根拠参照 付きで抽出した完了報告も含む。
+Codex と Codex implementation レーン の ベンチマーク値、レビュー差し戻し、検証結果 を同じ run 単位で集約する。
+問題点の抽出は、ベンチマークスクリプトの出力と レビュー差し戻しレポート を主材料にする。
+work_reporter は benchmark script 結果とレビュー差し戻しレポートだけを前提にする。
 
 この skill は実行主体ではない。
 ツール権限 は参照元 agent TOML に従い、完了条件と停止条件は参照元 skill に従う。
@@ -22,13 +23,8 @@ Codex と Codex implementation レーン の ベンチマーク値、完了根�
 
 ## 入力規約
 
-- 不足時の扱い: 入力に 根拠参照、担当者、承認状態が不足する場合は推測で補わない。
-- 実行記録フォルダ: run 全体レポートを置く `work_history/runs/YYYY-MM-DD-<task-id>-run/`。
-- 基準評価: ベンチマーク値を解釈する基準。
-- Codex 根拠元: Codex 側の完了根拠または会話ログ参照。
-- 実装根拠元: Codex implementation レーン側の完了根拠または会話ログ参照。
-- 任意入力: Codex 完了根拠, 実装完了根拠, Codex 会話参照, 実装会話参照, 実装チャット参照, 関連計画, 関連引き継ぎ, 検証結果, 既知不足
-- 必須 成果物: /Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/README.md, /Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md, /Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md
+- run 対象: run 全体レポートを作る `work_history/runs/YYYY-MM-DD-<task-id>-run/`。
+- 不足時の扱い: `run 対象` が不足する場合は推測で補わない。
 
 ## 外部参照規約
 
@@ -47,30 +43,25 @@ Codex と Codex implementation レーン の ベンチマーク値、完了根�
 - `work_history/templates/run/README.md` の run 全体 要約とベンチマーク欄
 - `work_history/templates/run/codex.md` の記入観点
 - `work_history/templates/run/codex.md` の記入観点
-- `analysis/benchmark-score.json` の session、metrics、scores、根拠参照
+- `analysis/benchmark-score.json` の session、metrics、scores
+- `work_history/runs/<run>/review-reject-*.md` のレビュー差し戻し出力
 - 改善、時間、無駄、困りごとの分離
 - Codex 固有の設計、人間介入、引き継ぎ、正本化判断の記録
 - Codex implementation レーン 固有の 完了済み引き継ぎ、変更ファイル、検証、残留 の記録
-- Codex implementation レーン 会話ログ / chat session file から 完了報告入力、最終レポート、検証結果 を 根拠参照 付きで抽出する判断
 
-### Benchmark Score
+### Benchmark Script
 
 hook は使わない。
-Codex / Codex implementation レーン の home 会話ログ を正本にし、スコア script で時間と摩擦の機械指標を出す。
-
-Codex 会話ログ は `session_meta`、`event_msg`、`response_item` を読む。
-Codex implementation レーン 会話ログ は `session.start`、`user.message`、`assistant.message`、`tool.execution_*` を読む。
-VS Code `chatSessions/*.jsonl` は `requests` 配列、`message.text`、`response`、`toolCallRounds` を読む。
-script は時刻、turn 数、tool 数、非 0 終了、長い idle、再実行、user correction を数える。
-script は改善案、原因推定、責務判断は行わない。
+benchmark script は時間と摩擦の機械指標を出す。
+work_reporter は benchmark script の出力だけを読む。
+script は改善案、原因推定、責務判断を行わない。
 
 生成物:
 - `run-title.txt`
-- `transcript_refs.json`
 - `analysis/benchmark-score.json`
 
 フォルダ名は最初の user prompt を安全化して作る。
-同名フォルダがある場合は統合し、`transcript_refs.json` に session を追記する。
+同名フォルダがある場合は統合する。
 
 ### Benchmark
 
@@ -93,8 +84,7 @@ benchmark は次回改善用の観測値である。
 - `scores.interaction_cost`
 - `scores.tool_churn`
 - `scores.rework_cost`
-- `根拠参照`
-- `transcript_gaps`
+- `input_gaps`
 
 `time_cost` は `active_duration_ms_total` から算出する。
 `long_idle_gaps` は 根拠 として残すが、評価値 には加算しない。
@@ -104,15 +94,13 @@ benchmark は次回改善用の観測値である。
 
 - `work_reporter` は最後に必ず run 全体レポート を作る。
 - 置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/` に固定する。
-- 一次データは home の Codex / Codex implementation レーン 会話ログ、`analysis/benchmark-score.json`、完了根拠 とする。
+- 問題点の抽出は `analysis/benchmark-score.json` と `review-reject-*.md` を主材料にする。
 - `README.md` は人間向け run 全体レポート と benchmark summary にする。
 - `codex.md` と `codex.md` は `work_reporter` が 根拠 から生成する。
 - 事実と判断材料を分ける。
 - 分からない項目は `未確認`、`不明`、`なし` のいずれかで明示する。
-- Codex implementation レーン 側の実装事実は、明示 Codex implementation レーン 完了根拠 または Codex implementation レーン 会話ログ / chat session file 内の完了報告からだけ転記する。
-- Codex implementation レーン 会話ログ / chat session file を読む時は、`完了済み引き継ぎ`、`変更ファイル`、`test 結果`、`UI 根拠`、`Codex レビュー結果`、`レビュー結果一式`、`集約記録`、`harness 判定結果`、`完了根拠` の 完了報告入力 欄を探し、レポート 項目へ 根拠参照 を残す。
-- 会話ログ / chat session 内に実装完了を示す文があっても、対象 task と紐づく 完了報告入力 欄、最終レポート 欄、または 検証結果 欄を確認できない場合は推測扱いにする。
-- ベンチマーク値 欠落、根拠参照 欠落、壊れた 会話ログ JSONL は次回改善 指摘 として扱う。
+- Codex implementation レーン 側の実装事実は、run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる範囲だけ転記する。
+- ベンチマーク値 欠落、レビュー差し戻しレポート 欠落、benchmark script 入力不足 は次回改善 指摘 として扱う。
 - 速度指標は改善観測であり、初期終了判定には使わない。
 - `.codex/history` には触れず、`work_history/` を使う。
 - レポートは次回の指示、引き継ぎ、雛形 改善へ戻せる粒度にする。
@@ -120,9 +108,9 @@ benchmark は次回改善用の観測値である。
 - `work_reporter` で run 全体レポート を作る
 - `work_history/runs/YYYY-MM-DD-<task-id>-run/` を唯一の レポート 置き場所にする
 - `analysis/benchmark-score.json` を agent が最初に読む材料として扱う
-- 必要な時だけ `根拠参照` から 会話ログ 原文へ戻る
+- `review-reject-*.md` を レビュー差し戻しの問題抽出材料として扱う
 - Codex が実際に見た 根拠 と推測を分ける
-- Codex implementation レーンの事実は Codex implementation レーン 完了根拠 または Codex implementation レーン 会話ログ / chat session file の 根拠参照 付き抽出からだけ扱う
+- Codex implementation レーンの事実は run 内レポート、benchmark script 結果、レビュー差し戻しレポートからだけ扱う
 - 人間が次に見るべきパスや コマンド を残す
 - 重要エラーと未実行 検証 を短く明示する
 
@@ -137,16 +125,16 @@ benchmark は次回改善用の観測値である。
 ## 出力規約
 
 - 判断結果: run 全体レポートの完了、未完了、停止の判定を返す。
-- 根拠参照: レポート生成に使った完了根拠、会話ログ、検証結果を返す。
+- 根拠参照: レポート生成に使った benchmark、レビュー差し戻し、検証結果を返す。
 - 不足情報: レポート生成を完了できない不足項目を返す。
 - 次判断材料: 人間または `implement_lane` が次を判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
-- レポートパス: README.md、codex.md、codex.md、analysis/benchmark-score.json、transcript_refs.json のパスを返す。
-- benchmark summary: session count、metrics、scores、根拠 refs を分かる範囲で返す。不足は 阻害要因 ではなく次回改善事項にする。
-- Codex レポート summary: Codex 完了根拠 または Codex 会話ログ 根拠参照 から確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す。
-- Codex implementation レーン レポート summary: Codex implementation 完了根拠 または Codex implementation 会話ログ / chat session 根拠参照 から確認できる完了 引き継ぎ、変更ファイル、検証結果、統合 レビュー 結果、残留リスク、次に見るべき場所を返す。
+- レポートパス: README.md、codex.md、codex.md、analysis/benchmark-score.json、review-reject-*.md のパスまたは未作成確認を返す。
+- benchmark summary: session count、metrics、scores を分かる範囲で返す。不足は 阻害要因 ではなく次回改善事項にする。
+- Codex レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す。
+- Codex implementation レーン レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる完了 引き継ぎ、変更ファイル、検証結果、統合 レビュー 結果、残留リスク、次に見るべき場所を返す。
 - run 全体 指摘: 改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、検証で不足したことを返す。
-- benchmark 品質 指摘: ベンチマーク値、根拠、レポート、実行定義、根拠参照、会話ログ の欠落または破損を次回改善事項として返す。
+- benchmark 品質 指摘: ベンチマーク値、レポート、実行定義、script 入力、script 出力 の欠落または破損を次回改善事項として返す。
 - 次回改善: 指示、引き継ぎ、雛形、ベンチマーク採点の改善を返す。
 - 残留 不足: 未確認、不明、なしを区別して返す。
 
@@ -158,11 +146,12 @@ benchmark は次回改善用の観測値である。
 - `work_history/templates/run/README.md` の必須項目を確認した。
 - `work_history/templates/run/codex.md` の必須項目を確認した。
 - `analysis/benchmark-score.json` を run 全体ベンチマーク の入力として扱った。
+- `review-reject-*.md` を確認し、レビュー差し戻し出力から問題点を抽出した。
+- 問題点はベンチマークスクリプト出力とレビュー差し戻しレポートから抽出した。
 - 改善、時間、無駄、困りごとを分けた。
 - 人間介入、引き継ぎ、docs 正本化判断を記録対象にした。
-- implementation レーンの事実を 完了根拠 または Codex implementation 会話ログ / chat session file の 根拠参照 付き抽出からだけ扱った。
-- 明示 完了根拠 が不足する場合は Codex implementation 会話ログ / chat session file を確認した。
-- 必須根拠として、ベンチマーク値 json または不足理由、Codex 完了根拠 または Codex 会話ログ 根拠参照、Codex implementation 完了根拠 または Codex implementation 会話ログ / chat session 根拠参照、レポート 雛形 paths、利用可能な 検証結果 がある。
+- implementation レーンの事実を run 内レポート、benchmark script 結果、レビュー差し戻しレポートからだけ扱った。
+- 必須根拠として、ベンチマーク値 json または不足理由、レビュー差し戻しレポートまたは未作成確認、レポート 雛形 paths、利用可能な 検証結果 がある。
 - 完了判断材料として、work_history/runs/<run>/README.md、codex.md、codex.md が ベンチマーク値 と 根拠 から生成され、次回改善事項が明示されている。
 - 残留リスクとして、未確認または不明な 不足 が返っている。
 
@@ -173,10 +162,9 @@ benchmark は次回改善用の観測値である。
 - docs 正本化の承認や 対象範囲 を代替する時
 - 速度の数値閾値で終了可否を判定する時
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- 実行記録フォルダが不足する場合は停止する。
-- Codex と implementation の根拠元がどちらも不足する場合は停止する。
+- run 対象が不足する場合は停止する。
+- benchmark とレビュー差し戻しレポートの有無を確認できない場合は停止する。
 - レポート書き込み先が `work_history/runs` 外になる場合は停止する。
-- Codex implementation 完了根拠が不足し、Codex implementation 会話ログ / chat session の参照元も特定できない場合は停止する。
 - implementation レーンの事実と推測を区別できない場合は停止する。
 - 必須レポートパスを特定できない場合は停止する。
 - レポート生成にプロダクトまたは docs 正本の変更が必要な場合は停止する。

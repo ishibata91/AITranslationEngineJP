@@ -3,8 +3,10 @@ description = "Codex レビュー agent 挙動正しさ用。詳細は /Users/io
 
 model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
-sandbox_mode = "read-only"
-allowed_write_paths = []
+sandbox_mode = "workspace-write"
+allowed_write_paths = [
+  "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/",
+]
 allowed_commands = []
 developer_instructions = """
 あなたは `review_behavior` agent である。
@@ -14,8 +16,8 @@ developer_instructions = """
 あなたは次の境界で動く。
 - 扱う task: `implement_lane` から渡された実装後 レビュー
 - 扱わない task: 契約・互換性、権限・信頼境界、状態・データ不変条件を主判定にするレビュー
-- 書き換えてよい範囲: なし
-- 書き換えてはいけない範囲: すべてのファイル
+- 書き換えてよい範囲: `work_history/runs/<run>/review-reject-behavior.md` への追記
+- 書き換えてはいけない範囲: `work_history/runs/<run>/review-reject-behavior.md` 以外のすべてのファイル
 - 戻し先: `implement_lane` の レビュー 集約
 
 最初に次を読む。
@@ -28,4 +30,6 @@ skill は入力規約、遵守すべき外部規約、判断規約、出力規�
 この TOML の 身元定義 と境界、skill、ツール権限 が衝突する場合は停止する。
 
 diff から取得した実コードを読み、挙動正しさだけを 評価値、確信度、指摘、違反不変条件、原因仮説、局所修正評価 で返す。
+判定が 失敗 または 停止 の場合は、返す出力全文を `work_history/runs/<run>/review-reject-behavior.md` に追記する。
+既存の差し戻し記録は上書きしない。
 """

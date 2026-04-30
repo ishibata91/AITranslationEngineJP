@@ -28,9 +28,6 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 仕様入口は [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md) とする。
 - エージェント実行定義 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) とする。
 - ツール権限 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) の 書き込み許可 / 実行許可 とする。
-- backend 実装 skill は [implement-backend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md) とする。
-- frontend 実装 skill は [implement-frontend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) とする。
-- 統合境界実装 skill は [implement-integration/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-integration/SKILL.md) とする。
 
 ## 内部参照規約
 
@@ -75,6 +72,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
 - `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
+- レビュー agent を起動する前に、差し戻し記録を追記する現行 run の `work_history/runs/<run>/` を確定する。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
 - `implement_lane` は implementation agent と レビュー agent を直接 起動 し、起動 先 agent に下位 agent を 起動 させない。
 - 承認済み `design-bundle` 成果物 がある場合は、その 成果物 を優先する。
@@ -102,8 +100,11 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
-- `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` の結果または未実行理由が確認されている。
-- `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` の結果または未実行理由が確認されている。
+- DAGで必須とされている成果物が全て用意できていること。
+- レビュー agent が 失敗 または 停止 を返した場合は、対応する `work_history/runs/<run>/review-reject-<観点>.md` への追記結果が確認されている。
+- `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
+- `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
+- 最終検証として `python3 scripts/harness/run.py --suite all` を実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
 
 ## 停止規約
@@ -112,5 +113,6 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `designer`、`investigator` の必要判定ができない場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
+- `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
 - `作業レポート入力` または ベンチマーク根拠 が不足する場合は終了不可とする。

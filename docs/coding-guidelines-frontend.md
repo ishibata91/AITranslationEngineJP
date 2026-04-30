@@ -37,14 +37,23 @@ backend と test の規約は別文書を正本にする。
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接参照しない
 - user-facing message と internal diagnostic を分ける
 
-## 5. 禁止事項
+## 5. UX 一般規約
+
+- 主要操作はユーザーの作業順に沿って配置し、確認、実行、取消、戻るの意味を混同させない
+- ボタンは操作の重要度に応じて primary、secondary、danger を使い分け、破壊的操作は誤操作を避ける配置にする
+- ページ見出し、ラベル、説明、エラーメッセージは、ユーザーが次に何をすべきか分かる文言にする
+- 読み込み中、空状態、エラー、完了、未保存などの状態を画面上で区別できるようにする
+- 同じ画面内では用語、ボタン文言、並び順、余白、入力単位を一貫させる
+- design にない機能追加や装飾追加ではなく、承認済み UI 要件を分かりやすく使える形で実装する
+
+## 6. 禁止事項
 
 - generated file を hand-edit する実装
 - UI へ内部診断や機密値を無加工で出す実装
 - 無検証の `any`、type assertion、暗黙変換へ依存する実装
 - design にない表示改善や導線変更を実装判断だけで追加する実装
 
-## 6. 参照元
+## 7. 参照元
 
 - Svelte official docs:
   [`Svelte 5 Migration Guide`](https://svelte.dev/docs/svelte/v5-migration-guide),

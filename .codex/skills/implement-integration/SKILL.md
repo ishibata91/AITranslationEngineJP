@@ -70,7 +70,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 不足情報: 実装を完了できない不足項目を返す。
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する統合境界プロダクトコードだけを返す。
-- レーン内検証結果: backend-local と frontend-local の結果または未実行理由を変更層別に返す。
+- レーン内検証結果: backend-local と frontend-local の失敗時はその場で直して再実行し、通過結果または未実行理由を変更層別に返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -81,9 +81,9 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - API / Wails / DTO / gateway / adapter 契約 の統合境界 対象範囲 が承認済みであることを確認した。
 - 両側の touched files を 引き継ぎ と対応づけた。
 - 単一引き継ぎ入力 と レーン内検証 根拠 を分けた。
-- backend 側の変更がある場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、結果または未実行理由を返した。
-- frontend 側の変更がある場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、結果または未実行理由を返した。
-- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、結果または未実行理由を返した。
+- backend 側の変更がある場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- frontend 側の変更がある場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 
 ## 停止規約
@@ -95,5 +95,6 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - API 統合境界を変えずに UI と backend を同時に触らない
 - 単一引き継ぎ入力、実装対象、承認記録、承認済み実装範囲が不足する場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
+- `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
