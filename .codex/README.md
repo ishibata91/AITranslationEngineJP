@@ -22,7 +22,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - シナリオ設計 (`scenario-design`): `skills/scenario-design/SKILL.md`
 - 実装スコープ (`implementation-scope`): `skills/implementation-scope/SKILL.md`
 - 実装時調査 (`implementation-investigate`): `skills/implementation-investigate/SKILL.md`
-- プロダクトコード 実装 (`implement`): `skills/implement/SKILL.md`
+- プロダクトコード 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-integration/SKILL.md`、`skills/implement-fix-lane/SKILL.md`
 - シナリオテスト 実装 (`tests-scenario`): `skills/tests-scenario/SKILL.md`
 - 単体テスト 実装 (`tests-unit`): `skills/tests-unit/SKILL.md`
 - docs 正本化: `skills/updating-docs/SKILL.md`
@@ -33,7 +33,6 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 ### 補助 skill
 
 - 図作成補助: `skills/diagramming/SKILL.md`
-- 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-mixed/SKILL.md`、`skills/implement-fix-lane/SKILL.md`
 - 実装時調査 重点 skill: `skills/implementation-investigate-reproduce/SKILL.md`、`skills/implementation-investigate-trace/SKILL.md`、`skills/implementation-investigate-observe/SKILL.md`、`skills/implementation-investigate-reobserve/SKILL.md`
 
 ## Agent / Skill Boundary
@@ -67,6 +66,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、観点別 レビュー agent の並列 起動、欠落なし集約、`implementation_action` 分岐を進める
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う
 - `implementation_implementer` は 承認済み実装範囲 内の プロダクトコード だけを変更する
+- `implementation_implementer` は backend、frontend、integration、fix-lane のいずれか 1 つの実装 skill を主契約として選ぶ。共通親 skill は置かない
 - `implementation_scenario_tester` は 承認済みシナリオ と 承認済み実装範囲 を証明する シナリオテスト と必要最小限の テスト補助 だけを変更する
 - `implementation_unit_tester` は 実装済み責務 と 承認済み実装範囲 を証明する 単体テスト と必要最小限の テスト補助 だけを変更する
 - `docs_updater` は実装と レビュー の完了が分かった後、human 承認済み 対象範囲 だけを正本化する
@@ -106,9 +106,12 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `実装範囲` | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | `implement_lane` | `実装範囲` | なし |
 | `実装前受け入れテスト` | `implementation_scenario_tester` | `実装引き継ぎ入力` | `implementation_scenario_tester` |
-| `実装実行` | `implement_lane` | `実装引き継ぎ入力`, `実装前受け入れテスト?` | `implementation_investigator?`, `implementation_implementer` |
-| `実装後単体テスト` | `implementation_unit_tester` | `実装実行` | `implementation_unit_tester` |
-| `最終検証` | `implement_lane` | `実装実行`, `実装後単体テスト?` | なし |
+| `contract_freeze` | `implementation_implementer` | `実装引き継ぎ入力`, `実装前受け入れテスト?` | `implementation_investigator?`, `implementation_implementer` |
+| `backend 実装` | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `contract_freeze?`, `実装前受け入れテスト?` | `implementation_implementer` |
+| `統合境界実装` | `implementation_implementer` / `implement-integration` | `contract_freeze`, `backend 実装?` | `implementation_implementer` |
+| `frontend 実装` | `implementation_implementer` / `implement-frontend` | `contract_freeze`, `統合境界実装?` | `implementation_implementer` |
+| `実装後単体テスト` | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
+| `最終検証` | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `実装後単体テスト?` | なし |
 | `レビュー通過根拠` | `implement_lane` | `最終検証` | レビュー agents |
 | `正本化判断` | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `作業レポート入力` | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |

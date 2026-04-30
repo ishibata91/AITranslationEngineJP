@@ -2,7 +2,7 @@ name = "review_state_invariant"
 description = "Codex レビュー agent 状態・データ不変条件用。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-state-invariant/SKILL.md を読む。"
 
 model = "gpt-5.5"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "xhigh"
 sandbox_mode = "read-only"
 allowed_write_paths = []
 allowed_commands = []

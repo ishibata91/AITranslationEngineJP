@@ -1,7 +1,7 @@
 name = "implement_lane"
 description = "Codex 新規実装レーン 進行役。新規実装と機能拡張の task 内成果物依存表、人間介入、引き継ぎ、終了条件を管理する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md を読む。"
 
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [

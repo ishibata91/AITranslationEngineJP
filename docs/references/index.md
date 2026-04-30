@@ -27,6 +27,7 @@
   [`Config`](https://vite.dev/config/)
 - [`./xtranslator_ref.md`](./xtranslator_ref.md): xTranslator の入出力形式整理
 - [`./vendor-api/README.md`](./vendor-api/README.md): vendor API の生参照とダンプ置き場
+- `../everything-claude-code/rules/`: コーディング規約分割時に採用技術へ合う項目だけを輸入した参照元
 
 ## Migration Note
 

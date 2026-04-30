@@ -32,6 +32,10 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 雛形: [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/implementation-scope.md)
 - Codex implementation レーン 入口: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
+- 分割参照 architecture: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の層構造、transport boundary、依存方向を参照する。
+- backend 実装規約: [implement-backend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md) とする。
+- frontend 実装規約: [implement-frontend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) とする。
+- 統合境界実装規約: [implement-integration/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-integration/SKILL.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -54,7 +58,9 @@ implementation-scope の 引き継ぎ は、トークン量の事前計算では
 
 受け入れユースケースとは、1 つの操作またはシステム処理が、永続化、backend 契約、frontend 状態 / UI まで必要範囲を通って成立し、完了後にそのユースケースを原則として再編集しなくてよい単位である。
 ただし implementation 引き継ぎ では backend と frontend を同一 引き継ぎ に含めず、backend 側の 契約 / DTO / gateway 境界を `contract_freeze` として固定してから frontend 側を別 引き継ぎ として切る。
-層 単位の分割は、単体では完了判定できない中間状態を増やすため、最初の分割根拠にしない。
+`contract_freeze` は architecture の層構造、transport boundary、依存方向に基づいて、公開接点を持つ層ごとに切る。
+backend と frontend の分割は原則必須とし、両者を接続する API、Wails、DTO、gateway、adapter 契約は 統合境界 引き継ぎとして別に切る。
+層 単位の分割は、単体では完了判定できない中間状態を増やす場合は避けるが、`contract_freeze` では architecture の層境界を固定単位にする。
 APIテストを先に固める場合は、公開接点、要求 / 応答契約、外部入力開始、主要観測点を固定する。
 UI人間操作E2Eをあとに固める場合は、開始操作、入力方法、主要操作列、UI-visible 結果 を固定する。
 裏側 API、service、検証データ への直接投入は補助検証であり、UI人間操作E2E の完了判定にはしない。
@@ -97,7 +103,7 @@ UI人間操作E2Eをあとに固める場合は、開始操作、入力方法、
 規模で分割する時は、次の順で切る。
 
 1. 別ユースケースに分けられるならユースケースで切る。
-2. 同じ use case 内でも、契約固定 と backend persistence / implementation、frontend 状態 / UI は必ず切る。
+2. 同じ use case 内でも、architecture の層境界に基づく `contract_freeze`、backend 実装、frontend 実装、統合境界実装は必ず切る。
 3. それでも大きい場合は、parse、preview、generation、settings save など 失敗種別 が違う処理で切る。
 
 ### 境界規約
@@ -109,6 +115,7 @@ import、generation、settings save、preview、create / update / delete、expor
 契約固定 引き継ぎ は backend 実装全体ではなく、公開接点 の固定だけを扱う。
 backend 引き継ぎ は永続化、service / usecase、controller、DTO / gateway 境界までを扱う。
 frontend 引き継ぎ は確定済み 契約固定 に依存して 状態 / UI を扱う。
+統合境界 引き継ぎ は API、Wails、DTO、gateway、adapter 契約 の接続だけを扱い、backend 実装や frontend UI 実装の代替にしない。
 
 backend 側の 引き継ぎ に含めてよい 層:
 
@@ -132,6 +139,7 @@ frontend 側の 引き継ぎ に含めてよい 層:
 - 通常 / 注意 を超える規模なのに、変更ファイル数と変更行数の見積もりを書かずに 1 引き継ぎ にする
 - backend 契約 と frontend UI を同じ 引き継ぎ に含める
 - 契約固定 を置かずに frontend 引き継ぎ を開始する
+- 統合境界 引き継ぎを置かずに backend と frontend の接続を実装引き継ぎへ混ぜる
 - migration、import、generation、settings save のような 失敗種別 の違う処理を「同じ画面だから」という理由だけでまとめる
 
 ### 並列実行規約
@@ -210,6 +218,8 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 検証コマンド は 引き継ぎ の 承認済み実装範囲 と 完了条件 だけで 通過 できるものにする
 - backend と frontend は必ず別 引き継ぎ に分ける
 - frontend 引き継ぎ は 契約固定 済みの backend 契約 / DTO / gateway 境界に 依存対象 する
+- 統合境界 引き継ぎ は backend と frontend の間の公開接点、DTO、gateway、adapter 契約を接続する単位として別に作る
+- `contract_freeze` は architecture の層構造、transport boundary、依存方向に基づいて固定する
 - 必要な場合だけ `本番経路` を 補足 に書き、必須 成果物 や domain 固有欄にはしない
 - `本番経路` は実行時に通る public API / DTO / controller / UI 入口 / persistence path を指す
 - `本番経路` は domain 名や画面名の知識ではなく、引き継ぎ の補助語として扱う
@@ -232,6 +242,7 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 広域 検証 を途中 引き継ぎ に置く場合は、必要な downstream 対象範囲 と理由を 補足 に書く
 - backend と frontend を同一 引き継ぎ に入れず、依存対象 で接続する
 - frontend 引き継ぎ は 契約固定 引き継ぎ の 完了条件 に接続する
+- backend、frontend、統合境界 の各 引き継ぎ は、implement-lane の対応する 実装成果物 と実装 skill に接続する
 - `本番経路` が必要な時だけ 補足 に補助情報として書く
 - 人間がそのまま `implement_lane` に渡せる 入力にする
 
@@ -271,6 +282,8 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - import / generation / settings save / preview / create / update / delete / export のうち、別 use case になっている処理を同一 引き継ぎ に混ぜていない。
 - domain 名や画面名だけを根拠に、複数 use case を同一 引き継ぎ にまとめていない。
 - 層 をまたぐ 引き継ぎ は、受け入れユースケース 完了条件 で完了判定できる。
+- `contract_freeze` は architecture の層境界に基づいて切られている。
+- backend、frontend、統合境界 が必要な場合は別 引き継ぎ として分割されている。
 - frontend 引き継ぎ は `UI人間操作E2E` を直接 担当者 にせず、最終検証 で証明する形にした。
 - `依存対象` から依存表を作り、着手可能 wave を `実行グループ` と `ready_wave` にした。
 - 着手可能 wave 表に 引き継ぎ、開始前依存、並列 pair、阻害要因 を書いた。
@@ -283,13 +296,15 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 ## 停止規約
 
 - 人間レビュー 前に実装 対象範囲 を決める時
-- 承認済み implementation-scope なしで `implement_lane` の 実装実行 へ 引き継ぎ する時
+- 承認済み implementation-scope なしで `implement_lane` の `backend 実装`、`frontend 実装`、`統合境界実装` へ 引き継ぎ する時
 - プロダクトコード を直接実装する時
 - 実装時の再現、trace、レビュー 補助を扱う時
 - `needs_human_decision` が残る scenario-design から 引き継ぎ を作る必要がある場合は停止する。
 - 層だけを根拠に、単体では完了判定できない micro 引き継ぎ を量産する必要がある場合は停止する。
 - backend と frontend を同一引き継ぎに含める必要がある場合は停止する。
 - 契約固定 が未完了のまま frontend 引き継ぎ を開かない
+- 統合境界 引き継ぎなしに backend と frontend の接続を実装引き継ぎへ混ぜる必要がある場合は停止する。
+- architecture の層境界を確認せずに `contract_freeze` を固定する必要がある場合は停止する。
 - UI 入口の引き継ぎで、裏側の直接呼び出しだけを完了条件にする必要がある場合は停止する。
 - 変更ファイル数と変更行数が分割必須を超える引き継ぎを 1 件として渡す必要がある場合は停止する。
 - 初手がない引き継ぎを Codex implementation レーンに渡す必要がある場合は停止する。

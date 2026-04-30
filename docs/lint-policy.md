@@ -86,6 +86,6 @@
 
 - 採用ツールと品質基盤の決定: [`tech-selection.md`](./tech-selection.md)
 - import 境界の設計原則: [`architecture.md`](./architecture.md)
-- 実装規約: [`coding-guidelines.md`](./coding-guidelines.md)
+- 実装規約: [`coding-guidelines.md`](./coding-guidelines.md), [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
 - 検証 command と失敗条件: 対応する tests / acceptance checks / validation commands
 - task-local な一時判断: [`exec-plans/`](./exec-plans/active/README.md)

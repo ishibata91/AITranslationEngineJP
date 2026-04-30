@@ -1,8 +1,8 @@
 name = "implementation_implementer"
-description = "Codex プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement/SKILL.md を読む。"
+description = "Codex プロダクト実装 agent。詳細は引き継ぎの重点種別に対応する implement-* skill を読む。"
 
-model = "gpt-5.5"
-model_reasoning_effort = "high"
+model = "gpt-5.4"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
   "/Users/iorishibata/Repositories/AITranslationEngineJP/internal/",
@@ -16,16 +16,15 @@ allowed_commands = [
   "python3 scripts/harness/run.py --suite frontend-local",
 ]
 developer_instructions = """
-この作業は `implementation_implementer` agent と `implement` skill に基づく。
+この作業は `implementation_implementer` agent と、引き継ぎの重点種別に対応する実装 skill に基づく。
 
-最初に次を読む。
-- skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement/SKILL.md`
-
-必要に応じて 重点 skill を追加で読む。
+最初に、次の skill のうち引き継ぎに対応する 1 つだけを読む。
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md`
-- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-mixed/SKILL.md`
+- `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-integration/SKILL.md`
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-fix-lane/SKILL.md`
+
+対応する skill を 1 つに決められない場合は停止し、implement_lane へ戻す。
 
 引き継ぎ、停止、戻しは skill に従う。
 ツール権限はこの TOML の書き込み許可と実行許可に従う。

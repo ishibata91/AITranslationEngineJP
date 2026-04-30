@@ -1,8 +1,8 @@
 name = "work_reporter"
 description = "Codex run 全体レポート agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md を読む。"
 
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model = "gpt-5.4-mini"
+model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
   "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/",

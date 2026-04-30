@@ -28,6 +28,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 仕様入口は [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md) とする。
 - エージェント実行定義 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) とする。
 - ツール権限 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) の 書き込み許可 / 実行許可 とする。
+- backend 実装 skill は [implement-backend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md) とする。
+- frontend 実装 skill は [implement-frontend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) とする。
+- 統合境界実装 skill は [implement-integration/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-integration/SKILL.md) とする。
 
 ## 内部参照規約
 
@@ -45,9 +48,12 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
 | `実装前受け入れテスト` | 条件付き | `implementation_scenario_tester` | `実装引き継ぎ入力` | `implementation_scenario_tester` |
-| `実装実行` | 条件付き | 実装 agent | `実装引き継ぎ入力`, `実装前受け入れテスト?` | `implementation_investigator?`, `implementation_implementer` |
-| `実装後単体テスト` | 条件付き | `implementation_unit_tester` | `実装実行` | `implementation_unit_tester` |
-| `最終検証` | 条件付き | `implement_lane` | `実装実行`, `実装後単体テスト?` | なし |
+| `contract_freeze` | 条件付き | `implementation_implementer` | `実装引き継ぎ入力`, `実装前受け入れテスト?` | `implementation_investigator?`, `implementation_implementer` |
+| `backend 実装` | 条件付き | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `contract_freeze?`, `実装前受け入れテスト?` | `implementation_implementer` |
+| `統合境界実装` | 条件付き | `implementation_implementer` / `implement-integration` | `contract_freeze`, `backend 実装?` | `implementation_implementer` |
+| `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `contract_freeze`, `統合境界実装?` | `implementation_implementer` |
+| `実装後単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
+| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `実装後単体テスト?` | なし |
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant` |
 | `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
@@ -68,12 +74,14 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 次の実行判断は 成果物依存表 の未完了 成果物、満たされた `依存対象`、既存 成果物、対象 skill の完了規約で決める。
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
+- `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
 - `implement_lane` は implementation agent と レビュー agent を直接 起動 し、起動 先 agent に下位 agent を 起動 させない。
 - 承認済み `design-bundle` 成果物 がある場合は、その 成果物 を優先する。
 - 承認済み `design-bundle` 成果物 がない場合は、シナリオ 候補を `designer` の前に揃える。
 - 人間介入 が必要な 成果物 は AI だけで完了にしない。
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
+- backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
 
 ## 非対象規約
 
@@ -93,9 +101,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
-- 実装実行 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
-- 実装実行 またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` の結果または未実行理由が確認されている。
-- 実装実行 またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` の結果または未実行理由が確認されている。
+- `backend 実装`、`frontend 実装`、`統合境界実装` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
+- `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` の結果または未実行理由が確認されている。
+- `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` の結果または未実行理由が確認されている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
 
 ## 停止規約
@@ -103,6 +111,6 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 依頼が新規実装または機能拡張か判断できない場合は停止する。
 - `designer`、`investigator` の必要判定ができない場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
-- 承認済み `実装範囲` なしで 実装実行 が必要な場合は停止する。
+- 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
 - `作業レポート入力` または ベンチマーク根拠 が不足する場合は終了不可とする。

@@ -1,8 +1,8 @@
 name = "scenario_failure_generator"
 description = "Codex シナリオ 失敗 生成 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-failure-generation/SKILL.md を読む。"
 
-model = "gpt-5.4"
-model_reasoning_effort = "medium"
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
 allowed_write_paths = [
   "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",

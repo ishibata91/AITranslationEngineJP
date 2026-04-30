@@ -24,7 +24,7 @@
 - 永続要件は `spec.md` に記録する
 - 内部境界と依存方向は `architecture.md` に記録する
 - 実装技術の選択は `tech-selection.md` に記録する
-- 実装規約は `coding-guidelines.md` に記録する
+- 実装規約の入口は `coding-guidelines.md` に記録し、frontend、backend、test の詳細は分割文書に記録する
 - lint と static checks の責務分担は `lint-policy.md` に記録する
 - データモデルと ER は `er.md` に記録する
 - 詳細な振る舞いと制約は対応する tests / acceptance checks / validation commands に記録する
