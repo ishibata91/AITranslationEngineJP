@@ -23,6 +23,11 @@ log_file="$log_dir/wails-dev.log"
 mkdir -p "$log_dir"
 rm -f "$log_file"
 
+export GOCACHE="${GOCACHE:-/tmp/aitranslationenginejp-go-build}"
+export GOPATH="${GOPATH:-/tmp/aitranslationenginejp-go}"
+export GOMODCACHE="${GOMODCACHE:-/tmp/aitranslationenginejp-go-mod}"
+mkdir -p "$GOCACHE" "$GOPATH" "$GOMODCACHE"
+
 exec env \
   VITE_HOST="$vite_host" \
   VITE_PORT="$vite_port" \
