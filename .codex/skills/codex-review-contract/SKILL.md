@@ -31,6 +31,7 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 ## 外部参照規約
 
 - エージェント実行定義と実行境界は [review_contract.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_contract.toml) に従う。
+- レビューYAMLの正本形式は [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -75,12 +76,8 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 ## 出力規約
 
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.contract.yaml` を作成、追記、解決更新、削除する。
-- レビューYAML基本項目: `reviewback_version`、`task_id`、`review_yaml_path`、`viewpoint`、`reviewer_agent`、`review_status`、`must_fix_open`、`max_level` を記録する。
-- レビューYAML状態値: `review_status` は `no_issue`、`issues_open`、`stopped` のいずれかを記録する。
-- レビューYAML評価項目: `assessment.compatibility` と `assessment.evidence_sufficiency` を記録する。
-- レビューYAML確認範囲: `checked_scope.summary`、`checked_scope.files`、`unchecked_scope` を記録する。
-- レビューYAML指摘: `issues` に `id`、`level`、`title`、`problem`、`reason`、`violated_condition`、`cause_candidate`、`evidence`、`local_fix_assessment`、`additional_check_scope`、`fix_considerations`、`verification`、`fix_required`、`status` を記録する。
-- レビューYAML禁止出力: `forbidden_outputs` にツール権限変更、エージェント実行定義変更、プロダクトコード変更指示、修正範囲命令の禁止を記録する。
+- レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
+- レビューYAML観点: `viewpoint` は `contract`、`reviewer_agent` は `review_contract` とする。
 - 差し戻しYAML: `review_status` が `issues_open` または `stopped` の場合は、ワークフロー改善用ログを `work_history/runs/<run>/review-reject-contract.yaml` に追記する。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 

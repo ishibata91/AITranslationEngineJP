@@ -1,0 +1,152 @@
+# Reviewback YAML template
+#
+# このテンプレートは、観点別レビュー agent が作る
+# `docs/exec-plans/active/<task-id>/reviewback.<viewpoint>.yaml` の正本形式である。
+# 実ファイルではコメントを残してもよいが、値は必ず具体化する。
+
+# テンプレート形式の版。
+# 形式変更時だけ上げる。通常のレビューでは 1 のままにする。
+reviewback_version: 1
+
+# 対象 task folder の id。
+# `docs/exec-plans/active/<task-id>/` の `<task-id>` と一致させる。
+task_id: "<task-id>"
+
+# この YAML 自身の repo 相対パス。
+# implement_lane が集約時に参照するため、実在パスを書く。
+review_yaml_path: "docs/exec-plans/active/<task-id>/reviewback.<viewpoint>.yaml"
+
+# レビュー観点。
+# 許可値は behavior, contract, trust-boundary, state-invariant, responsibility-boundary。
+viewpoint: "<viewpoint>"
+
+# この YAML を作成または更新した agent 名。
+# 許可値は review_behavior, review_contract, review_trust_boundary,
+# review_state_invariant, review_responsibility_boundary。
+reviewer_agent: "<agent name>"
+
+# 観点レビュー全体の状態。
+# no_issue: 未解決 issue がない。
+# issues_open: 未解決 issue が 1 件以上ある。
+# stopped: 入力不足、外部成果物衝突、観点境界違反で判定できない。
+review_status: "no_issue|issues_open|stopped"
+
+# 未解決の修正必須 issue があるか。
+# blocker, critical, major の未解決 issue が 1 件でもあれば true。
+# minor, nit だけなら false。
+must_fix_open: false
+
+# 未解決 issue の最大重大度。
+# 未解決 issue がない場合は none。
+# 比較順は blocker > critical > major > minor > nit > none。
+max_level: "none|blocker|critical|major|minor|nit"
+
+# 観点ごとの評価結果。
+# 数値スコアではなく、判断内容を短く書く。
+# 対象観点に対応する 1 項目だけを使い、不要な項目は削除する。
+assessment:
+  # behavior 用。実装目的、主要経路、既存挙動との差分が一致しているかを書く。
+  behavior_match: "<挙動一致の判断>"
+
+  # contract 用。公開 API、内部 API、DB schema、event 入力内容の互換性を書く。
+  compatibility: "<互換性の判断>"
+
+  # trust-boundary 用。認証、認可、secret、外部入力、tenant 境界の安全性を書く。
+  safety: "<安全性の判断>"
+
+  # state-invariant 用。状態遷移、永続化、再実行、同時実行の不変条件維持を書く。
+  invariant_maintenance: "<不変条件維持の判断>"
+
+  # responsibility-boundary 用。層責務、依存方向、関数責務の維持を書く。
+  responsibility_boundary: "<責務境界維持の判断>"
+
+  # 根拠が十分かを書く。
+  # 十分、不足、不足だが判定可能、不足で停止 のように具体化する。
+  evidence_sufficiency: "<根拠十分性>"
+
+  # trust-boundary 用。
+  # 権限・信頼境界の未解決 blocker は他観点で相殺できないため true にする。
+  hard_gate: false
+
+# 実際に確認した範囲。
+# 変更ファイルを眺めただけではなく、判断に使った層、関数、経路を書く。
+checked_scope:
+  summary: "<確認した範囲の要約>"
+  files:
+    - path: "<repo relative path>"
+      line: 1
+      symbol: "<function/type/component name>"
+      reason: "<この場所を根拠にした理由>"
+
+# 確認していない範囲。
+# 未確認がない場合は空配列にする。
+unchecked_scope:
+  - target: "<未確認の対象>"
+    reason: "<未確認の理由>"
+    risk: "<未確認で残るリスク>"
+
+# レビュー指摘。
+# 問題がない場合は空配列にする。
+issues:
+  - id: "<viewpoint>-001"
+
+    # 重大度。
+    # blocker: マージ・リリースを止めるべき問題。
+    # critical: 修正必須だが、implement_lane が条件付き継続を判断できる問題。
+    # major: 品質、保守性、仕様整合に大きく影響する修正必須問題。
+    # minor: 局所的な改善で済む修正推奨問題。
+    # nit: 修正してもよいが必須ではない微細な問題。
+    level: "blocker|critical|major|minor|nit"
+
+    # 1 行で識別できる問題名。
+    title: "<短い問題名>"
+
+    # 何が問題か。
+    # 症状ではなく、コード上または契約上の破れを書く。
+    problem: "<問題>"
+
+    # なぜ問題か。
+    # 影響、再現条件、正本との不整合のいずれかを書く。
+    reason: "<理由>"
+
+    # 破られた条件。
+    # 観点に応じて PR 目的、既存挙動、API 契約、状態不変条件、
+    # 信頼境界、責務境界などを書く。
+    violated_condition: "<破られた条件>"
+
+    # 原因候補。
+    # 推測だけでなく、根拠 path と対応する原因を書く。
+    cause_candidate: "<原因候補>"
+
+    # 指摘根拠。
+    # 少なくとも 1 件は path を入れる。行番号不明なら line は null にする。
+    evidence:
+      - path: "<repo relative path>"
+        line: 1
+        excerpt: "<短い根拠要約>"
+
+    # 局所修正で閉じるか。
+    # local, cross-layer, design-boundary-required など、修正者が判断できる語にする。
+    local_fix_assessment: "<局所修正評価>"
+
+    # 追加で確認すべき範囲。
+    # 不要なら none と理由を書く。
+    additional_check_scope: "<追加確認範囲>"
+
+    # 修正時の考慮点。
+    # 修正命令ではなく、壊してはいけない条件や波及リスクを書く。
+    fix_considerations: "<修正時の考慮点>"
+
+    # 修正確認方法。
+    # 追加すべきテスト観点、静的確認、手動確認のいずれかを書く。
+    verification: "<修正確認方法>"
+
+    # 修正必須か。
+    # blocker, critical, major は true。
+    # minor, nit は false。
+    fix_required: true
+
+    # issue の状態。
+    # open: 未解決。
+    # resolved: 修正確認済み。
+    status: "open|resolved"
