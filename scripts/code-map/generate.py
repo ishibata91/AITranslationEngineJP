@@ -60,12 +60,7 @@ LAYER_DEFINITIONS = (
         id="frontend-controller",
         name="ScreenController",
         root="frontend/src",
-        paths=(
-            Path("frontend/src/controller/master-dictionary"),
-            Path("frontend/src/controller/master-persona"),
-            Path("frontend/src/controller/translation-input"),
-            Path("frontend/src/controller/translation-job-setup"),
-        ),
+        paths=(Path("frontend/src/controller"),),
         default_next=("frontend-usecase", "frontend-presenter-store", "frontend-contract", "frontend-wails-adapter"),
     ),
     LayerDefinition(
@@ -322,7 +317,7 @@ def parse_go_list_objects(output: str) -> list[dict[str, Any]]:
 
 def collect_go_dependencies(repo_root: Path, files_by_path: dict[str, dict[str, Any]]) -> list[dict[str, Any]]:
     completed = subprocess.run(
-        ["go", "list", "-json", "./internal/..."],
+        [str(repo_root / "scripts/go/run.sh"), "list", "-json", "./internal/..."],
         cwd=repo_root,
         check=False,
         text=True,

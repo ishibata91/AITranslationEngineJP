@@ -5,8 +5,7 @@ set -eu
 repo_root=$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)
 cd "$repo_root"
 
-export GOCACHE="${GOCACHE:-/tmp/aitranslationenginejp-go-build}"
-mkdir -p "$GOCACHE"
+go_cmd="$repo_root/scripts/go/run.sh"
 
 backend_packages() {
   printf './internal/...\n'
@@ -22,17 +21,17 @@ case "${1:-}" in
     ;;
   vet)
     packages=$(backend_packages)
-    go vet $packages
+    "$go_cmd" vet $packages
     ;;
   static)
     packages=$(backend_packages)
-    go run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.3.0 run --config .golangci.yml $packages
+    "$go_cmd" run github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.3.0 run --config .golangci.yml $packages
     ;;
   arch)
-    go run github.com/fe3dback/go-arch-lint@v1.14.0 check --arch-file .go-arch-lint.yml --project-path "$repo_root"
+    "$go_cmd" run github.com/fe3dback/go-arch-lint@v1.14.0 check --arch-file .go-arch-lint.yml --project-path "$repo_root"
     ;;
   module)
-    go run github.com/ryancurrah/gomodguard/cmd/gomodguard@v1.4.1 -n ./internal/...
+    "$go_cmd" run github.com/ryancurrah/gomodguard/cmd/gomodguard@v1.4.1 -n ./internal/...
     ;;
   packages)
     backend_packages

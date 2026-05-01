@@ -10,9 +10,14 @@ devserver_url="${PLAYWRIGHT_BASE_URL:-http://127.0.0.1:34115}"
 frontend_devserver_url="${WAILS_FRONTEND_DEVSERVER_URL:-http://127.0.0.1:5173}"
 vite_host="${VITE_HOST:-127.0.0.1}"
 vite_port="${VITE_PORT:-5173}"
+ready_timeout_seconds="${WAILS_DEVSERVER_READY_TIMEOUT_SECONDS:-300}"
 log_file="$repo_root/test-results/wails-dev.log"
 
 mkdir -p "$repo_root/test-results"
+export GOCACHE="${GOCACHE:-/tmp/aitranslationenginejp-go-build}"
+export GOPATH="${GOPATH:-/tmp/aitranslationenginejp-go}"
+export GOMODCACHE="${GOMODCACHE:-/tmp/aitranslationenginejp-go-mod}"
+mkdir -p "$GOCACHE" "$GOPATH" "$GOMODCACHE"
 
 cleanup() {
   if [ -n "${wails_pid:-}" ] && kill -0 "$wails_pid" 2>/dev/null; then
@@ -23,7 +28,7 @@ cleanup() {
 
 wait_for_devserver() {
   ready=0
-  for _ in $(seq 1 120); do
+  for _ in $(seq 1 "$ready_timeout_seconds"); do
     if curl -fsS "$devserver_url" >/dev/null 2>&1; then
       ready=1
       break
