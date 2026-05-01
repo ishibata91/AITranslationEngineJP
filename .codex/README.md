@@ -27,7 +27,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - docs 正本化: `skills/updating-docs/SKILL.md`
 - 作業流れ 契約保守 (`workflow-contract-maintenance`): `skills/workflow-contract-maintenance/SKILL.md`
 - run 全体レポート (`work_reporter`): `skills/codex-work-reporting/SKILL.md`
-- 実装後 レビュー 観点: `skills/codex-review-behavior/SKILL.md`、`skills/codex-review-contract/SKILL.md`、`skills/codex-review-trust-boundary/SKILL.md`、`skills/codex-review-state-invariant/SKILL.md`
+- 実装後 レビュー 観点: `skills/codex-review-behavior/SKILL.md`、`skills/codex-review-contract/SKILL.md`、`skills/codex-review-trust-boundary/SKILL.md`、`skills/codex-review-state-invariant/SKILL.md`、`skills/codex-review-responsibility-boundary/SKILL.md`
 
 ### 補助 skill
 
@@ -62,8 +62,8 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - シナリオ候補生成 agent 6 体は固定 観点 の シナリオ 候補だけを作り、採否、統合、最終 シナリオ表 は扱わない
 - `designer` は シナリオ 候補を統合し、design bundle と implementation-scope の task 内成果物 を作る
 - `investigator` は必要な場合だけ実画面や観測対象を確認し、観測事実と リスク を返す
-- `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、観点別 レビュー agent の並列 起動、欠落なし集約、`implementation_action` 分岐を進める
-- `implement_lane` は観点別 レビュー結果を behavior、security、その他 の優先度で集約し、上位観点の失敗または停止を下位観点の通過で相殺しない
+- `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、観点別 レビュー agent の並列 起動、`reviewback.<観点>.yaml` 群の欠落なし集約、`implementation_action` 分岐を進める
+- `implement_lane` は観点別 レビュー結果を `reviewback.<観点>.yaml` の `must_fix_open` と `max_level` から集約し、behavior、security、responsibility_boundary、その他 の優先度で上位観点の失敗または停止を下位観点の通過で相殺しない
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う
 - `implementation_implementer` は 承認済み実装範囲 内の プロダクトコード だけを変更する
 - `implementation_implementer` は backend、frontend、integration、fix-lane のいずれか 1 つの実装 skill を主契約として選ぶ。共通親 skill は置かない
@@ -71,9 +71,10 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `implementation_unit_tester` は 実装済み責務 と 承認済み実装範囲 を証明する 単体テスト と必要最小限の テスト補助 だけを変更する
 - `docs_updater` は実装と レビュー の完了が分かった後、human 承認済み 対象範囲 だけを正本化する
 - `work_reporter` は Codex ベンチマーク値 と 完了根拠 から `work_history` の run 全体レポート を生成する。明示 完了根拠 が不足する場合は Codex 会話ログ または chat session file を 根拠参照 付き 根拠 として確認する
-- `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価値 化し、レビュー結果一式、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
-- 観点別 レビュー agent は挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件のいずれか 1 つだけを扱い、修正範囲を命令せず修正判断に必要な情報を返す
-- 観点別 レビュー agent は 失敗 または 停止 の出力全文を `work_history/runs/<run>/review-reject-<観点>.md` に追記する
+- `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価し、`reviewback.<観点>.yaml`、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
+- 観点別 レビュー agent は挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件、責務境界のいずれか 1 つだけを扱い、`reviewback.<観点>.yaml` を作成、追記、解決更新、削除する
+- 観点別 レビュー agent は 失敗 または 停止 の場合に、ワークフロー改善用ログとして `work_history/runs/<run>/review-reject-<観点>.yaml` へ追記する
+- `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、`review-reject-<観点>.yaml` はワークフロー改善用の非通過ログとする
 - `implement_lane`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `implementation_implementer` だけが 承認済み実装範囲 内で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる

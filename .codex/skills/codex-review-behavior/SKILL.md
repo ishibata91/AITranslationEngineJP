@@ -24,6 +24,9 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 - 実装結果: 実装 agent が返した実装結果を受け取る。
 - 最終検証結果: `implement_lane` が確認した最終検証結果を受け取る。
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。
+- 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
+- レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.behavior.yaml` を受け取る。
+- 差し戻しYAMLパス: `work_history/runs/<run>/review-reject-behavior.yaml` を受け取る。
 
 ## 外部参照規約
 
@@ -42,10 +45,24 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 | 既存挙動との差分 | 既存利用経路の意味や結果を不要に変えていないか |
 | bug 修正時の原因対応 | 症状だけでなく原因が実コード上で閉じているか |
 
+重大度指標は次を拘束する。
+
+| レベル | 意味 |
+| --- | --- |
+| `blocker` | マージ・リリースを止めるべき問題 |
+| `critical` | 修正必須だが、条件付きで先に進める可能性がある問題 |
+| `major` | 品質・保守性・仕様整合に大きく影響する問題 |
+| `minor` | 局所的な改善で済む問題 |
+| `nit` | 修正してもよいが、必須ではない問題 |
+
 ## 判断規約
 
-挙動一致度が 0.85 を超える場合だけ通過とする。
-仕様にない入力や不明な期待値は、根拠十分性を下げて挙動一致度と混同しない。
+- レビュー問題の重大度は内部参照規約の重大度指標から選ぶ。
+- `blocker`、`critical`、`major` は `fix_required: true` にする。
+- `minor`、`nit` は `fix_required: false` にする。
+- 未解決の `fix_required: true` がある場合は `must_fix_open: true` にする。
+- `max_level` は未解決指摘の最大重大度にする。
+- 仕様にない入力や不明な期待値は、根拠十分性を下げて挙動一致度と混同しない。
 
 ## 非対象規約
 
@@ -55,41 +72,34 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 
 ## 出力規約
 
-出力は、次の情報を必ず返す。
-
-- 観点名: 挙動正しさ観点であることを返す。
-- 判定: 通過、失敗、停止のいずれかを返す。
-- 挙動一致度: PR 目的と実コードの一致度を返す。
-- 根拠十分性: 確認済み根拠の十分性を返す。
-- 確認範囲: 確認した実コードと主要経路を返す。
-- 根拠: 判断へ使ったファイルと参照先を返す。
-- 未確認範囲: 確認していない範囲と理由を返す。
-- 破られた不変条件: PR 目的、既存挙動、受け入れ条件のどれが破られたかを返す。
-- 原因候補: 症状を生む原因候補と根拠を返す。
-- 指摘: 挙動正しさ観点の具体的な問題だけを返す。
-- 局所修正評価: 局所修正で閉じるか、他層へ波及するかを返す。
-- 追加確認範囲: 追加で読むべき範囲と読まない範囲を返す。
-- 修正時の考慮点: 修正者が考慮すべき支配点とリスクを返す。
-- 不変条件テスト: 破れた挙動を固定するテスト観点を返す。
-- 差し戻し記録: 判定が 失敗 または 停止 の場合は、出力全文を現行 run の `work_history/runs/<run>/review-reject-behavior.md` に追記する。
+- レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.behavior.yaml` を作成、追記、解決更新、削除する。
+- レビューYAML基本項目: `reviewback_version`、`task_id`、`review_yaml_path`、`viewpoint`、`reviewer_agent`、`review_status`、`must_fix_open`、`max_level` を記録する。
+- レビューYAML状態値: `review_status` は `no_issue`、`issues_open`、`stopped` のいずれかを記録する。
+- レビューYAML評価項目: `assessment.behavior_match` と `assessment.evidence_sufficiency` を記録する。
+- レビューYAML確認範囲: `checked_scope.summary`、`checked_scope.files`、`unchecked_scope` を記録する。
+- レビューYAML指摘: `issues` に `id`、`level`、`title`、`problem`、`reason`、`violated_condition`、`cause_candidate`、`evidence`、`local_fix_assessment`、`additional_check_scope`、`fix_considerations`、`verification`、`fix_required`、`status` を記録する。
+- レビューYAML禁止出力: `forbidden_outputs` にツール権限変更、エージェント実行定義変更、プロダクトコード変更指示、修正範囲命令の禁止を記録する。
+- 差し戻しYAML: `review_status` が `issues_open` または `stopped` の場合は、ワークフロー改善用ログを `work_history/runs/<run>/review-reject-behavior.yaml` に追記する。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
 ## 完了規約
 
-- 対象 レビュー 観点の指摘、挙動一致度、根拠、残留リスクが返却されている。
+- `reviewback.behavior.yaml` に 対象 レビュー 観点の指摘、挙動一致度、根拠、残留リスクが記録されている。
 - 実装目的と実コードの主要経路を照合した。
 - 内部参照規約の挙動正しさ観点表を確認した。
 - 破られた不変条件と原因候補を分けた。
 - 局所修正評価と不変条件テスト観点を返した。
 - 命名、関数分割、テスト網羅性を主判定にしなかった。
-- 完了判断材料として、挙動一致度、破られた不変条件、原因候補、局所修正評価、根拠が返っている。
-- 残留リスクとして、未確認範囲と理由が返っている。
-- 判定が 失敗 または 停止 の場合は、出力全文が `work_history/runs/<run>/review-reject-behavior.md` に追記されている。
+- 完了判断材料として、`must_fix_open`、`max_level`、挙動一致度、破られた不変条件、原因候補、局所修正評価、根拠が記録されている。
+- 残留リスクとして、未確認範囲と理由が記録されている。
+- `review_status` が `issues_open` または `stopped` の場合は、差し戻し YAML が `work_history/runs/<run>/review-reject-behavior.yaml` に追記されている。
 
 ## 停止規約
 
 - `レビュー対象差分` が不足する場合は停止する。
 - `実装目的` が不足する場合は停止する。
+- `レビューYAMLパス` が不足する場合は停止する。
+- `差し戻しYAMLパス` が不足する場合は停止する。
 - 外部成果物 が不足または衝突する場合は停止する。
 - 挙動正しさ以外の観点を主判定にしそうな場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

@@ -1,6 +1,6 @@
 ---
 name: codex-work-reporting
-description: Codex 側の run 全体レポート作業プロトコル。Codex / Codex implementation レーン ベンチマーク値 と レビュー差し戻しレポート から work_history レポート と次回改善事項を残す判断基準を提供する。
+description: Codex 側の run 全体レポート作業プロトコル。Codex / Codex implementation レーン ベンチマーク値 と レビュー差し戻し YAML から work_history レポート と次回改善事項を残す判断基準を提供する。
 ---
 # Codex Work Reporting
 
@@ -9,8 +9,8 @@ description: Codex 側の run 全体レポート作業プロトコル。Codex / 
 `codex-work-reporting` は作業プロトコルである。
 Codex 作業流れ の完了、停止、戻し時に、`work_history` へ残す run 全体レポート 材料を整理する。
 Codex と Codex implementation レーン の ベンチマーク値、レビュー差し戻し、検証結果 を同じ run 単位で集約する。
-問題点の抽出は、ベンチマークスクリプトの出力と レビュー差し戻しレポート を主材料にする。
-work_reporter は benchmark script 結果とレビュー差し戻しレポートだけを前提にする。
+問題点の抽出は、ベンチマークスクリプトの出力と `review-reject-*.yaml` を主材料にする。
+work_reporter は benchmark script 結果とレビュー差し戻し YAML だけを前提にする。
 
 この skill は実行主体ではない。
 実行境界は参照元 agent TOML に従い、完了条件と停止条件は参照元 skill に従う。
@@ -42,7 +42,7 @@ work_reporter は benchmark script 結果とレビュー差し戻しレポート
 - `work_history/templates/run/codex.md` の記入観点
 - `work_history/templates/run/codex.md` の記入観点
 - `analysis/benchmark-score.json` の session、metrics、scores
-- `work_history/runs/<run>/review-reject-*.md` のレビュー差し戻し出力
+- `work_history/runs/<run>/review-reject-*.yaml` のレビュー差し戻し出力
 - 改善、時間、無駄、困りごとの分離
 - Codex 固有の設計、人間介入、引き継ぎ、正本化判断の記録
 - Codex implementation レーン 固有の 完了済み引き継ぎ、変更ファイル、検証、残留 の記録
@@ -92,13 +92,13 @@ benchmark は次回改善用の観測値である。
 
 - `work_reporter` は最後に必ず run 全体レポート を作る。
 - 置き場所は `work_history/runs/YYYY-MM-DD-<task-id>-run/` に固定する。
-- 問題点の抽出は `analysis/benchmark-score.json` と `review-reject-*.md` を主材料にする。
+- 問題点の抽出は `analysis/benchmark-score.json` と `review-reject-*.yaml` を主材料にする。
 - `README.md` は人間向け run 全体レポート と benchmark summary にする。
 - `codex.md` は `work_reporter` が 根拠 から生成する。
 - 事実と判断材料を分ける。
 - 分からない項目は `未確認`、`不明`、`なし` のいずれかで明示する。
-- Codex implementation レーン 側の実装事実は、run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる範囲だけ転記する。
-- ベンチマーク値 欠落、レビュー差し戻しレポート 欠落、benchmark script 入力不足 は次回改善 指摘 として扱う。
+- Codex implementation レーン 側の実装事実は、run 内レポート、benchmark script 結果、レビュー差し戻し YAML から確認できる範囲だけ転記する。
+- ベンチマーク値 欠落、レビュー差し戻し YAML 欠落、benchmark script 入力不足 は次回改善 指摘 として扱う。
 - 速度指標は改善観測であり、初期終了判定には使わない。
 - `.codex/history` には触れず、`work_history/` を使う。
 - レポートは次回の指示、引き継ぎ、雛形 改善へ戻せる粒度にする。
@@ -106,9 +106,9 @@ benchmark は次回改善用の観測値である。
 - `work_reporter` で run 全体レポート を作る
 - `work_history/runs/YYYY-MM-DD-<task-id>-run/` を唯一の レポート 置き場所にする
 - `analysis/benchmark-score.json` を agent が最初に読む材料として扱う
-- `review-reject-*.md` を レビュー差し戻しの問題抽出材料として扱う
+- `review-reject-*.yaml` を レビュー差し戻しの問題抽出材料として扱う
 - Codex が実際に見た 根拠 と推測を分ける
-- Codex implementation レーンの事実は run 内レポート、benchmark script 結果、レビュー差し戻しレポートからだけ扱う
+- Codex implementation レーンの事実は run 内レポート、benchmark script 結果、レビュー差し戻し YAML からだけ扱う
 - 人間が次に見るべきパスや コマンド を残す
 - 重要エラーと未実行 検証 を短く明示する
 
@@ -127,10 +127,10 @@ benchmark は次回改善用の観測値である。
 - 不足情報: レポート生成を完了できない不足項目を返す。
 - 次判断材料: 人間または `implement_lane` が次を判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
-- レポートパス: README.md、codex.md、analysis/benchmark-score.json、review-reject-*.md のパスまたは未作成確認を返す。
+- レポートパス: README.md、codex.md、analysis/benchmark-score.json、review-reject-*.yaml のパスまたは未作成確認を返す。
 - benchmark summary: session count、metrics、scores を分かる範囲で返す。不足は 阻害要因 ではなく次回改善事項にする。
-- Codex レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す。
-- Codex implementation レーン レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻しレポートから確認できる完了 引き継ぎ、変更ファイル、検証結果、統合 レビュー 結果、残留リスク、次に見るべき場所を返す。
+- Codex レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻し YAML から確認できる結果、未完了、重要エラー、検証不足、次に見るべき場所を返す。
+- Codex implementation レーン レポート summary: run 内レポート、benchmark script 結果、レビュー差し戻し YAML から確認できる完了 引き継ぎ、変更ファイル、検証結果、統合 レビュー 結果、残留リスク、次に見るべき場所を返す。
 - run 全体 指摘: 改善すべきこと、時間がかかったこと、無駄だったこと、困ったこと、検証で不足したことを返す。
 - benchmark 品質 指摘: ベンチマーク値、レポート、実行定義、script 入力、script 出力 の欠落または破損を次回改善事項として返す。
 - 次回改善: 指示、引き継ぎ、雛形、ベンチマーク採点の改善を返す。
@@ -144,12 +144,12 @@ benchmark は次回改善用の観測値である。
 - `work_history/templates/run/README.md` の必須項目を確認した。
 - `work_history/templates/run/codex.md` の必須項目を確認した。
 - `analysis/benchmark-score.json` を run 全体ベンチマーク の入力として扱った。
-- `review-reject-*.md` を確認し、レビュー差し戻し出力から問題点を抽出した。
-- 問題点はベンチマークスクリプト出力とレビュー差し戻しレポートから抽出した。
+- `review-reject-*.yaml` を確認し、レビュー差し戻し出力から問題点を抽出した。
+- 問題点はベンチマークスクリプト出力とレビュー差し戻し YAML から抽出した。
 - 改善、時間、無駄、困りごとを分けた。
 - 人間介入、引き継ぎ、docs 正本化判断を記録対象にした。
-- implementation レーンの事実を run 内レポート、benchmark script 結果、レビュー差し戻しレポートからだけ扱った。
-- 必須根拠として、ベンチマーク値 json または不足理由、レビュー差し戻しレポートまたは未作成確認、レポート 雛形 paths、利用可能な 検証結果 がある。
+- implementation レーンの事実を run 内レポート、benchmark script 結果、レビュー差し戻し YAML からだけ扱った。
+- 必須根拠として、ベンチマーク値 json または不足理由、レビュー差し戻し YAML または未作成確認、レポート 雛形 paths、利用可能な 検証結果 がある。
 - 完了判断材料として、work_history/runs/<run>/README.md と codex.md が ベンチマーク値 と 根拠 から生成され、次回改善事項が明示されている。
 - 残留リスクとして、未確認または不明な 不足 が返っている。
 
@@ -161,7 +161,7 @@ benchmark は次回改善用の観測値である。
 - 速度の数値閾値で終了可否を判定する時
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - run 対象が不足する場合は停止する。
-- benchmark とレビュー差し戻しレポートの有無を確認できない場合は停止する。
+- benchmark とレビュー差し戻し YAML の有無を確認できない場合は停止する。
 - レポート書き込み先が `work_history/runs` 外になる場合は停止する。
 - implementation レーンの事実と推測を区別できない場合は停止する。
 - 必須レポートパスを特定できない場合は停止する。

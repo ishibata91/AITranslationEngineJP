@@ -51,14 +51,14 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `contract_freeze`, `統合境界実装?` | `implementation_implementer` |
 | `実装後単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
 | `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `実装後単体テスト?` | なし |
-| `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant` |
+| `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 
 ### レビュー集約規約
 
-`implement_lane` は 4 観点レビュー結果を集約し、`implementation_action` を決める。
-レビュー agent は自観点の判定だけを返し、集約判断は行わない。
+`implement_lane` は 5 観点レビュー結果を集約し、`implementation_action` を決める。
+レビュー agent は自観点のゲート判断材料を `reviewback.<観点>.yaml` にだけ記録し、集約判断は行わない。
 
 優先度は次の順で固定する。
 
@@ -66,11 +66,18 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | --- | --- | --- | --- |
 | 1 | behavior | `review_behavior` | 挙動正しさの失敗または停止を最優先で扱う |
 | 2 | security | `review_trust_boundary` | 権限・信頼境界の失敗または停止を次に扱う |
-| 3 | その他 | `review_contract`, `review_state_invariant` | 契約・互換性、状態・データ不変条件を扱う |
+| 3 | responsibility_boundary | `review_responsibility_boundary` | 責務境界の失敗または停止を扱う |
+| 4 | その他 | `review_contract`, `review_state_invariant` | 契約・互換性、状態・データ不変条件を扱う |
 
 上位優先の観点が失敗または停止した場合、下位観点の通過で相殺しない。
 同じ優先内に複数の失敗または停止がある場合は、すべて residual として保持する。
 `implementation_action` は `close`、`report_residual`、`fix`、`rerun_validation`、`rerun_codex_review` のいずれかにする。
+
+`reviewback.<観点>.yaml` は `docs/exec-plans/active/<task-id>/` に置く。
+`implement_lane` は各 YAML の `must_fix_open` と `max_level` を読む。
+`blocker`、`critical`、`major` は修正必須問題として扱う。
+`minor`、`nit` は修正推奨問題として扱い、単独では修正必須にしない。
+権限・信頼境界の `hard_gate: true` は他観点で相殺しない。
 
 シナリオ 候補生成器は次の 6 体に固定する。
 
@@ -89,8 +96,11 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
 - `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
-- レビュー agent を起動する前に、差し戻し記録を追記する現行 run の `work_history/runs/<run>/` を確定する。
-- レビュー agent の結果は レビュー集約規約 の優先度で集約する。
+- レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダと、ワークフロー改善用 `review-reject-<観点>.yaml` の現行 run フォルダを確定する。
+- レビュー agent の結果は `reviewback.<観点>.yaml` の `must_fix_open`、`max_level`、`review_status` から レビュー集約規約 の優先度で集約する。
+- `blocker`、`critical`、`major` の未解決指摘がある場合は `implementation_action` を `fix` または `rerun_codex_review` にする。
+- `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
+- 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
 - `implement_lane` は implementation agent と レビュー agent を直接 起動 し、起動 先 agent に下位 agent を 起動 させない。
 - 承認済み `design-bundle` 成果物 がある場合は、その 成果物 を優先する。
@@ -118,9 +128,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
-- `レビュー通過根拠` は behavior、security、その他 の優先度で集約され、`implementation_action` が固定されている。
+- `レビュー通過根拠` は 5 観点の `reviewback.<観点>.yaml` から behavior、security、responsibility_boundary、その他 の優先度で集約され、`implementation_action` が固定されている。
 - DAGで必須とされている成果物が全て用意できていること。
-- レビュー agent が 失敗 または 停止 を返した場合は、対応する `work_history/runs/<run>/review-reject-<観点>.md` への追記結果が確認されている。
+- 5 観点すべての `reviewback.<観点>.yaml` に `must_fix_open`、`max_level`、`review_status` が記録されている。
+- レビュー agent が 失敗 または 停止 を返した場合は、対応する `work_history/runs/<run>/review-reject-<観点>.yaml` への追記結果が確認されている。
 - `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - 最終検証として `python3 scripts/harness/run.py --suite all` を実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
