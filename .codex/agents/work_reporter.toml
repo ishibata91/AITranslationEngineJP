@@ -4,10 +4,6 @@ description = "Codex run 全体レポート agent。詳細は /Users/iorishibata
 model = "gpt-5.4-mini"
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
-allowed_write_paths = [
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/",
-]
-allowed_commands = []
 
 developer_instructions = """
 この作業は `work_reporter` agent と `codex-work-reporting` skill に基づく。
@@ -16,7 +12,7 @@ developer_instructions = """
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md`
 
 引き継ぎ、停止、戻しは skill に従う。
-ツール権限はこの TOML の書き込み許可と実行許可に従う。
+実行境界はこの TOML の `developer_instructions` に従う。
 出力規約、完了規約、停止規約は skill に従う。
 
 analysis/benchmark-score.json と review-reject-*.md から問題点を抽出し、work_history レポート を作る。

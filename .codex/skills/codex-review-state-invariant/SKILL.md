@@ -27,7 +27,7 @@ DB、キャッシュ、非同期処理、再実行、同時実行で壊れない
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [review_state_invariant.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_state_invariant.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [review_state_invariant.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_state_invariant.toml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約

@@ -13,7 +13,7 @@ Codex と Codex implementation レーン の ベンチマーク値、レビュ�
 work_reporter は benchmark script 結果とレビュー差し戻しレポートだけを前提にする。
 
 この skill は実行主体ではない。
-ツール権限 は参照元 agent TOML に従い、完了条件と停止条件は参照元 skill に従う。
+実行境界は参照元 agent TOML に従い、完了条件と停止条件は参照元 skill に従う。
 
 ## 対応ロール
 
@@ -30,7 +30,7 @@ work_reporter は benchmark script 結果とレビュー差し戻しレポート
 - run index 雛形: [README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/README.md)
 - Codex レポート 雛形: [codex.md](/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/templates/run/codex.md)
 - 実行定義 agent: [work_reporter.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/work_reporter.toml)
-- エージェント実行定義とツール権限は [work_reporter.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/work_reporter.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [work_reporter.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/work_reporter.toml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-work-reporting/SKILL.md
 

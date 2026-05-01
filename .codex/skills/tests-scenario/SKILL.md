@@ -27,7 +27,7 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [implementation_scenario_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_scenario_tester.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [implementation_scenario_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_scenario_tester.toml) に従う。
 - テストコーディング規約: [coding-guidelines-tests.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-tests.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。

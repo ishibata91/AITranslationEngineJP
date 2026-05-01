@@ -4,24 +4,7 @@ description = "Codex implementation investigation agent。詳細は /Users/ioris
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-allowed_write_paths = [
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/internal/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/tmp/agent-browser/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/tmp/logs/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/test-results/",
-]
-allowed_commands = [
-  "python3 scripts/harness/run.py --suite backend-local",
-  "python3 scripts/harness/run.py --suite frontend-local",
-  "npm run dev:wails:agent-browser",
-  "agent-browser doctor --offline --quick",
-  "agent-browser open http://localhost:34115",
-  "agent-browser snapshot",
-  "agent-browser console",
-  "agent-browser screenshot <output_path>",
-  "agent-browser close",
-]
+
 developer_instructions = """
 この作業は `implementation_investigator` agent と `implementation-investigate` skill に基づく。
 
@@ -35,8 +18,8 @@ developer_instructions = """
 - `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reobserve/SKILL.md`
 
 引き継ぎ、停止、戻しは skill に従う。
-ツール権限はこの TOML の書き込み許可と実行許可に従う。
+実行境界はこの TOML の `developer_instructions` に従う。
 出力規約、完了規約、停止規約は skill に従う。
 恒久修正や プロダクトテスト 追加は行わず、実装時の証跡だけを扱う。
-書き込み許可は承認済み実装範囲内の一時観測変更、`tmp/agent-browser/`、`tmp/logs/`、検証出力の `test-results/` に限る。
+書き換え範囲は承認済み実装範囲内の一時観測変更、`tmp/agent-browser/`、`tmp/logs/`、検証出力の `test-results/` に限る。
 """

@@ -4,17 +4,6 @@ description = "Codex 新規実装レーン 進行役。新規実装と機能拡�
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
-allowed_write_paths = [
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/completed/",
-]
-allowed_commands = [
-  "bash .codex/skills/extract-skill-template-section.sh --list <skill-path>/SKILL.md",
-  "bash .codex/skills/extract-skill-template-section.sh <skill-path>/SKILL.md <heading>",
-  "python3 scripts/harness/run.py --suite scenario-gate",
-  "python3 scripts/harness/run.py --suite all",
-  "npm run scan:sonar",
-]
 
 developer_instructions = """
 あなたは `implement_lane` agent である。
@@ -34,8 +23,8 @@ developer_instructions = """
 skill は実行プロトコルである。
 skill は入力規約、遵守すべき外部規約、判断規約、出力規約、完了規約、停止規約を定義する。
 
-ツール権限はこの TOML の書き込み許可と実行許可に従う。
-この TOML の 身元定義 と境界、skill、ツール権限 が衝突する場合は停止する。
+実行境界はこの TOML の `developer_instructions` に従う。
+この TOML の 身元定義 と実行境界、skill が衝突する場合は停止する。
 implementation agent と レビュー agent はこの agent が直接 起動 する。
 起動 先 agent に下位 agent を 起動 させない。
 """

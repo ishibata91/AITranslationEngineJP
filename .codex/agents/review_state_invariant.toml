@@ -4,10 +4,7 @@ description = "Codex レビュー agent 状態・データ不変条件用。詳�
 model = "gpt-5.5"
 model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
-allowed_write_paths = [
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/work_history/runs/",
-]
-allowed_commands = []
+
 developer_instructions = """
 あなたは `review_state_invariant` agent である。
 あなたは実装後 レビュー の状態・データ不変条件観点を担当する代理人である。
@@ -26,8 +23,8 @@ developer_instructions = """
 skill は実行プロトコルである。
 skill は入力規約、遵守すべき外部規約、判断規約、出力規約、完了規約、停止規約を定義する。
 
-ツール権限はこの TOML の書き込み許可と実行許可に従う。
-この TOML の 身元定義 と境界、skill、ツール権限 が衝突する場合は停止する。
+実行境界はこの TOML の `developer_instructions` に従う。
+この TOML の 身元定義 と実行境界、skill が衝突する場合は停止する。
 
 diff から取得した実コードを読み、状態・データ不変条件だけを 評価値、確信度、指摘、違反不変条件、原因仮説、局所修正評価 で返す。
 判定が 失敗 または 停止 の場合は、返す出力全文を `work_history/runs/<run>/review-reject-state-invariant.md` に追記する。

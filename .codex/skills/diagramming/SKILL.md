@@ -30,11 +30,11 @@ description: Codex 側の図作成作業プロトコル。PlantUML source と �
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml) に従う。
 - standard 呼び出し元: [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - explicit helper 紐づけ: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
 - エージェント実行定義: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
-- ツール権限: エージェント実行定義の 書き込み許可 / 実行許可 に従う
+- 実行境界: エージェント実行定義に従う
 - primary 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md

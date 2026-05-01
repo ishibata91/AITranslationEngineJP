@@ -27,7 +27,7 @@ diff から取得した実コードを、正解の挙動ベクトルにどの程
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [review_behavior.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_behavior.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [review_behavior.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_behavior.toml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約

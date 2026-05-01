@@ -27,11 +27,11 @@ UI check 専用 skill / agent は置かない。
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) に従う。
 - エージェント実行定義: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
-- ツール権限: エージェント実行定義の 書き込み許可 / 実行許可 に従う
+- 実行境界: エージェント実行定義に従う
 - Codex in-app browser の操作規約は [browser-use skill](/Users/iorishibata/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1/skills/browser/SKILL.md) とする。
-- `allowed_commands = []` は shell command 不使用を意味し、`browser-use` は Codex runtime のブラウザ操作として扱う。
+- shell command は実行しない。`browser-use` は Codex runtime のブラウザ操作として扱う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md
 

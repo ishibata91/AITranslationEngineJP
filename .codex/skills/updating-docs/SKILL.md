@@ -29,11 +29,11 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml) に従う。
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - エージェント実行定義: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - 禁止対象: プロダクトコード、プロダクトテスト、作業流れ / skill / エージェント実行定義の変更
-- ツール権限: エージェント実行定義の 書き込み許可 / 実行許可 に従う
+- 実行境界: エージェント実行定義に従う
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。

@@ -25,7 +25,7 @@ description: Codex 側の state-transition シナリオ 候補生成 skill。状
 
 ## 外部参照規約
 
-- エージェント実行定義とツール権限は [scenario_state_transition_generator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/scenario_state_transition_generator.toml) の 書き込み許可 / 実行許可 とする。
+- エージェント実行定義と実行境界は [scenario_state_transition_generator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/scenario_state_transition_generator.toml) に従う。
 - 要件正本: [spec.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/spec.md) とする。
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。

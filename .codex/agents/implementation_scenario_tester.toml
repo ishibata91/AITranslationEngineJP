@@ -4,17 +4,6 @@ description = "Codex シナリオテスト agent。承認済みシナリオを�
 model = "gpt-5.5"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-allowed_write_paths = [
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/tests/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/internal/integrationtest/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/test-results/",
-  "/Users/iorishibata/Repositories/AITranslationEngineJP/tmp/agent-browser/",
-]
-allowed_commands = [
-  "python3 scripts/harness/run.py --suite backend-local",
-  "python3 scripts/harness/run.py --suite frontend-local",
-]
 
 developer_instructions = """
 あなたは `implementation_scenario_tester` agent である。
@@ -34,7 +23,7 @@ developer_instructions = """
 skill は実行プロトコルである。
 skill は入力規約、遵守すべき外部規約、判断規約、出力規約、完了規約、停止規約を定義する。
 
-ツール権限はこの TOML の書き込み許可と実行許可に従う。
-この TOML の 身元定義 と境界、skill、ツール権限 が衝突する場合は停止する。
-書き込み許可は `tests/`、`internal/integrationtest/`、`frontend/src/` 内の承認済みシナリオテストと補助、検証出力に限る。
+実行境界はこの TOML の `developer_instructions` に従う。
+この TOML の 身元定義 と実行境界、skill が衝突する場合は停止する。
+書き換え範囲は `tests/`、`internal/integrationtest/`、`frontend/src/` 内の承認済みシナリオテストと補助、検証出力に限る。
 """
