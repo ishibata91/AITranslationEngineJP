@@ -45,7 +45,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - ユーザーが利用することを前提に、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせる
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
-
+- 明確なブロッカーがない限りはレーンを中断せずに成果物の生成を継続すること。
 - 単一引き継ぎ入力、affected UI flow を確認する
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認する
 - console エラー の有無を 終了処理 に残す
