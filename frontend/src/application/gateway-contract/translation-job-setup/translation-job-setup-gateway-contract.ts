@@ -145,8 +145,7 @@ export interface TranslationJobSetupScreenState {
   summary: TranslationJobSetupSummaryResponse | null
 }
 
-export interface TranslationJobSetupScreenViewModel
-  extends TranslationJobSetupScreenState {
+export interface TranslationJobSetupScreenViewModel extends TranslationJobSetupScreenState {
   gatewayStatus: string
   selectedInputCandidate: TranslationJobSetupInputCandidate | null
   selectedRuntimeOption: TranslationJobSetupRuntimeOption | null

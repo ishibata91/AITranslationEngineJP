@@ -63,9 +63,7 @@ interface MasterPersonaScreenControllerDependencies {
   runtimePollingAdapter: MasterPersonaRuntimePollingAdapterLike
 }
 
-export class MasterPersonaScreenController
-  implements MasterPersonaScreenControllerContract
-{
+export class MasterPersonaScreenController implements MasterPersonaScreenControllerContract {
   constructor(
     private readonly dependencies: MasterPersonaScreenControllerDependencies
   ) {}

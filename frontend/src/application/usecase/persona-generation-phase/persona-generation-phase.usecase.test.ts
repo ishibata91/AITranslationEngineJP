@@ -56,7 +56,9 @@ interface GatewayWithSpies {
 
 function createGateway(): GatewayWithSpies {
   const getSummarySpy = vi.fn(
-    (request: { jobId: number }): Promise<PersonaGenerationPhaseSummaryResponse> =>
+    (request: {
+      jobId: number
+    }): Promise<PersonaGenerationPhaseSummaryResponse> =>
       Promise.resolve({
         jobId: request.jobId,
         currentPhase: "persona_generation",
@@ -113,7 +115,9 @@ function createGateway(): GatewayWithSpies {
       }
     })
   )
-  const command = (phaseState: string): PersonaGenerationPhaseCommandResponse => ({
+  const command = (
+    phaseState: string
+  ): PersonaGenerationPhaseCommandResponse => ({
     jobId: 10,
     currentPhase: "persona_generation",
     phaseState,
@@ -176,16 +180,53 @@ function baseSummary(): PersonaGenerationPhaseSummaryResponse {
     currentPhase: "persona_generation",
     phaseState: "running",
     phaseRunId: 77,
-    progress: { percent: 0, processedCount: 0, totalCount: 10, targetCount: 10, currentStep: "running" },
-    targetSummary: { targetCount: 10, commonPersonaHitCount: 0, commonPersonaMissCount: 10, skippedCount: 0, skippedReasons: [], targetSnapshotDigest: "sha256:1" },
-    execution: { credentialRef: "cred", provider: "fake", model: "m", executionMode: "single_request", promptDigest: "sha256:1", inputCount: 10, outputCount: 0, evidenceRefs: [] },
-    actionEnablement: { canStart: false, canPause: true, canResume: false, canRetry: false, canCancel: true, canStartBodyPhase: false }
+    progress: {
+      percent: 0,
+      processedCount: 0,
+      totalCount: 10,
+      targetCount: 10,
+      currentStep: "running"
+    },
+    targetSummary: {
+      targetCount: 10,
+      commonPersonaHitCount: 0,
+      commonPersonaMissCount: 10,
+      skippedCount: 0,
+      skippedReasons: [],
+      targetSnapshotDigest: "sha256:1"
+    },
+    execution: {
+      credentialRef: "cred",
+      provider: "fake",
+      model: "m",
+      executionMode: "single_request",
+      promptDigest: "sha256:1",
+      inputCount: 10,
+      outputCount: 0,
+      evidenceRefs: []
+    },
+    actionEnablement: {
+      canStart: false,
+      canPause: true,
+      canResume: false,
+      canRetry: false,
+      canCancel: true,
+      canStartBodyPhase: false
+    }
   }
 }
 
 describe("PersonaGenerationPhaseUseCase", () => {
   test("gateway 未接続時はエラーを状態に出す", async () => {
-    const store = createStore({ jobId: 10, phase: "idle", summary: null, bodyReadiness: null, errorMessage: "", pendingAction: null, hasLoaded: false })
+    const store = createStore({
+      jobId: 10,
+      phase: "idle",
+      summary: null,
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: false
+    })
     const usecase = new PersonaGenerationPhaseUseCase(null, store)
 
     await usecase.refresh()
@@ -195,8 +236,19 @@ describe("PersonaGenerationPhaseUseCase", () => {
 
   test("summary load と start/pause/resume/retry/cancel を実行できる", async () => {
     const gatewayBundle = createGateway()
-    const store = createStore({ jobId: 10, phase: "idle", summary: baseSummary(), bodyReadiness: null, errorMessage: "", pendingAction: null, hasLoaded: false })
-    const usecase = new PersonaGenerationPhaseUseCase(gatewayBundle.gateway, store)
+    const store = createStore({
+      jobId: 10,
+      phase: "idle",
+      summary: baseSummary(),
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: false
+    })
+    const usecase = new PersonaGenerationPhaseUseCase(
+      gatewayBundle.gateway,
+      store
+    )
 
     await usecase.load()
     await usecase.startPhase()
@@ -207,22 +259,49 @@ describe("PersonaGenerationPhaseUseCase", () => {
 
     expect(gatewayBundle.getSummarySpy).toHaveBeenCalled()
     expect(gatewayBundle.startSpy).toHaveBeenCalledWith({ jobId: 10 })
-    expect(gatewayBundle.pauseSpy).toHaveBeenCalledWith({ jobId: 10, phaseRunId: 77 })
-    expect(gatewayBundle.resumeSpy).toHaveBeenCalledWith({ jobId: 10, phaseRunId: 77 })
-    expect(gatewayBundle.retrySpy).toHaveBeenCalledWith({ jobId: 10, phaseRunId: 77 })
-    expect(gatewayBundle.cancelSpy).toHaveBeenCalledWith({ jobId: 10, phaseRunId: 77 })
+    expect(gatewayBundle.pauseSpy).toHaveBeenCalledWith({
+      jobId: 10,
+      phaseRunId: 77
+    })
+    expect(gatewayBundle.resumeSpy).toHaveBeenCalledWith({
+      jobId: 10,
+      phaseRunId: 77
+    })
+    expect(gatewayBundle.retrySpy).toHaveBeenCalledWith({
+      jobId: 10,
+      phaseRunId: 77
+    })
+    expect(gatewayBundle.cancelSpy).toHaveBeenCalledWith({
+      jobId: 10,
+      phaseRunId: 77
+    })
   })
 
   test("Wails 未接続エラーは文言を保持して redacted エラー表示状態に載せる", async () => {
     const gatewayBundle = createGateway()
     gatewayBundle.getSummarySpy.mockRejectedValueOnce(
-      new Error("Wails binding is not wired yet: GetPersonaGenerationPhaseSummary")
+      new Error(
+        "Wails binding is not wired yet: GetPersonaGenerationPhaseSummary"
+      )
     )
-    const store = createStore({ jobId: 10, phase: "idle", summary: null, bodyReadiness: null, errorMessage: "", pendingAction: null, hasLoaded: false })
-    const usecase = new PersonaGenerationPhaseUseCase(gatewayBundle.gateway, store)
+    const store = createStore({
+      jobId: 10,
+      phase: "idle",
+      summary: null,
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: false
+    })
+    const usecase = new PersonaGenerationPhaseUseCase(
+      gatewayBundle.gateway,
+      store
+    )
 
     await usecase.refresh()
 
-    expect(store.snapshot().errorMessage).toContain("Wails binding is not wired yet")
+    expect(store.snapshot().errorMessage).toContain(
+      "Wails binding is not wired yet"
+    )
   })
 })

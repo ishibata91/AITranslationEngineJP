@@ -45,6 +45,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
 - Codex agent の人間可読な実行説明は対応する `skills/*/SKILL.md` に置き、紐づけ と `sandbox_mode` は `agents/<agent>.toml` に置き、入力、出力、完了、停止の規約は対応する `skills/*/SKILL.md` に置く
+- サンドボックス外で実行してよい command prefix は `.codex/rules/default.rules` の Codex rules に置く
 - `.agent.md` は使わない
 
 ## 形式規約

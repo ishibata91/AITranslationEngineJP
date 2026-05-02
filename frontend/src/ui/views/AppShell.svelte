@@ -53,7 +53,8 @@
   )
 
   let currentRouteId = $state<ShellRouteId>("dashboard")
-  let selectedTranslationManagementViewId = $state<TranslationManagementViewId | null>(null)
+  let selectedTranslationManagementViewId =
+    $state<TranslationManagementViewId | null>(null)
   let isMobileNavOpen = $state(false)
 
   const fallbackRoute: ShellRouteContract = {
@@ -72,7 +73,6 @@
     selectedTranslationManagementViewId ?? defaultTranslationManagementViewId
   )
   const dashboardEntryRoutes = $derived(
-  
     routes.filter((route) => route.id !== "dashboard")
   )
 
@@ -230,10 +230,16 @@
               <h2>Input Review / Job Setup / Job Run</h2>
             </div>
           </div>
-          <div class="section-tab-row" role="tablist" aria-label="Translation Management sections">
+          <div
+            class="section-tab-row"
+            role="tablist"
+            aria-label="Translation Management sections"
+          >
             {#each translationManagementViews as view (view.id)}
               <button
-                aria-selected={view.id === currentTranslationManagementViewId ? "true" : "false"}
+                aria-selected={view.id === currentTranslationManagementViewId
+                  ? "true"
+                  : "false"}
                 class="section-tab"
                 class:is-active={view.id === currentTranslationManagementViewId}
                 onclick={() => selectTranslationManagementView(view.id)}

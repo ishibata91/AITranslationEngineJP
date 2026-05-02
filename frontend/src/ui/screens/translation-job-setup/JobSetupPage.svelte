@@ -13,14 +13,13 @@
     onReturnToInputReview?: (() => void) | null
   }
 
-  let {
-    createController,
-    onReturnToInputReview = null
-  }: Props = $props()
+  let { createController, onReturnToInputReview = null }: Props = $props()
 
   function resolveController(): TranslationJobSetupScreenControllerContract {
     if (!createController) {
-      throw new Error("translation job setup screen controller factory is not provided")
+      throw new Error(
+        "translation job setup screen controller factory is not provided"
+      )
     }
 
     return createController()
@@ -55,7 +54,11 @@
     return date.toLocaleString("ja-JP")
   }
 
-  function formatRuntimeLabel(provider: string, model: string, mode: string): string {
+  function formatRuntimeLabel(
+    provider: string,
+    model: string,
+    mode: string
+  ): string {
     return `${provider} / ${model} / ${mode}`
   }
 
@@ -74,7 +77,8 @@
       <p class="gateway-status">Gateway: {viewModel.gatewayStatus}</p>
     </div>
     <p class="lead">
-      入力、共通基盤、AI runtime、validation、create result を同じ画面で確認し、create 条件を満たした時だけ ready job を作成します。
+      入力、共通基盤、AI runtime、validation、create result
+      を同じ画面で確認し、create 条件を満たした時だけ ready job を作成します。
     </p>
     <p class="status-copy">
       <strong>{viewModel.validationStatusLabel}</strong>
@@ -84,7 +88,9 @@
       <strong>create</strong>
       <span>{viewModel.createStatusText}</span>
     </p>
-    <p class="error-text" hidden={!viewModel.errorMessage}>{viewModel.errorMessage}</p>
+    <p class="error-text" hidden={!viewModel.errorMessage}>
+      {viewModel.errorMessage}
+    </p>
   </section>
 
   {#if viewModel.summary}
@@ -108,11 +114,15 @@
           </div>
           <div>
             <dt>provider</dt>
-            <dd class="wrap-value">{viewModel.summary.executionSummary.provider}</dd>
+            <dd class="wrap-value">
+              {viewModel.summary.executionSummary.provider}
+            </dd>
           </div>
           <div>
             <dt>model</dt>
-            <dd class="wrap-value">{viewModel.summary.executionSummary.model}</dd>
+            <dd class="wrap-value">
+              {viewModel.summary.executionSummary.model}
+            </dd>
           </div>
           <div>
             <dt>execution mode</dt>
@@ -121,7 +131,10 @@
         </dl>
       </section>
 
-      <section class="job-setup-card" aria-labelledby="jobSetupPassSlicesHeading">
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupPassSlicesHeading"
+      >
         <div class="section-head">
           <div>
             <p class="eyebrow">validation pass</p>
@@ -147,12 +160,16 @@
             <p class="eyebrow">input</p>
             <h3 id="jobSetupInputHeading">入力データ</h3>
           </div>
-          <span class="mini-text">{viewModel.isLoading ? "loading" : "ready"}</span>
+          <span class="mini-text"
+            >{viewModel.isLoading ? "loading" : "ready"}</span
+          >
         </div>
         <label class="field-block" for="jobSetupInputSelect">
           <span>input data</span>
           <select
-            disabled={viewModel.isLoading || viewModel.isValidating || viewModel.isCreating}
+            disabled={viewModel.isLoading ||
+              viewModel.isValidating ||
+              viewModel.isCreating}
             id="jobSetupInputSelect"
             onchange={(event) => {
               const target = event.currentTarget
@@ -191,7 +208,10 @@
         </dl>
       </section>
 
-      <section class="job-setup-card" aria-labelledby="jobSetupFoundationHeading">
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupFoundationHeading"
+      >
         <div class="section-head">
           <div>
             <p class="eyebrow">foundation and runtime</p>
@@ -227,7 +247,9 @@
         <label class="field-block" for="jobSetupRuntimeSelect">
           <span>provider / model / execution mode</span>
           <select
-            disabled={viewModel.isLoading || viewModel.isValidating || viewModel.isCreating}
+            disabled={viewModel.isLoading ||
+              viewModel.isValidating ||
+              viewModel.isCreating}
             id="jobSetupRuntimeSelect"
             onchange={(event) => {
               const target = event.currentTarget
@@ -247,7 +269,9 @@
         <label class="field-block" for="jobSetupCredentialSelect">
           <span>credential reference</span>
           <select
-            disabled={viewModel.isLoading || viewModel.isValidating || viewModel.isCreating}
+            disabled={viewModel.isLoading ||
+              viewModel.isValidating ||
+              viewModel.isCreating}
             id="jobSetupCredentialSelect"
             onchange={(event) => {
               const target = event.currentTarget
@@ -267,7 +291,10 @@
         <p class="mini-text">{viewModel.credentialStateText}</p>
       </section>
 
-      <section class="job-setup-card" aria-labelledby="jobSetupValidationHeading">
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupValidationHeading"
+      >
         <div class="section-head">
           <div>
             <p class="eyebrow">validation</p>
@@ -287,7 +314,8 @@
             <dt>状態</dt>
             <dd>
               {#if viewModel.validationResult}
-                {VALIDATION_LABELS[viewModel.validationResult.status] ?? viewModel.validationResult.status}
+                {VALIDATION_LABELS[viewModel.validationResult.status] ??
+                  viewModel.validationResult.status}
               {:else}
                 validation 未実行
               {/if}
@@ -299,7 +327,9 @@
           </div>
           <div>
             <dt>blocking failure</dt>
-            <dd class="wrap-value">{viewModel.validationResult?.blockingFailureCategory ?? "-"}</dd>
+            <dd class="wrap-value">
+              {viewModel.validationResult?.blockingFailureCategory ?? "-"}
+            </dd>
           </div>
           <div>
             <dt>dirty state</dt>
@@ -332,8 +362,15 @@
         </div>
         {#if viewModel.showCacheMissingGuidance}
           <div class="callout warning">
-            <p>cache missing は Job Setup で再構築しません。Input Review の再構築導線へ戻ってください。</p>
-            <button class="button-secondary" onclick={openInputReview} type="button">
+            <p>
+              cache missing は Job Setup で再構築しません。Input Review
+              の再構築導線へ戻ってください。
+            </p>
+            <button
+              class="button-secondary"
+              onclick={openInputReview}
+              type="button"
+            >
               Input Review へ戻る
             </button>
           </div>

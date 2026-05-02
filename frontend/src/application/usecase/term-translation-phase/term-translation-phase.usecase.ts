@@ -69,7 +69,9 @@ function patchSummaryFromCommand(
     startedAt: response.startedAt,
     finishedAt: response.finishedAt,
     progress: { ...response.progress },
-    errorSummary: response.errorSummary ? { ...response.errorSummary } : undefined,
+    errorSummary: response.errorSummary
+      ? { ...response.errorSummary }
+      : undefined,
     actionEnablement: {
       ...currentSummary.actionEnablement,
       canRetry: response.retryable,
@@ -136,29 +138,36 @@ export class TermTranslationPhaseUseCase {
 
   async startPhase(): Promise<void> {
     await this.runCommand("start", (jobId) =>
-      this.gateway!.startTermTranslationPhase({ jobId } satisfies StartTermTranslationPhaseRequest)
+      this.gateway!.startTermTranslationPhase({
+        jobId
+      } satisfies StartTermTranslationPhaseRequest)
     )
   }
 
   async pausePhase(): Promise<void> {
     await this.runCommand("pause", (jobId, phaseRunId) =>
-      this.gateway!.pauseTermTranslationPhase(
-        { jobId, phaseRunId } satisfies PauseTermTranslationPhaseRequest
-      )
+      this.gateway!.pauseTermTranslationPhase({
+        jobId,
+        phaseRunId
+      } satisfies PauseTermTranslationPhaseRequest)
     )
   }
 
   async resumePhase(): Promise<void> {
     await this.runCommand("resume", (jobId, phaseRunId) =>
-      this.gateway!.resumeTermTranslationPhase(
-        { jobId, phaseRunId } satisfies ResumeTermTranslationPhaseRequest
-      )
+      this.gateway!.resumeTermTranslationPhase({
+        jobId,
+        phaseRunId
+      } satisfies ResumeTermTranslationPhaseRequest)
     )
   }
 
   async retryPhase(): Promise<void> {
     await this.runCommand("retry", (jobId, phaseRunId) =>
-      this.gateway!.retryTermTranslationPhase({ jobId, phaseRunId } satisfies RetryTermTranslationPhaseRequest)
+      this.gateway!.retryTermTranslationPhase({
+        jobId,
+        phaseRunId
+      } satisfies RetryTermTranslationPhaseRequest)
     )
   }
 
@@ -176,12 +185,12 @@ export class TermTranslationPhaseUseCase {
 
     try {
       const [summary, nextPhaseReadiness] = await Promise.all([
-        this.gateway!.getTermTranslationPhaseSummary(
-          { jobId } satisfies GetTermTranslationPhaseSummaryRequest
-        ),
-        this.gateway!.getTermTranslationNextPhaseReadiness(
-          { jobId } satisfies GetTermTranslationNextPhaseReadinessRequest
-        )
+        this.gateway!.getTermTranslationPhaseSummary({
+          jobId
+        } satisfies GetTermTranslationPhaseSummaryRequest),
+        this.gateway!.getTermTranslationNextPhaseReadiness({
+          jobId
+        } satisfies GetTermTranslationNextPhaseReadinessRequest)
       ])
 
       this.store.update((draft) => {

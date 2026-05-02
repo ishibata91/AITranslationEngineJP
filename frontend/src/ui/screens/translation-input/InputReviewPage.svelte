@@ -19,7 +19,9 @@
 
   function resolveController(): TranslationInputScreenControllerContract {
     if (!createController) {
-      throw new Error("translation input screen controller factory is not provided")
+      throw new Error(
+        "translation input screen controller factory is not provided"
+      )
     }
 
     return createController()
@@ -79,7 +81,9 @@
   }
 
   function formatStatus(localStatus: string): string {
-    return STATUS_LABELS[localStatus as keyof typeof STATUS_LABELS] ?? localStatus
+    return (
+      STATUS_LABELS[localStatus as keyof typeof STATUS_LABELS] ?? localStatus
+    )
   }
 
   function formatErrorKind(errorKind: string | null): string {
@@ -118,7 +122,8 @@
       <p class="gateway-status">Gateway: {viewModel.gatewayStatus}</p>
     </div>
     <p class="lead">
-      1 JSON file を登録し、一覧、概要、sample field、error kind、retry / rebuild 状態を同じページで確認します。
+      1 JSON file を登録し、一覧、概要、sample field、error kind、retry /
+      rebuild 状態を同じページで確認します。
     </p>
     <p class="status-copy">
       <strong>{viewModel.operationStatusLabel}</strong>
@@ -129,7 +134,10 @@
     </p>
   </section>
 
-  <section class="review-card import-card" aria-labelledby="inputReviewImportHeading">
+  <section
+    class="review-card import-card"
+    aria-labelledby="inputReviewImportHeading"
+  >
     <div class="section-head">
       <div>
         <p class="eyebrow">register input</p>
@@ -182,7 +190,10 @@
   </section>
 
   <section class="content-grid">
-    <section class="review-card list-card" aria-labelledby="inputReviewListHeading">
+    <section
+      class="review-card list-card"
+      aria-labelledby="inputReviewListHeading"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">review list</p>
@@ -200,7 +211,9 @@
           {#each viewModel.items as item (item.localId)}
             <div role="listitem">
               <button
-                aria-pressed={item.localId === viewModel.selectedItemId ? "true" : "false"}
+                aria-pressed={item.localId === viewModel.selectedItemId
+                  ? "true"
+                  : "false"}
                 class="review-item"
                 class:is-selected={item.localId === viewModel.selectedItemId}
                 onclick={() => controller.selectItem(item.localId)}
@@ -241,7 +254,10 @@
       {/if}
     </section>
 
-    <section class="review-card detail-card" aria-labelledby="inputReviewDetailHeading">
+    <section
+      class="review-card detail-card"
+      aria-labelledby="inputReviewDetailHeading"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">selected input</p>
@@ -284,15 +300,21 @@
             </div>
             <div>
               <dt>translation record count</dt>
-              <dd>{viewModel.selectedItem.summary?.translationRecordCount ?? 0}</dd>
+              <dd>
+                {viewModel.selectedItem.summary?.translationRecordCount ?? 0}
+              </dd>
             </div>
             <div>
               <dt>translation field count</dt>
-              <dd>{viewModel.selectedItem.summary?.translationFieldCount ?? 0}</dd>
+              <dd>
+                {viewModel.selectedItem.summary?.translationFieldCount ?? 0}
+              </dd>
             </div>
             <div>
               <dt>target plugin</dt>
-              <dd>{viewModel.selectedItem.summary?.input.targetPluginName ?? "-"}</dd>
+              <dd>
+                {viewModel.selectedItem.summary?.input.targetPluginName ?? "-"}
+              </dd>
             </div>
             <div>
               <dt>source tool</dt>
@@ -312,7 +334,9 @@
                 {#each viewModel.selectedItem.summary?.categories ?? [] as category (`${category.category}:${category.recordCount}:${category.fieldCount}`)}
                   <article class="chip-card">
                     <strong>{category.category}</strong>
-                    <p>record {category.recordCount} / field {category.fieldCount}</p>
+                    <p>
+                      record {category.recordCount} / field {category.fieldCount}
+                    </p>
                   </article>
                 {/each}
               </div>
@@ -334,7 +358,11 @@
                   <article class="sample-card">
                     <div class="sample-head">
                       <strong>{field.recordType}:{field.subrecordType}</strong>
-                      <span>{field.translatable ? "translatable" : "non-translatable"}</span>
+                      <span
+                        >{field.translatable
+                          ? "translatable"
+                          : "non-translatable"}</span
+                      >
                     </div>
                     <p>{field.sourceText || "-"}</p>
                     <dl>
@@ -363,7 +391,9 @@
             <div class="chip-grid">
               {#if viewModel.selectedItem.errorKind}
                 <article class="chip-card chip-card-error">
-                  <strong>{formatErrorKind(viewModel.selectedItem.errorKind)}</strong>
+                  <strong
+                    >{formatErrorKind(viewModel.selectedItem.errorKind)}</strong
+                  >
                   <p>登録または再構築で返された error kind</p>
                 </article>
               {/if}

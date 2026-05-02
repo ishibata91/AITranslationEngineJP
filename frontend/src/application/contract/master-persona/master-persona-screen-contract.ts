@@ -30,7 +30,10 @@ export interface MasterPersonaScreenControllerContract {
   closeDeleteModal(): void
   saveCurrentEntry(): Promise<void>
   deleteCurrentEntry(): Promise<void>
-  setEditFormField(field: keyof MasterPersonaEditableFieldMap, event: Event): void
+  setEditFormField(
+    field: keyof MasterPersonaEditableFieldMap,
+    event: Event
+  ): void
 }
 
 export interface MasterPersonaEditableFieldMap {

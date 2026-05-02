@@ -44,10 +44,18 @@ function createGateway(): {
     gateway: {
       listMasterDictionaryEntries,
       getMasterDictionaryEntry,
-      createMasterDictionaryEntry: vi.fn(() => Promise.reject(new Error("not used"))),
-      updateMasterDictionaryEntry: vi.fn(() => Promise.reject(new Error("not used"))),
-      deleteMasterDictionaryEntry: vi.fn(() => Promise.reject(new Error("not used"))),
-      importMasterDictionaryXml: vi.fn(() => Promise.reject(new Error("not used")))
+      createMasterDictionaryEntry: vi.fn(() =>
+        Promise.reject(new Error("not used"))
+      ),
+      updateMasterDictionaryEntry: vi.fn(() =>
+        Promise.reject(new Error("not used"))
+      ),
+      deleteMasterDictionaryEntry: vi.fn(() =>
+        Promise.reject(new Error("not used"))
+      ),
+      importMasterDictionaryXml: vi.fn(() =>
+        Promise.reject(new Error("not used"))
+      )
     },
     listMasterDictionaryEntries,
     getMasterDictionaryEntry
@@ -120,7 +128,10 @@ describe("createMasterDictionaryScreenControllerFactory", () => {
       id: "101"
     })
     const viewModel = controller.getViewModel()
-    const selectedEntryRecord = viewModel.selectedEntry as Record<string, unknown> | null
+    const selectedEntryRecord = viewModel.selectedEntry as Record<
+      string,
+      unknown
+    > | null
     expect(selectedEntryRecord?.["rec"]).toBeUndefined()
     expect(selectedEntryRecord?.["edid"]).toBeUndefined()
   })

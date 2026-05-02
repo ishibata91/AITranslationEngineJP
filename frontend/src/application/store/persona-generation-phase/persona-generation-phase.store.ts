@@ -43,8 +43,12 @@ function cloneSummary(
       ...summary.execution,
       evidenceRefs: [...summary.execution.evidenceRefs]
     },
-    resultSummary: summary.resultSummary ? { ...summary.resultSummary } : undefined,
-    errorSummary: summary.errorSummary ? { ...summary.errorSummary } : undefined,
+    resultSummary: summary.resultSummary
+      ? { ...summary.resultSummary }
+      : undefined,
+    errorSummary: summary.errorSummary
+      ? { ...summary.errorSummary }
+      : undefined,
     actionEnablement: { ...summary.actionEnablement }
   }
 }

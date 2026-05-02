@@ -58,7 +58,8 @@ type AssertNoKey<T, K extends string> = K extends keyof T ? never : true
 
 // MasterDictionaryEntrySummary は rec / edid を持たないこと
 const _summaryHasNoRec: AssertNoKey<MasterDictionaryEntrySummary, "rec"> = true
-const _summaryHasNoEdid: AssertNoKey<MasterDictionaryEntrySummary, "edid"> = true
+const _summaryHasNoEdid: AssertNoKey<MasterDictionaryEntrySummary, "edid"> =
+  true
 // unused variable warning を避けるための参照
 void _summaryHasNoRec
 void _summaryHasNoEdid
@@ -94,7 +95,9 @@ describe("listMasterDictionaryEntries", () => {
     installGo({
       wails: {
         MasterDictionaryController: {
-          ListMasterDictionaryEntries: vi.fn(() => Promise.resolve(wailsResponse))
+          ListMasterDictionaryEntries: vi.fn(() =>
+            Promise.resolve(wailsResponse)
+          )
         }
       }
     })
@@ -194,7 +197,9 @@ describe("getMasterDictionaryEntry", () => {
     installGo({
       wails: {
         MasterDictionaryController: {
-          GetMasterDictionaryEntry: vi.fn(() => Promise.resolve({ entry: null }))
+          GetMasterDictionaryEntry: vi.fn(() =>
+            Promise.resolve({ entry: null })
+          )
         }
       }
     })

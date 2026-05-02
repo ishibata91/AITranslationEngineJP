@@ -17,7 +17,9 @@ interface TestScreenState {
   hasLoaded: boolean
 }
 
-function createState(overrides: Partial<TestScreenState> = {}): TestScreenState {
+function createState(
+  overrides: Partial<TestScreenState> = {}
+): TestScreenState {
   return {
     jobId: 7,
     phase: "ready",
@@ -133,7 +135,9 @@ describe("TermTranslationPhasePresenter", () => {
     )
 
     expect(viewModel.actionCards.every((card) => card.disabled)).toBe(true)
-    const nextPhaseCard = viewModel.actionCards.find((card) => card.id === "next-phase")
+    const nextPhaseCard = viewModel.actionCards.find(
+      (card) => card.id === "next-phase"
+    )
     expect(nextPhaseCard?.blockedReason).toBe("review pending")
   })
 })

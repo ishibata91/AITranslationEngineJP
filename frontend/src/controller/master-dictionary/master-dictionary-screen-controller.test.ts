@@ -73,12 +73,14 @@ function createControllerHarness(
   const listeners = new Set<(state: MasterDictionaryScreenState) => void>()
 
   const store = {
-    subscribe: vi.fn((listener: (nextState: MasterDictionaryScreenState) => void) => {
-      listeners.add(listener)
-      return () => {
-        listeners.delete(listener)
+    subscribe: vi.fn(
+      (listener: (nextState: MasterDictionaryScreenState) => void) => {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
       }
-    }),
+    ),
     snapshot: vi.fn(() => state),
     update: vi.fn((mutator: (draft: MasterDictionaryScreenState) => void) => {
       const draft = structuredClone(state)
@@ -92,7 +94,10 @@ function createControllerHarness(
 
   const presenter = {
     toViewModel: vi.fn(
-      (nextState: MasterDictionaryScreenState, isGatewayConnected: boolean) => ({
+      (
+        nextState: MasterDictionaryScreenState,
+        isGatewayConnected: boolean
+      ) => ({
         ...createViewModel(nextState),
         gatewayStatus: isGatewayConnected ? "接続済み" : "未接続"
       })
@@ -245,7 +250,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openCreateModal は category を既定値へ初期化する", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ formCategory: "地名" }))
+    const harness = createControllerHarness(
+      createState({ formCategory: "地名" })
+    )
 
     // Act
     harness.controller.openCreateModal()
@@ -256,7 +263,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openCreateModal は origin を既定値へ初期化する", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ formOrigin: "確認待ち" }))
+    const harness = createControllerHarness(
+      createState({ formOrigin: "確認待ち" })
+    )
 
     // Act
     harness.controller.openCreateModal()
@@ -267,7 +276,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openCreateModal は translation を空文字へ初期化する", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ formTranslation: "old" }))
+    const harness = createControllerHarness(
+      createState({ formTranslation: "old" })
+    )
 
     // Act
     harness.controller.openCreateModal()
@@ -278,7 +289,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("openCreateModal は errorMessage をクリアする", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
 
     // Act
     harness.controller.openCreateModal()
@@ -422,7 +435,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("closeEditModal は create modal を閉じる", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ modalState: "create" }))
+    const harness = createControllerHarness(
+      createState({ modalState: "create" })
+    )
 
     // Act
     harness.controller.closeEditModal()
@@ -433,7 +448,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("closeEditModal は delete modal を維持する", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ modalState: "delete" }))
+    const harness = createControllerHarness(
+      createState({ modalState: "delete" })
+    )
 
     // Act
     harness.controller.closeEditModal()
@@ -444,7 +461,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("closeDeleteModal は delete modal を閉じる", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ modalState: "delete" }))
+    const harness = createControllerHarness(
+      createState({ modalState: "delete" })
+    )
 
     // Act
     harness.controller.closeDeleteModal()
@@ -525,7 +544,12 @@ describe("MasterDictionaryScreenController", () => {
   test("handleSearchInput は query を更新する", () => {
     // Arrange
     const harness = createControllerHarness(
-      createState({ query: "old", category: "地名", page: 2, errorMessage: "error" })
+      createState({
+        query: "old",
+        category: "地名",
+        page: 2,
+        errorMessage: "error"
+      })
     )
     const searchInput = document.createElement("input")
     searchInput.value = "Dragon"
@@ -556,7 +580,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("handleSearchInput は errorMessage をクリアする", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
     const searchInput = document.createElement("input")
     searchInput.value = "Dragon"
     const event = new Event("input")
@@ -598,7 +624,12 @@ describe("MasterDictionaryScreenController", () => {
   test("handleCategoryChange は category を更新する", () => {
     // Arrange
     const harness = createControllerHarness(
-      createState({ query: "old", category: "地名", page: 2, errorMessage: "error" })
+      createState({
+        query: "old",
+        category: "地名",
+        page: 2,
+        errorMessage: "error"
+      })
     )
     const categorySelect = document.createElement("select")
     categorySelect.innerHTML = '<option value="固有名詞">固有名詞</option>'
@@ -631,7 +662,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("handleCategoryChange は errorMessage をクリアする", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
     const categorySelect = document.createElement("select")
     categorySelect.innerHTML = '<option value="固有名詞">固有名詞</option>'
     categorySelect.value = "固有名詞"
@@ -718,7 +751,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("goToNextPage は最終ページで store を更新しない", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ page: 0, totalCount: 30 }))
+    const harness = createControllerHarness(
+      createState({ page: 0, totalCount: 30 })
+    )
 
     // Act
     harness.controller.goToNextPage()
@@ -729,7 +764,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("goToNextPage は最終ページで loadEntries を呼ばない", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ page: 0, totalCount: 30 }))
+    const harness = createControllerHarness(
+      createState({ page: 0, totalCount: 30 })
+    )
 
     // Act
     harness.controller.goToNextPage()
@@ -740,7 +777,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("goToNextPage は次ページへ進める", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ page: 0, totalCount: 61 }))
+    const harness = createControllerHarness(
+      createState({ page: 0, totalCount: 61 })
+    )
 
     // Act
     harness.controller.goToNextPage()
@@ -751,7 +790,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("goToNextPage は移動時に loadEntries を呼ぶ", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ page: 0, totalCount: 61 }))
+    const harness = createControllerHarness(
+      createState({ page: 0, totalCount: 61 })
+    )
 
     // Act
     harness.controller.goToNextPage()
@@ -762,7 +803,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("stageXmlImport は selectedFileName を更新する", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
     const file = new File(["<Root />"], "master.xml", { type: "text/xml" })
     Object.defineProperty(file, "path", { value: "", configurable: true })
     Object.defineProperty(file, "webkitRelativePath", {
@@ -779,7 +822,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("stageXmlImport は selectedFileReference を解決する", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
     const file = new File(["<Root />"], "master.xml", { type: "text/xml" })
     Object.defineProperty(file, "path", { value: "", configurable: true })
     Object.defineProperty(file, "webkitRelativePath", {
@@ -796,7 +841,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("stageXmlImport は importStage を ready へ切り替える", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
     const file = new File(["<Root />"], "master.xml", { type: "text/xml" })
 
     // Act
@@ -842,7 +889,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("stageXmlImport は errorMessage をクリアする", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ errorMessage: "error" }))
+    const harness = createControllerHarness(
+      createState({ errorMessage: "error" })
+    )
     const file = new File(["<Root />"], "master.xml", { type: "text/xml" })
 
     // Act
@@ -854,7 +903,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("stageXmlImport は null の時に selectedFileName を未選択へ戻す", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ selectedFileName: "master.xml" }))
+    const harness = createControllerHarness(
+      createState({ selectedFileName: "master.xml" })
+    )
 
     // Act
     harness.controller.stageXmlImport(null)
@@ -878,7 +929,9 @@ describe("MasterDictionaryScreenController", () => {
 
   test("stageXmlImport は null の時に importStage を idle へ戻す", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ importStage: "done" }))
+    const harness = createControllerHarness(
+      createState({ importStage: "done" })
+    )
 
     // Act
     harness.controller.stageXmlImport(null)
@@ -1125,7 +1178,9 @@ describe("MasterDictionaryScreenController", () => {
     const translationTextArea = document.createElement("textarea")
     translationTextArea.value = "訳語"
     const event = new Event("input")
-    Object.defineProperty(event, "currentTarget", { value: translationTextArea })
+    Object.defineProperty(event, "currentTarget", {
+      value: translationTextArea
+    })
 
     // Act
     harness.controller.setFormTranslation(event)

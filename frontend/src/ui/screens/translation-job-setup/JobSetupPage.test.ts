@@ -133,14 +133,16 @@ function createViewModel(
   overrides: Partial<TranslationJobSetupScreenViewModel> = {}
 ): TranslationJobSetupScreenViewModel {
   const options = overrides.options ?? createOptions()
-  const validationResult = overrides.validationResult ?? createValidationResult()
+  const validationResult =
+    overrides.validationResult ?? createValidationResult()
   const summary = overrides.summary ?? null
 
   return {
     phase: summary ? "summary" : "ready",
     options,
     selectedInputSourceId: 41,
-    selectedRuntimeKey: "openai-compatible::gpt-4.1-mini-preview-with-a-very-long-name::batch",
+    selectedRuntimeKey:
+      "openai-compatible::gpt-4.1-mini-preview-with-a-very-long-name::batch",
     selectedCredentialRef: "cred-main",
     validationResult,
     validationState: summary ? "fresh" : "stale",
@@ -188,12 +190,11 @@ function createViewModel(
   }
 }
 
-class TranslationJobSetupScreenControllerFake
-  implements TranslationJobSetupScreenControllerContract
-{
+class TranslationJobSetupScreenControllerFake implements TranslationJobSetupScreenControllerContract {
   private viewModel: TranslationJobSetupScreenViewModel
 
-  private readonly listeners = new Set<TranslationJobSetupScreenViewModelListener>()
+  private readonly listeners =
+    new Set<TranslationJobSetupScreenViewModelListener>()
 
   readonly mount = vi.fn(async () => {})
   readonly dispose = vi.fn(() => {})
@@ -235,7 +236,8 @@ describe("JobSetupPage", () => {
           inputCandidates: [
             {
               id: 41,
-              label: "/mods/very/long/path/translation/input-review-export.json",
+              label:
+                "/mods/very/long/path/translation/input-review-export.json",
               sourceKind: "xEdit extract",
               registeredAt,
               recordCount: 128
@@ -251,7 +253,9 @@ describe("JobSetupPage", () => {
       }
     })
 
-    expect(screen.getByText(new Date(registeredAt).toLocaleString("ja-JP"))).toBeInTheDocument()
+    expect(
+      screen.getByText(new Date(registeredAt).toLocaleString("ja-JP"))
+    ).toBeInTheDocument()
   })
 
   test("入力、基盤参照、validation 状態、create 無効条件、cache missing 戻り導線を表示する", async () => {
@@ -266,17 +270,27 @@ describe("JobSetupPage", () => {
       }
     })
 
-    expect(screen.getByRole("heading", { level: 2, name: "Job Setup" })).toBeInTheDocument()
     expect(
-      screen.getAllByText("/mods/very/long/path/translation/input-review-export.json").length
+      screen.getByRole("heading", { level: 2, name: "Job Setup" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getAllByText(
+        "/mods/very/long/path/translation/input-review-export.json"
+      ).length
     ).toBeGreaterThan(0)
     expect(screen.getByText("xEdit extract")).toBeInTheDocument()
     expect(screen.getByText("2026/4/27 9:30:00")).toBeInTheDocument()
     expect(screen.getByText("128 件")).toBeInTheDocument()
     expect(screen.getByText("既存 job はありません。")).toBeInTheDocument()
-    expect(screen.getByText("Shared Dictionary / Foundation Core")).toBeInTheDocument()
-    expect(screen.getByText("Foundation Persona / Translation Main")).toBeInTheDocument()
-    expect(screen.getByText("credential 参照は設定済みです。")).toBeInTheDocument()
+    expect(
+      screen.getByText("Shared Dictionary / Foundation Core")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("Foundation Persona / Translation Main")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("credential 参照は設定済みです。")
+    ).toBeInTheDocument()
     expect(screen.getAllByText("validation warning").length).toBeGreaterThan(0)
     expect(screen.getByText("invalid-timestamp")).toBeInTheDocument()
     expect(screen.getByText("cache missing")).toBeInTheDocument()
@@ -285,14 +299,24 @@ describe("JobSetupPage", () => {
     expect(screen.getAllByText("runtime").length).toBeGreaterThan(0)
     expect(screen.getAllByText("input").length).toBeGreaterThan(0)
     expect(screen.getAllByText("foundation").length).toBeGreaterThan(0)
-    expect(screen.getByRole("button", { name: "ready job を作成" })).toBeDisabled()
-    expect(screen.getByText("validation が失効しています。")).toBeInTheDocument()
-    expect(screen.getByText("blocking failure を解消するまで create できません。")).toBeInTheDocument()
     expect(
-      screen.getByText("cache missing は Job Setup で再構築しません。Input Review の再構築導線へ戻ってください。")
+      screen.getByRole("button", { name: "ready job を作成" })
+    ).toBeDisabled()
+    expect(
+      screen.getByText("validation が失効しています。")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("blocking failure を解消するまで create できません。")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "cache missing は Job Setup で再構築しません。Input Review の再構築導線へ戻ってください。"
+      )
     ).toBeInTheDocument()
 
-    await user.click(screen.getByRole("button", { name: "Input Review へ戻る" }))
+    await user.click(
+      screen.getByRole("button", { name: "Input Review へ戻る" })
+    )
 
     expect(onReturnToInputReview).toHaveBeenCalledTimes(1)
     await waitFor(() => {
@@ -311,7 +335,8 @@ describe("JobSetupPage", () => {
         canValidate: true,
         blockedReasons: ["validation 未実行です。"],
         validationStatusLabel: "validation 未実行",
-        validationStatusText: "validation 未実行です。入力、runtime、credential を確認して実行してください。"
+        validationStatusText:
+          "validation 未実行です。入力、runtime、credential を確認して実行してください。"
       })
     )
 
@@ -326,7 +351,10 @@ describe("JobSetupPage", () => {
       screen.getByLabelText("provider / model / execution mode"),
       "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
     )
-    await user.selectOptions(screen.getByLabelText("credential reference"), "cred-main")
+    await user.selectOptions(
+      screen.getByLabelText("credential reference"),
+      "cred-main"
+    )
     await user.click(screen.getByRole("button", { name: "validation を実行" }))
 
     expect(controller.selectInputSource).toHaveBeenCalledWith(41)
@@ -364,15 +392,27 @@ describe("JobSetupPage", () => {
       }
     })
 
-    expect(screen.getByRole("heading", { level: 3, name: "Ready job summary" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 3, name: "Ready job summary" })
+    ).toBeInTheDocument()
     expect(screen.getByText("501")).toBeInTheDocument()
     expect(screen.getByText("ready")).toBeInTheDocument()
-    expect(screen.getByText("/mods/very/long/path/translation/input-review-export.json")).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "/mods/very/long/path/translation/input-review-export.json"
+      )
+    ).toBeInTheDocument()
     expect(screen.getByText("openai-compatible")).toBeInTheDocument()
-    expect(screen.getByText("gpt-4.1-mini-preview-with-a-very-long-name")).toBeInTheDocument()
+    expect(
+      screen.getByText("gpt-4.1-mini-preview-with-a-very-long-name")
+    ).toBeInTheDocument()
     expect(screen.getByText("batch")).toBeInTheDocument()
     expect(screen.getAllByText("credential").length).toBeGreaterThan(0)
-    expect(screen.queryByRole("button", { name: "ready job を作成" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "validation を実行" })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "ready job を作成" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "validation を実行" })
+    ).not.toBeInTheDocument()
   })
 })

@@ -16,12 +16,18 @@ function cloneOptions(
 
   return {
     ...options,
-    inputCandidates: options.inputCandidates.map((candidate) => ({ ...candidate })),
+    inputCandidates: options.inputCandidates.map((candidate) => ({
+      ...candidate
+    })),
     existingJob: options.existingJob ? { ...options.existingJob } : undefined,
-    sharedDictionaries: options.sharedDictionaries.map((option) => ({ ...option })),
+    sharedDictionaries: options.sharedDictionaries.map((option) => ({
+      ...option
+    })),
     sharedPersonas: options.sharedPersonas.map((option) => ({ ...option })),
     aiRuntimeOptions: options.aiRuntimeOptions.map((option) => ({ ...option })),
-    credentialRefs: options.credentialRefs.map((credential) => ({ ...credential }))
+    credentialRefs: options.credentialRefs.map((credential) => ({
+      ...credential
+    }))
   }
 }
 

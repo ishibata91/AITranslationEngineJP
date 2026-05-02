@@ -94,9 +94,7 @@ function createBindingInvoker(): BindingInvoker {
   }
 }
 
-class PersonaGenerationPhaseGateway
-  implements PersonaGenerationPhaseGatewayContract
-{
+class PersonaGenerationPhaseGateway implements PersonaGenerationPhaseGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
 
   getPersonaGenerationPhaseSummary(

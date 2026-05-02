@@ -124,7 +124,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 人間介入 が必要な 成果物 は AI だけで完了にしない。
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
 - backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
-- Codex が ハーネス を実行する場合は `require_escalated` 付きで実行し、sandbox 権限による Wails、Playwright、Go cache の失敗を プロダクト失敗 と混ぜない。
+- Codex が ハーネス をサンドボックス外で実行する場合は `.codex/rules/default.rules` の Codex rules で許可された command を使い、Wails、Playwright、Go cache の環境失敗を プロダクト失敗 と混ぜない。
 
 ## 非対象規約
 
@@ -150,9 +150,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - DAGで必須とされている成果物が全て用意できていること。
 - 5 観点すべての `reviewback.<観点>.yaml` に `must_fix_open`、`max_level`、`review_status` が記録されている。
 - レビュー agent が 失敗 または 停止 を返した場合は、対応する `work_history/runs/<run>/review-reject-<観点>.yaml` への追記結果が確認されている。
-- `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を `require_escalated` 付きで実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
-- `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を `require_escalated` 付きで実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
-- 最終検証として `python3 scripts/harness/run.py --suite all` を `require_escalated` 付きで実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
+- `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
+- `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
+- 最終検証として `python3 scripts/harness/run.py --suite all` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
 - レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
 - `implementation_action: close` の場合は、作業計画フォルダ が `docs/exec-plans/completed/<task-id>/` に移動済みで、`docs/exec-plans/active/<task-id>/` に残っていない。

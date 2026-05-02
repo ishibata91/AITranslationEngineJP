@@ -6,7 +6,9 @@ import type {
 } from "@application/contract/persona-generation-phase"
 
 interface PersonaGenerationPhaseStoreLike {
-  subscribe(listener: (state: PersonaGenerationPhaseScreenState) => void): () => void
+  subscribe(
+    listener: (state: PersonaGenerationPhaseScreenState) => void
+  ): () => void
   snapshot(): PersonaGenerationPhaseScreenState
 }
 
@@ -37,9 +39,7 @@ interface PersonaGenerationPhaseScreenControllerDependencies {
   useCase: PersonaGenerationPhaseUseCaseLike
 }
 
-export class PersonaGenerationPhaseScreenController
-  implements PersonaGenerationPhaseScreenControllerContract
-{
+export class PersonaGenerationPhaseScreenController implements PersonaGenerationPhaseScreenControllerContract {
   constructor(
     private readonly dependencies: PersonaGenerationPhaseScreenControllerDependencies
   ) {}
@@ -52,7 +52,9 @@ export class PersonaGenerationPhaseScreenController
     return
   }
 
-  subscribe(listener: PersonaGenerationPhaseScreenViewModelListener): () => void {
+  subscribe(
+    listener: PersonaGenerationPhaseScreenViewModelListener
+  ): () => void {
     return this.dependencies.store.subscribe((state) => {
       listener(
         this.dependencies.presenter.toViewModel(

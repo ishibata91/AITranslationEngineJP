@@ -54,8 +54,12 @@ describe("createTranslationJobSetupGateway", () => {
         status: "ready",
         inputSource: "very/long/path/input-review.json"
       },
-      sharedDictionaries: [{ id: "dict-main", label: "Shared Dictionary / Core" }],
-      sharedPersonas: [{ id: "persona-main", label: "Foundation Persona / Main" }],
+      sharedDictionaries: [
+        { id: "dict-main", label: "Shared Dictionary / Core" }
+      ],
+      sharedPersonas: [
+        { id: "persona-main", label: "Foundation Persona / Main" }
+      ],
       aiRuntimeOptions: [
         { provider: "openai-compatible", model: "gpt-4.1-mini", mode: "batch" }
       ],
@@ -80,7 +84,9 @@ describe("createTranslationJobSetupGateway", () => {
 
     const gateway = createTranslationJobSetupGateway()
 
-    await expect(gateway.getTranslationJobSetupOptions()).resolves.toEqual(response)
+    await expect(gateway.getTranslationJobSetupOptions()).resolves.toEqual(
+      response
+    )
     expect(getTranslationJobSetupOptions).toHaveBeenCalledTimes(1)
     expect(getTranslationJobSetupOptions).toHaveBeenCalledWith()
   })
@@ -115,7 +121,9 @@ describe("createTranslationJobSetupGateway", () => {
 
     const gateway = createTranslationJobSetupGateway()
 
-    await expect(gateway.validateTranslationJobSetup(request)).resolves.toEqual(response)
+    await expect(gateway.validateTranslationJobSetup(request)).resolves.toEqual(
+      response
+    )
     expect(validateTranslationJobSetup).toHaveBeenCalledTimes(1)
     expect(validateTranslationJobSetup).toHaveBeenCalledWith(request)
   })
@@ -157,7 +165,9 @@ describe("createTranslationJobSetupGateway", () => {
 
     const gateway = createTranslationJobSetupGateway()
 
-    await expect(gateway.createTranslationJob(request)).resolves.toEqual(response)
+    await expect(gateway.createTranslationJob(request)).resolves.toEqual(
+      response
+    )
     expect(createTranslationJob).toHaveBeenCalledTimes(1)
     expect(createTranslationJob).toHaveBeenCalledWith(request)
   })
@@ -190,7 +200,9 @@ describe("createTranslationJobSetupGateway", () => {
 
     const gateway = createTranslationJobSetupGateway()
 
-    await expect(gateway.getTranslationJobSetupSummary(request)).resolves.toEqual(response)
+    await expect(
+      gateway.getTranslationJobSetupSummary(request)
+    ).resolves.toEqual(response)
     expect(getTranslationJobSetupSummary).toHaveBeenCalledTimes(1)
     expect(getTranslationJobSetupSummary).toHaveBeenCalledWith(request)
   })

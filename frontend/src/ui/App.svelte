@@ -50,7 +50,9 @@
   function resolveTranslationInputScreenControllerFactory(): CreateTranslationInputScreenController {
     return (
       createTranslationInputScreenController ??
-      createTranslationInputScreenControllerFactory(createTranslationInputGateway())
+      createTranslationInputScreenControllerFactory(
+        createTranslationInputGateway()
+      )
     )
   }
 

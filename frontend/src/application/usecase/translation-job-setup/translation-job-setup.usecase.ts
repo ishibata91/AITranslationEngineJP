@@ -15,7 +15,10 @@ interface TranslationJobSetupStoreLike {
 }
 
 function sanitizeErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.startsWith("Wails binding is not wired yet:")) {
+  if (
+    error instanceof Error &&
+    error.message.startsWith("Wails binding is not wired yet:")
+  ) {
     return error.message
   }
 
@@ -55,11 +58,14 @@ function resolveCredentialRef(
         (credential) => credential.provider === runtimeOption.provider
       )
     : options.credentialRefs
-  const candidates = credentialRefs.length > 0 ? credentialRefs : options.credentialRefs
+  const candidates =
+    credentialRefs.length > 0 ? credentialRefs : options.credentialRefs
 
   if (
     currentCredentialRef &&
-    candidates.some((credential) => credential.credentialRef === currentCredentialRef)
+    candidates.some(
+      (credential) => credential.credentialRef === currentCredentialRef
+    )
   ) {
     return currentCredentialRef
   }
@@ -67,7 +73,9 @@ function resolveCredentialRef(
   return (
     candidates.find(
       (credential) => credential.isConfigured && !credential.isMissingSecret
-    )?.credentialRef ?? candidates[0]?.credentialRef ?? ""
+    )?.credentialRef ??
+    candidates[0]?.credentialRef ??
+    ""
   )
 }
 
@@ -150,7 +158,10 @@ export class TranslationJobSetupUseCase {
       const options = await this.gateway.getTranslationJobSetupOptions()
       const selectedInputSourceId = options.inputCandidates[0]?.id ?? null
       const selectedRuntimeKey = resolveInitialRuntimeKey(options)
-      const selectedRuntimeOption = findRuntimeOption(options, selectedRuntimeKey)
+      const selectedRuntimeOption = findRuntimeOption(
+        options,
+        selectedRuntimeKey
+      )
       const selectedCredentialRef = resolveCredentialRef(
         options,
         selectedRuntimeOption
@@ -221,10 +232,18 @@ export class TranslationJobSetupUseCase {
 
   async runValidation(): Promise<void> {
     const state = this.store.snapshot()
-    const runtimeOption = findRuntimeOption(state.options, state.selectedRuntimeKey)
-    if (state.selectedInputSourceId === null || !runtimeOption || !state.selectedCredentialRef) {
+    const runtimeOption = findRuntimeOption(
+      state.options,
+      state.selectedRuntimeKey
+    )
+    if (
+      state.selectedInputSourceId === null ||
+      !runtimeOption ||
+      !state.selectedCredentialRef
+    ) {
       this.store.update((draft) => {
-        draft.errorMessage = "validation 対象の入力、runtime、credential を選択してください。"
+        draft.errorMessage =
+          "validation 対象の入力、runtime、credential を選択してください。"
       })
       return
     }
@@ -281,7 +300,10 @@ export class TranslationJobSetupUseCase {
     const inputCandidate = state.options.inputCandidates.find(
       (candidate) => candidate.id === state.selectedInputSourceId
     )
-    const runtimeOption = findRuntimeOption(state.options, state.selectedRuntimeKey)
+    const runtimeOption = findRuntimeOption(
+      state.options,
+      state.selectedRuntimeKey
+    )
     if (
       !inputCandidate ||
       !runtimeOption ||
@@ -292,7 +314,8 @@ export class TranslationJobSetupUseCase {
       isExistingJobForInput(state.options, inputCandidate.id)
     ) {
       this.store.update((draft) => {
-        draft.errorMessage = "create 条件を満たしていません。validation と既存 job 状態を確認してください。"
+        draft.errorMessage =
+          "create 条件を満たしていません。validation と既存 job 状態を確認してください。"
       })
       return
     }
@@ -328,7 +351,9 @@ export class TranslationJobSetupUseCase {
 
       let summary = createFallbackSummary(response)
       try {
-        summary = await this.gateway.getTranslationJobSetupSummary({ jobId: response.jobId })
+        summary = await this.gateway.getTranslationJobSetupSummary({
+          jobId: response.jobId
+        })
       } catch {
         if (!summary) {
           throw new Error("summary fetch failed")

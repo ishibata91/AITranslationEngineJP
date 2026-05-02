@@ -3,9 +3,7 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, test, vi } from "vitest"
 
 import type { MasterPersonaScreenControllerContract } from "@application/contract/master-persona/master-persona-screen-contract"
-import type {
-  TranslationInputScreenControllerContract
-} from "@application/contract/translation-input"
+import type { TranslationInputScreenControllerContract } from "@application/contract/translation-input"
 import type { TranslationInputScreenViewModelListener } from "@application/contract/translation-input/translation-input-screen-contract"
 import type {
   TranslationInputReviewItem,
@@ -113,9 +111,7 @@ function createViewModel(
   }
 }
 
-class TranslationInputScreenControllerFake
-  implements TranslationInputScreenControllerContract
-{
+class TranslationInputScreenControllerFake implements TranslationInputScreenControllerContract {
   private readonly viewModel: TranslationInputScreenViewModel
 
   readonly mount = vi.fn(async () => {})
@@ -155,8 +151,12 @@ describe("App translation-input route", () => {
       }
     })
 
-    expect(screen.getByRole("heading", { level: 1, name: "翻訳管理" })).toBeInTheDocument()
-    expect(screen.getByRole("heading", { level: 2, name: "Input Review" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 1, name: "翻訳管理" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Input Review" })
+    ).toBeInTheDocument()
 
     await waitFor(() => {
       expect(controller.mount).toHaveBeenCalledTimes(1)
@@ -198,9 +198,7 @@ describe("App translation-input route", () => {
       screen.getByRole("button", { name: /kept-input.json/ })
     ).toBeInTheDocument()
     expect(screen.getByText("kept-input.json / 登録済み")).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "cache を再構築" })
-    ).toBeEnabled()
+    expect(screen.getByRole("button", { name: "cache を再構築" })).toBeEnabled()
 
     await user.click(screen.getByRole("link", { name: "ダッシュボード" }))
 
@@ -211,14 +209,14 @@ describe("App translation-input route", () => {
 
     await user.click(screen.getByRole("link", { name: "翻訳管理" }))
 
-    expect(screen.getByRole("heading", { level: 2, name: "Input Review" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Input Review" })
+    ).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /kept-input.json/ })
     ).toBeInTheDocument()
     expect(screen.getByText("kept-input.json / 登録済み")).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "cache を再構築" })
-    ).toBeEnabled()
+    expect(screen.getByRole("button", { name: "cache を再構築" })).toBeEnabled()
     expect(createTranslationInputScreenController).toHaveBeenCalledTimes(2)
     expect(controller.mount).toHaveBeenCalledTimes(2)
 

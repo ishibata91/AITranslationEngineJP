@@ -65,8 +65,7 @@ export interface PersonaGenerationPhaseScreenActionEnablement {
   canStartBodyPhase: boolean
 }
 
-export interface PersonaGenerationPhaseScreenViewModel
-  extends PersonaGenerationPhaseScreenState {
+export interface PersonaGenerationPhaseScreenViewModel extends PersonaGenerationPhaseScreenState {
   gatewayStatus: string
   viewState: PersonaGenerationPhaseViewState
   isLoading: boolean

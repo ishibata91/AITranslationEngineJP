@@ -44,8 +44,7 @@ interface TermTranslationPhaseActionCard {
   tone: "default" | "primary" | "warning"
 }
 
-interface TermTranslationPhaseScreenViewModel
-  extends TermTranslationPhaseScreenState {
+interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreenState {
   gatewayStatus: string
   viewState: TermTranslationPhaseViewState
   isLoading: boolean
@@ -125,7 +124,9 @@ function normalizePhaseState(phaseState: string | undefined): string {
   return phaseState?.trim().toLowerCase().replaceAll(" ", "_") ?? ""
 }
 
-function buildViewState(state: TermTranslationPhaseScreenState): TermTranslationPhaseViewState {
+function buildViewState(
+  state: TermTranslationPhaseScreenState
+): TermTranslationPhaseViewState {
   if (state.phase === "loading" && !state.summary) {
     return "loading"
   }
@@ -267,12 +268,16 @@ function buildProgressDetail(state: TermTranslationPhaseScreenState): string {
   return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / AI 対象 ${progress.aiTargetCount.toLocaleString("ja-JP")} 件 / ${progress.currentStep}`
 }
 
-function buildProviderSkippedLabel(state: TermTranslationPhaseScreenState): string {
+function buildProviderSkippedLabel(
+  state: TermTranslationPhaseScreenState
+): string {
   if (!state.summary?.resultSummary) {
     return "-"
   }
 
-  return state.summary.resultSummary.providerSkipped ? "provider 未実行" : "provider 実行あり"
+  return state.summary.resultSummary.providerSkipped
+    ? "provider 未実行"
+    : "provider 実行あり"
 }
 
 function buildSnapshotLabel(state: TermTranslationPhaseScreenState): string {
@@ -292,14 +297,20 @@ function buildSnapshotLabel(state: TermTranslationPhaseScreenState): string {
   return "-"
 }
 
-function buildActionCards(state: TermTranslationPhaseScreenState): TermTranslationPhaseActionCard[] {
+function buildActionCards(
+  state: TermTranslationPhaseScreenState
+): TermTranslationPhaseActionCard[] {
   const enablement = state.summary?.actionEnablement
   const nextPhaseReadiness = state.nextPhaseReadiness
   const isBusy = state.phase === "loading" || state.phase === "submitting"
   const canStartNextPhase =
-    enablement?.canStartNextPhase ?? nextPhaseReadiness?.canStartNextPhase ?? false
+    enablement?.canStartNextPhase ??
+    nextPhaseReadiness?.canStartNextPhase ??
+    false
   const nextPhaseBlockedReason =
-    nextPhaseReadiness?.blockedReason ?? enablement?.nextPhaseBlockedReason ?? ""
+    nextPhaseReadiness?.blockedReason ??
+    enablement?.nextPhaseBlockedReason ??
+    ""
 
   return [
     {
@@ -401,11 +412,14 @@ export class TermTranslationPhasePresenter {
             ? "再試行可能"
             : "再試行不可",
       nextPhaseStatusLabel:
-        readiness?.canStartNextPhase ?? summary?.actionEnablement.canStartNextPhase
+        (readiness?.canStartNextPhase ??
+        summary?.actionEnablement.canStartNextPhase)
           ? "開始可能"
           : "開始不可",
       nextPhaseBlockedReason:
-        readiness?.blockedReason ?? summary?.actionEnablement.nextPhaseBlockedReason ?? "",
+        readiness?.blockedReason ??
+        summary?.actionEnablement.nextPhaseBlockedReason ??
+        "",
       providerSkippedLabel: buildProviderSkippedLabel(state),
       actionCards: buildActionCards(state),
       lastErrorSummary: errorSummary,

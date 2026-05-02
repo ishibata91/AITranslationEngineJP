@@ -6,7 +6,9 @@ import type {
 } from "@application/contract/term-translation-phase"
 
 interface TermTranslationPhaseStoreLike {
-  subscribe(listener: (state: TermTranslationPhaseScreenState) => void): () => void
+  subscribe(
+    listener: (state: TermTranslationPhaseScreenState) => void
+  ): () => void
   snapshot(): TermTranslationPhaseScreenState
 }
 
@@ -34,9 +36,7 @@ interface TermTranslationPhaseScreenControllerDependencies {
   useCase: TermTranslationPhaseUseCaseLike
 }
 
-export class TermTranslationPhaseScreenController
-  implements TermTranslationPhaseScreenControllerContract
-{
+export class TermTranslationPhaseScreenController implements TermTranslationPhaseScreenControllerContract {
   constructor(
     private readonly dependencies: TermTranslationPhaseScreenControllerDependencies
   ) {}

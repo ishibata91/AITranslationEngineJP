@@ -18,9 +18,7 @@ const masterDictionaryScreenControllerFactory =
   createMasterDictionaryScreenControllerFactory(masterDictionaryGateway)
 const termTranslationPhaseGateway = createTermTranslationPhaseGateway()
 const termTranslationPhaseScreenControllerFactory =
-  createTermTranslationPhaseScreenControllerFactory(
-    termTranslationPhaseGateway
-  )
+  createTermTranslationPhaseScreenControllerFactory(termTranslationPhaseGateway)
 const personaGenerationPhaseGateway = createPersonaGenerationPhaseGateway()
 const personaGenerationPhaseScreenControllerFactory =
   createPersonaGenerationPhaseScreenControllerFactory(

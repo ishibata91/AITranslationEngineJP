@@ -22,7 +22,9 @@ function createState(
   }
 }
 
-function createViewModel(state: TermTranslationPhaseScreenState): TermTranslationPhaseScreenViewModel {
+function createViewModel(
+  state: TermTranslationPhaseScreenState
+): TermTranslationPhaseScreenViewModel {
   return {
     ...state,
     gatewayStatus: "接続準備済み",
@@ -72,23 +74,32 @@ function createHarness() {
   const state = createState()
 
   const store = {
-    subscribe: vi.fn((listener: (value: TermTranslationPhaseScreenState) => void) => {
-      listener(state)
-      return () => {}
-    }),
+    subscribe: vi.fn(
+      (listener: (value: TermTranslationPhaseScreenState) => void) => {
+        listener(state)
+        return () => {}
+      }
+    ),
     snapshot: vi.fn(() => state)
   }
 
   const presenter = {
-    toViewModel: vi.fn((value: TermTranslationPhaseScreenState, isGatewayConnected: boolean) => ({
-      ...createViewModel(value),
-      gatewayStatus: isGatewayConnected ? "接続準備済み" : "未接続"
-    }))
+    toViewModel: vi.fn(
+      (
+        value: TermTranslationPhaseScreenState,
+        isGatewayConnected: boolean
+      ) => ({
+        ...createViewModel(value),
+        gatewayStatus: isGatewayConnected ? "接続準備済み" : "未接続"
+      })
+    )
   }
 
   const useCase = {
     load: vi.fn(async () => {}),
-    setJobId: vi.fn((jobId: number | null) => Promise.resolve(jobId).then(() => undefined)),
+    setJobId: vi.fn((jobId: number | null) =>
+      Promise.resolve(jobId).then(() => undefined)
+    ),
     refresh: vi.fn(async () => {}),
     startPhase: vi.fn(async () => {}),
     pausePhase: vi.fn(async () => {}),
@@ -117,11 +128,15 @@ describe("TermTranslationPhaseScreenController", () => {
 
   test("subscribe は store state を presenter 経由で view model に変換する", () => {
     const harness = createHarness()
-    const listener = vi.fn<(value: TermTranslationPhaseScreenViewModel) => void>()
+    const listener =
+      vi.fn<(value: TermTranslationPhaseScreenViewModel) => void>()
 
     harness.controller.subscribe(listener)
 
-    expect(harness.presenter.toViewModel).toHaveBeenCalledWith(harness.state, false)
+    expect(harness.presenter.toViewModel).toHaveBeenCalledWith(
+      harness.state,
+      false
+    )
     const firstViewModel = listener.mock.calls[0]?.[0]
     expect(firstViewModel?.gatewayStatus).toBe("未接続")
   })

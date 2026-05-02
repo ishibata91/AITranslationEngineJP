@@ -100,7 +100,9 @@ function clone<T>(value: T): T {
   return structuredClone(value)
 }
 
-function createStore(initialState: TranslationJobSetupScreenState = createState()): StoreLike {
+function createStore(
+  initialState: TranslationJobSetupScreenState = createState()
+): StoreLike {
   let state = clone(initialState)
   return {
     snapshot() {
@@ -121,22 +123,30 @@ function createGateway(): TranslationJobSetupGatewayContract & {
   return {
     getTranslationJobSetupOptions: vi.fn(),
     validateTranslationJobSetup: vi.fn(),
-    createTranslationJob: vi.fn<
-      (request: CreateTranslationJobRequest) => Promise<CreateTranslationJobResponse>
-    >().mockResolvedValue({
-      jobId: 91,
-      jobState: "ready",
-      inputSource: "/mods/input-review.json",
-      executionSummary: {
-        provider: "openai",
-        model: "gpt-5.4-mini",
-        executionMode: "batch"
-      },
-      validationPassSlices: ["input", "runtime", "credentials"]
-    }),
-    getTranslationJobSetupSummary: vi.fn<
-      (request: GetTranslationJobSetupSummaryRequest) => Promise<TranslationJobSetupSummaryResponse>
-    >().mockResolvedValue(createSummary())
+    createTranslationJob: vi
+      .fn<
+        (
+          request: CreateTranslationJobRequest
+        ) => Promise<CreateTranslationJobResponse>
+      >()
+      .mockResolvedValue({
+        jobId: 91,
+        jobState: "ready",
+        inputSource: "/mods/input-review.json",
+        executionSummary: {
+          provider: "openai",
+          model: "gpt-5.4-mini",
+          executionMode: "batch"
+        },
+        validationPassSlices: ["input", "runtime", "credentials"]
+      }),
+    getTranslationJobSetupSummary: vi
+      .fn<
+        (
+          request: GetTranslationJobSetupSummaryRequest
+        ) => Promise<TranslationJobSetupSummaryResponse>
+      >()
+      .mockResolvedValue(createSummary())
   }
 }
 
@@ -239,7 +249,9 @@ describe("TranslationJobSetupUseCase", () => {
     await usecase.createJob()
 
     expect(gateway.getTranslationJobSetupSummary).toHaveBeenCalledTimes(1)
-    expect(gateway.getTranslationJobSetupSummary).toHaveBeenCalledWith({ jobId: 91 })
+    expect(gateway.getTranslationJobSetupSummary).toHaveBeenCalledWith({
+      jobId: 91
+    })
     expect(store.snapshot().summary).toEqual(
       expect.objectContaining({
         jobId: 91,

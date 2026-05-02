@@ -52,4 +52,4 @@ if [ "$ready" -ne 1 ]; then
   exit 1
 fi
 
-playwright test --config ./playwright.config.ts
+npx playwright test --config ./playwright.config.ts

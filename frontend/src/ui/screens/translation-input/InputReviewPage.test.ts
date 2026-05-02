@@ -6,9 +6,7 @@ import type {
   TranslationInputReviewItem,
   TranslationInputScreenViewModel
 } from "@application/gateway-contract/translation-input"
-import type {
-  TranslationInputScreenControllerContract
-} from "@application/contract/translation-input"
+import type { TranslationInputScreenControllerContract } from "@application/contract/translation-input"
 import type { TranslationInputScreenViewModelListener } from "@application/contract/translation-input/translation-input-screen-contract"
 import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
 
@@ -118,12 +116,11 @@ function createViewModel(
   }
 }
 
-class TranslationInputScreenControllerFake
-  implements TranslationInputScreenControllerContract
-{
+class TranslationInputScreenControllerFake implements TranslationInputScreenControllerContract {
   private viewModel: TranslationInputScreenViewModel
 
-  private readonly listeners = new Set<TranslationInputScreenViewModelListener>()
+  private readonly listeners =
+    new Set<TranslationInputScreenViewModelListener>()
 
   readonly mount = vi.fn(async () => {})
   readonly dispose = vi.fn(() => {})
@@ -159,9 +156,13 @@ describe("InputReviewPage", () => {
       }
     })
 
-    expect(screen.getByRole("heading", { level: 2, name: "Input Review" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 2, name: "Input Review" })
+    ).toBeInTheDocument()
     expect(screen.getAllByText("input-review.json").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("/mods/input-review.json").length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText("/mods/input-review.json").length
+    ).toBeGreaterThan(0)
     expect(screen.getAllByText("hash-41").length).toBeGreaterThan(0)
     expect(screen.getAllByText("invalid-timestamp")).toHaveLength(2)
     expect(screen.getByText("accepted")).toBeInTheDocument()
@@ -176,9 +177,15 @@ describe("InputReviewPage", () => {
     expect(screen.getByText("Hello there")).toBeInTheDocument()
     expect(screen.getByText("00012345")).toBeInTheDocument()
     expect(screen.getByText("SampleNPC")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "ジョブ作成" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "翻訳開始" })).not.toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: "出力生成" })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "ジョブ作成" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "翻訳開始" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: "出力生成" })
+    ).not.toBeInTheDocument()
   })
 
   test("error kind と warning kind を区別して表示する", () => {
@@ -290,7 +297,9 @@ describe("InputReviewPage", () => {
     expect(screen.getByText(/missing required field/)).toBeInTheDocument()
     expect(screen.getByText(/source file missing/)).toBeInTheDocument()
     expect(screen.getByText(/cache missing/)).toBeInTheDocument()
-    expect(screen.getAllByText("unknown field definition").length).toBeGreaterThan(0)
+    expect(
+      screen.getAllByText("unknown field definition").length
+    ).toBeGreaterThan(0)
     expect(screen.getByText("再構築が必要")).toBeInTheDocument()
   })
 
@@ -335,7 +344,9 @@ describe("InputReviewPage", () => {
     await user.click(screen.getByRole("button", { name: "cache を再構築" }))
 
     const list = screen.getByRole("list")
-    await user.click(within(list).getByRole("button", { name: /input-review.json/ }))
+    await user.click(
+      within(list).getByRole("button", { name: /input-review.json/ })
+    )
 
     expect(controller.mount).toHaveBeenCalledTimes(1)
     expect(controller.stageJsonImport).toHaveBeenCalledWith(file)
@@ -377,7 +388,8 @@ describe("InputReviewPage", () => {
         selectedItem: item,
         canRebuildSelected: true,
         latestOutcomeTitle: "結果: 登録済み",
-        latestOutcomeText: "翻訳レコード件数、カテゴリ別件数、sample field を確認できます。"
+        latestOutcomeText:
+          "翻訳レコード件数、カテゴリ別件数、sample field を確認できます。"
       })
     )
 
@@ -387,8 +399,12 @@ describe("InputReviewPage", () => {
       }
     })
 
-    expect(screen.getByText("カテゴリ別件数はまだありません。")).toBeInTheDocument()
-    expect(screen.getByText("sample field はまだありません。")).toBeInTheDocument()
+    expect(
+      screen.getByText("カテゴリ別件数はまだありません。")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("sample field はまだありません。")
+    ).toBeInTheDocument()
     expect(screen.getByText("問題なし")).toBeInTheDocument()
   })
 })

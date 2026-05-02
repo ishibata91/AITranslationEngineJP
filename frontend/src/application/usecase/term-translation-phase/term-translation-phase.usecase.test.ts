@@ -8,7 +8,9 @@ import type {
 
 import { TermTranslationPhaseUseCase } from "./term-translation-phase.usecase"
 
-function createSummary(overrides: Partial<TermTranslationPhaseSummaryResponse> = {}): TermTranslationPhaseSummaryResponse {
+function createSummary(
+  overrides: Partial<TermTranslationPhaseSummaryResponse> = {}
+): TermTranslationPhaseSummaryResponse {
   return {
     jobId: 9,
     currentPhase: "term_translation",
@@ -63,7 +65,9 @@ interface TermTranslationPhaseScreenStateLike {
   hasLoaded: boolean
 }
 
-function cloneState(state: TermTranslationPhaseScreenStateLike): TermTranslationPhaseScreenStateLike {
+function cloneState(
+  state: TermTranslationPhaseScreenStateLike
+): TermTranslationPhaseScreenStateLike {
   return {
     ...state,
     summary: state.summary
@@ -86,7 +90,9 @@ function cloneState(state: TermTranslationPhaseScreenStateLike): TermTranslation
   }
 }
 
-function createStore(initialState: Partial<TermTranslationPhaseScreenStateLike> = {}) {
+function createStore(
+  initialState: Partial<TermTranslationPhaseScreenStateLike> = {}
+) {
   let state: TermTranslationPhaseScreenStateLike = {
     jobId: null,
     phase: "idle",
@@ -112,7 +118,9 @@ function createStore(initialState: Partial<TermTranslationPhaseScreenStateLike> 
 
 function createGatewaySpies() {
   const spies = {
-    getTermTranslationPhaseSummary: vi.fn(() => Promise.resolve(createSummary())),
+    getTermTranslationPhaseSummary: vi.fn(() =>
+      Promise.resolve(createSummary())
+    ),
     getTermTranslationNextPhaseReadiness: vi.fn(() =>
       Promise.resolve(createReadiness())
     ),
@@ -199,7 +207,9 @@ describe("TermTranslationPhaseUseCase", () => {
 
     await useCase.refresh()
 
-    expect(store.snapshot().errorMessage).toBe("term-translation-phase gateway が未接続です。")
+    expect(store.snapshot().errorMessage).toBe(
+      "term-translation-phase gateway が未接続です。"
+    )
   })
 
   test("setJobId は summary を再取得し hasLoaded を true に更新する", async () => {
@@ -209,14 +219,20 @@ describe("TermTranslationPhaseUseCase", () => {
 
     await useCase.setJobId(9)
 
-    expect(spies.getTermTranslationPhaseSummary).toHaveBeenCalledWith({ jobId: 9 })
-    expect(spies.getTermTranslationNextPhaseReadiness).toHaveBeenCalledWith({ jobId: 9 })
+    expect(spies.getTermTranslationPhaseSummary).toHaveBeenCalledWith({
+      jobId: 9
+    })
+    expect(spies.getTermTranslationNextPhaseReadiness).toHaveBeenCalledWith({
+      jobId: 9
+    })
     expect(store.snapshot().hasLoaded).toBe(true)
   })
 
   test("summary refresh 失敗時は前回 snapshot を保持する", async () => {
     const { gateway, spies } = createGatewaySpies()
-    spies.getTermTranslationPhaseSummary.mockRejectedValueOnce(new Error("timeout"))
+    spies.getTermTranslationPhaseSummary.mockRejectedValueOnce(
+      new Error("timeout")
+    )
     const oldSummary = createSummary({ phaseState: "paused", phaseRunId: 44 })
     const oldReadiness = createReadiness({ blockedReason: "old" })
     const store = createStore({
@@ -233,12 +249,18 @@ describe("TermTranslationPhaseUseCase", () => {
     const snapshot = store.snapshot()
     expect(snapshot.summary).toMatchObject(oldSummary)
     expect(snapshot.nextPhaseReadiness).toMatchObject(oldReadiness)
-    expect(snapshot.errorMessage).toBe("単語翻訳フェーズ summary の取得に失敗しました。")
+    expect(snapshot.errorMessage).toBe(
+      "単語翻訳フェーズ summary の取得に失敗しました。"
+    )
   })
 
   test("start 成功時は start command 実行後に summary refresh する", async () => {
     const { gateway, spies } = createGatewaySpies()
-    const store = createStore({ jobId: 9, phase: "ready", summary: createSummary() })
+    const store = createStore({
+      jobId: 9,
+      phase: "ready",
+      summary: createSummary()
+    })
     const useCase = new TermTranslationPhaseUseCase(gateway, store)
 
     await useCase.startPhase()
@@ -250,13 +272,19 @@ describe("TermTranslationPhaseUseCase", () => {
 
   test("pause は phaseRunId 未確定の時に command を呼ばずエラーを返す", async () => {
     const { gateway, spies } = createGatewaySpies()
-    const store = createStore({ jobId: 9, phase: "ready", summary: createSummary() })
+    const store = createStore({
+      jobId: 9,
+      phase: "ready",
+      summary: createSummary()
+    })
     const useCase = new TermTranslationPhaseUseCase(gateway, store)
 
     await useCase.pausePhase()
 
     expect(spies.pauseTermTranslationPhase).not.toHaveBeenCalled()
-    expect(store.snapshot().errorMessage).toBe("phase run が未確定のため操作できません。")
+    expect(store.snapshot().errorMessage).toBe(
+      "phase run が未確定のため操作できません。"
+    )
   })
 
   test("resume 失敗時に Wails 未接続エラー文を優先する", async () => {
@@ -280,7 +308,9 @@ describe("TermTranslationPhaseUseCase", () => {
 
   test("retry 失敗時は fallback エラーメッセージを返す", async () => {
     const { gateway, spies } = createGatewaySpies()
-    spies.retryTermTranslationPhase.mockRejectedValueOnce(new Error("backend failure"))
+    spies.retryTermTranslationPhase.mockRejectedValueOnce(
+      new Error("backend failure")
+    )
     const store = createStore({
       jobId: 9,
       phase: "ready",
@@ -290,7 +320,9 @@ describe("TermTranslationPhaseUseCase", () => {
 
     await useCase.retryPhase()
 
-    expect(store.snapshot().errorMessage).toBe("単語翻訳フェーズ操作に失敗しました。")
+    expect(store.snapshot().errorMessage).toBe(
+      "単語翻訳フェーズ操作に失敗しました。"
+    )
     expect(store.snapshot().phase).toBe("ready")
   })
 })

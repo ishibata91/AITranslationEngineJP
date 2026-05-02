@@ -23,7 +23,10 @@ import type {
 import type { TranslationInputScreenControllerContract } from "@application/contract/translation-input"
 import type { TranslationInputScreenViewModelListener } from "@application/contract/translation-input/translation-input-screen-contract"
 import type { TranslationInputScreenViewModel } from "@application/gateway-contract/translation-input"
-import type { MasterPersonaScreenViewModel, MasterPersonaDetail } from "@application/gateway-contract/master-persona"
+import type {
+  MasterPersonaScreenViewModel,
+  MasterPersonaDetail
+} from "@application/gateway-contract/master-persona"
 import type { MasterDictionaryEntryDetail } from "@application/gateway-contract/master-dictionary"
 import App from "@ui/App.svelte"
 import { vi } from "vitest"
@@ -416,12 +419,11 @@ function buildTranslationInputScreenViewModel(
   }
 }
 
-class MasterDictionaryScreenControllerFake
-  implements MasterDictionaryScreenControllerContract
-{
+class MasterDictionaryScreenControllerFake implements MasterDictionaryScreenControllerContract {
   private viewModel: MasterDictionaryScreenViewModel
 
-  private readonly listeners = new Set<MasterDictionaryScreenViewModelListener>()
+  private readonly listeners =
+    new Set<MasterDictionaryScreenViewModelListener>()
 
   readonly mount = vi.fn(async () => {})
 
@@ -488,9 +490,7 @@ class MasterDictionaryScreenControllerFake
   }
 }
 
-class MasterPersonaScreenControllerFake
-  implements MasterPersonaScreenControllerContract
-{
+class MasterPersonaScreenControllerFake implements MasterPersonaScreenControllerContract {
   private viewModel: MasterPersonaScreenViewModel
 
   private readonly listeners = new Set<MasterPersonaScreenViewModelListener>()
@@ -545,12 +545,11 @@ class MasterPersonaScreenControllerFake
   }
 }
 
-class TermTranslationPhaseScreenControllerFake
-  implements TermTranslationPhaseScreenControllerContract
-{
+class TermTranslationPhaseScreenControllerFake implements TermTranslationPhaseScreenControllerContract {
   private viewModel: TermTranslationPhaseScreenViewModel
 
-  private readonly listeners = new Set<TermTranslationPhaseScreenViewModelListener>()
+  private readonly listeners =
+    new Set<TermTranslationPhaseScreenViewModelListener>()
 
   readonly mount = vi.fn(async () => {})
   readonly dispose = vi.fn(() => {})
@@ -561,9 +560,7 @@ class TermTranslationPhaseScreenControllerFake
   readonly resumePhase = vi.fn(async () => {})
   readonly retryPhase = vi.fn(async () => {})
 
-  constructor(
-    initialViewModel = buildTermTranslationPhaseScreenViewModel()
-  ) {
+  constructor(initialViewModel = buildTermTranslationPhaseScreenViewModel()) {
     this.viewModel = initialViewModel
   }
 
@@ -579,9 +576,7 @@ class TermTranslationPhaseScreenControllerFake
   }
 }
 
-class PersonaGenerationPhaseScreenControllerFake
-  implements PersonaGenerationPhaseScreenControllerContract
-{
+class PersonaGenerationPhaseScreenControllerFake implements PersonaGenerationPhaseScreenControllerContract {
   private viewModel: PersonaGenerationPhaseScreenViewModel
 
   private readonly listeners =
@@ -599,9 +594,7 @@ class PersonaGenerationPhaseScreenControllerFake
   readonly checkBodyReadiness = vi.fn(async () => {})
   readonly startBodyPhase = vi.fn(async () => {})
 
-  constructor(
-    initialViewModel = buildPersonaGenerationPhaseScreenViewModel()
-  ) {
+  constructor(initialViewModel = buildPersonaGenerationPhaseScreenViewModel()) {
     this.viewModel = initialViewModel
   }
 
@@ -619,9 +612,7 @@ class PersonaGenerationPhaseScreenControllerFake
   }
 }
 
-class TranslationInputScreenControllerFake
-  implements TranslationInputScreenControllerContract
-{
+class TranslationInputScreenControllerFake implements TranslationInputScreenControllerContract {
   private readonly viewModel: TranslationInputScreenViewModel
 
   readonly mount = vi.fn(async () => {})
@@ -632,9 +623,7 @@ class TranslationInputScreenControllerFake
   readonly startImport = vi.fn(async () => {})
   readonly rebuildSelected = vi.fn(async () => {})
 
-  constructor(
-    initialViewModel = buildTranslationInputScreenViewModel()
-  ) {
+  constructor(initialViewModel = buildTranslationInputScreenViewModel()) {
     this.viewModel = initialViewModel
   }
 
@@ -730,7 +719,9 @@ describe("App dashboard shell", () => {
     renderApp()
 
     // Act
-    const dashboardHeading = screen.getByRole("heading", { name: "ダッシュボード" })
+    const dashboardHeading = screen.getByRole("heading", {
+      name: "ダッシュボード"
+    })
 
     // Assert
     expect(dashboardHeading).toBeInTheDocument()
@@ -755,7 +746,9 @@ describe("App dashboard shell", () => {
     renderApp()
 
     // Assert
-    expect(screen.getByRole("heading", { name: "ダッシュボード" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "ダッシュボード" })
+    ).toBeInTheDocument()
   })
 
   test("invalid hash は dashboard hash へ正規化する", () => {
@@ -789,10 +782,14 @@ describe("App dashboard shell", () => {
       renderApp()
 
       // Act
-      await user.click(within(getGlobalNavigation()).getByRole("link", { name: label }))
+      await user.click(
+        within(getGlobalNavigation()).getByRole("link", { name: label })
+      )
 
       // Assert
-      expect(screen.getByRole("heading", { level: 1, name: label })).toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { level: 1, name: label })
+      ).toBeInTheDocument()
     }
   )
 
@@ -804,7 +801,9 @@ describe("App dashboard shell", () => {
       renderApp()
 
       // Act
-      await user.click(within(getGlobalNavigation()).getByRole("link", { name: label }))
+      await user.click(
+        within(getGlobalNavigation()).getByRole("link", { name: label })
+      )
 
       // Assert
       expect(window.location.hash).toBe(`#${id}`)
@@ -822,7 +821,9 @@ describe("App dashboard shell", () => {
       await user.click(getDashboardCardLink(label))
 
       // Assert
-      expect(screen.getByRole("heading", { level: 1, name: label })).toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { level: 1, name: label })
+      ).toBeInTheDocument()
     }
   )
 
@@ -958,8 +959,12 @@ describe("App master persona screen", () => {
       name: "AI サービス"
     })
     const options = within(aiServiceSelect).getAllByRole("option")
-    const optionValues = options.map((option) => option.getAttribute("value") ?? "")
-    const optionLabels = options.map((option) => option.textContent?.trim() ?? "")
+    const optionValues = options.map(
+      (option) => option.getAttribute("value") ?? ""
+    )
+    const optionLabels = options.map(
+      (option) => option.textContent?.trim() ?? ""
+    )
 
     expect(optionValues).toEqual(["gemini", "lm_studio", "xai"])
     expect(optionLabels).toEqual(["Gemini", "LM Studio", "xAI"])
@@ -1033,9 +1038,9 @@ describe("App master persona screen", () => {
     const pluginSelect = await screen.findByRole("combobox", {
       name: "プラグイン"
     })
-    const optionTexts = within(pluginSelect).getAllByRole("option").map((option) =>
-      option.textContent?.trim() ?? ""
-    )
+    const optionTexts = within(pluginSelect)
+      .getAllByRole("option")
+      .map((option) => option.textContent?.trim() ?? "")
 
     expect(optionTexts).toEqual([
       "すべてのプラグイン",
@@ -1132,7 +1137,9 @@ describe("App master persona screen", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByRole("heading", { level: 1, name: "マスター辞書" })).toBeInTheDocument()
+      expect(
+        screen.getByRole("heading", { level: 1, name: "マスター辞書" })
+      ).toBeInTheDocument()
       expect(screen.queryByDisplayValue("persona-only-model")).toBeNull()
       expect(screen.queryByRole("combobox", { name: "AI サービス" })).toBeNull()
     })
@@ -1157,7 +1164,9 @@ describe("App master persona screen", () => {
     })
 
     // Assert
-    const pluginSelect = await screen.findByRole("combobox", { name: "プラグイン" })
+    const pluginSelect = await screen.findByRole("combobox", {
+      name: "プラグイン"
+    })
     expect(pluginSelect).toBeInTheDocument()
     expect(within(pluginSelect).getAllByRole("option")).toHaveLength(2)
   })
@@ -1169,7 +1178,9 @@ describe("App master persona screen", () => {
         createMasterDictionaryScreenController: () =>
           new MasterDictionaryScreenControllerFake(),
         createMasterPersonaScreenController: () =>
-          new MasterPersonaScreenControllerFake(buildMasterPersonaScreenViewModel())
+          new MasterPersonaScreenControllerFake(
+            buildMasterPersonaScreenViewModel()
+          )
       }
     })
 
@@ -1195,7 +1206,9 @@ describe("App master persona screen", () => {
 
     // Assert
     await waitFor(() => {
-      expect(screen.queryByRole("button", { name: "ダイアログ一覧" })).toBeNull()
+      expect(
+        screen.queryByRole("button", { name: "ダイアログ一覧" })
+      ).toBeNull()
     })
   })
 
@@ -1273,7 +1286,9 @@ describe("App master persona screen", () => {
     await waitFor(() => {
       const previewStats = document.querySelector("#previewStats")
       expect(previewStats).toBeInTheDocument()
-      expect(within(previewStats as HTMLElement).queryByText("会話が見つからない")).toBeNull()
+      expect(
+        within(previewStats as HTMLElement).queryByText("会話が見つからない")
+      ).toBeNull()
     })
   })
 
@@ -1292,7 +1307,9 @@ describe("App master persona screen", () => {
     await waitFor(() => {
       const previewStats = document.querySelector("#previewStats")
       expect(previewStats).toBeInTheDocument()
-      expect(within(previewStats as HTMLElement).queryByText("汎用NPC")).toBeNull()
+      expect(
+        within(previewStats as HTMLElement).queryByText("汎用NPC")
+      ).toBeNull()
     })
   })
 
@@ -1371,7 +1388,9 @@ describe("App master persona screen", () => {
 
     // Assert
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "一時停止" })).not.toBeDisabled()
+      expect(
+        screen.getByRole("button", { name: "一時停止" })
+      ).not.toBeDisabled()
       expect(screen.getByRole("button", { name: "停止" })).not.toBeDisabled()
     })
   })
@@ -1474,7 +1493,8 @@ describe("App term translation phase screen", () => {
     const user = userEvent.setup()
     const controller = new TermTranslationPhaseScreenControllerFake()
     const personaController = new PersonaGenerationPhaseScreenControllerFake()
-    const translationInputController = new TranslationInputScreenControllerFake()
+    const translationInputController =
+      new TranslationInputScreenControllerFake()
     const createTermTranslationPhaseScreenController = vi.fn(() => controller)
     const createPersonaGenerationPhaseScreenController = vi.fn(
       () => personaController
@@ -1496,16 +1516,24 @@ describe("App term translation phase screen", () => {
     })
 
     expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(0)
-    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(0)
+    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(
+      0
+    )
     expect(createTranslationInputScreenController).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole("tab", { name: /Job Run/ }))
 
-    expect(screen.getByRole("button", { name: "summary 取得" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "summary 取得" })
+    ).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(1)
-      expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(1)
+      expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(
+        1
+      )
+      expect(
+        createPersonaGenerationPhaseScreenController
+      ).toHaveBeenCalledTimes(1)
       expect(controller.mount).toHaveBeenCalledTimes(1)
       expect(personaController.mount).toHaveBeenCalledTimes(1)
     })
@@ -1537,7 +1565,9 @@ describe("App master dictionary screen", () => {
     renderApp(controller)
 
     // Assert
-    expect(screen.getByRole("heading", { level: 3, name: "辞書一覧" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 3, name: "辞書一覧" })
+    ).toBeInTheDocument()
   })
 
   test("render 時に controller.mount を呼ぶ", async () => {
@@ -1634,7 +1664,9 @@ describe("App master dictionary screen", () => {
     )
 
     // Act
-    const importResultSelection = document.querySelector("#importResultSelection")
+    const importResultSelection = document.querySelector(
+      "#importResultSelection"
+    )
 
     // Assert
     expect(importResultSelection).toHaveTextContent("Dragon Priest")
@@ -1650,7 +1682,9 @@ describe("App master dictionary screen", () => {
     })
 
     // Act
-    await user.click(screen.getByRole("button", { name: /ドラゴン・プリースト/ }))
+    await user.click(
+      screen.getByRole("button", { name: /ドラゴン・プリースト/ })
+    )
 
     // Assert
     expect(controller.selectRow).toHaveBeenCalledWith("101")
@@ -1841,7 +1875,9 @@ describe("App master dictionary screen", () => {
     )
 
     // Act
-    await user.click(screen.getByRole("button", { name: "この XML を取り込む" }))
+    await user.click(
+      screen.getByRole("button", { name: "この XML を取り込む" })
+    )
 
     // Assert
     expect(controller.startImport).toHaveBeenCalledTimes(1)
@@ -1876,7 +1912,9 @@ describe("App master dictionary screen", () => {
 
     // Assert
     await waitFor(() => {
-      expect(document.querySelector("#importStatusValue")).toHaveTextContent("取込中")
+      expect(document.querySelector("#importStatusValue")).toHaveTextContent(
+        "取込中"
+      )
     })
   })
 
@@ -2009,7 +2047,9 @@ describe("App master dictionary screen", () => {
       expect(screen.getByText("更新済みエントリ件数")).toBeInTheDocument()
       expect(screen.getByText("取込後の保存済み一覧件数")).toBeInTheDocument()
       expect(screen.getByText("新規追加 1 件")).toBeInTheDocument()
-      expect(screen.getByText(/件数は保存済みエントリ単位で集計しています。/)).toBeInTheDocument()
+      expect(
+        screen.getByText(/件数は保存済みエントリ単位で集計しています。/)
+      ).toBeInTheDocument()
     })
   })
 
@@ -2103,7 +2143,9 @@ describe("App master dictionary screen", () => {
 
     // Assert
     await waitFor(() => {
-      expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue("すべて")
+      expect(screen.getByRole("combobox", { name: "カテゴリ" })).toHaveValue(
+        "すべて"
+      )
     })
   })
 

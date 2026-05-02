@@ -363,7 +363,8 @@
             "表示できるエントリがありません"}</strong
         >
         <p id="detailTranslation">
-          {viewModel.selectedEntry?.translation ?? "検索条件を変更してください。"}
+          {viewModel.selectedEntry?.translation ??
+            "検索条件を変更してください。"}
         </p>
       </div>
 
@@ -371,11 +372,15 @@
         {#if viewModel.selectedEntry}
           <div class="detail-card detail-meta-card">
             <div class="field-label">ID</div>
-            <strong class="detail-meta-value">{viewModel.selectedEntry.id}</strong>
+            <strong class="detail-meta-value"
+              >{viewModel.selectedEntry.id}</strong
+            >
           </div>
           <div class="detail-card detail-meta-card">
             <div class="field-label">最終更新</div>
-            <strong class="detail-meta-value">{viewModel.selectedEntry.updatedAt}</strong>
+            <strong class="detail-meta-value"
+              >{viewModel.selectedEntry.updatedAt}</strong
+            >
           </div>
         {:else}
           <div class="empty-state">

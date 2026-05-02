@@ -13,7 +13,8 @@ const VALIDATION_LABELS: Record<string, string> = {
 }
 
 const CREATE_ERROR_LABELS: Record<string, string> = {
-  validation_failed: "validation fail を解消してから create を再実行してください。"
+  validation_failed:
+    "validation fail を解消してから create を再実行してください。"
 }
 
 function formatRegisteredAtLabel(registeredAt: string | undefined): string {
@@ -34,7 +35,8 @@ function findSelectedRuntimeOption(
 ): TranslationJobSetupRuntimeOption | null {
   return (
     state.options?.aiRuntimeOptions.find(
-      (option) => createTranslationJobSetupRuntimeKey(option) === state.selectedRuntimeKey
+      (option) =>
+        createTranslationJobSetupRuntimeKey(option) === state.selectedRuntimeKey
     ) ?? null
   )
 }
@@ -55,7 +57,9 @@ function resolveAvailableCredentialRefs(
   return providerMatches.length > 0 ? providerMatches : credentialRefs
 }
 
-function buildValidationStatusText(state: TranslationJobSetupScreenState): string {
+function buildValidationStatusText(
+  state: TranslationJobSetupScreenState
+): string {
   if (state.validationState === "running") {
     return "validation を実行しています。完了後に pass / fail / warning を更新します。"
   }
@@ -68,10 +72,13 @@ function buildValidationStatusText(state: TranslationJobSetupScreenState): strin
     return "validation 未実行です。入力、runtime、credential を確認して実行してください。"
   }
 
-  const label = VALIDATION_LABELS[state.validationResult.status] ?? state.validationResult.status
-  const sliceText = state.validationResult.targetSlices.length > 0
-    ? `対象断面: ${state.validationResult.targetSlices.join(" / ")}`
-    : "対象断面はありません。"
+  const label =
+    VALIDATION_LABELS[state.validationResult.status] ??
+    state.validationResult.status
+  const sliceText =
+    state.validationResult.targetSlices.length > 0
+      ? `対象断面: ${state.validationResult.targetSlices.join(" / ")}`
+      : "対象断面はありません。"
   const failureText = state.validationResult.blockingFailureCategory
     ? ` 失敗理由: ${state.validationResult.blockingFailureCategory}`
     : ""
@@ -79,7 +86,9 @@ function buildValidationStatusText(state: TranslationJobSetupScreenState): strin
   return `${label} / ${sliceText}${failureText}`
 }
 
-function hasBlockingExistingJob(state: TranslationJobSetupScreenState): boolean {
+function hasBlockingExistingJob(
+  state: TranslationJobSetupScreenState
+): boolean {
   if (state.selectedInputSourceId === null) {
     return false
   }
@@ -146,7 +155,9 @@ function buildCreateStatusText(state: TranslationJobSetupScreenState): string {
   return "validation が fresh かつ create 可能な時だけ job を作成できます。"
 }
 
-function buildExistingJobSummary(state: TranslationJobSetupScreenState): string {
+function buildExistingJobSummary(
+  state: TranslationJobSetupScreenState
+): string {
   if (!state.options?.existingJob) {
     return "既存 job はありません。"
   }
@@ -202,19 +213,21 @@ export class TranslationJobSetupPresenter {
       availableCredentialRefs,
       selectedInputLabel: selectedInputCandidate?.label ?? "未選択",
       selectedInputSourceKind: selectedInputCandidate?.sourceKind ?? "-",
-      selectedInputRecordCountLabel:
-        selectedInputCandidate ? `${selectedInputCandidate.recordCount.toLocaleString("ja-JP")} 件` : "-",
+      selectedInputRecordCountLabel: selectedInputCandidate
+        ? `${selectedInputCandidate.recordCount.toLocaleString("ja-JP")} 件`
+        : "-",
       selectedInputRegisteredAtLabel: formatRegisteredAtLabel(
         selectedInputCandidate?.registeredAt
       ),
       existingJobSummary: buildExistingJobSummary(state),
       dictionaryLabels:
         state.options?.sharedDictionaries.map((option) => option.label) ?? [],
-      personaLabels: state.options?.sharedPersonas.map((option) => option.label) ?? [],
-      validationStatusLabel:
-        state.validationResult?.status
-          ? (VALIDATION_LABELS[state.validationResult.status] ?? state.validationResult.status)
-          : "validation 未実行",
+      personaLabels:
+        state.options?.sharedPersonas.map((option) => option.label) ?? [],
+      validationStatusLabel: state.validationResult?.status
+        ? (VALIDATION_LABELS[state.validationResult.status] ??
+          state.validationResult.status)
+        : "validation 未実行",
       validationStatusText: buildValidationStatusText(state),
       createStatusText: buildCreateStatusText(state),
       blockedReasons,
@@ -236,7 +249,9 @@ export class TranslationJobSetupPresenter {
       isCreating: state.phase === "creating",
       hasExistingJob: Boolean(state.options?.existingJob),
       showCacheMissingGuidance:
-        state.validationResult?.blockingFailureCategory?.toLowerCase().includes("cache") ?? false,
+        state.validationResult?.blockingFailureCategory
+          ?.toLowerCase()
+          .includes("cache") ?? false,
       credentialStateText: buildCredentialStateText(
         availableCredentialRefs,
         state.selectedCredentialRef

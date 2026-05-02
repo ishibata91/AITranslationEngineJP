@@ -23,7 +23,9 @@
 
   function resolveController(): TermTranslationPhaseScreenControllerContract {
     if (!createController) {
-      throw new Error("term translation phase screen controller factory is not provided")
+      throw new Error(
+        "term translation phase screen controller factory is not provided"
+      )
     }
 
     return createController()
@@ -31,7 +33,9 @@
 
   function resolvePersonaController(): PersonaGenerationPhaseScreenControllerContract {
     if (!createPersonaController) {
-      throw new Error("persona generation phase screen controller factory is not provided")
+      throw new Error(
+        "persona generation phase screen controller factory is not provided"
+      )
     }
 
     return createPersonaController()
@@ -67,7 +71,10 @@
   async function loadJobSummary(): Promise<void> {
     const nextJobId = Number(jobIdInput.trim())
     if (!Number.isInteger(nextJobId) || nextJobId <= 0) {
-      await Promise.all([controller.setJobId(null), personaController.setJobId(null)])
+      await Promise.all([
+        controller.setJobId(null),
+        personaController.setJobId(null)
+      ])
       return
     }
 
@@ -141,7 +148,8 @@
       <p class="eyebrow">job target</p>
       <h2>Job Run</h2>
       <p class="selector-copy">
-        対象 job id を指定して summary を取得します。gateway 統合前は mock controller または未接続状態で確認します。
+        対象 job id を指定して summary を取得します。gateway 統合前は mock
+        controller または未接続状態で確認します。
       </p>
     </div>
     <div class="selector-form">
@@ -160,7 +168,9 @@
           type="text"
         />
       </label>
-      <button onclick={() => void loadJobSummary()} type="button">summary 取得</button>
+      <button onclick={() => void loadJobSummary()} type="button"
+        >summary 取得</button
+      >
     </div>
   </section>
 

@@ -18,7 +18,8 @@ import { MasterPersonaScreenController } from "./master-persona-screen-controlle
 // ---------------------------------------------------------------------------
 
 // MasterPersonaGatewayContract に dialogue 取得メソッドがないこと
-type _AssertNoContractMethod<K extends string> = K extends keyof MasterPersonaGatewayContract ? never : true
+type _AssertNoContractMethod<K extends string> =
+  K extends keyof MasterPersonaGatewayContract ? never : true
 const _noGetDialogueListMethod: _AssertNoContractMethod<"getMasterPersonaDialogueList"> = true
 void _noGetDialogueListMethod
 
@@ -29,7 +30,8 @@ type _noDialogueLine = GatewayContractPublic.MasterPersonaDialogueLine
 
 // MasterPersonaUpdateInput に identity/snapshot optional fields がないこと
 // これらの key が残っている間は compile error になる (persona-read-detail-cutover red test)
-type _AssertNoUpdateInputKey<K extends string> = K extends keyof MasterPersonaUpdateRequest["entry"] ? never : true
+type _AssertNoUpdateInputKey<K extends string> =
+  K extends keyof MasterPersonaUpdateRequest["entry"] ? never : true
 const _noFormIdInInput: _AssertNoUpdateInputKey<"formId"> = true
 void _noFormIdInInput
 const _noEditorIdInInput: _AssertNoUpdateInputKey<"editorId"> = true
@@ -51,7 +53,10 @@ void _noSourcePluginInInput
 
 // MasterPersonaPreviewResult に zeroDialogueSkipCount/genericNpcCount がないこと
 // これらの key が残っている間は compile error になる (persona-json-preview-cutover red test)
-type _AssertNoPreviewResultKey<K extends string> = K extends keyof GatewayContractPublic.MasterPersonaPreviewResult ? never : true
+type _AssertNoPreviewResultKey<K extends string> =
+  K extends keyof GatewayContractPublic.MasterPersonaPreviewResult
+    ? never
+    : true
 const _noZeroDialogueSkipCount: _AssertNoPreviewResultKey<"zeroDialogueSkipCount"> = true
 void _noZeroDialogueSkipCount
 const _noGenericNpcCount: _AssertNoPreviewResultKey<"genericNpcCount"> = true
@@ -65,7 +70,10 @@ void _noExistingSkipCountInPreview
 
 // MasterPersonaPreviewResult に candidateCount/newlyAddableCount/existingCount があること
 // これらの key がない間は compile error になる (persona-json-preview-cutover red test)
-type _AssertHasPreviewResultKey<K extends string> = K extends keyof GatewayContractPublic.MasterPersonaPreviewResult ? true : never
+type _AssertHasPreviewResultKey<K extends string> =
+  K extends keyof GatewayContractPublic.MasterPersonaPreviewResult
+    ? true
+    : never
 const _hasCandidateCount: _AssertHasPreviewResultKey<"candidateCount"> = true
 void _hasCandidateCount
 const _hasNewlyAddableCount: _AssertHasPreviewResultKey<"newlyAddableCount"> = true
@@ -76,7 +84,10 @@ void _hasExistingCount
 // MasterPersonaPreviewStateEntry (public/state seam) に legacy fields がないこと
 // totalNpcCount/generatableCount/existingSkipCount/zeroDialogueSkipCount/genericNpcCount が
 // optional key として残っている間は compile error になる (persona-json-preview-cutover red test)
-type _AssertNoPreviewStateEntryKey<K extends string> = K extends keyof GatewayContractPublic.MasterPersonaPreviewStateEntry ? never : true
+type _AssertNoPreviewStateEntryKey<K extends string> =
+  K extends keyof GatewayContractPublic.MasterPersonaPreviewStateEntry
+    ? never
+    : true
 const _noTotalNpcCountInState: _AssertNoPreviewStateEntryKey<"totalNpcCount"> = true
 void _noTotalNpcCountInState
 const _noGeneratableCountInState: _AssertNoPreviewStateEntryKey<"generatableCount"> = true
@@ -93,7 +104,8 @@ void _noGenericNpcCountInState
 // ---------------------------------------------------------------------------
 // MasterPersonaRunStatus に zeroDialogueSkipCount/genericNpcCount がまだ残っている
 // これらの key が削除されるまで compile error になる (persona-generation-cutover RED)
-type _AssertNoRunStatusKey<K extends string> = K extends keyof GatewayContractPublic.MasterPersonaRunStatus ? never : true
+type _AssertNoRunStatusKey<K extends string> =
+  K extends keyof GatewayContractPublic.MasterPersonaRunStatus ? never : true
 const _noZeroDialogueSkipCountInRunStatus: _AssertNoRunStatusKey<"zeroDialogueSkipCount"> = true
 void _noZeroDialogueSkipCountInRunStatus
 const _noGenericNpcCountInRunStatus: _AssertNoRunStatusKey<"genericNpcCount"> = true
@@ -104,7 +116,8 @@ void _noGenericNpcCountInRunStatus
 // ---------------------------------------------------------------------------
 // MasterPersonaModalState に 'create' が含まれないこと (persona-edit-delete-cutover)
 // 'create' が追加された場合は compile error になる (RED に反転する)
-type _AssertNoCreateInModalState = "create" extends GatewayContractPublic.MasterPersonaModalState ? never : true
+type _AssertNoCreateInModalState =
+  "create" extends GatewayContractPublic.MasterPersonaModalState ? never : true
 const _noCreateInModalState: _AssertNoCreateInModalState = true
 void _noCreateInModalState
 
@@ -156,7 +169,9 @@ function createState(
   } as MasterPersonaScreenState
 }
 
-function createViewModel(state: MasterPersonaScreenState): MasterPersonaScreenViewModel {
+function createViewModel(
+  state: MasterPersonaScreenState
+): MasterPersonaScreenViewModel {
   return {
     ...state,
     gatewayStatus: "接続準備済み",
@@ -166,7 +181,8 @@ function createViewModel(state: MasterPersonaScreenState): MasterPersonaScreenVi
     selectionStatusText: "選択中のペルソナはありません。",
     listHeadline: "0 件から絞り込みます。",
     detailLockText: "更新と削除を行えます",
-    detailStatusText: "一覧からペルソナを選ぶと、詳細を同じ画面で確認できます。",
+    detailStatusText:
+      "一覧からペルソナを選ぶと、詳細を同じ画面で確認できます。",
     canStartPreview: false,
     canStartGeneration: false,
     canMutate: false,
@@ -179,17 +195,21 @@ function createViewModel(state: MasterPersonaScreenState): MasterPersonaScreenVi
   }
 }
 
-function createControllerHarness(initialState: MasterPersonaScreenState = createState()) {
+function createControllerHarness(
+  initialState: MasterPersonaScreenState = createState()
+) {
   let state = initialState
   const listeners = new Set<(state: MasterPersonaScreenState) => void>()
 
   const store = {
-    subscribe: vi.fn((listener: (nextState: MasterPersonaScreenState) => void) => {
-      listeners.add(listener)
-      return () => {
-        listeners.delete(listener)
+    subscribe: vi.fn(
+      (listener: (nextState: MasterPersonaScreenState) => void) => {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
       }
-    }),
+    ),
     snapshot: vi.fn(() => state),
     update: vi.fn((mutator: (draft: MasterPersonaScreenState) => void) => {
       const draft = structuredClone(state)
@@ -338,12 +358,16 @@ describe("MasterPersonaScreenController", () => {
 
     await harness.controller.selectRow("FollowersPlus.esp:FE01A812:NPC_")
 
-    expect(harness.useCase.selectEntry).toHaveBeenCalledWith("FollowersPlus.esp:FE01A812:NPC_")
+    expect(harness.useCase.selectEntry).toHaveBeenCalledWith(
+      "FollowersPlus.esp:FE01A812:NPC_"
+    )
     expect(harness.useCase.selectEntry).toHaveBeenCalledTimes(1)
   })
 
   test("handleSearchInput は keyword を state に保持して loadPage を呼ぶ", () => {
-    const harness = createControllerHarness(createState({ keyword: "", page: 3 }))
+    const harness = createControllerHarness(
+      createState({ keyword: "", page: 3 })
+    )
     const input = document.createElement("input")
     input.value = "lys"
     const event = new Event("input")
@@ -387,7 +411,9 @@ describe("MasterPersonaScreenController", () => {
 
     await harness.controller.selectRow("FollowersPlus.esp:FE01A812:NPC_")
 
-    expect(harness.useCase.selectEntry).toHaveBeenCalledWith("FollowersPlus.esp:FE01A812:NPC_")
+    expect(harness.useCase.selectEntry).toHaveBeenCalledWith(
+      "FollowersPlus.esp:FE01A812:NPC_"
+    )
     expect(harness.useCase.selectEntry).toHaveBeenCalledTimes(1)
   })
 
@@ -412,13 +438,18 @@ describe("MasterPersonaScreenController", () => {
     const textarea = document.createElement("textarea")
     textarea.value = "乾いた率直さで応じる。"
     const event = new Event("input")
-    Object.defineProperty(event, "currentTarget", { value: textarea, configurable: true })
+    Object.defineProperty(event, "currentTarget", {
+      value: textarea,
+      configurable: true
+    })
 
     // Act
     harness.controller.setEditFormField("personaSummary", event)
 
     // Assert
-    expect(harness.getState().editForm.personaSummary).toBe("乾いた率直さで応じる。")
+    expect(harness.getState().editForm.personaSummary).toBe(
+      "乾いた率直さで応じる。"
+    )
   })
 
   test("persona-read-detail-cutover: setEditFormField は personaBody を store へ反映する", () => {
@@ -427,7 +458,10 @@ describe("MasterPersonaScreenController", () => {
     const textarea = document.createElement("textarea")
     textarea.value = "updated persona body"
     const event = new Event("input")
-    Object.defineProperty(event, "currentTarget", { value: textarea, configurable: true })
+    Object.defineProperty(event, "currentTarget", {
+      value: textarea,
+      configurable: true
+    })
 
     // Act
     harness.controller.setEditFormField("personaBody", event)
@@ -456,7 +490,11 @@ describe("MasterPersonaScreenController", () => {
     const payload = buildMasterPersonaUpdateInput(state)
 
     // Assert: cutover 後は personaSummary / speechStyle / personaBody のみを含む
-    expect(Object.keys(payload).sort()).toEqual(["personaBody", "personaSummary", "speechStyle"])
+    expect(Object.keys(payload).sort()).toEqual([
+      "personaBody",
+      "personaSummary",
+      "speechStyle"
+    ])
   })
 
   test("persona-json-preview-cutover: stageJsonSelection は preview をクリアして file reference を更新する", () => {
@@ -472,7 +510,9 @@ describe("MasterPersonaScreenController", () => {
 
     // Assert
     expect(harness.getState().selectedFileName).toBe("FollowersPlus.json")
-    expect(harness.getState().selectedFileReference).toBe("/tmp/FollowersPlus.json")
+    expect(harness.getState().selectedFileReference).toBe(
+      "/tmp/FollowersPlus.json"
+    )
     expect(harness.getState().preview).toBeNull()
     expect(harness.useCase.previewGeneration).toHaveBeenCalledTimes(1)
   })
@@ -559,7 +599,9 @@ describe("MasterPersonaScreenController", () => {
 
   test("persona-edit-delete-cutover: openEditModal は selectedEntry が null のとき setModalState を呼ばない", () => {
     // Arrange
-    const harness = createControllerHarness(createState({ selectedEntry: null }))
+    const harness = createControllerHarness(
+      createState({ selectedEntry: null })
+    )
 
     // Act
     harness.controller.openEditModal()

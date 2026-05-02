@@ -2,7 +2,9 @@ import { describe, expect, test, vi } from "vitest"
 
 import { TranslationInputUseCase } from "./translation-input.usecase"
 
-type UseCaseGateway = NonNullable<ConstructorParameters<typeof TranslationInputUseCase>[0]>
+type UseCaseGateway = NonNullable<
+  ConstructorParameters<typeof TranslationInputUseCase>[0]
+>
 type StoreLike = ConstructorParameters<typeof TranslationInputUseCase>[1]
 type TestState = ReturnType<StoreLike["snapshot"]>
 type TestCommandResponse = Awaited<
@@ -11,9 +13,7 @@ type TestCommandResponse = Awaited<
 type TestSummary = NonNullable<TestCommandResponse["summary"]>
 type TestReviewItem = TestState["items"][number]
 
-function createSummary(
-  overrides: Partial<TestSummary> = {}
-): TestSummary {
+function createSummary(overrides: Partial<TestSummary> = {}): TestSummary {
   return {
     input: {
       id: 41,
@@ -59,9 +59,7 @@ function createResponse(
   }
 }
 
-function createItem(
-  overrides: Partial<TestReviewItem> = {}
-): TestReviewItem {
+function createItem(overrides: Partial<TestReviewItem> = {}): TestReviewItem {
   return {
     localId: "input-41",
     inputId: 41,
@@ -107,8 +105,12 @@ function createStore(initialState?: Partial<TestState>) {
 
 function makeGateway(
   partial: Partial<{
-    importTranslationInput: (request: { filePath: string }) => Promise<TestCommandResponse>
-    rebuildTranslationInputCache: (request: { inputId: number }) => Promise<TestCommandResponse>
+    importTranslationInput: (request: {
+      filePath: string
+    }) => Promise<TestCommandResponse>
+    rebuildTranslationInputCache: (request: {
+      inputId: number
+    }) => Promise<TestCommandResponse>
   }>
 ): UseCaseGateway {
   return {
@@ -230,13 +232,21 @@ describe("TranslationInputUseCase", () => {
     const useCase = new TranslationInputUseCase(null, store)
 
     store.update((draft) => {
-      draft.items = [createItem({ localId: "missing-cache", inputId: null, canRebuild: false })]
+      draft.items = [
+        createItem({
+          localId: "missing-cache",
+          inputId: null,
+          canRebuild: false
+        })
+      ]
       draft.selectedItemId = "missing-cache"
     })
 
     await useCase.rebuildSelected()
 
-    expect(store.snapshot().errorMessage).toBe("再構築対象の cache がありません。")
+    expect(store.snapshot().errorMessage).toBe(
+      "再構築対象の cache がありません。"
+    )
     expect(store.snapshot().latestResponse?.errorKind).toBe("cache_missing")
   })
 

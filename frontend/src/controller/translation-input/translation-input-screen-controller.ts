@@ -60,9 +60,7 @@ async function digestFileHash(file: File): Promise<string> {
     .join("")
 }
 
-export class TranslationInputScreenController
-  implements TranslationInputScreenControllerContract
-{
+export class TranslationInputScreenController implements TranslationInputScreenControllerContract {
   constructor(
     private readonly dependencies: TranslationInputScreenControllerDependencies
   ) {}

@@ -46,8 +46,7 @@ export interface TermTranslationPhaseActionCard {
   tone: "default" | "primary" | "warning"
 }
 
-export interface TermTranslationPhaseScreenViewModel
-  extends TermTranslationPhaseScreenState {
+export interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreenState {
   gatewayStatus: string
   viewState: TermTranslationPhaseViewState
   isLoading: boolean

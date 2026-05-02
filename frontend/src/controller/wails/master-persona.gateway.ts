@@ -64,7 +64,9 @@ function resolveBindingFunction(
       continue
     }
     return (...args: [] | [unknown]) =>
-      Promise.resolve((binding as (...invokeArgs: [] | [unknown]) => unknown)(...args))
+      Promise.resolve(
+        (binding as (...invokeArgs: [] | [unknown]) => unknown)(...args)
+      )
   }
 
   return null

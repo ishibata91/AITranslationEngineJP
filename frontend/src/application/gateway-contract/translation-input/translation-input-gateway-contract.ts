@@ -100,8 +100,7 @@ export interface TranslationInputScreenState {
   latestResponse: TranslationInputCommandResponse | null
 }
 
-export interface TranslationInputScreenViewModel
-  extends TranslationInputScreenState {
+export interface TranslationInputScreenViewModel extends TranslationInputScreenState {
   selectedItem: TranslationInputReviewItem | null
   gatewayStatus: string
   hasStagedFile: boolean

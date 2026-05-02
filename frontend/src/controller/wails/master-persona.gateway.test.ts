@@ -120,7 +120,9 @@ describe("createMasterPersonaGateway", () => {
     const gateway = createMasterPersonaGateway()
 
     // Act
-    await gateway.getMasterPersonaDetail({ identityKey: "FollowersPlus.esp:FE01A812:NPC_" })
+    await gateway.getMasterPersonaDetail({
+      identityKey: "FollowersPlus.esp:FE01A812:NPC_"
+    })
 
     // Assert
     expect(getMasterPersonaGetDetail).toHaveBeenCalledTimes(1)
@@ -289,11 +291,21 @@ describe("createMasterPersonaGateway", () => {
 
     // Assert
     expect(previewGeneration).toHaveBeenCalledTimes(1)
-    expect((result as unknown as Record<string, unknown>).candidateCount).toBe(840)
-    expect((result as unknown as Record<string, unknown>).newlyAddableCount).toBe(228)
-    expect((result as unknown as Record<string, unknown>).existingCount).toBe(612)
-    expect(Object.keys(result as unknown as object)).not.toContain("zeroDialogueSkipCount")
-    expect(Object.keys(result as unknown as object)).not.toContain("genericNpcCount")
+    expect((result as unknown as Record<string, unknown>).candidateCount).toBe(
+      840
+    )
+    expect(
+      (result as unknown as Record<string, unknown>).newlyAddableCount
+    ).toBe(228)
+    expect((result as unknown as Record<string, unknown>).existingCount).toBe(
+      612
+    )
+    expect(Object.keys(result as unknown as object)).not.toContain(
+      "zeroDialogueSkipCount"
+    )
+    expect(Object.keys(result as unknown as object)).not.toContain(
+      "genericNpcCount"
+    )
   })
 
   test("persona-generation-cutover: executeMasterPersonaGeneration は filePath と aiSettings を MasterPersonaExecuteGeneration binding へ渡し existingSkipCount を含む runStatus を返す", async () => {
@@ -325,14 +337,22 @@ describe("createMasterPersonaGateway", () => {
     // Act
     const result = await gateway.executeMasterPersonaGeneration({
       filePath: "/tmp/FollowersPlus.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "test-key" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        apiKey: "test-key"
+      }
     })
 
     // Assert
     expect(executeGeneration).toHaveBeenCalledTimes(1)
     expect(executeGeneration).toHaveBeenCalledWith({
       filePath: "/tmp/FollowersPlus.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "test-key" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        apiKey: "test-key"
+      }
     })
     // generation never overwrites existing: existingSkipCount を runStatus で確認できる
     expect(result.existingSkipCount).toBe(2)
@@ -373,7 +393,10 @@ describe("createMasterPersonaGateway", () => {
 
     // Assert
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const callArg = (executeGeneration.mock.calls as any)[0][0] as Record<string, unknown>
+    const callArg = (executeGeneration.mock.calls as any)[0][0] as Record<
+      string,
+      unknown
+    >
     expect(Object.keys(callArg)).not.toContain("zeroDialogueSkipCount")
     expect(Object.keys(callArg)).not.toContain("genericNpcCount")
   })

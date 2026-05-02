@@ -5,7 +5,10 @@ export type ShellRouteId =
   | "translation-management"
   | "output-management"
 
-export type TranslationManagementViewId = "input-review" | "job-setup" | "job-run"
+export type TranslationManagementViewId =
+  | "input-review"
+  | "job-setup"
+  | "job-run"
 
 export interface ShellRouteContract {
   id: ShellRouteId
@@ -48,7 +51,8 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
     label: "翻訳管理",
     state: "Persona Phase 追加",
     lead: "Input Review、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ、NPC ペルソナ生成フェーズまでを確認するページです。",
-    description: "入力確認、validation、ready job 作成、term phase、persona phase の実行状況をまとめて確認します。"
+    description:
+      "入力確認、validation、ready job 作成、term phase、persona phase の実行状況をまとめて確認します。"
   },
   {
     id: "output-management",
@@ -59,23 +63,25 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   }
 ]
 
-const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementViewContract> = [
-  {
-    id: "input-review",
-    label: "Input Review",
-    description: "入力ファイルの登録と cache 再構築を確認します。"
-  },
-  {
-    id: "job-setup",
-    label: "Job Setup",
-    description: "validation と ready job 作成を確認します。"
-  },
-  {
-    id: "job-run",
-    label: "Job Run",
-    description: "term phase と persona phase の progress、result summary、body readiness を確認します。"
-  }
-]
+const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementViewContract> =
+  [
+    {
+      id: "input-review",
+      label: "Input Review",
+      description: "入力ファイルの登録と cache 再構築を確認します。"
+    },
+    {
+      id: "job-setup",
+      label: "Job Setup",
+      description: "validation と ready job 作成を確認します。"
+    },
+    {
+      id: "job-run",
+      label: "Job Run",
+      description:
+        "term phase と persona phase の progress、result summary、body readiness を確認します。"
+    }
+  ]
 
 interface ShellState {
   defaultRouteId: ShellRouteId
@@ -89,8 +95,10 @@ export function createShellState(): ShellState {
     defaultRouteId: "dashboard",
     routes: SHELL_ROUTE_CONTRACT.map((route) => ({ ...route })),
     defaultTranslationManagementViewId: "input-review",
-    translationManagementViews: TRANSLATION_MANAGEMENT_VIEW_CONTRACT.map((view) => ({
-      ...view
-    }))
+    translationManagementViews: TRANSLATION_MANAGEMENT_VIEW_CONTRACT.map(
+      (view) => ({
+        ...view
+      })
+    )
   }
 }

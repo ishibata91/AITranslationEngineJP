@@ -33,8 +33,12 @@ function cloneSummary(
     ...summary,
     progress: { ...summary.progress },
     execution: { ...summary.execution },
-    resultSummary: summary.resultSummary ? { ...summary.resultSummary } : undefined,
-    errorSummary: summary.errorSummary ? { ...summary.errorSummary } : undefined,
+    resultSummary: summary.resultSummary
+      ? { ...summary.resultSummary }
+      : undefined,
+    errorSummary: summary.errorSummary
+      ? { ...summary.errorSummary }
+      : undefined,
     actionEnablement: { ...summary.actionEnablement }
   }
 }

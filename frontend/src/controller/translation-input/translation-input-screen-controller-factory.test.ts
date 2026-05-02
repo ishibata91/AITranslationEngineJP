@@ -7,13 +7,16 @@ import { createTranslationInputScreenControllerFactory } from "./translation-inp
 function createGateway(): TranslationInputGatewayContract {
   return {
     importTranslationInput: vi.fn(() => Promise.reject(new Error("not used"))),
-    rebuildTranslationInputCache: vi.fn(() => Promise.reject(new Error("not used")))
+    rebuildTranslationInputCache: vi.fn(() =>
+      Promise.reject(new Error("not used"))
+    )
   }
 }
 
 describe("createTranslationInputScreenControllerFactory", () => {
   test("同一 app session 中は同じ controller instance を返す", () => {
-    const factory = createTranslationInputScreenControllerFactory(createGateway())
+    const factory =
+      createTranslationInputScreenControllerFactory(createGateway())
 
     const firstController = factory()
     const secondController = factory()

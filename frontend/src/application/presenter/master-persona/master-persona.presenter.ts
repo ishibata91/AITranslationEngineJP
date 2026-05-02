@@ -1,7 +1,8 @@
 import * as MasterPersonaGateway from "@application/gateway-contract/master-persona"
 
 type MasterPersonaScreenState = MasterPersonaGateway.MasterPersonaScreenState
-type MasterPersonaScreenViewModel = MasterPersonaGateway.MasterPersonaScreenViewModel
+type MasterPersonaScreenViewModel =
+  MasterPersonaGateway.MasterPersonaScreenViewModel
 
 const AI_PROVIDER_LABEL_BY_ID: Record<string, string> = {
   gemini: "Gemini",
@@ -73,9 +74,7 @@ function isAISettingsComplete(state: MasterPersonaScreenState): boolean {
 
 function buildProgressPercent(state: MasterPersonaScreenState): number {
   const processed = state.runStatus.processedCount
-  const total =
-    processed +
-    state.runStatus.existingSkipCount
+  const total = processed + state.runStatus.existingSkipCount
   if (total <= 0) {
     return state.runStatus.runState === "完了" ? 100 : 0
   }
@@ -90,7 +89,9 @@ export class MasterPersonaPresenter {
     const activeRun = isRunActive(state.runStatus.runState)
     const totalPages = Math.max(
       1,
-      Math.ceil(state.totalCount / MasterPersonaGateway.MASTER_PERSONA_PAGE_SIZE)
+      Math.ceil(
+        state.totalCount / MasterPersonaGateway.MASTER_PERSONA_PAGE_SIZE
+      )
     )
     const hasPreview = state.preview !== null
 

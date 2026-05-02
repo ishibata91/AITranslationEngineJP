@@ -8,7 +8,9 @@ import type {
 } from "@application/gateway-contract/translation-job-setup"
 
 interface TranslationJobSetupStoreLike {
-  subscribe(listener: (state: TranslationJobSetupScreenState) => void): () => void
+  subscribe(
+    listener: (state: TranslationJobSetupScreenState) => void
+  ): () => void
   snapshot(): TranslationJobSetupScreenState
 }
 
@@ -35,9 +37,7 @@ interface TranslationJobSetupScreenControllerDependencies {
   useCase: TranslationJobSetupUseCaseLike
 }
 
-export class TranslationJobSetupScreenController
-  implements TranslationJobSetupScreenControllerContract
-{
+export class TranslationJobSetupScreenController implements TranslationJobSetupScreenControllerContract {
   constructor(
     private readonly dependencies: TranslationJobSetupScreenControllerDependencies
   ) {}

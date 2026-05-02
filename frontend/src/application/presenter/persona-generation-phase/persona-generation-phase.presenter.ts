@@ -62,8 +62,7 @@ interface PersonaGenerationPhaseScreenActionEnablement {
   canStartBodyPhase: boolean
 }
 
-interface PersonaGenerationPhaseScreenViewModel
-  extends PersonaGenerationPhaseScreenState {
+interface PersonaGenerationPhaseScreenViewModel extends PersonaGenerationPhaseScreenState {
   gatewayStatus: string
   viewState: PersonaGenerationPhaseViewState
   isLoading: boolean
@@ -225,7 +224,9 @@ function buildViewState(
     normalizedState === "succeeded" ||
     normalizedState === "done"
   ) {
-    return summary.targetSummary.targetCount === 0 ? "empty_completed" : "completed"
+    return summary.targetSummary.targetCount === 0
+      ? "empty_completed"
+      : "completed"
   }
 
   if (!summary.phaseRunId && summary.actionEnablement.canStart) {
@@ -341,7 +342,9 @@ function buildProgressDetail(state: PersonaGenerationPhaseScreenState): string {
   return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / target ${progress.targetCount.toLocaleString("ja-JP")} 件 / ${progress.currentStep}`
 }
 
-function buildTargetSnapshotLabel(state: PersonaGenerationPhaseScreenState): string {
+function buildTargetSnapshotLabel(
+  state: PersonaGenerationPhaseScreenState
+): string {
   const summary = state.summary?.targetSummary
   if (!summary) {
     return "-"
@@ -359,7 +362,9 @@ function buildSnapshotLabel(state: PersonaGenerationPhaseScreenState): string {
   return result.snapshotId || result.snapshotDigest || "-"
 }
 
-function buildBodyReadinessLabel(state: PersonaGenerationPhaseScreenState): string {
+function buildBodyReadinessLabel(
+  state: PersonaGenerationPhaseScreenState
+): string {
   if (typeof state.bodyReadiness?.ready === "boolean") {
     return state.bodyReadiness.ready ? "Ready" : "Blocked"
   }
@@ -396,7 +401,8 @@ function buildScreenActionEnablement(
     canRetry: !isBusy && (summaryEnablement?.canRetry ?? false),
     canCancel: !isBusy && (summaryEnablement?.canCancel ?? false),
     canCheckBodyReadiness: !isBusy && state.jobId !== null,
-    canStartBodyPhase: !isBusy && (summaryEnablement?.canStartBodyPhase ?? false)
+    canStartBodyPhase:
+      !isBusy && (summaryEnablement?.canStartBodyPhase ?? false)
   }
 }
 
@@ -406,7 +412,9 @@ function buildActionCards(
   const enablement = state.summary?.actionEnablement
   const screenEnablement = buildScreenActionEnablement(state)
   const bodyReadinessBlockedReason =
-    state.bodyReadiness?.blockedReason ?? enablement?.bodyPhaseBlockedReason ?? ""
+    state.bodyReadiness?.blockedReason ??
+    enablement?.bodyPhaseBlockedReason ??
+    ""
 
   return [
     {
@@ -504,8 +512,12 @@ export class PersonaGenerationPhasePresenter {
       failedCountLabel: formatCount(resultSummary?.failedCount),
       skippedCountLabel: formatCount(targetSummary?.skippedCount),
       npcCountLabel: formatCount(targetSummary?.targetCount),
-      commonPersonaHitCountLabel: formatCount(targetSummary?.commonPersonaHitCount),
-      commonPersonaMissCountLabel: formatCount(targetSummary?.commonPersonaMissCount),
+      commonPersonaHitCountLabel: formatCount(
+        targetSummary?.commonPersonaHitCount
+      ),
+      commonPersonaMissCountLabel: formatCount(
+        targetSummary?.commonPersonaMissCount
+      ),
       skippedReasonsLabel: formatList(targetSummary?.skippedReasons),
       targetSnapshotLabel: buildTargetSnapshotLabel(state),
       providerLabel: executionSummary?.provider ?? "-",
@@ -523,7 +535,8 @@ export class PersonaGenerationPhasePresenter {
       missingCountLabel: formatCount(resultSummary?.missingCount),
       bodyReadinessLabel: buildBodyReadinessLabel(state),
       bodyReadinessBlockedReason: state.bodyReadiness?.blockedReason ?? "",
-      bodyReadinessInputSummaryLabel: buildBodyReadinessInputSummaryLabel(state),
+      bodyReadinessInputSummaryLabel:
+        buildBodyReadinessInputSummaryLabel(state),
       errorKindLabel:
         state.bodyReadiness?.errorKind ?? errorSummary?.errorKind ?? "-",
       errorReasonLabel: errorSummary?.reason ?? "-",
@@ -541,7 +554,8 @@ export class PersonaGenerationPhasePresenter {
       latestTargetSummary: targetSummary ?? null,
       latestResultSummary: resultSummary ?? null,
       latestExecutionSummary: executionSummary ?? null,
-      latestErrorKind: errorSummary?.errorKind ?? state.bodyReadiness?.errorKind ?? null,
+      latestErrorKind:
+        errorSummary?.errorKind ?? state.bodyReadiness?.errorKind ?? null,
       latestBodyReadiness: state.bodyReadiness,
       latestBodyReadinessInputSummary: state.bodyReadiness?.inputSummary ?? null
     }

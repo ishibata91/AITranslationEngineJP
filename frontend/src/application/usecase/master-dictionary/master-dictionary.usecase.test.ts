@@ -143,7 +143,10 @@ describe("loadEntryDetail", () => {
     // Assert
     expect(store.snapshot().selectedEntry?.source).toBe("Whiterun")
     expect(store.snapshot().selectedEntry?.note).toBe("マスター辞書エントリ")
-    const entryRecordA = store.snapshot().selectedEntry as Record<string, unknown> | null
+    const entryRecordA = store.snapshot().selectedEntry as Record<
+      string,
+      unknown
+    > | null
     expect(entryRecordA?.["rec"]).toBeUndefined()
     expect(entryRecordA?.["edid"]).toBeUndefined()
     expect(getMasterDictionaryEntry).toHaveBeenCalledWith({ id: "42" })
@@ -190,7 +193,10 @@ describe("selectEntry", () => {
     // Assert
     expect(store.snapshot().selectedId).toBe("55")
     expect(store.snapshot().selectedEntry?.source).toBe("Ulfric Stormcloak")
-    const entryRecordB = store.snapshot().selectedEntry as Record<string, unknown> | null
+    const entryRecordB = store.snapshot().selectedEntry as Record<
+      string,
+      unknown
+    > | null
     expect(entryRecordB?.["rec"]).toBeUndefined()
     expect(entryRecordB?.["edid"]).toBeUndefined()
     expect(getMasterDictionaryEntry).toHaveBeenCalledWith({ id: "55" })
@@ -244,7 +250,14 @@ function makeCreatedEntry(source = "Dragon Priest") {
 }
 
 function makePageState(
-  items: { id: number; source: string; translation: string; category: string; origin: string; updatedAt: string }[] = [],
+  items: {
+    id: number
+    source: string
+    translation: string
+    category: string
+    origin: string
+    updatedAt: string
+  }[] = [],
   selectedId?: number
 ) {
   return {
@@ -358,7 +371,16 @@ describe("saveCurrentEntry - create", () => {
     // Arrange
     const store = new MasterDictionaryStore()
     const entry = makeCreatedEntry()
-    const pageItems = [{ id: 99, source: "Dragon Priest", translation: "ドラゴン・プリースト", category: "固有名詞", origin: "手動登録", updatedAt: "2026-04-21T00:00:00Z" }]
+    const pageItems = [
+      {
+        id: 99,
+        source: "Dragon Priest",
+        translation: "ドラゴン・プリースト",
+        category: "固有名詞",
+        origin: "手動登録",
+        updatedAt: "2026-04-21T00:00:00Z"
+      }
+    ]
     const createMasterDictionaryEntry = vi.fn().mockResolvedValue({
       entry,
       refreshTargetId: "99",
@@ -379,7 +401,9 @@ describe("saveCurrentEntry - create", () => {
 
     // Assert
     expect(createMasterDictionaryEntry).toHaveBeenCalledTimes(1)
-    const callArg = createMasterDictionaryEntry.mock.calls[0][0] as { payload: { source: string } }
+    const callArg = createMasterDictionaryEntry.mock.calls[0][0] as {
+      payload: { source: string }
+    }
     expect(callArg.payload.source).toBe("Dragon Priest")
   })
 
@@ -387,7 +411,16 @@ describe("saveCurrentEntry - create", () => {
     // Arrange
     const store = new MasterDictionaryStore()
     const entry = makeCreatedEntry()
-    const pageItems = [{ id: 99, source: "Dragon Priest", translation: "ドラゴン・プリースト", category: "固有名詞", origin: "手動登録", updatedAt: "2026-04-21T00:00:00Z" }]
+    const pageItems = [
+      {
+        id: 99,
+        source: "Dragon Priest",
+        translation: "ドラゴン・プリースト",
+        category: "固有名詞",
+        origin: "手動登録",
+        updatedAt: "2026-04-21T00:00:00Z"
+      }
+    ]
     const gateway = makeGateway({
       createMasterDictionaryEntry: vi.fn().mockResolvedValue({
         entry,
@@ -413,9 +446,13 @@ describe("saveCurrentEntry - create", () => {
     // Arrange
     const store = new MasterDictionaryStore()
     const gateway = makeGateway({
-      createMasterDictionaryEntry: vi.fn().mockRejectedValue(
-        new Error("duplicate_entry: trim(source_term)+translated_term が重複しています")
-      )
+      createMasterDictionaryEntry: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "duplicate_entry: trim(source_term)+translated_term が重複しています"
+          )
+        )
     })
     const useCase = new MasterDictionaryUseCase(gateway, store)
     store.update((draft) => {
@@ -471,7 +508,16 @@ describe("saveCurrentEntry - edit", () => {
       note: "マスター辞書エントリ",
       updatedAt: "2026-04-21T00:00:00Z"
     }
-    const pageItems = [{ id: 1, source: "Dragon Priest", translation: "ドラゴン・プリースト", category: "固有名詞", origin: "手動登録", updatedAt: "2026-04-21T00:00:00Z" }]
+    const pageItems = [
+      {
+        id: 1,
+        source: "Dragon Priest",
+        translation: "ドラゴン・プリースト",
+        category: "固有名詞",
+        origin: "手動登録",
+        updatedAt: "2026-04-21T00:00:00Z"
+      }
+    ]
     const updateMasterDictionaryEntry = vi.fn().mockResolvedValue({
       entry: updatedEntry,
       refreshTargetId: "1",
@@ -493,7 +539,9 @@ describe("saveCurrentEntry - edit", () => {
 
     // Assert
     expect(updateMasterDictionaryEntry).toHaveBeenCalledTimes(1)
-    const callArg = updateMasterDictionaryEntry.mock.calls[0][0] as { payload: { source: string; translation: string } }
+    const callArg = updateMasterDictionaryEntry.mock.calls[0][0] as {
+      payload: { source: string; translation: string }
+    }
     expect(callArg.payload.source).toBe("Dragon Priest")
     expect(callArg.payload.translation).toBe("ドラゴン・プリースト")
   })
@@ -510,7 +558,16 @@ describe("saveCurrentEntry - edit", () => {
       note: "マスター辞書エントリ",
       updatedAt: "2026-04-21T00:00:00Z"
     }
-    const pageItems = [{ id: 1, source: "Dragon Priest", translation: "ドラゴン・プリースト", category: "固有名詞", origin: "手動登録", updatedAt: "2026-04-21T00:00:00Z" }]
+    const pageItems = [
+      {
+        id: 1,
+        source: "Dragon Priest",
+        translation: "ドラゴン・プリースト",
+        category: "固有名詞",
+        origin: "手動登録",
+        updatedAt: "2026-04-21T00:00:00Z"
+      }
+    ]
     const gateway = makeGateway({
       updateMasterDictionaryEntry: vi.fn().mockResolvedValue({
         entry: updatedEntry,
@@ -537,9 +594,13 @@ describe("saveCurrentEntry - edit", () => {
     // Arrange
     const store = new MasterDictionaryStore()
     const gateway = makeGateway({
-      updateMasterDictionaryEntry: vi.fn().mockRejectedValue(
-        new Error("duplicate_entry: trim(source_term)+translated_term が重複しています")
-      )
+      updateMasterDictionaryEntry: vi
+        .fn()
+        .mockRejectedValue(
+          new Error(
+            "duplicate_entry: trim(source_term)+translated_term が重複しています"
+          )
+        )
     })
     const useCase = new MasterDictionaryUseCase(gateway, store)
     store.update((draft) => {
@@ -617,7 +678,9 @@ describe("deleteCurrentEntry", () => {
 
     // Assert
     expect(deleteMasterDictionaryEntry).toHaveBeenCalledTimes(1)
-    const callArg = deleteMasterDictionaryEntry.mock.calls[0][0] as { id: string }
+    const callArg = deleteMasterDictionaryEntry.mock.calls[0][0] as {
+      id: string
+    }
     expect(callArg.id).toBe("1")
   })
 
@@ -648,9 +711,9 @@ describe("deleteCurrentEntry", () => {
     // Arrange
     const store = new MasterDictionaryStore()
     const gateway = makeGateway({
-      deleteMasterDictionaryEntry: vi.fn().mockRejectedValue(
-        new Error("削除対象が見つかりません")
-      )
+      deleteMasterDictionaryEntry: vi
+        .fn()
+        .mockRejectedValue(new Error("削除対象が見つかりません"))
     })
     const useCase = new MasterDictionaryUseCase(gateway, store)
     store.update((draft) => {
@@ -698,16 +761,18 @@ describe("startStagedXmlImport", () => {
     expect(store.snapshot().importStage).toBe("ready")
     expect(store.snapshot().importProgress).toBe(0)
     expect(store.snapshot().importSummary).toBeNull()
-    expect(store.snapshot().errorMessage).toBe("import failed from plain object")
+    expect(store.snapshot().errorMessage).toBe(
+      "import failed from plain object"
+    )
   })
 
   test("import 失敗時は string reject を errorMessage に表示する", async () => {
     // Arrange
     const store = new MasterDictionaryStore()
     const gateway = makeGateway({
-      importMasterDictionaryXml: vi.fn().mockRejectedValue(
-        "import failed from string"
-      )
+      importMasterDictionaryXml: vi
+        .fn()
+        .mockRejectedValue("import failed from string")
     })
     const useCase = new MasterDictionaryUseCase(gateway, store)
     store.update((draft) => {

@@ -114,41 +114,45 @@ export class PersonaGenerationPhaseUseCase {
 
   async startPhase(): Promise<void> {
     await this.runCommand("start", (jobId) =>
-      this.gateway!.startPersonaGenerationPhase(
-        { jobId } satisfies StartPersonaGenerationPhaseRequest
-      )
+      this.gateway!.startPersonaGenerationPhase({
+        jobId
+      } satisfies StartPersonaGenerationPhaseRequest)
     )
   }
 
   async pausePhase(): Promise<void> {
     await this.runCommand("pause", (jobId, phaseRunId) =>
-      this.gateway!.pausePersonaGenerationPhase(
-        { jobId, phaseRunId } satisfies PausePersonaGenerationPhaseRequest
-      )
+      this.gateway!.pausePersonaGenerationPhase({
+        jobId,
+        phaseRunId
+      } satisfies PausePersonaGenerationPhaseRequest)
     )
   }
 
   async resumePhase(): Promise<void> {
     await this.runCommand("resume", (jobId, phaseRunId) =>
-      this.gateway!.resumePersonaGenerationPhase(
-        { jobId, phaseRunId } satisfies ResumePersonaGenerationPhaseRequest
-      )
+      this.gateway!.resumePersonaGenerationPhase({
+        jobId,
+        phaseRunId
+      } satisfies ResumePersonaGenerationPhaseRequest)
     )
   }
 
   async retryPhase(): Promise<void> {
     await this.runCommand("retry", (jobId, phaseRunId) =>
-      this.gateway!.retryPersonaGenerationPhase(
-        { jobId, phaseRunId } satisfies RetryPersonaGenerationPhaseRequest
-      )
+      this.gateway!.retryPersonaGenerationPhase({
+        jobId,
+        phaseRunId
+      } satisfies RetryPersonaGenerationPhaseRequest)
     )
   }
 
   async cancelPhase(): Promise<void> {
     await this.runCommand("cancel", (jobId, phaseRunId) =>
-      this.gateway!.cancelPersonaGenerationPhase(
-        { jobId, phaseRunId } satisfies CancelPersonaGenerationPhaseRequest
-      )
+      this.gateway!.cancelPersonaGenerationPhase({
+        jobId,
+        phaseRunId
+      } satisfies CancelPersonaGenerationPhaseRequest)
     )
   }
 
@@ -193,12 +197,12 @@ export class PersonaGenerationPhaseUseCase {
 
     try {
       const [summary, bodyReadiness] = await Promise.all([
-        this.gateway!.getPersonaGenerationPhaseSummary(
-          { jobId } satisfies GetPersonaGenerationPhaseSummaryRequest
-        ),
-        this.gateway!.getPersonaGenerationBodyReadiness(
-          { jobId } satisfies GetPersonaGenerationBodyReadinessRequest
-        )
+        this.gateway!.getPersonaGenerationPhaseSummary({
+          jobId
+        } satisfies GetPersonaGenerationPhaseSummaryRequest),
+        this.gateway!.getPersonaGenerationBodyReadiness({
+          jobId
+        } satisfies GetPersonaGenerationBodyReadinessRequest)
       ])
 
       this.store.update((draft) => {

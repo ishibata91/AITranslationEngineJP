@@ -2,7 +2,8 @@ import * as MasterPersonaGateway from "@application/gateway-contract/master-pers
 
 type MasterPersonaAISettings = MasterPersonaGateway.MasterPersonaAISettings
 type MasterPersonaDetail = MasterPersonaGateway.MasterPersonaDetail
-type MasterPersonaGatewayContract = MasterPersonaGateway.MasterPersonaGatewayContract
+type MasterPersonaGatewayContract =
+  MasterPersonaGateway.MasterPersonaGatewayContract
 type MasterPersonaModalState = MasterPersonaGateway.MasterPersonaModalState
 type MasterPersonaPageState = MasterPersonaGateway.MasterPersonaPageState
 type MasterPersonaRunStatus = MasterPersonaGateway.MasterPersonaRunStatus
@@ -48,7 +49,9 @@ function createEditFormFromEntry(entry: MasterPersonaDetail) {
   }
 }
 
-function mergeAISettings(settings: MasterPersonaAISettings): MasterPersonaAISettings {
+function mergeAISettings(
+  settings: MasterPersonaAISettings
+): MasterPersonaAISettings {
   const defaults = MasterPersonaGateway.createDefaultMasterPersonaAISettings()
   return {
     provider: settings.provider.trim() || defaults.provider,
@@ -93,8 +96,12 @@ export class MasterPersonaUseCase {
       })
     } catch (error) {
       this.store.update((draft) => {
-        draft.aiSettings = MasterPersonaGateway.createDefaultMasterPersonaAISettings()
-        draft.errorMessage = toErrorMessage(error, "AI設定の取得に失敗しました。")
+        draft.aiSettings =
+          MasterPersonaGateway.createDefaultMasterPersonaAISettings()
+        draft.errorMessage = toErrorMessage(
+          error,
+          "AI設定の取得に失敗しました。"
+        )
       })
     }
   }
@@ -117,7 +124,10 @@ export class MasterPersonaUseCase {
     } catch (error) {
       this.store.update((draft) => {
         draft.aiSettingsMessage = ""
-        draft.errorMessage = toErrorMessage(error, "AI設定の保存に失敗しました。")
+        draft.errorMessage = toErrorMessage(
+          error,
+          "AI設定の保存に失敗しました。"
+        )
       })
     }
   }
@@ -144,8 +154,8 @@ export class MasterPersonaUseCase {
         ),
         preferredIdentityKey:
           preferredIdentityKey === undefined
-            ? state.selectedIdentityKey ?? undefined
-            : preferredIdentityKey ?? undefined
+            ? (state.selectedIdentityKey ?? undefined)
+            : (preferredIdentityKey ?? undefined)
       })
 
       const nextSelectedIdentityKey = chooseSelectedIdentityKey(
@@ -190,7 +200,9 @@ export class MasterPersonaUseCase {
     }
 
     try {
-      const response = await this.gateway.getMasterPersonaDetail({ identityKey })
+      const response = await this.gateway.getMasterPersonaDetail({
+        identityKey
+      })
       this.store.update((draft) => {
         draft.selectedEntry = response.entry
         if (draft.modalState === "edit") {
@@ -386,7 +398,10 @@ export class MasterPersonaUseCase {
           state.page
         )
       })
-      await this.applyMutationResponse(response.page, response.changedEntry ?? null)
+      await this.applyMutationResponse(
+        response.page,
+        response.changedEntry ?? null
+      )
       this.store.update((draft) => {
         draft.modalState = null
         draft.errorMessage = ""

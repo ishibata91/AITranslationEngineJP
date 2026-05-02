@@ -42,7 +42,9 @@ function normalizeSummary(
   return {
     ...summary,
     categories: Array.isArray(summary.categories) ? summary.categories : [],
-    sampleFields: Array.isArray(summary.sampleFields) ? summary.sampleFields : [],
+    sampleFields: Array.isArray(summary.sampleFields)
+      ? summary.sampleFields
+      : [],
     warnings: normalizeWarnings(summary.warnings)
   }
 }
@@ -105,17 +107,25 @@ function buildReviewItemFromResponse(
   const normalizedResponse = normalizeCommandResponse(response)
   const summary = normalizedResponse.summary ?? existingItem?.summary ?? null
   const warnings = mergeWarnings(response.warnings, summary?.warnings ?? [])
-  const filePath = summary?.input.sourceFilePath ?? existingItem?.filePath ?? stagedFile.filePath
-  const fileName = existingItem?.fileName ?? summary?.input.sourceFilePath
-    ? fileNameFromPath(filePath)
-    : stagedFile.fileName
+  const filePath =
+    summary?.input.sourceFilePath ??
+    existingItem?.filePath ??
+    stagedFile.filePath
+  const fileName =
+    (existingItem?.fileName ?? summary?.input.sourceFilePath)
+      ? fileNameFromPath(filePath)
+      : stagedFile.fileName
   const inputId = summary?.input.id ?? existingItem?.inputId ?? null
   const importTimestamp =
-    summary?.input.importedAt ?? existingItem?.importTimestamp ?? new Date().toISOString()
+    summary?.input.importedAt ??
+    existingItem?.importTimestamp ??
+    new Date().toISOString()
   const errorKind = response.accepted
     ? null
     : (normalizedResponse.errorKind ?? existingItem?.errorKind ?? null)
-  const localId = existingItem?.localId ?? `${inputId ?? stagedFile.fileHash}:${importTimestamp}:${action}`
+  const localId =
+    existingItem?.localId ??
+    `${inputId ?? stagedFile.fileHash}:${importTimestamp}:${action}`
 
   return {
     localId,
@@ -209,9 +219,11 @@ export class TranslationInputUseCase {
     })
 
     try {
-      const response = normalizeCommandResponse(await this.gateway.importTranslationInput({
-        filePath: state.stagedFile.filePath
-      }))
+      const response = normalizeCommandResponse(
+        await this.gateway.importTranslationInput({
+          filePath: state.stagedFile.filePath
+        })
+      )
       const nextItem = buildReviewItemFromResponse(
         response,
         state.stagedFile,
@@ -228,7 +240,10 @@ export class TranslationInputUseCase {
     } catch (error) {
       this.store.update((draft) => {
         draft.operationState = "ready"
-        draft.errorMessage = toErrorMessage(error, "入力データの登録に失敗しました。")
+        draft.errorMessage = toErrorMessage(
+          error,
+          "入力データの登録に失敗しました。"
+        )
       })
     }
   }
@@ -262,9 +277,11 @@ export class TranslationInputUseCase {
     })
 
     try {
-      const response = normalizeCommandResponse(await this.gateway.rebuildTranslationInputCache({
-        inputId: selectedItem.inputId
-      }))
+      const response = normalizeCommandResponse(
+        await this.gateway.rebuildTranslationInputCache({
+          inputId: selectedItem.inputId
+        })
+      )
       const nextItem = buildReviewItemFromResponse(
         response,
         createSyntheticStagedFile(state, selectedItem),
@@ -281,7 +298,10 @@ export class TranslationInputUseCase {
     } catch (error) {
       this.store.update((draft) => {
         draft.operationState = "idle"
-        draft.errorMessage = toErrorMessage(error, "入力データの再構築に失敗しました。")
+        draft.errorMessage = toErrorMessage(
+          error,
+          "入力データの再構築に失敗しました。"
+        )
       })
     }
   }

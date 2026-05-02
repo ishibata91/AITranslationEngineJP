@@ -7,12 +7,16 @@
 
   interface Props {
     viewModel: PersonaGenerationPhaseScreenViewModel
-    onAction: (actionId: PersonaGenerationPhaseActionKind) => void | Promise<void>
+    onAction: (
+      actionId: PersonaGenerationPhaseActionKind
+    ) => void | Promise<void>
   }
 
   let { viewModel, onAction }: Props = $props()
 
-  function resolveStateToken(viewState: PersonaGenerationPhaseViewState): string {
+  function resolveStateToken(
+    viewState: PersonaGenerationPhaseViewState
+  ): string {
     return viewState
   }
 </script>
@@ -27,10 +31,14 @@
       <p class="gateway-status">Gateway: {viewModel.gatewayStatus}</p>
     </div>
     <p class="lead">
-      current phase、progress、target summary、phase result、body readiness を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。
+      current phase、progress、target summary、phase result、body readiness
+      を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。
     </p>
     <div class="status-block">
-      <span class="state-pill" data-state={resolveStateToken(viewModel.viewState)}>
+      <span
+        class="state-pill"
+        data-state={resolveStateToken(viewModel.viewState)}
+      >
         {viewModel.phaseStateLabel}
       </span>
       <div>
@@ -56,10 +64,15 @@
         <strong>{viewModel.skippedCountLabel}</strong>
       </div>
     </div>
-    <p class="error-text" hidden={!viewModel.errorMessage}>{viewModel.errorMessage}</p>
+    <p class="error-text" hidden={!viewModel.errorMessage}>
+      {viewModel.errorMessage}
+    </p>
   </section>
 
-  <section class="job-run-card action-card" aria-labelledby="personaPhaseActionsHeading">
+  <section
+    class="job-run-card action-card"
+    aria-labelledby="personaPhaseActionsHeading"
+  >
     <div class="section-head">
       <div>
         <p class="eyebrow">phase control</p>
@@ -244,7 +257,9 @@
           <dd class="wrap-value">
             {viewModel.bodyReadinessLabel}
             {#if viewModel.bodyReadinessBlockedReason}
-              <span class="detail-note">{viewModel.bodyReadinessBlockedReason}</span>
+              <span class="detail-note"
+                >{viewModel.bodyReadinessBlockedReason}</span
+              >
             {/if}
           </dd>
         </div>

@@ -36,6 +36,7 @@ description: Codex 側の 作業流れ / skill / agent 契約を監査または�
 - skill 形式の正本は `.codex/skill-template.md` とする。
 - エージェント実行定義の正本形式は `.codex/agent-template.toml` とする。
 - agent 紐づけ と `sandbox_mode` は エージェント実行定義 に置く。
+- サンドボックス外実行の `prefix_rule` は `.codex/rules/default.rules` に置く。
 - プロダクト 仕様の正本は `docs/` であり、この skill は プロダクト 仕様を変更しない。
 - 外部正本が衝突する場合は停止し、衝突内容を人間へ返す。
 
@@ -128,6 +129,7 @@ description: Codex 側の 作業流れ / skill / agent 契約を監査または�
 - skill 本体更新: skill 本体を更新する場合は、`.codex/skill-template.md` の分類順に合わせる。
 - 非対象規約更新: 非対象規約を追加または更新する場合は、停止規約へ混ぜた非対象を分けて示す。
 - agent 更新: agent を更新する場合は、エージェント実行定義、紐づけ、`sandbox_mode` の所有者を分けて示す。
+- rules 更新: Codex rules を更新する場合は、対象 command、`prefix_rule`、判断理由を分けて示す。
 - 削除後正本: 削除対象がある場合は、削除後にどの正本を見ればよいかを示す。
 - 禁止事項: 出力に プロダクトコード、プロダクトテスト、プロダクト仕様文書の変更を含めてはいけない。
 
@@ -147,6 +149,7 @@ description: Codex 側の 作業流れ / skill / agent 契約を監査または�
 - 入力規約と出力規約の説明が、その項目自身だけを説明していることを確認する。
 - 非対象規約と停止規約が混在していないことを確認する。
 - ツール権限と出力義務が skill 側へ混入していないことを確認する。
+- サンドボックス外実行の `prefix_rule` が `.codex/rules/default.rules` へ置かれていることを確認する。
 - 削除対象に旧参照、空実体、禁止文言だけのファイルが残っていないことを確認する。
 - 確認用ファイル、旧権限ファイル、agent 個別 JSON 規約の独立ファイルまたは参照が残っていない。
 

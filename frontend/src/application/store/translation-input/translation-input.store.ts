@@ -46,7 +46,9 @@ export class TranslationInputStore {
               sampleFields: asArray(item.summary.sampleFields).map((field) => ({
                 ...field
               })),
-              warnings: asArray(item.summary.warnings).map((warning) => ({ ...warning }))
+              warnings: asArray(item.summary.warnings).map((warning) => ({
+                ...warning
+              }))
             }
           : null
       })),
@@ -54,25 +56,30 @@ export class TranslationInputStore {
       latestResponse: this.state.latestResponse
         ? {
             ...this.state.latestResponse,
-            warnings: asArray(this.state.latestResponse.warnings).map((warning) => ({
-              ...warning
-            })),
+            warnings: asArray(this.state.latestResponse.warnings).map(
+              (warning) => ({
+                ...warning
+              })
+            ),
             summary: this.state.latestResponse.summary
               ? {
                   ...this.state.latestResponse.summary,
                   input: { ...this.state.latestResponse.summary.input },
-                  categories:
-                    asArray(this.state.latestResponse.summary.categories).map((category) => ({
-                      ...category
-                    })),
-                  sampleFields:
-                    asArray(this.state.latestResponse.summary.sampleFields).map((field) => ({
-                      ...field
-                    })),
-                  warnings:
-                    asArray(this.state.latestResponse.summary.warnings).map((warning) => ({
-                      ...warning
-                    }))
+                  categories: asArray(
+                    this.state.latestResponse.summary.categories
+                  ).map((category) => ({
+                    ...category
+                  })),
+                  sampleFields: asArray(
+                    this.state.latestResponse.summary.sampleFields
+                  ).map((field) => ({
+                    ...field
+                  })),
+                  warnings: asArray(
+                    this.state.latestResponse.summary.warnings
+                  ).map((warning) => ({
+                    ...warning
+                  }))
                 }
               : undefined
           }

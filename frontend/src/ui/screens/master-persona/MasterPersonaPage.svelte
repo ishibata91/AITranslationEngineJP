@@ -68,14 +68,21 @@
         <h2>JSONから NPC ペルソナを生成</h2>
       </div>
       <div class="status-row">
-        <span class="status-pill status-accent">{viewModel.runStatus.runState}</span>
+        <span class="status-pill status-accent"
+          >{viewModel.runStatus.runState}</span
+        >
         <span class="status-pill">Gateway: {viewModel.gatewayStatus}</span>
       </div>
     </div>
     <p class="lead">
-      extractData.pas JSON を入力にして、未生成のマスターペルソナだけを追加します。
+      extractData.pas JSON
+      を入力にして、未生成のマスターペルソナだけを追加します。
     </p>
-    <p class="error-text" hidden={!viewModel.errorMessage} id="masterPersonaError">
+    <p
+      class="error-text"
+      hidden={!viewModel.errorMessage}
+      id="masterPersonaError"
+    >
       {viewModel.errorMessage}
     </p>
   </section>
@@ -130,7 +137,9 @@
       </div>
 
       <div class="inline-actions">
-        <span class="mini-text" id="aiSettingsMessage">{viewModel.aiSettingsMessage}</span>
+        <span class="mini-text" id="aiSettingsMessage"
+          >{viewModel.aiSettingsMessage}</span
+        >
         <button
           class="button-secondary"
           id="saveAiSettingsButton"
@@ -222,13 +231,17 @@
       </div>
     </section>
 
-    <section class="master-persona-panel run-panel" aria-labelledby="runHeading">
+    <section
+      class="master-persona-panel run-panel"
+      aria-labelledby="runHeading"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">進行状況</p>
           <h3 id="runHeading">{viewModel.runStatus.message}</h3>
         </div>
-        <span class="status-pill status-danger">{viewModel.detailLockText}</span>
+        <span class="status-pill status-danger">{viewModel.detailLockText}</span
+        >
       </div>
 
       <div class="progress-track">
@@ -255,8 +268,12 @@
       </div>
 
       <div class="status-row">
-        <span class="status-pill">作成済み {viewModel.runStatus.successCount}</span>
-        <span class="status-pill">既に作成済み {viewModel.runStatus.existingSkipCount}</span>
+        <span class="status-pill"
+          >作成済み {viewModel.runStatus.successCount}</span
+        >
+        <span class="status-pill"
+          >既に作成済み {viewModel.runStatus.existingSkipCount}</span
+        >
       </div>
 
       <div class="inline-actions run-actions">
@@ -291,7 +308,9 @@
         <div>
           <p class="eyebrow">一覧</p>
           <h3 id="listHeading">ペルソナ一覧</h3>
-          <p class="mini-text" id="pageStatusText">{viewModel.pageStatusText}</p>
+          <p class="mini-text" id="pageStatusText">
+            {viewModel.pageStatusText}
+          </p>
         </div>
         <span class="status-pill">{viewModel.listHeadline}</span>
       </div>
@@ -337,7 +356,8 @@
           {#each viewModel.items as item (item.identityKey)}
             <button
               class="list-row"
-              class:is-selected={viewModel.selectedIdentityKey === item.identityKey}
+              class:is-selected={viewModel.selectedIdentityKey ===
+                item.identityKey}
               onclick={() => void controller.selectRow(item.identityKey)}
               type="button"
             >
@@ -360,7 +380,9 @@
       </div>
 
       <div class="pager-shell">
-        <span class="mini-text" id="selectionStatusText">{viewModel.selectionStatusText}</span>
+        <span class="mini-text" id="selectionStatusText"
+          >{viewModel.selectionStatusText}</span
+        >
         <div class="inline-actions compact-actions">
           <button
             class="button-secondary"
@@ -389,7 +411,9 @@
         <div>
           <p class="eyebrow">詳細</p>
           <h3 id="detailHeading">選択中のペルソナ</h3>
-          <p class="mini-text" id="detailStatusText">{viewModel.detailStatusText}</p>
+          <p class="mini-text" id="detailStatusText">
+            {viewModel.detailStatusText}
+          </p>
         </div>
         <div class="inline-actions compact-actions">
           <button
@@ -420,11 +444,13 @@
           {/if}
         </div>
         <strong id="detailTitle"
-          >{viewModel.selectedEntry?.displayName ?? "表示できるペルソナがありません"}</strong
+          >{viewModel.selectedEntry?.displayName ??
+            "表示できるペルソナがありません"}</strong
         >
         <p class="mini-text" id="detailIdentityText">
           {#if viewModel.selectedEntry}
-            FormID {viewModel.selectedEntry.formId} / EditorID {viewModel.selectedEntry.editorId} / {viewModel.selectedEntry.targetPlugin}
+            FormID {viewModel.selectedEntry.formId} / EditorID {viewModel
+              .selectedEntry.editorId} / {viewModel.selectedEntry.targetPlugin}
           {:else}
             検索条件を変更してください。
           {/if}
@@ -494,7 +520,8 @@
         <textarea
           class="textarea-field"
           id="editPersonaSummaryInput"
-          oninput={(event) => controller.setEditFormField("personaSummary", event)}
+          oninput={(event) =>
+            controller.setEditFormField("personaSummary", event)}
           value={viewModel.editForm.personaSummary ?? ""}
         ></textarea>
       </label>
@@ -802,7 +829,10 @@
   .list-row {
     display: grid;
     gap: 10px;
-    grid-template-columns: minmax(140px, 1fr) minmax(160px, 1fr) minmax(200px, 1.15fr) minmax(100px, 0.7fr);
+    grid-template-columns: minmax(140px, 1fr) minmax(160px, 1fr) minmax(
+        200px,
+        1.15fr
+      ) minmax(100px, 0.7fr);
     text-align: left;
     color: inherit;
   }

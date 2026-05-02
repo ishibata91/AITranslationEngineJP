@@ -1,1 +1,4 @@
-export { TranslationJobSetupPresenter, VALIDATION_LABELS } from "./translation-job-setup.presenter"
+export {
+  TranslationJobSetupPresenter,
+  VALIDATION_LABELS
+} from "./translation-job-setup.presenter"

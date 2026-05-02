@@ -19,7 +19,8 @@ export type ListMasterDictionaryEntriesResponseDto =
   ListMasterDictionaryEntriesResponse
 
 export type GetMasterDictionaryEntryRequestDto = GetMasterDictionaryEntryRequest
-export type GetMasterDictionaryEntryResponseDto = GetMasterDictionaryEntryResponse
+export type GetMasterDictionaryEntryResponseDto =
+  GetMasterDictionaryEntryResponse
 
 export type CreateMasterDictionaryEntryRequestDto =
   CreateMasterDictionaryEntryRequest
@@ -36,6 +37,7 @@ export type DeleteMasterDictionaryEntryRequestDto =
 export type DeleteMasterDictionaryEntryResponseDto =
   DeleteMasterDictionaryEntryResponse
 
-export type ImportMasterDictionaryXmlRequestDto = ImportMasterDictionaryXmlRequest
-export type ImportMasterDictionaryXmlResponseDto = ImportMasterDictionaryXmlResponse
-
+export type ImportMasterDictionaryXmlRequestDto =
+  ImportMasterDictionaryXmlRequest
+export type ImportMasterDictionaryXmlResponseDto =
+  ImportMasterDictionaryXmlResponse

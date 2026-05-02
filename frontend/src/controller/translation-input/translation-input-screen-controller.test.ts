@@ -46,17 +46,21 @@ function createViewModel(
   }
 }
 
-function createHarness(initialState: TranslationInputScreenState = createState()) {
+function createHarness(
+  initialState: TranslationInputScreenState = createState()
+) {
   let state = initialState
   const listeners = new Set<(state: TranslationInputScreenState) => void>()
 
   const store = {
-    subscribe: vi.fn((listener: (nextState: TranslationInputScreenState) => void) => {
-      listeners.add(listener)
-      return () => {
-        listeners.delete(listener)
+    subscribe: vi.fn(
+      (listener: (nextState: TranslationInputScreenState) => void) => {
+        listeners.add(listener)
+        return () => {
+          listeners.delete(listener)
+        }
       }
-    }),
+    ),
     snapshot: vi.fn(() => state),
     update: vi.fn((mutator: (draft: TranslationInputScreenState) => void) => {
       const draft = structuredClone(state)

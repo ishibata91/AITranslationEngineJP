@@ -360,7 +360,9 @@ describe("MasterPersonaUseCase", () => {
     await useCase.previewGeneration()
 
     expect(store.snapshot().preview).toBeNull()
-    expect(store.snapshot().errorMessage).toBe("parse extractData json: invalid")
+    expect(store.snapshot().errorMessage).toBe(
+      "parse extractData json: invalid"
+    )
   })
 
   test("loadDetail は selectedEntry を更新する", async () => {
@@ -372,7 +374,9 @@ describe("MasterPersonaUseCase", () => {
 
     await useCase.loadDetail("FollowersPlus.esp:FE01A812:NPC_")
 
-    expect(store.snapshot().selectedEntry?.identityKey).toBe("FollowersPlus.esp:FE01A812:NPC_")
+    expect(store.snapshot().selectedEntry?.identityKey).toBe(
+      "FollowersPlus.esp:FE01A812:NPC_"
+    )
     expect(gateway.getMasterPersonaDetail).toHaveBeenCalledWith({
       identityKey: "FollowersPlus.esp:FE01A812:NPC_"
     })
@@ -398,7 +402,9 @@ describe("MasterPersonaUseCase", () => {
       } as MasterPersonaDetail
     })
     const gateway = createGateway()
-    gateway.getMasterPersonaDetail.mockRejectedValueOnce(new Error("entry not found"))
+    gateway.getMasterPersonaDetail.mockRejectedValueOnce(
+      new Error("entry not found")
+    )
     const useCase = new MasterPersonaUseCase(gateway, store)
 
     await useCase.loadDetail("FollowersPlus.esp:FE01A812:NPC_")
@@ -416,7 +422,9 @@ describe("MasterPersonaUseCase", () => {
 
     await useCase.selectEntry("FollowersPlus.esp:FE01A812:NPC_")
 
-    expect(store.snapshot().selectedIdentityKey).toBe("FollowersPlus.esp:FE01A812:NPC_")
+    expect(store.snapshot().selectedIdentityKey).toBe(
+      "FollowersPlus.esp:FE01A812:NPC_"
+    )
     expect(gateway.getMasterPersonaDetail).toHaveBeenCalledWith({
       identityKey: "FollowersPlus.esp:FE01A812:NPC_"
     })
@@ -463,7 +471,9 @@ describe("MasterPersonaUseCase", () => {
   test("loadPage 失敗時は items を空にして errorMessage を保持する", async () => {
     const store = createStore({})
     const gateway = createGateway()
-    gateway.getMasterPersonaPage.mockRejectedValueOnce(new Error("network error"))
+    gateway.getMasterPersonaPage.mockRejectedValueOnce(
+      new Error("network error")
+    )
     const useCase = new MasterPersonaUseCase(gateway, store)
 
     await useCase.loadPage()
@@ -566,7 +576,8 @@ describe("MasterPersonaUseCase", () => {
     // Assert
     expect(gateway.updateMasterPersona).toHaveBeenCalledTimes(1)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const entry = (gateway.updateMasterPersona.mock.calls as any)[0][0].entry as Record<string, unknown>
+    const entry = (gateway.updateMasterPersona.mock.calls as any)[0][0]
+      .entry as Record<string, unknown>
     expect(entry).not.toHaveProperty("formId")
     expect(entry).not.toHaveProperty("editorId")
     expect(entry).not.toHaveProperty("race")
@@ -601,7 +612,9 @@ describe("MasterPersonaUseCase", () => {
     // Assert: identity linkage from read-only selected entry flows through to update request
     expect(gateway.updateMasterPersona).toHaveBeenCalledTimes(1)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const request = (gateway.updateMasterPersona.mock.calls as any)[0][0] as Record<string, unknown>
+    const request = (
+      gateway.updateMasterPersona.mock.calls as any
+    )[0][0] as Record<string, unknown>
     expect(request.identityKey).toBe("FollowersPlus.esp:FE01A812:NPC_")
   })
 
@@ -707,7 +720,10 @@ describe("MasterPersonaUseCase", () => {
     await useCase.previewGeneration()
 
     // Assert
-    const preview = store.snapshot().preview as unknown as Record<string, unknown>
+    const preview = store.snapshot().preview as unknown as Record<
+      string,
+      unknown
+    >
     expect(preview).not.toBeNull()
     expect(preview.candidateCount).toBe(840)
     expect(preview.newlyAddableCount).toBe(228)
@@ -732,7 +748,9 @@ describe("MasterPersonaUseCase", () => {
     await useCase.executeGeneration()
 
     // Assert
-    expect(store.snapshot().errorMessage).toBe("AI API error: credentials invalid")
+    expect(store.snapshot().errorMessage).toBe(
+      "AI API error: credentials invalid"
+    )
     expect(gateway.getMasterPersonaPage).not.toHaveBeenCalled()
   })
 
@@ -839,7 +857,9 @@ describe("MasterPersonaUseCase", () => {
       modalState: "delete"
     })
     const gateway = createGateway()
-    gateway.deleteMasterPersona.mockRejectedValueOnce(new Error("delete failed"))
+    gateway.deleteMasterPersona.mockRejectedValueOnce(
+      new Error("delete failed")
+    )
     const useCase = new MasterPersonaUseCase(gateway, store)
 
     // Act
@@ -888,7 +908,8 @@ describe("MasterPersonaUseCase", () => {
     // Assert: gateway が呼ばれ entry は personaSummary/speechStyle/personaBody だけを持つ (RED)
     expect(gateway.updateMasterPersona).toHaveBeenCalledTimes(1)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const entry = (gateway.updateMasterPersona.mock.calls as any)[0][0].entry as Record<string, unknown>
+    const entry = (gateway.updateMasterPersona.mock.calls as any)[0][0]
+      .entry as Record<string, unknown>
     expect(entry).not.toHaveProperty("displayName")
     expect(entry).toHaveProperty("personaSummary")
     expect(entry).toHaveProperty("speechStyle")

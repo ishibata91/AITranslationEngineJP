@@ -115,6 +115,8 @@ describe("createTermTranslationPhaseGateway", () => {
 
     await expect(
       gateway.startTermTranslationPhase({ jobId: 1 })
-    ).rejects.toThrowError(/Wails binding is not wired yet: StartTermTranslationPhase/)
+    ).rejects.toThrowError(
+      /Wails binding is not wired yet: StartTermTranslationPhase/
+    )
   })
 })

@@ -17,11 +17,7 @@ function createRuntimeHarness() {
 
   ;(window as Window & { runtime?: unknown }).runtime = {
     EventsOnMultiple: vi.fn(
-      (
-        eventName: string,
-        callback: RuntimeCallback,
-        maxCallbacks: number
-      ) => {
+      (eventName: string, callback: RuntimeCallback, maxCallbacks: number) => {
         registrations.push({ eventName, callback, maxCallbacks })
         return eventName === "master-dictionary:import-progress"
           ? detachProgress
@@ -71,7 +67,9 @@ describe("MasterDictionaryRuntimeEventAdapter", () => {
     adapter.subscribe()
 
     // Assert
-    expect(registrations[0]?.eventName).toBe("master-dictionary:import-progress")
+    expect(registrations[0]?.eventName).toBe(
+      "master-dictionary:import-progress"
+    )
   })
 
   test("subscribe は progress event を無制限 callback で登録する", () => {
@@ -93,7 +91,9 @@ describe("MasterDictionaryRuntimeEventAdapter", () => {
     adapter.subscribe()
 
     // Assert
-    expect(registrations[1]?.eventName).toBe("master-dictionary:import-completed")
+    expect(registrations[1]?.eventName).toBe(
+      "master-dictionary:import-completed"
+    )
   })
 
   test("subscribe は completed event を無制限 callback で登録する", () => {

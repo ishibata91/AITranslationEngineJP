@@ -368,7 +368,9 @@ describe("MasterPersonaPresenter", () => {
       true
     )
 
-    expect(viewModel.selectedEntry?.identityKey).toBe("FollowersPlus.esp:FE01A812:NPC_")
+    expect(viewModel.selectedEntry?.identityKey).toBe(
+      "FollowersPlus.esp:FE01A812:NPC_"
+    )
     expect(viewModel.selectedEntry?.editorId).toBe("FP_LysMaren")
     expect(viewModel.selectedEntry?.displayName).toBe("Lys Maren")
     expect(viewModel.selectedEntry?.personaBody).toBe("短く本音を置く。")
@@ -403,10 +405,12 @@ describe("MasterPersonaPresenter", () => {
 
     // Assert
     expect(
-      (viewModel.selectedEntry as Record<string, unknown> | null)?.generationSourceJson
+      (viewModel.selectedEntry as Record<string, unknown> | null)
+        ?.generationSourceJson
     ).toBeUndefined()
     expect(
-      (viewModel.selectedEntry as Record<string, unknown> | null)?.baselineApplied
+      (viewModel.selectedEntry as Record<string, unknown> | null)
+        ?.baselineApplied
     ).toBeUndefined()
   })
 
@@ -430,7 +434,9 @@ describe("MasterPersonaPresenter", () => {
     // Act
     const viewModel = presenter.toViewModel(
       createState({
-        items: [itemWithoutDialogueCount] as unknown as MasterPersonaScreenState["items"]
+        items: [
+          itemWithoutDialogueCount
+        ] as unknown as MasterPersonaScreenState["items"]
       }),
       true
     )
