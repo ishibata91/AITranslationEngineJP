@@ -37,7 +37,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 ## Agent / Skill Boundary
 
 - live Codex agent は新規実装レーン 進行役 (`implement_lane`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、設計前調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
-- `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、close 条件を管理する。全 close 条件には 作業レポート と ベンチマーク根拠 を必ず含める
+- `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、close 条件を管理する。全 close 条件には 作業レポート、ベンチマーク根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必ず含める
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
 - `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、人間レビュー 後に `implementation-scope` を固定する
 - シナリオ候補生成 agent 6 体、`designer`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
@@ -57,7 +57,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 
 ## 責務境界
 
-- `implement_lane` は新規実装レーンの進行役として 成果物 DAG、起動入力、人間レビュー、人間向け引き継ぎ、close 条件を扱う
+- `implement_lane` は新規実装レーンの進行役として 成果物 DAG、起動入力、人間レビュー、人間向け引き継ぎ、close 条件、作業計画 folder の完了移動を扱う
 - `implement_lane` は run の 終了処理、停止、戻し 時に `codex-work-reporting` を参照し、最後に必ず `work_history` 記録材料と ベンチマーク根拠 を作る
 - シナリオ候補生成 agent 6 体は固定 観点 の シナリオ 候補だけを作り、採否、統合、最終 シナリオ表 は扱わない
 - `designer` は シナリオ 候補を統合し、design bundle と implementation-scope の task 内成果物 を作る
@@ -92,7 +92,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `refactor_lane`、`exploration_test_lane`、`ux_refactor_lane` は placeholder とし、必須 成果物、実行者、next agent は未定義のままにする
 - 各 レーン は task 内成果物 DAG を持ち、順序は phase 名ではなく `依存対象` と対象 skill の完了規約で固定する
 - agent は レーン そのものではなく、成果物 を作る実行主体として扱う
-- 全 レーン の close 条件には 作業レポート と ベンチマーク根拠 を必須で含める
+- 全 レーン の close 条件には 作業レポート、ベンチマーク根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必須で含める
 
 
 ## 実装レーン成果物DAG
@@ -118,6 +118,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `レビュー通過根拠` | `implement_lane` | `最終検証` | レビュー agents |
 | `正本化判断` | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `作業レポート入力` | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
+| `作業計画完了移動` | `implement_lane` | `作業レポート入力` | なし |
 
 ## 実行計画 folder
 
@@ -125,7 +126,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `plan.md` は索引、状態、HITL、検証、終了処理 だけを書く
 - 各 skill の資料は同じ folder の skill 名つき file に分ける
 - AI は最初に `plan.md` だけ読み、必要な資料だけ追加で読む
-- 完了後は folder ごと `docs/exec-plans/completed/<task-id>/` へ移す
+- close 時は folder ごと `docs/exec-plans/completed/<task-id>/` へ移す
 
 ## Docs 正本化
 

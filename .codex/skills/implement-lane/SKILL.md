@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力` とする。
+- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力`、`作業計画完了移動` とする。
 
 ## 入力規約
 
@@ -54,6 +54,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
+| `作業計画完了移動` | はい | `implement_lane` | `作業レポート入力` | なし |
 
 ### レビュー集約規約
 
@@ -115,6 +116,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `blocker`、`critical`、`major` の未解決指摘がある場合は `implementation_action` を `fix` または `rerun_codex_review` にする。
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
 - 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
+- `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に 作業計画フォルダ を `docs/exec-plans/active/<task-id>/` から `docs/exec-plans/completed/<task-id>/` へ移す。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
 - `implement_lane` は implementation agent と レビュー agent を直接 起動 し、起動 先 agent に下位 agent を 起動 させない。
 - 承認済み `design-bundle` 成果物 がある場合は、その 成果物 を優先する。
@@ -136,7 +138,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 人間向け返却: 人間向けには、成果物依存表 の現在 成果物、着手可能 成果物、停止中 成果物、停止理由を短く返す。
 - 起動先向け返却: 起動先 agent 向けには、対象 成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する 成果物 を渡す。
 - レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパス、差し戻しYAMLパスを渡す。
-- 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 を返す。
+- 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 と 作業計画フォルダ の移動結果を返す。
 
 ## 完了規約
 
@@ -153,6 +155,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 最終検証として `python3 scripts/harness/run.py --suite all` を `require_escalated` 付きで実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
 - レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
+- `implementation_action: close` の場合は、作業計画フォルダ が `docs/exec-plans/completed/<task-id>/` に移動済みで、`docs/exec-plans/active/<task-id>/` に残っていない。
 
 ## 停止規約
 
@@ -163,4 +166,5 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - レビュー agent 起動入力に 検証証跡 が不足する場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
+- `implementation_action: close` の状態で 作業計画フォルダ を `docs/exec-plans/completed/<task-id>/` へ移動できない場合は終了不可とする。
 - `作業レポート入力` または ベンチマーク根拠 が不足する場合は終了不可とする。
