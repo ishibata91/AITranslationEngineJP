@@ -1,0 +1,40 @@
+- rejected_at: "2026-05-03T00:41:56+09:00"
+  task_id: "body-translation-phase"
+  viewpoint: "responsibility-boundary"
+  reviewer_agent: "review_responsibility_boundary"
+  review_yaml_path: "docs/exec-plans/active/body-translation-phase/reviewback.responsibility-boundary.yaml"
+  review_status: "issues_open"
+  must_fix_open: true
+  max_level: "major"
+  reason: "backend repository に domain fallback が入り、frontend production wiring と Wails DTO 型参照が root View / screen controller factory 側へ漏れている。"
+  open_issues:
+    - id: "RB-BTP-RESP-001"
+      level: "major"
+      title: "repository が synthetic NPC_PROFILE を合成している"
+      evidence:
+        - "internal/repository/foundation_data_sqlite_repository.go:324"
+        - "internal/repository/foundation_data_sqlite_repository.go:371"
+        - "internal/repository/foundation_data_sqlite_repository.go:385"
+    - id: "RB-BTP-RESP-002"
+      level: "major"
+      title: "body phase の production gateway 生成が root View に入っている"
+      evidence:
+        - "frontend/src/ui/App.svelte:10"
+        - "frontend/src/ui/App.svelte:18"
+        - "frontend/src/ui/App.svelte:50"
+        - "frontend/src/main.ts:24"
+    - id: "RB-BTP-RESP-003"
+      level: "major"
+      title: "screen controller factory が Wails gateway DTO を直接参照している"
+      evidence:
+        - "frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts:6"
+        - "frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts:25"
+        - "frontend/src/controller/wails/body-translation-phase.gateway.ts:17"
+  broken_boundaries:
+    - "Backend Repository / domain fallback"
+    - "Frontend Bootstrap / root View"
+    - "ScreenController factory / Wails Gateway DTO"
+  workflow_improvement_candidates:
+    - "repository fixture 都合と production repository 責務を分け、参照データの合成を汎用 Create method に入れない確認を handoff 完了前に行う。"
+    - "frontend production wiring は main.ts で必ず差分確認する。root View の fallback 追加を frontend handoff の既定にしない。"
+    - "DTO coverage 型は Wails gateway / gateway DTO / gateway test に置き、screen controller factory へ置かない。"

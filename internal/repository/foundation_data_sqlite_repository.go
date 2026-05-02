@@ -175,6 +175,14 @@ SELECT id, npc_profile_id, translation_job_id, persona_lifecycle, persona_scope,
        created_at, updated_at
 FROM PERSONA WHERE npc_profile_id = ?`
 
+	selectPersonasByTranslationJobID = `
+SELECT id, npc_profile_id, translation_job_id, persona_lifecycle, persona_scope, persona_source,
+       persona_description, speech_style, personality_summary, evidence_utterance_count,
+       created_at, updated_at
+FROM PERSONA
+WHERE translation_job_id = ?
+ORDER BY id ASC`
+
 	updatePersona = `
 UPDATE PERSONA SET
   persona_lifecycle       = :persona_lifecycle,
@@ -361,6 +369,27 @@ func (r *SQLiteFoundationDataRepository) GetPersonaByNpcProfileID(
 		return Persona{}, mapSQLError(err, "get persona by npc_profile_id")
 	}
 	return row.toModel()
+}
+
+// ListPersonasByTranslationJobID は TranslationJobID に紐づく Persona 一覧を返す。
+func (r *SQLiteFoundationDataRepository) ListPersonasByTranslationJobID(
+	ctx context.Context,
+	translationJobID int64,
+) ([]Persona, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []personaRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectPersonasByTranslationJobID, translationJobID); err != nil {
+		return nil, mapSQLError(err, "list persona by translation_job_id")
+	}
+	result := make([]Persona, 0, len(rows))
+	for _, row := range rows {
+		model, err := row.toModel()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, model)
+	}
+	return result, nil
 }
 
 // UpdatePersona は Persona を更新する。

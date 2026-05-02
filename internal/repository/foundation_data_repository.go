@@ -130,6 +130,7 @@ type FoundationDataRepository interface {
 	CreatePersona(ctx context.Context, draft PersonaDraft) (Persona, error)
 	GetPersonaByID(ctx context.Context, id int64) (Persona, error)
 	GetPersonaByNpcProfileID(ctx context.Context, npcProfileID int64) (Persona, error)
+	ListPersonasByTranslationJobID(ctx context.Context, translationJobID int64) ([]Persona, error)
 	UpdatePersona(ctx context.Context, id int64, draft PersonaUpdateDraft) (Persona, error)
 
 	// PersonaFieldEvidence

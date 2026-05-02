@@ -2,6 +2,12 @@
   import { onMount } from "svelte"
 
   import type {
+    BodyTranslationPhaseActionKind,
+    BodyTranslationPhaseScreenViewModel,
+    BodyTranslationPhaseScreenControllerContract,
+    CreateBodyTranslationPhaseScreenController
+  } from "@application/contract/body-translation-phase"
+  import type {
     CreatePersonaGenerationPhaseScreenController,
     PersonaGenerationPhaseActionKind,
     PersonaGenerationPhaseScreenControllerContract
@@ -11,15 +17,17 @@
     TermTranslationPhaseActionCard,
     TermTranslationPhaseScreenControllerContract
   } from "@application/contract/term-translation-phase"
+  import BodyTranslationPhasePanel from "@ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
   import PersonaGenerationPhasePanel from "@ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte"
   import TermTranslationPhasePanel from "@ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte"
 
   interface Props {
+    createBodyController: CreateBodyTranslationPhaseScreenController | null
     createPersonaController: CreatePersonaGenerationPhaseScreenController | null
     createController: CreateTermTranslationPhaseScreenController | null
   }
 
-  let { createPersonaController, createController }: Props = $props()
+  let { createBodyController, createPersonaController, createController }: Props = $props()
 
   function resolveController(): TermTranslationPhaseScreenControllerContract {
     if (!createController) {
@@ -41,10 +49,18 @@
     return createPersonaController()
   }
 
+  function resolveBodyController(): BodyTranslationPhaseScreenControllerContract | null {
+    return createBodyController ? createBodyController() : null
+  }
+
   const controller = resolveController()
   const personaController = resolvePersonaController()
+  const bodyController = resolveBodyController()
   let viewModel = $state(controller.getViewModel())
   let personaViewModel = $state(personaController.getViewModel())
+  let bodyViewModel = $state<BodyTranslationPhaseScreenViewModel | null>(
+    bodyController ? bodyController.getViewModel() : null
+  )
   let jobIdInput = $state("")
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
@@ -57,14 +73,27 @@
     jobIdInput = nextViewModel.jobId?.toString() ?? jobIdInput
   })
 
+  const unsubscribeBody = bodyController
+    ? bodyController.subscribe((nextViewModel) => {
+        bodyViewModel = nextViewModel
+        jobIdInput = nextViewModel.jobId?.toString() ?? jobIdInput
+      })
+    : () => undefined
+
   onMount(() => {
-    void Promise.all([controller.mount(), personaController.mount()])
+    void Promise.all([
+      controller.mount(),
+      personaController.mount(),
+      ...(bodyController ? [bodyController.mount()] : [])
+    ])
 
     return () => {
       unsubscribe()
       unsubscribePersona()
+      unsubscribeBody()
       controller.dispose()
       personaController.dispose()
+      bodyController?.dispose()
     }
   })
 
@@ -73,14 +102,16 @@
     if (!Number.isInteger(nextJobId) || nextJobId <= 0) {
       await Promise.all([
         controller.setJobId(null),
-        personaController.setJobId(null)
+        personaController.setJobId(null),
+        ...(bodyController ? [bodyController.setJobId(null)] : [])
       ])
       return
     }
 
     await Promise.all([
       controller.setJobId(nextJobId),
-      personaController.setJobId(nextJobId)
+      personaController.setJobId(nextJobId),
+      ...(bodyController ? [bodyController.setJobId(nextJobId)] : [])
     ])
   }
 
@@ -140,6 +171,38 @@
         return
     }
   }
+
+  async function handleBodyAction(
+    actionId: BodyTranslationPhaseActionKind
+  ): Promise<void> {
+    if (!bodyController) {
+      return
+    }
+
+    switch (actionId) {
+      case "refresh":
+        await bodyController.refresh()
+        return
+      case "start":
+        await bodyController.startPhase()
+        return
+      case "pause":
+        await bodyController.pausePhase()
+        return
+      case "resume":
+        await bodyController.resumePhase()
+        return
+      case "retry":
+        await bodyController.retryPhase()
+        return
+      case "cancel":
+        await bodyController.cancelPhase()
+        return
+      case "check-output-readiness":
+        await bodyController.checkOutputReadiness()
+        return
+    }
+  }
 </script>
 
 <section class="job-run-page">
@@ -185,6 +248,14 @@
     onAction={(actionId: PersonaGenerationPhaseActionKind) =>
       handlePersonaAction(actionId)}
   />
+
+  {#if bodyViewModel}
+    <BodyTranslationPhasePanel
+      viewModel={bodyViewModel}
+      onAction={(actionId: BodyTranslationPhaseActionKind) =>
+        handleBodyAction(actionId)}
+    />
+  {/if}
 </section>
 
 <style>

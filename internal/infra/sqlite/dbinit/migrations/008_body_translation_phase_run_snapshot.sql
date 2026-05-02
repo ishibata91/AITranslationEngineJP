@@ -1,0 +1,32 @@
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN snapshot_field_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN provider_target_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN exact_exclusion_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN partial_constraint_count INTEGER NOT NULL DEFAULT 0;
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN input_snapshot_digest TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN dictionary_digest TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN persona_digest TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN metadata_digest TEXT NOT NULL DEFAULT '';
+
+ALTER TABLE JOB_PHASE_RUN
+  ADD COLUMN prompt_digest TEXT NOT NULL DEFAULT '';
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_job_translation_field_job_field_unique
+  ON JOB_TRANSLATION_FIELD(translation_job_id, translation_field_id);
+
+CREATE UNIQUE INDEX IF NOT EXISTS idx_phase_run_translation_field_run_field_unique
+  ON PHASE_RUN_TRANSLATION_FIELD(phase_run_id, job_translation_field_id);

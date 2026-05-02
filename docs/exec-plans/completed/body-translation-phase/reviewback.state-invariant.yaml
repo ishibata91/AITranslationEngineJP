@@ -1,0 +1,318 @@
+reviewback_version: 1
+task_id: "body-translation-phase"
+review_yaml_path: "docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "no_issue: 前回 state-invariant 指摘 4 件は second-review-fix 後の実コードで解消済み。state command persistence、terminal / canceled late-write guard、field result / phase link deduplication に加え、未解決だった input snapshot drift は retry / resume / provider result mutation 前に拒否される。"
+  evidence_sufficiency: "十分。task folder の plan / scenario-design / ui-design / implementation-scope、前回 reviewback、phase run、snapshot drift、field result persistence、Wails DTO、frontend contract、API シナリオ証跡を確認した。検証コマンドは人間指示どおり再実行せず、plan.md の second-review-fix 検証証跡を最新証跡として扱った。"
+
+verification_evidence:
+  provided_by_implement_lane:
+    - command: "go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'"
+      result: "pass"
+      summary: "second-review-fix の局所検証。plan.md の実装検証証跡に記録済み。"
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "pass"
+      summary: "second-review-fix 後の backend-local。plan.md の実装検証証跡に記録済み。"
+    - command: "npm --prefix frontend run test -- --run body-translation-phase"
+      result: "pass"
+      summary: "second-review-fix 後の frontend focused test。plan.md の実装検証証跡に記録済み。"
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "pass"
+      summary: "second-review-fix 後の frontend-local。plan.md の実装検証証跡に記録済み。"
+    - command: "python3 scripts/harness/run.py --suite all"
+      result: "pass"
+      summary: "second-review-fix 後。structure、scenario-gate、execution、system test、coverage が通過。Sonar coverage 71.7%、line 72.5%、branch 64.4%、security 0、reliability 0、maintainability HIGH 0、system test 5 passed。"
+  reviewer_execution:
+    - command: "not_run"
+      result: "not_run"
+      summary: "広い検証コマンドを再実行しない制約に従い、現差分の静的確認と plan.md の最新証跡で再レビューした。"
+
+checked_scope:
+  summary: "本文翻訳フェーズの command state persistence、terminal / canceled late-write guard、input snapshot drift rejection、field result / phase link deduplication、field result DTO propagation、provider execution path を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+      line: 91
+      symbol: "second-review-fix"
+      reason: "command 業務拒否、real provider 経路、field result list、input snapshot drift 拒否が反映済みと記録されている。"
+    - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+      line: 207
+      symbol: "実装検証証跡"
+      reason: "second-review-fix 後の局所検証、backend-local、frontend focused test、frontend-local、all suite、coverage、system test の通過を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/scenario-design.md"
+      line: 188
+      symbol: "SCN-BTP-002"
+      reason: "同じ phase run の input snapshot と digest を固定する受け入れ条件を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/scenario-design.md"
+      line: 336
+      symbol: "SCN-BTP-008"
+      reason: "開始再送、resume、retry で同じ body phase run を使い、field result と phase link を重複作成しない条件を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/scenario-design.md"
+      line: 374
+      symbol: "SCN-BTP-009"
+      reason: "Canceled 後の途中成功結果を output readiness に使わない条件を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/ui-design.md"
+      line: 102
+      symbol: "Human Decision Resolution"
+      reason: "cancel は Paused の時だけ有効、Canceled 後の途中成功結果は output readiness に使わない UI 契約を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 39
+      symbol: "Fixed Decisions"
+      reason: "retry、resume、開始再送は同じ JOB_PHASE_RUN を継続し、field result と phase link を重複作成しない固定判断を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 158
+      symbol: "backend-body-phase-state-input-snapshot completion_signal"
+      reason: "retry / resume / 開始再送で input snapshot digest が差し替わらない完了条件を確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 347
+      symbol: "BodyTranslationPhaseService.StartPhase"
+      reason: "JOB_PHASE_RUN 作成時に input snapshot digest、dictionary digest、persona digest、metadata digest、prompt digest を保存することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 529
+      symbol: "BodyTranslationPhaseService.loadContext"
+      reason: "既存 body run と現 snapshot の input snapshot digest 差分を inputSnapshotDrifted として検出することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1020
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "retry / resume の running 遷移前に input snapshot drift を拒否し、JOB_PHASE_RUN を更新しないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1125
+      symbol: "executeBodyTranslationRun"
+      reason: "provider 実行開始前に input snapshot drift を redacted error summary として返し、provider result 保存へ進まないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1334
+      symbol: "bodyTranslationRunSnapshotDrifted"
+      reason: "persisted input snapshot digest と現 snapshot digest の差分で drift を判定することを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 92
+      symbol: "PersistBodyTranslationFieldResults"
+      reason: "terminal / canceled / completed run の late response rejection を保存前に評価することを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 95
+      symbol: "PersistBodyTranslationFieldResults"
+      reason: "provider result mutation 前に input snapshot drift を拒否し、field result と phase link を更新しないことを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 594
+      symbol: "ensureBodyTranslationPhaseRunFieldLink"
+      reason: "PHASE_RUN_TRANSLATION_FIELD の unique conflict を重複 link として吸収することを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 678
+      symbol: "upsertBodyTranslationJobField"
+      reason: "JOB_TRANSLATION_FIELD の unique conflict 時に既存 field reload へ切り替え、二重作成しないことを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/008_body_translation_phase_run_snapshot.sql"
+      line: 28
+      symbol: "008_body_translation_phase_run_snapshot"
+      reason: "JOB_TRANSLATION_FIELD と PHASE_RUN_TRANSLATION_FIELD に重複防止 unique index があることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 334
+      symbol: "bodyTranslationCommandResponseOrError"
+      reason: "業務拒否が ErrorSummary を持つ場合は Wails error にせず redacted DTO として返すことを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 153
+      symbol: "toBodyTranslationPhaseCommandResult"
+      reason: "field result list、result summary、input snapshot digest、error summary が usecase result に通ることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 191
+      symbol: "BodyTranslationPhaseCommandResponseDTO"
+      reason: "Wails command DTO が fieldResults、resultSummary、inputSnapshotDigest、errorSummary を返すことを確認した。"
+    - path: "frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts"
+      line: 161
+      symbol: "BodyTranslationPhaseCommandResponse"
+      reason: "frontend contract が fieldResults、resultSummary、inputSnapshotDigest、errorSummary を受け取れることを確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 190
+      symbol: "ProviderClient.GenerateBodyTranslation"
+      reason: "fake provider 以外の provider でも credential 解決後に GenerateText へ進み、test-safe 判定で real provider 経路を遮断しないことを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 104
+      symbol: "TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults"
+      reason: "input snapshot drift 時の retry が Wails error ではなく input_snapshot_failed payload を返し、field result を書かない API シナリオを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 166
+      symbol: "TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite"
+      reason: "Running cancel 拒否が Wails error ではなく redacted payload になり、running state と readiness block を維持する API シナリオを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller_unit_test.go"
+      line: 275
+      symbol: "TestBodyTranslationPhaseControllerCommandBusinessRejectionReturnsPayloadWithoutError"
+      reason: "command 業務拒否を Wails error ではなく structured payload として返す単体テストを確認した。"
+
+unchecked_scope:
+  - target: "検証コマンドの再実行"
+    reason: "人間指示で広い検証コマンド再実行は禁止されているため、plan.md の最新証跡を使用した。"
+    risk: "plan.md の証跡と現 worktree が一致する前提を置く。"
+  - target: "実 DB の同時 interleaving 実行"
+    reason: "レビュー agent は静的 diff review と提供済み証跡で判定し、runtime concurrency test は実行していない。"
+    risk: "実行時競合の詳細は未実行。ただし DB unique index、ErrConflict handling、mutation 前 drift rejection が重複作成と drifted write の境界として入っている。"
+
+broken_invariants: []
+cause_candidates: []
+
+local_fix_evaluation:
+  summary: "前回未解決だった input snapshot drift は、digest 差分検出、retry / resume の running 遷移前拒否、execute 開始前拒否、field result persistence 前拒否で閉じている。state transition persistence、late-write guard、result / link 重複防止も局所修正として維持されている。"
+
+invariant_test_focus:
+  - "PausePhase / ResumePhase / RetryPhase / CancelPhase 後の ReadSummary が command response と同じ phase state を返すこと。"
+  - "Canceled / Completed / Failed job または Canceled / Completed run への PersistBodyTranslationFieldResults が field result、phase link、phase run、job を後書きしないこと。"
+  - "phase run 作成後の Retry / Resume / provider result persistence で input snapshot drift を input_snapshot_failed として拒否し、field result と phase link を更新しないこと。"
+  - "同じ phase run と同じ translation field の二重 persistence で JOB_TRANSLATION_FIELD と PHASE_RUN_TRANSLATION_FIELD が 1 件に保たれること。"
+
+resolved_previous_issues:
+  - id: "state-invariant-001"
+    resolution: "resolved"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 976
+        excerpt: "transitionBodyTranslationRunState は persistBodyTranslationRunStateTransition を呼ぶ。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1006
+        excerpt: "persistBodyTranslationRunStateTransition は transaction 内で JOB_PHASE_RUN と TRANSLATION_JOB を更新する。"
+  - id: "state-invariant-002"
+    resolution: "resolved"
+    evidence:
+      - path: "internal/service/body_translation_field_result.go"
+        line: 92
+        excerpt: "PersistBodyTranslationFieldResults は保存前に bodyTranslationLateResponseRejection を評価する。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 169
+        excerpt: "terminal job と Canceled / Completed run は late_response_rejected になる。"
+  - id: "state-invariant-003"
+    resolution: "resolved"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 529
+        excerpt: "loadContext は既存 run の persisted digest と現 snapshot digest の差分を inputSnapshotDrifted にする。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1020
+        excerpt: "running 遷移前に inputSnapshotDrifted を拒否する。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 95
+        excerpt: "field result persistence 前に inputSnapshotDrifted を拒否する。"
+      - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+        line: 104
+        excerpt: "retry drift rejection が field result を書かないことを API シナリオで確認する。"
+  - id: "state-invariant-004"
+    resolution: "resolved"
+    evidence:
+      - path: "internal/infra/sqlite/dbinit/migrations/008_body_translation_phase_run_snapshot.sql"
+        line: 28
+        excerpt: "JOB_TRANSLATION_FIELD の job + field unique index を追加する。"
+      - path: "internal/infra/sqlite/dbinit/migrations/008_body_translation_phase_run_snapshot.sql"
+        line: 31
+        excerpt: "PHASE_RUN_TRANSLATION_FIELD の run + field unique index を追加する。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 678
+        excerpt: "CreateJobTranslationField の ErrConflict は既存 field reload に切り替える。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 594
+        excerpt: "CreatePhaseRunTranslationField の ErrConflict は重複 link として吸収する。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "blocker"
+    title: "pause、resume、retry、cancel の状態遷移が永続化されない"
+    problem: "前回問題。command response だけが state を差し替え、JOB_PHASE_RUN.state が更新されなかった。"
+    reason: "修正後は command が transition helper を通り、JOB_PHASE_RUN と TRANSLATION_JOB を transaction 内で更新する。"
+    violated_condition: "pause、resume、retry、cancel の状態遷移は同じ JOB_PHASE_RUN に永続化され、command response と次回 summary が同じ state を観測できること。"
+    cause_candidate: "前回原因の stubbedExistingRunCommand 経路は、現差分では transitionBodyTranslationRunState / persistBodyTranslationRunStateTransition 経路へ置換されている。"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 976
+        excerpt: "transitionBodyTranslationRunState は persistBodyTranslationRunStateTransition を呼ぶ。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1006
+        excerpt: "persistBodyTranslationRunStateTransition は transaction 内で JOB_PHASE_RUN と TRANSLATION_JOB を更新する。"
+    local_fix_assessment: "resolved-local-service-mutation"
+    additional_check_scope: "継続監視として command 後の再読込 summary 一致を focused test で維持する。"
+    fix_considerations: "同じ phase run ID と terminal state の後書き拒否を維持する。"
+    verification: "plan.md の second-review-fix 証跡では all suite が pass。レビュー agent は再実行していない。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "state-invariant-002"
+    level: "blocker"
+    title: "terminal 後の field result 後書きを拒否していない"
+    problem: "前回問題。PersistBodyTranslationFieldResults が terminal job / canceled run / completed run への late response を保存できた。"
+    reason: "修正後は保存前に late response rejection を評価し、terminal job、Canceled run、Completed run では late_response_rejected を返して保存へ進まない。"
+    violated_condition: "terminal job では body phase run 作成、field save、readiness update、late response 後書きを拒否し、Canceled 後の途中成功結果を output readiness に使わないこと。"
+    cause_candidate: "前回原因の mutation guard 不足は bodyTranslationLateResponseRejection で補われている。"
+    evidence:
+      - path: "internal/service/body_translation_field_result.go"
+        line: 92
+        excerpt: "PersistBodyTranslationFieldResults は保存前に bodyTranslationLateResponseRejection を評価する。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 169
+        excerpt: "terminal job と Canceled / Completed run は late_response_rejected になる。"
+    local_fix_assessment: "resolved-local-service-guard"
+    additional_check_scope: "継続監視として terminal / canceled matrix の no-write fixture を維持する。"
+    fix_considerations: "拒否時に terminal state を running / completed へ巻き戻さない。"
+    verification: "plan.md の second-review-fix 証跡では all suite が pass。レビュー agent は再実行していない。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "state-invariant-003"
+    level: "major"
+    title: "input snapshot digest と retry 入力本体が分岐し得る"
+    problem: "前回問題。StartPhase 後に job dictionary、persona、source field が変わると、persisted digest と retry / resume / provider result mutation の実入力が分岐し得た。"
+    reason: "second-review-fix 後は loadContext が persisted input snapshot digest と現 snapshot digest の差分を inputSnapshotDrifted として検出し、retry / resume の running 遷移前、execute 開始前、field result persistence 前に input_snapshot_failed payload で拒否する。"
+    violated_condition: "input summary と digest から、同じ phase run の再開で同じ入力を参照できること。retry、resume、開始再送では input snapshot digest が差し替わらず、drifted input では field result と phase link を更新しないこと。"
+    cause_candidate: "前回原因の digest / count のみ永続化は残るが、現差分では persisted digest と現 snapshot digest の不一致を mutation 前 guard として使うことで drifted write を止めている。"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 529
+        excerpt: "loadContext は既存 body run と現 snapshot の input snapshot digest 差分を inputSnapshotDrifted として検出する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1020
+        excerpt: "running 遷移前に input snapshot drift を拒否する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1125
+        excerpt: "executeBodyTranslationRun は provider 実行開始前に drift を拒否する。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 95
+        excerpt: "PersistBodyTranslationFieldResults は drifted input の provider result mutation を拒否する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1334
+        excerpt: "bodyTranslationRunSnapshotDrifted は persisted digest と現 snapshot digest を比較する。"
+      - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+        line: 104
+        excerpt: "RetryRejectsInputSnapshotDriftWithoutWritingResults が input_snapshot_failed payload と no write を確認する。"
+    local_fix_assessment: "resolved-local-service-guard-and-api-scenario。入力本体を immutable snapshot として復元する修正ではなく、digest drift を mutation 前に拒否する局所修正で不変条件を維持している。"
+    additional_check_scope: "継続監視として start 後の dictionary / persona / source field drift と Retry / Resume / provider result persistence の no-write fixture を維持する。"
+    fix_considerations: "将来 immutable snapshot 復元へ変更する場合も、persisted digest と provider request の実入力が分岐した状態で field result と phase link を更新しない条件を維持する。"
+    verification: "plan.md の second-review-fix 証跡では BodyTranslation / SCN_BTP 局所検証、backend-local、frontend-local、all suite が pass。レビュー agent は再実行していない。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "state-invariant-004"
+    level: "major"
+    title: "field result と phase link の重複防止が DB 一意性で保護されていない"
+    problem: "前回問題。JOB_TRANSLATION_FIELD と PHASE_RUN_TRANSLATION_FIELD に重複を止める unique guard がなかった。"
+    reason: "修正後は JOB_TRANSLATION_FIELD の job + field と PHASE_RUN_TRANSLATION_FIELD の run + field に unique index があり、repository は UNIQUE constraint を ErrConflict に変換する。service は field conflict で existing field reload、link conflict で重複 link 吸収を行う。"
+    violated_condition: "retry、resume、開始再送では同じ JOB_PHASE_RUN を使い、JOB_TRANSLATION_FIELD と PHASE_RUN_TRANSLATION_FIELD を重複作成しないこと。"
+    cause_candidate: "前回原因の in-memory snapshot 依存は DB unique index と ErrConflict handling で補強されている。"
+    evidence:
+      - path: "internal/infra/sqlite/dbinit/migrations/008_body_translation_phase_run_snapshot.sql"
+        line: 28
+        excerpt: "JOB_TRANSLATION_FIELD の job + field unique index を追加する。"
+      - path: "internal/infra/sqlite/dbinit/migrations/008_body_translation_phase_run_snapshot.sql"
+        line: 31
+        excerpt: "PHASE_RUN_TRANSLATION_FIELD の run + field unique index を追加する。"
+      - path: "internal/repository/translation_source_sqlite_repository.go"
+        line: 154
+        excerpt: "UNIQUE constraint failed は ErrConflict に変換される。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 678
+        excerpt: "CreateJobTranslationField の ErrConflict は既存 field reload に切り替える。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 594
+        excerpt: "CreatePhaseRunTranslationField の ErrConflict は重複 link として吸収する。"
+    local_fix_assessment: "resolved-repository-schema-and-service"
+    additional_check_scope: "継続監視として同一 phase run / field の二重 persistence fixture を維持する。"
+    fix_considerations: "unique conflict を握りつぶす場合も summary と readiness が重複 row count に依存しないことを維持する。"
+    verification: "plan.md の second-review-fix 証跡では all suite が pass。レビュー agent は再実行していない。"
+    fix_required: true
+    status: "resolved"

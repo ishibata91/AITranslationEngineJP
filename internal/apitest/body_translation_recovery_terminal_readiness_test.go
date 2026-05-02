@@ -1,0 +1,700 @@
+package apitest
+
+import (
+	"context"
+	"strings"
+	"testing"
+	"time"
+
+	controllerwails "aitranslationenginejp/internal/controller/wails"
+	"aitranslationenginejp/internal/repository"
+	"aitranslationenginejp/internal/service"
+	"aitranslationenginejp/internal/usecase"
+)
+
+func TestSCN_BTP_007_RecoverableProviderFailureIsNotPublishedAsSuccess(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "recoverable_failed",
+		LatestError:  "provider_failure",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.GetBodyTranslationPhaseSummary(
+		controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-007 public summary returned error: %v", err)
+	}
+	if result.PhaseState == "completed" || result.OutputReadiness.Ready {
+		t.Fatalf("SCN-BTP-007 failed provider result must not be completed or output-ready: %#v", result)
+	}
+	if result.ErrorSummary == nil {
+		t.Fatalf("SCN-BTP-007 expected provider failure error summary, got nil")
+	}
+	if result.ErrorSummary.ErrorKind != "provider_failure" || !result.ErrorSummary.Retryable {
+		t.Fatalf("SCN-BTP-007 expected retryable provider_failure, got %#v", result.ErrorSummary)
+	}
+	if result.ResultSummary == nil || result.ResultSummary.TranslatedCount != 1 || result.ResultSummary.FailedCount != 1 {
+		t.Fatalf("SCN-BTP-007 expected one success retained and one failed target, got %#v", result.ResultSummary)
+	}
+}
+
+func TestSCN_BTP_008_RetryReusesPhaseRunAndDoesNotDuplicatePublishedResults(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "recoverable_failed",
+		LatestError:  "invalid_provider_response",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.RetryBodyTranslationPhase(
+		controllerwails.RetryBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-008 public retry returned error: %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != fixture.bodyRun.ID {
+		t.Fatalf("SCN-BTP-008 expected same phase run id %d, got %#v", fixture.bodyRun.ID, result.PhaseRunID)
+	}
+	if result.ResultSummary == nil || result.ResultSummary.TranslatedCount != 1 {
+		t.Fatalf("SCN-BTP-008 expected retry to preserve one published success without duplication, got %#v", result.ResultSummary)
+	}
+	if result.Progress.ProcessedCount != 1 || result.Progress.TargetCount != 2 {
+		t.Fatalf("SCN-BTP-008 expected retry progress to keep one processed field from two targets, got %#v", result.Progress)
+	}
+}
+
+func TestSCN_BTP_008_RetryPersistsStateAndCompletesPendingFieldResults(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "recoverable_failed",
+		LatestError:  "provider_failure",
+		AIProvider:   "xai",
+		Provider:     bodyTranslationAPISuccessProvider{},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.RetryBodyTranslationPhase(
+		controllerwails.RetryBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-008 public retry returned error: %v", err)
+	}
+	if result.PhaseState != "completed" {
+		t.Fatalf("SCN-BTP-008 expected retry to complete pending fields, got %#v", result)
+	}
+	if result.ResultSummary == nil || result.ResultSummary.OutputCount != 2 || result.ResultSummary.OutputReadyCount != 2 {
+		t.Fatalf("SCN-BTP-008 expected two ready outputs after retry, got %#v", result.ResultSummary)
+	}
+}
+
+func TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "recoverable_failed",
+		LatestError:  "provider_failure",
+		AIProvider:   "xai",
+		Provider:     bodyTranslationAPISuccessProvider{},
+	})
+	fixture.store.phaseRuns[1].InputSnapshotDigest = "sha256:started-before-drift"
+	controller := fixture.controller()
+
+	result, err := controller.RetryBodyTranslationPhase(
+		controllerwails.RetryBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-008 expected drift rejection payload without Wails error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "input_snapshot_failed" {
+		t.Fatalf("SCN-BTP-008 expected input snapshot drift rejection, got %#v", result)
+	}
+	if len(fixture.store.outputs) != 0 {
+		t.Fatalf("SCN-BTP-008 expected no field result writes after drift, got %#v", fixture.store.outputs)
+	}
+}
+
+func TestSCN_BTP_009_PauseThenCancelPersistsTerminalState(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "running",
+	})
+	controller := fixture.controller()
+
+	paused, pauseErr := controller.PauseBodyTranslationPhase(
+		controllerwails.PauseBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if pauseErr != nil {
+		t.Fatalf("SCN-BTP-009 public pause returned error: %v", pauseErr)
+	}
+	if paused.PhaseState != "paused" {
+		t.Fatalf("SCN-BTP-009 expected paused state, got %#v", paused)
+	}
+
+	canceled, cancelErr := controller.CancelBodyTranslationPhase(
+		controllerwails.CancelBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if cancelErr != nil {
+		t.Fatalf("SCN-BTP-009 public cancel returned error: %v", cancelErr)
+	}
+	if canceled.PhaseState != "canceled" || canceled.OutputReadiness.Ready {
+		t.Fatalf("SCN-BTP-009 expected canceled state and blocked readiness, got %#v", canceled)
+	}
+}
+
+func TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "running",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.CancelBodyTranslationPhase(
+		controllerwails.CancelBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-009 expected Running cancel rejection payload without Wails error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "output_readiness_blocked" {
+		t.Fatalf("SCN-BTP-009 expected Running cancel rejection payload, got %#v", result)
+	}
+	summary, summaryErr := controller.GetBodyTranslationPhaseSummary(
+		controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
+	)
+	if summaryErr != nil {
+		t.Fatalf("SCN-BTP-009 public summary after rejected cancel returned error: %v", summaryErr)
+	}
+	if summary.PhaseState != "running" || summary.OutputReadiness.Ready {
+		t.Fatalf("SCN-BTP-009 expected running state and blocked readiness after rejected cancel, got %#v", summary)
+	}
+}
+
+func TestSCN_BTP_010_CompletedConsistentResultEnablesOutputReadiness(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "completed",
+		BodyRunState: "completed",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "ready"),
+			bodyTranslationAPIOutputField(802, 702, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.GetBodyTranslationOutputReadiness(
+		controllerwails.GetBodyTranslationOutputReadinessRequestDTO{JobID: fixture.job.ID},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-010 public readiness returned error: %v", err)
+	}
+	if !result.Ready || !result.StatusConsistent || result.CompletedFieldCount != 2 {
+		t.Fatalf("SCN-BTP-010 expected downstream readiness for completed consistent result, got %#v", result)
+	}
+}
+
+func TestSCN_BTP_010_StatusInconsistencyBlocksOutputReadiness(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "completed",
+		BodyRunState: "completed",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "ready"),
+			bodyTranslationAPIOutputField(802, 702, "failed"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.GetBodyTranslationOutputReadiness(
+		controllerwails.GetBodyTranslationOutputReadinessRequestDTO{JobID: fixture.job.ID},
+	)
+	if err != nil {
+		t.Fatalf("SCN-BTP-010 public readiness returned error: %v", err)
+	}
+	if result.Ready || result.StatusConsistent {
+		t.Fatalf("SCN-BTP-010 expected status inconsistency to block readiness, got %#v", result)
+	}
+	if result.ErrorKind != "output_readiness_blocked" {
+		t.Fatalf("SCN-BTP-010 expected output_readiness_blocked, got %#v", result)
+	}
+}
+
+type bodyTranslationAPIFixtureOptions struct {
+	JobState     string
+	BodyRunState string
+	LatestError  string
+	AIProvider   string
+	Outputs      []repository.JobTranslationField
+	Provider     service.BodyTranslationProvider
+}
+
+type bodyTranslationAPIFixture struct {
+	t       *testing.T
+	store   *bodyTranslationAPIStore
+	job     repository.TranslationJob
+	bodyRun repository.JobPhaseRun
+}
+
+func newBodyTranslationAPIFixture(
+	t *testing.T,
+	options bodyTranslationAPIFixtureOptions,
+) *bodyTranslationAPIFixture {
+	t.Helper()
+	now := time.Date(2026, 5, 2, 9, 0, 0, 0, time.UTC)
+	jobState := firstNonEmptyBodyTranslationAPIValue(options.JobState, "running")
+	bodyRunState := firstNonEmptyBodyTranslationAPIValue(options.BodyRunState, "running")
+	store := &bodyTranslationAPIStore{
+		xedit: repository.XEditExtractedData{
+			ID:                301,
+			SourceFilePath:    "fixture.esp",
+			SourceContentHash: "sha256:xedit",
+			SourceTool:        "xedit",
+			TargetPluginName:  "Fixture.esp",
+			TargetPluginType:  "esp",
+			RecordCount:       1,
+			ImportedAt:        now,
+		},
+		records: []repository.TranslationRecord{
+			{ID: 601, XEditExtractedDataID: 301, FormID: "000001", EditorID: "NPCFixture", RecordType: "NPC_"},
+		},
+		fieldsByRecordID: map[int64][]repository.TranslationField{
+			601: {
+				{ID: 701, TranslationRecordID: 601, SubrecordType: "FULL", SourceText: "Hello <Alias=Player>.", FieldOrder: 1},
+				{ID: 702, TranslationRecordID: 601, SubrecordType: "DESC", SourceText: "A second line.", FieldOrder: 2},
+			},
+		},
+		personasByJobID: map[int64][]repository.Persona{
+			101: {
+				{ID: 501, TranslationJobID: int64PointerForBodyTranslationAPI(101), PersonaLifecycle: "job", PersonaScope: "job", PersonaDescription: "calm speaker", SpeechStyle: "plain", PersonalitySummary: "steady", CreatedAt: now, UpdatedAt: now},
+			},
+		},
+		dictionary: []repository.DictionaryEntry{
+			{ID: 401, TranslationJobID: int64PointerForBodyTranslationAPI(101), DictionaryLifecycle: "job", DictionaryScope: "job", SourceTerm: "Hello", TranslatedTerm: "こんにちは", TermKind: "term", Reusable: true, CreatedAt: now, UpdatedAt: now},
+		},
+		provider: options.Provider,
+	}
+	store.job = repository.TranslationJob{
+		ID:                   101,
+		XEditExtractedDataID: 301,
+		JobName:              "body translation api scenario",
+		State:                jobState,
+		ProgressPercent:      20,
+		CreatedAt:            now,
+		StartedAt:            &now,
+	}
+	if jobState == "completed" {
+		store.job.ProgressPercent = 100
+		store.job.FinishedAt = &now
+	}
+	store.phaseRuns = []repository.JobPhaseRun{
+		{
+			ID:               201,
+			TranslationJobID: 101,
+			PhaseType:        "persona_generation",
+			State:            "completed",
+			ExecutionOrder:   1,
+			AIProvider:       "fake",
+			ModelName:        "body-fixture-model",
+			ExecutionMode:    "single_request",
+			CredentialRef:    "credential:body-fixture",
+			InstructionKind:  "persona_generation",
+			StartedAt:        &now,
+			FinishedAt:       &now,
+		},
+		{
+			ID:               202,
+			TranslationJobID: 101,
+			PhaseType:        "body_translation",
+			State:            bodyRunState,
+			ExecutionOrder:   2,
+			ProgressPercent:  50,
+			AIProvider:       firstNonEmptyBodyTranslationAPIValue(options.AIProvider, "fake"),
+			ModelName:        "body-fixture-model",
+			ExecutionMode:    "single_request",
+			CredentialRef:    "credential:body-fixture",
+			InstructionKind:  "body_translation",
+			LatestError:      options.LatestError,
+			StartedAt:        &now,
+		},
+	}
+	if bodyRunState == "completed" || bodyRunState == "canceled" {
+		store.phaseRuns[1].ProgressPercent = 100
+		store.phaseRuns[1].FinishedAt = &now
+	}
+	store.outputs = append([]repository.JobTranslationField(nil), options.Outputs...)
+	for _, output := range store.outputs {
+		store.phaseLinks = append(store.phaseLinks, repository.PhaseRunTranslationField{
+			ID:                    int64(len(store.phaseLinks) + 901),
+			PhaseRunID:            202,
+			JobTranslationFieldID: output.ID,
+			Role:                  "provider_result",
+		})
+	}
+	return &bodyTranslationAPIFixture{
+		t:       t,
+		store:   store,
+		job:     store.job,
+		bodyRun: store.phaseRuns[1],
+	}
+}
+
+func (fixture *bodyTranslationAPIFixture) controller() *controllerwails.BodyTranslationPhaseController {
+	fixture.t.Helper()
+	phaseService := service.NewBodyTranslationPhaseService(
+		fixture.store,
+		fixture.store,
+		fixture.store,
+		fixture.store,
+		fixture.store,
+	)
+	if fixture.optionsProvider() != nil {
+		phaseService.WithBodyTranslationProvider(fixture.optionsProvider())
+	}
+	phaseUsecase := usecase.NewBodyTranslationPhaseUsecase(phaseService)
+	return controllerwails.NewBodyTranslationPhaseController(phaseUsecase)
+}
+
+func (fixture *bodyTranslationAPIFixture) optionsProvider() service.BodyTranslationProvider {
+	fixture.t.Helper()
+	return fixture.store.provider
+}
+
+func bodyTranslationAPIOutputField(
+	id int64,
+	translationFieldID int64,
+	outputStatus string,
+) repository.JobTranslationField {
+	return repository.JobTranslationField{
+		ID:                 id,
+		TranslationJobID:   101,
+		TranslationFieldID: translationFieldID,
+		TranslatedText:     "translated fixture",
+		OutputStatus:       outputStatus,
+		RetryCount:         0,
+		UpdatedAt:          time.Date(2026, 5, 2, 9, 1, 0, 0, time.UTC),
+	}
+}
+
+type bodyTranslationAPIStore struct {
+	job              repository.TranslationJob
+	phaseRuns        []repository.JobPhaseRun
+	phaseLinks       []repository.PhaseRunTranslationField
+	xedit            repository.XEditExtractedData
+	records          []repository.TranslationRecord
+	fieldsByRecordID map[int64][]repository.TranslationField
+	personasByJobID  map[int64][]repository.Persona
+	dictionary       []repository.DictionaryEntry
+	outputs          []repository.JobTranslationField
+	provider         service.BodyTranslationProvider
+	nextPhaseRunID   int64
+	nextLinkID       int64
+	nextOutputID     int64
+}
+
+type bodyTranslationAPISuccessProvider struct{}
+
+func (bodyTranslationAPISuccessProvider) BodyTranslationProviderRequestsAreTestSafe() bool {
+	return true
+}
+
+func (bodyTranslationAPISuccessProvider) TranslateBodyField(
+	_ context.Context,
+	request service.BodyTranslationProviderRequest,
+) service.BodyTranslationProviderResult {
+	return service.BodyTranslationProviderResult{
+		FieldCorrelationKey: request.FieldCorrelationKey,
+		TranslatedCandidate: &service.BodyTranslationTranslatedCandidate{
+			FieldCorrelationKey: request.FieldCorrelationKey,
+			RecordType:          request.RecordType,
+			FieldType:           request.FieldType,
+			TranslatedText:      "translated " + request.SourceText,
+		},
+		ProtectionValidationTarget: &service.BodyTranslationProtectionValidationTarget{
+			FieldCorrelationKey: request.FieldCorrelationKey,
+			TranslatedText:      "translated " + request.SourceText,
+		},
+	}
+}
+
+func (store *bodyTranslationAPIStore) WithTransaction(ctx context.Context, fn func(ctx context.Context) error) error {
+	return fn(ctx)
+}
+
+func (store *bodyTranslationAPIStore) GetTranslationJobByID(
+	_ context.Context,
+	id int64,
+) (repository.TranslationJob, error) {
+	if store.job.ID == id {
+		return store.job, nil
+	}
+	return repository.TranslationJob{}, repository.ErrNotFound
+}
+
+func (store *bodyTranslationAPIStore) UpdateTranslationJob(
+	_ context.Context,
+	id int64,
+	draft repository.TranslationJobUpdateDraft,
+) (repository.TranslationJob, error) {
+	if store.job.ID != id {
+		return repository.TranslationJob{}, repository.ErrNotFound
+	}
+	store.job.JobName = draft.JobName
+	store.job.State = draft.State
+	store.job.ProgressPercent = draft.ProgressPercent
+	store.job.StartedAt = draft.StartedAt
+	store.job.FinishedAt = draft.FinishedAt
+	return store.job, nil
+}
+
+func (store *bodyTranslationAPIStore) CreateJobPhaseRun(
+	_ context.Context,
+	draft repository.JobPhaseRunDraft,
+) (repository.JobPhaseRun, error) {
+	if store.nextPhaseRunID == 0 {
+		store.nextPhaseRunID = 300
+	}
+	store.nextPhaseRunID++
+	run := repository.JobPhaseRun{
+		ID:                     store.nextPhaseRunID,
+		TranslationJobID:       draft.TranslationJobID,
+		PhaseType:              draft.PhaseType,
+		State:                  draft.State,
+		ExecutionOrder:         draft.ExecutionOrder,
+		AIProvider:             draft.AIProvider,
+		ModelName:              draft.ModelName,
+		ExecutionMode:          draft.ExecutionMode,
+		CredentialRef:          draft.CredentialRef,
+		InstructionKind:        draft.InstructionKind,
+		SnapshotFieldCount:     draft.SnapshotFieldCount,
+		ProviderTargetCount:    draft.ProviderTargetCount,
+		ExactExclusionCount:    draft.ExactExclusionCount,
+		PartialConstraintCount: draft.PartialConstraintCount,
+		InputSnapshotDigest:    draft.InputSnapshotDigest,
+		DictionaryDigest:       draft.DictionaryDigest,
+		PersonaDigest:          draft.PersonaDigest,
+		MetadataDigest:         draft.MetadataDigest,
+		PromptDigest:           draft.PromptDigest,
+	}
+	store.phaseRuns = append(store.phaseRuns, run)
+	return run, nil
+}
+
+func (store *bodyTranslationAPIStore) FindJobPhaseRun(
+	_ context.Context,
+	translationJobID int64,
+	phaseType string,
+) (repository.JobPhaseRun, error) {
+	for _, run := range store.phaseRuns {
+		if run.TranslationJobID == translationJobID && strings.TrimSpace(run.PhaseType) == strings.TrimSpace(phaseType) {
+			return run, nil
+		}
+	}
+	return repository.JobPhaseRun{}, repository.ErrNotFound
+}
+
+func (store *bodyTranslationAPIStore) UpdateJobPhaseRun(
+	_ context.Context,
+	id int64,
+	draft repository.JobPhaseRunUpdateDraft,
+) (repository.JobPhaseRun, error) {
+	for index := range store.phaseRuns {
+		if store.phaseRuns[index].ID != id {
+			continue
+		}
+		store.phaseRuns[index].State = draft.State
+		store.phaseRuns[index].ProgressPercent = draft.ProgressPercent
+		store.phaseRuns[index].LatestExternalRunID = draft.LatestExternalRunID
+		store.phaseRuns[index].LatestError = draft.LatestError
+		store.phaseRuns[index].StartedAt = draft.StartedAt
+		store.phaseRuns[index].FinishedAt = draft.FinishedAt
+		return store.phaseRuns[index], nil
+	}
+	return repository.JobPhaseRun{}, repository.ErrNotFound
+}
+
+func (store *bodyTranslationAPIStore) ListJobPhaseRunsByJobID(
+	_ context.Context,
+	jobID int64,
+) ([]repository.JobPhaseRun, error) {
+	var runs []repository.JobPhaseRun
+	for _, run := range store.phaseRuns {
+		if run.TranslationJobID == jobID {
+			runs = append(runs, run)
+		}
+	}
+	return runs, nil
+}
+
+func (store *bodyTranslationAPIStore) CreatePhaseRunTranslationField(
+	_ context.Context,
+	draft repository.PhaseRunTranslationFieldDraft,
+) (repository.PhaseRunTranslationField, error) {
+	if store.nextLinkID == 0 {
+		store.nextLinkID = 950
+	}
+	store.nextLinkID++
+	link := repository.PhaseRunTranslationField{
+		ID:                    store.nextLinkID,
+		PhaseRunID:            draft.PhaseRunID,
+		JobTranslationFieldID: draft.JobTranslationFieldID,
+		Role:                  draft.Role,
+	}
+	store.phaseLinks = append(store.phaseLinks, link)
+	return link, nil
+}
+
+func (store *bodyTranslationAPIStore) ListPhaseRunTranslationFieldsByPhaseRunID(
+	_ context.Context,
+	phaseRunID int64,
+) ([]repository.PhaseRunTranslationField, error) {
+	var links []repository.PhaseRunTranslationField
+	for _, link := range store.phaseLinks {
+		if link.PhaseRunID == phaseRunID {
+			links = append(links, link)
+		}
+	}
+	return links, nil
+}
+
+func (store *bodyTranslationAPIStore) ListDictionaryEntries(
+	_ context.Context,
+	translationJobID *int64,
+	_ string,
+	_ string,
+	_ string,
+) ([]repository.DictionaryEntry, error) {
+	if translationJobID == nil || *translationJobID != store.job.ID {
+		return nil, nil
+	}
+	return append([]repository.DictionaryEntry(nil), store.dictionary...), nil
+}
+
+func (store *bodyTranslationAPIStore) ListPersonasByTranslationJobID(
+	_ context.Context,
+	translationJobID int64,
+) ([]repository.Persona, error) {
+	return append([]repository.Persona(nil), store.personasByJobID[translationJobID]...), nil
+}
+
+func (store *bodyTranslationAPIStore) GetXEditExtractedDataByID(
+	_ context.Context,
+	id int64,
+) (repository.XEditExtractedData, error) {
+	if store.xedit.ID == id {
+		return store.xedit, nil
+	}
+	return repository.XEditExtractedData{}, repository.ErrNotFound
+}
+
+func (store *bodyTranslationAPIStore) ListTranslationRecordsByXEditID(
+	_ context.Context,
+	xEditID int64,
+) ([]repository.TranslationRecord, error) {
+	var records []repository.TranslationRecord
+	for _, record := range store.records {
+		if record.XEditExtractedDataID == xEditID {
+			records = append(records, record)
+		}
+	}
+	return records, nil
+}
+
+func (store *bodyTranslationAPIStore) ListTranslationFieldsByTranslationRecordID(
+	_ context.Context,
+	translationRecordID int64,
+) ([]repository.TranslationField, error) {
+	return append([]repository.TranslationField(nil), store.fieldsByRecordID[translationRecordID]...), nil
+}
+
+func (store *bodyTranslationAPIStore) CreateJobTranslationField(
+	_ context.Context,
+	draft repository.JobTranslationFieldDraft,
+) (repository.JobTranslationField, error) {
+	if store.nextOutputID == 0 {
+		store.nextOutputID = 850
+	}
+	store.nextOutputID++
+	output := repository.JobTranslationField{
+		ID:                 store.nextOutputID,
+		TranslationJobID:   draft.TranslationJobID,
+		TranslationFieldID: draft.TranslationFieldID,
+		AppliedPersonaID:   draft.AppliedPersonaID,
+		TranslatedText:     draft.TranslatedText,
+		OutputStatus:       draft.OutputStatus,
+		RetryCount:         draft.RetryCount,
+		UpdatedAt:          time.Date(2026, 5, 2, 9, 2, 0, 0, time.UTC),
+	}
+	store.outputs = append(store.outputs, output)
+	return output, nil
+}
+
+func (store *bodyTranslationAPIStore) UpdateJobTranslationField(
+	_ context.Context,
+	id int64,
+	draft repository.JobTranslationFieldUpdateDraft,
+) (repository.JobTranslationField, error) {
+	for index := range store.outputs {
+		if store.outputs[index].ID != id {
+			continue
+		}
+		store.outputs[index].AppliedPersonaID = draft.AppliedPersonaID
+		store.outputs[index].TranslatedText = draft.TranslatedText
+		store.outputs[index].OutputStatus = draft.OutputStatus
+		store.outputs[index].RetryCount = draft.RetryCount
+		store.outputs[index].UpdatedAt = time.Date(2026, 5, 2, 9, 3, 0, 0, time.UTC)
+		return store.outputs[index], nil
+	}
+	return repository.JobTranslationField{}, repository.ErrNotFound
+}
+
+func (store *bodyTranslationAPIStore) ListJobTranslationFieldsByJobID(
+	_ context.Context,
+	jobID int64,
+) ([]repository.JobTranslationField, error) {
+	var outputs []repository.JobTranslationField
+	for _, output := range store.outputs {
+		if output.TranslationJobID == jobID {
+			outputs = append(outputs, output)
+		}
+	}
+	return outputs, nil
+}
+
+func firstNonEmptyBodyTranslationAPIValue(values ...string) string {
+	for _, value := range values {
+		if strings.TrimSpace(value) != "" {
+			return strings.TrimSpace(value)
+		}
+	}
+	return ""
+}
+
+func int64PointerForBodyTranslationAPI(value int64) *int64 {
+	return &value
+}
+
+var _ repository.Transactor = (*bodyTranslationAPIStore)(nil)

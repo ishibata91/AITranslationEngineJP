@@ -187,6 +187,77 @@ func (client *ProviderClient) GeneratePersona(
 	return parsed, nil
 }
 
+// GenerateBodyTranslation sends one correlated field translation request unit and parses a strict JSON response.
+func (client *ProviderClient) GenerateBodyTranslation(
+	ctx context.Context,
+	providerID string,
+	model string,
+	executionMode string,
+	credentialRef string,
+	prompt string,
+) (BodyTranslationResponse, error) {
+	if strings.EqualFold(strings.TrimSpace(providerID), ProviderFake) {
+		responseText, err := buildDeterministicBodyTranslationResponseFromPrompt(prompt)
+		if err != nil {
+			return BodyTranslationResponse{}, newBodyTranslationError(
+				BodyTranslationErrorKindProviderFailure,
+				false,
+				err,
+			)
+		}
+		parsed, err := parseBodyTranslationResponse(responseText)
+		if err != nil {
+			return BodyTranslationResponse{}, err
+		}
+		parsed.ExecutionMode = bodyTranslationExecutionModeSingleRequest
+		parsed.PromptDigest = promptDigestSHA256(prompt)
+		return parsed, nil
+	}
+	normalizedExecutionMode := strings.ToLower(strings.TrimSpace(executionMode))
+	if normalizedExecutionMode == "" {
+		return BodyTranslationResponse{}, newBodyTranslationError(
+			BodyTranslationErrorKindProviderFailure,
+			false,
+			fmt.Errorf("body translation execution mode is required"),
+		)
+	}
+	if normalizedExecutionMode != bodyTranslationExecutionModeSingleRequest {
+		return BodyTranslationResponse{}, newBodyTranslationError(
+			BodyTranslationErrorKindProviderFailure,
+			false,
+			fmt.Errorf("unsupported body translation execution mode: %s", executionMode),
+		)
+	}
+
+	apiKey, err := client.resolveProviderCredential(ctx, providerID, credentialRef)
+	if err != nil {
+		return BodyTranslationResponse{}, newBodyTranslationError(
+			BodyTranslationErrorKindProviderFailure,
+			isProviderExecutionRetryable(err),
+			err,
+		)
+	}
+	response, err := client.GenerateText(ctx, providerID, ProviderRequest{
+		Model:  model,
+		APIKey: apiKey,
+		Prompt: prompt,
+	})
+	if err != nil {
+		return BodyTranslationResponse{}, newBodyTranslationError(
+			BodyTranslationErrorKindProviderFailure,
+			isProviderExecutionRetryable(err),
+			err,
+		)
+	}
+	parsed, err := parseBodyTranslationResponse(response.Text)
+	if err != nil {
+		return BodyTranslationResponse{}, err
+	}
+	parsed.ExecutionMode = normalizedExecutionMode
+	parsed.PromptDigest = promptDigestSHA256(prompt)
+	return parsed, nil
+}
+
 func (client *ProviderClient) providerRegistry() map[string]provider {
 	if len(client.providers) == 0 {
 		client.providers = client.newProviderRegistry()

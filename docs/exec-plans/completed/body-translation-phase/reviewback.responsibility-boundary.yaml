@@ -1,0 +1,364 @@
+reviewback_version: 1
+task_id: "body-translation-phase"
+review_yaml_path: "docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。second-review-fix 後も未解決の責務境界 issue はない。command 業務拒否の DTO 化は Wails controller の transport 変換に留まり、real provider 実行は AI provider adapter に閉じ、field result list は service、usecase、Wails DTO、frontend contract の順に公開境界へ渡され、input snapshot drift 拒否は backend service の phase mutation guard に閉じている。"
+  evidence_sufficiency: "十分。codex-review-responsibility-boundary skill、review_responsibility_boundary agent 定義、architecture、coding-guidelines、implementation-scope、plan.md の second-review-fix 結果と検証証跡、前回 reviewback、対象実コード差分を確認した。広い検証コマンドはユーザー指示により再実行していない。"
+  summary: "責務境界観点では通過可能である。前回の Repository / domain fallback、Frontend Bootstrap / root View、ScreenController factory / Wails Gateway DTO の境界違反は resolved のままであり、second-review-fix は controller、usecase、service、provider adapter、frontend gateway contract の既存境界内で閉じている。"
+
+checked_scope:
+  summary: "backend repository / service / provider adapter / usecase / Wails controller / bootstrap、frontend bootstrap / App / AppShell / JobRun / body phase screen controller factory / Wails gateway DTO / frontend gateway contract / presenter を責務境界観点で確認した。"
+  files:
+    - path: "docs/architecture.md"
+      line: 17
+      symbol: "Frontend Bootstrap"
+      reason: "production 用 gateway を frontend/src/main.ts で生成し、root view へ注入する条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 50
+      symbol: "依存方向"
+      reason: "Bootstrap 以外の層が concrete 実装を new しない条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 75
+      symbol: "ScreenController"
+      reason: "ScreenController が Wails 呼び出し詳細や DTO 変換を持たない条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 95
+      symbol: "Gateway"
+      reason: "GatewayDTO と generated wailsjs を frontend/src/controller/wails/ に閉じ込める条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 104
+      symbol: "Backend Bootstrap"
+      reason: "internal/bootstrap だけが concrete 実装を生成し、手動 DI で接続する条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 135
+      symbol: "Repository"
+      reason: "Repository が SQLite などの永続化 adapter であることを確認した。"
+    - path: "docs/coding-guidelines-frontend.md"
+      line: 42
+      symbol: "production wiring の配置責務"
+      reason: "production gateway と controller factory の生成を composition root に置く条件を確認した。"
+    - path: "docs/coding-guidelines-backend.md"
+      line: 15
+      symbol: "backend dependency injection"
+      reason: "usecase や service 内で concrete 実装を直接生成しない条件を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+      line: 91
+      symbol: "レビュー後 fix 結果"
+      reason: "second-review-fix の command DTO 化、real provider 経路、field result list、input snapshot drift 拒否が completed と記録されていることを確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+      line: 207
+      symbol: "second-review-fix 検証証跡"
+      reason: "second-review-fix 後の局所検証、backend-local、frontend-local、all suite、coverage、system test 通過証跡を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 122
+      symbol: "backend-body-phase-state-input-snapshot architecture_layer_basis"
+      reason: "backend handoff が service / usecase / repository 境界を対象にすることを確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 340
+      symbol: "frontend-body-phase-job-run-ui architecture_layer_basis"
+      reason: "frontend UI handoff が Wails 接続実体を統合境界 handoff に分けていることを確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 394
+      symbol: "integration-body-phase-wails-gateway architecture_layer_basis"
+      reason: "Wails controller、bootstrap binding、frontend Wails adapter、gateway DTO だけが統合境界であることを確認した。"
+    - path: "internal/repository/foundation_data_sqlite_repository.go"
+      line: 313
+      symbol: "CreatePersona"
+      reason: "CreatePersona が PERSONA 作成だけを扱い、NPC_PROFILE placeholder 合成を呼んでいないことを確認した。"
+    - path: "internal/repository/foundation_data_sqlite_repository.go"
+      line: 337
+      symbol: "CreatePersona insert"
+      reason: "draft の NpcProfileID を使った PERSONA insert と SQLite error mapping に閉じていることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 33
+      symbol: "bodyTranslationPhase service ports"
+      reason: "service が repository port を受け、具象 repository を生成していないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 245
+      symbol: "NewBodyTranslationPhaseService"
+      reason: "service constructor が port と transactor 注入を受けるだけであることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 325
+      symbol: "StartPhase startRejection"
+      reason: "業務拒否の判定は service で行われ、controller はその結果を DTO に写像するだけであることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 861
+      symbol: "buildActionEnablement input snapshot drift"
+      reason: "input snapshot drift 時の retry / resume 無効化が service の状態読取に閉じていることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1020
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "retry / resume の mutation 前に input snapshot drift を拒否していることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1130
+      symbol: "executeBodyTranslationRun"
+      reason: "provider 実行前にも input snapshot drift を拒否し、provider 実行は injected provider port へ委譲していることを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 80
+      symbol: "PersistBodyTranslationFieldResults"
+      reason: "provider result mutation は service の field result persistence 境界で検証、永続化、状態更新へ分かれていることを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 92
+      symbol: "bodyTranslationLateResponseRejection"
+      reason: "late response rejection が field result persistence の mutation guard として閉じていることを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 95
+      symbol: "inputSnapshotDrifted guard"
+      reason: "provider result mutation でも input snapshot drift を永続化前に拒否していることを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 504
+      symbol: "persistBodyTranslationValidatedResults"
+      reason: "field result 保存と phase link 作成は repository port と transactor 経由に閉じていることを確認した。"
+    - path: "internal/service/body_translation_provider_adapter.go"
+      line: 161
+      symbol: "TranslateBodyField"
+      reason: "provider-specific 実行と redacted failure mapping が service provider adapter に閉じていることを確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 190
+      symbol: "GenerateBodyTranslation"
+      reason: "fake provider と real provider の分岐は AI provider adapter 側にあり、service が test-safe 判定で real provider 経路を遮断していないことを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 172
+      symbol: "bodyTranslationPhaseController"
+      reason: "backend production graph の body phase concrete 配線が bootstrap に集約されていることを確認した。"
+    - path: "internal/controller/wails/app_controller.go"
+      line: 6
+      symbol: "AppController"
+      reason: "Wails root controller が body phase controller を保持する transport boundary であることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 243
+      symbol: "StartBodyTranslationPhase"
+      reason: "Wails controller の command entrypoint は usecase request を作り、結果変換 helper に委譲していることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 334
+      symbol: "bodyTranslationCommandResponseOrError"
+      reason: "ErrorSummary 付きの業務拒否を Wails error ではなく DTO として返す判断が transport mapping に閉じていることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 456
+      symbol: "toBodyTranslationPhaseFieldResultItemsDTO"
+      reason: "field result list が usecase DTO から Wails DTO へ lossless に写像されていることを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 153
+      symbol: "toBodyTranslationPhaseCommandResult"
+      reason: "service read model から usecase command result へ field result list と error summary を写像していることを確認した。"
+    - path: "frontend/src/main.ts"
+      line: 28
+      symbol: "bodyTranslationPhaseGateway"
+      reason: "body phase production gateway と screen controller factory が frontend bootstrap で生成されていることを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 24
+      symbol: "Props"
+      reason: "App.svelte が body phase screen controller factory を prop として受けるだけであることを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 72
+      symbol: "AppShell props"
+      reason: "App.svelte が body phase factory を AppShell へ伝播するだけであることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 272
+      symbol: "JobRunPage wiring"
+      reason: "AppShell が受け取った body phase factory を JobRunPage へ渡していることを確認した。"
+    - path: "frontend/src/ui/screens/job-run/JobRunPage.svelte"
+      line: 52
+      symbol: "resolveBodyController"
+      reason: "JobRunPage が受け取った factory を使い、Wails gateway concrete を生成していないことを確認した。"
+    - path: "frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts"
+      line: 1
+      symbol: "screen controller factory imports"
+      reason: "screen controller factory が application contract / gateway contract / store / presenter / usecase / controller だけに依存し、Wails DTO を import していないことを確認した。"
+    - path: "frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts"
+      line: 19
+      symbol: "createBodyTranslationPhaseScreenControllerFactory"
+      reason: "factory が Store、Presenter、UseCase、ScreenController の screen local wiring に留まることを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 1
+      symbol: "BodyTranslationPhaseGateway"
+      reason: "Wails gateway DTO 依存が Wails adapter 側に閉じていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts"
+      line: 91
+      symbol: "BodyTranslationPhaseFieldResultItem"
+      reason: "field result list が frontend gateway contract の公開値として表現され、backend DTO や generated binding に依存していないことを確認した。"
+    - path: "frontend/src/application/presenter/body-translation-phase/body-translation-phase.presenter.ts"
+      line: 379
+      symbol: "extractFieldResultItems"
+      reason: "field result list の表示用整形は Presenter に閉じ、View は view model を描画するだけであることを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.test.ts"
+      line: 60
+      symbol: "gateway dto aliases stay aligned"
+      reason: "DTO coverage 型確認が Wails gateway test 側に移動していることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller_unit_test.go"
+      line: 275
+      symbol: "TestBodyTranslationPhaseControllerCommandBusinessRejectionReturnsPayloadWithoutError"
+      reason: "業務拒否が redacted DTO として返り、Wails error にならないことを controller 境界で確認している。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 77
+      symbol: "TestSCN_BTP_008_RetryPersistsStateAndCompletesPendingFieldResults"
+      reason: "non-fake provider id の retry が provider success port で通り、test-safe 判定で遮断されていないことを API シナリオで確認している。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 104
+      symbol: "TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults"
+      reason: "input snapshot drift が field result 書き込み前に拒否されることを API シナリオで確認している。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 166
+      symbol: "TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite"
+      reason: "Running cancel の業務拒否が Wails error ではなく redacted payload で返ることを API シナリオで確認している。"
+
+unchecked_scope:
+  - target: "検証コマンド再実行"
+    reason: "ユーザー指示により再実行しない。最新証跡は plan.md のレビュー後 fix 結果と実装検証証跡を使った。"
+    risk: "低。今回の判定対象は静的な層責務と依存方向であり、実コード差分から確認できる。"
+  - target: "挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件"
+    reason: "review_responsibility_boundary の主判定対象外である。"
+    risk: "他観点の reviewback と implement_lane 集約で扱う。"
+  - target: "body phase 以外の既存 App.svelte fallback wiring"
+    reason: "今回の再レビュー対象は前回 body phase responsibility-boundary 指摘 3 件の fix である。"
+    risk: "body phase の合否には影響しない。別 task で既存 fallback を整理する場合は別観点で扱う。"
+
+issues:
+  - id: "RB-BTP-RESP-001"
+    level: "major"
+    title: "repository が synthetic NPC_PROFILE を合成している"
+    problem: "前回は SQLiteFoundationDataRepository.CreatePersona が Persona 作成前に NPC_PROFILE を job-local-placeholder 値で作成していた。現コードでは CreatePersona は PERSONA insert だけを扱い、NPC_PROFILE placeholder 合成を呼んでいない。"
+    reason: "Repository は永続化 adapter であり、欠けた参照を domain fallback として合成する判断を持つ層ではない。現コードではこの境界違反が除去されている。"
+    violated_condition: "Repository / Service 境界。永続化 adapter は SQLite 操作と schema error mapping に閉じる。"
+    cause_candidate: "body phase の input snapshot や API fixture で Persona と NPC_PROFILE の参照成立が必要になり、参照データ生成の都合が汎用 repository method に入った可能性があった。"
+    evidence:
+      - path: "internal/repository/foundation_data_sqlite_repository.go"
+        line: 313
+        excerpt: "CreatePersona は Persona レコードを作成する関数として定義されている。"
+      - path: "internal/repository/foundation_data_sqlite_repository.go"
+        line: 320
+        excerpt: "row は draft.NpcProfileID と Persona payload から作られている。"
+      - path: "internal/repository/foundation_data_sqlite_repository.go"
+        line: 337
+        excerpt: "実行 SQL は PERSONA insert であり、NPC_PROFILE insert はない。"
+      - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+        line: 88
+        excerpt: "レビュー後 fix 結果で placeholder 除去が反映済みと記録されている。"
+    local_fix_assessment: "resolved-local-backend。汎用 repository method から domain fallback が除去され、参照成立の責務は repository の暗黙合成ではなく上位の入力準備側へ戻っている。"
+    additional_check_scope: "none。CreatePersona の current implementation と repository search で NPC_PROFILE placeholder 合成は確認されなかった。"
+    fix_considerations: "再発時は汎用 repository method に参照データ生成を戻さない。foreign key 失敗や conflict mapping の意味を変えない。"
+    verification: "plan.md のレビュー後 fix 証跡では backend-local と all suite が pass している。review agent では再実行していない。"
+    fix_required: true
+    status: "resolved"
+  - id: "RB-BTP-RESP-002"
+    level: "major"
+    title: "body phase の production gateway 生成が root View に入っている"
+    problem: "前回は frontend/src/ui/App.svelte が body phase の Wails gateway concrete と screen controller factory concrete を import し、props がない場合に production fallback を生成していた。現コードでは App.svelte は body phase factory を prop として受け取り、AppShell へ渡すだけである。"
+    reason: "frontend/src/main.ts が body phase gateway と screen controller factory を生成して App に注入しているため、production composition root は frontend bootstrap に集約されている。"
+    violated_condition: "Frontend Bootstrap / root View 境界。production gateway と controller factory の生成は composition root に置き、View component は受け取った props を使う。"
+    cause_candidate: "既存 fallback wiring のある App.svelte に body phase も同じ形で追加した可能性があった。"
+    evidence:
+      - path: "frontend/src/main.ts"
+        line: 28
+        excerpt: "frontend bootstrap が createBodyTranslationPhaseGateway を生成している。"
+      - path: "frontend/src/main.ts"
+        line: 29
+        excerpt: "frontend bootstrap が body phase screen controller factory を生成している。"
+      - path: "frontend/src/ui/App.svelte"
+        line: 24
+        excerpt: "App.svelte は createBodyTranslationPhaseScreenController を prop として受ける。"
+      - path: "frontend/src/ui/App.svelte"
+        line: 72
+        excerpt: "App.svelte は body phase factory を AppShell へ伝播する。"
+      - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+        line: 89
+        excerpt: "レビュー後 fix 結果で production gateway 生成除去が反映済みと記録されている。"
+    local_fix_assessment: "resolved-local-frontend-bootstrap。body phase の production wiring は frontend/src/main.ts に集約され、App.svelte は prop 伝播へ戻っている。"
+    additional_check_scope: "none。AppShell と JobRunPage では受け取った factory の伝播と利用だけを確認した。"
+    fix_considerations: "再発時は body phase の production wiring を App.svelte へ戻さない。root View は body phase concrete gateway を import しない。"
+    verification: "plan.md のレビュー後 fix 証跡では frontend-local と all suite が pass している。review agent では再実行していない。"
+    fix_required: true
+    status: "resolved"
+  - id: "RB-BTP-RESP-003"
+    level: "major"
+    title: "screen controller factory が Wails gateway DTO を直接参照している"
+    problem: "前回は frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts が @controller/wails/gateway-dto/body-translation-phase から DTO 型を import していた。現コードでは screen controller factory は application contract と gateway contract にだけ依存し、DTO coverage は Wails gateway test 側に移っている。"
+    reason: "ScreenController factory の責務は Store、Presenter、UseCase、ScreenController の screen local wiring である。Wails gateway DTO は Wails adapter / gateway test 側に閉じている。"
+    violated_condition: "ScreenController factory / Wails Gateway DTO 境界。ScreenController は Wails 呼び出し詳細や DTO 変換を持たず、GatewayDTO は frontend/src/controller/wails/ に閉じ込める。"
+    cause_candidate: "DTO coverage 型を Wails gateway test ではなく screen controller factory 側に置いた可能性があった。"
+    evidence:
+      - path: "frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts"
+        line: 1
+        excerpt: "screen controller factory は application contract / gateway contract / presenter / store / usecase / controller を import している。"
+      - path: "frontend/src/controller/body-translation-phase/body-translation-phase-screen-controller-factory.ts"
+        line: 19
+        excerpt: "factory は Store、Presenter、UseCase、ScreenController の screen local wiring を作る。"
+      - path: "frontend/src/controller/wails/body-translation-phase.gateway.test.ts"
+        line: 13
+        excerpt: "Wails gateway test が body phase gateway DTO 型を import している。"
+      - path: "frontend/src/controller/wails/body-translation-phase.gateway.test.ts"
+        line: 60
+        excerpt: "DTO aliases と gateway contract の型一致確認が Wails gateway test 側にある。"
+      - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+        line: 89
+        excerpt: "レビュー後 fix 結果で Wails DTO 依存除去が反映済みと記録されている。"
+    local_fix_assessment: "resolved-local-frontend-type-boundary。DTO coverage の配置が Wails adapter / gateway test 側へ寄り、screen controller factory の依存は application contract、GatewayContract、Store、Presenter、UseCase、ScreenController に戻っている。"
+    additional_check_scope: "none。frontend/src/controller/body-translation-phase 配下で @controller/wails/gateway-dto import は確認されなかった。"
+    fix_considerations: "再発時は screen controller factory が @controller/wails/gateway-dto を import しない境界を維持する。"
+    verification: "plan.md のレビュー後 fix 証跡では frontend-local と all suite が pass している。review agent では再実行していない。"
+    fix_required: true
+    status: "resolved"
+
+broken_boundaries: []
+
+resolved_broken_boundaries:
+  - "Backend Repository / domain fallback: FoundationDataRepository の汎用 CreatePersona から NPC_PROFILE placeholder 合成が除去された。"
+  - "Frontend Bootstrap / root View: body phase production gateway と controller factory 生成が frontend/src/main.ts に集約された。"
+  - "ScreenController factory / Wails Gateway DTO: body phase screen controller factory の Wails DTO 型依存が除去され、DTO coverage は Wails gateway test 側へ移った。"
+
+cause_candidates: []
+
+resolved_cause_candidates:
+  - "body phase fixture または input snapshot の参照成立を急ぎ、参照データ生成の責務が repository に入った可能性は、repository fallback 除去により閉じている。"
+  - "既存 fallback wiring を踏襲して body phase を App.svelte へ追加した可能性は、main.ts 注入への集約により閉じている。"
+  - "DTO coverage 型を screen controller factory に置いた可能性は、Wails gateway test 側への移動により閉じている。"
+
+local_fix_assessment:
+  required: false
+  scope: "backend repository boundary、frontend body phase wiring / type boundary、second-review-fix の Wails command DTO / provider / field result / snapshot drift 境界"
+  reason: "前回 major issue 3 件はいずれも局所修正で閉じており、second-review-fix も既存の controller、usecase、service、provider adapter、frontend contract 境界内で閉じている。未解決の修正必須 issue はない。"
+
+boundary_fixed_test_viewpoints:
+  - "SQLiteFoundationDataRepository.CreatePersona が NPC_PROFILE placeholder を暗黙作成しないこと。status: satisfied。"
+  - "body phase の production gateway と screen controller factory 生成が frontend/src/main.ts に集約されること。status: satisfied。"
+  - "frontend/src/ui/App.svelte が body phase concrete gateway / concrete factory を import しないこと。status: satisfied。"
+  - "frontend/src/controller/body-translation-phase 配下が @controller/wails/gateway-dto を import しないこと。status: satisfied。"
+  - "DTO coverage 型確認が Wails gateway / gateway DTO / gateway test 側に閉じること。status: satisfied。"
+  - "command 業務拒否が Wails error ではなく Wails controller の DTO mapping として返ること。status: satisfied。"
+  - "real provider 経路が service の test-safe 判定で遮断されず、AI provider adapter へ委譲されること。status: satisfied。"
+  - "field result list が service、usecase、Wails DTO、frontend gateway contract、Presenter の境界順で渡ること。status: satisfied。"
+  - "input snapshot drift が retry / resume / provider result mutation の mutation 前 guard で拒否されること。status: satisfied。"
+
+verification_evidence:
+  - command: "go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:207。second-review-fix の局所検証。review agent では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:208。second-review-fix 後。review agent では再実行していない。"
+  - command: "npm --prefix frontend run test -- --run body-translation-phase"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:209。second-review-fix 後。review agent では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:210。second-review-fix 後。review agent では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:211。structure、scenario-gate、execution、system test、coverage が通過。review agent では再実行していない。"
+  - command: "Sonar coverage"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:212。coverage 71.7%、line 72.5%、branch 64.4%、security issue 0、reliability issue 0、maintainability HIGH issue 0。review agent では再実行していない。"
+  - command: "system test"
+    result: "pass"
+    evidence: "docs/exec-plans/completed/body-translation-phase/plan.md:213。5 件 pass。review agent では再実行していない。"
+
+residual_risks:
+  - "広い harness は review agent では再実行していない。plan.md のレビュー後 fix 証跡では all suite まで pass している。"
+  - "挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件は主判定していない。"
+  - "body phase 以外の既存 App.svelte fallback wiring は今回の再レビュー対象外である。"

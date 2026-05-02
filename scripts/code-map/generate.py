@@ -149,6 +149,15 @@ LAYER_DEFINITIONS = (
         paths=(Path("internal/integrationtest"),),
         default_next=(),
     ),
+    # API test 専用ディレクトリ。
+    # Wails などの API 境界を通した scenario test だけを置く場所。
+    LayerDefinition(
+        id="backend-api-test",
+        name="API Test",
+        root="internal",
+        paths=(Path("internal/apitest"),),
+        default_next=(),
+    ),
 )
 
 LAYER_BY_ID = {layer.id: layer for layer in LAYER_DEFINITIONS}

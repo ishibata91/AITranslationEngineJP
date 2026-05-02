@@ -1,0 +1,286 @@
+reviewback_version: 1
+task_id: body-translation-phase
+review_yaml_path: docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml
+viewpoint: trust-boundary
+reviewer_agent: review_trust_boundary
+review_status: no_issue
+must_fix_open: false
+max_level: none
+
+assessment:
+  safety: pass
+  evidence_sufficiency: sufficient
+  hard_gate: true
+  hard_gate_result: passed
+  summary: >-
+    second-review-fix 後の再レビューでも、本文翻訳段階の実装差分では
+    secret 本体と credential_ref の境界は分離されている。
+    provider credential は backend provider client で provider 呼び出し直前に解決され、
+    usecase、Wails DTO、frontend gateway、UI は credential_ref、provider、model、execution mode、
+    digest、count、error kind、redacted summary だけを扱う。
+    raw prompt、provider raw request / response、API key、token、authorization header を
+    public DTO、UI、read model、DB summary へ出す経路は確認範囲では見つからない。
+    command の業務拒否は Wails error ではなく、isRedacted true の public DTO として返る。
+    input snapshot drift は retry / resume / provider result mutation の前に redacted DTO で拒否される。
+    provider response は field correlation と保護要素検証を通過した候補だけが保存対象になり、
+    検証失敗や provider failure は redacted error summary に閉じる。
+    second-review-fix で real provider 経路を test-safe 判定では遮断しない形にした後も、
+    provider 実行は backend service / provider adapter / provider client 境界に閉じ、
+    public summary は digest、count、credential_ref、redacted error summary に限定される。
+    SQL は bind / named bind 経由で、Wails から渡る jobId / phaseRunId / field id を文字列連結していない。
+    権限・信頼境界は hard gate のため他観点の成功で相殺しないが、
+    code read と呼び出し元検証証跡の範囲では未解決 issue はない。
+
+checked_scope:
+  summary: >-
+    implementation-scope の secret_boundary、second-review-fix 結果、provider credential 解決、
+    prompt builder、provider response adapter、provider 実行から field result 保存への接続、
+    field result 保存前検証、業務拒否の redacted DTO、input snapshot drift 拒否、
+    Wails DTO、frontend gateway / presenter / UI、
+    repository SQL bind、呼び出し元の最終検証証跡を確認した。
+    広い harness は再実行せず、implement_lane から渡された plan.md の
+    second-review-fix 通過証跡をレビュー入力として扱った。
+  files:
+    - path: docs/exec-plans/completed/body-translation-phase/implementation-scope.md
+      line: 42
+      symbol: Fixed Decisions secret boundary
+      reason: secret、API key、復号可能値を UI、DTO、error summary、log、fake transport log に出さない固定判断を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/implementation-scope.md
+      line: 181
+      symbol: backend-body-provider-adapter secret_boundary
+      reason: provider secret は AI provider transport adapter が呼び出し直前に解決し、prompt builder と response adapter は secret 本体を受け取らない契約を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 91
+      symbol: second-review-fix 結果
+      reason: command 業務拒否の redacted DTO、real provider 経路、field result list、input snapshot drift 拒否が second-review-fix に含まれることを確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/implementation-scope.md
+      line: 342
+      symbol: frontend-body-phase-job-run-ui secret_boundary
+      reason: frontend は secret 本体を受け取らず、画面、console、frontend store、frontend DTO へ secret 類を出さない契約を確認した。
+    - path: internal/infra/ai/provider_client.go
+      line: 190
+      symbol: ProviderClient.GenerateBodyTranslation
+      reason: credential_ref から provider credential を解決し、ProviderRequest.APIKey と prompt を provider 境界へ渡す位置を確認した。
+    - path: internal/infra/ai/provider_client.go
+      line: 298
+      symbol: ProviderClient.resolveProviderCredential
+      reason: fake provider は secret 不要、real provider は resolver 必須で、空 secret を provider credential unavailable として止めることを確認した。
+    - path: internal/service/body_translation_provider_adapter.go
+      line: 69
+      symbol: BodyTranslationProviderAuditSummary
+      reason: audit summary が credentialRef、provider、model、execution mode、request unit、prompt digest、count、request summary に限定され、secret 本体と raw prompt を持たないことを確認した。
+    - path: internal/service/body_translation_provider_adapter.go
+      line: 226
+      symbol: bodyTranslationProviderAdapter.TranslateBodyField
+      reason: prompt は provider request 用に生成され、公開 summary には prompt digest と redacted failure reason だけを残す経路を確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1125
+      symbol: BodyTranslationPhaseService.executeBodyTranslationRun
+      reason: provider nil 以外を test-safe 判定で遮断せず、input snapshot drift は provider 実行前に redacted error summary で返す経路を確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1177
+      symbol: BodyTranslationPhaseService.executeBodyTranslationTarget
+      reason: provider request から provider result を作り、同じ phase run の field result persistence へ渡す接続を確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1020
+      symbol: BodyTranslationPhaseService.persistBodyTranslationRunStateTransition
+      reason: retry / resume で input snapshot drift がある場合に、状態遷移と provider 実行へ進まず redacted DTO へ閉じることを確認した。
+    - path: internal/service/body_translation_provider_adapter.go
+      line: 286
+      symbol: redactedBodyTranslationProviderFailureReason
+      reason: API key、authorization、credential、secret を含む provider error を public reason に直接出さない redaction を確認した。
+    - path: internal/usecase/body_translation_phase_contract.go
+      line: 53
+      symbol: BodyTranslationPhasePublicRedactionFieldObligation
+      reason: public seam の allowed reference fields と forbidden output fields を確認した。
+    - path: internal/usecase/body_translation_phase_contract.go
+      line: 149
+      symbol: BodyTranslationPhaseExecutionSummary
+      reason: usecase DTO が credentialRef、provider、model、executionMode、count に限定され、API key field を持たないことを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 94
+      symbol: BodyTranslationPhaseExecutionSummaryDTO
+      reason: Wails DTO が credentialRef と provider 実行設定の参照値だけを返すことを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 334
+      symbol: bodyTranslationCommandResponseOrError
+      reason: command 系の業務拒否は ErrorSummary がある場合に Wails error へせず、redacted DTO として返すことを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 487
+      symbol: toOptionalBodyTranslationPhaseErrorSummaryDTO
+      reason: error summary は errorKind、reason、retryable、isRedacted のみを DTO 化することを確認した。
+    - path: internal/service/body_translation_field_result.go
+      line: 204
+      symbol: normalizeSingleBodyTranslationFieldTarget
+      reason: 保存対象 field が loaded context 内の field に属することと、correlation key が field id と一致することを確認した。
+    - path: internal/service/body_translation_field_result.go
+      line: 359
+      symbol: validateSingleBodyTranslationProviderResult
+      reason: provider failure は translated candidate として保存せず、redacted failure summary に変換されることを確認した。
+    - path: internal/service/body_translation_field_result.go
+      line: 408
+      symbol: validateBodyTranslationProtectionResult
+      reason: 保護要素検証に失敗した訳文が persistence failure になり、保存前に拒否されることを確認した。
+    - path: internal/service/body_translation_field_result.go
+      line: 663
+      symbol: upsertBodyTranslationJobField
+      reason: 保存対象が translation job id、translation field id、persona id、translated text、output status、retry count に限定されることを確認した。
+    - path: internal/repository/job_output_sqlite_repository.go
+      line: 57
+      symbol: job translation field SQL constants
+      reason: JOB_TRANSLATION_FIELD の insert / update / select が named bind と positional bind を使い、外部入力を SQL 文字列へ連結しないことを確認した。
+    - path: internal/repository/job_lifecycle_sqlite_repository.go
+      line: 217
+      symbol: phase run translation field SQL constants
+      reason: PHASE_RUN_TRANSLATION_FIELD の insert / select が bind を使い、phaseRunID を SQL 文字列へ連結しないことを確認した。
+    - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+      line: 72
+      symbol: BodyTranslationPhaseExecutionSummary
+      reason: frontend gateway contract の execution summary が credentialRef、provider、model、executionMode、count だけを持つことを確認した。
+    - path: frontend/src/application/presenter/body-translation-phase/body-translation-phase.presenter.ts
+      line: 610
+      symbol: BodyTranslationPhasePresenter.toViewModel
+      reason: UI 表示用 label が digest、provider、model、executionMode、credentialRef、count、redacted error summary に限定されることを確認した。
+    - path: frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte
+      line: 201
+      symbol: BodyTranslationPhasePanel execution summary
+      reason: Svelte text binding で credential ref と summary 値を表示し、HTML injection 用の raw HTML 表示を使っていないことを確認した。
+    - path: frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts
+      line: 257
+      symbol: BodyTranslationPhaseUseCase.fetchSummaryAndReadiness
+      reason: Wails 例外を固定の画面文言へ丸め、raw backend error をそのまま UI へ出さない経路を確認した。
+    - path: internal/controller/wails/body_translation_phase_controller_unit_test.go
+      line: 145
+      symbol: TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets
+      reason: Wails DTO が secret_redacted summary と credentialRef 参照値だけを返す focused test を確認した。
+    - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-contract.test.ts
+      line: 344
+      symbol: body translation DTO type cannot express secret or raw provider fields
+      reason: frontend DTO 型が apiKey と rawPrompt を表現しない compile-time test を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 207
+      symbol: second-review-fix local evidence
+      reason: second-review-fix 後の BodyTranslation / SCN_BTP 局所検証 pass 証跡を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 211
+      symbol: second-review-fix final validation evidence
+      reason: second-review-fix 後の harness all pass 証跡を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 212
+      symbol: second-review-fix coverage evidence
+      reason: Sonar coverage 71.7%、line 72.5%、branch 64.4%、security / reliability / maintainability HIGH issue 0 の証跡を確認した。
+    - path: internal/apitest/body_translation_recovery_terminal_readiness_test.go
+      line: 115
+      symbol: TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults
+      reason: input snapshot drift が Wails error ではなく redacted DTO で返り、field result を書かない API シナリオ証跡を確認した。
+    - path: internal/apitest/body_translation_recovery_terminal_readiness_test.go
+      line: 176
+      symbol: TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite
+      reason: Running cancel が Wails error ではなく output_readiness_blocked の DTO で返り、状態と readiness を書き換えない証跡を確認した。
+
+unchecked_scope:
+  - target: paid real provider execution
+    reason: paid provider の実通信はレビュー agent の責務外であり、provider request construction と fake / deterministic transport 境界をコードで確認した。
+    risk: vendor 側の実応答文言やエラー本文の運用差分は残るが、service は provider error を redacted public reason に丸めるため public leak risk は低い。
+  - target: runtime structured log and console output
+    reason: 広い harness 再実行と UI 実機操作は行わず、呼び出し元の system test 5 件 pass とコード検索を根拠にした。
+    risk: 将来 debug log や console 出力を追加する差分では、raw prompt と provider raw payload の表示先を再レビューする必要がある。
+  - target: authn / authz / tenant isolation for multi-user deployment
+    reason: この desktop Wails app の実装差分には user、role、tenant 境界が新設されていない。
+    risk: 将来 multi-user / tenant 化する場合、jobId だけで参照する Wails seam は別途認可境界を追加する必要がある。
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  required: false
+  scope: none
+  reason: 未解決の権限・信頼境界 issue がないため、局所修正は不要。
+
+invariant_test_viewpoints:
+  - DTO、frontend contract、Wails DTO に apiKey、token、authorizationHeader、rawPrompt、providerRawRequest、providerRawResponse field が追加されないこと。
+  - credential_ref は UI / DTO / read model 用の参照値であり、provider auth secret は backend provider client の直前だけで解決されること。
+  - provider failure、invalid response、protection validation failure、save failure の error summary は redacted reason だけを返すこと。
+  - translated text は Svelte text binding で表示し、raw HTML として描画しないこと。
+  - repository SQL は jobId、phaseRunID、field ID、translated text を bind し、文字列連結で組み立てないこと。
+
+verification_evidence:
+  - command: go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'
+    result: pass
+    evidence: plan.md と呼び出し元提示の second-review-fix 局所検証証跡を確認した。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    evidence: >-
+      plan.md の second-review-fix 証跡を確認した。structure、scenario-gate、execution、
+      system test、coverage が通過し、system test は 5 passed。
+  - command: npm --prefix frontend run test -- --run body-translation-phase
+    result: pass
+    evidence: 呼び出し元提示と plan.md の second-review-fix 後証跡を確認した。
+  - command: python3 scripts/harness/run.py --suite backend-local
+    result: pass
+    evidence: 呼び出し元提示と plan.md の second-review-fix 後証跡を確認した。
+  - command: python3 scripts/harness/run.py --suite frontend-local
+    result: pass
+    evidence: 呼び出し元提示と plan.md の second-review-fix 後証跡を確認した。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    evidence: >-
+      plan.md の second-review-fix coverage 証跡を確認した。Sonar coverage 71.7%、
+      line 72.5%、branch 64.4%、security issue 0、
+      reliability issue 0、maintainability HIGH issue 0。
+
+residual_risks:
+  - ProviderDebugLog は共通 infra 型として prompt / request body を保持し得る。本文翻訳 path では public DTO、UI、DB summary へ流していないが、将来の debug 表示導線追加時は hard gate 再確認が必要。
+  - 原文と訳文は implementation-scope で local UI 表示が許容されている。tenant / multi-user 境界を追加する場合は jobId 単位の認可条件を別途固定する必要がある。
+
+re_review:
+  review_type: second_review_after_fix
+  judgment: no_issue
+  hard_gate_result: passed
+  must_fix_open: false
+  max_level: none
+  summary: >-
+    second-review-fix 後も secret、raw prompt、provider raw request / response、
+    authorization header、復号可能値を UI、DTO、DB summary、error summary、
+    structured log、debug log、fake transport log に出す経路は確認範囲で見つからない。
+    command 業務拒否、input snapshot drift、provider failure は redacted DTO に閉じる。
+    本文と prompt は provider request の内部入力として使われるが、公開面には digest、
+    count、credential_ref、field result list、redacted reason だけが出る。
+  fixed_evidence:
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 91
+      excerpt: second-review-fix で command 業務拒否、real provider 経路、field result list、input snapshot drift 拒否を反映済み。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 207
+      excerpt: second-review-fix 後の BodyTranslation / SCN_BTP 局所検証は pass。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 211
+      excerpt: second-review-fix 後の harness all は pass。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1125
+      excerpt: input snapshot drift を provider 実行前に redacted DTO として返し、provider nil 以外を test-safe 判定で遮断しない。
+    - path: internal/service/body_translation_provider_adapter.go
+      line: 226
+      excerpt: raw prompt は provider request 用に生成し、audit summary は prompt digest と request summary に限定する。
+    - path: internal/infra/ai/provider_client.go
+      line: 232
+      excerpt: real provider 用 secret は credential resolver で provider 呼び出し直前に解決する。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 334
+      excerpt: command の業務拒否は ErrorSummary がある場合に Wails error へせず DTO として返す。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 94
+      excerpt: Wails DTO の execution summary は credentialRef、provider、model、executionMode、count だけを持つ。
+    - path: internal/apitest/body_translation_recovery_terminal_readiness_test.go
+      line: 115
+      excerpt: retry 時の input snapshot drift は Wails error ではなく input_snapshot_failed DTO で返る。
+    - path: frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte
+      line: 181
+      excerpt: UI は prompt digest と credential ref を表示し、raw prompt と secret 表示項目を持たない。
+  hard_gate_notes:
+    - 権限・信頼境界は hard gate のため、他観点の結果で相殺しない。
+    - 未解決の blocker、critical、major はない。
+    - 判定はレビュー agent の再実行禁止制約に従い、検証コマンドを再実行せず plan.md の最新証跡を使った。

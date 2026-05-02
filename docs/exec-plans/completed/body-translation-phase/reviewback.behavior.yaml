@@ -1,0 +1,288 @@
+reviewback_version: 1
+task_id: body-translation-phase
+review_yaml_path: "docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml"
+viewpoint: behavior
+reviewer_agent: review_behavior
+review_status: no_issue
+must_fix_open: false
+max_level: none
+assessment:
+  behavior_match: >
+    second-review-fix 後の実コードでは、前回未解決だった real provider 経路の provider_failure 固定と
+    Job Run field result list の DTO 経路欠落は解消済みである。
+    command の業務拒否は Wails error ではなく redacted payload として返り、
+    retry / resume / provider result mutation の input snapshot drift も拒否される。
+    挙動正しさ観点の未解決指摘はない。
+  evidence_sufficiency: >
+    十分。plan.md の second-review-fix 完了宣言と検証証跡、scenario-design、ui-design、
+    implementation-scope、backend service / usecase / Wails DTO、frontend contract / presenter / UI、
+    API シナリオを照合した。広い検証コマンドは人間指示どおり再実行していない。
+checked_scope:
+  summary: >
+    本文翻訳フェーズの public seam、provider 実行、field result list、command rejection payload、
+    input snapshot drift rejection、retry / cancel API シナリオを確認した。
+  files:
+    - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+      line: 91
+      symbol: "second-review-fix"
+      reason: "second-review-fix の反映対象と完了状態を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/plan.md"
+      line: 242
+      symbol: "Outcome"
+      reason: "second-review-fix 後の最終検証通過を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/scenario-design.md"
+      line: 23
+      symbol: "must_pass_requirements"
+      reason: "Job Setup の provider / model / execution mode を使う要求を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/scenario-design.md"
+      line: 26
+      symbol: "must_pass_requirements"
+      reason: "field 単位の訳文、出力ステータス、保護要素検証結果保持を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/ui-design.md"
+      line: 10
+      symbol: "display_items"
+      reason: "Job Run に表示すべき field result と実行要約を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 34
+      symbol: "Fixed Decisions"
+      reason: "Job Setup の provider 設定を本文翻訳で使う固定判断を確認した。"
+    - path: "docs/exec-plans/completed/body-translation-phase/implementation-scope.md"
+      line: 39
+      symbol: "Fixed Decisions"
+      reason: "retry / resume / 開始再送で同じ phase run と input snapshot を保つ判断を確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 102
+      symbol: "BodyTranslationPhaseFieldResultSummaryReadModel"
+      reason: "backend service read model が field result item list を持つことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 529
+      symbol: "loadContext"
+      reason: "既存 body run と現在入力の digest 差分を input snapshot drift として検出することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 715
+      symbol: "buildFieldResultItems"
+      reason: "保存済み field result から identity、source excerpt、translated text、output status、validation result を構成することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1020
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "resume / retry の running 遷移前に input snapshot drift を拒否することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1125
+      symbol: "executeBodyTranslationRun"
+      reason: "実行直前の drift 拒否と provider 実行入口を確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1164
+      symbol: "bodyTranslationProviderUnavailable"
+      reason: "provider 実行可否が nil 判定だけになり、non-fake / non-test-safe 経路を遮断しないことを確認した。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 92
+      symbol: "PersistBodyTranslationFieldResults"
+      reason: "late response と input snapshot drift で field result mutation を拒否することを確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 232
+      symbol: "GenerateBodyTranslation"
+      reason: "non-fake provider で credential 解決後に GenerateText へ進む実 provider 経路を確認した。"
+    - path: "internal/usecase/body_translation_phase_contract.go"
+      line: 169
+      symbol: "BodyTranslationPhaseFieldResultSummary"
+      reason: "usecase contract が field result list を公開できることを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 130
+      symbol: "toBodyTranslationPhaseSummaryResult"
+      reason: "service read model の field result list が usecase result へ渡ることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 104
+      symbol: "BodyTranslationPhaseFieldResultSummaryDTO"
+      reason: "Wails DTO が field result item list を表現できることを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 334
+      symbol: "bodyTranslationCommandResponseOrError"
+      reason: "ErrorSummary 付き業務拒否を Wails error にせず response payload として返すことを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 456
+      symbol: "toBodyTranslationPhaseFieldResultItemsDTO"
+      reason: "usecase の field result list が Wails DTO へ lossless に写ることを確認した。"
+    - path: "frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts"
+      line: 91
+      symbol: "BodyTranslationPhaseFieldResultItem"
+      reason: "frontend gateway contract が field result item を受け取れることを確認した。"
+    - path: "frontend/src/application/presenter/body-translation-phase/body-translation-phase.presenter.ts"
+      line: 386
+      symbol: "extractFieldResultItems"
+      reason: "summary / resultSummary の field result list を画面表示用 item に変換することを確認した。"
+    - path: "frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
+      line: 296
+      symbol: "field result list"
+      reason: "Job Run UI が field result item の各表示項目を描画することを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 77
+      symbol: "TestSCN_BTP_008_RetryPersistsStateAndCompletesPendingFieldResults"
+      reason: "non-fake provider 名の retry が pending field result を完了へ進める API シナリオを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 104
+      symbol: "TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults"
+      reason: "input snapshot drift で field result を書かずに redacted payload を返す API シナリオを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 166
+      symbol: "TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite"
+      reason: "running cancel が Wails error ではなく拒否 payload として返り、状態を書き換えないことを確認した。"
+unchecked_scope:
+  - target: "検証コマンド再実行"
+    reason: "人間指示で広い検証コマンドの再実行は禁止されているため。"
+    risk: "検証証跡の鮮度は plan.md と呼び出し元から渡された証跡に依存する。"
+  - target: "実ブラウザ UI 目視"
+    reason: "挙動レビューでは実コードと既存検証証跡を主根拠にし、ブラウザ証跡の再取得は行っていないため。"
+    risk: "レイアウト崩れや visual polish は別確認に残る。"
+issues:
+  - id: "BEHAVIOR-BTP-001"
+    level: blocker
+    title: "pause、resume、retry、cancel の永続状態更新は解消済み"
+    problem: >
+      前回は pause、resume、retry、cancel が response payload だけを返し、`JOB_PHASE_RUN` と job state を更新していなかった。
+      現在は state transition transaction が run / job を更新し、retry は同じ phase run で provider 実行へ進む。
+    reason: >
+      `persistBodyTranslationRunStateTransition` は run と job を同一 transaction で更新する。
+      API シナリオは retry の同一 phase run 継続、Paused cancel、Running cancel 拒否を確認している。
+    violated_condition: >
+      `PauseBodyTranslationPhase`、`ResumeBodyTranslationPhase`、`RetryBodyTranslationPhase`、
+      `CancelBodyTranslationPhase` は同じ body phase run の状態と payload を一致させる。
+    cause_candidate: >
+      前回原因だった payload-only command は state transition helper と retry orchestration に置き換え済みである。
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1006
+        excerpt: "persistBodyTranslationRunStateTransition は run / job update を transaction で実行する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 440
+        excerpt: "RetryPhase は recoverable_failed から running へ永続遷移した後、executeBodyTranslationRun を呼ぶ。"
+      - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+        line: 46
+        excerpt: "SCN-BTP-008 は retry が同じ phase run を使い、結果を重複作成しないことを確認する。"
+      - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+        line: 132
+        excerpt: "SCN-BTP-009 は pause 後 cancel が canceled state と readiness false を返すことを確認する。"
+    local_fix_assessment: "resolved。public API シナリオからも永続状態更新を確認済みである。"
+    additional_check_scope: "なし。"
+    fix_considerations: "同じ `JOB_PHASE_RUN` を継続し、field result と phase link を重複作成しない条件を維持する。"
+    verification: "second-review-fix 後の `go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'` は pass。"
+    fix_required: true
+    status: resolved
+  - id: "BEHAVIOR-BTP-002"
+    level: blocker
+    title: "terminal または Canceled 後の field result 保存拒否は解消済み"
+    problem: >
+      前回は terminal job、Completed run、Canceled run、late response で field result や phase state を後書きできた。
+      現在は保存前に late response と terminal state を拒否する。
+    reason: >
+      `loadBodyTranslationRunForMutation` と `PersistBodyTranslationFieldResults` は保存処理の前に
+      `bodyTranslationLateResponseRejection` を確認する。
+      Start も terminal job では phase run を作成しない。
+    violated_condition: >
+      terminal job と Canceled / Completed body run では、field save、readiness update、late response 後書きを拒否する。
+    cause_candidate: >
+      前回不足していた mutation 前 guard は `bodyTranslationLateResponseRejection` と start rejection に分離された。
+    evidence:
+      - path: "internal/service/body_translation_field_result.go"
+        line: 92
+        excerpt: "PersistBodyTranslationFieldResults は late response rejection で保存処理を中断する。"
+      - path: "internal/service/body_translation_field_result.go"
+        line: 169
+        excerpt: "bodyTranslationLateResponseRejection は terminal job と canceled / completed run を late_response_rejected にする。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 594
+        excerpt: "startRejection は terminal job を terminal_job として開始拒否する。"
+    local_fix_assessment: "resolved。保存入口の guard と start guard で後書き拒否が閉じている。"
+    additional_check_scope: "なし。"
+    fix_considerations: "late response 拒否時も既存成功済み field result は保持し、terminal state と readiness を変化させない。"
+    verification: "second-review-fix 後の `go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'` は pass。"
+    fix_required: true
+    status: resolved
+  - id: "BEHAVIOR-BTP-003"
+    level: blocker
+    title: "Job Setup の real provider 経路が provider_failure に固定される問題は解消済み"
+    problem: >
+      前回は `bodyTranslationProviderUnavailable` が non-fake / non-test-safe provider を provider_failure にし、
+      Job Setup の supported provider 経路が provider adapter へ到達しなかった。
+      現在は provider port が nil の場合だけ unavailable とし、non-fake provider は adapter 実行へ進む。
+    reason: >
+      `executeBodyTranslationRun` は provider port が存在すれば `TranslateBodyField` を呼ぶ。
+      `ProviderClient.GenerateBodyTranslation` も non-fake provider で credential 解決後に `GenerateText` へ進む。
+      API シナリオでは `xai` provider 名の retry が pending field を完了へ進める。
+    violated_condition: >
+      本文翻訳フェーズは `Job Setup` で設定した本文翻訳用 provider、model、execution mode を使い、
+      AI provider で訳文を生成して field result として保存する。
+    cause_candidate: >
+      前回原因だった test-safe 判定による runtime guard は service の provider availability 判定から除去済みである。
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1133
+        excerpt: "executeBodyTranslationRun は provider unavailable でない場合に pending target の provider 実行へ進む。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1164
+        excerpt: "bodyTranslationProviderUnavailable は bodyTranslationProvider == nil だけを判定する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1183
+        excerpt: "executeBodyTranslationTarget は buildBodyTranslationProviderRequest 後に TranslateBodyField を呼ぶ。"
+      - path: "internal/infra/ai/provider_client.go"
+        line: 232
+        excerpt: "GenerateBodyTranslation は non-fake provider で credential を解決して GenerateText を呼ぶ。"
+      - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+        line: 77
+        excerpt: "SCN-BTP-008 は AIProvider: xai の retry で pending field result を完了へ進める。"
+    local_fix_assessment: "resolved。service の provider availability 判定と provider client の実 provider 経路で閉じている。"
+    additional_check_scope: "なし。paid real API を呼ぶ検証は不要である。"
+    fix_considerations: "paid API を broad validation で呼ばない条件と、product runtime で Job Setup provider を遮断しない条件を両立する。"
+    verification: "second-review-fix 後の API シナリオと backend-local / all harness は pass。"
+    fix_required: true
+    status: resolved
+  - id: "BEHAVIOR-BTP-004"
+    level: major
+    title: "Job Run の field result list が backend public DTO から埋まらない問題は解消済み"
+    problem: >
+      前回は frontend 側だけが optional な `fieldResults` を扱い、backend service read model、
+      usecase contract、Wails DTO が field result item 配列を持たなかった。
+      現在は backend service から frontend presenter / UI まで field result list が通る。
+    reason: >
+      service read model は field result item list を持ち、usecase result、Wails DTO、frontend gateway contract に写像される。
+      presenter は summary または resultSummary の field result list を表示 item に変換し、
+      Job Run UI は field identity、source excerpt、translated text、output status、protection validation result を描画する。
+    violated_condition: >
+      Job Run の field result list は field identity、source excerpt boundary、translated text、
+      output status、protection validation result を表示できる。
+    cause_candidate: >
+      前回不足していた backend public read model、usecase contract、Wails DTO の field result item が追加され、
+      frontend の optional fieldResults と実 DTO 経路が接続済みである。
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 102
+        excerpt: "BodyTranslationPhaseFieldResultSummaryReadModel は FieldResults を持つ。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 715
+        excerpt: "buildFieldResultItems は identity、source excerpt、translated text、output status、validation result を構成する。"
+      - path: "internal/usecase/body_translation_phase_contract.go"
+        line: 169
+        excerpt: "BodyTranslationPhaseFieldResultSummary は FieldResults を持つ。"
+      - path: "internal/controller/wails/body_translation_phase_controller.go"
+        line: 104
+        excerpt: "BodyTranslationPhaseFieldResultSummaryDTO は fieldResults を持つ。"
+      - path: "internal/controller/wails/body_translation_phase_controller.go"
+        line: 456
+        excerpt: "toBodyTranslationPhaseFieldResultItemsDTO が field result item を DTO へ写像する。"
+      - path: "frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts"
+        line: 91
+        excerpt: "BodyTranslationPhaseFieldResultItem は UI 表示に必要な field result 項目を持つ。"
+      - path: "frontend/src/application/presenter/body-translation-phase/body-translation-phase.presenter.ts"
+        line: 386
+        excerpt: "extractFieldResultItems は summary.fieldResults または resultSummary.fieldResults を表示 item にする。"
+      - path: "frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
+        line: 296
+        excerpt: "field result item がある場合は field result row を描画する。"
+      - path: "internal/controller/wails/body_translation_phase_controller_unit_test.go"
+        line: 171
+        excerpt: "controller unit test は field result list mapping を確認する。"
+    local_fix_assessment: "resolved。backend service から Job Run UI までの DTO 経路で field result list が接続済みである。"
+    additional_check_scope: "なし。実ブラウザ目視は visual polish 確認に残る。"
+    fix_considerations: "counts summary の既存表示を維持し、secret、API key、raw prompt、raw response を field result list に載せない。"
+    verification: "second-review-fix 後の frontend body-translation-phase test と frontend-local / all harness は pass。"
+    fix_required: true
+    status: resolved

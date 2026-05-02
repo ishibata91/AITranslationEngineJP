@@ -1,0 +1,34 @@
+- rejected_at: "2026-05-03"
+  task_id: "body-translation-phase"
+  viewpoint: "state-invariant"
+  reviewer_agent: "review_state_invariant"
+  review_yaml_path: "docs/exec-plans/active/body-translation-phase/reviewback.state-invariant.yaml"
+  review_status: "issues_open"
+  must_fix_open: true
+  max_level: "blocker"
+  issue_ids:
+    - "state-invariant-001"
+    - "state-invariant-002"
+    - "state-invariant-003"
+    - "state-invariant-004"
+  reject_reason: "pause / resume / retry / cancel の永続 state が command response と分岐し、terminal 後書き拒否、input snapshot 固定、field result / phase link 重複防止にも修正必須の状態・データ不変条件破れがある。"
+  workflow_improvement_candidates:
+    - "review 前 API test に command 実行後の再読込 summary まで確認する state persistence fixture を含める。"
+    - "late provider response と terminal job / canceled run の no-write fixture を service または API test に含める。"
+    - "input snapshot digest drift を start 後の dictionary / persona 変更 fixture で固定する。"
+    - "field result と phase link の二重送信 fixture を row count で確認する。"
+- rejected_at: "2026-05-03"
+  task_id: "body-translation-phase"
+  viewpoint: "state-invariant"
+  reviewer_agent: "review_state_invariant"
+  review_yaml_path: "docs/exec-plans/active/body-translation-phase/reviewback.state-invariant.yaml"
+  review_status: "issues_open"
+  must_fix_open: true
+  max_level: "major"
+  issue_ids:
+    - "state-invariant-003"
+  reject_reason: "input snapshot digest と count は JOB_PHASE_RUN に保存されたが、retry / resume の provider request 入力本体は current repository state から再構成される。開始後に dictionary、persona、source field が変わると、persisted digest と実入力が分岐し、同じ phase run の再開で同じ入力を参照する不変条件が維持できない。"
+  workflow_improvement_candidates:
+    - "input snapshot 固定の証明は digest 値だけでなく、provider request の target field、dictionary constraint、persona summary の drift fixture まで含める。"
+    - "body phase の snapshot 固定では、PHASE_RUN_PERSONA / PHASE_RUN_DICTIONARY_ENTRY / target field link または immutable snapshot source のいずれを正本にするかを handoff に明記する。"
+    - "retry / resume の API test に、start 後の dictionary / persona 変更後も同じ snapshot を使うか、drift を拒否して no-write にする観測点を追加する。"

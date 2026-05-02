@@ -10,6 +10,7 @@ type AppController struct {
 	*TranslationJobSetupController
 	*TermTranslationPhaseController
 	*PersonaGenerationPhaseController
+	*BodyTranslationPhaseController
 	shutdown func(context.Context) error
 }
 
@@ -25,6 +26,7 @@ func NewAppController(masterDictionaryController *MasterDictionaryController, ma
 		TranslationJobSetupController:    nil,
 		TermTranslationPhaseController:   nil,
 		PersonaGenerationPhaseController: nil,
+		BodyTranslationPhaseController:   nil,
 		shutdown:                         shutdown,
 	}
 }

@@ -67,21 +67,30 @@ func (r translationJobRow) toModel() (TranslationJob, error) {
 }
 
 type jobPhaseRunRow struct {
-	ID                  int64   `db:"id"`
-	TranslationJobID    int64   `db:"translation_job_id"`
-	PhaseType           string  `db:"phase_type"`
-	State               string  `db:"state"`
-	ExecutionOrder      int     `db:"execution_order"`
-	ProgressPercent     int     `db:"progress_percent"`
-	AIProvider          string  `db:"ai_provider"`
-	ModelName           string  `db:"model_name"`
-	ExecutionMode       string  `db:"execution_mode"`
-	CredentialRef       string  `db:"credential_ref"`
-	InstructionKind     string  `db:"instruction_kind"`
-	LatestExternalRunID string  `db:"latest_external_run_id"`
-	LatestError         string  `db:"latest_error"`
-	StartedAt           *string `db:"started_at"`
-	FinishedAt          *string `db:"finished_at"`
+	ID                     int64   `db:"id"`
+	TranslationJobID       int64   `db:"translation_job_id"`
+	PhaseType              string  `db:"phase_type"`
+	State                  string  `db:"state"`
+	ExecutionOrder         int     `db:"execution_order"`
+	ProgressPercent        int     `db:"progress_percent"`
+	SnapshotFieldCount     int     `db:"snapshot_field_count"`
+	ProviderTargetCount    int     `db:"provider_target_count"`
+	ExactExclusionCount    int     `db:"exact_exclusion_count"`
+	PartialConstraintCount int     `db:"partial_constraint_count"`
+	AIProvider             string  `db:"ai_provider"`
+	ModelName              string  `db:"model_name"`
+	ExecutionMode          string  `db:"execution_mode"`
+	CredentialRef          string  `db:"credential_ref"`
+	InstructionKind        string  `db:"instruction_kind"`
+	InputSnapshotDigest    string  `db:"input_snapshot_digest"`
+	DictionaryDigest       string  `db:"dictionary_digest"`
+	PersonaDigest          string  `db:"persona_digest"`
+	MetadataDigest         string  `db:"metadata_digest"`
+	PromptDigest           string  `db:"prompt_digest"`
+	LatestExternalRunID    string  `db:"latest_external_run_id"`
+	LatestError            string  `db:"latest_error"`
+	StartedAt              *string `db:"started_at"`
+	FinishedAt             *string `db:"finished_at"`
 }
 
 func (r jobPhaseRunRow) toModel() (JobPhaseRun, error) {
@@ -102,21 +111,30 @@ func (r jobPhaseRunRow) toModel() (JobPhaseRun, error) {
 		finishedAt = &t
 	}
 	return JobPhaseRun{
-		ID:                  r.ID,
-		TranslationJobID:    r.TranslationJobID,
-		PhaseType:           r.PhaseType,
-		State:               r.State,
-		ExecutionOrder:      r.ExecutionOrder,
-		ProgressPercent:     r.ProgressPercent,
-		AIProvider:          r.AIProvider,
-		ModelName:           r.ModelName,
-		ExecutionMode:       r.ExecutionMode,
-		CredentialRef:       r.CredentialRef,
-		InstructionKind:     r.InstructionKind,
-		LatestExternalRunID: r.LatestExternalRunID,
-		LatestError:         r.LatestError,
-		StartedAt:           startedAt,
-		FinishedAt:          finishedAt,
+		ID:                     r.ID,
+		TranslationJobID:       r.TranslationJobID,
+		PhaseType:              r.PhaseType,
+		State:                  r.State,
+		ExecutionOrder:         r.ExecutionOrder,
+		ProgressPercent:        r.ProgressPercent,
+		SnapshotFieldCount:     r.SnapshotFieldCount,
+		ProviderTargetCount:    r.ProviderTargetCount,
+		ExactExclusionCount:    r.ExactExclusionCount,
+		PartialConstraintCount: r.PartialConstraintCount,
+		AIProvider:             r.AIProvider,
+		ModelName:              r.ModelName,
+		ExecutionMode:          r.ExecutionMode,
+		CredentialRef:          r.CredentialRef,
+		InstructionKind:        r.InstructionKind,
+		InputSnapshotDigest:    r.InputSnapshotDigest,
+		DictionaryDigest:       r.DictionaryDigest,
+		PersonaDigest:          r.PersonaDigest,
+		MetadataDigest:         r.MetadataDigest,
+		PromptDigest:           r.PromptDigest,
+		LatestExternalRunID:    r.LatestExternalRunID,
+		LatestError:            r.LatestError,
+		StartedAt:              startedAt,
+		FinishedAt:             finishedAt,
 	}, nil
 }
 
@@ -125,6 +143,10 @@ type phaseRunTranslationFieldRow struct {
 	PhaseRunID            int64  `db:"phase_run_id"`
 	JobTranslationFieldID int64  `db:"job_translation_field_id"`
 	Role                  string `db:"role"`
+}
+
+func (r phaseRunTranslationFieldRow) toModel() PhaseRunTranslationField {
+	return PhaseRunTranslationField(r)
 }
 
 type phaseRunPersonaRow struct {
@@ -173,16 +195,22 @@ WHERE id = :id`
 	insertJobPhaseRun = `
 INSERT INTO JOB_PHASE_RUN
   (translation_job_id, phase_type, state, execution_order, progress_percent,
+   snapshot_field_count, provider_target_count, exact_exclusion_count, partial_constraint_count,
    ai_provider, model_name, execution_mode, credential_ref, instruction_kind,
+   input_snapshot_digest, dictionary_digest, persona_digest, metadata_digest, prompt_digest,
    latest_external_run_id, latest_error, started_at, finished_at)
 VALUES
   (:translation_job_id, :phase_type, :state, :execution_order, :progress_percent,
+   :snapshot_field_count, :provider_target_count, :exact_exclusion_count, :partial_constraint_count,
    :ai_provider, :model_name, :execution_mode, :credential_ref, :instruction_kind,
+   :input_snapshot_digest, :dictionary_digest, :persona_digest, :metadata_digest, :prompt_digest,
    :latest_external_run_id, :latest_error, :started_at, :finished_at)`
 
 	selectJobPhaseRunByID = `
 SELECT id, translation_job_id, phase_type, state, execution_order, progress_percent,
+       snapshot_field_count, provider_target_count, exact_exclusion_count, partial_constraint_count,
        ai_provider, model_name, execution_mode, credential_ref, instruction_kind,
+       input_snapshot_digest, dictionary_digest, persona_digest, metadata_digest, prompt_digest,
        latest_external_run_id, latest_error, started_at, finished_at
 FROM JOB_PHASE_RUN WHERE id = ?`
 
@@ -198,13 +226,17 @@ WHERE id = :id`
 
 	selectJobPhaseRunsByJobID = `
 SELECT id, translation_job_id, phase_type, state, execution_order, progress_percent,
+       snapshot_field_count, provider_target_count, exact_exclusion_count, partial_constraint_count,
        ai_provider, model_name, execution_mode, credential_ref, instruction_kind,
+       input_snapshot_digest, dictionary_digest, persona_digest, metadata_digest, prompt_digest,
        latest_external_run_id, latest_error, started_at, finished_at
 FROM JOB_PHASE_RUN WHERE translation_job_id = ? ORDER BY execution_order ASC`
 
 	selectJobPhaseRunByJobAndType = `
 SELECT id, translation_job_id, phase_type, state, execution_order, progress_percent,
+       snapshot_field_count, provider_target_count, exact_exclusion_count, partial_constraint_count,
        ai_provider, model_name, execution_mode, credential_ref, instruction_kind,
+       input_snapshot_digest, dictionary_digest, persona_digest, metadata_digest, prompt_digest,
        latest_external_run_id, latest_error, started_at, finished_at
 FROM JOB_PHASE_RUN
 WHERE translation_job_id = ? AND phase_type = ?
@@ -215,6 +247,12 @@ INSERT INTO PHASE_RUN_TRANSLATION_FIELD
   (phase_run_id, job_translation_field_id, role)
 VALUES
   (:phase_run_id, :job_translation_field_id, :role)`
+
+	selectPhaseRunTranslationFieldsByPhaseRunID = `
+SELECT id, phase_run_id, job_translation_field_id, role
+FROM PHASE_RUN_TRANSLATION_FIELD
+WHERE phase_run_id = ?
+ORDER BY id ASC`
 
 	insertPhaseRunPersona = `
 INSERT INTO PHASE_RUN_PERSONA
@@ -342,20 +380,29 @@ func (r *SQLiteJobLifecycleRepository) CreateJobPhaseRun(
 ) (JobPhaseRun, error) {
 	ext := extractTx(ctx, r.db)
 	row := jobPhaseRunRow{
-		TranslationJobID:    draft.TranslationJobID,
-		PhaseType:           draft.PhaseType,
-		State:               draft.State,
-		ExecutionOrder:      draft.ExecutionOrder,
-		ProgressPercent:     0,
-		AIProvider:          draft.AIProvider,
-		ModelName:           draft.ModelName,
-		ExecutionMode:       draft.ExecutionMode,
-		CredentialRef:       draft.CredentialRef,
-		InstructionKind:     draft.InstructionKind,
-		LatestExternalRunID: "",
-		LatestError:         "",
-		StartedAt:           nil,
-		FinishedAt:          nil,
+		TranslationJobID:       draft.TranslationJobID,
+		PhaseType:              draft.PhaseType,
+		State:                  draft.State,
+		ExecutionOrder:         draft.ExecutionOrder,
+		ProgressPercent:        0,
+		SnapshotFieldCount:     draft.SnapshotFieldCount,
+		ProviderTargetCount:    draft.ProviderTargetCount,
+		ExactExclusionCount:    draft.ExactExclusionCount,
+		PartialConstraintCount: draft.PartialConstraintCount,
+		AIProvider:             draft.AIProvider,
+		ModelName:              draft.ModelName,
+		ExecutionMode:          draft.ExecutionMode,
+		CredentialRef:          draft.CredentialRef,
+		InstructionKind:        draft.InstructionKind,
+		InputSnapshotDigest:    draft.InputSnapshotDigest,
+		DictionaryDigest:       draft.DictionaryDigest,
+		PersonaDigest:          draft.PersonaDigest,
+		MetadataDigest:         draft.MetadataDigest,
+		PromptDigest:           draft.PromptDigest,
+		LatestExternalRunID:    "",
+		LatestError:            "",
+		StartedAt:              nil,
+		FinishedAt:             nil,
 	}
 	q, args, err := sqlx.Named(insertJobPhaseRun, row)
 	if err != nil {
@@ -496,6 +543,23 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunTranslationField(
 		JobTranslationFieldID: draft.JobTranslationFieldID,
 		Role:                  draft.Role,
 	}, nil
+}
+
+// ListPhaseRunTranslationFieldsByPhaseRunID は PhaseRunID に紐づく field 関連一覧を返す。
+func (r *SQLiteJobLifecycleRepository) ListPhaseRunTranslationFieldsByPhaseRunID(
+	ctx context.Context,
+	phaseRunID int64,
+) ([]PhaseRunTranslationField, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []phaseRunTranslationFieldRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectPhaseRunTranslationFieldsByPhaseRunID, phaseRunID); err != nil {
+		return nil, mapSQLError(err, "list phase_run_translation_fields by phase_run_id")
+	}
+	result := make([]PhaseRunTranslationField, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, row.toModel())
+	}
+	return result, nil
 }
 
 // ---------------------------------------------------------------------------

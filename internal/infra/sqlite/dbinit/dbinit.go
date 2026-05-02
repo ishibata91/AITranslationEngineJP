@@ -167,11 +167,13 @@ func applyMigrations(ctx context.Context, database *sqlx.DB) error {
 }
 
 func shouldIgnoreMigrationError(migrationPath string, err error) bool {
-	if migrationPath != "migrations/005_translation_input_source_hash.sql" {
+	switch migrationPath {
+	case "migrations/005_translation_input_source_hash.sql",
+		"migrations/008_body_translation_phase_run_snapshot.sql":
+		return strings.Contains(err.Error(), "duplicate column name")
+	default:
 		return false
 	}
-
-	return strings.Contains(err.Error(), "duplicate column name")
 }
 
 func seedMasterDictionaryEntries(

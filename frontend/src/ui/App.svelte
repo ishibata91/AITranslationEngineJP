@@ -1,4 +1,5 @@
 <script lang="ts">
+  import type { CreateBodyTranslationPhaseScreenController } from "@application/contract/body-translation-phase"
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
@@ -21,6 +22,7 @@
   import AppShell from "@ui/views/AppShell.svelte"
 
   interface Props {
+    createBodyTranslationPhaseScreenController?: CreateBodyTranslationPhaseScreenController | null
     createMasterDictionaryScreenController?: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController?: CreateMasterPersonaScreenController | null
     createPersonaGenerationPhaseScreenController?: CreatePersonaGenerationPhaseScreenController | null
@@ -30,6 +32,7 @@
   }
 
   let {
+    createBodyTranslationPhaseScreenController = null,
     createMasterDictionaryScreenController = null,
     createMasterPersonaScreenController = null,
     createPersonaGenerationPhaseScreenController = null,
@@ -69,6 +72,7 @@
 <AppShell
   defaultRouteId={shellState.defaultRouteId}
   defaultTranslationManagementViewId={shellState.defaultTranslationManagementViewId}
+  {createBodyTranslationPhaseScreenController}
   {createMasterDictionaryScreenController}
   createMasterPersonaScreenController={resolveMasterPersonaScreenControllerFactory()}
   {createPersonaGenerationPhaseScreenController}

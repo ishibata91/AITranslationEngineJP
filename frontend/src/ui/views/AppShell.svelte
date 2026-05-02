@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
+  import type { CreateBodyTranslationPhaseScreenController } from "@application/contract/body-translation-phase"
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
@@ -24,6 +25,7 @@
     defaultTranslationManagementViewId: TranslationManagementViewId
     routes: ShellRouteContract[]
     translationManagementViews: TranslationManagementViewContract[]
+    createBodyTranslationPhaseScreenController: CreateBodyTranslationPhaseScreenController | null
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
     createPersonaGenerationPhaseScreenController: CreatePersonaGenerationPhaseScreenController | null
@@ -37,6 +39,7 @@
     defaultTranslationManagementViewId,
     routes,
     translationManagementViews,
+    createBodyTranslationPhaseScreenController,
     createMasterDictionaryScreenController,
     createMasterPersonaScreenController,
     createPersonaGenerationPhaseScreenController,
@@ -268,6 +271,7 @@
 
         {#if currentTranslationManagementViewId === "job-run"}
           <JobRunPage
+            createBodyController={createBodyTranslationPhaseScreenController}
             createController={createTermTranslationPhaseScreenController}
             createPersonaController={createPersonaGenerationPhaseScreenController}
           />

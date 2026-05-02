@@ -1,0 +1,580 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-BTP-001",
+      "title": "NPC ペルソナ生成フェーズ完了後に本文翻訳フェーズを開始する",
+      "kind": "workflow",
+      "source_requirement": "tasks/usecases/body-translation-phase.yaml は precondition を NPC ペルソナ生成フェーズ完了とし、Job Run から本文翻訳フェーズを開始する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml の preconditions と manual_check_steps。",
+          "verification_hint": "persona phase Completed の job で body phase run が開始されることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "persona-generation-phase/scenario-design.md の body readiness と phase state 表示要件から、開始不可理由表示を代替成功とする。",
+          "verification_hint": "persona 未完了、active phase、terminal job では phase run を作らず理由を返す。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml は recoverable failure の情報確認を completion criteria に含む。",
+          "verification_hint": "開始拒否と recoverable failure を区別して確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/spec.md の terminal job state と docs/er.md の active JOB_PHASE_RUN から境界を導出する。",
+          "verification_hint": "terminal job と active phase run ありの job で開始を拒否する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md の翻訳ジョブ状態遷移と body-translation-phase.yaml の current phase 要件。",
+          "verification_hint": "JOB_PHASE_RUN state と Job Run current phase が一致する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md は JOB_PHASE_RUN、PHASE_RUN_TRANSLATION_FIELD、PHASE_RUN_PERSONA、PHASE_RUN_DICTIONARY_ENTRY を phase run 追跡に使う。",
+          "verification_hint": "phase run と前段参照 summary を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "前段 phase が Completed かつ参照成立した時だけ body phase の input summary を成立させる。",
+          "verification_hint": "persona snapshot 参照不能や辞書参照不能では開始しない。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md はフェーズ再実行を同じ JOB_PHASE_RUN の状態を戻す扱いにする。",
+          "verification_hint": "開始再送で二重 phase run を作らない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml は current phase と progress の確認を求める。",
+          "verification_hint": "Job Run UI と phase start result で観測する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/spec.md は RecoverableFailed から Running への再開 / リトライを定義する。",
+          "verification_hint": "開始後の recoverable failure と retry 可否を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "scenario-design は paid real AI API を前提にしないため、開始条件 fixture と temp DB で検証する。",
+          "verification_hint": "phase state fixture と temp DB を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-002",
+      "title": "入力 snapshot と provider request 入力を構成する",
+      "kind": "workflow",
+      "source_requirement": "確定訳語、ジョブ内辞書、ジョブ内ペルソナ、翻訳補助メタデータ、翻訳レコード種別を本文翻訳 request の入力として扱う。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml の inputs と goal。",
+          "verification_hint": "入力 summary が field、辞書、persona、metadata を含む。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。本文翻訳フェーズは Job Setup で設定した本文翻訳用の provider、model、execution mode を使う。",
+          "verification_hint": "Job Setup に本文翻訳用設定があり、body phase start は保存済み設定を参照し、開始時に選び直さないことを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure candidates は辞書、persona、field definition の参照不能で開始拒否または request 除外を求める。",
+          "verification_hint": "参照不能時に provider request を作らない。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "field identifier、source text、field definition、record type context が欠ける場合は request 対象にしない。",
+          "verification_hint": "欠損 field fixture を provider request から除外する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase run 開始後に input snapshot を固定し、再開時に同じ入力を参照する。",
+          "verification_hint": "retry で input digest が変わらない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。完全一致した辞書 hit は provider request から除外し、部分一致は訳語を守る固定制約として provider request に渡す。",
+          "verification_hint": "request summary で完全一致の除外件数と部分一致の固定制約件数を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term-translation-phase/scenario-design.md は record type ごとの重複判定 key を固定している。",
+          "verification_hint": "record type context が一致しない辞書 entry を適用しない。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ phase run の retry では input snapshot を再利用する。",
+          "verification_hint": "retry で辞書 / persona snapshot が差し替わらない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳補助メタデータ、辞書、共通基盤データを UI から観測可能にする。",
+          "verification_hint": "辞書件数、persona 件数、metadata digest を UI summary に出す。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "input snapshot が固定されることで retry の再現性を確保する。",
+          "verification_hint": "recoverable failure から同じ input summary で再試行できる。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake transport request summary と input fixture で検証できる。",
+          "verification_hint": "raw prompt ではなく request summary を assertion する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-003",
+      "title": "AI provider で本文翻訳を実行する",
+      "kind": "external_integration",
+      "source_requirement": "本文翻訳フェーズは AI provider を使い、訳文と provider execution summary を生成する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は LMStudio、Gemini、xAI を翻訳用 AI として利用できることを求める。",
+          "verification_hint": "fake provider で valid response を返す。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は Gemini / xAI Batch API 利用を求める。",
+          "verification_hint": "batch response の field correlation を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。成功済み field result を保持し、フェーズ全体は回復可能な失敗として表示する。",
+          "verification_hint": "部分失敗 fixture で成功済み訳文を維持し、失敗 field だけ retry 対象になり、output readiness が不成立になることを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "AIProvider adapter 境界は docs/architecture.md の Service -> AIProvider に閉じる。",
+          "verification_hint": "provider concrete を UI や domain rule へ漏らさない。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider failure は phase state と retryable flag に写像する。",
+          "verification_hint": "timeout、rate limit、invalid response を区別する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey 暗号化保存と暗黙 fallback 不要を定義する。",
+          "verification_hint": "secret と raw response を summary に出さない。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "field correlation key で provider response と field を対応付け、retry で重複保存しない。",
+          "verification_hint": "同じ response の再処理で row count が増えない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は API の実行進捗を確認できることを求める。",
+          "verification_hint": "provider、model、execution mode、request unit count、output count を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳ジョブの失敗回復を求める。",
+          "verification_hint": "retryable failure から Running へ戻せる。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "deferred",
+          "source_or_rationale": "件数、時間、batch size の許容値は現行正本にない。body phase 設計では progress と request unit count の観測だけ固定する。",
+          "owner": "human",
+          "recheck_condition": "実装範囲または性能要件を human が承認する時に再確認する。",
+          "verification_hint": "初期 acceptance では性能数値を pass 条件にしない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design は paid real AI API をシステムテスト前提にしない。",
+          "verification_hint": "fake transport、fixed response、batch response fixture で検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-004",
+      "title": "保護要素検証後に field result を保存する",
+      "kind": "persistence",
+      "source_requirement": "訳文、出力ステータス、保護要素検証結果を JOB_TRANSLATION_FIELD と phase result から確認できるようにする。",
+      "required_detail_types": [
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml の outputs と docs/er.md の JOB_TRANSLATION_FIELD。",
+          "verification_hint": "訳文、出力ステータス、検証結果を同じ field に保存する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。保護要素検証に失敗した訳文は保存前に拒否し、失敗訳文は保持しない。ただし retry は行う。",
+          "verification_hint": "保護要素検証失敗 fixture で訳文が保存されず、retryable failure として再試行できることを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は <10gold> などの埋め込み要素保持を求める。",
+          "verification_hint": "欠落、改変、重複、順序違い、余分追加を検出する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "field result state は phase Completed と output readiness の前提になる。",
+          "verification_hint": "validation failed field が残ると body phase Completed にしない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。本文翻訳の内部出力ステータスは、後続の成果物出力に必要な語彙だけを細かく分ける。",
+          "verification_hint": "provider 翻訳、辞書置換、翻訳不要、失敗が output artifact readiness と xTranslator 互換 status 写像に必要な範囲で区別されることを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳単位の FormID、EditorID、record type、field type、source、dest、status を lossless に保持することを求める。",
+          "verification_hint": "field correlation key と保存先 field が一致する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "late provider response と terminal job 後書きを拒否する必要がある。",
+          "verification_hint": "terminal job fixture への save request が row count を変えない。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "retry と開始再送で成功済み field result を重複保存しない。",
+          "verification_hint": "同一 phase run の retry 前後で成功済み row が増えない。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は RecoverableFailed から Running への再開 / リトライを定義する。",
+          "verification_hint": "save failure や validation failure 後に retry target を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-output-artifact.yaml は 訳文 と 出力ステータス を input にする。",
+          "verification_hint": "output readiness summary が field status consistency を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "temp DB、validator fixture、save failure injection で検証できる。",
+          "verification_hint": "success、validation fail、save fail の fixture を分ける。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-005",
+      "title": "Job Run で phase result と後続出力 readiness を確認する",
+      "kind": "display",
+      "source_requirement": "Job Run で progress、failure state、訳文、出力ステータス、保護要素検証結果、後続出力可否を確認する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml の manual_check_steps と completion_criteria。",
+          "verification_hint": "Job Run で progress、field result、validation result を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "deferred",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。フィールド単体編集は将来扱うが、この設計範囲では結果確認から戻る方向を省く。",
+          "owner": "human",
+          "recheck_condition": "本文翻訳結果のフィールド単体編集または結果確認からの戻り導線を別 task として設計する時に再確認する。",
+          "verification_hint": "body-translation-phase の scenario には結果確認から再編集へ戻る受け入れ条件を含めない。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml は recoverable failure の情報確認を求める。",
+          "verification_hint": "error kind、retryable flag、affected field count を表示する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "field result list と summary は raw prompt や raw response の表示領域にしない。",
+          "verification_hint": "UI fixture に raw payload が出ない。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。本文翻訳フェーズの完了で翻訳ジョブ全体も Completed とし、完了した翻訳ジョブから成果物を出力できる扱いにする。",
+          "verification_hint": "body phase Completed かつ field result 整合時に job-level Completed と output readiness が成立することを確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行資料にユーザー権限差はなく、Job Run 操作主体は単一ユーザーとして扱われている。",
+          "verification_hint": "権限差の acceptance は作らない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-output-artifact.yaml は body phase の訳文と出力ステータスを input にする。",
+          "verification_hint": "output readiness summary で後続入力を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "mocked gateway result fixture で UI 状態差分を検証できる。",
+          "verification_hint": "success、failure、empty、validation failed の fixture を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-006",
+      "title": "pause、resume、retry、cancel を同じ phase run で扱う",
+      "kind": "workflow",
+      "source_requirement": "本文翻訳フェーズは pause、resume、retry、cancel の可否を確認でき、recoverable failure から再試行できる。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml は pause、resume、retry、cancel の可否を確認できることを求める。",
+          "verification_hint": "各 state で button enablement を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "再送、resume、retry は同じ phase run を継続する代替成功として扱う。",
+          "verification_hint": "phase run ID が変わらない。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は RecoverableFailed から Running への再開 / リトライを定義する。",
+          "verification_hint": "retryable flag がない failure では retry を拒否する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Running 以外の pause、Paused 以外の resume、terminal job の retry / cancel を不許可にする。",
+          "verification_hint": "不許可操作で phase result が変化しない。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。一時停止してからだけ取り消し可能にし、取り消し後はフェーズ終端とする。途中成功結果は成果物出力に使わない。",
+          "verification_hint": "Running では直接 cancel できず、Paused から Canceled へ遷移し、partial result が output readiness に使われないことを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "retry では成功済み JOB_TRANSLATION_FIELD と PHASE_RUN_TRANSLATION_FIELD を重複作成しない。",
+          "verification_hint": "row count と retry target count を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "same phase run reuse と field result state が一致する必要がある。",
+          "verification_hint": "phase progress と processed field count が一致する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md はフェーズ再実行を同じ JOB_PHASE_RUN の状態を戻す扱いにする。",
+          "verification_hint": "開始再送で二重 phase run を作らない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml は pause、resume、retry、cancel の可否確認を求める。",
+          "verification_hint": "button enablement と operation result を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md の RecoverableFailed から Running への再開 / リトライ。",
+          "verification_hint": "retry で latest error と progress が更新される。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase run fixture、partial success fixture、temp DB で検証できる。",
+          "verification_hint": "state ごとの operation fixture を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-007",
+      "title": "監査要約と redaction を満たす",
+      "kind": "security",
+      "source_requirement": "AI 実行条件、入力 summary、error kind、件数、digest は確認できるが、secret と過剰本文は出さない。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure candidates は secret、raw response、過剰本文の非露出を求める。",
+          "verification_hint": "failure summary に raw payload が出ない。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit candidates は audit summary を ID、件数、digest に限定する。",
+          "verification_hint": "UI、structured log、debug log、fake transport log を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "success、failure、retry、cancel の各 state で redaction を保つ必要がある。",
+          "verification_hint": "state ごとの summary fixture を検査する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行資料に操作権限差は定義されていない。",
+          "verification_hint": "権限差の acceptance は作らない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。原文と訳文がローカルで見えること自体は問題にせず、secret が漏れないことだけを必須にする。",
+          "verification_hint": "UI、error summary、structured log、debug log、fake transport log に API key、secret 本体、復号可能値が出ないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は API の実行進捗確認を求める。",
+          "verification_hint": "provider、model、execution mode、input count、output count、error kind を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "retry 判断に必要な error kind、retryable flag、affected field count は redacted summary に残す。",
+          "verification_hint": "retry に必要な情報だけが出る。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term phase と persona phase の redaction 方針を本文翻訳にも引き継ぐ。",
+          "verification_hint": "前段同様に secret と raw response を出さない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake secret store、fake transport、log capture で検証できる。",
+          "verification_hint": "redaction assertion fixture を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-BTP-008",
+      "title": "翻訳対象 0 件または空 source の境界を扱う",
+      "kind": "workflow",
+      "source_requirement": "本文翻訳フェーズの対象 field が 0 件、または source text が空の場合の終点を固定する必要がある。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design.questions.md の人間回答。本文翻訳対象 0 件は正常完了にする。単語しかないプラグインでも成果物を保存できるようにする。",
+          "verification_hint": "target count 0 の job で provider を実行せずに body phase と job が Completed になり、output readiness が成立することを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider 未実行でも phase result を作る候補が lifecycle にある。",
+          "verification_hint": "provider skipped reason を summary に出す。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure candidate CAND-BTP-014 は Completed、Blocked、Skipped、Failed のどれかを人間判断へ残す。",
+          "verification_hint": "人間回答後の終点で error / skip / completed を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "対象 field 0 件と空 source は boundary condition である。",
+          "verification_hint": "0 件 fixture と空 source fixture を分ける。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "終点によって body phase state と output readiness が変わる。",
+          "verification_hint": "state と readiness を同時に確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "target count、skipped count、provider skipped reason を phase result に残す。",
+          "verification_hint": "0 件 summary を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "field count と output readiness の整合を保つ。",
+          "verification_hint": "field 0 件の output readiness が人間回答に従う。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "空対象の再送で provider request や phase run を重複作成しない。",
+          "verification_hint": "再送後も provider request count は 0 のまま。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase.yaml は progress と failure state 確認を求める。",
+          "verification_hint": "empty / skipped / invalid を UI で区別する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "入力不備に寄せる場合は recovery action を表示する必要がある。",
+          "verification_hint": "入力不備 state で retry / fix action を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "0 件 fixture、空 source fixture、provider skipped fixture で検証できる。",
+          "verification_hint": "対象なしと空文字の fixture を分ける。"
+        }
+      ]
+    }
+  ]
+}

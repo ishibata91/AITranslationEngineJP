@@ -112,7 +112,7 @@ func TestTranslationSourceRepositoryMethodCount(t *testing.T) {
 // TestFoundationDataRepositoryMethodCount は FoundationDataRepository のメソッド数が期待値と一致することを保証する。
 func TestFoundationDataRepositoryMethodCount(t *testing.T) {
 	typ := reflect.TypeOf((*FoundationDataRepository)(nil)).Elem()
-	const expected = 14
+	const expected = 15
 	if got := typ.NumMethod(); got != expected {
 		t.Errorf("FoundationDataRepository: expected %d methods, got %d", expected, got)
 	}
@@ -121,7 +121,7 @@ func TestFoundationDataRepositoryMethodCount(t *testing.T) {
 // TestJobLifecycleRepositoryMethodCount は JobLifecycleRepository のメソッド数が期待値と一致することを保証する。
 func TestJobLifecycleRepositoryMethodCount(t *testing.T) {
 	typ := reflect.TypeOf((*JobLifecycleRepository)(nil)).Elem()
-	const expected = 13
+	const expected = 14
 	if got := typ.NumMethod(); got != expected {
 		t.Errorf("JobLifecycleRepository: expected %d methods, got %d", expected, got)
 	}

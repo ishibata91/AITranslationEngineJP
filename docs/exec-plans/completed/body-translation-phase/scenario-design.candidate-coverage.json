@@ -1,0 +1,735 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-BTP-001",
+      "source_candidate_id": "CAND-BTP-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-001",
+      "decision_rationale": "Job Run から本文翻訳フェーズを開始して current phase と progress を確認する主 UI シナリオに採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-002",
+      "source_candidate_id": "CAND-BTP-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "確定訳語とジョブ内辞書の参照は input snapshot と request summary のシナリオへ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-003",
+      "source_candidate_id": "CAND-BTP-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "persona snapshot 参照は body input summary の一部として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-004",
+      "source_candidate_id": "CAND-BTP-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-003",
+      "decision_rationale": "翻訳指示構成は provider request 境界の正常系に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-005",
+      "source_candidate_id": "CAND-BTP-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-005",
+      "decision_rationale": "埋め込み要素確認は保護要素検証失敗と成功保存条件に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-006",
+      "source_candidate_id": "CAND-BTP-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-006",
+      "decision_rationale": "訳文と出力ステータス確認は Job Run 表示シナリオに統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-007",
+      "source_candidate_id": "CAND-BTP-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-006",
+      "decision_rationale": "操作可否確認は Job Run 表示シナリオの主要 UI outcome として採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-008",
+      "source_candidate_id": "CAND-BTP-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-006",
+      "decision_rationale": "recoverable failure の情報確認は Job Run 表示と retry 判断に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-BTP-009",
+      "source_candidate_id": "CAND-BTP-009",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "後続出力へ進める完了結果は output readiness シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-001",
+      "source_candidate_id": "CAND-BTP-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-001",
+      "decision_rationale": "phase start lifecycle は Job Run 開始シナリオと同じ acceptance に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-002",
+      "source_candidate_id": "CAND-BTP-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "本文翻訳入力 snapshot 固定を独立シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-003",
+      "source_candidate_id": "CAND-BTP-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-003",
+      "decision_rationale": "実行中 progress は provider execution と Job Run 表示へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-004",
+      "source_candidate_id": "CAND-BTP-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-005",
+      "decision_rationale": "保護要素検証は field success 前の validation シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-005",
+      "source_candidate_id": "CAND-BTP-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-004",
+      "decision_rationale": "訳文、出力ステータス、検証結果の保存と完了条件を persistence 正常系に採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-006",
+      "source_candidate_id": "CAND-BTP-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "空対象の終点は人間回答により正常完了として扱い、input snapshot と Job Run 表示に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-007",
+      "source_candidate_id": "CAND-BTP-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-008",
+      "decision_rationale": "pause、resume、retry の同一 phase run 継続は idempotency シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-008",
+      "source_candidate_id": "CAND-BTP-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-007",
+      "decision_rationale": "recoverable failure で後続出力へ進めない条件は failure と readiness に分けて統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-009",
+      "source_candidate_id": "CAND-BTP-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-009",
+      "decision_rationale": "cancel 後の終了と後続出力遮断は terminal guard シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-BTP-010",
+      "source_candidate_id": "CAND-BTP-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "Completed body phase を後続 output readiness へ渡すシナリオとして採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-001",
+      "source_candidate_id": "CAND-BTP-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-001",
+      "decision_rationale": "persona phase 完了後だけ開始する state guard は開始シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-002",
+      "source_candidate_id": "CAND-BTP-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-001",
+      "decision_rationale": "開始条件を満たさない job の phase run 非作成は開始シナリオの禁止遷移に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-003",
+      "source_candidate_id": "CAND-BTP-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "参照 snapshot 固定は input snapshot シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-004",
+      "source_candidate_id": "CAND-BTP-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "翻訳対象 field と phase run の紐づけは input snapshot と persistence シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-005",
+      "source_candidate_id": "CAND-BTP-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-004",
+      "decision_rationale": "field 翻訳成功時の更新は persistence 正常系に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-006",
+      "source_candidate_id": "CAND-BTP-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-005",
+      "decision_rationale": "保護要素検証失敗時の state invariant は validation failure シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-007",
+      "source_candidate_id": "CAND-BTP-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "全対象 field 完了の Completed 条件は output readiness シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-008",
+      "source_candidate_id": "CAND-BTP-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "body phase 完了前の output artifact 遮断は output readiness シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-009",
+      "source_candidate_id": "CAND-BTP-009",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-008",
+      "decision_rationale": "pause / resume の same phase run 継続は retry 冪等性シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-010",
+      "source_candidate_id": "CAND-BTP-010",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-008",
+      "decision_rationale": "RecoverableFailed retry で成功済み field を重複作成しない主回復シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-011",
+      "source_candidate_id": "CAND-BTP-011",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-008",
+      "decision_rationale": "開始再送や同一 phase 再実行の二重 phase run 防止は retry 冪等性シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-BTP-012",
+      "source_candidate_id": "CAND-BTP-012",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-009",
+      "decision_rationale": "cancel または terminal job の後書き拒否を terminal guard シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-001",
+      "source_candidate_id": "CAND-BTP-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-001",
+      "decision_rationale": "persona phase 未完了または snapshot 参照不能の開始拒否を開始シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-002",
+      "source_candidate_id": "CAND-BTP-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-001",
+      "decision_rationale": "辞書参照不能の開始拒否を開始条件に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-003",
+      "source_candidate_id": "CAND-BTP-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "field 識別子欠損は input snapshot の対象外理由と failure summary に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-004",
+      "source_candidate_id": "CAND-BTP-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "field definition 欠損は prompt build 失敗として input snapshot と provider boundary に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-005",
+      "source_candidate_id": "CAND-BTP-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "record type context 不一致は辞書適用 consistency と request summary に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-006",
+      "source_candidate_id": "CAND-BTP-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-007",
+      "decision_rationale": "provider 失敗または応答不正を成功保存しない主 failure シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-007",
+      "source_candidate_id": "CAND-BTP-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-005",
+      "decision_rationale": "保護要素検証失敗を成功扱いにしない主要失敗シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-008",
+      "source_candidate_id": "CAND-BTP-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-007",
+      "decision_rationale": "保存途中失敗は provider / persistence failure シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-009",
+      "source_candidate_id": "CAND-BTP-009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-006",
+      "decision_rationale": "不許可状態の操作確認は Job Run 表示と button enablement に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-010",
+      "source_candidate_id": "CAND-BTP-010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-008",
+      "decision_rationale": "retry で成功済み訳文を重複作成しない条件は retry 冪等性シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-011",
+      "source_candidate_id": "CAND-BTP-011",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-009",
+      "decision_rationale": "late provider response の後書き拒否は terminal guard シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-012",
+      "source_candidate_id": "CAND-BTP-012",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "出力ステータス不整合で output readiness を成立させない条件は readiness シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-013",
+      "source_candidate_id": "CAND-BTP-013",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-011",
+      "decision_rationale": "failure summary と log の redaction は監査要約シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-BTP-014",
+      "source_candidate_id": "CAND-BTP-014",
+      "generator": "failure",
+      "source_requirement_id": "REQ-BTP-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "翻訳対象 0 件または空 source は人間回答により正常完了として扱い、input snapshot と UI 表示に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-001",
+      "source_candidate_id": "CAND-BTP-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-003",
+      "decision_rationale": "fake transport で AI provider を実行できる主外部連携シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-002",
+      "source_candidate_id": "CAND-BTP-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-011",
+      "decision_rationale": "credential 非露出は監査要約と redaction シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-003",
+      "source_candidate_id": "CAND-BTP-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-003",
+      "decision_rationale": "provider request mapping は provider 境界シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-004",
+      "source_candidate_id": "CAND-BTP-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-004",
+      "decision_rationale": "provider response から訳文、出力ステータス、検証結果への写像は persistence 正常系に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-005",
+      "source_candidate_id": "CAND-BTP-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-005",
+      "decision_rationale": "保護要素破壊 response の拒否は validation failure シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-006",
+      "source_candidate_id": "CAND-BTP-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-003",
+      "decision_rationale": "Batch API 応答の field correlation は provider 境界シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-007",
+      "source_candidate_id": "CAND-BTP-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-007",
+      "decision_rationale": "network timeout と provider 到達不能は provider failure シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-008",
+      "source_candidate_id": "CAND-BTP-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "辞書 hit の request 扱いは人間回答により完全一致除外と部分一致固定制約に分け、input snapshot と request summary に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-009",
+      "source_candidate_id": "CAND-BTP-009",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-011",
+      "decision_rationale": "AI 実行監査要約と raw prompt / response 保存禁止は redaction シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-BTP-010",
+      "source_candidate_id": "CAND-BTP-010",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "body phase output status と xTranslator status 境界は output readiness シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-001",
+      "source_candidate_id": "CAND-BTP-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "開始時 input snapshot の後追い確認は input summary に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-002",
+      "source_candidate_id": "CAND-BTP-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-003",
+      "decision_rationale": "翻訳指示構成根拠は provider request summary と監査要約へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-003",
+      "source_candidate_id": "CAND-BTP-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-011",
+      "decision_rationale": "AI 実行結果の監査は redaction シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-004",
+      "source_candidate_id": "CAND-BTP-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-004",
+      "decision_rationale": "訳文と出力ステータス保存結果の後追い確認は persistence 正常系に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-005",
+      "source_candidate_id": "CAND-BTP-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-005",
+      "decision_rationale": "保護要素検証結果の監査は validation failure と redaction に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-006",
+      "source_candidate_id": "CAND-BTP-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-008",
+      "decision_rationale": "pause、resume、retry、cancel と recoverable failure の監査要約は retry と terminal guard に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-007",
+      "source_candidate_id": "CAND-BTP-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-002",
+      "decision_rationale": "前段辞書・ペルソナ参照と本文翻訳結果の突合は input summary と output readiness に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-008",
+      "source_candidate_id": "CAND-BTP-008",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-BTP-011",
+      "decision_rationale": "監査表示とログの保存禁止情報非露出を redaction 主シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-BTP-009",
+      "source_candidate_id": "CAND-BTP-009",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-BTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-BTP-010",
+      "decision_rationale": "後続成果物出力へ渡す result summary は output readiness シナリオへ統合する。"
+    }
+  ],
+  "conflicts": [],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-BTP-001",
+      "candidate_ids": [
+        "actor-goal:CAND-BTP-001",
+        "lifecycle:CAND-BTP-001",
+        "state-transition:CAND-BTP-001",
+        "state-transition:CAND-BTP-002",
+        "failure:CAND-BTP-001",
+        "failure:CAND-BTP-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-002",
+      "candidate_ids": [
+        "actor-goal:CAND-BTP-002",
+        "actor-goal:CAND-BTP-003",
+        "lifecycle:CAND-BTP-002",
+        "lifecycle:CAND-BTP-006",
+        "state-transition:CAND-BTP-003",
+        "state-transition:CAND-BTP-004",
+        "failure:CAND-BTP-003",
+        "failure:CAND-BTP-004",
+        "failure:CAND-BTP-005",
+        "failure:CAND-BTP-014",
+        "external-integration:CAND-BTP-008",
+        "operation-audit:CAND-BTP-001",
+        "operation-audit:CAND-BTP-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-003",
+      "candidate_ids": [
+        "actor-goal:CAND-BTP-004",
+        "lifecycle:CAND-BTP-003",
+        "external-integration:CAND-BTP-001",
+        "external-integration:CAND-BTP-003",
+        "external-integration:CAND-BTP-006",
+        "operation-audit:CAND-BTP-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-004",
+      "candidate_ids": [
+        "lifecycle:CAND-BTP-005",
+        "state-transition:CAND-BTP-005",
+        "external-integration:CAND-BTP-004",
+        "operation-audit:CAND-BTP-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-005",
+      "candidate_ids": [
+        "actor-goal:CAND-BTP-005",
+        "lifecycle:CAND-BTP-004",
+        "state-transition:CAND-BTP-006",
+        "failure:CAND-BTP-007",
+        "external-integration:CAND-BTP-005",
+        "operation-audit:CAND-BTP-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-006",
+      "candidate_ids": [
+        "actor-goal:CAND-BTP-006",
+        "actor-goal:CAND-BTP-007",
+        "actor-goal:CAND-BTP-008",
+        "failure:CAND-BTP-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-007",
+      "candidate_ids": [
+        "lifecycle:CAND-BTP-008",
+        "failure:CAND-BTP-006",
+        "failure:CAND-BTP-008",
+        "external-integration:CAND-BTP-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-008",
+      "candidate_ids": [
+        "lifecycle:CAND-BTP-007",
+        "state-transition:CAND-BTP-009",
+        "state-transition:CAND-BTP-010",
+        "state-transition:CAND-BTP-011",
+        "failure:CAND-BTP-010",
+        "operation-audit:CAND-BTP-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-009",
+      "candidate_ids": [
+        "lifecycle:CAND-BTP-009",
+        "state-transition:CAND-BTP-012",
+        "failure:CAND-BTP-011"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-010",
+      "candidate_ids": [
+        "actor-goal:CAND-BTP-009",
+        "lifecycle:CAND-BTP-010",
+        "state-transition:CAND-BTP-007",
+        "state-transition:CAND-BTP-008",
+        "failure:CAND-BTP-012",
+        "external-integration:CAND-BTP-010",
+        "operation-audit:CAND-BTP-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-BTP-011",
+      "candidate_ids": [
+        "failure:CAND-BTP-013",
+        "external-integration:CAND-BTP-002",
+        "external-integration:CAND-BTP-009",
+        "operation-audit:CAND-BTP-003",
+        "operation-audit:CAND-BTP-008"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

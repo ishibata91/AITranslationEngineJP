@@ -74,6 +74,14 @@ func resolveDeterministicResponseText(request *http.Request, transport determini
 	if prompt == "" {
 		return defaultTestSafeText, nil
 	}
+	if strings.Contains(prompt, "BODY_TRANSLATION_REQUEST_V1") {
+		requestUnitID := extractPromptField(prompt, "request_unit_id")
+		fieldCorrelationKey := extractPromptField(prompt, "field_correlation_key")
+		if requestUnitID == "" || fieldCorrelationKey == "" {
+			return defaultTestSafeText, nil
+		}
+		return buildDeterministicBodyTranslationResponseText(requestUnitID, fieldCorrelationKey)
+	}
 	if strings.Contains(prompt, "PERSONA_GENERATION_REQUEST_V1") {
 		requestUnitID := extractPromptField(prompt, "request_unit_id")
 		npcCorrelationID := extractPromptField(prompt, "npc_correlation_id")
@@ -189,6 +197,31 @@ func buildDeterministicPersonaGenerationResponseText(requestUnitID string, npcCo
 		return "", fmt.Errorf("marshal deterministic persona generation response: %w", err)
 	}
 	return string(responseBytes), nil
+}
+
+func buildDeterministicBodyTranslationResponseText(requestUnitID string, fieldCorrelationKey string) (string, error) {
+	responseBytes, err := json.Marshal(map[string]any{
+		"translations": []map[string]string{
+			{
+				"request_unit_id":       requestUnitID,
+				"field_correlation_key": fieldCorrelationKey,
+				"translated_text":       "決定論的な本文翻訳応答",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshal deterministic body translation response: %w", err)
+	}
+	return string(responseBytes), nil
+}
+
+func buildDeterministicBodyTranslationResponseFromPrompt(prompt string) (string, error) {
+	requestUnitID := extractPromptField(prompt, "request_unit_id")
+	fieldCorrelationKey := extractPromptField(prompt, "field_correlation_key")
+	if requestUnitID == "" || fieldCorrelationKey == "" {
+		return "", fmt.Errorf("body translation prompt must include request_unit_id and field_correlation_key")
+	}
+	return buildDeterministicBodyTranslationResponseText(requestUnitID, fieldCorrelationKey)
 }
 
 func buildProviderDebugLog(

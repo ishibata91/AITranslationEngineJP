@@ -36,34 +36,52 @@ type TranslationJobUpdateDraft struct {
 
 // JobPhaseRun は JOB_PHASE_RUN テーブルの 1 レコードを表す。
 type JobPhaseRun struct {
-	ID                  int64
-	TranslationJobID    int64
-	PhaseType           string
-	State               string
-	ExecutionOrder      int
-	ProgressPercent     int
-	AIProvider          string
-	ModelName           string
-	ExecutionMode       string
-	CredentialRef       string
-	InstructionKind     string
-	LatestExternalRunID string
-	LatestError         string
-	StartedAt           *time.Time
-	FinishedAt          *time.Time
+	ID                     int64
+	TranslationJobID       int64
+	PhaseType              string
+	State                  string
+	ExecutionOrder         int
+	ProgressPercent        int
+	SnapshotFieldCount     int
+	ProviderTargetCount    int
+	ExactExclusionCount    int
+	PartialConstraintCount int
+	AIProvider             string
+	ModelName              string
+	ExecutionMode          string
+	CredentialRef          string
+	InstructionKind        string
+	InputSnapshotDigest    string
+	DictionaryDigest       string
+	PersonaDigest          string
+	MetadataDigest         string
+	PromptDigest           string
+	LatestExternalRunID    string
+	LatestError            string
+	StartedAt              *time.Time
+	FinishedAt             *time.Time
 }
 
 // JobPhaseRunDraft は JOB_PHASE_RUN の作成ペイロードを表す。
 type JobPhaseRunDraft struct {
-	TranslationJobID int64
-	PhaseType        string
-	State            string
-	ExecutionOrder   int
-	AIProvider       string
-	ModelName        string
-	ExecutionMode    string
-	CredentialRef    string
-	InstructionKind  string
+	TranslationJobID       int64
+	PhaseType              string
+	State                  string
+	ExecutionOrder         int
+	AIProvider             string
+	ModelName              string
+	ExecutionMode          string
+	CredentialRef          string
+	InstructionKind        string
+	SnapshotFieldCount     int
+	ProviderTargetCount    int
+	ExactExclusionCount    int
+	PartialConstraintCount int
+	InputSnapshotDigest    string
+	DictionaryDigest       string
+	PersonaDigest          string
+	MetadataDigest         string
+	PromptDigest           string
 }
 
 // JobPhaseRunUpdateDraft は JOB_PHASE_RUN の更新ペイロードを表す。
@@ -139,6 +157,7 @@ type JobLifecycleRepository interface {
 
 	// PhaseRunTranslationField
 	CreatePhaseRunTranslationField(ctx context.Context, draft PhaseRunTranslationFieldDraft) (PhaseRunTranslationField, error)
+	ListPhaseRunTranslationFieldsByPhaseRunID(ctx context.Context, phaseRunID int64) ([]PhaseRunTranslationField, error)
 
 	// PhaseRunPersona
 	CreatePhaseRunPersona(ctx context.Context, draft PhaseRunPersonaDraft) (PhaseRunPersona, error)

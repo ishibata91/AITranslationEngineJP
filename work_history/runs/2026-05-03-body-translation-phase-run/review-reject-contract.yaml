@@ -1,0 +1,57 @@
+review_reject_contract_version: 1
+entries:
+  - rejected_at: "2026-05-02T15:40:38Z"
+    task_id: body-translation-phase
+    viewpoint: contract
+    reviewer_agent: review_contract
+    review_yaml_path: docs/exec-plans/active/body-translation-phase/reviewback.contract.yaml
+    review_status: issues_open
+    must_fix_open: true
+    max_level: major
+    open_issue_ids:
+      - CONTRACT-BTP-001
+      - CONTRACT-BTP-002
+    broken_invariants:
+      - >
+        backend usecase の summary / command DTO は Wails controller と frontend gateway DTO へ
+        lossless に写像される。
+      - >
+        public command rejection は error kind、retryable flag、phase state、
+        output readiness を caller が分岐できる形で返す。
+    likely_causes:
+      - >
+        Wails / frontend contract が usecase contract の全 field ではなく、
+        縮約された表示用 summary に合わせて定義されている可能性がある。
+      - >
+        Cancel controller method が既存のゼロ値 error response pattern に寄り、
+        usecase が error と同時に返す command result を DTO mapping していない可能性がある。
+    workflow_improvement_note: >
+      integration handoff では、usecase result field と Wails / frontend DTO field の対応表を
+      contract freeze 完了条件に含める。command method は success path だけでなく、
+      rejected path の payload 維持も controller unit test と frontend gateway contract test で固定する。
+  - rejected_at: "2026-05-02T16:16:53Z"
+    task_id: body-translation-phase
+    viewpoint: contract
+    reviewer_agent: review_contract
+    review_yaml_path: docs/exec-plans/active/body-translation-phase/reviewback.contract.yaml
+    review_status: issues_open
+    must_fix_open: true
+    max_level: major
+    open_issue_ids:
+      - CONTRACT-BTP-002
+    resolved_issue_ids:
+      - CONTRACT-BTP-001
+    broken_invariants:
+      - >
+        public command rejection は error kind、retryable flag、phase state、
+        output readiness、redacted error summary を frontend caller が分岐できる形で返す。
+    likely_causes:
+      - >
+        business rejection を Go error として Wails boundary に返しているため、
+        Wails dispatcher の error 応答処理で command result が破棄される。
+      - >
+        frontend usecase は command Promise の reject 経路で structured command payload を受ける契約を持たず、
+        fallback error message だけを state に反映している。
+    workflow_improvement_note: >
+      integration handoff では、Go controller の error path だけでなく、
+      Wails runtime が JavaScript 側へ渡す result / error envelope まで contract freeze の確認対象に含める。

@@ -3,6 +3,7 @@ import { describe, expect, test, vi } from "vitest"
 import type {
   MasterPersonaAISettings,
   MasterPersonaDetail,
+  MasterPersonaUpdateRequest,
   MasterPersonaScreenState
 } from "@application/gateway-contract/master-persona"
 
@@ -186,8 +187,9 @@ function createGateway() {
         message: "生成を停止しました"
       })
     ),
-    updateMasterPersona: vi.fn(() =>
-      Promise.resolve({
+    updateMasterPersona: vi.fn((request: MasterPersonaUpdateRequest) => {
+      void request
+      return Promise.resolve({
         page: {
           items: [],
           pluginGroups: [],
@@ -196,7 +198,7 @@ function createGateway() {
           pageSize: 30
         }
       })
-    ),
+    }),
     deleteMasterPersona: vi.fn(() =>
       Promise.resolve({
         page: {
@@ -209,6 +211,16 @@ function createGateway() {
       })
     )
   }
+}
+
+function latestUpdateMasterPersonaRequest(
+  gateway: ReturnType<typeof createGateway>
+): MasterPersonaUpdateRequest {
+  const [request] = gateway.updateMasterPersona.mock.calls.at(-1) ?? []
+  if (!request) {
+    throw new Error("updateMasterPersona was not called")
+  }
+  return request
 }
 
 describe("MasterPersonaUseCase", () => {
@@ -575,9 +587,7 @@ describe("MasterPersonaUseCase", () => {
 
     // Assert
     expect(gateway.updateMasterPersona).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const entry = (gateway.updateMasterPersona.mock.calls as any)[0][0]
-      .entry as Record<string, unknown>
+    const entry = latestUpdateMasterPersonaRequest(gateway).entry
     expect(entry).not.toHaveProperty("formId")
     expect(entry).not.toHaveProperty("editorId")
     expect(entry).not.toHaveProperty("race")
@@ -611,10 +621,7 @@ describe("MasterPersonaUseCase", () => {
 
     // Assert: identity linkage from read-only selected entry flows through to update request
     expect(gateway.updateMasterPersona).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const request = (
-      gateway.updateMasterPersona.mock.calls as any
-    )[0][0] as Record<string, unknown>
+    const request = latestUpdateMasterPersonaRequest(gateway)
     expect(request.identityKey).toBe("FollowersPlus.esp:FE01A812:NPC_")
   })
 
@@ -907,9 +914,7 @@ describe("MasterPersonaUseCase", () => {
 
     // Assert: gateway が呼ばれ entry は personaSummary/speechStyle/personaBody だけを持つ (RED)
     expect(gateway.updateMasterPersona).toHaveBeenCalledTimes(1)
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access
-    const entry = (gateway.updateMasterPersona.mock.calls as any)[0][0]
-      .entry as Record<string, unknown>
+    const entry = latestUpdateMasterPersonaRequest(gateway).entry
     expect(entry).not.toHaveProperty("displayName")
     expect(entry).toHaveProperty("personaSummary")
     expect(entry).toHaveProperty("speechStyle")

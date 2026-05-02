@@ -61,6 +61,7 @@ func newAppControllerWithSeeds(
 	foundationDataPort := service.NewSQLiteFoundationDataPort(foundationDataRepository)
 	translationSourceRepository := repository.NewSQLiteTranslationSourceRepository(foundationDataDB)
 	jobLifecycleRepository := repository.NewSQLiteJobLifecycleRepository(foundationDataDB)
+	jobOutputRepository := repository.NewSQLiteJobOutputRepository(foundationDataDB)
 	foundationTransactor := repository.NewSQLiteTransactor(foundationDataDB)
 	translationInputImportService := service.NewTranslationInputImportService(
 		translationSourceRepository,
@@ -168,6 +169,17 @@ func newAppControllerWithSeeds(
 	personaGenerationPhaseController := controllerwails.NewPersonaGenerationPhaseController(
 		usecase.NewPersonaGenerationPhaseUsecase(personaGenerationPhaseService),
 	)
+	bodyTranslationPhaseController := controllerwails.NewBodyTranslationPhaseController(
+		usecase.NewBodyTranslationPhaseUsecase(
+			service.NewBodyTranslationPhaseService(
+				jobLifecycleRepository,
+				foundationDataRepository,
+				translationSourceRepository,
+				jobOutputRepository,
+				foundationTransactor,
+			).WithBodyTranslationProvider(service.NewBodyTranslationProviderAdapter(aiProviderClient)),
+		),
+	)
 
 	appController := controllerwails.NewAppController(
 		masterDictionaryController,
@@ -192,6 +204,7 @@ func newAppControllerWithSeeds(
 	appController.TranslationJobSetupController = translationJobSetupController
 	appController.TermTranslationPhaseController = termTranslationPhaseController
 	appController.PersonaGenerationPhaseController = personaGenerationPhaseController
+	appController.BodyTranslationPhaseController = bodyTranslationPhaseController
 	return appController
 }
 
@@ -272,10 +285,18 @@ func newAIProviderClientFromMasterPersonaEnv() *ai.ProviderClient {
 func newAIProviderClientFromMasterPersonaEnvWithTransport(
 	transport ai.HTTPTransport,
 ) *ai.ProviderClient {
+	return newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore(transport, nil)
+}
+
+func newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore(
+	transport ai.HTTPTransport,
+	secretStore repository.SecretStore,
+) *ai.ProviderClient {
 	clientOptions := []ai.ProviderClientOption{
 		ai.WithLMStudioBaseURL(strings.TrimSpace(os.Getenv(masterPersonaLMStudioBaseURLEnv))),
 		ai.WithXAIBaseURL(strings.TrimSpace(os.Getenv(masterPersonaXAIBaseURLEnv))),
 	}
+	_ = secretStore
 	if masterPersonaAIMode() == masterPersonaAIModeFake {
 		if transport == nil {
 			transport = ai.NewTestSafeHTTPTransportWithResponse(

@@ -1,0 +1,371 @@
+reviewback_version: 1
+task_id: body-translation-phase
+review_yaml_path: docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml
+viewpoint: contract
+reviewer_agent: review_contract
+review_status: no_issue
+must_fix_open: false
+max_level: none
+
+assessment:
+  compatibility: >
+    no_issue: 前回指摘 2 件はいずれも解消済みである。
+    `SkippedReasons`、`RequestSummary`、`OutputCount`、field result list は backend service、
+    usecase、Wails DTO、frontend gateway contract、frontend usecase まで表現できる。
+    command の業務拒否は Wails error ではなく redacted DTO として返るため、
+    Wails v2.10.2 dispatcher の error result 破棄に依存しない。
+    real provider 経路は test-safe 判定で遮断されず、input snapshot drift は retry / resume /
+    provider result mutation で redacted DTO として拒否される。
+  evidence_sufficiency: >
+    十分。codex-review-contract skill、review_contract agent 定義、reviewback template、
+    implementation-scope、scenario-design、ui-design、plan.md の second-review-fix 結果と検証証跡、
+    backend usecase / service / Wails controller、frontend gateway / DTO / usecase、
+    API scenario test を確認した。
+    レビュー指示に従い、検証コマンドは再実行していない。
+  contract_invariants:
+    - name: backend usecase summary / command DTO から Wails / frontend DTO への summary field lossless mapping
+      status: resolved
+      evidence: internal/controller/wails/body_translation_phase_controller.go:402
+    - name: public input summary と request summary の観測互換性
+      status: resolved
+      evidence: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts:56
+    - name: command rejection response の error kind / retryable / readiness payload 維持
+      status: resolved
+      evidence: internal/controller/wails/body_translation_phase_controller.go:334
+    - name: secret / raw provider payload を public DTO に出さない
+      status: maintained_in_checked_dto_shape
+      evidence: internal/controller/wails/body_translation_phase_controller.go:191
+    - name: real provider 経路を test-safe 判定だけで遮断しない
+      status: maintained
+      evidence: internal/service/body_translation_phase_service.go:1183
+    - name: input snapshot drift を retry / resume / provider result mutation で拒否する
+      status: maintained
+      evidence: internal/service/body_translation_phase_service.go:1020
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: resolved by Wails command response contract, backend service guard, and frontend DTO propagation
+    reason: >
+      前回の未解決点は Wails command rejection の表現と frontend 受け取り契約で閉じた。
+      追加の DB schema、provider adapter、field result persistence 変更は契約・互換性観点では不要である。
+
+checked_scope:
+  summary: >
+    前回 contract 指摘 2 件と second-review-fix の追加契約を確認した。
+    DTO field shape、usecase から Wails controller への mapper、frontend gateway DTO alias、
+    frontend usecase の command result 反映、cancel 拒否時の DTO 応答、
+    real provider 経路、field result list、input snapshot drift 拒否を契約・互換性観点だけで確認した。
+  files:
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 91
+      symbol: second-review-fix 結果
+      reason: second-review-fix 完了と broad validation pass 証跡を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/plan.md
+      line: 207
+      symbol: 実装検証証跡
+      reason: second-review-fix 反映後の検証証跡を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/implementation-scope.md
+      line: 421
+      symbol: integration-body-phase-wails-gateway completion_signal
+      reason: usecase DTO から frontend gateway DTO への lossless mapping 条件を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/scenario-design.md
+      line: 195
+      symbol: SCN-BTP-002
+      reason: input summary と request summary の観測条件を確認した。
+    - path: docs/exec-plans/completed/body-translation-phase/scenario-design.md
+      line: 370
+      symbol: SCN-BTP-009
+      reason: cancel 拒否と late response rejection の public 拒否理由条件を確認した。
+    - path: internal/usecase/body_translation_phase_contract.go
+      line: 135
+      symbol: BodyTranslationPhaseInputSummary
+      reason: usecase public contract が skipped reasons と digest 群を持つことを確認した。
+    - path: internal/usecase/body_translation_phase_contract.go
+      line: 162
+      symbol: BodyTranslationPhaseRequestSummary
+      reason: usecase public contract が provider request summary を持つことを確認した。
+    - path: internal/usecase/body_translation_phase_contract.go
+      line: 170
+      symbol: BodyTranslationPhaseFieldResultSummary
+      reason: usecase public contract が OutputCount と field result list を持つことを確認した。
+    - path: internal/usecase/body_translation_phase_usecase.go
+      line: 153
+      symbol: CancelBodyTranslationPhase
+      reason: usecase command result が field result list と error summary を保持することを確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 976
+      symbol: transitionBodyTranslationRunState
+      reason: command 拒否時に redacted ErrorSummary 付き DTO を作ることを確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1020
+      symbol: persistBodyTranslationRunStateTransition
+      reason: retry / resume の input snapshot drift 拒否を確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1125
+      symbol: executeBodyTranslationRun
+      reason: provider 実行前の input snapshot drift 拒否と provider 実行接続を確認した。
+    - path: internal/service/body_translation_phase_service.go
+      line: 1183
+      symbol: executeBodyTranslationTarget
+      reason: real provider ID を test-safe 判定で遮断せず provider adapter へ渡す経路を確認した。
+    - path: internal/service/body_translation_field_result.go
+      line: 92
+      symbol: PersistBodyTranslationFieldResults
+      reason: provider result mutation 時の late response / input snapshot drift 拒否を確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 76
+      symbol: BodyTranslationPhaseInputSummaryDTO
+      reason: Wails DTO が SkippedReasons を公開することを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 87
+      symbol: BodyTranslationPhaseRequestSummaryDTO
+      reason: Wails DTO が RequestSummary を公開することを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 104
+      symbol: BodyTranslationPhaseFieldResultSummaryDTO
+      reason: Wails DTO が OutputCount を公開することを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 287
+      symbol: CancelBodyTranslationPhase
+      reason: Go controller が cancel command result を DTO として返すことを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 334
+      symbol: bodyTranslationCommandResponseOrError
+      reason: ErrorSummary 付き business rejection は Wails error にせず DTO として返すことを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 402
+      symbol: toBodyTranslationPhaseInputSummaryDTO
+      reason: SkippedReasons の mapper を確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 416
+      symbol: toBodyTranslationPhaseRequestSummaryDTO
+      reason: RequestSummary の mapper を確認した。
+    - path: internal/controller/wails/body_translation_phase_controller.go
+      line: 439
+      symbol: toOptionalBodyTranslationPhaseFieldResultSummaryDTO
+      reason: OutputCount の mapper を確認した。
+    - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+      line: 56
+      symbol: BodyTranslationPhaseInputSummary
+      reason: frontend gateway contract が skipped reasons を表現できることを確認した。
+    - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+      line: 66
+      symbol: BodyTranslationPhaseRequestSummary
+      reason: frontend gateway contract が request summary を表現できることを確認した。
+    - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+      line: 103
+      symbol: BodyTranslationPhaseFieldResultSummary
+      reason: frontend gateway contract が OutputCount と field result list を表現できることを確認した。
+    - path: frontend/src/controller/wails/gateway-dto/body-translation-phase/body-translation-phase-gateway-dto.ts
+      line: 14
+      symbol: gateway DTO aliases
+      reason: Wails gateway DTO が frontend gateway contract の alias であることを確認した。
+    - path: frontend/src/controller/wails/body-translation-phase.gateway.ts
+      line: 93
+      symbol: createBindingInvoker
+      reason: frontend gateway は Wails binding の Promise result だけを response として返すことを確認した。
+    - path: frontend/src/controller/wails/body-translation-phase.gateway.ts
+      line: 130
+      symbol: cancelBodyTranslationPhase
+      reason: cancel command が Wails binding に直結していることを確認した。
+    - path: frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts
+      line: 71
+      symbol: patchSummaryFromCommand
+      reason: command DTO の field result list、error summary、output readiness を frontend state へ反映することを確認した。
+    - path: frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts
+      line: 335
+      symbol: runCommand
+      reason: command success path は response payload を summary / readiness に反映することを確認した。
+    - path: internal/controller/wails/body_translation_phase_controller_unit_test.go
+      line: 275
+      symbol: TestBodyTranslationPhaseControllerCommandBusinessRejectionReturnsPayloadWithoutError
+      reason: business rejection が Wails error ではなく DTO で返るテスト観点を確認した。
+    - path: internal/apitest/body_translation_recovery_terminal_readiness_test.go
+      line: 104
+      symbol: TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults
+      reason: retry の input snapshot drift 拒否と no-write 条件を確認した。
+    - path: internal/apitest/body_translation_recovery_terminal_readiness_test.go
+      line: 166
+      symbol: TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite
+      reason: Running cancel の redacted DTO 拒否と Wails error 非使用を確認した。
+
+unchecked_scope:
+  - target: broad harness rerun
+    reason: レビュー指示で検証コマンド再実行が禁止されている。
+    risk: 低。`plan.md` の second-review-fix 結果と実装検証証跡を入力証跡として扱った。
+  - target: generated Wails JavaScript bindings
+    reason: 生成 artifact は差分入力に含まれていない。
+    risk: 低。controller が ErrorSummary 付き business rejection を nil error で返すため、Wails error result 破棄経路を通らない。
+  - target: behavior / trust-boundary / state-invariant / responsibility-boundary
+    reason: review_contract の主判定対象外である。
+    risk: 他観点の未解決指摘は implement_lane 側の集約で扱う。
+
+issues:
+  - id: CONTRACT-BTP-001
+    level: major
+    title: Wails / frontend DTO が body phase summary contract を lossless に公開していない
+    problem: >
+      前回は backend usecase の `SkippedReasons`、`RequestSummary`、`OutputCount` が
+      Wails DTO と frontend gateway contract に存在しなかった。
+      現在は Wails DTO、mapper、frontend gateway contract、gateway DTO alias が該当 field を表現できる。
+    reason: >
+      Wails controller は `BodyTranslationPhaseInputSummaryDTO.SkippedReasons`、
+      `BodyTranslationPhaseRequestSummaryDTO`、`BodyTranslationPhaseFieldResultSummaryDTO.OutputCount` を持つ。
+      frontend gateway contract も同じ field と field result list を表現できるため、
+      前回の DTO shape 欠落は解消済みである。
+    violated_condition: >
+      `GetBodyTranslationPhaseSummary` と command response は input summary、field result summary、
+      request unit count、output count、error kind を保ち、Wails / frontend DTO へ lossless に写像される。
+    cause_candidate: >
+      前回時点では Wails / frontend contract が UI 表示用の縮約 field だけを型として固定していた可能性がある。
+      現在は DTO shape と mapper が usecase contract に追従している。
+    evidence:
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 77
+        excerpt: BodyTranslationPhaseInputSummaryDTO は SkippedReasons を持つ。
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 87
+        excerpt: BodyTranslationPhaseRequestSummaryDTO は provider target、exact exclusion、partial constraint count を持つ。
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 104
+        excerpt: BodyTranslationPhaseFieldResultSummaryDTO は OutputCount を持つ。
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 402
+        excerpt: toBodyTranslationPhaseInputSummaryDTO は SkippedReasons を clone して返す。
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 416
+        excerpt: toBodyTranslationPhaseRequestSummaryDTO は RequestSummary の全 field を写像する。
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 439
+        excerpt: toOptionalBodyTranslationPhaseFieldResultSummaryDTO は OutputCount を写像する。
+      - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+        line: 56
+        excerpt: frontend gateway contract は skippedReasons を表現できる。
+      - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+        line: 66
+        excerpt: frontend gateway contract は request summary を表現できる。
+      - path: frontend/src/application/gateway-contract/body-translation-phase/body-translation-phase-gateway-contract.ts
+        line: 103
+        excerpt: frontend gateway contract は outputCount と fieldResults を表現できる。
+    local_fix_assessment: resolved_by_local_dto_mapping
+    additional_check_scope: none。DTO shape 欠落は現コードで解消済みである。
+    fix_considerations: >
+      既存 field 名と nullability を変えず、secret、API key、raw prompt、
+      provider raw request / response を表現できない状態を維持する。
+    verification: >
+      `plan.md` の証跡では `go test ./internal/controller/wails ./internal/service -run 'BodyTranslation|FieldResult|InputSnapshot|CommandSeams'`、
+      `npm --prefix frontend run test -- --run body-translation-phase`、
+      `python3 scripts/harness/run.py --suite all` が pass している。
+    fix_required: true
+    status: resolved
+
+  - id: CONTRACT-BTP-002
+    level: major
+    title: CancelBodyTranslationPhase の拒否 payload が Wails DTO として frontend へ届く
+    problem: >
+      前回は Go usecase と Wails controller が cancel 拒否時に redacted command payload と error を同時に返し、
+      Wails error boundary で result が失われる可能性があった。
+      現在の Wails controller は ErrorSummary 付き command result を nil error で返すため、
+      Wails error 応答に依存せず redacted DTO が frontend gateway / usecase へ届く。
+    reason: >
+      implementation-scope は Wails controller が backend usecase の summary / command DTO を
+      frontend gateway DTO へ lossless に写像することを completion signal にしている。
+      `bodyTranslationCommandResponseOrError` は `result.ErrorSummary != nil` の時に error を返さず、
+      frontend usecase は command success path で error summary、retryable flag、phase state、
+      output readiness、field result list を state に反映する。
+    violated_condition: >
+      `CancelBodyTranslationPhase` は Paused の body phase run だけを cancel し、
+      拒否時も public error kind、retryable flag、phase state、output readiness、
+      redacted error summary を frontend gateway DTO へ lossless に渡す。
+    cause_candidate: >
+      前回の原因候補は business rejection を Go `error` として Wails boundary に返す設計だった。
+      現在は Wails controller で business rejection を DTO success response に変換するため、
+      原因候補は解消済みである。
+    evidence:
+      - path: internal/service/body_translation_phase_service.go
+        line: 463
+        excerpt: CancelPhase は Paused から Canceled への transition と拒否 error summary factory を使う。
+      - path: internal/service/body_translation_phase_service.go
+        line: 976
+        excerpt: transitionBodyTranslationRunState は拒否時に ErrorSummary 付き command payload を作る。
+      - path: internal/usecase/body_translation_phase_usecase.go
+        line: 94
+        excerpt: usecase CancelBodyTranslationPhase は command result を作ってから error を返す。
+      - path: internal/controller/wails/body_translation_phase_controller.go
+        line: 334
+        excerpt: bodyTranslationCommandResponseOrError は ErrorSummary 付き result を nil error で返す。
+      - path: frontend/src/controller/wails/body-translation-phase.gateway.ts
+        line: 130
+        excerpt: frontend gateway の cancel は Wails binding Promise をそのまま返す。
+      - path: frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts
+        line: 335
+        excerpt: command success path は DTO payload を summary / readiness に反映する。
+      - path: frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts
+        line: 71
+        excerpt: patchSummaryFromCommand は errorSummary と fieldResults を frontend summary に写像する。
+      - path: internal/controller/wails/body_translation_phase_controller_unit_test.go
+        line: 275
+        excerpt: command business rejection は payload without error として固定されている。
+      - path: internal/apitest/body_translation_recovery_terminal_readiness_test.go
+        line: 166
+        excerpt: Running cancel rejection は Wails error なしの redacted DTO として検証されている。
+      - path: docs/exec-plans/completed/body-translation-phase/implementation-scope.md
+        line: 421
+        excerpt: integration completion signal は command DTO の frontend gateway DTO への lossless mapping を要求している。
+    local_fix_assessment: resolved_by_wails_command_dto_contract
+    additional_check_scope: none。Start / Pause / Resume / Retry / Cancel は同じ `bodyTranslationCommandResponseOrError` を通る。
+    fix_considerations: >
+      caller が分岐する business rejection は、Wails error 文字列だけに依存しない。
+      DTO として渡す場合は secret、API key、raw prompt、provider raw request / response を含めない。
+    verification: >
+      呼び出し元提供証跡では `go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'`、
+      `npm --prefix frontend run test -- --run body-translation-phase`、
+      `python3 scripts/harness/run.py --suite all` が pass している。
+    fix_required: true
+    status: resolved
+
+verification_evidence:
+  - command: go test ./internal/service ./internal/usecase ./internal/controller/wails ./internal/apitest -run 'BodyTranslation|SCN_BTP'
+    result: pass
+    details: plan.md second-review-fix 証跡。command rejection、non-fake provider retry、snapshot drift rejection、running cancel payload を含む局所検証。
+  - command: python3 scripts/harness/run.py --suite backend-local
+    result: pass
+    details: plan.md second-review-fix 後の backend-local 証跡。
+  - command: npm --prefix frontend run test -- --run body-translation-phase
+    result: pass
+    details: plan.md second-review-fix 後の frontend targeted 証跡。
+  - command: python3 scripts/harness/run.py --suite frontend-local
+    result: pass
+    details: plan.md second-review-fix 後の frontend-local 証跡。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    details: plan.md second-review-fix 後。structure、scenario-gate、execution、system test、coverage すべて通過。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    details: Sonar coverage 71.7%、line 72.5%、branch 64.4%、security issue 0、reliability issue 0、maintainability HIGH issue 0。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    details: system test 5 passed。
+  - command: broad harness rerun
+    result: not_run
+    details: レビュー指示に従い再実行していない。
+
+residual_risks:
+  - >
+    frontend TypeScript contract では `requestSummary` と `resultSummary.outputCount` が optional である。
+    現 Go DTO は non-pointer / non-omitempty で返すため今回の summary field 欠落は解消済みと判定したが、
+    生成 binding や mock が optional 扱いを広げる余地は低リスクとして残る。
+  - >
+    Wails generated JavaScript binding は未確認である。
+    ただし Wails controller が ErrorSummary 付き command rejection を nil error で返すため、
+    Wails error 応答で payload が欠落するリスクは低い。
+  - >
+    contract 指摘は DTO shape、Wails command payload 互換性、provider 経路、input snapshot drift に限定した。
+    cancel の状態遷移正しさや late response の永続化防止は状態・データ不変条件観点の対象である。
+
+forbidden_outputs:
+  tool_permission_changes: prohibited
+  agent_definition_changes: prohibited
+  product_code_change_instructions: prohibited
+  fix_scope_commands: prohibited
