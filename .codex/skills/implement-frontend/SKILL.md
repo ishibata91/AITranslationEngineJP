@@ -50,6 +50,8 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認する
 - console エラー の有無を 終了処理 に残す
 - UI 状態 の初期値と更新条件を確認する
+- UIは基本的に全て日本語で記載すること。
+- 他ページとのデザイン一貫性を保つこと。
 - 主要操作、取消、戻る、破壊的操作のボタン配置と文言がユーザーの作業順に沿っていることを確認する
 - ページ見出し、ラベル、説明、エラー、空状態、完了状態のテキストがユーザーの次の行動を示すことを確認する
 - [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) の frontend lint 内訳を確認し、`npm run lint` と `format:check` で拾われる観点を先に意識する

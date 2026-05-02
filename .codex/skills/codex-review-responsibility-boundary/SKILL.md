@@ -22,12 +22,10 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 実装目的: レビュー対象差分が満たすべき目的を受け取る。
 - implementation-scope の場所: 承認済み実装範囲の参照先を受け取る。
 - 実装結果: 実装 agent が返した実装結果を受け取る。
-- 最終検証結果: `implement_lane` が確認した最終検証結果を受け取る。
 - 検証証跡: 実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を受け取る。
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.responsibility-boundary.yaml` を受け取る。
-- 差し戻しYAMLパス: `work_history/runs/<run>/review-reject-responsibility-boundary.yaml` を受け取る。
 
 ## 外部参照規約
 
@@ -70,21 +68,20 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 構造責務の正本に反する依存方向、層越境、複数責務の混在は高い重大度にする。
 - 自動検査で検出済みの境界違反だけに限定せず、実コード上の責務混在を判断対象にする。
 - 呼び出し元から渡された検証証跡をレビュー入力として扱ってよい。
-- 広い ハーネス 再実行を レビュー agent の責務にしない。
 
 ## 非対象規約
 
 - 挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件は主判定にしない。
 - 命名、好みの分割、見た目だけの読みやすさは主判定にしない。
-- 広い ハーネス 再実行は扱わない。
 - 修正範囲の命令やプロダクトコード変更の指示は出力しない。
+- ハーネスを実行しない。
 
 ## 出力規約
 
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.responsibility-boundary.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `responsibility-boundary`、`reviewer_agent` は `review_responsibility_boundary` とする。
-- 差し戻しYAML: `review_status` が `issues_open` または `stopped` の場合は、ワークフロー改善用ログを `work_history/runs/<run>/review-reject-responsibility-boundary.yaml` に追記する。
+- 改善ログ: 作成または追記しない。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
 ## 完了規約
@@ -97,7 +94,6 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件を主判定にしなかった。
 - 完了判断材料として、`must_fix_open`、`max_level`、責務境界維持度、破られた境界、原因候補、局所修正評価、根拠が記録されている。
 - 残留リスクとして、未確認範囲と理由が記録されている。
-- `review_status` が `issues_open` または `stopped` の場合は、差し戻し YAML が `work_history/runs/<run>/review-reject-responsibility-boundary.yaml` に追記されている。
 
 ## 停止規約
 
@@ -105,7 +101,6 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - `実装目的` が不足する場合は停止する。
 - `検証証跡` が不足する場合は停止する。
 - `レビューYAMLパス` が不足する場合は停止する。
-- `差し戻しYAMLパス` が不足する場合は停止する。
 - 外部成果物 が不足または衝突する場合は停止する。
 - 責務境界以外の観点を主判定にしそうな場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

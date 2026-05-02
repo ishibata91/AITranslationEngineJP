@@ -73,10 +73,12 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `docs_updater` は実装と レビュー の完了が分かった後、human 承認済み 対象範囲 だけを正本化する
 - `work_reporter` は `scripts/work-history/score_transcripts.py` の `analysis/benchmark-score.json`、`transcript_refs.json`、完了根拠 から `work_history` の run 全体レポート を生成する。明示 完了根拠 が不足する場合は Codex 会話ログ または chat session file を 根拠参照 付き 根拠 として確認する
 - `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価し、`reviewback.<観点>.yaml`、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
+- `implement_lane` は run 中に見つけた構造問題、作業流れ問題、権限問題、実行問題、人間フィードバック、レビュー由来の改善示唆を `work_history/runs/<run>/workflow-improvement-log.jsonl` へ逐次追記する
 - 観点別 レビュー agent は挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件、責務境界のいずれか 1 つだけを扱い、`reviewback.<観点>.yaml` を作成、追記、解決更新、削除する
 - 観点別 レビュー agent は広い ハーネス 再実行を担当せず、`implement_lane` から渡された検証証跡をレビュー入力として扱う
-- 観点別 レビュー agent は 失敗 または 停止 の場合に、ワークフロー改善用ログとして `work_history/runs/<run>/review-reject-<観点>.yaml` へ追記する
-- `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、`review-reject-<観点>.yaml` はワークフロー改善用の非通過ログとする
+- 観点別 レビュー agent は 失敗 または 停止 の場合も `reviewback.<観点>.yaml` に結果、根拠、未解決指摘を記録する
+- `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、work_history 側に観点別の非通過 YAML は作らない
+- `workflow-improvement-log.jsonl` は作業流れ改善用の run 内観測ログとし、ゲート判断には使わない
 - `implement_lane`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `implementation_implementer` だけが 承認済み実装範囲 内で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる

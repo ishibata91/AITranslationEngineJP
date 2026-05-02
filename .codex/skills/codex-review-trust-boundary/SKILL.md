@@ -22,12 +22,10 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 - 実装目的: レビュー対象差分が満たすべき目的を受け取る。
 - implementation-scope の場所: 承認済み実装範囲の参照先を受け取る。
 - 実装結果: 実装 agent が返した実装結果を受け取る。
-- 最終検証結果: `implement_lane` が確認した最終検証結果を受け取る。
 - 検証証跡: 実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を受け取る。
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.trust-boundary.yaml` を受け取る。
-- 差し戻しYAMLパス: `work_history/runs/<run>/review-reject-trust-boundary.yaml` を受け取る。
 
 ## 外部参照規約
 
@@ -81,13 +79,12 @@ secret 確認表は次を拘束する。
 - secret を扱う差分では、secret 本体の送信先、表示先、保存先、ログ出力先を別々に確認する。
 - secret を扱う差分では、参照値と secret 本体が UI、DTO、read model、URL、log、error summary、audit、要求捕捉で混ざっていないか確認する。
 - 呼び出し元から渡された検証証跡をレビュー入力として扱ってよい。
-- 広い ハーネス 再実行を レビュー agent の責務にしない。
 
 ## 非対象規約
 
 - 実装の短さ、読みやすさ、性能は主判定にしない。
 - テスト妥当性は、権限・信頼境界の直接根拠になる場合だけ扱う。
-- 広い ハーネス 再実行は扱わない。
+- ハーネスを実行しない。
 - 修正範囲の命令やプロダクトコード変更の指示は出力しない。
 
 ## 出力規約
@@ -95,7 +92,7 @@ secret 確認表は次を拘束する。
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.trust-boundary.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `trust-boundary`、`reviewer_agent` は `review_trust_boundary` とする。
-- 差し戻しYAML: `review_status` が `issues_open` または `stopped` の場合は、ワークフロー改善用ログを `work_history/runs/<run>/review-reject-trust-boundary.yaml` に追記する。
+- 改善ログ: 作成または追記しない。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
 ## 完了規約
@@ -110,7 +107,6 @@ secret 確認表は次を拘束する。
 - 強制停止条件の失敗を他観点で相殺しなかった。
 - 完了判断材料として、`must_fix_open`、`max_level`、安全性評価、`hard_gate: true`、破られた不変条件、原因候補、局所修正評価、根拠が記録されている。
 - 残留リスクとして、未確認範囲と理由が記録されている。
-- `review_status` が `issues_open` または `stopped` の場合は、差し戻し YAML が `work_history/runs/<run>/review-reject-trust-boundary.yaml` に追記されている。
 
 ## 停止規約
 
@@ -118,7 +114,6 @@ secret 確認表は次を拘束する。
 - `実装目的` が不足する場合は停止する。
 - `検証証跡` が不足する場合は停止する。
 - `レビューYAMLパス` が不足する場合は停止する。
-- `差し戻しYAMLパス` が不足する場合は停止する。
 - 外部成果物 が不足または衝突する場合は停止する。
 - 権限・信頼境界以外の観点を主判定にしそうな場合は停止する。
 - secret を扱う差分で、送信先、表示先、保存先、ログ出力先を差分と implementation-scope から確認できない場合は停止する。

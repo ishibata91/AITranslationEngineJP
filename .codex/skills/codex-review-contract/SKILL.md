@@ -27,7 +27,6 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.contract.yaml` を受け取る。
-- 差し戻しYAMLパス: `work_history/runs/<run>/review-reject-contract.yaml` を受け取る。
 
 ## 外部参照規約
 
@@ -82,7 +81,7 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.contract.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `contract`、`reviewer_agent` は `review_contract` とする。
-- 差し戻しYAML: `review_status` が `issues_open` または `stopped` の場合は、ワークフロー改善用ログを `work_history/runs/<run>/review-reject-contract.yaml` に追記する。
+- 改善ログ: 作成または追記しない。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
 ## 完了規約
@@ -95,7 +94,6 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 - 内部実装の綺麗さを主判定にしなかった。
 - 完了判断材料として、`must_fix_open`、`max_level`、互換性評価、破られた不変条件、原因候補、局所修正評価、根拠が記録されている。
 - 残留リスクとして、未確認範囲と理由が記録されている。
-- `review_status` が `issues_open` または `stopped` の場合は、差し戻し YAML が `work_history/runs/<run>/review-reject-contract.yaml` に追記されている。
 
 ## 停止規約
 
@@ -103,7 +101,6 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 - `実装目的` が不足する場合は停止する。
 - `検証証跡` が不足する場合は停止する。
 - `レビューYAMLパス` が不足する場合は停止する。
-- `差し戻しYAMLパス` が不足する場合は停止する。
 - 外部成果物 が不足または衝突する場合は停止する。
 - 契約・互換性以外の観点を主判定にしそうな場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

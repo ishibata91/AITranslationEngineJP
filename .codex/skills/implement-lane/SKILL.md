@@ -35,6 +35,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 各 成果物 は、`依存対象` の 成果物 が揃った時だけ着手できる。
 `次 agent` は、その 成果物 を揃えるために 引き継ぎ入力 を渡す相手を示す。
 `次 agent` が複数ある行は、依存対象が満たされ、ツール権限 が衝突しない場合に並列 起動 できる候補を示す。
+当スキルは，この`次エージェント`をコンテキスト継承なしでサブエージェントとしてスポーンすることでDAGの成果物を作っていく。
 
 | 成果物ID | 必須 | 担当者 | 依存対象 | 次 agent |
 | --- | --- | --- | --- | --- |
@@ -63,6 +64,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 レビュー agent は広い ハーネス 再実行の担当者ではない。
 `implement_lane` は レビュー agent 起動時に、呼び出し元が実行済みの 検証証跡 を起動入力へ明示する。
 
+
 優先度は次の順で固定する。
 
 | 優先 | 観点 | 対象 agent | 扱い |
@@ -81,6 +83,35 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 `blocker`、`critical`、`major` は修正必須問題として扱う。
 `minor`、`nit` は修正推奨問題として扱い、単独では修正必須にしない。
 権限・信頼境界の `hard_gate: true` は他観点で相殺しない。
+
+改善ログ は `work_history/runs/<run>/workflow-improvement-log.jsonl` に置く。
+改善ログ は 1 行 1 件の JSONL とする。
+改善ログ は `implement_lane` だけが追記する。
+改善ログ は作業流れ改善用の観測ログであり、レビュー通過判断には使わない。
+
+改善ログの分類は次に固定する。
+
+| 分類 | 意味 |
+| --- | --- |
+| `structure` | 成果物、依存、責務分割、正本配置の問題 |
+| `workflow` | 作業流れ、引き継ぎ、終了処理、報告の問題 |
+| `permission` | サンドボックス、書き換え範囲、承認、実行権限の問題 |
+| `execution` | command、検証、tool、環境実行の問題 |
+| `human_feedback` | 人間の修正指示、差し戻し、運用判断 |
+| `review_signal` | `reviewback.<観点>.yaml` から作業流れ改善に転用できる示唆 |
+
+改善ログ項目は次の key を持つ。
+
+| key | 意味 |
+| --- | --- |
+| `event_id` | run 内で安定する識別子 |
+| `occurred_at` | 発生時刻または `unknown` |
+| `category` | 改善ログの分類 |
+| `summary` | 短い事実説明 |
+| `evidence_ref` | 根拠の path、command、会話ログ参照 |
+| `impact` | `blocker`、`major`、`minor`、`note` のいずれか |
+| `next_improvement` | 次回改善へ戻せる具体案 |
+| `source` | `implement_lane`、`human`、`reviewback`、`validation`、`work_reporter` のいずれか |
 
 検証証跡 は次をすべて含む。
 
@@ -109,35 +140,36 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
 - `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
-- レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダと、ワークフロー改善用 `review-reject-<観点>.yaml` の現行 run フォルダを確定する。
+- レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダを確定する。
 - レビュー agent 起動入力には、最終検証、coverage、issue 数、system test 件数を含む 検証証跡 を明示する。
-- レビュー agent に広い ハーネス 再実行を期待しない。
 - レビュー agent の結果は `reviewback.<観点>.yaml` の `must_fix_open`、`max_level`、`review_status` から レビュー集約規約 の優先度で集約する。
+- 構造問題、作業流れ問題、権限問題、実行問題、人間フィードバック、レビュー由来の改善示唆を検出した場合は、改善ログへ追記する。
+- `review_signal` は `reviewback.<観点>.yaml` のうち、次回の作業流れ改善に転用できる示唆だけを記録する。
+- レビュー agent に改善ログを作成または追記させない。
 - `blocker`、`critical`、`major` の未解決指摘がある場合は `implementation_action` を `fix` または `rerun_codex_review` にする。
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
-- 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。＼
+- 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
 - `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に 作業計画フォルダ を `docs/exec-plans/active/<task-id>/` から `docs/exec-plans/completed/<task-id>/` へ移す。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
-- `implement_lane` は implementation agent と レビュー agent を直接 起動 し、起動 先 agent に下位 agent を 起動 させない。
-- 承認済み `design-bundle` 成果物 がある場合は、その 成果物 を優先する。
-- 承認済み `design-bundle` 成果物 がない場合は、シナリオ 候補を `designer` の前に揃える。
 - 人間介入 が必要な 成果物 は AI だけで完了にしない。
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
 - backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
-- Codex が ハーネス をサンドボックス外で実行する場合は `.codex/rules/default.rules` の Codex rules で許可された command を使い、Wails、Playwright、Go cache の環境失敗を プロダクト失敗 と混ぜない。
+- タスクの終わったサブエージェントを起動したまま残さず，終わったら逐次で閉じること。
 
 ## 非対象規約
 
 - 恒久修正、構造整理、探索テスト、画面体験改善探索は詳細化しない。
 - 設計成果物束の人間レビューは扱わない。
 - 起動先 agent の下位 agent 起動は扱わない。
+- レビューエージェントに差分コード，レビュー成果物以外の関係ないものを渡さない。ハーネス結果など。
 - プロダクトコードとプロダクトテストは変更しない。
 
 ## 出力規約
 
 - 人間向け返却: 人間向けには、成果物依存表 の現在 成果物、着手可能 成果物、停止中 成果物、停止理由を短く返す。
 - 起動先向け返却: 起動先 agent 向けには、対象 成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する 成果物 を渡す。
-- レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパス、差し戻しYAMLパスを渡す。
+- レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスを渡す。
+- 改善ログ: `work_history/runs/<run>/workflow-improvement-log.jsonl` へ追記した改善ログ項目を返す。
 - 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 と 作業計画フォルダ の移動結果を返す。
 
 ## 完了規約
@@ -149,11 +181,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `レビュー通過根拠` は 5 観点の `reviewback.<観点>.yaml` から behavior、security、responsibility_boundary、その他 の優先度で集約され、`implementation_action` が固定されている。
 - DAGで必須とされている成果物が全て用意できていること。
 - 5 観点すべての `reviewback.<観点>.yaml` に `must_fix_open`、`max_level`、`review_status` が記録されている。
-- レビュー agent が 失敗 または 停止 を返した場合は、対応する `work_history/runs/<run>/review-reject-<観点>.yaml` への追記結果が確認されている。
 - `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
-- 最終検証として `python3 scripts/harness/run.py --suite all` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
 - レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
+- `workflow-improvement-log.jsonl` が必要な場合は、分類、根拠、次回改善が JSONL として追記されている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
 - `implementation_action: close` の場合は、作業計画フォルダ が `docs/exec-plans/completed/<task-id>/` に移動済みで、`docs/exec-plans/active/<task-id>/` に残っていない。
 
