@@ -12,31 +12,39 @@ import (
 
 // NewTestSafeHTTPTransport creates a deterministic test-safe transport seam with the default response text.
 func NewTestSafeHTTPTransport() HTTPTransport {
-	return &deterministicHTTPTransport{responseText: defaultTestSafeText}
+	return &deterministicHTTPTransport{}
 }
 
 // NewTestSafeHTTPTransportWithResponse creates a deterministic test-safe transport seam with the given response text.
 // Passing an empty string yields an empty-text response, which causes provider parsers to return an empty-response error.
 func NewTestSafeHTTPTransportWithResponse(responseText string) HTTPTransport {
-	return &deterministicHTTPTransport{responseText: strings.TrimSpace(responseText)}
+	return &deterministicHTTPTransport{
+		responseText:          strings.TrimSpace(responseText),
+		useConfiguredResponse: true,
+	}
 }
 
 type deterministicHTTPTransport struct {
-	responseText string
+	responseText          string
+	useConfiguredResponse bool
 }
 
-func (transport *deterministicHTTPTransport) Do(_ *http.Request) (*http.Response, error) {
+func (transport *deterministicHTTPTransport) Do(request *http.Request) (*http.Response, error) {
+	responseText, err := resolveDeterministicResponseText(request, *transport)
+	if err != nil {
+		return nil, err
+	}
 	payload := map[string]interface{}{
 		"candidates": []map[string]interface{}{
 			{
 				"content": map[string]interface{}{
-					"parts": []map[string]string{{"text": transport.responseText}},
+					"parts": []map[string]string{{"text": responseText}},
 				},
 			},
 		},
 		"choices": []map[string]interface{}{
 			{
-				"message": map[string]string{"content": transport.responseText},
+				"message": map[string]string{"content": responseText},
 			},
 		},
 	}
@@ -53,6 +61,110 @@ func (transport *deterministicHTTPTransport) Do(_ *http.Request) (*http.Response
 
 func (transport *deterministicHTTPTransport) testSafeTransportMarker() {
 	// Marker method designates this transport as test-safe for provider request DI.
+}
+
+func resolveDeterministicResponseText(request *http.Request, transport deterministicHTTPTransport) (string, error) {
+	if transport.useConfiguredResponse {
+		return strings.TrimSpace(transport.responseText), nil
+	}
+	prompt, err := extractPromptFromProviderRequest(request)
+	if err != nil {
+		return "", err
+	}
+	if prompt == "" {
+		return defaultTestSafeText, nil
+	}
+	sourceTerm := extractPromptField(prompt, "source_term")
+	if sourceTerm == "" {
+		return defaultTestSafeText, nil
+	}
+	return buildDeterministicTermTranslationResponseText(sourceTerm)
+}
+
+func extractPromptFromProviderRequest(request *http.Request) (string, error) {
+	if request == nil || request.Body == nil {
+		return "", nil
+	}
+	requestBody, err := io.ReadAll(request.Body)
+	if err != nil {
+		return "", fmt.Errorf("read deterministic ai provider request: %w", err)
+	}
+	return extractPromptFromProviderRequestBody(requestBody), nil
+}
+
+func extractPromptFromProviderRequestBody(requestBody []byte) string {
+	if len(requestBody) == 0 {
+		return ""
+	}
+	if prompt := extractOpenAIProviderPrompt(requestBody); prompt != "" {
+		return prompt
+	}
+	return extractGeminiProviderPrompt(requestBody)
+}
+
+func extractOpenAIProviderPrompt(requestBody []byte) string {
+	openAIRequest := struct {
+		Messages []struct {
+			Content string `json:"content"`
+		} `json:"messages"`
+	}{}
+	if err := json.Unmarshal(requestBody, &openAIRequest); err == nil {
+		for _, message := range openAIRequest.Messages {
+			trimmed := strings.TrimSpace(message.Content)
+			if trimmed != "" {
+				return trimmed
+			}
+		}
+	}
+	return ""
+}
+
+func extractGeminiProviderPrompt(requestBody []byte) string {
+	geminiRequest := struct {
+		Contents []struct {
+			Parts []struct {
+				Text string `json:"text"`
+			} `json:"parts"`
+		} `json:"contents"`
+	}{}
+	if err := json.Unmarshal(requestBody, &geminiRequest); err == nil {
+		for _, content := range geminiRequest.Contents {
+			for _, part := range content.Parts {
+				trimmed := strings.TrimSpace(part.Text)
+				if trimmed != "" {
+					return trimmed
+				}
+			}
+		}
+	}
+	return ""
+}
+
+func extractPromptField(prompt string, key string) string {
+	fieldPrefix := strings.TrimSpace(key) + "="
+	for _, line := range strings.Split(prompt, "\n") {
+		trimmedLine := strings.TrimSpace(line)
+		if !strings.HasPrefix(trimmedLine, fieldPrefix) {
+			continue
+		}
+		return strings.TrimSpace(strings.TrimPrefix(trimmedLine, fieldPrefix))
+	}
+	return ""
+}
+
+func buildDeterministicTermTranslationResponseText(sourceTerm string) (string, error) {
+	responseBytes, err := json.Marshal(map[string]any{
+		"translations": []map[string]string{
+			{
+				"source_term":     sourceTerm,
+				"translated_term": sourceTerm + "-translated",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshal deterministic term translation response: %w", err)
+	}
+	return string(responseBytes), nil
 }
 
 func callProviderTransport(

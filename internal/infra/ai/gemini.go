@@ -84,18 +84,19 @@ func newGeminiRequest(
 		return nil, fmt.Errorf("model is required")
 	}
 	endpoint := fmt.Sprintf(geminiEndpointTemplate, url.PathEscape(trimmedModel))
-	query := url.Values{}
-	query.Set("key", strings.TrimSpace(apiKey))
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
-		endpoint+"?"+query.Encode(),
+		endpoint,
 		bytes.NewReader(requestBytes),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("build ai provider request: %w", err)
 	}
 	request.Header.Set("Content-Type", "application/json")
+	if trimmedAPIKey := strings.TrimSpace(apiKey); trimmedAPIKey != "" {
+		request.Header.Set("x-goog-api-key", trimmedAPIKey)
+	}
 	return request, nil
 }
 

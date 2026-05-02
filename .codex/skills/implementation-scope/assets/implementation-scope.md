@@ -23,6 +23,7 @@
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
 - downstream handoff が依存する public seam は `contract_freeze` として固定する
 - `contract_freeze` は architecture の layer、transport boundary、依存方向を基準に固定する
+- secret を扱う handoff は参照値、secret 本体、secret 解決責務層、出力禁止値を分ける
 - backend、frontend、統合境界 は原則として別 handoff に分ける
 - `E2E` は UI 人間操作起点だけを指す
 - `APIテスト` は public seam 起点の system-level test とする
@@ -45,6 +46,12 @@
   - `freeze_source`:
   - `architecture_layer_basis`:
   - `frozen_public_seams`:
+- `secret_boundary`:
+  - `status`: `required | not_required`
+  - `reference_values_allowed_in_ui_dto_read_model`:
+  - `secret_values_for_provider_external_api_internal_auth`:
+  - `secret_resolution_owner_layer`:
+  - `forbidden_outputs`:
 - `owned_scope`:
 - `depends_on`:
 - `execution_group`:
@@ -64,6 +71,9 @@
   - `APIテスト` を tester 先行対象にできるのは、受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの時だけにする。
   - `UI人間操作E2E` は final validation で証明し、frontend handoff の直接 owner にしない。
   - `contract_freeze.status: required` の handoff では、architecture layer、transport boundary、依存方向を `architecture_layer_basis` に書き、downstream が参照してよい public API / DTO / gateway / controller entry / state contract を `frozen_public_seams` に列挙する。
+  - secret を扱う handoff では、UI / DTO / read model に出してよい参照値と、provider / external API / internal auth に渡す secret 本体を `secret_boundary` に分けて書く。
+  - `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名がある場合は、参照値と secret 本体を同じ値として扱わない。
+  - `forbidden_outputs` には log、error summary、audit、request capture、URL、DTO、UI、read model に出してはいけない値を書く。
   - `execution_group` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ作る。同じ wave 内でも `parallelizable_with` に列挙しない handoff は並列実行しない。
   - `ready_wave` は Ready Waves 表と一致させる。Codex は最小番号の実行可能 wave から開始する。
   - `first_action` は Codex implementation lane が最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。

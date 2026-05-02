@@ -1,0 +1,277 @@
+reviewback_version: 1
+task_id: term-translation-phase
+review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.behavior.yaml
+viewpoint: behavior
+reviewer_agent: review_behavior
+review_status: no_issue
+must_fix_open: false
+max_level: none
+assessment:
+  behavior_match: >
+    修正後差分では、初回 Start 失敗時も phase 開始時 snapshot link を
+    recoverable_failed run に復元し、AI provider 由来の部分結果は rollback 後に残さない。
+    retry / resume は復元済み snapshot hit を再利用し、未処理 term だけを provider request
+    対象にする。retryable provider failure は recoverable_failed と retryable=true で
+    public command result に返り、non-retryable failure は failed と retryable=false に分岐する。
+    既存 open 指摘は解決済みで、挙動正しさ観点の未解決 must-fix はない。
+  evidence_sufficiency: >
+    十分。対象 YAML、implementation-scope、scenario-design、backend service / provider adapter /
+    usecase / controller、frontend contract / presenter / usecase、focused service test を確認した。
+    最終 harness / Sonar / Playwright 結果は implement_lane から受領した結果を根拠にした。
+checked_scope:
+  summary: >
+    既存 open 指摘 3 件と最新修正 4 件を中心に、term phase の snapshot 固定、
+    command 状態拒否、retryable / non-retryable failure 分岐、
+    provider / save failure の public command result 化を実コードで照合した。
+  files:
+    - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+      line: 27
+      symbol: Fixed Decisions / completion_signal
+      reason: Ready 条件、snapshot 固定、再開 / リトライ、error kind の正本条件を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+      line: 63
+      symbol: REQ-TTP-002 / SCN-TTP-006 / SCN-TTP-008
+      reason: snapshot 固定、失敗種別、retry / resume の期待挙動を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/ui-design.md
+      line: 10
+      symbol: UI Contract
+      reason: Job Run 表示、error summary、button enablement の挙動条件を確認した。
+    - path: tasks/usecases/term-translation-phase.yaml
+      line: 1
+      symbol: term-translation-phase
+      reason: usecase の目的と completion criteria を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 508
+      symbol: captureAttemptFailure
+      reason: transaction rollback 前の snapshot hit を failure persistence へ渡す経路を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 526
+      symbol: prepareExecutionPlan
+      reason: 新規 run と既存 run の snapshot 読み元、状態拒否、失敗 persistence を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 751
+      symbol: applyExecutionPlan
+      reason: snapshot hit 適用、AI target 作成、provider / save failure の返却経路を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1059
+      symbol: markPhaseRunFailure
+      reason: retryable failure と non-retryable failure の phase / job state 分岐を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 968
+      symbol: failProviderCandidate
+      reason: typed provider error から public error kind への写像を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1698
+      symbol: persistAttemptFailure / persistFailureSnapshots
+      reason: 初回 Start 失敗後に snapshot link だけを復元し、AI 部分結果を残さない経路を確認した。
+    - path: internal/service/term_translation_provider_adapter.go
+      line: 215
+      symbol: TranslateTerm
+      reason: invalid provider response の typed error 生成を確認した。
+    - path: internal/usecase/term_translation_phase_usecase.go
+      line: 137
+      symbol: toTermTranslationPhaseCommandResult
+      reason: service error summary が public seam へ維持されることを確認した。
+    - path: frontend/src/application/gateway-contract/term-translation-phase/term-translation-phase-gateway-contract.ts
+      line: 1
+      symbol: TermTranslationPhaseErrorKind
+      reason: frontend public contract が error kind を表現できることを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 512
+      symbol: TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurrentMasterDictionary
+      reason: 既存 snapshot link がある retry で現在の master dictionary を再読込しないことを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 561
+      symbol: TestTermTranslationPhaseServiceStartPhaseRetainsInitialSnapshotLinksAcrossProviderFailure
+      reason: 初回 Start 失敗後の snapshot link 復元、AI 部分結果なし、retry の未処理 term 限定を確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 754
+      symbol: TestTermTranslationPhaseServiceReturnsSaveFailedAndRollsBackPartialDictionaryState
+      reason: non-retryable save_failed が failed state になり、partial dictionary state を残さないことを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 784
+      symbol: TestTermTranslationPhaseServiceRetryPhaseRejectsNonRetryableFailureState
+      reason: non-retryable failed run が retryable=false で retry 拒否されることを確認した。
+unchecked_scope:
+  - target: full execution harness
+    reason: implement_lane の最終検証結果は受領済みで、review_behavior では harness を再実行していない。
+    risk: harness 全体の環境依存失敗は本 YAML では追加検証していない。
+  - target: desktop / mobile visual overflow
+    reason: 本レビューは挙動修正確認を主対象にし、追加スクリーンショット確認は行っていない。
+    risk: UI 表示崩れは別観点または人間確認に残る。
+issues:
+  - id: BEHAVIOR-TTP-001
+    level: critical
+    title: 初回失敗後の retry / resume で phase 開始時 snapshot hit が維持されない問題は解決済み
+    problem: >
+      旧差分では、初回 Start の同一 transaction 内で snapshot hit link を作成した後に
+      provider failure などが起きると、transaction rollback により snapshot link も消えていた。
+      修正後は `captureAttemptFailure` が `plan.SnapshotHits` を保持し、
+      `persistAttemptFailure` が failed run と snapshot link を復元する。
+      AI provider 由来の job dictionary entry と applied link は rollback 後に残さない。
+    reason: >
+      初回 provider failure 後も phase run には snapshot_hit link だけが残り、
+      retry はその snapshot hit を provider request へ戻さず、未処理 term だけを実行する。
+      共通辞書の後続変更を retry 対象へ混ぜないため、phase 開始時 snapshot 固定の期待挙動と一致する。
+    violated_condition: >
+      共通辞書完全一致の除外判定は phase 開始時 snapshot で固定され、
+      retry / resume では初回 snapshot hit を維持したまま未処理 term だけ進める。
+    cause_candidate: >
+      `captureAttemptFailure` が transaction rollback 前の snapshot hit を保持し、
+      `persistAttemptFailure` が別 transaction で failed run を再作成または再読込する。
+      `persistFailureSnapshots` は snapshot link だけを復元し、
+      `applySnapshotHits` と provider result で作られた job dictionary entry は rollback に委ねる。
+    evidence:
+      - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+        line: 28
+        excerpt: 共通辞書完全一致語は provider request へ送らず、phase 開始時 snapshot で除外判定を固定する。
+      - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+        line: 132
+        excerpt: 再開、リトライ、開始再送では既存 entry を維持して未処理 term だけ進める。
+      - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+        line: 327
+        excerpt: 再送、再開、リトライは同じ JOB_PHASE_RUN の状態を戻し、既存 entry を維持して未処理だけ進める。
+      - path: internal/service/term_translation_phase_service.go
+        line: 508
+        excerpt: "`captureAttemptFailure` は `plan.SnapshotHits` を clone して failure persistence へ渡す。"
+      - path: internal/service/term_translation_phase_service.go
+        line: 459
+        excerpt: transaction 後に `persistAttemptFailure` を呼び、provider failure を command result として返す。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1769
+        excerpt: "`persistMarkedAttemptFailure` は failure state 更新前に `persistFailureSnapshots` を実行する。"
+      - path: internal/service/term_translation_phase_service.go
+        line: 1787
+        excerpt: "`persistFailureSnapshots` は snapshot_hit link だけを復元する。"
+      - path: internal/service/term_translation_phase_service.go
+        line: 1172
+        excerpt: 既存 run の snapshot は PHASE_RUN_DICTIONARY_ENTRY の snapshot_hit link だけから復元される。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 561
+        excerpt: 初回 Start provider failure 後に snapshot link だけが残り、retry は残り AI target だけを翻訳する。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 651
+        excerpt: provider failure 後に job dictionary entry が残らないことを検証している。
+    local_fix_assessment: >
+      resolved。service 層と persistence 境界の局所修正で閉じている。
+      snapshot source の保持と AI 部分結果 rollback が同じ focused test で確認されている。
+    additional_check_scope: none
+    fix_considerations:
+      - snapshot 固定情報は retryable failure の run と一緒に観測可能である必要がある。
+      - 保存失敗時の partial job dictionary rollback と snapshot source の保持を混同しない必要がある。
+    verification:
+      current_result: verified_by_code_and_focused_test
+      reviewer_test: >
+        本レビューでは再実行していない。実コードと
+        `TestTermTranslationPhaseServiceStartPhaseRetainsInitialSnapshotLinksAcrossProviderFailure`
+        を確認し、implement_lane から `python3 scripts/harness/run.py --suite all` pass を受領した。
+      required: >
+        snapshot hit を含む初回 Start が provider failure で recoverable_failed になった後、
+        retry / resume が snapshot hit を provider request へ送らないことを確認する。
+    fix_required: true
+    status: resolved
+  - id: BEHAVIOR-TTP-002
+    level: major
+    title: Start / Resume / Retry の public command 状態拒否が解決済み
+    problem: >
+      旧差分では Start / Resume / Retry の public command が無効 state を成功扱いできた。
+      修正後は command mode ごとの rejection 関数が入り、Start は Ready 以外を拒否し、
+      Resume は paused または recoverable_failed 以外を拒否し、Retry は recoverable_failed 以外を拒否する。
+    reason: >
+      Wails public seam を UI bypass で直接呼んでも、無効 state では rejected command result を返し、
+      provider 実行や phase mutation へ進まないため、既存指摘の主要症状は解決している。
+    violated_condition: >
+      Ready job だけが start できる。resume は paused または recoverable failed の同じ phase run だけを対象にする。
+      retry は retryable failure の同じ phase run だけを対象にする。
+    cause_candidate: >
+      `rejectExecutionPlan` が `rejectStartExecutionPlan`、`rejectResumeExecutionPlan`、
+      `rejectRetryExecutionPlan` へ分割され、mode/state matrix を execution plan 作成前に評価するよう修正された。
+    evidence:
+      - path: internal/service/term_translation_phase_service.go
+        line: 594
+        excerpt: mode 別に Start / Resume / Retry の rejection 関数へ分岐している。
+      - path: internal/service/term_translation_phase_service.go
+        line: 612
+        excerpt: Start は job.State が ready でない場合に ready_required を返す。
+      - path: internal/service/term_translation_phase_service.go
+        line: 625
+        excerpt: Resume は同一 phase run かつ paused / recoverable_failed 以外を拒否する。
+      - path: internal/service/term_translation_phase_service.go
+        line: 639
+        excerpt: Retry は同一 phase run かつ recoverable_failed 以外を拒否する。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 700
+        excerpt: completed run がある non-ready job の Start を ready_required として検証している。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 716
+        excerpt: completed run の Resume を term_phase_incomplete として検証している。
+    local_fix_assessment: resolved
+    additional_check_scope: none
+    fix_considerations: >
+      今後 state を追加する場合も public command rejection と UI enablement の条件を分離して崩さない。
+    verification:
+      current_result: verified_by_code_and_focused_test
+      reviewer_test: >
+        実コードと focused service test を確認した。レビュー担当は再実行していない。
+    fix_required: true
+    status: resolved
+  - id: BEHAVIOR-TTP-003
+    level: major
+    title: invalid_provider_response / save_failed の public error kind 返却が解決済み
+    problem: >
+      旧差分では provider adapter 由来の typed invalid response が provider_failure に潰れ、
+      provider result 保存失敗が command result の save_failed にならなかった。
+      修正後は typed provider error を `errors.As` で読み、invalid response と provider failure を区別し、
+      provider / snapshot の保存失敗を `save_failed` の attempt failure として command result へ返す。
+    reason: >
+      scenario が要求する error kind、retryable flag、phase state を public seam で観測できる。
+      保存失敗は transaction rollback 後に failure state だけを永続化し、Go error として抜けずに command response を返す。
+    violated_condition: >
+      `invalid_provider_response` と `save_failed` を区別し、失敗時は error kind、retryable flag、
+      phase state、辞書未更新を確認できる。
+    cause_candidate: >
+      `failProviderCandidate` が `TermTranslationProviderError` を `errors.As` で扱うようになり、
+      `applySnapshotHits` と `applyProviderCandidate` の保存失敗が `newTermTranslationAttemptFailure(save_failed, ...)` を返すよう修正された。
+    evidence:
+      - path: internal/service/term_translation_provider_adapter.go
+        line: 279
+        excerpt: item 数不一致、source mismatch、空訳語を invalid_provider_response の typed error にする。
+      - path: internal/service/term_translation_phase_service.go
+        line: 968
+        excerpt: provider adapter の typed error を invalid_provider_response / provider_failure へ写像している。
+      - path: internal/service/term_translation_phase_service.go
+        line: 813
+        excerpt: snapshot hit の保存失敗を save_failed の attempt failure に変換している。
+      - path: internal/service/term_translation_phase_service.go
+        line: 945
+        excerpt: provider result の job dictionary 保存失敗を save_failed の attempt failure に変換している。
+      - path: internal/service/term_translation_phase_service.go
+        line: 458
+        excerpt: attempt failure は command result の error summary として返る。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 435
+        excerpt: invalid provider response の error summary を検証している。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 754
+        excerpt: save_failed command result と partial dictionary rollback を検証している。
+    local_fix_assessment: resolved
+    additional_check_scope: none
+    fix_considerations: >
+      新しい provider adapter failure kind を追加する場合も public error kind へ明示的に写像する。
+    verification:
+      current_result: verified_by_code_and_focused_test
+      reviewer_test: >
+        実コードと focused service test を確認した。レビュー担当は再実行していない。
+    fix_required: true
+    status: resolved
+forbidden_outputs:
+  tool_permission_changes: forbidden
+  agent_definition_changes: forbidden
+  product_code_change_instructions: forbidden
+  implementation_scope_commands: forbidden
+residual_risks:
+  - >
+    review_behavior は harness を再実行していない。最終検証は implement_lane から受領した
+    `python3 scripts/harness/run.py --suite all` pass、Playwright 5 passed、Sonar 指標を根拠にしている。
+  - >
+    UI の desktop / mobile 実画面は implement_lane の最終検証結果を根拠にし、review_behavior では追加視覚確認をしていない。

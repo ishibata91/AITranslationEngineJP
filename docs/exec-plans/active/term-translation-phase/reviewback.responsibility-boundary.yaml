@@ -1,0 +1,223 @@
+reviewback_version: 1
+task_id: term-translation-phase
+review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.responsibility-boundary.yaml
+viewpoint: responsibility-boundary
+reviewer_agent: review_responsibility_boundary
+review_status: no_issue
+must_fix_open: false
+max_level: none
+
+assessment:
+  responsibility_boundary: >
+    Bootstrap package から term translation provider adapter concrete は削除済みである。
+    internal/bootstrap/app_controller.go は concrete を生成し、controller / usecase / service / repository / provider を接続する composition root の責務に収まっている。
+    internal/service/term_translation_provider_adapter.go の provider 出力適合は service 側の provider-agnostic port adapter として許容できる。
+    frontend の production gateway / controller factory は frontend/src/main.ts で生成され、App.svelte は term phase の concrete を生成していない。
+    backend、usecase、service、infra、controller の責務境界に未解決の混在はない。
+  evidence_sufficiency: sufficient
+  summary: >
+    既存 open 指摘 RB-TTP-001 は解決済み。
+    RB-TTP-002 と RB-TTP-003 は前回同様に解決済み。
+    最終検証として all harness を再実行し、execution、system-test、coverage が通過した。
+    Sonar 指標は coverage 74.5%、line 75.7%、branch 64.4%、security 0、reliability 0、maintainability HIGH 0 である。
+
+checked_scope:
+  summary: >
+    agent / skill、architecture、coding guidelines、task artifacts、既存 reviewback、
+    git status、internal / frontend 差分、最終 harness 結果を責務境界観点で確認した。
+  files:
+    - path: .codex/agents/review_responsibility_boundary.toml
+      line: 1
+      symbol: review_responsibility_boundary
+      reason: agent 実行境界確認
+    - path: .codex/skills/codex-review-responsibility-boundary/SKILL.md
+      line: 1
+      symbol: codex-review-responsibility-boundary
+      reason: 責務境界レビュー規約確認
+    - path: docs/architecture.md
+      line: 31
+      symbol: 構造の主語
+      reason: frontend / backend の層責務確認
+    - path: docs/architecture.md
+      line: 55
+      symbol: システム全体の依存方向
+      reason: Bootstrap 以外の具象生成禁止を確認
+    - path: docs/architecture.md
+      line: 103
+      symbol: Backend Bootstrap
+      reason: backend composition root の責務確認
+    - path: docs/architecture.md
+      line: 140
+      symbol: Adapter 群
+      reason: adapter concrete 配置先確認
+    - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+      line: 33
+      symbol: Fixed Decisions
+      reason: backend / frontend / integration 境界確認
+    - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+      line: 143
+      symbol: backend-term-provider-adapter
+      reason: provider adapter handoff 境界確認
+    - path: internal/bootstrap/app_controller.go
+      line: 112
+      symbol: newAppControllerWithSeeds
+      reason: Bootstrap が provider adapter を持たず wiring に限定されることを確認
+    - path: internal/service/term_translation_provider_adapter.go
+      line: 42
+      symbol: TermTranslationProvider
+      reason: service 側 provider-agnostic port を確認
+    - path: internal/service/term_translation_provider_adapter.go
+      line: 146
+      symbol: NewTermTranslationProviderAdapter
+      reason: provider output 適合が service 境界の adapter として閉じていることを確認
+    - path: internal/infra/ai/provider_client.go
+      line: 96
+      symbol: ProviderClient.TranslateTerm
+      reason: provider concrete 呼び出しと response parse が infra 側に閉じていることを確認
+    - path: internal/infra/ai/term_translation.go
+      line: 17
+      symbol: TermTranslationResponse
+      reason: infra provider response shape と parse 境界を確認
+    - path: internal/usecase/term_translation_phase_usecase.go
+      line: 20
+      symbol: TermTranslationPhaseUsecase
+      reason: usecase が service port orchestration に限定されることを確認
+    - path: internal/controller/wails/term_translation_phase_controller.go
+      line: 11
+      symbol: TermTranslationPhaseUsecasePort
+      reason: controller が usecase port と DTO mapping に限定されることを確認
+    - path: frontend/src/main.ts
+      line: 17
+      symbol: termTranslationPhaseGateway
+      reason: frontend production gateway / controller factory 生成位置確認
+    - path: frontend/src/ui/App.svelte
+      line: 22
+      symbol: Props
+      reason: App.svelte が term phase concrete を生成していないことを確認
+    - path: frontend/src/controller/term-translation-phase/term-translation-phase-screen-controller-factory.ts
+      line: 38
+      symbol: createTermTranslationPhaseScreenControllerFactory
+      reason: screen local controller factory の責務確認
+    - path: frontend/src/controller/wails/term-translation-phase.gateway.ts
+      line: 94
+      symbol: TermTranslationPhaseGateway
+      reason: Wails binding adapter が gateway 境界に閉じていることを確認
+    - path: test-results/coverage-manifest.json
+      line: 11
+      symbol: sonar
+      reason: Sonar coverage と issue 指標確認
+
+unchecked_scope: []
+
+issues:
+  - id: RB-TTP-001
+    level: major
+    title: Bootstrap package の term translation provider adapter concrete は削除済みである
+    problem: >
+      以前の指摘では internal/bootstrap/term_translation_provider_adapter.go が provider client adapter concrete と response mapping を保持していた。
+      最新 working tree では同ファイルは存在せず、Bootstrap は service.NewTermTranslationProviderAdapter(aiProviderClient) を呼ぶ wiring に限定されている。
+    reason: >
+      architecture は internal/bootstrap を concrete 生成と手動 DI の composition root と定義する。
+      provider response parse は internal/infra/ai にあり、service 境界の provider-agnostic adapter は internal/service にある。
+      adapter concrete の配置先は architecture が許容する internal/service / internal/infra に収まっている。
+    violated_condition:
+      - resolved: "Bootstrap package は具象生成と wiring だけにする"
+      - resolved: "adapter concrete は internal/repository、internal/service、internal/infra に閉じ込める"
+      - resolved: "AIProvider / response adapter boundary は backend infra / provider 境界に置き、service は provider-agnostic contract だけを見る"
+    cause_candidate: >
+      provider client 型差分の吸収位置を Bootstrap から service provider adapter へ移したことで解消した。
+    evidence:
+      - path: internal/bootstrap
+        line: null
+        excerpt: term_translation_provider_adapter.go は存在しない。
+      - path: internal/bootstrap/app_controller.go
+        line: 112
+        excerpt: aiProviderClient を生成する。
+      - path: internal/bootstrap/app_controller.go
+        line: 113
+        excerpt: service.NewTermTranslationProviderAdapter(aiProviderClient) を生成し、Bootstrap 内で response mapping を行っていない。
+      - path: internal/bootstrap/app_controller.go
+        line: 148
+        excerpt: TermTranslationPhaseController へ usecase / service graph を接続している。
+      - path: internal/service/term_translation_provider_adapter.go
+        line: 42
+        excerpt: service 境界に provider-agnostic TermTranslationProvider port がある。
+      - path: internal/service/term_translation_provider_adapter.go
+        line: 146
+        excerpt: service 境界で provider adapter を生成する。
+      - path: internal/infra/ai/provider_client.go
+        line: 96
+        excerpt: infra の ProviderClient が provider request を送り、term response を parse する。
+    local_fix_assessment: resolved
+    additional_check_scope: none
+    fix_considerations:
+      - Bootstrap package に provider response mapping を戻さない。
+      - provider client 型差分の吸収位置を service adapter または infra に限定する。
+    verification:
+      - python3 scripts/harness/run.py --suite all
+    fix_required: true
+    status: resolved
+
+  - id: RB-TTP-002
+    level: major
+    title: Term phase の production gateway 生成は frontend bootstrap にある
+    problem: >
+      以前の指摘では term phase の production gateway / controller factory 生成が App.svelte 側にあった。
+      最新差分では term phase の Wails gateway と screen controller factory は frontend/src/main.ts で生成され、
+      App.svelte は注入された factory を AppShell へ渡すだけである。
+    reason: >
+      architecture が定義する frontend bootstrap は frontend/src/main.ts である。
+      最新差分では App.svelte が term phase の controller concrete や Wails gateway concrete を import していない。
+    violated_condition:
+      - resolved: "Frontend Bootstrap は frontend/src/main.ts"
+      - resolved: "View は backend DTO や generated binding を直接扱わない"
+    cause_candidate: >
+      production wiring を main.ts へ移し、App.svelte の term phase 依存を type と prop に限定したことで解消した。
+    evidence:
+      - path: frontend/src/main.ts
+        line: 17
+        excerpt: createTermTranslationPhaseGateway() が frontend bootstrap で呼ばれている。
+      - path: frontend/src/main.ts
+        line: 18
+        excerpt: createTermTranslationPhaseScreenControllerFactory() が frontend bootstrap で呼ばれている。
+      - path: frontend/src/ui/App.svelte
+        line: 4
+        excerpt: term phase は contract type import のみである。
+      - path: frontend/src/ui/App.svelte
+        line: 69
+        excerpt: 注入済み createTermTranslationPhaseScreenController を AppShell へ渡している。
+    local_fix_assessment: resolved
+    additional_check_scope: none
+    fix_considerations:
+      - term phase の production gateway 生成を App.svelte へ戻さない。
+      - 既存別画面の fallback wiring は本レビューの term phase 判定対象外である。
+    verification:
+      - python3 scripts/harness/run.py --suite all
+    fix_required: true
+    status: resolved
+
+  - id: RB-TTP-003
+    level: major
+    title: root 直下 untracked executable は存在しない
+    problem: >
+      以前の指摘では root 直下に untracked executable aitranslationenginejp が残っていた。
+      最新の git status --short では root 直下 executable は出ていない。
+    reason: >
+      レビュー対象差分に承認済み owned_scope 外の build artifact は含まれていない。
+      root 直下 executable が commit 候補へ混ざる責務境界問題は解消している。
+    violated_condition:
+      - resolved: "承認済み owned_scope 外の root executable を working tree に残さない"
+    cause_candidate: >
+      build artifact が working tree から除外または削除されたことで解消した。
+    evidence:
+      - path: git-status
+        line: null
+        excerpt: git status --short に root 直下 aitranslationenginejp は出ていない。
+    local_fix_assessment: resolved
+    additional_check_scope: none
+    fix_considerations:
+      - 最終 commit 前の git status で root 直下 artifact の再発を確認する。
+    verification:
+      - git status --short --untracked-files=all
+    fix_required: true
+    status: resolved

@@ -59,6 +59,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 `implement_lane` は 5 観点レビュー結果を集約し、`implementation_action` を決める。
 レビュー agent は自観点のゲート判断材料を `reviewback.<観点>.yaml` にだけ記録し、集約判断は行わない。
+レビュー agent は広い ハーネス 再実行の担当者ではない。
+`implement_lane` は レビュー agent 起動時に、呼び出し元が実行済みの 検証証跡 を起動入力へ明示する。
 
 優先度は次の順で固定する。
 
@@ -79,6 +81,16 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 `minor`、`nit` は修正推奨問題として扱い、単独では修正必須にしない。
 権限・信頼境界の `hard_gate: true` は他観点で相殺しない。
 
+検証証跡 は次をすべて含む。
+
+- 実行コマンド: 呼び出し元が実行した検証コマンド。
+- 証跡位置: 実行日時または run 内の証跡位置。
+- 成否: pass または fail。
+- coverage 値: coverage を測定した場合の値。
+- issue 数: security、reliability、maintainability の issue 数。
+- system test 件数: system test の実行件数、成功件数、失敗件数。
+- 失敗箇所: fail の場合に原因箇所または失敗した検証名。
+
 シナリオ 候補生成器は次の 6 体に固定する。
 
 | agent | 出力ファイル | 観点 |
@@ -97,6 +109,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
 - `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
 - レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダと、ワークフロー改善用 `review-reject-<観点>.yaml` の現行 run フォルダを確定する。
+- レビュー agent 起動入力には、最終検証、coverage、issue 数、system test 件数を含む 検証証跡 を明示する。
+- レビュー agent に広い ハーネス 再実行を期待しない。
 - レビュー agent の結果は `reviewback.<観点>.yaml` の `must_fix_open`、`max_level`、`review_status` から レビュー集約規約 の優先度で集約する。
 - `blocker`、`critical`、`major` の未解決指摘がある場合は `implementation_action` を `fix` または `rerun_codex_review` にする。
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
@@ -121,6 +135,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 人間向け返却: 人間向けには、成果物依存表 の現在 成果物、着手可能 成果物、停止中 成果物、停止理由を短く返す。
 - 起動先向け返却: 起動先 agent 向けには、対象 成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する 成果物 を渡す。
+- レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパス、差し戻しYAMLパスを渡す。
 - 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 を返す。
 
 ## 完了規約
@@ -136,6 +151,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を `require_escalated` 付きで実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を `require_escalated` 付きで実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - 最終検証として `python3 scripts/harness/run.py --suite all` を `require_escalated` 付きで実行し、失敗時は原因担当 agent がその場で直して再実行した通過結果または環境起因の未実行理由が確認されている。
+- レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
 
 ## 停止規約
@@ -145,5 +161,6 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
 - `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。
+- レビュー agent 起動入力に 検証証跡 が不足する場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
 - `作業レポート入力` または ベンチマーク根拠 が不足する場合は終了不可とする。

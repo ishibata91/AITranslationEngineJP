@@ -1,0 +1,46 @@
+rejects:
+  - reject_id: review_contract_2026-05-02_001
+    task_id: term-translation-phase
+    reviewer_agent: review_contract
+    review_status: issues_open
+    must_fix_open: true
+    max_level: major
+    issue_ids:
+      - CONTRACT-TTP-001
+    primary_viewpoint: contract_compatibility
+    summary: >
+      term phase command seam の状態前提と error kind の意味が frozen public contract と
+      一致していないため、実装後レビューの契約・互換性観点では未通過とした。
+    workflow_improvement:
+      observation: >
+        command enablement は UI だけでなく backend public method の拒否条件としても
+        contract_freeze 時点で table 化する必要がある。
+      cause_candidate: >
+        Start / Pause / Resume / Retry の button enablement と service command rejection が
+        別々に実装され、同じ contract source を共有していない。
+      next_prompt_consideration: >
+        implementation handoff には、各 command の allowed state、rejected state、
+        public error kind、retryable flag を acceptance test 名と一緒に渡す。
+  - reject_id: review_contract_2026-05-02_002
+    task_id: term-translation-phase
+    reviewer_agent: review_contract
+    review_status: issues_open
+    must_fix_open: true
+    max_level: major
+    issue_ids:
+      - CONTRACT-TTP-001
+    primary_viewpoint: contract
+    summary: >
+      修正後差分で Start、Pause、Resume の状態前提と error kind は改善された。
+      ただし Retry は retryable failure だけを対象にする public contract に対し、
+      save_failed など retryable=false の failure も recoverable_failed state として公開されるため未通過とした。
+    workflow_improvement:
+      observation: >
+        command seam は allowed state だけでなく、failure の retryable flag と
+        public phase state の対応も同じ contract table で固定する必要がある。
+      cause_candidate: >
+        service は retryability を phase run に独立保持せず、recoverable_failed state へ集約している。
+        そのため Retry command の拒否条件と summary の retryable flag が同じ public contract を共有できていない。
+      next_prompt_consideration: >
+        修正 handoff では、save_failed、invalid_provider_response、provider_failure の各 error kind ごとに、
+        phase state、retryable flag、RetryTermTranslationPhase の拒否または許可結果を明示する。

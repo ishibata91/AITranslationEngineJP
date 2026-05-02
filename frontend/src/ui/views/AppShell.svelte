@@ -3,10 +3,12 @@
 
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+  import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
+  import JobRunPage from "@ui/screens/job-run/JobRunPage.svelte"
   import JobSetupPage from "@ui/screens/translation-job-setup/JobSetupPage.svelte"
   import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
   import type {
@@ -23,6 +25,7 @@
     translationManagementViews: TranslationManagementViewContract[]
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
+    createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController | null
     createTranslationInputScreenController: CreateTranslationInputScreenController | null
   }
@@ -34,6 +37,7 @@
     translationManagementViews,
     createMasterDictionaryScreenController,
     createMasterPersonaScreenController,
+    createTermTranslationPhaseScreenController,
     createTranslationJobSetupScreenController,
     createTranslationInputScreenController
   }: Props = $props()
@@ -220,7 +224,7 @@
           <div class="section-head">
             <div>
               <p class="page-label">translation management sections</p>
-              <h2>Input Review / Job Setup</h2>
+              <h2>Input Review / Job Setup / Job Run</h2>
             </div>
           </div>
           <div class="section-tab-row" role="tablist" aria-label="Translation Management sections">
@@ -250,6 +254,12 @@
           <JobSetupPage
             createController={createTranslationJobSetupScreenController}
             onReturnToInputReview={openTranslationInputReview}
+          />
+        {/if}
+
+        {#if currentTranslationManagementViewId === "job-run"}
+          <JobRunPage
+            createController={createTermTranslationPhaseScreenController}
           />
         {/if}
       </section>

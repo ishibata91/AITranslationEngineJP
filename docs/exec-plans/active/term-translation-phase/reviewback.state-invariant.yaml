@@ -1,0 +1,314 @@
+reviewback_version: 1
+task_id: term-translation-phase
+review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.state-invariant.yaml
+viewpoint: state-invariant
+reviewer_agent: review_state_invariant
+review_status: no_issue
+must_fix_open: false
+max_level: none
+assessment:
+  invariant_maintenance: high
+  evidence_sufficiency: high
+  summary: >
+    既存 open 指摘 SI-001、SI-002、SI-003 は、最新 working tree で解決済みと判定する。
+    provider 失敗、invalid response、save failure は attempt transaction を error で
+    rollback した後に failure state だけを別 transaction で残す。後続 phase guard は
+    job 辞書全件数ではなく candidate coverage の confirmed count で判定する。
+    Pause と failure の helper 分割後も `TRANSLATION_JOB.state` は running を維持し、
+    中断、回復可能失敗、非 retryable failure は `JOB_PHASE_RUN.state` に閉じている。
+    呼び出し元の最終検証では `python3 scripts/harness/run.py --suite all` が
+    `All requested harness suites passed.` で完了し、system-test 5 件、coverage、
+    Sonar security 0 / reliability 0 / maintainability HIGH 0 が通過している。
+checked_scope:
+  summary: >
+    working tree の変更済みファイルと untracked 実装差分から、term translation phase の
+    transaction 境界、failure state 永続化、辞書 entry / phase link 反映、summary /
+    next phase readiness の candidate coverage 算出、Start / Pause / Resume / Retry の
+    phase/job state 更新、pause / recoverable failure / non-retryable failure の
+    focused test を確認した。
+  files:
+    - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+      line: 91
+      symbol: REQ-TTP-006 fixed_decisions
+      reason: job は Running のまま phase state で完了、中断、回復可能失敗、再実行準備を区別する不変条件を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+      line: 271
+      symbol: SCN-TTP-006
+      reason: provider failure / invalid response / save failure で partial dictionary state を残さない正本条件を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+      line: 295
+      symbol: SCN-TTP-007
+      reason: term phase 未完了、失敗、辞書参照不能では後続 phase を開始しない正本条件を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+      line: 129
+      symbol: backend-term-phase-state-dictionary completion_signal
+      reason: DICTIONARY_ENTRY と PHASE_RUN_DICTIONARY_ENTRY の atomic 反映、partial state 非成功扱い、後続 phase guard を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/ui-design.md
+      line: 24
+      symbol: button_enablement
+      reason: Job Run は job Running と phase state label の組み合わせで状態差分を見せる前提を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 442
+      symbol: TermTranslationPhaseService.executePhase
+      reason: attempt 失敗時に transaction rollback 後、persistAttemptFailure で failure state だけを残す境界を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 381
+      symbol: TermTranslationPhaseService.PausePhase
+      reason: pause 時に phase run を paused にし、translation job state は running のまま維持することを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 491
+      symbol: TermTranslationPhaseService.executePhaseTransaction
+      reason: applyExecutionPlan の attempt failure を error として transaction callback へ返すことを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 748
+      symbol: TermTranslationPhaseService.applyExecutionPlan
+      reason: snapshot hit と provider candidate 保存が同一 attempt transaction 内で実行されることを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 908
+      symbol: TermTranslationPhaseService.applyProviderCandidate
+      reason: provider failure と invalid response が attempt failure error へ変換されることを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1683
+      symbol: TermTranslationPhaseService.persistAttemptFailure
+      reason: rollback 後に phase run を再作成または既存 run を更新して failure state だけを永続化することを確認した。
+    - path: internal/repository/transactor_sqlite.go
+      line: 20
+      symbol: SQLiteTransactor.WithTransaction
+      reason: callback error で rollback、nil で commit する transaction 不変条件を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 261
+      symbol: TermTranslationPhaseService.ReadSummary
+      reason: summary の canStartNextPhase が result summary の candidate-specific confirmed count を使うことを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 416
+      symbol: TermTranslationPhaseService.ReadNextPhaseReadiness
+      reason: next phase readiness が summarizeConfirmedCandidates の confirmed count を使うことを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1194
+      symbol: summarizeConfirmedCandidates
+      reason: candidateKey(recordType, sourceTerm) に一致する job 辞書 entry だけを confirmed count に含めることを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1431
+      symbol: TermTranslationPhaseService.readinessFromState
+      reason: completed run かつ confirmedCount >= totalCount の場合だけ後続 phase 開始可にすることを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1069
+      symbol: TermTranslationPhaseService.markPhaseRunFailure
+      reason: retryable に応じて phase run state を recoverable_failed または failed に分岐することを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1084
+      symbol: TermTranslationPhaseService.markPhaseRunFailure
+      reason: failure 時に phase run state だけを recoverable_failed / failed に分岐し、translation job state は running のまま維持することを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 469
+      symbol: TestTermTranslationPhaseServicePausePhaseKeepsJobRunning
+      reason: pause 後も translation job state が running のまま残る focused test を確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 599
+      symbol: TestTermTranslationPhaseServiceStartPhaseRetainsInitialSnapshotLinksAcrossProviderFailure
+      reason: recoverable provider failure 後も snapshot link だけを維持し、translation job state が running のまま残る focused test を確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 781
+      symbol: TestTermTranslationPhaseServiceReturnsSaveFailedAndRollsBackPartialDictionaryState
+      reason: non-retryable save failure 後に job dictionary entry と phase link が残らず、translation job state が running のまま残る focused test を確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 837
+      symbol: assertTermTranslationJobStateRunning
+      reason: 更新後の translation job draft も running であることを検証する共通 assertion を確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 851
+      symbol: TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage
+      reason: 候補外 job dictionary entry が後続 phase guard を成立させない focused test を確認した。
+unchecked_scope:
+  - target: provider 2 件目だけ failure にした専用 API test
+    reason: save failure の rollback focused test と provider failure の共通 attempt failure 経路をコードで確認したが、provider failure だけの row count test は見つからない。
+    risk: low。provider failure、invalid response、save failure は同じ transaction error path で rollback されるため、未確認は回帰検出粒度に限られる。
+  - target: 実 DB を手動照会した DICTIONARY_ENTRY / PHASE_RUN_DICTIONARY_ENTRY row count
+    reason: service focused test と呼び出し元の final harness passed を確認材料にした。
+    risk: low。SQLiteTransactor と SQLite repository は ctx の transaction を共有している。
+issues:
+  - id: SI-001
+    level: major
+    title: provider 途中失敗で同一 attempt の辞書 partial state が commit されないこと
+    problem: >
+      旧指摘では、複数 AI 対象語の先行 candidate 保存後に後続 candidate が
+      provider failure または invalid response になると、先行保存分と failure state が
+      同じ transaction で commit される可能性があった。
+    reason: >
+      最新差分では applyExecutionPlan が provider failure、invalid response、save failure を
+      attempt failure error として返し、SQLiteTransactor は callback error で rollback する。
+      executePhase は rollback 後に persistAttemptFailure を別 transaction で実行し、
+      failed / retryable state だけを残す。
+    violated_condition: >
+      解決前に破られていた条件は、provider failure、invalid response、save failure で
+      failed / retryable state と辞書未更新を観測でき、partial dictionary state は残らないこと。
+      最新差分では条件を維持している。
+    cause_candidate: >
+      旧原因は recoverable failure を command response として返すために error を nil にし、
+      transaction rollback 条件と失敗 attempt の辞書反映禁止が分離していたこと。
+      最新差分では attempt failure を error path に戻し、failure state persistence を
+      rollback 後の局所処理へ分離している。
+    evidence:
+      - path: internal/service/term_translation_phase_service.go
+        line: 453
+        excerpt: executePhase は executePhaseTransaction を transactor.WithTransaction 内で実行する。
+      - path: internal/service/term_translation_phase_service.go
+        line: 491
+        excerpt: applyExecutionPlan が error を返すと captureAttemptFailure 後に error を transaction callback へ返す。
+      - path: internal/service/term_translation_phase_service.go
+        line: 793
+        excerpt: aiTargets は順番に applyProviderCandidate で保存され、途中失敗は error で抜ける。
+      - path: internal/service/term_translation_phase_service.go
+        line: 925
+        excerpt: provider failure は failProviderCandidate の attempt failure error になる。
+      - path: internal/service/term_translation_phase_service.go
+        line: 928
+        excerpt: invalid response は failInvalidProviderCandidate の attempt failure error になる。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1688
+        excerpt: rollback 後の failure state 永続化は別 WithTransaction で実行される。
+      - path: internal/repository/transactor_sqlite.go
+        line: 29
+        excerpt: transaction callback error は rollback され、nil の時だけ commit される。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 615
+        excerpt: save failure 後に job dictionary entry と phase link が 0 件であることを検証している。
+    local_fix_assessment: resolved_by_local_service_transaction_boundary
+    additional_check_scope: >
+      provider 2 件目だけ failure にした row count test を追加すると回帰検出は強くなる。
+      現在の判定では、同じ attempt failure error path と rollback test により open 指摘は解決済みと扱う。
+    fix_considerations: >
+      今後の変更では、recoverable failure を command response として返す場合でも、
+      attempt 内で作成した辞書 entry / phase link を commit しない境界を維持する必要がある。
+    verification:
+      status: verified
+      command: env GOCACHE=/private/tmp/aitranslationenginejp-go-cache go test ./internal/service -run 'TestTermTranslationPhaseServiceReturnsSaveFailedAndRollsBackPartialDictionaryState|TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage'
+      result: passed
+      final_validation_input: execution harness passed; system-test 5 tests passed; frontend tests 334 passed; coverage and Sonar gates passed.
+    fix_required: true
+    status: resolved
+
+  - id: SI-002
+    level: major
+    title: 後続 phase guard が candidate coverage で成立すること
+    problem: >
+      旧指摘では、next phase readiness と Job Run の canStartNextPhase が、
+      現在の候補語に対応する confirmed count ではなく job 内辞書全体の entry 数で
+      判定される可能性があった。
+    reason: >
+      最新差分では buildRunState が summarizeConfirmedCandidates で candidate-specific
+      confirmed count を作り、ReadSummary は resultSummary.ConfirmedCount を readiness に渡す。
+      ReadNextPhaseReadiness も buildRunState で得た confirmedTerms を
+      summarizeConfirmedCandidates に通し、候補外 entry を除外して readinessFromState を呼ぶ。
+    violated_condition: >
+      解決前に破られていた条件は、term phase 未完了、失敗、辞書参照不能では後続 phase run を
+      作成せず、完了時だけ後続 phase 入力 summary が成立すること。最新差分では
+      candidate coverage が不足する completed run も後続 phase 開始不可になる。
+    cause_candidate: >
+      旧原因は result summary 用 confirmedCount と readiness guard 用 confirmedCount が別経路になり、
+      readiness 側だけ len(confirmedTerms) を使っていたこと。最新差分では両方を
+      candidateKey(recordType, sourceTerm) に一致する confirmed count へ揃えている。
+    evidence:
+      - path: internal/service/term_translation_phase_service.go
+        line: 300
+        excerpt: ReadSummary は resultSummary.ConfirmedCount を readiness に渡す。
+      - path: internal/service/term_translation_phase_service.go
+        line: 425
+        excerpt: ReadNextPhaseReadiness は buildRunState から confirmedTerms と errorSummary を読む。
+      - path: internal/service/term_translation_phase_service.go
+        line: 429
+        excerpt: ReadNextPhaseReadiness は summarizeConfirmedCandidates の confirmed count を使う。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1194
+        excerpt: summarizeConfirmedCandidates は candidateKey 一致分だけ confirmedCount に含める。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1449
+        excerpt: readinessFromState は completed run かつ confirmedCount >= totalCount の場合だけ通す。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 645
+        excerpt: 候補外 entry があっても candidate coverage 不足なら CanStartNextPhase は false になる。
+    local_fix_assessment: resolved_by_local_readiness_coverage_alignment
+    additional_check_scope: >
+      job dictionary entry 削除または参照不能時の guard test は追加余地がある。
+      現在の open 指摘である候補外 entry による guard bypass は focused test で解決を確認した。
+    fix_considerations: >
+      今後の変更では、UI の canStartNextPhase、summary の unmatchedCount、
+      next phase readiness が同じ candidate coverage 値を使う必要がある。
+    verification:
+      status: verified
+      command: env GOCACHE=/private/tmp/aitranslationenginejp-go-cache go test ./internal/service -run 'TestTermTranslationPhaseServiceReturnsSaveFailedAndRollsBackPartialDictionaryState|TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage'
+      result: passed
+      final_validation_input: execution harness passed; system-test 5 tests passed; frontend tests 334 passed; coverage and Sonar gates passed.
+    fix_required: true
+    status: resolved
+
+  - id: SI-003
+    level: major
+    title: job state が phase state と二重に中断・失敗状態へ遷移する
+    problem: >
+      旧指摘では、task 正本が job を Running のまま維持し、単語翻訳フェーズの
+      完了、中断、回復可能失敗、再実行準備を phase state で区別すると固定しているのに、
+      PausePhase と markPhaseRunFailure が `TRANSLATION_JOB.state` も
+      paused / recoverable_failed / failed へ更新していた。
+    reason: >
+      最新差分では PausePhase が phase run を paused にする一方で job state を running に保つ。
+      markPhaseRunFailure も phase run state を recoverable_failed または failed にする一方で、
+      job state は running に保つ。pause、recoverable provider failure、non-retryable
+      save failure の focused test でも同じ不変条件を確認している。
+    violated_condition: >
+      解決前に破られていた条件は、job は Running のまま、単語翻訳フェーズ固有の
+      完了、中断、回復可能失敗、再実行準備を `JOB_PHASE_RUN.state` で区別すること。
+      最新差分では条件を維持している。
+    cause_candidate: >
+      旧原因は PausePhase と markPhaseRunFailure の helper が、phase run state の更新と
+      translation job aggregate state の更新を同じ状態語彙で結合していたこと。
+      最新差分では helper 内の UpdateTranslationJob が running を保持するよう揃っている。
+    evidence:
+      - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+        line: 91
+        excerpt: job は Running のまま phase state で完了、中断、回復可能失敗、再実行準備を区別すると固定している。
+      - path: docs/exec-plans/active/term-translation-phase/ui-design.md
+        line: 24
+        excerpt: Job Run の button enablement でも job Running と phase state の分離を前提にしている。
+      - path: internal/service/term_translation_phase_service.go
+        line: 381
+        excerpt: PausePhase は phase run を paused にした後、translation job state を running に更新する。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1084
+        excerpt: markPhaseRunFailure は phase run state を分岐した後、translation job state を running に更新する。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 469
+        excerpt: pause 後も translation job state running を assertion している。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 599
+        excerpt: provider failure 後も snapshot link だけを保持し、translation job state running を assertion している。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 799
+        excerpt: save_failed の failed phase state 後も translation job state running を assertion している。
+    local_fix_assessment: resolved_by_local_service_state_update_with_test_alignment
+    additional_check_scope: >
+      追加の open 確認範囲はない。Pause、recoverable provider failure、
+      non-retryable save failure の focused test で `TRANSLATION_JOB.state` が
+      running のまま残ることを確認した。
+    fix_considerations: >
+      今後の変更でも、phase-local failure と job terminal state を結合しない。
+      terminal job の開始拒否、term phase 未完了時の後続 phase 不可、partial dictionary rollback は維持する。
+    verification:
+      status: verified
+      command: env GOCACHE=/private/tmp/aitranslationenginejp-go-cache go test ./internal/service
+      result: passed
+      final_validation_input: >
+        呼び出し元検証で env GOCACHE=/private/tmp/aitranslationenginejp-go-cache
+        GOLANGCI_LINT_CACHE=/private/tmp/aitranslationenginejp-golangci-lint-cache
+        SONAR_USER_HOME=/private/tmp/aitranslationenginejp-sonar
+        python3 scripts/harness/run.py --suite all が
+        All requested harness suites passed. system-test 5 passed、
+        coverage 74.6%、line 75.8%、branch 64.4%、Sonar security 0、
+        reliability 0、maintainability HIGH 0。
+    fix_required: true
+    status: resolved
+forbidden_outputs:
+  tool_permission_changes: prohibited
+  agent_definition_changes: prohibited
+  product_code_change_instructions: prohibited
+  fix_scope_commands: prohibited

@@ -1,0 +1,41 @@
+import type {
+  GetTermTranslationNextPhaseReadinessRequest,
+  GetTermTranslationPhaseSummaryRequest,
+  PauseTermTranslationPhaseRequest,
+  ResumeTermTranslationPhaseRequest,
+  RetryTermTranslationPhaseRequest,
+  StartTermTranslationPhaseRequest,
+  TermTranslationNextPhaseReadinessResponse,
+  TermTranslationPhaseCommandResponse,
+  TermTranslationPhaseSummaryResponse
+} from "@application/gateway-contract/term-translation-phase"
+
+export type GetTermTranslationPhaseSummaryRequestDto =
+  GetTermTranslationPhaseSummaryRequest
+export type GetTermTranslationPhaseSummaryResponseDto =
+  TermTranslationPhaseSummaryResponse
+
+export type StartTermTranslationPhaseRequestDto =
+  StartTermTranslationPhaseRequest
+export type StartTermTranslationPhaseResponseDto =
+  TermTranslationPhaseCommandResponse
+
+export type PauseTermTranslationPhaseRequestDto =
+  PauseTermTranslationPhaseRequest
+export type PauseTermTranslationPhaseResponseDto =
+  TermTranslationPhaseCommandResponse
+
+export type ResumeTermTranslationPhaseRequestDto =
+  ResumeTermTranslationPhaseRequest
+export type ResumeTermTranslationPhaseResponseDto =
+  TermTranslationPhaseCommandResponse
+
+export type RetryTermTranslationPhaseRequestDto =
+  RetryTermTranslationPhaseRequest
+export type RetryTermTranslationPhaseResponseDto =
+  TermTranslationPhaseCommandResponse
+
+export type GetTermTranslationNextPhaseReadinessRequestDto =
+  GetTermTranslationNextPhaseReadinessRequest
+export type GetTermTranslationNextPhaseReadinessResponseDto =
+  TermTranslationNextPhaseReadinessResponse

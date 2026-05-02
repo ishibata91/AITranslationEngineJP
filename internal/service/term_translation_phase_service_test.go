@@ -1,0 +1,889 @@
+package service
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"strings"
+	"testing"
+	"time"
+
+	"aitranslationenginejp/internal/repository"
+)
+
+type fakeTermPhaseTransactor struct {
+	jobRepo    *fakeTermPhaseJobLifecycleRepository
+	foundation *fakeTermPhaseFoundationDataRepository
+}
+
+func (fake fakeTermPhaseTransactor) WithTransaction(ctx context.Context, fn func(context.Context) error) error {
+	if fake.jobRepo == nil && fake.foundation == nil {
+		return fn(ctx)
+	}
+	jobSnapshot := fake.jobRepo.clone()
+	foundationSnapshot := fake.foundation.clone()
+	err := fn(ctx)
+	if err != nil {
+		if fake.jobRepo != nil {
+			fake.jobRepo.restore(jobSnapshot)
+		}
+		if fake.foundation != nil {
+			fake.foundation.restore(foundationSnapshot)
+		}
+	}
+	return err
+}
+
+type fakeTermPhaseProvider struct {
+	translateFunc func(context.Context, TermTranslationProviderRequest) (TermTranslationProviderResult, error)
+}
+
+func (fake fakeTermPhaseProvider) TranslateTerm(ctx context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+	if fake.translateFunc != nil {
+		return fake.translateFunc(ctx, request)
+	}
+	return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+}
+
+func (fake fakeTermPhaseProvider) TermTranslationProviderRequestsAreTestSafe() bool {
+	return true
+}
+
+type fakeTermPhaseJobLifecycleRepository struct {
+	job                 repository.TranslationJob
+	run                 *repository.JobPhaseRun
+	phases              []repository.JobPhaseRun
+	updateJobDrafts     []repository.TranslationJobUpdateDraft
+	updatePhaseRunDraft []repository.JobPhaseRunUpdateDraft
+	phaseLinks          []repository.PhaseRunDictionaryEntry
+	nextPhaseRunID      int64
+	createLinkErr       error
+}
+
+func (fake *fakeTermPhaseJobLifecycleRepository) GetTranslationJobByID(context.Context, int64) (repository.TranslationJob, error) {
+	return fake.job, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) UpdateTranslationJob(_ context.Context, _ int64, draft repository.TranslationJobUpdateDraft) (repository.TranslationJob, error) {
+	fake.updateJobDrafts = append(fake.updateJobDrafts, draft)
+	fake.job.State = draft.State
+	fake.job.ProgressPercent = draft.ProgressPercent
+	fake.job.StartedAt = draft.StartedAt
+	fake.job.FinishedAt = draft.FinishedAt
+	return fake.job, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) CreateJobPhaseRun(_ context.Context, draft repository.JobPhaseRunDraft) (repository.JobPhaseRun, error) {
+	if fake.run != nil {
+		return repository.JobPhaseRun{}, repository.ErrConflict
+	}
+	fake.nextPhaseRunID++
+	run := repository.JobPhaseRun{
+		ID:               fake.nextPhaseRunID,
+		TranslationJobID: fake.job.ID,
+		PhaseType:        draft.PhaseType,
+		State:            draft.State,
+		ExecutionOrder:   draft.ExecutionOrder,
+		AIProvider:       draft.AIProvider,
+		ModelName:        draft.ModelName,
+		ExecutionMode:    draft.ExecutionMode,
+		CredentialRef:    draft.CredentialRef,
+		InstructionKind:  draft.InstructionKind,
+	}
+	fake.run = &run
+	return run, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) FindJobPhaseRun(context.Context, int64, string) (repository.JobPhaseRun, error) {
+	if fake.run == nil {
+		return repository.JobPhaseRun{}, repository.ErrNotFound
+	}
+	return *fake.run, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) UpdateJobPhaseRun(_ context.Context, _ int64, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error) {
+	if fake.run == nil {
+		return repository.JobPhaseRun{}, repository.ErrNotFound
+	}
+	fake.updatePhaseRunDraft = append(fake.updatePhaseRunDraft, draft)
+	fake.run.State = draft.State
+	fake.run.ProgressPercent = draft.ProgressPercent
+	fake.run.LatestError = draft.LatestError
+	fake.run.StartedAt = draft.StartedAt
+	fake.run.FinishedAt = draft.FinishedAt
+	return *fake.run, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) ListJobPhaseRunsByJobID(context.Context, int64) ([]repository.JobPhaseRun, error) {
+	if len(fake.phases) != 0 {
+		return fake.phases, nil
+	}
+	if fake.run != nil {
+		return []repository.JobPhaseRun{*fake.run}, nil
+	}
+	return nil, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) CreatePhaseRunDictionaryEntry(_ context.Context, draft repository.PhaseRunDictionaryEntryDraft) (repository.PhaseRunDictionaryEntry, error) {
+	if fake.createLinkErr != nil {
+		return repository.PhaseRunDictionaryEntry{}, fake.createLinkErr
+	}
+	for _, link := range fake.phaseLinks {
+		if link.PhaseRunID == draft.PhaseRunID && link.DictionaryEntryID == draft.DictionaryEntryID && link.Role == draft.Role {
+			return repository.PhaseRunDictionaryEntry{}, repository.ErrConflict
+		}
+	}
+	link := repository.PhaseRunDictionaryEntry{ID: int64(len(fake.phaseLinks) + 1), PhaseRunID: draft.PhaseRunID, DictionaryEntryID: draft.DictionaryEntryID, Role: draft.Role}
+	fake.phaseLinks = append(fake.phaseLinks, link)
+	return link, nil
+}
+
+func (fake *fakeTermPhaseJobLifecycleRepository) clone() *fakeTermPhaseJobLifecycleRepository {
+	if fake == nil {
+		return nil
+	}
+	cloned := *fake
+	cloned.phases = append([]repository.JobPhaseRun(nil), fake.phases...)
+	cloned.updateJobDrafts = append([]repository.TranslationJobUpdateDraft(nil), fake.updateJobDrafts...)
+	cloned.updatePhaseRunDraft = append([]repository.JobPhaseRunUpdateDraft(nil), fake.updatePhaseRunDraft...)
+	cloned.phaseLinks = append([]repository.PhaseRunDictionaryEntry(nil), fake.phaseLinks...)
+	if fake.run != nil {
+		runCopy := *fake.run
+		cloned.run = &runCopy
+	}
+	return &cloned
+}
+
+func (fake *fakeTermPhaseJobLifecycleRepository) restore(snapshot *fakeTermPhaseJobLifecycleRepository) {
+	if fake == nil || snapshot == nil {
+		return
+	}
+	*fake = *snapshot
+	if snapshot.run != nil {
+		runCopy := *snapshot.run
+		fake.run = &runCopy
+	}
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) ListPhaseRunDictionaryEntriesByPhaseRunID(_ context.Context, phaseRunID int64) ([]repository.PhaseRunDictionaryEntry, error) {
+	result := make([]repository.PhaseRunDictionaryEntry, 0)
+	for _, link := range fake.phaseLinks {
+		if link.PhaseRunID == phaseRunID {
+			result = append(result, link)
+		}
+	}
+	return result, nil
+}
+
+type fakeTermPhaseFoundationDataRepository struct {
+	entries           map[string]repository.DictionaryEntry
+	nextID            int64
+	createErrBySource map[string]error
+}
+
+func (fake *fakeTermPhaseFoundationDataRepository) key(jobID *int64, lifecycle string, scope string, sourceTerm string) string {
+	jobPart := "nil"
+	if jobID != nil {
+		jobPart = fmt.Sprintf("%d", *jobID)
+	}
+	return strings.ToLower(strings.TrimSpace(jobPart + "|" + lifecycle + "|" + scope + "|" + sourceTerm))
+}
+func (fake *fakeTermPhaseFoundationDataRepository) idKey(id int64) string {
+	return fmt.Sprintf("id:%d", id)
+}
+func (fake *fakeTermPhaseFoundationDataRepository) GetDictionaryEntryByID(_ context.Context, id int64) (repository.DictionaryEntry, error) {
+	entry, ok := fake.entries[fake.idKey(id)]
+	if !ok {
+		return repository.DictionaryEntry{}, repository.ErrNotFound
+	}
+	return entry, nil
+}
+func (fake *fakeTermPhaseFoundationDataRepository) CreateDictionaryEntry(_ context.Context, draft repository.DictionaryEntryDraft) (repository.DictionaryEntry, error) {
+	if err := fake.createErrBySource[strings.TrimSpace(draft.SourceTerm)]; err != nil {
+		return repository.DictionaryEntry{}, err
+	}
+	key := fake.key(draft.TranslationJobID, draft.DictionaryLifecycle, draft.DictionaryScope, draft.SourceTerm)
+	if _, ok := fake.entries[key]; ok {
+		return repository.DictionaryEntry{}, repository.ErrConflict
+	}
+	fake.nextID++
+	entry := repository.DictionaryEntry{
+		ID:                  fake.nextID,
+		TranslationJobID:    draft.TranslationJobID,
+		DictionaryLifecycle: draft.DictionaryLifecycle,
+		DictionaryScope:     draft.DictionaryScope,
+		DictionarySource:    draft.DictionarySource,
+		SourceTerm:          draft.SourceTerm,
+		TranslatedTerm:      draft.TranslatedTerm,
+		TermKind:            draft.TermKind,
+		Reusable:            draft.Reusable,
+		UpdatedAt:           time.Date(2026, 5, 1, 0, 0, int(fake.nextID), 0, time.UTC),
+	}
+	fake.entries[key] = entry
+	fake.entries[fake.idKey(entry.ID)] = entry
+	return entry, nil
+}
+
+func (fake *fakeTermPhaseFoundationDataRepository) clone() *fakeTermPhaseFoundationDataRepository {
+	if fake == nil {
+		return nil
+	}
+	cloned := &fakeTermPhaseFoundationDataRepository{
+		entries:           make(map[string]repository.DictionaryEntry, len(fake.entries)),
+		nextID:            fake.nextID,
+		createErrBySource: make(map[string]error, len(fake.createErrBySource)),
+	}
+	for key, entry := range fake.entries {
+		cloned.entries[key] = entry
+	}
+	for key, err := range fake.createErrBySource {
+		cloned.createErrBySource[key] = err
+	}
+	return cloned
+}
+
+func (fake *fakeTermPhaseFoundationDataRepository) restore(snapshot *fakeTermPhaseFoundationDataRepository) {
+	if fake == nil || snapshot == nil {
+		return
+	}
+	fake.entries = make(map[string]repository.DictionaryEntry, len(snapshot.entries))
+	for key, entry := range snapshot.entries {
+		fake.entries[key] = entry
+	}
+	fake.nextID = snapshot.nextID
+	fake.createErrBySource = make(map[string]error, len(snapshot.createErrBySource))
+	for key, err := range snapshot.createErrBySource {
+		fake.createErrBySource[key] = err
+	}
+}
+func (fake *fakeTermPhaseFoundationDataRepository) UpdateDictionaryEntry(context.Context, int64, repository.DictionaryEntryUpdateDraft) (repository.DictionaryEntry, error) {
+	return repository.DictionaryEntry{}, errors.New("not implemented")
+}
+func (fake *fakeTermPhaseFoundationDataRepository) ListDictionaryEntries(_ context.Context, translationJobID *int64, lifecycle string, scope string, sourceTerm string) ([]repository.DictionaryEntry, error) {
+	result := make([]repository.DictionaryEntry, 0)
+	for key, entry := range fake.entries {
+		if !shouldIncludeDictionaryEntry(key, entry, translationJobID, lifecycle, scope, sourceTerm) {
+			continue
+		}
+		result = append(result, entry)
+	}
+	return result, nil
+}
+
+func shouldIncludeDictionaryEntry(
+	key string,
+	entry repository.DictionaryEntry,
+	translationJobID *int64,
+	lifecycle string,
+	scope string,
+	sourceTerm string,
+) bool {
+	if strings.HasPrefix(key, "id:") {
+		return false
+	}
+	if !matchesTranslationJobID(entry, translationJobID) {
+		return false
+	}
+	if lifecycle != "" && entry.DictionaryLifecycle != lifecycle {
+		return false
+	}
+	if scope != "" && entry.DictionaryScope != scope {
+		return false
+	}
+	if sourceTerm != "" && entry.SourceTerm != sourceTerm {
+		return false
+	}
+	return true
+}
+
+func matchesTranslationJobID(entry repository.DictionaryEntry, translationJobID *int64) bool {
+	if translationJobID == nil {
+		return entry.TranslationJobID == nil
+	}
+	if entry.TranslationJobID == nil {
+		return false
+	}
+	return *entry.TranslationJobID == *translationJobID
+}
+func (fake *fakeTermPhaseFoundationDataRepository) FindDictionaryEntry(_ context.Context, translationJobID *int64, lifecycle string, scope string, sourceTerm string) (repository.DictionaryEntry, error) {
+	entry, ok := fake.entries[fake.key(translationJobID, lifecycle, scope, sourceTerm)]
+	if !ok {
+		return repository.DictionaryEntry{}, repository.ErrNotFound
+	}
+	return entry, nil
+}
+
+type fakeTermPhaseTranslationSourceRepository struct {
+	records []repository.TranslationRecord
+	fields  map[int64][]repository.TranslationField
+}
+
+func (fake fakeTermPhaseTranslationSourceRepository) GetXEditExtractedDataByID(context.Context, int64) (repository.XEditExtractedData, error) {
+	return repository.XEditExtractedData{ID: 1}, nil
+}
+func (fake fakeTermPhaseTranslationSourceRepository) ListTranslationRecordsByXEditID(context.Context, int64) ([]repository.TranslationRecord, error) {
+	return fake.records, nil
+}
+func (fake fakeTermPhaseTranslationSourceRepository) ListTranslationFieldsByTranslationRecordID(_ context.Context, recordID int64) ([]repository.TranslationField, error) {
+	return fake.fields[recordID], nil
+}
+
+func newTermTranslationPhaseServiceForTest(provider TermTranslationProvider) (*TermTranslationPhaseService, *fakeTermPhaseJobLifecycleRepository, *fakeTermPhaseFoundationDataRepository) {
+	jobRepo := &fakeTermPhaseJobLifecycleRepository{
+		job: repository.TranslationJob{ID: 1, XEditExtractedDataID: 1, JobName: "job-1", State: termTranslationJobStateReady},
+		phases: []repository.JobPhaseRun{{
+			ID:               100,
+			TranslationJobID: 1,
+			PhaseType:        termTranslationInitialPhaseType,
+			State:            termTranslationPhaseStateCompleted,
+			ExecutionMode:    "sync",
+			AIProvider:       TermTranslationProviderGemini,
+			ModelName:        "gemini-2.5-pro",
+			CredentialRef:    "gemini-primary",
+		}},
+		nextPhaseRunID: 200,
+	}
+	foundation := &fakeTermPhaseFoundationDataRepository{
+		entries:           map[string]repository.DictionaryEntry{},
+		createErrBySource: map[string]error{},
+	}
+	source := fakeTermPhaseTranslationSourceRepository{
+		records: []repository.TranslationRecord{{ID: 1, RecordType: "NPC_", XEditExtractedDataID: 1}},
+		fields: map[int64][]repository.TranslationField{
+			1: {
+				{ID: 11, TranslationRecordID: 1, SourceText: "Iron Sword"},
+				{ID: 12, TranslationRecordID: 1, SourceText: "Steel Sword"},
+			},
+		},
+	}
+	secretStore := repository.NewInMemorySecretStore()
+	if err := secretStore.Save(context.Background(), termTranslationProviderSecretKey(TermTranslationProviderGemini), "gemini-secret"); err != nil {
+		panic(err)
+	}
+	transactor := fakeTermPhaseTransactor{jobRepo: jobRepo, foundation: foundation}
+	service := NewTermTranslationPhaseService(jobRepo, foundation, source, transactor, secretStore, provider)
+	service.now = func() time.Time { return time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC) }
+	return service, jobRepo, foundation
+}
+
+func TestTermTranslationPhaseServiceReadSummaryCountsSnapshotHitsAndConfirmedTerms(t *testing.T) {
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{ID: 210, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateCompleted, ProgressPercent: 100}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	snapshot, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          "Iron Sword",
+		TranslatedTerm:      "鉄の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare snapshot entry: %v", err)
+	}
+	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		TranslationJobID:    int64Pointer(1),
+		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    termTranslationDictionarySourceSnapshot,
+		SourceTerm:          "Iron Sword",
+		TranslatedTerm:      "鉄の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare job snapshot entry: %v", err)
+	}
+	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		TranslationJobID:    int64Pointer(1),
+		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    termTranslationDictionarySourceProvider,
+		SourceTerm:          "Steel Sword",
+		TranslatedTerm:      "鋼の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare job provider entry: %v", err)
+	}
+	jobRepo.phaseLinks = append(jobRepo.phaseLinks, repository.PhaseRunDictionaryEntry{PhaseRunID: run.ID, DictionaryEntryID: snapshot.ID, Role: termTranslationLinkRoleSnapshot})
+
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success, got %v", err)
+	}
+	if summary.TotalTermCount != 2 || summary.DictionaryHitCount != 1 || summary.AITargetCount != 1 {
+		t.Fatalf("unexpected summary counts: %#v", summary)
+	}
+	if summary.ResultSummary == nil || summary.ResultSummary.ConfirmedCount != 2 {
+		t.Fatalf("expected confirmed count=2, got %#v", summary.ResultSummary)
+	}
+	if summary.Execution.SnapshotDigest == nil || summary.Execution.SnapshotVersion == nil {
+		t.Fatalf("expected snapshot metadata, got %#v", summary.Execution)
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseReturnsProviderFailureWhenProviderIsNil(t *testing.T) {
+	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected command response without transport error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != termTranslationErrorKindProviderFailure {
+		t.Fatalf("expected provider failure error summary, got %#v", result)
+	}
+	if result.PhaseState != termTranslationPhaseStateRecoverableFail {
+		t.Fatalf("expected recoverable failed phase state, got %#v", result)
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseReturnsInvalidProviderResponseWhenTranslationIsInvalid(t *testing.T) {
+	service, _, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(context.Context, TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			return TermTranslationProviderResult{SourceTerm: "different-source", TranslatedTerm: "訳語"}, nil
+		},
+	})
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected command response without transport error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != termTranslationErrorKindInvalidProvider {
+		t.Fatalf("expected invalid provider response error summary, got %#v", result)
+	}
+}
+
+func TestTermTranslationPhaseServicePausePhaseRejectsNonRunningPhase(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{ID: 300, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStatePaused}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	result, err := service.PausePhase(context.Background(), 1, 300)
+	if err != nil {
+		t.Fatalf("expected rejected command without transport error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "term_phase_incomplete" {
+		t.Fatalf("expected term_phase_incomplete rejection, got %#v", result)
+	}
+	if len(jobRepo.updateJobDrafts) != 0 || len(jobRepo.updatePhaseRunDraft) != 0 {
+		t.Fatalf("expected no persistence mutation on rejection, got job=%d phase=%d", len(jobRepo.updateJobDrafts), len(jobRepo.updatePhaseRunDraft))
+	}
+}
+
+func TestTermTranslationPhaseServicePausePhaseKeepsJobRunning(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	now := service.now()
+	run := repository.JobPhaseRun{
+		ID:               310,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStateRunning,
+		ProgressPercent:  42,
+		StartedAt:        &now,
+	}
+	jobRepo.job.State = termTranslationJobStateRunning
+	jobRepo.job.StartedAt = &now
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	result, err := service.PausePhase(context.Background(), 1, run.ID)
+	if err != nil {
+		t.Fatalf("expected pause success, got %v", err)
+	}
+	if result.PhaseState != termTranslationPhaseStatePaused {
+		t.Fatalf("expected paused phase state, got %#v", result)
+	}
+	assertTermTranslationJobStateRunning(t, jobRepo)
+}
+
+func TestTermTranslationPhaseServiceRetryPhaseCompletesWhenSnapshotAlreadyConfirmsAllTerms(t *testing.T) {
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{ID: 320, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateRecoverableFail, ProgressPercent: 10}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	masterEntry, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          "Iron Sword",
+		TranslatedTerm:      "鉄の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare snapshot master entry: %v", err)
+	}
+	secondMasterEntry, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          "Steel Sword",
+		TranslatedTerm:      "鋼の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare snapshot master entry 2: %v", err)
+	}
+	jobRepo.phaseLinks = append(jobRepo.phaseLinks, repository.PhaseRunDictionaryEntry{PhaseRunID: run.ID, DictionaryEntryID: masterEntry.ID, Role: termTranslationLinkRoleSnapshot})
+	jobRepo.phaseLinks = append(jobRepo.phaseLinks, repository.PhaseRunDictionaryEntry{PhaseRunID: run.ID, DictionaryEntryID: secondMasterEntry.ID, Role: termTranslationLinkRoleSnapshot})
+
+	result, err := service.RetryPhase(context.Background(), 1, 320)
+	if err != nil {
+		t.Fatalf("expected retry success, got %v", err)
+	}
+	if result.PhaseState != termTranslationPhaseStateCompleted || !result.CanStartNextPhase {
+		t.Fatalf("expected completed retry result, got %#v", result)
+	}
+	if result.ErrorSummary != nil {
+		t.Fatalf("expected nil error summary, got %#v", result.ErrorSummary)
+	}
+}
+
+func TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurrentMasterDictionary(t *testing.T) {
+	capturedSources := make([]string, 0)
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			capturedSources = append(capturedSources, request.SourceTerm)
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+	run := repository.JobPhaseRun{ID: 330, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateRecoverableFail}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	snapshot, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          "Iron Sword",
+		TranslatedTerm:      "鉄の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare persisted snapshot entry: %v", err)
+	}
+	jobRepo.phaseLinks = append(jobRepo.phaseLinks, repository.PhaseRunDictionaryEntry{PhaseRunID: run.ID, DictionaryEntryID: snapshot.ID, Role: termTranslationLinkRoleSnapshot})
+
+	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          "Steel Sword",
+		TranslatedTerm:      "鋼の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare current master entry: %v", err)
+	}
+
+	result, err := service.RetryPhase(context.Background(), 1, run.ID)
+	if err != nil {
+		t.Fatalf("expected retry success, got %v", err)
+	}
+	if result.PhaseState != termTranslationPhaseStateCompleted {
+		t.Fatalf("expected completed retry, got %#v", result)
+	}
+	if len(capturedSources) != 1 || capturedSources[0] != "Steel Sword" {
+		t.Fatalf("expected retry to translate only non-snapshot term, got %#v", capturedSources)
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseRetainsInitialSnapshotLinksAcrossProviderFailure(t *testing.T) {
+	capturedSources := make([]string, 0)
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(
+		termTranslationProviderFailsOnceForSteelSword(&capturedSources),
+	)
+
+	snapshot := createTermTranslationSnapshotEntry(t, foundation, "Iron Sword", "鉄の剣")
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected provider failure command result, got %v", err)
+	}
+	assertTermTranslationFailedStartPreservesSnapshot(t, foundation, jobRepo, result, snapshot.ID)
+	assertTermTranslationJobStateRunning(t, jobRepo)
+	addTermTranslationMasterEntryAfterFailedStart(t, foundation, "Steel Sword", "鋼の剣")
+
+	capturedSources = capturedSources[:0]
+	result, err = service.RetryPhase(context.Background(), 1, *result.PhaseRunID)
+	if err != nil {
+		t.Fatalf("expected retry success, got %v", err)
+	}
+	assertTermTranslationRetryUsesRemainingAITarget(t, result, capturedSources, "Steel Sword")
+}
+
+func termTranslationProviderFailsOnceForSteelSword(capturedSources *[]string) fakeTermPhaseProvider {
+	failuresBySource := map[string]int{}
+	return fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			*capturedSources = append(*capturedSources, request.SourceTerm)
+			if request.SourceTerm == "Steel Sword" && failuresBySource[request.SourceTerm] == 0 {
+				failuresBySource[request.SourceTerm]++
+				return TermTranslationProviderResult{}, NewTermTranslationProviderError(
+					TermTranslationProviderErrorKindProviderFailure,
+					"provider request failed",
+					true,
+					errors.New("upstream timeout"),
+				)
+			}
+			return TermTranslationProviderResult{
+				SourceTerm:     request.SourceTerm,
+				TranslatedTerm: request.SourceTerm + "_ja",
+			}, nil
+		},
+	}
+}
+
+func createTermTranslationSnapshotEntry(
+	t *testing.T,
+	foundation *fakeTermPhaseFoundationDataRepository,
+	sourceTerm string,
+	translatedTerm string,
+) repository.DictionaryEntry {
+	t.Helper()
+	snapshot, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          sourceTerm,
+		TranslatedTerm:      translatedTerm,
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare persisted snapshot entry: %v", err)
+	}
+	return snapshot
+}
+
+func assertTermTranslationFailedStartPreservesSnapshot(
+	t *testing.T,
+	foundation *fakeTermPhaseFoundationDataRepository,
+	jobRepo *fakeTermPhaseJobLifecycleRepository,
+	result TermTranslationPhaseCommandReadModel,
+	snapshotID int64,
+) {
+	t.Helper()
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != termTranslationErrorKindProviderFailure {
+		t.Fatalf("expected provider failure, got %#v", result)
+	}
+	if result.PhaseRunID == nil {
+		t.Fatalf("expected recreated phase run id, got %#v", result)
+	}
+	if len(jobRepo.phaseLinks) != 1 {
+		t.Fatalf("expected one persisted snapshot link, got %#v", jobRepo.phaseLinks)
+	}
+	link := jobRepo.phaseLinks[0]
+	if link.DictionaryEntryID != snapshotID || link.Role != termTranslationLinkRoleSnapshot {
+		t.Fatalf("expected persisted snapshot link only, got %#v", jobRepo.phaseLinks)
+	}
+	assertNoTermTranslationJobEntries(t, foundation)
+}
+
+func assertNoTermTranslationJobEntries(
+	t *testing.T,
+	foundation *fakeTermPhaseFoundationDataRepository,
+) {
+	t.Helper()
+	jobEntries, loadErr := foundation.ListDictionaryEntries(context.Background(), int64Pointer(1), termTranslationDictionaryLifecycleJob, "", "")
+	if loadErr != nil {
+		t.Fatalf("load job dictionary entries: %v", loadErr)
+	}
+	if len(jobEntries) != 0 {
+		t.Fatalf("expected provider failure to leave no job dictionary entries, got %#v", jobEntries)
+	}
+}
+
+func addTermTranslationMasterEntryAfterFailedStart(
+	t *testing.T,
+	foundation *fakeTermPhaseFoundationDataRepository,
+	sourceTerm string,
+	translatedTerm string,
+) {
+	t.Helper()
+	_, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    "seed",
+		SourceTerm:          sourceTerm,
+		TranslatedTerm:      translatedTerm,
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare new master entry after failed start: %v", err)
+	}
+}
+
+func assertTermTranslationRetryUsesRemainingAITarget(
+	t *testing.T,
+	result TermTranslationPhaseCommandReadModel,
+	capturedSources []string,
+	expectedSource string,
+) {
+	t.Helper()
+	if result.PhaseState != termTranslationPhaseStateCompleted {
+		t.Fatalf("expected completed retry, got %#v", result)
+	}
+	if len(capturedSources) != 1 || capturedSources[0] != expectedSource {
+		t.Fatalf("expected retry to preserve initial snapshot and translate only remaining term, got %#v", capturedSources)
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseRejectsNonReadyJobWithCompletedRun(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.job.State = termTranslationJobStateRunning
+	run := repository.JobPhaseRun{ID: 340, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateCompleted}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected rejected start without transport error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "ready_required" {
+		t.Fatalf("expected ready_required rejection, got %#v", result)
+	}
+}
+
+func TestTermTranslationPhaseServiceResumePhaseRejectsNonResumableState(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{ID: 350, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateCompleted}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	result, err := service.ResumePhase(context.Background(), 1, run.ID)
+	if err != nil {
+		t.Fatalf("expected rejected resume without transport error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "term_phase_incomplete" {
+		t.Fatalf("expected term_phase_incomplete rejection, got %#v", result)
+	}
+}
+
+func TestTermTranslationPhaseServiceUsesSecretStoreValueInsteadOfCredentialRef(t *testing.T) {
+	capturedAPIKeys := make([]string, 0)
+	service, _, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			capturedAPIKeys = append(capturedAPIKeys, request.APIKey)
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success, got %v", err)
+	}
+	if len(capturedAPIKeys) == 0 {
+		t.Fatal("expected provider request capture")
+	}
+	for _, apiKey := range capturedAPIKeys {
+		if apiKey != "gemini-secret" {
+			t.Fatalf("expected provider auth to use secret store value, got %#v", capturedAPIKeys)
+		}
+	}
+}
+
+func TestTermTranslationPhaseServiceReturnsSaveFailedAndRollsBackPartialDictionaryState(t *testing.T) {
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+	foundation.createErrBySource["Steel Sword"] = errors.New("disk full")
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected save failure command result, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != termTranslationErrorKindSaveFailed {
+		t.Fatalf("expected save_failed error summary, got %#v", result)
+	}
+	if result.PhaseState != termTranslationPhaseStateFailed {
+		t.Fatalf("expected failed phase state, got %#v", result)
+	}
+	assertTermTranslationJobStateRunning(t, jobRepo)
+	jobEntries, loadErr := foundation.ListDictionaryEntries(context.Background(), int64Pointer(1), termTranslationDictionaryLifecycleJob, "", "")
+	if loadErr != nil {
+		t.Fatalf("load job dictionary entries: %v", loadErr)
+	}
+	if len(jobEntries) != 0 {
+		t.Fatalf("expected failed attempt to leave no job dictionary entries, got %#v", jobEntries)
+	}
+	if len(jobRepo.phaseLinks) != 0 {
+		t.Fatalf("expected failed attempt to leave no phase links, got %#v", jobRepo.phaseLinks)
+	}
+}
+
+func TestTermTranslationPhaseServiceRetryPhaseRejectsNonRetryableFailureState(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{
+		ID:               370,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStateFailed,
+		LatestError:      termTranslationErrorKindSaveFailed,
+	}
+	jobRepo.job.State = termTranslationJobStateRunning
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	result, err := service.RetryPhase(context.Background(), 1, run.ID)
+	if err != nil {
+		t.Fatalf("expected rejected retry without transport error, got %v", err)
+	}
+	if result.Retryable {
+		t.Fatalf("expected retryable=false, got %#v", result)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "term_phase_incomplete" {
+		t.Fatalf("expected term_phase_incomplete rejection for failed run, got %#v", result)
+	}
+}
+
+func assertTermTranslationJobStateRunning(t *testing.T, jobRepo *fakeTermPhaseJobLifecycleRepository) {
+	t.Helper()
+	if jobRepo.job.State != termTranslationJobStateRunning {
+		t.Fatalf("expected translation job state running, got %q", jobRepo.job.State)
+	}
+	if len(jobRepo.updateJobDrafts) == 0 {
+		t.Fatal("expected translation job update draft")
+	}
+	lastDraft := jobRepo.updateJobDrafts[len(jobRepo.updateJobDrafts)-1]
+	if lastDraft.State != termTranslationJobStateRunning {
+		t.Fatalf("expected last translation job draft state running, got %#v", lastDraft)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(t *testing.T) {
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{ID: 360, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateCompleted, ProgressPercent: 100}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	_, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		TranslationJobID:    int64Pointer(1),
+		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
+		DictionaryScope:     "MISC",
+		DictionarySource:    termTranslationDictionarySourceProvider,
+		SourceTerm:          "Unrelated Term",
+		TranslatedTerm:      "無関係",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare unrelated job entry: %v", err)
+	}
+	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
+		TranslationJobID:    int64Pointer(1),
+		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
+		DictionaryScope:     "NPC_",
+		DictionarySource:    termTranslationDictionarySourceProvider,
+		SourceTerm:          "Iron Sword",
+		TranslatedTerm:      "鉄の剣",
+		Reusable:            true,
+	})
+	if err != nil {
+		t.Fatalf("prepare matched job entry: %v", err)
+	}
+
+	readiness, err := service.ReadNextPhaseReadiness(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected readiness load success, got %v", err)
+	}
+	if readiness.CanStartNextPhase {
+		t.Fatalf("expected candidate coverage guard to remain false, got %#v", readiness)
+	}
+}

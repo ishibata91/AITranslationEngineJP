@@ -57,7 +57,8 @@ func newAppControllerWithSeeds(
 		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
 		panic(fmt.Errorf("open sqlite foundation data database: %w", err))
 	}
-	foundationDataPort := service.NewSQLiteFoundationDataPort(repository.NewSQLiteFoundationDataRepository(foundationDataDB))
+	foundationDataRepository := repository.NewSQLiteFoundationDataRepository(foundationDataDB)
+	foundationDataPort := service.NewSQLiteFoundationDataPort(foundationDataRepository)
 	translationSourceRepository := repository.NewSQLiteTranslationSourceRepository(foundationDataDB)
 	jobLifecycleRepository := repository.NewSQLiteJobLifecycleRepository(foundationDataDB)
 	foundationTransactor := repository.NewSQLiteTransactor(foundationDataDB)
@@ -109,6 +110,7 @@ func newAppControllerWithSeeds(
 	masterPersonaQueryService := service.NewMasterPersonaQueryService(masterPersonaRepositories.EntryRepository)
 	masterPersonaTestModeEnabled := masterPersonaTestMode()
 	aiProviderClient := newAIProviderClientFromMasterPersonaEnv()
+	termTranslationProvider := service.NewTermTranslationProviderAdapter(aiProviderClient)
 	masterPersonaTransactor := repository.NewSQLiteTransactor(masterPersonaRepositories.Database())
 	masterPersonaServiceOptions := []service.MasterPersonaGenerationServiceOption{
 		service.WithMasterPersonaBodyGenerator(masterPersonaBodyGenerator{client: aiProviderClient}),
@@ -143,6 +145,18 @@ func newAppControllerWithSeeds(
 			service.WithTranslationJobSetupProviderReachabilityTransport(&http.Client{Timeout: 5 * time.Second}),
 		)),
 	)
+	termTranslationPhaseController := controllerwails.NewTermTranslationPhaseController(
+		usecase.NewTermTranslationPhaseUsecase(
+			service.NewTermTranslationPhaseService(
+				jobLifecycleRepository,
+				foundationDataRepository,
+				translationSourceRepository,
+				foundationTransactor,
+				masterPersonaSecretStore,
+				termTranslationProvider,
+			),
+		),
+	)
 
 	appController := controllerwails.NewAppController(
 		masterDictionaryController,
@@ -165,6 +179,7 @@ func newAppControllerWithSeeds(
 	)
 	appController.TranslationInputController = translationInputController
 	appController.TranslationJobSetupController = translationJobSetupController
+	appController.TermTranslationPhaseController = termTranslationPhaseController
 	return appController
 }
 

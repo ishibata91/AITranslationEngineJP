@@ -37,7 +37,15 @@ backend と test の規約は別文書を正本にする。
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接参照しない
 - user-facing message と internal diagnostic を分ける
 
-## 5. UX 一般規約
+## 5. production wiring の配置責務
+
+- production gateway、controller factory、外部 adapter の生成は composition root に置く
+- View component は production wiring を作らない
+- View component は受け取った controller、usecase、store、props だけを使う
+- 既存 fallback wiring がある場合でも、新規機能で View に production dependency 生成を増やす実装は避ける
+- responsibility-boundary review では、production wiring が composition root に寄っているかを確認する
+
+## 6. UX 一般規約
 
 - 主要操作はユーザーの作業順に沿って配置し、確認、実行、取消、戻るの意味を混同させない
 - ボタンは操作の重要度に応じて primary、secondary、danger を使い分け、破壊的操作は誤操作を避ける配置にする
@@ -46,14 +54,15 @@ backend と test の規約は別文書を正本にする。
 - 同じ画面内では用語、ボタン文言、並び順、余白、入力単位を一貫させる
 - design にない機能追加や装飾追加ではなく、承認済み UI 要件を分かりやすく使える形で実装する
 
-## 6. 禁止事項
+## 7. 禁止事項
 
 - generated file を hand-edit する実装
 - UI へ内部診断や機密値を無加工で出す実装
 - 無検証の `any`、type assertion、暗黙変換へ依存する実装
+- View component で production gateway、controller factory、外部 adapter を生成する実装
 - design にない表示改善や導線変更を実装判断だけで追加する実装
 
-## 7. 参照元
+## 8. 参照元
 
 - Svelte official docs:
   [`Svelte 5 Migration Guide`](https://svelte.dev/docs/svelte/v5-migration-guide),

@@ -4,8 +4,9 @@
 
 - `run_folder`: `work_history/runs/YYYY-MM-DD-<task-id>-run/`
 - `codex_report`: `./codex.md`
-- `copilot_report`: `./copilot.md`
-- `cross_role_summary`: `./README.md`
+- `run_summary`: `./README.md`
+- `benchmark_score`: `./analysis/benchmark-score.json`
+- `transcript_refs`: `./transcript_refs.json`
 - `do_not_write_to`: `docs/exec-plans/`, `.codex/history/`, handoff file
 
 ## Run Metadata
@@ -36,7 +37,7 @@
 - `benchmark_score`: `./analysis/benchmark-score.json`
 - `transcript_refs`: `./transcript_refs.json`
 - `transcript_status`: `<available / partial / missing>`
-- `runtime_scope`: `codex / copilot`
+- `runtime_scope`: `<codex / 不明>`
 - `session_scope`: `<session-id list or 不明>`
 - `transcript_gap`: `<次回改善 finding or なし>`
 
@@ -59,16 +60,14 @@
 - `benchmark_use`: `次回改善用。初期 close 判定には使わない。`
 - `idle_gap_use`: `長い待機は evidence に残すが、score には入れない。`
 
-## Role Reports
+## Reports
 
 - `Codex`: `./codex.md`
-- `Copilot`: `./copilot.md`
 - `Codex status`: `<completed / partial / not-run>`
-- `Copilot status`: `<completed / partial / not-run>`
 
-## Cross-Role Findings
+## Findings
 
-- `改善すべきこと`: `<両役割を見て改善すべき運用>`
+- `改善すべきこと`: `<次回 run で改善すべき運用>`
 - `時間がかかったこと`: `<設計、handoff、実装、検証の遅延要因>`
 - `無駄だったこと`: `<重複作業、不要な調査、不要な再実行>`
 - `困ったこと`: `<役割境界、前提、tool、情報不足>`

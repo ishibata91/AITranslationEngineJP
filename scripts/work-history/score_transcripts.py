@@ -8,8 +8,10 @@ from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
+from zoneinfo import ZoneInfo
 
 DEFAULT_OUTPUT_ROOT = Path("work_history/runs")
+DEFAULT_RUN_TIMEZONE = "Asia/Tokyo"
 ANALYSIS_DIR_NAME = "analysis"
 SCORE_JSON_NAME = "benchmark-score.json"
 TRANSCRIPT_REFS_NAME = "transcript_refs.json"
@@ -55,6 +57,11 @@ def parse_timestamp(value: Any) -> datetime | None:
     if parsed.tzinfo is None:
         return parsed.replace(tzinfo=UTC)
     return parsed.astimezone(UTC)
+
+
+def run_date(value: str | None) -> str:
+    timestamp = parse_timestamp(value) or datetime.now(UTC)
+    return timestamp.astimezone(ZoneInfo(DEFAULT_RUN_TIMEZONE)).date().isoformat()
 
 
 def format_timestamp(value: datetime | None) -> str | None:
@@ -295,10 +302,11 @@ def extract_codex(ref: TranscriptRef, long_idle_ms: int) -> tuple[dict[str, Any]
                 key = ("user", format_timestamp(timestamp), text)
                 if text and is_human_prompt(text) and key not in seen_messages:
                     seen_messages.add(key)
+                    is_first_human_prompt = not first_user_prompt
                     metrics["user_turns"] += 1
                     if not first_user_prompt:
                         first_user_prompt = text
-                    if any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
+                    if not is_first_human_prompt and any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
                         metrics["user_corrections"] += 1
                         evidence_refs["user_corrections"].append(evidence(path, line_number, timestamp, text))
             elif payload_type == "agent_message":
@@ -328,10 +336,11 @@ def extract_codex(ref: TranscriptRef, long_idle_ms: int) -> tuple[dict[str, Any]
                 key = ("user", format_timestamp(timestamp), text)
                 if text and is_human_prompt(text) and key not in seen_messages:
                     seen_messages.add(key)
+                    is_first_human_prompt = not first_user_prompt
                     metrics["user_turns"] += 1
                     if not first_user_prompt:
                         first_user_prompt = text
-                    if any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
+                    if not is_first_human_prompt and any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
                         metrics["user_corrections"] += 1
                         evidence_refs["user_corrections"].append(evidence(path, line_number, timestamp, text))
             elif payload_type == "message" and role == "assistant":
@@ -353,122 +362,6 @@ def extract_codex(ref: TranscriptRef, long_idle_ms: int) -> tuple[dict[str, Any]
                 if is_nonzero_tool_result(text):
                     metrics["nonzero_tool_results"] += 1
                     evidence_refs["nonzero_tool_results"].append(evidence(path, line_number, timestamp, text))
-
-    metrics["long_idle_gaps"], evidence_refs["long_idle_gaps"] = collect_idle_gaps(timestamps, long_idle_ms)
-    repeated = [(command, count) for command, count in commands.items() if count > 1]
-    metrics["repeated_tool_commands"] = sum(count - 1 for _, count in repeated)
-    for command, count in sorted(repeated, key=lambda item: item[1], reverse=True)[:20]:
-        evidence_refs["repeated_tool_commands"].append({"count": count, "command_excerpt": truncate_text(command)})
-
-    session = build_session(ref.runtime, session_id, path, started_at, ended_at)
-    metrics["duration_ms_total"] = session["duration_ms"]
-    metrics["active_duration_ms_total"] = active_duration_ms(session["duration_ms"], evidence_refs["long_idle_gaps"])
-    return session, metrics, evidence_refs, gaps, first_user_prompt
-
-
-def extract_copilot(ref: TranscriptRef, long_idle_ms: int) -> tuple[dict[str, Any], dict[str, int], dict[str, list[dict[str, Any]]], list[str], str]:
-    path = ref.transcript_path
-    events, gaps = parse_jsonl(path)
-    session_id: str | None = None
-    first_user_prompt = ""
-    started_at: datetime | None = None
-    ended_at: datetime | None = None
-    timestamps: list[tuple[datetime, str]] = []
-    metrics = new_metrics()
-    evidence_refs = empty_evidence_refs()
-    commands: Counter[str] = Counter()
-
-    for line_number, event in events:
-        request_events = event.get("v") if event.get("k") == ["requests"] and isinstance(event.get("v"), list) else None
-        if request_events is not None:
-            for request in request_events:
-                if not isinstance(request, dict):
-                    continue
-                timestamp = parse_timestamp(request.get("timestamp"))
-                started_at, ended_at = add_timestamp(timestamps, timestamp, source_ref(path, line_number), started_at, ended_at)
-                result = request.get("result") if isinstance(request.get("result"), dict) else {}
-                metadata = result.get("metadata") if isinstance(result.get("metadata"), dict) else {}
-                if isinstance(metadata.get("sessionId"), str):
-                    session_id = metadata["sessionId"]
-                message = request.get("message") if isinstance(request.get("message"), dict) else {}
-                text = normalize_text(coerce_text(message.get("text") or message.get("content")))
-                if text and is_human_prompt(text):
-                    metrics["user_turns"] += 1
-                    if not first_user_prompt:
-                        first_user_prompt = text
-                    if any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
-                        metrics["user_corrections"] += 1
-                        evidence_refs["user_corrections"].append(evidence(path, line_number, timestamp, text))
-
-                assistant_text_parts: list[str] = []
-                for item in request.get("response") or []:
-                    if isinstance(item, dict):
-                        assistant_text_parts.append(coerce_text(item.get("value") or item.get("content") or item.get("text")))
-                assistant_text = normalize_text("\n".join(part for part in assistant_text_parts if part))
-                if assistant_text:
-                    metrics["assistant_turns"] += 1
-
-                for round_data in request.get("toolCallRounds") or []:
-                    if not isinstance(round_data, dict):
-                        continue
-                    for tool_call in round_data.get("toolCalls") or []:
-                        if not isinstance(tool_call, dict):
-                            continue
-                        metrics["tool_calls"] += 1
-                        command = normalize_text(coerce_text(tool_call.get("name") or tool_call.get("arguments")))
-                        if command:
-                            commands[command_key(command)] += 1
-                        if any(keyword.lower() in command.lower() for keyword in SUBAGENT_KEYWORDS):
-                            metrics["subagent_calls"] += 1
-                    for tool_result in (round_data.get("toolCallResults") or {}).values():
-                        result_text = normalize_text(coerce_text(tool_result))
-                        if is_nonzero_tool_result(result_text):
-                            metrics["nonzero_tool_results"] += 1
-                            evidence_refs["nonzero_tool_results"].append(evidence(path, line_number, timestamp, result_text))
-
-                if isinstance(result.get("errorDetails"), dict):
-                    error_text = normalize_text(coerce_text(result["errorDetails"]))
-                    if error_text:
-                        metrics["nonzero_tool_results"] += 1
-                        evidence_refs["nonzero_tool_results"].append(evidence(path, line_number, timestamp, error_text))
-            continue
-
-        timestamp = parse_timestamp(event.get("timestamp") or event.get("createdAt") or event.get("time"))
-        started_at, ended_at = add_timestamp(timestamps, timestamp, source_ref(path, line_number), started_at, ended_at)
-        event_type = str(event.get("type") or event.get("event") or "")
-
-        if event_type == "session.start":
-            for key in ("sessionId", "session_id", "id"):
-                if isinstance(event.get(key), str):
-                    session_id = event[key]
-                    break
-            continue
-
-        if event_type == "user.message":
-            text = normalize_text(coerce_text(event.get("message") or event.get("text") or event.get("content")))
-            if text and is_human_prompt(text):
-                metrics["user_turns"] += 1
-                if not first_user_prompt:
-                    first_user_prompt = text
-                if any(keyword in text for keyword in USER_CORRECTION_KEYWORDS):
-                    metrics["user_corrections"] += 1
-                    evidence_refs["user_corrections"].append(evidence(path, line_number, timestamp, text))
-        elif event_type == "assistant.message":
-            text = normalize_text(coerce_text(event.get("message") or event.get("text") or event.get("content")))
-            if text:
-                metrics["assistant_turns"] += 1
-        elif event_type.startswith("tool.execution"):
-            metrics["tool_calls"] += 1
-            text = normalize_text(coerce_text(event.get("command") or event.get("name") or event.get("message") or event.get("output")))
-            if text:
-                commands[command_key(text)] += 1
-            if any(keyword.lower() in text.lower() for keyword in SUBAGENT_KEYWORDS):
-                metrics["subagent_calls"] += 1
-            status = str(event.get("status") or "").lower()
-            exit_code = event.get("exitCode") if "exitCode" in event else event.get("exit_code")
-            if status in {"failed", "error", "timeout"} or exit_code not in {None, 0, "0"} or is_nonzero_tool_result(text):
-                metrics["nonzero_tool_results"] += 1
-                evidence_refs["nonzero_tool_results"].append(evidence(path, line_number, timestamp, text or event_type))
 
     metrics["long_idle_gaps"], evidence_refs["long_idle_gaps"] = collect_idle_gaps(timestamps, long_idle_ms)
     repeated = [(command, count) for command, count in commands.items() if count > 1]
@@ -536,7 +429,7 @@ def load_existing_refs(path: Path) -> list[TranscriptRef]:
         return []
     refs: list[TranscriptRef] = []
     for item in data.get("transcripts", []):
-        if isinstance(item, dict) and item.get("runtime") in {"codex", "copilot"} and item.get("transcript_path"):
+        if isinstance(item, dict) and item.get("runtime") == "codex" and item.get("transcript_path"):
             refs.append(TranscriptRef(str(item["runtime"]), Path(str(item["transcript_path"]))))
     return refs
 
@@ -549,10 +442,7 @@ def write_json(path: Path, data: Any) -> None:
 def build_score(refs: list[TranscriptRef], long_idle_ms: int) -> tuple[dict[str, Any], str]:
     results: list[tuple[dict[str, Any], dict[str, int], dict[str, list[dict[str, Any]]], list[str], str]] = []
     for ref in refs:
-        if ref.runtime == "codex":
-            results.append(extract_codex(ref, long_idle_ms))
-        else:
-            results.append(extract_copilot(ref, long_idle_ms))
+        results.append(extract_codex(ref, long_idle_ms))
 
     run_title = select_run_title(results)
     sessions: list[dict[str, Any]] = []
@@ -568,6 +458,7 @@ def build_score(refs: list[TranscriptRef], long_idle_ms: int) -> tuple[dict[str,
 
     score_data = {
         "run_title": run_title,
+        "session_count": len(sessions),
         "sessions": sorted(sessions, key=lambda item: item.get("started_at") or ""),
         "metrics": metrics,
         "scores": score(metrics),
@@ -583,10 +474,10 @@ def build_score(refs: list[TranscriptRef], long_idle_ms: int) -> tuple[dict[str,
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Score Codex / Copilot transcripts for work_history benchmark input.")
+    parser = argparse.ArgumentParser(description="Score Codex transcripts for work_history benchmark input.")
     parser.add_argument("--codex-transcript", action="append", default=[], help="Codex transcript JSONL path. Can be repeated.")
-    parser.add_argument("--copilot-transcript", action="append", default=[], help="Copilot transcript JSONL path. Can be repeated.")
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT, help="Output root. Default: work_history/runs")
+    parser.add_argument("--run-folder", type=Path, help="Existing or explicit run folder. Overrides title-based folder naming.")
     parser.add_argument("--long-idle-ms", type=int, default=DEFAULT_LONG_IDLE_MS, help="Long idle gap threshold in milliseconds.")
     parser.add_argument("--print-run-folder", action="store_true", help="Print generated run folder path.")
     return parser.parse_args()
@@ -595,14 +486,15 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     args = parse_args()
     input_refs = [TranscriptRef("codex", Path(path).expanduser()) for path in args.codex_transcript]
-    input_refs += [TranscriptRef("copilot", Path(path).expanduser()) for path in args.copilot_transcript]
     if not input_refs:
-        raise SystemExit("at least one --codex-transcript or --copilot-transcript is required")
+        raise SystemExit("at least one --codex-transcript is required")
 
     preliminary_score, run_title = build_score(input_refs, args.long_idle_ms)
-    first_started = preliminary_score["sessions"][0].get("started_at") if preliminary_score["sessions"] else None
-    date_part = (parse_timestamp(first_started) or datetime.now(UTC)).date().isoformat()
-    run_folder = args.output_root / f"{date_part}-{sanitize_folder_part(run_title)}-run"
+    if args.run_folder:
+        run_folder = args.run_folder
+    else:
+        first_started = preliminary_score["sessions"][0].get("started_at") if preliminary_score["sessions"] else None
+        run_folder = args.output_root / f"{run_date(first_started)}-{sanitize_folder_part(run_title)}-run"
     refs_path = run_folder / TRANSCRIPT_REFS_NAME
 
     merged_refs = load_existing_refs(refs_path) + input_refs

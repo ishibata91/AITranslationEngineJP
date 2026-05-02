@@ -1,0 +1,176 @@
+reviewback_version: 1
+task_id: term-translation-phase
+review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.contract.yaml
+viewpoint: contract
+reviewer_agent: review_contract
+review_status: no_issue
+must_fix_open: false
+max_level: none
+
+assessment:
+  compatibility: pass
+  evidence_sufficiency: sufficient
+  summary: >
+    既存 open 指摘 CONTRACT-TTP-001 は最新差分で解決済みと判定する。
+    RetryTermTranslationPhase は recoverable_failed state の phase run だけを許可し、
+    non-retryable failure は phase / job を failed にして retryable=false として公開する。
+    初回 Start 失敗時の snapshot link 復元と AI 部分結果非保存も、既存 public seam の
+    phase run ID、retryable flag、error kind を変えずに閉じている。
+    provider client 出力は service 境界の TermTranslationProviderResult へ相関を保って適合している。
+
+checked_scope:
+  summary: >
+    working tree の tracked diff と untracked 実装ファイルを起点に、
+    term phase の command seam、public error kind、retryable flag、
+    provider adapter 出力、Wails / frontend DTO field 名、DB schema 追加を
+    契約・互換性観点だけで確認した。
+  files:
+    - path: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+      line: 57
+      symbol: frozen_public_seams
+      reason: Start / Pause / Resume / Retry と error kind の public contract を確認した。
+    - path: docs/exec-plans/active/term-translation-phase/scenario-design.md
+      line: 340
+      symbol: SCN-TTP-008
+      reason: retryable failure だけが latest error と progress を更新する契約を確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 639
+      symbol: rejectRetryExecutionPlan
+      reason: Retry が recoverable_failed の phase run だけを許可することを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1059
+      symbol: markPhaseRunFailure
+      reason: retryable=false では phase / job state が failed になることを確認した。
+    - path: internal/service/term_translation_phase_service.go
+      line: 1261
+      symbol: buildTermTranslationErrorSummary
+      reason: summary の retryable flag が recoverable_failed state から復元され、failed では false になることを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 754
+      symbol: TestTermTranslationPhaseServiceReturnsSaveFailedAndRollsBackPartialDictionaryState
+      reason: save_failed が failed state と partial dictionary 非保存で固定されていることを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 784
+      symbol: TestTermTranslationPhaseServiceRetryPhaseRejectsNonRetryableFailureState
+      reason: non-retryable failure の Retry が retryable=false で拒否されることを確認した。
+    - path: internal/service/term_translation_phase_service_test.go
+      line: 561
+      symbol: TestTermTranslationPhaseServiceStartPhaseRetainsInitialSnapshotLinksAcrossProviderFailure
+      reason: 初回 Start 失敗時に snapshot link を復元し、AI 部分結果を残さないことを確認した。
+    - path: internal/service/term_translation_provider_adapter.go
+      line: 215
+      symbol: termTranslationProviderAdapter.TranslateTerm
+      reason: provider client 出力を service 契約の source term / translated term / audit summary へ写像することを確認した。
+    - path: internal/infra/ai/provider_client.go
+      line: 97
+      symbol: ProviderClient.TranslateTerm
+      reason: provider-agnostic generated text から correlated term translation response を返す境界を確認した。
+    - path: internal/infra/ai/term_translation.go
+      line: 82
+      symbol: parseTermTranslationResponse
+      reason: provider response の strict JSON と invalid response error kind を確認した。
+    - path: internal/usecase/term_translation_phase_contract.go
+      line: 10
+      symbol: TermTranslationPhaseErrorKind
+      reason: frozen error kind と request / response DTO 名を確認した。
+    - path: internal/controller/wails/term_translation_phase_controller.go
+      line: 220
+      symbol: RetryTermTranslationPhase
+      reason: Wails controller method 名と retryable response mapping を確認した。
+    - path: frontend/src/application/gateway-contract/term-translation-phase/term-translation-phase-gateway-contract.ts
+      line: 1
+      symbol: TermTranslationPhaseGatewayContract
+      reason: frontend public gateway method 名、request / response field 名、error kind union を確認した。
+    - path: frontend/src/controller/wails/term-translation-phase.gateway.ts
+      line: 121
+      symbol: retryTermTranslationPhase
+      reason: frontend Wails binding 名が backend Wails method 名と一致することを確認した。
+    - path: internal/infra/sqlite/dbinit/migrations/007_term_translation_indexes.sql
+      line: 1
+      symbol: term translation indexes
+      reason: phase run、phase dictionary link、job dictionary の追加 unique index を確認した。
+
+unchecked_scope:
+  - target: final validation command rerun
+    reason: 呼び出し入力で require_escalated 付き harness pass、execution / system-test / coverage pass、Sonar 結果が提供されており、契約レビューでは再実行していない。
+    risk: 低。契約境界のコード確認と focused test 名の確認で、Retry 契約の未解決は見つからない。
+  - target: 既存ユーザー DB の重複 phase / dictionary row 移行
+    reason: 追加 unique index は実装差分で確認したが、既存実 DB の重複データ走査はレビュー入力に含まれていない。
+    risk: 中。既存 DB に契約外の重複 row がある場合、migration 適用時に index 作成が失敗する可能性は残る。
+  - target: behavior / trust-boundary / state-invariant / responsibility-boundary reviewback
+    reason: review_contract の主判定対象外である。
+    risk: 他観点の未解決指摘は implement_lane 側の集約で扱う。
+
+issues:
+  - id: CONTRACT-TTP-001
+    level: major
+    title: Retry command seam の retryable failure 契約は解決済み
+    problem: >
+      修正前は RetryTermTranslationPhase が recoverable_failed state だけを許可条件にし、
+      save_failed など retryable=false の failure も recoverable_failed として公開される経路があった。
+      最新差分では retryable=false の failure は phase / job state が failed になり、
+      summary と command response の retryable flag も false になる。
+    reason: >
+      public contract は RetryTermTranslationPhase を retryable failure の同じ phase run に限定している。
+      最新差分では rejectRetryExecutionPlan、markPhaseRunFailure、
+      buildTermTranslationErrorSummary、focused test が同じ契約へ揃っているため、
+      frontend gateway と外部 caller が retry 可否を誤って分岐する未解決経路は見つからない。
+    violated_condition:
+      - implementation-scope.md:61 RetryTermTranslationPhase は retryable failure の同じ phase run で未処理 term だけを再実行する。
+      - implementation-scope.md:63 public error kind は意味を区別する。
+      - implementation-scope.md:85 phase state と retryable flag は controller unit test と frontend contract test で固定される。
+    cause_candidate: >
+      旧原因は retryability を phase run state と summary retryable flag へ分離せず、
+      recoverable_failed state に集約していたこと。最新差分では retryable=false を failed state へ分離し、
+      Retry 許可条件と summary retryable flag を recoverable_failed に限定している。
+    evidence:
+      - path: internal/service/term_translation_phase_service.go
+        line: 647
+        excerpt: rejectRetryExecutionPlan は run.State != recoverable_failed を retry 不可として拒否する。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1069
+        excerpt: markPhaseRunFailure は retryable=false で phase state を failed にする。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1086
+        excerpt: markPhaseRunFailure は retryable=false で job state を failed にする。
+      - path: internal/service/term_translation_phase_service.go
+        line: 1265
+        excerpt: buildTermTranslationErrorSummary は recoverable_failed の時だけ retryable=true を返す。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 769
+        excerpt: save_failed は failed phase state として期待されている。
+      - path: internal/service/term_translation_phase_service_test.go
+        line: 801
+        excerpt: non-retryable failure state の Retry 結果は retryable=false として検証されている。
+    local_fix_assessment: resolved_by_local_service_contract_alignment
+    additional_check_scope: >
+      追加必須なし。final validation input では all harness、execution、system-test、
+      coverage、Sonar 指標が通過済みである。
+    fix_considerations: >
+      今後 public state 名を増やす場合は DTO / frontend union / UI state へ互換性影響が出る。
+      現在は既存 field 名を維持したまま、recoverable_failed と retryable flag の意味が揃っている。
+    verification:
+      status: verified_by_input_and_code_review
+      command: python3 scripts/harness/run.py --suite all
+      result: All requested harness suites passed。execution、system-test、coverage が通過し、Sonar coverage 74.5%、line 75.7%、branch 64.4%、security 0、reliability 0、maintainability HIGH 0。
+    resolution: >
+      retryable=false failure の phase / job failed 化、Retry 拒否条件、summary retryable flag、
+      focused test が同じ契約に揃ったため、CONTRACT-TTP-001 は解決済みとする。
+    fix_required: true
+    status: resolved
+
+residual_risks:
+  - >
+    Wails 生成 JS の実ファイルは差分に含まれていないため、method 名互換性は
+    Go controller と frontend gateway の binding 名一致から判定した。
+  - >
+    追加 unique index の既存実 DB への適用は、重複 row がない前提で互換と判定した。
+    重複 row がある DB の移行確認は未実施である。
+  - >
+    最終検証 pass は呼び出し入力の結果として扱い、契約レビューでは再実行していない。
+
+forbidden_outputs:
+  tool_permission_changes: prohibited
+  agent_definition_changes: prohibited
+  product_code_change_instructions: prohibited
+  fix_scope_commands: prohibited

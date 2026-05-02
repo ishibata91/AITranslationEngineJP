@@ -1,0 +1,863 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TTP-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-001",
+      "decision_rationale": "Ready job から phase を開始する正常系として lifecycle/state-transition と統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-002",
+      "decision_rationale": "共通辞書完全一致除外と provider request filtering の主要正常系へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-001: AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+      "final_scenario_id": "SCN-TTP-003",
+      "human_answer": {
+        "question_id": "Q-001",
+        "selected_option": "1",
+        "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。"
+      }
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "確定訳語を job-scoped dictionary と phase run link へ保存する永続化正常系へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "本文翻訳フェーズ入力参照は単語翻訳フェーズ完了条件として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-005",
+      "decision_rationale": "Job Run の phase result 表示契約として UI 設計と統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "再利用語は job dictionary 参照と本文翻訳入力 summary の一部として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "複数 job の辞書分離は job-scoped dictionary の受け入れ条件へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-009",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-006: 共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。",
+      "final_scenario_id": "SCN-TTP-002",
+      "human_answer": {
+        "question_id": "Q-006",
+        "selected_option": "1",
+        "answer": "共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。"
+      }
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TTP-010",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-003: 共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+      "final_scenario_id": "SCN-TTP-002",
+      "human_answer": {
+        "question_id": "Q-003",
+        "selected_option": "1",
+        "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。"
+      }
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-001",
+      "decision_rationale": "phase start と current phase / progress の観測を SCN-TTP-001 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-002",
+      "decision_rationale": "対象語確定時の共通辞書除外として SCN-TTP-002 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-001: AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+      "final_scenario_id": "SCN-TTP-003",
+      "human_answer": {
+        "question_id": "Q-001",
+        "selected_option": "1",
+        "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。"
+      }
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "辞書保存 lifecycle と phase run link を SCN-TTP-004 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-007",
+      "decision_rationale": "完了後の後続 phase 入力成立を禁止遷移 / 完了条件へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-003: 共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+      "final_scenario_id": "SCN-TTP-002",
+      "human_answer": {
+        "question_id": "Q-003",
+        "selected_option": "1",
+        "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。"
+      }
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+      "final_scenario_id": "SCN-TTP-008",
+      "human_answer": {
+        "question_id": "Q-004",
+        "selected_option": "1",
+        "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+      }
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TTP-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+      "final_scenario_id": "SCN-TTP-008",
+      "human_answer": {
+        "question_id": "Q-004",
+        "selected_option": "1",
+        "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-001",
+      "decision_rationale": "Ready -> Running の許可条件として SCN-TTP-001 へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-002",
+      "decision_rationale": "完全一致語を AI 対象から除外する state change として SCN-TTP-002 へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-001: AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+      "final_scenario_id": "SCN-TTP-004",
+      "human_answer": {
+        "question_id": "Q-001",
+        "selected_option": "1",
+        "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-009: job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+      "final_scenario_id": "SCN-TTP-001",
+      "human_answer": {
+        "question_id": "Q-009",
+        "selected_option": "1",
+        "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-007",
+      "decision_rationale": "単語翻訳フェーズ未完了では後続 phase を開始しない禁止遷移へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+      "final_scenario_id": "SCN-TTP-008",
+      "human_answer": {
+        "question_id": "Q-004",
+        "selected_option": "1",
+        "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-009: job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+      "final_scenario_id": "SCN-TTP-001",
+      "human_answer": {
+        "question_id": "Q-009",
+        "selected_option": "1",
+        "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+      "final_scenario_id": "SCN-TTP-008",
+      "human_answer": {
+        "question_id": "Q-004",
+        "selected_option": "1",
+        "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-009",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-009: job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+      "final_scenario_id": "SCN-TTP-007",
+      "human_answer": {
+        "question_id": "Q-009",
+        "selected_option": "1",
+        "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。"
+      }
+    },
+    {
+      "candidate_id": "state-transition:CAND-TTP-010",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-007",
+      "decision_rationale": "terminal job への後書き拒否として SCN-TTP-007 へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-001",
+      "decision_rationale": "Ready でない job の開始拒否として SCN-TTP-001 へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-006",
+      "decision_rationale": "翻訳フィールド参照不能時の AI request 未実行と辞書未更新として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-002: 単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。",
+      "final_scenario_id": "SCN-TTP-002",
+      "human_answer": {
+        "question_id": "Q-002",
+        "selected_option": "1",
+        "answer": "単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。"
+      }
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TTP-002",
+      "decision_rationale": "完全一致ではない hit を cached として保存しない境界条件として採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-007: 同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。",
+      "final_scenario_id": "SCN-TTP-004",
+      "human_answer": {
+        "question_id": "Q-007",
+        "selected_option": "2",
+        "answer": "同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。"
+      }
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "空または不完全な確定入力を辞書反映しない validation として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-006",
+      "decision_rationale": "provider 失敗時に暗黙 fallback せず辞書未更新にする失敗系へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-005: 初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。",
+      "final_scenario_id": "SCN-TTP-006",
+      "human_answer": {
+        "question_id": "Q-005",
+        "selected_option": "4",
+        "answer": "初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。"
+      }
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-006",
+      "decision_rationale": "辞書保存途中失敗で partial state を残さない atomicity として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TTP-010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-003: 共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+      "final_scenario_id": "SCN-TTP-007",
+      "human_answer": {
+        "question_id": "Q-003",
+        "selected_option": "1",
+        "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。"
+      }
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-002",
+      "decision_rationale": "共通辞書完全一致語を provider request から除外する contract として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-001: AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+      "final_scenario_id": "SCN-TTP-003",
+      "human_answer": {
+        "question_id": "Q-001",
+        "selected_option": "1",
+        "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。"
+      }
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TTP-009",
+      "decision_rationale": "secret 非露出は Job Setup の決定を phase 実行へ継承する必須条件として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-008: 単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。",
+      "final_scenario_id": "SCN-TTP-003",
+      "human_answer": {
+        "question_id": "Q-008",
+        "selected_option": "1",
+        "answer": "単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。"
+      }
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-006",
+      "decision_rationale": "network timeout と provider 到達不能を fake transport で検証する失敗系へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-005: 初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。",
+      "final_scenario_id": "SCN-TTP-006",
+      "human_answer": {
+        "question_id": "Q-005",
+        "selected_option": "4",
+        "answer": "初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。"
+      }
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-006",
+      "decision_rationale": "provider 応答不正時の辞書未更新と error summary へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TTP-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TTP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-009",
+      "decision_rationale": "xTranslator status と内部辞書 source の混同防止を監査 / redaction シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-001",
+      "decision_rationale": "phase start と対象件数の監査要約を SCN-TTP-001 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-002",
+      "decision_rationale": "共通辞書除外と置換判定の監査要約を SCN-TTP-002 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "phase run と job dictionary entry の追跡条件として SCN-TTP-004 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-009",
+      "decision_rationale": "AI 実行設定と入力要約の再現材料を redaction 条件と合わせて統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-006",
+      "decision_rationale": "失敗、中断、再実行準備の監査要約を failure / recovery シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TTP-004",
+      "decision_rationale": "本文翻訳前の辞書参照 summary を phase 完了条件へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TTP-009",
+      "decision_rationale": "監査表示とログの保存禁止情報非露出を必須シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TTP-008",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TTP-002",
+      "decision": "merged",
+      "decision_rationale": "Human answer Q-002: 単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。",
+      "final_scenario_id": "SCN-TTP-009",
+      "human_answer": {
+        "question_id": "Q-002",
+        "selected_option": "1",
+        "answer": "単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。"
+      }
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-TTP-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-003",
+        "lifecycle:CAND-TTP-003",
+        "external-integration:CAND-TTP-002"
+      ],
+      "conflict_type": "confirmation_flow",
+      "question_id": "Q-001",
+      "reason": "AI output を自動確定する案と、人間確認後に確定する案で UI、永続化、失敗処理が変わる。",
+      "resolution_rationale": "Human answer Q-001: AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+      "human_answer": {
+        "question_id": "Q-001",
+        "selected_option": "1",
+        "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-TTP-003",
+        "operation-audit:CAND-TTP-008"
+      ],
+      "conflict_type": "shared_dictionary_snapshot",
+      "question_id": "Q-002",
+      "reason": "phase 開始時 snapshot と実行時 latest ref で、除外判定の再現性と stale failure が変わる。",
+      "resolution_rationale": "Human answer Q-002: 単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。",
+      "human_answer": {
+        "question_id": "Q-002",
+        "selected_option": "1",
+        "answer": "単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-010",
+        "lifecycle:CAND-TTP-006",
+        "failure:CAND-TTP-010"
+      ],
+      "conflict_type": "empty_target_result",
+      "question_id": "Q-003",
+      "reason": "翻訳対象語 0 件を completed / skipped / warning のどれにするかで後続 phase 開始条件が変わる。",
+      "resolution_rationale": "Human answer Q-003: 共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+      "human_answer": {
+        "question_id": "Q-003",
+        "selected_option": "1",
+        "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-TTP-007",
+        "lifecycle:CAND-TTP-008",
+        "state-transition:CAND-TTP-006",
+        "state-transition:CAND-TTP-008"
+      ],
+      "conflict_type": "retry_idempotency",
+      "question_id": "Q-004",
+      "reason": "再開、リトライ、再実行時の既存 job dictionary 扱いが未固定である。",
+      "resolution_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+      "human_answer": {
+        "question_id": "Q-004",
+        "selected_option": "1",
+        "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-005",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-TTP-008",
+        "external-integration:CAND-TTP-006"
+      ],
+      "conflict_type": "provider_partial_response",
+      "question_id": "Q-005",
+      "reason": "AI / Batch API 応答の部分欠落を全体失敗、部分成功、再試行待ちのどれにするかが未固定である。",
+      "resolution_rationale": "Human answer Q-005: 初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。",
+      "human_answer": {
+        "question_id": "Q-005",
+        "selected_option": "4",
+        "answer": "初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-006",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-009"
+      ],
+      "conflict_type": "dictionary_priority",
+      "question_id": "Q-006",
+      "reason": "共通辞書とジョブ内辞書が同じ原語を持つ場合の優先順位が未固定である。",
+      "resolution_rationale": "Human answer Q-006: 共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。",
+      "human_answer": {
+        "question_id": "Q-006",
+        "selected_option": "1",
+        "answer": "共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-007",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-TTP-005"
+      ],
+      "conflict_type": "duplicate_key_scope",
+      "question_id": "Q-007",
+      "reason": "同一 source term の重複判定 key を job 全体にするか record / field scope を含めるかが未固定である。",
+      "resolution_rationale": "Human answer Q-007: 同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。",
+      "human_answer": {
+        "question_id": "Q-007",
+        "selected_option": "2",
+        "answer": "同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-008",
+      "status": "resolved",
+      "candidate_ids": [
+        "external-integration:CAND-TTP-004"
+      ],
+      "conflict_type": "phase_ai_setting",
+      "question_id": "Q-008",
+      "reason": "Job Setup の AI 実行設定を継承するか、phase 開始時に再選択させるかが未固定である。",
+      "resolution_rationale": "Human answer Q-008: 単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。",
+      "human_answer": {
+        "question_id": "Q-008",
+        "selected_option": "1",
+        "answer": "単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。"
+      }
+    },
+    {
+      "conflict_id": "CONFLICT-TTP-009",
+      "status": "resolved",
+      "candidate_ids": [
+        "state-transition:CAND-TTP-004",
+        "state-transition:CAND-TTP-007",
+        "state-transition:CAND-TTP-009"
+      ],
+      "conflict_type": "job_phase_state_mapping",
+      "question_id": "Q-009",
+      "reason": "job state と phase run state の対応、完了後の next phase 待ち表示が未固定である。",
+      "resolution_rationale": "Human answer Q-009: job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+      "human_answer": {
+        "question_id": "Q-009",
+        "selected_option": "1",
+        "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。"
+      }
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TTP-001",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-001",
+        "lifecycle:CAND-TTP-001",
+        "state-transition:CAND-TTP-001",
+        "failure:CAND-TTP-001",
+        "operation-audit:CAND-TTP-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-002",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-002",
+        "lifecycle:CAND-TTP-002",
+        "state-transition:CAND-TTP-002",
+        "failure:CAND-TTP-004",
+        "external-integration:CAND-TTP-001",
+        "operation-audit:CAND-TTP-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-003",
+      "candidate_ids": [
+        "external-integration:CAND-TTP-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-004",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-004",
+        "actor-goal:CAND-TTP-005",
+        "actor-goal:CAND-TTP-007",
+        "actor-goal:CAND-TTP-008",
+        "lifecycle:CAND-TTP-004",
+        "failure:CAND-TTP-006",
+        "operation-audit:CAND-TTP-003",
+        "operation-audit:CAND-TTP-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-005",
+      "candidate_ids": [
+        "actor-goal:CAND-TTP-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-006",
+      "candidate_ids": [
+        "failure:CAND-TTP-002",
+        "failure:CAND-TTP-007",
+        "failure:CAND-TTP-009",
+        "external-integration:CAND-TTP-005",
+        "external-integration:CAND-TTP-007",
+        "operation-audit:CAND-TTP-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-007",
+      "candidate_ids": [
+        "lifecycle:CAND-TTP-005",
+        "state-transition:CAND-TTP-005",
+        "state-transition:CAND-TTP-010"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TTP-009",
+      "candidate_ids": [
+        "external-integration:CAND-TTP-003",
+        "external-integration:CAND-TTP-008",
+        "operation-audit:CAND-TTP-004",
+        "operation-audit:CAND-TTP-007"
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "answered_questions": [
+    {
+      "question_id": "Q-001",
+      "selected_option": "1",
+      "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+      "applies_to_scenario": "SCN-TTP-003"
+    },
+    {
+      "question_id": "Q-002",
+      "selected_option": "1",
+      "answer": "単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。",
+      "applies_to_scenario": "SCN-TTP-002"
+    },
+    {
+      "question_id": "Q-003",
+      "selected_option": "1",
+      "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+      "applies_to_scenario": "SCN-TTP-002"
+    },
+    {
+      "question_id": "Q-004",
+      "selected_option": "1",
+      "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+      "applies_to_scenario": "SCN-TTP-008"
+    },
+    {
+      "question_id": "Q-005",
+      "selected_option": "4",
+      "answer": "初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。",
+      "applies_to_scenario": "SCN-TTP-006"
+    },
+    {
+      "question_id": "Q-006",
+      "selected_option": "1",
+      "answer": "共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。",
+      "applies_to_scenario": "SCN-TTP-004"
+    },
+    {
+      "question_id": "Q-007",
+      "selected_option": "2",
+      "answer": "同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。",
+      "applies_to_scenario": "SCN-TTP-004"
+    },
+    {
+      "question_id": "Q-008",
+      "selected_option": "1",
+      "answer": "単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。",
+      "applies_to_scenario": "SCN-TTP-003"
+    },
+    {
+      "question_id": "Q-009",
+      "selected_option": "1",
+      "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+      "applies_to_scenario": "SCN-TTP-001"
+    }
+  ]
+}

@@ -176,12 +176,7 @@ type MasterDictionaryImportResponseDTO struct {
 
 // ListMasterDictionaryEntriesRequestDTO is the frontend contract request payload.
 type ListMasterDictionaryEntriesRequestDTO struct {
-	Filters struct {
-		Query    string `json:"query"`
-		Category string `json:"category"`
-		Page     int    `json:"page"`
-		PageSize int    `json:"pageSize"`
-	} `json:"filters"`
+	Filters ListMasterDictionaryEntriesFiltersDTO `json:"filters"`
 }
 
 // MasterDictionaryEntrySummaryDTO is the frontend contract entry summary.
@@ -226,14 +221,25 @@ type MasterDictionaryFrontendRefreshDTO struct {
 	PageSize int    `json:"pageSize"`
 }
 
+// ListMasterDictionaryEntriesFiltersDTO is the frontend contract list filter payload.
+type ListMasterDictionaryEntriesFiltersDTO struct {
+	Query    string `json:"query"`
+	Category string `json:"category"`
+	Page     int    `json:"page"`
+	PageSize int    `json:"pageSize"`
+}
+
+// MasterDictionaryEntryPayloadDTO is the frontend contract create/update payload.
+type MasterDictionaryEntryPayloadDTO struct {
+	Source      string `json:"source"`
+	Translation string `json:"translation"`
+	Category    string `json:"category"`
+	Origin      string `json:"origin"`
+}
+
 // CreateMasterDictionaryEntryRequestDTO is the frontend contract create request.
 type CreateMasterDictionaryEntryRequestDTO struct {
-	Payload struct {
-		Source      string `json:"source"`
-		Translation string `json:"translation"`
-		Category    string `json:"category"`
-		Origin      string `json:"origin"`
-	} `json:"payload"`
+	Payload MasterDictionaryEntryPayloadDTO     `json:"payload"`
 	Refresh *MasterDictionaryFrontendRefreshDTO `json:"refresh,omitempty"`
 }
 
@@ -246,13 +252,8 @@ type CreateMasterDictionaryEntryResponseDTO struct {
 
 // UpdateMasterDictionaryEntryRequestDTO is the frontend contract update request.
 type UpdateMasterDictionaryEntryRequestDTO struct {
-	ID      string `json:"id"`
-	Payload struct {
-		Source      string `json:"source"`
-		Translation string `json:"translation"`
-		Category    string `json:"category"`
-		Origin      string `json:"origin"`
-	} `json:"payload"`
+	ID      string                              `json:"id"`
+	Payload MasterDictionaryEntryPayloadDTO     `json:"payload"`
 	Refresh *MasterDictionaryFrontendRefreshDTO `json:"refresh,omitempty"`
 }
 

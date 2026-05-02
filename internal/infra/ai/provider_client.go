@@ -93,6 +93,29 @@ func (client *ProviderClient) GenerateText(
 	return response, nil
 }
 
+// TranslateTerm sends one provider request unit and parses a correlated JSON term translation response.
+func (client *ProviderClient) TranslateTerm(
+	ctx context.Context,
+	providerID string,
+	model string,
+	apiKey string,
+	prompt string,
+) (TermTranslationResponse, error) {
+	response, err := client.GenerateText(ctx, providerID, ProviderRequest{
+		Model:  model,
+		APIKey: apiKey,
+		Prompt: prompt,
+	})
+	if err != nil {
+		return TermTranslationResponse{}, newTermTranslationError(
+			TermTranslationErrorKindProviderFailure,
+			isProviderExecutionRetryable(err),
+			err,
+		)
+	}
+	return parseTermTranslationResponse(response.Text)
+}
+
 func (client *ProviderClient) providerRegistry() map[string]provider {
 	if len(client.providers) == 0 {
 		client.providers = client.newProviderRegistry()

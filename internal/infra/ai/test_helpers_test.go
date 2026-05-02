@@ -20,8 +20,11 @@ func assertGeminiRequest(t *testing.T, request *http.Request) {
 	if request.Header.Get("Content-Type") != "application/json" {
 		t.Fatalf("expected json content type")
 	}
-	if !strings.Contains(request.URL.String(), "key=k") {
-		t.Fatalf("expected api key query param in url: %s", request.URL.String())
+	if strings.Contains(request.URL.String(), "key=") {
+		t.Fatalf("expected no api key query param in url: %s", request.URL.String())
+	}
+	if request.Header.Get("x-goog-api-key") != "k" {
+		t.Fatalf("expected x-goog-api-key header, got %q", request.Header.Get("x-goog-api-key"))
 	}
 	bodyBytes, err := io.ReadAll(request.Body)
 	if err != nil {

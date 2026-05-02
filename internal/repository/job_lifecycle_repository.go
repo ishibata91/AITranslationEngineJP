@@ -135,6 +135,7 @@ type JobLifecycleRepository interface {
 	GetJobPhaseRunByID(ctx context.Context, id int64) (JobPhaseRun, error)
 	UpdateJobPhaseRun(ctx context.Context, id int64, draft JobPhaseRunUpdateDraft) (JobPhaseRun, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]JobPhaseRun, error)
+	FindJobPhaseRun(ctx context.Context, translationJobID int64, phaseType string) (JobPhaseRun, error)
 
 	// PhaseRunTranslationField
 	CreatePhaseRunTranslationField(ctx context.Context, draft PhaseRunTranslationFieldDraft) (PhaseRunTranslationField, error)
@@ -144,4 +145,5 @@ type JobLifecycleRepository interface {
 
 	// PhaseRunDictionaryEntry
 	CreatePhaseRunDictionaryEntry(ctx context.Context, draft PhaseRunDictionaryEntryDraft) (PhaseRunDictionaryEntry, error)
+	ListPhaseRunDictionaryEntriesByPhaseRunID(ctx context.Context, phaseRunID int64) ([]PhaseRunDictionaryEntry, error)
 }

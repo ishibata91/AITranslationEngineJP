@@ -23,6 +23,7 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 - implementation-scope の場所: 承認済み実装範囲の参照先を受け取る。
 - 実装結果: 実装 agent が返した実装結果を受け取る。
 - 最終検証結果: `implement_lane` が確認した最終検証結果を受け取る。
+- 検証証跡: 実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を受け取る。
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.trust-boundary.yaml` を受け取る。
@@ -45,8 +46,18 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 | 認可 | user、role、admin 権限の境界を越えていないか |
 | tenant isolation | tenant 間の参照、更新、検索結果が混ざらないか |
 | 外部入力 | user-controlled 入力が検証、正規化、境界固定なしに使われないか |
-| secret / PII | secret、API key、個人情報が保存、表示、ログ、URL に漏れないか |
+| secret / PII | secret、API key、個人情報の送信先、表示先、保存先、ログ出力先が分かれているか |
 | injection | SQL injection、XSS、SSRF、file upload、外部 URL の危険経路がないか |
+
+secret 確認表は次を拘束する。
+
+| 観点 | 確認内容 |
+| --- | --- |
+| 送信先 | secret 本体が provider、外部 API、内部認証 の承認済み送信先だけへ渡るか |
+| 表示先 | UI、DTO、read model には参照値だけが出て、secret 本体が出ないか |
+| 保存先 | secret 本体の保存先と参照値の保存先が分かれているか |
+| ログ出力先 | log、error summary、audit、要求捕捉、URL に secret 本体が出ないか |
+| 名前分離 | `credential_ref`、`secret_ref`、`api_key`、`token` などを参照値と secret 本体の同名値として扱っていないか |
 
 重大度指標は次を拘束する。
 
@@ -67,11 +78,16 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 - `max_level` は未解決指摘の最大重大度にする。
 - この観点の失敗は、他観点の平均評価で相殺しない。
 - `assessment.hard_gate` は常に `true` にする。
+- secret を扱う差分では、secret 本体の送信先、表示先、保存先、ログ出力先を別々に確認する。
+- secret を扱う差分では、参照値と secret 本体が UI、DTO、read model、URL、log、error summary、audit、要求捕捉で混ざっていないか確認する。
+- 呼び出し元から渡された検証証跡をレビュー入力として扱ってよい。
+- 広い ハーネス 再実行を レビュー agent の責務にしない。
 
 ## 非対象規約
 
 - 実装の短さ、読みやすさ、性能は主判定にしない。
 - テスト妥当性は、権限・信頼境界の直接根拠になる場合だけ扱う。
+- 広い ハーネス 再実行は扱わない。
 - 修正範囲の命令やプロダクトコード変更の指示は出力しない。
 
 ## 出力規約
@@ -87,6 +103,8 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 - `reviewback.trust-boundary.yaml` に 対象 レビュー 観点の指摘、安全性評価、根拠、残留リスクが記録されている。
 - 権限・信頼境界系の強制停止条件は、他観点の高評価で相殺せず明示されている。
 - 内部参照規約の権限・信頼境界観点表を確認した。
+- secret を扱う差分では、secret 確認表の送信先、表示先、保存先、ログ出力先、名前分離を確認した。
+- 検証証跡の実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を確認した。
 - 破られた不変条件と原因候補を分けた。
 - 局所修正評価と不変条件テスト観点を返した。
 - 強制停止条件の失敗を他観点で相殺しなかった。
@@ -98,8 +116,10 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 
 - `レビュー対象差分` が不足する場合は停止する。
 - `実装目的` が不足する場合は停止する。
+- `検証証跡` が不足する場合は停止する。
 - `レビューYAMLパス` が不足する場合は停止する。
 - `差し戻しYAMLパス` が不足する場合は停止する。
 - 外部成果物 が不足または衝突する場合は停止する。
 - 権限・信頼境界以外の観点を主判定にしそうな場合は停止する。
+- secret を扱う差分で、送信先、表示先、保存先、ログ出力先を差分と implementation-scope から確認できない場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

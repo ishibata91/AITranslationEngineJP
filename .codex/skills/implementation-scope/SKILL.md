@@ -51,6 +51,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 承認済み実装範囲、依存対象、検証コマンド、完了条件
 - 検証担当者 判定条件
 - 並列実行 判定条件
+- secret 本体 と 参照値 の分離条件
 - Codex implementation 引き継ぎ入力 の構成
 - docs 正本化を 引き継ぎ に混ぜない境界
 
@@ -91,6 +92,23 @@ UI人間操作E2Eをあとに固める場合は、開始操作、入力方法、
 
 契約固定 を固定できない場合は、frontend 引き継ぎ や並列 引き継ぎ を開かない。
 この場合は backend 側の探索または再計画を優先し、見込み 契約 を 完了条件 にしない。
+
+### secret 境界規約
+
+secret を扱う 引き継ぎ は、secret 本体 と 参照値 を分けて書く。
+参照値 は UI、DTO、read model に出してよい識別子である。
+secret 本体 は provider、外部 API、内部認証 に渡す値である。
+
+secret を扱う 引き継ぎ には次をすべて書く。
+
+- 表示可能参照値: UI、DTO、read model に出してよい参照値。
+- secret 本体: provider、外部 API、内部認証 に渡す secret 本体。
+- secret 解決責務層: 参照値から secret 本体を解決する責務を持つ層。
+- 出力禁止値: log、error summary、audit、要求捕捉、URL、DTO、UI、read model に出してはいけない値。
+
+`credential_ref`、`secret_ref`、`api_key`、`token` などの field 名がある場合は、参照値と secret 本体を同じ値として扱わない。
+参照値だけで外部 API へ送信できる形にしない。
+secret 本体を DTO、UI、read model、URL、log、error summary、audit、要求捕捉に渡す 完了条件 は書かない。
 
 ### 規模判定条件
 
@@ -224,6 +242,7 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - frontend 引き継ぎ は 契約固定 済みの backend 契約 / DTO / gateway 境界に 依存対象 する
 - 統合境界 引き継ぎ は backend と frontend の間の公開接点、DTO、gateway、adapter 契約を接続する単位として別に作る
 - `contract_freeze` は architecture の層構造、transport boundary、依存方向に基づいて固定する
+- secret を扱う場合は、参照値、secret 本体、secret 解決責務層、出力禁止値を分ける
 - 必要な場合だけ `本番経路` を 補足 に書き、必須 成果物 や domain 固有欄にはしない
 - `本番経路` は実行時に通る public API / DTO / controller / UI 入口 / persistence path を指す
 - `本番経路` は domain 名や画面名の知識ではなく、引き継ぎ の補助語として扱う
@@ -247,6 +266,7 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - backend と frontend を同一 引き継ぎ に入れず、依存対象 で接続する
 - frontend 引き継ぎ は 契約固定 引き継ぎ の 完了条件 に接続する
 - backend、frontend、統合境界 の各 引き継ぎ は、implement-lane の対応する 実装成果物 と実装 skill に接続する
+- `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名を、参照値と secret 本体の両方に使わない
 - `本番経路` が必要な時だけ 補足 に補助情報として書く
 - 人間がそのまま `implement_lane` に渡せる 入力にする
 
@@ -294,6 +314,7 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 並列可能な 引き継ぎ だけを `並列可能対象` に列挙した。
 - 並列不可の理由を `並列不可理由` に分類済み reason で書いた。
 - 並列可能な 引き継ぎ の 承認済み実装範囲、shared 境界、検証 担当者 が重なっていない。
+- secret を扱う 引き継ぎ には、表示可能参照値、secret 本体、secret 解決責務層、出力禁止値が分かれて書かれている。
 - 広域 検証 を途中 引き継ぎ に置く場合は、必須 downstream 対象範囲 と理由を `補足` に書いた。
 - 人間が Codex implementation レーン に渡す 入口、禁止事項、期待完了報告を明示した。
 
@@ -317,6 +338,8 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 最終検証で見るべき広域コマンドをレーン内検証として扱う必要がある場合は停止する。
 - 承認済み実装範囲、shared 境界、検証担当者が曖昧な引き継ぎを並列実行可能として扱う必要がある場合は停止する。
 - 同じ実行グループという理由だけで引き継ぎを並列実行する必要がある場合は停止する。
+- secret を扱う 引き継ぎ で、参照値、secret 本体、secret 解決責務層、出力禁止値を分けて書けない場合は停止する。
+- secret 本体を DTO、UI、read model、URL、log、error summary、audit、要求捕捉に出す 完了条件 が必要な場合は停止する。
 - 実装時調査を Codex 再計画前提にする必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - docs 正本化を Codex implementation レーン 引き継ぎ に混ぜる必要がある場合は停止する。

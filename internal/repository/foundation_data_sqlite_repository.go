@@ -210,6 +210,15 @@ SELECT id, xtranslator_translation_xml_id, translation_job_id, dictionary_lifecy
        dictionary_source, source_term, translated_term, term_kind, reusable, created_at, updated_at
 FROM DICTIONARY_ENTRY WHERE id = ?`
 
+	selectDictionaryEntriesBase = `
+SELECT id, xtranslator_translation_xml_id, translation_job_id, dictionary_lifecycle, dictionary_scope,
+       dictionary_source, source_term, translated_term, term_kind, reusable, created_at, updated_at
+FROM DICTIONARY_ENTRY
+WHERE (? IS NULL OR translation_job_id = ?)
+  AND (? = '' OR dictionary_lifecycle = ?)
+  AND (? = '' OR lower(trim(dictionary_scope)) = lower(trim(?)))
+  AND (? = '' OR lower(trim(source_term)) = lower(trim(?)))`
+
 	updateDictionaryEntry = `
 UPDATE DICTIONARY_ENTRY SET
   dictionary_lifecycle = :dictionary_lifecycle,
@@ -526,4 +535,73 @@ func (r *SQLiteFoundationDataRepository) DeleteDictionaryEntry(
 		return mapFoundationSQLError(err, "delete dictionary_entry")
 	}
 	return nil
+}
+
+// ListDictionaryEntries は filter に一致する辞書一覧を返す。
+func (r *SQLiteFoundationDataRepository) ListDictionaryEntries(
+	ctx context.Context,
+	translationJobID *int64,
+	lifecycle string,
+	scope string,
+	sourceTerm string,
+) ([]DictionaryEntry, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []dictionaryEntryRow
+	if err := sqlx.SelectContext(
+		ctx,
+		ext,
+		&rows,
+		selectDictionaryEntriesBase+`
+ORDER BY id ASC`,
+		translationJobID,
+		translationJobID,
+		lifecycle,
+		lifecycle,
+		scope,
+		scope,
+		sourceTerm,
+		sourceTerm,
+	); err != nil {
+		return nil, mapSQLError(err, "list dictionary_entry")
+	}
+	result := make([]DictionaryEntry, 0, len(rows))
+	for _, row := range rows {
+		model, err := row.toModel()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, model)
+	}
+	return result, nil
+}
+
+// FindDictionaryEntry は filter に一致する単一辞書を返す。
+func (r *SQLiteFoundationDataRepository) FindDictionaryEntry(
+	ctx context.Context,
+	translationJobID *int64,
+	lifecycle string,
+	scope string,
+	sourceTerm string,
+) (DictionaryEntry, error) {
+	ext := extractTx(ctx, r.db)
+	var row dictionaryEntryRow
+	if err := sqlx.GetContext(
+		ctx,
+		ext,
+		&row,
+		selectDictionaryEntriesBase+`
+ORDER BY id ASC
+LIMIT 1`,
+		translationJobID,
+		translationJobID,
+		lifecycle,
+		lifecycle,
+		scope,
+		scope,
+		sourceTerm,
+		sourceTerm,
+	); err != nil {
+		return DictionaryEntry{}, mapSQLError(err, "find dictionary_entry")
+	}
+	return row.toModel()
 }

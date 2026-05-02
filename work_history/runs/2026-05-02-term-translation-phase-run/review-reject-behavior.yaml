@@ -1,0 +1,48 @@
+- reviewback_version: 1
+  task_id: term-translation-phase
+  viewpoint: behavior
+  review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.behavior.yaml
+  review_status: issues_open
+  must_fix_open: true
+  max_level: critical
+  rejected_at: "2026-05-02T03:44:03+09:00"
+  rejection_summary: >
+    term phase backend command seam に、phase 開始時 snapshot 固定、状態別 command 拒否、
+    invalid provider response / save failure の public error kind 返却に関する must-fix が残っている。
+  workflow_improvement_log:
+    - >
+      acceptance-first の API テストで、start / resume / retry の無効 state matrix を
+      UI enablement ではなく public seam 起点で固定する必要がある。
+    - >
+      snapshot 固定は初回開始後に master dictionary を変更する fixture を追加し、
+      resume / retry で snapshot digest と AI target count が変化しないことを証明する必要がある。
+    - >
+      provider adapter 由来の typed invalid response と repository save failure injection を
+      command result の error summary まで確認する必要がある。
+  issue_refs:
+    - BEHAVIOR-TTP-001
+    - BEHAVIOR-TTP-002
+    - BEHAVIOR-TTP-003
+- reviewback_version: 1
+  task_id: term-translation-phase
+  viewpoint: behavior
+  review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.behavior.yaml
+  review_status: issues_open
+  must_fix_open: true
+  max_level: critical
+  rejected_at: "2026-05-02T04:20:10+09:00"
+  rejection_summary: >
+    修正後差分で BEHAVIOR-TTP-002 と BEHAVIOR-TTP-003 は解決した。
+    ただし BEHAVIOR-TTP-001 は、初回 Start 中の provider failure などで rollback された後に
+    snapshot link が残らず、retry / resume が phase 開始時 snapshot hit を AI target に戻す経路が残る。
+  workflow_improvement_log:
+    - >
+      snapshot 固定の acceptance test は、既存 snapshot link がある retry だけでなく、
+      初回 Start が provider failure で recoverable_failed になった直後の retry / resume を含める必要がある。
+    - >
+      save_failed の rollback 確認と snapshot source の固定確認は別観点として分ける必要がある。
+      partial job dictionary を残さないことだけでは、phase 開始時 snapshot の保持を証明できない。
+    - >
+      状態拒否と public error kind の修正は解決済みとして、次回差し戻しでは snapshot persistence 経路だけに検証を絞る。
+  issue_refs:
+    - BEHAVIOR-TTP-001

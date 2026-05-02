@@ -4,7 +4,9 @@
 
 - `run_folder`: `work_history/runs/YYYY-MM-DD-<task-id>-run/`
 - `report_file`: `./codex.md`
-- `cross_role_summary`: `./README.md`
+- `run_summary`: `./README.md`
+- `benchmark_score`: `./analysis/benchmark-score.json`
+- `transcript_refs`: `./transcript_refs.json`
 - `do_not_write_to`: `docs/exec-plans/`, `.codex/history/`, handoff file
 
 ## Metadata
@@ -69,14 +71,14 @@
 ## Improvements
 
 - `次回の prompt 改善`: `<依頼文に足すこと>`
-- `次回の handoff 改善`: `<Copilot に渡す情報の改善>`
+- `次回の handoff 改善`: `<実装引き継ぎ入力に足すこと>`
 - `次回の template 改善`: `<この template に足すこと or なし>`
 - `人間が次に見るべき場所`: `<path / issue / command>`
 
 ## Follow-up
 
 - `必要な follow-up`: `<plan / issue / docs / なし>`
-- `owner`: `<human / Codex / Copilot / unknown>`
+- `owner`: `<human / Codex / unknown>`
 - `期限`: `<date / next run / none>`
 - `再実行コマンド`: `<command or なし>`
 

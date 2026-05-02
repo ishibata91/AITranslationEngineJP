@@ -5,7 +5,7 @@ export type ShellRouteId =
   | "translation-management"
   | "output-management"
 
-export type TranslationManagementViewId = "input-review" | "job-setup"
+export type TranslationManagementViewId = "input-review" | "job-setup" | "job-run"
 
 export interface ShellRouteContract {
   id: ShellRouteId
@@ -46,9 +46,9 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "translation-management",
     label: "翻訳管理",
-    state: "Job Setup 追加",
-    lead: "Input Review と Job Setup を切り替え、翻訳準備から ready job 作成までを確認するページです。",
-    description: "入力確認、validation、ready job 作成をまとめて確認します。"
+    state: "Job Run 追加",
+    lead: "Input Review、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ実行までを確認するページです。",
+    description: "入力確認、validation、ready job 作成、term phase 実行をまとめて確認します。"
   },
   {
     id: "output-management",
@@ -69,6 +69,11 @@ const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementV
     id: "job-setup",
     label: "Job Setup",
     description: "validation と ready job 作成を確認します。"
+  },
+  {
+    id: "job-run",
+    label: "Job Run",
+    description: "term phase progress と result summary を確認します。"
   }
 ]
 

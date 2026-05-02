@@ -1,0 +1,560 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TTP-001",
+      "title": "Ready job から単語翻訳フェーズを開始する",
+      "kind": "workflow",
+      "source_requirement": "tasks/usecases/term-translation-phase.yaml は precondition を翻訳ジョブ作成完了とし、manual check で Job Run から単語翻訳フェーズを開始する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/term-translation-phase.yaml の goal、completion_criteria、manual_check_steps。",
+          "verification_hint": "Ready job の Job Run で開始し、current phase と progress を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 active phase run がある場合は新規作成せず既存状態を返すか拒否する必要があるが、戻り方は Q-004 に集約する。",
+          "verification_hint": "開始再送で phase run が増えないことを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md の Ready -> Running と terminal 状態、translation-job-setup の Ready 未成立拒否。",
+          "verification_hint": "Ready 以外または terminal job で開始不可理由を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 active phase run、Completed / Failed / Canceled job は境界条件になる。",
+          "verification_hint": "active run と terminal job fixture で state 不変を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-009: job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+          "verification_hint": "Job Run で job Running と phase state label が同時に読め、次操作が phase state で決まることを確認する。",
+          "human_answer": {
+            "question_id": "Q-009",
+            "selected_option": "1",
+            "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。"
+          }
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は JOB_PHASE_RUN を翻訳ジョブ内のフェーズ実行として扱う。",
+          "verification_hint": "phase_type、progress、対象 translation field link を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Ready job、active phase run、current phase 表示は同じ phase run を指す必要がある。",
+          "verification_hint": "UI summary と repository state の phase run ID を照合する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md はフェーズ再実行を同じ JOB_PHASE_RUN の状態を戻す扱いにすると定義する。",
+          "verification_hint": "開始再送で JOB_PHASE_RUN が重複しないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は進捗を UI から観測することを求める。",
+          "verification_hint": "Job Run の current phase、progress、start result を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は中断、再開、失敗回復を継続的に行えることを求める。",
+          "verification_hint": "Paused / RecoverableFailed fixture で再開可能表示を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "Ready / not-ready / terminal / active phase run fixture で外部 API なしに検証できる。",
+          "verification_hint": "temp DB と mocked gateway で開始可否を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TTP-002",
+      "title": "共通辞書の完全一致語を除外する",
+      "kind": "workflow",
+      "source_requirement": "docs/spec.md は共通辞書として登録済みの対象を翻訳対象とせず、完全一致のみを構築済みとして扱うことを求める。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md:29-32 と tasks/usecases/term-translation-phase.yaml の completion_criteria。",
+          "verification_hint": "完全一致語が provider request から除外されることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-003: 共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+          "verification_hint": "対象語 0 件で Completed result、provider 未実行、後続 phase 可を確認する。",
+          "human_answer": {
+            "question_id": "Q-003",
+            "selected_option": "1",
+            "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。"
+          }
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-002: 単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。",
+          "verification_hint": "同じ snapshot で除外判定と監査 digest が再現できることを確認する。",
+          "human_answer": {
+            "question_id": "Q-002",
+            "selected_option": "1",
+            "answer": "単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。"
+          }
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は完全一致のみを構築済みとして扱うと定義する。",
+          "verification_hint": "大小文字差、空白差、部分一致を除外しないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "除外後に対象語が 0 件または未一致語ありの状態へ分かれる。",
+          "verification_hint": "AI 実行対象語数と phase result を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は DICTIONARY_ENTRY を共通辞書とジョブ内辞書で同じテーブルに置く。",
+          "verification_hint": "dictionary scope/source と matched entry を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider request、phase result、置換対象判定が同じ除外結果を参照する必要がある。",
+          "verification_hint": "除外件数と provider payload の差分を照合する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ辞書 snapshot と同じ対象語集合なら除外結果は再実行で変わらない必要がある。",
+          "verification_hint": "同一 fixture の再実行で同じ result digest を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/term-translation-phase.yaml は置換対象の判定結果を output とする。",
+          "verification_hint": "phase result で除外件数、置換件数、未一致件数を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "辞書参照不能や stale ref は provider request 前に失敗として止める必要がある。",
+          "verification_hint": "missing/stale dictionary fixture で request 未実行を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "共通辞書 fixture と fake transport で paid API なしに検証できる。",
+          "verification_hint": "fake transport payload に完全一致語が含まれないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TTP-003",
+      "title": "用語や固有名詞の訳語を確定する",
+      "kind": "external_integration",
+      "source_requirement": "docs/spec.md は単語翻訳フェーズで単語や固有名詞を個別に翻訳し、本文翻訳フェーズで再利用できることを求める。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-001: AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。",
+          "verification_hint": "fake provider response から確定訳語として保存候補へ進むことを確認する。",
+          "human_answer": {
+            "question_id": "Q-001",
+            "selected_option": "1",
+            "answer": "AI provider の用語翻訳結果を自動で確定訳語とし、人間確認 UI は今回の範囲に含めない。"
+          }
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-005: 初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。",
+          "verification_hint": "1 対象語 request unit の response 欠落で、その対象語だけ failed / retryable になり辞書へ保存されないことを確認する。",
+          "human_answer": {
+            "question_id": "Q-005",
+            "selected_option": "4",
+            "answer": "初期実装は 1 対象語 1 request unit とする。Batch API を使う場合も batch item は 1 対象語単位にし、複数対象語を 1 応答に詰める前提を置かない。欠落は対象語単位の失敗として扱う。"
+          }
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は Batch API 失敗時に別 provider fallback は不要とし、中断、再開、失敗回復を求める。",
+          "verification_hint": "provider unreachable、credential missing、unsupported mode、timeout で暗黙 fallback しないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "対象語欠落、余分な応答、重複、空訳語は response validation 境界になる。",
+          "verification_hint": "invalid response fixture で辞書未更新を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-008: 単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。",
+          "verification_hint": "Job Setup の term provider / model 設定が phase start で再選択なしに使われることを確認する。",
+          "human_answer": {
+            "question_id": "Q-008",
+            "selected_option": "1",
+            "answer": "単語翻訳フェーズは Job Setup の単語翻訳用 provider、model、execution mode を継承する。Job Setup では単語翻訳用の provider と model を設定できる必要がある。"
+          }
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey 暗号化保存を求め、docs/er.md は credential_ref が secret store 参照だけを保持すると定義する。",
+          "verification_hint": "UI、error summary、structured log、fake transport log に secret が出ないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ target term と response correlation key を二重保存しない必要がある。",
+          "verification_hint": "同じ response の再処理で辞書 entry が増えないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は API の実行進捗を確認できることを求める。",
+          "verification_hint": "provider、model、execution mode、input count、output count、error kind を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は RecoverableFailed から再開 / リトライできることを求める。",
+          "verification_hint": "fake timeout 後に retryable flag と再試行可否を確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "deferred",
+          "source_or_rationale": "対象語数や provider 実行時間の上限は現行仕様に明示がない。",
+          "owner": "implement_lane",
+          "recheck_condition": "implementation-scope 作成時に handoff 規模と batch size fixture を分ける。",
+          "verification_hint": "large fixture は後続実装範囲で必要になった場合だけ固定する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-setup の scenario は paid API を scenario validation 前提にしない方針を固定済みである。",
+          "verification_hint": "fake transport と fixed response fixture で provider path を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TTP-004",
+      "title": "確定訳語をジョブ内辞書へ反映する",
+      "kind": "persistence",
+      "source_requirement": "tasks/usecases/term-translation-phase.yaml は output をジョブ内辞書と確定訳語とし、docs/er.md は DICTIONARY_ENTRY と PHASE_RUN_DICTIONARY_ENTRY を定義する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md:217-220 と docs/er.md:56-69。",
+          "verification_hint": "job-scoped DICTIONARY_ENTRY と phase run link を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "保存途中失敗では partial state を成功扱いにしない必要がある。",
+          "verification_hint": "DB failure injection で row count と error kind を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-007: 同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。",
+          "verification_hint": "同一 job、同一 record type、同一 source term は重複せず、別 record type は別 entry として扱えることを確認する。",
+          "human_answer": {
+            "question_id": "Q-007",
+            "selected_option": "2",
+            "answer": "同一 source term の重複判定 key は record type ごとに一意にする。理由は同じ type 内で同じ語が繰り返し出やすいためである。"
+          }
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+          "verification_hint": "既存 entry が再作成されず、未処理 term だけ provider request へ進むことを確認する。",
+          "human_answer": {
+            "question_id": "Q-004",
+            "selected_option": "1",
+            "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+          }
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は DICTIONARY_ENTRY、translation_job_id、PHASE_RUN_DICTIONARY_ENTRY を定義する。",
+          "verification_hint": "translation_job_id、dictionary_scope、dictionary_source、phase link を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-006: 共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。",
+          "verification_hint": "完全一致語は common dictionary confirmed として扱い、未一致語だけ job dictionary entry へ保存されることを確認する。",
+          "human_answer": {
+            "question_id": "Q-006",
+            "selected_option": "1",
+            "answer": "共通辞書完全一致は API を投げずに確定済みとして適用する。ジョブ内辞書は共通辞書にない語を対象に作り、本文翻訳へ渡す確定語集合へ統合する。"
+          }
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "複数 job のジョブ内辞書は translation_job_id で分離する必要がある。",
+          "verification_hint": "job A / job B の辞書 entry が混線しないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-004: 再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。",
+          "verification_hint": "既存 entry が再作成されず、未処理 term だけ provider request へ進むことを確認する。",
+          "human_answer": {
+            "question_id": "Q-004",
+            "selected_option": "1",
+            "answer": "再開、リトライ、再実行では既存 entry を維持し、未処理だけ進める。API コスト節約を優先する。"
+          }
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存失敗、回復可能失敗、再実行準備では辞書完全性を維持する必要がある。",
+          "verification_hint": "RecoverableFailed 後の retry で partial state が成功扱いにならないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "temp DB と failure injection で永続化境界を検証できる。",
+          "verification_hint": "row count、phase link、rollback を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TTP-005",
+      "title": "Job Run で phase result を確認する",
+      "kind": "display",
+      "source_requirement": "tasks/usecases/term-translation-phase.yaml の completion_criteria と manual_check_steps は progress、phase result、確定訳語、ジョブ内辞書確認を求める。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/term-translation-phase.yaml:21-34。",
+          "verification_hint": "Job Run で current phase、progress、phase result を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "対象語 0 件、provider 未実行、再試行可能失敗の表示差分が必要である。",
+          "verification_hint": "success / empty / error result fixture を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "失敗理由、再試行可否、後続 phase 不可理由を UI から確認する必要がある。",
+          "verification_hint": "error summary と retry button state を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "長い語、長い provider 名、長い error reason で overflow しない必要がある。",
+          "verification_hint": "desktop / mobile fixture で text overflow を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "loading、empty、error、progress、retry、success の状態差分を持つ。",
+          "verification_hint": "UI state fixture を切り替えて表示差分を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 scope はローカル app の Job Run 表示であり、ユーザー権限差は入力成果物にない。",
+          "verification_hint": "権限差の受け入れ条件は作らない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は xTranslator Status と内部 cached / 辞書置換情報を混同しないことを求める。",
+          "verification_hint": "phase result で dictionary source と cached 相当の内部観測情報を分けて表示する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "mocked gateway result fixture で Job Run UI の表示状態を検証できる。",
+          "verification_hint": "frontend test と最終 UI 証跡で確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TTP-006",
+      "title": "未完了または失敗時に後続フェーズへ進めない",
+      "kind": "workflow",
+      "source_requirement": "tasks/usecases/term-translation-phase.yaml は確定訳語を本文翻訳フェーズの入力として参照できることを完了条件にする。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は単語翻訳フェーズで確定した訳語を本文翻訳フェーズで再利用すると定義する。",
+          "verification_hint": "term phase 完了後だけ後続 phase 入力 summary が成立することを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "NPC ペルソナ生成フェーズが本文翻訳前に存在するため、term phase は後続 phase 入力の一部だけを固定する。",
+          "verification_hint": "term dictionary ready summary が後続 phase から参照できることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "単語翻訳フェーズ未完了または失敗時は本文翻訳フェーズへ進めない候補が failure / state-transition にある。",
+          "verification_hint": "未開始、Running、Paused、RecoverableFailed で後続 phase run 未作成を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-003: 共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。",
+          "verification_hint": "対象語 0 件で Completed result、provider 未実行、後続 phase 可を確認する。",
+          "human_answer": {
+            "question_id": "Q-003",
+            "selected_option": "1",
+            "answer": "共通辞書除外後に翻訳対象語が 0 件でも phase result は Completed として扱う。provider 未実行は result summary へ出す。"
+          }
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-009: job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。",
+          "verification_hint": "Job Run で job Running と phase state label が同時に読め、次操作が phase state で決まることを確認する。",
+          "human_answer": {
+            "question_id": "Q-009",
+            "selected_option": "1",
+            "answer": "job は Running のまま phase state で単語翻訳フェーズの完了、中断、回復可能失敗、再実行準備を区別する。"
+          }
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は JOB_PHASE_RUN と PHASE_RUN_DICTIONARY_ENTRY を定義する。",
+          "verification_hint": "後続 phase 入力 summary が term phase run と dictionary entry を参照することを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "term phase result、job dictionary、後続 phase start 可否は同じ完了判定に依存する。",
+          "verification_hint": "phase result と next phase button state を照合する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "後続 phase start を再送しても term phase 未完了なら phase run を作らない。",
+          "verification_hint": "未完了 fixture で再送して後続 phase run 件数が 0 のままか確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/term-translation-phase.yaml は phase result と progress の確認を manual check に含める。",
+          "verification_hint": "後続 phase 不可理由を Job Run で確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は RecoverableFailed から再開 / リトライと再実行準備を定義する。",
+          "verification_hint": "RecoverableFailed から Ready に戻した後も term phase 未完了扱いであることを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase state fixture で後続 phase start boundary を検証できる。",
+          "verification_hint": "API test で phase run 未作成と拒否理由を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TTP-007",
+      "title": "監査と redaction を満たす",
+      "kind": "security",
+      "source_requirement": "docs/spec.md は APIKey 暗号化保存、実行進捗確認、辞書と共通基盤データの UI 観測を求め、docs/er.md は credential_ref のみ保持すると定義する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "provider 失敗、保存失敗、応答不正時も secret と raw response を出さない。",
+          "verification_hint": "error summary と structured log に保存禁止情報がないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "API key、secret 本体、復号可能な値、provider raw request / response、本文全量は保存禁止情報とする。",
+          "verification_hint": "redaction assertion fixture で確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "success、failure、paused、retryable state のすべてで同じ redaction 条件を満たす必要がある。",
+          "verification_hint": "各 state の UI summary と log を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 scope はローカル app 内の phase 実行であり、ユーザー権限差は入力成果物にない。",
+          "verification_hint": "権限差の受け入れ条件は作らない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey を暗号化保存することを求め、docs/er.md は credential_ref が secret store 参照だけを保持すると定義する。",
+          "verification_hint": "credential_ref だけが DTO / DB / UI summary に出ることを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "Human answer Q-002: 単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。",
+          "verification_hint": "同じ snapshot で除外判定と監査 digest が再現できることを確認する。",
+          "human_answer": {
+            "question_id": "Q-002",
+            "selected_option": "1",
+            "answer": "単語翻訳フェーズ開始時の共通辞書 snapshot を固定する。主な理由は再現性と参照性能である。"
+          }
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "失敗後の再試行でも latest error や retryable flag だけを表示し、raw payload は出さない。",
+          "verification_hint": "RecoverableFailed fixture で redaction と retryable flag を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は内部 cached と xTranslator Status=1 の写像、辞書置換情報の分離を求める。",
+          "verification_hint": "dictionary source、cached 相当、xTranslator output status 候補を混同しないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake secret store、fake transport、log capture で redaction を検証できる。",
+          "verification_hint": "secret 値を含む fixture で UI / log に出ないことを確認する。"
+        }
+      ]
+    }
+  ]
+}

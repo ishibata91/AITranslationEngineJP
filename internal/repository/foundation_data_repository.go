@@ -140,5 +140,7 @@ type FoundationDataRepository interface {
 	CreateDictionaryEntry(ctx context.Context, draft DictionaryEntryDraft) (DictionaryEntry, error)
 	GetDictionaryEntryByID(ctx context.Context, id int64) (DictionaryEntry, error)
 	UpdateDictionaryEntry(ctx context.Context, id int64, draft DictionaryEntryUpdateDraft) (DictionaryEntry, error)
+	ListDictionaryEntries(ctx context.Context, translationJobID *int64, lifecycle string, scope string, sourceTerm string) ([]DictionaryEntry, error)
+	FindDictionaryEntry(ctx context.Context, translationJobID *int64, lifecycle string, scope string, sourceTerm string) (DictionaryEntry, error)
 	DeleteDictionaryEntry(ctx context.Context, id int64) error
 }

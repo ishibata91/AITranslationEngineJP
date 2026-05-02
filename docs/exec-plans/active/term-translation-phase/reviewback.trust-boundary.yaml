@@ -1,0 +1,306 @@
+reviewback_version: 1
+task_id: term-translation-phase
+review_yaml_path: docs/exec-plans/active/term-translation-phase/reviewback.trust-boundary.yaml
+viewpoint: trust-boundary
+reviewer_agent: review_trust_boundary
+review_status: no_issue
+must_fix_open: false
+max_level: none
+assessment:
+  safety: pass
+  evidence_sufficiency: sufficient
+  hard_gate: true
+  hard_gate_result: passed
+  summary: >-
+    既存 open 指摘 TTP-TRUST-001 と TTP-TRUST-002 は最新差分で解決済み。
+    Gemini API key は URL query ではなく `x-goog-api-key` header に置かれ、
+    term phase は `credential_ref` ではなく backend secret store 由来の secret を provider auth に使う。
+    Wails DTO と frontend contract は `credentialRef`、provider、model、execution mode だけを持ち、
+    API key、secret、provider raw request / response を表現しない。
+    呼び出し元の最終検証証跡として `All requested harness suites passed.`、
+    execution harness pass、Playwright system test 5 passed、coverage harness pass、
+    Sonar security 0、reliability 0、maintainability HIGH 0 を受領した。
+    権限・信頼境界観点は hard gate のため他観点の成功では相殺しないが、
+    code read と呼び出し元検証証跡の範囲では未解決 issue はない。
+checked_scope:
+  summary: >-
+    current working tree の変更済みファイル、未追跡ファイル、task-local 設計成果物を確認した。
+    主に provider request、secret / credential_ref、Wails DTO、frontend 表示、SQL bind の境界を確認した。
+    最終検証は implement_lane 側の require_escalated 実行済み証跡を確認材料として扱った。
+    root の未追跡 `aitranslationenginejp` は存在しないことを確認した。
+  files:
+    - .codex/skills/codex-review-trust-boundary/SKILL.md
+    - .codex/agents/review_trust_boundary.toml
+    - .codex/README.md
+    - docs/exec-plans/active/term-translation-phase/implementation-scope.md
+    - docs/exec-plans/active/term-translation-phase/scenario-design.md
+    - docs/exec-plans/active/term-translation-phase/ui-design.md
+    - tasks/usecases/term-translation-phase.yaml
+    - internal/infra/ai/provider_client.go
+    - internal/infra/ai/transport.go
+    - internal/infra/ai/term_translation.go
+    - internal/infra/ai/gemini.go
+    - internal/infra/ai/gemini_test.go
+    - internal/infra/ai/test_helpers_test.go
+    - internal/infra/ai/openai_compatible.go
+    - internal/service/term_translation_provider_adapter.go
+    - internal/service/term_translation_phase_service.go
+    - internal/service/term_translation_phase_service_test.go
+    - internal/service/translation_job_setup_service.go
+    - internal/bootstrap/app_controller.go
+    - internal/controller/wails/term_translation_phase_controller.go
+    - internal/controller/wails/app_controller.go
+    - internal/controller/wails/master_dictionary_controller.go
+    - internal/repository/job_lifecycle_repository.go
+    - internal/repository/job_lifecycle_sqlite_repository.go
+    - internal/repository/foundation_data_sqlite_repository.go
+    - internal/infra/sqlite/dbinit/migrations/007_term_translation_indexes.sql
+    - internal/usecase/term_translation_phase_contract.go
+    - internal/usecase/term_translation_phase_usecase.go
+    - frontend/src/application/gateway-contract/term-translation-phase/term-translation-phase-gateway-contract.ts
+    - frontend/src/application/presenter/term-translation-phase/term-translation-phase.presenter.ts
+    - frontend/src/application/store/term-translation-phase/term-translation-phase.store.ts
+    - frontend/src/application/usecase/term-translation-phase/term-translation-phase.usecase.ts
+    - frontend/src/controller/wails/gateway-dto/term-translation-phase/term-translation-phase-gateway-dto.ts
+    - frontend/src/controller/wails/term-translation-phase.gateway.ts
+    - frontend/src/controller/term-translation-phase/term-translation-phase-screen-controller.ts
+    - frontend/src/controller/term-translation-phase/term-translation-phase-screen-controller-factory.ts
+    - frontend/src/ui/screens/job-run/JobRunPage.svelte
+    - frontend/src/ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte
+unchecked_scope:
+  - scope: vendor_api_full_audit
+    reason: >-
+      vendor API reference は request / response 形の参照資料であり、
+      今回は実コードの request construction と secret 解決境界を主根拠にしたため全文監査はしていない。
+    risk: >-
+      vendor 側の認証仕様変更は別途確認が必要だが、現在の実装は URL へ secret を載せない境界で固定されている。
+  - scope: paid_real_provider_execution
+    reason: >-
+      paid な real provider API は scenario validation の前提外であり、fake transport と request capture を確認した。
+    risk: >-
+      provider 本番応答の運用差分は残るが、権限・信頼境界の request / auth 配置は capture test で確認済み。
+issues:
+  - id: TTP-TRUST-001
+    level: blocker
+    title: Gemini provider request の API key URL query 露出は解消済み
+    problem: >-
+      修正前は Gemini request builder が `key` query parameter を URL に付けていた。
+      最新差分では `newGeminiRequest` が URL に key を付けず、
+      API key を `x-goog-api-key` header へ設定する。
+    reason: >-
+      `internal/infra/ai/gemini.go` の request construction は endpoint の path だけを作成し、
+      `request.Header.Set("x-goog-api-key", trimmedAPIKey)` で secret を header に置く。
+      request capture test は URL に `key=` が含まれないことと header 値を確認している。
+    violated_condition:
+      - >-
+        secret / API key は URL に漏れない。
+      - >-
+        provider request / response と secret は UI、error summary、structured log、request log に出さない。
+      - >-
+        権限・信頼境界の失敗は hard gate として扱い、他観点で相殺しない。
+    cause_candidate:
+      - >-
+        Gemini provider の認証値配置が query parameter 前提のまま残っている。
+      - >-
+        term translation の provider path が共通 ProviderClient を再利用したが、secret が URL に乗らない不変条件の再確認が抜けている。
+      - >-
+        既存 test helper が URL query 内の key を期待しており、危険な挙動を検出ではなく固定している。
+    evidence:
+      - file: internal/infra/ai/provider_client.go
+        line: 96
+        detail: >-
+          TranslateTerm は provider auth 値を ProviderRequest.APIKey として provider implementation へ渡す。
+      - file: internal/infra/ai/gemini.go
+        line: 86
+        detail: >-
+          newGeminiRequest は escaped model path の endpoint を作り、URL query を作らない。
+      - file: internal/infra/ai/gemini.go
+        line: 97
+        detail: >-
+          trimmed API key がある時だけ `x-goog-api-key` header に設定する。
+      - file: internal/infra/ai/test_helpers_test.go
+        line: 23
+        detail: >-
+          Gemini request capture helper が URL 内 `key=` を拒否する。
+      - file: internal/infra/ai/test_helpers_test.go
+        line: 26
+        detail: >-
+          Gemini request capture helper が `x-goog-api-key` header を期待する。
+      - file: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+        line: 177
+        detail: >-
+          provider handoff の completion signal は API key、secret、raw request / response を request log 等に出さないことを要求している。
+    local_fix_assessment: >-
+      局所修正で解決済み。provider request construction と request capture test が
+      secret を URL に出さない不変条件へ揃っており、frontend / Wails DTO 契約への追加露出はない。
+    additional_check_scope: >-
+      追加必須なし。translation job setup reachability の Gemini 経路も `x-goog-api-key` header を使うことを確認した。
+    fix_considerations:
+      - >-
+        URL 文字列に API key が含まれないことを provider request boundary の不変条件として維持する。
+      - >-
+        Gemini request capture test は URL query ではなく secret 非露出を確認する方向を維持する。
+      - >-
+        provider error message に request URL を含める経路がないことを同時に確認する。
+    verification:
+      - >-
+        Gemini term translation request の URL に `key=` が含まれないことを request capture で確認する。
+      - >-
+        secret 値を含む test fixture で UI、error summary、structured log、fake transport log に secret が出ないことを確認する。
+    resolution: >-
+      `newGeminiRequest` と `assertGeminiRequest` の最新差分で、URL query 露出は解消済み。
+    fix_required: true
+    status: resolved
+  - id: TTP-TRUST-002
+    level: critical
+    title: credential_ref の provider APIKey 外部送信は解消済み
+    problem: >-
+      修正前は term phase service が phase run の CredentialRef を
+      TermTranslationProviderRequest.APIKey に入れていた。
+      最新差分では provider 実行前に backend service が secret store から実 secret を解決し、
+      provider request の APIKey には secret store 値だけを渡す。
+    reason: >-
+      Job Setup は keyring の secret 有無を確認して provider-primary 形式の credential reference を公開する。
+      最新差分では initial phase の credential_ref は summary 用に保持し、
+      provider auth は `resolveProviderAPIKey` が provider ID から secret store key を作って解決する。
+      UI / Wails DTO / frontend gateway contract は credentialRef だけを表現し、API key field を持たない。
+    violated_condition:
+      - >-
+        credential_ref は secret 本体と分離された参照値として扱い、外部 provider の認証値にしない。
+      - >-
+        secret は backend 内部で解決し、DTO / UI / error summary / log には平文を出さない。
+      - >-
+        SCN-TTP-009 の fake secret store assertion で検証できる secret redaction 境界を保つ。
+    cause_candidate:
+      - >-
+        TermTranslationPhaseService に secret store 依存または credential_ref 解決境界がない。
+      - >-
+        Job Setup の credential_ref 保存と term phase provider execution の secret 解決が別 handoff 間で接続されていない。
+      - >-
+        provider adapter の APIKey field が secret と参照値を型で分けていない。
+    evidence:
+      - file: internal/service/term_translation_phase_service.go
+        line: 67
+        detail: >-
+          TermTranslationPhaseService が backend 内部依存として secretStore を持つ。
+      - file: internal/bootstrap/app_controller.go
+        line: 148
+        detail: >-
+          production wiring が masterPersonaSecretStore を TermTranslationPhaseService へ渡す。
+      - file: internal/service/term_translation_phase_service.go
+        line: 785
+        detail: >-
+          provider 実行前に `resolveProviderAPIKey` を呼び、解決済み apiKey を provider candidate に渡す。
+      - file: internal/service/term_translation_phase_service.go
+        line: 922
+        detail: >-
+          TermTranslationProviderRequest.APIKey には `resolveProviderAPIKey` の戻り値を設定する。
+      - file: internal/service/term_translation_phase_service.go
+        line: 1813
+        detail: >-
+          `resolveProviderAPIKey` が provider ID を正規化し、secretStore から provider secret を load する。
+      - file: internal/service/term_translation_phase_service_test.go
+        line: 731
+        detail: >-
+          fake secret store と provider request capture で、provider auth が `gemini-secret` になることを確認する。
+      - file: internal/controller/wails/term_translation_phase_controller.go
+        line: 59
+        detail: >-
+          term phase DTO は credentialRef を execution summary として frontend に返す設計であり、secret 本体ではない。
+      - file: frontend/src/application/gateway-contract/term-translation-phase/term-translation-phase-gateway-contract.ts
+        line: 39
+        detail: >-
+          frontend gateway contract の execution summary は credentialRef、provider、model、executionMode だけを持ち、apiKey を持たない。
+    local_fix_assessment: >-
+      局所修正で解決済み。public DTO は credential_ref のまま保ち、
+      provider execution の直前だけ backend 内部で secret store 値を解決する境界になっている。
+    additional_check_scope: >-
+      追加必須なし。LM Studio の optional API key path は secret store 未設定時に空 auth を許容し、
+      real provider は secret store 未設定または空 secret を provider failure として扱う。
+    fix_considerations:
+      - >-
+        credential_ref と secret value を境界名で分け、provider APIKey へ参照値を渡さない不変条件を維持する。
+      - >-
+        UI と DTO は credential_ref だけを保持し、secret 解決結果を返さないことを維持する。
+      - >-
+        provider transport capture では Authorization 等に入る値が secret store 由来であり、credential_ref ではないことを確認する。
+    verification:
+      - >-
+        fake secret store と fake provider transport で、UI summary は credential_ref のみ、provider auth は secret store 値のみになることを確認する。
+      - >-
+        provider failure、invalid response、save failure の error summary に secret と raw payload が出ないことを確認する。
+    resolution: >-
+      `resolveProviderAPIKey`、production wiring、fake secret store request capture test により、
+      credential_ref の外部 provider 送信は解消済み。
+    fix_required: true
+    status: resolved
+  - id: TTP-TRUST-003
+    level: blocker
+    title: 最終検証証跡の受領により hard gate 停止は解消済み
+    problem: >-
+      レビュー agent 自身では `python3 scripts/harness/run.py --suite all` を再実行しなかった。
+      ただし呼び出し元である implement_lane 側から、
+      require_escalated 付きの最終検証完了証跡を受領した。
+    reason: >-
+      権限・信頼境界観点では secrets、injection、tenant isolation 相当の境界を hard gate として扱う。
+      実コード確認では未解決の secret 漏えいは見つからない。
+      加えて、呼び出し元証跡で `All requested harness suites passed.`、
+      execution harness pass、system test harness pass、coverage harness pass、
+      Sonar security 0、reliability 0、maintainability HIGH 0 を確認したため、
+      hard gate を passed と判定する。
+    violated_condition:
+      - >-
+        解消前に未確認だった条件は、指定された最終検証結果が確認可能であること。
+      - >-
+        解消前に未確認だった条件は、Sonar security / reliability / maintainability HIGH の issue 0 根拠があること。
+    cause_candidate:
+      - >-
+        レビュー agent 自身が最終検証を再実行する必要があると誤って扱った。
+      - >-
+        呼び出し元で完了済みの require_escalated 検証証跡を、入力規約の最終検証結果として扱えていなかった。
+    evidence:
+      - file: implement_lane_final_validation_evidence
+        line: null
+        detail: >-
+          `env GOCACHE=/private/tmp/aitranslationenginejp-go-cache GOLANGCI_LINT_CACHE=/private/tmp/aitranslationenginejp-golangci-lint-cache SONAR_USER_HOME=/private/tmp/aitranslationenginejp-sonar python3 scripts/harness/run.py --suite all`
+          が `All requested harness suites passed.` で完了済み。
+      - file: implement_lane_final_validation_evidence
+        line: null
+        detail: >-
+          execution harness passed、system test harness passed: Playwright 5 passed、coverage harness passed。
+      - file: implement_lane_final_validation_evidence
+        line: null
+        detail: >-
+          Sonar coverage 74.5%、line 75.7%、branch 64.4%。
+          Sonar security 0、reliability 0、maintainability HIGH 0。
+      - file: docs/exec-plans/active/term-translation-phase/implementation-scope.md
+        line: 297
+        detail: >-
+          final-validation-and-report は `python3 scripts/harness/run.py --suite all` を completion signal に含める。
+    local_fix_assessment: >-
+      局所修正不要。呼び出し元の最終検証証跡により解決済み。
+    additional_check_scope: >-
+      追加必須なし。レビュー agent 自身の harness 再実行は不要。
+    fix_considerations:
+      - >-
+        今後も Sonar 実行は repo-local gate と Sonar server 側 Quality Gate を混同しない。
+      - >-
+        呼び出し元で実行済みの最終検証証跡は、レビュー agent の入力規約上の最終検証結果として扱う。
+    verification:
+      - >-
+        呼び出し元証跡で `All requested harness suites passed.` を確認済み。
+      - >-
+        呼び出し元証跡で Sonar security 0、reliability 0、maintainability HIGH 0 を確認済み。
+    resolution: >-
+      implement_lane 側の require_escalated 最終検証証跡により、
+      TTP-TRUST-003 は解消済み。
+    fix_required: true
+    status: resolved
+forbidden_outputs:
+  tool_permission_changes: prohibited
+  agent_definition_changes: prohibited
+  product_code_change_instructions: prohibited
+  fix_scope_commands: prohibited
+  note: >-
+    この YAML は権限・信頼境界観点のレビュー結果だけを記録する。
+    プロダクトコード、テスト、docs 正本文、agent 定義、skill 定義は変更していない。

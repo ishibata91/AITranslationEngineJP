@@ -27,6 +27,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 対象変更範囲: 実装してよい統合境界のプロダクトコード範囲。
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
+- secret 境界情報: 統合境界で扱う参照値、secret 本体、secret 解決責務層、出力禁止値。
 
 ## 外部参照規約
 
@@ -39,16 +40,31 @@ integration は広い frontend / backend 同時変更の許可ではない。
 
 ## 内部参照規約
 
+secret 分離観点表は次を拘束する。
+
+| 観点 | 確認内容 |
+| --- | --- |
+| 参照値 | UI、DTO、read model に出してよい識別子だけを統合境界へ渡す |
+| secret 本体 | provider、外部 API、内部認証 に渡す値を参照値と分ける |
+| 解決責務 | 参照値から secret 本体を解決する層を 1 つに固定する |
+| 出力禁止 | URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ secret 本体を出さない |
+| 検証補助 | 偽 secret 保管先、偽送信経路、要求捕捉を使い、出力禁止先への漏れがないことを確認する |
+
 ## 判断規約
 
 - implementation-scope の 承認済み実装範囲 を守る
 - integration の対象を API、Wails 紐づけ、DTO、gateway、adapter 契約 の統合境界だけに限定する
 - 片側だけで閉じない理由を 対象範囲 成果物 で確認する
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
+- secret を扱う場合は、参照値、secret 本体、secret 解決責務層、出力禁止値を単一引き継ぎ入力で確認する
+- `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名を、参照値と secret 本体の同名値として扱わない
+- secret 本体は provider、外部 API、内部認証 へ渡す直前に secret 解決責務層から受け取る
+- URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ secret 本体を出さない
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 - 検証 は frontend、backend、統合境界 契約 の証跡を分ける
 
 - API / Wails / DTO / gateway / adapter 契約 のどれを統合境界として変更したか 終了処理 に残す
+- secret を扱った場合は、偽 secret 保管先、偽送信経路、要求捕捉による漏れ確認を 終了処理 に残す
 - 両側の touched files を 引き継ぎ と対応づける
 - frontend / backend / 統合境界 契約 の レーン内検証 根拠 を分ける
 - レーン内検証 コマンド の不足を 残留リスク にする
@@ -78,6 +94,8 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
 - API / Wails / DTO / gateway / adapter 契約 の統合境界 対象範囲 が承認済みであることを確認した。
+- secret を扱う場合は、参照値、secret 本体、secret 解決責務層、出力禁止値を確認した。
+- secret を扱う場合は、偽 secret 保管先、偽送信経路、要求捕捉を使い、secret 本体が URL、DTO、UI、error summary、構造化 log、audit、要求捕捉に出ないことを確認した。
 - 両側の touched files を 引き継ぎ と対応づけた。
 - 単一引き継ぎ入力 と レーン内検証 根拠 を分けた。
 - backend 側の変更がある場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
@@ -93,6 +111,9 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 追加設計で横断 対象範囲 を広げる時
 - API 統合境界を変えずに UI と backend を同時に触らない
 - 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
+- secret を扱う統合境界で、参照値、secret 本体、secret 解決責務層、出力禁止値が不足する場合は停止する。
+- secret 本体を URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ出す必要がある場合は停止する。
+- 偽 secret 保管先、偽送信経路、要求捕捉で secret 漏れを確認できない場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
 - `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+  import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   // eslint-disable-next-line local/enforce-layer-boundaries
@@ -21,6 +22,7 @@
   interface Props {
     createMasterDictionaryScreenController?: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController?: CreateMasterPersonaScreenController | null
+    createTermTranslationPhaseScreenController?: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController?: CreateTranslationJobSetupScreenController | null
     createTranslationInputScreenController?: CreateTranslationInputScreenController | null
   }
@@ -28,6 +30,7 @@
   let {
     createMasterDictionaryScreenController = null,
     createMasterPersonaScreenController = null,
+    createTermTranslationPhaseScreenController = null,
     createTranslationJobSetupScreenController = null,
     createTranslationInputScreenController = null
   }: Props = $props()
@@ -63,6 +66,7 @@
   defaultTranslationManagementViewId={shellState.defaultTranslationManagementViewId}
   {createMasterDictionaryScreenController}
   createMasterPersonaScreenController={resolveMasterPersonaScreenControllerFactory()}
+  {createTermTranslationPhaseScreenController}
   createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}
   routes={shellState.routes}

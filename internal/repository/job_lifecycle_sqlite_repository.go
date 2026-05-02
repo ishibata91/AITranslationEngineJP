@@ -202,6 +202,14 @@ SELECT id, translation_job_id, phase_type, state, execution_order, progress_perc
        latest_external_run_id, latest_error, started_at, finished_at
 FROM JOB_PHASE_RUN WHERE translation_job_id = ? ORDER BY execution_order ASC`
 
+	selectJobPhaseRunByJobAndType = `
+SELECT id, translation_job_id, phase_type, state, execution_order, progress_percent,
+       ai_provider, model_name, execution_mode, credential_ref, instruction_kind,
+       latest_external_run_id, latest_error, started_at, finished_at
+FROM JOB_PHASE_RUN
+WHERE translation_job_id = ? AND phase_type = ?
+LIMIT 1`
+
 	insertPhaseRunTranslationField = `
 INSERT INTO PHASE_RUN_TRANSLATION_FIELD
   (phase_run_id, job_translation_field_id, role)
@@ -219,6 +227,12 @@ INSERT INTO PHASE_RUN_DICTIONARY_ENTRY
   (phase_run_id, dictionary_entry_id, role)
 VALUES
   (:phase_run_id, :dictionary_entry_id, :role)`
+
+	selectPhaseRunDictionaryEntriesByPhaseRunID = `
+SELECT id, phase_run_id, dictionary_entry_id, role
+FROM PHASE_RUN_DICTIONARY_ENTRY
+WHERE phase_run_id = ?
+ORDER BY id ASC`
 )
 
 // ---------------------------------------------------------------------------
@@ -422,6 +436,27 @@ func (r *SQLiteJobLifecycleRepository) ListJobPhaseRunsByJobID(
 	return result, nil
 }
 
+// FindJobPhaseRun は translation_job_id と phase_type で JobPhaseRun を取得する。
+func (r *SQLiteJobLifecycleRepository) FindJobPhaseRun(
+	ctx context.Context,
+	translationJobID int64,
+	phaseType string,
+) (JobPhaseRun, error) {
+	ext := extractTx(ctx, r.db)
+	var row jobPhaseRunRow
+	if err := sqlx.GetContext(
+		ctx,
+		ext,
+		&row,
+		selectJobPhaseRunByJobAndType,
+		translationJobID,
+		phaseType,
+	); err != nil {
+		return JobPhaseRun{}, mapSQLError(err, "find job_phase_run by job and type")
+	}
+	return row.toModel()
+}
+
 // ---------------------------------------------------------------------------
 // PhaseRunTranslationField
 // ---------------------------------------------------------------------------
@@ -525,4 +560,21 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunDictionaryEntry(
 		DictionaryEntryID: draft.DictionaryEntryID,
 		Role:              draft.Role,
 	}, nil
+}
+
+// ListPhaseRunDictionaryEntriesByPhaseRunID は PhaseRunID に紐づく辞書関連一覧を返す。
+func (r *SQLiteJobLifecycleRepository) ListPhaseRunDictionaryEntriesByPhaseRunID(
+	ctx context.Context,
+	phaseRunID int64,
+) ([]PhaseRunDictionaryEntry, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []phaseRunDictionaryEntryRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectPhaseRunDictionaryEntriesByPhaseRunID, phaseRunID); err != nil {
+		return nil, mapSQLError(err, "list phase_run_dictionary_entry by phase_run_id")
+	}
+	result := make([]PhaseRunDictionaryEntry, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, PhaseRunDictionaryEntry(row))
+	}
+	return result, nil
 }
