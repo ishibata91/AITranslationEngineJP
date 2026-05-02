@@ -142,6 +142,7 @@ type JobLifecycleRepository interface {
 
 	// PhaseRunPersona
 	CreatePhaseRunPersona(ctx context.Context, draft PhaseRunPersonaDraft) (PhaseRunPersona, error)
+	ListPhaseRunPersonasByPhaseRunID(ctx context.Context, phaseRunID int64) ([]PhaseRunPersona, error)
 
 	// PhaseRunDictionaryEntry
 	CreatePhaseRunDictionaryEntry(ctx context.Context, draft PhaseRunDictionaryEntryDraft) (PhaseRunDictionaryEntry, error)

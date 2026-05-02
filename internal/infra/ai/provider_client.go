@@ -7,6 +7,11 @@ import (
 	"strings"
 )
 
+// ProviderCredentialResolver resolves one redacted credential reference to a provider secret.
+type ProviderCredentialResolver interface {
+	ResolveProviderCredential(ctx context.Context, providerID string, credentialRef string) (string, error)
+}
+
 // ProviderClientOption configures provider client runtime values.
 type ProviderClientOption func(client *ProviderClient)
 
@@ -30,13 +35,24 @@ func WithXAIBaseURL(baseURL string) ProviderClientOption {
 	}
 }
 
+// WithProviderCredentialResolver sets the credential resolver used by provider-backed request helpers.
+func WithProviderCredentialResolver(resolver ProviderCredentialResolver) ProviderClientOption {
+	return func(client *ProviderClient) {
+		if client == nil {
+			return
+		}
+		client.credentialResolver = resolver
+	}
+}
+
 // ProviderClient sends provider-backed AI text requests.
 type ProviderClient struct {
-	transport       HTTPTransport
-	testSafe        bool
-	lmStudioBaseURL string
-	xaiBaseURL      string
-	providers       map[string]provider
+	transport          HTTPTransport
+	testSafe           bool
+	lmStudioBaseURL    string
+	xaiBaseURL         string
+	credentialResolver ProviderCredentialResolver
+	providers          map[string]provider
 }
 
 // NewProviderClient creates a provider client backed by an HTTP transport.
@@ -116,6 +132,61 @@ func (client *ProviderClient) TranslateTerm(
 	return parseTermTranslationResponse(response.Text)
 }
 
+// GeneratePersona sends one correlated NPC persona request unit and parses a strict JSON persona response.
+func (client *ProviderClient) GeneratePersona(
+	ctx context.Context,
+	providerID string,
+	model string,
+	executionMode string,
+	credentialRef string,
+	prompt string,
+) (PersonaGenerationResponse, error) {
+	normalizedExecutionMode := strings.ToLower(strings.TrimSpace(executionMode))
+	if normalizedExecutionMode == "" {
+		return PersonaGenerationResponse{}, newPersonaGenerationError(
+			PersonaGenerationErrorKindProviderFailure,
+			false,
+			fmt.Errorf("persona generation execution mode is required"),
+		)
+	}
+	if normalizedExecutionMode != personaGenerationExecutionModeSingleRequest {
+		return PersonaGenerationResponse{}, newPersonaGenerationError(
+			PersonaGenerationErrorKindProviderFailure,
+			false,
+			fmt.Errorf("unsupported persona generation execution mode: %s", executionMode),
+		)
+	}
+
+	apiKey, err := client.resolveProviderCredential(ctx, providerID, credentialRef)
+	if err != nil {
+		return PersonaGenerationResponse{}, newPersonaGenerationError(
+			PersonaGenerationErrorKindProviderFailure,
+			isProviderExecutionRetryable(err),
+			err,
+		)
+	}
+	response, err := client.GenerateText(ctx, providerID, ProviderRequest{
+		Model:  model,
+		APIKey: apiKey,
+		Prompt: prompt,
+	})
+	if err != nil {
+		return PersonaGenerationResponse{}, newPersonaGenerationError(
+			PersonaGenerationErrorKindProviderFailure,
+			isProviderExecutionRetryable(err),
+			err,
+		)
+	}
+	parsed, err := parsePersonaGenerationResponse(response.Text)
+	if err != nil {
+		return PersonaGenerationResponse{}, err
+	}
+	parsed.ExecutionMode = normalizedExecutionMode
+	parsed.PromptDigest = promptDigestSHA256(prompt)
+	parsed.DebugLog = response.DebugLog
+	return parsed, nil
+}
+
 func (client *ProviderClient) providerRegistry() map[string]provider {
 	if len(client.providers) == 0 {
 		client.providers = client.newProviderRegistry()
@@ -138,6 +209,10 @@ func (client *ProviderClient) newProviderRegistry() map[string]provider {
 			baseURL:        client.xaiBaseURL,
 			apiKeyOptional: client.testSafe,
 		},
+		ProviderFake: deterministicProvider{
+			transport: client.transport,
+			testSafe:  client.testSafe,
+		},
 	}
 }
 
@@ -147,4 +222,36 @@ func normalizeBaseURL(candidate string, fallback string) string {
 		return trimmedCandidate
 	}
 	return strings.TrimSpace(fallback)
+}
+
+func (client *ProviderClient) resolveProviderCredential(
+	ctx context.Context,
+	providerID string,
+	credentialRef string,
+) (string, error) {
+	normalizedProvider := strings.ToLower(strings.TrimSpace(providerID))
+	switch normalizedProvider {
+	case ProviderFake:
+		return "", nil
+	case ProviderLMStudio:
+		if client == nil || client.credentialResolver == nil {
+			return "", nil
+		}
+	default:
+		if client == nil || client.credentialResolver == nil {
+			return "", fmt.Errorf("provider credential resolver is required")
+		}
+	}
+	resolved, err := client.credentialResolver.ResolveProviderCredential(ctx, normalizedProvider, strings.TrimSpace(credentialRef))
+	if err != nil {
+		return "", fmt.Errorf("resolve provider credential: %w", err)
+	}
+	if normalizedProvider == ProviderLMStudio {
+		return strings.TrimSpace(resolved), nil
+	}
+	trimmed := strings.TrimSpace(resolved)
+	if trimmed == "" {
+		return "", fmt.Errorf("provider credential is unavailable")
+	}
+	return trimmed, nil
 }

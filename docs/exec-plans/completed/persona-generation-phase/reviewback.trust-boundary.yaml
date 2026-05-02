@@ -1,0 +1,172 @@
+reviewback_version: 1
+task_id: "persona-generation-phase"
+review_yaml_path: "docs/exec-plans/active/persona-generation-phase/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "認証・認可の新規 user/role/tenant 境界は導入されていない。secret は credential_ref と API key 本体が分離され、API key 本体は provider transport 直前で解決される。UI、DTO、read model、DB summary には raw prompt、provider raw request / response、原文発話全文、会話文脈全文、secret 本体を表現する field は見当たらない。debug log は prompt / request body を保持し得るが、header secret は redacted され、service / usecase / Wails / frontend へ表示用 DTO として流していない。retry は retryable guard 後だけ provider 実行へ戻り、cancel と body readiness は provider request や secret 解決を増やしていない。"
+  evidence_sufficiency: "十分。review fix 後の最新 worktree diff と untracked 実装ファイルを読み、secret / prompt / DTO / UI / provider transport / retry / cancel / body readiness 境界を確認した。広いハーネスは再実行せず、呼び出し元の最新検証証跡を入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "provider credential 解決、provider transport debug log、persona prompt builder、service read model、retry / cancel / body readiness、DB 保存対象、Wails DTO、frontend gateway contract、frontend presenter / UI、untracked .cache / .tmp の secret pattern 検索を確認した。"
+  files:
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 78
+      symbol: "contract-persona-phase-public-seams secret_boundary"
+      reason: "DTO が credential_ref と digest だけを持ち、secret 本体、API key、provider raw request / response、raw prompt、原文発話全文、会話文脈全文を持たない契約を確認した。"
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 177
+      symbol: "backend-persona-provider-adapter secret_boundary"
+      reason: "provider adapter の secret 解決 owner と debug log redaction 条件を確認した。"
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 337
+      symbol: "integration-persona-phase-wails-gateway secret_boundary"
+      reason: "Wails DTO と frontend gateway が secret 本体を受け取らない契約を確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 59
+      symbol: "PersonaGenerationPhasePublicRedactionFieldObligation"
+      reason: "public seam の allowed reference fields と forbidden output fields を確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 148
+      symbol: "PersonaGenerationExecutionSummary"
+      reason: "usecase DTO が credential_ref、provider、model、execution mode、prompt digest、count、evidence ref のみを持つことを確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 160
+      symbol: "ProviderClient.GeneratePersona"
+      reason: "credential_ref から API key を transport 直前で解決し、provider request には API key と prompt を渡す境界を確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 231
+      symbol: "ProviderClient.resolveProviderCredential"
+      reason: "fake と LM Studio の例外を除き、provider credential resolver がない場合は secret 未解決で止まることを確認した。"
+    - path: "internal/infra/ai/transport.go"
+      line: 194
+      symbol: "buildProviderDebugLog"
+      reason: "debug log は prompt / request body を持つが、headers は redaction 関数を通すことを確認した。"
+    - path: "internal/infra/ai/transport.go"
+      line: 207
+      symbol: "redactProviderHeaders"
+      reason: "Authorization と X-Goog-Api-Key が [REDACTED] へ置換されることを確認した。"
+    - path: "internal/service/persona_generation_provider_adapter.go"
+      line: 168
+      symbol: "BuildPersonaGenerationPrompt"
+      reason: "raw prompt は provider request 用に作られるが、public summary ではなく adapter 内の request unit に閉じていることを確認した。"
+    - path: "internal/service/persona_generation_provider_adapter.go"
+      line: 509
+      symbol: "redactedPersonaGenerationProviderFailureReason"
+      reason: "credential / secret / authorization を含む provider error が public failure reason へ直接出ないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 117
+      symbol: "PersonaGenerationExecutionSummaryReadModel"
+      reason: "service read model が redacted execution settings だけを保持することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 401
+      symbol: "PersonaGenerationPhaseService.RetryPhase"
+      reason: "retry は terminal / snapshot drift / retryable guard 後にだけ executePhaseRun へ戻り、拒否応答は redacted error summary に閉じることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 445
+      symbol: "PersonaGenerationPhaseService.CancelPhase"
+      reason: "cancel は terminal / snapshot drift / cancelable guard と state mutation に留まり、provider request や secret 解決を実行しないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 471
+      symbol: "PersonaGenerationPhaseService.ReadBodyReadiness"
+      reason: "body readiness は phase run と snapshot link の read model だけを返し、provider request、secret、raw prompt を扱わないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1376
+      symbol: "executeGeneratedPersonaTarget"
+      reason: "provider result の failure は redacted public summary に変換され、DebugLog を summary へ流していないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1472
+      symbol: "buildProviderRequest"
+      reason: "原文発話と会話文脈は provider request 入力にのみ集約され、summary には digest と count が残る構造を確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1549
+      symbol: "persistGeneratedPersona"
+      reason: "DB 保存対象は generated persona body、evidence link、phase link であり、API key、raw prompt、provider raw payload を保存していないことを確認した。"
+    - path: "internal/controller/wails/persona_generation_phase_controller.go"
+      line: 85
+      symbol: "PersonaGenerationExecutionSummaryDTO"
+      reason: "Wails DTO が credential_ref と prompt digest だけを公開することを確認した。"
+    - path: "frontend/src/application/gateway-contract/persona-generation-phase/persona-generation-phase-gateway-contract.ts"
+      line: 64
+      symbol: "PersonaGenerationExecutionSummary"
+      reason: "frontend gateway contract に API key、token、raw prompt、raw response field がないことを確認した。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+      line: 102
+      symbol: "PersonaGenerationPhaseGateway"
+      reason: "frontend Wails gateway の start / pause / resume / retry / cancel / body readiness request が jobId と phaseRunId に限定され、secret や prompt 本文を受け取らないことを確認した。"
+    - path: "frontend/src/application/usecase/persona-generation-phase/persona-generation-phase.usecase.ts"
+      line: 40
+      symbol: "sanitizeErrorMessage"
+      reason: "Wails error の raw message を画面へ出さず、既知の未接続エラー以外は固定文言へ丸めることを確認した。"
+    - path: "frontend/src/application/presenter/persona-generation-phase/persona-generation-phase.presenter.ts"
+      line: 511
+      symbol: "PersonaGenerationPhasePresenter.toViewModel"
+      reason: "UI 表示用 label が provider、model、credential ref、count、evidence ref、prompt digest に限定されていることを確認した。"
+    - path: "frontend/src/ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte"
+      line: 184
+      symbol: "PersonaGenerationPhasePanel AI execution summary"
+      reason: "画面表示が provider、model、execution mode、credential ref、count、prompt digest、error kind に限定されていることを確認した。"
+    - path: "internal/infra/ai/persona_generation_test.go"
+      line: 38
+      symbol: "TestProviderClientGeneratePersonaUsesResolverAndRedactsDebugLog"
+      reason: "credential resolver 利用、Authorization header redaction、request body に secret が入らないことを focused test で確認している。"
+    - path: "internal/service/persona_generation_provider_adapter_test.go"
+      line: 36
+      symbol: "TestPersonaGenerationProviderAdapterMapsValidResponse"
+      reason: "provider adapter が credential ref を参照値として扱い、debug log redaction status を保持することを確認している。"
+    - path: "frontend/src/application/gateway-contract/persona-generation-phase/persona-generation-contract.test.ts"
+      line: 6
+      symbol: "summary contract exposes only redacted reference fields"
+      reason: "frontend contract が apiKey、token、rawPrompt を execution summary に持たないことを確認している。"
+    - path: ".cache/"
+      line: null
+      symbol: "untracked generated cache scan"
+      reason: "untracked 対象として secret/API key/prompt 関連 pattern を検索し、実 secret 形式の混入を示す根拠は見つからなかった。"
+    - path: ".tmp/"
+      line: null
+      symbol: "untracked generated cache scan"
+      reason: "untracked 対象として secret/API key/prompt 関連 pattern を検索し、実 secret 形式の混入を示す根拠は見つからなかった。"
+
+unchecked_scope:
+  - target: ".cache/ と .tmp/ の全バイナリ内容の完全デコード"
+    reason: "Go build cache 由来の untracked binary が 11443 files、合計約 1123MB あり、レビュー agent の権限・信頼境界判定としては targeted pattern scan に留めた。"
+    risk: "生成 cache を成果物として扱う場合、local path や compiled string が残る可能性はある。ただし今回の product code、UI、DTO、DB summary、provider transport 境界の hard gate 判定に影響する未解決 secret 露出は確認していない。"
+  - target: "実行時 structured log / console の実出力"
+    reason: "広いハーネス再実行と UI 実機操作はレビュー agent の責務外であり、呼び出し元の検証証跡を入力として扱った。"
+    risk: "将来 debug log を UI / report / structured log へ接続する変更が入る場合、prompt / request body の表示先を再レビューする必要がある。"
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  required: false
+  scope: "none"
+  reason: "未解決の trust-boundary issue がないため、局所修正は不要。"
+
+invariant_test_viewpoints:
+  - "DTO / frontend contract に apiKey、token、rawPrompt、provider raw request / response field が追加されないこと。"
+  - "DebugLog を UI、Wails DTO、DB summary、work report に接続する変更では secret header redaction と prompt 表示先を再確認すること。"
+  - "provider credential は credential_ref から provider transport 直前でのみ解決され、usecase / controller / frontend は secret 本体を受け取らないこと。"
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "pass"
+    evidence: "呼び出し元提示。structure pass、scenario requirement gate pass、execution pass、system test 5/5 pass、coverage pass。coverage 73.1%、line 74.0%、branch 64.3%。Sonar issue は security 0、reliability 0、maintainability HIGH 0。レビュー agent では再実行していない。"
+  - command: "git status --short / git diff --name-only"
+    result: "review-only diff inventory completed"
+    evidence: "provider client、AI transport、persona phase service、Wails controller、frontend gateway、Job Run UI の変更対象を確認した。"
+  - command: "rg secret/API key/prompt related patterns over changed task files"
+    result: "review-only scan completed"
+    evidence: "persona-generation-phase の frontend / backend 経路では、公開 DTO と UI に apiKey、token、rawPrompt、raw response field を追加した根拠は見つからなかった。"
+
+residual_risks:
+  - "debug log は prompt / request body を設計上許可している。現在は provider adapter result 内に閉じ、UI / DTO / DB summary に流していないが、将来の表示導線追加時は hard gate 再確認が必要。"
+  - "untracked .cache / .tmp は生成物であり、権限・信頼境界の product 経路ではない。成果物化や commit 対象化を判断する lane では別観点で扱う必要がある。"

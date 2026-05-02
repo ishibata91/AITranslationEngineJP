@@ -222,6 +222,12 @@ INSERT INTO PHASE_RUN_PERSONA
 VALUES
   (:phase_run_id, :persona_id, :role)`
 
+	selectPhaseRunPersonasByPhaseRunID = `
+SELECT id, phase_run_id, persona_id, role
+FROM PHASE_RUN_PERSONA
+WHERE phase_run_id = ?
+ORDER BY id ASC`
+
 	insertPhaseRunDictionaryEntry = `
 INSERT INTO PHASE_RUN_DICTIONARY_ENTRY
   (phase_run_id, dictionary_entry_id, role)
@@ -525,6 +531,23 @@ func (r *SQLiteJobLifecycleRepository) CreatePhaseRunPersona(
 		PersonaID:  draft.PersonaID,
 		Role:       draft.Role,
 	}, nil
+}
+
+// ListPhaseRunPersonasByPhaseRunID は PhaseRunID に紐づく persona 関連一覧を返す。
+func (r *SQLiteJobLifecycleRepository) ListPhaseRunPersonasByPhaseRunID(
+	ctx context.Context,
+	phaseRunID int64,
+) ([]PhaseRunPersona, error) {
+	ext := extractTx(ctx, r.db)
+	var rows []phaseRunPersonaRow
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectPhaseRunPersonasByPhaseRunID, phaseRunID); err != nil {
+		return nil, mapSQLError(err, "list phase_run_persona by phase_run_id")
+	}
+	result := make([]PhaseRunPersona, 0, len(rows))
+	for _, row := range rows {
+		result = append(result, PhaseRunPersona(row))
+	}
+	return result, nil
 }
 
 // ---------------------------------------------------------------------------

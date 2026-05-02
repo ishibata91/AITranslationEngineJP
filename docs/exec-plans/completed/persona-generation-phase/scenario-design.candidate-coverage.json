@@ -1,0 +1,632 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-PGP-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PGP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-001",
+      "decision_rationale": "Job Run から persona phase を開始し current phase と progress を確認する正常系へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PGP-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-002",
+      "decision_rationale": "生成対象、入力種類、対象件数を確認する target snapshot シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PGP-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PGP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-003",
+      "decision_rationale": "NPC 発話、属性、会話文脈を provider 入力へ写像して生成する正常系へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PGP-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+      "final_scenario_id": "SCN-PGP-002"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PGP-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PGP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-004",
+      "decision_rationale": "本文翻訳フェーズ入力として persona snapshot を参照可能にする永続化 / 参照境界へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PGP-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PGP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-005",
+      "decision_rationale": "Job Run UI の phase、progress、生成結果、snapshot 参照表示へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-001",
+      "decision_rationale": "単語翻訳フェーズ完了後の persona phase start lifecycle として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-002",
+      "decision_rationale": "原文発話、属性、会話文脈、共通ペルソナから生成対象を固定する前処理として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-003",
+      "decision_rationale": "provider 実行と persona result 取得の中心正常系として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-004",
+      "decision_rationale": "job-scoped PERSONA、evidence、PHASE_RUN_PERSONA の保存境界へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-006",
+      "decision_rationale": "body phase input summary と readiness guard へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-005",
+      "decision_rationale": "画面再表示後の phase result と persona 参照状態の確認へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: pause、resume、retry、cancel を body phase と同じように許可する。",
+      "final_scenario_id": "SCN-PGP-008"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 成功分は維持し、phase は RecoverableFailed として未処理 NPC だけ retry する。",
+      "final_scenario_id": "SCN-PGP-006"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PGP-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PGP-004",
+      "decision": "rejected",
+      "decision_rationale": "ジョブ内ペルソナ flush は翻訳完了後の cleanup / output artifact 側の判断であり、persona-generation-phase の直接受け入れ条件から外す。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-001",
+      "decision_rationale": "term Completed から persona phase 開始への許可遷移として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-001",
+      "decision_rationale": "term 未完了または active phase ありの開始拒否を phase start boundary へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-002",
+      "decision_rationale": "persona phase 開始時の生成対象 snapshot 固定として統合する。snapshot 内容の詳細は Q-007 に残す。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+      "final_scenario_id": "SCN-PGP-004"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-004",
+      "decision_rationale": "valid provider result から job-scoped persona と phase link を確定する正常遷移として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 成功分は維持し、phase は RecoverableFailed として未処理 NPC だけ retry する。",
+      "final_scenario_id": "SCN-PGP-007"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-006",
+      "decision_rationale": "persona phase Completed で body phase readiness が成立する境界へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-006",
+      "decision_rationale": "persona 未完了または snapshot 参照不能時の body phase start 拒否へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-009",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: pause、resume、retry、cancel を body phase と同じように許可する。",
+      "final_scenario_id": "SCN-PGP-008"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PGP-ST-010",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PGP-001",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: Completed、Failed、Canceled を terminal state とする。RecoverableFailed は回復対象として扱う。",
+      "final_scenario_id": "SCN-PGP-010"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-007",
+      "decision_rationale": "必要入力不足時に phase run や persona snapshot を成功状態で作らない失敗系へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 成功分は維持し、phase は RecoverableFailed として未処理 NPC だけ retry する。",
+      "final_scenario_id": "SCN-PGP-007"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+      "final_scenario_id": "SCN-PGP-007"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-007",
+      "decision_rationale": "provider 失敗、不正応答、対象 NPC 欠落 response を成功扱いにしない失敗系へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-007",
+      "decision_rationale": "保存失敗と partial persona state を成功扱いにしない整合性シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-002",
+      "decision_rationale": "参照不能な NPC / 会話文脈を生成対象 snapshot と provider input から除外する境界へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PGP-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-009",
+      "decision_rationale": "secret、provider raw payload、過剰本文を露出しない security / observability シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-003",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: Job Setup の persona 専用 provider、model、execution mode を継承する。",
+      "final_scenario_id": "SCN-PGP-003"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-009",
+      "decision_rationale": "credential_ref と secret 非露出を監査 / redaction シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-003",
+      "decision_rationale": "NPC 発話、属性、会話文脈、共通ペルソナを prompt input へ写像する境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-004",
+      "decision_rationale": "provider 応答を job 内 persona と persona snapshot へ写像する output adapter 境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-003",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 1 NPC を 1 request unit にする。NPC 属性と会話文脈を同じ request で一緒に考慮する。",
+      "final_scenario_id": "SCN-PGP-003"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-007",
+      "decision_rationale": "provider failure、timeout、invalid response を回復可能失敗として扱う失敗系へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PGP-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: UI と DB には ID、digest、件数、evidence ref を保持し、全文と raw prompt は出さない。ログまたは debug 用には prompt / request body を確認できる導線を持つ。secret と API key は出さない。",
+      "final_scenario_id": "SCN-PGP-009"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-002",
+      "decision_rationale": "phase run ごとの生成対象件数と識別子を後追い確認できる target summary へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: UI と DB には ID、digest、件数、evidence ref を保持し、全文と raw prompt は出さない。ログまたは debug 用には prompt / request body を確認できる導線を持つ。secret と API key は出さない。",
+      "final_scenario_id": "SCN-PGP-009"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-002",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: 共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+      "final_scenario_id": "SCN-PGP-002"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-009",
+      "decision_rationale": "AI 生成結果と永続化結果の監査要約を redaction シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PGP-006",
+      "decision_rationale": "本文翻訳フェーズが参照する persona snapshot の ID、count、missing count を readiness guard へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: Job Run 再表示用の redacted phase result summary は保持する。直接 DB 保存に限定せず、進行中の job state から復元できる形を許容する。",
+      "final_scenario_id": "SCN-PGP-009"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-008",
+      "decision": "merged",
+      "decision_rationale": "人間回答で解決: UI と DB には ID、digest、件数、evidence ref を保持し、全文と raw prompt は出さない。ログまたは debug 用には prompt / request body を確認できる導線を持つ。secret と API key は出さない。",
+      "final_scenario_id": "SCN-PGP-009"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PGP-008",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PGP-004",
+      "decision": "rejected",
+      "decision_rationale": "flush 後履歴は persona-generation-phase の直接受け入れ条件ではなく、後続 cleanup / output artifact 側で扱う。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-PGP-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-004",
+        "state-transition:CAND-PGP-ST-004",
+        "failure:CAND-PGP-003",
+        "operation-audit:CAND-PGP-003"
+      ],
+      "conflict_type": "data_requirement",
+      "reason": "共通ペルソナ hit 時に job-scoped PERSONA を作るか、snapshot 参照だけを job に固定するかが未決である。",
+      "resolution": "共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+      "resolution_rationale": "共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-PGP-007",
+        "state-transition:CAND-PGP-ST-009",
+        "operation-audit:CAND-PGP-006"
+      ],
+      "conflict_type": "state_transition",
+      "reason": "persona phase の pause / resume / retry / cancel を body phase と同じ粒度で許可するかが未決である。",
+      "resolution": "pause、resume、retry、cancel を body phase と同じように許可する。",
+      "resolution_rationale": "pause、resume、retry、cancel を body phase と同じように許可する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "state-transition:CAND-PGP-ST-010"
+      ],
+      "conflict_type": "state_transition",
+      "reason": "terminal job の具体列挙が未決である。",
+      "resolution": "Completed、Failed、Canceled を terminal state とする。RecoverableFailed は回復対象として扱う。",
+      "resolution_rationale": "Completed、Failed、Canceled を terminal state とする。RecoverableFailed は回復対象として扱う。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "external-integration:CAND-PGP-001"
+      ],
+      "conflict_type": "external_integration",
+      "reason": "provider / model / execution mode の選択場所が未決である。",
+      "resolution": "Job Setup の persona 専用 provider、model、execution mode を継承する。",
+      "resolution_rationale": "Job Setup の persona 専用 provider、model、execution mode を継承する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-005",
+      "status": "resolved",
+      "candidate_ids": [
+        "external-integration:CAND-PGP-005"
+      ],
+      "conflict_type": "external_integration",
+      "reason": "persona 生成の request unit が未決であり、progress、retry、audit の単位に影響する。",
+      "resolution": "1 NPC を 1 request unit にする。NPC 属性と会話文脈を同じ request で一緒に考慮する。",
+      "resolution_rationale": "1 NPC を 1 request unit にする。NPC 属性と会話文脈を同じ request で一緒に考慮する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-006",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-PGP-008",
+        "state-transition:CAND-PGP-ST-006",
+        "failure:CAND-PGP-002"
+      ],
+      "conflict_type": "failure_handling",
+      "reason": "一部 NPC だけ失敗した場合の phase state、保存済み persona 維持、body readiness が未決である。",
+      "resolution": "成功分は維持し、phase は RecoverableFailed として未処理 NPC だけ retry する。",
+      "resolution_rationale": "成功分は維持し、phase は RecoverableFailed として未処理 NPC だけ retry する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-007",
+      "status": "resolved",
+      "candidate_ids": [
+        "external-integration:CAND-PGP-007",
+        "operation-audit:CAND-PGP-002",
+        "operation-audit:CAND-PGP-007"
+      ],
+      "conflict_type": "security_requirement",
+      "reason": "入力 snapshot の再現性と raw prompt / raw response / 原文全文の保存禁止境界が未決である。",
+      "resolution": "UI と DB には ID、digest、件数、evidence ref を保持し、全文と raw prompt は出さない。ログまたは debug 用には prompt / request body を確認できる導線を持つ。secret と API key は出さない。",
+      "resolution_rationale": "UI と DB には ID、digest、件数、evidence ref を保持し、全文と raw prompt は出さない。ログまたは debug 用には prompt / request body を確認できる導線を持つ。secret と API key は出さない。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-008",
+      "status": "resolved",
+      "candidate_ids": [
+        "operation-audit:CAND-PGP-006"
+      ],
+      "conflict_type": "observability_requirement",
+      "reason": "監査要約の保存場所、保持期間、UI 表示粒度が未決である。",
+      "resolution": "Job Run 再表示用の redacted phase result summary は保持する。直接 DB 保存に限定せず、進行中の job state から復元できる形を許容する。",
+      "resolution_rationale": "Job Run 再表示用の redacted phase result summary は保持する。直接 DB 保存に限定せず、進行中の job state から復元できる形を許容する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-009",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-003",
+        "lifecycle:CAND-PGP-003",
+        "external-integration:CAND-PGP-004"
+      ],
+      "conflict_type": "success_requirement",
+      "reason": "AI provider の persona 生成結果を自動採用するか、人間確認を挟むかが未決である。",
+      "resolution": "valid provider output は自動採用する。",
+      "resolution_rationale": "valid provider output は自動採用する。"
+    },
+    {
+      "conflict_id": "CONFLICT-PGP-010",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-PGP-001",
+        "lifecycle:CAND-PGP-002"
+      ],
+      "conflict_type": "boundary_requirement",
+      "reason": "生成対象 0 件を Completed、blocked、skip のどれで扱うかが未決である。",
+      "resolution": "生成対象 0 件は Completed とし、対象 0 件、provider 未実行、snapshot 空を result summary に出す。",
+      "resolution_rationale": "生成対象 0 件は Completed とし、対象 0 件、provider 未実行、snapshot 空を result summary に出す。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-PGP-001",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-001",
+        "lifecycle:CAND-PGP-001",
+        "state-transition:CAND-PGP-ST-001",
+        "state-transition:CAND-PGP-ST-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-002",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-002",
+        "lifecycle:CAND-PGP-002",
+        "state-transition:CAND-PGP-ST-003",
+        "failure:CAND-PGP-006",
+        "operation-audit:CAND-PGP-001",
+        "actor-goal:CAND-PGP-004",
+        "operation-audit:CAND-PGP-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-003",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-003",
+        "lifecycle:CAND-PGP-003",
+        "external-integration:CAND-PGP-003",
+        "external-integration:CAND-PGP-001",
+        "external-integration:CAND-PGP-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-004",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-005",
+        "lifecycle:CAND-PGP-004",
+        "state-transition:CAND-PGP-ST-005",
+        "external-integration:CAND-PGP-004",
+        "state-transition:CAND-PGP-ST-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-005",
+      "candidate_ids": [
+        "actor-goal:CAND-PGP-006",
+        "lifecycle:CAND-PGP-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-006",
+      "candidate_ids": [
+        "lifecycle:CAND-PGP-005",
+        "state-transition:CAND-PGP-ST-007",
+        "state-transition:CAND-PGP-ST-008",
+        "operation-audit:CAND-PGP-005",
+        "lifecycle:CAND-PGP-008"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-007",
+      "candidate_ids": [
+        "failure:CAND-PGP-001",
+        "failure:CAND-PGP-004",
+        "failure:CAND-PGP-005",
+        "external-integration:CAND-PGP-006",
+        "state-transition:CAND-PGP-ST-006",
+        "failure:CAND-PGP-002",
+        "failure:CAND-PGP-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-008",
+      "candidate_ids": [
+        "lifecycle:CAND-PGP-007",
+        "state-transition:CAND-PGP-ST-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-009",
+      "candidate_ids": [
+        "failure:CAND-PGP-007",
+        "external-integration:CAND-PGP-002",
+        "operation-audit:CAND-PGP-004",
+        "external-integration:CAND-PGP-007",
+        "operation-audit:CAND-PGP-002",
+        "operation-audit:CAND-PGP-006",
+        "operation-audit:CAND-PGP-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PGP-010",
+      "candidate_ids": [
+        "state-transition:CAND-PGP-ST-010"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

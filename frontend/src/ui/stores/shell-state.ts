@@ -46,9 +46,9 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "translation-management",
     label: "翻訳管理",
-    state: "Job Run 追加",
-    lead: "Input Review、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ実行までを確認するページです。",
-    description: "入力確認、validation、ready job 作成、term phase 実行をまとめて確認します。"
+    state: "Persona Phase 追加",
+    lead: "Input Review、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ、NPC ペルソナ生成フェーズまでを確認するページです。",
+    description: "入力確認、validation、ready job 作成、term phase、persona phase の実行状況をまとめて確認します。"
   },
   {
     id: "output-management",
@@ -73,7 +73,7 @@ const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementV
   {
     id: "job-run",
     label: "Job Run",
-    description: "term phase progress と result summary を確認します。"
+    description: "term phase と persona phase の progress、result summary、body readiness を確認します。"
   }
 ]
 

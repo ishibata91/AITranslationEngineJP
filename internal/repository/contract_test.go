@@ -121,7 +121,7 @@ func TestFoundationDataRepositoryMethodCount(t *testing.T) {
 // TestJobLifecycleRepositoryMethodCount は JobLifecycleRepository のメソッド数が期待値と一致することを保証する。
 func TestJobLifecycleRepositoryMethodCount(t *testing.T) {
 	typ := reflect.TypeOf((*JobLifecycleRepository)(nil)).Elem()
-	const expected = 12
+	const expected = 13
 	if got := typ.NumMethod(); got != expected {
 		t.Errorf("JobLifecycleRepository: expected %d methods, got %d", expected, got)
 	}

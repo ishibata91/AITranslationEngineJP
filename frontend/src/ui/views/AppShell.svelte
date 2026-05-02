@@ -3,6 +3,7 @@
 
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+  import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
@@ -25,6 +26,7 @@
     translationManagementViews: TranslationManagementViewContract[]
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
+    createPersonaGenerationPhaseScreenController: CreatePersonaGenerationPhaseScreenController | null
     createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController | null
     createTranslationInputScreenController: CreateTranslationInputScreenController | null
@@ -37,6 +39,7 @@
     translationManagementViews,
     createMasterDictionaryScreenController,
     createMasterPersonaScreenController,
+    createPersonaGenerationPhaseScreenController,
     createTermTranslationPhaseScreenController,
     createTranslationJobSetupScreenController,
     createTranslationInputScreenController
@@ -260,6 +263,7 @@
         {#if currentTranslationManagementViewId === "job-run"}
           <JobRunPage
             createController={createTermTranslationPhaseScreenController}
+            createPersonaController={createPersonaGenerationPhaseScreenController}
           />
         {/if}
       </section>

@@ -1,6 +1,7 @@
 <script lang="ts">
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+  import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
@@ -22,6 +23,7 @@
   interface Props {
     createMasterDictionaryScreenController?: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController?: CreateMasterPersonaScreenController | null
+    createPersonaGenerationPhaseScreenController?: CreatePersonaGenerationPhaseScreenController | null
     createTermTranslationPhaseScreenController?: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController?: CreateTranslationJobSetupScreenController | null
     createTranslationInputScreenController?: CreateTranslationInputScreenController | null
@@ -30,6 +32,7 @@
   let {
     createMasterDictionaryScreenController = null,
     createMasterPersonaScreenController = null,
+    createPersonaGenerationPhaseScreenController = null,
     createTermTranslationPhaseScreenController = null,
     createTranslationJobSetupScreenController = null,
     createTranslationInputScreenController = null
@@ -66,6 +69,7 @@
   defaultTranslationManagementViewId={shellState.defaultTranslationManagementViewId}
   {createMasterDictionaryScreenController}
   createMasterPersonaScreenController={resolveMasterPersonaScreenControllerFactory()}
+  {createPersonaGenerationPhaseScreenController}
   {createTermTranslationPhaseScreenController}
   createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}

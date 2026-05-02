@@ -1,0 +1,277 @@
+reviewback_version: 1
+task_id: persona-generation-phase
+review_yaml_path: docs/exec-plans/active/persona-generation-phase/reviewback.behavior.yaml
+viewpoint: behavior
+reviewer_agent: review_behavior
+review_status: no_issue
+must_fix_open: false
+max_level: none
+assessment:
+  behavior_match: >
+    前回 behavior review の must-fix 3 件は、最新 worktree の backend review fix で解消済み。
+    body readiness は targetCount > 0 の missing persona を blocked にし、retry / cancel は
+    terminal job、snapshot drift、不許可 state を backend service の public command guard で拒否する。
+    usecase と Wails controller は service の rejected result を DTO へ伝播し、frontend action
+    enablement は backend summary に従う。確認範囲では新規 regression は見つからない。
+  evidence_sufficiency: >
+    十分。implementation-scope、scenario-design、ui-design、最新 worktree の対象実コード、
+    backend service / tests、usecase、Wails controller、frontend usecase / presenter を確認した。
+    広い harness は review_behavior の責務外かつ明示禁止のため再実行せず、implement_lane から渡された
+    pass 証跡をレビュー入力として扱った。
+validation_evidence:
+  - command: go test ./internal/service -run 'PersonaGeneration|BodyReadiness|Retry|Cancel|SCN_PGP'
+    result: pass
+    summary: implement_lane から受領した最新 focused backend 証跡。
+  - command: python3 scripts/harness/run.py --suite backend-local
+    result: pass
+    summary: implement_lane から受領した backend-local 証跡。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    summary: structure、scenario requirement gate、execution、system test、coverage が pass。system test は 5/5 pass。
+  - command: coverage
+    result: pass
+    summary: coverage 73.1%、line 74.0%、branch 64.3%。
+  - command: Sonar issue summary
+    result: pass
+    summary: security 0、reliability 0、maintainability HIGH 0。
+checked_scope:
+  summary: >
+    persona phase の body readiness、retry、cancel、snapshot drift、terminal job guard、
+    Wails DTO 伝播、frontend action enablement を、正本 scenario と最新実コードで照合した。
+  files:
+    - path: docs/exec-plans/active/persona-generation-phase/implementation-scope.md
+      line: 311
+      symbol: backend-persona-persistence-readiness-retry completion_signal
+      reason: partial state、retry、body readiness、terminal job guard の正本条件を確認した。
+    - path: docs/exec-plans/active/persona-generation-phase/scenario-design.md
+      line: 265
+      symbol: SCN-PGP-006
+      reason: body readiness は persona phase Completed かつ snapshot 参照成立後だけ true にする条件を確認した。
+    - path: docs/exec-plans/active/persona-generation-phase/scenario-design.md
+      line: 314
+      symbol: SCN-PGP-008
+      reason: retry / resume は同じ phase run と target snapshot stability を守る条件を確認した。
+    - path: docs/exec-plans/active/persona-generation-phase/scenario-design.md
+      line: 364
+      symbol: SCN-PGP-010
+      reason: terminal job で persona phase 関連操作を拒否する条件を確認した。
+    - path: docs/exec-plans/active/persona-generation-phase/ui-design.md
+      line: 23
+      symbol: button_enablement
+      reason: retry、cancel、body phase 開始、terminal job の UI 操作条件を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 401
+      symbol: RetryPhase
+      reason: terminal job、snapshot drift、retryable state / error kind の拒否分岐を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 444
+      symbol: CancelPhase
+      reason: terminal job、snapshot drift、cancelable state の拒否分岐を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 470
+      symbol: ReadBodyReadiness
+      reason: missing persona、snapshot missing、targetCount 0 の readiness 分岐を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 586
+      symbol: mutatePhaseState
+      reason: public command mutation の terminal job guard と snapshot drift guard を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 832
+      symbol: buildResultState
+      reason: summary 側の BodyReadiness と missingCount の扱いを確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 1835
+      symbol: personaGenerationRetryAllowed / personaGenerationCancelAllowed
+      reason: retryable failure と cancelable state の許可条件を確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 236
+      symbol: TestPersonaGenerationPhaseService_CommandMutationsAndReadinessBranches
+      reason: missingCount > 0 の readiness blocked と full snapshot ready の focused test を確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 290
+      symbol: TestPersonaGenerationPhaseService_RetryRejectsNonRetryableStatesAndErrorsWithoutMutation
+      reason: retry の non-retryable state / terminal job rejection と mutation なしを確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 340
+      symbol: TestPersonaGenerationPhaseService_RetryRejectsSnapshotDriftWithoutMutation
+      reason: retry の snapshot drift rejection と mutation なしを確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 364
+      symbol: TestPersonaGenerationPhaseService_CancelRejectsNonCancelableStateAndTerminalJobWithoutMutation
+      reason: cancel の completed run / terminal job rejection と mutation なしを確認した。
+    - path: internal/usecase/persona_generation_phase_usecase.go
+      line: 81
+      symbol: RetryPersonaGenerationPhase / CancelPersonaGenerationPhase
+      reason: service rejected result が usecase result に写像される経路を確認した。
+    - path: internal/controller/wails/persona_generation_phase_controller.go
+      line: 247
+      symbol: RetryPersonaGenerationPhase / CancelPersonaGenerationPhase
+      reason: Wails public command が usecase result を DTO へ伝播する経路を確認した。
+    - path: frontend/src/application/usecase/persona-generation-phase/persona-generation-phase.usecase.ts
+      line: 194
+      symbol: fetchSummaryAndReadiness
+      reason: frontend が summary と body readiness を同時取得し、backend enablement を保持する経路を確認した。
+    - path: frontend/src/application/presenter/persona-generation-phase/persona-generation-phase.presenter.ts
+      line: 385
+      symbol: buildScreenActionEnablement
+      reason: frontend action enablement が backend summary の canRetry / canCancel / canStartBodyPhase に従うことを確認した。
+unchecked_scope:
+  - target: .cache/ と .tmp/ 配下の untracked 実行キャッシュ
+    reason: git status で確認したが、Go build cache / harness cache であり product runtime の挙動分岐ではないため本文読解対象から外した。
+    risk: 挙動正しさへの直接リスクは低い。commit hygiene は別観点で扱う。
+  - target: scripts/harness/__pycache__/check_coverage.cpython-314.pyc
+    reason: bytecode cache であり product code / product test ではないため、挙動判定の主根拠にしなかった。
+    risk: 挙動正しさへの直接リスクは低い。
+  - target: 広い harness 再実行
+    reason: 呼び出し元から pass 証跡を受領済みで、review_behavior では広い harness 再実行を扱わない。
+    risk: 本レビュー内での追加再実行証跡はない。
+resolved_invariants:
+  - id: BEHAVIOR-PGP-001
+    invariant: targetCount > 0 では missing persona が 0 件の時だけ body readiness を true にする。
+    resolution: ReadBodyReadiness と buildResultState が missingCount > 0 を blocked にし、focused test が確認している。
+  - id: BEHAVIOR-PGP-002
+    invariant: retry は retryable failure の同じ phase run だけを対象にし、terminal job と snapshot drift を拒否する。
+    resolution: RetryPhase と mutatePhaseState が terminal job / snapshot drift / non-retryable state を rejected result にし、mutation なしの focused test が確認している。
+  - id: BEHAVIOR-PGP-003
+    invariant: cancel は cancel 可能な non-terminal job の phase run だけを対象にし、terminal job の state snapshot を変更しない。
+    resolution: CancelPhase と mutatePhaseState が terminal job / snapshot drift / non-cancelable state を rejected result にし、mutation なしの focused test が確認している。
+cause_candidates:
+  - id: BEHAVIOR-PGP-001
+    status: resolved
+    candidate: ReadBodyReadiness が missingCount > 0 を blocked 条件にしていなかった。
+    current_assessment: missingCount > 0 分岐が追加され、Ready false と body_readiness_blocked を返す。
+  - id: BEHAVIOR-PGP-002
+    status: resolved
+    candidate: RetryPhase が latest error と state の不許可条件を拒否していなかった。
+    current_assessment: personaGenerationRetryAllowed と terminal / drift guard が追加され、不許可条件では mutation しない。
+  - id: BEHAVIOR-PGP-003
+    status: resolved
+    candidate: CancelPhase / mutatePhaseState が terminal job と cancelable state を検証していなかった。
+    current_assessment: personaGenerationCancelAllowed と terminal / drift guard が追加され、不許可条件では mutation しない。
+local_fix_assessment:
+  summary: >
+    3 件とも backend service の局所修正で根本原因が閉じている。usecase / Wails / frontend は
+    backend の rejected result と enablement を伝播するため、追加の設計境界変更は不要。
+  invariant_test_perspective: >
+    focused test は missingCount > 0、non-retryable retry、terminal retry、snapshot drift retry、
+    non-cancelable cancel、terminal cancel、snapshot drift summary / readiness を確認している。
+residual_risks:
+  - target: 実機 UI 操作の視覚確認
+    reason: review_behavior では browser / UI 手動確認を実行していない。
+    risk: ボタン表示やレイアウト上の体験差分は UI 実物確認側に残る。
+  - target: 他観点の契約、信頼境界、状態不変条件、責務境界
+    reason: behavior 観点の主判定から外れる。
+    risk: 他 review YAML の判断に委ねる。
+issues:
+  - id: BEHAVIOR-PGP-001
+    level: major
+    title: missing persona が残っても body readiness が true になる
+    problem: >
+      前回は `ReadBodyReadiness` が Completed run で `PHASE_RUN_PERSONA` が 1 件以上あれば
+      `Ready: true` を返し、target count より persona link が少ない snapshot を許容していた。
+    reason: >
+      最新実装では targetCount > 0 で missingCount > 0 の場合に `Ready: false`、
+      `body_readiness_blocked`、missing count 付き input summary を返すため、SCN-PGP-006 の条件に一致する。
+    violated_condition: >
+      persona phase Completed かつ snapshot 参照成立時だけ body readiness が true になる。
+      missing count が残る snapshot は body readiness false と開始不可理由を返す。
+    cause_candidate: >
+      `ReadBodyReadiness` が `snapshot.targetCount - len(phaseRunPersonas)` を readiness gate に使っていなかった。
+      最新実装では missingCount gate が追加されている。
+    evidence:
+      - path: internal/service/persona_generation_phase_service.go
+        line: 535
+        excerpt: missingCount を targetCount と persona link 件数の差として計算する。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 553
+        excerpt: missingCount > 0 では Ready false と body_readiness_blocked を返す。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 571
+        excerpt: missingCount が 0 の時だけ Ready true を返す。
+      - path: internal/service/persona_generation_phase_service_test.go
+        line: 271
+        excerpt: targetCount 2 / persona link 1 で readiness blocked と missingCount 1 を期待する。
+    local_fix_assessment: resolved-local
+    additional_check_scope: none。focused test と受領済み backend-local / all harness pass で確認済み。
+    fix_considerations: target count 0 の empty completed は Ready true のまま維持されている。
+    verification: go test ./internal/service -run 'PersonaGeneration|BodyReadiness|Retry|Cancel|SCN_PGP' が pass。
+    fix_required: true
+    status: resolved
+  - id: BEHAVIOR-PGP-002
+    level: major
+    title: retry が retryable failure 以外でも phase run を running に戻す
+    problem: >
+      前回は `RetryPhase` が latest error と state の default rejection を持たず、Completed、
+      Running、Paused、latest error なし、または retryable ではない failure でも running へ戻せた。
+    reason: >
+      最新実装では terminal job、snapshot drift、recoverable_failed 以外、retryable ではない error kind を
+      rejected result にし、mutation を行わないため、SCN-PGP-008 の retry 条件に一致する。
+    violated_condition: >
+      retry は retryable failure の同じ phase run だけを対象にし、成功済み persona と未処理 target を区別して処理する。
+    cause_candidate: >
+      `RetryPhase` が許可 error kind 以外を拒否せず、requiredState に run.State を渡していた。
+      最新実装では `personaGenerationRetryAllowed` と terminal / drift guard が追加されている。
+    evidence:
+      - path: internal/service/persona_generation_phase_service.go
+        line: 415
+        excerpt: terminal job では retry を rejected result にする。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 418
+        excerpt: snapshot drift では retry を rejected result にする。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 421
+        excerpt: personaGenerationRetryAllowed が false の時は retry を rejected result にする。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 1835
+        excerpt: retry は recoverable_failed かつ provider_failure / invalid_provider_response / input_missing だけ許可する。
+      - path: internal/service/persona_generation_phase_service_test.go
+        line: 290
+        excerpt: completed / non-retryable save failure / terminal job で mutation なしを確認する。
+      - path: internal/service/persona_generation_phase_service_test.go
+        line: 340
+        excerpt: snapshot drift の retry rejection と mutation なしを確認する。
+    local_fix_assessment: resolved-local
+    additional_check_scope: none。focused test と受領済み backend-local / all harness pass で確認済み。
+    fix_considerations: frontend disabled state は補助であり、backend public seam 側の rejection が成立している。
+    verification: go test ./internal/service -run 'PersonaGeneration|BodyReadiness|Retry|Cancel|SCN_PGP' が pass。
+    fix_required: true
+    status: resolved
+  - id: BEHAVIOR-PGP-003
+    level: major
+    title: cancel が non-terminal / cancelable state に限定されていない
+    problem: >
+      前回は `CancelPhase` が requiredState を空にして mutation し、Completed、Failed、
+      terminal job 上の run でも canceled に更新できた。
+    reason: >
+      最新実装では terminal job、snapshot drift、cancel 不可 state を rejected result にし、
+      running / paused / recoverable_failed だけ cancel を許可するため、UI 契約と SCN-PGP-010 の条件に一致する。
+    violated_condition: >
+      cancel は cancel 可能な non-terminal job の phase run だけを対象にし、terminal job の state snapshot は変更しない。
+    cause_candidate: >
+      `CancelPhase` と `mutatePhaseState` が job terminal state と allowed transition を検証していなかった。
+      最新実装では `personaGenerationCancelAllowed` と terminal / drift guard が追加されている。
+    evidence:
+      - path: internal/service/persona_generation_phase_service.go
+        line: 458
+        excerpt: terminal job では cancel を rejected result にする。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 461
+        excerpt: snapshot drift では cancel を rejected result にする。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 464
+        excerpt: personaGenerationCancelAllowed が false の時は cancel を rejected result にする。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 603
+        excerpt: mutatePhaseState でも terminal job と snapshot drift を再検証する。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 1849
+        excerpt: cancel は non-terminal job の running / paused / recoverable_failed だけ許可する。
+      - path: internal/service/persona_generation_phase_service_test.go
+        line: 364
+        excerpt: completed run と terminal job で cancel rejection と mutation なしを確認する。
+    local_fix_assessment: resolved-local
+    additional_check_scope: none。focused test と受領済み backend-local / all harness pass で確認済み。
+    fix_considerations: Wails public command から直接呼ばれても backend public seam 側で rejection が成立している。
+    verification: go test ./internal/service -run 'PersonaGeneration|BodyReadiness|Retry|Cancel|SCN_PGP' が pass。
+    fix_required: true
+    status: resolved

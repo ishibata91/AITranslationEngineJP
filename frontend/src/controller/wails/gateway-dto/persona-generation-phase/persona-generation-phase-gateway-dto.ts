@@ -1,0 +1,47 @@
+import type {
+  CancelPersonaGenerationPhaseRequest,
+  GetPersonaGenerationBodyReadinessRequest,
+  GetPersonaGenerationPhaseSummaryRequest,
+  PausePersonaGenerationPhaseRequest,
+  PersonaGenerationBodyReadinessResponse,
+  PersonaGenerationPhaseCommandResponse,
+  PersonaGenerationPhaseSummaryResponse,
+  ResumePersonaGenerationPhaseRequest,
+  RetryPersonaGenerationPhaseRequest,
+  StartPersonaGenerationPhaseRequest
+} from "@application/gateway-contract/persona-generation-phase"
+
+export type GetPersonaGenerationPhaseSummaryRequestDto =
+  GetPersonaGenerationPhaseSummaryRequest
+export type GetPersonaGenerationPhaseSummaryResponseDto =
+  PersonaGenerationPhaseSummaryResponse
+
+export type StartPersonaGenerationPhaseRequestDto =
+  StartPersonaGenerationPhaseRequest
+export type StartPersonaGenerationPhaseResponseDto =
+  PersonaGenerationPhaseCommandResponse
+
+export type PausePersonaGenerationPhaseRequestDto =
+  PausePersonaGenerationPhaseRequest
+export type PausePersonaGenerationPhaseResponseDto =
+  PersonaGenerationPhaseCommandResponse
+
+export type ResumePersonaGenerationPhaseRequestDto =
+  ResumePersonaGenerationPhaseRequest
+export type ResumePersonaGenerationPhaseResponseDto =
+  PersonaGenerationPhaseCommandResponse
+
+export type RetryPersonaGenerationPhaseRequestDto =
+  RetryPersonaGenerationPhaseRequest
+export type RetryPersonaGenerationPhaseResponseDto =
+  PersonaGenerationPhaseCommandResponse
+
+export type CancelPersonaGenerationPhaseRequestDto =
+  CancelPersonaGenerationPhaseRequest
+export type CancelPersonaGenerationPhaseResponseDto =
+  PersonaGenerationPhaseCommandResponse
+
+export type GetPersonaGenerationBodyReadinessRequestDto =
+  GetPersonaGenerationBodyReadinessRequest
+export type GetPersonaGenerationBodyReadinessResponseDto =
+  PersonaGenerationBodyReadinessResponse

@@ -167,6 +167,12 @@ func isProviderExecutionRetryable(err error) bool {
 	if strings.Contains(lowerMessage, "api key is required") {
 		return false
 	}
+	if strings.Contains(lowerMessage, "credential resolver is required") {
+		return false
+	}
+	if strings.Contains(lowerMessage, "credential is unavailable") {
+		return false
+	}
 	if strings.Contains(lowerMessage, "provider base url") {
 		return false
 	}

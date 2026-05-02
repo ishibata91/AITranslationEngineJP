@@ -12,6 +12,8 @@ const (
 	ProviderLMStudio = "lm_studio"
 	// ProviderXAI defines the supported xAI provider id.
 	ProviderXAI = "xai"
+	// ProviderFake defines the supported test-only fake provider id.
+	ProviderFake = "fake"
 
 	geminiEndpointTemplate = "https://generativelanguage.googleapis.com/v1beta/models/%s:generateContent"
 	lmStudioDefaultBaseURL = "http://localhost:1234/v1"
@@ -38,9 +40,18 @@ type ProviderRequest struct {
 	Prompt string
 }
 
+// ProviderDebugLog exposes redacted prompt/request diagnostics for debugging.
+type ProviderDebugLog struct {
+	Prompt         string
+	RequestBody    string
+	Headers        map[string]string
+	SecretRedacted bool
+}
+
 // ProviderResponse defines the provider-agnostic AI text response contract.
 type ProviderResponse struct {
-	Text string
+	Text     string
+	DebugLog ProviderDebugLog
 }
 
 type provider interface {

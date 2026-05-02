@@ -2,17 +2,24 @@
   import { onMount } from "svelte"
 
   import type {
+    CreatePersonaGenerationPhaseScreenController,
+    PersonaGenerationPhaseActionKind,
+    PersonaGenerationPhaseScreenControllerContract
+  } from "@application/contract/persona-generation-phase"
+  import type {
     CreateTermTranslationPhaseScreenController,
     TermTranslationPhaseActionCard,
     TermTranslationPhaseScreenControllerContract
   } from "@application/contract/term-translation-phase"
+  import PersonaGenerationPhasePanel from "@ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte"
   import TermTranslationPhasePanel from "@ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte"
 
   interface Props {
+    createPersonaController: CreatePersonaGenerationPhaseScreenController | null
     createController: CreateTermTranslationPhaseScreenController | null
   }
 
-  let { createController }: Props = $props()
+  let { createPersonaController, createController }: Props = $props()
 
   function resolveController(): TermTranslationPhaseScreenControllerContract {
     if (!createController) {
@@ -22,8 +29,18 @@
     return createController()
   }
 
+  function resolvePersonaController(): PersonaGenerationPhaseScreenControllerContract {
+    if (!createPersonaController) {
+      throw new Error("persona generation phase screen controller factory is not provided")
+    }
+
+    return createPersonaController()
+  }
+
   const controller = resolveController()
+  const personaController = resolvePersonaController()
   let viewModel = $state(controller.getViewModel())
+  let personaViewModel = $state(personaController.getViewModel())
   let jobIdInput = $state("")
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
@@ -31,23 +48,33 @@
     jobIdInput = nextViewModel.jobId?.toString() ?? jobIdInput
   })
 
+  const unsubscribePersona = personaController.subscribe((nextViewModel) => {
+    personaViewModel = nextViewModel
+    jobIdInput = nextViewModel.jobId?.toString() ?? jobIdInput
+  })
+
   onMount(() => {
-    void controller.mount()
+    void Promise.all([controller.mount(), personaController.mount()])
 
     return () => {
       unsubscribe()
+      unsubscribePersona()
       controller.dispose()
+      personaController.dispose()
     }
   })
 
   async function loadJobSummary(): Promise<void> {
     const nextJobId = Number(jobIdInput.trim())
     if (!Number.isInteger(nextJobId) || nextJobId <= 0) {
-      await controller.setJobId(null)
+      await Promise.all([controller.setJobId(null), personaController.setJobId(null)])
       return
     }
 
-    await controller.setJobId(nextJobId)
+    await Promise.all([
+      controller.setJobId(nextJobId),
+      personaController.setJobId(nextJobId)
+    ])
   }
 
   async function handleAction(
@@ -72,6 +99,37 @@
         return
       case "retry":
         await controller.retryPhase()
+        return
+    }
+  }
+
+  async function handlePersonaAction(
+    actionId: PersonaGenerationPhaseActionKind
+  ): Promise<void> {
+    switch (actionId) {
+      case "refresh":
+        await personaController.refresh()
+        return
+      case "start":
+        await personaController.startPhase()
+        return
+      case "pause":
+        await personaController.pausePhase()
+        return
+      case "resume":
+        await personaController.resumePhase()
+        return
+      case "retry":
+        await personaController.retryPhase()
+        return
+      case "cancel":
+        await personaController.cancelPhase()
+        return
+      case "check-body-readiness":
+        await personaController.checkBodyReadiness()
+        return
+      case "start-body-phase":
+        await personaController.startBodyPhase()
         return
     }
   }
@@ -110,6 +168,12 @@
     {viewModel}
     onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
       handleAction(actionId)}
+  />
+
+  <PersonaGenerationPhasePanel
+    viewModel={personaViewModel}
+    onAction={(actionId: PersonaGenerationPhaseActionKind) =>
+      handlePersonaAction(actionId)}
   />
 </section>
 

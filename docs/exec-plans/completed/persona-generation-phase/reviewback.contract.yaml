@@ -1,0 +1,213 @@
+reviewback_version: 1
+task_id: persona-generation-phase
+review_yaml_path: docs/exec-plans/active/persona-generation-phase/reviewback.contract.yaml
+viewpoint: contract
+reviewer_agent: review_contract
+review_status: no_issue
+must_fix_open: false
+max_level: none
+
+assessment:
+  compatibility: >
+    no_issue: 通常の ReadSummary、成功 StartPersonaGenerationPhase command response、
+    rejected StartPersonaGenerationPhase command response は、provider prompt の deterministic aggregate digest を
+    `execution.promptDigest` に返す実装にそろっている。
+    execution run がない rejected start では prompt digest は空文字になり、
+    `targetSummary.targetSnapshotDigest` と同じ値を返さない focused test も追加されている。
+    public DTO shape、field 名、Wails binding 名、frontend gateway contract の変更は見つからない。
+    prompt digest の意味契約は public summary / command response 経路で維持されている。
+  evidence_sufficiency: >
+    十分。承認済み implementation-scope、scenario-design、既存 review YAML、latest worktree の
+    service / usecase / Wails DTO / frontend gateway contract / focused test を確認した。
+    広い harness はレビュー指示で禁止されているため再実行せず、implement_lane から渡された
+    service focused test、backend-local、coverage、all、Sonar issue 0 の証跡をレビュー入力として扱った。
+  contract_invariants:
+    - name: public method and DTO shape compatibility
+      status: maintained
+      evidence: internal/usecase/persona_generation_phase_contract.go:212
+    - name: Wails binding and frontend gateway compatibility
+      status: maintained
+      evidence: frontend/src/controller/wails/persona-generation-phase.gateway.ts:19
+    - name: secret and raw payload exclusion from public DTO
+      status: maintained
+      evidence: internal/usecase/persona_generation_phase_contract.go:58
+    - name: prompt digest semantic compatibility on normal summary and successful command
+      status: maintained
+      evidence: internal/service/persona_generation_phase_service.go:1874
+    - name: prompt digest semantic compatibility on rejected public command response
+      status: maintained
+      evidence: internal/service/persona_generation_phase_service.go:1029
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: service-rejected-command-mapping
+    reason: >
+      DTO shape、field 名、Wails binding は変更せず、rejected command response の
+      `execution.promptDigest` を `service.aggregatePromptDigest(run, snapshot)` へ揃える局所修正で閉じている。
+      provider prompt が存在しない rejected state の表現は空文字に固定されている。
+
+checked_scope:
+  summary: >
+    latest worktree の persona-generation-phase 関連 source から、public seam、DTO、Wails mapping、
+    frontend gateway contract、`rejectedCommand`、`buildExecutionSummary`、`aggregatePromptDigest`、
+    raw prompt / provider raw request / response / secret / api key の
+    public DTO 漏れを確認した。
+  files:
+    - path: docs/exec-plans/active/persona-generation-phase/implementation-scope.md
+      line: 78
+      symbol: contract-persona-phase-public-seams
+      reason: DTO が target snapshot digest と prompt digest を別 field として持ち、secret と raw payload を持たない契約を確認した。
+    - path: docs/exec-plans/active/persona-generation-phase/scenario-design.md
+      line: 346
+      symbol: SCN-PGP-009
+      reason: redacted summary で prompt digest を観測し、UI と DB summary に保存禁止情報を出さない条件を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 338
+      symbol: PersonaGenerationPhaseService.StartPhase
+      reason: start rejection が public command read model と error を返す経路を確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 1029
+      symbol: PersonaGenerationPhaseService.rejectedCommand
+      reason: rejected command response の Execution.PromptDigest が aggregatePromptDigest を使うことを確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 1888
+      symbol: PersonaGenerationPhaseService.buildExecutionSummary
+      reason: 通常 summary / successful command が aggregatePromptDigest を使うよう修正済みであることを確認した。
+    - path: internal/service/persona_generation_phase_service.go
+      line: 1902
+      symbol: PersonaGenerationPhaseService.aggregatePromptDigest
+      reason: provider prompt を組み立て、個別 prompt digest を安定順序で aggregate する実装を確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 303
+      symbol: TestPersonaGenerationPhaseService_StartPhaseRejectedCommandPromptDigestDiffersFromTargetSnapshotDigest
+      reason: rejected command の prompt digest が空文字で target snapshot digest と同値にならない focused test を確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 631
+      symbol: TestPersonaGenerationPhaseService_ExecutionPromptDigestUsesAggregatePromptDigest
+      reason: successful command と summary の prompt digest が target snapshot digest と別値になる focused test を確認した。
+    - path: internal/service/persona_generation_phase_service_test.go
+      line: 656
+      symbol: TestPersonaGenerationPhaseService_ExecutionPromptDigestChangesWhenPromptInputChanges
+      reason: prompt input 変更で execution prompt digest が変わる focused test を確認した。
+    - path: internal/usecase/persona_generation_phase_contract.go
+      line: 148
+      symbol: PersonaGenerationExecutionSummary
+      reason: usecase public contract の execution summary field 名と secret 非露出コメントを確認した。
+    - path: internal/usecase/persona_generation_phase_contract.go
+      line: 212
+      symbol: PersonaGenerationPhaseCommandResult
+      reason: command response も Execution summary を public seam に含むことを確認した。
+    - path: internal/controller/wails/persona_generation_phase_controller.go
+      line: 85
+      symbol: PersonaGenerationExecutionSummaryDTO
+      reason: Wails DTO shape が promptDigest を持ち、raw prompt / raw request / raw response / secret field を持たないことを確認した。
+    - path: internal/controller/wails/persona_generation_phase_controller.go
+      line: 213
+      symbol: PersonaGenerationPhaseController.StartPersonaGenerationPhase
+      reason: usecase error 時も command response DTO を作って返す public mapping を確認した。
+    - path: frontend/src/application/gateway-contract/persona-generation-phase/persona-generation-phase-gateway-contract.ts
+      line: 64
+      symbol: PersonaGenerationExecutionSummary
+      reason: frontend gateway contract の promptDigest field と DTO shape を確認した。
+    - path: frontend/src/controller/wails/persona-generation-phase.gateway.ts
+      line: 19
+      symbol: PersonaGenerationPhaseBindingName
+      reason: Wails binding 名が変更されていないことを確認した。
+
+unchecked_scope:
+  - target: broad harness rerun
+    reason: レビュー指示で広い harness 再実行は禁止されており、呼び出し元から最新 pass 証跡が提供されている。
+    risk: 低。契約境界の実コード確認と提供済み検証証跡で判定した。
+  - target: behavior / trust-boundary / state-invariant / responsibility-boundary
+    reason: review_contract の主判定対象外である。
+    risk: 他観点の未解決指摘は implement_lane 側の集約で扱う。
+  - target: generated Wails JS binding artifact
+    reason: 確認対象は Go Wails controller、DTO、frontend gateway contract であり、生成済み JS artifact の差分は対象入力に含まれていない。
+    risk: 低。binding 名互換性は Go controller method と frontend gateway binding 名の一致から判定した。
+
+issues:
+  - id: CONTRACT-PGP-001
+    level: major
+    title: rejected command response の promptDigest が target snapshot digest を返していた
+    problem: >
+      修正前の `StartPersonaGenerationPhase` rejected command response は public command response contract の
+      `execution.promptDigest` に target snapshot 用の `snapshot.digest` を入れていた。
+      最新実装では `service.aggregatePromptDigest(run, snapshot)` に変更済みである。
+    reason: >
+      `targetSummary.targetSnapshotDigest` と `execution.promptDigest` は別 field として frozen public seam に
+      定義されている。最新実装では execution run がない rejected response の prompt digest は空文字になり、
+      target snapshot digest を prompt digest の代替値として公開しない。
+      consumer は target snapshot digest と prompt digest の意味差を維持できる。
+    violated_condition: >
+      public execution summary の `promptDigest` は raw prompt を出さずに provider prompt を識別する
+      digest を返す。target snapshot digest は target snapshot 用 field として別に返す。
+    cause_candidate: >
+      修正前は `rejectedCommand` が `buildExecutionSummary` と別経路で `Execution.PromptDigest` を
+      直接設定していた。最新実装では同じ aggregate helper を呼ぶため、原因経路は解消済みである。
+    evidence:
+      - path: docs/exec-plans/active/persona-generation-phase/implementation-scope.md
+        line: 78
+        excerpt: DTO は target snapshot digest と prompt digest を別 field として持つ。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 338
+        excerpt: StartPhase は start rejection 時に rejectedCommand の response と error を返す。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 1029
+        excerpt: rejectedCommand の Execution.PromptDigest に service.aggregatePromptDigest(run, snapshot) を設定している。
+      - path: internal/service/persona_generation_phase_service.go
+        line: 1906
+        excerpt: aggregatePromptDigest は execution run がない場合に空文字を返す。
+      - path: internal/usecase/persona_generation_phase_contract.go
+        line: 212
+        excerpt: PersonaGenerationPhaseCommandResult は Execution summary を public command response に含める。
+      - path: internal/controller/wails/persona_generation_phase_controller.go
+        line: 213
+        excerpt: usecase error 時も command response DTO を作って返す。
+      - path: internal/service/persona_generation_phase_service_test.go
+        line: 303
+        excerpt: 追加 focused test は rejected command の prompt digest が空文字で target snapshot digest と同値にならないことを確認している。
+    local_fix_assessment: >
+      service-rejected-command-mapping の局所修正で解決済みである。DTO shape、field 名、Wails binding は維持されている。
+    additional_check_scope: none。StartPhase rejection path の focused test と public seam 読み取りで解決確認済みである。
+    fix_considerations: >
+      raw prompt、provider raw request / response、secret、API key は引き続き public DTO に出さない。
+      provider prompt が存在しない rejected response では、target snapshot digest を prompt digest の代替値にしない。
+    verification: >
+      StartPhase rejection の focused test で `execution.promptDigest` が `targetSummary.targetSnapshotDigest` と
+      同じ値にならず、provider prompt 未作成時は空文字になることを確認している。
+      service focused test、backend-local、all suite は implement_lane 提供証跡で pass している。
+    fix_required: true
+    status: resolved
+
+verification_evidence:
+  - command: go test ./internal/service -run 'PersonaGeneration|BodyReadiness|PromptDigest|Retry|Cancel|SCN_PGP'
+    result: pass
+    details: implement_lane 提供証跡。rejected command prompt digest focused test を含む service focused test は pass。
+  - command: rg -n "PromptDigest:\\s+snapshot\\.digest" internal/service/persona_generation_phase_service.go internal/service/persona_generation_phase_service_test.go
+    result: pass
+    details: implement_lane 提供証跡とレビュー時軽量 grep。該当なし。
+  - command: python3 scripts/harness/run.py --suite backend-local
+    result: pass
+    details: implement_lane 提供証跡。backend-local suite は pass。
+  - command: python3 scripts/harness/run.py --suite coverage
+    result: pass
+    details: implement_lane 提供証跡。coverage 73.9%、line 74.9%、branch 64.3%。
+  - command: python3 scripts/harness/run.py --suite all
+    result: pass
+    details: implement_lane 提供証跡。structure pass、scenario requirement gate pass、execution pass、system test 5/5 pass、coverage pass。
+  - command: Sonar issue summary
+    result: pass
+    details: implement_lane 提供証跡。security 0、reliability 0、maintainability HIGH 0。
+  - command: broad harness rerun
+    result: not_run
+    details: レビュー指示で広い harness 再実行は禁止されているため、呼び出し元提供の pass 証跡を入力として扱った。
+
+residual_risks:
+  - >
+    rejected StartPersonaGenerationPhase response が Wails runtime 上で JS 側へ result として届くかは
+    runtime 実装に依存する。ただし Go controller / usecase の public seam は result を構築しており、
+    contract review では public method response として扱う。
+  - >
+    raw prompt、provider raw request / response、secret、API key の public DTO field は確認範囲では見つからない。
+    debug log の redaction 正しさは trust-boundary 観点で扱う。

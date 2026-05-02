@@ -1,0 +1,130 @@
+reviewback_version: 1
+task_id: "persona-generation-phase"
+review_yaml_path: "docs/exec-plans/active/persona-generation-phase/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "no_issue: 前回 open の state-invariant-003 は解消済み。ReadBodyReadiness は raw PHASE_RUN_PERSONA row count ではなく loadRunSnapshot の重複排除済み persona coverage を使い、duplicate link が missing target を隠して Ready true になる経路を防いでいる。既存の retry/cancel terminal guard、snapshot drift guard、empty completed の readiness も維持されている。"
+  evidence_sufficiency: "十分。承認済み implementation scope、scenario design、既存 review YAML、latest worktree の service 実コードと focused test を確認した。検証証跡は呼び出し元提供の pass 結果をレビュー入力として扱った。"
+
+verification_evidence:
+  provided_by_implement_lane:
+    - command: "go test ./internal/service -run 'PersonaGeneration|BodyReadiness|PromptDigest|Retry|Cancel|SCN_PGP'"
+      result: "pass"
+      summary: "focused service validation pass"
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "pass"
+      summary: "backend-local pass"
+    - command: "python3 scripts/harness/run.py --suite coverage"
+      result: "pass"
+      summary: "coverage 73.8%, line 74.9%, branch 64.3%"
+    - command: "python3 scripts/harness/run.py --suite all"
+      result: "pass"
+      summary: "structure pass, scenario requirement gate pass, execution pass, system test 5/5 pass, coverage pass"
+    - command: "Sonar issue summary"
+      result: "pass"
+      summary: "security 0, reliability 0, maintainability HIGH 0"
+  reviewer_execution:
+    - command: "not_run"
+      result: "not_run"
+      summary: "広い harness 再実行は禁止されており、review agent の責務外。static diff review と提供済み証跡で判定した。"
+
+checked_scope:
+  summary: "persona phase の body readiness、duplicate PHASE_RUN_PERSONA link、snapshot drift、retry/cancel guard、phase result summary の状態不変条件を確認した。"
+  files:
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 309
+      symbol: "backend-persona-persistence-readiness-retry completion_signal"
+      reason: "PERSONA、PERSONA_FIELD_EVIDENCE、PHASE_RUN_PERSONA の整合条件。"
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 313
+      symbol: "backend-persona-persistence-readiness-retry completion_signal"
+      reason: "same phase run reuse と duplicate persona guard の正本条件。"
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 314
+      symbol: "backend-persona-persistence-readiness-retry completion_signal"
+      reason: "persona phase Completed かつ snapshot 参照成立時だけ body readiness true という正本条件。"
+    - path: "docs/exec-plans/active/persona-generation-phase/scenario-design.md"
+      line: 282
+      symbol: "SCN-PGP-006"
+      reason: "persona phase Completed かつ snapshot 参照可能時だけ body readiness true という受け入れ条件。"
+    - path: "docs/exec-plans/active/persona-generation-phase/scenario-design.md"
+      line: 332
+      symbol: "SCN-PGP-008"
+      reason: "成功済み persona と PHASE_RUN_PERSONA を重複しない受け入れ条件。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 508
+      symbol: "ReadBodyReadiness"
+      reason: "readiness が PHASE_RUN_PERSONA を取得した後、raw row count だけでは Ready を決めないことを確認。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 547
+      symbol: "ReadBodyReadiness"
+      reason: "通常 path が tryLoadRunSnapshot から重複排除済み run snapshot を取得することを確認。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 565
+      symbol: "ReadBodyReadiness"
+      reason: "missingCount が snapshot.targetCount と runSnapshot.totalLinkedCount の差分で計算されることを確認。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 831
+      symbol: "buildResultState"
+      reason: "phase result summary も同じ runSnapshot.totalLinkedCount に基づき BodyReadiness と MissingCount を公開することを確認。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1728
+      symbol: "loadRunSnapshot"
+      reason: "duplicate PHASE_RUN_PERSONA link を persona ID で重複排除し、linkedByProfile を保持することを確認。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1935
+      symbol: "distinctPhaseRunPersonaCount"
+      reason: "snapshot drift path の readiness summary も profile coverage を distinct count で計算することを確認。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 404
+      symbol: "TestPersonaGenerationPhaseService_ReadBodyReadinessCountsDistinctPersonaCoverage"
+      reason: "duplicate link が Ready true を作らず、MissingCount と PersonaCount が distinct coverage になる focused test を確認。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 554
+      symbol: "TestPersonaGenerationPhaseService_ReadSummaryAndReadinessBlockSnapshotDrift"
+      reason: "snapshot drift 時に summary と readiness が Ready false を維持する focused test を確認。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 589
+      symbol: "TestPersonaGenerationPhaseService_FinishPhaseRunSaveFailureAndLoadRunSnapshotDedup"
+      reason: "loadRunSnapshot が duplicate link を dedup し、partial save failure を Completed にしない focused test を確認。"
+    - path: "internal/infra/sqlite/dbinit/migrations/003_canonical_er_v1_tables.sql"
+      line: 136
+      symbol: "PERSONA"
+      reason: "PERSONA.npc_profile_id が UNIQUE であり、persisted data では distinct persona と profile coverage がずれないことを確認。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "人間指示で禁止され、review agent の責務外であるため実行していない。"
+    risk: "呼び出し元提供の pass 証跡が最新 worktree と一致する前提を置く。"
+  - target: "runtime の同時 Wails command interleaving"
+    reason: "static diff review、focused test、DB unique invariant の確認で判定した。runtime concurrency test は実施していない。"
+    risk: "PHASE_RUN_PERSONA 自体には unique index がないため、同一 persona link の重複 persisted state は起き得る。ただし readiness は dedup 済み coverage を使うため、missing target を Ready true として公開しない。"
+
+resolved_must_fix_issues:
+  - id: "state-invariant-001"
+    status: "resolved"
+    evidence: "RetryPhase、CancelPhase、mutatePhaseState が terminal job と snapshot drift を mutation 前に拒否し、focused service test が no-write を確認している。"
+  - id: "state-invariant-002"
+    status: "resolved"
+    evidence: "start 時に LatestExternalRunID へ snapshot digest を保存し、summary / readiness / mutation guard が digest drift を success 公開しない。"
+  - id: "state-invariant-003"
+    status: "resolved"
+    evidence: "ReadBodyReadiness は通常 path で loadRunSnapshot の dedup 済み totalLinkedCount を使い、duplicate PHASE_RUN_PERSONA row がある completed run でも Ready false、MissingCount 1、PersonaCount 1 を返す focused test が追加されている。"
+
+broken_invariants: []
+cause_candidates: []
+
+local_fix_evaluation:
+  summary: "前回指摘の局所修正は有効。public DTO 変更なしで ReadBodyReadiness と result summary の coverage 計算がそろい、duplicate raw row count 依存は消えている。"
+
+invariant_test_focus:
+  - "Completed run で targetCount 2、同一 persona の PHASE_RUN_PERSONA が 2 行、distinct target 1 件の場合、ReadBodyReadiness が Ready false と MissingCount 1 を返すこと。"
+  - "snapshot drift 時に summary と readiness が BodyReadiness false、snapshot_missing を返し、retry/cancel/start body を開かないこと。"
+  - "生成対象 0 件の empty completed では Ready true を維持し、targetCount > 0 では distinct coverage 欠損を Ready false にすること。"
+
+issues: []

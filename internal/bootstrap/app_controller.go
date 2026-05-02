@@ -157,6 +157,17 @@ func newAppControllerWithSeeds(
 			),
 		),
 	)
+	personaGenerationPhaseService := service.NewPersonaGenerationPhaseService(
+		jobLifecycleRepository,
+		foundationDataRepository,
+		translationSourceRepository,
+		foundationTransactor,
+	).WithPersonaGenerationProvider(
+		service.NewPersonaGenerationProviderAdapter(aiProviderClient),
+	)
+	personaGenerationPhaseController := controllerwails.NewPersonaGenerationPhaseController(
+		usecase.NewPersonaGenerationPhaseUsecase(personaGenerationPhaseService),
+	)
 
 	appController := controllerwails.NewAppController(
 		masterDictionaryController,
@@ -180,6 +191,7 @@ func newAppControllerWithSeeds(
 	appController.TranslationInputController = translationInputController
 	appController.TranslationJobSetupController = translationJobSetupController
 	appController.TermTranslationPhaseController = termTranslationPhaseController
+	appController.PersonaGenerationPhaseController = personaGenerationPhaseController
 	return appController
 }
 

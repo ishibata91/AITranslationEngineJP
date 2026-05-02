@@ -47,7 +47,14 @@ func (provider openAICompatibleProvider) Generate(
 	if err != nil {
 		return ProviderResponse{}, err
 	}
-	return ProviderResponse{Text: text}, nil
+	return ProviderResponse{
+		Text: text,
+		DebugLog: buildProviderDebugLog(
+			request.Prompt,
+			requestBytes,
+			httpRequest.Header,
+		),
+	}, nil
 }
 
 type openAICompatibleChatRequest struct {

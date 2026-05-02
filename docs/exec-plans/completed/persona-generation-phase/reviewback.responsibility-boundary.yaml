@@ -1,0 +1,190 @@
+reviewback_version: 1
+task_id: "persona-generation-phase"
+review_yaml_path: "docs/exec-plans/active/persona-generation-phase/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。前回 must-fix の RB-PGP-RESP-001 は production gateway と screen controller factory の生成が frontend/src/main.ts へ移り、App.svelte は注入 prop を AppShell へ渡すだけになったため解消済み。RB-PGP-RESP-002 は screen controller factory から Wails gateway DTO import が消え、DTO 型確認が Wails gateway test 側へ移ったため解消済み。最新差分で責務境界観点の新規 regression は見つからない。"
+  evidence_sufficiency: "十分。指定 skill、agent 定義、architecture、coding-guidelines、implementation-scope、scenario、既存 review YAML、最新 worktree 差分、指定 frontend source / test を確認した。広いハーネスは再実行せず、呼び出し元提示の検証証跡を入力として扱った。"
+  summary: "未解決の修正必須 issue はない。frontend bootstrap、root View、screen controller factory、Wails gateway DTO の責務境界は今回の fix 範囲で維持されている。"
+
+checked_scope:
+  summary: "前回 open issue 2 件の修正箇所と、同じ frontend 境界に新規 regression がないことを確認した。"
+  files:
+    - path: "docs/architecture.md"
+      line: 40
+      symbol: "システム全体の依存方向"
+      reason: "frontend main.ts、Gateway、root View、ScreenController、Gateway DTO の依存方向を確認した。"
+    - path: "docs/architecture.md"
+      line: 57
+      symbol: "Frontend Bootstrap"
+      reason: "production 用 gateway を main.ts で生成し、root view へ注入する条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 75
+      symbol: "ScreenController"
+      reason: "ScreenController が Wails 呼び出し詳細や DTO 変換を持たない条件を確認した。"
+    - path: "docs/coding-guidelines.md"
+      line: 21
+      symbol: "production wiring"
+      reason: "View や中核層で具象依存を生成しない原則を確認した。"
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 223
+      symbol: "frontend-persona-phase-job-run-ui architecture_layer_basis"
+      reason: "frontend handoff が Wails 接続実体を統合境界 handoff に分けることを確認した。"
+    - path: "docs/exec-plans/active/persona-generation-phase/implementation-scope.md"
+      line: 333
+      symbol: "integration-persona-phase-wails-gateway architecture_layer_basis"
+      reason: "frontend Wails adapter と gateway DTO が統合境界の責務であることを確認した。"
+    - path: "frontend/src/main.ts"
+      line: 24
+      symbol: "personaGenerationPhaseGateway"
+      reason: "persona phase の production gateway と screen controller factory が frontend bootstrap で生成されることを確認した。"
+    - path: "frontend/src/main.ts"
+      line: 30
+      symbol: "mount(App)"
+      reason: "App へ persona phase screen controller factory が prop 注入されることを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 4
+      symbol: "CreatePersonaGenerationPhaseScreenController import"
+      reason: "App.svelte の persona phase 依存が contract type に限定されていることを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 72
+      symbol: "createPersonaGenerationPhaseScreenController prop"
+      reason: "root View が注入済み factory を AppShell へ渡すだけで、persona phase concrete を生成していないことを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 263
+      symbol: "JobRunPage wiring"
+      reason: "AppShell が persona phase factory を JobRunPage へ prop 伝播するだけで concrete を生成していないことを確認した。"
+    - path: "frontend/src/ui/screens/job-run/JobRunPage.svelte"
+      line: 32
+      symbol: "resolvePersonaController"
+      reason: "JobRunPage が注入された controller factory を解決し、View 側で gateway concrete を生成していないことを確認した。"
+    - path: "frontend/src/controller/persona-generation-phase/persona-generation-phase-screen-controller-factory.ts"
+      line: 1
+      symbol: "controller factory imports"
+      reason: "screen controller factory が application contract、GatewayContract、Store、Presenter、UseCase にだけ依存し、Wails DTO を import していないことを確認した。"
+    - path: "frontend/src/controller/persona-generation-phase/persona-generation-phase-screen-controller-factory.ts"
+      line: 19
+      symbol: "createPersonaGenerationPhaseScreenControllerFactory"
+      reason: "screen local factory の生成責務が Store、Presenter、UseCase、ScreenController の結線に収まることを確認した。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+      line: 17
+      symbol: "gateway DTO imports"
+      reason: "Wails gateway DTO import が Wails adapter 側に閉じていることを確認した。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.test.ts"
+      line: 60
+      symbol: "gateway dto aliases stay aligned with gateway contract"
+      reason: "DTO coverage 型確認が Wails gateway test 側へ移動していることを確認した。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 1492
+      symbol: "createPersonaGenerationPhaseScreenController"
+      reason: "App が注入済み persona phase controller factory で Job Run を描画する証跡を確認した。"
+
+unchecked_scope:
+  - target: "広いハーネス再実行"
+    reason: "review agent の責務外であり、ユーザー指示でも禁止されている。呼び出し元提示の検証証跡を入力として扱った。"
+    risk: "低。今回の判定対象は production wiring と DTO 型依存の静的な責務境界であり、該当 source と focused test 差分から確認できる。"
+  - target: "挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件"
+    reason: "review_responsibility_boundary の主判定対象外である。"
+    risk: "他観点の reviewback と implement_lane 集約で扱う。"
+  - target: ".cache/、.tmp/、__pycache__ などの生成物"
+    reason: "product source の層責務を定義する source ではない。"
+    risk: "低。commit 対象整理は implement_lane 側で扱う必要がある。"
+
+issues:
+  - id: "RB-PGP-RESP-001"
+    level: "major"
+    title: "persona phase の production gateway 生成が root View に入っている"
+    problem: "前回は App.svelte が persona phase の Wails gateway concrete と screen controller factory concrete を生成していた。最新差分では frontend/src/main.ts が production gateway と screen controller factory を生成し、App.svelte は注入 prop を AppShell へ渡すだけになった。"
+    reason: "architecture は frontend/src/main.ts を frontend 全体の composition root とし、production 用 gateway を main.ts で生成して root view へ注入すると定義している。最新差分はこの依存方向へ戻っている。"
+    violated_condition: "修正前は Frontend Bootstrap と root View の境界が破られていた。最新差分では破られていない。"
+    cause_candidate: "修正前は persona phase の production wiring を main.ts へ追加せず、root View の fallback generation へ寄せた可能性がある。"
+    evidence:
+      - path: "frontend/src/main.ts"
+        line: 24
+        excerpt: "personaGenerationPhaseGateway を main.ts で生成している。"
+      - path: "frontend/src/main.ts"
+        line: 35
+        excerpt: "createPersonaGenerationPhaseScreenController を App props へ渡している。"
+      - path: "frontend/src/ui/App.svelte"
+        line: 72
+        excerpt: "App.svelte は createPersonaGenerationPhaseScreenController を AppShell へ渡している。"
+      - path: "frontend/src/ui/App.test.ts"
+        line: 1508
+        excerpt: "注入した persona phase controller factory が Job Run 描画時に使われることを確認している。"
+    local_fix_assessment: "resolved_by_local_frontend_bootstrap_wiring"
+    additional_check_scope: "none。frontend/src/main.ts、frontend/src/ui/App.svelte、frontend/src/ui/views/AppShell.svelte、frontend/src/ui/screens/job-run/JobRunPage.svelte、frontend/src/ui/App.test.ts で解消を確認済み。"
+    fix_considerations: "今後の同種追加でも production wiring は frontend/src/main.ts へ置き、App.svelte へ concrete fallback を追加しない。"
+    verification: "呼び出し元提示の npm --prefix frontend run test -- --run persona-generation-phase、npm --prefix frontend run check、frontend-local harness pass で確認済み。レビュー agent では再実行していない。"
+    fix_required: true
+    status: "resolved"
+  - id: "RB-PGP-RESP-002"
+    level: "major"
+    title: "screen controller factory が Wails gateway DTO を直接参照している"
+    problem: "前回は screen controller factory が Wails gateway DTO 型を import していた。最新差分では screen controller factory の import が application contract、GatewayContract、Store、Presenter、UseCase、ScreenController に限定され、DTO 型確認は Wails gateway test 側へ移っている。"
+    reason: "implementation-scope は frontend handoff で Wails 接続実体を統合境界 handoff に分け、integration handoff で frontend Wails adapter と gateway DTO を扱うと定義している。最新差分は DTO を Wails gateway / gateway test 側へ閉じている。"
+    violated_condition: "修正前は ScreenController factory / Wails gateway DTO の境界が破られていた。最新差分では破られていない。"
+    cause_candidate: "修正前は DTO coverage 型を Wails adapter 側ではなく screen controller factory 側へ置いた可能性がある。"
+    evidence:
+      - path: "frontend/src/controller/persona-generation-phase/persona-generation-phase-screen-controller-factory.ts"
+        line: 1
+        excerpt: "screen controller factory は application contract と GatewayContract に依存している。"
+      - path: "frontend/src/controller/persona-generation-phase/persona-generation-phase-screen-controller-factory.ts"
+        line: 19
+        excerpt: "Store、Presenter、UseCase、ScreenController の結線だけを行っている。"
+      - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+        line: 17
+        excerpt: "Wails gateway DTO import は Wails adapter 側にある。"
+      - path: "frontend/src/controller/wails/persona-generation-phase.gateway.test.ts"
+        line: 60
+        excerpt: "gateway DTO aliases と gateway contract の型整合確認が gateway test 側にある。"
+    local_fix_assessment: "resolved_by_local_frontend_type_boundary"
+    additional_check_scope: "none。frontend/src/controller/persona-generation-phase と frontend/src/controller/wails/persona-generation-phase.gateway.test.ts で解消を確認済み。"
+    fix_considerations: "今後も DTO coverage 型確認は Wails gateway / gateway DTO / gateway test に置き、screen controller factory へ持ち込まない。"
+    verification: "呼び出し元提示の npm --prefix frontend run check、npm --prefix frontend run test -- --run persona-generation-phase、frontend-local harness pass で確認済み。レビュー agent では再実行していない。"
+    fix_required: true
+    status: "resolved"
+
+broken_boundaries: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  required: false
+  scope: "none"
+  reason: "前回 must-fix 2 件はいずれも frontend local fix で解消済み。責務境界観点の追加修正は不要と判断する。"
+
+boundary_fixed_test_viewpoints:
+  - "frontend/src/main.ts が persona phase gateway と screen controller factory を生成し、App.svelte は prop 注入だけを扱うこと。"
+  - "frontend/src/controller/persona-generation-phase 配下が @controller/wails/gateway-dto を import しないこと。"
+  - "frontend/src/controller/wails/persona-generation-phase.gateway.ts と gateway DTO test が Wails DTO mapping / binding 名確認を保持すること。"
+  - "AppShell と JobRunPage が注入済み factory を伝播、解決するだけで gateway concrete を生成しないこと。"
+
+verification_evidence:
+  - command: "npm --prefix frontend run test -- --run persona-generation-phase"
+    result: "pass"
+    evidence: "呼び出し元提示。レビュー agent では再実行していない。"
+  - command: "npm --prefix frontend run check"
+    result: "pass"
+    evidence: "呼び出し元提示。レビュー agent では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    evidence: "呼び出し元提示。レビュー agent では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "pass"
+    evidence: "呼び出し元提示。structure pass、scenario requirement gate pass、execution pass、system test 5/5 pass、coverage pass。レビュー agent では再実行していない。"
+  - command: "coverage"
+    result: "pass"
+    evidence: "呼び出し元提示。coverage 73.1%、line 74.0%、branch 64.3%。"
+  - command: "Sonar issue"
+    result: "pass"
+    evidence: "呼び出し元提示。security 0、reliability 0、maintainability HIGH 0。"
+
+residual_risks:
+  - "App.svelte には既存別機能の fallback wiring が残っている。今回の判定は persona-generation-phase の前回 must-fix と最新 fix 差分に限定した。"
+  - "広いハーネスはレビュー agent では再実行していない。呼び出し元提示では all suite まで pass している。"
+  - "生成物や cache の commit 対象整理は責務境界レビューの主判定外である。"

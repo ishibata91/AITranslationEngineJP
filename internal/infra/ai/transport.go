@@ -74,6 +74,14 @@ func resolveDeterministicResponseText(request *http.Request, transport determini
 	if prompt == "" {
 		return defaultTestSafeText, nil
 	}
+	if strings.Contains(prompt, "PERSONA_GENERATION_REQUEST_V1") {
+		requestUnitID := extractPromptField(prompt, "request_unit_id")
+		npcCorrelationID := extractPromptField(prompt, "npc_correlation_id")
+		if requestUnitID == "" || npcCorrelationID == "" {
+			return defaultTestSafeText, nil
+		}
+		return buildDeterministicPersonaGenerationResponseText(requestUnitID, npcCorrelationID)
+	}
 	sourceTerm := extractPromptField(prompt, "source_term")
 	if sourceTerm == "" {
 		return defaultTestSafeText, nil
@@ -165,6 +173,52 @@ func buildDeterministicTermTranslationResponseText(sourceTerm string) (string, e
 		return "", fmt.Errorf("marshal deterministic term translation response: %w", err)
 	}
 	return string(responseBytes), nil
+}
+
+func buildDeterministicPersonaGenerationResponseText(requestUnitID string, npcCorrelationID string) (string, error) {
+	responseBytes, err := json.Marshal(map[string]any{
+		"personas": []map[string]string{
+			{
+				"request_unit_id":    requestUnitID,
+				"npc_correlation_id": npcCorrelationID,
+				"persona_body":       "決定論的なペルソナ応答",
+			},
+		},
+	})
+	if err != nil {
+		return "", fmt.Errorf("marshal deterministic persona generation response: %w", err)
+	}
+	return string(responseBytes), nil
+}
+
+func buildProviderDebugLog(
+	prompt string,
+	requestBytes []byte,
+	headers http.Header,
+) ProviderDebugLog {
+	return ProviderDebugLog{
+		Prompt:         strings.TrimSpace(prompt),
+		RequestBody:    strings.TrimSpace(string(requestBytes)),
+		Headers:        redactProviderHeaders(headers),
+		SecretRedacted: true,
+	}
+}
+
+func redactProviderHeaders(headers http.Header) map[string]string {
+	redacted := make(map[string]string, len(headers))
+	for key, values := range headers {
+		normalizedKey := http.CanonicalHeaderKey(strings.TrimSpace(key))
+		if normalizedKey == "" {
+			continue
+		}
+		switch normalizedKey {
+		case "Authorization", "X-Goog-Api-Key":
+			redacted[normalizedKey] = "[REDACTED]"
+		default:
+			redacted[normalizedKey] = strings.Join(values, ",")
+		}
+	}
+	return redacted
 }
 
 func callProviderTransport(

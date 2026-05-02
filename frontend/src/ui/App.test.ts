@@ -11,6 +11,11 @@ import type {
   MasterPersonaScreenViewModelListener
 } from "@application/contract/master-persona/master-persona-screen-contract"
 import type {
+  PersonaGenerationPhaseScreenControllerContract,
+  PersonaGenerationPhaseScreenViewModel,
+  PersonaGenerationPhaseScreenViewModelListener
+} from "@application/contract/persona-generation-phase"
+import type {
   TermTranslationPhaseScreenControllerContract,
   TermTranslationPhaseScreenViewModel,
   TermTranslationPhaseScreenViewModelListener
@@ -301,6 +306,83 @@ function buildTermTranslationPhaseScreenViewModel(
   }
 }
 
+function buildPersonaGenerationPhaseScreenViewModel(
+  overrides: Partial<PersonaGenerationPhaseScreenViewModel> = {}
+): PersonaGenerationPhaseScreenViewModel {
+  return {
+    jobId: 101,
+    phase: "ready",
+    summary: null,
+    bodyReadiness: null,
+    errorMessage: "",
+    pendingAction: null,
+    hasLoaded: true,
+    gatewayStatus: "接続準備済み",
+    viewState: "not_started",
+    isLoading: false,
+    isRefreshing: false,
+    isSubmitting: false,
+    hasJobSelection: true,
+    currentPhaseLabel: "persona_generation",
+    phaseStateLabel: "開始待ち",
+    statusTitle: "Persona Generation Phase",
+    statusText: "summary を取得できます。",
+    progressPercent: 0,
+    progressLabel: "0%",
+    progressDetail: "対象なし",
+    startedAtLabel: "-",
+    finishedAtLabel: "-",
+    targetCountLabel: "-",
+    generatedCountLabel: "-",
+    failedCountLabel: "-",
+    skippedCountLabel: "-",
+    npcCountLabel: "-",
+    commonPersonaHitCountLabel: "-",
+    commonPersonaMissCountLabel: "-",
+    skippedReasonsLabel: "-",
+    targetSnapshotLabel: "-",
+    providerLabel: "-",
+    modelLabel: "-",
+    executionModeLabel: "-",
+    credentialRefLabel: "-",
+    inputCountLabel: "-",
+    outputCountLabel: "-",
+    evidenceRefsLabel: "-",
+    promptDigestLabel: "-",
+    snapshotLabel: "-",
+    snapshotReferenceStatusLabel: "-",
+    personaCountLabel: "-",
+    missingCountLabel: "-",
+    bodyReadinessLabel: "未確認",
+    bodyReadinessBlockedReason: "",
+    bodyReadinessInputSummaryLabel: "-",
+    errorKindLabel: "-",
+    errorReasonLabel: "-",
+    retryableLabel: "-",
+    actionCards: [],
+    screenActionEnablement: {
+      canRefresh: true,
+      canStart: false,
+      canPause: false,
+      canResume: false,
+      canRetry: false,
+      canCancel: false,
+      canCheckBodyReadiness: false,
+      canStartBodyPhase: false
+    },
+    lastErrorSummary: null,
+    actionEnablement: null,
+    latestProgressSummary: null,
+    latestTargetSummary: null,
+    latestResultSummary: null,
+    latestExecutionSummary: null,
+    latestErrorKind: null,
+    latestBodyReadiness: null,
+    latestBodyReadinessInputSummary: null,
+    ...overrides
+  }
+}
+
 function buildTranslationInputScreenViewModel(
   overrides: Partial<TranslationInputScreenViewModel> = {}
 ): TranslationInputScreenViewModel {
@@ -493,6 +575,46 @@ class TermTranslationPhaseScreenControllerFake
   }
 
   getViewModel(): TermTranslationPhaseScreenViewModel {
+    return this.viewModel
+  }
+}
+
+class PersonaGenerationPhaseScreenControllerFake
+  implements PersonaGenerationPhaseScreenControllerContract
+{
+  private viewModel: PersonaGenerationPhaseScreenViewModel
+
+  private readonly listeners =
+    new Set<PersonaGenerationPhaseScreenViewModelListener>()
+
+  readonly mount = vi.fn(async () => {})
+  readonly dispose = vi.fn(() => {})
+  readonly setJobId = vi.fn(async () => {})
+  readonly refresh = vi.fn(async () => {})
+  readonly startPhase = vi.fn(async () => {})
+  readonly pausePhase = vi.fn(async () => {})
+  readonly resumePhase = vi.fn(async () => {})
+  readonly retryPhase = vi.fn(async () => {})
+  readonly cancelPhase = vi.fn(async () => {})
+  readonly checkBodyReadiness = vi.fn(async () => {})
+  readonly startBodyPhase = vi.fn(async () => {})
+
+  constructor(
+    initialViewModel = buildPersonaGenerationPhaseScreenViewModel()
+  ) {
+    this.viewModel = initialViewModel
+  }
+
+  subscribe(
+    listener: PersonaGenerationPhaseScreenViewModelListener
+  ): () => void {
+    this.listeners.add(listener)
+    return () => {
+      this.listeners.delete(listener)
+    }
+  }
+
+  getViewModel(): PersonaGenerationPhaseScreenViewModel {
     return this.viewModel
   }
 }
@@ -1351,8 +1473,12 @@ describe("App term translation phase screen", () => {
   test("注入された term phase controller factory で Job Run を描画する", async () => {
     const user = userEvent.setup()
     const controller = new TermTranslationPhaseScreenControllerFake()
+    const personaController = new PersonaGenerationPhaseScreenControllerFake()
     const translationInputController = new TranslationInputScreenControllerFake()
     const createTermTranslationPhaseScreenController = vi.fn(() => controller)
+    const createPersonaGenerationPhaseScreenController = vi.fn(
+      () => personaController
+    )
     const createTranslationInputScreenController = vi.fn(
       () => translationInputController
     )
@@ -1363,12 +1489,14 @@ describe("App term translation phase screen", () => {
           new MasterDictionaryScreenControllerFake(),
         createMasterPersonaScreenController: () =>
           new MasterPersonaScreenControllerFake(),
+        createPersonaGenerationPhaseScreenController,
         createTermTranslationPhaseScreenController,
         createTranslationInputScreenController
       }
     })
 
     expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(0)
+    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(0)
     expect(createTranslationInputScreenController).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole("tab", { name: /Job Run/ }))
@@ -1377,7 +1505,9 @@ describe("App term translation phase screen", () => {
 
     await waitFor(() => {
       expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(1)
+      expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(1)
       expect(controller.mount).toHaveBeenCalledTimes(1)
+      expect(personaController.mount).toHaveBeenCalledTimes(1)
     })
   })
 })

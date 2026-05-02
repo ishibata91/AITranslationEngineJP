@@ -1,0 +1,580 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-PGP-001",
+      "title": "単語翻訳フェーズ完了後に NPC ペルソナ生成フェーズを開始する",
+      "kind": "workflow",
+      "source_requirement": "tasks/usecases/persona-generation-phase.yaml は precondition を単語翻訳フェーズ完了とし、Job Run から NPC ペルソナ生成フェーズを開始する manual check を持つ。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml の goal、preconditions、manual_check_steps。",
+          "verification_hint": "単語翻訳フェーズ Completed の job で persona phase を開始し、current phase と progress を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "同一 job に active phase run がある場合は新規 run を増やさず、既存 active state または開始不可理由を返す必要がある。",
+          "verification_hint": "active phase run fixture で JOB_PHASE_RUN が重複しないことを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md の job state と term-translation-phase の先行 scenario は、前段未完了と terminal job の開始拒否を扱う。",
+          "verification_hint": "term 未完了、active phase あり、terminal job で開始拒否理由を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "開始可能境界は term phase Completed、非 terminal job、active phase run なしである。",
+          "verification_hint": "term 未開始、Running、Paused、RecoverableFailed、Completed の phase fixture で開始可否を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: Completed、Failed、Canceled を terminal state とする。RecoverableFailed は回復対象として扱う。",
+          "verification_hint": "Completed、Failed、Canceled の job で persona phase start / save / body readiness update が拒否されることを確認する。",
+          "after_answer_from": "Q-003"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は JOB_PHASE_RUN を翻訳ジョブ内のフェーズ実行として扱う。",
+          "verification_hint": "phase_type、phase run ID、progress が Job Run summary と一致することを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "current phase、phase start result、JOB_PHASE_RUN は同じ phase run を指す必要がある。",
+          "verification_hint": "UI summary と repository state の phase run ID を照合する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md はフェーズ再実行を同じ JOB_PHASE_RUN の状態を戻す扱いにすると定義する。",
+          "verification_hint": "開始再送で JOB_PHASE_RUN が重複しないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml は current phase と progress の確認を completion criteria に持つ。",
+          "verification_hint": "Job Run で current phase、progress、開始不可理由を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳ジョブの中断、再開、失敗回復を継続的に行えることを求める。",
+          "verification_hint": "Paused / RecoverableFailed fixture で後続操作の可否を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "Ready、not-ready、active phase、terminal fixture と temp DB で外部 API なしに検証できる。",
+          "verification_hint": "phase start boundary の API テストと Job Run mocked gateway test で確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-002",
+      "title": "NPC ごとの生成対象と入力 snapshot を確定する",
+      "kind": "workflow",
+      "source_requirement": "tasks/usecases/persona-generation-phase.yaml は NPC 発話の原文、NPC 属性メタデータ、会話文脈、共通ペルソナを input とし、NPC ごとの生成対象を確認できることを completion criteria に持つ。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml の inputs と completion_criteria。",
+          "verification_hint": "生成対象 NPC、入力種類、対象件数、対象外理由を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: 生成対象 0 件は Completed とし、対象 0 件、provider 未実行、snapshot 空を result summary に出す。",
+          "verification_hint": "生成対象 0 件で phase が Completed になり、provider 未実行と empty snapshot summary が表示されることを確認する。",
+          "after_answer_from": "Q-010"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "参照不能な NPC / 会話文脈は provider request に混ぜず、対象外理由として phase result に残す必要がある。",
+          "verification_hint": "orphan reference fixture で request 未投入と対象外理由を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成対象は NPC_PROFILE、NPC_RECORD、TRANSLATION_FIELD_RECORD_REFERENCE から解決できる NPC に限定する。",
+          "verification_hint": "NPC 同一性 key、発話者参照、会話文脈参照を入力 snapshot summary で確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成対象 snapshot は persona phase 開始後の対象集合として固定し、progress の母数に使う。",
+          "verification_hint": "phase start 後に対象 count と progress total が一致することを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: 共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+          "verification_hint": "common persona hit fixture で PERSONA が新規作成されず、job の snapshot 参照だけが固定されることを確認する。",
+          "after_answer_from": "Q-001"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成対象 summary、provider input、PERSONA_FIELD_EVIDENCE は同じ NPC と翻訳フィールド集合を参照する必要がある。",
+          "verification_hint": "target snapshot ID、evidence ref、input count を照合する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ phase run の対象 snapshot は再開 / retry で変化しない必要がある。",
+          "verification_hint": "resume / retry 前後で target snapshot digest が変わらないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml は NPC ごとの生成対象を確認できることを求める。",
+          "verification_hint": "Job Run summary で target count、common persona hit/miss、対象外理由を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "参照不能対象は retry 可能な入力不備として扱うか、対象外として記録する必要がある。",
+          "verification_hint": "参照不能 fixture で retryable flag と対象外理由を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "NPC record、translation field reference、common persona fixture で外部 API なしに検証できる。",
+          "verification_hint": "target extraction API test と mocked Job Run display test で確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-003",
+      "title": "AI provider で NPC ペルソナを生成する",
+      "kind": "external_integration",
+      "source_requirement": "docs/spec.md は NPC の発言、種族、性別情報を元に NPC ペルソナ生成フェーズで AI にペルソナを生成させることを求める。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: valid provider output は自動採用する。",
+          "verification_hint": "valid provider output が人間確認なしで persona result と snapshot へ反映されることを確認する。",
+          "after_answer_from": "Q-009"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "Gemini / xAI Batch API と単発 execution mode の両方で実行要約を持つ必要がある。",
+          "verification_hint": "single request fixture と batch item fixture で provider execution summary を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は Batch API 失敗時に別 provider fallback は不要とし、失敗回復を求める。",
+          "verification_hint": "timeout、network error、invalid response で暗黙 fallback せず error kind を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: 1 NPC を 1 request unit にする。NPC 属性と会話文脈を同じ request で一緒に考慮する。",
+          "verification_hint": "1 NPC 1 request unit で progress、retry、provider summary が NPC 単位になることを確認する。",
+          "after_answer_from": "Q-005"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: Job Setup の persona 専用 provider、model、execution mode を継承する。",
+          "verification_hint": "Job Setup の persona 専用 AI 設定が phase start と provider adapter に渡ることを確認する。",
+          "after_answer_from": "Q-004"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey を暗号化保存し、docs/er.md は credential_ref を secret store 参照とする。",
+          "verification_hint": "fake secret store と fake transport log で secret 非露出を確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "retry は同じ request unit の未処理分だけ再実行し、生成済み persona を重複作成しない必要がある。",
+          "verification_hint": "retry fixture で provider request 対象と persona count を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は API 実行進捗を確認できることを求める。",
+          "verification_hint": "provider、model、execution mode、input count、output count、error kind を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は中断、再開、失敗回復を求める。",
+          "verification_hint": "provider failure fixture で retryable flag と latest error を確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "derived",
+          "source_or_rationale": "大量 NPC では request unit 数と progress 表示の整合が性能上の観測対象になる。",
+          "verification_hint": "複数 NPC fixture で progress total と request count を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "paid real API を使わず fake provider、fixed response、failure injection で検証する。",
+          "verification_hint": "fake transport で success、invalid response、timeout を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-004",
+      "title": "ジョブ内ペルソナと persona snapshot を保存する",
+      "kind": "persistence",
+      "source_requirement": "tasks/usecases/persona-generation-phase.yaml は output としてジョブ内ペルソナと翻訳時参照用 persona snapshot を持ち、docs/er.md は PERSONA、PERSONA_FIELD_EVIDENCE、PHASE_RUN_PERSONA を定義する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml の outputs と docs/er.md の persona 関連テーブル。",
+          "verification_hint": "valid provider result から job-scoped persona、evidence、phase link、snapshot summary を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存失敗時に partial persona state を Completed として扱わない必要がある。",
+          "verification_hint": "PERSONA、evidence、PHASE_RUN_PERSONA の保存失敗 injection で body readiness が成立しないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "共通 persona と job-scoped persona、snapshot 参照、phase link の境界を分ける必要がある。",
+          "verification_hint": "persona_scope、translation_job_id、PHASE_RUN_PERSONA を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存完了後に persona phase result と body phase input summary が参照可能になる。",
+          "verification_hint": "phase result と body readiness summary を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は PERSONA、PERSONA_FIELD_EVIDENCE、PHASE_RUN_PERSONA を定義する。",
+          "verification_hint": "row count、foreign key、snapshot digest を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: 共通ペルソナ hit 時は新規 PERSONA を作らず、job の persona snapshot 参照だけを固定する。",
+          "verification_hint": "common persona hit fixture で PERSONA が新規作成されず、job の snapshot 参照だけが固定されることを確認する。",
+          "after_answer_from": "Q-001"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ job / same phase run の retry や開始再送で persona と phase link を重複作成しない必要がある。",
+          "verification_hint": "同時 retry または開始再送 fixture で unique constraint と row count を確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/er.md はフェーズ再実行を同じ JOB_PHASE_RUN の状態を戻す扱いにする。",
+          "verification_hint": "retry 前後で phase run ID と既存 persona link が維持されることを確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存失敗から retry できるように、成功分と未処理分を区別する必要がある。",
+          "verification_hint": "save failure 後の retryable flag、未処理 count、latest error を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fixed provider response、temp DB、save failure injection で検証できる。",
+          "verification_hint": "persistence API test で persona、evidence、phase link、snapshot summary を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-005",
+      "title": "Job Run で phase、progress、生成結果、snapshot 参照状態を確認する",
+      "kind": "display",
+      "source_requirement": "tasks/usecases/persona-generation-phase.yaml は current phase、progress、phase result、ジョブ内ペルソナの参照状態を Job Run で確認する manual check を持つ。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml の completion_criteria と manual_check_steps。",
+          "verification_hint": "Job Run で current phase、progress、target count、generated count、snapshot reference status を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "成功、空対象、running、paused、recoverable failed、blocked の状態差分を同じ Job Run に表示する。",
+          "verification_hint": "mocked gateway fixture で各 state variant を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider failure、input missing、save failure、snapshot missing は error summary と後続不可理由として出す必要がある。",
+          "verification_hint": "error fixture で secret と raw payload を含まない summary を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "UI は phase summary と監査 summary を表示し、raw prompt、raw response、全文本文を表示しない。",
+          "verification_hint": "long text と secret-like value の非表示を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: pause、resume、retry、cancel を body phase と同じように許可する。",
+          "verification_hint": "persona phase の pause、resume、retry、cancel が許可され、Job Run の action enablement と backend state が body phase と同じ粒度で扱われることを確認する。",
+          "after_answer_from": "Q-002"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現在の入力資料に role-based authorization はない。Job Run を操作できるユーザー内の状態制御として扱う。",
+          "verification_hint": "状態別 button enablement を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "term phase の Job Run summary と同じ phase / progress / result 表示構造を崩さない。",
+          "verification_hint": "app-shell と job-run の既存表示密度で overflow しないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "mocked gateway result fixture で UI state variants を検証できる。",
+          "verification_hint": "frontend test と実装後 UI 人間操作 E2E で確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-006",
+      "title": "persona phase 完了後だけ body phase readiness を成立させる",
+      "kind": "workflow",
+      "source_requirement": "body-translation-phase.yaml は precondition を NPC ペルソナ生成フェーズ完了とし、persona-generation-phase.yaml は生成済みペルソナを本文翻訳フェーズの入力として参照できることを求める。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/body-translation-phase.yaml の preconditions と persona-generation-phase.yaml の completion_criteria。",
+          "verification_hint": "persona phase Completed と snapshot 参照可能時だけ body readiness が true になることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "persona snapshot が空または common persona 参照だけの場合の readiness は Q-001 と Q-010 の回答後に固定できる。",
+          "verification_hint": "回答後の snapshot summary fixture で readiness を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "persona 未完了、RecoverableFailed、snapshot 参照不能では body phase run を作成しない。",
+          "verification_hint": "未完了 phase fixture で body phase start 拒否理由を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "body phase の翻訳本文生成はこの task の範囲外で、readiness と input summary までを扱う。",
+          "verification_hint": "body phase run が作成されないこと、または readiness summary だけが返ることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "persona phase Completed と snapshot 参照可能性が body readiness の必要条件になる。",
+          "verification_hint": "Completed、Running、Paused、RecoverableFailed、snapshot missing fixture を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "body phase input summary は job-scoped persona または persona snapshot ID、count、missing count を持つ必要がある。",
+          "verification_hint": "PHASE_RUN_PERSONA と body input summary を照合する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "persona phase result、snapshot summary、body readiness が同じ phase run と target count を参照する必要がある。",
+          "verification_hint": "phase run ID と snapshot digest を照合する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "body readiness 確認を複数回行っても body phase run や persona snapshot を重複作成しない。",
+          "verification_hint": "readiness query 再実行で row count が変わらないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/persona-generation-phase.yaml はジョブ内ペルソナの参照状態確認を manual check に持つ。",
+          "verification_hint": "Job Run と body input summary で snapshot 参照状態を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "snapshot missing や partial state では再試行可能な persona phase の状態へ戻す必要がある。",
+          "verification_hint": "snapshot missing fixture で body readiness false と retryable reason を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase state fixture と temp DB で body phase 実翻訳なしに検証できる。",
+          "verification_hint": "readiness API test と Job Run mocked gateway test で確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-007",
+      "title": "失敗、再開、リトライで partial state を成功扱いにしない",
+      "kind": "workflow",
+      "source_requirement": "docs/spec.md は中断、再開、失敗回復を求め、candidate failure / state-transition は provider failure、入力不備、保存失敗、partial state を成功扱いにしないことを候補化している。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "derived",
+          "source_or_rationale": "失敗後は latest error、retryable flag、progress、未処理 count を確認できる必要がある。",
+          "verification_hint": "failure fixture で phase result と progress を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: 成功分は維持し、phase は RecoverableFailed として未処理 NPC だけ retry する。",
+          "verification_hint": "一部 NPC 失敗時に成功分が維持され、phase は RecoverableFailed となり、未処理 NPC だけ retry 対象になることを確認する。",
+          "after_answer_from": "Q-006"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure candidates は入力不備、provider 失敗、不正応答、保存失敗を成功扱いにしないことを求める。",
+          "verification_hint": "各 failure fixture で persona snapshot が公開されないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "recoverable failure と unrecoverable failure の error kind は provider、input、persistence で分ける必要がある。",
+          "verification_hint": "error kind と retryable flag を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: pause、resume、retry、cancel を body phase と同じように許可する。",
+          "verification_hint": "persona phase の pause、resume、retry、cancel が許可され、Job Run の action enablement と backend state が body phase と同じ粒度で扱われることを確認する。",
+          "after_answer_from": "Q-002"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "失敗時も phase result は target count、success count、failed count、latest error summary を持つ必要がある。",
+          "verification_hint": "phase result summary と row count を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "partial PERSONA、evidence、PHASE_RUN_PERSONA が揃わない状態を Completed にしない。",
+          "verification_hint": "partial save failure fixture で Completed にならないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "retry / resume は同じ JOB_PHASE_RUN を使い、成功済み persona を重複作成しない。",
+          "verification_hint": "retry 前後の phase run ID と persona count を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は API 実行進捗と失敗回復を確認できることを求める。",
+          "verification_hint": "error kind、retryable flag、latest error、progress を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は RecoverableFailed から再開 / リトライできる状態図を持つ。",
+          "verification_hint": "RecoverableFailed fixture で再開または retry の効果を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "failure injection、invalid response、save failure fixture で検証できる。",
+          "verification_hint": "API テストで failure path を分けて確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PGP-008",
+      "title": "監査要約と redaction を満たす",
+      "kind": "security",
+      "source_requirement": "docs/spec.md は APIKey の暗号化保存と進捗確認を求め、term-translation-phase の先行設計は secret、raw payload、過剰本文の非露出を固定している。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider failure、invalid response、保存失敗時も secret と raw payload を UI、error summary、structured log に出さない。",
+          "verification_hint": "failure fixture で error summary と structured log を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: UI と DB には ID、digest、件数、evidence ref を保持し、全文と raw prompt は出さない。ログまたは debug 用には prompt / request body を確認できる導線を持つ。secret と API key は出さない。",
+          "verification_hint": "UI / DB summary に全文や raw prompt が出ず、debug log 導線では prompt / request body を確認でき、secret と API key は出ないことを確認する。",
+          "after_answer_from": "Q-007"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "監査要約は success、failure、retry、resume の phase state と対応する必要がある。",
+          "verification_hint": "state ごとの audit summary を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現在の入力資料に role-based authorization はない。secret 非露出と state gating を security boundary として扱う。",
+          "verification_hint": "UI と log に secret が出ないことを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey の暗号化保存を求め、docs/er.md は credential_ref を secret store 参照とする。",
+          "verification_hint": "credential_ref だけが DTO、UI、log に出ることを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答: Job Run 再表示用の redacted phase result summary は保持する。直接 DB 保存に限定せず、進行中の job state から復元できる形を許容する。",
+          "verification_hint": "Job Run を再表示した時に redacted phase result summary を取得でき、保存禁止情報が含まれないことを確認する。",
+          "after_answer_from": "Q-008"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "失敗後の retryable reason と latest error は redacted summary として残す必要がある。",
+          "verification_hint": "retryable failure fixture で latest error に raw payload がないことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "term-translation-phase の redaction 方針と同じく、secret、raw request / response、本文全文を出さない。",
+          "verification_hint": "既存 term phase redaction fixture と同等の assertion を persona phase に適用する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake secret store、fake transport、structured log capture で検証できる。",
+          "verification_hint": "redaction assertion と log capture で保存禁止情報を確認する。"
+        }
+      ]
+    }
+  ]
+}
