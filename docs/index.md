@@ -15,13 +15,14 @@
 5. [`tech-selection.md`](./tech-selection.md)
 6. [`coding-guidelines.md`](./coding-guidelines.md)
 7. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
-8. [`lint-policy.md`](./lint-policy.md)
-9. [`er.md`](./er.md)
-10. Relevant file under [`screen-design/`](./screen-design/README.md)
-11. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
-12. Relevant file under [`detail-specs/`](./detail-specs/README.md)
-13. Relevant file under [`exec-plans/`](./exec-plans/)
-14. Relevant file under [`references/`](./references/)
+8. [`UX-standard.md`](./UX-standard.md)
+9. [`lint-policy.md`](./lint-policy.md)
+10. [`er.md`](./er.md)
+11. Relevant file under [`screen-design/`](./screen-design/README.md)
+12. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
+13. Relevant file under [`detail-specs/`](./detail-specs/README.md)
+14. Relevant file under [`exec-plans/`](./exec-plans/)
+15. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
@@ -34,6 +35,7 @@
 - [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md): TypeScript / Svelte / Wails gateway の frontend 実装規約
 - [`coding-guidelines-backend.md`](./coding-guidelines-backend.md): Go / Wails backend の実装規約
 - [`coding-guidelines-tests.md`](./coding-guidelines-tests.md): backend / frontend のテスト実装規約
+- [`UX-standard.md`](./UX-standard.md): UI 設計で参照する UX プラクティスの正本
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担1
 - [`er.md`](./er.md): canonical data model と ER 仕様
 - [`diagrams/conceptual/`](./diagrams/conceptual/): conceptual perspective 図の PlantUML source of truth
@@ -56,6 +58,7 @@
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - 実装規約が変わった場合: [`coding-guidelines.md`](./coding-guidelines.md) と対応する分割文書を更新する
+- UX 標準が変わった場合: [`UX-standard.md`](./UX-standard.md) を更新する
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
 - Screen map or visual design changed: update the relevant file under [`screen-design/`](./screen-design/README.md)
 - UI requirement changed: update the relevant `ui-design.md` or upper-scenario detail source

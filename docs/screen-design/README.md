@@ -12,5 +12,6 @@
 
 - visual design は `docs/spec.md` の用語と衝突させない
 - `design-system-ethereal-archive.md` は見た目とコンポーネント規約の正本として扱う
+- UI の UX プラクティスは [`../UX-standard.md`](../UX-standard.md) を参照する
 - `code.html` は過去の画面骨格確認資料として扱う
 - 新規 task の UI 判断は `ui-design.md` の UI 要件契約と実装後確認観点に置く

@@ -181,7 +181,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - docs 正本化は Codex 側だけで扱う
 - human 承認済みの 成果物 だけ `docs_updater` が `updating-docs` を参照して正本へ反映する
 - task 内 UI 要件契約、task-local UIプロトタイプ、`mock-data/`、agent-browser 確認結果、シナリオ は task folder に置く
-- UIプロトタイプは UX 観点と主要操作後の状態変化の確認用成果物であり、docs 正本として扱わない
+- UIプロトタイプは `docs/UX-standard.md` と主要操作後の状態変化の確認用成果物であり、docs 正本として扱わない
 - UIプロトタイプは `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` で確認サーバーを起動し、`http://127.0.0.1:34116/prototype` を `agent-browser` で確認する
 - 人間レビュー中は UIプロトタイプ確認サーバーを起動したままにし、確認 URL と起動 command をレビュー記録へ残す
 - UIプロトタイプ確認サーバーを `designer` agent が保持している場合は、人間レビューが終了するまで `designer` agent を起動したままにし、人間の UI 指摘を直接反映する

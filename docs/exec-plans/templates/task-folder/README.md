@@ -11,7 +11,7 @@
 ## 標準ファイル
 
 - `plan.md`: task 全体の索引、状態、HITL、validation、closeout
-- `ui-design.md`: `ui-design` の UI 要件契約、状態差分、実装後確認観点。UI が不要な task では作らない
+- `ui-design.md`: `ui-design` の UI 要件契約、状態差分、UX 標準確認結果。UI が不要な task では作らない
 - `prototype.svelte`: UI が関係する task の task-local UIプロトタイプ。docs 正本として扱わない
 - `mock-data/`: UIプロトタイプの状態表示確認だけに使うサンプル値置き場。frontend 実装へ移植しない
 - `scenario-candidates.<viewpoint>.md`: `propose_plans` が `designer` 前に作る scenario 候補。6 観点を別 file にする

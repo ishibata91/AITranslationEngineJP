@@ -7,7 +7,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 ## 目的
 
 `ui-design` は作業プロトコルである。
-`designer` agent が UI を言葉だけで固定せず、UI 要件契約、task-local UIプロトタイプ、agent-browser 確認結果として扱うための、表示項目、操作、状態差分、導線、主要操作後の画面変化、UX 確認観点の見方を提供する。
+`designer` agent が UI を言葉だけで固定せず、UI 要件契約、task-local UIプロトタイプ、agent-browser 確認結果として扱うための、表示項目、操作、状態差分、導線、主要操作後の画面変化、UX 標準参照の見方を提供する。
 
 実行境界、正本、引き継ぎ、停止 / 戻し は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
@@ -33,6 +33,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
+- UX 標準: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - UI 設計雛形: [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/assets/ui-design.md)
 - UIプロトタイプ確認サーバー: [serve-prototype.mjs](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/scripts/dev/serve-prototype.mjs)
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md)
@@ -48,53 +49,10 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - UIプロトタイプの種類、土台、task-local 正本配置
 - UIプロトタイプの主要導線、情報密度、入力と結果の見え方
 - UIプロトタイプ確認サーバーの URL、起動 command、人間確認中の起動状態
-- `agent-browser` による task-local UIプロトタイプの UX 確認結果
+- `agent-browser` による task-local UIプロトタイプの UX 標準確認結果
 - task-local UIプロトタイプ内の `mock-data/` とモックデータ移植禁止範囲
 - 読み込み中、空、エラー、無効、進行中、再試行、成功
 - デスクトップ / モバイルで破綻してはいけない条件と実装後確認観点
-
-### UX 確認観点
-
-| 観点 | 確認する内容 |
-| --- | --- |
-| 目的達成 | 主要利用者が開始操作から期待結果まで迷わず進めるかを確認する |
-| 情報優先度 | 最初に見るべき情報、次に見るべき情報、補助情報の順序が画面構造で分かるかを確認する |
-| 操作順 | 主要操作、戻る、取消、再試行、破壊的操作の位置と文言が作業順に沿うかを確認する |
-| 状態理解 | 読み込み中、空、エラー、無効、進行中、成功の差分が見た目と文言で区別できるかを確認する |
-| 回復可能性 | エラーや無効状態から、利用者が次に取れる操作を判断できるかを確認する |
-| 表示文言 | 専門知識がなくても画面表示文言から次に何をするか分かるかを確認する |
-| 入力負荷 | 入力量、選択肢、初期値、確認操作が目的に対して過剰でないかを確認する |
-| 視線移動 | 見出し、ラベル、操作、結果表示が上下左右に散らばりすぎていないかを確認する |
-| 表示幅追従 | desktop と mobile で文字、操作、状態表示が重ならず、主要導線が保たれるかを確認する |
-
-### 画面構造UXチェック表
-
-| 分類 | 観点 | 確認内容 |
-| --- | --- | --- |
-| 目的 | 画面目的 | 画面の主目的が 1 つに定義されているかを確認する |
-| 目的 | 対象ユーザー | 利用者種別と判断したい内容が明確かを確認する |
-| 操作 | 主要操作 | 最も重要な操作が 1 つに絞られているかを確認する |
-| 操作 | 補助操作 | 補助操作が主要操作より弱く扱われているかを確認する |
-| 構造 | 情報階層 | 利用者の判断順に情報が並んでいるかを確認する |
-| 構造 | 画面責務 | 一覧、詳細、編集、確認、完了の責務が混ざりすぎていないかを確認する |
-| 状態 | 状態表示 | 現在状態が画面上で明示されているかを確認する |
-| 状態 | 状態別操作 | 状態ごとの可能操作と禁止操作が定義されているかを確認する |
-| 条件 | 表示条件 | 項目、ボタン、メッセージの表示条件が定義されているかを確認する |
-| 条件 | 禁止条件 | 操作できない条件が定義されているかを確認する |
-| 権限 | 権限差分 | 権限ごとの表示、操作、非表示の差分が定義されているかを確認する |
-| 入力 | 入力制約 | 入力前に制約、範囲、形式、上限が分かるかを確認する |
-| 入力 | 入力単位 | 入力項目が業務判断単位でまとまっているかを確認する |
-| 非同期 | 空状態 | データがない理由と次行動が示されているかを確認する |
-| 非同期 | 読み込み中 | 読み込み中、保存中、生成中の状態が設計されているかを確認する |
-| 非同期 | エラー | 原因、対応、再実行可否が分かるかを確認する |
-| 確認 | 変更差分 | 変更前後、影響範囲、反映タイミングが分かるかを確認する |
-| 確認 | 危険操作 | 削除、解約、権限剥奪などが通常操作と分離されているかを確認する |
-| 遷移 | 画面遷移 | 利用者の業務フローに沿って遷移しているかを確認する |
-| 遷移 | 完了後導線 | 操作完了後に結果と次行動が示されているかを確認する |
-| 文言 | UI文言 | 内部用語ではなく、利用者が判断できる言葉になっているかを確認する |
-| 保守 | 検査可能性 | AIレビューやテスト設計に使える粒度で構造化されているかを確認する |
-| 保守 | 実装流用範囲 | モックから本実装へ流用してよいもの、流用してはいけないものが明示されているかを確認する |
-| 証跡 | 確認証跡 | スクリーンショット、レビュー結果、受け入れ条件の保存先が決まっているかを確認する |
 
 ### 表示文言変換例
 
@@ -111,14 +69,14 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - UI は UI 要件契約で固定し、UIプロトタイプは task-local 確認用として扱う
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
 - UIプロトタイプを作る場合は `prototype.svelte` として task folder に置く
+- UIプロトタイプの画面背景は UIプロトタイプ確認サーバーの共通背景を使い、task-local UIプロトタイプへ page 全体の背景を複製しない
 - 既存画面変更では、既存画面または既存 UI 部品を土台にする
 - 既存画面変更の UIプロトタイプは、対象画面の既存 Svelte、CSS、class、画面構造を再利用する
 - 既存画面変更では、独自の page shell、card、grid、配色、余白体系を新規に作らない
 - 既存画面変更では、変更対象区画だけを差し替え、変更しない区画は既存画面の構造と表示を維持する
 - 新規画面では、`docs/screen-design` の画面設計に従う
 - UIプロトタイプ確認サーバーは `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` で起動する
-- UIプロトタイプは `http://127.0.0.1:34116/prototype` を `agent-browser` で開き、UX 確認観点の確認結果を `ui-design.md` に残す
-- 画面構造UXチェック表の確認結果を `ui-design.md` に残す
+- UIプロトタイプは `http://127.0.0.1:34116/prototype` を `agent-browser` で開き、UX 標準の確認結果を `ui-design.md` に残す
 - 人間確認中は UIプロトタイプ確認サーバーを起動したままにする
 - 人間確認中に UIプロトタイプ確認サーバーを `designer` agent が保持している場合は、人間レビュー終了まで `designer` agent を起動したままにする
 - 人間確認中の UI 指摘は、起動中の `designer` agent が直接受け取り、`ui-design.md` と task-local UIプロトタイプへ反映する
@@ -170,8 +128,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - task 内成果物 が承認状態、根拠参照、未決事項を含んでいる。
 - 人間レビュー が必要な判断を AI だけで完了扱いにしていない。
 - 表示項目、主要操作、ボタン有効条件を確認した。
-- UX 確認観点の各項目を `ui-design.md` に結果付きで残した。
-- 画面構造UXチェック表の各項目を `ui-design.md` に結果付きで残した。
+- `docs/UX-standard.md` の高優先度項目と対象画面に関係する項目を `ui-design.md` に結果付きで残した。
 - 状態、状態差分、表示幅追従、はみ出しリスク を実装後確認観点として確認した。
 - `ui-design.md` は UI 要件契約と確認観点を含んでいる。
 - task-local UIプロトタイプを作る場合は、主要区画、主要操作、状態差分を確認できる。
@@ -181,7 +138,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - task-local UIプロトタイプを作る場合は、`ui-design.md` に確認サーバーの URL、起動 command、人間確認中の起動要否を含めている。
 - task-local UIプロトタイプを作る場合は、人間確認中の `designer` agent 継続要否と、人間レビュー終了後の終了状態を `ui-design.md` に含めている。
 - task-local UIプロトタイプを作る場合は、モックデータが `mock-data/` または `data-ui-prototype-sample-data-root` の範囲に置かれている。
-- `ui-design.md` は `agent-browser` で確認した URL、起動 command、人間確認中の起動状態、画面サイズ、UX 確認観点ごとの結果、問題、未確認理由を含んでいる。
+- `ui-design.md` は `agent-browser` で確認した URL、起動 command、人間確認中の起動状態、画面サイズ、UX 標準確認結果、問題、未確認理由を含んでいる。
 - `ui-design.md` は `agent-browser` 確認後の表示文言レビュー結果を含んでいる。
 - 表示文言レビューは、固定名以外の画面表示文言が日本語の業務語になっているかを確認している。
 - 表示文言レビューは、内部状態名が画面に出ず、利用者の次操作を示す文へ変換されているかを確認している。

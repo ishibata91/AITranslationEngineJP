@@ -11,6 +11,7 @@
 - `human_review_designer_agent_required`: `yes | no`
 - `human_feedback_route`: `designer_agent_direct | implement_lane`
 - `designer_agent_close_after_review`:
+- `ux_standard_source`: `docs/UX-standard.md`
 
 ## UI Contract
 
@@ -36,32 +37,14 @@
 - `responsive_constraints`:
 - `accessibility_constraints`:
 
-## Screen Structure UX Check
+## UX Standard Review
 
-- `screen_purpose`:
-- `target_user`:
-- `primary_action`:
-- `secondary_actions`:
-- `information_hierarchy`:
-- `screen_responsibility`:
-- `current_state_visibility`:
-- `state_based_actions`:
-- `display_conditions`:
-- `disabled_conditions`:
-- `permission_differences`:
-- `input_constraints`:
-- `input_grouping`:
-- `empty_state`:
-- `loading_state`:
-- `error_state`:
-- `change_diff_visibility`:
-- `dangerous_action_separation`:
-- `screen_transition`:
-- `completion_route`:
-- `ui_wording`:
-- `reviewability`:
-- `implementation_reuse_scope`:
-- `evidence_storage`:
+- `source`: `docs/UX-standard.md`
+- `screen_structure_high_priority_results`:
+- `screen_structure_applicable_results`:
+- `layout_responsive_high_priority_results`:
+- `layout_responsive_applicable_results`:
+- `deferred_items`:
 
 ## Interaction States
 
@@ -99,6 +82,7 @@
 - `human_review_designer_agent_required`: `yes | no`
 - `human_feedback_route`: `designer_agent_direct | implement_lane`
 - `designer_agent_close_after_review`:
+- `ux_standard_source`: `docs/UX-standard.md`
 - `mock_data_root`: `./mock-data/`
 - `mock_data_migration`: `forbidden`
 - `sample_data_root`: `[data-ui-prototype-sample-data-root]`
@@ -122,16 +106,11 @@
 - `migration_to_product_code`: `forbidden`
 - `migration_to_fixture_or_test_data`: `forbidden`
 - `checked_viewports`:
-- `ux_review_points`:
-  - `goal_completion`:
-  - `information_priority`:
-  - `operation_order`:
-  - `state_comprehension`:
-  - `recovery_path`:
-  - `display_wording`:
-  - `input_effort`:
-  - `eye_movement`:
-  - `responsive_continuity`:
+- `ux_standard_review`:
+  - `source`: `docs/UX-standard.md`
+  - `high_priority_results`:
+  - `applicable_results`:
+  - `deferred_items`:
 - `wording_review`:
   - `review_timing`: `after_agent_browser_review`
   - `fixed_names_preserved`:
@@ -151,8 +130,8 @@
 
 - UI は `ui-design.md` で固定する
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
-- UIプロトタイプを作る場合は確認サーバーの URL を `agent-browser` で開き、UX 観点から確認する
-- 画面構造UXチェック表の確認結果を `Screen Structure UX Check` に記録する
+- UIプロトタイプを作る場合は確認サーバーの URL を `agent-browser` で開き、`docs/UX-standard.md` から確認する
+- UX 標準の確認結果を `UX Standard Review` に記録する
 - `agent-browser` 確認後に、専門知識がなくても次に何をするか分かる表現水準かを表示文言レビューで確認する
 - 固定名以外の画面表示文言は、日本語の業務語へ置き換える
 - 内部状態名は画面に出さず、利用者の次操作を示す文へ変換する
