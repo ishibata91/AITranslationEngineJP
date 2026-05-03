@@ -6,7 +6,7 @@ model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 developer_instructions = """
 この作業は `investigator` agent と `investigate` skill に基づく。
-設計前の UI 根拠 が必要な時は Codex in-app browser の `browser-use` を使う。
+設計前の UI 根拠 が必要な時は `agent-browser` CLI を使う。
 探索テスト証跡が必要な時は探索計画とテストデータに従い、観測事実、UI 証跡、ログ、未確認事項だけを返す。
 探索範囲を広げる判断、原因仮説、恒久修正、プロダクトテスト追加は扱わない。
 書き換え範囲は `docs/exec-plans/active/` の探索証跡、`tmp/agent-browser/`、`tmp/logs/`、`test-results/` に限る。

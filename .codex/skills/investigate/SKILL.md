@@ -31,7 +31,7 @@ UI check 専用 skill / agent は置かない。
 - エージェント実行定義と実行境界は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) に従う。
 - エージェント実行定義: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - 実行境界: エージェント実行定義に従う
-- Codex in-app browser の操作規約は [browser-use skill](/Users/iorishibata/.codex/plugins/cache/openai-bundled/browser-use/0.1.0-alpha1/skills/browser/SKILL.md) とする。
+- `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
 - 探索テストレーンの探索計画は [exploration-test-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/exploration-test-planning/SKILL.md) に従う。
 - 探索テスト証跡の雛形は [exploration-test-evidence.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/assets/exploration-test-evidence.md) とする。
 - 探索テスト証跡の task 内 artifact は `docs/exec-plans/active/<task-id>/exploration-test-evidence.md` とする。
@@ -52,9 +52,8 @@ UI check 専用 skill / agent は置かない。
 
 - 根拠 のない結論を書かない
 - 観測事実と仮説を混ぜない
-- 設計前の UI 根拠 は Codex in-app browser の `browser-use` で確認する
+- 設計前の UI 根拠 は `agent-browser` CLI で確認する
 - UI 根拠 は画面状態、console、screenshot、操作条件を分けて残す
-- `agent-browser` CLI は Codex implementation レーン の実装時調査でだけ使う
 - 実装 レーン の調査は Codex implementation レーンへ戻す
 - 探索テスト証跡は探索計画とテストデータを超えない
 - 探索テスト証跡では探索範囲を広げる判断をしない

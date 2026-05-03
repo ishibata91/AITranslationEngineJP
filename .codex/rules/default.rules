@@ -227,6 +227,33 @@ prefix_rule(
 
 prefix_rule(
     pattern = [
+        "agent-browser",
+        [
+            "doctor",
+            "open",
+            "snapshot",
+            "get",
+            "click",
+            "screenshot",
+            "close",
+            "errors",
+        ],
+    ],
+    decision = "allow",
+    justification = "agent-browser CLI commands are required for local browser evidence gathering.",
+    match = [
+        "agent-browser doctor --offline --quick",
+        "agent-browser open http://localhost:34115",
+        "agent-browser screenshot tmp/agent-browser/screenshot.png",
+        "agent-browser errors",
+    ],
+    not_match = [
+        "agent-browser install",
+    ],
+)
+
+prefix_rule(
+    pattern = [
         "node",
         "./scripts/node/run-sonar-scanner.mjs",
     ],
