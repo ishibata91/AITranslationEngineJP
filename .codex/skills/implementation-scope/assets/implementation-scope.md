@@ -12,7 +12,7 @@
 ## Source Artifacts
 
 - `ui_design`: `./ui-design.md` または `N/A`
-- `ui_html_mock`: `./ui-mock.html` または `N/A`
+- `ui_prototype`: `./prototype.svelte` または `N/A`
 - `ui_mock_data`: `./mock-data/` または `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `scenario_design`: `./scenario-design.md`
@@ -22,7 +22,7 @@
 ## Fixed Decisions
 
 - human review 済みの判断だけを書く
-- frontend handoff がある場合は、承認済み `ui-design.md` を source にし、`ui-mock.html` と `mock-data/` は task-local 確認用として扱う
+- frontend handoff がある場合は、承認済み `ui-design.md` を source にし、`prototype.svelte` は task-local UIプロトタイプとして扱い、`mock-data/` は task-local 確認用として扱う
 - `needs_human_decision`: `0`
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
 - downstream handoff が依存する public seam は `contract_freeze` として固定する
@@ -47,7 +47,7 @@
 - `implementation_skill`: `implement-backend | implement-frontend | implement-integration`
 - `frontend_required_sources`:
   - `ui_design`: `./ui-design.md` または `N/A`
-  - `ui_html_mock`: `./ui-mock.html` または `N/A`
+- `ui_prototype`: `./prototype.svelte` または `N/A`
   - `ui_mock_data`: `./mock-data/` または `N/A`
   - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `contract_freeze`:
@@ -75,7 +75,7 @@
 - `execution_stage`: `実装前 | 実装後 | final validation`
 - `notes`:
   - backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み `contract_freeze` に depends_on する。
-  - frontend handoff では、承認済み `ui-design.md` を必須 source にし、`ui-mock.html` と `mock-data/` は task-local 確認用として扱う。
+  - frontend handoff では、承認済み `ui-design.md` を必須 source にし、`prototype.svelte` は task-local UIプロトタイプとして扱い、`mock-data/` は task-local 確認用として扱う。
   - frontend handoff では、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書く。
   - frontend handoff では、`mock-data/` 配下の値を product code、fixture、default state、test data へ移植禁止とする完了条件を書く。
   - API / Wails / DTO / gateway / adapter contract の接続は `統合境界実装` handoff に分ける。

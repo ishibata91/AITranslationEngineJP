@@ -19,7 +19,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 入力規約
 
 - 単一引き継ぎ入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件。
-- UI 設計根拠: 承認済み `ui-design.md` と task-local 確認用 HTML モック。
+- UI 設計根拠: 承認済み `ui-design.md` と task-local UIプロトタイプ。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
@@ -44,9 +44,9 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - affected UI の manual flow を確認できる状態にする
 - UI check に必要な 根拠 を残す
 - ユーザーが利用することを前提に、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせる
-- task-local 確認用 HTML モックがある場合は、承認済み UI 要件契約との対応を確認する
+- task-local UIプロトタイプがある場合は、承認済み UI 要件契約との対応を確認する
 - `mock-data/` 配下の値を product code、fixture、default state、test data へ移植しない
-- HTML モックの `data-ui-mock-sample-data-root` 範囲にある値を product code、fixture、default state、test data へ移植しない
+- UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を product code、fixture、default state、test data へ移植しない
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 - 明確なブロッカーがない限りはレーンを中断せずに成果物の生成を継続すること。
@@ -86,10 +86,10 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
-- 承認済み `ui-design.md` と task-local 確認用 HTML モックを確認した。
+- 承認済み `ui-design.md` と task-local UIプロトタイプを確認した。
 - 画面導線と 状態 反映を確認した。
 - `mock-data/` 配下の値を移植していない。
-- HTML モックの `data-ui-mock-sample-data-root` 範囲にある値を移植していない。
+- UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を移植していない。
 - Wails bridge 境界を確認した。
 - generated `wailsjs` を gateway 境界に閉じ込めた。
 - affected UI flow と console エラー を確認した。
@@ -106,7 +106,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 通信境界を迂回する必要がある場合は停止する。
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接 import する必要がある場合は停止する。
 - gateway 以外で backend DTO 変換が必要な場合は停止する。
-- HTML モックの `data-ui-mock-sample-data-root` 範囲にある値を実装へ使う必要がある場合は停止する。
+- UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を実装へ使う必要がある場合は停止する。
 - `mock-data/` 配下の値を実装へ使う必要がある場合は停止し、`implement_lane` へ戻す。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
 - `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。

@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:prototype": "node ./scripts/dev/serve-prototype.mjs",
     "dev:wails": "vite --host ${VITE_HOST:-127.0.0.1} --port ${VITE_PORT:-5173} --strictPort",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",

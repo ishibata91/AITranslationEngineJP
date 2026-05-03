@@ -82,8 +82,8 @@ scenario-design は、抽象要件から直接 シナリオ を作って完了�
 ### UI 設計分離条件
 
 UI 設計は design bundle 本体へ含めず、`ui-design` の独立成果物として扱う。
-UI が関係する task では、`ui-design.md` と必要な task-local 確認用 HTML モックを人間レビュー前に揃える。
-人間レビュー中は、HTML モック確認サーバーを起動したままにする。
+UI が関係する task では、`ui-design.md` と必要な task-local UIプロトタイプを人間レビュー前に揃える。
+人間レビュー中は、UIプロトタイプ確認サーバーを起動したままにする。
 frontend 実装がある task では、承認済み UI 設計成果物を implementation-scope と frontend 実装の根拠にする。
 
 ## 判断規約

@@ -8,7 +8,7 @@
 - `task-folder/README.md`
 - `task-folder/plan.md`
 - `task-folder/ui-design.md`
-- `task-folder/ui-mock.html`
+- `task-folder/prototype.svelte`
 - `task-folder/mock-data/`
 - `task-folder/scenario-candidates.viewpoint.md`
 - `task-folder/scenario-design.md`

@@ -47,7 +47,6 @@ agent の `permissions.json` と contract は、skill 本文から agent-owned r
 2. `docs/index.md` から関係する文書だけ読む
 3. active / completed plan に同種 task がないか確認する
 4. 手をつける前に、影響範囲、実行計画、検証方法を短く固定する
-5. 編集前に gateguard の事実確認を行う
 
 ## 実装後にやること
 

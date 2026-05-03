@@ -71,7 +71,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 作業流れ、skill、エージェント実行定義、プロダクトコード、プロダクトテストは変更しない。
 - implementation 完了前の正本化と未承認 draft の正本化は扱わない。
 - implementation-scope を docs 正本へ自動昇格しない。
-- task-local HTML モックを docs 正本へ昇格しない。
+- task-local UIプロトタイプを docs 正本へ昇格しない。
 - スキーマ移行、DB 移行、基盤移行、cutover 手順は `detail-specs` へ昇格しない。
 - `detail-specs` へ移す対象は、承認済み `scenario-design` にある上位シナリオの恒久仕様だけにする。
 - プロダクト実装を同時に進めない。

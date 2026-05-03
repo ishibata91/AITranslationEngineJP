@@ -45,7 +45,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
 - `exploration_test_planner` は探索計画だけを作り、観測、ログ確認、画面確認、原因仮説の作成を扱わない
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
-- `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` と必要な task-local 確認用 HTML モックを揃える。人間レビュー 後に `implementation-scope` を固定する
+- `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` と必要な task-local UIプロトタイプを揃える。人間レビュー 後に `implementation-scope` を固定する
 - シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
 - `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
@@ -180,10 +180,11 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - docs 正本化は実装と レビュー の完了が分かった後に扱う
 - docs 正本化は Codex 側だけで扱う
 - human 承認済みの 成果物 だけ `docs_updater` が `updating-docs` を参照して正本へ反映する
-- task 内 UI 要件契約、task-local 確認用 HTML モック、`mock-data/`、agent-browser 確認結果、シナリオ は task folder に置く
-- HTML モックは UX 観点の確認用成果物であり、docs 正本として扱わない
-- HTML モックは `npm run dev:ui-mock -- --task <task-id> --port 34116` で確認サーバーを起動し、`http://127.0.0.1:34116/ui-mock.html` を `agent-browser` で確認する
-- 人間レビュー中は HTML モック確認サーバーを起動したままにし、確認 URL と起動 command をレビュー記録へ残す
+- task 内 UI 要件契約、task-local UIプロトタイプ、`mock-data/`、agent-browser 確認結果、シナリオ は task folder に置く
+- UIプロトタイプは UX 観点と主要操作後の状態変化の確認用成果物であり、docs 正本として扱わない
+- UIプロトタイプは `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` で確認サーバーを起動し、`http://127.0.0.1:34116/prototype` を `agent-browser` で確認する
+- 人間レビュー中は UIプロトタイプ確認サーバーを起動したままにし、確認 URL と起動 command をレビュー記録へ残す
+- 本番コードから UIプロトタイプを参照してはいけない
 - `mock-data/` 配下の値は状態表示確認用であり、frontend 実装へ移植しない
 - UI の細かな visual polish は実装後の実物確認で差分を扱う
 - `implementation-scope` は 引き継ぎ 履歴であり docs 正本へ昇格しない

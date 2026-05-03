@@ -23,9 +23,9 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 人間レビュー記録: 承認済みシナリオ設計、承認済み UI 設計、レビュー結果。
 - 承認済みシナリオ: 実装範囲の根拠にするシナリオ設計成果物。
 - UI 要件契約: UI が関係する場合に参照する UI 設計成果物。
-- HTML モック: frontend 実装が関係する場合に参照する task-local 確認用 `ui-mock.html`。
+- UIプロトタイプ: frontend 実装が関係する場合に参照する task-local 確認用 `prototype.svelte`。
 - モックデータ: frontend 実装が関係する場合に参照する task-local 確認用 `mock-data/`。実装へ移植しない。
-- HTML モック確認結果: frontend 実装が関係する場合に参照する task-local 確認結果。
+- UIプロトタイプ確認結果: frontend 実装が関係する場合に参照する task-local 確認結果。
 - 承認状態: 呼び出し元が渡す承認済み状態。
 
 ## 外部参照規約
@@ -140,7 +140,7 @@ import、generation、settings save、preview、create / update / delete、expor
 契約固定 引き継ぎ は backend 実装全体ではなく、公開接点 の固定だけを扱う。
 backend 引き継ぎ は永続化、service / usecase、controller、DTO / gateway 境界までを扱う。
 frontend 引き継ぎ は確定済み 契約固定 に依存して 状態 / UI を扱う。
-frontend 引き継ぎ は承認済み `ui-design.md` を必須根拠にし、`ui-mock.html` と `mock-data/` は task-local 確認用として扱う。
+frontend 引き継ぎ は承認済み `ui-design.md` を必須根拠にし、`prototype.svelte` は task-local UIプロトタイプとして扱い、`mock-data/` は task-local 確認用として扱う。
 統合境界 引き継ぎ は API、Wails、DTO、gateway、adapter 契約 の接続だけを扱い、backend 実装や frontend UI 実装の代替にしない。
 
 backend 側の 引き継ぎ に含めてよい 層:
@@ -241,7 +241,7 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 対象範囲、依存、初手、検証、完了条件 を必ず揃える
 - 並列実行可能性は task 出し時に明示する
 - 人間レビュー 済みの詳細要求タイプと質問票回答だけを 引き継ぎ根拠にする
-- frontend 引き継ぎ は承認済み UI 要件契約を 引き継ぎ根拠にし、HTML モック、`mock-data/`、agent-browser 確認結果は task-local 確認用として扱う
+- frontend 引き継ぎ は承認済み UI 要件契約を 引き継ぎ根拠にし、UIプロトタイプ、`mock-data/`、agent-browser 確認結果は task-local 確認用として扱う
 - 検証コマンド は 引き継ぎ の 承認済み実装範囲 と 完了条件 だけで 通過 できるものにする
 - backend と frontend は必ず別 引き継ぎ に分ける
 - frontend 引き継ぎ は 契約固定 済みの backend 契約 / DTO / gateway 境界に 依存対象 する
