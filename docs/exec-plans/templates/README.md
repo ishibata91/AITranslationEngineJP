@@ -15,6 +15,11 @@
 - `task-folder/scenario-design.questions.md`
 - `task-folder/implementation-scope.md`
 
+## Lane Local Assets
+
+- レーン固有 artifact の雛形は共通 `task-folder/` に置かない
+- レーン固有 artifact の雛形は担当 skill の `assets/` に置く
+
 ## Legacy Compatibility
 
 - `work-plan.md` は新規 task folder 作成の案内だけを書く

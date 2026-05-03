@@ -20,8 +20,10 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - UI 設計 (`ui-design`): `skills/ui-design/SKILL.md`
 - シナリオ設計 (`scenario-design`): `skills/scenario-design/SKILL.md`
 - 実装スコープ (`implementation-scope`): `skills/implementation-scope/SKILL.md`
+- 探索テスト計画 (`exploration-test-planning`): `skills/exploration-test-planning/SKILL.md`
+- 探索テストレーン (`exploration-test-lane`): `skills/exploration-test-lane/SKILL.md`
 - 実装時調査 (`implementation-investigate`): `skills/implementation-investigate/SKILL.md`
-- プロダクトコード 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-integration/SKILL.md`、`skills/implement-fix-lane/SKILL.md`
+- プロダクトコード 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-integration/SKILL.md`
 - シナリオテスト 実装 (`tests-scenario`): `skills/tests-scenario/SKILL.md`
 - 単体テスト 実装 (`tests-unit`): `skills/tests-unit/SKILL.md`
 - docs 正本化: `skills/updating-docs/SKILL.md`
@@ -36,11 +38,13 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 
 ## Agent / Skill Boundary
 
-- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、設計前調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
+- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、探索テスト計画 agent (`exploration_test_planner`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
 - `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、close 条件を管理する。全 close 条件には 作業レポート、ベンチマーク根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必ず含める
+- `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
+- `exploration_test_planner` は探索計画だけを作り、観測、ログ確認、画面確認、原因仮説の作成を扱わない
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
 - `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、人間レビュー 後に `implementation-scope` を固定する
-- シナリオ候補生成 agent 6 体、`designer`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
+- シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
 - `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
@@ -62,12 +66,14 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `implement_lane` は run の 終了処理、停止、戻し 時に `codex-work-reporting` を参照し、最後に必ず `work_history` 記録材料と ベンチマーク根拠 を作る
 - シナリオ候補生成 agent 6 体は固定 観点 の シナリオ 候補だけを作り、採否、統合、最終 シナリオ表 は扱わない
 - `designer` は シナリオ 候補を統合し、design bundle と implementation-scope の task 内成果物 を作る
-- `investigator` は必要な場合だけ実画面や観測対象を確認し、観測事実と リスク を返す
+- `exploration_test_lane` は探索計画と探索証跡を読み、バグ一覧、ログ、影響ファイルを集約する。プロダクトコードとプロダクトテストは変更しない
+- `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
+- `investigator` は設計前調査または探索テスト証跡のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、検証証跡を渡した観点別 レビュー agent の並列 起動、`reviewback.<観点>.yaml` 群の欠落なし集約、`implementation_action` 分岐を進める
 - `implement_lane` は観点別 レビュー結果を `reviewback.<観点>.yaml` の `must_fix_open` と `max_level` から集約し、behavior、security、responsibility_boundary、その他 の優先度で上位観点の失敗または停止を下位観点の通過で相殺しない
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う
 - `implementation_implementer` は 承認済み実装範囲 内の プロダクトコード だけを変更する
-- `implementation_implementer` は backend、frontend、integration、fix-lane のいずれか 1 つの実装 skill を主契約として選ぶ。共通親 skill は置かない
+- `implementation_implementer` は backend、frontend、integration のいずれか 1 つの実装 skill を主契約として選ぶ。共通親 skill は置かない
 - `implementation_scenario_tester` は 承認済みシナリオ と 承認済み実装範囲 を証明する シナリオテスト と必要最小限の テスト補助 だけを変更する
 - `implementation_unit_tester` は 実装済み責務 と 承認済み実装範囲 を証明する 単体テスト と必要最小限の テスト補助 だけを変更する
 - `docs_updater` は実装と レビュー の完了が分かった後、human 承認済み 対象範囲 だけを正本化する
@@ -79,7 +85,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - 観点別 レビュー agent は 失敗 または 停止 の場合も `reviewback.<観点>.yaml` に結果、根拠、未解決指摘を記録する
 - `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、work_history 側に観点別の非通過 YAML は作らない
 - `workflow-improvement-log.jsonl` は作業流れ改善用の run 内観測ログとし、ゲート判断には使わない
-- `implement_lane`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
+- `implement_lane`、`exploration_test_lane`、`exploration_test_planner`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `implementation_implementer` だけが 承認済み実装範囲 内で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる
 - 単体テスト は `implementation_unit_tester` だけが 承認済み実装範囲 内で変更できる
@@ -89,10 +95,10 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 ## task 種別レーン
 
 - task run は task type ごとの レーン として扱い、各 レーン が自分の必須 成果物 DAG を持つ
-- live レーン は `implement_lane` と `fix_lane` にする
+- live レーン は `implement_lane` と `exploration_test_lane` にする
 - `implement_lane` は新規実装と機能拡張だけを扱う
-- `fix_lane` は bug fix、回帰、検証 失敗 の恒久修正だけを扱う
-- `refactor_lane`、`exploration_test_lane`、`ux_refactor_lane` は placeholder とし、必須 成果物、実行者、next agent は未定義のままにする
+- `exploration_test_lane` は探索計画、テストデータ、探索証跡、バグ一覧、ログ、影響ファイル、実装証跡、回帰テスト証跡を扱う
+- `refactor_lane`、`ux_refactor_lane` は placeholder とし、必須 成果物、実行者、next agent は未定義のままにする
 - 各 レーン は task 内成果物 DAG を持ち、順序は phase 名ではなく `依存対象` と対象 skill の完了規約で固定する
 - agent は レーン そのものではなく、成果物 を作る実行主体として扱う
 - 全 レーン の close 条件には 作業レポート、ベンチマーク根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必須で含める
@@ -122,6 +128,21 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `正本化判断` | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `作業レポート入力` | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 | `作業計画完了移動` | `implement_lane` | `作業レポート入力` | なし |
+
+## 探索テストレーン成果物DAG
+
+探索テストレーンの成果物DAGは次を標準形にする。
+順序は `依存対象` と対象 skill の完了規約で固定し、phase 名では固定しない。
+
+| 成果物ID | 担当者 | 依存対象 | 次 agent |
+| --- | --- | --- | --- |
+| `探索計画` | `exploration_test_planner` | `task 枠` | `exploration_test_planner` |
+| `テストデータ` | `exploration_test_lane` | `探索計画` | なし |
+| `探索証跡` | `investigator` | `探索計画`, `テストデータ` | `investigator` |
+| `バグ一覧とログ、影響ファイル` | `exploration_test_lane` | `探索証跡` | なし |
+| `実装証跡` | `implementation_implementer` | `バグ一覧とログ、影響ファイル` | `implementation_implementer` |
+| `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
+| `作業レポート入力` | `exploration_test_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 
 ## 実行計画 folder
 

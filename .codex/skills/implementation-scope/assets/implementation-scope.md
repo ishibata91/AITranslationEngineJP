@@ -40,7 +40,7 @@
 
 - `implementation_target`:
 - `implementation_artifact`: `contract_freeze | backend 実装 | frontend 実装 | 統合境界実装`
-- `implementation_skill`: `implement-backend | implement-frontend | implement-integration | implement-fix-lane`
+- `implementation_skill`: `implement-backend | implement-frontend | implement-integration`
 - `contract_freeze`:
   - `status`: `required | not_required | done`
   - `freeze_source`:

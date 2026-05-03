@@ -23,3 +23,4 @@
 - AI は最初に `plan.md` だけ読む
 - 追加 context は必要な skill 資料だけ読む
 - Codex implementation handoff では `implementation-scope.md` と参照された source artifact だけ読む
+- レーン固有 artifact の雛形は担当 skill の `assets/` を読む

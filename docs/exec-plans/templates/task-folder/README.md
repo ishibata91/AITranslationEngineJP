@@ -24,4 +24,5 @@
 - 最初に `plan.md` だけ読む
 - 必要な skill の資料だけ追加で読む
 - 実装時は `implementation-scope.md` と参照された資料だけ読む
+- レーン固有 artifact の雛形は担当 skill の `assets/` を読む
 - 過去の flat file 形式は legacy として扱い、新規 task へ混ぜない

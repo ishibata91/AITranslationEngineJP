@@ -45,7 +45,7 @@
 | `reviewback 修正` | 完了 | 修正後の backend-local、frontend-local、scenario-gate、system-test、局所回帰が pass | なし |
 | `レビュー再実行` | 完了 | behavior、contract、trust-boundary、state-invariant、responsibility-boundary はすべて通過 | なし |
 | `作業レポート入力` | 完了 | `work_history/runs/2026-05-03-translation-output-artifact-run/` 作成済み | なし |
-| `作業計画完了移動` | 着手中 | `implementation_action: close` | なし |
+| `作業計画完了移動` | 完了 | `docs/exec-plans/completed/translation-output-artifact/` へ移動済み | なし |
 
 ## 人間介入状態
 
