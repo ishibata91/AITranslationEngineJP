@@ -32,9 +32,21 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - コーディング規約: [coding-guidelines-frontend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-frontend.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
+- `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
+
+### UIプロトタイプ一致観点
+
+| 観点 | 判断対象 |
+| --- | --- |
+| 画面構造 | 実画面の区画、情報階層、主要操作の位置が承認済み UIプロトタイプと合っているか |
+| 見た目 | 実画面の余白、整列、情報密度、視覚的な強弱が承認済み UIプロトタイプと合っているか |
+| 表示文言 | 実画面の見出し、ラベル、説明、エラー、空状態、完了状態の文言が承認済み `ui-design.md` と合っているか |
+| 状態変化 | 実画面の入力反応、有効条件、読み込み中、空、エラー、成功の切り替えが承認済み UIプロトタイプと合っているか |
+| 操作性 | 実画面の主要操作、取消、戻る、破壊的操作、フォーカス移動が承認済み UIプロトタイプの操作意図と合っているか |
+| 表示幅追従 | 実画面のデスクトップ、モバイル、長文表示、要素非表示時の崩れ方が承認済み `ui-design.md` の実装後確認観点と合っているか |
 
 ## 判断規約
 
@@ -45,6 +57,10 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - UI check に必要な 根拠 を残す
 - ユーザーが利用することを前提に、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせる
 - task-local UIプロトタイプがある場合は、承認済み UI 要件契約との対応を確認する
+- task-local UIプロトタイプがある場合は、UIプロトタイプ一致観点に従い、実画面と承認済み UIプロトタイプの差分を確認する
+- UIプロトタイプ一致確認では、実画面の画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を判断対象にする
+- UIプロトタイプ一致確認の差分は、承認済み実装範囲 内で修正できる差分と `implement_lane` へ戻す差分へ分ける
+- UIプロトタイプとの一致確認は`agent-browser`を用いる。
 - `mock-data/` 配下の値を product code、fixture、default state、test data へ移植しない
 - UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を product code、fixture、default state、test data へ移植しない
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
@@ -79,6 +95,8 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
+- UIプロトタイプ一致確認結果: 実画面と承認済み UIプロトタイプの一致、差分、未確認理由を返す。
+- UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -94,6 +112,9 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - generated `wailsjs` を gateway 境界に閉じ込めた。
 - affected UI flow と console エラー を確認した。
 - ユーザーが利用することを意識し、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせて実装した。
+- task-local UIプロトタイプがある場合は、実画面と承認済み UIプロトタイプの一致確認結果を返した。
+- UIプロトタイプ一致確認結果は、画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を含んでいる。
+- UIプロトタイプ一致確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 
@@ -109,7 +130,8 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を実装へ使う必要がある場合は停止する。
 - `mock-data/` 配下の値を実装へ使う必要がある場合は停止し、`implement_lane` へ戻す。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
+- 実画面と承認済み UIプロトタイプの差分が承認済み実装範囲 外の修正を必要とする場合は停止し、`implement_lane` へ戻す。
+- UIプロトタイプ一致確認に必要な実画面確認根拠を取得できない場合は停止し、未取得理由と戻し先を返す。
 - `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- UI check に必要な 根拠 を残した。
