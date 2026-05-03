@@ -47,6 +47,7 @@ const (
 	termTranslationReasonReadyRequired       = "ready job is required"
 	termTranslationReasonActivePhaseExists   = "active phase run already exists"
 	termTranslationReasonPhaseIncomplete     = "term phase state does not allow this command"
+	termTranslationSecretLoadTimeout         = 250 * time.Millisecond
 )
 
 var (
@@ -66,6 +67,7 @@ type TermTranslationPhaseService struct {
 	transactor               repository.Transactor
 	secretStore              termTranslationPhaseSecretStore
 	provider                 TermTranslationProvider
+	secretLoadTimeout        time.Duration
 }
 
 type termTranslationPhaseJobLifecycleRepository interface {
@@ -257,6 +259,7 @@ func NewTermTranslationPhaseService(
 		transactor:               transactor,
 		secretStore:              secretStore,
 		provider:                 provider,
+		secretLoadTimeout:        termTranslationSecretLoadTimeout,
 	}
 }
 
@@ -1818,24 +1821,71 @@ func (service *TermTranslationPhaseService) resolveProviderAPIKey(
 		if service.secretStore == nil {
 			return "", nil
 		}
-		secretValue, loadErr := service.secretStore.Load(ctx, termTranslationProviderSecretKey(providerID))
+		secretValue, loaded, loadErr := service.loadProviderSecret(ctx, termTranslationProviderSecretKey(providerID))
 		if loadErr != nil {
 			return "", fmt.Errorf("load term translation provider secret: %w", loadErr)
+		}
+		if !loaded {
+			return "", nil
 		}
 		return strings.TrimSpace(secretValue), nil
 	}
 	if service.secretStore == nil {
 		return "", fmt.Errorf("term translation provider secret store is not configured")
 	}
-	secretValue, err := service.secretStore.Load(ctx, termTranslationProviderSecretKey(providerID))
+	secretValue, loaded, err := service.loadProviderSecret(ctx, termTranslationProviderSecretKey(providerID))
 	if err != nil {
 		return "", fmt.Errorf("load term translation provider secret: %w", err)
+	}
+	if !loaded {
+		return "", fmt.Errorf("term translation provider credential is unavailable")
 	}
 	trimmedSecret := strings.TrimSpace(secretValue)
 	if trimmedSecret == "" {
 		return "", fmt.Errorf("term translation provider credential is unavailable")
 	}
 	return trimmedSecret, nil
+}
+
+type termTranslationSecretLoadResult struct {
+	value string
+	err   error
+}
+
+func (service *TermTranslationPhaseService) loadProviderSecret(
+	ctx context.Context,
+	key string,
+) (string, bool, error) {
+	if service == nil || service.secretStore == nil {
+		return "", false, nil
+	}
+
+	timeout := service.secretLoadTimeout
+	if timeout <= 0 {
+		timeout = termTranslationSecretLoadTimeout
+	}
+
+	requestContext := termTranslationRequestContext(ctx)
+	resultChannel := make(chan termTranslationSecretLoadResult, 1)
+	go func() {
+		value, err := service.secretStore.Load(requestContext, key)
+		resultChannel <- termTranslationSecretLoadResult{value: value, err: err}
+	}()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-requestContext.Done():
+		return "", false, fmt.Errorf("term translation secret load canceled: %w", requestContext.Err())
+	case <-timer.C:
+		return "", false, nil
+	case result := <-resultChannel:
+		if result.err != nil {
+			return "", false, result.err
+		}
+		return result.value, true, nil
+	}
 }
 
 func termTranslationProviderSecretKey(provider string) string {

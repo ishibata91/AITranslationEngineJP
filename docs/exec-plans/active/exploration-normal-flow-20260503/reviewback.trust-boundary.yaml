@@ -1,0 +1,122 @@
+reviewback_version: 1
+task_id: "exploration-normal-flow-20260503"
+review_yaml_path: "docs/exec-plans/active/exploration-normal-flow-20260503/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "stopped"
+must_fix_open: true
+max_level: "blocker"
+
+assessment:
+  safety: "判定停止: 呼び出し元が exploration_test_lane であり、review_trust_boundary の skill と agent 実行定義が固定する implement_lane からの実装後レビュー入力と衝突する。fileContent を Wails DTO に載せる変更の信頼境界、secret 非該当、入力検証、出力禁止値は安全性評価として確定していない。"
+  evidence_sufficiency: "停止判断には十分。プロダクトコード上の権限・信頼境界判定、secret 非該当判定、入力検証判定、出力禁止値判定の根拠としては不足で停止。"
+  hard_gate: true
+  hard_gate_result: "stopped"
+
+checked_scope:
+  summary: "review_trust_boundary の skill、agent 実行定義、workflow 正本、reviewback YAML 形式、呼び出し元を示す実装結果と回帰証跡を確認し、呼び出し元境界の衝突で停止した。"
+  files:
+    - path: ".codex/skills/codex-review-trust-boundary/SKILL.md"
+      line: 15
+      symbol: "対応ロール"
+      reason: "呼び出し元を implement_lane に固定しているため。"
+    - path: ".codex/agents/review_trust_boundary.toml"
+      line: 14
+      symbol: "developer_instructions"
+      reason: "扱う task を implement_lane から渡された実装後レビューに限定しているため。"
+    - path: ".codex/README.md"
+      line: 145
+      symbol: "探索テストレーン成果物DAG"
+      reason: "exploration_test_lane から review_trust_boundary へ渡す成果物DAGがあり、skill と agent 実行定義の呼び出し元境界と衝突するため。"
+    - path: "docs/exec-plans/templates/task-folder/reviewback.yaml"
+      line: 1
+      symbol: "Reviewback YAML template"
+      reason: "停止時も reviewback 形式で結果を記録するため。"
+    - path: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-result.integration.md"
+      line: 6
+      symbol: "return_to"
+      reason: "実装結果の戻し先が exploration_test_lane であることを確認したため。"
+    - path: "docs/exec-plans/active/exploration-normal-flow-20260503/regression-test-evidence.md"
+      line: 8
+      symbol: "owner_agent"
+      reason: "回帰証跡の owner_agent が exploration_test_lane であることを確認したため。"
+
+unchecked_scope:
+  - target: "frontend/src/controller/translation-input/translation-input-screen-controller.ts"
+    reason: "呼び出し元境界の衝突で停止したため、読取済みコードを安全性評価の確定根拠として採用しない。"
+    risk: "browser File から保持する fileContent の frontend 保持境界が未判定のまま残る。"
+  - target: "frontend/src/application/usecase/translation-input/translation-input.usecase.ts"
+    reason: "呼び出し元境界の衝突で停止したため、読取済みコードを安全性評価の確定根拠として採用しない。"
+    risk: "Wails request へ渡す fileName と fileContent の DTO 入力境界が未判定のまま残る。"
+  - target: "internal/controller/wails/translation_input_controller.go"
+    reason: "呼び出し元境界の衝突で停止したため、読取済みコードを安全性評価の確定根拠として採用しない。"
+    risk: "Wails DTO が受け取る fileContent の trust boundary と response DTO の禁止値が未判定のまま残る。"
+  - target: "internal/usecase/translation_input_usecase.go"
+    reason: "呼び出し元境界の衝突で停止したため、差分内の追加経路を安全性評価の確定根拠として採用しない。"
+    risk: "backend usecase で content import を通す境界の secret 非該当とエラー出力が未判定のまま残る。"
+  - target: "internal/service/translation_input_import_service.go"
+    reason: "呼び出し元境界の衝突で停止したため、読取済みコードを安全性評価の確定根拠として採用しない。"
+    risk: "JSON content の検証、path fallback、永続化、sampleFields 返却の安全性が未判定のまま残る。"
+
+issues:
+  - id: "trust-boundary-stop-001"
+    level: "blocker"
+    title: "呼び出し元境界の衝突で権限・信頼境界レビューを停止"
+    problem: "入力では呼び出し元が exploration_test_lane とされているが、review_trust_boundary の skill と agent 実行定義は implement_lane から渡された実装後レビューだけを対象にしている。"
+    reason: "人間指示は agent の実行境界を拡張できない。境界衝突のまま fileContent の Wails DTO 境界を安全と判定すると、review_trust_boundary が定義済みの担当 task を越える。"
+    violated_condition: "review_trust_boundary は implement_lane から渡された実装後レビューだけを扱い、外部成果物が衝突する場合は停止する。"
+    cause_candidate: ".codex/README.md の探索テストレーン成果物DAGでは review_trust_boundary を次 agent に含めているが、review_trust_boundary の skill と agent 実行定義が呼び出し元を implement_lane に固定したままになっている可能性がある。"
+    evidence:
+      - path: ".codex/skills/codex-review-trust-boundary/SKILL.md"
+        line: 15
+        excerpt: "呼び出し元は implement_lane と定義されている。"
+      - path: ".codex/agents/review_trust_boundary.toml"
+        line: 14
+        excerpt: "扱う task が implement_lane から渡された実装後レビューに固定されている。"
+      - path: ".codex/README.md"
+        line: 145
+        excerpt: "探索テストレーンのレビュー通過根拠で review_trust_boundary を次 agent としている。"
+      - path: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-result.integration.md"
+        line: 6
+        excerpt: "return_to が exploration_test_lane である。"
+      - path: "docs/exec-plans/active/exploration-normal-flow-20260503/regression-test-evidence.md"
+        line: 8
+        excerpt: "owner_agent が exploration_test_lane である。"
+    local_fix_assessment: "workflow-boundary-required"
+    additional_check_scope: "呼び出し元境界が揃った後、fileContent を Wails DTO に載せる変更の信頼境界、secret 非該当、入力検証、出力禁止値を再確認する。"
+    fix_considerations: "review_trust_boundary を探索テストレーンから起動する場合も、戻し先、入力規約、検証証跡の採用条件、hard gate 集約条件を skill、agent 実行定義、workflow 正本で一致させる必要がある。"
+    verification: "境界整合後に、同じ出力先で review_status を no_issue または issues_open に更新し、hard_gate: true のまま安全性評価と根拠を記録できることを確認する。"
+    fix_required: true
+    status: "open"
+
+broken_invariants:
+  - "review_trust_boundary は implement_lane から渡された実装後レビューだけを扱う。"
+  - "外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。"
+
+cause_candidates:
+  - "探索テストレーンの成果物DAGにレビュー agent 起動が追加された一方、review_trust_boundary の skill と agent 実行定義の呼び出し元境界が更新されていない可能性がある。"
+
+local_fix_assessment:
+  required: true
+  scope: "workflow-boundary-required"
+  reason: "未解決 blocker はプロダクトコードではなく、レビュー agent の呼び出し元境界の不一致に由来する。"
+
+invariant_test_viewpoints:
+  - "境界整合後、fileContent は Wails request DTO の入力だけに存在し、response DTO、UI 表示、log、error summary に fileContent 本体が出ないこと。"
+  - "境界整合後、secret、API key、token、credential_ref などの secret 体系値がこの差分の DTO、保存先、ログに追加されていないこと。"
+  - "境界整合後、user-controlled JSON content と fileName は backend で JSON decode、形状検証、path 検証を通ること。"
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    evidence: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-result.integration.md と regression-test-evidence.md に呼び出し元提示として記録。レビュー agent では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    evidence: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-result.integration.md と regression-test-evidence.md に呼び出し元提示として記録。レビュー agent では再実行していない。"
+  - command: "agent-browser normal-flow regression commands"
+    result: "complete"
+    evidence: "regression-test-evidence.md に Input Review accepted、Job Setup input data 表示、未確認範囲が記録されている。レビュー agent では再実行していない。"
+
+residual_risks:
+  - "fileContent を Wails DTO に載せる変更の権限・信頼境界レビューは停止している。呼び出し元境界が揃うまで、secret 非該当、入力検証、出力禁止値の通過根拠として扱えない。"
+  - "回帰証跡では validation、ready job 作成、Job Run、出力管理、cache 再構築が未確認である。これらは trust-boundary 判定再開後の未確認範囲として残る。"

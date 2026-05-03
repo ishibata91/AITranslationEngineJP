@@ -42,9 +42,25 @@
 - `environment_blocker`:
 - `needs_human_decision`:
 
+## Planning Blockers
+
+- `blocker_id`:
+- `summary`:
+- `reason`:
+- `required_correction`:
+- `status`: `open | fixed`
+
+## Correction History
+
+- `blocker_id`:
+- `correction`:
+- `remaining_gap`:
+- `evidence_ref`:
+
 ## Output
 
-- `decision`: `complete | incomplete | stopped`
+- `decision`: `complete | needs_correction | stopped`
 - `evidence_refs`:
 - `missing_info`:
+- `planning_blockers_open`:
 - `next_artifact`: `./exploration-test-data.md`

@@ -127,7 +127,7 @@ func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 			Model:         created.ExecutionSummary.Model,
 			ExecutionMode: created.ExecutionSummary.ExecutionMode,
 		},
-		ValidationPassSlices: append([]string(nil), created.ValidationPassSlices...),
+		ValidationPassSlices: normalizeTranslationJobSetupStringSlice(created.ValidationPassSlices),
 	}, nil
 }
 
@@ -154,7 +154,7 @@ func (usecase *TranslationJobSetupUsecase) GetTranslationJobSetupSummary(
 			Model:         readModel.ExecutionSummary.Model,
 			ExecutionMode: readModel.ExecutionSummary.ExecutionMode,
 		},
-		ValidationPassSlices: append([]string(nil), readModel.ValidationPassSlices...),
+		ValidationPassSlices: normalizeTranslationJobSetupStringSlice(readModel.ValidationPassSlices),
 	}, nil
 }
 
@@ -164,11 +164,18 @@ func toTranslationJobSetupValidationResult(
 	return TranslationJobSetupValidationResult{
 		Status:                  decision.Status,
 		BlockingFailureCategory: cloneOptionalString(decision.BlockingFailureCategory),
-		TargetSlices:            append([]string(nil), decision.TargetSlices...),
+		TargetSlices:            normalizeTranslationJobSetupStringSlice(decision.TargetSlices),
 		ValidatedAt:             decision.ValidatedAt,
 		CanCreate:               decision.CanCreate,
-		PassSlices:              append([]string(nil), decision.PassSlices...),
+		PassSlices:              normalizeTranslationJobSetupStringSlice(decision.PassSlices),
 	}
+}
+
+func normalizeTranslationJobSetupStringSlice(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return append([]string(nil), values...)
 }
 
 func cloneOptionalString(value *string) *string {

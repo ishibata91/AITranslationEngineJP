@@ -17,6 +17,15 @@ type translationInputCacheRebuildUsecasePort interface {
 	RebuildInputCache(ctx context.Context, inputID int64) (usecase.TranslationInputImportResult, error)
 }
 
+type translationInputContentImportUsecasePort interface {
+	ImportXEditJSONWithContent(
+		ctx context.Context,
+		filePath string,
+		fileName string,
+		fileContent string,
+	) (usecase.TranslationInputImportResult, error)
+}
+
 // TranslationInputController exposes Wails-bound translation input entrypoints.
 type TranslationInputController struct {
 	translationInputUsecase TranslationInputUsecasePort
@@ -24,7 +33,9 @@ type TranslationInputController struct {
 
 // TranslationInputImportRequestDTO requests one xEdit JSON import.
 type TranslationInputImportRequestDTO struct {
-	FilePath string `json:"filePath"`
+	FilePath    string `json:"filePath"`
+	FileName    string `json:"fileName,omitempty"`
+	FileContent string `json:"fileContent,omitempty"`
 }
 
 // TranslationInputRebuildRequestDTO requests one cache rebuild for an imported input.
@@ -95,7 +106,24 @@ func NewTranslationInputController(usecase TranslationInputUsecasePort) *Transla
 func (controller *TranslationInputController) ImportTranslationInput(
 	request TranslationInputImportRequestDTO,
 ) (TranslationInputImportResponseDTO, error) {
-	result, err := controller.translationInputUsecase.ImportXEditJSON(context.Background(), request.FilePath)
+	var (
+		result usecase.TranslationInputImportResult
+		err    error
+	)
+	if request.FileName != "" || request.FileContent != "" {
+		contentImportUsecase, ok := controller.translationInputUsecase.(translationInputContentImportUsecasePort)
+		if !ok {
+			return TranslationInputImportResponseDTO{}, fmt.Errorf("import translation input: usecase does not support content import")
+		}
+		result, err = contentImportUsecase.ImportXEditJSONWithContent(
+			context.Background(),
+			request.FilePath,
+			request.FileName,
+			request.FileContent,
+		)
+	} else {
+		result, err = controller.translationInputUsecase.ImportXEditJSON(context.Background(), request.FilePath)
+	}
 	if err != nil {
 		return TranslationInputImportResponseDTO{}, fmt.Errorf("import translation input: %w", err)
 	}

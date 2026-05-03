@@ -30,6 +30,10 @@ type fakeTranslationJobSetupSecretStore struct {
 	loadFunc func(context.Context, string) (string, error)
 }
 
+type fakeTranslationJobSetupAISettingsRepository struct {
+	loadFunc func(context.Context) (repository.MasterPersonaAISettingsRecord, error)
+}
+
 type loggedTranslationJobSetupProviderReachabilityRequest struct {
 	method        string
 	url           string
@@ -88,6 +92,15 @@ func (store fakeTranslationJobSetupSecretStore) Load(ctx context.Context, key st
 		return store.loadFunc(ctx, key)
 	}
 	return "", nil
+}
+
+func (settingsRepository fakeTranslationJobSetupAISettingsRepository) LoadAISettings(
+	ctx context.Context,
+) (repository.MasterPersonaAISettingsRecord, error) {
+	if settingsRepository.loadFunc != nil {
+		return settingsRepository.loadFunc(ctx)
+	}
+	return repository.MasterPersonaAISettingsRecord{}, nil
 }
 
 func (sourceRepository fakePersistentTranslationJobSetupSourceRepository) GetXEditExtractedDataByID(
@@ -316,6 +329,64 @@ func TestPersistentTranslationJobSetupServiceReadOptionsLoadsImportedInputsFromR
 	}}
 	if !reflect.DeepEqual(got.InputCandidates, want) {
 		t.Fatalf("expected imported input candidates %#v, got %#v", want, got.InputCandidates)
+	}
+}
+
+func TestPersistentTranslationJobSetupServiceReadOptionsFallsBackWhenSecretLoadStalls(t *testing.T) {
+	blockedLoad := make(chan struct{})
+	testCases := []struct {
+		name              string
+		provider          string
+		wantConfigured    bool
+		wantMissingSecret bool
+	}{
+		{name: "openai", provider: translationJobSetupRealProviderOpenAI, wantConfigured: false, wantMissingSecret: true},
+		{name: "lm_studio", provider: MasterPersonaProviderLMStudio, wantConfigured: true, wantMissingSecret: false},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			service := NewPersistentTranslationJobSetupService(
+				nil,
+				fakePersistentTranslationJobSetupSourceRepository{},
+				nil,
+				nil,
+				fakeTranslationJobSetupAISettingsRepository{
+					loadFunc: func(context.Context) (repository.MasterPersonaAISettingsRecord, error) {
+						return repository.MasterPersonaAISettingsRecord{
+							Provider: testCase.provider,
+							Model:    "test-model",
+						}, nil
+					},
+				},
+				fakeTranslationJobSetupSecretStore{
+					loadFunc: func(context.Context, string) (string, error) {
+						<-blockedLoad
+						return "", nil
+					},
+				},
+				nil,
+			)
+			service.secretLoadTimeout = 5 * time.Millisecond
+
+			startedAt := time.Now()
+			got, err := service.ReadOptions(context.Background())
+			if err != nil {
+				t.Fatalf("expected stalled secret load to fall back without error: %v", err)
+			}
+			if time.Since(startedAt) > 150*time.Millisecond {
+				t.Fatalf("expected stalled secret load to time out quickly, got %#v", time.Since(startedAt))
+			}
+			if len(got.CredentialRefs) != 1 {
+				t.Fatalf("expected one credential ref, got %#v", got.CredentialRefs)
+			}
+			if got.CredentialRefs[0].IsConfigured != testCase.wantConfigured {
+				t.Fatalf("expected configured=%t, got %#v", testCase.wantConfigured, got.CredentialRefs[0])
+			}
+			if got.CredentialRefs[0].IsMissingSecret != testCase.wantMissingSecret {
+				t.Fatalf("expected missingSecret=%t, got %#v", testCase.wantMissingSecret, got.CredentialRefs[0])
+			}
+		})
 	}
 }
 
@@ -742,6 +813,59 @@ func TestTranslationJobSetupServiceValidateRequestUsesInjectedTransportForProvid
 	}
 }
 
+func TestTranslationJobSetupServiceValidateRequestAllowsLMStudioWhenSecretLoadStalls(t *testing.T) {
+	blockedLoad := make(chan struct{})
+	validatedAt := time.Date(2026, 4, 27, 13, 25, 0, 0, time.UTC)
+	service := NewPersistentTranslationJobSetupService(
+		nil,
+		fakePersistentTranslationJobSetupSourceRepository{
+			getByIDFunc: func(_ context.Context, id int64) (repository.XEditExtractedData, error) {
+				if id != 44 {
+					return repository.XEditExtractedData{}, repository.ErrNotFound
+				}
+				return repository.XEditExtractedData{ID: 44}, nil
+			},
+		},
+		nil,
+		nil,
+		fakeTranslationJobSetupAISettingsRepository{
+			loadFunc: func(context.Context) (repository.MasterPersonaAISettingsRecord, error) {
+				return repository.MasterPersonaAISettingsRecord{
+					Provider: MasterPersonaProviderLMStudio,
+					Model:    "local-model",
+				}, nil
+			},
+		},
+		fakeTranslationJobSetupSecretStore{
+			loadFunc: func(context.Context, string) (string, error) {
+				<-blockedLoad
+				return "", nil
+			},
+		},
+		nil,
+		WithTranslationJobSetupProviderReachabilityTransport(&fakeTranslationJobSetupProviderReachabilityTransport{}),
+	)
+	service.now = func() time.Time { return validatedAt }
+	service.secretLoadTimeout = 5 * time.Millisecond
+
+	decision, err := service.ValidateRequest(context.Background(), TranslationJobSetupValidationRequest{
+		InputSourceID: 44,
+		Provider:      MasterPersonaProviderLMStudio,
+		Model:         "local-model",
+		ExecutionMode: "sync",
+		CredentialRef: "lm_studio-primary",
+	})
+	if err != nil {
+		t.Fatalf("expected lm_studio validation to fall back without error: %v", err)
+	}
+	if decision.Status != translationJobSetupValidationStatusPass || !decision.CanCreate {
+		t.Fatalf("expected stalled lm_studio secret load to keep validation passable, got %#v", decision)
+	}
+	if !decision.ValidatedAt.Equal(validatedAt) {
+		t.Fatalf("expected validatedAt %s, got %s", validatedAt, decision.ValidatedAt)
+	}
+}
+
 func TestTranslationJobSetupServiceEvaluateCreateRequestRejectsBlockingValidationFailure(t *testing.T) {
 	validatedAt := time.Date(2026, 4, 27, 14, 0, 0, 0, time.UTC)
 	service := &TranslationJobSetupService{now: func() time.Time { return validatedAt }}
@@ -810,6 +934,73 @@ func TestTranslationJobSetupServiceEvaluateCreateRequestRejectsStalePass(t *test
 	}
 	if decision.ErrorKind != translationJobSetupErrorKindValidationStale {
 		t.Fatalf("expected validation_stale error kind, got %#v", decision)
+	}
+}
+
+func TestTranslationJobSetupServiceEvaluateCreateRequestAppliesFreshnessCutoffAcross0900UTCBoundary(t *testing.T) {
+	testCases := []struct {
+		name        string
+		now         time.Time
+		validatedAt time.Time
+		wantStale   bool
+	}{
+		{
+			name:        "09:00 UTC 前は当日 validation を fresh 扱いする",
+			now:         time.Date(2026, 5, 3, 7, 7, 30, 0, time.UTC),
+			validatedAt: time.Date(2026, 5, 3, 7, 7, 3, 0, time.UTC),
+			wantStale:   false,
+		},
+		{
+			name:        "09:00 UTC 前は前日 09:00 UTC より前を stale 扱いする",
+			now:         time.Date(2026, 5, 3, 7, 7, 30, 0, time.UTC),
+			validatedAt: time.Date(2026, 5, 2, 8, 59, 59, 0, time.UTC),
+			wantStale:   true,
+		},
+		{
+			name:        "09:00 UTC 以後は当日 09:00 UTC より前を stale 扱いする",
+			now:         time.Date(2026, 5, 3, 9, 0, 1, 0, time.UTC),
+			validatedAt: time.Date(2026, 5, 3, 8, 59, 59, 0, time.UTC),
+			wantStale:   true,
+		},
+	}
+
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			service := &TranslationJobSetupService{
+				now:              func() time.Time { return testCase.now },
+				optionsReadModel: newServerOwnedTranslationJobSetupOptionsReadModel(),
+			}
+
+			decision, err := service.EvaluateCreateRequest(context.Background(), TranslationJobSetupCreateRequest{
+				InputSourceID:    44,
+				ValidationStatus: translationJobSetupValidationStatusPass,
+				ValidatedAt:      testCase.validatedAt,
+				Provider:         "openai",
+				Model:            "gpt-5.4-mini",
+				ExecutionMode:    "batch",
+				CredentialRef:    "openai-primary",
+			})
+			if err != nil {
+				t.Fatalf("expected create evaluation without transport error: %v", err)
+			}
+
+			if testCase.wantStale {
+				if decision.CanCreate {
+					t.Fatalf("expected stale validation to block create, got %#v", decision)
+				}
+				if decision.ErrorKind != translationJobSetupErrorKindValidationStale {
+					t.Fatalf("expected validation_stale error kind, got %#v", decision)
+				}
+				return
+			}
+
+			if !decision.CanCreate {
+				t.Fatalf("expected fresh validation to allow create, got %#v", decision)
+			}
+			if !slices.Equal(decision.ValidationPassSlices, translationJobSetupAllSlices) {
+				t.Fatalf("expected validation pass slices %#v, got %#v", translationJobSetupAllSlices, decision.ValidationPassSlices)
+			}
+		})
 	}
 }
 

@@ -79,6 +79,8 @@ func hasAllRequiredXTranslatorColumns(row TranslationOutputDiffPreviewRowReadMod
 
 func mapOutputStatusToXTranslator(status string) (int, string, bool) {
 	switch status {
+	case "ready":
+		return xTranslatorStatusTranslated, "ready output reflected as xTranslator status 0", true
 	case "translated":
 		return xTranslatorStatusTranslated, "translated output reflected as xTranslator status 0", true
 	case "cached":
@@ -136,11 +138,22 @@ func buildXTranslatorRowDigest(
 		row.REC,
 		row.FIELD,
 		row.FORMID,
-		row.InternalOutputStatus,
+		normalizeOutputStatusForDigest(row.InternalOutputStatus),
 		sourceText,
 		destText,
 	}, "|")))
 	return "sha256:" + hex.EncodeToString(sum[:])
+}
+
+func normalizeOutputStatusForDigest(status string) string {
+	switch strings.ToLower(strings.TrimSpace(status)) {
+	case "ready", "translated":
+		return "translated"
+	case "cached":
+		return "cached"
+	default:
+		return strings.ToLower(strings.TrimSpace(status))
+	}
 }
 
 func buildPersistedXTranslatorRowDigest(

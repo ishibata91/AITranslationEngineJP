@@ -142,7 +142,8 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `バグ一覧とログ、影響ファイル` | `exploration_test_lane` | `探索証跡` | なし |
 | `実装証跡` | `implementation_implementer` | `バグ一覧とログ、影響ファイル` | `implementation_implementer` |
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
-| `作業レポート入力` | `exploration_test_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
+| `レビュー通過根拠` | `exploration_test_lane` | `探索計画`, `探索証跡`, `バグ一覧とログ、影響ファイル`, `実装証跡?`, `回帰テスト証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
+| `作業レポート入力` | `exploration_test_lane` / `work_reporter` | 全完了または停止済み 成果物, `レビュー通過根拠?` | `work_reporter` |
 
 ## 実行計画 folder
 

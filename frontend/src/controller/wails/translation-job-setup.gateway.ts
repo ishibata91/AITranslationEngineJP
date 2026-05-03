@@ -22,6 +22,14 @@ type BindingInvoker = <RequestDto, ResponseDto>(
 
 type BindingFunction = (...args: [] | [unknown]) => Promise<unknown>
 
+function normalizeStringArray(values: string[] | null | undefined): string[] {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  return [...values]
+}
+
 function toRecord(value: unknown): Record<string, unknown> | null {
   if (typeof value !== "object" || value === null) {
     return null
@@ -100,7 +108,18 @@ class TranslationJobSetupGateway implements TranslationJobSetupGatewayContract {
   validateTranslationJobSetup(
     request: ValidateTranslationJobSetupRequestDto
   ): Promise<ValidateTranslationJobSetupResponseDto> {
-    return this.invokeBinding("ValidateTranslationJobSetup", request)
+    return this.invokeBinding<
+      ValidateTranslationJobSetupRequestDto,
+      ValidateTranslationJobSetupResponseDto
+    >("ValidateTranslationJobSetup", request).then(
+      (
+        response: ValidateTranslationJobSetupResponseDto
+      ): ValidateTranslationJobSetupResponseDto => ({
+        ...response,
+        targetSlices: normalizeStringArray(response.targetSlices),
+        passSlices: normalizeStringArray(response.passSlices)
+      })
+    )
   }
 
   createTranslationJob(

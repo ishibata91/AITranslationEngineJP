@@ -209,11 +209,8 @@ func (adapter bodyTranslationProviderAdapter) TranslateBodyField(
 	}
 	baseResult.AuditSummary.Model = model
 
-	executionMode := strings.ToLower(strings.TrimSpace(request.ExecutionMode))
-	if executionMode == "" {
-		executionMode = BodyTranslationExecutionModeSingleRequest
-	}
-	if executionMode != BodyTranslationExecutionModeSingleRequest {
+	executionMode, err := normalizeBodyTranslationExecutionMode(request.ExecutionMode)
+	if err != nil {
 		return bodyTranslationProviderFailureResult(
 			baseResult,
 			BodyTranslationProviderErrorKindProviderFailure,

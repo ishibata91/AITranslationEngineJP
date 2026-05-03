@@ -132,24 +132,26 @@ func (service *TranslationInputImportService) ImportXEditJSON(
 	ctx context.Context,
 	filePath string,
 ) (TranslationInputImportSummary, error) {
-	trimmedPath := strings.TrimSpace(filePath)
-	if trimmedPath == "" {
-		return TranslationInputImportSummary{}, translationInputImportError{
-			kind: TranslationInputErrorKindMissingRequiredField,
-			err:  fmt.Errorf("translation input file path is required"),
-		}
-	}
+	return service.importXEditJSON(ctx, filePath, "", "")
+}
 
-	validatedPath, err := validateTranslationInputPath(trimmedPath)
-	if err != nil {
-		return TranslationInputImportSummary{}, translationInputImportError{
-			kind: TranslationInputErrorKindMissingRequiredField,
-			err:  err,
-		}
-	}
+// ImportXEditJSONWithContent validates one xEdit JSON payload and persists imported records in one transaction.
+func (service *TranslationInputImportService) ImportXEditJSONWithContent(
+	ctx context.Context,
+	filePath string,
+	fileName string,
+	fileContent string,
+) (TranslationInputImportSummary, error) {
+	return service.importXEditJSON(ctx, filePath, fileName, fileContent)
+}
 
-	//nolint:gosec // validatedPath is normalized and restricted to json input before read.
-	content, err := readTranslationInputFile(validatedPath)
+func (service *TranslationInputImportService) importXEditJSON(
+	ctx context.Context,
+	filePath string,
+	fileName string,
+	fileContent string,
+) (TranslationInputImportSummary, error) {
+	validatedPath, content, err := resolveTranslationInputImportSource(filePath, fileName, fileContent)
 	if err != nil {
 		return TranslationInputImportSummary{}, err
 	}
@@ -198,21 +200,7 @@ func (service *TranslationInputImportService) RebuildInputCache(
 		return TranslationInputImportSummary{}, fmt.Errorf("get translation input metadata: %w", err)
 	}
 
-	validatedPath, err := validateTranslationInputPath(existingInput.SourceFilePath)
-	if err != nil {
-		return TranslationInputImportSummary{}, translationInputImportError{
-			kind: TranslationInputErrorKindMissingRequiredField,
-			err:  err,
-		}
-	}
-
-	//nolint:gosec // validatedPath is normalized and restricted to json input before read.
-	content, err := readTranslationInputFile(validatedPath)
-	if err != nil {
-		return TranslationInputImportSummary{}, err
-	}
-
-	prepared, err := service.prepareImportFromContent(ctx, validatedPath, content, inputID)
+	prepared, err := service.prepareRebuildImport(ctx, existingInput)
 	if err != nil {
 		return TranslationInputImportSummary{}, err
 	}
@@ -242,6 +230,31 @@ func (service *TranslationInputImportService) RebuildInputCache(
 	}
 
 	return summary, nil
+}
+
+func (service *TranslationInputImportService) prepareRebuildImport(
+	ctx context.Context,
+	existingInput repository.XEditExtractedData,
+) (preparedTranslationInputImport, error) {
+	validatedPath, err := validateTranslationInputPath(existingInput.SourceFilePath)
+	if err != nil {
+		return preparedTranslationInputImport{}, translationInputImportError{
+			kind: TranslationInputErrorKindMissingRequiredField,
+			err:  err,
+		}
+	}
+
+	//nolint:gosec // validatedPath is normalized and restricted to json input before read.
+	content, err := readTranslationInputFile(validatedPath)
+	if err == nil {
+		return service.prepareImportFromContent(ctx, validatedPath, content, existingInput.ID)
+	}
+
+	if kind, ok := TranslationInputErrorKindOf(err); !ok || kind != TranslationInputErrorKindSourceFileMissing {
+		return preparedTranslationInputImport{}, err
+	}
+
+	return service.prepareImportFromExistingCache(ctx, existingInput)
 }
 
 type translationInputDocument struct {
@@ -383,6 +396,62 @@ func mapReadTranslationInputError(err error) error {
 	return fmt.Errorf(translationInputReadFileErrorFormat, err)
 }
 
+func resolveTranslationInputImportSource(
+	filePath string,
+	fileName string,
+	fileContent string,
+) (string, []byte, error) {
+	trimmedContent := strings.TrimSpace(fileContent)
+	if trimmedContent != "" {
+		sourcePath, err := resolveTranslationInputSourcePath(filePath, fileName)
+		if err != nil {
+			return "", nil, translationInputImportError{
+				kind: TranslationInputErrorKindMissingRequiredField,
+				err:  err,
+			}
+		}
+		return sourcePath, []byte(fileContent), nil
+	}
+
+	validatedPath, err := resolveTranslationInputSourcePath(filePath, fileName)
+	if err != nil {
+		return "", nil, translationInputImportError{
+			kind: TranslationInputErrorKindMissingRequiredField,
+			err:  err,
+		}
+	}
+
+	//nolint:gosec // validatedPath is normalized and restricted to json input before read.
+	content, readErr := readTranslationInputFile(validatedPath)
+	if readErr != nil {
+		return "", nil, readErr
+	}
+
+	return validatedPath, content, nil
+}
+
+func resolveTranslationInputSourcePath(filePath string, fileName string) (string, error) {
+	candidates := []string{
+		strings.TrimSpace(filePath),
+		strings.TrimSpace(fileName),
+	}
+	var lastErr error
+	for _, candidate := range candidates {
+		if candidate == "" {
+			continue
+		}
+		validatedPath, err := validateTranslationInputPath(candidate)
+		if err == nil {
+			return validatedPath, nil
+		}
+		lastErr = err
+	}
+	if lastErr != nil {
+		return "", lastErr
+	}
+	return "", fmt.Errorf("translation input file path is required")
+}
+
 func (service *TranslationInputImportService) prepareImportFromContent(
 	ctx context.Context,
 	filePath string,
@@ -439,6 +508,72 @@ func (service *TranslationInputImportService) prepareImport(
 	}
 
 	return prepared, nil
+}
+
+func (service *TranslationInputImportService) prepareImportFromExistingCache(
+	ctx context.Context,
+	existingInput repository.XEditExtractedData,
+) (preparedTranslationInputImport, error) {
+	records, err := service.repository.ListTranslationRecordsByXEditID(ctx, existingInput.ID)
+	if err != nil {
+		return preparedTranslationInputImport{}, fmt.Errorf("list translation records by xedit id: %w", err)
+	}
+	if len(records) == 0 {
+		return preparedTranslationInputImport{}, translationInputImportError{
+			kind: TranslationInputErrorKindSourceFileMissing,
+			err:  fmt.Errorf("translation input source file is missing and rebuild cache is empty"),
+		}
+	}
+
+	prepared := preparedTranslationInputImport{
+		filePath:          existingInput.SourceFilePath,
+		sourceContentHash: existingInput.SourceContentHash,
+		targetPluginName:  existingInput.TargetPluginName,
+		targetPluginType:  existingInput.TargetPluginType,
+		categories:        map[string]*TranslationInputCategoryCount{},
+	}
+
+	for _, record := range records {
+		preparedRecord, prepareErr := service.prepareRecordFromExistingCache(ctx, record, &prepared)
+		if prepareErr != nil {
+			return preparedTranslationInputImport{}, prepareErr
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	return prepared, nil
+}
+
+func (service *TranslationInputImportService) prepareRecordFromExistingCache(
+	ctx context.Context,
+	record repository.TranslationRecord,
+	prepared *preparedTranslationInputImport,
+) (preparedTranslationRecord, error) {
+	fields, err := service.repository.ListTranslationFieldsByTranslationRecordID(ctx, record.ID)
+	if err != nil {
+		return preparedTranslationRecord{}, fmt.Errorf("list translation fields by record id: %w", err)
+	}
+
+	preparedRecord := preparedTranslationRecord{
+		formID:     record.FormID,
+		editorID:   record.EditorID,
+		recordType: record.RecordType,
+		fields:     make([]preparedTranslationField, 0, len(fields)),
+	}
+	prepared.incrementCategory(record.RecordType, 1, 0)
+
+	for _, field := range fields {
+		preparedField, warning := service.prepareField(
+			record.RecordType,
+			field.SubrecordType,
+			field.SourceText,
+			field.FieldOrder,
+		)
+		preparedRecord.fields = append(preparedRecord.fields, preparedField)
+		prepared.addField(record.RecordType, warning)
+	}
+
+	return preparedRecord, nil
 }
 
 func (service *TranslationInputImportService) prepareDialogueGroup(

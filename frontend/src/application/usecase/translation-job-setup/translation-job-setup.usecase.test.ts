@@ -151,6 +151,38 @@ function createGateway(): TranslationJobSetupGatewayContract & {
 }
 
 describe("TranslationJobSetupUseCase", () => {
+  test("runValidation は null の targetSlices と passSlices を受けても fresh 状態へ進める", async () => {
+    const gateway = createGateway()
+    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue({
+      status: "pass",
+      targetSlices: null,
+      validatedAt: "2026-05-03T06:58:30Z",
+      canCreate: true,
+      passSlices: null
+    } as unknown as TranslationJobSetupValidationResponse)
+    const store = createStore(
+      createState({
+        validationResult: null,
+        validationState: "not-run",
+        dirty: false
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    await usecase.runValidation()
+
+    const state = store.snapshot()
+    expect(state.phase).toBe("ready")
+    expect(state.validationState).toBe("fresh")
+    expect(state.validationResult).toEqual({
+      status: "pass",
+      targetSlices: null,
+      validatedAt: "2026-05-03T06:58:30Z",
+      canCreate: true,
+      passSlices: null
+    })
+  })
+
   test("createJob は validation freshness を create request へ転送する", async () => {
     const gateway = createGateway()
     const store = createStore()

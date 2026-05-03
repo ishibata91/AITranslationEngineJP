@@ -21,7 +21,7 @@ const (
 	translationOutputArtifactScanFallbackMaxJobID = int64(2048)
 )
 
-var translationOutputArtifactReadyStatuses = []string{"translated", "cached"}
+var translationOutputArtifactReadyStatuses = []string{"ready", "translated", "cached"}
 
 type translationOutputArtifactJobLifecycleRepository interface {
 	GetTranslationJobByID(ctx context.Context, id int64) (repository.TranslationJob, error)

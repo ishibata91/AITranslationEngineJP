@@ -1,0 +1,75 @@
+reviewback_version: 1
+task_id: "exploration-normal-flow-20260503"
+review_yaml_path: "docs/exec-plans/active/exploration-normal-flow-20260503/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "stopped"
+must_fix_open: true
+max_level: "blocker"
+
+assessment:
+  invariant_maintenance: "判定停止: 呼び出し元が exploration_test_lane であり、agent 定義と skill が固定する implement_lane からのレビュー入力と衝突する。"
+  evidence_sufficiency: "不足で停止: 境界衝突により、staged file、fileContent、hash、summary、rebuild 残留リスクの不変条件確認へ進めない。"
+  hard_gate: false
+
+checked_scope:
+  summary: "状態・データ不変条件のコード判定前に、agent 境界、skill 境界、live workflow の呼び出し元記述を確認した。"
+  files:
+    - path: ".codex/agents/review_state_invariant.toml"
+      line: 14
+      symbol: "developer_instructions"
+      reason: "review_state_invariant の扱う task が implement_lane から渡された実装後レビューに固定されている。"
+    - path: ".codex/skills/codex-review-state-invariant/SKILL.md"
+      line: 15
+      symbol: "対応ロール"
+      reason: "呼び出し元と返却先が implement_lane と定義されている。"
+    - path: ".codex/skills/codex-review-state-invariant/SKILL.md"
+      line: 100
+      symbol: "停止規約"
+      reason: "外部成果物の不足または衝突は停止条件として定義されている。"
+    - path: ".codex/README.md"
+      line: 145
+      symbol: "探索テストレーン成果物DAG"
+      reason: "探索テストレーンから review_state_invariant を起動する記述があり、agent 定義と呼び出し元境界が衝突する。"
+
+unchecked_scope:
+  - target: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-result.integration.md"
+    reason: "呼び出し元境界の衝突で停止したため、実装結果をレビュー入力として採用していない。"
+    risk: "staged file、fileContent、hash、summary、rebuild の不変条件が未判定のまま残る。"
+  - target: "docs/exec-plans/active/exploration-normal-flow-20260503/regression-test-evidence.md"
+    reason: "呼び出し元境界の衝突で停止したため、検証証跡をレビュー入力として採用していない。"
+    risk: "回帰確認で状態不変条件が守られたかを判定できない。"
+  - target: "frontend/src/controller/translation-input/translation-input-screen-controller.ts"
+    reason: "呼び出し元境界の衝突で停止したため、画面 controller の状態遷移を確認していない。"
+    risk: "staged file と rebuild 後の表示状態が乖離するリスクが未判定で残る。"
+  - target: "frontend/src/application/usecase/translation-input/translation-input.usecase.ts"
+    reason: "呼び出し元境界の衝突で停止したため、usecase のデータ保持と再構築処理を確認していない。"
+    risk: "fileContent、hash、summary の整合性維持が未判定で残る。"
+  - target: "internal/service/translation_input_import_service.go"
+    reason: "呼び出し元境界の衝突で停止したため、backend import service の永続化境界を確認していない。"
+    risk: "入力ファイル内容とハッシュ、解析 summary のデータ整合性が未判定で残る。"
+
+issues:
+  - id: "state-invariant-stop-001"
+    level: "blocker"
+    title: "呼び出し元境界の衝突で状態不変条件レビューを停止"
+    problem: "入力では呼び出し元が exploration_test_lane とされているが、review_state_invariant の agent 定義と skill は implement_lane から渡された実装後レビューだけを対象にしている。"
+    reason: "agent 実行境界と skill 対応ロールが一致しているため、人間指示だけで exploration_test_lane からの状態不変条件レビューへ拡張できない。"
+    violated_condition: "review_state_invariant は implement_lane から渡された実装後レビューだけを扱う。"
+    cause_candidate: "docs/exec-plans/active/exploration-normal-flow-20260503 の呼び出し入力は exploration_test_lane を指定している一方、.codex/README.md の探索テストレーン成果物DAGだけが review_state_invariant 起動を許可しており、agent 定義と skill の呼び出し元境界が更新されていない可能性がある。"
+    evidence:
+      - path: ".codex/agents/review_state_invariant.toml"
+        line: 14
+        excerpt: "扱う task が implement_lane から渡された実装後レビューに固定されている。"
+      - path: ".codex/skills/codex-review-state-invariant/SKILL.md"
+        line: 15
+        excerpt: "呼び出し元は implement_lane と定義されている。"
+      - path: ".codex/README.md"
+        line: 145
+        excerpt: "探索テストレーンのレビュー通過根拠で review_state_invariant を次 agent としている。"
+    local_fix_assessment: "design-boundary-required"
+    additional_check_scope: "agent 定義、skill 対応ロール、探索テストレーン成果物DAG の呼び出し元境界を同じ正本判断で揃える必要がある。"
+    fix_considerations: "状態不変条件レビューの対象を探索テストレーンへ広げる場合も、戻し先、入力規約、検証証跡の採用条件を明示する必要がある。"
+    verification: "境界整合後に、指定された実装結果、回帰証跡、frontend controller、frontend usecase、backend service を読み、staged file、fileContent、hash、summary、rebuild 残留リスクを再判定する。"
+    fix_required: true
+    status: "open"

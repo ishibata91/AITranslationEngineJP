@@ -75,12 +75,9 @@ func BuildBodyTranslationPrompt(request BodyTranslationProviderRequest) (string,
 		return "", fmt.Errorf("body translation source text is required")
 	}
 
-	executionMode := strings.ToLower(strings.TrimSpace(request.ExecutionMode))
-	if executionMode == "" {
-		executionMode = BodyTranslationExecutionModeSingleRequest
-	}
-	if executionMode != BodyTranslationExecutionModeSingleRequest {
-		return "", fmt.Errorf("unsupported body translation execution mode: %s", request.ExecutionMode)
+	executionMode, err := normalizeBodyTranslationExecutionMode(request.ExecutionMode)
+	if err != nil {
+		return "", err
 	}
 
 	sourceLanguage := strings.TrimSpace(request.SourceLanguage)

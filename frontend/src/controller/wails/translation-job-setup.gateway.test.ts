@@ -128,6 +128,46 @@ describe("createTranslationJobSetupGateway", () => {
     expect(validateTranslationJobSetup).toHaveBeenCalledWith(request)
   })
 
+  test("validateTranslationJobSetup は null の targetSlices と passSlices を空配列へ正規化する", async () => {
+    const request = {
+      inputSourceId: 41,
+      runtime: {
+        provider: "lm_studio",
+        model: "local-model",
+        executionMode: "sync"
+      },
+      credentialRef: "lm_studio-primary"
+    } satisfies ValidateTranslationJobSetupRequestDto
+    const response = {
+      status: "pass",
+      blockingFailureCategory: undefined,
+      targetSlices: null,
+      validatedAt: "2026-05-03T06:58:30Z",
+      canCreate: true,
+      passSlices: null
+    }
+    const validateTranslationJobSetup = vi.fn(() => Promise.resolve(response))
+
+    installGo({
+      wails: {
+        AppController: {
+          ValidateTranslationJobSetup: validateTranslationJobSetup
+        }
+      }
+    })
+
+    const gateway = createTranslationJobSetupGateway()
+
+    await expect(gateway.validateTranslationJobSetup(request)).resolves.toEqual({
+      status: "pass",
+      blockingFailureCategory: undefined,
+      targetSlices: [],
+      validatedAt: "2026-05-03T06:58:30Z",
+      canCreate: true,
+      passSlices: []
+    })
+  })
+
   test("createTranslationJob は create request と rejected or ready response をそのまま流す", async () => {
     const request = {
       inputSourceId: 41,

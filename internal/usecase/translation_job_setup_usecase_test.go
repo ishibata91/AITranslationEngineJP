@@ -87,13 +87,54 @@ func TestTranslationJobSetupUsecaseValidateTranslationJobSetupReturnsPassDecisio
 	}
 
 	want := TranslationJobSetupValidationResult{
-		Status:      "pass",
-		ValidatedAt: validatedAt,
-		CanCreate:   true,
-		PassSlices:  []string{"input", "runtime", "credentials"},
+		Status:       "pass",
+		TargetSlices: []string{},
+		ValidatedAt:  validatedAt,
+		CanCreate:    true,
+		PassSlices:   []string{"input", "runtime", "credentials"},
 	}
 	if !reflect.DeepEqual(got, want) {
 		t.Fatalf("expected validation result %#v, got %#v", want, got)
+	}
+}
+
+func TestTranslationJobSetupUsecaseValidateTranslationJobSetupNormalizesNilSlicesToEmptyArrays(t *testing.T) {
+	validatedAt := time.Date(2026, 5, 3, 6, 58, 30, 0, time.UTC)
+	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
+		validateRequestFunc: func(
+			_ context.Context,
+			_ jobsetupservice.TranslationJobSetupValidationRequest,
+		) (jobsetupservice.TranslationJobSetupValidationDecision, error) {
+			return jobsetupservice.TranslationJobSetupValidationDecision{
+				Status:       "pass",
+				ValidatedAt:  validatedAt,
+				CanCreate:    true,
+				TargetSlices: nil,
+				PassSlices:   nil,
+			}, nil
+		},
+	})
+
+	got, err := usecase.ValidateTranslationJobSetup(context.Background(), ValidateTranslationJobSetupRequest{
+		InputSourceID: 44,
+		Runtime: TranslationJobSetupRuntimeSelection{
+			Provider:      "lm_studio",
+			Model:         "local-model",
+			ExecutionMode: "sync",
+		},
+		CredentialRef: "lm_studio-primary",
+	})
+	if err != nil {
+		t.Fatalf("expected validation request to succeed: %v", err)
+	}
+	if got.TargetSlices == nil {
+		t.Fatalf("expected target slices to be normalized to empty array, got nil")
+	}
+	if got.PassSlices == nil {
+		t.Fatalf("expected pass slices to be normalized to empty array, got nil")
+	}
+	if len(got.TargetSlices) != 0 || len(got.PassSlices) != 0 {
+		t.Fatalf("expected empty slices after normalization, got %#v", got)
 	}
 }
 

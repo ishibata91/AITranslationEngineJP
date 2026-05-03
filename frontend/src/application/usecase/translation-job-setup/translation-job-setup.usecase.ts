@@ -14,6 +14,21 @@ interface TranslationJobSetupStoreLike {
   update(mutator: (draft: TranslationJobSetupScreenState) => void): void
 }
 
+function credentialAllowsEmptySecret(provider: string): boolean {
+  return provider === "lm_studio"
+}
+
+function isUsableCredentialRef(options: {
+  provider: string
+  isConfigured: boolean
+  isMissingSecret: boolean
+}): boolean {
+  return (
+    options.isConfigured &&
+    (!options.isMissingSecret || credentialAllowsEmptySecret(options.provider))
+  )
+}
+
 function sanitizeErrorMessage(error: unknown, fallback: string): string {
   if (
     error instanceof Error &&
@@ -72,7 +87,7 @@ function resolveCredentialRef(
 
   return (
     candidates.find(
-      (credential) => credential.isConfigured && !credential.isMissingSecret
+      (credential) => isUsableCredentialRef(credential)
     )?.credentialRef ??
     candidates[0]?.credentialRef ??
     ""

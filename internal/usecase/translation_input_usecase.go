@@ -16,6 +16,15 @@ type translationInputCacheRebuildServicePort interface {
 	RebuildInputCache(ctx context.Context, inputID int64) (service.TranslationInputImportSummary, error)
 }
 
+type translationInputContentImportServicePort interface {
+	ImportXEditJSONWithContent(
+		ctx context.Context,
+		filePath string,
+		fileName string,
+		fileContent string,
+	) (service.TranslationInputImportSummary, error)
+}
+
 // TranslationInputUsecase orchestrates the translation input import boundary.
 type TranslationInputUsecase struct {
 	importService TranslationInputImportServicePort
@@ -54,6 +63,21 @@ func (usecase *TranslationInputUsecase) ImportXEditJSON(
 	filePath string,
 ) (TranslationInputImportResult, error) {
 	summary, err := usecase.importService.ImportXEditJSON(ctx, filePath)
+	return mapTranslationInputSummaryOrError(summary, err)
+}
+
+// ImportXEditJSONWithContent imports one xEdit JSON payload and maps validation failures to error kinds.
+func (usecase *TranslationInputUsecase) ImportXEditJSONWithContent(
+	ctx context.Context,
+	filePath string,
+	fileName string,
+	fileContent string,
+) (TranslationInputImportResult, error) {
+	contentImportService, ok := usecase.importService.(translationInputContentImportServicePort)
+	if !ok {
+		return TranslationInputImportResult{}, fmt.Errorf("import translation input: usecase service does not support content import")
+	}
+	summary, err := contentImportService.ImportXEditJSONWithContent(ctx, filePath, fileName, fileContent)
 	return mapTranslationInputSummaryOrError(summary, err)
 }
 

@@ -354,7 +354,7 @@ func toTranslationJobExecutionSummaryDTO(summary usecase.TranslationJobExecution
 
 func cloneStrings(values []string) []string {
 	if values == nil {
-		return nil
+		return []string{}
 	}
 	return append([]string(nil), values...)
 }

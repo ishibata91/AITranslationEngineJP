@@ -17,6 +17,10 @@ const CREATE_ERROR_LABELS: Record<string, string> = {
     "validation fail を解消してから create を再実行してください。"
 }
 
+function credentialAllowsEmptySecret(provider: string): boolean {
+  return provider === "lm_studio"
+}
+
 function formatRegisteredAtLabel(registeredAt: string | undefined): string {
   if (!registeredAt) {
     return "-"
@@ -185,7 +189,10 @@ function buildCredentialStateText(
     return "credential は未設定です。"
   }
 
-  if (selectedCredential.isMissingSecret) {
+  if (
+    selectedCredential.isMissingSecret &&
+    !credentialAllowsEmptySecret(selectedCredential.provider)
+  ) {
     return "credential 参照はありますが secret が不足しています。"
   }
 

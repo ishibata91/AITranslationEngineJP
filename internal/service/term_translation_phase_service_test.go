@@ -49,6 +49,17 @@ func (fake fakeTermPhaseProvider) TermTranslationProviderRequestsAreTestSafe() b
 	return true
 }
 
+type fakeTermPhaseSecretStore struct {
+	loadFunc func(context.Context, string) (string, error)
+}
+
+func (fake fakeTermPhaseSecretStore) Load(ctx context.Context, key string) (string, error) {
+	if fake.loadFunc != nil {
+		return fake.loadFunc(ctx, key)
+	}
+	return "", nil
+}
+
 type fakeTermPhaseJobLifecycleRepository struct {
 	job                 repository.TranslationJob
 	run                 *repository.JobPhaseRun
@@ -775,6 +786,83 @@ func TestTermTranslationPhaseServiceUsesSecretStoreValueInsteadOfCredentialRef(t
 		if apiKey != "gemini-secret" {
 			t.Fatalf("expected provider auth to use secret store value, got %#v", capturedAPIKeys)
 		}
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadStalls(t *testing.T) {
+	blockedLoad := make(chan struct{})
+	capturedAPIKeys := make([]string, 0, 2)
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			capturedAPIKeys = append(capturedAPIKeys, request.APIKey)
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+	jobRepo.phases[0].AIProvider = TermTranslationProviderLMStudio
+	jobRepo.phases[0].ModelName = "lmstudio-community"
+	jobRepo.phases[0].CredentialRef = "lmstudio-local"
+	service.secretStore = fakeTermPhaseSecretStore{
+		loadFunc: func(context.Context, string) (string, error) {
+			<-blockedLoad
+			return "", nil
+		},
+	}
+	service.secretLoadTimeout = 5 * time.Millisecond
+
+	startedAt := time.Now()
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected lm_studio start to fall back without error: %v", err)
+	}
+	if time.Since(startedAt) > 150*time.Millisecond {
+		t.Fatalf("expected stalled lm_studio secret load to time out quickly, got %s", time.Since(startedAt))
+	}
+	if result.PhaseState != termTranslationPhaseStateCompleted || !result.CanStartNextPhase {
+		t.Fatalf("expected completed lm_studio start result, got %#v", result)
+	}
+	if len(capturedAPIKeys) == 0 {
+		t.Fatal("expected provider request capture")
+	}
+	for _, apiKey := range capturedAPIKeys {
+		if apiKey != "" {
+			t.Fatalf("expected lm_studio provider calls without secret, got %#v", capturedAPIKeys)
+		}
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseFailsQuicklyWhenRequiredSecretLoadStalls(t *testing.T) {
+	blockedLoad := make(chan struct{})
+	providerCalled := false
+	service, _, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			providerCalled = true
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+	service.secretStore = fakeTermPhaseSecretStore{
+		loadFunc: func(context.Context, string) (string, error) {
+			<-blockedLoad
+			return "", nil
+		},
+	}
+	service.secretLoadTimeout = 5 * time.Millisecond
+
+	startedAt := time.Now()
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected provider failure command result without transport error, got %v", err)
+	}
+	if time.Since(startedAt) > 150*time.Millisecond {
+		t.Fatalf("expected stalled required secret load to fail quickly, got %s", time.Since(startedAt))
+	}
+	if providerCalled {
+		t.Fatal("expected provider call to stay blocked when required secret is unavailable")
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != termTranslationErrorKindProviderFailure {
+		t.Fatalf("expected provider failure error summary, got %#v", result)
+	}
+	if result.PhaseState != termTranslationPhaseStateFailed {
+		t.Fatalf("expected failed phase state for required secret stall, got %#v", result)
 	}
 }
 

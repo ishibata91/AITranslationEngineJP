@@ -80,3 +80,31 @@ func TestBuildBodyTranslationInputSnapshotDigestIsStableAcrossEntryOrder(t *test
 		t.Fatalf("expected stable digests across dictionary order, got A=%#v B=%#v", snapshotA, snapshotB)
 	}
 }
+
+func TestBuildBodyTranslationInputSnapshotAcceptsSyncExecutionModeAlias(t *testing.T) {
+	job := repository.TranslationJob{ID: 13, XEditExtractedDataID: 23}
+	records := []repository.TranslationRecord{{ID: 300, RecordType: "NPC_", FormID: "0020", EditorID: "E20"}}
+	fieldsByRecordID := map[int64][]repository.TranslationField{
+		300: {
+			{ID: 3000, TranslationRecordID: 300, SubrecordType: "FULL", SourceText: "Hello there", FieldOrder: 1},
+		},
+	}
+	persona := repository.Persona{ID: 55, PersonaDescription: "丁寧", SpeechStyle: "敬語", PersonalitySummary: "穏やか", EvidenceUtteranceCount: 1}
+	execution := BodyTranslationPhaseExecutionSummaryReadModel{
+		CredentialRef: "cred",
+		Provider:      BodyTranslationProviderLMStudio,
+		Model:         "local-model",
+		ExecutionMode: "sync",
+	}
+
+	snapshot, err := buildBodyTranslationInputSnapshot(job, records, fieldsByRecordID, nil, persona, execution)
+	if err != nil {
+		t.Fatalf("expected sync alias to build snapshot, got %v", err)
+	}
+	if snapshot.ProviderTargetCount != 1 {
+		t.Fatalf("expected one provider target, got %d", snapshot.ProviderTargetCount)
+	}
+	if snapshot.PromptDigest == "" {
+		t.Fatal("expected prompt digest for sync alias execution mode")
+	}
+}

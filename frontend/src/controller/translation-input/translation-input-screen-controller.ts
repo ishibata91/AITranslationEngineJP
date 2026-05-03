@@ -22,7 +22,10 @@ interface TranslationInputPresenterLike {
 }
 
 interface TranslationInputUseCaseLike {
-  startImport(): Promise<void>
+  startImport(importDraft?: {
+    fileName?: string
+    fileContent?: string
+  }): Promise<void>
   rebuildSelected(): Promise<void>
 }
 
@@ -60,7 +63,30 @@ async function digestFileHash(file: File): Promise<string> {
     .join("")
 }
 
+async function readFileContentFromArrayBuffer(file: File): Promise<string> {
+  const bytes = await file.arrayBuffer()
+  return new TextDecoder().decode(bytes)
+}
+
+async function readFileContent(file: File): Promise<string> {
+  if (typeof file.text === "function") {
+    try {
+      return await file.text()
+    } catch {
+      return readFileContentFromArrayBuffer(file)
+    }
+  }
+
+  return readFileContentFromArrayBuffer(file)
+}
+
 export class TranslationInputScreenController implements TranslationInputScreenControllerContract {
+  private stagedImportDraft: {
+    fileName: string
+    fileContent: string
+  } | null = null
+  private stagedSelectionVersion = 0
+
   constructor(
     private readonly dependencies: TranslationInputScreenControllerDependencies
   ) {}
@@ -70,6 +96,7 @@ export class TranslationInputScreenController implements TranslationInputScreenC
   }
 
   dispose(): void {
+    this.stagedImportDraft = null
     return
   }
 
@@ -104,6 +131,10 @@ export class TranslationInputScreenController implements TranslationInputScreenC
       return
     }
 
+    const selectionVersion = this.stagedSelectionVersion + 1
+    this.stagedSelectionVersion = selectionVersion
+    this.stagedImportDraft = null
+
     const stagedFile: TranslationInputStagedFile = {
       fileName: file.name,
       filePath: resolveFileReference(file),
@@ -112,31 +143,63 @@ export class TranslationInputScreenController implements TranslationInputScreenC
 
     this.dependencies.store.update((draft) => {
       draft.stagedFile = stagedFile
-      draft.operationState = "ready"
+      draft.operationState = "idle"
       draft.errorMessage = ""
     })
 
     try {
-      const fileHash = await digestFileHash(file)
+      const [fileHashResult, fileContentResult] = await Promise.allSettled([
+        digestFileHash(file),
+        readFileContent(file)
+      ])
+      if (this.stagedSelectionVersion !== selectionVersion) {
+        return
+      }
+
+      if (fileContentResult.status !== "fulfilled") {
+        throw fileContentResult.reason
+      }
+
+      const fileHash =
+        fileHashResult.status === "fulfilled"
+          ? fileHashResult.value
+          : "計算失敗"
+      const fileContent = fileContentResult.value
+
       this.dependencies.store.update((draft) => {
-        if (draft.stagedFile?.filePath !== stagedFile.filePath) {
+        if (
+          this.stagedSelectionVersion !== selectionVersion ||
+          draft.stagedFile === null
+        ) {
           return
         }
 
         draft.stagedFile.fileHash = fileHash
+        draft.operationState = "ready"
       })
+      this.stagedImportDraft = {
+        fileName: file.name,
+        fileContent
+      }
     } catch {
       this.dependencies.store.update((draft) => {
-        if (draft.stagedFile?.filePath !== stagedFile.filePath) {
+        if (
+          this.stagedSelectionVersion !== selectionVersion ||
+          draft.stagedFile === null
+        ) {
           return
         }
 
         draft.stagedFile.fileHash = "計算失敗"
+        draft.operationState = "idle"
+        draft.errorMessage = "JSON file の読み込み完了を確認できませんでした。もう一度選択してください。"
       })
     }
   }
 
   resetImportSelection(): void {
+    this.stagedSelectionVersion += 1
+    this.stagedImportDraft = null
     this.dependencies.store.update((draft) => {
       if (draft.operationState === "importing") {
         return
@@ -149,7 +212,20 @@ export class TranslationInputScreenController implements TranslationInputScreenC
   }
 
   async startImport(): Promise<void> {
-    await this.dependencies.useCase.startImport()
+    const state = this.dependencies.store.snapshot()
+    if (state.stagedFile !== null && this.stagedImportDraft === null) {
+      this.dependencies.store.update((draft) => {
+        draft.errorMessage = "JSON file の読み込み完了を待ってから登録してください。"
+      })
+      return
+    }
+
+    await this.dependencies.useCase.startImport(
+      this.stagedImportDraft ?? undefined
+    )
+    if (this.dependencies.store.snapshot().stagedFile === null) {
+      this.stagedImportDraft = null
+    }
   }
 
   async rebuildSelected(): Promise<void> {

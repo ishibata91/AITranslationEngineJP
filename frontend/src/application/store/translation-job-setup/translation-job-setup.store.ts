@@ -7,6 +7,14 @@ import type {
 
 type Listener = (state: TranslationJobSetupScreenState) => void
 
+function cloneStringArray(values: string[] | null | undefined): string[] {
+  if (!Array.isArray(values)) {
+    return []
+  }
+
+  return [...values]
+}
+
 function cloneOptions(
   options: TranslationJobSetupOptionsResponse | null
 ): TranslationJobSetupOptionsResponse | null {
@@ -40,8 +48,8 @@ function cloneValidation(
 
   return {
     ...validationResult,
-    targetSlices: [...validationResult.targetSlices],
-    passSlices: [...validationResult.passSlices]
+    targetSlices: cloneStringArray(validationResult.targetSlices),
+    passSlices: cloneStringArray(validationResult.passSlices)
   }
 }
 

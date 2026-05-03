@@ -173,12 +173,18 @@ func isReadonlyTranslationOutputPath(path string) bool {
 }
 
 func xTranslatorRootElementName(targetGame string) (string, error) {
-	switch strings.ToLower(strings.TrimSpace(targetGame)) {
-	case "skyrim_se", "skyrimse", "sse":
+	switch normalizeXTranslatorTargetGame(targetGame) {
+	case "skyrimse", "sse":
 		return "SSETranslator", nil
-	case "skyrim_le", "skyrimle", "tesv", "skyrim":
+	case "skyrimle", "tesv", "skyrim":
 		return "TESVTranslator", nil
 	default:
 		return "", fmt.Errorf("unsupported target game %q", targetGame)
 	}
+}
+
+func normalizeXTranslatorTargetGame(targetGame string) string {
+	normalized := strings.ToLower(strings.TrimSpace(targetGame))
+	replacer := strings.NewReplacer("_", "", "-", "", " ", "")
+	return replacer.Replace(normalized)
 }

@@ -10,6 +10,8 @@ export type TranslationInputWarningKind = "unknown_field_definition"
 
 export interface ImportTranslationInputRequest {
   filePath: string
+  fileName?: string
+  fileContent?: string
 }
 
 export interface RebuildTranslationInputCacheRequest {

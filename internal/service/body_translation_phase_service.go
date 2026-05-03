@@ -612,12 +612,6 @@ func (service *BodyTranslationPhaseService) startRejection(
 			reason:    "body translation phase run already exists",
 		}
 	}
-	if len(loaded.dictionary) == 0 || loaded.persona.ID == 0 {
-		return &bodyTranslationStartRejection{
-			errorKind: "input_snapshot_failed",
-			reason:    "body translation input snapshot dependencies are missing",
-		}
-	}
 	return nil
 }
 

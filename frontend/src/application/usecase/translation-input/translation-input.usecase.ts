@@ -13,6 +13,11 @@ interface TranslationInputStoreLike {
   update(mutator: (draft: TranslationInputScreenState) => void): void
 }
 
+interface TranslationInputImportDraft {
+  fileName?: string
+  fileContent?: string
+}
+
 function toErrorMessage(error: unknown, fallback: string): string {
   if (error instanceof Error && error.message.trim() !== "") {
     return error.message
@@ -192,7 +197,7 @@ export class TranslationInputUseCase {
     private readonly store: TranslationInputStoreLike
   ) {}
 
-  async startImport(): Promise<void> {
+  async startImport(importDraft?: TranslationInputImportDraft): Promise<void> {
     const state = this.store.snapshot()
     if (!state.stagedFile) {
       this.store.update((draft) => {
@@ -221,7 +226,9 @@ export class TranslationInputUseCase {
     try {
       const response = normalizeCommandResponse(
         await this.gateway.importTranslationInput({
-          filePath: state.stagedFile.filePath
+          filePath: state.stagedFile.filePath,
+          fileName: importDraft?.fileName,
+          fileContent: importDraft?.fileContent
         })
       )
       const nextItem = buildReviewItemFromResponse(

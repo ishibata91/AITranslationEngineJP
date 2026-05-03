@@ -243,7 +243,7 @@ func (TranslationJobSetupContractStub) CreateTranslationJob(
 	if strings.ToLower(strings.TrimSpace(request.ValidationStatus)) != TranslationJobSetupValidationStatusPass {
 		return CreateTranslationJobResult{ErrorKind: TranslationJobSetupErrorKindValidationFailed}, nil
 	}
-	if request.ValidatedAt.IsZero() || request.ValidatedAt.UTC().Hour() < translationJobSetupValidationFreshnessCutoffHourUTC {
+	if translationJobSetupValidationIsStale(time.Now().UTC(), request.ValidatedAt.UTC()) {
 		return CreateTranslationJobResult{ErrorKind: TranslationJobSetupErrorKindValidationStale}, nil
 	}
 	return CreateTranslationJobResult{}, errTranslationJobSetupNotImplemented
@@ -258,3 +258,28 @@ func (TranslationJobSetupContractStub) GetTranslationJobSetupSummary(
 }
 
 var errTranslationJobSetupNotImplemented = errors.New("translation job setup usecase is not implemented")
+
+func translationJobSetupValidationIsStale(now time.Time, validatedAt time.Time) bool {
+	if validatedAt.IsZero() {
+		return true
+	}
+	return validatedAt.Before(translationJobSetupValidationFreshnessCutoff(now))
+}
+
+func translationJobSetupValidationFreshnessCutoff(now time.Time) time.Time {
+	nowUTC := now.UTC()
+	cutoff := time.Date(
+		nowUTC.Year(),
+		nowUTC.Month(),
+		nowUTC.Day(),
+		translationJobSetupValidationFreshnessCutoffHourUTC,
+		0,
+		0,
+		0,
+		time.UTC,
+	)
+	if nowUTC.Before(cutoff) {
+		return cutoff.AddDate(0, 0, -1)
+	}
+	return cutoff
+}

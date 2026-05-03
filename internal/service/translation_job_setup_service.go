@@ -50,6 +50,7 @@ const (
 	translationJobSetupOpenAIBaseURL              = "https://api.openai.com/v1"
 	translationJobSetupXAIBaseURLEnv              = "AITRANSLATIONENGINEJP_MASTER_PERSONA_XAI_BASE_URL"
 	translationJobSetupLMStudioBaseURLEnv         = "AITRANSLATIONENGINEJP_MASTER_PERSONA_LM_STUDIO_BASE_URL"
+	translationJobSetupSecretLoadTimeout          = 250 * time.Millisecond
 )
 
 var translationJobSetupAllSlices = []string{"input", "runtime", "credentials"}
@@ -188,6 +189,7 @@ type TranslationJobSetupService struct {
 	masterPersonaRepository       translationJobSetupMasterPersonaRepository
 	aiSettingsRepository          translationJobSetupMasterPersonaAISettingsRepository
 	secretStore                   translationJobSetupSecretStore
+	secretLoadTimeout             time.Duration
 	providerReachabilityTransport translationJobSetupProviderReachabilityTransport
 	transactor                    repository.Transactor
 	optionsReadModel              TranslationJobSetupOptionsReadModel
@@ -275,6 +277,7 @@ func NewPersistentTranslationJobSetupService(
 		masterPersonaRepository:     masterPersonaRepository,
 		aiSettingsRepository:        aiSettingsRepository,
 		secretStore:                 secretStore,
+		secretLoadTimeout:           translationJobSetupSecretLoadTimeout,
 		transactor:                  transactor,
 	}
 	for _, option := range options {
@@ -328,9 +331,7 @@ func (service *TranslationJobSetupService) ValidateRequest(
 	} else if handled {
 		return decision, nil
 	}
-	if decision, handled, err := service.validateTranslationJobSetupProviderReachability(ctx, validatedAt, request); err != nil {
-		return TranslationJobSetupValidationDecision{}, err
-	} else if handled {
+	if decision, handled := service.validateTranslationJobSetupProviderReachability(ctx, validatedAt, request); handled {
 		return decision, nil
 	}
 
@@ -477,22 +478,19 @@ func (service *TranslationJobSetupService) validateTranslationJobSetupProviderRe
 	ctx context.Context,
 	validatedAt time.Time,
 	request TranslationJobSetupValidationRequest,
-) (TranslationJobSetupValidationDecision, bool, error) {
+) (TranslationJobSetupValidationDecision, bool) {
 	if service.secretStore == nil {
-		return TranslationJobSetupValidationDecision{}, false, nil
+		return TranslationJobSetupValidationDecision{}, false
 	}
 
 	provider := normalizeTranslationJobSetupField(request.Provider)
 	if provider == "" {
-		return TranslationJobSetupValidationDecision{}, false, nil
+		return TranslationJobSetupValidationDecision{}, false
 	}
 
-	apiKey, err := service.translationJobSetupProviderAPIKey(ctx, provider)
-	if err != nil {
-		return TranslationJobSetupValidationDecision{}, false, err
-	}
+	apiKey := service.translationJobSetupProviderAPIKey(ctx, provider)
 	if provider != MasterPersonaProviderLMStudio && apiKey == "" {
-		return TranslationJobSetupValidationDecision{}, false, nil
+		return TranslationJobSetupValidationDecision{}, false
 	}
 
 	if !service.checkTranslationJobSetupProviderReachability(ctx, provider, strings.TrimSpace(request.Model), apiKey) {
@@ -501,10 +499,10 @@ func (service *TranslationJobSetupService) validateTranslationJobSetupProviderRe
 			translationJobSetupBlockingFailureProviderUnreachable,
 			[]string{"runtime"},
 		)
-		return decision, true, nil
+		return decision, true
 	}
 
-	return TranslationJobSetupValidationDecision{}, false, nil
+	return TranslationJobSetupValidationDecision{}, false
 }
 
 func (service *TranslationJobSetupService) validateTranslationJobSetupInputMetadata(
@@ -760,7 +758,7 @@ func translationJobSetupValidationIsStale(now time.Time, validatedAt time.Time) 
 
 func translationJobSetupValidationFreshnessCutoff(now time.Time) time.Time {
 	nowUTC := now.UTC()
-	return time.Date(
+	cutoff := time.Date(
 		nowUTC.Year(),
 		nowUTC.Month(),
 		nowUTC.Day(),
@@ -770,6 +768,10 @@ func translationJobSetupValidationFreshnessCutoff(now time.Time) time.Time {
 		0,
 		time.UTC,
 	)
+	if nowUTC.Before(cutoff) {
+		return cutoff.AddDate(0, 0, -1)
+	}
+	return cutoff
 }
 
 func translationJobSetupCreateErrorKindFromValidationDecision(
@@ -799,15 +801,12 @@ func translationJobSetupCreateErrorKindFromValidationDecision(
 func (service *TranslationJobSetupService) translationJobSetupProviderAPIKey(
 	ctx context.Context,
 	provider string,
-) (string, error) {
+) string {
 	if service.secretStore == nil {
-		return "", nil
+		return ""
 	}
-	secretValue, err := service.secretStore.Load(requestContextOrBackground(ctx), translationJobSetupMasterPersonaSecretKey(provider))
-	if err != nil {
-		return "", fmt.Errorf("load translation job setup provider secret: %w", err)
-	}
-	return strings.TrimSpace(secretValue), nil
+	secretValue, _ := service.translationJobSetupLoadSecret(ctx, translationJobSetupMasterPersonaSecretKey(provider))
+	return strings.TrimSpace(secretValue)
 }
 
 func (service *TranslationJobSetupService) checkTranslationJobSetupProviderReachability(
@@ -1024,7 +1023,8 @@ func credentialReferenceIsAllowedInReadModel(
 		if normalizeTranslationJobSetupField(ref.CredentialRef) != normalizedCredentialRef {
 			continue
 		}
-		return ref.IsConfigured && !ref.IsMissingSecret
+		return ref.IsConfigured &&
+			(!ref.IsMissingSecret || translationJobSetupProviderAllowsEmptySecret(ref.Provider))
 	}
 	return false
 }
@@ -1230,17 +1230,68 @@ func (service *TranslationJobSetupService) translationJobSetupCredentialRefsFrom
 	if provider == "" {
 		return nil
 	}
-	configured := false
+	allowsEmptySecret := translationJobSetupProviderAllowsEmptySecret(provider)
+	configured := allowsEmptySecret
+	isMissingSecret := !allowsEmptySecret
 	if service.secretStore != nil {
-		secretValue, err := service.secretStore.Load(ctx, translationJobSetupMasterPersonaSecretKey(provider))
-		configured = err == nil && strings.TrimSpace(secretValue) != ""
+		secretValue, loaded := service.translationJobSetupLoadSecret(ctx, translationJobSetupMasterPersonaSecretKey(provider))
+		if loaded {
+			hasSecret := strings.TrimSpace(secretValue) != ""
+			configured = hasSecret || allowsEmptySecret
+			isMissingSecret = !hasSecret && !allowsEmptySecret
+		}
 	}
 	return []TranslationJobSetupCredentialReferenceReadModel{{
 		Provider:        provider,
 		CredentialRef:   translationJobSetupCredentialReference(provider),
 		IsConfigured:    configured,
-		IsMissingSecret: !configured,
+		IsMissingSecret: isMissingSecret,
 	}}
+}
+
+func translationJobSetupProviderAllowsEmptySecret(provider string) bool {
+	return normalizeTranslationJobSetupField(provider) == MasterPersonaProviderLMStudio
+}
+
+type translationJobSetupSecretLoadResult struct {
+	value string
+	err   error
+}
+
+func (service *TranslationJobSetupService) translationJobSetupLoadSecret(
+	ctx context.Context,
+	key string,
+) (string, bool) {
+	if service == nil || service.secretStore == nil {
+		return "", false
+	}
+
+	timeout := service.secretLoadTimeout
+	if timeout <= 0 {
+		timeout = translationJobSetupSecretLoadTimeout
+	}
+
+	requestContext := requestContextOrBackground(ctx)
+	resultChannel := make(chan translationJobSetupSecretLoadResult, 1)
+	go func() {
+		value, err := service.secretStore.Load(requestContext, key)
+		resultChannel <- translationJobSetupSecretLoadResult{value: value, err: err}
+	}()
+
+	timer := time.NewTimer(timeout)
+	defer timer.Stop()
+
+	select {
+	case <-requestContext.Done():
+		return "", false
+	case <-timer.C:
+		return "", false
+	case result := <-resultChannel:
+		if result.err != nil {
+			return "", false
+		}
+		return result.value, true
+	}
 }
 
 func translationJobSetupDefaultExecutionMode(provider string) string {

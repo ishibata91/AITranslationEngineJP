@@ -202,6 +202,43 @@ func TestTranslationJobSetupControllerValidateMapsValidationShape(t *testing.T) 
 	}
 }
 
+func TestTranslationJobSetupControllerValidateNormalizesNilSlicesToEmptyArrays(t *testing.T) {
+	validatedAt := time.Date(2026, 5, 3, 6, 58, 30, 0, time.UTC)
+	controller := NewTranslationJobSetupController(fakeTranslationJobSetupUsecase{
+		validateFunc: func(context.Context, usecase.ValidateTranslationJobSetupRequest) (usecase.TranslationJobSetupValidationResult, error) {
+			return usecase.TranslationJobSetupValidationResult{
+				Status:       "pass",
+				ValidatedAt:  validatedAt,
+				CanCreate:    true,
+				TargetSlices: nil,
+				PassSlices:   nil,
+			}, nil
+		},
+	})
+
+	response, err := controller.ValidateTranslationJobSetup(ValidateTranslationJobSetupRequestDTO{
+		InputSourceID: 44,
+		Runtime: TranslationJobSetupRuntimeSelectionDTO{
+			Provider:      "lm_studio",
+			Model:         "local-model",
+			ExecutionMode: "sync",
+		},
+		CredentialRef: "lm_studio-primary",
+	})
+	if err != nil {
+		t.Fatalf("expected validation request to succeed: %v", err)
+	}
+	if response.TargetSlices == nil {
+		t.Fatalf("expected targetSlices to be normalized to empty array, got nil")
+	}
+	if response.PassSlices == nil {
+		t.Fatalf("expected passSlices to be normalized to empty array, got nil")
+	}
+	if len(response.TargetSlices) != 0 || len(response.PassSlices) != 0 {
+		t.Fatalf("expected empty normalized slices, got %#v", response)
+	}
+}
+
 func TestTranslationJobSetupControllerValidateReturnsBlockingFailureContract(t *testing.T) {
 	testCases := []struct {
 		name                 string
