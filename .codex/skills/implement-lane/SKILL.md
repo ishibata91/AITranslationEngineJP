@@ -59,6 +59,15 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 | `作業計画完了移動` | はい | `implement_lane` | `作業レポート入力` | なし |
 
+### UI設計レビュー中の agent 継続例外
+
+UI設計で task-local UIプロトタイプを作る場合は、`designer` agent を人間設計レビューが終了するまで起動したままにする。
+この例外は、UIプロトタイプ確認サーバーを維持し、人間の UI 指摘を `designer` へ直接返すためにだけ使う。
+人間の UI 指摘は、`implement_lane` を経由せず、起動中の `designer` agent が `ui-design.md` と task-local UIプロトタイプへ反映する。
+`implement_lane` は、人間設計レビューの承認、差し戻し、追加質問、終了状態だけを作業計画フォルダに記録する。
+人間設計レビューが終了した後は、`designer` agent を閉じ、通常の 成果物依存表 に戻す。
+この例外は、プロダクトコード、プロダクトテスト、docs 正本化、implementation-scope の承認前作成には使わない。
+
 ### レビュー集約規約
 
 `implement_lane` は 5 観点レビュー結果を集約し、`implementation_action` を決める。
@@ -159,6 +168,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
 - backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
 - タスクの終わったサブエージェントを起動したまま残さず，終わったら逐次で閉じること。
+- UI設計レビュー中の `designer` agent は、UI設計レビュー中の agent 継続例外に従い、人間設計レビュー終了まで閉じない。
 
 ## 非対象規約
 
@@ -182,6 +192,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - UI が関係する場合は、`ui-design.md` と必要な task-local UIプロトタイプが人間設計レビュー前に揃っている。
 - UI の人間設計レビュー中は、UIプロトタイプ確認サーバーが起動したままであり、確認 URL と起動 command が記録されている。
+- UI の人間設計レビュー中は、`designer` agent が起動したままであり、人間の UI 指摘を直接反映できる。
+- UI の人間設計レビュー終了後は、`designer` agent を閉じた状態が記録されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
 - `レビュー通過根拠` は 5 観点の `reviewback.<観点>.yaml` から behavior、security、responsibility_boundary、その他 の優先度で集約され、`implementation_action` が固定されている。

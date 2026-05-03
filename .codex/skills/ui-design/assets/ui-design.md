@@ -8,6 +8,9 @@
 - `prototype_server_url`: `http://127.0.0.1:34116/prototype`
 - `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116`
 - `human_review_server_required`: `yes`
+- `human_review_designer_agent_required`: `yes | no`
+- `human_feedback_route`: `designer_agent_direct | implement_lane`
+- `designer_agent_close_after_review`:
 
 ## UI Contract
 
@@ -32,6 +35,33 @@
 - `layout_constraints`:
 - `responsive_constraints`:
 - `accessibility_constraints`:
+
+## Screen Structure UX Check
+
+- `screen_purpose`:
+- `target_user`:
+- `primary_action`:
+- `secondary_actions`:
+- `information_hierarchy`:
+- `screen_responsibility`:
+- `current_state_visibility`:
+- `state_based_actions`:
+- `display_conditions`:
+- `disabled_conditions`:
+- `permission_differences`:
+- `input_constraints`:
+- `input_grouping`:
+- `empty_state`:
+- `loading_state`:
+- `error_state`:
+- `change_diff_visibility`:
+- `dangerous_action_separation`:
+- `screen_transition`:
+- `completion_route`:
+- `ui_wording`:
+- `reviewability`:
+- `implementation_reuse_scope`:
+- `evidence_storage`:
 
 ## Interaction States
 
@@ -66,6 +96,9 @@
 - `prototype_server_url`: `http://127.0.0.1:34116/prototype`
 - `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116`
 - `human_review_server_required`: `yes`
+- `human_review_designer_agent_required`: `yes | no`
+- `human_feedback_route`: `designer_agent_direct | implement_lane`
+- `designer_agent_close_after_review`:
 - `mock_data_root`: `./mock-data/`
 - `mock_data_migration`: `forbidden`
 - `sample_data_root`: `[data-ui-prototype-sample-data-root]`
@@ -119,11 +152,14 @@
 - UI は `ui-design.md` で固定する
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
 - UIプロトタイプを作る場合は確認サーバーの URL を `agent-browser` で開き、UX 観点から確認する
+- 画面構造UXチェック表の確認結果を `Screen Structure UX Check` に記録する
 - `agent-browser` 確認後に、専門知識がなくても次に何をするか分かる表現水準かを表示文言レビューで確認する
 - 固定名以外の画面表示文言は、日本語の業務語へ置き換える
 - 内部状態名は画面に出さず、利用者の次操作を示す文へ変換する
 - 英語ラベルは、利用者が設定画面で見る既存語だけに限定する
 - 人間確認中は UIプロトタイプ確認サーバーを起動したままにする
+- 人間確認中に UIプロトタイプ確認サーバーを `designer` agent が保持している場合は、人間レビュー終了まで `designer` agent を起動したままにする
+- 人間確認中の UI 指摘は、起動中の `designer` agent が直接受け取り、`ui-design.md` と task-local UIプロトタイプへ反映する
 - 既存画面変更では、既存画面または既存 UI 部品を土台にする
 - 既存画面変更の UIプロトタイプは、対象画面の既存 Svelte、CSS、class、画面構造を再利用する
 - 既存画面変更では、独自の page shell、card、grid、配色、余白体系を新規に作らない

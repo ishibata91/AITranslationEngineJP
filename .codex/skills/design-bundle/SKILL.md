@@ -84,6 +84,8 @@ scenario-design は、抽象要件から直接 シナリオ を作って完了�
 UI 設計は design bundle 本体へ含めず、`ui-design` の独立成果物として扱う。
 UI が関係する task では、`ui-design.md` と必要な task-local UIプロトタイプを人間レビュー前に揃える。
 人間レビュー中は、UIプロトタイプ確認サーバーを起動したままにする。
+UIプロトタイプ確認サーバーを `designer` agent が保持している場合は、人間レビューが終了するまで `designer` agent を起動したままにする。
+人間レビュー中の UI 指摘は、起動中の `designer` agent が直接受け取り、`ui-design.md` と task-local UIプロトタイプへ反映する。
 frontend 実装がある task では、承認済み UI 設計成果物を implementation-scope と frontend 実装の根拠にする。
 
 ## 判断規約
