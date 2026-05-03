@@ -10,350 +10,172 @@ import (
 )
 
 type fakeTranslationJobSetupService struct {
-	validateRequestFunc       func(context.Context, jobsetupservice.TranslationJobSetupValidationRequest) (jobsetupservice.TranslationJobSetupValidationDecision, error)
-	evaluateCreateRequestFunc func(context.Context, jobsetupservice.TranslationJobSetupCreateRequest) (jobsetupservice.TranslationJobSetupCreateDecision, error)
-	readOptionsFunc           func(context.Context) (jobsetupservice.TranslationJobSetupOptionsReadModel, error)
+	validateRequestFunc    func(context.Context, jobsetupservice.TranslationJobSetupValidationRequest) (jobsetupservice.TranslationJobSetupValidationDecision, error)
+	evaluateCreateFunc     func(context.Context, jobsetupservice.TranslationJobSetupCreateRequest) (jobsetupservice.TranslationJobSetupCreateDecision, error)
+	createTranslationFunc  func(context.Context, jobsetupservice.TranslationJobSetupCreateRequest, []string) (jobsetupservice.TranslationJobSetupCreatedJobReadModel, error)
+	readOptionsFunc        func(context.Context) (jobsetupservice.TranslationJobSetupOptionsReadModel, error)
+	readSummaryFunc        func(context.Context, int64) (jobsetupservice.TranslationJobSetupSummaryReadModel, error)
+	listProviderModelsFunc func(context.Context, jobsetupservice.ListTranslationJobSetupProviderModelsRequest) (jobsetupservice.ListTranslationJobSetupProviderModelsResult, error)
 }
 
-func (service fakeTranslationJobSetupService) ValidateRequest(
-	ctx context.Context,
-	request jobsetupservice.TranslationJobSetupValidationRequest,
-) (jobsetupservice.TranslationJobSetupValidationDecision, error) {
-	if service.validateRequestFunc != nil {
-		return service.validateRequestFunc(ctx, request)
-	}
-	return jobsetupservice.TranslationJobSetupValidationDecision{}, nil
+func (service fakeTranslationJobSetupService) ValidateRequest(ctx context.Context, request jobsetupservice.TranslationJobSetupValidationRequest) (jobsetupservice.TranslationJobSetupValidationDecision, error) {
+	return service.validateRequestFunc(ctx, request)
 }
 
-func (service fakeTranslationJobSetupService) EvaluateCreateRequest(
-	ctx context.Context,
-	request jobsetupservice.TranslationJobSetupCreateRequest,
-) (jobsetupservice.TranslationJobSetupCreateDecision, error) {
-	if service.evaluateCreateRequestFunc != nil {
-		return service.evaluateCreateRequestFunc(ctx, request)
-	}
-	return jobsetupservice.TranslationJobSetupCreateDecision{}, nil
+func (service fakeTranslationJobSetupService) EvaluateCreateRequest(ctx context.Context, request jobsetupservice.TranslationJobSetupCreateRequest) (jobsetupservice.TranslationJobSetupCreateDecision, error) {
+	return service.evaluateCreateFunc(ctx, request)
 }
 
-func (service fakeTranslationJobSetupService) ReadOptions(
-	ctx context.Context,
-) (jobsetupservice.TranslationJobSetupOptionsReadModel, error) {
-	if service.readOptionsFunc != nil {
-		return service.readOptionsFunc(ctx)
-	}
-	return jobsetupservice.TranslationJobSetupOptionsReadModel{}, nil
+func (service fakeTranslationJobSetupService) CreateTranslationJob(ctx context.Context, request jobsetupservice.TranslationJobSetupCreateRequest, passSlices []string) (jobsetupservice.TranslationJobSetupCreatedJobReadModel, error) {
+	return service.createTranslationFunc(ctx, request, passSlices)
 }
 
-func TestTranslationJobSetupUsecaseValidateTranslationJobSetupReturnsPassDecision(t *testing.T) {
-	validatedAt := time.Date(2026, 4, 27, 13, 0, 0, 0, time.UTC)
+func (service fakeTranslationJobSetupService) ReadOptions(ctx context.Context) (jobsetupservice.TranslationJobSetupOptionsReadModel, error) {
+	return service.readOptionsFunc(ctx)
+}
+
+func (service fakeTranslationJobSetupService) ReadSummary(ctx context.Context, jobID int64) (jobsetupservice.TranslationJobSetupSummaryReadModel, error) {
+	return service.readSummaryFunc(ctx, jobID)
+}
+
+func (service fakeTranslationJobSetupService) ListProviderModels(ctx context.Context, request jobsetupservice.ListTranslationJobSetupProviderModelsRequest) (jobsetupservice.ListTranslationJobSetupProviderModelsResult, error) {
+	return service.listProviderModelsFunc(ctx, request)
+}
+
+func TestTranslationJobSetupUsecaseValidateForwardsPhaseRuntimes(t *testing.T) {
+	validatedAt := time.Date(2026, 5, 4, 11, 0, 0, 0, time.UTC)
 	var captured jobsetupservice.TranslationJobSetupValidationRequest
 	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		validateRequestFunc: func(
-			_ context.Context,
-			request jobsetupservice.TranslationJobSetupValidationRequest,
-		) (jobsetupservice.TranslationJobSetupValidationDecision, error) {
+		validateRequestFunc: func(_ context.Context, request jobsetupservice.TranslationJobSetupValidationRequest) (jobsetupservice.TranslationJobSetupValidationDecision, error) {
 			captured = request
 			return jobsetupservice.TranslationJobSetupValidationDecision{
 				Status:      "pass",
 				ValidatedAt: validatedAt,
 				CanCreate:   true,
 				PassSlices:  []string{"input", "runtime", "credentials"},
-			}, nil
-		},
-	})
-
-	got, err := usecase.ValidateTranslationJobSetup(context.Background(), ValidateTranslationJobSetupRequest{
-		InputSourceID: 44,
-		Runtime: TranslationJobSetupRuntimeSelection{
-			Provider:      "openai",
-			Model:         "gpt-5.4-mini",
-			ExecutionMode: "batch",
-		},
-		CredentialRef: "openai-primary",
-	})
-	if err != nil {
-		t.Fatalf("expected validation request to succeed: %v", err)
-	}
-
-	wantCaptured := jobsetupservice.TranslationJobSetupValidationRequest{
-		InputSourceID: 44,
-		Provider:      "openai",
-		Model:         "gpt-5.4-mini",
-		ExecutionMode: "batch",
-		CredentialRef: "openai-primary",
-	}
-	if !reflect.DeepEqual(captured, wantCaptured) {
-		t.Fatalf("expected validation request %#v, got %#v", wantCaptured, captured)
-	}
-
-	want := TranslationJobSetupValidationResult{
-		Status:       "pass",
-		TargetSlices: []string{},
-		ValidatedAt:  validatedAt,
-		CanCreate:    true,
-		PassSlices:   []string{"input", "runtime", "credentials"},
-	}
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expected validation result %#v, got %#v", want, got)
-	}
-}
-
-func TestTranslationJobSetupUsecaseValidateTranslationJobSetupNormalizesNilSlicesToEmptyArrays(t *testing.T) {
-	validatedAt := time.Date(2026, 5, 3, 6, 58, 30, 0, time.UTC)
-	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		validateRequestFunc: func(
-			_ context.Context,
-			_ jobsetupservice.TranslationJobSetupValidationRequest,
-		) (jobsetupservice.TranslationJobSetupValidationDecision, error) {
-			return jobsetupservice.TranslationJobSetupValidationDecision{
-				Status:       "pass",
-				ValidatedAt:  validatedAt,
-				CanCreate:    true,
-				TargetSlices: nil,
-				PassSlices:   nil,
-			}, nil
-		},
-	})
-
-	got, err := usecase.ValidateTranslationJobSetup(context.Background(), ValidateTranslationJobSetupRequest{
-		InputSourceID: 44,
-		Runtime: TranslationJobSetupRuntimeSelection{
-			Provider:      "lm_studio",
-			Model:         "local-model",
-			ExecutionMode: "sync",
-		},
-		CredentialRef: "lm_studio-primary",
-	})
-	if err != nil {
-		t.Fatalf("expected validation request to succeed: %v", err)
-	}
-	if got.TargetSlices == nil {
-		t.Fatalf("expected target slices to be normalized to empty array, got nil")
-	}
-	if got.PassSlices == nil {
-		t.Fatalf("expected pass slices to be normalized to empty array, got nil")
-	}
-	if len(got.TargetSlices) != 0 || len(got.PassSlices) != 0 {
-		t.Fatalf("expected empty slices after normalization, got %#v", got)
-	}
-}
-
-func TestTranslationJobSetupUsecaseGetOptionsMapsServerOwnedReadModelWithoutExistingJob(t *testing.T) {
-	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		readOptionsFunc: func(context.Context) (jobsetupservice.TranslationJobSetupOptionsReadModel, error) {
-			return jobsetupservice.TranslationJobSetupOptionsReadModel{
-				InputCandidates: []jobsetupservice.TranslationJobSetupInputCandidateReadModel{
-					{
-						ID:          77,
-						Label:       "Quest fragments import",
-						SourceKind:  "translation_input",
-						RecordCount: 32,
-					},
-				},
-				ExistingJob: nil,
-				SharedDictionaries: []jobsetupservice.TranslationJobSetupDictionaryOptionReadModel{
-					{ID: "dict-quest", Label: "Quest Dictionary"},
-				},
-				SharedPersonas: []jobsetupservice.TranslationJobSetupPersonaOptionReadModel{
-					{ID: "persona-mage", Label: "Mage Persona"},
-				},
-				AIRuntimeOptions: []jobsetupservice.TranslationJobSetupRuntimeOptionReadModel{
-					{Provider: "xai", Model: "grok-4", Mode: "sync"},
-					{Provider: "lm_studio", Model: "lmstudio-community", Mode: "sync"},
-				},
-				CredentialRefs: []jobsetupservice.TranslationJobSetupCredentialReferenceReadModel{
-					{Provider: "xai", CredentialRef: "xai-primary", IsConfigured: true, IsMissingSecret: false},
-					{Provider: "lm_studio", CredentialRef: "lmstudio-local", IsConfigured: true, IsMissingSecret: false},
-				},
-			}, nil
-		},
-	})
-
-	got, err := usecase.GetTranslationJobSetupOptions(context.Background())
-	if err != nil {
-		t.Fatalf("expected options request to succeed: %v", err)
-	}
-
-	want := TranslationJobSetupOptionsResult{
-		InputCandidates: []TranslationJobSetupInputCandidate{
-			{ID: 77, Label: "Quest fragments import", SourceKind: "translation_input", RecordCount: 32},
-		},
-		ExistingJob: nil,
-		SharedDictionaries: []TranslationJobSetupDictionaryOption{
-			{ID: "dict-quest", Label: "Quest Dictionary"},
-		},
-		SharedPersonas: []TranslationJobSetupPersonaOption{
-			{ID: "persona-mage", Label: "Mage Persona"},
-		},
-		AIRuntimeOptions: []TranslationJobSetupRuntimeOption{
-			{Provider: "xai", Model: "grok-4", Mode: "sync"},
-			{Provider: "lm_studio", Model: "lmstudio-community", Mode: "sync"},
-		},
-		CredentialRefs: []TranslationJobSetupCredentialReference{
-			{Provider: "xai", CredentialRef: "xai-primary", IsConfigured: true, IsMissingSecret: false},
-			{Provider: "lm_studio", CredentialRef: "lmstudio-local", IsConfigured: true, IsMissingSecret: false},
-		},
-	}
-
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expected assembled job setup options %#v, got %#v", want, got)
-	}
-}
-
-func TestTranslationJobSetupUsecaseGetOptionsMapsExistingJobInputSourceID(t *testing.T) {
-	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		readOptionsFunc: func(context.Context) (jobsetupservice.TranslationJobSetupOptionsReadModel, error) {
-			return jobsetupservice.TranslationJobSetupOptionsReadModel{
-				InputCandidates: []jobsetupservice.TranslationJobSetupInputCandidateReadModel{{
-					ID:          77,
-					Label:       "Quest fragments import",
-					SourceKind:  "translation_input",
-					RecordCount: 32,
+				PhaseResults: []jobsetupservice.TranslationJobSetupPhaseValidationReadModel{{
+					PhaseID:              "word_translation",
+					Status:               "pass",
+					CanCreate:            true,
+					ModelListState:       "success",
+					ModelListSourceToken: "word_translation|openai|openai-primary|req-1",
 				}},
-				ExistingJob: &jobsetupservice.TranslationJobSetupExistingJobReadModel{
-					InputSourceID: 77,
-					JobID:         91,
-					Status:        "ready",
-					InputSource:   "translation_input",
-				},
 			}, nil
 		},
 	})
 
-	got, err := usecase.GetTranslationJobSetupOptions(context.Background())
+	got, err := usecase.ValidateTranslationJobSetup(context.Background(), ValidateTranslationJobSetupRequest{
+		InputSourceID: 44,
+		PhaseRuntimeSelections: []TranslationJobSetupPhaseRuntimeSelection{{
+			PhaseID:              "word_translation",
+			Provider:             "openai",
+			Model:                "gpt-5.4-mini",
+			CredentialRef:        "openai-primary",
+			CredentialStatus:     "configured",
+			ExecutionMode:        "sync",
+			BatchMode:            "unsupported",
+			ModelListSourceToken: "word_translation|openai|openai-primary|req-1",
+		}},
+	})
 	if err != nil {
-		t.Fatalf("expected options request to succeed: %v", err)
+		t.Fatalf("expected validation success: %v", err)
 	}
-	if got.ExistingJob == nil {
-		t.Fatalf("expected existing job to be mapped, got %#v", got)
+	if captured.InputSourceID != 44 || len(captured.PhaseRuntimes) != 1 || captured.PhaseRuntimes[0].PhaseID != "word_translation" {
+		t.Fatalf("expected phase runtime forwarding, got %#v", captured)
 	}
-	if got.ExistingJob.InputSourceID != 77 {
-		t.Fatalf("expected existing job inputSourceId=77, got %#v", got.ExistingJob)
-	}
-	if got.ExistingJob.JobID != 91 || got.ExistingJob.Status != "ready" || got.ExistingJob.InputSource != "translation_input" {
-		t.Fatalf("expected existing job fields to stay intact, got %#v", got.ExistingJob)
+	if got.Status != "pass" || !got.CanCreate || len(got.PhaseResults) != 1 {
+		t.Fatalf("expected mapped validation result, got %#v", got)
 	}
 }
 
-func TestTranslationJobSetupUsecaseGetSummaryReturnsReadOnlyJob(t *testing.T) {
-	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{})
-
-	got, err := usecase.GetTranslationJobSetupSummary(context.Background(), GetTranslationJobSetupSummaryRequest{JobID: 91})
-	if err != nil {
-		t.Fatalf("expected summary request to succeed: %v", err)
-	}
-
-	want := TranslationJobSetupSummaryResult{
-		JobID:       91,
-		JobState:    "ready",
-		InputSource: "translation_input",
-		ExecutionSummary: TranslationJobExecutionSummary{
-			Provider:      "openai",
-			Model:         "gpt-5.4-mini",
-			ExecutionMode: "batch",
+func TestTranslationJobSetupUsecaseListProviderModelsMapsResponse(t *testing.T) {
+	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
+		listProviderModelsFunc: func(_ context.Context, request jobsetupservice.ListTranslationJobSetupProviderModelsRequest) (jobsetupservice.ListTranslationJobSetupProviderModelsResult, error) {
+			if request.Provider != "gemini" {
+				t.Fatalf("expected gemini request, got %#v", request)
+			}
+			return jobsetupservice.ListTranslationJobSetupProviderModelsResult{
+				PhaseID:          request.PhaseID,
+				Provider:         request.Provider,
+				CredentialStatus: "configured",
+				RequestToken:     request.RequestToken,
+				SourceToken:      "npc_persona_generation|gemini|gemini-primary|req-2",
+				Status:           "success",
+				Models:           []jobsetupservice.TranslationJobSetupProviderModelOptionReadModel{{ModelID: "gemini-2.5-pro", Label: "Gemini 2.5 Pro"}},
+			}, nil
 		},
-		ValidationPassSlices: []string{"input", "runtime", "credentials"},
-	}
+	})
 
+	got, err := usecase.ListTranslationJobSetupProviderModels(context.Background(), ListTranslationJobSetupProviderModelsRequest{
+		PhaseID:          "npc_persona_generation",
+		Provider:         "gemini",
+		CredentialRef:    "gemini-primary",
+		CredentialStatus: "configured",
+		RequestToken:     "req-2",
+	})
+	if err != nil {
+		t.Fatalf("expected provider model list success: %v", err)
+	}
+	want := ListTranslationJobSetupProviderModelsResult{
+		PhaseID:          "npc_persona_generation",
+		Provider:         "gemini",
+		CredentialStatus: "configured",
+		RequestToken:     "req-2",
+		SourceToken:      "npc_persona_generation|gemini|gemini-primary|req-2",
+		Status:           "success",
+		Models:           []TranslationJobSetupProviderModelOption{{ModelID: "gemini-2.5-pro", Label: "Gemini 2.5 Pro"}},
+	}
 	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("expected read-only job setup summary %#v, got %#v", want, got)
+		t.Fatalf("expected mapped provider model response %#v, got %#v", want, got)
 	}
 }
 
-func TestTranslationJobSetupUsecaseCreateTranslationJobForwardsFullCreateRequest(t *testing.T) {
-	validatedAt := time.Date(2026, 4, 27, 13, 30, 0, 0, time.UTC)
-	var captured jobsetupservice.TranslationJobSetupCreateRequest
+func TestTranslationJobSetupUsecaseCreateReturnsPhaseRuntimeSummaries(t *testing.T) {
 	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		evaluateCreateRequestFunc: func(
-			_ context.Context,
-			request jobsetupservice.TranslationJobSetupCreateRequest,
-		) (jobsetupservice.TranslationJobSetupCreateDecision, error) {
-			captured = request
+		evaluateCreateFunc: func(_ context.Context, request jobsetupservice.TranslationJobSetupCreateRequest) (jobsetupservice.TranslationJobSetupCreateDecision, error) {
+			if len(request.PhaseRuntimes) != 3 {
+				t.Fatalf("expected three phase runtimes, got %#v", request.PhaseRuntimes)
+			}
 			return jobsetupservice.TranslationJobSetupCreateDecision{
-				CanCreate: false,
-				ErrorKind: TranslationJobSetupErrorKindValidationFailed,
+				CanCreate:            true,
+				ValidationPassSlices: []string{"input", "runtime", "credentials"},
+			}, nil
+		},
+		createTranslationFunc: func(_ context.Context, _ jobsetupservice.TranslationJobSetupCreateRequest, passSlices []string) (jobsetupservice.TranslationJobSetupCreatedJobReadModel, error) {
+			return jobsetupservice.TranslationJobSetupCreatedJobReadModel{
+				JobID:                77,
+				JobState:             "ready",
+				InputSource:          "translation_input",
+				ExecutionSummary:     jobsetupservice.TranslationJobSetupExecutionSummaryReadModel{Provider: "openai", Model: "gpt-5.4-mini", ExecutionMode: "sync"},
+				ValidationPassSlices: passSlices,
+				PhaseRuntimeSummaries: []jobsetupservice.TranslationJobSetupPhaseRuntimeSummaryReadModel{{
+					PhaseID:              "text_translation",
+					Provider:             "xai",
+					Model:                "grok-4",
+					CredentialRef:        "xai-primary",
+					CredentialStatus:     "configured",
+					ExecutionMode:        "batch",
+					BatchMode:            "enabled",
+					ModelListSourceToken: "text_translation|xai|xai-primary|req-3",
+				}},
 			}, nil
 		},
 	})
 
 	got, err := usecase.CreateTranslationJob(context.Background(), CreateTranslationJobRequest{
-		InputSourceID:        44,
-		InputSource:          "translation_input",
-		ValidationStatus:     TranslationJobSetupValidationStatusPass,
-		ValidatedAt:          validatedAt,
-		ValidationPassSlices: []string{"input", "runtime"},
-		Runtime: TranslationJobSetupRuntimeSelection{
-			Provider:      "openai",
-			Model:         "gpt-5.4-mini",
-			ExecutionMode: "batch",
-		},
-		CredentialRef: "openai-primary",
-	})
-	if err != nil {
-		t.Fatalf("expected rejected create to return without transport error: %v", err)
-	}
-
-	wantCaptured := jobsetupservice.TranslationJobSetupCreateRequest{
 		InputSourceID:    44,
-		ValidationStatus: TranslationJobSetupValidationStatusPass,
-		ValidatedAt:      validatedAt,
-		Provider:         "openai",
-		Model:            "gpt-5.4-mini",
-		ExecutionMode:    "batch",
-		CredentialRef:    "openai-primary",
-	}
-	if !reflect.DeepEqual(captured, wantCaptured) {
-		t.Fatalf("expected create request %#v, got %#v", wantCaptured, captured)
-	}
-	if got.ErrorKind != TranslationJobSetupErrorKindValidationFailed {
-		t.Fatalf("expected validation_failed result, got %#v", got)
-	}
-}
-
-func TestTranslationJobSetupUsecaseCreateTranslationJobReturnsRejectedDecision(t *testing.T) {
-	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		evaluateCreateRequestFunc: func(
-			_ context.Context,
-			_ jobsetupservice.TranslationJobSetupCreateRequest,
-		) (jobsetupservice.TranslationJobSetupCreateDecision, error) {
-			return jobsetupservice.TranslationJobSetupCreateDecision{
-				CanCreate: false,
-				ErrorKind: TranslationJobSetupErrorKindValidationStale,
-			}, nil
+		ValidationStatus: "pass",
+		ValidatedAt:      time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC),
+		PhaseRuntimeSelections: []TranslationJobSetupPhaseRuntimeSelection{
+			{PhaseID: "word_translation", Provider: "openai", Model: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "word_translation|openai|openai-primary|req-1"},
+			{PhaseID: "npc_persona_generation", Provider: "gemini", Model: "gemini-2.5-pro", CredentialRef: "gemini-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled", ModelListSourceToken: "npc_persona_generation|gemini|gemini-primary|req-2"},
+			{PhaseID: "text_translation", Provider: "xai", Model: "grok-4", CredentialRef: "xai-primary", CredentialStatus: "configured", ExecutionMode: "batch", BatchMode: "enabled", ModelListSourceToken: "text_translation|xai|xai-primary|req-3"},
 		},
 	})
-
-	got, err := usecase.CreateTranslationJob(context.Background(), CreateTranslationJobRequest{
-		ValidationStatus: TranslationJobSetupValidationStatusPass,
-	})
 	if err != nil {
-		t.Fatalf("expected rejected create to return without transport error: %v", err)
+		t.Fatalf("expected create success: %v", err)
 	}
-	if got.ErrorKind != TranslationJobSetupErrorKindValidationStale {
-		t.Fatalf("expected validation_stale result, got %#v", got)
-	}
-}
-
-func TestTranslationJobSetupUsecaseCreateTranslationJobPreservesProviderModeUnsupportedKind(t *testing.T) {
-	usecase := NewTranslationJobSetupUsecase(fakeTranslationJobSetupService{
-		evaluateCreateRequestFunc: func(
-			_ context.Context,
-			_ jobsetupservice.TranslationJobSetupCreateRequest,
-		) (jobsetupservice.TranslationJobSetupCreateDecision, error) {
-			return jobsetupservice.TranslationJobSetupCreateDecision{
-				CanCreate: false,
-				ErrorKind: TranslationJobSetupErrorKindProviderModeUnsupported,
-			}, nil
-		},
-	})
-
-	got, err := usecase.CreateTranslationJob(context.Background(), CreateTranslationJobRequest{
-		ValidationStatus: TranslationJobSetupValidationStatusPass,
-	})
-	if err != nil {
-		t.Fatalf("expected rejected create to preserve provider_mode_unsupported without transport error: %v", err)
-	}
-	if got.ErrorKind != TranslationJobSetupErrorKindProviderModeUnsupported {
-		t.Fatalf("expected provider_mode_unsupported result, got %#v", got)
+	if got.JobID != 77 || len(got.PhaseRuntimeSummaries) != 1 || got.PhaseRuntimeSummaries[0].Provider != "xai" {
+		t.Fatalf("expected phase runtime summaries in create result, got %#v", got)
 	}
 }

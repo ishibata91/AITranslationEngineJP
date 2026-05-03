@@ -1,0 +1,566 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSPPS-002",
+      "decision_rationale": "master-persona provider 設定からの非依存は本 task の責務境界として独立 scenario にする。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "単語翻訳 phase の設定は 3 phase 共通の作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "NPC ペルソナ生成 phase の設定は 3 phase 共通の作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "本文翻訳 phase の設定は 3 phase 共通の作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 は手動 model 入力なしを承認した。getModels 成功候補だけを選ぶ条件として model 候補取得 scenario に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "decision_rationale": "LM Studio の credential 不要 UI は独立した代替正常系にする。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "Gemini / xAI の batch mode 明示切替は provider capability 境界として採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "batch 対象外 provider の非表示または disabled は batch mode scenario に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSPPS-009",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSPPS-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "phase 別設定の不足判定と create 可否は Ready job 作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "Draft 作成は phase 別 provider 設定の作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSPPS-006",
+      "decision_rationale": "設定変更と遅延 model list 結果の保護は独立した状態遷移 scenario にする。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "getModels 成功時の候補更新は secret gate scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、model list API 失敗後は手動 model 入力へ進めず、retry または provider / credential 修正へ戻す条件として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "API key 未設定時の外部取得抑止は secret gate scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "decision_rationale": "LM Studio の API key なし lifecycle は LM Studio scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "Gemini batch 切替は Gemini / xAI 共通の batch scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "xAI batch 切替は Gemini / xAI 共通の batch scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "未設定なしの create は Ready job 作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "作成済み Ready job の read-only 再表示は create 後要約に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-011",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSPPS-007",
+      "decision_rationale": "単語翻訳 phase 実行時の参照境界は phase 実行参照 scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-012",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-007",
+      "decision_rationale": "NPC ペルソナ生成 phase 実行時の参照境界は phase 実行参照 scenario に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSPPS-LC-013",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-007",
+      "decision_rationale": "本文翻訳 phase 実行時の参照境界は phase 実行参照 scenario に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-006",
+      "decision_rationale": "設定変更時の model 未選択戻しは状態遷移 scenario に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "phase 間混線防止は phase 別 provider 設定 scenario に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "Ready read-only 要約は create 後要約に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "model list 状態差分は secret gate scenario に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "provider 変更時の batch 可否は batch mode scenario に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "decision_rationale": "LM Studio credential not_required は LM Studio scenario に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSPPS-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSPPS-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-006",
+      "decision_rationale": "遅延 getModels result の混入防止は model 選択保護 scenario に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、API key 未設定時は手動 model 入力を許可せず、credential 設定待ちとして model 候補取得 scenario に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、model list API 失敗後は retry state に留め、手動 model 入力へ進めない条件として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "decision_rationale": "LM Studio に API key 不足 failure を出さない条件は LM Studio scenario に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "Gemini / xAI 以外の batch 指定 failure は batch mode scenario に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-002",
+      "decision_rationale": "master-persona 依存残存は非依存 scenario に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "phase 別 provider 設定不足は Ready job 作成 scenario の validation 条件に統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-006",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、stale model selection の回復は取得済み候補の再選択、retry、provider / credential 修正だけに限定する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSPPS-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSPPS-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-008",
+      "decision_rationale": "credential 参照失効時の secret 非露出と外部 request 抑止は redaction scenario に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "provider 別 getModels の secret gate は model 候補取得 scenario に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "API key 未設定時の外部取得抑止は model 候補取得 scenario に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "decision_rationale": "LM Studio の API key なし model 候補扱いは LM Studio scenario に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "phase ごとの provider / model / credential 検証は Ready job 作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSPPS-008",
+      "decision_rationale": "fake provider を user-facing list に出さない条件は testability / redaction scenario として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "Gemini / xAI batch capability は batch mode scenario に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、model list failure は retry state に留め、手動 model 入力へ進めない条件として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、provider 固有 response 正規化の失敗後も手動 model 入力を許可せず、retry または provider 修正へ戻す。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSPPS-009",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSPPS-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-008",
+      "decision_rationale": "phase detail の redaction 境界は secret 非露出 scenario に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-PPS-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "decision_rationale": "job 作成後の phase 別 runtime 要約は Ready job 作成 scenario に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-PPS-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSPPS-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-008",
+      "decision_rationale": "credential 参照状態と secret 非露出は redaction scenario に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-PPS-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSPPS-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "decision_rationale": "人間回答 Q-TJSPPS-001 により、model list 取得失敗後は手動 model 入力を残さず、失敗カテゴリと retry 導線だけを監査可能にする。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-PPS-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSPPS-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "decision_rationale": "LM Studio の API key warning 非表示は LM Studio scenario に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-PPS-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSPPS-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "decision_rationale": "batch mode の明示選択要約は batch mode scenario に統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJS-PPS-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSPPS-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSPPS-002",
+      "decision_rationale": "master-persona provider 設定を参照していない監査は非依存 scenario に統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-TJSPPS-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSPPS-005",
+        "lifecycle:CAND-TJSPPS-LC-004",
+        "failure:CAND-TJSPPS-001",
+        "failure:CAND-TJSPPS-002",
+        "failure:CAND-TJSPPS-007",
+        "external-integration:CAND-TJSPPS-007",
+        "external-integration:CAND-TJSPPS-008",
+        "operation-audit:CAND-TJS-PPS-003"
+      ],
+      "conflict_type": "model_selection_policy",
+      "reason": "getModels 成功候補だけに限定する案と、取得失敗または API key 未設定時に手動 model 入力へ戻す案が競合していた。",
+      "resolution_rationale": "人間回答 Q-TJSPPS-001 は選択肢 1 を承認した。model list API 失敗時、または API key 必須 provider で API key 未設定時は、手動 model 入力を許可しない。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TJSPPS-001",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSPPS-002",
+        "actor-goal:CAND-TJSPPS-003",
+        "actor-goal:CAND-TJSPPS-004",
+        "actor-goal:CAND-TJSPPS-009",
+        "lifecycle:CAND-TJSPPS-LC-001",
+        "lifecycle:CAND-TJSPPS-LC-009",
+        "lifecycle:CAND-TJSPPS-LC-010",
+        "state-transition:CAND-TJSPPS-ST-002",
+        "state-transition:CAND-TJSPPS-ST-003",
+        "failure:CAND-TJSPPS-006",
+        "external-integration:CAND-TJSPPS-004",
+        "operation-audit:CAND-TJS-PPS-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-002",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSPPS-001",
+        "failure:CAND-TJSPPS-005",
+        "operation-audit:CAND-TJS-PPS-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-003",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSPPS-005",
+        "lifecycle:CAND-TJSPPS-LC-003",
+        "lifecycle:CAND-TJSPPS-LC-004",
+        "lifecycle:CAND-TJSPPS-LC-005",
+        "state-transition:CAND-TJSPPS-ST-004",
+        "failure:CAND-TJSPPS-001",
+        "failure:CAND-TJSPPS-002",
+        "external-integration:CAND-TJSPPS-001",
+        "external-integration:CAND-TJSPPS-002",
+        "external-integration:CAND-TJSPPS-007",
+        "external-integration:CAND-TJSPPS-008",
+        "operation-audit:CAND-TJS-PPS-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-004",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSPPS-006",
+        "lifecycle:CAND-TJSPPS-LC-006",
+        "state-transition:CAND-TJSPPS-ST-006",
+        "failure:CAND-TJSPPS-003",
+        "external-integration:CAND-TJSPPS-003",
+        "operation-audit:CAND-TJS-PPS-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-005",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSPPS-007",
+        "actor-goal:CAND-TJSPPS-008",
+        "lifecycle:CAND-TJSPPS-LC-007",
+        "lifecycle:CAND-TJSPPS-LC-008",
+        "state-transition:CAND-TJSPPS-ST-005",
+        "failure:CAND-TJSPPS-004",
+        "external-integration:CAND-TJSPPS-006",
+        "operation-audit:CAND-TJS-PPS-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-006",
+      "candidate_ids": [
+        "lifecycle:CAND-TJSPPS-LC-002",
+        "failure:CAND-TJSPPS-007",
+        "state-transition:CAND-TJSPPS-ST-001",
+        "state-transition:CAND-TJSPPS-ST-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-007",
+      "candidate_ids": [
+        "lifecycle:CAND-TJSPPS-LC-011",
+        "lifecycle:CAND-TJSPPS-LC-012",
+        "lifecycle:CAND-TJSPPS-LC-013"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSPPS-008",
+      "candidate_ids": [
+        "failure:CAND-TJSPPS-008",
+        "external-integration:CAND-TJSPPS-005",
+        "external-integration:CAND-TJSPPS-009",
+        "operation-audit:CAND-TJS-PPS-002"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

@@ -2,6 +2,10 @@ import type {
   CreateTranslationJobRequest,
   CreateTranslationJobResponse,
   GetTranslationJobSetupSummaryRequest,
+  ListTranslationJobSetupProviderModelsRequest,
+  ListTranslationJobSetupProviderModelsResponse,
+  SaveTranslationJobSetupCredentialRequest,
+  SaveTranslationJobSetupCredentialResponse,
   TranslationJobSetupOptionsResponse,
   TranslationJobSetupSummaryResponse,
   TranslationJobSetupValidationResponse,
@@ -10,6 +14,16 @@ import type {
 
 export type GetTranslationJobSetupOptionsResponseDto =
   TranslationJobSetupOptionsResponse
+
+export type ListTranslationJobSetupProviderModelsRequestDto =
+  ListTranslationJobSetupProviderModelsRequest
+export type ListTranslationJobSetupProviderModelsResponseDto =
+  ListTranslationJobSetupProviderModelsResponse
+
+export type SaveTranslationJobSetupCredentialRequestDto =
+  SaveTranslationJobSetupCredentialRequest
+export type SaveTranslationJobSetupCredentialResponseDto =
+  SaveTranslationJobSetupCredentialResponse
 
 export type ValidateTranslationJobSetupRequestDto =
   ValidateTranslationJobSetupRequest

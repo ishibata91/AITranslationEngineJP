@@ -10,9 +10,11 @@ import (
 )
 
 // TranslationJobSetupErrorKind identifies contract-level rejected outcomes.
-type TranslationJobSetupErrorKind = string
+type TranslationJobSetupErrorKind string
 
 const (
+	// TranslationJobSetupErrorKindPhaseRuntimeMissing identifies a rejected outcome caused by one or more missing phase runtime settings.
+	TranslationJobSetupErrorKindPhaseRuntimeMissing TranslationJobSetupErrorKind = "phase_runtime_missing"
 	// TranslationJobSetupErrorKindRequiredSettingMissing identifies a rejected outcome caused by missing required setup state.
 	TranslationJobSetupErrorKindRequiredSettingMissing TranslationJobSetupErrorKind = "required_setting_missing"
 	// TranslationJobSetupErrorKindInputNotFound identifies a rejected outcome caused by a missing input source.
@@ -24,6 +26,13 @@ const (
 	//nolint:gosec // credential_missing is a fixed public error-kind literal, not a secret.
 	// TranslationJobSetupErrorKindCredentialMissing identifies a rejected outcome caused by a missing credential reference.
 	TranslationJobSetupErrorKindCredentialMissing TranslationJobSetupErrorKind = "credential_missing"
+	//nolint:gosec // fixed public error-kind literal, not a secret.
+	// TranslationJobSetupErrorKindModelListCredentialMissing identifies a rejected outcome caused by a missing credential during provider model listing.
+	TranslationJobSetupErrorKindModelListCredentialMissing TranslationJobSetupErrorKind = "model_list_credential_missing"
+	// TranslationJobSetupErrorKindModelListFailed identifies a rejected outcome caused by provider model list retrieval failure.
+	TranslationJobSetupErrorKindModelListFailed TranslationJobSetupErrorKind = "model_list_failed"
+	// TranslationJobSetupErrorKindModelSelectionStale identifies a rejected outcome caused by a stale provider model selection.
+	TranslationJobSetupErrorKindModelSelectionStale TranslationJobSetupErrorKind = "model_selection_stale"
 	// TranslationJobSetupErrorKindProviderModeUnsupported identifies a rejected outcome caused by an unsupported provider/mode combination.
 	TranslationJobSetupErrorKindProviderModeUnsupported TranslationJobSetupErrorKind = "provider_mode_unsupported"
 	// TranslationJobSetupErrorKindProviderUnreachable identifies a rejected outcome caused by provider reachability failure.
@@ -45,16 +54,16 @@ const (
 
 // NormalizeTranslationJobSetupPublicErrorKind collapses internal compatibility aliases to the frozen public kinds.
 func NormalizeTranslationJobSetupPublicErrorKind(kind TranslationJobSetupErrorKind) TranslationJobSetupErrorKind {
-	trimmedKind := strings.TrimSpace(kind)
+	trimmedKind := strings.TrimSpace(string(kind))
 	switch strings.ToLower(trimmedKind) {
 	case "":
-		return ""
-	case "validation_failed", TranslationJobSetupErrorKindReadyRequired:
+		return TranslationJobSetupErrorKind("")
+	case "validation_failed", string(TranslationJobSetupErrorKindReadyRequired):
 		return TranslationJobSetupErrorKindReadyRequired
-	case "duplicate_input", TranslationJobSetupErrorKindDuplicateJobForInput:
+	case "duplicate_input", string(TranslationJobSetupErrorKindDuplicateJobForInput):
 		return TranslationJobSetupErrorKindDuplicateJobForInput
 	default:
-		return trimmedKind
+		return TranslationJobSetupErrorKind(trimmedKind)
 	}
 }
 
@@ -63,14 +72,80 @@ func NormalizeTranslationJobSetupPublicErrorCategory(category *string) *string {
 	if category == nil {
 		return nil
 	}
-	normalized := NormalizeTranslationJobSetupPublicErrorKind(*category)
+	normalized := string(NormalizeTranslationJobSetupPublicErrorKind(TranslationJobSetupErrorKind(*category)))
 	return &normalized
 }
 
 const translationJobSetupValidationFreshnessCutoffHourUTC = 9
 
+// TranslationJobSetupPhaseID identifies one translation stage inside Job Setup.
+type TranslationJobSetupPhaseID string
+
+const (
+	// TranslationJobSetupPhaseIDWordTranslation identifies the term translation runtime selection.
+	TranslationJobSetupPhaseIDWordTranslation TranslationJobSetupPhaseID = "word_translation"
+	// TranslationJobSetupPhaseIDNPCPersonaGeneration identifies the persona generation runtime selection.
+	TranslationJobSetupPhaseIDNPCPersonaGeneration TranslationJobSetupPhaseID = "npc_persona_generation"
+	// TranslationJobSetupPhaseIDTextTranslation identifies the body translation runtime selection.
+	TranslationJobSetupPhaseIDTextTranslation TranslationJobSetupPhaseID = "text_translation"
+)
+
+// TranslationJobSetupCredentialRequirement identifies whether a provider requires a credential reference.
+type TranslationJobSetupCredentialRequirement string
+
+const (
+	// TranslationJobSetupCredentialRequirementRequired identifies providers that need a credential reference.
+	TranslationJobSetupCredentialRequirementRequired TranslationJobSetupCredentialRequirement = "required"
+	// TranslationJobSetupCredentialRequirementNotRequired identifies providers that do not need a credential reference.
+	TranslationJobSetupCredentialRequirementNotRequired TranslationJobSetupCredentialRequirement = "not_required"
+)
+
+// TranslationJobSetupCredentialStatus identifies the credential state that can be exposed publicly.
+type TranslationJobSetupCredentialStatus string
+
+const (
+	// TranslationJobSetupCredentialStatusConfigured identifies a resolved credential reference.
+	TranslationJobSetupCredentialStatusConfigured TranslationJobSetupCredentialStatus = "configured"
+	// TranslationJobSetupCredentialStatusMissing identifies a missing or unresolved credential reference.
+	TranslationJobSetupCredentialStatusMissing TranslationJobSetupCredentialStatus = "missing"
+	// TranslationJobSetupCredentialStatusNotRequired identifies providers that do not need credentials.
+	TranslationJobSetupCredentialStatusNotRequired TranslationJobSetupCredentialStatus = "not_required"
+)
+
+// TranslationJobSetupBatchMode identifies the public batch-mode state for one phase.
+type TranslationJobSetupBatchMode string
+
+const (
+	// TranslationJobSetupBatchModeDisabled identifies supported providers with batch mode turned off.
+	TranslationJobSetupBatchModeDisabled TranslationJobSetupBatchMode = "disabled"
+	// TranslationJobSetupBatchModeEnabled identifies supported providers with batch mode turned on.
+	TranslationJobSetupBatchModeEnabled TranslationJobSetupBatchMode = "enabled"
+	// TranslationJobSetupBatchModeUnsupported identifies providers that do not support batch mode.
+	TranslationJobSetupBatchModeUnsupported TranslationJobSetupBatchMode = "unsupported"
+)
+
+// TranslationJobSetupProviderModelListStatus identifies one provider model list loading state.
+type TranslationJobSetupProviderModelListStatus string
+
+const (
+	// TranslationJobSetupProviderModelListStatusNotUpdated identifies a phase whose model list was not requested yet.
+	TranslationJobSetupProviderModelListStatusNotUpdated TranslationJobSetupProviderModelListStatus = "not_updated"
+	// TranslationJobSetupProviderModelListStatusLoading identifies an in-flight model-list request.
+	TranslationJobSetupProviderModelListStatusLoading TranslationJobSetupProviderModelListStatus = "loading"
+	// TranslationJobSetupProviderModelListStatusSuccess identifies a successful model-list fetch.
+	TranslationJobSetupProviderModelListStatusSuccess TranslationJobSetupProviderModelListStatus = "success"
+	// TranslationJobSetupProviderModelListStatusFailed identifies a redacted model-list failure.
+	TranslationJobSetupProviderModelListStatusFailed TranslationJobSetupProviderModelListStatus = "failed"
+	//nolint:gosec // fixed public status literal, not a secret.
+	// TranslationJobSetupProviderModelListStatusCredentialMissing identifies missing credentials before request dispatch.
+	TranslationJobSetupProviderModelListStatusCredentialMissing TranslationJobSetupProviderModelListStatus = "credential_missing"
+	//nolint:gosec // fixed public status literal, not a secret.
+	// TranslationJobSetupProviderModelListStatusCredentialNotNeeded identifies providers that do not need credentials.
+	TranslationJobSetupProviderModelListStatusCredentialNotNeeded TranslationJobSetupProviderModelListStatus = "credential_not_required"
+)
+
 // TranslationJobSetupValidationStatus identifies the outcome of one setup validation.
-type TranslationJobSetupValidationStatus = string
+type TranslationJobSetupValidationStatus string
 
 const (
 	// TranslationJobSetupValidationStatusPass identifies a fully passing setup validation.
@@ -83,12 +158,14 @@ const (
 
 // TranslationJobSetupOptionsResult returns the read-only inputs required to start job setup.
 type TranslationJobSetupOptionsResult struct {
-	InputCandidates    []TranslationJobSetupInputCandidate
-	ExistingJob        *TranslationJobSetupExistingJob
-	SharedDictionaries []TranslationJobSetupDictionaryOption
-	SharedPersonas     []TranslationJobSetupPersonaOption
-	AIRuntimeOptions   []TranslationJobSetupRuntimeOption
-	CredentialRefs     []TranslationJobSetupCredentialReference
+	InputCandidates      []TranslationJobSetupInputCandidate
+	ExistingJob          *TranslationJobSetupExistingJob
+	SharedDictionaries   []TranslationJobSetupDictionaryOption
+	SharedPersonas       []TranslationJobSetupPersonaOption
+	AIRuntimeOptions     []TranslationJobSetupRuntimeOption
+	CredentialRefs       []TranslationJobSetupCredentialReference
+	ProviderCapabilities []TranslationJobSetupProviderCapability
+	PhaseRuntimeDrafts   []TranslationJobSetupPhaseRuntimeDraft
 }
 
 // TranslationJobSetupInputCandidate is one selectable translation input source.
@@ -135,6 +212,26 @@ type TranslationJobSetupCredentialReference struct {
 	IsMissingSecret bool
 }
 
+// TranslationJobSetupProviderCapability describes one public provider capability.
+type TranslationJobSetupProviderCapability struct {
+	Provider                string
+	CredentialRequirement   TranslationJobSetupCredentialRequirement
+	SupportedExecutionModes []string
+	SupportsBatchMode       bool
+}
+
+// TranslationJobSetupPhaseRuntimeDraft returns the current draft state for one phase.
+type TranslationJobSetupPhaseRuntimeDraft struct {
+	PhaseID              TranslationJobSetupPhaseID
+	Provider             string
+	Model                string
+	CredentialRef        string
+	CredentialStatus     TranslationJobSetupCredentialStatus
+	ExecutionMode        string
+	BatchMode            TranslationJobSetupBatchMode
+	ModelListSourceToken string
+}
+
 // TranslationJobSetupRuntimeSelection is the selected runtime configuration.
 type TranslationJobSetupRuntimeSelection struct {
 	Provider      string
@@ -142,11 +239,77 @@ type TranslationJobSetupRuntimeSelection struct {
 	ExecutionMode string
 }
 
+// TranslationJobSetupPhaseRuntimeSelection is the selected runtime configuration for one phase.
+type TranslationJobSetupPhaseRuntimeSelection struct {
+	PhaseID              TranslationJobSetupPhaseID
+	Provider             string
+	Model                string
+	CredentialRef        string
+	CredentialStatus     TranslationJobSetupCredentialStatus
+	ExecutionMode        string
+	BatchMode            TranslationJobSetupBatchMode
+	ModelListSourceToken string
+}
+
+// ListTranslationJobSetupProviderModelsRequest carries the transport-stable provider model list input.
+type ListTranslationJobSetupProviderModelsRequest struct {
+	PhaseID          TranslationJobSetupPhaseID
+	Provider         string
+	CredentialRef    string
+	CredentialStatus TranslationJobSetupCredentialStatus
+	RequestToken     string
+}
+
+// TranslationJobSetupProviderModelOption is one selectable provider model.
+type TranslationJobSetupProviderModelOption struct {
+	ModelID string
+	Label   string
+}
+
+// ListTranslationJobSetupProviderModelsResult returns the public provider model list state.
+type ListTranslationJobSetupProviderModelsResult struct {
+	PhaseID          TranslationJobSetupPhaseID
+	Provider         string
+	CredentialStatus TranslationJobSetupCredentialStatus
+	RequestToken     string
+	SourceToken      string
+	Status           TranslationJobSetupProviderModelListStatus
+	Models           []TranslationJobSetupProviderModelOption
+	FailureKind      TranslationJobSetupErrorKind
+}
+
+// SaveTranslationJobSetupCredentialRequest carries the transport-stable credential save input.
+type SaveTranslationJobSetupCredentialRequest struct {
+	Provider      string
+	CredentialRef string
+	APIKey        string
+}
+
+// SaveTranslationJobSetupCredentialResult returns the public credential reference state after save.
+type SaveTranslationJobSetupCredentialResult struct {
+	Provider        string
+	CredentialRef   string
+	IsConfigured    bool
+	IsMissingSecret bool
+}
+
 // ValidateTranslationJobSetupRequest carries the transport-stable validation input.
 type ValidateTranslationJobSetupRequest struct {
-	InputSourceID int64
-	Runtime       TranslationJobSetupRuntimeSelection
-	CredentialRef string
+	InputSourceID          int64
+	Runtime                TranslationJobSetupRuntimeSelection
+	CredentialRef          string
+	PhaseRuntimeSelections []TranslationJobSetupPhaseRuntimeSelection
+}
+
+// TranslationJobSetupPhaseValidationResult returns the validation state for one phase.
+type TranslationJobSetupPhaseValidationResult struct {
+	PhaseID                 TranslationJobSetupPhaseID
+	Status                  TranslationJobSetupValidationStatus
+	BlockingFailureCategory *string
+	CanCreate               bool
+	ModelListState          TranslationJobSetupProviderModelListStatus
+	ModelListSourceToken    string
+	IsModelSelectionStale   bool
 }
 
 // TranslationJobSetupValidationResult returns the validation decision and affected slices.
@@ -157,17 +320,20 @@ type TranslationJobSetupValidationResult struct {
 	ValidatedAt             time.Time
 	CanCreate               bool
 	PassSlices              []string
+	PhaseResults            []TranslationJobSetupPhaseValidationResult
+	StaleModelListPhaseIDs  []TranslationJobSetupPhaseID
 }
 
 // CreateTranslationJobRequest carries the frozen job creation contract.
 type CreateTranslationJobRequest struct {
-	InputSourceID        int64
-	InputSource          string
-	ValidationStatus     TranslationJobSetupValidationStatus
-	ValidatedAt          time.Time
-	ValidationPassSlices []string
-	Runtime              TranslationJobSetupRuntimeSelection
-	CredentialRef        string
+	InputSourceID          int64
+	InputSource            string
+	ValidationStatus       TranslationJobSetupValidationStatus
+	ValidatedAt            time.Time
+	ValidationPassSlices   []string
+	Runtime                TranslationJobSetupRuntimeSelection
+	CredentialRef          string
+	PhaseRuntimeSelections []TranslationJobSetupPhaseRuntimeSelection
 }
 
 // TranslationJobExecutionSummary returns the runtime configuration captured by a job.
@@ -177,14 +343,27 @@ type TranslationJobExecutionSummary struct {
 	ExecutionMode string
 }
 
+// TranslationJobSetupPhaseRuntimeSummary returns the runtime snapshot captured per phase.
+type TranslationJobSetupPhaseRuntimeSummary struct {
+	PhaseID              TranslationJobSetupPhaseID
+	Provider             string
+	Model                string
+	CredentialRef        string
+	CredentialStatus     TranslationJobSetupCredentialStatus
+	ExecutionMode        string
+	BatchMode            TranslationJobSetupBatchMode
+	ModelListSourceToken string
+}
+
 // CreateTranslationJobResult returns either a ready job summary or a rejected error kind.
 type CreateTranslationJobResult struct {
-	JobID                int64
-	JobState             string
-	InputSource          string
-	ExecutionSummary     TranslationJobExecutionSummary
-	ValidationPassSlices []string
-	ErrorKind            TranslationJobSetupErrorKind
+	JobID                 int64
+	JobState              string
+	InputSource           string
+	ExecutionSummary      TranslationJobExecutionSummary
+	ValidationPassSlices  []string
+	PhaseRuntimeSummaries []TranslationJobSetupPhaseRuntimeSummary
+	ErrorKind             TranslationJobSetupErrorKind
 }
 
 // GetTranslationJobSetupSummaryRequest identifies one created job.
@@ -194,12 +373,13 @@ type GetTranslationJobSetupSummaryRequest struct {
 
 // TranslationJobSetupSummaryResult returns the read-only job summary contract.
 type TranslationJobSetupSummaryResult struct {
-	JobID                int64
-	JobState             string
-	InputSource          string
-	CanStartPhase        bool
-	ExecutionSummary     TranslationJobExecutionSummary
-	ValidationPassSlices []string
+	JobID                 int64
+	JobState              string
+	InputSource           string
+	CanStartPhase         bool
+	ExecutionSummary      TranslationJobExecutionSummary
+	ValidationPassSlices  []string
+	PhaseRuntimeSummaries []TranslationJobSetupPhaseRuntimeSummary
 }
 
 // NewTranslationJobSetupContractStub returns a temporary usecase stub for the frozen Wails seam.
@@ -224,10 +404,16 @@ func (TranslationJobSetupContractStub) ValidateTranslationJobSetup(
 ) (TranslationJobSetupValidationResult, error) {
 	decision, err := jobsetupservice.NewTranslationJobSetupService().ValidateRequest(ctx, jobsetupservice.TranslationJobSetupValidationRequest{
 		InputSourceID: request.InputSourceID,
-		Provider:      request.Runtime.Provider,
-		Model:         request.Runtime.Model,
-		ExecutionMode: request.Runtime.ExecutionMode,
-		CredentialRef: request.CredentialRef,
+		PhaseRuntimes: []jobsetupservice.TranslationJobSetupPhaseRuntimeDraftReadModel{{
+			PhaseID:              string(TranslationJobSetupPhaseIDWordTranslation),
+			Provider:             request.Runtime.Provider,
+			Model:                request.Runtime.Model,
+			CredentialRef:        request.CredentialRef,
+			CredentialStatus:     string(TranslationJobSetupCredentialStatusConfigured),
+			ExecutionMode:        request.Runtime.ExecutionMode,
+			BatchMode:            string(TranslationJobSetupBatchModeUnsupported),
+			ModelListSourceToken: "stub",
+		}},
 	})
 	if err != nil {
 		return TranslationJobSetupValidationResult{}, errors.New("validate translation job setup request")
@@ -235,12 +421,28 @@ func (TranslationJobSetupContractStub) ValidateTranslationJobSetup(
 	return toTranslationJobSetupValidationResult(decision), nil
 }
 
+// ListTranslationJobSetupProviderModels returns a not-implemented error for the frozen provider model list seam.
+func (TranslationJobSetupContractStub) ListTranslationJobSetupProviderModels(
+	context.Context,
+	ListTranslationJobSetupProviderModelsRequest,
+) (ListTranslationJobSetupProviderModelsResult, error) {
+	return ListTranslationJobSetupProviderModelsResult{}, errTranslationJobSetupNotImplemented
+}
+
+// SaveTranslationJobSetupCredential returns a not-implemented error for the frozen credential save seam.
+func (TranslationJobSetupContractStub) SaveTranslationJobSetupCredential(
+	context.Context,
+	SaveTranslationJobSetupCredentialRequest,
+) (SaveTranslationJobSetupCredentialResult, error) {
+	return SaveTranslationJobSetupCredentialResult{}, errTranslationJobSetupNotImplemented
+}
+
 // CreateTranslationJob returns a not-implemented error for the frozen contract seam.
 func (TranslationJobSetupContractStub) CreateTranslationJob(
 	_ context.Context,
 	request CreateTranslationJobRequest,
 ) (CreateTranslationJobResult, error) {
-	if strings.ToLower(strings.TrimSpace(request.ValidationStatus)) != TranslationJobSetupValidationStatusPass {
+	if strings.ToLower(strings.TrimSpace(string(request.ValidationStatus))) != string(TranslationJobSetupValidationStatusPass) {
 		return CreateTranslationJobResult{ErrorKind: TranslationJobSetupErrorKindValidationFailed}, nil
 	}
 	if translationJobSetupValidationIsStale(time.Now().UTC(), request.ValidatedAt.UTC()) {

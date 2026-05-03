@@ -9,6 +9,10 @@ import type {
   ValidateTranslationJobSetupRequestDto,
   ValidateTranslationJobSetupResponseDto
 } from "@controller/wails/gateway-dto/translation-job-setup"
+import type {
+  ListTranslationJobSetupProviderModelsRequest,
+  ListTranslationJobSetupProviderModelsResponse
+} from "@application/gateway-contract/translation-job-setup"
 
 import { createTranslationJobSetupGateway } from "./translation-job-setup.gateway"
 
@@ -245,5 +249,49 @@ describe("createTranslationJobSetupGateway", () => {
     ).resolves.toEqual(response)
     expect(getTranslationJobSetupSummary).toHaveBeenCalledTimes(1)
     expect(getTranslationJobSetupSummary).toHaveBeenCalledWith(request)
+  })
+
+  test("listTranslationJobSetupProviderModels は Wails binding を呼び response を返す", async () => {
+    const request: ListTranslationJobSetupProviderModelsRequest = {
+      phaseId: "text_translation",
+      provider: "lm_studio",
+      credentialRef: "",
+      credentialStatus: "not_required",
+      requestToken: "req-lm-1"
+    }
+    const response: ListTranslationJobSetupProviderModelsResponse = {
+      phaseId: "text_translation",
+      provider: "lm_studio",
+      credentialStatus: "not_required",
+      requestToken: "req-lm-1",
+      sourceToken: "text_translation|lm_studio||req-lm-1",
+      status: "credential_not_required",
+      models: [{ modelId: "local-model", label: "local-model" }]
+    }
+    const listTranslationJobSetupProviderModels = vi.fn(() =>
+      Promise.resolve(response)
+    )
+
+    installGo({
+      wails: {
+        TranslationJobSetupController: {
+          ListTranslationJobSetupProviderModels:
+            listTranslationJobSetupProviderModels
+        }
+      }
+    })
+
+    const gateway = createTranslationJobSetupGateway()
+    const gatewayWithList = gateway as {
+      listTranslationJobSetupProviderModels(
+        request: ListTranslationJobSetupProviderModelsRequest
+      ): Promise<ListTranslationJobSetupProviderModelsResponse>
+    }
+
+    await expect(
+      gatewayWithList.listTranslationJobSetupProviderModels(request)
+    ).resolves.toEqual(response)
+    expect(listTranslationJobSetupProviderModels).toHaveBeenCalledTimes(1)
+    expect(listTranslationJobSetupProviderModels).toHaveBeenCalledWith(request)
   })
 })

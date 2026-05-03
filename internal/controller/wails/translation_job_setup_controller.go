@@ -16,6 +16,22 @@ type TranslationJobSetupUsecasePort interface {
 	GetTranslationJobSetupSummary(ctx context.Context, request usecase.GetTranslationJobSetupSummaryRequest) (usecase.TranslationJobSetupSummaryResult, error)
 }
 
+// TranslationJobSetupProviderModelListUsecasePort defines the optional provider model list seam.
+type TranslationJobSetupProviderModelListUsecasePort interface {
+	ListTranslationJobSetupProviderModels(
+		ctx context.Context,
+		request usecase.ListTranslationJobSetupProviderModelsRequest,
+	) (usecase.ListTranslationJobSetupProviderModelsResult, error)
+}
+
+// TranslationJobSetupCredentialSaveUsecasePort defines the optional credential save seam.
+type TranslationJobSetupCredentialSaveUsecasePort interface {
+	SaveTranslationJobSetupCredential(
+		ctx context.Context,
+		request usecase.SaveTranslationJobSetupCredentialRequest,
+	) (usecase.SaveTranslationJobSetupCredentialResult, error)
+}
+
 // TranslationJobSetupController exposes Wails-bound Job Setup entrypoints.
 type TranslationJobSetupController struct {
 	translationJobSetupUsecase TranslationJobSetupUsecasePort
@@ -57,6 +73,14 @@ type TranslationJobSetupRuntimeOptionDTO struct {
 	Mode     string `json:"mode"`
 }
 
+// TranslationJobSetupProviderCapabilityDTO is one public provider capability.
+type TranslationJobSetupProviderCapabilityDTO struct {
+	Provider                string   `json:"provider"`
+	CredentialRequirement   string   `json:"credentialRequirement"`
+	SupportedExecutionModes []string `json:"supportedExecutionModes"`
+	SupportsBatchMode       bool     `json:"supportsBatchMode"`
+}
+
 // TranslationJobSetupCredentialReferenceDTO exposes only credential reference state.
 type TranslationJobSetupCredentialReferenceDTO struct {
 	Provider        string  `json:"provider"`
@@ -66,14 +90,28 @@ type TranslationJobSetupCredentialReferenceDTO struct {
 	SecretPlaintext *string `json:"-"`
 }
 
+// TranslationJobSetupPhaseRuntimeDraftDTO returns the current draft state for one phase.
+type TranslationJobSetupPhaseRuntimeDraftDTO struct {
+	PhaseID              string `json:"phaseId"`
+	Provider             string `json:"provider"`
+	Model                string `json:"model"`
+	CredentialRef        string `json:"credentialRef"`
+	CredentialStatus     string `json:"credentialStatus"`
+	ExecutionMode        string `json:"executionMode"`
+	BatchMode            string `json:"batchMode"`
+	ModelListSourceToken string `json:"modelListSourceToken"`
+}
+
 // TranslationJobSetupOptionsResponseDTO returns the read-only setup options.
 type TranslationJobSetupOptionsResponseDTO struct {
-	InputCandidates    []TranslationJobSetupInputCandidateDTO      `json:"inputCandidates"`
-	ExistingJob        *TranslationJobSetupExistingJobDTO          `json:"existingJob,omitempty"`
-	SharedDictionaries []TranslationJobSetupDictionaryOptionDTO    `json:"sharedDictionaries"`
-	SharedPersonas     []TranslationJobSetupPersonaOptionDTO       `json:"sharedPersonas"`
-	AIRuntimeOptions   []TranslationJobSetupRuntimeOptionDTO       `json:"aiRuntimeOptions"`
-	CredentialRefs     []TranslationJobSetupCredentialReferenceDTO `json:"credentialRefs"`
+	InputCandidates      []TranslationJobSetupInputCandidateDTO      `json:"inputCandidates"`
+	ExistingJob          *TranslationJobSetupExistingJobDTO          `json:"existingJob,omitempty"`
+	SharedDictionaries   []TranslationJobSetupDictionaryOptionDTO    `json:"sharedDictionaries"`
+	SharedPersonas       []TranslationJobSetupPersonaOptionDTO       `json:"sharedPersonas"`
+	AIRuntimeOptions     []TranslationJobSetupRuntimeOptionDTO       `json:"aiRuntimeOptions"`
+	CredentialRefs       []TranslationJobSetupCredentialReferenceDTO `json:"credentialRefs"`
+	ProviderCapabilities []TranslationJobSetupProviderCapabilityDTO  `json:"providerCapabilities"`
+	PhaseRuntimeDrafts   []TranslationJobSetupPhaseRuntimeDraftDTO   `json:"phaseRuntimeDrafts"`
 }
 
 // TranslationJobSetupRuntimeSelectionDTO carries the runtime selection for validation and create.
@@ -83,32 +121,101 @@ type TranslationJobSetupRuntimeSelectionDTO struct {
 	ExecutionMode string `json:"executionMode"`
 }
 
+// TranslationJobSetupPhaseRuntimeSelectionDTO carries the runtime selection for one phase.
+type TranslationJobSetupPhaseRuntimeSelectionDTO struct {
+	PhaseID              string `json:"phaseId"`
+	Provider             string `json:"provider"`
+	Model                string `json:"model"`
+	CredentialRef        string `json:"credentialRef"`
+	CredentialStatus     string `json:"credentialStatus"`
+	ExecutionMode        string `json:"executionMode"`
+	BatchMode            string `json:"batchMode"`
+	ModelListSourceToken string `json:"modelListSourceToken"`
+}
+
+// ListTranslationJobSetupProviderModelsRequestDTO carries the provider model list request payload.
+type ListTranslationJobSetupProviderModelsRequestDTO struct {
+	PhaseID          string `json:"phaseId"`
+	Provider         string `json:"provider"`
+	CredentialRef    string `json:"credentialRef"`
+	CredentialStatus string `json:"credentialStatus"`
+	RequestToken     string `json:"requestToken"`
+}
+
+// TranslationJobSetupProviderModelOptionDTO is one selectable provider model.
+type TranslationJobSetupProviderModelOptionDTO struct {
+	ModelID string `json:"modelId"`
+	Label   string `json:"label"`
+}
+
+// ListTranslationJobSetupProviderModelsResponseDTO returns the provider model list state.
+type ListTranslationJobSetupProviderModelsResponseDTO struct {
+	PhaseID          string                                      `json:"phaseId"`
+	Provider         string                                      `json:"provider"`
+	CredentialStatus string                                      `json:"credentialStatus"`
+	RequestToken     string                                      `json:"requestToken"`
+	SourceToken      string                                      `json:"sourceToken"`
+	Status           string                                      `json:"status"`
+	Models           []TranslationJobSetupProviderModelOptionDTO `json:"models"`
+	FailureKind      string                                      `json:"failureKind,omitempty"`
+}
+
+// SaveTranslationJobSetupCredentialRequestDTO carries the secret save payload.
+type SaveTranslationJobSetupCredentialRequestDTO struct {
+	Provider      string `json:"provider"`
+	CredentialRef string `json:"credentialRef"`
+	APIKey        string `json:"apiKey"`
+}
+
+// SaveTranslationJobSetupCredentialResponseDTO returns the credential reference state after save.
+type SaveTranslationJobSetupCredentialResponseDTO struct {
+	Provider        string `json:"provider"`
+	CredentialRef   string `json:"credentialRef"`
+	IsConfigured    bool   `json:"isConfigured"`
+	IsMissingSecret bool   `json:"isMissingSecret"`
+}
+
 // ValidateTranslationJobSetupRequestDTO carries the frozen validation request payload.
 type ValidateTranslationJobSetupRequestDTO struct {
-	InputSourceID int64                                  `json:"inputSourceId"`
-	Runtime       TranslationJobSetupRuntimeSelectionDTO `json:"runtime"`
-	CredentialRef string                                 `json:"credentialRef"`
+	InputSourceID          int64                                         `json:"inputSourceId"`
+	Runtime                TranslationJobSetupRuntimeSelectionDTO        `json:"runtime"`
+	CredentialRef          string                                        `json:"credentialRef"`
+	PhaseRuntimeSelections []TranslationJobSetupPhaseRuntimeSelectionDTO `json:"phaseRuntimeSelections"`
+}
+
+// TranslationJobSetupPhaseValidationResponseDTO returns the validation result for one phase.
+type TranslationJobSetupPhaseValidationResponseDTO struct {
+	PhaseID                 string  `json:"phaseId"`
+	Status                  string  `json:"status"`
+	BlockingFailureCategory *string `json:"blockingFailureCategory,omitempty"`
+	CanCreate               bool    `json:"canCreate"`
+	ModelListState          string  `json:"modelListState"`
+	ModelListSourceToken    string  `json:"modelListSourceToken"`
+	IsModelSelectionStale   bool    `json:"isModelSelectionStale"`
 }
 
 // TranslationJobSetupValidationResponseDTO returns the frozen validation result shape.
 type TranslationJobSetupValidationResponseDTO struct {
-	Status                  string   `json:"status"`
-	BlockingFailureCategory *string  `json:"blockingFailureCategory,omitempty"`
-	TargetSlices            []string `json:"targetSlices"`
-	ValidatedAt             string   `json:"validatedAt"`
-	CanCreate               bool     `json:"canCreate"`
-	PassSlices              []string `json:"passSlices"`
+	Status                  string                                          `json:"status"`
+	BlockingFailureCategory *string                                         `json:"blockingFailureCategory,omitempty"`
+	TargetSlices            []string                                        `json:"targetSlices"`
+	ValidatedAt             string                                          `json:"validatedAt"`
+	CanCreate               bool                                            `json:"canCreate"`
+	PassSlices              []string                                        `json:"passSlices"`
+	PhaseResults            []TranslationJobSetupPhaseValidationResponseDTO `json:"phaseResults"`
+	StaleModelListPhaseIDs  []string                                        `json:"staleModelListPhaseIds"`
 }
 
 // CreateTranslationJobRequestDTO carries the frozen create request payload.
 type CreateTranslationJobRequestDTO struct {
-	InputSourceID        int64                                  `json:"inputSourceId"`
-	InputSource          string                                 `json:"inputSource"`
-	ValidationStatus     string                                 `json:"validationStatus"`
-	ValidatedAt          string                                 `json:"validatedAt"`
-	ValidationPassSlices []string                               `json:"validationPassSlices"`
-	Runtime              TranslationJobSetupRuntimeSelectionDTO `json:"runtime"`
-	CredentialRef        string                                 `json:"credentialRef"`
+	InputSourceID          int64                                         `json:"inputSourceId"`
+	InputSource            string                                        `json:"inputSource"`
+	ValidationStatus       string                                        `json:"validationStatus"`
+	ValidatedAt            string                                        `json:"validatedAt"`
+	ValidationPassSlices   []string                                      `json:"validationPassSlices"`
+	Runtime                TranslationJobSetupRuntimeSelectionDTO        `json:"runtime"`
+	CredentialRef          string                                        `json:"credentialRef"`
+	PhaseRuntimeSelections []TranslationJobSetupPhaseRuntimeSelectionDTO `json:"phaseRuntimeSelections"`
 }
 
 // TranslationJobExecutionSummaryDTO returns the runtime summary captured by a created job.
@@ -118,14 +225,27 @@ type TranslationJobExecutionSummaryDTO struct {
 	ExecutionMode string `json:"executionMode"`
 }
 
+// TranslationJobSetupPhaseRuntimeSummaryDTO returns the runtime snapshot for one phase.
+type TranslationJobSetupPhaseRuntimeSummaryDTO struct {
+	PhaseID              string `json:"phaseId"`
+	Provider             string `json:"provider"`
+	Model                string `json:"model"`
+	CredentialRef        string `json:"credentialRef"`
+	CredentialStatus     string `json:"credentialStatus"`
+	ExecutionMode        string `json:"executionMode"`
+	BatchMode            string `json:"batchMode"`
+	ModelListSourceToken string `json:"modelListSourceToken"`
+}
+
 // CreateTranslationJobResponseDTO returns either a ready job or a rejected error kind.
 type CreateTranslationJobResponseDTO struct {
-	JobID                int64                              `json:"jobId"`
-	JobState             string                             `json:"jobState"`
-	InputSource          string                             `json:"inputSource"`
-	ExecutionSummary     *TranslationJobExecutionSummaryDTO `json:"executionSummary,omitempty"`
-	ValidationPassSlices []string                           `json:"validationPassSlices"`
-	ErrorKind            string                             `json:"errorKind,omitempty"`
+	JobID                 int64                                       `json:"jobId"`
+	JobState              string                                      `json:"jobState"`
+	InputSource           string                                      `json:"inputSource"`
+	ExecutionSummary      *TranslationJobExecutionSummaryDTO          `json:"executionSummary,omitempty"`
+	ValidationPassSlices  []string                                    `json:"validationPassSlices"`
+	ErrorKind             string                                      `json:"errorKind,omitempty"`
+	PhaseRuntimeSummaries []TranslationJobSetupPhaseRuntimeSummaryDTO `json:"phaseRuntimeSummaries"`
 }
 
 // GetTranslationJobSetupSummaryRequestDTO identifies the requested created job.
@@ -135,12 +255,13 @@ type GetTranslationJobSetupSummaryRequestDTO struct {
 
 // TranslationJobSetupSummaryResponseDTO returns the frozen read-only job summary shape.
 type TranslationJobSetupSummaryResponseDTO struct {
-	JobID                int64                             `json:"jobId"`
-	JobState             string                            `json:"jobState"`
-	InputSource          string                            `json:"inputSource"`
-	CanStartPhase        bool                              `json:"canStartPhase"`
-	ExecutionSummary     TranslationJobExecutionSummaryDTO `json:"executionSummary"`
-	ValidationPassSlices []string                          `json:"validationPassSlices"`
+	JobID                 int64                                       `json:"jobId"`
+	JobState              string                                      `json:"jobState"`
+	InputSource           string                                      `json:"inputSource"`
+	CanStartPhase         bool                                        `json:"canStartPhase"`
+	ExecutionSummary      TranslationJobExecutionSummaryDTO           `json:"executionSummary"`
+	ValidationPassSlices  []string                                    `json:"validationPassSlices"`
+	PhaseRuntimeSummaries []TranslationJobSetupPhaseRuntimeSummaryDTO `json:"phaseRuntimeSummaries"`
 }
 
 // NewTranslationJobSetupController creates a Job Setup controller.
@@ -157,6 +278,70 @@ func (controller *TranslationJobSetupController) GetTranslationJobSetupOptions()
 	return toTranslationJobSetupOptionsResponseDTO(result), nil
 }
 
+// ListTranslationJobSetupProviderModels returns the frozen provider model list contract.
+func (controller *TranslationJobSetupController) ListTranslationJobSetupProviderModels(
+	request ListTranslationJobSetupProviderModelsRequestDTO,
+) (ListTranslationJobSetupProviderModelsResponseDTO, error) {
+	modelListUsecase, ok := controller.translationJobSetupUsecase.(TranslationJobSetupProviderModelListUsecasePort)
+	if !ok {
+		return ListTranslationJobSetupProviderModelsResponseDTO{}, fmt.Errorf(
+			"list translation job setup provider models: %w",
+			errTranslationJobSetupProviderModelListNotImplemented,
+		)
+	}
+
+	result, err := modelListUsecase.ListTranslationJobSetupProviderModels(
+		context.Background(),
+		usecase.ListTranslationJobSetupProviderModelsRequest{
+			PhaseID:          usecase.TranslationJobSetupPhaseID(request.PhaseID),
+			Provider:         request.Provider,
+			CredentialRef:    request.CredentialRef,
+			CredentialStatus: usecase.TranslationJobSetupCredentialStatus(request.CredentialStatus),
+			RequestToken:     request.RequestToken,
+		},
+	)
+	if err != nil {
+		return ListTranslationJobSetupProviderModelsResponseDTO{}, fmt.Errorf(
+			"list translation job setup provider models: %w",
+			err,
+		)
+	}
+	return toListTranslationJobSetupProviderModelsResponseDTO(result), nil
+}
+
+// SaveTranslationJobSetupCredential stores one provider credential in the backend secret store.
+func (controller *TranslationJobSetupController) SaveTranslationJobSetupCredential(
+	request SaveTranslationJobSetupCredentialRequestDTO,
+) (SaveTranslationJobSetupCredentialResponseDTO, error) {
+	credentialSaveUsecase, ok := controller.translationJobSetupUsecase.(TranslationJobSetupCredentialSaveUsecasePort)
+	if !ok {
+		return SaveTranslationJobSetupCredentialResponseDTO{}, fmt.Errorf(
+			"save translation job setup credential: %w",
+			errTranslationJobSetupCredentialSaveNotImplemented,
+		)
+	}
+	result, err := credentialSaveUsecase.SaveTranslationJobSetupCredential(
+		context.Background(),
+		usecase.SaveTranslationJobSetupCredentialRequest{
+			Provider:      request.Provider,
+			CredentialRef: request.CredentialRef,
+			APIKey:        request.APIKey,
+		},
+	)
+	if err != nil {
+		return SaveTranslationJobSetupCredentialResponseDTO{}, fmt.Errorf(
+			"save translation job setup credential: %w",
+			err,
+		)
+	}
+	return SaveTranslationJobSetupCredentialResponseDTO{
+		Provider:        result.Provider,
+		CredentialRef:   result.CredentialRef,
+		IsConfigured:    result.IsConfigured,
+		IsMissingSecret: result.IsMissingSecret,
+	}, nil
+}
+
 // ValidateTranslationJobSetup validates one Job Setup request.
 func (controller *TranslationJobSetupController) ValidateTranslationJobSetup(
 	request ValidateTranslationJobSetupRequestDTO,
@@ -167,6 +352,11 @@ func (controller *TranslationJobSetupController) ValidateTranslationJobSetup(
 			InputSourceID: request.InputSourceID,
 			Runtime:       toTranslationJobSetupRuntimeSelection(request.Runtime),
 			CredentialRef: request.CredentialRef,
+			PhaseRuntimeSelections: toTranslationJobSetupEffectivePhaseRuntimeSelections(
+				request.Runtime,
+				request.CredentialRef,
+				request.PhaseRuntimeSelections,
+			),
 		},
 	)
 	if err != nil {
@@ -193,11 +383,16 @@ func (controller *TranslationJobSetupController) CreateTranslationJob(
 		usecase.CreateTranslationJobRequest{
 			InputSourceID:        request.InputSourceID,
 			InputSource:          request.InputSource,
-			ValidationStatus:     request.ValidationStatus,
+			ValidationStatus:     usecase.TranslationJobSetupValidationStatus(request.ValidationStatus),
 			ValidatedAt:          validatedAt,
 			ValidationPassSlices: cloneStrings(request.ValidationPassSlices),
 			Runtime:              toTranslationJobSetupRuntimeSelection(request.Runtime),
 			CredentialRef:        request.CredentialRef,
+			PhaseRuntimeSelections: toTranslationJobSetupEffectivePhaseRuntimeSelections(
+				request.Runtime,
+				request.CredentialRef,
+				request.PhaseRuntimeSelections,
+			),
 		},
 	)
 	if err != nil {
@@ -222,11 +417,13 @@ func (controller *TranslationJobSetupController) GetTranslationJobSetupSummary(
 
 func toTranslationJobSetupOptionsResponseDTO(result usecase.TranslationJobSetupOptionsResult) TranslationJobSetupOptionsResponseDTO {
 	response := TranslationJobSetupOptionsResponseDTO{
-		InputCandidates:    toTranslationJobSetupInputCandidateDTOs(result.InputCandidates),
-		SharedDictionaries: toTranslationJobSetupDictionaryOptionDTOs(result.SharedDictionaries),
-		SharedPersonas:     toTranslationJobSetupPersonaOptionDTOs(result.SharedPersonas),
-		AIRuntimeOptions:   toTranslationJobSetupRuntimeOptionDTOs(result.AIRuntimeOptions),
-		CredentialRefs:     toTranslationJobSetupCredentialReferenceDTOs(result.CredentialRefs),
+		InputCandidates:      toTranslationJobSetupInputCandidateDTOs(result.InputCandidates),
+		SharedDictionaries:   toTranslationJobSetupDictionaryOptionDTOs(result.SharedDictionaries),
+		SharedPersonas:       toTranslationJobSetupPersonaOptionDTOs(result.SharedPersonas),
+		AIRuntimeOptions:     toTranslationJobSetupRuntimeOptionDTOs(result.AIRuntimeOptions),
+		CredentialRefs:       toTranslationJobSetupCredentialReferenceDTOs(result.CredentialRefs),
+		ProviderCapabilities: toTranslationJobSetupProviderCapabilityDTOs(result.ProviderCapabilities),
+		PhaseRuntimeDrafts:   toTranslationJobSetupPhaseRuntimeDraftDTOs(result.PhaseRuntimeDrafts),
 	}
 	if result.ExistingJob != nil {
 		existingJob := toTranslationJobSetupExistingJobDTO(*result.ExistingJob)
@@ -286,6 +483,21 @@ func toTranslationJobSetupRuntimeOptionDTOs(options []usecase.TranslationJobSetu
 	return results
 }
 
+func toTranslationJobSetupProviderCapabilityDTOs(
+	capabilities []usecase.TranslationJobSetupProviderCapability,
+) []TranslationJobSetupProviderCapabilityDTO {
+	results := make([]TranslationJobSetupProviderCapabilityDTO, 0, len(capabilities))
+	for _, capability := range capabilities {
+		results = append(results, TranslationJobSetupProviderCapabilityDTO{
+			Provider:                capability.Provider,
+			CredentialRequirement:   string(capability.CredentialRequirement),
+			SupportedExecutionModes: cloneStrings(capability.SupportedExecutionModes),
+			SupportsBatchMode:       capability.SupportsBatchMode,
+		})
+	}
+	return results
+}
+
 func toTranslationJobSetupCredentialReferenceDTOs(refs []usecase.TranslationJobSetupCredentialReference) []TranslationJobSetupCredentialReferenceDTO {
 	results := make([]TranslationJobSetupCredentialReferenceDTO, 0, len(refs))
 	for _, ref := range refs {
@@ -299,6 +511,25 @@ func toTranslationJobSetupCredentialReferenceDTOs(refs []usecase.TranslationJobS
 	return results
 }
 
+func toTranslationJobSetupPhaseRuntimeDraftDTOs(
+	drafts []usecase.TranslationJobSetupPhaseRuntimeDraft,
+) []TranslationJobSetupPhaseRuntimeDraftDTO {
+	results := make([]TranslationJobSetupPhaseRuntimeDraftDTO, 0, len(drafts))
+	for _, draft := range drafts {
+		results = append(results, TranslationJobSetupPhaseRuntimeDraftDTO{
+			PhaseID:              string(draft.PhaseID),
+			Provider:             draft.Provider,
+			Model:                draft.Model,
+			CredentialRef:        draft.CredentialRef,
+			CredentialStatus:     string(draft.CredentialStatus),
+			ExecutionMode:        draft.ExecutionMode,
+			BatchMode:            string(draft.BatchMode),
+			ModelListSourceToken: draft.ModelListSourceToken,
+		})
+	}
+	return results
+}
+
 func toTranslationJobSetupRuntimeSelection(runtime TranslationJobSetupRuntimeSelectionDTO) usecase.TranslationJobSetupRuntimeSelection {
 	return usecase.TranslationJobSetupRuntimeSelection{
 		Provider:      runtime.Provider,
@@ -307,24 +538,148 @@ func toTranslationJobSetupRuntimeSelection(runtime TranslationJobSetupRuntimeSel
 	}
 }
 
+func toTranslationJobSetupPhaseRuntimeSelections(
+	selections []TranslationJobSetupPhaseRuntimeSelectionDTO,
+) []usecase.TranslationJobSetupPhaseRuntimeSelection {
+	if len(selections) == 0 {
+		return []usecase.TranslationJobSetupPhaseRuntimeSelection{}
+	}
+
+	results := make([]usecase.TranslationJobSetupPhaseRuntimeSelection, 0, len(selections))
+	for _, selection := range selections {
+		results = append(results, usecase.TranslationJobSetupPhaseRuntimeSelection{
+			PhaseID:              usecase.TranslationJobSetupPhaseID(selection.PhaseID),
+			Provider:             selection.Provider,
+			Model:                selection.Model,
+			CredentialRef:        selection.CredentialRef,
+			CredentialStatus:     usecase.TranslationJobSetupCredentialStatus(selection.CredentialStatus),
+			ExecutionMode:        selection.ExecutionMode,
+			BatchMode:            usecase.TranslationJobSetupBatchMode(selection.BatchMode),
+			ModelListSourceToken: selection.ModelListSourceToken,
+		})
+	}
+	return results
+}
+
+func toTranslationJobSetupEffectivePhaseRuntimeSelections(
+	runtime TranslationJobSetupRuntimeSelectionDTO,
+	credentialRef string,
+	selections []TranslationJobSetupPhaseRuntimeSelectionDTO,
+) []usecase.TranslationJobSetupPhaseRuntimeSelection {
+	convertedSelections := toTranslationJobSetupPhaseRuntimeSelections(selections)
+	if len(convertedSelections) > 0 {
+		return convertedSelections
+	}
+
+	credentialStatus := usecase.TranslationJobSetupCredentialStatusConfigured
+	if runtime.Provider == "lm_studio" {
+		credentialStatus = usecase.TranslationJobSetupCredentialStatusNotRequired
+	} else if credentialRef == "" {
+		credentialStatus = usecase.TranslationJobSetupCredentialStatusMissing
+	}
+
+	legacyPhaseSelections := []TranslationJobSetupPhaseRuntimeSelectionDTO{
+		{
+			PhaseID:              string(usecase.TranslationJobSetupPhaseIDWordTranslation),
+			Provider:             runtime.Provider,
+			Model:                runtime.Model,
+			CredentialRef:        credentialRef,
+			CredentialStatus:     string(credentialStatus),
+			ExecutionMode:        runtime.ExecutionMode,
+			BatchMode:            string(usecase.TranslationJobSetupBatchModeUnsupported),
+			ModelListSourceToken: "",
+		},
+		{
+			PhaseID:              string(usecase.TranslationJobSetupPhaseIDNPCPersonaGeneration),
+			Provider:             runtime.Provider,
+			Model:                runtime.Model,
+			CredentialRef:        credentialRef,
+			CredentialStatus:     string(credentialStatus),
+			ExecutionMode:        runtime.ExecutionMode,
+			BatchMode:            string(usecase.TranslationJobSetupBatchModeUnsupported),
+			ModelListSourceToken: "",
+		},
+		{
+			PhaseID:              string(usecase.TranslationJobSetupPhaseIDTextTranslation),
+			Provider:             runtime.Provider,
+			Model:                runtime.Model,
+			CredentialRef:        credentialRef,
+			CredentialStatus:     string(credentialStatus),
+			ExecutionMode:        runtime.ExecutionMode,
+			BatchMode:            string(usecase.TranslationJobSetupBatchModeUnsupported),
+			ModelListSourceToken: "",
+		},
+	}
+	return toTranslationJobSetupPhaseRuntimeSelections(legacyPhaseSelections)
+}
+
+func toListTranslationJobSetupProviderModelsResponseDTO(
+	result usecase.ListTranslationJobSetupProviderModelsResult,
+) ListTranslationJobSetupProviderModelsResponseDTO {
+	return ListTranslationJobSetupProviderModelsResponseDTO{
+		PhaseID:          string(result.PhaseID),
+		Provider:         result.Provider,
+		CredentialStatus: string(result.CredentialStatus),
+		RequestToken:     result.RequestToken,
+		SourceToken:      result.SourceToken,
+		Status:           string(result.Status),
+		Models:           toTranslationJobSetupProviderModelOptionDTOs(result.Models),
+		FailureKind:      string(usecase.NormalizeTranslationJobSetupPublicErrorKind(result.FailureKind)),
+	}
+}
+
+func toTranslationJobSetupProviderModelOptionDTOs(
+	models []usecase.TranslationJobSetupProviderModelOption,
+) []TranslationJobSetupProviderModelOptionDTO {
+	results := make([]TranslationJobSetupProviderModelOptionDTO, 0, len(models))
+	for _, model := range models {
+		results = append(results, TranslationJobSetupProviderModelOptionDTO{
+			ModelID: model.ModelID,
+			Label:   model.Label,
+		})
+	}
+	return results
+}
+
 func toTranslationJobSetupValidationResponseDTO(result usecase.TranslationJobSetupValidationResult) TranslationJobSetupValidationResponseDTO {
 	return TranslationJobSetupValidationResponseDTO{
-		Status:                  result.Status,
+		Status:                  string(result.Status),
 		BlockingFailureCategory: usecase.NormalizeTranslationJobSetupPublicErrorCategory(result.BlockingFailureCategory),
 		TargetSlices:            cloneStrings(result.TargetSlices),
 		ValidatedAt:             result.ValidatedAt.UTC().Format(time.RFC3339),
 		CanCreate:               result.CanCreate,
 		PassSlices:              cloneStrings(result.PassSlices),
+		PhaseResults:            toTranslationJobSetupPhaseValidationResponseDTOs(result.PhaseResults),
+		StaleModelListPhaseIDs:  toTranslationJobSetupPhaseIDStrings(result.StaleModelListPhaseIDs),
 	}
+}
+
+func toTranslationJobSetupPhaseValidationResponseDTOs(
+	results []usecase.TranslationJobSetupPhaseValidationResult,
+) []TranslationJobSetupPhaseValidationResponseDTO {
+	converted := make([]TranslationJobSetupPhaseValidationResponseDTO, 0, len(results))
+	for _, result := range results {
+		converted = append(converted, TranslationJobSetupPhaseValidationResponseDTO{
+			PhaseID:                 string(result.PhaseID),
+			Status:                  string(result.Status),
+			BlockingFailureCategory: usecase.NormalizeTranslationJobSetupPublicErrorCategory(result.BlockingFailureCategory),
+			CanCreate:               result.CanCreate,
+			ModelListState:          string(result.ModelListState),
+			ModelListSourceToken:    result.ModelListSourceToken,
+			IsModelSelectionStale:   result.IsModelSelectionStale,
+		})
+	}
+	return converted
 }
 
 func toCreateTranslationJobResponseDTO(result usecase.CreateTranslationJobResult) CreateTranslationJobResponseDTO {
 	response := CreateTranslationJobResponseDTO{
-		JobID:                result.JobID,
-		JobState:             result.JobState,
-		InputSource:          result.InputSource,
-		ValidationPassSlices: cloneStrings(result.ValidationPassSlices),
-		ErrorKind:            usecase.NormalizeTranslationJobSetupPublicErrorKind(result.ErrorKind),
+		JobID:                 result.JobID,
+		JobState:              result.JobState,
+		InputSource:           result.InputSource,
+		ValidationPassSlices:  cloneStrings(result.ValidationPassSlices),
+		ErrorKind:             string(usecase.NormalizeTranslationJobSetupPublicErrorKind(result.ErrorKind)),
+		PhaseRuntimeSummaries: toTranslationJobSetupPhaseRuntimeSummaryDTOs(result.PhaseRuntimeSummaries),
 	}
 	if result.ErrorKind == "" {
 		executionSummary := toTranslationJobExecutionSummaryDTO(result.ExecutionSummary)
@@ -335,12 +690,13 @@ func toCreateTranslationJobResponseDTO(result usecase.CreateTranslationJobResult
 
 func toTranslationJobSetupSummaryResponseDTO(result usecase.TranslationJobSetupSummaryResult) TranslationJobSetupSummaryResponseDTO {
 	return TranslationJobSetupSummaryResponseDTO{
-		JobID:                result.JobID,
-		JobState:             result.JobState,
-		InputSource:          result.InputSource,
-		CanStartPhase:        result.CanStartPhase,
-		ExecutionSummary:     toTranslationJobExecutionSummaryDTO(result.ExecutionSummary),
-		ValidationPassSlices: cloneStrings(result.ValidationPassSlices),
+		JobID:                 result.JobID,
+		JobState:              result.JobState,
+		InputSource:           result.InputSource,
+		CanStartPhase:         result.CanStartPhase,
+		ExecutionSummary:      toTranslationJobExecutionSummaryDTO(result.ExecutionSummary),
+		ValidationPassSlices:  cloneStrings(result.ValidationPassSlices),
+		PhaseRuntimeSummaries: toTranslationJobSetupPhaseRuntimeSummaryDTOs(result.PhaseRuntimeSummaries),
 	}
 }
 
@@ -352,9 +708,39 @@ func toTranslationJobExecutionSummaryDTO(summary usecase.TranslationJobExecution
 	}
 }
 
+func toTranslationJobSetupPhaseRuntimeSummaryDTOs(
+	summaries []usecase.TranslationJobSetupPhaseRuntimeSummary,
+) []TranslationJobSetupPhaseRuntimeSummaryDTO {
+	results := make([]TranslationJobSetupPhaseRuntimeSummaryDTO, 0, len(summaries))
+	for _, summary := range summaries {
+		results = append(results, TranslationJobSetupPhaseRuntimeSummaryDTO{
+			PhaseID:              string(summary.PhaseID),
+			Provider:             summary.Provider,
+			Model:                summary.Model,
+			CredentialRef:        summary.CredentialRef,
+			CredentialStatus:     string(summary.CredentialStatus),
+			ExecutionMode:        summary.ExecutionMode,
+			BatchMode:            string(summary.BatchMode),
+			ModelListSourceToken: summary.ModelListSourceToken,
+		})
+	}
+	return results
+}
+
+func toTranslationJobSetupPhaseIDStrings(phaseIDs []usecase.TranslationJobSetupPhaseID) []string {
+	results := make([]string, 0, len(phaseIDs))
+	for _, phaseID := range phaseIDs {
+		results = append(results, string(phaseID))
+	}
+	return results
+}
+
 func cloneStrings(values []string) []string {
 	if values == nil {
 		return []string{}
 	}
 	return append([]string(nil), values...)
 }
+
+var errTranslationJobSetupProviderModelListNotImplemented = fmt.Errorf("translation job setup provider model list usecase is not implemented")
+var errTranslationJobSetupCredentialSaveNotImplemented = fmt.Errorf("translation job setup credential save usecase is not implemented")

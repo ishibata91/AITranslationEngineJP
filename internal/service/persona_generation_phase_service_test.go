@@ -276,6 +276,66 @@ func newPersonaPhaseServiceForTest(jobState string, termState string, personaRun
 	return service, jobRepo
 }
 
+func TestPersonaGenerationBuildProviderRequestAllowsEmptyCredentialRefForLMStudio(t *testing.T) {
+	service := NewPersonaGenerationPhaseService(
+		&fakePersonaPhaseJobLifecycleRepository{},
+		&fakePersonaPhaseFoundationDataRepository{},
+		&fakePersonaPhaseTranslationSourceRepository{},
+		fakePersonaPhaseTransactor{},
+	)
+	race := "Nord"
+	sex := "F"
+	className := "Warrior"
+	request, err := service.buildProviderRequest(
+		repository.JobPhaseRun{
+			ID:            77,
+			AIProvider:    "lm_studio",
+			ModelName:     "lmstudio-community",
+			ExecutionMode: "sync",
+			CredentialRef: "",
+		},
+		personaGenerationTarget{
+			record:  repository.TranslationRecord{EditorID: "NPC_01", FormID: "0001"},
+			npc:     repository.NpcRecord{VoiceType: "FemaleEvenToned", Race: &race, Sex: &sex, NpcClass: &className},
+			profile: repository.NpcProfile{ID: 42, DisplayName: "Lydia"},
+			fields:  []repository.TranslationField{{SourceText: "I am sworn to carry your burdens."}},
+		},
+	)
+	if err != nil {
+		t.Fatalf("expected lm studio provider request without credentialRef: %v", err)
+	}
+	if request.Provider != "lm_studio" || request.CredentialRef != "" {
+		t.Fatalf("expected lm studio request to keep empty credentialRef, got %#v", request)
+	}
+}
+
+func TestPersonaGenerationBuildProviderRequestRejectsEmptyCredentialRefForCredentialRequiredProvider(t *testing.T) {
+	service := NewPersonaGenerationPhaseService(
+		&fakePersonaPhaseJobLifecycleRepository{},
+		&fakePersonaPhaseFoundationDataRepository{},
+		&fakePersonaPhaseTranslationSourceRepository{},
+		fakePersonaPhaseTransactor{},
+	)
+	_, err := service.buildProviderRequest(
+		repository.JobPhaseRun{
+			ID:            77,
+			AIProvider:    "gemini",
+			ModelName:     "gemini-2.5-pro",
+			ExecutionMode: "sync",
+			CredentialRef: "",
+		},
+		personaGenerationTarget{
+			record:  repository.TranslationRecord{EditorID: "NPC_01", FormID: "0001"},
+			npc:     repository.NpcRecord{VoiceType: "FemaleEvenToned"},
+			profile: repository.NpcProfile{ID: 42, DisplayName: "Lydia"},
+			fields:  []repository.TranslationField{{SourceText: "I am sworn to carry your burdens."}},
+		},
+	)
+	if err == nil {
+		t.Fatal("expected credential-required provider to reject empty credentialRef")
+	}
+}
+
 func TestPersonaGenerationPhaseService_StartPhaseRejectsTerminalJob(t *testing.T) {
 	service, _ := newPersonaPhaseServiceForTest(personaGenerationJobStateCompleted, personaGenerationPhaseStateCompleted, nil, nil)
 

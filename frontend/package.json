@@ -48,7 +48,8 @@
   },
   "knip": {
     "ignore": [
-      "src/test/setup.ts"
+      "src/test/setup.ts",
+      "scripts/dev/serve-prototype.mjs"
     ]
   }
 }

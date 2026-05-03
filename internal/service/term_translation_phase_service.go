@@ -45,6 +45,8 @@ const (
 	termTranslationReasonSaveFailed          = "save failed"
 	termTranslationReasonTerminalJob         = "terminal job"
 	termTranslationReasonReadyRequired       = "ready job is required"
+	termTranslationReasonPhaseRuntimeMissing = "phase runtime snapshot is missing"
+	termTranslationReasonCredentialMissing   = "term translation provider credential is unavailable"
 	termTranslationReasonActivePhaseExists   = "active phase run already exists"
 	termTranslationReasonPhaseIncomplete     = "term phase state does not allow this command"
 	termTranslationSecretLoadTimeout         = 250 * time.Millisecond
@@ -97,6 +99,14 @@ type termTranslationPhaseTranslationSourceRepository interface {
 
 type termTranslationPhaseSecretStore interface {
 	Load(ctx context.Context, key string) (string, error)
+}
+
+type termTranslationPhaseRuntimeSnapshotReader interface {
+	GetTranslationJobPhaseRuntimeSnapshot(
+		ctx context.Context,
+		translationJobID int64,
+		phaseID string,
+	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
 }
 
 // TermTranslationExecutionConfigReadModel summarizes execution config for one term phase run.
@@ -307,6 +317,7 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		confirmedCount = resultSummary.ConfirmedCount
 	}
 	readiness := service.readinessFromState(job, run, total, confirmedCount, errorSummary)
+	canStart := job.State == termTranslationJobStateReady && !termTranslationPhaseIsActive(run) && termTranslationExecutionConfigured(execution)
 	return TermTranslationPhaseSummaryReadModel{
 		JobID:              job.ID,
 		CurrentPhase:       termTranslationCurrentPhase,
@@ -322,8 +333,8 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		ResultSummary:      resultSummary,
 		ErrorSummary:       errorSummary,
 		ActionEnablement: TermTranslationPhaseActionEnablementReadModel{
-			CanStart:               job.State == termTranslationJobStateReady && !termTranslationPhaseIsActive(run),
-			StartBlockedReason:     termTranslationStartBlockedReason(job, run),
+			CanStart:               canStart,
+			StartBlockedReason:     termTranslationStartBlockedReason(job, run, execution),
 			CanPause:               run != nil && run.State == termTranslationPhaseStateRunning,
 			PauseBlockedReason:     termTranslationPauseBlockedReason(run),
 			CanResume:              run != nil && run.State == termTranslationPhaseStatePaused,
@@ -550,6 +561,9 @@ func (service *TermTranslationPhaseService) prepareExecutionPlan(
 	}
 	if rejectedPlan, rejected := service.rejectExecutionPlan(job, run, mode, phaseRunID); rejected {
 		return rejectedPlan, errTermTranslationPhaseExecutionRejected
+	}
+	if !termTranslationExecutionConfigured(execution) {
+		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseRuntimeMissing), errTermTranslationPhaseExecutionRejected
 	}
 	createdRun := false
 	if run == nil {
@@ -1126,6 +1140,23 @@ func (service *TermTranslationPhaseService) loadExecutionContext(
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
 	}
+	if snapshotReader, ok := service.jobLifecycleRepository.(termTranslationPhaseRuntimeSnapshotReader); ok {
+		snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "word_translation")
+		switch {
+		case snapshotErr == nil:
+			initial.AIProvider = snapshot.Provider
+			initial.ModelName = snapshot.ModelName
+			initial.ExecutionMode = snapshot.ExecutionMode
+			initial.CredentialRef = snapshot.CredentialRef
+		case errors.Is(snapshotErr, repository.ErrNotFound):
+			initial.AIProvider = ""
+			initial.ModelName = ""
+			initial.ExecutionMode = ""
+			initial.CredentialRef = ""
+		default:
+			return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, fmt.Errorf("load term translation phase runtime snapshot: %w", snapshotErr)
+		}
+	}
 	candidates, err := service.collectCandidates(ctx, job.XEditExtractedDataID)
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
@@ -1622,7 +1653,11 @@ func termTranslationPhaseStateFromRun(run *repository.JobPhaseRun) string {
 	return run.State
 }
 
-func termTranslationStartBlockedReason(job repository.TranslationJob, run *repository.JobPhaseRun) *string {
+func termTranslationStartBlockedReason(
+	job repository.TranslationJob,
+	run *repository.JobPhaseRun,
+	execution TermTranslationExecutionConfigReadModel,
+) *string {
 	if termTranslationJobIsTerminal(job.State) {
 		return termTranslationStringPointer(termTranslationReasonTerminalJob)
 	}
@@ -1632,7 +1667,16 @@ func termTranslationStartBlockedReason(job repository.TranslationJob, run *repos
 	if job.State != termTranslationJobStateReady {
 		return termTranslationStringPointer(termTranslationReasonReadyRequired)
 	}
+	if !termTranslationExecutionConfigured(execution) {
+		return termTranslationStringPointer(termTranslationReasonPhaseRuntimeMissing)
+	}
 	return nil
+}
+
+func termTranslationExecutionConfigured(execution TermTranslationExecutionConfigReadModel) bool {
+	return strings.TrimSpace(execution.Provider) != "" &&
+		strings.TrimSpace(execution.Model) != "" &&
+		strings.TrimSpace(execution.ExecutionMode) != ""
 }
 
 func termTranslationPauseBlockedReason(run *repository.JobPhaseRun) *string {
@@ -1821,7 +1865,7 @@ func (service *TermTranslationPhaseService) resolveProviderAPIKey(
 		if service.secretStore == nil {
 			return "", nil
 		}
-		secretValue, loaded, loadErr := service.loadProviderSecret(ctx, termTranslationProviderSecretKey(providerID))
+		secretValue, loaded, loadErr := service.loadProviderSecret(ctx, strings.TrimSpace(execution.CredentialRef))
 		if loadErr != nil {
 			return "", fmt.Errorf("load term translation provider secret: %w", loadErr)
 		}
@@ -1833,16 +1877,20 @@ func (service *TermTranslationPhaseService) resolveProviderAPIKey(
 	if service.secretStore == nil {
 		return "", fmt.Errorf("term translation provider secret store is not configured")
 	}
-	secretValue, loaded, err := service.loadProviderSecret(ctx, termTranslationProviderSecretKey(providerID))
+	credentialRef := strings.TrimSpace(execution.CredentialRef)
+	if credentialRef == "" {
+		return "", errors.New(termTranslationReasonCredentialMissing)
+	}
+	secretValue, loaded, err := service.loadProviderSecret(ctx, credentialRef)
 	if err != nil {
 		return "", fmt.Errorf("load term translation provider secret: %w", err)
 	}
 	if !loaded {
-		return "", fmt.Errorf("term translation provider credential is unavailable")
+		return "", errors.New(termTranslationReasonCredentialMissing)
 	}
 	trimmedSecret := strings.TrimSpace(secretValue)
 	if trimmedSecret == "" {
-		return "", fmt.Errorf("term translation provider credential is unavailable")
+		return "", errors.New(termTranslationReasonCredentialMissing)
 	}
 	return trimmedSecret, nil
 }
@@ -1889,7 +1937,16 @@ func (service *TermTranslationPhaseService) loadProviderSecret(
 }
 
 func termTranslationProviderSecretKey(provider string) string {
-	return "master-persona:" + normalizeTermTranslationText(provider)
+	switch normalizeTermTranslationText(provider) {
+	case normalizeTermTranslationText(string(TermTranslationProviderGemini)):
+		return "gemini-primary"
+	case normalizeTermTranslationText(string(TermTranslationProviderXAI)):
+		return "xai-primary"
+	case normalizeTermTranslationText(string(TermTranslationProviderLMStudio)):
+		return "lmstudio-local"
+	default:
+		return normalizeTermTranslationText(provider)
+	}
 }
 
 func int64Pointer(value int64) *int64 {

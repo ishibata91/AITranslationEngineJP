@@ -42,6 +42,12 @@ func TestCanonicalSchemaCreatesJobPhaseRunTable(t *testing.T) {
 	assertTableExists(t, db, "JOB_PHASE_RUN")
 }
 
+// TestCanonicalSchemaCreatesTranslationJobPhaseRuntimeSnapshotTable は Job Setup phase runtime snapshot テーブルの存在を検証する。
+func TestCanonicalSchemaCreatesTranslationJobPhaseRuntimeSnapshotTable(t *testing.T) {
+	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)
+	assertTableExists(t, db, "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT")
+}
+
 // TestCanonicalSchemaCreatesPersonaTable は PERSONA テーブルの存在を検証する。
 func TestCanonicalSchemaCreatesPersonaTable(t *testing.T) {
 	db := openMasterDictionaryDatabaseForTest(t, filepath.Join(t.TempDir(), "db", canonicalMigrationTestDatabaseFileName), nil)

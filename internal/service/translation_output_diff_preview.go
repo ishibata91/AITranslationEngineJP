@@ -14,107 +14,36 @@ type translationOutputArtifactRowReader interface {
 	ListXTranslatorOutputRowsByArtifactID(ctx context.Context, translationArtifactID int64) ([]repository.XTranslatorOutputRow, error)
 }
 
+type translationOutputPersistedPreviewState struct {
+	rowsByFieldID map[int64]repository.XTranslatorOutputRow
+	rowCount      int
+	compareRows   bool
+}
+
 // ReadDiffPreview returns the diff preview read model for one selected job and artifact.
 func (service *TranslationOutputArtifactService) ReadDiffPreview(
 	ctx context.Context,
 	jobID int64,
 	artifactID int64,
 ) (TranslationOutputDiffPreviewReadModel, error) {
-	loaded, err := service.loadJob(ctx, jobID)
+	loaded, emptyResult, ok, err := service.loadDiffPreviewJob(ctx, jobID, artifactID)
 	if err != nil {
-		if artifactID == 0 && errors.Is(err, repository.ErrNotFound) {
-			return TranslationOutputDiffPreviewReadModel{
-				JobID:                jobID,
-				ArtifactID:           artifactID,
-				Rows:                 []TranslationOutputDiffPreviewRowReadModel{},
-				CompatibilitySummary: TranslationOutputCompatibilitySummaryReadModel{Passed: true},
-			}, nil
-		}
-		return TranslationOutputDiffPreviewReadModel{}, fmt.Errorf("load diff preview translation job %d: %w", jobID, err)
+		return TranslationOutputDiffPreviewReadModel{}, err
 	}
-	persistedRowsByFieldID := map[int64]repository.XTranslatorOutputRow{}
-	persistedRowCount := 0
-	comparePersistedRows := false
-	if artifactID > 0 && service.persistenceRepository != nil {
-		artifact, artifactErr := service.persistenceRepository.GetTranslationArtifactByID(ctx, artifactID)
-		if artifactErr == nil {
-			if artifact.TranslationJobID != jobID {
-				return TranslationOutputDiffPreviewReadModel{
-					JobID:      jobID,
-					ArtifactID: artifactID,
-					Rows:       []TranslationOutputDiffPreviewRowReadModel{},
-					CompatibilitySummary: TranslationOutputCompatibilitySummaryReadModel{
-						Passed:      false,
-						RejectCount: 1,
-					},
-				}, nil
-			}
-			persistedRows, rowErr := listPersistedArtifactRows(ctx, service.persistenceRepository, artifactID)
-			if rowErr != nil {
-				return TranslationOutputDiffPreviewReadModel{}, fmt.Errorf("list persisted artifact rows for diff preview: %w", rowErr)
-			}
-			persistedRowCount = len(persistedRows)
-			comparePersistedRows = true
-			outputsByID := make(map[int64]repository.JobTranslationField, len(loaded.outputs))
-			for _, output := range loaded.outputs {
-				outputsByID[output.ID] = output
-			}
-			for _, row := range persistedRows {
-				output, ok := outputsByID[row.JobTranslationFieldID]
-				if !ok {
-					continue
-				}
-				persistedRowsByFieldID[output.TranslationFieldID] = row
-			}
-		} else if !errors.Is(artifactErr, repository.ErrNotFound) {
-			return TranslationOutputDiffPreviewReadModel{}, fmt.Errorf("get artifact %d for diff preview: %w", artifactID, artifactErr)
-		}
+	if ok {
+		return emptyResult, nil
 	}
-
-	rows := make([]TranslationOutputDiffPreviewRowReadModel, 0, len(loaded.outputs))
-	summary := TranslationOutputCompatibilitySummaryReadModel{Passed: true}
-	fieldCounts := make(map[int64]int, len(loaded.outputs))
-	for _, output := range loaded.outputs {
-		fieldCounts[output.TranslationFieldID]++
+	persistedState, artifactMismatchResult, ok, err := service.loadPersistedPreviewState(ctx, loaded.outputs, jobID, artifactID)
+	if err != nil {
+		return TranslationOutputDiffPreviewReadModel{}, err
 	}
-
-	for _, output := range loaded.outputs {
-		if fieldCounts[output.TranslationFieldID] > 1 {
-			summary.RejectCount++
-			continue
-		}
-
-		result, buildErr := service.buildXTranslatorOutputRow(ctx, output)
-		if buildErr != nil {
-			return TranslationOutputDiffPreviewReadModel{}, fmt.Errorf("build xtranslator output row for field %d: %w", output.TranslationFieldID, buildErr)
-		}
-
-		summary.WarningCount += result.warningCount
-		summary.RejectCount += result.rejectCount
-		if result.rejectCount > 0 {
-			continue
-		}
-		if comparePersistedRows {
-			persistedRow, ok := persistedRowsByFieldID[result.row.FieldID]
-			switch {
-			case !ok:
-				result.row.StaleReason = "generated artifact row is missing"
-				result.row.CanRegenerate = true
-			case buildPersistedXTranslatorRowDigest(result.row.FieldID, persistedRow) != result.row.RowDigest:
-				result.row.StaleReason = "generated artifact row does not match current field result"
-				result.row.CanRegenerate = true
-			}
-		}
-		rows = append(rows, result.row)
+	if ok {
+		return artifactMismatchResult, nil
 	}
-
-	sort.Slice(rows, func(i, j int) bool {
-		return rows[i].FieldID < rows[j].FieldID
-	})
-	if artifactID > 0 && persistedRowCount != len(persistedRowsByFieldID) {
-		summary.WarningCount++
+	rows, summary, err := service.buildDiffPreviewRows(ctx, loaded.outputs, persistedState)
+	if err != nil {
+		return TranslationOutputDiffPreviewReadModel{}, err
 	}
-	summary.Passed = summary.WarningCount == 0 && summary.RejectCount == 0
 
 	return TranslationOutputDiffPreviewReadModel{
 		JobID:                jobID,
@@ -122,6 +51,171 @@ func (service *TranslationOutputArtifactService) ReadDiffPreview(
 		Rows:                 rows,
 		CompatibilitySummary: summary,
 	}, nil
+}
+
+func (service *TranslationOutputArtifactService) loadDiffPreviewJob(
+	ctx context.Context,
+	jobID int64,
+	artifactID int64,
+) (translationOutputArtifactLoadedJob, TranslationOutputDiffPreviewReadModel, bool, error) {
+	loaded, err := service.loadJob(ctx, jobID)
+	if err == nil {
+		return loaded, TranslationOutputDiffPreviewReadModel{}, false, nil
+	}
+	if artifactID == 0 && errors.Is(err, repository.ErrNotFound) {
+		return translationOutputArtifactLoadedJob{}, TranslationOutputDiffPreviewReadModel{
+			JobID:                jobID,
+			ArtifactID:           artifactID,
+			Rows:                 []TranslationOutputDiffPreviewRowReadModel{},
+			CompatibilitySummary: TranslationOutputCompatibilitySummaryReadModel{Passed: true},
+		}, true, nil
+	}
+	return translationOutputArtifactLoadedJob{}, TranslationOutputDiffPreviewReadModel{}, false, fmt.Errorf(
+		"load diff preview translation job %d: %w",
+		jobID,
+		err,
+	)
+}
+
+func (service *TranslationOutputArtifactService) loadPersistedPreviewState(
+	ctx context.Context,
+	outputs []repository.JobTranslationField,
+	jobID int64,
+	artifactID int64,
+) (translationOutputPersistedPreviewState, TranslationOutputDiffPreviewReadModel, bool, error) {
+	state := translationOutputPersistedPreviewState{
+		rowsByFieldID: map[int64]repository.XTranslatorOutputRow{},
+	}
+	if artifactID == 0 || service.persistenceRepository == nil {
+		return state, TranslationOutputDiffPreviewReadModel{}, false, nil
+	}
+	artifact, artifactErr := service.persistenceRepository.GetTranslationArtifactByID(ctx, artifactID)
+	if artifactErr != nil {
+		if errors.Is(artifactErr, repository.ErrNotFound) {
+			return state, TranslationOutputDiffPreviewReadModel{}, false, nil
+		}
+		return state, TranslationOutputDiffPreviewReadModel{}, false, fmt.Errorf(
+			"get artifact %d for diff preview: %w",
+			artifactID,
+			artifactErr,
+		)
+	}
+	if artifact.TranslationJobID != jobID {
+		return state, TranslationOutputDiffPreviewReadModel{
+			JobID:      jobID,
+			ArtifactID: artifactID,
+			Rows:       []TranslationOutputDiffPreviewRowReadModel{},
+			CompatibilitySummary: TranslationOutputCompatibilitySummaryReadModel{
+				Passed:      false,
+				RejectCount: 1,
+			},
+		}, true, nil
+	}
+	persistedRows, rowErr := listPersistedArtifactRows(ctx, service.persistenceRepository, artifactID)
+	if rowErr != nil {
+		return state, TranslationOutputDiffPreviewReadModel{}, false, fmt.Errorf(
+			"list persisted artifact rows for diff preview: %w",
+			rowErr,
+		)
+	}
+	state.rowCount = len(persistedRows)
+	state.compareRows = true
+	state.rowsByFieldID = buildPersistedRowsByFieldID(outputs, persistedRows)
+	return state, TranslationOutputDiffPreviewReadModel{}, false, nil
+}
+
+func buildPersistedRowsByFieldID(
+	outputs []repository.JobTranslationField,
+	persistedRows []repository.XTranslatorOutputRow,
+) map[int64]repository.XTranslatorOutputRow {
+	outputsByID := make(map[int64]repository.JobTranslationField, len(outputs))
+	for _, output := range outputs {
+		outputsByID[output.ID] = output
+	}
+	rowsByFieldID := make(map[int64]repository.XTranslatorOutputRow, len(persistedRows))
+	for _, row := range persistedRows {
+		output, ok := outputsByID[row.JobTranslationFieldID]
+		if !ok {
+			continue
+		}
+		rowsByFieldID[output.TranslationFieldID] = row
+	}
+	return rowsByFieldID
+}
+
+func (service *TranslationOutputArtifactService) buildDiffPreviewRows(
+	ctx context.Context,
+	outputs []repository.JobTranslationField,
+	persistedState translationOutputPersistedPreviewState,
+) ([]TranslationOutputDiffPreviewRowReadModel, TranslationOutputCompatibilitySummaryReadModel, error) {
+	rows := make([]TranslationOutputDiffPreviewRowReadModel, 0, len(outputs))
+	summary := TranslationOutputCompatibilitySummaryReadModel{Passed: true}
+	fieldCounts := make(map[int64]int, len(outputs))
+	for _, output := range outputs {
+		fieldCounts[output.TranslationFieldID]++
+	}
+	for _, output := range outputs {
+		if fieldCounts[output.TranslationFieldID] > 1 {
+			summary.RejectCount++
+			continue
+		}
+		row, includeRow, err := service.buildDiffPreviewRow(ctx, output, persistedState, &summary)
+		if err != nil {
+			return nil, TranslationOutputCompatibilitySummaryReadModel{}, err
+		}
+		if includeRow {
+			rows = append(rows, row)
+		}
+	}
+	sort.Slice(rows, func(i, j int) bool {
+		return rows[i].FieldID < rows[j].FieldID
+	})
+	if persistedState.compareRows && persistedState.rowCount != len(persistedState.rowsByFieldID) {
+		summary.WarningCount++
+	}
+	summary.Passed = summary.WarningCount == 0 && summary.RejectCount == 0
+	return rows, summary, nil
+}
+
+func (service *TranslationOutputArtifactService) buildDiffPreviewRow(
+	ctx context.Context,
+	output repository.JobTranslationField,
+	persistedState translationOutputPersistedPreviewState,
+	summary *TranslationOutputCompatibilitySummaryReadModel,
+) (TranslationOutputDiffPreviewRowReadModel, bool, error) {
+	result, buildErr := service.buildXTranslatorOutputRow(ctx, output)
+	if buildErr != nil {
+		return TranslationOutputDiffPreviewRowReadModel{}, false, fmt.Errorf(
+			"build xtranslator output row for field %d: %w",
+			output.TranslationFieldID,
+			buildErr,
+		)
+	}
+	summary.WarningCount += result.warningCount
+	summary.RejectCount += result.rejectCount
+	if result.rejectCount > 0 {
+		return TranslationOutputDiffPreviewRowReadModel{}, false, nil
+	}
+	markDiffPreviewRowStale(&result.row, persistedState)
+	return result.row, true, nil
+}
+
+func markDiffPreviewRowStale(
+	row *TranslationOutputDiffPreviewRowReadModel,
+	persistedState translationOutputPersistedPreviewState,
+) {
+	if !persistedState.compareRows {
+		return
+	}
+	persistedRow, ok := persistedState.rowsByFieldID[row.FieldID]
+	switch {
+	case !ok:
+		row.StaleReason = "generated artifact row is missing"
+		row.CanRegenerate = true
+	case buildPersistedXTranslatorRowDigest(row.FieldID, persistedRow) != row.RowDigest:
+		row.StaleReason = "generated artifact row does not match current field result"
+		row.CanRegenerate = true
+	}
 }
 
 func listPersistedArtifactRows(

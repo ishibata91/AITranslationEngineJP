@@ -1,5 +1,7 @@
 import type {
+  ListTranslationJobSetupProviderModelsResponse,
   TranslationJobSetupOptionsResponse,
+  TranslationJobSetupPhaseRuntimeSelection,
   TranslationJobSetupScreenState,
   TranslationJobSetupSummaryResponse,
   TranslationJobSetupValidationResponse
@@ -35,8 +37,38 @@ function cloneOptions(
     aiRuntimeOptions: options.aiRuntimeOptions.map((option) => ({ ...option })),
     credentialRefs: options.credentialRefs.map((credential) => ({
       ...credential
+    })),
+    providerCapabilities: options.providerCapabilities?.map((capability) => ({
+      ...capability,
+      supportedExecutionModes: [...capability.supportedExecutionModes]
+    })),
+    phaseRuntimeDrafts: options.phaseRuntimeDrafts?.map((draft) => ({
+      ...draft
     }))
   }
+}
+
+function clonePhaseSelections(
+  selections: TranslationJobSetupPhaseRuntimeSelection[] | null | undefined
+): TranslationJobSetupPhaseRuntimeSelection[] {
+  if (!Array.isArray(selections)) {
+    return []
+  }
+
+  return selections.map((selection) => ({ ...selection }))
+}
+
+function cloneProviderModelLists(
+  lists: ListTranslationJobSetupProviderModelsResponse[] | null | undefined
+): ListTranslationJobSetupProviderModelsResponse[] {
+  if (!Array.isArray(lists)) {
+    return []
+  }
+
+  return lists.map((list) => ({
+    ...list,
+    models: list.models.map((model) => ({ ...model }))
+  }))
 }
 
 function cloneValidation(
@@ -49,7 +81,13 @@ function cloneValidation(
   return {
     ...validationResult,
     targetSlices: cloneStringArray(validationResult.targetSlices),
-    passSlices: cloneStringArray(validationResult.passSlices)
+    passSlices: cloneStringArray(validationResult.passSlices),
+    phaseResults: validationResult.phaseResults?.map((result) => ({
+      ...result
+    })),
+    staleModelListPhaseIds: validationResult.staleModelListPhaseIds
+      ? [...validationResult.staleModelListPhaseIds]
+      : undefined
   }
 }
 
@@ -63,7 +101,10 @@ function cloneSummary(
   return {
     ...summary,
     executionSummary: { ...summary.executionSummary },
-    validationPassSlices: [...summary.validationPassSlices]
+    validationPassSlices: [...summary.validationPassSlices],
+    phaseRuntimeSummaries: summary.phaseRuntimeSummaries?.map((item) => ({
+      ...item
+    }))
   }
 }
 
@@ -74,6 +115,8 @@ function createInitialState(): TranslationJobSetupScreenState {
     selectedInputSourceId: null,
     selectedRuntimeKey: null,
     selectedCredentialRef: "",
+    phaseRuntimeSelections: [],
+    providerModelLists: [],
     validationResult: null,
     validationState: "not-run",
     dirty: false,
@@ -100,6 +143,10 @@ export class TranslationJobSetupStore {
     return {
       ...this.state,
       options: cloneOptions(this.state.options),
+      phaseRuntimeSelections: clonePhaseSelections(
+        this.state.phaseRuntimeSelections
+      ),
+      providerModelLists: cloneProviderModelLists(this.state.providerModelLists),
       validationResult: cloneValidation(this.state.validationResult),
       summary: cloneSummary(this.state.summary)
     }

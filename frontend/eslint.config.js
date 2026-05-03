@@ -15,7 +15,12 @@ const extraFileExtensions = [".svelte"]
 
 export default defineConfig([
   {
-    ignores: ["dist/**", "node_modules/**", "wailsjs/**"]
+    ignores: [
+      "dist/**",
+      "node_modules/**",
+      "wailsjs/**",
+      "scripts/dev/serve-prototype.mjs"
+    ]
   },
   {
     linterOptions: {

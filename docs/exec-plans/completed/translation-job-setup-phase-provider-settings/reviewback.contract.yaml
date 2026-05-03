@@ -1,0 +1,245 @@
+reviewback_version: 1
+task_id: "translation-job-setup-phase-provider-settings"
+review_yaml_path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "通過。前回 `contract-004` の LM Studio modelListSourceToken と validation 正規化不一致は、frontend request / validation payload と backend model list / validation の credentialRef 正規化が空文字へ揃ったため解消している。前回 `contract-005` の NPC ペルソナ生成 phase が credential 不要 provider の snapshot を拒否する問題は、provider-aware な credential 必須判定に変わったため解消している。Wails / frontend gateway / backend controller / usecase / service の DTO、method 名、status union、error kind、phase runtime selection は互換している。"
+  evidence_sufficiency: "判定可能。承認済み scenario-design / implementation-scope、対象差分の Wails / frontend gateway / backend controller / usecase / service / repository / migration / DTO、提供済み検証証跡を確認した。広い harness は人間指示により再実行していない。提供証跡は backend-local pass、frontend-local pass、all pass、Sonar coverage 71.1%、security 0、reliability 0、maintainability HIGH 0 として扱った。"
+
+checked_scope:
+  summary: "Job Setup の phase 別 provider 設定公開 seam、Wails DTO、frontend gateway adapter、frontend usecase、backend controller、backend usecase、backend service、phase runtime snapshot、NPC ペルソナ生成 provider request を契約・互換性観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/scenario-design.md"
+      line: 19
+      symbol: "must_pass_requirements"
+      reason: "master-persona 非依存、phase 別 runtime、LM Studio credential 不要、model list、batch mode の承認済み契約を確認した。"
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/implementation-scope.md"
+      line: 80
+      symbol: "frozen_public_seams"
+      reason: "Wails public API、backend usecase contract、frontend gateway contract、phase 開始境界の固定 seam を確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 121
+      symbol: "ListTranslationJobSetupProviderModelsRequest"
+      reason: "frontend gateway contract の request / response shape と `credential_not_required` status を確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 114
+      symbol: "listTranslationJobSetupProviderModels"
+      reason: "Wails binding 名と frontend gateway method の接続を確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 281
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "Wails controller が同じ payload を usecase request へ渡すことを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 79
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "controller と service の model list 契約変換を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 122
+      symbol: "normalizePhaseCredentialRef"
+      reason: "credential 不要 provider の credentialRef を frontend 側で空文字へ正規化することを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 729
+      symbol: "refreshPhaseModels"
+      reason: "model list request が正規化済み credentialRef を送ることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 492
+      symbol: "createValidationPayload"
+      reason: "validation payload の phaseRuntimeSelections も正規化済み credentialRef を送ることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 446
+      symbol: "ListProviderModels"
+      reason: "backend model list source token が正規化済み credentialRef から作られることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 861
+      symbol: "validatePhaseRuntime"
+      reason: "validation が同じ source token prefix を使うことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1189
+      symbol: "sanitizeTranslationJobSetupPhaseRuntime"
+      reason: "credential 不要 provider の snapshot が credentialStatus `not_required`、credentialRef 空文字へ正規化されることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1499
+      symbol: "buildProviderRequest"
+      reason: "NPC ペルソナ生成 phase の provider request が LM Studio では credentialRef 空を許可することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1547
+      symbol: "personaGenerationProviderRequiresCredential"
+      reason: "credential 必須判定が provider-aware になっていることを確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 37
+      symbol: "TranslationJobPhaseRuntimeSnapshot"
+      reason: "phase runtime snapshot の repository public model 追加を確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/009_translation_job_phase_runtime_snapshots.sql"
+      line: 1
+      symbol: "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT"
+      reason: "既存 table を変更しない additive migration であることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 695
+      symbol: "contract-004"
+      reason: "LM Studio validation payload が空 credentialRef を使う回帰テストを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 590
+      symbol: "TestTranslationJobSetupServiceValidateAcceptsLMStudioSourceTokenInValidationAndCreate"
+      reason: "LM Studio source token が validation / create で stale 扱いにならない回帰テストを確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 289
+      symbol: "TestPersonaGenerationBuildProviderRequestAllowsLMStudioWithoutCredentialRef"
+      reason: "NPC ペルソナ生成 phase が LM Studio の空 credentialRef を受け付ける回帰テストを確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "人間指示で禁止されているため、reviewer は再実行していない。"
+    risk: "レビュー開始後に環境または未追跡生成物が変わった場合の検出は、提供済み検証証跡に依存する。"
+  - target: "実ブラウザでの Job Setup 操作"
+    reason: "契約・互換性レビューの主入力を実コード差分と提供証跡に限定したため。"
+    risk: "DOM 操作時だけ発生する表示上の導線欠落は、静的確認と unit test 証跡以上には確認していない。"
+  - target: "Wails 生成 command の再実行"
+    reason: "広い再生成や harness 再実行は依頼範囲外であり、静的 binding adapter と現行生成物の存在確認に留めたため。"
+    risk: "開発者環境で未生成の binding を使った場合の差分は、別の生成確認で検出する必要がある。"
+  - target: "実 provider API への疎通"
+    reason: "paid real API を呼ばない task 前提であり、契約確認は fake transport / static code / 提供証跡を根拠にしたため。"
+    risk: "provider 側の最新 response shape 差分は、adapter の fake coverage 以上には確認していない。"
+
+issues:
+  - id: "contract-001"
+    level: "critical"
+    title: "frontend Wails gateway が model list seam を実装していない"
+    problem: "前回は backend の `ListTranslationJobSetupProviderModels` に対して frontend gateway adapter が method を持たず、runtime で model list success に到達できない契約不整合があった。現在は binding union、adapter method、gateway contract が揃っている。"
+    reason: "frontend gateway contract は `listTranslationJobSetupProviderModels` を必須 method として持ち、Wails gateway adapter は `ListTranslationJobSetupProviderModels` binding を呼び出す。"
+    violated_condition: "implementation-scope の `ListTranslationJobSetupProviderModels` seam。"
+    cause_candidate: "前回原因は frontend Wails gateway adapter / DTO / gateway contract の更新不足だった。現在の差分では同じ seam が adapter まで実装済みである。"
+    evidence:
+      - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+        line: 300
+        excerpt: "`listTranslationJobSetupProviderModels` が必須 method として定義されている。"
+      - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+        line: 114
+        excerpt: "adapter method が Wails binding `ListTranslationJobSetupProviderModels` を呼ぶ。"
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 281
+        excerpt: "Go controller が同名 Wails method を公開している。"
+    local_fix_assessment: "resolved。Wails / frontend gateway / backend controller の method seam は一致している。"
+    additional_check_scope: "Wails 生成 command を別工程で再実行する場合は、生成物に同名 binding が残ることを確認する。"
+    fix_considerations: "method 名、request DTO、response DTO を変える場合は Wails adapter と Go controller を同時に更新する必要がある。"
+    verification: "frontend gateway test と controller unit test、および提供済み frontend-local / backend-local / all pass 証跡で確認済み。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "contract-002"
+    level: "major"
+    title: "LM Studio の model list status が frontend の usable 条件と合わない"
+    problem: "前回は backend が `credential_not_required` と models を返しても frontend が `success` だけを usable と扱う契約不整合があった。現在は usecase と presenter の usable 判定が `credential_not_required` を許可している。"
+    reason: "frontend は `credential_not_required` の model list を model select 表示と local create 可否に使える。"
+    violated_condition: "scenario-design の LM Studio credential 不要契約、および provider model list status / models response 契約。"
+    cause_candidate: "前回原因は `credential_not_required` を frontend usable status に含めていなかったこと。現在の差分では usecase と presenter の両方が同 status を許可している。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 417
+        excerpt: "`isModelListUsable` は `success` と `credential_not_required` を true にする。"
+      - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+        line: 157
+        excerpt: "presenter の model select 表示条件も `credential_not_required` を usable と扱う。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 449
+        excerpt: "credential 不要 provider は secret gate なしで model list を取得する。"
+    local_fix_assessment: "resolved。status usable 判定は frontend / backend で揃っている。"
+    additional_check_scope: "なし。source token 正規化は `contract-004` として別 issue で解決済み。"
+    fix_considerations: "`credential_not_required` を残す場合は、credential ref の正規化も同じ contract に揃える必要がある。"
+    verification: "frontend usecase / presenter の静的確認と提供済み frontend-local / all pass 証跡で確認済み。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "contract-003"
+    level: "major"
+    title: "term phase の secret 解決元が credentialRef 契約と一致しない"
+    problem: "前回は term phase が snapshot の `CredentialRef` ではなく `master-persona:<provider>` で secret を解決する契約不整合があった。現在は execution の `CredentialRef` を lookup key として使っている。"
+    reason: "phase 実行時は対象 phase の Job Setup 保存設定だけを参照する契約であり、現在の term phase は snapshot 由来の `CredentialRef` を `loadProviderSecret` に渡している。"
+    violated_condition: "scenario-design の master-persona 非依存条件と、implementation-scope の phase 開始境界 / credential ref 契約。"
+    cause_candidate: "前回原因は既存 helper の master-persona namespace が残っていたこと。現在の差分では `execution.CredentialRef` が secret lookup key になっている。"
+    evidence:
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1143
+        excerpt: "term phase は `word_translation` snapshot から `CredentialRef` を execution config へ反映する。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1880
+        excerpt: "credential required provider は `execution.CredentialRef` を trim して lookup key にする。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1884
+        excerpt: "`loadProviderSecret(ctx, credentialRef)` を呼び、master-persona namespace に fallback しない。"
+    local_fix_assessment: "resolved。term phase の secret 解決元は Job Setup snapshot の credentialRef 契約に揃っている。"
+    additional_check_scope: "なし。persona / body phase の provider request 契約も現在の差分で確認した。"
+    fix_considerations: "term phase へ fallback secret namespace を戻すと、Job Setup の phase 別 credential ref 契約を破る。"
+    verification: "term phase service の静的確認と提供済み backend-local / all pass 証跡で確認済み。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "contract-004"
+    level: "major"
+    title: "LM Studio の model list source token が validation 契約と一致しない"
+    problem: "前回は frontend が LM Studio の credentialRef を保持したまま model list request へ渡し、backend validation は credentialRef 空へ正規化して token prefix を照合したため、同じ model list でも stale 判定になる契約不整合があった。現在は frontend request / validation payload と backend model list / validation が同じ credentialRef 正規化を使う。"
+    reason: "credential 不要 provider では frontend の `normalizePhaseCredentialRef` が空文字を返す。backend の `ListProviderModels` は `translationJobSetupNormalizeCredentialRef` 後の credentialRef で source token を作り、validation も sanitize 後の空 credentialRef で prefix を照合する。"
+    violated_condition: "implementation-scope の `ListTranslationJobSetupProviderModels` と `ValidateTranslationJobSetup` の source token seam、および `LM Studio は credential ref を required field にしない` completion signal。"
+    cause_candidate: "前回原因は frontend selection、backend model list source token、backend validation の正規化時点が一致していなかったこと。現在は frontend と backend の両方が credential 不要 provider の credentialRef を空文字へ正規化している。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 122
+        excerpt: "credential 不要 provider の credentialRef は空文字へ正規化される。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 729
+        excerpt: "model list request は正規化済み credentialRef を送る。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 492
+        excerpt: "validation payload の phaseRuntimeSelections も credentialRef を正規化して送る。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 446
+        excerpt: "model list source token は正規化済み credentialRef で生成される。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 861
+        excerpt: "validation は sanitized credentialRef を含む prefix と modelListSourceToken を照合する。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 636
+        excerpt: "LM Studio model list source token が credentialRef を落とすことを固定している。"
+    local_fix_assessment: "resolved。frontend selection、backend model list source token、backend validation の正規化規則が同一になっている。DB schema 変更は不要だった。"
+    additional_check_scope: "なし。提供済み backend-local / frontend-local / all pass と、contract-004 専用 test の静的確認で判定可能。"
+    fix_considerations: "API key 必須 provider の source token では credentialRef を残し、credential 変更後の stale 防止を弱めない。"
+    verification: "frontend usecase test の `contract-004` と backend service test の `TestTranslationJobSetupServiceListProviderModelsNormalizesLMStudioCredentialRefInSourceToken`、`TestTranslationJobSetupServiceValidateAcceptsLMStudioSourceTokenInValidationAndCreate` で確認済み。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "contract-005"
+    level: "major"
+    title: "NPC ペルソナ生成 phase が credential 不要 provider の runtime snapshot を受け付けない"
+    problem: "前回は Job Setup が LM Studio の snapshot を credentialRef 空、credentialStatus `not_required` として保存しても、`PersonaGenerationPhaseService.buildProviderRequest` が provider 種別に関係なく credentialRef 空を拒否した。現在は LM Studio では credentialRef 空を許可し、credential 必須 provider では空 credentialRef を拒否する。"
+    reason: "`buildProviderRequest` は provider と model の必須性を維持しつつ、credentialRef の必須判定を `personaGenerationProviderRequiresCredential` に委譲している。同 helper は `lm_studio` だけ credential 不要として扱う。"
+    violated_condition: "scenario-design の LM Studio credential 不要条件と、implementation-scope の phase 開始境界 / credential ref 契約。"
+    cause_candidate: "前回原因は persona phase の completeness check が provider capability を見ずに credentialRef を必須 field として扱っていたこと。現在は provider-aware な helper に分離されている。"
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1189
+        excerpt: "credential 不要 provider の snapshot 入力では credentialStatus が `not_required`、credentialRef が空へ正規化される。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 749
+        excerpt: "persona phase は `npc_persona_generation` snapshot から provider/model/executionMode/credentialRef を読む。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1503
+        excerpt: "provider と model は引き続き必須として検証する。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1509
+        excerpt: "credentialRef 空の拒否は credential 必須 provider だけに限定されている。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1547
+        excerpt: "`lm_studio` は credential 不要 provider として扱われる。"
+      - path: "internal/service/persona_generation_phase_service_test.go"
+        line: 289
+        excerpt: "LM Studio かつ credentialRef 空で provider request を作れることを固定している。"
+    local_fix_assessment: "resolved。persona phase service と対応 test の局所修正で閉じており、Wails DTO や migration の shape 変更は不要だった。"
+    additional_check_scope: "なし。credential required provider で空 credentialRef を拒否する test も同じ test file に存在する。"
+    fix_considerations: "LM Studio 以外の API key 必須 provider では credentialRef 必須を維持する。空 credentialRef を許可する対象を credential 不要 provider に限定する。"
+    verification: "persona generation phase service test で、snapshot provider `lm_studio`、credentialRef 空、credentialStatus `not_required` 相当の provider request 作成を確認済み。"
+    fix_required: true
+    status: "resolved"

@@ -1,0 +1,217 @@
+reviewback_version: 1
+task_id: "translation-job-setup-phase-provider-settings"
+review_yaml_path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致度は高い。前回未解決だった behavior-003 は、LM Studio の sourceToken 生成、frontend validation payload、backend validation の credentialRef が空値へ揃い、model list、model 選択、validation、create 評価へ進める状態になっている。API key 登録モーダルの実保存経路と LM Studio の model usable 条件も維持されている。"
+  evidence_sufficiency: "判定可能。承認済み scenario-design、implementation-scope、現在差分の実コード、重点経路の unit test、呼び出し元提供の検証証跡を確認した。検証証跡は backend-local pass、frontend-local pass、all pass、system test 5 passed、Sonar coverage 71.1%、security 0、reliability 0、maintainability HIGH 0 である。広い harness 再実行は人間指示と review_behavior 境界により実施していない。"
+  hard_gate: false
+
+checked_scope:
+  summary: "Job Setup の phase 別 provider 設定、LM Studio の model list、model 選択、validation、create 評価、API key 登録モーダルの保存経路、LM Studio credential 不要 UI を確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/scenario-design.md"
+      line: 184
+      symbol: "SCN-TJSPPS-004"
+      reason: "LM Studio を API key 不要 provider として扱い、credential missing を validation failure にしない期待挙動を確認した。"
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/implementation-scope.md"
+      line: 36
+      symbol: "Fixed Decisions"
+      reason: "phase 別 runtime、LM Studio credential 不要、model list、create 許可条件の承認済み範囲を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 122
+      symbol: "normalizePhaseCredentialRef"
+      reason: "LM Studio を含む credential 不要 provider では frontend payload の credentialRef が空へ正規化されることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 417
+      symbol: "isModelListUsable"
+      reason: "credential_not_required が model 選択可能状態として扱われることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 648
+      symbol: "selectPhaseProvider"
+      reason: "LM Studio 選択時に credentialRef、credentialStatus、modelListSourceToken が正規化されることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 729
+      symbol: "refreshPhaseModels"
+      reason: "model list request が正規化済み credentialRef で backend へ送られることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 815
+      symbol: "selectPhaseModel"
+      reason: "model 選択時に backend response の sourceToken が selection へ保持されることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 870
+      symbol: "savePhaseCredential"
+      reason: "API key 登録モーダルから渡った値が usecase の保存経路へ入ることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 131
+      symbol: "submitCredentialModal"
+      reason: "API key 入力値を controller.savePhaseCredential へ渡す実 UI 経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 423
+      symbol: "ListProviderModels"
+      reason: "LM Studio の sourceToken 生成前に credentialRef が空へ正規化され、credential_not_required で model list を返すことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 828
+      symbol: "validatePhaseRuntime"
+      reason: "validation が正規化済み credentialRef で sourceToken prefix を判定し、LM Studio では credential_not_required を維持することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1158
+      symbol: "sanitizeTranslationJobSetupPhaseRuntime"
+      reason: "credential 不要 provider の runtime が credentialRef 空、credentialStatus not_required へ正規化されることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1207
+      symbol: "translationJobSetupNormalizeCredentialRef"
+      reason: "LM Studio の credentialRef を sourceToken と validation の双方で空へ揃える根拠として確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 496
+      symbol: "SaveCredential"
+      reason: "API key 必須 provider のみ secret store へ保存し、LM Studio は保存対象外にすることを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 135
+      symbol: "ValidateTranslationJobSetup"
+      reason: "Wails / frontend から渡った phaseRuntimeSelections が backend validation へ届くことを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 159
+      symbol: "CreateTranslationJob"
+      reason: "create 前に同じ phaseRuntimeSelections で create 評価を行うことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 281
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "frontend gateway から backend model list usecase への接続を確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 312
+      symbol: "SaveTranslationJobSetupCredential"
+      reason: "API key 登録モーダルから backend credential save usecase への接続を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 647
+      symbol: "LM Studio credential_not_required model selection test"
+      reason: "LM Studio の model list request、model 選択、sourceToken 保持がテストされていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 695
+      symbol: "LM Studio validation payload test"
+      reason: "LM Studio の validation payload が空 credentialRef と backend 形の sourceToken を使うことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 605
+      symbol: "LM Studio validation and create evaluation test"
+      reason: "LM Studio の sourceToken で validation と create 評価が通ることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 658
+      symbol: "LM Studio sourceToken normalization test"
+      reason: "request credentialRef が残っても backend sourceToken が空 credentialRef 形になることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.test.ts"
+      line: 374
+      symbol: "LM Studio credential UI test"
+      reason: "LM Studio では API key 登録 UI と未設定 warning が表示されないことを確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "人間指示で禁止され、review_behavior の境界でもハーネス再実行は非対象であるため。"
+    risk: "実行環境依存の失敗は、呼び出し元の提供済み証跡以上には再確認していない。"
+  - target: "実ブラウザでの Job Setup 操作"
+    reason: "レビュー入力は実コード差分と提供証跡であり、ブラウザ操作の再実行は依頼範囲外であるため。"
+    risk: "DOM 上の実操作差分は source 読み取りと frontend test での判断に留まる。"
+  - target: "実 LM Studio endpoint への接続"
+    reason: "実 provider endpoint の起動状態は task-local 実装差分ではなく、レビューでは fake transport と service 経路を確認対象にしたため。"
+    risk: "利用者環境の LM Studio base URL 不通は、model_list_failed として扱われる前提である。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "LM Studio の model list 成功が model 選択可能状態にならない"
+    problem: "前回指摘時は frontend が success だけを model 選択可能、局所 create 可能として扱っていた。現在は credential_not_required も usable として扱う。"
+    reason: "frontend usecase と presenter の isModelListUsable は success と credential_not_required を許可し、LM Studio の model 選択テストも backend sourceToken 形に揃っている。"
+    violated_condition: "LM Studio は credential missing failure にならず、model 候補状態から model を設定できる必要がある。"
+    cause_candidate: "frontend 側の usable 判定不一致は修正済みである。frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts:417 と frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts:157 が根拠である。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 417
+        excerpt: "isModelListUsable は success と credential_not_required を true にする。"
+      - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+        line: 157
+        excerpt: "presenter 側も credential_not_required を model select 表示可能にしている。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 647
+        excerpt: "LM Studio の credential_not_required で model list 後に model を選択できるテストがある。"
+    local_fix_assessment: "resolved。frontend 表示条件と model 選択条件の局所修正で閉じている。"
+    additional_check_scope: "none。behavior-003 の sourceToken 整合も解決済みである。"
+    fix_considerations: "LM Studio では API key 入力、credential select、API key 未設定 warning を出さない条件を維持する。"
+    verification: "frontend usecase、presenter、JobSetupPage test で確認済みである。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "behavior-002"
+    level: "major"
+    title: "APIキー登録モーダルが credential missing を解消しない"
+    problem: "前回指摘時は APIキー登録モーダルが apiKeyInput を backend や secret store へ渡さず、frontend store の credentialRefs だけを書き換えていた。現在は backend の SaveTranslationJobSetupCredential 経路へ apiKey を渡す。"
+    reason: "UI は controller.savePhaseCredential へ apiKeyInput を渡し、frontend usecase は gateway.saveTranslationJobSetupCredential を呼び、Wails controller は usecase SaveTranslationJobSetupCredential へ接続し、backend service は secretStore.Save を呼ぶ。"
+    violated_condition: "API key 必須 provider では同じ画面のモーダルで API key を登録し、保存後は対象 phase のモデル一覧更新から再開できる必要がある。"
+    cause_candidate: "local state だけの configured 化は修正済みである。frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte:131、frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts:870、internal/service/translation_job_setup_service.go:496 が根拠である。"
+    evidence:
+      - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+        line: 131
+        excerpt: "submitCredentialModal は apiKeyInput を controller.savePhaseCredential へ渡す。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 870
+        excerpt: "savePhaseCredential は persistPhaseCredential へ apiKey を渡す。"
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 312
+        excerpt: "SaveTranslationJobSetupCredential は usecase の credential save port へ接続されている。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 521
+        excerpt: "SaveCredential は secretStore.Save に credentialRef と apiKey を保存する。"
+    local_fix_assessment: "resolved。UI から backend secret store までの保存経路は接続済みである。"
+    additional_check_scope: "none。API key 保存後の実 provider model list 成功は呼び出し元の frontend-local / backend-local / all pass 証跡を入力として扱った。"
+    fix_considerations: "API key 平文や secret 本体を DTO、UI、error summary、structured log、fake transport log、保存要約へ出さない条件を維持する。"
+    verification: "source 読み取りと呼び出し元提供の backend-local、frontend-local、all harness pass で確認済みである。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "behavior-003"
+    level: "major"
+    title: "LM Studio の sourceToken が validation で stale 扱いになる"
+    problem: "前回指摘時は LM Studio 選択後も sourceToken の credentialRef と validation の credentialRef 正規化が一致せず、model_selection_stale になり得た。現在は frontend、model list、validation が LM Studio の credentialRef を空へ揃える。"
+    reason: "frontend は credential 不要 provider の credentialRef を空へ正規化して model list と validation payload へ使う。backend ListProviderModels は sourceToken 生成前に credentialRef を正規化し、backend validation は sanitize 後の空 credentialRef で sourceToken prefix を検査する。"
+    violated_condition: "LM Studio は API key 不要 provider として credential missing failure にならず、model 候補から model を選び、validation を通過し、create 評価へ進める必要がある。"
+    cause_candidate: "前回原因だった UI draft、model list sourceToken、backend validation の credentialRef 不一致は解消済みである。frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts:122、internal/service/translation_job_setup_service.go:446、internal/service/translation_job_setup_service.go:861、internal/service/translation_job_setup_service.go:1207 が根拠である。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 122
+        excerpt: "normalizePhaseCredentialRef は credential 不要 provider の credentialRef を空にする。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 729
+        excerpt: "refreshPhaseModels は正規化済み credentialRef を model list request に使う。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 454
+        excerpt: "createValidationPayload は phaseRuntimeSelections の credentialRef を正規化して validation / create payload に使う。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 446
+        excerpt: "ListProviderModels は sourceToken 生成前に credentialRef を translationJobSetupNormalizeCredentialRef へ通す。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 861
+        excerpt: "validatePhaseRuntime は sanitize 後の credentialRef で sourceToken prefix を検査する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1211
+        excerpt: "credential 不要 provider の credentialRef は空へ正規化される。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 608
+        excerpt: "LM Studio の sourceToken は text_translation|lm_studio||req-lm-1 で validation と create 評価が通る。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 671
+        excerpt: "LM Studio の model list sourceToken は request credentialRef を落とした形になる。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 647
+        excerpt: "LM Studio の model list、model 選択、sourceToken 保持が確認されている。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 695
+        excerpt: "LM Studio の validation payload が空 credentialRef と backend sourceToken 形を使う。"
+    local_fix_assessment: "resolved。frontend payload 正規化と backend sourceToken / validation 正規化の同一化で閉じている。"
+    additional_check_scope: "none。実 LM Studio endpoint の到達性は環境依存であり、endpoint 不通は model_list_failed として扱う範囲である。"
+    fix_considerations: "LM Studio では API key 入力、credential select、API key 未設定 warning を出さない条件を維持する。sourceToken と phase runtime snapshot の credentialRef は同じ正規化方針を使う。"
+    verification: "frontend usecase test、backend service test、呼び出し元提供の backend-local、frontend-local、all harness pass で確認済みである。"
+    fix_required: true
+    status: "resolved"

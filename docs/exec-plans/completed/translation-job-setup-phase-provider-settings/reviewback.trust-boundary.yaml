@@ -1,0 +1,270 @@
+reviewback_version: 1
+task_id: "translation-job-setup-phase-provider-settings"
+review_yaml_path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: >
+    通過。前回 blocker `trust-boundary-001` は解消済みである。
+    Job Setup の `CredentialRef` は provider catalog が公開する Job Setup 用の
+    default credential 参照だけへ正規化され、`master-persona:<provider>` は
+    空参照へ落ちて credential missing として扱われる。
+    そのため Wails / usecase / service の model list、credential save、validation、
+    create gate から master-persona secret namespace の secret load、secret save、
+    model list external request、phase runtime snapshot 保存、phase 実行の provider request へ進まない。
+    LM Studio は credential 不要 provider のままで、model list は空 API key で呼ばれ、
+    secret load と credential missing failure の対象外である。
+    API key 本体は provider request header だけへ渡り、DTO、UI、read model、error summary、
+    保存要約、URL へ出ない。
+  evidence_sufficiency: >
+    十分。実装目的、scenario-design、implementation-scope、現在差分の実コード、
+    focused test、呼び出し元提供の検証証跡を確認した。
+    広い harness はユーザー指示と review_trust_boundary の非対象規約により再実行していない。
+    呼び出し元証跡は backend-local pass、frontend-local pass、all pass、
+    structure pass、scenario gate pass、execution pass、system test 5 passed、
+    frontend coverage statements 65.5% lines 65.5%、
+    backend coverage statements 69.9% lines 69.7%、Sonar coverage 71.1%、
+    security 0、reliability 0、maintainability HIGH 0 である。
+  hard_gate: true
+  broken_invariants: "なし。前回破られていた Job Setup credential namespace 分離は維持されている。"
+  cause_summary: >
+    前回原因は、Job Setup service が共有 secret store の任意 key を
+    `CredentialRef` として受け付けていたことである。
+    再修正後は `translationJobSetupNormalizeCredentialRef` が provider ごとの
+    Job Setup 許可参照だけを返すため、master-persona namespace は secret lookup key にならない。
+  local_fix_assessment: >
+    解決済み。修正は backend service の credential ref 正規化を中心に閉じている。
+    Wails / usecase は入力を転送するが、backend service の model list、save、validation、
+    create gate が同じ正規化を使うため、境界条件は一貫している。
+
+checked_scope:
+  summary: >
+    Job Setup の credential 参照許可、master-persona namespace の遮断、
+    provider model list の secret gate、credential 保存、phase runtime validation、
+    create gate、snapshot 保存、phase 実行時参照、LM Studio の credential 不要経路、
+    secret 非露出の DTO / UI / read model / error 経路を確認した。
+  files:
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/scenario-design.md"
+      line: 20
+      symbol: "must_pass_requirements"
+      reason: "master-persona 非依存、secret gate、LM Studio credential 不要、secret 非露出の要求を確認した。"
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/implementation-scope.md"
+      line: 36
+      symbol: "Fixed Decisions"
+      reason: "Job Setup が master-persona の provider / model / credential / execution mode を secret 解決元にしない条件を確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 794
+      symbol: "masterPersonaSecretKey"
+      reason: "master-persona secret namespace が `master-persona:<provider>` であることを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 138
+      symbol: "NewPersistentTranslationJobSetupService"
+      reason: "Job Setup と master-persona が同じ secret store を共有するため、namespace 分離が hard gate であることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 51
+      symbol: "translationJobSetupProviderCatalog"
+      reason: "Job Setup が公開する provider ごとの default credential 参照だけを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 422
+      symbol: "TranslationJobSetupService.ListProviderModels"
+      reason: "許可外 `CredentialRef` が credential_missing になり、secret load と external request へ進まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 494
+      symbol: "TranslationJobSetupService.SaveCredential"
+      reason: "許可外 `CredentialRef` が secret save key にならないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 582
+      symbol: "TranslationJobSetupService.EvaluateCreateRequest"
+      reason: "create 前に service validation を再実行し、許可外 credential 参照で snapshot 保存へ進まない到達経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 724
+      symbol: "TranslationJobSetupService.savePhaseRuntimeSnapshots"
+      reason: "保存される snapshot の `CredentialRef` が sanitize 後の Job Setup 参照であることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 828
+      symbol: "TranslationJobSetupService.validatePhaseRuntime"
+      reason: "許可外 credential 参照が空参照へ落ち、credential_missing と stale 判定で create を止めることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1074
+      symbol: "translationJobSetupCredentialRefs"
+      reason: "read model が Job Setup provider catalog の参照状態だけを公開することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1207
+      symbol: "translationJobSetupNormalizeCredentialRef"
+      reason: "`master-persona:<provider>` を含む許可外参照が secret lookup key にならない根拠として確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 79
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "Wails 由来の credential 参照が service gate を通る経路を確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 159
+      symbol: "CreateTranslationJob"
+      reason: "usecase が `EvaluateCreateRequest` を通過した場合だけ create executor を呼ぶことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 281
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "Wails 入力が backend service gate へ到達する前に secret 本体を read model へ出さないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 312
+      symbol: "SaveTranslationJobSetupCredential"
+      reason: "Wails 入力の API key が保存要求にだけ入り、応答 DTO は credential reference state だけであることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 501
+      symbol: "toTranslationJobSetupCredentialReferenceDTOs"
+      reason: "credential read model が secret plaintext を JSON 出力しないことを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 130
+      symbol: "listOpenAICompatibleModels"
+      reason: "OpenAI 互換 provider の API key が Authorization header だけへ入ることを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 201
+      symbol: "listGeminiModels"
+      reason: "Gemini API key が URL ではなく `x-goog-api-key` header へ入ることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1856
+      symbol: "TermTranslationPhaseService.resolveProviderAPIKey"
+      reason: "phase 実行時は snapshot の Job Setup `CredentialRef` から secret lookup し、空参照では required provider が provider request へ進まないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 725
+      symbol: "PersonaGenerationPhaseService.loadContext"
+      reason: "NPC ペルソナ生成 phase が master-persona 設定ではなく phase runtime snapshot を読むことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 499
+      symbol: "BodyTranslationPhaseService.loadContext"
+      reason: "本文翻訳 phase が master-persona 設定ではなく phase runtime snapshot を読むことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 122
+      symbol: "normalizePhaseCredentialRef"
+      reason: "frontend state も options に存在する provider 別 credential 参照だけを request に使うことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 136
+      symbol: "sanitizeErrorMessage"
+      reason: "frontend error state が通常の backend error message や API key を表示しないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 119
+      symbol: "credential modal state"
+      reason: "API key 入力値が modal open / close 後に UI state へ残らないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 728
+      symbol: "jobSetupApiKeyInput"
+      reason: "API key 入力が password input に限定され、read model へ保持されないことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 295
+      symbol: "TestTranslationJobSetupServiceRejectsSharedSecretNamespaceCredentialRefs"
+      reason: "`master-persona:gemini` が model list、secret load、provider loader、secret save、validation を進めない証跡を確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 349
+      symbol: "TestTJSPPS003TranslationJobSetupServiceLMStudioModelListSkipsSecretLoad"
+      reason: "LM Studio の model list が secret load なしで credential_not_required になる証跡を確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 462
+      symbol: "TestTJSPPS008TranslationJobSetupServiceDoesNotExposePlainSecret"
+      reason: "read model と provider model result に secret 本体が出ない証跡を確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.test.ts"
+      line: 374
+      symbol: "SCN-TJSPPS-004"
+      reason: "LM Studio で API key 登録 UI、未設定 warning、secret 文字列が出ない証跡を確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "ユーザー指示と review_trust_boundary の非対象規約により再実行していない。"
+    risk: "レビュー開始後に差分が追加されている場合、呼び出し元の検証証跡との差分が残る可能性がある。"
+  - target: "実 provider への通信"
+    reason: "レビュー担当は real API を呼ばず、コード上の request 構築と fake transport 前提の証跡を確認した。"
+    risk: "provider 側の実応答本文や実通信ログは直接観測していない。"
+  - target: "実ブラウザと browser console"
+    reason: "UI 証跡はコードとテストを参照し、ブラウザ再操作は行っていない。"
+    risk: "実 DOM 操作時の browser console 出力は今回のレビューでは再観測していない。"
+  - target: "OS keyring の実保存失敗本文"
+    reason: "実 OS 認証と keyring 失敗を発生させていない。production store の error wrapping はコード読み取りだけを確認した。"
+    risk: "OS backend 固有の error message が secret 値を含むかどうかは直接観測していない。"
+
+issues:
+  - id: "trust-boundary-001"
+    level: "blocker"
+    title: "Job Setup の CredentialRef が master-persona secret namespace を参照できる"
+    problem: >
+      前回レビューでは、Job Setup の Wails / usecase / service 境界が `CredentialRef` を
+      Job Setup 所有の許可参照へ照合せず、共有 secret store の任意 key として扱っていた。
+      再修正後は provider ごとの default credential 参照だけへ正規化され、
+      `master-persona:<provider>` は secret lookup key、secret save key、
+      model list external request、phase runtime snapshot の保存値にならない。
+    reason: >
+      `translationJobSetupNormalizeCredentialRef` は credential 必須 provider でも
+      provider catalog の default credential ref と一致しない入力を空文字へ正規化する。
+      `ListProviderModels` は空参照または missing で secret load 前に `credential_missing` を返す。
+      `SaveCredential` は空参照化された許可外 credential を保存しない。
+      `ValidateRequest` と `EvaluateCreateRequest` は同じ正規化後の credential 状態で
+      create を止めるため、Wails / usecase 到達経路では snapshot 保存と phase 実行へ進まない。
+    violated_condition: >
+      解消済み。Job Setup は master-persona credential を secret 解決元として使わない。
+      phase 実行時は対象 phase の Job Setup 保存設定だけを参照し、
+      `CredentialRef` は Job Setup が公開した provider 別 credential 参照に限定される。
+    cause_candidate: >
+      前回原因は、Job Setup service が共有 secret store を使いながら
+      request の `CredentialRef` を provider catalog の許可参照へ照合していなかったことである。
+      再修正後は service の model list、save、sanitize、validation、create gate が
+      provider catalog による allowlist 正規化を共有している。
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1207
+        excerpt: "`translationJobSetupNormalizeCredentialRef` は provider default と一致しない credential 参照を空文字へ正規化する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 462
+        excerpt: "`ListProviderModels` は空参照または missing で `credential_missing` を返し、secret load へ進まない。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 506
+        excerpt: "`SaveCredential` は正規化後の空参照を required error にし、secret save へ進まない。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 849
+        excerpt: "`validatePhaseRuntime` は許可外 credential 参照を credential_missing として create 不可にする。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 594
+        excerpt: "`EvaluateCreateRequest` は create 前に `ValidateRequest` を再実行する。"
+      - path: "internal/usecase/translation_job_setup_usecase.go"
+        line: 171
+        excerpt: "usecase の create 経路は `EvaluateCreateRequest` 通過時だけ `CreateTranslationJob` を呼ぶ。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 295
+        excerpt: "`master-persona:gemini` で model list が credential_missing になり、secret load と provider loader が呼ばれない。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 322
+        excerpt: "`master-persona:gemini` の credential save が拒否され、secret save が発生しない。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 333
+        excerpt: "`master-persona:gemini` を phase runtime に入れた validation が credential_missing で止まる。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 373
+        excerpt: "LM Studio の model list は credential_not_required になり、secret lookup が発生しない。"
+      - path: "internal/infra/ai/provider_models.go"
+        line: 145
+        excerpt: "OpenAI 互換 provider の secret は Authorization header だけへ入る。"
+      - path: "internal/infra/ai/provider_models.go"
+        line: 215
+        excerpt: "Gemini の secret は URL ではなく `x-goog-api-key` header へ入る。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 136
+        excerpt: "frontend は Wails 未接続以外の error message を固定文言へ redaction する。"
+      - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+        line: 126
+        excerpt: "credential modal close 時に API key 入力値を空にする。"
+    local_fix_assessment: >
+      resolved。局所修正は backend service の allowlist 正規化で閉じている。
+      Wails / usecase は service gate を通る既存構成で足りる。
+      将来 `CreateTranslationJob` executor を usecase の `EvaluateCreateRequest` なしで新規呼び出ししない条件は維持が必要である。
+    additional_check_scope: "なし。前回 blocker の対象経路は focused test とコード読み取りで確認済みである。"
+    fix_considerations: >
+      解決済みのため修正命令は不要である。
+      維持すべき条件は、Job Setup credential ref の allowlist を provider catalog へ固定し、
+      master-persona namespace を secret lookup key として扱わないことである。
+    verification: >
+      呼び出し元提供証跡として backend-local、frontend-local、all が pass。
+      focused test では `master-persona:gemini` が model list、secret load、provider loader、
+      secret save、validation を進めないこと、LM Studio が secret load なしで
+      credential_not_required になること、read model と UI に secret 本体が出ないことを確認した。
+    fix_required: true
+    status: "resolved"

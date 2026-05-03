@@ -1,0 +1,426 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TJSPPS-001",
+      "title": "phase 別 provider 設定を作成する",
+      "kind": "workflow",
+      "source_requirement": "Job Setup は単語翻訳、NPC ペルソナ生成、本文翻訳の各 phase に独立した provider / model / credential / execution mode / batch mode を持つ。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md:57-64 は phase ごとの provider、model、credential 参照、execution mode、batch mode を要求している。",
+          "verification_hint": "3 phase の runtime 設定欄と create 後の要約を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "LM Studio は credential 不要 provider として別要件に分けるため、phase 設定自体は同じ UI 枠に載せる。",
+          "verification_hint": "LM Studio phase でも provider、model、execution mode を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "必須設定不足は、作成前の不足理由として phase 名と不足項目だけを表示する。",
+          "verification_hint": "欠損 phase 名と欠損項目が作成不可理由に出ることを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md:59 は master-persona provider 設定を既定値または保存元として扱わないことを要求している。",
+          "verification_hint": "master-persona 設定あり fixture で Job Setup の空 phase が補完されないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 Job Setup は Draft と Ready read-only を扱うため、phase 別設定も同じ Draft 断面に含める。",
+          "verification_hint": "設定不足、設定済み、Ready read-only の状態差分を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "er.md:25 はフェーズ別 AI 設定、指示構成、最終 AI 実行情報を JOB_PHASE_RUN に保持するとしている。",
+          "verification_hint": "create 後に phase 別 runtime 要約が保存要約に含まれることを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase ごとの独立設定を持つため、1 phase の変更は他 phase の値を変更しない。",
+          "verification_hint": "単語翻訳 phase だけを変更し、persona / body phase の値が維持されることを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "create job は既存 translation-job-setup と同じく同一入力から 1 件だけ作成する。",
+          "verification_hint": "同一入力の 2 件目 job 作成が拒否されることを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "operation-audit 候補は phase 名、provider、model、execution mode、batch mode、credential 参照状態を要約に残すとしている。",
+          "verification_hint": "create result と read-only summary で phase 別設定を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "設定不足や不整合は該当 phase の不足修正へ戻す。",
+          "verification_hint": "作成不可理由から該当 phase を直せることを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design skill は paid real AI API をシステムテスト前提にしないことを要求している。",
+          "verification_hint": "fake secret store と fake transport で phase 別 validation を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSPPS-002",
+      "title": "model 候補を provider 別 API から取得する",
+      "kind": "external_integration",
+      "source_requirement": "model 候補は provider 別 getModels 系 API から取得し、API key が設定済みの場合だけ外部取得する。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md:61 は model 候補を provider ごとの model list API から取得するとしている。",
+          "verification_hint": "credential あり provider で fake getModels response が model selector に出ることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "人間回答 Q-TJSPPS-001 は選択肢 1 を承認した。model list API が失敗した場合、または API key 必須 provider で API key が未設定の場合、手動 model 入力は許可しない。",
+          "verification_hint": "取得済み model 候補がない場合に手動入力欄が表示されず、credential 設定、retry、provider 変更だけへ戻れることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "API key 未設定、credential 参照不能、getModels failure は create 前 validation を通さない状態で表示する。",
+          "verification_hint": "credential missing、credential unavailable、model list fetch failed を別カテゴリで確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md:61 は API key が設定済みの場合だけ外部取得を試みるとしている。",
+          "verification_hint": "credential missing では request spy の外部 request が 0 件であることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "state-transition 候補は loading、success、failure、skipped を分けるとしている。",
+          "verification_hint": "phase 別 model list 状態を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "detail-specs は API key 平文、secret、raw request / response の非露出を要求している。",
+          "verification_hint": "UI、DTO、error summary、structured log、fake transport log に secret がないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "遅延 getModels response は現在 provider / credential 断面へ混入させない。",
+          "verification_hint": "provider 変更後の遅延 success / failure が現在 selection を更新しないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "直近取得状態、候補件数、失敗カテゴリ、取得対象 provider / phase を観測点にする。",
+          "verification_hint": "model selector と structured log の redacted summary を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "取得失敗時は retry、credential 再選択、provider 変更へ戻せる。",
+          "verification_hint": "retry action と作成不可理由の変化を確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "deferred",
+          "source_or_rationale": "timeout、retry 回数、キャッシュ保持時間は vendor API 参照と実装後の運用で決める必要がある。",
+          "owner": "implement_lane after human design review",
+          "recheck_condition": "provider adapter と validation 実装範囲を切る時に再確認する。",
+          "verification_hint": "この design bundle では性能値を固定しない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "external-integration 候補は fake secret store、fake transport、fixed model list response を使うとしている。",
+          "verification_hint": "paid real API なしで getModels success / failure / skipped を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSPPS-003",
+      "title": "LM Studio を credential 不要 provider として扱う",
+      "kind": "display",
+      "source_requirement": "LM Studio は API key を要求しないため、API key 入力、credential select、API key 未設定 warning を出さない。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md:62 は LM Studio の API key 入力、warning、credential select を出さないと要求している。",
+          "verification_hint": "LM Studio 選択時の credential UI 非表示を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "LM Studio は secret store 参照なしで local endpoint の model list 取得または failure category へ進む。",
+          "verification_hint": "fake LM Studio endpoint の success / failure を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "endpoint 不通、model list failure、model 未選択は API key missing と別カテゴリで扱う。",
+          "verification_hint": "LM Studio で credential missing が出ないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "LM Studio は API key 必須 provider と credential policy が異なる。",
+          "verification_hint": "validation summary に credential not_required として出ることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "LM Studio の credential 状態は skipped ではなく not_required として表示する。",
+          "verification_hint": "API key warning count が 0 であることを確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "本 task は利用者ロール差による設定可否を追加しない。",
+          "verification_hint": "権限分岐は扱わない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 Job Setup の credential missing blocking rule を provider capability で例外化する。",
+          "verification_hint": "Gemini / xAI と LM Studio で credential UI 差分を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake LM Studio endpoint と request spy で secret store 未参照を確認できる。",
+          "verification_hint": "secret store read が呼ばれないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSPPS-004",
+      "title": "batch mode を Gemini / xAI だけに限定する",
+      "kind": "external_integration",
+      "source_requirement": "batch mode は暗黙推定にせず、Gemini と xAI だけで明示的に切り替える。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "spec.md:50-52 は Gemini と xAI が Batch API を利用できるとしている。",
+          "verification_hint": "Gemini / xAI で batch checkbox が表示されることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "batch mode off は通常 execution mode として明示値にする。",
+          "verification_hint": "checkbox off が execution mode summary に反映されることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "対象外 provider の batch mode は provider / mode unsupported の blocking validation failure にする。",
+          "verification_hint": "LM Studio で stale batch 値が pass にならないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md:63-64 は batch mode 対象 provider を Gemini と xAI だけに限定している。",
+          "verification_hint": "provider capability fixture で対象 provider を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider 変更時は batch checkbox の表示可否と model 未選択への戻しが連動する。",
+          "verification_hint": "provider 変更後の batch checkbox と model 未選択状態を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "batch mode 自体は secret を扱わない。secret 非露出は REQ-TJSPPS-006 で扱う。",
+          "verification_hint": "batch request payload は表示しないことだけを redaction 側で確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider 変更後に古い batch 値を対象外 provider の保存値へ残さない。",
+          "verification_hint": "対象外 provider で batch 値が保存要約に残らないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "operation-audit 候補は batch mode selected を job 要約に残すとしている。",
+          "verification_hint": "create result と phase result summary で batch mode を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "不整合時は provider を戻すか checkbox off にして作成前不足を解消する。",
+          "verification_hint": "unsupported provider / mode failure から作成可能状態へ戻れることを確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "batch mode の性能値や処理量上限は provider 実行 phase の対象であり、Job Setup では固定しない。",
+          "verification_hint": "性能値は本 task の acceptance にしない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider capability fixture で Gemini、xAI、対象外 provider を検証できる。",
+          "verification_hint": "fake transport と capability fixture で UI state と validation を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSPPS-005",
+      "title": "create 可否と遅延 model list 結果の扱いを固定する",
+      "kind": "workflow",
+      "source_requirement": "翻訳段階ごとの明示的な確認ボタンは不要であり、未設定がなければ create job を実行できる。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "derived",
+          "source_or_rationale": "3 phase すべてで API key 必須 provider の API key が設定済みで、model が選択済みの場合だけ create job を許可する。",
+          "verification_hint": "全 phase の不足解消後に create button が有効になることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase 単位の明示確認状態は持たず、create 可否は job 全体の不足有無で判定する。",
+          "verification_hint": "1 phase でも API key または model が不足する時に create job 全体が disabled になることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間差し戻しにより、翻訳段階ごとの明示的な確認ボタンは不要になった。",
+          "verification_hint": "設定確認ボタンがなく、作成不可理由が不足だけを示すことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Setup は create 前 validation と Ready job 作成までを扱い、phase 実行開始は後続 task へ送る。",
+          "verification_hint": "Ready job 作成前に phase run が作成されないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider または API key 状態が変わると、現在 provider に合わない model 選択は未選択へ戻す。",
+          "verification_hint": "provider 変更後に model 未選択となり、選び直すまで create job が disabled になることを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "create job 時の設定断面は画面上の phase 別設定と一致する必要がある。",
+          "verification_hint": "create payload summary と画面の phase 別設定を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "古い model list、API key 状態、batch mode の断面で create を許可しない。",
+          "verification_hint": "provider 変更後の古い model で create job が有効にならないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "遅延 response は現在 selection を巻き戻さない。",
+          "verification_hint": "late getModels result が current selection を更新しないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "不足理由、対象 phase、model list 取得状態を UI に出す。",
+          "verification_hint": "作成不可理由の対象 phase 名と不足項目を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "設定修正後は不足有無で create 可否を再判定する。",
+          "verification_hint": "不足状態から作成可能状態へ戻れることを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "delayed model response fixture と fake transport で非同期混入を検証できる。",
+          "verification_hint": "late response rejection の lower-level 証跡を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSPPS-006",
+      "title": "secret 非露出と監査要約を固定する",
+      "kind": "security",
+      "source_requirement": "credential 参照状態、provider、model、execution mode、batch mode は確認可能にし、API key 平文や raw payload は出さない。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term/persona/body phase detail-spec は secret、API key 平文、raw request / response の非露出を要求している。",
+          "verification_hint": "error summary と structured log の redaction を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "er.md:84 は credential_ref を secret store への参照だけとして扱う。",
+          "verification_hint": "DTO と保存要約に secret 本体がないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "credential 状態は exists、missing、unavailable、not_required などの状態だけを表示する。",
+          "verification_hint": "各 provider の credential state を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "本 task は利用者ごとの secret 権限差を追加しない。",
+          "verification_hint": "権限分岐は扱わない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md と各 detail-spec は API key 平文、secret 本体、復号可能値を出さないことを要求している。",
+          "verification_hint": "UI、DTO、error summary、console、structured log、fake transport log を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider、model、execution mode、batch mode、credential 参照状態、失敗カテゴリだけを要約に出す。",
+          "verification_hint": "create result と phase run summary の redacted summary を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "credential 参照不能では外部 request を送らず、credential 再選択へ戻す。",
+          "verification_hint": "credential unavailable から再選択後に作成可否を再判定できることを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 translation-job-setup の API key 非露出要件を phase 別 credential に拡張する。",
+          "verification_hint": "既存 AI runtime summary と同じ redaction 境界を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "scenario-design は paid real AI API を scenario validation の前提にしない。",
+          "verification_hint": "fake transport と redaction assertion fixture で検証する。"
+        }
+      ]
+    }
+  ]
+}

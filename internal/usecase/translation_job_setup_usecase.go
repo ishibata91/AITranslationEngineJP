@@ -28,6 +28,20 @@ type translationJobSetupOptionsReader interface {
 	ReadOptions(ctx context.Context) (jobsetupservice.TranslationJobSetupOptionsReadModel, error)
 }
 
+type translationJobSetupProviderModelListReader interface {
+	ListProviderModels(
+		ctx context.Context,
+		request jobsetupservice.ListTranslationJobSetupProviderModelsRequest,
+	) (jobsetupservice.ListTranslationJobSetupProviderModelsResult, error)
+}
+
+type translationJobSetupCredentialSaver interface {
+	SaveCredential(
+		ctx context.Context,
+		request jobsetupservice.SaveTranslationJobSetupCredentialRequest,
+	) (jobsetupservice.TranslationJobSetupCredentialReferenceReadModel, error)
+}
+
 // TranslationJobSetupUsecase implements the Job Setup Wails seam.
 type TranslationJobSetupUsecase struct {
 	service translationJobSetupServicePort
@@ -38,7 +52,7 @@ func NewTranslationJobSetupUsecase(service translationJobSetupServicePort) *Tran
 	return &TranslationJobSetupUsecase{service: service}
 }
 
-// GetTranslationJobSetupOptions returns a not-implemented error for the unfinished read-only slice.
+// GetTranslationJobSetupOptions returns the read-only Job Setup options.
 func (usecase *TranslationJobSetupUsecase) GetTranslationJobSetupOptions(
 	ctx context.Context,
 ) (TranslationJobSetupOptionsResult, error) {
@@ -51,47 +65,110 @@ func (usecase *TranslationJobSetupUsecase) GetTranslationJobSetupOptions(
 		readModel = persistedReadModel
 	}
 	return TranslationJobSetupOptionsResult{
-		InputCandidates:    toTranslationJobSetupInputCandidates(readModel.InputCandidates),
-		ExistingJob:        toTranslationJobSetupExistingJob(readModel.ExistingJob),
-		SharedDictionaries: toTranslationJobSetupDictionaryOptions(readModel.SharedDictionaries),
-		SharedPersonas:     toTranslationJobSetupPersonaOptions(readModel.SharedPersonas),
-		AIRuntimeOptions:   toTranslationJobSetupRuntimeOptions(readModel.AIRuntimeOptions),
-		CredentialRefs:     toTranslationJobSetupCredentialReferences(readModel.CredentialRefs),
+		InputCandidates:      toTranslationJobSetupInputCandidates(readModel.InputCandidates),
+		ExistingJob:          toTranslationJobSetupExistingJob(readModel.ExistingJob),
+		SharedDictionaries:   toTranslationJobSetupDictionaryOptions(readModel.SharedDictionaries),
+		SharedPersonas:       toTranslationJobSetupPersonaOptions(readModel.SharedPersonas),
+		AIRuntimeOptions:     toTranslationJobSetupRuntimeOptions(readModel.AIRuntimeOptions),
+		CredentialRefs:       toTranslationJobSetupCredentialReferences(readModel.CredentialRefs),
+		ProviderCapabilities: toTranslationJobSetupProviderCapabilities(readModel.ProviderCapabilities),
+		PhaseRuntimeDrafts:   toTranslationJobSetupPhaseRuntimeDrafts(readModel.PhaseRuntimeDrafts),
 	}, nil
 }
 
-// ValidateTranslationJobSetup returns a not-implemented error for the unfinished validation slice.
+// ListTranslationJobSetupProviderModels returns one provider model-list state.
+func (usecase *TranslationJobSetupUsecase) ListTranslationJobSetupProviderModels(
+	ctx context.Context,
+	request ListTranslationJobSetupProviderModelsRequest,
+) (ListTranslationJobSetupProviderModelsResult, error) {
+	reader, ok := usecase.service.(translationJobSetupProviderModelListReader)
+	if !ok {
+		return ListTranslationJobSetupProviderModelsResult{}, errTranslationJobSetupNotImplemented
+	}
+	result, err := reader.ListProviderModels(ctx, jobsetupservice.ListTranslationJobSetupProviderModelsRequest{
+		PhaseID:          string(request.PhaseID),
+		Provider:         request.Provider,
+		CredentialRef:    request.CredentialRef,
+		CredentialStatus: string(request.CredentialStatus),
+		RequestToken:     request.RequestToken,
+	})
+	if err != nil {
+		return ListTranslationJobSetupProviderModelsResult{}, fmt.Errorf("list translation job setup provider models: %w", err)
+	}
+	return ListTranslationJobSetupProviderModelsResult{
+		PhaseID:          TranslationJobSetupPhaseID(result.PhaseID),
+		Provider:         result.Provider,
+		CredentialStatus: TranslationJobSetupCredentialStatus(result.CredentialStatus),
+		RequestToken:     result.RequestToken,
+		SourceToken:      result.SourceToken,
+		Status:           TranslationJobSetupProviderModelListStatus(result.Status),
+		Models:           toTranslationJobSetupProviderModels(result.Models),
+		FailureKind:      NormalizeTranslationJobSetupPublicErrorKind(TranslationJobSetupErrorKind(result.FailureKind)),
+	}, nil
+}
+
+// SaveTranslationJobSetupCredential stores one Job Setup credential in the backend secret store.
+func (usecase *TranslationJobSetupUsecase) SaveTranslationJobSetupCredential(
+	ctx context.Context,
+	request SaveTranslationJobSetupCredentialRequest,
+) (SaveTranslationJobSetupCredentialResult, error) {
+	saver, ok := usecase.service.(translationJobSetupCredentialSaver)
+	if !ok {
+		return SaveTranslationJobSetupCredentialResult{}, errTranslationJobSetupNotImplemented
+	}
+	result, err := saver.SaveCredential(ctx, jobsetupservice.SaveTranslationJobSetupCredentialRequest{
+		Provider:      request.Provider,
+		CredentialRef: request.CredentialRef,
+		APIKey:        request.APIKey,
+	})
+	if err != nil {
+		return SaveTranslationJobSetupCredentialResult{}, fmt.Errorf("save translation job setup credential: %w", err)
+	}
+	return SaveTranslationJobSetupCredentialResult{
+		Provider:        result.Provider,
+		CredentialRef:   result.CredentialRef,
+		IsConfigured:    result.IsConfigured,
+		IsMissingSecret: result.IsMissingSecret,
+	}, nil
+}
+
+// ValidateTranslationJobSetup validates the three phase runtime selections.
 func (usecase *TranslationJobSetupUsecase) ValidateTranslationJobSetup(
 	ctx context.Context,
 	request ValidateTranslationJobSetupRequest,
 ) (TranslationJobSetupValidationResult, error) {
 	decision, err := usecase.service.ValidateRequest(ctx, jobsetupservice.TranslationJobSetupValidationRequest{
 		InputSourceID: request.InputSourceID,
-		Provider:      request.Runtime.Provider,
-		Model:         request.Runtime.Model,
-		ExecutionMode: request.Runtime.ExecutionMode,
-		CredentialRef: request.CredentialRef,
+		PhaseRuntimes: toServiceTranslationJobSetupPhaseRuntimes(request.PhaseRuntimeSelections),
 	})
 	if err != nil {
 		return TranslationJobSetupValidationResult{}, fmt.Errorf("validate translation job setup request: %w", err)
 	}
-	return toTranslationJobSetupValidationResult(decision), nil
+	return TranslationJobSetupValidationResult{
+		Status:                  TranslationJobSetupValidationStatus(decision.Status),
+		BlockingFailureCategory: cloneOptionalString(decision.BlockingFailureCategory),
+		TargetSlices:            normalizeTranslationJobSetupStringSlice(decision.TargetSlices),
+		ValidatedAt:             decision.ValidatedAt,
+		CanCreate:               decision.CanCreate,
+		PassSlices:              normalizeTranslationJobSetupStringSlice(decision.PassSlices),
+		PhaseResults:            toTranslationJobSetupPhaseValidationResults(decision.PhaseResults),
+		StaleModelListPhaseIDs:  toTranslationJobSetupPhaseIDs(decision.StaleModelListPhaseIDs),
+	}, nil
 }
 
-// CreateTranslationJob rejects create requests whose setup validation did not pass.
+// CreateTranslationJob creates one ready job from the validated phase runtimes.
 func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 	ctx context.Context,
 	request CreateTranslationJobRequest,
 ) (CreateTranslationJobResult, error) {
-	decision, err := usecase.service.EvaluateCreateRequest(ctx, jobsetupservice.TranslationJobSetupCreateRequest{
-		InputSourceID:    request.InputSourceID,
-		ValidationStatus: request.ValidationStatus,
-		ValidatedAt:      request.ValidatedAt,
-		Provider:         request.Runtime.Provider,
-		Model:            request.Runtime.Model,
-		ExecutionMode:    request.Runtime.ExecutionMode,
-		CredentialRef:    request.CredentialRef,
-	})
+	serviceRequest := jobsetupservice.TranslationJobSetupCreateRequest{
+		InputSourceID:        request.InputSourceID,
+		ValidationStatus:     string(request.ValidationStatus),
+		ValidatedAt:          request.ValidatedAt,
+		PhaseRuntimes:        toServiceTranslationJobSetupPhaseRuntimes(request.PhaseRuntimeSelections),
+		ValidationPassSlices: normalizeTranslationJobSetupStringSlice(request.ValidationPassSlices),
+	}
+	decision, err := usecase.service.EvaluateCreateRequest(ctx, serviceRequest)
 	if err != nil {
 		return CreateTranslationJobResult{}, fmt.Errorf("evaluate translation job setup create request: %w", err)
 	}
@@ -103,15 +180,7 @@ func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 	if !ok {
 		return CreateTranslationJobResult{}, errTranslationJobSetupNotImplemented
 	}
-	created, err := creator.CreateTranslationJob(ctx, jobsetupservice.TranslationJobSetupCreateRequest{
-		InputSourceID:    request.InputSourceID,
-		ValidationStatus: request.ValidationStatus,
-		ValidatedAt:      request.ValidatedAt,
-		Provider:         request.Runtime.Provider,
-		Model:            request.Runtime.Model,
-		ExecutionMode:    request.Runtime.ExecutionMode,
-		CredentialRef:    request.CredentialRef,
-	}, decision.ValidationPassSlices)
+	created, err := creator.CreateTranslationJob(ctx, serviceRequest, decision.ValidationPassSlices)
 	if err != nil {
 		return CreateTranslationJobResult{}, fmt.Errorf("create translation job: %w", err)
 	}
@@ -119,19 +188,16 @@ func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 		return CreateTranslationJobResult{ErrorKind: mapTranslationJobSetupCreateErrorKind(created.ErrorKind)}, nil
 	}
 	return CreateTranslationJobResult{
-		JobID:       created.JobID,
-		JobState:    created.JobState,
-		InputSource: created.InputSource,
-		ExecutionSummary: TranslationJobExecutionSummary{
-			Provider:      created.ExecutionSummary.Provider,
-			Model:         created.ExecutionSummary.Model,
-			ExecutionMode: created.ExecutionSummary.ExecutionMode,
-		},
-		ValidationPassSlices: normalizeTranslationJobSetupStringSlice(created.ValidationPassSlices),
+		JobID:                 created.JobID,
+		JobState:              created.JobState,
+		InputSource:           created.InputSource,
+		ExecutionSummary:      TranslationJobExecutionSummary{Provider: created.ExecutionSummary.Provider, Model: created.ExecutionSummary.Model, ExecutionMode: created.ExecutionSummary.ExecutionMode},
+		ValidationPassSlices:  normalizeTranslationJobSetupStringSlice(created.ValidationPassSlices),
+		PhaseRuntimeSummaries: toTranslationJobSetupPhaseRuntimeSummaries(created.PhaseRuntimeSummaries),
 	}, nil
 }
 
-// GetTranslationJobSetupSummary returns a not-implemented error for the unfinished summary slice.
+// GetTranslationJobSetupSummary returns the read-only created job summary.
 func (usecase *TranslationJobSetupUsecase) GetTranslationJobSetupSummary(
 	ctx context.Context,
 	request GetTranslationJobSetupSummaryRequest,
@@ -145,76 +211,61 @@ func (usecase *TranslationJobSetupUsecase) GetTranslationJobSetupSummary(
 		readModel = persistedReadModel
 	}
 	return TranslationJobSetupSummaryResult{
-		JobID:         readModel.JobID,
-		JobState:      readModel.JobState,
-		InputSource:   readModel.InputSource,
-		CanStartPhase: readModel.CanStartPhase,
-		ExecutionSummary: TranslationJobExecutionSummary{
-			Provider:      readModel.ExecutionSummary.Provider,
-			Model:         readModel.ExecutionSummary.Model,
-			ExecutionMode: readModel.ExecutionSummary.ExecutionMode,
-		},
-		ValidationPassSlices: normalizeTranslationJobSetupStringSlice(readModel.ValidationPassSlices),
+		JobID:                 readModel.JobID,
+		JobState:              readModel.JobState,
+		InputSource:           readModel.InputSource,
+		CanStartPhase:         readModel.CanStartPhase,
+		ExecutionSummary:      TranslationJobExecutionSummary{Provider: readModel.ExecutionSummary.Provider, Model: readModel.ExecutionSummary.Model, ExecutionMode: readModel.ExecutionSummary.ExecutionMode},
+		ValidationPassSlices:  normalizeTranslationJobSetupStringSlice(readModel.ValidationPassSlices),
+		PhaseRuntimeSummaries: toTranslationJobSetupPhaseRuntimeSummaries(readModel.PhaseRuntimeSummaries),
 	}, nil
 }
 
-func toTranslationJobSetupValidationResult(
-	decision jobsetupservice.TranslationJobSetupValidationDecision,
-) TranslationJobSetupValidationResult {
-	return TranslationJobSetupValidationResult{
-		Status:                  decision.Status,
-		BlockingFailureCategory: cloneOptionalString(decision.BlockingFailureCategory),
-		TargetSlices:            normalizeTranslationJobSetupStringSlice(decision.TargetSlices),
-		ValidatedAt:             decision.ValidatedAt,
-		CanCreate:               decision.CanCreate,
-		PassSlices:              normalizeTranslationJobSetupStringSlice(decision.PassSlices),
+func toServiceTranslationJobSetupPhaseRuntimes(
+	phaseRuntimes []TranslationJobSetupPhaseRuntimeSelection,
+) []jobsetupservice.TranslationJobSetupPhaseRuntimeDraftReadModel {
+	result := make([]jobsetupservice.TranslationJobSetupPhaseRuntimeDraftReadModel, 0, len(phaseRuntimes))
+	for _, runtime := range phaseRuntimes {
+		result = append(result, jobsetupservice.TranslationJobSetupPhaseRuntimeDraftReadModel{
+			PhaseID:              string(runtime.PhaseID),
+			Provider:             runtime.Provider,
+			Model:                runtime.Model,
+			CredentialRef:        runtime.CredentialRef,
+			CredentialStatus:     string(runtime.CredentialStatus),
+			ExecutionMode:        runtime.ExecutionMode,
+			BatchMode:            string(runtime.BatchMode),
+			ModelListSourceToken: runtime.ModelListSourceToken,
+		})
 	}
+	return result
 }
 
-func normalizeTranslationJobSetupStringSlice(values []string) []string {
-	if values == nil {
-		return []string{}
+func toTranslationJobSetupPhaseValidationResults(
+	results []jobsetupservice.TranslationJobSetupPhaseValidationReadModel,
+) []TranslationJobSetupPhaseValidationResult {
+	mapped := make([]TranslationJobSetupPhaseValidationResult, 0, len(results))
+	for _, result := range results {
+		mapped = append(mapped, TranslationJobSetupPhaseValidationResult{
+			PhaseID:                 TranslationJobSetupPhaseID(result.PhaseID),
+			Status:                  TranslationJobSetupValidationStatus(result.Status),
+			BlockingFailureCategory: cloneOptionalString(result.BlockingFailureCategory),
+			CanCreate:               result.CanCreate,
+			ModelListState:          TranslationJobSetupProviderModelListStatus(result.ModelListState),
+			ModelListSourceToken:    result.ModelListSourceToken,
+			IsModelSelectionStale:   result.IsModelSelectionStale,
+		})
 	}
-	return append([]string(nil), values...)
+	return mapped
 }
 
-func cloneOptionalString(value *string) *string {
-	if value == nil {
-		return nil
+func toTranslationJobSetupProviderModels(
+	models []jobsetupservice.TranslationJobSetupProviderModelOptionReadModel,
+) []TranslationJobSetupProviderModelOption {
+	result := make([]TranslationJobSetupProviderModelOption, 0, len(models))
+	for _, model := range models {
+		result = append(result, TranslationJobSetupProviderModelOption{ModelID: model.ModelID, Label: model.Label})
 	}
-	cloned := *value
-	return &cloned
-}
-
-func mapTranslationJobSetupCreateErrorKind(kind string) TranslationJobSetupErrorKind {
-	switch kind {
-	case "", TranslationJobSetupErrorKindReadyRequired:
-		return kind
-	case "validation_failed":
-		return TranslationJobSetupErrorKindReadyRequired
-	case "duplicate_input":
-		return TranslationJobSetupErrorKindDuplicateJobForInput
-	case TranslationJobSetupErrorKindRequiredSettingMissing:
-		return TranslationJobSetupErrorKindRequiredSettingMissing
-	case TranslationJobSetupErrorKindInputNotFound:
-		return TranslationJobSetupErrorKindInputNotFound
-	case TranslationJobSetupErrorKindCacheMissing:
-		return TranslationJobSetupErrorKindCacheMissing
-	case TranslationJobSetupErrorKindFoundationRefMissing:
-		return TranslationJobSetupErrorKindFoundationRefMissing
-	case TranslationJobSetupErrorKindCredentialMissing:
-		return TranslationJobSetupErrorKindCredentialMissing
-	case TranslationJobSetupErrorKindProviderModeUnsupported:
-		return TranslationJobSetupErrorKindProviderModeUnsupported
-	case TranslationJobSetupErrorKindProviderUnreachable:
-		return TranslationJobSetupErrorKindProviderUnreachable
-	case TranslationJobSetupErrorKindValidationStale:
-		return TranslationJobSetupErrorKindValidationStale
-	case TranslationJobSetupErrorKindPartialCreateFailed:
-		return TranslationJobSetupErrorKindPartialCreateFailed
-	default:
-		return kind
-	}
+	return result
 }
 
 func toTranslationJobSetupInputCandidates(
@@ -252,10 +303,7 @@ func toTranslationJobSetupDictionaryOptions(
 ) []TranslationJobSetupDictionaryOption {
 	result := make([]TranslationJobSetupDictionaryOption, 0, len(options))
 	for _, option := range options {
-		result = append(result, TranslationJobSetupDictionaryOption{
-			ID:    option.ID,
-			Label: option.Label,
-		})
+		result = append(result, TranslationJobSetupDictionaryOption{ID: option.ID, Label: option.Label})
 	}
 	return result
 }
@@ -265,10 +313,7 @@ func toTranslationJobSetupPersonaOptions(
 ) []TranslationJobSetupPersonaOption {
 	result := make([]TranslationJobSetupPersonaOption, 0, len(options))
 	for _, option := range options {
-		result = append(result, TranslationJobSetupPersonaOption{
-			ID:    option.ID,
-			Label: option.Label,
-		})
+		result = append(result, TranslationJobSetupPersonaOption{ID: option.ID, Label: option.Label})
 	}
 	return result
 }
@@ -278,11 +323,7 @@ func toTranslationJobSetupRuntimeOptions(
 ) []TranslationJobSetupRuntimeOption {
 	result := make([]TranslationJobSetupRuntimeOption, 0, len(options))
 	for _, option := range options {
-		result = append(result, TranslationJobSetupRuntimeOption{
-			Provider: option.Provider,
-			Model:    option.Model,
-			Mode:     option.Mode,
-		})
+		result = append(result, TranslationJobSetupRuntimeOption{Provider: option.Provider, Model: option.Model, Mode: option.Mode})
 	}
 	return result
 }
@@ -300,4 +341,99 @@ func toTranslationJobSetupCredentialReferences(
 		})
 	}
 	return result
+}
+
+func toTranslationJobSetupProviderCapabilities(
+	capabilities []jobsetupservice.TranslationJobSetupProviderCapabilityReadModel,
+) []TranslationJobSetupProviderCapability {
+	result := make([]TranslationJobSetupProviderCapability, 0, len(capabilities))
+	for _, capability := range capabilities {
+		result = append(result, TranslationJobSetupProviderCapability{
+			Provider:                capability.Provider,
+			CredentialRequirement:   TranslationJobSetupCredentialRequirement(capability.CredentialRequirement),
+			SupportedExecutionModes: normalizeTranslationJobSetupStringSlice(capability.SupportedExecutionModes),
+			SupportsBatchMode:       capability.SupportsBatchMode,
+		})
+	}
+	return result
+}
+
+func toTranslationJobSetupPhaseRuntimeDrafts(
+	drafts []jobsetupservice.TranslationJobSetupPhaseRuntimeDraftReadModel,
+) []TranslationJobSetupPhaseRuntimeDraft {
+	result := make([]TranslationJobSetupPhaseRuntimeDraft, 0, len(drafts))
+	for _, draft := range drafts {
+		result = append(result, TranslationJobSetupPhaseRuntimeDraft{
+			PhaseID:              TranslationJobSetupPhaseID(draft.PhaseID),
+			Provider:             draft.Provider,
+			Model:                draft.Model,
+			CredentialRef:        draft.CredentialRef,
+			CredentialStatus:     TranslationJobSetupCredentialStatus(draft.CredentialStatus),
+			ExecutionMode:        draft.ExecutionMode,
+			BatchMode:            TranslationJobSetupBatchMode(draft.BatchMode),
+			ModelListSourceToken: draft.ModelListSourceToken,
+		})
+	}
+	return result
+}
+
+func toTranslationJobSetupPhaseRuntimeSummaries(
+	summaries []jobsetupservice.TranslationJobSetupPhaseRuntimeSummaryReadModel,
+) []TranslationJobSetupPhaseRuntimeSummary {
+	result := make([]TranslationJobSetupPhaseRuntimeSummary, 0, len(summaries))
+	for _, summary := range summaries {
+		result = append(result, TranslationJobSetupPhaseRuntimeSummary{
+			PhaseID:              TranslationJobSetupPhaseID(summary.PhaseID),
+			Provider:             summary.Provider,
+			Model:                summary.Model,
+			CredentialRef:        summary.CredentialRef,
+			CredentialStatus:     TranslationJobSetupCredentialStatus(summary.CredentialStatus),
+			ExecutionMode:        summary.ExecutionMode,
+			BatchMode:            TranslationJobSetupBatchMode(summary.BatchMode),
+			ModelListSourceToken: summary.ModelListSourceToken,
+		})
+	}
+	return result
+}
+
+func toTranslationJobSetupPhaseIDs(phaseIDs []string) []TranslationJobSetupPhaseID {
+	result := make([]TranslationJobSetupPhaseID, 0, len(phaseIDs))
+	for _, phaseID := range phaseIDs {
+		result = append(result, TranslationJobSetupPhaseID(phaseID))
+	}
+	return result
+}
+
+func normalizeTranslationJobSetupStringSlice(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return append([]string(nil), values...)
+}
+
+func cloneOptionalString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	cloned := *value
+	return &cloned
+}
+
+func mapTranslationJobSetupCreateErrorKind(kind string) TranslationJobSetupErrorKind {
+	return NormalizeTranslationJobSetupPublicErrorKind(TranslationJobSetupErrorKind(kind))
+}
+
+func toTranslationJobSetupValidationResult(
+	decision jobsetupservice.TranslationJobSetupValidationDecision,
+) TranslationJobSetupValidationResult {
+	return TranslationJobSetupValidationResult{
+		Status:                  TranslationJobSetupValidationStatus(decision.Status),
+		BlockingFailureCategory: cloneOptionalString(decision.BlockingFailureCategory),
+		TargetSlices:            normalizeTranslationJobSetupStringSlice(decision.TargetSlices),
+		ValidatedAt:             decision.ValidatedAt,
+		CanCreate:               decision.CanCreate,
+		PassSlices:              normalizeTranslationJobSetupStringSlice(decision.PassSlices),
+		PhaseResults:            toTranslationJobSetupPhaseValidationResults(decision.PhaseResults),
+		StaleModelListPhaseIDs:  toTranslationJobSetupPhaseIDs(decision.StaleModelListPhaseIDs),
+	}
 }

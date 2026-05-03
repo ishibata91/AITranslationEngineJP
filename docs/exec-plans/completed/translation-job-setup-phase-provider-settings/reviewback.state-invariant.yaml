@@ -1,0 +1,162 @@
+reviewback_version: 1
+task_id: "translation-job-setup-phase-provider-settings"
+review_yaml_path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: >
+    維持: 前回 `state-invariant-001` の古い model list 失敗応答が
+    現在 phase state を上書きできる経路は解消されている。
+    `refreshPhaseModels` は success branch で最新 phase selection と
+    `providerModelLists` の `requestToken` を確認し、failure branch でも
+    同じ request-local phase id、provider、`requestToken` の現在性を確認してから
+    failed state を書き込む。Ready job は 3 phase runtime snapshot が
+    揃う場合だけ `CanStartPhase=true` になり、各 phase service は対象 phase の
+    snapshot が欠ける場合に provider request を開始しない。
+  evidence_sufficiency: >
+    十分: diff の実コード、前回指摘、task-local scenario / implementation-scope、
+    frontend usecase / unit test、backend service / repository / migration、
+    phase service の snapshot 読み取り境界、呼び出し元の検証証跡を確認した。
+  summary: >
+    検証証跡は呼び出し元提示の `python3 scripts/harness/run.py --suite backend-local` pass、
+    `python3 scripts/harness/run.py --suite frontend-local` pass、
+    `python3 scripts/harness/run.py --suite all` pass、system test 5 passed、
+    Sonar coverage 71.1%、security 0、reliability 0、maintainability HIGH 0 を採用した。
+    レビュー中に広い harness は再実行していない。
+
+checked_scope:
+  summary: >
+    model list success / failure 応答の stale guard、validation token、
+    3 phase runtime snapshot 保存、snapshot 完備判定、summary 開始可否、
+    term / persona / body phase の snapshot 欠落時拒否を確認した。
+  files:
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 743
+      symbol: "refreshPhaseModels success branch"
+      reason: "success 応答が最新 phase selection の provider と providerModelLists の requestToken に一致しない場合 return することを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 782
+      symbol: "refreshPhaseModels failure branch"
+      reason: "failure 応答が request-local phase id の最新 provider と requestToken に一致しない場合 return することを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 1041
+      symbol: "revalidateIfReady"
+      reason: "validation の遅延 success / failure が latest validation token で破棄されることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 604
+      symbol: "state-invariant-001 regression test"
+      reason: "provider 変更後の古い rejection が現在 phase の providerModelLists、model、errorMessage を巻き戻さない focused test を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 539
+      symbol: "stale failed response regression test"
+      reason: "古い failed model list response が最新 providerModelLists と model を巻き戻さない focused test を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 422
+      symbol: "ListProviderModels"
+      reason: "backend が request の phase id、provider、requestToken から model list result と source token を作ることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 613
+      symbol: "CreateTranslationJob"
+      reason: "Ready job、初期 phase run、3 phase runtime snapshot が transaction 内で作成されることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 724
+      symbol: "savePhaseRuntimeSnapshots"
+      reason: "canonical 3 phase の snapshot を保存し、phase id ごとに runtime を固定することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 756
+      symbol: "ReadSummary"
+      reason: "summary が保存済み snapshot を読み、完備時だけ phase 開始可能にすることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1407
+      symbol: "translationJobSetupHasAllPhaseSnapshots"
+      reason: "Ready job の開始可否が 3 phase id の存在で判定されることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 234
+      symbol: "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT SQL"
+      reason: "snapshot 保存と取得が job id と phase id を扱うことを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/009_translation_job_phase_runtime_snapshots.sql"
+      line: 1
+      symbol: "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT"
+      reason: "job id と phase id の unique index で二重 snapshot を防ぐことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 560
+      symbol: "TestTranslationJobSetupServiceReadSummaryRejectsStartWhenPhaseRuntimeSnapshotsAreIncomplete"
+      reason: "snapshot が 2 件だけの Ready job で CanStartPhase が false になる focused test を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1114
+      symbol: "loadExecutionContext"
+      reason: "単語翻訳 phase が word_translation snapshot 欠落時に execution を空へ倒すことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 540
+      symbol: "prepareExecutionPlan"
+      reason: "単語翻訳 phase が execution 未設定時に start を拒否することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 749
+      symbol: "loadContext"
+      reason: "NPC ペルソナ生成 phase が npc_persona_generation snapshot 欠落時に execution を空へ倒すことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1004
+      symbol: "startRejection"
+      reason: "NPC ペルソナ生成 phase が execution 未設定時に start を拒否することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 532
+      symbol: "loadContext"
+      reason: "本文翻訳 phase が text_translation snapshot 欠落時に execution を空へ倒すことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 634
+      symbol: "buildStartRejection"
+      reason: "本文翻訳 phase が execution 未設定時に start を拒否することを確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "人間指示で広い harness 再実行が禁止されているため、呼び出し元の検証証跡を採用した。"
+    risk: "レビュー後に working tree が変わった場合、検証証跡とのずれが残る。"
+  - target: "実 DB upgrade 後の既存 Ready job 手動確認"
+    reason: "migration と実コードを読んだ。既存 DB を使う手動操作はしていない。"
+    risk: "snapshot がない既存 Ready job の実画面表示は、summary の CanStartPhase=false までのコード確認に留まる。"
+  - target: "gateway 契約外の phaseId 書き換え"
+    reason: "backend / usecase / controller は request phase id を response に戻すため、契約外の response phaseId 改変は別観点の contract drift として扱った。"
+    risk: "契約外の mock や破損 adapter が同じ requestToken で別 phaseId を返す場合、frontend success branch の追加防御は別途検討余地がある。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "遅延 model list 失敗応答が現在 phase state を上書きできる"
+    problem: >
+      前回は `refreshPhaseModels` の failure branch が最新 phase state と
+      `requestToken` を確認せず、古い failed state を現在 phase へ書き込めた。
+      再修正後は failure branch が request-local phase id の最新 selection と
+      providerModelLists を読み直し、provider または `requestToken` が一致しない場合 return する。
+    reason: >
+      provider 変更後または同一 phase の再取得後に古い request が reject しても、
+      現在 provider の providerModelLists、model、modelListSourceToken、validation state を
+      failed へ巻き戻す経路が閉じている。
+    violated_condition: >
+      provider または APIキー状態変更後、遅延 model list response は現在 phase state へ混入しない。
+    cause_candidate: >
+      原因は failure branch の stale guard 欠落だった。再修正後は
+      `latestSelection.provider !== selection.provider` と
+      `latestModelList?.requestToken !== requestToken` で失敗応答を破棄する。
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 782
+        excerpt: "catch branch が latest phase selection と providerModelLists の requestToken を確認して stale failure を return する。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 604
+        excerpt: "provider 変更後の遅延 model list rejection が現在 phase state を上書きしない regression test が追加されている。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 743
+        excerpt: "success branch も latest phase selection と providerModelLists の requestToken を確認している。"
+    local_fix_assessment: "resolved-local-frontend-state"
+    additional_check_scope: "none: focused regression と実コードで前回不変条件の解消を確認した。"
+    fix_considerations: >
+      今後 model list adapter を増やす場合も、phase id、provider、requestToken の現在性を
+      success / failure で同じ基準に保つ必要がある。
+    verification: >
+      呼び出し元提示の frontend-local / all harness pass と、state-invariant-001 focused test を確認した。
+    fix_required: true
+    status: "resolved"

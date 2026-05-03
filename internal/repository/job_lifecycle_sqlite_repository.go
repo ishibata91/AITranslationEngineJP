@@ -163,6 +163,40 @@ type phaseRunDictionaryEntryRow struct {
 	Role              string `db:"role"`
 }
 
+type translationJobPhaseRuntimeSnapshotRow struct {
+	ID                   int64  `db:"id"`
+	TranslationJobID     int64  `db:"translation_job_id"`
+	PhaseID              string `db:"phase_id"`
+	Provider             string `db:"provider"`
+	ModelName            string `db:"model_name"`
+	CredentialRef        string `db:"credential_ref"`
+	CredentialStatus     string `db:"credential_status"`
+	ExecutionMode        string `db:"execution_mode"`
+	BatchMode            string `db:"batch_mode"`
+	ModelListSourceToken string `db:"model_list_source_token"`
+	CreatedAt            string `db:"created_at"`
+}
+
+func (r translationJobPhaseRuntimeSnapshotRow) toModel() (TranslationJobPhaseRuntimeSnapshot, error) {
+	createdAt, err := time.Parse(time.RFC3339, r.CreatedAt)
+	if err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("parse phase runtime created_at: %w", err)
+	}
+	return TranslationJobPhaseRuntimeSnapshot{
+		ID:                   r.ID,
+		TranslationJobID:     r.TranslationJobID,
+		PhaseID:              r.PhaseID,
+		Provider:             r.Provider,
+		ModelName:            r.ModelName,
+		CredentialRef:        r.CredentialRef,
+		CredentialStatus:     r.CredentialStatus,
+		ExecutionMode:        r.ExecutionMode,
+		BatchMode:            r.BatchMode,
+		ModelListSourceToken: r.ModelListSourceToken,
+		CreatedAt:            createdAt,
+	}, nil
+}
+
 // ---------------------------------------------------------------------------
 // SQL 定数
 // ---------------------------------------------------------------------------
@@ -196,6 +230,28 @@ UPDATE TRANSLATION_JOB SET
   started_at       = :started_at,
   finished_at      = :finished_at
 WHERE id = :id`
+
+	insertTranslationJobPhaseRuntimeSnapshot = `
+INSERT INTO TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
+  (translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
+   execution_mode, batch_mode, model_list_source_token, created_at)
+VALUES
+  (:translation_job_id, :phase_id, :provider, :model_name, :credential_ref, :credential_status,
+   :execution_mode, :batch_mode, :model_list_source_token, :created_at)`
+
+	selectTranslationJobPhaseRuntimeSnapshotsByJobID = `
+SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
+       execution_mode, batch_mode, model_list_source_token, created_at
+FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
+WHERE translation_job_id = ?
+ORDER BY id ASC`
+
+	selectTranslationJobPhaseRuntimeSnapshotByJobAndPhase = `
+SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
+       execution_mode, batch_mode, model_list_source_token, created_at
+FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
+WHERE translation_job_id = ? AND phase_id = ?
+LIMIT 1`
 
 	insertJobPhaseRun = `
 INSERT INTO JOB_PHASE_RUN
@@ -391,6 +447,83 @@ func (r *SQLiteJobLifecycleRepository) UpdateTranslationJob(
 		return TranslationJob{}, mapFoundationSQLError(err, "update translation_job")
 	}
 	return r.GetTranslationJobByID(ctx, id)
+}
+
+// SaveTranslationJobPhaseRuntimeSnapshot は Job Setup の phase 別 runtime snapshot を保存する。
+func (r *SQLiteJobLifecycleRepository) SaveTranslationJobPhaseRuntimeSnapshot(
+	ctx context.Context,
+	draft TranslationJobPhaseRuntimeSnapshotDraft,
+) (TranslationJobPhaseRuntimeSnapshot, error) {
+	ext := extractTx(ctx, r.db)
+	row := translationJobPhaseRuntimeSnapshotRow{
+		TranslationJobID:     draft.TranslationJobID,
+		PhaseID:              draft.PhaseID,
+		Provider:             draft.Provider,
+		ModelName:            draft.ModelName,
+		CredentialRef:        draft.CredentialRef,
+		CredentialStatus:     draft.CredentialStatus,
+		ExecutionMode:        draft.ExecutionMode,
+		BatchMode:            draft.BatchMode,
+		ModelListSourceToken: draft.ModelListSourceToken,
+		CreatedAt:            time.Now().UTC().Format(time.RFC3339),
+	}
+	q, args, err := sqlx.Named(insertTranslationJobPhaseRuntimeSnapshot, row)
+	if err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("create translation_job_phase_runtime_snapshot named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, args...)
+	if err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, mapFoundationSQLError(err, "create translation_job_phase_runtime_snapshot")
+	}
+	id, err := result.LastInsertId()
+	if err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("create translation_job_phase_runtime_snapshot last insert id: %w", err)
+	}
+	snapshots, err := r.ListTranslationJobPhaseRuntimeSnapshots(ctx, draft.TranslationJobID)
+	if err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, err
+	}
+	for _, snapshot := range snapshots {
+		if snapshot.ID == id {
+			return snapshot, nil
+		}
+	}
+	return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("load translation_job_phase_runtime_snapshot by id=%d: %w", id, ErrNotFound)
+}
+
+// ListTranslationJobPhaseRuntimeSnapshots は translation_job_id に紐づく phase runtime snapshot を返す。
+func (r *SQLiteJobLifecycleRepository) ListTranslationJobPhaseRuntimeSnapshots(
+	ctx context.Context,
+	translationJobID int64,
+) ([]TranslationJobPhaseRuntimeSnapshot, error) {
+	ext := extractTx(ctx, r.db)
+	rows := make([]translationJobPhaseRuntimeSnapshotRow, 0)
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationJobPhaseRuntimeSnapshotsByJobID, translationJobID); err != nil {
+		return nil, mapSQLError(err, "list translation_job_phase_runtime_snapshot by job_id")
+	}
+	result := make([]TranslationJobPhaseRuntimeSnapshot, 0, len(rows))
+	for _, row := range rows {
+		snapshot, err := row.toModel()
+		if err != nil {
+			return nil, err
+		}
+		result = append(result, snapshot)
+	}
+	return result, nil
+}
+
+// GetTranslationJobPhaseRuntimeSnapshot は translation_job_id と phase_id で phase runtime snapshot を取得する。
+func (r *SQLiteJobLifecycleRepository) GetTranslationJobPhaseRuntimeSnapshot(
+	ctx context.Context,
+	translationJobID int64,
+	phaseID string,
+) (TranslationJobPhaseRuntimeSnapshot, error) {
+	ext := extractTx(ctx, r.db)
+	var row translationJobPhaseRuntimeSnapshotRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationJobPhaseRuntimeSnapshotByJobAndPhase, translationJobID, phaseID); err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, mapSQLError(err, "get translation_job_phase_runtime_snapshot by job and phase")
+	}
+	return row.toModel()
 }
 
 // ---------------------------------------------------------------------------

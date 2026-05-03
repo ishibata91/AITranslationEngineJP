@@ -34,6 +34,34 @@ type TranslationJobUpdateDraft struct {
 	FinishedAt      *time.Time
 }
 
+// TranslationJobPhaseRuntimeSnapshot は Job Setup で保存した phase 別 runtime snapshot を表す。
+type TranslationJobPhaseRuntimeSnapshot struct {
+	ID                   int64
+	TranslationJobID     int64
+	PhaseID              string
+	Provider             string
+	ModelName            string
+	CredentialRef        string
+	CredentialStatus     string
+	ExecutionMode        string
+	BatchMode            string
+	ModelListSourceToken string
+	CreatedAt            time.Time
+}
+
+// TranslationJobPhaseRuntimeSnapshotDraft は phase 別 runtime snapshot の作成ペイロードを表す。
+type TranslationJobPhaseRuntimeSnapshotDraft struct {
+	TranslationJobID     int64
+	PhaseID              string
+	Provider             string
+	ModelName            string
+	CredentialRef        string
+	CredentialStatus     string
+	ExecutionMode        string
+	BatchMode            string
+	ModelListSourceToken string
+}
+
 // JobPhaseRun は JOB_PHASE_RUN テーブルの 1 レコードを表す。
 type JobPhaseRun struct {
 	ID                     int64

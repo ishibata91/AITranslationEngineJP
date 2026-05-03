@@ -60,6 +60,14 @@ type bodyTranslationPhaseJobOutputRepository interface {
 	ListJobTranslationFieldsByJobID(ctx context.Context, jobID int64) ([]repository.JobTranslationField, error)
 }
 
+type bodyTranslationPhaseRuntimeSnapshotReader interface {
+	GetTranslationJobPhaseRuntimeSnapshot(
+		ctx context.Context,
+		translationJobID int64,
+		phaseID string,
+	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
+}
+
 // BodyTranslationPhaseProgressReadModel stores body phase progress for the usecase boundary.
 type BodyTranslationPhaseProgressReadModel struct {
 	Percent         int
@@ -521,6 +529,23 @@ func (service *BodyTranslationPhaseService) loadContext(
 		return bodyTranslationLoadedContext{}, fmt.Errorf("list body translation outputs: %w", err)
 	}
 	execution := bodyTranslationExecutionFromPhaseRuns(bodyRun, personaRun)
+	if snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader); ok {
+		snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "text_translation")
+		switch {
+		case snapshotErr == nil:
+			execution.CredentialRef = strings.TrimSpace(snapshot.CredentialRef)
+			execution.Provider = strings.TrimSpace(snapshot.Provider)
+			execution.Model = strings.TrimSpace(snapshot.ModelName)
+			execution.ExecutionMode = strings.TrimSpace(snapshot.ExecutionMode)
+		case errors.Is(snapshotErr, repository.ErrNotFound):
+			execution.CredentialRef = ""
+			execution.Provider = ""
+			execution.Model = ""
+			execution.ExecutionMode = ""
+		default:
+			return bodyTranslationLoadedContext{}, fmt.Errorf("load body translation phase runtime snapshot: %w", snapshotErr)
+		}
+	}
 	persona := firstBodyTranslationPersona(personas)
 	snapshot, err := buildBodyTranslationInputSnapshot(job, records, fieldsByRecord, dictionary, persona, execution)
 	if err != nil {
@@ -606,6 +631,12 @@ func (service *BodyTranslationPhaseService) startRejection(
 			reason:    "terminal job",
 		}
 	}
+	if !bodyTranslationExecutionConfigured(loaded.execution) {
+		return &bodyTranslationStartRejection{
+			errorKind: "persona_phase_incomplete",
+			reason:    "phase runtime snapshot is missing",
+		}
+	}
 	if loaded.bodyRun != nil && isBodyTranslationActiveRunState(strings.TrimSpace(loaded.bodyRun.State)) {
 		return &bodyTranslationStartRejection{
 			errorKind: "active_phase_exists",
@@ -613,6 +644,12 @@ func (service *BodyTranslationPhaseService) startRejection(
 		}
 	}
 	return nil
+}
+
+func bodyTranslationExecutionConfigured(execution BodyTranslationPhaseExecutionSummaryReadModel) bool {
+	return strings.TrimSpace(execution.Provider) != "" &&
+		strings.TrimSpace(execution.Model) != "" &&
+		strings.TrimSpace(execution.ExecutionMode) != ""
 }
 
 func (service *BodyTranslationPhaseService) rejectedCommand(

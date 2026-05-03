@@ -789,6 +789,37 @@ func TestTermTranslationPhaseServiceUsesSecretStoreValueInsteadOfCredentialRef(t
 	}
 }
 
+func TestTermTranslationPhaseServiceLoadsSecretBySnapshotCredentialRef(t *testing.T) {
+	secretLoadKeys := make([]string, 0, 1)
+	capturedAPIKeys := make([]string, 0, 1)
+	service, _, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			capturedAPIKeys = append(capturedAPIKeys, request.APIKey)
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+	service.secretStore = fakeTermPhaseSecretStore{
+		loadFunc: func(_ context.Context, key string) (string, error) {
+			secretLoadKeys = append(secretLoadKeys, key)
+			if key == "gemini-primary" {
+				return "gemini-secret", nil
+			}
+			return "", nil
+		},
+	}
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success: %v", err)
+	}
+	if len(secretLoadKeys) == 0 || secretLoadKeys[0] != "gemini-primary" {
+		t.Fatalf("expected credential lookup by phase snapshot ref, got %#v", secretLoadKeys)
+	}
+	if len(capturedAPIKeys) == 0 || capturedAPIKeys[0] != "gemini-secret" {
+		t.Fatalf("expected provider call to use secret loaded by credential ref, got %#v", capturedAPIKeys)
+	}
+}
+
 func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadStalls(t *testing.T) {
 	blockedLoad := make(chan struct{})
 	capturedAPIKeys := make([]string, 0, 2)

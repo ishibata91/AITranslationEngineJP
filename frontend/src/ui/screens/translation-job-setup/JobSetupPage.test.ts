@@ -15,6 +15,7 @@ import {
   TranslationJobSetupValidationResponse
 } from "@application/gateway-contract/translation-job-setup"
 import { TranslationJobSetupPresenter } from "@application/presenter/translation-job-setup"
+import type { TranslationJobSetupExtendedViewModel } from "@application/presenter/translation-job-setup/translation-job-setup.presenter"
 import JobSetupPage from "@ui/screens/translation-job-setup/JobSetupPage.svelte"
 
 function createOptions(
@@ -64,6 +65,93 @@ function createOptions(
     ],
     ...overrides
   }
+}
+
+function createPhaseOptions(
+  overrides: Partial<TranslationJobSetupOptionsResponse> = {}
+): TranslationJobSetupOptionsResponse {
+  return createOptions({
+    aiRuntimeOptions: [],
+    credentialRefs: [
+      {
+        provider: "gemini",
+        credentialRef: "gemini-primary",
+        isConfigured: true,
+        isMissingSecret: false
+      },
+      {
+        provider: "xai",
+        credentialRef: "xai-primary",
+        isConfigured: true,
+        isMissingSecret: false
+      },
+      {
+        provider: "openai",
+        credentialRef: "openai-primary",
+        isConfigured: true,
+        isMissingSecret: false
+      }
+    ],
+    providerCapabilities: [
+      {
+        provider: "gemini",
+        credentialRequirement: "required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: true
+      },
+      {
+        provider: "xai",
+        credentialRequirement: "required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: true
+      },
+      {
+        provider: "lm_studio",
+        credentialRequirement: "not_required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: false
+      },
+      {
+        provider: "openai",
+        credentialRequirement: "required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: false
+      }
+    ],
+    phaseRuntimeDrafts: [
+      {
+        phaseId: "word_translation",
+        provider: "gemini",
+        model: "gemini-model-core",
+        credentialRef: "gemini-primary",
+        credentialStatus: "configured",
+        executionMode: "sync",
+        batchMode: "enabled",
+        modelListSourceToken: "models-word-v1"
+      },
+      {
+        phaseId: "npc_persona_generation",
+        provider: "xai",
+        model: "xai-persona-model",
+        credentialRef: "xai-primary",
+        credentialStatus: "configured",
+        executionMode: "sync",
+        batchMode: "disabled",
+        modelListSourceToken: "models-persona-v1"
+      },
+      {
+        phaseId: "text_translation",
+        provider: "lm_studio",
+        model: "local-text-model",
+        credentialRef: "",
+        credentialStatus: "not_required",
+        executionMode: "sync",
+        batchMode: "unsupported",
+        modelListSourceToken: "models-text-v1"
+      }
+    ],
+    ...overrides
+  })
 }
 
 function createValidationResult(
@@ -127,6 +215,56 @@ function createPresentedViewModel(
 ): TranslationJobSetupScreenViewModel {
   const presenter = new TranslationJobSetupPresenter()
   return presenter.toViewModel(createState(overrides), true)
+}
+
+function createPresentedPhaseViewModel(
+  overrides: Partial<TranslationJobSetupScreenState> = {}
+): TranslationJobSetupExtendedViewModel {
+  const options = overrides.options ?? createPhaseOptions()
+  const phaseRuntimeSelections =
+    overrides.phaseRuntimeSelections ??
+    options.phaseRuntimeDrafts?.map((draft) => ({ ...draft })) ??
+    []
+  const providerModelLists =
+    overrides.providerModelLists ??
+    phaseRuntimeSelections.map((selection) => ({
+      phaseId: selection.phaseId,
+      provider: selection.provider,
+      credentialStatus: selection.credentialStatus,
+      requestToken: "",
+      sourceToken: selection.modelListSourceToken,
+      status: "success",
+      models: selection.model
+        ? [{ modelId: selection.model, label: selection.model }]
+        : []
+    }))
+  const presenter = new TranslationJobSetupPresenter()
+  return presenter.toViewModel(
+    {
+      phase: "ready",
+      options,
+      selectedInputSourceId: options.inputCandidates[0]?.id ?? null,
+      selectedRuntimeKey: null,
+      selectedCredentialRef: "",
+      phaseRuntimeSelections,
+      providerModelLists,
+      validationResult: createValidationResult({
+        status: "pass",
+        blockingFailureCategory: undefined,
+        targetSlices: ["input", "phase-runtime"],
+        validatedAt: "2026-05-04T02:30:00Z",
+        canCreate: true,
+        passSlices: ["input", "phase-runtime"]
+      }),
+      validationState: "fresh",
+      dirty: false,
+      errorMessage: "",
+      createErrorKind: null,
+      summary: null,
+      ...overrides
+    },
+    true
+  )
 }
 
 function createViewModel(
@@ -203,6 +341,11 @@ class TranslationJobSetupScreenControllerFake implements TranslationJobSetupScre
   readonly selectCredentialRef = vi.fn(() => {})
   readonly runValidation = vi.fn(async () => {})
   readonly createJob = vi.fn(async () => {})
+  readonly selectPhaseProvider = vi.fn(() => {})
+  readonly refreshPhaseModels = vi.fn(async () => {})
+  readonly selectPhaseModel = vi.fn(() => {})
+  readonly togglePhaseBatchMode = vi.fn(() => {})
+  readonly acknowledgeCredentialConfigured = vi.fn(() => {})
 
   constructor(initialViewModel = createViewModel()) {
     this.viewModel = initialViewModel
@@ -228,6 +371,140 @@ class TranslationJobSetupScreenControllerFake implements TranslationJobSetupScre
 }
 
 describe("JobSetupPage", () => {
+  test("SCN-TJSPPS-004: LM Studio は API key 登録 UI と未設定 warning を表示しない", () => {
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createPresentedPhaseViewModel()
+    )
+
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    const textTranslationCard = screen
+      .getByRole("heading", { name: "本文翻訳" })
+      .closest("article")
+    expect(textTranslationCard).not.toBeNull()
+    expect(textTranslationCard).toHaveTextContent("LM Studio")
+    expect(textTranslationCard).toHaveTextContent("不要")
+    expect(textTranslationCard).not.toHaveTextContent(
+      "APIキーを登録してからモデル一覧を更新してください。"
+    )
+    expect(
+      screen.queryByRole("button", { name: "APIキーを登録" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByPlaceholderText("APIキーを入力してください")
+    ).not.toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent("sk-")
+  })
+
+  test("SCN-TJSPPS-005: Gemini と xAI だけ batch checkbox を表示する", () => {
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createPresentedPhaseViewModel()
+    )
+
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    const wordTranslationCard = screen
+      .getByRole("heading", { name: "単語翻訳" })
+      .closest("article")
+    const personaCard = screen
+      .getByRole("heading", { name: "NPC ペルソナ生成" })
+      .closest("article")
+    const textTranslationCard = screen
+      .getByRole("heading", { name: "本文翻訳" })
+      .closest("article")
+
+    expect(wordTranslationCard).not.toBeNull()
+    expect(personaCard).not.toBeNull()
+    expect(textTranslationCard).not.toBeNull()
+    expect(wordTranslationCard).toHaveTextContent("Gemini")
+    expect(wordTranslationCard).toHaveTextContent("一括処理で実行する")
+    expect(personaCard).toHaveTextContent("xAI")
+    expect(personaCard).toHaveTextContent("一括処理で実行する")
+    expect(textTranslationCard).toHaveTextContent("LM Studio")
+    expect(textTranslationCard).toHaveTextContent(
+      "この AI サービスでは一括処理の切り替えはありません。"
+    )
+    expect(textTranslationCard).not.toHaveTextContent("一括処理で実行する")
+  })
+
+  test("SCN-TJSPPS-001: 3 phase 不足なしでは作成実行と phase 別 summary を表示する", async () => {
+    const user = userEvent.setup()
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createPresentedPhaseViewModel()
+    )
+
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    expect(screen.getByText("不足はありません。")).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "次へ" }))
+
+    expect(controller.createJob).toHaveBeenCalledTimes(1)
+
+    controller.pushViewModel(
+      createPresentedPhaseViewModel({
+        summary: createSummary({
+          phaseRuntimeSummaries: [
+            {
+              phaseId: "word_translation",
+              provider: "gemini",
+              model: "gemini-model-core",
+              credentialRef: "gemini-primary",
+              credentialStatus: "configured",
+              executionMode: "sync",
+              batchMode: "enabled",
+              modelListSourceToken: "models-word-v1"
+            },
+            {
+              phaseId: "npc_persona_generation",
+              provider: "xai",
+              model: "xai-persona-model",
+              credentialRef: "xai-primary",
+              credentialStatus: "configured",
+              executionMode: "sync",
+              batchMode: "disabled",
+              modelListSourceToken: "models-persona-v1"
+            },
+            {
+              phaseId: "text_translation",
+              provider: "lm_studio",
+              model: "local-text-model",
+              credentialRef: "",
+              credentialStatus: "not_required",
+              executionMode: "sync",
+              batchMode: "unsupported",
+              modelListSourceToken: "models-text-v1"
+            }
+          ]
+        })
+      })
+    )
+
+    expect(
+      await screen.findByRole("heading", { name: "翻訳段階ごとの設定" })
+    ).toBeInTheDocument()
+    expect(screen.getByText("Gemini")).toBeInTheDocument()
+    expect(screen.getByText("xAI")).toBeInTheDocument()
+    expect(screen.getByText("LM Studio")).toBeInTheDocument()
+    expect(screen.getByText("gemini-model-core")).toBeInTheDocument()
+    expect(screen.getByText("xai-persona-model")).toBeInTheDocument()
+    expect(screen.getByText("local-text-model")).toBeInTheDocument()
+    expect(screen.getAllByText("登録済み").length).toBeGreaterThan(0)
+    expect(screen.getByText("不要")).toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent("sk-")
+  })
+
   test("input metadata の registeredAt supplied 値を表示する", () => {
     const registeredAt = "2026-04-27T00:30:00.000Z"
     const controller = new TranslationJobSetupScreenControllerFake(
@@ -271,7 +548,10 @@ describe("JobSetupPage", () => {
     })
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Job Setup" })
+      screen.getByRole("heading", {
+        level: 2,
+        name: "翻訳段階ごとの AI 設定"
+      })
     ).toBeInTheDocument()
     expect(
       screen.getAllByText(
@@ -300,7 +580,7 @@ describe("JobSetupPage", () => {
     expect(screen.getAllByText("input").length).toBeGreaterThan(0)
     expect(screen.getAllByText("foundation").length).toBeGreaterThan(0)
     expect(
-      screen.getByRole("button", { name: "ready job を作成" })
+      screen.getByRole("button", { name: "次へ" })
     ).toBeDisabled()
     expect(
       screen.getByText("validation が失効しています。")

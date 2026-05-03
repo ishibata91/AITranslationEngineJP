@@ -12,10 +12,12 @@ import (
 )
 
 const (
-	translationOutputArtifactFormatXML      = "xtranslator_xml"
-	translationOutputArtifactStatusSuccess  = "success"
-	translationOutputArtifactStatusFailed   = "failed"
-	translationOutputArtifactStatusRejected = "rejected"
+	translationOutputArtifactFormatXML               = "xtranslator_xml"
+	translationOutputArtifactStatusSuccess           = "success"
+	translationOutputArtifactStatusFailed            = "failed"
+	translationOutputArtifactStatusRejected          = "rejected"
+	translationOutputArtifactReasonFileWriteFailed   = "output artifact file write failed"
+	translationOutputArtifactReasonPersistenceFailed = "output artifact persistence failed"
 )
 
 // TranslationOutputArtifactCommandResult stores one generate or regenerate result.
@@ -107,40 +109,14 @@ func (service *TranslationOutputArtifactService) writeArtifact(
 	ctx context.Context,
 	request translationOutputArtifactWriteRequest,
 ) (TranslationOutputArtifactCommandResult, error) {
-	failureResult := TranslationOutputArtifactCommandResult{
-		Artifact: repository.TranslationArtifact{
-			ID:               request.expectedArtifactID,
-			TranslationJobID: request.jobID,
-			TargetGame:       strings.TrimSpace(request.targetGame),
-			FilePath:         strings.TrimSpace(request.outputPath),
-		},
-		OperationKind:      request.operationKind,
-		ReplacedArtifactID: request.expectedArtifactID,
-	}
+	failureResult := newTranslationOutputArtifactFailureResult(request)
 	loaded, err := service.loadJob(ctx, request.jobID)
 	if err != nil {
 		return TranslationOutputArtifactCommandResult{}, fmt.Errorf("load translation output artifact job %d: %w", request.jobID, err)
 	}
-	validatedOutputPath, pathErr := validateTranslationOutputArtifactPath(strings.TrimSpace(request.outputPath))
-	if pathErr != nil {
-		failureResult.Artifact.Status = translationOutputArtifactStatusFailed
-		return failureResult, TranslationOutputArtifactFailure{
-			artifactStatus: translationOutputArtifactStatusFailed,
-			errorKind:      "file_write_failed",
-			reason:         "output artifact file write failed",
-			retryable:      true,
-		}
-	}
-	failureResult.Artifact.FilePath = validatedOutputPath
-	readiness := service.buildReadiness(loaded)
-	if !readiness.Ready {
-		failureResult.Artifact.Status = translationOutputArtifactStatusRejected
-		return failureResult, TranslationOutputArtifactFailure{
-			artifactStatus: translationOutputArtifactStatusRejected,
-			errorKind:      readiness.RejectionKind,
-			reason:         buildReadinessReason(readiness.RejectionKind),
-			retryable:      readiness.Retryable,
-		}
+	validatedOutputPath, failure, err := service.validateArtifactWriteRequest(loaded, request, failureResult)
+	if err != nil {
+		return failure, err
 	}
 
 	buildResult, err := service.buildArtifactRows(ctx, loaded.outputs)
@@ -157,28 +133,14 @@ func (service *TranslationOutputArtifactService) writeArtifact(
 			retryable:      false,
 		}
 	}
-	if request.expectedArtifactID > 0 {
-		currentArtifact, currentArtifactErr := service.lookupPersistedArtifact(ctx, request.jobID)
-		if currentArtifactErr != nil {
-			failureResult.Artifact.Status = translationOutputArtifactStatusFailed
-			failureResult.AffectedFieldIDs = normalizeOperationFieldIDs(buildResult.affectedFieldIDs)
-			return failureResult, TranslationOutputArtifactFailure{
-				artifactStatus: translationOutputArtifactStatusFailed,
-				errorKind:      "artifact_save_failed",
-				reason:         "output artifact persistence failed",
-				retryable:      !errors.Is(currentArtifactErr, repository.ErrNotFound),
-			}
-		}
-		if currentArtifact.ID != request.expectedArtifactID {
-			failureResult.Artifact.Status = translationOutputArtifactStatusFailed
-			failureResult.AffectedFieldIDs = normalizeOperationFieldIDs(buildResult.affectedFieldIDs)
-			return failureResult, TranslationOutputArtifactFailure{
-				artifactStatus: translationOutputArtifactStatusFailed,
-				errorKind:      "artifact_save_failed",
-				reason:         "requested artifact id does not match current output artifact",
-				retryable:      false,
-			}
-		}
+	failure, expectedArtifactErr := service.ensureExpectedArtifactMatches(
+		ctx,
+		request,
+		buildResult.affectedFieldIDs,
+		failureResult,
+	)
+	if expectedArtifactErr != nil {
+		return failure, expectedArtifactErr
 	}
 
 	xmlPayload, err := service.xmlSerializer.Serialize(strings.TrimSpace(request.targetGame), buildResult.rows)
@@ -193,29 +155,7 @@ func (service *TranslationOutputArtifactService) writeArtifact(
 		}
 	}
 
-	generatedAt := time.Now().UTC()
-	artifactDraft := repository.TranslationArtifactDraft{
-		TranslationJobID: request.jobID,
-		ArtifactFormat:   translationOutputArtifactFormatXML,
-		TargetGame:       strings.TrimSpace(request.targetGame),
-		FilePath:         validatedOutputPath,
-		Status:           translationOutputArtifactStatusSuccess,
-		GeneratedAt:      &generatedAt,
-	}
-
-	rowDrafts := make([]repository.XTranslatorOutputRowDraft, 0, len(buildResult.rows))
-	for _, row := range buildResult.rows {
-		rowDrafts = append(rowDrafts, repository.XTranslatorOutputRowDraft{
-			JobTranslationFieldID: row.JobTranslationFieldID,
-			EDID:                  row.EDID,
-			REC:                   row.REC,
-			FIELD:                 row.FIELD,
-			FORMID:                row.FORMID,
-			Source:                row.Source,
-			Dest:                  row.Dest,
-			Status:                row.Status,
-		})
-	}
+	artifactDraft, rowDrafts := buildTranslationOutputArtifactPersistenceDrafts(request, validatedOutputPath, buildResult.rows)
 	persisted, err := service.persistArtifactWithFile(ctx, validatedOutputPath, xmlPayload, artifactDraft, rowDrafts)
 	if err != nil {
 		failureResult.Artifact.Status = translationOutputArtifactStatusFailed
@@ -245,6 +185,136 @@ func (service *TranslationOutputArtifactService) writeArtifact(
 	persisted.DuplicateRowCreated = false
 
 	return persisted, nil
+}
+
+func newTranslationOutputArtifactFailureResult(
+	request translationOutputArtifactWriteRequest,
+) TranslationOutputArtifactCommandResult {
+	return TranslationOutputArtifactCommandResult{
+		Artifact: repository.TranslationArtifact{
+			ID:               request.expectedArtifactID,
+			TranslationJobID: request.jobID,
+			TargetGame:       strings.TrimSpace(request.targetGame),
+			FilePath:         strings.TrimSpace(request.outputPath),
+		},
+		OperationKind:      request.operationKind,
+		ReplacedArtifactID: request.expectedArtifactID,
+	}
+}
+
+func (service *TranslationOutputArtifactService) validateArtifactWriteRequest(
+	loaded translationOutputArtifactLoadedJob,
+	request translationOutputArtifactWriteRequest,
+	failureResult TranslationOutputArtifactCommandResult,
+) (string, TranslationOutputArtifactCommandResult, error) {
+	validatedOutputPath, pathErr := validateTranslationOutputArtifactPath(strings.TrimSpace(request.outputPath))
+	if pathErr != nil {
+		failure, err := buildTranslationOutputArtifactFailureResult(
+			failureResult,
+			translationOutputArtifactStatusFailed,
+			"file_write_failed",
+			translationOutputArtifactReasonFileWriteFailed,
+			true,
+			nil,
+		)
+		return "", failure, err
+	}
+	readiness := service.buildReadiness(loaded)
+	if !readiness.Ready {
+		failure, err := buildTranslationOutputArtifactFailureResult(
+			failureResult,
+			translationOutputArtifactStatusRejected,
+			readiness.RejectionKind,
+			buildReadinessReason(readiness.RejectionKind),
+			readiness.Retryable,
+			nil,
+		)
+		return "", failure, err
+	}
+	return validatedOutputPath, TranslationOutputArtifactCommandResult{}, nil
+}
+
+func (service *TranslationOutputArtifactService) ensureExpectedArtifactMatches(
+	ctx context.Context,
+	request translationOutputArtifactWriteRequest,
+	affectedFieldIDs []int64,
+	failureResult TranslationOutputArtifactCommandResult,
+) (TranslationOutputArtifactCommandResult, error) {
+	if request.expectedArtifactID == 0 {
+		return TranslationOutputArtifactCommandResult{}, nil
+	}
+	currentArtifact, currentArtifactErr := service.lookupPersistedArtifact(ctx, request.jobID)
+	if currentArtifactErr != nil {
+		return buildTranslationOutputArtifactFailureResult(
+			failureResult,
+			translationOutputArtifactStatusFailed,
+			"artifact_save_failed",
+			translationOutputArtifactReasonPersistenceFailed,
+			!errors.Is(currentArtifactErr, repository.ErrNotFound),
+			affectedFieldIDs,
+		)
+	}
+	if currentArtifact.ID != request.expectedArtifactID {
+		return buildTranslationOutputArtifactFailureResult(
+			failureResult,
+			translationOutputArtifactStatusFailed,
+			"artifact_save_failed",
+			"requested artifact id does not match current output artifact",
+			false,
+			affectedFieldIDs,
+		)
+	}
+	return TranslationOutputArtifactCommandResult{}, nil
+}
+
+func buildTranslationOutputArtifactPersistenceDrafts(
+	request translationOutputArtifactWriteRequest,
+	outputPath string,
+	rows []xTranslatorArtifactRow,
+) (repository.TranslationArtifactDraft, []repository.XTranslatorOutputRowDraft) {
+	generatedAt := time.Now().UTC()
+	artifactDraft := repository.TranslationArtifactDraft{
+		TranslationJobID: request.jobID,
+		ArtifactFormat:   translationOutputArtifactFormatXML,
+		TargetGame:       strings.TrimSpace(request.targetGame),
+		FilePath:         outputPath,
+		Status:           translationOutputArtifactStatusSuccess,
+		GeneratedAt:      &generatedAt,
+	}
+	rowDrafts := make([]repository.XTranslatorOutputRowDraft, 0, len(rows))
+	for _, row := range rows {
+		rowDrafts = append(rowDrafts, repository.XTranslatorOutputRowDraft{
+			JobTranslationFieldID: row.JobTranslationFieldID,
+			EDID:                  row.EDID,
+			REC:                   row.REC,
+			FIELD:                 row.FIELD,
+			FORMID:                row.FORMID,
+			Source:                row.Source,
+			Dest:                  row.Dest,
+			Status:                row.Status,
+		})
+	}
+	return artifactDraft, rowDrafts
+}
+
+func buildTranslationOutputArtifactFailureResult(
+	result TranslationOutputArtifactCommandResult,
+	status string,
+	errorKind string,
+	reason string,
+	retryable bool,
+	affectedFieldIDs []int64,
+) (TranslationOutputArtifactCommandResult, error) {
+	result.Artifact.Status = status
+	if affectedFieldIDs != nil {
+		result.AffectedFieldIDs = normalizeOperationFieldIDs(affectedFieldIDs)
+	}
+	return result, TranslationOutputArtifactFailure{
+		artifactStatus: status,
+		errorKind:      errorKind,
+		reason:         reason,
+		retryable:      retryable,
+	}
 }
 
 func (service *TranslationOutputArtifactService) buildArtifactRows(
@@ -371,7 +441,7 @@ func (service *TranslationOutputArtifactService) persistArtifactWithFile(
 			return TranslationOutputArtifactCommandResult{}, TranslationOutputArtifactFailure{
 				artifactStatus: translationOutputArtifactStatusFailed,
 				errorKind:      "file_write_failed",
-				reason:         "output artifact file write failed",
+				reason:         translationOutputArtifactReasonFileWriteFailed,
 				retryable:      true,
 			}
 		}
@@ -381,7 +451,7 @@ func (service *TranslationOutputArtifactService) persistArtifactWithFile(
 			return TranslationOutputArtifactCommandResult{}, TranslationOutputArtifactFailure{
 				artifactStatus: translationOutputArtifactStatusFailed,
 				errorKind:      "file_write_failed",
-				reason:         "output artifact file write failed",
+				reason:         translationOutputArtifactReasonFileWriteFailed,
 				retryable:      true,
 			}
 		}
@@ -391,7 +461,7 @@ func (service *TranslationOutputArtifactService) persistArtifactWithFile(
 			return TranslationOutputArtifactCommandResult{}, TranslationOutputArtifactFailure{
 				artifactStatus: translationOutputArtifactStatusFailed,
 				errorKind:      "artifact_save_failed",
-				reason:         "output artifact persistence failed",
+				reason:         translationOutputArtifactReasonPersistenceFailed,
 				retryable:      true,
 			}
 		}
@@ -402,7 +472,7 @@ func (service *TranslationOutputArtifactService) persistArtifactWithFile(
 		return TranslationOutputArtifactCommandResult{}, TranslationOutputArtifactFailure{
 			artifactStatus: translationOutputArtifactStatusFailed,
 			errorKind:      "file_write_failed",
-			reason:         "output artifact file write failed",
+			reason:         translationOutputArtifactReasonFileWriteFailed,
 			retryable:      true,
 		}
 	}
@@ -411,7 +481,7 @@ func (service *TranslationOutputArtifactService) persistArtifactWithFile(
 		return TranslationOutputArtifactCommandResult{}, TranslationOutputArtifactFailure{
 			artifactStatus: translationOutputArtifactStatusFailed,
 			errorKind:      "artifact_save_failed",
-			reason:         "output artifact persistence failed",
+			reason:         translationOutputArtifactReasonPersistenceFailed,
 			retryable:      true,
 		}
 	}

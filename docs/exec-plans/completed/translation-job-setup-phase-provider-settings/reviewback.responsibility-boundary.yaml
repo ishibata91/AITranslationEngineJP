@@ -1,0 +1,285 @@
+reviewback_version: 1
+task_id: "translation-job-setup-phase-provider-settings"
+review_yaml_path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: >
+    通過。前回の responsibility-boundary-001 は解消済みである。
+    TranslationJobSetupService は provider model list の credential gate、phase request 正規化、
+    source token 生成、redacted failure mapping に閉じている。
+    provider 別 HTTP request、endpoint、header、環境変数、response decode は
+    internal/infra/ai/provider_models.go と internal/infra/ai/provider_models_test.go に閉じている。
+    frontend は View、ScreenController、UseCase、Gateway の責務分担を維持している。
+  evidence_sufficiency: >
+    十分。skill、agent 実行定義、reviewback 形式、architecture、coding-guidelines、
+    implementation-scope、plan、今回差分の重点ファイル、provider model list adapter、
+    service の credential gate、Wails gateway、backend usecase、frontend usecase、presenter、
+    JobSetupPage.svelte を確認した。
+    広い harness は人間指示と skill 規約に従い再実行していない。
+  hard_gate: false
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: >
+    前回指摘は service option、service test seam、bootstrap wiring、infra adapter の再整列で閉じている。
+    追加の cross-layer 修正は不要である。
+  boundary_fixed_test_viewpoints:
+    - "TranslationJobSetupService は provider model list を interface 経由で呼び、HTTP request / endpoint / env / provider response decode を直接持たない。"
+    - "provider 別 endpoint、header、base URL、decode は internal/infra/ai の adapter test で固定されている。"
+    - "service test は fake model list loader を使い、http.Request や provider endpoint を直接 assert していない。"
+    - "JobSetupPage.svelte は @application/gateway-contract/translation-job-setup と ExtendedController を直接使っていない。"
+    - "Wails gateway は binding 呼び出しと DTO 正規化に閉じ、frontend usecase は GatewayContract と Store に閉じている。"
+
+validation_evidence:
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "呼び出し元提供証跡。review_responsibility_boundary では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "呼び出し元提供証跡。review_responsibility_boundary では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "pass"
+    details: "呼び出し元提供証跡。review_responsibility_boundary では再実行していない。"
+  - command: "system test"
+    result: "pass"
+    details: "呼び出し元提供証跡。system test 5 passed。"
+  - command: "Sonar"
+    result: "pass"
+    details: "呼び出し元提供証跡。coverage 71.1%、security 0、reliability 0、maintainability HIGH 0。"
+
+checked_scope:
+  summary: >
+    provider model list の外部アクセス配置、service の credential gate と redacted failure mapping、
+    Wails DTO 変換、backend usecase の service port 呼び出し、frontend gateway / usecase / presenter / UI の分担、
+    前回指摘の解消有無を確認した。
+  files:
+    - path: ".codex/skills/codex-review-responsibility-boundary/SKILL.md"
+      line: 1
+      symbol: "Codex Review Responsibility Boundary"
+      reason: "責務境界観点だけを判定し、YAML 出力だけを変更する規約を確認した。"
+    - path: ".codex/agents/review_responsibility_boundary.toml"
+      line: 1
+      symbol: "review_responsibility_boundary"
+      reason: "担当成果物と書き換え可能範囲を確認した。"
+    - path: "docs/architecture.md"
+      line: 40
+      symbol: "システム全体の依存方向"
+      reason: "View、ScreenController、Frontend UseCase、Gateway、Controller、Backend UseCase、Service の依存方向を判定基準にした。"
+    - path: "docs/architecture.md"
+      line: 48
+      symbol: "Service -> AIProvider"
+      reason: "Service が provider 固有処理を AIProvider / adapter 境界へ委譲する条件を判定基準にした。"
+    - path: "docs/architecture.md"
+      line: 63
+      symbol: "View"
+      reason: "View が DOM event と view model に閉じる条件を判定基準にした。"
+    - path: "docs/architecture.md"
+      line: 75
+      symbol: "ScreenController"
+      reason: "ScreenController が Wails 呼び出し詳細と DTO 変換を持たない条件を確認した。"
+    - path: "docs/architecture.md"
+      line: 94
+      symbol: "Gateway"
+      reason: "frontend Wails gateway が GatewayDTO と generated binding を閉じ込める条件を確認した。"
+    - path: "docs/coding-guidelines.md"
+      line: 21
+      symbol: "production wiring"
+      reason: "具象依存の生成と wiring を composition root に置く規約を確認した。"
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/implementation-scope.md"
+      line: 39
+      symbol: "Fixed Decisions"
+      reason: "provider 別 model list API と credential gate の承認済み判断を確認した。"
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/implementation-scope.md"
+      line: 141
+      symbol: "secret_resolution_owner_layer"
+      reason: "internal/service から internal/infra/ai へ渡す境界を確認した。"
+    - path: "docs/exec-plans/active/translation-job-setup-phase-provider-settings/implementation-scope.md"
+      line: 191
+      symbol: "frontend-provider-settings-ui"
+      reason: "frontend gateway contract、controller、usecase、presenter、store、Svelte screen の分担を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 422
+      symbol: "ListProviderModels"
+      reason: "service が credential gate、phase request 正規化、redacted failure mapping を担うことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 482
+      symbol: "ListProviderModels"
+      reason: "credential 解決後だけ provider model list loader を呼ぶことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1385
+      symbol: "requestProviderModels"
+      reason: "service が interface 呼び出しと read model 正規化だけを担い、HTTP detail を持たないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 3
+      symbol: "imports"
+      reason: "service から net/http、encoding/json、net/url、os import が消えていることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 155
+      symbol: "WithTranslationJobSetupProviderModelListLoader"
+      reason: "service test が fake loader で service core の判断だけを固定していることを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 33
+      symbol: "ProviderModelListLoader"
+      reason: "provider model list の transport と environment resolution が infra adapter にあることを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 103
+      symbol: "ListProviderModels"
+      reason: "provider 別 endpoint / header / decode が infra adapter にあることを確認した。"
+    - path: "internal/infra/ai/provider_models_test.go"
+      line: 10
+      symbol: "TestListProviderModelsOpenAICompatibleUsesModelsEndpoint"
+      reason: "adapter test が OpenAI compatible endpoint、header、decode を固定していることを確認した。"
+    - path: "internal/infra/ai/provider_models_test.go"
+      line: 38
+      symbol: "TestListProviderModelsGeminiUsesHeaderWithoutQuerySecret"
+      reason: "adapter test が Gemini header と decode を固定していることを確認した。"
+    - path: "internal/infra/ai/provider_models_test.go"
+      line: 61
+      symbol: "TestListProviderModelsLMStudioAllowsMissingAPIKey"
+      reason: "adapter test が LM Studio credential 不要経路を固定していることを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 147
+      symbol: "WithTranslationJobSetupProviderModelListLoader"
+      reason: "production wiring が infra adapter を service loader interface へ接続していることを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 79
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "backend usecase が service port 経由で model list を起動し、usecase contract へ写像していることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 281
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "Wails controller が request DTO を usecase contract へ写像することを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 616
+      symbol: "toListTranslationJobSetupProviderModelsResponseDTO"
+      reason: "Wails controller が response DTO と public error kind 正規化に閉じていることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 107
+      symbol: "TranslationJobSetupGateway"
+      reason: "frontend gateway が binding 呼び出しと DTO 正規化に閉じていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 691
+      symbol: "refreshPhaseModels"
+      reason: "frontend usecase が GatewayContract と Store を使い、credential gate 前表示と遅延 response 破棄を扱うことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+      line: 56
+      symbol: "TranslationJobSetupPhaseCardViewModel"
+      reason: "presenter が UI 表示用 phase card view model を定義していることを確認した。"
+    - path: "frontend/src/application/contract/translation-job-setup/translation-job-setup-screen-contract.ts"
+      line: 12
+      symbol: "TranslationJobSetupScreenControllerContract"
+      reason: "screen controller contract に phase 別操作が公開されていることを確認した。"
+    - path: "frontend/src/controller/translation-job-setup/translation-job-setup-screen-controller.ts"
+      line: 50
+      symbol: "TranslationJobSetupScreenController"
+      reason: "screen controller が usecase 起動、store 購読、presenter 変換に閉じていることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 4
+      symbol: "imports"
+      reason: "View が gateway contract を直接 import せず、screen contract と presenter view model を参照していることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 511
+      symbol: "phase provider select"
+      reason: "View が DOM event を controller contract の phase 操作へ渡していることを確認した。"
+
+unchecked_scope:
+  - target: "変更済み test file 全体"
+    reason: "責務境界判定に必要な representative test と provider seam の差分を中心に確認したため。"
+    risk: "責務境界以外の fixture drift は、他観点レビューまたは harness 証跡に依存する。"
+  - target: "frontend/wailsjs generated binding"
+    reason: "今回差分に generated binding が含まれず、hand-edit 対象でもないため。"
+    risk: "generated binding の shape 差分は契約レビュー側の主対象になる。"
+  - target: "広い harness の再実行"
+    reason: "人間指示と skill 規約で広い harness 再実行が禁止されているため。"
+    risk: "呼び出し元提供の検証証跡が最新 working tree と完全一致するかは、この reviewer では再確認していない。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "major"
+    title: "provider model list の provider 別 HTTP / endpoint / decode が service package に残っている"
+    problem: >
+      前回レビューでは TranslationJobSetupService package 内に
+      translationJobSetupProviderModelListLoaderFromTransport、
+      newTranslationJobSetupProviderModelsRequest、decodeTranslationJobSetup*ModelList が残り、
+      service test も HTTP transport fallback を固定していた。
+      再修正後は該当 symbol と HTTP detail が service package から消えている。
+    reason: >
+      architecture.md は Service が AIProvider を使い、Service core が driver 固有 API を直接参照しないことを求めている。
+      再修正後の provider 別 endpoint、HTTP header、base URL、response decode は internal/infra/ai に閉じているため、
+      Service core と AIProvider / infra adapter の境界は維持されている。
+    violated_condition: "Service core と AIProvider / infra adapter の責務境界。"
+    cause_candidate: >
+      前回は infra adapter 追加後も旧 service-local transport fallback と test seam が残っていた。
+      再修正後は service-local fallback を削除し、service option と fake loader test へ寄せた。
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 3
+        excerpt: "service imports に net/http、encoding/json、net/url、os が存在しない。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 336
+        excerpt: "TranslationJobSetupProviderModelListLoader interface で provider model list を受ける。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 422
+        excerpt: "ListProviderModels は credential gate と redacted failure mapping を行う。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1385
+        excerpt: "requestProviderModels は loader 呼び出しと read model 正規化だけを行う。"
+      - path: "internal/infra/ai/provider_models.go"
+        line: 103
+        excerpt: "ListProviderModels が provider 別 HTTP / endpoint / decode を扱う。"
+      - path: "internal/infra/ai/provider_models_test.go"
+        line: 10
+        excerpt: "adapter test が provider 別 endpoint と decode を固定する。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 155
+        excerpt: "service test は fake model list loader を使う。"
+    local_fix_assessment: "resolved-cross-layer"
+    additional_check_scope: "none。service package 内の旧 HTTP fallback symbol は現行差分で見つからなかった。"
+    fix_considerations: >
+      今後も service は credential gate、phase request 正規化、redacted failure mapping に閉じる。
+      provider 別 endpoint、HTTP header、base URL、response decode、env fallback は adapter 境界へ閉じる条件を維持する。
+    verification: >
+      rg により service package 内の http.Request、provider endpoint、env fallback、decode helper が見つからないことを確認した。
+      adapter test が endpoint、header、decode を固定し、service test が fake loader を使うことを確認した。
+    fix_required: true
+    status: "resolved"
+  - id: "responsibility-boundary-002"
+    level: "major"
+    title: "View の未公開 controller 拡張依存は解消済み"
+    problem: >
+      前回レビューでは JobSetupPage.svelte が ExtendedController を定義し、
+      gateway contract の phase 型と helper へ直接依存していた。
+      再修正後の JobSetupPage.svelte は screen controller contract と presenter view model を import し、
+      phase provider / model / batch 操作を controller contract の公開 method として呼んでいる。
+    reason: >
+      View が gateway contract 型を直接 import せず、screen controller contract と presenter view model を前提に描画しているため、
+      View と Wails gateway contract の境界違反は解消されている。
+    violated_condition: "View は ScreenController contract と presenter view model を前提にし、gateway contract や未公開 controller API を補完しない。"
+    cause_candidate: >
+      前回は screen controller 実装だけに phase 別操作があり、application/contract の公開 contract が追いついていなかった。
+      再修正後は TranslationJobSetupScreenControllerContract に phase 別操作が追加されている。
+    evidence:
+      - path: "frontend/src/application/contract/translation-job-setup/translation-job-setup-screen-contract.ts"
+        line: 12
+        excerpt: "TranslationJobSetupScreenControllerContract が phase 別操作を公開している。"
+      - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+        line: 4
+        excerpt: "View は screen contract と presenter view model を import している。"
+      - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+        line: 511
+        excerpt: "View は selectPhaseProvider を controller contract 経由で呼ぶ。"
+      - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+        line: 599
+        excerpt: "View は refreshPhaseModels を controller contract 経由で呼ぶ。"
+    local_fix_assessment: "resolved-local"
+    additional_check_scope: "none。現行差分では直接 import の再発は見つからなかった。"
+    fix_considerations: >
+      今後も JobSetupPage.svelte は @application/gateway-contract/translation-job-setup を直接 import せず、
+      phase 表示値は presenter view model から受け取る条件を維持する。
+    verification: "rg -n \"@application/gateway-contract/translation-job-setup|ExtendedController\" frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte が該当なしであることを確認した。"
+    fix_required: true
+    status: "resolved"

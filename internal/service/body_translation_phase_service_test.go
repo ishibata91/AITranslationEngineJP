@@ -424,14 +424,7 @@ func TestBodyTranslationPhaseServiceStartPhaseCompletesWithoutPersonaSnapshot(t 
 	if len(outputRepo.fields) != 2 {
 		t.Fatalf("expected two persisted output fields, got %#v", outputRepo.fields)
 	}
-	for _, field := range outputRepo.fields {
-		if field.AppliedPersonaID != nil {
-			t.Fatalf("expected nil applied persona id for empty persona snapshot, got %#v", outputRepo.fields)
-		}
-		if field.OutputStatus != bodyTranslationOutputStatusReady {
-			t.Fatalf("expected ready output status, got %#v", outputRepo.fields)
-		}
-	}
+	assertBodyPhaseOutputFieldsWithoutPersonaSnapshot(t, outputRepo.fields)
 	bodyRun, ok := jobRepo.runsByPhaseType[bodyTranslationPhaseType]
 	if !ok {
 		t.Fatal("expected body translation phase run to be created")
@@ -441,5 +434,20 @@ func TestBodyTranslationPhaseServiceStartPhaseCompletesWithoutPersonaSnapshot(t 
 	}
 	if jobRepo.job.State != bodyTranslationJobStateCompleted {
 		t.Fatalf("expected completed job state, got %#v", jobRepo.job)
+	}
+}
+
+func assertBodyPhaseOutputFieldsWithoutPersonaSnapshot(
+	t *testing.T,
+	fields []repository.JobTranslationField,
+) {
+	t.Helper()
+	for _, field := range fields {
+		if field.AppliedPersonaID != nil {
+			t.Fatalf("expected nil applied persona id for empty persona snapshot, got %#v", fields)
+		}
+		if field.OutputStatus != bodyTranslationOutputStatusReady {
+			t.Fatalf("expected ready output status, got %#v", fields)
+		}
 	}
 }

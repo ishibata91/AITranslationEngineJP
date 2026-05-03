@@ -242,91 +242,79 @@ func TestTranslationJobSetupControllerValidateNormalizesNilSlicesToEmptyArrays(t
 func TestTranslationJobSetupControllerValidateReturnsBlockingFailureContract(t *testing.T) {
 	testCases := []struct {
 		name                 string
-		request              ValidateTranslationJobSetupRequestDTO
+		blockingCategory     string
 		expectedCategory     string
 		expectedTargetSlices []string
 	}{
 		{
-			name: "必須設定不足は blocking failure として返す",
-			request: ValidateTranslationJobSetupRequestDTO{
-				InputSourceID: 0,
-				Runtime: TranslationJobSetupRuntimeSelectionDTO{
-					Provider:      "",
-					Model:         "",
-					ExecutionMode: "",
-				},
-				CredentialRef: "",
-			},
-			expectedCategory:     "required_setting_missing",
-			expectedTargetSlices: []string{"input", "runtime", "credentials"},
-		},
-		{
-			name: "共通基盤参照不能は blocking failure として返す",
-			request: ValidateTranslationJobSetupRequestDTO{
-				InputSourceID: 44,
-				Runtime: TranslationJobSetupRuntimeSelectionDTO{
-					Provider:      "openai",
-					Model:         "gpt-5.4-mini",
-					ExecutionMode: "batch",
-				},
-				CredentialRef: "foundation-ref-missing",
-			},
-			expectedCategory:     "foundation_ref_missing",
-			expectedTargetSlices: []string{"foundation"},
-		},
-		{
-			name: "provider と mode の不整合は blocking failure として返す",
-			request: ValidateTranslationJobSetupRequestDTO{
-				InputSourceID: 44,
-				Runtime: TranslationJobSetupRuntimeSelectionDTO{
-					Provider:      "lmstudio",
-					Model:         "local-model",
-					ExecutionMode: "batch",
-				},
-				CredentialRef: "lmstudio-local",
-			},
-			expectedCategory:     "provider_mode_unsupported",
+			name:                 "phase runtime 欠落は blocking failure として返す",
+			blockingCategory:     "phase_runtime_missing",
+			expectedCategory:     "phase_runtime_missing",
 			expectedTargetSlices: []string{"runtime"},
 		},
 		{
-			name: "credential 参照不能は blocking failure として返す",
-			request: ValidateTranslationJobSetupRequestDTO{
-				InputSourceID: 44,
-				Runtime: TranslationJobSetupRuntimeSelectionDTO{
-					Provider:      "openai",
-					Model:         "gpt-5.4-mini",
-					ExecutionMode: "batch",
-				},
-				CredentialRef: "missing-credential-ref",
-			},
+			name:                 "credential 参照不能は blocking failure として返す",
+			blockingCategory:     "credential_missing",
 			expectedCategory:     "credential_missing",
 			expectedTargetSlices: []string{"credentials"},
 		},
 		{
-			name: "cache 欠落は blocking failure として返す",
-			request: ValidateTranslationJobSetupRequestDTO{
-				InputSourceID: 999,
-				Runtime: TranslationJobSetupRuntimeSelectionDTO{
-					Provider:      "openai",
-					Model:         "gpt-5.4-mini",
-					ExecutionMode: "batch",
-				},
-				CredentialRef: "openai-primary",
-			},
-			expectedCategory:     "cache_missing",
-			expectedTargetSlices: []string{"input"},
+			name:                 "stale model 選択は blocking failure として返す",
+			blockingCategory:     "model_selection_stale",
+			expectedCategory:     "model_selection_stale",
+			expectedTargetSlices: []string{"runtime"},
 		},
 	}
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			controller := NewTranslationJobSetupController(usecase.NewTranslationJobSetupContractStub())
+			blockingCategory := testCase.blockingCategory
+			controller := NewTranslationJobSetupController(fakeTranslationJobSetupUsecase{
+				validateFunc: func(_ context.Context, request usecase.ValidateTranslationJobSetupRequest) (usecase.TranslationJobSetupValidationResult, error) {
+					if request.InputSourceID != 44 {
+						t.Fatalf("expected input source id to be forwarded, got %#v", request)
+					}
+					return usecase.TranslationJobSetupValidationResult{
+						Status:                  usecase.TranslationJobSetupValidationStatusFail,
+						BlockingFailureCategory: &blockingCategory,
+						TargetSlices:            append([]string(nil), testCase.expectedTargetSlices...),
+						ValidatedAt:             time.Date(2026, 5, 4, 10, 0, 0, 0, time.UTC),
+						CanCreate:               false,
+						PassSlices:              []string{},
+						PhaseResults: []usecase.TranslationJobSetupPhaseValidationResult{
+							{
+								PhaseID:                 usecase.TranslationJobSetupPhaseIDWordTranslation,
+								Status:                  usecase.TranslationJobSetupValidationStatusFail,
+								BlockingFailureCategory: &blockingCategory,
+								CanCreate:               false,
+								ModelListState:          usecase.TranslationJobSetupProviderModelListStatusFailed,
+								ModelListSourceToken:    "word:openai:token",
+								IsModelSelectionStale:   blockingCategory == "model_selection_stale",
+							},
+						},
+					}, nil
+				},
+			})
 
-			response, err := controller.ValidateTranslationJobSetup(testCase.request)
+			response, err := controller.ValidateTranslationJobSetup(ValidateTranslationJobSetupRequestDTO{
+				InputSourceID: 44,
+				Runtime: TranslationJobSetupRuntimeSelectionDTO{
+					Provider:      "openai",
+					Model:         "gpt-5.4-mini",
+					ExecutionMode: "sync",
+				},
+				CredentialRef: "openai-primary",
+			})
 			if err != nil {
 				t.Fatalf("expected blocking validation response without transport error: %v", err)
 			}
 			assertBlockingFailureValidationResponse(t, response, testCase.expectedCategory, testCase.expectedTargetSlices)
+			if len(response.PhaseResults) != 1 {
+				t.Fatalf("expected phase validation results to be mapped, got %#v", response.PhaseResults)
+			}
+			if response.PhaseResults[0].BlockingFailureCategory == nil || *response.PhaseResults[0].BlockingFailureCategory != testCase.expectedCategory {
+				t.Fatalf("expected phase blocking category %q, got %#v", testCase.expectedCategory, response.PhaseResults[0])
+			}
 		})
 	}
 }
@@ -379,7 +367,7 @@ func TestTranslationJobSetupControllerCreateRejectsStaleValidationWithValidation
 	request := CreateTranslationJobRequestDTO{
 		InputSourceID:        44,
 		InputSource:          "translation_input",
-		ValidationStatus:     usecase.TranslationJobSetupValidationStatusPass,
+		ValidationStatus:     string(usecase.TranslationJobSetupValidationStatusPass),
 		ValidationPassSlices: []string{"input", "runtime"},
 		Runtime: TranslationJobSetupRuntimeSelectionDTO{
 			Provider:      "openai",
@@ -496,7 +484,7 @@ func TestTranslationJobSetupControllerCreateRejectsCreateWhenValidationDidNotPas
 	response, err := controller.CreateTranslationJob(CreateTranslationJobRequestDTO{
 		InputSourceID:        44,
 		InputSource:          "translation_input",
-		ValidationStatus:     usecase.TranslationJobSetupValidationStatusFail,
+		ValidationStatus:     string(usecase.TranslationJobSetupValidationStatusFail),
 		ValidationPassSlices: []string{"input"},
 		Runtime: TranslationJobSetupRuntimeSelectionDTO{
 			Provider:      "openai",
@@ -508,7 +496,7 @@ func TestTranslationJobSetupControllerCreateRejectsCreateWhenValidationDidNotPas
 	if err != nil {
 		t.Fatalf("expected rejected create response without transport error, got %v", err)
 	}
-	if response.ErrorKind != usecase.TranslationJobSetupErrorKindReadyRequired {
+	if response.ErrorKind != string(usecase.TranslationJobSetupErrorKindReadyRequired) {
 		t.Fatalf("expected ready_required error kind, got %#v", response)
 	}
 	if response.JobID != 0 || response.JobState != "" || response.InputSource != "" {
@@ -615,7 +603,7 @@ func assertTranslationJobSetupRuntimeOption(t *testing.T, runtimeOption Translat
 func assertBlockingFailureValidationResponse(t *testing.T, response TranslationJobSetupValidationResponseDTO, expectedCategory string, expectedTargetSlices []string) {
 	t.Helper()
 
-	if response.Status != usecase.TranslationJobSetupValidationStatusFail {
+	if response.Status != string(usecase.TranslationJobSetupValidationStatusFail) {
 		t.Fatalf("expected fail status, got %#v", response)
 	}
 	if response.BlockingFailureCategory == nil || *response.BlockingFailureCategory != expectedCategory {
@@ -678,7 +666,7 @@ func assertCreateTranslationJobReadyResponse(t *testing.T, response CreateTransl
 func assertCreateTranslationJobRejectedResponse(t *testing.T, response CreateTranslationJobResponseDTO, expectedErrorKind usecase.TranslationJobSetupErrorKind) {
 	t.Helper()
 
-	if response.ErrorKind != expectedErrorKind {
+	if response.ErrorKind != string(expectedErrorKind) {
 		t.Fatalf("expected error kind %q, got %#v", expectedErrorKind, response)
 	}
 	if response.JobID != 0 || response.JobState != "" || response.InputSource != "" {

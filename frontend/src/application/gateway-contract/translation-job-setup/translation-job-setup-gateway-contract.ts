@@ -29,11 +29,65 @@ export interface TranslationJobSetupRuntimeOption {
   mode: string
 }
 
+export type TranslationJobSetupPhaseId =
+  | "word_translation"
+  | "npc_persona_generation"
+  | "text_translation"
+
+export type TranslationJobSetupCredentialRequirement =
+  | "required"
+  | "not_required"
+
+export type TranslationJobSetupCredentialStatus =
+  | "configured"
+  | "missing"
+  | "not_required"
+
+export type TranslationJobSetupBatchMode =
+  | "disabled"
+  | "enabled"
+  | "unsupported"
+
+export type TranslationJobSetupProviderModelListStatus =
+  | "not_updated"
+  | "loading"
+  | "success"
+  | "failed"
+  | "credential_missing"
+  | "credential_not_required"
+
+export interface TranslationJobSetupProviderCapability {
+  provider: string
+  credentialRequirement: TranslationJobSetupCredentialRequirement
+  supportedExecutionModes: string[]
+  supportsBatchMode: boolean
+}
+
 export interface TranslationJobSetupCredentialReference {
   provider: string
   credentialRef: string
   isConfigured: boolean
   isMissingSecret: boolean
+}
+
+export interface SaveTranslationJobSetupCredentialRequest {
+  provider: string
+  credentialRef: string
+  apiKey: string
+}
+
+export type SaveTranslationJobSetupCredentialResponse =
+  TranslationJobSetupCredentialReference
+
+export interface TranslationJobSetupPhaseRuntimeDraft {
+  phaseId: TranslationJobSetupPhaseId
+  provider: string
+  model: string
+  credentialRef: string
+  credentialStatus: TranslationJobSetupCredentialStatus
+  executionMode: string
+  batchMode: TranslationJobSetupBatchMode
+  modelListSourceToken: string
 }
 
 export interface TranslationJobSetupOptionsResponse {
@@ -43,6 +97,8 @@ export interface TranslationJobSetupOptionsResponse {
   sharedPersonas: TranslationJobSetupPersonaOption[]
   aiRuntimeOptions: TranslationJobSetupRuntimeOption[]
   credentialRefs: TranslationJobSetupCredentialReference[]
+  providerCapabilities?: TranslationJobSetupProviderCapability[]
+  phaseRuntimeDrafts?: TranslationJobSetupPhaseRuntimeDraft[]
 }
 
 export interface TranslationJobSetupRuntimeSelection {
@@ -51,10 +107,56 @@ export interface TranslationJobSetupRuntimeSelection {
   executionMode: string
 }
 
+export interface TranslationJobSetupPhaseRuntimeSelection {
+  phaseId: TranslationJobSetupPhaseId
+  provider: string
+  model: string
+  credentialRef: string
+  credentialStatus: TranslationJobSetupCredentialStatus
+  executionMode: string
+  batchMode: TranslationJobSetupBatchMode
+  modelListSourceToken: string
+}
+
+export interface ListTranslationJobSetupProviderModelsRequest {
+  phaseId: TranslationJobSetupPhaseId
+  provider: string
+  credentialRef: string
+  credentialStatus: TranslationJobSetupCredentialStatus
+  requestToken: string
+}
+
+export interface TranslationJobSetupProviderModelOption {
+  modelId: string
+  label: string
+}
+
+export interface ListTranslationJobSetupProviderModelsResponse {
+  phaseId: TranslationJobSetupPhaseId
+  provider: string
+  credentialStatus: TranslationJobSetupCredentialStatus
+  requestToken: string
+  sourceToken: string
+  status: TranslationJobSetupProviderModelListStatus
+  models: TranslationJobSetupProviderModelOption[]
+  failureKind?: TranslationJobSetupCreateErrorKind
+}
+
 export interface ValidateTranslationJobSetupRequest {
   inputSourceId: number
   runtime: TranslationJobSetupRuntimeSelection
   credentialRef: string
+  phaseRuntimeSelections?: TranslationJobSetupPhaseRuntimeSelection[]
+}
+
+export interface TranslationJobSetupPhaseValidationResult {
+  phaseId: TranslationJobSetupPhaseId
+  status: string
+  blockingFailureCategory?: string
+  canCreate: boolean
+  modelListState: TranslationJobSetupProviderModelListStatus
+  modelListSourceToken: string
+  isModelSelectionStale: boolean
 }
 
 export interface TranslationJobSetupValidationResponse {
@@ -64,6 +166,8 @@ export interface TranslationJobSetupValidationResponse {
   validatedAt: string
   canCreate: boolean
   passSlices: string[]
+  phaseResults?: TranslationJobSetupPhaseValidationResult[]
+  staleModelListPhaseIds?: TranslationJobSetupPhaseId[]
 }
 
 export interface CreateTranslationJobRequest {
@@ -74,6 +178,7 @@ export interface CreateTranslationJobRequest {
   validationPassSlices: string[]
   runtime: TranslationJobSetupRuntimeSelection
   credentialRef: string
+  phaseRuntimeSelections?: TranslationJobSetupPhaseRuntimeSelection[]
 }
 
 export interface TranslationJobExecutionSummary {
@@ -82,12 +187,27 @@ export interface TranslationJobExecutionSummary {
   executionMode: string
 }
 
+export interface TranslationJobSetupPhaseRuntimeSummary {
+  phaseId: TranslationJobSetupPhaseId
+  provider: string
+  model: string
+  credentialRef: string
+  credentialStatus: TranslationJobSetupCredentialStatus
+  executionMode: string
+  batchMode: TranslationJobSetupBatchMode
+  modelListSourceToken: string
+}
+
 export type TranslationJobSetupCreateErrorKind =
+  | "phase_runtime_missing"
   | "required_setting_missing"
   | "input_not_found"
   | "cache_missing"
   | "foundation_ref_missing"
   | "credential_missing"
+  | "model_list_credential_missing"
+  | "model_list_failed"
+  | "model_selection_stale"
   | "provider_mode_unsupported"
   | "provider_unreachable"
   | "duplicate_job_for_input"
@@ -102,6 +222,7 @@ export interface CreateTranslationJobResponse {
   executionSummary?: TranslationJobExecutionSummary
   validationPassSlices: string[]
   errorKind?: TranslationJobSetupCreateErrorKind
+  phaseRuntimeSummaries?: TranslationJobSetupPhaseRuntimeSummary[]
 }
 
 export interface GetTranslationJobSetupSummaryRequest {
@@ -115,6 +236,7 @@ export interface TranslationJobSetupSummaryResponse {
   executionSummary: TranslationJobExecutionSummary
   validationPassSlices: string[]
   canStartPhase: boolean
+  phaseRuntimeSummaries?: TranslationJobSetupPhaseRuntimeSummary[]
 }
 
 export type TranslationJobSetupScreenPhase =
@@ -137,6 +259,8 @@ export interface TranslationJobSetupScreenState {
   selectedInputSourceId: number | null
   selectedRuntimeKey: string | null
   selectedCredentialRef: string
+  phaseRuntimeSelections?: TranslationJobSetupPhaseRuntimeSelection[]
+  providerModelLists?: ListTranslationJobSetupProviderModelsResponse[]
   validationResult: TranslationJobSetupValidationResponse | null
   validationState: TranslationJobSetupValidationState
   dirty: boolean
@@ -150,6 +274,8 @@ export interface TranslationJobSetupScreenViewModel extends TranslationJobSetupS
   selectedInputCandidate: TranslationJobSetupInputCandidate | null
   selectedRuntimeOption: TranslationJobSetupRuntimeOption | null
   availableCredentialRefs: TranslationJobSetupCredentialReference[]
+  phaseValidationResults?: TranslationJobSetupPhaseValidationResult[]
+  phaseRuntimeSummaries?: TranslationJobSetupPhaseRuntimeSummary[]
   selectedInputLabel: string
   selectedInputSourceKind: string
   selectedInputRecordCountLabel: string
@@ -173,6 +299,12 @@ export interface TranslationJobSetupScreenViewModel extends TranslationJobSetupS
 
 export interface TranslationJobSetupGatewayContract {
   getTranslationJobSetupOptions(): Promise<TranslationJobSetupOptionsResponse>
+  listTranslationJobSetupProviderModels(
+    request: ListTranslationJobSetupProviderModelsRequest
+  ): Promise<ListTranslationJobSetupProviderModelsResponse>
+  saveTranslationJobSetupCredential?(
+    request: SaveTranslationJobSetupCredentialRequest
+  ): Promise<SaveTranslationJobSetupCredentialResponse>
   validateTranslationJobSetup(
     request: ValidateTranslationJobSetupRequest
   ): Promise<TranslationJobSetupValidationResponse>

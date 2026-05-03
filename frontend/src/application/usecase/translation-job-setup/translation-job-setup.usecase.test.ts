@@ -4,10 +4,14 @@ import type {
   CreateTranslationJobRequest,
   CreateTranslationJobResponse,
   GetTranslationJobSetupSummaryRequest,
+  ListTranslationJobSetupProviderModelsRequest,
+  ListTranslationJobSetupProviderModelsResponse,
   TranslationJobSetupGatewayContract,
   TranslationJobSetupOptionsResponse,
+  TranslationJobSetupPhaseRuntimeSelection,
   TranslationJobSetupScreenState,
   TranslationJobSetupSummaryResponse,
+  ValidateTranslationJobSetupRequest,
   TranslationJobSetupValidationResponse
 } from "@application/gateway-contract/translation-job-setup"
 
@@ -50,6 +54,87 @@ function createOptions(
     ],
     ...overrides
   }
+}
+
+function createPhaseOptions(
+  overrides: Partial<TranslationJobSetupOptionsResponse> = {}
+): TranslationJobSetupOptionsResponse {
+  return createOptions({
+    aiRuntimeOptions: [],
+    credentialRefs: [
+      {
+        provider: "gemini",
+        credentialRef: "gemini-primary",
+        isConfigured: true,
+        isMissingSecret: false
+      },
+      {
+        provider: "xai",
+        credentialRef: "xai-primary",
+        isConfigured: true,
+        isMissingSecret: false
+      },
+      {
+        provider: "lm_studio",
+        credentialRef: "lmstudio-local",
+        isConfigured: true,
+        isMissingSecret: false
+      }
+    ],
+    providerCapabilities: [
+      {
+        provider: "gemini",
+        credentialRequirement: "required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: true
+      },
+      {
+        provider: "xai",
+        credentialRequirement: "required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: true
+      },
+      {
+        provider: "lm_studio",
+        credentialRequirement: "not_required",
+        supportedExecutionModes: ["sync"],
+        supportsBatchMode: false
+      }
+    ],
+    phaseRuntimeDrafts: [
+      {
+        phaseId: "word_translation",
+        provider: "gemini",
+        model: "gemini-word-model",
+        credentialRef: "gemini-primary",
+        credentialStatus: "configured",
+        executionMode: "sync",
+        batchMode: "enabled",
+        modelListSourceToken: "gemini-source-current"
+      },
+      {
+        phaseId: "npc_persona_generation",
+        provider: "xai",
+        model: "xai-persona-model",
+        credentialRef: "xai-primary",
+        credentialStatus: "configured",
+        executionMode: "sync",
+        batchMode: "disabled",
+        modelListSourceToken: "xai-source-current"
+      },
+      {
+        phaseId: "text_translation",
+        provider: "xai",
+        model: "xai-text-model",
+        credentialRef: "xai-primary",
+        credentialStatus: "configured",
+        executionMode: "sync",
+        batchMode: "disabled",
+        modelListSourceToken: "xai-source-text"
+      }
+    ],
+    ...overrides
+  })
 }
 
 function createValidationResult(): TranslationJobSetupValidationResponse {
@@ -96,6 +181,58 @@ function createState(
   }
 }
 
+function createPhaseDrivenState(
+  overrides: Partial<TranslationJobSetupScreenState> = {}
+): TranslationJobSetupScreenState {
+  const options = createPhaseOptions()
+  const phaseRuntimeSelections =
+    options.phaseRuntimeDrafts?.map(
+      (draft): TranslationJobSetupPhaseRuntimeSelection => ({ ...draft })
+    ) ?? []
+  const providerModelLists = phaseRuntimeSelections.map(
+    (selection): ListTranslationJobSetupProviderModelsResponse => ({
+      phaseId: selection.phaseId,
+      provider: selection.provider,
+      credentialStatus: selection.credentialStatus,
+      requestToken: "",
+      sourceToken: selection.modelListSourceToken,
+      status: "success",
+      models: [{ modelId: selection.model, label: selection.model }]
+    })
+  )
+
+  return createState({
+    options,
+    selectedRuntimeKey: null,
+    selectedCredentialRef: "",
+    phaseRuntimeSelections,
+    providerModelLists,
+    validationResult: createValidationResult(),
+    validationState: "fresh",
+    dirty: false,
+    ...overrides
+  })
+}
+
+function createDeferred<T>(): {
+  promise: Promise<T>
+  resolve(value: T): void
+  reject(reason?: unknown): void
+} {
+  let resolvePromise: (value: T) => void = () => {}
+  let rejectPromise: (reason?: unknown) => void = () => {}
+  const promise = new Promise<T>((resolve, reject) => {
+    resolvePromise = resolve
+    rejectPromise = reject
+  })
+
+  return {
+    promise,
+    resolve: resolvePromise,
+    reject: rejectPromise
+  }
+}
+
 function clone<T>(value: T): T {
   return structuredClone(value)
 }
@@ -117,12 +254,24 @@ function createStore(
 }
 
 function createGateway(): TranslationJobSetupGatewayContract & {
+  listTranslationJobSetupProviderModels: ReturnType<typeof vi.fn>
+  validateTranslationJobSetup: ReturnType<typeof vi.fn>
   createTranslationJob: ReturnType<typeof vi.fn>
   getTranslationJobSetupSummary: ReturnType<typeof vi.fn>
 } {
   return {
     getTranslationJobSetupOptions: vi.fn(),
-    validateTranslationJobSetup: vi.fn(),
+    listTranslationJobSetupProviderModels: vi
+      .fn<
+        (
+          request: ListTranslationJobSetupProviderModelsRequest
+        ) => Promise<ListTranslationJobSetupProviderModelsResponse>
+      >(),
+    validateTranslationJobSetup: vi.fn<
+      (
+        request: ValidateTranslationJobSetupRequest
+      ) => Promise<TranslationJobSetupValidationResponse>
+    >(),
     createTranslationJob: vi
       .fn<
         (
@@ -288,6 +437,353 @@ describe("TranslationJobSetupUseCase", () => {
       expect.objectContaining({
         jobId: 91,
         canStartPhase: true
+      })
+    )
+  })
+
+  test("SCN-TJSPPS-006: provider 変更後は model 未選択へ戻し遅延 model list を混入させない", async () => {
+    const delayedModels =
+      createDeferred<ListTranslationJobSetupProviderModelsResponse>()
+    const gateway = createGateway()
+    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
+      createValidationResult()
+    )
+    gateway.listTranslationJobSetupProviderModels = vi
+      .fn()
+      .mockImplementationOnce(() => delayedModels.promise)
+      .mockResolvedValueOnce({
+        phaseId: "word_translation",
+        provider: "xai",
+        credentialStatus: "configured",
+        requestToken: "req-xai-2",
+        sourceToken: "xai-latest-source",
+        status: "success",
+        models: [{ modelId: "xai-latest-model", label: "xai-latest-model" }]
+      })
+    const store = createStore(createPhaseDrivenState())
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    const refreshPromise = usecase.refreshPhaseModels("word_translation")
+    expect(
+      store
+        .snapshot()
+        .providerModelLists?.find((entry) => entry.phaseId === "word_translation")
+    ).toEqual(
+      expect.objectContaining({
+        provider: "gemini",
+        status: "loading"
+      })
+    )
+
+    usecase.selectPhaseProvider("word_translation", "xai")
+    expect(
+      store
+        .snapshot()
+        .phaseRuntimeSelections?.find(
+          (selection) => selection.phaseId === "word_translation"
+        )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai",
+        model: "",
+        modelListSourceToken: ""
+      })
+    )
+
+    delayedModels.resolve({
+      phaseId: "word_translation",
+      provider: "gemini",
+      credentialStatus: "configured",
+      requestToken:
+        store
+          .snapshot()
+          .providerModelLists?.find((entry) => entry.phaseId === "word_translation")
+          ?.requestToken ?? "",
+      sourceToken: "gemini-delayed-source",
+      status: "success",
+      models: [{ modelId: "gemini-delayed-model", label: "gemini-delayed-model" }]
+    })
+    await refreshPromise
+
+    const state = store.snapshot()
+    expect(
+      state.phaseRuntimeSelections?.find(
+        (selection) => selection.phaseId === "word_translation"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai",
+        model: "",
+        modelListSourceToken: ""
+      })
+    )
+    expect(
+      state.providerModelLists?.find(
+        (entry) => entry.phaseId === "word_translation"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai",
+        status: "not_updated",
+        models: []
+      })
+    )
+
+    await usecase.createJob()
+    expect(gateway.createTranslationJob).not.toHaveBeenCalled()
+    expect(store.snapshot().errorMessage).toBe(
+      "翻訳ジョブを作成するには、3 つの翻訳段階で不足を解消してください。"
+    )
+  })
+
+  test("SCN-TJSPPS-006: 古い failed 応答は最新 providerModelLists と model を巻き戻さない", async () => {
+    const delayedModels =
+      createDeferred<ListTranslationJobSetupProviderModelsResponse>()
+    const gateway = createGateway()
+    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
+      createValidationResult()
+    )
+    gateway.listTranslationJobSetupProviderModels = vi
+      .fn()
+      .mockImplementationOnce(() => delayedModels.promise)
+      .mockResolvedValue({
+        phaseId: "word_translation",
+        provider: "xai",
+        credentialStatus: "configured",
+        requestToken: "xai-fast",
+        sourceToken: "word_translation|xai|xai-primary|xai-fast",
+        status: "success",
+        models: [{ modelId: "xai-word-model", label: "xai-word-model" }]
+      })
+    const store = createStore(createPhaseDrivenState())
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    const staleRefresh = usecase.refreshPhaseModels("word_translation")
+    usecase.selectPhaseProvider("word_translation", "xai")
+    await usecase.refreshPhaseModels("word_translation")
+
+    delayedModels.resolve({
+      phaseId: "word_translation",
+      provider: "gemini",
+      credentialStatus: "configured",
+      requestToken:
+        store
+          .snapshot()
+          .providerModelLists?.find((entry) => entry.phaseId === "word_translation")
+          ?.requestToken ?? "",
+      sourceToken: "gemini-stale-failed",
+      status: "failed",
+      models: []
+    })
+    await staleRefresh
+
+    const state = store.snapshot()
+    expect(
+      state.phaseRuntimeSelections?.find(
+        (selection) => selection.phaseId === "word_translation"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai",
+        model: "",
+        modelListSourceToken: ""
+      })
+    )
+    expect(
+      state.providerModelLists?.find(
+        (entry) => entry.phaseId === "word_translation"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai"
+      })
+    )
+    expect(state.validationState).toBe("stale")
+  })
+
+  test("state-invariant-001: provider 変更後の遅延 model list 失敗は現在 phase state を上書きしない", async () => {
+    const delayedModels = createDeferred<ListTranslationJobSetupProviderModelsResponse>()
+    const gateway = createGateway()
+    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
+      createValidationResult()
+    )
+    gateway.listTranslationJobSetupProviderModels = vi.fn(() => delayedModels.promise)
+    const store = createStore(createPhaseDrivenState())
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    const refreshPromise = usecase.refreshPhaseModels("word_translation")
+    usecase.selectPhaseProvider("word_translation", "xai")
+
+    delayedModels.reject(new Error("delayed model list failure"))
+    await refreshPromise
+
+    const state = store.snapshot()
+    expect(
+      state.phaseRuntimeSelections?.find(
+        (selection) => selection.phaseId === "word_translation"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai",
+        model: "",
+        modelListSourceToken: ""
+      })
+    )
+    expect(
+      state.providerModelLists?.find(
+        (entry) => entry.phaseId === "word_translation"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "xai",
+        status: "not_updated",
+        requestToken: "",
+        models: []
+      })
+    )
+    expect(state.errorMessage).toBe("")
+  })
+
+  test("LM Studio の credential_not_required でもモデル一覧取得後に model を選択できる", async () => {
+    const gateway = createGateway()
+    const listProviderModelsSpy = vi.fn().mockResolvedValue({
+      phaseId: "text_translation",
+      provider: "lm_studio",
+      credentialStatus: "not_required",
+      requestToken: "req-lm-1",
+      sourceToken: "text_translation|lm_studio||req-lm-1",
+      status: "credential_not_required",
+      models: [{ modelId: "lmstudio-community", label: "LM Studio Community" }]
+    })
+    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
+      createValidationResult()
+    )
+    gateway.listTranslationJobSetupProviderModels = listProviderModelsSpy
+    const store = createStore(createPhaseDrivenState())
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    usecase.selectPhaseProvider("text_translation", "lm_studio")
+    await usecase.refreshPhaseModels("text_translation")
+    usecase.selectPhaseModel("text_translation", "lmstudio-community")
+
+    expect(listProviderModelsSpy).toHaveBeenCalledTimes(1)
+    expect(listProviderModelsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phaseId: "text_translation",
+        provider: "lm_studio",
+        credentialRef: "",
+        credentialStatus: "not_required"
+      })
+    )
+    expect(
+      store
+        .snapshot()
+        .phaseRuntimeSelections?.find(
+          (selection) => selection.phaseId === "text_translation"
+        )
+    ).toEqual(
+      expect.objectContaining({
+        provider: "lm_studio",
+        credentialRef: "",
+        credentialStatus: "not_required",
+        model: "lmstudio-community",
+        modelListSourceToken: "text_translation|lm_studio||req-lm-1"
+      })
+    )
+  })
+
+  test("contract-004: LM Studio validation payload は空 credentialRef を使う", async () => {
+    const gateway = createGateway()
+    gateway.listTranslationJobSetupProviderModels = vi.fn().mockResolvedValue({
+      phaseId: "text_translation",
+      provider: "lm_studio",
+      credentialStatus: "not_required",
+      requestToken: "req-lm-1",
+      sourceToken: "text_translation|lm_studio||req-lm-1",
+      status: "credential_not_required",
+      models: [{ modelId: "lmstudio-community", label: "LM Studio Community" }]
+    })
+    const validateSpy = vi.fn().mockResolvedValue(createValidationResult())
+    gateway.validateTranslationJobSetup = validateSpy
+    const store = createStore(createPhaseDrivenState())
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    usecase.selectPhaseProvider("text_translation", "lm_studio")
+    await usecase.refreshPhaseModels("text_translation")
+    usecase.selectPhaseModel("text_translation", "lmstudio-community")
+    await usecase.runValidation()
+
+    const lastPayload = validateSpy.mock.calls.at(-1)?.[0] as
+      | ValidateTranslationJobSetupRequest
+      | undefined
+    expect(lastPayload).toBeDefined()
+    expect(lastPayload).toEqual(
+      expect.objectContaining({
+        credentialRef: "gemini-primary"
+      })
+    )
+    expect(lastPayload?.phaseRuntimeSelections).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          phaseId: "text_translation",
+          provider: "lm_studio",
+          credentialRef: "",
+          model: "lmstudio-community",
+          modelListSourceToken: "text_translation|lm_studio||req-lm-1"
+        })
+      ])
+    )
+  })
+
+  test("acknowledgeCredentialConfigured は保存経路を呼ばずに local state だけを configured にしない", () => {
+    const gateway = createGateway() as TranslationJobSetupGatewayContract & {
+      saveTranslationJobSetupCredential?: ReturnType<typeof vi.fn>
+    }
+    gateway.saveTranslationJobSetupCredential = vi.fn().mockResolvedValue({
+      provider: "gemini",
+      credentialRef: "gemini-primary",
+      isConfigured: true,
+      isMissingSecret: false
+    })
+    const store = createStore(
+      createPhaseDrivenState({
+        options: createPhaseOptions({
+          credentialRefs: [
+            {
+              provider: "gemini",
+              credentialRef: "gemini-primary",
+              isConfigured: false,
+              isMissingSecret: true
+            }
+          ]
+        }),
+        phaseRuntimeSelections: [
+          {
+            phaseId: "word_translation",
+            provider: "gemini",
+            model: "",
+            credentialRef: "gemini-primary",
+            credentialStatus: "missing",
+            executionMode: "sync",
+            batchMode: "enabled",
+            modelListSourceToken: ""
+          }
+        ]
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    usecase.acknowledgeCredentialConfigured("word_translation")
+
+    expect(gateway.saveTranslationJobSetupCredential).toHaveBeenCalledTimes(1)
+    expect(
+      store.snapshot().options?.credentialRefs.find(
+        (credential) => credential.provider === "gemini"
+      )
+    ).toEqual(
+      expect.objectContaining({
+        isConfigured: false,
+        isMissingSecret: true
       })
     )
   })

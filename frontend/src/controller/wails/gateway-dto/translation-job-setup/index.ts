@@ -4,6 +4,10 @@ export type {
   GetTranslationJobSetupOptionsResponseDto,
   GetTranslationJobSetupSummaryRequestDto,
   GetTranslationJobSetupSummaryResponseDto,
+  ListTranslationJobSetupProviderModelsRequestDto,
+  ListTranslationJobSetupProviderModelsResponseDto,
+  SaveTranslationJobSetupCredentialRequestDto,
+  SaveTranslationJobSetupCredentialResponseDto,
   ValidateTranslationJobSetupRequestDto,
   ValidateTranslationJobSetupResponseDto
 } from "./translation-job-setup-gateway-dto"

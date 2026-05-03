@@ -144,7 +144,24 @@ func newAppControllerWithSeeds(
 			masterPersonaRepositories.AISettingsRepository,
 			masterPersonaSecretStore,
 			foundationTransactor,
-			service.WithTranslationJobSetupProviderReachabilityTransport(&http.Client{Timeout: 5 * time.Second}),
+			service.WithTranslationJobSetupProviderModelListLoader(
+				service.TranslationJobSetupProviderModelListLoaderFunc(
+					func(ctx context.Context, providerID string, apiKey string) ([]service.TranslationJobSetupProviderModelOptionReadModel, error) {
+						models, err := ai.NewProviderModelListLoader(&http.Client{Timeout: 5 * time.Second}).ListProviderModels(ctx, providerID, apiKey)
+						if err != nil {
+							return nil, fmt.Errorf("load provider model list: %w", err)
+						}
+						result := make([]service.TranslationJobSetupProviderModelOptionReadModel, 0, len(models))
+						for _, model := range models {
+							result = append(result, service.TranslationJobSetupProviderModelOptionReadModel{
+								ModelID: model.ModelID,
+								Label:   model.Label,
+							})
+						}
+						return result, nil
+					},
+				),
+			),
 		)),
 	)
 	termTranslationPhaseController := controllerwails.NewTermTranslationPhaseController(
