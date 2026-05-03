@@ -54,6 +54,11 @@
 
 - `prototype_kind`: `existing_screen_change | new_screen`
 - `source_basis`:
+- `existing_screen_resource_refs`:
+- `reused_screen_structure`:
+- `changed_sections_only`:
+- `new_visual_system_added`: `yes | no`
+- `new_visual_system_reason`:
 - `prototype_path`: `./prototype.svelte`
 - `required_before_human_review`: `yes`
 - `required_for_frontend_handoff`: `yes`
@@ -120,6 +125,11 @@
 - 英語ラベルは、利用者が設定画面で見る既存語だけに限定する
 - 人間確認中は UIプロトタイプ確認サーバーを起動したままにする
 - 既存画面変更では、既存画面または既存 UI 部品を土台にする
+- 既存画面変更の UIプロトタイプは、対象画面の既存 Svelte、CSS、class、画面構造を再利用する
+- 既存画面変更では、独自の page shell、card、grid、配色、余白体系を新規に作らない
+- 既存画面変更では、変更対象区画だけを差し替え、変更しない区画は既存画面の構造と表示を維持する
+- 既存画面リソースを再利用できない場合は、理由を `UI Prototype Contract` に記録し、完了扱いにしない
+- `new_visual_system_added` が `yes` の場合は、既存画面変更として停止または差し戻しにする
 - 新規画面では、`docs/screen-design` の画面設計に従う
 - frontend 実装がある task では、UIプロトタイプを task-local 確認用として扱う
 - frontend 実装では UIプロトタイプの構造を framework へ変換し、主要区画、導線、状態表示を維持する

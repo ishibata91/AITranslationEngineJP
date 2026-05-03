@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { access, realpath } from "node:fs/promises";
-import { createRequire } from "node:module";
 import path from "node:path";
-import { fileURLToPath, pathToFileURL } from "node:url";
+import { fileURLToPath } from "node:url";
 
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_PORT = 34116;
@@ -11,7 +10,6 @@ const scriptPath = fileURLToPath(import.meta.url);
 const frontendRoot = path.resolve(path.dirname(scriptPath), "../..");
 const repoRoot = path.resolve(frontendRoot, "..");
 const activeRoot = path.join(repoRoot, "docs/exec-plans/active");
-const requireFromFrontend = createRequire(import.meta.url);
 
 function usage() {
   return [
@@ -122,13 +120,6 @@ function servedUrl(args) {
   return `http://${args.host}:${args.port}/prototype`;
 }
 
-async function importFromFrontend(packageName) {
-  const resolved = requireFromFrontend.resolve(packageName, {
-    paths: [frontendRoot],
-  });
-  return import(pathToFileURL(resolved).href);
-}
-
 function prototypeHtml() {
   return [
     "<!doctype html>",
@@ -163,12 +154,12 @@ async function startServer(args, paths) {
   }
 
   const [{ createServer }, { svelte }] = await Promise.all([
-    importFromFrontend("vite"),
-    importFromFrontend("@sveltejs/vite-plugin-svelte"),
+    import("vite"),
+    import("@sveltejs/vite-plugin-svelte"),
   ]);
 
   const server = await createServer({
-    root: paths.taskDir,
+    root: frontendRoot,
     configFile: false,
     appType: "custom",
     plugins: [
@@ -205,6 +196,9 @@ async function startServer(args, paths) {
     ],
     resolve: {
       dedupe: ["svelte"],
+    },
+    optimizeDeps: {
+      entries: [],
     },
     server: {
       host: args.host,

@@ -83,6 +83,9 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
 - UIプロトタイプを作る場合は `prototype.svelte` として task folder に置く
 - 既存画面変更では、既存画面または既存 UI 部品を土台にする
+- 既存画面変更の UIプロトタイプは、対象画面の既存 Svelte、CSS、class、画面構造を再利用する
+- 既存画面変更では、独自の page shell、card、grid、配色、余白体系を新規に作らない
+- 既存画面変更では、変更対象区画だけを差し替え、変更しない区画は既存画面の構造と表示を維持する
 - 新規画面では、`docs/screen-design` の画面設計に従う
 - UIプロトタイプ確認サーバーは `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` で起動する
 - UIプロトタイプは `http://127.0.0.1:34116/prototype` を `agent-browser` で開き、UX 確認観点の確認結果を `ui-design.md` に残す
@@ -140,6 +143,8 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - `ui-design.md` は UI 要件契約と確認観点を含んでいる。
 - task-local UIプロトタイプを作る場合は、主要区画、主要操作、状態差分を確認できる。
 - task-local UIプロトタイプを作る場合は、主要操作後の画面変化を確認できる。
+- 既存画面変更の UIプロトタイプを作る場合は、既存画面リソース参照、再利用した画面構造、変更対象区画だけの差し替え結果を `ui-design.md` に含めている。
+- 既存画面リソースを再利用できない場合は、理由を `ui-design.md` の `UI Prototype Contract` に記録し、完了扱いにしていない。
 - task-local UIプロトタイプを作る場合は、`ui-design.md` に確認サーバーの URL、起動 command、人間確認中の起動要否を含めている。
 - task-local UIプロトタイプを作る場合は、モックデータが `mock-data/` または `data-ui-prototype-sample-data-root` の範囲に置かれている。
 - `ui-design.md` は `agent-browser` で確認した URL、起動 command、人間確認中の起動状態、画面サイズ、UX 確認観点ごとの結果、問題、未確認理由を含んでいる。
@@ -155,5 +160,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - docs 正本へ UI 仕様を反映するだけの時
 - UIプロトタイプを `agent-browser` で確認できない場合は未実行理由を返して停止する。
 - UIプロトタイプの土台が不明な場合は停止する。
+- 既存画面変更の UIプロトタイプで、既存画面リソースを再利用できない場合は停止する。
+- 既存画面変更の UIプロトタイプで、独自の新規見た目体系を追加する必要がある場合は停止する。
 - 本番コードから UIプロトタイプへの参照が必要になる場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
