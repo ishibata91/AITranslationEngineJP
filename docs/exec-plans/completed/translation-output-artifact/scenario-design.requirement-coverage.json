@@ -1,0 +1,677 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TOA-001",
+      "title": "Output Review で completed job と result summary を確認する",
+      "kind": "display",
+      "source_requirement": "tasks/usecases/translation-output-artifact.yaml は completed job 一覧、result summary、diff preview、output artifact 状態を completion criteria にする。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase の completion criteria は completed job 一覧と result summary の確認を求める。",
+          "verification_hint": "Output Review で completed job を選び、summary を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "出力不可 job では一覧または詳細で readiness false と拒否理由を表示できれば操作は完了できる。",
+          "verification_hint": "出力不可 job fixture で拒否理由を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "候補は未完了、Canceled、不整合 job の出力不可理由表示を求める。",
+          "verification_hint": "not-ready、Canceled、status mismatch の表示を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "target count 0、long file path、long Source / Dest、empty completed list が表示境界になる。",
+          "verification_hint": "empty list と long text fixture を使う。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は job state を Completed、Failed、Canceled などで定義し、body phase 設計は output readiness を後続出力条件にする。",
+          "verification_hint": "job state と readiness 表示が一致する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行要件はローカル単一ユーザー操作を前提にし、成果物出力のユーザー権限差を定義していない。",
+          "verification_hint": "初期 acceptance では権限差を pass 条件にしない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase は訳文、出力ステータス、入力ファイル出自情報、result summary を inputs / outputs に含める。",
+          "verification_hint": "summary に translated count、status distribution、input provenance を含める。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "selected job、input provenance、field result、output readiness が同じ job ID に対応する必要がある。",
+          "verification_hint": "job selection 切替後の stale summary を表示しない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は result summary、artifact status、確認時刻を後から確認できることを求める。",
+          "verification_hint": "UI summary と audit summary を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "Output Review の表示は xTranslator row 必須列と status mapping の確認へ進む入口である。",
+          "verification_hint": "summary から row validation result へ到達できる。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "completed job、not-ready job、long text の fixture で UI と API の両方から検証できる。",
+          "verification_hint": "UI fixture と temp DB を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-002",
+      "title": "output readiness と禁止遷移を守る",
+      "kind": "workflow",
+      "source_requirement": "body phase 完了成果物は、body phase Completed、job-level Completed、field result と output status の整合時だけ output readiness を true にする。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase/scenario-design.md は body phase Completed と field result 整合時だけ readiness が成立するとする。",
+          "verification_hint": "completed job で readiness true を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "出力不可 job は拒否理由を返すことで安全に完了する。",
+          "verification_hint": "rejection reason を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure 候補は未完了、Canceled、不整合 job で成果物生成を開始しないことを求める。",
+          "verification_hint": "artifact と row が作られないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Running、Paused、RecoverableFailed、Failed、Canceled、field result mismatch が境界状態になる。",
+          "verification_hint": "各 job state fixture で出力を拒否する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は job state を定義し、body phase 設計は Canceled 後の途中成功結果を output readiness に使わないとする。",
+          "verification_hint": "Canceled job で readiness false を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "readiness は job state、phase state、field result、output status、validation result の組み合わせで判断する。",
+          "verification_hint": "field status summary と readiness の整合を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body phase implementation-scope は field result と output status が整合する時だけ output readiness を true にするとする。",
+          "verification_hint": "status mismatch で false になることを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "出力開始拒否を何度実行しても artifact と row を作らない。",
+          "verification_hint": "同じ invalid job で開始再送して件数が増えないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は出力不可理由を監査できる形で返すことを求める。",
+          "verification_hint": "rejection reason、job state、ready flag を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "RecoverableFailed は output task では出力せず、上流 body phase の retry / recovery へ戻す。",
+          "verification_hint": "recoverable failed job で出力ではなく拒否理由を返す。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "job state fixture と temp DB で public seam 起点に検証できる。",
+          "verification_hint": "APIテストで state guard を固定する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-003",
+      "title": "xTranslator row と XML を生成する",
+      "kind": "external_integration",
+      "source_requirement": "docs/spec.md は xTranslator 互換形式の .xml と row 必須列の再構成を求め、docs/er.md は XTRANSLATOR_OUTPUT_ROW を出力行モデルにする。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は xTranslator 互換形式で EDID、REC、FIELD、FORMID、Source、Dest、Status を再構成できることを求める。",
+          "verification_hint": "valid field set から row 必須列を作る。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "real xTranslator ではなく local XML parser と required tag check で互換性を観測できる。",
+          "verification_hint": "generated XML を local parser で検査する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure 候補は必須列欠損、XML serialization 失敗、root 未確定、危険値を成功成果物にしないことを求める。",
+          "verification_hint": "missing required field と invalid XML で fail summary を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "xtranslator_ref.md は UTF-8、root element、String 子要素、Status code、文字列制約を示す。",
+          "verification_hint": "Skyrim SE / LE、XML escaping、日本語、large text fixture を使う。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "row validation pass 後だけ artifact を success state にできる。",
+          "verification_hint": "validation failure で success state へ遷移しない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は XTRANSLATOR_OUTPUT_ROW が 1 つの JOB_TRANSLATION_FIELD に対応し必須列を保持するとする。",
+          "verification_hint": "field ID と row ID の対応を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "row Source / Dest / Status は同じ JOB_TRANSLATION_FIELD から再構成される必要がある。",
+          "verification_hint": "row count と field count を比較する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "XML 出力は provider や secret を必要としない。error summary に secret と raw provider payload を出さない。",
+          "verification_hint": "fake provider と fake secret store が呼ばれないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ field set から同じ row set を再構成し、重複 row を作らない必要がある。",
+          "verification_hint": "再出力で row count が重複しない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は row count、required column presence、status distribution を保存要約にする。",
+          "verification_hint": "row build summary と compatibility summary を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "XML serialization または file write が失敗した時は再出力で回復できる状態にする。",
+          "verification_hint": "readonly path failure から出力先変更で再試行できる。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "deferred",
+          "source_or_rationale": "row 件数、XML サイズ、処理時間の数値上限は現行正本にない。",
+          "owner": "human",
+          "recheck_condition": "implementation-scope 作成時に row count の想定規模または性能 acceptance が必要になった時に再確認する。",
+          "verification_hint": "初期 acceptance では性能数値を pass 条件にしない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md と xtranslator_ref.md は xTranslator XML の root、String、Status を互換境界として示す。",
+          "verification_hint": "required tag check、Status code check、FormID reference check を行う。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "completed job fixture、XML parser、temp filesystem で real xTranslator なしに検証できる。",
+          "verification_hint": "lower-level と APIテストを組み合わせる。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-004",
+      "title": "内部 output status を xTranslator Status へ写像する",
+      "kind": "external_integration",
+      "source_requirement": "docs/spec.md は内部 cached を xTranslator Status=1 へ写像し、辞書置換情報を内部観測情報として保持するとする。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は cached を xTranslator Status=1 へ写像することを明示する。",
+          "verification_hint": "cached field fixture で row Status=1 を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "unknown status は成功 row に混入させず、mapping error summary として返す。",
+          "verification_hint": "unknown status fixture で success artifact を作らない。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure 候補は内部 status を xTranslator Status へ写像できない場合に成功出力しないことを求める。",
+          "verification_hint": "mapping failure count と対象 field を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "cached、translated、unknown、empty status が境界になる。",
+          "verification_hint": "status fixture を分ける。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "mapping pass 後だけ row validation pass へ進む。",
+          "verification_hint": "mapping failure で artifact success へ進まない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/er.md は JOB_TRANSLATION_FIELD に output status を保持し、XTRANSLATOR_OUTPUT_ROW に status を保持する。",
+          "verification_hint": "input status と output row status の対応を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は cached と xTranslator Status を同一概念にせず、辞書置換情報を別の内部観測情報として保持するとする。",
+          "verification_hint": "cached count と dictionary replacement summary を分ける。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "status mapping 自体は secret や外部認証値を扱わない。",
+          "verification_hint": "redaction は REQ-TOA-007 で扱う。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ input status は再出力でも同じ xTranslator Status へ写像される。",
+          "verification_hint": "再出力で mapping summary が変わらない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は status mapping summary と cached count を監査対象にする。",
+          "verification_hint": "status mapping summary を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "unknown status は正本化後に再出力で回復できるよう、対象 field と理由を残す。",
+          "verification_hint": "mapping error 後に retryable summary を確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "status mapping は row 件数に線形であり、現行正本は性能数値を要求していない。",
+          "verification_hint": "性能数値は初期 acceptance にしない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "xtranslator_ref.md は Status code 0..4 を定義し、docs/spec.md は cached -> 1 を定義する。",
+          "verification_hint": "Status code 範囲と cached mapping を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "cached、unknown、translated status fixture で検証できる。",
+          "verification_hint": "status mapping unit と APIテストを使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-005",
+      "title": "diff preview と再出力状態を確認する",
+      "kind": "display",
+      "source_requirement": "tasks/usecases/translation-output-artifact.yaml は translation unit 単位の差分、再生成操作、再出力状態を completion criteria にする。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase は diff preview と再出力導線を確認できることを求める。",
+          "verification_hint": "generated artifact と current field result の diff を表示する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "差分がない場合でも row count と no changes summary を確認できればよい。",
+          "verification_hint": "no-diff fixture を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure 候補は参照不能または古い row を正しい preview として表示しないことを求める。",
+          "verification_hint": "missing row と stale artifact で preview error を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "long Source / Dest、row count 0、missing row、stale row が表示境界になる。",
+          "verification_hint": "long text と missing row fixture を使う。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成済み artifact、stale artifact、re-output-needed の state を UI で区別する。",
+          "verification_hint": "artifact status と diff state が一致する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "diff preview の閲覧権限差は現行要件にない。",
+          "verification_hint": "初期 acceptance では権限差を扱わない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase は translation unit 単位の差分と出力ステータス確認を求める。",
+          "verification_hint": "Source、Dest、Status、row identity を表示する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "diff は selected artifact row と current JOB_TRANSLATION_FIELD の対応から作る必要がある。",
+          "verification_hint": "wrong artifact selection で diff を表示しない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は diff preview 確認、re-output state、changed count を監査対象にする。",
+          "verification_hint": "changed count と re-output state を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "preview で xTranslator row 反映内容を確認するため、row 必須列と Status を表示対象に含める。",
+          "verification_hint": "row preview から Status と required columns を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "stale artifact、missing row、long text fixture で UI と API を検証できる。",
+          "verification_hint": "UI人間操作E2E と APIテストで確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-006",
+      "title": "output artifact の再出力と失敗回復を扱う",
+      "kind": "persistence",
+      "source_requirement": "docs/er.md と ER 図は TRANSLATION_ARTIFACT.translation_job_id を job 単位の成果物として扱い、XTRANSLATOR_OUTPUT_ROW.job_translation_field_id を一意にする。",
+      "required_detail_types": [
+        "observability_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase は output artifact の状態と再出力導線を求める。",
+          "verification_hint": "artifact status、row count、generated_at を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure 候補は artifact または row 保存失敗を success としないことを求める。",
+          "verification_hint": "save failure injection で success artifact を作らない。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "existing artifact、same input re-output、changed input re-output、failed artifact が境界になる。",
+          "verification_hint": "existing artifact fixture と retry fixture を使う。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "ER は TRANSLATION_ARTIFACT.status を持ち、usecase は再出力状態を output に含める。",
+          "verification_hint": "success、failed、stale、re-output-needed を区別する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "ER 図は TRANSLATION_ARTIFACT.translation_job_id を UNIQUE、XTRANSLATOR_OUTPUT_ROW.job_translation_field_id を UNIQUE とする。",
+          "verification_hint": "同じ job と field で重複 artifact / row を作らない。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "artifact row set は selected job の field set と一致する必要がある。",
+          "verification_hint": "row count、field count、missing count を確認する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "再出力の同時または再送で同じ job / field の重複 row を作らない必要がある。",
+          "verification_hint": "同一条件の再送で unique 制約と result summary を確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "state-transition と failure 候補は同じ入力の再出力で重複成果物または重複行を作らないことを求める。",
+          "verification_hint": "同じ completed job で re-output を 2 回実行する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は artifact id、row digest、generated_at、status、failed stage を要約に残す。",
+          "verification_hint": "success と failure の audit summary を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "failure 候補は保存失敗後の再出力回復を求める。",
+          "verification_hint": "save failure 後に再試行できることを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "re-output 後も xTranslator row 必須列と XML compatibility summary が成立する必要がある。",
+          "verification_hint": "re-output 後の XML parser check を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "temp DB、save failure injection、existing artifact fixture で検証できる。",
+          "verification_hint": "APIテストで persistence boundary を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-007",
+      "title": "監査要約と redaction を満たす",
+      "kind": "security",
+      "source_requirement": "docs/spec.md は API key の暗号化保存を求め、body phase 設計は secret と raw payload を UI、summary、log に出さない。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "derived",
+          "source_or_rationale": "出力処理は completed result と XML adapter だけで成立し、provider と secret store を呼ばない。",
+          "verification_hint": "fake provider / fake secret store fail-on-call で出力する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は failure、re-output、runtime event summary でも保存禁止情報を出さないことを求める。",
+          "verification_hint": "failure summary と log capture を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "UI、DTO、error summary、structured log、debug log、runtime event が redaction 境界になる。",
+          "verification_hint": "各観測点で secret と raw payload が出ないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "success、failed、re-output の各状態で redaction を保つ。",
+          "verification_hint": "各 artifact status の summary を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行要件は role-based authorization を定義していない。信頼境界は secret / log 非露出として扱う。",
+          "verification_hint": "権限差は初期 acceptance にしない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey を暗号化保存することを求め、body phase 設計は secret、API key、復号可能値を UI、summary、log に出さないとする。",
+          "verification_hint": "secret-like fixture と log capture で非露出を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "監査要約は artifact id、operation kind、row count、digest、error kind、status を持つ。",
+          "verification_hint": "本文全文や raw payload ではなく summary field を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "UI summary と structured log の error kind、row count、artifact id が一致する必要がある。",
+          "verification_hint": "UI と log capture の summary を比較する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "operation-audit 候補は structured log、debug log、runtime event summary、UI error summary の redaction 確認を求める。",
+          "verification_hint": "各ログ種別で redaction を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "failure summary は再出力に必要な error kind と retryable flag を持つが、secret を含まない。",
+          "verification_hint": "failure 後の re-output state を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "xTranslator XML の Source / Dest は業務データとして row に保持するが、監査ログへ重複保存しない。",
+          "verification_hint": "row data と log summary の保存対象を分ける。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake provider、fake secret store、log capture、secret-like fixture で検証できる。",
+          "verification_hint": "APIテストで fail-on-call と redaction assertion を行う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TOA-008",
+      "title": "本文翻訳対象 0 件の completed job を出力可能にする",
+      "kind": "workflow",
+      "source_requirement": "body phase completed 成果物は本文翻訳対象 0 件を正常完了にし、単語だけの plugin でも output readiness を成立させる。",
+      "required_detail_types": [],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase/scenario-design.md は本文翻訳対象 0 件を正常完了にして output readiness へ進めるとする。",
+          "verification_hint": "target count 0 completed job で artifact 出力を試す。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "row count 0 の XML または artifact summary でも、出力状態を確認できれば成功とする。",
+          "verification_hint": "row count 0 summary を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "target count 0 と output status 不整合を混同しない。",
+          "verification_hint": "target count 0 かつ status mismatch なしの fixture と mismatch fixture を分ける。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "lifecycle と state-transition 候補は本文翻訳対象 0 件を特殊完了境界として扱う。",
+          "verification_hint": "target count 0 fixture を使う。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "target count 0 でも body phase と job-level Completed が成立している必要がある。",
+          "verification_hint": "job state Completed と readiness true を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "target count、skipped count、row count、artifact status を summary に出す。",
+          "verification_hint": "row count 0 と skipped count を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "row count 0 は field result 欠損ではなく、対象 0 件の正当な結果として扱う。",
+          "verification_hint": "missing row failure と target count 0 を分ける。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "row count 0 の再出力でも重複 row を作らず同じ summary に収束する。",
+          "verification_hint": "target count 0 job の再出力を 2 回実行する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body phase 設計は provider 未実行、target count、skipped count を観測対象にする。",
+          "verification_hint": "provider 未実行 summary と artifact state を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "target count 0 は正常完了境界であり、回復操作を必要としない。",
+          "verification_hint": "回復操作は failure 系で扱う。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "zero target completed job fixture と temp DB で検証できる。",
+          "verification_hint": "APIテストで row count 0 summary を確認する。"
+        }
+      ]
+    }
+  ]
+}

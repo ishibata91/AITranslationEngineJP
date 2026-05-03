@@ -5,9 +5,12 @@
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
+  import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createMasterPersonaScreenControllerFactory } from "@controller/master-persona"
+  // eslint-disable-next-line local/enforce-layer-boundaries
+  import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
   // eslint-disable-next-line local/enforce-layer-boundaries
@@ -28,6 +31,7 @@
     createPersonaGenerationPhaseScreenController?: CreatePersonaGenerationPhaseScreenController | null
     createTermTranslationPhaseScreenController?: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController?: CreateTranslationJobSetupScreenController | null
+    createTranslationOutputArtifactScreenController?: CreateTranslationOutputArtifactScreenController | null
     createTranslationInputScreenController?: CreateTranslationInputScreenController | null
   }
 
@@ -38,6 +42,7 @@
     createPersonaGenerationPhaseScreenController = null,
     createTermTranslationPhaseScreenController = null,
     createTranslationJobSetupScreenController = null,
+    createTranslationOutputArtifactScreenController = null,
     createTranslationInputScreenController = null
   }: Props = $props()
 
@@ -67,6 +72,13 @@
       )
     )
   }
+
+  function resolveTranslationOutputArtifactScreenControllerFactory(): CreateTranslationOutputArtifactScreenController {
+    return (
+      createTranslationOutputArtifactScreenController ??
+      createTranslationOutputArtifactScreenControllerFactory(null)
+    )
+  }
 </script>
 
 <AppShell
@@ -78,6 +90,7 @@
   {createPersonaGenerationPhaseScreenController}
   {createTermTranslationPhaseScreenController}
   createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
+  createTranslationOutputArtifactScreenController={resolveTranslationOutputArtifactScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}
   routes={shellState.routes}
   translationManagementViews={shellState.translationManagementViews}

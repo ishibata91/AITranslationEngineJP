@@ -1,0 +1,162 @@
+reviewback_version: 1
+task_id: "translation-output-artifact"
+review_yaml_path: "docs/exec-plans/active/translation-output-artifact/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "修正後の実コードは、承認済み scenario / UI / implementation-scope が求める主要挙動に一致している。diff preview は生成済み artifact row と現行 field result を比較し、staleReason と canRegenerate を返せる。row count 0 の completed job は readiness true、path valid、compatibility reject なしで generate 可能である。regenerate の artifactID 不一致、DB 保存失敗、backend outputPath validation、DTO 空配列、bootstrap 接続の修正も、挙動観点では期待経路を壊していない。"
+  evidence_sufficiency: "十分。必読成果物、既存 reviewback 5 件、対象 backend / frontend 実コード、対象テスト、呼び出し元から渡された修正後検証証跡を確認した。広い harness は skill 規約と人間指示に従い再実行していない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "旧 behavior-001 と behavior-002 は、repository row read / service diff 算出 / frontend action enablement の局所修正で解消済みと評価する。追加の設計境界変更は不要である。"
+
+validation_evidence:
+  - command: "go test ./internal/apitest -run 'SCN_TOA_(005|006|007|008|010)'"
+    result: "pass"
+    source: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "npm --prefix frontend run test -- --run translation-output-artifact.usecase translation-output-gateway"
+    result: "pass"
+    source: "implement_lane 提供証跡。2 files、8 tests。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    source: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    source: "implement_lane 提供証跡。37 files、392 tests。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite scenario-gate"
+    result: "pass"
+    source: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite system-test"
+    result: "pass"
+    source: "implement_lane 提供証跡。5 件成功。レビューでは再実行していない。"
+  - command: "git diff --check"
+    result: "pass"
+    source: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser errors"
+    result: "empty"
+    source: "既存 UI 証跡。tmp/translation-output-artifact-output-review.png を確認入力として扱った。"
+
+checked_scope:
+  summary: "Output Review の completed job 表示、readiness、diff preview、stale / regenerate 判定、xTranslator XML 生成、再出力、zero-row 出力、失敗時成功公開禁止、Wails / frontend 接続を挙動観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 268
+      symbol: "SCN-TOA-005"
+      reason: "diff preview、stale reason、再出力可否の期待挙動を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 325
+      symbol: "SCN-TOA-007"
+      reason: "生成失敗を成功成果物として扱わない期待挙動を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 353
+      symbol: "SCN-TOA-008"
+      reason: "target count 0 / row count 0 の正常系期待を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 156
+      symbol: "backend-output-row-builder-compatibility"
+      reason: "diff preview が stale reason と再出力可否を返す完了条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 193
+      symbol: "backend-output-artifact-write-reoutput"
+      reason: "row validation、XML serialization、file write、artifact 保存失敗を success として公開しない条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 229
+      symbol: "frontend-output-review-ui"
+      reason: "出力 action の有効条件と row count 0 / compatibility reject の区別を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/ui-design.md"
+      line: 22
+      symbol: "UI Contract.button_enablement"
+      reason: "generate / regenerate の有効条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/plan.md"
+      line: 87
+      symbol: "reviewback 修正後検証"
+      reason: "呼び出し元から渡された修正後検証証跡と一致することを確認した。"
+    - path: "internal/service/translation_output_diff_preview.go"
+      line: 38
+      symbol: "TranslationOutputArtifactService.ReadDiffPreview"
+      reason: "artifactID から persisted artifact / row を読み、selected job との所属を確認する経路を確認した。"
+    - path: "internal/service/translation_output_diff_preview.go"
+      line: 97
+      symbol: "TranslationOutputArtifactService.ReadDiffPreview"
+      reason: "persisted row 欠落または digest 不一致で StaleReason と CanRegenerate を設定する挙動を確認した。"
+    - path: "internal/repository/job_output_repository.go"
+      line: 96
+      symbol: "JobOutputArtifactRepository"
+      reason: "artifact row 読み取り API が永続化境界に追加されていることを確認した。"
+    - path: "internal/service/translation_output_artifact_service.go"
+      line: 349
+      symbol: "TranslationOutputArtifactService.buildReadiness"
+      reason: "target count 0 でも readiness true になることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 124
+      symbol: "TranslationOutputArtifactService.writeArtifact"
+      reason: "backend outputPath validation が副作用前に実行されることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 160
+      symbol: "TranslationOutputArtifactService.writeArtifact"
+      reason: "regenerate artifactID 不一致が XML write / 永続化前に拒否されることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 361
+      symbol: "TranslationOutputArtifactService.persistArtifactWithFile"
+      reason: "DB 保存失敗時に一時 XML を cleanup して success XML を公開しない経路を確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 51
+      symbol: "TranslationOutputReviewResponseDTO"
+      reason: "completedJobs が空配列として返る DTO 形を確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 109
+      symbol: "TranslationOutputDiffPreviewResponseDTO"
+      reason: "rows が空配列として返る DTO 形を確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 184
+      symbol: "translationOutputArtifactService wiring"
+      reason: "artifact repository、XML serializer、file writer、controller が production graph に接続されていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 277
+      symbol: "buildActionDisablements"
+      reason: "rowCount 0 を出力不可理由にせず、readiness、path、compatibility reject で action を判定することを確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 228
+      symbol: "hasStaleRows"
+      reason: "staleReason / canRegenerate が regenerate action 判定へ入ることを確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 373
+      symbol: "TestSCN_TOA_005_DiffPreviewMarksStaleArtifactRowForRegenerate"
+      reason: "stale diff preview が再出力可能状態を返す focused test を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 462
+      symbol: "TestSCN_TOA_007_DBSaveFailureDoesNotLeaveSuccessXMLOrPublishedArtifact"
+      reason: "DB 保存失敗時に成功 XML と artifact / row が残らない検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 497
+      symbol: "TestSCN_TOA_010_InvalidOutputPathNeverReachesFileWriter"
+      reason: "invalid outputPath が file writer と永続化へ到達しない検証を確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.test.ts"
+      line: 38
+      symbol: "SCN-TOA-008 zero-row generate"
+      reason: "row count 0 かつ readiness true で generate command が実行される frontend 挙動を確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.test.ts"
+      line: 60
+      symbol: "SCN-TOA-005 stale diff preview"
+      reason: "stale diff preview が regenerate command へつながる frontend 挙動を確認した。"
+
+unchecked_scope:
+  - target: "広い harness の再実行"
+    reason: "codex-review-behavior はハーネスを実行しない規約であり、人間指示でも広い harness 再実行は禁止されている。"
+    risk: "提供済み pass 証跡後に環境差分があった場合は、このレビュー内では検出しない。"
+  - target: "real xTranslator import smoke"
+    reason: "scenario-design と implementation-scope で必須検証ではないと固定されている。"
+    risk: "実 xTranslator 本体の取り込み差分は任意手動確認に残る。"
+  - target: "契約・互換性、権限・信頼境界、状態・データ不変条件、責務境界の主判定"
+    reason: "review_behavior の担当外であり、各 reviewback YAML の集約で扱う。"
+    risk: "他観点の最終状態は implement_lane 側の review 集約に依存する。"
+
+issues: []
+
+residual_risks:
+  - "UI 証跡は既存 screenshot と agent-browser errors empty を入力として扱った。今回の reviewer はブラウザ再操作をしていない。"
+  - "diff preview の詳細分類文言は fixed design で閾値拡張が deferred になっているため、検出と再出力導線の成立までを挙動一致として判定した。"

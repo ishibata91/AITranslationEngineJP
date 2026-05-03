@@ -829,10 +829,9 @@
   .list-row {
     display: grid;
     gap: 10px;
-    grid-template-columns: minmax(140px, 1fr) minmax(160px, 1fr) minmax(
-        200px,
-        1.15fr
-      ) minmax(100px, 0.7fr);
+    grid-template-columns:
+      minmax(140px, 1fr) minmax(160px, 1fr) minmax(200px, 1.15fr)
+      minmax(100px, 0.7fr);
     text-align: left;
     color: inherit;
   }

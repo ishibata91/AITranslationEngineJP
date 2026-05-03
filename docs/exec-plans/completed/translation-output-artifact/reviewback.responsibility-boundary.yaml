@@ -1,0 +1,266 @@
+reviewback_version: 1
+task_id: "translation-output-artifact"
+review_yaml_path: "docs/exec-plans/active/translation-output-artifact/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: >
+    通過。Controller は UseCase port、UseCase は Service port、Service は repository / serializer /
+    file writer port、Repository は SQLite concrete、Frontend UseCase は gateway contract と Store、
+    View は ScreenController contract を使う配置になっている。production wiring は
+    internal/bootstrap/app_controller.go で artifact repository、XML serializer、file writer、
+    transactor、usecase、controller を明示接続している。
+  evidence_sufficiency: >
+    十分。implementation-scope、scenario-design、ui-design、plan、5 観点 reviewback、
+    architecture / coding-guidelines、レビュー対象実コード、対象テスト、呼び出し元の修正後検証証跡を確認した。
+    広い harness は人間指示と skill 規約に従い再実行していない。
+  production_boundary_impact: >
+    既存 fixture 互換の default serializer / file writer は Service constructor に残るが、
+    production 経路では bootstrap の WithXMLSerializer、WithFileWriter、WithArtifactPersistence が
+    明示接続する。default 生成は constructor 時点で filesystem 書き込みを行わず、
+    persistence 未注入時も command 成功 fallback を持たないため、production boundary の隠れ依存にはなっていない。
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘なし。旧指摘は production wiring と persistence / file write 境界の明示接続で解消済み。"
+  boundary_fixed_test_viewpoints:
+    - "bootstrap が artifact repository、XML serializer、file writer、transactor を接続すること。"
+    - "diff preview が artifact row repository read を通って stale / regenerate 状態を組み立てること。"
+    - "writer が temporary file と publish の副作用境界を持ち、persistence 失敗時に成功 XML を公開しないこと。"
+    - "frontend View が generated Wails binding や backend DTO を直接扱わず、controller contract だけを起点にすること。"
+
+validation_evidence:
+  - command: "go test ./internal/apitest -run 'SCN_TOA_(005|006|007|008|010)'"
+    result: "pass"
+    details: "implement_lane 提供証跡。局所 API regression。"
+  - command: "npm --prefix frontend run test -- --run translation-output-artifact.usecase translation-output-gateway"
+    result: "pass"
+    details: "implement_lane 提供証跡。2 files、8 tests。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。37 files、392 tests。"
+  - command: "python3 scripts/harness/run.py --suite scenario-gate"
+    result: "pass"
+    details: "implement_lane 提供証跡。"
+  - command: "python3 scripts/harness/run.py --suite system-test"
+    result: "pass"
+    details: "implement_lane 提供証跡。5 件成功。"
+  - command: "git diff --check"
+    result: "pass"
+    details: "implement_lane 提供証跡。"
+  - command: "agent-browser errors"
+    result: "pass"
+    details: "implement_lane 提供証跡。empty。UI 証跡は tmp/translation-output-artifact-output-review.png。"
+  - command: "coverage"
+    result: "not_provided"
+    details: "呼び出し元入力に coverage 値は含まれていない。"
+  - command: "issue_count"
+    result: "not_provided"
+    details: "呼び出し元入力に Sonar などの issue 数は含まれていない。"
+
+checked_scope:
+  summary: >
+    Output Review query、diff preview、xTranslator row builder、XML serializer / file writer、
+    artifact persistence、repository transaction、path policy、Wails controller、backend bootstrap、
+    frontend gateway、screen controller、usecase、store、presenter、View 接続を責務境界観点で確認した。
+  files:
+    - path: "docs/architecture.md"
+      line: 45
+      symbol: "backend dependency direction"
+      reason: "Backend Bootstrap から Controller / UseCase / Service / adapter concrete へ向かう依存方向を確認した。"
+    - path: "docs/architecture.md"
+      line: 50
+      symbol: "Bootstrap concrete generation rule"
+      reason: "Bootstrap 以外の concrete 生成禁止を判定基準にした。"
+    - path: "docs/architecture.md"
+      line: 48
+      symbol: "Service port dependency"
+      reason: "Service が repository / XML file port 経由で adapter を使う境界を確認した。"
+    - path: "docs/coding-guidelines.md"
+      line: 21
+      symbol: "production wiring"
+      reason: "production wiring は composition root へ置く規約を確認した。"
+    - path: "docs/coding-guidelines-backend.md"
+      line: 15
+      symbol: "constructor injection"
+      reason: "service 内 concrete 生成を避け、constructor 注入を使う規約を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 174
+      symbol: "backend-output-artifact-write-reoutput"
+      reason: "service / adapter port / repository / SQLite concrete と filesystem adapter の配置境界を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 248
+      symbol: "integration-output-artifact-wails-gateway"
+      reason: "Wails は transport boundary であり、backend rule と frontend UI の代替にしない条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 267
+      symbol: "bootstrap wiring completion"
+      reason: "bootstrap wiring が usecase、repository、adapter、controller を接続する完了条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 266
+      symbol: "SCN-TOA-004 responsibility note"
+      reason: "filesystem concrete は adapter 境界へ閉じる設計条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 295
+      symbol: "SCN-TOA-005 responsibility note"
+      reason: "diff preview が再翻訳ではなく artifact 再出力導線である条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 436
+      symbol: "SCN-TOA-010 responsibility note"
+      reason: "output task が provider 実行や secret 解決を担当しない条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/plan.md"
+      line: 89
+      symbol: "reviewback 修正後検証"
+      reason: "修正後検証証跡をレビュー入力として確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 184
+      symbol: "translationOutputArtifactService wiring"
+      reason: "production bootstrap が service を生成し、serializer、file writer、artifact persistence、controller を接続することを確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 12
+      symbol: "TranslationOutputArtifactUsecasePort"
+      reason: "backend controller が usecase port だけへ依存していることを確認した。"
+    - path: "internal/usecase/translation_output_artifact_usecase.go"
+      line: 10
+      symbol: "translationOutputArtifactServicePort"
+      reason: "usecase が service port を通して query / command を起動していることを確認した。"
+    - path: "internal/service/translation_output_artifact_service.go"
+      line: 175
+      symbol: "NewTranslationOutputArtifactService"
+      reason: "Service constructor と fixture 互換 default の残り方を確認した。"
+    - path: "internal/service/translation_output_artifact_service.go"
+      line: 193
+      symbol: "WithArtifactPersistence"
+      reason: "artifact repository と transactor が明示注入されることを確認した。"
+    - path: "internal/service/translation_output_artifact_service.go"
+      line: 203
+      symbol: "WithFileWriter"
+      reason: "filesystem writer が port として差し替わることを確認した。"
+    - path: "internal/service/translation_output_artifact_service.go"
+      line: 213
+      symbol: "WithXMLSerializer"
+      reason: "XML serializer が port として差し替わることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 124
+      symbol: "validateTranslationOutputArtifactPath"
+      reason: "path policy が write command の副作用前に適用されることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 160
+      symbol: "expectedArtifactID precondition"
+      reason: "regenerate の artifactID 整合確認が副作用前に置かれていることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 322
+      symbol: "persistArtifact"
+      reason: "persistenceRepository 未注入時に成功 fallback へ落ちないことを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 361
+      symbol: "persistArtifactWithFile"
+      reason: "file write と artifact persistence の副作用境界を確認した。"
+    - path: "internal/service/translation_output_artifact_xml_adapter.go"
+      line: 47
+      symbol: "NewXTranslatorOutputArtifactXMLSerializer"
+      reason: "XML serializer concrete が adapter 実装として分離されていることを確認した。"
+    - path: "internal/service/translation_output_artifact_xml_adapter.go"
+      line: 52
+      symbol: "NewLocalTranslationOutputArtifactFileWriter"
+      reason: "filesystem writer concrete が adapter 実装として分離されていることを確認した。"
+    - path: "internal/service/translation_output_diff_preview.go"
+      line: 14
+      symbol: "translationOutputArtifactRowReader"
+      reason: "diff preview が artifact row read を port 経由で扱うことを確認した。"
+    - path: "internal/service/translation_output_diff_preview.go"
+      line: 52
+      symbol: "ListXTranslatorOutputRowsByArtifactID"
+      reason: "生成済み artifact row と現行 field result の比較が repository read を通ることを確認した。"
+    - path: "internal/repository/job_output_repository.go"
+      line: 96
+      symbol: "JobOutputArtifactRepository"
+      reason: "artifact / row 永続化境界に row read、upsert、replace、count が定義されていることを確認した。"
+    - path: "internal/repository/job_output_sqlite_repository.go"
+      line: 23
+      symbol: "NewSQLiteJobOutputArtifactRepository"
+      reason: "SQLite concrete が repository adapter として bootstrap から生成されることを確認した。"
+    - path: "internal/repository/job_output_sqlite_repository.go"
+      line: 348
+      symbol: "ListXTranslatorOutputRowsByArtifactID"
+      reason: "diff preview 用 row read の production repository 実装を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 45
+      symbol: "translationOutputArtifactGateway"
+      reason: "frontend bootstrap が gateway と screen controller factory を生成して root view へ注入することを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 76
+      symbol: "resolveTranslationOutputArtifactScreenControllerFactory"
+      reason: "App 側 fallback が残るが、production では main.ts 注入が優先されることを確認した。"
+    - path: "frontend/src/controller/wails/translation-output-artifact.gateway.ts"
+      line: 88
+      symbol: "TranslationOutputArtifactGateway"
+      reason: "Wails adapter が frontend gateway contract を実装し、View へ generated binding を漏らしていないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 277
+      symbol: "buildActionDisablements"
+      reason: "Frontend UseCase が gateway contract と Store から画面状態を構成することを確認した。"
+    - path: "frontend/src/controller/translation-output-artifact/translation-output-artifact-screen-controller-factory.ts"
+      line: 10
+      symbol: "createTranslationOutputArtifactScreenControllerFactory"
+      reason: "ScreenController factory が Store、Presenter、UseCase を束ね、View から Wails 詳細を分離することを確認した。"
+    - path: "frontend/src/ui/screens/translation-output-artifact/TranslationOutputArtifactPage.svelte"
+      line: 3
+      symbol: "TranslationOutputArtifactPage"
+      reason: "View が ScreenController contract を受け取り、Wails binding や backend DTO を直接扱わないことを確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 373
+      symbol: "TestSCN_TOA_005_DiffPreviewMarksStaleArtifactRowForRegenerate"
+      reason: "diff preview の row read と regenerate 状態の局所証跡を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 429
+      symbol: "TestSCN_TOA_006_RegenerateMismatchedArtifactIDHasNoWriteOrPersistenceSideEffect"
+      reason: "regenerate の副作用前 precondition 証跡を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 462
+      symbol: "TestSCN_TOA_007_DBSaveFailureDoesNotLeaveSuccessXMLOrPublishedArtifact"
+      reason: "DB 保存失敗時の file / persistence 境界証跡を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 497
+      symbol: "TestSCN_TOA_010_InvalidOutputPathNeverReachesFileWriter"
+      reason: "invalid outputPath が file writer へ到達しない証跡を確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.test.ts"
+      line: 38
+      symbol: "SCN-TOA-008 zero-row action"
+      reason: "row count 0 の frontend action が usecase 内で閉じる証跡を確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.test.ts"
+      line: 60
+      symbol: "SCN-TOA-005 stale diff preview"
+      reason: "stale diff preview が regenerate action へ接続される証跡を確認した。"
+
+unchecked_scope:
+  - target: "広い harness の再実行"
+    reason: "人間指示で広い harness の再実行が禁止され、review skill もハーネス実行を非対象にしている。"
+    risk: "渡された pass 証跡後の環境差分は、この reviewer では再検出していない。"
+  - target: "real xTranslator import smoke"
+    reason: "scenario-design と implementation-scope で必須検証外と固定されている。"
+    risk: "real xTranslator 固有の解釈差は残るが、責務境界 gate の対象ではない。"
+  - target: "generated Wails JavaScript bindings"
+    reason: "レビュー対象ファイルに含まれておらず、Go controller と frontend gateway の境界実装で確認した。"
+    risk: "generated binding の実体差分は、最終集約または別観点で扱う必要がある。"
+
+issues: []
+
+residual_risks:
+  - >
+    Service constructor に fixture 互換 default serializer / file writer が残る。
+    production bootstrap では明示注入されるため未解決 issue にはしないが、
+    将来の production caller が WithXMLSerializer / WithFileWriter を省くと境界が曖昧になる。
+  - >
+    App.svelte には既存 fallback pattern と同じ controller factory fallback が残る。
+    production main.ts は factory を注入しているため未解決 issue にはしないが、
+    新しい root composition 方針を整理する場合は別 lane で一括判断する。
+  - >
+    diff preview は production repository の row reader を使う。
+    test fixture 互換の legacy fallback は production 経路では使われないため gate issue にはしない。

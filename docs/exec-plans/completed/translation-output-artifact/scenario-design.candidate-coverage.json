@@ -1,0 +1,630 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TOA-001",
+      "source_candidate_id": "CAND-TOA-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "Output Review の入口と completed job readiness の主 UI シナリオに採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-002",
+      "source_candidate_id": "CAND-TOA-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "result summary は completed job 選択後の確認内容として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-003",
+      "source_candidate_id": "CAND-TOA-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-005",
+      "decision_rationale": "translation unit 単位の diff preview を UI シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-004",
+      "source_candidate_id": "CAND-TOA-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-004",
+      "decision_rationale": "xTranslator XML 出力成功は XML serializer と artifact state のシナリオへ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-005",
+      "source_candidate_id": "CAND-TOA-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "row 必須列確認は row builder の受け入れ条件へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-006",
+      "source_candidate_id": "CAND-TOA-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "cached mapping は row builder と status mapping の代表ケースへ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-007",
+      "source_candidate_id": "CAND-TOA-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "入力ファイル出自確認は result summary と監査要約へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TOA-008",
+      "source_candidate_id": "CAND-TOA-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "既存 artifact 状態と再出力導線は idempotent re-output シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-001",
+      "source_candidate_id": "CAND-TOA-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "completed job 選択 lifecycle は Output Review 入口に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-002",
+      "source_candidate_id": "CAND-TOA-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-002",
+      "decision_rationale": "readiness 確認は開始拒否と禁止遷移のシナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-003",
+      "source_candidate_id": "CAND-TOA-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "出力前 result summary は completed job summary 表示へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-004",
+      "source_candidate_id": "CAND-TOA-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-005",
+      "decision_rationale": "diff preview と再生成操作は再出力導線確認へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-005",
+      "source_candidate_id": "CAND-TOA-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "xTranslator row 生成を backend 境界の主 acceptance として採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-006",
+      "source_candidate_id": "CAND-TOA-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "cached status mapping は row builder の status mapping へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-007",
+      "source_candidate_id": "CAND-TOA-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "artifact 完了状態は re-output と artifact state のシナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-008",
+      "source_candidate_id": "CAND-TOA-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "再出力を artifact idempotency の独立 acceptance として採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-009",
+      "source_candidate_id": "CAND-TOA-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-008",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-008",
+      "decision_rationale": "本文翻訳対象 0 件の境界値として採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TOA-010",
+      "source_candidate_id": "CAND-TOA-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-002",
+      "decision_rationale": "Canceled や不整合 job の生成禁止として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-001",
+      "source_candidate_id": "CAND-TOA-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "出力準備済みへの遷移は completed job summary と readiness 表示へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-002",
+      "source_candidate_id": "CAND-TOA-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-002",
+      "decision_rationale": "未完了または不整合 job の成果物生成禁止を採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-003",
+      "source_candidate_id": "CAND-TOA-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "成果物生成状態は row builder と XML 出力に分けて統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-004",
+      "source_candidate_id": "CAND-TOA-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "cached to Status=1 は status mapping の acceptance に統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-005",
+      "source_candidate_id": "CAND-TOA-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-008",
+      "decision_rationale": "target count 0 の出力可能状態として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-006",
+      "source_candidate_id": "CAND-TOA-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-005",
+      "decision_rationale": "stale state と再出力必要状態は diff preview シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-007",
+      "source_candidate_id": "CAND-TOA-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "重複 artifact / row 防止は re-output idempotency へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TOA-ST-008",
+      "source_candidate_id": "CAND-TOA-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-007",
+      "decision_rationale": "生成失敗を success としない状態不変条件として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-001",
+      "source_candidate_id": "CAND-TOA-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-002",
+      "decision_rationale": "未完了 job の出力開始拒否として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-002",
+      "source_candidate_id": "CAND-TOA-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-002",
+      "decision_rationale": "Canceled の途中成功結果を使わない禁止遷移として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-003",
+      "source_candidate_id": "CAND-TOA-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-007",
+      "decision_rationale": "必須行項目欠損の row validation failure として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-004",
+      "source_candidate_id": "CAND-TOA-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "status mapping failure は unknown status の成功混入禁止として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-005",
+      "source_candidate_id": "CAND-TOA-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-007",
+      "decision_rationale": "field と row の一対一不整合は row validation failure として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-006",
+      "source_candidate_id": "CAND-TOA-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-004",
+      "decision_rationale": "Skyrim root 未確定は target game fixture と XML serializer 検査へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-007",
+      "source_candidate_id": "CAND-TOA-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-004",
+      "decision_rationale": "XML として壊れる text は serialization と parser 検査へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-008",
+      "source_candidate_id": "CAND-TOA-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-007",
+      "decision_rationale": "artifact または row 保存失敗は generation failure recovery へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-009",
+      "source_candidate_id": "CAND-TOA-009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-005",
+      "decision_rationale": "参照不能または古い row の preview 防止として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-010",
+      "source_candidate_id": "CAND-TOA-010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "再送や retry の二重作成防止として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TOA-011",
+      "source_candidate_id": "CAND-TOA-011",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-009",
+      "decision_rationale": "xTranslator 互換上の危険値検出として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-001",
+      "source_candidate_id": "CAND-TOA-EI-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "XML row adapter の主経路として row builder に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-002",
+      "source_candidate_id": "CAND-TOA-EI-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "内部 status から xTranslator Status への adapter として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-003",
+      "source_candidate_id": "CAND-TOA-EI-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "入力出自と record 識別子保持は row 必須列と result summary に統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-004",
+      "source_candidate_id": "CAND-TOA-EI-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-004",
+      "decision_rationale": "UTF-8 XML file 出力を外部境界シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-005",
+      "source_candidate_id": "CAND-TOA-EI-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "再出力で row と artifact state を重複させない条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-006",
+      "source_candidate_id": "CAND-TOA-EI-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-004",
+      "decision_rationale": "real xTranslator ではなく local parser 互換検査へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-007",
+      "source_candidate_id": "CAND-TOA-EI-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-009",
+      "decision_rationale": "XML escaping、UTF-8、日本語 text、互換制約の境界値へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TOA-EI-008",
+      "source_candidate_id": "CAND-TOA-EI-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TOA-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TOA-010",
+      "decision_rationale": "provider、network、secret 非接続境界として採用する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-001",
+      "source_candidate_id": "CAND-TOA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "成果物確認履歴は completed job summary の監査要約へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-002",
+      "source_candidate_id": "CAND-TOA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "出力行再構成根拠は row builder と audit summary へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-003",
+      "source_candidate_id": "CAND-TOA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-003",
+      "decision_rationale": "status mapping 監査は cached mapping summary へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-004",
+      "source_candidate_id": "CAND-TOA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-005",
+      "decision_rationale": "diff preview と再生成操作履歴は diff preview と re-output summary へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-005",
+      "source_candidate_id": "CAND-TOA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-006",
+      "decision_rationale": "同一 completed job からの再出力再現性は re-output idempotency へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-006",
+      "source_candidate_id": "CAND-TOA-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-007",
+      "decision_rationale": "生成失敗監査要約は generation failure recovery へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-007",
+      "source_candidate_id": "CAND-TOA-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-001",
+      "decision_rationale": "入力ファイル出自と成果物の結び付けは result summary と audit summary へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-008",
+      "source_candidate_id": "CAND-TOA-008",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-010",
+      "decision_rationale": "出力監査ログの保存禁止情報非露出として統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TOA-009",
+      "source_candidate_id": "CAND-TOA-009",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TOA-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TOA-002",
+      "decision_rationale": "出力不可理由を監査できる形で返す禁止遷移シナリオへ統合する。"
+    }
+  ],
+  "conflicts": [],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TOA-001",
+      "candidate_ids": [
+        "actor-goal:CAND-TOA-001",
+        "actor-goal:CAND-TOA-002",
+        "actor-goal:CAND-TOA-007",
+        "lifecycle:CAND-TOA-001",
+        "lifecycle:CAND-TOA-003",
+        "state-transition:CAND-TOA-ST-001",
+        "operation-audit:CAND-TOA-001",
+        "operation-audit:CAND-TOA-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-002",
+      "candidate_ids": [
+        "lifecycle:CAND-TOA-002",
+        "lifecycle:CAND-TOA-010",
+        "state-transition:CAND-TOA-ST-002",
+        "failure:CAND-TOA-001",
+        "failure:CAND-TOA-002",
+        "operation-audit:CAND-TOA-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-003",
+      "candidate_ids": [
+        "actor-goal:CAND-TOA-005",
+        "actor-goal:CAND-TOA-006",
+        "lifecycle:CAND-TOA-005",
+        "lifecycle:CAND-TOA-006",
+        "state-transition:CAND-TOA-ST-003",
+        "state-transition:CAND-TOA-ST-004",
+        "failure:CAND-TOA-004",
+        "external-integration:CAND-TOA-EI-001",
+        "external-integration:CAND-TOA-EI-002",
+        "external-integration:CAND-TOA-EI-003",
+        "operation-audit:CAND-TOA-002",
+        "operation-audit:CAND-TOA-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-004",
+      "candidate_ids": [
+        "actor-goal:CAND-TOA-004",
+        "failure:CAND-TOA-006",
+        "failure:CAND-TOA-007",
+        "external-integration:CAND-TOA-EI-004",
+        "external-integration:CAND-TOA-EI-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-005",
+      "candidate_ids": [
+        "actor-goal:CAND-TOA-003",
+        "lifecycle:CAND-TOA-004",
+        "state-transition:CAND-TOA-ST-006",
+        "failure:CAND-TOA-009",
+        "operation-audit:CAND-TOA-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-006",
+      "candidate_ids": [
+        "actor-goal:CAND-TOA-008",
+        "lifecycle:CAND-TOA-007",
+        "lifecycle:CAND-TOA-008",
+        "state-transition:CAND-TOA-ST-007",
+        "failure:CAND-TOA-010",
+        "external-integration:CAND-TOA-EI-005",
+        "operation-audit:CAND-TOA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-007",
+      "candidate_ids": [
+        "state-transition:CAND-TOA-ST-008",
+        "failure:CAND-TOA-003",
+        "failure:CAND-TOA-005",
+        "failure:CAND-TOA-008",
+        "operation-audit:CAND-TOA-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-008",
+      "candidate_ids": [
+        "lifecycle:CAND-TOA-009",
+        "state-transition:CAND-TOA-ST-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-009",
+      "candidate_ids": [
+        "failure:CAND-TOA-011",
+        "external-integration:CAND-TOA-EI-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TOA-010",
+      "candidate_ids": [
+        "external-integration:CAND-TOA-EI-008",
+        "operation-audit:CAND-TOA-008"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

@@ -7,10 +7,12 @@
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
+  import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
   import JobRunPage from "@ui/screens/job-run/JobRunPage.svelte"
+  import TranslationOutputArtifactPage from "@ui/screens/translation-output-artifact/TranslationOutputArtifactPage.svelte"
   import JobSetupPage from "@ui/screens/translation-job-setup/JobSetupPage.svelte"
   import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
   import type {
@@ -31,6 +33,7 @@
     createPersonaGenerationPhaseScreenController: CreatePersonaGenerationPhaseScreenController | null
     createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController | null
+    createTranslationOutputArtifactScreenController: CreateTranslationOutputArtifactScreenController | null
     createTranslationInputScreenController: CreateTranslationInputScreenController | null
   }
 
@@ -45,6 +48,7 @@
     createPersonaGenerationPhaseScreenController,
     createTermTranslationPhaseScreenController,
     createTranslationJobSetupScreenController,
+    createTranslationOutputArtifactScreenController,
     createTranslationInputScreenController
   }: Props = $props()
 
@@ -279,7 +283,13 @@
       </section>
     {/if}
 
-    {#if !isDashboard && currentRoute.id !== "master-dictionary" && currentRoute.id !== "master-persona" && currentRoute.id !== "translation-management"}
+    {#if !isDashboard && currentRoute.id === "output-management"}
+      <TranslationOutputArtifactPage
+        createController={createTranslationOutputArtifactScreenController}
+      />
+    {/if}
+
+    {#if !isDashboard && currentRoute.id !== "master-dictionary" && currentRoute.id !== "master-persona" && currentRoute.id !== "translation-management" && currentRoute.id !== "output-management"}
       <section class="placeholder-content" id="placeholderView">
         <section class="panel placeholder-card">
           <p class="page-label">現在のページ</p>

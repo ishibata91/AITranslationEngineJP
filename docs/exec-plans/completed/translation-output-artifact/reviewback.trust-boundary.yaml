@@ -1,0 +1,147 @@
+reviewback_version: 1
+task_id: "translation-output-artifact"
+review_yaml_path: "docs/exec-plans/active/translation-output-artifact/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "passed: backend command 境界で outputPath が検証され、invalid path は fileWriter 到達前に redacted fixed reason で拒否される。DB 保存失敗時の一時 file cleanup、regenerate artifact mismatch の副作用前拒否、provider / secret / raw payload 非露出も確認範囲で維持されている。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、scenario-design、ui-design、plan、前回 reviewback、修正後の対象実コード、指定テスト、呼び出し元提供の検証証跡を確認した。広い harness は規約と人間指示により再実行していない。"
+  hard_gate: true
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "旧 trust-boundary 指摘は backend command / filesystem adapter / API test の局所修正で解消済み。追加の権限・信頼境界修正は不要。"
+
+checked_scope:
+  summary: "Output Review query、diff preview、Generate / Regenerate command、Wails DTO、frontend gateway / usecase / UI、artifact persistence、filesystem adapter、SCN-TOA-010 の provider・secret・redaction 経路、outputPath 検証経路を確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 35
+      symbol: "Fixed Decisions"
+      reason: "provider、network、secret store を必須経路にせず、禁止値を UI / DTO / summary / log へ出さない前提を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 409
+      symbol: "SCN-TOA-010"
+      reason: "provider、network、secret store を呼ばず、UI / summary / log へ secret と raw payload を出さない受け入れ条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/ui-design.md"
+      line: 22
+      symbol: "UI Contract.button_enablement"
+      reason: "出力 action は output readiness、row validation、path valid を満たす時だけ有効にする設計前提を確認した。"
+    - path: "internal/usecase/translation_output_artifact_contract.go"
+      line: 45
+      symbol: "TranslationOutputArtifactPublicRedactionFieldObligation"
+      reason: "公開 DTO が許可参照値と禁止出力値を分ける契約を確認した。"
+    - path: "internal/usecase/translation_output_artifact_usecase.go"
+      line: 205
+      symbol: "toTranslationOutputArtifactCommandResult"
+      reason: "domain failure を公開 ErrorSummary へ変換し、IsRedacted を true に固定する経路を確認した。"
+    - path: "internal/service/translation_output_artifact_service.go"
+      line: 164
+      symbol: "TranslationOutputArtifactService"
+      reason: "service の依存に provider client や secret store が入っていないことを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 124
+      symbol: "TranslationOutputArtifactService.writeArtifact"
+      reason: "backend command 境界で outputPath を検証し、invalid path を file_write_failed の固定 reason で拒否することを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 172
+      symbol: "TranslationOutputArtifactService.writeArtifact"
+      reason: "regenerate の artifactID mismatch を XML write / DB persist 前に拒否することを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 361
+      symbol: "TranslationOutputArtifactService.persistArtifactWithFile"
+      reason: "一時 file write、DB persist、publish の順で成功公開し、DB 保存失敗時に temp file を削除することを確認した。"
+    - path: "internal/service/translation_output_artifact_xml_adapter.go"
+      line: 87
+      symbol: "validateTranslationOutputArtifactPath"
+      reason: "空 path、相対 path、非 .xml、readonly prefix、directory path を backend 側で拒否することを確認した。"
+    - path: "internal/service/translation_output_diff_preview.go"
+      line: 41
+      symbol: "TranslationOutputArtifactService.ReadDiffPreview"
+      reason: "artifactID が selected job に属さない場合に別 job の row を混ぜないことを確認した。"
+    - path: "internal/repository/job_output_sqlite_repository.go"
+      line: 347
+      symbol: "SQLiteJobOutputRepository.ListXTranslatorOutputRowsByArtifactID"
+      reason: "diff preview の persisted row 読み取りが artifactID parameterized query に閉じていることを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 184
+      symbol: "translationOutputArtifactService wiring"
+      reason: "production wiring が output artifact service へ provider client / secret store を注入していないことを確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 34
+      symbol: "GenerateXTranslatorOutputArtifactRequestDTO"
+      reason: "Wails command の outputPath 入力入口と usecase への引き渡しを確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 196
+      symbol: "resolvePathState"
+      reason: "frontend 側の補助 path 状態判定を確認した。backend 境界の代替ではなく UI enablement 補助として扱われている。"
+    - path: "frontend/src/application/gateway-contract/translation-output-artifact/translation-output-artifact-gateway-contract.ts"
+      line: 1
+      symbol: "TranslationOutputArtifactErrorKind"
+      reason: "frontend contract が secret / raw provider payload の field を持たないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-output-artifact/TranslationOutputArtifactPage.svelte"
+      line: 322
+      symbol: "diff preview rendering"
+      reason: "row excerpt と error summary は Svelte 通常補間で表示され、HTML 注入 API を使っていないことを確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 429
+      symbol: "TestSCN_TOA_006_RegenerateMismatchedArtifactIDHasNoWriteOrPersistenceSideEffect"
+      reason: "artifactID mismatch で XML file、artifact、row の副作用が出ない検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 462
+      symbol: "TestSCN_TOA_007_DBSaveFailureDoesNotLeaveSuccessXMLOrPublishedArtifact"
+      reason: "DB 保存失敗時に success XML と artifact / row が公開されない検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 497
+      symbol: "TestSCN_TOA_010_InvalidOutputPathNeverReachesFileWriter"
+      reason: "invalid outputPath が fileWriter に到達せず、artifact / row を作らない検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 1170
+      symbol: "assertTranslationOutputReadinessHasNoForbiddenText"
+      reason: "secret、API key、token、provider raw payload、本文全文の非露出検証を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/plan.md"
+      line: 87
+      symbol: "reviewback 修正後検証"
+      reason: "呼び出し元から渡された修正後検証証跡を確認した。"
+
+unchecked_scope:
+  - target: "広い harness の再実行"
+    reason: "review_trust_boundary skill と人間指示が再実行を禁止しているため、呼び出し元の pass 証跡を採用した。"
+    risk: "渡された pass 証跡後に環境差分があった場合は、このレビュー内では再検出しない。"
+  - target: "real xTranslator import smoke"
+    reason: "scenario と implementation-scope が任意手動確認扱いにしており、close 必須条件ではない。"
+    risk: "xTranslator 本体側の表示仕様による追加露出は、このレビューでは扱わない。"
+  - target: "OS ごとの symlink / ACL 特殊挙動"
+    reason: "追加実行は禁止されており、コード読解と既存の invalid path / cleanup 検証を根拠に判定した。"
+    risk: "OS 固有の file permission edge case は残るが、backend command 境界の検証と fileWriter 前拒否は確認済みである。"
+
+validation_evidence:
+  - command: "go test ./internal/apitest -run 'SCN_TOA_(005|006|007|008|010)'"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "npm --prefix frontend run test -- --run translation-output-artifact.usecase translation-output-gateway"
+    result: "pass"
+    details: "implement_lane 提供証跡。2 files、8 tests。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。37 files、392 tests。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite scenario-gate"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite system-test"
+    result: "pass"
+    details: "implement_lane 提供証跡。5 件成功。レビューでは再実行していない。"
+  - command: "git diff --check"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser errors"
+    result: "empty"
+    details: "既存 UI 証跡 tmp/translation-output-artifact-output-review.png と合わせて確認した。"
+
+issues: []

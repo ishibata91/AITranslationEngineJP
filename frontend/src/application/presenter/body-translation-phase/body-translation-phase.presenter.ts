@@ -59,8 +59,7 @@ interface BodyTranslationFieldResultItem {
   rawItem: BodyTranslationPhaseGatewayFieldResultItem | null
 }
 
-interface BodyTranslationPhaseScreenViewModel
-  extends BodyTranslationPhaseScreenState {
+interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreenState {
   gatewayStatus: string
   viewState: BodyTranslationPhaseViewState
   isLoading: boolean
@@ -555,9 +554,9 @@ function buildActionCards(
 
 function buildFailedCountLabel(
   summary: BodyTranslationPhaseSummaryResponse | null,
-  resultSummary:
-    | NonNullable<BodyTranslationPhaseSummaryResponse["resultSummary"]>
-    | null
+  resultSummary: NonNullable<
+    BodyTranslationPhaseSummaryResponse["resultSummary"]
+  > | null
 ): string {
   return formatCount(
     resultSummary?.failedCount ?? calculateDerivedFailedCount(summary)
@@ -648,7 +647,9 @@ export class BodyTranslationPhasePresenter {
       metadataDigestLabel: summary?.inputSummary.metadataDigest ?? "-",
       promptDigestLabel: summary?.inputSummary.promptDigest ?? "-",
       inputSnapshotRefLabel: summary?.inputSummary.inputSnapshotRef ?? "-",
-      skippedReasonsLabel: formatReasonList(summary?.inputSummary.skippedReasons),
+      skippedReasonsLabel: formatReasonList(
+        summary?.inputSummary.skippedReasons
+      ),
       providerLabel: summary?.execution.provider ?? "-",
       modelLabel: summary?.execution.model ?? "-",
       executionModeLabel: summary?.execution.executionMode ?? "-",
@@ -675,7 +676,8 @@ export class BodyTranslationPhasePresenter {
       ),
       outputReadinessStatusLabel:
         outputReadiness?.statusConsistent === true ? "整合" : "不整合",
-      errorKindLabel: errorSummary?.errorKind ?? outputReadiness?.errorKind ?? "-",
+      errorKindLabel:
+        errorSummary?.errorKind ?? outputReadiness?.errorKind ?? "-",
       errorReasonLabel: errorSummary?.reason ?? "-",
       retryableLabel:
         errorSummary === null

@@ -82,8 +82,7 @@ export interface BodyTranslationPhaseScreenActionEnablement {
   canCheckOutputReadiness: boolean
 }
 
-export interface BodyTranslationPhaseScreenViewModel
-  extends BodyTranslationPhaseScreenState {
+export interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreenState {
   gatewayStatus: string
   viewState: BodyTranslationPhaseViewState
   isLoading: boolean

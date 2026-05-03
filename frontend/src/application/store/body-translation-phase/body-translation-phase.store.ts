@@ -57,7 +57,8 @@ function cloneSummary(
     resultSummary: summary.resultSummary
       ? {
           ...summary.resultSummary,
-          fieldResults: summary.resultSummary.fieldResults?.map(cloneFieldResult)
+          fieldResults:
+            summary.resultSummary.fieldResults?.map(cloneFieldResult)
         }
       : undefined,
     errorSummary: summary.errorSummary

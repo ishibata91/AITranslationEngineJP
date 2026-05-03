@@ -33,7 +33,9 @@ type StoreLike = {
   getState: () => ScreenState
 }
 
-function createSummary(overrides: Partial<BodyTranslationPhaseSummaryResponse> = {}): BodyTranslationPhaseSummaryResponse {
+function createSummary(
+  overrides: Partial<BodyTranslationPhaseSummaryResponse> = {}
+): BodyTranslationPhaseSummaryResponse {
   return {
     jobId: 9,
     currentPhase: "body_translation",
@@ -222,7 +224,9 @@ describe("BodyTranslationPhaseUseCase", () => {
 
   test("setJobId number は summary と output readiness を取得して反映する", async () => {
     const { gateway, spies } = createGateway()
-    const store = createStore(createState({ hasLoaded: false, summary: null, outputReadiness: null }))
+    const store = createStore(
+      createState({ hasLoaded: false, summary: null, outputReadiness: null })
+    )
     const summary = createSummary({ phaseState: "ready" })
     const readiness = createOutputReadiness({ ready: true, outputCount: 20 })
     spies.getBodyTranslationPhaseSummary.mockResolvedValue(summary)
@@ -231,8 +235,12 @@ describe("BodyTranslationPhaseUseCase", () => {
 
     await useCase.setJobId(55)
 
-    expect(spies.getBodyTranslationPhaseSummary).toHaveBeenCalledWith({ jobId: 55 })
-    expect(spies.getBodyTranslationOutputReadiness).toHaveBeenCalledWith({ jobId: 55 })
+    expect(spies.getBodyTranslationPhaseSummary).toHaveBeenCalledWith({
+      jobId: 55
+    })
+    expect(spies.getBodyTranslationOutputReadiness).toHaveBeenCalledWith({
+      jobId: 55
+    })
     expect(store.getState()).toMatchObject({
       jobId: 55,
       phase: "ready",
@@ -261,11 +269,12 @@ describe("BodyTranslationPhaseUseCase", () => {
     const currentSummary = createSummary({ phaseState: "running" })
     const currentReadiness = createOutputReadiness({ ready: false })
     const store = createStore(
-      createState({ summary: currentSummary, outputReadiness: currentReadiness })
+      createState({
+        summary: currentSummary,
+        outputReadiness: currentReadiness
+      })
     )
-    spies.getBodyTranslationPhaseSummary.mockRejectedValue(
-      new Error("timeout")
-    )
+    spies.getBodyTranslationPhaseSummary.mockRejectedValue(new Error("timeout"))
     spies.getBodyTranslationOutputReadiness.mockResolvedValue(
       createOutputReadiness({ ready: true })
     )
@@ -304,7 +313,10 @@ describe("BodyTranslationPhaseUseCase", () => {
   test("startPhase は jobId を渡して summary と readiness を更新する", async () => {
     const { gateway, spies } = createGateway()
     const store = createStore(createState())
-    const command = createCommandResponse({ phaseState: "running", retryable: false })
+    const command = createCommandResponse({
+      phaseState: "running",
+      retryable: false
+    })
     spies.startBodyTranslationPhase.mockResolvedValue(command)
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
@@ -334,7 +346,9 @@ describe("BodyTranslationPhaseUseCase", () => {
     "%s は jobId と phaseRunId を gateway に渡す",
     async (method, gatewayMethod) => {
       const { gateway, spies } = createGateway()
-      const store = createStore(createState({ jobId: 77, summary: createSummary({ phaseRunId: 888 }) }))
+      const store = createStore(
+        createState({ jobId: 77, summary: createSummary({ phaseRunId: 888 }) })
+      )
       const command = createCommandResponse({ jobId: 77, phaseRunId: 888 })
       spies[gatewayMethod].mockResolvedValue(command)
       const useCase = new BodyTranslationPhaseUseCase(gateway, store)
@@ -354,7 +368,9 @@ describe("BodyTranslationPhaseUseCase", () => {
 
   test("pausePhase は phaseRunId 未確定時に操作を拒否する", async () => {
     const { gateway, spies } = createGateway()
-    const store = createStore(createState({ summary: createSummary({ phaseRunId: undefined }) }))
+    const store = createStore(
+      createState({ summary: createSummary({ phaseRunId: undefined }) })
+    )
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
     await useCase.pausePhase()

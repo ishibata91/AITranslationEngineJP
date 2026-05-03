@@ -25,7 +25,9 @@ interface TestScreenState {
   hasLoaded: boolean
 }
 
-function createState(overrides: Partial<TestScreenState> = {}): TestScreenState {
+function createState(
+  overrides: Partial<TestScreenState> = {}
+): TestScreenState {
   return {
     jobId: 9,
     phase: "ready",

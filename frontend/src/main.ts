@@ -4,8 +4,10 @@ import { createMasterDictionaryScreenControllerFactory } from "@controller/maste
 import { createPersonaGenerationPhaseScreenControllerFactory } from "@controller/persona-generation-phase"
 import { createTermTranslationPhaseScreenControllerFactory } from "@controller/term-translation-phase"
 import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
+import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
 import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
 import { createBodyTranslationPhaseGateway } from "@controller/wails/body-translation-phase.gateway"
+import { createTranslationOutputArtifactGateway } from "@controller/wails/translation-output-artifact.gateway"
 import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
 import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
 import { createTermTranslationPhaseGateway } from "@controller/wails/term-translation-phase.gateway"
@@ -27,9 +29,7 @@ const termTranslationPhaseScreenControllerFactory =
   createTermTranslationPhaseScreenControllerFactory(termTranslationPhaseGateway)
 const bodyTranslationPhaseGateway = createBodyTranslationPhaseGateway()
 const bodyTranslationPhaseScreenControllerFactory =
-  createBodyTranslationPhaseScreenControllerFactory(
-    bodyTranslationPhaseGateway
-  )
+  createBodyTranslationPhaseScreenControllerFactory(bodyTranslationPhaseGateway)
 const personaGenerationPhaseGateway = createPersonaGenerationPhaseGateway()
 const personaGenerationPhaseScreenControllerFactory =
   createPersonaGenerationPhaseScreenControllerFactory(
@@ -41,6 +41,12 @@ const translationInputScreenControllerFactory =
 const translationJobSetupGateway = createTranslationJobSetupGateway()
 const translationJobSetupScreenControllerFactory =
   createTranslationJobSetupScreenControllerFactory(translationJobSetupGateway)
+const translationOutputArtifactGateway =
+  createTranslationOutputArtifactGateway()
+const translationOutputArtifactScreenControllerFactory =
+  createTranslationOutputArtifactScreenControllerFactory(
+    translationOutputArtifactGateway
+  )
 
 mount(App, {
   target,
@@ -55,6 +61,8 @@ mount(App, {
       termTranslationPhaseScreenControllerFactory,
     createTranslationInputScreenController:
       translationInputScreenControllerFactory,
+    createTranslationOutputArtifactScreenController:
+      translationOutputArtifactScreenControllerFactory,
     createTranslationJobSetupScreenController:
       translationJobSetupScreenControllerFactory
   }

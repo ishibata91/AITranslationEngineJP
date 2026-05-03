@@ -74,7 +74,10 @@
     </p>
   </section>
 
-  <section class="job-run-card action-card" aria-labelledby="bodyPhaseActionsHeading">
+  <section
+    class="job-run-card action-card"
+    aria-labelledby="bodyPhaseActionsHeading"
+  >
     <div class="section-head">
       <div>
         <p class="eyebrow">phase control</p>
@@ -295,7 +298,8 @@
 
       {#if viewModel.fieldResultItems.length === 0}
         <p class="detail-note">
-          field result 一覧はまだ返っていません。現在は summary だけを表示しています。
+          field result 一覧はまだ返っていません。現在は summary
+          だけを表示しています。
         </p>
       {:else}
         <div class="field-result-list">

@@ -48,7 +48,7 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   },
   {
     id: "translation-management",
-      label: "翻訳管理",
+    label: "翻訳管理",
     state: "Body Phase UI 追加",
     lead: "Input Review、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ、NPC ペルソナ生成フェーズまでを確認するページです。",
     description:

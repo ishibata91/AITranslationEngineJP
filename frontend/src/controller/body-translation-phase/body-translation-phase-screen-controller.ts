@@ -38,9 +38,7 @@ interface BodyTranslationPhaseScreenControllerDependencies {
   useCase: BodyTranslationPhaseUseCaseLike
 }
 
-export class BodyTranslationPhaseScreenController
-  implements BodyTranslationPhaseScreenControllerContract
-{
+export class BodyTranslationPhaseScreenController implements BodyTranslationPhaseScreenControllerContract {
   constructor(
     private readonly dependencies: BodyTranslationPhaseScreenControllerDependencies
   ) {}

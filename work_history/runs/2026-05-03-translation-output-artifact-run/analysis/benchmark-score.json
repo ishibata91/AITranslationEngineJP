@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task_id": "translation-output-artifact",
+  "status": "missing_transcript",
+  "reason": "Current run transcript path was not available from the execution environment at closeout.",
+  "session_count": 0,
+  "metrics": {
+    "duration_ms_total": null,
+    "active_duration_ms_total": null,
+    "user_turns": null,
+    "assistant_turns": null,
+    "tool_calls": null,
+    "subagent_calls": null,
+    "nonzero_tool_results": null,
+    "user_corrections": null,
+    "long_idle_gaps": null,
+    "repeated_tool_commands": null
+  },
+  "scores": {
+    "time_cost": null,
+    "interaction_cost": null,
+    "tool_churn": null,
+    "rework_cost": null
+  },
+  "transcript_gaps": [
+    "codex transcript path unavailable"
+  ]
+}

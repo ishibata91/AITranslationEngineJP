@@ -10,7 +10,9 @@ import type {
 
 describe("body-translation-contract", () => {
   test("contract module exists for frontend handoff", async () => {
-    await expect(import("./body-translation-phase-gateway-contract")).resolves.toBeDefined()
+    await expect(
+      import("./body-translation-phase-gateway-contract")
+    ).resolves.toBeDefined()
   })
 
   test("gateway exposes frozen public seam names", () => {
@@ -254,7 +256,9 @@ describe("body-translation-contract", () => {
       completedFieldCount: 2,
       statusConsistent: true
     })
-    expect(summary.execution.outputCount).toBe(summary.resultSummary?.outputReadyCount)
+    expect(summary.execution.outputCount).toBe(
+      summary.resultSummary?.outputReadyCount
+    )
     expect(JSON.stringify(summary)).not.toContain("JOB_TRANSLATION_FIELD")
   })
 

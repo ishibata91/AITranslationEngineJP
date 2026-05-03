@@ -183,6 +183,11 @@ WHERE NOT EXISTS (
 SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
 FROM TRANSLATION_JOB WHERE id = ?`
 
+	selectTranslationJobs = `
+SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
+FROM TRANSLATION_JOB
+ORDER BY id ASC`
+
 	updateTranslationJob = `
 UPDATE TRANSLATION_JOB SET
   job_name         = :job_name,
@@ -332,6 +337,25 @@ func (r *SQLiteJobLifecycleRepository) GetTranslationJobByID(
 		return TranslationJob{}, mapSQLError(err, "get translation_job by id")
 	}
 	return row.toModel()
+}
+
+// ListTranslationJobs returns all translation jobs for read-model queries.
+func (r *SQLiteJobLifecycleRepository) ListTranslationJobs(ctx context.Context) ([]TranslationJob, error) {
+	ext := extractTx(ctx, r.db)
+	rows := make([]translationJobRow, 0)
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationJobs); err != nil {
+		return nil, mapSQLError(err, "list translation jobs")
+	}
+
+	jobs := make([]TranslationJob, 0, len(rows))
+	for _, row := range rows {
+		job, err := row.toModel()
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, job)
+	}
+	return jobs, nil
 }
 
 // UpdateTranslationJob は TranslationJob を更新する。

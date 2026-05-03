@@ -62,6 +62,7 @@ func newAppControllerWithSeeds(
 	translationSourceRepository := repository.NewSQLiteTranslationSourceRepository(foundationDataDB)
 	jobLifecycleRepository := repository.NewSQLiteJobLifecycleRepository(foundationDataDB)
 	jobOutputRepository := repository.NewSQLiteJobOutputRepository(foundationDataDB)
+	jobOutputArtifactRepository := repository.NewSQLiteJobOutputArtifactRepository(foundationDataDB)
 	foundationTransactor := repository.NewSQLiteTransactor(foundationDataDB)
 	translationInputImportService := service.NewTranslationInputImportService(
 		translationSourceRepository,
@@ -180,6 +181,18 @@ func newAppControllerWithSeeds(
 			).WithBodyTranslationProvider(service.NewBodyTranslationProviderAdapter(aiProviderClient)),
 		),
 	)
+	translationOutputArtifactService := service.NewTranslationOutputArtifactService(
+		jobLifecycleRepository,
+		jobOutputRepository,
+		translationSourceRepository,
+	).WithXMLSerializer(
+		service.NewXTranslatorOutputArtifactXMLSerializer(),
+	).WithFileWriter(
+		service.NewLocalTranslationOutputArtifactFileWriter(),
+	).WithArtifactPersistence(jobOutputArtifactRepository, foundationTransactor)
+	translationOutputArtifactController := controllerwails.NewTranslationOutputArtifactController(
+		usecase.NewTranslationOutputArtifactUsecase(translationOutputArtifactService),
+	)
 
 	appController := controllerwails.NewAppController(
 		masterDictionaryController,
@@ -205,6 +218,7 @@ func newAppControllerWithSeeds(
 	appController.TermTranslationPhaseController = termTranslationPhaseController
 	appController.PersonaGenerationPhaseController = personaGenerationPhaseController
 	appController.BodyTranslationPhaseController = bodyTranslationPhaseController
+	appController.TranslationOutputArtifactController = translationOutputArtifactController
 	return appController
 }
 

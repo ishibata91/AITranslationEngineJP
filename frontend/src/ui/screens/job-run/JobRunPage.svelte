@@ -27,7 +27,11 @@
     createController: CreateTermTranslationPhaseScreenController | null
   }
 
-  let { createBodyController, createPersonaController, createController }: Props = $props()
+  let {
+    createBodyController,
+    createPersonaController,
+    createController
+  }: Props = $props()
 
   function resolveController(): TermTranslationPhaseScreenControllerContract {
     if (!createController) {

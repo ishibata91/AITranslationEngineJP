@@ -1,0 +1,76 @@
+reviewback_version: 1
+task_id: "translation-output-artifact"
+review_yaml_path: "docs/exec-plans/active/translation-output-artifact/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "state-invariant-005 は修正後の実コードで維持されている。transactional writer 分岐は temp write -> publish -> persist の順序になっており、PublishTemporaryFile 失敗後に DB 側 success artifact / row は残らない。"
+  evidence_sufficiency: "十分。指定 5 ファイルと呼び出し元から渡された検証証跡を確認した。広い harness は人間指示と skill 規約に従い再実行していない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "state-invariant-005"
+    reason: "publish 失敗経路は DB persist 前に failed response へ戻り、focused API test が artifact / row count と次回 Output Review の誤読なしを検証している。"
+
+validation_evidence:
+  - command: "go test ./internal/apitest -run 'SCN_TOA_(005|006|007|008|010)|Publish'"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite scenario-gate"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite system-test"
+    result: "pass"
+    details: "implement_lane 提供証跡。5 件成功。レビューでは再実行していない。"
+  - command: "git diff --check"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+
+checked_scope:
+  summary: "state-invariant-005 の一点再レビューとして、PublishTemporaryFile 失敗後に success artifact / row が残らないことだけを確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-output-artifact/reviewback.state-invariant.yaml"
+      line: 1
+      symbol: "state-invariant-005"
+      reason: "既存未解決指摘の対象を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 331
+      symbol: "SCN-TOA-007"
+      reason: "file write と artifact 保存失敗を success として公開しない不変条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 193
+      symbol: "backend-output-artifact-write-reoutput"
+      reason: "file write と artifact 保存失敗を success artifact として公開しない完了条件を確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 368
+      symbol: "persistArtifactWithFile"
+      reason: "transactional writer 分岐が temp write -> publish -> persist の順序になっていることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 378
+      symbol: "persistArtifactWithFile"
+      reason: "PublishTemporaryFile 失敗時は temp / output cleanup 後に file_write_failed を返し、DB persist に進まないことを確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 497
+      symbol: "TestSCN_TOA_007_PublishTemporaryFileFailureDoesNotLeaveSuccessArtifactOrRows"
+      reason: "publish failure injection により、no success artifact / rows と次回 Output Review の誤読なしを検証していることを確認した。"
+
+unchecked_scope:
+  - target: "state-invariant-005 以外の状態・データ不変条件"
+    reason: "人間指示が一点再レビューに限定しているため。"
+    risk: "他の resolved issue や他観点の再評価はこの YAML 更新の判定対象外である。"
+  - target: "広い harness の再実行"
+    reason: "人間指示で禁止され、review_state_invariant skill もハーネス再実行を担当しないため。"
+    risk: "提供済み pass 証跡後の環境差分はこのレビューでは検出しない。"
+
+issues: []

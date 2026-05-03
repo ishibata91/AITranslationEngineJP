@@ -1,0 +1,295 @@
+reviewback_version: 1
+task_id: "translation-output-artifact"
+review_yaml_path: "docs/exec-plans/active/translation-output-artifact/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: >
+    no_issue: 修正後コードでは、Output Review / diff preview / generate / regenerate の
+    public seam、error kind、必須配列 field、row count 0 の出力可能 contract、
+    persisted row 比較、artifact / row の一意永続化、Wails DTO と frontend gateway contract の
+    対応に未解決の契約・互換性 issue は見つからない。
+  evidence_sufficiency: >
+    十分。指定された implementation-scope、scenario-design、ui-design、plan、
+    5 観点 reviewback、対象 backend / frontend 実コード、対象 contract test、
+    呼び出し元から渡された修正後検証証跡を確認した。
+    広い harness は人間指示と review_contract 規約により再実行していない。
+  contract_invariants:
+    - name: "public seam names and request / response names"
+      status: "maintained"
+      evidence: "internal/usecase/translation_output_artifact_contract.go:6"
+    - name: "public error kind vocabulary"
+      status: "maintained"
+      evidence: "internal/usecase/translation_output_artifact_contract.go:16"
+    - name: "backend usecase / Wails / frontend gateway required-array alignment"
+      status: "maintained"
+      evidence: "internal/controller/wails/translation_output_artifact_controller.go:51"
+    - name: "empty completedJobs and empty rows stay arrays"
+      status: "maintained"
+      evidence: "internal/controller/wails/translation_output_artifact_controller.go:239"
+    - name: "target count 0 and row count 0 output compatibility"
+      status: "maintained"
+      evidence: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts:277"
+    - name: "diff preview compares persisted artifact rows"
+      status: "maintained"
+      evidence: "internal/service/translation_output_diff_preview.go:38"
+    - name: "regenerate artifactID mismatch is rejected before write / persistence side effects"
+      status: "maintained"
+      evidence: "internal/service/translation_output_artifact_command.go:160"
+    - name: "artifact save failure does not publish success XML in production writer path"
+      status: "maintained"
+      evidence: "internal/service/translation_output_artifact_command.go:361"
+    - name: "backend outputPath validation preserves file_write_failed public error mapping"
+      status: "maintained"
+      evidence: "internal/service/translation_output_artifact_xml_adapter.go:87"
+    - name: "DB artifact and row uniqueness contract"
+      status: "maintained"
+      evidence: "internal/repository/job_output_sqlite_repository.go:303"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "not_required"
+    reason: >
+      旧 contract 指摘 2 件は Wails DTO tag / mapper、frontend action enablement、
+      gateway / usecase focused test で閉じている。
+      修正後に契約・互換性観点の追加修正境界は見つからない。
+
+validation_evidence:
+  - command: "go test ./internal/apitest -run 'SCN_TOA_(005|006|007|008|010)'"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "npm --prefix frontend run test -- --run translation-output-artifact.usecase translation-output-gateway"
+    result: "pass"
+    details: "implement_lane 提供証跡。2 files、8 tests。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。37 files、392 tests。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite scenario-gate"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite system-test"
+    result: "pass"
+    details: "implement_lane 提供証跡。5 件成功。レビューでは再実行していない。"
+  - command: "git diff --check"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser errors"
+    result: "pass"
+    details: "既存 UI 証跡 tmp/translation-output-artifact-output-review.png。errors は empty。"
+
+checked_scope:
+  summary: >
+    Output Review query、diff preview query、generate / regenerate command、
+    Wails DTO、frontend gateway DTO、frontend state contract、xTranslator row builder、
+    XML serializer、artifact / row repository、bootstrap wiring、旧 reviewback 指摘の修正範囲を
+    契約・互換性観点で確認した。
+  files:
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 119
+      symbol: "backend-output-review-readiness 完了条件"
+      reason: "target count 0 が output readiness false の理由にならない正本条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 156
+      symbol: "backend-output-row-builder-compatibility 完了条件"
+      reason: "diff preview が stale reason と再出力可否を返す正本条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 192
+      symbol: "backend-output-artifact-write-reoutput 完了条件"
+      reason: "同じ job の再出力で artifact / row を重複作成しない正本条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/implementation-scope.md"
+      line: 229
+      symbol: "frontend-output-review-ui 完了条件"
+      reason: "出力 action の有効条件と row count 0 の区別条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 274
+      symbol: "SCN-TOA-005"
+      reason: "diff preview が生成済み artifact row と現行 field result を比較する契約を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 303
+      symbol: "SCN-TOA-006"
+      reason: "再出力の artifact / row 一貫性契約を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 331
+      symbol: "SCN-TOA-007"
+      reason: "生成失敗を success artifact として公開しない契約を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/scenario-design.md"
+      line: 359
+      symbol: "SCN-TOA-008"
+      reason: "row count 0 の artifact summary と出力成功が contract_freeze 対象であることを確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/ui-design.md"
+      line: 23
+      symbol: "button_enablement"
+      reason: "UI action enablement の契約条件を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/plan.md"
+      line: 89
+      symbol: "reviewback 修正後検証"
+      reason: "implement_lane から渡された修正後検証証跡を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/reviewback.behavior.yaml"
+      line: 1
+      symbol: "reviewback behavior"
+      reason: "旧指摘のうち contract 観点へ混入しうる diff preview と row count 0 の論点を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/reviewback.trust-boundary.yaml"
+      line: 1
+      symbol: "reviewback trust-boundary"
+      reason: "outputPath validation の修正主題を contract error mapping として確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/reviewback.state-invariant.yaml"
+      line: 1
+      symbol: "reviewback state-invariant"
+      reason: "artifactID mismatch、DB 保存失敗 cleanup、diff preview、row count 0 の修正主題を確認した。"
+    - path: "docs/exec-plans/active/translation-output-artifact/reviewback.responsibility-boundary.yaml"
+      line: 1
+      symbol: "reviewback responsibility-boundary"
+      reason: "bootstrap concrete injection の修正主題を contract 判定から分離して確認した。"
+    - path: "internal/usecase/translation_output_artifact_contract.go"
+      line: 6
+      symbol: "TranslationOutputArtifactUsecase"
+      reason: "Output Review、diff preview、generate、regenerate の public method 名を確認した。"
+    - path: "internal/usecase/translation_output_artifact_contract.go"
+      line: 16
+      symbol: "TranslationOutputArtifactErrorKind"
+      reason: "frozen error kind の語彙が維持されていることを確認した。"
+    - path: "internal/usecase/translation_output_artifact_usecase.go"
+      line: 89
+      symbol: "toTranslationOutputReviewResult"
+      reason: "completedJobs を空配列として構成する usecase mapping を確認した。"
+    - path: "internal/usecase/translation_output_artifact_usecase.go"
+      line: 145
+      symbol: "toTranslationOutputDiffPreviewResult"
+      reason: "rows を空配列として構成する usecase mapping を確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 51
+      symbol: "TranslationOutputReviewResponseDTO"
+      reason: "completedJobs が必須配列 DTO field として残ることを確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 109
+      symbol: "TranslationOutputDiffPreviewResponseDTO"
+      reason: "rows が必須配列 DTO field として残ることを確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 239
+      symbol: "toTranslationOutputReviewResponseDTO"
+      reason: "completedJobs を nil ではなく空 slice へ写すことを確認した。"
+    - path: "internal/controller/wails/translation_output_artifact_controller.go"
+      line: 288
+      symbol: "toTranslationOutputDiffPreviewResponseDTO"
+      reason: "rows を nil ではなく空 slice へ写すことを確認した。"
+    - path: "internal/service/translation_output_diff_preview.go"
+      line: 38
+      symbol: "ReadDiffPreview"
+      reason: "artifactID の persisted row を読み、current field result と比較することを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 124
+      symbol: "writeArtifact"
+      reason: "backend outputPath validation が file write より前に走ることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 160
+      symbol: "writeArtifact"
+      reason: "regenerate artifactID mismatch が副作用前に拒否されることを確認した。"
+    - path: "internal/service/translation_output_artifact_command.go"
+      line: 361
+      symbol: "persistArtifactWithFile"
+      reason: "temp file、DB 保存、publish の順で DB 保存失敗時 cleanup があることを確認した。"
+    - path: "internal/service/translation_output_artifact_xml_adapter.go"
+      line: 87
+      symbol: "validateTranslationOutputArtifactPath"
+      reason: "backend path validation と .xml / absolute / readonly 境界を確認した。"
+    - path: "internal/repository/job_output_repository.go"
+      line: 96
+      symbol: "JobOutputArtifactRepository"
+      reason: "artifact / row の永続化 public port と persisted row read API を確認した。"
+    - path: "internal/repository/job_output_sqlite_repository.go"
+      line: 303
+      symbol: "UpsertTranslationArtifact"
+      reason: "translation_job_id 単位の artifact upsert 境界を確認した。"
+    - path: "internal/repository/job_output_sqlite_repository.go"
+      line: 347
+      symbol: "ListXTranslatorOutputRowsByArtifactID"
+      reason: "diff preview の persisted row read 境界を確認した。"
+    - path: "internal/repository/job_output_sqlite_repository.go"
+      line: 364
+      symbol: "ReplaceXTranslatorOutputRows"
+      reason: "artifact 配下 row の全置換境界を確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 184
+      symbol: "translationOutputArtifactService wiring"
+      reason: "production wiring が usecase、repository、XML serializer、file writer を接続することを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-output-artifact/translation-output-artifact-gateway-contract.ts"
+      line: 83
+      symbol: "TranslationOutputReviewResponse"
+      reason: "frontend gateway contract が completedJobs を必須配列として扱うことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-output-artifact/translation-output-artifact-gateway-contract.ts"
+      line: 113
+      symbol: "TranslationOutputDiffPreviewResponse"
+      reason: "frontend gateway contract が rows を必須配列として扱うことを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/translation-output-artifact/translation-output-artifact-gateway-dto.ts"
+      line: 11
+      symbol: "GetTranslationOutputReviewResponseDto"
+      reason: "Wails gateway DTO alias が frontend gateway contract と一致することを確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 118
+      symbol: "mapReviewResponse"
+      reason: "frontend が completedJobs 必須配列を前提に `.map` する契約を確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 154
+      symbol: "mapDiffPreviewResponse"
+      reason: "frontend が rows 必須配列を前提に `.map` する契約を確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.ts"
+      line: 277
+      symbol: "buildActionDisablements"
+      reason: "rowCount 0 を出力不可理由にしていないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-output-artifact/translation-output-artifact.usecase.test.ts"
+      line: 38
+      symbol: "SCN-TOA-008 usecase test"
+      reason: "readiness true / row count 0 で generate action が実行される検証を確認した。"
+    - path: "frontend/src/controller/wails/translation-output-gateway.test.ts"
+      line: 172
+      symbol: "SCN-TOA-008 gateway test"
+      reason: "empty completedJobs と empty rows が gateway 境界で配列のまま扱われる検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 373
+      symbol: "TestSCN_TOA_005_DiffPreviewMarksStaleArtifactRowForRegenerate"
+      reason: "persisted row 比較により stale / canRegenerate が返る検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 429
+      symbol: "TestSCN_TOA_006_RegenerateMismatchedArtifactIDHasNoWriteOrPersistenceSideEffect"
+      reason: "artifactID mismatch が副作用前に拒否される検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 462
+      symbol: "TestSCN_TOA_007_DBSaveFailureDoesNotLeaveSuccessXMLOrPublishedArtifact"
+      reason: "DB 保存失敗時に success XML と DB 成功状態を残さない検証を確認した。"
+    - path: "internal/apitest/translation_output_review_readiness_test.go"
+      line: 497
+      symbol: "TestSCN_TOA_010_InvalidOutputPathNeverReachesFileWriter"
+      reason: "invalid outputPath が file writer と DB 保存へ到達しない検証を確認した。"
+
+unchecked_scope:
+  - target: "広い harness の再実行"
+    reason: "人間指示と review_contract 規約で禁止されているため、呼び出し元の pass 証跡を採用した。"
+    risk: "低。修正後証跡は提供済みであり、契約・互換性の判定は実コードと focused test で確認した。"
+  - target: "generated Wails JavaScript bindings"
+    reason: "レビュー対象ファイルに含まれていないため、Go Wails controller と frontend gateway 名の一致で判定した。"
+    risk: "低。binding 名は Go method と frontend gateway 側で一致している。"
+  - target: "behavior / trust-boundary / state-invariant / responsibility-boundary の主判定"
+    reason: "review_contract の担当外である。該当 YAML は修正主題確認のためだけに読んだ。"
+    risk: "他観点の最終判定は implement_lane の集約で扱う。"
+  - target: "real xTranslator import smoke"
+    reason: "design bundle で必須検証ではない。"
+    risk: "低。XML 互換性は root element、String row、required tag、UTF-8 serializer の範囲で判定した。"
+
+issues: []
+
+residual_risks:
+  - >
+    generated Wails JavaScript binding の実体はレビュー対象外である。
+    Go controller method 名と frontend gateway binding 名は一致しているため、
+    contract 破壊リスクは低い。
+  - >
+    real xTranslator import smoke は任意手動確認扱いであり未確認である。
+    必須契約は local XML parser、root element、String row、required tag、UTF-8 serializer の範囲で満たしている。
