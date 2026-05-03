@@ -1,25 +1,9 @@
 # agent-browser 利用規約
 
-関連文書: [`index.md`](./index.md), [`../../.codex/skills/investigate/SKILL.md`](../../.codex/skills/investigate/SKILL.md), [`../../.codex/skills/implementation-investigate/SKILL.md`](../../.codex/skills/implementation-investigate/SKILL.md)
+この文書は `agent-browser` CLI の command 例だけを扱う。
+対象 URL、起動 command、証跡の置き場所は、呼び出し元の skill または task 成果物で決める。
 
-この文書は、Codex の調査系ロールが UI 状態、console、screenshot を証跡化する時の `agent-browser` CLI 利用規約である。
-Codex の UI 証跡取得は `agent-browser` CLI に統一する。
-
-## 対象範囲
-
-- 対象ロール: `investigator`、`implementation_investigator`
-- 対象 skill: `investigate`、`implementation-investigate`
-- 対象用途: UI 状態、console、screenshot、network の観測
-- 証跡場所: `tmp/agent-browser/`
-- 終了条件: 観測後に `agent-browser close` を実行する
-
-## 起動確認
-
-Wails dev server を使う場合は、先に次を実行する。
-
-```bash
-npm run dev:wails:agent-browser
-```
+## 環境確認
 
 CLI とブラウザ環境は、次で確認する。
 
@@ -30,8 +14,7 @@ agent-browser doctor --offline --quick
 画面を開く入口は次を使う。
 
 ```bash
-agent-browser open http://localhost:34115
-agent-browser open http://localhost:34115/#dashboard
+agent-browser open <url>
 ```
 
 ## 状態確認
@@ -66,10 +49,10 @@ agent-browser reload
 
 ```bash
 agent-browser batch --bail \
-  "open http://localhost:34115" \
+  "open <url>" \
   "snapshot" \
   "console" \
-  "screenshot tmp/agent-browser/ui-evidence.png"
+  "screenshot <output-path>.png"
 ```
 
 ## 証跡
@@ -79,13 +62,12 @@ agent-browser batch --bail \
 ```bash
 agent-browser console
 agent-browser errors
-agent-browser screenshot tmp/agent-browser/ui-evidence.png
-agent-browser screenshot --annotate --screenshot-dir tmp/agent-browser
+agent-browser screenshot <output-path>.png
+agent-browser screenshot --annotate --screenshot-dir <output-directory>
 agent-browser network requests
 ```
 
-`agent-browser screenshot` の出力先 directory が存在しない場合は、先に `tmp/agent-browser/` を作る。
-console、errors、screenshot、network requests は、実行コマンドと結果を完了報告入力の根拠に残す。
+`agent-browser screenshot` の出力先 directory が存在しない場合は、先に出力先 directory を作る。
 
 ## 終了
 
@@ -95,5 +77,3 @@ console、errors、screenshot、network requests は、実行コマンドと結�
 agent-browser close
 agent-browser close --all
 ```
-
-system test の Playwright runner はプロダクトテスト用の別入口として扱う。

@@ -31,7 +31,7 @@ description: Codex 側のシナリオ設計作業プロトコル。必須要件�
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
-- page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
+- 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - シナリオ設計雛形: [scenario-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/assets/scenario-design.md)
 - 候補網羅 JSON 雛形: [scenario-design.candidate-coverage.json](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-design/assets/scenario-design.candidate-coverage.json)

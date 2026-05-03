@@ -1,8 +1,7 @@
 # 詳細仕様: マスター辞書
 
-- `page_name`: `master-dictionary`
+- `upper_scenario_id`: `master-dictionary`
 - `source_plan`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-04-11-master-dictionary-management.md`
-- `related_mock`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/mocks/master-dictionary/index.html`
 - `related_scenario`: `/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/master-dictionary-management.md`
 
 ## 要約
@@ -38,7 +37,3 @@
 - 基盤データ以外の翻訳ジョブ画面、設定画面、翻訳成果物画面の詳細導線追加。
 - `docs/` 正本の恒久仕様変更、および usecase 完了条件を超える新規業務要件の追加。
 - 一覧サマリ表示、xTranslator 写像表示、利用状況表示、要件説明の露出。
-
-## 未確定事項
-
-- 詳細表示の項目粒度は、原文、訳語、由来、最終更新を基準とし、追加項目要否は後続 task で再判定する。

@@ -1,13 +1,13 @@
 ---
 name: ui-design
-description: Codex 側の UI 設計作業プロトコル。UI 要件契約として主要操作、表示項目、状態差分、実装後確認観点を固定する基準を提供する。
+description: Codex 側の UI 設計作業プロトコル。UI 要件契約、task-local 確認用 HTML モック、agent-browser 確認結果を固定する基準を提供する。
 ---
 # UI Design
 
 ## 目的
 
 `ui-design` は作業プロトコルである。
-`designer` agent が UI を実装前の見た目 成果物 ではなく UI 要件契約として扱うための、表示項目、操作、状態差分、実装後確認観点の見方を提供する。
+`designer` agent が UI を言葉だけで固定せず、UI 要件契約、task-local 確認用 HTML モック、agent-browser 確認結果として扱うための、表示項目、操作、状態差分、構造、UX 確認観点の見方を提供する。
 
 実行境界、正本、引き継ぎ、停止 / 戻し は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
@@ -20,7 +20,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 
 ## 入力規約
 
-- task 内成果物: UI 要件契約の根拠にする設計成果物。
+- task 内成果物: UI 要件契約、task-local 確認用 HTML モック、agent-browser 確認結果の根拠にする設計成果物。
 - 根拠参照: UI 判断の根拠にする要件、シナリオ、既存画面。
 - 承認状態: 呼び出し元が渡す承認済みまたは未承認の状態。
 
@@ -31,9 +31,12 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
-- page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
+- 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - UI 設計雛形: [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/assets/ui-design.md)
+- HTML モック雛形: [ui-mock.html](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/assets/ui-mock.html)
+- HTML モック確認サーバー: [serve-ui-mock.mjs](/Users/iorishibata/Repositories/AITranslationEngineJP/scripts/dev/serve-ui-mock.mjs)
+- `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -43,14 +46,38 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 
 - 画面表示文言、表示項目、主要操作、ボタン有効条件
 - 画面区画、状態差分、配置制約、アクセシビリティ
+- task-local 確認用 HTML モックの主要導線、情報密度、入力と結果の見え方
+- HTML モック確認サーバーの URL、起動 command、人間確認中の起動状態
+- `agent-browser` による task-local 確認用 HTML モックの UX 確認結果
+- task-local 確認用 HTML モック内の `mock-data/` とモックデータ移植禁止範囲
 - 読み込み中、空、エラー、無効、進行中、再試行、成功
 - デスクトップ / モバイルで破綻してはいけない条件と実装後確認観点
 
+### UX 確認観点
+
+| 観点 | 確認する内容 |
+| --- | --- |
+| 目的達成 | 主要利用者が開始操作から期待結果まで迷わず進めるかを確認する |
+| 情報優先度 | 最初に見るべき情報、次に見るべき情報、補助情報の順序が画面構造で分かるかを確認する |
+| 操作順 | 主要操作、戻る、取消、再試行、破壊的操作の位置と文言が作業順に沿うかを確認する |
+| 状態理解 | 読み込み中、空、エラー、無効、進行中、成功の差分が見た目と文言で区別できるかを確認する |
+| 回復可能性 | エラーや無効状態から、利用者が次に取れる操作を判断できるかを確認する |
+| 入力負荷 | 入力量、選択肢、初期値、確認操作が目的に対して過剰でないかを確認する |
+| 視線移動 | 見出し、ラベル、操作、結果表示が上下左右に散らばりすぎていないかを確認する |
+| 表示幅追従 | desktop と mobile で文字、操作、状態表示が重ならず、主要導線が保たれるかを確認する |
+
 ## 判断規約
 
-- UI は見た目 成果物 ではなく実装が満たす契約として固定する
-- 実装前の見た目 成果物 を新規必須にしない
-- 細かな見た目調整は実装後に人間が実物を確認して直す
+- UI は UI 要件契約で固定し、HTML モックは task-local 確認用として扱う
+- HTML モックを作る場合は `ui-mock.html` として task folder に置く
+- HTML モック確認サーバーは `npm run dev:ui-mock -- --task <task-id> --port 34116` で起動する
+- HTML モックは `http://127.0.0.1:34116/ui-mock.html` を `agent-browser` で開き、UX 確認観点の確認結果を `ui-design.md` に残す
+- 人間確認中は HTML モック確認サーバーを起動したままにする
+- 人間レビュー記録には確認 URL と起動 command を残す
+- `agent-browser` 確認では `docs/references/agent-browser.md` に従い、`open`、`snapshot`、`errors`、`screenshot`、`close` を必要に応じて使う
+- HTML モックを作る場合は task-local 確認用とし、docs 正本へ昇格しない
+- HTML モックのモックデータは `mock-data/` または `data-ui-mock-sample-data-root` の範囲へ置き、frontend 実装へ移植してはいけない
+- `mock-data/` 配下の値は状態表示確認用であり、product code、fixture、default state、test data へ移植してはいけない
 - 汎用的な AI 風 UI や過剰な装飾を要求しない
 
 - UI 契約 と シナリオ の責務を分ける
@@ -60,7 +87,6 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 ## 非対象規約
 
 - UI 不要 task、プロダクト frontend 実装、docs 正本反映だけの作業は扱わない。
-- 実装前の見た目成果物を UI の必須成果物にしない。
 - プロダクトコード実装と未承認 docs 正本化は扱わない。
 - 実装後に人間が確認すべき見た目調整を隠さない。
 
@@ -68,6 +94,9 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 
 - 判断結果: UI 要件契約の完了、未完了、停止の判定を返す。
 - 根拠参照: UI 判断の根拠にした要件、シナリオ、既存画面を返す。
+- HTML モック: task-local 確認用 `ui-mock.html` の作成または更新結果を返す。
+- HTML モック確認サーバー: 確認 URL、起動 command、人間確認中の起動要否を返す。
+- 確認結果: `ui-design.md` の agent-browser 確認結果を返す。
 - 不足情報: UI 要件契約を固定できない不足項目を返す。
 - 次判断材料: `designer` または `implement_lane` が次を判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
@@ -77,12 +106,18 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約とし
 - task 内成果物 が承認状態、根拠参照、未決事項を含んでいる。
 - 人間レビュー が必要な判断を AI だけで完了扱いにしていない。
 - 表示項目、主要操作、ボタン有効条件を確認した。
+- UX 確認観点の各項目を `ui-design.md` に結果付きで残した。
 - 状態、状態差分、表示幅追従、はみ出しリスク を実装後確認観点として確認した。
-- `ui-design.md` は UI 要件契約と確認観点に限定した。
+- `ui-design.md` は UI 要件契約と確認観点を含んでいる。
+- task-local 確認用 `ui-mock.html` を作る場合は、主要区画、主要操作、状態差分を確認できる。
+- task-local 確認用 `ui-mock.html` を作る場合は、`ui-design.md` に確認サーバーの URL、起動 command、人間確認中の起動要否を含めている。
+- task-local 確認用 `ui-mock.html` を作る場合は、モックデータが `mock-data/` または `data-ui-mock-sample-data-root` の範囲に置かれている。
+- `ui-design.md` は `agent-browser` で確認した URL、起動 command、人間確認中の起動状態、画面サイズ、UX 確認観点ごとの結果、問題、未確認理由を含んでいる。
 
 ## 停止規約
 
 - UI が不要で `plan.md` の `ui_design` が `N/A` の時
 - プロダクト frontend コードを実装する時
 - docs 正本へ UI 仕様を反映するだけの時
+- HTML モックを `agent-browser` で確認できない場合は未実行理由を返して停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

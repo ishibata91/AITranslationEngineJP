@@ -20,9 +20,12 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 
 ## 入力規約
 
-- 人間レビュー記録: 承認済み design bundle とレビュー結果。
+- 人間レビュー記録: 承認済みシナリオ設計、承認済み UI 設計、レビュー結果。
 - 承認済みシナリオ: 実装範囲の根拠にするシナリオ設計成果物。
 - UI 要件契約: UI が関係する場合に参照する UI 設計成果物。
+- HTML モック: frontend 実装が関係する場合に参照する task-local 確認用 `ui-mock.html`。
+- モックデータ: frontend 実装が関係する場合に参照する task-local 確認用 `mock-data/`。実装へ移植しない。
+- HTML モック確認結果: frontend 実装が関係する場合に参照する task-local 確認結果。
 - 承認状態: 呼び出し元が渡す承認済み状態。
 
 ## 外部参照規約
@@ -31,7 +34,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 要件正本: [spec.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/spec.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
-- page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
+- 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - 実装スコープ雛形: [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/assets/implementation-scope.md)
 - Codex implementation レーン 入口: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
@@ -137,6 +140,7 @@ import、generation、settings save、preview、create / update / delete、expor
 契約固定 引き継ぎ は backend 実装全体ではなく、公開接点 の固定だけを扱う。
 backend 引き継ぎ は永続化、service / usecase、controller、DTO / gateway 境界までを扱う。
 frontend 引き継ぎ は確定済み 契約固定 に依存して 状態 / UI を扱う。
+frontend 引き継ぎ は承認済み `ui-design.md` を必須根拠にし、`ui-mock.html` と `mock-data/` は task-local 確認用として扱う。
 統合境界 引き継ぎ は API、Wails、DTO、gateway、adapter 契約 の接続だけを扱い、backend 実装や frontend UI 実装の代替にしない。
 
 backend 側の 引き継ぎ に含めてよい 層:
@@ -237,9 +241,12 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 対象範囲、依存、初手、検証、完了条件 を必ず揃える
 - 並列実行可能性は task 出し時に明示する
 - 人間レビュー 済みの詳細要求タイプと質問票回答だけを 引き継ぎ根拠にする
+- frontend 引き継ぎ は承認済み UI 要件契約を 引き継ぎ根拠にし、HTML モック、`mock-data/`、agent-browser 確認結果は task-local 確認用として扱う
 - 検証コマンド は 引き継ぎ の 承認済み実装範囲 と 完了条件 だけで 通過 できるものにする
 - backend と frontend は必ず別 引き継ぎ に分ける
 - frontend 引き継ぎ は 契約固定 済みの backend 契約 / DTO / gateway 境界に 依存対象 する
+- frontend 引き継ぎ は承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を含める
+- frontend 引き継ぎ は `mock-data/` 配下の値を product code、fixture、default state、test data へ移植禁止とする完了条件を含める
 - 統合境界 引き継ぎ は backend と frontend の間の公開接点、DTO、gateway、adapter 契約を接続する単位として別に作る
 - `contract_freeze` は architecture の層構造、transport boundary、依存方向に基づいて固定する
 - secret を扱う場合は、参照値、secret 本体、secret 解決責務層、出力禁止値を分ける
@@ -308,6 +315,9 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 層 をまたぐ 引き継ぎ は、受け入れユースケース 完了条件 で完了判定できる。
 - `contract_freeze` は architecture の層境界に基づいて切られている。
 - backend、frontend、統合境界 が必要な場合は別 引き継ぎ として分割されている。
+- frontend 引き継ぎ がある場合は、承認済み `ui-design.md` を根拠参照に含めた。
+- frontend 引き継ぎ がある場合は、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書いた。
+- frontend 引き継ぎ がある場合は、`mock-data/` 配下の値を product code、fixture、default state、test data へ移植禁止とする完了条件を書いた。
 - frontend 引き継ぎ は `UI人間操作E2E` を直接 担当者 にせず、最終検証 で証明する形にした。
 - `依存対象` から依存表を作り、着手可能 wave を `実行グループ` と `ready_wave` にした。
 - 着手可能 wave 表に 引き継ぎ、開始前依存、並列 pair、阻害要因 を書いた。
@@ -328,6 +338,7 @@ backend と frontend は別 引き継ぎ のまま維持し、frontend は 契�
 - 層だけを根拠に、単体では完了判定できない micro 引き継ぎ を量産する必要がある場合は停止する。
 - backend と frontend を同一引き継ぎに含める必要がある場合は停止する。
 - 契約固定 が未完了のまま frontend 引き継ぎ を開かない
+- 承認済み UI 要件契約がないまま frontend 引き継ぎ を開かない。
 - 統合境界 引き継ぎなしに backend と frontend の接続を実装引き継ぎへ混ぜる必要がある場合は停止する。
 - architecture の層境界を確認せずに `contract_freeze` を固定する必要がある場合は停止する。
 - UI 入口の引き継ぎで、裏側の直接呼び出しだけを完了条件にする必要がある場合は停止する。

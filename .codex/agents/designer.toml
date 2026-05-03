@@ -23,7 +23,7 @@ developer_instructions = """
 出力規約、完了規約、停止規約は skill に従う。
 
 `implement_lane` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
-`implement_lane` が揃えた シナリオ 候補成果物 を統合し、シナリオ を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、人間レビュー 後に `implementation-scope` を固定する。
+`implement_lane` が揃えた シナリオ 候補成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として扱い、`ui-design.md` と必要な task-local 確認用 HTML モックを揃える。人間レビュー 後に `implementation-scope` を固定する。
 シナリオ候補生成 agent は designer から 起動 しない。
 作業流れの進行管理、次の実行判断、実装引き継ぎ は `implement_lane` に戻す。
 """

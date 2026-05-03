@@ -1,13 +1,13 @@
 ---
 name: design-bundle
-description: Codex 側の 設計成果物 進行 skill。必須要件、UI、シナリオ、implementation-scope を task 内成果物 として固定するための 正本、判断、引き継ぎ を提供する。
+description: Codex 側の 設計成果物 進行 skill。シナリオ、独立 UI 設計、implementation-scope を task 内成果物 として固定するための 正本、判断、引き継ぎ を提供する。
 ---
 # Design Bundle
 
 ## 目的
 
 `design-bundle` は作業プロトコルである。
-`designer` agent と Codex 本体が、必須要件、UI、シナリオ、implementation-scope を task 内成果物 として固定する時の、人間可読な実行説明の正本として使う。
+`designer` agent と Codex 本体が、シナリオ、独立 UI 設計、implementation-scope を task 内成果物 として固定する時の、人間可読な実行説明の正本として使う。
 
 作業流れ の次 実行判断、作業計画フォルダ 進行管理、人間向け Codex implementation レーン 引き継ぎ の返却は `implement_lane` が担当する。
 プロダクトコードとプロダクトテスト は変更しない。
@@ -37,7 +37,7 @@ description: Codex 側の 設計成果物 進行 skill。必須要件、UI、シ
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
-- page 要件正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
+- 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - 補助参照: 入力に明示された関連 docs、関連 skill、人間の現在指示
 - エージェント実行定義: [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml)
@@ -69,7 +69,7 @@ scenario-design は、抽象要件から直接 シナリオ を作って完了�
 人間向け質問票は `scenario-design.questions.md` に分ける。
 `scenario-design.md` に長い JSON や質問票本文を埋め込まない。
 
-design bundle を 人間レビュー へ進める条件は次の通り。
+シナリオ設計を 人間レビュー へ進める条件は次の通り。
 
 - 必要な詳細要求タイプが `explicit`、`derived`、`not_applicable`、`deferred` のいずれかに分類されている
 - 6 種の シナリオ 候補成果物 が作業計画フォルダに存在する
@@ -78,6 +78,13 @@ design bundle を 人間レビュー へ進める条件は次の通り。
 - `needs_human_decision` が 0 件である
 - 未解決競合が 0 件である
 - 人間判断が必要な項目がある場合は、シナリオ 完了ではなく `scenario-design.questions.md` 出力で停止している
+
+### UI 設計分離条件
+
+UI 設計は design bundle 本体へ含めず、`ui-design` の独立成果物として扱う。
+UI が関係する task では、`ui-design.md` と必要な task-local 確認用 HTML モックを人間レビュー前に揃える。
+人間レビュー中は、HTML モック確認サーバーを起動したままにする。
+frontend 実装がある task では、承認済み UI 設計成果物を implementation-scope と frontend 実装の根拠にする。
 
 ## 判断規約
 
@@ -95,7 +102,7 @@ design bundle を 人間レビュー へ進める条件は次の通り。
 - 引き継ぎ先: `implement_lane` を返す。
 - 渡す対象範囲: 設計成果物、人間レビュー 状態、未回答質問を返す。
 - 返却先: `implement_lane` を返す。
-- 対象成果物: 扱った シナリオ、シナリオ候補 統合、UI、implementation-scope の状態を返す。
+- 対象成果物: 扱った シナリオ、シナリオ候補 統合、独立 UI 設計、implementation-scope の状態を返す。
 - 変更成果物: 作成または更新した task 内成果物パスを返す。
 - 人間レビュー状態: 人間レビュー が必要な判断、承認待ち、承認済みの状態を返す。
 - 確認結果: 実行した確認と未実行理由を返す。

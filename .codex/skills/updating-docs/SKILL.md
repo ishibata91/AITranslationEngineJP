@@ -35,6 +35,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 禁止対象: プロダクトコード、プロダクトテスト、作業流れ / skill / エージェント実行定義の変更
 - 実行境界: エージェント実行定義に従う
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
+- 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md)
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/updating-docs/SKILL.md
@@ -47,6 +48,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - docs 正本 の選び方
 - 人間承認 記録 の確認
 - 承認済み 成果物 と 正本 対象 の対応
+- 上位シナリオ単位の詳細仕様 製本
 - 検証 と 残り 不足 の記録
 
 ## 判断規約
@@ -55,6 +57,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 人間承認済み 成果物 だけを反映する
 - docs-only 対象範囲 を超えない
 - implementation-scope を docs 正本へ自動昇格しない
+- `detail-specs` は 上位シナリオ 単位で作り、画面単位または個別ユースケース単位へ独断で分割しない
+- `detail-specs` へ反映する内容は、`scenario-design`、`ui-design`、実装結果、レビュー結果から恒久仕様だけを製本する
 - 未確定仕様を独断で補完しない
 
 - Codex implementation 完了 レポート を根拠として残す
@@ -67,6 +71,9 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 作業流れ、skill、エージェント実行定義、プロダクトコード、プロダクトテストは変更しない。
 - implementation 完了前の正本化と未承認 draft の正本化は扱わない。
 - implementation-scope を docs 正本へ自動昇格しない。
+- task-local HTML モックを docs 正本へ昇格しない。
+- スキーマ移行、DB 移行、基盤移行、cutover 手順は `detail-specs` へ昇格しない。
+- `detail-specs` へ移す対象は、承認済み `scenario-design` にある上位シナリオの恒久仕様だけにする。
 - プロダクト実装を同時に進めない。
 
 ## 出力規約

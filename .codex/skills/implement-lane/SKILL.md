@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力`、`作業計画完了移動` とする。
+- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
 
 ## 入力規約
 
@@ -41,8 +41,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | --- | --- | --- | --- | --- |
 | `task 枠` | はい | `implement_lane` | `[]` | なし |
 | `scenario_candidates` | はい | シナリオ候補 生成 agent | `task 枠` | `scenario_actor_goal_generator`, `scenario_lifecycle_generator`, `scenario_state_transition_generator`, `scenario_failure_generator`, `scenario_external_integration_generator`, `scenario_operation_audit_generator` |
-| `設計成果物束` | はい | `designer` | `scenario_candidates` | `designer` |
-| `人間設計レビュー` | はい | 人間 | `設計成果物束` | 人間 |
+| `シナリオ設計` | はい | `designer` | `scenario_candidates` | `designer` |
+| `UI設計` | 条件付き | `designer` | `シナリオ設計` | `designer` |
+| `人間設計レビュー` | はい | 人間 | `シナリオ設計`, `UI設計?` | 人間 |
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
 | `実装前受け入れテスト` | 条件付き | `implementation_scenario_tester` | `実装引き継ぎ入力` | `implementation_scenario_tester` |
@@ -54,6 +55,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `実装後単体テスト?` | なし |
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
+| `詳細仕様正本反映` | 条件付き | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 | `作業計画完了移動` | はい | `implement_lane` | `作業レポート入力` | なし |
 
@@ -150,6 +152,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
 - 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
 - `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に 作業計画フォルダ を `docs/exec-plans/active/<task-id>/` から `docs/exec-plans/completed/<task-id>/` へ移す。
+- `詳細仕様正本反映` は `docs/detail-specs/` の上位シナリオ単位の正本へ、human 承認済みの恒久仕様だけを反映する。
+- `詳細仕様正本反映` の入力は、`scenario-design`、`ui-design`、実装結果、レビュー結果、承認記録のうち正本化判断で承認済みとされた成果物に限定する。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
 - 人間介入 が必要な 成果物 は AI だけで完了にしない。
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
@@ -159,7 +163,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 ## 非対象規約
 
 - 恒久修正、構造整理、探索テスト、画面体験改善探索は詳細化しない。
-- 設計成果物束の人間レビューは扱わない。
+- シナリオ設計と UI設計の人間レビューは扱わない。
 - 起動先 agent の下位 agent 起動は扱わない。
 - レビューエージェントに差分コード，レビュー成果物以外の関係ないものを渡さない。ハーネス結果など。
 - プロダクトコードとプロダクトテストは変更しない。
@@ -176,6 +180,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
+- UI が関係する場合は、`ui-design.md` と必要な task-local 確認用 HTML モックが人間設計レビュー前に揃っている。
+- UI の人間設計レビュー中は、HTML モック確認サーバーが起動したままであり、確認 URL と起動 command が記録されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
 - `レビュー通過根拠` は 5 観点の `reviewback.<観点>.yaml` から behavior、security、responsibility_boundary、その他 の優先度で集約され、`implementation_action` が固定されている。

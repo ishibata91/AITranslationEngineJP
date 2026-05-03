@@ -12,6 +12,9 @@
 ## Source Artifacts
 
 - `ui_design`: `./ui-design.md` または `N/A`
+- `ui_html_mock`: `./ui-mock.html` または `N/A`
+- `ui_mock_data`: `./mock-data/` または `N/A`
+- `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `scenario_design`: `./scenario-design.md`
 - `detail_requirement_coverage`: `./scenario-design.requirement-coverage.json`
 - `human_decision_questionnaire`: `./scenario-design.questions.md`
@@ -19,6 +22,7 @@
 ## Fixed Decisions
 
 - human review 済みの判断だけを書く
+- frontend handoff がある場合は、承認済み `ui-design.md` を source にし、`ui-mock.html` と `mock-data/` は task-local 確認用として扱う
 - `needs_human_decision`: `0`
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
 - downstream handoff が依存する public seam は `contract_freeze` として固定する
@@ -41,6 +45,11 @@
 - `implementation_target`:
 - `implementation_artifact`: `contract_freeze | backend 実装 | frontend 実装 | 統合境界実装`
 - `implementation_skill`: `implement-backend | implement-frontend | implement-integration`
+- `frontend_required_sources`:
+  - `ui_design`: `./ui-design.md` または `N/A`
+  - `ui_html_mock`: `./ui-mock.html` または `N/A`
+  - `ui_mock_data`: `./mock-data/` または `N/A`
+  - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `contract_freeze`:
   - `status`: `required | not_required | done`
   - `freeze_source`:
@@ -66,6 +75,9 @@
 - `execution_stage`: `実装前 | 実装後 | final validation`
 - `notes`:
   - backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み `contract_freeze` に depends_on する。
+  - frontend handoff では、承認済み `ui-design.md` を必須 source にし、`ui-mock.html` と `mock-data/` は task-local 確認用として扱う。
+  - frontend handoff では、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書く。
+  - frontend handoff では、`mock-data/` 配下の値を product code、fixture、default state、test data へ移植禁止とする完了条件を書く。
   - API / Wails / DTO / gateway / adapter contract の接続は `統合境界実装` handoff に分ける。
   - `implementation_skill` は `implementation_artifact` と一致させ、Codex implementation lane が読む skill を一意にする。
   - `APIテスト` を tester 先行対象にできるのは、受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの時だけにする。

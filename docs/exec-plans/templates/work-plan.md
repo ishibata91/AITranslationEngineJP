@@ -16,11 +16,14 @@
 ## 条件付き構成
 
 - `ui-design.md`: UI 要件契約が必要な task だけ作る
+- `ui-mock.html`: UI が関係する task の task-local 確認用 HTML モックとして作る
+- `mock-data/`: UI モックの状態表示確認だけに使うサンプル値置き場として作る
 - `implementation-scope.md`: human review 後だけ作る
 
 ## 読み込みルール
 
 - AI は最初に `plan.md` だけ読む
 - 追加 context は必要な skill 資料だけ読む
-- Codex implementation handoff では `implementation-scope.md` と参照された source artifact だけ読む
+- frontend implementation handoff では `implementation-scope.md`、`ui-design.md`、必要な task-local 確認用 HTML モックを読む
+- UI モック確認では `npm run dev:ui-mock -- --task <task-id> --port 34116` を起動し、確認完了まで起動したままにする
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む

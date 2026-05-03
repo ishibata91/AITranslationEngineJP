@@ -49,6 +49,7 @@ prefix_rule(
             "test:frontend:coverage",
             "scan:sonar",
             "dev:wails:agent-browser",
+            "dev:ui-mock",
         ],
     ],
     decision = "allow",
@@ -57,6 +58,7 @@ prefix_rule(
         "npm run test:backend",
         "npm run test:frontend",
         "npm run scan:sonar",
+        "npm run dev:ui-mock -- --task sample-task --port 34116",
     ],
     not_match = [
         "npm run install",
@@ -249,6 +251,21 @@ prefix_rule(
     ],
     not_match = [
         "agent-browser install",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "node",
+        "./scripts/dev/serve-ui-mock.mjs",
+    ],
+    decision = "allow",
+    justification = "UI mock server resolves active plan mock artifacts without touching product code.",
+    match = [
+        "node ./scripts/dev/serve-ui-mock.mjs --task sample-task --port 34116 --dry-run",
+    ],
+    not_match = [
+        "node ./scripts/dev/unknown.mjs",
     ],
 )
 

@@ -45,7 +45,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
 - `exploration_test_planner` は探索計画だけを作り、観測、ログ確認、画面確認、原因仮説の作成を扱わない
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
-- `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作り、UI 変更がある時だけ `ui-design` を追加し、人間レビュー 後に `implementation-scope` を固定する
+- `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` と必要な task-local 確認用 HTML モックを揃える。人間レビュー 後に `implementation-scope` を固定する
 - シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
 - `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
@@ -68,7 +68,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `implement_lane` は run の 終了処理、停止、戻し 時に `codex-work-reporting` を参照し、最後に必ず `work_history` 記録材料と ベンチマーク根拠 を作る
 - `fix_lane` は人間観測、レビュー非通過、検証失敗、修正前調査を読み、修正実行入力、レビュー通過根拠を管理する。調査、実装、テスト、レビュー、作業レポート本文は担当 agent を起動して委任し、プロダクトコードとプロダクトテストは変更しない
 - シナリオ候補生成 agent 6 体は固定 観点 の シナリオ 候補だけを作り、採否、統合、最終 シナリオ表 は扱わない
-- `designer` は シナリオ 候補を統合し、design bundle と implementation-scope の task 内成果物 を作る
+- `designer` は シナリオ 候補を統合し、シナリオ設計、UI 設計、implementation-scope の task 内成果物 を作る。UI 設計は design bundle 本体へ含めず、独立成果物として扱う
 - `exploration_test_lane` は探索計画と探索証跡を読み、バグ一覧、ログ、影響ファイルを集約する。プロダクトコードとプロダクトテストは変更しない
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
@@ -117,8 +117,9 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | --- | --- | --- | --- |
 | `task 枠` | `implement_lane` | `[]` | なし |
 | `scenario_candidates` | シナリオ 生成 agent | `task 枠` | シナリオ候補 生成 agent |
-| `設計成果物束` | `designer` | `scenario_candidates` | `designer` |
-| `人間設計レビュー` | human | `設計成果物束` | human |
+| `シナリオ設計` | `designer` | `scenario_candidates` | `designer` |
+| `UI設計` | `designer` | `シナリオ設計` | `designer` |
+| `人間設計レビュー` | human | `シナリオ設計`, `UI設計?` | human |
 | `実装範囲` | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | `implement_lane` | `実装範囲` | なし |
 | `実装前受け入れテスト` | `implementation_scenario_tester` | `実装引き継ぎ入力` | `implementation_scenario_tester` |
@@ -130,6 +131,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `最終検証` | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `実装後単体テスト?` | なし |
 | `レビュー通過根拠` | `implement_lane` | `最終検証` | レビュー agents |
 | `正本化判断` | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
+| `詳細仕様正本反映` | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 | `作業計画完了移動` | `implement_lane` | `作業レポート入力` | なし |
 
@@ -178,13 +180,18 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - docs 正本化は実装と レビュー の完了が分かった後に扱う
 - docs 正本化は Codex 側だけで扱う
 - human 承認済みの 成果物 だけ `docs_updater` が `updating-docs` を参照して正本へ反映する
-- task 内 UI 要件契約と シナリオ は task folder に置く
-- UI の細かな visual polish は実装後に人間が実物を確認して直す
+- task 内 UI 要件契約、task-local 確認用 HTML モック、`mock-data/`、agent-browser 確認結果、シナリオ は task folder に置く
+- HTML モックは UX 観点の確認用成果物であり、docs 正本として扱わない
+- HTML モックは `npm run dev:ui-mock -- --task <task-id> --port 34116` で確認サーバーを起動し、`http://127.0.0.1:34116/ui-mock.html` を `agent-browser` で確認する
+- 人間レビュー中は HTML モック確認サーバーを起動したままにし、確認 URL と起動 command をレビュー記録へ残す
+- `mock-data/` 配下の値は状態表示確認用であり、frontend 実装へ移植しない
+- UI の細かな visual polish は実装後の実物確認で差分を扱う
 - `implementation-scope` は 引き継ぎ 履歴であり docs 正本へ昇格しない
+- `detail-specs` は 上位シナリオ 単位の詳細仕様正本 とし、`scenario-design`、`ui-design`、実装結果、レビュー結果から human 承認済みの恒久仕様だけを製本する
 
 ## 非 live 扱い
 
-- 旧 `design` は `scenario-design`、`ui-design`、`implementation-scope` 中心の design bundle に再整理した
+- 旧 `design` は `scenario-design`、独立した `ui-design`、`implementation-scope` に再整理した
 - 旧 flat file 形式の exec-plan は legacy とし、新規 task では使わない
 - UI check 専用、log instrumentation agent は live から外した
 - 作業前の影響範囲、実行計画、検証方法の確認は `AGENTS.md` の入口規約に集約する

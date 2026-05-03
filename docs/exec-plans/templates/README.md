@@ -3,11 +3,13 @@
 新規 task は `task-folder/` を使う。
 旧 flat file template は互換用の案内として残す。
 
-## Canonical Template
+## Canonical Task Folder Entries
 
 - `task-folder/README.md`
 - `task-folder/plan.md`
 - `task-folder/ui-design.md`
+- `task-folder/ui-mock.html`
+- `task-folder/mock-data/`
 - `task-folder/scenario-candidates.viewpoint.md`
 - `task-folder/scenario-design.md`
 - `task-folder/scenario-design.candidate-coverage.json`
