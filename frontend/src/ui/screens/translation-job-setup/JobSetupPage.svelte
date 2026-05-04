@@ -7,6 +7,7 @@
     TranslationJobSetupPhaseCardViewModel
   } from "@application/presenter/translation-job-setup/translation-job-setup.presenter"
   import { VALIDATION_LABELS } from "@application/presenter/translation-job-setup"
+  import AIModelSelectionCard from "@ui/components/AIModelSelectionCard.svelte"
 
   type CreateTranslationJobSetupScreenController =
     import("@application/contract/translation-job-setup/translation-job-setup-screen-contract").CreateTranslationJobSetupScreenController
@@ -149,6 +150,36 @@
     }
 
     return "対象外"
+  }
+
+  function handlePhaseProviderChange(
+    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
+    event: Event
+  ): void {
+    const target = event.currentTarget
+    if (target instanceof HTMLSelectElement) {
+      controller.selectPhaseProvider(phaseId, target.value)
+    }
+  }
+
+  function handlePhaseModelChange(
+    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
+    event: Event
+  ): void {
+    const target = event.currentTarget
+    if (target instanceof HTMLSelectElement) {
+      controller.selectPhaseModel(phaseId, target.value)
+    }
+  }
+
+  function handlePhaseBatchChange(
+    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
+    event: Event
+  ): void {
+    const target = event.currentTarget
+    if (target instanceof HTMLInputElement) {
+      controller.togglePhaseBatchMode(phaseId, target.checked)
+    }
   }
 </script>
 
@@ -449,156 +480,59 @@
           </div>
           <div class="phase-grid">
             {#each viewModel.phaseCards as phaseCard (phaseCard.phaseId)}
-              <article class="phase-card">
-                <div class="phase-card-head">
+              <div class="phase-card-wrap">
+                <AIModelSelectionCard
+                  helperText={phaseCard.helperText}
+                  modelDisabled={!phaseCard.modelSelectEnabled}
+                  modelOptions={phaseCard.modelOptions}
+                  modelSelectId={`model-${phaseCard.phaseId}`}
+                  modelStatusText={phaseCard.modelListStatusText}
+                  modelValue={phaseCard.selectedModel}
+                  onBatchChange={(event: Event) =>
+                    handlePhaseBatchChange(phaseCard.phaseId, event)}
+                  onModelChange={(event: Event) =>
+                    handlePhaseModelChange(phaseCard.phaseId, event)}
+                  onProviderChange={(event: Event) =>
+                    handlePhaseProviderChange(phaseCard.phaseId, event)}
+                  onRefresh={() => void controller.refreshPhaseModels(phaseCard.phaseId)}
+                  providerDisabled={viewModel.isCreating}
+                  providerOptions={phaseCard.providerOptions}
+                  providerSelectId={`provider-${phaseCard.phaseId}`}
+                  providerValue={phaseCard.provider}
+                  refreshButtonAriaLabel={phaseCard.modelListButtonAriaLabel}
+                  refreshButtonLabel={phaseCard.modelListButtonLabel}
+                  refreshDisabled={!phaseCard.modelListButtonEnabled}
+                  refreshSpinning={phaseCard.isModelListRefreshing}
+                  secondaryControlMode={phaseCard.showBatchToggle
+                    ? "batch-toggle"
+                    : "none"}
+                  showCredentialStatus={phaseCard.showCredentialStatus}
+                  showCredentialWarning={phaseCard.showCredentialWarning}
+                  statusLabel={phaseCard.statusLabel}
+                  statusTone={phaseCard.statusTone}
+                  title={phaseCard.phaseLabel}
+                  titleTag="h4"
+                  batchChecked={phaseCard.batchEnabled}
+                  batchDisabled={viewModel.isCreating}
+                  batchHelpId={`batch-help-${phaseCard.phaseId}`}
+                  batchHelpText={phaseCard.batchHelpText}
+                  credentialStatusLabel={phaseCard.credentialStatusLabel}
+                  credentialStatusTone={phaseCard.credentialStatusTone}
+                  emptyModelLabel={phaseCard.showModelSelect
+                    ? "選んでください"
+                    : "モデル一覧を更新してください"}
+                />
+                <div class="detail-grid compact phase-detail-grid">
                   <div>
-                    <h4>{phaseCard.phaseLabel}</h4>
-                    <p class="mini-text">{phaseCard.helperText}</p>
+                    <dt>現在の状態</dt>
+                    <dd>{phaseCard.statusLabel}</dd>
                   </div>
-                  <span class={`status-pill ${phaseCard.statusTone}`}>
-                    {phaseCard.statusLabel}
-                  </span>
-                </div>
-
-                <label class="field-block" for={`provider-${phaseCard.phaseId}`}>
-                  <span>AIサービス</span>
-                  <select
-                    id={`provider-${phaseCard.phaseId}`}
-                    disabled={viewModel.isCreating}
-                    onchange={(event) => {
-                      const target = event.currentTarget
-                      if (target instanceof HTMLSelectElement) {
-                        controller.selectPhaseProvider(phaseCard.phaseId, target.value)
-                      }
-                    }}
-                    value={phaseCard.provider}
-                  >
-                    {#each phaseCard.providerOptions as option (option.value)}
-                      <option value={option.value}>{option.label}</option>
-                    {/each}
-                  </select>
-                </label>
-
-                <div class="phase-meta-grid">
-                  <div class="meta-box">
-                    <p class="mini-label">APIキー状態</p>
-                    {#if phaseCard.showCredentialStatus}
-                      <p class={`status-copy tone-${phaseCard.credentialStatusTone}`}>
-                        <strong>{phaseCard.credentialStatusLabel}</strong>
-                      </p>
-                      {#if phaseCard.showCredentialWarning}
-                        <p class="warning-text">
-                          AIサービス設定が未完了です。設定が必要です。
-                        </p>
-                      {/if}
-                    {:else}
-                      <p class="mini-text">登録は不要です。</p>
-                    {/if}
-                  </div>
-
-                  <div class="meta-box">
-                    <p class="mini-label">処理方法</p>
-                    {#if phaseCard.showBatchToggle}
-                      <label class="checkbox-row">
-                        <input
-                          checked={phaseCard.batchEnabled}
-                          disabled={viewModel.isCreating}
-                          onchange={(event) => {
-                            const target = event.currentTarget
-                            if (target instanceof HTMLInputElement) {
-                              controller.togglePhaseBatchMode(
-                                phaseCard.phaseId,
-                                target.checked
-                              )
-                            }
-                          }}
-                          type="checkbox"
-                        />
-                        <span>Batch API</span>
-                        <button
-                          aria-describedby={`batch-help-${phaseCard.phaseId}`}
-                          class="help-trigger"
-                          type="button"
-                        >
-                          ?
-                        </button>
-                      </label>
-                      <span
-                        class="help-tooltip"
-                        id={`batch-help-${phaseCard.phaseId}`}
-                        role="note"
-                      >
-                        {phaseCard.batchHelpText}
-                      </span>
-                    {:else}
-                      <p class="mini-text">
-                        この AI サービスでは一括処理の切り替えはありません。
-                      </p>
-                    {/if}
+                  <div>
+                    <dt>実行方法</dt>
+                    <dd>{batchSectionText(phaseCard)}</dd>
                   </div>
                 </div>
-
-                <div class="model-panel">
-                  <div class="section-head compact">
-                    <div>
-                      <p class="mini-label">モデル</p>
-                      <p class="mini-text">{phaseCard.modelListStatusText}</p>
-                    </div>
-                    <button
-                      aria-label={phaseCard.modelListButtonAriaLabel}
-                      class="button-secondary icon-button"
-                      disabled={!phaseCard.modelListButtonEnabled}
-                      onclick={() => void controller.refreshPhaseModels(phaseCard.phaseId)}
-                      type="button"
-                    >
-                      <span
-                        aria-hidden="true"
-                        class={`refresh-icon ${phaseCard.isModelListRefreshing ? "spinning" : ""}`}
-                      >
-                        ↻
-                      </span>
-                      <span class="sr-only">{phaseCard.modelListButtonLabel}</span>
-                    </button>
-                  </div>
-
-                  <label class="field-block" for={`model-${phaseCard.phaseId}`}>
-                    <span>使うモデル</span>
-                    <select
-                      id={`model-${phaseCard.phaseId}`}
-                      disabled={!phaseCard.modelSelectEnabled}
-                      onchange={(event) => {
-                        const target = event.currentTarget
-                        if (target instanceof HTMLSelectElement) {
-                          controller.selectPhaseModel(phaseCard.phaseId, target.value)
-                        }
-                      }}
-                      value={phaseCard.selectedModel}
-                    >
-                      <option value="">
-                        {phaseCard.showModelSelect
-                          ? "選んでください"
-                          : "モデル一覧を更新してください"}
-                      </option>
-                      {#each phaseCard.modelOptions as modelOption (modelOption.modelId)}
-                        <option value={modelOption.modelId}>
-                          {modelOption.label}
-                        </option>
-                      {/each}
-                    </select>
-                  </label>
-
-                  <div class="detail-grid compact phase-detail-grid">
-                    <div>
-                      <dt>現在の状態</dt>
-                      <dd>{phaseCard.statusLabel}</dd>
-                    </div>
-                    <div>
-                      <dt>実行方法</dt>
-                      <dd>{batchSectionText(phaseCard)}</dd>
-                    </div>
-                  </div>
-                </div>
-              </article>
+              </div>
             {/each}
           </div>
         </section>
@@ -677,16 +611,11 @@
   }
 
   .section-head,
-  .phase-card-head,
   .create-bar {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
-  }
-
-  .section-head.compact {
-    align-items: center;
   }
 
   .mini-label {
@@ -700,8 +629,7 @@
   .mini-text,
   .empty-text,
   .reason-list,
-  .plain-list,
-  .warning-text {
+  .plain-list {
     color: rgba(252, 241, 232, 0.86);
   }
 
@@ -713,16 +641,9 @@
     font-size: 0.82rem;
   }
 
-  .status-pill.success,
-  .tone-success strong {
+  .status-pill.success {
     background: rgba(145, 208, 134, 0.16);
     color: #b8f0ad;
-  }
-
-  .status-pill.warning,
-  .tone-warning strong {
-    background: rgba(255, 204, 128, 0.15);
-    color: #ffd191;
   }
 
   .field-block {
@@ -736,8 +657,7 @@
     font-size: 0.9rem;
   }
 
-  select,
-  input {
+  select {
     width: 100%;
     padding: 0.8rem 0.95rem;
     border: 1px solid rgba(255, 212, 165, 0.18);
@@ -759,15 +679,12 @@
   .detail-grid div,
   .foundation-grid,
   .phase-grid,
-  .phase-card,
-  .model-panel,
   .summary-phase-grid,
   .summary-phase-card,
   .create-copy,
   .create-actions,
-  .phase-meta-grid,
-  .meta-box,
-  .foundation-table {
+  .foundation-table,
+  .phase-card-wrap {
     display: grid;
     gap: 0.75rem;
   }
@@ -780,22 +697,11 @@
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   }
 
-  .phase-card,
   .summary-phase-card {
     padding: 1rem;
     border-radius: 1rem;
     background: rgba(18, 13, 11, 0.62);
     border: 1px solid rgba(255, 212, 165, 0.1);
-  }
-
-  .phase-meta-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .meta-box {
-    padding: 0.85rem;
-    border-radius: 0.9rem;
-    background: rgba(255, 241, 227, 0.05);
   }
 
   .foundation-grid.split {
@@ -812,50 +718,6 @@
   .reason-list {
     margin: 0;
     padding-left: 1.1rem;
-  }
-
-  .checkbox-row {
-    display: flex;
-    gap: 0.6rem;
-    align-items: center;
-    flex-wrap: wrap;
-    color: #fff8f1;
-  }
-
-  .checkbox-row input {
-    width: auto;
-    margin: 0;
-  }
-
-  .help-trigger {
-    display: inline-grid;
-    place-items: center;
-    width: 1.35rem;
-    height: 1.35rem;
-    padding: 0;
-    border-radius: 999px;
-    border: 1px solid rgba(255, 212, 165, 0.24);
-    background: rgba(255, 241, 227, 0.08);
-    color: #ffe2bf;
-    font-size: 0.78rem;
-    font-weight: 700;
-    cursor: help;
-  }
-
-  .help-tooltip {
-    display: none;
-    padding: 0.75rem 0.85rem;
-    border-radius: 0.8rem;
-    background: rgba(14, 10, 9, 0.96);
-    border: 1px solid rgba(255, 212, 165, 0.18);
-    color: rgba(252, 241, 232, 0.92);
-    font-size: 0.88rem;
-    line-height: 1.5;
-  }
-
-  .checkbox-row:has(.help-trigger:hover) + .help-tooltip,
-  .checkbox-row:has(.help-trigger:focus-visible) + .help-tooltip {
-    display: block;
   }
 
   .button-primary,
@@ -876,38 +738,8 @@
     color: #ffe2bf;
   }
 
-  .icon-button {
-    align-items: center;
-    display: inline-flex;
-    justify-content: center;
-    min-width: 2.75rem;
-    padding: 0.8rem;
-  }
-
-  .refresh-icon {
-    display: inline-flex;
-    font-size: 1rem;
-    line-height: 1;
-  }
-
-  .refresh-icon.spinning {
-    animation: rotation 0.8s linear infinite;
-  }
-
-  .sr-only {
-    border: 0;
-    clip: rect(0 0 0 0);
-    height: 1px;
-    margin: -1px;
-    overflow: hidden;
-    padding: 0;
-    position: absolute;
-    width: 1px;
-  }
-
   button:disabled,
-  select:disabled,
-  input:disabled {
+  select:disabled {
     opacity: 0.56;
     cursor: not-allowed;
   }
@@ -933,10 +765,6 @@
     word-break: break-word;
   }
 
-  .warning-text {
-    color: #ffd191;
-  }
-
   .phase-detail-grid {
     padding-top: 0.2rem;
   }
@@ -944,16 +772,6 @@
   .error-text {
     color: #ffb4ab;
     overflow-wrap: anywhere;
-  }
-
-  @keyframes rotation {
-    from {
-      transform: rotate(0deg);
-    }
-
-    to {
-      transform: rotate(360deg);
-    }
   }
 
   @media (max-width: 1080px) {
@@ -964,13 +782,11 @@
 
   @media (max-width: 720px) {
     .section-head,
-    .phase-card-head,
     .create-bar {
       flex-direction: column;
     }
 
-    .foundation-grid.split,
-    .phase-meta-grid {
+    .foundation-grid.split {
       grid-template-columns: minmax(0, 1fr);
     }
 

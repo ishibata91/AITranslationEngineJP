@@ -250,18 +250,18 @@
   }
 
   .provider-settings-card {
-    border: 1px solid rgba(142, 162, 185, 0.16);
+    border: 0.5px solid var(--line, rgba(255, 186, 56, 0.18));
     border-radius: 24px;
-    background:
-      linear-gradient(180deg, rgba(11, 18, 32, 0.94), rgba(7, 11, 20, 0.98));
-    box-shadow: 0 20px 40px rgba(2, 6, 23, 0.18);
+    background: var(--surface, rgba(35, 31, 29, 0.78));
+    box-shadow: var(--shadow, 0 24px 64px rgba(0, 0, 0, 0.42));
+    backdrop-filter: blur(38px);
     padding: 1.5rem;
   }
 
   .provider-layout {
     display: grid;
     gap: 1.5rem;
-    grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 340px) minmax(0, 1fr);
   }
 
   .hero-top,
@@ -270,6 +270,7 @@
   .status-row {
     align-items: center;
     display: flex;
+    flex-wrap: wrap;
     gap: 0.75rem;
     justify-content: space-between;
   }
@@ -280,7 +281,7 @@
 
   .eyebrow,
   .field-label {
-    color: rgba(191, 219, 254, 0.84);
+    color: var(--muted, rgba(216, 195, 174, 0.92));
     font-size: 0.78rem;
     letter-spacing: 0.08em;
     margin: 0 0 0.35rem;
@@ -292,8 +293,9 @@
   .provider-row p,
   .notice-text,
   .error-text {
-    color: rgba(226, 232, 240, 0.86);
+    color: var(--text, rgba(234, 225, 221, 0.92));
     margin: 0.35rem 0 0;
+    overflow-wrap: anywhere;
   }
 
   .provider-list {
@@ -302,8 +304,8 @@
   }
 
   .provider-row {
-    background: rgba(15, 23, 42, 0.88);
-    border: 1px solid rgba(148, 163, 184, 0.18);
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 186, 56, 0.12);
     border-radius: 18px;
     color: inherit;
     cursor: pointer;
@@ -314,8 +316,8 @@
   }
 
   .provider-row.is-selected {
-    border-color: rgba(125, 211, 252, 0.56);
-    box-shadow: 0 0 0 1px rgba(125, 211, 252, 0.26);
+    border-color: var(--line-strong, rgba(255, 186, 56, 0.32));
+    box-shadow: 0 0 0 1px rgba(255, 186, 56, 0.16);
   }
 
   .status-pill {
@@ -328,18 +330,18 @@
 
   .status-accent,
   .tone-success {
-    background: rgba(22, 163, 74, 0.18);
-    color: #bbf7d0;
+    background: rgba(145, 208, 134, 0.16);
+    color: #b8f0ad;
   }
 
   .tone-warning {
-    background: rgba(217, 119, 6, 0.18);
-    color: #fde68a;
+    background: rgba(255, 204, 128, 0.15);
+    color: #ffd191;
   }
 
   .tone-neutral {
-    background: rgba(59, 130, 246, 0.16);
-    color: #bfdbfe;
+    background: rgba(255, 190, 126, 0.14);
+    color: #ffd8ae;
   }
 
   .field-group,
@@ -350,10 +352,10 @@
   }
 
   .text-field {
-    background: rgba(15, 23, 42, 0.9);
-    border: 1px solid rgba(148, 163, 184, 0.24);
+    background: rgba(18, 13, 11, 0.92);
+    border: 1px solid rgba(255, 212, 165, 0.18);
     border-radius: 14px;
-    color: #e2e8f0;
+    color: #fef3e8;
     font: inherit;
     min-height: 2.9rem;
     padding: 0.8rem 0.95rem;
@@ -361,12 +363,13 @@
   }
 
   .api-key-panel {
-    border: 1px solid rgba(148, 163, 184, 0.18);
+    border: 1px solid rgba(255, 212, 165, 0.18);
     border-radius: 18px;
     display: grid;
     gap: 0.85rem;
     margin-top: 0.6rem;
     padding: 1rem;
+    background: rgba(255, 241, 227, 0.05);
   }
 
   .inline-actions,
@@ -390,16 +393,16 @@
   }
 
   .button-primary {
-    background: linear-gradient(135deg, #22c55e, #16a34a);
+    background: linear-gradient(135deg, var(--primary, #ffba38), #f3a114);
     border: none;
-    color: #0b1120;
+    color: #432c00;
     font-weight: 700;
   }
 
   .button-secondary {
-    background: transparent;
-    border: 1px solid rgba(148, 163, 184, 0.28);
-    color: #e2e8f0;
+    background: rgba(255, 241, 227, 0.08);
+    border: 1px solid rgba(255, 212, 165, 0.18);
+    color: #ffe2bf;
   }
 
   .button-primary:disabled,
@@ -411,6 +414,22 @@
   @media (max-width: 840px) {
     .provider-layout {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .provider-settings-card {
+      padding: 1rem;
+    }
+
+    .button-primary,
+    .button-secondary {
+      width: 100%;
+      justify-content: center;
+    }
+
+    .detail-actions {
+      display: grid;
     }
   }
 </style>

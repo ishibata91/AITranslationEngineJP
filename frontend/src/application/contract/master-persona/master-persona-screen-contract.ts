@@ -21,6 +21,7 @@ export interface MasterPersonaScreenControllerContract {
   interruptGeneration(): Promise<void>
   cancelGeneration(): Promise<void>
   saveAISettings(): Promise<void>
+  refreshAISettings?(): Promise<void>
   setAIProvider(event: Event): void
   setAIModel(event: Event): void
   setAIExecutionMethod(event: Event): void

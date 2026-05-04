@@ -70,6 +70,14 @@ function createModelOptions(settings: MasterPersonaAISettings) {
   return [{ modelId: model, label: model }]
 }
 
+function hasPersistedAISettings(settings: MasterPersonaAISettings): boolean {
+  return (
+    settings.provider.trim() !== "" ||
+    settings.model.trim() !== "" ||
+    settings.executionMethod.trim() !== "single_request"
+  )
+}
+
 function isRunActive(runStatus: MasterPersonaRunStatus): boolean {
   return runStatus.runState === "生成中"
 }
@@ -98,6 +106,12 @@ export class MasterPersonaUseCase {
       return
     }
 
+    const currentState = this.store.snapshot()
+    const previousSettings = { ...currentState.aiSettings }
+    const previousModelOptions = currentState.modelOptions.map((option) => ({
+      ...option
+    }))
+
     try {
       const settings = await this.gateway.loadMasterPersonaAISettings()
       const mergedSettings = mergeAISettings(settings)
@@ -105,12 +119,14 @@ export class MasterPersonaUseCase {
         draft.aiSettings = mergedSettings
         draft.aiSettingsMessage = ""
         draft.modelOptions = createModelOptions(mergedSettings)
+        draft.errorMessage = ""
       })
     } catch (error) {
       this.store.update((draft) => {
-        draft.aiSettings =
-          MasterPersonaGateway.createDefaultMasterPersonaAISettings()
-        draft.modelOptions = []
+        if (hasPersistedAISettings(previousSettings)) {
+          draft.aiSettings = previousSettings
+          draft.modelOptions = previousModelOptions
+        }
         draft.errorMessage = toErrorMessage(
           error,
           "AI設定の取得に失敗しました。"

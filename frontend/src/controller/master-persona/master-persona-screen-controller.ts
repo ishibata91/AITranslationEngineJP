@@ -45,6 +45,7 @@ interface MasterPersonaUseCaseLike {
   interruptGeneration(): Promise<void>
   cancelGeneration(): Promise<void>
   saveAISettings(): Promise<void>
+  loadAISettings(): Promise<void>
   setProviderSettingsProvider(provider: string): void
   setProviderSettingsModel(model: string): void
   setProviderSettingsExecutionMethod(executionMethod: string): void
@@ -204,6 +205,10 @@ export class MasterPersonaScreenController implements MasterPersonaScreenControl
 
   async saveAISettings(): Promise<void> {
     await this.dependencies.useCase.saveAISettings()
+  }
+
+  async refreshAISettings(): Promise<void> {
+    await this.dependencies.useCase.loadAISettings()
   }
 
   setAIProvider(event: Event): void {

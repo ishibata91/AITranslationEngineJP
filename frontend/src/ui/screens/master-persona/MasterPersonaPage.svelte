@@ -5,6 +5,7 @@
     CreateMasterPersonaScreenController,
     MasterPersonaScreenControllerContract
   } from "@application/contract/master-persona"
+  import AIModelSelectionCard from "@ui/components/AIModelSelectionCard.svelte"
 
   interface Props {
     createController: CreateMasterPersonaScreenController | null
@@ -23,6 +24,7 @@
 
   const controller = resolveController()
   let viewModel = $state(controller.getViewModel())
+  let isAISettingsRefreshing = $state(false)
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
     viewModel = nextViewModel
@@ -58,6 +60,40 @@
     }
     controller.resetJsonSelection()
   }
+
+  function handleAIProviderChange(event: Event): void {
+    if (isAISettingsRefreshing) {
+      return
+    }
+    controller.setAIProvider(event)
+  }
+
+  function handleAIModelChange(event: Event): void {
+    if (isAISettingsRefreshing) {
+      return
+    }
+    controller.setAIModel(event)
+  }
+
+  function handleAIExecutionMethodChange(event: Event): void {
+    if (isAISettingsRefreshing) {
+      return
+    }
+    controller.setAIExecutionMethod(event)
+  }
+
+  async function refreshAISettings(): Promise<void> {
+    if (!controller.refreshAISettings || isAISettingsRefreshing) {
+      return
+    }
+
+    isAISettingsRefreshing = true
+    try {
+      await controller.refreshAISettings()
+    } finally {
+      isAISettingsRefreshing = false
+    }
+  }
 </script>
 
 <section class="master-persona-shell" id="masterPersonaView">
@@ -89,75 +125,66 @@
 
   <section class="generator-grid">
     <section class="master-persona-panel" aria-labelledby="settingsHeading">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">モデル設定</p>
-          <h3 id="settingsHeading">この画面で使う AI 設定</h3>
+      <AIModelSelectionCard
+        credentialStatusLabel={viewModel.aiSettingsStatusText}
+        credentialStatusTone={viewModel.aiSettingsWarningText ? "warning" : "success"}
+        eyebrow="モデル設定"
+        executionDisabled={isAISettingsRefreshing}
+        executionOptions={viewModel.executionMethodOptions}
+        executionSelectId="executionMethodSelect"
+        executionValue={viewModel.aiSettings.executionMethod}
+        helperText="この画面で使う AI 設定を選びます。"
+        modelDisabled={isAISettingsRefreshing || !viewModel.canSelectModel}
+        modelOptions={viewModel.modelOptions}
+        modelSelectId="modelInput"
+        modelStatusText={viewModel.canSelectModel
+          ? "使うモデルを選んでください。"
+          : "モデル一覧を更新してください。"}
+        modelValue={viewModel.aiSettings.model}
+        onExecutionChange={handleAIExecutionMethodChange}
+        onModelChange={handleAIModelChange}
+        onProviderChange={handleAIProviderChange}
+        onRefresh={() => void refreshAISettings()}
+        providerFieldLabel="AI サービス"
+        providerOptions={[
+          { value: "gemini", label: "Gemini" },
+          { value: "lm_studio", label: "LM Studio" },
+          { value: "xai", label: "xAI" }
+        ]}
+        providerDisabled={isAISettingsRefreshing}
+        providerSelectId="providerSelect"
+        providerValue={viewModel.aiSettings.provider}
+        refreshButtonAriaLabel="モデル一覧を更新"
+        refreshButtonLabel="モデル一覧を更新"
+        refreshDisabled={isAISettingsRefreshing}
+        refreshSpinning={isAISettingsRefreshing}
+        secondaryControlMode="execution-select"
+        showCredentialStatus={true}
+        showCredentialWarning={viewModel.aiSettingsWarningText !== ""}
+        statusLabel={viewModel.aiProviderLabel}
+        statusTone={viewModel.aiSettingsWarningText ? "warning" : "neutral"}
+        title="この画面で使う AI 設定"
+        titleId="settingsHeading"
+        titleTag="h3"
+        emptyModelLabel={viewModel.canSelectModel ? "選んでください" : "設定が必要"}
+      />
+      <div class="settings-summary-band">
+        <div class="settings-summary-copy">
+          <p class="prompt-copy" id="promptTemplateDescription">
+            {viewModel.promptTemplateDescription}
+          </p>
+          {#if viewModel.aiSettingsMessage}
+            <p class="mini-text" id="aiSettingsMessage">
+              {viewModel.aiSettingsMessage}
+            </p>
+          {/if}
+          {#if viewModel.aiProviderLabel}
+            <p class="mini-text">選択中の AI サービス: {viewModel.aiProviderLabel}</p>
+          {/if}
         </div>
-        <span class="status-pill">{viewModel.aiProviderLabel}</span>
-      </div>
-
-      <label class="field-group" for="providerSelect">
-        <span class="field-label">AI サービス</span>
-        <select
-          class="select-field"
-          id="providerSelect"
-          onchange={(event) => controller.setAIProvider(event)}
-          value={viewModel.aiSettings.provider}
-        >
-          <option value="gemini">Gemini</option>
-          <option value="lm_studio">LM Studio</option>
-          <option value="xai">xAI</option>
-        </select>
-      </label>
-
-      <label class="field-group" for="modelInput">
-        <span class="field-label">モデル</span>
-        <select
-          class="select-field"
-          disabled={!viewModel.canSelectModel}
-          id="modelInput"
-          onchange={(event) => controller.setAIModel(event)}
-          value={viewModel.aiSettings.model}
-        >
-          <option value="">
-            {viewModel.canSelectModel ? "選んでください" : "設定が必要"}
-          </option>
-          {#each viewModel.modelOptions as option (option.modelId)}
-            <option value={option.modelId}>{option.label}</option>
-          {/each}
-        </select>
-      </label>
-
-      <label class="field-group" for="executionMethodSelect">
-        <span class="field-label">処理方法</span>
-        <select
-          class="select-field"
-          id="executionMethodSelect"
-          onchange={(event) => controller.setAIExecutionMethod(event)}
-          value={viewModel.aiSettings.executionMethod}
-        >
-          {#each viewModel.executionMethodOptions as option (option.value)}
-            <option value={option.value}>{option.label}</option>
-          {/each}
-        </select>
-      </label>
-
-      <div class="prompt-copy" id="promptTemplateDescription">
-        {viewModel.promptTemplateDescription}
-      </div>
-
-      <div class="inline-actions">
-        <span class="mini-text" id="aiSettingsMessage"
-          >{viewModel.aiSettingsMessage}</span
-        >
-        {#if viewModel.aiSettingsWarningText}
-          <span class="status-pill status-danger">
-            {viewModel.aiSettingsWarningText}
-          </span>
-        {/if}
         <button
-          class="button-secondary"
+          class="button-primary"
+          disabled={isAISettingsRefreshing}
           id="saveAiSettingsButton"
           onclick={() => void controller.saveAISettings()}
           type="button"
@@ -657,6 +684,7 @@
   .overview-panel,
   .generator-grid,
   .workspace-grid,
+  .settings-summary-copy,
   .stats-grid,
   .run-grid,
   .detail-grid,
@@ -801,9 +829,18 @@
   .run-panel,
   .row-cell,
   .pager-shell,
+  .settings-summary-band,
   .form-modal {
     display: grid;
     gap: 10px;
+  }
+
+  .settings-summary-band {
+    background: rgba(255, 255, 255, 0.03);
+    border: 0.5px solid var(--line);
+    border-radius: 14px;
+    margin-top: 14px;
+    padding: 14px;
   }
 
   .textarea-group {
@@ -951,6 +988,13 @@
     .detail-grid,
     .form-grid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (min-width: 901px) {
+    .settings-summary-band {
+      align-items: center;
+      grid-template-columns: minmax(0, 1fr) auto;
     }
   }
 
