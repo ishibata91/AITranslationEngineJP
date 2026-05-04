@@ -1,0 +1,133 @@
+reviewback_version: 1
+task_id: "2026-05-04-master-data-ux-refactor"
+review_yaml_path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "JSON ファイル入力、AI 設定表示、編集削除操作の UI 変更は、secret 本体、保存先、ログ出力先、外部送信先、権限境界を新しく広げていない。外部入力は既存 controller へ File を渡す経路に留まり、画面側で独自の保存、送信、評価実行、HTML 注入を追加していない。"
+  evidence_sufficiency: "十分。指定資料、変更対象 frontend 実コード、変更対象テスト、呼び出し元の検証証跡を確認した。backend と Wails 実行は未確認だが、レビュー対象差分が frontend 表示と controller 委譲に限定されるため判定可能である。"
+  hard_gate: true
+
+checked_scope:
+  summary: "マスターペルソナ生成画面の JSON 入力、AI 設定表示、生成操作、一覧検索、編集削除モーダル、表示抑制テストを権限・信頼境界観点で確認した。"
+  files:
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/ui-design.md"
+      line: 28
+      symbol: "UI Contract / Wording Policy"
+      reason: "Gateway、raw request、raw response、raw prompt を通常表示しない契約を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/ux-implementation-handoff.md"
+      line: 22
+      symbol: "禁止変更範囲"
+      reason: "backend、Wails gateway contract、prototype と mock data の product code 参照禁止を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/frontend-implementation-result.md"
+      line: 7
+      symbol: "public_contract_change"
+      reason: "公開契約変更なしと記録されていることを確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/post-implementation-check.md"
+      line: 21
+      symbol: "検証"
+      reason: "git diff --check と frontend-local の成功証跡を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 58
+      symbol: "handleJsonSelected"
+      reason: "選択された JSON File を controller.stageJsonSelection へ渡すだけで、画面側の保存先や外部送信先を追加していない。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 95
+      symbol: "refreshAISettings"
+      reason: "AI 設定更新は既存 controller へ委譲され、UI 差分内で secret 本体を扱っていない。"
+    - path: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte"
+      line: 59
+      symbol: "AIModelSelectionCard"
+      reason: "AI 設定表示は provider、model、executionMethod、credential status label に限定され、API key や token の表示 props を追加していない。"
+    - path: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte"
+      line: 130
+      symbol: "masterPersonaJsonInput"
+      reason: "JSON 入力は file input の accept 指定と onchange 委譲に留まり、画面側でファイル内容を直接解釈していない。"
+    - path: "frontend/src/ui/screens/master-persona/RunStatusPanel.svelte"
+      line: 57
+      symbol: "interruptGeneration / cancelGeneration"
+      reason: "一時停止と中止は run active 状態で有効になり、外部送信先や権限境界を追加していない。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaReviewPanel.svelte"
+      line: 59
+      symbol: "search and plugin filter"
+      reason: "検索と plugin filter は controller へ event を委譲し、画面側で URL、storage、HTML へ展開していない。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaReviewPanel.svelte"
+      line: 140
+      symbol: "edit / delete buttons"
+      reason: "編集削除操作は viewModel.canMutate で無効化され、生成中ロック表示と矛盾しない。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaActionModal.svelte"
+      line: 66
+      symbol: "edit form"
+      reason: "編集可能フィールドは personaSummary、speechStyle、personaBody に限定され、識別子や権限値の編集欄を追加していない。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaActionModal.svelte"
+      line: 137
+      symbol: "delete confirmation"
+      reason: "削除確認は選択中ペルソナの識別情報表示と controller 委譲に留まり、権限境界や保存先を広げていない。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 949
+      symbol: "通常表示に Gateway と preview 状態を出さない"
+      reason: "内部境界名を通常表示へ出さない回帰確認が追加されている。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 1106
+      symbol: "AI service dropdown"
+      reason: "AI service 選択肢が実 provider 3 件に限定され、fake provider を表示しない確認がある。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 1221
+      symbol: "closed-by-default modal"
+      reason: "編集削除 modal が初期状態で非表示かつ非対話である確認がある。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 1244
+      symbol: "生成中 view model では更新と削除が disabled"
+      reason: "生成中の編集削除禁止がテストされている。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 1280
+      symbol: "page-local AI settings"
+      reason: "画面内 AI 設定が他画面へ漏れない確認がある。"
+
+unchecked_scope:
+  - target: "Wails 実プロダクト画面"
+    reason: "呼び出し元の post-implementation-check で未実施と記録されている。レビュー指示では広い harness と実行確認の再実行が禁止されている。"
+    risk: "実 AppShell 上の余白や実行時 wiring 由来の表示差分が残る可能性はある。ただし権限・信頼境界の拡大根拠には直結しない。"
+  - target: "backend / Wails gateway 内部"
+    reason: "レビュー対象が frontend 実装であり、指定変更ファイルに backend と gateway contract の変更が含まれない。"
+    risk: "既存 controller 側の JSON 検証や保存先の欠陥は本レビューの主判定外である。今回差分が新規に広げた境界としては確認していない。"
+  - target: "390px 幅の実描画"
+    reason: "呼び出し元の post-implementation-check で未実施と記録されている。"
+    risk: "表示崩れにより長いファイル名やエラー文が読みにくくなる可能性はある。secret や権限境界の漏えいリスクは低い。"
+
+issues: []
+
+trust_boundary_checks:
+  authentication: "対象差分は画面内表示と controller 委譲のみで、未認証利用者向けの新規到達経路を追加していない。"
+  authorization: "編集削除は viewModel.canMutate に従って無効化され、画面側で権限判定を迂回する別経路を追加していない。"
+  tenant_isolation: "tenant 概念を扱う差分はない。plugin filter と identityKey は既存 controller 経路へ委譲される。"
+  external_input: "JSON file input、検索語、plugin filter、編集 textarea/input は Svelte の通常バインディングと controller 委譲に留まる。{@html}、innerHTML、fetch、localStorage、sessionStorage、console 出力は対象 UI 差分に存在しない。"
+  secret_pii: "AI 設定表示は provider、model、executionMethod、credential status label に限定され、API key、token、secret 本体の表示、保存、ログ出力を追加していない。"
+  injection: "対象 UI 差分に HTML 注入、URL 組み立て、外部 URL 呼び出し、SQL 生成、SSRF 経路、ファイル内容の直接解釈は見当たらない。"
+
+secret_checks:
+  destinations: "secret 本体の新規送信先は追加されていない。AI 設定操作は既存 controller.saveAISettings と refreshAISettings に委譲される。"
+  display: "表示される AI 設定は provider、model、executionMethod、status label であり、secret 本体は表示されない。"
+  storage: "UI 差分内に localStorage、sessionStorage、IndexedDB、直接ファイル保存は追加されていない。"
+  logging: "対象 UI 差分に console、log、error summary への secret 出力は追加されていない。"
+  naming_separation: "credentialStatusLabel は状態表示として使われ、api_key、token、secret_ref と secret 本体の同名混在は見当たらない。"
+
+violated_invariants: []
+cause_candidates: []
+local_fix_assessment: "未解決指摘なし。局所修正評価は不要。"
+invariant_test_viewpoints:
+  - "通常表示に Gateway と preview 状態を出さない確認は継続する。"
+  - "生成中は編集削除が disabled になる確認は継続する。"
+  - "画面内 AI 設定が他画面へ漏れない確認は継続する。"
+
+verification_evidence:
+  - command: "git diff --check"
+    result: "success"
+    evidence_ref: "user input / post-implementation-check.md"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "success"
+    evidence_ref: "user input / post-implementation-check.md"

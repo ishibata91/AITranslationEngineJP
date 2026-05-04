@@ -1,0 +1,45 @@
+{
+  "aiProviders": [
+    { "value": "gemini", "label": "Gemini" },
+    { "value": "lm_studio", "label": "LM Studio" },
+    { "value": "xai", "label": "xAI" }
+  ],
+  "executionMethods": [
+    { "value": "single_request", "label": "通常処理" },
+    { "value": "batch", "label": "一括処理" }
+  ],
+  "models": [
+    { "modelId": "gemini-2.5-flash", "label": "gemini-2.5-flash" },
+    { "modelId": "gemini-2.5-pro", "label": "gemini-2.5-pro" },
+    { "modelId": "local-qwen3-14b", "label": "local-qwen3-14b" }
+  ],
+  "personaPage": {
+    "totalCount": 4280,
+    "pageSize": 50,
+    "currentPage": 1
+  },
+  "personas": [
+    {
+      "identityKey": "skyrim.esm:00013BB9",
+      "displayName": "バルグルーフ首長",
+      "targetPlugin": "Skyrim.esm",
+      "formId": "00013BB9",
+      "editorId": "Balgruuf",
+      "voiceType": "MaleNordCommander",
+      "personaSummary": "ホワイトランを守る現実主義の首長。",
+      "personaBody": "民を守る責任を最優先する。政治判断では慎重だが、必要な時は自分で決断する。",
+      "speechStyle": "重みのある短い言い回し"
+    },
+    {
+      "identityKey": "skyrim.esm:0001A696",
+      "displayName": "ファレンガー",
+      "targetPlugin": "Skyrim.esm",
+      "formId": "0001A696",
+      "editorId": "FarengarSecretFire",
+      "voiceType": "MaleEvenToned",
+      "personaSummary": "研究を優先する宮廷魔術師。",
+      "personaBody": "知識と実験を重んじる。会話では相手の都合より研究価値を先に見る。",
+      "speechStyle": "説明的で少し急かす"
+    }
+  ]
+}

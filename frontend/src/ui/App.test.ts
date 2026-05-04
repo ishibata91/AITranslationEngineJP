@@ -922,6 +922,149 @@ describe("App master persona screen", () => {
     ).toBeInTheDocument()
   })
 
+  test("hero title と主要 CTA を公開文言で表示する", () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        canStartGeneration: true,
+        selectedFileReference: "/tmp/master-persona.json"
+      })
+    )
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: "マスターペルソナ作成" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("ペルソナを作成")
+    ).toBeInTheDocument()
+  })
+
+  test("通常表示に Gateway と preview 状態を出さない", () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake()
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    expect(screen.queryByText(/Gateway/i)).not.toBeInTheDocument()
+    expect(screen.queryByText("preview 状態")).not.toBeInTheDocument()
+  })
+
+  test("一覧初期表示はプラグイン名と NPC 名中心で不要列を行に出さない", () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        items: [
+          {
+            identityKey: "FollowersPlus.esp:FE01A812:NPC_",
+            targetPlugin: "FollowersPlus.esp",
+            formId: "FE01A812",
+            recordType: "NPC_",
+            editorId: "FP_LysMaren",
+            displayName: "Lys Maren",
+            voiceType: "FemaleYoungEager",
+            className: "FPScoutClass",
+            sourcePlugin: "Skyrim.esm",
+            personaSummary: "乾いた率直さで応じる。",
+            updatedAt: "2026-04-15T09:42:00Z"
+          }
+        ],
+        selectedEntry: {
+          identityKey: "FollowersPlus.esp:FE01A812:NPC_",
+          targetPlugin: "FollowersPlus.esp",
+          formId: "FE01A812",
+          recordType: "NPC_",
+          editorId: "FP_LysMaren",
+          displayName: "Lys Maren",
+          voiceType: "FemaleYoungEager",
+          className: "FPScoutClass",
+          sourcePlugin: "Skyrim.esm",
+          personaSummary: "乾いた率直さで応じる。",
+          updatedAt: "2026-04-15T09:42:00Z",
+          personaBody: "短く本音を置く。",
+          runLockReason: "更新と削除を行えます"
+        } as MasterPersonaDetail
+      })
+    )
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    const listHeading = screen.getByRole("heading", {
+      level: 3,
+      name: "ペルソナ一覧"
+    })
+    const listSection = listHeading.closest("section")
+    if (!(listSection instanceof HTMLElement)) {
+      throw new Error("ペルソナ一覧 section が見つかりません")
+    }
+    const listQuery = within(listSection)
+    expect(listQuery.getByText("FollowersPlus.esp")).toBeInTheDocument()
+    expect(listQuery.getByText("Lys Maren")).toBeInTheDocument()
+    expect(listQuery.queryByText("FPScoutClass")).not.toBeInTheDocument()
+    expect(listQuery.queryByText("Skyrim.esm")).not.toBeInTheDocument()
+    expect(listQuery.queryByText("乾いた率直さで応じる。")).not.toBeInTheDocument()
+  })
+
+  test("編集モーダルの公開ラベルを維持する", () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        modalState: "edit"
+      })
+    )
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "ペルソナを編集" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "編集内容を保存" })
+    ).toBeInTheDocument()
+  })
+
+  test("削除モーダルの公開ラベルを維持する", () => {
+    const masterPersonaController = new MasterPersonaScreenControllerFake(
+      buildMasterPersonaScreenViewModel({
+        modalState: "delete"
+      })
+    )
+
+    render(App, {
+      props: {
+        createMasterDictionaryScreenController: () =>
+          new MasterDictionaryScreenControllerFake(),
+        createMasterPersonaScreenController: () => masterPersonaController
+      }
+    })
+
+    expect(
+      screen.getByRole("heading", { level: 3, name: "ペルソナを削除しますか" })
+    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "削除する" })).toBeInTheDocument()
+  })
+
   test("render 時に master persona controller.mount を呼ぶ", async () => {
     const masterPersonaController = new MasterPersonaScreenControllerFake()
 
@@ -1128,7 +1271,7 @@ describe("App master persona screen", () => {
     })
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: "更新" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "編集" })).toBeDisabled()
       expect(screen.getByRole("button", { name: "削除" })).toBeDisabled()
       expect(screen.getAllByText("更新と削除を行えません")).toHaveLength(2)
     })
@@ -1340,7 +1483,7 @@ describe("App master persona screen", () => {
     })
   })
 
-  test("persona-generation-cutover: この JSON で生成 ボタンをクリックすると controller.executeGeneration を呼ぶ", async () => {
+  test("persona-generation-cutover: ペルソナを作成 ボタンをクリックすると controller.executeGeneration を呼ぶ", async () => {
     // Arrange
     const user = userEvent.setup()
     const masterPersonaController = new MasterPersonaScreenControllerFake(
@@ -1359,7 +1502,7 @@ describe("App master persona screen", () => {
 
     // Act
     const generateButton = await screen.findByRole("button", {
-      name: "この JSON で生成"
+      name: "ペルソナを作成"
     })
     await user.click(generateButton)
 
@@ -1367,7 +1510,7 @@ describe("App master persona screen", () => {
     expect(masterPersonaController.executeGeneration).toHaveBeenCalledTimes(1)
   })
 
-  test("persona-generation-cutover: isRunActive false のとき 一時停止 と 停止 ボタンは disabled", async () => {
+  test("persona-generation-cutover: isRunActive false のとき 一時停止 と 中止 ボタンは disabled", async () => {
     // Arrange
     const masterPersonaController = new MasterPersonaScreenControllerFake(
       buildMasterPersonaScreenViewModel({ isRunActive: false })
@@ -1383,11 +1526,11 @@ describe("App master persona screen", () => {
     // Assert
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "一時停止" })).toBeDisabled()
-      expect(screen.getByRole("button", { name: "停止" })).toBeDisabled()
+      expect(screen.getByRole("button", { name: "中止" })).toBeDisabled()
     })
   })
 
-  test("persona-generation-cutover: isRunActive true のとき 一時停止 と 停止 ボタンは enabled", async () => {
+  test("persona-generation-cutover: isRunActive true のとき 一時停止 と 中止 ボタンは enabled", async () => {
     // Arrange
     const masterPersonaController = new MasterPersonaScreenControllerFake(
       buildMasterPersonaScreenViewModel({
@@ -1418,7 +1561,7 @@ describe("App master persona screen", () => {
       expect(
         screen.getByRole("button", { name: "一時停止" })
       ).not.toBeDisabled()
-      expect(screen.getByRole("button", { name: "停止" })).not.toBeDisabled()
+      expect(screen.getByRole("button", { name: "中止" })).not.toBeDisabled()
     })
   })
 

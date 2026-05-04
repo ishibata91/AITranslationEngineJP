@@ -1,0 +1,106 @@
+reviewback_version: 1
+task_id: "2026-05-04-master-data-ux-refactor"
+review_yaml_path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "主要経路は承認済み UI 改善契約に一致する。画面目的、主要 CTA、通常表示からの内部語削除、一覧情報削減、詳細確認、編集削除モーダル、補助操作の公開操作名を実コードで確認した。`behavior-001` の旧 accessible name 残存は修正済みである。"
+  evidence_sufficiency: "不足だが判定可能。実コード、承認済み UI 契約、reviewfix 証跡、呼び出し元から渡された frontend-local 成功証跡を確認した。Wails 実画面、390px 実描画、AppShell 余白は未確認である。"
+
+checked_scope:
+  summary: "マスターペルソナ生成画面の UI 契約と frontend 実装を照合し、目的文、主要操作、状態表示、一覧、詳細、編集削除モーダル、単体テスト証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/ui-design.md"
+      line: 15
+      symbol: "UI Contract"
+      reason: "承認済み UI 改善契約の目的、主要 CTA、補助操作、表示削減、文言方針を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/human-ui-review.md"
+      line: 31
+      symbol: "レビュー結果"
+      reason: "人間 UI レビューが承認済みで、追加表示項目を採用しない判断を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/frontend-implementation-result.md"
+      line: 18
+      symbol: "実装内容"
+      reason: "実装 agent が主張する変更内容と未確認事項を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/unit-test-result.md"
+      line: 13
+      symbol: "証明済み公開振る舞い"
+      reason: "公開文言、内部語非表示、一覧情報削減、モーダル表示の単体テスト証跡を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/post-implementation-check.md"
+      line: 17
+      symbol: "検証"
+      reason: "呼び出し元から渡された検証証跡と未確認事項を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/reviewfix.behavior-001.md"
+      line: 9
+      symbol: "修正内容"
+      reason: "`behavior-001` の修正内容、旧 accessible name の削除、frontend-local 成功証跡を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 128
+      symbol: "MasterPersonaPage"
+      reason: "画面全体の目的表示、各画面専用部品への接続、controller 操作の接続を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte"
+      line: 48
+      symbol: "GenerationSetupPanel"
+      reason: "JSON 選択、候補数、新規作成数、既存スキップ数、主要 CTA、AI 設定表示を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/RunStatusPanel.svelte"
+      line: 20
+      symbol: "RunStatusPanel"
+      reason: "生成状態、進捗、件数、一時停止、中止、生成中の編集不可説明を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaReviewPanel.svelte"
+      line: 48
+      symbol: "PersonaReviewPanel"
+      reason: "一覧の表示項目削減、ページ操作、詳細、編集削除操作を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaActionModal.svelte"
+      line: 37
+      symbol: "PersonaActionModal"
+      reason: "編集モーダルと削除モーダルの公開文言、入力欄、削除確認内容を確認した。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 925
+      symbol: "App master persona screen tests"
+      reason: "主要 CTA、内部語非表示、一覧情報削減、モーダル公開ラベルの単体テストを確認した。"
+
+unchecked_scope:
+  - target: "Wails 実プロダクト画面"
+    reason: "呼び出し元の証跡で未実施と記録されており、広い harness 再実行は禁止されている。"
+    risk: "AppShell 組み込み後の余白、実データ、Wails bridge 経由の描画差分は残る。"
+  - target: "390px 幅の実描画"
+    reason: "post-implementation-check と unit-test-result で未確認と記録されている。"
+    risk: "長いファイル名、長い NPC 名、長い本文の実表示崩れは残る。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "補助操作の accessible name が承認済み文言とずれる"
+    problem: "解決済み。表示上は `編集` と `中止` だが、旧実装では `aria-label` により支援技術向けの操作名が `更新` と `停止` になっていた。現実装では旧 `aria-label` が削除され、ボタン本文の `編集` と `中止` が公開操作名になる。"
+    reason: "UI 改善契約は補助操作として `編集` と `中止` を指定している。現実装の対象ボタンには旧 `aria-label` がなく、App.test.ts の master-persona 期待値も `編集` と `中止` に更新されているため、承認済み文言との差分は残っていない。"
+    violated_condition: "承認済み UI 改善契約の文言方針と補助操作名。"
+    cause_candidate: "旧 UI 互換の accessible name が残っていた。現実装では対象 2 ボタンから旧 `aria-label` が削除され、単体テスト期待値も新しい公開操作名へ更新された。"
+    evidence:
+      - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/ui-design.md"
+        line: 22
+        excerpt: "secondary_actions は `一時停止`、`中止`、`編集`、`削除` を指定している。"
+      - path: "frontend/src/ui/screens/master-persona/RunStatusPanel.svelte"
+        line: 67
+        excerpt: "`中止` ボタンに旧 `aria-label=\"停止\"` はなく、ボタン本文が `中止` である。"
+      - path: "frontend/src/ui/screens/master-persona/PersonaReviewPanel.svelte"
+        line: 141
+        excerpt: "`編集` ボタンに旧 `aria-label=\"更新\"` はなく、ボタン本文が `編集` である。"
+      - path: "frontend/src/ui/App.test.ts"
+        line: 1274
+        excerpt: "編集ボタンの accessible name 期待値が `編集` である。"
+      - path: "frontend/src/ui/App.test.ts"
+        line: 1529
+        excerpt: "中止ボタンの accessible name 期待値が `中止` である。"
+      - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/reviewfix.behavior-001.md"
+        line: 17
+        excerpt: "frontend-local と frontend test が成功し、旧 accessible name が master-persona 画面配下に残っていないと記録されている。"
+    local_fix_assessment: "local"
+    additional_check_scope: "none。対象 2 ボタンの実コード、master-persona 画面の role/name テスト、旧 `aria-label` 検索を確認済みである。"
+    fix_considerations: "解決済み。今後同じ補助操作を変更する場合も、表示文言と accessible name を同じ操作語へ揃える。"
+    verification: "`git diff --check -- frontend/src/ui/screens/master-persona/RunStatusPanel.svelte frontend/src/ui/screens/master-persona/PersonaReviewPanel.svelte frontend/src/ui/App.test.ts` 成功。`python3 scripts/harness/run.py --suite frontend-local` 成功。frontend test は `42 passed (files) / 421 passed (tests)`。"
+    fix_required: true
+    status: "resolved"

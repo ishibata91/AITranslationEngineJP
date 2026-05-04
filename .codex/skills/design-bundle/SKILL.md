@@ -95,7 +95,7 @@ frontend 実装がある task では、承認済み UI 設計成果物を implem
 ## 非対象規約
 
 - 作業流れ順序決定、作業計画フォルダ進行管理、作業前確認は扱わない。
-- 実画面 observation、docs 正本化、プロダクト実装は扱わない。
+- `ui-design` の実画面確認を除く 実画面 observation、docs 正本化、プロダクト実装は扱わない。
 - ツール権限、agent 実行定義、プロダクト仕様正本は変更しない。
 
 ## 出力規約
@@ -126,7 +126,7 @@ frontend 実装がある task では、承認済み UI 設計成果物を implem
 - シナリオ 候補成果物 が不足する場合は、`implement_lane` に戻し、候補生成器の不足を解消してから再開する。
 - 作業流れ 順序決定 や 作業計画フォルダ進行管理 が主目的なら `implement_lane` へ戻す。
 - 作業前の影響範囲、実行計画、検証方法の確認が不足する場合は `implement_lane` へ戻す。
-- 実画面 observation が必要なら `investigator` を使う前提で `implement_lane` へ戻す。
+- `ui-design` の範囲外で実画面 observation が必要なら `investigator` を使う前提で `implement_lane` へ戻す。
 - docs 正本化が必要なら人間承認後に `docs_updater` を使う前提で `implement_lane` へ戻す。
 - プロダクト 実装が必要なら `implement_lane` へ戻し、人間向け Codex implementation レーン 引き継ぎ の扱いを判断させる。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

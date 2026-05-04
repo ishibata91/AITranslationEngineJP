@@ -39,6 +39,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - UIプロトタイプ雛形: [prototype/index.svelte](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/assets/prototype/index.svelte)
 - UIプロトタイプ確認サーバー: [serve-prototype.mjs](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/scripts/dev/serve-prototype.mjs)
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md)
+- アプリ起動 command 権限: [default.rules](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/rules/default.rules)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -53,6 +54,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - UIプロトタイプの主要導線、画面切り替え、情報密度、入力と結果の見え方
 - UIプロトタイプ確認サーバーの URL、起動 command、人間確認中の起動状態
 - `agent-browser` による task-local UIプロトタイプの UX 標準確認結果
+- アプリ起動後の実画面 URL、確認 command、実画面と UI 要件契約の差分
 - task-local UIプロトタイプ内の `mock-data/` とモックデータ移植禁止範囲
 - 読み込み中、空、エラー、無効、進行中、再試行、成功
 - デスクトップ / モバイルで破綻してはいけない条件と実装後確認観点
@@ -110,6 +112,9 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - 人間確認中の UI 指摘は、起動中の `designer` agent が直接受け取り、`ui-design.md` と task-local UIプロトタイプへ反映する
 - 人間レビュー記録には確認 URL と起動 command を残す
 - `agent-browser` 確認では `docs/references/agent-browser.md` に従い、`open`、`snapshot`、`errors`、`screenshot`、`close` を必要に応じて使う
+- 実画面確認が UI 設計根拠に必要な場合は、`designer.toml` の実行境界に従ってアプリを起動し、`agent-browser` で実画面を確認する
+- 実画面確認は既存表示、既存導線、既存状態、UI 要件契約との差分を確認するために限る
+- 実画面確認でプロダクト不具合または実装時調査が必要になった場合は、`ui-design.md` に根拠を残して `implement_lane` へ戻す
 - UIプロトタイプは task-local 確認用とし、docs 正本へ昇格しない
 - UIプロトタイプは本番実装ではなく、人間承認後に implementation lane が反映する設計成果物として扱う
 - 本番コードから UIプロトタイプを参照してはいけない
@@ -147,6 +152,7 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - 確認対象画面一覧: UIプロトタイプで切り替えて確認する画面名と確認順を返す。
 - UIプロトタイプ確認サーバー: 確認 URL、起動 command、人間確認中の起動要否を返す。
 - 確認結果: `ui-design.md` の agent-browser 確認結果を返す。
+- 実画面確認結果: アプリ起動 command、確認 URL、実画面確認の根拠、UI 要件契約との差分を返す。
 - 操作確認結果: 主要操作後の画面変化、状態切り替え、未確認理由を返す。
 - 表示文言レビュー結果: `agent-browser` 確認後に行った表示文言レビューの判定を返す。
 - 不足情報: UI 要件契約を固定できない不足項目を返す。
@@ -172,6 +178,7 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - task-local UIプロトタイプを作る場合は、人間確認中の `designer` agent 継続要否と、人間レビュー終了後の終了状態を `ui-design.md` に含めている。
 - task-local UIプロトタイプを作る場合は、モックデータが `mock-data/` または `data-ui-prototype-sample-data-root` の範囲に置かれている。
 - `ui-design.md` は `agent-browser` で確認した URL、起動 command、人間確認中の起動状態、画面サイズ、UX 標準確認結果、問題、未確認理由を含んでいる。
+- 実画面確認を行った場合は、`ui-design.md` にアプリ起動 command、確認 URL、確認した画面、UI 要件契約との差分、未解決事項を含んでいる。
 - `ui-design.md` は `agent-browser` 確認後の表示文言レビュー結果を含んでいる。
 - 表示文言レビューは、固定名以外の画面表示文言が日本語の業務語になっているかを確認している。
 - 表示文言レビューは、内部状態名が画面に出ず、利用者の次操作を示す文へ変換されているかを確認している。
@@ -183,6 +190,7 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - プロダクト frontend コードを実装する時
 - docs 正本へ UI 仕様を反映するだけの時
 - UIプロトタイプを `agent-browser` で確認できない場合は未実行理由を返して停止する。
+- 実画面確認が UI 設計完了に必要で、アプリ起動または `agent-browser` 確認ができない場合は未実行理由を返して停止する。
 - UIプロトタイプの土台が不明な場合は停止する。
 - 既存画面変更の UIプロトタイプで、既存画面リソースを再利用できない場合は停止する。
 - 既存画面変更の UIプロトタイプで、独自の新規見た目体系を追加する必要がある場合は停止する。

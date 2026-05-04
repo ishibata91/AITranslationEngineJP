@@ -3,9 +3,14 @@
 
   import type {
     CreateMasterPersonaScreenController,
+    MasterPersonaEditableFieldMap,
     MasterPersonaScreenControllerContract
-  } from "@application/contract/master-persona"
-  import AIModelSelectionCard from "@ui/components/AIModelSelectionCard.svelte"
+  } from "@application/contract/master-persona/master-persona-screen-contract"
+
+  import GenerationSetupPanel from "./GenerationSetupPanel.svelte"
+  import PersonaActionModal from "./PersonaActionModal.svelte"
+  import PersonaReviewPanel from "./PersonaReviewPanel.svelte"
+  import RunStatusPanel from "./RunStatusPanel.svelte"
 
   interface Props {
     createController: CreateMasterPersonaScreenController | null
@@ -37,6 +42,11 @@
       controller.dispose()
     }
   })
+
+  const noticeText = $derived(
+    viewModel.errorMessage || viewModel.aiSettingsMessage || ""
+  )
+  const noticeTone = $derived(viewModel.errorMessage ? "error" : "info")
 
   function chooseJsonFile(): void {
     const input = document.getElementById("masterPersonaJsonInput")
@@ -94,921 +104,180 @@
       isAISettingsRefreshing = false
     }
   }
+
+  function selectPersonaRow(identityKey: string): void {
+    void controller.selectRow(identityKey)
+  }
+
+  function updateKeyword(event: Event): void {
+    controller.handleSearchInput(event)
+  }
+
+  function updatePluginFilter(event: Event): void {
+    controller.handlePluginFilterChange(event)
+  }
+
+  function updateEditFormField(
+    field: keyof MasterPersonaEditableFieldMap,
+    event: Event
+  ): void {
+    controller.setEditFormField(field, event)
+  }
 </script>
 
 <section class="master-persona-shell" id="masterPersonaView">
-  <section class="master-persona-panel overview-panel">
-    <div class="hero-top">
-      <div>
-        <p class="eyebrow">AI生成</p>
-        <h2>JSONから NPC ペルソナを生成</h2>
-      </div>
-      <div class="status-row">
-        <span class="status-pill status-accent"
-          >{viewModel.runStatus.runState}</span
-        >
-        <span class="status-pill">Gateway: {viewModel.gatewayStatus}</span>
-      </div>
+  <section class="hero-panel" aria-labelledby="masterPersonaHeading">
+    <div class="hero-copy">
+      <p class="eyebrow">生成準備</p>
+      <h1 id="masterPersonaHeading">マスターペルソナ作成</h1>
+      <p class="lead">
+        ベースゲームや大型 Mod の NPC を対象に、翻訳前の準備として
+        ペルソナをまとめて作成します。作成後は一覧と詳細で同じ画面から確認できます。
+      </p>
     </div>
-    <p class="lead">
-      extractData.pas JSON
-      を入力にして、未生成のマスターペルソナだけを追加します。
+    <span class="hero-status" role="status">{viewModel.runStatus.runState}</span>
+  </section>
+
+  {#if noticeText}
+    <p class:notice-error={noticeTone === "error"} class="notice-banner" role="status">
+      {noticeText}
     </p>
-    <p
-      class="error-text"
-      hidden={!viewModel.errorMessage}
-      id="masterPersonaError"
-    >
-      {viewModel.errorMessage}
-    </p>
-  </section>
+  {/if}
 
-  <section class="generator-grid">
-    <section class="master-persona-panel" aria-labelledby="settingsHeading">
-      <AIModelSelectionCard
-        credentialStatusLabel={viewModel.aiSettingsStatusText}
-        credentialStatusTone={viewModel.aiSettingsWarningText ? "warning" : "success"}
-        eyebrow="モデル設定"
-        executionDisabled={isAISettingsRefreshing}
-        executionOptions={viewModel.executionMethodOptions}
-        executionSelectId="executionMethodSelect"
-        executionValue={viewModel.aiSettings.executionMethod}
-        helperText="この画面で使う AI 設定を選びます。"
-        modelDisabled={isAISettingsRefreshing || !viewModel.canSelectModel}
-        modelOptions={viewModel.modelOptions}
-        modelSelectId="modelInput"
-        modelStatusText={viewModel.canSelectModel
-          ? "使うモデルを選んでください。"
-          : "モデル一覧を更新してください。"}
-        modelValue={viewModel.aiSettings.model}
-        onExecutionChange={handleAIExecutionMethodChange}
-        onModelChange={handleAIModelChange}
-        onProviderChange={handleAIProviderChange}
-        onRefresh={() => void refreshAISettings()}
-        providerFieldLabel="AI サービス"
-        providerOptions={[
-          { value: "gemini", label: "Gemini" },
-          { value: "lm_studio", label: "LM Studio" },
-          { value: "xai", label: "xAI" }
-        ]}
-        providerDisabled={isAISettingsRefreshing}
-        providerSelectId="providerSelect"
-        providerValue={viewModel.aiSettings.provider}
-        refreshButtonAriaLabel="モデル一覧を更新"
-        refreshButtonLabel="モデル一覧を更新"
-        refreshDisabled={isAISettingsRefreshing}
-        refreshSpinning={isAISettingsRefreshing}
-        secondaryControlMode="execution-select"
-        showCredentialStatus={true}
-        showCredentialWarning={viewModel.aiSettingsWarningText !== ""}
-        statusLabel={viewModel.aiProviderLabel}
-        statusTone={viewModel.aiSettingsWarningText ? "warning" : "neutral"}
-        title="この画面で使う AI 設定"
-        titleId="settingsHeading"
-        titleTag="h3"
-        emptyModelLabel={viewModel.canSelectModel ? "選んでください" : "設定が必要"}
-      />
-      <div class="settings-summary-band">
-        <div class="settings-summary-copy">
-          <p class="prompt-copy" id="promptTemplateDescription">
-            {viewModel.promptTemplateDescription}
-          </p>
-          {#if viewModel.aiSettingsMessage}
-            <p class="mini-text" id="aiSettingsMessage">
-              {viewModel.aiSettingsMessage}
-            </p>
-          {/if}
-          {#if viewModel.aiProviderLabel}
-            <p class="mini-text">選択中の AI サービス: {viewModel.aiProviderLabel}</p>
-          {/if}
-        </div>
-        <button
-          class="button-primary"
-          disabled={isAISettingsRefreshing}
-          id="saveAiSettingsButton"
-          onclick={() => void controller.saveAISettings()}
-          type="button"
-        >
-          設定を保存
-        </button>
-      </div>
-    </section>
+  <GenerationSetupPanel
+    {handleAIExecutionMethodChange}
+    {handleAIModelChange}
+    {handleAIProviderChange}
+    {handleJsonSelected}
+    {isAISettingsRefreshing}
+    {refreshAISettings}
+    {resetJsonSelection}
+    {viewModel}
+    chooseJsonFile={chooseJsonFile}
+    saveAISettings={() => void controller.saveAISettings()}
+    startGeneration={() => void controller.executeGeneration()}
+  />
 
-    <section class="master-persona-panel" aria-labelledby="previewHeading">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">入力ファイル</p>
-          <h3 id="previewHeading">{viewModel.selectedFileName}</h3>
-        </div>
-        <div class="inline-actions compact-actions">
-          <button
-            class="button-secondary"
-            id="chooseJsonButton"
-            onclick={chooseJsonFile}
-            type="button"
-          >
-            JSON を選ぶ
-          </button>
-          <button
-            class="button-secondary"
-            disabled={!viewModel.canStartPreview}
-            id="resetJsonButton"
-            onclick={resetJsonSelection}
-            type="button"
-          >
-            選び直す
-          </button>
-        </div>
-      </div>
+  <RunStatusPanel
+    {viewModel}
+    cancelGeneration={() => void controller.cancelGeneration()}
+    interruptGeneration={() => void controller.interruptGeneration()}
+  />
 
-      <input
-        accept=".json,application/json"
-        class="file-input"
-        id="masterPersonaJsonInput"
-        onchange={handleJsonSelected}
-        type="file"
-      />
+  <PersonaReviewPanel
+    {viewModel}
+    editCurrent={() => controller.openEditModal()}
+    goToNextPage={() => controller.goToNextPage()}
+    goToPrevPage={() => controller.goToPrevPage()}
+    openDelete={() => controller.openDeleteModal()}
+    selectRow={selectPersonaRow}
+    {updateKeyword}
+    {updatePluginFilter}
+  />
 
-      <div class="stats-grid" id="previewStats">
-        <article class="stat-card">
-          <span class="field-label">候補数</span>
-          <strong>{viewModel.preview?.candidateCount ?? 0}</strong>
-        </article>
-        <article class="stat-card">
-          <span class="field-label">新規追加可能</span>
-          <strong>{viewModel.preview?.newlyAddableCount ?? 0}</strong>
-        </article>
-        <article class="stat-card">
-          <span class="field-label">既存</span>
-          <strong>{viewModel.preview?.existingCount ?? 0}</strong>
-        </article>
-      </div>
-
-      <div class="status-row preview-actions">
-        <div class="inline-actions compact-actions">
-          <span class="status-pill">作成済みのペルソナはスキップされます</span>
-          <span class="status-pill"
-            >preview 状態: {viewModel.preview?.status ?? "入力待ち"}</span
-          >
-        </div>
-        <div class="inline-actions compact-actions">
-          <button
-            class="button-secondary"
-            disabled={!viewModel.canStartPreview}
-            id="previewButton"
-            onclick={() => void controller.previewGeneration()}
-            type="button"
-          >
-            preview を更新
-          </button>
-          <button
-            class="button-primary"
-            disabled={!viewModel.canStartGeneration}
-            id="executeGenerationButton"
-            onclick={() => void controller.executeGeneration()}
-            type="button"
-          >
-            この JSON で生成
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section
-      class="master-persona-panel run-panel"
-      aria-labelledby="runHeading"
-    >
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">進行状況</p>
-          <h3 id="runHeading">{viewModel.runStatus.message}</h3>
-        </div>
-        <span class="status-pill status-danger">{viewModel.detailLockText}</span
-        >
-      </div>
-
-      <div class="progress-track">
-        <div
-          class="progress-fill"
-          id="runProgressFill"
-          style={`width: ${viewModel.progressPercent}%;`}
-        ></div>
-      </div>
-
-      <div class="run-grid">
-        <div class="run-card">
-          <span class="field-label">完了件数</span>
-          <strong>{viewModel.runStatus.processedCount}</strong>
-        </div>
-        <div class="run-card">
-          <span class="field-label">いま処理中の NPC</span>
-          <strong>{viewModel.runStatus.currentActorLabel || "-"}</strong>
-        </div>
-        <div class="run-card">
-          <span class="field-label">現在の状態</span>
-          <strong>{viewModel.runStatus.runState}</strong>
-        </div>
-      </div>
-
-      <div class="status-row">
-        <span class="status-pill"
-          >作成済み {viewModel.runStatus.successCount}</span
-        >
-        <span class="status-pill"
-          >既に作成済み {viewModel.runStatus.existingSkipCount}</span
-        >
-      </div>
-
-      <div class="inline-actions run-actions">
-        <span class="mini-text">一覧と詳細は見続けられます。</span>
-        <div class="inline-actions compact-actions">
-          <button
-            class="button-secondary"
-            disabled={!viewModel.isRunActive}
-            id="interruptGenerationButton"
-            onclick={() => void controller.interruptGeneration()}
-            type="button"
-          >
-            一時停止
-          </button>
-          <button
-            class="button-secondary"
-            disabled={!viewModel.isRunActive}
-            id="cancelGenerationButton"
-            onclick={() => void controller.cancelGeneration()}
-            type="button"
-          >
-            停止
-          </button>
-        </div>
-      </div>
-    </section>
-  </section>
-
-  <section class="workspace-grid">
-    <section class="master-persona-panel" aria-labelledby="listHeading">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">一覧</p>
-          <h3 id="listHeading">ペルソナ一覧</h3>
-          <p class="mini-text" id="pageStatusText">
-            {viewModel.pageStatusText}
-          </p>
-        </div>
-        <span class="status-pill">{viewModel.listHeadline}</span>
-      </div>
-
-      <div class="toolbar-grid">
-        <label class="field-group" for="masterPersonaSearchInput">
-          <span class="field-label">検索</span>
-          <input
-            class="search-field"
-            id="masterPersonaSearchInput"
-            oninput={(event) => controller.handleSearchInput(event)}
-            placeholder="名前 / FormID / EditorID / 種族 / voice で検索"
-            type="search"
-            value={viewModel.keyword}
-          />
-        </label>
-        <label class="field-group" for="masterPersonaPluginSelect">
-          <span class="field-label">プラグイン</span>
-          <select
-            class="select-field"
-            id="masterPersonaPluginSelect"
-            onchange={(event) => controller.handlePluginFilterChange(event)}
-            value={viewModel.pluginFilter}
-          >
-            {#each viewModel.pluginOptions as option (option.label)}
-              <option value={option.value}>{option.label}</option>
-            {/each}
-          </select>
-        </label>
-      </div>
-
-      <div class="column-row" aria-hidden="true">
-        <span>NPC</span>
-        <span>識別情報</span>
-        <span>ペルソナ要約</span>
-        <span>収録先</span>
-      </div>
-
-      <div class="list-stack" aria-live="polite">
-        {#if viewModel.items.length === 0}
-          <div class="empty-state">一致するペルソナがありません</div>
-        {:else}
-          {#each viewModel.items as item (item.identityKey)}
-            <button
-              class="list-row"
-              class:is-selected={viewModel.selectedIdentityKey ===
-                item.identityKey}
-              onclick={() => void controller.selectRow(item.identityKey)}
-              type="button"
-            >
-              <div class="row-cell">
-                <strong>{item.displayName}</strong>
-                <span>{item.voiceType}</span>
-              </div>
-              <div class="row-cell">
-                <span>{item.formId} / {item.editorId}</span>
-                <span>クラス: {item.className || "-"}</span>
-              </div>
-              <div class="row-cell">
-                <span>{item.personaSummary}</span>
-                <span>{item.race ? item.race : ""}</span>
-              </div>
-              <div class="row-id">{item.targetPlugin}</div>
-            </button>
-          {/each}
-        {/if}
-      </div>
-
-      <div class="pager-shell">
-        <span class="mini-text" id="selectionStatusText"
-          >{viewModel.selectionStatusText}</span
-        >
-        <div class="inline-actions compact-actions">
-          <button
-            class="button-secondary"
-            disabled={viewModel.page <= 1}
-            id="prevPageButton"
-            onclick={() => controller.goToPrevPage()}
-            type="button"
-          >
-            前の30件
-          </button>
-          <button
-            class="button-secondary"
-            disabled={viewModel.page >= viewModel.totalPages}
-            id="nextPageButton"
-            onclick={() => controller.goToNextPage()}
-            type="button"
-          >
-            次の30件
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <section class="master-persona-panel" aria-labelledby="detailHeading">
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">詳細</p>
-          <h3 id="detailHeading">選択中のペルソナ</h3>
-          <p class="mini-text" id="detailStatusText">
-            {viewModel.detailStatusText}
-          </p>
-        </div>
-        <div class="inline-actions compact-actions">
-          <button
-            class="button-secondary"
-            disabled={!viewModel.canMutate}
-            id="editButton"
-            onclick={() => controller.openEditModal()}
-            type="button"
-          >
-            更新
-          </button>
-          <button
-            class="button-danger"
-            disabled={!viewModel.canMutate}
-            id="deleteButton"
-            onclick={() => controller.openDeleteModal()}
-            type="button"
-          >
-            削除
-          </button>
-        </div>
-      </div>
-
-      <div class="detail-title">
-        <div class="status-row">
-          {#if viewModel.selectedEntry}
-            <span class="status-pill">{viewModel.selectedEntry.voiceType}</span>
-          {/if}
-        </div>
-        <strong id="detailTitle"
-          >{viewModel.selectedEntry?.displayName ??
-            "表示できるペルソナがありません"}</strong
-        >
-        <p class="mini-text" id="detailIdentityText">
-          {#if viewModel.selectedEntry}
-            FormID {viewModel.selectedEntry.formId} / EditorID {viewModel
-              .selectedEntry.editorId} / {viewModel.selectedEntry.targetPlugin}
-          {:else}
-            検索条件を変更してください。
-          {/if}
-        </p>
-      </div>
-
-      <div class="detail-grid">
-        <article class="detail-card">
-          <span class="field-label">voice</span>
-          <strong>{viewModel.selectedEntry?.voiceType || "-"}</strong>
-        </article>
-        <article class="detail-card">
-          <span class="field-label">class</span>
-          <strong>{viewModel.selectedEntry?.className || "-"}</strong>
-        </article>
-      </div>
-
-      <dl class="detail-list">
-        <div>
-          <dt>名前</dt>
-          <dd>{viewModel.selectedEntry?.displayName || "-"}</dd>
-        </div>
-        <div>
-          <dt>source</dt>
-          <dd>{viewModel.selectedEntry?.sourcePlugin || "-"}</dd>
-        </div>
-        <div>
-          <dt>ペルソナ要約</dt>
-          <dd>{viewModel.selectedEntry?.personaSummary || "-"}</dd>
-        </div>
-        <div>
-          <dt>ペルソナ本文</dt>
-          <dd>{viewModel.selectedEntry?.personaBody || "-"}</dd>
-        </div>
-      </dl>
-    </section>
-  </section>
+  <PersonaActionModal
+    editForm={viewModel.editForm}
+    modalState={viewModel.modalState}
+    selectedEntry={viewModel.selectedEntry}
+    closeDelete={() => controller.closeDeleteModal()}
+    closeEdit={() => controller.closeEditModal()}
+    deleteCurrentEntry={() => void controller.deleteCurrentEntry()}
+    saveCurrentEntry={() => void controller.saveCurrentEntry()}
+    setEditFormField={updateEditFormField}
+  />
 </section>
-
-<div
-  aria-hidden={viewModel.modalState !== "edit"}
-  class="modal-backdrop"
-  class:is-open={viewModel.modalState === "edit"}
-  hidden={viewModel.modalState !== "edit"}
-  id="editModal"
-  role="dialog"
->
-  <section class="modal-card form-modal">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">更新</p>
-        <h3>ペルソナを編集</h3>
-      </div>
-      <button
-        class="button-secondary"
-        id="closeEditModalButton"
-        onclick={() => controller.closeEditModal()}
-        type="button"
-      >
-        閉じる
-      </button>
-    </div>
-
-    <div class="form-grid">
-      <label class="field-group textarea-group" for="editPersonaSummaryInput">
-        <span class="field-label">ペルソナ概要</span>
-        <textarea
-          class="textarea-field"
-          id="editPersonaSummaryInput"
-          oninput={(event) =>
-            controller.setEditFormField("personaSummary", event)}
-          value={viewModel.editForm.personaSummary ?? ""}
-        ></textarea>
-      </label>
-      <label class="field-group" for="editSpeechStyleInput">
-        <span class="field-label">話し方</span>
-        <input
-          class="text-field"
-          id="editSpeechStyleInput"
-          oninput={(event) => controller.setEditFormField("speechStyle", event)}
-          value={viewModel.editForm.speechStyle ?? ""}
-        />
-      </label>
-      <label class="field-group textarea-group" for="editPersonaBodyInput">
-        <span class="field-label">ペルソナ本文</span>
-        <textarea
-          class="textarea-field"
-          id="editPersonaBodyInput"
-          oninput={(event) => controller.setEditFormField("personaBody", event)}
-          value={viewModel.editForm.personaBody}
-        ></textarea>
-      </label>
-    </div>
-
-    <div class="inline-actions compact-actions">
-      <button
-        class="button-secondary"
-        onclick={() => controller.closeEditModal()}
-        type="button"
-      >
-        キャンセル
-      </button>
-      <button
-        class="button-primary"
-        id="saveEntryButton"
-        onclick={() => void controller.saveCurrentEntry()}
-        type="button"
-      >
-        更新する
-      </button>
-    </div>
-  </section>
-</div>
-
-<div
-  aria-hidden={viewModel.modalState !== "delete"}
-  class="modal-backdrop"
-  class:is-open={viewModel.modalState === "delete"}
-  hidden={viewModel.modalState !== "delete"}
-  id="deleteModal"
-  role="dialog"
->
-  <section class="modal-card">
-    <div class="section-head">
-      <div>
-        <p class="eyebrow">削除</p>
-        <h3>ペルソナを削除しますか</h3>
-      </div>
-      <button
-        class="button-secondary"
-        onclick={() => controller.closeDeleteModal()}
-        type="button"
-      >
-        閉じる
-      </button>
-    </div>
-
-    <dl class="detail-list">
-      <div>
-        <dt>名前</dt>
-        <dd>{viewModel.selectedEntry?.displayName || "-"}</dd>
-      </div>
-      <div>
-        <dt>FormID</dt>
-        <dd>{viewModel.selectedEntry?.formId || "-"}</dd>
-      </div>
-      <div>
-        <dt>EditorID</dt>
-        <dd>{viewModel.selectedEntry?.editorId || "-"}</dd>
-      </div>
-    </dl>
-
-    <div class="inline-actions compact-actions">
-      <button
-        class="button-secondary"
-        onclick={() => controller.closeDeleteModal()}
-        type="button"
-      >
-        キャンセル
-      </button>
-      <button
-        class="button-danger"
-        id="confirmDeleteButton"
-        onclick={() => void controller.deleteCurrentEntry()}
-        type="button"
-      >
-        削除する
-      </button>
-    </div>
-  </section>
-</div>
 
 <style>
   .master-persona-shell {
     display: grid;
     gap: 18px;
+    min-width: 0;
   }
 
-  .master-persona-panel {
-    padding: 20px;
+  .hero-panel,
+  .notice-banner {
     border-radius: 20px;
     border: 0.5px solid var(--line);
-    background: rgba(17, 13, 12, 0.42);
     box-shadow: var(--shadow);
+    min-width: 0;
+  }
+
+  .hero-panel {
+    align-items: start;
+    background:
+      radial-gradient(circle at top right, rgba(255, 186, 56, 0.16), transparent 38%),
+      rgba(17, 13, 12, 0.42);
     backdrop-filter: blur(24px);
-  }
-
-  .overview-panel,
-  .generator-grid,
-  .workspace-grid,
-  .settings-summary-copy,
-  .stats-grid,
-  .run-grid,
-  .detail-grid,
-  .toolbar-grid,
-  .form-grid {
-    display: grid;
-    gap: 14px;
-  }
-
-  .generator-grid {
-    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.1fr) minmax(0, 0.9fr);
-  }
-
-  .workspace-grid {
-    grid-template-columns: minmax(0, 1.3fr) minmax(300px, 0.85fr);
-  }
-
-  .stats-grid,
-  .detail-grid,
-  .run-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .run-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .hero-top,
-  .section-head,
-  .status-row,
-  .inline-actions,
-  .pager-shell,
-  .column-row {
     display: flex;
-    gap: 12px;
-    align-items: center;
-    justify-content: space-between;
     flex-wrap: wrap;
+    gap: 14px;
+    justify-content: space-between;
+    padding: clamp(20px, 3vw, 28px);
   }
 
-  .eyebrow,
-  .field-label,
-  .column-row span,
-  .detail-list dt,
-  .mini-text {
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--muted);
-  }
-
-  .lead,
-  .prompt-copy,
-  .detail-list dd,
-  .row-cell span,
-  .error-text {
-    color: var(--muted);
-    line-height: 1.6;
-  }
-
-  .text-field,
-  .search-field,
-  .select-field,
-  .textarea-field {
-    width: 100%;
-    min-height: 42px;
-    border-radius: 12px;
-    border: 0.5px solid var(--line);
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--text);
-    padding: 0 14px;
-  }
-
-  .textarea-field {
-    min-height: 140px;
-    padding: 12px 14px;
-    resize: vertical;
-  }
-
-  .button-primary,
-  .button-secondary,
-  .button-danger,
-  .status-pill {
-    min-height: 38px;
-    padding: 0 14px;
-    border-radius: 999px;
-  }
-
-  .button-primary,
-  .button-secondary,
-  .button-danger {
-    border: 0.5px solid transparent;
-    cursor: pointer;
-  }
-
-  .button-primary {
-    color: #3f2400;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0a51f 100%);
-  }
-
-  .button-secondary {
-    color: var(--text);
-    background: rgba(255, 255, 255, 0.04);
-    border-color: var(--line);
-  }
-
-  .button-danger {
-    color: #35150d;
-    background: linear-gradient(135deg, #ffc0ab 0%, #ff9c7c 100%);
-  }
-
-  .button-primary:disabled,
-  .button-secondary:disabled,
-  .button-danger:disabled {
-    opacity: 0.45;
-    cursor: not-allowed;
-  }
-
-  .status-pill {
-    display: inline-flex;
-    align-items: center;
-    border: 0.5px solid var(--line);
-    background: rgba(255, 255, 255, 0.03);
-    color: var(--muted);
-  }
-
-  .status-accent {
-    color: var(--bg-strong);
-    border-color: transparent;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0a51f 100%);
-  }
-
-  .status-danger {
-    color: var(--text);
-    background: rgba(255, 156, 124, 0.14);
-    border-color: rgba(255, 156, 124, 0.28);
-  }
-
-  .field-group,
-  .detail-list,
-  .detail-title,
-  .run-panel,
-  .row-cell,
-  .pager-shell,
-  .settings-summary-band,
-  .form-modal {
+  .hero-copy {
     display: grid;
     gap: 10px;
+    min-width: 0;
   }
 
-  .settings-summary-band {
-    background: rgba(255, 255, 255, 0.03);
-    border: 0.5px solid var(--line);
-    border-radius: 14px;
-    margin-top: 14px;
-    padding: 14px;
+  .eyebrow {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    margin: 0;
+    text-transform: uppercase;
   }
 
-  .textarea-group {
-    grid-column: 1 / -1;
+  h1,
+  p {
+    margin: 0;
   }
 
-  .file-input {
-    display: none;
-  }
-
-  .stat-card,
-  .detail-card,
-  .run-card,
-  .list-row {
-    border-radius: 14px;
-    border: 0.5px solid rgba(255, 186, 56, 0.12);
-    background: rgba(255, 255, 255, 0.03);
-    padding: 14px;
-  }
-
-  .stat-card strong,
-  .detail-card strong,
-  .run-card strong,
-  .detail-title strong {
-    display: block;
-    font-size: 22px;
+  h1 {
+    font-size: clamp(1.8rem, 2.8vw, 2.4rem);
+    line-height: 1.2;
     overflow-wrap: anywhere;
   }
 
-  .column-row {
-    padding: 0 12px;
-  }
-
-  .list-stack {
-    display: grid;
-    gap: 8px;
-  }
-
-  .list-row {
-    display: grid;
-    gap: 10px;
-    grid-template-columns:
-      minmax(140px, 1fr) minmax(160px, 1fr) minmax(200px, 1.15fr)
-      minmax(100px, 0.7fr);
-    text-align: left;
-    color: inherit;
-  }
-
-  .list-row.is-selected {
-    background: rgba(255, 186, 56, 0.12);
-    border-color: rgba(255, 186, 56, 0.28);
-  }
-
-  .row-id {
-    text-align: right;
+  .lead {
     color: var(--muted);
+    line-height: 1.7;
+    max-width: 62ch;
   }
 
-  .detail-list {
-    margin: 0;
-  }
-
-  .detail-list div {
-    padding: 12px 14px;
-    border-radius: 14px;
-    background: rgba(255, 255, 255, 0.03);
-  }
-
-  .detail-list dt,
-  .detail-list dd {
-    margin: 0;
-  }
-
-  .progress-track {
-    width: 100%;
-    height: 10px;
-    overflow: hidden;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 0.5px solid var(--line);
-  }
-
-  .progress-fill {
-    height: 100%;
-    background: linear-gradient(135deg, var(--primary) 0%, #f0a51f 100%);
-  }
-
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    display: none;
+  .hero-status,
+  .notice-banner {
     align-items: center;
-    justify-content: center;
-    padding: 20px;
-    background: rgba(14, 11, 10, 0.68);
-    z-index: 12;
-    visibility: hidden;
-    pointer-events: none;
-    opacity: 0;
+    display: inline-flex;
+    overflow-wrap: anywhere;
   }
 
-  .modal-backdrop.is-open {
-    display: flex;
-    visibility: visible;
-    pointer-events: auto;
-    opacity: 1;
+  .hero-status {
+    background: rgba(255, 255, 255, 0.04);
+    border: 0.5px solid rgba(255, 186, 56, 0.22);
+    border-radius: 999px;
+    color: var(--text);
+    min-height: 40px;
+    padding: 0 16px;
   }
 
-  .modal-backdrop[hidden] {
-    display: none;
-    visibility: hidden;
-    pointer-events: none;
-    opacity: 0;
-  }
-
-  .modal-card {
-    width: min(860px, 100%);
-    max-height: calc(100vh - 40px);
-    overflow: auto;
-    padding: 20px;
-    border-radius: 20px;
-    border: 0.5px solid var(--line);
-    background: rgba(19, 15, 14, 0.94);
-    box-shadow: var(--shadow);
-    display: grid;
-    gap: 14px;
-  }
-
-  .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .empty-state {
-    padding: 20px;
-    border-radius: 16px;
-    background: rgba(255, 255, 255, 0.03);
+  .notice-banner {
+    background: rgba(255, 255, 255, 0.04);
     color: var(--muted);
+    line-height: 1.6;
+    padding: 14px 18px;
   }
 
-  @media (max-width: 1220px) {
-    .generator-grid,
-    .workspace-grid,
-    .stats-grid,
-    .run-grid,
-    .detail-grid,
-    .form-grid {
-      grid-template-columns: 1fr;
-    }
+  .notice-error {
+    border-color: rgba(255, 156, 124, 0.35);
+    color: #ffd5cb;
   }
 
-  @media (min-width: 901px) {
-    .settings-summary-band {
-      align-items: center;
-      grid-template-columns: minmax(0, 1fr) auto;
-    }
-  }
-
-  @media (max-width: 900px) {
-    .list-row {
-      grid-template-columns: 1fr;
-    }
-
-    .row-id {
-      text-align: left;
-    }
-
-    .column-row {
-      display: none;
+  @media (max-width: 640px) {
+    .hero-status {
+      max-width: 100%;
+      width: 100%;
     }
   }
 </style>

@@ -1,0 +1,95 @@
+reviewback_version: 1
+task_id: "2026-05-04-master-data-ux-refactor"
+review_yaml_path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/reviewback.responsibility_boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持されている。変更は master-persona 画面の View と画面専用 UI Component、および UI テストに閉じている。backend、Wails gateway contract、store、presenter、controller、docs 正本、.codex への変更はレビュー対象差分に含まれない。"
+  evidence_sufficiency: "十分。承認済み UI 改善契約、UX 実装修正入力、実装結果、実装後確認、architecture.md、対象 Svelte 部品、対象テスト、対象差分を確認した。"
+
+checked_scope:
+  summary: "画面責務、画面専用部品の配置、親 View から ScreenController への event 受け渡し、共有 AIModelSelectionCard の再利用、backend/contract/store/presenter/controller への変更有無を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/ui-design.md"
+      line: 139
+      symbol: "UI Component Decision"
+      reason: "GenerationSetupPanel、RunStatusPanel、PersonaReviewPanel、PersonaActionModal を画面専用部品候補として承認しているため。"
+    - path: "docs/exec-plans/completed/2026-05-04-master-data-ux-refactor/ux-implementation-handoff.md"
+      line: 13
+      symbol: "実装範囲"
+      reason: "MasterPersonaPage の表示構造、文言、配置、画面専用部品化だけを frontend 実装範囲としているため。"
+    - path: "docs/architecture.md"
+      line: 63
+      symbol: "View"
+      reason: "View は表示、UI Component の組み合わせ、DOM event から ScreenController への受け渡しを担うため。"
+    - path: "docs/architecture.md"
+      line: 72
+      symbol: "UI Component"
+      reason: "画面専用部品の配置、依存禁止、event 返却の正本条件を確認したため。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 10
+      symbol: "MasterPersonaPage"
+      reason: "画面専用部品を同一 screen 配下から import し、controller 呼び出しを親 View 側に残しているため。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 147
+      symbol: "GenerationSetupPanel/RunStatusPanel/PersonaReviewPanel/PersonaActionModal wiring"
+      reason: "子部品へ viewModel と callback を渡し、ScreenController への接続を親 View 側に閉じているため。"
+    - path: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte"
+      line: 59
+      symbol: "AIModelSelectionCard reuse"
+      reason: "承認済み範囲どおり共有 AIModelSelectionCard を変更せず利用しているため。"
+    - path: "frontend/src/ui/screens/master-persona/RunStatusPanel.svelte"
+      line: 20
+      symbol: "RunStatusPanel"
+      reason: "生成状態表示と一時停止/中止操作の UI 部品に閉じ、gateway や store を直接扱っていないため。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaReviewPanel.svelte"
+      line: 48
+      symbol: "PersonaReviewPanel"
+      reason: "一覧、詳細、ページ操作、編集/削除入口の表示部品に閉じ、状態変更は callback で親 View へ返しているため。"
+    - path: "frontend/src/ui/screens/master-persona/PersonaActionModal.svelte"
+      line: 37
+      symbol: "PersonaActionModal"
+      reason: "編集/削除モーダルの表示と入力 event 返却に閉じ、保存/削除の実行は callback へ委譲しているため。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 925
+      symbol: "App master persona screen UX tests"
+      reason: "公開文言、内部表示の抑制、一覧表示、モーダル文言、生成 CTA の controller 呼び出しを UI テストで固定しているため。"
+
+unchecked_scope:
+  - target: "実プロダクト画面の Wails 起動確認"
+    reason: "呼び出し元の検証証跡で未実施とされており、責務境界レビューでは広い harness や実画面起動を再実行しないため。"
+    risk: "AppShell 上の余白や実描画に限る残留リスクがある。責務境界の判定には影響しない。"
+  - target: "390px 幅の実描画確認"
+    reason: "呼び出し元の検証証跡で未実施とされており、本観点は実描画品質を主判定にしないため。"
+    risk: "狭幅表示の崩れが残る可能性がある。責務境界の判定には影響しない。"
+
+issues: []
+
+broken_boundaries: []
+cause_candidates: []
+
+local_fix_assessment:
+  required: false
+  assessment: "局所修正は不要。仮に画面表示の調整が必要になっても、frontend/src/ui/screens/master-persona/ 配下の画面 UI 部品と App.test.ts の範囲で閉じる見込みである。"
+
+boundary_fixed_test_viewpoints:
+  - "UI 部品が @controller、wailsjs、Store、Gateway concrete を直接 import しないこと。"
+  - "MasterPersonaPage が ScreenController への event 受け渡しを担い、子部品は callback を呼ぶだけに留めること。"
+  - "AIModelSelectionCard.svelte を変更せず、既存共有部品として再利用すること。"
+  - "backend、Wails gateway contract、store、presenter、controller、docs 正本、.codex の変更を混ぜないこと。"
+
+verification_evidence:
+  - command: "git diff --check"
+    result: "success"
+    source: "caller-provided"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "success"
+    source: "caller-provided"
+
+residual_risks:
+  - "子部品は screen local な UI Component として full viewModel を props に受け取っている。現状は表示規則と callback 委譲に閉じており、Store/Gateway/Controller へ直接依存していないため未解決 issue にはしない。"
+  - "既存差分として .codex/agents/designer.toml、.codex/skills/design-bundle/SKILL.md、.codex/skills/ui-design/SKILL.md があるが、今回の UX 実装範囲では触っていない前提でレビュー対象から除外した。"
