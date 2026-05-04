@@ -22,6 +22,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - 実装スコープ (`implementation-scope`): `skills/implementation-scope/SKILL.md`
 - 探索テスト計画 (`exploration-test-planning`): `skills/exploration-test-planning/SKILL.md`
 - 探索テストレーン (`exploration-test-lane`): `skills/exploration-test-lane/SKILL.md`
+- UX改善レーン (`ux-refactor-lane`): `skills/ux-refactor-lane/SKILL.md`
 - 実装時調査 (`implementation-investigate`): `skills/implementation-investigate/SKILL.md`
 - 修正レーン (`fix-lane`): `skills/fix-lane/SKILL.md`
 - プロダクトコード 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-integration/SKILL.md`
@@ -39,15 +40,17 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 
 ## Agent / Skill Boundary
 
-- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、修正レーン 進行役 (`fix_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、探索テスト計画 agent (`exploration_test_planner`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
+- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、修正レーン 進行役 (`fix_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、UX改善レーン 進行役 (`ux_refactor_lane`)、探索テスト計画 agent (`exploration_test_planner`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
 - `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、close 条件を管理する。全 close 条件には 作業レポート、ベンチマーク根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必ず含める
 - `fix_lane` は人間が確認した不具合、レビュー非通過、検証失敗の task 内成果物 DAG、起動入力、担当 agent 起動、停止、戻し、close 条件を管理する
 - `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
+- `ux_refactor_lane` は UI契約を起点にした画面体験改善の task 内成果物 DAG、起動入力、人間UIレビュー、レビュー観点、close 条件を管理する
 - `exploration_test_planner` は探索計画だけを作り、観測、ログ確認、画面確認、原因仮説の作成を扱わない
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
 - `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` と必要な task-local UIプロトタイプを揃える。人間レビュー 後に `implementation-scope` を固定する
 - シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
 - `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
+- `ux_refactor_lane` は承認済み UI改善契約 を実行正本にし、`designer`、`implementation_implementer`、`implementation_unit_tester`、必要な観点別 レビュー agent、`work_reporter` を 文脈 継承なしで直接 起動 する。完了したサブエージェントは起動したまま残さず、完了結果を集約した後に閉じる
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
 - Codex agent の人間可読な実行説明は対応する `skills/*/SKILL.md` に置き、紐づけ と `sandbox_mode` は `agents/<agent>.toml` に置き、入力、出力、完了、停止の規約は対応する `skills/*/SKILL.md` に置く
@@ -70,6 +73,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - シナリオ候補生成 agent 6 体は固定 観点 の シナリオ 候補だけを作り、採否、統合、最終 シナリオ表 は扱わない
 - `designer` は シナリオ 候補を統合し、シナリオ設計、UI 設計、implementation-scope の task 内成果物 を作る。UI 設計は design bundle 本体へ含めず、独立成果物として扱う
 - `exploration_test_lane` は探索計画と探索証跡を読み、バグ一覧、ログ、影響ファイルを集約する。プロダクトコードとプロダクトテストは変更しない
+- `ux_refactor_lane` は既存画面根拠と UI改善契約を読み、UX実装修正入力、実装後確認、レビュー通過根拠を管理する。プロダクトコードとプロダクトテストは変更しない
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、検証証跡を渡した観点別 レビュー agent の並列 起動、`reviewback.<観点>.yaml` 群の欠落なし集約、`implementation_action` 分岐を進める
@@ -83,12 +87,13 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `work_reporter` は `scripts/work-history/score_transcripts.py` の `analysis/benchmark-score.json`、`transcript_refs.json`、完了根拠 から `work_history` の run 全体レポート を生成する。明示 完了根拠 が不足する場合は Codex 会話ログ または chat session file を 根拠参照 付き 根拠 として確認する
 - `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価し、`reviewback.<観点>.yaml`、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
 - `implement_lane` は run 中に見つけた構造問題、作業流れ問題、権限問題、実行問題、人間フィードバック、レビュー由来の改善示唆を `work_history/runs/<run>/workflow-improvement-log.jsonl` へ逐次追記する
+- `ux_refactor_lane` は実装後確認 完了後、`review_behavior` と `review_responsibility_boundary` を必須レビューとして起動し、secret、外部入力、保存先、ログ出力先を触る差分がある場合だけ `review_trust_boundary` を起動する
 - 観点別 レビュー agent は挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件、責務境界のいずれか 1 つだけを扱い、`reviewback.<観点>.yaml` を作成、追記、解決更新、削除する
 - 観点別 レビュー agent は広い ハーネス 再実行を担当せず、`implement_lane` から渡された検証証跡をレビュー入力として扱う
 - 観点別 レビュー agent は 失敗 または 停止 の場合も `reviewback.<観点>.yaml` に結果、根拠、未解決指摘を記録する
 - `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、work_history 側に観点別の非通過 YAML は作らない
 - `workflow-improvement-log.jsonl` は作業流れ改善用の run 内観測ログとし、ゲート判断には使わない
-- `implement_lane`、`fix_lane`、`exploration_test_lane`、`exploration_test_planner`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
+- `implement_lane`、`fix_lane`、`exploration_test_lane`、`ux_refactor_lane`、`exploration_test_planner`、`designer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `implementation_implementer` だけが 承認済み実装範囲 内で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる
 - 単体テスト は `implementation_unit_tester` だけが 承認済み実装範囲 内で変更できる
@@ -98,11 +103,12 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 ## task 種別レーン
 
 - task run は task type ごとの レーン として扱い、各 レーン が自分の必須 成果物 DAG を持つ
-- live レーン は `implement_lane`、`fix_lane`、`exploration_test_lane` にする
+- live レーン は `implement_lane`、`fix_lane`、`exploration_test_lane`、`ux_refactor_lane` にする
 - `implement_lane` は新規実装と機能拡張だけを扱う
 - `fix_lane` は人間が確認した不具合、レビュー非通過、検証失敗の恒久修正だけを扱う
 - `exploration_test_lane` は探索計画、テストデータ、探索証跡、バグ一覧、ログ、影響ファイル、実装証跡、回帰テスト証跡を扱う
-- `refactor_lane`、`ux_refactor_lane` は placeholder とし、必須 成果物、実行者、next agent は未定義のままにする
+- `ux_refactor_lane` は UI契約を起点にした画面体験改善だけを扱う
+- `refactor_lane` は placeholder とし、必須 成果物、実行者、next agent は未定義のままにする
 - 各 レーン は task 内成果物 DAG を持ち、順序は phase 名ではなく `依存対象` と対象 skill の完了規約で固定する
 - agent は レーン そのものではなく、成果物 を作る実行主体として扱う
 - 全 レーン の close 条件には 作業レポート、ベンチマーク根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必須で含める
@@ -166,6 +172,24 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
 | `レビュー通過根拠` | `exploration_test_lane` | `探索計画`, `探索証跡`, `バグ一覧とログ、影響ファイル`, `実装証跡?`, `回帰テスト証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `作業レポート入力` | `exploration_test_lane` / `work_reporter` | 全完了または停止済み 成果物, `レビュー通過根拠?` | `work_reporter` |
+
+## UX改善レーン成果物DAG
+
+UX改善レーンの成果物DAGは次を標準形にする。
+順序は `依存対象` と対象 skill の完了規約で固定し、phase 名では固定しない。
+
+| 成果物ID | 担当者 | 依存対象 | 次 agent |
+| --- | --- | --- | --- |
+| `task 枠` | `ux_refactor_lane` | `[]` | なし |
+| `UI改善契約` | `designer` | `task 枠` | `designer` |
+| `人間UIレビュー` | human | `UI改善契約` | human |
+| `UX実装修正入力` | `ux_refactor_lane` | `人間UIレビュー` | なし |
+| `frontend 実装` | `implementation_implementer` / `implement-frontend` | `UX実装修正入力` | `implementation_implementer` |
+| `実装後単体テスト` | `implementation_unit_tester` | `frontend 実装` | `implementation_unit_tester` |
+| `実装後確認` | `ux_refactor_lane` | `frontend 実装`, `実装後単体テスト?` | なし |
+| `レビュー通過根拠` | `ux_refactor_lane` | `実装後確認` | `review_behavior`, `review_responsibility_boundary`, `review_trust_boundary?` |
+| `作業レポート入力` | `ux_refactor_lane` / `work_reporter` | 全完了または停止済み 成果物, `レビュー通過根拠?` | `work_reporter` |
+| `作業計画完了移動` | `ux_refactor_lane` | `作業レポート入力` | なし |
 
 ## 実行計画 folder
 
