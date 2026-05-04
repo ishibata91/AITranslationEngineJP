@@ -63,12 +63,14 @@ export interface TranslationJobSetupPhaseCardViewModel {
   credentialStatusTone: "neutral" | "warning" | "success"
   showCredentialStatus: boolean
   showCredentialWarning: boolean
-  showCredentialRegisterButton: boolean
   modelListButtonEnabled: boolean
   modelListButtonLabel: string
+  modelListButtonAriaLabel: string
+  isModelListRefreshing: boolean
   modelListStatusText: string
   modelOptions: TranslationJobSetupProviderModelOption[]
   showModelSelect: boolean
+  modelSelectEnabled: boolean
   selectedModel: string
   showBatchToggle: boolean
   batchEnabled: boolean
@@ -190,7 +192,7 @@ function buildModelListStatusText(
   }
 
   if (selection.credentialStatus === "missing") {
-    return "モデル一覧を更新できません。APIキーの設定が必要です。"
+    return "AIサービス設定が未完了です。設定が必要です。"
   }
 
   switch (modelList?.status) {
@@ -199,10 +201,10 @@ function buildModelListStatusText(
     case "success":
     case "credential_not_required":
       return "モデル一覧を更新しました。"
+    case "credential_missing":
+      return "AIサービス設定が未完了です。設定が必要です。"
     case "failed":
       return "モデル一覧を取得できませんでした。時間をおいて再実行してください。"
-    case "credential_missing":
-      return "モデル一覧を更新できません。APIキーの設定が必要です。"
     case "not_updated":
     default:
       return "モデル一覧を更新してください。"
@@ -224,9 +226,9 @@ function buildPhaseStatus(
 
   if (selection.credentialStatus === "missing") {
     return {
-      label: "APIキー未設定",
+      label: "設定が必要",
       tone: "warning",
-      helper: "APIキーを登録してからモデル一覧を更新してください。"
+      helper: "AIサービス設定が未完了です。設定が必要です。"
     }
   }
 
@@ -309,24 +311,32 @@ function buildPhaseCards(
             : selection?.credentialStatus === "not_required"
               ? "neutral"
               : "warning",
-        showCredentialStatus: selection?.provider !== "lm_studio",
-        showCredentialWarning: isCredentialMissing(selection),
-        showCredentialRegisterButton: isCredentialMissing(selection),
+        showCredentialStatus: true,
+        showCredentialWarning:
+          isCredentialMissing(selection) ||
+          modelList?.status === "credential_missing",
         modelListButtonEnabled:
           state.phase !== "creating" &&
           modelList?.status !== "loading" &&
           selection?.provider !== "" &&
           selection?.credentialStatus !== "missing",
-        modelListButtonLabel:
-          modelList?.status === "loading" ? "更新中..." : "モデル一覧を更新",
+        modelListButtonLabel: "モデル一覧を更新",
+        modelListButtonAriaLabel:
+          modelList?.status === "loading"
+            ? `${PHASE_LABELS[phaseId]}のモデル一覧を更新中`
+            : `${PHASE_LABELS[phaseId]}のモデル一覧を更新`,
+        isModelListRefreshing: modelList?.status === "loading",
         modelListStatusText: buildModelListStatusText(modelList, selection),
         modelOptions: isModelListUsable(modelList) ? modelList?.models ?? [] : [],
         showModelSelect: isModelListUsable(modelList),
+        modelSelectEnabled:
+          state.phase !== "creating" &&
+          isModelListUsable(modelList) &&
+          selection?.credentialStatus !== "missing",
         selectedModel: selection?.model ?? "",
         showBatchToggle: capability?.supportsBatchMode === true,
         batchEnabled: selection?.batchMode === "enabled",
-        batchHelpText:
-          "バッチAPIを使うと安く済ませられることがあります。",
+        batchHelpText: "API利用料が安くなる場合があります。",
         statusLabel: phaseStatus.label,
         statusTone: phaseStatus.tone,
         helperText: phaseStatus.helper

@@ -91,8 +91,8 @@
     <section class="master-persona-panel" aria-labelledby="settingsHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">AI 設定</p>
-          <h3 id="settingsHeading">この画面で使う設定</h3>
+          <p class="eyebrow">モデル設定</p>
+          <h3 id="settingsHeading">この画面で使う AI 設定</h3>
         </div>
         <span class="status-pill">{viewModel.aiProviderLabel}</span>
       </div>
@@ -113,23 +113,34 @@
 
       <label class="field-group" for="modelInput">
         <span class="field-label">モデル</span>
-        <input
-          class="text-field"
+        <select
+          class="select-field"
+          disabled={!viewModel.canSelectModel}
           id="modelInput"
-          oninput={(event) => controller.setAIModel(event)}
+          onchange={(event) => controller.setAIModel(event)}
           value={viewModel.aiSettings.model}
-        />
+        >
+          <option value="">
+            {viewModel.canSelectModel ? "選んでください" : "設定が必要"}
+          </option>
+          {#each viewModel.modelOptions as option (option.modelId)}
+            <option value={option.modelId}>{option.label}</option>
+          {/each}
+        </select>
       </label>
 
-      <label class="field-group" for="apiKeyInput">
-        <span class="field-label">API キー</span>
-        <input
-          class="text-field"
-          id="apiKeyInput"
-          oninput={(event) => controller.setAPIKey(event)}
-          placeholder="選択した AI サービスの API キーを入力"
-          value={viewModel.aiSettings.apiKey}
-        />
+      <label class="field-group" for="executionMethodSelect">
+        <span class="field-label">処理方法</span>
+        <select
+          class="select-field"
+          id="executionMethodSelect"
+          onchange={(event) => controller.setAIExecutionMethod(event)}
+          value={viewModel.aiSettings.executionMethod}
+        >
+          {#each viewModel.executionMethodOptions as option (option.value)}
+            <option value={option.value}>{option.label}</option>
+          {/each}
+        </select>
       </label>
 
       <div class="prompt-copy" id="promptTemplateDescription">
@@ -140,6 +151,11 @@
         <span class="mini-text" id="aiSettingsMessage"
           >{viewModel.aiSettingsMessage}</span
         >
+        {#if viewModel.aiSettingsWarningText}
+          <span class="status-pill status-danger">
+            {viewModel.aiSettingsWarningText}
+          </span>
+        {/if}
         <button
           class="button-secondary"
           id="saveAiSettingsButton"

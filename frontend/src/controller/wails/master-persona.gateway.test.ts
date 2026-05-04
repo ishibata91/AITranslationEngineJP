@@ -36,7 +36,7 @@ describe("createMasterPersonaGateway", () => {
       Promise.resolve({
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: ""
+        executionMethod: "single_request"
       })
     )
     const getMasterPersonaRunStatus = vi.fn(() =>
@@ -67,7 +67,7 @@ describe("createMasterPersonaGateway", () => {
     await expect(gateway.loadMasterPersonaAISettings()).resolves.toEqual({
       provider: "gemini",
       model: "gemini-2.5-pro",
-      apiKey: ""
+      executionMethod: "single_request"
     })
     await expect(gateway.getMasterPersonaRunStatus()).resolves.toEqual({
       runState: "入力待ち",
@@ -202,7 +202,7 @@ describe("createMasterPersonaGateway", () => {
       Promise.resolve({
         provider: "lm_studio",
         model: "restart-cutover-model",
-        apiKey: "restart-cutover-key"
+        executionMethod: "single_request"
       })
     )
     installGo({
@@ -221,7 +221,6 @@ describe("createMasterPersonaGateway", () => {
     // Assert
     expect(result.provider).toBe("lm_studio")
     expect(result.model).toBe("restart-cutover-model")
-    expect(result.apiKey).toBe("restart-cutover-key")
     expect(loadAISettings).toHaveBeenCalledTimes(1)
     expect(loadAISettings).toHaveBeenCalledWith()
   })
@@ -286,7 +285,7 @@ describe("createMasterPersonaGateway", () => {
     // Act
     const result = await gateway.previewMasterPersonaGeneration({
       filePath: "/tmp/FollowersPlus.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "" }
+      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
     })
 
     // Assert
@@ -340,7 +339,7 @@ describe("createMasterPersonaGateway", () => {
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: "test-key"
+        executionMethod: "single_request"
       }
     })
 
@@ -351,7 +350,7 @@ describe("createMasterPersonaGateway", () => {
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: "test-key"
+        executionMethod: "single_request"
       }
     })
     // generation never overwrites existing: existingSkipCount を runStatus で確認できる
@@ -388,7 +387,7 @@ describe("createMasterPersonaGateway", () => {
     // Act
     await gateway.executeMasterPersonaGeneration({
       filePath: "/tmp/sample.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "" }
+      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
     })
 
     // Assert

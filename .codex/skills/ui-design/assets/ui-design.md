@@ -4,7 +4,7 @@
 - `status`: draft
 - `source_plan`: `./plan.md`
 - `scenario_source`: `./scenario-design.md`
-- `ui_prototype`: `./prototype.svelte`
+- `ui_prototype`: `./prototype/index.svelte`
 - `prototype_server_url`: `http://127.0.0.1:34116/prototype`
 - `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116`
 - `human_review_server_required`: `yes`
@@ -20,6 +20,7 @@
 - `button_enablement`:
 - `state_variants`:
 - `post_implementation_review`:
+- `prototype_review_order`:
 
 ## Interface Frame
 
@@ -72,7 +73,10 @@
 - `changed_sections_only`:
 - `new_visual_system_added`: `yes | no`
 - `new_visual_system_reason`:
-- `prototype_path`: `./prototype.svelte`
+- `prototype_path`: `./prototype/index.svelte`
+- `prototype_screen_list`:
+- `prototype_route_default`:
+- `prototype_route_navigation`: `in_prototype_only`
 - `required_before_human_review`: `yes`
 - `required_for_frontend_handoff`: `yes`
 - `framework_conversion`: UIプロトタイプの構造を frontend framework へ変換する
@@ -130,6 +134,10 @@
 
 - UI は `ui-design.md` で固定する
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
+- UIプロトタイプを作る場合は `prototype/index.svelte` を入口にする
+- 複数画面を確認する場合は、確認用の画面切り替えで各画面を確認できるようにする
+- 画面間導線が確認対象の場合は、複数画面の縦積み表示だけで完了扱いにしない
+- 確認用の画面切り替えは、本番のルーティング設計として扱わない
 - UIプロトタイプを作る場合は確認サーバーの URL を `agent-browser` で開き、`docs/UX-standard.md` から確認する
 - UX 標準の確認結果を `UX Standard Review` に記録する
 - `agent-browser` 確認後に、専門知識がなくても次に何をするか分かる表現水準かを表示文言レビューで確認する

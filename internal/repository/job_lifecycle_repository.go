@@ -43,6 +43,7 @@ type TranslationJobPhaseRuntimeSnapshot struct {
 	ModelName            string
 	CredentialRef        string
 	CredentialStatus     string
+	EndpointSummary      string
 	ExecutionMode        string
 	BatchMode            string
 	ModelListSourceToken string
@@ -57,6 +58,7 @@ type TranslationJobPhaseRuntimeSnapshotDraft struct {
 	ModelName            string
 	CredentialRef        string
 	CredentialStatus     string
+	EndpointSummary      string
 	ExecutionMode        string
 	BatchMode            string
 	ModelListSourceToken string

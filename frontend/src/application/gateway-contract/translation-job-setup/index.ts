@@ -4,8 +4,6 @@ export type {
   GetTranslationJobSetupSummaryRequest,
   ListTranslationJobSetupProviderModelsRequest,
   ListTranslationJobSetupProviderModelsResponse,
-  SaveTranslationJobSetupCredentialRequest,
-  SaveTranslationJobSetupCredentialResponse,
   TranslationJobSetupBatchMode,
   TranslationJobSetupCredentialReference,
   TranslationJobSetupCredentialStatus,

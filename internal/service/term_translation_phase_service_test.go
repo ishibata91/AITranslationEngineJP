@@ -820,6 +820,51 @@ func TestTermTranslationPhaseServiceLoadsSecretBySnapshotCredentialRef(t *testin
 	}
 }
 
+func TestTermTranslationPhaseServiceStartPhaseReResolvesProviderSettingsBeforeExecution(t *testing.T) {
+	capturedRequests := make([]TermTranslationProviderRequest, 0, 1)
+	service, _, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			capturedRequests = append(capturedRequests, request)
+			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
+		},
+	})
+	service.secretStore = fakeTermPhaseSecretStore{
+		loadFunc: func(_ context.Context, key string) (string, error) {
+			if key == "provider-settings:gemini" {
+				return "provider-settings-secret", nil
+			}
+			return "", nil
+		},
+	}
+	service.WithTermTranslationProviderSettings(fakePhaseProviderSettingsConsumer{
+		resolveFunc: func(_ context.Context, input ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
+			return ProviderSettingsResolveResult{
+				ConsumerID:            input.ConsumerID,
+				ProviderID:            input.Selection.ProviderID,
+				Model:                 input.Selection.Model,
+				ExecutionMethod:       input.Selection.ExecutionMethod,
+				Endpoint:              stringPointer("http://localhost:1234/v1"),
+				CredentialReferenceID: stringPointer("provider-settings:gemini"),
+				CredentialState:       providerSettingsCredentialStateConfigured,
+			}, nil
+		},
+	})
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success: %v", err)
+	}
+	if len(capturedRequests) == 0 {
+		t.Fatal("expected provider request capture")
+	}
+	if capturedRequests[0].APIKey != "provider-settings-secret" {
+		t.Fatalf("expected provider request to use re-resolved secret, got %#v", capturedRequests[0])
+	}
+	if capturedRequests[0].EndpointSummary == nil || *capturedRequests[0].EndpointSummary != "http://localhost:1234/v1" {
+		t.Fatalf("expected provider request to use re-resolved endpoint summary, got %#v", capturedRequests[0])
+	}
+}
+
 func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadStalls(t *testing.T) {
 	blockedLoad := make(chan struct{})
 	capturedAPIKeys := make([]string, 0, 2)

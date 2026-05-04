@@ -169,7 +169,9 @@ func applyMigrations(ctx context.Context, database *sqlx.DB) error {
 func shouldIgnoreMigrationError(migrationPath string, err error) bool {
 	switch migrationPath {
 	case "migrations/005_translation_input_source_hash.sql",
-		"migrations/008_body_translation_phase_run_snapshot.sql":
+		"migrations/008_body_translation_phase_run_snapshot.sql",
+		"migrations/011_translation_job_phase_runtime_snapshot_endpoint_summary.sql",
+		"migrations/012_master_persona_execution_method.sql":
 		return strings.Contains(err.Error(), "duplicate column name")
 	default:
 		return false

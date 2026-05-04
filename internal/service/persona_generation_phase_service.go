@@ -101,6 +101,8 @@ type PersonaGenerationPhaseService struct {
 	translationSourceReader  personaGenerationPhaseTranslationSourceRepository
 	transactor               repository.Transactor
 	provider                 PersonaGenerationProvider
+	providerSettings         ProviderSettingsConsumer
+	executionSnapshots       map[int64]providerExecutionSnapshot
 }
 
 // PersonaGenerationPhaseProgressReadModel stores progress for one persona phase run.
@@ -125,14 +127,16 @@ type PersonaGenerationTargetSummaryReadModel struct {
 
 // PersonaGenerationExecutionSummaryReadModel stores redacted execution settings.
 type PersonaGenerationExecutionSummaryReadModel struct {
-	CredentialRef string
-	Provider      string
-	Model         string
-	ExecutionMode string
-	PromptDigest  string
-	InputCount    int
-	OutputCount   int
-	EvidenceRefs  []string
+	CredentialRef   string
+	CredentialState string
+	EndpointSummary *string
+	Provider        string
+	Model           string
+	ExecutionMode   string
+	PromptDigest    string
+	InputCount      int
+	OutputCount     int
+	EvidenceRefs    []string
 }
 
 // PersonaGenerationPhaseResultSummaryReadModel stores snapshot result fields.
@@ -273,6 +277,7 @@ func NewPersonaGenerationPhaseService(
 		foundationDataRepository: foundationDataRepository,
 		translationSourceReader:  translationSourceReader,
 		transactor:               transactor,
+		executionSnapshots:       map[int64]providerExecutionSnapshot{},
 	}
 }
 
@@ -281,6 +286,16 @@ func (service *PersonaGenerationPhaseService) WithPersonaGenerationProvider(
 	provider PersonaGenerationProvider,
 ) *PersonaGenerationPhaseService {
 	service.provider = provider
+	return service
+}
+
+// WithPersonaGenerationProviderSettings injects the provider settings resolver used at phase start.
+func (service *PersonaGenerationPhaseService) WithPersonaGenerationProviderSettings(
+	consumer ProviderSettingsConsumer,
+) *PersonaGenerationPhaseService {
+	if service != nil {
+		service.providerSettings = consumer
+	}
 	return service
 }
 
@@ -343,13 +358,29 @@ func (service *PersonaGenerationPhaseService) StartPhase(
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, err
 	}
+	var startExecutionSnapshot *providerExecutionSnapshot
+	if run == nil {
+		resolvedRun, resolvedSnapshot, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, termRun)
+		if resolveErr != nil {
+			return PersonaGenerationPhaseCommandReadModel{}, resolveErr
+		}
+		if rejection != nil {
+			response := service.rejectedCommand(job, run, termRun, snapshot, *rejection)
+			return response, errPersonaGenerationPhaseExecutionRejected
+		}
+		termRun = resolvedRun
+		startExecutionSnapshot = resolvedSnapshot
+	}
 	if rejection := service.startRejection(job, run, termRun); rejection != nil {
 		response := service.rejectedCommand(job, run, termRun, snapshot, *rejection)
 		return response, errPersonaGenerationPhaseExecutionRejected
 	}
-	updatedJob, updatedRun, err := service.startPhaseRunTransaction(ctx, job, run, termRun, snapshot)
+	updatedJob, updatedRun, err := service.startPhaseRunTransaction(ctx, job, run, termRun, snapshot, startExecutionSnapshot)
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, fmt.Errorf("start persona generation phase transaction: %w", err)
+	}
+	if run == nil && startExecutionSnapshot != nil {
+		service.executionSnapshots[updatedRun.ID] = *startExecutionSnapshot
 	}
 	updatedRun, err = service.executePhaseRun(ctx, updatedJob, updatedRun, snapshot)
 	if err != nil {
@@ -770,6 +801,20 @@ func (service *PersonaGenerationPhaseService) loadContext(
 	} else if !errors.Is(err, repository.ErrNotFound) {
 		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("find persona generation phase run: %w", err)
 	}
+	if run != nil {
+		if _, ok := service.executionSnapshots[run.ID]; !ok {
+			if snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader); ok {
+				snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "npc_persona_generation")
+				switch {
+				case snapshotErr == nil:
+					service.executionSnapshots[run.ID] = providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
+				case errors.Is(snapshotErr, repository.ErrNotFound):
+				default:
+					return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("load persona generation phase runtime snapshot: %w", snapshotErr)
+				}
+			}
+		}
+	}
 	snapshot, err := service.buildTargetSnapshot(ctx, job.XEditExtractedDataID)
 	if err != nil {
 		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("build persona generation target snapshot: %w", err)
@@ -1016,6 +1061,52 @@ func (service *PersonaGenerationPhaseService) startRejection(
 	return nil
 }
 
+func (service *PersonaGenerationPhaseService) resolveExecutionSnapshotForStart(
+	ctx context.Context,
+	termRun repository.JobPhaseRun,
+) (repository.JobPhaseRun, *providerExecutionSnapshot, *personaGenerationStartRejection, error) {
+	if service.providerSettings == nil || !providerExecutionUsesProviderSettings(termRun.AIProvider) {
+		return termRun, nil, nil, nil
+	}
+	resolved, err := service.providerSettings.ResolveProviderExecutionSettings(ctx, ProviderSettingsResolveInput{
+		ConsumerID:          "persona_generation_phase",
+		AllowSecretSnapshot: true,
+		Selection: ProviderSettingsResolveSelection{
+			ProviderID:      strings.TrimSpace(termRun.AIProvider),
+			Model:           strings.TrimSpace(termRun.ModelName),
+			ExecutionMethod: strings.TrimSpace(termRun.ExecutionMode),
+			UseBatchAPI:     false,
+		},
+	})
+	if err != nil {
+		return repository.JobPhaseRun{}, nil, nil, fmt.Errorf("resolve persona generation provider settings: %w", err)
+	}
+	termRun.CredentialRef = providerExecutionOptionalString(resolved.CredentialReferenceID)
+	if resolved.ErrorKind != nil {
+		switch strings.TrimSpace(*resolved.ErrorKind) {
+		case providerSettingsErrorKindCredentialMissing, providerSettingsErrorKindEndpointMissing:
+			return termRun, nil, &personaGenerationStartRejection{
+				kind:   personaGenerationErrorKindTermIncomplete,
+				reason: "phase runtime snapshot is missing",
+			}, nil
+		default:
+			return termRun, nil, &personaGenerationStartRejection{
+				kind:   personaGenerationErrorKindProviderFailure,
+				reason: personaGenerationRedactedPublicSummary,
+			}, nil
+		}
+	}
+	return termRun, &providerExecutionSnapshot{
+		Provider:        strings.TrimSpace(termRun.AIProvider),
+		Model:           strings.TrimSpace(termRun.ModelName),
+		ExecutionMode:   strings.TrimSpace(termRun.ExecutionMode),
+		CredentialRef:   strings.TrimSpace(termRun.CredentialRef),
+		CredentialState: strings.TrimSpace(resolved.CredentialState),
+		EndpointSummary: providerExecutionEndpointSummary(resolved.Endpoint),
+		RequestToken:    providerExecutionEndpointSummary(resolved.RequestToken),
+	}, nil, nil
+}
+
 func personaGenerationExecutionConfigured(run repository.JobPhaseRun) bool {
 	return normalizePersonaField(run.AIProvider) != "" &&
 		normalizePersonaField(run.ModelName) != "" &&
@@ -1128,6 +1219,7 @@ func (service *PersonaGenerationPhaseService) startPhaseRunTransaction(
 	run *repository.JobPhaseRun,
 	termRun repository.JobPhaseRun,
 	snapshot personaGenerationTargetSnapshot,
+	startExecutionSnapshot *providerExecutionSnapshot,
 ) (repository.TranslationJob, repository.JobPhaseRun, error) {
 	var updatedJob repository.TranslationJob
 	var updatedRun repository.JobPhaseRun
@@ -1160,6 +1252,11 @@ func (service *PersonaGenerationPhaseService) startPhaseRunTransaction(
 		})
 		if updateErr != nil {
 			return fmt.Errorf("update persona generation phase run: %w", updateErr)
+		}
+		if startExecutionSnapshot != nil {
+			if err := service.persistRuntimeSnapshot(txCtx, job.ID, "npc_persona_generation", *startExecutionSnapshot); err != nil {
+				return err
+			}
 		}
 		updatedRun = nextRun
 		return nil
@@ -1209,6 +1306,41 @@ func personaGenerationStartedAt(existing *time.Time, now time.Time) *time.Time {
 		return startedAt
 	}
 	return &now
+}
+
+func (service *PersonaGenerationPhaseService) persistRuntimeSnapshot(
+	ctx context.Context,
+	jobID int64,
+	phaseID string,
+	snapshot providerExecutionSnapshot,
+) error {
+	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
+	if !ok {
+		return nil
+	}
+	current, err := store.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, phaseID)
+	switch {
+	case err == nil:
+	case errors.Is(err, repository.ErrNotFound):
+		current = repository.TranslationJobPhaseRuntimeSnapshot{}
+	default:
+		return fmt.Errorf("persist persona generation runtime snapshot: %w", err)
+	}
+	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
+		TranslationJobID:     jobID,
+		PhaseID:              phaseID,
+		Provider:             snapshot.Provider,
+		ModelName:            snapshot.Model,
+		CredentialRef:        snapshot.CredentialRef,
+		CredentialStatus:     snapshot.CredentialState,
+		EndpointSummary:      providerExecutionOptionalString(snapshot.EndpointSummary),
+		ExecutionMode:        snapshot.ExecutionMode,
+		BatchMode:            providerExecutionBatchMode(current),
+		ModelListSourceToken: providerExecutionModelListSourceToken(current),
+	}); err != nil {
+		return fmt.Errorf("persist persona generation runtime snapshot: %w", err)
+	}
+	return nil
 }
 
 func personaGenerationInitialRunStatus(snapshot personaGenerationTargetSnapshot, now time.Time) (string, int, *time.Time) {
@@ -1528,11 +1660,16 @@ func (service *PersonaGenerationPhaseService) buildProviderRequest(
 		fmt.Sprintf("class=%s", strings.TrimSpace(personaNullableString(target.npc.NpcClass))),
 	}
 	requestUnitID := fmt.Sprintf("phase-run-%d-npc-%d", run.ID, target.profile.ID)
+	endpointSummary := (*string)(nil)
+	if snapshot, ok := service.executionSnapshots[run.ID]; ok {
+		endpointSummary = providerExecutionEndpointSummary(snapshot.EndpointSummary)
+	}
 	return PersonaGenerationProviderRequest{
 		Provider:                 provider,
 		Model:                    model,
 		ExecutionMode:            PersonaGenerationExecutionModeSingleRequest,
 		CredentialRef:            credentialRef,
+		EndpointSummary:          endpointSummary,
 		RequestUnitID:            requestUnitID,
 		NPCCorrelationID:         fmt.Sprintf("npc-profile-%d", target.profile.ID),
 		NPCDisplayName:           strings.TrimSpace(target.profile.DisplayName),
@@ -1924,7 +2061,7 @@ func (service *PersonaGenerationPhaseService) buildExecutionSummary(
 	if metadataRun == nil {
 		metadataRun = executionRun
 	}
-	return PersonaGenerationExecutionSummaryReadModel{
+	summary := PersonaGenerationExecutionSummaryReadModel{
 		CredentialRef: strings.TrimSpace(personaGenerationExecutionField(metadataRun, func(run *repository.JobPhaseRun) string { return run.CredentialRef })),
 		Provider:      strings.TrimSpace(personaGenerationExecutionField(metadataRun, func(run *repository.JobPhaseRun) string { return run.AIProvider })),
 		Model:         strings.TrimSpace(personaGenerationExecutionField(metadataRun, func(run *repository.JobPhaseRun) string { return run.ModelName })),
@@ -1934,6 +2071,13 @@ func (service *PersonaGenerationPhaseService) buildExecutionSummary(
 		OutputCount:   personaGenerationExecutionOutputCount(resultSummary),
 		EvidenceRefs:  personaGenerationExecutionEvidenceRefs(executionRun),
 	}
+	if executionRun != nil {
+		if snapshot, ok := service.executionSnapshots[executionRun.ID]; ok {
+			summary.CredentialState = snapshot.CredentialState
+			summary.EndpointSummary = providerExecutionEndpointSummary(snapshot.EndpointSummary)
+		}
+	}
+	return summary
 }
 
 func personaGenerationExecutionField(run *repository.JobPhaseRun, pick func(*repository.JobPhaseRun) string) string {

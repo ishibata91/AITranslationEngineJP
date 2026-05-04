@@ -24,9 +24,10 @@ function createState(
     aiSettings: {
       provider: "gemini",
       model: "gemini-2.5-pro",
-      apiKey: ""
+      executionMethod: "single_request"
     },
     aiSettingsMessage: "",
+    modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
     preview: null,
@@ -76,7 +77,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "lm_studio",
           model: "llama3",
-          apiKey: ""
+          executionMethod: "single_request"
         }
       }),
       true
@@ -169,7 +170,7 @@ describe("MasterPersonaPresenter", () => {
     expect(viewModel.items[0]?.sex).toBeUndefined()
   })
 
-  test("preview が生成可能でも AI 設定が未完了なら生成ボタンは無効", () => {
+  test("preview が生成可能なら APIキー本文なしでも生成ボタンを有効化する", () => {
     const presenter = new MasterPersonaPresenter()
 
     const viewModel = presenter.toViewModel(
@@ -177,7 +178,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "gemini",
           model: "gemini-2.5-pro",
-          apiKey: ""
+          executionMethod: "single_request"
         },
         preview: {
           fileName: "sample.json",
@@ -191,7 +192,7 @@ describe("MasterPersonaPresenter", () => {
       true
     )
 
-    expect(viewModel.canStartGeneration).toBe(false)
+    expect(viewModel.canStartGeneration).toBe(true)
   })
 
   test("AI 設定完了かつ preview 成功時だけ生成ボタンを有効化する", () => {
@@ -202,7 +203,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "gemini",
           model: "gemini-2.5-pro",
-          apiKey: "secret-key"
+          executionMethod: "single_request"
         },
         preview: {
           fileName: "sample.json",
@@ -219,7 +220,7 @@ describe("MasterPersonaPresenter", () => {
     expect(viewModel.canStartGeneration).toBe(true)
   })
 
-  test("LM Studio は API キー未入力でも preview 成功時に生成ボタンを有効化する", () => {
+  test("LM Studio は preview 成功時に生成ボタンを有効化する", () => {
     const presenter = new MasterPersonaPresenter()
 
     const viewModel = presenter.toViewModel(
@@ -227,7 +228,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "lm_studio",
           model: "llama3",
-          apiKey: ""
+          executionMethod: "single_request"
         },
         preview: {
           fileName: "sample.json",
@@ -244,7 +245,7 @@ describe("MasterPersonaPresenter", () => {
     expect(viewModel.canStartGeneration).toBe(true)
   })
 
-  test("xAI は API キー未入力なら生成ボタンを有効化しない", () => {
+  test("xAI も APIキー本文なしで preview 成功時に生成ボタンを有効化する", () => {
     const presenter = new MasterPersonaPresenter()
 
     const viewModel = presenter.toViewModel(
@@ -252,7 +253,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "xai",
           model: "grok-4",
-          apiKey: ""
+          executionMethod: "single_request"
         },
         preview: {
           fileName: "sample.json",
@@ -266,7 +267,7 @@ describe("MasterPersonaPresenter", () => {
       true
     )
 
-    expect(viewModel.canStartGeneration).toBe(false)
+    expect(viewModel.canStartGeneration).toBe(true)
   })
 
   test("AI 設定未完了 preview は集計を残して生成ボタンを無効にする", () => {
@@ -277,7 +278,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "gemini",
           model: "gemini-2.5-pro",
-          apiKey: ""
+          executionMethod: "single_request"
         },
         preview: {
           fileName: "sample.json",
@@ -311,7 +312,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "gemini",
           model: "gemini-2.5-pro",
-          apiKey: "secret-key"
+          executionMethod: "single_request"
         },
         errorMessage: "parse extractData json: invalid",
         preview: null
@@ -502,7 +503,7 @@ describe("MasterPersonaPresenter", () => {
         aiSettings: {
           provider: "gemini",
           model: "gemini-2.5-pro",
-          apiKey: "key"
+          executionMethod: "single_request"
         },
         preview: {
           fileName: "sample.json",

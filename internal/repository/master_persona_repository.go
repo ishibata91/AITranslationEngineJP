@@ -93,8 +93,9 @@ type MasterPersonaDraft struct {
 
 // MasterPersonaAISettingsRecord stores persisted page-local AI settings except secrets.
 type MasterPersonaAISettingsRecord struct {
-	Provider string
-	Model    string
+	Provider        string
+	Model           string
+	ExecutionMethod string
 }
 
 // MasterPersonaRunStatusRecord stores persisted generation run status.

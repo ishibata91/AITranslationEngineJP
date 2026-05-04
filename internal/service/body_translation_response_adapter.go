@@ -32,6 +32,7 @@ func invokeBodyTranslationClientGenerateBodyTranslation(
 	model string,
 	executionMode string,
 	credentialRef string,
+	endpointSummary string,
 	prompt string,
 ) (bodyTranslationProviderClientResponse, error) {
 	if client == nil {
@@ -41,17 +42,21 @@ func invokeBodyTranslationClientGenerateBodyTranslation(
 	if !method.IsValid() {
 		return bodyTranslationProviderClientResponse{}, fmt.Errorf("body translation provider client does not implement GenerateBodyTranslation")
 	}
-	if method.Type().NumIn() != 6 || method.Type().NumOut() != 2 {
+	if (method.Type().NumIn() != 6 && method.Type().NumIn() != 7) || method.Type().NumOut() != 2 {
 		return bodyTranslationProviderClientResponse{}, fmt.Errorf("body translation provider client has incompatible GenerateBodyTranslation signature")
 	}
-	results := method.Call([]reflect.Value{
+	args := []reflect.Value{
 		reflect.ValueOf(ctx),
 		reflect.ValueOf(providerID),
 		reflect.ValueOf(model),
 		reflect.ValueOf(executionMode),
 		reflect.ValueOf(credentialRef),
-		reflect.ValueOf(prompt),
-	})
+	}
+	if method.Type().NumIn() == 7 {
+		args = append(args, reflect.ValueOf(strings.TrimSpace(endpointSummary)))
+	}
+	args = append(args, reflect.ValueOf(prompt))
+	results := method.Call(args)
 	if errValue := results[1]; !errValue.IsNil() {
 		err, _ := errValue.Interface().(error)
 		return bodyTranslationProviderClientResponse{}, err

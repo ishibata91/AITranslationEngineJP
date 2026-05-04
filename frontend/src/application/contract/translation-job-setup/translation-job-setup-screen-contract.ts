@@ -24,11 +24,6 @@ export interface TranslationJobSetupScreenControllerContract {
     phaseId: TranslationJobSetupPhaseId,
     enabled: boolean
   ): void
-  acknowledgeCredentialConfigured(phaseId: TranslationJobSetupPhaseId): void
-  savePhaseCredential?(
-    phaseId: TranslationJobSetupPhaseId,
-    apiKey: string
-  ): Promise<void>
   runValidation(): Promise<void>
   createJob(): Promise<void>
 }

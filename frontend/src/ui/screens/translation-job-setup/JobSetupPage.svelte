@@ -98,8 +98,6 @@
   let viewModel = $state(
     normalizeViewModel(controller.getViewModel() as TranslationJobSetupExtendedViewModel)
   )
-  let credentialModalPhaseId = $state<TranslationJobSetupPhaseCardViewModel["phaseId"] | null>(null)
-  let apiKeyInput = $state("")
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
     viewModel = normalizeViewModel(
@@ -115,44 +113,6 @@
       controller.dispose()
     }
   })
-
-  function openCredentialModal(
-    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"]
-  ): void {
-    credentialModalPhaseId = phaseId
-    apiKeyInput = ""
-  }
-
-  function closeCredentialModal(): void {
-    credentialModalPhaseId = null
-    apiKeyInput = ""
-  }
-
-  async function submitCredentialModal(): Promise<void> {
-    if (credentialModalPhaseId === null || apiKeyInput.trim() === "") {
-      return
-    }
-
-    try {
-      await controller.savePhaseCredential?.(credentialModalPhaseId, apiKeyInput)
-      closeCredentialModal()
-    } catch {
-      return
-    }
-  }
-
-  function getPhaseCard(
-    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"] | null
-  ): TranslationJobSetupPhaseCardViewModel | null {
-    if (phaseId === null) {
-      return null
-    }
-
-    return (
-      viewModel.phaseCards.find((phaseCard) => phaseCard.phaseId === phaseId) ??
-      null
-    )
-  }
 
   function formatDate(timestamp: string): string {
     if (!timestamp) {
@@ -528,17 +488,8 @@
                       </p>
                       {#if phaseCard.showCredentialWarning}
                         <p class="warning-text">
-                          APIキーを登録してからモデル一覧を更新してください。
+                          AIサービス設定が未完了です。設定が必要です。
                         </p>
-                      {/if}
-                      {#if phaseCard.showCredentialRegisterButton}
-                        <button
-                          class="button-secondary"
-                          onclick={() => openCredentialModal(phaseCard.phaseId)}
-                          type="button"
-                        >
-                          APIキーを登録
-                        </button>
                       {/if}
                     {:else}
                       <p class="mini-text">登録は不要です。</p>
@@ -546,7 +497,7 @@
                   </div>
 
                   <div class="meta-box">
-                    <p class="mini-label">一括処理</p>
+                    <p class="mini-label">処理方法</p>
                     {#if phaseCard.showBatchToggle}
                       <label class="checkbox-row">
                         <input
@@ -563,7 +514,7 @@
                           }}
                           type="checkbox"
                         />
-                        <span>一括処理で実行する</span>
+                        <span>Batch API</span>
                         <button
                           aria-describedby={`batch-help-${phaseCard.phaseId}`}
                           class="help-trigger"
@@ -594,12 +545,19 @@
                       <p class="mini-text">{phaseCard.modelListStatusText}</p>
                     </div>
                     <button
-                      class="button-secondary"
+                      aria-label={phaseCard.modelListButtonAriaLabel}
+                      class="button-secondary icon-button"
                       disabled={!phaseCard.modelListButtonEnabled}
                       onclick={() => void controller.refreshPhaseModels(phaseCard.phaseId)}
                       type="button"
                     >
-                      {phaseCard.modelListButtonLabel}
+                      <span
+                        aria-hidden="true"
+                        class={`refresh-icon ${phaseCard.isModelListRefreshing ? "spinning" : ""}`}
+                      >
+                        ↻
+                      </span>
+                      <span class="sr-only">{phaseCard.modelListButtonLabel}</span>
                     </button>
                   </div>
 
@@ -607,7 +565,7 @@
                     <span>使うモデル</span>
                     <select
                       id={`model-${phaseCard.phaseId}`}
-                      disabled={viewModel.isCreating || !phaseCard.showModelSelect}
+                      disabled={!phaseCard.modelSelectEnabled}
                       onchange={(event) => {
                         const target = event.currentTarget
                         if (target instanceof HTMLSelectElement) {
@@ -689,71 +647,6 @@
   {/if}
 </section>
 
-{#if credentialModalPhaseId !== null}
-  <div
-    class="modal-backdrop"
-    onclick={closeCredentialModal}
-    onkeydown={(event) => {
-      if (event.key === "Escape" || event.key === "Enter" || event.key === " ") {
-        closeCredentialModal()
-      }
-    }}
-    role="button"
-    tabindex="0"
-  >
-    <section
-      aria-modal="true"
-      class="credential-modal"
-      onclick={(event) => event.stopPropagation()}
-      onkeydown={(event) => {
-        if (event.key === "Escape") {
-          closeCredentialModal()
-        }
-      }}
-      role="dialog"
-      tabindex="-1"
-    >
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">api key</p>
-          <h3>{getPhaseCard(credentialModalPhaseId)?.phaseLabel} の APIキー登録</h3>
-        </div>
-      </div>
-      <p class="mini-text">
-        モデル一覧の取得と翻訳実行時の接続に必要です。
-      </p>
-      <p class="mini-text">
-        OS認証画面が出る場合があります。OS の安全な保管場所へ保存するためです。
-      </p>
-      <label class="field-block" for="jobSetupApiKeyInput">
-        <span>APIキー</span>
-        <input
-          bind:value={apiKeyInput}
-          id="jobSetupApiKeyInput"
-          placeholder="APIキーを入力してください"
-          type="password"
-        />
-      </label>
-      <p class="mini-text">
-        保存後は、このモーダルを閉じてモデル一覧を更新してください。
-      </p>
-      <div class="modal-actions">
-        <button class="button-secondary" onclick={closeCredentialModal} type="button">
-          キャンセル
-        </button>
-        <button
-          class="button-primary"
-          disabled={apiKeyInput.trim() === ""}
-          onclick={submitCredentialModal}
-          type="button"
-        >
-          APIキーを登録
-        </button>
-      </div>
-    </section>
-  </div>
-{/if}
-
 <style>
   .job-setup-shell {
     display: grid;
@@ -769,8 +662,7 @@
   }
 
   .job-setup-card,
-  .create-bar,
-  .credential-modal {
+  .create-bar {
     display: grid;
     gap: 1rem;
     padding: 1.25rem;
@@ -984,6 +876,35 @@
     color: #ffe2bf;
   }
 
+  .icon-button {
+    align-items: center;
+    display: inline-flex;
+    justify-content: center;
+    min-width: 2.75rem;
+    padding: 0.8rem;
+  }
+
+  .refresh-icon {
+    display: inline-flex;
+    font-size: 1rem;
+    line-height: 1;
+  }
+
+  .refresh-icon.spinning {
+    animation: rotation 0.8s linear infinite;
+  }
+
+  .sr-only {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    width: 1px;
+  }
+
   button:disabled,
   select:disabled,
   input:disabled {
@@ -1025,26 +946,14 @@
     overflow-wrap: anywhere;
   }
 
-  .modal-backdrop {
-    position: fixed;
-    inset: 0;
-    display: grid;
-    place-items: center;
-    padding: 1rem;
-    background: rgba(8, 5, 4, 0.72);
-    backdrop-filter: blur(10px);
-    z-index: 20;
-  }
+  @keyframes rotation {
+    from {
+      transform: rotate(0deg);
+    }
 
-  .credential-modal {
-    width: min(32rem, 100%);
-    background: rgba(34, 26, 23, 0.96);
-  }
-
-  .modal-actions {
-    display: flex;
-    justify-content: flex-end;
-    gap: 0.75rem;
+    to {
+      transform: rotate(360deg);
+    }
   }
 
   @media (max-width: 1080px) {
@@ -1056,8 +965,7 @@
   @media (max-width: 720px) {
     .section-head,
     .phase-card-head,
-    .create-bar,
-    .modal-actions {
+    .create-bar {
       flex-direction: column;
     }
 

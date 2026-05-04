@@ -278,21 +278,6 @@ type ListTranslationJobSetupProviderModelsResult struct {
 	FailureKind      TranslationJobSetupErrorKind
 }
 
-// SaveTranslationJobSetupCredentialRequest carries the transport-stable credential save input.
-type SaveTranslationJobSetupCredentialRequest struct {
-	Provider      string
-	CredentialRef string
-	APIKey        string
-}
-
-// SaveTranslationJobSetupCredentialResult returns the public credential reference state after save.
-type SaveTranslationJobSetupCredentialResult struct {
-	Provider        string
-	CredentialRef   string
-	IsConfigured    bool
-	IsMissingSecret bool
-}
-
 // ValidateTranslationJobSetupRequest carries the transport-stable validation input.
 type ValidateTranslationJobSetupRequest struct {
 	InputSourceID          int64
@@ -427,14 +412,6 @@ func (TranslationJobSetupContractStub) ListTranslationJobSetupProviderModels(
 	ListTranslationJobSetupProviderModelsRequest,
 ) (ListTranslationJobSetupProviderModelsResult, error) {
 	return ListTranslationJobSetupProviderModelsResult{}, errTranslationJobSetupNotImplemented
-}
-
-// SaveTranslationJobSetupCredential returns a not-implemented error for the frozen credential save seam.
-func (TranslationJobSetupContractStub) SaveTranslationJobSetupCredential(
-	context.Context,
-	SaveTranslationJobSetupCredentialRequest,
-) (SaveTranslationJobSetupCredentialResult, error) {
-	return SaveTranslationJobSetupCredentialResult{}, errTranslationJobSetupNotImplemented
 }
 
 // CreateTranslationJob returns a not-implemented error for the frozen contract seam.

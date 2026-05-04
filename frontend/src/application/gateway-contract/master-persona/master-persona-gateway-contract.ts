@@ -61,7 +61,12 @@ export interface MasterPersonaDetailResponse {
 export interface MasterPersonaAISettings {
   provider: string
   model: string
-  apiKey: string
+  executionMethod: string
+}
+
+export interface MasterPersonaModelOption {
+  modelId: string
+  label: string
 }
 
 export interface MasterPersonaPreviewRequest {
@@ -153,6 +158,7 @@ export interface MasterPersonaScreenState {
   errorMessage: string
   aiSettings: MasterPersonaAISettings
   aiSettingsMessage: string
+  modelOptions: MasterPersonaModelOption[]
   selectedFileName: string
   selectedFileReference: string | null
   preview: MasterPersonaPreviewStateEntry | null
@@ -176,6 +182,10 @@ export interface MasterPersonaScreenViewModel extends MasterPersonaScreenState {
   isRunActive: boolean
   hasPreview: boolean
   aiProviderLabel: string
+  aiSettingsWarningText: string
+  aiSettingsStatusText: string
+  canSelectModel: boolean
+  executionMethodOptions: Array<{ value: string; label: string }>
   promptTemplateDescription: string
   progressPercent: number
 }
@@ -191,7 +201,7 @@ export function createDefaultMasterPersonaAISettings(): MasterPersonaAISettings 
   return {
     provider: MASTER_PERSONA_DEFAULT_PROVIDER,
     model: MASTER_PERSONA_DEFAULT_MODEL,
-    apiKey: ""
+    executionMethod: "single_request"
   }
 }
 

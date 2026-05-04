@@ -681,7 +681,10 @@ func TestMasterPersonaControllerPersonaJSONPreviewCutoverOmitsLegacyFields(t *te
 func TestMasterPersonaControllerPersonaAISettingsRestartCutoverLoadAISettingsReturnsRestoredProviderModel(t *testing.T) {
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		loadAISettingsFunc: func(_ context.Context) (usecase.MasterPersonaAISettings, error) {
-			return usecase.MasterPersonaAISettings{Provider: "gemini", Model: "restart-model", APIKey: "restored-key"}, nil
+			return usecase.MasterPersonaAISettings{
+				Provider: "gemini",
+				Model:    "restart-model",
+			}, nil
 		},
 	})
 
@@ -692,12 +695,9 @@ func TestMasterPersonaControllerPersonaAISettingsRestartCutoverLoadAISettingsRet
 	if dto.Provider != "gemini" || dto.Model != "restart-model" {
 		t.Fatalf("expected restored provider/model in dto, got %#v", dto)
 	}
-	if dto.APIKey != "restored-key" {
-		t.Fatalf("expected restored api key in dto, got %q", dto.APIKey)
-	}
 }
 
-// persona-ai-settings-restart-cutover: MasterPersonaSaveAISettings は DTO の provider、model、apiKey をすべて usecase へ転送することを証明する。
+// persona-ai-settings-restart-cutover: MasterPersonaSaveAISettings は DTO の provider と model を usecase へ転送し、apiKey は持ち込まないことを証明する。
 func TestMasterPersonaControllerPersonaAISettingsRestartCutoverSaveAISettingsForwardsAllFieldsToUsecase(t *testing.T) {
 	var capturedSettings usecase.MasterPersonaAISettings
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
@@ -707,15 +707,15 @@ func TestMasterPersonaControllerPersonaAISettingsRestartCutoverSaveAISettingsFor
 		},
 	})
 
-	_, err := controller.MasterPersonaSaveAISettings(MasterPersonaAISettingsDTO{Provider: "gemini", Model: "cutover-model", APIKey: "cutover-key"})
+	_, err := controller.MasterPersonaSaveAISettings(MasterPersonaAISettingsDTO{
+		Provider: "gemini",
+		Model:    "cutover-model",
+	})
 	if err != nil {
 		t.Fatalf("expected save ai settings to succeed: %v", err)
 	}
 	if capturedSettings.Provider != "gemini" || capturedSettings.Model != "cutover-model" {
 		t.Fatalf("expected provider/model forwarded to usecase, got %#v", capturedSettings)
-	}
-	if capturedSettings.APIKey != "cutover-key" {
-		t.Fatalf("expected api key forwarded to usecase, got %q", capturedSettings.APIKey)
 	}
 }
 

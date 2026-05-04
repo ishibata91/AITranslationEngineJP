@@ -31,7 +31,7 @@ func (provider geminiProvider) Generate(
 	if err != nil {
 		return ProviderResponse{}, fmt.Errorf("marshal ai provider request: %w", err)
 	}
-	httpRequest, err := newGeminiRequest(ctx, request.Model, request.APIKey, requestBytes)
+	httpRequest, err := newGeminiRequest(ctx, request.Model, request.APIKey, request.EndpointSummary, requestBytes)
 	if err != nil {
 		return ProviderResponse{}, err
 	}
@@ -84,13 +84,17 @@ func newGeminiRequest(
 	ctx context.Context,
 	model string,
 	apiKey string,
+	endpointSummary string,
 	requestBytes []byte,
 ) (*http.Request, error) {
 	trimmedModel := strings.TrimSpace(model)
 	if trimmedModel == "" {
 		return nil, fmt.Errorf("model is required")
 	}
-	endpoint := fmt.Sprintf(geminiEndpointTemplate, url.PathEscape(trimmedModel))
+	endpoint, err := geminiEndpoint(firstNonEmptyGeminiValue(strings.TrimSpace(endpointSummary), geminiDefaultBaseURL), trimmedModel)
+	if err != nil {
+		return nil, err
+	}
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodPost,
@@ -105,6 +109,37 @@ func newGeminiRequest(
 		request.Header.Set("x-goog-api-key", trimmedAPIKey)
 	}
 	return request, nil
+}
+
+const geminiDefaultBaseURL = "https://generativelanguage.googleapis.com/v1beta"
+
+func geminiEndpoint(baseURL string, model string) (string, error) {
+	trimmedBaseURL := strings.TrimSpace(baseURL)
+	if trimmedBaseURL == "" {
+		trimmedBaseURL = geminiDefaultBaseURL
+	}
+	parsedURL, err := url.Parse(trimmedBaseURL)
+	if err != nil {
+		return "", fmt.Errorf("parse gemini base url: %w", err)
+	}
+	if strings.TrimSpace(parsedURL.Scheme) == "" || strings.TrimSpace(parsedURL.Host) == "" {
+		return "", fmt.Errorf("gemini base url must be absolute: %s", trimmedBaseURL)
+	}
+	trimmedPath := strings.TrimSuffix(parsedURL.Path, "/")
+	parsedURL.Path = trimmedPath + "/models/" + url.PathEscape(strings.TrimSpace(model)) + ":generateContent"
+	parsedURL.RawQuery = ""
+	parsedURL.Fragment = ""
+	return parsedURL.String(), nil
+}
+
+func firstNonEmptyGeminiValue(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func readGeminiResponse(response *http.Response) (string, error) {

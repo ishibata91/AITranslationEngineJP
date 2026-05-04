@@ -109,9 +109,9 @@ type MasterPersonaDetailResponseDTO struct {
 
 // MasterPersonaAISettingsDTO carries page-local AI settings.
 type MasterPersonaAISettingsDTO struct {
-	Provider string `json:"provider"`
-	Model    string `json:"model"`
-	APIKey   string `json:"apiKey"`
+	Provider        string `json:"provider"`
+	Model           string `json:"model"`
+	ExecutionMethod string `json:"executionMethod"`
 }
 
 // MasterPersonaPreviewRequestDTO requests a preview calculation.
@@ -301,11 +301,19 @@ func toMasterPersonaListQuery(dto MasterPersonaListQueryDTO) usecase.MasterPerso
 }
 
 func toMasterPersonaAISettings(dto MasterPersonaAISettingsDTO) usecase.MasterPersonaAISettings {
-	return usecase.MasterPersonaAISettings{Provider: dto.Provider, Model: dto.Model, APIKey: dto.APIKey}
+	return usecase.MasterPersonaAISettings{
+		Provider:        dto.Provider,
+		Model:           dto.Model,
+		ExecutionMethod: dto.ExecutionMethod,
+	}
 }
 
 func toMasterPersonaAISettingsDTO(settings usecase.MasterPersonaAISettings) MasterPersonaAISettingsDTO {
-	return MasterPersonaAISettingsDTO{Provider: settings.Provider, Model: settings.Model, APIKey: settings.APIKey}
+	return MasterPersonaAISettingsDTO{
+		Provider:        settings.Provider,
+		Model:           settings.Model,
+		ExecutionMethod: settings.ExecutionMethod,
+	}
 }
 
 func toMasterPersonaPageDTO(page usecase.MasterPersonaPageState) MasterPersonaPageDTO {

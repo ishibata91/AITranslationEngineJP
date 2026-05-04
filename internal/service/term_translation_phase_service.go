@@ -69,6 +69,8 @@ type TermTranslationPhaseService struct {
 	transactor               repository.Transactor
 	secretStore              termTranslationPhaseSecretStore
 	provider                 TermTranslationProvider
+	providerSettings         ProviderSettingsConsumer
+	executionSnapshots       map[int64]providerExecutionSnapshot
 	secretLoadTimeout        time.Duration
 }
 
@@ -112,6 +114,8 @@ type termTranslationPhaseRuntimeSnapshotReader interface {
 // TermTranslationExecutionConfigReadModel summarizes execution config for one term phase run.
 type TermTranslationExecutionConfigReadModel struct {
 	CredentialRef   string
+	CredentialState string
+	EndpointSummary *string
 	Provider        string
 	Model           string
 	ExecutionMode   string
@@ -269,8 +273,19 @@ func NewTermTranslationPhaseService(
 		transactor:               transactor,
 		secretStore:              secretStore,
 		provider:                 provider,
+		executionSnapshots:       map[int64]providerExecutionSnapshot{},
 		secretLoadTimeout:        termTranslationSecretLoadTimeout,
 	}
+}
+
+// WithTermTranslationProviderSettings injects the provider settings resolver used at phase start.
+func (service *TermTranslationPhaseService) WithTermTranslationProviderSettings(
+	consumer ProviderSettingsConsumer,
+) *TermTranslationPhaseService {
+	if service != nil {
+		service.providerSettings = consumer
+	}
+	return service
 }
 
 // ReadSummary loads the current term phase summary for one translation job.
@@ -562,6 +577,16 @@ func (service *TermTranslationPhaseService) prepareExecutionPlan(
 	if rejectedPlan, rejected := service.rejectExecutionPlan(job, run, mode, phaseRunID); rejected {
 		return rejectedPlan, errTermTranslationPhaseExecutionRejected
 	}
+	if mode == termTranslationStartModeStart {
+		resolvedExecution, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, execution)
+		if resolveErr != nil {
+			return termTranslationExecutionPlan{}, resolveErr
+		}
+		if rejection != nil {
+			return service.buildRejectedExecutionPlan(job, run, rejection.ErrorKind, rejection.Reason), errTermTranslationPhaseExecutionRejected
+		}
+		execution = resolvedExecution
+	}
 	if !termTranslationExecutionConfigured(execution) {
 		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseRuntimeMissing), errTermTranslationPhaseExecutionRejected
 	}
@@ -685,6 +710,57 @@ func (service *TermTranslationPhaseService) buildRejectedExecutionPlan(
 	}
 }
 
+func (service *TermTranslationPhaseService) resolveExecutionSnapshotForStart(
+	ctx context.Context,
+	execution TermTranslationExecutionConfigReadModel,
+) (TermTranslationExecutionConfigReadModel, *TermTranslationPhaseErrorReadModel, error) {
+	if service.providerSettings == nil || !providerExecutionUsesProviderSettings(execution.Provider) {
+		return execution, nil, nil
+	}
+	resolved, err := service.providerSettings.ResolveProviderExecutionSettings(ctx, ProviderSettingsResolveInput{
+		ConsumerID:          "term_translation_phase",
+		AllowSecretSnapshot: true,
+		Selection: ProviderSettingsResolveSelection{
+			ProviderID:      execution.Provider,
+			Model:           execution.Model,
+			ExecutionMethod: execution.ExecutionMode,
+			UseBatchAPI:     false,
+		},
+	})
+	if err != nil {
+		return TermTranslationExecutionConfigReadModel{}, nil, fmt.Errorf("resolve term translation provider settings: %w", err)
+	}
+	execution.CredentialRef = providerExecutionOptionalString(resolved.CredentialReferenceID)
+	execution.CredentialState = strings.TrimSpace(resolved.CredentialState)
+	execution.EndpointSummary = providerExecutionEndpointSummary(resolved.Endpoint)
+	if resolved.ErrorKind == nil {
+		return execution, nil, nil
+	}
+	switch strings.TrimSpace(*resolved.ErrorKind) {
+	case providerSettingsErrorKindCredentialMissing:
+		return execution, &TermTranslationPhaseErrorReadModel{
+			ErrorKind:  "term_phase_incomplete",
+			Reason:     termTranslationReasonCredentialMissing,
+			Retryable:  false,
+			IsRedacted: true,
+		}, nil
+	case providerSettingsErrorKindEndpointMissing:
+		return execution, &TermTranslationPhaseErrorReadModel{
+			ErrorKind:  "term_phase_incomplete",
+			Reason:     termTranslationReasonPhaseRuntimeMissing,
+			Retryable:  false,
+			IsRedacted: true,
+		}, nil
+	default:
+		return execution, &TermTranslationPhaseErrorReadModel{
+			ErrorKind:  "term_phase_incomplete",
+			Reason:     termTranslationReasonProviderFailed,
+			Retryable:  false,
+			IsRedacted: true,
+		}, nil
+	}
+}
+
 func (service *TermTranslationPhaseService) initializeExecutionPlanRun(
 	ctx context.Context,
 	job repository.TranslationJob,
@@ -694,15 +770,11 @@ func (service *TermTranslationPhaseService) initializeExecutionPlanRun(
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, fmt.Errorf("list translation job phases: %w", err)
 	}
-	initial, err := termTranslationInitialExecutionPhase(jobPhases)
-	if err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
-	}
 	updatedJob, err := service.markExecutionPlanJobRunning(ctx, job)
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
 	}
-	run, created, err := service.createOrFindExecutionPlanRun(ctx, updatedJob.ID, len(jobPhases)+1, initial)
+	run, created, err := service.createOrFindExecutionPlanRun(ctx, updatedJob.ID, len(jobPhases)+1, execution)
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
 	}
@@ -710,7 +782,54 @@ func (service *TermTranslationPhaseService) initializeExecutionPlanRun(
 	execution.Model = run.ModelName
 	execution.ExecutionMode = run.ExecutionMode
 	execution.CredentialRef = run.CredentialRef
+	startSnapshot := providerExecutionSnapshot{
+		Provider:        execution.Provider,
+		Model:           execution.Model,
+		ExecutionMode:   execution.ExecutionMode,
+		CredentialRef:   execution.CredentialRef,
+		CredentialState: execution.CredentialState,
+		EndpointSummary: providerExecutionEndpointSummary(execution.EndpointSummary),
+	}
+	if err := service.persistRuntimeSnapshot(ctx, updatedJob.ID, "word_translation", startSnapshot); err != nil {
+		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
+	}
+	service.executionSnapshots[run.ID] = startSnapshot
 	return updatedJob, run, execution, created, nil
+}
+
+func (service *TermTranslationPhaseService) persistRuntimeSnapshot(
+	ctx context.Context,
+	jobID int64,
+	phaseID string,
+	snapshot providerExecutionSnapshot,
+) error {
+	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
+	if !ok {
+		return nil
+	}
+	current, err := store.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, phaseID)
+	switch {
+	case err == nil:
+	case errors.Is(err, repository.ErrNotFound):
+		current = repository.TranslationJobPhaseRuntimeSnapshot{}
+	default:
+		return fmt.Errorf("persist term translation runtime snapshot: %w", err)
+	}
+	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
+		TranslationJobID:     jobID,
+		PhaseID:              phaseID,
+		Provider:             snapshot.Provider,
+		ModelName:            snapshot.Model,
+		CredentialRef:        snapshot.CredentialRef,
+		CredentialStatus:     snapshot.CredentialState,
+		EndpointSummary:      providerExecutionOptionalString(snapshot.EndpointSummary),
+		ExecutionMode:        snapshot.ExecutionMode,
+		BatchMode:            providerExecutionBatchMode(current),
+		ModelListSourceToken: providerExecutionModelListSourceToken(current),
+	}); err != nil {
+		return fmt.Errorf("persist term translation runtime snapshot: %w", err)
+	}
+	return nil
 }
 
 func (service *TermTranslationPhaseService) markExecutionPlanJobRunning(
@@ -739,17 +858,17 @@ func (service *TermTranslationPhaseService) createOrFindExecutionPlanRun(
 	ctx context.Context,
 	jobID int64,
 	executionOrder int,
-	initial repository.JobPhaseRun,
+	execution TermTranslationExecutionConfigReadModel,
 ) (*repository.JobPhaseRun, bool, error) {
 	createdRun, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
 		TranslationJobID: jobID,
 		PhaseType:        termTranslationPhaseType,
 		State:            termTranslationPhaseStateRunning,
 		ExecutionOrder:   executionOrder,
-		AIProvider:       initial.AIProvider,
-		ModelName:        initial.ModelName,
-		ExecutionMode:    initial.ExecutionMode,
-		CredentialRef:    initial.CredentialRef,
+		AIProvider:       execution.Provider,
+		ModelName:        execution.Model,
+		ExecutionMode:    execution.ExecutionMode,
+		CredentialRef:    execution.CredentialRef,
 		InstructionKind:  termTranslationInstructionKindDefault,
 	})
 	if err == nil {
@@ -934,13 +1053,14 @@ func (service *TermTranslationPhaseService) applyProviderCandidate(
 	baseConfirmedCount int,
 ) error {
 	result, err := service.provider.TranslateTerm(ctx, TermTranslationProviderRequest{
-		Provider:       plan.Execution.Provider,
-		Model:          plan.Execution.Model,
-		APIKey:         apiKey,
-		SourceTerm:     candidate.SourceTerm,
-		SourceLanguage: "English",
-		TargetLanguage: "Japanese",
-		PromptVersion:  "term-translation-v1",
+		Provider:        plan.Execution.Provider,
+		Model:           plan.Execution.Model,
+		APIKey:          apiKey,
+		EndpointSummary: providerExecutionEndpointSummary(plan.Execution.EndpointSummary),
+		SourceTerm:      candidate.SourceTerm,
+		SourceLanguage:  "English",
+		TargetLanguage:  "Japanese",
+		PromptVersion:   "term-translation-v1",
 	})
 	if err != nil {
 		return service.failProviderCandidate(err, baseConfirmedCount, len(plan.Candidates))
@@ -1140,7 +1260,7 @@ func (service *TermTranslationPhaseService) loadExecutionContext(
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
 	}
-	if snapshotReader, ok := service.jobLifecycleRepository.(termTranslationPhaseRuntimeSnapshotReader); ok {
+	if snapshotReader, ok := service.jobLifecycleRepository.(termTranslationPhaseRuntimeSnapshotReader); ok && run == nil {
 		snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "word_translation")
 		switch {
 		case snapshotErr == nil:
@@ -1161,12 +1281,42 @@ func (service *TermTranslationPhaseService) loadExecutionContext(
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
 	}
-	return job, run, TermTranslationExecutionConfigReadModel{
+	execution := TermTranslationExecutionConfigReadModel{
 		CredentialRef: initial.CredentialRef,
 		Provider:      initial.AIProvider,
 		Model:         initial.ModelName,
 		ExecutionMode: initial.ExecutionMode,
-	}, candidates, nil
+	}
+	if run != nil {
+		if trimmed := strings.TrimSpace(run.CredentialRef); trimmed != "" {
+			execution.CredentialRef = trimmed
+		}
+		if trimmed := strings.TrimSpace(run.AIProvider); trimmed != "" {
+			execution.Provider = trimmed
+		}
+		if trimmed := strings.TrimSpace(run.ModelName); trimmed != "" {
+			execution.Model = trimmed
+		}
+		if trimmed := strings.TrimSpace(run.ExecutionMode); trimmed != "" {
+			execution.ExecutionMode = trimmed
+		}
+		if snapshot, ok := service.executionSnapshots[run.ID]; ok {
+			execution.CredentialState = snapshot.CredentialState
+			execution.EndpointSummary = providerExecutionEndpointSummary(snapshot.EndpointSummary)
+		} else if snapshotReader, ok := service.jobLifecycleRepository.(termTranslationPhaseRuntimeSnapshotReader); ok {
+			snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "word_translation")
+			switch {
+			case snapshotErr == nil:
+				persisted := providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
+				execution.CredentialState = persisted.CredentialState
+				execution.EndpointSummary = providerExecutionEndpointSummary(persisted.EndpointSummary)
+			case errors.Is(snapshotErr, repository.ErrNotFound):
+			default:
+				return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, fmt.Errorf("load term translation phase runtime snapshot: %w", snapshotErr)
+			}
+		}
+	}
+	return job, run, execution, candidates, nil
 }
 
 func (service *TermTranslationPhaseService) buildRunState(

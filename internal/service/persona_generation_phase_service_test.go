@@ -175,6 +175,10 @@ type fakePersonaPhaseTranslationSourceRepository struct {
 
 type fakePersonaGenerationProvider struct{}
 
+type capturingPersonaGenerationProvider struct {
+	requests []PersonaGenerationProviderRequest
+}
+
 func (fakePersonaGenerationProvider) GeneratePersona(_ context.Context, request PersonaGenerationProviderRequest) PersonaGenerationProviderResult {
 	prompt, err := BuildPersonaGenerationPrompt(request)
 	if err != nil {
@@ -206,6 +210,15 @@ func (fakePersonaGenerationProvider) GeneratePersona(_ context.Context, request 
 }
 
 func (fakePersonaGenerationProvider) PersonaGenerationProviderRequestsAreTestSafe() bool {
+	return true
+}
+
+func (provider *capturingPersonaGenerationProvider) GeneratePersona(_ context.Context, request PersonaGenerationProviderRequest) PersonaGenerationProviderResult {
+	provider.requests = append(provider.requests, request)
+	return fakePersonaGenerationProvider{}.GeneratePersona(context.Background(), request)
+}
+
+func (provider *capturingPersonaGenerationProvider) PersonaGenerationProviderRequestsAreTestSafe() bool {
 	return true
 }
 
@@ -274,6 +287,51 @@ func newPersonaPhaseServiceForTest(jobState string, termState string, personaRun
 	service := NewPersonaGenerationPhaseService(jobRepo, foundation, source, fakePersonaPhaseTransactor{})
 	service.now = func() time.Time { return time.Date(2026, 5, 2, 0, 0, 0, 0, time.UTC) }
 	return service, jobRepo
+}
+
+func TestPersonaGenerationPhaseServiceStartPhaseReResolvesProviderSettingsBeforeExecution(t *testing.T) {
+	sourceRecords := []repository.TranslationRecord{{ID: 21, RecordType: "NPC_", EditorID: "Lydia", FormID: "000ABC"}}
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, sourceRecords)
+	repo.termRun = repository.JobPhaseRun{
+		ID:               10,
+		TranslationJobID: 1,
+		PhaseType:        personaGenerationTermPhaseType,
+		State:            personaGenerationPhaseStateCompleted,
+		AIProvider:       PersonaGenerationProviderXAI,
+		ModelName:        "grok-4",
+		ExecutionMode:    PersonaGenerationExecutionModeSingleRequest,
+		CredentialRef:    "stale-ref",
+	}
+	capturingProvider := &capturingPersonaGenerationProvider{}
+	service.WithPersonaGenerationProvider(capturingProvider)
+	service.WithPersonaGenerationProviderSettings(fakePhaseProviderSettingsConsumer{
+		resolveFunc: func(_ context.Context, input ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
+			return ProviderSettingsResolveResult{
+				ConsumerID:            input.ConsumerID,
+				ProviderID:            input.Selection.ProviderID,
+				Model:                 input.Selection.Model,
+				ExecutionMethod:       input.Selection.ExecutionMethod,
+				Endpoint:              stringPointer("https://api.x.ai/v1"),
+				CredentialReferenceID: stringPointer("provider-settings:xai"),
+				CredentialState:       providerSettingsCredentialStateConfigured,
+			}, nil
+		},
+	})
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected persona phase start success, got %v", err)
+	}
+	if len(capturingProvider.requests) == 0 {
+		t.Fatal("expected provider request capture")
+	}
+	request := capturingProvider.requests[0]
+	if request.CredentialRef != "provider-settings:xai" {
+		t.Fatalf("expected re-resolved credential ref, got %#v", request)
+	}
+	if request.EndpointSummary == nil || *request.EndpointSummary != "https://api.x.ai/v1" {
+		t.Fatalf("expected re-resolved endpoint summary, got %#v", request)
+	}
 }
 
 func TestPersonaGenerationBuildProviderRequestAllowsEmptyCredentialRefForLMStudio(t *testing.T) {

@@ -35,6 +35,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - UX 標準: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - UI 設計雛形: [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/assets/ui-design.md)
+- UIプロトタイプ雛形: [prototype/index.svelte](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/assets/prototype/index.svelte)
 - UIプロトタイプ確認サーバー: [serve-prototype.mjs](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/scripts/dev/serve-prototype.mjs)
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
@@ -47,7 +48,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - 画面表示文言、表示項目、主要操作、ボタン有効条件
 - 画面区画、状態差分、配置制約、アクセシビリティ
 - UIプロトタイプの種類、土台、task-local 正本配置
-- UIプロトタイプの主要導線、情報密度、入力と結果の見え方
+- UIプロトタイプの主要導線、画面切り替え、情報密度、入力と結果の見え方
 - UIプロトタイプ確認サーバーの URL、起動 command、人間確認中の起動状態
 - `agent-browser` による task-local UIプロトタイプの UX 標準確認結果
 - task-local UIプロトタイプ内の `mock-data/` とモックデータ移植禁止範囲
@@ -68,7 +69,11 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 
 - UI は UI 要件契約で固定し、UIプロトタイプは task-local 確認用として扱う
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
-- UIプロトタイプを作る場合は `prototype.svelte` として task folder に置く
+- UIプロトタイプを作る場合は `prototype/index.svelte` として task folder に置く
+- 複数画面を確認する UIプロトタイプは、確認用の画面切り替えを持つ
+- 画面間導線が確認対象の場合は、複数画面の縦積み表示だけで完了扱いにしない
+- 複数画面の縦積み表示は、状態差分または画面比較だけを目的にする
+- 確認用の画面切り替えは、本番のルーティング設計として扱わない
 - UIプロトタイプの画面背景は UIプロトタイプ確認サーバーの共通背景を使い、task-local UIプロトタイプへ page 全体の背景を複製しない
 - 既存画面変更では、既存画面または既存 UI 部品を土台にする
 - 既存画面変更の UIプロトタイプは、対象画面の既存 Svelte、CSS、class、画面構造を再利用する
@@ -111,10 +116,11 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 
 - 判断結果: UI 要件契約の完了、未完了、停止の判定を返す。
 - 根拠参照: UI 判断の根拠にした要件、シナリオ、既存画面を返す。
-- UIプロトタイプ: task-local 確認用 `prototype.svelte` の作成または更新結果を返す。
+- UIプロトタイプ: task-local 確認用 `prototype/index.svelte` の作成または更新結果を返す。
 - UIプロトタイプ種別: 既存画面変更または新規画面の区分を返す。
 - UIプロトタイプ土台: 既存画面、既存 UI 部品、または `docs/screen-design` の参照を返す。
 - UIプロトタイプ配置: task folder 内の配置パスを返す。
+- 確認対象画面一覧: UIプロトタイプで切り替えて確認する画面名と確認順を返す。
 - UIプロトタイプ確認サーバー: 確認 URL、起動 command、人間確認中の起動要否を返す。
 - 確認結果: `ui-design.md` の agent-browser 確認結果を返す。
 - 操作確認結果: 主要操作後の画面変化、状態切り替え、未確認理由を返す。
@@ -133,6 +139,8 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - `ui-design.md` は UI 要件契約と確認観点を含んでいる。
 - task-local UIプロトタイプを作る場合は、主要区画、主要操作、状態差分を確認できる。
 - task-local UIプロトタイプを作る場合は、主要操作後の画面変化を確認できる。
+- 複数画面の task-local UIプロトタイプを作る場合は、確認用の画面切り替えで各画面を確認できる。
+- 複数画面の task-local UIプロトタイプを作る場合は、確認対象画面一覧と確認順を `ui-design.md` に含めている。
 - 既存画面変更の UIプロトタイプを作る場合は、既存画面リソース参照、再利用した画面構造、変更対象区画だけの差し替え結果を `ui-design.md` に含めている。
 - 既存画面リソースを再利用できない場合は、理由を `ui-design.md` の `UI Prototype Contract` に記録し、完了扱いにしていない。
 - task-local UIプロトタイプを作る場合は、`ui-design.md` に確認サーバーの URL、起動 command、人間確認中の起動要否を含めている。

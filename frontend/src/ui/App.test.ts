@@ -39,6 +39,12 @@ const DASHBOARD_SHELL_PRIMARY_ROUTES = [
     description: "主要ページへの入口をまとめて確認します。"
   },
   {
+    id: "provider-settings",
+    label: "AIサービス設定",
+    state: "設定状態を確認",
+    description: "AIサービスごとの接続設定を確認します。"
+  },
+  {
     id: "master-dictionary",
     label: "マスター辞書",
     state: "準備中",
@@ -203,9 +209,10 @@ function buildMasterPersonaScreenViewModel(
     aiSettings: {
       provider: "gemini",
       model: "gemini-2.5-pro",
-      apiKey: ""
+      executionMethod: "single_request"
     },
     aiSettingsMessage: "",
+    modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
     preview: null,
@@ -247,6 +254,10 @@ function buildMasterPersonaScreenViewModel(
     isRunActive: false,
     hasPreview: false,
     aiProviderLabel: "Gemini",
+    aiSettingsWarningText: "",
+    aiSettingsStatusText: "設定済み",
+    canSelectModel: true,
+    executionMethodOptions: [{ value: "single_request", label: "通常" }],
     promptTemplateDescription:
       "プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。",
     progressPercent: 0,
@@ -511,7 +522,7 @@ class MasterPersonaScreenControllerFake implements MasterPersonaScreenController
   readonly saveAISettings = vi.fn(async () => {})
   readonly setAIProvider = vi.fn(() => {})
   readonly setAIModel = vi.fn(() => {})
-  readonly setAPIKey = vi.fn(() => {})
+  readonly setAIExecutionMethod = vi.fn(() => {})
   readonly openDialogueModal = vi.fn(async () => {})
   readonly closeDialogueModal = vi.fn(() => {})
   readonly openEditModal = vi.fn(() => {})
@@ -942,7 +953,7 @@ describe("App master persona screen", () => {
         aiSettings: {
           provider: "gemini",
           model: "gemini-2.5-pro",
-          apiKey: ""
+          executionMethod: "single_request"
         }
       })
     )
@@ -977,7 +988,7 @@ describe("App master persona screen", () => {
         aiSettings: {
           provider: "lm_studio",
           model: "llama3",
-          apiKey: ""
+          executionMethod: "single_request"
         },
         aiProviderLabel: "LM Studio"
       })
@@ -993,7 +1004,7 @@ describe("App master persona screen", () => {
 
     const settingsHeading = await screen.findByRole("heading", {
       level: 3,
-      name: "この画面で使う設定"
+      name: "この画面で使う AI 設定"
     })
     const settingsHeader = settingsHeading.closest(".section-head")
     if (!(settingsHeader instanceof HTMLElement)) {
@@ -1117,8 +1128,11 @@ describe("App master persona screen", () => {
         aiSettings: {
           provider: "gemini",
           model: "persona-only-model",
-          apiKey: ""
-        }
+          executionMethod: "single_request"
+        },
+        modelOptions: [
+          { modelId: "persona-only-model", label: "persona-only-model" }
+        ]
       })
     )
 

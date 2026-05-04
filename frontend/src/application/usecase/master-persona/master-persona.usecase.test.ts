@@ -24,9 +24,10 @@ function createStore(initialState?: Partial<MasterPersonaScreenState>) {
     aiSettings: {
       provider: "gemini",
       model: "gemini-2.5-pro",
-      apiKey: ""
+      executionMethod: "single_request"
     },
     aiSettingsMessage: "",
+    modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
     preview: null,
@@ -117,7 +118,7 @@ function createGateway() {
       Promise.resolve({
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: ""
+        executionMethod: "single_request"
       })
     ),
     saveMasterPersonaAISettings: vi.fn((request: MasterPersonaAISettings) =>
@@ -262,7 +263,7 @@ describe("MasterPersonaUseCase", () => {
       aiSettings: {
         provider: "gemini",
         model: "persona-only-model",
-        apiKey: ""
+        executionMethod: "single_request"
       }
     })
     const gateway = createGateway()
@@ -273,7 +274,7 @@ describe("MasterPersonaUseCase", () => {
     expect(gateway.saveMasterPersonaAISettings).toHaveBeenCalledWith({
       provider: "gemini",
       model: "persona-only-model",
-      apiKey: ""
+      executionMethod: "single_request"
     })
     expect(store.snapshot().aiSettingsMessage).toBe(
       "この画面で使う設定を保存しました。"
@@ -287,7 +288,7 @@ describe("MasterPersonaUseCase", () => {
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: ""
+        executionMethod: "single_request"
       },
       preview: {
         fileName: "sample.json",
@@ -308,7 +309,7 @@ describe("MasterPersonaUseCase", () => {
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: ""
+        executionMethod: "single_request"
       }
     })
     expect(gateway.getMasterPersonaPage).toHaveBeenCalled()
@@ -321,7 +322,7 @@ describe("MasterPersonaUseCase", () => {
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
-        apiKey: ""
+        executionMethod: "single_request"
       }
     })
     const gateway = createGateway()
@@ -628,13 +629,13 @@ describe("MasterPersonaUseCase", () => {
   test("persona-ai-settings-restart-cutover: loadScreen は aiSettings を backend から復元する", async () => {
     // Arrange
     const store = createStore({
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "" }
+      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
     })
     const gateway = createGateway()
     gateway.loadMasterPersonaAISettings.mockResolvedValueOnce({
       provider: "lm_studio",
       model: "restored-model",
-      apiKey: "restored-key"
+      executionMethod: "single_request"
     })
     const useCase = new MasterPersonaUseCase(gateway, store)
 
@@ -710,7 +711,7 @@ describe("MasterPersonaUseCase", () => {
     // Arrange
     const store = createStore({
       selectedFileReference: "/tmp/sample.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "" }
+      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
     })
     const gateway = createGateway()
     gateway.previewMasterPersonaGeneration.mockResolvedValueOnce({
@@ -743,7 +744,7 @@ describe("MasterPersonaUseCase", () => {
     // Arrange
     const store = createStore({
       selectedFileReference: "/tmp/sample.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", apiKey: "" }
+      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
     })
     const gateway = createGateway()
     gateway.executeMasterPersonaGeneration.mockRejectedValueOnce(

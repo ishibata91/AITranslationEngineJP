@@ -52,6 +52,7 @@ type BodyTranslationProviderRequest struct {
 	Model                   string
 	ExecutionMode           string
 	CredentialRef           string
+	EndpointSummary         *string
 	RequestUnitID           string
 	FieldCorrelationKey     string
 	RecordType              string
@@ -238,6 +239,7 @@ func (adapter bodyTranslationProviderAdapter) TranslateBodyField(
 		model,
 		executionMode,
 		strings.TrimSpace(request.CredentialRef),
+		providerExecutionOptionalString(request.EndpointSummary),
 		prompt,
 	)
 	if err != nil {

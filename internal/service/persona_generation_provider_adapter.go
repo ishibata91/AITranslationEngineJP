@@ -58,6 +58,7 @@ type PersonaGenerationProviderRequest struct {
 	Model                    string
 	ExecutionMode            string
 	CredentialRef            string
+	EndpointSummary          *string
 	RequestUnitID            string
 	NPCCorrelationID         string
 	NPCDisplayName           string
@@ -283,6 +284,7 @@ func (adapter personaGenerationProviderAdapter) GeneratePersona(
 		model,
 		executionMode,
 		strings.TrimSpace(request.CredentialRef),
+		providerExecutionOptionalString(request.EndpointSummary),
 		prompt,
 	)
 	if err != nil {
@@ -343,6 +345,7 @@ func invokePersonaGenerationClientGeneratePersona(
 	model string,
 	executionMode string,
 	credentialRef string,
+	endpointSummary string,
 	prompt string,
 ) (personaGenerationProviderClientResponse, error) {
 	if client == nil {
@@ -352,17 +355,21 @@ func invokePersonaGenerationClientGeneratePersona(
 	if !method.IsValid() {
 		return personaGenerationProviderClientResponse{}, fmt.Errorf("persona generation provider client does not implement GeneratePersona")
 	}
-	if method.Type().NumIn() != 6 || method.Type().NumOut() != 2 {
+	if (method.Type().NumIn() != 6 && method.Type().NumIn() != 7) || method.Type().NumOut() != 2 {
 		return personaGenerationProviderClientResponse{}, fmt.Errorf("persona generation provider client has incompatible GeneratePersona signature")
 	}
-	results := method.Call([]reflect.Value{
+	args := []reflect.Value{
 		reflect.ValueOf(ctx),
 		reflect.ValueOf(providerID),
 		reflect.ValueOf(model),
 		reflect.ValueOf(executionMode),
 		reflect.ValueOf(credentialRef),
-		reflect.ValueOf(prompt),
-	})
+	}
+	if method.Type().NumIn() == 7 {
+		args = append(args, reflect.ValueOf(strings.TrimSpace(endpointSummary)))
+	}
+	args = append(args, reflect.ValueOf(prompt))
+	results := method.Call(args)
 	if errValue := results[1]; !errValue.IsNil() {
 		err, _ := errValue.Interface().(error)
 		return personaGenerationProviderClientResponse{}, err
@@ -461,18 +468,29 @@ func mapPersonaGenerationDebugLog(value reflect.Value) (PersonaGenerationProvide
 	iterator := headersField.MapRange()
 	for iterator.Next() {
 		key := iterator.Key()
-		val := iterator.Value()
-		if key.Kind() != reflect.String || val.Kind() != reflect.String {
+		if key.Kind() != reflect.String || iterator.Value().Kind() != reflect.String {
 			return PersonaGenerationProviderDebugLog{}, fmt.Errorf("persona generation provider debug log headers have incompatible shape")
 		}
-		headers[key.String()] = val.String()
+		headers[key.String()] = "[REDACTED]"
 	}
 	return PersonaGenerationProviderDebugLog{
-		Prompt:         promptField.String(),
-		RequestBody:    requestBodyField.String(),
+		Prompt:         personaGenerationDebugDigest("sha256:prompt", promptField.String()),
+		RequestBody:    personaGenerationDebugDigest("sha256:request", requestBodyField.String()),
 		Headers:        headers,
 		SecretRedacted: secretRedactedField.Bool(),
 	}, nil
+}
+
+func personaGenerationDebugDigest(prefix string, value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	if strings.HasPrefix(trimmed, prefix+":") {
+		return trimmed
+	}
+	sum := sha256.Sum256([]byte(trimmed))
+	return prefix + ":" + hex.EncodeToString(sum[:])
 }
 
 func mapPersonaGenerationProviderFailure(

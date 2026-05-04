@@ -107,16 +107,17 @@ DELETE FROM NPC_PROFILE
 WHERE target_plugin_name = ? AND form_id = ? AND record_type = ?;`
 
 	loadMasterPersonaAISettingsSQL = `
-SELECT provider, model
+SELECT provider, model, execution_method
 FROM PERSONA_GENERATION_SETTINGS
 WHERE id = 1
 LIMIT 1;`
 	upsertMasterPersonaAISettingsSQL = `
-INSERT INTO PERSONA_GENERATION_SETTINGS (id, provider, model)
-VALUES (1, ?, ?)
+INSERT INTO PERSONA_GENERATION_SETTINGS (id, provider, model, execution_method)
+VALUES (1, ?, ?, ?)
 ON CONFLICT(id) DO UPDATE
 SET provider = excluded.provider,
-    model = excluded.model;`
+    model = excluded.model,
+    execution_method = excluded.execution_method;`
 
 	// canonical generation write path
 	insertCanonicalNPCProfileIfAbsentSQL = `
@@ -180,8 +181,9 @@ type sqliteMasterPersonaPluginGroupRow struct {
 }
 
 type sqliteMasterPersonaAISettingsRow struct {
-	Provider string `db:"provider"`
-	Model    string `db:"model"`
+	Provider        string `db:"provider"`
+	Model           string `db:"model"`
+	ExecutionMethod string `db:"execution_method"`
 }
 
 type canonicalNPCProfilePersonaRow struct {
@@ -579,8 +581,9 @@ func (repository *SQLiteMasterPersonaAISettingsRepository) LoadAISettings(
 		return MasterPersonaAISettingsRecord{}, fmt.Errorf("load master persona ai settings: %w", err)
 	}
 	return MasterPersonaAISettingsRecord{
-		Provider: strings.TrimSpace(row.Provider),
-		Model:    strings.TrimSpace(row.Model),
+		Provider:        strings.TrimSpace(row.Provider),
+		Model:           strings.TrimSpace(row.Model),
+		ExecutionMethod: strings.TrimSpace(row.ExecutionMethod),
 	}, nil
 }
 
@@ -594,6 +597,7 @@ func (repository *SQLiteMasterPersonaAISettingsRepository) SaveAISettings(
 		upsertMasterPersonaAISettingsSQL,
 		strings.TrimSpace(record.Provider),
 		strings.TrimSpace(record.Model),
+		strings.TrimSpace(record.ExecutionMethod),
 	); err != nil {
 		return fmt.Errorf("save master persona ai settings: %w", err)
 	}

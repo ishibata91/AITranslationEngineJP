@@ -138,9 +138,10 @@ function createState(
     aiSettings: {
       provider: "gemini",
       model: "gemini-2.5-pro",
-      apiKey: ""
+      executionMethod: "single_request"
     },
     aiSettingsMessage: "",
+    modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
     preview: null,
@@ -189,6 +190,10 @@ function createViewModel(
     isRunActive: false,
     hasPreview: false,
     aiProviderLabel: "Gemini",
+    aiSettingsWarningText: "",
+    aiSettingsStatusText: "設定済み",
+    canSelectModel: true,
+    executionMethodOptions: [{ value: "single_request", label: "通常" }],
     promptTemplateDescription:
       "プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。",
     progressPercent: 0
@@ -237,6 +242,9 @@ function createControllerHarness(
     interruptGeneration: vi.fn(async () => {}),
     cancelGeneration: vi.fn(async () => {}),
     saveAISettings: vi.fn(async () => {}),
+    setProviderSettingsProvider: vi.fn(() => {}),
+    setProviderSettingsModel: vi.fn(() => {}),
+    setProviderSettingsExecutionMethod: vi.fn(() => {}),
     saveCurrentEntry: vi.fn(async () => {}),
     deleteCurrentEntry: vi.fn(async () => {}),
     setModalState: vi.fn(() => {})
@@ -297,7 +305,7 @@ describe("MasterPersonaScreenController", () => {
     expect(harness.useCase.loadPage).toHaveBeenCalledTimes(1)
   })
 
-  test("setAIProvider は canonical provider ID を state へ保持する", () => {
+  test("setAIProvider は useCase へ provider 変更を委譲する", () => {
     const harness = createControllerHarness(createState())
     const select = document.createElement("select")
     const option = document.createElement("option")
@@ -313,8 +321,9 @@ describe("MasterPersonaScreenController", () => {
 
     harness.controller.setAIProvider(event)
 
-    expect(harness.getState().aiSettings.provider).toBe("lm_studio")
-    expect(harness.getState().aiSettingsMessage).toBe("")
+    expect(harness.useCase.setProviderSettingsProvider).toHaveBeenCalledWith(
+      "lm_studio"
+    )
   })
 
   test("stageJsonSelection は preview をクリアして file reference を保持する", () => {

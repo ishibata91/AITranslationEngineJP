@@ -38,6 +38,15 @@ type MasterPersonaTestSafeBodyGenerator interface {
 // MasterPersonaGenerationServiceOption configures generation-service provider seams.
 type MasterPersonaGenerationServiceOption func(service *MasterPersonaGenerationService)
 
+// WithMasterPersonaProviderSettings injects the provider settings consumer seam.
+func WithMasterPersonaProviderSettings(consumer ProviderSettingsConsumer) MasterPersonaGenerationServiceOption {
+	return func(service *MasterPersonaGenerationService) {
+		if consumer != nil {
+			service.providerSettings = consumer
+		}
+	}
+}
+
 // WithMasterPersonaBodyGenerator replaces the provider generation port.
 func WithMasterPersonaBodyGenerator(generator MasterPersonaBodyGenerator) MasterPersonaGenerationServiceOption {
 	return func(service *MasterPersonaGenerationService) {
@@ -92,6 +101,18 @@ func (service *MasterPersonaGenerationService) providerRequestsAreTestSafe() boo
 func (service *MasterPersonaGenerationService) generatePersonaBody(
 	ctx context.Context,
 	settings MasterPersonaAISettings,
+	npc masterPersonaExtractNPC,
+) (string, error) {
+	return service.generatePersonaBodyResolved(ctx, masterPersonaResolvedSettings{
+		Provider: strings.TrimSpace(settings.Provider),
+		Model:    strings.TrimSpace(settings.Model),
+		APIKey:   strings.TrimSpace(settings.APIKey),
+	}, npc)
+}
+
+func (service *MasterPersonaGenerationService) generatePersonaBodyResolved(
+	ctx context.Context,
+	settings masterPersonaResolvedSettings,
 	npc masterPersonaExtractNPC,
 ) (string, error) {
 	if service.bodyGenerator == nil {

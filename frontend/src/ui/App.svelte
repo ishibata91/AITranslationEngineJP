@@ -3,12 +3,15 @@
   import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
   import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
+  import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createMasterPersonaScreenControllerFactory } from "@controller/master-persona"
+  // eslint-disable-next-line local/enforce-layer-boundaries
+  import { createProviderSettingsScreenControllerFactory } from "@controller/provider-settings"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
   // eslint-disable-next-line local/enforce-layer-boundaries
@@ -29,6 +32,7 @@
     createMasterDictionaryScreenController?: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController?: CreateMasterPersonaScreenController | null
     createPersonaGenerationPhaseScreenController?: CreatePersonaGenerationPhaseScreenController | null
+    createProviderSettingsScreenController?: CreateProviderSettingsScreenController | null
     createTermTranslationPhaseScreenController?: CreateTermTranslationPhaseScreenController | null
     createTranslationJobSetupScreenController?: CreateTranslationJobSetupScreenController | null
     createTranslationOutputArtifactScreenController?: CreateTranslationOutputArtifactScreenController | null
@@ -40,6 +44,7 @@
     createMasterDictionaryScreenController = null,
     createMasterPersonaScreenController = null,
     createPersonaGenerationPhaseScreenController = null,
+    createProviderSettingsScreenController = null,
     createTermTranslationPhaseScreenController = null,
     createTranslationJobSetupScreenController = null,
     createTranslationOutputArtifactScreenController = null,
@@ -52,6 +57,13 @@
     return (
       createMasterPersonaScreenController ??
       createMasterPersonaScreenControllerFactory(createMasterPersonaGateway())
+    )
+  }
+
+  function resolveProviderSettingsScreenControllerFactory(): CreateProviderSettingsScreenController {
+    return (
+      createProviderSettingsScreenController ??
+      createProviderSettingsScreenControllerFactory(null)
     )
   }
 
@@ -88,6 +100,7 @@
   {createMasterDictionaryScreenController}
   createMasterPersonaScreenController={resolveMasterPersonaScreenControllerFactory()}
   {createPersonaGenerationPhaseScreenController}
+  createProviderSettingsScreenController={resolveProviderSettingsScreenControllerFactory()}
   {createTermTranslationPhaseScreenController}
   createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
   createTranslationOutputArtifactScreenController={resolveTranslationOutputArtifactScreenControllerFactory()}

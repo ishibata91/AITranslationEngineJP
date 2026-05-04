@@ -425,9 +425,9 @@ describe("JobSetupPage", () => {
     expect(personaCard).not.toBeNull()
     expect(textTranslationCard).not.toBeNull()
     expect(wordTranslationCard).toHaveTextContent("Gemini")
-    expect(wordTranslationCard).toHaveTextContent("一括処理で実行する")
+    expect(wordTranslationCard).toHaveTextContent("Batch API")
     expect(personaCard).toHaveTextContent("xAI")
-    expect(personaCard).toHaveTextContent("一括処理で実行する")
+    expect(personaCard).toHaveTextContent("Batch API")
     expect(textTranslationCard).toHaveTextContent("LM Studio")
     expect(textTranslationCard).toHaveTextContent(
       "この AI サービスでは一括処理の切り替えはありません。"

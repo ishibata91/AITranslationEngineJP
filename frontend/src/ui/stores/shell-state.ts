@@ -1,5 +1,6 @@
 export type ShellRouteId =
   | "dashboard"
+  | "provider-settings"
   | "master-dictionary"
   | "master-persona"
   | "translation-management"
@@ -31,6 +32,13 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
     state: "既定表示",
     lead: "最初に移動したい作業を選び、共通ナビゲーションからいつでも別の主要ページへ切り替えられます。",
     description: "主要ページへの入口をまとめて確認します。"
+  },
+  {
+    id: "provider-settings",
+    label: "AIサービス設定",
+    state: "設定状態を確認",
+    lead: "AIサービスごとの接続設定をまとめて確認し、保存と接続確認を行うページです。",
+    description: "エンドポイントと APIキー状態を AIサービスごとに確認します。"
   },
   {
     id: "master-dictionary",

@@ -48,6 +48,12 @@ var translationJobSetupPhaseOrder = []string{
 	"text_translation",
 }
 
+var translationJobSetupUserFacingProviderIDs = []string{
+	translationJobSetupProviderGemini,
+	translationJobSetupProviderLM,
+	translationJobSetupProviderXAI,
+}
+
 var translationJobSetupProviderCatalog = map[string]translationJobSetupProviderSpec{
 	translationJobSetupProviderOpenAI: {
 		ID:                   translationJobSetupProviderOpenAI,
@@ -254,13 +260,6 @@ type ListTranslationJobSetupProviderModelsResult struct {
 	FailureKind      string
 }
 
-// SaveTranslationJobSetupCredentialRequest carries the credential secret-save input.
-type SaveTranslationJobSetupCredentialRequest struct {
-	Provider      string
-	CredentialRef string
-	APIKey        string
-}
-
 // TranslationJobSetupSummaryReadModel stores the read-only job display.
 type TranslationJobSetupSummaryReadModel struct {
 	JobID                 int64
@@ -288,6 +287,7 @@ type TranslationJobSetupService struct {
 	masterPersonaRepo       translationJobSetupMasterPersonaRepository
 	secretStore             translationJobSetupSecretStore
 	secretLoadTimeout       time.Duration
+	providerSettings        ProviderSettingsConsumer
 	providerModelListLoader TranslationJobSetupProviderModelListLoader
 	transactor              repository.Transactor
 	optionsReadModel        TranslationJobSetupOptionsReadModel
@@ -329,10 +329,6 @@ type translationJobSetupSecretStore interface {
 	Load(ctx context.Context, key string) (string, error)
 }
 
-type translationJobSetupSecretStoreSaver interface {
-	Save(ctx context.Context, key string, value string) error
-}
-
 // TranslationJobSetupProviderModelListLoader provides provider model lists without exposing transport details to the service core.
 type TranslationJobSetupProviderModelListLoader interface {
 	ListProviderModels(
@@ -360,6 +356,17 @@ func (fn TranslationJobSetupProviderModelListLoaderFunc) ListProviderModels(
 
 // TranslationJobSetupServiceOption configures optional runtime dependencies for the service.
 type TranslationJobSetupServiceOption func(service *TranslationJobSetupService)
+
+// WithTranslationJobSetupProviderSettings injects the provider settings consumer seam.
+func WithTranslationJobSetupProviderSettings(
+	consumer ProviderSettingsConsumer,
+) TranslationJobSetupServiceOption {
+	return func(service *TranslationJobSetupService) {
+		if service != nil {
+			service.providerSettings = consumer
+		}
+	}
+}
 
 // WithTranslationJobSetupProviderModelListLoader injects an adapter-owned provider model list loader.
 func WithTranslationJobSetupProviderModelListLoader(
@@ -443,34 +450,73 @@ func (service *TranslationJobSetupService) ListProviderModels(
 		RequestToken:     strings.TrimSpace(request.RequestToken),
 		Status:           "not_updated",
 	}
+	if service.providerSettings != nil && translationJobSetupProviderUsesProviderSettings(spec.ID) {
+		summary, ok, err := providerSettingsSummaryForProvider(requestContextOrBackground(ctx), service.providerSettings, spec.ID)
+		if err != nil {
+			return ListTranslationJobSetupProviderModelsResult{}, err
+		}
+		if !ok {
+			result.CredentialStatus = "missing"
+			result.Status = "failed"
+			result.FailureKind = "required_setting_missing"
+			return result, nil
+		}
+		result.CredentialStatus = strings.TrimSpace(summary.CredentialState)
+		if summary.RequestToken != nil {
+			result.RequestToken = strings.TrimSpace(*summary.RequestToken)
+		}
+		credentialRef := strings.TrimSpace(pointerStringValue(summary.CredentialReferenceID))
+		result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, result.RequestToken)
+		listed, listErr := service.providerSettings.ListProviderModels(requestContextOrBackground(ctx), ProviderSettingsModelListInput{
+			ProviderID:            spec.ID,
+			Endpoint:              cloneTranslationJobSetupOptionalString(summary.Endpoint),
+			CredentialState:       strings.TrimSpace(summary.CredentialState),
+			CredentialReferenceID: cloneTranslationJobSetupOptionalString(summary.CredentialReferenceID),
+			RequestToken:          result.RequestToken,
+		})
+		if listErr != nil {
+			return ListTranslationJobSetupProviderModelsResult{}, fmt.Errorf("list translation job setup provider models via provider settings: %w", listErr)
+		}
+		result.CredentialStatus = strings.TrimSpace(listed.CredentialState)
+		result.RequestToken = strings.TrimSpace(listed.RequestToken)
+		result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, result.RequestToken)
+		result.Status = translationJobSetupMapProviderSettingsModelListState(listed.State)
+		result.FailureKind = translationJobSetupMapProviderSettingsFailureKind(listed.FailureKind)
+		result.Models = make([]TranslationJobSetupProviderModelOptionReadModel, 0, len(listed.Models))
+		for _, model := range listed.Models {
+			result.Models = append(result.Models, TranslationJobSetupProviderModelOptionReadModel{
+				ModelID: strings.TrimSpace(model.ModelID),
+				Label:   strings.TrimSpace(model.Label),
+			})
+		}
+		return result, nil
+	}
+
 	credentialRef := translationJobSetupNormalizeCredentialRef(spec, request.CredentialRef)
 	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, result.RequestToken)
-
 	if !spec.CredentialRequired {
 		models, listErr := service.requestProviderModels(ctx, spec.ID, "")
 		if listErr != nil {
 			result.Status = "failed"
 			result.FailureKind = "model_list_failed"
-			//nolint:nilerr // public contract intentionally returns redacted failure instead of transport error.
+			//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
 			return result, nil
 		}
 		result.Status = "credential_not_required"
 		result.Models = models
 		return result, nil
 	}
-
 	if credentialRef == "" || normalizeTranslationJobSetupField(result.CredentialStatus) == "missing" {
 		result.CredentialStatus = "missing"
 		result.Status = "credential_missing"
 		result.FailureKind = "model_list_credential_missing"
 		return result, nil
 	}
-
 	apiKey, resolved, resolveErr := service.loadCredentialSecret(ctx, credentialRef)
 	if resolveErr != nil {
 		result.Status = "failed"
 		result.FailureKind = "model_list_failed"
-		//nolint:nilerr // public contract intentionally returns redacted failure instead of secret-store error.
+		//nolint:nilerr // public contract intentionally returns a redacted failure instead of the secret-store error.
 		return result, nil
 	}
 	if !resolved || strings.TrimSpace(apiKey) == "" {
@@ -478,55 +524,16 @@ func (service *TranslationJobSetupService) ListProviderModels(
 		result.FailureKind = "model_list_credential_missing"
 		return result, nil
 	}
-
 	models, listErr := service.requestProviderModels(ctx, spec.ID, apiKey)
 	if listErr != nil {
 		result.Status = "failed"
 		result.FailureKind = "model_list_failed"
-		//nolint:nilerr // public contract intentionally returns redacted failure instead of transport error.
+		//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
 		return result, nil
 	}
 	result.Status = "success"
 	result.Models = models
 	return result, nil
-}
-
-// SaveCredential stores one Job Setup credential secret without exposing the plaintext in public models.
-func (service *TranslationJobSetupService) SaveCredential(
-	ctx context.Context,
-	request SaveTranslationJobSetupCredentialRequest,
-) (TranslationJobSetupCredentialReferenceReadModel, error) {
-	spec, ok := translationJobSetupProviderCatalog[normalizeTranslationJobSetupField(request.Provider)]
-	if !ok {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("translation job setup provider is unsupported")
-	}
-	if !spec.CredentialRequired {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("translation job setup provider credential is not required")
-	}
-	credentialRef := translationJobSetupNormalizeCredentialRef(spec, request.CredentialRef)
-	if credentialRef == "" {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("translation job setup credential reference is required")
-	}
-	apiKey := strings.TrimSpace(request.APIKey)
-	if apiKey == "" {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("translation job setup credential value is required")
-	}
-	if service == nil || service.secretStore == nil {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("translation job setup credential store is not configured")
-	}
-	secretSaver, ok := service.secretStore.(translationJobSetupSecretStoreSaver)
-	if !ok {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("translation job setup credential store is not writable")
-	}
-	if err := secretSaver.Save(requestContextOrBackground(ctx), credentialRef, apiKey); err != nil {
-		return TranslationJobSetupCredentialReferenceReadModel{}, fmt.Errorf("persist translation job setup credential: %w", err)
-	}
-	return TranslationJobSetupCredentialReferenceReadModel{
-		Provider:        spec.ID,
-		CredentialRef:   credentialRef,
-		IsConfigured:    true,
-		IsMissingSecret: false,
-	}, nil
 }
 
 // ValidateRequest classifies one setup request into blocking or creatable states.
@@ -550,7 +557,7 @@ func (service *TranslationJobSetupService) ValidateRequest(
 	var targetSlices []string
 	for _, phaseID := range translationJobSetupPhaseOrder {
 		runtime := phaseRuntimes[phaseID]
-		result := service.validatePhaseRuntime(runtime)
+		result := service.validatePhaseRuntime(requestContextOrBackground(ctx), runtime)
 		phaseResults = append(phaseResults, result)
 		if result.IsModelSelectionStale {
 			stalePhaseIDs = append(stalePhaseIDs, phaseID)
@@ -656,6 +663,13 @@ func (service *TranslationJobSetupService) createTranslationJobInTransaction(
 	}
 
 	phaseRuntimes := normalizeTranslationJobSetupPhaseRuntimes(request.PhaseRuntimes)
+	if service.providerSettings != nil {
+		resolvedRuntimes, resolveErr := service.resolvePhaseRuntimeMapAgainstProviderSettings(txCtx, phaseRuntimes)
+		if resolveErr != nil {
+			return TranslationJobSetupCreatedJobReadModel{}, resolveErr
+		}
+		phaseRuntimes = resolvedRuntimes
+	}
 	wordRuntime := phaseRuntimes["word_translation"]
 	if phaseRunErr := service.createInitialTranslationPhaseRun(txCtx, job.ID, wordRuntime); phaseRunErr != nil {
 		return TranslationJobSetupCreatedJobReadModel{}, phaseRunErr
@@ -826,6 +840,7 @@ func (service *TranslationJobSetupService) validateInputSource(ctx context.Conte
 }
 
 func (service *TranslationJobSetupService) validatePhaseRuntime(
+	ctx context.Context,
 	runtime TranslationJobSetupPhaseRuntimeDraftReadModel,
 ) TranslationJobSetupPhaseValidationReadModel {
 	sanitized := sanitizeTranslationJobSetupPhaseRuntime(runtime)
@@ -844,6 +859,19 @@ func (service *TranslationJobSetupService) validatePhaseRuntime(
 		result.BlockingFailureCategory = stringPointer("phase_runtime_missing")
 		result.ModelListState = "not_updated"
 		return result
+	}
+
+	if service.providerSettings != nil {
+		resolved, err := service.resolvePhaseRuntimeAgainstProviderSettings(ctx, sanitized)
+		if err != nil {
+			result.Status = translationJobSetupValidationStatusFail
+			result.CanCreate = false
+			result.BlockingFailureCategory = stringPointer("required_setting_missing")
+			result.ModelListState = "failed"
+			return result
+		}
+		sanitized = resolved
+		result.ModelListSourceToken = sanitized.ModelListSourceToken
 	}
 
 	if spec.CredentialRequired && (sanitized.CredentialRef == "" || normalizeTranslationJobSetupField(sanitized.CredentialStatus) == "missing") {
@@ -1031,13 +1059,8 @@ func (service *TranslationJobSetupService) loadSharedPersonaOptions(
 }
 
 func translationJobSetupRuntimeOptions() []TranslationJobSetupRuntimeOptionReadModel {
-	result := make([]TranslationJobSetupRuntimeOptionReadModel, 0, len(translationJobSetupProviderCatalog))
-	for _, providerID := range []string{
-		translationJobSetupProviderOpenAI,
-		translationJobSetupProviderGemini,
-		translationJobSetupProviderLM,
-		translationJobSetupProviderXAI,
-	} {
+	result := make([]TranslationJobSetupRuntimeOptionReadModel, 0, len(translationJobSetupUserFacingProviderIDs))
+	for _, providerID := range translationJobSetupUserFacingProviderIDs {
 		spec := translationJobSetupProviderCatalog[providerID]
 		result = append(result, TranslationJobSetupRuntimeOptionReadModel{
 			Provider: spec.ID,
@@ -1049,13 +1072,8 @@ func translationJobSetupRuntimeOptions() []TranslationJobSetupRuntimeOptionReadM
 }
 
 func translationJobSetupProviderCapabilities() []TranslationJobSetupProviderCapabilityReadModel {
-	result := make([]TranslationJobSetupProviderCapabilityReadModel, 0, len(translationJobSetupProviderCatalog))
-	for _, providerID := range []string{
-		translationJobSetupProviderOpenAI,
-		translationJobSetupProviderGemini,
-		translationJobSetupProviderLM,
-		translationJobSetupProviderXAI,
-	} {
+	result := make([]TranslationJobSetupProviderCapabilityReadModel, 0, len(translationJobSetupUserFacingProviderIDs))
+	for _, providerID := range translationJobSetupUserFacingProviderIDs {
 		spec := translationJobSetupProviderCatalog[providerID]
 		requirement := "required"
 		if !spec.CredentialRequired {
@@ -1074,28 +1092,40 @@ func translationJobSetupProviderCapabilities() []TranslationJobSetupProviderCapa
 func (service *TranslationJobSetupService) translationJobSetupCredentialRefs(
 	ctx context.Context,
 ) []TranslationJobSetupCredentialReferenceReadModel {
-	result := make([]TranslationJobSetupCredentialReferenceReadModel, 0, len(translationJobSetupProviderCatalog))
-	for _, providerID := range []string{
-		translationJobSetupProviderOpenAI,
-		translationJobSetupProviderGemini,
-		translationJobSetupProviderLM,
-		translationJobSetupProviderXAI,
-	} {
-		spec := translationJobSetupProviderCatalog[providerID]
-		configured := !spec.CredentialRequired
-		missingSecret := spec.CredentialRequired
-		if spec.CredentialRequired {
-			secretValue, loaded, err := service.loadCredentialSecret(ctx, spec.DefaultCredentialRef)
-			if err == nil && loaded && strings.TrimSpace(secretValue) != "" {
-				configured = true
-				missingSecret = false
+	if service.providerSettings != nil {
+		summaries, err := providerSettingsSummaryMap(requestContextOrBackground(ctx), service.providerSettings)
+		if err == nil && summaries != nil {
+			result := make([]TranslationJobSetupCredentialReferenceReadModel, 0, len(translationJobSetupUserFacingProviderIDs))
+			for _, providerID := range translationJobSetupUserFacingProviderIDs {
+				spec := translationJobSetupProviderCatalog[providerID]
+				summary, ok := summaries[providerID]
+				configured := !spec.CredentialRequired
+				missingSecret := spec.CredentialRequired
+				credentialRef := spec.DefaultCredentialRef
+				if ok {
+					credentialRef = strings.TrimSpace(pointerStringValue(summary.CredentialReferenceID))
+					configured = strings.TrimSpace(summary.CredentialState) == providerSettingsCredentialStateConfigured ||
+						strings.TrimSpace(summary.CredentialState) == providerSettingsCredentialStateNotRequired
+					missingSecret = strings.TrimSpace(summary.CredentialState) == providerSettingsCredentialStateMissing
+				}
+				result = append(result, TranslationJobSetupCredentialReferenceReadModel{
+					Provider:        spec.ID,
+					CredentialRef:   credentialRef,
+					IsConfigured:    configured,
+					IsMissingSecret: missingSecret,
+				})
 			}
+			return result
 		}
+	}
+	result := make([]TranslationJobSetupCredentialReferenceReadModel, 0, len(translationJobSetupUserFacingProviderIDs))
+	for _, providerID := range translationJobSetupUserFacingProviderIDs {
+		spec := translationJobSetupProviderCatalog[providerID]
 		result = append(result, TranslationJobSetupCredentialReferenceReadModel{
 			Provider:        spec.ID,
 			CredentialRef:   spec.DefaultCredentialRef,
-			IsConfigured:    configured,
-			IsMissingSecret: missingSecret,
+			IsConfigured:    !spec.CredentialRequired,
+			IsMissingSecret: spec.CredentialRequired,
 		})
 	}
 	return result
@@ -1334,7 +1364,6 @@ func TranslationJobSetupReadOptions() TranslationJobSetupOptionsReadModel {
 		SharedPersonas:     []TranslationJobSetupPersonaOptionReadModel{{ID: "persona-guard", Label: "Guard Persona"}},
 		AIRuntimeOptions:   translationJobSetupRuntimeOptions(),
 		CredentialRefs: []TranslationJobSetupCredentialReferenceReadModel{
-			{Provider: translationJobSetupProviderOpenAI, CredentialRef: translationJobSetupCredentialRefOpenAIPrimary, IsConfigured: true, IsMissingSecret: false},
 			{Provider: translationJobSetupProviderGemini, CredentialRef: "gemini-primary", IsConfigured: false, IsMissingSecret: true},
 			{Provider: translationJobSetupProviderLM, CredentialRef: "lmstudio-local", IsConfigured: true, IsMissingSecret: false},
 			{Provider: translationJobSetupProviderXAI, CredentialRef: "xai-primary", IsConfigured: true, IsMissingSecret: false},
@@ -1348,13 +1377,13 @@ func TranslationJobSetupReadOptions() TranslationJobSetupOptionsReadModel {
 func TranslationJobSetupReadSummary(jobID int64) TranslationJobSetupSummaryReadModel {
 	word := TranslationJobSetupPhaseRuntimeSummaryReadModel{
 		PhaseID:              "word_translation",
-		Provider:             translationJobSetupProviderOpenAI,
-		Model:                translationJobSetupModelGPT54Mini,
-		CredentialRef:        translationJobSetupCredentialRefOpenAIPrimary,
+		Provider:             translationJobSetupProviderGemini,
+		Model:                "gemini-2.5-pro",
+		CredentialRef:        "gemini-primary",
 		CredentialStatus:     "configured",
 		ExecutionMode:        "sync",
-		BatchMode:            "unsupported",
-		ModelListSourceToken: translationJobSetupModelListSourceToken("word_translation", translationJobSetupProviderOpenAI, translationJobSetupCredentialRefOpenAIPrimary, "bootstrap"),
+		BatchMode:            "disabled",
+		ModelListSourceToken: translationJobSetupModelListSourceToken("word_translation", translationJobSetupProviderGemini, "gemini-primary", "bootstrap"),
 	}
 	return TranslationJobSetupSummaryReadModel{
 		JobID:                 jobID,
@@ -1402,6 +1431,127 @@ func (service *TranslationJobSetupService) requestProviderModels(
 		})
 	}
 	return result, nil
+}
+
+func (service *TranslationJobSetupService) resolvePhaseRuntimeMapAgainstProviderSettings(
+	ctx context.Context,
+	phaseRuntimes map[string]TranslationJobSetupPhaseRuntimeDraftReadModel,
+) (map[string]TranslationJobSetupPhaseRuntimeDraftReadModel, error) {
+	resolved := make(map[string]TranslationJobSetupPhaseRuntimeDraftReadModel, len(phaseRuntimes))
+	for phaseID, runtime := range phaseRuntimes {
+		nextRuntime := sanitizeTranslationJobSetupPhaseRuntime(runtime)
+		var err error
+		if translationJobSetupProviderUsesProviderSettings(nextRuntime.Provider) {
+			nextRuntime, err = service.resolvePhaseRuntimeAgainstProviderSettings(ctx, runtime)
+		}
+		if err != nil {
+			return nil, err
+		}
+		resolved[phaseID] = nextRuntime
+	}
+	return resolved, nil
+}
+
+func (service *TranslationJobSetupService) resolvePhaseRuntimeAgainstProviderSettings(
+	ctx context.Context,
+	runtime TranslationJobSetupPhaseRuntimeDraftReadModel,
+) (TranslationJobSetupPhaseRuntimeDraftReadModel, error) {
+	if service.providerSettings == nil {
+		return sanitizeTranslationJobSetupPhaseRuntime(runtime), nil
+	}
+	sanitized := sanitizeTranslationJobSetupPhaseRuntime(runtime)
+	spec, ok := translationJobSetupProviderCatalog[sanitized.Provider]
+	if !ok {
+		return sanitized, nil
+	}
+	resolved, err := service.providerSettings.ResolveProviderExecutionSettings(requestContextOrBackground(ctx), ProviderSettingsResolveInput{
+		ConsumerID: "translation_job_setup",
+		Selection: ProviderSettingsResolveSelection{
+			ProviderID:      spec.ID,
+			Model:           sanitized.Model,
+			ExecutionMethod: sanitized.ExecutionMode,
+			UseBatchAPI:     sanitized.BatchMode == "enabled",
+		},
+	})
+	if err != nil {
+		return TranslationJobSetupPhaseRuntimeDraftReadModel{}, fmt.Errorf("resolve translation job setup provider settings: %w", err)
+	}
+	sanitized.CredentialRef = strings.TrimSpace(pointerStringValue(resolved.CredentialReferenceID))
+	sanitized.CredentialStatus = strings.TrimSpace(resolved.CredentialState)
+	sanitized.ModelListSourceToken = translationJobSetupModelListSourceToken(
+		sanitized.PhaseID,
+		sanitized.Provider,
+		sanitized.CredentialRef,
+		pointerStringValue(resolved.RequestToken),
+	)
+	if resolved.ErrorKind != nil {
+		switch strings.TrimSpace(*resolved.ErrorKind) {
+		case providerSettingsErrorKindCredentialMissing:
+			sanitized.CredentialStatus = "missing"
+		case providerSettingsErrorKindEndpointMissing:
+			return sanitized, fmt.Errorf("translation job setup provider settings endpoint is missing")
+		}
+	}
+	return sanitized, nil
+}
+
+func translationJobSetupMapProviderSettingsModelListState(state string) string {
+	switch strings.TrimSpace(state) {
+	case providerSettingsModelListStateCredentialNotNeeded:
+		return "credential_not_required"
+	case providerSettingsModelListStateCredentialMissing:
+		return "credential_missing"
+	case providerSettingsModelListStateReady:
+		return "success"
+	case providerSettingsModelListStateFailed:
+		return "failed"
+	default:
+		return "not_updated"
+	}
+}
+
+func translationJobSetupMapProviderSettingsFailureKind(kind *string) string {
+	if kind == nil {
+		return ""
+	}
+	switch strings.TrimSpace(*kind) {
+	case providerSettingsErrorKindCredentialMissing:
+		return "model_list_credential_missing"
+	case providerSettingsErrorKindEndpointMissing:
+		return "required_setting_missing"
+	case providerSettingsErrorKindModelListFailed:
+		return "model_list_failed"
+	default:
+		return strings.TrimSpace(*kind)
+	}
+}
+
+func translationJobSetupProviderUsesProviderSettings(providerID string) bool {
+	switch normalizeTranslationJobSetupField(providerID) {
+	case translationJobSetupProviderGemini, translationJobSetupProviderLM, translationJobSetupProviderXAI:
+		return true
+	default:
+		return false
+	}
+}
+
+func cloneTranslationJobSetupOptionalString(value *string) *string {
+	if value == nil {
+		return nil
+	}
+	trimmed := strings.TrimSpace(*value)
+	if trimmed == "" {
+		return nil
+	}
+	cloned := trimmed
+	return &cloned
+}
+
+func pointerStringValue(value *string) string {
+	if value == nil {
+		return ""
+	}
+	return strings.TrimSpace(*value)
 }
 
 func translationJobSetupHasAllPhaseSnapshots(

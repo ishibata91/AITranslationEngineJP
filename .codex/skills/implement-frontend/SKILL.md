@@ -33,6 +33,8 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
+- UI 設計規約: [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) の task-local UIプロトタイプ確認サーバー規約に従う。
+- UIプロトタイプ確認サーバー: [serve-prototype.mjs](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/scripts/dev/serve-prototype.mjs) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -48,6 +50,16 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 | 操作性 | 実画面の主要操作、取消、戻る、破壊的操作、フォーカス移動が承認済み UIプロトタイプの操作意図と合っているか |
 | 表示幅追従 | 実画面のデスクトップ、モバイル、長文表示、要素非表示時の崩れ方が承認済み `ui-design.md` の実装後確認観点と合っているか |
 
+### UIプロトタイプ確認サーバー
+
+| 項目 | 内容 |
+| --- | --- |
+| 起動 command 参照元 | 承認済み `ui-design.md` の `prototype_server_command` |
+| 既定 command | `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` |
+| 確認 URL | `http://127.0.0.1:34116/prototype` |
+| 入口 file | `prototype/index.svelte`、既存 task では `prototype.svelte` も確認対象 |
+| 確認方法 | `agent-browser` で確認 URL を開き、snapshot、screenshot、console、errors を必要に応じて取得する |
+
 ## 判断規約
 
 - 画面導線と 状態 反映を implementation-scope に合わせる
@@ -60,7 +72,10 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - task-local UIプロトタイプがある場合は、UIプロトタイプ一致観点に従い、実画面と承認済み UIプロトタイプの差分を確認する
 - UIプロトタイプ一致確認では、実画面の画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を判断対象にする
 - UIプロトタイプ一致確認の差分は、承認済み実装範囲 内で修正できる差分と `implement_lane` へ戻す差分へ分ける
-- UIプロトタイプとの一致確認は`agent-browser`を用いる。
+- UIプロトタイプとの一致確認は `agent-browser` を用いる。
+- task-local UIプロトタイプがある場合は、承認済み `ui-design.md` の `prototype_server_command` で UIプロトタイプ確認サーバーを起動または起動済み確認する。
+- `prototype_server_command` が `ui-design.md` にない場合は、作業計画 folder 名を `<task-id>` として既定 command を使う。
+- UIプロトタイプ確認サーバーを起動または起動済み確認した場合は、確認 URL と起動 command を UIプロトタイプ一致確認結果に残す。
 - `mock-data/` 配下の値を product code、fixture、default state、test data へ移植しない
 - UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を product code、fixture、default state、test data へ移植しない
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
@@ -96,6 +111,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - UIプロトタイプ一致確認結果: 実画面と承認済み UIプロトタイプの一致、差分、未確認理由を返す。
+- UIプロトタイプ確認サーバー結果: 確認 URL、起動 command、起動状態、未起動理由を返す。
 - UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
@@ -113,6 +129,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - affected UI flow と console エラー を確認した。
 - ユーザーが利用することを意識し、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせて実装した。
 - task-local UIプロトタイプがある場合は、実画面と承認済み UIプロトタイプの一致確認結果を返した。
+- task-local UIプロトタイプがある場合は、UIプロトタイプ確認サーバーの確認 URL、起動 command、起動状態を返した。
 - UIプロトタイプ一致確認結果は、画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を含んでいる。
 - UIプロトタイプ一致確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
@@ -131,6 +148,8 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - `mock-data/` 配下の値を実装へ使う必要がある場合は停止し、`implement_lane` へ戻す。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
 - 実画面と承認済み UIプロトタイプの差分が承認済み実装範囲 外の修正を必要とする場合は停止し、`implement_lane` へ戻す。
+- `prototype_server_command` がなく、作業計画 folder 名から `<task-id>` を特定できない場合は停止し、`implement_lane` へ戻す。
+- UIプロトタイプ確認サーバーを起動または起動済み確認できない場合は停止し、未取得理由と戻し先を返す。
 - UIプロトタイプ一致確認に必要な実画面確認根拠を取得できない場合は停止し、未取得理由と戻し先を返す。
 - `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。

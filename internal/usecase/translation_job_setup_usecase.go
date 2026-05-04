@@ -35,13 +35,6 @@ type translationJobSetupProviderModelListReader interface {
 	) (jobsetupservice.ListTranslationJobSetupProviderModelsResult, error)
 }
 
-type translationJobSetupCredentialSaver interface {
-	SaveCredential(
-		ctx context.Context,
-		request jobsetupservice.SaveTranslationJobSetupCredentialRequest,
-	) (jobsetupservice.TranslationJobSetupCredentialReferenceReadModel, error)
-}
-
 // TranslationJobSetupUsecase implements the Job Setup Wails seam.
 type TranslationJobSetupUsecase struct {
 	service translationJobSetupServicePort
@@ -104,31 +97,6 @@ func (usecase *TranslationJobSetupUsecase) ListTranslationJobSetupProviderModels
 		Status:           TranslationJobSetupProviderModelListStatus(result.Status),
 		Models:           toTranslationJobSetupProviderModels(result.Models),
 		FailureKind:      NormalizeTranslationJobSetupPublicErrorKind(TranslationJobSetupErrorKind(result.FailureKind)),
-	}, nil
-}
-
-// SaveTranslationJobSetupCredential stores one Job Setup credential in the backend secret store.
-func (usecase *TranslationJobSetupUsecase) SaveTranslationJobSetupCredential(
-	ctx context.Context,
-	request SaveTranslationJobSetupCredentialRequest,
-) (SaveTranslationJobSetupCredentialResult, error) {
-	saver, ok := usecase.service.(translationJobSetupCredentialSaver)
-	if !ok {
-		return SaveTranslationJobSetupCredentialResult{}, errTranslationJobSetupNotImplemented
-	}
-	result, err := saver.SaveCredential(ctx, jobsetupservice.SaveTranslationJobSetupCredentialRequest{
-		Provider:      request.Provider,
-		CredentialRef: request.CredentialRef,
-		APIKey:        request.APIKey,
-	})
-	if err != nil {
-		return SaveTranslationJobSetupCredentialResult{}, fmt.Errorf("save translation job setup credential: %w", err)
-	}
-	return SaveTranslationJobSetupCredentialResult{
-		Provider:        result.Provider,
-		CredentialRef:   result.CredentialRef,
-		IsConfigured:    result.IsConfigured,
-		IsMissingSecret: result.IsMissingSecret,
 	}, nil
 }
 

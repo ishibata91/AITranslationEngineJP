@@ -1,0 +1,197 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  safety: "hard gate pass。trust-boundary-001 の対象だった Job Setup 表示用 read model は、provider settings summary 取得失敗時または未注入時でも static な missing / not_required 参照値だけを返し、旧 secret store fallback を呼ばない。Provider settings の Save / Reset / Validate / model list / execution snapshot は provider 単位 lock 配下にあり、secret 本体は許可された接続確認、モデル一覧取得、実行開始 snapshot だけで解決される。"
+  evidence_sufficiency: "十分。plan、implementation-scope、既存 reviewback、provider settings service、provider settings consumer、Job Setup 表示 / model list / 実行開始境界、Wails DTO、frontend gateway / usecase / UI 入力破棄、関連単体テストを確認した。レビュー agent では harness と広い検証を再実行していない。"
+  hard_gate: true
+checked_scope:
+  summary: "APIキー本文の送信先、表示先、保存先、ログ出力先、名前分離を確認した。表示 / summary / 通常保存の secret store 読み出し禁止、Save / Reset / 実行開始 secret read の provider 単位 lock、trust-boundary-001 の解消を重点確認した。"
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 100
+      symbol: "Approved Scope Change: APIキー読み出し制御"
+      reason: "allowed / forbidden secret read operation と trust-boundary hard gate 再判定条件を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 52
+      symbol: "Fixed Decisions"
+      reason: "画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成で secret store を読まない条件を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 281
+      symbol: "provider-settings-secret-read-control"
+      reason: "SaveProviderSettings、ResolveProviderExecutionSettings、allowed / forbidden read operation の実装範囲を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 421
+      symbol: "TranslationJobSetupService.ReadOptions"
+      reason: "Job Setup 画面表示 read model の入口を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 947
+      symbol: "TranslationJobSetupService.currentOptionsReadModel"
+      reason: "CredentialRefs が translationJobSetupCredentialRefs から生成される表示経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1092
+      symbol: "TranslationJobSetupService.translationJobSetupCredentialRefs"
+      reason: "provider settings summary が取得できる場合は参照値だけを使い、取得失敗または未注入時も static な missing / not_required 参照値へ落ち、secret store を読まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1134
+      symbol: "TranslationJobSetupService.loadCredentialSecret"
+      reason: "表示用 credentialRefs からの呼び出しがなくなり、明示 model list など許可経路だけで使われることを確認した。"
+    - path: "internal/service/provider_settings_consumer.go"
+      line: 26
+      symbol: "providerSettingsSummaryMap"
+      reason: "consumer 側 summary 取得は ListProviderSettings の参照値へ閉じ、secret 本体を扱わないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 241
+      symbol: "ProviderSettingsService.ListProviderSettings"
+      reason: "provider settings の read model は repository row と buildSummary だけで作り、secret store を読まないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 268
+      symbol: "ProviderSettingsService.SaveProviderSettings"
+      reason: "Save が provider 単位 lock 配下で row と secret 保存を処理し、APIキー入力なし保存では既存 secret 本体を読まないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 351
+      symbol: "ProviderSettingsService.ResetProviderSettings"
+      reason: "Reset が provider 単位 lock 配下で row を未設定化し、secret 削除と rollback を扱うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 415
+      symbol: "ProviderSettingsService.ValidateProviderSettings"
+      reason: "接続確認は request token 一致後だけ secret 解決する許可経路であり、provider 単位 lock 配下であることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 537
+      symbol: "ProviderSettingsService.ListProviderModels"
+      reason: "モデル一覧取得は endpoint、credential state、request token の snapshot 一致後だけ secret 解決する許可経路であり、provider 単位 lock 配下であることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 625
+      symbol: "ProviderSettingsService.ResolveProviderExecutionSettings"
+      reason: "AllowSecretSnapshot=false の表示 / summary 系は secret store を読まず、AllowSecretSnapshot=true の実行開始系だけ lock 配下で snapshot を作ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 688
+      symbol: "ProviderSettingsService.snapshotExecutionSecret"
+      reason: "実行開始時の secret read は provider settings credential ref から snapshot ref へ保存され、secret 本体は DTO や read model へ出ないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 735
+      symbol: "withProviderSettingsMutationLock"
+      reason: "Save / Reset / Validate / model list / execution snapshot が provider id 正規化後の provider 単位 mutex を使うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 812
+      symbol: "ProviderSettingsService.resolveSecretSavePlan"
+      reason: "APIキー入力なし保存は既存 credential reference を維持するだけで secret 本体を読まないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 881
+      symbol: "ProviderSettingsService.buildSummary"
+      reason: "summary は endpoint、credential reference、credential state だけを構成し、secret 本体を含めないことを確認した。"
+    - path: "internal/usecase/provider_settings_usecase.go"
+      line: 55
+      symbol: "ProviderSettingsAppUsecase.SaveProviderSettings"
+      reason: "通常保存の usecase input は APIKey を受け取らず、APIKeyInputPresent だけを渡すことを確認した。"
+    - path: "internal/usecase/provider_settings_usecase.go"
+      line: 71
+      symbol: "ProviderSettingsAppUsecase.SaveProviderSettingsWithSecret"
+      reason: "secret 本体は secret-aware 保存用の transient input に限定されることを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller.go"
+      line: 62
+      symbol: "SaveProviderSettingsRequestDTO"
+      reason: "Wails 保存入力 DTO で secret 本体は transient CredentialInput だけに限定され、response DTO には出ないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts"
+      line: 35
+      symbol: "ProviderSettingsSummary"
+      reason: "frontend read model は endpoint、credential state、credential reference、validation state だけを持ち、secret 本体を持たないことを確認した。"
+    - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+      line: 197
+      symbol: "ProviderSettingsUseCase.saveSettings"
+      reason: "APIキー入力値は gateway input へ渡す transient 値であり、保存後 state へ戻さないことを確認した。"
+    - path: "frontend/src/ui/screens/provider-settings/ProviderSettingsPage.svelte"
+      line: 33
+      symbol: "credentialInputDraft"
+      reason: "APIキー入力値は page-local draft に閉じ、panel close や表示状態変更時に破棄されることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 396
+      symbol: "TestTJSPPS008TranslationJobSetupServiceProviderSettingsExposeNoSecretAndUseFakeTransportOnly"
+      reason: "ReadOptions が secret を表示せず、secret load は明示 model list だけで起きる regression 証跡を確認した。"
+    - path: "internal/service/provider_settings_service_test.go"
+      line: 100
+      symbol: "TestProviderSettingsServiceSavePreservesExistingSecretWhenInputMissing"
+      reason: "APIキー入力なし保存が既存 secret を読み出さず参照状態を維持する regression 証跡を確認した。"
+    - path: "internal/service/provider_settings_service_test.go"
+      line: 141
+      symbol: "TestProviderSettingsServiceResetKeepsRowAndDeletesSecret"
+      reason: "Reset が row を残し secret を削除する regression 証跡を確認した。"
+    - path: "internal/service/provider_settings_service_test.go"
+      line: 257
+      symbol: "TestProviderSettingsServiceListProviderModelsGatesCredentialAndEndpoint"
+      reason: "モデル一覧取得が endpoint / credential / snapshot gate 後だけ secret を transport へ渡し、response に secret を出さない regression 証跡を確認した。"
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "レビュー agent の非対象規約と人間指示により、backend-local / frontend-local などの広い検証は再実行しない。呼び出し元から渡された通過証跡をレビュー入力として扱った。"
+    risk: "検証証跡後に未記録の drift が入った場合、実行結果としては検出できない。"
+  - target: "backend 対象 Go test 2 本の実行ログ本文"
+    reason: "実行主体は implementation_implementer であり、レビュー agent はコマンドを再実行していない。人間入力の pass 証跡を採用した。"
+    risk: "テスト名と通過結果の詳細行はこの YAML では再現していない。"
+  - target: "Wails 生成処理そのもの"
+    reason: "Wails DTO と frontend contract の現在内容は確認したが、generator は起動していない。"
+    risk: "将来の再生成で controller 定義と generated binding がずれた場合は、frontend/wailsjs の secret field 検索が必要である。"
+  - target: "入力中のブラウザ実 DOM value"
+    reason: "ユーザーが入力している間の password input value は UI 入力として一時存在する。保存後、panel close、reset で破棄されるアプリケーションコード境界だけを確認した。"
+    risk: "ブラウザ拡張、DevTools、OS レベルの入力監視はアプリケーションコード境界外である。"
+issues:
+  - id: "trust-boundary-001"
+    level: "blocker"
+    title: "Job Setup 表示用 read model が secret store へ fallback する"
+    problem: "再判定結果は解消済みである。Job Setup の画面表示用 read model 生成で provider settings summary を取得できない場合、現在は旧 credential fallback に落ちず、static な credential reference と missing / not_required 状態だけを返す。"
+    reason: "承認済み仕様では、画面表示と summary 生成で secret store を読まないことが hard gate 条件である。修正後の translationJobSetupCredentialRefs は provider settings summary を参照値として扱い、summary 取得失敗時または providerSettings 未注入時も service.loadCredentialSecret を呼ばないため、ユーザー操作なしに APIキー本文を解決する経路は残っていない。"
+    violated_condition: "画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成では secret store の読み出しを行わない。trust-boundary hard gate は他観点で相殺しない。"
+    cause_candidate: "旧原因は internal/service/translation_job_setup_service.go の provider settings summary error から旧 secretStore.Load 経路へ fallthrough する実装だった。現在は internal/service/translation_job_setup_service.go:1095 から 1131 が static 参照値 fallback へ変わり、internal/service/provider_settings_service.go:278、361、425、547、674 で provider 単位 lock 配下の明示操作だけが secret 解決可能になっている。"
+    evidence:
+      - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+        line: 104
+        excerpt: "allowed_secret_read_operations は接続確認、モデル一覧取得、翻訳実行開始、マスターペルソナ生成開始に限定される。"
+      - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+        line: 105
+        excerpt: "forbidden_secret_read_operations は画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成を含む。"
+      - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+        line: 285
+        excerpt: "SaveProviderSettings は APIキー入力なしなら既存 credential 参照を維持し、既存APIキー本文を読まない。"
+      - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+        line: 288
+        excerpt: "ResolveProviderExecutionSettings は表示系 / summary 系では secret store を読まず、実行開始系だけ secret store 解決を許可する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1095
+        excerpt: "providerSettings がある場合は ListProviderSettings 由来の summary 参照値だけから CredentialRefs を作る。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1121
+        excerpt: "provider settings summary を使えない場合も static な default credential reference と missing / not_required 状態を返し、secret store を読まない。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 278
+        excerpt: "SaveProviderSettings は withProviderSettingsMutationLock 配下で実行される。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 361
+        excerpt: "ResetProviderSettings は withProviderSettingsMutationLock 配下で実行される。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 674
+        excerpt: "AllowSecretSnapshot=true の ResolveProviderExecutionSettings は withProviderSettingsMutationLock 配下で実行される。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 703
+        excerpt: "実行開始 snapshot は provider settings secret を読み、snapshot ref へ保存するが、secret 本体を read model に返さない。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 812
+        excerpt: "APIKeyInputPresent=false の保存計画は既存 CredentialReferenceID を維持するだけで secret 本体を読まない。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 426
+        excerpt: "ReadOptions が provider settings options を読み、CredentialRefs に secret 本体を含めないことを確認している。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 440
+        excerpt: "ReadOptions 後に secretLoadCalls を初期化し、後続の明示 model list だけで secret load を期待している。"
+      - path: "internal/service/provider_settings_service_test.go"
+        line: 120
+        excerpt: "APIキー入力なし保存で既存 credential state が configured のまま維持されることを確認している。"
+    local_fix_assessment: "local。Job Setup options の credentialRefs 生成境界、provider settings service の provider 単位 lock、APIキー入力なし保存の save plan で閉じている。設計境界の作り直しは不要である。"
+    additional_check_scope: "none。呼び出し元が渡した backend 対象 Go test 2 本、backend-local、frontend-local、git diff --check の通過証跡を採用した。"
+    fix_considerations: "解決済み。今後も表示、summary、通常保存、provider 選択では secret store を読まず、credential reference と secret 本体の名前分離を維持する必要がある。"
+    verification: "レビュー入力の検証証跡では backend 対象 Go test 2 本、python3 scripts/harness/run.py --suite backend-local、python3 scripts/harness/run.py --suite frontend-local、git diff --check -- docs/exec-plans/active/ai-provider-settings-management internal frontend が通過している。レビュー agent は広い harness を再実行していない。"
+    fix_required: true
+    status: "resolved"

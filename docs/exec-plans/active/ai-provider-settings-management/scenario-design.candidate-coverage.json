@@ -1,0 +1,687 @@
+{
+  "task_id": "ai-provider-settings-management",
+  "status": "pending-human-review",
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-001",
+      "candidate_id": "CAND-AIPSM-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-AIPSM-001",
+      "decision_rationale": "app-shell route と fake provider 非表示の主要正常系として採用する。"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-002",
+      "candidate_id": "CAND-AIPSM-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-002",
+      "decision_rationale": "APIキー保存と redaction は永続化境界シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-003",
+      "candidate_id": "CAND-AIPSM-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "decision_rationale": "human answered option 3: Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できるようにする。",
+      "final_scenario_id": "SCN-AIPSM-003"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-004",
+      "candidate_id": "CAND-AIPSM-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "final_scenario_id": "SCN-AIPSM-004"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-005",
+      "candidate_id": "CAND-AIPSM-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "batch API toggle は capability 境界シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-006",
+      "candidate_id": "CAND-AIPSM-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "final_scenario_id": "SCN-AIPSM-006"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-007",
+      "candidate_id": "CAND-AIPSM-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "final_scenario_id": "SCN-AIPSM-006"
+    },
+    {
+      "coverage_id": "actor-goal:CAND-AIPSM-008",
+      "candidate_id": "CAND-AIPSM-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-005",
+      "decision_rationale": "再起動後の復元シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-001",
+      "candidate_id": "CAND-APSM-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-001",
+      "decision_rationale": "初期表示は app-shell 到達シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-002",
+      "candidate_id": "CAND-APSM-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-002",
+      "decision_rationale": "初回保存は secret / DB 境界シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-003",
+      "candidate_id": "CAND-APSM-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-003",
+      "decision_rationale": "更新時の 接続確認 再評価へ統合する。"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-004",
+      "candidate_id": "CAND-APSM-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "final_scenario_id": "SCN-AIPSM-004"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-005",
+      "candidate_id": "CAND-APSM-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "decision_rationale": "human answered option 1: provider settings row は残し、endpoint と APIキー状態を未設定へ戻し、secret 本体は削除する。",
+      "final_scenario_id": "SCN-AIPSM-005, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-005"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-006",
+      "candidate_id": "CAND-APSM-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-005",
+      "decision_rationale": "画面再読込復元は再起動後復元へ統合する。"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-007",
+      "candidate_id": "CAND-APSM-LC-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-005",
+      "decision_rationale": "restart persistence と in-memory 非依存の観測点として採用する。"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-008",
+      "candidate_id": "CAND-APSM-LC-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "final_scenario_id": "SCN-AIPSM-006"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-009",
+      "candidate_id": "CAND-APSM-LC-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "final_scenario_id": "SCN-AIPSM-006"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-010",
+      "candidate_id": "CAND-APSM-LC-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "decision_rationale": "human answered option 2: Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。",
+      "final_scenario_id": "SCN-AIPSM-006, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-004"
+    },
+    {
+      "coverage_id": "lifecycle:CAND-APSM-LC-011",
+      "candidate_id": "CAND-APSM-LC-011",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-005",
+      "decision_rationale": "DB migration 後の保存単位として復元シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-001",
+      "candidate_id": "CAND-AIPSM-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-001",
+      "decision_rationale": "未設定初期状態は app-shell 到達シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-002",
+      "candidate_id": "CAND-AIPSM-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "decision_rationale": "human answered option 1: secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。",
+      "final_scenario_id": "SCN-AIPSM-002"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-003",
+      "candidate_id": "CAND-AIPSM-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "decision_rationale": "human answered option 3: Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できるようにする。",
+      "final_scenario_id": "SCN-AIPSM-003"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-004",
+      "candidate_id": "CAND-AIPSM-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "model 未選択の停止条件として統合する。"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-005",
+      "candidate_id": "CAND-AIPSM-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "batch API capability 遷移として統合する。"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-006",
+      "candidate_id": "CAND-AIPSM-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-003",
+      "decision_rationale": "dirty editing と遅延 response 保護として統合する。"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-007",
+      "candidate_id": "CAND-AIPSM-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "decision_rationale": "human answered option 1: secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。",
+      "final_scenario_id": "SCN-AIPSM-002"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-008",
+      "candidate_id": "CAND-AIPSM-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "decision_rationale": "human answered option 1: secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。",
+      "final_scenario_id": "SCN-AIPSM-002"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-009",
+      "candidate_id": "CAND-AIPSM-ST-009",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "decision_rationale": "human answered option 2: Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。",
+      "final_scenario_id": "SCN-AIPSM-006, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-004"
+    },
+    {
+      "coverage_id": "state-transition:CAND-AIPSM-ST-010",
+      "candidate_id": "CAND-AIPSM-ST-010",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "decision_rationale": "human answered option 2: Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。",
+      "final_scenario_id": "SCN-AIPSM-006, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-004"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F001",
+      "candidate_id": "CAND-AIPSM-F001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-007",
+      "decision_rationale": "APIキー保存失敗時の redaction と未完了扱いへ統合する。"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F002",
+      "candidate_id": "CAND-AIPSM-F002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "decision_rationale": "human answered option 3: Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できるようにする。",
+      "final_scenario_id": "SCN-AIPSM-003"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F003",
+      "candidate_id": "CAND-AIPSM-F003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "decision_rationale": "human answered option 1: secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。",
+      "final_scenario_id": "SCN-AIPSM-002"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F004",
+      "candidate_id": "CAND-AIPSM-F004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-005",
+      "decision_rationale": "migration failure は DB 永続化と復元の異常系へ統合する。"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F005",
+      "candidate_id": "CAND-AIPSM-F005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-007",
+      "decision_rationale": "全観測点 redaction の hard gate として採用する。"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F006",
+      "candidate_id": "CAND-AIPSM-F006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-006",
+      "decision_rationale": "旧 Job Setup / master-persona 設定を fallback にしない責務境界へ統合する。"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F007",
+      "candidate_id": "CAND-AIPSM-F007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "provider capability 不整合として model / batch 境界へ統合する。"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F008",
+      "candidate_id": "CAND-AIPSM-F008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-007",
+      "decision_rationale": "endpoint 参照不能を secret 非露出の失敗分類へ統合する。"
+    },
+    {
+      "coverage_id": "failure:CAND-AIPSM-F009",
+      "candidate_id": "CAND-AIPSM-F009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-003",
+      "decision_rationale": "endpoint 更新後の旧 model 排除へ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-001",
+      "candidate_id": "CAND-AIPSM-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-006",
+      "decision_rationale": "独立保存元と参照境界のシナリオへ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-002",
+      "candidate_id": "CAND-AIPSM-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-002",
+      "decision_rationale": "secret store と redaction の境界へ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-003",
+      "candidate_id": "CAND-AIPSM-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-003",
+      "decision": "merged",
+      "decision_rationale": "human answered option 3: Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できるようにする。",
+      "final_scenario_id": "SCN-AIPSM-003"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-004",
+      "candidate_id": "CAND-AIPSM-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "接続確認 gate と model selector のシナリオへ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-005",
+      "candidate_id": "CAND-AIPSM-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "現在 provider の 接続確認 からだけ保存する条件へ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-006",
+      "candidate_id": "CAND-AIPSM-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-004",
+      "decision_rationale": "batch capability のシナリオへ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-007",
+      "candidate_id": "CAND-AIPSM-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-AIPSM-008",
+      "decision_rationale": "paid real API 非到達と fake DI の主要検証として採用する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-008",
+      "candidate_id": "CAND-AIPSM-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-005",
+      "decision_rationale": "DB と secret store の境界として復元シナリオへ統合する。"
+    },
+    {
+      "coverage_id": "external-integration:CAND-AIPSM-009",
+      "candidate_id": "CAND-AIPSM-009",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-AIPSM-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-007",
+      "decision_rationale": "provider API failure と redaction のシナリオへ統合する。"
+    },
+    {
+      "coverage_id": "operation-audit:CAND-AIPSM-OA-001",
+      "candidate_id": "CAND-AIPSM-OA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-AIPSM-008",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: endpoint は表示でき、secret は伏せ字または存在状態だけ表示し、provider settings の更新履歴は保存しない。",
+      "final_scenario_id": "SCN-AIPSM-007, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-006"
+    },
+    {
+      "coverage_id": "operation-audit:CAND-AIPSM-OA-002",
+      "candidate_id": "CAND-AIPSM-OA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-AIPSM-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-007",
+      "decision_rationale": "secret redaction の観測点として統合する。"
+    },
+    {
+      "coverage_id": "operation-audit:CAND-AIPSM-OA-003",
+      "candidate_id": "CAND-AIPSM-OA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-AIPSM-007",
+      "decision": "merged",
+      "decision_rationale": "human answered option 1: provider settings row は残し、endpoint と APIキー状態を未設定へ戻し、secret 本体は削除する。",
+      "final_scenario_id": "SCN-AIPSM-005, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-005"
+    },
+    {
+      "coverage_id": "operation-audit:CAND-AIPSM-OA-004",
+      "candidate_id": "CAND-AIPSM-OA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-AIPSM-008",
+      "decision": "merged",
+      "decision_rationale": "human answered option 2: Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。",
+      "final_scenario_id": "SCN-AIPSM-006, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-004"
+    },
+    {
+      "coverage_id": "operation-audit:CAND-AIPSM-OA-005",
+      "candidate_id": "CAND-AIPSM-OA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-AIPSM-008",
+      "decision": "merged",
+      "decision_rationale": "human answered option 4: endpoint は表示でき、secret は伏せ字または存在状態だけ表示し、provider settings の更新履歴は保存しない。",
+      "final_scenario_id": "SCN-AIPSM-007, SCN-AIPSM-009",
+      "answered_question_id": "Q-AIPSM-006"
+    },
+    {
+      "coverage_id": "operation-audit:CAND-AIPSM-OA-006",
+      "candidate_id": "CAND-AIPSM-OA-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-AIPSM-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-AIPSM-001",
+      "decision_rationale": "app-shell 到達と fake provider 非表示の UI E2E へ統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-AIPSM-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-AIPSM-003",
+        "state-transition:CAND-AIPSM-ST-003",
+        "failure:CAND-AIPSM-F002",
+        "external-integration:CAND-AIPSM-003"
+      ],
+      "conflict_type": "endpoint_boundary",
+      "question_id": "Q-AIPSM-001",
+      "reason": "endpoint を全 provider 必須にするか、hosted provider の既定 endpoint を許すかが分かれている。",
+      "resolution": "human answered option 3: Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できるようにする。",
+      "resolution_rationale": "human answered option 3: Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できるようにする。"
+    },
+    {
+      "conflict_id": "CONFLICT-AIPSM-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "state-transition:CAND-AIPSM-ST-002",
+        "state-transition:CAND-AIPSM-ST-008",
+        "failure:CAND-AIPSM-F003"
+      ],
+      "conflict_type": "persistence_recovery",
+      "question_id": "Q-AIPSM-002",
+      "reason": "secret store と DB の片側成功時に全体失敗、補償削除、未参照 secret のどれを採るかが分かれていた。",
+      "resolution": "human answered option 1: secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。",
+      "resolution_rationale": "human answered option 1: secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。"
+    },
+    {
+      "conflict_id": "CONFLICT-AIPSM-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-AIPSM-004",
+        "lifecycle:CAND-APSM-LC-004",
+        "lifecycle:CAND-APSM-LC-008",
+        "lifecycle:CAND-APSM-LC-009"
+      ],
+      "conflict_type": "model_source",
+      "question_id": "Q-AIPSM-003",
+      "reason": "provider settings の model と参照側の model 選択の優先順位が分かれていた。",
+      "resolution": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。",
+      "resolution_rationale": "human answered option 4: AIサービス設定画面は APIキーと endpoint だけを扱い、model、処理方法、利用 provider、Batch API は各翻訳フェーズと master-persona 側で扱う。"
+    },
+    {
+      "conflict_id": "CONFLICT-AIPSM-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-APSM-LC-010",
+        "state-transition:CAND-AIPSM-ST-009",
+        "operation-audit:CAND-AIPSM-OA-004"
+      ],
+      "conflict_type": "existing_job_reference",
+      "question_id": "Q-AIPSM-004",
+      "reason": "既存 job と実行中 phase が snapshot と最新設定のどちらを参照するかが分かれていた。",
+      "resolution": "human answered option 2: Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。",
+      "resolution_rationale": "human answered option 2: Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。"
+    },
+    {
+      "conflict_id": "CONFLICT-AIPSM-005",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-APSM-LC-005",
+        "operation-audit:CAND-AIPSM-OA-003"
+      ],
+      "conflict_type": "delete_secret_metadata",
+      "question_id": "Q-AIPSM-005",
+      "reason": "削除時に row、secret 参照、secret 本体をどう扱うかが分かれていた。",
+      "resolution": "human answered option 1: provider settings row は残し、endpoint と APIキー状態を未設定へ戻し、secret 本体は削除する。",
+      "resolution_rationale": "human answered option 1: provider settings row は残し、endpoint と APIキー状態を未設定へ戻し、secret 本体は削除する。"
+    },
+    {
+      "conflict_id": "CONFLICT-AIPSM-006",
+      "status": "resolved",
+      "candidate_ids": [
+        "operation-audit:CAND-AIPSM-OA-001",
+        "operation-audit:CAND-AIPSM-OA-005"
+      ],
+      "conflict_type": "audit_scope",
+      "question_id": "Q-AIPSM-006",
+      "reason": "監査履歴、endpoint 要約、接続確認証跡の保持粒度が分かれていた。",
+      "resolution": "human answered option 4: endpoint は表示でき、secret は伏せ字または存在状態だけ表示し、provider settings の更新履歴は保存しない。",
+      "resolution_rationale": "human answered option 4: endpoint は表示でき、secret は伏せ字または存在状態だけ表示し、provider settings の更新履歴は保存しない。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-AIPSM-001",
+      "candidate_ids": [
+        "actor-goal:CAND-AIPSM-001",
+        "lifecycle:CAND-APSM-LC-001",
+        "state-transition:CAND-AIPSM-ST-001",
+        "operation-audit:CAND-AIPSM-OA-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-002",
+      "candidate_ids": [
+        "actor-goal:CAND-AIPSM-002",
+        "lifecycle:CAND-APSM-LC-002",
+        "external-integration:CAND-AIPSM-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-003",
+      "candidate_ids": [
+        "lifecycle:CAND-APSM-LC-003",
+        "state-transition:CAND-AIPSM-ST-006",
+        "failure:CAND-AIPSM-F009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-004",
+      "candidate_ids": [
+        "actor-goal:CAND-AIPSM-005",
+        "state-transition:CAND-AIPSM-ST-004",
+        "state-transition:CAND-AIPSM-ST-005",
+        "failure:CAND-AIPSM-F007",
+        "external-integration:CAND-AIPSM-004",
+        "external-integration:CAND-AIPSM-005",
+        "external-integration:CAND-AIPSM-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-005",
+      "candidate_ids": [
+        "actor-goal:CAND-AIPSM-008",
+        "lifecycle:CAND-APSM-LC-006",
+        "lifecycle:CAND-APSM-LC-007",
+        "lifecycle:CAND-APSM-LC-011",
+        "failure:CAND-AIPSM-F004",
+        "external-integration:CAND-AIPSM-008"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-006",
+      "candidate_ids": [
+        "failure:CAND-AIPSM-F006",
+        "external-integration:CAND-AIPSM-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-007",
+      "candidate_ids": [
+        "failure:CAND-AIPSM-F001",
+        "failure:CAND-AIPSM-F005",
+        "failure:CAND-AIPSM-F008",
+        "external-integration:CAND-AIPSM-009",
+        "operation-audit:CAND-AIPSM-OA-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-008",
+      "candidate_ids": [
+        "external-integration:CAND-AIPSM-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-AIPSM-009",
+      "candidate_ids": []
+    }
+  ],
+  "unresolved_questions": []
+}

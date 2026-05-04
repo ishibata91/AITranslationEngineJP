@@ -1,0 +1,283 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: >
+    no_issue: provider-settings-secret-read-control-review-fix 後も、
+    APIキー状態の公開契約は、DB の credential_reference_id と
+    credential_state を正とする形で維持されている。
+    ListProviderSettings / Wails response / frontend read model は secret 本体を持たず、
+    endpoint、credential reference、credential state、validation state だけを返す。
+    SaveProviderSettings は credentialInput を input command の一時値としてだけ受け取り、
+    APIキー入力なし保存では既存 credential reference と credential state を維持する。
+    Job Setup の表示用 credential refs は provider settings 読み取り失敗時も
+    legacy secret store 読み出しへ fallback せず、参照状態だけで閉じている。
+    SaveProviderSettings、ResetProviderSettings、実行開始 secret snapshot は
+    provider 単位 lock 配下へ寄せられている。
+    secret store の Load は接続確認、モデル一覧取得、翻訳実行開始、
+    マスターペルソナ生成開始の許可操作に閉じている。
+  evidence_sufficiency: >
+    十分。plan.md、implementation-scope.md、provider settings service / repository /
+    Wails controller / frontend gateway contract、Job Setup 表示経路、
+    参照側 consumer 経路、provider 単位 lock、keyring / cache 境界、
+    関連テスト、呼び出し元提供の検証証跡を確認した。
+    広い harness 再実行は review_contract の責務外であり、実行していない。
+  contract_invariants:
+    - name: "APIキー状態の公開正"
+      status: "maintained"
+      evidence: "internal/infra/sqlite/dbinit/migrations/010_provider_settings.sql:4"
+    - name: "ListProviderSettings は secret store を読まない"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:242"
+    - name: "SaveProviderSettings の APIキー入力なし保存は既存参照を維持する"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:812"
+    - name: "SaveProviderSettings は provider 単位 lock 配下で保存する"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:278"
+    - name: "ResetProviderSettings は provider 単位 lock 配下で削除する"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:361"
+    - name: "SaveProviderSettings の credentialInput は input command 限定"
+      status: "maintained"
+      evidence: "internal/controller/wails/provider_settings_controller.go:62"
+    - name: "Wails response と frontend read model は secret 本体を持たない"
+      status: "maintained"
+      evidence: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts:35"
+    - name: "接続確認とモデル一覧取得だけが明示 read 操作として secret を解決する"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:416"
+    - name: "翻訳実行開始は snapshot 作成時だけ secret を解決する"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:626"
+    - name: "実行開始 secret snapshot は provider 単位 lock 配下で作る"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:674"
+    - name: "マスターペルソナ生成開始は allowSecretRead の時だけ secret を解決する"
+      status: "maintained"
+      evidence: "internal/service/master_persona_service.go:791"
+    - name: "summary 生成は provider settings summary から参照状態だけを読む"
+      status: "maintained"
+      evidence: "internal/service/translation_job_setup_service.go:1092"
+    - name: "Job Setup 表示 fallback は legacy secret store を読まない"
+      status: "maintained"
+      evidence: "internal/service/translation_job_setup_service.go:1121"
+    - name: "macOS Keychain と Windows WinCred の backend 契約"
+      status: "maintained"
+      evidence: "internal/repository/provider_settings_keyring_secret_store.go:79"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "not_required"
+    reason: >
+      契約・互換性観点の未解決指摘はない。
+      追加の局所修正境界は見つからない。
+
+validation_evidence:
+  - command: "backend 対象 Go test 2 本"
+    result: "pass"
+    details: "implementation_implementer 提供証跡。個別 command 名はレビュー入力に含まれていない。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "implementation_implementer 提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+  - command: "git diff --check -- docs/exec-plans/active/ai-provider-settings-management internal frontend"
+    result: "pass"
+    details: "implement_lane 提供証跡。レビューでは再実行していない。"
+
+checked_scope:
+  summary: >
+    APIキー状態の公開契約、secret 読み出し許可操作、禁止操作、
+    Wails / frontend response 非露出、DB schema 互換性、Job Setup 表示経路、
+    参照側 consumer 経路、provider 単位 lock を確認した。
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 100
+      symbol: "Approved Scope Change: APIキー読み出し制御"
+      reason: "読み出し制御の人間承認済み仕様変更を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 104
+      symbol: "allowed_secret_read_operations"
+      reason: "secret store 読み出し許可操作の正本にした。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 105
+      symbol: "forbidden_secret_read_operations"
+      reason: "表示、保存、summary 系の読み出し禁止契約を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 284
+      symbol: "provider-settings-secret-read-control frozen_public_seams"
+      reason: "ListProviderSettings と SaveProviderSettings の変更後公開契約を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 294
+      symbol: "forbidden_read_operations"
+      reason: "禁止操作の契約を実コード確認の基準にした。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 295
+      symbol: "allowed_read_operations"
+      reason: "許可操作の契約を実コード確認の基準にした。"
+    - path: "internal/infra/sqlite/dbinit/migrations/010_provider_settings.sql"
+      line: 1
+      symbol: "PROVIDER_SETTINGS"
+      reason: "DB schema が endpoint と credential reference / state だけを持つことを確認した。"
+    - path: "internal/repository/provider_settings_repository.go"
+      line: 15
+      symbol: "ProviderSettingsRecord"
+      reason: "repository record が secret 本体を持たないことを確認した。"
+    - path: "internal/repository/provider_settings_sqlite_repository.go"
+      line: 119
+      symbol: "SQLiteProviderSettingsRepository.List"
+      reason: "List が PROVIDER_SETTINGS row だけを読むことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 242
+      symbol: "ProviderSettingsService.ListProviderSettings"
+      reason: "画面表示用の一覧が repository row と buildSummary だけで作られることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 269
+      symbol: "ProviderSettingsService.SaveProviderSettings"
+      reason: "保存時の secret 保存と DB upsert が provider 単位 lock 配下へ入ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 352
+      symbol: "ProviderSettingsService.ResetProviderSettings"
+      reason: "reset 時の row 維持と secret 削除が provider 単位 lock 配下へ入ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 812
+      symbol: "resolveSecretSavePlan"
+      reason: "APIキー入力なし保存が既存 credential reference と state を維持し、secret を読まないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 881
+      symbol: "buildSummary"
+      reason: "summary が credential_reference_id と credential_state から公開状態を作ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 416
+      symbol: "ValidateProviderSettings"
+      reason: "接続確認だけが validation secret 解決へ進むことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 538
+      symbol: "ListProviderModels"
+      reason: "モデル一覧取得だけが readiness gate 後に secret を解決することを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 626
+      symbol: "ResolveProviderExecutionSettings"
+      reason: "実行開始用 snapshot の場合だけ secret snapshot を許可し、provider 単位 lock 配下へ入ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 688
+      symbol: "snapshotExecutionSecret"
+      reason: "翻訳実行開始用の snapshot 作成が secret store Load の境界であることを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller.go"
+      line: 41
+      symbol: "ProviderSettingsSummaryDTO"
+      reason: "Wails response DTO が secret 本体を持たないことを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller.go"
+      line: 62
+      symbol: "SaveProviderSettingsRequestDTO"
+      reason: "credentialInput が保存 request DTO の一時入力に限定されることを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller.go"
+      line: 108
+      symbol: "ProviderSettingsController.ListProviderSettings"
+      reason: "Wails list が usecase list だけを呼び、secret-aware port を使わないことを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller.go"
+      line: 117
+      symbol: "ProviderSettingsController.SaveProviderSettings"
+      reason: "credentialInput がある時だけ secret-aware save に分岐することを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts"
+      line: 35
+      symbol: "ProviderSettingsSummary"
+      reason: "frontend read model が credential state と reference だけを持つことを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts"
+      line: 54
+      symbol: "SaveProviderSettingsRequest"
+      reason: "credentialInput が save request だけに存在することを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts"
+      line: 61
+      symbol: "SaveProviderSettingsResponse"
+      reason: "save response が provider summary だけを返すことを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-screen-model.ts"
+      line: 15
+      symbol: "ProviderSettingsProviderState"
+      reason: "screen state が credentialInput や secret 本体を保持しないことを確認した。"
+    - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+      line: 204
+      symbol: "saveSettings"
+      reason: "frontend は保存直前の一時入力だけを gateway request に渡すことを確認した。"
+    - path: "frontend/src/controller/provider-settings/provider-settings-screen-controller.ts"
+      line: 105
+      symbol: "clearCredentialInput"
+      reason: "保存後と reset 前に credential 入力値を破棄することを確認した。"
+    - path: "frontend/wailsjs/go/models.ts"
+      line: 1265
+      symbol: "ProviderSettingsSummaryDTO"
+      reason: "generated Wails model の response 側に secret 本体がないことを確認した。"
+    - path: "frontend/wailsjs/go/models.ts"
+      line: 2781
+      symbol: "SaveProviderSettingsRequestDTO"
+      reason: "generated Wails model でも credentialInput が request 側だけに存在することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1092
+      symbol: "translationJobSetupCredentialRefs"
+      reason: "provider settings summary 取得成功時も失敗時 fallback も secret store を読まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1121
+      symbol: "translationJobSetupCredentialRefs fallback"
+      reason: "provider settings 読み取り失敗時の fallback が static 参照状態だけを返すことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1476
+      symbol: "resolvePhaseRuntimeAgainstProviderSettings"
+      reason: "Job Setup の通常解決は secret snapshot を要求しないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 720
+      symbol: "resolveExecutionSnapshotForStart"
+      reason: "翻訳実行開始時だけ AllowSecretSnapshot を true にすることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 753
+      symbol: "resolveExecutionSnapshotForStart"
+      reason: "本文翻訳実行開始時だけ AllowSecretSnapshot を true にすることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1071
+      symbol: "resolveExecutionSnapshotForStart"
+      reason: "ペルソナ生成 phase 開始時だけ AllowSecretSnapshot を true にすることを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 311
+      symbol: "LoadSettings"
+      reason: "マスターペルソナ設定表示が secret store を読まないことを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 791
+      symbol: "validateProviderAccess"
+      reason: "マスターペルソナ生成開始だけ allowSecretRead により secret 解決へ進むことを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 100
+      symbol: "NewCachedProviderSettingsSecretStore"
+      reason: "production wiring が provider settings service と consumer へ同じ secret store 境界を渡すことを確認した。"
+    - path: "internal/repository/provider_settings_keyring_secret_store.go"
+      line: 79
+      symbol: "newProviderSettingsKeyringConfig"
+      reason: "macOS KeychainTrustApplication と Windows WinCredBackend の契約を確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "review_contract は広い harness 再実行を担当しない。呼び出し元提供の通過済み証跡を根拠にした。"
+    risk: "実行環境依存の失敗は、このレビューでは再検出していない。"
+  - target: "実 AI provider へのネットワーク実行"
+    reason: "検証証跡は fake secret store と fake transport DI 前提である。実 provider 呼び出しは実装範囲の検証対象外である。"
+    risk: "外部 provider 側の認証応答差分は、契約・互換性レビューでは判定していない。"
+
+residual_risks:
+  - >
+    TranslationJobSetupService の providerSettings 未注入時 fallback は残るが、
+    現在は required provider を未設定、credential 不要 provider を設定不要として返すだけで、
+    legacy secret store 読み出しへは戻らない。
+    production bootstrap では providerSettingsService 注入を確認した。
+    このレビューでは injection failure を動的再現していない。
+  - >
+    generated Wails binding は静的に確認した。
+    このレビューでは wails generate や harness の再実行は行っていない。
+
+issues: []

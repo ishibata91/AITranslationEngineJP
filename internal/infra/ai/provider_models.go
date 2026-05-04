@@ -25,6 +25,7 @@ type ProviderModelOption struct {
 type ListProviderModelsRequest struct {
 	ProviderID      string
 	APIKey          string
+	GeminiBaseURL   string
 	OpenAIBaseURL   string
 	LMStudioBaseURL string
 	XAIBaseURL      string
@@ -88,15 +89,27 @@ func (loader *ProviderModelListLoader) ListProviderModels(
 	providerID string,
 	apiKey string,
 ) ([]ProviderModelOption, error) {
+	return loader.ListProviderModelsWithEndpoint(ctx, providerID, "", apiKey)
+}
+
+// ListProviderModelsWithEndpoint resolves provider model lists through the configured transport and one explicit endpoint.
+func (loader *ProviderModelListLoader) ListProviderModelsWithEndpoint(
+	ctx context.Context,
+	providerID string,
+	endpoint string,
+	apiKey string,
+) ([]ProviderModelOption, error) {
 	if loader == nil {
 		return nil, fmt.Errorf("provider model list loader is required")
 	}
+	trimmedEndpoint := strings.TrimSpace(endpoint)
 	return ListProviderModels(ctx, loader.transport, ListProviderModelsRequest{
 		ProviderID:      providerID,
 		APIKey:          apiKey,
-		OpenAIBaseURL:   strings.TrimSpace(loader.openAIBaseURL),
-		LMStudioBaseURL: firstNonEmptyProviderModelsURL(loader.lmStudioBaseURL, os.Getenv(providerModelsLMStudioBaseURLEnv)),
-		XAIBaseURL:      firstNonEmptyProviderModelsURL(loader.xaiBaseURL, os.Getenv(providerModelsXAIBaseURLEnv)),
+		GeminiBaseURL:   firstNonEmptyProviderModelsURL(trimmedEndpoint),
+		OpenAIBaseURL:   firstNonEmptyProviderModelsURL(trimmedEndpoint, strings.TrimSpace(loader.openAIBaseURL)),
+		LMStudioBaseURL: firstNonEmptyProviderModelsURL(trimmedEndpoint, loader.lmStudioBaseURL, os.Getenv(providerModelsLMStudioBaseURLEnv)),
+		XAIBaseURL:      firstNonEmptyProviderModelsURL(trimmedEndpoint, loader.xaiBaseURL, os.Getenv(providerModelsXAIBaseURLEnv)),
 	})
 }
 
@@ -111,7 +124,7 @@ func ListProviderModels(
 	}
 	switch strings.ToLower(strings.TrimSpace(request.ProviderID)) {
 	case ProviderGemini:
-		return listGeminiModels(ctx, transport, request.APIKey)
+		return listGeminiModels(ctx, transport, normalizeBaseURL(request.GeminiBaseURL, geminiDefaultBaseURL), request.APIKey)
 	case ProviderXAI:
 		return listOpenAICompatibleModels(ctx, transport, normalizeBaseURL(request.XAIBaseURL, xaiDefaultBaseURL), request.APIKey, false)
 	case ProviderLMStudio:
@@ -201,12 +214,17 @@ type geminiModelsResponse struct {
 func listGeminiModels(
 	ctx context.Context,
 	transport HTTPTransport,
+	baseURL string,
 	apiKey string,
 ) ([]ProviderModelOption, error) {
+	endpoint, err := openAICompatibleModelsEndpoint(baseURL)
+	if err != nil {
+		return nil, fmt.Errorf("build gemini model list endpoint: %w", err)
+	}
 	request, err := http.NewRequestWithContext(
 		ctx,
 		http.MethodGet,
-		"https://generativelanguage.googleapis.com/v1beta/models",
+		endpoint,
 		nil,
 	)
 	if err != nil {

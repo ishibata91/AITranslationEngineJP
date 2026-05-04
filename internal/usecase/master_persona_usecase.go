@@ -32,8 +32,12 @@ type MasterPersonaPageState struct {
 	SelectedIdentityKey *string
 }
 
-// MasterPersonaAISettings aliases the service-layer page-local AI settings.
-type MasterPersonaAISettings = service.MasterPersonaAISettings
+// MasterPersonaAISettings stores page-local AI provider settings without secret bodies.
+type MasterPersonaAISettings struct {
+	Provider        string
+	Model           string
+	ExecutionMethod string
+}
 
 // MasterPersonaPreviewResult aliases the service-layer preview result.
 type MasterPersonaPreviewResult = service.MasterPersonaPreviewResult
@@ -135,16 +139,16 @@ func (usecase *MasterPersonaUsecase) LoadAISettings(ctx context.Context) (Master
 	if err != nil {
 		return MasterPersonaAISettings{}, fmt.Errorf("load master persona ai settings: %w", err)
 	}
-	return result, nil
+	return toUsecaseMasterPersonaAISettings(result), nil
 }
 
 // SaveAISettings saves page-local AI settings.
 func (usecase *MasterPersonaUsecase) SaveAISettings(ctx context.Context, settings MasterPersonaAISettings) (MasterPersonaAISettings, error) {
-	result, err := usecase.generationService.SaveSettings(ctx, settings)
+	result, err := usecase.generationService.SaveSettings(ctx, toServiceMasterPersonaAISettings(settings))
 	if err != nil {
 		return MasterPersonaAISettings{}, fmt.Errorf("save master persona ai settings: %w", err)
 	}
-	return result, nil
+	return toUsecaseMasterPersonaAISettings(result), nil
 }
 
 // PreviewGeneration calculates preview counts before execution.
@@ -153,7 +157,7 @@ func (usecase *MasterPersonaUsecase) PreviewGeneration(
 	filePath string,
 	settings MasterPersonaAISettings,
 ) (MasterPersonaPreviewResult, error) {
-	result, err := usecase.generationService.Preview(ctx, filePath, settings)
+	result, err := usecase.generationService.Preview(ctx, filePath, toServiceMasterPersonaAISettings(settings))
 	if err != nil {
 		return MasterPersonaPreviewResult{}, fmt.Errorf("preview master persona generation: %w", err)
 	}
@@ -166,7 +170,7 @@ func (usecase *MasterPersonaUsecase) ExecuteGeneration(
 	filePath string,
 	settings MasterPersonaAISettings,
 ) (MasterPersonaRunStatus, error) {
-	result, err := usecase.generationService.Execute(ctx, filePath, settings)
+	result, err := usecase.generationService.Execute(ctx, filePath, toServiceMasterPersonaAISettings(settings))
 	if err != nil {
 		return MasterPersonaRunStatus{}, fmt.Errorf("execute master persona generation: %w", err)
 	}
@@ -259,4 +263,20 @@ func selectMasterPersonaIdentityKey(items []MasterPersonaEntry, preferredIdentit
 	}
 	selected := items[0].IdentityKey
 	return &selected
+}
+
+func toServiceMasterPersonaAISettings(settings MasterPersonaAISettings) service.MasterPersonaAISettings {
+	return service.MasterPersonaAISettings{
+		Provider:        settings.Provider,
+		Model:           settings.Model,
+		ExecutionMethod: settings.ExecutionMethod,
+	}
+}
+
+func toUsecaseMasterPersonaAISettings(settings service.MasterPersonaAISettings) MasterPersonaAISettings {
+	return MasterPersonaAISettings{
+		Provider:        settings.Provider,
+		Model:           settings.Model,
+		ExecutionMethod: settings.ExecutionMethod,
+	}
 }

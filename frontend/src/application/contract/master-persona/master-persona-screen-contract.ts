@@ -23,7 +23,7 @@ export interface MasterPersonaScreenControllerContract {
   saveAISettings(): Promise<void>
   setAIProvider(event: Event): void
   setAIModel(event: Event): void
-  setAPIKey(event: Event): void
+  setAIExecutionMethod(event: Event): void
   openEditModal(): void
   closeEditModal(): void
   openDeleteModal(): void

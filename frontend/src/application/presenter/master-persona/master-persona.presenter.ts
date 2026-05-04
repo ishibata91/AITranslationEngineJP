@@ -62,14 +62,37 @@ function buildAIProviderLabel(provider: string): string {
   return AI_PROVIDER_LABEL_BY_ID[providerId] ?? provider.trim()
 }
 
+function buildAISettingsWarningText(state: MasterPersonaScreenState): string {
+  const providerId = normalizeProviderId(state.aiSettings.provider)
+  if (providerId === "") {
+    return "AIサービスを選んでください。"
+  }
+
+  if (state.modelOptions.length === 0) {
+    return "モデル一覧を更新後に選べる状態で接続します。"
+  }
+
+  return ""
+}
+
 function isAISettingsComplete(state: MasterPersonaScreenState): boolean {
   const providerId = normalizeProviderId(state.aiSettings.provider)
   const hasProvider = providerId !== ""
   const hasModel = state.aiSettings.model.trim() !== ""
-  const requiresAPIKey = providerId !== "lm_studio"
-  const hasAPIKey = state.aiSettings.apiKey.trim() !== ""
 
-  return hasProvider && hasModel && (!requiresAPIKey || hasAPIKey)
+  return hasProvider && hasModel
+}
+
+function buildExecutionMethodOptions(provider: string) {
+  const providerId = normalizeProviderId(provider)
+  if (providerId === "gemini" || providerId === "xai") {
+    return [
+      { value: "single_request", label: "通常" },
+      { value: "batch", label: "Batch API" }
+    ]
+  }
+
+  return [{ value: "single_request", label: "通常" }]
 }
 
 function buildProgressPercent(state: MasterPersonaScreenState): number {
@@ -94,6 +117,10 @@ export class MasterPersonaPresenter {
       )
     )
     const hasPreview = state.preview !== null
+    const aiSettingsWarningText = buildAISettingsWarningText(state)
+    const executionMethodOptions = buildExecutionMethodOptions(
+      state.aiSettings.provider
+    )
 
     return {
       ...state,
@@ -117,6 +144,11 @@ export class MasterPersonaPresenter {
       isRunActive: activeRun,
       hasPreview,
       aiProviderLabel: buildAIProviderLabel(state.aiSettings.provider),
+      aiSettingsWarningText,
+      aiSettingsStatusText:
+        aiSettingsWarningText === "" ? "設定済み" : "設定が必要",
+      canSelectModel: state.modelOptions.length > 0 && aiSettingsWarningText === "",
+      executionMethodOptions,
       promptTemplateDescription:
         MasterPersonaGateway.MASTER_PERSONA_PROMPT_TEMPLATE_DESCRIPTION,
       progressPercent: buildProgressPercent(state),

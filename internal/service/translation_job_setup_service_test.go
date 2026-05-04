@@ -55,25 +55,6 @@ func (store fakeTranslationJobSetupSecretStore) Load(ctx context.Context, key st
 	return store.load(ctx, key)
 }
 
-type fakeTranslationJobSetupSecretStoreSaver struct {
-	saveCalls []struct {
-		key   string
-		value string
-	}
-}
-
-func (store *fakeTranslationJobSetupSecretStoreSaver) Load(context.Context, string) (string, error) {
-	return "", nil
-}
-
-func (store *fakeTranslationJobSetupSecretStoreSaver) Save(_ context.Context, key string, value string) error {
-	store.saveCalls = append(store.saveCalls, struct {
-		key   string
-		value string
-	}{key: key, value: value})
-	return nil
-}
-
 type fakeTranslationJobSetupTransactor struct{}
 
 func (fakeTranslationJobSetupTransactor) WithTransaction(ctx context.Context, callback func(context.Context) error) error {
@@ -309,27 +290,6 @@ func TestTranslationJobSetupServiceRejectsSharedSecretNamespaceCredentialRefs(t 
 		t.Fatalf("expected shared namespace credential to avoid secret load and loader calls, got loads=%#v loaderCalls=%d", secretLoadCalls, loadCalls)
 	}
 
-	saver := &fakeTranslationJobSetupSecretStoreSaver{}
-	saveService := NewPersistentTranslationJobSetupService(
-		&fakeTranslationJobSetupJobLifecycleRepository{},
-		fakeTranslationJobSetupSourceRepository{},
-		fakeTranslationJobSetupDictionaryRepository{},
-		fakeTranslationJobSetupPersonaRepository{},
-		nil,
-		saver,
-		fakeTranslationJobSetupTransactor{},
-	)
-	if _, saveErr := saveService.SaveCredential(context.Background(), SaveTranslationJobSetupCredentialRequest{
-		Provider:      "gemini",
-		CredentialRef: "master-persona:gemini",
-		APIKey:        "api-key",
-	}); saveErr == nil {
-		t.Fatalf("expected shared namespace credential save to be rejected")
-	}
-	if len(saver.saveCalls) != 0 {
-		t.Fatalf("expected no shared namespace save, got %#v", saver.saveCalls)
-	}
-
 	validation, err := service.ValidateRequest(context.Background(), TranslationJobSetupValidationRequest{
 		InputSourceID: 44,
 		PhaseRuntimes: []TranslationJobSetupPhaseRuntimeDraftReadModel{
@@ -385,31 +345,6 @@ func TestTJSPPS003TranslationJobSetupServiceLMStudioModelListSkipsSecretLoad(t *
 	}
 	if len(secretLoadCalls) != 0 {
 		t.Fatalf("expected no secret lookup for lm studio model list, got %#v", secretLoadCalls)
-	}
-}
-
-func TestTJSPPS003TranslationJobSetupServiceSaveCredentialRejectsOutOfScopeCredentialRef(t *testing.T) {
-	secretStore := &fakeTranslationJobSetupSecretStoreSaver{}
-	service := NewPersistentTranslationJobSetupService(
-		&fakeTranslationJobSetupJobLifecycleRepository{},
-		fakeTranslationJobSetupSourceRepository{},
-		fakeTranslationJobSetupDictionaryRepository{},
-		fakeTranslationJobSetupPersonaRepository{},
-		nil,
-		secretStore,
-		fakeTranslationJobSetupTransactor{},
-	)
-
-	_, err := service.SaveCredential(context.Background(), SaveTranslationJobSetupCredentialRequest{
-		Provider:      "gemini",
-		CredentialRef: "master-persona:gemini",
-		APIKey:        "dummy",
-	})
-	if err == nil {
-		t.Fatal("expected out-of-scope credentialRef to be rejected")
-	}
-	if len(secretStore.saveCalls) != 0 {
-		t.Fatalf("expected no secret save for disallowed credentialRef, got %#v", secretStore.saveCalls)
 	}
 }
 

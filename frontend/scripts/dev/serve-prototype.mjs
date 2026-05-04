@@ -16,7 +16,8 @@ function usage() {
     "Usage:",
     "  npm --prefix frontend run dev:prototype -- --task <task-id> [--port 34116] [--host 127.0.0.1] [--dry-run]",
     "",
-    "Serves docs/exec-plans/active/<task-id>/prototype.svelte with Vite and Svelte.",
+    "Serves docs/exec-plans/active/<task-id>/prototype/index.svelte with Vite and Svelte.",
+    "Falls back to prototype.svelte for existing task-local prototypes.",
     "Open http://127.0.0.1:34116/prototype with agent-browser.",
   ].join("\n");
 }
@@ -111,7 +112,8 @@ async function resolveTaskRoot(taskId) {
   return {
     activeRoot: activeRootReal,
     taskDir: taskDirReal,
-    prototypePath: path.join(taskDirReal, "prototype.svelte"),
+    prototypePath: path.join(taskDirReal, "prototype", "index.svelte"),
+    legacyPrototypePath: path.join(taskDirReal, "prototype.svelte"),
     mockDataRoot: path.join(taskDirReal, "mock-data"),
   };
 }
@@ -166,6 +168,30 @@ function prototypeHtml() {
   ].join("\n");
 }
 
+async function resolvePrototypePath(paths) {
+  if (await pathExists(paths.prototypePath)) {
+    return {
+      path: paths.prototypePath,
+      mode: "prototype/index.svelte",
+      exists: true,
+    };
+  }
+
+  if (await pathExists(paths.legacyPrototypePath)) {
+    return {
+      path: paths.legacyPrototypePath,
+      mode: "prototype.svelte",
+      exists: true,
+    };
+  }
+
+  return {
+    path: paths.prototypePath,
+    mode: "prototype/index.svelte",
+    exists: false,
+  };
+}
+
 function prototypeEntry(prototypePath) {
   const prototypeUrl = `/@fs/${prototypePath}`;
   return [
@@ -178,8 +204,10 @@ function prototypeEntry(prototypePath) {
 }
 
 async function startServer(args, paths) {
-  if (!(await pathExists(paths.prototypePath))) {
-    throw new Error(`prototype.svelte was not found: ${paths.prototypePath}`);
+  const resolvedPrototype = await resolvePrototypePath(paths);
+
+  if (!resolvedPrototype.exists) {
+    throw new Error(`UI prototype was not found: ${paths.prototypePath}`);
   }
 
   const [{ createServer }, { svelte }] = await Promise.all([
@@ -216,7 +244,7 @@ async function startServer(args, paths) {
         },
         load(id) {
           if (id === "/src/prototype-entry.js") {
-            return prototypeEntry(paths.prototypePath);
+            return prototypeEntry(resolvedPrototype.path);
           }
 
           return null;
@@ -243,6 +271,7 @@ async function startServer(args, paths) {
 
   console.log(`UI prototype server: ${servedUrl(args)}`);
   console.log(`Task root: ${paths.taskDir}`);
+  console.log(`Prototype entry: ${resolvedPrototype.mode}`);
   console.log("Keep this server running while human review is in progress.");
 
   process.on("SIGINT", () => {
@@ -260,7 +289,7 @@ async function main() {
   }
 
   const paths = await resolveTaskRoot(args.task);
-  const prototypeExists = await pathExists(paths.prototypePath);
+  const resolvedPrototype = await resolvePrototypePath(paths);
   const mockDataExists = await pathExists(paths.mockDataRoot);
 
   if (args.dryRun) {
@@ -270,8 +299,11 @@ async function main() {
       task_root: paths.taskDir,
       served_url: servedUrl(args),
       server_command: `npm --prefix frontend run dev:prototype -- --task ${args.task} --port ${args.port}`,
-      prototype_path: paths.prototypePath,
-      prototype_exists: prototypeExists,
+      prototype_path: resolvedPrototype.path,
+      prototype_mode: resolvedPrototype.mode,
+      prototype_exists: resolvedPrototype.exists,
+      default_prototype_path: paths.prototypePath,
+      legacy_prototype_path: paths.legacyPrototypePath,
       mock_data_root: paths.mockDataRoot,
       mock_data_exists: mockDataExists,
       dry_run: true,

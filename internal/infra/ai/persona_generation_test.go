@@ -49,7 +49,7 @@ func TestProviderClientGeneratePersonaUsesResolverAndRedactsDebugLog(t *testing.
 	}
 	client := NewProviderClient(transport, WithProviderCredentialResolver(resolver))
 
-	response, err := client.GeneratePersona(context.Background(), ProviderXAI, "grok-2", personaGenerationExecutionModeSingleRequest, "cred-1", "PERSONA_GENERATION_REQUEST_V1\nrequest_unit_id=unit-1\nnpc_correlation_id=npc-1")
+	response, err := client.GeneratePersona(context.Background(), ProviderXAI, "grok-2", personaGenerationExecutionModeSingleRequest, "cred-1", "", "PERSONA_GENERATION_REQUEST_V1\nrequest_unit_id=unit-1\nnpc_correlation_id=npc-1")
 	if err != nil {
 		t.Fatalf("expected provider client success: %v", err)
 	}
@@ -79,6 +79,7 @@ func TestProviderClientGeneratePersonaSupportsFakeProviderWithFixedResponse(t *t
 		ProviderFake,
 		"fake-model",
 		personaGenerationExecutionModeSingleRequest,
+		"",
 		"",
 		"PERSONA_GENERATION_REQUEST_V1\nrequest_unit_id=unit-fixed\nnpc_correlation_id=npc-fixed",
 	)

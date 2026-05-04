@@ -455,7 +455,7 @@ func TestNewAppControllerProvidesMasterPersonaPage(t *testing.T) {
 func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T) {
 	controller := newBootstrapTestController(t)
 
-	saved, err := controller.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "test-key"})
+	saved, err := controller.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"})
 	if err != nil {
 		t.Fatalf("expected master persona ai settings save to succeed: %v", err)
 	}
@@ -467,8 +467,8 @@ func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T
 	if err != nil {
 		t.Fatalf("expected master persona ai settings load to succeed: %v", err)
 	}
-	if loaded.APIKey != "test-key" {
-		t.Fatalf("expected saved api key to load, got %#v", loaded)
+	if loaded.Provider != "gemini" || loaded.Model != "gemini-2.5-pro" {
+		t.Fatalf("expected loaded provider/model settings, got %#v", loaded)
 	}
 }
 
@@ -519,7 +519,6 @@ func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreati
 	_, err := firstController.MasterPersonaSaveAISettings(controllerwails.MasterPersonaAISettingsDTO{
 		Provider: "gemini",
 		Model:    bootstrapMasterPersonaPersistedModel,
-		APIKey:   "volatile-key",
 	})
 	if err != nil {
 		t.Fatalf("expected master persona ai settings save through first controller to succeed: %v", err)
@@ -533,9 +532,6 @@ func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreati
 	}
 	if loaded.Provider != "gemini" || loaded.Model != bootstrapMasterPersonaPersistedModel {
 		t.Fatalf("expected provider/model settings to persist, got %#v", loaded)
-	}
-	if loaded.APIKey != "volatile-key" {
-		t.Fatalf("expected api key to persist through keyring backend, got %#v", loaded)
 	}
 
 	secondController.OnShutdown(context.Background())
@@ -967,6 +963,52 @@ func setBootstrapTestMasterPersonaSecretStore(t *testing.T, databasePath string)
 		filepath.Join(filepath.Dir(databasePath), "master-persona-keyring"),
 	)
 	t.Setenv("AITRANSLATIONENGINEJP_MASTER_PERSONA_SECRET_FILE_PASSWORD", "bootstrap-test-keyring-password")
+	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND", "file")
+	t.Setenv(
+		"AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_DIR",
+		filepath.Join(filepath.Dir(databasePath), "provider-settings-keyring"),
+	)
+	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_PASSWORD", "bootstrap-test-provider-settings-password")
+}
+
+func seedBootstrapProviderSettings(t *testing.T, databasePath string, providerID string, endpoint string, apiKey string) {
+	t.Helper()
+
+	db, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("expected sqlite database open for provider settings seed to succeed: %v", err)
+	}
+	defer func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("expected sqlite database close for provider settings seed to succeed: %v", closeErr)
+		}
+	}()
+
+	secretStore, err := repository.NewProviderSettingsKeyringSecretStore()
+	if err != nil {
+		t.Fatalf("expected provider settings secret store seed wiring to succeed: %v", err)
+	}
+	providerSettingsService := service.NewProviderSettingsService(
+		repository.NewSQLiteProviderSettingsRepository(db),
+		secretStore,
+		repository.NewSQLiteTransactor(db),
+		nil,
+		nil,
+		bootstrapTestNow,
+	)
+	if _, err := providerSettingsService.SaveProviderSettings(context.Background(), service.ProviderSettingsSaveInput{
+		ProviderID:         providerID,
+		Endpoint:           bootstrapStringPointer(endpoint),
+		APIKeyInputPresent: true,
+		APIKey:             bootstrapStringPointer(apiKey),
+	}); err != nil {
+		t.Fatalf("expected provider settings seed save to succeed: %v", err)
+	}
+}
+
+func bootstrapStringPointer(value string) *string {
+	cloned := value
+	return &cloned
 }
 
 func bootstrapTestNow() time.Time {
@@ -1141,6 +1183,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalNPCProfil
 	databasePath := configureBootstrapTestDatabase(t)
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
 	t.Setenv(masterPersonaFakeResponseEnv, "cutover-npc-profile-persona-description")
+	seedBootstrapProviderSettings(t, databasePath, "gemini", "https://generativelanguage.googleapis.com/v1beta", "cutover-test-key")
 	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
 
 	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
@@ -1159,7 +1202,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalNPCProfil
 	// Act: canonical write path を通じてペルソナ生成を実行する。
 	execResult, execErr := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
 		FilePath:   extractPath,
-		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "cutover-test-key"},
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	controller.OnShutdown(context.Background())
 
@@ -1201,6 +1244,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalPersonaRo
 	databasePath := configureBootstrapTestDatabase(t)
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
 	t.Setenv(masterPersonaFakeResponseEnv, "cutover-persona-row-description")
+	seedBootstrapProviderSettings(t, databasePath, "gemini", "https://generativelanguage.googleapis.com/v1beta", "cutover-test-key")
 	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
 
 	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
@@ -1219,7 +1263,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalPersonaRo
 	// Act: canonical write path を通じてペルソナ生成を実行する。
 	execResult, execErr := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
 		FilePath:   extractPath,
-		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "cutover-test-key"},
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	controller.OnShutdown(context.Background())
 
@@ -1305,7 +1349,7 @@ func TestNewAppControllerPersonaGenerationCutoverFailedExecutionLeavesNoPartialC
 	// Act: 生成を試みる (canonical write path が未実装の場合、UpsertIfAbsent で失敗する)。
 	_, _ = controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
 		FilePath:   extractPath,
-		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "cutover-fail-key"},
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	controller.OnShutdown(context.Background())
 

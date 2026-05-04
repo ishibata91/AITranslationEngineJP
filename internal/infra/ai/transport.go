@@ -2,6 +2,8 @@ package ai
 
 import (
 	"bytes"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -230,11 +232,29 @@ func buildProviderDebugLog(
 	headers http.Header,
 ) ProviderDebugLog {
 	return ProviderDebugLog{
-		Prompt:         strings.TrimSpace(prompt),
-		RequestBody:    strings.TrimSpace(string(requestBytes)),
+		Prompt:         providerDebugDigest("sha256:prompt", prompt),
+		RequestBody:    providerDebugDigestBytes("sha256:request", requestBytes),
 		Headers:        redactProviderHeaders(headers),
 		SecretRedacted: true,
 	}
+}
+
+func providerDebugDigest(prefix string, value string) string {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(trimmed))
+	return prefix + ":" + hex.EncodeToString(sum[:])
+}
+
+func providerDebugDigestBytes(prefix string, value []byte) string {
+	trimmed := strings.TrimSpace(string(value))
+	if trimmed == "" {
+		return ""
+	}
+	sum := sha256.Sum256([]byte(trimmed))
+	return prefix + ":" + hex.EncodeToString(sum[:])
 }
 
 func redactProviderHeaders(headers http.Header) map[string]string {

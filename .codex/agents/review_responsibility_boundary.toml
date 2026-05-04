@@ -2,7 +2,7 @@ name = "review_responsibility_boundary"
 description = "Codex レビュー agent 責務境界用。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-responsibility-boundary/SKILL.md を読む。"
 
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

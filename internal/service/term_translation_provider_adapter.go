@@ -59,14 +59,15 @@ type TermTranslationProviderClientItem struct {
 
 // TermTranslationProviderRequest defines one source term translation request unit.
 type TermTranslationProviderRequest struct {
-	Provider       string
-	Model          string
-	APIKey         string
-	SourceTerm     string
-	SourceLanguage string
-	TargetLanguage string
-	PromptVersion  string
-	PromptDigest   string
+	Provider        string
+	Model           string
+	APIKey          string
+	EndpointSummary *string
+	SourceTerm      string
+	SourceLanguage  string
+	TargetLanguage  string
+	PromptVersion   string
+	PromptDigest    string
 }
 
 // TermTranslationProviderAuditSummary exposes provider execution metadata without secrets.
@@ -271,6 +272,7 @@ func (adapter termTranslationProviderAdapter) TranslateTerm(
 		providerID,
 		model,
 		strings.TrimSpace(request.APIKey),
+		providerExecutionOptionalString(request.EndpointSummary),
 		prompt,
 	)
 	if err != nil {
@@ -325,6 +327,7 @@ func invokeTermTranslationClientTranslateTerm(
 	providerID string,
 	model string,
 	apiKey string,
+	endpointSummary string,
 	prompt string,
 ) (TermTranslationProviderClientResponse, error) {
 	if client == nil {
@@ -334,16 +337,20 @@ func invokeTermTranslationClientTranslateTerm(
 	if !method.IsValid() {
 		return TermTranslationProviderClientResponse{}, fmt.Errorf("term translation provider client does not implement TranslateTerm")
 	}
-	if method.Type().NumIn() != 5 || method.Type().NumOut() != 2 {
+	if (method.Type().NumIn() != 5 && method.Type().NumIn() != 6) || method.Type().NumOut() != 2 {
 		return TermTranslationProviderClientResponse{}, fmt.Errorf("term translation provider client has incompatible TranslateTerm signature")
 	}
-	results := method.Call([]reflect.Value{
+	args := []reflect.Value{
 		reflect.ValueOf(ctx),
 		reflect.ValueOf(providerID),
 		reflect.ValueOf(model),
 		reflect.ValueOf(apiKey),
-		reflect.ValueOf(prompt),
-	})
+	}
+	if method.Type().NumIn() == 6 {
+		args = append(args, reflect.ValueOf(strings.TrimSpace(endpointSummary)))
+	}
+	args = append(args, reflect.ValueOf(prompt))
+	results := method.Call(args)
 	if errValue := results[1]; !errValue.IsNil() {
 		err, _ := errValue.Interface().(error)
 		return TermTranslationProviderClientResponse{}, err

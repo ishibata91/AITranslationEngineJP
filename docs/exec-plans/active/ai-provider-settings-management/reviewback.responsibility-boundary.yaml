@@ -1,0 +1,117 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。provider settings 本体は backend service、repository secret store、infra AI provider 境界に閉じている。Job Setup の表示用 read model は provider settings summary から参照値だけを組み立て、provider settings 読み取り失敗時も legacy secret store fallback を実行しない。SaveProviderSettings、ResetProviderSettings、実行開始時の secret snapshot 作成は provider 単位 lock 配下にある。"
+  evidence_sufficiency: "十分。skill 指定の外部正本、plan.md、implementation-scope.md、作業ツリー差分、provider settings service、provider settings consumer、Job Setup read model / credential refs 経路を確認した。広い harness は実行せず、呼び出し元の pass 証跡をレビュー入力として扱った。coverage 値、issue 数、system test 件数は今回入力なしである。"
+
+checked_scope:
+  summary: "APIキー読み出し制御の再修正差分について、Job Setup 表示用 legacy secret fallback の削除、provider settings summary 経路、provider 単位 lock 配置、実行開始時 secret snapshot 経路を確認した。"
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 284
+      symbol: "provider-settings-secret-read-control secret_boundary"
+      reason: "表示系と summary 系で secret store を読まない責務条件を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 321
+      symbol: "provider-settings-secret-read-control completion_signal"
+      reason: "ListProviderSettings と summary 生成が secret store を読まない完了条件を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 169
+      symbol: "Validation Notes"
+      reason: "review fix の修正対象に Job Setup の APIキー本文 seam 除去が含まれることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 241
+      symbol: "ProviderSettingsService.ListProviderSettings"
+      reason: "provider settings 表示用 read model が repository row と buildSummary から作られ、secret store Load を呼ばないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 278
+      symbol: "ProviderSettingsService.SaveProviderSettings"
+      reason: "保存処理が provider 単位 lock 内で DB row と secret store 保存を扱うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 361
+      symbol: "ProviderSettingsService.ResetProviderSettings"
+      reason: "reset 処理が provider 単位 lock 内で DB row 更新と secret 削除を扱うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 674
+      symbol: "ProviderSettingsService.ResolveProviderExecutionSettings"
+      reason: "AllowSecretSnapshot が true の実行開始経路だけ provider 単位 lock 内で secret snapshot を作ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 735
+      symbol: "withProviderSettingsMutationLock"
+      reason: "provider id ごとの lock が service 層の内部 helper に閉じていることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 881
+      symbol: "ProviderSettingsService.buildSummary"
+      reason: "summary 生成が endpoint、credential reference、credential state だけから表示用値を作ることを確認した。"
+    - path: "internal/service/provider_settings_consumer.go"
+      line: 26
+      symbol: "providerSettingsSummaryMap"
+      reason: "下流 consumer が provider settings の read seam から summary だけを受け取ることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 953
+      symbol: "TranslationJobSetupService.currentOptionsReadModel"
+      reason: "Job Setup 表示用 read model が credential refs を表示用参照値として組み立てる入口を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1095
+      symbol: "TranslationJobSetupService.translationJobSetupCredentialRefs"
+      reason: "provider settings summary が取れた場合だけ credential state を使い、secret store を読まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1121
+      symbol: "TranslationJobSetupService.translationJobSetupCredentialRefs"
+      reason: "provider settings summary 取得失敗時の fallback が default credential state のみを返し、legacy secret store Load を呼ばないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1134
+      symbol: "TranslationJobSetupService.loadCredentialSecret"
+      reason: "secret store Load helper は残るが、Job Setup 表示用 credential refs 経路からは呼ばれないことを確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "codex-review-responsibility-boundary はハーネスを実行しない規約であり、人間指示でも広い harness 再実行は不要とされた。呼び出し元の pass 証跡をレビュー入力として扱った。"
+    risk: "検証証跡後に未記録の drift が入った場合、実行結果としては検出できない。"
+  - target: "Wails 生成処理の再生成"
+    reason: "controller / DTO / frontend gateway の現在コードを静的確認したが、Wails generator は実行していない。"
+    risk: "将来の再生成で generated binding に secret field が戻った場合は、別途 contract / trust-boundary 側の再確認が必要である。"
+  - target: "coverage 値、issue 数、system test 件数"
+    reason: "呼び出し元から数値入力は渡されていない。レビュー対象は既存指摘の責務境界再判定であり、広い検証再実行はしない。"
+    risk: "数値メトリクス由来の品質低下は本レビュー YAML では判定していない。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "major"
+    title: "Job Setup 表示用 read model 生成が secret 解決 fallback を持つ"
+    problem: "解決済み。TranslationJobSetupService.currentOptionsReadModel は表示用 options を組み立てる途中で translationJobSetupCredentialRefs を呼ぶが、translationJobSetupCredentialRefs は provider settings 読み取り失敗時に legacy secret store fallback へ進まない。fallback は user-facing provider の default credential state だけを返す。"
+    reason: "summary / read model 生成は参照値だけを扱う責務である。再修正後は provider settings summary 取得成功時だけ credential reference / state を表示用値へ写し、取得失敗時も secretStore.Load を呼ばないため、summary 生成責務と secret 解決責務の混在は解消している。"
+    violated_condition: "画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成では secret store の読み出しを行わない。secret 解決責務は backend service / repository secret store / infra AI provider 境界の明示操作に閉じる。"
+    cause_candidate: "修正前の原因候補は、internal/service/translation_job_setup_service.go の translationJobSetupCredentialRefs が providerSettingsSummaryMap の error 後に legacy credential refs fallback で loadCredentialSecret を呼んだことである。再修正後は同じ fallback が secret store を読まない default state 生成に置き換わった。"
+    evidence:
+      - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+        line: 294
+        excerpt: "forbidden_read_operations に summary 生成が含まれる。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 953
+        excerpt: "currentOptionsReadModel が CredentialRefs に service.translationJobSetupCredentialRefs(ctx) を使う。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1095
+        excerpt: "providerSettings が存在する場合、providerSettingsSummaryMap 成功時だけ summary の credential state を使う。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1121
+        excerpt: "summary 取得失敗時の fallback は default credential state を返し、secret store Load を呼ばない。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1134
+        excerpt: "loadCredentialSecret は残るが、translationJobSetupCredentialRefs からの呼び出しは消えている。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 674
+        excerpt: "AllowSecretSnapshot=true の ResolveProviderExecutionSettings だけ provider 単位 lock 配下で実行される。"
+    local_fix_assessment: "local"
+    additional_check_scope: "追加確認不要。provider settings reader が error を返す ReadOptions 経路は静的確認で secret store Load へ到達しない。広い harness は呼び出し元の pass 証跡を入力として扱った。"
+    fix_considerations: "解決済み。表示用 read model 生成は secret 非依存の credential state だけを扱う状態になった。今後 provider settings 読み取り失敗を secret store 読み出しで補完すると、参照側 summary と secret 解決の責務が再結合する。"
+    verification: "呼び出し元証跡として backend 対象 Go test 2 本、backend-local、frontend-local、git diff --check が pass。レビューでは translationJobSetupCredentialRefs の fallback と provider settings lock 経路を静的確認した。"
+    fix_required: true
+    status: "resolved"

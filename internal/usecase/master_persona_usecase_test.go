@@ -152,7 +152,7 @@ func TestMasterPersonaUsecasePreviewGenerationPassesThroughProviderRequest(t *te
 		fakeMasterPersonaRunStatusService{},
 	)
 
-	result, err := usecase.PreviewGeneration(context.Background(), "/tmp/sample.json", MasterPersonaAISettings{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: ""})
+	result, err := usecase.PreviewGeneration(context.Background(), "/tmp/sample.json", MasterPersonaAISettings{Provider: "gemini", Model: "gemini-2.5-pro"})
 	if err != nil {
 		t.Fatalf("expected preview generation to succeed: %v", err)
 	}
@@ -329,9 +329,6 @@ func TestMasterPersonaUsecasePersonaAISettingsRestartCutoverLoadAISettingsReturn
 	}
 	if settings.Provider != "gemini" || settings.Model != "restored-model" {
 		t.Fatalf("expected restored provider/model forwarded, got %#v", settings)
-	}
-	if settings.APIKey != "restored-key" {
-		t.Fatalf("expected restored api key forwarded, got %q", settings.APIKey)
 	}
 }
 

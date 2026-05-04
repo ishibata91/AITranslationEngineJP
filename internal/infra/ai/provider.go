@@ -35,9 +35,10 @@ type testSafeHTTPTransport interface {
 
 // ProviderRequest defines the provider-agnostic AI text request contract.
 type ProviderRequest struct {
-	Model  string
-	APIKey string
-	Prompt string
+	Model           string
+	APIKey          string
+	Prompt          string
+	EndpointSummary string
 }
 
 // ProviderDebugLog exposes redacted prompt/request diagnostics for debugging.

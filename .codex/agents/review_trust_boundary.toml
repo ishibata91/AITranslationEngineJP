@@ -2,7 +2,7 @@ name = "review_trust_boundary"
 description = "Codex レビュー agent 権限・信頼境界用。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-trust-boundary/SKILL.md を読む。"
 
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

@@ -380,6 +380,71 @@ func newBodyTranslationPhaseServiceForTest(
 	return service, jobRepo, outputRepo
 }
 
+func TestBodyTranslationPhaseServiceStartPhaseReResolvesProviderSettingsBeforeExecution(t *testing.T) {
+	capturedRequests := make([]BodyTranslationProviderRequest, 0, 1)
+	provider := fakeBodyPhaseProvider{
+		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {
+			capturedRequests = append(capturedRequests, request)
+			return BodyTranslationProviderResult{
+				RequestUnitID:       request.RequestUnitID,
+				FieldCorrelationKey: request.FieldCorrelationKey,
+				RecordType:          request.RecordType,
+				FieldType:           request.FieldType,
+				TranslatedCandidate: &BodyTranslationTranslatedCandidate{
+					RequestUnitID:       request.RequestUnitID,
+					FieldCorrelationKey: request.FieldCorrelationKey,
+					RecordType:          request.RecordType,
+					FieldType:           request.FieldType,
+					TranslatedText:      request.SourceText + "_ja",
+				},
+				ProtectionValidationTarget: &BodyTranslationProtectionValidationTarget{
+					RequestUnitID:       request.RequestUnitID,
+					FieldCorrelationKey: request.FieldCorrelationKey,
+					TranslatedText:      request.SourceText + "_ja",
+				},
+			}
+		},
+	}
+	service, jobRepo, _ := newBodyTranslationPhaseServiceForTest(provider)
+	jobRepo.runsByPhaseType[bodyTranslationPersonaPhaseType] = repository.JobPhaseRun{
+		ID:               100,
+		TranslationJobID: 1,
+		PhaseType:        bodyTranslationPersonaPhaseType,
+		State:            bodyTranslationPhaseStateCompleted,
+		ExecutionMode:    "sync",
+		AIProvider:       BodyTranslationProviderXAI,
+		ModelName:        "grok-4",
+		CredentialRef:    "stale-ref",
+	}
+	service.WithBodyTranslationProviderSettings(fakePhaseProviderSettingsConsumer{
+		resolveFunc: func(_ context.Context, input ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
+			return ProviderSettingsResolveResult{
+				ConsumerID:            input.ConsumerID,
+				ProviderID:            input.Selection.ProviderID,
+				Model:                 input.Selection.Model,
+				ExecutionMethod:       input.Selection.ExecutionMethod,
+				Endpoint:              stringPointer("https://api.x.ai/v1"),
+				CredentialReferenceID: stringPointer("provider-settings:xai"),
+				CredentialState:       providerSettingsCredentialStateConfigured,
+			}, nil
+		},
+	})
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected body phase start success, got %v", err)
+	}
+	if len(capturedRequests) == 0 {
+		t.Fatal("expected provider request capture")
+	}
+	if capturedRequests[0].CredentialRef != "provider-settings:xai" {
+		t.Fatalf("expected re-resolved credential ref, got %#v", capturedRequests[0])
+	}
+	if capturedRequests[0].EndpointSummary == nil || *capturedRequests[0].EndpointSummary != "https://api.x.ai/v1" {
+		t.Fatalf("expected re-resolved endpoint summary, got %#v", capturedRequests[0])
+	}
+}
+
 func TestBodyTranslationPhaseServiceStartPhaseCompletesWithoutPersonaSnapshot(t *testing.T) {
 	provider := fakeBodyPhaseProvider{
 		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {

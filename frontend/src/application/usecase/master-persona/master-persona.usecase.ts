@@ -56,8 +56,18 @@ function mergeAISettings(
   return {
     provider: settings.provider.trim() || defaults.provider,
     model: settings.model.trim() || defaults.model,
-    apiKey: settings.apiKey
+    executionMethod:
+      settings.executionMethod.trim() || defaults.executionMethod
   }
+}
+
+function createModelOptions(settings: MasterPersonaAISettings) {
+  const model = settings.model.trim()
+  if (model === "") {
+    return []
+  }
+
+  return [{ modelId: model, label: model }]
 }
 
 function isRunActive(runStatus: MasterPersonaRunStatus): boolean {
@@ -90,14 +100,17 @@ export class MasterPersonaUseCase {
 
     try {
       const settings = await this.gateway.loadMasterPersonaAISettings()
+      const mergedSettings = mergeAISettings(settings)
       this.store.update((draft) => {
-        draft.aiSettings = mergeAISettings(settings)
+        draft.aiSettings = mergedSettings
         draft.aiSettingsMessage = ""
+        draft.modelOptions = createModelOptions(mergedSettings)
       })
     } catch (error) {
       this.store.update((draft) => {
         draft.aiSettings =
           MasterPersonaGateway.createDefaultMasterPersonaAISettings()
+        draft.modelOptions = []
         draft.errorMessage = toErrorMessage(
           error,
           "AI設定の取得に失敗しました。"
@@ -116,9 +129,11 @@ export class MasterPersonaUseCase {
       const settings = await this.gateway.saveMasterPersonaAISettings(
         state.aiSettings
       )
+      const mergedSettings = mergeAISettings(settings)
       this.store.update((draft) => {
-        draft.aiSettings = mergeAISettings(settings)
+        draft.aiSettings = mergedSettings
         draft.aiSettingsMessage = "この画面で使う設定を保存しました。"
+        draft.modelOptions = createModelOptions(mergedSettings)
         draft.errorMessage = ""
       })
     } catch (error) {
@@ -192,6 +207,37 @@ export class MasterPersonaUseCase {
         draft.errorMessage = toErrorMessage(error, "一覧の取得に失敗しました。")
       })
     }
+  }
+
+  setProviderSettingsProvider(provider: string): void {
+    const normalizedProvider = provider.trim()
+    this.store.update((draft) => {
+      draft.aiSettings.provider = normalizedProvider
+      draft.aiSettings.model = ""
+      draft.modelOptions = []
+      draft.aiSettingsMessage = ""
+      draft.errorMessage = ""
+    })
+  }
+
+  setProviderSettingsModel(model: string): void {
+    const normalizedModel = model.trim()
+    this.store.update((draft) => {
+      draft.aiSettings.model = normalizedModel
+      draft.modelOptions = normalizedModel
+        ? [{ modelId: normalizedModel, label: normalizedModel }]
+        : []
+      draft.aiSettingsMessage = ""
+      draft.errorMessage = ""
+    })
+  }
+
+  setProviderSettingsExecutionMethod(executionMethod: string): void {
+    this.store.update((draft) => {
+      draft.aiSettings.executionMethod = executionMethod.trim()
+      draft.aiSettingsMessage = ""
+      draft.errorMessage = ""
+    })
   }
 
   async loadDetail(identityKey: string): Promise<void> {

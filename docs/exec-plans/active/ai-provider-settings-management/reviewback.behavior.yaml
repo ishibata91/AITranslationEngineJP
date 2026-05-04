@@ -1,0 +1,99 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  behavior_match: "再レビューでは挙動目的に一致する。Job Setup の画面表示用 options は provider settings summary を参照し、provider settings 読み取り失敗時も legacy secret fallback へ落ちず、secret store Load を呼ばない既定 credential state を返す。SaveProviderSettings と ResetProviderSettings は provider 単位 lock 内で保存、削除、row rollback を扱い、実行開始時の secret snapshot だけが AllowSecretSnapshot true の経路で provider 単位 lock 内の secret store Load を行う。"
+  evidence_sufficiency: "十分。plan.md、implementation-scope.md、既存 behavior-001、関連 diff、実コードを確認した。backend 対象 Go test 2 本、backend-local、frontend-local、git diff --check の pass 証跡は呼び出し元から渡された検証証跡として扱った。広い harness 再実行は reviewer 非対象のため未実行。"
+checked_scope:
+  summary: "Job Setup 表示経路、provider settings 保存・リセット経路、実行開始時 secret snapshot 経路を確認した。既存 behavior-001 の原因だった表示 fallback から secret store Load が消えていることを確認した。"
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 52
+      symbol: "Fixed Decisions"
+      reason: "画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成では secret store を読まないという期待挙動を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 100
+      symbol: "Approved Scope Change: APIキー読み出し制御"
+      reason: "許可される secret 解決操作と禁止される secret 読み出し操作を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 953
+      symbol: "currentOptionsReadModel"
+      reason: "Job Setup 画面表示用 options が credential refs を生成する入口であることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1095
+      symbol: "translationJobSetupCredentialRefs"
+      reason: "provider settings summary を取得できる場合は credential state と credential reference だけで表示用 refs を作ることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1121
+      symbol: "translationJobSetupCredentialRefs"
+      reason: "provider settings 読み取り失敗時の fallback が secret store Load を呼ばず、既定の missing/not_required 状態だけを返すことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1134
+      symbol: "loadCredentialSecret"
+      reason: "secret store Load の関数が表示用 fallback から呼ばれなくなったことを、呼び出し側との差分で確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 278
+      symbol: "SaveProviderSettings"
+      reason: "保存経路が provider 単位 lock 内で現在 row、secret save plan、DB 保存、canonical secret 保存を扱うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 361
+      symbol: "ResetProviderSettings"
+      reason: "リセット経路が provider 単位 lock 内で row 更新、secret 削除、失敗時 rollback を扱うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 656
+      symbol: "ResolveProviderExecutionSettings"
+      reason: "実行開始の AllowSecretSnapshot true の場合だけ secret snapshot を作ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 674
+      symbol: "ResolveProviderExecutionSettings"
+      reason: "secret snapshot を伴う実行開始解決だけ provider 単位 lock 内で実行されることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 703
+      symbol: "snapshotExecutionSecret"
+      reason: "secret store Load は実行開始 snapshot 作成の許可経路に閉じていることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 735
+      symbol: "withProviderSettingsMutationLock"
+      reason: "provider id を正規化した provider 単位 lock を確認した。"
+unchecked_scope:
+  - target: "広いハーネス再実行"
+    reason: "codex-review-behavior はハーネスを実行しない規約であり、呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "現在環境での全体テスト再現性は reviewer 側では確認していない。"
+  - target: "権限・信頼境界、状態・データ不変条件、契約・互換性、責務境界の主判定"
+    reason: "review_behavior の担当外であるため、挙動正しさの根拠になる範囲だけ確認した。"
+    risk: "他観点の gate 判定は各 reviewer の reviewback に委ねる。"
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "Job Setup 画面表示 fallback が secret store を読む"
+    problem: "再レビュー時点の実コードでは、Job Setup の options 生成で provider settings の一覧取得が失敗しても、credential refs の fallback は secretStore.Load を呼ばない。"
+    reason: "修正前は provider settings 読み取り失敗時に legacy credential fallback が secret store を読んで configured 判定を作る可能性があった。修正後は fallback が provider ごとの既定 credential ref と secret 非依存の missing/not_required 状態だけを返すため、画面表示の禁止読み出しは再現しない。"
+    violated_condition: "画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成では secret store の読み出しを行わない。"
+    cause_candidate: "修正前の原因は internal/service/translation_job_setup_service.go の translationJobSetupCredentialRefs が providerSettingsSummaryMap の error 後に loadCredentialSecret へ落ちる構造だった。修正後の同関数は error 後も loadCredentialSecret を呼ばない fallback に変わっている。"
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 953
+        excerpt: "currentOptionsReadModel が画面表示用 options の CredentialRefs に translationJobSetupCredentialRefs(ctx) を使う。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1095
+        excerpt: "providerSettings が存在する場合は providerSettingsSummaryMap から表示用 credential state を組み立てる。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1121
+        excerpt: "provider settings summary を取得できない場合も fallback は IsConfigured と IsMissingSecret の既定値だけを返す。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1134
+        excerpt: "secretStore.Load は loadCredentialSecret 内に閉じており、表示用 fallback からは呼ばれていない。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 674
+        excerpt: "AllowSecretSnapshot true の実行開始解決だけ provider 単位 lock 内で snapshotExecutionSecret を呼ぶ。"
+    local_fix_assessment: "local"
+    additional_check_scope: "なし。provider settings reader が error を返す ReadOptions 経路と、providerSettings 未注入 fallback 経路は実コード上で secret store Load に到達しない。"
+    fix_considerations: "今後の変更でも、表示用 fallback は secret 読み出しで configured 判定を補完しないことが必要である。secret store Load は接続確認、モデル一覧取得、翻訳実行開始、マスターペルソナ生成開始の許可経路に限定する。"
+    verification: "implementation_implementer の backend 対象 Go test 2 本、backend-local、implement_lane の frontend-local、git diff --check が pass。review_behavior は追加 harness を実行していない。"
+    fix_required: true
+    status: "resolved"

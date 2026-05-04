@@ -70,15 +70,6 @@ export interface TranslationJobSetupCredentialReference {
   isMissingSecret: boolean
 }
 
-export interface SaveTranslationJobSetupCredentialRequest {
-  provider: string
-  credentialRef: string
-  apiKey: string
-}
-
-export type SaveTranslationJobSetupCredentialResponse =
-  TranslationJobSetupCredentialReference
-
 export interface TranslationJobSetupPhaseRuntimeDraft {
   phaseId: TranslationJobSetupPhaseId
   provider: string
@@ -302,9 +293,6 @@ export interface TranslationJobSetupGatewayContract {
   listTranslationJobSetupProviderModels(
     request: ListTranslationJobSetupProviderModelsRequest
   ): Promise<ListTranslationJobSetupProviderModelsResponse>
-  saveTranslationJobSetupCredential?(
-    request: SaveTranslationJobSetupCredentialRequest
-  ): Promise<SaveTranslationJobSetupCredentialResponse>
   validateTranslationJobSetup(
     request: ValidateTranslationJobSetupRequest
   ): Promise<TranslationJobSetupValidationResponse>

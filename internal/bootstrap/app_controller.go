@@ -91,6 +91,29 @@ func newAppControllerWithSeeds(
 		masterDictionaryUsecase,
 		runtimeEmitterState,
 	)
+	providerSettingsRepository := repository.NewSQLiteProviderSettingsRepository(foundationDataDB)
+	providerSettingsSecretStore, err := repository.NewProviderSettingsKeyringSecretStore()
+	if err != nil {
+		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
+		panic(fmt.Errorf("build provider settings keyring secret store: %w", err))
+	}
+	cachedProviderSettingsSecretStore, err := repository.NewCachedProviderSettingsSecretStore(providerSettingsSecretStore)
+	if err != nil {
+		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
+		panic(fmt.Errorf("build provider settings cached secret store: %w", err))
+	}
+	providerModelListLoader := ai.NewProviderModelListLoader(&http.Client{Timeout: 5 * time.Second})
+	providerSettingsService := service.NewProviderSettingsService(
+		providerSettingsRepository,
+		cachedProviderSettingsSecretStore,
+		foundationTransactor,
+		providerSettingsModelListLoaderAdapter{loader: providerModelListLoader},
+		providerSettingsValidatorAdapter{validator: ai.NewProviderSettingsValidator(providerModelListLoader)},
+		now,
+	)
+	providerSettingsController := controllerwails.NewProviderSettingsController(
+		usecase.NewProviderSettingsUsecase(providerSettingsService),
+	)
 
 	masterPersonaRepositories, err := repository.NewSQLiteMasterPersonaRepositories(
 		context.Background(),
@@ -101,29 +124,22 @@ func newAppControllerWithSeeds(
 		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
 		panic(fmt.Errorf("build sqlite master persona repositories: %w", err))
 	}
-	masterPersonaSecretStore, err := repository.NewMasterPersonaKeyringSecretStore()
-	if err != nil {
-		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
-		if closeErr := masterPersonaRepositories.Close(); closeErr != nil {
-			panic(fmt.Errorf("build master persona keyring secret store: %w", errors.Join(err, closeErr)))
-		}
-		panic(fmt.Errorf("build master persona keyring secret store: %w", err))
-	}
 	masterPersonaQueryService := service.NewMasterPersonaQueryService(masterPersonaRepositories.EntryRepository)
 	masterPersonaTestModeEnabled := masterPersonaTestMode()
-	aiProviderClient := newAIProviderClientFromMasterPersonaEnv()
+	aiProviderClient := newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore(nil, cachedProviderSettingsSecretStore)
 	termTranslationProvider := service.NewTermTranslationProviderAdapter(aiProviderClient)
 	masterPersonaTransactor := repository.NewSQLiteTransactor(masterPersonaRepositories.Database())
 	masterPersonaServiceOptions := []service.MasterPersonaGenerationServiceOption{
 		service.WithMasterPersonaBodyGenerator(masterPersonaBodyGenerator{client: aiProviderClient}),
 		service.WithMasterPersonaTransactor(masterPersonaTransactor),
+		service.WithMasterPersonaProviderSettings(providerSettingsService),
 	}
 	masterPersonaRunStatusRepository := repository.NewInMemoryMasterPersonaRunStatusRepository()
 	masterPersonaGenerationService := service.NewMasterPersonaGenerationService(
 		masterPersonaRepositories.EntryRepository,
 		masterPersonaRepositories.AISettingsRepository,
 		masterPersonaRunStatusRepository,
-		masterPersonaSecretStore,
+		cachedProviderSettingsSecretStore,
 		now,
 		masterPersonaTestModeEnabled,
 		masterPersonaServiceOptions...,
@@ -142,12 +158,13 @@ func newAppControllerWithSeeds(
 			repositoryAdapter,
 			masterPersonaRepositories.EntryRepository,
 			masterPersonaRepositories.AISettingsRepository,
-			masterPersonaSecretStore,
+			cachedProviderSettingsSecretStore,
 			foundationTransactor,
+			service.WithTranslationJobSetupProviderSettings(providerSettingsService),
 			service.WithTranslationJobSetupProviderModelListLoader(
 				service.TranslationJobSetupProviderModelListLoaderFunc(
 					func(ctx context.Context, providerID string, apiKey string) ([]service.TranslationJobSetupProviderModelOptionReadModel, error) {
-						models, err := ai.NewProviderModelListLoader(&http.Client{Timeout: 5 * time.Second}).ListProviderModels(ctx, providerID, apiKey)
+						models, err := providerModelListLoader.ListProviderModels(ctx, providerID, apiKey)
 						if err != nil {
 							return nil, fmt.Errorf("load provider model list: %w", err)
 						}
@@ -171,9 +188,9 @@ func newAppControllerWithSeeds(
 				foundationDataRepository,
 				translationSourceRepository,
 				foundationTransactor,
-				masterPersonaSecretStore,
+				cachedProviderSettingsSecretStore,
 				termTranslationProvider,
-			),
+			).WithTermTranslationProviderSettings(providerSettingsService),
 		),
 	)
 	personaGenerationPhaseService := service.NewPersonaGenerationPhaseService(
@@ -183,6 +200,8 @@ func newAppControllerWithSeeds(
 		foundationTransactor,
 	).WithPersonaGenerationProvider(
 		service.NewPersonaGenerationProviderAdapter(aiProviderClient),
+	).WithPersonaGenerationProviderSettings(
+		providerSettingsService,
 	)
 	personaGenerationPhaseController := controllerwails.NewPersonaGenerationPhaseController(
 		usecase.NewPersonaGenerationPhaseUsecase(personaGenerationPhaseService),
@@ -195,7 +214,8 @@ func newAppControllerWithSeeds(
 				translationSourceRepository,
 				jobOutputRepository,
 				foundationTransactor,
-			).WithBodyTranslationProvider(service.NewBodyTranslationProviderAdapter(aiProviderClient)),
+			).WithBodyTranslationProvider(service.NewBodyTranslationProviderAdapter(aiProviderClient)).
+				WithBodyTranslationProviderSettings(providerSettingsService),
 		),
 	)
 	translationOutputArtifactService := service.NewTranslationOutputArtifactService(
@@ -231,6 +251,7 @@ func newAppControllerWithSeeds(
 		),
 	)
 	appController.TranslationInputController = translationInputController
+	appController.ProviderSettingsController = providerSettingsController
 	appController.TranslationJobSetupController = translationJobSetupController
 	appController.TermTranslationPhaseController = termTranslationPhaseController
 	appController.PersonaGenerationPhaseController = personaGenerationPhaseController
@@ -276,6 +297,54 @@ func masterDictionaryDatabasePath() string {
 
 type masterPersonaBodyGenerator struct {
 	client *ai.ProviderClient
+}
+
+type providerSettingsModelListLoaderAdapter struct {
+	loader *ai.ProviderModelListLoader
+}
+
+type providerSettingsValidatorAdapter struct {
+	validator *ai.ProviderSettingsValidator
+}
+
+func (adapter providerSettingsModelListLoaderAdapter) ListProviderModelsWithEndpoint(
+	ctx context.Context,
+	providerID string,
+	endpoint string,
+	apiKey string,
+) ([]service.ProviderSettingsModelOption, error) {
+	if adapter.loader == nil {
+		return nil, fmt.Errorf("provider settings model list loader is required")
+	}
+	models, err := adapter.loader.ListProviderModelsWithEndpoint(ctx, providerID, endpoint, apiKey)
+	if err != nil {
+		return nil, fmt.Errorf("load provider settings models: %w", err)
+	}
+	result := make([]service.ProviderSettingsModelOption, 0, len(models))
+	for _, model := range models {
+		result = append(result, service.ProviderSettingsModelOption{
+			ModelID: model.ModelID,
+			Label:   model.Label,
+		})
+	}
+	return result, nil
+}
+
+func (adapter providerSettingsValidatorAdapter) ValidateProviderSettings(
+	ctx context.Context,
+	request service.ProviderSettingsValidationProbe,
+) error {
+	if adapter.validator == nil {
+		return fmt.Errorf("provider settings validator is required")
+	}
+	if err := adapter.validator.ValidateProviderSettings(ctx, ai.ValidateProviderSettingsRequest{
+		ProviderID: request.ProviderID,
+		Endpoint:   request.Endpoint,
+		APIKey:     request.APIKey,
+	}); err != nil {
+		return fmt.Errorf("validate provider settings: %w", err)
+	}
+	return nil
 }
 
 func (generator masterPersonaBodyGenerator) GenerateMasterPersonaBody(
@@ -327,7 +396,18 @@ func newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore(
 		ai.WithLMStudioBaseURL(strings.TrimSpace(os.Getenv(masterPersonaLMStudioBaseURLEnv))),
 		ai.WithXAIBaseURL(strings.TrimSpace(os.Getenv(masterPersonaXAIBaseURLEnv))),
 	}
-	_ = secretStore
+	if secretStore != nil {
+		clientOptions = append(clientOptions, ai.WithProviderCredentialLoader(func(
+			ctx context.Context,
+			credentialRef string,
+		) (string, error) {
+			loaded, err := secretStore.Load(ctx, strings.TrimSpace(credentialRef))
+			if err != nil {
+				return "", fmt.Errorf("load provider credential: %w", err)
+			}
+			return strings.TrimSpace(loaded), nil
+		}))
+	}
 	if masterPersonaAIMode() == masterPersonaAIModeFake {
 		if transport == nil {
 			transport = ai.NewTestSafeHTTPTransportWithResponse(

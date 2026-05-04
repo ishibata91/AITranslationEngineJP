@@ -6,6 +6,7 @@ import "context"
 type AppController struct {
 	*MasterDictionaryController
 	*MasterPersonaController
+	*ProviderSettingsController
 	*TranslationInputController
 	*TranslationJobSetupController
 	*TermTranslationPhaseController
@@ -23,6 +24,7 @@ func NewAppController(masterDictionaryController *MasterDictionaryController, ma
 	return &AppController{
 		MasterDictionaryController:          masterDictionaryController,
 		MasterPersonaController:             masterPersonaController,
+		ProviderSettingsController:          nil,
 		TranslationInputController:          nil,
 		TranslationJobSetupController:       nil,
 		TermTranslationPhaseController:      nil,

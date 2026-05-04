@@ -7,8 +7,6 @@ import type {
   GetTranslationJobSetupSummaryResponseDto,
   ListTranslationJobSetupProviderModelsRequestDto,
   ListTranslationJobSetupProviderModelsResponseDto,
-  SaveTranslationJobSetupCredentialRequestDto,
-  SaveTranslationJobSetupCredentialResponseDto,
   ValidateTranslationJobSetupRequestDto,
   ValidateTranslationJobSetupResponseDto
 } from "@controller/wails/gateway-dto/translation-job-setup"
@@ -16,7 +14,6 @@ import type {
 type TranslationJobSetupBindingName =
   | "GetTranslationJobSetupOptions"
   | "ListTranslationJobSetupProviderModels"
-  | "SaveTranslationJobSetupCredential"
   | "ValidateTranslationJobSetup"
   | "CreateTranslationJob"
   | "GetTranslationJobSetupSummary"
@@ -115,12 +112,6 @@ class TranslationJobSetupGateway implements TranslationJobSetupGatewayContract {
     request: ListTranslationJobSetupProviderModelsRequestDto
   ): Promise<ListTranslationJobSetupProviderModelsResponseDto> {
     return this.invokeBinding("ListTranslationJobSetupProviderModels", request)
-  }
-
-  saveTranslationJobSetupCredential(
-    request: SaveTranslationJobSetupCredentialRequestDto
-  ): Promise<SaveTranslationJobSetupCredentialResponseDto> {
-    return this.invokeBinding("SaveTranslationJobSetupCredential", request)
   }
 
   validateTranslationJobSetup(

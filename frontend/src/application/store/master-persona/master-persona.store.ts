@@ -17,6 +17,7 @@ function createInitialState(): MasterPersonaScreenState {
     errorMessage: "",
     aiSettings: MasterPersonaGateway.createDefaultMasterPersonaAISettings(),
     aiSettingsMessage: "",
+    modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
     preview: null,
@@ -56,6 +57,7 @@ export class MasterPersonaStore {
         ? { ...this.state.selectedEntry }
         : null,
       aiSettings: { ...this.state.aiSettings },
+      modelOptions: this.state.modelOptions.map((option) => ({ ...option })),
       preview: this.state.preview ? { ...this.state.preview } : null,
       runStatus: { ...this.state.runStatus },
       editForm: { ...this.state.editForm }

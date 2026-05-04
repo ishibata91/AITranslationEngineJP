@@ -31,11 +31,6 @@ interface TranslationJobSetupUseCaseLike {
   refreshPhaseModels(phaseId: TranslationJobSetupPhaseId): Promise<void>
   selectPhaseModel(phaseId: TranslationJobSetupPhaseId, model: string): void
   togglePhaseBatchMode(phaseId: TranslationJobSetupPhaseId, enabled: boolean): void
-  acknowledgeCredentialConfigured(phaseId: TranslationJobSetupPhaseId): void
-  savePhaseCredential(
-    phaseId: TranslationJobSetupPhaseId,
-    apiKey: string
-  ): Promise<void>
   runValidation(): Promise<void>
   createJob(): Promise<void>
 }
@@ -104,17 +99,6 @@ export class TranslationJobSetupScreenController implements TranslationJobSetupS
 
   togglePhaseBatchMode(phaseId: TranslationJobSetupPhaseId, enabled: boolean): void {
     this.dependencies.useCase.togglePhaseBatchMode(phaseId, enabled)
-  }
-
-  acknowledgeCredentialConfigured(phaseId: TranslationJobSetupPhaseId): void {
-    this.dependencies.useCase.acknowledgeCredentialConfigured(phaseId)
-  }
-
-  async savePhaseCredential(
-    phaseId: TranslationJobSetupPhaseId,
-    apiKey: string
-  ): Promise<void> {
-    await this.dependencies.useCase.savePhaseCredential(phaseId, apiKey)
   }
 
   async runValidation(): Promise<void> {

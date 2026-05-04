@@ -171,6 +171,7 @@ type translationJobPhaseRuntimeSnapshotRow struct {
 	ModelName            string `db:"model_name"`
 	CredentialRef        string `db:"credential_ref"`
 	CredentialStatus     string `db:"credential_status"`
+	EndpointSummary      string `db:"endpoint_summary"`
 	ExecutionMode        string `db:"execution_mode"`
 	BatchMode            string `db:"batch_mode"`
 	ModelListSourceToken string `db:"model_list_source_token"`
@@ -190,6 +191,7 @@ func (r translationJobPhaseRuntimeSnapshotRow) toModel() (TranslationJobPhaseRun
 		ModelName:            r.ModelName,
 		CredentialRef:        r.CredentialRef,
 		CredentialStatus:     r.CredentialStatus,
+		EndpointSummary:      r.EndpointSummary,
 		ExecutionMode:        r.ExecutionMode,
 		BatchMode:            r.BatchMode,
 		ModelListSourceToken: r.ModelListSourceToken,
@@ -234,21 +236,31 @@ WHERE id = :id`
 	insertTranslationJobPhaseRuntimeSnapshot = `
 INSERT INTO TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
   (translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
-   execution_mode, batch_mode, model_list_source_token, created_at)
+   endpoint_summary, execution_mode, batch_mode, model_list_source_token, created_at)
 VALUES
   (:translation_job_id, :phase_id, :provider, :model_name, :credential_ref, :credential_status,
-   :execution_mode, :batch_mode, :model_list_source_token, :created_at)`
+   :endpoint_summary, :execution_mode, :batch_mode, :model_list_source_token, :created_at)
+ON CONFLICT(translation_job_id, phase_id) DO UPDATE SET
+  provider = excluded.provider,
+  model_name = excluded.model_name,
+  credential_ref = excluded.credential_ref,
+  credential_status = excluded.credential_status,
+  endpoint_summary = excluded.endpoint_summary,
+  execution_mode = excluded.execution_mode,
+  batch_mode = excluded.batch_mode,
+  model_list_source_token = excluded.model_list_source_token,
+  created_at = excluded.created_at`
 
 	selectTranslationJobPhaseRuntimeSnapshotsByJobID = `
 SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
-       execution_mode, batch_mode, model_list_source_token, created_at
+       endpoint_summary, execution_mode, batch_mode, model_list_source_token, created_at
 FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
 WHERE translation_job_id = ?
 ORDER BY id ASC`
 
 	selectTranslationJobPhaseRuntimeSnapshotByJobAndPhase = `
 SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
-       execution_mode, batch_mode, model_list_source_token, created_at
+       endpoint_summary, execution_mode, batch_mode, model_list_source_token, created_at
 FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
 WHERE translation_job_id = ? AND phase_id = ?
 LIMIT 1`
@@ -462,6 +474,7 @@ func (r *SQLiteJobLifecycleRepository) SaveTranslationJobPhaseRuntimeSnapshot(
 		ModelName:            draft.ModelName,
 		CredentialRef:        draft.CredentialRef,
 		CredentialStatus:     draft.CredentialStatus,
+		EndpointSummary:      draft.EndpointSummary,
 		ExecutionMode:        draft.ExecutionMode,
 		BatchMode:            draft.BatchMode,
 		ModelListSourceToken: draft.ModelListSourceToken,
@@ -475,20 +488,10 @@ func (r *SQLiteJobLifecycleRepository) SaveTranslationJobPhaseRuntimeSnapshot(
 	if err != nil {
 		return TranslationJobPhaseRuntimeSnapshot{}, mapFoundationSQLError(err, "create translation_job_phase_runtime_snapshot")
 	}
-	id, err := result.LastInsertId()
-	if err != nil {
-		return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("create translation_job_phase_runtime_snapshot last insert id: %w", err)
+	if _, err := result.RowsAffected(); err != nil {
+		return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("create translation_job_phase_runtime_snapshot rows affected: %w", err)
 	}
-	snapshots, err := r.ListTranslationJobPhaseRuntimeSnapshots(ctx, draft.TranslationJobID)
-	if err != nil {
-		return TranslationJobPhaseRuntimeSnapshot{}, err
-	}
-	for _, snapshot := range snapshots {
-		if snapshot.ID == id {
-			return snapshot, nil
-		}
-	}
-	return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("load translation_job_phase_runtime_snapshot by id=%d: %w", id, ErrNotFound)
+	return r.GetTranslationJobPhaseRuntimeSnapshot(ctx, draft.TranslationJobID, draft.PhaseID)
 }
 
 // ListTranslationJobPhaseRuntimeSnapshots は translation_job_id に紐づく phase runtime snapshot を返す。

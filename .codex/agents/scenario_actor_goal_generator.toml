@@ -2,7 +2,7 @@ name = "scenario_actor_goal_generator"
 description = "Codex シナリオ actor-goal 生成 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/scenario-actor-goal-generation/SKILL.md を読む。"
 
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

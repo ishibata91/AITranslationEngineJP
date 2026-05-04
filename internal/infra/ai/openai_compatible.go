@@ -28,7 +28,7 @@ func (provider openAICompatibleProvider) Generate(
 	}
 	httpRequest, err := newOpenAICompatibleRequest(
 		ctx,
-		provider.baseURL,
+		firstNonEmptyOpenAICompatibleValue(strings.TrimSpace(request.EndpointSummary), provider.baseURL),
 		request.APIKey,
 		requestBytes,
 		provider.apiKeyOptional,
@@ -55,6 +55,16 @@ func (provider openAICompatibleProvider) Generate(
 			httpRequest.Header,
 		),
 	}, nil
+}
+
+func firstNonEmptyOpenAICompatibleValue(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 type openAICompatibleChatRequest struct {

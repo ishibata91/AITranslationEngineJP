@@ -528,37 +528,27 @@ func TestMasterPersonaGenerationServiceSaveSettingsKeepsSavedAPIKeyWhenInputIsBl
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	_, err := service.SaveSettings(context.Background(), MasterPersonaAISettings{
-		Provider: "gemini",
-		Model:    "gemini-2.5-pro",
-		APIKey:   "saved-key",
-	})
-	if err != nil {
-		t.Fatalf("expected first settings save with api key to succeed: %v", err)
-	}
-
 	saved, err := service.SaveSettings(context.Background(), MasterPersonaAISettings{
 		Provider: "gemini",
 		Model:    "gemini-2.5-pro",
-		APIKey:   "",
 	})
 	if err != nil {
-		t.Fatalf("expected second settings save without api key to keep persisted key: %v", err)
+		t.Fatalf("expected settings save without api key to succeed: %v", err)
 	}
-	if saved.APIKey != "saved-key" {
-		t.Fatalf("expected persisted api key to stay available after blank input save, got %#v", saved)
+	if saved.APIKey != "" {
+		t.Fatalf("expected api key to stay out of master persona settings, got %#v", saved)
 	}
 
 	loaded, err := service.LoadSettings(context.Background())
 	if err != nil {
 		t.Fatalf("expected settings load to succeed: %v", err)
 	}
-	if loaded.APIKey != "saved-key" {
-		t.Fatalf("expected saved api key to load without re-entry, got %#v", loaded)
+	if loaded.APIKey != "" {
+		t.Fatalf("expected load settings not to restore api key, got %#v", loaded)
 	}
 }
 
-func TestMasterPersonaGenerationServiceLoadSettingsReturnsSecretLoadError(t *testing.T) {
+func TestMasterPersonaGenerationServiceLoadSettingsDoesNotLoadSecret(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	if err := repo.SaveAISettings(context.Background(), repository.MasterPersonaAISettingsRecord{
@@ -567,65 +557,69 @@ func TestMasterPersonaGenerationServiceLoadSettingsReturnsSecretLoadError(t *tes
 	}); err != nil {
 		t.Fatalf("expected ai settings fixture save to succeed: %v", err)
 	}
-	secretLoadErr := errors.New("secret load failed")
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
 		repo,
-		&failingMasterPersonaSecretStore{loadErr: secretLoadErr},
+		&failingMasterPersonaSecretStore{loadErr: errors.New("secret load failed")},
 		now,
 		false,
 	)
 
-	_, err := service.LoadSettings(context.Background())
-	if !errors.Is(err, secretLoadErr) {
-		t.Fatalf("expected load settings to wrap secret load error, got %v", err)
+	settings, err := service.LoadSettings(context.Background())
+	if err != nil {
+		t.Fatalf("expected load settings not to touch secret store: %v", err)
+	}
+	if settings.APIKey != "" {
+		t.Fatalf("expected api key to stay empty, got %#v", settings)
 	}
 }
 
-func TestMasterPersonaGenerationServiceSaveSettingsReturnsSecretSaveError(t *testing.T) {
+func TestMasterPersonaGenerationServiceSaveSettingsDoesNotSaveSecret(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretSaveErr := errors.New("secret save failed")
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
 		repo,
-		&failingMasterPersonaSecretStore{saveErr: secretSaveErr},
+		&failingMasterPersonaSecretStore{saveErr: errors.New("secret save failed")},
 		now,
 		false,
 	)
 
-	_, err := service.SaveSettings(context.Background(), MasterPersonaAISettings{
+	settings, err := service.SaveSettings(context.Background(), MasterPersonaAISettings{
 		Provider: "gemini",
 		Model:    "gemini-2.5-pro",
-		APIKey:   "new-secret",
 	})
-	if !errors.Is(err, secretSaveErr) {
-		t.Fatalf("expected save settings to wrap secret save error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected save settings not to touch secret store: %v", err)
+	}
+	if settings.APIKey != "" {
+		t.Fatalf("expected api key to stay empty, got %#v", settings)
 	}
 }
 
-func TestMasterPersonaGenerationServiceSaveSettingsReturnsPersistedSecretLoadError(t *testing.T) {
+func TestMasterPersonaGenerationServiceSaveSettingsDoesNotLoadPersistedSecret(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
-	secretLoadErr := errors.New("persisted secret load failed")
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
 		repo,
-		&failingMasterPersonaSecretStore{loadErr: secretLoadErr},
+		&failingMasterPersonaSecretStore{loadErr: errors.New("persisted secret load failed")},
 		now,
 		false,
 	)
 
-	_, err := service.SaveSettings(context.Background(), MasterPersonaAISettings{
+	settings, err := service.SaveSettings(context.Background(), MasterPersonaAISettings{
 		Provider: "gemini",
 		Model:    "gemini-2.5-pro",
-		APIKey:   "",
 	})
-	if !errors.Is(err, secretLoadErr) {
-		t.Fatalf("expected save settings to wrap persisted secret load error, got %v", err)
+	if err != nil {
+		t.Fatalf("expected save settings not to load persisted secret: %v", err)
+	}
+	if settings.APIKey != "" {
+		t.Fatalf("expected api key to stay empty, got %#v", settings)
 	}
 }
 
@@ -695,9 +689,8 @@ func (store *failingMasterPersonaSecretStore) Save(_ context.Context, _ string, 
 	return nil
 }
 
-// persona-ai-settings-restart-cutover: SaveSettings は API キーを DB レコードに格納せず、
-// secret store にだけ保存することを証明する。
-func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverSaveSettingsKeepsAPIKeyInSecretStoreOnly(t *testing.T) {
+// persona-ai-settings-restart-cutover: SaveSettings は API キーを master-persona 側に保存しないことを証明する。
+func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverSaveSettingsDoesNotSaveAPIKey(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	secretStore := repository.NewInMemorySecretStore()
@@ -706,7 +699,6 @@ func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverSaveSettin
 	_, err := svc.SaveSettings(context.Background(), MasterPersonaAISettings{
 		Provider: "gemini",
 		Model:    "cutover-model",
-		APIKey:   "secret-api-key",
 	})
 	if err != nil {
 		t.Fatalf("expected save settings to succeed: %v", err)
@@ -719,18 +711,17 @@ func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverSaveSettin
 	if dbRecord.Provider != "gemini" || dbRecord.Model != "cutover-model" {
 		t.Fatalf("expected provider/model in db record, got %#v", dbRecord)
 	}
-	// MasterPersonaAISettingsRecord has no APIKey field: API key is not in the DB record.
 	storedKey, err := secretStore.Load(context.Background(), "master-persona:gemini")
 	if err != nil {
 		t.Fatalf("expected secret store load to succeed: %v", err)
 	}
-	if storedKey != "secret-api-key" {
-		t.Fatalf("expected api key in secret store only, got %q", storedKey)
+	if storedKey != "" {
+		t.Fatalf("expected no master-persona api key in secret store, got %q", storedKey)
 	}
 }
 
-// persona-ai-settings-restart-cutover: LoadSettings は再起動後に secret store から API キーを復元することを証明する。
-func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverLoadSettingsRestoresAPIKeyFromSecretStore(t *testing.T) {
+// persona-ai-settings-restart-cutover: LoadSettings は再起動後も API キーを返さないことを証明する。
+func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverLoadSettingsDoesNotRestoreAPIKeyFromSecretStore(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 16, 0, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	secretStore := repository.NewInMemorySecretStore()
@@ -754,8 +745,8 @@ func TestMasterPersonaGenerationServicePersonaAISettingsRestartCutoverLoadSettin
 	if settings.Provider != "gemini" || settings.Model != "restored-model" {
 		t.Fatalf("expected provider/model restored, got %#v", settings)
 	}
-	if settings.APIKey != "restored-api-key" {
-		t.Fatalf("expected api key restored from secret store, got %q", settings.APIKey)
+	if settings.APIKey != "" {
+		t.Fatalf("expected api key not to be restored from secret store, got %q", settings.APIKey)
 	}
 }
 

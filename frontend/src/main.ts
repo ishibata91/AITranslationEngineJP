@@ -2,11 +2,13 @@ import { createMasterDictionaryGateway } from "@controller/wails/master-dictiona
 import { createBodyTranslationPhaseScreenControllerFactory } from "@controller/body-translation-phase"
 import { createMasterDictionaryScreenControllerFactory } from "@controller/master-dictionary"
 import { createPersonaGenerationPhaseScreenControllerFactory } from "@controller/persona-generation-phase"
+import { createProviderSettingsScreenControllerFactory } from "@controller/provider-settings"
 import { createTermTranslationPhaseScreenControllerFactory } from "@controller/term-translation-phase"
 import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
 import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
 import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
 import { createBodyTranslationPhaseGateway } from "@controller/wails/body-translation-phase.gateway"
+import { createProviderSettingsGateway } from "@controller/wails/provider-settings.gateway"
 import { createTranslationOutputArtifactGateway } from "@controller/wails/translation-output-artifact.gateway"
 import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
 import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
@@ -35,6 +37,9 @@ const personaGenerationPhaseScreenControllerFactory =
   createPersonaGenerationPhaseScreenControllerFactory(
     personaGenerationPhaseGateway
   )
+const providerSettingsGateway = createProviderSettingsGateway()
+const providerSettingsScreenControllerFactory =
+  createProviderSettingsScreenControllerFactory(providerSettingsGateway)
 const translationInputGateway = createTranslationInputGateway()
 const translationInputScreenControllerFactory =
   createTranslationInputScreenControllerFactory(translationInputGateway)
@@ -57,6 +62,8 @@ mount(App, {
       masterDictionaryScreenControllerFactory,
     createPersonaGenerationPhaseScreenController:
       personaGenerationPhaseScreenControllerFactory,
+    createProviderSettingsScreenController:
+      providerSettingsScreenControllerFactory,
     createTermTranslationPhaseScreenController:
       termTranslationPhaseScreenControllerFactory,
     createTranslationInputScreenController:

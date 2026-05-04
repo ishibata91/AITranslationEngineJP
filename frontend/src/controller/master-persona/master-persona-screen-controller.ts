@@ -45,6 +45,9 @@ interface MasterPersonaUseCaseLike {
   interruptGeneration(): Promise<void>
   cancelGeneration(): Promise<void>
   saveAISettings(): Promise<void>
+  setProviderSettingsProvider(provider: string): void
+  setProviderSettingsModel(model: string): void
+  setProviderSettingsExecutionMethod(executionMethod: string): void
   saveCurrentEntry(): Promise<void>
   deleteCurrentEntry(): Promise<void>
   setModalState(modalState: "edit" | "delete" | null): void
@@ -208,32 +211,23 @@ export class MasterPersonaScreenController implements MasterPersonaScreenControl
     if (!(target instanceof HTMLSelectElement)) {
       return
     }
-    this.dependencies.store.update((draft) => {
-      draft.aiSettings.provider = target.value
-      draft.aiSettingsMessage = ""
-    })
+    this.dependencies.useCase.setProviderSettingsProvider(target.value)
   }
 
   setAIModel(event: Event): void {
     const target = event.currentTarget
-    if (!(target instanceof HTMLInputElement)) {
+    if (!(target instanceof HTMLSelectElement)) {
       return
     }
-    this.dependencies.store.update((draft) => {
-      draft.aiSettings.model = target.value
-      draft.aiSettingsMessage = ""
-    })
+    this.dependencies.useCase.setProviderSettingsModel(target.value)
   }
 
-  setAPIKey(event: Event): void {
+  setAIExecutionMethod(event: Event): void {
     const target = event.currentTarget
-    if (!(target instanceof HTMLInputElement)) {
+    if (!(target instanceof HTMLSelectElement)) {
       return
     }
-    this.dependencies.store.update((draft) => {
-      draft.aiSettings.apiKey = target.value
-      draft.aiSettingsMessage = ""
-    })
+    this.dependencies.useCase.setProviderSettingsExecutionMethod(target.value)
   }
 
   openEditModal(): void {

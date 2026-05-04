@@ -1,0 +1,202 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "未解決指摘なし。Save は provider 単位 lock 内で staged secret を作成し、DB upsert 成功後に canonical secret へ反映する。DB upsert 失敗時は staged secret の削除だけで canonical secret は更新しない。canonical secret 反映失敗時は保存前 row へ rollback する。Reset は provider 単位 lock 内で row を未設定へ更新した後に secret を削除し、secret 削除失敗時は保存前 row へ rollback する。実行開始 secret snapshot は AllowSecretSnapshot=true の場合に同じ provider 単位 lock 内で summary 取得、source secret Load、snapshot Save を行うため、Save / Reset と交差して endpoint と secret が別 revision から混ざる経路は解消されている。"
+  evidence_sufficiency: "判定可能。plan.md、implementation-scope.md、既存 reviewback、provider settings service、secret cache、Job Setup / phase / master-persona の実行開始解決経路、関連テストを確認した。広い harness はレビュー責務外であり、呼び出し元の pass 証跡を入力として扱った。"
+
+checked_scope:
+  summary: "provider settings の Save / Reset / Validate / ListProviderModels / ResolveProviderExecutionSettings、secret store cache、Job Setup 表示・作成、term / body / persona phase と master-persona の開始時 snapshot を確認した。"
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/plan.md"
+      line: 100
+      symbol: "Approved Scope Change: APIキー読み出し制御"
+      reason: "secret store 読み出しを許可する操作と禁止する操作の正本として確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-scope.md"
+      line: 38
+      symbol: "Fixed Decisions"
+      reason: "DB、secret store、reset、Running phase snapshot、cache の不変条件を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.state-invariant.yaml"
+      line: 130
+      symbol: "state-invariant-001"
+      reason: "実行開始 snapshot の再判定対象として確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.state-invariant.yaml"
+      line: 165
+      symbol: "state-invariant-002"
+      reason: "Save / Reset の部分失敗に関する再判定対象として確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 268
+      symbol: "ProviderSettingsService.SaveProviderSettings"
+      reason: "Save が staged secret、DB upsert、canonical secret 反映、rollback を provider 単位 lock 内で実行することを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 351
+      symbol: "ProviderSettingsService.ResetProviderSettings"
+      reason: "Reset が row 更新後に secret 削除を行い、削除失敗時に row rollback することを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 415
+      symbol: "ProviderSettingsService.ValidateProviderSettings"
+      reason: "Validate が request token と provider 単位 lock で遅延反映を防ぐことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 537
+      symbol: "ProviderSettingsService.ListProviderModels"
+      reason: "モデル一覧取得が snapshot 一致後にだけ secret を読み、provider 単位 lock に入ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 625
+      symbol: "ProviderSettingsService.ResolveProviderExecutionSettings"
+      reason: "実行開始 secret snapshot が AllowSecretSnapshot=true の場合に provider 単位 lock に入ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 688
+      symbol: "ProviderSettingsService.snapshotExecutionSecret"
+      reason: "source secret Load と snapshot Save が Resolve の lock 内から呼ばれることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 735
+      symbol: "withProviderSettingsMutationLock"
+      reason: "provider id ごとの mutex が Save / Reset / Validate / ListProviderModels / secret snapshot resolve で共有されることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 776
+      symbol: "providerSettingsStagedSecretKey"
+      reason: "Save が request token 別 staged secret key を使い、DB 失敗時に canonical key を変更しないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 839
+      symbol: "ProviderSettingsService.restoreProviderSettingsRecord"
+      reason: "canonical secret 反映失敗と reset secret 削除失敗時の row rollback 経路を確認した。"
+    - path: "internal/repository/provider_settings_cached_secret_store.go"
+      line: 50
+      symbol: "CachedProviderSettingsSecretStore.Save"
+      reason: "secret Save 成功後に process cache が更新されることを確認した。"
+    - path: "internal/repository/provider_settings_cached_secret_store.go"
+      line: 62
+      symbol: "CachedProviderSettingsSecretStore.Delete"
+      reason: "secret Delete 成功後に process cache entry が削除されることを確認した。"
+    - path: "internal/repository/provider_settings_sqlite_repository.go"
+      line: 156
+      symbol: "SQLiteProviderSettingsRepository.Upsert"
+      reason: "provider settings row が credential reference / state / request token / revision を保存し、secret 本体を保存しないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 430
+      symbol: "TranslationJobSetupService.ListProviderModels"
+      reason: "Job Setup 表示系の provider settings 経路が provider settings summary と model list を使い、失敗時に secret を読まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1092
+      symbol: "translationJobSetupCredentialRefs"
+      reason: "provider settings summary 取得失敗時は未設定扱いの read model を返し、legacy secret store を読まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1455
+      symbol: "resolvePhaseRuntimeAgainstProviderSettings"
+      reason: "Ready job 作成時に provider settings を再解決する経路を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 713
+      symbol: "TermTranslationPhaseService.resolveExecutionSnapshotForStart"
+      reason: "用語翻訳 phase 開始時に AllowSecretSnapshot=true で provider settings を解決することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 746
+      symbol: "BodyTranslationPhaseService.resolveExecutionSnapshotForStart"
+      reason: "本文翻訳 phase 開始時に AllowSecretSnapshot=true で provider settings を解決することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1064
+      symbol: "PersonaGenerationPhaseService.resolveExecutionSnapshotForStart"
+      reason: "persona 生成 phase 開始時に AllowSecretSnapshot=true で provider settings を解決することを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 776
+      symbol: "MasterPersonaGenerationService.validateProviderAccess"
+      reason: "マスターペルソナ生成開始時だけ allowSecretRead に応じて secret snapshot を許可することを確認した。"
+    - path: "internal/service/provider_settings_service_test.go"
+      line: 55
+      symbol: "TestProviderSettingsServiceSavePreservesSecretBoundary"
+      reason: "Save 後の row と secret store の境界を確認する既存テストを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 116
+      symbol: "TestTJSPPS002TranslationJobSetupServiceIgnoresMasterPersonaProviderSettings"
+      reason: "Job Setup が master-persona secret namespace を読まない検証を確認した。"
+
+unchecked_scope:
+  - target: "広い harness 再実行"
+    reason: "状態・データ不変条件レビュー agent は広い harness を再実行しない規約である。呼び出し元の pass 証跡を入力として扱った。"
+    risk: "検証証跡後の未記録 drift は実行結果として検出できない。"
+  - target: "OS keyring 実 backend での障害注入"
+    reason: "レビューでは実 OS keyring を操作せず、コード上の Save / Delete / Load 順序とテスト証跡を確認した。"
+    risk: "実 OS keyring 固有の失敗順序、遅延、ロック挙動は静的確認より広い。"
+  - target: "実並行操作の動的再現"
+    reason: "広い再実行と新規障害注入テスト作成はレビュー境界外であるため、コード上の lock 共有から判定した。"
+    risk: "provider 単位 lock に入らない将来の mutation 経路が追加された場合は再確認が必要である。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "critical"
+    title: "実行開始 snapshot が provider settings 更新と atomic ではない"
+    problem: "再判定では解消済み。実行開始時の secret snapshot 作成は AllowSecretSnapshot=true の場合に provider 単位 lock へ入り、同じ lock 内で current summary 取得、source secret Load、snapshot Save を実行する。Save / Reset / Validate / ListProviderModels も同じ provider 単位 lock を使う。"
+    reason: "Save / Reset と実行開始 snapshot が同じ provider id の mutex を共有するため、endpoint と secret が別 revision から混ざる interleaving は静的に成立しない。AllowSecretSnapshot=false の Job Setup 表示・検証補助経路は secret snapshot を作らず、secret 本体を読まない。"
+    violated_condition: "前回破れた条件は、実行開始 snapshot が endpoint、credential reference、credential state、secret を同一 provider settings revision から取得することである。現在は provider 単位 lock により維持されている。"
+    cause_candidate: "前回原因だった ResolveProviderExecutionSettings の lock 不参加は解消済みである。現在の ResolveProviderExecutionSettings は AllowSecretSnapshot=true のとき withProviderSettingsMutationLock を通して resolve と snapshotExecutionSecret を実行する。"
+    evidence:
+      - path: "internal/service/provider_settings_service.go"
+        line: 656
+        excerpt: "AllowSecretSnapshot かつ credential configured の場合だけ snapshotExecutionSecret を呼ぶ。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 670
+        excerpt: "AllowSecretSnapshot=false の場合は secret snapshot を作らず resolve だけを返す。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 674
+        excerpt: "AllowSecretSnapshot=true の場合は withProviderSettingsMutationLock 内で resolve を実行する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 703
+        excerpt: "snapshotExecutionSecret は source secret を Load して snapshot ref へ Save する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 735
+        excerpt: "withProviderSettingsMutationLock は provider id ごとの mutex で mutation を直列化する。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 720
+        excerpt: "用語翻訳 phase 開始は AllowSecretSnapshot=true で provider settings を解決する。"
+      - path: "internal/service/master_persona_service.go"
+        line: 791
+        excerpt: "マスターペルソナ生成は allowSecretRead に応じて AllowSecretSnapshot を渡す。"
+    local_fix_assessment: "resolved。provider settings service の局所修正で主要原因は閉じている。呼び出し側は既存の AllowSecretSnapshot=true 経路を通るため追加の cross-layer 修正は不要と判定した。"
+    additional_check_scope: "将来、provider settings row または canonical secret を更新する新経路を追加する場合は、同じ provider 単位 lock に参加することを確認する。"
+    fix_considerations: "表示、provider 選択、endpoint 保存、summary 生成では secret store を読まない条件を維持する必要がある。"
+    verification: "呼び出し元の backend 対象 Go test 2 本、backend-local、frontend-local、git diff --check の pass 証跡を入力として扱った。静的確認では Save / Reset / Resolve の lock 共有を確認した。"
+    fix_required: true
+    status: "resolved"
+  - id: "state-invariant-002"
+    level: "critical"
+    title: "Save / Reset の DB 失敗時に secret store だけが変更される"
+    problem: "再判定では解消済み。Save は staged secret を先に作るが、canonical secret は DB upsert 成功後にだけ更新する。DB upsert が失敗した場合、canonical secret と row は保存前状態のままである。Reset は row 更新後に secret を削除し、secret 削除失敗時は保存前 row へ rollback する。"
+    reason: "Save の DB 失敗経路では secretStageKey の cleanup だけが走り、providerSettingsSecretKey は更新されない。canonical secret 反映失敗時と reset secret 削除失敗時は restoreProviderSettingsRecord が保存前 row を upsert し直すため、成功扱いにならない部分更新が row 側へ残らない。"
+    violated_condition: "前回破れた条件は、secret store と DB 設定値を transaction 相当の保存単位として扱い、失敗時に DB credential 参照状態と secret store 実体の対応を壊さないことである。現在は staged secret、DB upsert 後の canonical 反映、row rollback により維持されている。"
+    cause_candidate: "前回原因だった DB transaction 内で canonical secret を先に変更する順序は解消済みである。現在の SaveProviderSettings は staged secret 作成、DB upsert、canonical secret 反映の順に分離している。ResetProviderSettings は row 更新後に secret Delete を行い、Delete 失敗時に row を rollback する。"
+    evidence:
+      - path: "internal/service/provider_settings_service.go"
+        line: 313
+        excerpt: "APIキー変更時は canonical key ではなく staged key に secret を保存する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 317
+        excerpt: "staged secret は defer で削除される。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 323
+        excerpt: "provider settings row の Upsert は DB transaction 内で実行される。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 334
+        excerpt: "canonical secret Save は DB upsert 成功後にだけ実行される。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 336
+        excerpt: "canonical secret Save 失敗時は保存前 row へ rollback する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 388
+        excerpt: "Reset は row を未設定状態へ Upsert する DB transaction を先に実行する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 399
+        excerpt: "Reset の secret Delete 失敗時は保存前 row へ rollback する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 839
+        excerpt: "restoreProviderSettingsRecord は保存前 row を再 upsert する。"
+    local_fix_assessment: "resolved。主原因だった provider settings service の保存順序は局所修正で閉じている。静的 key は残るが、DB 失敗前に canonical key を更新しないため前回の DB 失敗時不整合は再現しない。"
+    additional_check_scope: "将来の強化として、keyring backend が Save / Delete 後に error を返す異常系まで障害注入する余地はある。現行レビューではコード順序と呼び出し元証跡から修正済みと判定した。"
+    fix_considerations: "APIキー入力なし保存で既存 APIキー本文を読まない条件を維持する必要がある。Reset 成功時だけ secret 実体と cache entry が削除される条件も維持する必要がある。"
+    verification: "呼び出し元の backend 対象 Go test 2 本、backend-local、frontend-local、git diff --check の pass 証跡を入力として扱った。静的確認では staged secret、canonical secret、row rollback の順序を確認した。"
+    fix_required: true
+    status: "resolved"

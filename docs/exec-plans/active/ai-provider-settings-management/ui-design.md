@@ -1,0 +1,296 @@
+# UI Design: ai-provider-settings-management
+
+- `skill`: ui-design
+- `status`: approved
+- `source_plan`: `./plan.md`
+- `scenario_source`: `./scenario-design.md`
+- `ui_prototype`: `./prototype/index.svelte`
+- `prototype_server_url`: `http://127.0.0.1:34116/prototype`
+- `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task ai-provider-settings-management --port 34116`
+- `human_review_server_required`: `yes`
+- `human_review_designer_agent_required`: `yes`
+- `human_feedback_route`: `designer_agent_direct`
+- `designer_agent_close_after_review`: 人間レビュー終了後に UI 指摘を反映し、確認サーバーを停止する。
+- `human_review_started`: completed
+- `ux_standard_source`: `docs/UX-standard.md`
+
+## UI Contract
+
+- `display_items`:
+  - app-shell の主要導線に `AIサービス設定` を表示する。
+  - provider list には Gemini、xAI、LM Studio の実 provider だけを表示する。
+  - 選択中 provider にはエンドポイント、APIキー状態、接続確認を表示する。
+  - 確認用の別画面に、用語翻訳、本文翻訳、ペルソナ生成で使うモデルカードを表示する。
+  - APIキー文字列、secret 本体、raw request、raw response、raw prompt は表示しない。
+  - エンドポイントはローカル運用の接続先として入力欄と保存済み表示に出す。
+  - APIキー状態が保存済みの場合、画面文言は `保存済み` だけにする。
+  - モデルカードのモデル欄は getModels 系 API で取得した候補をプルダウンで表示する。
+  - モデル一覧を取得できない provider では警告を表示する。
+- `primary_actions`:
+  - 利用者は app-shell から `AIサービス設定` を開く。
+  - 人間レビューでは、確認用画面切り替えで `AIサービス設定` と `モデルカード確認` を切り替える。
+  - 利用者は provider を選び、エンドポイントを確認または変更する。
+  - 利用者は APIキーが必要な provider だけ APIキーを設定する。
+  - 利用者は接続確認を実行し、エンドポイントと APIキー状態が有効か確認する。
+  - 利用者は provider settings を保存する。
+  - 利用者は参照側ページのモデルカードから AIサービス、モデル、処理方式を変更する。
+  - 利用者はモデルカードのくるくるアイコンでモデル一覧を更新する。
+- `button_enablement`:
+  - APIキー設定ボタンは `設定` と表示し、APIキー必須 provider だけに出す。
+  - 接続確認は、APIキー必須 provider で APIキー未保存の場合は押せても request を送らず、APIキー保存を促す。
+  - 保存は可能だが、エンドポイント未確認または APIキー未保存では保存後に再確認が必要な状態を表示する。
+  - 保存操作欄には `設定を保存` と `リセット` だけを表示する。
+  - リセット操作は補助ボタンにし、provider settings row を残したままエンドポイントと APIキー状態を未設定へ戻す。
+  - モデルカードは常時編集可能な入力欄を持ち、編集開始ボタンや展開操作を不要にする。
+  - 処理方式は `Batch API` チェックボックスで切り替える。
+  - `Batch API` の近くに `?` ツールチップを置き、hover で説明を表示する。
+  - モデル一覧更新はくるくるアイコンの icon button にする。
+  - エンドポイントまたは APIキー状態が未設定の provider では、モデル一覧更新とモデル選択を無効にする。
+- `state_variants`:
+  - 未設定、部分設定、保存済み、編集中、保存中、保存失敗、再確認が必要を分けて表示する。
+  - APIキー状態は、未保存、保存済み、不要を分ける。
+  - エンドポイント変更後は再確認待ちに戻る。
+  - 接続確認は未確認、確認中、確認済み、確認失敗を分ける。
+  - モデル一覧は未取得、取得中、取得済み、取得失敗、provider 設定不足を分ける。
+  - 更新履歴と保存補足欄は表示しない。
+- `post_implementation_review`:
+  - desktop と mobile の両方で app-shell から設定画面へ到達できることを確認する。
+  - モデルカードを表示する各参照側ページで、AIサービス名、モデルプルダウン、更新 icon button、処理方式、状態、警告文が崩れないことを確認する。
+  - provider list と設定詳細が横幅に応じて 2 カラムから 1 カラムへ自然に変わることを確認する。
+  - APIキー、raw request、raw response、raw prompt が DOM text、DTO、log に出ないことを確認する。
+  - fake provider が provider list と設定詳細に出ないことを確認する。
+
+## Interface Frame
+
+- `purpose`: AIサービスごとの接続先と秘密値の存在状態を中央管理する。
+- `audience`: Skyrim Mod 翻訳の作業者。外部 AI サービスの内部実装やログ名を知らない利用者を前提にする。
+- `primary_workflow`: app-shell から設定画面を開き、provider を選び、エンドポイントと APIキー状態を確認し、接続確認を実行して保存する。
+- `information_density`: 一覧で provider ごとの状態を比較し、詳細で 1 provider の接続設定だけを編集する密度にする。
+- `visual_direction`: 既存 AppShell の dark shell、panel、status pill、グローバルナビゲーションを土台にする。新規 visual system は追加しない。
+- `remembered_signal`: APIキー値は非表示にし、APIキー状態だけを表示する。
+
+## Structure Notes
+
+- `page_sections`:
+  - app-shell header に `AIサービス設定` route を追加する。
+  - UIプロトタイプの確認用画面切り替えに `AIサービス設定` と `モデルカード確認` を置く。
+  - AIサービス設定画面の hero panel は、画面目的と利用可能 provider 数だけを表示する。
+  - 左側に provider list、右側に選択中 provider の接続設定を置く。
+  - 設定詳細はエンドポイント、APIキー状態、接続確認の順に並べる。
+  - 保存操作欄は `設定を保存` と `リセット` だけを表示する。
+  - モデルカード確認では、外側の hero panel と page panel を置かず、モデル単位の設定枠だけを表示する。
+  - モデルカードの設定変更欄はカード内に常時表示し、AIサービス設定画面へ model 入力を混ぜない。
+  - モデル欄は自由入力ではなく、getModels 系 API の取得結果から選ぶプルダウンにする。
+  - モデル欄の横にモデル一覧更新のくるくるアイコンを置く。
+  - 処理方式は通常または Batch API の 2 択として扱い、Batch API はチェックボックスで表示する。
+  - Batch API の説明は `?` ツールチップに閉じ込め、hover で `API利用料が安くなる場合があります。` 程度の説明を出す。
+  - provider 設定不足では、モデル欄の近くにエンドポイントまたは APIキー状態の警告を出す。
+  - モデルカードは編集状態で高さが変わらない固定サイズを基本にする。
+- `layout_constraints`:
+  - desktop は provider list と設定詳細を 2 カラムにする。
+  - mobile は provider list と設定詳細を 1 カラムにする。
+  - モデル単位の設定枠は desktop で 3 カラム、mobile で 1 カラムにする。
+  - モデルカードは編集欄を開閉しないため、desktop と mobile のどちらでもカード高さを維持する。
+  - APIキー設定パネルは詳細内に展開し、別ページへ遷移させない。
+  - 保存操作欄は設定詳細の末尾に固定し、別カードへ分散しない。
+- `responsive_constraints`:
+  - 390px 幅でエンドポイントと失敗文言が横にはみ出さない。
+  - provider list はボタン高さを固定し、状態文が増えても layout shift を抑える。
+  - navigation は wrap 可能にし、主要 route が消えないようにする。
+- `accessibility_constraints`:
+  - エンドポイント input と APIキー input に日本語ラベルを付ける。
+  - 状態は色だけで伝えず、文言と pill で示す。
+  - 保存結果は `role=status` の toast で通知する。
+  - APIキー input は password type とし、保存後は空に戻す。
+  - APIキー保存先の説明文は、OS標準の資格情報マネージャーに保存することを自然な文体で表示する。
+
+## UX Standard Review
+
+- `source`: `docs/UX-standard.md`
+- `screen_structure_high_priority_results`:
+  - `screen_purpose`: pass。画面目的は provider settings の中央管理に絞った。
+  - `primary_action`: pass。主要操作は `設定を保存` である。
+  - `information_hierarchy`: pass。状態比較、詳細編集、保存操作の順に分けた。
+  - `state_and_allowed_actions`: pass。APIキー未保存、再確認待ち、保存失敗、保存済みで操作差分を表示する。
+  - `input_constraints`: pass。AIサービス設定画面には model 入力と Batch API 切り替えを出さない。
+  - `ui_wording`: pass。内部語の `provider` は画面見出しでは使わず、利用者向けには `AIサービス` を使う。
+- `screen_structure_applicable_results`:
+  - `change_delta`: pass。エンドポイント変更後に接続確認状態を再確認待ちへ戻す。
+  - `recovery_route`: pass。APIキー未保存、エンドポイント参照不能、接続未確認で次操作を表示する。
+  - `dangerous_action`: pass。リセット操作は主要保存操作から分離し、row 維持、エンドポイント未設定、APIキー状態未設定、secret 削除として扱う。
+  - `navigation_after_completion`: pass。保存後は toast で同一画面に留まる。
+- `layout_responsive_high_priority_results`:
+  - `layout_order`: pass。desktop は 2 カラム、mobile は 1 カラムで読む順を保つ。
+  - `long_text`: pass。エンドポイントと説明文は折り返し可能な input / block に置く。
+  - `tap_target`: pass。provider row、保存、更新、未設定へ戻す操作は十分な高さを持つ。
+- `layout_responsive_applicable_results`:
+  - `column_drop`: pass。860px 以下で provider list と設定詳細を縦並びにする。
+  - `fixed_element_interference`: pass。toast は右下に出し、主要 form を覆わない。
+  - `table_breakdown`: not_applicable。一覧は table ではなく provider row で表現する。
+- `deferred_items`:
+  - 実装後に実 AppShell の nav 幅と既存 route 数での折り返しを確認する。
+
+## Interaction States
+
+- `loading`: 接続確認中は「接続確認中」と表示する。
+- `empty`: APIキー未保存または未確認では「未確認」と表示する。
+- `error`: エンドポイント参照不能では APIキー再入力ではなくエンドポイント修正を促す。
+- `disabled`: 接続確認は APIキー必須 provider で APIキー未保存の場合は request を送らない。
+- `model_fetch_disabled`: モデル一覧取得は provider のエンドポイントまたは APIキー状態が不足している場合は実行しない。
+- `model_fetch_refresh`: モデル一覧更新中はボタン外形を動かさず、くるくるアイコンだけを回転表示する。
+- `model_fetch_warning`: モデル一覧を取得できない場合は、AIサービス設定の不足理由をカード内に表示する。
+- `progress`: 保存中は保存ボタンを再実行不能にする。
+- `retry`: 接続確認失敗後は同じ `接続を確認` ボタンで再試行する。
+- `success`: 保存後は toast を表示し、APIキー文字列は出さない。
+
+## Post Implementation Review
+
+- `desktop_review_points`:
+  - 1440px 幅で app-shell、provider list、詳細編集の順に読めること。
+  - モデルカード確認で、3 枚のカードが同じ高さ制約の中で読め、モデル候補、Batch API チェックボックス、ツールチップ、警告表示で高さが変わらないこと。
+  - provider row の状態文と詳細 panel の status pill が一致すること。
+  - エンドポイントが長くても input と保存済み表示がはみ出さないこと。
+  - `AIサービス設定` route が既存 route と並んでも nav が崩れないこと。
+- `mobile_review_points`:
+  - 390px 幅で nav、provider list、詳細編集が 1 カラムで読めること。
+  - 390px 幅でモデルカードが 1 カラムになり、モデルプルダウン、更新 icon button、Batch API チェックボックス、警告文が横にはみ出さないこと。
+  - APIキー設定パネルが横スクロールを発生させないこと。
+  - 保存 toast が form 操作を覆い続けないこと。
+- `overflow_risks`:
+  - エンドポイントと error summary が長い場合に折り返しと input 幅を確認する必要がある。
+  - app-shell route が増えるため、desktop と mobile の nav wrapping を確認する必要がある。
+- `visual_polish_open_questions`:
+  - 実装後に既存 AppShell の panel density と余白へ合わせる必要がある。
+
+## UI Prototype Contract
+
+- `prototype_kind`: `new_screen`
+- `source_basis`: `./scenario-design.md`, `docs/screen-design/README.md`, `frontend/src/ui/views/AppShell.svelte`
+- `existing_screen_resource_refs`: `frontend/src/ui/views/AppShell.svelte`, `frontend/src/ui/stores/shell-state.ts`
+- `reused_screen_structure`: `shell`, `shell-bar`, `global-nav`, `panel`, `hero-panel`, `section-head`, `status-pill` の構造を task-local prototype で再現した。
+- `changed_sections_only`: 新規画面のため、product 既存画面の区画差し替えではない。app-shell route 追加と新規 page body を設計対象にする。
+- `new_visual_system_added`: `no`
+- `new_visual_system_reason`: 既存 AppShell の dark panel と status pill を土台にした。
+- `prototype_path`: `./prototype/index.svelte`
+- `checked_screens`:
+  - `1`: `AIサービス設定`
+  - `2`: `モデルカード確認`
+- `required_before_human_review`: `yes`
+- `required_for_frontend_handoff`: `yes`
+- `framework_conversion`: UIプロトタイプの構造を frontend framework へ変換する
+- `prototype_server_url`: `http://127.0.0.1:34116/prototype`
+- `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task ai-provider-settings-management --port 34116`
+- `human_review_server_required`: `yes`
+- `human_review_designer_agent_required`: `yes`
+- `human_feedback_route`: `designer_agent_direct`
+- `designer_agent_close_after_review`: 人間レビュー終了後に反映と確認を行ってから停止する。
+- `ux_standard_source`: `docs/UX-standard.md`
+- `mock_data_root`: `N/A`
+- `mock_data_migration`: `forbidden`
+- `sample_data_root`: `[data-ui-prototype-sample-data-root]`
+- `sample_data_migration`: `forbidden`
+- `production_reference_direction`: `product_code_must_not_reference_ui_prototype`
+- `interaction_review`: 確認用画面切り替え、provider 切り替え、エンドポイント変更、APIキー設定、接続確認、保存、リセット操作、モデルカード確認、モデルカード設定変更、モデル一覧更新、provider 設定不足警告を確認する。リセット操作はエンドポイントと APIキー状態を未設定へ戻し、secret 本体削除として扱う。
+- `state_transition_review`: 未設定、部分設定、再確認待ち、保存中、保存失敗、保存済みを確認する。
+- `wording_review`: 内部語を画面に出さず、利用者向けには AIサービス、APIキー状態、接続確認、設定を保存を使う。
+- `structure_to_preserve`: app-shell header、確認用画面切り替え、route 現在地、provider 状態一覧、設定詳細、保存操作欄、参照側モデルカードを維持する。
+- `allowed_changes_during_conversion`: product view model 名への変換、既存 AppShell route contract への追加、既存 controller / gateway への接続。
+- `forbidden_changes_during_conversion`: fake provider の UI 露出、APIキー文字列表示、AIサービス設定画面への model / Batch API 設定追加、raw request / response 表示、product code から prototype 参照。
+
+## Agent Browser Review
+
+- `command_source`: `agent-browser`
+- `served_url`: `http://127.0.0.1:34116/prototype`
+- `server_command`: `npm --prefix frontend run dev:prototype -- --task ai-provider-settings-management --port 34116`
+- `server_status_during_human_review`: `stopped-after-review`
+- `mock_data_refs`: `[data-ui-prototype-sample-data-root]`
+- `used_only_for_display_state_review`: `yes`
+- `migration_to_product_code`: `forbidden`
+- `migration_to_fixture_or_test_data`: `forbidden`
+- `checked_viewports`: `desktop 1440x1000`, `mobile 390x844`
+- `ux_standard_review`:
+  - `source`: `docs/UX-standard.md`
+  - `high_priority_results`: pass。画面目的、主要操作、状態別操作、入力制約、エラー回復、検査可能性を prototype と snapshot で確認した。
+  - `applicable_results`: pass。2 カラムから 1 カラムへの切り替え、nav wrap、provider row、設定詳細、保存操作欄を確認した。
+  - `deferred_items`: 実 product AppShell への組み込み後に route 幅と状態文の折り返しを確認する。
+- `wording_review`:
+  - `review_timing`: `after_agent_browser_review`
+  - `fixed_names_preserved`: Gemini、xAI、LM Studio、Batch API
+  - `business_japanese_terms`: `provider` は AIサービス、`credential` は APIキー状態、接続先はエンドポイント、`validateConnection` は接続を確認へ置き換える。
+  - `internal_state_names_hidden`: pass。画面本文に `fake` は出ていない。`provider` は provider list ではなく AIサービスとして表現した。
+  - `next_action_wording`: pass。APIキー未保存、エンドポイント変更、接続未確認、保存失敗で次操作を表示する。
+  - `allowed_english_labels`: AIサービスの固有名と Batch API だけを許可する。
+  - `plain_language_next_action_judgement`: pass。非エンジニアの日本語話者が次操作を読める水準として確認した。
+- `console_errors`: `none`
+- `screenshot_or_snapshot_refs`: `/private/tmp/aipsm-prototype-desktop-final.png`, `/private/tmp/aipsm-prototype-mobile-final.png`, `/private/tmp/aipsm-prototype-xai.png`, `agent-browser snapshot -i --compact --depth 5`
+- `layout_breaks`: desktop と mobile の snapshot で主要操作の消失なし。横スクロールは確認されなかった。
+- `ambiguous_interactions`: 未回答の仕様質問はない。人間設計レビューで UI 表現だけを確認する。
+- `human_feedback_applied`:
+  - 2026-05-04: 利用者向け文言の接続先表記を `エンドポイント` へ変更した。
+  - 2026-05-04: 外部画面への言及、外部参照説明区画、内部差し替え説明文を UIプロトタイプから削除した。
+  - 2026-05-04: APIキー状態の保存済み表示を `保存済み` だけにした。
+  - 2026-05-04: 保存操作欄を `設定を保存` と `リセット` だけにした。
+  - 2026-05-04: APIキー設定ボタンを `設定` へ変更し、APIキー表示除外の補足文を削除した。
+  - 2026-05-04: APIキー保存先を `OS標準の資格情報マネージャー` に変更し、保存後表示の補足文を削除した。
+  - 2026-05-04: 接続確認状態を `未確認` / `確認済み` へ短縮し、利用可能状態の表示を `利用可能` へ変更した。
+  - 2026-05-04: 状態ラベルは短くし、説明文は自然な「ます」調へ戻した。
+  - 2026-05-04: UIプロトタイプを `prototype/index.svelte` のフォルダ管理へ移し、既存 AIサービス設定画面を維持したまま `モデルカード確認` 画面を追加した。
+  - 2026-05-04: モデルカードの編集開始ボタンと展開パネルを廃止し、AIサービス、モデル、処理方式を常時編集できる固定サイズの即時反映表示へ変更した。
+  - 2026-05-04: モデル欄を自由入力から getModels 系 API 取得結果のプルダウンに変更し、モデル一覧更新をくるくるアイコンへ変更した。
+  - 2026-05-04: provider のエンドポイントまたは APIキー状態が不足する場合、モデル取得不可の警告をカード内に表示するようにした。
+  - 2026-05-04: モデルカードの設定不足状態を `設定確認` から `設定が必要` へ変更し、赤系の状態 pill にした。
+  - 2026-05-04: 処理方式をプルダウンから `Batch API` チェックボックスへ変更し、`?` hover ツールチップで短い説明を出すようにした。
+  - 2026-05-04: Batch API ツールチップで、安くなる対象を API利用料として明示した。
+  - 2026-05-04: モデル一覧更新中の回転対象をボタン全体からアイコンだけへ変更した。
+  - 2026-05-04: モデル一覧更新アイコンをボタン内で視認しやすい大きさへ調整した。
+  - 2026-05-04: モデルカード確認画面から外側の hero panel、page panel、説明文を削除し、後続タスクがモデル設定だけを拾える DOM にした。
+  - 2026-05-04: モデル単位の視認性を保つため、各モデル設定の枠は維持した。
+- `human_feedback_verification`:
+  - 2026-05-04: `agent-browser open http://127.0.0.1:34116/prototype` は通過した。
+  - 2026-05-04: `agent-browser snapshot -i --compact --depth 5` で navigation、AIサービス一覧、エンドポイント入力、APIキー設定、接続確認、リセット、設定を保存を確認した。
+  - 2026-05-04: `agent-browser errors` は出力なし。
+  - 2026-05-04: APIキー設定ボタン変更後に `agent-browser open http://127.0.0.1:34116/prototype` は通過した。
+  - 2026-05-04: `agent-browser snapshot -i --compact --depth 5` で `Gemini 利用可能`、`設定`、`接続を確認`、`リセット`、`設定を保存` を確認した。
+  - 2026-05-04: `agent-browser click e14` 後の snapshot で `APIキー設定`、`APIキー` 入力、`保存`、`キャンセル` を確認した。
+  - 2026-05-04: APIキー設定ボタン変更後の `agent-browser errors` は出力なし。
+  - 2026-05-04: 説明文の文体調整後に `agent-browser open http://127.0.0.1:34116/prototype` は通過した。
+  - 2026-05-04: 説明文の文体調整後に `agent-browser snapshot -i --compact --depth 5` で主要表示を確認した。
+  - 2026-05-04: 説明文の文体調整後の `agent-browser errors` は出力なし。
+  - 2026-05-04: フォルダ管理移行後に `npm --prefix frontend run dev:prototype -- --task ai-provider-settings-management --port 34117 --dry-run` で `prototype/index.svelte` 解決を確認した。
+  - 2026-05-04: フォルダ管理移行後に一時確認サーバー `http://127.0.0.1:34117/prototype` を起動し、`AIサービス設定` と `モデルカード確認` の画面切り替えを確認した。
+  - 2026-05-04: `モデルカード確認` snapshot で用語翻訳モデル、本文翻訳モデル、ペルソナ生成モデル、主要ボタンを確認した。
+  - 2026-05-04: 確認サーバー `http://127.0.0.1:34116/prototype` を再起動し、`prototype/index.svelte` を入口として解決することを起動ログで確認した。
+  - 2026-05-04: 再起動後の `agent-browser snapshot -i --compact --depth 6` で `AIサービス設定` の navigation、AIサービス一覧、エンドポイント入力、設定、接続確認、リセット、設定を保存を確認した。
+  - 2026-05-04: 再起動後に `モデルカード確認` へ切り替え、用語翻訳モデル、本文翻訳モデル、ペルソナ生成モデル、主要ボタンを確認した。
+  - 2026-05-04: 再起動後の `agent-browser errors` は可読エラー本文なし。
+  - 2026-05-04: モデルカードの常時編集欄へ変更後、`agent-browser snapshot -i --compact --depth 9` で 3 枚のカードに AIサービス、モデル、処理方式の入力欄が表示されることを確認した。
+  - 2026-05-04: `agent-browser fill @e11 gemini-2.5-pro` と `agent-browser select @e10 xAI` で、編集開始ボタンなしにモデル名と AIサービスを変更できることを確認した。
+  - 2026-05-04: `agent-browser eval` で 3 枚の `.model-card` 高さが `484px` で揃い、編集欄表示による高さ変化がないことを確認した。
+  - 2026-05-04: モデル欄を getModels 系 API 取得結果のプルダウンへ変更後、`agent-browser snapshot -i --compact --depth 10` でモデル候補、くるくるアイコン、xAI の取得不可状態を確認した。
+  - 2026-05-04: `agent-browser get text .model-card-grid` で `AIサービス設定が未完了です。` の警告表示を確認した。
+  - 2026-05-04: `agent-browser select @e10 gemini-2.5-pro` でモデル候補をプルダウン選択できることを確認した。
+  - 2026-05-04: `agent-browser click @e11` で、設定済み provider のモデル一覧更新アイコンを押せることを確認した。
+  - 2026-05-04: モデル一覧更新 UI 変更後の `agent-browser eval` で 3 枚の `.model-card` 高さが `526px` で揃うことを確認した。
+  - 2026-05-04: `agent-browser snapshot -i --compact --depth 9` で `設定が必要` 表示を確認し、`agent-browser eval` で赤系の文字色と枠線色を確認した。
+  - 2026-05-04: `agent-browser get html .help-tooltip` で、Batch API ツールチップ内に `Batch API は API利用料が安くなる場合があります。` が含まれることを確認した。
+  - 2026-05-04: Batch API ツールチップ確認後の `agent-browser errors` は可読エラー本文なし。
+  - 2026-05-04: `agent-browser get html 'button[aria-label="用語翻訳モデルのモデル一覧を更新"]'` で、更新ボタン内の回転対象が `span.refresh-icon` になっていることを確認した。
+  - 2026-05-04: 更新アイコン変更後の `agent-browser errors` は可読エラー本文なし。
+  - 2026-05-04: `agent-browser get styles '.refresh-icon'` で更新アイコンの `font-size: 21.6px` を確認し、`agent-browser get box 'button[aria-label="用語翻訳モデルのモデル一覧を更新"]'` でボタン外形が `36px x 36px` のまま維持されることを確認した。
+  - 2026-05-04: 更新アイコンサイズ調整後の `agent-browser errors` は可読エラー本文なし。
+  - 2026-05-04: `モデルカード確認` 画面の `agent-browser snapshot -i --compact --depth 10` で、用語翻訳モデル、本文翻訳モデル、ペルソナ生成モデルの 3 つのモデル設定だけが主要 DOM として表示されることを確認した。
+  - 2026-05-04: `agent-browser get count '.hero-panel'`、`agent-browser get count '.model-page'`、`agent-browser get count '.panel'` は 0 件、`agent-browser get count '.model-setting'` は 3 件であることを確認した。
+  - 2026-05-04: `agent-browser get styles '.model-setting'` で、モデル単位の枠線と背景が残っていることを確認した。
+  - 2026-05-04: モデル設定 DOM 調整後の `agent-browser errors` は可読エラー本文なし。
+- `open_issues`: none。人間レビューは承認済みである。
+- `not_checked_reason`: 実 product AppShell への組み込みは implementation-scope 前のため未実行。
+
+## Rules
+
+- UI は `ui-design.md` で固定する。
+- UIプロトタイプは `docs/exec-plans/active/ai-provider-settings-management/prototype/index.svelte` を正本配置にする。
+- UIプロトタイプは task-local 確認用であり、docs 正本へ昇格しない。
+- 本番コードから UIプロトタイプを参照しない。
+- UIプロトタイプ内のサンプル値は `data-ui-prototype-sample-data-root` 範囲だけで扱う。
+- UIプロトタイプ内のサンプル値は product code、fixture、default state、test data へ移植してはいけない。
+- `implementation-scope` は人間設計レビュー後まで作成しない。

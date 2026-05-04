@@ -45,6 +45,16 @@ func WithProviderCredentialResolver(resolver ProviderCredentialResolver) Provide
 	}
 }
 
+// WithProviderCredentialLoader wires one credential loader as the provider credential resolver.
+func WithProviderCredentialLoader(loader func(context.Context, string) (string, error)) ProviderClientOption {
+	return func(client *ProviderClient) {
+		if client == nil || loader == nil {
+			return
+		}
+		client.credentialResolver = providerCredentialLoaderResolver{load: loader}
+	}
+}
+
 // ProviderClient sends provider-backed AI text requests.
 type ProviderClient struct {
 	transport          HTTPTransport
@@ -87,6 +97,25 @@ func (client *ProviderClient) ProviderRequestsAreTestSafe() bool {
 	return client != nil && client.testSafe
 }
 
+type providerCredentialLoaderResolver struct {
+	load func(context.Context, string) (string, error)
+}
+
+func (resolver providerCredentialLoaderResolver) ResolveProviderCredential(
+	ctx context.Context,
+	_ string,
+	credentialRef string,
+) (string, error) {
+	if resolver.load == nil {
+		return "", nil
+	}
+	loaded, err := resolver.load(ctx, strings.TrimSpace(credentialRef))
+	if err != nil {
+		return "", fmt.Errorf("load provider credential: %w", err)
+	}
+	return strings.TrimSpace(loaded), nil
+}
+
 // GenerateText sends a provider request and returns provider-agnostic generated text.
 func (client *ProviderClient) GenerateText(
 	ctx context.Context,
@@ -115,12 +144,14 @@ func (client *ProviderClient) TranslateTerm(
 	providerID string,
 	model string,
 	apiKey string,
+	endpointSummary string,
 	prompt string,
 ) (TermTranslationResponse, error) {
 	response, err := client.GenerateText(ctx, providerID, ProviderRequest{
-		Model:  model,
-		APIKey: apiKey,
-		Prompt: prompt,
+		Model:           model,
+		APIKey:          apiKey,
+		Prompt:          prompt,
+		EndpointSummary: strings.TrimSpace(endpointSummary),
 	})
 	if err != nil {
 		return TermTranslationResponse{}, newTermTranslationError(
@@ -139,6 +170,7 @@ func (client *ProviderClient) GeneratePersona(
 	model string,
 	executionMode string,
 	credentialRef string,
+	endpointSummary string,
 	prompt string,
 ) (PersonaGenerationResponse, error) {
 	normalizedExecutionMode := strings.ToLower(strings.TrimSpace(executionMode))
@@ -166,9 +198,10 @@ func (client *ProviderClient) GeneratePersona(
 		)
 	}
 	response, err := client.GenerateText(ctx, providerID, ProviderRequest{
-		Model:  model,
-		APIKey: apiKey,
-		Prompt: prompt,
+		Model:           model,
+		APIKey:          apiKey,
+		Prompt:          prompt,
+		EndpointSummary: strings.TrimSpace(endpointSummary),
 	})
 	if err != nil {
 		return PersonaGenerationResponse{}, newPersonaGenerationError(
@@ -194,6 +227,7 @@ func (client *ProviderClient) GenerateBodyTranslation(
 	model string,
 	executionMode string,
 	credentialRef string,
+	endpointSummary string,
 	prompt string,
 ) (BodyTranslationResponse, error) {
 	if strings.EqualFold(strings.TrimSpace(providerID), ProviderFake) {
@@ -238,9 +272,10 @@ func (client *ProviderClient) GenerateBodyTranslation(
 		)
 	}
 	response, err := client.GenerateText(ctx, providerID, ProviderRequest{
-		Model:  model,
-		APIKey: apiKey,
-		Prompt: prompt,
+		Model:           model,
+		APIKey:          apiKey,
+		Prompt:          prompt,
+		EndpointSummary: strings.TrimSpace(endpointSummary),
 	})
 	if err != nil {
 		return BodyTranslationResponse{}, newBodyTranslationError(

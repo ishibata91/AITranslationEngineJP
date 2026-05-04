@@ -24,14 +24,6 @@ type TranslationJobSetupProviderModelListUsecasePort interface {
 	) (usecase.ListTranslationJobSetupProviderModelsResult, error)
 }
 
-// TranslationJobSetupCredentialSaveUsecasePort defines the optional credential save seam.
-type TranslationJobSetupCredentialSaveUsecasePort interface {
-	SaveTranslationJobSetupCredential(
-		ctx context.Context,
-		request usecase.SaveTranslationJobSetupCredentialRequest,
-	) (usecase.SaveTranslationJobSetupCredentialResult, error)
-}
-
 // TranslationJobSetupController exposes Wails-bound Job Setup entrypoints.
 type TranslationJobSetupController struct {
 	translationJobSetupUsecase TranslationJobSetupUsecasePort
@@ -158,21 +150,6 @@ type ListTranslationJobSetupProviderModelsResponseDTO struct {
 	Status           string                                      `json:"status"`
 	Models           []TranslationJobSetupProviderModelOptionDTO `json:"models"`
 	FailureKind      string                                      `json:"failureKind,omitempty"`
-}
-
-// SaveTranslationJobSetupCredentialRequestDTO carries the secret save payload.
-type SaveTranslationJobSetupCredentialRequestDTO struct {
-	Provider      string `json:"provider"`
-	CredentialRef string `json:"credentialRef"`
-	APIKey        string `json:"apiKey"`
-}
-
-// SaveTranslationJobSetupCredentialResponseDTO returns the credential reference state after save.
-type SaveTranslationJobSetupCredentialResponseDTO struct {
-	Provider        string `json:"provider"`
-	CredentialRef   string `json:"credentialRef"`
-	IsConfigured    bool   `json:"isConfigured"`
-	IsMissingSecret bool   `json:"isMissingSecret"`
 }
 
 // ValidateTranslationJobSetupRequestDTO carries the frozen validation request payload.
@@ -307,39 +284,6 @@ func (controller *TranslationJobSetupController) ListTranslationJobSetupProvider
 		)
 	}
 	return toListTranslationJobSetupProviderModelsResponseDTO(result), nil
-}
-
-// SaveTranslationJobSetupCredential stores one provider credential in the backend secret store.
-func (controller *TranslationJobSetupController) SaveTranslationJobSetupCredential(
-	request SaveTranslationJobSetupCredentialRequestDTO,
-) (SaveTranslationJobSetupCredentialResponseDTO, error) {
-	credentialSaveUsecase, ok := controller.translationJobSetupUsecase.(TranslationJobSetupCredentialSaveUsecasePort)
-	if !ok {
-		return SaveTranslationJobSetupCredentialResponseDTO{}, fmt.Errorf(
-			"save translation job setup credential: %w",
-			errTranslationJobSetupCredentialSaveNotImplemented,
-		)
-	}
-	result, err := credentialSaveUsecase.SaveTranslationJobSetupCredential(
-		context.Background(),
-		usecase.SaveTranslationJobSetupCredentialRequest{
-			Provider:      request.Provider,
-			CredentialRef: request.CredentialRef,
-			APIKey:        request.APIKey,
-		},
-	)
-	if err != nil {
-		return SaveTranslationJobSetupCredentialResponseDTO{}, fmt.Errorf(
-			"save translation job setup credential: %w",
-			err,
-		)
-	}
-	return SaveTranslationJobSetupCredentialResponseDTO{
-		Provider:        result.Provider,
-		CredentialRef:   result.CredentialRef,
-		IsConfigured:    result.IsConfigured,
-		IsMissingSecret: result.IsMissingSecret,
-	}, nil
 }
 
 // ValidateTranslationJobSetup validates one Job Setup request.
@@ -743,4 +687,3 @@ func cloneStrings(values []string) []string {
 }
 
 var errTranslationJobSetupProviderModelListNotImplemented = fmt.Errorf("translation job setup provider model list usecase is not implemented")
-var errTranslationJobSetupCredentialSaveNotImplemented = fmt.Errorf("translation job setup credential save usecase is not implemented")
