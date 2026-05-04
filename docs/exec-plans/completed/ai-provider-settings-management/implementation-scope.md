@@ -1,0 +1,531 @@
+# Implementation Scope: ai-provider-settings-management
+
+- `skill`: implementation-scope
+- `status`: ready-for-implement-lane
+- `source_plan`: `./plan.md`
+- `human_review_status`: approved
+- `approval_record`: 2026-05-04 に `scenario-design.md` と `ui-design.md` を人間承認済み。UI 確認サーバーはレビュー終了に伴い停止済み。
+- `codex_entry`: `.codex/skills/implement-lane/SKILL.md`
+- `handoff_runtime`: `codex`
+- `architecture_reference`: `docs/architecture.md`
+
+## Source Artifacts
+
+- `ui_design`: `./ui-design.md`
+- `ui_prototype`: `./prototype/index.svelte`
+- `ui_mock_data`: `N/A`
+- `ui_sample_data`: `prototype/index.svelte` 内の `data-ui-prototype-sample-data-root`
+- `ui_agent_browser_review`: `./ui-design.md#Agent Browser Review`
+- `scenario_design`: `./scenario-design.md`
+- `detail_requirement_coverage`: `./scenario-design.requirement-coverage.json`
+- `candidate_coverage`: `./scenario-design.candidate-coverage.json`
+- `human_decision_questionnaire`: `./scenario-design.questions.md`
+- `required_reading_basis`:
+  - `docs/architecture.md`
+  - `frontend/src/ui/views/AppShell.svelte`
+  - `frontend/src/ui/stores/shell-state.ts`
+  - `internal/bootstrap/app_controller.go`
+  - `internal/controller/wails/app_controller.go`
+  - `internal/controller/wails/translation_job_setup_controller.go`
+  - `internal/usecase/translation_job_setup_contract.go`
+  - `internal/service/translation_job_setup_service.go`
+  - `internal/repository/master_persona_keyring_secret_store.go`
+  - `internal/infra/ai/provider_models.go`
+  - `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/implementation-scope.md`
+  - `docs/exec-plans/completed/2026-04-16-master-persona-gap-closure.implementation-scope.md`
+
+## Fixed Decisions
+
+- `needs_human_decision`: `0`
+- AIサービス設定画面は APIキー状態とエンドポイントだけを保存対象にする。
+- model、処理方法、Batch API、利用 provider 選択は各翻訳フェーズと master-persona 側で扱う。
+- provider settings DB は endpoint、credential 参照状態、接続確認状態、更新対象 provider の状態だけを保持する。
+- APIキー本体は secret store に保存し、DB、DTO、UI、log、error summary、保存要約、fake transport log へ出さない。
+- secret store と DB 設定値は transaction 相当の保存単位として扱い、片方だけ成功した場合は provider settings 全体を保存失敗にする。
+- 未設定へ戻す操作では provider settings row を残し、endpoint と APIキー状態を未設定へ戻し、secret 本体を削除する。
+- Gemini と xAI は既定 endpoint を表示して保存対象にし、利用者が変更できる。LM Studio は local endpoint を設定対象にする。
+- Ready job は最新 provider settings を再解決し、Running phase は開始時 snapshot を使う。
+- Job Setup と master-persona は endpoint と APIキーを個別保存せず、provider settings の保存状態を参照する。
+- 利用者向け provider list は `gemini`、`lm_studio`、`xai` だけを扱い、fake provider は UI、DTO、provider list、DB 保存値へ出さない。
+- 実装後検証は fake secret store と fake transport DI を使い、有料の実 AI API を呼ばない。
+- UI 実装は承認済み `ui-design.md` を根拠にする。`prototype/index.svelte` とサンプル値は product code、fixture、default state、test data へ移植しない。
+- 画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成では secret store の読み出しを行わない。
+- 接続確認、モデル一覧取得、翻訳実行開始、マスターペルソナ生成開始だけが APIキー本文を解決できる。
+- APIキー入力あり保存は secret store 保存だけを行い、既存APIキー本文を読み出さない。
+- APIキー入力なし保存は DB の既存 credential 参照と credential state を維持し、secret store を読み出さない。
+- backend process 内の短命キャッシュは secret store 読み出しの回数抑制だけに使い、アプリ終了、APIキー更新、リセットで破棄する。
+- macOS keyring 設定は `KeychainTrustApplication` を有効にし、Windows は `WinCredBackend` の通常動作を維持する。
+
+## Secret Boundary
+
+- `reference_values_allowed_in_ui_dto_read_model`:
+  - provider id: `gemini`, `lm_studio`, `xai`
+  - provider 表示名、endpoint、credential state、credential reference id、validation state、provider settings revision または request token
+  - 参照側設定に限り provider id、model id、処理方法、Batch API 使用有無
+- `secret_values_for_provider_external_api_internal_auth`:
+  - APIキー平文
+  - 復号可能値
+  - provider SDK token
+  - provider request authorization header
+- `secret_resolution_owner_layer`:
+  - backend service / infra secret store / infra AI provider 境界
+  - frontend、DTO、read model、Wails response は secret 本体を受け取らない
+- `transient_secret_input_exception`:
+  - `SaveProviderSettings` の input command だけは APIキー本文を `credentialInput` として受け取れる。
+  - `credentialInput` は backend secret store へ渡すためだけに使う。
+  - `credentialInput` は frontend state、read model、Wails response、gateway response、DB、log、DOM、保存要約へ保持しない。
+  - 保存要求後、UI 入力値は破棄する。
+- `forbidden_outputs`:
+  - UI text、DOM、DTO、read model、URL、DB row、structured log、error summary、audit summary、request capture、fake transport log、保存要約、provider raw request、provider raw response、raw prompt
+
+## Ready Waves
+
+| ready_wave | handoffs | depends_on_done_before_start | parallel_pairs | blockers |
+| --- | --- | --- | --- | --- |
+| `wave-1` | `provider-settings-contract-freeze` | `なし` | `なし` | `なし` |
+| `wave-2` | `backend-provider-settings-core`, `frontend-provider-settings-route-ui`, `frontend-reference-model-settings-ui` | `provider-settings-contract-freeze` | `backend-provider-settings-core <-> frontend-provider-settings-route-ui`, `backend-provider-settings-core <-> frontend-reference-model-settings-ui`, `frontend-provider-settings-route-ui <-> frontend-reference-model-settings-ui` | `なし` |
+| `wave-3` | `backend-provider-settings-consumer-boundary` | `backend-provider-settings-core` | `なし` | `backend_frontend_order` |
+| `wave-4` | `integration-provider-settings-wails-gateway` | `backend-provider-settings-core`, `backend-provider-settings-consumer-boundary`, `frontend-provider-settings-route-ui`, `frontend-reference-model-settings-ui` | `なし` | `backend_frontend_order` |
+| `wave-5` | `provider-settings-secret-read-control` | `integration-provider-settings-wails-gateway` | `なし` | `spec_change` |
+
+## Handoffs
+
+### `provider-settings-contract-freeze`
+
+- `implementation_target`: provider settings の公開接点、DTO、gateway interface、frontend state contract、既存参照側境界を先に固定する。
+- `implementation_artifact`: `contract_freeze`
+- `implementation_skill`: `implement-integration`
+- `frontend_required_sources`:
+  - `ui_design`: `./ui-design.md`
+  - `ui_prototype`: `./prototype/index.svelte`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `./ui-design.md#Agent Browser Review`
+- `contract_freeze`:
+  - `status`: `required`
+  - `freeze_source`: `./scenario-design.md` の `SCN-AIPSM-001` から `SCN-AIPSM-009`、`./ui-design.md` の `UI Contract`
+  - `architecture_layer_basis`: Wails public API、backend usecase contract、backend controller DTO、frontend gateway contract、frontend route / state contract の transport boundary。
+  - `frozen_public_seams`:
+    - `ListProviderSettings`: real provider 3 件の endpoint、credential state、validation state、保存済み状態、redacted failure kind を返す。
+    - `SaveProviderSettings`: provider id、endpoint、APIキー入力有無を受け、DB 設定値と secret store を transaction 相当で保存する。
+    - `ResetProviderSettings`: row を残し、endpoint と credential state を未設定へ戻し、secret 本体削除を要求する。
+    - `ValidateProviderSettings`: 現在 endpoint と credential state に紐づく request token を受け、遅延 response を現在設定へ混入させない。
+    - `Reference-side model list state`: 参照側設定が provider settings の endpoint と credential state を使い、getModels 系 API の候補、取得失敗、未設定警告を扱う。provider settings Wails public API としては公開しない。
+    - `Provider settings consumer resolver`: Job Setup、各翻訳フェーズ、master-persona が provider settings の endpoint と credential reference を解決する backend internal service seam。provider settings Wails public API としては公開しない。secret 本体はこの seam の外へ出さない。
+    - `AppShell route`: `AIサービス設定` route id、label、current route state、dashboard entry を frontend state contract として固定する。
+    - `Reference model setting state`: 参照側の provider、model、処理方法、Batch API は provider settings DB へ保存しない。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: provider id、endpoint、credential state、credential reference id、validation state、request token、redacted failure kind。
+  - `secret_values_for_provider_external_api_internal_auth`: APIキー平文、復号可能値、provider SDK token、authorization header。
+  - `secret_resolution_owner_layer`: backend service / infra secret store / infra AI provider boundary。
+  - `transient_secret_input_exception`: `SaveProviderSettings` input command の `credentialInput` だけは secret store 保存用の transient 値として許可する。read DTO、response DTO、frontend state、read model、DB、log、DOM、保存要約へ保持しない。
+  - `forbidden_outputs`: UI、DTO、read model、URL、DB row、structured log、error summary、audit summary、request capture、fake transport log。
+- `owned_scope`:
+  - `internal/usecase/provider_settings_contract.go` または同等の usecase contract
+  - `internal/controller/wails/provider_settings_controller.go` または同等の Wails controller / DTO
+  - `frontend/src/application/gateway-contract/provider-settings/*`
+  - `frontend/src/application/contract/provider-settings/*`
+  - 既存参照側 contract の provider settings 参照 seam
+- `depends_on`: `なし`
+- `execution_group`: `wave-1`
+- `ready_wave`: `wave-1`
+- `parallelizable_with`: `なし`
+- `parallel_blockers`: `なし`
+- `first_action`: `internal/usecase/provider_settings_contract.go` を追加し、provider settings の read / save / reset / validate の公開 seam と、参照側 model list / consumer resolve の backend internal seam を定義して `completion_signal` の「public seam が DTO と state contract で固定される」を最初に閉じる。理由は downstream の backend、frontend、統合境界が同じ公開接点に依存するため。
+- `validation_commands`:
+  - `go test ./internal/usecase ./internal/controller/wails -run 'ProviderSettings|AIProvider|TranslationJobSetup|MasterPersona|PersonaGeneration'`
+  - `npm --prefix frontend run check`
+- `completion_signal`:
+  - provider settings の read / save / reset / validate seam が backend usecase contract と frontend gateway contract で同じ field obligation を持つ。
+  - 参照側 model list と consumer resolve は backend internal seam または既存参照側 gateway contract に閉じ、provider settings Wails public API へ出ない。
+  - APIキー本体を表せる field が DTO、frontend state、read model に存在しない。
+  - endpoint は表示可能値として DTO と UI state に存在する。
+  - model、処理方法、Batch API、利用 provider 選択は provider settings save DTO に存在せず、参照側 state contract にだけ存在する。
+  - fake provider を provider option として表せない。
+  - downstream handoff が参照できる error kind、nullability、識別子、request token が固定されている。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `APIテスト`
+- `execution_stage`: `実装前`
+- `notes`:
+  - 想定規模は normal。想定 `6-10 files`、`300-650 changed lines`。
+  - この handoff は contract freeze だけを扱い、永続化実装、UI 実装、Wails 接続、テスト本体を含めない。
+  - `本番経路`: Wails controller / DTO -> usecase contract -> frontend gateway contract -> frontend state contract。
+
+### `backend-provider-settings-core`
+
+- `implementation_target`: provider settings DB、secret store、保存 / リセット / 接続確認 / model list 取得の backend core を実装する。
+- `implementation_artifact`: `backend 実装`
+- `implementation_skill`: `implement-backend`
+- `frontend_required_sources`:
+  - `ui_design`: `N/A`
+  - `ui_prototype`: `N/A`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `N/A`
+- `contract_freeze`:
+  - `status`: `done`
+  - `freeze_source`: `provider-settings-contract-freeze`
+  - `architecture_layer_basis`: backend usecase、service、repository、infra secret store、infra AI provider boundary。
+  - `frozen_public_seams`: `provider-settings-contract-freeze` の completion signal を参照する。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: provider id、endpoint、credential reference id、credential state、validation state、request token、redacted failure kind。
+  - `secret_values_for_provider_external_api_internal_auth`: secret store から解決した APIキー平文、authorization header、provider SDK token。
+  - `secret_resolution_owner_layer`: `internal/service` から `internal/infra/ai` へ渡す境界。secret concrete は `internal/repository` または `internal/infra/secret` の keyring-backed concrete。
+  - `forbidden_outputs`: DB row、DTO、UI、structured log、fake transport log、error summary、URL、保存要約、request capture。
+- `owned_scope`:
+  - `internal/repository/provider_settings_repository.go`
+  - `internal/repository/provider_settings_sqlite_repository.go`
+  - `internal/repository/*secret_store*` の provider settings 用 seam または既存 keyring concrete の再利用
+  - `internal/infra/sqlite/dbinit/migrations/*provider_settings*.sql`
+  - `internal/service/provider_settings_service.go`
+  - `internal/usecase/provider_settings_*`
+  - `internal/infra/ai/*` の model list / validation transport seam
+  - backend unit / repository / integration tests
+- `depends_on`: `provider-settings-contract-freeze`
+- `execution_group`: `wave-2`
+- `ready_wave`: `wave-2`
+- `parallelizable_with`: `frontend-provider-settings-route-ui`, `frontend-reference-model-settings-ui`
+- `parallel_blockers`: `なし`
+- `first_action`: `internal/repository/provider_settings_repository.go` に provider settings row と credential reference state の repository port を追加し、`completion_signal` の「DB は endpoint と credential 参照状態だけを保持する」を最初に閉じる。理由は secret store、save usecase、reset usecase、restart 復元が同じ repository port に依存するため。
+- `validation_commands`:
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails -run 'ProviderSettings|Secret|Credential|Endpoint|Redaction'`
+  - `go test ./internal/infra/sqlite/dbinit ./internal/integrationtest -run 'ProviderSettings|Migration|SQLite'`
+- `completion_signal`:
+  - fresh DB と migrated DB の両方で provider settings row を作成でき、未設定、部分設定、保存済みを lossless に保持できる。
+  - DB は APIキー平文、復号可能値、provider token を保持しない。
+  - secret store と DB 設定値は transaction 相当の保存単位として扱われ、片方だけ成功した場合は provider settings 全体を保存失敗にする。
+  - reset は row を残し、endpoint と credential state を未設定へ戻し、secret 本体削除を試みる。
+  - endpoint 変更後は validation state が未確定へ戻る。
+  - ValidateProviderSettings は request token または revision で遅延 response を現在設定へ混入させない。
+  - ListProviderModels は provider settings の endpoint と credential state が揃う場合だけ fake transport / SDK seam へ到達する。
+  - APIキー、raw request、raw response、raw prompt は error summary、structured log、fake transport log、保存要約に出ない。
+  - fake provider は provider list、DTO、DB 保存値に出ない。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `APIテスト`
+- `execution_stage`: `実装前`
+- `notes`:
+  - 想定規模は caution。想定 `16-24 files`、`900-1450 changed lines`。
+  - DB、secret store、save / reset / validation は同じ backend 不変条件を共有するため 1 handoff にまとめる。
+  - UI 実装と Wails / frontend gateway 接続は含めない。
+  - `本番経路`: controller -> usecase -> service -> repository / keyring secret store / infra AI provider -> SQLite。
+
+### `backend-provider-settings-consumer-boundary`
+
+- `implementation_target`: Job Setup、各翻訳フェーズ、master-persona が provider settings を参照する backend 境界を実装する。
+- `implementation_artifact`: `backend 実装`
+- `implementation_skill`: `implement-backend`
+- `frontend_required_sources`:
+  - `ui_design`: `N/A`
+  - `ui_prototype`: `N/A`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `N/A`
+- `contract_freeze`:
+  - `status`: `done`
+  - `freeze_source`: `provider-settings-contract-freeze`
+  - `architecture_layer_basis`: backend usecase / service / jobio / AIProvider boundary。
+  - `frozen_public_seams`: `ResolveProviderExecutionSettings`、Job Setup options / create / summary、master-persona generation readiness、phase start snapshot。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: provider id、model id、処理方法、Batch API 使用有無、credential reference id、credential state、endpoint summary、phase runtime snapshot id。
+  - `secret_values_for_provider_external_api_internal_auth`: secret store から解決した APIキー平文、authorization header。
+  - `secret_resolution_owner_layer`: backend service / AI provider boundary。Job Setup と master-persona の UI / DTO は secret 本体を受け取らない。
+  - `forbidden_outputs`: Job Setup DTO、master-persona DTO、phase summary、UI、log、error summary、raw prompt、provider raw request / response。
+- `owned_scope`:
+  - `internal/service/translation_job_setup_service.go`
+  - `internal/usecase/translation_job_setup_*`
+  - `internal/service/master_persona_service.go`
+  - `internal/usecase/master_persona_*`
+  - `internal/service/persona_generation_phase_service.go`
+  - `internal/usecase/persona_generation_phase_*`
+  - `internal/service/term_translation_provider_adapter.go`
+  - `internal/service/body_translation_provider_adapter.go`
+  - `internal/jobio/*`
+  - affected backend tests
+- `depends_on`: `backend-provider-settings-core`
+- `execution_group`: `wave-3`
+- `ready_wave`: `wave-3`
+- `parallelizable_with`: `なし`
+- `parallel_blockers`: `backend_frontend_order`
+- `first_action`: `internal/service/translation_job_setup_service.go` の provider settings 参照用 port を追加し、`completion_signal` の「Job Setup は endpoint と APIキーを独自保存しない」を最初に閉じる。理由は既存参照境界の drift を先に止める必要があるため。
+- `validation_commands`:
+  - `go test ./internal/service ./internal/usecase ./internal/jobio -run 'TranslationJobSetup|MasterPersona|PersonaGeneration|ProviderSettings|Snapshot'`
+  - `go test ./internal/controller/wails -run 'TranslationJobSetup|MasterPersona|PersonaGeneration|ProviderSettings'`
+- `completion_signal`:
+  - Job Setup は endpoint と APIキーを独自保存せず、provider settings の credential state と endpoint を参照する。
+  - master-persona は endpoint と APIキーを独自保存せず、provider settings の credential state と endpoint を参照する。
+  - provider settings 未設定時に旧 Job Setup / master-persona 設定を fallback にして成功扱いにしない。
+  - Ready job は実行開始前に最新 provider settings を再解決する。
+  - Running phase は開始時 snapshot の endpoint summary と credential reference state を使い続ける。
+  - provider、model、処理方法、Batch API は各翻訳フェーズと master-persona 側の用途別設定として保持される。
+  - secret 本体は参照側 DTO、summary、log、raw prompt へ出ない。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `APIテスト`
+- `execution_stage`: `実装前`
+- `notes`:
+  - 想定規模は caution。想定 `12-22 files`、`700-1300 changed lines`。
+  - consumer boundary は provider settings core 完了後に開始する。未完了の central settings を前提に旧設定 fallback を残さない。
+  - `本番経路`: Job Setup / master-persona usecase -> provider settings resolver -> service -> AIProvider / jobio snapshot。
+
+### `provider-settings-secret-read-control`
+
+- `implementation_target`: APIキー読み出し制御の仕様変更を backend / 統合境界へ反映する。
+- `implementation_artifact`: `backend 実装`, `統合境界実装`
+- `implementation_skill`: `implement-integration`
+- `frontend_required_sources`:
+  - `ui_design`: `N/A`
+  - `ui_prototype`: `N/A`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `N/A`
+- `contract_freeze`:
+  - `status`: `change-approved`
+  - `freeze_source`: `plan.md` の `Approved Scope Change: APIキー読み出し制御`
+  - `architecture_layer_basis`: backend service、repository secret store、AI provider credential resolver、Wails DTO 境界。
+  - `frozen_public_seams`:
+    - `ListProviderSettings`: DB の `credential_reference_id` と `credential_state` だけで APIキー状態を返す。secret store を読まない。
+    - `SaveProviderSettings`: APIキー入力ありなら secret store 保存だけを行う。APIキー入力なしなら既存 credential 参照を維持する。どちらも既存APIキー本文を読まない。
+    - `ValidateProviderSettings`: 明示操作として secret store 解決を許可する。
+    - `ListProviderModels`: 明示操作として secret store 解決を許可する。
+    - `ResolveProviderExecutionSettings`: 表示系 / summary 系では secret store を読まない。実行開始系だけ snapshot または credential resolver により secret store 解決を許可する。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: provider id、endpoint、credential reference id、credential state、validation state、request token、redacted failure kind。
+  - `secret_values_for_provider_external_api_internal_auth`: APIキー平文、復号可能値、provider SDK token、authorization header。
+  - `secret_resolution_owner_layer`: backend service / repository secret store / infra AI provider boundary。
+  - `forbidden_read_operations`: 画面表示、provider 選択、endpoint 保存、APIキー入力なし保存、summary 生成。
+  - `allowed_read_operations`: 接続確認、モデル一覧取得、翻訳実行開始、マスターペルソナ生成開始。
+  - `cache_boundary`: backend process 内だけの短命キャッシュ。アプリ終了、APIキー更新、リセットで破棄する。
+- `owned_scope`:
+  - `internal/service/provider_settings_service.go`
+  - `internal/service/provider_settings_consumer.go`
+  - `internal/repository/provider_settings_repository.go`
+  - `internal/repository/provider_settings_keyring_secret_store.go`
+  - `internal/bootstrap/app_controller.go`
+  - `internal/service/translation_job_setup_service.go`
+  - `internal/service/master_persona_service.go`
+  - `internal/service/term_translation_phase_service.go`
+  - `internal/service/body_translation_phase_service.go`
+  - `internal/service/persona_generation_phase_service.go`
+  - `internal/infra/ai/provider_client.go`
+  - affected backend tests
+- `depends_on`: `integration-provider-settings-wails-gateway`
+- `execution_group`: `wave-5`
+- `ready_wave`: `wave-5`
+- `parallelizable_with`: `なし`
+- `parallel_blockers`: `spec_change`
+- `first_action`: `ListProviderSettings` と `SaveProviderSettings` の secret store 読み出しを禁止するテストを先に確認し、表示 / 通常保存の読み出し禁止を固定する。理由は trust-boundary hard gate の中心条件であるため。
+- `validation_commands`:
+  - `go test ./internal/repository ./internal/service ./internal/usecase ./internal/controller/wails -run 'ProviderSettings|Secret|Credential|Endpoint|Redaction|TranslationJobSetup|MasterPersona'`
+  - `go test ./internal/infra/ai ./internal/bootstrap -run 'ProviderSettings|Credential|Keyring|ProviderClient|AppController'`
+  - `python3 scripts/harness/run.py --suite backend-local`
+- `completion_signal`:
+  - `ListProviderSettings` と summary 生成が secret store を読まない。
+  - APIキー入力なし保存が secret store を読まず、既存 credential 参照を維持する。
+  - 接続確認、モデル一覧取得、翻訳実行開始、マスターペルソナ生成開始だけが secret store を読む。
+  - 同一操作または同一実行中の secret store 読み出しは最大 1 回になる。
+  - macOS keyring config は `KeychainTrustApplication` を有効にする。
+  - Windows keyring config は `WinCredBackend` を維持する。
+  - APIキー本文は frontend、Wails response、DB、log、error summary、request capture、fake transport log へ出ない。
+  - 既存の親 agent による境界外の途中差分がある場合、実装 agent が承認済み範囲内で採否を判断して整合させる。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `APIテスト`
+- `execution_stage`: `実装後`
+- `notes`:
+  - 仕様変更は人間承認済みであり、既存 5 観点レビュー通過扱いは失効する。
+  - scenario と UI 設計は全面作り直しにしない。
+  - frontend の表示文言変更が必要な場合だけ、別 handoff として `implement_lane` に戻す。
+
+### `frontend-provider-settings-route-ui`
+
+- `implementation_target`: app-shell route と AIサービス設定画面 UI を承認済み UI 契約に従って実装する。
+- `implementation_artifact`: `frontend 実装`
+- `implementation_skill`: `implement-frontend`
+- `frontend_required_sources`:
+  - `ui_design`: `./ui-design.md`
+  - `ui_prototype`: `./prototype/index.svelte`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `./ui-design.md#Agent Browser Review`
+- `contract_freeze`:
+  - `status`: `done`
+  - `freeze_source`: `provider-settings-contract-freeze`
+  - `architecture_layer_basis`: AppShell route、frontend controller、usecase、store、presenter、Svelte view、gateway contract。
+  - `frozen_public_seams`: provider settings route state、read / save / reset / validate gateway contract、redacted error state。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: AIサービス名、endpoint、APIキー状態、validation state、保存状態、redacted failure kind。
+  - `secret_values_for_provider_external_api_internal_auth`: `N/A`
+  - `secret_resolution_owner_layer`: backend service / secret store。frontend は APIキー入力値を保存 command へ渡した後、state と表示へ保持しない。
+  - `transient_secret_input_exception`: frontend は `credentialInput` を保存 command の入力値としてだけ gateway へ渡す。保存要求後、UI 入力値は破棄し、store、presenter、DOM text、test fixture へ残さない。
+  - `forbidden_outputs`: APIキー文字列、復号可能値、provider raw request / response、raw prompt、fake provider id。
+- `owned_scope`:
+  - `frontend/src/ui/stores/shell-state.ts`
+  - `frontend/src/ui/views/AppShell.svelte`
+  - `frontend/src/application/contract/provider-settings/*`
+  - `frontend/src/application/gateway-contract/provider-settings/*`
+  - `frontend/src/application/store/provider-settings/*`
+  - `frontend/src/application/presenter/provider-settings/*`
+  - `frontend/src/application/usecase/provider-settings/*`
+  - `frontend/src/controller/provider-settings/*`
+  - `frontend/src/ui/screens/provider-settings/*`
+  - affected frontend tests
+- `depends_on`: `provider-settings-contract-freeze`
+- `execution_group`: `wave-2`
+- `ready_wave`: `wave-2`
+- `parallelizable_with`: `backend-provider-settings-core`, `frontend-reference-model-settings-ui`
+- `parallel_blockers`: `なし`
+- `first_action`: `frontend/src/ui/stores/shell-state.ts` に `AIサービス設定` route contract を追加し、`completion_signal` の「app-shell から AIサービス設定へ到達できる」を最初に閉じる。理由は UI 入口が画面実装と E2E 観測点の起点になるため。
+- `validation_commands`:
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- provider-settings AppShell`
+- `completion_signal`:
+  - AppShell と dashboard entry から `AIサービス設定` へ到達できる。
+  - provider list には Gemini、xAI、LM Studio だけが出る。
+  - AIサービス設定画面には endpoint、APIキー状態、接続確認、リセット、設定を保存だけが出る。
+  - AIサービス設定画面には model、処理方法、Batch API、利用 provider 選択が出ない。
+  - APIキー設定は必要 provider だけに出て、保存後は APIキー入力値を frontend state、DOM text、log、DTO 表示へ残さない。
+  - endpoint 変更後は再確認待ちを表示し、遅延 response を現在入力へ混入させない state token を扱える。
+  - desktop と mobile で provider list と設定詳細が崩れず、承認済み UI 文言を維持する。
+  - `prototype/index.svelte` とサンプル値を product code、fixture、default state、test data へ移植していない。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `UI人間操作E2E`
+- `execution_stage`: `実装後`
+- `notes`:
+  - 想定規模は normal。想定 `10-15 files`、`500-800 changed lines`。
+  - UI人間操作E2E の証明は統合境界完了後の最終検証で扱う。
+  - `本番経路`: AppShell route -> provider settings screen controller -> frontend usecase / store / presenter -> gateway contract。
+
+### `frontend-reference-model-settings-ui`
+
+- `implementation_target`: 各翻訳フェーズと master-persona 側のモデル設定 UI を、provider settings 参照前提へそろえる。
+- `implementation_artifact`: `frontend 実装`
+- `implementation_skill`: `implement-frontend`
+- `frontend_required_sources`:
+  - `ui_design`: `./ui-design.md`
+  - `ui_prototype`: `./prototype/index.svelte`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `./ui-design.md#Agent Browser Review`
+- `contract_freeze`:
+  - `status`: `done`
+  - `freeze_source`: `provider-settings-contract-freeze`
+  - `architecture_layer_basis`: reference-side frontend state、gateway contract、model list state、Svelte screen component。
+  - `frozen_public_seams`: `ListProviderModels`、参照側 provider / model / 処理方法 / Batch API state。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: provider id、model id、処理方法、Batch API 使用有無、APIキー状態、provider settings 未設定警告、model list status。
+  - `secret_values_for_provider_external_api_internal_auth`: `N/A`
+  - `secret_resolution_owner_layer`: backend service。frontend は secret 本体を扱わない。
+  - `forbidden_outputs`: APIキー文字列、credential secret value、raw request、raw response、fake provider id。
+- `owned_scope`:
+  - `frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte`
+  - `frontend/src/application/*/translation-job-setup/*`
+  - `frontend/src/controller/translation-job-setup/*`
+  - `frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte`
+  - `frontend/src/application/*/master-persona/*`
+  - `frontend/src/controller/master-persona/*`
+  - 必要な shared model setting component / helper
+  - affected frontend tests
+- `depends_on`: `provider-settings-contract-freeze`
+- `execution_group`: `wave-2`
+- `ready_wave`: `wave-2`
+- `parallelizable_with`: `backend-provider-settings-core`, `frontend-provider-settings-route-ui`
+- `parallel_blockers`: `なし`
+- `first_action`: `frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts` の参照側 model list state を provider settings 未設定警告と Batch API checkbox 前提へそろえ、`completion_signal` の「参照側だけが provider / model / 処理方法 / Batch API を保持する」を最初に閉じる。理由は provider settings screen へ model 設定が逆流することを防ぐため。
+- `validation_commands`:
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- translation-job-setup master-persona provider-settings`
+- `completion_signal`:
+  - Job Setup の各翻訳フェーズで provider、model、処理方法、Batch API を設定できる。
+  - master-persona 側で provider、model、処理方法を設定できる。
+  - model は getModels 系 API の結果からプルダウン選択する。
+  - 更新操作はボタン外形を動かさず、更新アイコンだけが回転する。
+  - provider settings の endpoint または APIキー状態が不足している場合、モデル一覧更新とモデル選択は無効化され、`設定が必要` 相当の警告を出す。
+  - Batch API は checkbox と `?` tooltip で扱い、説明は API利用料が安くなる場合がある程度に留める。
+  - モデル単位の設定枠だけが主要 DOM として残り、外側 hero / page panel を参照側 model card として移植しない。
+  - AIサービス設定画面へ model、処理方法、Batch API、利用 provider 選択を追加しない。
+  - `prototype/index.svelte` とサンプル値を product code、fixture、default state、test data へ移植していない。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `UI人間操作E2E`
+- `execution_stage`: `実装後`
+- `notes`:
+  - 想定規模は caution。想定 `12-20 files`、`650-1200 changed lines`。
+  - UI人間操作E2E の証明は統合境界完了後の最終検証で扱う。
+  - `本番経路`: reference-side screen -> frontend usecase / store / presenter -> model list gateway contract。
+
+### `integration-provider-settings-wails-gateway`
+
+- `implementation_target`: backend provider settings 契約、Wails bind、frontend gateway、AppShell route、参照側 provider settings 状態を接続する。
+- `implementation_artifact`: `統合境界実装`
+- `implementation_skill`: `implement-integration`
+- `frontend_required_sources`:
+  - `ui_design`: `./ui-design.md`
+  - `ui_prototype`: `./prototype/index.svelte`
+  - `ui_mock_data`: `N/A`
+  - `ui_agent_browser_review`: `./ui-design.md#Agent Browser Review`
+- `contract_freeze`:
+  - `status`: `done`
+  - `freeze_source`: `provider-settings-contract-freeze`
+  - `architecture_layer_basis`: Wails generated bind、frontend gateway adapter、backend controller、bootstrap composition root。
+  - `frozen_public_seams`: provider settings read / save / reset / validate seam。model list と consumer resolve は provider settings Wails public seam に含めない。
+- `secret_boundary`:
+  - `status`: `required`
+  - `reference_values_allowed_in_ui_dto_read_model`: provider id、endpoint、credential state、credential reference id、validation state、model id、Batch API 使用有無、redacted failure kind。
+  - `secret_values_for_provider_external_api_internal_auth`: APIキー平文、provider authorization。
+  - `secret_resolution_owner_layer`: backend service / infra secret store / infra AI provider。Wails read DTO、Wails response DTO、frontend gateway response は secret 本体を受け取らない。
+  - `transient_secret_input_exception`: `SaveProviderSettings` input DTO と frontend gateway input だけは `credentialInput` を受け取れる。controller は値を usecase へ渡した後に保持せず、response、generated model output、log、DB、DOM へ返さない。
+  - `forbidden_outputs`: Wails response DTO、frontend gateway response DTO、UI、DOM、structured log、fake transport log、error summary、request capture。
+- `owned_scope`:
+  - `internal/bootstrap/app_controller.go`
+  - `internal/controller/wails/app_controller.go`
+  - `internal/controller/wails/provider_settings_controller.go`
+  - `frontend/src/controller/wails/provider-settings.gateway.ts`
+  - `frontend/src/controller/wails/gateway-dto/provider-settings/*`
+  - `frontend/wailsjs/*` generated binding 更新
+  - integration tests / gateway tests
+- `depends_on`: `backend-provider-settings-core`, `backend-provider-settings-consumer-boundary`, `frontend-provider-settings-route-ui`, `frontend-reference-model-settings-ui`
+- `execution_group`: `wave-4`
+- `ready_wave`: `wave-4`
+- `parallelizable_with`: `なし`
+- `parallel_blockers`: `backend_frontend_order`
+- `first_action`: `internal/controller/wails/app_controller.go` に provider settings controller を root Wails controller へ追加し、`completion_signal` の「frontend gateway が provider settings bind を呼べる」を最初に閉じる。理由は backend と frontend の実装済み境界を実行時経路へ接続する起点だからである。
+- `validation_commands`:
+  - `go test ./internal/controller/wails ./internal/bootstrap -run 'ProviderSettings|AppController|TranslationJobSetup|MasterPersona'`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- provider-settings AppShell translation-job-setup master-persona`
+- `completion_signal`:
+  - frontend gateway が Wails bind 経由で provider settings read / save / reset / validate を呼べる。
+  - AppShell route から AIサービス設定画面を開き、Gemini、xAI、LM Studio の設定状態を確認できる。
+  - 保存、reset、接続確認の UI state と backend response が一致する。
+  - `SaveProviderSettings` input DTO の transient `credentialInput` を除き、Wails DTO、frontend DTO、backend DTO に APIキー平文、raw request、raw response、raw prompt が出ない。
+  - Job Setup と master-persona の参照側 UI は provider settings 未設定時に旧設定 fallback で成功扱いにしない。
+  - fake transport / fake secret store DI で real network request 0 件を確認できる。
+- `acceptance_test`: `required`
+- `execution_test_classification`: `APIテスト`
+- `execution_stage`: `実装後`
+- `notes`:
+  - 想定規模は normal。想定 `8-14 files`、`350-750 changed lines`。
+  - backend core と frontend UI の代替実装を含めない。接続、DTO mapping、bootstrap wiring、gateway adapter だけを扱う。
+  - `本番経路`: frontend gateway -> generated wailsjs -> backend Wails controller -> usecase -> service / repository / secret store。
+
+## Final Validation Plan
+
+- `depends_on`: すべての handoff 完了後にだけ実行する。
+- `validation_commands`:
+  - `go test ./internal/...`
+  - `npm --prefix frontend run check`
+  - `npm --prefix frontend run test -- provider-settings AppShell translation-job-setup master-persona`
+  - `npm --prefix frontend run build`
+  - `python3 scripts/harness/run.py --suite backend-local`
+  - `python3 scripts/harness/run.py --suite frontend-local`
+- `ui_human_operation_e2e_points`:
+  - app-shell から `AIサービス設定` を開ける。
+  - AIサービス設定画面に endpoint と APIキー状態だけが出る。
+  - model、処理方法、Batch API、利用 provider 選択は参照側だけに出る。
+  - provider settings 未設定時、参照側 model list は警告と無効状態を表示する。
+  - APIキー、raw request、raw response、raw prompt は DOM text、DTO、log に出ない。
+- `completion_signal`:
+  - `SCN-AIPSM-001` から `SCN-AIPSM-009` の観測点を、APIテスト、UI人間操作E2E、lower-level test の割り当てどおり確認できる。
+  - paid real AI API request は 0 件である。
+  - docs 正本化はこの implementation-scope の handoff には含めず、人間承認後の別 lane で判断する。
+
+## Open Questions
+
+- `none`

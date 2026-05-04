@@ -1,0 +1,81 @@
+reviewback_version: 1
+task_id: "exploration-normal-flow-20260503"
+review_yaml_path: "docs/exec-plans/active/exploration-normal-flow-20260503/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "stopped"
+must_fix_open: true
+max_level: "blocker"
+
+assessment:
+  compatibility: "判定停止: 呼び出し元が exploration_test_lane であり、review_contract の skill と agent 実行定義が固定する implement_lane からの実装後レビュー入力と衝突する。"
+  evidence_sufficiency: "停止判断には十分。request / response DTO、既存 path import 互換性、Wails 境界互換性を確定する根拠としては不足で停止。"
+  hard_gate: false
+
+checked_scope:
+  summary: "契約・互換性のコード判定前に、review_contract の skill、agent 実行定義、live workflow、reviewback YAML 形式を確認し、呼び出し元境界の衝突で停止した。"
+  files:
+    - path: ".codex/skills/codex-review-contract/SKILL.md"
+      line: 15
+      symbol: "対応ロール"
+      reason: "呼び出し元を implement_lane に固定しているため。"
+    - path: ".codex/agents/review_contract.toml"
+      line: 14
+      symbol: "developer_instructions"
+      reason: "扱う task を implement_lane から渡された実装後レビューに限定しているため。"
+    - path: ".codex/README.md"
+      line: 145
+      symbol: "探索テストレーン成果物DAG"
+      reason: "exploration_test_lane から review_contract を起動する記述があり、skill と agent 実行定義の呼び出し元境界と衝突するため。"
+    - path: "docs/exec-plans/templates/task-folder/reviewback.yaml"
+      line: 1
+      symbol: "Reviewback YAML template"
+      reason: "停止時も reviewback 形式で結果を記録するため。"
+
+unchecked_scope:
+  - target: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-handoff.integration.md"
+    reason: "呼び出し元境界の衝突で停止したため、実装目的と承認範囲を互換性判定として採用していない。"
+    risk: "request / response DTO と既存 path import 互換性の判定が未確定で残る。"
+  - target: "docs/exec-plans/active/exploration-normal-flow-20260503/implementation-result.integration.md"
+    reason: "呼び出し元境界の衝突で停止したため、実装結果を互換性判定として採用していない。"
+    risk: "追加 field、既存 field、summary DTO、error kind の互換性判定が未確定で残る。"
+  - target: "docs/exec-plans/active/exploration-normal-flow-20260503/regression-test-evidence.md"
+    reason: "呼び出し元境界の衝突で停止したため、検証証跡をレビュー入力として採用していない。"
+    risk: "backend-local、frontend-local、実ブラウザ回帰証跡による互換性補強が未採用で残る。"
+  - target: "frontend/src/application/gateway-contract/translation-input/translation-input-gateway-contract.ts"
+    reason: "呼び出し元境界の衝突で停止したため、frontend request / response DTO の互換性判定を確定していない。"
+    risk: "ImportTranslationInputRequest の追加 field と既存 response field の互換性が未判定で残る。"
+  - target: "internal/controller/wails/translation_input_controller.go"
+    reason: "呼び出し元境界の衝突で停止したため、Wails request DTO と controller method 境界の互換性判定を確定していない。"
+    risk: "既存 Wails binding 名、既存 filePath request、追加 fileName / fileContent field の互換性が未判定で残る。"
+  - target: "internal/usecase/translation_input_usecase.go"
+    reason: "呼び出し元境界の衝突で停止したため、backend usecase public method の互換性判定を確定していない。"
+    risk: "既存 ImportXEditJSON と追加 ImportXEditJSONWithContent の呼び分け互換性が未判定で残る。"
+  - target: "internal/service/translation_input_import_service.go"
+    reason: "呼び出し元境界の衝突で停止したため、path import と content import の service 契約互換性判定を確定していない。"
+    risk: "既存 filePath 読み込み、追加 content decode、sourceFilePath 保存値、rebuild との互換性が未判定で残る。"
+
+issues:
+  - id: "contract-stop-001"
+    level: "blocker"
+    title: "呼び出し元境界の衝突"
+    problem: "今回の入力では呼び出し元が exploration_test_lane とされているが、review_contract の skill と agent 実行定義は implement_lane から渡された実装後レビューだけを対象にしている。"
+    reason: "人間指示は agent の実行境界を拡張できないため、このまま request / response DTO、既存 path import 互換性、Wails 境界互換性を合否判定すると、定義済みの担当 task を越える。"
+    violated_condition: "review_contract は implement_lane から渡された実装後レビューだけを扱う。"
+    cause_candidate: ".codex/README.md の探索テストレーン成果物DAGでは review_contract を次 agent に含めているが、codex-review-contract の skill と review_contract の agent 実行定義が呼び出し元を implement_lane に固定したままになっている可能性がある。"
+    evidence:
+      - path: ".codex/skills/codex-review-contract/SKILL.md"
+        line: 15
+        excerpt: "呼び出し元は implement_lane と定義されている。"
+      - path: ".codex/agents/review_contract.toml"
+        line: 14
+        excerpt: "扱う task が implement_lane から渡された実装後レビューに固定されている。"
+      - path: ".codex/README.md"
+        line: 145
+        excerpt: "探索テストレーンのレビュー通過根拠で review_contract を次 agent としている。"
+    local_fix_assessment: "workflow-boundary-required"
+    additional_check_scope: "呼び出し元境界が揃った後、指定された handoff、result、regression evidence、frontend DTO、Wails controller、backend usecase、service を契約・互換性観点で再確認する。"
+    fix_considerations: "review_contract の呼び出し元を拡張する場合は、戻し先、入力規約、検証証跡の採用条件を skill と agent 実行定義で一致させる必要がある。"
+    verification: "境界整合後に同じ出力先で review_status を no_issue または issues_open に更新できることを確認する。"
+    fix_required: true
+    status: "open"

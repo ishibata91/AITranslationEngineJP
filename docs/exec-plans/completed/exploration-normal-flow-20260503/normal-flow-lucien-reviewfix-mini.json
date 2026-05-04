@@ -1,0 +1,20 @@
+{
+  "target_plugin": "LucienReview.esp",
+  "dialogue_groups": [
+    {
+      "id": "01000ABE",
+      "editor_id": "LucienReviewGreeting",
+      "type": "DIAL FULL",
+      "player_text": "Good day",
+      "responses": [
+        {
+          "id": "01000ABF",
+          "editor_id": "LucienReviewGreetingResponse",
+          "type": "INFO NAM1",
+          "text": "I am ready.",
+          "order": 0
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,115 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  behavior_match: "一致。behavior-001 の原因だった Master Persona のモデル一覧更新導線は、AIModelSelectionCard の更新 icon と MasterPersonaPage の refreshAISettings 経路で解消している。共通 component 化後の Master Persona と Job Setup のモデルカードは、プロトタイプのモデルカード確認と同じ 3 ブロック構成、右上 status pill、AIサービス、モデル、更新 icon、処理方式の配置に揃っている。Master Persona 固有の保存帯はカード外に分離されており、モデルカード内部の挙動一致を崩していない。"
+  evidence_sufficiency: "十分。handoff、reviewfix handoff、実装結果、reviewfix 実装結果、UI設計、UIプロトタイプ、対象 git diff、実コード、3 件の UI 証跡を確認した。review_behavior はハーネスを再実行しない規約のため、実装結果に記録された pass と UI 証跡を入力証跡として扱った。"
+  hard_gate: false
+checked_scope:
+  summary: "frontend-ui-visual-alignment.reviewfix の挙動差分を確認した。Master Persona の更新導線、Job Setup の共通カード表示、プロトタイプとのカード構成一致、Master Persona の保存帯差分を照合した。"
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/fix-handoff.frontend-ui-visual-alignment.reviewfix.md"
+      line: 11
+      symbol: "追加人間観測"
+      reason: "合格条件が共通 component 化ではなく、プロトタイプのモデルカード確認と同じ見た目、情報密度、配置に揃うことである点を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-result.frontend-ui-visual-alignment.reviewfix.md"
+      line: 16
+      symbol: "実装内容"
+      reason: "Master Persona のカード内更新導線追加、保存帯のカード外退避、検証 pass、UI 証跡の場所を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/ui-design.md"
+      line: 36
+      symbol: "primary_actions"
+      reason: "参照側ページのモデルカードから AIサービス、モデル、処理方式を変更し、更新 icon でモデル一覧を更新する期待挙動を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/prototype/index.svelte"
+      line: 366
+      symbol: "refreshModels"
+      reason: "プロトタイプのモデルカード確認で、カード内更新操作が定義されていることを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 112
+      symbol: "AIModelSelectionCard"
+      reason: "カードが header、AIサービス、モデル、処理方式の 3 フィールド構成と更新 icon を持つことを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 181
+      symbol: "onRefresh"
+      reason: "onRefresh が渡された場合に、モデル欄の横へ更新 icon button が表示されることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 76
+      symbol: "refreshAISettings"
+      reason: "Master Persona の更新 icon が controller.refreshAISettings 経路へ接続されることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 119
+      symbol: "AIModelSelectionCard"
+      reason: "Master Persona のモデル設定カードに onRefresh、provider、model、execution-select が渡されていることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 161
+      symbol: "settings-summary-band"
+      reason: "Master Persona 固有の設定保存はカード外の保存帯へ分離され、モデルカード内部の配置を崩していないことを確認した。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 210
+      symbol: "refreshAISettings"
+      reason: "更新操作が既存 loadAISettings を再利用する薄い経路であることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 101
+      symbol: "loadAISettings"
+      reason: "AI 設定再読み込み成功時に modelOptions が再作成され、モデル未取得状態から回復できることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 480
+      symbol: "AIModelSelectionCard"
+      reason: "Job Setup の各 phase が同じ component から provider、model、更新 icon、処理方式を表示することを確認した。"
+    - path: "test-results/ui-reviewfix/prototype-model-cards.png"
+      line: null
+      symbol: "UI証跡"
+      reason: "プロトタイプのモデルカード確認の外形、余白、3 ブロック構成、更新 icon、処理方式を確認した。"
+    - path: "test-results/ui-reviewfix/master-persona-model-card.png"
+      line: null
+      symbol: "UI証跡"
+      reason: "Master Persona のモデルカードがカード内部でプロトタイプ相当の構成になり、保存帯がカード外へ分離されていることを確認した。"
+    - path: "test-results/ui-reviewfix/job-setup-model-card.png"
+      line: null
+      symbol: "UI証跡"
+      reason: "Job Setup のモデルカードが同じ component 由来の見た目で並ぶことを確認した。"
+unchecked_scope:
+  - target: "実画面 390px viewport"
+    reason: "実装結果で未確認と記録されている。review_behavior は追加 browser 確認を行わない。"
+    risk: "狭幅でモデルカードまたは保存帯の横はみ出しが残る可能性がある。"
+  - target: "更新失敗時の実画面表示"
+    reason: "実装結果に更新失敗分岐の UI 証跡はない。対象レビューでは成功経路と導線存在を主に確認した。"
+    risk: "失敗時の文言と更新導線の組み合わせで表示密度が変わる可能性がある。"
+  - target: "契約・互換性、権限・信頼境界、状態・データ不変条件、責務境界"
+    reason: "review_behavior の担当外であるため、挙動正しさの根拠になる範囲だけ確認した。"
+    risk: "他観点の gate 判定は各 reviewer の reviewback に委ねる。"
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "Master Persona のモデル一覧更新導線がない"
+    problem: "解消済み。MasterPersonaPage のモデル設定カードに、モデル一覧更新 icon が表示される。モデル未取得状態で、利用者は同じカード内から AI 設定再読み込みを実行できる。"
+    reason: "AIModelSelectionCard は onRefresh が渡された場合に更新 icon button を表示する。MasterPersonaPage は onRefresh を渡し、controller.refreshAISettings から既存 loadAISettings を呼び出す。"
+    violated_condition: "参照側ページのモデルカードから AIサービス、モデル、処理方式を変更でき、モデルカードのくるくるアイコンでモデル一覧を更新できること。"
+    cause_candidate: "修正前原因は、MasterPersonaPage が AIModelSelectionCard に onRefresh を渡していなかったことである。reviewfix では MasterPersonaPage が onRefresh を渡し、MasterPersonaScreenController が loadAISettings へ接続したため、原因は実コード上で閉じている。"
+    evidence:
+      - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+        line: 181
+        excerpt: "onRefresh がある場合に更新 icon button を描画する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 138
+        excerpt: "AIModelSelectionCard に onRefresh が渡され、refreshAISettings を呼ぶ。"
+      - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+        line: 210
+        excerpt: "refreshAISettings は useCase.loadAISettings を呼ぶ。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 105
+        excerpt: "loadAISettings 成功時に aiSettings と modelOptions を更新する。"
+      - path: "test-results/ui-reviewfix/master-persona-model-card.png"
+        line: null
+        excerpt: "Master Persona のモデル欄横に更新 icon が表示されている。"
+    local_fix_assessment: "local"
+    additional_check_scope: "none。behavior-001 の原因は Master Persona のカード内更新導線欠落であり、既存 loadAISettings 再利用で閉じている。"
+    fix_considerations: "保存帯は Master Persona 固有操作としてカード外に置かれている。モデルカード内部の 3 ブロック構成と更新導線を崩さなければ、保存帯差分は挙動上問題にならない。"
+    verification: "実装結果に npm --prefix frontend run check、対象テスト、build、frontend-local の pass が記録されている。UI 証跡で Master Persona と Job Setup のモデルカード表示を確認した。"
+    fix_required: true
+    status: "resolved"

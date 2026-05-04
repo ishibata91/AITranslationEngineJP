@@ -1,0 +1,188 @@
+reviewback_version: 1
+task_id: "ai-provider-settings-management"
+review_yaml_path: "docs/exec-plans/active/ai-provider-settings-management/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持。state-invariant-001 の再読み込み失敗時 default 復帰は、loadAISettings() の開始前 snapshot 保持により通常失敗経路で解消している。state-invariant-002 の再読み込み中操作と失敗時 snapshot 復元の競合は、MasterPersonaPage.svelte が provider、model、executionMethod、保存操作、更新操作を isAISettingsRefreshing で無効化するため、画面操作経路では解消している。成功時は保存済み AI 設定と modelOptions を反映し、失敗時は既存 state を保持して errorMessage だけを更新する。"
+  evidence_sufficiency: "判定可能。指定された修正実行入力、実装結果、既存 reviewback、指定 diff、対象 usecase、画面、共通カード、contract、controller の実コードを確認した。検証コマンドは実装結果の pass 証跡をレビュー入力として扱った。"
+
+checked_scope:
+  summary: "frontend-ui-visual-alignment.reviewfix2 と reviewfix3 の Master Persona AI 設定再読み込み導線について、loadAISettings() の成功失敗時 state 更新、更新中 UI state、provider / model / executionMethod / modelOptions / errorMessage の保持条件、保存操作との競合を確認した。"
+  files:
+    - path: "docs/exec-plans/active/ai-provider-settings-management/fix-handoff.frontend-ui-visual-alignment.reviewfix2.md"
+      line: 21
+      symbol: "修正範囲"
+      reason: "AI 設定再読み込み失敗時に既存 aiSettings と modelOptions を保持する目的を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/fix-handoff.frontend-ui-visual-alignment.reviewfix3.md"
+      line: 21
+      symbol: "修正範囲"
+      reason: "再読み込み中に provider、model、executionMethod、保存操作を無効化する目的を確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-result.frontend-ui-visual-alignment.reviewfix2.md"
+      line: 10
+      symbol: "判断結果"
+      reason: "実装 agent が state-invariant-001 修正完了と失敗時保持を主張していることを確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-result.frontend-ui-visual-alignment.reviewfix2.md"
+      line: 28
+      symbol: "検証結果"
+      reason: "check、対象 test、build、frontend-local の pass 証跡をレビュー入力として確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-result.frontend-ui-visual-alignment.reviewfix3.md"
+      line: 10
+      symbol: "判断結果"
+      reason: "実装 agent が state-invariant-002 修正完了と更新中操作無効化を主張していることを確認した。"
+    - path: "docs/exec-plans/active/ai-provider-settings-management/implementation-result.frontend-ui-visual-alignment.reviewfix3.md"
+      line: 28
+      symbol: "検証結果"
+      reason: "check、対象 test、build、frontend-local の pass 証跡をレビュー入力として確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 109
+      symbol: "loadAISettings"
+      reason: "再読み込み開始前に aiSettings と modelOptions を退避する処理を確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 118
+      symbol: "loadAISettings"
+      reason: "成功時に保存済み設定、modelOptions、errorMessage クリアを反映する処理を確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 124
+      symbol: "loadAISettings"
+      reason: "失敗時に既存選択を default と空配列へ戻さず、errorMessage を更新する処理を確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 64
+      symbol: "handleAIProviderChange"
+      reason: "再読み込み中は provider 変更 handler が早期 return することを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 71
+      symbol: "handleAIModelChange"
+      reason: "再読み込み中は model 変更 handler が早期 return することを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 78
+      symbol: "handleAIExecutionMethodChange"
+      reason: "再読み込み中は executionMethod 変更 handler が早期 return することを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 85
+      symbol: "refreshAISettings"
+      reason: "再読み込み中の二重 refresh を早期 return し、finally で更新中 state を解除することを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 132
+      symbol: "AIModelSelectionCard usage"
+      reason: "execution select が isAISettingsRefreshing で disabled になることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 137
+      symbol: "AIModelSelectionCard usage"
+      reason: "model select が isAISettingsRefreshing または canSelectModel false で disabled になることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 154
+      symbol: "AIModelSelectionCard usage"
+      reason: "provider select が isAISettingsRefreshing で disabled になることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 159
+      symbol: "AIModelSelectionCard usage"
+      reason: "refresh button が isAISettingsRefreshing で disabled になることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 185
+      symbol: "saveAiSettingsButton"
+      reason: "保存ボタンが isAISettingsRefreshing で disabled になることを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 139
+      symbol: "provider select"
+      reason: "providerDisabled が select disabled へ反映されることを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 169
+      symbol: "model select"
+      reason: "modelDisabled が select disabled へ反映されることを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 182
+      symbol: "refresh button"
+      reason: "refreshDisabled が更新ボタン disabled へ反映されることを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 235
+      symbol: "execution select"
+      reason: "executionDisabled が select disabled へ反映されることを確認した。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 210
+      symbol: "refreshAISettings"
+      reason: "画面更新操作が useCase.loadAISettings() へ直結していることを確認した。"
+
+unchecked_scope:
+  - target: "実ブラウザでの失敗注入"
+    reason: "状態・データ不変条件レビュー agent はハーネス再実行と実画面操作を担当しない。diff と実コードから判定した。"
+    risk: "失敗表示の実際の見え方は未確認だが、store 更新内容と disabled 連動から provider / model / executionMethod / modelOptions の保持と競合解消は判定できる。"
+  - target: "backend の MasterPersonaLoadAISettings 実装"
+    reason: "今回のレビュー対象差分ではなく、handoff でも backend と Wails gateway の変更が禁止されている。"
+    risk: "backend 応答内容の詳細は未確認だが、失敗時と成功時の frontend state 更新は frontend 実コードだけで確認できる。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "モデル一覧更新失敗で AI 設定選択が default に戻る"
+    problem: "修正前は refreshAISettings() から呼ばれる loadAISettings() の失敗時に、draft.aiSettings が default へ戻り、draft.modelOptions が空配列になっていた。"
+    reason: "reviewfix2 では loadAISettings() 開始前の aiSettings と modelOptions を退避し、失敗時に退避値を保持する処理へ変わった。通常の再読み込み失敗経路では、provider、model、executionMethod、modelOptions が default と空配列へ戻らない。"
+    violated_condition: "再読み込み失敗時は、既存の provider、model、executionMethod、modelOptions を破壊せず、errorMessage と更新中 state だけが失敗状態を表す。"
+    cause_candidate: "修正前の原因は frontend/src/application/usecase/master-persona/master-persona.usecase.ts の catch 分岐が default と空配列を直接代入していたこと。reviewfix2 では同 catch 分岐が開始前 state の保持へ変更された。"
+    evidence:
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 109
+        excerpt: "loadAISettings() は開始前の aiSettings と modelOptions を退避する。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 126
+        excerpt: "catch 分岐は既存選択がある場合に、退避した aiSettings と modelOptions を保持する。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 130
+        excerpt: "catch 分岐は errorMessage を失敗内容に更新する。"
+    local_fix_assessment: "resolved。通常の失敗経路に限れば frontend usecase 内の局所修正で閉じている。"
+    additional_check_scope: "none。通常の失敗経路に対する state 破壊は実コードで解消を確認した。"
+    fix_considerations: "resolved。今後の変更でも失敗時に default と空配列へ戻す処理を復活させないことが不変条件である。"
+    verification: "実装結果の npm --prefix frontend run check、対象 test、build、python3 scripts/harness/run.py --suite frontend-local の pass を確認した。"
+    fix_required: true
+    status: "resolved"
+  - id: "state-invariant-002"
+    level: "major"
+    title: "更新中の選択変更が失敗時に開始前状態へ戻る"
+    problem: "修正前は loadAISettings() が await 前に currentState を退避し、失敗時に退避した aiSettings と modelOptions を draft へ代入していた。再読み込み中も provider、model、executionMethod の select が操作可能だったため、利用者が更新中に変更した最新選択が失敗時に開始前の退避値で上書きされる競合状態があった。"
+    reason: "reviewfix3 では isAISettingsRefreshing が true の間、provider、model、executionMethod、保存ボタン、更新ボタンが disabled になる。さらに各変更 handler と refresh handler が isAISettingsRefreshing で早期 return するため、失敗時 snapshot 復元と更新中の画面操作が競合しない。"
+    violated_condition: "再読み込み失敗時は、その時点で画面が保持している provider、model、executionMethod、modelOptions を破壊せず、errorMessage と更新中 state だけが失敗状態を表す。"
+    cause_candidate: "修正前の原因は frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte が refresh 中 state を provider、model、executionMethod、保存操作に連動させていなかったこと。reviewfix3 では同画面が isAISettingsRefreshing を導入し、AIModelSelectionCard の disabled props と保存ボタンへ反映している。"
+    evidence:
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 64
+        excerpt: "handleAIProviderChange() は isAISettingsRefreshing true で return する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 71
+        excerpt: "handleAIModelChange() は isAISettingsRefreshing true で return する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 78
+        excerpt: "handleAIExecutionMethodChange() は isAISettingsRefreshing true で return する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 85
+        excerpt: "refreshAISettings() は controller 未提供または更新中なら return し、finally で更新中 state を解除する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 132
+        excerpt: "executionDisabled は isAISettingsRefreshing に連動する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 137
+        excerpt: "modelDisabled は isAISettingsRefreshing または canSelectModel false に連動する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 154
+        excerpt: "providerDisabled は isAISettingsRefreshing に連動する。"
+      - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+        line: 185
+        excerpt: "saveAiSettingsButton は isAISettingsRefreshing true で disabled になる。"
+      - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+        line: 139
+        excerpt: "provider select は providerDisabled を disabled へ反映する。"
+      - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+        line: 169
+        excerpt: "model select は modelDisabled を disabled へ反映する。"
+      - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+        line: 235
+        excerpt: "execution select は executionDisabled を disabled へ反映する。"
+    local_fix_assessment: "resolved。frontend の Master Persona page と共通カード props の局所修正で閉じている。backend DTO、Wails gateway、保存項目の変更は不要である。"
+    additional_check_scope: "none。画面操作経路の競合は実コードで解消を確認した。"
+    fix_considerations: "resolved。今後の変更でも再読み込み中の provider、model、executionMethod、保存操作を snapshot 復元と並行させないことが不変条件である。"
+    verification: "実装結果の npm --prefix frontend run check、対象 test、build、python3 scripts/harness/run.py --suite frontend-local の pass を確認した。UI 実画面での失敗注入は未実施だが、disabled 連動と handler guard は実コードで確認した。"
+    fix_required: true
+    status: "resolved"
