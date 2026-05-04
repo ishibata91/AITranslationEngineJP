@@ -31,6 +31,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
+- UI 部品アーキテクチャ正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の `UI Component` とする。
 - 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - UX 標準: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
@@ -47,6 +48,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 
 - 画面表示文言、表示項目、主要操作、ボタン有効条件
 - 画面区画、状態差分、配置制約、アクセシビリティ
+- UI 部品化可否、画面専用部品、共有部品、部品化しない画面構造
 - UIプロトタイプの種類、土台、task-local 正本配置
 - UIプロトタイプの主要導線、画面切り替え、情報密度、入力と結果の見え方
 - UIプロトタイプ確認サーバーの URL、起動 command、人間確認中の起動状態
@@ -65,9 +67,30 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 | `Create job` は無効 | ジョブを作成できません |
 | `Ready job` の read-only summary | 作成後の設定内容 |
 
+### UI 部品化判定表
+
+この表は、UI 要件契約で部品化できるものを部品化する判断を拘束する。
+UI 部品の正本は `architecture.md` の `UI Component` とする。
+
+| 条件 | 見るもの | 部品化しやすい例 | 分けないほうがよい例 |
+| --- | --- | --- | --- |
+| 意味が独立している | その部品を一言で説明できるか | `UserStatusBadge`、`SearchForm`、`Pagination` | 右上にある灰色の箱 |
+| 入力が明確 | props や引数にできるか | `status`、`label`、`onClick` | 親画面の状態を大量に直接読む |
+| 出力が明確 | event や表示結果が限定されるか | `onSubmit(query)`、`onSelect(id)` | 内部で複数の画面状態を勝手に更新する |
+| 状態を閉じ込められる | 内部状態と外部状態を分けられるか | 開閉状態、入力中テキスト | 業務フロー全体の進行状態 |
+| 変更理由がまとまる | 仕様変更時に同じ理由で変わるか | 日付表示規則、状態表示 | A画面では契約都合、B画面では権限都合で変わる |
+| 使用箇所が複数ある | 再利用されるか | ボタン、カード、一覧行 | 1画面専用の大きなレイアウト |
+| バリエーションが制御可能 | variant で表現できるか | `primary`、`secondary`、`danger` | props が増えすぎて条件分岐の塊になる |
+| テスト単位になる | 単体で期待値を書けるか | `status=pending` なら未確認表示 | 画面全体を起動しないと意味がない |
+| デザイン規則を担う | 余白、色、文言規則を統一できるか | `FormField`、`ErrorMessage` | 個別画面の例外スタイル |
+| ドメイン概念に対応する | 業務上の概念名を持てるか | `LicenseLimitSummary`、`TenantRoleTable` | 単なる `BoxWithIconAndText` |
+
 ## 判断規約
 
 - UI は UI 要件契約で固定し、UIプロトタイプは task-local 確認用として扱う
+- UI 部品は `architecture.md` の `UI Component` に従い、画面専用部品と共有部品の二層で判断する
+- UI 要件契約では、部品化できる表示単位を部品化対象として残す
+- UI 要件契約では、部品化しない表示単位と理由を残す
 - UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
 - UIプロトタイプを作る場合は `prototype/index.svelte` として task folder に置く
 - 複数画面を確認する UIプロトタイプは、確認用の画面切り替えを持つ
@@ -119,6 +142,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - UIプロトタイプ: task-local 確認用 `prototype/index.svelte` の作成または更新結果を返す。
 - UIプロトタイプ種別: 既存画面変更または新規画面の区分を返す。
 - UIプロトタイプ土台: 既存画面、既存 UI 部品、または `docs/screen-design` の参照を返す。
+- UI 部品化判断: 部品化対象、配置先、分けない対象、判断理由を返す。
 - UIプロトタイプ配置: task folder 内の配置パスを返す。
 - 確認対象画面一覧: UIプロトタイプで切り替えて確認する画面名と確認順を返す。
 - UIプロトタイプ確認サーバー: 確認 URL、起動 command、人間確認中の起動要否を返す。
@@ -134,6 +158,7 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、tas
 - task 内成果物 が承認状態、根拠参照、未決事項を含んでいる。
 - 人間レビュー が必要な判断を AI だけで完了扱いにしていない。
 - 表示項目、主要操作、ボタン有効条件を確認した。
+- `ui-design.md` は UI 部品化対象、配置先、分けない対象、判断理由を含んでいる。
 - `docs/UX-standard.md` の高優先度項目と対象画面に関係する項目を `ui-design.md` に結果付きで残した。
 - 状態、状態差分、表示幅追従、はみ出しリスク を実装後確認観点として確認した。
 - `ui-design.md` は UI 要件契約と確認観点を含んでいる。

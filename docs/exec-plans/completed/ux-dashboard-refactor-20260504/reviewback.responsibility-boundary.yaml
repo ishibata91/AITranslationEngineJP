@@ -1,0 +1,77 @@
+reviewback_version: 1
+task_id: "ux-dashboard-refactor-20260504"
+review_yaml_path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。変更は Store が保持する route 表示状態値 3 件と、View 経由の表示検証テスト 1 件に閉じている。層責務、依存方向、関数責務、境界変換、副作用配置、変更範囲の越境は確認されない。破られた境界はなし。原因候補はなし。局所修正評価は local で、表示状態値の変更とテスト追加だけで閉じる。"
+  evidence_sufficiency: "十分。承認済み UI 改善契約、実装修正入力、実装結果、単体テスト結果、実画面確認結果、変更 2 ファイルの実コード、git diff を確認した。"
+
+checked_scope:
+  summary: "ダッシュボード入口カードの状態値変更が Store の表示契約に閉じ、追加テストが UI 表示の検証に閉じているかを確認した。"
+  files:
+    - path: "docs/architecture.md"
+      line: 17
+      symbol: "Frontend 構造主語"
+      reason: "Store は画面状態の正本を保持し、View と UI Component は表示責務を担う境界を確認した。"
+    - path: "docs/architecture.md"
+      line: 41
+      symbol: "システム全体の依存方向"
+      reason: "変更差分に bootstrap 以外の具象生成、Wails 境界、backend 境界への依存追加がないことを照合した。"
+    - path: "docs/coding-guidelines.md"
+      line: 17
+      symbol: "共通原則"
+      reason: "正本仕様に沿った局所変更であり、production wiring を View や中核層へ持ち込んでいないことを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ui-design.md"
+      line: 62
+      symbol: "UI改善契約"
+      reason: "変更目的が AppShell のダッシュボード入口カード表示維持に限定されていることを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ui-design.md"
+      line: 89
+      symbol: "部品化判断"
+      reason: "route 初期化、hash 同期、グローバルナビゲーション開閉を入口カードへ移さない境界を確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ux-implementation-handoff.frontend.md"
+      line: 18
+      symbol: "対象変更範囲"
+      reason: "承認済み変更範囲が SHELL_ROUTE_CONTRACT の入口カード状態値だけであることを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ux-implementation-handoff.frontend.md"
+      line: 25
+      symbol: "禁止変更範囲"
+      reason: "route id、label、lead、description、AppShell 構造、backend、統合境界、Wails bind、DTO が変更禁止であることを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/implementation-result.frontend.md"
+      line: 9
+      symbol: "frontend 実装結果"
+      reason: "実装結果が状態値 3 件の変更と AppShell 構造非変更を記録していることを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/unit-test-result.md"
+      line: 9
+      symbol: "実装後単体テスト結果"
+      reason: "追加テストが入口カード領域内の表示検証に閉じていることを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/post-implementation-check.md"
+      line: 9
+      symbol: "実画面確認"
+      reason: "実画面確認結果をレビュー入力として確認した。ハーネスは実行していない。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 28
+      symbol: "SHELL_ROUTE_CONTRACT"
+      reason: "変更が route 表示状態値 3 件に限定され、route id、label、lead、description、生成依存、外部副作用を追加していないことを確認した。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 856
+      symbol: "SCN-DAS-003: 入口カードに確認可能を表示し準備中を表示しない"
+      reason: "追加テストが既存 renderApp と dashboard card section helper を使う表示検証に閉じ、層責務や依存方向を変えていないことを確認した。"
+
+unchecked_scope:
+  - target: "frontend/src/ui/views/AppShell.svelte の詳細実装"
+    reason: "レビュー対象差分に含まれず、実装結果でも構造整理なしと記録されているため、責務境界の主確認対象から外した。"
+    risk: "入口カード表示の既存構造に未観測の責務混在が残る可能性はあるが、今回差分による新規越境リスクは小さい。"
+  - target: "backend、Wails bind、DTO、永続化層"
+    reason: "実装修正入力で変更禁止範囲とされ、git diff でも変更対象外だったため確認していない。"
+    risk: "今回差分から新規越境は発生しにくい。既存実装側の責務問題は本レビューの判定外である。"
+  - target: "agent-browser errors の空行エラー印の発生源"
+    reason: "呼び出し元の検証証跡として確認したが、具体的な error text がなく責務境界の根拠として分類できない。"
+    risk: "実行環境または既存画面由来の問題が残る可能性はあるが、責務境界違反を示す証跡ではない。"
+
+issues: []

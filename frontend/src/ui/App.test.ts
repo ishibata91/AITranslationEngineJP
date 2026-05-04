@@ -853,6 +853,19 @@ describe("App dashboard shell", () => {
     }
   )
 
+  test("SCN-DAS-003: 入口カードに確認可能を表示し準備中を表示しない", () => {
+    // Arrange
+    renderApp()
+
+    // Act
+    const dashboardCardSection = getDashboardCardSection()
+    const dashboardCardQuery = within(dashboardCardSection)
+
+    // Assert
+    expect(dashboardCardQuery.getAllByText("確認可能")).toHaveLength(3)
+    expect(dashboardCardQuery.queryByText("準備中")).not.toBeInTheDocument()
+  })
+
   test("SCN-DAS-004: プレースホルダー画面でも共通 lead を表示する", async () => {
     // Arrange
     const user = userEvent.setup()

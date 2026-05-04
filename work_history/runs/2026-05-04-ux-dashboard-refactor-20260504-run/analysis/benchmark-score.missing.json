@@ -1,0 +1,5 @@
+{
+  "status": "missing",
+  "reason": "transcript path が未提供のため、scripts/work-history/score_transcripts.py を実行できない。",
+  "command": "python3 scripts/work-history/score_transcripts.py --codex-transcript <path> --run-folder work_history/runs/2026-05-04-ux-dashboard-refactor-20260504-run --print-run-folder"
+}

@@ -16,6 +16,7 @@
 
 - `Frontend Bootstrap`: `frontend/src/main.ts`。gateway を生成し、root view へ注入する frontend 側の手動 DI 入口
 - `View`: Svelte component。表示と DOM event を扱う
+- `UI Component`: `View` から呼ばれる Svelte component。表示、入力部品、表示規則を画面状態から分離する
 - `ScreenController`: 画面操作の入口。screen local な依存を束ね、`UseCase` を起動する
 - `Frontend UseCase`: 画面状態の更新手順を決め、`GatewayContract` と `Store` を使う
 - `Presenter`: `Store` の状態を view model へ整形する
@@ -38,7 +39,9 @@ DB テーブル、DTO 項目、要件フロー、画面遷移は構造図へ混�
 全体の依存方向は次の通りとする。
 
 - `frontend/main.ts -> Gateway -> root View`
+- `View -> UI Component`
 - `View -> ScreenController`
+- `UI Component -> View`
 - `ScreenController -> Frontend UseCase / Presenter / Store / RuntimeEventAdapter`
 - `Frontend UseCase -> GatewayContract / Store`
 - `Gateway -> generated wailsjs -> backend Controller`
@@ -60,12 +63,42 @@ frontend 全体の composition root はここに置き、DI コンテナは使�
 ### 3.2 View
 
 - 画面を表示する
+- `UI Component` を組み合わせる
 - DOM event を `ScreenController` へ渡す
 - view model だけを前提に描画する
 
 View は backend DTO や generated binding を直接扱わない。
 
-### 3.3 ScreenController
+### 3.3 UI Component
+
+UI Component は `View` の下位に置く表示部品である。
+UI Component は画面単位の部品と共有部品の二層で扱う。
+
+- 画面専用部品は `frontend/src/ui/screens/<screen>/` に置く
+- 複数画面で使う部品だけ `frontend/src/ui/components/` に置く
+- 業務フロー全体の進行状態を持たない
+- backend DTO、generated binding、`Store`、`Gateway` を直接扱わない
+- 状態変更は event として `View` へ返し、`View` から `ScreenController` へ渡す
+
+UI Component は部品化できるものを部品化する。
+ただし、画面専用の大きなレイアウトや親画面の状態を大量に読む部品は分けない。
+
+UI Component の部品化判断は次の表に従う。
+
+| 条件 | 見るもの | 部品化しやすい例 | 分けないほうがよい例 |
+| --- | --- | --- | --- |
+| 意味が独立している | その部品を一言で説明できるか | `UserStatusBadge`、`SearchForm`、`Pagination` | 右上にある灰色の箱 |
+| 入力が明確 | props や引数にできるか | `status`、`label`、`onClick` | 親画面の状態を大量に直接読む |
+| 出力が明確 | event や表示結果が限定されるか | `onSubmit(query)`、`onSelect(id)` | 内部で複数の画面状態を勝手に更新する |
+| 状態を閉じ込められる | 内部状態と外部状態を分けられるか | 開閉状態、入力中テキスト | 業務フロー全体の進行状態 |
+| 変更理由がまとまる | 仕様変更時に同じ理由で変わるか | 日付表示規則、状態表示 | A画面では契約都合、B画面では権限都合で変わる |
+| 使用箇所が複数ある | 再利用されるか | ボタン、カード、一覧行 | 1画面専用の大きなレイアウト |
+| バリエーションが制御可能 | variant で表現できるか | `primary`、`secondary`、`danger` | props が増えすぎて条件分岐の塊になる |
+| テスト単位になる | 単体で期待値を書けるか | `status=pending` なら未確認表示 | 画面全体を起動しないと意味がない |
+| デザイン規則を担う | 余白、色、文言規則を統一できるか | `FormField`、`ErrorMessage` | 個別画面の例外スタイル |
+| ドメイン概念に対応する | 業務上の概念名を持てるか | `LicenseLimitSummary`、`TenantRoleTable` | 単なる `BoxWithIconAndText` |
+
+### 3.4 ScreenController
 
 - screen local な composition root として `UseCase`、`Store`、`Presenter`、`RuntimeEventAdapter` を束ねる
 - `UseCase` を起動する
@@ -74,7 +107,7 @@ View は backend DTO や generated binding を直接扱わない。
 
 `ScreenController` は画面境界の制御を持つが、Wails 呼び出しの詳細や DTO 変換は持たない。
 
-### 3.4 Frontend UseCase
+### 3.5 Frontend UseCase
 
 - 画面操作ごとの更新手順を決める
 - `GatewayContract` を呼ぶ
@@ -83,13 +116,13 @@ View は backend DTO や generated binding を直接扱わない。
 
 `Frontend UseCase` は generated `wailsjs` や backend DTO に直接依存しない。
 
-### 3.5 Presenter と Store
+### 3.6 Presenter と Store
 
 - `Store` は screen state の正本を保持する
 - `Presenter` は `Store` の state と接続状態から view model を組み立てる
 - View は `Store` を直接加工しない
 
-### 3.6 Gateway と RuntimeEventAdapter
+### 3.7 Gateway と RuntimeEventAdapter
 
 - `Gateway` は `GatewayContract` を実装する
 - `Gateway` は `GatewayDTO` と generated `wailsjs` を `frontend/src/controller/wails/` に閉じ込める
@@ -144,6 +177,7 @@ adapter concrete は `internal/repository/`、`internal/service/`、`internal/in
 - frontend / backend ともに DI コンテナを使わない
 - `Bootstrap` 以外の層で concrete 実装を new しない
 - `View` は generated `wailsjs` と backend DTO を直接扱わない
+- `UI Component` は backend DTO、generated binding、`Store`、`Gateway` を直接扱わない
 - `Frontend UseCase` は `GatewayContract` と `Store` だけに依存する
 - `Backend Controller` は caller-owned `UseCasePort` だけに依存する
 - `Backend UseCase` は caller-owned `ServicePort` と純粋な rule object に依存する
@@ -153,7 +187,7 @@ adapter concrete は `internal/repository/`、`internal/service/`、`internal/in
 ## 6. 現在のディレクトリ正本
 
 - `frontend/src/main.ts`: frontend bootstrap
-- `frontend/src/ui/`: View と screen local な controller / usecase / presenter / store
+- `frontend/src/ui/`: View、UI Component、screen local な controller / usecase / presenter / store
 - `frontend/src/application/`: shared な gateway contract などの frontend 境界定義
 - `frontend/src/controller/wails/`: gateway、DTO、generated binding wrapper、runtime 連携 adapter
 - `frontend/wailsjs/`: generated bindings。hand-edit しない

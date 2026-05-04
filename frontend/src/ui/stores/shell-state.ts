@@ -43,14 +43,14 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "master-dictionary",
     label: "マスター辞書",
-    state: "準備中",
+    state: "確認可能",
     lead: "用語と訳語の基盤データを確認するページです。",
     description: "用語と訳語の基盤データを確認します。"
   },
   {
     id: "master-persona",
     label: "マスターペルソナ",
-    state: "準備中",
+    state: "確認可能",
     lead: "翻訳に使うペルソナ設定を確認するページです。",
     description: "翻訳に使うペルソナ設定を確認します。"
   },
@@ -65,7 +65,7 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "output-management",
     label: "出力管理",
-    state: "準備中",
+    state: "確認可能",
     lead: "生成された成果物を確認するページです。",
     description: "生成物と書き出し結果を確認します。"
   }

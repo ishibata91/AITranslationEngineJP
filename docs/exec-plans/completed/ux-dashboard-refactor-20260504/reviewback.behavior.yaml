@@ -1,0 +1,89 @@
+reviewback_version: 1
+task_id: "ux-dashboard-refactor-20260504"
+review_yaml_path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。ダッシュボード入口カードの master-dictionary、master-persona、output-management は `準備中` から `確認可能` へ変わっている。route id、label、lead、description、dashboardEntryRoutes の抽出条件、入口カード 5 件、グローバルナビゲーション 6 件、禁止表示は維持されている。"
+  evidence_sufficiency: "十分。必読成果物、対象 diff、実コード、追加テスト、呼び出し元提供の実装後検証証跡を確認した。ハーネスは skill 規約と人間指示に従い再実行していない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "修正不要。今回の挙動変更は shell-state.ts の状態値 3 件と入口カード内表示確認テストで閉じている。追加の設計境界変更は不要である。"
+
+validation_evidence:
+  - command: "npm --prefix frontend run test -- AppShell"
+    result: "pass"
+    source: "implementation-result.frontend.md、unit-test-result.md、post-implementation-check.md の提供証跡。レビューでは再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    source: "implementation-result.frontend.md、unit-test-result.md、post-implementation-check.md の提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser open http://127.0.0.1:34115/#dashboard"
+    result: "pass"
+    source: "post-implementation-check.md の提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser snapshot"
+    result: "pass"
+    source: "post-implementation-check.md の提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser screenshot tmp/agent-browser/ux-dashboard-refactor-after-desktop.png"
+    result: "pass"
+    source: "post-implementation-check.md の提供証跡。レビューでは再実行していない。"
+  - command: "agent-browser errors"
+    result: "具体的な error text なし。空行のエラー印だけが出力された。"
+    source: "post-implementation-check.md の提供証跡。レビューでは再実行していない。"
+
+checked_scope:
+  summary: "承認済み UI改善契約、frontend 実装修正入力、実装結果、単体テスト結果、実画面確認結果、shell route state、AppShell の入口カード描画経路、追加テストを挙動正しさ観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ui-design.md"
+      line: 73
+      symbol: "UI改善契約.表示契約"
+      reason: "`準備中` を `確認可能` へ変更する人間UIレビュー条件を確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ui-design.md"
+      line: 127
+      symbol: "UI改善契約.表示文言"
+      reason: "入口カードでは `準備中` を `確認可能` に変更する期待挙動を確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/ux-implementation-handoff.frontend.md"
+      line: 20
+      symbol: "対象変更範囲"
+      reason: "変更対象が `SHELL_ROUTE_CONTRACT` の状態値 3 件に限定されることを確認した。"
+    - path: "docs/exec-plans/active/ux-dashboard-refactor-20260504/post-implementation-check.md"
+      line: 27
+      symbol: "文言変更確認"
+      reason: "実画面確認で対象 3 件の `確認可能` と `準備中` 非表示が確認済みであることを確認した。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 46
+      symbol: "SHELL_ROUTE_CONTRACT.master-dictionary"
+      reason: "`マスター辞書` の状態値が `確認可能` であることを確認した。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 53
+      symbol: "SHELL_ROUTE_CONTRACT.master-persona"
+      reason: "`マスターペルソナ` の状態値が `確認可能` であることを確認した。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 68
+      symbol: "SHELL_ROUTE_CONTRACT.output-management"
+      reason: "`出力管理` の状態値が `確認可能` であることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 86
+      symbol: "dashboardEntryRoutes"
+      reason: "ダッシュボード自身を除いた入口カード抽出条件が維持されていることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 212
+      symbol: "entry-state"
+      reason: "入口カードの状態表示が route.state から描画されることを確認した。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 856
+      symbol: "SCN-DAS-003"
+      reason: "入口カード領域内で `確認可能` 3 件と `準備中` 非表示を証明するテストを確認した。"
+
+unchecked_scope:
+  - target: "860px 以下の実画面表示"
+    reason: "post-implementation-check.md の保存済み screenshot は desktop path だけであり、レビューでは agent-browser を再実行していないため。"
+    risk: "状態値変更は短い文言のためリスクは低いが、モバイル実画面の最新証跡は本レビューでは未確認である。"
+  - target: "`agent-browser errors` の空行エラー印の発生源"
+    reason: "提供証跡に具体的な error text がなく、レビューでは browser 再観測を実行していないため。"
+    risk: "具体的な console error text は観測されていないため、表示文言変更との因果は確認できない。"
+
+issues: []
