@@ -12,14 +12,14 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 対応ロール
 
 - `implementation_implementer` が使う。
-- 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` とする。
+- 呼び出し元は `implement_lane` または `ux_refactor_lane` とする。
+- 返却先は呼び出し元とする。
 - 担当成果物は `implement-frontend` の出力規約で固定する。
 
 ## 入力規約
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件。
-- UI 設計根拠: 承認済み `ui-design.md` と task-local UIプロトタイプ。
+- frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、または UX改善レーンの `task 枠`。
+- UI 根拠: 承認済み `ui-design.md`、または UX改善レーンの既存画面根拠と人間UIレビュー観点。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
@@ -33,56 +33,38 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
-- UI 設計規約: [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) の task-local UIプロトタイプ確認サーバー規約に従う。
-- UIプロトタイプ確認サーバー: [serve-prototype.mjs](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/scripts/dev/serve-prototype.mjs) とする。
+- UI 設計規約: `ui-design.md` を受け取る場合は [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) の UI 要件契約に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
 
-### UIプロトタイプ一致観点
+### UI 根拠確認観点
 
 | 観点 | 判断対象 |
 | --- | --- |
-| 画面構造 | 実画面の区画、情報階層、主要操作の位置が承認済み UIプロトタイプと合っているか |
-| 見た目 | 実画面の余白、整列、情報密度、視覚的な強弱が承認済み UIプロトタイプと合っているか |
-| 表示文言 | 実画面の見出し、ラベル、説明、エラー、空状態、完了状態の文言が承認済み `ui-design.md` と合っているか |
-| 状態変化 | 実画面の入力反応、有効条件、読み込み中、空、エラー、成功の切り替えが承認済み UIプロトタイプと合っているか |
-| 操作性 | 実画面の主要操作、取消、戻る、破壊的操作、フォーカス移動が承認済み UIプロトタイプの操作意図と合っているか |
-| 表示幅追従 | 実画面のデスクトップ、モバイル、長文表示、要素非表示時の崩れ方が承認済み `ui-design.md` の実装後確認観点と合っているか |
-
-### UIプロトタイプ確認サーバー
-
-| 項目 | 内容 |
-| --- | --- |
-| 起動 command 参照元 | 承認済み `ui-design.md` の `prototype_server_command` |
-| 既定 command | `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` |
-| 確認 URL | `http://127.0.0.1:34116/prototype` |
-| 入口 file | `prototype/index.svelte`、既存 task では `prototype.svelte` も確認対象 |
-| 確認方法 | `agent-browser` で確認 URL を開き、snapshot、screenshot、console、errors を必要に応じて取得する |
+| 画面構造 | 実画面の区画、情報階層、主要操作の位置が UI 根拠 と合っているか |
+| 見た目 | 実画面の余白、整列、情報密度、視覚的な強弱が UI 根拠 と合っているか |
+| 表示文言 | 実画面の見出し、ラベル、説明、エラー、空状態、完了状態の文言が UI 根拠 と合っているか |
+| 状態変化 | 実画面の入力反応、有効条件、読み込み中、空、エラー、成功の切り替えが UI 根拠 と合っているか |
+| 操作性 | 実画面の主要操作、取消、戻る、破壊的操作、フォーカス移動が UI 根拠 の操作意図と合っているか |
+| 表示幅追従 | 実画面のデスクトップ、モバイル、長文表示、要素非表示時の崩れ方が UI 根拠 の実装後確認観点と合っているか |
 
 ## 判断規約
 
-- 画面導線と 状態 反映を implementation-scope に合わせる
+- 画面導線と 状態 反映を frontend 実行入力 に合わせる
 - Wails bridge 呼び出しの境界を守る
 - generated `wailsjs` は gateway 境界に閉じ込める
 - affected UI の manual flow を確認できる状態にする
 - UI check に必要な 根拠 を残す
 - ユーザーが利用することを前提に、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせる
-- task-local UIプロトタイプがある場合は、承認済み UI 要件契約との対応を確認する
-- task-local UIプロトタイプがある場合は、UIプロトタイプ一致観点に従い、実画面と承認済み UIプロトタイプの差分を確認する
-- UIプロトタイプ一致確認では、実画面の画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を判断対象にする
-- UIプロトタイプ一致確認の差分は、承認済み実装範囲 内で修正できる差分と `implement_lane` へ戻す差分へ分ける
-- UIプロトタイプとの一致確認は `agent-browser` を用いる。
-- task-local UIプロトタイプがある場合は、承認済み `ui-design.md` の `prototype_server_command` で UIプロトタイプ確認サーバーを起動または起動済み確認する。
-- `prototype_server_command` が `ui-design.md` にない場合は、作業計画 folder 名を `<task-id>` として既定 command を使う。
-- UIプロトタイプ確認サーバーを起動または起動済み確認した場合は、確認 URL と起動 command を UIプロトタイプ一致確認結果に残す。
-- `mock-data/` 配下の値を product code、fixture、default state、test data へ移植しない
-- UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を product code、fixture、default state、test data へ移植しない
-- 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
-- `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
+- UI 根拠との対応を確認する
+- UI 根拠確認観点に従い、実画面と UI 根拠 の差分を確認する
+- UI 根拠確認では、実画面の画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を判断対象にする
+- UI 根拠確認の差分は、承認済み実装範囲 内で修正できる差分と呼び出し元へ戻す差分へ分ける
+- UI 根拠との確認は `agent-browser` を用いる。
+- frontend 実行入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - 明確なブロッカーがない限りはレーンを中断せずに成果物の生成を継続すること。
-- 単一引き継ぎ入力、affected UI flow を確認する
-- `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認する
+- frontend 実行入力、affected UI flow を確認する
 - console エラー の有無を 終了処理 に残す
 - UI 状態 の初期値と更新条件を確認する
 - UIは基本的に全て日本語で記載すること。
@@ -96,7 +78,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 非対象規約
 
 - backend だけの変更、design mock 作成、UI check だけの作業は扱わない。
-- design にない改善は追加しない。
+- UI 根拠にない改善は追加しない。
 - プロダクトテスト、検証データ、スナップショット、test helper は変更しない。
 - Wails bridge と backend DTO の境界を迂回しない。
 - docs や作業流れ文書は変更しない。
@@ -107,11 +89,10 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 判断結果: frontend プロダクトコード実装の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装の根拠にした入力、変更箇所、検証結果を返す。
 - 不足情報: 実装を完了できない不足項目を返す。
-- 次判断材料: `implement_lane` が次を判断できる材料を返す。
-- 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
+- 次判断材料: 呼び出し元が次を判断できる材料を返す。
+- 実装成果物: frontend 実行入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
-- UIプロトタイプ一致確認結果: 実画面と承認済み UIプロトタイプの一致、差分、未確認理由を返す。
-- UIプロトタイプ確認サーバー結果: 確認 URL、起動 command、起動状態、未起動理由を返す。
+- UI 根拠確認結果: 実画面と UI 根拠 の一致、差分、未確認理由を返す。
 - UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
@@ -119,19 +100,16 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
-- 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
-- 承認済み `ui-design.md` と task-local UIプロトタイプを確認した。
+- frontend 実行入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
+- UI 根拠 を確認した。
 - 画面導線と 状態 反映を確認した。
-- `mock-data/` 配下の値を移植していない。
-- UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を移植していない。
 - Wails bridge 境界を確認した。
 - generated `wailsjs` を gateway 境界に閉じ込めた。
 - affected UI flow と console エラー を確認した。
 - ユーザーが利用することを意識し、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせて実装した。
-- task-local UIプロトタイプがある場合は、実画面と承認済み UIプロトタイプの一致確認結果を返した。
-- task-local UIプロトタイプがある場合は、UIプロトタイプ確認サーバーの確認 URL、起動 command、起動状態を返した。
-- UIプロトタイプ一致確認結果は、画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を含んでいる。
-- UIプロトタイプ一致確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
+- 実画面と UI 根拠 の一致確認結果を返した。
+- UI 根拠確認結果は、画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を含んでいる。
+- UI 根拠確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 
@@ -140,17 +118,13 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - backend だけの変更を実装する時
 - design mock を作る時
 - UI check だけを行う時
-- 単一引き継ぎ入力、UI 設計根拠、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
+- frontend 実行入力、UI 根拠、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
 - 通信境界を迂回する必要がある場合は停止する。
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接 import する必要がある場合は停止する。
 - gateway 以外で backend DTO 変換が必要な場合は停止する。
-- UIプロトタイプの `data-ui-prototype-sample-data-root` 範囲にある値を実装へ使う必要がある場合は停止する。
-- `mock-data/` 配下の値を実装へ使う必要がある場合は停止し、`implement_lane` へ戻す。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
-- 実画面と承認済み UIプロトタイプの差分が承認済み実装範囲 外の修正を必要とする場合は停止し、`implement_lane` へ戻す。
-- `prototype_server_command` がなく、作業計画 folder 名から `<task-id>` を特定できない場合は停止し、`implement_lane` へ戻す。
-- UIプロトタイプ確認サーバーを起動または起動済み確認できない場合は停止し、未取得理由と戻し先を返す。
-- UIプロトタイプ一致確認に必要な実画面確認根拠を取得できない場合は停止し、未取得理由と戻し先を返す。
+- 実画面と UI 根拠 の差分が承認済み実装範囲 外の修正を必要とする場合は停止し、呼び出し元へ戻す。
+- UI 根拠確認に必要な実画面確認根拠を取得できない場合は停止し、未取得理由と戻し先を返す。
 - `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

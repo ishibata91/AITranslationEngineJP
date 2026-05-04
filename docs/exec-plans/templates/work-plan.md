@@ -16,14 +16,13 @@
 ## 条件付き構成
 
 - `ui-design.md`: UI 要件契約が必要な task だけ作る
-- `prototype.svelte`: UI が関係する task の task-local UIプロトタイプとして作る
-- `mock-data/`: UIプロトタイプの状態表示確認だけに使うサンプル値置き場として作る
 - `implementation-scope.md`: human review 後だけ作る
 
 ## 読み込みルール
 
 - AI は最初に `plan.md` だけ読む
 - 追加 context は必要な skill 資料だけ読む
-- frontend implementation handoff では `implementation-scope.md`、`ui-design.md`、必要な task-local UIプロトタイプを読む
-- UIプロトタイプ確認では `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116` を起動し、確認完了まで起動したままにする
+- 新規実装レーンの frontend implementation handoff では `implementation-scope.md` と `ui-design.md` を読む
+- UX改善レーンの frontend 実装では `plan.md` の `task 枠` を読む
+- UI 確認では実画面を `agent-browser` で確認する
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む

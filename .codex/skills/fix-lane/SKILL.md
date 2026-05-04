@@ -104,7 +104,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `implementation_implementer` へ渡す実装 skill が `implement-backend`、`implement-frontend`、`implement-integration` のいずれか 1 つに固定されている。
 - 回帰テスト証跡が必要な場合は、test agent の完了結果が確認されている。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
-- 終了処理、停止、戻しのいずれでも `作業レポート入力` とベンチマーク根拠が作成されている。
+- 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
 - close 時は作業計画フォルダが `docs/exec-plans/completed/<task-id>/` へ移動済みである。
 
 ## 停止規約

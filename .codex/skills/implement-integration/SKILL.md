@@ -7,7 +7,7 @@ description: Codex implementation レーン 側の API / Wails / DTO / gateway �
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_implementer` agent が 対象範囲 freeze 済みの API、Wails 紐づけ、DTO、gateway、adapter 契約 など frontend と backend の統合境界 承認済み実装範囲 を実装する時の判断基準を提供する。
+`implementation_implementer` agent が API、Wails 紐づけ、DTO、gateway、adapter 契約 など frontend と backend の統合境界 承認済み実装範囲 を実装し、実画面で接続結果を確認する時の判断基準を提供する。
 
 integration は広い frontend / backend 同時変更の許可ではない。
 片側だけで閉じる UI 実装や backend 実装は、それぞれ `implement-frontend` または `implement-backend` を使う。
@@ -28,6 +28,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
 - secret 境界情報: 統合境界で扱う参照値、secret 本体、secret 解決責務層、出力禁止値。
+- UI 確認根拠: UI がある task で参照する承認済み `ui-design.md` と確認対象画面。
 
 ## 外部参照規約
 
@@ -60,10 +61,13 @@ secret 分離観点表は次を拘束する。
 - `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名を、参照値と secret 本体の同名値として扱わない
 - secret 本体は provider、外部 API、内部認証 へ渡す直前に secret 解決責務層から受け取る
 - URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ secret 本体を出さない
-- `APIテスト` 先行時だけ implementation_scenario_tester 出力 も確認する
 - 検証 は frontend、backend、統合境界 契約 の証跡を分ける
 
 - API / Wails / DTO / gateway / adapter 契約 のどれを統合境界として変更したか 終了処理 に残す
+- UI がある task では、実画面で主要操作が backend まで到達することを確認する
+- UI がある task では、実レスポンスが loading、empty、error、success の UI 状態へ反映されることを確認する
+- UI がある task では、console error と Wails 呼び出し失敗が残っていないことを確認する
+- UI がある task では、実画面が承認済み `ui-design.md` の主要区画、導線、状態表示から外れていないことを確認する
 - secret を扱った場合は、偽 secret 保管先、偽送信経路、要求捕捉による漏れ確認を 終了処理 に残す
 - 両側の touched files を 引き継ぎ と対応づける
 - frontend / backend / 統合境界 契約 の レーン内検証 根拠 を分ける
@@ -86,6 +90,7 @@ secret 分離観点表は次を拘束する。
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する統合境界プロダクトコードだけを返す。
 - レーン内検証結果: backend-local と frontend-local の失敗時はその場で直して再実行し、通過結果または未実行理由を変更層別に返す。
+- 実画面確認結果: UI がある task で確認した画面、主要操作、UI 状態、console error、Wails 呼び出し失敗、未確認理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -98,10 +103,13 @@ secret 分離観点表は次を拘束する。
 - secret を扱う場合は、偽 secret 保管先、偽送信経路、要求捕捉を使い、secret 本体が URL、DTO、UI、error summary、構造化 log、audit、要求捕捉に出ないことを確認した。
 - 両側の touched files を 引き継ぎ と対応づけた。
 - 単一引き継ぎ入力 と レーン内検証 根拠 を分けた。
+- UI がある task では、実画面で主要操作が backend まで到達することを確認した。
+- UI がある task では、実レスポンスが UI 状態へ反映されることを確認した。
+- UI がある task では、console error と Wails 呼び出し失敗が残っていないことを確認した。
+- UI がある task では、承認済み `ui-design.md` の主要区画、導線、状態表示との差分を確認した。
 - backend 側の変更がある場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - frontend 側の変更がある場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
-- `APIテスト` 先行時だけ implementation_scenario_tester 出力 を確認した。
 
 ## 停止規約
 
@@ -114,6 +122,8 @@ secret 分離観点表は次を拘束する。
 - secret を扱う統合境界で、参照値、secret 本体、secret 解決責務層、出力禁止値が不足する場合は停止する。
 - secret 本体を URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ出す必要がある場合は停止する。
 - 偽 secret 保管先、偽送信経路、要求捕捉で secret 漏れを確認できない場合は停止する。
+- UI がある task で実画面確認根拠を取得できない場合は停止する。
+- 実画面確認で承認済み統合境界外の UI 修正が必要になる場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
 - `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。

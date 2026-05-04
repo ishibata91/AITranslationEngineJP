@@ -12,8 +12,6 @@
 ## Source Artifacts
 
 - `ui_design`: `./ui-design.md` または `N/A`
-- `ui_prototype`: `./prototype.svelte` または `N/A`
-- `ui_mock_data`: `./mock-data/` または `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `scenario_design`: `./scenario-design.md`
 - `detail_requirement_coverage`: `./scenario-design.requirement-coverage.json`
@@ -22,11 +20,10 @@
 ## Fixed Decisions
 
 - human review 済みの判断だけを書く
-- frontend handoff がある場合は、承認済み `ui-design.md` を source にし、`prototype.svelte` は task-local UIプロトタイプとして扱い、`mock-data/` は task-local 確認用として扱う
+- frontend handoff がある場合は、承認済み `ui-design.md` を source にする
 - `needs_human_decision`: `0`
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
-- downstream handoff が依存する public seam は `contract_freeze` として固定する
-- `contract_freeze` は architecture の layer、transport boundary、依存方向を基準に固定する
+- downstream handoff が依存する public seam は各実装 handoff の完了条件として固定する
 - secret を扱う handoff は参照値、secret 本体、secret 解決責務層、出力禁止値を分ける
 - backend、frontend、統合境界 は原則として別 handoff に分ける
 - `E2E` は UI 人間操作起点だけを指す
@@ -43,18 +40,11 @@
 ### `handoff_id`:
 
 - `implementation_target`:
-- `implementation_artifact`: `contract_freeze | backend 実装 | frontend 実装 | 統合境界実装`
-- `implementation_skill`: `implement-backend | implement-frontend | implement-integration`
+- `implementation_artifact`: `backend 実装 | frontend 実装 | 統合境界実装 | シナリオテスト | 単体テスト`
+- `implementation_skill`: `implement-backend | implement-frontend | implement-integration | tests-scenario | tests-unit`
 - `frontend_required_sources`:
   - `ui_design`: `./ui-design.md` または `N/A`
-- `ui_prototype`: `./prototype.svelte` または `N/A`
-  - `ui_mock_data`: `./mock-data/` または `N/A`
   - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
-- `contract_freeze`:
-  - `status`: `required | not_required | done`
-  - `freeze_source`:
-  - `architecture_layer_basis`:
-  - `frozen_public_seams`:
 - `secret_boundary`:
   - `status`: `required | not_required`
   - `reference_values_allowed_in_ui_dto_read_model`:
@@ -72,17 +62,15 @@
 - `completion_signal`:
 - `acceptance_test`: `required`
 - `execution_test_classification`: `APIテスト | UI人間操作E2E | lower-level only`
-- `execution_stage`: `実装前 | 実装後 | final validation`
+- `execution_stage`: `実装後 | final validation`
 - `notes`:
-  - backend と frontend は必ず別 handoff に分ける。frontend handoff は確定済み `contract_freeze` に depends_on する。
-  - frontend handoff では、承認済み `ui-design.md` を必須 source にし、`prototype.svelte` は task-local UIプロトタイプとして扱い、`mock-data/` は task-local 確認用として扱う。
+  - backend と frontend は必ず別 handoff に分ける。UI がある task では frontend handoff を backend handoff より先に置く。
+  - frontend handoff では、承認済み `ui-design.md` を必須 source にする。
   - frontend handoff では、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書く。
-  - frontend handoff では、`mock-data/` 配下の値を product code、fixture、default state、test data へ移植禁止とする完了条件を書く。
-  - API / Wails / DTO / gateway / adapter contract の接続は `統合境界実装` handoff に分ける。
+  - API / Wails / DTO / gateway / adapter contract の接続と実画面確認は `統合境界実装` handoff に分ける。
   - `implementation_skill` は `implementation_artifact` と一致させ、Codex implementation lane が読む skill を一意にする。
-  - `APIテスト` を tester 先行対象にできるのは、受け入れ条件、public seam、入力開始点、主要観測点、期待 outcome が固定済みの時だけにする。
-  - `UI人間操作E2E` は final validation で証明し、frontend handoff の直接 owner にしない。
-  - `contract_freeze.status: required` の handoff では、architecture layer、transport boundary、依存方向を `architecture_layer_basis` に書き、downstream が参照してよい public API / DTO / gateway / controller entry / state contract を `frozen_public_seams` に列挙する。
+  - `シナリオテスト` と `単体テスト` は実装成果物の完了後に別 handoff として作り、依存対象が揃った後は並列実行できる。
+  - `APIテスト` と `UI人間操作E2E` は実装後の `シナリオテスト` で証明する。
   - secret を扱う handoff では、UI / DTO / read model に出してよい参照値と、provider / external API / internal auth に渡す secret 本体を `secret_boundary` に分けて書く。
   - `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名がある場合は、参照値と secret 本体を同じ値として扱わない。
   - `forbidden_outputs` には log、error summary、audit、request capture、URL、DTO、UI、read model に出してはいけない値を書く。

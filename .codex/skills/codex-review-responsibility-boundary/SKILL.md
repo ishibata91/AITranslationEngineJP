@@ -12,15 +12,15 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 ## 対応ロール
 
 - `review_responsibility_boundary` が使う。
-- 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` の レビュー 集約 とする。
+- 呼び出し元は `implement_lane` または `ux_refactor_lane` とする。
+- 返却先は呼び出し元の レビュー 集約 とする。
 - 担当成果物は `codex-review-responsibility-boundary` の出力規約で固定する。
 
 ## 入力規約
 
 - レビュー対象差分: 実装後 レビュー の対象になる差分を受け取る。
 - 実装目的: レビュー対象差分が満たすべき目的を受け取る。
-- implementation-scope の場所: 承認済み実装範囲の参照先を受け取る。
+- 承認済み範囲の場所: `implementation-scope` または UX改善レーンの `task 枠` の参照先を受け取る。
 - 実装結果: 実装 agent が返した実装結果を受け取る。
 - 検証証跡: 実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を受け取る。
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。

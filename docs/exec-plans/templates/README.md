@@ -8,8 +8,6 @@
 - `task-folder/README.md`
 - `task-folder/plan.md`
 - `task-folder/ui-design.md`
-- `task-folder/prototype.svelte`
-- `task-folder/mock-data/`
 - `task-folder/scenario-candidates.viewpoint.md`
 - `task-folder/scenario-design.md`
 - `task-folder/scenario-design.candidate-coverage.json`

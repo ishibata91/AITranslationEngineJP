@@ -277,7 +277,7 @@ AI推奨:
 - Markdown table は使わず、1 ケースごとの縦型ブロックで書く
 - 受け入れテストは全ケースで先に固定する
 - `実行テスト種別` は `APIテスト | UI人間操作E2E | lower-level only` に固定する
-- `実行段階` は `実装前 | 実装後 | final validation` に固定する
+- `実行段階` は `実装後 | final validation` に固定する
 - `期待結果` は観測可能な結果にする
 - `needs_human_decision` が残る場合は scenario 完了にしない
 - 未解決 conflict が残る場合は scenario 完了にしない
@@ -291,12 +291,11 @@ AI推奨:
 - `分類`: 正常系
 - `受け入れテスト`: `required`
 - `実行テスト種別`: `APIテスト | UI人間操作E2E | lower-level only`
-- `実行段階`: `実装前 | 実装後 | final validation`
+- `実行段階`: `実装後 | final validation`
 - `観点`:
 - `受け入れ条件`:
 - `事前条件`:
 - `public_seam_or_api_boundary`:
-- `contract_freeze`:
 - `入力開始点`:
 - `主要 outcome`:
 - `開始操作`:
@@ -318,12 +317,11 @@ AI推奨:
 - `分類`: 主要失敗系
 - `受け入れテスト`: `required`
 - `実行テスト種別`: `APIテスト | UI人間操作E2E | lower-level only`
-- `実行段階`: `実装前 | 実装後 | final validation`
+- `実行段階`: `実装後 | final validation`
 - `観点`:
 - `受け入れ条件`:
 - `事前条件`:
 - `public_seam_or_api_boundary`:
-- `contract_freeze`:
 - `入力開始点`:
 - `主要 outcome`:
 - `開始操作`:

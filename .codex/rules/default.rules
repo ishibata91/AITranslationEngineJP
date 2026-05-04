@@ -80,16 +80,14 @@ prefix_rule(
             "lint:exports",
             "lint:boundaries",
             "format:check",
-            "dev:prototype",
         ],
     ],
     decision = "allow",
-    justification = "Frontend package scripts are workflow validation and UI prototype commands.",
+    justification = "Frontend package scripts are workflow validation commands.",
     match = [
         "npm --prefix frontend run lint",
         "npm --prefix frontend run test",
         "npm --prefix frontend run test:coverage",
-        "npm --prefix frontend run dev:prototype -- --task sample-task --port 34116",
     ],
     not_match = [
         "npm --prefix frontend run dev",
@@ -251,21 +249,6 @@ prefix_rule(
     ],
     not_match = [
         "agent-browser install",
-    ],
-)
-
-prefix_rule(
-    pattern = [
-        "node",
-        "./frontend/scripts/dev/serve-prototype.mjs",
-    ],
-    decision = "allow",
-    justification = "UI prototype server resolves active plan prototype artifacts without touching product code.",
-    match = [
-        "node ./frontend/scripts/dev/serve-prototype.mjs --task sample-task --port 34116 --dry-run",
-    ],
-    not_match = [
-        "node ./scripts/dev/unknown.mjs",
     ],
 )
 

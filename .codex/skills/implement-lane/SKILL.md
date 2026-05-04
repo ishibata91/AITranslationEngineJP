@@ -46,27 +46,17 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `人間設計レビュー` | はい | 人間 | `シナリオ設計`, `UI設計?` | 人間 |
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
-| `実装前受け入れテスト` | 条件付き | `implementation_scenario_tester` | `実装引き継ぎ入力` | `implementation_scenario_tester` |
-| `contract_freeze` | 条件付き | `implementation_implementer` | `実装引き継ぎ入力`, `実装前受け入れテスト?` | `implementation_investigator?`, `implementation_implementer` |
-| `backend 実装` | 条件付き | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `contract_freeze?`, `実装前受け入れテスト?` | `implementation_implementer` |
-| `統合境界実装` | 条件付き | `implementation_implementer` / `implement-integration` | `contract_freeze`, `backend 実装?` | `implementation_implementer` |
-| `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `contract_freeze`, `統合境界実装?` | `implementation_implementer` |
-| `実装後単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
-| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `実装後単体テスト?` | なし |
+| `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `implementation_implementer` |
+| `backend 実装` | 条件付き | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `frontend 実装?` | `implementation_implementer` |
+| `統合境界実装` | 条件付き | `implementation_implementer` / `implement-integration` | `backend 実装`, `frontend 実装?` | `implementation_implementer` |
+| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_scenario_tester` |
+| `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
+| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | 条件付き | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 | `作業計画完了移動` | はい | `implement_lane` | `作業レポート入力` | なし |
-
-### UI設計レビュー中の agent 継続例外
-
-UI設計で task-local UIプロトタイプを作る場合は、`designer` agent を人間設計レビューが終了するまで起動したままにする。
-この例外は、UIプロトタイプ確認サーバーを維持し、人間の UI 指摘を `designer` へ直接返すためにだけ使う。
-人間の UI 指摘は、`implement_lane` を経由せず、起動中の `designer` agent が `ui-design.md` と task-local UIプロトタイプへ反映する。
-`implement_lane` は、人間設計レビューの承認、差し戻し、追加質問、終了状態だけを作業計画フォルダに記録する。
-人間設計レビューが終了した後は、`designer` agent を閉じ、通常の 成果物依存表 に戻す。
-この例外は、プロダクトコード、プロダクトテスト、docs 正本化、implementation-scope の承認前作成には使わない。
 
 ### レビュー集約規約
 
@@ -167,8 +157,11 @@ UI設計で task-local UIプロトタイプを作る場合は、`designer` agent
 - 人間介入 が必要な 成果物 は AI だけで完了にしない。
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
 - backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
+- UI がある task では `frontend 実装` を必須成果物にし、UI がない task では `frontend 実装` を省略できる。
+- UI がある task の `frontend 実装` は、`backend 実装` より先に起動する。
+- `統合境界実装` は frontend と backend の接続結果を実画面で確認する。
+- `シナリオテスト` と `単体テスト` は別成果物にし、依存対象が揃った後に並列起動できる。
 - タスクの終わったサブエージェントを起動したまま残さず，終わったら逐次で閉じること。
-- UI設計レビュー中の `designer` agent は、UI設計レビュー中の agent 継続例外に従い、人間設計レビュー終了まで閉じない。
 
 ## 非対象規約
 
@@ -190,12 +183,11 @@ UI設計で task-local UIプロトタイプを作る場合は、`designer` agent
 
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
-- UI が関係する場合は、`ui-design.md` と必要な task-local UIプロトタイプが人間設計レビュー前に揃っている。
-- UI の人間設計レビュー中は、UIプロトタイプ確認サーバーが起動したままであり、確認 URL と起動 command が記録されている。
-- UI の人間設計レビュー中は、`designer` agent が起動したままであり、人間の UI 指摘を直接反映できる。
-- UI の人間設計レビュー終了後は、`designer` agent を閉じた状態が記録されている。
+- UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
+- UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
-- `backend 実装`、`frontend 実装`、`統合境界実装` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
+- `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。
+- `backend 実装`、`frontend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
 - `レビュー通過根拠` は 5 観点の `reviewback.<観点>.yaml` から behavior、security、responsibility_boundary、その他 の優先度で集約され、`implementation_action` が固定されている。
 - DAGで必須とされている成果物が全て用意できていること。
 - 5 観点すべての `reviewback.<観点>.yaml` に `must_fix_open`、`max_level`、`review_status` が記録されている。
@@ -203,7 +195,7 @@ UI設計で task-local UIプロトタイプを作る場合は、`designer` agent
 - `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
 - `workflow-improvement-log.jsonl` が必要な場合は、分類、根拠、次回改善が JSONL として追記されている。
-- 終了処理、停止、戻し のいずれでも `作業レポート入力` と ベンチマーク根拠 が作成されている。
+- 終了処理、停止、戻し のいずれでも `作業レポート入力` と 作業観測根拠 が作成されている。
 - `implementation_action: close` の場合は、作業計画フォルダ が `docs/exec-plans/completed/<task-id>/` に移動済みで、`docs/exec-plans/active/<task-id>/` に残っていない。
 
 ## 停止規約
@@ -216,4 +208,4 @@ UI設計で task-local UIプロトタイプを作る場合は、`designer` agent
 - レビュー agent 起動入力に 検証証跡 が不足する場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
 - `implementation_action: close` の状態で 作業計画フォルダ を `docs/exec-plans/completed/<task-id>/` へ移動できない場合は終了不可とする。
-- `作業レポート入力` または ベンチマーク根拠 が不足する場合は終了不可とする。
+- `作業レポート入力` または 作業観測根拠 が不足する場合は終了不可とする。

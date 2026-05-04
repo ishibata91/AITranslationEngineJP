@@ -4,13 +4,6 @@
 - `status`: draft
 - `source_plan`: `./plan.md`
 - `scenario_source`: `./scenario-design.md`
-- `ui_prototype`: `./prototype/index.svelte`
-- `prototype_server_url`: `http://127.0.0.1:34116/prototype`
-- `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116`
-- `human_review_server_required`: `yes`
-- `human_review_designer_agent_required`: `yes | no`
-- `human_feedback_route`: `designer_agent_direct | implement_lane`
-- `designer_agent_close_after_review`:
 - `ux_standard_source`: `docs/UX-standard.md`
 
 ## UI Contract
@@ -20,7 +13,6 @@
 - `button_enablement`:
 - `state_variants`:
 - `post_implementation_review`:
-- `prototype_review_order`:
 
 ## Interface Frame
 
@@ -64,51 +56,10 @@
 - `overflow_risks`:
 - `visual_polish_open_questions`:
 
-## UI Prototype Contract
-
-- `prototype_kind`: `existing_screen_change | new_screen`
-- `source_basis`:
-- `existing_screen_resource_refs`:
-- `reused_screen_structure`:
-- `changed_sections_only`:
-- `new_visual_system_added`: `yes | no`
-- `new_visual_system_reason`:
-- `prototype_path`: `./prototype/index.svelte`
-- `prototype_screen_list`:
-- `prototype_route_default`:
-- `prototype_route_navigation`: `in_prototype_only`
-- `required_before_human_review`: `yes`
-- `required_for_frontend_handoff`: `yes`
-- `framework_conversion`: UIプロトタイプの構造を frontend framework へ変換する
-- `prototype_server_url`: `http://127.0.0.1:34116/prototype`
-- `prototype_server_command`: `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116`
-- `human_review_server_required`: `yes`
-- `human_review_designer_agent_required`: `yes | no`
-- `human_feedback_route`: `designer_agent_direct | implement_lane`
-- `designer_agent_close_after_review`:
-- `ux_standard_source`: `docs/UX-standard.md`
-- `mock_data_root`: `./mock-data/`
-- `mock_data_migration`: `forbidden`
-- `sample_data_root`: `[data-ui-prototype-sample-data-root]`
-- `sample_data_migration`: `forbidden`
-- `production_reference_direction`: `product_code_must_not_reference_ui_prototype`
-- `interaction_review`:
-- `state_transition_review`:
-- `wording_review`:
-- `structure_to_preserve`:
-- `allowed_changes_during_conversion`:
-- `forbidden_changes_during_conversion`:
-
 ## Agent Browser Review
 
 - `command_source`: `agent-browser`
-- `served_url`: `http://127.0.0.1:34116/prototype`
-- `server_command`: `npm --prefix frontend run dev:prototype -- --task <task-id> --port 34116`
-- `server_status_during_human_review`:
-- `mock_data_refs`:
-- `used_only_for_display_state_review`:
-- `migration_to_product_code`: `forbidden`
-- `migration_to_fixture_or_test_data`: `forbidden`
+- `checked_url`:
 - `checked_viewports`:
 - `ux_standard_review`:
   - `source`: `docs/UX-standard.md`
@@ -132,34 +83,17 @@
 
 ## Rules
 
-- UI は `ui-design.md` で固定する
-- UIプロトタイプは `docs/exec-plans/active/<task-id>/` 配下を正本にする
-- UIプロトタイプを作る場合は `prototype/index.svelte` を入口にする
-- 複数画面を確認する場合は、確認用の画面切り替えで各画面を確認できるようにする
-- 画面間導線が確認対象の場合は、複数画面の縦積み表示だけで完了扱いにしない
-- 確認用の画面切り替えは、本番のルーティング設計として扱わない
-- UIプロトタイプを作る場合は確認サーバーの URL を `agent-browser` で開き、`docs/UX-standard.md` から確認する
+- UI は `ui-design.md` の UI 要件契約で固定する
+- UI 確認は実画面で行う
 - UX 標準の確認結果を `UX Standard Review` に記録する
 - `agent-browser` 確認後に、専門知識がなくても次に何をするか分かる表現水準かを表示文言レビューで確認する
 - 固定名以外の画面表示文言は、日本語の業務語へ置き換える
 - 内部状態名は画面に出さず、利用者の次操作を示す文へ変換する
 - 英語ラベルは、利用者が設定画面で見る既存語だけに限定する
-- 人間確認中は UIプロトタイプ確認サーバーを起動したままにする
-- 人間確認中に UIプロトタイプ確認サーバーを `designer` agent が保持している場合は、人間レビュー終了まで `designer` agent を起動したままにする
-- 人間確認中の UI 指摘は、起動中の `designer` agent が直接受け取り、`ui-design.md` と task-local UIプロトタイプへ反映する
 - 既存画面変更では、既存画面または既存 UI 部品を土台にする
-- 既存画面変更の UIプロトタイプは、対象画面の既存 Svelte、CSS、class、画面構造を再利用する
 - 既存画面変更では、独自の page shell、card、grid、配色、余白体系を新規に作らない
 - 既存画面変更では、変更対象区画だけを差し替え、変更しない区画は既存画面の構造と表示を維持する
-- 既存画面リソースを再利用できない場合は、理由を `UI Prototype Contract` に記録し、完了扱いにしない
-- `new_visual_system_added` が `yes` の場合は、既存画面変更として停止または差し戻しにする
 - 新規画面では、`docs/screen-design` の画面設計に従う
-- frontend 実装がある task では、UIプロトタイプを task-local 確認用として扱う
-- frontend 実装では UIプロトタイプの構造を framework へ変換し、主要区画、導線、状態表示を維持する
-- 本番コードから UIプロトタイプを参照しない
-- 実 API、永続化、本番 gateway 接続、業務ロジック完全再現は UIプロトタイプの対象外にする
-- `mock-data/` 配下の値は状態表示確認用であり、frontend 実装へ移植しない
-- `[data-ui-prototype-sample-data-root]` の範囲はモックデータ置き場であり、frontend 実装へ移植しない
 - 細かな visual polish は実装後に人間が実物を確認して直す
 - product component 名や owned scope は、implementation-scope で必要な時だけ扱う
 - implementation-scope の `owned_scope` や product code 対象 file は書かない
