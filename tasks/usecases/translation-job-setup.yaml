@@ -1,7 +1,6 @@
 id: translation-job-setup
 title: 翻訳ジョブ作成
 usecase: translation-job-setup
-flow_order: 2
 flow_stage: preparation
 related_screens:
   - app-shell.md

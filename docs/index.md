@@ -15,14 +15,15 @@
 5. [`tech-selection.md`](./tech-selection.md)
 6. [`coding-guidelines.md`](./coding-guidelines.md)
 7. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
-8. [`UX-standard.md`](./UX-standard.md)
-9. [`lint-policy.md`](./lint-policy.md)
-10. [`er.md`](./er.md)
-11. Relevant file under [`screen-design/`](./screen-design/README.md)
-12. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
-13. Relevant file under [`detail-specs/`](./detail-specs/README.md)
-14. Relevant file under [`exec-plans/`](./exec-plans/)
-15. Relevant file under [`references/`](./references/)
+8. フロントエンド fakeAPI を使う場合: [`frontend-fake-api.md`](./frontend-fake-api.md)
+9. [`UX-standard.md`](./UX-standard.md)
+10. [`lint-policy.md`](./lint-policy.md)
+11. [`er.md`](./er.md)
+12. Relevant file under [`screen-design/`](./screen-design/README.md)
+13. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
+14. Relevant file under [`detail-specs/`](./detail-specs/README.md)
+15. Relevant file under [`exec-plans/`](./exec-plans/)
+16. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
@@ -33,6 +34,7 @@
 - [`tech-selection.md`](./tech-selection.md): 採用技術と品質基盤
 - [`coding-guidelines.md`](./coding-guidelines.md): 実装規約の入口
 - [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md): TypeScript / Svelte / Wails gateway の frontend 実装規約
+- [`frontend-fake-api.md`](./frontend-fake-api.md): frontend 人間レビュー用 fakeAPI の起動、追加、検証の運用仕様
 - [`coding-guidelines-backend.md`](./coding-guidelines-backend.md): Go / Wails backend の実装規約
 - [`coding-guidelines-tests.md`](./coding-guidelines-tests.md): backend / frontend のテスト実装規約
 - [`UX-standard.md`](./UX-standard.md): UI 設計で参照する UX プラクティスの正本

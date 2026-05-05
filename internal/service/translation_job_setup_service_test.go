@@ -16,6 +16,10 @@ var translationJobSetupProviderSettingsPlainSecret = string([]byte{
 	116, 106, 45, 115, 112, 112, 115, 45, 115, 101, 99, 114, 101, 116, 45, 118, 97, 108, 117, 101,
 })
 
+func fixedTranslationJobSetupValidationNow() time.Time {
+	return time.Date(2026, 5, 4, 13, 0, 0, 0, time.UTC)
+}
+
 type fakeTranslationJobSetupSourceRepository struct {
 	getByID func(context.Context, int64) (repository.XEditExtractedData, error)
 	listAll func(context.Context) ([]repository.XEditExtractedData, error)
@@ -363,6 +367,7 @@ func TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime
 		fakeTranslationJobSetupSecretStore{load: func(context.Context, string) (string, error) { return "configured", nil }},
 		fakeTranslationJobSetupTransactor{},
 	)
+	service.now = fixedTranslationJobSetupValidationNow
 
 	created, err := service.CreateTranslationJob(context.Background(), TranslationJobSetupCreateRequest{
 		InputSourceID:    44,
@@ -536,6 +541,7 @@ func TestTranslationJobSetupServiceValidateAcceptsLMStudioSourceTokenInValidatio
 		nil,
 		fakeTranslationJobSetupTransactor{},
 	)
+	service.now = fixedTranslationJobSetupValidationNow
 
 	phaseRuntimes := []TranslationJobSetupPhaseRuntimeDraftReadModel{
 		{PhaseID: "word_translation", Provider: "openai", Model: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "word_translation|openai|openai-primary|req-1"},

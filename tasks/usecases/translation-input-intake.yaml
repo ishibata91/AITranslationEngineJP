@@ -1,7 +1,6 @@
 id: translation-input-intake
 title: 翻訳入力取り込み
 usecase: translation-input-intake
-flow_order: 1
 flow_stage: input
 related_screens:
   - app-shell.md

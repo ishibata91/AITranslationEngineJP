@@ -1,7 +1,6 @@
 id: persona-generation-phase
 title: NPC ペルソナ生成フェーズ
 usecase: persona-generation-phase
-flow_order: 4
 flow_stage: translation_phase
 related_screens:
   - app-shell.md

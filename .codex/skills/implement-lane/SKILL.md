@@ -28,6 +28,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 仕様入口は [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md) とする。
 - エージェント実行定義 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) とする。
 - エージェント実行定義と実行境界は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) に従う。
+- fakeAPI 運用仕様: 人間レビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
 
 ## 内部参照規約
 
@@ -161,6 +162,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - UI がある task では `frontend 実装` を必須成果物にし、UI がない task では `frontend 実装` を省略できる。
 - UI がある task では `frontend 実装後人間レビュー` を必須成果物にし、UI がない task では `frontend 実装後人間レビュー` を省略できる。
 - UI がある task の `frontend 実装` は、`backend 実装` より先に起動する。
+- UI がある task の `frontend 実装` は、人間レビュー前に fakeAPI を整備し、実画面で確認できる review URL、確認状態、未確認理由を `frontend 実装後人間レビュー` の入力へ含める。
+- UI がある task の `frontend 実装` は、backend 実装、統合境界実装、永続化仕様の代替として fakeAPI を扱わない。
 - UI がある task の `backend 実装` と `統合境界実装` は、`frontend 実装後人間レビュー` の承認後に着手する。
 - `frontend 実装後人間レビュー` が差し戻しまたは追加質問の場合は、後続実装へ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
 - `統合境界実装` は frontend と backend の接続結果を実画面で確認する。
@@ -189,6 +192,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
 - UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
+- UI が関係する場合は、人間レビュー前に fakeAPI による実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
 - UI が関係する場合は、`frontend 実装後人間レビュー` の承認が記録されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。
@@ -209,6 +213,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `designer`、`investigator` の必要判定ができない場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
+- UI が関係する task で fakeAPI による実画面確認の review URL、確認状態、未確認理由が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
 - UI が関係する task で `frontend 実装後人間レビュー` の承認がないまま `backend 実装`、`統合境界実装`、`最終検証` へ進みそうな場合は停止する。
 - `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - レビュー agent 起動入力に 検証証跡 が不足する場合は停止する。

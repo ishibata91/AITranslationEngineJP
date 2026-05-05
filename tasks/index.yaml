@@ -3,8 +3,10 @@ catalog_type: implementation_task_catalog
 summary: 粗い実装スライスを順番付きで管理する task catalog
 default_order:
   - foundation-data-management
+  - frontend-fake-api-review-foundation
   - translation-input-intake
   - translation-job-setup
+  - translation-job-management
   - term-translation-phase
   - persona-generation-phase
   - body-translation-phase
@@ -12,10 +14,14 @@ default_order:
 entries:
   - id: foundation-data-management
     path: usecases/foundation-data-management.yaml
+  - id: frontend-fake-api-review-foundation
+    path: usecases/frontend-fake-api-review-foundation.yaml
   - id: translation-input-intake
     path: usecases/translation-input-intake.yaml
   - id: translation-job-setup
     path: usecases/translation-job-setup.yaml
+  - id: translation-job-management
+    path: usecases/translation-job-management.yaml
   - id: term-translation-phase
     path: usecases/term-translation-phase.yaml
   - id: persona-generation-phase

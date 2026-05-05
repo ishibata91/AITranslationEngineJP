@@ -1,7 +1,6 @@
 id: term-translation-phase
 title: 単語翻訳フェーズ
 usecase: term-translation-phase
-flow_order: 3
 flow_stage: translation_phase
 related_screens:
   - app-shell.md
@@ -24,7 +23,7 @@ completion_criteria:
   - 用語や固有名詞の訳語を確定できる
   - 確定訳語を本文翻訳フェーズの入力として参照できる
 depends_on:
-  - translation-job-setup
+  - translation-job-management
 related_exec_plans: []
 related_tests: []
 manual_check_steps:

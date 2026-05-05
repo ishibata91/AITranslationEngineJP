@@ -1,7 +1,6 @@
 id: body-translation-phase
 title: 本文翻訳フェーズ
 usecase: body-translation-phase
-flow_order: 5
 flow_stage: translation_phase
 related_screens:
   - app-shell.md

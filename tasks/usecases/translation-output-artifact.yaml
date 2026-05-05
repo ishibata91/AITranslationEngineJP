@@ -1,7 +1,6 @@
 id: translation-output-artifact
 title: 翻訳成果物出力
 usecase: translation-output-artifact
-flow_order: 6
 flow_stage: output
 related_screens:
   - app-shell.md

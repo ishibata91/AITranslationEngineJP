@@ -33,6 +33,7 @@ description: frontend 実装修正を起点にした画面体験改善レーン�
 
 - エージェント実行定義と実行境界は [ux_refactor_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/ux_refactor_lane.toml) に従う。
 - プロダクト frontend 実装は [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) に従う。
+- fakeAPI 運用仕様: 人間UIレビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
 - シナリオテスト修正は [tests-scenario](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-scenario/SKILL.md) に従う。
 - 単体テスト修正は [tests-unit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-unit/SKILL.md) に従う。
 - 責務境界レビューは [codex-review-responsibility-boundary](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-responsibility-boundary/SKILL.md) に従う。
@@ -69,6 +70,8 @@ UX改善レーンのレビュー観点は次を拘束する。
 - `task 枠` は人間依頼、既存画面根拠、変更許可範囲、禁止範囲、人間UIレビュー観点を含める。
 - `frontend 実装` は `task 枠` だけを根拠にして起動する。
 - `implementation_implementer` の起動入力には `implement-frontend` を読むことを必ず明示する。
+- `frontend 実装` は、人間UIレビュー前に fakeAPI を整備し、実画面で確認できる review URL、確認状態、未確認理由を `人間UIレビュー` の入力へ含める。
+- `frontend 実装` は、backend 実装、統合境界実装、永続化仕様の代替として fakeAPI を扱わない。
 - `人間UIレビュー` は実物確認、見た目、操作、表示文言、状態変化の確認を扱う。
 - `テスト修正証跡` は UI 構造または表示文言の変更で落ちるシナリオテストまたは単体テストだけを扱う。
 - `テスト修正証跡` は `implementation_scenario_tester` または `implementation_unit_tester` を変更対象テスト範囲と検証目的から選んで起動する。
@@ -117,6 +120,7 @@ UX改善レーンのレビュー観点は次を拘束する。
 - UX改善レーンの次成果物、起動、人間レビュー、停止、戻しを再解釈なしで判断できる。
 - `task 枠` が人間依頼、既存画面根拠、変更許可範囲、禁止範囲、人間UIレビュー観点を含んでいる。
 - `frontend 実装` が task 枠、禁止範囲、実装 skill、確認観点を根拠に起動されている。
+- `frontend 実装` が人間UIレビュー前に fakeAPI による実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
 - 起動先 agent が文脈継承なしで直接起動され、起動入力だけで成果物を返している。
 - `frontend 実装` の `implementation_implementer` は人間UIレビュー結果の記録まで維持され、記録後に完了結果を集約して閉じられている。
 - 人間UIレビューは承認、差し戻し、追加質問のいずれかが記録されている。
@@ -130,6 +134,7 @@ UX改善レーンのレビュー観点は次を拘束する。
 - 依頼が画面体験改善か判断できない場合は停止する。
 - 既存画面根拠、変更許可範囲、禁止範囲、人間UIレビュー観点が不足する場合は停止する。
 - task 枠なしで frontend 実装へ進みそうな場合は停止する。
+- fakeAPI による実画面確認の review URL、確認状態、未確認理由が不足するまま人間UIレビューへ進みそうな場合は停止する。
 - frontend 実装なしで人間UIレビューへ進みそうな場合は停止する。
 - 人間UIレビューなしでレビュー通過根拠へ進みそうな場合は停止する。
 - 人間UIレビューなしでテスト修正証跡へ進みそうな場合は停止する。
