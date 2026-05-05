@@ -243,8 +243,7 @@
         <section class="panel section-switcher">
           <div class="section-head">
             <div>
-              <p class="page-label">translation management sections</p>
-              <h2>Input Review / Job Setup / Job Run</h2>
+              <p class="page-label">翻訳セクション</p>
             </div>
           </div>
           <div

@@ -137,7 +137,7 @@ class TranslationInputScreenControllerFake implements TranslationInputScreenCont
 }
 
 describe("App translation-input route", () => {
-  test("translation-management route で Input Review page を描画する", async () => {
+  test("translation-management route でデータロード画面を描画する", async () => {
     window.history.replaceState(null, "", "#translation-management")
 
     const controller = new TranslationInputScreenControllerFake()
@@ -155,8 +155,11 @@ describe("App translation-input route", () => {
       screen.getByRole("heading", { level: 1, name: "翻訳管理" })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("heading", { level: 2, name: "Input Review" })
+      screen.getByRole("heading", { level: 2, name: "データロード" })
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { level: 2, name: "Input Review" })
+    ).not.toBeInTheDocument()
 
     await waitFor(() => {
       expect(controller.mount).toHaveBeenCalledTimes(1)
@@ -203,15 +206,18 @@ describe("App translation-input route", () => {
     await user.click(screen.getByRole("link", { name: "ダッシュボード" }))
 
     expect(
-      screen.queryByRole("heading", { level: 2, name: "Input Review" })
+      screen.queryByRole("heading", { level: 2, name: "データロード" })
     ).not.toBeInTheDocument()
     expect(controller.dispose).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole("link", { name: "翻訳管理" }))
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Input Review" })
+      screen.getByRole("heading", { level: 2, name: "データロード" })
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { level: 2, name: "Input Review" })
+    ).not.toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: /kept-input.json/ })
     ).toBeInTheDocument()

@@ -44,13 +44,13 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、close 条件を管理する。全 close 条件には 作業レポート、作業観測根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必ず含める
 - `fix_lane` は人間が確認した不具合、レビュー非通過、検証失敗の task 内成果物 DAG、起動入力、担当 agent 起動、停止、戻し、close 条件を管理する
 - `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
-- `ux_refactor_lane` は frontend 実装修正を起点にした画面体験改善の task 内成果物 DAG、起動入力、人間UIレビュー、責務レビュー、close 条件を管理する
+- `ux_refactor_lane` は frontend 実装修正を起点にした画面体験改善の task 内成果物 DAG、起動入力、人間UIレビュー、テスト修正、責務レビュー、close 条件を管理する
 - `exploration_test_planner` は探索計画だけを作り、観測、ログ確認、画面確認、原因仮説の作成を扱わない
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
 - `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` を揃える。人間レビュー 後に `implementation-scope` を固定する
 - シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
 - `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。UI がある task では frontend 実装後に人間レビューを挟む。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
-- `ux_refactor_lane` は `task 枠` を実行正本にし、`implementation_implementer`、`review_responsibility_boundary`、`work_reporter` を 文脈 継承なしで直接 起動 する。frontend 実装 agent は人間UIレビュー結果の記録まで維持し、その他の完了済みサブエージェントは完了結果を集約した後に閉じる
+- `ux_refactor_lane` は `task 枠` を実行正本にし、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`review_responsibility_boundary`、`work_reporter` を 文脈 継承なしで直接 起動 する。frontend 実装 agent は人間UIレビュー結果の記録まで維持し、その他の完了済みサブエージェントは完了結果を集約した後に閉じる
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
 - Codex agent の人間可読な実行説明は対応する `skills/*/SKILL.md` に置き、紐づけ と `sandbox_mode` は `agents/<agent>.toml` に置き、入力、出力、完了、停止の規約は対応する `skills/*/SKILL.md` に置く
@@ -73,7 +73,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - シナリオ候補生成 agent 6 体は固定 観点 の シナリオ 候補だけを作り、採否、統合、最終 シナリオ表 は扱わない
 - `designer` は シナリオ 候補を統合し、シナリオ設計、UI 設計、implementation-scope の task 内成果物 を作る。UI 設計は design bundle 本体へ含めず、独立成果物として扱う
 - `exploration_test_lane` は探索計画と探索証跡を読み、バグ一覧、ログ、影響ファイルを集約する。プロダクトコードとプロダクトテストは変更しない
-- `ux_refactor_lane` は人間依頼、既存画面根拠、変更許可範囲、禁止範囲を `task 枠` に固定し、frontend 実装、人間UIレビュー、責務レビューを管理する。プロダクトコードとプロダクトテストは変更しない
+- `ux_refactor_lane` は人間依頼、既存画面根拠、変更許可範囲、禁止範囲を `task 枠` に固定し、frontend 実装、人間UIレビュー、テスト修正、責務レビューを管理する。プロダクトコードとプロダクトテストは変更しない
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、検証証跡を渡した観点別 レビュー agent の並列 起動、`reviewback.<観点>.yaml` 群の欠落なし集約、`implementation_action` 分岐を進める
@@ -87,7 +87,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `work_reporter` は 完了根拠、`transcript_refs.json`、レビュー最終状態 YAML、改善ログ、検証結果 から `work_history` の run 全体レポート を生成する。明示 完了根拠 が不足する場合は Codex 会話ログ または chat session file を 根拠参照 付き 根拠 として確認する
 - `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価し、`reviewback.<観点>.yaml`、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
 - `implement_lane` は run 中に見つけた構造問題、作業流れ問題、権限問題、実行問題、人間フィードバック、レビュー由来の改善示唆を `work_history/runs/<run>/workflow-improvement-log.jsonl` へ逐次追記する
-- `ux_refactor_lane` は人間UIレビュー 完了後、`review_responsibility_boundary` を必須レビューとして起動する。責務外の実装範囲、secret、外部入力、保存先、ログ出力先を触る差分が必要な場合は停止して人間へ返す
+- `ux_refactor_lane` は人間UIレビュー 完了後、UI 構造または表示文言の変更で落ちるテストを `implementation_scenario_tester` または `implementation_unit_tester` へ渡し、その後に `review_responsibility_boundary` を必須レビューとして起動する。責務外の実装範囲、secret、外部入力、保存先、ログ出力先を触る差分が必要な場合は停止して人間へ返す
 - 観点別 レビュー agent は挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件、責務境界のいずれか 1 つだけを扱い、`reviewback.<観点>.yaml` を作成、追記、解決更新、削除する
 - 観点別 レビュー agent は広い ハーネス 再実行を担当せず、`implement_lane` から渡された検証証跡をレビュー入力として扱う
 - 観点別 レビュー agent は 失敗 または 停止 の場合も `reviewback.<観点>.yaml` に結果、根拠、未解決指摘を記録する
@@ -183,7 +183,8 @@ UX改善レーンの成果物DAGは次を標準形にする。
 | `task 枠` | `ux_refactor_lane` | `[]` | なし |
 | `frontend 実装` | `implementation_implementer` / `implement-frontend` | `task 枠` | `implementation_implementer` |
 | `人間UIレビュー` | human | `frontend 実装` | human |
-| `レビュー通過根拠` | `ux_refactor_lane` | `frontend 実装`, `人間UIレビュー` | `review_responsibility_boundary` |
+| `テスト修正証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `frontend 実装`, `人間UIレビュー` | `implementation_scenario_tester` または `implementation_unit_tester` |
+| `レビュー通過根拠` | `ux_refactor_lane` | `frontend 実装`, `人間UIレビュー`, `テスト修正証跡?` | `review_responsibility_boundary` |
 | `作業レポート入力` | `ux_refactor_lane` / `work_reporter` | 全完了または停止済み 成果物, `レビュー通過根拠?` | `work_reporter` |
 | `作業計画完了移動` | `ux_refactor_lane` | `作業レポート入力` | なし |
 

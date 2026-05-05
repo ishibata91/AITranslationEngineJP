@@ -7,15 +7,15 @@ description: frontend 実装修正を起点にした画面体験改善レーン�
 ## 目的
 
 `ux-refactor-lane` は、既存仕様の意味を広げずに、frontend 実装修正を起点にした画面体験改善を進める作業プロトコルである。
-`ux_refactor_lane` が task 枠、frontend 実装、人間UIレビュー、レビュー通過根拠、作業レポート入力を管理する時に使う。
+`ux_refactor_lane` が task 枠、frontend 実装、人間UIレビュー、テスト修正証跡、レビュー通過根拠、作業レポート入力を管理する時に使う。
 
 ## 対応ロール
 
 - `ux_refactor_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`frontend 実装`、`人間UIレビュー`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
-- 起動担当 agent は `implementation_implementer`、`review_responsibility_boundary`、`work_reporter` とする。
+- 担当成果物は `task 枠`、`frontend 実装`、`人間UIレビュー`、`テスト修正証跡`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
+- 起動担当 agent は `implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`review_responsibility_boundary`、`work_reporter` とする。
 
 ## 入力規約
 
@@ -33,6 +33,8 @@ description: frontend 実装修正を起点にした画面体験改善レーン�
 
 - エージェント実行定義と実行境界は [ux_refactor_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/ux_refactor_lane.toml) に従う。
 - プロダクト frontend 実装は [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) に従う。
+- シナリオテスト修正は [tests-scenario](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-scenario/SKILL.md) に従う。
+- 単体テスト修正は [tests-unit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-unit/SKILL.md) に従う。
 - 責務境界レビューは [codex-review-responsibility-boundary](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/codex-review-responsibility-boundary/SKILL.md) に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -48,7 +50,8 @@ UX改善レーンの成果物DAGは次を必ず持つ。
 | `task 枠` | `ux_refactor_lane` | `[]` | なし |
 | `frontend 実装` | `implementation_implementer` / `implement-frontend` | `task 枠` | `implementation_implementer` |
 | `人間UIレビュー` | 人間 | `frontend 実装` | 人間 |
-| `レビュー通過根拠` | `ux_refactor_lane` | `frontend 実装`, `人間UIレビュー` | `review_responsibility_boundary` |
+| `テスト修正証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `frontend 実装`, `人間UIレビュー` | `implementation_scenario_tester` または `implementation_unit_tester` |
+| `レビュー通過根拠` | `ux_refactor_lane` | `frontend 実装`, `人間UIレビュー`, `テスト修正証跡?` | `review_responsibility_boundary` |
 | `作業レポート入力` | `ux_refactor_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
 | `作業計画完了移動` | `ux_refactor_lane` | `作業レポート入力` | なし |
 
@@ -67,7 +70,10 @@ UX改善レーンのレビュー観点は次を拘束する。
 - `frontend 実装` は `task 枠` だけを根拠にして起動する。
 - `implementation_implementer` の起動入力には `implement-frontend` を読むことを必ず明示する。
 - `人間UIレビュー` は実物確認、見た目、操作、表示文言、状態変化の確認を扱う。
-- `レビュー通過根拠` は `review_responsibility_boundary` だけを起動する。
+- `テスト修正証跡` は UI 構造または表示文言の変更で落ちるシナリオテストまたは単体テストだけを扱う。
+- `テスト修正証跡` は `implementation_scenario_tester` または `implementation_unit_tester` を変更対象テスト範囲と検証目的から選んで起動する。
+- `テスト修正証跡` は frontend 実装と人間UIレビュー結果を根拠にし、仕様変更またはプロダクトコード変更を含めない。
+- `レビュー通過根拠` は `frontend 実装`、`人間UIレビュー`、`テスト修正証跡?` を根拠にして `review_responsibility_boundary` だけを起動する。
 - レビュー agent の結果は `reviewback.responsibility-boundary.yaml` の `must_fix_open`、`max_level`、`review_status` から集約する。
 - `blocker`、`critical`、`major` の未解決指摘がある場合は `implementation_action` を `fix` または `rerun_codex_review` にする。
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
@@ -82,7 +88,7 @@ UX改善レーンのレビュー観点は次を拘束する。
 
 - 新規実装と機能拡張は扱わない。
 - シナリオ候補生成、シナリオ設計、UI契約作成は扱わない。
-- 受け入れテスト実装、単体テスト実装は扱わない。
+- 人間UIレビュー前の受け入れテスト実装、単体テスト実装は扱わない。
 - backend 実装と統合境界実装は扱わない。
 - 仕様変更、データ不変条件変更、公開契約変更は扱わない。
 - 探索テストの計画と観測は扱わない。
@@ -99,6 +105,8 @@ UX改善レーンのレビュー観点は次を拘束する。
 - task 枠: 人間依頼、既存画面根拠、変更許可範囲、禁止範囲、人間UIレビュー観点を返す。
 - frontend 実装起動入力: `implementation_implementer` 向けに task 枠、実装 skill、確認観点、停止条件を返す。
 - 人間UIレビュー記録: 人間UIレビューの承認、差し戻し、追加質問、確認根拠を返す。
+- テスト修正起動入力: テスト修正担当 agent 向けに対象テスト範囲、検証目的、frontend 実装結果、人間UIレビュー結果、検証コマンド、停止条件を返す。
+- テスト修正証跡: UI 構造または表示文言の変更に追従したシナリオテストまたは単体テスト、検証結果、未実行理由を返す。
 - レビュー起動入力: レビュー agent 向けにレビュー対象差分、実装目的、task 枠、実装結果、検証証跡、変更ファイル、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
 - 作業計画完了移動: 作業計画フォルダを `docs/exec-plans/completed/<task-id>/` へ移動した根拠を返す。
@@ -112,6 +120,7 @@ UX改善レーンのレビュー観点は次を拘束する。
 - 起動先 agent が文脈継承なしで直接起動され、起動入力だけで成果物を返している。
 - `frontend 実装` の `implementation_implementer` は人間UIレビュー結果の記録まで維持され、記録後に完了結果を集約して閉じられている。
 - 人間UIレビューは承認、差し戻し、追加質問のいずれかが記録されている。
+- UI 構造または表示文言の変更でテスト追従が必要な場合は、`テスト修正証跡` が記録されている。
 - 必須レビュー観点の `reviewback.responsibility-boundary.yaml` に `must_fix_open`、`max_level`、`review_status` が記録されている。
 - 終了処理、停止、戻しのいずれでも `作業レポート入力` とベンチマーク根拠が作成されている。
 - close 時は作業計画フォルダが `docs/exec-plans/completed/<task-id>/` へ移動済みである。
@@ -123,6 +132,9 @@ UX改善レーンのレビュー観点は次を拘束する。
 - task 枠なしで frontend 実装へ進みそうな場合は停止する。
 - frontend 実装なしで人間UIレビューへ進みそうな場合は停止する。
 - 人間UIレビューなしでレビュー通過根拠へ進みそうな場合は停止する。
+- 人間UIレビューなしでテスト修正証跡へ進みそうな場合は停止する。
+- テスト修正に必要な対象テスト範囲、検証目的、検証コマンドが不足する場合は停止する。
+- テスト修正にプロダクトコード変更または仕様変更が必要な場合は停止する。
 - シナリオ、仕様変更、公開契約変更が必要な場合は停止する。
 - backend 実装または統合境界実装が必要な場合は停止する。
 - 保存先、ログ出力、secret、外部入力の扱いが必要な場合は停止する。

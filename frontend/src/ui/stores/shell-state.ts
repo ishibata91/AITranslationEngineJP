@@ -58,9 +58,9 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
     id: "translation-management",
     label: "翻訳管理",
     state: "Body Phase UI 追加",
-    lead: "Input Review、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ、NPC ペルソナ生成フェーズまでを確認するページです。",
+    lead: "データロード、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ、NPC ペルソナ生成フェーズまでを確認するページです。",
     description:
-      "入力確認、validation、ready job 作成、term phase、persona phase、body phase の実行状況をまとめて確認します。"
+      "データロード、validation、ready job 作成、term phase、persona phase、body phase の実行状況をまとめて確認します。"
   },
   {
     id: "output-management",
@@ -75,8 +75,8 @@ const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementV
   [
     {
       id: "input-review",
-      label: "Input Review",
-      description: "入力ファイルの登録と cache 再構築を確認します。"
+      label: "データロード",
+      description: "入力ファイルの登録結果と再構築判断を確認します。"
     },
     {
       id: "job-setup",

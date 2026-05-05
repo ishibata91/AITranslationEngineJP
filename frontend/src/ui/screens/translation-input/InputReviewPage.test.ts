@@ -157,8 +157,11 @@ describe("InputReviewPage", () => {
     })
 
     expect(
-      screen.getByRole("heading", { level: 2, name: "Input Review" })
+      screen.getByRole("heading", { level: 2, name: "データロード" })
     ).toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { level: 2, name: "Input Review" })
+    ).not.toBeInTheDocument()
     expect(screen.getAllByText("input-review.json").length).toBeGreaterThan(0)
     expect(
       screen.getAllByText("/mods/input-review.json").length

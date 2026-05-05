@@ -1,0 +1,110 @@
+reviewback_version: 1
+task_id: "2026-05-05-translation-input-data-load-ux-refactor"
+review_yaml_path: "docs/exec-plans/active/2026-05-05-translation-input-data-load-ux-refactor/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "責務境界は維持されている。InputReviewPage.svelte は controller 配線、表示値整形、画面専用 component の組み立てに限定されている。新規画面専用 component は controller、store、gateway、generated wailsjs を直接扱わず、view model 由来の値と callback props だけを受けている。shell-state.ts と AppShell.svelte は表示文言と既存 route の表示組み立てに閉じている。"
+  evidence_sufficiency: "十分。承認済み task 枠、対象差分の実コード、人間UIレビュー、テスト修正証跡、呼び出し元の検証証跡を確認した。ハーネスはレビュー agent の責務外のため実行していない。"
+  responsibility_boundary_maintenance_level: "high"
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘がないため局所修正は不要。将来の文言変換を広げる場合は Presenter 側の表示値生成へ寄せる判断が必要になる。"
+  boundary_fixed_test_viewpoints:
+    - "画面専用 component が controller、store、gateway、generated wailsjs を import していないこと。"
+    - "InputReviewPage.svelte が controller への event 委譲と表示整形だけを持つこと。"
+    - "旧 Input Review 表示名の追従が frontend 単体テストの期待値更新に限定されること。"
+
+checked_scope:
+  summary: "指定された UX 画面実装差分だけを対象に、View、UI Component、shell 表示文言、テスト追従、task 内根拠を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-05-translation-input-data-load-ux-refactor/task-frame.md"
+      line: 25
+      symbol: "変更許可範囲"
+      reason: "変更内容が表示文言、表示構造、CSS、画面専用部品分割に限定されていることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/InputReviewPage.svelte"
+      line: 25
+      symbol: "resolveController"
+      reason: "View が controller factory を受け取り、既存の画面境界を通して controller を生成していることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/InputReviewPage.svelte"
+      line: 73
+      symbol: "handleJsonSelected"
+      reason: "DOM event から file を取り出し、controller.stageJsonImport へ委譲していることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/InputReviewPage.svelte"
+      line: 100
+      symbol: "formatStatus"
+      reason: "状態値の表示整形が View 内の表示用途に閉じていることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/InputReviewPage.svelte"
+      line: 131
+      symbol: "localizeUiText"
+      reason: "既存 Presenter が返す表示文言の局所置換であり、状態更新、検証、永続化、副作用を混ぜていないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/InputReviewPage.svelte"
+      line: 152
+      symbol: "DataLoadHero"
+      reason: "親 View が view model 値を画面専用 component へ渡す構成であることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/DataLoadHero.svelte"
+      line: 2
+      symbol: "Props"
+      reason: "component が表示用文字列だけを props として受け、controller、store、gateway、generated binding を import していないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/DataLoadImportPanel.svelte"
+      line: 2
+      symbol: "Props"
+      reason: "component が staged file 表示値と callback props だけを受け、直接の状態更新責務を持たないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/LoadedInputList.svelte"
+      line: 4
+      symbol: "Props"
+      reason: "component が view model 由来の items、表示整形 callback、選択 callback を受けるだけであることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/LoadedInputDetail.svelte"
+      line: 4
+      symbol: "Props"
+      reason: "component が selectedItem、表示整形 callback、再構築 callback を受けるだけであることを確認した。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 58
+      symbol: "SHELL_ROUTE_CONTRACT"
+      reason: "翻訳管理の説明文言変更に限定され、route id や状態構造を変更していないことを確認した。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 74
+      symbol: "TRANSLATION_MANAGEMENT_VIEW_CONTRACT"
+      reason: "input-review の既存 id を維持し、表示名と説明だけをデータロードへ変更していることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 241
+      symbol: "translation-management branch"
+      reason: "既存 route と既存 InputReviewPage の組み立てを維持し、セクション表示文言の整理に閉じていることを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/InputReviewPage.test.ts"
+      line: 159
+      symbol: "InputReviewPage heading expectation"
+      reason: "旧 Input Review 見出し期待をデータロード表示へ追従し、product code 変更を伴わないテスト変更であることを確認した。"
+    - path: "frontend/src/ui/translation-input-app.test.ts"
+      line: 140
+      symbol: "App translation-input route"
+      reason: "route 維持とデータロード表示確認に限定されたテスト変更であることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-05-translation-input-data-load-ux-refactor/human-ui-review.md"
+      line: 7
+      symbol: "状態"
+      reason: "人間UIレビューが approved であり、画面表示確認が完了していることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-05-translation-input-data-load-ux-refactor/test-fix-evidence.md"
+      line: 24
+      symbol: "検証目的"
+      reason: "テスト修正が旧表示名期待の追従と route 維持確認に限定されていることを確認した。"
+
+unchecked_scope:
+  - target: "frontend-local ハーネスの再実行"
+    reason: "review_responsibility_boundary の非対象規約により、ハーネスは実行しない。呼び出し元の pass 証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業ツリーで同じ検証が再現するかは未確認である。"
+  - target: "レビュー対象外の .codex/README.md、.codex/agents/*、.codex/skills/* の差分"
+    reason: "人間指示により UX 画面実装レビューの対象外であり、責務境界判断に混ぜない。"
+    risk: "作業流れ定義側の差分が別レビューで未確認の場合、レーン運用上の残留リスクが残る。"
+  - target: "backend、Wails gateway、controller、usecase、store、gateway contract の未指定差分"
+    reason: "task-frame.md の禁止範囲であり、レビュー対象差分にも含まれていないため主判定に含めない。"
+    risk: "同時に存在する未指定差分がある場合、本レビューでは検出しない。"
+
+issues: []
+
+residual_risks:
+  - "localizeUiText は現行の承認済み範囲では表示整形として許容できる。ただし置換対象が増える場合、Presenter の表示値生成責務へ戻す判断が必要になる。"
+  - "LoadedInputList.svelte と LoadedInputDetail.svelte は view model 由来の TranslationInputReviewItem 型を受けている。現時点では controller、store、gateway、generated binding への直接依存ではないが、表示以外の判断を component 側へ増やすと責務境界が弱くなる。"
+  - "レビュー対象外差分は本成果物の判断に含めていない。"
