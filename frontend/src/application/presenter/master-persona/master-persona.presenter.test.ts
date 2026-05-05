@@ -12,7 +12,7 @@ function createState(
 ): MasterPersonaScreenState {
   return {
     items: [],
-    pluginGroups: [{ targetPlugin: "FollowersPlus.esp", count: 2 }],
+    pluginGroups: [{ targetPlugin: "TestPersonaPluginA.esp", count: 2 }],
     selectedIdentityKey: null,
     selectedEntry: null,
     keyword: "",
@@ -66,7 +66,7 @@ describe("MasterPersonaPresenter", () => {
       value: "",
       label: "すべてのプラグイン"
     })
-    expect(viewModel.pluginOptions[1]?.label).toContain("FollowersPlus.esp")
+    expect(viewModel.pluginOptions[1]?.label).toContain("TestPersonaPluginA.esp")
   })
 
   test("AI provider label は canonical provider ID を表示名へ変換する", () => {
@@ -93,14 +93,14 @@ describe("MasterPersonaPresenter", () => {
       createState({
         selectedEntry: {
           identityKey: "k",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           formId: "1",
           recordType: "NPC_",
           editorId: "edid",
-          displayName: "Lys Maren",
-          voiceType: "FemaleYoungEager",
-          className: "FPScoutClass",
-          sourcePlugin: "FollowersPlus.esp",
+          displayName: "Test NPC A",
+          voiceType: "TestVoiceA",
+          className: "TestClassA",
+          sourcePlugin: "TestPersonaPluginA.esp",
           personaSummary: "summary",
           updatedAt: "2026-04-15T09:42:00Z",
           personaBody: "body",
@@ -108,13 +108,13 @@ describe("MasterPersonaPresenter", () => {
         } as MasterPersonaDetail,
         runStatus: {
           runState: "生成中",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 1,
           successCount: 1,
           existingSkipCount: 0,
           zeroDialogueSkipCount: 0,
           genericNpcCount: 0,
-          currentActorLabel: "Lys Maren",
+          currentActorLabel: "Test NPC A",
           message: "ペルソナを作成中"
         }
       }),
@@ -132,29 +132,29 @@ describe("MasterPersonaPresenter", () => {
       createState({
         items: [
           {
-            identityKey: "NightCourt.esp:FE01A814:NPC_",
-            targetPlugin: "NightCourt.esp",
+            identityKey: "TestPersonaPluginB.esp:FE01A814:NPC_",
+            targetPlugin: "TestPersonaPluginB.esp",
             formId: "FE01A814",
             recordType: "NPC_",
             editorId: "NC_WatcherHusk",
-            displayName: "Watcher Husk",
-            voiceType: "FemaleCondescending",
-            className: "FPOccultClass",
-            sourcePlugin: "NightCourt.esp",
+            displayName: "Test NPC C",
+            voiceType: "TestVoiceC",
+            className: "TestClassC",
+            sourcePlugin: "TestPersonaPluginB.esp",
             personaSummary: "含みのある言い回しで相手を試す。",
             updatedAt: "2026-04-15T09:42:00Z"
           }
         ] as unknown as MasterPersonaScreenState["items"],
         selectedEntry: {
-          identityKey: "NightCourt.esp:FE01A814:NPC_",
-          targetPlugin: "NightCourt.esp",
+          identityKey: "TestPersonaPluginB.esp:FE01A814:NPC_",
+          targetPlugin: "TestPersonaPluginB.esp",
           formId: "FE01A814",
           recordType: "NPC_",
           editorId: "NC_WatcherHusk",
-          displayName: "Watcher Husk",
-          voiceType: "FemaleCondescending",
-          className: "FPOccultClass",
-          sourcePlugin: "NightCourt.esp",
+          displayName: "Test NPC C",
+          voiceType: "TestVoiceC",
+          className: "TestClassC",
+          sourcePlugin: "TestPersonaPluginB.esp",
           personaSummary: "含みのある言い回しで相手を試す。",
           updatedAt: "2026-04-15T09:42:00Z",
           personaBody: "観察を優先する。",
@@ -182,7 +182,7 @@ describe("MasterPersonaPresenter", () => {
         },
         preview: {
           fileName: "sample.json",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           candidateCount: 9,
           newlyAddableCount: 7,
           existingCount: 2,
@@ -207,7 +207,7 @@ describe("MasterPersonaPresenter", () => {
         },
         preview: {
           fileName: "sample.json",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           candidateCount: 9,
           newlyAddableCount: 7,
           existingCount: 2,
@@ -232,7 +232,7 @@ describe("MasterPersonaPresenter", () => {
         },
         preview: {
           fileName: "sample.json",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           candidateCount: 9,
           newlyAddableCount: 7,
           existingCount: 2,
@@ -257,7 +257,7 @@ describe("MasterPersonaPresenter", () => {
         },
         preview: {
           fileName: "sample.json",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           candidateCount: 9,
           newlyAddableCount: 7,
           existingCount: 2,
@@ -282,7 +282,7 @@ describe("MasterPersonaPresenter", () => {
         },
         preview: {
           fileName: "sample.json",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           candidateCount: 9,
           newlyAddableCount: 7,
           existingCount: 2,
@@ -294,7 +294,7 @@ describe("MasterPersonaPresenter", () => {
 
     expect(viewModel.preview).toEqual({
       fileName: "sample.json",
-      targetPlugin: "FollowersPlus.esp",
+      targetPlugin: "TestPersonaPluginA.esp",
       candidateCount: 9,
       newlyAddableCount: 7,
       existingCount: 2,
@@ -331,18 +331,18 @@ describe("MasterPersonaPresenter", () => {
     const viewModel = presenter.toViewModel(
       createState({
         pluginGroups: [
-          { targetPlugin: "FollowersPlus.esp", count: 2 },
-          { targetPlugin: "NightCourt.esp", count: 1 }
+          { targetPlugin: "TestPersonaPluginA.esp", count: 2 },
+          { targetPlugin: "TestPersonaPluginB.esp", count: 1 }
         ],
-        pluginFilter: "FollowersPlus.esp"
+        pluginFilter: "TestPersonaPluginA.esp"
       }),
       true
     )
 
     const values = viewModel.pluginOptions.map((opt) => opt.value)
     expect(values).toContain("")
-    expect(values).toContain("FollowersPlus.esp")
-    expect(values).toContain("NightCourt.esp")
+    expect(values).toContain("TestPersonaPluginA.esp")
+    expect(values).toContain("TestPersonaPluginB.esp")
   })
 
   test("persona-read-detail-cutover: selectedEntry の identity snapshot fields を view model へ承流する", () => {
@@ -351,15 +351,15 @@ describe("MasterPersonaPresenter", () => {
     const viewModel = presenter.toViewModel(
       createState({
         selectedEntry: {
-          identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-          targetPlugin: "FollowersPlus.esp",
+          identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+          targetPlugin: "TestPersonaPluginA.esp",
           formId: "FE01A812",
           recordType: "NPC_",
-          editorId: "FP_LysMaren",
-          displayName: "Lys Maren",
-          voiceType: "FemaleYoungEager",
-          className: "FPScoutClass",
-          sourcePlugin: "FollowersPlus.esp",
+          editorId: "TEST_NPC_A",
+          displayName: "Test NPC A",
+          voiceType: "TestVoiceA",
+          className: "TestClassA",
+          sourcePlugin: "TestPersonaPluginA.esp",
           personaSummary: "干いた率直さで応じる。",
           updatedAt: "2026-04-15T09:42:00Z",
           personaBody: "短く本音を置く。",
@@ -370,12 +370,12 @@ describe("MasterPersonaPresenter", () => {
     )
 
     expect(viewModel.selectedEntry?.identityKey).toBe(
-      "FollowersPlus.esp:FE01A812:NPC_"
+      "TestPersonaPluginA.esp:FE01A812:NPC_"
     )
-    expect(viewModel.selectedEntry?.editorId).toBe("FP_LysMaren")
-    expect(viewModel.selectedEntry?.displayName).toBe("Lys Maren")
+    expect(viewModel.selectedEntry?.editorId).toBe("TEST_NPC_A")
+    expect(viewModel.selectedEntry?.displayName).toBe("Test NPC A")
     expect(viewModel.selectedEntry?.personaBody).toBe("短く本音を置く。")
-    expect(viewModel.selectionStatusText).toContain("Lys Maren")
+    expect(viewModel.selectionStatusText).toContain("Test NPC A")
   })
 
   test("persona-read-detail-cutover: generationSourceJson と baselineApplied は viewModel の selectedEntry に含まれない", () => {
@@ -386,15 +386,15 @@ describe("MasterPersonaPresenter", () => {
     const viewModel = presenter.toViewModel(
       createState({
         selectedEntry: {
-          identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-          targetPlugin: "FollowersPlus.esp",
+          identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+          targetPlugin: "TestPersonaPluginA.esp",
           formId: "FE01A812",
           recordType: "NPC_",
-          editorId: "FP_LysMaren",
-          displayName: "Lys Maren",
-          voiceType: "FemaleYoungEager",
-          className: "FPScoutClass",
-          sourcePlugin: "FollowersPlus.esp",
+          editorId: "TEST_NPC_A",
+          displayName: "Test NPC A",
+          voiceType: "TestVoiceA",
+          className: "TestClassA",
+          sourcePlugin: "TestPersonaPluginA.esp",
           personaSummary: "summary",
           updatedAt: "2026-04-15T09:42:00Z",
           personaBody: "body",
@@ -419,15 +419,15 @@ describe("MasterPersonaPresenter", () => {
     // Arrange
     const presenter = new MasterPersonaPresenter()
     const itemWithoutDialogueCount = {
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-      targetPlugin: "FollowersPlus.esp",
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+      targetPlugin: "TestPersonaPluginA.esp",
       formId: "FE01A812",
       recordType: "NPC_",
-      editorId: "FP_LysMaren",
-      displayName: "Lys Maren",
-      voiceType: "FemaleYoungEager",
-      className: "FPScoutClass",
-      sourcePlugin: "FollowersPlus.esp",
+      editorId: "TEST_NPC_A",
+      displayName: "Test NPC A",
+      voiceType: "TestVoiceA",
+      className: "TestClassA",
+      sourcePlugin: "TestPersonaPluginA.esp",
       personaSummary: "summary",
       updatedAt: "2026-04-15T09:42:00Z"
     }
@@ -443,7 +443,7 @@ describe("MasterPersonaPresenter", () => {
     )
 
     // Assert
-    expect(viewModel.items[0]?.displayName).toBe("Lys Maren")
+    expect(viewModel.items[0]?.displayName).toBe("Test NPC A")
     expect(
       (viewModel.items[0] as unknown as Record<string, unknown>).dialogueCount
     ).toBeUndefined()
@@ -479,7 +479,7 @@ describe("MasterPersonaPresenter", () => {
       createState({
         runStatus: {
           runState: "完了",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 0,
           successCount: 0,
           existingSkipCount: 0,
@@ -507,7 +507,7 @@ describe("MasterPersonaPresenter", () => {
         },
         preview: {
           fileName: "sample.json",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           candidateCount: 9,
           newlyAddableCount: 7,
           existingCount: 2,
@@ -515,13 +515,13 @@ describe("MasterPersonaPresenter", () => {
         },
         runStatus: {
           runState: "生成中",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 1,
           successCount: 1,
           existingSkipCount: 0,
           zeroDialogueSkipCount: 0,
           genericNpcCount: 0,
-          currentActorLabel: "Lys Maren",
+          currentActorLabel: "Test NPC A",
           message: "ペルソナを作成中"
         }
       }),

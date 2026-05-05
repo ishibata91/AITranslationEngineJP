@@ -16,11 +16,9 @@ var (
 )
 
 const (
-	masterPersonaDefaultPageSize      = 30
-	masterPersonaMaxPageSize          = 100
-	masterPersonaIdentityKeyErrorFmt  = "%w: identity_key=%s"
-	masterPersonaSeedFollowersPlugin  = "FollowersPlus.esp"
-	masterPersonaSeedNightCourtPlugin = "NightCourt.esp"
+	masterPersonaDefaultPageSize     = 30
+	masterPersonaMaxPageSize         = 100
+	masterPersonaIdentityKeyErrorFmt = "%w: identity_key=%s"
 )
 
 // MasterPersonaEntry stores one master persona record.
@@ -394,79 +392,6 @@ func (r *InMemoryMasterPersonaRunStatusRepository) SaveRunStatus(_ context.Conte
 	defer r.mu.Unlock()
 	r.runStatus = cloneMasterPersonaRunStatus(status)
 	return nil
-}
-
-// DefaultMasterPersonaSeed returns deterministic seed entries for bootstrap wiring.
-func DefaultMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
-	lysmarenRace := "Breton"
-	lysmarenSex := "Female"
-	kaelRace := "Nord"
-	kaelSex := "Male"
-	return []MasterPersonaEntry{
-		{
-			IdentityKey:    BuildMasterPersonaIdentityKey(masterPersonaSeedFollowersPlugin, "FE01A812", "NPC_"),
-			TargetPlugin:   masterPersonaSeedFollowersPlugin,
-			FormID:         "FE01A812",
-			RecordType:     "NPC_",
-			EditorID:       "FP_LysMaren",
-			DisplayName:    "Lys Maren",
-			Race:           &lysmarenRace,
-			Sex:            &lysmarenSex,
-			VoiceType:      "FemaleYoungEager",
-			ClassName:      "FPScoutClass",
-			SourcePlugin:   masterPersonaSeedFollowersPlugin,
-			PersonaSummary: "乾いた率直さで応じ、必要な場面だけ短く本音を置く。",
-			PersonaBody:    "口調は丁寧語へ寄せず、中性的な温度を保つ。会話の主導権は急いで取らず、相手の出方を見てから短く返す。",
-			DialogueCount:  3,
-			Dialogues: []string{
-				"ここで待って。まだ相手の出方が見えていない。",
-				"急がなくていい。必要になったら、わたしから声をかける。",
-				"本音を聞きたいなら、先にそっちが隠し事をやめて。",
-			},
-			UpdatedAt: now,
-		},
-		{
-			IdentityKey:    BuildMasterPersonaIdentityKey(masterPersonaSeedFollowersPlugin, "FE01A813", "NPC_"),
-			TargetPlugin:   masterPersonaSeedFollowersPlugin,
-			FormID:         "FE01A813",
-			RecordType:     "NPC_",
-			EditorID:       "FP_KaelRuun",
-			DisplayName:    "Kael Ruun",
-			Race:           &kaelRace,
-			Sex:            &kaelSex,
-			VoiceType:      "MaleCommander",
-			ClassName:      "FPMercenaryClass",
-			SourcePlugin:   masterPersonaSeedFollowersPlugin,
-			PersonaSummary: "判断を先に示し、無駄なく短く指示を伝える。",
-			PersonaBody:    "判断を先に述べ、必要な指示だけを短く渡す。曖昧な慰めより役割と責任を優先する。",
-			DialogueCount:  2,
-			Dialogues: []string{
-				"命令は簡潔でいい。動けるなら動け。",
-				"状況確認を先に済ませる。感想は後だ。",
-			},
-			UpdatedAt: now.Add(-time.Minute),
-		},
-		{
-			IdentityKey:     BuildMasterPersonaIdentityKey(masterPersonaSeedNightCourtPlugin, "FE01A814", "NPC_"),
-			TargetPlugin:    masterPersonaSeedNightCourtPlugin,
-			FormID:          "FE01A814",
-			RecordType:      "NPC_",
-			EditorID:        "FP_WatcherHusk",
-			DisplayName:     "Watcher Husk",
-			VoiceType:       "FemaleCondescending",
-			ClassName:       "FPOccultClass",
-			SourcePlugin:    masterPersonaSeedNightCourtPlugin,
-			PersonaSummary:  "含みのある言い回しで相手を試し、答えを急がせない。",
-			PersonaBody:     "含みを残した言い回しで相手の反応を測る。欠落属性は見せず、観察を優先する話し方に寄せる。",
-			BaselineApplied: true,
-			DialogueCount:   2,
-			Dialogues: []string{
-				"急いで答えを出す必要はないわ。迷い方にも価値がある。",
-				"隠していることがあるなら、声の揺れで十分にわかる。",
-			},
-			UpdatedAt: now.Add(-2 * time.Minute),
-		},
-	}
 }
 
 // BuildMasterPersonaIdentityKey builds the no-overwrite identity key for master persona entries.

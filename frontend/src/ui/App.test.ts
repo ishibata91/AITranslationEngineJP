@@ -170,31 +170,31 @@ function buildMasterPersonaScreenViewModel(
   return {
     items: [
       {
-        identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-        targetPlugin: "FollowersPlus.esp",
+        identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+        targetPlugin: "TestPersonaPluginA.esp",
         formId: "FE01A812",
         recordType: "NPC_",
-        editorId: "FP_LysMaren",
-        displayName: "Lys Maren",
-        voiceType: "FemaleYoungEager",
-        className: "FPScoutClass",
-        sourcePlugin: "FollowersPlus.esp",
+        editorId: "TEST_NPC_A",
+        displayName: "Test NPC A",
+        voiceType: "TestVoiceA",
+        className: "TestClassA",
+        sourcePlugin: "TestPersonaPluginA.esp",
         personaSummary: "乾いた率直さで応じる。",
         updatedAt: "2026-04-15T09:42:00Z"
       }
     ],
-    pluginGroups: [{ targetPlugin: "FollowersPlus.esp", count: 1 }],
-    selectedIdentityKey: "FollowersPlus.esp:FE01A812:NPC_",
+    pluginGroups: [{ targetPlugin: "TestPersonaPluginA.esp", count: 1 }],
+    selectedIdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
     selectedEntry: {
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-      targetPlugin: "FollowersPlus.esp",
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+      targetPlugin: "TestPersonaPluginA.esp",
       formId: "FE01A812",
       recordType: "NPC_",
-      editorId: "FP_LysMaren",
-      displayName: "Lys Maren",
-      voiceType: "FemaleYoungEager",
-      className: "FPScoutClass",
-      sourcePlugin: "FollowersPlus.esp",
+      editorId: "TEST_NPC_A",
+      displayName: "Test NPC A",
+      voiceType: "TestVoiceA",
+      className: "TestClassA",
+      sourcePlugin: "TestPersonaPluginA.esp",
       personaSummary: "乾いた率直さで応じる。",
       updatedAt: "2026-04-15T09:42:00Z",
       personaBody: "短く本音を置く。",
@@ -230,21 +230,21 @@ function buildMasterPersonaScreenViewModel(
     modalState: null,
     editForm: {
       formId: "FE01A812",
-      editorId: "FP_LysMaren",
-      displayName: "Lys Maren",
-      voiceType: "FemaleYoungEager",
-      className: "FPScoutClass",
-      sourcePlugin: "FollowersPlus.esp",
+      editorId: "TEST_NPC_A",
+      displayName: "Test NPC A",
+      voiceType: "TestVoiceA",
+      className: "TestClassA",
+      sourcePlugin: "TestPersonaPluginA.esp",
       personaBody: "短く本音を置く。"
     },
     gatewayStatus: "接続準備済み",
     pluginOptions: [
       { value: "", label: "すべてのプラグイン" },
-      { value: "FollowersPlus.esp", label: "FollowersPlus.esp (1)" }
+      { value: "TestPersonaPluginA.esp", label: "TestPersonaPluginA.esp (1)" }
     ],
     totalPages: 1,
     pageStatusText: "1 - 1 件を表示しています。",
-    selectionStatusText: "Lys Maren を選択中",
+    selectionStatusText: "Test NPC A を選択中",
     listHeadline: "1 件から絞り込みます。",
     detailLockText: "更新と削除を行えます",
     detailStatusText: "更新と削除を行えます",
@@ -966,28 +966,28 @@ describe("App master persona screen", () => {
       buildMasterPersonaScreenViewModel({
         items: [
           {
-            identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-            targetPlugin: "FollowersPlus.esp",
+            identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+            targetPlugin: "TestPersonaPluginA.esp",
             formId: "FE01A812",
             recordType: "NPC_",
-            editorId: "FP_LysMaren",
-            displayName: "Lys Maren",
-            voiceType: "FemaleYoungEager",
-            className: "FPScoutClass",
+            editorId: "TEST_NPC_A",
+            displayName: "Test NPC A",
+            voiceType: "TestVoiceA",
+            className: "TestClassA",
             sourcePlugin: "Skyrim.esm",
             personaSummary: "乾いた率直さで応じる。",
             updatedAt: "2026-04-15T09:42:00Z"
           }
         ],
         selectedEntry: {
-          identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-          targetPlugin: "FollowersPlus.esp",
+          identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+          targetPlugin: "TestPersonaPluginA.esp",
           formId: "FE01A812",
           recordType: "NPC_",
-          editorId: "FP_LysMaren",
-          displayName: "Lys Maren",
-          voiceType: "FemaleYoungEager",
-          className: "FPScoutClass",
+          editorId: "TEST_NPC_A",
+          displayName: "Test NPC A",
+          voiceType: "TestVoiceA",
+          className: "TestClassA",
           sourcePlugin: "Skyrim.esm",
           personaSummary: "乾いた率直さで応じる。",
           updatedAt: "2026-04-15T09:42:00Z",
@@ -1014,9 +1014,9 @@ describe("App master persona screen", () => {
       throw new Error("ペルソナ一覧 section が見つかりません")
     }
     const listQuery = within(listSection)
-    expect(listQuery.getByText("FollowersPlus.esp")).toBeInTheDocument()
-    expect(listQuery.getByText("Lys Maren")).toBeInTheDocument()
-    expect(listQuery.queryByText("FPScoutClass")).not.toBeInTheDocument()
+    expect(listQuery.getByText("TestPersonaPluginA.esp")).toBeInTheDocument()
+    expect(listQuery.getByText("Test NPC A")).toBeInTheDocument()
+    expect(listQuery.queryByText("TestClassA")).not.toBeInTheDocument()
     expect(listQuery.queryByText("Skyrim.esm")).not.toBeInTheDocument()
     expect(listQuery.queryByText("乾いた率直さで応じる。")).not.toBeInTheDocument()
   })
@@ -1177,18 +1177,18 @@ describe("App master persona screen", () => {
       buildMasterPersonaScreenViewModel({
         pluginOptions: [
           { value: "", label: "すべてのプラグイン" },
-          { value: "FollowersPlus.esp", label: "FollowersPlus.esp (1)" },
-          { value: "NightCourt.esp", label: "NightCourt.esp (1)" }
+          { value: "TestPersonaPluginA.esp", label: "TestPersonaPluginA.esp (1)" },
+          { value: "TestPersonaPluginB.esp", label: "TestPersonaPluginB.esp (1)" }
         ],
         runStatus: {
           runState: "生成中",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 1,
           successCount: 0,
           existingSkipCount: 1,
           zeroDialogueSkipCount: 0,
           genericNpcCount: 0,
-          currentActorLabel: "Lys Maren",
+          currentActorLabel: "Test NPC A",
           message: "ペルソナを作成中"
         }
       })
@@ -1211,8 +1211,8 @@ describe("App master persona screen", () => {
 
     expect(optionTexts).toEqual([
       "すべてのプラグイン",
-      "FollowersPlus.esp (1)",
-      "NightCourt.esp (1)"
+      "TestPersonaPluginA.esp (1)",
+      "TestPersonaPluginB.esp (1)"
     ])
     expect(optionTexts).not.toContain("生成中")
     expect(optionTexts).not.toContain("完了")
@@ -1239,42 +1239,6 @@ describe("App master persona screen", () => {
     expect(editModal).not.toHaveClass("is-open")
     expect(deleteModal).toHaveAttribute("hidden")
     expect(deleteModal).not.toHaveClass("is-open")
-  })
-
-  test("生成中 view model では更新と削除が disabled になる", async () => {
-    const masterPersonaController = new MasterPersonaScreenControllerFake(
-      buildMasterPersonaScreenViewModel({
-        runStatus: {
-          runState: "生成中",
-          targetPlugin: "FollowersPlus.esp",
-          processedCount: 12,
-          successCount: 10,
-          existingSkipCount: 1,
-          zeroDialogueSkipCount: 1,
-          genericNpcCount: 0,
-          currentActorLabel: "Lys Maren",
-          message: "ペルソナを作成中"
-        },
-        detailLockText: "更新と削除を行えません",
-        detailStatusText: "更新と削除を行えません",
-        canMutate: false,
-        isRunActive: true
-      })
-    )
-
-    render(App, {
-      props: {
-        createMasterDictionaryScreenController: () =>
-          new MasterDictionaryScreenControllerFake(),
-        createMasterPersonaScreenController: () => masterPersonaController
-      }
-    })
-
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: "編集" })).toBeDisabled()
-      expect(screen.getByRole("button", { name: "削除" })).toBeDisabled()
-      expect(screen.getAllByText("更新と削除を行えません")).toHaveLength(2)
-    })
   })
 
   test("page-local AI settings は他画面へ漏れない", async () => {
@@ -1321,7 +1285,7 @@ describe("App master persona screen", () => {
       buildMasterPersonaScreenViewModel({
         pluginOptions: [
           { value: "", label: "すべてのプラグイン" },
-          { value: "FollowersPlus.esp", label: "FollowersPlus.esp (1)" }
+          { value: "TestPersonaPluginA.esp", label: "TestPersonaPluginA.esp (1)" }
         ]
       })
     )
@@ -1359,7 +1323,7 @@ describe("App master persona screen", () => {
       const identityText = document.querySelector("#detailIdentityText")
       expect(identityText).toBeInTheDocument()
       expect(identityText?.textContent).toContain("FE01A812")
-      expect(identityText?.textContent).toContain("FP_LysMaren")
+      expect(identityText?.textContent).toContain("TEST_NPC_A")
     })
   })
 
@@ -1537,13 +1501,13 @@ describe("App master persona screen", () => {
         isRunActive: true,
         runStatus: {
           runState: "生成中",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 2,
           successCount: 2,
           existingSkipCount: 0,
           zeroDialogueSkipCount: 0,
           genericNpcCount: 0,
-          currentActorLabel: "Lys Maren",
+          currentActorLabel: "Test NPC A",
           message: "ペルソナを作成中"
         }
       })
@@ -1571,7 +1535,7 @@ describe("App master persona screen", () => {
       buildMasterPersonaScreenViewModel({
         runStatus: {
           runState: "完了",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 7,
           successCount: 7,
           existingSkipCount: 3,

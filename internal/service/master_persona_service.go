@@ -788,44 +788,7 @@ func (service *MasterPersonaGenerationService) validateProviderAccess(
 		return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, ErrMasterPersonaRealProviderDenied
 	}
 	if service.providerSettings != nil {
-		execution, err := service.providerSettings.ResolveProviderExecutionSettings(ctx, ProviderSettingsResolveInput{
-			ConsumerID:          "master_persona",
-			AllowSecretSnapshot: allowSecretRead,
-			Selection: ProviderSettingsResolveSelection{
-				ProviderID:      resolved.Provider,
-				Model:           resolved.Model,
-				ExecutionMethod: resolved.ExecutionMethod,
-				UseBatchAPI:     false,
-			},
-		})
-		if err != nil {
-			return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, fmt.Errorf("resolve master persona provider settings: %w", err)
-		}
-		if execution.ErrorKind != nil {
-			return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, nil
-		}
-		resolved.CredentialRef = strings.TrimSpace(pointerStringValue(execution.CredentialReferenceID))
-		if service.testMode {
-			resolved.APIKey = ""
-			return resolved, MasterPersonaStatusReady, nil
-		}
-		if !allowSecretRead {
-			return resolved, MasterPersonaStatusReady, nil
-		}
-		if strings.TrimSpace(resolved.APIKey) == "" && strings.TrimSpace(resolved.CredentialRef) != "" && service.secretStore != nil {
-			loadedSecret, secretErr := service.secretStore.Load(ctx, resolved.CredentialRef)
-			if secretErr != nil {
-				return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, fmt.Errorf("load master persona provider secret: %w", secretErr)
-			}
-			resolved.APIKey = strings.TrimSpace(loadedSecret)
-		}
-		if strings.TrimSpace(resolved.APIKey) == "" && resolved.Provider != MasterPersonaProviderLMStudio {
-			return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, nil
-		}
-		if resolved.Provider == MasterPersonaProviderLMStudio {
-			resolved.APIKey = strings.TrimSpace(resolved.APIKey)
-		}
-		return resolved, MasterPersonaStatusReady, nil
+		return service.validateProviderSettingsAccess(ctx, resolved, allowSecretRead)
 	}
 	if service.testMode {
 		resolved.APIKey = ""
@@ -840,6 +803,69 @@ func (service *MasterPersonaGenerationService) validateProviderAccess(
 		return resolved, MasterPersonaStatusReady, nil
 	}
 	return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, nil
+}
+
+func (service *MasterPersonaGenerationService) validateProviderSettingsAccess(
+	ctx context.Context,
+	resolved masterPersonaResolvedSettings,
+	allowSecretRead bool,
+) (masterPersonaResolvedSettings, string, error) {
+	execution, err := service.providerSettings.ResolveProviderExecutionSettings(ctx, ProviderSettingsResolveInput{
+		ConsumerID:          "master_persona",
+		AllowSecretSnapshot: allowSecretRead,
+		Selection: ProviderSettingsResolveSelection{
+			ProviderID:      resolved.Provider,
+			Model:           resolved.Model,
+			ExecutionMethod: resolved.ExecutionMethod,
+			UseBatchAPI:     false,
+		},
+	})
+	if err != nil {
+		return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, fmt.Errorf("resolve master persona provider settings: %w", err)
+	}
+	if execution.ErrorKind != nil {
+		return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, nil
+	}
+	resolved.CredentialRef = strings.TrimSpace(pointerStringValue(execution.CredentialReferenceID))
+	return service.finalizeProviderSettingsAccess(ctx, resolved, allowSecretRead)
+}
+
+func (service *MasterPersonaGenerationService) finalizeProviderSettingsAccess(
+	ctx context.Context,
+	resolved masterPersonaResolvedSettings,
+	allowSecretRead bool,
+) (masterPersonaResolvedSettings, string, error) {
+	if service.testMode {
+		resolved.APIKey = ""
+		return resolved, MasterPersonaStatusReady, nil
+	}
+	if !allowSecretRead {
+		return resolved, MasterPersonaStatusReady, nil
+	}
+	loaded, err := service.loadMasterPersonaResolvedSecret(ctx, resolved)
+	if err != nil {
+		return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, err
+	}
+	resolved.APIKey = loaded
+	if strings.TrimSpace(resolved.APIKey) == "" && resolved.Provider != MasterPersonaProviderLMStudio {
+		return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, nil
+	}
+	return resolved, MasterPersonaStatusReady, nil
+}
+
+func (service *MasterPersonaGenerationService) loadMasterPersonaResolvedSecret(
+	ctx context.Context,
+	resolved masterPersonaResolvedSettings,
+) (string, error) {
+	apiKey := strings.TrimSpace(resolved.APIKey)
+	if apiKey != "" || strings.TrimSpace(resolved.CredentialRef) == "" || service.secretStore == nil {
+		return apiKey, nil
+	}
+	loadedSecret, err := service.secretStore.Load(ctx, resolved.CredentialRef)
+	if err != nil {
+		return "", fmt.Errorf("load master persona provider secret: %w", err)
+	}
+	return strings.TrimSpace(loadedSecret), nil
 }
 
 func (service *MasterPersonaGenerationService) analyzePreview(

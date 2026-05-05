@@ -24,7 +24,6 @@ func NewAppController() *controllerwails.AppController {
 	now := func() time.Time { return time.Now().UTC() }
 	return newAppControllerWithSeeds(
 		repository.DefaultMasterDictionarySeed(now()),
-		repository.DefaultMasterPersonaSeed(now()),
 		now,
 	)
 }
@@ -33,12 +32,11 @@ func newAppControllerWithMasterDictionarySeed(
 	masterDictionarySeed []repository.MasterDictionaryEntry,
 	now func() time.Time,
 ) *controllerwails.AppController {
-	return newAppControllerWithSeeds(masterDictionarySeed, repository.DefaultMasterPersonaSeed(now()), now)
+	return newAppControllerWithSeeds(masterDictionarySeed, now)
 }
 
 func newAppControllerWithSeeds(
 	masterDictionarySeed []repository.MasterDictionaryEntry,
-	masterPersonaSeed []repository.MasterPersonaEntry,
 	now func() time.Time,
 ) *controllerwails.AppController {
 	runtimeEmitterState := controllerwails.NewRuntimeEmitterState()
@@ -118,7 +116,7 @@ func newAppControllerWithSeeds(
 	masterPersonaRepositories, err := repository.NewSQLiteMasterPersonaRepositories(
 		context.Background(),
 		databasePath,
-		masterPersonaSeed,
+		nil,
 	)
 	if err != nil {
 		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))

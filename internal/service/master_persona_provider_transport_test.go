@@ -167,7 +167,7 @@ func assertMasterPersonaGeneratorInput(
 
 func TestBuildMasterPersonaPrompt(t *testing.T) {
 	npcWithDialogue := masterPersonaExtractNPC{
-		TargetPlugin: "FollowersPlus.esp",
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A911",
 		RecordType:   "NPC_",
 		DisplayName:  "Test",
@@ -185,7 +185,7 @@ func TestBuildMasterPersonaPrompt(t *testing.T) {
 	}
 
 	npcWithoutDialogue := masterPersonaExtractNPC{
-		TargetPlugin: "FollowersPlus.esp",
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A912",
 		RecordType:   "NPC_",
 		DisplayName:  "No Dialogue",
@@ -203,7 +203,7 @@ func newTestSafeMasterPersonaBodyGenerator() MasterPersonaBodyGenerator {
 
 func testPersonaNPC() masterPersonaExtractNPC {
 	return masterPersonaExtractNPC{
-		TargetPlugin: "FollowersPlus.esp",
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A911",
 		RecordType:   "NPC_",
 		DisplayName:  "Test",

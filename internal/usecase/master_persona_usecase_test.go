@@ -112,11 +112,11 @@ func (fakeMasterPersonaRunStatusService) Cancel(_ context.Context) (service.Mast
 }
 
 func TestMasterPersonaUsecaseGetPageSelectsPreferredIdentityKey(t *testing.T) {
-	preferred := "FollowersPlus.esp:FE01A812:NPC_"
+	preferred := "TestPersonaPluginA.esp:FE01A812:NPC_"
 	usecase := NewMasterPersonaUsecase(
 		fakeMasterPersonaQueryService{
 			searchEntriesFunc: func(_ context.Context, query service.MasterPersonaListQuery) (service.MasterPersonaListResult, error) {
-				if query.PluginFilter != "FollowersPlus.esp" {
+				if query.PluginFilter != "TestPersonaPluginA.esp" {
 					t.Fatalf("unexpected query: %#v", query)
 				}
 				return service.MasterPersonaListResult{Items: []service.MasterPersonaEntry{{IdentityKey: preferred}, {IdentityKey: "other"}}, TotalCount: 2, Page: 1, PageSize: 30}, nil
@@ -126,7 +126,7 @@ func TestMasterPersonaUsecaseGetPageSelectsPreferredIdentityKey(t *testing.T) {
 		fakeMasterPersonaRunStatusService{},
 	)
 
-	page, err := usecase.GetPage(context.Background(), MasterPersonaListQuery{PluginFilter: "FollowersPlus.esp"}, &preferred)
+	page, err := usecase.GetPage(context.Background(), MasterPersonaListQuery{PluginFilter: "TestPersonaPluginA.esp"}, &preferred)
 	if err != nil {
 		t.Fatalf("expected get page to succeed: %v", err)
 	}
@@ -177,14 +177,14 @@ func TestMasterPersonaUsecaseDeleteEntryWrapsGenerationError(t *testing.T) {
 }
 
 func TestMasterPersonaUsecaseGetDetailForwardsIdentityKey(t *testing.T) {
-	const wantKey = "FollowersPlus.esp:FE01A812:NPC_"
+	const wantKey = "TestPersonaPluginA.esp:FE01A812:NPC_"
 	uc := NewMasterPersonaUsecase(
 		fakeMasterPersonaQueryService{
 			loadEntryDetailFunc: func(_ context.Context, identityKey string) (service.MasterPersonaEntry, error) {
 				if identityKey != wantKey {
 					t.Fatalf("unexpected identity key: %q", identityKey)
 				}
-				return service.MasterPersonaEntry{IdentityKey: wantKey, DisplayName: "Lys Maren"}, nil
+				return service.MasterPersonaEntry{IdentityKey: wantKey, DisplayName: "Test NPC A"}, nil
 			},
 		},
 		fakeMasterPersonaGenerationService{},
@@ -195,7 +195,7 @@ func TestMasterPersonaUsecaseGetDetailForwardsIdentityKey(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
-	if got.IdentityKey != wantKey || got.DisplayName != "Lys Maren" {
+	if got.IdentityKey != wantKey || got.DisplayName != "Test NPC A" {
 		t.Fatalf("unexpected entry: %#v", got)
 	}
 }
@@ -211,7 +211,7 @@ func TestMasterPersonaUsecaseGetDetailPropagatesQueryServiceError(t *testing.T) 
 		fakeMasterPersonaRunStatusService{},
 	)
 
-	_, err := uc.GetDetail(context.Background(), "FollowersPlus.esp:FE01A812:NPC_")
+	_, err := uc.GetDetail(context.Background(), "TestPersonaPluginA.esp:FE01A812:NPC_")
 	if err == nil {
 		t.Fatal("expected get detail to fail")
 	}
@@ -248,13 +248,13 @@ func TestMasterPersonaUsecasePersonaReadDetailCutoverGetDetailForwardsCanonicalF
 					IdentityKey:  identityKey,
 					FormID:       "FE01A813",
 					RecordType:   "NPC_",
-					EditorID:     "FP_KaelRuun",
-					DisplayName:  "Kael Ruun",
+					EditorID:     "TEST_NPC_B",
+					DisplayName:  "Test NPC B",
 					Race:         &race,
 					Sex:          &sex,
-					VoiceType:    "MaleCommander",
-					ClassName:    "FPMercenaryClass",
-					SourcePlugin: "FollowersPlus.esp",
+					VoiceType:    "TestVoiceB",
+					ClassName:    "TestClassB",
+					SourcePlugin: "TestPersonaPluginA.esp",
 					PersonaBody:  "判断を先に述べ、必要な指示だけを短く渡す。",
 					UpdatedAt:    time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
 				}, nil
@@ -264,17 +264,17 @@ func TestMasterPersonaUsecasePersonaReadDetailCutoverGetDetailForwardsCanonicalF
 		fakeMasterPersonaRunStatusService{},
 	)
 
-	got, err := uc.GetDetail(context.Background(), "FollowersPlus.esp:FE01A813:NPC_")
+	got, err := uc.GetDetail(context.Background(), "TestPersonaPluginA.esp:FE01A813:NPC_")
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
-	if got.EditorID != "FP_KaelRuun" {
+	if got.EditorID != "TEST_NPC_B" {
 		t.Fatalf("expected EditorID forwarded, got %q", got.EditorID)
 	}
-	if got.VoiceType != "MaleCommander" {
+	if got.VoiceType != "TestVoiceB" {
 		t.Fatalf("expected VoiceType forwarded, got %q", got.VoiceType)
 	}
-	if got.SourcePlugin != "FollowersPlus.esp" {
+	if got.SourcePlugin != "TestPersonaPluginA.esp" {
 		t.Fatalf("expected SourcePlugin forwarded, got %q", got.SourcePlugin)
 	}
 	if got.Race == nil || *got.Race != "Nord" {
@@ -335,7 +335,7 @@ func TestMasterPersonaUsecasePersonaAISettingsRestartCutoverLoadAISettingsReturn
 // persona-edit-delete-cutover: UpdateEntry が ChangedEntry を含む結果を返すことを証明する。
 // usecase が ChangedEntry を返さない場合は失敗する。
 func TestMasterPersonaUsecasePersonaEditDeleteCutoverUpdateEntryReturnsChangedEntry(t *testing.T) {
-	const wantKey = "FollowersPlus.esp:FE01A812:NPC_"
+	const wantKey = "TestPersonaPluginA.esp:FE01A812:NPC_"
 	uc := NewMasterPersonaUsecase(
 		fakeMasterPersonaQueryService{},
 		fakeMasterPersonaGenerationService{
@@ -368,7 +368,7 @@ func TestMasterPersonaUsecasePersonaEditDeleteCutoverUpdateEntryReturnsChangedEn
 // persona-edit-delete-cutover: DeleteEntry が DeletedEntryID を含む結果を返すことを証明する。
 // usecase が DeletedEntryID を返さない場合は失敗する。
 func TestMasterPersonaUsecasePersonaEditDeleteCutoverDeleteEntryReturnsDeletedEntryID(t *testing.T) {
-	const wantKey = "FollowersPlus.esp:FE01A812:NPC_"
+	const wantKey = "TestPersonaPluginA.esp:FE01A812:NPC_"
 	uc := NewMasterPersonaUsecase(
 		fakeMasterPersonaQueryService{},
 		fakeMasterPersonaGenerationService{},
@@ -401,7 +401,7 @@ func TestMasterPersonaUsecasePersonaEditDeleteCutoverUpdateEntryWrapsServiceErro
 		fakeMasterPersonaRunStatusService{},
 	)
 
-	_, err := uc.UpdateEntry(context.Background(), "FollowersPlus.esp:FE01A812:NPC_", MasterPersonaUpdateInput{}, MasterPersonaListQuery{})
+	_, err := uc.UpdateEntry(context.Background(), "TestPersonaPluginA.esp:FE01A812:NPC_", MasterPersonaUpdateInput{}, MasterPersonaListQuery{})
 
 	if err == nil {
 		t.Fatal("expected update entry to propagate service error")

@@ -49,8 +49,8 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
 - `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` を揃える。人間レビュー 後に `implementation-scope` を固定する
 - シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
-- `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
-- `ux_refactor_lane` は `task 枠` を実行正本にし、`implementation_implementer`、`review_responsibility_boundary`、`work_reporter` を 文脈 継承なしで直接 起動 する。完了したサブエージェントは起動したまま残さず、完了結果を集約した後に閉じる
+- `implement_lane` は承認済み 実行成果物 を実行正本にし、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。UI がある task では frontend 実装後に人間レビューを挟む。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
+- `ux_refactor_lane` は `task 枠` を実行正本にし、`implementation_implementer`、`review_responsibility_boundary`、`work_reporter` を 文脈 継承なしで直接 起動 する。frontend 実装 agent は人間UIレビュー結果の記録まで維持し、その他の完了済みサブエージェントは完了結果を集約した後に閉じる
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
 - Codex agent の人間可読な実行説明は対応する `skills/*/SKILL.md` に置き、紐づけ と `sandbox_mode` は `agents/<agent>.toml` に置き、入力、出力、完了、停止の規約は対応する `skills/*/SKILL.md` に置く
@@ -129,11 +129,12 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `実装範囲` | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | `implement_lane` | `実装範囲` | なし |
 | `frontend 実装` | `implementation_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `implementation_implementer` |
-| `backend 実装` | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `frontend 実装?` | `implementation_implementer` |
-| `統合境界実装` | `implementation_implementer` / `implement-integration` | `backend 実装`, `frontend 実装?` | `implementation_implementer` |
-| `シナリオテスト` | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_scenario_tester` |
-| `単体テスト` | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
-| `最終検証` | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
+| `frontend 実装後人間レビュー` | human | `frontend 実装` | human |
+| `backend 実装` | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `frontend 実装後人間レビュー?` | `implementation_implementer` |
+| `統合境界実装` | `implementation_implementer` / `implement-integration` | `backend 実装`, `frontend 実装後人間レビュー?` | `implementation_implementer` |
+| `シナリオテスト` | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_scenario_tester` |
+| `単体テスト` | `implementation_unit_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_unit_tester` |
+| `最終検証` | `implement_lane` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
 | `レビュー通過根拠` | `implement_lane` | `最終検証` | レビュー agents |
 | `正本化判断` | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | `docs_updater` | `正本化判断` | `docs_updater?` |

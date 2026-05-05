@@ -276,76 +276,135 @@ func (service *ProviderSettingsService) SaveProviderSettings(
 	}
 	var saved ProviderSettingsSummary
 	lockErr := withProviderSettingsMutationLock(spec.ID, func() error {
-		now := service.now().UTC()
-		current, currentExists, err := service.loadRecord(providerSettingsContextOrBackground(ctx), spec.ID)
-		if err != nil {
-			return err
-		}
-
-		revision := current.Revision + 1
-		requestToken := providerSettingsRequestToken(spec.ID, revision)
-		secretKey := providerSettingsSecretKey(spec.ID)
-		secretStageKey := providerSettingsStagedSecretKey(spec.ID, requestToken)
-
-		credentialRef, credentialState, secretValue, secretChanged, err := service.resolveSecretSavePlan(
-			spec,
-			current,
-			currentExists,
-			input,
-			requestToken,
-		)
-		if err != nil {
-			return err
-		}
-
-		draft := repository.ProviderSettingsUpsertDraft{
-			ProviderID:            spec.ID,
-			Endpoint:              normalizeServiceOptionalString(input.Endpoint),
-			CredentialReferenceID: credentialRef,
-			CredentialState:       credentialState,
-			ValidationState:       providerSettingsValidationStateNotValidated,
-			RequestToken:          providerSettingsStringPointer(requestToken),
-			LastFailureKind:       nil,
-			Revision:              revision,
-			UpdatedAt:             now,
-		}
-
-		if secretChanged {
-			if saveErr := service.secretStore.Save(providerSettingsContextOrBackground(ctx), secretStageKey, secretValue); saveErr != nil {
-				return fmt.Errorf("stage provider settings secret: %w", saveErr)
-			}
-			defer func() {
-				_ = service.secretStore.Delete(providerSettingsContextOrBackground(ctx), secretStageKey)
-			}()
-		}
-
-		var savedRecord repository.ProviderSettingsRecord
-		txErr := service.transactor.WithTransaction(providerSettingsContextOrBackground(ctx), func(txCtx context.Context) error {
-			record, upsertErr := service.repository.Upsert(txCtx, draft)
-			if upsertErr != nil {
-				return fmt.Errorf("save provider settings row: %w", upsertErr)
-			}
-			savedRecord = record
-			return nil
-		})
-		if txErr != nil {
-			return fmt.Errorf("save provider settings: %w", txErr)
-		}
-		if secretChanged {
-			if saveErr := service.secretStore.Save(providerSettingsContextOrBackground(ctx), secretKey, secretValue); saveErr != nil {
-				if rollbackErr := service.restoreProviderSettingsRecord(providerSettingsContextOrBackground(ctx), current, currentExists); rollbackErr != nil {
-					return fmt.Errorf("save provider settings canonical secret: %w; rollback provider settings row: %w", saveErr, rollbackErr)
-				}
-				return fmt.Errorf("save provider settings canonical secret: %w", saveErr)
-			}
-		}
-		saved, err = service.buildSummary(providerSettingsContextOrBackground(ctx), spec, savedRecord, true)
+		summary, err := service.saveProviderSettingsLocked(providerSettingsContextOrBackground(ctx), spec, input)
+		saved = summary
 		return err
 	})
 	if lockErr != nil {
 		return ProviderSettingsSummary{}, lockErr
 	}
 	return saved, nil
+}
+
+func (service *ProviderSettingsService) saveProviderSettingsLocked(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsSaveInput,
+) (ProviderSettingsSummary, error) {
+	current, currentExists, err := service.loadRecord(ctx, spec.ID)
+	if err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	revision := current.Revision + 1
+	requestToken := providerSettingsRequestToken(spec.ID, revision)
+	credentialRef, credentialState, secretValue, secretChanged, err := service.resolveSecretSavePlan(
+		spec,
+		current,
+		currentExists,
+		input,
+		requestToken,
+	)
+	if err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	secretKey := providerSettingsSecretKey(spec.ID)
+	secretStageKey := providerSettingsStagedSecretKey(spec.ID, requestToken)
+	if stageErr := service.stageProviderSettingsSecret(ctx, secretChanged, secretStageKey, secretValue); stageErr != nil {
+		return ProviderSettingsSummary{}, stageErr
+	}
+	if secretChanged {
+		defer func() {
+			_ = service.secretStore.Delete(ctx, secretStageKey)
+		}()
+	}
+	savedRecord, err := service.upsertProviderSettingsRecord(ctx, providerSettingsSaveDraft(
+		spec,
+		input,
+		credentialRef,
+		credentialState,
+		requestToken,
+		revision,
+		service.now().UTC(),
+	), "save provider settings")
+	if err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	if err := service.saveCanonicalProviderSettingsSecret(ctx, secretChanged, secretKey, secretValue, current, currentExists); err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	return service.buildSummary(ctx, spec, savedRecord, true)
+}
+
+func providerSettingsSaveDraft(
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsSaveInput,
+	credentialRef *string,
+	credentialState string,
+	requestToken string,
+	revision int64,
+	now time.Time,
+) repository.ProviderSettingsUpsertDraft {
+	return repository.ProviderSettingsUpsertDraft{
+		ProviderID:            spec.ID,
+		Endpoint:              normalizeServiceOptionalString(input.Endpoint),
+		CredentialReferenceID: credentialRef,
+		CredentialState:       credentialState,
+		ValidationState:       providerSettingsValidationStateNotValidated,
+		RequestToken:          providerSettingsStringPointer(requestToken),
+		LastFailureKind:       nil,
+		Revision:              revision,
+		UpdatedAt:             now,
+	}
+}
+
+func (service *ProviderSettingsService) stageProviderSettingsSecret(ctx context.Context, changed bool, key string, value string) error {
+	if !changed {
+		return nil
+	}
+	if err := service.secretStore.Save(ctx, key, value); err != nil {
+		return fmt.Errorf("stage provider settings secret: %w", err)
+	}
+	return nil
+}
+
+func (service *ProviderSettingsService) upsertProviderSettingsRecord(
+	ctx context.Context,
+	draft repository.ProviderSettingsUpsertDraft,
+	operation string,
+) (repository.ProviderSettingsRecord, error) {
+	var savedRecord repository.ProviderSettingsRecord
+	txErr := service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+		record, upsertErr := service.repository.Upsert(txCtx, draft)
+		if upsertErr != nil {
+			return fmt.Errorf("%s row: %w", operation, upsertErr)
+		}
+		savedRecord = record
+		return nil
+	})
+	if txErr != nil {
+		return repository.ProviderSettingsRecord{}, fmt.Errorf("%s: %w", operation, txErr)
+	}
+	return savedRecord, nil
+}
+
+func (service *ProviderSettingsService) saveCanonicalProviderSettingsSecret(
+	ctx context.Context,
+	secretChanged bool,
+	secretKey string,
+	secretValue string,
+	current repository.ProviderSettingsRecord,
+	currentExists bool,
+) error {
+	if !secretChanged {
+		return nil
+	}
+	if err := service.secretStore.Save(ctx, secretKey, secretValue); err != nil {
+		if rollbackErr := service.restoreProviderSettingsRecord(ctx, current, currentExists); rollbackErr != nil {
+			return fmt.Errorf("save provider settings canonical secret: %w; rollback provider settings row: %w", err, rollbackErr)
+		}
+		return fmt.Errorf("save provider settings canonical secret: %w", err)
+	}
+	return nil
 }
 
 // ResetProviderSettings clears endpoint and credential state while keeping the row.
@@ -359,50 +418,8 @@ func (service *ProviderSettingsService) ResetProviderSettings(
 	}
 	var reset ProviderSettingsSummary
 	lockErr := withProviderSettingsMutationLock(spec.ID, func() error {
-		now := service.now().UTC()
-		current, currentExists, err := service.loadRecord(providerSettingsContextOrBackground(ctx), spec.ID)
-		if err != nil {
-			return err
-		}
-		secretKey := providerSettingsSecretKey(spec.ID)
-
-		credentialState := providerSettingsCredentialStateMissing
-		if !spec.CredentialRequired {
-			credentialState = providerSettingsCredentialStateNotRequired
-		}
-		revision := current.Revision + 1
-		requestToken := providerSettingsRequestToken(spec.ID, revision)
-		draft := repository.ProviderSettingsUpsertDraft{
-			ProviderID:            spec.ID,
-			Endpoint:              nil,
-			CredentialReferenceID: nil,
-			CredentialState:       credentialState,
-			ValidationState:       providerSettingsValidationStateNotValidated,
-			RequestToken:          providerSettingsStringPointer(requestToken),
-			LastFailureKind:       nil,
-			Revision:              revision,
-			UpdatedAt:             now,
-		}
-
-		var savedRecord repository.ProviderSettingsRecord
-		txErr := service.transactor.WithTransaction(providerSettingsContextOrBackground(ctx), func(txCtx context.Context) error {
-			record, upsertErr := service.repository.Upsert(txCtx, draft)
-			if upsertErr != nil {
-				return fmt.Errorf("reset provider settings row: %w", upsertErr)
-			}
-			savedRecord = record
-			return nil
-		})
-		if txErr != nil {
-			return fmt.Errorf("reset provider settings: %w", txErr)
-		}
-		if deleteErr := service.secretStore.Delete(providerSettingsContextOrBackground(ctx), secretKey); deleteErr != nil {
-			if rollbackErr := service.restoreProviderSettingsRecord(providerSettingsContextOrBackground(ctx), current, currentExists); rollbackErr != nil {
-				return fmt.Errorf("delete provider settings secret: %w; rollback provider settings row: %w", deleteErr, rollbackErr)
-			}
-			return fmt.Errorf("delete provider settings secret: %w", deleteErr)
-		}
-		reset, err = service.buildSummary(providerSettingsContextOrBackground(ctx), spec, savedRecord, true)
+		summary, err := service.resetProviderSettingsLocked(providerSettingsContextOrBackground(ctx), spec)
+		reset = summary
 		return err
 	})
 	if lockErr != nil {
@@ -410,6 +427,68 @@ func (service *ProviderSettingsService) ResetProviderSettings(
 	}
 	reset.Endpoint = nil
 	return reset, nil
+}
+
+func (service *ProviderSettingsService) resetProviderSettingsLocked(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+) (ProviderSettingsSummary, error) {
+	current, currentExists, err := service.loadRecord(ctx, spec.ID)
+	if err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	revision := current.Revision + 1
+	savedRecord, err := service.upsertProviderSettingsRecord(ctx, providerSettingsResetDraft(
+		spec,
+		providerSettingsRequestToken(spec.ID, revision),
+		revision,
+		service.now().UTC(),
+	), "reset provider settings")
+	if err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	if err := service.deleteProviderSettingsSecret(ctx, providerSettingsSecretKey(spec.ID), current, currentExists); err != nil {
+		return ProviderSettingsSummary{}, err
+	}
+	return service.buildSummary(ctx, spec, savedRecord, true)
+}
+
+func providerSettingsResetDraft(
+	spec providerSettingsProviderSpec,
+	requestToken string,
+	revision int64,
+	now time.Time,
+) repository.ProviderSettingsUpsertDraft {
+	credentialState := providerSettingsCredentialStateMissing
+	if !spec.CredentialRequired {
+		credentialState = providerSettingsCredentialStateNotRequired
+	}
+	return repository.ProviderSettingsUpsertDraft{
+		ProviderID:            spec.ID,
+		Endpoint:              nil,
+		CredentialReferenceID: nil,
+		CredentialState:       credentialState,
+		ValidationState:       providerSettingsValidationStateNotValidated,
+		RequestToken:          providerSettingsStringPointer(requestToken),
+		LastFailureKind:       nil,
+		Revision:              revision,
+		UpdatedAt:             now,
+	}
+}
+
+func (service *ProviderSettingsService) deleteProviderSettingsSecret(
+	ctx context.Context,
+	secretKey string,
+	current repository.ProviderSettingsRecord,
+	currentExists bool,
+) error {
+	if err := service.secretStore.Delete(ctx, secretKey); err != nil {
+		if rollbackErr := service.restoreProviderSettingsRecord(ctx, current, currentExists); rollbackErr != nil {
+			return fmt.Errorf("delete provider settings secret: %w; rollback provider settings row: %w", err, rollbackErr)
+		}
+		return fmt.Errorf("delete provider settings secret: %w", err)
+	}
+	return nil
 }
 
 // ValidateProviderSettings validates one provider settings snapshot without leaking secrets.
@@ -423,115 +502,132 @@ func (service *ProviderSettingsService) ValidateProviderSettings(
 	}
 	var result ProviderSettingsValidationResult
 	lockErr := withProviderSettingsMutationLock(spec.ID, func() error {
-		summary, err := service.getCurrentSummary(providerSettingsContextOrBackground(ctx), spec.ID)
-		if err != nil {
-			return err
-		}
-		requestToken := strings.TrimSpace(input.RequestToken)
-		if requestToken == "" {
-			return fmt.Errorf("%w: request token is required", ErrProviderSettingsValidation)
-		}
-		if !providerSettingsMatchesSnapshot(summary, input.Endpoint, input.CredentialState, input.CredentialReferenceID, requestToken) {
-			result = ProviderSettingsValidationResult{
-				ProviderID:      spec.ID,
-				ValidationState: providerSettingsValidationStateNotValidated,
-				RequestToken:    requestToken,
-				FailureKind:     providerSettingsStringPointer(providerSettingsErrorKindValidationStale),
-			}
-			return nil
-		}
-		if summary.Endpoint == nil {
-			result = ProviderSettingsValidationResult{
-				ProviderID:      spec.ID,
-				ValidationState: providerSettingsValidationStateNotValidated,
-				RequestToken:    requestToken,
-				FailureKind:     providerSettingsStringPointer(providerSettingsErrorKindEndpointMissing),
-			}
-			return nil
-		}
-		if spec.CredentialRequired && summary.CredentialReferenceID == nil {
-			result = ProviderSettingsValidationResult{
-				ProviderID:      spec.ID,
-				ValidationState: providerSettingsValidationStateNotValidated,
-				RequestToken:    requestToken,
-				FailureKind:     providerSettingsStringPointer(providerSettingsErrorKindCredentialMissing),
-			}
-			return nil
-		}
-		apiKey, failureKind, err := service.resolveValidationSecret(providerSettingsContextOrBackground(ctx), spec, summary)
-		if err != nil {
-			return err
-		}
-		if failureKind != nil {
-			result = ProviderSettingsValidationResult{
-				ProviderID:      spec.ID,
-				ValidationState: providerSettingsValidationStateNotValidated,
-				RequestToken:    requestToken,
-				FailureKind:     failureKind,
-			}
-			return nil
-		}
-
-		if _, matched, updateErr := service.repository.UpdateValidationByRequestToken(
-			providerSettingsContextOrBackground(ctx),
-			spec.ID,
-			requestToken,
-			providerSettingsValidationStatePending,
-			nil,
-		); updateErr != nil {
-			return fmt.Errorf("mark provider settings validation pending: %w", updateErr)
-		} else if !matched {
-			result = ProviderSettingsValidationResult{
-				ProviderID:      spec.ID,
-				ValidationState: providerSettingsValidationStateNotValidated,
-				RequestToken:    requestToken,
-				FailureKind:     providerSettingsStringPointer(providerSettingsErrorKindValidationStale),
-			}
-			return nil
-		}
-
-		validationErr := service.validator.ValidateProviderSettings(providerSettingsContextOrBackground(ctx), ProviderSettingsValidationProbe{
-			ProviderID: spec.ID,
-			Endpoint:   *summary.Endpoint,
-			APIKey:     apiKey,
-		})
-		finalState := providerSettingsValidationStateValidated
-		var finalFailure *string
-		if validationErr != nil {
-			finalState = providerSettingsValidationStateFailed
-			finalFailure = providerSettingsStringPointer(providerSettingsErrorKindProviderUnreachable)
-		}
-		_, matched, updateErr := service.repository.UpdateValidationByRequestToken(
-			providerSettingsContextOrBackground(ctx),
-			spec.ID,
-			requestToken,
-			finalState,
-			finalFailure,
-		)
-		if updateErr != nil {
-			return fmt.Errorf("update provider settings validation result: %w", updateErr)
-		}
-		if !matched {
-			result = ProviderSettingsValidationResult{
-				ProviderID:      spec.ID,
-				ValidationState: providerSettingsValidationStateNotValidated,
-				RequestToken:    requestToken,
-				FailureKind:     providerSettingsStringPointer(providerSettingsErrorKindValidationStale),
-			}
-			return nil
-		}
-		result = ProviderSettingsValidationResult{
-			ProviderID:      spec.ID,
-			ValidationState: finalState,
-			RequestToken:    requestToken,
-			FailureKind:     finalFailure,
-		}
-		return nil
+		validated, err := service.validateProviderSettingsLocked(providerSettingsContextOrBackground(ctx), spec, input)
+		result = validated
+		return err
 	})
 	if lockErr != nil {
 		return ProviderSettingsValidationResult{}, lockErr
 	}
 	return result, nil
+}
+
+func (service *ProviderSettingsService) validateProviderSettingsLocked(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsValidateInput,
+) (ProviderSettingsValidationResult, error) {
+	summary, err := service.getCurrentSummary(ctx, spec.ID)
+	if err != nil {
+		return ProviderSettingsValidationResult{}, err
+	}
+	requestToken := strings.TrimSpace(input.RequestToken)
+	if requestToken == "" {
+		return ProviderSettingsValidationResult{}, fmt.Errorf("%w: request token is required", ErrProviderSettingsValidation)
+	}
+	if failureKind := providerSettingsValidationPreflightFailure(spec, summary, input, requestToken); failureKind != "" {
+		return providerSettingsValidationFailure(spec.ID, requestToken, failureKind), nil
+	}
+	apiKey, failureKind, err := service.resolveValidationSecret(ctx, spec, summary)
+	if err != nil {
+		return ProviderSettingsValidationResult{}, err
+	}
+	if failureKind != nil {
+		return providerSettingsValidationFailurePointer(spec.ID, requestToken, failureKind), nil
+	}
+	pendingStale, pendingErr := service.updateProviderSettingsValidation(ctx, spec.ID, requestToken, providerSettingsValidationStatePending, nil, "mark provider settings validation pending")
+	if pendingErr != nil || pendingStale {
+		return providerSettingsValidationStaleOrError(spec.ID, requestToken, pendingStale, pendingErr)
+	}
+	finalState, finalFailure := service.validateProviderSettingsProbe(ctx, spec, summary, apiKey)
+	stale, err := service.updateProviderSettingsValidation(ctx, spec.ID, requestToken, finalState, finalFailure, "update provider settings validation result")
+	if err != nil || stale {
+		return providerSettingsValidationStaleOrError(spec.ID, requestToken, stale, err)
+	}
+	return ProviderSettingsValidationResult{
+		ProviderID:      spec.ID,
+		ValidationState: finalState,
+		RequestToken:    requestToken,
+		FailureKind:     finalFailure,
+	}, nil
+}
+
+func providerSettingsValidationPreflightFailure(
+	spec providerSettingsProviderSpec,
+	summary ProviderSettingsSummary,
+	input ProviderSettingsValidateInput,
+	requestToken string,
+) string {
+	if !providerSettingsMatchesSnapshot(summary, input.Endpoint, input.CredentialState, input.CredentialReferenceID, requestToken) {
+		return providerSettingsErrorKindValidationStale
+	}
+	if summary.Endpoint == nil {
+		return providerSettingsErrorKindEndpointMissing
+	}
+	if spec.CredentialRequired && summary.CredentialReferenceID == nil {
+		return providerSettingsErrorKindCredentialMissing
+	}
+	return ""
+}
+
+func (service *ProviderSettingsService) updateProviderSettingsValidation(
+	ctx context.Context,
+	providerID string,
+	requestToken string,
+	state string,
+	failureKind *string,
+	operation string,
+) (bool, error) {
+	_, matched, err := service.repository.UpdateValidationByRequestToken(ctx, providerID, requestToken, state, failureKind)
+	if err != nil {
+		return false, fmt.Errorf("%s: %w", operation, err)
+	}
+	return !matched, nil
+}
+
+func (service *ProviderSettingsService) validateProviderSettingsProbe(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	summary ProviderSettingsSummary,
+	apiKey string,
+) (string, *string) {
+	err := service.validator.ValidateProviderSettings(ctx, ProviderSettingsValidationProbe{
+		ProviderID: spec.ID,
+		Endpoint:   *summary.Endpoint,
+		APIKey:     apiKey,
+	})
+	if err != nil {
+		return providerSettingsValidationStateFailed, providerSettingsStringPointer(providerSettingsErrorKindProviderUnreachable)
+	}
+	return providerSettingsValidationStateValidated, nil
+}
+
+func providerSettingsValidationStaleOrError(
+	providerID string,
+	requestToken string,
+	stale bool,
+	err error,
+) (ProviderSettingsValidationResult, error) {
+	if err != nil {
+		return ProviderSettingsValidationResult{}, err
+	}
+	if stale {
+		return providerSettingsValidationFailure(providerID, requestToken, providerSettingsErrorKindValidationStale), nil
+	}
+	return ProviderSettingsValidationResult{}, nil
+}
+
+func providerSettingsValidationFailure(providerID string, requestToken string, failureKind string) ProviderSettingsValidationResult {
+	return providerSettingsValidationFailurePointer(providerID, requestToken, providerSettingsStringPointer(failureKind))
+}
+
+func providerSettingsValidationFailurePointer(providerID string, requestToken string, failureKind *string) ProviderSettingsValidationResult {
+	return ProviderSettingsValidationResult{
+		ProviderID:      providerID,
+		ValidationState: providerSettingsValidationStateNotValidated,
+		RequestToken:    requestToken,
+		FailureKind:     failureKind,
+	}
 }
 
 // ListProviderModels returns provider model options only when endpoint and credential state are ready.
@@ -545,81 +641,127 @@ func (service *ProviderSettingsService) ListProviderModels(
 	}
 	var result ProviderSettingsModelListResult
 	lockErr := withProviderSettingsMutationLock(spec.ID, func() error {
-		summary, err := service.getCurrentSummary(providerSettingsContextOrBackground(ctx), spec.ID)
-		if err != nil {
-			return err
-		}
-		requestToken := strings.TrimSpace(input.RequestToken)
-		result = ProviderSettingsModelListResult{
-			ProviderID:      spec.ID,
-			Endpoint:        summary.Endpoint,
-			CredentialState: summary.CredentialState,
-			RequestToken:    requestToken,
-			State:           providerSettingsModelListStateNotRequested,
-			Models:          []ProviderSettingsModelOption{},
-		}
-		if !providerSettingsMatchesSnapshot(summary, input.Endpoint, input.CredentialState, input.CredentialReferenceID, requestToken) {
-			result.State = providerSettingsModelListStateFailed
-			result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindValidationStale)
-			return nil
-		}
-		if summary.Endpoint == nil {
-			result.State = providerSettingsModelListStateEndpointMissing
-			result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindEndpointMissing)
-			return nil
-		}
-		apiKey := ""
-		if spec.CredentialRequired {
-			if summary.CredentialReferenceID == nil {
-				result.State = providerSettingsModelListStateCredentialMissing
-				result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindCredentialMissing)
-				return nil
-			}
-			loaded, failureKind, loadErr := service.resolveValidationSecret(providerSettingsContextOrBackground(ctx), spec, summary)
-			if loadErr != nil {
-				return loadErr
-			}
-			if failureKind != nil {
-				result.State = providerSettingsModelListStateCredentialMissing
-				result.FailureKind = failureKind
-				return nil
-			}
-			apiKey = loaded
-		} else {
-			result.State = providerSettingsModelListStateCredentialNotNeeded
-		}
-		models, loadErr := service.modelListLoader.ListProviderModelsWithEndpoint(
-			providerSettingsContextOrBackground(ctx),
-			spec.ID,
-			*summary.Endpoint,
-			apiKey,
-		)
-		if loadErr != nil {
-			result.State = providerSettingsModelListStateFailed
-			result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindModelListFailed)
-			//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
-			return nil
-		}
-		result.State = providerSettingsModelListStateReady
-		if !spec.CredentialRequired {
-			result.State = providerSettingsModelListStateCredentialNotNeeded
-		}
-		result.Models = make([]ProviderSettingsModelOption, 0, len(models))
-		for _, model := range models {
-			result.Models = append(result.Models, ProviderSettingsModelOption{
-				ModelID: strings.TrimSpace(model.ModelID),
-				Label:   strings.TrimSpace(model.Label),
-			})
-		}
-		sort.Slice(result.Models, func(left, right int) bool {
-			return result.Models[left].ModelID < result.Models[right].ModelID
-		})
-		return nil
+		listed, err := service.listProviderModelsLocked(providerSettingsContextOrBackground(ctx), spec, input)
+		result = listed
+		return err
 	})
 	if lockErr != nil {
 		return ProviderSettingsModelListResult{}, lockErr
 	}
 	return result, nil
+}
+
+func (service *ProviderSettingsService) listProviderModelsLocked(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsModelListInput,
+) (ProviderSettingsModelListResult, error) {
+	summary, err := service.getCurrentSummary(ctx, spec.ID)
+	if err != nil {
+		return ProviderSettingsModelListResult{}, err
+	}
+	requestToken := strings.TrimSpace(input.RequestToken)
+	result := providerSettingsInitialModelListResult(spec.ID, summary, requestToken)
+	if done := providerSettingsApplyModelListPreflight(&result, summary, input, requestToken); done {
+		return result, nil
+	}
+	apiKey, done, err := service.resolveModelListAPIKey(ctx, spec, summary, &result)
+	if err != nil || done {
+		return result, err
+	}
+	models, loadErr := service.modelListLoader.ListProviderModelsWithEndpoint(ctx, spec.ID, *summary.Endpoint, apiKey)
+	if loadErr != nil {
+		result.State = providerSettingsModelListStateFailed
+		result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindModelListFailed)
+		_ = loadErr
+		//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
+		return result, nil
+	}
+	result.State = providerSettingsModelListReadyState(spec)
+	result.Models = providerSettingsModelOptions(models)
+	return result, nil
+}
+
+func providerSettingsInitialModelListResult(
+	providerID string,
+	summary ProviderSettingsSummary,
+	requestToken string,
+) ProviderSettingsModelListResult {
+	return ProviderSettingsModelListResult{
+		ProviderID:      providerID,
+		Endpoint:        summary.Endpoint,
+		CredentialState: summary.CredentialState,
+		RequestToken:    requestToken,
+		State:           providerSettingsModelListStateNotRequested,
+		Models:          []ProviderSettingsModelOption{},
+	}
+}
+
+func providerSettingsApplyModelListPreflight(
+	result *ProviderSettingsModelListResult,
+	summary ProviderSettingsSummary,
+	input ProviderSettingsModelListInput,
+	requestToken string,
+) bool {
+	if !providerSettingsMatchesSnapshot(summary, input.Endpoint, input.CredentialState, input.CredentialReferenceID, requestToken) {
+		result.State = providerSettingsModelListStateFailed
+		result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindValidationStale)
+		return true
+	}
+	if summary.Endpoint == nil {
+		result.State = providerSettingsModelListStateEndpointMissing
+		result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindEndpointMissing)
+		return true
+	}
+	return false
+}
+
+func (service *ProviderSettingsService) resolveModelListAPIKey(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	summary ProviderSettingsSummary,
+	result *ProviderSettingsModelListResult,
+) (string, bool, error) {
+	if !spec.CredentialRequired {
+		result.State = providerSettingsModelListStateCredentialNotNeeded
+		return "", false, nil
+	}
+	if summary.CredentialReferenceID == nil {
+		result.State = providerSettingsModelListStateCredentialMissing
+		result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindCredentialMissing)
+		return "", true, nil
+	}
+	loaded, failureKind, err := service.resolveValidationSecret(ctx, spec, summary)
+	if err != nil {
+		return "", false, err
+	}
+	if failureKind != nil {
+		result.State = providerSettingsModelListStateCredentialMissing
+		result.FailureKind = failureKind
+		return "", true, nil
+	}
+	return loaded, false, nil
+}
+
+func providerSettingsModelListReadyState(spec providerSettingsProviderSpec) string {
+	if !spec.CredentialRequired {
+		return providerSettingsModelListStateCredentialNotNeeded
+	}
+	return providerSettingsModelListStateReady
+}
+
+func providerSettingsModelOptions(models []ProviderSettingsModelOption) []ProviderSettingsModelOption {
+	options := make([]ProviderSettingsModelOption, 0, len(models))
+	for _, model := range models {
+		options = append(options, ProviderSettingsModelOption{
+			ModelID: strings.TrimSpace(model.ModelID),
+			Label:   strings.TrimSpace(model.Label),
+		})
+	}
+	sort.Slice(options, func(left, right int) bool {
+		return options[left].ModelID < options[right].ModelID
+	})
+	return options
 }
 
 // ResolveProviderExecutionSettings resolves provider endpoint and credential reference for downstream consumers.
@@ -632,40 +774,7 @@ func (service *ProviderSettingsService) ResolveProviderExecutionSettings(
 		return ProviderSettingsResolveResult{}, err
 	}
 	resolve := func() (ProviderSettingsResolveResult, error) {
-		summary, err := service.getCurrentSummary(providerSettingsContextOrBackground(ctx), spec.ID)
-		if err != nil {
-			return ProviderSettingsResolveResult{}, err
-		}
-		result := ProviderSettingsResolveResult{
-			ConsumerID:            strings.TrimSpace(input.ConsumerID),
-			ProviderID:            spec.ID,
-			Model:                 strings.TrimSpace(input.Selection.Model),
-			ExecutionMethod:       strings.TrimSpace(input.Selection.ExecutionMethod),
-			UseBatchAPI:           input.Selection.UseBatchAPI,
-			Endpoint:              summary.Endpoint,
-			CredentialReferenceID: summary.CredentialReferenceID,
-			CredentialState:       summary.CredentialState,
-			RequestToken:          summary.RequestToken,
-		}
-		switch {
-		case summary.Endpoint == nil:
-			result.ErrorKind = providerSettingsStringPointer(providerSettingsErrorKindEndpointMissing)
-		case spec.CredentialRequired && summary.CredentialReferenceID == nil:
-			result.ErrorKind = providerSettingsStringPointer(providerSettingsErrorKindCredentialMissing)
-		}
-		if input.AllowSecretSnapshot && result.ErrorKind == nil && spec.CredentialRequired && summary.CredentialReferenceID != nil {
-			snapshotRef, snapshotErr := service.snapshotExecutionSecret(
-				providerSettingsContextOrBackground(ctx),
-				strings.TrimSpace(input.ConsumerID),
-				spec.ID,
-				summary,
-			)
-			if snapshotErr != nil {
-				return ProviderSettingsResolveResult{}, snapshotErr
-			}
-			result.CredentialReferenceID = providerSettingsStringPointer(snapshotRef)
-		}
-		return result, nil
+		return service.resolveProviderExecutionSettingsUnlocked(providerSettingsContextOrBackground(ctx), spec, input)
 	}
 	if !input.AllowSecretSnapshot {
 		return resolve()
@@ -683,6 +792,65 @@ func (service *ProviderSettingsService) ResolveProviderExecutionSettings(
 		return ProviderSettingsResolveResult{}, lockErr
 	}
 	return result, nil
+}
+
+func (service *ProviderSettingsService) resolveProviderExecutionSettingsUnlocked(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsResolveInput,
+) (ProviderSettingsResolveResult, error) {
+	summary, err := service.getCurrentSummary(ctx, spec.ID)
+	if err != nil {
+		return ProviderSettingsResolveResult{}, err
+	}
+	result := providerSettingsResolveResult(spec, input, summary)
+	if err := service.applyProviderSettingsExecutionSnapshot(ctx, spec, input, summary, &result); err != nil {
+		return ProviderSettingsResolveResult{}, err
+	}
+	return result, nil
+}
+
+func providerSettingsResolveResult(
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsResolveInput,
+	summary ProviderSettingsSummary,
+) ProviderSettingsResolveResult {
+	result := ProviderSettingsResolveResult{
+		ConsumerID:            strings.TrimSpace(input.ConsumerID),
+		ProviderID:            spec.ID,
+		Model:                 strings.TrimSpace(input.Selection.Model),
+		ExecutionMethod:       strings.TrimSpace(input.Selection.ExecutionMethod),
+		UseBatchAPI:           input.Selection.UseBatchAPI,
+		Endpoint:              summary.Endpoint,
+		CredentialReferenceID: summary.CredentialReferenceID,
+		CredentialState:       summary.CredentialState,
+		RequestToken:          summary.RequestToken,
+	}
+	switch {
+	case summary.Endpoint == nil:
+		result.ErrorKind = providerSettingsStringPointer(providerSettingsErrorKindEndpointMissing)
+	case spec.CredentialRequired && summary.CredentialReferenceID == nil:
+		result.ErrorKind = providerSettingsStringPointer(providerSettingsErrorKindCredentialMissing)
+	}
+	return result
+}
+
+func (service *ProviderSettingsService) applyProviderSettingsExecutionSnapshot(
+	ctx context.Context,
+	spec providerSettingsProviderSpec,
+	input ProviderSettingsResolveInput,
+	summary ProviderSettingsSummary,
+	result *ProviderSettingsResolveResult,
+) error {
+	if !input.AllowSecretSnapshot || result.ErrorKind != nil || !spec.CredentialRequired || summary.CredentialReferenceID == nil {
+		return nil
+	}
+	snapshotRef, err := service.snapshotExecutionSecret(ctx, strings.TrimSpace(input.ConsumerID), spec.ID, summary)
+	if err != nil {
+		return err
+	}
+	result.CredentialReferenceID = providerSettingsStringPointer(snapshotRef)
+	return nil
 }
 
 func (service *ProviderSettingsService) snapshotExecutionSecret(
@@ -719,7 +887,7 @@ func providerSettingsContextOrBackground(ctx context.Context) context.Context {
 	if ctx != nil {
 		return ctx
 	}
-	return context.Background()
+	return context.TODO()
 }
 
 func providerSettingsSpec(providerID string) (providerSettingsProviderSpec, error) {

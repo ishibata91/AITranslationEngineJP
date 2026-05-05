@@ -28,6 +28,7 @@ const (
 	bodyTranslationStartRejectMessage        = "body translation phase execution rejected"
 	bodyTranslationInputSnapshotFailedKind   = "input_snapshot_failed"
 	bodyTranslationInputSnapshotDriftReason  = "body translation input snapshot changed after phase start"
+	bodyTranslationRuntimeSnapshotMissing    = "phase runtime snapshot is missing"
 )
 
 var errBodyTranslationPhaseExecutionRejected = errors.New(bodyTranslationStartRejectMessage)
@@ -362,81 +363,7 @@ func (service *BodyTranslationPhaseService) StartPhase(
 		return result, errBodyTranslationPhaseExecutionRejected
 	}
 
-	var createdRun repository.JobPhaseRun
-	var updatedJob repository.TranslationJob
-	now := service.now()
-	err = service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
-		runState := bodyTranslationPhaseStateRunning
-		progressPercent := 0
-		finishedAt := (*time.Time)(nil)
-		jobState := loaded.job.State
-		jobProgress := loaded.job.ProgressPercent
-		if loaded.snapshot.ProviderTargetCount == 0 {
-			runState = bodyTranslationPhaseStateCompleted
-			progressPercent = 100
-			finishedAt = &now
-			jobState = bodyTranslationJobStateCompleted
-			jobProgress = 100
-		}
-
-		run, createErr := service.jobLifecycleRepository.CreateJobPhaseRun(txCtx, repository.JobPhaseRunDraft{
-			TranslationJobID:       loaded.job.ID,
-			PhaseType:              bodyTranslationPhaseType,
-			State:                  runState,
-			ExecutionOrder:         service.nextExecutionOrder(loaded),
-			SnapshotFieldCount:     loaded.snapshot.TargetCount,
-			ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
-			ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
-			PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
-			AIProvider:             loaded.execution.Provider,
-			ModelName:              loaded.execution.Model,
-			ExecutionMode:          loaded.execution.ExecutionMode,
-			CredentialRef:          loaded.execution.CredentialRef,
-			InstructionKind:        bodyTranslationPhaseType,
-			InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
-			DictionaryDigest:       loaded.snapshot.DictionaryDigest,
-			PersonaDigest:          loaded.snapshot.PersonaDigest,
-			MetadataDigest:         loaded.snapshot.MetadataDigest,
-			PromptDigest:           loaded.snapshot.PromptDigest,
-		})
-		if createErr != nil {
-			return fmt.Errorf("create body translation phase run: %w", createErr)
-		}
-		run, createErr = service.jobLifecycleRepository.UpdateJobPhaseRun(txCtx, run.ID, repository.JobPhaseRunUpdateDraft{
-			State:           runState,
-			ProgressPercent: progressPercent,
-			StartedAt:       &now,
-			FinishedAt:      finishedAt,
-		})
-		if createErr != nil {
-			return fmt.Errorf("update body translation phase run: %w", createErr)
-		}
-		job, updateErr := service.jobLifecycleRepository.UpdateTranslationJob(txCtx, loaded.job.ID, repository.TranslationJobUpdateDraft{
-			JobName:         loaded.job.JobName,
-			State:           jobState,
-			ProgressPercent: jobProgress,
-			StartedAt:       loaded.job.StartedAt,
-			FinishedAt:      finishedAt,
-		})
-		if updateErr != nil {
-			return fmt.Errorf("update translation job for body translation phase: %w", updateErr)
-		}
-		startSnapshot := providerExecutionSnapshot{
-			Provider:        loaded.execution.Provider,
-			Model:           loaded.execution.Model,
-			ExecutionMode:   loaded.execution.ExecutionMode,
-			CredentialRef:   loaded.execution.CredentialRef,
-			CredentialState: loaded.execution.CredentialState,
-			EndpointSummary: providerExecutionEndpointSummary(loaded.execution.EndpointSummary),
-		}
-		if persistErr := service.persistRuntimeSnapshot(txCtx, loaded.job.ID, "text_translation", startSnapshot); persistErr != nil {
-			return persistErr
-		}
-		createdRun = run
-		updatedJob = job
-		service.executionSnapshots[run.ID] = startSnapshot
-		return nil
-	})
+	createdRun, updatedJob, err := service.createBodyTranslationPhaseRun(ctx, loaded)
 	if err != nil {
 		return BodyTranslationPhaseCommandReadModel{}, fmt.Errorf("start body translation phase transaction: %w", err)
 	}
@@ -451,6 +378,134 @@ func (service *BodyTranslationPhaseService) StartPhase(
 }
 
 const errLoadBodyTranslationPhaseRun = "load body translation phase run: %w"
+
+type bodyTranslationStartState struct {
+	runState        string
+	progressPercent int
+	finishedAt      *time.Time
+	jobState        string
+	jobProgress     int
+}
+
+func (service *BodyTranslationPhaseService) createBodyTranslationPhaseRun(
+	ctx context.Context,
+	loaded bodyTranslationLoadedContext,
+) (repository.JobPhaseRun, repository.TranslationJob, error) {
+	var createdRun repository.JobPhaseRun
+	var updatedJob repository.TranslationJob
+	now := service.now()
+	err := service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
+		startState := bodyTranslationStartStateFor(loaded, now)
+		run, err := service.createBodyTranslationRunRecord(txCtx, loaded, startState, now)
+		if err != nil {
+			return err
+		}
+		job, err := service.updateBodyTranslationJobForStart(txCtx, loaded, startState)
+		if err != nil {
+			return err
+		}
+		startSnapshot := bodyTranslationStartSnapshot(loaded.execution)
+		if err := service.persistRuntimeSnapshot(txCtx, loaded.job.ID, "text_translation", startSnapshot); err != nil {
+			return err
+		}
+		createdRun = run
+		updatedJob = job
+		service.executionSnapshots[run.ID] = startSnapshot
+		return nil
+	})
+	if err != nil {
+		return repository.JobPhaseRun{}, repository.TranslationJob{}, fmt.Errorf("create body translation phase run transaction: %w", err)
+	}
+	return createdRun, updatedJob, nil
+}
+
+func bodyTranslationStartStateFor(loaded bodyTranslationLoadedContext, now time.Time) bodyTranslationStartState {
+	state := bodyTranslationStartState{
+		runState:        bodyTranslationPhaseStateRunning,
+		progressPercent: 0,
+		finishedAt:      nil,
+		jobState:        loaded.job.State,
+		jobProgress:     loaded.job.ProgressPercent,
+	}
+	if loaded.snapshot.ProviderTargetCount == 0 {
+		state.runState = bodyTranslationPhaseStateCompleted
+		state.progressPercent = 100
+		state.finishedAt = &now
+		state.jobState = bodyTranslationJobStateCompleted
+		state.jobProgress = 100
+	}
+	return state
+}
+
+func (service *BodyTranslationPhaseService) createBodyTranslationRunRecord(
+	ctx context.Context,
+	loaded bodyTranslationLoadedContext,
+	startState bodyTranslationStartState,
+	now time.Time,
+) (repository.JobPhaseRun, error) {
+	run, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
+		TranslationJobID:       loaded.job.ID,
+		PhaseType:              bodyTranslationPhaseType,
+		State:                  startState.runState,
+		ExecutionOrder:         service.nextExecutionOrder(loaded),
+		SnapshotFieldCount:     loaded.snapshot.TargetCount,
+		ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
+		ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
+		PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
+		AIProvider:             loaded.execution.Provider,
+		ModelName:              loaded.execution.Model,
+		ExecutionMode:          loaded.execution.ExecutionMode,
+		CredentialRef:          loaded.execution.CredentialRef,
+		InstructionKind:        bodyTranslationPhaseType,
+		InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
+		DictionaryDigest:       loaded.snapshot.DictionaryDigest,
+		PersonaDigest:          loaded.snapshot.PersonaDigest,
+		MetadataDigest:         loaded.snapshot.MetadataDigest,
+		PromptDigest:           loaded.snapshot.PromptDigest,
+	})
+	if err != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("create body translation phase run: %w", err)
+	}
+	run, err = service.jobLifecycleRepository.UpdateJobPhaseRun(ctx, run.ID, repository.JobPhaseRunUpdateDraft{
+		State:           startState.runState,
+		ProgressPercent: startState.progressPercent,
+		StartedAt:       &now,
+		FinishedAt:      startState.finishedAt,
+	})
+	if err != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("update body translation phase run: %w", err)
+	}
+	return run, nil
+}
+
+func (service *BodyTranslationPhaseService) updateBodyTranslationJobForStart(
+	ctx context.Context,
+	loaded bodyTranslationLoadedContext,
+	startState bodyTranslationStartState,
+) (repository.TranslationJob, error) {
+	job, err := service.jobLifecycleRepository.UpdateTranslationJob(ctx, loaded.job.ID, repository.TranslationJobUpdateDraft{
+		JobName:         loaded.job.JobName,
+		State:           startState.jobState,
+		ProgressPercent: startState.jobProgress,
+		StartedAt:       loaded.job.StartedAt,
+		FinishedAt:      startState.finishedAt,
+	})
+	if err != nil {
+		return repository.TranslationJob{}, fmt.Errorf("update translation job for body translation phase: %w", err)
+	}
+	return job, nil
+}
+
+func bodyTranslationStartSnapshot(execution BodyTranslationPhaseExecutionSummaryReadModel) providerExecutionSnapshot {
+	return providerExecutionSnapshot{
+		Provider:        execution.Provider,
+		Model:           execution.Model,
+		ExecutionMode:   execution.ExecutionMode,
+		CredentialRef:   execution.CredentialRef,
+		CredentialState: execution.CredentialState,
+		EndpointSummary: providerExecutionEndpointSummary(execution.EndpointSummary),
+	}
+}
 
 // PausePhase returns the current phase payload for deferred pause handling.
 func (service *BodyTranslationPhaseService) PausePhase(
@@ -567,40 +622,9 @@ func (service *BodyTranslationPhaseService) loadContext(
 	if err != nil {
 		return bodyTranslationLoadedContext{}, fmt.Errorf("list body translation outputs: %w", err)
 	}
-	execution := bodyTranslationExecutionFromPhaseRuns(bodyRun, personaRun)
-	if snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader); ok && bodyRun == nil {
-		snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "text_translation")
-		switch {
-		case snapshotErr == nil:
-			execution.CredentialRef = strings.TrimSpace(snapshot.CredentialRef)
-			execution.Provider = strings.TrimSpace(snapshot.Provider)
-			execution.Model = strings.TrimSpace(snapshot.ModelName)
-			execution.ExecutionMode = strings.TrimSpace(snapshot.ExecutionMode)
-		case errors.Is(snapshotErr, repository.ErrNotFound):
-			execution.CredentialRef = ""
-			execution.Provider = ""
-			execution.Model = ""
-			execution.ExecutionMode = ""
-		default:
-			return bodyTranslationLoadedContext{}, fmt.Errorf("load body translation phase runtime snapshot: %w", snapshotErr)
-		}
-	}
-	if bodyRun != nil {
-		if snapshot, ok := service.executionSnapshots[bodyRun.ID]; ok {
-			execution.CredentialState = snapshot.CredentialState
-			execution.EndpointSummary = providerExecutionEndpointSummary(snapshot.EndpointSummary)
-		} else if snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader); ok {
-			snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "text_translation")
-			switch {
-			case snapshotErr == nil:
-				persisted := providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
-				execution.CredentialState = persisted.CredentialState
-				execution.EndpointSummary = providerExecutionEndpointSummary(persisted.EndpointSummary)
-			case errors.Is(snapshotErr, repository.ErrNotFound):
-			default:
-				return bodyTranslationLoadedContext{}, fmt.Errorf("load body translation phase runtime snapshot: %w", snapshotErr)
-			}
-		}
+	execution, err := service.bodyTranslationExecutionContext(ctx, job.ID, bodyRun, personaRun)
+	if err != nil {
+		return bodyTranslationLoadedContext{}, err
 	}
 	persona := firstBodyTranslationPersona(personas)
 	snapshot, err := buildBodyTranslationInputSnapshot(job, records, fieldsByRecord, dictionary, persona, execution)
@@ -626,6 +650,74 @@ func (service *BodyTranslationPhaseService) loadContext(
 		inputSnapshotDrifted: inputSnapshotDrifted,
 		outputFields:         outputFields,
 	}, nil
+}
+
+func (service *BodyTranslationPhaseService) bodyTranslationExecutionContext(
+	ctx context.Context,
+	jobID int64,
+	bodyRun *repository.JobPhaseRun,
+	personaRun *repository.JobPhaseRun,
+) (BodyTranslationPhaseExecutionSummaryReadModel, error) {
+	execution := bodyTranslationExecutionFromPhaseRuns(bodyRun, personaRun)
+	if bodyRun == nil {
+		return service.bodyTranslationExecutionForNewRun(ctx, jobID, execution)
+	}
+	return service.bodyTranslationExecutionForExistingRun(ctx, jobID, *bodyRun, execution)
+}
+
+func (service *BodyTranslationPhaseService) bodyTranslationExecutionForNewRun(
+	ctx context.Context,
+	jobID int64,
+	execution BodyTranslationPhaseExecutionSummaryReadModel,
+) (BodyTranslationPhaseExecutionSummaryReadModel, error) {
+	snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader)
+	if !ok {
+		return execution, nil
+	}
+	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "text_translation")
+	if errors.Is(err, repository.ErrNotFound) {
+		execution.CredentialRef = ""
+		execution.Provider = ""
+		execution.Model = ""
+		execution.ExecutionMode = ""
+		return execution, nil
+	}
+	if err != nil {
+		return BodyTranslationPhaseExecutionSummaryReadModel{}, fmt.Errorf("load body translation phase runtime snapshot: %w", err)
+	}
+	execution.CredentialRef = strings.TrimSpace(snapshot.CredentialRef)
+	execution.Provider = strings.TrimSpace(snapshot.Provider)
+	execution.Model = strings.TrimSpace(snapshot.ModelName)
+	execution.ExecutionMode = strings.TrimSpace(snapshot.ExecutionMode)
+	return execution, nil
+}
+
+func (service *BodyTranslationPhaseService) bodyTranslationExecutionForExistingRun(
+	ctx context.Context,
+	jobID int64,
+	bodyRun repository.JobPhaseRun,
+	execution BodyTranslationPhaseExecutionSummaryReadModel,
+) (BodyTranslationPhaseExecutionSummaryReadModel, error) {
+	if snapshot, ok := service.executionSnapshots[bodyRun.ID]; ok {
+		execution.CredentialState = snapshot.CredentialState
+		execution.EndpointSummary = providerExecutionEndpointSummary(snapshot.EndpointSummary)
+		return execution, nil
+	}
+	snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader)
+	if !ok {
+		return execution, nil
+	}
+	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "text_translation")
+	if errors.Is(err, repository.ErrNotFound) {
+		return execution, nil
+	}
+	if err != nil {
+		return BodyTranslationPhaseExecutionSummaryReadModel{}, fmt.Errorf("load body translation phase runtime snapshot: %w", err)
+	}
+	persisted := providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
+	execution.CredentialState = persisted.CredentialState
+	execution.EndpointSummary = providerExecutionEndpointSummary(persisted.EndpointSummary)
+	return execution, nil
 }
 
 func (service *BodyTranslationPhaseService) loadBodyTranslationSourceFields(
@@ -725,7 +817,7 @@ func (service *BodyTranslationPhaseService) startRejection(
 	if !bodyTranslationExecutionConfigured(loaded.execution) {
 		return &bodyTranslationStartRejection{
 			errorKind: "persona_phase_incomplete",
-			reason:    "phase runtime snapshot is missing",
+			reason:    bodyTranslationRuntimeSnapshotMissing,
 		}
 	}
 	if loaded.bodyRun != nil && isBodyTranslationActiveRunState(strings.TrimSpace(loaded.bodyRun.State)) {
@@ -773,12 +865,12 @@ func (service *BodyTranslationPhaseService) resolveExecutionSnapshotForStart(
 	case providerSettingsErrorKindCredentialMissing:
 		return execution, &bodyTranslationStartRejection{
 			errorKind: "persona_phase_incomplete",
-			reason:    "phase runtime snapshot is missing",
+			reason:    bodyTranslationRuntimeSnapshotMissing,
 		}, nil
 	case providerSettingsErrorKindEndpointMissing:
 		return execution, &bodyTranslationStartRejection{
 			errorKind: "persona_phase_incomplete",
-			reason:    "phase runtime snapshot is missing",
+			reason:    bodyTranslationRuntimeSnapshotMissing,
 		}, nil
 	default:
 		return execution, &bodyTranslationStartRejection{

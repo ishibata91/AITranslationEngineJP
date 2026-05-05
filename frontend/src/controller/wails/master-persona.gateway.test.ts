@@ -92,15 +92,15 @@ describe("createMasterPersonaGateway", () => {
     const getMasterPersonaGetDetail = vi.fn(() =>
       Promise.resolve({
         entry: {
-          identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-          targetPlugin: "FollowersPlus.esp",
+          identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+          targetPlugin: "TestPersonaPluginA.esp",
           formId: "FE01A812",
           recordType: "NPC_",
-          editorId: "FP_LysMaren",
-          displayName: "Lys Maren",
-          voiceType: "FemaleYoungEager",
-          className: "FPScoutClass",
-          sourcePlugin: "FollowersPlus.esp",
+          editorId: "TEST_NPC_A",
+          displayName: "Test NPC A",
+          voiceType: "TestVoiceA",
+          className: "TestClassA",
+          sourcePlugin: "TestPersonaPluginA.esp",
           personaSummary: "summary",
           updatedAt: "2026-04-15T09:42:00Z",
           personaBody: "body",
@@ -121,13 +121,13 @@ describe("createMasterPersonaGateway", () => {
 
     // Act
     await gateway.getMasterPersonaDetail({
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_"
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"
     })
 
     // Assert
     expect(getMasterPersonaGetDetail).toHaveBeenCalledTimes(1)
     expect(getMasterPersonaGetDetail).toHaveBeenCalledWith({
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_"
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"
     })
   })
 
@@ -160,7 +160,7 @@ describe("createMasterPersonaGateway", () => {
     await gateway.getMasterPersonaPage({
       refresh: {
         keyword: "lys",
-        pluginFilter: "FollowersPlus.esp",
+        pluginFilter: "TestPersonaPluginA.esp",
         page: 1,
         pageSize: 30
       }
@@ -171,7 +171,7 @@ describe("createMasterPersonaGateway", () => {
     expect(getMasterPersonaGetPage).toHaveBeenCalledWith({
       refresh: {
         keyword: "lys",
-        pluginFilter: "FollowersPlus.esp",
+        pluginFilter: "TestPersonaPluginA.esp",
         page: 1,
         pageSize: 30
       }
@@ -230,7 +230,7 @@ describe("createMasterPersonaGateway", () => {
     const getRunStatus = vi.fn(() =>
       Promise.resolve({
         runState: "完了",
-        targetPlugin: "FollowersPlus.esp",
+        targetPlugin: "TestPersonaPluginA.esp",
         processedCount: 1,
         successCount: 1,
         existingSkipCount: 0,
@@ -263,8 +263,8 @@ describe("createMasterPersonaGateway", () => {
     // Arrange
     const previewGeneration = vi.fn(() =>
       Promise.resolve({
-        fileName: "FollowersPlus.json",
-        targetPlugin: "FollowersPlus.esp",
+        fileName: "TestPersonaPluginA.json",
+        targetPlugin: "TestPersonaPluginA.esp",
         candidateCount: 840,
         newlyAddableCount: 228,
         existingCount: 612,
@@ -284,7 +284,7 @@ describe("createMasterPersonaGateway", () => {
 
     // Act
     const result = await gateway.previewMasterPersonaGeneration({
-      filePath: "/tmp/FollowersPlus.json",
+      filePath: "/tmp/TestPersonaPluginA.json",
       aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
     })
 
@@ -312,7 +312,7 @@ describe("createMasterPersonaGateway", () => {
     const executeGeneration = vi.fn(() =>
       Promise.resolve({
         runState: "完了",
-        targetPlugin: "FollowersPlus.esp",
+        targetPlugin: "TestPersonaPluginA.esp",
         processedCount: 7,
         successCount: 7,
         existingSkipCount: 2,
@@ -335,7 +335,7 @@ describe("createMasterPersonaGateway", () => {
 
     // Act
     const result = await gateway.executeMasterPersonaGeneration({
-      filePath: "/tmp/FollowersPlus.json",
+      filePath: "/tmp/TestPersonaPluginA.json",
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
@@ -346,7 +346,7 @@ describe("createMasterPersonaGateway", () => {
     // Assert
     expect(executeGeneration).toHaveBeenCalledTimes(1)
     expect(executeGeneration).toHaveBeenCalledWith({
-      filePath: "/tmp/FollowersPlus.json",
+      filePath: "/tmp/TestPersonaPluginA.json",
       aiSettings: {
         provider: "gemini",
         model: "gemini-2.5-pro",
@@ -363,7 +363,7 @@ describe("createMasterPersonaGateway", () => {
     const executeGeneration = vi.fn(() =>
       Promise.resolve({
         runState: "完了",
-        targetPlugin: "FollowersPlus.esp",
+        targetPlugin: "TestPersonaPluginA.esp",
         processedCount: 5,
         successCount: 5,
         existingSkipCount: 0,
@@ -427,8 +427,8 @@ describe("createMasterPersonaGateway", () => {
 
     // Act
     const request = {
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_",
-      entry: { displayName: "Lys Maren", personaBody: "本文" },
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+      entry: { displayName: "Test NPC A", personaBody: "本文" },
       refresh: { keyword: "", pluginFilter: "", page: 1, pageSize: 30 }
     }
     await gateway.updateMasterPersona(request)
@@ -465,14 +465,14 @@ describe("createMasterPersonaGateway", () => {
 
     // Act
     await gateway.deleteMasterPersona({
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_",
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
       refresh: { keyword: "", pluginFilter: "", page: 1, pageSize: 30 }
     })
 
     // Assert
     expect(masterPersonaDelete).toHaveBeenCalledTimes(1)
     expect(masterPersonaDelete).toHaveBeenCalledWith({
-      identityKey: "FollowersPlus.esp:FE01A812:NPC_",
+      identityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
       refresh: { keyword: "", pluginFilter: "", page: 1, pageSize: 30 }
     })
   })

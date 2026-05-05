@@ -287,9 +287,9 @@ describe("MasterPersonaScreenController", () => {
     )
     const select = document.createElement("select")
     const option = document.createElement("option")
-    option.value = "FollowersPlus.esp"
+    option.value = "TestPersonaPluginA.esp"
     select.append(option)
-    select.value = "FollowersPlus.esp"
+    select.value = "TestPersonaPluginA.esp"
 
     const event = new Event("change")
     Object.defineProperty(event, "currentTarget", {
@@ -299,7 +299,7 @@ describe("MasterPersonaScreenController", () => {
 
     harness.controller.handlePluginFilterChange(event)
 
-    expect(harness.getState().pluginFilter).toBe("FollowersPlus.esp")
+    expect(harness.getState().pluginFilter).toBe("TestPersonaPluginA.esp")
     expect(harness.getState().page).toBe(1)
     expect(harness.getState().errorMessage).toBe("")
     expect(harness.useCase.loadPage).toHaveBeenCalledTimes(1)
@@ -365,10 +365,10 @@ describe("MasterPersonaScreenController", () => {
   test("selectRow は useCase.selectEntry を指定した identity key で呼ぶ", async () => {
     const harness = createControllerHarness()
 
-    await harness.controller.selectRow("FollowersPlus.esp:FE01A812:NPC_")
+    await harness.controller.selectRow("TestPersonaPluginA.esp:FE01A812:NPC_")
 
     expect(harness.useCase.selectEntry).toHaveBeenCalledWith(
-      "FollowersPlus.esp:FE01A812:NPC_"
+      "TestPersonaPluginA.esp:FE01A812:NPC_"
     )
     expect(harness.useCase.selectEntry).toHaveBeenCalledTimes(1)
   })
@@ -398,9 +398,9 @@ describe("MasterPersonaScreenController", () => {
     )
     const select = document.createElement("select")
     const option = document.createElement("option")
-    option.value = "NightCourt.esp"
+    option.value = "TestPersonaPluginB.esp"
     select.append(option)
-    select.value = "NightCourt.esp"
+    select.value = "TestPersonaPluginB.esp"
 
     const event = new Event("change")
     Object.defineProperty(event, "currentTarget", {
@@ -410,7 +410,7 @@ describe("MasterPersonaScreenController", () => {
 
     harness.controller.handlePluginFilterChange(event)
 
-    expect(harness.getState().pluginFilter).toBe("NightCourt.esp")
+    expect(harness.getState().pluginFilter).toBe("TestPersonaPluginB.esp")
     expect(harness.getState().page).toBe(1)
     expect(harness.useCase.loadPage).toHaveBeenCalledTimes(1)
   })
@@ -418,10 +418,10 @@ describe("MasterPersonaScreenController", () => {
   test("persona-read-detail-cutover: selectRow は identity key で selectEntry を呼び detail を反映する", async () => {
     const harness = createControllerHarness()
 
-    await harness.controller.selectRow("FollowersPlus.esp:FE01A812:NPC_")
+    await harness.controller.selectRow("TestPersonaPluginA.esp:FE01A812:NPC_")
 
     expect(harness.useCase.selectEntry).toHaveBeenCalledWith(
-      "FollowersPlus.esp:FE01A812:NPC_"
+      "TestPersonaPluginA.esp:FE01A812:NPC_"
     )
     expect(harness.useCase.selectEntry).toHaveBeenCalledTimes(1)
   })
@@ -434,7 +434,7 @@ describe("MasterPersonaScreenController", () => {
     ;(harness.useCase as any).loadDialogueList = loadDialogueListSpy
 
     // Act
-    await harness.controller.selectRow("FollowersPlus.esp:FE01A812:NPC_")
+    await harness.controller.selectRow("TestPersonaPluginA.esp:FE01A812:NPC_")
 
     // Assert
     expect(harness.useCase.selectEntry).toHaveBeenCalledTimes(1)
@@ -484,13 +484,13 @@ describe("MasterPersonaScreenController", () => {
     const state = createState({
       editForm: {
         formId: "FE01A812",
-        editorId: "FP_LysMaren",
-        displayName: "Lys Maren",
+        editorId: "TEST_NPC_A",
+        displayName: "Test NPC A",
         race: "Nord",
         sex: "Female",
-        voiceType: "FemaleYoungEager",
-        className: "FPScoutClass",
-        sourcePlugin: "FollowersPlus.esp",
+        voiceType: "TestVoiceA",
+        className: "TestClassA",
+        sourcePlugin: "TestPersonaPluginA.esp",
         personaBody: "短く本音を置く。"
       }
     })
@@ -509,18 +509,18 @@ describe("MasterPersonaScreenController", () => {
   test("persona-json-preview-cutover: stageJsonSelection は preview をクリアして file reference を更新する", () => {
     // Arrange
     const harness = createControllerHarness(createState())
-    const file = new File(["{}"], "FollowersPlus.json", {
+    const file = new File(["{}"], "TestPersonaPluginA.json", {
       type: "application/json"
     }) as File & { path: string }
-    file.path = "/tmp/FollowersPlus.json"
+    file.path = "/tmp/TestPersonaPluginA.json"
 
     // Act
     harness.controller.stageJsonSelection(file)
 
     // Assert
-    expect(harness.getState().selectedFileName).toBe("FollowersPlus.json")
+    expect(harness.getState().selectedFileName).toBe("TestPersonaPluginA.json")
     expect(harness.getState().selectedFileReference).toBe(
-      "/tmp/FollowersPlus.json"
+      "/tmp/TestPersonaPluginA.json"
     )
     expect(harness.getState().preview).toBeNull()
     expect(harness.useCase.previewGeneration).toHaveBeenCalledTimes(1)
@@ -565,7 +565,7 @@ describe("MasterPersonaScreenController", () => {
       createState({
         runStatus: {
           runState: "完了",
-          targetPlugin: "FollowersPlus.esp",
+          targetPlugin: "TestPersonaPluginA.esp",
           processedCount: 7,
           successCount: 7,
           existingSkipCount: 2,

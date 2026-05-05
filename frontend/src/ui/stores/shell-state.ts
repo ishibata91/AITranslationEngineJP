@@ -51,7 +51,7 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
     id: "master-persona",
     label: "マスターペルソナ",
     state: "確認可能",
-    lead: "翻訳に使うペルソナ設定を確認するページです。",
+    lead: "ベースゲームや大型 Mod の NPC を対象に、翻訳前の準備としてペルソナをまとめて作成する。作成後は一覧と詳細で同じ画面から確認できる。",
     description: "翻訳に使うペルソナ設定を確認します。"
   },
   {

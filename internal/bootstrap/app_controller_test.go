@@ -59,7 +59,7 @@ const (
 	bootstrapImportProgressEvent         = "master-dictionary:import-progress"
 	bootstrapImportCompletedEvent        = "master-dictionary:import-completed"
 	bootstrapPageQuerySucceeded          = "expected bootstrap graph page query to succeed: %v"
-	bootstrapMasterPersonaIdentityKey    = "FollowersPlus.esp:FE01A812:NPC_"
+	bootstrapMasterPersonaIdentityKey    = "TestPersonaPluginA.esp:FE01A812:NPC_"
 	bootstrapMasterPersonaPersistedBody  = "再生成後も保持されるペルソナ本文"
 	bootstrapMasterPersonaPersistedModel = "persisted-master-persona-model"
 )
@@ -442,13 +442,13 @@ func TestNewAppControllerProvidesMasterPersonaPage(t *testing.T) {
 	controller := newBootstrapTestController(t)
 
 	page, err := controller.MasterPersonaGetPage(controllerwails.MasterPersonaPageRequestDTO{
-		Refresh: controllerwails.MasterPersonaListQueryDTO{PluginFilter: "FollowersPlus.esp", Page: 1, PageSize: 10},
+		Refresh: controllerwails.MasterPersonaListQueryDTO{PluginFilter: "TestPersonaPluginA.esp", Page: 1, PageSize: 10},
 	})
 	if err != nil {
 		t.Fatalf("expected master persona page query to succeed: %v", err)
 	}
-	if page.Page.TotalCount == 0 || len(page.Page.Items) == 0 {
-		t.Fatalf("expected master persona seed entries, got %#v", page.Page)
+	if page.Page.TotalCount != 0 || len(page.Page.Items) != 0 {
+		t.Fatalf("expected empty master persona page before import/generation, got %#v", page.Page)
 	}
 }
 
@@ -474,7 +474,11 @@ func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T
 
 func TestNewAppControllerPersistsMasterPersonaEntryAcrossControllerRecreation(t *testing.T) {
 	databasePath := configureBootstrapTestDatabase(t)
+	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
+	t.Setenv(masterPersonaFakeResponseEnv, "bootstrap persisted persona body")
+	seedBootstrapProviderSettings(t, databasePath, "gemini", "https://generativelanguage.googleapis.com/v1beta", "bootstrap-test-key")
 	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
+	createBootstrapMasterPersonaEntry(t, firstController)
 	originalDetail, err := firstController.MasterPersonaGetDetail(controllerwails.MasterPersonaDetailRequestDTO{IdentityKey: bootstrapMasterPersonaIdentityKey})
 	if err != nil {
 		t.Fatalf("expected master persona detail lookup through first controller to succeed: %v", err)
@@ -493,7 +497,7 @@ func TestNewAppControllerPersistsMasterPersonaEntryAcrossControllerRecreation(t 
 			SourcePlugin: originalDetail.Entry.SourcePlugin,
 			PersonaBody:  bootstrapMasterPersonaPersistedBody,
 		},
-		Refresh: controllerwails.MasterPersonaListQueryDTO{PluginFilter: "FollowersPlus.esp", Page: 1, PageSize: 10},
+		Refresh: controllerwails.MasterPersonaListQueryDTO{PluginFilter: "TestPersonaPluginA.esp", Page: 1, PageSize: 10},
 	})
 	if err != nil {
 		t.Fatalf("expected master persona update through first controller to succeed: %v", err)
@@ -923,6 +927,33 @@ func writeBootstrapMasterPersonaExtractFixture(t *testing.T, content string) str
 	return extractPath
 }
 
+func createBootstrapMasterPersonaEntry(t *testing.T, controller *controllerwails.AppController) {
+	t.Helper()
+
+	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
+  "target_plugin": "TestPersonaPluginA.esp",
+  "npcs": [
+    {
+      "form_id": "FE01A812",
+      "record_type": "NPC_",
+      "editor_id": "TEST_NPC_A",
+      "display_name": "Test NPC A",
+      "dialogues": ["test line"]
+    }
+  ]
+}`)
+	result, err := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{
+		FilePath:   extractPath,
+		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
+	})
+	if err != nil {
+		t.Fatalf("expected master persona test entry creation to succeed: %v", err)
+	}
+	if result.RunState != "完了" {
+		t.Fatalf("expected master persona test entry creation to complete, got %#v", result)
+	}
+}
+
 func newBootstrapTestController(t *testing.T) *controllerwails.AppController {
 	t.Helper()
 
@@ -1048,7 +1079,7 @@ func newBootstrapRunStatusTestController(t *testing.T, databasePath string) *con
 	t.Helper()
 	setBootstrapTestDatabasePath(t, databasePath)
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
-	return newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+	return newAppControllerWithSeeds(bootstrapTestSeed(), bootstrapTestNow)
 }
 
 func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...string) {
@@ -1184,7 +1215,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalNPCProfil
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
 	t.Setenv(masterPersonaFakeResponseEnv, "cutover-npc-profile-persona-description")
 	seedBootstrapProviderSettings(t, databasePath, "gemini", "https://generativelanguage.googleapis.com/v1beta", "cutover-test-key")
-	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+	controller := newAppControllerWithSeeds(bootstrapTestSeed(), bootstrapTestNow)
 
 	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
   "target_plugin": "CutoverPlugin.esp",
@@ -1245,7 +1276,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalPersonaRo
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
 	t.Setenv(masterPersonaFakeResponseEnv, "cutover-persona-row-description")
 	seedBootstrapProviderSettings(t, databasePath, "gemini", "https://generativelanguage.googleapis.com/v1beta", "cutover-test-key")
-	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+	controller := newAppControllerWithSeeds(bootstrapTestSeed(), bootstrapTestNow)
 
 	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
   "target_plugin": "CutoverPlugin.esp",
@@ -1331,7 +1362,7 @@ func TestNewAppControllerPersonaGenerationCutoverFailedExecutionLeavesNoPartialC
 	// Arrange: nil persona seed + fake AI mode (fake response 未設定で空の body)。
 	databasePath := configureBootstrapTestDatabase(t)
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
-	controller := newAppControllerWithSeeds(bootstrapTestSeed(), nil, bootstrapTestNow)
+	controller := newAppControllerWithSeeds(bootstrapTestSeed(), bootstrapTestNow)
 
 	extractPath := writeBootstrapMasterPersonaExtractFixture(t, `{
   "target_plugin": "FailPlugin.esp",

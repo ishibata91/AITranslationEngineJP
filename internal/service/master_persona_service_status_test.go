@@ -57,7 +57,7 @@ func TestMasterPersonaGenerationServicePersistNoTargetStatus(t *testing.T) {
 	runRepository := &stubMasterPersonaRunRepository{}
 	service := &MasterPersonaGenerationService{runRepository: runRepository, now: fixedMasterPersonaStatusClock()}
 	analysis := masterPersonaPreviewAnalysis{
-		targetPlugin:          "FollowersPlus.esp",
+		targetPlugin:          "TestPersonaPluginA.esp",
 		existingSkipCount:     2,
 		zeroDialogueSkipCount: 1,
 		genericNPCCount:       1,
@@ -67,7 +67,7 @@ func TestMasterPersonaGenerationServicePersistNoTargetStatus(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no target status success: %v", err)
 	}
-	if status.RunState != MasterPersonaStatusNoTargets || status.TargetPlugin != "FollowersPlus.esp" {
+	if status.RunState != MasterPersonaStatusNoTargets || status.TargetPlugin != "TestPersonaPluginA.esp" {
 		t.Fatalf("unexpected no target status: %#v", status)
 	}
 }
@@ -76,7 +76,7 @@ func TestMasterPersonaGenerationServicePersistNoTargetStatusSaveError(t *testing
 	runRepository := &stubMasterPersonaRunRepository{saveErr: errors.New("save failed")}
 	service := &MasterPersonaGenerationService{runRepository: runRepository, now: fixedMasterPersonaStatusClock()}
 
-	_, err := service.persistNoTargetStatus(context.Background(), masterPersonaPreviewAnalysis{targetPlugin: "FollowersPlus.esp"})
+	_, err := service.persistNoTargetStatus(context.Background(), masterPersonaPreviewAnalysis{targetPlugin: "TestPersonaPluginA.esp"})
 	if err == nil {
 		t.Fatalf("expected no target save error")
 	}

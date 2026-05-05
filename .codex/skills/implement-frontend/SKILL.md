@@ -32,46 +32,25 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - コーディング規約: [coding-guidelines-frontend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-frontend.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
+- UX 観点正本: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
 - UI 設計規約: `ui-design.md` を受け取る場合は [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) の UI 要件契約に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
 
-### UI 根拠確認観点
-
-| 観点 | 判断対象 |
-| --- | --- |
-| 画面構造 | 実画面の区画、情報階層、主要操作の位置が UI 根拠 と合っているか |
-| 見た目 | 実画面の余白、整列、情報密度、視覚的な強弱が UI 根拠 と合っているか |
-| 表示文言 | 実画面の見出し、ラベル、説明、エラー、空状態、完了状態の文言が UI 根拠 と合っているか |
-| 状態変化 | 実画面の入力反応、有効条件、読み込み中、空、エラー、成功の切り替えが UI 根拠 と合っているか |
-| 操作性 | 実画面の主要操作、取消、戻る、破壊的操作、フォーカス移動が UI 根拠 の操作意図と合っているか |
-| 表示幅追従 | 実画面のデスクトップ、モバイル、長文表示、要素非表示時の崩れ方が UI 根拠 の実装後確認観点と合っているか |
+- なし。UX 観点は `docs/UX-standard.md` と task-local `ui-design.md` の `UX Standard Review` を正本にする。
 
 ## 判断規約
 
 - 画面導線と 状態 反映を frontend 実行入力 に合わせる
 - Wails bridge 呼び出しの境界を守る
 - generated `wailsjs` は gateway 境界に閉じ込める
-- affected UI の manual flow を確認できる状態にする
-- UI check に必要な 根拠 を残す
-- ユーザーが利用することを前提に、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせる
-- UI 根拠との対応を確認する
-- UI 根拠確認観点に従い、実画面と UI 根拠 の差分を確認する
-- UI 根拠確認では、実画面の画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を判断対象にする
+- 承認済み UI 根拠と `docs/UX-standard.md` に従い、実画面と UI 根拠 の差分を確認する
 - UI 根拠確認の差分は、承認済み実装範囲 内で修正できる差分と呼び出し元へ戻す差分へ分ける
-- UI 根拠との確認は `agent-browser` を用いる。
 - frontend 実行入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - 明確なブロッカーがない限りはレーンを中断せずに成果物の生成を継続すること。
-- frontend 実行入力、affected UI flow を確認する
-- console エラー の有無を 終了処理 に残す
 - UI 状態 の初期値と更新条件を確認する
-- UIは基本的に全て日本語で記載すること。
-- 他ページとのデザイン一貫性を保つこと。
-- 主要操作、取消、戻る、破壊的操作のボタン配置と文言がユーザーの作業順に沿っていることを確認する
-- ページ見出し、ラベル、説明、エラー、空状態、完了状態のテキストがユーザーの次の行動を示すことを確認する
-- [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) の frontend lint 内訳を確認し、`npm run lint` と `format:check` で拾われる観点を先に意識する
 - [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界に従い、View、ScreenController、Frontend UseCase、Gateway の責務を跨がない
 - generated `wailsjs` と backend DTO の import は `frontend/src/controller/wails/` に閉じ込める
 
@@ -82,7 +61,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - プロダクトテスト、検証データ、スナップショット、test helper は変更しない。
 - Wails bridge と backend DTO の境界を迂回しない。
 - docs や作業流れ文書は変更しない。
-- coverage、harness all、repo-local Sonar issue 判定条件は必須終了処理にしない。
+- coverage、harness all、repo-local Sonar issue 判定条件は必須完了条件にしない。
 
 ## 出力規約
 
@@ -92,7 +71,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 次判断材料: 呼び出し元が次を判断できる材料を返す。
 - 実装成果物: frontend 実行入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
-- UI 根拠確認結果: 実画面と UI 根拠 の一致、差分、未確認理由を返す。
+- UI 根拠確認結果: 実画面と UI 根拠 の一致、差分、未確認理由、`docs/UX-standard.md` との対応を返す。
 - UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
@@ -105,10 +84,9 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 画面導線と 状態 反映を確認した。
 - Wails bridge 境界を確認した。
 - generated `wailsjs` を gateway 境界に閉じ込めた。
-- affected UI flow と console エラー を確認した。
-- ユーザーが利用することを意識し、ページデザイン、ボタン配置、表示テキストを承認済み UI 要件と frontend コーディング規約に合わせて実装した。
+- UI 状態 の初期値と更新条件を確認した。
+- 承認済み UI 根拠、`docs/UX-standard.md`、frontend コーディング規約に合わせて実装した。
 - 実画面と UI 根拠 の一致確認結果を返した。
-- UI 根拠確認結果は、画面構造、見た目、表示文言、状態変化、操作性、表示幅追従を含んでいる。
 - UI 根拠確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。

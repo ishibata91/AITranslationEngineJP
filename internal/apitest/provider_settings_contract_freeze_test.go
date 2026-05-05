@@ -259,25 +259,41 @@ func hasProviderSettingsGoSymbol(declaration ast.Decl, name string) bool {
 	case *ast.FuncDecl:
 		return declaration.Name != nil && declaration.Name.Name == name
 	case *ast.GenDecl:
-		for _, spec := range declaration.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			if typeSpec.Name.Name == name {
-				return true
-			}
-			interfaceType, ok := typeSpec.Type.(*ast.InterfaceType)
-			if !ok {
-				continue
-			}
-			for _, method := range interfaceType.Methods.List {
-				for _, methodName := range method.Names {
-					if methodName.Name == name {
-						return true
-					}
-				}
-			}
+		return hasProviderSettingsGoTypeSymbol(declaration, name)
+	}
+	return false
+}
+
+func hasProviderSettingsGoTypeSymbol(declaration *ast.GenDecl, name string) bool {
+	for _, spec := range declaration.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok {
+			continue
+		}
+		if typeSpec.Name.Name == name || providerSettingsInterfaceHasMethod(typeSpec, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func providerSettingsInterfaceHasMethod(typeSpec *ast.TypeSpec, name string) bool {
+	interfaceType, ok := typeSpec.Type.(*ast.InterfaceType)
+	if !ok {
+		return false
+	}
+	for _, method := range interfaceType.Methods.List {
+		if providerSettingsFieldHasName(method, name) {
+			return true
+		}
+	}
+	return false
+}
+
+func providerSettingsFieldHasName(field *ast.Field, name string) bool {
+	for _, methodName := range field.Names {
+		if methodName.Name == name {
+			return true
 		}
 	}
 	return false
@@ -290,28 +306,36 @@ func providerSettingsStructFields(file *ast.File) []providerSettingsField {
 		if !ok {
 			continue
 		}
-		for _, spec := range genDecl.Specs {
-			typeSpec, ok := spec.(*ast.TypeSpec)
-			if !ok {
-				continue
-			}
-			structType, ok := typeSpec.Type.(*ast.StructType)
-			if !ok {
-				continue
-			}
-			normalizedStructName := normalizeContractName(typeSpec.Name.Name)
-			if !strings.Contains(normalizedStructName, "provider") {
-				continue
-			}
-			for _, field := range structType.Fields.List {
-				for _, name := range field.Names {
-					fields = append(fields, providerSettingsField{
-						structName: typeSpec.Name.Name,
-						name:       name.Name,
-						typeName:   exprText(field.Type),
-					})
-				}
-			}
+		fields = append(fields, providerSettingsStructFieldsFromGenDecl(genDecl)...)
+	}
+	return fields
+}
+
+func providerSettingsStructFieldsFromGenDecl(genDecl *ast.GenDecl) []providerSettingsField {
+	var fields []providerSettingsField
+	for _, spec := range genDecl.Specs {
+		typeSpec, ok := spec.(*ast.TypeSpec)
+		if !ok || !strings.Contains(normalizeContractName(typeSpec.Name.Name), "provider") {
+			continue
+		}
+		structType, ok := typeSpec.Type.(*ast.StructType)
+		if !ok {
+			continue
+		}
+		fields = append(fields, providerSettingsStructFieldsFromType(typeSpec.Name.Name, structType)...)
+	}
+	return fields
+}
+
+func providerSettingsStructFieldsFromType(structName string, structType *ast.StructType) []providerSettingsField {
+	var fields []providerSettingsField
+	for _, field := range structType.Fields.List {
+		for _, name := range field.Names {
+			fields = append(fields, providerSettingsField{
+				structName: structName,
+				name:       name.Name,
+				typeName:   exprText(field.Type),
+			})
 		}
 	}
 	return fields

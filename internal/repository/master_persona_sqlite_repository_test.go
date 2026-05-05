@@ -19,11 +19,11 @@ func TestSQLiteMasterPersonaRepositoriesPersistEntriesAcrossReopen(t *testing.T)
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteMasterPersonaTestDatabaseFileName)
 	repositories := openSQLiteMasterPersonaRepositoriesWithoutCleanup(t, databasePath, nil)
 	createdAt := time.Date(2026, 4, 16, 9, 0, 0, 0, time.UTC)
-	identityKey := BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01AFF0", "NPC_")
+	identityKey := BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01AFF0", "NPC_")
 
 	createdEntry, created, err := repositories.EntryRepository.UpsertIfAbsent(context.Background(), MasterPersonaDraft{
 		IdentityKey:  identityKey,
-		TargetPlugin: "FollowersPlus.esp",
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01AFF0",
 		RecordType:   "NPC_",
 		EditorID:     "FP_Persist",
@@ -81,7 +81,7 @@ func TestSQLiteMasterPersonaRepositoriesPersistRunStatusAcrossReopen(t *testing.
 	// Arrange: run status を保存する。
 	err := repositories.RunStatusRepository.SaveRunStatus(context.Background(), MasterPersonaRunStatusRecord{
 		RunState:              "完了",
-		TargetPlugin:          "FollowersPlus.esp",
+		TargetPlugin:          "TestPersonaPluginA.esp",
 		ProcessedCount:        4,
 		SuccessCount:          3,
 		ExistingSkipCount:     1,
@@ -116,12 +116,12 @@ func TestSQLiteMasterPersonaRepositoriesPersistRunStatusAcrossReopen(t *testing.
 func TestSQLiteMasterPersonaRepositoriesSeedOnlyWhenDatabaseIsEmpty(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteMasterPersonaTestDatabaseFileName)
 	seedTime := time.Date(2026, 4, 16, 9, 0, 0, 0, time.UTC)
-	seed := DefaultMasterPersonaSeed(seedTime)
+	seed := testMasterPersonaSeed(seedTime)
 	repositories := openSQLiteMasterPersonaRepositoriesWithoutCleanup(t, databasePath, seed)
 
 	_, _, err := repositories.EntryRepository.UpsertIfAbsent(context.Background(), MasterPersonaDraft{
-		IdentityKey:  BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01AFF1", "NPC_"),
-		TargetPlugin: "FollowersPlus.esp",
+		IdentityKey:  BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01AFF1", "NPC_"),
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01AFF1",
 		RecordType:   "NPC_",
 		DisplayName:  "New Persisted",
@@ -133,7 +133,7 @@ func TestSQLiteMasterPersonaRepositoriesSeedOnlyWhenDatabaseIsEmpty(t *testing.T
 	}
 
 	closeSQLiteMasterPersonaRepositories(t, repositories)
-	reopenedRepositories := newSQLiteMasterPersonaRepositoriesForTest(t, databasePath, DefaultMasterPersonaSeed(seedTime.Add(24*time.Hour)))
+	reopenedRepositories := newSQLiteMasterPersonaRepositoriesForTest(t, databasePath, testMasterPersonaSeed(seedTime.Add(24*time.Hour)))
 	listed, err := reopenedRepositories.EntryRepository.List(context.Background(), MasterPersonaListQuery{Page: 1, PageSize: 100})
 	if err != nil {
 		t.Fatalf("expected list after reopen to succeed: %v", err)
@@ -146,21 +146,21 @@ func TestSQLiteMasterPersonaRepositoriesSeedOnlyWhenDatabaseIsEmpty(t *testing.T
 func TestSQLiteMasterPersonaEntryRepositoryListKeepsKeywordPluginGroupsBeforeFilter(t *testing.T) {
 	now := time.Date(2026, 4, 16, 9, 0, 0, 0, time.UTC)
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteMasterPersonaTestDatabaseFileName)
-	repositories := newSQLiteMasterPersonaRepositoriesForTest(t, databasePath, DefaultMasterPersonaSeed(now))
+	repositories := newSQLiteMasterPersonaRepositoriesForTest(t, databasePath, testMasterPersonaSeed(now))
 
 	result, err := repositories.EntryRepository.List(context.Background(), MasterPersonaListQuery{
-		Keyword:      "watcher",
-		PluginFilter: "NightCourt.esp",
+		Keyword:      "test npc b",
+		PluginFilter: "TestPersonaPluginB.esp",
 		Page:         1,
 		PageSize:     30,
 	})
 	if err != nil {
 		t.Fatalf("expected list query to succeed: %v", err)
 	}
-	if len(result.Items) != 1 || result.Items[0].TargetPlugin != "NightCourt.esp" {
+	if len(result.Items) != 1 || result.Items[0].TargetPlugin != "TestPersonaPluginB.esp" {
 		t.Fatalf("unexpected filtered items: %#v", result.Items)
 	}
-	if len(result.PluginGroups) != 1 || result.PluginGroups[0].TargetPlugin != "NightCourt.esp" {
+	if len(result.PluginGroups) != 1 || result.PluginGroups[0].TargetPlugin != "TestPersonaPluginB.esp" {
 		t.Fatalf("unexpected plugin groups: %#v", result.PluginGroups)
 	}
 }
@@ -496,12 +496,12 @@ func TestSQLiteMasterPersonaEntryRepositoryPersonaGenerationCutoverUpsertWritesC
 	}()
 
 	draft := MasterPersonaDraft{
-		IdentityKey:  BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"),
-		TargetPlugin: "FollowersPlus.esp",
+		IdentityKey:  BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"),
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A812",
 		RecordType:   "NPC_",
-		EditorID:     "FP_LysMaren",
-		DisplayName:  "Lys Maren",
+		EditorID:     "TEST_NPC_A",
+		DisplayName:  "Test NPC A",
 		PersonaBody:  "generation-cutover-persona-body",
 		Dialogues:    []string{"line one"},
 		UpdatedAt:    time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC),
@@ -520,7 +520,7 @@ func TestSQLiteMasterPersonaEntryRepositoryPersonaGenerationCutoverUpsertWritesC
 	var npcCount int
 	if err := repos.EntryRepository.database.QueryRowContext(context.Background(),
 		"SELECT COUNT(*) FROM NPC_PROFILE WHERE target_plugin_name = ? AND form_id = ? AND record_type = ?",
-		"FollowersPlus.esp", "FE01A812", "NPC_").Scan(&npcCount); err != nil {
+		"TestPersonaPluginA.esp", "FE01A812", "NPC_").Scan(&npcCount); err != nil {
 		t.Fatalf("expected NPC_PROFILE count query to succeed: %v", err)
 	}
 	if npcCount != 1 {
@@ -545,12 +545,12 @@ func TestSQLiteMasterPersonaEntryRepositoryPersonaGenerationCutoverUpsertWritesC
 	}()
 
 	draft := MasterPersonaDraft{
-		IdentityKey:  BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"),
-		TargetPlugin: "FollowersPlus.esp",
+		IdentityKey:  BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"),
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A812",
 		RecordType:   "NPC_",
-		EditorID:     "FP_LysMaren",
-		DisplayName:  "Lys Maren",
+		EditorID:     "TEST_NPC_A",
+		DisplayName:  "Test NPC A",
 		PersonaBody:  "generation-cutover-persona-body",
 		Dialogues:    []string{"line one"},
 		UpdatedAt:    time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC),
@@ -568,7 +568,7 @@ func TestSQLiteMasterPersonaEntryRepositoryPersonaGenerationCutoverUpsertWritesC
 		`SELECT COUNT(*) FROM PERSONA p
 		 JOIN NPC_PROFILE np ON p.npc_profile_id = np.id
 		 WHERE np.target_plugin_name = ? AND np.form_id = ? AND np.record_type = ?`,
-		"FollowersPlus.esp", "FE01A812", "NPC_").Scan(&personaCount); err != nil {
+		"TestPersonaPluginA.esp", "FE01A812", "NPC_").Scan(&personaCount); err != nil {
 		t.Fatalf("expected PERSONA join NPC_PROFILE count query to succeed: %v", err)
 	}
 	if personaCount != 1 {
@@ -618,12 +618,12 @@ func TestSQLiteMasterPersonaEntryRepositoryPersonaGenerationCutoverFailureLeaves
 	}()
 
 	draft := MasterPersonaDraft{
-		IdentityKey:  BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"),
-		TargetPlugin: "FollowersPlus.esp",
+		IdentityKey:  BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"),
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A812",
 		RecordType:   "NPC_",
-		EditorID:     "FP_LysMaren",
-		DisplayName:  "Lys Maren",
+		EditorID:     "TEST_NPC_A",
+		DisplayName:  "Test NPC A",
 		PersonaBody:  "cutover-failure-test-body",
 		Dialogues:    []string{"line"},
 		UpdatedAt:    time.Date(2026, 4, 21, 0, 0, 0, 0, time.UTC),

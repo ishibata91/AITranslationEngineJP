@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
+- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`frontend 実装後人間レビュー`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
 
 ## 入力規約
 
@@ -47,11 +47,12 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
 | `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `implementation_implementer` |
-| `backend 実装` | 条件付き | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `frontend 実装?` | `implementation_implementer` |
-| `統合境界実装` | 条件付き | `implementation_implementer` / `implement-integration` | `backend 実装`, `frontend 実装?` | `implementation_implementer` |
-| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_scenario_tester` |
-| `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装?`, `統合境界実装?` | `implementation_unit_tester` |
-| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
+| `frontend 実装後人間レビュー` | 条件付き | 人間 | `frontend 実装` | 人間 |
+| `backend 実装` | 条件付き | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `frontend 実装後人間レビュー?` | `implementation_implementer` |
+| `統合境界実装` | 条件付き | `implementation_implementer` / `implement-integration` | `backend 実装`, `frontend 実装後人間レビュー?` | `implementation_implementer` |
+| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_scenario_tester` |
+| `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_unit_tester` |
+| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | 条件付き | `docs_updater` | `正本化判断` | `docs_updater?` |
@@ -158,7 +159,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 恒久修正、構造整理、探索テスト、画面体験改善探索はこの skill で詳細化しない。
 - backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
 - UI がある task では `frontend 実装` を必須成果物にし、UI がない task では `frontend 実装` を省略できる。
+- UI がある task では `frontend 実装後人間レビュー` を必須成果物にし、UI がない task では `frontend 実装後人間レビュー` を省略できる。
 - UI がある task の `frontend 実装` は、`backend 実装` より先に起動する。
+- UI がある task の `backend 実装` と `統合境界実装` は、`frontend 実装後人間レビュー` の承認後に着手する。
+- `frontend 実装後人間レビュー` が差し戻しまたは追加質問の場合は、後続実装へ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
 - `統合境界実装` は frontend と backend の接続結果を実画面で確認する。
 - `シナリオテスト` と `単体テスト` は別成果物にし、依存対象が揃った後に並列起動できる。
 - タスクの終わったサブエージェントを起動したまま残さず，終わったら逐次で閉じること。
@@ -185,6 +189,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
 - UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
+- UI が関係する場合は、`frontend 実装後人間レビュー` の承認が記録されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` 後は `最終検証` と `レビュー通過根拠` が 根拠参照 付きで確認されている。
@@ -204,6 +209,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `designer`、`investigator` の必要判定ができない場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
+- UI が関係する task で `frontend 実装後人間レビュー` の承認がないまま `backend 実装`、`統合境界実装`、`最終検証` へ進みそうな場合は停止する。
 - `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - レビュー agent 起動入力に 検証証跡 が不足する場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。

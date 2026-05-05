@@ -96,18 +96,18 @@ func (fake fakeMasterPersonaUsecase) DeleteEntry(ctx context.Context, identityKe
 func TestMasterPersonaControllerGetPageMapsPluginFilter(t *testing.T) {
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		getPageFunc: func(_ context.Context, query usecase.MasterPersonaListQuery, preferred *string) (usecase.MasterPersonaPageState, error) {
-			if query.PluginFilter != "FollowersPlus.esp" || query.Keyword != "lys" || query.Page != 2 || query.PageSize != 20 {
+			if query.PluginFilter != "TestPersonaPluginA.esp" || query.Keyword != "lys" || query.Page != 2 || query.PageSize != 20 {
 				t.Fatalf("unexpected query: %#v", query)
 			}
-			if preferred == nil || *preferred != "FollowersPlus.esp:FE01A812:NPC_" {
+			if preferred == nil || *preferred != "TestPersonaPluginA.esp:FE01A812:NPC_" {
 				t.Fatalf("unexpected preferred identity key: %#v", preferred)
 			}
 			return usecase.MasterPersonaPageState{}, nil
 		},
 	})
 
-	preferred := "FollowersPlus.esp:FE01A812:NPC_"
-	_, err := controller.MasterPersonaGetPage(MasterPersonaPageRequestDTO{Refresh: MasterPersonaListQueryDTO{Keyword: "lys", PluginFilter: "FollowersPlus.esp", Page: 2, PageSize: 20}, PreferredIdentityKey: &preferred})
+	preferred := "TestPersonaPluginA.esp:FE01A812:NPC_"
+	_, err := controller.MasterPersonaGetPage(MasterPersonaPageRequestDTO{Refresh: MasterPersonaListQueryDTO{Keyword: "lys", PluginFilter: "TestPersonaPluginA.esp", Page: 2, PageSize: 20}, PreferredIdentityKey: &preferred})
 	if err != nil {
 		t.Fatalf("expected get page to succeed: %v", err)
 	}
@@ -116,17 +116,17 @@ func TestMasterPersonaControllerGetPageMapsPluginFilter(t *testing.T) {
 func TestMasterPersonaControllerGetDetailMapsRunLockReason(t *testing.T) {
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		getDetailFunc: func(_ context.Context, identityKey string) (usecase.MasterPersonaEntry, error) {
-			if identityKey != "FollowersPlus.esp:FE01A812:NPC_" {
+			if identityKey != "TestPersonaPluginA.esp:FE01A812:NPC_" {
 				t.Fatalf("unexpected identity key: %q", identityKey)
 			}
-			return usecase.MasterPersonaEntry{IdentityKey: identityKey, DisplayName: "Lys Maren", UpdatedAt: time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)}, nil
+			return usecase.MasterPersonaEntry{IdentityKey: identityKey, DisplayName: "Test NPC A", UpdatedAt: time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC)}, nil
 		},
 		getRunStatusFunc: func(_ context.Context) (usecase.MasterPersonaRunStatus, error) {
 			return usecase.MasterPersonaRunStatus{RunState: "生成中"}, nil
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -141,7 +141,7 @@ func TestMasterPersonaControllerPreviewGenerationMapsResponse(t *testing.T) {
 			if filePath != "/tmp/sample.json" || settings.Provider != "gemini" || settings.Model != "gemini-2.5-pro" {
 				t.Fatalf("unexpected preview request: path=%q settings=%#v", filePath, settings)
 			}
-			return usecase.MasterPersonaPreviewResult{FileName: "sample.json", TargetPlugin: "FollowersPlus.esp", TotalNPCCount: 4, GeneratableCount: 2, ExistingSkipCount: 1, ZeroDialogueSkipCount: 1, GenericNPCCount: 1, Status: "生成可能"}, nil
+			return usecase.MasterPersonaPreviewResult{FileName: "sample.json", TargetPlugin: "TestPersonaPluginA.esp", TotalNPCCount: 4, GeneratableCount: 2, ExistingSkipCount: 1, ZeroDialogueSkipCount: 1, GenericNPCCount: 1, Status: "生成可能"}, nil
 		},
 	})
 
@@ -161,7 +161,7 @@ func TestMasterPersonaControllerUpdatePropagatesError(t *testing.T) {
 		},
 	})
 
-	_, err := controller.MasterPersonaUpdate(MasterPersonaUpdateRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	_, err := controller.MasterPersonaUpdate(MasterPersonaUpdateRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err == nil {
 		t.Fatal("expected update error")
 	}
@@ -174,16 +174,16 @@ func TestMasterPersonaControllerGetDetailMapsNPCProfileFields(t *testing.T) {
 		getDetailFunc: func(_ context.Context, identityKey string) (usecase.MasterPersonaEntry, error) {
 			return usecase.MasterPersonaEntry{
 				IdentityKey:    identityKey,
-				TargetPlugin:   "FollowersPlus.esp",
+				TargetPlugin:   "TestPersonaPluginA.esp",
 				FormID:         "FE01A812",
 				RecordType:     "NPC_",
-				EditorID:       "FP_LysMaren",
-				DisplayName:    "Lys Maren",
+				EditorID:       "TEST_NPC_A",
+				DisplayName:    "Test NPC A",
 				Race:           &race,
 				Sex:            &sex,
-				VoiceType:      "FemaleYoungEager",
-				ClassName:      "FPScoutClass",
-				SourcePlugin:   "FollowersPlus.esp",
+				VoiceType:      "TestVoiceA",
+				ClassName:      "TestClassA",
+				SourcePlugin:   "TestPersonaPluginA.esp",
 				PersonaSummary: "人情家で裏表がない",
 				PersonaBody:    "正直で直感的な行動派",
 				UpdatedAt:      time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
@@ -194,12 +194,12 @@ func TestMasterPersonaControllerGetDetailMapsNPCProfileFields(t *testing.T) {
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
 	entry := response.Entry
-	if entry.IdentityKey != "FollowersPlus.esp:FE01A812:NPC_" {
+	if entry.IdentityKey != "TestPersonaPluginA.esp:FE01A812:NPC_" {
 		t.Fatalf("unexpected identity key: %q", entry.IdentityKey)
 	}
 	if entry.Race == nil || *entry.Race != "Nord" {
@@ -211,7 +211,7 @@ func TestMasterPersonaControllerGetDetailMapsNPCProfileFields(t *testing.T) {
 	if entry.PersonaBody != "正直で直感的な行動派" {
 		t.Fatalf("unexpected persona body: %q", entry.PersonaBody)
 	}
-	if entry.SourcePlugin != "FollowersPlus.esp" {
+	if entry.SourcePlugin != "TestPersonaPluginA.esp" {
 		t.Fatalf("unexpected source plugin: %q", entry.SourcePlugin)
 	}
 }
@@ -223,7 +223,7 @@ func TestMasterPersonaControllerGetDetailPropagatesUsecaseError(t *testing.T) {
 		},
 	})
 
-	_, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	_, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err == nil {
 		t.Fatal("expected get detail to fail")
 	}
@@ -258,7 +258,7 @@ func TestMasterPersonaControllerGetDetailDoesNotExposeGenerationSourceJSON(t *te
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -283,7 +283,7 @@ func TestMasterPersonaControllerGetDetailDoesNotExposeBaselineApplied(t *testing
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -300,7 +300,7 @@ func TestMasterPersonaControllerGetPageDoesNotExposeDialogueCount(t *testing.T) 
 			return usecase.MasterPersonaPageState{
 				Items: []usecase.MasterPersonaEntry{
 					{
-						IdentityKey:   "FollowersPlus.esp:FE01A812:NPC_",
+						IdentityKey:   "TestPersonaPluginA.esp:FE01A812:NPC_",
 						DialogueCount: 44,
 						UpdatedAt:     time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
 					},
@@ -332,16 +332,16 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverDetailHasCanonicalNPCPro
 		getDetailFunc: func(_ context.Context, identityKey string) (usecase.MasterPersonaEntry, error) {
 			return usecase.MasterPersonaEntry{
 				IdentityKey:  identityKey,
-				TargetPlugin: "FollowersPlus.esp",
+				TargetPlugin: "TestPersonaPluginA.esp",
 				FormID:       "FE01A812",
 				RecordType:   "NPC_",
-				EditorID:     "FP_LysMaren",
-				DisplayName:  "Lys Maren",
+				EditorID:     "TEST_NPC_A",
+				DisplayName:  "Test NPC A",
 				Race:         &race,
 				Sex:          &sex,
-				VoiceType:    "FemaleYoungEager",
-				ClassName:    "FPScoutClass",
-				SourcePlugin: "FollowersPlus.esp",
+				VoiceType:    "TestVoiceA",
+				ClassName:    "TestClassA",
+				SourcePlugin: "TestPersonaPluginA.esp",
 				PersonaBody:  "短く本音を置く。",
 				UpdatedAt:    time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
 			}, nil
@@ -351,18 +351,18 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverDetailHasCanonicalNPCPro
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
 	entry := response.Entry
-	if entry.VoiceType != "FemaleYoungEager" {
+	if entry.VoiceType != "TestVoiceA" {
 		t.Fatalf("expected VoiceType in detail DTO, got %q", entry.VoiceType)
 	}
-	if entry.ClassName != "FPScoutClass" {
+	if entry.ClassName != "TestClassA" {
 		t.Fatalf("expected ClassName in detail DTO, got %q", entry.ClassName)
 	}
-	if entry.SourcePlugin != "FollowersPlus.esp" {
+	if entry.SourcePlugin != "TestPersonaPluginA.esp" {
 		t.Fatalf("expected SourcePlugin in detail DTO, got %q", entry.SourcePlugin)
 	}
 	if entry.Race == nil || *entry.Race != "Breton" {
@@ -391,7 +391,7 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverDetailDoesNotExposeGener
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -415,7 +415,7 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverDetailDoesNotExposeBasel
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -431,8 +431,8 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverListDoesNotExposeDialogu
 			return usecase.MasterPersonaPageState{
 				Items: []usecase.MasterPersonaEntry{
 					{
-						IdentityKey:   "FollowersPlus.esp:FE01A812:NPC_",
-						DisplayName:   "Lys Maren",
+						IdentityKey:   "TestPersonaPluginA.esp:FE01A812:NPC_",
+						DisplayName:   "Test NPC A",
 						DialogueCount: 44,
 						UpdatedAt:     time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
 					},
@@ -468,7 +468,7 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverDetailJSONOmitsGeneratio
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -493,7 +493,7 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverDetailJSONOmitsBaselineA
 		},
 	})
 
-	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	response, err := controller.MasterPersonaGetDetail(MasterPersonaDetailRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 	if err != nil {
 		t.Fatalf("expected get detail to succeed: %v", err)
 	}
@@ -514,8 +514,8 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverListItemJSONOmitsDialogu
 			return usecase.MasterPersonaPageState{
 				Items: []usecase.MasterPersonaEntry{
 					{
-						IdentityKey: "FollowersPlus.esp:FE01A812:NPC_",
-						DisplayName: "Lys Maren",
+						IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
+						DisplayName: "Test NPC A",
 						UpdatedAt:   time.Date(2026, 4, 15, 0, 0, 0, 0, time.UTC),
 					},
 				},
@@ -566,7 +566,7 @@ func TestMasterPersonaControllerPersonaReadDetailCutoverControllerHasNoGetDialog
 // MasterPersonaUpdateInputDTO が json:"formId" タグを保持している間は失敗する。
 func TestMasterPersonaControllerPersonaReadDetailCutoverUpdateInputDTOHasNoFormID(t *testing.T) {
 	dto := MasterPersonaUpdateInputDTO{
-		DisplayName: "Lys Maren",
+		DisplayName: "Test NPC A",
 		PersonaBody: "edited persona body",
 	}
 
@@ -586,8 +586,8 @@ func TestMasterPersonaControllerPersonaJSONPreviewCutoverExposesNewFields(t *tes
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		previewGenerationFunc: func(_ context.Context, _ string, _ usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error) {
 			return usecase.MasterPersonaPreviewResult{
-				FileName:          "FollowersPlus.json",
-				TargetPlugin:      "FollowersPlus.esp",
+				FileName:          "TestPersonaPluginA.json",
+				TargetPlugin:      "TestPersonaPluginA.esp",
 				TotalNPCCount:     840,
 				GeneratableCount:  228,
 				ExistingSkipCount: 612,
@@ -597,7 +597,7 @@ func TestMasterPersonaControllerPersonaJSONPreviewCutoverExposesNewFields(t *tes
 	})
 
 	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{
-		FilePath:   "/tmp/FollowersPlus.json",
+		FilePath:   "/tmp/TestPersonaPluginA.json",
 		AISettings: MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	if err != nil {
@@ -644,8 +644,8 @@ func TestMasterPersonaControllerPersonaJSONPreviewCutoverOmitsLegacyFields(t *te
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		previewGenerationFunc: func(_ context.Context, _ string, _ usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error) {
 			return usecase.MasterPersonaPreviewResult{
-				FileName:              "FollowersPlus.json",
-				TargetPlugin:          "FollowersPlus.esp",
+				FileName:              "TestPersonaPluginA.json",
+				TargetPlugin:          "TestPersonaPluginA.esp",
 				TotalNPCCount:         840,
 				GeneratableCount:      228,
 				ExistingSkipCount:     612,
@@ -657,7 +657,7 @@ func TestMasterPersonaControllerPersonaJSONPreviewCutoverOmitsLegacyFields(t *te
 	})
 
 	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{
-		FilePath:   "/tmp/FollowersPlus.json",
+		FilePath:   "/tmp/TestPersonaPluginA.json",
 		AISettings: MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	if err != nil {
@@ -724,7 +724,7 @@ func TestMasterPersonaControllerPersonaAISettingsRestartCutoverSaveAISettingsFor
 // MasterPersonaUpdateInputDTO が generic identity フィールドを保持している間は失敗する。
 func TestMasterPersonaControllerPersonaReadDetailCutoverUpdateInputDTOHasNoGenericIdentityFields(t *testing.T) {
 	dto := MasterPersonaUpdateInputDTO{
-		DisplayName: "Lys Maren",
+		DisplayName: "Test NPC A",
 		PersonaBody: "edited persona body",
 	}
 
@@ -771,7 +771,7 @@ func TestMasterPersonaControllerPersonaAISettingsRestartCutoverGetRunStatusRetur
 		getRunStatusFunc: func(_ context.Context) (usecase.MasterPersonaRunStatus, error) {
 			return usecase.MasterPersonaRunStatus{
 				RunState:       "生成中",
-				TargetPlugin:   "FollowersPlus.esp",
+				TargetPlugin:   "TestPersonaPluginA.esp",
 				ProcessedCount: 2,
 				Message:        "生成中...",
 			}, nil
@@ -864,8 +864,8 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesCandidateCount(
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		previewGenerationFunc: func(_ context.Context, _ string, _ usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error) {
 			return usecase.MasterPersonaPreviewResult{
-				FileName:      "FollowersPlus.json",
-				TargetPlugin:  "FollowersPlus.esp",
+				FileName:      "TestPersonaPluginA.json",
+				TargetPlugin:  "TestPersonaPluginA.esp",
 				TotalNPCCount: 840,
 				Status:        "生成可能",
 			}, nil
@@ -873,7 +873,7 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesCandidateCount(
 	})
 
 	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{
-		FilePath:   "/tmp/FollowersPlus.json",
+		FilePath:   "/tmp/TestPersonaPluginA.json",
 		AISettings: MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	if err != nil {
@@ -894,8 +894,8 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesNewlyAddableCou
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		previewGenerationFunc: func(_ context.Context, _ string, _ usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error) {
 			return usecase.MasterPersonaPreviewResult{
-				FileName:         "FollowersPlus.json",
-				TargetPlugin:     "FollowersPlus.esp",
+				FileName:         "TestPersonaPluginA.json",
+				TargetPlugin:     "TestPersonaPluginA.esp",
 				GeneratableCount: 228,
 				Status:           "生成可能",
 			}, nil
@@ -903,7 +903,7 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesNewlyAddableCou
 	})
 
 	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{
-		FilePath:   "/tmp/FollowersPlus.json",
+		FilePath:   "/tmp/TestPersonaPluginA.json",
 		AISettings: MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	if err != nil {
@@ -924,8 +924,8 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesExistingCount(t
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		previewGenerationFunc: func(_ context.Context, _ string, _ usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error) {
 			return usecase.MasterPersonaPreviewResult{
-				FileName:          "FollowersPlus.json",
-				TargetPlugin:      "FollowersPlus.esp",
+				FileName:          "TestPersonaPluginA.json",
+				TargetPlugin:      "TestPersonaPluginA.esp",
 				ExistingSkipCount: 612,
 				Status:            "生成可能",
 			}, nil
@@ -933,7 +933,7 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesExistingCount(t
 	})
 
 	response, err := controller.MasterPersonaPreviewGeneration(MasterPersonaPreviewRequestDTO{
-		FilePath:   "/tmp/FollowersPlus.json",
+		FilePath:   "/tmp/TestPersonaPluginA.json",
 		AISettings: MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
 	if err != nil {
@@ -953,11 +953,11 @@ func TestPersonaJSONPreviewCutoverControllerPreviewDTOJsonExposesExistingCount(t
 func TestMasterPersonaControllerPersonaEditDeleteCutoverUpdateInputDTOExcludesAllIdentityFields(t *testing.T) {
 	dto := MasterPersonaUpdateInputDTO{
 		FormID:       "FE01A812",
-		EditorID:     "FP_LysMaren",
-		DisplayName:  "Lys Maren",
-		VoiceType:    "FemaleYoungEager",
-		ClassName:    "FPScoutClass",
-		SourcePlugin: "FollowersPlus.esp",
+		EditorID:     "TEST_NPC_A",
+		DisplayName:  "Test NPC A",
+		VoiceType:    "TestVoiceA",
+		ClassName:    "TestClassA",
+		SourcePlugin: "TestPersonaPluginA.esp",
 		PersonaBody:  "edited persona body",
 	}
 
@@ -986,7 +986,7 @@ func TestMasterPersonaControllerPersonaEditDeleteCutoverUpdateMapsPersonaBodyToU
 	})
 
 	_, err := controller.MasterPersonaUpdate(MasterPersonaUpdateRequestDTO{
-		IdentityKey: "FollowersPlus.esp:FE01A812:NPC_",
+		IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_",
 		Entry:       MasterPersonaUpdateInputDTO{PersonaBody: "cutover persona body"},
 	})
 
@@ -1001,7 +1001,7 @@ func TestMasterPersonaControllerPersonaEditDeleteCutoverUpdateMapsPersonaBodyToU
 // persona-edit-delete-cutover: MasterPersonaDelete が identityKey を usecase に転送することを証明する。
 // identityKey が usecase に届かない場合は失敗する。
 func TestMasterPersonaControllerPersonaEditDeleteCutoverDeleteForwardsIdentityKey(t *testing.T) {
-	const wantKey = "FollowersPlus.esp:FE01A812:NPC_"
+	const wantKey = "TestPersonaPluginA.esp:FE01A812:NPC_"
 	var capturedKey string
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
 		deleteEntryFunc: func(_ context.Context, identityKey string, _ usecase.MasterPersonaListQuery) (usecase.MasterPersonaMutationResult, error) {
@@ -1029,7 +1029,7 @@ func TestMasterPersonaControllerPersonaEditDeleteCutoverDeletePropagatesError(t 
 		},
 	})
 
-	_, err := controller.MasterPersonaDelete(MasterPersonaDeleteRequestDTO{IdentityKey: "FollowersPlus.esp:FE01A812:NPC_"})
+	_, err := controller.MasterPersonaDelete(MasterPersonaDeleteRequestDTO{IdentityKey: "TestPersonaPluginA.esp:FE01A812:NPC_"})
 
 	if err == nil {
 		t.Fatal("expected delete to propagate usecase error")

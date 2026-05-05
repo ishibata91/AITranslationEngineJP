@@ -777,49 +777,86 @@ func (service *PersonaGenerationPhaseService) loadContext(
 	if err != nil {
 		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, err
 	}
-	if snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader); ok {
-		snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "npc_persona_generation")
-		switch {
-		case snapshotErr == nil:
-			termRun.AIProvider = snapshot.Provider
-			termRun.ModelName = snapshot.ModelName
-			termRun.ExecutionMode = snapshot.ExecutionMode
-			termRun.CredentialRef = snapshot.CredentialRef
-		case errors.Is(snapshotErr, repository.ErrNotFound):
-			termRun.AIProvider = ""
-			termRun.ModelName = ""
-			termRun.ExecutionMode = ""
-			termRun.CredentialRef = ""
-		default:
-			return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("load persona generation phase runtime snapshot: %w", snapshotErr)
-		}
+	termRun, err = service.applyPersonaGenerationRuntimeSnapshot(ctx, job.ID, termRun)
+	if err != nil {
+		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, err
 	}
-	var run *repository.JobPhaseRun
-	foundRun, err := service.jobLifecycleRepository.FindJobPhaseRun(ctx, job.ID, personaGenerationPhaseType)
-	if err == nil {
-		run = &foundRun
-	} else if !errors.Is(err, repository.ErrNotFound) {
-		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("find persona generation phase run: %w", err)
-	}
-	if run != nil {
-		if _, ok := service.executionSnapshots[run.ID]; !ok {
-			if snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader); ok {
-				snapshot, snapshotErr := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, job.ID, "npc_persona_generation")
-				switch {
-				case snapshotErr == nil:
-					service.executionSnapshots[run.ID] = providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
-				case errors.Is(snapshotErr, repository.ErrNotFound):
-				default:
-					return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("load persona generation phase runtime snapshot: %w", snapshotErr)
-				}
-			}
-		}
+	run, err := service.loadPersonaGenerationRun(ctx, job.ID)
+	if err != nil {
+		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, err
 	}
 	snapshot, err := service.buildTargetSnapshot(ctx, job.XEditExtractedDataID)
 	if err != nil {
 		return repository.TranslationJob{}, nil, repository.JobPhaseRun{}, personaGenerationTargetSnapshot{}, fmt.Errorf("build persona generation target snapshot: %w", err)
 	}
 	return job, run, termRun, snapshot, nil
+}
+
+func (service *PersonaGenerationPhaseService) applyPersonaGenerationRuntimeSnapshot(
+	ctx context.Context,
+	jobID int64,
+	termRun repository.JobPhaseRun,
+) (repository.JobPhaseRun, error) {
+	snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader)
+	if !ok {
+		return termRun, nil
+	}
+	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "npc_persona_generation")
+	if errors.Is(err, repository.ErrNotFound) {
+		termRun.AIProvider = ""
+		termRun.ModelName = ""
+		termRun.ExecutionMode = ""
+		termRun.CredentialRef = ""
+		return termRun, nil
+	}
+	if err != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("load persona generation phase runtime snapshot: %w", err)
+	}
+	termRun.AIProvider = snapshot.Provider
+	termRun.ModelName = snapshot.ModelName
+	termRun.ExecutionMode = snapshot.ExecutionMode
+	termRun.CredentialRef = snapshot.CredentialRef
+	return termRun, nil
+}
+
+func (service *PersonaGenerationPhaseService) loadPersonaGenerationRun(
+	ctx context.Context,
+	jobID int64,
+) (*repository.JobPhaseRun, error) {
+	foundRun, err := service.jobLifecycleRepository.FindJobPhaseRun(ctx, jobID, personaGenerationPhaseType)
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("find persona generation phase run: %w", err)
+	}
+	if err := service.cachePersonaGenerationExecutionSnapshot(ctx, jobID, foundRun.ID); err != nil {
+		return nil, err
+	}
+	return &foundRun, nil
+}
+
+func (service *PersonaGenerationPhaseService) cachePersonaGenerationExecutionSnapshot(
+	ctx context.Context,
+	jobID int64,
+	runID int64,
+) error {
+	if _, ok := service.executionSnapshots[runID]; ok {
+		return nil
+	}
+	snapshotReader, ok := service.jobLifecycleRepository.(personaGenerationPhaseRuntimeSnapshotReader)
+	if !ok {
+		return nil
+	}
+	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "npc_persona_generation")
+	if errors.Is(err, repository.ErrNotFound) {
+		return nil
+	}
+	if err != nil {
+		return fmt.Errorf("load persona generation phase runtime snapshot: %w", err)
+	}
+	service.executionSnapshots[runID] = providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
+	return nil
 }
 
 func (service *PersonaGenerationPhaseService) buildTargetSnapshot(

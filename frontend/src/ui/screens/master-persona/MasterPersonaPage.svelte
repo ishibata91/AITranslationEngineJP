@@ -126,23 +126,18 @@
 </script>
 
 <section class="master-persona-shell" id="masterPersonaView">
-  <section class="hero-panel" aria-labelledby="masterPersonaHeading">
-    <div class="hero-copy">
-      <p class="eyebrow">生成準備</p>
-      <h1 id="masterPersonaHeading">マスターペルソナ作成</h1>
-      <p class="lead">
-        ベースゲームや大型 Mod の NPC を対象に、翻訳前の準備として
-        ペルソナをまとめて作成します。作成後は一覧と詳細で同じ画面から確認できます。
-      </p>
-    </div>
-    <span class="hero-status" role="status">{viewModel.runStatus.runState}</span>
-  </section>
+  <h1 class="sr-only">マスターペルソナ作成</h1>
 
   {#if noticeText}
     <p class:notice-error={noticeTone === "error"} class="notice-banner" role="status">
       {noticeText}
     </p>
   {/if}
+
+  <div class="status-row" aria-label="マスターペルソナ作成状態">
+    <span class="status-label">作成状態</span>
+    <span class="status-pill" role="status">{viewModel.runStatus.runState}</span>
+  </div>
 
   <GenerationSetupPanel
     {handleAIExecutionMethodChange}
@@ -190,11 +185,10 @@
 <style>
   .master-persona-shell {
     display: grid;
-    gap: 18px;
+    gap: 14px;
     min-width: 0;
   }
 
-  .hero-panel,
   .notice-banner {
     border-radius: 20px;
     border: 0.5px solid var(--line);
@@ -202,64 +196,14 @@
     min-width: 0;
   }
 
-  .hero-panel {
-    align-items: start;
-    background:
-      radial-gradient(circle at top right, rgba(255, 186, 56, 0.16), transparent 38%),
-      rgba(17, 13, 12, 0.42);
-    backdrop-filter: blur(24px);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 14px;
-    justify-content: space-between;
-    padding: clamp(20px, 3vw, 28px);
-  }
-
-  .hero-copy {
-    display: grid;
-    gap: 10px;
-    min-width: 0;
-  }
-
-  .eyebrow {
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.1em;
-    margin: 0;
-    text-transform: uppercase;
-  }
-
-  h1,
   p {
     margin: 0;
   }
 
-  h1 {
-    font-size: clamp(1.8rem, 2.8vw, 2.4rem);
-    line-height: 1.2;
-    overflow-wrap: anywhere;
-  }
-
-  .lead {
-    color: var(--muted);
-    line-height: 1.7;
-    max-width: 62ch;
-  }
-
-  .hero-status,
   .notice-banner {
     align-items: center;
     display: inline-flex;
     overflow-wrap: anywhere;
-  }
-
-  .hero-status {
-    background: rgba(255, 255, 255, 0.04);
-    border: 0.5px solid rgba(255, 186, 56, 0.22);
-    border-radius: 999px;
-    color: var(--text);
-    min-height: 40px;
-    padding: 0 16px;
   }
 
   .notice-banner {
@@ -269,15 +213,47 @@
     padding: 14px 18px;
   }
 
+  .status-row {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .status-label {
+    color: var(--muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .status-pill {
+    align-items: center;
+    background: rgba(255, 255, 255, 0.04);
+    border: 0.5px solid rgba(255, 186, 56, 0.22);
+    border-radius: 999px;
+    color: var(--text);
+    display: inline-flex;
+    min-height: 30px;
+    padding: 0 12px;
+  }
+
+  .sr-only {
+    border: 0;
+    clip: rect(0 0 0 0);
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    padding: 0;
+    position: absolute;
+    white-space: nowrap;
+    width: 1px;
+  }
+
   .notice-error {
     border-color: rgba(255, 156, 124, 0.35);
     color: #ffd5cb;
   }
 
-  @media (max-width: 640px) {
-    .hero-status {
-      max-width: 100%;
-      width: 100%;
-    }
-  }
 </style>

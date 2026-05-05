@@ -1,8 +1,5 @@
 <script lang="ts">
-  import type {
-    MasterPersonaDetail,
-    MasterPersonaScreenViewModel
-  } from "@application/gateway-contract/master-persona"
+  import type { MasterPersonaScreenViewModel } from "@application/gateway-contract/master-persona"
   import type { MasterPersonaListItem } from "@application/gateway-contract/master-persona/master-persona-gateway-contract"
 
   interface Props {
@@ -27,13 +24,6 @@
     openDelete
   }: Props = $props()
 
-  function selectedSummary(selectedEntry: MasterPersonaDetail | null): string {
-    if (!selectedEntry) {
-      return "一覧からペルソナを選ぶと、識別情報と本文を確認できます。"
-    }
-    return `${selectedEntry.displayName} を選択中です。`
-  }
-
   function itemLabel(item: MasterPersonaListItem): string {
     return item.displayName || item.editorId || item.formId
   }
@@ -51,7 +41,6 @@
       <div>
         <p class="eyebrow">生成結果</p>
         <h3 id="listHeading">ペルソナ一覧</h3>
-        <p class="support-copy">{viewModel.pageStatusText}</p>
       </div>
       <span class="status-pill">{pageRangeText}</span>
     </div>
@@ -135,7 +124,6 @@
       <div>
         <p class="eyebrow">詳細</p>
         <h3 id="detailHeading">{viewModel.selectedEntry?.displayName || "選択中のペルソナ"}</h3>
-        <p class="support-copy">{selectedSummary(viewModel.selectedEntry)}</p>
       </div>
       <div class="detail-actions">
         <button
@@ -158,9 +146,6 @@
         </button>
       </div>
     </div>
-
-    <p class="lock-text">{viewModel.detailLockText}</p>
-    <p class="support-copy">{viewModel.detailStatusText}</p>
 
     <p class="identity-text" id="detailIdentityText">
       {#if viewModel.selectedEntry}
@@ -206,8 +191,9 @@
 
 <style>
   .review-grid {
+    align-items: start;
     display: grid;
-    gap: 16px;
+    gap: 12px;
     grid-template-columns: minmax(0, 0.92fr) minmax(0, 1.08fr);
   }
 
@@ -220,13 +206,14 @@
   }
 
   .panel {
+    align-content: start;
     background: rgba(17, 13, 12, 0.42);
     border: 0.5px solid var(--line);
     box-shadow: var(--shadow);
     display: grid;
-    gap: 14px;
+    gap: 6px;
     min-width: 0;
-    padding: clamp(18px, 3vw, 24px);
+    padding: 12px;
   }
 
   .section-head,
@@ -236,7 +223,7 @@
     align-items: flex-start;
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
+    gap: 6px;
     justify-content: space-between;
   }
 
@@ -261,14 +248,12 @@
   .list-row strong,
   .detail-card dd,
   .body-card p,
-  .lock-text,
   .identity-text,
   .empty-state {
     overflow-wrap: anywhere;
   }
 
   .support-copy,
-  .lock-text,
   .identity-text,
   .body-card p,
   .detail-card dd,
@@ -284,20 +269,21 @@
     border-radius: 999px;
     color: var(--text);
     display: inline-flex;
-    min-height: 38px;
-    padding: 0 14px;
+    min-height: 28px;
+    padding: 0 10px;
   }
 
   .filter-grid {
+    align-items: end;
     display: grid;
-    gap: 12px;
+    gap: 4px;
     grid-template-columns: minmax(0, 1fr) minmax(200px, 0.42fr);
   }
 
   .field-group,
   .identity-grid {
     display: grid;
-    gap: 8px;
+    gap: 4px;
     min-width: 0;
   }
 
@@ -306,19 +292,20 @@
   }
 
   .text-field {
+    appearance: none;
     background: rgba(255, 255, 255, 0.04);
     border: 0.5px solid var(--line);
-    border-radius: 14px;
+    border-radius: 10px;
     color: var(--text);
-    min-height: 42px;
+    height: 34px;
     min-width: 0;
-    padding: 0 14px;
+    padding: 0 10px;
     width: 100%;
   }
 
   .list-stack {
     display: grid;
-    gap: 8px;
+    gap: 2px;
   }
 
   .list-row,
@@ -326,7 +313,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     min-width: 0;
-    padding: 12px 14px;
+    padding: 3px 8px;
     text-align: left;
   }
 
@@ -334,9 +321,9 @@
     align-items: center;
     cursor: pointer;
     display: grid;
-    gap: 8px;
-    grid-template-columns: minmax(110px, 0.44fr) minmax(0, 1fr);
-    min-height: 44px;
+    gap: 3px;
+    grid-template-columns: minmax(96px, 0.4fr) minmax(0, 1fr);
+    min-height: 28px;
   }
 
   .list-row.is-selected {
@@ -347,6 +334,10 @@
   .plugin-name,
   .list-row strong {
     min-width: 0;
+  }
+
+  .list-row strong {
+    color: var(--text);
   }
 
   .plugin-name,
@@ -366,7 +357,7 @@
     background: rgba(255, 255, 255, 0.03);
     border: 0.5px solid rgba(255, 255, 255, 0.08);
     min-width: 0;
-    padding: 14px;
+    padding: 12px;
   }
 
   .detail-card dt,

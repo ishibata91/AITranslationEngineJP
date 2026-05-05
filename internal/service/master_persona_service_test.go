@@ -11,9 +11,34 @@ import (
 	"aitranslationenginejp/internal/repository"
 )
 
+func testMasterPersonaSeed(now time.Time) []repository.MasterPersonaEntry {
+	testNPCRace := "TestRace"
+	testNPCSex := "TestSex"
+	return []repository.MasterPersonaEntry{
+		{
+			IdentityKey:    repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"),
+			TargetPlugin:   "TestPersonaPluginA.esp",
+			FormID:         "FE01A812",
+			RecordType:     "NPC_",
+			EditorID:       "TEST_NPC_A",
+			DisplayName:    "Test NPC A",
+			Race:           &testNPCRace,
+			Sex:            &testNPCSex,
+			VoiceType:      "TestVoiceA",
+			ClassName:      "TestClassA",
+			SourcePlugin:   "TestPersonaPluginA.esp",
+			PersonaSummary: "test summary a",
+			PersonaBody:    "test body a",
+			DialogueCount:  1,
+			Dialogues:      []string{"test line a"},
+			UpdatedAt:      now,
+		},
+	}
+}
+
 func TestMasterPersonaGenerationServicePreviewSkipsExistingAndZeroDialogue(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	secretStore := repository.NewInMemorySecretStore()
 	service := NewMasterPersonaGenerationService(
 		repo,
@@ -25,13 +50,13 @@ func TestMasterPersonaGenerationServicePreviewSkipsExistingAndZeroDialogue(t *te
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A812",
       "record_type": "NPC_",
-      "editor_id": "FP_LysMaren",
-      "display_name": "Lys Maren",
+      "editor_id": "TEST_NPC_A",
+      "display_name": "Test NPC A",
       "dialogues": ["one"]
     },
     {
@@ -63,7 +88,7 @@ func TestMasterPersonaGenerationServicePreviewSkipsExistingAndZeroDialogue(t *te
 
 func TestMasterPersonaGenerationServiceExecuteUsesIdentityKeyWithoutOverwrite(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	secretStore := repository.NewInMemorySecretStore()
 	service := NewMasterPersonaGenerationService(
 		repo,
@@ -75,13 +100,13 @@ func TestMasterPersonaGenerationServiceExecuteUsesIdentityKeyWithoutOverwrite(t 
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A812",
       "record_type": "NPC_",
-      "editor_id": "FP_LysMaren",
-      "display_name": "Lys Maren",
+      "editor_id": "TEST_NPC_A",
+      "display_name": "Test NPC A",
       "dialogues": ["one"]
     },
     {
@@ -102,11 +127,11 @@ func TestMasterPersonaGenerationServiceExecuteUsesIdentityKeyWithoutOverwrite(t 
 	if result.SuccessCount != 1 || result.ExistingSkipCount != 1 {
 		t.Fatalf("unexpected execute result: %#v", result)
 	}
-	existing, err := repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"))
+	existing, err := repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"))
 	if err != nil {
 		t.Fatalf("expected existing entry to remain readable: %v", err)
 	}
-	if existing.DisplayName != "Lys Maren" {
+	if existing.DisplayName != "Test NPC A" {
 		t.Fatalf("expected existing entry not to be overwritten: %#v", existing)
 	}
 }
@@ -124,7 +149,7 @@ func TestMasterPersonaGenerationServiceExecuteSkipsZeroDialogueWithoutCreatingEn
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A903",
@@ -151,7 +176,7 @@ func TestMasterPersonaGenerationServiceExecuteSkipsZeroDialogueWithoutCreatingEn
 	if result.ZeroDialogueSkipCount != 0 || result.SuccessCount != 1 {
 		t.Fatalf("unexpected execute result: %#v", result)
 	}
-	_, err = repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A903", "NPC_"))
+	_, err = repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A903", "NPC_"))
 	if !errors.Is(err, repository.ErrMasterPersonaEntryNotFound) {
 		t.Fatalf("expected zero dialogue entry not to be created, got %v", err)
 	}
@@ -171,7 +196,7 @@ func TestMasterPersonaGenerationServiceExecuteMarksGenericNPCWithoutSurfacingBas
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "NightCourt.esp",
+  "target_plugin": "TestPersonaPluginB.esp",
   "npcs": [
     {
       "form_id": "FE01A999",
@@ -190,7 +215,7 @@ func TestMasterPersonaGenerationServiceExecuteMarksGenericNPCWithoutSurfacingBas
 	if result.GenericNPCCount != 1 {
 		t.Fatalf("expected generic npc count to increment: %#v", result)
 	}
-	entry, err := repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("NightCourt.esp", "FE01A999", "NPC_"))
+	entry, err := repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("TestPersonaPluginB.esp", "FE01A999", "NPC_"))
 	if err != nil {
 		t.Fatalf("expected generated entry to exist: %v", err)
 	}
@@ -207,7 +232,7 @@ func TestMasterPersonaGenerationServiceExecuteMarksGenericNPCWithoutSurfacingBas
 
 func TestMasterPersonaGenerationServiceRejectsUpdateDuringActiveRun(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	if err := repo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{RunState: MasterPersonaStatusRunning}); err != nil {
 		t.Fatalf("expected run status save to succeed: %v", err)
 	}
@@ -221,7 +246,7 @@ func TestMasterPersonaGenerationServiceRejectsUpdateDuringActiveRun(t *testing.T
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	_, err := service.UpdateEntry(context.Background(), repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"), MasterPersonaUpdateInput{FormID: "FE01A812"})
+	_, err := service.UpdateEntry(context.Background(), repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"), MasterPersonaUpdateInput{FormID: "FE01A812"})
 	if !errors.Is(err, ErrMasterPersonaActiveRun) {
 		t.Fatalf("expected active run error, got %v", err)
 	}
@@ -229,7 +254,7 @@ func TestMasterPersonaGenerationServiceRejectsUpdateDuringActiveRun(t *testing.T
 
 func TestMasterPersonaGenerationServiceRejectsDeleteDuringActiveRun(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	if err := repo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{RunState: MasterPersonaStatusRunning}); err != nil {
 		t.Fatalf("expected run status save to succeed: %v", err)
 	}
@@ -243,7 +268,7 @@ func TestMasterPersonaGenerationServiceRejectsDeleteDuringActiveRun(t *testing.T
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	err := service.DeleteEntry(context.Background(), repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"))
+	err := service.DeleteEntry(context.Background(), repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"))
 	if !errors.Is(err, ErrMasterPersonaActiveRun) {
 		t.Fatalf("expected active run error, got %v", err)
 	}
@@ -258,7 +283,7 @@ func TestMasterPersonaGenerationServiceRejectsRealProviderInTestMode(t *testing.
 	}
 	service := NewMasterPersonaGenerationService(repo, repo, repo, secretStore, now, true)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A910",
@@ -289,7 +314,7 @@ func TestMasterPersonaGenerationServiceExecuteWithFakeTransportDIWithoutSavedAPI
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A911",
@@ -324,7 +349,7 @@ func TestMasterPersonaGenerationServiceExecuteAllowsLMStudioWithoutSavedAPIKey(t
 		WithMasterPersonaBodyGenerator(generator),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A916",
@@ -357,8 +382,8 @@ func TestMasterPersonaGenerationServiceExecuteAllowsLMStudioWithoutSavedAPIKey(t
 func TestMasterPersonaGenerationServicePreviewAggregatesWhenAISettingsIncomplete(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository([]repository.MasterPersonaEntry{{
-		IdentityKey:  repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A999", "NPC_"),
-		TargetPlugin: "FollowersPlus.esp",
+		IdentityKey:  repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A999", "NPC_"),
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A999",
 		RecordType:   "NPC_",
 	}})
@@ -372,7 +397,7 @@ func TestMasterPersonaGenerationServicePreviewAggregatesWhenAISettingsIncomplete
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A912",
@@ -405,7 +430,7 @@ func TestMasterPersonaGenerationServicePreviewAggregatesWhenAISettingsIncomplete
 	// zero dialogue NPC は parse-time 除外: TotalNPCCount は除外後の数、ZeroDialogueSkipCount は 0
 	want := MasterPersonaPreviewResult{
 		FileName:              filepath.Base(fixturePath),
-		TargetPlugin:          "FollowersPlus.esp",
+		TargetPlugin:          "TestPersonaPluginA.esp",
 		TotalNPCCount:         2,
 		GeneratableCount:      1,
 		ExistingSkipCount:     1,
@@ -431,7 +456,7 @@ func TestMasterPersonaGenerationServiceExecutePersistsTransportResponseBody(t *t
 		WithMasterPersonaBodyGenerator(&stubMasterPersonaBodyGenerator{body: "transport persona body"}),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A914",
@@ -447,7 +472,7 @@ func TestMasterPersonaGenerationServiceExecutePersistsTransportResponseBody(t *t
 	if err != nil {
 		t.Fatalf("expected transport-backed execute to succeed: %v", err)
 	}
-	entry, err := repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A914", "NPC_"))
+	entry, err := repo.GetByIdentityKey(context.Background(), repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A914", "NPC_"))
 	if err != nil {
 		t.Fatalf("expected generated entry to be readable: %v", err)
 	}
@@ -470,7 +495,7 @@ func TestMasterPersonaGenerationServiceTestModeDeniesRealProviderBeforeHTTPCall(
 		WithMasterPersonaBodyGenerator(generator),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A915",
@@ -628,7 +653,7 @@ func TestMasterPersonaGenerationServiceSaveSettingsDoesNotLoadPersistedSecret(t 
 // UpdateEntry が input.FormID を必須検証している間は失敗する。
 func TestMasterPersonaGenerationServicePersonaReadDetailCutoverUpdateSucceedsWithNarrowInput(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	service := NewMasterPersonaGenerationService(
 		repo,
 		repo,
@@ -639,7 +664,7 @@ func TestMasterPersonaGenerationServicePersonaReadDetailCutoverUpdateSucceedsWit
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	identityKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_")
+	identityKey := repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_")
 
 	// Act: FormID を省略した narrow update input (frontend cutover 後の送信形式)
 	updated, err := service.UpdateEntry(context.Background(), identityKey, MasterPersonaUpdateInput{
@@ -652,8 +677,8 @@ func TestMasterPersonaGenerationServicePersonaReadDetailCutoverUpdateSucceedsWit
 		t.Fatalf("expected update to succeed with narrow input (no FormID); got: %v", err)
 	}
 	// DisplayName は read-only のため元の値が保持される (cutover 後の approved behavior)
-	if updated.DisplayName != "Lys Maren" {
-		t.Fatalf("expected DisplayName to remain 'Lys Maren' (read-only after cutover), got %q", updated.DisplayName)
+	if updated.DisplayName != "Test NPC A" {
+		t.Fatalf("expected DisplayName to remain 'Test NPC A' (read-only after cutover), got %q", updated.DisplayName)
 	}
 	if updated.PersonaBody != "updated persona body" {
 		t.Fatalf("expected PersonaBody to be updated, got %q", updated.PersonaBody)
@@ -836,19 +861,19 @@ func TestPersonaJSONPreviewCutoverAllZeroDialogueReturnsZeroCountNotValidationEr
 // cutover 後も既存 NPC の identity key 解決が plugin+form_id+record_type に依存することを確認する。
 func TestPersonaJSONPreviewCutoverServiceExistingIdentityBoundaryUsesPluginFormIDRecordType(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	service := NewMasterPersonaGenerationService(
 		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A812",
       "record_type": "NPC_",
-      "editor_id": "FP_LysMaren",
-      "display_name": "Lys Maren",
+      "editor_id": "TEST_NPC_A",
+      "display_name": "Test NPC A",
       "dialogues": ["one"]
     }
   ]
@@ -867,19 +892,19 @@ func TestPersonaJSONPreviewCutoverServiceExistingIdentityBoundaryUsesPluginFormI
 // UpsertIfAbsent は ON CONFLICT DO NOTHING に相当し、既存行は変更されない。
 func TestMasterPersonaGenerationCutoverExistingIdentityIsNotOverwritten(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 21, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	service := NewMasterPersonaGenerationService(
 		repo, repo, repo, repository.NewInMemorySecretStore(), now, false,
 		WithMasterPersonaBodyGenerator(&stubMasterPersonaBodyGenerator{body: "cutover-generated-body"}),
 	)
 	fixturePath := writeMasterPersonaExtractFixture(t, `{
-  "target_plugin": "FollowersPlus.esp",
+  "target_plugin": "TestPersonaPluginA.esp",
   "npcs": [
     {
       "form_id": "FE01A812",
       "record_type": "NPC_",
-      "editor_id": "FP_LysMaren",
-      "display_name": "Lys Maren",
+      "editor_id": "TEST_NPC_A",
+      "display_name": "Test NPC A",
       "dialogues": ["one"]
     },
     {
@@ -904,15 +929,15 @@ func TestMasterPersonaGenerationCutoverExistingIdentityIsNotOverwritten(t *testi
 	}
 
 	// Assert: existing persona identity fields are not overwritten
-	existingKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_")
+	existingKey := repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_")
 	existing, fetchErr := repo.GetByIdentityKey(context.Background(), existingKey)
 	if fetchErr != nil {
 		t.Fatalf("expected existing entry to remain readable: %v", fetchErr)
 	}
-	if existing.PersonaBody != "口調は丁寧語へ寄せず、中性的な温度を保つ。会話の主導権は急いで取らず、相手の出方を見てから短く返す。" {
+	if existing.PersonaBody != "test body a" {
 		t.Fatalf("expected existing persona body to be unchanged after generation, got %q", existing.PersonaBody)
 	}
-	if existing.DisplayName != "Lys Maren" {
+	if existing.DisplayName != "Test NPC A" {
 		t.Fatalf("expected existing display name to be unchanged, got %q", existing.DisplayName)
 	}
 }
@@ -1067,7 +1092,7 @@ func TestMasterPersonaGenerationCutoverRunStateIsInMemoryAndNonPersistent(t *tes
 // service が FormID / EditorID / VoiceType / ClassName / SourcePlugin を input から適用する場合は失敗する。
 func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateUsesIdentityLinkageFromFetchedEntry(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
 		repository.NewInMemorySecretStore(),
@@ -1075,7 +1100,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateUsesIdentit
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	identityKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_")
+	identityKey := repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_")
 
 	// Arrange: identity fields に fetched entry と異なる値を渡す
 	updated, err := svc.UpdateEntry(context.Background(), identityKey, MasterPersonaUpdateInput{
@@ -1094,16 +1119,16 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateUsesIdentit
 	if updated.FormID != "FE01A812" {
 		t.Fatalf("expected FormID preserved from fetched entry, got %q", updated.FormID)
 	}
-	if updated.EditorID != "FP_LysMaren" {
+	if updated.EditorID != "TEST_NPC_A" {
 		t.Fatalf("expected EditorID preserved from fetched entry, got %q", updated.EditorID)
 	}
-	if updated.VoiceType != "FemaleYoungEager" {
+	if updated.VoiceType != "TestVoiceA" {
 		t.Fatalf("expected VoiceType preserved from fetched entry, got %q", updated.VoiceType)
 	}
-	if updated.ClassName != "FPScoutClass" {
+	if updated.ClassName != "TestClassA" {
 		t.Fatalf("expected ClassName preserved from fetched entry, got %q", updated.ClassName)
 	}
-	if updated.SourcePlugin != "FollowersPlus.esp" {
+	if updated.SourcePlugin != "TestPersonaPluginA.esp" {
 		t.Fatalf("expected SourcePlugin preserved from fetched entry, got %q", updated.SourcePlugin)
 	}
 }
@@ -1112,7 +1137,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateUsesIdentit
 // service が input.PersonaBody を無視する場合は失敗する。
 func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateWritesPersonaBodyFromInput(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
 		repository.NewInMemorySecretStore(),
@@ -1120,10 +1145,10 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateWritesPerso
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	identityKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_")
+	identityKey := repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_")
 
 	updated, err := svc.UpdateEntry(context.Background(), identityKey, MasterPersonaUpdateInput{
-		DisplayName: "Lys Maren",
+		DisplayName: "Test NPC A",
 		PersonaBody: "新しいペルソナ本文",
 	})
 
@@ -1139,7 +1164,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverUpdateWritesPerso
 // DeleteEntry が実際に削除しない場合は失敗する。
 func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverDeleteRemovesEntry(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
-	repo := repository.NewInMemoryMasterPersonaRepository(repository.DefaultMasterPersonaSeed(now()))
+	repo := repository.NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now()))
 	svc := NewMasterPersonaGenerationService(
 		repo, repo, repo,
 		repository.NewInMemorySecretStore(),
@@ -1147,7 +1172,7 @@ func TestMasterPersonaGenerationServicePersonaEditDeleteCutoverDeleteRemovesEntr
 		WithMasterPersonaBodyGenerator(newTestSafeMasterPersonaBodyGenerator()),
 	)
 
-	identityKey := repository.BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_")
+	identityKey := repository.BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_")
 
 	err := svc.DeleteEntry(context.Background(), identityKey)
 

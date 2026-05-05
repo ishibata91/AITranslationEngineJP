@@ -6,10 +6,51 @@ import (
 	"time"
 )
 
-func TestBuildMasterPersonaIdentityKeyUsesPluginFormIDRecordType(t *testing.T) {
-	identityKey := BuildMasterPersonaIdentityKey(" FollowersPlus.esp ", " FE01A812 ", " NPC_ ")
+func testMasterPersonaSeed(now time.Time) []MasterPersonaEntry {
+	testNPCRace := "TestRace"
+	testNPCSex := "TestSex"
+	return []MasterPersonaEntry{
+		{
+			IdentityKey:    BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"),
+			TargetPlugin:   "TestPersonaPluginA.esp",
+			FormID:         "FE01A812",
+			RecordType:     "NPC_",
+			EditorID:       "TEST_NPC_A",
+			DisplayName:    "Test NPC A",
+			Race:           &testNPCRace,
+			Sex:            &testNPCSex,
+			VoiceType:      "TestVoiceA",
+			ClassName:      "TestClassA",
+			SourcePlugin:   "TestPersonaPluginA.esp",
+			PersonaSummary: "test summary a",
+			PersonaBody:    "test body a",
+			DialogueCount:  1,
+			Dialogues:      []string{"test line a"},
+			UpdatedAt:      now,
+		},
+		{
+			IdentityKey:    BuildMasterPersonaIdentityKey("TestPersonaPluginB.esp", "FE01A814", "NPC_"),
+			TargetPlugin:   "TestPersonaPluginB.esp",
+			FormID:         "FE01A814",
+			RecordType:     "NPC_",
+			EditorID:       "TEST_NPC_B",
+			DisplayName:    "Test NPC B",
+			VoiceType:      "TestVoiceB",
+			ClassName:      "TestClassB",
+			SourcePlugin:   "TestPersonaPluginB.esp",
+			PersonaSummary: "test summary b",
+			PersonaBody:    "test body b",
+			DialogueCount:  1,
+			Dialogues:      []string{"test line b"},
+			UpdatedAt:      now.Add(-time.Minute),
+		},
+	}
+}
 
-	if identityKey != "FollowersPlus.esp:FE01A812:NPC_" {
+func TestBuildMasterPersonaIdentityKeyUsesPluginFormIDRecordType(t *testing.T) {
+	identityKey := BuildMasterPersonaIdentityKey(" TestPersonaPluginA.esp ", " FE01A812 ", " NPC_ ")
+
+	if identityKey != "TestPersonaPluginA.esp:FE01A812:NPC_" {
 		t.Fatalf("unexpected identity key: %q", identityKey)
 	}
 }
@@ -19,11 +60,11 @@ func TestInMemoryMasterPersonaRepositoryTreatsPluginAsIdentityBoundary(t *testin
 	repository := NewInMemoryMasterPersonaRepository(nil)
 
 	first, created, err := repository.UpsertIfAbsent(context.Background(), MasterPersonaDraft{
-		IdentityKey:  BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"),
-		TargetPlugin: "FollowersPlus.esp",
+		IdentityKey:  BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"),
+		TargetPlugin: "TestPersonaPluginA.esp",
 		FormID:       "FE01A812",
 		RecordType:   "NPC_",
-		DisplayName:  "Lys Maren",
+		DisplayName:  "Test NPC A",
 		Dialogues:    []string{"one"},
 		UpdatedAt:    now,
 	})
@@ -32,11 +73,11 @@ func TestInMemoryMasterPersonaRepositoryTreatsPluginAsIdentityBoundary(t *testin
 	}
 
 	second, created, err := repository.UpsertIfAbsent(context.Background(), MasterPersonaDraft{
-		IdentityKey:  BuildMasterPersonaIdentityKey("NightCourt.esp", "FE01A812", "NPC_"),
-		TargetPlugin: "NightCourt.esp",
+		IdentityKey:  BuildMasterPersonaIdentityKey("TestPersonaPluginB.esp", "FE01A812", "NPC_"),
+		TargetPlugin: "TestPersonaPluginB.esp",
 		FormID:       "FE01A812",
 		RecordType:   "NPC_",
-		DisplayName:  "Watcher Husk",
+		DisplayName:  "Test NPC C",
 		Dialogues:    []string{"two"},
 		UpdatedAt:    now,
 	})
@@ -44,11 +85,11 @@ func TestInMemoryMasterPersonaRepositoryTreatsPluginAsIdentityBoundary(t *testin
 		t.Fatalf("expected second upsert to create plugin-distinct entry: entry=%#v created=%v err=%v", second, created, err)
 	}
 
-	followers, err := repository.GetByIdentityKey(context.Background(), BuildMasterPersonaIdentityKey("FollowersPlus.esp", "FE01A812", "NPC_"))
+	followers, err := repository.GetByIdentityKey(context.Background(), BuildMasterPersonaIdentityKey("TestPersonaPluginA.esp", "FE01A812", "NPC_"))
 	if err != nil {
 		t.Fatalf("expected followers entry to exist: %v", err)
 	}
-	nightCourt, err := repository.GetByIdentityKey(context.Background(), BuildMasterPersonaIdentityKey("NightCourt.esp", "FE01A812", "NPC_"))
+	nightCourt, err := repository.GetByIdentityKey(context.Background(), BuildMasterPersonaIdentityKey("TestPersonaPluginB.esp", "FE01A812", "NPC_"))
 	if err != nil {
 		t.Fatalf("expected night court entry to exist: %v", err)
 	}
@@ -59,21 +100,21 @@ func TestInMemoryMasterPersonaRepositoryTreatsPluginAsIdentityBoundary(t *testin
 
 func TestInMemoryMasterPersonaRepositoryListUsesPluginFilterOnlyForPluginGrouping(t *testing.T) {
 	now := time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC)
-	repository := NewInMemoryMasterPersonaRepository(DefaultMasterPersonaSeed(now))
+	repository := NewInMemoryMasterPersonaRepository(testMasterPersonaSeed(now))
 
 	result, err := repository.List(context.Background(), MasterPersonaListQuery{
-		Keyword:      "watcher",
-		PluginFilter: "NightCourt.esp",
+		Keyword:      "test npc b",
+		PluginFilter: "TestPersonaPluginB.esp",
 		Page:         1,
 		PageSize:     30,
 	})
 	if err != nil {
 		t.Fatalf("expected list to succeed: %v", err)
 	}
-	if len(result.Items) != 1 || result.Items[0].TargetPlugin != "NightCourt.esp" {
+	if len(result.Items) != 1 || result.Items[0].TargetPlugin != "TestPersonaPluginB.esp" {
 		t.Fatalf("unexpected filtered items: %#v", result.Items)
 	}
-	if len(result.PluginGroups) != 1 || result.PluginGroups[0].TargetPlugin != "NightCourt.esp" {
+	if len(result.PluginGroups) != 1 || result.PluginGroups[0].TargetPlugin != "TestPersonaPluginB.esp" {
 		t.Fatalf("unexpected plugin groups: %#v", result.PluginGroups)
 	}
 }

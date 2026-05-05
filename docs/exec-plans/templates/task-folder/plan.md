@@ -15,6 +15,7 @@
 - `ux_task_frame`: `task 枠` の記録位置 または `N/A`
 - `ui_design`: `./ui-design.md` または `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
+- `frontend_human_review`: frontend 実装後人間レビューの記録位置 または `N/A`
 - `scenario_design`: `./scenario-design.md`
 - `implementation_scope`: `pending-after-human-review` または `./implementation-scope.md`
 - `detail_spec_target`: `docs/detail-specs/<upper-scenario-id>.md` または `N/A`
@@ -29,6 +30,7 @@
 ## HITL Status
 
 - `functional_or_design_hitl`: `required-after-design-bundle` / `approved` / `not-required`
+- `frontend_human_review`: `required-after-frontend-implementation` / `approved` / `rework-requested` / `not-required`
 - `approval_record`: `pending-after-design-bundle` または human review の記録
 
 ## Codex Implementation Result
