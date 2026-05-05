@@ -1,0 +1,102 @@
+reviewback_version: 1
+task_id: "frontend-fake-api-review-foundation"
+review_yaml_path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。reviewModeEnabled が true の時だけ fakeApi 起動を許可し、fakeScenario の状態別表示が provider settings の fake gateway に反映される。success、error、config-missing の実画面 snapshot も状態差分を示している。"
+  evidence_sufficiency: "十分。実コード、局所テスト、UI scenario test、agent-browser 証跡、最終検証結果が同じ状態切替を示している。"
+
+checked_scope:
+  summary: "composition root の起動分岐、review fakeAPI runtime の scenario 解決、provider settings 用 fake gateway 登録、局所テスト、UI scenario test、agent-browser 証跡を確認した。"
+  files:
+    - path: "frontend/src/main.ts"
+      line: 16
+      symbol: "reviewFakeApiContext"
+      reason: "import.meta.env.DEV を reviewModeEnabled とし、fakeApi 有効時だけ review fakeAPI factory を選ぶ入口を確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 89
+      symbol: "createReviewFakeApiAppFactories"
+      reason: "registry 由来の fake gateway を screen controller factory へ渡し、未登録時は null にする経路を確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 102
+      symbol: "resolveReviewFakeApiRuntimeContext"
+      reason: "reviewModeEnabled が false の時は fakeApi と fakeScenario を無効化し、許可時だけ scenarioId を解決することを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 153
+      symbol: "createDefaultReviewFakeApiGatewayRegistry"
+      reason: "provider settings だけに fake gateway を登録し、scenarioId ごとの response を返す経路を確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-context.test.ts"
+      line: 14
+      symbol: "resolveReviewFakeApiRuntimeContext tests"
+      reason: "本番起動相当の fakeApi と fakeScenario の無視、6 種 scenario、未登録 scenario の config-missing 正規化を確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-factories.test.ts"
+      line: 75
+      symbol: "createReviewFakeApiAppFactories tests"
+      reason: "fake gateway 注入、欠落時 null、Wails fallback 不使用を確認した。"
+    - path: "frontend/src/ui/review-fake-api-scenario.test.ts"
+      line: 228
+      symbol: "frontend fakeAPI review scenario"
+      reason: "provider settings 画面で success、empty、loading、running、error、config-missing の表示観測を確認した。"
+    - path: "tmp/agent-browser/frontend-fake-api-review-foundation.evidence.md"
+      line: 23
+      symbol: "agent-browser validation"
+      reason: "実画面確認の pass 記録と状態別 snapshot 参照を確認した。"
+    - path: "tmp/agent-browser/frontend-fake-api-review-foundation.success.snapshot.txt"
+      line: 27
+      symbol: "success snapshot"
+      reason: "success 証跡が Gateway 接続準備済み、利用可能、接続確認済みを示すことを確認した。"
+    - path: "tmp/agent-browser/frontend-fake-api-review-foundation.error.snapshot.txt"
+      line: 27
+      symbol: "error snapshot"
+      reason: "error 証跡が Gateway 接続準備済み、接続失敗、再実行案内を示すことを確認した。"
+    - path: "tmp/agent-browser/frontend-fake-api-review-foundation.config-missing.snapshot.txt"
+      line: 27
+      symbol: "config-missing snapshot"
+      reason: "config-missing 証跡が Gateway 接続準備済み、一部設定済み、保存後の接続確認案内を示すことを確認した。"
+
+unchecked_scope:
+  - target: "実行中 dev server 上の最新 bundle"
+    reason: "レビュー agent は広いハーネス再実行と browser 再実行を担当しないため、呼び出し元から渡された検証証跡を採用した。"
+    risk: "低い。渡された agent-browser open と snapshot の pass 証跡が状態差分を示している。"
+  - target: "backend / Wails bind / 永続化"
+    reason: "implementation-scope で非対象であり、挙動正しさレビューの主対象ではないため。"
+    risk: "なし。fakeAPI review 起動基盤の挙動判定には直接関与しない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "実画面証跡が fakeAPI 状態切替を証明していない"
+    problem: "修正前は agent-browser 証跡本文と参照先 snapshot が一致せず、実画面で状態別表示を確認できなかった。再レビューでは success、error、config-missing の参照先 snapshot が状態差分を示している。"
+    reason: "implementation-scope は fakeAPI 起動中の URL パラメータで状態パターンを上書きし、実画面で状態別表示を確認できることを完了条件にしている。更新後の snapshot は success の接続確認済み、error の接続失敗、config-missing の保存後確認案内をそれぞれ示している。"
+    violated_condition: "fakeAPI レビュー起動で success、error、config-missing などの状態パターンを実画面確認できること。"
+    cause_candidate: "修正前の原因候補は stale snapshot または保存手順の取り違えだった。更新後は tmp/agent-browser/frontend-fake-api-review-foundation.*.snapshot.txt が状態別に更新され、frontend/src/main.ts:16 と frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts:153 の fake gateway 選択経路と一致している。"
+    evidence:
+      - path: "tmp/agent-browser/frontend-fake-api-review-foundation.evidence.md"
+        line: 30
+        excerpt: "success で Gateway 接続準備済みと接続確認済みを確認したと記録している。"
+      - path: "tmp/agent-browser/frontend-fake-api-review-foundation.evidence.md"
+        line: 31
+        excerpt: "error で Gateway 接続準備済みと接続失敗を確認したと記録している。"
+      - path: "tmp/agent-browser/frontend-fake-api-review-foundation.evidence.md"
+        line: 32
+        excerpt: "config-missing で Gateway 接続準備済みと保存後の接続確認案内を確認したと記録している。"
+      - path: "tmp/agent-browser/frontend-fake-api-review-foundation.success.snapshot.txt"
+        line: 27
+        excerpt: "success snapshot は Gateway 接続準備済み、利用可能、接続確認済みを示している。"
+      - path: "tmp/agent-browser/frontend-fake-api-review-foundation.error.snapshot.txt"
+        line: 37
+        excerpt: "error snapshot は接続失敗とエンドポイント確認案内を示している。"
+      - path: "tmp/agent-browser/frontend-fake-api-review-foundation.config-missing.snapshot.txt"
+        line: 37
+        excerpt: "config-missing snapshot は一部設定済みと保存後の接続確認案内を示している。"
+    local_fix_assessment: "resolved-local-evidence-refresh。最新 bundle と正しい URL で状態別 snapshot が取り直され、実コード修正を追加せず閉じている。"
+    additional_check_scope: "none。success、error、config-missing は実画面 snapshot で確認済みで、empty、loading、running は UI scenario test で確認済み。"
+    fix_considerations: "本番起動相当で fakeScenario を無視する条件と、未登録 scenario が success へ落ちない条件を壊さないこと。"
+    verification: "状態別 URL の agent-browser snapshot と、src/controller/review-fake-api および src/ui の局所テスト結果が対応していることを確認した。"
+    fix_required: true
+    status: "resolved"

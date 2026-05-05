@@ -1,0 +1,540 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-001",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-001",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "fakeAPI レビュー起動の主目的として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-002",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-002",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "Wails バインディング非依存は レビュー起動 DI による差し替え条件へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-003",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-003",
+      "source_requirement_id": "REQ-FFARF-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-FFARF-003",
+      "decision_rationale": "後続 ユースケース task の拡張性として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-004",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-004",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "空状態は 6 種の レビュー状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-005",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-005",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "読み込み中と進行中は状態パターン確認へ統合し、表示差分として分ける。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-006",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-006",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "成功状態と失敗状態は状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-007",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-007",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "設定不足状態は状態パターン確認へ統合し、失敗状態とは表示差分で分ける。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-008",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-008",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "本番非混入は hard gate に近い禁止遷移として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-FFARF-009",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-FFARF-009",
+      "source_requirement_id": "REQ-FFARF-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-FFARF-006",
+      "decision_rationale": "coverage 例外と局所テスト結果の完了根拠として独立採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-001",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-001",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "レビュー起動の開始条件として SCN-FFARF-001 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-002",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-002",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "DI による差し替え条件は SCN-FFARF-001 の `contract_freeze` へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-003",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-003",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "状態パターン 選択と モックデータ 読み込みは実画面 状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-004",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-004",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "agent-browser での表示確認は SCN-FFARF-002 の主要操作列へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-005",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-005",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "同一セッション内切り替えは 状態パターン確認の許容手段として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-006",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-006",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "レビューセッション終了後に モックデータを残さない条件は本番非混入へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-FFARF-LC-007",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-FFARF-LC-007",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "通常起動復帰は本番非混入の観測点として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-001",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-001",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "空状態表示は 6 種 状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-002",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-002",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "読み込み中への切り替えは 状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-003",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-003",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "成功状態への遷移は 状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-004",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-004",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "失敗状態への遷移は 利用者向けメッセージ 確認として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-005",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-005",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "設定不足状態への遷移は失敗状態との差分として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-006",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-006",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "進行中状態は成功状態との排他表示として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-007",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-007",
+      "source_requirement_id": "REQ-FFARF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-003",
+      "decision_rationale": "画面固有モックデータ 追加で新しい成功状態を選べる条件として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-008",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-008",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "本番起動から fakeAPI へ遷移しない禁止条件として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-009",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-009",
+      "source_requirement_id": "REQ-FFARF-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-FFARF-005",
+      "decision_rationale": "未登録 状態パターン の安全な拒否条件として独立採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-FFARF-ST-010",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-FFARF-ST-010",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "同一 状態パターン 再実行の非破壊性は本番非混入と冪等条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-FFA-001",
+      "generator": "failure",
+      "original_candidate_id": "CAND-FFA-001",
+      "source_requirement_id": "REQ-FFARF-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-005",
+      "decision_rationale": "fakeAPI 未選択は レビュー入力不備の拒否条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-FFA-002",
+      "generator": "failure",
+      "original_candidate_id": "CAND-FFA-002",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "Wails バインディング混入は レビュー起動 DI 境界と検証結果へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-FFA-003",
+      "generator": "failure",
+      "original_candidate_id": "CAND-FFA-003",
+      "source_requirement_id": "REQ-FFARF-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-005",
+      "decision_rationale": "モックデータ欠落は レビュー入力不備の拒否条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-FFA-004",
+      "generator": "failure",
+      "original_candidate_id": "CAND-FFA-004",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "fakeAPI または モックデータの本番混入は本番非混入 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-FFA-005",
+      "generator": "failure",
+      "original_candidate_id": "CAND-FFA-005",
+      "source_requirement_id": "REQ-FFARF-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-005",
+      "decision_rationale": "状態パターン一覧と実画面表示の不一致は レビュー入力不備の拒否条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-FFA-006",
+      "generator": "failure",
+      "original_candidate_id": "CAND-FFA-006",
+      "source_requirement_id": "REQ-FFARF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-006",
+      "decision_rationale": "coverage 例外理由または局所テスト結果の欠落は完了根拠 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-001",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-001",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "Wails バインディングを呼ばない条件は レビュー起動 DI 境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-002",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-002",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "本番起動で fakeAPI が選ばれない条件として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-003",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-003",
+      "source_requirement_id": "REQ-FFARF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-001",
+      "decision_rationale": "バックエンド 未接続でも レビュー状態を再現できる条件として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-004",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-004",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "モックデータ 非永続化は本番非混入 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-005",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-005",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "進行中状態を runtime event に依存せず再現する条件として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-006",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-006",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "agent-browser で 状態パターンごとの外部境界を確認できる条件として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-007",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-007",
+      "source_requirement_id": "REQ-FFARF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-003",
+      "decision_rationale": "画面固有モックデータの差し込み境界として統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-FFAR-EXT-008",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-FFAR-EXT-008",
+      "source_requirement_id": "REQ-FFARF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-006",
+      "decision_rationale": "coverage harness 例外と局所テスト根拠の対応として統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-001",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-001",
+      "source_requirement_id": "REQ-FFARF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-006",
+      "decision_rationale": "起動手順の後追い確認は product audit log ではなく検証証跡へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-002",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-002",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "状態パターン一覧の再現材料は実画面 状態パターン確認へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-003",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-003",
+      "source_requirement_id": "REQ-FFARF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-002",
+      "decision_rationale": "agent-browser 証跡と 状態パターン のひも付けは SCN-FFARF-002 の観測点へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-004",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-004",
+      "source_requirement_id": "REQ-FFARF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-006",
+      "decision_rationale": "局所テスト結果の記録は完了根拠 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-005",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-005",
+      "source_requirement_id": "REQ-FFARF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-006",
+      "decision_rationale": "coverage 例外理由と代替確認の記録は完了根拠 scenario へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-006",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-006",
+      "source_requirement_id": "REQ-FFARF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-004",
+      "decision_rationale": "fakeAPI と モックデータの本番混入監査は本番非混入 scenario の観測点へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-FFARF-OA-007",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-FFARF-OA-007",
+      "source_requirement_id": "REQ-FFARF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-FFARF-003",
+      "decision_rationale": "画面固有モックデータの追加履歴は後続 ユースケース task の再現材料として統合する。"
+    }
+  ],
+  "conflicts": [],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-FFARF-001",
+      "candidate_ids": [
+        "actor-goal:CAND-FFARF-001",
+        "actor-goal:CAND-FFARF-002",
+        "lifecycle:CAND-FFARF-LC-001",
+        "lifecycle:CAND-FFARF-LC-002",
+        "failure:CAND-FFA-002",
+        "external-integration:CAND-FFAR-EXT-001",
+        "external-integration:CAND-FFAR-EXT-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-FFARF-002",
+      "candidate_ids": [
+        "actor-goal:CAND-FFARF-004",
+        "actor-goal:CAND-FFARF-005",
+        "actor-goal:CAND-FFARF-006",
+        "actor-goal:CAND-FFARF-007",
+        "lifecycle:CAND-FFARF-LC-003",
+        "lifecycle:CAND-FFARF-LC-004",
+        "lifecycle:CAND-FFARF-LC-005",
+        "state-transition:CAND-FFARF-ST-001",
+        "state-transition:CAND-FFARF-ST-002",
+        "state-transition:CAND-FFARF-ST-003",
+        "state-transition:CAND-FFARF-ST-004",
+        "state-transition:CAND-FFARF-ST-005",
+        "state-transition:CAND-FFARF-ST-006",
+        "external-integration:CAND-FFAR-EXT-005",
+        "external-integration:CAND-FFAR-EXT-006",
+        "operation-audit:CAND-FFARF-OA-002",
+        "operation-audit:CAND-FFARF-OA-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-FFARF-003",
+      "candidate_ids": [
+        "actor-goal:CAND-FFARF-003",
+        "state-transition:CAND-FFARF-ST-007",
+        "external-integration:CAND-FFAR-EXT-007",
+        "operation-audit:CAND-FFARF-OA-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-FFARF-004",
+      "candidate_ids": [
+        "actor-goal:CAND-FFARF-008",
+        "lifecycle:CAND-FFARF-LC-006",
+        "lifecycle:CAND-FFARF-LC-007",
+        "state-transition:CAND-FFARF-ST-008",
+        "state-transition:CAND-FFARF-ST-010",
+        "failure:CAND-FFA-004",
+        "external-integration:CAND-FFAR-EXT-002",
+        "external-integration:CAND-FFAR-EXT-004",
+        "operation-audit:CAND-FFARF-OA-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-FFARF-005",
+      "candidate_ids": [
+        "state-transition:CAND-FFARF-ST-009",
+        "failure:CAND-FFA-001",
+        "failure:CAND-FFA-003",
+        "failure:CAND-FFA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-FFARF-006",
+      "candidate_ids": [
+        "actor-goal:CAND-FFARF-009",
+        "failure:CAND-FFA-006",
+        "external-integration:CAND-FFAR-EXT-008",
+        "operation-audit:CAND-FFARF-OA-001",
+        "operation-audit:CAND-FFARF-OA-004",
+        "operation-audit:CAND-FFARF-OA-005"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

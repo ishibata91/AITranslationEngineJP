@@ -1,0 +1,461 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-FFARF-001",
+      "title": "レビュー起動で fakeAPI へ DI による差し替えする",
+      "kind": "external_integration",
+      "source_requirement": "task-frame.md の目的、設計前提、完了条件。tasks/usecases/frontend-fake-api-review-foundation.yaml の goal と completion_criteria。docs/architecture.md の Frontend Bootstrap、Gateway、Wails 境界。",
+      "required_detail_types": [
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "起動モードで フロントエンドの API 接続先を fakeAPI に切り替えられる。",
+          "verification_hint": "SCN-FFARF-001"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "バックエンド未起動または Wails バインディング不在でも、fake ゲートウェイ で レビュー状態を表示できる。",
+          "verification_hint": "SCN-FFARF-001"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "fakeAPI が選ばれない場合は レビュー開始不能または検証失敗として扱い、Wails バインディング へ自動 フォールバック しない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fakeAPI は provider 選択肢ではなく、レビュー起動時の DI による差し替えとして扱う。",
+          "verification_hint": "SCN-FFARF-001"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "レビュー起動モードが有効な時だけ fakeAPI ゲートウェイ 注入状態になる。",
+          "verification_hint": "SCN-FFARF-001, SCN-FFARF-004"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "fakeAPI 起動は外部 provider secret や本番 バックエンド 接続を要求しない。",
+          "verification_hint": "SCN-FFARF-001"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ レビュー起動条件では同じ fake ゲートウェイ と 状態パターン 初期状態を得る。",
+          "verification_hint": "SCN-FFARF-001"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "実画面を agent-browser で開き、状態パターンごとの表示を確認できる。",
+          "verification_hint": "SCN-FFARF-001, SCN-FFARF-002"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "fakeAPI 未選択や起動条件不備は レビュー起動条件を直して再起動または再確認する。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "deferred",
+          "source_or_rationale": "レビュー起動の速度目標は 根拠 に明示がないため、実装後の実画面確認で体感遅延を確認する。",
+          "owner": "implement_lane final validation",
+          "recheck_condition": "fakeAPI レビュー起動の実画面確認を行う時。",
+          "verification_hint": "SCN-FFARF-001, SCN-FFARF-006"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fakeAPI 起動モードが壊れていないことを局所テストで確認できる。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "View、ScreenController、Frontend UseCase は 生成済み `wailsjs` を直接参照しない。",
+          "verification_hint": "SCN-FFARF-001"
+        }
+      ]
+    },
+    {
+      "id": "REQ-FFARF-002",
+      "title": "レビュー状態パターンを実画面で確認する",
+      "kind": "display",
+      "source_requirement": "task-frame.md と tasks/usecases/frontend-fake-api-review-foundation.yaml の状態パターン 完了条件。docs/coding-guidelines-frontend.md の UX 一般規約。docs/UX-standard.md の状態表示、空状態、ローディング状態、エラー状態。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "空状態、読み込み中、成功状態、進行中状態、失敗状態、設定不足状態を fakeAPI で再現できる。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "状態パターン の既定値はレビュー起動条件で指定し、実画面確認では URL パラメータで上書きして agent-browser から確認できる。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "未登録 状態パターン や表示不能 状態パターン は成功状態として扱わない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "状態パターン指定は fakeAPI 起動中だけ有効で、本番起動では URL パラメータを含めて無視する。",
+          "verification_hint": "SCN-FFARF-002, SCN-FFARF-004"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "空状態、読み込み中、成功状態、進行中状態、失敗状態、設定不足状態が対象状態である。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現 根拠 に multi-user 権限や role 差分はない。レビュー実行者のローカル確認として扱う。",
+          "verification_hint": "権限差分は シナリオ対象外。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "実フロントエンドの View、Presenter、Store を使って表示するため、画面固有の既存表示構造と互換である必要がある。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "agent-browser で 状態パターンごとの実画面確認ができる。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "レビューstate モックデータと実画面レビュー用状態パターン一覧が 出力 である。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "選択 状態パターン と Store の 画面状態 と Presenter の 表示モデル が一致する必要がある。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "agent-browser の実画面表示、snapshot、screenshot で状態差分を確認できる。",
+          "verification_hint": "SCN-FFARF-002"
+        }
+      ]
+    },
+    {
+      "id": "REQ-FFARF-003",
+      "title": "画面固有モックデータを後続 task で追加する",
+      "kind": "operation",
+      "source_requirement": "task-frame.md と tasks/usecases/frontend-fake-api-review-foundation.yaml の完了条件「画面固有のモックデータを ユースケース task 側で追加できる」。",
+      "required_detail_types": [
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "画面固有のモックデータを ユースケース task 側で追加できる。",
+          "verification_hint": "SCN-FFARF-003"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "対象画面の モックデータが欠落する場合はレビュー不能または明示的な不備として扱い、成功状態にしない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "共通 fakeAPI 基盤は差し込み境界を提供し、個別画面 モックデータ本体は後続 ユースケース task 側で追加する。",
+          "verification_hint": "SCN-FFARF-003"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "追加された モックデータ は レビュー起動時の登録済み 状態パターン としてだけ選択可能になる。",
+          "verification_hint": "SCN-FFARF-003"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "出力 に レビューstate モックデータが含まれる。",
+          "verification_hint": "SCN-FFARF-003"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "画面固有モックデータ は対象画面の フロントエンド API contract に適合する必要がある。",
+          "verification_hint": "SCN-FFARF-003"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "モックデータ 追加は implementation task の作業であり、アプリ利用者の権限差分ではない。",
+          "verification_hint": "権限差分は シナリオ対象外。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "画面別 テストデータ が fakeAPI 起動モードだけに接続されることを局所テストで確認する。",
+          "verification_hint": "SCN-FFARF-003"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "追加 モックデータ は 本番ゲートウェイ、生成済み `wailsjs`、バックエンド DTO に直接依存しない。",
+          "verification_hint": "SCN-FFARF-003, SCN-FFARF-004"
+        }
+      ]
+    },
+    {
+      "id": "REQ-FFARF-004",
+      "title": "本番起動と永続化へ混入させない",
+      "kind": "security",
+      "source_requirement": "task-frame.md と tasks/usecases/frontend-fake-api-review-foundation.yaml の本番起動非選択、永続化非混入、本番初期状態 非混入の完了条件。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "idempotency_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "本番起動では fakeAPI が選ばれない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fakeAPI と モックデータ は本番 API、永続化、本番初期状態 に混入しない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "本番起動状態から fakeAPI ゲートウェイ 注入状態へ遷移してはいけない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "権限差分ではなく起動モードと dependency graph の境界である。",
+          "verification_hint": "権限差分は シナリオ対象外。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "レビューモックデータ、secret に見える値、任意本文を本番 API、永続化、証跡全文へ露出しない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "本番ゲートウェイ 選択結果、永続化接続有無、初期状態 注入有無を検証証跡から確認できる。",
+          "verification_hint": "SCN-FFARF-004, SCN-FFARF-006"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "本番混入が検出された場合は実装不合格として止め、フォールバック で継続しない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "バックエンド 実装は原則対象外であり、本番ゲートウェイ 経路の既存動作を変えない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "本番起動で fakeAPI が選ばれないことを確認する manual_check_steps がある。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fakeAPI と モックデータ は本番 API、永続化、本番初期状態 に混入しない。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "レビュー起動後に通常起動へ戻っても 本番ゲートウェイ と 本番初期状態 が維持される。",
+          "verification_hint": "SCN-FFARF-004"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "同一 状態パターン の再実行で モックデータの重複挿入、永続化書き込み、本番初期状態 上書きが起きない。",
+          "verification_hint": "SCN-FFARF-004"
+        }
+      ]
+    },
+    {
+      "id": "REQ-FFARF-005",
+      "title": "レビュー入力不備を安全に拒否する",
+      "kind": "workflow",
+      "source_requirement": "scenario-candidates.failure.md と scenario-candidates.state-transition.md の fakeAPI 未選択、モックデータ欠落、未登録 状態パターン、バインディング 混入候補。",
+      "required_detail_types": [
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "derived",
+          "source_or_rationale": "不備がない場合だけ レビュー状態パターンを表示できる。",
+          "verification_hint": "SCN-FFARF-002"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "レビュー起動条件の状態パターン指定でも、URL パラメータによる上書きでも、不備検出は同じ結果にする。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "未登録 状態パターン、モックデータ欠落、fakeAPI 未選択、Wails バインディング混入を成功扱いにしない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "バインディング 混入は 利用者向けメッセージではなく、内部診断または検証結果として分ける。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "未登録 状態パターン は既知の安全状態に留まるか明示的な レビュー拒否状態にする。成功状態や本番初期状態 へ遷移しない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "欠落 モックデータの対象画面、状態パターン、テストデータ 解決結果を検証結果で確認できる。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "状態パターン一覧と実画面表示が一致しない場合は完了証跡として受理しない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "不正 状態パターンを再指定しても成功 data、モックデータ 重複、永続化 write を発生させない。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "不備になった 状態パターン 名、期待表示、実際表示、対象 画面状態 を確認できる。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "登録済み 状態パターン または正しい モックデータ へ修正すれば レビュー確認へ戻れる。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "invalid 状態パターンテストデータ、missing モックデータ テストデータ、layer import 検査で確認する。",
+          "verification_hint": "SCN-FFARF-005"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "不備時も内部診断、secret、provider key を画面表示や証跡に露出しない。",
+          "verification_hint": "SCN-FFARF-005"
+        }
+      ]
+    },
+    {
+      "id": "REQ-FFARF-006",
+      "title": "局所テストと coverage 例外理由を記録する",
+      "kind": "non_functional",
+      "source_requirement": "tasks/usecases/frontend-fake-api-review-foundation.yaml の completion_criteria「coverage harness では fakeAPI 基盤を数値判定の例外として扱い、例外理由と局所テスト結果を記録できる」。task-frame.md の検証。",
+      "required_detail_types": [
+        "success_requirement",
+        "data_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "coverage harness 例外は fakeAPI 基盤に限定して扱う。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "例外理由と局所テスト結果を記録できる。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "局所テストまたは例外理由が欠落する場合は完了判定を拒否し、検証証跡を追加して再確認する。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "本 requirement は coverage 例外と検証証跡の条件であり、速度目標を扱わない。",
+          "verification_hint": "性能要件は シナリオ対象外。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "coverage 例外は本番経路の検証不足を隠さず、frontend-local の局所テストと対応させる。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fakeAPI 起動モードの局所テストを実行する。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fakeAPI 起動モード、DI による差し替え、本番非選択、状態パターン供給の確認結果が記録される。",
+          "verification_hint": "SCN-FFARF-006"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "記録対象は例外対象範囲、例外理由、代替テスト名、代替テスト結果、見直し条件の要約である。",
+          "verification_hint": "SCN-FFARF-006"
+        }
+      ]
+    }
+  ]
+}

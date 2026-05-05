@@ -1,0 +1,173 @@
+reviewback_version: 1
+task_id: "frontend-fake-api-review-foundation"
+review_yaml_path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: >
+    維持している。frontend composition root は fakeAPI 起動条件が有効な時だけ
+    review fakeAPI factory を選び、本番起動相当では production factory を選ぶ。
+    既存の frontend gateway contract、screen controller factory contract、Wails binding 名、
+    backend API、DB schema、event 入力内容、生成済み wailsjs の契約変更は見つからない。
+    fakeAPI registry は既存 gateway contract 型に適合する差し替え境界として追加され、
+    未登録状態パターンと registry 欠落は success や Wails gateway fallback へ暗黙変換されない。
+  evidence_sufficiency: >
+    十分。承認済み implementation-scope、scenario-design、final-validation、
+    実装結果、対象 frontend 実コード、局所テスト、UI シナリオテスト、既存 contract 型を確認した。
+    広いハーネスは人間指示と skill 規約に従って再実行せず、
+    `python3 scripts/harness/run.py --suite frontend-local`: pass の提供証跡を採用した。
+  contract_invariants:
+    - name: 本番起動相当では fakeAPI とレビューモックデータを選ばない
+      status: maintained
+      evidence: "frontend/src/main.ts:16"
+    - name: fakeScenario は fakeAPI 起動中だけ有効である
+      status: maintained
+      evidence: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts:102"
+    - name: 未登録状態パターンは success または本番初期状態へ落ちない
+      status: maintained
+      evidence: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts:76"
+    - name: fakeAPI registry は既存 gateway contract 型へ適合する
+      status: maintained
+      evidence: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts:40"
+    - name: provider settings fake response は既存 ListProviderSettingsResponse 型を維持する
+      status: maintained
+      evidence: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts:47"
+    - name: backend API、DB schema、Wails DTO、生成済み wailsjs は変更しない
+      status: maintained_in_checked_diff
+      evidence: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md:39"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "none"
+    reason: >
+      未解決指摘はない。将来 fakeAPI 対象画面を増やす場合も、
+      ReviewFakeApiGatewayRegistry への画面別 gateway factory 追加と
+      既存 gateway contract 型への適合確認で局所的に扱える。
+
+checked_scope:
+  summary: >
+    fakeAPI レビュー起動の public seam として、URL パラメータ解決、
+    production / review factory 選択、screen controller factory への gateway 注入、
+    ReviewFakeApiGatewayRegistry、provider settings fake gateway、
+    既存 frontend gateway contract、局所テスト、UI シナリオテストを確認した。
+  files:
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 39
+      symbol: "Scope Split"
+      reason: "backend、integration_boundary、生成済み wailsjs を変更しない契約を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 79
+      symbol: "frontend-fake-api-runtime owned_scope"
+      reason: "composition root、fakeScenario、本番起動非混入、画面別登録境界の契約を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/final-validation.md"
+      line: 8
+      symbol: "コマンド結果"
+      reason: "frontend-local、局所テスト、UI テスト、agent-browser 確認が pass である証跡を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/scenario-design.md"
+      line: 20
+      symbol: "must_pass_requirements"
+      reason: "fakeAPI が DI 差し替えであり、本番起動では選ばれない必須要件を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 16
+      symbol: "reviewFakeApiContext"
+      reason: "fakeAPI 有効時だけ review fakeAPI factory を選び、無効時は production factory を選ぶ境界を確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 45
+      symbol: "createProductionAppFactories"
+      reason: "本番 factory が既存 Wails gateway 群を生成し、screen controller factory へ渡すことを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 89
+      symbol: "createReviewFakeApiAppFactories"
+      reason: "fakeAPI factory が registry の gateway を使い、欠落時は null を渡して Wails gateway fallback を作らないことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 28
+      symbol: "ReviewFakeApiRuntimeContext"
+      reason: "レビュー起動 context の公開形が enabled、scenarioId、triggerValue、overrideValue に限定されることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 40
+      symbol: "ReviewFakeApiGatewayRegistry"
+      reason: "画面別 fake gateway 登録境界が既存 gateway contract 型を返す契約であることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 102
+      symbol: "resolveReviewFakeApiRuntimeContext"
+      reason: "fakeApi がない場合は fakeScenario を読まず、本番経路の既定 context を返すことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 47
+      symbol: "createResponse"
+      reason: "fake response が既存 ListProviderSettingsResponse の route と providers を返すことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 124
+      symbol: "createProviderSettingsGateway"
+      reason: "fake provider settings gateway が既存 ProviderSettingsGatewayContract の method shape を満たすことを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts"
+      line: 35
+      symbol: "ProviderSettingsSummary"
+      reason: "fake provider summary が既存 nullable / optional field 契約に収まることを確認した。"
+    - path: "frontend/src/application/gateway-contract/provider-settings/provider-settings-gateway-contract.ts"
+      line: 88
+      symbol: "ProviderSettingsGatewayContract"
+      reason: "fake gateway と production gateway が同じ public method contract を使うことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-context.test.ts"
+      line: 14
+      symbol: "resolveReviewFakeApiRuntimeContext tests"
+      reason: "本番起動相当で fakeScenario を無視し、6 状態と未登録状態の解決をテストで確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-factories.test.ts"
+      line: 75
+      symbol: "createReviewFakeApiAppFactories tests"
+      reason: "fake gateway 注入、null 注入、Wails gateway fallback 非使用をテストで確認した。"
+    - path: "frontend/src/ui/review-fake-api-scenario.test.ts"
+      line: 228
+      symbol: "frontend fakeAPI review scenario"
+      reason: "provider settings 画面で fakeAPI 経由の状態パターンを UI シナリオテストで確認した。"
+
+unchecked_scope:
+  - target: "backend API、DB schema、永続化、event 入力内容"
+    reason: "implementation-scope で非対象とされ、差分にも含まれないため実コード確認対象外とした。"
+    risk: "低。fakeAPI は frontend DI 差し替えであり、確認範囲では backend 接続や永続化への追加契約を持たない。"
+  - target: "生成済み wailsjs"
+    reason: "implementation-scope で変更禁止とされ、差分にも含まれないため確認対象外とした。"
+    risk: "低。production factory は既存 Wails gateway factory を使い、binding 名変更は見つからない。"
+  - target: "広いハーネス再実行"
+    reason: "人間指示と skill 規約で再実行しないため、final-validation と検証ログの pass 証跡を採用した。"
+    risk: "実行環境差分による再現性リスクは残るが、提供証跡では frontend-local が pass である。"
+  - target: "挙動正しさ、権限・信頼境界、状態・データ不変条件、責務境界"
+    reason: "review_contract の主判定対象外である。"
+    risk: "他観点の未解決指摘は implement_lane 側の集約で扱う。"
+
+issues: []
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    details: "implement_lane 提供証跡。frontend lint harness と frontend test harness は pass、51 files、455 tests。"
+  - command: "npm --prefix frontend run test -- src/controller/review-fake-api"
+    result: "pass"
+    details: "implement_lane 提供証跡。2 files、7 tests。"
+  - command: "npm --prefix frontend run test -- src/ui"
+    result: "pass"
+    details: "implement_lane 提供証跡。7 files、104 tests。"
+  - command: "agent-browser open http://localhost:34115/?fakeApi=1&fakeScenario=success#provider-settings"
+    result: "pass"
+    details: "implement_lane 提供証跡。fakeAPI success 状態の画面確認。"
+  - command: "agent-browser open http://localhost:34115/?fakeApi=1&fakeScenario=error#provider-settings"
+    result: "pass"
+    details: "implement_lane 提供証跡。fakeAPI error 状態の画面確認。"
+  - command: "agent-browser open http://localhost:34115/?fakeApi=1&fakeScenario=config-missing#provider-settings"
+    result: "pass"
+    details: "implement_lane 提供証跡。fakeAPI config-missing 状態の画面確認。"
+  - command: "broad harness rerun"
+    result: "not_run"
+    details: "人間指示と review_contract skill により、広いハーネス再実行は行っていない。"
+
+residual_risks:
+  - >
+    画面固有の詳細モックデータ本文は後続 task の対象である。
+    今回は ReviewFakeApiGatewayRegistry の登録境界と provider settings 用 fake response のみを確認した。
+  - >
+    fakeAPI URL パラメータ名は `fakeApi` と `fakeScenario` として実装、テスト、検証証跡で一致している。
+    将来の起動 wrapper が別名を採用する場合は、composition root の起動条件契約を再確認する必要がある。

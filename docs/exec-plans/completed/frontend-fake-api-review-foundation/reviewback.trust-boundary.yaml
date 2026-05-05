@@ -1,0 +1,101 @@
+reviewback_version: 1
+task_id: "frontend-fake-api-review-foundation"
+review_yaml_path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "本番起動相当では、URL に fakeApi と fakeScenario があっても reviewModeEnabled が false なら fakeAPI は無効になり、composition root は production factory を選ぶ。レビュー起動許可は main.ts で import.meta.env.DEV に固定されており、URL 入力だけでは fake gateway とモックデータを選べない。対象差分内では secret 本体を扱っていない。URL に出る値は fakeApi と fakeScenario の状態パターン ID に限定され、log 出力はなく、UI シナリオテストでも fakeAPI 文言は表示されない。"
+  evidence_sufficiency: "十分。指定された修正結果、最終検証、対象コード、局所テスト、UI シナリオテストを確認した。広いハーネスは再実行せず、呼び出し元から渡された pass 証跡をレビュー入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "frontend composition root の DI 選択、review fakeAPI 起動許可、URL 状態パターン解決、fake gateway registry、局所テスト、UI シナリオテスト、最終検証証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 31
+      symbol: "Fixed Decisions"
+      reason: "fakeScenario は fakeAPI 起動中だけ有効で、本番起動では無視する承認済み境界を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 68
+      symbol: "secret_boundary"
+      reason: "URL、UI、log に出してよい値と禁止出力を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/fix-result.review-major.md"
+      line: 11
+      symbol: "修正内容"
+      reason: "fakeApi と fakeScenario が URL に存在しても、レビュー起動許可がない場合は fakeAPI を無効にする修正方針を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/final-validation.md"
+      line: 7
+      symbol: "コマンド結果"
+      reason: "呼び出し元から渡された検証証跡の成否を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 16
+      symbol: "reviewFakeApiContext"
+      reason: "reviewModeEnabled に import.meta.env.DEV を渡し、enabled の時だけ fakeAPI factory を選ぶ入口を確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 45
+      symbol: "createProductionAppFactories"
+      reason: "本番 factory が Wails gateway を生成する経路を確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 89
+      symbol: "createReviewFakeApiAppFactories"
+      reason: "fakeAPI factory が registry 由来の gateway だけを注入し、未登録時に本番 gateway へ fallback しない境界を確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 106
+      symbol: "resolveReviewFakeApiRuntimeContext"
+      reason: "fakeApi の有無だけでなく reviewModeEnabled を enabled 条件に含め、無効時は fakeScenario を読まないことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 153
+      symbol: "createDefaultReviewFakeApiGatewayRegistry"
+      reason: "現在登録される fake gateway とモックデータが providerSettings に限定され、secret 本体を含まないことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-context.test.ts"
+      line: 25
+      symbol: "resolveReviewFakeApiRuntimeContext test"
+      reason: "本番起動相当では fakeApi と fakeScenario の両方を無視する局所テストを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-factories.test.ts"
+      line: 90
+      symbol: "createReviewFakeApiAppFactories test"
+      reason: "モックデータ欠落時と registry 未登録時に Wails gateway fallback へ流さない局所テストを確認した。"
+    - path: "frontend/src/ui/review-fake-api-scenario.test.ts"
+      line: 177
+      symbol: "renderProviderSettingsReviewUrl"
+      reason: "UI シナリオテストの URL 値が状態パターン ID に限定され、fakeAPI 文言を UI に出さない確認を見た。"
+
+unchecked_scope:
+  - target: "配布ビルド済み成果物での import.meta.env.DEV 置換結果"
+    reason: "広いハーネス再実行と追加ビルド確認は禁止されているため、実コード、局所テスト、渡された検証証跡だけで判定した。"
+    risk: "ビルド設定が想定と異なり import.meta.env.DEV が false へ置換されない場合、配布起動で fakeAPI 許可条件が崩れる可能性がある。"
+  - target: "後続 task が追加する画面固有モックデータ本文"
+    reason: "本 task の実装対象は共通 fakeAPI 基盤であり、画面固有の詳細モックデータ本文は後続 task 側で扱うため。"
+    risk: "後続追加時に、モックデータ本文全量、内部診断、secret に見える値を URL、log、UI 文言へ出すリスクが残る。"
+
+issues:
+  - id: "trust-boundary-001"
+    level: "major"
+    title: "URL 入力だけで本番 composition root が fake gateway を選択できる"
+    problem: "修正前は、window.location.search に fakeApi が存在するだけで createReviewFakeApiAppFactories を選択できた。修正後は reviewModeEnabled が false の本番起動相当では enabled が false になり、URL 入力だけでは fake gateway を選択できない。"
+    reason: "frontend/src/main.ts は reviewModeEnabled に import.meta.env.DEV を渡す。frontend/src/controller/review-fake-api/review-fake-api-runtime.ts は options.reviewModeEnabled と fakeApi の存在を同時に満たす時だけ enabled を true にする。局所テストは fakeApi と fakeScenario が両方ある本番起動相当で enabled false を確認している。"
+    violated_condition: "修正前は、本番起動でモックデータや fake gateway が混入しない条件を破っていた。修正後は、本番起動相当で fakeAPI を選ばない条件を満たす。"
+    cause_candidate: "修正前の原因は、fakeApi の存在だけを enabled 条件にしていたことである。修正後は reviewModeEnabled が enabled 条件に追加され、composition root の DI 分岐前にレビュー起動許可を確認する。"
+    evidence:
+      - path: "frontend/src/main.ts"
+        line: 19
+        excerpt: "reviewModeEnabled に import.meta.env.DEV を渡している。"
+      - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+        line: 111
+        excerpt: "enabled は options.reviewModeEnabled と triggerValue !== null の両方で決まる。"
+      - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-context.test.ts"
+        line: 25
+        excerpt: "本番起動相当では fakeApi と fakeScenario の両方を無視するテストがある。"
+      - path: "frontend/src/main.ts"
+        line: 22
+        excerpt: "enabled が false の時は createProductionAppFactories を選ぶ。"
+    local_fix_assessment: "local。composition root と URL runtime context の局所修正で閉じている。"
+    additional_check_scope: "追加必須なし。配布ビルド済み成果物での import.meta.env.DEV 置換確認は残留リスクとして記録済みである。"
+    fix_considerations: "将来レビュー起動許可を変える場合も、URL 入力だけを許可条件にしない。状態パターン ID 以外のモックデータ本文、内部診断、secret 本体を URL、log、UI 文言へ出さない条件を維持する。"
+    verification: "npm --prefix frontend run test -- src/controller/review-fake-api は pass。python3 scripts/harness/run.py --suite frontend-local は pass。局所テストは本番起動相当で fakeApi と fakeScenario の両方を無視する条件を確認している。"
+    fix_required: true
+    status: "resolved"

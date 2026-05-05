@@ -1,0 +1,103 @@
+reviewback_version: 1
+task_id: "frontend-fake-api-review-foundation"
+review_yaml_path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "責務境界は維持されている。fakeAPI 起動判定と本番 gateway との差し替えは frontend bootstrap 側の composition root に閉じている。状態パターン解決と fake gateway registry は frontend controller 配下のレビュー用 adapter 境界に置かれている。View、ScreenController、Frontend UseCase は generated wailsjs を直接参照していない。レビュー専用 UI と状態パターン選択 UI は追加されていない。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、最終検証証跡、指定された実コード、局所テスト、UI シナリオテストを確認した。ハーネスは review_responsibility_boundary の非対象規約と人間指示に従い再実行していない。"
+  responsibility_boundary_maintenance_level: "high"
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘がないため局所修正は不要。後続で画面別 fake data を増やす場合は、registry 追加を controller/review-fake-api 配下に閉じ、View や UseCase に起動条件判定を持ち込まない確認が必要である。"
+  boundary_fixed_test_viewpoints:
+    - "本番起動相当では fakeScenario が無視され、Wails gateway だけが選ばれること。"
+    - "fakeAPI 起動時だけ registry 由来の gateway が ScreenController factory へ注入されること。"
+    - "registry 未登録や欠落モックデータが Wails gateway fallback や成功状態へ流れないこと。"
+    - "UI シナリオテストが既存画面構造を使い、レビュー専用 UI と状態パターン選択 UI を追加していないこと。"
+
+checked_scope:
+  summary: "frontend fakeAPI レビュー起動基盤について、composition root、bootstrap helper、レビュー用 fakeAPI controller、局所テスト、UI シナリオテスト、範囲外変更の有無を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 29
+      symbol: "Fixed Decisions"
+      reason: "fakeAPI が provider 選択肢ではなく DI 差し替えであり、レビュー専用 UI と状態パターン選択 UIを作らない決定を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 74
+      symbol: "frontend-fake-api-runtime owned_scope"
+      reason: "main.ts、controller/review-fake-api、生成済み wailsjs、backend、docs 正本の変更境界を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/final-validation.md"
+      line: 10
+      symbol: "frontend-local"
+      reason: "呼び出し元から渡された frontend-local pass 証跡と関連局所テストの pass 証跡を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 16
+      symbol: "reviewFakeApiContext"
+      reason: "URL パラメータ解決と fakeAPI 有効時の factory 選択が frontend bootstrap 入口に閉じていることを確認した。"
+    - path: "frontend/src/main.ts"
+      line: 26
+      symbol: "mount(App)"
+      reason: "App へ渡すものが screen controller factory に限定され、View 側へ gateway 生成 fallback を増やしていないことを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 45
+      symbol: "createProductionAppFactories"
+      reason: "本番 gateway concrete の生成が bootstrap helper に集約され、View、UseCase、ScreenController 側へ漏れていないことを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 89
+      symbol: "createReviewFakeApiAppFactories"
+      reason: "fakeAPI 起動時の registry 注入と欠落時 null 注入が bootstrap helper に閉じていることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 40
+      symbol: "ReviewFakeApiGatewayRegistry"
+      reason: "画面別 fake gateway の登録境界が application gateway contract に依存する adapter 境界として定義されていることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 102
+      symbol: "resolveReviewFakeApiRuntimeContext"
+      reason: "fakeScenario が fakeAPI 起動中だけ読まれ、本番起動相当では無視される責務配置を確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 124
+      symbol: "createProviderSettingsGateway"
+      reason: "provider settings 用の fake gateway 実装が controller/review-fake-api 配下に閉じ、本番 Wails gateway、backend、永続化へ接続していないことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 153
+      symbol: "createDefaultReviewFakeApiGatewayRegistry"
+      reason: "既定 registry が providerSettings の fake gateway 登録だけを返し、画面 UI や状態選択 UI を生成していないことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-context.test.ts"
+      line: 14
+      symbol: "本番起動相当では fakeScenario を無視する"
+      reason: "本番非混入と状態パターン解決が局所テストで固定されていることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-factories.test.ts"
+      line: 75
+      symbol: "fakeAPI 起動時は registry から渡した gateway で DI 差し替えする"
+      reason: "registry 注入、欠落時 null、本番 gateway fallback 不使用が局所テストで固定されていることを確認した。"
+    - path: "frontend/src/ui/review-fake-api-scenario.test.ts"
+      line: 177
+      symbol: "renderProviderSettingsReviewUrl"
+      reason: "UI シナリオテストが URL パラメータと DI factory を使い、App や画面 component にレビュー専用 UI を追加していないことを確認した。"
+    - path: "frontend/src/ui/review-fake-api-scenario.test.ts"
+      line: 244
+      symbol: "queryByText(\"fakeAPI\")"
+      reason: "実画面上にレビュー専用 UI 文言が出ていない確認があることを確認した。"
+
+unchecked_scope:
+  - target: "frontend-local ハーネスの再実行"
+    reason: "人間指示と skill の非対象規約により、広いハーネスは再実行しない。呼び出し元の pass 証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業ツリーで同じ検証が再現するかは未確認である。"
+  - target: "同時に存在する tasks/*.yaml と AGENTS.md の差分"
+    reason: "指定された読むファイルと frontend fakeAPI 実コードの責務境界レビューの対象外である。"
+    risk: "task catalog や会話規約の差分に責務境界上の問題がある場合、本レビューでは検出しない。"
+  - target: "backend と generated wailsjs の内容精査"
+    reason: "git status 上で internal と frontend/wailsjs に変更は表示されず、implementation-scope でも非対象とされているため、内容精査は行っていない。"
+    risk: "未保存ファイルや git 管理外の一時生成物がある場合、本レビューでは検出しない。"
+
+issues: []
+
+residual_risks:
+  - "frontend/src/bootstrap/app-screen-controller-factories.ts は main.ts から切り出された bootstrap helper として許容した。将来、この helper から画面状態更新や表示整形へ広がる場合は composition root の責務を越える。"
+  - "default-review-fake-api-gateway-registry.ts の fake data は provider settings 画面だけを対象にしている。後続で画面別 fake data を追加する場合は、application gateway contract への適合と本番 gateway fallback 不使用を局所テストで維持する必要がある。"
+  - "レビュー対象外差分は本成果物の判断に含めていない。"

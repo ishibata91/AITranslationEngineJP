@@ -1,0 +1,81 @@
+reviewback_version: 1
+task_id: "frontend-fake-api-review-foundation"
+review_yaml_path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持している。fakeAPI 起動条件、状態パターン解決、registry 欠落時の null 注入は、成功状態、本番初期状態、Wails gateway へ暗黙遷移しない。"
+  evidence_sufficiency: "十分。指定された実装範囲、最終検証、実コード、局所テスト、シナリオテストを確認した。広いハーネスは再実行せず、渡された検証証跡を採用した。"
+
+checked_scope:
+  summary: "fakeAPI レビュー起動の状態解決、composition root の gateway 選択、registry 欠落時の落ち先、6 状態の provider settings 表示データを確認した。"
+  files:
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/implementation-scope.md"
+      line: 91
+      symbol: "frontend-fake-api-runtime completion_signal"
+      reason: "未登録状態パターンと欠落モックデータを成功状態へ落とさない条件を確認した。"
+    - path: "docs/exec-plans/completed/frontend-fake-api-review-foundation/final-validation.md"
+      line: 8
+      symbol: "final validation"
+      reason: "frontend-local と fakeAPI 実画面確認が pass である証跡を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 16
+      symbol: "resolveReviewFakeApiRuntimeContext"
+      reason: "fakeApi が有効な時だけ review fake API factories を選び、無効時は production factories を選ぶ分岐を確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 76
+      symbol: "normalizeScenarioId"
+      reason: "未登録 fakeScenario が success ではなく config-missing へ正規化されることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime.ts"
+      line: 102
+      symbol: "resolveReviewFakeApiRuntimeContext"
+      reason: "fakeApi がない時は fakeScenario を読まず、enabled false として本番経路へ分岐する状態を確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 89
+      symbol: "createReviewFakeApiAppFactories"
+      reason: "registry 欠落または null 返却時に Wails gateway を生成せず、各 controller factory へ null を渡すことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 61
+      symbol: "createProvidersForScenario"
+      reason: "empty、loading、success、running、error、config-missing の表示データが状態ごとに分離されることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-context.test.ts"
+      line: 14
+      symbol: "resolveReviewFakeApiRuntimeContext tests"
+      reason: "本番起動相当の fakeScenario 無視、6 状態解決、未登録状態の config-missing 化がテストで固定されていることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/review-fake-api-runtime-factories.test.ts"
+      line: 90
+      symbol: "createReviewFakeApiAppFactories tests"
+      reason: "モックデータ欠落と registry 未登録が Wails gateway fallback や本番初期状態へ流れないことをテストで確認した。"
+    - path: "frontend/src/ui/review-fake-api-scenario.test.ts"
+      line: 247
+      symbol: "frontend fakeAPI review scenario"
+      reason: "6 状態の表示確認が UI シナリオテストで固定されていることを確認した。"
+
+unchecked_scope:
+  - target: "backend、Wails bind、永続化"
+    reason: "implementation-scope で非対象とされ、今回の変更対象に含まれないため確認していない。"
+    risk: "fakeAPI 経路では触れないため、状態・データ不変条件の追加リスクは低い。"
+  - target: "広いハーネス再実行"
+    reason: "人間指示と skill 規約で再実行しないため、final-validation の pass 証跡を採用した。"
+    risk: "実行環境差分による再現性リスクは残るが、渡された検証証跡では frontend-local が pass である。"
+
+issues: []
+
+invariant_review:
+  maintained_invariants:
+    - "未登録 fakeScenario は success へ落ちず、config-missing へ正規化される。"
+    - "fakeApi がない本番起動相当では fakeScenario を無視し、review fake API 経路を選ばない。"
+    - "registry 欠落またはモックデータ欠落時は null を渡し、Wails gateway 生成へ fallback しない。"
+    - "6 状態の provider settings 表示データは、各状態値に対応した配列または pending promise として分離される。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘なし。もし将来 registry 欠落時の挙動を変える場合は、createReviewFakeApiAppFactories と状態解決テストだけで局所確認できる見込みである。"
+  invariant_test_viewpoints:
+    - "fakeApi なしで fakeScenario=success を渡しても enabled false になること。"
+    - "fakeApi=1 かつ未知の fakeScenario が config-missing になること。"
+    - "registry 未登録と null 返却が Wails gateway を生成しないこと。"
+    - "empty、loading、success、running、error、config-missing が表示上の成功状態へ混線しないこと。"

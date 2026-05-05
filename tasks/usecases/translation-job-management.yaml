@@ -1,0 +1,41 @@
+id: translation-job-management
+title: 未完了ジョブ管理
+usecase: translation-job-management
+flow_stage: job_management
+related_screens:
+  - app-shell.md
+  - incomplete-job-list.md
+  - job-run.md
+goal: Completed 以外の翻訳ジョブを一覧し、同じジョブの表示、再開入口、再開不可理由を保つ。
+inputs:
+  - 翻訳ジョブ
+  - 入力データ
+  - ジョブフェーズ実行
+  - 入力キャッシュ状態
+outputs:
+  - 未完了ジョブ一覧
+  - 選択中未完了ジョブ
+  - 現在フェーズ
+  - 停止可否
+  - 再開可否
+  - 削除可否
+preconditions:
+  - 翻訳ジョブ作成が完了している
+completion_criteria:
+  - Completed 以外の job を一覧できる
+  - job ごとの入力出自、状態、現在フェーズ、進捗を確認できる
+  - 選択した job を Job Run の表示対象にできる
+  - 既存 job がある入力では新規作成ではなく既存 job を開ける
+  - 実行中 job は削除ではなく停止操作を実行できる
+  - 実行中ではない job は入力データを残したまま削除できる
+  - 実行中 job は削除できず、停止または中断後に削除可否を再判定する
+  - 再開不可の job では入力キャッシュ欠落や terminal state などの理由を確認できる
+depends_on:
+  - translation-job-setup
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - 翻訳管理を開く
+  - 未完了ジョブ一覧を確認する
+  - job を選択して Job Run を開く
+  - 停止可否、再開可否、削除可否、現在フェーズを確認する

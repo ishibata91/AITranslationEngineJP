@@ -1,0 +1,131 @@
+import type { CreateBodyTranslationPhaseScreenController } from "@application/contract/body-translation-phase"
+import type { CreateMasterDictionaryScreenController } from "@application/contract/master-dictionary"
+import type { CreateMasterPersonaScreenController } from "@application/contract/master-persona"
+import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
+import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
+import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
+import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
+import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
+import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
+import { createBodyTranslationPhaseScreenControllerFactory } from "@controller/body-translation-phase"
+import { createMasterDictionaryScreenControllerFactory } from "@controller/master-dictionary"
+import { createMasterPersonaScreenControllerFactory } from "@controller/master-persona"
+import { createPersonaGenerationPhaseScreenControllerFactory } from "@controller/persona-generation-phase"
+import { createProviderSettingsScreenControllerFactory } from "@controller/provider-settings"
+import { createTermTranslationPhaseScreenControllerFactory } from "@controller/term-translation-phase"
+import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
+import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
+import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
+import { createBodyTranslationPhaseGateway } from "@controller/wails/body-translation-phase.gateway"
+import { createMasterDictionaryGateway } from "@controller/wails/master-dictionary.gateway"
+import { createMasterPersonaGateway } from "@controller/wails/master-persona.gateway"
+import { createPersonaGenerationPhaseGateway } from "@controller/wails/persona-generation-phase.gateway"
+import { createProviderSettingsGateway } from "@controller/wails/provider-settings.gateway"
+import { createTermTranslationPhaseGateway } from "@controller/wails/term-translation-phase.gateway"
+import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
+import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
+import { createTranslationOutputArtifactGateway } from "@controller/wails/translation-output-artifact.gateway"
+import type {
+  ReviewFakeApiGatewayRegistry,
+  ReviewFakeApiRuntimeContext
+} from "../controller/review-fake-api/review-fake-api-runtime"
+
+interface AppScreenControllerFactories {
+  createBodyTranslationPhaseScreenController: CreateBodyTranslationPhaseScreenController
+  createMasterDictionaryScreenController: CreateMasterDictionaryScreenController
+  createMasterPersonaScreenController: CreateMasterPersonaScreenController
+  createPersonaGenerationPhaseScreenController: CreatePersonaGenerationPhaseScreenController
+  createProviderSettingsScreenController: CreateProviderSettingsScreenController
+  createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController
+  createTranslationInputScreenController: CreateTranslationInputScreenController
+  createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController
+  createTranslationOutputArtifactScreenController: CreateTranslationOutputArtifactScreenController
+}
+
+export function createProductionAppFactories(): AppScreenControllerFactories {
+  const masterDictionaryGateway = createMasterDictionaryGateway()
+  const termTranslationPhaseGateway = createTermTranslationPhaseGateway()
+  const bodyTranslationPhaseGateway = createBodyTranslationPhaseGateway()
+  const personaGenerationPhaseGateway = createPersonaGenerationPhaseGateway()
+  const providerSettingsGateway = createProviderSettingsGateway()
+  const translationInputGateway = createTranslationInputGateway()
+  const translationJobSetupGateway = createTranslationJobSetupGateway()
+  const translationOutputArtifactGateway =
+    createTranslationOutputArtifactGateway()
+  const masterPersonaGateway = createMasterPersonaGateway()
+
+  return {
+    createBodyTranslationPhaseScreenController:
+      createBodyTranslationPhaseScreenControllerFactory(
+        bodyTranslationPhaseGateway
+      ),
+    createMasterDictionaryScreenController:
+      createMasterDictionaryScreenControllerFactory(masterDictionaryGateway),
+    createMasterPersonaScreenController:
+      createMasterPersonaScreenControllerFactory(masterPersonaGateway),
+    createPersonaGenerationPhaseScreenController:
+      createPersonaGenerationPhaseScreenControllerFactory(
+        personaGenerationPhaseGateway
+      ),
+    createProviderSettingsScreenController:
+      createProviderSettingsScreenControllerFactory(providerSettingsGateway),
+    createTermTranslationPhaseScreenController:
+      createTermTranslationPhaseScreenControllerFactory(
+        termTranslationPhaseGateway
+      ),
+    createTranslationInputScreenController:
+      createTranslationInputScreenControllerFactory(translationInputGateway),
+    createTranslationJobSetupScreenController:
+      createTranslationJobSetupScreenControllerFactory(
+        translationJobSetupGateway
+      ),
+    createTranslationOutputArtifactScreenController:
+      createTranslationOutputArtifactScreenControllerFactory(
+        translationOutputArtifactGateway
+      )
+  }
+}
+
+export function createReviewFakeApiAppFactories(
+  context: ReviewFakeApiRuntimeContext,
+  registry: ReviewFakeApiGatewayRegistry = {}
+): AppScreenControllerFactories {
+  return {
+    createBodyTranslationPhaseScreenController:
+      createBodyTranslationPhaseScreenControllerFactory(
+        registry.bodyTranslationPhase?.(context) ?? null
+      ),
+    createMasterDictionaryScreenController:
+      createMasterDictionaryScreenControllerFactory(
+        registry.masterDictionary?.(context) ?? null
+      ),
+    createMasterPersonaScreenController:
+      createMasterPersonaScreenControllerFactory(
+        registry.masterPersona?.(context) ?? null
+      ),
+    createPersonaGenerationPhaseScreenController:
+      createPersonaGenerationPhaseScreenControllerFactory(
+        registry.personaGenerationPhase?.(context) ?? null
+      ),
+    createProviderSettingsScreenController:
+      createProviderSettingsScreenControllerFactory(
+        registry.providerSettings?.(context) ?? null
+      ),
+    createTermTranslationPhaseScreenController:
+      createTermTranslationPhaseScreenControllerFactory(
+        registry.termTranslationPhase?.(context) ?? null
+      ),
+    createTranslationInputScreenController:
+      createTranslationInputScreenControllerFactory(
+        registry.translationInput?.(context) ?? null
+      ),
+    createTranslationJobSetupScreenController:
+      createTranslationJobSetupScreenControllerFactory(
+        registry.translationJobSetup?.(context) ?? null
+      ),
+    createTranslationOutputArtifactScreenController:
+      createTranslationOutputArtifactScreenControllerFactory(
+        registry.translationOutputArtifact?.(context) ?? null
+      )
+  }
+}
