@@ -36,6 +36,7 @@
       phase: "idle",
       options: null,
       selectedInputSourceId: null,
+      deletingInputSourceId: null,
       selectedRuntimeKey: null,
       selectedCredentialRef: "",
       phaseRuntimeSelections: [],
@@ -80,7 +81,9 @@
   }
 
   function normalizeViewModel(
-    viewModel: TranslationJobSetupExtendedViewModel | TranslationJobSetupScreenControllerContract["getViewModel"]
+    viewModel:
+      | TranslationJobSetupExtendedViewModel
+      | TranslationJobSetupScreenControllerContract["getViewModel"]
   ): TranslationJobSetupExtendedViewModel {
     const extendedViewModel = viewModel as TranslationJobSetupExtendedViewModel
     return {
@@ -97,7 +100,9 @@
 
   const controller = resolveController()
   let viewModel = $state(
-    normalizeViewModel(controller.getViewModel() as TranslationJobSetupExtendedViewModel)
+    normalizeViewModel(
+      controller.getViewModel() as TranslationJobSetupExtendedViewModel
+    )
   )
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
@@ -137,9 +142,7 @@
   }
 
   function resolveValidationLabel(status: string): string {
-    return (
-      VALIDATION_LABELS[status as keyof typeof VALIDATION_LABELS] ?? status
-    )
+    return VALIDATION_LABELS[status as keyof typeof VALIDATION_LABELS] ?? status
   }
 
   function batchSectionText(
@@ -181,13 +184,22 @@
       controller.togglePhaseBatchMode(phaseId, target.checked)
     }
   }
+
+  function isSelectedInputCard(candidateId: number): boolean {
+    return viewModel.selectedInputSourceId === candidateId
+  }
+
+  function isDeletingInputCard(candidateId: number): boolean {
+    return viewModel.deletingInputSourceId === candidateId
+  }
 </script>
 
 <section class="job-setup-shell" id="translationJobSetupView">
   <section class="job-setup-card hero-card">
     <h2>翻訳段階ごとの AI 設定</h2>
     <p class="lead">
-      入力済みデータを確認し、3 つの翻訳段階で使う AI サービスとモデルを選びます。
+      入力済みデータを確認し、3 つの翻訳段階で使う AI
+      サービスとモデルを選びます。
     </p>
     <p class="error-text" hidden={!viewModel.errorMessage}>
       {viewModel.errorMessage}
@@ -241,7 +253,10 @@
         </dl>
       </section>
 
-      <section class="job-setup-card" aria-labelledby="jobSetupSummaryPhaseHeading">
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupSummaryPhaseHeading"
+      >
         <div class="section-head">
           <div>
             <p class="eyebrow">phase settings</p>
@@ -291,25 +306,63 @@
             <h3 id="jobSetupInputHeading">入力データ</h3>
           </div>
         </div>
-        <label class="field-block" for="jobSetupInputSelect">
-          <span>入力データ</span>
-          <select
-            aria-label="input data"
-            disabled={viewModel.isLoading || viewModel.isCreating}
-            id="jobSetupInputSelect"
-            onchange={(event) => {
-              const target = event.currentTarget
-              if (target instanceof HTMLSelectElement) {
-                controller.selectInputSource(Number(target.value))
-              }
-            }}
-            value={viewModel.selectedInputSourceId ?? undefined}
-          >
-            {#each viewModel.options?.inputCandidates ?? [] as candidate (candidate.id)}
-              <option value={candidate.id}>{candidate.label}</option>
-            {/each}
-          </select>
-        </label>
+        <div class="input-card-list" aria-label="input data" role="list">
+          {#each viewModel.options?.inputCandidates ?? [] as candidate (candidate.id)}
+            <article
+              aria-busy={isDeletingInputCard(candidate.id)}
+              class:selected={isSelectedInputCard(candidate.id)}
+              class="input-card"
+              role="listitem"
+            >
+              <button
+                aria-pressed={isSelectedInputCard(candidate.id)}
+                class="input-card-select"
+                disabled={
+                  viewModel.isCreating || isDeletingInputCard(candidate.id)
+                }
+                onclick={() => controller.selectInputSource(candidate.id)}
+                type="button"
+              >
+                <div class="input-card-head">
+                  <strong class="wrap-value">{candidate.label}</strong>
+                  {#if isDeletingInputCard(candidate.id)}
+                    <span class="status-pill">削除中...</span>
+                  {:else if isSelectedInputCard(candidate.id)}
+                    <span class="status-pill success">選択中</span>
+                  {/if}
+                </div>
+                <dl class="detail-grid compact">
+                  <div>
+                    <dt>出自</dt>
+                    <dd class="wrap-value">{candidate.sourceKind}</dd>
+                  </div>
+                  <div>
+                    <dt>翻訳レコード件数</dt>
+                    <dd>{candidate.recordCount.toLocaleString("ja-JP")} 件</dd>
+                  </div>
+                  <div>
+                    <dt>登録日時</dt>
+                    <dd>{formatDate(candidate.registeredAt ?? "")}</dd>
+                  </div>
+                </dl>
+              </button>
+              <div class="input-card-actions">
+                <button
+                  class="button-secondary"
+                  disabled={
+                    viewModel.isCreating ||
+                    viewModel.deletingInputSourceId !== null
+                  }
+                  onclick={() =>
+                    void controller.deleteInputSource(candidate.id)}
+                  type="button"
+                >
+                  {isDeletingInputCard(candidate.id) ? "削除中..." : "削除"}
+                </button>
+              </div>
+            </article>
+          {/each}
+        </div>
         <dl class="detail-grid compact">
           <div>
             <dt>入力データ名</dt>
@@ -334,7 +387,10 @@
         </dl>
       </section>
 
-      <section class="job-setup-card" aria-labelledby="jobSetupFoundationHeading">
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupFoundationHeading"
+      >
         <div class="section-head">
           <div>
             <h3 id="jobSetupFoundationHeading">共通辞書と共通ペルソナ</h3>
@@ -373,7 +429,10 @@
       </section>
 
       {#if viewModel.phaseCards.length === 0}
-        <section class="job-setup-card" aria-labelledby="jobSetupLegacyRuntimeHeading">
+        <section
+          class="job-setup-card"
+          aria-labelledby="jobSetupLegacyRuntimeHeading"
+        >
           <div class="section-head">
             <div>
               <p class="eyebrow">foundation and runtime</p>
@@ -394,7 +453,11 @@
             >
               {#each viewModel.options?.aiRuntimeOptions ?? [] as option (createTranslationJobSetupRuntimeKey(option))}
                 <option value={createTranslationJobSetupRuntimeKey(option)}>
-                  {formatRuntimeLabel(option.provider, option.model, option.mode)}
+                  {formatRuntimeLabel(
+                    option.provider,
+                    option.model,
+                    option.mode
+                  )}
                 </option>
               {/each}
             </select>
@@ -421,7 +484,10 @@
           <p class="mini-text">{viewModel.credentialStateText}</p>
         </section>
 
-        <section class="job-setup-card" aria-labelledby="jobSetupValidationHeading">
+        <section
+          class="job-setup-card"
+          aria-labelledby="jobSetupValidationHeading"
+        >
           <div class="section-head">
             <div>
               <p class="eyebrow">validation</p>
@@ -449,7 +515,9 @@
             </div>
             <div>
               <dt>validated at</dt>
-              <dd>{formatDate(viewModel.validationResult?.validatedAt ?? "")}</dd>
+              <dd>
+                {formatDate(viewModel.validationResult?.validatedAt ?? "")}
+              </dd>
             </div>
             <div>
               <dt>blocking failure</dt>
@@ -494,7 +562,8 @@
                     handlePhaseModelChange(phaseCard.phaseId, event)}
                   onProviderChange={(event: Event) =>
                     handlePhaseProviderChange(phaseCard.phaseId, event)}
-                  onRefresh={() => void controller.refreshPhaseModels(phaseCard.phaseId)}
+                  onRefresh={() =>
+                    void controller.refreshPhaseModels(phaseCard.phaseId)}
                   providerDisabled={viewModel.isCreating}
                   providerOptions={phaseCard.providerOptions}
                   providerSelectId={`provider-${phaseCard.phaseId}`}
@@ -545,7 +614,8 @@
         <p class="mini-text">{viewModel.createSectionText}</p>
         {#if viewModel.showCacheMissingGuidance}
           <p class="mini-text">
-            cache missing は Job Setup で再構築しません。Input Review の再構築導線へ戻ってください。
+            cache missing は Job Setup で再構築しません。Input Review
+            の再構築導線へ戻ってください。
           </p>
         {/if}
         {#if viewModel.showCacheMissingGuidance && onReturnToInputReview}
@@ -684,9 +754,49 @@
   .create-copy,
   .create-actions,
   .foundation-table,
-  .phase-card-wrap {
+  .phase-card-wrap,
+  .input-card,
+  .input-card-actions,
+  .input-card-select,
+  .input-card-list {
     display: grid;
     gap: 0.75rem;
+  }
+
+  .input-card-list {
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  }
+
+  .input-card {
+    padding: 0.9rem;
+    border-radius: 1rem;
+    border: 1px solid rgba(255, 212, 165, 0.12);
+    background: rgba(18, 13, 11, 0.52);
+  }
+
+  .input-card.selected {
+    border-color: rgba(255, 204, 136, 0.72);
+    background: rgba(56, 39, 30, 0.78);
+    box-shadow: 0 0 0 1px rgba(255, 204, 136, 0.22);
+  }
+
+  .input-card-select {
+    text-align: left;
+    border: 0;
+    padding: 0;
+    background: transparent;
+    color: inherit;
+  }
+
+  .input-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+  }
+
+  .input-card-actions {
+    align-items: start;
   }
 
   .phase-grid {

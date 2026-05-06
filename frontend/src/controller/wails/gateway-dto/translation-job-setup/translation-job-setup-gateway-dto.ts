@@ -1,6 +1,8 @@
 import type {
   CreateTranslationJobRequest,
   CreateTranslationJobResponse,
+  DeleteTranslationJobSetupInputRequest,
+  DeleteTranslationJobSetupInputResponse,
   GetTranslationJobSetupSummaryRequest,
   ListTranslationJobSetupProviderModelsRequest,
   ListTranslationJobSetupProviderModelsResponse,
@@ -25,6 +27,10 @@ export type ValidateTranslationJobSetupResponseDto =
 
 export type CreateTranslationJobRequestDto = CreateTranslationJobRequest
 export type CreateTranslationJobResponseDto = CreateTranslationJobResponse
+export type DeleteTranslationJobSetupInputRequestDto =
+  DeleteTranslationJobSetupInputRequest
+export type DeleteTranslationJobSetupInputResponseDto =
+  DeleteTranslationJobSetupInputResponse
 
 export type GetTranslationJobSetupSummaryRequestDto =
   GetTranslationJobSetupSummaryRequest

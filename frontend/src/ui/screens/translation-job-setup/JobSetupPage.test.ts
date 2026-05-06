@@ -196,6 +196,7 @@ function createState(
     phase: "ready",
     options,
     selectedInputSourceId: options.inputCandidates[0]?.id ?? null,
+    deletingInputSourceId: null,
     selectedRuntimeKey: selectedRuntimeOption
       ? createTranslationJobSetupRuntimeKey(selectedRuntimeOption)
       : null,
@@ -244,6 +245,7 @@ function createPresentedPhaseViewModel(
       phase: "ready",
       options,
       selectedInputSourceId: options.inputCandidates[0]?.id ?? null,
+      deletingInputSourceId: null,
       selectedRuntimeKey: null,
       selectedCredentialRef: "",
       phaseRuntimeSelections,
@@ -279,6 +281,7 @@ function createViewModel(
     phase: summary ? "summary" : "ready",
     options,
     selectedInputSourceId: 41,
+    deletingInputSourceId: null,
     selectedRuntimeKey:
       "openai-compatible::gpt-4.1-mini-preview-with-a-very-long-name::batch",
     selectedCredentialRef: "cred-main",
@@ -337,6 +340,7 @@ class TranslationJobSetupScreenControllerFake implements TranslationJobSetupScre
   readonly mount = vi.fn(async () => {})
   readonly dispose = vi.fn(() => {})
   readonly selectInputSource = vi.fn(() => {})
+  readonly deleteInputSource = vi.fn(async () => {})
   readonly selectRuntime = vi.fn(() => {})
   readonly selectCredentialRef = vi.fn(() => {})
   readonly runValidation = vi.fn(async () => {})
@@ -531,8 +535,8 @@ describe("JobSetupPage", () => {
     })
 
     expect(
-      screen.getByText(new Date(registeredAt).toLocaleString("ja-JP"))
-    ).toBeInTheDocument()
+      screen.getAllByText(new Date(registeredAt).toLocaleString("ja-JP")).length
+    ).toBeGreaterThan(0)
   })
 
   test("入力、基盤参照、validation 状態、create 無効条件、cache missing 戻り導線を表示する", async () => {
@@ -558,9 +562,9 @@ describe("JobSetupPage", () => {
         "/mods/very/long/path/translation/input-review-export.json"
       ).length
     ).toBeGreaterThan(0)
-    expect(screen.getByText("xEdit extract")).toBeInTheDocument()
-    expect(screen.getByText("2026/4/27 9:30:00")).toBeInTheDocument()
-    expect(screen.getByText("128 件")).toBeInTheDocument()
+    expect(screen.getAllByText("xEdit extract").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("2026/4/27 9:30:00").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("128 件").length).toBeGreaterThan(0)
     expect(screen.getByText("既存 job はありません。")).toBeInTheDocument()
     expect(
       screen.getByText("Shared Dictionary / Foundation Core")
@@ -579,9 +583,7 @@ describe("JobSetupPage", () => {
     expect(screen.getAllByText("runtime").length).toBeGreaterThan(0)
     expect(screen.getAllByText("input").length).toBeGreaterThan(0)
     expect(screen.getAllByText("foundation").length).toBeGreaterThan(0)
-    expect(
-      screen.getByRole("button", { name: "次へ" })
-    ).toBeDisabled()
+    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled()
     expect(
       screen.getByText("validation が失効しています。")
     ).toBeInTheDocument()
@@ -604,7 +606,7 @@ describe("JobSetupPage", () => {
     })
   })
 
-  test("入力、runtime、credential の選択と validation/create action を controller へ委譲する", async () => {
+  test("入力カード選択、削除、runtime、credential の操作を controller へ委譲する", async () => {
     const user = userEvent.setup()
     const controller = new TranslationJobSetupScreenControllerFake(
       createViewModel({
@@ -626,7 +628,12 @@ describe("JobSetupPage", () => {
       }
     })
 
-    await user.selectOptions(screen.getByLabelText("input data"), "41")
+    await user.click(
+      screen.getByRole("button", {
+        name: /input-review-export\.json/
+      })
+    )
+    await user.click(screen.getByRole("button", { name: "削除" }))
     await user.selectOptions(
       screen.getByLabelText("provider / model / execution mode"),
       "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
@@ -638,12 +645,58 @@ describe("JobSetupPage", () => {
     await user.click(screen.getByRole("button", { name: "validation を実行" }))
 
     expect(controller.selectInputSource).toHaveBeenCalledWith(41)
+    expect(controller.deleteInputSource).toHaveBeenCalledWith(41)
     expect(controller.selectRuntime).toHaveBeenCalledWith(
       "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
     )
     expect(controller.selectCredentialRef).toHaveBeenCalledWith("cred-main")
     expect(controller.runValidation).toHaveBeenCalledTimes(1)
     expect(controller.createJob).not.toHaveBeenCalled()
+  })
+
+  test("削除中カードだけ 削除中 表示と選択不可を出し、他カード削除を止める", () => {
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createViewModel({
+        options: createOptions({
+          inputCandidates: [
+            {
+              id: 41,
+              label: "/mods/input-a.json",
+              sourceKind: "xEdit extract",
+              recordCount: 128
+            },
+            {
+              id: 52,
+              label: "/mods/input-b.json",
+              sourceKind: "xEdit extract",
+              recordCount: 64
+            }
+          ]
+        }),
+        selectedInputSourceId: 41,
+        deletingInputSourceId: 41
+      })
+    )
+
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    const deleteButtons = screen.getAllByRole("button")
+    expect(screen.getAllByText("削除中...")).toHaveLength(2)
+    expect(
+      screen.getByRole("button", { name: /\/mods\/input-a\.json/ })
+    ).toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: /\/mods\/input-b\.json/ })
+    ).not.toBeDisabled()
+    expect(
+      deleteButtons.filter((button) => button.textContent === "削除中...")
+    ).toHaveLength(1)
+    expect(screen.getByRole("button", { name: "削除中..." })).toBeDisabled()
+    expect(screen.getByRole("button", { name: "削除" })).toBeDisabled()
   })
 
   test("create 成功後は read-only summary を表示し create action を隠す", () => {

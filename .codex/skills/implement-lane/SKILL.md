@@ -55,8 +55,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_unit_tester` |
 | `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
-| `正本化判断` | 条件付き | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
-| `詳細仕様正本反映` | 条件付き | `docs_updater` | `正本化判断` | `docs_updater?` |
+| `正本化判断` | 仕様変更または仕様追加あり | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
+| `詳細仕様正本反映` | 仕様変更または仕様追加あり | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
 | `作業計画完了移動` | はい | `implement_lane` | `作業レポート入力` | なし |
 
@@ -153,6 +153,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
 - 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
 - `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に 作業計画フォルダ を `docs/exec-plans/active/<task-id>/` から `docs/exec-plans/completed/<task-id>/` へ移す。
+- `scenario-design`、`ui-design`、実装結果、レビュー結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`正本化判断` を必須成果物にする。
+- 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`詳細仕様正本反映` を必須成果物にする。
 - `詳細仕様正本反映` は `docs/detail-specs/` の上位シナリオ単位の正本へ、human 承認済みの恒久仕様だけを反映する。
 - `詳細仕様正本反映` の入力は、`scenario-design`、`ui-design`、実装結果、レビュー結果、承認記録のうち正本化判断で承認済みとされた成果物に限定する。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
@@ -200,6 +202,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `レビュー通過根拠` は 5 観点の `reviewback.<観点>.yaml` から behavior、security、responsibility_boundary、その他 の優先度で集約され、`implementation_action` が固定されている。
 - DAGで必須とされている成果物が全て用意できていること。
 - 5 観点すべての `reviewback.<観点>.yaml` に `must_fix_open`、`max_level`、`review_status` が記録されている。
+- 仕様変更または仕様追加がある場合は、`正本化判断` の結果が 根拠参照 付きで記録されている。
+- human 承認済みの恒久仕様がある場合は、`詳細仕様正本反映` の完了結果または停止理由が 根拠参照 付きで記録されている。
 - `backend 実装` またはテスト変更に backend 変更が含まれる場合は `python3 scripts/harness/run.py --suite backend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - `frontend 実装` またはテスト変更に frontend 変更が含まれる場合は `python3 scripts/harness/run.py --suite frontend-local` を `.codex/rules/default.rules` の許可対象として実行し、失敗時は担当 agent がその場で直して再実行した通過結果または未実行理由が確認されている。
 - レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
@@ -218,5 +222,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。
 - レビュー agent 起動入力に 検証証跡 が不足する場合は停止する。
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
+- 仕様変更または仕様追加があるのに `正本化判断` が不足する場合は終了不可とする。
+- human 承認済みの恒久仕様があるのに `詳細仕様正本反映` が不足する場合は終了不可とする。
 - `implementation_action: close` の状態で 作業計画フォルダ を `docs/exec-plans/completed/<task-id>/` へ移動できない場合は終了不可とする。
 - `作業レポート入力` または 作業観測根拠 が不足する場合は終了不可とする。

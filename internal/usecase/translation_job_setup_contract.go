@@ -45,6 +45,8 @@ const (
 	TranslationJobSetupErrorKindPartialCreateFailed TranslationJobSetupErrorKind = "partial_create_failed"
 	// TranslationJobSetupErrorKindReadyRequired identifies a rejected outcome caused by create or follow-up work before setup is ready.
 	TranslationJobSetupErrorKindReadyRequired TranslationJobSetupErrorKind = "ready_required"
+	// TranslationJobSetupErrorKindInputDeleteBlocked identifies a rejected input-delete outcome caused by an existing job reference.
+	TranslationJobSetupErrorKindInputDeleteBlocked TranslationJobSetupErrorKind = "input_delete_blocked"
 
 	// TranslationJobSetupErrorKindValidationFailed remains as a compatibility alias during downstream alignment.
 	TranslationJobSetupErrorKindValidationFailed TranslationJobSetupErrorKind = TranslationJobSetupErrorKindReadyRequired
@@ -175,6 +177,7 @@ type TranslationJobSetupInputCandidate struct {
 	SourceKind   string
 	RecordCount  int
 	RegisteredAt time.Time
+	ExistingJob  *TranslationJobSetupExistingJob
 }
 
 // TranslationJobSetupExistingJob summarizes one already prepared job.
@@ -367,6 +370,17 @@ type TranslationJobSetupSummaryResult struct {
 	PhaseRuntimeSummaries []TranslationJobSetupPhaseRuntimeSummary
 }
 
+// DeleteTranslationJobSetupInputRequest identifies one Job Setup input delete target.
+type DeleteTranslationJobSetupInputRequest struct {
+	InputSourceID int64
+}
+
+// DeleteTranslationJobSetupInputResult returns one delete outcome.
+type DeleteTranslationJobSetupInputResult struct {
+	DeletedInputSourceID *int64
+	ErrorKind            TranslationJobSetupErrorKind
+}
+
 // NewTranslationJobSetupContractStub returns a temporary usecase stub for the frozen Wails seam.
 func NewTranslationJobSetupContractStub() TranslationJobSetupContractStub {
 	return TranslationJobSetupContractStub{}
@@ -412,6 +426,14 @@ func (TranslationJobSetupContractStub) ListTranslationJobSetupProviderModels(
 	ListTranslationJobSetupProviderModelsRequest,
 ) (ListTranslationJobSetupProviderModelsResult, error) {
 	return ListTranslationJobSetupProviderModelsResult{}, errTranslationJobSetupNotImplemented
+}
+
+// DeleteTranslationJobSetupInput returns a not-implemented error for the frozen contract seam.
+func (TranslationJobSetupContractStub) DeleteTranslationJobSetupInput(
+	context.Context,
+	DeleteTranslationJobSetupInputRequest,
+) (DeleteTranslationJobSetupInputResult, error) {
+	return DeleteTranslationJobSetupInputResult{}, errTranslationJobSetupNotImplemented
 }
 
 // CreateTranslationJob returns a not-implemented error for the frozen contract seam.

@@ -1,0 +1,66 @@
+reviewback_version: 1
+task_id: "2026-05-06-job-setup-input-cards"
+review_yaml_path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/reviewback.responsibility_boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。View、ScreenController、Frontend UseCase、Gateway、Backend Controller、Backend UseCase、Service、Repository、SQLite infra の責務分担は architecture.md の依存方向に収まっている。"
+  evidence_sufficiency: "十分。task 枠、実装目的、変更差分、主要な frontend/backend 経路、migration/dbinit 境界、呼び出し元の検証証跡を確認した。"
+
+checked_scope:
+  summary: "Job Setup input 候補カード化、input 削除 API、候補一覧の局所更新、DB cascade reset の責務配置を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/plan.md"
+      line: 1
+      symbol: "task 枠"
+      reason: "実装目的、固定判断、変更範囲、検証証跡の入力根拠として確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 309
+      symbol: "input card list"
+      reason: "View が表示、DOM event、カード内の削除中表示だけを扱い、backend DTO や Wails binding を直接扱っていないことを確認した。"
+    - path: "frontend/src/controller/translation-job-setup/translation-job-setup-screen-controller.ts"
+      line: 84
+      symbol: "deleteInputSource"
+      reason: "ScreenController が画面操作を UseCase へ委譲し、Wails 呼び出し詳細を持っていないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 656
+      symbol: "deleteInputSource"
+      reason: "Frontend UseCase が GatewayContract と Store だけで削除手順、削除中状態、候補一覧の局所更新を扱っていることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 140
+      symbol: "deleteTranslationJobSetupInput"
+      reason: "Gateway が Wails binding 呼び出しを adapter 境界へ閉じ込めていることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 358
+      symbol: "DeleteTranslationJobSetupInput"
+      reason: "Backend Controller が request/response DTO と usecase 境界の写像だけを扱っていることを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 107
+      symbol: "DeleteTranslationJobSetupInput"
+      reason: "Backend UseCase が service port 経由で操作単位の orchestration を担っていることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 442
+      symbol: "DeleteInputSource"
+      reason: "Service が削除可否判定と repository port 呼び出しを担い、SQLite driver 固有処理を持っていないことを確認した。"
+    - path: "internal/repository/translation_source_sqlite_repository.go"
+      line: 449
+      symbol: "DeleteXEditExtractedDataByID"
+      reason: "Repository が X_EDIT_EXTRACTED_DATA の親行削除という永続化 adapter 責務に閉じていることを確認した。"
+    - path: "internal/infra/sqlite/dbinit/dbinit.go"
+      line: 174
+      symbol: "shouldApplyMigration"
+      reason: "DB 初期化と migration 適用判断が SQLite infra 層に置かれていることを確認した。"
+
+unchecked_scope:
+  - target: "全変更テストファイルの詳細レビュー"
+    reason: "責務境界レビューではプロダクト実装経路と境界配置を主対象にしたため。"
+    risk: "テスト補助内の重複や命名上の改善余地を見落とす可能性があるが、層責務判定への影響は小さい。"
+  - target: "広いハーネス再実行"
+    reason: "呼び出し制約により再実行不要で、検証証跡をレビュー入力として扱ったため。"
+    risk: "レビュー時点の手元環境で同じ pass を再確認していない。"
+
+issues: []

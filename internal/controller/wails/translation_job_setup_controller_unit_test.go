@@ -18,10 +18,11 @@ const (
 )
 
 type fakeTranslationJobSetupUsecase struct {
-	getOptionsFunc func(ctx context.Context) (usecase.TranslationJobSetupOptionsResult, error)
-	validateFunc   func(ctx context.Context, request usecase.ValidateTranslationJobSetupRequest) (usecase.TranslationJobSetupValidationResult, error)
-	createJobFunc  func(ctx context.Context, request usecase.CreateTranslationJobRequest) (usecase.CreateTranslationJobResult, error)
-	getSummaryFunc func(ctx context.Context, request usecase.GetTranslationJobSetupSummaryRequest) (usecase.TranslationJobSetupSummaryResult, error)
+	getOptionsFunc  func(ctx context.Context) (usecase.TranslationJobSetupOptionsResult, error)
+	validateFunc    func(ctx context.Context, request usecase.ValidateTranslationJobSetupRequest) (usecase.TranslationJobSetupValidationResult, error)
+	createJobFunc   func(ctx context.Context, request usecase.CreateTranslationJobRequest) (usecase.CreateTranslationJobResult, error)
+	deleteInputFunc func(ctx context.Context, request usecase.DeleteTranslationJobSetupInputRequest) (usecase.DeleteTranslationJobSetupInputResult, error)
+	getSummaryFunc  func(ctx context.Context, request usecase.GetTranslationJobSetupSummaryRequest) (usecase.TranslationJobSetupSummaryResult, error)
 }
 
 func (fake fakeTranslationJobSetupUsecase) GetTranslationJobSetupOptions(ctx context.Context) (usecase.TranslationJobSetupOptionsResult, error) {
@@ -43,6 +44,13 @@ func (fake fakeTranslationJobSetupUsecase) CreateTranslationJob(ctx context.Cont
 		return usecase.CreateTranslationJobResult{}, nil
 	}
 	return fake.createJobFunc(ctx, request)
+}
+
+func (fake fakeTranslationJobSetupUsecase) DeleteTranslationJobSetupInput(ctx context.Context, request usecase.DeleteTranslationJobSetupInputRequest) (usecase.DeleteTranslationJobSetupInputResult, error) {
+	if fake.deleteInputFunc == nil {
+		return usecase.DeleteTranslationJobSetupInputResult{}, nil
+	}
+	return fake.deleteInputFunc(ctx, request)
 }
 
 func (fake fakeTranslationJobSetupUsecase) GetTranslationJobSetupSummary(ctx context.Context, request usecase.GetTranslationJobSetupSummaryRequest) (usecase.TranslationJobSetupSummaryResult, error) {
@@ -102,6 +110,36 @@ func TestTranslationJobSetupControllerGetOptionsIncludesInputCandidateRegistered
 	}
 	if got := field.Tag.Get("json"); got != "registeredAt" {
 		t.Fatalf("expected RegisteredAt json tag %q, got %q", "registeredAt", got)
+	}
+}
+
+func TestTranslationJobSetupControllerDeleteInputMapsDeleteContract(t *testing.T) {
+	controller := NewTranslationJobSetupController(fakeTranslationJobSetupUsecase{
+		deleteInputFunc: func(ctx context.Context, request usecase.DeleteTranslationJobSetupInputRequest) (usecase.DeleteTranslationJobSetupInputResult, error) {
+			if ctx == nil {
+				t.Fatal("expected request context")
+			}
+			if request.InputSourceID != 44 {
+				t.Fatalf("expected input source id 44, got %#v", request)
+			}
+			deletedInputSourceID := int64(44)
+			return usecase.DeleteTranslationJobSetupInputResult{
+				DeletedInputSourceID: &deletedInputSourceID,
+			}, nil
+		},
+	})
+
+	response, err := controller.DeleteTranslationJobSetupInput(
+		DeleteTranslationJobSetupInputRequestDTO{InputSourceID: 44},
+	)
+	if err != nil {
+		t.Fatalf("expected delete request to succeed: %v", err)
+	}
+	if response.DeletedInputSourceID == nil || *response.DeletedInputSourceID != 44 {
+		t.Fatalf("expected deleted input source id 44, got %#v", response.DeletedInputSourceID)
+	}
+	if response.ErrorKind != "" {
+		t.Fatalf("expected empty error kind on success, got %#v", response)
 	}
 }
 

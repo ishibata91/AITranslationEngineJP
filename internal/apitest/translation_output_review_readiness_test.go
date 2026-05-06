@@ -1076,6 +1076,17 @@ func (store *translationOutputReviewReadinessAPIStore) GetXEditExtractedDataByID
 	return repository.XEditExtractedData{}, repository.ErrNotFound
 }
 
+func (store *translationOutputReviewReadinessAPIStore) DeleteXEditExtractedDataByID(
+	_ context.Context,
+	id int64,
+) error {
+	if _, ok := store.xeditByID[id]; !ok {
+		return repository.ErrNotFound
+	}
+	delete(store.xeditByID, id)
+	return nil
+}
+
 func (store *translationOutputReviewReadinessAPIStore) ResolveTranslationOutputSecret(
 	context.Context,
 	string,

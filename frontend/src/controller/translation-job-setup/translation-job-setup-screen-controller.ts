@@ -25,12 +25,19 @@ interface TranslationJobSetupPresenterLike {
 interface TranslationJobSetupUseCaseLike {
   load(): Promise<void>
   selectInputSource(inputSourceId: number): void
+  deleteInputSource(inputSourceId: number): Promise<void>
   selectRuntime(runtimeKey: string): void
   selectCredentialRef(credentialRef: string): void
-  selectPhaseProvider(phaseId: TranslationJobSetupPhaseId, provider: string): void
+  selectPhaseProvider(
+    phaseId: TranslationJobSetupPhaseId,
+    provider: string
+  ): void
   refreshPhaseModels(phaseId: TranslationJobSetupPhaseId): Promise<void>
   selectPhaseModel(phaseId: TranslationJobSetupPhaseId, model: string): void
-  togglePhaseBatchMode(phaseId: TranslationJobSetupPhaseId, enabled: boolean): void
+  togglePhaseBatchMode(
+    phaseId: TranslationJobSetupPhaseId,
+    enabled: boolean
+  ): void
   runValidation(): Promise<void>
   createJob(): Promise<void>
 }
@@ -77,6 +84,10 @@ export class TranslationJobSetupScreenController implements TranslationJobSetupS
     this.dependencies.useCase.selectInputSource(inputSourceId)
   }
 
+  async deleteInputSource(inputSourceId: number): Promise<void> {
+    await this.dependencies.useCase.deleteInputSource(inputSourceId)
+  }
+
   selectRuntime(runtimeKey: string): void {
     this.dependencies.useCase.selectRuntime(runtimeKey)
   }
@@ -85,7 +96,10 @@ export class TranslationJobSetupScreenController implements TranslationJobSetupS
     this.dependencies.useCase.selectCredentialRef(credentialRef)
   }
 
-  selectPhaseProvider(phaseId: TranslationJobSetupPhaseId, provider: string): void {
+  selectPhaseProvider(
+    phaseId: TranslationJobSetupPhaseId,
+    provider: string
+  ): void {
     this.dependencies.useCase.selectPhaseProvider(phaseId, provider)
   }
 
@@ -97,7 +111,10 @@ export class TranslationJobSetupScreenController implements TranslationJobSetupS
     this.dependencies.useCase.selectPhaseModel(phaseId, model)
   }
 
-  togglePhaseBatchMode(phaseId: TranslationJobSetupPhaseId, enabled: boolean): void {
+  togglePhaseBatchMode(
+    phaseId: TranslationJobSetupPhaseId,
+    enabled: boolean
+  ): void {
     this.dependencies.useCase.togglePhaseBatchMode(phaseId, enabled)
   }
 

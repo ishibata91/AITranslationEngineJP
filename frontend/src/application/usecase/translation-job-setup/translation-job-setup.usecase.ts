@@ -1,5 +1,6 @@
 import type {
   CreateTranslationJobResponse,
+  DeleteTranslationJobSetupInputResponse,
   ListTranslationJobSetupProviderModelsResponse,
   TranslationJobSetupBatchMode,
   TranslationJobSetupCredentialReference,
@@ -75,7 +76,11 @@ function resolveInitialRuntimeKey(
   options: TranslationJobSetupOptionsResponse
 ): string | null {
   return options.aiRuntimeOptions[0]
-    ? [options.aiRuntimeOptions[0].provider, options.aiRuntimeOptions[0].model, options.aiRuntimeOptions[0].mode].join("::")
+    ? [
+        options.aiRuntimeOptions[0].provider,
+        options.aiRuntimeOptions[0].model,
+        options.aiRuntimeOptions[0].mode
+      ].join("::")
     : null
 }
 
@@ -129,7 +134,11 @@ function normalizePhaseCredentialRef(
     return ""
   }
 
-  const credential = resolveCredentialReference(options, provider, credentialRef)
+  const credential = resolveCredentialReference(
+    options,
+    provider,
+    credentialRef
+  )
   return credential?.credentialRef ?? ""
 }
 
@@ -220,8 +229,9 @@ function resolveCredentialReference(
   currentCredentialRef = ""
 ): TranslationJobSetupCredentialReference | null {
   const matches =
-    options?.credentialRefs.filter((credential) => credential.provider === provider) ??
-    []
+    options?.credentialRefs.filter(
+      (credential) => credential.provider === provider
+    ) ?? []
 
   if (currentCredentialRef) {
     const current = matches.find(
@@ -274,9 +284,7 @@ function buildPhaseSelection(
   sourceDraft?: TranslationJobSetupPhaseRuntimeDraft
 ): TranslationJobSetupPhaseRuntimeSelection {
   const provider =
-    sourceDraft?.provider ??
-    options.providerCapabilities?.[0]?.provider ??
-    ""
+    sourceDraft?.provider ?? options.providerCapabilities?.[0]?.provider ?? ""
   const capability = findCapability(options, provider)
   const credential = resolveCredentialReference(
     options,
@@ -300,7 +308,10 @@ function buildPhaseSelection(
       capability,
       sourceDraft?.executionMode ?? ""
     ),
-    batchMode: normalizeBatchMode(capability, sourceDraft?.batchMode ?? "disabled"),
+    batchMode: normalizeBatchMode(
+      capability,
+      sourceDraft?.batchMode ?? "disabled"
+    ),
     modelListSourceToken: sourceDraft?.modelListSourceToken ?? ""
   }
 }
@@ -342,8 +353,9 @@ function findPhaseSelection(
   phaseId: TranslationJobSetupPhaseId
 ): TranslationJobSetupPhaseRuntimeSelection | null {
   return (
-    state.phaseRuntimeSelections?.find((selection) => selection.phaseId === phaseId) ??
-    null
+    state.phaseRuntimeSelections?.find(
+      (selection) => selection.phaseId === phaseId
+    ) ?? null
   )
 }
 
@@ -363,11 +375,9 @@ function replacePhaseSelection(
   draft.phaseRuntimeSelections = PHASE_IDS.map((phaseId) =>
     phaseId === nextSelection.phaseId
       ? { ...nextSelection }
-      : (
-          draft.phaseRuntimeSelections?.find(
-            (selection) => selection.phaseId === phaseId
-          ) ?? nextSelection
-        )
+      : (draft.phaseRuntimeSelections?.find(
+          (selection) => selection.phaseId === phaseId
+        ) ?? nextSelection)
   )
 }
 
@@ -381,21 +391,23 @@ function replaceModelList(
           ...nextModelList,
           models: nextModelList.models.map((model) => ({ ...model }))
         }
-      : (
-          draft.providerModelLists?.find((entry) => entry.phaseId === phaseId) ?? {
-            phaseId,
-            provider: "",
-            credentialStatus: "missing",
-            requestToken: "",
-            sourceToken: "",
-            status: "not_updated",
-            models: []
-          }
-        )
+      : (draft.providerModelLists?.find(
+          (entry) => entry.phaseId === phaseId
+        ) ?? {
+          phaseId,
+          provider: "",
+          credentialStatus: "missing",
+          requestToken: "",
+          sourceToken: "",
+          status: "not_updated",
+          models: []
+        })
   )
 }
 
-function isModelListUsable(status: TranslationJobSetupProviderModelListStatus): boolean {
+function isModelListUsable(
+  status: TranslationJobSetupProviderModelListStatus
+): boolean {
   return status === "success" || status === "credential_not_required"
 }
 
@@ -424,7 +436,9 @@ function isPhaseLocallyComplete(
   return true
 }
 
-function isLocallyReadyForCreate(state: TranslationJobSetupScreenState): boolean {
+function isLocallyReadyForCreate(
+  state: TranslationJobSetupScreenState
+): boolean {
   if (!state.options || state.selectedInputSourceId === null) {
     return false
   }
@@ -497,6 +511,80 @@ function invalidateValidation(
   draft.errorMessage = ""
 }
 
+function applyLoadedOptions(
+  draft: TranslationJobSetupScreenState,
+  options: TranslationJobSetupOptionsResponse,
+  preferredInputSourceId: number | null = null
+): void {
+  const hasPhaseDrafts =
+    (options.phaseRuntimeDrafts?.length ?? 0) > 0 ||
+    (options.providerCapabilities?.length ?? 0) > 0
+  const phaseRuntimeSelections = hasPhaseDrafts
+    ? createPhaseSelections(options)
+    : []
+  const providerModelLists = hasPhaseDrafts
+    ? createModelListStates(phaseRuntimeSelections)
+    : []
+  const selectedRuntimeKey = hasPhaseDrafts
+    ? null
+    : resolveInitialRuntimeKey(options)
+  const selectedCredentialRef = hasPhaseDrafts
+    ? ""
+    : resolveLegacyCredentialRef(
+        options,
+        findRuntimeOption(options, selectedRuntimeKey)
+      )
+  const selectedInputSourceId =
+    preferredInputSourceId !== null &&
+    options.inputCandidates.some(
+      (candidate) => candidate.id === preferredInputSourceId
+    )
+      ? preferredInputSourceId
+      : (options.inputCandidates[0]?.id ?? null)
+
+  draft.phase = "ready"
+  draft.options = options
+  draft.selectedInputSourceId = selectedInputSourceId
+  draft.deletingInputSourceId = null
+  draft.selectedRuntimeKey = selectedRuntimeKey
+  draft.selectedCredentialRef = selectedCredentialRef
+  draft.phaseRuntimeSelections = phaseRuntimeSelections
+  draft.providerModelLists = providerModelLists
+  draft.validationResult = null
+  draft.validationState = "not-run"
+  draft.dirty = false
+  draft.createErrorKind = null
+  draft.summary = null
+}
+
+function findNextInputSourceIdAfterDelete(
+  candidates: TranslationJobSetupOptionsResponse["inputCandidates"],
+  deletedInputSourceId: number
+): number | null {
+  const deletedIndex = candidates.findIndex(
+    (candidate) => candidate.id === deletedInputSourceId
+  )
+  if (deletedIndex < 0) {
+    return null
+  }
+
+  return candidates[deletedIndex + 1]?.id ?? candidates[deletedIndex - 1]?.id ?? null
+}
+
+function resolveDeleteInputErrorMessage(
+  response: DeleteTranslationJobSetupInputResponse
+): string {
+  const errorKind = response.errorKind
+  switch (errorKind) {
+    case "input_delete_blocked":
+      return "既存 job が参照している入力データは削除できません。"
+    case "input_not_found":
+      return "入力データが見つかりません。再読込してください。"
+    default:
+      return "入力データの削除に失敗しました。"
+  }
+}
+
 export class TranslationJobSetupUseCase {
   private requestSerial = 0
   private latestValidationToken = ""
@@ -532,38 +620,8 @@ export class TranslationJobSetupUseCase {
 
     try {
       const options = await this.gateway.getTranslationJobSetupOptions()
-      const hasPhaseDrafts =
-        (options.phaseRuntimeDrafts?.length ?? 0) > 0 ||
-        (options.providerCapabilities?.length ?? 0) > 0
-      const phaseRuntimeSelections = hasPhaseDrafts
-        ? createPhaseSelections(options)
-        : []
-      const providerModelLists = hasPhaseDrafts
-        ? createModelListStates(phaseRuntimeSelections)
-        : []
-      const selectedRuntimeKey = hasPhaseDrafts
-        ? null
-        : resolveInitialRuntimeKey(options)
-      const selectedCredentialRef = hasPhaseDrafts
-        ? ""
-        : resolveLegacyCredentialRef(
-            options,
-            findRuntimeOption(options, selectedRuntimeKey)
-          )
-
       this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.options = options
-        draft.selectedInputSourceId = options.inputCandidates[0]?.id ?? null
-        draft.selectedRuntimeKey = selectedRuntimeKey
-        draft.selectedCredentialRef = selectedCredentialRef
-        draft.phaseRuntimeSelections = phaseRuntimeSelections
-        draft.providerModelLists = providerModelLists
-        draft.validationResult = null
-        draft.validationState = "not-run"
-        draft.dirty = false
-        draft.createErrorKind = null
-        draft.summary = null
+        applyLoadedOptions(draft, options)
       })
 
       void this.revalidateIfReady()
@@ -580,7 +638,11 @@ export class TranslationJobSetupUseCase {
 
   selectInputSource(inputSourceId: number): void {
     this.store.update((draft) => {
-      if (draft.summary || draft.selectedInputSourceId === inputSourceId) {
+      if (
+        draft.summary ||
+        draft.selectedInputSourceId === inputSourceId ||
+        draft.deletingInputSourceId === inputSourceId
+      ) {
         return
       }
 
@@ -591,10 +653,95 @@ export class TranslationJobSetupUseCase {
     void this.revalidateIfReady()
   }
 
+  async deleteInputSource(inputSourceId: number): Promise<void> {
+    if (!this.gateway) {
+      this.store.update((draft) => {
+        draft.errorMessage = "translation-job-setup gateway が未接続です。"
+      })
+      return
+    }
+
+    const currentState = this.store.snapshot()
+    if (
+      currentState.summary ||
+      currentState.phase === "creating" ||
+      currentState.deletingInputSourceId !== null
+    ) {
+      return
+    }
+
+    this.store.update((draft) => {
+      draft.deletingInputSourceId = inputSourceId
+      draft.errorMessage = ""
+    })
+
+    try {
+      const response = await this.gateway.deleteTranslationJobSetupInput({
+        inputSourceId
+      })
+      if (response.errorKind) {
+        this.store.update((draft) => {
+          draft.deletingInputSourceId = null
+          draft.errorMessage = resolveDeleteInputErrorMessage(response)
+        })
+        return
+      }
+      const deletedInputSourceId =
+        response.deletedInputSourceId ?? inputSourceId
+      let shouldRevalidate = false
+      this.store.update((draft) => {
+        const currentOptions = draft.options
+        draft.deletingInputSourceId = null
+        draft.errorMessage = ""
+        if (!currentOptions) {
+          return
+        }
+
+        draft.options = {
+          ...currentOptions,
+          inputCandidates: currentOptions.inputCandidates.filter(
+            (candidate) => candidate.id !== deletedInputSourceId
+          ),
+          existingJob:
+            currentOptions.existingJob?.inputSourceId === deletedInputSourceId
+              ? undefined
+              : currentOptions.existingJob
+        }
+
+        if (draft.selectedInputSourceId !== deletedInputSourceId) {
+          return
+        }
+
+        draft.selectedInputSourceId = findNextInputSourceIdAfterDelete(
+          currentOptions.inputCandidates,
+          deletedInputSourceId
+        )
+        invalidateValidation(draft, "not-run")
+        shouldRevalidate = draft.selectedInputSourceId !== null
+      })
+
+      if (shouldRevalidate) {
+        void this.revalidateIfReady()
+      }
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.deletingInputSourceId = null
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "入力データの削除に失敗しました。"
+        )
+      })
+    }
+  }
+
   selectRuntime(_runtimeKey: string): void {
     const runtimeKey = _runtimeKey
     this.store.update((draft) => {
-      if (draft.summary || isPhaseDrivenState(draft) || draft.selectedRuntimeKey === runtimeKey) {
+      if (
+        draft.summary ||
+        isPhaseDrivenState(draft) ||
+        draft.selectedRuntimeKey === runtimeKey
+      ) {
         return
       }
 
@@ -656,7 +803,10 @@ export class TranslationJobSetupUseCase {
           credential?.credentialRef ?? ""
         ),
         credentialStatus: toCredentialStatus(capability, credential),
-        executionMode: resolveExecutionMode(capability, currentSelection.executionMode),
+        executionMode: resolveExecutionMode(
+          capability,
+          currentSelection.executionMode
+        ),
         batchMode: normalizeBatchMode(capability, currentSelection.batchMode),
         modelListSourceToken: ""
       }
@@ -677,7 +827,10 @@ export class TranslationJobSetupUseCase {
     }
 
     const capability = findCapability(state.options, selection.provider)
-    if (providerNeedsCredential(capability) && selection.credentialStatus !== "configured") {
+    if (
+      providerNeedsCredential(capability) &&
+      selection.credentialStatus !== "configured"
+    ) {
       this.store.update((draft) => {
         replaceModelList(draft, {
           phaseId,
@@ -713,13 +866,15 @@ export class TranslationJobSetupUseCase {
         selection.provider,
         selection.credentialRef
       )
-      const response = await this.gateway.listTranslationJobSetupProviderModels({
-        phaseId,
-        provider: selection.provider,
-        credentialRef: requestCredentialRef,
-        credentialStatus: selection.credentialStatus,
-        requestToken
-      })
+      const response = await this.gateway.listTranslationJobSetupProviderModels(
+        {
+          phaseId,
+          provider: selection.provider,
+          credentialRef: requestCredentialRef,
+          credentialStatus: selection.credentialStatus,
+          requestToken
+        }
+      )
 
       const latestState = this.store.snapshot()
       const latestSelection = findPhaseSelection(latestState, phaseId)
@@ -746,7 +901,9 @@ export class TranslationJobSetupUseCase {
             modelListSourceToken: ""
           })
         } else if (
-          !response.models.some((model) => model.modelId === currentSelection.model)
+          !response.models.some(
+            (model) => model.modelId === currentSelection.model
+          )
         ) {
           replacePhaseSelection(draft, {
             ...currentSelection,
@@ -791,10 +948,7 @@ export class TranslationJobSetupUseCase {
     }
   }
 
-  selectPhaseModel(
-    phaseId: TranslationJobSetupPhaseId,
-    model: string
-  ): void {
+  selectPhaseModel(phaseId: TranslationJobSetupPhaseId, model: string): void {
     this.store.update((draft) => {
       const currentSelection = findPhaseSelection(draft, phaseId)
       const modelList = findModelList(draft, phaseId)
@@ -825,7 +979,10 @@ export class TranslationJobSetupUseCase {
   ): void {
     this.store.update((draft) => {
       const currentSelection = findPhaseSelection(draft, phaseId)
-      const capability = findCapability(draft.options, currentSelection?.provider ?? "")
+      const capability = findCapability(
+        draft.options,
+        currentSelection?.provider ?? ""
+      )
       if (
         draft.summary ||
         !currentSelection ||
@@ -947,7 +1104,8 @@ export class TranslationJobSetupUseCase {
     })
 
     try {
-      const validationResult = await this.gateway.validateTranslationJobSetup(payload)
+      const validationResult =
+        await this.gateway.validateTranslationJobSetup(payload)
       if (this.latestValidationToken !== validationToken) {
         return
       }
@@ -994,7 +1152,11 @@ export class TranslationJobSetupUseCase {
       return
     }
 
-    if (state.validationState !== "fresh" || state.dirty || !state.validationResult?.canCreate) {
+    if (
+      state.validationState !== "fresh" ||
+      state.dirty ||
+      !state.validationResult?.canCreate
+    ) {
       await this.runValidation()
     }
 
@@ -1095,7 +1257,8 @@ export class TranslationJobSetupUseCase {
       !state.validationResult.canCreate
     ) {
       this.store.update((draft) => {
-        draft.errorMessage = "create 条件を満たしていません。validation を確認してください。"
+        draft.errorMessage =
+          "create 条件を満たしていません。validation を確認してください。"
       })
       return
     }

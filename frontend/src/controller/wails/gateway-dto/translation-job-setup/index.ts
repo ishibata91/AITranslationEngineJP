@@ -1,6 +1,8 @@
 export type {
   CreateTranslationJobRequestDto,
   CreateTranslationJobResponseDto,
+  DeleteTranslationJobSetupInputRequestDto,
+  DeleteTranslationJobSetupInputResponseDto,
   GetTranslationJobSetupOptionsResponseDto,
   GetTranslationJobSetupSummaryRequestDto,
   GetTranslationJobSetupSummaryResponseDto,

@@ -91,6 +91,9 @@ func (repo *fakeTranslationJobManagementSourceRepository) GetXEditExtractedDataB
 	}
 	return repository.XEditExtractedData{}, repository.ErrNotFound
 }
+func (repo *fakeTranslationJobManagementSourceRepository) DeleteXEditExtractedDataByID(context.Context, int64) error {
+	return errors.New("not used")
+}
 func (repo *fakeTranslationJobManagementSourceRepository) CreateTranslationRecord(context.Context, repository.TranslationRecordDraft) (repository.TranslationRecord, error) {
 	return repository.TranslationRecord{}, errors.New("not used")
 }

@@ -24,6 +24,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 実装済み対象: implementation_implementer が変更済みのファイル、公開接点、symbol。
 - 証明対象: 公開振る舞い、分岐、エラー経路 のいずれを証明するかを示す対象。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
+- 網羅率検証コマンド: `python3 scripts/harness/run.py --suite coverage` で実行する harness command。
 
 ## 外部参照規約
 
@@ -47,7 +48,8 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - テスト本体に条件分岐を入れない
 - implementation_task_ids の外まで広げない
 - 原因未確定の 回帰テスト は実装前に書かない
-- coverage、harness all、repo-local Sonar issue 判定条件 は 最終検証 レーン へ defer する
+- `harness all` と repo-local Sonar issue 判定条件 は 最終検証 レーン へ送る
+- 網羅率検証は `python3 scripts/harness/run.py --suite coverage` を実行し、全体網羅率が 70.0% を上回ることを確認する
 
 - Arrange / Act / Assert を空行または短いコメントで判別できる状態にする
 - 分岐 ごとに テストケース を分ける
@@ -65,6 +67,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 不足情報: 不足した入力項目、衝突した根拠、戻し先を返す。
 - テスト成果物: 実装済み範囲に対応する 単体テスト と必要最小限の 検証データ / 補助 だけを返す。
 - 証明済み完了条件: テストで証明した 公開振る舞い、分岐、エラー経路、テスト対象ファイル、検証コマンドを返す。
+- 網羅率検証結果: `python3 scripts/harness/run.py --suite coverage` の結果と全体網羅率値を返す。
 - 未証明小範囲: 同じ 引き継ぎ 内で未証明の 公開振る舞い、分岐、エラー経路を返す。
 - レーン内検証結果: テスト追加または更新後、変更層 に対応する 局所検証 の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
@@ -80,12 +83,14 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - backend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または UX改善レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - frontend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または UX改善レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 または UX改善レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- `python3 scripts/harness/run.py --suite coverage` を実行し、全体網羅率が 70.0% を上回る結果または未実行理由を返した。
 - レーン内検証 の失敗時はその場で直して再実行し、通過結果または未実行理由を返した。
 
 ## 停止規約
 
 - シナリオ 成果物 の 結果 を テストにする時
 - `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 または UX改善レーンの `task 枠` 外にある場合は停止する。
+- `python3 scripts/harness/run.py --suite coverage` の全体網羅率が 70.0% 以下で、承認済み実装範囲 または UX改善レーンの `task 枠` 内の単体テストだけでは改善できない場合は停止する。
 - テストのためだけに広い プロダクトコード 変更が必要な時
 - 統合 flow を証明する時
 - 証明対象、対象テスト範囲、実装済み対象 のいずれかが不足している時

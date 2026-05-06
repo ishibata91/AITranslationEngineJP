@@ -201,6 +201,8 @@ UX改善レーンの成果物DAGは次を標準形にする。
 - docs 正本化は実装と レビュー の完了が分かった後に扱う
 - docs 正本化は Codex 側だけで扱う
 - human 承認済みの 成果物 だけ `docs_updater` が `updating-docs` を参照して正本へ反映する
+- `scenario-design`、`ui-design`、実装結果、レビュー結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`implement_lane` が `正本化判断` を必ず記録する
+- 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`docs_updater` が `詳細仕様正本反映` を必ず完了または停止理由付きで返す
 - task 内 UI 要件契約、agent-browser 確認結果、シナリオ は task folder に置く
 - UI の確認は、承認済み UI 要件契約と実画面確認結果で扱う
 - UI の細かな visual polish は実装後の実物確認で差分を扱う

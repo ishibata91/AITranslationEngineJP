@@ -21,8 +21,11 @@ func fixedTranslationJobSetupValidationNow() time.Time {
 }
 
 type fakeTranslationJobSetupSourceRepository struct {
-	getByID func(context.Context, int64) (repository.XEditExtractedData, error)
-	listAll func(context.Context) ([]repository.XEditExtractedData, error)
+	getByID         func(context.Context, int64) (repository.XEditExtractedData, error)
+	listAll         func(context.Context) ([]repository.XEditExtractedData, error)
+	getExistingJob  func(context.Context, int64) (repository.TranslationJob, error)
+	deleteCacheByID func(context.Context, int64) error
+	deleteInputByID func(context.Context, int64) error
 }
 
 func (repo fakeTranslationJobSetupSourceRepository) GetXEditExtractedDataByID(ctx context.Context, id int64) (repository.XEditExtractedData, error) {
@@ -37,6 +40,27 @@ func (repo fakeTranslationJobSetupSourceRepository) ListXEditExtractedData(ctx c
 		return nil, nil
 	}
 	return repo.listAll(ctx)
+}
+
+func (repo fakeTranslationJobSetupSourceRepository) GetExistingTranslationJob(ctx context.Context, xEditID int64) (repository.TranslationJob, error) {
+	if repo.getExistingJob == nil {
+		return repository.TranslationJob{}, repository.ErrNotFound
+	}
+	return repo.getExistingJob(ctx, xEditID)
+}
+
+func (repo fakeTranslationJobSetupSourceRepository) DeleteTranslationCacheByXEditID(ctx context.Context, xEditID int64) error {
+	if repo.deleteCacheByID == nil {
+		return nil
+	}
+	return repo.deleteCacheByID(ctx, xEditID)
+}
+
+func (repo fakeTranslationJobSetupSourceRepository) DeleteXEditExtractedDataByID(ctx context.Context, id int64) error {
+	if repo.deleteInputByID == nil {
+		return nil
+	}
+	return repo.deleteInputByID(ctx, id)
 }
 
 type fakeTranslationJobSetupDictionaryRepository struct{}
@@ -494,6 +518,89 @@ func TestTranslationJobSetupServiceReadSummaryReturnsPersistedPhaseRuntimeSnapsh
 	wantExecution := TranslationJobSetupExecutionSummaryReadModel{Provider: "openai", Model: "gpt-5.4-mini", ExecutionMode: "sync"}
 	if !reflect.DeepEqual(summary.ExecutionSummary, wantExecution) {
 		t.Fatalf("expected summary execution %#v, got %#v", wantExecution, summary.ExecutionSummary)
+	}
+}
+
+func TestTranslationJobSetupServiceReadOptionsExcludesInputsReferencedByExistingJobsButKeepsExistingJobSummary(t *testing.T) {
+	service := NewPersistentTranslationJobSetupService(
+		&fakeTranslationJobSetupJobLifecycleRepository{},
+		fakeTranslationJobSetupSourceRepository{
+			listAll: func(context.Context) ([]repository.XEditExtractedData, error) {
+				return []repository.XEditExtractedData{
+					{ID: 41, TargetPluginName: "Input A", RecordCount: 12, ImportedAt: time.Date(2026, 5, 5, 10, 0, 0, 0, time.UTC)},
+					{ID: 52, TargetPluginName: "Input B", RecordCount: 7, ImportedAt: time.Date(2026, 5, 5, 11, 0, 0, 0, time.UTC)},
+				}, nil
+			},
+			getExistingJob: func(_ context.Context, xEditID int64) (repository.TranslationJob, error) {
+				if xEditID == 41 {
+					return repository.TranslationJob{ID: 900, XEditExtractedDataID: 41, State: "ready"}, nil
+				}
+				return repository.TranslationJob{}, repository.ErrNotFound
+			},
+		},
+		fakeTranslationJobSetupDictionaryRepository{},
+		fakeTranslationJobSetupPersonaRepository{},
+		nil,
+		fakeTranslationJobSetupSecretStore{load: func(context.Context, string) (string, error) { return "", repository.ErrNotFound }},
+		fakeTranslationJobSetupTransactor{},
+	)
+
+	options, err := service.ReadOptions(context.Background())
+	if err != nil {
+		t.Fatalf("expected options to load: %v", err)
+	}
+	if len(options.InputCandidates) != 1 {
+		t.Fatalf("expected only unreferenced input candidate, got %#v", options.InputCandidates)
+	}
+	if options.InputCandidates[0].ID != 52 {
+		t.Fatalf("expected input 52 to remain visible, got %#v", options.InputCandidates[0])
+	}
+	wantExistingJob := &TranslationJobSetupExistingJobReadModel{
+		InputSourceID: 41,
+		JobID:         900,
+		Status:        "ready",
+		InputSource:   translationJobSetupInputSource,
+	}
+	if !reflect.DeepEqual(options.ExistingJob, wantExistingJob) {
+		t.Fatalf("expected existing job summary %#v, got %#v", wantExistingJob, options.ExistingJob)
+	}
+}
+
+func TestTranslationJobSetupServiceDeleteInputSourceRejectsReferencedInput(t *testing.T) {
+	service := NewPersistentTranslationJobSetupService(
+		&fakeTranslationJobSetupJobLifecycleRepository{},
+		fakeTranslationJobSetupSourceRepository{
+			getByID: func(context.Context, int64) (repository.XEditExtractedData, error) {
+				return repository.XEditExtractedData{ID: 41}, nil
+			},
+			getExistingJob: func(context.Context, int64) (repository.TranslationJob, error) {
+				return repository.TranslationJob{ID: 900, XEditExtractedDataID: 41, State: "ready"}, nil
+			},
+			deleteCacheByID: func(context.Context, int64) error {
+				t.Fatal("expected delete cache to be skipped for referenced input")
+				return nil
+			},
+			deleteInputByID: func(context.Context, int64) error {
+				t.Fatal("expected delete source to be skipped for referenced input")
+				return nil
+			},
+		},
+		fakeTranslationJobSetupDictionaryRepository{},
+		fakeTranslationJobSetupPersonaRepository{},
+		nil,
+		fakeTranslationJobSetupSecretStore{load: func(context.Context, string) (string, error) { return "", repository.ErrNotFound }},
+		fakeTranslationJobSetupTransactor{},
+	)
+
+	decision, err := service.DeleteInputSource(context.Background(), 41)
+	if err != nil {
+		t.Fatalf("expected delete rejection without transport error: %v", err)
+	}
+	if decision.ErrorKind != translationJobSetupErrorKindInputDeleteBlocked {
+		t.Fatalf("expected input_delete_blocked, got %#v", decision)
+	}
+	if decision.DeletedInputSourceID != nil {
+		t.Fatalf("expected no deleted id on rejection, got %#v", decision)
 	}
 }
 

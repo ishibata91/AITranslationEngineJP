@@ -42,10 +42,13 @@ const CREATE_ERROR_LABELS: Record<string, string> = {
   cache_missing: "入力確認へ戻って必要データを再構築してください。",
   foundation_ref_missing: "共通基盤の参照が不足しています。",
   credential_missing: "APIキー状態を確認してください。",
-  model_list_credential_missing: "APIキーを登録してからモデル一覧を更新してください。",
+  model_list_credential_missing:
+    "APIキーを登録してからモデル一覧を更新してください。",
   model_list_failed: "モデル一覧の取得に失敗しています。",
-  model_selection_stale: "モデル一覧を更新したため、モデルを選び直してください。",
-  provider_mode_unsupported: "選択した AI サービスでは現在の実行方法を使えません。",
+  model_selection_stale:
+    "モデル一覧を更新したため、モデルを選び直してください。",
+  provider_mode_unsupported:
+    "選択した AI サービスでは現在の実行方法を使えません。",
   provider_unreachable: "AI サービスへ接続できませんでした。",
   duplicate_job_for_input:
     "同じ入力データの翻訳ジョブがあります。必要なら Job Management で確認してください。",
@@ -90,8 +93,7 @@ export interface TranslationJobSetupSummaryPhaseViewModel {
   batchLabel: string
 }
 
-export interface TranslationJobSetupExtendedViewModel
-  extends TranslationJobSetupScreenViewModel {
+export interface TranslationJobSetupExtendedViewModel extends TranslationJobSetupScreenViewModel {
   phaseCards: TranslationJobSetupPhaseCardViewModel[]
   summaryPhaseCards: TranslationJobSetupSummaryPhaseViewModel[]
   createSectionTitle: string
@@ -108,8 +110,9 @@ function findPhaseSelection(
   phaseId: TranslationJobSetupPhaseId
 ): TranslationJobSetupPhaseRuntimeSelection | null {
   return (
-    state.phaseRuntimeSelections?.find((selection) => selection.phaseId === phaseId) ??
-    null
+    state.phaseRuntimeSelections?.find(
+      (selection) => selection.phaseId === phaseId
+    ) ?? null
   )
 }
 
@@ -262,8 +265,7 @@ function buildPhaseStatus(
       label: "要確認",
       tone: "warning",
       helper:
-        validation.blockingFailureCategory ??
-        "作成前確認で不足があります。"
+        validation.blockingFailureCategory ?? "作成前確認で不足があります。"
     }
   }
 
@@ -328,7 +330,9 @@ function buildPhaseCards(
             : `${PHASE_LABELS[phaseId]}のモデル一覧を更新`,
         isModelListRefreshing: modelList?.status === "loading",
         modelListStatusText: buildModelListStatusText(modelList, selection),
-        modelOptions: isModelListUsable(modelList) ? modelList?.models ?? [] : [],
+        modelOptions: isModelListUsable(modelList)
+          ? (modelList?.models ?? [])
+          : [],
         showModelSelect: isModelListUsable(modelList),
         modelSelectEnabled:
           state.phase !== "creating" &&
@@ -449,7 +453,9 @@ function buildLegacyValidationStatusText(
   return `${label} / ${sliceText}${failureText}`
 }
 
-function buildLegacyBlockedReasons(state: TranslationJobSetupScreenState): string[] {
+function buildLegacyBlockedReasons(
+  state: TranslationJobSetupScreenState
+): string[] {
   const reasons: string[] = []
 
   if (state.summary) {
@@ -475,7 +481,9 @@ function buildLegacyBlockedReasons(state: TranslationJobSetupScreenState): strin
   return Array.from(new Set(reasons))
 }
 
-function buildLegacyCreateStatusText(state: TranslationJobSetupScreenState): string {
+function buildLegacyCreateStatusText(
+  state: TranslationJobSetupScreenState
+): string {
   if (state.phase === "creating") {
     return "translation job を作成しています。成功後は read-only summary へ切り替えます。"
   }
@@ -530,7 +538,10 @@ function buildSummaryPhaseCards(
 ): TranslationJobSetupSummaryPhaseViewModel[] {
   return (Object.keys(PHASE_LABELS) as TranslationJobSetupPhaseId[]).map(
     (phaseId) => {
-      const summary = findPhaseSummary(state.summary?.phaseRuntimeSummaries, phaseId)
+      const summary = findPhaseSummary(
+        state.summary?.phaseRuntimeSummaries,
+        phaseId
+      )
       return {
         phaseId,
         phaseLabel: PHASE_LABELS[phaseId],
@@ -588,6 +599,19 @@ function findSelectedInputCandidate(state: TranslationJobSetupScreenState) {
   )
 }
 
+function buildExistingJobSummary(
+  state: TranslationJobSetupScreenState
+): string {
+  const selectedInputCandidate = findSelectedInputCandidate(state)
+  const existingJob =
+    selectedInputCandidate?.existingJob ?? state.options?.existingJob
+  if (!existingJob) {
+    return "既存 job はありません。"
+  }
+
+  return `job #${existingJob.jobId} / ${existingJob.status} / ${existingJob.inputSource}`
+}
+
 function canCreateInReadyState(state: TranslationJobSetupScreenState): boolean {
   return (
     !state.summary &&
@@ -632,7 +656,11 @@ function buildPhaseDrivenValidationStatusText(
 
 interface TranslationJobSetupDerivedState {
   legacyMode: boolean
-  selectedRuntimeOption: { provider: string; model: string; mode: string } | null
+  selectedRuntimeOption: {
+    provider: string
+    model: string
+    mode: string
+  } | null
   availableCredentialRefs: Array<{
     provider: string
     credentialRef: string
@@ -723,12 +751,16 @@ export class TranslationJobSetupPresenter {
       selectedInputCandidate,
       selectedRuntimeOption: derivedState.selectedRuntimeOption,
       availableCredentialRefs: derivedState.availableCredentialRefs,
-      phaseValidationResults: state.validationResult?.phaseResults?.map((result) => ({
-        ...result
-      })),
-      phaseRuntimeSummaries: state.summary?.phaseRuntimeSummaries?.map((summary) => ({
-        ...summary
-      })),
+      phaseValidationResults: state.validationResult?.phaseResults?.map(
+        (result) => ({
+          ...result
+        })
+      ),
+      phaseRuntimeSummaries: state.summary?.phaseRuntimeSummaries?.map(
+        (summary) => ({
+          ...summary
+        })
+      ),
       selectedInputLabel: selectedInputCandidate?.label ?? "未選択",
       selectedInputSourceKind: selectedInputCandidate?.sourceKind ?? "-",
       selectedInputRecordCountLabel: selectedInputCandidate
@@ -737,9 +769,7 @@ export class TranslationJobSetupPresenter {
       selectedInputRegisteredAtLabel: selectedInputCandidate?.registeredAt
         ? new Date(selectedInputCandidate.registeredAt).toLocaleString("ja-JP")
         : "-",
-      existingJobSummary: state.options?.existingJob
-        ? `job #${state.options.existingJob.jobId} / ${state.options.existingJob.status} / ${state.options.existingJob.inputSource}`
-        : "既存 job はありません。",
+      existingJobSummary: buildExistingJobSummary(state),
       dictionaryLabels:
         state.options?.sharedDictionaries.map((option) => option.label) ?? [],
       personaLabels:
@@ -753,7 +783,9 @@ export class TranslationJobSetupPresenter {
       isLoading: state.phase === "loading",
       isValidating: state.phase === "validating",
       isCreating: state.phase === "creating",
-      hasExistingJob: Boolean(state.options?.existingJob),
+      hasExistingJob: Boolean(
+        selectedInputCandidate?.existingJob ?? state.options?.existingJob
+      ),
       showCacheMissingGuidance:
         state.validationResult?.blockingFailureCategory?.toLowerCase() ===
         "cache missing",

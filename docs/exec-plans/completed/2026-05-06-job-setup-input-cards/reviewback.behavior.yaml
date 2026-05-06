@@ -1,0 +1,74 @@
+reviewback_version: 1
+task_id: "2026-05-06-job-setup-input-cards"
+review_yaml_path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "実装目的と主要経路は一致している。Job Setup の input 候補はカード表示になり、既存 job 参照 input は候補から除外される。job 未作成 input の削除は親行 X_EDIT_EXTRACTED_DATA の削除で行われ、削除中表示と候補一覧の局所更新も実装されている。"
+  evidence_sufficiency: "十分。実コードの主要経路、関連テスト、呼び出し元から渡された frontend-local、backend-local、all、system test、coverage、Sonar issues の通過証跡を確認した。広いハーネス再実行は制約に従い実施していない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘がないため、局所修正評価は不要。"
+  invariant_test_viewpoints:
+    - "既存 job が参照する input は候補一覧に出ない。"
+    - "既存 job が参照する input は削除 API でも削除拒否になる。"
+    - "削除成功後は options 全再読込ではなく inputCandidates だけから削除対象を除く。"
+    - "削除中は対象カードの選択と削除操作が止まり、カード内に 削除中... が表示される。"
+
+checked_scope:
+  summary: "Job Setup input 候補取得、input 削除、SQLite 親行削除、cascade migration、frontend 局所更新、削除中表示、関連テストを確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 442
+      symbol: "DeleteInputSource"
+      reason: "input 削除の入口が transaction 内で存在確認、参照 job guard、親行削除を順に実行することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1080
+      symbol: "loadTranslationInputCandidates"
+      reason: "既存 job が見つかった input を候補一覧に追加しないことを確認した。"
+    - path: "internal/repository/translation_source_sqlite_repository.go"
+      line: 449
+      symbol: "DeleteXEditExtractedDataByID"
+      reason: "削除処理が X_EDIT_EXTRACTED_DATA の親行 DELETE だけを実行することを確認した。"
+    - path: "internal/infra/sqlite/migrations/003_canonical_er_v1_tables.sql"
+      line: 30
+      symbol: "canonical ER FK"
+      reason: "fresh DB 用 schema で X_EDIT_EXTRACTED_DATA 配下の主要 FK に ON DELETE CASCADE が付くことを確認した。"
+    - path: "internal/infra/sqlite/migrations/014_canonical_er_cascade_reset.sql"
+      line: 1
+      symbol: "014_canonical_er_cascade_reset"
+      reason: "既存 DB の canonical ER table を破棄し、cascade 付き schema で再作成することを確認した。"
+    - path: "internal/infra/sqlite/dbinit/dbinit.go"
+      line: 177
+      symbol: "shouldApplyMigration"
+      reason: "cascade reset migration を必要時だけ適用する判定があることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 656
+      symbol: "deleteInputSource"
+      reason: "削除中 ID の保持、削除 API 呼び出し、成功後の inputCandidates 局所更新、失敗時の解除を確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 309
+      symbol: "input card list"
+      reason: "入力候補がカード表示になり、削除中表示と対象カード操作抑止があることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 524
+      symbol: "TestTranslationJobSetupServiceReadOptionsExcludesInputsReferencedByExistingJobs"
+      reason: "既存 job 参照 input の候補除外をテストで確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 341
+      symbol: "deleteInputSource tests"
+      reason: "削除成功後の options 非再読込と候補局所更新をテストで確認した。"
+
+unchecked_scope:
+  - target: "実画面でのブラウザ操作"
+    reason: "レビュー入力の制約で広い再実行は不要とされ、挙動判定は実コードと提出済み検証証跡で行った。"
+    risk: "カードの視覚的な押しやすさや細かな表示崩れは、このレビュー観点では未確認。"
+  - target: "削除 API の同時実行競合"
+    reason: "挙動正しさレビューでは主要経路と条件分岐を確認し、同時実行の状態不変条件は主判定対象外にした。"
+    risk: "同一 input へ同時に削除要求が来た場合の最終状態評価は、状態・データ不変条件レビュー側の残留確認対象になる。"
+
+issues: []

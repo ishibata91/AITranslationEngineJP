@@ -1,0 +1,104 @@
+reviewback_version: 1
+task_id: "2026-05-06-job-setup-input-cards"
+review_yaml_path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/reviewback.state_invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持。削除対象が選択中の場合、残存候補があれば削除前配列上の次候補を選び、次候補がなければ前候補を選ぶ。削除後に候補が空になる場合だけ selectedInputSourceId は null になる。"
+  evidence_sufficiency: "十分。対象差分、実コード、関連単体テスト、呼び出し元から渡された検証証跡を確認した。広いハーネス再実行は制約に従い実施していない。"
+
+checked_scope:
+  summary: "Job Setup input 候補の削除後選択状態、候補一覧の局所更新、削除中状態、削除後再検証条件、末尾削除と空候補化の単体テストを確認した。"
+  files:
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 560
+      symbol: "findNextInputSourceIdAfterDelete"
+      reason: "削除対象 index から次候補、なければ前候補、どちらもなければ null を返す根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 700
+      symbol: "deleteInputSource"
+      reason: "削除成功後に options.inputCandidates から対象候補を除去し、選択中 ID だけを削除後選択先へ更新する根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 715
+      symbol: "deleteInputSource"
+      reason: "selectedInputSourceId を findNextInputSourceIdAfterDelete の結果へ置き換え、残存候補がある時だけ再検証する根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 432
+      symbol: "deleteInputSource は削除対象が末尾でも残存候補を選ぶ"
+      reason: "末尾の選択候補を削除した後、前候補が selectedInputSourceId になる検証根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 468
+      symbol: "deleteInputSource は削除後に候補が空なら selectedInputSourceId を null にする"
+      reason: "削除後に候補が空になる場合だけ selectedInputSourceId が null になる検証根拠。"
+
+unchecked_scope:
+  - target: "広いハーネス再実行"
+    reason: "呼び出し元制約で不要とされたため、渡された検証証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業木で広い検証証跡を再現していない。"
+  - target: "複数プロセスが同じ SQLite DB を別 connection pool で同時操作する運用"
+    reason: "再レビュー目的は frontend の削除後選択 fallback であり、別プロセス同時操作は対象差分外である。"
+    risk: "別プロセスが同一 DB を直接操作する場合、参照確認と削除の競合が残る可能性がある。"
+
+issues: []
+
+broken_invariants:
+  - id: "selected-input-candidate-membership"
+    status: "maintained"
+    condition: "inputCandidates が非空なら selectedInputSourceId は inputCandidates 内の ID である。候補が空の場合だけ selectedInputSourceId は null でよい。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 571
+        excerpt: "削除対象の次候補、なければ前候補、どちらもなければ null を返す。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 432
+        excerpt: "末尾削除後に前候補 ID 30 を選ぶ。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 468
+        excerpt: "候補 1 件を削除した後だけ selectedInputSourceId が null になる。"
+
+cause_candidates:
+  - id: "delete-selection-fallback-next-only"
+    status: "resolved"
+    confidence: "high"
+    description: "削除後 selection fallback が次候補だけを見る原因候補は解消済みである。現在は次候補がなければ前候補へ fallback する。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 571
+        excerpt: "candidates[deletedIndex + 1]?.id ?? candidates[deletedIndex - 1]?.id ?? null"
+
+local_fix_evaluation:
+  scope: "frontend usecase の削除後選択決定と単体テストで閉じている。"
+  data_migration_needed: false
+  backend_change_needed: false
+  regression_focus:
+    - "削除対象が先頭の場合は次候補を選ぶ。"
+    - "削除対象が末尾の場合は前候補を選ぶ。"
+    - "削除後に候補が 0 件の場合だけ selectedInputSourceId を null にする。"
+  result: "前回 minor 指摘は解決済み。追加の状態・データ不変条件指摘はない。"
+
+review_evidence:
+  implementation_purpose:
+    - "Job Setup の input 候補をカード表示にする。"
+    - "既存 job が参照する input は候補に出さない。"
+    - "job 未作成 input は削除できる。"
+    - "削除成功後は options 全再読込ではなく候補一覧を局所更新する。"
+    - "削除後候補が残る場合は残存候補を選び、候補が空の場合だけ selectedInputSourceId を null にする。"
+  verification_from_caller:
+    - command: "npm --prefix frontend run test -- translation-job-setup.usecase.test.ts"
+      result: "pass。"
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "pass。"
+    - command: "python3 scripts/harness/run.py --suite all"
+      result: "pass。frontend test 491 passed、system test 9 passed、Sonar coverage 70.5%、security 0、reliability 0、maintainability HIGH 0。"
+  reviewer_rerun:
+    performed: false
+    reason: "広いハーネス再実行は不要という制約に従った。"
+
+residual_risk:
+  - risk: "削除直後に options 全再読込をしないため、他画面や別プロセスが同じ input 候補集合を変更した場合は local state が古くなる。"
+    reason: "実装目的が局所更新を指定しているため、全再読込による収束は意図的に行っていない。"
+    severity: "minor"

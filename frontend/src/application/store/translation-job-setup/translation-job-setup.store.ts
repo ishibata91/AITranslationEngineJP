@@ -113,6 +113,7 @@ function createInitialState(): TranslationJobSetupScreenState {
     phase: "idle",
     options: null,
     selectedInputSourceId: null,
+    deletingInputSourceId: null,
     selectedRuntimeKey: null,
     selectedCredentialRef: "",
     phaseRuntimeSelections: [],

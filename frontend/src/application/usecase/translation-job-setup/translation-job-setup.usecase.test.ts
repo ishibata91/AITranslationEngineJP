@@ -169,6 +169,7 @@ function createState(
     phase: "ready",
     options: createOptions(),
     selectedInputSourceId: 41,
+    deletingInputSourceId: null,
     selectedRuntimeKey: "openai::gpt-5.4-mini::batch",
     selectedCredentialRef: "openai-primary",
     validationResult: createValidationResult(),
@@ -257,21 +258,23 @@ function createGateway(): TranslationJobSetupGatewayContract & {
   listTranslationJobSetupProviderModels: ReturnType<typeof vi.fn>
   validateTranslationJobSetup: ReturnType<typeof vi.fn>
   createTranslationJob: ReturnType<typeof vi.fn>
+  deleteTranslationJobSetupInput: ReturnType<typeof vi.fn>
   getTranslationJobSetupSummary: ReturnType<typeof vi.fn>
 } {
   return {
     getTranslationJobSetupOptions: vi.fn(),
-    listTranslationJobSetupProviderModels: vi
-      .fn<
+    listTranslationJobSetupProviderModels:
+      vi.fn<
         (
           request: ListTranslationJobSetupProviderModelsRequest
         ) => Promise<ListTranslationJobSetupProviderModelsResponse>
       >(),
-    validateTranslationJobSetup: vi.fn<
-      (
-        request: ValidateTranslationJobSetupRequest
-      ) => Promise<TranslationJobSetupValidationResponse>
-    >(),
+    validateTranslationJobSetup:
+      vi.fn<
+        (
+          request: ValidateTranslationJobSetupRequest
+        ) => Promise<TranslationJobSetupValidationResponse>
+      >(),
     createTranslationJob: vi
       .fn<
         (
@@ -289,6 +292,9 @@ function createGateway(): TranslationJobSetupGatewayContract & {
         },
         validationPassSlices: ["input", "runtime", "credentials"]
       }),
+    deleteTranslationJobSetupInput: vi.fn().mockResolvedValue({
+      deletedInputSourceId: 41
+    }),
     getTranslationJobSetupSummary: vi
       .fn<
         (
@@ -330,6 +336,161 @@ describe("TranslationJobSetupUseCase", () => {
       canCreate: true,
       passSlices: null
     })
+  })
+
+  test("deleteInputSource は削除成功後に options 再読込なしで対象候補だけ除去し次候補を選ぶ", async () => {
+    const gateway = createGateway()
+    const store = createStore(
+      createPhaseDrivenState({
+        options: createPhaseOptions({
+          inputCandidates: [
+            {
+              id: 41,
+              label: "/mods/input-a.json",
+              sourceKind: "translation_input",
+              recordCount: 128,
+              registeredAt: "2026-04-27T10:20:00Z"
+            },
+            {
+              id: 52,
+              label: "/mods/input-b.json",
+              sourceKind: "translation_input",
+              recordCount: 32,
+              registeredAt: "2026-04-28T10:20:00Z"
+            }
+          ]
+        }),
+        selectedInputSourceId: 41
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    await usecase.deleteInputSource(41)
+
+    const state = store.snapshot()
+    expect(gateway.deleteTranslationJobSetupInput).toHaveBeenCalledWith({
+      inputSourceId: 41
+    })
+    expect(
+      (
+        gateway.getTranslationJobSetupOptions as ReturnType<
+          typeof vi.fn<() => Promise<TranslationJobSetupOptionsResponse>>
+        >
+      ).mock.calls
+    ).toHaveLength(0)
+    expect(state.options?.inputCandidates).toHaveLength(1)
+    expect(state.selectedInputSourceId).toBe(52)
+    expect(state.options?.inputCandidates[0]?.id).toBe(52)
+    expect(state.deletingInputSourceId).toBeNull()
+  })
+
+  test("deleteInputSource は削除中 id を保持し、失敗時に解除して errorMessage を残す", async () => {
+    const deferredDelete =
+      createDeferred<{ deletedInputSourceId?: number; errorKind?: never }>()
+    const gateway = createGateway()
+    gateway.deleteTranslationJobSetupInput = vi
+      .fn()
+      .mockImplementation(() => deferredDelete.promise)
+    const store = createStore(
+      createPhaseDrivenState({
+        options: createPhaseOptions({
+          inputCandidates: [
+            {
+              id: 41,
+              label: "/mods/input-a.json",
+              sourceKind: "translation_input",
+              recordCount: 128,
+              registeredAt: "2026-04-27T10:20:00Z"
+            },
+            {
+              id: 52,
+              label: "/mods/input-b.json",
+              sourceKind: "translation_input",
+              recordCount: 32,
+              registeredAt: "2026-04-28T10:20:00Z"
+            }
+          ]
+        }),
+        selectedInputSourceId: 52
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    const deletePromise = usecase.deleteInputSource(41)
+
+    expect(store.snapshot().phase).toBe("ready")
+    expect(store.snapshot().deletingInputSourceId).toBe(41)
+
+    deferredDelete.reject(new Error("backend delete failed"))
+    await deletePromise
+
+    const state = store.snapshot()
+    expect(state.deletingInputSourceId).toBeNull()
+    expect(state.errorMessage).toBe("入力データの削除に失敗しました。")
+  })
+
+  test("deleteInputSource は削除対象が末尾でも残存候補を選ぶ", async () => {
+    const gateway = createGateway()
+    const store = createStore(
+      createPhaseDrivenState({
+        options: createPhaseOptions({
+          inputCandidates: [
+            {
+              id: 30,
+              label: "/mods/input-a.json",
+              sourceKind: "translation_input",
+              recordCount: 64,
+              registeredAt: "2026-04-26T10:20:00Z"
+            },
+            {
+              id: 41,
+              label: "/mods/input-b.json",
+              sourceKind: "translation_input",
+              recordCount: 128,
+              registeredAt: "2026-04-27T10:20:00Z"
+            }
+          ]
+        }),
+        selectedInputSourceId: 41
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    await usecase.deleteInputSource(41)
+
+    const state = store.snapshot()
+    expect(state.options?.inputCandidates).toHaveLength(1)
+    expect(state.options?.inputCandidates[0]?.id).toBe(30)
+    expect(state.selectedInputSourceId).toBe(30)
+    expect(state.deletingInputSourceId).toBeNull()
+  })
+
+  test("deleteInputSource は削除後に候補が空なら selectedInputSourceId を null にする", async () => {
+    const gateway = createGateway()
+    const store = createStore(
+      createPhaseDrivenState({
+        options: createPhaseOptions({
+          inputCandidates: [
+            {
+              id: 41,
+              label: "/mods/input-a.json",
+              sourceKind: "translation_input",
+              recordCount: 128,
+              registeredAt: "2026-04-27T10:20:00Z"
+            }
+          ]
+        }),
+        selectedInputSourceId: 41
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    await usecase.deleteInputSource(41)
+
+    const state = store.snapshot()
+    expect(state.options?.inputCandidates).toHaveLength(0)
+    expect(state.selectedInputSourceId).toBeNull()
+    expect(state.deletingInputSourceId).toBeNull()
   })
 
   test("createJob は validation freshness を create request へ転送する", async () => {
@@ -475,9 +636,9 @@ describe("TranslationJobSetupUseCase", () => {
     const delayedModels =
       createDeferred<ListTranslationJobSetupProviderModelsResponse>()
     const gateway = createGateway()
-    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
-      createValidationResult()
-    )
+    gateway.validateTranslationJobSetup = vi
+      .fn()
+      .mockResolvedValue(createValidationResult())
     gateway.listTranslationJobSetupProviderModels = vi
       .fn()
       .mockImplementationOnce(() => delayedModels.promise)
@@ -497,7 +658,9 @@ describe("TranslationJobSetupUseCase", () => {
     expect(
       store
         .snapshot()
-        .providerModelLists?.find((entry) => entry.phaseId === "word_translation")
+        .providerModelLists?.find(
+          (entry) => entry.phaseId === "word_translation"
+        )
     ).toEqual(
       expect.objectContaining({
         provider: "gemini",
@@ -527,11 +690,14 @@ describe("TranslationJobSetupUseCase", () => {
       requestToken:
         store
           .snapshot()
-          .providerModelLists?.find((entry) => entry.phaseId === "word_translation")
-          ?.requestToken ?? "",
+          .providerModelLists?.find(
+            (entry) => entry.phaseId === "word_translation"
+          )?.requestToken ?? "",
       sourceToken: "gemini-delayed-source",
       status: "success",
-      models: [{ modelId: "gemini-delayed-model", label: "gemini-delayed-model" }]
+      models: [
+        { modelId: "gemini-delayed-model", label: "gemini-delayed-model" }
+      ]
     })
     await refreshPromise
 
@@ -570,9 +736,9 @@ describe("TranslationJobSetupUseCase", () => {
     const delayedModels =
       createDeferred<ListTranslationJobSetupProviderModelsResponse>()
     const gateway = createGateway()
-    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
-      createValidationResult()
-    )
+    gateway.validateTranslationJobSetup = vi
+      .fn()
+      .mockResolvedValue(createValidationResult())
     gateway.listTranslationJobSetupProviderModels = vi
       .fn()
       .mockImplementationOnce(() => delayedModels.promise)
@@ -599,8 +765,9 @@ describe("TranslationJobSetupUseCase", () => {
       requestToken:
         store
           .snapshot()
-          .providerModelLists?.find((entry) => entry.phaseId === "word_translation")
-          ?.requestToken ?? "",
+          .providerModelLists?.find(
+            (entry) => entry.phaseId === "word_translation"
+          )?.requestToken ?? "",
       sourceToken: "gemini-stale-failed",
       status: "failed",
       models: []
@@ -632,12 +799,15 @@ describe("TranslationJobSetupUseCase", () => {
   })
 
   test("state-invariant-001: provider 変更後の遅延 model list 失敗は現在 phase state を上書きしない", async () => {
-    const delayedModels = createDeferred<ListTranslationJobSetupProviderModelsResponse>()
+    const delayedModels =
+      createDeferred<ListTranslationJobSetupProviderModelsResponse>()
     const gateway = createGateway()
-    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
-      createValidationResult()
+    gateway.validateTranslationJobSetup = vi
+      .fn()
+      .mockResolvedValue(createValidationResult())
+    gateway.listTranslationJobSetupProviderModels = vi.fn(
+      () => delayedModels.promise
     )
-    gateway.listTranslationJobSetupProviderModels = vi.fn(() => delayedModels.promise)
     const store = createStore(createPhaseDrivenState())
     const usecase = new TranslationJobSetupUseCase(gateway, store)
 
@@ -685,9 +855,9 @@ describe("TranslationJobSetupUseCase", () => {
       status: "credential_not_required",
       models: [{ modelId: "lmstudio-community", label: "LM Studio Community" }]
     })
-    gateway.validateTranslationJobSetup = vi.fn().mockResolvedValue(
-      createValidationResult()
-    )
+    gateway.validateTranslationJobSetup = vi
+      .fn()
+      .mockResolvedValue(createValidationResult())
     gateway.listTranslationJobSetupProviderModels = listProviderModelsSpy
     const store = createStore(createPhaseDrivenState())
     const usecase = new TranslationJobSetupUseCase(gateway, store)
@@ -764,5 +934,4 @@ describe("TranslationJobSetupUseCase", () => {
       ])
     )
   })
-
 })

@@ -195,6 +195,10 @@ SET source_file_path = ?,
 	record_count = ?
 WHERE id = ?`
 
+	deleteXEditExtractedDataByID = `
+DELETE FROM X_EDIT_EXTRACTED_DATA
+WHERE id = ?`
+
 	deleteTranslationFieldRecordReferencesByXEditID = `
 DELETE FROM TRANSLATION_FIELD_RECORD_REFERENCE
 WHERE translation_field_id IN (
@@ -440,6 +444,26 @@ func (r *SQLiteTranslationSourceRepository) GetXEditExtractedDataByID(
 		return XEditExtractedData{}, mapSQLError(err, "get x_edit_extracted_data by id")
 	}
 	return row.toModel()
+}
+
+// DeleteXEditExtractedDataByID deletes one imported input row and relies on FK cascades for descendants.
+func (r *SQLiteTranslationSourceRepository) DeleteXEditExtractedDataByID(
+	ctx context.Context,
+	id int64,
+) error {
+	ext := extractTx(ctx, r.db)
+	result, err := ext.ExecContext(ctx, deleteXEditExtractedDataByID, id)
+	if err != nil {
+		return mapSQLError(err, "delete x_edit_extracted_data")
+	}
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete x_edit_extracted_data rows affected: %w", err)
+	}
+	if rowsAffected == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 // ListXEditExtractedData returns all imported translation inputs ordered by most recent import first.

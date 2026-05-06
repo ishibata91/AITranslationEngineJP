@@ -15,9 +15,13 @@ export interface TranslationJobSetupScreenControllerContract {
   subscribe(listener: TranslationJobSetupScreenViewModelListener): () => void
   getViewModel(): TranslationJobSetupScreenViewModel
   selectInputSource(inputSourceId: number): void
+  deleteInputSource(inputSourceId: number): Promise<void>
   selectRuntime(runtimeKey: string): void
   selectCredentialRef(credentialRef: string): void
-  selectPhaseProvider(phaseId: TranslationJobSetupPhaseId, provider: string): void
+  selectPhaseProvider(
+    phaseId: TranslationJobSetupPhaseId,
+    provider: string
+  ): void
   refreshPhaseModels(phaseId: TranslationJobSetupPhaseId): Promise<void>
   selectPhaseModel(phaseId: TranslationJobSetupPhaseId, model: string): void
   togglePhaseBatchMode(

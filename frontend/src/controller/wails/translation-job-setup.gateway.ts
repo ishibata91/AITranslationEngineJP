@@ -2,6 +2,8 @@ import type { TranslationJobSetupGatewayContract } from "@application/gateway-co
 import type {
   CreateTranslationJobRequestDto,
   CreateTranslationJobResponseDto,
+  DeleteTranslationJobSetupInputRequestDto,
+  DeleteTranslationJobSetupInputResponseDto,
   GetTranslationJobSetupOptionsResponseDto,
   GetTranslationJobSetupSummaryRequestDto,
   GetTranslationJobSetupSummaryResponseDto,
@@ -16,6 +18,7 @@ type TranslationJobSetupBindingName =
   | "ListTranslationJobSetupProviderModels"
   | "ValidateTranslationJobSetup"
   | "CreateTranslationJob"
+  | "DeleteTranslationJobSetupInput"
   | "GetTranslationJobSetupSummary"
 
 type BindingInvoker = <RequestDto, ResponseDto>(
@@ -135,6 +138,12 @@ class TranslationJobSetupGateway implements TranslationJobSetupGatewayContract {
     request: CreateTranslationJobRequestDto
   ): Promise<CreateTranslationJobResponseDto> {
     return this.invokeBinding("CreateTranslationJob", request)
+  }
+
+  deleteTranslationJobSetupInput(
+    request: DeleteTranslationJobSetupInputRequestDto
+  ): Promise<DeleteTranslationJobSetupInputResponseDto> {
+    return this.invokeBinding("DeleteTranslationJobSetupInput", request)
   }
 
   getTranslationJobSetupSummary(

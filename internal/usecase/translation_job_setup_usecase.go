@@ -35,6 +35,13 @@ type translationJobSetupProviderModelListReader interface {
 	) (jobsetupservice.ListTranslationJobSetupProviderModelsResult, error)
 }
 
+type translationJobSetupInputDeleteExecutor interface {
+	DeleteInputSource(
+		ctx context.Context,
+		inputSourceID int64,
+	) (jobsetupservice.TranslationJobSetupDeleteInputDecision, error)
+}
+
 // TranslationJobSetupUsecase implements the Job Setup Wails seam.
 type TranslationJobSetupUsecase struct {
 	service translationJobSetupServicePort
@@ -98,6 +105,31 @@ func (usecase *TranslationJobSetupUsecase) ListTranslationJobSetupProviderModels
 		Models:           toTranslationJobSetupProviderModels(result.Models),
 		FailureKind:      NormalizeTranslationJobSetupPublicErrorKind(TranslationJobSetupErrorKind(result.FailureKind)),
 	}, nil
+}
+
+// DeleteTranslationJobSetupInput deletes one unreferenced input from Job Setup.
+func (usecase *TranslationJobSetupUsecase) DeleteTranslationJobSetupInput(
+	ctx context.Context,
+	request DeleteTranslationJobSetupInputRequest,
+) (DeleteTranslationJobSetupInputResult, error) {
+	executor, ok := usecase.service.(translationJobSetupInputDeleteExecutor)
+	if !ok {
+		return DeleteTranslationJobSetupInputResult{}, errTranslationJobSetupNotImplemented
+	}
+	decision, err := executor.DeleteInputSource(ctx, request.InputSourceID)
+	if err != nil {
+		return DeleteTranslationJobSetupInputResult{}, fmt.Errorf("delete translation job setup input: %w", err)
+	}
+	result := DeleteTranslationJobSetupInputResult{
+		ErrorKind: NormalizeTranslationJobSetupPublicErrorKind(
+			TranslationJobSetupErrorKind(decision.ErrorKind),
+		),
+	}
+	if decision.DeletedInputSourceID != nil {
+		deletedInputSourceID := *decision.DeletedInputSourceID
+		result.DeletedInputSourceID = &deletedInputSourceID
+	}
+	return result, nil
 }
 
 // ValidateTranslationJobSetup validates the three phase runtime selections.
@@ -247,6 +279,7 @@ func toTranslationJobSetupInputCandidates(
 			SourceKind:   candidate.SourceKind,
 			RecordCount:  candidate.RecordCount,
 			RegisteredAt: candidate.RegisteredAt,
+			ExistingJob:  toTranslationJobSetupExistingJob(candidate.ExistingJob),
 		})
 	}
 	return result

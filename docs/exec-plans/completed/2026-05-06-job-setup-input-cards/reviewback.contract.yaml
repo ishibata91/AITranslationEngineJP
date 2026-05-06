@@ -1,0 +1,81 @@
+reviewback_version: 1
+task_id: "2026-05-06-job-setup-input-cards"
+review_yaml_path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "公開応答 field の existingJob は、候補除外とは独立して既存 job summary を返す意味に戻っている。既存 job 参照 input は inputCandidates から除外される契約を維持している。削除 API 追加、削除エラー種別追加、候補 field 追加、DB cascade reset は追加または承認済み破棄範囲内で扱われており、契約・互換性観点の未解決指摘はない。"
+  evidence_sufficiency: "十分。diff 実コード、task plan、公開 DTO、usecase contract、service 読み取り経路、追加 unit test、呼び出し元の検証証跡を確認した。広いハーネス再実行は review_contract の責務外として実施していない。"
+
+checked_scope:
+  summary: "Job Setup options 応答で、既存 job 参照 input の候補除外と existingJob summary の公開応答意味が両立していることを確認した。削除 API、エラー種別、SQLite 親行削除、canonical ER cascade reset は前回確認範囲から未解決の契約破壊を増やしていないことを確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/plan.md"
+      line: 21
+      symbol: "固定判断"
+      reason: "job 未作成 input だけを削除し、既存 job 参照 input を入力候補に表示しない契約を確認した。"
+    - path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/plan.md"
+      line: 75
+      symbol: "最終検証結果"
+      reason: "呼び出し元が提示した frontend-local、backend-local、all、system test、coverage、Sonar issue の通過証跡を確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 161
+      symbol: "TranslationJobSetupOptionsResult"
+      reason: "公開 usecase 応答に ExistingJob が既存 field として残っていることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 99
+      symbol: "TranslationJobSetupOptionsResponseDTO"
+      reason: "Wails 応答 DTO に existingJob が既存公開 field として残っていることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1044
+      symbol: "currentOptionsReadModel"
+      reason: "loadTranslationInputCandidates から inputCandidates と existingJob を別々に受け取り、応答へ別 field として設定する経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1068
+      symbol: "loadTranslationInputCandidates"
+      reason: "既存 job summary を保持しながら、既存 job 参照 input を候補へ append せず continue する経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1103
+      symbol: "loadExistingJobForInput"
+      reason: "既存 job summary が input id から候補配列とは独立して作られることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 524
+      symbol: "TestTranslationJobSetupServiceReadOptionsExcludesInputsReferencedByExistingJobsButKeepsExistingJobSummary"
+      reason: "既存 job 参照 input の候補除外と existingJob summary 維持を同時に検証する unit test を確認した。"
+
+unchecked_scope:
+  - target: "Wails 実機画面と実 DB 起動後の応答"
+    reason: "広いハーネス再実行と画面操作は review_contract の責務外であり、呼び出し元の検証証跡を入力として扱った。"
+    risk: "実行時生成 binding の差分や画面表示文言の最終表示は、この観点だけでは直接確認していない。"
+
+issues:
+  - id: "contract-001"
+    level: "major"
+    title: "existingJob 応答 field の意味互換性破壊"
+    problem: "修正前は、既存 job が存在する input を候補から除外した後、options 応答の existingJob が候補内の ExistingJob だけから復元されるため、既存 job が存在しても existingJob が nil になる経路があった。"
+    reason: "修正後は、loadTranslationInputCandidates が inputCandidates と existingJob を別返却し、currentOptionsReadModel が existingJob を候補配列とは独立して応答へ設定する。既存 job 参照 input は continue で候補から除外され、最初の既存 job summary は existingJob として保持される。"
+    violated_condition: "既存公開応答 field は、版管理または明示的な契約変更なしに意味を変えない。"
+    cause_candidate: "修正前の原因候補は、existingJob 復元が候補配列内 ExistingJob に依存していたことである。修正後は input ごとに既存 job を確認し、候補除外と summary 返却を同じ読み取り経路で分離している。"
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1044
+        excerpt: "currentOptionsReadModel は inputCandidates と existingJob を loadTranslationInputCandidates から別々に受け取る。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1086
+        excerpt: "jobForInput が存在する場合、最初の summary を existingJob に保持し、当該 input は候補へ追加せず continue する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1118
+        excerpt: "loadExistingJobForInput は inputSourceID から ExistingJob summary を作る。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 524
+        excerpt: "既存 job 参照 input は候補から除外され、ExistingJob summary は保持されることを検証している。"
+    local_fix_assessment: "local。options 読み取り経路の局所修正で閉じており、DTO 型、削除 API、DB schema の再設計は不要と判断した。"
+    additional_check_scope: "none。contract-001 の再レビュー目的である existingJob の独立返却と inputCandidates 除外維持は unit test と実コードで確認できた。"
+    fix_considerations: "候補一覧から既存 job 参照 input を除外する契約は維持する。existingJob field は候補除外とは独立して、既存 job summary を返す既存公開応答意味を維持する。"
+    verification: "go test ./internal/service -run TranslationJobSetupService は呼び出し元証跡で pass。TestTranslationJobSetupServiceReadOptionsExcludesInputsReferencedByExistingJobsButKeepsExistingJobSummary が契約回帰を直接検証している。"
+    fix_required: true
+    status: "resolved"

@@ -14,13 +14,14 @@ import (
 )
 
 const (
-	translationJobSetupValidationStatusPass       = "pass"
-	translationJobSetupValidationStatusFail       = "fail"
-	translationJobSetupErrorKindValidationStale   = "validation_stale"
-	translationJobSetupErrorKindDuplicateInput    = "duplicate_input"
-	translationJobSetupErrorKindInputNotFound     = "input_not_found"
-	translationJobSetupErrorKindReadyRequired     = "ready_required"
-	translationJobSetupErrorKindPartialCreateFail = "partial_create_failed"
+	translationJobSetupValidationStatusPass        = "pass"
+	translationJobSetupValidationStatusFail        = "fail"
+	translationJobSetupErrorKindValidationStale    = "validation_stale"
+	translationJobSetupErrorKindDuplicateInput     = "duplicate_input"
+	translationJobSetupErrorKindInputNotFound      = "input_not_found"
+	translationJobSetupErrorKindInputDeleteBlocked = "input_delete_blocked"
+	translationJobSetupErrorKindReadyRequired      = "ready_required"
+	translationJobSetupErrorKindPartialCreateFail  = "partial_create_failed"
 
 	translationJobSetupValidationFreshnessCutoffHourUTC = 9
 
@@ -144,6 +145,12 @@ type TranslationJobSetupCreateDecision struct {
 	ValidationPassSlices []string
 }
 
+// TranslationJobSetupDeleteInputDecision returns one input delete outcome.
+type TranslationJobSetupDeleteInputDecision struct {
+	DeletedInputSourceID *int64
+	ErrorKind            string
+}
+
 // TranslationJobSetupCreatedJobReadModel stores the created ready-job response.
 type TranslationJobSetupCreatedJobReadModel struct {
 	JobID                 int64
@@ -174,6 +181,7 @@ type TranslationJobSetupInputCandidateReadModel struct {
 	SourceKind   string
 	RecordCount  int
 	RegisteredAt time.Time
+	ExistingJob  *TranslationJobSetupExistingJobReadModel
 }
 
 // TranslationJobSetupExistingJobReadModel summarizes one already prepared job.
@@ -318,6 +326,10 @@ type translationJobSetupExistingJobLoader interface {
 	GetExistingTranslationJob(ctx context.Context, xEditID int64) (repository.TranslationJob, error)
 }
 
+type translationJobSetupInputDeleteRepository interface {
+	DeleteXEditExtractedDataByID(ctx context.Context, id int64) error
+}
+
 type translationJobSetupMasterDictionaryRepository interface {
 	List(ctx context.Context, query MasterDictionaryQuery) (MasterDictionaryListResult, error)
 }
@@ -425,6 +437,93 @@ func (service *TranslationJobSetupService) ReadOptions(ctx context.Context) (Tra
 		return TranslationJobSetupOptionsReadModel{}, err
 	}
 	return cloneTranslationJobSetupOptionsReadModel(readModel), nil
+}
+
+// DeleteInputSource deletes one unreferenced input by removing the parent row.
+func (service *TranslationJobSetupService) DeleteInputSource(
+	ctx context.Context,
+	inputSourceID int64,
+) (TranslationJobSetupDeleteInputDecision, error) {
+	if service.transactor == nil {
+		return TranslationJobSetupDeleteInputDecision{}, fmt.Errorf("delete translation job setup input: transactor is not configured")
+	}
+	deleteRepository, ok := service.translationSourceRepo.(translationJobSetupInputDeleteRepository)
+	if !ok {
+		return TranslationJobSetupDeleteInputDecision{}, fmt.Errorf("delete translation job setup input: repository does not support delete")
+	}
+
+	var decision TranslationJobSetupDeleteInputDecision
+	err := service.transactor.WithTransaction(requestContextOrBackground(ctx), func(txCtx context.Context) error {
+		decisionResult, err := service.deleteInputSourceInTransaction(txCtx, deleteRepository, inputSourceID)
+		if err != nil {
+			return err
+		}
+		decision = decisionResult
+		return nil
+	})
+	if err != nil {
+		return TranslationJobSetupDeleteInputDecision{}, fmt.Errorf("delete translation job setup input transaction: %w", err)
+	}
+	return decision, nil
+}
+
+func (service *TranslationJobSetupService) deleteInputSourceInTransaction(
+	ctx context.Context,
+	deleteRepository translationJobSetupInputDeleteRepository,
+	inputSourceID int64,
+) (TranslationJobSetupDeleteInputDecision, error) {
+	if err := service.ensureInputSourceExists(ctx, inputSourceID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return TranslationJobSetupDeleteInputDecision{
+				ErrorKind: translationJobSetupErrorKindInputNotFound,
+			}, nil
+		}
+		return TranslationJobSetupDeleteInputDecision{}, err
+	}
+
+	blocked, err := service.isInputSourceDeleteBlocked(ctx, inputSourceID)
+	if err != nil {
+		return TranslationJobSetupDeleteInputDecision{}, err
+	}
+	if blocked {
+		return TranslationJobSetupDeleteInputDecision{
+			ErrorKind: translationJobSetupErrorKindInputDeleteBlocked,
+		}, nil
+	}
+
+	if err := deleteRepository.DeleteXEditExtractedDataByID(ctx, inputSourceID); err != nil {
+		return TranslationJobSetupDeleteInputDecision{}, fmt.Errorf("delete translation job setup input source: %w", err)
+	}
+	deletedInputSourceID := inputSourceID
+	return TranslationJobSetupDeleteInputDecision{
+		DeletedInputSourceID: &deletedInputSourceID,
+	}, nil
+}
+
+func (service *TranslationJobSetupService) ensureInputSourceExists(ctx context.Context, inputSourceID int64) error {
+	if _, err := service.translationSourceRepo.GetXEditExtractedDataByID(ctx, inputSourceID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return repository.ErrNotFound
+		}
+		return fmt.Errorf("load translation job setup input delete target: %w", err)
+	}
+	return nil
+}
+
+func (service *TranslationJobSetupService) isInputSourceDeleteBlocked(ctx context.Context, inputSourceID int64) (bool, error) {
+	loader, ok := service.translationSourceRepo.(translationJobSetupExistingJobLoader)
+	if !ok {
+		return false, nil
+	}
+
+	existingJob, err := loader.GetExistingTranslationJob(ctx, inputSourceID)
+	if err == nil {
+		return existingJob.ID != 0, nil
+	}
+	if errors.Is(err, repository.ErrNotFound) {
+		return false, nil
+	}
+	return false, fmt.Errorf("load translation job setup input delete guard: %w", err)
 }
 
 // ListProviderModels loads one phase-specific provider model list after credential gating.
@@ -942,7 +1041,7 @@ func (service *TranslationJobSetupService) currentOptionsReadModel(
 	if translationJobSetupOptionsOverrideExists(service.optionsReadModel) {
 		return cloneTranslationJobSetupOptionsReadModel(service.optionsReadModel), nil
 	}
-	inputCandidates, err := service.loadTranslationInputCandidates(ctx)
+	inputCandidates, existingJob, err := service.loadTranslationInputCandidates(ctx)
 	if err != nil {
 		return TranslationJobSetupOptionsReadModel{}, err
 	}
@@ -951,10 +1050,6 @@ func (service *TranslationJobSetupService) currentOptionsReadModel(
 		return TranslationJobSetupOptionsReadModel{}, err
 	}
 	sharedPersonas, err := service.loadSharedPersonaOptions(ctx)
-	if err != nil {
-		return TranslationJobSetupOptionsReadModel{}, err
-	}
-	existingJob, err := service.loadExistingJobReadModel(ctx, inputCandidates)
 	if err != nil {
 		return TranslationJobSetupOptionsReadModel{}, err
 	}
@@ -970,45 +1065,30 @@ func (service *TranslationJobSetupService) currentOptionsReadModel(
 	}, nil
 }
 
-func (service *TranslationJobSetupService) loadExistingJobReadModel(
-	ctx context.Context,
-	inputCandidates []TranslationJobSetupInputCandidateReadModel,
-) (*TranslationJobSetupExistingJobReadModel, error) {
-	loader, ok := service.translationSourceRepo.(translationJobSetupExistingJobLoader)
-	if !ok {
-		return nil, nil
-	}
-	for _, inputCandidate := range inputCandidates {
-		job, err := loader.GetExistingTranslationJob(ctx, inputCandidate.ID)
-		if err != nil {
-			if errors.Is(err, repository.ErrNotFound) {
-				continue
-			}
-			return nil, fmt.Errorf("load existing translation job: %w", err)
-		}
-		return &TranslationJobSetupExistingJobReadModel{
-			InputSourceID: inputCandidate.ID,
-			JobID:         job.ID,
-			Status:        job.State,
-			InputSource:   translationJobSetupInputSource,
-		}, nil
-	}
-	return nil, nil
-}
-
 func (service *TranslationJobSetupService) loadTranslationInputCandidates(
 	ctx context.Context,
-) ([]TranslationJobSetupInputCandidateReadModel, error) {
+) ([]TranslationJobSetupInputCandidateReadModel, *TranslationJobSetupExistingJobReadModel, error) {
 	lister, ok := service.translationSourceRepo.(translationJobSetupTranslationSourceLister)
 	if !ok {
-		return nil, nil
+		return nil, nil, nil
 	}
 	inputs, err := lister.ListXEditExtractedData(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("list translation job setup input candidates: %w", err)
+		return nil, nil, fmt.Errorf("list translation job setup input candidates: %w", err)
 	}
 	result := make([]TranslationJobSetupInputCandidateReadModel, 0, len(inputs))
+	var existingJob *TranslationJobSetupExistingJobReadModel
 	for _, input := range inputs {
+		jobForInput, err := service.loadExistingJobForInput(ctx, input.ID)
+		if err != nil {
+			return nil, nil, err
+		}
+		if jobForInput != nil {
+			if existingJob == nil {
+				existingJob = cloneTranslationJobSetupExistingJobReadModel(jobForInput)
+			}
+			continue
+		}
 		result = append(result, TranslationJobSetupInputCandidateReadModel{
 			ID:           input.ID,
 			Label:        translationJobSetupInputCandidateLabel(input),
@@ -1017,7 +1097,30 @@ func (service *TranslationJobSetupService) loadTranslationInputCandidates(
 			RegisteredAt: input.ImportedAt,
 		})
 	}
-	return result, nil
+	return result, existingJob, nil
+}
+
+func (service *TranslationJobSetupService) loadExistingJobForInput(
+	ctx context.Context,
+	inputSourceID int64,
+) (*TranslationJobSetupExistingJobReadModel, error) {
+	loader, ok := service.translationSourceRepo.(translationJobSetupExistingJobLoader)
+	if !ok {
+		return nil, nil
+	}
+	job, err := loader.GetExistingTranslationJob(ctx, inputSourceID)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			return nil, nil
+		}
+		return nil, fmt.Errorf("load existing translation job: %w", err)
+	}
+	return &TranslationJobSetupExistingJobReadModel{
+		InputSourceID: inputSourceID,
+		JobID:         job.ID,
+		Status:        job.State,
+		InputSource:   translationJobSetupInputSource,
+	}, nil
 }
 
 func translationJobSetupInputCandidateLabel(input repository.XEditExtractedData) string {
@@ -1343,8 +1446,14 @@ func translationJobSetupOptionsOverrideExists(readModel TranslationJobSetupOptio
 }
 
 func cloneTranslationJobSetupOptionsReadModel(readModel TranslationJobSetupOptionsReadModel) TranslationJobSetupOptionsReadModel {
+	inputCandidates := make([]TranslationJobSetupInputCandidateReadModel, 0, len(readModel.InputCandidates))
+	for _, candidate := range readModel.InputCandidates {
+		clonedCandidate := candidate
+		clonedCandidate.ExistingJob = cloneTranslationJobSetupExistingJobReadModel(candidate.ExistingJob)
+		inputCandidates = append(inputCandidates, clonedCandidate)
+	}
 	cloned := TranslationJobSetupOptionsReadModel{
-		InputCandidates:      append([]TranslationJobSetupInputCandidateReadModel(nil), readModel.InputCandidates...),
+		InputCandidates:      inputCandidates,
 		SharedDictionaries:   append([]TranslationJobSetupDictionaryOptionReadModel(nil), readModel.SharedDictionaries...),
 		SharedPersonas:       append([]TranslationJobSetupPersonaOptionReadModel(nil), readModel.SharedPersonas...),
 		AIRuntimeOptions:     append([]TranslationJobSetupRuntimeOptionReadModel(nil), readModel.AIRuntimeOptions...),
@@ -1357,6 +1466,16 @@ func cloneTranslationJobSetupOptionsReadModel(readModel TranslationJobSetupOptio
 		cloned.ExistingJob = &existingJob
 	}
 	return cloned
+}
+
+func cloneTranslationJobSetupExistingJobReadModel(
+	existingJob *TranslationJobSetupExistingJobReadModel,
+) *TranslationJobSetupExistingJobReadModel {
+	if existingJob == nil {
+		return nil
+	}
+	cloned := *existingJob
+	return &cloned
 }
 
 // TranslationJobSetupReadOptions returns the current read-only Job Setup page model.

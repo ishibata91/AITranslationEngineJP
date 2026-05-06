@@ -4,6 +4,7 @@ export interface TranslationJobSetupInputCandidate {
   sourceKind: string
   registeredAt?: string
   recordCount: number
+  existingJob?: TranslationJobSetupExistingJob
 }
 
 export interface TranslationJobSetupExistingJob {
@@ -216,6 +217,19 @@ export interface CreateTranslationJobResponse {
   phaseRuntimeSummaries?: TranslationJobSetupPhaseRuntimeSummary[]
 }
 
+export interface DeleteTranslationJobSetupInputRequest {
+  inputSourceId: number
+}
+
+export type TranslationJobSetupDeleteInputErrorKind =
+  | "input_not_found"
+  | "input_delete_blocked"
+
+export interface DeleteTranslationJobSetupInputResponse {
+  deletedInputSourceId?: number
+  errorKind?: TranslationJobSetupDeleteInputErrorKind
+}
+
 export interface GetTranslationJobSetupSummaryRequest {
   jobId: number
 }
@@ -248,6 +262,7 @@ export interface TranslationJobSetupScreenState {
   phase: TranslationJobSetupScreenPhase
   options: TranslationJobSetupOptionsResponse | null
   selectedInputSourceId: number | null
+  deletingInputSourceId: number | null
   selectedRuntimeKey: string | null
   selectedCredentialRef: string
   phaseRuntimeSelections?: TranslationJobSetupPhaseRuntimeSelection[]
@@ -299,6 +314,9 @@ export interface TranslationJobSetupGatewayContract {
   createTranslationJob(
     request: CreateTranslationJobRequest
   ): Promise<CreateTranslationJobResponse>
+  deleteTranslationJobSetupInput(
+    request: DeleteTranslationJobSetupInputRequest
+  ): Promise<DeleteTranslationJobSetupInputResponse>
   getTranslationJobSetupSummary(
     request: GetTranslationJobSetupSummaryRequest
   ): Promise<TranslationJobSetupSummaryResponse>

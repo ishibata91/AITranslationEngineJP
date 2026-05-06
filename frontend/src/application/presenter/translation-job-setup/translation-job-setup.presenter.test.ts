@@ -69,6 +69,7 @@ function createState(
     phase: "ready",
     options: createOptions(),
     selectedInputSourceId: 41,
+    deletingInputSourceId: null,
     selectedRuntimeKey: "openai::gpt-5.4-mini::batch",
     selectedCredentialRef: "openai-primary",
     validationResult: createValidationResult(),
@@ -248,5 +249,19 @@ describe("TranslationJobSetupPresenter", () => {
       "同じ入力データの翻訳ジョブが既にあります。"
     )
     expect(viewModel.existingJobSummary).toContain("job #300")
+  })
+
+  test("deletingInputSourceId を viewModel へ保持する", () => {
+    const presenter = new TranslationJobSetupPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        deletingInputSourceId: 42
+      }),
+      true
+    )
+
+    expect(viewModel.deletingInputSourceId).toBe(42)
+    expect(viewModel.isLoading).toBe(false)
   })
 })

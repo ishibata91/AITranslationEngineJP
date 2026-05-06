@@ -1,0 +1,111 @@
+reviewback_version: 1
+task_id: "2026-05-06-job-setup-input-cards"
+review_yaml_path: "docs/exec-plans/active/2026-05-06-job-setup-input-cards/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "未解決の権限・信頼境界 issue はない。削除対象は数値 inputSourceID に限定され、backend transaction 内で input 存在確認と既存 job 参照確認を通過した場合だけ、X_EDIT_EXTRACTED_DATA 親行をパラメータ化 SQL で削除する。secret 本体、外部 URL、file upload 経路、tenant 境界を新たに扱う差分は確認されなかった。"
+  evidence_sufficiency: "十分。実装目的、対象差分、検証証跡、削除 API 経路、SQLite repository、cascade migration、frontend 局所更新経路を確認した。広い harness 再実行は呼び出し元証跡を入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "Job Setup input 削除の UI 入口、Wails 経路、usecase、service guard、SQLite 削除 SQL、cascade reset migration、既存 job 参照 input の候補除外を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 443
+      symbol: "DeleteInputSource"
+      reason: "削除処理が transaction 内で実行され、削除 repository 未対応時に失敗することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 475
+      symbol: "deleteInputSourceInTransaction"
+      reason: "input 存在確認、既存 job 参照確認、親行削除の順で実行されることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 513
+      symbol: "isInputSourceDeleteBlocked"
+      reason: "TRANSLATION_JOB 参照がある input は input_delete_blocked として削除しないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1080
+      symbol: "loadTranslationInputCandidates"
+      reason: "既存 job が参照する input を候補一覧へ返さないことを確認した。"
+    - path: "internal/repository/translation_source_sqlite_repository.go"
+      line: 198
+      symbol: "deleteXEditExtractedDataByID"
+      reason: "削除 SQL が WHERE id = ? のパラメータ化 SQL であることを確認した。"
+    - path: "internal/repository/translation_source_sqlite_repository.go"
+      line: 449
+      symbol: "DeleteXEditExtractedDataByID"
+      reason: "ExecContext に数値 id を渡し、0 行削除を ErrNotFound にすることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 361
+      symbol: "DeleteTranslationJobSetupInput"
+      reason: "Wails 境界で受けた inputSourceID が usecase request へ渡る経路を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 656
+      symbol: "deleteInputSource"
+      reason: "削除中の多重操作抑止、backend 応答 errorKind 処理、局所候補更新を確認した。"
+    - path: "internal/infra/sqlite/migrations/014_canonical_er_cascade_reset.sql"
+      line: 50
+      symbol: "TRANSLATION_RECORD"
+      reason: "X_EDIT_EXTRACTED_DATA 子孫の主要 FK に ON DELETE CASCADE が設定されることを確認した。"
+    - path: "internal/infra/sqlite/migrations/014_canonical_er_cascade_reset.sql"
+      line: 121
+      symbol: "TRANSLATION_JOB"
+      reason: "TRANSLATION_JOB が X_EDIT_EXTRACTED_DATA へ ON DELETE CASCADE で接続されることを確認した。"
+    - path: "internal/infra/sqlite/dbinit/dbinit.go"
+      line: 177
+      symbol: "shouldApplyMigration"
+      reason: "cascade reset migration の適用判定が固定名の migration に限定されることを確認した。"
+
+unchecked_scope:
+  - target: "実行環境での harness 再実行"
+    reason: "呼び出し元制約により、広い harness 再実行は不要と指定されたため。"
+    risk: "レビュー時点では、渡された frontend-local、backend-local、all、system test、coverage、Sonar issues の証跡を信頼する。"
+  - target: "Wails runtime 外からの直接 binding 呼び出し制限"
+    reason: "対象差分は Wails controller 以降の input 削除境界であり、runtime の呼び出し元認証機構は変更対象外だったため。"
+    risk: "同一ローカルアプリ実行者が binding を呼べる前提は残るが、backend 側の削除 guard と SQL 境界は確認済みである。"
+  - target: "secret store 内部実装"
+    reason: "対象差分は input 候補表示と削除であり、secret 本体の保存、送信、ログ出力を変更していないため。"
+    risk: "既存 credentialRef 表示は対象外として残る。新規削除経路から secret 本体へ到達する経路は確認されなかった。"
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "not_required"
+  reason: "未解決 issue がないため、局所修正は不要である。"
+
+invariant_test_focus:
+  - "既存 job が参照する inputSourceID を指定した削除が input_delete_blocked を返し、親行削除を呼ばないこと。"
+  - "未参照 inputSourceID の削除が X_EDIT_EXTRACTED_DATA 親行削除だけを呼び、子行削除は DB cascade へ任せること。"
+  - "削除 SQL が id parameter だけを使い、外部入力を SQL 文字列へ連結しないこと。"
+
+validation_evidence:
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    detail: "57 files / 490 tests passed"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    detail: "backend-local pass"
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "pass"
+    detail: "all pass"
+  - command: "system test"
+    result: "pass"
+    detail: "9 tests passed"
+  - command: "coverage"
+    result: "pass"
+    detail: "Sonar coverage 70.5%, line 71.3%, branch 63.9%"
+  - command: "Sonar issues"
+    result: "pass"
+    detail: "security 0, reliability 0, maintainability HIGH 0"
+
+residual_risk:
+  - "Wails local app の同一実行者権限内操作は、認証・認可境界としては新規に分離されていない。対象差分はローカル操作を前提に backend guard を置いている。"
+  - "review YAML の指定名は依頼文では reviewback.trust_boundary.yaml だったが、agent/skill の正本名と書き換え許可範囲に合わせて reviewback.trust-boundary.yaml へ記録した。"

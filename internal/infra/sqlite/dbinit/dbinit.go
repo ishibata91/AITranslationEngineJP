@@ -21,10 +21,11 @@ import (
 )
 
 const (
-	sqliteDriverName                = "sqlite"
-	masterDictionaryTimestampLayout = time.RFC3339Nano
-	countAllMasterDictionaryEntries = `SELECT COUNT(*) FROM DICTIONARY_ENTRY WHERE dictionary_lifecycle = 'master';`
-	insertMasterDictionaryEntry     = `
+	sqliteDriverName                 = "sqlite"
+	masterDictionaryTimestampLayout  = time.RFC3339Nano
+	canonicalERCascadeResetMigration = "migrations/014_canonical_er_cascade_reset.sql"
+	countAllMasterDictionaryEntries  = `SELECT COUNT(*) FROM DICTIONARY_ENTRY WHERE dictionary_lifecycle = 'master';`
+	insertMasterDictionaryEntry      = `
 INSERT INTO DICTIONARY_ENTRY (
   dictionary_lifecycle,
   dictionary_scope,
@@ -149,6 +150,13 @@ func applyMigrations(ctx context.Context, database *sqlx.DB) error {
 	sort.Strings(files)
 
 	for _, migrationPath := range files {
+		shouldApply, err := shouldApplyMigration(ctx, database, migrationPath)
+		if err != nil {
+			return err
+		}
+		if !shouldApply {
+			continue
+		}
 		migrationSQL, err := fs.ReadFile(migrationFiles, migrationPath)
 		if err != nil {
 			return fmt.Errorf("read sqlite migration %s: %w", migrationPath, err)
@@ -166,6 +174,17 @@ func applyMigrations(ctx context.Context, database *sqlx.DB) error {
 	return nil
 }
 
+func shouldApplyMigration(ctx context.Context, database *sqlx.DB, migrationPath string) (bool, error) {
+	if migrationPath != canonicalERCascadeResetMigration {
+		return true, nil
+	}
+	needsReset, err := needsCanonicalERCascadeReset(ctx, database)
+	if err != nil {
+		return false, fmt.Errorf("inspect sqlite migration %s applicability: %w", migrationPath, err)
+	}
+	return needsReset, nil
+}
+
 func shouldIgnoreMigrationError(migrationPath string, err error) bool {
 	switch migrationPath {
 	case "migrations/005_translation_input_source_hash.sql",
@@ -176,6 +195,103 @@ func shouldIgnoreMigrationError(migrationPath string, err error) bool {
 	default:
 		return false
 	}
+}
+
+func needsCanonicalERCascadeReset(ctx context.Context, database *sqlx.DB) (bool, error) {
+	hasSourceContentHash, err := sqliteTableHasColumn(ctx, database, "X_EDIT_EXTRACTED_DATA", "source_content_hash")
+	if err != nil {
+		return false, err
+	}
+	if !hasSourceContentHash {
+		return true, nil
+	}
+
+	requiredCascadeKeys := []struct {
+		table  string
+		column string
+	}{
+		{table: "TRANSLATION_RECORD", column: "x_edit_extracted_data_id"},
+		{table: "TRANSLATION_JOB", column: "x_edit_extracted_data_id"},
+		{table: "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT", column: "translation_job_id"},
+	}
+	for _, key := range requiredCascadeKeys {
+		hasCascade, err := sqliteForeignKeyHasOnDelete(ctx, database, key.table, key.column, "CASCADE")
+		if err != nil {
+			return false, err
+		}
+		if !hasCascade {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func sqliteTableHasColumn(ctx context.Context, database *sqlx.DB, tableName string, columnName string) (bool, error) {
+	query := fmt.Sprintf("PRAGMA table_info(%s)", tableName)
+	rows, err := database.QueryContext(ctx, query)
+	if err != nil {
+		return false, fmt.Errorf("query sqlite table info for %s: %w", tableName, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var (
+			cid          int
+			name         string
+			columnType   string
+			notNull      int
+			defaultValue any
+			primaryKey   int
+		)
+		if err := rows.Scan(&cid, &name, &columnType, &notNull, &defaultValue, &primaryKey); err != nil {
+			return false, fmt.Errorf("scan sqlite table info for %s: %w", tableName, err)
+		}
+		if name == columnName {
+			return true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("iterate sqlite table info for %s: %w", tableName, err)
+	}
+	return false, nil
+}
+
+func sqliteForeignKeyHasOnDelete(
+	ctx context.Context,
+	database *sqlx.DB,
+	tableName string,
+	columnName string,
+	onDeleteAction string,
+) (bool, error) {
+	query := fmt.Sprintf("PRAGMA foreign_key_list(%s)", tableName)
+	rows, err := database.QueryContext(ctx, query)
+	if err != nil {
+		return false, fmt.Errorf("query sqlite foreign key list for %s: %w", tableName, err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	for rows.Next() {
+		var (
+			id       int
+			seq      int
+			refTable string
+			from     string
+			to       string
+			onUpdate string
+			onDelete string
+			match    string
+		)
+		if err := rows.Scan(&id, &seq, &refTable, &from, &to, &onUpdate, &onDelete, &match); err != nil {
+			return false, fmt.Errorf("scan sqlite foreign key list for %s: %w", tableName, err)
+		}
+		if from == columnName && strings.EqualFold(onDelete, onDeleteAction) {
+			return true, nil
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return false, fmt.Errorf("iterate sqlite foreign key list for %s: %w", tableName, err)
+	}
+	return false, nil
 }
 
 func seedMasterDictionaryEntries(

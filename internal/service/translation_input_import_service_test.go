@@ -220,6 +220,10 @@ func (stub *translationInputRepositoryStub) GetXEditExtractedDataByID(context.Co
 	panic("unexpected GetXEditExtractedDataByID call")
 }
 
+func (stub *translationInputRepositoryStub) DeleteXEditExtractedDataByID(context.Context, int64) error {
+	panic("unexpected DeleteXEditExtractedDataByID call")
+}
+
 func (stub *translationInputRepositoryStub) CreateTranslationRecord(_ context.Context, draft repository.TranslationRecordDraft) (repository.TranslationRecord, error) {
 	stub.recordDrafts = append(stub.recordDrafts, draft)
 	return repository.TranslationRecord{

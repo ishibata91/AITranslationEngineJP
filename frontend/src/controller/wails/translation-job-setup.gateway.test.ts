@@ -3,6 +3,7 @@ import { afterEach, describe, expect, test, vi } from "vitest"
 import type {
   CreateTranslationJobRequestDto,
   CreateTranslationJobResponseDto,
+  DeleteTranslationJobSetupInputResponseDto,
   GetTranslationJobSetupOptionsResponseDto,
   GetTranslationJobSetupSummaryRequestDto,
   GetTranslationJobSetupSummaryResponseDto,
@@ -162,14 +163,16 @@ describe("createTranslationJobSetupGateway", () => {
 
     const gateway = createTranslationJobSetupGateway()
 
-    await expect(gateway.validateTranslationJobSetup(request)).resolves.toEqual({
-      status: "pass",
-      blockingFailureCategory: undefined,
-      targetSlices: [],
-      validatedAt: "2026-05-03T06:58:30Z",
-      canCreate: true,
-      passSlices: []
-    })
+    await expect(gateway.validateTranslationJobSetup(request)).resolves.toEqual(
+      {
+        status: "pass",
+        blockingFailureCategory: undefined,
+        targetSlices: [],
+        validatedAt: "2026-05-03T06:58:30Z",
+        canCreate: true,
+        passSlices: []
+      }
+    )
   })
 
   test("createTranslationJob は create request と rejected or ready response をそのまま流す", async () => {
@@ -249,6 +252,33 @@ describe("createTranslationJobSetupGateway", () => {
     ).resolves.toEqual(response)
     expect(getTranslationJobSetupSummary).toHaveBeenCalledTimes(1)
     expect(getTranslationJobSetupSummary).toHaveBeenCalledWith(request)
+  })
+
+  test("deleteTranslationJobSetupInput は delete request を binding へ渡し response を返す", async () => {
+    const response: DeleteTranslationJobSetupInputResponseDto = {
+      deletedInputSourceId: 41
+    }
+    const deleteTranslationJobSetupInput = vi.fn(() =>
+      Promise.resolve(response)
+    )
+
+    installGo({
+      wails: {
+        TranslationJobSetupController: {
+          DeleteTranslationJobSetupInput: deleteTranslationJobSetupInput
+        }
+      }
+    })
+
+    const gateway = createTranslationJobSetupGateway()
+
+    await expect(
+      gateway.deleteTranslationJobSetupInput({ inputSourceId: 41 })
+    ).resolves.toEqual(response)
+    expect(deleteTranslationJobSetupInput).toHaveBeenCalledTimes(1)
+    expect(deleteTranslationJobSetupInput).toHaveBeenCalledWith({
+      inputSourceId: 41
+    })
   })
 
   test("listTranslationJobSetupProviderModels は Wails binding を呼び response を返す", async () => {

@@ -13,6 +13,7 @@ type TranslationJobSetupUsecasePort interface {
 	GetTranslationJobSetupOptions(ctx context.Context) (usecase.TranslationJobSetupOptionsResult, error)
 	ValidateTranslationJobSetup(ctx context.Context, request usecase.ValidateTranslationJobSetupRequest) (usecase.TranslationJobSetupValidationResult, error)
 	CreateTranslationJob(ctx context.Context, request usecase.CreateTranslationJobRequest) (usecase.CreateTranslationJobResult, error)
+	DeleteTranslationJobSetupInput(ctx context.Context, request usecase.DeleteTranslationJobSetupInputRequest) (usecase.DeleteTranslationJobSetupInputResult, error)
 	GetTranslationJobSetupSummary(ctx context.Context, request usecase.GetTranslationJobSetupSummaryRequest) (usecase.TranslationJobSetupSummaryResult, error)
 }
 
@@ -31,11 +32,12 @@ type TranslationJobSetupController struct {
 
 // TranslationJobSetupInputCandidateDTO is one selectable translation input candidate.
 type TranslationJobSetupInputCandidateDTO struct {
-	ID           int64  `json:"id"`
-	Label        string `json:"label"`
-	SourceKind   string `json:"sourceKind"`
-	RecordCount  int    `json:"recordCount"`
-	RegisteredAt string `json:"registeredAt"`
+	ID           int64                              `json:"id"`
+	Label        string                             `json:"label"`
+	SourceKind   string                             `json:"sourceKind"`
+	RecordCount  int                                `json:"recordCount"`
+	RegisteredAt string                             `json:"registeredAt"`
+	ExistingJob  *TranslationJobSetupExistingJobDTO `json:"existingJob,omitempty"`
 }
 
 // TranslationJobSetupExistingJobDTO summarizes one already prepared job.
@@ -225,6 +227,17 @@ type CreateTranslationJobResponseDTO struct {
 	PhaseRuntimeSummaries []TranslationJobSetupPhaseRuntimeSummaryDTO `json:"phaseRuntimeSummaries"`
 }
 
+// DeleteTranslationJobSetupInputRequestDTO identifies one Job Setup input delete target.
+type DeleteTranslationJobSetupInputRequestDTO struct {
+	InputSourceID int64 `json:"inputSourceId"`
+}
+
+// DeleteTranslationJobSetupInputResponseDTO returns one input delete outcome.
+type DeleteTranslationJobSetupInputResponseDTO struct {
+	DeletedInputSourceID *int64 `json:"deletedInputSourceId,omitempty"`
+	ErrorKind            string `json:"errorKind,omitempty"`
+}
+
 // GetTranslationJobSetupSummaryRequestDTO identifies the requested created job.
 type GetTranslationJobSetupSummaryRequestDTO struct {
 	JobID int64 `json:"jobId"`
@@ -345,6 +358,20 @@ func (controller *TranslationJobSetupController) CreateTranslationJob(
 	return toCreateTranslationJobResponseDTO(result), nil
 }
 
+// DeleteTranslationJobSetupInput deletes one unreferenced input candidate.
+func (controller *TranslationJobSetupController) DeleteTranslationJobSetupInput(
+	request DeleteTranslationJobSetupInputRequestDTO,
+) (DeleteTranslationJobSetupInputResponseDTO, error) {
+	result, err := controller.translationJobSetupUsecase.DeleteTranslationJobSetupInput(
+		context.Background(),
+		usecase.DeleteTranslationJobSetupInputRequest{InputSourceID: request.InputSourceID},
+	)
+	if err != nil {
+		return DeleteTranslationJobSetupInputResponseDTO{}, fmt.Errorf("delete translation job setup input: %w", err)
+	}
+	return toDeleteTranslationJobSetupInputResponseDTO(result), nil
+}
+
 // GetTranslationJobSetupSummary returns the frozen read-only job summary.
 func (controller *TranslationJobSetupController) GetTranslationJobSetupSummary(
 	request GetTranslationJobSetupSummaryRequestDTO,
@@ -379,15 +406,33 @@ func toTranslationJobSetupOptionsResponseDTO(result usecase.TranslationJobSetupO
 func toTranslationJobSetupInputCandidateDTOs(candidates []usecase.TranslationJobSetupInputCandidate) []TranslationJobSetupInputCandidateDTO {
 	results := make([]TranslationJobSetupInputCandidateDTO, 0, len(candidates))
 	for _, candidate := range candidates {
-		results = append(results, TranslationJobSetupInputCandidateDTO{
+		dto := TranslationJobSetupInputCandidateDTO{
 			ID:           candidate.ID,
 			Label:        candidate.Label,
 			SourceKind:   candidate.SourceKind,
 			RecordCount:  candidate.RecordCount,
 			RegisteredAt: candidate.RegisteredAt.UTC().Format(time.RFC3339),
-		})
+		}
+		if candidate.ExistingJob != nil {
+			existingJob := toTranslationJobSetupExistingJobDTO(*candidate.ExistingJob)
+			dto.ExistingJob = &existingJob
+		}
+		results = append(results, dto)
 	}
 	return results
+}
+
+func toDeleteTranslationJobSetupInputResponseDTO(
+	result usecase.DeleteTranslationJobSetupInputResult,
+) DeleteTranslationJobSetupInputResponseDTO {
+	response := DeleteTranslationJobSetupInputResponseDTO{
+		ErrorKind: string(result.ErrorKind),
+	}
+	if result.DeletedInputSourceID != nil {
+		deletedInputSourceID := *result.DeletedInputSourceID
+		response.DeletedInputSourceID = &deletedInputSourceID
+	}
+	return response
 }
 
 func toTranslationJobSetupExistingJobDTO(existingJob usecase.TranslationJobSetupExistingJob) TranslationJobSetupExistingJobDTO {

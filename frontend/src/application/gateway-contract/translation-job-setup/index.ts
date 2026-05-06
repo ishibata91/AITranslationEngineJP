@@ -1,6 +1,8 @@
 export type {
   CreateTranslationJobRequest,
   CreateTranslationJobResponse,
+  DeleteTranslationJobSetupInputRequest,
+  DeleteTranslationJobSetupInputResponse,
   GetTranslationJobSetupSummaryRequest,
   ListTranslationJobSetupProviderModelsRequest,
   ListTranslationJobSetupProviderModelsResponse,

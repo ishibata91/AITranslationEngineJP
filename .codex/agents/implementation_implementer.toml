@@ -1,7 +1,7 @@
 name = "implementation_implementer"
 description = "Codex プロダクト実装 agent。詳細は引き継ぎの重点種別に対応する implement-* skill を読む。"
 
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
