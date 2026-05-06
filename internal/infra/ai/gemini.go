@@ -56,6 +56,19 @@ func (provider geminiProvider) Generate(
 	}, nil
 }
 
+func (provider geminiProvider) ListModels(
+	ctx context.Context,
+	apiKey string,
+	endpointSummary string,
+) ([]ProviderModelOption, error) {
+	return listGeminiModels(
+		ctx,
+		provider.transport,
+		normalizeBaseURL(endpointSummary, geminiDefaultBaseURL),
+		apiKey,
+	)
+}
+
 type geminiGenerateRequest struct {
 	Contents []geminiContent `json:"contents"`
 }

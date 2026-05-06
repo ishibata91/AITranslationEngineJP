@@ -83,6 +83,41 @@ func (store fakeTranslationJobSetupSecretStore) Load(ctx context.Context, key st
 	return store.load(ctx, key)
 }
 
+type fakeTranslationJobSetupProviderSettingsConsumer struct {
+	listProviderSettings          func(context.Context) (ProviderSettingsRoute, []ProviderSettingsSummary, error)
+	listProviderModels            func(context.Context, ProviderSettingsModelListInput) (ProviderSettingsModelListResult, error)
+	resolveProviderExecutionInput func(context.Context, ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error)
+}
+
+func (consumer fakeTranslationJobSetupProviderSettingsConsumer) ListProviderSettings(
+	ctx context.Context,
+) (ProviderSettingsRoute, []ProviderSettingsSummary, error) {
+	if consumer.listProviderSettings == nil {
+		return ProviderSettingsRoute{}, nil, nil
+	}
+	return consumer.listProviderSettings(ctx)
+}
+
+func (consumer fakeTranslationJobSetupProviderSettingsConsumer) ListProviderModels(
+	ctx context.Context,
+	input ProviderSettingsModelListInput,
+) (ProviderSettingsModelListResult, error) {
+	if consumer.listProviderModels == nil {
+		return ProviderSettingsModelListResult{}, nil
+	}
+	return consumer.listProviderModels(ctx, input)
+}
+
+func (consumer fakeTranslationJobSetupProviderSettingsConsumer) ResolveProviderExecutionSettings(
+	ctx context.Context,
+	input ProviderSettingsResolveInput,
+) (ProviderSettingsResolveResult, error) {
+	if consumer.resolveProviderExecutionInput == nil {
+		return ProviderSettingsResolveResult{}, nil
+	}
+	return consumer.resolveProviderExecutionInput(ctx, input)
+}
+
 type fakeTranslationJobSetupTransactor struct{}
 
 func (fakeTranslationJobSetupTransactor) WithTransaction(ctx context.Context, callback func(context.Context) error) error {
@@ -486,6 +521,88 @@ func TestTJSPPS008TranslationJobSetupServiceProviderSettingsExposeNoSecretAndUse
 	}
 	if strings.Contains(fmt.Sprintf("%#v", result), translationJobSetupProviderSettingsPlainSecret) {
 		t.Fatalf("SCN-TJSPPS-008: provider model result must not expose secret, got %#v", result)
+	}
+}
+
+func TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential(t *testing.T) {
+	providerSettingsModelListCalls := []ProviderSettingsModelListInput{}
+	service := NewPersistentTranslationJobSetupService(
+		&fakeTranslationJobSetupJobLifecycleRepository{},
+		fakeTranslationJobSetupSourceRepository{},
+		fakeTranslationJobSetupDictionaryRepository{},
+		fakeTranslationJobSetupPersonaRepository{},
+		nil,
+		fakeTranslationJobSetupSecretStore{
+			load: func(context.Context, string) (string, error) {
+				t.Fatal("expected secret load to be skipped when provider settings handles test-safe model list")
+				return "", nil
+			},
+		},
+		fakeTranslationJobSetupTransactor{},
+		WithTranslationJobSetupProviderSettings(
+			fakeTranslationJobSetupProviderSettingsConsumer{
+				listProviderSettings: func(context.Context) (ProviderSettingsRoute, []ProviderSettingsSummary, error) {
+					return ProviderSettingsRoute{}, []ProviderSettingsSummary{
+						{
+							ProviderID:            "gemini",
+							Label:                 "Gemini",
+							Endpoint:              nil,
+							CredentialState:       "missing",
+							CredentialReferenceID: nil,
+							ValidationState:       "not_validated",
+							SavedState:            "partial",
+							RequestToken:          stringPointer("gemini|test-safe"),
+							LastFailureKind:       nil,
+						},
+					}, nil
+				},
+				listProviderModels: func(_ context.Context, input ProviderSettingsModelListInput) (ProviderSettingsModelListResult, error) {
+					providerSettingsModelListCalls = append(providerSettingsModelListCalls, input)
+					return ProviderSettingsModelListResult{
+						ProviderID:      "gemini",
+						Endpoint:        nil,
+						CredentialState: "not_required",
+						RequestToken:    "gemini|test-safe",
+						State:           "ready",
+						Models: []ProviderSettingsModelOption{
+							{ModelID: "gemini-test-safe", Label: "Gemini Test Safe"},
+						},
+						FailureKind: nil,
+					}, nil
+				},
+				resolveProviderExecutionInput: func(context.Context, ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
+					return ProviderSettingsResolveResult{}, nil
+				},
+			},
+		),
+	)
+
+	result, err := service.ListProviderModels(context.Background(), ListTranslationJobSetupProviderModelsRequest{
+		PhaseID:          "word_translation",
+		Provider:         "gemini",
+		CredentialRef:    "gemini-primary",
+		CredentialStatus: "missing",
+		RequestToken:     "ui-req-1",
+	})
+	if err != nil {
+		t.Fatalf("expected provider settings test-safe model list success: %v", err)
+	}
+	if result.Status != "success" {
+		t.Fatalf("expected success status via provider settings test-safe model list, got %#v", result)
+	}
+	if result.CredentialStatus != "not_required" {
+		t.Fatalf("expected credential status to switch to not_required via provider settings test-safe model list, got %#v", result)
+	}
+	if len(result.Models) != 1 || result.Models[0].ModelID != "gemini-test-safe" {
+		t.Fatalf("expected model list response via provider settings test-safe model list, got %#v", result.Models)
+	}
+	if len(providerSettingsModelListCalls) != 1 {
+		t.Fatalf("expected one provider settings model list call, got %#v", providerSettingsModelListCalls)
+	}
+	if providerSettingsModelListCalls[0].CredentialState != "missing" ||
+		providerSettingsModelListCalls[0].CredentialReferenceID != nil ||
+		providerSettingsModelListCalls[0].Endpoint != nil {
+		t.Fatalf("expected provider settings input to preserve missing snapshot, got %#v", providerSettingsModelListCalls[0])
 	}
 }
 

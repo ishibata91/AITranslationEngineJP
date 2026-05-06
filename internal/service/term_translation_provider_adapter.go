@@ -42,7 +42,6 @@ const (
 // TermTranslationProvider defines the provider-agnostic one-term translation port.
 type TermTranslationProvider interface {
 	TranslateTerm(ctx context.Context, request TermTranslationProviderRequest) (TermTranslationProviderResult, error)
-	TermTranslationProviderRequestsAreTestSafe() bool
 }
 
 // TermTranslationProviderClientResponse defines the lower-level provider client reply shape.
@@ -200,17 +199,6 @@ func BuildTermTranslationPrompt(request TermTranslationProviderRequest) (string,
 
 type termTranslationProviderAdapter struct {
 	client any
-}
-
-func (adapter termTranslationProviderAdapter) TermTranslationProviderRequestsAreTestSafe() bool {
-	if adapter.client == nil {
-		return false
-	}
-	method := reflect.ValueOf(adapter.client).MethodByName("ProviderRequestsAreTestSafe")
-	if !method.IsValid() || method.Type().NumIn() != 0 || method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Bool {
-		return false
-	}
-	return method.Call(nil)[0].Bool()
 }
 
 func (adapter termTranslationProviderAdapter) TranslateTerm(

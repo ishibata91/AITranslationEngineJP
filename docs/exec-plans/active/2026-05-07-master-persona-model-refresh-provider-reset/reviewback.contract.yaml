@@ -1,0 +1,124 @@
+reviewback_version: 1
+task_id: "2026-05-07-master-persona-model-refresh-provider-reset"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: >
+    no_issue。対象差分は Master Persona 画面内の controller から usecase への
+    手動更新呼び分け追加に閉じている。Wails 公開 method、frontend gateway contract、
+    DTO、DB schema、provider catalog、event 入力内容の shape 変更は確認範囲にない。
+    `MasterPersonaScreenControllerContract.refreshAISettings?()` は既存の optional method
+    であり、UI 側も存在確認して呼ぶため、既存 controller 実装者へ必須 method を追加していない。
+  evidence_sufficiency: >
+    不足だが判定可能。対象 usecase 単体テストは通過している。
+    `frontend-local` は範囲外の翻訳ジョブ設定テスト型エラーで停止している。
+    fake mode 実画面での `fake-model` 選択可能状態は未確認である。
+    ただし契約・互換性判定に必要な対象差分、公開 interface、gateway contract、
+    実装入力、実装結果、回帰証跡は確認済みである。
+  contract_invariants:
+    - name: "Wails 公開 method と frontend gateway contract を変更しない"
+      status: "maintained"
+      evidence: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts:239"
+    - name: "DB schema と保存 DTO を変更しない"
+      status: "maintained"
+      evidence: "git diff --name-only 指定対象は frontend 2 file のみ"
+    - name: "Master Persona screen controller の既存公開 contract を壊さない"
+      status: "maintained"
+      evidence: "frontend/src/application/contract/master-persona/master-persona-screen-contract.ts:24"
+    - name: "初期表示の保存済み AI 設定読込契約を維持する"
+      status: "maintained"
+      evidence: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts:115"
+    - name: "手動更新では現在選択中 provider を空保存値で上書きしない"
+      status: "maintained"
+      evidence: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts:149"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "not_required"
+    reason: >
+      契約・互換性観点の未解決指摘はない。
+      追加の局所修正境界は確認されていない。
+
+validation_evidence:
+  - command: "npm --prefix frontend run test -- --run src/application/usecase/master-persona/master-persona.usecase.test.ts"
+    result: "pass"
+    details: "regression-test-evidence.md の提供証跡。review_contract では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "fail"
+    details: "translation-job-setup.usecase.test.ts:266 の範囲外型エラーで停止。regression-test-evidence.md の提供証跡。"
+  - command: "npm exec prettier -- --check src/application/usecase/master-persona/master-persona.usecase.ts src/controller/master-persona/master-persona-screen-controller.ts"
+    result: "pass"
+    details: "frontend-implementation-result.md の提供証跡。review_contract では再実行していない。"
+
+checked_scope:
+  summary: >
+    実装目的、禁止変更範囲、対象 2 ファイルの diff、公開 controller contract、
+    gateway contract、画面側 optional 呼び出し、検証証跡を確認した。
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-input.md"
+      line: 30
+      symbol: "対象変更範囲"
+      reason: "provider 維持、model option 反映、初期表示読込維持、provider 変更時の既存挙動維持を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-input.md"
+      line: 37
+      symbol: "禁止変更範囲"
+      reason: "backend、DB schema、Wails 公開 method、新規 DTO、provider catalog の変更禁止を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-result.md"
+      line: 8
+      symbol: "実装内容"
+      reason: "手動更新と初期表示読込を分離し、現在 provider と実行方法を維持した説明を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/regression-test-evidence.md"
+      line: 9
+      symbol: "実行結果"
+      reason: "対象 usecase 単体テスト通過と frontend-local 停止理由を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/investigation.md"
+      line: 145
+      symbol: "修正実行入力へ進めるか"
+      reason: "実レスポンス、DB row 不在、fakeModelDefaults の観測範囲を確認した。"
+    - path: "frontend/src/application/contract/master-persona/master-persona-screen-contract.ts"
+      line: 24
+      symbol: "MasterPersonaScreenControllerContract.refreshAISettings"
+      reason: "更新 method が optional contract のままで、既存 controller 実装者を必須追加で壊さないことを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 95
+      symbol: "refreshAISettings"
+      reason: "画面側が optional method の存在確認後に呼ぶ契約を維持していることを確認した。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 38
+      symbol: "MasterPersonaUseCaseLike"
+      reason: "追加 method は controller 内部依存 interface であり、外部公開 contract ではないことを確認した。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 211
+      symbol: "refreshAISettings"
+      reason: "画面更新導線が usecase の手動更新 method へ接続されていることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 115
+      symbol: "loadAISettings"
+      reason: "初期表示の保存済み設定読込が既存 method のまま残っていることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 149
+      symbol: "refreshAISettings"
+      reason: "手動更新が既存 gateway method を再利用し、返却 model だけを選択肢へ反映することを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 239
+      symbol: "MasterPersonaGatewayContract"
+      reason: "gateway の公開 method と request / response shape が変更されていないことを確認した。"
+
+unchecked_scope:
+  - target: "fake mode が有効な Wails 実画面"
+    reason: "regression-test-evidence.md で未確認と記録されている。review_contract は実画面再操作を担当しない。"
+    risk: "fake mode 環境で `fake-model` が画面上で選択できるかは、契約ではなく実画面挙動の残留リスクとして残る。"
+  - target: "frontend-local 全体通過"
+    reason: "範囲外の翻訳ジョブ設定テスト型エラーで停止している。"
+    risk: "対象外型エラーが解消されるまで、frontend 全体の型互換性は最終確認されていない。"
+  - target: "provider reset の人間観測そのものの再現"
+    reason: "regression-test-evidence.md で現行ローカル UI では再現しなかったと記録されている。"
+    risk: "人間観測の再現条件が別環境に残る可能性はある。対象差分の公開契約互換性判定には影響しない。"
+
+issues: []

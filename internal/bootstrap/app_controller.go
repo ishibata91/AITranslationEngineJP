@@ -100,7 +100,7 @@ func newAppControllerWithSeeds(
 		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
 		panic(fmt.Errorf("build provider settings cached secret store: %w", err))
 	}
-	providerModelListLoader := ai.NewProviderModelListLoader(&http.Client{Timeout: 5 * time.Second})
+	providerModelListLoader := newProviderModelListLoaderFromMasterPersonaEnv()
 	providerSettingsService := service.NewProviderSettingsService(
 		providerSettingsRepository,
 		cachedProviderSettingsSecretStore,
@@ -160,22 +160,7 @@ func newAppControllerWithSeeds(
 			foundationTransactor,
 			service.WithTranslationJobSetupProviderSettings(providerSettingsService),
 			service.WithTranslationJobSetupProviderModelListLoader(
-				service.TranslationJobSetupProviderModelListLoaderFunc(
-					func(ctx context.Context, providerID string, apiKey string) ([]service.TranslationJobSetupProviderModelOptionReadModel, error) {
-						models, err := providerModelListLoader.ListProviderModels(ctx, providerID, apiKey)
-						if err != nil {
-							return nil, fmt.Errorf("load provider model list: %w", err)
-						}
-						result := make([]service.TranslationJobSetupProviderModelOptionReadModel, 0, len(models))
-						for _, model := range models {
-							result = append(result, service.TranslationJobSetupProviderModelOptionReadModel{
-								ModelID: model.ModelID,
-								Label:   model.Label,
-							})
-						}
-						return result, nil
-					},
-				),
+				translationJobSetupModelListLoaderAdapter{loader: providerModelListLoader},
 			),
 		)),
 	)
@@ -311,6 +296,10 @@ type providerSettingsModelListLoaderAdapter struct {
 	loader *ai.ProviderModelListLoader
 }
 
+type translationJobSetupModelListLoaderAdapter struct {
+	loader *ai.ProviderModelListLoader
+}
+
 type providerSettingsValidatorAdapter struct {
 	validator *ai.ProviderSettingsValidator
 }
@@ -331,6 +320,28 @@ func (adapter providerSettingsModelListLoaderAdapter) ListProviderModelsWithEndp
 	result := make([]service.ProviderSettingsModelOption, 0, len(models))
 	for _, model := range models {
 		result = append(result, service.ProviderSettingsModelOption{
+			ModelID: model.ModelID,
+			Label:   model.Label,
+		})
+	}
+	return result, nil
+}
+
+func (adapter translationJobSetupModelListLoaderAdapter) ListProviderModels(
+	ctx context.Context,
+	providerID string,
+	apiKey string,
+) ([]service.TranslationJobSetupProviderModelOptionReadModel, error) {
+	if adapter.loader == nil {
+		return nil, fmt.Errorf("translation job setup model list loader is required")
+	}
+	models, err := adapter.loader.ListProviderModels(ctx, providerID, apiKey)
+	if err != nil {
+		return nil, fmt.Errorf("load translation job setup provider models: %w", err)
+	}
+	result := make([]service.TranslationJobSetupProviderModelOptionReadModel, 0, len(models))
+	for _, model := range models {
+		result = append(result, service.TranslationJobSetupProviderModelOptionReadModel{
 			ModelID: model.ModelID,
 			Label:   model.Label,
 		})
@@ -373,10 +384,6 @@ func (generator masterPersonaBodyGenerator) GenerateMasterPersonaBody(
 	return response.Text, nil
 }
 
-func (generator masterPersonaBodyGenerator) MasterPersonaProviderRequestsAreTestSafe() bool {
-	return generator.client.ProviderRequestsAreTestSafe()
-}
-
 const (
 	masterPersonaAIModeEnv          = "AITRANSLATIONENGINEJP_MASTER_PERSONA_AI_MODE"
 	masterPersonaAIModeReal         = "real"
@@ -417,14 +424,20 @@ func newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore(
 		}))
 	}
 	if masterPersonaAIMode() == masterPersonaAIModeFake {
-		if transport == nil {
-			transport = ai.NewTestSafeHTTPTransportWithResponse(
-				strings.TrimSpace(os.Getenv(masterPersonaFakeResponseEnv)),
-			)
-		}
-		return ai.NewProviderClient(transport, clientOptions...)
+		clientOptions = append(clientOptions, ai.WithDeterministicProviderRegistry(
+			strings.TrimSpace(os.Getenv(masterPersonaFakeResponseEnv)),
+		))
 	}
 	return ai.NewProviderClient(transport, clientOptions...)
+}
+
+func newProviderModelListLoaderFromMasterPersonaEnv() *ai.ProviderModelListLoader {
+	transport := ai.HTTPTransport(&http.Client{Timeout: 5 * time.Second})
+	options := []ai.ProviderModelListLoaderOption{}
+	if masterPersonaAIMode() == masterPersonaAIModeFake {
+		options = append(options, ai.WithProviderModelListDeterministicProviders())
+	}
+	return ai.NewProviderModelListLoader(transport, options...)
 }
 
 func masterPersonaAIMode() string {

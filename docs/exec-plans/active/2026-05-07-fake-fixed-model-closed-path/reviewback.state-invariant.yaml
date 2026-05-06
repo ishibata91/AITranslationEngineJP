@@ -1,0 +1,157 @@
+reviewback_version: 1
+task_id: "2026-05-07-fake-fixed-model-closed-path"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持されている。fake mode の model list は test-safe transport 判定に集約され、provider ID に関係なく fake-model 1 件を返す。provider settings 経由の Job Setup model list は、test-safe loader の場合だけ source token の credentialRef を空へ正規化する。validation 時も provider settings 解決結果の credentialRef が空へ正規化されるため、保存済み credentialRef がある通常 provider でも fake-model 選択は model_selection_stale にならない。通常 provider mode では test-safe 判定が false であり、保存済み credentialRef を source token と validation prefix に使う stale 判定が維持されている。"
+  evidence_sufficiency: "十分。指定成果物、既存レビューYAML、対象差分、実コード、実装結果、follow-up 結果、受領済み検証証跡を確認した。ハーネスは reviewer 規約により再実行していない。"
+
+checked_scope:
+  summary: "fake mode model list 固定、provider settings 経由 source token 正規化、validation 時 credentialRef 正規化、通常 provider mode の stale 判定維持を確認した。"
+  files:
+    - path: "internal/infra/ai/provider_models.go"
+      line: 18
+      symbol: "FakeModelID"
+      reason: "fake mode の固定 model ID が fake-model に一元化されている根拠。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 137
+      symbol: "ListProviderModels"
+      reason: "test-safe transport の場合だけ provider ID に関係なく fake-model 1 件を返す根拠。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 140
+      symbol: "ListProviderModels"
+      reason: "test-safe でない場合は通常 provider 分岐に進み、既存の provider 別 model list 経路を維持する根拠。"
+    - path: "internal/infra/ai/transport.go"
+      line: 34
+      symbol: "deterministicHTTPTransport.Do"
+      reason: "test-safe transport の /models 応答が固定応答になる根拠。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 103
+      symbol: "newAppControllerWithSeeds"
+      reason: "provider settings と Job Setup が同一 model list loader を共有する根拠。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 135
+      symbol: "newAppControllerWithSeeds"
+      reason: "fake mode の時だけ master persona settings に fake-model 既定値を注入する根拠。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 333
+      symbol: "providerSettingsModelListLoaderAdapter.ProviderModelListRequestsAreTestSafe"
+      reason: "provider settings 側へ test-safe 判定が伝播する根拠。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 359
+      symbol: "translationJobSetupModelListLoaderAdapter.ProviderModelListRequestsAreTestSafe"
+      reason: "Job Setup 側へ test-safe 判定が伝播する根拠。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 452
+      symbol: "newProviderModelListLoaderFromMasterPersonaEnv"
+      reason: "fake mode の時だけ model list loader が test-safe transport へ差し替わる根拠。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 669
+      symbol: "ProviderSettingsService.listProviderModelsLocked"
+      reason: "fake mode model list が通常 credential preflight より前に test-safe 経路へ入る根拠。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 878
+      symbol: "ProviderSettingsService.applyProviderSettingsExecutionSnapshot"
+      reason: "fake mode の実行設定解決で credentialRef を空、credential state を not_required に正規化する根拠。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 896
+      symbol: "ProviderSettingsService.ProviderModelListRequestsAreTestSafe"
+      reason: "Job Setup が provider settings 側の test-safe 状態を参照できる根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 578
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings 経由 source token 生成前に保存済み credentialRef を読む根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 579
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "test-safe loader の場合だけ source token の credentialRef を空へ正規化する根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 597
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings 応答後の source token 再生成でも同じ正規化済み credentialRef を使う根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1010
+      symbol: "TranslationJobSetupService.validatePhaseRuntime"
+      reason: "fake mode では credential_missing を通常 provider mode と分離する根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1024
+      symbol: "TranslationJobSetupService.validatePhaseRuntime"
+      reason: "validation が phase、provider、credentialRef の prefix 整合で stale を判定する根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1591
+      symbol: "TranslationJobSetupService.providerModelListRequestsAreTestSafe"
+      reason: "Job Setup が loader と provider settings の両方から test-safe 判定を得る根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1649
+      symbol: "TranslationJobSetupService.resolvePhaseRuntimeAgainstProviderSettings"
+      reason: "validation 時の credentialRef が provider settings 解決結果に置き換わる根拠。"
+    - path: "internal/service/master_persona_service.go"
+      line: 317
+      symbol: "MasterPersonaGenerationService.LoadSettings"
+      reason: "fake model defaults が有効な場合だけ settings read を fake mode 用に正規化する根拠。"
+    - path: "internal/service/master_persona_service.go"
+      line: 328
+      symbol: "MasterPersonaGenerationService.masterPersonaFakeModelSettings"
+      reason: "master persona の provider は通常 provider に正規化され、未保存 model だけ fake-model になる根拠。"
+    - path: "internal/service/master_persona_provider_transport.go"
+      line: 21
+      symbol: "masterPersonaSupportedProviderSet"
+      reason: "master persona の supported provider set に fake が追加されていない根拠。"
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/implementation-followup-result.md"
+      line: 13
+      symbol: "変更内容"
+      reason: "state-invariant-001 の修正対象と意図が記録されている根拠。"
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/implementation-followup-result.md"
+      line: 18
+      symbol: "検証結果"
+      reason: "go test、backend-local、frontend-local が通過した検証証跡。"
+
+unchecked_scope:
+  - target: "実画面での model card 表示"
+    reason: "implementation-result.md と implementation-followup-result.md に実画面確認は未実施と記録されているため。"
+    risk: "backend の状態不変条件は維持されているが、画面上の選択肢反映は別観点の確認に残る。"
+  - target: "internal/infra/ai/provider_client.go"
+    reason: "implementation-result.md には変更ファイルとして含まれるが、人間が指定した再レビュー対象差分には含まれていないため。"
+    risk: "生成実行の既存 fake provider 経路に関する状態不変条件は、本 YAML の主判定から外している。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "fake mode の model list source token が保存済み credentialRef と空 credentialRef で不一致になる"
+    problem: "解決済み。provider settings 経由で model list を取得する場合、test-safe loader の時だけ source token の credentialRef を空へ正規化するようになった。validation 時も provider settings 解決結果で credentialRef が空へ正規化されるため、保存済み credentialRef がある通常 provider でも fake mode の fake-model 選択は model_selection_stale にならない。"
+    reason: "fake mode の list 時点と validation 時点で credentialRef の正規形が一致する。通常 provider mode では test-safe 判定が false のため、保存済み credentialRef を使った stale 判定が維持される。"
+    violated_condition: "なし。修正後は、fake mode では user-facing provider ID を通常 provider のまま維持し、credential missing と model selection stale を誤判定しない不変条件を満たしている。"
+    cause_candidate: "解決前の原因候補は、provider settings 経由 source token では保存済み credentialRef を使い、fake mode の validation では credentialRef を空へ正規化していたこと。修正後は internal/service/translation_job_setup_service.go:579 で test-safe loader の場合に source token 側の credentialRef も空へ正規化される。"
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 578
+        excerpt: "provider settings 経由 source token は summary.CredentialReferenceID を読み取る。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 579
+        excerpt: "test-safe loader の場合、credentialRef を空文字へ正規化する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 597
+        excerpt: "provider settings 応答後も、同じ正規化済み credentialRef で source token を再生成する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 878
+        excerpt: "test-safe loader では ResolveProviderExecutionSettings が CredentialReferenceID を nil にし、CredentialState を not_required にする。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1024
+        excerpt: "validation は ModelListSourceToken が phase、provider、credentialRef の prefix で始まることを要求する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1591
+        excerpt: "通常 provider mode では providerModelListRequestsAreTestSafe が false になり、credentialRef を使う stale 判定が残る。"
+      - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/implementation-followup-result.md"
+        line: 18
+        excerpt: "go test、backend-local、frontend-local が通過した。"
+    local_fix_assessment: "local。translation_job_setup_service.go の source token 正規化だけで、provider settings 解決結果との不一致は閉じている。"
+    additional_check_scope: "追加の必須確認なし。残留する実画面確認は状態・データ不変条件ではなく UI 反映確認に属する。"
+    fix_considerations: "修正済み。今後の変更では、fake mode の source token と validation の credentialRef 正規形を同じ値に保ち、通常 provider mode の credentialRef を使った stale 検知を維持する必要がある。"
+    verification: "受領済み証跡では、go test ./internal/service ./internal/infra/ai ./internal/bootstrap ./internal/controller/wails、python3 scripts/harness/run.py --suite backend-local、python3 scripts/harness/run.py --suite frontend-local が通過している。"
+    fix_required: true
+    status: "resolved"

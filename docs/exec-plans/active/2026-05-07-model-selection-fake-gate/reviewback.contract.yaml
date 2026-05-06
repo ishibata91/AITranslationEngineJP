@@ -1,0 +1,73 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-selection-fake-gate"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "DTO、provider catalog、DB schema、user-facing provider list は変更されていない。test-safe loader の判定は内部 service の任意 interface と concrete method の追加に閉じており、既存呼び出し側の必須 method は増えていない。frontend は fake mode や fake-model 文字列ではなく、既存の model list 応答 status と models だけで状態更新する。"
+  evidence_sufficiency: "不足だが判定可能。対象ファイル、関連テスト、task 内検証証跡、provider ID 定数、provider catalog、DB migration 差分を確認した。広域 backend-local は internal/bootstrap の既存差分で非通過のため、全体ハーネス通過は未確認である。"
+
+checked_scope:
+  summary: "ProviderSettingsService の model list / execution resolve、TranslationJobSetupUseCase の model list refresh、関連 unit tests、provider ID 公開定数、provider catalog、変更ファイル一覧を確認した。"
+  files:
+    - path: "internal/service/provider_settings_service.go"
+      line: 66
+      symbol: "providerSettingsProviderCatalog"
+      reason: "user-facing provider catalog が gemini、lm_studio、xai のままで、fake provider ID 追加がない根拠にした。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 669
+      symbol: "ProviderSettingsService.listProviderModelsLocked"
+      reason: "test-safe loader の時だけ既存 preflight を迂回し、通常 path の DTO と status 値を維持する根拠にした。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 692
+      symbol: "ProviderSettingsService.listProviderModelsWithTestSafeLoader"
+      reason: "test-safe path が既存 result 型で ready と not_required を返し、新規 DTO を追加していない根拠にした。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 873
+      symbol: "ProviderSettingsService.applyProviderSettingsExecutionSnapshot"
+      reason: "test-safe path で credential と endpoint gate を公開 error 追加なしに解除する根拠にした。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 890
+      symbol: "ProviderSettingsService.ProviderModelListRequestsAreTestSafe"
+      reason: "追加 method が任意判定の公開 method であり、既存 interface の必須契約を変更していない根拠にした。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 829
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "credential missing でも既存 gateway request を使い、fake mode 判定や fake-model 固有分岐を追加していない根拠にした。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 888
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "単一 model 自動選択が modelId 一般条件であり、fake-model 固定値に依存しない根拠にした。"
+    - path: "internal/usecase/provider_settings_contract.go"
+      line: 11
+      symbol: "ProviderSettingsProviderID"
+      reason: "公開 provider ID 定数に fake provider が追加されていない根拠にした。"
+    - path: "internal/service/provider_settings_service_test.go"
+      line: 323
+      symbol: "TestProviderSettingsServiceListProviderModelsUsesTestSafeLoaderWithoutCredentialAndEndpoint"
+      reason: "test-safe loader の互換性追加が既存 model list result の範囲で証明されている根拠にした。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 527
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "provider settings 経由でも missing credential の入力契約を保ったまま通常 response へ写像される根拠にした。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 898
+      symbol: "TranslationJobSetupUseCase refreshPhaseModels tests"
+      reason: "frontend が fake 判定なしに backend 応答を受け取る契約を証明している根拠にした。"
+
+unchecked_scope:
+  - target: "frontend/src/application/usecase/master-persona/* と internal/service/master_persona* の dirty diff"
+    reason: "レビュー対象が model-selection-fake-gate の provider settings / translation job setup 統合修正に限定されているため。"
+    risk: "master persona 側の fake-model 固有契約は別 task の公開面として残る可能性がある。"
+  - target: "internal/infra/ai/provider_models.go と transport.go の dirty diff"
+    reason: "source_task 側の fake model loader 実装であり、今回の修正対象ファイルではないため。"
+    risk: "infra 層の FakeModelID exported constant の公開性は、source_task 側レビューで判定する必要がある。"
+  - target: "backend-local 全体ハーネス"
+    reason: "task 証跡で internal/bootstrap の master persona AI settings persistence 2 件が非通過と記録されているため。"
+    risk: "対象外 bootstrap 差分が残る状態で、repo 全体の契約回帰は未確定である。"
+
+issues: []

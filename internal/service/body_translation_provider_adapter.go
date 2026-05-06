@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"reflect"
 	"sort"
 	"strings"
 )
@@ -16,15 +15,12 @@ const (
 	BodyTranslationProviderLMStudio = "lm_studio"
 	// BodyTranslationProviderXAI defines the supported xAI provider id.
 	BodyTranslationProviderXAI = "xai"
-	// BodyTranslationProviderFake defines the supported test-only fake provider id.
-	BodyTranslationProviderFake = "fake"
 
 	bodyTranslationProviderResponseInvalidReason = "provider response is invalid"
 	bodyTranslationInvalidConfigurationReason    = "provider configuration is invalid"
 )
 
 var bodyTranslationSupportedProviderSet = map[string]struct{}{
-	BodyTranslationProviderFake:     {},
 	BodyTranslationProviderGemini:   {},
 	BodyTranslationProviderLMStudio: {},
 	BodyTranslationProviderXAI:      {},
@@ -43,7 +39,6 @@ const (
 // BodyTranslationProvider defines the provider-agnostic one-field translation port.
 type BodyTranslationProvider interface {
 	TranslateBodyField(ctx context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult
-	BodyTranslationProviderRequestsAreTestSafe() bool
 }
 
 // BodyTranslationProviderRequest defines one body translation request unit.
@@ -146,17 +141,6 @@ func BodyTranslationSupportedProviders() []string {
 
 type bodyTranslationProviderAdapter struct {
 	client any
-}
-
-func (adapter bodyTranslationProviderAdapter) BodyTranslationProviderRequestsAreTestSafe() bool {
-	if adapter.client == nil {
-		return false
-	}
-	method := reflectValueOfClientMethod(adapter.client, "ProviderRequestsAreTestSafe")
-	if !method.IsValid() || method.Type().NumIn() != 0 || method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Bool {
-		return false
-	}
-	return method.Call(nil)[0].Bool()
 }
 
 func (adapter bodyTranslationProviderAdapter) TranslateBodyField(

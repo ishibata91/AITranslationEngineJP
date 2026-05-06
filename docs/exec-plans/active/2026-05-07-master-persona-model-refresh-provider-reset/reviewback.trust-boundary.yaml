@@ -1,0 +1,66 @@
+reviewback_version: 1
+task_id: "2026-05-07-master-persona-model-refresh-provider-reset"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "権限・信頼境界の未解決 issue はない。差分はマスターペルソナ画面の AI 設定再読込経路を手動更新用に分離し、provider/model/executionMethod の画面状態だけを更新する。認証、認可、tenant isolation、secret 本体、外部 URL、SQL、file upload の新経路は追加していない。"
+  evidence_sufficiency: "不足だが判定可能。対象差分、実装目的、実装結果、検証証跡、frontend 契約、Wails gateway、backend LoadSettings の secret 空化を確認した。fake mode の実画面確認は未実施だが、secret 送信・表示・保存・ログ出力の新経路判定には直接影響しない。"
+  hard_gate: true
+
+checked_scope:
+  summary: "モデル一覧更新操作が呼ぶ frontend controller と usecase、AI 設定 DTO、Wails gateway、backend LoadSettings の secret 境界を確認した。"
+  files:
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 38
+      symbol: "MasterPersonaUseCaseLike"
+      reason: "手動更新経路に追加された refreshAISettings が、既存 usecase 境界への委譲だけであることを確認した。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 211
+      symbol: "MasterPersonaScreenController.refreshAISettings"
+      reason: "UI 操作が loadAISettings ではなく refreshAISettings を呼ぶ差分を確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 63
+      symbol: "mergeRefreshedAISettings"
+      reason: "手動更新時に currentSettings の provider と executionMethod を維持し、loadedSettings.model だけを反映する処理を確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 149
+      symbol: "MasterPersonaUseCase.refreshAISettings"
+      reason: "gateway から AI 設定を読み、store 内の provider/model/executionMethod と modelOptions だけを更新することを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 61
+      symbol: "MasterPersonaAISettings"
+      reason: "frontend 契約に secret 本体、credential_ref、token、API key が含まれないことを確認した。"
+    - path: "frontend/src/controller/wails/master-persona.gateway.ts"
+      line: 112
+      symbol: "MasterPersonaGateway.loadMasterPersonaAISettings"
+      reason: "手動更新で呼ばれる Wails gateway が request body を送らず、AI 設定 DTO を受け取るだけであることを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 312
+      symbol: "MasterPersonaGenerationService.LoadSettings"
+      reason: "backend の LoadSettings が返却時に APIKey を空文字にしており、secret 本体を frontend へ返さない境界を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-input.md"
+      line: 29
+      symbol: "禁止変更範囲"
+      reason: "backend、DB schema、Wails 公開 method、新規 DTO、fake provider ID の user-facing 追加が禁止されていたことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/regression-test-evidence.md"
+      line: 9
+      symbol: "実行結果"
+      reason: "対象 usecase 単体テストは通過し、frontend-local は範囲外型エラーで停止した検証状態を確認した。"
+
+unchecked_scope:
+  - target: "fake mode が有効な Wails 実行環境での実画面操作"
+    reason: "regression-test-evidence.md に fake-model の選択可能状態は未確認と記録されているため。"
+    risk: "画面挙動の残留リスクはあるが、secret 本体の送信、表示、保存、ログ出力に関する新経路リスクは対象差分からは確認されない。"
+  - target: "backend、DB schema、Wails 公開 method の変更差分"
+    reason: "対象差分は frontend の 2 ファイルに限定されており、禁止変更範囲にも含まれていたため。"
+    risk: "既存 backend 境界に未知の drift がある可能性は残るが、今回差分による新規越境としては扱わない。"
+  - target: "frontend-local 全体通過"
+    reason: "translation-job-setup.usecase.test.ts の範囲外型エラーで停止しているため。"
+    risk: "全体回帰の確認不足は残るが、対象 usecase 単体テストと差分読解により trust-boundary 判定は可能である。"
+
+issues: []

@@ -37,6 +37,7 @@ type ProviderModelListLoader struct {
 	openAIBaseURL   string
 	lmStudioBaseURL string
 	xaiBaseURL      string
+	providers       map[string]provider
 }
 
 // ProviderModelListLoaderOption configures optional base-URL overrides.
@@ -65,6 +66,15 @@ func WithProviderModelListXAIBaseURL(baseURL string) ProviderModelListLoaderOpti
 	return func(loader *ProviderModelListLoader) {
 		if loader != nil {
 			loader.xaiBaseURL = strings.TrimSpace(baseURL)
+		}
+	}
+}
+
+// WithProviderModelListDeterministicProviders replaces model-list providers with the deterministic fake provider.
+func WithProviderModelListDeterministicProviders() ProviderModelListLoaderOption {
+	return func(loader *ProviderModelListLoader) {
+		if loader != nil {
+			loader.providers = deterministicProviderRegistry("", false)
 		}
 	}
 }
@@ -103,14 +113,18 @@ func (loader *ProviderModelListLoader) ListProviderModelsWithEndpoint(
 		return nil, fmt.Errorf("provider model list loader is required")
 	}
 	trimmedEndpoint := strings.TrimSpace(endpoint)
-	return ListProviderModels(ctx, loader.transport, ListProviderModelsRequest{
+	request := ListProviderModelsRequest{
 		ProviderID:      providerID,
 		APIKey:          apiKey,
 		GeminiBaseURL:   firstNonEmptyProviderModelsURL(trimmedEndpoint),
 		OpenAIBaseURL:   firstNonEmptyProviderModelsURL(trimmedEndpoint, strings.TrimSpace(loader.openAIBaseURL)),
 		LMStudioBaseURL: firstNonEmptyProviderModelsURL(trimmedEndpoint, loader.lmStudioBaseURL, os.Getenv(providerModelsLMStudioBaseURLEnv)),
 		XAIBaseURL:      firstNonEmptyProviderModelsURL(trimmedEndpoint, loader.xaiBaseURL, os.Getenv(providerModelsXAIBaseURLEnv)),
-	})
+	}
+	if len(loader.providers) != 0 {
+		return listProviderModelsWithRegistry(ctx, cloneProviderRegistry(loader.providers), request)
+	}
+	return ListProviderModels(ctx, loader.transport, request)
 }
 
 // ListProviderModels loads provider models through the shared HTTP transport seam.
@@ -122,16 +136,69 @@ func ListProviderModels(
 	if transport == nil {
 		return nil, fmt.Errorf("ai provider transport is required")
 	}
+	providers := providerModelListRegistry(transport, request)
+	return listProviderModelsWithRegistry(ctx, providers, request)
+}
+
+func providerModelListRegistry(transport HTTPTransport, request ListProviderModelsRequest) map[string]provider {
+	return map[string]provider{
+		ProviderGemini: geminiProvider{transport: transport},
+		ProviderXAI: openAICompatibleProvider{
+			transport:      transport,
+			baseURL:        normalizeBaseURL(request.XAIBaseURL, xaiDefaultBaseURL),
+			apiKeyOptional: false,
+		},
+		ProviderLMStudio: openAICompatibleProvider{
+			transport:      transport,
+			baseURL:        normalizeBaseURL(request.LMStudioBaseURL, lmStudioDefaultBaseURL),
+			apiKeyOptional: true,
+		},
+		ProviderFake: deterministicProvider{},
+	}
+}
+
+func listProviderModelsWithRegistry(
+	ctx context.Context,
+	providers map[string]provider,
+	request ListProviderModelsRequest,
+) ([]ProviderModelOption, error) {
 	switch strings.ToLower(strings.TrimSpace(request.ProviderID)) {
 	case ProviderGemini:
-		return listGeminiModels(ctx, transport, normalizeBaseURL(request.GeminiBaseURL, geminiDefaultBaseURL), request.APIKey)
+		return listModelsFromProvider(ctx, providers[ProviderGemini], request.APIKey, normalizeBaseURL(request.GeminiBaseURL, geminiDefaultBaseURL))
 	case ProviderXAI:
-		return listOpenAICompatibleModels(ctx, transport, normalizeBaseURL(request.XAIBaseURL, xaiDefaultBaseURL), request.APIKey, false)
+		return listModelsFromProvider(ctx, providers[ProviderXAI], request.APIKey, normalizeBaseURL(request.XAIBaseURL, xaiDefaultBaseURL))
 	case ProviderLMStudio:
-		return listOpenAICompatibleModels(ctx, transport, normalizeBaseURL(request.LMStudioBaseURL, lmStudioDefaultBaseURL), request.APIKey, true)
+		return listModelsFromProvider(ctx, providers[ProviderLMStudio], request.APIKey, normalizeBaseURL(request.LMStudioBaseURL, lmStudioDefaultBaseURL))
 	default:
-		return listOpenAICompatibleModels(ctx, transport, normalizeBaseURL(request.OpenAIBaseURL, "https://api.openai.com/v1"), request.APIKey, false)
+		return listModelsFromProvider(ctx, openAICompatibleProvider{
+			transport:      providerModelListTransport(providers),
+			baseURL:        normalizeBaseURL(request.OpenAIBaseURL, "https://api.openai.com/v1"),
+			apiKeyOptional: false,
+		}, request.APIKey, normalizeBaseURL(request.OpenAIBaseURL, "https://api.openai.com/v1"))
 	}
+}
+
+func listModelsFromProvider(
+	ctx context.Context,
+	implementation provider,
+	apiKey string,
+	endpointSummary string,
+) ([]ProviderModelOption, error) {
+	if implementation == nil {
+		return nil, fmt.Errorf("provider model list implementation is required")
+	}
+	models, err := implementation.ListModels(ctx, apiKey, endpointSummary)
+	if err != nil {
+		return nil, fmt.Errorf("list provider models: %w", err)
+	}
+	return models, nil
+}
+
+func providerModelListTransport(providers map[string]provider) HTTPTransport {
+	if gemini, ok := providers[ProviderGemini].(geminiProvider); ok {
+		return gemini.transport
+	}
+	return nil
 }
 
 type openAICompatibleModelsResponse struct {

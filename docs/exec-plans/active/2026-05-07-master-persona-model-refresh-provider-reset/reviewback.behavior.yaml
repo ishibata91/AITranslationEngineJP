@@ -1,0 +1,76 @@
+reviewback_version: 1
+task_id: "2026-05-07-master-persona-model-refresh-provider-reset"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "実装目的に対する主要経路は一致している。モデル一覧更新操作は初期表示用の保存済み AI 設定読込から分離され、現在 UI で選択している provider と executionMethod を保持する。gateway が model を返す場合は aiSettings.model と modelOptions に反映され、保存済み空値による provider 巻き戻りは起きない。初期表示の loadAISettings と provider 変更時に model/modelOptions を空にする既存挙動も維持されている。"
+  evidence_sufficiency: "不足だが判定可能。対象 usecase 単体テストは通過している。frontend-local は対象外の translation-job-setup 型不一致で停止している。fake mode が有効な Wails 実画面で fake-model を選べることは未確認である。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘なし。挙動差分は controller の更新呼び先差し替えと usecase の手動更新 merge に局所化されている。"
+  invariant_test_viewpoints:
+    - "provider 変更後に modelOptions が空になり、手動更新後も provider が維持されること。"
+    - "gateway が model を返す手動更新後に、返却 model が modelOptions に入ること。"
+    - "gateway が provider/model 空値を返す手動更新後に、現在 provider が空値で上書きされないこと。"
+
+checked_scope:
+  summary: "人間観測、修正前調査、frontend 実装入力、frontend 実装結果、回帰テスト証跡、対象 2 ファイルの実コードを照合した。挙動正しさ観点では、モデル一覧更新操作、初期表示読込、provider 変更、gateway 返却 model 反映、失敗時復元を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/human-observation.md"
+      line: 11
+      symbol: "人間観測記録"
+      reason: "モデル一覧更新後の provider 維持と model 選択可能化が期待挙動であるため。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/investigation.md"
+      line: 25
+      symbol: "修正前調査"
+      reason: "更新操作が保存済み AI 設定読込を呼んでいた原因候補と、保存済み空値の観測を確認するため。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-input.md"
+      line: 32
+      symbol: "対象変更範囲"
+      reason: "手動更新で provider を空保存値に巻き戻さないこと、gateway の model を反映すること、既存挙動を保つことを確認するため。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-result.md"
+      line: 9
+      symbol: "実装内容"
+      reason: "実装者が返した変更意図と検証結果を確認するため。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/regression-test-evidence.md"
+      line: 10
+      symbol: "実行結果"
+      reason: "対象 usecase 単体テストの通過と frontend-local 停止理由を確認するため。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 211
+      symbol: "MasterPersonaScreenController.refreshAISettings"
+      reason: "モデル一覧更新操作が useCase.refreshAISettings を呼ぶことを確認するため。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 63
+      symbol: "mergeRefreshedAISettings"
+      reason: "手動更新時に現在 provider と executionMethod を維持し、返却 model を優先する merge になっていることを確認するため。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 149
+      symbol: "MasterPersonaUseCase.refreshAISettings"
+      reason: "gateway 返却 model の modelOptions 反映、空返却時の既存 options 維持、失敗時復元を確認するため。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 115
+      symbol: "MasterPersonaUseCase.loadAISettings"
+      reason: "初期表示の保存済み AI 設定読込が従来どおり丸ごと反映されることを確認するため。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 280
+      symbol: "MasterPersonaUseCase.setProviderSettingsProvider"
+      reason: "provider 変更時に model と modelOptions を空にする既存挙動が残っていることを確認するため。"
+
+unchecked_scope:
+  - target: "fake mode が有効な Wails 実画面での fake-model 選択"
+    reason: "回帰テスト証跡で、確認時の実行中 Wails app は provider/model 空値を返す状態だったと記録されているため。"
+    risk: "fake mode 環境だけで、返却 model が画面上の select に表示される確認が未完了である。"
+  - target: "frontend-local 全体の通過"
+    reason: "translation-job-setup.usecase.test.ts の対象外型不一致で停止したため。"
+    risk: "対象外失敗に隠れて、frontend 全体で別の回帰が残る可能性がある。"
+  - target: "人間観測の provider reset そのものの再現"
+    reason: "修正前調査と回帰テスト証跡で、現行ローカル UI では provider reset 自体は再現しなかったと記録されているため。"
+    risk: "人間環境固有の reset 条件が別に残る可能性がある。"
+
+issues: []

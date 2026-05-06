@@ -41,21 +41,6 @@ func TestMasterPersonaSupportedProvidersReturnsRealProvidersOnly(t *testing.T) {
 	}
 }
 
-func TestMasterPersonaGenerationServiceProviderRequestsAreTestSafe(t *testing.T) {
-	t.Run("test-safe generator", func(t *testing.T) {
-		service := &MasterPersonaGenerationService{bodyGenerator: &stubTestSafeMasterPersonaBodyGenerator{}}
-		if !service.providerRequestsAreTestSafe() {
-			t.Fatalf("expected test-safe generator to be test-safe")
-		}
-	})
-	t.Run("non-test-safe generator", func(t *testing.T) {
-		service := &MasterPersonaGenerationService{bodyGenerator: &stubMasterPersonaBodyGenerator{}}
-		if service.providerRequestsAreTestSafe() {
-			t.Fatalf("expected regular generator to be non-test-safe")
-		}
-	})
-}
-
 func TestMasterPersonaGenerationServiceGeneratePersonaBodyMissingGenerator(t *testing.T) {
 	service := &MasterPersonaGenerationService{}
 	_, err := service.generatePersonaBody(
@@ -244,8 +229,4 @@ func (generator *stubMasterPersonaBodyGenerator) GenerateMasterPersonaBody(
 
 type stubTestSafeMasterPersonaBodyGenerator struct {
 	stubMasterPersonaBodyGenerator
-}
-
-func (generator *stubTestSafeMasterPersonaBodyGenerator) MasterPersonaProviderRequestsAreTestSafe() bool {
-	return true
 }

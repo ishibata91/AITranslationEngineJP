@@ -217,15 +217,6 @@ func buildDeterministicBodyTranslationResponseText(requestUnitID string, fieldCo
 	return string(responseBytes), nil
 }
 
-func buildDeterministicBodyTranslationResponseFromPrompt(prompt string) (string, error) {
-	requestUnitID := extractPromptField(prompt, "request_unit_id")
-	fieldCorrelationKey := extractPromptField(prompt, "field_correlation_key")
-	if requestUnitID == "" || fieldCorrelationKey == "" {
-		return "", fmt.Errorf("body translation prompt must include request_unit_id and field_correlation_key")
-	}
-	return buildDeterministicBodyTranslationResponseText(requestUnitID, fieldCorrelationKey)
-}
-
 func buildProviderDebugLog(
 	prompt string,
 	requestBytes []byte,

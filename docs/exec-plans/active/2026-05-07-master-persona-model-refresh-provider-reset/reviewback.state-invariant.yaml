@@ -1,0 +1,75 @@
+reviewback_version: 1
+task_id: "2026-05-07-master-persona-model-refresh-provider-reset"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "解決済み。refresh 成功時は開始時 snapshot の古い provider/modelOptions を後続状態へ再投入しない。更新時点の draft.aiSettings を基準に provider と実行方法を維持し、refresh 中に provider が変わった場合は gateway が返した model と modelOptions を反映しない。"
+  evidence_sufficiency: "十分。reviewback、frontend 実装結果、対象 usecase、controller を確認し、state-invariant-001 の解決を実コード行に基づいて確認した。"
+
+checked_scope:
+  summary: "AI 設定更新操作の controller 委譲、usecase の refreshAISettings、provider 変更時の modelOptions クリア処理、state-invariant-001 follow-up 実装結果を確認した。"
+  files:
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 211
+      symbol: "MasterPersonaScreenController.refreshAISettings"
+      reason: "モデル一覧更新操作が新しい usecase 経路へ委譲されることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 149
+      symbol: "MasterPersonaUseCase.refreshAISettings"
+      reason: "手動更新時の refreshProvider、gateway 呼び出し、成功時 update、失敗時 update の状態更新を確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 163
+      symbol: "MasterPersonaUseCase.refreshAISettings"
+      reason: "成功時 update が応答時点の draft.aiSettings を基準に currentSettings と canRefreshModel を決めることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 280
+      symbol: "MasterPersonaUseCase.setProviderSettingsProvider"
+      reason: "provider 変更時に model と modelOptions を空にする既存状態遷移を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-result.md"
+      line: 31
+      symbol: "follow-up: state-invariant-001 対応"
+      reason: "state-invariant-001 対応内容と対象 usecase 単体テスト通過を確認した。"
+
+unchecked_scope:
+  - target: "fake mode が有効な Wails 実画面での fake-model 選択状態"
+    reason: "frontend 実装結果で、実画面で provider 維持と fake-model 選択可能状態の再確認は未実施と記録されている。"
+    risk: "gateway が model を返す実環境で、provider と modelOptions の組が画面上で期待どおり維持されるかは残留リスクとして残る。"
+  - target: "frontend-local 全体 harness の通過"
+    reason: "frontend 実装結果で、translation-job-setup.usecase.test.ts の範囲外型エラーにより停止したと記録されている。"
+    risk: "対象 usecase 以外の型検査を含む全体回帰は未完了である。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "refresh 中の provider 変更で古い modelOptions が再投入されうる"
+    problem: "解決済み。refreshAISettings は成功時 update で応答時点の draft.aiSettings を currentSettings として読み、開始時 snapshot の古い provider/modelOptions を後続状態へ再投入しない。"
+    reason: "refresh 開始後、gateway 応答前に user が provider を変更した場合、currentSettings.provider と refreshProvider が一致しないため canRefreshModel は false になる。そのため gateway が返した model と loadedModelOptions は反映されない。"
+    violated_condition: "モデル一覧更新操作では、現在 UI で選択している provider を保存済み空値または古い snapshot で上書きしない。provider 変更時に model と modelOptions を空にする状態遷移を後続の非同期応答で破らない。"
+    cause_candidate: "解消済み。frontend/src/application/usecase/master-persona/master-persona.usecase.ts:158 は refresh 開始時の provider だけを比較用に保持し、同ファイル:163 以降は応答時点の draft.aiSettings と provider 一致判定を使う。"
+    evidence:
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 158
+        excerpt: "refresh 開始時の provider は refreshProvider として比較用に保持される。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 163
+        excerpt: "成功時 update は draft.aiSettings から currentSettings を作る。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 165
+        excerpt: "currentSettings.provider と refreshProvider が一致する場合だけ canRefreshModel が true になる。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 174
+        excerpt: "canRefreshModel が true かつ loadedModelOptions がある場合だけ modelOptions が更新される。"
+      - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-result.md"
+        line: 39
+        excerpt: "成功時の provider と実行方法は store.update 時点の draft.aiSettings から維持すると記録されている。"
+    local_fix_assessment: "local。usecase 内の refreshAISettings 変更で閉じている。"
+    additional_check_scope: "none。指定入力内では対象 usecase 単体テスト通過と実コード上の状態更新条件を確認できた。"
+    fix_considerations: "解決確認済み。今後の変更でも、手動 refresh は応答時点の provider 選択を優先し、provider 変更で空にした modelOptions を古い options で復元しない条件を維持する。"
+    verification: "frontend 実装結果に、対象 usecase 単体テスト 28 件通過が記録されている。実コードでは canRefreshModel が false の場合に model と modelOptions を反映しないことを確認した。"
+    fix_required: true
+    status: "resolved"

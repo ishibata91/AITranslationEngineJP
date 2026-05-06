@@ -284,7 +284,7 @@ function buildPhaseSelection(
   sourceDraft?: TranslationJobSetupPhaseRuntimeDraft
 ): TranslationJobSetupPhaseRuntimeSelection {
   const provider =
-    sourceDraft?.provider ?? options.providerCapabilities?.[0]?.provider ?? ""
+    sourceDraft?.provider.trim() || options.providerCapabilities?.[0]?.provider || ""
   const capability = findCapability(options, provider)
   const credential = resolveCredentialReference(
     options,
@@ -826,26 +826,6 @@ export class TranslationJobSetupUseCase {
       return
     }
 
-    const capability = findCapability(state.options, selection.provider)
-    if (
-      providerNeedsCredential(capability) &&
-      selection.credentialStatus !== "configured"
-    ) {
-      this.store.update((draft) => {
-        replaceModelList(draft, {
-          phaseId,
-          provider: selection.provider,
-          credentialStatus: selection.credentialStatus,
-          requestToken: "",
-          sourceToken: "",
-          status: "credential_missing",
-          models: []
-        })
-        invalidateValidation(draft, "stale")
-      })
-      return
-    }
-
     const requestToken = this.nextRequestToken(selection.provider)
     this.store.update((draft) => {
       replaceModelList(draft, {
@@ -905,10 +885,12 @@ export class TranslationJobSetupUseCase {
             (model) => model.modelId === currentSelection.model
           )
         ) {
+          const fallbackModel =
+            response.models.length === 1 ? (response.models[0]?.modelId ?? "") : ""
           replacePhaseSelection(draft, {
             ...currentSelection,
-            model: "",
-            modelListSourceToken: ""
+            model: fallbackModel,
+            modelListSourceToken: fallbackModel ? response.sourceToken : ""
           })
         }
 

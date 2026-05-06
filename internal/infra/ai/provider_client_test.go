@@ -170,3 +170,7 @@ func (provider *stubProvider) Generate(
 	}
 	return provider.response, nil
 }
+
+func (provider *stubProvider) ListModels(context.Context, string, string) ([]ProviderModelOption, error) {
+	return nil, nil
+}

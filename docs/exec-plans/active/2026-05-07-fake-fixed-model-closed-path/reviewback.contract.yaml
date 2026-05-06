@@ -1,0 +1,71 @@
+reviewback_version: 1
+task_id: "2026-05-07-fake-fixed-model-closed-path"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "公開 DTO、Wails method、DB schema の追加は確認範囲では見つからない。AIサービス設定 provider 一覧と Job Setup provider 一覧には fake が追加されていない。fake mode の model list は既存 provider ID のまま fake-model 1 件を返す契約へ寄せられている。"
+  evidence_sufficiency: "十分。指定差分、task-frame、light-change-planning、implementation-result、reviewback テンプレートを確認した。広いハーネス再実行は reviewer 責務外として、implementation-result の検証証跡を入力根拠にした。"
+
+checked_scope:
+  summary: "指定 8 ファイルの差分と、公開境界に関係する provider catalog、model list loader、bootstrap wiring、master persona settings 読込を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/task-frame.md"
+      line: 5
+      symbol: "人間依頼"
+      reason: "fake provider を user-facing provider ID として広げない目的を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/light-change-planning.md"
+      line: 8
+      symbol: "forbidden_scope"
+      reason: "fake provider 一覧追加、新規公開 DTO、新規 Wails method、新規 DB schema が禁止範囲であることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/implementation-result.md"
+      line: 19
+      symbol: "検証結果"
+      reason: "実装 agent の backend-local、frontend-local、関連テスト通過証跡を確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 66
+      symbol: "providerSettingsProviderCatalog"
+      reason: "AIサービス設定 provider 一覧が gemini、lm_studio、xai の 3 件であり fake が追加されていないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 53
+      symbol: "translationJobSetupUserFacingProviderIDs"
+      reason: "Job Setup の user-facing provider 一覧が gemini、lm_studio、xai の 3 件であり fake が追加されていないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 59
+      symbol: "translationJobSetupProviderCatalog"
+      reason: "Job Setup provider catalog に fake entry が追加されていないことを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 137
+      symbol: "ListProviderModels"
+      reason: "test-safe transport では provider ID 分岐より前に fake-model 1 件を返す契約を確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 452
+      symbol: "newProviderModelListLoaderFromMasterPersonaEnv"
+      reason: "fake mode では provider model list loader が test-safe transport に差し替わることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 669
+      symbol: "listProviderModelsLocked"
+      reason: "AIサービス設定の model list が test-safe loader 経路では secret preflight を迂回することを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 1111
+      symbol: "buildSummary"
+      reason: "provider 設定未保存でも既存 provider の default endpoint が補われるため、test-safe model list 経路の endpoint 条件を満たすことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 609
+      symbol: "listProviderModelsDirect"
+      reason: "Job Setup の model list が test-safe loader 経路では secret なしで success と fake-model を返す構造を確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 317
+      symbol: "LoadSettings"
+      reason: "マスターペルソナ設定読込が fake mode defaults で fake-model を返し、provider は既存 user-facing provider に正規化することを確認した。"
+
+unchecked_scope:
+  - target: "実画面操作"
+    reason: "review_contract は契約・互換性の diff レビューを担当し、実画面操作は主判定範囲外である。implementation-result でも実画面確認は未実施と記録されている。"
+    risk: "画面表示上の選択肢反映遅延は残る可能性がある。ただし公開 DTO と既存 model options 経路の互換性判定には影響しない。"
+
+issues: []

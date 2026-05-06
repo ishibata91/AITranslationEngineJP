@@ -35,7 +35,6 @@ func TestBuildPersonaGenerationPromptIncludesAttributesAndContext(t *testing.T) 
 
 func TestPersonaGenerationProviderAdapterMapsValidResponse(t *testing.T) {
 	client := stubPersonaGenerationProviderClient{
-		testSafe: true,
 		response: stubPersonaGenerationClientResponse{
 			Items: []stubPersonaGenerationClientItem{{
 				RequestUnitID:    "unit-1",
@@ -55,8 +54,8 @@ func TestPersonaGenerationProviderAdapterMapsValidResponse(t *testing.T) {
 	adapter := NewPersonaGenerationProviderAdapter(client)
 
 	result := adapter.GeneratePersona(context.Background(), PersonaGenerationProviderRequest{
-		Provider:                 PersonaGenerationProviderFake,
-		Model:                    "fake-model",
+		Provider:                 PersonaGenerationProviderGemini,
+		Model:                    "gemini-model",
 		ExecutionMode:            PersonaGenerationExecutionModeSingleRequest,
 		CredentialRef:            "persona-ref",
 		RequestUnitID:            "unit-1",
@@ -76,8 +75,8 @@ func TestPersonaGenerationProviderAdapterMapsValidResponse(t *testing.T) {
 	if result.RequestUnitID != "unit-1" || result.NPCCorrelationID != "npc-1" {
 		t.Fatalf("unexpected correlation mapping: %#v", result)
 	}
-	if result.AuditSummary.Provider != PersonaGenerationProviderFake ||
-		result.AuditSummary.Model != "fake-model" ||
+	if result.AuditSummary.Provider != PersonaGenerationProviderGemini ||
+		result.AuditSummary.Model != "gemini-model" ||
 		result.AuditSummary.ExecutionMode != PersonaGenerationExecutionModeSingleRequest {
 		t.Fatalf("unexpected audit summary: %#v", result.AuditSummary)
 	}
@@ -86,9 +85,6 @@ func TestPersonaGenerationProviderAdapterMapsValidResponse(t *testing.T) {
 	}
 	if !result.DebugLog.SecretRedacted || result.DebugLog.Headers["Authorization"] != "[REDACTED]" {
 		t.Fatalf("expected redacted debug log, got %#v", result.DebugLog)
-	}
-	if !adapter.PersonaGenerationProviderRequestsAreTestSafe() {
-		t.Fatal("expected adapter to expose test-safe client capability")
 	}
 }
 
@@ -106,8 +102,8 @@ func TestPersonaGenerationProviderAdapterRejectsMismatchedCorrelation(t *testing
 	})
 
 	result := adapter.GeneratePersona(context.Background(), PersonaGenerationProviderRequest{
-		Provider:                 PersonaGenerationProviderFake,
-		Model:                    "fake-model",
+		Provider:                 PersonaGenerationProviderGemini,
+		Model:                    "gemini-model",
 		ExecutionMode:            PersonaGenerationExecutionModeSingleRequest,
 		RequestUnitID:            "unit-1",
 		NPCCorrelationID:         "npc-1",

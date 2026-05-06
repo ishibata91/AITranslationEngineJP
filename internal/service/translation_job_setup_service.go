@@ -572,9 +572,9 @@ func (service *TranslationJobSetupService) listProviderModelsViaProviderSettings
 		return result, nil
 	}
 	credentialRef := strings.TrimSpace(pointerStringValue(summary.CredentialReferenceID))
+	settingsRequestToken := strings.TrimSpace(pointerStringValue(summary.RequestToken))
 	result.CredentialStatus = strings.TrimSpace(summary.CredentialState)
-	result.RequestToken = strings.TrimSpace(pointerStringValue(summary.RequestToken))
-	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, result.RequestToken)
+	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, settingsRequestToken)
 	listed, err := service.providerSettings.ListProviderModels(ctx, ProviderSettingsModelListInput{
 		ProviderID:            spec.ID,
 		Endpoint:              cloneTranslationJobSetupOptionalString(summary.Endpoint),
@@ -586,8 +586,8 @@ func (service *TranslationJobSetupService) listProviderModelsViaProviderSettings
 		return ListTranslationJobSetupProviderModelsResult{}, fmt.Errorf("list translation job setup provider models via provider settings: %w", err)
 	}
 	result.CredentialStatus = strings.TrimSpace(listed.CredentialState)
-	result.RequestToken = strings.TrimSpace(listed.RequestToken)
-	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, result.RequestToken)
+	settingsRequestToken = strings.TrimSpace(listed.RequestToken)
+	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, settingsRequestToken)
 	result.Status = translationJobSetupMapProviderSettingsModelListState(listed.State)
 	result.FailureKind = translationJobSetupMapProviderSettingsFailureKind(listed.FailureKind)
 	result.Models = translationJobSetupProviderModelOptions(listed.Models)
@@ -987,7 +987,8 @@ func (service *TranslationJobSetupService) validatePhaseRuntime(
 		result.ModelListSourceToken = sanitized.ModelListSourceToken
 	}
 
-	if spec.CredentialRequired && (sanitized.CredentialRef == "" || normalizeTranslationJobSetupField(sanitized.CredentialStatus) == "missing") {
+	if spec.CredentialRequired &&
+		(sanitized.CredentialRef == "" || normalizeTranslationJobSetupField(sanitized.CredentialStatus) == "missing") {
 		result.Status = translationJobSetupValidationStatusFail
 		result.CanCreate = false
 		result.BlockingFailureCategory = stringPointer("credential_missing")

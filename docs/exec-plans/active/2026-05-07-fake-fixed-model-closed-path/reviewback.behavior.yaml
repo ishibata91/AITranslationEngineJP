@@ -1,0 +1,98 @@
+reviewback_version: 1
+task_id: "2026-05-07-fake-fixed-model-closed-path"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。fake mode の model list loader は test-safe transport に差し替わり、通常 getModels 経路で fake-model 1 件を返す。Job Setup は provider を fake にせず test-safe loader から fake-model を受け取り、credential missing 判定を回避する。マスターペルソナは fake mode かつ未保存 model の場合に user-facing provider と fake-model を返す。provider settings provider catalog と Job Setup user-facing provider 一覧には fake が追加されていない。"
+  evidence_sufficiency: "十分。指定された task 枠、軽量変更計画、実装結果、対象実コード差分を確認した。呼び出し元が提示した go test、frontend 対象テスト、backend-local、frontend-local の通過証跡をレビュー入力として扱った。レビュー agent の制約に従いハーネス再実行はしていない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決の挙動正しさ指摘はない。局所修正は test-safe transport、model list loader adapter、参照側 service の条件分岐に閉じている。"
+  invariant_test_viewpoints:
+    - "fake mode で model list を呼ぶと provider ID が gemini、lm_studio、xai のままでも fake-model 1 件を返す。"
+    - "fake mode の model list と実行時 credential 解決は外部 secret を要求しない。"
+    - "fake mode の model list は外部 HTTP transport へ出ない。"
+    - "AIサービス設定 provider catalog と Job Setup user-facing provider 一覧に fake を追加しない。"
+    - "マスターペルソナの未保存 model は fake mode で fake-model になり、provider は user-facing provider に正規化される。"
+
+checked_scope:
+  summary: "fake mode model list の固定応答、transport 差し替え、provider settings と Job Setup の credential 回避、マスターペルソナの fake model 既定値、fake provider 非露出を確認した。"
+  files:
+    - path: "internal/infra/ai/provider_models.go"
+      line: 17
+      symbol: "FakeModelID"
+      reason: "fake mode の固定 model ID が fake-model として定義されていることを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 137
+      symbol: "ListProviderModels"
+      reason: "test-safe transport の場合、provider ID に依存せず fake-model 1 件を返すことを確認した。"
+    - path: "internal/infra/ai/transport.go"
+      line: 34
+      symbol: "deterministicHTTPTransport.Do"
+      reason: "test-safe transport が /models GET に固定 model list 応答を返すことを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 103
+      symbol: "newAppControllerWithSeeds"
+      reason: "provider settings と Job Setup が同じ fake mode 対応 model list loader を使うことを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 135
+      symbol: "newAppControllerWithSeeds"
+      reason: "fake mode でマスターペルソナの fake model 既定値 option が注入されることを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 452
+      symbol: "newProviderModelListLoaderFromMasterPersonaEnv"
+      reason: "fake mode では model list loader の transport が test-safe transport へ差し替わることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 66
+      symbol: "providerSettingsProviderCatalog"
+      reason: "AIサービス設定 provider catalog が gemini、lm_studio、xai の 3 件のままであることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 669
+      symbol: "listProviderModelsLocked"
+      reason: "test-safe loader の場合に通常 preflight と secret 解決を迂回し、固定 model list 経路へ入ることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 878
+      symbol: "applyProviderSettingsExecutionSnapshot"
+      reason: "test-safe loader の場合に credential 参照を不要扱いにし、外部 secret snapshot を取らないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 53
+      symbol: "translationJobSetupUserFacingProviderIDs"
+      reason: "Job Setup の user-facing provider 一覧が gemini、lm_studio、xai のままであることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 609
+      symbol: "listProviderModelsDirect"
+      reason: "test-safe loader の場合に credentialRef なしで model list を取り、not_required と success を返すことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1007
+      symbol: "validatePhaseRuntime"
+      reason: "test-safe loader の場合に API key 必須 provider の credential missing で create 判定を止めないことを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 317
+      symbol: "LoadSettings"
+      reason: "fake model 既定値 option が有効な場合、保存済み設定を fake mode 用設定へ変換することを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 331
+      symbol: "masterPersonaFakeModelSettings"
+      reason: "provider は user-facing provider へ正規化し、未保存 model だけ fake-model にすることを確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 339
+      symbol: "resolveProviderCredential"
+      reason: "test-safe provider client では外部 secret 解決へ進まず空 credential を返すことを確認した。"
+
+unchecked_scope:
+  - target: "実画面での model card 操作"
+    reason: "実装結果で実画面確認は未実施とされ、レビュー入力の制約上ハーネスやブラウザ再実行は行わないため。"
+    risk: "細かな表示状態や選択 UI の見た目は未確認。ただし既存 frontend modelOptions 経路に載る backend 契約は確認済みである。"
+  - target: "fake mode 以外の外部 provider 実通信"
+    reason: "本レビュー観点は fake mode の通常 getModels 契約と既存 user-facing provider 維持に限定したため。"
+    risk: "実 provider の model list 応答差分は、今回の挙動目的の主判定対象外である。"
+  - target: "状態・データ不変条件の詳細"
+    reason: "review_behavior の境界では、永続状態や同時実行の不変条件を主判定にしないため。"
+    risk: "保存済み provider settings と fake mode 切替の長期的な状態整合は、状態・データ不変条件レビューの対象になる。"
+
+issues: []

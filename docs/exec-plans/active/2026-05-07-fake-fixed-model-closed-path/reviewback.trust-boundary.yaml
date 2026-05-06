@@ -1,0 +1,91 @@
+reviewback_version: 1
+task_id: "2026-05-07-fake-fixed-model-closed-path"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "fake mode の model list と生成は test-safe transport へ差し替えられ、外部 HTTP と実 provider へ到達しない。model list と validation の fake mode 経路は secret store の読込を要求せず、公開結果は secret 本体、raw request、raw response、raw prompt を返さない。"
+  evidence_sufficiency: "十分。指定 task 成果物、対象差分、secret 読込経路、外部 HTTP transport 経路、公開 read model 変換を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "fake mode の model list、provider settings validation、Job Setup validation、マスターペルソナ生成、secret 読込、公開結果の redaction 経路を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/task-frame.md"
+      line: 5
+      symbol: "人間依頼"
+      reason: "fake mode で外部 secret、実 provider、外部 HTTP に出ないことを実装目的として確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/light-change-planning.md"
+      line: 39
+      symbol: "既存のズレの扱い"
+      reason: "fake mode の model list を test-safe transport の固定応答へ寄せる計画を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/implementation-result.md"
+      line: 9
+      symbol: "実装内容"
+      reason: "外部 HTTP 非到達、外部 secret 不要求、検証結果を実装側の証跡として確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 103
+      symbol: "newAppControllerWithSeeds"
+      reason: "provider settings と Job Setup が同じ model list loader を共有し、fake mode で test-safe loader へ差し替わることを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 441
+      symbol: "newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore"
+      reason: "fake mode の生成用 client が test-safe transport で作られることを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 452
+      symbol: "newProviderModelListLoaderFromMasterPersonaEnv"
+      reason: "fake mode の model list loader が real HTTP client ではなく test-safe transport を使うことを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 137
+      symbol: "ListProviderModels"
+      reason: "test-safe transport では provider ID と API key に進まず fake-model 固定応答を返すことを確認した。"
+    - path: "internal/infra/ai/transport.go"
+      line: 34
+      symbol: "deterministicHTTPTransport.Do"
+      reason: "model list request が deterministicProviderModelListResponse へ分岐し、実 HTTP 送信しないことを確認した。"
+    - path: "internal/infra/ai/provider_client.go"
+      line: 339
+      symbol: "ProviderClient.resolveProviderCredential"
+      reason: "test-safe client では credential resolver を呼ばず空 secret を返すことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 669
+      symbol: "ProviderSettingsService.listProviderModelsLocked"
+      reason: "test-safe model list loader では secret 解決の前に専用経路へ分岐することを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 704
+      symbol: "ProviderSettingsService.listProviderModelsWithTestSafeLoader"
+      reason: "test-safe model list では API key を空文字で渡し、loadErr は公開結果へ raw error として出さないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 878
+      symbol: "ProviderSettingsService.applyProviderSettingsExecutionSnapshot"
+      reason: "test-safe loader では credential reference を公開 result から落とし、credential state を not_required にすることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 609
+      symbol: "TranslationJobSetupService.listProviderModelsDirect"
+      reason: "test-safe loader では credentialRef を使わず、API key 空文字で model list を取得することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1007
+      symbol: "TranslationJobSetupService.validatePhaseRuntime"
+      reason: "test-safe loader では credential_missing の validation failure を要求しないことを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 317
+      symbol: "MasterPersonaGenerationService.LoadSettings"
+      reason: "fake mode defaults で APIKey を空文字にし、UI/read model へ secret 本体を返さないことを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 861
+      symbol: "MasterPersonaGenerationService.finalizeProviderSettingsAccess"
+      reason: "test mode では master persona 実行時に secret store を読まず API key を空にすることを確認した。"
+
+unchecked_scope:
+  - target: "実画面操作"
+    reason: "実装結果で未実施と記録されており、review_trust_boundary はハーネスと画面操作を実行しない。"
+    risk: "UI 表示上の選択肢反映は別観点の残留リスクだが、secret 本体や raw prompt の露出を示す差分は確認範囲にない。"
+  - target: "provider settings keyring 初期化の可用性"
+    reason: "本観点は model list、validation、生成の trust boundary を判定対象にし、startup 可用性は主判定にしない。"
+    risk: "fake mode でも keyring 初期化自体は残るが、model list、validation、生成で secret 本体を要求する根拠は確認されなかった。"
+
+issues: []

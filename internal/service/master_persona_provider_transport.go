@@ -29,12 +29,6 @@ type MasterPersonaBodyGenerator interface {
 	GenerateMasterPersonaBody(ctx context.Context, provider string, model string, apiKey string, prompt string) (string, error)
 }
 
-// MasterPersonaTestSafeBodyGenerator marks provider generators that cannot call paid real AI APIs.
-type MasterPersonaTestSafeBodyGenerator interface {
-	MasterPersonaBodyGenerator
-	MasterPersonaProviderRequestsAreTestSafe() bool
-}
-
 // MasterPersonaGenerationServiceOption configures generation-service provider seams.
 type MasterPersonaGenerationServiceOption func(service *MasterPersonaGenerationService)
 
@@ -91,11 +85,6 @@ func MasterPersonaSupportedProviders() []string {
 	}
 	sort.Strings(providers)
 	return providers
-}
-
-func (service *MasterPersonaGenerationService) providerRequestsAreTestSafe() bool {
-	generator, ok := service.bodyGenerator.(MasterPersonaTestSafeBodyGenerator)
-	return ok && generator.MasterPersonaProviderRequestsAreTestSafe()
 }
 
 func (service *MasterPersonaGenerationService) generatePersonaBody(

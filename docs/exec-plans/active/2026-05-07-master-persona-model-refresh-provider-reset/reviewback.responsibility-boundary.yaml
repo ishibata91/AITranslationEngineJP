@@ -1,0 +1,57 @@
+reviewback_version: 1
+task_id: "2026-05-07-master-persona-model-refresh-provider-reset"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。ScreenController は画面操作入口として UseCase 呼び出し先を分けるだけに留まり、Frontend UseCase は GatewayContract 呼び出しと Store 更新手順を扱っている。backend、DB schema、Wails 公開 method、新規 DTO、provider catalog への越境はない。破られた境界はないため、原因候補と局所修正評価は未発生である。"
+  evidence_sufficiency: "十分。task 入力、調査、実装結果、回帰テスト証跡、対象差分、実コード、architecture.md の層責務を確認した。frontend-local 全体は範囲外の型エラーで停止しているが、責務境界判定には影響しない。"
+
+checked_scope:
+  summary: "モデル一覧更新操作の呼び分け、AI 設定手動更新処理、承認済み変更範囲、検証証跡、frontend 層責務を確認した。"
+  files:
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 38
+      symbol: "MasterPersonaUseCaseLike"
+      reason: "ScreenController が UseCase 依存だけを持ち、Wails 詳細や DTO 変換を持たないことを確認した。"
+    - path: "frontend/src/controller/master-persona/master-persona-screen-controller.ts"
+      line: 211
+      symbol: "MasterPersonaScreenController.refreshAISettings"
+      reason: "画面操作入口が手動更新用 UseCase を起動するだけで、状態変換や gateway 呼び出しを持たないことを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 63
+      symbol: "mergeRefreshedAISettings"
+      reason: "公開接点の返却値と画面状態値の変換が UseCase 内の補助関数に閉じていることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 153
+      symbol: "MasterPersonaUseCase.refreshAISettings"
+      reason: "Frontend UseCase が GatewayContract 呼び出しと Store 更新手順を扱い、具象 gateway や generated wailsjs に依存していないことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/frontend-implementation-input.md"
+      line: 30
+      symbol: "対象変更範囲"
+      reason: "承認済み変更範囲が frontend のモデル一覧更新操作に限定され、禁止変更範囲を越えていないことを確認した。"
+    - path: "docs/architecture.md"
+      line: 101
+      symbol: "Frontend architecture"
+      reason: "ScreenController と Frontend UseCase の層責務、依存方向、具象実装生成禁止の正本として確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-master-persona-model-refresh-provider-reset/regression-test-evidence.md"
+      line: 9
+      symbol: "実行結果"
+      reason: "対象 usecase 単体テストの通過と frontend-local 全体停止理由をレビュー入力として確認した。"
+
+unchecked_scope:
+  - target: "実画面での provider 維持と fake-model 選択可能状態"
+    reason: "回帰テスト証跡で未確認と記録されており、責務境界レビューは挙動正しさを主判定にしないため。"
+    risk: "挙動観点または状態不変条件観点では追加確認が必要になる可能性がある。"
+  - target: "backend service、DB schema、Wails 公開 method、provider catalog の実コード"
+    reason: "対象差分と承認済み変更範囲に含まれず、実装結果でも変更なしと記録されているため。"
+    risk: "範囲外に未検出の既存構造問題があっても、この責務境界レビューでは検出しない。"
+  - target: "frontend-local 全体の通過"
+    reason: "範囲外の translation-job-setup usecase test 型エラーで停止しているため。"
+    risk: "全体検証の完了判断は呼び出し元のレビュー集約で別途扱う必要がある。"
+
+issues: []

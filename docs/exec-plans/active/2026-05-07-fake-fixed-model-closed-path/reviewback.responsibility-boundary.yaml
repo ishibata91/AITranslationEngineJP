@@ -1,0 +1,95 @@
+reviewback_version: 1
+task_id: "2026-05-07-fake-fixed-model-closed-path"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-fake-fixed-model-closed-path/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。fake mode の固定 model list は test-safe transport と provider model list loader に閉じ、bootstrap が DI を切り替え、service は loader の test-safe 性だけを使って credential gating と既存 model options 経路へ載せている。fake provider ID は provider settings catalog、Job Setup provider list、frontend user-facing provider catalog へ追加されていない。"
+  evidence_sufficiency: "十分。指定差分、task 枠、軽量変更計画、実装結果、architecture.md、coding-guidelines.md、reviewback.yaml を確認した。検証証跡は implementation-result.md の通過結果を確認した。"
+
+checked_scope:
+  summary: "fake mode の責務が transport、loader、bootstrap wiring、service の既存経路へ分担され、user-facing provider catalog へ fake provider ID が漏れていないことを確認した。"
+  files:
+    - path: "internal/infra/ai/provider_models.go"
+      line: 17
+      symbol: "FakeModelID"
+      reason: "test-safe provider DI が返す固定 model ID を infra adapter 側の model list 契約として定義しているため。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 119
+      symbol: "ProviderModelListLoader.ProviderModelListRequestsAreTestSafe"
+      reason: "service 層へ transport 具象を渡さず、test-safe 性だけを loader port の性質として公開しているため。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 128
+      symbol: "ListProviderModels"
+      reason: "test-safe transport の場合だけ fake-model 1 件を返し、provider ID fake の分岐へ寄せていないため。"
+    - path: "internal/infra/ai/transport.go"
+      line: 34
+      symbol: "deterministicHTTPTransport.Do"
+      reason: "外部 HTTP の代替応答は transport adapter に閉じ、model list 用の deterministic response を返しているため。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 103
+      symbol: "newAppControllerWithSeeds"
+      reason: "provider settings と Job Setup が同じ model list loader を DI で共有しているため。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 135
+      symbol: "newAppControllerWithSeeds"
+      reason: "master-persona の fake model defaults は bootstrap の fake mode 判定から service option として注入されているため。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 452
+      symbol: "newProviderModelListLoaderFromMasterPersonaEnv"
+      reason: "fake mode の具象 transport 差し替えが composition root に置かれているため。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 206
+      symbol: "providerSettingsModelListLoader"
+      reason: "provider settings service は model list loader interface に依存し、infra 具象を生成していないため。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 658
+      symbol: "ProviderSettingsService.listProviderModelsLocked"
+      reason: "test-safe loader の場合だけ secret 要求を避け、既存 provider settings model list 経路を維持しているため。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 345
+      symbol: "TranslationJobSetupProviderModelListLoader"
+      reason: "Job Setup service は adapter-owned loader interface 経由で model list を扱っているため。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 601
+      symbol: "TranslationJobSetupService.listProviderModelsDirect"
+      reason: "fake 専用 UI 分岐ではなく、既存 model list 結果へ test-safe 応答を載せているため。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1007
+      symbol: "TranslationJobSetupService.validatePhaseRuntime"
+      reason: "test-safe loader の場合だけ credential 必須判定を緩め、通常 provider catalog は維持しているため。"
+    - path: "internal/service/master_persona_provider_transport.go"
+      line: 60
+      symbol: "WithMasterPersonaFakeModelDefaults"
+      reason: "master-persona の fake model default は bootstrap から注入される service option に閉じているため。"
+    - path: "internal/service/master_persona_service.go"
+      line: 312
+      symbol: "MasterPersonaGenerationService.LoadSettings"
+      reason: "master-persona は新規公開口を作らず、既存 settings 読込結果として fake-model を返しているため。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 53
+      symbol: "translationJobSetupUserFacingProviderIDs"
+      reason: "Job Setup の user-facing provider list は gemini、lm_studio、xai のままで fake が追加されていないため。"
+
+unchecked_scope:
+  - target: "実画面での dropdown 表示"
+    reason: "責務境界レビューでは実画面操作を実行しない。implementation-result.md では frontend-local 通過と実画面未確認が記録されている。"
+    risk: "画面表示上の微細な見え方は別観点の確認に残るが、fake provider ID が catalog へ漏れた責務境界問題は差分上では確認されていない。"
+  - target: "対象差分外の dist 生成物"
+    reason: "レビュー対象差分に含まれない生成済み bundle は責務境界の主判定から外した。"
+    risk: "古い生成物に fake 文字列が残る可能性はあるが、user-facing catalog の責務境界は source 側で確認した。"
+
+issues: []
+
+responsibility_boundary_details:
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘なし。局所修正が必要な責務境界違反は確認されていない。"
+  boundary_fixed_test_perspectives:
+    - "fake mode の model list loader は fake-model 1 件だけを返し、実 provider HTTP に出ない。"
+    - "Provider settings と Job Setup は fake provider ID を provider catalog へ追加せず、既存 provider ID の model list 経路で fake-model を扱う。"
+    - "master-persona は既存 settings 読込経路で fake-model を返し、新規公開 DTO や新規 Wails method を増やさない。"

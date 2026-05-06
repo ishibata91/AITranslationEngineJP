@@ -784,9 +784,6 @@ func (service *MasterPersonaGenerationService) validateProviderAccess(
 		ExecutionMethod: normalizeMasterPersonaExecutionMethod(settings.ExecutionMethod),
 		APIKey:          strings.TrimSpace(settings.APIKey),
 	}
-	if service.testMode && !service.providerRequestsAreTestSafe() {
-		return masterPersonaResolvedSettings{}, MasterPersonaStatusSettingsIncomplete, ErrMasterPersonaRealProviderDenied
-	}
 	if service.providerSettings != nil {
 		return service.validateProviderSettingsAccess(ctx, resolved, allowSecretRead)
 	}

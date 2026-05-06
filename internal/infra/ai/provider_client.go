@@ -55,6 +55,16 @@ func WithProviderCredentialLoader(loader func(context.Context, string) (string, 
 	}
 }
 
+// WithDeterministicProviderRegistry replaces every supported runtime provider with the deterministic fake provider.
+func WithDeterministicProviderRegistry(responseText string) ProviderClientOption {
+	return func(client *ProviderClient) {
+		if client == nil {
+			return
+		}
+		client.providerOverride = deterministicProviderRegistry(responseText, true)
+	}
+}
+
 // ProviderClient sends provider-backed AI text requests.
 type ProviderClient struct {
 	transport          HTTPTransport
@@ -63,6 +73,7 @@ type ProviderClient struct {
 	xaiBaseURL         string
 	credentialResolver ProviderCredentialResolver
 	providers          map[string]provider
+	providerOverride   map[string]provider
 }
 
 // NewProviderClient creates a provider client backed by an HTTP transport.
@@ -136,6 +147,29 @@ func (client *ProviderClient) GenerateText(
 		return ProviderResponse{}, fmt.Errorf("generate ai provider response: %w", err)
 	}
 	return response, nil
+}
+
+// ListProviderModelsWithEndpoint loads models through the provider registry selected by DI.
+func (client *ProviderClient) ListProviderModelsWithEndpoint(
+	ctx context.Context,
+	providerID string,
+	endpoint string,
+	apiKey string,
+) ([]ProviderModelOption, error) {
+	if client == nil || client.transport == nil {
+		return nil, fmt.Errorf("ai provider transport is required")
+	}
+	registry := client.providerRegistry()
+	providerKey := strings.ToLower(strings.TrimSpace(providerID))
+	concreteProvider, ok := registry[providerKey]
+	if !ok {
+		return nil, fmt.Errorf("unsupported ai provider: %s", providerID)
+	}
+	models, err := concreteProvider.ListModels(ctx, strings.TrimSpace(apiKey), strings.TrimSpace(endpoint))
+	if err != nil {
+		return nil, fmt.Errorf("list ai provider models: %w", err)
+	}
+	return models, nil
 }
 
 // TranslateTerm sends one provider request unit and parses a correlated JSON term translation response.
@@ -230,23 +264,6 @@ func (client *ProviderClient) GenerateBodyTranslation(
 	endpointSummary string,
 	prompt string,
 ) (BodyTranslationResponse, error) {
-	if strings.EqualFold(strings.TrimSpace(providerID), ProviderFake) {
-		responseText, err := buildDeterministicBodyTranslationResponseFromPrompt(prompt)
-		if err != nil {
-			return BodyTranslationResponse{}, newBodyTranslationError(
-				BodyTranslationErrorKindProviderFailure,
-				false,
-				err,
-			)
-		}
-		parsed, err := parseBodyTranslationResponse(responseText)
-		if err != nil {
-			return BodyTranslationResponse{}, err
-		}
-		parsed.ExecutionMode = bodyTranslationExecutionModeSingleRequest
-		parsed.PromptDigest = promptDigestSHA256(prompt)
-		return parsed, nil
-	}
 	normalizedExecutionMode := strings.ToLower(strings.TrimSpace(executionMode))
 	if normalizedExecutionMode == "" {
 		return BodyTranslationResponse{}, newBodyTranslationError(
@@ -301,6 +318,9 @@ func (client *ProviderClient) providerRegistry() map[string]provider {
 }
 
 func (client *ProviderClient) newProviderRegistry() map[string]provider {
+	if len(client.providerOverride) != 0 {
+		return cloneProviderRegistry(client.providerOverride)
+	}
 	return map[string]provider{
 		ProviderGemini: geminiProvider{
 			transport: client.transport,
@@ -315,11 +335,40 @@ func (client *ProviderClient) newProviderRegistry() map[string]provider {
 			baseURL:        client.xaiBaseURL,
 			apiKeyOptional: client.testSafe,
 		},
-		ProviderFake: deterministicProvider{
-			transport: client.transport,
-			testSafe:  client.testSafe,
-		},
+		ProviderFake: deterministicProviderFromTransport(client.transport),
 	}
+}
+
+func deterministicProviderFromTransport(transport HTTPTransport) deterministicProvider {
+	deterministicTransport, ok := transport.(*deterministicHTTPTransport)
+	if !ok || deterministicTransport == nil {
+		return deterministicProvider{}
+	}
+	return deterministicProvider{
+		responseText:          deterministicTransport.responseText,
+		useConfiguredResponse: deterministicTransport.useConfiguredResponse,
+	}
+}
+
+func deterministicProviderRegistry(responseText string, useConfiguredResponse bool) map[string]provider {
+	deterministic := deterministicProvider{
+		responseText:          strings.TrimSpace(responseText),
+		useConfiguredResponse: useConfiguredResponse,
+	}
+	return map[string]provider{
+		ProviderGemini:   deterministic,
+		ProviderLMStudio: deterministic,
+		ProviderXAI:      deterministic,
+		ProviderFake:     deterministic,
+	}
+}
+
+func cloneProviderRegistry(source map[string]provider) map[string]provider {
+	cloned := make(map[string]provider, len(source))
+	for key, value := range source {
+		cloned[strings.ToLower(strings.TrimSpace(key))] = value
+	}
+	return cloned
 }
 
 func normalizeBaseURL(candidate string, fallback string) string {
@@ -336,6 +385,9 @@ func (client *ProviderClient) resolveProviderCredential(
 	credentialRef string,
 ) (string, error) {
 	normalizedProvider := strings.ToLower(strings.TrimSpace(providerID))
+	if client != nil && client.testSafe {
+		return "", nil
+	}
 	switch normalizedProvider {
 	case ProviderFake:
 		return "", nil

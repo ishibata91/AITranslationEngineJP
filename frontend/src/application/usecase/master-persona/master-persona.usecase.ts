@@ -56,8 +56,23 @@ function mergeAISettings(
   return {
     provider: settings.provider.trim() || defaults.provider,
     model: settings.model.trim() || defaults.model,
-    executionMethod:
-      settings.executionMethod.trim() || defaults.executionMethod
+    executionMethod: settings.executionMethod.trim() || defaults.executionMethod
+  }
+}
+
+function mergeRefreshedAISettings(
+  currentSettings: MasterPersonaAISettings,
+  loadedSettings: MasterPersonaAISettings,
+  canRefreshModel: boolean
+): MasterPersonaAISettings {
+  const loadedModel = loadedSettings.model.trim()
+  return {
+    provider: currentSettings.provider.trim(),
+    model:
+      canRefreshModel && loadedModel !== ""
+        ? loadedModel
+        : currentSettings.model.trim(),
+    executionMethod: currentSettings.executionMethod.trim()
   }
 }
 
@@ -127,6 +142,42 @@ export class MasterPersonaUseCase {
           draft.aiSettings = previousSettings
           draft.modelOptions = previousModelOptions
         }
+        draft.errorMessage = toErrorMessage(
+          error,
+          "AI設定の取得に失敗しました。"
+        )
+      })
+    }
+  }
+
+  async refreshAISettings(): Promise<void> {
+    if (!this.gateway) {
+      return
+    }
+
+    const refreshProvider = this.store.snapshot().aiSettings.provider.trim()
+
+    try {
+      const settings = await this.gateway.loadMasterPersonaAISettings()
+      const loadedModelOptions = createModelOptions(settings)
+      this.store.update((draft) => {
+        const currentSettings = { ...draft.aiSettings }
+        const canRefreshModel =
+          currentSettings.provider.trim() === refreshProvider
+        const mergedSettings = mergeRefreshedAISettings(
+          currentSettings,
+          settings,
+          canRefreshModel
+        )
+        draft.aiSettings = mergedSettings
+        draft.aiSettingsMessage = ""
+        if (canRefreshModel && loadedModelOptions.length > 0) {
+          draft.modelOptions = loadedModelOptions
+        }
+        draft.errorMessage = ""
+      })
+    } catch (error) {
+      this.store.update((draft) => {
         draft.errorMessage = toErrorMessage(
           error,
           "AI設定の取得に失敗しました。"

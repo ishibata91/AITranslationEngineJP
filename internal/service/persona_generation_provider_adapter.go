@@ -18,8 +18,6 @@ const (
 	PersonaGenerationProviderLMStudio = "lm_studio"
 	// PersonaGenerationProviderXAI defines the supported xAI provider id.
 	PersonaGenerationProviderXAI = "xai"
-	// PersonaGenerationProviderFake defines the supported test-only fake provider id.
-	PersonaGenerationProviderFake = "fake"
 
 	// PersonaGenerationExecutionModeSingleRequest identifies the one-NPC-per-request mode.
 	PersonaGenerationExecutionModeSingleRequest = "single_request"
@@ -30,7 +28,6 @@ const (
 )
 
 var personaGenerationSupportedProviderSet = map[string]struct{}{
-	PersonaGenerationProviderFake:     {},
 	PersonaGenerationProviderGemini:   {},
 	PersonaGenerationProviderLMStudio: {},
 	PersonaGenerationProviderXAI:      {},
@@ -49,7 +46,6 @@ const (
 // PersonaGenerationProvider defines the provider-agnostic one-NPC persona port.
 type PersonaGenerationProvider interface {
 	GeneratePersona(ctx context.Context, request PersonaGenerationProviderRequest) PersonaGenerationProviderResult
-	PersonaGenerationProviderRequestsAreTestSafe() bool
 }
 
 // PersonaGenerationProviderRequest defines one NPC persona request unit.
@@ -190,17 +186,6 @@ func BuildPersonaGenerationPrompt(request PersonaGenerationProviderRequest) (str
 
 type personaGenerationProviderAdapter struct {
 	client any
-}
-
-func (adapter personaGenerationProviderAdapter) PersonaGenerationProviderRequestsAreTestSafe() bool {
-	if adapter.client == nil {
-		return false
-	}
-	method := reflect.ValueOf(adapter.client).MethodByName("ProviderRequestsAreTestSafe")
-	if !method.IsValid() || method.Type().NumIn() != 0 || method.Type().NumOut() != 1 || method.Type().Out(0).Kind() != reflect.Bool {
-		return false
-	}
-	return method.Call(nil)[0].Bool()
 }
 
 func (adapter personaGenerationProviderAdapter) GeneratePersona(

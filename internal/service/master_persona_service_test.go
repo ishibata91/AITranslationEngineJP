@@ -5,6 +5,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -274,7 +275,7 @@ func TestMasterPersonaGenerationServiceRejectsDeleteDuringActiveRun(t *testing.T
 	}
 }
 
-func TestMasterPersonaGenerationServiceRejectsRealProviderInTestMode(t *testing.T) {
+func TestMasterPersonaGenerationServiceTestModeDoesNotOwnFakeProviderDecision(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	secretStore := repository.NewInMemorySecretStore()
@@ -296,8 +297,8 @@ func TestMasterPersonaGenerationServiceRejectsRealProviderInTestMode(t *testing.
 }`)
 
 	_, err := service.Preview(context.Background(), fixturePath, MasterPersonaAISettings{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "transport-key"})
-	if !errors.Is(err, ErrMasterPersonaRealProviderDenied) {
-		t.Fatalf("expected real provider denial, got %v", err)
+	if err != nil {
+		t.Fatalf("expected service test mode not to reject provider by itself, got %v", err)
 	}
 }
 
@@ -481,7 +482,7 @@ func TestMasterPersonaGenerationServiceExecutePersistsTransportResponseBody(t *t
 	}
 }
 
-func TestMasterPersonaGenerationServiceTestModeDeniesRealProviderBeforeHTTPCall(t *testing.T) {
+func TestMasterPersonaGenerationServiceTestModePropagatesProviderBoundaryError(t *testing.T) {
 	now := func() time.Time { return time.Date(2026, 4, 16, 10, 0, 0, 0, time.UTC) }
 	repo := repository.NewInMemoryMasterPersonaRepository(nil)
 	generator := &stubMasterPersonaBodyGenerator{err: errors.New("provider must not be called in test mode")}
@@ -508,11 +509,11 @@ func TestMasterPersonaGenerationServiceTestModeDeniesRealProviderBeforeHTTPCall(
 }`)
 
 	_, err := service.Execute(context.Background(), fixturePath, MasterPersonaAISettings{Provider: "gemini", Model: "gemini-2.5-pro", APIKey: "real-key"})
-	if !errors.Is(err, ErrMasterPersonaRealProviderDenied) {
-		t.Fatalf("expected real provider denial before provider call, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "provider must not be called in test mode") {
+		t.Fatalf("expected provider boundary error, got %v", err)
 	}
-	if generator.calls != 0 {
-		t.Fatalf("expected provider not to be called in test mode, got %d calls", generator.calls)
+	if generator.calls != 1 {
+		t.Fatalf("expected provider boundary to be called once, got %d calls", generator.calls)
 	}
 }
 
@@ -597,6 +598,33 @@ func TestMasterPersonaGenerationServiceLoadSettingsDoesNotLoadSecret(t *testing.
 	}
 	if settings.APIKey != "" {
 		t.Fatalf("expected api key to stay empty, got %#v", settings)
+	}
+}
+
+func TestMasterPersonaGenerationServiceLoadSettingsPreservesSavedModel(t *testing.T) {
+	now := func() time.Time { return time.Date(2026, 4, 15, 12, 0, 0, 0, time.UTC) }
+	repo := repository.NewInMemoryMasterPersonaRepository(nil)
+	if err := repo.SaveAISettings(context.Background(), repository.MasterPersonaAISettingsRecord{
+		Provider: "gemini",
+		Model:    "gemini-2.5-pro",
+	}); err != nil {
+		t.Fatalf("expected ai settings fixture save to succeed: %v", err)
+	}
+	service := NewMasterPersonaGenerationService(
+		repo,
+		repo,
+		repo,
+		&failingMasterPersonaSecretStore{loadErr: errors.New("secret load failed")},
+		now,
+		false,
+	)
+
+	settings, err := service.LoadSettings(context.Background())
+	if err != nil {
+		t.Fatalf("expected settings load to avoid secret store: %v", err)
+	}
+	if settings.Provider != "gemini" || settings.Model != "gemini-2.5-pro" || settings.APIKey != "" {
+		t.Fatalf("expected saved model without api key, got %#v", settings)
 	}
 }
 

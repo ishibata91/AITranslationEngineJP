@@ -1,0 +1,141 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-selection-fake-gate"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "前回 open 指摘は解決済みである。service 層の production code は fake/test-safe/fake-model/RequestsAreTestSafe を知らず、fake mode 判定は bootstrap の DI 構成に閉じている。transport.go の model list 直返しは撤去され、固定 model list は deterministic_fake_provider.go の fake provider 実装へ集約されている。追加で major 以上の責務境界違反は確認されなかった。"
+  evidence_sufficiency: "十分。指定入力、修正結果、構造正本、対象差分、service/infra/bootstrap の関連経路、指定静的検索結果を確認した。検証コマンドのうち go test と backend-local は呼び出し元証跡を入力として扱った。"
+
+checked_scope:
+  summary: "fake mode の DI 差し替え、provider interface、fake provider、model list 経路、service 層の fake/test-safe 残留、transport 側 model list 直返し撤去を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/responsibility-review-fix-input.md"
+      line: 12
+      symbol: "必須前提"
+      reason: "service 層が fake/test-safe/fake-model を知らず、fake mode 判定を DI 構成だけに閉じるという判定前提を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/responsibility-review-fix-result.md"
+      line: 5
+      symbol: "判定"
+      reason: "前回 open 指摘に対する修正内容と検証証跡を確認した。"
+    - path: "docs/architecture.md"
+      line: 42
+      symbol: "Backend Bootstrap / Service / AIProvider"
+      reason: "Bootstrap が concrete 実装を組み、Service が AIProvider を使う層責務を確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 426
+      symbol: "newAIProviderClientFromMasterPersonaEnvWithTransportAndSecretStore"
+      reason: "fake mode で provider registry を差し替える DI 経路を確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 434
+      symbol: "newProviderModelListLoaderFromMasterPersonaEnv"
+      reason: "fake mode で model list provider registry を差し替える DI 経路を確認した。"
+    - path: "internal/infra/ai/provider.go"
+      line: 58
+      symbol: "provider"
+      reason: "Generate と ListModels が同じ provider interface に載っていることを確認した。"
+    - path: "internal/infra/ai/deterministic_fake_provider.go"
+      line: 9
+      symbol: "FakeModelID"
+      reason: "fake provider の固定 model ID が deterministic fake provider 実装ファイルに置かれていることを確認した。"
+    - path: "internal/infra/ai/deterministic_fake_provider.go"
+      line: 39
+      symbol: "deterministicProvider.ListModels"
+      reason: "fake provider の固定 model list が provider 実装に集約されていることを確認した。"
+    - path: "internal/infra/ai/provider_models.go"
+      line: 73
+      symbol: "WithProviderModelListDeterministicProviders"
+      reason: "model list の fake 差し替えが infra option と bootstrap DI 経由に閉じていることを確認した。"
+    - path: "internal/infra/ai/transport.go"
+      line: 34
+      symbol: "deterministicHTTPTransport.Do"
+      reason: "transport が provider model list request を判定せず、生成応答 seam に閉じていることを確認した。"
+    - path: "internal/service/body_translation_provider_adapter.go"
+      line: 39
+      symbol: "BodyTranslationProvider"
+      reason: "service port から test-safe marker が撤去されていることを確認した。"
+    - path: "internal/service/persona_generation_provider_adapter.go"
+      line: 46
+      symbol: "PersonaGenerationProvider"
+      reason: "service port から test-safe marker が撤去され、supported provider set から fake が消えていることを確認した。"
+    - path: "internal/service/term_translation_provider_adapter.go"
+      line: 42
+      symbol: "TermTranslationProvider"
+      reason: "service port から test-safe marker が撤去されていることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 633
+      symbol: "ProviderSettingsService.ListProviderModels"
+      reason: "ProviderSettingsService が fake/test-safe 分岐なしで modelListLoader を呼ぶことを確認した。"
+
+unchecked_scope:
+  - target: "frontend production code"
+    reason: "レビュー対象の前回 open 指摘は backend service/infra/bootstrap の責務境界に限定されていた。"
+    risk: "frontend 側に fake 判定が別途残っている場合は、別観点または別レビューで確認が必要である。"
+  - target: "指定された go test と backend-local の再実行"
+    reason: "この agent はハーネスを実行しない規約であり、呼び出し元の検証証跡を入力として扱った。"
+    risk: "検証結果の最新性は呼び出し元証跡に依存する。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "major"
+    title: "service 層に fake/test-safe provider 知識が残っている"
+    problem: "修正前は service 層の provider port と adapter が fake provider ID と test-safe marker method を公開していた。修正後は service production code から fake/test-safe/fake-model/RequestsAreTestSafe の残留が消えている。"
+    reason: "必須前提は service 層が fake、test-safe、fake-model を知らず、fake mode 判定を DI 構成だけに閉じることである。修正後の service port は provider 実行結果だけを扱う境界へ戻っている。"
+    violated_condition: "修正前に、service 層は fake、test-safe、fake-model を知らないという条件を破っていた。"
+    cause_candidate: "master persona 経路だけ marker を撤去し、body/persona/term translation の service provider port に残る同種 marker と fake provider ID まで掃き切っていなかった可能性がある。修正後は該当 marker と service fake provider ID が撤去済みである。"
+    evidence:
+      - path: "internal/service/body_translation_provider_adapter.go"
+        line: 39
+        excerpt: "BodyTranslationProvider は TranslateBodyField だけを持ち、test-safe marker を含まない。"
+      - path: "internal/service/body_translation_provider_adapter.go"
+        line: 23
+        excerpt: "bodyTranslationSupportedProviderSet は gemini/lm_studio/xai だけを含み、fake を含まない。"
+      - path: "internal/service/persona_generation_provider_adapter.go"
+        line: 46
+        excerpt: "PersonaGenerationProvider は GeneratePersona だけを持ち、test-safe marker を含まない。"
+      - path: "internal/service/persona_generation_provider_adapter.go"
+        line: 30
+        excerpt: "personaGenerationSupportedProviderSet は gemini/lm_studio/xai だけを含み、fake を含まない。"
+      - path: "internal/service/term_translation_provider_adapter.go"
+        line: 42
+        excerpt: "TermTranslationProvider は TranslateTerm だけを持ち、test-safe marker を含まない。"
+      - path: "internal/service/term_translation_provider_adapter.go"
+        line: 26
+        excerpt: "termTranslationSupportedProviderSet は gemini/lm_studio/xai だけを含み、fake を含まない。"
+    local_fix_assessment: "resolved。service port と adapter test の範囲で修正され、service production code の静的検索でも残留なしを確認した。"
+    additional_check_scope: "none。前回指摘対象の service production code について、指定静的検索で残留なしを確認した。"
+    fix_considerations: "provider 実装の差し替え責務は bootstrap/infra 側へ寄せ、service port は翻訳または生成の実行結果だけを表す境界として保つ。"
+    verification: "rg -n \"fake|test-safe|fake-model|RequestsAreTestSafe\" internal/service --glob '!**/*_test.go' が該当なしであることを確認した。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "responsibility-boundary-002"
+    level: "major"
+    title: "transport 側の model list 直返しが残っている"
+    problem: "修正前は deterministicHTTPTransport.Do が /models の GET を検出し、provider 実装を通さず fake-model の model list response を直接返していた。修正後は transport.go から model list request 判定と直返し helper が撤去されている。"
+    reason: "必須前提は model list と generation の責務を provider 実装へ寄せることである。修正後の固定 model list は deterministicProvider.ListModels に集約され、transport は HTTP 応答 seam に閉じている。"
+    violated_condition: "修正前に、model list と generation の責務を provider 実装へ寄せる条件を破っていた。"
+    cause_candidate: "fake provider の ListModels 追加後も、既存 deterministicHTTPTransport の /models 判定を互換経路として残していた可能性がある。修正後は transport 側の判定と直返しが撤去済みである。"
+    evidence:
+      - path: "internal/infra/ai/transport.go"
+        line: 34
+        excerpt: "deterministicHTTPTransport.Do は resolveDeterministicResponseText を使い、model list request 判定を持たない。"
+      - path: "internal/infra/ai/deterministic_fake_provider.go"
+        line: 39
+        excerpt: "deterministicProvider.ListModels が FakeModelID の model list を返す。"
+      - path: "internal/infra/ai/deterministic_fake_provider.go"
+        line: 9
+        excerpt: "FakeModelID は deterministic_fake_provider.go に定義されている。"
+      - path: "internal/infra/ai/provider_models.go"
+        line: 73
+        excerpt: "WithProviderModelListDeterministicProviders が model-list providers を deterministic fake provider へ差し替える。"
+    local_fix_assessment: "resolved。infra/ai 内で transport の model list 直返しを撤去し、固定値を deterministic fake provider に集約している。"
+    additional_check_scope: "none。前回指摘対象の transport.go/provider_models.go/deterministic_fake_provider.go について、指定静的検索で FakeModelID が deterministic_fake_provider.go のみに残ることを確認した。"
+    fix_considerations: "transport は HTTP の応答 seam に閉じ、model list の固定値は deterministic provider に集約する。"
+    verification: "rg -n \"isProviderModelListRequest|deterministicProviderModelListResponse|FakeModelID\" internal/infra/ai/transport.go internal/infra/ai/provider_models.go internal/infra/ai/deterministic_fake_provider.go では FakeModelID が deterministic_fake_provider.go のみに該当することを確認した。"
+    fix_required: true
+    status: "resolved"

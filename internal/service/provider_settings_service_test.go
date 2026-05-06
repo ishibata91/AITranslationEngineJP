@@ -315,6 +315,173 @@ func TestProviderSettingsServiceListProviderModelsGatesCredentialAndEndpoint(t *
 	}
 }
 
+func TestProviderSettingsServiceListProviderModelsDoesNotBypassCredentialAndEndpointForLoaderMarker(t *testing.T) {
+	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
+	loader := &fakeProviderSettingsModelListLoader{
+		models: []ProviderSettingsModelOption{{ModelID: "gemini-test-safe", Label: "Gemini Test Safe"}},
+	}
+	service := NewProviderSettingsService(
+		repo,
+		secretStore,
+		transactor,
+		loader,
+		fakeProviderSettingsValidator{},
+		func() time.Time { return time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC) },
+	)
+
+	listed, err := service.ListProviderModels(context.Background(), ProviderSettingsModelListInput{
+		ProviderID:            "gemini",
+		Endpoint:              nil,
+		CredentialState:       "missing",
+		CredentialReferenceID: nil,
+		RequestToken:          "gemini|test-safe",
+	})
+	if err != nil {
+		t.Fatalf("expected provider model list preflight to return a result: %v", err)
+	}
+	if listed.State != "failed" || listed.FailureKind == nil || *listed.FailureKind != "validation_stale" {
+		t.Fatalf("expected normal stale preflight gate before loader call, got %#v", listed)
+	}
+	if len(loader.calls) != 0 {
+		t.Fatalf("expected no loader call before normal preflight passes, got %#v", loader.calls)
+	}
+}
+
+func TestProviderSettingsServiceApplyExecutionSnapshotDoesNotBypassCredentialAndEndpoint(t *testing.T) {
+	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
+	service := NewProviderSettingsService(
+		repo,
+		secretStore,
+		transactor,
+		&fakeProviderSettingsModelListLoader{},
+		fakeProviderSettingsValidator{},
+		func() time.Time { return time.Date(2026, 5, 6, 10, 10, 0, 0, time.UTC) },
+	)
+	spec, err := providerSettingsSpec("gemini")
+	if err != nil {
+		t.Fatalf("expected provider settings spec to resolve: %v", err)
+	}
+	result := ProviderSettingsResolveResult{
+		ProviderID:            "gemini",
+		Endpoint:              nil,
+		CredentialReferenceID: stringPointerForProviderSettingsServiceTest("provider-settings:gemini"),
+		CredentialState:       "missing",
+		ErrorKind:             stringPointerForProviderSettingsServiceTest("endpoint_missing"),
+	}
+
+	err = service.applyProviderSettingsExecutionSnapshot(
+		context.Background(),
+		spec,
+		ProviderSettingsResolveInput{AllowSecretSnapshot: true},
+		ProviderSettingsSummary{
+			ProviderID:            "gemini",
+			Endpoint:              nil,
+			CredentialReferenceID: nil,
+			CredentialState:       "missing",
+		},
+		&result,
+	)
+	if err != nil {
+		t.Fatalf("expected provider execution snapshot apply to return without secret read: %v", err)
+	}
+	if result.Endpoint != nil {
+		t.Fatalf("expected nil endpoint to remain nil, got %#v", result)
+	}
+	if result.CredentialReferenceID == nil {
+		t.Fatalf("expected existing credential reference to remain, got %#v", result)
+	}
+	if result.CredentialState != "missing" {
+		t.Fatalf("expected existing credential state to remain, got %#v", result)
+	}
+	if result.ErrorKind == nil || *result.ErrorKind != "endpoint_missing" {
+		t.Fatalf("expected existing error kind to remain, got %#v", result)
+	}
+}
+
+func TestProviderSettingsResolveResultKeepsRealProviderReadinessGates(t *testing.T) {
+	spec, err := providerSettingsSpec("gemini")
+	if err != nil {
+		t.Fatalf("expected provider settings spec to resolve: %v", err)
+	}
+	missingEndpoint := providerSettingsResolveResult(
+		spec,
+		ProviderSettingsResolveInput{
+			ConsumerID: "translation-job-setup",
+			Selection: ProviderSettingsResolveSelection{
+				ProviderID:      "gemini",
+				Model:           "gemini-2.5-pro",
+				ExecutionMethod: "standard",
+				UseBatchAPI:     false,
+			},
+			AllowSecretSnapshot: true,
+		},
+		ProviderSettingsSummary{
+			ProviderID:            "gemini",
+			Endpoint:              nil,
+			CredentialReferenceID: nil,
+			CredentialState:       "missing",
+		},
+	)
+	if missingEndpoint.ErrorKind == nil || *missingEndpoint.ErrorKind != "endpoint_missing" {
+		t.Fatalf("expected endpoint_missing gate for real provider execution resolve, got %#v", missingEndpoint)
+	}
+
+	missingCredential := providerSettingsResolveResult(
+		spec,
+		ProviderSettingsResolveInput{
+			ConsumerID: "translation-job-setup",
+			Selection: ProviderSettingsResolveSelection{
+				ProviderID:      "gemini",
+				Model:           "gemini-2.5-pro",
+				ExecutionMethod: "standard",
+				UseBatchAPI:     false,
+			},
+			AllowSecretSnapshot: true,
+		},
+		ProviderSettingsSummary{
+			ProviderID:            "gemini",
+			Endpoint:              stringPointerForProviderSettingsServiceTest("https://gemini.example/v1"),
+			CredentialReferenceID: nil,
+			CredentialState:       "missing",
+		},
+	)
+	if missingCredential.ErrorKind == nil || *missingCredential.ErrorKind != "credential_missing" {
+		t.Fatalf("expected credential_missing gate for real provider execution resolve, got %#v", missingCredential)
+	}
+	if missingCredential.CredentialState != "missing" || missingCredential.CredentialReferenceID != nil {
+		t.Fatalf("expected real provider missing credential state to remain gated, got %#v", missingCredential)
+	}
+}
+
+func TestProviderSettingsServiceResolveExecutionDoesNotBypassMissingSettings(t *testing.T) {
+	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
+	service := NewProviderSettingsService(
+		repo,
+		secretStore,
+		transactor,
+		&fakeProviderSettingsModelListLoader{},
+		fakeProviderSettingsValidator{},
+		func() time.Time { return time.Date(2026, 5, 6, 10, 20, 0, 0, time.UTC) },
+	)
+
+	resolved, err := service.ResolveProviderExecutionSettings(context.Background(), ProviderSettingsResolveInput{
+		ConsumerID: "translation-job-setup",
+		Selection: ProviderSettingsResolveSelection{
+			ProviderID:      "gemini",
+			Model:           "gemini-test-safe",
+			ExecutionMethod: "standard",
+			UseBatchAPI:     false,
+		},
+		AllowSecretSnapshot: true,
+	})
+	if err != nil {
+		t.Fatalf("expected provider execution resolve to return gated result: %v", err)
+	}
+	if resolved.ErrorKind == nil || *resolved.ErrorKind != "credential_missing" {
+		t.Fatalf("expected missing credential gate to remain, got %#v", resolved)
+	}
+}
+
 func openProviderSettingsServiceDependencies(
 	t *testing.T,
 ) (*repository.SQLiteProviderSettingsRepository, *repository.InMemorySecretStore, repository.Transactor) {

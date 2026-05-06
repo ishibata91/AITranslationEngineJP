@@ -57,6 +57,23 @@ func (provider openAICompatibleProvider) Generate(
 	}, nil
 }
 
+func (provider openAICompatibleProvider) ListModels(
+	ctx context.Context,
+	apiKey string,
+	endpointSummary string,
+) ([]ProviderModelOption, error) {
+	return listOpenAICompatibleModels(
+		ctx,
+		provider.transport,
+		normalizeBaseURL(
+			firstNonEmptyOpenAICompatibleValue(strings.TrimSpace(endpointSummary), provider.baseURL),
+			provider.baseURL,
+		),
+		apiKey,
+		provider.apiKeyOptional,
+	)
+}
+
 func firstNonEmptyOpenAICompatibleValue(values ...string) string {
 	for _, value := range values {
 		trimmed := strings.TrimSpace(value)

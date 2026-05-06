@@ -57,4 +57,5 @@ type ProviderResponse struct {
 
 type provider interface {
 	Generate(ctx context.Context, request ProviderRequest) (ProviderResponse, error)
+	ListModels(ctx context.Context, apiKey string, endpointSummary string) ([]ProviderModelOption, error)
 }
