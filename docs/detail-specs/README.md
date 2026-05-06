@@ -13,11 +13,14 @@ active exec-plan で承認された恒久仕様を close 前に製本し、後�
 
 ## Specs
 
+- [`ai-provider-settings-management.md`](./ai-provider-settings-management.md)
 - [`body-translation-phase.md`](./body-translation-phase.md)
 - [`master-dictionary.md`](./master-dictionary.md)
 - [`persona-generation-phase.md`](./persona-generation-phase.md)
 - [`template.md`](./template.md)
 - [`term-translation-phase.md`](./term-translation-phase.md)
+- [`translation-job-management.md`](./translation-job-management.md)
+- [`translation-job-setup.md`](./translation-job-setup.md)
 - [`translation-input-intake.md`](./translation-input-intake.md)
 - [`translation-output-artifact.md`](./translation-output-artifact.md)
 

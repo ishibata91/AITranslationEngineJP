@@ -7,18 +7,18 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_unit_tester` agent が実装済み責務 または UX改善レーンの `task 枠` の 公開振る舞い、分岐、エラー経路 を 単体テスト で証明する時の判断基準を提供する。
+`implementation_unit_tester` agent が実装済み責務 または 軽量変更レーンの `task 枠` の 公開振る舞い、分岐、エラー経路 を 単体テスト で証明する時の判断基準を提供する。
 
 ## 対応ロール
 
 - `implementation_unit_tester` が使う。
-- 呼び出し元は `implement_lane` または `ux_refactor_lane` とする。
-- 返却先は `implement_lane` または `ux_refactor_lane` とする。
+- 呼び出し元は `implement_lane` または `light_change_lane` とする。
+- 返却先は `implement_lane` または `light_change_lane` とする。
 - 担当成果物は `tests-unit` の出力規約で固定する。
 
 ## 入力規約
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された tests-unit 用 引き継ぎ 1 件、または UX改善レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された tests-unit 用 引き継ぎ 1 件、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
 - 実行中タスク成果物場所: テスト成果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 対象テスト範囲: 変更してよい 単体テスト と必要最小限の テスト補助 の path。
 - 実装済み対象: implementation_implementer が変更済みのファイル、公開接点、symbol。
@@ -74,23 +74,23 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 
 ## 完了規約
 
-- 承認済み実装範囲 または UX改善レーンの `task 枠` 内の成果だけが返却されている。
+- 承認済み実装範囲 または 軽量変更レーンの `task 枠` 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 1 テストで 1 公開振る舞い / 分岐 / エラー経路 だけを証明した。
 - setup の clock、random、ID、repository 応答順序を固定した。
 - implementation_task_ids の外へ広げなかった。
 - 変更対象が 単体テスト と必要最小限の テスト補助だけである。
-- backend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または UX改善レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
-- frontend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または UX改善レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
-- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 または UX改善レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- backend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または 軽量変更レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- frontend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または 軽量変更レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 または 軽量変更レーンの `task 枠` 内でその場で直して再実行し、通過結果または未実行理由を返した。
 - `python3 scripts/harness/run.py --suite coverage` を実行し、全体網羅率が 70.0% を上回る結果または未実行理由を返した。
 - レーン内検証 の失敗時はその場で直して再実行し、通過結果または未実行理由を返した。
 
 ## 停止規約
 
 - シナリオ 成果物 の 結果 を テストにする時
-- `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 または UX改善レーンの `task 枠` 外にある場合は停止する。
-- `python3 scripts/harness/run.py --suite coverage` の全体網羅率が 70.0% 以下で、承認済み実装範囲 または UX改善レーンの `task 枠` 内の単体テストだけでは改善できない場合は停止する。
+- `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が承認済み実装範囲 または 軽量変更レーンの `task 枠` 外にある場合は停止する。
+- `python3 scripts/harness/run.py --suite coverage` の全体網羅率が 70.0% 以下で、承認済み実装範囲 または 軽量変更レーンの `task 枠` 内の単体テストだけでは改善できない場合は停止する。
 - テストのためだけに広い プロダクトコード 変更が必要な時
 - 統合 flow を証明する時
 - 証明対象、対象テスト範囲、実装済み対象 のいずれかが不足している時

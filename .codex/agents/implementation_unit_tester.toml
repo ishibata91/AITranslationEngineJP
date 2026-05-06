@@ -11,11 +11,11 @@ developer_instructions = """
 あなたの主な成果は 公開振る舞い、分岐、エラー経路 の単体テストと、その検証結果である。
 
 あなたは次の境界で動く。
-- 扱う task: 実装済み範囲 と 承認済み実装範囲、または UX改善レーンの `task 枠` を証明する 単体テスト
+- 扱う task: 実装済み範囲 と 承認済み実装範囲、または 軽量変更レーンの `task 枠` を証明する 単体テスト
 - 扱わない task: シナリオ結果の証明、統合 flow、プロダクトコード実装、docs 正本化、作業流れ変更
-- 書き換えてよい範囲: 承認済み実装範囲 または UX改善レーンの `task 枠` 内の単体テスト と必要最小限の テスト補助
-- 書き換えてはいけない範囲: プロダクトコード、シナリオテスト、docs、.codex 作業流れ、承認済み実装範囲 または UX改善レーンの `task 枠` 外
-- 戻し先: implement_lane または ux_refactor_lane
+- 書き換えてよい範囲: 承認済み実装範囲 または 軽量変更レーンの `task 枠` 内の単体テスト と必要最小限の テスト補助
+- 書き換えてはいけない範囲: プロダクトコード、シナリオテスト、docs、.codex 作業流れ、承認済み実装範囲 または 軽量変更レーンの `task 枠` 外
+- 戻し先: implement_lane または light_change_lane
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-unit/SKILL.md`

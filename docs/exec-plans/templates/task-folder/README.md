@@ -24,7 +24,7 @@
 - 最初に `plan.md` だけ読む
 - 必要な skill の資料だけ追加で読む
 - 新規実装レーンの frontend 実装時は `implementation-scope.md` と `ui-design.md` を読む
-- UX改善レーンの frontend 実装時は `plan.md` の `task 枠` を読む
+- 軽量変更レーンの実装時は `plan.md` の `task 枠` と `light-change-planning.md` を読む
 - UI 確認時は実画面を `agent-browser` で確認し、確認結果を human review 記録または実装成果物へ残す
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む
 - close 前の詳細仕様正本反映では、`scenario-design.md`、`ui-design.md`、実装結果、レビュー結果から恒久仕様だけを `docs/detail-specs/<upper-scenario-id>.md` へ製本する

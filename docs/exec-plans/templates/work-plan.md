@@ -23,6 +23,6 @@
 - AI は最初に `plan.md` だけ読む
 - 追加 context は必要な skill 資料だけ読む
 - 新規実装レーンの frontend implementation handoff では `implementation-scope.md` と `ui-design.md` を読む
-- UX改善レーンの frontend 実装では `plan.md` の `task 枠` を読む
+- 軽量変更レーンの実装では `plan.md` の `task 枠` と `light-change-planning.md` を読む
 - UI 確認では実画面を `agent-browser` で確認する
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む
