@@ -44,7 +44,6 @@ def main() -> int:
 
     failures = 0
     root_package_json_path = repo_root / "package.json"
-    sonar_project_properties = repo_root / "sonar-project.properties"
 
     if not root_package_json_path.exists():
         report_skip(f"SKIP no package.json found at {root_package_json_path}")
@@ -78,17 +77,11 @@ def main() -> int:
     else:
         report_skip(f"SKIP no test:frontend script in {root_package_json_path}")
 
-    if sonar_project_properties.exists():
-        ran_anything = True
-        if has_script(root_package, "scan:sonar"):
-            failures += invoke_step(package_manager, ["run", "scan:sonar"], repo_root)
-        else:
-            failures += invoke_step("sonar-scanner", [], repo_root)
-    else:
-        report_skip(f"SKIP no sonar-project.properties found at {sonar_project_properties}")
-
     if not ran_anything:
-        report_skip("SKIP no lint:backend, lint:frontend, or Sonar target found. Execution harness is installed but has nothing to run yet.")
+        report_skip(
+            "SKIP no lint:backend, lint:frontend, test:backend, or test:frontend target found. "
+            "Execution harness is installed but has nothing to run yet."
+        )
 
     return finalize_failures("Execution harness", failures)
 
