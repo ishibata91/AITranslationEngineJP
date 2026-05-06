@@ -2,7 +2,10 @@ package repository
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -207,13 +210,8 @@ const (
 	insertTranslationJob = `
 INSERT INTO TRANSLATION_JOB
   (x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at)
-SELECT
-	:x_edit_extracted_data_id, :job_name, :state, :progress_percent, :created_at, :started_at, :finished_at
-WHERE NOT EXISTS (
-	SELECT 1
-	FROM TRANSLATION_JOB
-	WHERE x_edit_extracted_data_id = :x_edit_extracted_data_id
-)`
+VALUES
+	(:x_edit_extracted_data_id, :job_name, :state, :progress_percent, :created_at, :started_at, :finished_at)`
 
 	selectTranslationJobByID = `
 SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
@@ -223,6 +221,12 @@ FROM TRANSLATION_JOB WHERE id = ?`
 SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
 FROM TRANSLATION_JOB
 ORDER BY id ASC`
+
+	selectIncompleteTranslationJobs = `
+SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
+FROM TRANSLATION_JOB
+WHERE LOWER(TRIM(state)) <> 'completed'
+ORDER BY created_at DESC, id DESC`
 
 	updateTranslationJob = `
 UPDATE TRANSLATION_JOB SET
@@ -264,6 +268,79 @@ SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, c
 FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
 WHERE translation_job_id = ? AND phase_id = ?
 LIMIT 1`
+
+	selectTranslationJobForDelete = `
+SELECT id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at, started_at, finished_at
+FROM TRANSLATION_JOB
+WHERE id = ?`
+
+	deletePersonaFieldEvidenceByJobID = `
+DELETE FROM PERSONA_FIELD_EVIDENCE
+WHERE persona_id IN (
+	SELECT id
+	FROM PERSONA
+	WHERE translation_job_id = ?
+)`
+
+	deleteXTranslatorOutputRowsByJobID = `
+DELETE FROM XTRANSLATOR_OUTPUT_ROW
+WHERE translation_artifact_id IN (
+	SELECT id
+	FROM TRANSLATION_ARTIFACT
+	WHERE translation_job_id = ?
+)`
+
+	deletePhaseRunTranslationFieldsByJobID = `
+DELETE FROM PHASE_RUN_TRANSLATION_FIELD
+WHERE phase_run_id IN (
+	SELECT id
+	FROM JOB_PHASE_RUN
+	WHERE translation_job_id = ?
+)`
+
+	deletePhaseRunPersonasByJobID = `
+DELETE FROM PHASE_RUN_PERSONA
+WHERE phase_run_id IN (
+	SELECT id
+	FROM JOB_PHASE_RUN
+	WHERE translation_job_id = ?
+)`
+
+	deletePhaseRunDictionaryEntriesByJobID = `
+DELETE FROM PHASE_RUN_DICTIONARY_ENTRY
+WHERE phase_run_id IN (
+	SELECT id
+	FROM JOB_PHASE_RUN
+	WHERE translation_job_id = ?
+)`
+
+	deleteTranslationJobPhaseRuntimeSnapshotsByJobID = `
+DELETE FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
+WHERE translation_job_id = ?`
+
+	deleteJobPhaseRunsByJobID = `
+DELETE FROM JOB_PHASE_RUN
+WHERE translation_job_id = ?`
+
+	deleteJobTranslationFieldsByJobID = `
+DELETE FROM JOB_TRANSLATION_FIELD
+WHERE translation_job_id = ?`
+
+	deleteTranslationArtifactsByJobID = `
+DELETE FROM TRANSLATION_ARTIFACT
+WHERE translation_job_id = ?`
+
+	deletePersonasByJobID = `
+DELETE FROM PERSONA
+WHERE translation_job_id = ?`
+
+	deleteDictionaryEntriesByJobID = `
+DELETE FROM DICTIONARY_ENTRY
+WHERE translation_job_id = ?`
+
+	deleteTranslationJobByID = `
+DELETE FROM TRANSLATION_JOB
+WHERE id = ?`
 
 	insertJobPhaseRun = `
 INSERT INTO JOB_PHASE_RUN
@@ -380,13 +457,6 @@ func (r *SQLiteJobLifecycleRepository) CreateTranslationJob(
 	if err != nil {
 		return TranslationJob{}, mapFoundationSQLError(err, "create translation_job")
 	}
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		return TranslationJob{}, fmt.Errorf("create translation_job rows affected: %w", err)
-	}
-	if rowsAffected == 0 {
-		return TranslationJob{}, fmt.Errorf("create translation_job duplicate input: %w", ErrConflict)
-	}
 	id, err := result.LastInsertId()
 	if err != nil {
 		return TranslationJob{}, fmt.Errorf("create translation_job last insert id: %w", err)
@@ -413,6 +483,27 @@ func (r *SQLiteJobLifecycleRepository) ListTranslationJobs(ctx context.Context) 
 	rows := make([]translationJobRow, 0)
 	if err := sqlx.SelectContext(ctx, ext, &rows, selectTranslationJobs); err != nil {
 		return nil, mapSQLError(err, "list translation jobs")
+	}
+
+	jobs := make([]TranslationJob, 0, len(rows))
+	for _, row := range rows {
+		job, err := row.toModel()
+		if err != nil {
+			return nil, err
+		}
+		jobs = append(jobs, job)
+	}
+	return jobs, nil
+}
+
+// ListIncompleteTranslationJobs returns non-completed translation jobs for Job Management.
+func (r *SQLiteJobLifecycleRepository) ListIncompleteTranslationJobs(
+	ctx context.Context,
+) ([]TranslationJob, error) {
+	ext := extractTx(ctx, r.db)
+	rows := make([]translationJobRow, 0)
+	if err := sqlx.SelectContext(ctx, ext, &rows, selectIncompleteTranslationJobs); err != nil {
+		return nil, mapSQLError(err, "list incomplete translation jobs")
 	}
 
 	jobs := make([]TranslationJob, 0, len(rows))
@@ -459,6 +550,86 @@ func (r *SQLiteJobLifecycleRepository) UpdateTranslationJob(
 		return TranslationJob{}, mapFoundationSQLError(err, "update translation_job")
 	}
 	return r.GetTranslationJobByID(ctx, id)
+}
+
+// DeleteNonRunningTranslationJob deletes one non-running job and its job-owned rows.
+func (r *SQLiteJobLifecycleRepository) DeleteNonRunningTranslationJob(
+	ctx context.Context,
+	jobID int64,
+) (TranslationJobDeleteResult, error) {
+	ext := extractTx(ctx, r.db)
+	var row translationJobRow
+	if err := sqlx.GetContext(ctx, ext, &row, selectTranslationJobForDelete, jobID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return TranslationJobDeleteResult{Outcome: TranslationJobDeleteOutcomeNotFound}, nil
+		}
+		return TranslationJobDeleteResult{}, mapSQLError(err, "select translation_job for delete")
+	}
+
+	job, err := row.toModel()
+	if err != nil {
+		return TranslationJobDeleteResult{}, err
+	}
+	if normalizeTranslationJobManagementState(job.State) == "running" {
+		return TranslationJobDeleteResult{
+			Outcome: TranslationJobDeleteOutcomeBlockedRunning,
+			Job:     &job,
+		}, nil
+	}
+	phaseRuns, err := r.ListJobPhaseRunsByJobID(ctx, job.ID)
+	if err != nil {
+		return TranslationJobDeleteResult{}, fmt.Errorf("list job_phase_run for delete guard: %w", err)
+	}
+	if hasUnsafeDeletePhaseRun(phaseRuns) {
+		return TranslationJobDeleteResult{
+			Outcome: TranslationJobDeleteOutcomeBlockedUnsafe,
+			Job:     &job,
+		}, nil
+	}
+
+	statements := []struct {
+		label string
+		query string
+	}{
+		{label: "delete persona_field_evidence by job_id", query: deletePersonaFieldEvidenceByJobID},
+		{label: "delete xtranslator_output_row by job_id", query: deleteXTranslatorOutputRowsByJobID},
+		{label: "delete phase_run_translation_field by job_id", query: deletePhaseRunTranslationFieldsByJobID},
+		{label: "delete phase_run_persona by job_id", query: deletePhaseRunPersonasByJobID},
+		{label: "delete phase_run_dictionary_entry by job_id", query: deletePhaseRunDictionaryEntriesByJobID},
+		{label: "delete translation_job_phase_runtime_snapshot by job_id", query: deleteTranslationJobPhaseRuntimeSnapshotsByJobID},
+		{label: "delete job_phase_run by job_id", query: deleteJobPhaseRunsByJobID},
+		{label: "delete job_translation_field by job_id", query: deleteJobTranslationFieldsByJobID},
+		{label: "delete translation_artifact by job_id", query: deleteTranslationArtifactsByJobID},
+		{label: "delete persona by job_id", query: deletePersonasByJobID},
+		{label: "delete dictionary_entry by job_id", query: deleteDictionaryEntriesByJobID},
+		{label: "delete translation_job by id", query: deleteTranslationJobByID},
+	}
+	for _, statement := range statements {
+		if _, execErr := ext.ExecContext(ctx, statement.query, jobID); execErr != nil {
+			return TranslationJobDeleteResult{}, mapFoundationSQLError(execErr, statement.label)
+		}
+	}
+	return TranslationJobDeleteResult{
+		Outcome: TranslationJobDeleteOutcomeDeleted,
+		Job:     &job,
+	}, nil
+}
+
+func normalizeTranslationJobManagementState(state string) string {
+	return strings.ToLower(strings.TrimSpace(state))
+}
+
+func hasUnsafeDeletePhaseRun(phaseRuns []JobPhaseRun) bool {
+	for _, phaseRun := range phaseRuns {
+		state := normalizeTranslationJobManagementState(phaseRun.State)
+		if state == "running" || state == "pending" {
+			return true
+		}
+		if normalizeTranslationJobManagementState(phaseRun.LatestError) == "stop_requested" {
+			return true
+		}
+	}
+	return false
 }
 
 // SaveTranslationJobPhaseRuntimeSnapshot は Job Setup の phase 別 runtime snapshot を保存する。

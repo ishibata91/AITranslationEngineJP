@@ -1,0 +1,109 @@
+reviewback_version: 1
+task_id: "translation-job-management"
+review_yaml_path: "docs/exec-plans/active/translation-job-management/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "責務境界は維持されている。backend は Bootstrap が production graph を生成し、Controller が Wails DTO と usecase 境界変換を担当し、UseCase が service port 経由の orchestration と read model 変換を担当し、Service が job 管理 projection と削除 guard を担当し、Repository が SQLite 永続化と job-owned row 削除を担当している。frontend は Bootstrap / factory が gateway と screen controller を生成し、Gateway が Wails binding 呼び出しを閉じ込め、ScreenController が UseCase / Store / Presenter を束ね、UseCase が GatewayContract と Store を使い、Presenter が view model を組み立て、View は view model と event だけを扱っている。"
+  evidence_sufficiency: "十分。承認済み範囲、architecture 正本、coding-guidelines、reviewback 形式、backend / frontend / Wails / bootstrap の対象実コードを確認した。検証証跡は呼び出し元提示の pass 結果を入力として扱い、ハーネスは実行していない。"
+
+checked_scope:
+  summary: "未完了 job 管理の frontend 画面経路、Wails gateway DTO 経路、backend Wails controller、backend usecase、service、repository、SQLite migration、backend / frontend bootstrap 注入を確認した。除外指定された `.codex/**`、`tasks/**`、`scripts/scenario/**` は責務境界レビュー対象に含めていない。"
+  files:
+    - path: "docs/exec-plans/active/translation-job-management/implementation-scope.md"
+      line: 24
+      symbol: "Approved Implementation Scope"
+      reason: "承認済み実装範囲、非対象範囲、frontend / backend / integration の owned scope を確認した。"
+    - path: "docs/architecture.md"
+      line: 37
+      symbol: "システム全体の依存方向"
+      reason: "層責務、依存方向、Bootstrap 以外で concrete 実装を生成しない条件を確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 57
+      symbol: "createProductionAppFactories"
+      reason: "frontend production gateway と screen controller factory の生成が bootstrap 経路に置かれていることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 93
+      symbol: "TranslationJobManagementGateway"
+      reason: "Wails binding 呼び出しが Gateway adapter に閉じていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+      line: 126
+      symbol: "TranslationJobManagementGatewayContract"
+      reason: "gateway contract が job 管理の query / command 入出力境界を定義していることを確認した。"
+    - path: "frontend/src/application/contract/translation-job-management/translation-job-management-screen-types.ts"
+      line: 42
+      symbol: "TranslationJobManagementScreenState"
+      reason: "screen state と view model が screen contract 側に分離されていることを確認した。"
+    - path: "frontend/src/controller/translation-job-management/translation-job-management-screen-controller.ts"
+      line: 45
+      symbol: "TranslationJobManagementScreenController"
+      reason: "ScreenController が UseCase / Store / Presenter を束ね、View へ view model を返す責務に閉じていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-management/translation-job-management.usecase.ts"
+      line: 80
+      symbol: "TranslationJobManagementUseCase"
+      reason: "Frontend UseCase が GatewayContract と Store に依存し、generated binding を直接扱っていないことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 306
+      symbol: "TranslationJobManagementPresenter"
+      reason: "Presenter が Store state から list、operation、Job Run target の view model を組み立てていることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 42
+      symbol: "TranslationJobManagementPage"
+      reason: "View が controller と view model を前提に描画し、backend DTO や Wails binding を直接扱っていないことを確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 182
+      symbol: "translationJobManagementController"
+      reason: "backend production graph の concrete 生成が Bootstrap に置かれていることを確認した。"
+    - path: "internal/controller/wails/translation_job_management_controller.go"
+      line: 121
+      symbol: "NewTranslationJobManagementController"
+      reason: "Controller が Wails DTO と usecase request / response の境界変換を担当していることを確認した。"
+    - path: "internal/usecase/translation_job_management_usecase.go"
+      line: 10
+      symbol: "translationJobManagementServicePort"
+      reason: "Backend UseCase が service port を介し、repository concrete を直接参照していないことを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 130
+      symbol: "TranslationJobManagementService"
+      reason: "Service が read model、操作可否、削除 guard の構築を担当し、SQLite concrete や Wails runtime を直接扱っていないことを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 555
+      symbol: "DeleteNonRunningTranslationJob"
+      reason: "Repository が SQLite 永続化と job-owned row 削除を閉じ込めていることを確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "観点別レビュー agent はハーネスを実行しない規約のため、呼び出し元提示の検証証跡を入力として扱った。"
+    risk: "レビュー時点の worktree と提示済み検証結果の完全一致は、この観点では再証明していない。"
+  - target: "frontend/wailsjs generated binding"
+    reason: "主な対象差分に generated binding の変更が含まれていないため、hand-written gateway と backend controller を中心に確認した。"
+    risk: "Wails 生成物の最新性は統合境界レビューまたは契約レビュー側の確認に依存する。"
+  - target: "挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件"
+    reason: "責務境界以外を主判定にしない規約に従った。"
+    risk: "各観点の未解決問題は、別 reviewback の集約に依存する。"
+  - target: ".codex/**、tasks/**、scripts/scenario/**"
+    reason: "呼び出し元が別レーンまたは人間指示由来としてレビュー対象外に指定した。"
+    risk: "workflow / task / scenario gate 変更の責務判断は、この YAML では扱わない。"
+
+issues: []
+
+residual_risks:
+  - "Service 内の read model 構築関数は大きいが、Repository や Wails runtime の具象 API を直接扱っていないため、責務境界違反としては扱っていない。"
+  - "frontend presenter、store、usecase は screen state 型をそれぞれ局所定義している箇所がある。現時点では層越境ではなく、型同期の保守リスクとして残る。"
+  - "検証証跡は `python3 scripts/harness/run.py --suite all` pass、frontend test 57 files / 483 tests pass、system test 9 tests pass、Sonar coverage summary 70.4%、line 71.3%、branch 63.8%、Sonar issues security 0 / reliability 0 / maintainability HIGH 0 として入力した。"
+  - "人間により不要と判断された詳細パネルと過剰な一覧表示項目を復活させない判断は、責務境界違反として扱っていない。"
+
+broken_boundaries: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  summary: "未解決の責務境界違反はない。局所修正は不要である。"
+  boundary_fixed_test_viewpoints:
+    - "GatewayContract が query / command 入出力境界だけを公開し、Wails binding 呼び出しが `frontend/src/controller/wails` に閉じていることを静的に確認する。"
+    - "ScreenController contract と Presenter が view model 経路を担い、View が generated binding や backend DTO を直接扱わないことを確認する。"
+    - "Backend Controller / UseCase / Service / Repository / Bootstrap の concrete 生成と永続化責務が architecture 正本の依存方向に沿っていることを確認する。"

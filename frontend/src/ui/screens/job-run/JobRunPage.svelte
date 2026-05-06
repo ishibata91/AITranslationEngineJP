@@ -1,6 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
+  import type { TranslationJobManagementJobRunTarget } from "@application/contract/translation-job-management/translation-job-management-screen-types"
   import type {
     BodyTranslationPhaseActionKind,
     BodyTranslationPhaseScreenViewModel,
@@ -25,12 +26,14 @@
     createBodyController: CreateBodyTranslationPhaseScreenController | null
     createPersonaController: CreatePersonaGenerationPhaseScreenController | null
     createController: CreateTermTranslationPhaseScreenController | null
+    selectedJobTarget?: TranslationJobManagementJobRunTarget | null
   }
 
   let {
     createBodyController,
     createPersonaController,
-    createController
+    createController,
+    selectedJobTarget = null
   }: Props = $props()
 
   function resolveController(): TermTranslationPhaseScreenControllerContract {
@@ -66,6 +69,14 @@
     bodyController ? bodyController.getViewModel() : null
   )
   let jobIdInput = $state("")
+
+  $effect(() => {
+    if (!selectedJobTarget) {
+      return
+    }
+
+    jobIdInput = String(selectedJobTarget.jobId)
+  })
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
     viewModel = nextViewModel
@@ -241,6 +252,34 @@
     </div>
   </section>
 
+  {#if selectedJobTarget}
+    <section class="job-run-target-summary">
+      <div>
+        <p class="eyebrow">選択中のジョブ管理対象</p>
+        <h3>Job #{selectedJobTarget.jobId}</h3>
+      </div>
+      <dl class="target-summary-grid">
+        <div>
+          <dt>状態</dt>
+          <dd>{selectedJobTarget.stateLabel} / {selectedJobTarget.stateDescription}</dd>
+        </div>
+        <div>
+          <dt>現在 phase</dt>
+          <dd>{selectedJobTarget.currentPhaseLabel}</dd>
+        </div>
+        <div>
+          <dt>進捗</dt>
+          <dd>{selectedJobTarget.progressLabel}</dd>
+        </div>
+        <div>
+          <dt>入力</dt>
+          <dd>{selectedJobTarget.inputSourceLabel}</dd>
+        </div>
+      </dl>
+      <p class="selector-copy">{selectedJobTarget.sourcePath}</p>
+    </section>
+  {/if}
+
   <TermTranslationPhasePanel
     {viewModel}
     onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
@@ -279,6 +318,15 @@
     background: rgba(33, 27, 24, 0.88);
   }
 
+  .job-run-target-summary {
+    display: grid;
+    gap: 0.8rem;
+    padding: 1.15rem 1.3rem;
+    border: 1px solid rgba(226, 205, 173, 0.14);
+    border-radius: 20px;
+    background: rgba(33, 27, 24, 0.88);
+  }
+
   .eyebrow,
   .selector-copy,
   .field-block span {
@@ -286,6 +334,11 @@
   }
 
   h2 {
+    margin: 0.2rem 0 0;
+    color: #fff6ea;
+  }
+
+  h3 {
     margin: 0.2rem 0 0;
     color: #fff6ea;
   }
@@ -322,6 +375,28 @@
     cursor: pointer;
   }
 
+  .target-summary-grid {
+    display: grid;
+    gap: 0.6rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    margin: 0;
+  }
+
+  .target-summary-grid div {
+    display: grid;
+    gap: 0.2rem;
+  }
+
+  .target-summary-grid dt {
+    color: rgba(236, 223, 205, 0.78);
+  }
+
+  .target-summary-grid dd {
+    margin: 0;
+    color: #fff6ea;
+    overflow-wrap: anywhere;
+  }
+
   @media (max-width: 900px) {
     .job-run-selector,
     .selector-form {
@@ -331,6 +406,10 @@
 
     .field-block {
       min-width: 0;
+    }
+
+    .target-summary-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>

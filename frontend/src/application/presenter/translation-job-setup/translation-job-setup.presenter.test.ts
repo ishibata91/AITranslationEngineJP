@@ -105,7 +105,7 @@ describe("TranslationJobSetupPresenter", () => {
     )
   })
 
-  test("selectedInputSourceId と一致する existingJob は inputSource 表示名が異なっても blockedReasons と canCreate を無効化する", () => {
+  test("selectedInputSourceId と一致する existingJob は参考表示だけを残し canCreate を維持する", () => {
     const presenter = new TranslationJobSetupPresenter()
 
     const viewModel = presenter.toViewModel(
@@ -122,9 +122,131 @@ describe("TranslationJobSetupPresenter", () => {
       true
     )
 
-    expect(viewModel.canCreate).toBe(false)
-    expect(viewModel.blockedReasons).toContain(
+    expect(viewModel.canCreate).toBe(true)
+    expect(viewModel.blockedReasons).not.toContain(
       "既存 job があるため create を無効化しています。"
     )
+    expect(viewModel.existingJobSummary).toContain("job #300")
+  })
+
+  test("phase-driven state では selectedInputSourceId と一致する existingJob があっても canCreate を false にしない", () => {
+    const presenter = new TranslationJobSetupPresenter()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        options: createOptions({
+          existingJob: {
+            inputSourceId: 41,
+            jobId: 300,
+            status: "ready",
+            inputSource: "/mods/input-review.json"
+          },
+          providerCapabilities: [
+            {
+              provider: "openai",
+              credentialRequirement: "required",
+              supportedExecutionModes: ["batch"],
+              supportsBatchMode: true
+            }
+          ]
+        }),
+        phaseRuntimeSelections: [
+          {
+            phaseId: "word_translation",
+            provider: "openai",
+            model: "gpt-5.4-mini",
+            credentialRef: "openai-primary",
+            credentialStatus: "configured",
+            executionMode: "batch",
+            batchMode: "enabled",
+            modelListSourceToken: "word-1"
+          },
+          {
+            phaseId: "npc_persona_generation",
+            provider: "openai",
+            model: "gpt-5.4-mini",
+            credentialRef: "openai-primary",
+            credentialStatus: "configured",
+            executionMode: "batch",
+            batchMode: "enabled",
+            modelListSourceToken: "npc-1"
+          },
+          {
+            phaseId: "text_translation",
+            provider: "openai",
+            model: "gpt-5.4-mini",
+            credentialRef: "openai-primary",
+            credentialStatus: "configured",
+            executionMode: "batch",
+            batchMode: "enabled",
+            modelListSourceToken: "text-1"
+          }
+        ],
+        providerModelLists: [
+          {
+            phaseId: "word_translation",
+            provider: "openai",
+            credentialStatus: "configured",
+            requestToken: "word-request",
+            sourceToken: "word-1",
+            status: "success",
+            models: [{ modelId: "gpt-5.4-mini", label: "GPT-5.4 Mini" }]
+          },
+          {
+            phaseId: "npc_persona_generation",
+            provider: "openai",
+            credentialStatus: "configured",
+            requestToken: "npc-request",
+            sourceToken: "npc-1",
+            status: "success",
+            models: [{ modelId: "gpt-5.4-mini", label: "GPT-5.4 Mini" }]
+          },
+          {
+            phaseId: "text_translation",
+            provider: "openai",
+            credentialStatus: "configured",
+            requestToken: "text-request",
+            sourceToken: "text-1",
+            status: "success",
+            models: [{ modelId: "gpt-5.4-mini", label: "GPT-5.4 Mini" }]
+          }
+        ],
+        validationResult: createValidationResult({
+          phaseResults: [
+            {
+              phaseId: "word_translation",
+              status: "pass",
+              canCreate: true,
+              modelListState: "success",
+              modelListSourceToken: "word-1",
+              isModelSelectionStale: false
+            },
+            {
+              phaseId: "npc_persona_generation",
+              status: "pass",
+              canCreate: true,
+              modelListState: "success",
+              modelListSourceToken: "npc-1",
+              isModelSelectionStale: false
+            },
+            {
+              phaseId: "text_translation",
+              status: "pass",
+              canCreate: true,
+              modelListState: "success",
+              modelListSourceToken: "text-1",
+              isModelSelectionStale: false
+            }
+          ]
+        })
+      }),
+      true
+    )
+
+    expect(viewModel.canCreate).toBe(true)
+    expect(viewModel.blockedReasons).not.toContain(
+      "同じ入力データの翻訳ジョブが既にあります。"
+    )
+    expect(viewModel.existingJobSummary).toContain("job #300")
   })
 })

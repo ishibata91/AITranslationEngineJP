@@ -39,6 +39,8 @@ mount(App, {
       appFactories.createProviderSettingsScreenController,
     createTermTranslationPhaseScreenController:
       appFactories.createTermTranslationPhaseScreenController,
+    createTranslationJobManagementScreenController:
+      appFactories.createTranslationJobManagementScreenController,
     createTranslationInputScreenController:
       appFactories.createTranslationInputScreenController,
     createTranslationOutputArtifactScreenController:

@@ -678,9 +678,6 @@ func (service *TranslationJobSetupService) createTranslationJobInTransaction(
 	if err != nil {
 		return TranslationJobSetupCreatedJobReadModel{}, err
 	}
-	if job == nil {
-		return TranslationJobSetupCreatedJobReadModel{ErrorKind: translationJobSetupErrorKindDuplicateInput}, nil
-	}
 
 	phaseRuntimes := normalizeTranslationJobSetupPhaseRuntimes(request.PhaseRuntimes)
 	if service.providerSettings != nil {
@@ -718,7 +715,7 @@ func (service *TranslationJobSetupService) createTranslationJobInTransaction(
 func (service *TranslationJobSetupService) createReadyTranslationJob(
 	ctx context.Context,
 	inputSourceID int64,
-) (*repository.TranslationJob, error) {
+) (repository.TranslationJob, error) {
 	job, err := service.jobLifecycleRepository.CreateTranslationJob(ctx, repository.TranslationJobDraft{
 		XEditExtractedDataID: inputSourceID,
 		JobName:              translationJobSetupJobName(inputSourceID),
@@ -726,12 +723,9 @@ func (service *TranslationJobSetupService) createReadyTranslationJob(
 		ProgressPercent:      0,
 	})
 	if err != nil {
-		if errors.Is(err, repository.ErrConflict) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("create translation job: %w", err)
+		return repository.TranslationJob{}, fmt.Errorf("create translation job: %w", err)
 	}
-	return &job, nil
+	return job, nil
 }
 
 func (service *TranslationJobSetupService) createInitialTranslationPhaseRun(

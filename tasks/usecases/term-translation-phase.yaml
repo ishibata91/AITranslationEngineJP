@@ -23,7 +23,7 @@ completion_criteria:
   - 用語や固有名詞の訳語を確定できる
   - 確定訳語を本文翻訳フェーズの入力として参照できる
 depends_on:
-  - translation-job-management
+  - translation-job-execution-stop
 related_exec_plans: []
 related_tests: []
 manual_check_steps:

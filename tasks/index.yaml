@@ -7,6 +7,7 @@ default_order:
   - translation-input-intake
   - translation-job-setup
   - translation-job-management
+  - translation-job-execution-stop
   - term-translation-phase
   - persona-generation-phase
   - body-translation-phase
@@ -22,6 +23,8 @@ entries:
     path: usecases/translation-job-setup.yaml
   - id: translation-job-management
     path: usecases/translation-job-management.yaml
+  - id: translation-job-execution-stop
+    path: usecases/translation-job-execution-stop.yaml
   - id: term-translation-phase
     path: usecases/term-translation-phase.yaml
   - id: persona-generation-phase

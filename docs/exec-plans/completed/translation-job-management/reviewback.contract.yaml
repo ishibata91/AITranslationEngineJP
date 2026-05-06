@@ -1,0 +1,185 @@
+reviewback_version: 1
+task_id: "translation-job-management"
+review_yaml_path: "docs/exec-plans/active/translation-job-management/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "通過。DB schema、backend job 作成、backend Job Management Wails DTO、frontend Job Management gateway contract、Job Setup presenter/usecase の create 可否契約は、同一 input 複数 job 作成、Completed 除外、Running 削除拒否、非実行中 job の job-owned DB row 削除、input data と外部 JSON/file 保持の契約に一致している。旧 contract-001 は、Job Setup presenter と usecase から existingJob 由来の作成ブロックが外れ、existingJobSummary は参考表示として残っているため解決済みである。"
+  evidence_sufficiency: "十分。呼び出し元提供の検証証跡、修正後の実コード、承認済み implementation-scope、Job Management 公開境界、DB migration、回帰テストを根拠に判定した。広いハーネス再実行は review_contract の責務外であるため実行していない。"
+
+checked_scope:
+  summary: "承認済み implementation-scope、DB index migration、backend job 作成、Job Management service/repository/controller、frontend gateway DTO、Job Setup presenter/usecase の create 可否契約、contract-001 修正後回帰テストを確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-job-management/implementation-scope.md"
+      line: 24
+      symbol: "Approved Implementation Scope"
+      reason: "Completed 以外の job 一覧、同一入力複数 job 作成、Running 削除拒否、非実行中削除の承認済み契約を確認したため。"
+    - path: "docs/exec-plans/active/translation-job-management/implementation-scope.md"
+      line: 43
+      symbol: "Fixed Decisions"
+      reason: "同じファイルまたは同じ入力データから job を何個でも作れる人間判断を確認したため。"
+    - path: "docs/exec-plans/active/translation-job-management/scenario-design.md"
+      line: 74
+      symbol: "REQ-TJM-002"
+      reason: "既存 job がある入力でも新規 job 作成を禁止しない契約を確認したため。"
+    - path: "docs/exec-plans/active/translation-job-management/plan.md"
+      line: 327
+      symbol: "契約レビュー修正 wave-2"
+      reason: "contract-001 の修正範囲と検証証跡を確認したため。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+      line: 368
+      symbol: "buildGlobalBlockedReasons"
+      reason: "existingJob が globalBlockedReasons に追加されなくなったことを確認したため。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+      line: 740
+      symbol: "TranslationJobSetupPresenter.toViewModel"
+      reason: "existingJobSummary が参考表示として維持されていることを確認したため。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.test.ts"
+      line: 108
+      symbol: "selectedInputSourceId と一致する existingJob は参考表示だけを残し canCreate を維持する"
+      reason: "旧 contract-001 の presenter 回帰テストを確認したため。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.test.ts"
+      line: 132
+      symbol: "phase-driven state では selectedInputSourceId と一致する existingJob があっても canCreate を false にしない"
+      reason: "phase-driven state でも existingJob が canCreate を壊さないことを確認したため。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 1006
+      symbol: "TranslationJobSetupUseCase.createPhaseDrivenJob"
+      reason: "phase-driven create 経路で existingJob を gateway 呼び出し前の拒否条件にしていないことを確認したため。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 1089
+      symbol: "TranslationJobSetupUseCase.createLegacyJob"
+      reason: "legacy create 経路で existingJob を拒否条件にしていないことを確認したため。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 401
+      symbol: "selectedInputSourceId と一致する existingJob があっても create を gateway へ進める"
+      reason: "usecase の同一 input existingJob 非ブロック回帰テストを確認したため。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 677
+      symbol: "createTranslationJobInTransaction"
+      reason: "backend job 作成が input 既存 job を duplicate として返さないことを確認したため。"
+    - path: "internal/infra/sqlite/migrations/012_translation_job_multi_input_index.sql"
+      line: 1
+      symbol: "idx_translation_job_x_edit"
+      reason: "既存 DB migration で同一 input job の一意制約を非一意 index に戻すことを確認したため。"
+    - path: "internal/infra/sqlite/dbinit/migrations/012_translation_job_multi_input_index.sql"
+      line: 1
+      symbol: "idx_translation_job_x_edit"
+      reason: "fresh DB 側でも同一 input job の非一意 index が作成されることを確認したため。"
+    - path: "internal/infra/sqlite/migrations/013_translation_input_source_hash_non_unique_index.sql"
+      line: 1
+      symbol: "idx_x_edit_extracted_data_source_content_hash"
+      reason: "同じ file/hash から複数 input 登録できる非一意 index への移行を確認したため。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 225
+      symbol: "selectIncompleteTranslationJobs"
+      reason: "Job Management 一覧が Completed 以外を返す SQL 契約を確認したため。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 555
+      symbol: "DeleteNonRunningTranslationJob"
+      reason: "Running 削除拒否と job-owned DB row 削除の repository 境界を確認したため。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 159
+      symbol: "ListIncompleteJobs"
+      reason: "Job Management service が未完了 job 一覧を公開する契約を確認したため。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 199
+      symbol: "DeleteJob"
+      reason: "Job Management service の削除公開契約を確認したため。"
+    - path: "internal/usecase/translation_job_management_contract.go"
+      line: 3
+      symbol: "TranslationJobManagementReasonCategory"
+      reason: "backend public usecase contract の reason category 値集合を確認したため。"
+    - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+      line: 23
+      symbol: "TranslationJobManagementReasonCategory"
+      reason: "frontend gateway contract が backend の reason category 値集合に追従していることを確認したため。"
+    - path: "internal/controller/wails/translation_job_management_controller.go"
+      line: 24
+      symbol: "TranslationJobManagement DTO"
+      reason: "Wails JSON field 名と optional field の公開 DTO 契約を確認したため。"
+    - path: "frontend/src/controller/wails/gateway-dto/translation-job-management/translation-job-management-gateway-dto.ts"
+      line: 10
+      symbol: "TranslationJobManagement DTO aliases"
+      reason: "frontend Wails DTO が gateway contract と同じ形を使うことを確認したため。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "review_contract は広いハーネス再実行を担当しないため実行しなかった。呼び出し元提供の pass 証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業木で、呼び出し元の検証証跡と同じ結果になるかは未確認である。"
+  - target: "挙動正しさ、権限・信頼境界、状態・データ不変条件、責務境界"
+    reason: "review_contract の対象外であるため主判定にしなかった。"
+    risk: "契約・互換性以外の問題は他観点レビューの結果に依存する。"
+  - target: ".codex、tasks、scripts/scenario の差分"
+    reason: "人間指示でレビュー対象外とされたため確認範囲から外した。"
+    risk: "workflow または task catalog の整合性問題がある場合は別レーンで扱う必要がある。"
+  - target: "Job Management 詳細パネル復活要求"
+    reason: "最新の人間判断に反するため指摘対象外とした。"
+    risk: "UI 構造の好みや詳細表示量の判断は契約レビューでは扱わない。"
+
+broken_invariants: []
+
+cause_candidates:
+  - "旧 contract-001 の原因候補だった frontend presenter/usecase の single-job 前提 existingJob guard は削除済みである。"
+
+local_fix_assessment:
+  summary: "旧 contract-001 は local 修正で閉じている。presenter と usecase の existingJob guard を削除し、existingJobSummary を参考表示として維持する形は、既存 DTO field を壊さず同一 input 複数 job 契約へ揃っている。"
+  invariant_test_focus: "同じ inputSourceId の existingJob が options に存在しても、validation が fresh かつ canCreate true なら view model の canCreate が true になり、usecase が gateway へ create request を送ること。"
+
+validation_evidence:
+  - command: "npm --prefix frontend run test -- src/application/presenter/translation-job-setup/translation-job-setup.presenter.test.ts"
+    result: "pass"
+    source: "呼び出し元提供の検証証跡"
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    source: "呼び出し元提供の検証証跡"
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "pass"
+    source: "呼び出し元提供の検証証跡"
+  - command: "frontend test"
+    result: "57 files / 484 tests pass"
+    source: "呼び出し元提供の検証証跡"
+  - command: "system test"
+    result: "9 tests pass"
+    source: "呼び出し元提供の検証証跡"
+  - command: "Sonar"
+    result: "coverage summary 70.5%、line 71.3%、branch 64.0%。security 0、reliability 0、maintainability HIGH 0。"
+    source: "呼び出し元提供の検証証跡"
+
+issues:
+  - id: "contract-001"
+    level: "major"
+    title: "Job Setup が同じ input の既存 job を作成ブロック理由にしていた"
+    problem: "修正前は Job Setup presenter/usecase が selectedInputSourceId と一致する existingJob を create 可否の拒否条件にしていた。修正後は existingJob 由来の blocked reason と usecase guard が削除され、existingJobSummary だけが参考表示として残っている。"
+    reason: "承認済み実装範囲と実装目的は、同じ input / 同じ file から複数 job を作成できることを要求している。修正後の frontend presenter/usecase、backend service、DB index はこの契約に揃っている。"
+    violated_condition: "修正前に破られていた条件: 同じ input / 同じ file から複数 job を作成できる。既存 job の存在は Job Setup の create 可否をブロックしない。"
+    cause_candidate: "修正前は frontend presenter/usecase に以前の single-job 前提の existingJob guard が残っていた。修正後は該当 guard が削除済みである。"
+    evidence:
+      - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+        line: 368
+        excerpt: "buildGlobalBlockedReasons は validation と createErrorKind 由来の理由だけを扱い、existingJob を追加していない。"
+      - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+        line: 740
+        excerpt: "existingJobSummary は job id、status、inputSource の参考表示として維持されている。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 1006
+        excerpt: "phase-driven create 経路は existingJob を拒否条件にしていない。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 1089
+        excerpt: "legacy create 経路は existingJob を拒否条件にしていない。"
+      - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.test.ts"
+        line: 132
+        excerpt: "同じ inputSourceId の existingJob があっても phase-driven state の canCreate が true を維持する回帰テストがある。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+        line: 428
+        excerpt: "同じ inputSourceId の existingJob があっても phase-driven createJob が gateway へ進む回帰テストがある。"
+    local_fix_assessment: "local resolved。frontend presenter/usecase の existingJob guard 削除で、既存 DTO field を壊さず新契約に揃っている。"
+    additional_check_scope: "none。presenter と usecase の同一 input existingJob 非ブロック回帰テスト、frontend-local、all harness の pass 証跡がある。"
+    fix_considerations: "解決済み。今後 existingJob field を削除する場合は、Wails DTO、store、UI 表示、既存テストへの互換性影響を別途評価する必要がある。"
+    verification: "呼び出し元提供の presenter 回帰テスト、frontend-local、all harness が pass している。"
+    fix_required: true
+    status: "resolved"

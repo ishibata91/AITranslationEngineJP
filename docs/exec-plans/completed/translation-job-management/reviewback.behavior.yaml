@@ -1,0 +1,97 @@
+reviewback_version: 1
+task_id: "translation-job-management"
+review_yaml_path: "docs/exec-plans/active/translation-job-management/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "実装目的に対する主要経路は一致している。Completed 以外の job 一覧、Completed 除外、Running 削除拒否、非実行中 job の job-owned DB row 削除、input data と外部 JSON/file の保持、同一 input からの複数 job 作成、Data Load の input 登録後 Job Setup 導線、Job Setup 作成後に Job Management で表示可能な Ready job、Stepper と Job Run 選択ターゲット連携を確認した。最新の人間判断により、Job Management の詳細パネル復活は指摘対象外とした。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、UI Contract、repository / service / usecase / Wails controller / frontend usecase / presenter / Svelte 画面 / system test を照合した。ハーネスは実行せず、呼び出し元から渡された検証証跡をレビュー入力として扱った。"
+
+checked_scope:
+  summary: "未完了 job の取得、詳細 projection、削除 guard、同一入力複数 job 作成、Data Load から Job Setup への導線、Job Management から Job Run への選択ターゲット同期、不要な詳細パネル非復活を確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-job-management/implementation-scope.md"
+      line: 24
+      symbol: "Approved Implementation Scope"
+      reason: "実装目的の必須挙動と非目標を確認した。"
+    - path: "docs/exec-plans/active/translation-job-management/ui-design.md"
+      line: 14
+      symbol: "UI Contract"
+      reason: "一覧、操作可否、Stepper、Job Run 連携の期待挙動を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 225
+      symbol: "selectIncompleteTranslationJobs"
+      reason: "Completed 以外を一覧対象にする SQL 条件を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 436
+      symbol: "CreateTranslationJob"
+      reason: "同一 input から複数 job を作成する repository 経路を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 555
+      symbol: "DeleteNonRunningTranslationJob"
+      reason: "Running 削除拒否と job-owned row 削除、input data 保持の経路を確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 159
+      symbol: "ListIncompleteJobs"
+      reason: "一覧 read model が未完了 job から作られることを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 181
+      symbol: "GetJobDetail"
+      reason: "Completed job の選択詳細を管理対象外として扱うことを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 199
+      symbol: "DeleteJob"
+      reason: "削除操作の拒否、成功、stale selection の返却挙動を確認した。"
+    - path: "internal/service/translation_input_import_service.go"
+      line: 128
+      symbol: "ImportXEditJSON"
+      reason: "Data Load が input 登録を行い、job 作成を混ぜないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 640
+      symbol: "CreateTranslationJob"
+      reason: "Job Setup が Ready job と phase runtime snapshot を作成することを確認した。"
+    - path: "frontend/src/ui/screens/translation-input/LoadedInputDetail.svelte"
+      line: 209
+      symbol: "showOpenJobSetup"
+      reason: "登録済み input に Job Setup へ進む導線が表示されることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 208
+      symbol: "job-card-list"
+      reason: "Job Management が未完了 job の一覧、状態、操作可否、Job Run 入口を表示することを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 266
+      symbol: "translation-management shell"
+      reason: "Stepper と Job Management / Job Run の切替、選択ターゲット同期を確認した。"
+    - path: "tests/system/translation-job-management.spec.ts"
+      line: 29
+      symbol: "SCN-TJM system tests"
+      reason: "Completed 除外、Job Run 連携、再開不可理由、secret 非露出の観測点を確認した。"
+
+unchecked_scope:
+  - target: "実ブラウザでの visual 表示"
+    reason: "レビュー agent はハーネスを実行しない規約であるため、agent-browser と system test は再実行していない。"
+    risk: "視覚上の overflow や操作不能は、渡された system test pass と frontend test pass の証跡に依存する。"
+  - target: "Job Setup 作成直後の実画面遷移"
+    reason: "実装は作成後 summary を表示し、Job Management へは Stepper で移動して再読込する構成である。自動遷移が必須という追加要求は入力にないため、未解決指摘にはしない。"
+    risk: "人間が自動遷移を期待していた場合は、導線文言または Stepper 操作の確認が追加で必要になる。"
+  - target: "secret 値の全ログ出力経路"
+    reason: "挙動正しさ観点では DTO / UI read model の値伝播だけを確認し、信頼境界レビューの主判定には踏み込まない。"
+    risk: "ログや error wrapping の secret 混入は別観点レビューの確認対象である。"
+
+issues: []
+
+behavior_review_notes:
+  violated_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決の挙動正しさ指摘はない。局所修正が必要な箇所は確認しなかった。"
+  invariant_test_perspective: "既存の API / UI / system test は、Completed 除外、同一入力複数 job、Running 削除拒否、非実行中削除、再開不可理由、Job Run ターゲット同期を観測している。"
+  validation_evidence:
+    - "python3 scripts/harness/run.py --suite all: pass"
+    - "frontend test: 57 files / 483 tests pass"
+    - "system test: 9 tests pass"
+    - "Sonar coverage: summary 70.4%, line 71.3%, branch 63.8%"
+    - "Sonar issues: security 0, reliability 0, maintainability HIGH 0"

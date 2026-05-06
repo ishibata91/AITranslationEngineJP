@@ -1,0 +1,102 @@
+reviewback_version: 1
+task_id: "translation-job-management"
+review_yaml_path: "docs/exec-plans/active/translation-job-management/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+hard_gate: true
+
+assessment:
+  safety: "通過。Job Management の公開 read model、Wails DTO、frontend gateway、UI は保存済み AI 設定の provider、model、execution mode、credential 状態だけを扱い、secret 本体、credential 参照値、provider raw request / response、入力本文、翻訳本文を表示または返却していない。削除経路は jobID を SQL パラメータとして扱い、Running job を拒否し、job 配下の DB 情報だけを削除する。"
+  evidence_sufficiency: "十分。implementation-scope、scenario-design、ui-design、plan、reviewback template、service / usecase / Wails DTO / frontend contract / gateway / UI / repository / migration / scenario test の対象差分を確認した。検証証跡は呼び出し元提示の all harness pass、frontend test 57 files / 483 tests pass、system tests 9 pass、SCN-TJM-009 secret 非露出 pass、Sonar coverage summary 70.4%、line 71.3%、branch 63.8%、Sonar security 0、reliability 0、maintainability HIGH 0 をレビュー入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "secret 表示境界、DTO 伝播境界、Wails gateway 境界、frontend 表示境界、非実行中削除境界、Running 削除拒否、同一入力 job 複数作成、SQL injection 経路を確認した。"
+  files:
+    - path: "docs/exec-plans/active/translation-job-management/implementation-scope.md"
+      line: 20
+      symbol: "Approved Implementation Scope"
+      reason: "secret 非露出と job 配下削除の承認済み範囲を確認した。"
+    - path: "docs/exec-plans/active/translation-job-management/scenario-design.md"
+      line: 103
+      symbol: "REQ-TJM-006"
+      reason: "保存禁止情報を一覧、詳細、履歴に出さない要求を確認した。"
+    - path: "docs/exec-plans/active/translation-job-management/ui-design.md"
+      line: 12
+      symbol: "UI Contract"
+      reason: "credential は参照状態だけを出し、API key 平文や provider 応答原文を出さない画面契約を確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 60
+      symbol: "TranslationJobManagementProtectedSettingSummaryReadModel"
+      reason: "service read model が provider、model、execution mode、credential 状態だけを公開することを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 618
+      symbol: "buildTranslationJobManagementRuntimeSummary"
+      reason: "runtime snapshot から credential_ref を返さず credential status だけへ変換していることを確認した。"
+    - path: "internal/controller/wails/translation_job_management_controller.go"
+      line: 42
+      symbol: "TranslationJobManagementProtectedSettingSummaryDTO"
+      reason: "Wails DTO が secret 本体や credential 参照値を持たないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+      line: 57
+      symbol: "TranslationJobManagementProtectedSettingSummary"
+      reason: "frontend contract が credential 状態だけを持ち、secret 本体を受け取らないことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 285
+      symbol: "toJobRunTarget"
+      reason: "Job Run へ渡す選択 job 要約に入力本文、翻訳本文、secret が含まれないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-management/translation-job-management.usecase.ts"
+      line: 47
+      symbol: "sanitizeErrorMessage"
+      reason: "統合前 Wails binding error 以外は固定 fallback message へ寄せ、通常の UI error summary に secret を混ぜないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 147
+      symbol: "feedback rendering"
+      reason: "画面表示が gateway contract の要約値と固定メッセージだけを表示していることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 555
+      symbol: "DeleteNonRunningTranslationJob"
+      reason: "Running 削除拒否、jobID パラメータ化、job 配下削除の SQL 経路を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 225
+      symbol: "selectIncompleteTranslationJobs"
+      reason: "Completed を除外する一覧 SQL が固定文字列とパラメータなし条件だけで構成され、外部入力を SQL へ連結しないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 715
+      symbol: "createReadyTranslationJob"
+      reason: "同じ入力から複数 job を作る変更が credential 解決や secret 表示経路を増やしていないことを確認した。"
+    - path: "internal/service/translation_input_import_service.go"
+      line: 453
+      symbol: "prepareImportFromContent"
+      reason: "Data Load が入力登録だけを行う変更で、secret 送信先や外部 API 経路を追加していないことを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/012_translation_job_multi_input_index.sql"
+      line: 1
+      symbol: "idx_translation_job_x_edit"
+      reason: "同一入力 job 一意制約を非一意 index へ変更する差分が secret 保存先や権限境界を変えていないことを確認した。"
+    - path: "tests/system/translation-job-management.spec.ts"
+      line: 111
+      symbol: "SCN-TJM-009"
+      reason: "UI と console に forbidden secret text が出ない system test を確認した。"
+
+unchecked_scope:
+  - target: "実 provider 通信時の provider raw request / response ログ"
+    reason: "本 task は実際の phase 実行、provider SDK、paid API 呼び出しを Non Goal としているため、差分に実 provider 通信経路がない。"
+    risk: "後続の翻訳実行 task で raw request / response を log、error summary、audit、UI に出さない確認が必要である。"
+  - target: "再開直前の credential 現在確認"
+    reason: "implementation-scope が再開実行側の後続 task へ送っている。Job Management は credential 参照状態の表示だけを扱う。"
+    risk: "後続 task で credential 解決 owner layer と Job Management DTO の境界を崩すと secret 露出リスクが再発する。"
+
+issues: []
+
+broken_invariants: []
+cause_candidates: []
+local_fix_assessment: "未解決指摘なし。局所修正対象はない。"
+invariant_test_focus:
+  - "secret 本体、credential 参照値、provider raw request / response が UI、console、Wails DTO、error summary に出ないこと。"
+  - "Running job の削除要求が job、phase、input data を変更しないこと。"
+  - "非実行中 job 削除が TRANSLATION_JOB と job 配下 DB 情報だけを削除し、X_EDIT_EXTRACTED_DATA、抽出 JSON、入力ファイルを残すこと。"
+residual_risks:
+  - "外部通信停止、遅延応答破棄、再開直前の credential 確認は後続 task 境界である。trust-boundary hard gate は本 task 差分内では通過と判定する。"

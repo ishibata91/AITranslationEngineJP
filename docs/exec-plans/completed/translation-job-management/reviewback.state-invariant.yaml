@@ -1,0 +1,127 @@
+reviewback_version: 1
+task_id: "translation-job-management"
+review_yaml_path: "docs/exec-plans/active/translation-job-management/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持されている。Completed 以外の job 一覧、Completed job の詳細取得と削除の stale selection 化、Running job 削除拒否、phase run 実行中または stop_requested 相当の削除拒否、非実行 job 削除時の job-owned row 限定削除、input data と外部 JSON/file 保持、同一 input からの複数 job 作成、Data Load の input 登録専念を差分上で確認した。"
+  evidence_sufficiency: "十分。呼び出し元の検証証跡をレビュー入力として扱い、対象差分の repository、service、migration、integration test、関連 unit test を確認した。"
+
+validation_evidence:
+  provided_by_implement_lane:
+    - command: "python3 scripts/harness/run.py --suite all"
+      result: "pass"
+    - command: "frontend test"
+      result: "57 files / 483 tests pass"
+    - command: "system test"
+      result: "9 tests pass"
+    - command: "Sonar coverage"
+      result: "summary 70.4%, line 71.3%, branch 63.8%"
+    - command: "Sonar issues"
+      result: "security 0, reliability 0, maintainability HIGH 0"
+  reviewer_rerun:
+    result: "not_run"
+    reason: "この review agent はハーネス実行を禁止されているため、呼び出し元から渡された検証証跡をレビュー入力として扱った。"
+
+checked_scope:
+  summary: "未完了 job 一覧、削除 guard、削除時の transaction 境界、job-owned row 削除順、input 保持、同一 input 複数 job、source hash 非一意化、Data Load と Job Setup の分離、状態不変条件テストを確認した。"
+  files:
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 225
+      symbol: "selectIncompleteTranslationJobs"
+      reason: "Completed 以外の job を Job Management 一覧へ出す条件を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 555
+      symbol: "DeleteNonRunningTranslationJob"
+      reason: "Running job、running/pending phase run、stop_requested phase run を削除拒否し、job-owned row だけを削除することを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 199
+      symbol: "DeleteJob"
+      reason: "削除処理が transaction 内で候補再取得、投影 guard、repository 削除を順に実行することを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 740
+      symbol: "buildTranslationJobManagementDeleteAvailability"
+      reason: "stop_requested、Running job、running/pending phase run、状態投影不整合を削除不可へ倒すことを確認した。"
+    - path: "internal/service/translation_input_import_service.go"
+      line: 451
+      symbol: "prepareImportFromContent"
+      reason: "source_content_hash 重複拒否が削除され、Data Load が input 登録に専念することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 678
+      symbol: "createTranslationJobInTransaction"
+      reason: "同一 input の既存 job を重複エラーにせず、Job Setup で新規 job を作ることを確認した。"
+    - path: "internal/infra/sqlite/migrations/012_translation_job_multi_input_index.sql"
+      line: 1
+      symbol: "idx_translation_job_x_edit"
+      reason: "TRANSLATION_JOB の input index が非一意 index へ置き換わることを確認した。"
+    - path: "internal/infra/sqlite/migrations/013_translation_input_source_hash_non_unique_index.sql"
+      line: 1
+      symbol: "idx_x_edit_extracted_data_source_content_hash"
+      reason: "source_content_hash index が非一意 index へ置き換わることを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 120
+      symbol: "TestSCN_TJM_004_RunningDeleteIsRejectedAndKeepsInput"
+      reason: "Running job 削除拒否と input 保持を証明していることを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 146
+      symbol: "TestSCN_TJM_006_NonRunningDeleteRemovesJobAndKeepsInput"
+      reason: "非実行 job 削除で job-owned runtime snapshot を消し、input を保持することを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 210
+      symbol: "TestSCN_TJM_005_InconsistentRunningPhaseDeleteIsRejectedAndKeepsRows"
+      reason: "job.State が非 running でも phase run が running の場合は削除拒否し、job、input、phase、snapshot を保持することを確認した。"
+    - path: "internal/integrationtest/sqlite_integration_test.go"
+      line: 845
+      symbol: "TestSCN_TJM_002_CreateTranslationJobAllowsDuplicateInput"
+      reason: "同一 input から複数 job を作成でき、既存 job が上書きされないことを確認した。"
+    - path: "internal/service/translation_input_import_service_test.go"
+      line: 113
+      symbol: "duplicate content import test"
+      reason: "同一 content の input import が別 input id を作り、source_content_hash を共有できることを確認した。"
+
+unchecked_scope:
+  - target: "SQLite 同時実行下で削除 transaction と実行開始 transaction が競合する実機再現"
+    reason: "レビュー agent はハーネス実行を禁止されているため、差分読解と提供証跡で判定した。"
+    risk: "実行開始側の transaction 境界が別差分で弱い場合、削除側の安全判定後に競合が起きる可能性は残る。ただし DeleteJob は transaction 内で候補再取得と phase guard を再評価している。"
+  - target: "外部 JSON/file の OS 上の存在確認"
+    reason: "削除差分は DB row の削除有無を対象にしており、ファイルシステム操作は差分内に存在しない。"
+    risk: "外部 file 保持は削除処理が file delete を呼ばないことまでの確認に留まる。"
+
+issues: []
+
+broken_invariants:
+  - invariant: "Completed job is excluded from Job Management"
+    status: "maintained"
+    evidence: "internal/repository/job_lifecycle_sqlite_repository.go:225"
+  - invariant: "Running job deletion must be rejected"
+    status: "maintained"
+    evidence: "internal/repository/job_lifecycle_sqlite_repository.go:573"
+  - invariant: "running or stop-requested phase run blocks deletion"
+    status: "maintained"
+    evidence: "internal/repository/job_lifecycle_sqlite_repository.go:623"
+  - invariant: "non-running delete removes only job-owned DB rows and keeps input data"
+    status: "maintained"
+    evidence: "internal/repository/job_lifecycle_sqlite_repository.go:590"
+  - invariant: "same input and same file can create multiple jobs"
+    status: "maintained"
+    evidence: "internal/integrationtest/sqlite_integration_test.go:845"
+  - invariant: "Data Load registers input only and Job Setup creates jobs"
+    status: "maintained"
+    evidence: "internal/service/translation_input_import_service.go:451"
+
+cause_candidates: []
+
+local_fix_evaluation:
+  - issue_id: "none"
+    evaluation: "未解決指摘はない。旧指摘の phase 実行中削除 gap は、service 側の削除前 DeleteAvailability 再評価と repository 側の hasUnsafeDeletePhaseRun guard で閉じている。"
+
+invariant_test_viewpoints:
+  - "job.State が running の job を削除要求しても、TRANSLATION_JOB と X_EDIT_EXTRACTED_DATA が残る。"
+  - "job.State が paused で JOB_PHASE_RUN.state が running の job を削除要求しても、TRANSLATION_JOB、JOB_PHASE_RUN、TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT、X_EDIT_EXTRACTED_DATA が残る。"
+  - "JOB_PHASE_RUN.latest_error が stop_requested の job は、job.State が running 以外でも削除不可になる。"
+  - "job.State が paused で phase run も paused の job は、job-owned row だけ削除され、X_EDIT_EXTRACTED_DATA と入力ファイル参照は残る。"
+  - "同一 input と同一 source_content_hash の input 登録後に、Job Setup で複数 job を作成しても既存 job が上書きされない。"

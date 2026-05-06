@@ -34,6 +34,23 @@ type TranslationJobUpdateDraft struct {
 	FinishedAt      *time.Time
 }
 
+// TranslationJobDeleteOutcome は Job Management の削除結果を表す。
+type TranslationJobDeleteOutcome string
+
+// TranslationJobDeleteOutcome values classify the delete result.
+const (
+	TranslationJobDeleteOutcomeDeleted        TranslationJobDeleteOutcome = "deleted"
+	TranslationJobDeleteOutcomeBlockedRunning TranslationJobDeleteOutcome = "blocked_running"
+	TranslationJobDeleteOutcomeBlockedUnsafe  TranslationJobDeleteOutcome = "blocked_unsafe"
+	TranslationJobDeleteOutcomeNotFound       TranslationJobDeleteOutcome = "not_found"
+)
+
+// TranslationJobDeleteResult は Job Management の削除判定結果を表す。
+type TranslationJobDeleteResult struct {
+	Outcome TranslationJobDeleteOutcome
+	Job     *TranslationJob
+}
+
 // TranslationJobPhaseRuntimeSnapshot は Job Setup で保存した phase 別 runtime snapshot を表す。
 type TranslationJobPhaseRuntimeSnapshot struct {
 	ID                   int64
@@ -196,4 +213,11 @@ type JobLifecycleRepository interface {
 	// PhaseRunDictionaryEntry
 	CreatePhaseRunDictionaryEntry(ctx context.Context, draft PhaseRunDictionaryEntryDraft) (PhaseRunDictionaryEntry, error)
 	ListPhaseRunDictionaryEntriesByPhaseRunID(ctx context.Context, phaseRunID int64) ([]PhaseRunDictionaryEntry, error)
+}
+
+// TranslationJobManagementRepository は未完了 job 一覧と非実行中削除の補助 port を定義する。
+type TranslationJobManagementRepository interface {
+	ListIncompleteTranslationJobs(ctx context.Context) ([]TranslationJob, error)
+	ListTranslationJobPhaseRuntimeSnapshots(ctx context.Context, translationJobID int64) ([]TranslationJobPhaseRuntimeSnapshot, error)
+	DeleteNonRunningTranslationJob(ctx context.Context, jobID int64) (TranslationJobDeleteResult, error)
 }

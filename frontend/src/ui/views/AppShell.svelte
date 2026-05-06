@@ -7,6 +7,10 @@
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
+  import type {
+    CreateTranslationJobManagementScreenController
+  } from "@application/contract/translation-job-management"
+  import type { TranslationJobManagementJobRunTarget } from "@application/contract/translation-job-management/translation-job-management-screen-types"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
@@ -14,6 +18,8 @@
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
   import JobRunPage from "@ui/screens/job-run/JobRunPage.svelte"
+  import TranslationManagementStepper from "@ui/screens/translation-job-management/TranslationManagementStepper.svelte"
+  import TranslationJobManagementPage from "@ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
   import TranslationOutputArtifactPage from "@ui/screens/translation-output-artifact/TranslationOutputArtifactPage.svelte"
   import JobSetupPage from "@ui/screens/translation-job-setup/JobSetupPage.svelte"
   import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
@@ -35,6 +41,7 @@
     createPersonaGenerationPhaseScreenController: CreatePersonaGenerationPhaseScreenController | null
     createProviderSettingsScreenController: CreateProviderSettingsScreenController | null
     createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController | null
+    createTranslationJobManagementScreenController?: CreateTranslationJobManagementScreenController | null
     createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController | null
     createTranslationOutputArtifactScreenController: CreateTranslationOutputArtifactScreenController | null
     createTranslationInputScreenController: CreateTranslationInputScreenController | null
@@ -51,6 +58,7 @@
     createPersonaGenerationPhaseScreenController,
     createProviderSettingsScreenController,
     createTermTranslationPhaseScreenController,
+    createTranslationJobManagementScreenController = null,
     createTranslationJobSetupScreenController,
     createTranslationOutputArtifactScreenController,
     createTranslationInputScreenController
@@ -66,6 +74,9 @@
   let currentRouteId = $state<ShellRouteId>("dashboard")
   let selectedTranslationManagementViewId =
     $state<TranslationManagementViewId | null>(null)
+  let selectedJobRunTarget = $state<TranslationJobManagementJobRunTarget | null>(
+    null
+  )
   let isMobileNavOpen = $state(false)
 
   const fallbackRoute: ShellRouteContract = {
@@ -123,6 +134,20 @@
 
   function openTranslationInputReview(): void {
     selectedTranslationManagementViewId = "input-review"
+  }
+
+  function openTranslationJobRun(): void {
+    selectedTranslationManagementViewId = "job-run"
+  }
+
+  function openTranslationJobSetup(): void {
+    selectedTranslationManagementViewId = "job-setup"
+  }
+
+  function syncJobRunTarget(
+    target: TranslationJobManagementJobRunTarget | null
+  ): void {
+    selectedJobRunTarget = target
   }
 
   onMount(() => {
@@ -241,37 +266,17 @@
     {#if !isDashboard && currentRoute.id === "translation-management"}
       <section class="translation-management-shell">
         <section class="panel section-switcher">
-          <div class="section-head">
-            <div>
-              <p class="page-label">翻訳セクション</p>
-            </div>
-          </div>
-          <div
-            class="section-tab-row"
-            role="tablist"
-            aria-label="Translation Management sections"
-          >
-            {#each translationManagementViews as view (view.id)}
-              <button
-                aria-selected={view.id === currentTranslationManagementViewId
-                  ? "true"
-                  : "false"}
-                class="section-tab"
-                class:is-active={view.id === currentTranslationManagementViewId}
-                onclick={() => selectTranslationManagementView(view.id)}
-                role="tab"
-                type="button"
-              >
-                <span>{view.label}</span>
-                <small>{view.description}</small>
-              </button>
-            {/each}
-          </div>
+          <TranslationManagementStepper
+            currentViewId={currentTranslationManagementViewId}
+            onSelect={selectTranslationManagementView}
+            views={translationManagementViews}
+          />
         </section>
 
         {#if currentTranslationManagementViewId === "input-review"}
           <InputReviewPage
             createController={createTranslationInputScreenController}
+            onOpenJobSetup={openTranslationJobSetup}
           />
         {/if}
 
@@ -282,11 +287,22 @@
           />
         {/if}
 
+        {#if currentTranslationManagementViewId === "job-management"}
+          <TranslationJobManagementPage
+            createController={createTranslationJobManagementScreenController}
+            onJobRunTargetChange={syncJobRunTarget}
+            onOpenInputReview={openTranslationInputReview}
+            onOpenJobSetup={openTranslationJobSetup}
+            onOpenJobRun={openTranslationJobRun}
+          />
+        {/if}
+
         {#if currentTranslationManagementViewId === "job-run"}
           <JobRunPage
             createBodyController={createBodyTranslationPhaseScreenController}
             createController={createTermTranslationPhaseScreenController}
             createPersonaController={createPersonaGenerationPhaseScreenController}
+            selectedJobTarget={selectedJobRunTarget}
           />
         {/if}
       </section>
@@ -566,36 +582,8 @@
   }
 
   .section-switcher {
-    padding: 24px;
-    display: grid;
-    gap: 1rem;
-  }
-
-  .section-tab-row {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-    gap: 14px;
-  }
-
-  .section-tab {
-    display: grid;
-    gap: 0.35rem;
-    padding: 18px;
-    border-radius: var(--radius-md);
-    border: 0.5px solid rgba(255, 186, 56, 0.12);
-    background: rgba(17, 13, 12, 0.34);
-    color: var(--text);
-    text-align: left;
-  }
-
-  .section-tab small {
-    color: var(--muted);
-    overflow-wrap: anywhere;
-  }
-
-  .section-tab.is-active {
-    border-color: rgba(255, 186, 56, 0.24);
-    background: rgba(255, 186, 56, 0.08);
+    padding: 0;
+    overflow: hidden;
   }
 
   .entry-grid {
@@ -726,6 +714,7 @@
     .bar-status {
       justify-content: flex-start;
     }
+
   }
 
   @media (max-width: 860px) {

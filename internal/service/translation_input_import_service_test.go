@@ -86,6 +86,69 @@ func TestTranslationInputImportServiceImportXEditJSONAcceptsBareFilenameFromDict
 	}
 }
 
+func TestTranslationInputImportServiceImportXEditJSONWithContentAllowsDuplicateSourceContentHash(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", "translation-input.sqlite3")
+	db, err := repository.OpenSQLiteDatabase(context.Background(), databasePath)
+	if err != nil {
+		t.Fatalf("open sqlite database: %v", err)
+	}
+	t.Cleanup(func() {
+		if closeErr := db.Close(); closeErr != nil {
+			t.Fatalf("close sqlite database: %v", closeErr)
+		}
+	})
+
+	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
+	sqliteSourceRepo, ok := sourceRepo.(*repository.SQLiteTranslationSourceRepository)
+	if !ok {
+		t.Fatal("expected SQLite translation source repository concrete type")
+	}
+	service := NewTranslationInputImportService(
+		sourceRepo,
+		repository.NewSQLiteTransactor(db),
+		nil,
+		fixedTranslationInputNow,
+	)
+
+	firstSummary, err := service.ImportXEditJSONWithContent(
+		context.Background(),
+		"/imports/duplicate-a.json",
+		"duplicate-a.json",
+		translationInputFixtureContent,
+	)
+	if err != nil {
+		t.Fatalf("first import should succeed: %v", err)
+	}
+
+	secondSummary, err := service.ImportXEditJSONWithContent(
+		context.Background(),
+		"/imports/duplicate-b.json",
+		"duplicate-b.json",
+		translationInputFixtureContent,
+	)
+	if err != nil {
+		t.Fatalf("second import with same content should succeed: %v", err)
+	}
+
+	if firstSummary.Input.ID == secondSummary.Input.ID {
+		t.Fatalf("expected duplicate content imports to create distinct input ids, got %d", firstSummary.Input.ID)
+	}
+	if firstSummary.Input.SourceFilePath == secondSummary.Input.SourceFilePath {
+		t.Fatalf("expected each import to retain its own source path, got %q", firstSummary.Input.SourceFilePath)
+	}
+
+	importedInputs, err := sqliteSourceRepo.ListXEditExtractedData(context.Background())
+	if err != nil {
+		t.Fatalf("list imported inputs: %v", err)
+	}
+	if len(importedInputs) != 2 {
+		t.Fatalf("expected two imported inputs, got %d", len(importedInputs))
+	}
+	if importedInputs[0].SourceContentHash != importedInputs[1].SourceContentHash {
+		t.Fatalf("expected duplicate content imports to share source_content_hash, got %q and %q", importedInputs[0].SourceContentHash, importedInputs[1].SourceContentHash)
+	}
+}
+
 func writeTranslationInputFixture(t *testing.T) string {
 	t.Helper()
 

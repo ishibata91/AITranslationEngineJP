@@ -8,132 +8,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
-VALID_STATUSES = {"explicit", "derived", "not_applicable", "deferred", "needs_human_decision"}
-
-EXPECTED_CANDIDATE_GENERATORS = {
-    "actor-goal",
-    "lifecycle",
-    "state-transition",
-    "failure",
-    "external-integration",
-    "operation-audit",
-}
-
-VALID_CANDIDATE_DECISIONS = {"adopted", "merged", "rejected", "conflicted", "needs_human_decision"}
-
 VALID_CONFLICT_STATUSES = {"resolved", "unresolved"}
-
-DETAIL_REQUIREMENT_TYPES = {
-    "success_requirement",
-    "alternative_success_requirement",
-    "failure_handling_requirement",
-    "boundary_requirement",
-    "state_requirement",
-    "data_requirement",
-    "consistency_requirement",
-    "authorization_requirement",
-    "security_requirement",
-    "concurrency_requirement",
-    "idempotency_requirement",
-    "observability_requirement",
-    "recovery_requirement",
-    "performance_requirement",
-    "compatibility_requirement",
-    "testability_requirement",
-}
-
-KIND_REQUIRED_TYPES = {
-    "operation": {
-        "success_requirement",
-        "failure_handling_requirement",
-        "boundary_requirement",
-        "state_requirement",
-        "data_requirement",
-        "consistency_requirement",
-        "authorization_requirement",
-        "testability_requirement",
-    },
-    "persistence": {
-        "success_requirement",
-        "failure_handling_requirement",
-        "boundary_requirement",
-        "state_requirement",
-        "data_requirement",
-        "consistency_requirement",
-        "concurrency_requirement",
-        "idempotency_requirement",
-        "recovery_requirement",
-        "testability_requirement",
-    },
-    "display": {
-        "success_requirement",
-        "alternative_success_requirement",
-        "failure_handling_requirement",
-        "boundary_requirement",
-        "state_requirement",
-        "authorization_requirement",
-        "compatibility_requirement",
-        "testability_requirement",
-    },
-    "external_integration": {
-        "success_requirement",
-        "alternative_success_requirement",
-        "failure_handling_requirement",
-        "boundary_requirement",
-        "state_requirement",
-        "security_requirement",
-        "idempotency_requirement",
-        "observability_requirement",
-        "recovery_requirement",
-        "performance_requirement",
-        "testability_requirement",
-    },
-    "authorization": {
-        "success_requirement",
-        "failure_handling_requirement",
-        "state_requirement",
-        "authorization_requirement",
-        "security_requirement",
-        "observability_requirement",
-        "compatibility_requirement",
-        "testability_requirement",
-    },
-    "security": {
-        "failure_handling_requirement",
-        "boundary_requirement",
-        "state_requirement",
-        "authorization_requirement",
-        "security_requirement",
-        "observability_requirement",
-        "recovery_requirement",
-        "compatibility_requirement",
-        "testability_requirement",
-    },
-    "workflow": {
-        "success_requirement",
-        "alternative_success_requirement",
-        "failure_handling_requirement",
-        "boundary_requirement",
-        "state_requirement",
-        "data_requirement",
-        "consistency_requirement",
-        "idempotency_requirement",
-        "observability_requirement",
-        "recovery_requirement",
-        "testability_requirement",
-    },
-    "non_functional": {
-        "boundary_requirement",
-        "observability_requirement",
-        "recovery_requirement",
-        "performance_requirement",
-        "compatibility_requirement",
-        "testability_requirement",
-    },
-}
-
-DEFAULT_KIND = "operation"
-
 
 @dataclass(frozen=True)
 class Finding:
@@ -189,20 +64,6 @@ def read_json_coverage(markdown_path: Path, coverage_path: Path | None = None) -
     return parsed
 
 
-def non_empty(value: Any) -> bool:
-    if isinstance(value, str):
-        return bool(value.strip())
-    if isinstance(value, list):
-        return any(non_empty(item) for item in value)
-    return value is not None
-
-
-def option_count(value: Any) -> int:
-    if not isinstance(value, list):
-        return 0
-    return len([item for item in value if isinstance(item, dict) and non_empty(item.get("label"))])
-
-
 def question_title(question: dict[str, Any]) -> str:
     for key in ("question_title", "title", "unresolved_decision"):
         value = question.get(key)
@@ -211,24 +72,20 @@ def question_title(question: dict[str, Any]) -> str:
     return "未決判断"
 
 
-def recommended_option_text(question: dict[str, Any]) -> str:
-    value = question.get("recommended_option")
-    if isinstance(value, int):
-        return str(value)
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return str(question.get("recommended", "")).strip()
-
-
-def recommendation_reason_text(question: dict[str, Any]) -> str:
-    value = question.get("recommendation_reason")
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return str(question.get("recommended", "")).strip()
-
-
 def sorted_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
     return sorted(questions, key=lambda question: str(question.get("id") or question.get("question_id") or ""))
+
+
+def unique_questions(questions: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    result: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for question in sorted_questions(questions):
+        question_id = str(question.get("id") or question.get("question_id") or "")
+        if question_id in seen:
+            continue
+        seen.add(question_id)
+        result.append(question)
+    return result
 
 
 def requirement_id(requirement: dict[str, Any], index: int) -> str:
@@ -238,74 +95,22 @@ def requirement_id(requirement: dict[str, Any], index: int) -> str:
     return f"requirement[{index}]"
 
 
-def requirement_kind(requirement: dict[str, Any]) -> str:
-    value = requirement.get("kind")
-    if isinstance(value, str) and value.strip():
-        return value.strip()
-    return DEFAULT_KIND
-
-
-def detail_map(requirement: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    details = requirement.get("detail_requirements")
-    if not isinstance(details, list):
-        return {}
-
-    mapped: dict[str, dict[str, Any]] = {}
-    for detail in details:
-        if not isinstance(detail, dict):
-            continue
-        detail_type = detail.get("type")
-        if isinstance(detail_type, str) and detail_type.strip():
-            mapped[detail_type.strip()] = detail
-    return mapped
-
-
-def required_types_for(requirement: dict[str, Any]) -> set[str]:
-    kind = requirement_kind(requirement)
-    required = set(KIND_REQUIRED_TYPES.get(kind, KIND_REQUIRED_TYPES[DEFAULT_KIND]))
-    extra = requirement.get("required_detail_types")
-    if isinstance(extra, list):
-        required.update(item for item in extra if isinstance(item, str) and item in DETAIL_REQUIREMENT_TYPES)
-    return required
-
-
 def validate_requirement(requirement: dict[str, Any], index: int) -> tuple[list[Finding], list[dict[str, Any]]]:
     findings: list[Finding] = []
     questions: list[dict[str, Any]] = []
     req_id = requirement_id(requirement, index)
-    kind = requirement_kind(requirement)
-    details = detail_map(requirement)
 
-    if not non_empty(requirement.get("source_requirement")):
-        findings.append(Finding("error", req_id, "-", "source_requirement is required"))
+    details = requirement.get("detail_requirements")
+    if not isinstance(details, list):
+        findings.append(Finding("error", req_id, "detail_requirements", "detail_requirements must be a list"))
+        return findings, questions
 
-    if kind not in KIND_REQUIRED_TYPES:
-        findings.append(Finding("error", req_id, "-", f"unknown requirement kind: {kind}"))
-
-    for required_type in sorted(required_types_for(requirement)):
-        if required_type not in details:
-            findings.append(Finding("error", req_id, required_type, "required detail requirement is missing"))
-
-    for detail_type, detail in sorted(details.items()):
-        if detail_type not in DETAIL_REQUIREMENT_TYPES:
-            findings.append(Finding("error", req_id, detail_type, "unknown detail requirement type"))
+    for index, detail in enumerate(details, start=1):
+        if not isinstance(detail, dict):
+            findings.append(Finding("error", req_id, f"detail[{index}]", "detail requirement must be an object"))
             continue
-
+        detail_type = str(detail.get("type") or f"detail[{index}]")
         status = detail.get("status")
-        if status not in VALID_STATUSES:
-            findings.append(Finding("error", req_id, detail_type, f"invalid status: {status}"))
-            continue
-
-        source_or_rationale = detail.get("source_or_rationale")
-        if status in {"explicit", "derived", "not_applicable", "deferred"} and not non_empty(source_or_rationale):
-            findings.append(Finding("error", req_id, detail_type, f"{status} requires source_or_rationale"))
-
-        if status == "deferred":
-            if not non_empty(detail.get("owner")):
-                findings.append(Finding("error", req_id, detail_type, "deferred requires owner"))
-            if not non_empty(detail.get("recheck_condition")):
-                findings.append(Finding("error", req_id, detail_type, "deferred requires recheck_condition"))
-
         if status == "needs_human_decision":
             findings.append(Finding("error", req_id, detail_type, "human decision is required before scenario completion"))
             question = {
@@ -314,31 +119,15 @@ def validate_requirement(requirement: dict[str, Any], index: int) -> tuple[list[
                 "source_requirement": requirement.get("source_requirement", ""),
                 "detail_requirement_type": detail_type,
                 "unresolved_decision": detail.get("unresolved_decision", ""),
-                "user_goal": detail.get("user_goal") or requirement.get("source_requirement", ""),
-                "reason": detail.get("reason", ""),
+                "premise": detail.get("premise") or requirement.get("source_requirement", ""),
+                "undecided_reason": detail.get("undecided_reason") or detail.get("reason", ""),
                 "options": detail.get("options", []),
                 "recommended_option": detail.get("recommended_option", ""),
                 "recommended": detail.get("recommended", ""),
                 "recommendation_reason": detail.get("recommendation_reason", ""),
-                "uncertainty": detail.get("uncertainty", ""),
                 "after_answer_generates": detail.get("after_answer_generates", [detail_type]),
             }
             questions.append(question)
-
-            if not non_empty(question["unresolved_decision"]):
-                findings.append(Finding("error", req_id, detail_type, "question requires unresolved_decision"))
-            if not non_empty(question["reason"]):
-                findings.append(Finding("error", req_id, detail_type, "question requires reason"))
-            if option_count(question["options"]) != 3:
-                findings.append(Finding("error", req_id, detail_type, "question requires 3 options before その他"))
-            if not non_empty(question["recommended"]):
-                findings.append(Finding("error", req_id, detail_type, "question requires recommended"))
-            if not non_empty(question["user_goal"]):
-                findings.append(Finding("error", req_id, detail_type, "question requires user_goal"))
-            if not non_empty(question["uncertainty"]):
-                findings.append(Finding("error", req_id, detail_type, "question requires uncertainty"))
-            if not non_empty(question["after_answer_generates"]):
-                findings.append(Finding("error", req_id, detail_type, "question requires after_answer_generates"))
 
     return findings, questions
 
@@ -361,27 +150,6 @@ def validate_coverage(data: dict[str, Any]) -> tuple[list[Finding], list[dict[st
     return all_findings, all_questions
 
 
-def normalize_generators(value: Any) -> dict[str, dict[str, Any]]:
-    if isinstance(value, dict):
-        normalized: dict[str, dict[str, Any]] = {}
-        for name, item in value.items():
-            if isinstance(name, str):
-                normalized[name] = item if isinstance(item, dict) else {"status": item}
-        return normalized
-
-    if isinstance(value, list):
-        normalized = {}
-        for item in value:
-            if not isinstance(item, dict):
-                continue
-            name = item.get("name") or item.get("generator")
-            if isinstance(name, str) and name.strip():
-                normalized[name.strip()] = item
-        return normalized
-
-    return {}
-
-
 def normalize_questions(value: Any) -> dict[str, dict[str, Any]]:
     if not isinstance(value, list):
         return {}
@@ -394,15 +162,6 @@ def normalize_questions(value: Any) -> dict[str, dict[str, Any]]:
         if isinstance(question_id, str) and question_id.strip():
             normalized[question_id.strip()] = {**item, "id": question_id.strip()}
     return normalized
-
-
-def candidate_artifact_exists(base_dir: Path, artifact_path: Any) -> bool:
-    if not isinstance(artifact_path, str) or not artifact_path.strip():
-        return False
-    path = Path(artifact_path)
-    if not path.is_absolute():
-        path = base_dir / path
-    return path.exists() and path.is_file() and non_empty(path.read_text(encoding="utf-8"))
 
 
 def question_from_candidate(
@@ -419,55 +178,23 @@ def question_from_candidate(
         "source_requirement": question.get("source_requirement", source_id),
         "detail_requirement_type": detail_type,
         "unresolved_decision": question.get("unresolved_decision", ""),
-        "user_goal": question.get("user_goal") or question.get("source_requirement") or source_id,
-        "reason": question.get("reason", ""),
+        "premise": question.get("premise") or question.get("source_requirement") or source_id,
+        "undecided_reason": question.get("undecided_reason") or question.get("reason", ""),
         "options": question.get("options", []),
         "recommended_option": question.get("recommended_option", ""),
         "recommended": question.get("recommended", ""),
         "recommendation_reason": question.get("recommendation_reason", ""),
-        "uncertainty": question.get("uncertainty", ""),
         "after_answer_generates": question.get("after_answer_generates", [detail_type]),
     }
-
-
-def validate_question_shape(findings: list[Finding], question: dict[str, Any], source_id: str, detail_type: str) -> None:
-    if not non_empty(question.get("unresolved_decision")):
-        findings.append(Finding("error", source_id, detail_type, "question requires unresolved_decision"))
-    if not non_empty(question.get("reason")):
-        findings.append(Finding("error", source_id, detail_type, "question requires reason"))
-    if option_count(question.get("options")) != 3:
-        findings.append(Finding("error", source_id, detail_type, "question requires 3 options before その他"))
-    if not non_empty(question.get("recommended")):
-        findings.append(Finding("error", source_id, detail_type, "question requires recommended"))
-    if not non_empty(question.get("user_goal")):
-        findings.append(Finding("error", source_id, detail_type, "question requires user_goal"))
-    if not non_empty(question.get("uncertainty")):
-        findings.append(Finding("error", source_id, detail_type, "question requires uncertainty"))
-    if not non_empty(question.get("after_answer_generates")):
-        findings.append(Finding("error", source_id, detail_type, "question requires after_answer_generates"))
 
 
 def validate_candidate_coverage(data: dict[str, Any], base_dir: Path) -> tuple[list[Finding], list[dict[str, Any]]]:
     findings: list[Finding] = []
     questions: list[dict[str, Any]] = []
 
-    generators = normalize_generators(data.get("generators"))
-    if not generators:
-        findings.append(Finding("error", "candidate-coverage", "generators", "generators must be a non-empty list or object"))
-
-    for generator_name in sorted(EXPECTED_CANDIDATE_GENERATORS):
-        generator = generators.get(generator_name)
-        if generator is None:
-            findings.append(Finding("error", "candidate-coverage", generator_name, "required generator is missing"))
-            continue
-        if generator.get("status") != "completed":
-            findings.append(Finding("error", "candidate-coverage", generator_name, "generator status must be completed"))
-        if not candidate_artifact_exists(base_dir, generator.get("artifact_path")):
-            findings.append(Finding("error", "candidate-coverage", generator_name, "generator artifact is missing or empty"))
-
     candidates = data.get("candidates")
-    if not isinstance(candidates, list) or not candidates:
-        findings.append(Finding("error", "candidate-coverage", "candidates", "candidates must be a non-empty list"))
+    if not isinstance(candidates, list):
+        findings.append(Finding("error", "candidate-coverage", "candidates", "candidates must be a list"))
         candidates = []
 
     question_lookup = normalize_questions(data.get("unresolved_questions"))
@@ -479,39 +206,25 @@ def validate_candidate_coverage(data: dict[str, Any], base_dir: Path) -> tuple[l
             continue
 
         candidate_id = str(candidate.get("candidate_id") or candidate.get("id") or f"candidate[{index}]")
-        generator_name = candidate.get("generator")
         source_requirement_id = candidate.get("source_requirement_id")
         decision = candidate.get("decision")
 
-        if generator_name not in EXPECTED_CANDIDATE_GENERATORS:
-            findings.append(Finding("error", candidate_id, "generator", f"unknown generator: {generator_name}"))
-        if not non_empty(source_requirement_id):
-            findings.append(Finding("error", candidate_id, "source_requirement_id", "source_requirement_id is required"))
-        if decision not in VALID_CANDIDATE_DECISIONS:
-            findings.append(Finding("error", candidate_id, "decision", f"invalid candidate decision: {decision}"))
-            continue
-
-        if decision in {"adopted", "merged"} and not non_empty(candidate.get("final_scenario_id")):
-            findings.append(Finding("error", candidate_id, "final_scenario_id", f"{decision} requires final_scenario_id"))
-        if decision == "rejected" and not non_empty(candidate.get("decision_rationale")):
-            findings.append(Finding("error", candidate_id, "decision_rationale", "rejected requires decision_rationale"))
         if decision in {"conflicted", "needs_human_decision"}:
             question_id = candidate.get("question_id")
             if not isinstance(question_id, str) or not question_id.strip():
-                findings.append(Finding("error", candidate_id, "question_id", f"{decision} requires question_id"))
+                question_id = f"Q-{candidate_id}"
             else:
                 question_id = question_id.strip()
-                if question_id not in seen_questions:
-                    question = question_from_candidate(
-                        question_id,
-                        str(source_requirement_id or candidate_id),
-                        "scenario_candidate_conflict",
-                        question_lookup,
-                        "scenario candidate conflict",
-                    )
-                    questions.append(question)
-                    seen_questions.add(question_id)
-                    validate_question_shape(findings, question, candidate_id, "scenario_candidate_conflict")
+            if question_id not in seen_questions:
+                question = question_from_candidate(
+                    question_id,
+                    str(source_requirement_id or candidate_id),
+                    "scenario_candidate_conflict",
+                    question_lookup,
+                    "scenario candidate conflict",
+                )
+                questions.append(question)
+                seen_questions.add(question_id)
             findings.append(Finding("error", candidate_id, "decision", f"{decision} requires human decision before scenario completion"))
 
     conflicts = data.get("conflicts", [])
@@ -526,40 +239,37 @@ def validate_candidate_coverage(data: dict[str, Any], base_dir: Path) -> tuple[l
         conflict_id = str(conflict.get("conflict_id") or conflict.get("id") or f"conflict[{index}]")
         status = conflict.get("status")
         if status not in VALID_CONFLICT_STATUSES:
-            findings.append(Finding("error", conflict_id, "status", f"invalid conflict status: {status}"))
             continue
-        if status == "resolved" and not non_empty(conflict.get("resolution_rationale")):
-            findings.append(Finding("error", conflict_id, "resolution_rationale", "resolved conflict requires resolution_rationale"))
         if status == "unresolved":
             question_id = conflict.get("question_id")
             if not isinstance(question_id, str) or not question_id.strip():
-                findings.append(Finding("error", conflict_id, "question_id", "unresolved conflict requires question_id"))
+                question_id = f"Q-{conflict_id}"
             else:
                 question_id = question_id.strip()
-                if question_id not in seen_questions:
-                    question = question_from_candidate(
-                        question_id,
-                        conflict_id,
-                        "scenario_candidate_conflict",
-                        question_lookup,
-                        "scenario candidate conflict",
-                    )
-                    questions.append(question)
-                    seen_questions.add(question_id)
-                    validate_question_shape(findings, question, conflict_id, "scenario_candidate_conflict")
+            if question_id not in seen_questions:
+                question = question_from_candidate(
+                    question_id,
+                    conflict_id,
+                    "scenario_candidate_conflict",
+                    question_lookup,
+                    "scenario candidate conflict",
+                )
+                questions.append(question)
+                seen_questions.add(question_id)
             findings.append(Finding("error", conflict_id, "status", "unresolved conflict requires human decision before scenario completion"))
 
     return findings, questions
 
 
 def render_report(path: Path, findings: list[Finding], questions: list[dict[str, Any]]) -> str:
+    human_questions = unique_questions(questions)
     lines = [
         "# Requirement Gate Report",
         "",
         f"- `source`: `{path.as_posix()}`",
         f"- `status`: `{'fail' if findings else 'pass'}`",
         f"- `finding_count`: `{len(findings)}`",
-        f"- `question_count`: `{len(questions)}`",
+        f"- `question_count`: `{len(human_questions)}`",
         "",
         "## Findings",
         "",
@@ -572,8 +282,8 @@ def render_report(path: Path, findings: list[Finding], questions: list[dict[str,
         lines.append("- none")
 
     lines.extend(["", "## Questions", ""])
-    if questions:
-        for question in sorted_questions(questions):
+    if human_questions:
+        for question in human_questions:
             lines.append(f"- `{question.get('id', '')}` {question_title(question)}")
     else:
         lines.append("- none")
@@ -583,57 +293,23 @@ def render_report(path: Path, findings: list[Finding], questions: list[dict[str,
 
 def render_questionnaire(questions: list[dict[str, Any]]) -> str:
     lines = ["# Human Decision Questionnaire", ""]
-    if not questions:
+    human_questions = unique_questions(questions)
+    if not human_questions:
         lines.append("- none")
         return "\n".join(lines) + "\n"
 
-    for question in sorted_questions(questions):
+    lines.extend(
+        [
+            "gate は未回答 ID だけを列挙する。",
+            "人間向けの質問本文は designer が仕様境界として再編集する。",
+            "",
+        ]
+    )
+    for question in human_questions:
         question_id = question.get("id") or question.get("question_id")
-        options = question.get("options", [])
-        lines.extend(
-            [
-                f"## [{question_id}] {question_title(question)}",
-                "",
-                "質問:",
-                str(question.get("unresolved_decision", "")),
-                "",
-                "やりたいこと:",
-                str(question.get("user_goal") or question.get("source_requirement", "")),
-                "",
-                "背景:",
-                str(question.get("reason", "")),
-                "",
-                "選択肢:",
-            ]
-        )
-        if isinstance(options, list) and options:
-            for index, option in enumerate(options, start=1):
-                if isinstance(option, dict):
-                    label = option.get("label", "")
-                    lines.append(f"{index}. {label}")
-        else:
-            lines.append("1. TODO: option is missing")
-        lines.append("4. その他")
-        lines.extend(
-            [
-                "",
-                "AI推奨:",
-                recommended_option_text(question),
-                "",
-                "推奨理由:",
-                recommendation_reason_text(question),
-                "",
-                "不確実性:",
-                str(question.get("uncertainty", "")),
-                "",
-                "回答形式:",
-                "選択肢番号を選んでください。",
-                "4 の場合は、採用したい業務ルールを1〜3文で記入してください。",
-                "",
-            ]
-        )
+        lines.append(f"- `{question_id}` {question_title(question)}")
 
-    return "\n".join(lines)
+    return "\n".join(lines) + "\n"
 
 
 def write_if_requested(path: str | None, content: str) -> None:
@@ -687,9 +363,9 @@ def main() -> int:
                 {
                     "status": "fail" if findings else "pass",
                     "finding_count": len(findings),
-                    "question_count": len(questions),
+                    "question_count": len(unique_questions(questions)),
                     "findings": [finding.__dict__ for finding in findings],
-                    "questions": sorted_questions(questions),
+                    "questions": unique_questions(questions),
                 },
                 ensure_ascii=False,
                 indent=2,

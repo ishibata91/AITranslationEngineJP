@@ -139,40 +139,57 @@ active task 全体は `python3 scripts/harness/run.py --suite scenario-gate` で
 `scenario-design.requirement-coverage.json` がある場合、判定条件 はその JSON を読む。
 旧形式の fenced JSON は互換用に読めるが、新規 成果物 では使わない。
 `scenario-design.candidate-coverage.json` は新規 成果物 で必須とする。
-判定条件 は 6 生成 agent の出力、候補 採否、未解決競合、競合質問票を検査する。
+判定条件 は `needs_human_decision`、候補の `conflicted`、候補の `needs_human_decision`、未解決競合だけを検査する。
+判定条件 は質問票の項目数、選択肢数、説明文、推奨理由、内部用語の読みやすさを検査しない。
+質問票の読みやすさと仕様質問としての妥当性は `designer` が判断する。
+判定条件 が出す `scenario-design.questions.md` は未回答 ID 一覧にとどめる。
+人間向け質問本文は `designer` が同じ正本へ再編集する。
 
 ### 質問票
 
-質問票は、明示的ではない判断だけを対象にする。
-人間が全 成果物 を読み直さなくても答えられるように、質問、やりたいこと、背景、選択肢、AI 推奨、推奨理由、不確実性、回答形式を添える。
+質問票は、明示的ではない判断のうち、人間が決める必要のある仕様境界を対象にする。
+人間が全 成果物 を読み直さなくても答えられるように、決める仕様、決定済み、未確定、選択肢、AI 推奨だけを添える。
+`needs_human_decision` は質問票へそのまま転記せず、人間向けの問いへ再編集する。
+内部 gate の項目名は人間向け質問本文に単独で出さない。
+実装用語または内部設計語を出す必要がある場合は、`固定名（人間が判断できる説明）` の形で説明を添える。
+説明を添えられない用語は、質問票から消さず `説明不足` として残す。
+fixed decision で解ける内容は質問にしない。
 
-`scenario-design.requirement-coverage.json` の `needs_human_decision` は次を持つ。
+`scenario-design.requirement-coverage.json` の `needs_human_decision` は、未回答一覧を作れる `question_id` を持つ。
+質問票本文を同じ JSON へ持たせる場合は次を使ってよいが、判定条件 は必須項目として検査しない。
 
 - `question_id`: `Q-001` 形式の連番
 - `question_title`: 短い質問名
-- `unresolved_decision`: 「質問」に出す判断
-- `user_goal`: 「やりたいこと」に出す業務・操作
-- `reason`: 「背景」に出す未決理由と影響
-- `options`: 3 件の選択肢と影響。`その他` は 判定条件 が 4 番として末尾に追加する
+- `unresolved_decision`: 「決める仕様」に出す判断を 1 文で書く
+- `premise`: 「決定済み」に出す、既に確定した仕様
+- `undecided_reason`: 「未確定」に出す、まだ仕様として決まっていない点
+- `options`: 3 件の選択肢と影響。選択肢は利用者または運用者から見える仕様差分だけを書く。`その他` は 判定条件 が 4 番として末尾に追加する
 - `recommended_option`: AI 推奨の選択肢番号
-- `recommendation_reason`: 推奨理由
-- `uncertainty`: 推奨が外れる可能性
+- `recommendation_reason`: AI 推奨の理由を 2 文以内で書く
 - `after_answer_generates`: 回答後に固定できる要求タイプまたは シナリオ
 
-質問票の出力形式は次を固定形にする。
+質問票では次を禁止する。
+
+- `provider capability`、`phase resume boundary`、`job scoped phase run` のような内部設計語を説明なしで質問本文に出す
+- gate の `detail_requirement_type` を質問分類として人間に見せる
+- 1 つの質問に、削除、監査、履歴、復元、UI 表示を混ぜる
+- ローカルアプリに監査要件がない場合、監査保持を選択肢へ入れる
+- fixed decision で解ける内容を人間質問にする
+
+`designer` が人間向け質問本文を書く場合、質問票の出力形式は次を固定形にする。
 
 ```markdown
 
 ### [Q-001] <短い質問名>
 
-質問:
+決める仕様:
 <人間に決めてほしい判断>
 
-やりたいこと:
-<実現したい業務・操作>
+決定済み:
+<既に確定した仕様>
 
-背景:
-<未決理由と影響>
+未確定:
+<まだ仕様として決まっていない点>
 
 選択肢:
 1. <選択肢A>
@@ -180,18 +197,8 @@ active task 全体は `python3 scripts/harness/run.py --suite scenario-gate` で
 3. <選択肢C>
 4. その他
 
-AI推奨:
-<選択肢番号>
-
-推奨理由:
-<推奨理由>
-
-不確実性:
-<推奨が外れる可能性>
-
-回答形式:
-選択肢番号を選んでください。
-4 の場合は、採用したい業務ルールを1〜3文で記入してください。
+AI 推奨:
+<選択肢番号と理由。理由は 2 文以内。>
 ```
 
 ## 判断規約
@@ -201,6 +208,7 @@ AI推奨:
 - 抽象要件を シナリオ へ進める前に、詳細要求タイプごとの明示状態を確認する
 - 候補の採用、統合、不採用、競合、要人間判断を `scenario-design.candidate-coverage.json` に分ける
 - 人間判断が必要な暗黙要求は `needs_human_decision` とし、質問票へ集約する
+- 人間向け質問は内部 gate の項目名をそのまま使わず、仕様境界の判断に再編集する
 - 仕様網羅 JSON は `scenario-design.md` に埋め込まず、`scenario-design.requirement-coverage.json` に分ける
 - 質問票は `scenario-design.md` に埋め込まず、`scenario-design.questions.md` に分ける
 - 未解決競合は シナリオ 完了にせず、`scenario-design.questions.md` へ集約する

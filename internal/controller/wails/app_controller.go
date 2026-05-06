@@ -9,6 +9,7 @@ type AppController struct {
 	*ProviderSettingsController
 	*TranslationInputController
 	*TranslationJobSetupController
+	*TranslationJobManagementController
 	*TermTranslationPhaseController
 	*PersonaGenerationPhaseController
 	*BodyTranslationPhaseController
@@ -27,6 +28,7 @@ func NewAppController(masterDictionaryController *MasterDictionaryController, ma
 		ProviderSettingsController:          nil,
 		TranslationInputController:          nil,
 		TranslationJobSetupController:       nil,
+		TranslationJobManagementController:  nil,
 		TermTranslationPhaseController:      nil,
 		PersonaGenerationPhaseController:    nil,
 		BodyTranslationPhaseController:      nil,

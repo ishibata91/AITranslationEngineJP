@@ -19,7 +19,6 @@ import (
 // Translation input validation and warning kinds surfaced to the usecase.
 const (
 	TranslationInputErrorKindInvalidJSON              = "invalid_json"
-	TranslationInputErrorKindDuplicateInputHash       = "duplicate_input_hash"
 	TranslationInputErrorKindUnsupportedExtractShape  = "unsupported_extract_shape"
 	TranslationInputErrorKindMissingRequiredField     = "missing_required_field"
 	TranslationInputErrorKindSourceFileMissing        = "source_file_missing"
@@ -27,7 +26,6 @@ const (
 	translationInputSourceTool                        = "xEdit"
 	translationInputSampleLimit                       = 5
 	translationInputReadFileErrorFormat               = "read translation input file: %w"
-	translationInputHashAlreadyExistsMessage          = "translation input hash already exists"
 )
 
 // TranslationInputImportService validates one xEdit JSON file and persists its records.
@@ -453,10 +451,10 @@ func resolveTranslationInputSourcePath(filePath string, fileName string) (string
 }
 
 func (service *TranslationInputImportService) prepareImportFromContent(
-	ctx context.Context,
+	_ context.Context,
 	filePath string,
 	content []byte,
-	currentInputID int64,
+	_ int64,
 ) (preparedTranslationInputImport, error) {
 	document, err := decodeTranslationInputDocument(content)
 	if err != nil {
@@ -464,9 +462,6 @@ func (service *TranslationInputImportService) prepareImportFromContent(
 	}
 
 	sourceContentHash := translationInputContentHash(content)
-	if err := service.rejectDuplicateSourceHash(ctx, sourceContentHash, currentInputID); err != nil {
-		return preparedTranslationInputImport{}, err
-	}
 
 	return service.prepareImport(filePath, sourceContentHash, document)
 }
@@ -682,31 +677,6 @@ func (service *TranslationInputImportService) prepareField(
 	}, warning
 }
 
-func (service *TranslationInputImportService) rejectDuplicateSourceHash(
-	ctx context.Context,
-	sourceContentHash string,
-	currentInputID int64,
-) error {
-	cacheRepository, ok := service.repository.(translationInputCacheRepository)
-	if !ok || strings.TrimSpace(sourceContentHash) == "" {
-		return nil
-	}
-	existingInput, err := cacheRepository.FindXEditExtractedDataBySourceContentHash(ctx, sourceContentHash)
-	if err == nil {
-		if currentInputID == 0 || existingInput.ID != currentInputID {
-			return translationInputImportError{
-				kind: TranslationInputErrorKindDuplicateInputHash,
-				err:  errors.New(translationInputHashAlreadyExistsMessage),
-			}
-		}
-		return nil
-	}
-	if errors.Is(err, repository.ErrNotFound) {
-		return nil
-	}
-	return fmt.Errorf("lookup translation input hash: %w", err)
-}
-
 func (service *TranslationInputImportService) hasFieldDefinition(recordType string, subrecordType string) bool {
 	if service.fieldDefinitions != nil {
 		_, err := service.fieldDefinitions.GetByRecordTypeAndSubrecordType(context.Background(), recordType, subrecordType)
@@ -769,12 +739,6 @@ func (service *TranslationInputImportService) updatePreparedInputMetadata(
 		ImportedAt:        importedAt,
 	})
 	if err != nil {
-		if errors.Is(err, repository.ErrConflict) {
-			return repository.XEditExtractedData{}, translationInputImportError{
-				kind: TranslationInputErrorKindDuplicateInputHash,
-				err:  errors.New(translationInputHashAlreadyExistsMessage),
-			}
-		}
 		return repository.XEditExtractedData{}, fmt.Errorf("update translation input metadata: %w", err)
 	}
 
@@ -832,12 +796,6 @@ func (service *TranslationInputImportService) persistPreparedImport(
 		ImportedAt:        service.now().UTC(),
 	})
 	if err != nil {
-		if errors.Is(err, repository.ErrConflict) {
-			return TranslationInputImportSummary{}, translationInputImportError{
-				kind: TranslationInputErrorKindDuplicateInputHash,
-				err:  errors.New(translationInputHashAlreadyExistsMessage),
-			}
-		}
 		return TranslationInputImportSummary{}, fmt.Errorf("create xEdit extracted data: %w", err)
 	}
 	return service.persistPreparedRecords(ctx, xEditData, prepared)

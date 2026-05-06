@@ -395,25 +395,6 @@ function replaceModelList(
   )
 }
 
-function isExistingJobForInput(
-  options: TranslationJobSetupOptionsResponse,
-  inputSourceId: number
-): boolean {
-  const existingJob = options.existingJob
-  if (!existingJob) {
-    return false
-  }
-
-  if ((existingJob.inputSourceId ?? 0) > 0) {
-    return existingJob.inputSourceId === inputSourceId
-  }
-
-  const inputCandidate = options.inputCandidates.find(
-    (candidate) => candidate.id === inputSourceId
-  )
-  return existingJob.inputSource === inputCandidate?.label
-}
-
 function isModelListUsable(status: TranslationJobSetupProviderModelListStatus): boolean {
   return status === "success" || status === "credential_not_required"
 }
@@ -1029,8 +1010,7 @@ export class TranslationJobSetupUseCase {
       latestState.validationState !== "fresh" ||
       latestState.dirty ||
       !latestState.validationResult.canCreate ||
-      !inputCandidate ||
-      isExistingJobForInput(latestState.options, inputCandidate.id)
+      !inputCandidate
     ) {
       this.store.update((draft) => {
         draft.errorMessage =
@@ -1112,12 +1092,10 @@ export class TranslationJobSetupUseCase {
       !state.validationResult ||
       state.validationState !== "fresh" ||
       state.dirty ||
-      !state.validationResult.canCreate ||
-      isExistingJobForInput(state.options, inputCandidate.id)
+      !state.validationResult.canCreate
     ) {
       this.store.update((draft) => {
-        draft.errorMessage =
-          "create 条件を満たしていません。validation と既存 job 状態を確認してください。"
+        draft.errorMessage = "create 条件を満たしていません。validation を確認してください。"
       })
       return
     }

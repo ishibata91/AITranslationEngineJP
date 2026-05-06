@@ -1,0 +1,676 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TJM-001",
+      "source_candidate_id": "CAND-TJM-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-001",
+      "decision_rationale": "未完了ジョブ一覧の入口要件に直結する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-002",
+      "source_candidate_id": "CAND-TJM-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-003",
+      "decision_rationale": "一覧から Job Run 表示対象へ移す主要導線として採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-003",
+      "source_candidate_id": "CAND-TJM-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-002",
+      "decision": "rejected",
+      "decision_rationale": "人間判断により同じ入力データから複数 job 作成を許可するため、既存 job を開くことは作成禁止の代替条件にしない。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-004",
+      "source_candidate_id": "CAND-TJM-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-004",
+      "decision_rationale": "Running の削除禁止と停止入口へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-005",
+      "source_candidate_id": "CAND-TJM-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-004",
+      "decision": "merged",
+      "decision_rationale": "人間回答により、非実行中 job の削除では job 以下の DB 情報を削除し、入力データと抽出 JSON を保持すると固定したため、削除シナリオへ統合する。",
+      "final_scenario_id": "SCN-TJM-006"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-006",
+      "source_candidate_id": "CAND-TJM-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "decision_rationale": "再開入口と再開不可理由の表示として採用し、外部設定の直前確認は管理画面の受け入れ条件から外す。",
+      "final_scenario_id": "SCN-TJM-005"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-007",
+      "source_candidate_id": "CAND-TJM-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "入力キャッシュ欠落と terminal state（完了扱いまたは回復不能な状態）の再開不可理由表示へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJM-008",
+      "source_candidate_id": "CAND-TJM-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-001",
+      "decision_rationale": "一覧表示に状態別操作可否を含める。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-001",
+      "source_candidate_id": "CAND-TJM-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-001",
+      "decision_rationale": "作成済み未完了ジョブの一覧表示へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-002",
+      "source_candidate_id": "CAND-TJM-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-003",
+      "decision_rationale": "Job Run 表示対象への遷移に統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-003",
+      "source_candidate_id": "CAND-TJM-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-002",
+      "decision": "rejected",
+      "decision_rationale": "人間判断により同じ入力データから複数 job 作成を許可するため、既存 job を開く導線は新規作成を止める条件にしない。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-004",
+      "source_candidate_id": "CAND-TJM-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-003",
+      "decision_rationale": "Ready job の表示と実行入口表示は管理画面の導線要件に含める。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-005",
+      "source_candidate_id": "CAND-TJM-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "decision_rationale": "Running job の削除拒否、停止要求中表示、停止完了後の削除可否再判定として統合する。実行中通信の止め方は管理画面の業務質問にしない。",
+      "final_scenario_id": "SCN-TJM-004"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-006",
+      "source_candidate_id": "CAND-TJM-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "decision_rationale": "再開入口と再開不可理由の表示として採用し、外部設定の直前確認は管理画面の受け入れ条件から外す。",
+      "final_scenario_id": "SCN-TJM-005"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-007",
+      "source_candidate_id": "CAND-TJM-LC-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "decision_rationale": "再開入口と再開不可理由の表示として採用し、外部設定の直前確認は管理画面の受け入れ条件から外す。",
+      "final_scenario_id": "SCN-TJM-005"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-008",
+      "source_candidate_id": "CAND-TJM-LC-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "入力キャッシュ欠落の再開不可理由表示へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-009",
+      "source_candidate_id": "CAND-TJM-LC-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-004",
+      "decision": "merged",
+      "decision_rationale": "人間回答により、非実行中 job の削除では job 以下の DB 情報を削除し、入力データと抽出 JSON を保持すると固定したため、削除シナリオへ統合する。",
+      "final_scenario_id": "SCN-TJM-006"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-010",
+      "source_candidate_id": "CAND-TJM-LC-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "decision_rationale": "Running job の削除拒否、停止要求中表示、停止完了後の削除可否再判定として統合する。実行中通信の止め方は管理画面の業務質問にしない。",
+      "final_scenario_id": "SCN-TJM-004"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-011",
+      "source_candidate_id": "CAND-TJM-LC-011",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-001",
+      "decision_rationale": "Completed 除外は usecase の明示要件である。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJM-LC-012",
+      "source_candidate_id": "CAND-TJM-LC-012",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJM-004",
+      "decision": "rejected",
+      "decision_rationale": "入力キャッシュ整理は未完了ジョブ管理画面の直接操作範囲ではなく、完了後メンテナンスまたは入力管理へ送る。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-001",
+      "source_candidate_id": "CAND-TJM-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-001",
+      "decision_rationale": "一覧表示が状態を変更しないことを基本不変条件として採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-002",
+      "source_candidate_id": "CAND-TJM-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-002",
+      "decision": "rejected",
+      "decision_rationale": "人間判断により同じ入力データから複数 job 作成を許可するため、既存 job 表示への強制遷移は採用しない。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-003",
+      "source_candidate_id": "CAND-TJM-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-003",
+      "decision_rationale": "表示対象変更で Running へ暗黙遷移しない不変条件として採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-004",
+      "source_candidate_id": "CAND-TJM-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "decision_rationale": "Running job の削除拒否、停止要求中表示、停止完了後の削除可否再判定として統合する。実行中通信の止め方は管理画面の業務質問にしない。",
+      "final_scenario_id": "SCN-TJM-004"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-005",
+      "source_candidate_id": "CAND-TJM-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-005",
+      "decision_rationale": "Paused の再開可否と削除可否表示へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-006",
+      "source_candidate_id": "CAND-TJM-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "decision_rationale": "再開入口と再開不可理由の表示として採用し、外部設定の直前確認は管理画面の受け入れ条件から外す。",
+      "final_scenario_id": "SCN-TJM-005"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-007",
+      "source_candidate_id": "CAND-TJM-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "Failed と Canceled は Completed 以外の terminal state（完了扱いまたは回復不能な状態）として再開不可理由を表示する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJM-ST-008",
+      "source_candidate_id": "CAND-TJM-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "入力キャッシュ欠落時の再開拒否と参照保持へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F001",
+      "source_candidate_id": "CAND-TJM-F001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-004",
+      "decision_rationale": "Running の削除拒否へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F002",
+      "source_candidate_id": "CAND-TJM-F002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-004",
+      "decision_rationale": "実行中以外で停止操作を拒否する境界として採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F003",
+      "source_candidate_id": "CAND-TJM-F003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "decision_rationale": "Running job の削除拒否、停止要求中表示、停止完了後の削除可否再判定として統合する。実行中通信の止め方は管理画面の業務質問にしない。",
+      "final_scenario_id": "SCN-TJM-004"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F004",
+      "source_candidate_id": "CAND-TJM-F004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "入力キャッシュ欠落時の再開拒否へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F005",
+      "source_candidate_id": "CAND-TJM-F005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "terminal state（完了扱いまたは回復不能な状態）の再開不可理由表示として統合する。Completed は未完了一覧から外すが、同じ入力から新規 job 作成は許可する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F006",
+      "source_candidate_id": "CAND-TJM-F006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-008",
+      "decision_rationale": "stale な選択参照で別 job を開かない安全表示として採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F007",
+      "source_candidate_id": "CAND-TJM-F007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-008",
+      "decision_rationale": "フェーズ進捗を集約できない場合の安全側表示として採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F008",
+      "source_candidate_id": "CAND-TJM-F008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-004",
+      "decision": "merged",
+      "decision_rationale": "人間回答により、非実行中 job の削除では job 以下の DB 情報を削除し、入力データと抽出 JSON を保持すると固定したため、削除シナリオへ統合する。",
+      "final_scenario_id": "SCN-TJM-006"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F009",
+      "source_candidate_id": "CAND-TJM-F009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-002",
+      "decision": "rejected",
+      "decision_rationale": "人間判断により同じ入力データから複数 job 作成を許可するため、同一入力 2 件目禁止を前提にした conflict は解消済みである。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJM-F010",
+      "source_candidate_id": "CAND-TJM-F010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-008",
+      "decision_rationale": "一覧読み込み失敗と空一覧を分ける入口失敗として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-001",
+      "source_candidate_id": "CAND-TJM-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "入力キャッシュ欠落の再開不可理由へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-002",
+      "source_candidate_id": "CAND-TJM-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-002",
+      "decision": "rejected",
+      "decision_rationale": "人間判断により同じ入力データから複数 job 作成を許可するため、Completed 既存 job の表示対象化は新規作成の前提条件にしない。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-003",
+      "source_candidate_id": "CAND-TJM-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-009",
+      "decision_rationale": "保存済み AI 設定と secret redaction の横断制約として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-004",
+      "source_candidate_id": "CAND-TJM-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "decision_rationale": "Running job の削除拒否、停止要求中表示、停止完了後の削除可否再判定として統合する。実行中通信の止め方は管理画面の業務質問にしない。",
+      "final_scenario_id": "SCN-TJM-004"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-005",
+      "source_candidate_id": "CAND-TJM-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "rejected",
+      "decision_rationale": "管理画面は保存済み AI 設定要約を表示し、再開直前の外部設定確認は再開実行側で扱うため、この候補は Job Management の最終シナリオに採用しない。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-006",
+      "source_candidate_id": "CAND-TJM-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-007",
+      "decision": "rejected",
+      "decision_rationale": "user-facing scenario ではなく、testability requirement と検証データ方針へ移す。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJM-007",
+      "source_candidate_id": "CAND-TJM-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJM-004",
+      "decision": "merged",
+      "decision_rationale": "人間回答により、非実行中 job の削除では job 以下の DB 情報を削除し、入力データと抽出 JSON を保持すると固定したため、削除シナリオへ統合する。",
+      "final_scenario_id": "SCN-TJM-006"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-001",
+      "source_candidate_id": "CAND-TJM-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-001",
+      "decision_rationale": "一覧の後追い確認要件へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-002",
+      "source_candidate_id": "CAND-TJM-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-003",
+      "decision_rationale": "選択中 job の表示要約へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-003",
+      "source_candidate_id": "CAND-TJM-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-002",
+      "decision": "rejected",
+      "decision_rationale": "人間判断により同じ入力データから複数 job 作成を許可するため、既存 job を開く履歴は新規作成許可の採用条件にしない。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-004",
+      "source_candidate_id": "CAND-TJM-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "decision_rationale": "Running job の削除拒否、停止要求中表示、停止完了後の削除可否再判定として統合する。実行中通信の止め方は管理画面の業務質問にしない。",
+      "final_scenario_id": "SCN-TJM-004"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-005",
+      "source_candidate_id": "CAND-TJM-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-004",
+      "decision_rationale": "削除不可理由と停止後再判定の表示へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-006",
+      "source_candidate_id": "CAND-TJM-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-004",
+      "decision": "merged",
+      "decision_rationale": "人間回答により、非実行中 job の削除では job 以下の DB 情報を削除し、入力データと抽出 JSON を保持すると固定したため、削除シナリオへ統合する。",
+      "final_scenario_id": "SCN-TJM-006"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-007",
+      "source_candidate_id": "CAND-TJM-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJM-007",
+      "decision_rationale": "再開不可理由の調査材料表示へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJM-008",
+      "source_candidate_id": "CAND-TJM-008",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJM-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJM-009",
+      "decision_rationale": "保存禁止情報の非露出を横断制約として採用する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-TJM-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-003",
+        "lifecycle:CAND-TJM-LC-003",
+        "state-transition:CAND-TJM-ST-002",
+        "failure:CAND-TJM-F009",
+        "external-integration:CAND-TJM-002",
+        "operation-audit:CAND-TJM-003"
+      ],
+      "conflict_type": "boundary_requirement",
+      "resolution": "同じ入力データから複数 job 作成を許可する。既存 job を開く要件と同一入力 2 件目禁止は採用しない。",
+      "resolution_rationale": "人間が同じファイルの job を何個でも作れる方針を明示したため。",
+      "reason": "人間判断により、Completed job を未完了一覧から除外したままでも同じ入力データから新規 job を作成できるため。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJM-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-005",
+        "lifecycle:CAND-TJM-LC-009",
+        "failure:CAND-TJM-F008",
+        "external-integration:CAND-TJM-007",
+        "operation-audit:CAND-TJM-006"
+      ],
+      "conflict_type": "data_requirement",
+      "reason": "削除対象境界は人間回答で解消済みである。",
+      "resolution": "非実行中 job の削除では job 以下の DB 情報を削除し、入力データと抽出 JSON は保持する。",
+      "resolution_rationale": "人間回答で、履歴保持は不要でありローカルアプリに監査はないと固定されたため。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJM-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-006",
+        "lifecycle:CAND-TJM-LC-006",
+        "lifecycle:CAND-TJM-LC-007",
+        "state-transition:CAND-TJM-ST-006",
+        "external-integration:CAND-TJM-005"
+      ],
+      "conflict_type": "external_integration_requirement",
+      "reason": "再開前確認の境界は既存責務で分けられるため、回答済みの後続送り境界として残す。",
+      "resolution": "管理画面では保存済み設定要約を表示し、再開直前の API 設定現在確認は再開実行側へ送る。",
+      "resolution_rationale": "管理画面の目的は未完了 job の状態、入力キャッシュ、terminal state（完了扱いまたは回復不能な状態）、状態不整合を見せることに限定できるため。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJM-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-TJM-LC-005",
+        "lifecycle:CAND-TJM-LC-010",
+        "state-transition:CAND-TJM-ST-004",
+        "failure:CAND-TJM-F003",
+        "external-integration:CAND-TJM-004",
+        "operation-audit:CAND-TJM-004"
+      ],
+      "conflict_type": "state_transition",
+      "reason": "外部通信の停止方式は管理画面の未回答質問ではなく、翻訳実行側の回答済み後続送り境界として残す。",
+      "resolution": "管理画面は停止要求中、停止失敗、Paused への収束後の削除可否再判定を表示する。実行中通信の止め方と停止要求後の不整合防止は翻訳実行側へ送る。",
+      "resolution_rationale": "利用者が管理画面で判断する業務ルールは削除不可、停止要求中、停止後再判定で足りるため。"
+    }
+  ],
+  "deferred_items": [
+    {
+      "id": "Q-TJM-003",
+      "source_conflict_id": "CONFLICT-TJM-003",
+      "owner": "再開実行側の後続タスク",
+      "boundary": "Job Management は保存済み AI 設定要約と再開不可理由を表示する。provider capability（API が必要な実行方式に対応しているか）と credential reference（保存済み API キー参照が使えるか）の現在確認は再開実行側で決める。",
+      "human_answer": "後続タスクで扱う。"
+    },
+    {
+      "id": "Q-TJM-004",
+      "source_conflict_id": "CONFLICT-TJM-004",
+      "owner": "翻訳実行側の後続タスク",
+      "boundary": "Job Management は停止要求中、停止失敗、Paused への収束、削除可否再判定を表示する。cancel（通信停止）、stop request（停止要求）、late response（遅れて返った応答）の破棄、停止要求後の不整合防止は翻訳実行側で決める。",
+      "human_answer": "後続タスクで扱う。tasks/ へのタスク化が必要である。停止機能が現状ない場合は、停止要求で状態不整合が出ない方針を後続タスクで固定する。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TJM-001",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-001",
+        "actor-goal:CAND-TJM-008",
+        "lifecycle:CAND-TJM-LC-001",
+        "lifecycle:CAND-TJM-LC-011",
+        "state-transition:CAND-TJM-ST-001",
+        "operation-audit:CAND-TJM-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-002",
+      "candidate_ids": [],
+      "source": "human_decision",
+      "decision_rationale": "同じ入力データから複数 job 作成を許可する。既存候補は同一入力 2 件目禁止を前提にしていたため採用しない。"
+    },
+    {
+      "final_scenario_id": "SCN-TJM-003",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-002",
+        "lifecycle:CAND-TJM-LC-002",
+        "lifecycle:CAND-TJM-LC-004",
+        "state-transition:CAND-TJM-ST-003",
+        "operation-audit:CAND-TJM-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-004",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-004",
+        "failure:CAND-TJM-F001",
+        "failure:CAND-TJM-F002",
+        "operation-audit:CAND-TJM-005",
+        "lifecycle:CAND-TJM-LC-005",
+        "lifecycle:CAND-TJM-LC-010",
+        "state-transition:CAND-TJM-ST-004",
+        "failure:CAND-TJM-F003",
+        "external-integration:CAND-TJM-004",
+        "operation-audit:CAND-TJM-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-005",
+      "candidate_ids": [
+        "state-transition:CAND-TJM-ST-005",
+        "actor-goal:CAND-TJM-006",
+        "lifecycle:CAND-TJM-LC-006",
+        "lifecycle:CAND-TJM-LC-007",
+        "state-transition:CAND-TJM-ST-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-007",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-007",
+        "lifecycle:CAND-TJM-LC-008",
+        "state-transition:CAND-TJM-ST-007",
+        "state-transition:CAND-TJM-ST-008",
+        "failure:CAND-TJM-F004",
+        "external-integration:CAND-TJM-001",
+        "operation-audit:CAND-TJM-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-008",
+      "candidate_ids": [
+        "failure:CAND-TJM-F006",
+        "failure:CAND-TJM-F007",
+        "failure:CAND-TJM-F010"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-009",
+      "candidate_ids": [
+        "external-integration:CAND-TJM-003",
+        "operation-audit:CAND-TJM-008"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJM-006",
+      "candidate_ids": [
+        "actor-goal:CAND-TJM-005",
+        "lifecycle:CAND-TJM-LC-009",
+        "failure:CAND-TJM-F008",
+        "external-integration:CAND-TJM-007",
+        "operation-audit:CAND-TJM-006"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

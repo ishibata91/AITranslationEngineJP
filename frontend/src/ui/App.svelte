@@ -5,6 +5,7 @@
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
+  import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
   import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
@@ -34,6 +35,7 @@
     createPersonaGenerationPhaseScreenController?: CreatePersonaGenerationPhaseScreenController | null
     createProviderSettingsScreenController?: CreateProviderSettingsScreenController | null
     createTermTranslationPhaseScreenController?: CreateTermTranslationPhaseScreenController | null
+    createTranslationJobManagementScreenController?: CreateTranslationJobManagementScreenController | null
     createTranslationJobSetupScreenController?: CreateTranslationJobSetupScreenController | null
     createTranslationOutputArtifactScreenController?: CreateTranslationOutputArtifactScreenController | null
     createTranslationInputScreenController?: CreateTranslationInputScreenController | null
@@ -46,6 +48,7 @@
     createPersonaGenerationPhaseScreenController = null,
     createProviderSettingsScreenController = null,
     createTermTranslationPhaseScreenController = null,
+    createTranslationJobManagementScreenController = null,
     createTranslationJobSetupScreenController = null,
     createTranslationOutputArtifactScreenController = null,
     createTranslationInputScreenController = null
@@ -102,6 +105,7 @@
   {createPersonaGenerationPhaseScreenController}
   createProviderSettingsScreenController={resolveProviderSettingsScreenControllerFactory()}
   {createTermTranslationPhaseScreenController}
+  {createTranslationJobManagementScreenController}
   createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
   createTranslationOutputArtifactScreenController={resolveTranslationOutputArtifactScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}

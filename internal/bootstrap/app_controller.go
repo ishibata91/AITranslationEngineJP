@@ -179,6 +179,15 @@ func newAppControllerWithSeeds(
 			),
 		)),
 	)
+	translationJobManagementController := controllerwails.NewTranslationJobManagementController(
+		usecase.NewTranslationJobManagementUsecase(
+			service.NewTranslationJobManagementService(
+				jobLifecycleRepository,
+				translationSourceRepository,
+				foundationTransactor,
+			),
+		),
+	)
 	termTranslationPhaseController := controllerwails.NewTermTranslationPhaseController(
 		usecase.NewTermTranslationPhaseUsecase(
 			service.NewTermTranslationPhaseService(
@@ -251,6 +260,7 @@ func newAppControllerWithSeeds(
 	appController.TranslationInputController = translationInputController
 	appController.ProviderSettingsController = providerSettingsController
 	appController.TranslationJobSetupController = translationJobSetupController
+	appController.TranslationJobManagementController = translationJobManagementController
 	appController.TermTranslationPhaseController = termTranslationPhaseController
 	appController.PersonaGenerationPhaseController = personaGenerationPhaseController
 	appController.BodyTranslationPhaseController = bodyTranslationPhaseController

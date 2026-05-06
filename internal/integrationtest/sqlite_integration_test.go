@@ -842,9 +842,9 @@ func TestSCN_SMR_004_JobSingleSourceFK(t *testing.T) {
 	}
 }
 
-// TestSCN_TJS_CreateTranslationJobRejectsDuplicateInput は create persistence slice で
-// 同一 input への 2 件目 create が拒否され、1 job しか残らないことを検証する。
-func TestSCN_TJS_CreateTranslationJobRejectsDuplicateInput(t *testing.T) {
+// TestSCN_TJM_002_CreateTranslationJobAllowsDuplicateInput は同じ input に
+// 複数の job を作成でき、既存 job が上書きされないことを検証する。
+func TestSCN_TJM_002_CreateTranslationJobAllowsDuplicateInput(t *testing.T) {
 	ctx := context.Background()
 	db := openIntegrationDB(t)
 	sourceRepo := repository.NewSQLiteTranslationSourceRepository(db)
@@ -872,15 +872,14 @@ func TestSCN_TJS_CreateTranslationJobRejectsDuplicateInput(t *testing.T) {
 		t.Fatalf("first CreateTranslationJob failed: %v", err)
 	}
 
-	_, err = jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
+	secondJob, err := jobRepo.CreateTranslationJob(ctx, repository.TranslationJobDraft{
 		XEditExtractedDataID: xEdit.ID,
-		JobName:              "duplicate-guard-job-2",
+		JobName:              "duplicate-allowed-job-2",
 		State:                "pending",
 		ProgressPercent:      0,
 	})
-
-	if err == nil {
-		t.Fatal("expected duplicate create for same x_edit_extracted_data_id to fail, got nil")
+	if err != nil {
+		t.Fatalf("second CreateTranslationJob for same input failed: %v", err)
 	}
 
 	var jobCount int
@@ -889,13 +888,19 @@ func TestSCN_TJS_CreateTranslationJobRejectsDuplicateInput(t *testing.T) {
 		"SELECT COUNT(*) FROM TRANSLATION_JOB WHERE x_edit_extracted_data_id = ?",
 		xEdit.ID,
 	).Scan(&jobCount); scanErr != nil {
-		t.Fatalf("count TRANSLATION_JOB after duplicate rejection failed: %v", scanErr)
+		t.Fatalf("count TRANSLATION_JOB for same input failed: %v", scanErr)
 	}
-	if jobCount != 1 {
-		t.Fatalf("expected 1 TRANSLATION_JOB after duplicate rejection, got %d", jobCount)
+	if jobCount != 2 {
+		t.Fatalf("expected 2 TRANSLATION_JOB rows for same input, got %d", jobCount)
 	}
 	if firstJob.XEditExtractedDataID != xEdit.ID {
-		t.Fatalf("expected created job to reference xEdit %d, got %d", xEdit.ID, firstJob.XEditExtractedDataID)
+		t.Fatalf("expected first job to reference xEdit %d, got %d", xEdit.ID, firstJob.XEditExtractedDataID)
+	}
+	if secondJob.XEditExtractedDataID != xEdit.ID {
+		t.Fatalf("expected second job to reference xEdit %d, got %d", xEdit.ID, secondJob.XEditExtractedDataID)
+	}
+	if firstJob.ID == secondJob.ID {
+		t.Fatalf("expected distinct job IDs for same input, got %d", firstJob.ID)
 	}
 }
 

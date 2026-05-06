@@ -9,6 +9,7 @@ export type ShellRouteId =
 export type TranslationManagementViewId =
   | "input-review"
   | "job-setup"
+  | "job-management"
   | "job-run"
 
 export interface ShellRouteContract {
@@ -23,6 +24,7 @@ export interface TranslationManagementViewContract {
   id: TranslationManagementViewId
   label: string
   description: string
+  stepNumber: number
 }
 
 const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
@@ -57,10 +59,10 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "translation-management",
     label: "翻訳管理",
-    state: "Body Phase UI 追加",
-    lead: "データロード、Job Setup、Job Run を切り替え、翻訳準備から単語翻訳フェーズ、NPC ペルソナ生成フェーズまでを確認するページです。",
+    state: "ジョブ管理を含む",
+    lead: "ジョブ管理、データロード、セットアップ、実行を順番に切り替え、未完了 job 管理から翻訳実行表示までを確認するページです。",
     description:
-      "データロード、validation、ready job 作成、term phase、persona phase、body phase の実行状況をまとめて確認します。"
+      "ジョブ管理、データロード、validation、ready job 作成、term phase、persona phase、body phase の実行状況をまとめて確認します。"
   },
   {
     id: "output-management",
@@ -74,20 +76,29 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
 const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementViewContract> =
   [
     {
+      id: "job-management",
+      label: "ジョブ管理",
+      description: "未完了 job の一覧、詳細、操作可否を最初に確認します。",
+      stepNumber: 1
+    },
+    {
       id: "input-review",
       label: "データロード",
-      description: "入力ファイルの登録結果と再構築判断を確認します。"
+      description: "入力ファイルの登録結果と再構築判断を確認します。",
+      stepNumber: 2
     },
     {
       id: "job-setup",
-      label: "Job Setup",
-      description: "validation と ready job 作成を確認します。"
+      label: "セットアップ",
+      description: "validation と ready job 作成を確認します。",
+      stepNumber: 3
     },
     {
       id: "job-run",
-      label: "Job Run",
+      label: "実行",
       description:
-        "term phase、persona phase、body phase の progress、result summary、output readiness を確認します。"
+        "term phase、persona phase、body phase の progress、result summary、output readiness を確認します。",
+      stepNumber: 4
     }
   ]
 

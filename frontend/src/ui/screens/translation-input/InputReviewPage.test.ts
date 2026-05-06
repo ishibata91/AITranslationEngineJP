@@ -191,6 +191,63 @@ describe("InputReviewPage", () => {
     ).not.toBeInTheDocument()
   })
 
+  test("登録成功後は Job Setup へ進む button を表示し、クリックで callback を呼ぶ", async () => {
+    const user = userEvent.setup()
+    const onOpenJobSetup = vi.fn()
+    const controller = new TranslationInputScreenControllerFake()
+
+    render(InputReviewPage, {
+      props: {
+        createController: () => controller,
+        onOpenJobSetup
+      }
+    })
+
+    expect(
+      screen.getByText(
+        "入力登録だけでは Job Management には表示されません。Job Setup で job を作成してください。"
+      )
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "Job Setup へ進む" })
+    )
+
+    expect(onOpenJobSetup).toHaveBeenCalledTimes(1)
+  })
+
+  test("failed item では Job Setup へ進む button を表示しない", () => {
+    const failedItem = createItem({
+      localId: "failed-item",
+      status: "failed",
+      accepted: false,
+      canRebuild: false,
+      errorKind: "invalid_json",
+      summary: null
+    })
+    const controller = new TranslationInputScreenControllerFake(
+      createViewModel({
+        items: [failedItem],
+        selectedItemId: failedItem.localId,
+        selectedItem: failedItem,
+        canRebuildSelected: false,
+        latestOutcomeTitle: "結果: invalid JSON",
+        latestOutcomeText:
+          "error kind を保持したまま、再試行または別ファイル選択へ戻れます。"
+      })
+    )
+
+    render(InputReviewPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    expect(
+      screen.queryByRole("button", { name: "Job Setup へ進む" })
+    ).not.toBeInTheDocument()
+  })
+
   test("error kind と warning kind を区別して表示する", () => {
     const warningItem = createItem({
       localId: "warning",

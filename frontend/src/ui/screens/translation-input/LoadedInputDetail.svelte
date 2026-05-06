@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { canOpenJobSetup } from "@application/presenter/translation-input"
   import type { TranslationInputReviewItem } from "@application/gateway-contract/translation-input"
 
   interface Props {
@@ -12,6 +13,7 @@
     formatErrorKind: (errorKind: string | null) => string
     formatWarningKind: (kind: string) => string
     onRebuild: () => void | Promise<void>
+    onOpenJobSetup?: () => void
   }
 
   let {
@@ -24,8 +26,11 @@
     formatDate,
     formatErrorKind,
     formatWarningKind,
-    onRebuild
+    onRebuild,
+    onOpenJobSetup = undefined
   }: Props = $props()
+
+  const showOpenJobSetup = $derived(canOpenJobSetup(selectedItem))
 </script>
 
 <section class="panel detail-panel" aria-labelledby="inputReviewDetailHeading">
@@ -200,6 +205,27 @@
           {/if}
         </div>
       </section>
+
+      {#if showOpenJobSetup}
+        <section class="detail-section" aria-labelledby="inputReviewNextStepHeading">
+          <div class="section-head section-head-compact issue-head">
+            <div class="title-stack">
+              <h4 id="inputReviewNextStepHeading">次の手順</h4>
+              <p class="support-copy">
+                入力登録だけでは Job Management には表示されません。Job Setup
+                で job を作成してください。
+              </p>
+            </div>
+            <button
+              class="button-primary"
+              onclick={() => onOpenJobSetup?.()}
+              type="button"
+            >
+              Job Setup へ進む
+            </button>
+          </div>
+        </section>
+      {/if}
     </div>
   {:else}
     <div class="empty-state">

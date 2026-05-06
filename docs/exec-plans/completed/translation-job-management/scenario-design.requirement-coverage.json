@@ -1,0 +1,550 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TJM-001",
+      "title": "未完了ジョブ一覧と状態集約を表示する",
+      "kind": "display",
+      "source_requirement": "Completed 以外の job を一覧し、job ごとの入力出自、状態、現在フェーズ、進捗、停止可否、再開可否、削除可否を確認できる。",
+      "required_detail_types": [
+        "observability_requirement",
+        "data_requirement",
+        "consistency_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-job-management.yaml の completion_criteria に Completed 以外の job 一覧、入力出自、状態、現在フェーズ、進捗の確認がある。",
+          "verification_hint": "Ready、Running、Paused、RecoverableFailed、Failed、Canceled を含む fixture で一覧表示を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "未完了 job が 0 件の場合は、空一覧を成功状態として扱う必要がある。",
+          "verification_hint": "未完了 job 0 件で空状態と次操作説明を表示する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "candidate failure CAND-TJM-F010 は一覧読み込み失敗を空一覧と混同しないことを求める。",
+          "verification_hint": "一覧取得失敗でエラーと再試行を表示し、既存 job なしとは表示しない。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase は Completed 以外の job を対象にする。Completed job は未完了一覧に含めない。",
+          "verification_hint": "Completed fixture が一覧に出ないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md の翻訳ジョブ状態遷移は Ready、Running、Paused、RecoverableFailed、Completed、Failed、Canceled を定義している。",
+          "verification_hint": "状態値ごとの表示文言、操作可否、現在フェーズ表示を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 spec と usecase は利用者ロール差分を定義していない。単一利用者のローカルアプリ操作として扱う。",
+          "verification_hint": "ロール差分テストは要求しない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-job-setup の Ready job read-only 再表示と同一入力 2 件目作成禁止を壊さない必要がある。",
+          "verification_hint": "Ready job が一覧から表示でき、Job Setup の再編集導線へ戻らないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "paid な real AI API は scenario validation の前提にしない。job 状態と phase run 集約は fixture で検証できる。",
+          "verification_hint": "temp DB と fixed job fixture で一覧、空、読み込み失敗を検証する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳ジョブと API の実行進捗を確認できることを求める。",
+          "verification_hint": "現在フェーズ、進捗、最終更新要約、入力出自を一覧または選択詳細で確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は 1 job が 1 xEdit 抽出データを対象とし、入力ファイルの出自を保持することを求める。",
+          "verification_hint": "job と input data の対応、入力名、出自、入力キャッシュ状態を表示できることを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "state-transition CAND-TJM-ST-001 は一覧表示だけでは job 状態を変更しないことを候補化している。",
+          "verification_hint": "一覧表示、選択、再読込だけで job state が変わらないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJM-002",
+      "title": "同じ入力データから複数 job を作成できる",
+      "kind": "workflow",
+      "source_requirement": "人間判断により、同じファイルまたは同じ入力データから複数の翻訳ジョブを作成できることにする。",
+      "required_detail_types": [
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "2026-05-06 の人間判断で、同じ入力データから job を何個でも作れる方針へ変更した。",
+          "verification_hint": "同じ input data ID を指定して複数 job を作成できることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Completed job、未完了 job、terminal job が同じ入力データに存在しても、新規 job 作成を許可する。",
+          "verification_hint": "Completed job と未完了 job がある入力データから、さらに新しい job を作成できることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 job が参照不能でも、新規 job 作成は同一入力制約では拒否しない。作成失敗は入力データ参照不能などの実際の原因で判定する。",
+          "verification_hint": "既存 job の参照状態とは独立して、入力データが有効なら create が通ることを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "同一入力に対する job 一意制約を削除し、Job Setup でも既存 job を理由に create を禁止しない。",
+          "verification_hint": "同一 input data ID で複数の job ID が作成されることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 job の状態に関係なく、新規 job 作成を許可する。",
+          "verification_hint": "Ready、Running、Paused、RecoverableFailed、Failed、Canceled、Completed がある入力で新規 job 作成可否を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は 1 job が 1 入力データを対象にし、入力出自を保持することを求める。",
+          "verification_hint": "入力 ID と job ID の対応が変わらないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-job-setup の過去設計にあった同一入力 2 件目 job 作成禁止は、この人間判断により変更対象になる。",
+          "verification_hint": "Job Setup と Job Management の両方で同じ入力データを使った複数 job 作成が一貫することを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "create 操作は冪等ではなく、利用者が明示した回数だけ新規 job を作成する。",
+          "verification_hint": "同じ入力データで create を複数回実行すると、実行回数分の job が作成される。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ入力データに複数 job が紐づくため、job ID、作成日時、状態で区別できる必要がある。",
+          "verification_hint": "一覧または詳細で同一入力に紐づく複数 job を区別できることを確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 job が参照不能でも、新規 job 作成は既存 job 復旧の代替ではなく独立した作成操作として扱う。",
+          "verification_hint": "既存 job の参照不能表示と、新規 job 作成操作が混同されないことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-setup/scenario-design.md の同一入力 2 件目 job 作成禁止は古い判断であり、この task の human decision に合わせて後続の docs 正本化または実装範囲で更新対象にする。",
+          "verification_hint": "同一入力 2 件目 job 作成禁止の validation、DB unique key、repository guard が残っていないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "same input multi job fixture と temp DB で job count と入力出自を検証できる。",
+          "verification_hint": "同じ input data ID に複数 job ID が紐づく fixture を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJM-003",
+      "title": "状態別に停止、再開、削除の可否を制御する",
+      "kind": "operation",
+      "source_requirement": "実行中 job は削除ではなく停止操作を実行できる。実行中 job は削除できず、停止または中断後に削除可否を再判定する。実行中ではない job は削除可否を確認できる。",
+      "required_detail_types": [
+        "observability_requirement",
+        "recovery_requirement"
+      ],
+      "deferred_items": [
+        {
+          "id": "Q-TJM-004",
+          "title": "停止後の外部通信停止方式",
+          "owner": "翻訳実行側の後続タスク",
+          "boundary": "Job Management は停止要求中、停止失敗、Paused への収束、削除可否再判定を表示する。外部通信を即時 cancel（通信停止）するか、stop request（停止要求）を記録して late response（遅れて返った応答）を破棄するかは本 task で決めない。",
+          "reason": "通信停止方式は管理画面に見える仕様差分ではなく、翻訳実行側の状態遷移と外部 request 制御に属するため。",
+          "human_answer": "後続タスクで扱う。tasks/ へのタスク化が必要である。停止機能が現状ない場合は、停止要求で状態不整合が出ない方針を後続タスクで固定する。"
+        }
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-job-management.yaml は Running job で削除ではなく停止操作を実行できることを求める。",
+          "verification_hint": "Running job で停止入口が有効、削除入口が無効または拒否理由付きになることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Management は Running job の削除を拒否し、停止要求の受理、失敗、完了後の再読込を利用者に見せる。実行中通信の止め方は翻訳実行側の責務であり、管理画面の業務質問にしない。",
+          "verification_hint": "Running job で削除が拒否され、停止要求中、停止失敗、Paused への収束後の削除可否再判定を確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "停止操作は Running に限定する。実行中ではない job への停止は拒否する。",
+          "verification_hint": "Ready、Paused、RecoverableFailed、Failed、Canceled で停止不可理由を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "spec は Running から Paused への中断を定義している。Job Management は停止要求中を進行中表示として扱い、完了後に Paused と削除可否再判定を表示する。",
+          "verification_hint": "停止要求中は削除を無効にし、停止完了後に Paused として削除可否を再計算する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "停止や削除拒否では job、input data、現在フェーズの参照を壊さない。",
+          "verification_hint": "拒否後に job state と input data ID が変わらないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Running job は削除不可、停止後に削除可否を再判定するため、操作可否は state projection と一致する必要がある。",
+          "verification_hint": "停止前後で削除可否が再計算されることを確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 usecase は利用者ロール差分を定義していない。",
+          "verification_hint": "権限別操作可否は対象外にする。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "停止可否、削除不可理由、停止結果、再判定結果を UI から確認する必要がある。",
+          "verification_hint": "停止要求、停止失敗、停止完了、削除再判定の表示を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "停止保存に失敗した場合は成功扱いにせず、再確認または再試行が必要な状態として表示する。",
+          "verification_hint": "停止失敗 fixture で Running と Paused が混在しないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake transport と running phase fixture で停止結果、遅延応答、削除拒否を検証する。",
+          "verification_hint": "外部 API を呼ばず fake transport で停止結果を観測する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJM-004",
+      "title": "非実行中 job を削除して入力データを残す",
+      "kind": "persistence",
+      "source_requirement": "実行中ではない job は入力データを残したまま削除できる。入力ファイルの出自を失わずに保持する。",
+      "required_detail_types": [
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "tasks/usecases/translation-job-management.yaml は実行中ではない job は入力データを残したまま削除できることを求める。",
+          "verification_hint": "Ready、Paused、RecoverableFailed、Failed、Canceled の削除成功を状態別に確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "failure CAND-TJM-F008 は削除失敗時に入力データを残し、部分削除として扱わないことを候補化している。",
+          "verification_hint": "削除失敗 fixture で input data が残り、job が曖昧な状態にならないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Running は削除不可であり、非実行中 job だけが削除対象である。",
+          "verification_hint": "Running 削除拒否と非実行中削除可能の差分を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "削除可能状態は Running 以外の未完了 job として扱う。Completed は未完了一覧から除外し、同じ入力から新規 job 作成を許可する。",
+          "verification_hint": "状態別の削除可否を UI と公開接点で確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "2026-05-06 の人間回答で、非実行中 job を削除する時は DB に保持している job 以下の情報をすべて削除し、入力データと外部の抽出 JSON は削除しないと固定した。",
+          "verification_hint": "Ready、Paused、RecoverableFailed、Failed、Canceled の削除後に、対象 job と関連 phase run が消え、入力データと抽出 JSON が残ることを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "削除後に未完了一覧から job は消えるが、input data と入力出自は残る。",
+          "verification_hint": "削除結果、一覧、input data list、input provenance を確認する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧選択後に job が削除済みまたは参照不能になる場合が候補化されている。",
+          "verification_hint": "stale selection fixture で別 job を誤表示しない。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "削除済み job への再削除は成功再実行ではなく参照不能または削除済みとして扱う必要がある。",
+          "verification_hint": "同じ削除要求を再送して入力データが消えないことを確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "削除失敗時に input data を失わず、再試行または再読込できる必要がある。",
+          "verification_hint": "途中失敗 fixture で input data 残存と UI 再試行を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "削除対象 job、削除結果、入力データが残ったことを確認できる必要がある。",
+          "verification_hint": "UI 表示または structured log で job ID、input ID、削除結果を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "non-running job fixture と temp DB で削除成功、削除失敗、input data 残存を検証できる。",
+          "verification_hint": "削除成功と失敗の永続化結果を APIテストで確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJM-005",
+      "title": "再開入口と再開不可理由を表示する",
+      "kind": "external_integration",
+      "source_requirement": "Paused または RecoverableFailed の job では再開入口を確認できる。再開不可の job では入力キャッシュ欠落や terminal state（完了扱いまたは回復不能な状態）などの理由を確認できる。",
+      "required_detail_types": [
+        "data_requirement",
+        "compatibility_requirement"
+      ],
+      "deferred_items": [
+        {
+          "id": "Q-TJM-003",
+          "title": "再開前の API 設定現在確認",
+          "owner": "再開実行側の後続タスク",
+          "boundary": "Job Management は保存済み AI 設定要約、入力キャッシュ状態、terminal state（完了扱いまたは回復不能な状態）、状態不整合を表示する。provider capability（API が必要な実行方式に対応しているか）と credential reference（保存済み API キー参照が使えるか）の現在確認は本 task で決めない。",
+          "reason": "API 設定が今も使えるかの判定は、再開を受け付ける直前の実行境界で失敗理由を返す方が責務が明確になるため。",
+          "human_answer": "後続タスクで扱う。"
+        }
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は Paused --> Running、RecoverableFailed --> Running / Ready を定義している。",
+          "verification_hint": "Paused と RecoverableFailed の job で再開入口、現在フェーズ、進捗を確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "RecoverableFailed は再開、リトライ、再実行準備の候補がある。",
+          "verification_hint": "失敗分類 fixture で回復方法の要約または不可理由を表示する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Management は保存済み AI 設定の要約と入力キャッシュ、terminal state（完了扱いまたは回復不能な状態）、状態不整合の理由表示を扱う。再開直前の外部設定確認は再開実行側で扱うため、管理画面の未回答質問にしない。",
+          "verification_hint": "Paused と RecoverableFailed の job で保存済み設定要約を表示し、入力キャッシュ欠落、terminal state（完了扱いまたは回復不能な状態）、状態不整合だけを管理画面の再開不可理由として確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Completed は未完了一覧の対象外であり、Failed と Canceled は terminal state（完了扱いまたは回復不能な状態）の再開不可理由を表示する。",
+          "verification_hint": "Failed、Canceled で再開不可理由が terminal state（完了扱いまたは回復不能な状態）と表示される。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は Paused、RecoverableFailed、Failed、Canceled の意味を定義している。",
+          "verification_hint": "各状態で再開可否、再開不可理由、現在フェーズを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存済み provider / model / credential 参照状態を表示しても API key 平文は表示しない。",
+          "verification_hint": "credential 値、復号可能な値、provider 応答原文が UI と error summary に出ないことを確認する。"
+        },
+        {
+          "type": "idempotency_requirement",
+          "status": "derived",
+          "source_or_rationale": "再開入口の確認だけでは状態を変えない。再開操作は phase resume 境界の受理で初めて Running へ進む。",
+          "verification_hint": "表示と再開操作を分けて状態変化を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "usecase は現在フェーズ、再開可否、再開不可理由を output としている。",
+          "verification_hint": "入力キャッシュ欠落、terminal state（完了扱いまたは回復不能な状態）、状態不整合を理由カテゴリとして表示する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は翻訳ジョブの中断、再開、失敗回復が継続的に行えることを求める。",
+          "verification_hint": "Paused と RecoverableFailed の回復可能性、不可理由、再確認導線を確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "usecase と spec は再開可否表示の時間上限を定義していない。",
+          "verification_hint": "性能しきい値は本 scenario gate では要求しない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "入力キャッシュ状態は task の inputs / outputs に含まれる。",
+          "verification_hint": "入力キャッシュ欠落 fixture で job と入力出自は壊れないことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-job-setup の cache missing は Input Review の再構築導線へ戻す決定と整合する。",
+          "verification_hint": "Job Management 内で cache rebuild を実行せず、再構築が必要なことを表示する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "cache missing fixture（入力キャッシュ欠落の検証データ）、fake secret store（秘密値を使わない検証用保存先）、provider capability fixture（API が必要な実行方式に対応しているかを表す検証データ）で再開可否を検証できる。",
+          "verification_hint": "paid API を呼ばずに再開不可理由を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJM-006",
+      "title": "保存禁止情報を一覧、詳細、履歴に出さない",
+      "kind": "security",
+      "source_requirement": "APIKey は暗号化して保存する。translation-job-setup は API key 平文を表示または保存要約に出さない。job management でも同じ境界を維持する。",
+      "required_detail_types": [
+        "data_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "再開不可理由、停止失敗、削除失敗の error summary でも secret 値を出さない。",
+          "verification_hint": "error fixture で API key、credential 値、provider 応答原文が表示されないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は APIKey の暗号化保存を求め、translation-job-setup は API key 平文非表示を固定済みである。",
+          "verification_hint": "UI、structured log、操作結果要約で secret redaction を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "credential は値ではなく参照状態として表示する。",
+          "verification_hint": "保存済み、未設定、参照不能の状態表示を確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 usecase は利用者ロール差分を定義していない。",
+          "verification_hint": "権限別 secret 表示差分は要求しない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIKey は暗号化して保存する。API key 平文を表示または保存要約に出さない。",
+          "verification_hint": "API key 平文、復号可能な値、過剰な provider response が出ないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存禁止情報を出さず、job ID、input ID、状態、理由カテゴリだけを確認材料にする。",
+          "verification_hint": "redacted summary と reason category を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "credential 参照不能時は秘密値ではなく設定確認が必要な理由を表示する。",
+          "verification_hint": "credential missing / inaccessible fixture で表示文言を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-setup の secret 非露出決定を job management の表示にも引き継ぐ。",
+          "verification_hint": "Job Setup と Job Management の credential 表示語彙が矛盾しないことを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "operation-audit CAND-TJM-008 は API key 平文、credential 値、provider 応答原文、過剰な入力本文、翻訳本文の大量保存を表示または監査要約に出さないことを候補化している。",
+          "verification_hint": "一覧、詳細、履歴要約で保存禁止情報が出ないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake secret store と redaction assertion で検証できる。",
+          "verification_hint": "secret fixture を使い、UI text と log text に secret 値が含まれないことを検査する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJM-007",
+      "title": "外部 API 費用なしで管理境界を検証する",
+      "kind": "non_functional",
+      "source_requirement": "paid な real AI API を scenario validation の前提にしない。user-facing provider list は real provider のまま保ち、外部 request または SDK transport だけを fake に差し替える。",
+      "required_detail_types": [
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "external-integration CAND-TJM-006 は user-facing provider list ではなく transport 境界だけを fake にすることを候補化している。",
+          "verification_hint": "provider list は real provider 名を表示し、request transport は fake に差し替える。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake transport の request log、resume precheck result、stop result、external request 未実行証跡を観測する。",
+          "verification_hint": "外部 request 未実行証跡を検証結果に残す。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake transport（外部通信を実行しない検証用通信境界）で stop failure（停止失敗）、late response（遅れて返った応答）、provider unavailable（API 設定が利用不能な状態）を再現できる必要がある。",
+          "verification_hint": "停止失敗、遅延応答、provider 不整合を fixture で再現する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 usecase は性能しきい値を定義していない。",
+          "verification_hint": "性能上限の受け入れ条件は要求しない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-job-setup の fake transport 方針を引き継ぐ。",
+          "verification_hint": "Job Setup と Job Management の fake provider 境界が矛盾しないことを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake secret store を使っても user-facing UI に fake provider を選択肢として出さない。",
+          "verification_hint": "fake 名が利用者向け選択肢や credential summary に出ないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "job management の再開可否、停止可否、現在フェーズ表示を paid API なしで検証する。",
+          "verification_hint": "fake transport、fixed provider response、request log assertion を使う。"
+        }
+      ]
+    }
+  ]
+}

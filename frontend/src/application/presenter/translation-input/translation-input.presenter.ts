@@ -24,6 +24,10 @@ const WARNING_LABELS: Record<string, string> = {
   unknown_field_definition: "unknown field definition"
 }
 
+const JOB_SETUP_OPENABLE_STATUSES = new Set<
+  TranslationInputReviewItem["status"]
+>(["registered", "warning"])
+
 function buildOperationStatusText(
   state: TranslationInputScreenState,
   selectedItem: TranslationInputReviewItem | null
@@ -95,6 +99,16 @@ function buildSelectionStatusText(
   return `${selectedItem.fileName} / ${STATUS_LABELS[selectedItem.status]}`
 }
 
+function canOpenJobSetup(
+  selectedItem: TranslationInputReviewItem | null
+): boolean {
+  if (!selectedItem) {
+    return false
+  }
+
+  return JOB_SETUP_OPENABLE_STATUSES.has(selectedItem.status)
+}
+
 export class TranslationInputPresenter {
   toViewModel(
     state: TranslationInputScreenState,
@@ -134,4 +148,4 @@ export class TranslationInputPresenter {
   }
 }
 
-export { ERROR_LABELS, STATUS_LABELS, WARNING_LABELS }
+export { ERROR_LABELS, STATUS_LABELS, WARNING_LABELS, canOpenJobSetup }

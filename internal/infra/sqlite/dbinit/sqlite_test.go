@@ -4,7 +4,6 @@ import (
 	"context"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
@@ -80,7 +79,7 @@ func TestOpenMasterDictionaryDatabaseReappliesMigrationsOnExistingDatabase(t *te
 	assertIndexExists(t, reopenedDatabase, "idx_x_edit_extracted_data_source_content_hash")
 }
 
-func TestOpenMasterDictionaryDatabaseCreatesSourceContentHashUniqueIndex(t *testing.T) {
+func TestXEditSourceContentHashAllowsDuplicateValues(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
 	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
 
@@ -88,37 +87,13 @@ func TestOpenMasterDictionaryDatabaseCreatesSourceContentHashUniqueIndex(t *test
 	assertIndexExists(t, database, "idx_x_edit_extracted_data_source_content_hash")
 
 	insertExtractedDataRow(t, database, "/mods/source-1.json", "hash-shared")
-
-	_, err := database.ExecContext(context.Background(),
-		`INSERT INTO X_EDIT_EXTRACTED_DATA (
-			source_file_path,
-			source_tool,
-			target_plugin_name,
-			target_plugin_type,
-			record_count,
-			imported_at,
-			source_content_hash
-		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		"/mods/source-2.json",
-		"xEdit",
-		"Skyrim.esm",
-		"esm",
-		1,
-		"2026-04-26T09:31:00Z",
-		"hash-shared",
-	)
-	if err == nil {
-		t.Fatal("expected duplicate source_content_hash to fail due to unique index")
-	}
-	if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
-		t.Fatalf("expected UNIQUE constraint error, got: %v", err)
-	}
+	insertExtractedDataRow(t, database, "/mods/source-2.json", "hash-shared")
 
 	insertExtractedDataRow(t, database, "/mods/source-empty-1.json", "")
 	insertExtractedDataRow(t, database, "/mods/source-empty-2.json", "")
 }
 
-func TestOpenMasterDictionaryDatabaseRecreatesSourceContentHashIndexWhenColumnAlreadyExists(t *testing.T) {
+func TestXEditSourceContentHashRecreatesNonUniqueIndexWhenColumnAlreadyExists(t *testing.T) {
 	databasePath := filepath.Join(t.TempDir(), "db", sqliteTestDatabaseFileName)
 	database := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
 
@@ -147,31 +122,7 @@ func TestOpenMasterDictionaryDatabaseRecreatesSourceContentHashIndexWhenColumnAl
 	assertIndexExists(t, reopenedDatabase, "idx_x_edit_extracted_data_source_content_hash")
 
 	insertExtractedDataRow(t, reopenedDatabase, "/mods/reopened-1.json", "rehydrated-hash")
-
-	_, err = reopenedDatabase.ExecContext(context.Background(),
-		`INSERT INTO X_EDIT_EXTRACTED_DATA (
-			source_file_path,
-			source_tool,
-			target_plugin_name,
-			target_plugin_type,
-			record_count,
-			imported_at,
-			source_content_hash
-		) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		"/mods/reopened-2.json",
-		"xEdit",
-		"Skyrim.esm",
-		"esm",
-		2,
-		"2026-04-26T09:32:00Z",
-		"rehydrated-hash",
-	)
-	if err == nil {
-		t.Fatal("expected duplicate source_content_hash to fail after migrations reapply")
-	}
-	if !strings.Contains(err.Error(), "UNIQUE constraint failed") {
-		t.Fatalf("expected UNIQUE constraint error after migrations reapply, got: %v", err)
-	}
+	insertExtractedDataRow(t, reopenedDatabase, "/mods/reopened-2.json", "rehydrated-hash")
 }
 
 // TestSchemaCutoverDropsLegacyPersonaAndDictionaryTables は schema cutover 後に

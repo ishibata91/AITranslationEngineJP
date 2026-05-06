@@ -4,6 +4,7 @@ import type { CreateMasterPersonaScreenController } from "@application/contract/
 import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
 import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
 import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
+import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
 import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
 import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
 import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
@@ -13,6 +14,10 @@ import { createMasterPersonaScreenControllerFactory } from "@controller/master-p
 import { createPersonaGenerationPhaseScreenControllerFactory } from "@controller/persona-generation-phase"
 import { createProviderSettingsScreenControllerFactory } from "@controller/provider-settings"
 import { createTermTranslationPhaseScreenControllerFactory } from "@controller/term-translation-phase"
+import {
+  createTranslationJobManagementReviewGateway,
+  createTranslationJobManagementScreenControllerFactory
+} from "@controller/translation-job-management"
 import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
 import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
 import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
@@ -22,6 +27,7 @@ import { createMasterPersonaGateway } from "@controller/wails/master-persona.gat
 import { createPersonaGenerationPhaseGateway } from "@controller/wails/persona-generation-phase.gateway"
 import { createProviderSettingsGateway } from "@controller/wails/provider-settings.gateway"
 import { createTermTranslationPhaseGateway } from "@controller/wails/term-translation-phase.gateway"
+import { createTranslationJobManagementGateway } from "@controller/wails/translation-job-management.gateway"
 import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
 import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
 import { createTranslationOutputArtifactGateway } from "@controller/wails/translation-output-artifact.gateway"
@@ -37,6 +43,7 @@ interface AppScreenControllerFactories {
   createPersonaGenerationPhaseScreenController: CreatePersonaGenerationPhaseScreenController
   createProviderSettingsScreenController: CreateProviderSettingsScreenController
   createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController
+  createTranslationJobManagementScreenController: CreateTranslationJobManagementScreenController
   createTranslationInputScreenController: CreateTranslationInputScreenController
   createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController
   createTranslationOutputArtifactScreenController: CreateTranslationOutputArtifactScreenController
@@ -50,6 +57,7 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
   const providerSettingsGateway = createProviderSettingsGateway()
   const translationInputGateway = createTranslationInputGateway()
   const translationJobSetupGateway = createTranslationJobSetupGateway()
+  const translationJobManagementGateway = createTranslationJobManagementGateway()
   const translationOutputArtifactGateway =
     createTranslationOutputArtifactGateway()
   const masterPersonaGateway = createMasterPersonaGateway()
@@ -72,6 +80,10 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
     createTermTranslationPhaseScreenController:
       createTermTranslationPhaseScreenControllerFactory(
         termTranslationPhaseGateway
+      ),
+    createTranslationJobManagementScreenController:
+      createTranslationJobManagementScreenControllerFactory(
+        translationJobManagementGateway
       ),
     createTranslationInputScreenController:
       createTranslationInputScreenControllerFactory(translationInputGateway),
@@ -114,6 +126,10 @@ export function createReviewFakeApiAppFactories(
     createTermTranslationPhaseScreenController:
       createTermTranslationPhaseScreenControllerFactory(
         registry.termTranslationPhase?.(context) ?? null
+      ),
+    createTranslationJobManagementScreenController:
+      createTranslationJobManagementScreenControllerFactory(
+        createTranslationJobManagementReviewGateway(context.scenarioId)
       ),
     createTranslationInputScreenController:
       createTranslationInputScreenControllerFactory(

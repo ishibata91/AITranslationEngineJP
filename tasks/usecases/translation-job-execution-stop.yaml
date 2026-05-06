@@ -1,0 +1,39 @@
+id: translation-job-execution-stop
+title: 翻訳ジョブ実行停止
+usecase: translation-job-execution-stop
+flow_stage: job_control
+related_screens:
+  - app-shell.md
+  - incomplete-job-list.md
+  - job-run.md
+goal: 実行中の翻訳ジョブを、不整合な途中状態を残さず停止できるようにする。
+inputs:
+  - 翻訳ジョブ
+  - ジョブフェーズ実行
+  - 現在フェーズ
+  - 進捗
+  - フェーズ生成物
+outputs:
+  - 停止要求
+  - 停止済みジョブ状態
+  - 整合性保持済み進捗
+  - 再開可否
+  - 削除可否
+preconditions:
+  - 未完了ジョブ管理が成立している
+completion_criteria:
+  - Running の job に対して停止操作を実行できる
+  - 停止要求後は、新しいフェーズ処理や新しい翻訳単位処理を開始しない
+  - 実行中の翻訳単位は完了単位として確定するか、未処理単位として戻せる
+  - job 状態、現在フェーズ、進捗、フェーズ生成物を整合した単位で保存できる
+  - 停止後の job は Paused として再開可否と削除可否を再判定できる
+  - 停止処理の失敗時に、処理済み単位と未処理単位の重複や欠落を残さない
+depends_on:
+  - translation-job-management
+related_exec_plans: []
+related_tests: []
+manual_check_steps:
+  - Job Run で実行中 job を開く
+  - 停止操作を実行する
+  - job 状態、現在フェーズ、進捗、フェーズ生成物を確認する
+  - 再開可否と削除可否を確認する

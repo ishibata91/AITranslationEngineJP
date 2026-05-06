@@ -47,7 +47,8 @@ const CREATE_ERROR_LABELS: Record<string, string> = {
   model_selection_stale: "モデル一覧を更新したため、モデルを選び直してください。",
   provider_mode_unsupported: "選択した AI サービスでは現在の実行方法を使えません。",
   provider_unreachable: "AI サービスへ接続できませんでした。",
-  duplicate_job_for_input: "同じ入力データの翻訳ジョブが既にあります。",
+  duplicate_job_for_input:
+    "同じ入力データの翻訳ジョブがあります。必要なら Job Management で確認してください。",
   validation_stale: "設定が変わったため、作成前確認をやり直してください。",
   partial_create_failed: "翻訳ジョブの作成途中で失敗しました。",
   ready_required: "作成前確認が完了してから実行してください。"
@@ -381,13 +382,6 @@ function buildGlobalBlockedReasons(
     )
   }
 
-  if (state.options?.existingJob && state.selectedInputSourceId !== null) {
-    const existingJob = state.options.existingJob
-    if ((existingJob.inputSourceId ?? 0) === state.selectedInputSourceId) {
-      reasons.push("同じ入力データの翻訳ジョブが既にあります。")
-    }
-  }
-
   return Array.from(new Set(reasons))
 }
 
@@ -455,36 +449,11 @@ function buildLegacyValidationStatusText(
   return `${label} / ${sliceText}${failureText}`
 }
 
-function hasBlockingExistingJob(state: TranslationJobSetupScreenState): boolean {
-  if (state.selectedInputSourceId === null) {
-    return false
-  }
-
-  const existingJob = state.options?.existingJob
-  if (!existingJob) {
-    return false
-  }
-
-  if ((existingJob.inputSourceId ?? 0) > 0) {
-    return existingJob.inputSourceId === state.selectedInputSourceId
-  }
-
-  const selectedInputCandidate = state.options?.inputCandidates.find(
-    (candidate) => candidate.id === state.selectedInputSourceId
-  )
-
-  return existingJob.inputSource === selectedInputCandidate?.label
-}
-
 function buildLegacyBlockedReasons(state: TranslationJobSetupScreenState): string[] {
   const reasons: string[] = []
 
   if (state.summary) {
     return reasons
-  }
-
-  if (hasBlockingExistingJob(state)) {
-    reasons.push("既存 job があるため create を無効化しています。")
   }
 
   if (state.validationState === "not-run") {
@@ -693,8 +662,7 @@ function buildLegacyDerivedState(
     availableCredentialRefs,
     phaseCards: [],
     globalBlockedReasons,
-    canCreate:
-      canCreateInReadyState(state) && !hasBlockingExistingJob(state),
+    canCreate: canCreateInReadyState(state),
     canValidate:
       !state.summary &&
       state.phase === "ready" &&

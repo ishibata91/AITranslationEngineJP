@@ -18,9 +18,10 @@
 
   interface Props {
     createController: CreateTranslationInputScreenController | null
+    onOpenJobSetup?: () => void
   }
 
-  let { createController }: Props = $props()
+  let { createController, onOpenJobSetup = undefined }: Props = $props()
 
   function resolveController(): TranslationInputScreenControllerContract {
     if (!createController) {
@@ -190,6 +191,7 @@
       latestOutcomeTitle={localizeUiText(viewModel.latestOutcomeTitle)}
       selectedItem={viewModel.selectedItem}
       selectionStatusText={localizeUiText(viewModel.selectionStatusText)}
+      onOpenJobSetup={onOpenJobSetup}
       onRebuild={rebuildSelectedInput}
     />
   </section>

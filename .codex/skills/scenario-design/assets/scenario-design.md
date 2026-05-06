@@ -118,26 +118,25 @@ candidate artifact は次を必須にする。
       "question_id": "Q-<topic-abbrev>-001",
       "question_title": "<短い質問名>",
       "unresolved_decision": "<人間に決めてほしい判断>",
-      "user_goal": "<実現したい業務・操作>",
-      "reason": "<競合または未決理由>",
+      "premise": "<既に確定した仕様>",
+      "undecided_reason": "<まだ仕様として決まっていない点>",
       "options": [
         {
           "label": "<選択肢A>",
-          "impact": "<影響>"
+          "impact": "<業務上の影響>"
         },
         {
           "label": "<選択肢B>",
-          "impact": "<影響>"
+          "impact": "<業務上の影響>"
         },
         {
           "label": "<選択肢C>",
-          "impact": "<影響>"
+          "impact": "<業務上の影響>"
         }
       ],
       "recommended_option": 1,
       "recommended": "<推奨案>",
       "recommendation_reason": "<推奨理由>",
-      "uncertainty": "<推奨が外れる可能性>",
       "after_answer_generates": [
         "scenario_candidate_conflict",
         "SCN-<topic-abbrev>-001"
@@ -183,26 +182,25 @@ candidate artifact は次を必須にする。
           "question_id": "Q-001",
           "question_title": "<短い質問名>",
           "unresolved_decision": "<人間に決めてほしい判断>",
-          "user_goal": "<実現したい業務・操作>",
-          "reason": "<明示情報だけでは決められない理由>",
+          "premise": "<既に確定した仕様>",
+          "undecided_reason": "<まだ仕様として決まっていない点>",
           "options": [
             {
               "label": "<選択肢A>",
-              "impact": "<影響>"
+              "impact": "<業務上の影響>"
             },
             {
               "label": "<選択肢B>",
-              "impact": "<影響>"
+              "impact": "<業務上の影響>"
             },
             {
               "label": "<選択肢C>",
-              "impact": "<影響>"
+              "impact": "<業務上の影響>"
             }
           ],
           "recommended_option": 1,
           "recommended": "<推奨案>",
           "recommendation_reason": "<推奨理由>",
-          "uncertainty": "<推奨が外れる可能性>",
           "after_answer_generates": [
             "failure_handling_requirement",
             "system_test_obligation"
@@ -231,20 +229,29 @@ candidate artifact は次を必須にする。
 `needs_human_decision` だけを gate で出力する。
 未決がない場合は `none` と書く。
 `scenario-design.md` 内に質問票本文を埋め込まない。
+gate は未回答と未解決競合だけを判定する。
+gate は質問票の項目数、選択肢数、説明文、推奨理由、内部用語の読みやすさを判定しない。
+gate が出す `scenario-design.questions.md` は未回答 ID 一覧にとどめる。
+人間向け質問本文は `designer` が同じ正本へ再編集する。
+`needs_human_decision` は質問票へそのまま転記しない。
+質問票は、人間が決める必要のある仕様境界へ再編集する。
+内部 gate の項目名は質問本文に単独で出さない。
+実装用語または内部設計語を出す場合は、`固定名（人間が判断できる説明）` の形で説明を添える。
+fixed decision で解ける内容は質問にしない。
 
-質問票は次の形式にする。
+`designer` が人間向け質問本文を書く場合、質問票は次の形式にする。
 
 ```markdown
 ## [Q-001] <短い質問名>
 
-質問:
+決める仕様:
 <人間に決めてほしい判断>
 
-やりたいこと:
-<実現したい業務・操作>
+決定済み:
+<既に確定した仕様>
 
-背景:
-<未決理由と影響>
+未確定:
+<まだ仕様として決まっていない点>
 
 選択肢:
 1. <選択肢A>
@@ -252,18 +259,8 @@ candidate artifact は次を必須にする。
 3. <選択肢C>
 4. その他
 
-AI推奨:
-<選択肢番号>
-
-推奨理由:
-<推奨理由>
-
-不確実性:
-<推奨が外れる可能性>
-
-回答形式:
-選択肢番号を選んでください。
-4 の場合は、採用したい業務ルールを1〜3文で記入してください。
+AI 推奨:
+<選択肢番号と理由。理由は 2 文以内。>
 ```
 
 ## Risks

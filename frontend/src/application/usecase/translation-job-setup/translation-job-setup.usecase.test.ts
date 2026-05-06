@@ -398,7 +398,7 @@ describe("TranslationJobSetupUseCase", () => {
     )
   })
 
-  test("selectedInputSourceId と一致する existingJob は inputSource 表示名が異なっても create を無効化する", async () => {
+  test("selectedInputSourceId と一致する existingJob があっても create を gateway へ進める", async () => {
     const gateway = createGateway()
     const store = createStore(
       createState({
@@ -416,10 +416,40 @@ describe("TranslationJobSetupUseCase", () => {
 
     await usecase.createJob()
 
-    expect(gateway.createTranslationJob).not.toHaveBeenCalled()
-    expect(store.snapshot().errorMessage).toBe(
-      "create 条件を満たしていません。validation と既存 job 状態を確認してください。"
+    expect(gateway.createTranslationJob).toHaveBeenCalledTimes(1)
+    expect(gateway.createTranslationJob).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputSourceId: 41,
+        inputSource: "/mods/input-review.json"
+      })
     )
+  })
+
+  test("phase driven createJob は selectedInputSourceId と一致する existingJob があっても create を gateway へ進める", async () => {
+    const gateway = createGateway()
+    const store = createStore(
+      createPhaseDrivenState({
+        options: createPhaseOptions({
+          existingJob: {
+            inputSourceId: 41,
+            jobId: 300,
+            status: "ready",
+            inputSource: "/mods/input-review.json"
+          }
+        })
+      })
+    )
+    const usecase = new TranslationJobSetupUseCase(gateway, store)
+
+    await usecase.createJob()
+
+    expect(gateway.createTranslationJob).toHaveBeenCalledTimes(1)
+    const calls = gateway.createTranslationJob.mock
+      .calls as CreateTranslationJobRequest[][]
+    const [request] = calls[0] ?? []
+    expect(request?.inputSourceId).toBe(41)
+    expect(request?.inputSource).toBe("/mods/input-review.json")
+    expect(request?.phaseRuntimeSelections).toHaveLength(3)
   })
 
   test("createJob 後の summary fetch は canStartPhase を保持して state へ反映する", async () => {
