@@ -25,10 +25,8 @@ const (
 
 	translationJobSetupValidationFreshnessCutoffHourUTC = 9
 
-	translationJobSetupJobStateReady       = "ready"
-	translationJobSetupPhaseStatePending   = "pending"
-	translationJobSetupInputSource         = "translation_input"
-	translationJobSetupInstructionKindWord = "default"
+	translationJobSetupJobStateReady = "ready"
+	translationJobSetupInputSource   = "translation_input"
 
 	translationJobSetupProviderOpenAI = "openai"
 	translationJobSetupProviderGemini = "gemini"
@@ -314,7 +312,6 @@ type TranslationJobSetupService struct {
 type translationJobSetupJobLifecycleRepository interface {
 	CreateTranslationJob(ctx context.Context, draft repository.TranslationJobDraft) (repository.TranslationJob, error)
 	GetTranslationJobByID(ctx context.Context, id int64) (repository.TranslationJob, error)
-	CreateJobPhaseRun(ctx context.Context, draft repository.JobPhaseRunDraft) (repository.JobPhaseRun, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]repository.JobPhaseRun, error)
 }
 
@@ -795,9 +792,6 @@ func (service *TranslationJobSetupService) createTranslationJobInTransaction(
 		phaseRuntimes = resolvedRuntimes
 	}
 	wordRuntime := phaseRuntimes["word_translation"]
-	if phaseRunErr := service.createInitialTranslationPhaseRun(txCtx, job.ID, wordRuntime); phaseRunErr != nil {
-		return TranslationJobSetupCreatedJobReadModel{}, phaseRunErr
-	}
 
 	summaries, err := service.savePhaseRuntimeSnapshots(txCtx, job.ID, phaseRuntimes)
 	if err != nil {
@@ -833,26 +827,6 @@ func (service *TranslationJobSetupService) createReadyTranslationJob(
 		return repository.TranslationJob{}, fmt.Errorf("create translation job: %w", err)
 	}
 	return job, nil
-}
-
-func (service *TranslationJobSetupService) createInitialTranslationPhaseRun(
-	ctx context.Context,
-	jobID int64,
-	wordRuntime TranslationJobSetupPhaseRuntimeDraftReadModel,
-) error {
-	if _, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
-		TranslationJobID: jobID,
-		PhaseType:        "translation",
-		State:            translationJobSetupPhaseStatePending,
-		ExecutionOrder:   1,
-		AIProvider:       wordRuntime.Provider,
-		ModelName:        wordRuntime.Model,
-		ExecutionMode:    wordRuntime.ExecutionMode,
-		InstructionKind:  translationJobSetupInstructionKindWord,
-	}); err != nil {
-		return fmt.Errorf("create translation setup initial phase: %w", err)
-	}
-	return nil
 }
 
 func (service *TranslationJobSetupService) savePhaseRuntimeSnapshots(

@@ -1,0 +1,47 @@
+reviewback_version: 1
+task_id: "2026-05-08-job-id-1-ready-lock-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  behavior_match: "実装目的と一致している。Job Setup は作成直後の ready job に pending phase run を作らず、runtime snapshot 3 phase 分を保存する。既存 DB 救済 migration は ready job の未実行 translation placeholder だけを削除する。実行開始時の phase run 作成経路は TermTranslationPhaseService 側に残っている。"
+  evidence_sufficiency: "十分。実コード差分、migration 本文、単体テスト、検証証跡、ブラウザ確認証跡を照合した。"
+  hard_gate: false
+checked_scope:
+  summary: "Job Setup 作成経路、phase runtime snapshot 保存経路、既存 DB 救済 migration、実行開始時 phase run 作成経路、回帰テスト証跡を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 781
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "ready job 作成後に CreateJobPhaseRun を呼ばず、snapshot 保存へ進む主要経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 832
+      symbol: "TranslationJobSetupService.savePhaseRuntimeSnapshots"
+      reason: "Job Setup 完了後も phase runtime snapshot を phase 順に保存する既存挙動を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 919
+      symbol: "TermTranslationPhaseService.createOrFindExecutionPlanRun"
+      reason: "実行開始時に running phase run を作る既存経路が残っていることを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/016_remove_ready_job_initial_pending_phase_run.sql"
+      line: 1
+      symbol: "migration 016"
+      reason: "削除条件が phase_type、state、progress、started_at、finished_at、親 job state に限定されていることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 442
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime"
+      reason: "snapshot 3 件保存と phase run 非作成の回帰確認を確認した。"
+    - path: "internal/infra/sqlite/dbinit/migration_test.go"
+      line: 780
+      symbol: "TestMigration016RemovesOnlyReadyInitialPendingPhaseRunPlaceholder"
+      reason: "migration が削除対象と保持対象を分ける確認を持つことを確認した。"
+unchecked_scope:
+  - target: "有料 API 到達を伴う実開始、再開、リトライ"
+    reason: "browser-confirmation-result.md で外部送信回避のため未実行と記録されている。"
+    risk: "外部 provider 実行後の完了、失敗、再開の詳細挙動はこのレビューの直接根拠に含まれない。"
+  - target: "job 1 の実削除"
+    reason: "browser-confirmation-result.md で破壊的操作回避のため未実行と記録されている。"
+    risk: "実削除後の DB 反映までは未確認だが、削除不可理由の消失は確認済みである。"
+issues: []

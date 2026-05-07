@@ -1,0 +1,91 @@
+@startuml
+title 原因箇所シーケンス図: ready job と pending phase run の衝突
+
+autonumber
+hide footbox
+skinparam responseMessageBelowArrow true
+
+actor "利用者" as User
+participant "TranslationJobSetupService\ncreateReadyTranslationJob / createInitialTranslationPhaseRun" as Setup
+database "JobLifecycleRepository" as Repo
+participant "TranslationJobManagementService\n削除可否判定" as Mgmt
+participant "TermTranslationPhaseService\nsummary / StartPhase" as Term
+
+group 作成直後
+User -> Setup: ジョブ作成
+Setup -> Repo: CreateTranslationJob(state=ready)
+Repo --> Setup: job(id=1, state=ready)
+Setup -> Repo: CreateJobPhaseRun(phase_type=translation,\nstate=pending)
+Repo --> Setup: phaseRun(state=pending)
+Setup -> Repo: SaveTranslationJobPhaseRuntimeSnapshot(...)
+Setup --> User: ready job を返す
+note over Setup, Repo
+作成直後に
+ready job と pending phase run が同時に残る
+end note
+end
+
+group 削除判定
+User -> Mgmt: 削除可否を確認
+Mgmt -> Repo: ListJobPhaseRunsByJobID(jobID=1)
+Repo --> Mgmt: [translation pending]
+Mgmt -> Mgmt: hasRunningEquivalentPhaseRun(...)
+note right of Mgmt
+pending を running 相当として扱う
+internal/service/translation_job_management_service.go:821-830
+end note
+Mgmt --> User: 削除不可\n状態不整合
+note over Repo
+repository 側の hasUnsafeDeletePhaseRun も
+pending を unsafe として扱う
+internal/repository/job_lifecycle_sqlite_repository.go:613-621
+end note
+end
+
+group 開始判定と開始実行
+User -> Term: summary 取得
+Term -> Repo: FindJobPhaseRun(jobID=1, phaseType=translation)
+Repo --> Term: existing run(state=pending)
+Term -> Term: canStart = Ready && !termTranslationPhaseIsActive(run)
+note right of Term
+pending は active に含まれない
+internal/service/term_translation_phase_service.go:336, 1890-1898
+end note
+Term --> User: Start は有効に見える
+
+User -> Term: StartPhase(jobID=1)
+Term -> Term: rejectStartExecutionPlan(job, run)
+note right of Term
+run が pending でも
+active 判定に引っかからない
+internal/service/term_translation_phase_service.go:700-710
+end note
+Term -> Term: ensureExecutionPlanRun(job, run, ...)
+note right of Term
+既存 run があるため
+初期化 flow を通らない
+internal/service/term_translation_phase_service.go:653-663
+end note
+Term -> Term: resumeExecutionPlanRun(mode=start, run=pending)
+note right of Term
+paused / recoverable_failed 以外は
+run をそのまま返す
+internal/service/term_translation_phase_service.go:1064-1086
+end note
+Term --> User: pending のまま処理継続
+note over Term, Repo
+実行開始時に pending を running へ
+遷移させる分岐が存在しない
+end note
+end
+
+group 修正方針
+note over Setup, Term
+Job Setup は作成直後の phase run 作成をやめる。
+runtime snapshot だけを保存する。
+phase run は StartPhase 時に
+term_translation / running で作る既存 flow に寄せる。
+end note
+end
+
+@enduml

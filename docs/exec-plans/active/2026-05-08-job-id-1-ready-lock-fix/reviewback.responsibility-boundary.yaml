@@ -1,0 +1,90 @@
+reviewback_version: 1
+task_id: "2026-05-08-job-id-1-ready-lock-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "責務境界は維持されている。Job Setup service は ready job 作成と phase runtime snapshot 保存に閉じ、作成直後の JOB_PHASE_RUN placeholder 作成責務を持たなくなっている。既存DB救済は sqlite dbinit migration に閉じ、service や repository guard へデータ補正責務を混ぜていない。追加テストは service の repository port 呼び出し有無と migration の削除条件を確認しており、production 層へ test helper や sqlite 具象依存を漏らしていない。"
+  evidence_sufficiency: "十分。review-input.md、backend-implementation-input.md、backend-implementation-result.md、regression-test-evidence.md、browser-confirmation-result.md、対象差分、architecture.md、coding-guidelines.md、reviewback.yaml を確認した。検証コマンドは呼び出し元証跡を入力として扱った。"
+
+checked_scope:
+  summary: "Job Setup service の repository port 範囲、createTranslationJobInTransaction の phase run 非作成、ready job 作成、runtime snapshot 保存、dbinit migration の削除条件、service test と migration test の責務固定観点を確認した。"
+  files:
+    - path: "docs/architecture.md"
+      line: 157
+      symbol: "Service"
+      reason: "Service は repository port を通して永続化を扱い、concrete driver を直接参照しない正本責務を確認した。"
+    - path: "docs/architecture.md"
+      line: 168
+      symbol: "Repository / adapter"
+      reason: "SQLite などの永続化実装は adapter 群へ閉じる正本責務を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/backend-implementation-input.md"
+      line: 10
+      symbol: "実装対象"
+      reason: "修正対象が ready job に未実行 pending phase run を残さない backend 修正であることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/backend-implementation-input.md"
+      line: 23
+      symbol: "修正方針"
+      reason: "Job Setup は JOB_PHASE_RUN を作成せず、既存DB救済は migration に置く方針を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 312
+      symbol: "translationJobSetupJobLifecycleRepository"
+      reason: "Job Setup service の repository port から CreateJobPhaseRun 要求が外れ、作成直後 phase run 作成責務を持たないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 796
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "ready job 作成後に phase runtime snapshot 保存へ進み、initial phase run 作成を行わないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 816
+      symbol: "TranslationJobSetupService.createReadyTranslationJob"
+      reason: "service は repository port 経由で ready job 作成だけを行い、sqlite 具象や migration 処理を参照していないことを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/016_remove_ready_job_initial_pending_phase_run.sql"
+      line: 1
+      symbol: "016_remove_ready_job_initial_pending_phase_run.sql"
+      reason: "既存DB救済の DELETE が dbinit migration に閉じ、削除条件も placeholder に限定されていることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 445
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime"
+      reason: "service test が repository port 呼び出し有無を確認し、sqlite 具象や migration 責務を service test に持ち込んでいないことを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migration_test.go"
+      line: 780
+      symbol: "TestMigration016RemovesOnlyReadyInitialPendingPhaseRunPlaceholder"
+      reason: "migration test が dbinit 層で pre-016 database を作り、migration の削除対象と保持対象を確認していることを確認した。"
+
+unchecked_scope:
+  - target: "frontend production code"
+    reason: "review-input.md の変更ファイルに frontend は含まれず、責務境界レビューでは対象差分外の UI 実装を主判定にしない。browser-confirmation-result.md は呼び出し元証跡として確認した。"
+    risk: "画面側の表示責務や操作導線の問題は別レビュー観点に残る。"
+  - target: "検証コマンドの再実行"
+    reason: "この agent はハーネスを実行しない規約であり、regression-test-evidence.md の PASS と coverage 70.6% を入力証跡として扱った。"
+    risk: "検証結果の最新性は呼び出し元証跡に依存する。"
+  - target: "開始、再開、リトライ、実削除の手動操作"
+    reason: "browser-confirmation-result.md で有料 API 到達、外部送信、破壊的操作を避けた未確認範囲として記録されている。責務境界の主判定には使わない。"
+    risk: "実操作時の挙動正しさは別レビュー観点または追加確認に残る。"
+
+issues: []
+
+responsibility_boundary_details:
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘なし。変更は Job Setup service の phase run 作成責務削除、dbinit migration の既存DB救済、対応テストに閉じている。局所修正で閉じる構造であり、repository guard、management service、frontend へ責務を広げていない。"
+  boundary_fixed_test_perspectives:
+    - "Job Setup 完了後に CreateJobPhaseRun が呼ばれないこと。"
+    - "Job Setup 完了後も runtime snapshot は 3 phase 分保存されること。"
+    - "migration は ready job の未実行 placeholder だけを削除すること。"
+    - "migration は running、進捗あり、開始時刻あり、ready 以外 job の phase run を削除しないこと。"
+
+validation_evidence:
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    detail: "regression-test-evidence.md と review-input.md の呼び出し元証跡。"
+  - command: "python3 scripts/harness/run.py --suite coverage"
+    result: "pass"
+    detail: "regression-test-evidence.md の呼び出し元証跡。Sonar coverage は 70.6%。"
+  - command: "browser confirmation"
+    result: "pass"
+    detail: "browser-confirmation-result.md に job ID 1 の状態不整合削除拒否が表示されないことが記録されている。"

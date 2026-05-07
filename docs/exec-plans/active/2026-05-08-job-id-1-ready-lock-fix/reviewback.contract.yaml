@@ -1,0 +1,78 @@
+reviewback_version: 1
+task_id: "2026-05-08-job-id-1-ready-lock-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "互換性は維持されている。CreateTranslationJob の公開応答 field は変更されていない。Job Setup 用の内部 repository interface から CreateJobPhaseRun 要求は消えたが、公開 repository interface と実行開始時の phase run 作成契約は残っている。DB schema は変更せず、migration 016 は ready job の未実行 translation placeholder だけを削除する。event 入力内容、エラー code、nullable / 必須 field、versioning の破壊は確認範囲で見つからない。"
+  evidence_sufficiency: "十分。review-input、backend 実装入力、実装結果、回帰テスト証跡、ブラウザ確認結果、対象差分、公開 DTO、内部 repository interface、migration 本文を照合した。"
+
+checked_scope:
+  summary: "Job Setup 作成応答、Job Setup 内部 repository interface、runtime snapshot 保存、公開 gateway contract、公開 repository interface、既存 DB 救済 migration、migration 回帰テスト、検証証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/review-input.md"
+      line: 5
+      symbol: "対象"
+      reason: "ジョブID 1 が作成直後に実行も削除もできなくなる不具合の恒久修正という実装目的を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/backend-implementation-input.md"
+      line: 19
+      symbol: "修正方針"
+      reason: "Job Setup は作成直後の JOB_PHASE_RUN を作らず、runtime snapshot と実行開始時 phase run 作成を維持する入力契約を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/backend-implementation-input.md"
+      line: 26
+      symbol: "placeholder 削除条件"
+      reason: "既存 DB 救済 migration が削除してよい JOB_PHASE_RUN の条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/regression-test-evidence.md"
+      line: 19
+      symbol: "検証結果"
+      reason: "backend-local と coverage の pass、Sonar coverage 70.6% の検証証跡を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/browser-confirmation-result.md"
+      line: 7
+      symbol: "期待値との差分"
+      reason: "job ID 1 が未実行相当で表示され、状態不整合削除不可理由が表示されない確認結果を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 312
+      symbol: "translationJobSetupJobLifecycleRepository"
+      reason: "Job Setup 専用の内部 interface から CreateJobPhaseRun 要求だけが外れ、公開 repository interface には影響しないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 781
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "ready job 作成後に phase run を作らず、公開応答 field と PhaseRuntimeSummaries を維持することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 832
+      symbol: "TranslationJobSetupService.savePhaseRuntimeSnapshots"
+      reason: "Job Setup 完了後も 3 phase 分の runtime snapshot 保存経路が残っていることを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/016_remove_ready_job_initial_pending_phase_run.sql"
+      line: 1
+      symbol: "migration 016"
+      reason: "DB schema を変えず、削除条件が phase_type、state、progress、started_at、finished_at、親 job state に限定されていることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 442
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime"
+      reason: "runtime snapshot 3 件保存と phase run 非作成の契約回帰確認を確認した。"
+    - path: "internal/infra/sqlite/dbinit/migration_test.go"
+      line: 780
+      symbol: "TestMigration016RemovesOnlyReadyInitialPendingPhaseRunPlaceholder"
+      reason: "migration が削除対象と保持対象を分ける契約回帰確認を確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 204
+      symbol: "CreateTranslationJobResponse"
+      reason: "公開 frontend gateway response contract に phase run field がなく、既存 field 構造が変わっていないことを確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 186
+      symbol: "JobLifecycleRepository"
+      reason: "公開 repository interface の CreateJobPhaseRun は維持され、実行 phase 側の内部 API 契約が壊れていないことを確認した。"
+
+unchecked_scope:
+  - target: "有料 API 到達を伴う開始、再開、リトライ"
+    reason: "browser-confirmation-result.md で外部送信回避のため未実行と記録されている。review_contract は広い実行確認を主責務にしない。"
+    risk: "外部 provider 実行後の完了、失敗、再開の詳細な互換性はこのレビューの直接根拠に含まれない。"
+  - target: "job ID 1 の実削除"
+    reason: "browser-confirmation-result.md で破壊的操作回避のため未実行と記録されている。"
+    risk: "削除実行後の DB 反映までは未確認だが、削除不可理由の契約破壊は表示確認と migration 条件確認で評価できる。"
+
+issues: []

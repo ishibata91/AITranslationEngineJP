@@ -1,0 +1,99 @@
+reviewback_version: 1
+task_id: "2026-05-08-job-id-1-ready-lock-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "pass。Job Setup は ready job と phase runtime snapshot を同一 transaction 内で保存するが、作成直後の pending JOB_PHASE_RUN placeholder を作らない。既存 DB 救済 migration は phase_type、state、progress_percent、started_at、finished_at、親 job state を条件にし、ready job の未実行 placeholder だけを削除する。running、進捗あり、開始時刻あり、ready 以外 job の phase run は削除対象外であるため、削除 guard と開始可否の状態不変条件は維持されている。"
+  evidence_sufficiency: "十分。修正入力、修正前調査、実装結果、回帰テスト証跡、ブラウザ確認結果、対象 diff、対象実コード、対象テストを確認した。reviewer 規約によりハーネスは再実行していない。"
+
+state_invariant_review:
+  gate_result: "pass"
+  maintained_invariants:
+    - "作成直後の ready job は未実行状態であり、JOB_PHASE_RUN の pending placeholder を持たない。"
+    - "Job Setup は runtime snapshot を 3 phase 分保存し、phase run の実行状態とは分離する。"
+    - "既存 DB 救済は未実行 placeholder だけを削除し、開始済みまたは実行中相当の phase run を残す。"
+    - "Job Run 表示だけでは ready job を running へ暗黙遷移させない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "局所修正で閉じている。Job Setup の初期 phase run 作成削除と、既存 DB 救済 migration の削除条件追加に限定されている。削除 guard の unsafe 判定、開始処理の phase run 作成、frontend 表示状態は変更されていない。"
+  invariant_test_viewpoints:
+    - "Job Setup 完了後に CreateJobPhaseRun が呼ばれず、runtime snapshot が 3 件保存されることを単体テストで確認済み。"
+    - "migration が ready job の pending、progress 0、started_at null、finished_at null の placeholder だけを削除することを migration test で確認済み。"
+    - "migration が running、進捗あり、開始時刻あり、ready 以外 job の phase run を残すことを migration test で確認済み。"
+    - "ブラウザ確認では job ID 1 が idle_ready、開始可能で表示され、状態不整合による削除拒否は表示されないことを確認済み。"
+  validation_evidence:
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/regression-test-evidence.md"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite coverage"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/regression-test-evidence.md"
+      coverage: "Sonar coverage 70.6%"
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "agent-browser confirmation"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/browser-confirmation-result.md"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+
+checked_scope:
+  summary: "Job Setup の transaction 内作成経路、phase runtime snapshot 保存、初期 phase run 非作成、既存 DB 救済 migration の削除条件、回帰テスト、受領済み検証証跡を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 796
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "ready job 作成後に phase runtime snapshot を保存し、初期 phase run 作成を行わない根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 820
+      symbol: "TranslationJobSetupService.createReadyTranslationJob"
+      reason: "作成直後の job state が ready、progress_percent が 0 である根拠。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 842
+      symbol: "TranslationJobSetupService.savePhaseRuntimeSnapshots"
+      reason: "runtime snapshot を phase 順に保存し、実行状態とは別テーブルに保持する根拠。"
+    - path: "internal/infra/sqlite/dbinit/migrations/016_remove_ready_job_initial_pending_phase_run.sql"
+      line: 1
+      symbol: "migration 016"
+      reason: "既存 DB の ready job 未実行 placeholder だけを削除する条件の根拠。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 442
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntimeSettings"
+      reason: "runtime snapshot が 3 件保存され、CreateJobPhaseRun が呼ばれないことのテスト根拠。"
+    - path: "internal/infra/sqlite/dbinit/migration_test.go"
+      line: 780
+      symbol: "TestMigration016RemovesOnlyReadyInitialPendingPhaseRunPlaceholder"
+      reason: "migration の削除対象と保持対象を区別するテスト根拠。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/regression-test-evidence.md"
+      line: 16
+      symbol: "検証結果"
+      reason: "backend-local と coverage が PASS した受領済み証跡。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/browser-confirmation-result.md"
+      line: 5
+      symbol: "操作確認結果"
+      reason: "job ID 1 が実行前、開始待ち、0% と表示された受領済み証跡。"
+
+unchecked_scope:
+  - target: "有料 API 到達を伴う実際の開始、再開、リトライ操作"
+    reason: "外部送信を避けるため、ブラウザ確認で開始、再開、リトライは押していないと記録されているため。"
+    risk: "実開始後の provider 失敗、再実行、途中失敗時の副作用境界は本レビューの実操作証跡では確認していない。"
+  - target: "job ID 1 の実削除操作"
+    reason: "破壊的操作を避けるため、ブラウザ確認で実削除は行っていないと記録されているため。"
+    risk: "削除 guard が状態不整合理由で拒否しない表示は確認済みだが、実削除後の cascade 結果は本レビューの実操作証跡では確認していない。"
+  - target: "ハーネス再実行"
+    reason: "codex-review-state-invariant の非対象規約でハーネスを実行しないため。"
+    risk: "受領済み検証証跡を根拠にしており、レビュー担当自身の再実行証跡はない。"
+
+issues: []

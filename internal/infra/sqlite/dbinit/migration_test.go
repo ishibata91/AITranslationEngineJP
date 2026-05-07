@@ -2,9 +2,15 @@ package dbinit
 
 import (
 	"context"
+	"fmt"
+	"io/fs"
+	"os"
 	"path/filepath"
+	"sort"
 	"strings"
 	"testing"
+
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -769,4 +775,135 @@ func TestSchemaCutoverPersonaGenerationSettingsSingletonConstraintEnforced(t *te
 	if !strings.Contains(err.Error(), "CHECK constraint failed") {
 		t.Fatalf("expected CHECK constraint error for id=2, got: %v", err)
 	}
+}
+
+func TestMigration016RemovesOnlyReadyInitialPendingPhaseRunPlaceholder(t *testing.T) {
+	databasePath := filepath.Join(t.TempDir(), "db", "migration-016-ready-placeholder.sqlite3")
+	rawDB := openSQLiteForMigrationTest(t, databasePath)
+	if err := applySQLiteMigrationsUpTo(context.Background(), rawDB, "016_remove_ready_job_initial_pending_phase_run.sql"); err != nil {
+		t.Fatalf("expected pre-016 migrations to succeed: %v", err)
+	}
+	_, err := rawDB.ExecContext(
+		context.Background(),
+		`INSERT INTO X_EDIT_EXTRACTED_DATA (id, source_file_path, source_tool, target_plugin_name, target_plugin_type, record_count, imported_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		1, "/tmp/migration-016.json", "xEdit", "Skyrim.esm", "esm", 1, "2026-01-01T00:00:00Z",
+	)
+	if err != nil {
+		t.Fatalf("expected X_EDIT_EXTRACTED_DATA insert to succeed: %v", err)
+	}
+
+	insertTranslationJobForMigrationTest(t, rawDB, 1, "ready")
+	insertTranslationJobForMigrationTest(t, rawDB, 2, "ready")
+	insertTranslationJobForMigrationTest(t, rawDB, 3, "ready")
+	insertTranslationJobForMigrationTest(t, rawDB, 4, "ready")
+	insertTranslationJobForMigrationTest(t, rawDB, 5, "running")
+
+	insertJobPhaseRunForMigrationTest(t, rawDB, 1, 1, "pending", 0, nil)                                                 // delete target
+	insertJobPhaseRunForMigrationTest(t, rawDB, 2, 2, "running", 10, migrationTestStringPointer("2026-01-01T01:00:00Z")) // keep: running
+	insertJobPhaseRunForMigrationTest(t, rawDB, 3, 3, "pending", 25, nil)                                                // keep: progressあり
+	insertJobPhaseRunForMigrationTest(t, rawDB, 4, 4, "pending", 0, migrationTestStringPointer("2026-01-01T02:00:00Z"))  // keep: started_atあり
+	insertJobPhaseRunForMigrationTest(t, rawDB, 5, 5, "pending", 0, nil)                                                 // keep: ready以外job
+
+	if closeErr := rawDB.Close(); closeErr != nil {
+		t.Fatalf("expected raw sqlite close to succeed: %v", closeErr)
+	}
+
+	reopened := openMasterDictionaryDatabaseForTest(t, databasePath, nil)
+	assertJobPhaseRunExistsByID(t, reopened, 1, false)
+	assertJobPhaseRunExistsByID(t, reopened, 2, true)
+	assertJobPhaseRunExistsByID(t, reopened, 3, true)
+	assertJobPhaseRunExistsByID(t, reopened, 4, true)
+	assertJobPhaseRunExistsByID(t, reopened, 5, true)
+}
+
+func openSQLiteForMigrationTest(t *testing.T, databasePath string) *sqlx.DB {
+	t.Helper()
+	if err := os.MkdirAll(filepath.Dir(databasePath), 0o750); err != nil {
+		t.Fatalf("expected sqlite db directory creation to succeed: %v", err)
+	}
+	rawDB, err := sqlx.Open(sqliteDriverName, buildSQLiteDSN(databasePath))
+	if err != nil {
+		t.Fatalf("expected raw sqlite open to succeed: %v", err)
+	}
+	if err := rawDB.PingContext(context.Background()); err != nil {
+		t.Fatalf("expected raw sqlite ping to succeed: %v", err)
+	}
+	return rawDB
+}
+
+func applySQLiteMigrationsUpTo(ctx context.Context, database *sqlx.DB, stopAtFileName string) error {
+	files, err := fs.Glob(migrationFiles, "migrations/*.sql")
+	if err != nil {
+		return fmt.Errorf("list sqlite migration files: %w", err)
+	}
+	sort.Strings(files)
+
+	for _, migrationPath := range files {
+		if strings.HasSuffix(migrationPath, stopAtFileName) {
+			break
+		}
+		sqlBytes, readErr := fs.ReadFile(migrationFiles, migrationPath)
+		if readErr != nil {
+			return fmt.Errorf("read sqlite migration file %s: %w", migrationPath, readErr)
+		}
+		if _, execErr := database.ExecContext(ctx, string(sqlBytes)); execErr != nil && !shouldIgnoreMigrationError(migrationPath, execErr) {
+			return fmt.Errorf("apply sqlite migration file %s: %w", migrationPath, execErr)
+		}
+	}
+	return nil
+}
+
+func insertTranslationJobForMigrationTest(t *testing.T, db *sqlx.DB, id int64, state string) {
+	t.Helper()
+	_, err := db.ExecContext(
+		context.Background(),
+		`INSERT INTO TRANSLATION_JOB (id, x_edit_extracted_data_id, job_name, state, progress_percent, created_at)
+		 VALUES (?, ?, ?, ?, ?, ?)`,
+		id, 1, fmt.Sprintf("job-%d", id), state, 0, "2026-01-01T00:00:00Z",
+	)
+	if err != nil {
+		t.Fatalf("expected TRANSLATION_JOB insert to succeed: %v", err)
+	}
+}
+
+func insertJobPhaseRunForMigrationTest(
+	t *testing.T,
+	db *sqlx.DB,
+	id int64,
+	jobID int64,
+	state string,
+	progressPercent int,
+	startedAt *string,
+) {
+	t.Helper()
+	_, err := db.ExecContext(
+		context.Background(),
+		`INSERT INTO JOB_PHASE_RUN (id, translation_job_id, phase_type, state, progress_percent, started_at, finished_at)
+		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
+		id, jobID, "translation", state, progressPercent, startedAt, nil,
+	)
+	if err != nil {
+		t.Fatalf("expected JOB_PHASE_RUN insert to succeed: %v", err)
+	}
+}
+
+func assertJobPhaseRunExistsByID(t *testing.T, db *sqlx.DB, id int64, wantExists bool) {
+	t.Helper()
+	var count int
+	err := db.QueryRowContext(
+		context.Background(),
+		`SELECT COUNT(*) FROM JOB_PHASE_RUN WHERE id = ?`,
+		id,
+	).Scan(&count)
+	if err != nil {
+		t.Fatalf("expected JOB_PHASE_RUN count query to succeed: %v", err)
+	}
+	if got := count == 1; got != wantExists {
+		t.Fatalf("expected JOB_PHASE_RUN id=%d exists=%v, got count=%d", id, wantExists, count)
+	}
+}
+
+func migrationTestStringPointer(value string) *string {
+	return &value
 }

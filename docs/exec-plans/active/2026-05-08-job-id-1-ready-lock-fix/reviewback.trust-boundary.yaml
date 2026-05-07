@@ -1,0 +1,72 @@
+reviewback_version: 1
+task_id: "2026-05-08-job-id-1-ready-lock-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "pass。対象差分は Job Setup 完了時の初期 JOB_PHASE_RUN placeholder 作成削除と、既存 DB から ready job の未実行 placeholder だけを削除する migration に限定される。認証、認可、tenant isolation、secret 本体、外部 URL、file upload、外部 provider 送信、SQL injection の新経路は追加していない。"
+  evidence_sufficiency: "十分。レビュー入力、実装目的、実装結果、検証証跡、対象差分、migration 条件、回帰テスト、ブラウザ確認結果を確認した。ハーネスは規約に従い実行せず、呼び出し元の backend-local PASS、coverage PASS、Sonar coverage 70.6%、ブラウザ確認完了をレビュー入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "Job Setup の job 作成処理、初期 phase run 作成削除、既存 DB 救済 migration の削除条件、回帰テスト、ブラウザ確認結果を権限・信頼境界観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/backend-implementation-input.md"
+      line: 17
+      symbol: "修正方針"
+      reason: "Job Setup が作成直後の JOB_PHASE_RUN を作らず、既存 DB 救済 migration は未実行 placeholder だけを削除する目的を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 312
+      symbol: "translationJobSetupJobLifecycleRepository"
+      reason: "Job Setup 用 repository 境界から CreateJobPhaseRun 要求が消え、新しい権限経路や外部入力経路が増えていないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 781
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "ready job 作成後に runtime snapshot を保存するだけで、JOB_PHASE_RUN placeholder を作らないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 816
+      symbol: "TranslationJobSetupService.createReadyTranslationJob"
+      reason: "job 作成は既存 inputSourceID と ready state の保存に留まり、secret、外部 URL、tenant、role の境界を変更していないことを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/016_remove_ready_job_initial_pending_phase_run.sql"
+      line: 1
+      symbol: "migration 016"
+      reason: "静的 SQL は user-controlled 文字列を連結せず、ready job の translation pending かつ未開始、未完了、進捗 0 の phase run だけを削除する条件であることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 445
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime"
+      reason: "Job Setup 完了後に CreateJobPhaseRun が呼ばれない回帰証明を確認した。"
+    - path: "internal/infra/sqlite/dbinit/migration_test.go"
+      line: 780
+      symbol: "TestMigration016RemovesOnlyReadyInitialPendingPhaseRunPlaceholder"
+      reason: "migration が削除対象と保持対象を分ける回帰証明を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/regression-test-evidence.md"
+      line: 17
+      symbol: "検証結果"
+      reason: "backend-local PASS、coverage PASS、Sonar coverage 70.6% を確認した。"
+    - path: "docs/exec-plans/active/2026-05-08-job-id-1-ready-lock-fix/browser-confirmation-result.md"
+      line: 5
+      symbol: "操作確認結果"
+      reason: "job ID 1 が実行前相当として表示され、状態不整合の削除不可理由が出ないことを確認した。"
+
+unchecked_scope:
+  - target: "外部 provider への実通信"
+    reason: "ブラウザ確認は有料 API 到達と外部送信を避けるため、開始、再開、リトライを押していない。"
+    risk: "実通信の成否は未確認だが、対象差分は外部 provider 呼び出しや secret 本体送信の経路を変更していないため、権限・信頼境界の判定には影響しない。"
+  - target: "実削除操作"
+    reason: "ブラウザ確認は破壊的操作を避けるため、job 1 の実削除を実行していない。"
+    risk: "削除完了の UI 結果は未確認だが、対象差分は削除 guard を緩めず、初期 placeholder を作らない方向であるため、認可境界の新規リスクは確認されない。"
+  - target: "認証、role、tenant を持つ運用環境"
+    reason: "対象実装と入力成果物に認証、role、tenant 境界の変更は含まれない。"
+    risk: "将来 multi-user 化された場合の tenant 条件は別途設計が必要だが、今回差分による新規越境としては扱わない。"
+
+boundary_invariant_review:
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決 issue はない。差分は job 作成時の placeholder 非作成と migration 条件に閉じており、権限・信頼境界観点では局所修正として評価できる。"
+  invariant_test_viewpoint: "今後この観点で再確認する場合は、migration が user-controlled SQL を組み立てないこと、secret 本体を DTO、URL、log、audit、error summary に出さないこと、削除 guard を緩めないことを確認する。"
+
+issues: []
