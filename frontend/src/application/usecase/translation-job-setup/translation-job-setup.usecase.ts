@@ -802,36 +802,6 @@ export class TranslationJobSetupUseCase {
       return
     }
 
-    if (selection.credentialStatus === "missing") {
-      this.store.update((draft) => {
-        replaceModelList(draft, {
-          phaseId,
-          provider: selection.provider,
-          credentialStatus: "missing",
-          requestToken: "",
-          sourceToken: "",
-          status: "credential_missing",
-          models: [],
-          failureKind: "credential_missing"
-        })
-        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map(
-          (card) =>
-            card.referenceId === phaseId
-              ? applyModelSettingsListResult(card, {
-                  provider: selection.provider,
-                  credentialStatus: "missing",
-                  status: "credential_missing",
-                  models: [],
-                  failureKind: "credential_missing"
-                })
-              : card
-        )
-        syncModelSettingsCards(draft)
-        invalidateValidation(draft, "stale")
-      })
-      return
-    }
-
     const requestToken = this.nextRequestToken(selection.provider)
     this.store.update((draft) => {
       replaceModelList(draft, {
@@ -883,6 +853,7 @@ export class TranslationJobSetupUseCase {
         if (!isModelListUsable(response.status)) {
           replacePhaseSelection(draft, {
             ...currentSelection,
+            credentialStatus: response.credentialStatus,
             model: ""
           })
         } else if (
@@ -896,7 +867,13 @@ export class TranslationJobSetupUseCase {
               : ""
           replacePhaseSelection(draft, {
             ...currentSelection,
+            credentialStatus: response.credentialStatus,
             model: fallbackModel
+          })
+        } else {
+          replacePhaseSelection(draft, {
+            ...currentSelection,
+            credentialStatus: response.credentialStatus
           })
         }
 

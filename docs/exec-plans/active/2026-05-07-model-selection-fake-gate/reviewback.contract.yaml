@@ -8,66 +8,91 @@ must_fix_open: false
 max_level: "none"
 
 assessment:
-  compatibility: "DTO、provider catalog、DB schema、user-facing provider list は変更されていない。test-safe loader の判定は内部 service の任意 interface と concrete method の追加に閉じており、既存呼び出し側の必須 method は増えていない。frontend は fake mode や fake-model 文字列ではなく、既存の model list 応答 status と models だけで状態更新する。"
-  evidence_sufficiency: "不足だが判定可能。対象ファイル、関連テスト、task 内検証証跡、provider ID 定数、provider catalog、DB migration 差分を確認した。広域 backend-local は internal/bootstrap の既存差分で非通過のため、全体ハーネス通過は未確認である。"
+  compatibility: "pass。frontend gateway の request / response 型は変更されていない。refreshPhaseModels は credentialStatus=missing でも既存 gateway method と既存 request fields を使う。backend 応答が credential_missing / failed の場合は既存の失敗状態として扱い、success / credential_not_required の場合だけ返却 models を採用する。requestToken による stale rejection は維持され、sourceToken は backend 応答由来の freshness token として validation payload へ渡される。単一モデル自動選択は返却された唯一の modelId を使い、fake-model 固有値には依存していない。"
+  evidence_sufficiency: "十分。指定された修正入力、修正結果、単体テスト結果、frontend usecase 実コード、frontend usecase test を確認した。backend response contract は frontend gateway contract と backend usecase contract の既存 field / status 値で確認した。"
 
 checked_scope:
-  summary: "ProviderSettingsService の model list / execution resolve、TranslationJobSetupUseCase の model list refresh、関連 unit tests、provider ID 公開定数、provider catalog、変更ファイル一覧を確認した。"
+  summary: "TranslationJobSetupUseCase.refreshPhaseModels の gateway 呼び出し、requestToken による stale rejection、sourceToken の freshness token 利用、単一 modelId 自動選択、関連 usecase tests、frontend/backend の model list contract を確認した。"
   files:
-    - path: "internal/service/provider_settings_service.go"
-      line: 66
-      symbol: "providerSettingsProviderCatalog"
-      reason: "user-facing provider catalog が gemini、lm_studio、xai のままで、fake provider ID 追加がない根拠にした。"
-    - path: "internal/service/provider_settings_service.go"
-      line: 669
-      symbol: "ProviderSettingsService.listProviderModelsLocked"
-      reason: "test-safe loader の時だけ既存 preflight を迂回し、通常 path の DTO と status 値を維持する根拠にした。"
-    - path: "internal/service/provider_settings_service.go"
-      line: 692
-      symbol: "ProviderSettingsService.listProviderModelsWithTestSafeLoader"
-      reason: "test-safe path が既存 result 型で ready と not_required を返し、新規 DTO を追加していない根拠にした。"
-    - path: "internal/service/provider_settings_service.go"
-      line: 873
-      symbol: "ProviderSettingsService.applyProviderSettingsExecutionSnapshot"
-      reason: "test-safe path で credential と endpoint gate を公開 error 追加なしに解除する根拠にした。"
-    - path: "internal/service/provider_settings_service.go"
-      line: 890
-      symbol: "ProviderSettingsService.ProviderModelListRequestsAreTestSafe"
-      reason: "追加 method が任意判定の公開 method であり、既存 interface の必須契約を変更していない根拠にした。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/frontend-repeat-fix-input.md"
+      line: 21
+      symbol: "禁止変更範囲"
+      reason: "backend fake mode 判定、frontend fake provider ID、fake-model 固有分岐、provider catalog 追加を禁止する入力契約を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/frontend-repeat-fix-input.md"
+      line: 28
+      symbol: "最小修正境界"
+      reason: "credentialStatus=missing でも gateway 呼び出しへ進め、backend の既存応答で状態を表現する期待を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/frontend-repeat-fix-result.md"
+      line: 9
+      symbol: "変更内容"
+      reason: "missing の事前 return 削除と、fake provider ID / fake-model 固有分岐なしの実装結果を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/unit-repeat-test-result.md"
+      line: 17
+      symbol: "検証結果"
+      reason: "targeted frontend usecase test と frontend-local が pass した証跡を確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 113
+      symbol: "ListTranslationJobSetupProviderModelsRequest"
+      reason: "frontend gateway request contract が phaseId、provider、credentialStatus、requestToken の既存 field のままである根拠にした。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 125
+      symbol: "ListTranslationJobSetupProviderModelsResponse"
+      reason: "frontend gateway response contract が requestToken、sourceToken、status、models を含む既存 field のままである根拠にした。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 252
+      symbol: "ListTranslationJobSetupProviderModelsRequest"
+      reason: "backend usecase request contract が frontend gateway と同じ入力意味を持つ根拠にした。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 266
+      symbol: "ListTranslationJobSetupProviderModelsResult"
+      reason: "backend response contract が requestToken、sourceToken、status、models を返す既存形である根拠にした。"
     - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
-      line: 829
+      line: 805
       symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
-      reason: "credential missing でも既存 gateway request を使い、fake mode 判定や fake-model 固有分岐を追加していない根拠にした。"
+      reason: "credentialStatus=missing でも既存 gateway requestToken を発行し、既存 gateway method へ渡す根拠にした。"
     - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
-      line: 888
+      line: 837
       symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
-      reason: "単一 model 自動選択が modelId 一般条件であり、fake-model 固定値に依存しない根拠にした。"
-    - path: "internal/usecase/provider_settings_contract.go"
-      line: 11
-      symbol: "ProviderSettingsProviderID"
-      reason: "公開 provider ID 定数に fake provider が追加されていない根拠にした。"
-    - path: "internal/service/provider_settings_service_test.go"
-      line: 323
-      symbol: "TestProviderSettingsServiceListProviderModelsUsesTestSafeLoaderWithoutCredentialAndEndpoint"
-      reason: "test-safe loader の互換性追加が既存 model list result の範囲で証明されている根拠にした。"
-    - path: "internal/service/translation_job_setup_service_test.go"
-      line: 527
-      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
-      reason: "provider settings 経由でも missing credential の入力契約を保ったまま通常 response へ写像される根拠にした。"
+      reason: "latest provider と requestToken の比較により stale response rejection が維持される根拠にした。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 853
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "backend 応答が usable でない場合は既存失敗状態として model を空にする根拠にした。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 863
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "単一モデル自動選択が固定 fake-model ではなく response.models[0].modelId を使う根拠にした。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 408
+      symbol: "isPhaseLocallyComplete"
+      reason: "sourceToken が空の場合は validation payload へ進めない freshness 条件を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 467
+      symbol: "toPhaseRuntimeValidationSelection"
+      reason: "sourceToken が modelListFreshnessToken として backend validation へ渡される contract を確認した。"
     - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
-      line: 898
-      symbol: "TranslationJobSetupUseCase refreshPhaseModels tests"
-      reason: "frontend が fake 判定なしに backend 応答を受け取る契約を証明している根拠にした。"
+      line: 610
+      symbol: "SCN-TJSPPS-006 provider switch stale response test"
+      reason: "provider 変更後の遅延 response が requestToken / provider 条件で混入しない既存テストを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 716
+      symbol: "SCN-TJSPPS-006 stale failed response test"
+      reason: "古い failed response が最新 providerModelLists と model を巻き戻さない既存テストを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 877
+      symbol: "credentialStatus missing refresh test"
+      reason: "credentialStatus=missing でも gateway を 1 回呼び、backend 応答の単一 modelId を選択する回帰テストを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 964
+      symbol: "single modelId fallback test"
+      reason: "単一モデル選択が fake-model 固有値ではなく返却 modelId に依存する回帰テストを確認した。"
 
 unchecked_scope:
-  - target: "frontend/src/application/usecase/master-persona/* と internal/service/master_persona* の dirty diff"
-    reason: "レビュー対象が model-selection-fake-gate の provider settings / translation job setup 統合修正に限定されているため。"
-    risk: "master persona 側の fake-model 固有契約は別 task の公開面として残る可能性がある。"
-  - target: "internal/infra/ai/provider_models.go と transport.go の dirty diff"
-    reason: "source_task 側の fake model loader 実装であり、今回の修正対象ファイルではないため。"
-    risk: "infra 層の FakeModelID exported constant の公開性は、source_task 側レビューで判定する必要がある。"
-  - target: "backend-local 全体ハーネス"
-    reason: "task 証跡で internal/bootstrap の master persona AI settings persistence 2 件が非通過と記録されているため。"
-    risk: "対象外 bootstrap 差分が残る状態で、repo 全体の契約回帰は未確定である。"
+  - target: "UI 実画面操作"
+    reason: "今回の契約レビュー対象は usecase の gateway 呼び出し条件と response handling であり、検証済み入力にも targeted frontend usecase test と frontend-local pass が渡されているため。"
+    risk: "画面表示上の微細な状態表示差分は別観点の確認対象として残る。"
+  - target: "広域 backend-local 再実行"
+    reason: "review_contract は広いハーネス再実行を担当せず、frontend-local pass と対象 usecase test pass をレビュー入力として扱うため。"
+    risk: "backend 全体の無関係差分による契約回帰は本レビューだけでは確定しない。"
 
 issues: []

@@ -113,8 +113,7 @@ export function startModelSettingsListRefresh(
     modelList: createModelSettingsModelListState({
       provider: state.provider,
       credentialStatus: state.credentialStatus,
-      status:
-        state.credentialStatus === "missing" ? "credential_missing" : "loading"
+      status: "loading"
     }),
     saveStatus: state.saveStatus === "saved" ? "dirty" : state.saveStatus,
     saveMessage: ""
@@ -254,10 +253,6 @@ function buildModelListStatusText(state: ModelSettingsCardState): string {
     return "AIサービスを選んでください。"
   }
 
-  if (state.credentialStatus === "missing") {
-    return "APIキーが未設定のため、モデル一覧を更新できません。"
-  }
-
   switch (state.modelList.status) {
     case "loading":
       return "モデル一覧を更新しています。"
@@ -284,14 +279,6 @@ function buildStatus(
       label: "未選択",
       tone: "warning",
       helper: "AIサービスを選んでください。"
-    }
-  }
-
-  if (state.credentialStatus === "missing") {
-    return {
-      label: "更新不可",
-      tone: "warning",
-      helper: "APIキーが未設定のため、モデル一覧を更新できません。"
     }
   }
 
@@ -393,11 +380,10 @@ export function buildModelSettingsCardViewModel(options: {
     showCredentialStatus: true,
     showCredentialWarning: state.credentialStatus === "missing",
     credentialWarningText:
-      "APIキーが未設定のため、モデル一覧を更新できません。",
+      "APIキーが未設定です。モデル一覧の取得結果はサービス設定に従います。",
     modelListButtonEnabled:
       !options.refreshDisabled &&
       state.provider !== "" &&
-      state.credentialStatus !== "missing" &&
       state.modelList.status !== "loading",
     modelListButtonLabel: "モデル一覧を更新",
     modelListButtonAriaLabel: `${options.titleLabel ?? "モデル設定"}のモデル一覧を更新`,

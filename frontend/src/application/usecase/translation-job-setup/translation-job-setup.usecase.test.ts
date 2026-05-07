@@ -874,7 +874,7 @@ describe("TranslationJobSetupUseCase", () => {
     )
   })
 
-  test("credentialStatus が missing の phase は refreshPhaseModels で gateway を呼ばず missing 状態を維持する", async () => {
+  test("credentialStatus が missing の phase でも refreshPhaseModels は gateway を呼び、単一モデルを選択する", async () => {
     const gateway = createGateway()
     const listProviderModelsSpy = vi.fn(
       (
@@ -925,7 +925,14 @@ describe("TranslationJobSetupUseCase", () => {
 
     await usecase.refreshPhaseModels("word_translation")
 
-    expect(listProviderModelsSpy).toHaveBeenCalledTimes(0)
+    expect(listProviderModelsSpy).toHaveBeenCalledTimes(1)
+    expect(listProviderModelsSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        phaseId: "word_translation",
+        provider: "gemini",
+        credentialStatus: "missing"
+      })
+    )
     expect(
       store
         .snapshot()
@@ -935,10 +942,9 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "gemini",
-        credentialStatus: "missing",
-        status: "credential_missing",
-        sourceToken: "",
-        models: []
+        credentialStatus: "not_required",
+        status: "success",
+        models: [{ modelId: "gemini-test-safe", label: "Gemini Test Safe" }]
       })
     )
     expect(
@@ -950,7 +956,8 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "gemini",
-        model: "",
+        credentialStatus: "not_required",
+        model: "gemini-test-safe",
       })
     )
   })

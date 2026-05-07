@@ -630,10 +630,12 @@ describe("JobSetupPage", () => {
     const blockedRefresh = screen.getByRole("button", {
       name: "単語翻訳のモデル一覧を更新"
     })
-    expect(blockedRefresh).toBeDisabled()
+    expect(blockedRefresh).toBeEnabled()
     await user.click(blockedRefresh)
 
-    expect(controller.refreshPhaseModels).not.toHaveBeenCalled()
+    expect(controller.refreshPhaseModels).toHaveBeenCalledWith(
+      "word_translation"
+    )
     expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled()
     expect(document.body).not.toHaveTextContent("raw response")
     expect(document.body).not.toHaveTextContent("sk-")

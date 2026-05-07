@@ -1,0 +1,101 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-selection-fake-gate"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "pass。credentialStatus が missing の phase でも gateway 呼び出しへ進むが、開始時は requestToken 付き loading state を providerModelLists に保存する。backend 応答は最新 selection provider と providerModelLists.requestToken が一致する時だけ反映される。利用不可 status の応答では phaseRuntimeSelections.model を空文字へ戻すため、credential_missing 応答で model が空に戻る既存不変条件は維持されている。利用可能 status かつ単一モデルの場合だけ、返却 modelId を fallback として選ぶ。"
+  evidence_sufficiency: "十分。指定された修正入力、修正結果、単体テスト更新結果、対象 usecase、対象 usecase test、対象 diff、受領済み検証証跡を確認した。reviewer 規約によりハーネスは再実行していない。"
+
+state_invariant_review:
+  gate_result: "pass"
+  maintained_invariants:
+    - "refreshPhaseModels の開始状態は、phaseId、provider、credentialStatus、requestToken、loading status、空 models を同じ providerModelLists entry に保持する。"
+    - "gateway 応答は、最新 phase selection の provider と最新 providerModelLists の requestToken が応答と一致する場合だけ状態へ反映される。"
+    - "credential_missing を含む利用不可 status では、phaseRuntimeSelections.model は空文字へ戻る。"
+    - "利用可能 status で現在 model が返却 models に存在しない時だけ、単一 models の modelId を fallback として選ぶ。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "局所修正で閉じている。差分は refreshPhaseModels の missing 事前 return 削除と、同経路の単体テスト期待値更新だけである。既存の requestToken 照合、stale response rejection、利用不可応答時の model 空戻しは同じ分岐に残っている。"
+  invariant_test_viewpoints:
+    - "missing phase でも gateway が 1 回呼ばれ、backend が not_required と単一モデルを返すと返却 modelId が選択されることを確認済み。"
+    - "provider 変更後の遅延 success 応答と遅延 failed 応答が、現在 providerModelLists と model を巻き戻さないことを既存テストで確認済み。"
+    - "backend が credential_missing を返す分岐は、isModelListUsable false から model を空へ戻す実装で確認した。専用単体テストは今回の指定検証範囲にはない。"
+
+checked_scope:
+  summary: "refreshPhaseModels の開始状態、requestToken 発行、gateway request、stale response rejection、利用不可応答時の model 空戻し、単一モデル fallback、回帰テスト更新、受領済み検証証跡を確認した。"
+  files:
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 578
+      symbol: "TranslationJobSetupUseCase.nextRequestToken"
+      reason: "provider 名を含む requestToken を単調増加で発行する根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 805
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "missing 事前 return 削除後も requestToken を発行して loading state を作る根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 824
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "gateway request に phaseId、provider、credentialStatus、requestToken を渡す根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 834
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "最新 selection provider と providerModelLists.requestToken の照合で古い応答を破棄する根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 853
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "credential_missing など利用不可応答では model を空文字へ戻す根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 863
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "利用可能応答で単一 models の modelId だけを fallback にする根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 895
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "通信失敗時も最新 provider と requestToken が一致しない場合は古い失敗を破棄する根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 610
+      symbol: "SCN-TJSPPS-006"
+      reason: "provider 変更後の遅延 model list が現在 state を巻き戻さない既存テスト根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 716
+      symbol: "SCN-TJSPPS-006"
+      reason: "古い failed 応答が最新 providerModelLists と model を巻き戻さない既存テスト根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 877
+      symbol: "credentialStatus missing refreshPhaseModels test"
+      reason: "missing phase でも gateway を呼び、not_required 単一モデル応答で返却 modelId を選ぶ回帰テスト根拠。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 964
+      symbol: "single model fallback test"
+      reason: "固定名ではなく唯一の返却 modelId を fallback にする回帰テスト根拠。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/frontend-repeat-fix-input.md"
+      line: 24
+      symbol: "最小修正境界"
+      reason: "missing でも gateway 呼び出しへ進み、credential_missing 応答は既存失敗状態で表現する目的の根拠。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/frontend-repeat-fix-result.md"
+      line: 8
+      symbol: "変更内容"
+      reason: "missing 事前 return 削除と既存失敗反映維持が記録されている根拠。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/unit-repeat-test-result.md"
+      line: 10
+      symbol: "変更内容"
+      reason: "missing phase の新仕様テスト更新内容の根拠。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/unit-repeat-test-result.md"
+      line: 16
+      symbol: "検証結果"
+      reason: "usecase 単体テストと frontend-local harness が通過した受領済み証跡。"
+
+unchecked_scope:
+  - target: "実画面でのモデル一覧表示"
+    reason: "指定された検証済み証跡は usecase 単体テストと frontend-local harness であり、UI 実画面確認は入力成果物でも未実施と記録されているため。"
+    risk: "状態・データ不変条件は usecase 層で維持されているが、画面表示の見た目反映は別観点の確認に残る。"
+  - target: "backend の credential_missing 実応答生成"
+    reason: "今回の指定レビュー対象ファイルは frontend usecase と test であり、backend 実装ファイルは指定されていないため。"
+    risk: "frontend は credential_missing 応答を受けた場合に model を空へ戻すが、backend がどの条件で credential_missing を返すかは本 YAML の主判定外である。"
+
+issues: []

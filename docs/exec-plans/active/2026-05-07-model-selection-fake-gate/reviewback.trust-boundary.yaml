@@ -1,0 +1,70 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-selection-fake-gate"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "pass。credential missing でも frontend が backend を呼ぶ変更は、secret 本体の表示、保存、ログ出力、外部 provider 送信を増やしていない。外部 provider 呼び出し可否は backend の credential gate に残っている。fake 判定は frontend と service 層へ追加されていない。"
+  evidence_sufficiency: "十分。指定された修正入力、修正結果、対象 frontend usecase、対象 frontend test、backend service、provider settings service、deterministic fake provider を確認した。検証証跡は呼び出し元の targeted frontend test pass と frontend-local pass をレビュー入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "モデル一覧更新で credentialStatus=missing のまま gateway を呼ぶ frontend 経路、backend の provider settings 経由 credential gate、direct provider 経路の secret 読取条件、fake provider の ListModels 実装を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/frontend-repeat-fix-input.md"
+      line: 17
+      symbol: "禁止変更範囲"
+      reason: "fake provider 固有分岐を frontend や provider catalog へ追加しない境界を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 798
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "credentialStatus=missing でも gateway 呼び出しへ進むが、request は provider、credentialStatus、requestToken であり secret 本体を含まないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 853
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "backend 応答が利用不可なら model を空にし、利用可能な単一モデルだけを選択する既存処理を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 877
+      symbol: "credentialStatus missing refresh test"
+      reason: "frontend は fake 固有 ID ではなく、backend 応答の唯一の modelId を選ぶ期待へ更新されていることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 538
+      symbol: "TranslationJobSetupService.ListProviderModels"
+      reason: "backend が provider catalog 正規化後、provider settings 経由または direct 経路へ分岐する境界を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 625
+      symbol: "TranslationJobSetupService.listProviderModelsDirect"
+      reason: "credential required provider では credentialRef 空または missing の時点で credential_missing を返し、secret 読取と外部 provider 呼び出しへ進まないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 614
+      symbol: "ProviderSettingsService.ListProviderModels"
+      reason: "provider settings 経由のモデル一覧取得は現在の保存済み summary と request snapshot を照合してから secret 解決へ進むことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 700
+      symbol: "ProviderSettingsService.resolveModelListAPIKey"
+      reason: "credential required provider は credential reference と secret 本体が存在する場合だけ modelListLoader へ apiKey を渡すことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 1137
+      symbol: "ProviderSettingsService.resolveValidationSecret"
+      reason: "secret 本体は secretStore から backend 内で読み、空なら credential_missing として扱うことを確認した。"
+    - path: "internal/infra/ai/deterministic_fake_provider.go"
+      line: 39
+      symbol: "deterministicProvider.ListModels"
+      reason: "fake model list は infra fake provider の実装に閉じており、frontend と service 層へ fake 判定を追加していないことを確認した。"
+
+unchecked_scope:
+  - target: "Wails bridge 生成コードと runtime binding"
+    reason: "指定された読むものではないため未確認。frontend usecase の gateway request 生成から secret 本体を含まないことは確認済み。"
+    risk: "binding 層で別の secret フィールドを補完する実装がある場合は追加確認が必要だが、今回差分の信頼境界判断を変える根拠は見つかっていない。"
+  - target: "実外部 provider への通信実行"
+    reason: "レビュー規約に従いハーネスや外部通信は実行していない。"
+    risk: "実通信の成否は未確認だが、credential missing 時に backend gate が外部 provider 呼び出し前で止めるコードは確認済み。"
+  - target: "frontend-repeat-fix-result.md の古い検証結果"
+    reason: "対象文書は旧テスト失敗を記録している一方、呼び出し元入力は targeted frontend test pass と frontend-local pass を検証済みとしている。現在の test ファイルも新期待値へ更新済みである。"
+    risk: "文書上の検証履歴には古い失敗記録が残るが、権限・信頼境界の pass 判定には影響しない。"
+
+issues: []

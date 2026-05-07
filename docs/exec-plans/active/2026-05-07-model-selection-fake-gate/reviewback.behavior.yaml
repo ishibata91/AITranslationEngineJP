@@ -1,0 +1,65 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-selection-fake-gate"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。refreshPhaseModels は credentialStatus が missing の phase でも gateway 呼び出しへ進み、backend 応答が usable な単一モデル一覧であれば返却 modelId を選択状態へ反映する。backend 応答が usable ではない場合は既存の失敗状態反映へ進む。frontend に fake provider ID や fake-model 固有分岐は追加されていない。"
+  evidence_sufficiency: "十分。人間観測、原因箇所シーケンス図、修正入力、実装結果、単体テスト更新結果、対象 diff、実コードを照合した。呼び出し元が提示した frontend 対象テストと frontend-local の通過証跡をレビュー入力として扱った。レビュー agent の制約に従いハーネス再実行はしていない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決の挙動正しさ指摘はない。修正は refreshPhaseModels の missing credential 事前 return 撤去と、既存の gateway 応答反映経路を使う単一モデル選択に閉じている。"
+  invariant_test_viewpoints:
+    - "credentialStatus が missing の phase でも refreshPhaseModels が gateway を 1 回呼ぶ。"
+    - "gateway へ渡す request は phaseId、provider、credentialStatus を保持する。"
+    - "backend が not_required かつ success の単一モデル一覧を返すと、返却 modelId が選択状態へ入る。"
+    - "単一モデル選択は fake-model 固定文字列ではなく返却 modelId を使う。"
+
+checked_scope:
+  summary: "refreshPhaseModels の主要経路、missing credential 時の gateway 到達、response 反映、単一モデル fallback、更新された回帰テストを確認した。"
+  files:
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 798
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "selection と gateway が存在する場合、credentialStatus missing で事前 return せず requestToken を作成して loading 状態へ進むことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 824
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "gateway.listTranslationJobSetupProviderModels が phaseId、provider、credentialStatus、requestToken を受け取ることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 853
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "usable ではない backend 応答では選択 model を空に戻す既存失敗反映が維持されていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 863
+      symbol: "TranslationJobSetupUseCase.refreshPhaseModels"
+      reason: "現在選択 model が返却一覧に存在しない場合、返却モデルが 1 件ならその modelId を fallbackModel として選択することを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 877
+      symbol: "credentialStatus が missing の phase でも refreshPhaseModels は gateway を呼び、単一モデルを選択する"
+      reason: "missing credential の phase で gateway 呼び出し 1 回、request の credentialStatus missing、not_required success 応答、単一 modelId 選択を検証していることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 964
+      symbol: "単一モデル一覧は固定名に依存せず唯一の modelId を選択状態にする"
+      reason: "単一モデル自動選択が fake-model 固定文字列ではなく返却 modelId に基づくことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-selection-fake-gate/unit-repeat-test-result.md"
+      line: 17
+      symbol: "検証結果"
+      reason: "frontend 対象テストと frontend-local が pass した証跡を確認した。"
+
+unchecked_scope:
+  - target: "実画面でのモデル選択表示"
+    reason: "レビュー入力は usecase 実装と単体回帰テストに限定され、広い再実行は不要と指定されているため。"
+    risk: "画面上の表示文言や細かな UI 状態は未確認。ただし usecase の model list state と phase selection 反映は確認済みである。"
+  - target: "backend の fake provider ListModels 実装"
+    reason: "今回のレビュー対象差分は frontend の missing credential 事前 return 撤去とテスト更新であり、backend 実装は差分対象ではないため。"
+    risk: "backend 側で usable な単一モデル一覧を返さない環境差分がある場合、この挙動レビューだけでは検出しない。"
+  - target: "通信失敗時の詳細挙動"
+    reason: "unit-repeat-test-result.md で今回の更新対象外とされており、既存 catch 経路の存在確認に留めたため。"
+    risk: "provider_unreachable 表示や errorMessage の詳細な UX は未確認である。"
+
+issues: []
