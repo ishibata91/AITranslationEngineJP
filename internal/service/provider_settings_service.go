@@ -308,15 +308,6 @@ func (service *ProviderSettingsService) saveProviderSettingsLocked(
 		return ProviderSettingsSummary{}, err
 	}
 	secretKey := providerSettingsSecretKey(spec.ID)
-	secretStageKey := providerSettingsStagedSecretKey(spec.ID, requestToken)
-	if stageErr := service.stageProviderSettingsSecret(ctx, secretChanged, secretStageKey, secretValue); stageErr != nil {
-		return ProviderSettingsSummary{}, stageErr
-	}
-	if secretChanged {
-		defer func() {
-			_ = service.secretStore.Delete(ctx, secretStageKey)
-		}()
-	}
 	savedRecord, err := service.upsertProviderSettingsRecord(ctx, providerSettingsSaveDraft(
 		spec,
 		input,
@@ -355,16 +346,6 @@ func providerSettingsSaveDraft(
 		Revision:              revision,
 		UpdatedAt:             now,
 	}
-}
-
-func (service *ProviderSettingsService) stageProviderSettingsSecret(ctx context.Context, changed bool, key string, value string) error {
-	if !changed {
-		return nil
-	}
-	if err := service.secretStore.Save(ctx, key, value); err != nil {
-		return fmt.Errorf("stage provider settings secret: %w", err)
-	}
-	return nil
 }
 
 func (service *ProviderSettingsService) upsertProviderSettingsRecord(
@@ -939,16 +920,6 @@ func providerSettingsRequestToken(providerID string, revision int64) string {
 
 func providerSettingsSecretKey(providerID string) string {
 	return "provider-settings:" + strings.ToLower(strings.TrimSpace(providerID))
-}
-
-func providerSettingsStagedSecretKey(providerID string, requestToken string) string {
-	keyParts := []string{
-		"provider-settings-stage",
-		strings.ToLower(strings.TrimSpace(providerID)),
-		strings.TrimSpace(requestToken),
-	}
-	sum := sha256.Sum256([]byte(strings.Join(keyParts, "|")))
-	return fmt.Sprintf("provider-settings-stage:%s:%x", keyParts[1], sum[:])
 }
 
 func providerSettingsExecutionSecretKey(consumerID string, providerID string, requestToken string, sourceRef string) string {

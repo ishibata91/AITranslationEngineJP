@@ -52,11 +52,40 @@ func (loader *fakeProviderSettingsModelListLoader) ListProviderModelsWithEndpoin
 	return append([]ProviderSettingsModelOption(nil), loader.models...), nil
 }
 
+type recordingProviderSettingsSecretStore struct {
+	backend  *repository.InMemorySecretStore
+	saveKeys []string
+}
+
+func (store *recordingProviderSettingsSecretStore) Load(ctx context.Context, key string) (string, error) {
+	value, err := store.backend.Load(ctx, key)
+	if err != nil {
+		return "", fmt.Errorf("recording provider settings secret load: %w", err)
+	}
+	return value, nil
+}
+
+func (store *recordingProviderSettingsSecretStore) Save(ctx context.Context, key string, value string) error {
+	store.saveKeys = append(store.saveKeys, key)
+	if err := store.backend.Save(ctx, key, value); err != nil {
+		return fmt.Errorf("recording provider settings secret save: %w", err)
+	}
+	return nil
+}
+
+func (store *recordingProviderSettingsSecretStore) Delete(ctx context.Context, key string) error {
+	if err := store.backend.Delete(ctx, key); err != nil {
+		return fmt.Errorf("recording provider settings secret delete: %w", err)
+	}
+	return nil
+}
+
 func TestProviderSettingsServiceSavePreservesSecretBoundary(t *testing.T) {
 	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
+	recordingSecretStore := &recordingProviderSettingsSecretStore{backend: secretStore}
 	service := NewProviderSettingsService(
 		repo,
-		secretStore,
+		recordingSecretStore,
 		transactor,
 		&fakeProviderSettingsModelListLoader{},
 		fakeProviderSettingsValidator{},
@@ -94,6 +123,9 @@ func TestProviderSettingsServiceSavePreservesSecretBoundary(t *testing.T) {
 	}
 	if loadedSecret != secretValue {
 		t.Fatalf("expected provider settings secret in secret store, got %q", loadedSecret)
+	}
+	if len(recordingSecretStore.saveKeys) != 1 || recordingSecretStore.saveKeys[0] != "provider-settings:gemini" {
+		t.Fatalf("expected one provider settings secret save to canonical key, got %#v", recordingSecretStore.saveKeys)
 	}
 }
 
