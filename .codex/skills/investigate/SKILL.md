@@ -9,7 +9,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 `investigate` は作業プロトコルである。
 `investigator` agent が設計前に必要な証拠、探索テストレーンの探索証跡、修正レーンの修正前調査を集めるための、観測事実、UI 証跡、ログ、仮説、残り 不足 の分け方を提供する。
 
-UI check 専用 skill / agent は置かない。
+設計前調査では UI check 専用 skill / agent は置かない。
 設計前の UI 根拠 は `investigator` が `investigate` の一部として扱う。
 
 ## 対応ロール
@@ -74,7 +74,7 @@ UI check 専用 skill / agent は置かない。
 - 恒久修正、プロダクトテスト追加、implementation レビューは扱わない。
 - 承認済み実装範囲や対象 file は確定しない。
 - 修正レーンの修正実行入力、レビュー通過根拠は扱わない。
-- UI check 専用 agent を前提にしない。
+- 設計前調査で UI check 専用 agent を前提にしない。
 - 探索計画の作成、バグ一覧の集約、影響ファイルの確定は扱わない。
 
 ## 出力規約
@@ -124,7 +124,7 @@ UI check 専用 skill / agent は置かない。
 - 実装時調査なら、Codex implementation レーン [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md) を使う前提で `designer` へ戻す。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - 根拠 なしの結論を書く必要がある場合は停止する。
-- UI check 専用 agent を前提にする場合は停止する。
+- 設計前調査で UI check 専用 agent を前提にする場合は停止する。
 - implementation-time investigation を扱う場合は停止する。
 - 探索計画またはテストデータが不足した探索テスト証跡を扱う場合は停止する。
 - 探索テスト証跡で探索範囲を広げる必要がある場合は停止する。

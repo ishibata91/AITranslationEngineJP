@@ -26,6 +26,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - 軽量変更計画 (`light-change-planning`): `skills/light-change-planning/SKILL.md`
 - 実装時調査 (`implementation-investigate`): `skills/implementation-investigate/SKILL.md`
 - 修正レーン (`fix-lane`): `skills/fix-lane/SKILL.md`
+- 実装後ブラウザ確認 (`browser-confirmation`): `skills/browser-confirmation/SKILL.md`
 - プロダクトコード 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-integration/SKILL.md`
 - シナリオテスト 実装 (`tests-scenario`): `skills/tests-scenario/SKILL.md`
 - 単体テスト 実装 (`tests-unit`): `skills/tests-unit/SKILL.md`
@@ -41,7 +42,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 
 ## Agent / Skill Boundary
 
-- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、修正レーン 進行役 (`fix_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、軽量変更レーン 進行役 (`light_change_lane`)、軽量変更計画 agent (`light_change_planner`)、探索テスト計画 agent (`exploration_test_planner`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、図作成 agent (`diagrammer`)、調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
+- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、修正レーン 進行役 (`fix_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、軽量変更レーン 進行役 (`light_change_lane`)、軽量変更計画 agent (`light_change_planner`)、探索テスト計画 agent (`exploration_test_planner`)、シナリオ候補生成 agent 6 体、設計成果物 agent (`designer`)、図作成 agent (`diagrammer`)、調査 agent (`investigator`)、実装時調査 agent (`implementation_investigator`)、実装後ブラウザ確認 agent (`browser_confirmation`)、プロダクトコード 実装 agent (`implementation_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、run レポート agent (`work_reporter`)、観点別 レビュー agent にする
 - `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、close 条件を管理する。全 close 条件には 作業レポート、作業観測根拠、作業計画 folder の `docs/exec-plans/completed/<task-id>/` への移動を必ず含める
 - `fix_lane` は人間が確認した不具合、レビュー非通過、検証失敗の task 内成果物 DAG、起動入力、担当 agent 起動、停止、戻し、close 条件を管理する
 - `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
@@ -51,9 +52,10 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `scenario_actor_goal_generator`、`scenario_lifecycle_generator`、`scenario_state_transition_generator`、`scenario_failure_generator`、`scenario_external_integration_generator`、`scenario_operation_audit_generator` は、それぞれ 1 観点 だけを扱い、シナリオ 候補成果物 を作る
 - `designer` は `implement_lane` が揃えた シナリオ 候補 成果物 を統合し、シナリオ を必須要件の固定点として作る。UI 変更がある時は `ui-design` を独立成果物として作り、`ui-design.md` を揃える。人間レビュー 後に `implementation-scope` を固定する
 - `diagrammer` は `diagramming` に従い、人間設計レビュー前または軽量変更の実装着手前に、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 を作る。修正レーンでは修正着手前に原因箇所のシーケンス図を作り、問題点と修正方針を説明する
+- `browser_confirmation` は実装後ブラウザ確認の軽量実行だけを扱う。確認経路と期待値は `implement_lane`、`fix_lane`、`light_change_lane` が定義し、`browser_confirmation` は期待値の妥当性を判断しない
 - シナリオ候補生成 agent 6 体、`designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
-- `implement_lane` は承認済み 実行成果物 を実行正本にし、`diagrammer`、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester` を 文脈 継承なしで直接 起動 する。UI がある task では frontend 実装後に人間レビューを挟む。最終検証 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
-- `light_change_lane` は `task 枠` と `軽量変更計画` を実行正本にし、`light_change_planner`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、観点別レビュー agent、`docs_updater`、`work_reporter` を 文脈 継承なしで直接 起動 する。完了済みサブエージェントは完了結果を集約した後に閉じる
+- `implement_lane` は承認済み 実行成果物 を実行正本にし、`diagrammer`、`implementation_investigator`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。UI がある task では frontend 実装後に人間レビューを挟む。最終検証 と 実装後ブラウザ確認 後は観点別 レビュー agent を 文脈 継承なしで並列 起動 し、結果を 欠落なし集約 に統合する
+- `light_change_lane` は `task 枠` と `軽量変更計画` を実行正本にし、`light_change_planner`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater`、`work_reporter` を 文脈 継承なしで直接 起動 する。完了済みサブエージェントは完了結果を集約した後に閉じる
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
 - Codex agent の人間可読な実行説明は対応する `skills/*/SKILL.md` に置き、紐づけ と `sandbox_mode` は `agents/<agent>.toml` に置き、入力、出力、完了、停止の規約は対応する `skills/*/SKILL.md` に置く
@@ -80,6 +82,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `light_change_planner` は軽量変更計画だけを作り、プロダクトコード、プロダクトテスト、docs 正本本文を変更しない
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
+- `browser_confirmation` は実装後ブラウザ確認で、呼び出し元が定義した確認 URL、操作経路、期待値、安全条件に従い、`snapshot`、`errors`、必要な `screenshot` とログを残す。期待値の追加、仕様判断、原因推定、修正方針作成は扱わない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、検証証跡を渡した観点別 レビュー agent の並列 起動、`reviewback.<観点>.yaml` 群の欠落なし集約、`implementation_action` 分岐を進める
 - `implement_lane` は観点別 レビュー結果を `reviewback.<観点>.yaml` の `must_fix_open` と `max_level` から集約し、behavior、security、responsibility_boundary、その他 の優先度で上位観点の失敗または停止を下位観点の通過で相殺しない
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う
@@ -97,7 +100,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - 観点別 レビュー agent は 失敗 または 停止 の場合も `reviewback.<観点>.yaml` に結果、根拠、未解決指摘を記録する
 - `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、work_history 側に観点別の非通過 YAML は作らない
 - `workflow-improvement-log.jsonl` は作業流れ改善用の run 内観測ログとし、ゲート判断には使わない
-- `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`light_change_planner`、`exploration_test_planner`、`designer`、`diagrammer`、`investigator`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
+- `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`light_change_planner`、`exploration_test_planner`、`designer`、`diagrammer`、`investigator`、`browser_confirmation`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `implementation_implementer` だけが 承認済み実装範囲 内で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる
 - 単体テスト は `implementation_unit_tester` だけが 承認済み実装範囲 内で変更できる
@@ -140,7 +143,8 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `シナリオテスト` | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_scenario_tester` |
 | `単体テスト` | `implementation_unit_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_unit_tester` |
 | `最終検証` | `implement_lane` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
-| `レビュー通過根拠` | `implement_lane` | `最終検証` | レビュー agents |
+| `実装後ブラウザ確認` | `browser_confirmation` | `最終検証` | `browser_confirmation` |
+| `レビュー通過根拠` | `implement_lane` | `最終検証`, `実装後ブラウザ確認` | レビュー agents |
 | `正本化判断` | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
@@ -159,7 +163,8 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `修正実行入力` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図` | なし |
 | `実装証跡` | `implementation_implementer` / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力` | `implementation_implementer` |
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
-| `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
+| `実装後ブラウザ確認` | `browser_confirmation` | `実装証跡`, `回帰テスト証跡?` | `browser_confirmation` |
+| `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `作業レポート入力` | `fix_lane` / `work_reporter` | 全完了または停止済み 成果物, `レビュー通過根拠?` | `work_reporter` |
 | `作業計画完了移動` | `fix_lane` | `作業レポート入力` | なし |
 
@@ -192,7 +197,8 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 | `実装証跡` | `implementation_implementer` / `implement-backend` または `implement-frontend` または `implement-integration` | `軽量変更計画`, `設計差分図` | `implementation_implementer` |
 | `人間確認` | human | `実装証跡` | human |
 | `テスト修正証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡`, `人間確認?` | `implementation_scenario_tester` または `implementation_unit_tester` |
-| `レビュー通過根拠` | `light_change_lane` | `軽量変更計画`, `実装証跡`, `人間確認?`, `テスト修正証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
+| `実装後ブラウザ確認` | `browser_confirmation` | `実装証跡`, `人間確認?`, `テスト修正証跡?` | `browser_confirmation` |
+| `レビュー通過根拠` | `light_change_lane` | `軽量変更計画`, `実装証跡`, `人間確認?`, `テスト修正証跡?`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | `light_change_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | `light_change_lane` / `work_reporter` | 全完了または停止済み 成果物, `レビュー通過根拠?` | `work_reporter` |
@@ -223,7 +229,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 
 - 旧 `design` は `scenario-design`、独立した `ui-design`、`implementation-scope` に再整理した
 - 旧 flat file 形式の exec-plan は legacy とし、新規 task では使わない
-- UI check 専用、log instrumentation agent は live から外した
+- 設計前調査では UI check 専用 agent を置かず、設計前の UI 根拠を `investigator` が扱う
 - 作業前の影響範囲、実行計画、検証方法の確認は `AGENTS.md` の入口規約に集約する
 - Codex 側の人間可読な 実行定義 説明は skill へ集約し、`.codex/agents/*.agent.md` は持たない
 - `.codex/workflow.md` は補助図として残し、live 作業流れ の正本にはしない

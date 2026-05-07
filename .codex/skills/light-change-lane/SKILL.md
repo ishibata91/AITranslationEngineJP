@@ -14,8 +14,8 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - `light_change_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`軽量変更計画`、`設計差分図`、`実装証跡`、`人間確認`、`テスト修正証跡`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力`、`作業計画完了移動` とする。
-- 起動担当 agent は `light_change_planner`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、観点別レビュー agent、`docs_updater`、`work_reporter` とする。
+- 担当成果物は `task 枠`、`軽量変更計画`、`設計差分図`、`実装証跡`、`人間確認`、`テスト修正証跡`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力`、`作業計画完了移動` とする。
+- 起動担当 agent は `light_change_planner`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater`、`work_reporter` とする。
 
 ## 入力規約
 
@@ -34,6 +34,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - プロダクト実装は `implement-backend`、`implement-frontend`、`implement-integration` のいずれかに従う。
 - シナリオテスト修正は [tests-scenario](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-scenario/SKILL.md) に従う。
 - 単体テスト修正は [tests-unit](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/tests-unit/SKILL.md) に従う。
+- 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
 - 観点別レビューは `codex-review-behavior`、`codex-review-contract`、`codex-review-trust-boundary`、`codex-review-state-invariant`、`codex-review-responsibility-boundary` に従う。
 - docs 正本化は [updating-docs](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/updating-docs/SKILL.md) に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -52,7 +53,8 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 | `実装証跡` | `implementation_implementer` / `implement-backend` または `implement-frontend` または `implement-integration` | `軽量変更計画`, `設計差分図` | `implementation_implementer` |
 | `人間確認` | 人間 | `実装証跡` | 人間 |
 | `テスト修正証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡`, `人間確認?` | `implementation_scenario_tester` または `implementation_unit_tester` |
-| `レビュー通過根拠` | `light_change_lane` | `軽量変更計画`, `実装証跡`, `人間確認?`, `テスト修正証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
+| `実装後ブラウザ確認` | `browser_confirmation` | `実装証跡`, `人間確認?`, `テスト修正証跡?` | `browser_confirmation` |
+| `レビュー通過根拠` | `light_change_lane` | `軽量変更計画`, `実装証跡`, `人間確認?`, `テスト修正証跡?`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 仕様変更または仕様追加あり | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | 仕様変更または仕様追加あり | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | `light_change_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
@@ -82,7 +84,9 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - backend と frontend を同時に触る必要がある場合は、統合境界変更として扱える時だけ進める。
 - `人間確認` は実物確認、操作、表示、出力、状態変化、検証結果の確認を扱う。
 - `テスト修正証跡` は軽量変更で落ちるシナリオテストまたは単体テストだけを扱う。
-- `レビュー通過根拠` は軽量変更計画、実装証跡、人間確認、テスト修正証跡を入力にして観点別レビュー agent を起動する。
+- `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、task 枠、軽量変更計画、実装証跡から `light_change_lane` が定義する。
+- `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
+- `レビュー通過根拠` は軽量変更計画、実装証跡、人間確認、テスト修正証跡、実装後ブラウザ確認を入力にして観点別レビュー agent を起動する。
 - 仕様変更または仕様追加が少しでもある場合は `正本化判断` を必須成果物にする。
 - human 承認済みの恒久仕様がある場合は `詳細仕様正本反映` を必須成果物にする。
 - 起動先 agent には文脈を引き継がず、必要情報を引き継ぎ入力に明示する。
@@ -113,6 +117,8 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 実装起動入力: `implementation_implementer` 向けに軽量変更計画、実装 skill、変更対象、検証コマンド、停止条件を返す。
 - 人間確認記録: 人間確認の承認、差し戻し、追加質問、確認根拠を返す。
 - テスト修正起動入力: テスト修正担当 agent 向けに対象テスト範囲、検証目的、実装結果、人間確認結果、検証コマンド、停止条件を返す。
+- 実装後ブラウザ確認起動入力: `browser_confirmation` 向けに確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を返す。
+- 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - レビュー起動入力: レビュー agent 向けにレビュー対象差分、実装目的、軽量変更計画、実装結果、検証証跡、変更ファイル、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
 - 作業計画完了移動: 作業計画フォルダを `docs/exec-plans/completed/<task-id>/` へ移動した根拠を返す。
@@ -130,6 +136,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 起動先 agent が文脈継承なしで直接起動され、起動入力だけで成果物を返している。
 - 人間確認が必要な場合は、承認、差し戻し、追加質問のいずれかが記録されている。
 - テスト追従が必要な場合は、`テスト修正証跡` が記録されている。
+- `実装後ブラウザ確認` が確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
 - 仕様変更または仕様追加がある場合は、`正本化判断` の結果が根拠参照付きで記録されている。
 - human 承認済みの恒久仕様がある場合は、`詳細仕様正本反映` の完了結果または停止理由が根拠参照付きで記録されている。
@@ -149,6 +156,8 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - テスト修正に必要な対象テスト範囲、検証目的、検証コマンドが不足する場合は停止する。
 - テスト修正に軽量変更計画外のプロダクトコード変更または仕様変更が必要な場合は停止する。
 - 起動先 agent に文脈継承または下位 agent 起動が必要な場合は停止する。
+- `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先が不足する場合は停止する。
+- `実装後ブラウザ確認` なしで `レビュー通過根拠` へ進みそうな場合は停止する。
 - プロダクトコードまたはプロダクトテストを直接変更しそうな場合は停止する。
 - レビュー agent 起動入力に実装結果、検証証跡、変更ファイル、レビューYAMLパスが不足する場合は停止する。
 - 仕様変更または仕様追加があるのに `正本化判断` が不足する場合は終了不可とする。

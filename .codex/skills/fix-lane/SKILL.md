@@ -15,8 +15,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `fix_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `人間観測記録`、`原因箇所シーケンス図`、`修正実行入力`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
-- 起動担当 agent は `investigator`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、観点別レビュー agent、`work_reporter` とする。
+- 担当成果物は `人間観測記録`、`原因箇所シーケンス図`、`修正実行入力`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
+- 起動担当 agent は `investigator`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
 
 ## 入力規約
 
@@ -37,6 +37,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 原因箇所シーケンス図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
 - プロダクトコード実装は `implement-backend`、`implement-frontend`、`implement-integration` のいずれかに従う。
 - 回帰テスト証跡は `tests-scenario` または `tests-unit` に従う。
+- 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
 - 観点別レビューは `codex-review-behavior`、`codex-review-contract`、`codex-review-trust-boundary`、`codex-review-state-invariant`、`codex-review-responsibility-boundary` に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -53,7 +54,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `修正実行入力` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図` | なし |
 | `実装証跡` | `implementation_implementer` / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力` | `implementation_implementer` |
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
-| `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
+| `実装後ブラウザ確認` | `browser_confirmation` | `実装証跡`, `回帰テスト証跡?` | `browser_confirmation` |
+| `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `作業レポート入力` | `fix_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
 | `作業計画完了移動` | `fix_lane` | `作業レポート入力` | なし |
 
@@ -74,7 +76,9 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 大規模修正または修正レーン対象外の場合は、恒久修正へ進めず、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
 - `implementation_implementer` を起動する時は、実装 skill を `implement-backend`、`implement-frontend`、`implement-integration` のいずれか 1 つに固定する。
 - 回帰テスト証跡は変更範囲と検証目的から `implementation_scenario_tester` または `implementation_unit_tester` を起動して渡す。
-- レビュー通過根拠は人間観測記録、修正前調査、原因箇所シーケンス図、修正実行入力、実装証跡、回帰テスト証跡を入力にして観点別レビュー agent を起動する。
+- `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、人間観測、修正前調査、原因箇所シーケンス図、修正実行入力から `fix_lane` が定義する。
+- `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
+- レビュー通過根拠は人間観測記録、修正前調査、原因箇所シーケンス図、修正実行入力、実装証跡、回帰テスト証跡、実装後ブラウザ確認を入力にして観点別レビュー agent を起動する。
 - 作業レポート入力は `work_reporter` を起動して渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
@@ -99,6 +103,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 原因箇所シーケンス図起動入力: `diagrammer` 向けに人間観測記録、修正前調査、原因箇所、問題点、修正方針、禁止範囲、対象作業計画フォルダを返す。
 - 原因箇所シーケンス図: 修正前判断材料として、原因箇所のシーケンス図、問題点、修正方針、根拠参照、検証結果、未決事項を返す。
 - 修正実行入力: `implementation_implementer` 向けに人間観測記録、修正前調査、原因箇所シーケンス図、影響ファイル候補、禁止変更範囲、実装 skill、回帰確認観点を返す。
+- 実装後ブラウザ確認起動入力: `browser_confirmation` 向けに確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を返す。
+- 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - レーン戻し入力: 大規模修正または修正レーン対象外の場合に、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
 - レビュー起動入力: レビュー agent 向けに人間観測記録、修正前調査、原因箇所シーケンス図、修正実行入力、実装証跡、回帰テスト証跡、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
@@ -113,6 +119,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `原因箇所シーケンス図` が原因箇所の呼び出し順序、問題点、修正方針を含んでいる。
 - `implementation_implementer` へ渡す実装 skill が `implement-backend`、`implement-frontend`、`implement-integration` のいずれか 1 つに固定されている。
 - 回帰テスト証跡が必要な場合は、test agent の完了結果が確認されている。
+- `実装後ブラウザ確認` が確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
 - 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
 - close 時は作業計画フォルダが `docs/exec-plans/completed/<task-id>/` へ移動済みである。
@@ -130,6 +137,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 仕様変更、機能追加、受け入れ条件の新規判断が必要な場合は停止する。
 - 修正レーンで `implementation-scope` を作りそうな場合は停止する。
 - 実装 skill を 1 つに固定できない場合は停止する。
+- `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先が不足する場合は停止する。
+- `実装後ブラウザ確認` なしで `レビュー通過根拠` へ進みそうな場合は停止する。
 - プロダクトコードまたはプロダクトテストを直接変更しそうな場合は停止する。
 - レビュー agent 起動入力に人間観測記録、修正前調査、原因箇所シーケンス図、修正実行入力、実装証跡、回帰テスト証跡の必要分が不足する場合は停止する。
 - 停止時は不足項目、衝突箇所、固定できない判断、戻し先を返す。
