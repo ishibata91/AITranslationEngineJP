@@ -1,0 +1,105 @@
+reviewback_version: 1
+task_id: "2026-05-07-provider-settings-job-decoupling-implement"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "state-invariant-001 は解消済みである。term / persona / body の retry snapshot は、provider settings 再解決後に Running 遷移が成功した場合だけ永続化される。状態遷移拒否、input snapshot drift、required state 不一致、repository 更新失敗では、既存 runtime snapshot と in-memory executionSnapshots を更新しない構造になっている。"
+  evidence_sufficiency: "十分。implementation-scope、review-fix-result、final-validation、既存 reviewback、3 phase の retry 経路、runtime snapshot 永続化、in-memory snapshot 更新、非 secret 永続化 field を確認した。ハーネスは人間指示に従い再実行していない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "state-invariant-001 の局所修正は成立している。term は Running 更新後に snapshot を保存し、persona / body は状態遷移 transaction 内で snapshot を保存し、永続化成功後だけ in-memory snapshot を更新する。"
+
+checked_scope:
+  summary: "retry 開始時の provider settings 再解決、Running 遷移成功後の runtime snapshot 永続化、遷移失敗時の既存 snapshot 維持、in-memory executionSnapshots 更新順、非 secret 要約だけの永続化を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/implementation-scope.md"
+      line: 20
+      symbol: "Fixed Decisions"
+      reason: "Job 側 DB の所有禁止値、Ready 再解決、Running 非 secret 要約の承認済み不変条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+      line: 25
+      symbol: "state-invariant-001"
+      reason: "修正方針が Running 遷移成功時だけ snapshot 永続化済みにし、失敗時に既存 snapshot を維持する内容であることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+      line: 29
+      symbol: "レビュー修正後の最終結果"
+      reason: "呼び出し元から渡された最終検証 pass、system test 9 passed、Sonar issue 0、coverage 70.7% を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 966
+      symbol: "applyExecutionPlan"
+      reason: "term retry は updatedRun が Running の場合だけ runtime snapshot を保存し、その後に in-memory snapshot を更新する。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 676
+      symbol: "mutatePhaseState"
+      reason: "persona retry は phase run 更新と runtime snapshot 保存を同じ transaction 内で扱い、事前拒否時は snapshot 保存へ進まない。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 484
+      symbol: "RetryPhase"
+      reason: "persona retry の in-memory snapshot は、reload 後の run state が Running の場合だけ更新される。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1311
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "body retry は input snapshot drift と状態遷移可否を transaction 前に拒否し、拒否時は snapshot 保存へ進まない。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1323
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "body retry は phase run / job 更新と runtime snapshot 保存を同じ transaction 内で扱う。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 588
+      symbol: "RetryPhase"
+      reason: "body retry の in-memory snapshot は、run state が Running の場合だけ更新される。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 877
+      symbol: "persistRuntimeSnapshot"
+      reason: "term runtime snapshot の保存 field が provider、model、credential 状態分類、execution mode、batch mode に限定されている。"
+    - path: "internal/service/provider_execution_snapshot.go"
+      line: 60
+      symbol: "providerExecutionSnapshotFromRuntimeSnapshot"
+      reason: "DB 由来 snapshot から credential_ref 実値と endpoint summary を復元しないことを確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "人間指示で再実行禁止であるため、final-validation の pass 証跡をレビュー入力として扱った。"
+    risk: "レビュー後に別変更が追加された場合の検証 drift は検出できない。"
+  - target: "実 AI API 呼び出し"
+    reason: "承認済み非対象であり、final-validation でも未実施である。"
+    risk: "外部 provider adapter の実通信失敗時の詳細挙動は別検証対象として残る。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "retry snapshot が phase 状態遷移より先に永続化される"
+    problem: "修正前は、recoverable failed retry の provider settings 再解決結果が、phase run を Running へ戻す状態遷移より先に runtime snapshot へ保存され得た。"
+    reason: "修正後は、term は Running 更新後だけ snapshot を保存する。persona / body は Running への状態遷移と runtime snapshot 保存を同じ transaction 内で扱う。状態遷移拒否時、input snapshot drift 時、required state 不一致時は snapshot 保存へ進まない。"
+    violated_condition: "修正前は、Running phase は開始時の非 secret 要約だけを保存するという不変条件を破る可能性があった。修正後は retry が Running へ遷移しない場合に開始時 snapshot として確定しない。"
+    cause_candidate: "修正前は provider settings 再解決後の snapshot 永続化が phase 状態遷移より先行していた。修正後は永続化位置と in-memory 更新位置が Running 遷移成功後へ移動された。"
+    evidence:
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 966
+        excerpt: "updatedRun.State が running の場合だけ persistRuntimeSnapshot と executionSnapshots 更新へ進む。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 676
+        excerpt: "phase run 更新と runtime snapshot 保存が同じ transaction 内で実行される。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 484
+        excerpt: "reload 後の run state が running の場合だけ executionSnapshots を更新する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1311
+        excerpt: "input snapshot drift は transaction 前に拒否され、snapshot 保存へ進まない。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1323
+        excerpt: "phase run / job 更新と runtime snapshot 保存が同じ transaction 内で実行される。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 588
+        excerpt: "run state が running の場合だけ executionSnapshots を更新する。"
+    local_fix_assessment: "resolved-local。3 phase の retry 開始処理内の永続化順と in-memory 更新順の修正で閉じている。"
+    additional_check_scope: "none。final-validation の all pass と実コード確認により、状態・データ不変条件観点の追加未解決指摘はない。"
+    fix_considerations: "今後の retry 経路変更では、DB snapshot と in-memory executionSnapshots が同じ開始試行を指すこと、遷移失敗時に既存 snapshot を維持することを維持する。"
+    verification: "python3 scripts/harness/run.py --suite all はレビュー修正後 pass。system test は 9 passed。Sonar security 0、reliability 0、maintainability HIGH 0、coverage 70.7%。"
+    fix_required: true
+    status: "resolved"

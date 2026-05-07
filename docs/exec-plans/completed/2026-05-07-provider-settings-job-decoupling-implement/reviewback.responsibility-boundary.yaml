@@ -1,0 +1,120 @@
+reviewback_version: 1
+task_id: "2026-05-07-provider-settings-job-decoupling-implement"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "責務境界は維持されている。runtime snapshot repository port は DB 所有値だけを表し、`CredentialRef`、`EndpointSummary`、`ModelListSourceToken` を所有可能にしない形へ縮んだ。provider adapter 呼び出しに必要な credential reference と endpoint summary は service 内の実行時 snapshot に残り、Repository port と SQLite adapter へ漏れていない。"
+  evidence_sufficiency: "十分。指定成果物、既存 reviewback、修正後 git diff、repository port、SQLite adapter、phase service の保存経路、scenario test、architecture.md を確認した。ハーネスは再実行せず、渡された検証証跡を入力として扱った。"
+
+checked_scope:
+  summary: "重点指摘 `responsibility-boundary-001` の解消確認として、runtime snapshot repository port、SQLite row / SQL、term / persona / body の保存呼び出し、scenario test の入力型を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/implementation-scope.md"
+      line: 28
+      symbol: "Fixed Decisions"
+      reason: "Job 側 DB が endpoint、secret store 参照実値、credential_ref 実値を所有しない承認済み判断を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+      line: 26
+      symbol: "responsibility-boundary-001"
+      reason: "修正側が runtime snapshot 型と SQLite adapter を非 secret 要約へ揃えたと報告していることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+      line: 25
+      symbol: "レビュー修正後の最終結果"
+      reason: "渡された検証証跡として all harness、system test、Sonar、coverage の成功結果を確認した。"
+    - path: "docs/architecture.md"
+      line: 157
+      symbol: "Service / Repository"
+      reason: "Service は永続化 port を通し、Repository は SQLite 永続化実装を持つという層責務の正本を確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 54
+      symbol: "TranslationJobPhaseRuntimeSnapshot"
+      reason: "repository port の取得型が DB 所有値だけを持つことを確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 67
+      symbol: "TranslationJobPhaseRuntimeSnapshotDraft"
+      reason: "repository port の保存入力型が DB 所有値だけを受け取ることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 169
+      symbol: "translationJobPhaseRuntimeSnapshotRow"
+      reason: "SQLite row が credential reference、endpoint summary、model list token を持たないことを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 626
+      symbol: "SaveTranslationJobPhaseRuntimeSnapshot"
+      reason: "SQLite adapter が draft から非 secret 要約だけを保存することを確認した。"
+    - path: "internal/infra/sqlite/dbinit/migrations/015_translation_job_phase_runtime_snapshot_non_secret_boundary.sql"
+      line: 3
+      symbol: "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT"
+      reason: "DB schema が provider、model、credential status、execution mode、batch mode、created_at だけへ縮んでいることを確認した。"
+    - path: "internal/service/provider_execution_snapshot.go"
+      line: 60
+      symbol: "providerExecutionSnapshotFromRuntimeSnapshot"
+      reason: "DB snapshot から復元する service 内 snapshot が credential reference と endpoint summary を補わないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 877
+      symbol: "persistRuntimeSnapshot"
+      reason: "term phase が repository draft へ DB 所有値だけを渡すことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1421
+      symbol: "persistRuntimeSnapshot"
+      reason: "persona phase が repository draft へ DB 所有値だけを渡すことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 812
+      symbol: "persistRuntimeSnapshot"
+      reason: "body phase が repository draft へ DB 所有値だけを渡すことを確認した。"
+    - path: "internal/apitest/provider_settings_job_decoupling_scenario_test.go"
+      line: 99
+      symbol: "TestSCN_PSJD_005_RuntimeSnapshotPersistsOnlyNonSecretSummary"
+      reason: "scenario test が repository draft へ forbidden 値を渡さず、非 secret 要約だけの保存を確認する形へ変わったことを確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "人間指示と skill の非対象規約により再実行していない。"
+    risk: "検証結果の鮮度確認は集約側の責務として残る。"
+  - target: "有料の実 AI API 呼び出し"
+    reason: "実装範囲と最終検証で非対象とされている。"
+    risk: "実 provider adapter の外部応答差分は残るが、repository port の責務境界判定には使わない。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "major"
+    title: "runtime snapshot repository port が削除済み field をまだ所有可能にしている"
+    problem: "解消済み。repository port の `TranslationJobPhaseRuntimeSnapshot` と `TranslationJobPhaseRuntimeSnapshotDraft` から `CredentialRef`、`EndpointSummary`、`ModelListSourceToken` が削除された。"
+    reason: "Repository port は永続化境界の値を表す層である。修正後の port 型、SQLite row、保存 SQL、phase service の draft 生成が DB 所有値だけに揃ったため、adapter の無視処理へ責務を寄せる構造は残っていない。"
+    violated_condition: "過去指摘では、Repository port が DB に保存しない credential reference 実値、endpoint summary、model list token を所有可能にしていた。修正後は境界違反を確認していない。"
+    cause_candidate: "旧原因候補は、DB migration と SQLite row の削減に対して repository port 型の削減が追従していなかったことである。修正後差分では型と呼び出し側が同じ値集合へ追従している。"
+    evidence:
+      - path: "internal/repository/job_lifecycle_repository.go"
+        line: 54
+        excerpt: "`TranslationJobPhaseRuntimeSnapshot` は `Provider`、`ModelName`、`CredentialStatus`、`ExecutionMode`、`BatchMode` を持ち、削除対象 field を持たない。"
+      - path: "internal/repository/job_lifecycle_repository.go"
+        line: 67
+        excerpt: "`TranslationJobPhaseRuntimeSnapshotDraft` は保存入力として DB 所有値だけを受け取る。"
+      - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+        line: 169
+        excerpt: "SQLite row は runtime snapshot table の非 secret 要約列だけを定義する。"
+      - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+        line: 626
+        excerpt: "保存処理は draft から非 secret 要約だけを row へ写像する。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 877
+        excerpt: "term phase の draft 生成は credential reference、endpoint summary、model list token を渡さない。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1421
+        excerpt: "persona phase の draft 生成は credential reference、endpoint summary、model list token を渡さない。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 812
+        excerpt: "body phase の draft 生成は credential reference、endpoint summary、model list token を渡さない。"
+      - path: "internal/apitest/provider_settings_job_decoupling_scenario_test.go"
+        line: 99
+        excerpt: "scenario test は repository draft へ非 secret 要約だけを渡して保存を確認する。"
+    local_fix_assessment: "完了。runtime snapshot repository port、SQLite adapter、phase service の保存 helper、scenario test に閉じた cross-layer-local 修正として成立している。"
+    additional_check_scope: "なし。責務境界観点では repository port の DB 所有値化を確認済みである。"
+    fix_considerations: "今後の変更でも、provider adapter 実行に必要な credential reference と endpoint summary は service 内の実行時 snapshot に留め、Repository port と DB snapshot へ戻さない。"
+    verification: "静的確認では runtime snapshot port 型と draft 型に削除対象 field がない。渡された検証証跡では `python3 scripts/harness/run.py --suite all` が pass、system test は 9 passed、Sonar security 0、reliability 0、maintainability HIGH 0、coverage は 70.7% である。"
+    fix_required: true
+    status: "resolved"

@@ -1,0 +1,490 @@
+{
+  "task_id": "2026-05-07-provider-settings-job-decoupling-implement",
+  "artifact": "scenario-design.candidate-coverage.json",
+  "status": "pending-human-review",
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidate_count_from_files": 42,
+  "candidate_count_note": "plan.md は 43 候補とするが、指定 6 候補ファイルの見出しは 42 件である。",
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-001",
+      "decision_rationale": "provider settings 共通保存の入口として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-002",
+      "decision_rationale": "Job Setup が選択値だけを扱う正常系へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-002",
+      "decision_rationale": "Ready job 作成時の保存境界へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "Ready job 実行開始前再解決へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "Job 作成後更新から実行開始への再解決へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "provider settings 未設定時の Job Setup 不足表示へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-PSJD-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "作成済み job 要約の secret 非露出へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-002",
+      "decision_rationale": "Job 作成時に provider settings 所有を移さない条件として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "Ready job 実行開始前再解決として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "phase runtime snapshot 保存境界として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "開始時の設定境界維持として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "rejected",
+      "decision_rationale": "Running phase が provider settings 更新へ途中追従する案は、今回の固定前提と既存仕様の開始時 snapshot 継続に合わせて採用しない。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "provider settings 更新後の Ready job 再解決へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "完了後の secret と raw payload 非保持へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-PSJD-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "フェーズ再実行時の最新 provider settings 再解決へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "Ready から Running への正常遷移へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "provider settings 未設定時は Running を開始しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "Running phase の開始時境界維持へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "実行中未設定化が Job 側 fallback を作らない条件へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "Failed phase 再実行時の再解決へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "Completed phase の provider settings 更新非影響へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-PSJD-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "Job 作成後未設定化でも Job が資格情報を保持しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PSJD-F01",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "provider settings 未設定時の Job Setup 作成不可へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PSJD-F02",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "endpoint 参照不能時の model list 取得失敗へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PSJD-F03",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "Ready job 実行前 credential 削除と再解決失敗へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PSJD-F04",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "model 未選択の作成不可条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PSJD-F05",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "Running phase 中の provider settings 変更扱いへ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-PSJD-F06",
+      "generator": "failure",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "旧 job の credential / endpoint 互換失敗を安全に扱う条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-001",
+      "decision_rationale": "provider settings 保存と Job 所有分離へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-001",
+      "decision_rationale": "未設定化と fallback 禁止へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "model list API 成功経路へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "APIキー未設定時に model list API を呼ばない条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-003",
+      "decision_rationale": "LM Studio の secret store 非使用経路へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "Ready job 実行開始時の最新 provider settings 再解決へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-PSJD-EI-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "Running phase の外部境界と runtime snapshot 境界へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "実行開始時再解決要約へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-002",
+      "decision_rationale": "Job 作成後の保存要約境界へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-005",
+      "decision_rationale": "Running phase 開始時要約へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "Ready 作成後の provider settings 変更検出へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-004",
+      "decision_rationale": "実行開始時 provider settings 不足の失敗要約へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "Job と provider settings の所有境界を確認する監査表示へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-PSJD-OA-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-PSJD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-PSJD-006",
+      "decision_rationale": "フェーズ再実行時の最新要約へ統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-PSJD-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "lifecycle:CAND-PSJD-004",
+        "lifecycle:CAND-PSJD-005",
+        "state-transition:CAND-PSJD-ST-003",
+        "failure:CAND-PSJD-F05",
+        "external-integration:CAND-PSJD-EI-007"
+      ],
+      "conflict_type": "state_transition",
+      "resolution": "Running phase は開始時の再解決結果を使い、DB には非 secret 要約だけを残す。途中追従案は採用しない。",
+      "reason": "人間入力の Running phase 優先案と既存詳細仕様の開始時 snapshot 継続に合わせた。"
+    },
+    {
+      "conflict_id": "CONFLICT-PSJD-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-003",
+        "lifecycle:CAND-PSJD-001",
+        "operation-audit:CAND-PSJD-OA-002"
+      ],
+      "conflict_type": "data_ownership",
+      "resolution": "Job 作成時に provider settings revision を Job 側へ永続所有させない。",
+      "reason": "provider settings 更新履歴は保存しない既存仕様と、Job 側へ AIサービス設定値を永続所有させない前提がある。"
+    },
+    {
+      "conflict_id": "CONFLICT-PSJD-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-007",
+        "failure:CAND-PSJD-F03",
+        "operation-audit:CAND-PSJD-OA-006"
+      ],
+      "conflict_type": "security_requirement",
+      "resolution": "credential_ref 実値は Job 側から外し、credential 状態分類だけを非 secret 要約として残す。",
+      "reason": "secret store 情報を Job 側 DB が所有しない前提がある。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-PSJD-001",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-001",
+        "external-integration:CAND-PSJD-EI-001",
+        "external-integration:CAND-PSJD-EI-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PSJD-002",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-002",
+        "actor-goal:CAND-PSJD-003",
+        "lifecycle:CAND-PSJD-001",
+        "operation-audit:CAND-PSJD-OA-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PSJD-003",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-006",
+        "failure:CAND-PSJD-F01",
+        "failure:CAND-PSJD-F02",
+        "failure:CAND-PSJD-F04",
+        "external-integration:CAND-PSJD-EI-003",
+        "external-integration:CAND-PSJD-EI-004",
+        "external-integration:CAND-PSJD-EI-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PSJD-004",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-004",
+        "actor-goal:CAND-PSJD-005",
+        "lifecycle:CAND-PSJD-002",
+        "lifecycle:CAND-PSJD-006",
+        "state-transition:CAND-PSJD-ST-001",
+        "state-transition:CAND-PSJD-ST-002",
+        "external-integration:CAND-PSJD-EI-006",
+        "operation-audit:CAND-PSJD-OA-001",
+        "operation-audit:CAND-PSJD-OA-004",
+        "operation-audit:CAND-PSJD-OA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PSJD-005",
+      "candidate_ids": [
+        "lifecycle:CAND-PSJD-003",
+        "lifecycle:CAND-PSJD-004",
+        "state-transition:CAND-PSJD-ST-003",
+        "state-transition:CAND-PSJD-ST-004",
+        "failure:CAND-PSJD-F05",
+        "external-integration:CAND-PSJD-EI-007",
+        "operation-audit:CAND-PSJD-OA-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-PSJD-006",
+      "candidate_ids": [
+        "actor-goal:CAND-PSJD-007",
+        "lifecycle:CAND-PSJD-007",
+        "lifecycle:CAND-PSJD-008",
+        "state-transition:CAND-PSJD-ST-005",
+        "state-transition:CAND-PSJD-ST-006",
+        "state-transition:CAND-PSJD-ST-007",
+        "failure:CAND-PSJD-F03",
+        "failure:CAND-PSJD-F06",
+        "operation-audit:CAND-PSJD-OA-006",
+        "operation-audit:CAND-PSJD-OA-007"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

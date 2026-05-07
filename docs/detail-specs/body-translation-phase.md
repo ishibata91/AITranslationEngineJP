@@ -2,11 +2,11 @@
 
 - `upper_scenario_id`: `body-translation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/body-translation-phase/plan.md`
+- `source_plan`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
 - `scenario_source`: `docs/exec-plans/completed/body-translation-phase/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/body-translation-phase/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`
-- `review_source`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`
+- `implementation_source`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_source`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
 ## 要約
 
@@ -24,7 +24,9 @@
 
 ## 仕様
 
-- 本文翻訳フェーズは `Job Setup` で設定した本文翻訳用 provider、model、execution mode を使う。開始時の再選択 UI は作らない。
+- 本文翻訳フェーズは `Job Setup` で設定した本文翻訳用 provider、model、execution mode、batch mode を使う。開始時の再選択 UI は作らない。
+- phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
+- job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
 - 入力 summary は対象 field 件数、辞書 snapshot digest、persona snapshot digest、metadata digest、prompt digest を持つ。
 - 完全一致した辞書 hit は provider request から除外する。部分一致は訳語固定制約として provider request に渡す。
 - 翻訳レコード種別と field type に応じて翻訳指示を構成し、field correlation key と保護要素 digest を失わず provider 境界へ渡す。
@@ -39,7 +41,7 @@
 - terminal job では body phase run 作成、field save、readiness update、late response 後書きを拒否する。
 - 本文翻訳対象 0 件は Completed として扱う。provider 未実行でも、単語だけの plugin は成果物出力へ進める。
 - body phase Completed、field result 整合、output status 整合を満たす時だけ output readiness を true にする。
-- secret、API key 平文、復号可能値、provider raw request / response、raw prompt は UI、DTO、error summary、structured log、debug log、fake transport log に出さない。
+- secret、API key 平文、復号可能値、credential 参照実値、secret store key、endpoint、provider raw request / response、raw prompt は UI、DTO、error summary、structured log、debug log、fake transport log に出さない。
 - 原文と訳文がローカル UI に表示されること自体は許容する。
 
 ## 受け入れ根拠
@@ -61,7 +63,7 @@
 
 ## UI 契約由来の恒久仕様
 
-- 表示項目は current phase、phase state、progress、対象 field 件数、処理済み件数、未処理件数、provider / model / execution mode 要約、credential 参照状態、request unit count、output count である。
+- 表示項目は current phase、phase state、progress、対象 field 件数、処理済み件数、未処理件数、provider / model / execution mode / batch mode 要約、credential 状態分類、request unit count、output count である。
 - 表示項目は辞書適用件数、persona 参照件数、metadata summary、prompt digest、field result summary、訳文、出力ステータス、保護要素検証結果、output readiness を含む。
 - 表示項目は failure state、error kind、retryable flag、影響 field 件数、redacted error summary を含む。
 - 主要操作は本文翻訳フェーズ開始、pause、resume、retry、cancel、field result 表示切替、保護要素検証結果の詳細表示、output readiness 確認である。

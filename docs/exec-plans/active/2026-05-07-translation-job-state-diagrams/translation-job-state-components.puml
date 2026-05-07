@@ -1,0 +1,41 @@
+@startuml
+
+top to bottom direction
+skinparam componentStyle rectangle
+skinparam linetype ortho
+
+package "表示境界" {
+  [TranslationJobManagementPage] as Page
+  [TranslationJobManagementUseCase] as FrontUseCase
+  [TranslationJobManagementGatewayContract] as FrontContract
+}
+
+package "backend 操作境界" {
+  [translationJobManagementController] as Controller
+  [TranslationJobManagementUseCase] as BackendUseCase
+  [TranslationJobManagementService\n状態投影と操作可否] as Service
+}
+
+package "状態保存境界" {
+  [JobLifecycleRepository\n変更対象] as JobRepo
+  [TranslationSourceRepository\n接続先] as SourceRepo
+  database "TRANSLATION_JOB\nJOB_PHASE_RUN" as JobTables
+}
+
+Page --> FrontUseCase : 一覧、詳細、操作
+FrontUseCase --> FrontContract : job state contract
+FrontContract --> Controller : Wails DTO
+Controller --> BackendUseCase : request / response
+BackendUseCase --> Service : query / command
+Service --> JobRepo : job state と phase run
+Service --> SourceRepo : input と cache 状態
+JobRepo --> JobTables : read / delete / update
+
+note right of Service
+  一覧表示は状態を変えない。
+  削除は非実行中だけ許可する。
+  停止と再開は入口投影に留める。
+end note
+
+@enduml
+

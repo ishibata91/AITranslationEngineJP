@@ -1,0 +1,560 @@
+{
+  "task_id": "2026-05-07-provider-settings-job-decoupling-implement",
+  "artifact": "scenario-design.requirement-coverage.json",
+  "status": "pending-human-review",
+  "source_artifacts": [
+    "./plan.md",
+    "./task-frame.md",
+    "./scenario-candidates.actor-goal.md",
+    "./scenario-candidates.lifecycle.md",
+    "./scenario-candidates.state-transition.md",
+    "./scenario-candidates.failure.md",
+    "./scenario-candidates.external-integration.md",
+    "./scenario-candidates.operation-audit.md",
+    "docs/detail-specs/ai-provider-settings-management.md",
+    "docs/detail-specs/translation-job-setup.md",
+    "docs/er.md",
+    "docs/architecture.md"
+  ],
+  "requirements": [
+    {
+      "id": "REQ-PSJD-001",
+      "title": "provider settings 共通所有",
+      "kind": "data",
+      "source_requirement": "secret store 情報と endpoint は全 job provider 共通の PROVIDER_SETTINGS 側の設定とする。",
+      "source_refs": [
+        "./task-frame.md:15-18",
+        "docs/detail-specs/ai-provider-settings-management.md:27-38"
+      ],
+      "required_detail_types": [
+        "success_requirement",
+        "data_requirement",
+        "security_requirement",
+        "observability_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "scenario_links": [
+        "SCN-PSJD-001"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "AIサービス設定は provider ごとに endpoint と credential 参照状態を持つ。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:27"
+          ],
+          "verification_hint": "provider settings 保存と再読込で provider ごとの状態を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job 側 DB は secret store 情報と endpoint を所有しないため、endpoint と credential 参照状態は provider settings 側に寄せる。",
+          "source_refs": [
+            "./task-frame.md:10-18"
+          ],
+          "verification_hint": "Job 系 DB に endpoint と secret store 参照実値が保存されないことを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー本体、raw request、raw response、raw prompt は UI、DTO、要約、log、debug 出力に出さない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:28-29"
+          ],
+          "verification_hint": "保存要約、DTO、structured log、fake transport log に secret と raw payload がないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "保存結果と接続確認結果は raw payload ではなく分類と要約で観測する。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:37"
+          ],
+          "verification_hint": "接続確認状態と保存結果分類を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider settings の更新履歴は保存しないため、Job 側 revision 所有を必須にしない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:33",
+            "./task-frame.md:22"
+          ],
+          "verification_hint": "Job 作成時に provider settings revision を永続所有しないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "実装後検証は fake transport DI と fake secret store を使い、有料の実 AI API を呼ばない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:38"
+          ],
+          "verification_hint": "fake transport と fake secret store で保存境界を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PSJD-002",
+      "title": "Job Setup 選択値だけの Ready job 作成",
+      "kind": "operation",
+      "source_requirement": "Job Setup は provider、model、execution mode、batch mode の選択値だけを扱う方向で統合する。",
+      "source_refs": [
+        "./task-frame.md:15-18",
+        "docs/detail-specs/translation-job-setup.md:37-45"
+      ],
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "data_requirement",
+        "consistency_requirement",
+        "security_requirement",
+        "compatibility_requirement"
+      ],
+      "scenario_links": [
+        "SCN-PSJD-002"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "3 つの翻訳段階で APIキー不足と model 未選択がない時だけ、翻訳 job を作成できる。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:37-45"
+          ],
+          "verification_hint": "3 段階すべてで provider、model、execution mode、batch mode を選択して Ready job を作成する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Job Setup の完了状態は、選択 input と各翻訳段階の AI 設定を固定し、Ready job を作成できることである。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:19-22"
+          ],
+          "verification_hint": "Ready job 作成後の状態と作成後設定要約を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "AIサービス設定で設定できる値は Job 側へ永続所有させないため、Ready job は選択値だけを保持する。",
+          "source_refs": [
+            "./task-frame.md:10-18"
+          ],
+          "verification_hint": "Job 系 DB が provider、model、execution mode、batch mode だけを保持することを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Setup は provider settings を参照し、個別の secret や endpoint を fallback にしない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:34"
+          ],
+          "verification_hint": "provider settings 参照結果と Job 作成結果の所有境界を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "作成後の設定内容には APIキー文字列、secret、外部サービスの raw data、内部ログ用識別子を表示しない。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:43-45"
+          ],
+          "verification_hint": "作成後表示、DTO、log に secret と raw payload がないことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存仕様の credential 参照は、今回の固定前提では Job 所有値から外す。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:38",
+            "./task-frame.md:16-18"
+          ],
+          "verification_hint": "credential 参照実値が Job 側永続値にならないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PSJD-003",
+      "title": "Job Setup 不足状態と外部取得境界",
+      "kind": "operation",
+      "source_requirement": "Job Setup は provider settings 参照状態を使い、未設定、model 未選択、model list 取得失敗を分ける。",
+      "source_refs": [
+        "docs/detail-specs/translation-job-setup.md:39-45",
+        "docs/detail-specs/translation-job-setup.md:61-65",
+        "docs/detail-specs/ai-provider-settings-management.md:31-38"
+      ],
+      "required_detail_types": [
+        "failure_handling_requirement",
+        "alternative_success_requirement",
+        "state_requirement",
+        "security_requirement",
+        "recovery_requirement",
+        "testability_requirement"
+      ],
+      "scenario_links": [
+        "SCN-PSJD-003"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "model list 未更新、更新中、取得済み、取得失敗、APIキー未設定で更新不可を分けて表示する。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:61-65"
+          ],
+          "verification_hint": "未設定と取得失敗で作成不可理由が分かれることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "LM Studio は API key を要求しないため、API key 入力、API key 未設定 warning、credential select に出さない。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:40-41"
+          ],
+          "verification_hint": "LM Studio で secret store を使わず model list 取得できることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "API key が設定済みの場合だけ、API key が必要な provider の model list 外部取得を試みる。",
+          "source_refs": [
+            "docs/detail-specs/translation-job-setup.md:39-40"
+          ],
+          "verification_hint": "APIキー未設定時の model list 外部呼び出し回数 0 を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "接続確認、保存失敗、endpoint 参照不能、provider 不正応答は分類と短い要約で表示する。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:61"
+          ],
+          "verification_hint": "取得失敗表示に raw response がないことを確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "endpoint または APIキー変更後は再確認待ちになり、利用者は再確認と model list 更新をやり直す。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:30",
+            "docs/detail-specs/translation-job-setup.md:66"
+          ],
+          "verification_hint": "APIキー保存後に model list 再更新が必要な表示を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "有料の実 AI API を使う必須検証は対象外である。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:69"
+          ],
+          "verification_hint": "fake transport と fake secret store を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PSJD-004",
+      "title": "Ready job 実行開始前再解決",
+      "kind": "state",
+      "source_requirement": "Ready job は実行開始前に最新 provider settings を再解決する方向で統合する。",
+      "source_refs": [
+        "./task-frame.md:18",
+        "docs/detail-specs/ai-provider-settings-management.md:34-36"
+      ],
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "security_requirement",
+        "observability_requirement",
+        "concurrency_requirement",
+        "testability_requirement"
+      ],
+      "scenario_links": [
+        "SCN-PSJD-004"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Ready job は実行開始前に最新 provider settings を再解決する。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:35"
+          ],
+          "verification_hint": "Ready job 作成後に provider settings を更新し、実行開始で更新後状態を参照することを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "実行開始前の再解決で未設定または参照不能を検出した場合、Running phase を開始しない。",
+          "source_refs": [
+            "./task-frame.md:18",
+            "docs/detail-specs/ai-provider-settings-management.md:35"
+          ],
+          "verification_hint": "provider settings 未設定時に phase が Running にならないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "実行開始前の条件不足は開始前失敗として扱い、Job 側 fallback を使わない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:34-35"
+          ],
+          "verification_hint": "Ready job の保存済み credential / endpoint を使わないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job 作成後の provider settings 更新は、実行開始時の再解決結果に反映する。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:33-35"
+          ],
+          "verification_hint": "作成時状態と開始時状態の差分分類を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー本体と raw payload は error summary、structured log、保存要約へ出さない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:29"
+          ],
+          "verification_hint": "実行開始失敗要約に secret と raw payload がないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "再解決結果は分類と短い要約で観測する。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:37"
+          ],
+          "verification_hint": "再解決済み分類、credential 状態分類、接続確認状態を確認する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Ready job 作成後かつ実行開始前の provider settings 更新は、最新設定の再解決で吸収する。",
+          "source_refs": [
+            "./task-frame.md:18",
+            "docs/detail-specs/ai-provider-settings-management.md:35"
+          ],
+          "verification_hint": "作成後更新から実行開始までの順序で最新設定が使われることを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "実装後検証は fake transport DI と fake secret store を使う。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:38"
+          ],
+          "verification_hint": "fake provider execution transport の入力要約を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PSJD-005",
+      "title": "Running phase 非 secret 要約境界",
+      "kind": "state",
+      "source_requirement": "Running phase は endpoint / credential 参照の所有を共通設定に置き、phase には実行時の非 secret 要約だけを残す。",
+      "source_refs": [
+        "./task-frame.md:22-25",
+        "docs/detail-specs/ai-provider-settings-management.md:35-38",
+        "docs/er.md:22-25"
+      ],
+      "required_detail_types": [
+        "state_requirement",
+        "data_requirement",
+        "security_requirement",
+        "consistency_requirement",
+        "concurrency_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "scenario_links": [
+        "SCN-PSJD-005"
+      ],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Running phase は phase 開始時に再解決した provider settings の結果を実行に使う。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:35-36"
+          ],
+          "verification_hint": "phase 開始時の再解決結果を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase runtime snapshot は endpoint 原文、credential 参照実値、APIキー本体を保存せず、非 secret 分類要約だけを保存する。",
+          "source_refs": [
+            "./task-frame.md:25",
+            "docs/detail-specs/ai-provider-settings-management.md:29"
+          ],
+          "verification_hint": "runtime snapshot の保存項目を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー、raw request、raw response、raw prompt は structured log、fake transport log、保存要約へ出さない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:29"
+          ],
+          "verification_hint": "phase runtime snapshot と log に禁止値がないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Running phase 中に provider settings が更新されても、進行中 phase は参照結果を混在させない。",
+          "source_refs": [
+            "./task-frame.md:23",
+            "docs/detail-specs/ai-provider-settings-management.md:36"
+          ],
+          "verification_hint": "長時間 fake provider execution で更新前後の混在がないことを確認する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "実行中 provider settings 更新は provider settings 側の状態更新として完結し、Running phase の DB 所有値を増やさない。",
+          "source_refs": [
+            "./task-frame.md:17-25"
+          ],
+          "verification_hint": "更新中も Job 側に endpoint / credential fallback が保存されないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "実行時要約には provider、model、execution mode、batch mode、credential 状態分類、接続確認状態、再解決結果分類、再解決時刻を残せる。",
+          "source_refs": [
+            "./task-frame.md:25",
+            "docs/detail-specs/ai-provider-settings-management.md:37"
+          ],
+          "verification_hint": "phase run detail と structured log の要約項目を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "有料の実 AI API 呼び出しを必須にしない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:38"
+          ],
+          "verification_hint": "長時間 fake provider execution transport を使う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-PSJD-006",
+      "title": "完了、再実行、監査要約の非 secret 化",
+      "kind": "operation",
+      "source_requirement": "完了、再実行、監査要約は Job と provider settings の所有境界を説明し、secret と raw payload を残さない。",
+      "source_refs": [
+        "docs/er.md:22-25",
+        "docs/er.md:63-67",
+        "docs/detail-specs/ai-provider-settings-management.md:29-38"
+      ],
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "recovery_requirement",
+        "冪等性_requirement",
+        "data_requirement",
+        "observability_requirement",
+        "security_requirement"
+      ],
+      "scenario_links": [
+        "SCN-PSJD-006"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "ジョブ状態は JOB_PHASE_RUN 群から集約し、翻訳結果と出力ステータスは JOB_TRANSLATION_FIELD に保持する。",
+          "source_refs": [
+            "docs/er.md:22-25"
+          ],
+          "verification_hint": "Completed phase と出力成果物が provider settings 更新で再評価されないことを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Completed phase は provider settings 更新や未設定化だけで Running、Failed、Ready へ戻らない。",
+          "source_refs": [
+            "docs/er.md:22-25",
+            "docs/detail-specs/ai-provider-settings-management.md:33-35"
+          ],
+          "verification_hint": "Completed phase 後に provider settings を更新し、phase 状態が変わらないことを確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "フェーズ再実行は同じ JOB_PHASE_RUN の状態を戻す扱いにする。",
+          "source_refs": [
+            "docs/er.md:63-67"
+          ],
+          "verification_hint": "Failed phase 再実行で同じ phase run が Running へ戻ることを確認する。"
+        },
+        {
+          "type": "冪等性_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Attempt 履歴テーブルは持たない。",
+          "source_refs": [
+            "docs/er.md:66-67"
+          ],
+          "verification_hint": "再実行で attempt 履歴テーブルが作られないことを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "再実行開始時は最新 provider settings を再解決し、古い credential / endpoint snapshot を Job 側から再利用しない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:35",
+            "./task-frame.md:17-18"
+          ],
+          "verification_hint": "再実行開始時の provider settings 解決結果を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "job detail、phase run detail、保存要約、structured log は分類と要約だけを残す。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:37"
+          ],
+          "verification_hint": "直近失敗分類、再解決分類、credential 状態分類を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー本体、secret、raw payload は表示、DTO、log、保存要約へ出さない。",
+          "source_refs": [
+            "docs/detail-specs/ai-provider-settings-management.md:29",
+            "docs/detail-specs/translation-job-setup.md:43-45"
+          ],
+          "verification_hint": "完了要約、再実行要約、監査要約に禁止値がないことを確認する。"
+        }
+      ]
+    }
+  ],
+  "not_applicable_detail_types": [
+    {
+      "type": "authorization_requirement",
+      "status": "not_applicable",
+      "source_or_rationale": "入力資料に利用者権限差分がなく、ローカルアプリの単一利用者操作として扱う。",
+      "verification_hint": "権限差分をこのシナリオ設計の受け入れ条件にしない。"
+    },
+    {
+      "type": "performance_requirement",
+      "status": "not_applicable",
+      "source_or_rationale": "入力資料に量や時間の性能条件がない。",
+      "verification_hint": "性能基準は implementation-scope で作らない。"
+    },
+    {
+      "type": "boundary_requirement",
+      "status": "deferred",
+      "source_or_rationale": "長い model 名、長い翻訳データ名、エラー文の UI 境界は独立 UI 設計で扱う。",
+      "owner": "designer ui-design",
+      "recheck_condition": "ui-design.md 作成時",
+      "verification_hint": "UI 文字あふれは ui-design と frontend-local で確認する。"
+    }
+  ],
+  "unresolved_questions": []
+}

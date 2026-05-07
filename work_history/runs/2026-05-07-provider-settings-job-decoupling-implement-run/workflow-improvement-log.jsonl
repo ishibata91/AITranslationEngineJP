@@ -1,0 +1,3 @@
+{"category":"handoff","source":"final-validation.md","finding":"retry 経路を持つ task では、状態遷移と snapshot 永続化の順序を初回 handoff に明記すると迷いが減る。","action":"next_prompt"}
+{"category":"boundary","source":"reviewback.trust-boundary.yaml","finding":"secret 境界を伴う task では、公開 DTO に残してよい値と残してはいけない値を初回 handoff へ明示すると確認負荷が下がる。","action":"next_prompt"}
+{"category":"invariant","source":"reviewback.state-invariant.yaml","finding":"stale 判定を使う task では、非 secret 鮮度 token と secret 値を分離して書くと再解釈が減る。","action":"next_prompt"}

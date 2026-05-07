@@ -1,0 +1,66 @@
+@startuml
+
+top to bottom direction
+hide circle
+skinparam linetype ortho
+
+entity "X_EDIT_EXTRACTED_DATA\n接続先" as XEditExtractedData {
+  * id
+  --
+  source_file_path
+  target_plugin_name
+}
+
+entity "TRANSLATION_JOB\n状態を表す変更対象" as TranslationJob {
+  * id
+  --
+  x_edit_extracted_data_id
+  job_name
+  state
+  progress_percent
+  started_at
+  finished_at
+}
+
+entity "JOB_PHASE_RUN\n状態を表す変更対象" as JobPhaseRun {
+  * id
+  --
+  translation_job_id
+  phase_type
+  state
+  execution_order
+  progress_percent
+  latest_error
+  started_at
+  finished_at
+}
+
+entity "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT\n表示接続先" as RuntimeSnapshot {
+  * id
+  --
+  translation_job_id
+  phase_id
+  provider
+  model_name
+  credential_ref
+  credential_status
+}
+
+XEditExtractedData ||--o{ TranslationJob : 1入力から複数job
+TranslationJob ||--o{ JobPhaseRun : 状態集約元
+TranslationJob ||--o{ RuntimeSnapshot : 設定要約
+
+note right of TranslationJob
+  job state:
+  ready / running / paused
+  recoverable_failed
+  completed / failed / canceled
+end note
+
+note right of JobPhaseRun
+  phase state と進捗から
+  現在フェーズ、警告、操作可否を投影する。
+end note
+
+@enduml
+

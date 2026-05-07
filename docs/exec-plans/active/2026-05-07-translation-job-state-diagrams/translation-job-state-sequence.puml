@@ -1,0 +1,57 @@
+@startuml
+
+skinparam sequenceMessageAlign center
+
+actor "利用者" as User
+participant "TranslationJobManagementPage" as UiPage
+participant "TranslationJobManagementUseCase" as FrontUC
+participant "translationJobManagementController" as Controller
+participant "TranslationJobManagementUseCase\nbackend" as BackendUC
+participant "TranslationJobManagementService" as Service
+database "JobLifecycleRepository" as JobRepo
+database "TranslationSourceRepository" as SourceRepo
+
+User -> UiPage : 翻訳ジョブ管理を開く
+UiPage -> FrontUC : 未完了一覧を要求
+FrontUC -> Controller : ListIncompleteJobs
+Controller -> BackendUC : ListIncompleteJobs
+BackendUC -> Service : ListIncompleteJobs
+Service -> JobRepo : ListIncompleteTranslationJobs
+JobRepo --> Service : Completed 以外の job
+Service -> JobRepo : ListJobPhaseRunsByJobID
+JobRepo --> Service : phase run
+Service -> SourceRepo : input と cache 状態確認
+SourceRepo --> Service : input summary / cache state
+Service --> BackendUC : job state、進捗、操作可否
+BackendUC --> Controller : response
+Controller --> FrontUC : gateway response
+FrontUC --> UiPage : screen state
+
+alt 削除操作
+  User -> UiPage : 非実行中 job を削除
+  UiPage -> FrontUC : DeleteJob
+  FrontUC -> Controller : DeleteJob
+  Controller -> BackendUC : DeleteJob
+  BackendUC -> Service : DeleteJob
+  Service -> JobRepo : GetTranslationJobByID
+  JobRepo --> Service : job state
+  alt state == running
+    Service --> BackendUC : running_delete_blocked
+  else state != running
+    Service -> JobRepo : DeleteNonRunningTranslationJob
+    JobRepo --> Service : deleted
+  end
+end
+
+alt 停止または再開入口
+  User -> UiPage : 停止または再開を押す
+  UiPage -> FrontUC : RequestStop / ResumeJob
+  FrontUC -> Controller : action request
+  Controller -> BackendUC : action request
+  BackendUC -> Service : 状態投影を要求
+  Service -> JobRepo : GetTranslationJobByID
+  JobRepo --> Service : job state
+  Service --> BackendUC : 実行本体なしの入口結果
+end
+
+@enduml

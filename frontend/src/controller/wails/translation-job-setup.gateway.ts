@@ -1,4 +1,9 @@
-import type { TranslationJobSetupGatewayContract } from "@application/gateway-contract/translation-job-setup"
+import type {
+  CreateTranslationJobRequest,
+  TranslationJobSetupGatewayContract,
+  TranslationJobSetupPhaseRuntimeValidationSelection,
+  ValidateTranslationJobSetupRequest
+} from "@application/gateway-contract/translation-job-setup"
 import type {
   CreateTranslationJobRequestDto,
   CreateTranslationJobResponseDto,
@@ -9,6 +14,7 @@ import type {
   GetTranslationJobSetupSummaryResponseDto,
   ListTranslationJobSetupProviderModelsRequestDto,
   ListTranslationJobSetupProviderModelsResponseDto,
+  TranslationJobSetupPhaseRuntimeValidationSelectionDto,
   ValidateTranslationJobSetupRequestDto,
   ValidateTranslationJobSetupResponseDto
 } from "@controller/wails/gateway-dto/translation-job-setup"
@@ -42,6 +48,54 @@ function toRecord(value: unknown): Record<string, unknown> | null {
   }
 
   return value as Record<string, unknown>
+}
+
+function toPhaseRuntimeSelectionDto(
+  selection: TranslationJobSetupPhaseRuntimeValidationSelection
+): TranslationJobSetupPhaseRuntimeValidationSelectionDto {
+  return {
+    phaseId: selection.phaseId,
+    provider: selection.provider,
+    model: selection.model,
+    credentialStatus: selection.credentialStatus,
+    executionMode: selection.executionMode,
+    batchMode: selection.batchMode,
+    modelListFreshnessToken: selection.modelListFreshnessToken
+  }
+}
+
+function toValidateTranslationJobSetupRequestDto(
+  request: ValidateTranslationJobSetupRequest
+): ValidateTranslationJobSetupRequestDto {
+  const dto: ValidateTranslationJobSetupRequestDto = {
+    inputSourceId: request.inputSourceId,
+    runtime: request.runtime
+  }
+  if (request.phaseRuntimeSelections) {
+    dto.phaseRuntimeSelections = request.phaseRuntimeSelections.map(
+      toPhaseRuntimeSelectionDto
+    )
+  }
+  return dto
+}
+
+function toCreateTranslationJobRequestDto(
+  request: CreateTranslationJobRequest
+): CreateTranslationJobRequestDto {
+  const dto: CreateTranslationJobRequestDto = {
+    inputSourceId: request.inputSourceId,
+    inputSource: request.inputSource,
+    validationStatus: request.validationStatus,
+    validatedAt: request.validatedAt,
+    validationPassSlices: [...request.validationPassSlices],
+    runtime: request.runtime
+  }
+  if (request.phaseRuntimeSelections) {
+    dto.phaseRuntimeSelections = request.phaseRuntimeSelections.map(
+      toPhaseRuntimeSelectionDto
+    )
+  }
+  return dto
 }
 
 function resolveBindingFunction(
@@ -118,12 +172,15 @@ class TranslationJobSetupGateway implements TranslationJobSetupGatewayContract {
   }
 
   validateTranslationJobSetup(
-    request: ValidateTranslationJobSetupRequestDto
+    request: ValidateTranslationJobSetupRequest
   ): Promise<ValidateTranslationJobSetupResponseDto> {
     return this.invokeBinding<
       ValidateTranslationJobSetupRequestDto,
       ValidateTranslationJobSetupResponseDto
-    >("ValidateTranslationJobSetup", request).then(
+    >(
+      "ValidateTranslationJobSetup",
+      toValidateTranslationJobSetupRequestDto(request)
+    ).then(
       (
         response: ValidateTranslationJobSetupResponseDto
       ): ValidateTranslationJobSetupResponseDto => ({
@@ -135,9 +192,12 @@ class TranslationJobSetupGateway implements TranslationJobSetupGatewayContract {
   }
 
   createTranslationJob(
-    request: CreateTranslationJobRequestDto
+    request: CreateTranslationJobRequest
   ): Promise<CreateTranslationJobResponseDto> {
-    return this.invokeBinding("CreateTranslationJob", request)
+    return this.invokeBinding(
+      "CreateTranslationJob",
+      toCreateTranslationJobRequestDto(request)
+    )
   }
 
   deleteTranslationJobSetupInput(

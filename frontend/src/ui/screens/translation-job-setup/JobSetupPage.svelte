@@ -199,8 +199,8 @@
   <section class="job-setup-card hero-card">
     <h2>翻訳段階ごとの AI 設定</h2>
     <p class="lead">
-      入力済みデータを確認し、3 つの翻訳段階で使う AI
-      サービスとモデルを選びます。
+      入力済みデータを確認し、3 つの翻訳段階で使う
+      AIサービスとモデルを選びます。
     </p>
     <p class="error-text" hidden={!viewModel.errorMessage}>
       {viewModel.errorMessage}
@@ -235,19 +235,19 @@
           </div>
           {#if viewModel.summaryPhaseCards.length === 0}
             <div>
-              <dt>provider</dt>
+              <dt>AIサービス</dt>
               <dd class="wrap-value">
                 {viewModel.summary.executionSummary.provider}
               </dd>
             </div>
             <div>
-              <dt>model</dt>
+              <dt>モデル</dt>
               <dd class="wrap-value">
                 {viewModel.summary.executionSummary.model}
               </dd>
             </div>
             <div>
-              <dt>execution mode</dt>
+              <dt>実行方法</dt>
               <dd>{viewModel.summary.executionSummary.executionMode}</dd>
             </div>
           {/if}
@@ -318,9 +318,8 @@
               <button
                 aria-pressed={isSelectedInputCard(candidate.id)}
                 class="input-card-select"
-                disabled={
-                  viewModel.isCreating || isDeletingInputCard(candidate.id)
-                }
+                disabled={viewModel.isCreating ||
+                  isDeletingInputCard(candidate.id)}
                 onclick={() => controller.selectInputSource(candidate.id)}
                 type="button"
               >
@@ -350,10 +349,8 @@
               <div class="input-card-actions">
                 <button
                   class="button-secondary"
-                  disabled={
-                    viewModel.isCreating ||
-                    viewModel.deletingInputSourceId !== null
-                  }
+                  disabled={viewModel.isCreating ||
+                    viewModel.deletingInputSourceId !== null}
                   onclick={() =>
                     void controller.deleteInputSource(candidate.id)}
                   type="button"
@@ -436,12 +433,12 @@
         >
           <div class="section-head">
             <div>
-              <p class="eyebrow">foundation and runtime</p>
-              <h3 id="jobSetupLegacyRuntimeHeading">共通基盤と AI runtime</h3>
+              <p class="eyebrow">phase settings unavailable</p>
+              <h3 id="jobSetupLegacyRuntimeHeading">翻訳段階別設定</h3>
             </div>
           </div>
           <label class="field-block" for="jobSetupRuntimeSelect">
-            <span>provider / model / execution mode</span>
+            <span>AIサービス / モデル / 実行方法</span>
             <select
               id="jobSetupRuntimeSelect"
               onchange={(event) => {
@@ -463,26 +460,9 @@
               {/each}
             </select>
           </label>
-          <label class="field-block" for="jobSetupCredentialSelect">
-            <span>credential reference</span>
-            <select
-              id="jobSetupCredentialSelect"
-              onchange={(event) => {
-                const target = event.currentTarget
-                if (target instanceof HTMLSelectElement) {
-                  controller.selectCredentialRef(target.value)
-                }
-              }}
-              value={viewModel.selectedCredentialRef}
-            >
-              {#each viewModel.availableCredentialRefs as credential (credential.credentialRef)}
-                <option value={credential.credentialRef}>
-                  {credential.provider} / {credential.credentialRef}
-                </option>
-              {/each}
-            </select>
-          </label>
-          <p class="mini-text">{viewModel.credentialStateText}</p>
+          <p class="mini-text">
+            翻訳段階別設定を取得できません。AIサービス、モデル、実行方法の選択だけを表示しています。
+          </p>
         </section>
 
         <section
@@ -491,8 +471,8 @@
         >
           <div class="section-head">
             <div>
-              <p class="eyebrow">validation</p>
-              <h3 id="jobSetupValidationHeading">Validation status</h3>
+              <p class="eyebrow">pre-check</p>
+              <h3 id="jobSetupValidationHeading">作成前確認</h3>
             </div>
             <button
               class="button-secondary"
@@ -500,7 +480,7 @@
               onclick={() => void controller.runValidation()}
               type="button"
             >
-              validation を実行
+              確認を実行
             </button>
           </div>
           <dl class="detail-grid compact">
@@ -510,25 +490,25 @@
                 {#if viewModel.validationResult}
                   {resolveValidationLabel(viewModel.validationResult.status)}
                 {:else}
-                  validation 未実行
+                  未実行
                 {/if}
               </dd>
             </div>
             <div>
-              <dt>validated at</dt>
+              <dt>確認日時</dt>
               <dd>
                 {formatDate(viewModel.validationResult?.validatedAt ?? "")}
               </dd>
             </div>
             <div>
-              <dt>blocking failure</dt>
+              <dt>作成できない理由</dt>
               <dd class="wrap-value">
                 {viewModel.validationResult?.blockingFailureCategory ?? "-"}
               </dd>
             </div>
             <div>
-              <dt>dirty state</dt>
-              <dd>{viewModel.dirty ? "dirty" : "clean"}</dd>
+              <dt>再確認</dt>
+              <dd>{viewModel.dirty ? "再確認が必要" : "確認済み"}</dd>
             </div>
           </dl>
           <div class="tag-list">
@@ -861,6 +841,5 @@
     .foundation-grid.split {
       grid-template-columns: minmax(0, 1fr);
     }
-
   }
 </style>

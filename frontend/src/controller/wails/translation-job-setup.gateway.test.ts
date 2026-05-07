@@ -68,14 +68,6 @@ describe("createTranslationJobSetupGateway", () => {
       aiRuntimeOptions: [
         { provider: "openai-compatible", model: "gpt-4.1-mini", mode: "batch" }
       ],
-      credentialRefs: [
-        {
-          provider: "openai-compatible",
-          credentialRef: "cred-main",
-          isConfigured: true,
-          isMissingSecret: false
-        }
-      ]
     } satisfies GetTranslationJobSetupOptionsResponseDto
     const getTranslationJobSetupOptions = vi.fn(() => Promise.resolve(response))
 
@@ -104,7 +96,14 @@ describe("createTranslationJobSetupGateway", () => {
         model: "claude-3-7-sonnet",
         executionMode: "batch"
       },
-      credentialRef: "cred-anthropic"
+    }
+    const expectedBindingRequest = {
+      inputSourceId: 41,
+      runtime: {
+        provider: "anthropic",
+        model: "claude-3-7-sonnet",
+        executionMode: "batch"
+      }
     } satisfies ValidateTranslationJobSetupRequestDto
     const response = {
       status: "warning",
@@ -130,7 +129,9 @@ describe("createTranslationJobSetupGateway", () => {
       response
     )
     expect(validateTranslationJobSetup).toHaveBeenCalledTimes(1)
-    expect(validateTranslationJobSetup).toHaveBeenCalledWith(request)
+    expect(validateTranslationJobSetup).toHaveBeenCalledWith(
+      expectedBindingRequest
+    )
   })
 
   test("validateTranslationJobSetup は null の targetSlices と passSlices を空配列へ正規化する", async () => {
@@ -141,8 +142,7 @@ describe("createTranslationJobSetupGateway", () => {
         model: "local-model",
         executionMode: "sync"
       },
-      credentialRef: "lm_studio-primary"
-    } satisfies ValidateTranslationJobSetupRequestDto
+    }
     const response = {
       status: "pass",
       blockingFailureCategory: undefined,
@@ -187,7 +187,18 @@ describe("createTranslationJobSetupGateway", () => {
         model: "gpt-4.1-mini",
         executionMode: "batch"
       },
-      credentialRef: "cred-main"
+    }
+    const expectedBindingRequest = {
+      inputSourceId: 41,
+      inputSource: "very/long/path/input-review.json",
+      validationStatus: "pass",
+      validatedAt: "2026-04-27T10:30:00Z",
+      validationPassSlices: ["input", "runtime", "credential"],
+      runtime: {
+        provider: "openai-compatible",
+        model: "gpt-4.1-mini",
+        executionMode: "batch"
+      }
     } satisfies CreateTranslationJobRequestDto
     const response = {
       jobId: 501,
@@ -216,7 +227,7 @@ describe("createTranslationJobSetupGateway", () => {
       response
     )
     expect(createTranslationJob).toHaveBeenCalledTimes(1)
-    expect(createTranslationJob).toHaveBeenCalledWith(request)
+    expect(createTranslationJob).toHaveBeenCalledWith(expectedBindingRequest)
   })
 
   test("getTranslationJobSetupSummary は summary request を binding へ渡し read-only response を返す", async () => {
@@ -285,7 +296,6 @@ describe("createTranslationJobSetupGateway", () => {
     const request: ListTranslationJobSetupProviderModelsRequest = {
       phaseId: "text_translation",
       provider: "lm_studio",
-      credentialRef: "",
       credentialStatus: "not_required",
       requestToken: "req-lm-1"
     }

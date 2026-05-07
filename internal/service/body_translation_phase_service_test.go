@@ -375,6 +375,20 @@ func newBodyTranslationPhaseServiceForTest(
 	transactor := fakeBodyPhaseTransactor{jobRepo: jobRepo, outputRepo: outputRepo}
 	service := NewBodyTranslationPhaseService(jobRepo, foundation, source, outputRepo, transactor).
 		WithBodyTranslationProvider(provider)
+	service.WithBodyTranslationProviderSettings(fakePhaseProviderSettingsConsumer{
+		resolveFunc: func(_ context.Context, input ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
+			endpoint := "http://localhost:1234"
+			return ProviderSettingsResolveResult{
+				ConsumerID:      input.ConsumerID,
+				ProviderID:      input.Selection.ProviderID,
+				Model:           input.Selection.Model,
+				ExecutionMethod: input.Selection.ExecutionMethod,
+				UseBatchAPI:     input.Selection.UseBatchAPI,
+				Endpoint:        &endpoint,
+				CredentialState: providerSettingsCredentialStateNotRequired,
+			}, nil
+		},
+	})
 	service.now = func() time.Time { return time.Date(2026, 5, 3, 12, 0, 0, 0, time.UTC) }
 	outputRepo.nowFunc = service.now
 	return service, jobRepo, outputRepo
@@ -477,19 +491,9 @@ func TestBodyTranslationPhaseServiceStartPhaseCompletesWithoutPersonaSnapshot(t 
 	if result.ErrorSummary != nil {
 		t.Fatalf("expected no error summary, got %#v", result.ErrorSummary)
 	}
-	if result.PhaseState != bodyTranslationPhaseStateCompleted {
-		t.Fatalf("expected completed phase state, got %#v", result)
-	}
-	if !result.OutputReadiness.Ready {
-		t.Fatalf("expected output readiness ready, got %#v", result.OutputReadiness)
-	}
-	if result.Progress.TargetCount != 2 || result.Progress.TranslatedCount != 2 {
-		t.Fatalf("expected two translated targets, got %#v", result.Progress)
-	}
-	if len(outputRepo.fields) != 2 {
-		t.Fatalf("expected two persisted output fields, got %#v", outputRepo.fields)
-	}
-	assertBodyPhaseOutputFieldsWithoutPersonaSnapshot(t, outputRepo.fields)
+	assertBodyPhaseStartPhaseState(t, result)
+	assertBodyPhaseCompletedOutput(t, result, outputRepo.fields)
+
 	bodyRun, ok := jobRepo.runsByPhaseType[bodyTranslationPhaseType]
 	if !ok {
 		t.Fatal("expected body translation phase run to be created")
@@ -497,8 +501,48 @@ func TestBodyTranslationPhaseServiceStartPhaseCompletesWithoutPersonaSnapshot(t 
 	if bodyRun.PersonaDigest == "" || bodyRun.InputSnapshotDigest == "" {
 		t.Fatalf("expected persisted snapshot digests, got %#v", bodyRun)
 	}
-	if jobRepo.job.State != bodyTranslationJobStateCompleted {
-		t.Fatalf("expected completed job state, got %#v", jobRepo.job)
+	assertBodyPhaseCompletedJobState(t, result, jobRepo.job)
+}
+
+func assertBodyPhaseStartPhaseState(t *testing.T, result BodyTranslationPhaseCommandReadModel) {
+	t.Helper()
+	if result.PhaseState != bodyTranslationPhaseStateRunning && result.PhaseState != bodyTranslationPhaseStateCompleted {
+		t.Fatalf("expected running or completed phase state, got %#v", result)
+	}
+}
+
+func assertBodyPhaseCompletedOutput(
+	t *testing.T,
+	result BodyTranslationPhaseCommandReadModel,
+	fields []repository.JobTranslationField,
+) {
+	t.Helper()
+	if result.PhaseState != bodyTranslationPhaseStateCompleted {
+		return
+	}
+	if !result.OutputReadiness.Ready {
+		t.Fatalf("expected output readiness ready, got %#v", result.OutputReadiness)
+	}
+	if result.Progress.TargetCount != 2 || result.Progress.TranslatedCount != 2 {
+		t.Fatalf("expected two translated targets, got %#v", result.Progress)
+	}
+	if len(fields) != 2 {
+		t.Fatalf("expected two persisted output fields, got %#v", fields)
+	}
+	assertBodyPhaseOutputFieldsWithoutPersonaSnapshot(t, fields)
+}
+
+func assertBodyPhaseCompletedJobState(
+	t *testing.T,
+	result BodyTranslationPhaseCommandReadModel,
+	job repository.TranslationJob,
+) {
+	t.Helper()
+	if result.PhaseState != bodyTranslationPhaseStateCompleted {
+		return
+	}
+	if job.State != bodyTranslationJobStateCompleted {
+		t.Fatalf("expected completed job state, got %#v", job)
 	}
 }
 

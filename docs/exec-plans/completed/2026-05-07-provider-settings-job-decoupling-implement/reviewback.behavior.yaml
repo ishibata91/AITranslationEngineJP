@@ -1,0 +1,138 @@
+reviewback_version: 1
+task_id: "2026-05-07-provider-settings-job-decoupling-implement"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "通過。Job Setup から credential 参照実値、endpoint、modelListSourceToken を公開 payload と表示値へ出さない主要経路は維持されている。既存 behavior-001 は、frontend validation/create payload に modelListFreshnessToken を追加し、Wails / Go usecase / service validation へ渡す経路が成立したため解消済みである。service validation は selection 由来 token と provider settings 再解決後 token を比較し、古いモデル一覧由来の選択を model_selection_stale として拒否できる。"
+  evidence_sufficiency: "十分。指定された implementation-scope、final-validation、review-fix-result、既存 reviewback.behavior.yaml、frontend gateway contract、frontend usecase、Wails gateway、fake API、Go usecase contract、Go usecase、Wails controller、Job Setup service を確認した。ハーネスは人間指示に従い再実行していない。"
+  hard_gate: false
+
+checked_scope:
+  summary: "Job Setup のモデル一覧更新、作成前検証、create payload、Wails DTO、Go usecase 変換、service stale 判定、provider model list sourceToken 生成、fake API の token 形を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/implementation-scope.md"
+      line: 18
+      symbol: "Fixed Decisions"
+      reason: "Job Setup が扱う値、Ready job の再解決、Running snapshot の保存値、モデル一覧状態表示の承認済み条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+      line: 25
+      symbol: "修正後結果"
+      reason: "呼び出し元から渡された all suite pass、system test 9 passed、Sonar issue 0、coverage 値を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+      line: 7
+      symbol: "解消内容"
+      reason: "5 観点レビュー修正の主張と対象 issue を確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 108
+      symbol: "TranslationJobSetupPhaseRuntimeValidationSelection"
+      reason: "公開選択値とは別に、検証用の modelListFreshnessToken が contract に追加されていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 425
+      symbol: "createValidationPayload"
+      reason: "作成前検証と create に、phase selection と対応する model list sourceToken が modelListFreshnessToken として入ることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 55
+      symbol: "toPhaseRuntimeSelectionDto"
+      reason: "frontend gateway が modelListFreshnessToken を Wails DTO へ渡すことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 504
+      symbol: "createModelListResponse"
+      reason: "fake API の sourceToken が phase|provider||requestToken 形式で、credential reference 実値を含まないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 240
+      symbol: "TranslationJobSetupPhaseRuntimeSelection"
+      reason: "Go usecase contract が FreshnessToken を受け取ることを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 229
+      symbol: "toServiceTranslationJobSetupPhaseRuntimes"
+      reason: "Go usecase が FreshnessToken を service の ModelListSourceToken へ渡すことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 118
+      symbol: "TranslationJobSetupPhaseRuntimeSelectionDTO"
+      reason: "Wails DTO が modelListFreshnessToken を受け取り、usecase selection へ渡すことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 958
+      symbol: "validatePhaseRuntime"
+      reason: "selection 由来 token と provider settings 再解決後 token の一致で stale 判定することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1427
+      symbol: "translationJobSetupModelListSourceToken"
+      reason: "sourceToken が phase|provider||requestToken 形式で、credential reference 実値を含まないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1597
+      symbol: "resolvePhaseRuntimeAgainstProviderSettings"
+      reason: "validation 中に最新 provider settings の request token から比較用 token を再生成することを確認した。"
+
+unchecked_scope:
+  - target: "有料の実 AI API 呼び出し"
+    reason: "承認済み非対象であり、final-validation でも未実施と記録されている。"
+    risk: "実 provider 側の一時的な応答差分は残る。"
+  - target: "provider settings 画面の全面再設計"
+    reason: "承認済み非対象である。"
+    risk: "設定画面固有の表示改善は別 task に残る。"
+  - target: "ハーネス再実行"
+    reason: "人間指示で広いハーネス再実行は禁止である。final-validation の既存証跡を入力として扱った。"
+    risk: "レビュー時点のローカル再実行による再現確認はしていない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "モデル一覧の stale 判定が常に通り得る"
+    problem: "修正前は、作成前検証 payload からモデル一覧取得時の sourceToken または同等の鮮度根拠が service validation へ渡らなかった。"
+    reason: "修正後は、frontend が modelListFreshnessToken を validation/create payload に含め、Wails / Go usecase が service の ModelListSourceToken へ渡す。service validation は selection 由来 token と provider settings 再解決後 token を比較するため、provider settings 更新後の古いモデル一覧選択を stale と判定できる。"
+    violated_condition: "Job Setup の作成前検証は、モデル一覧更新後の選択だけを fresh と扱い、古いモデル一覧由来の選択を stale として拒否する。"
+    cause_candidate: "修正前は、credential 参照実値と modelListSourceToken の公開削除時に、鮮度根拠を validation request へ渡す代替経路がなかった。"
+    evidence:
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 467
+        excerpt: "toPhaseRuntimeValidationSelection が modelList.sourceToken を modelListFreshnessToken に変換する。"
+      - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+        line: 63
+        excerpt: "toPhaseRuntimeSelectionDto が modelListFreshnessToken を DTO に含める。"
+      - path: "internal/usecase/translation_job_setup_usecase.go"
+        line: 235
+        excerpt: "toServiceTranslationJobSetupPhaseRuntimes が FreshnessToken を ModelListSourceToken へ渡す。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 963
+        excerpt: "validatePhaseRuntime が selection 由来の ModelListSourceToken を保持する。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1007
+        excerpt: "selection 由来 token と再解決後 token が空または不一致なら model_selection_stale になる。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1427
+        excerpt: "translationJobSetupModelListSourceToken は phase|provider||requestToken 形式で token を作る。"
+    local_fix_assessment: "cross-layer"
+    additional_check_scope: "none。frontend payload、Wails / Go usecase contract、service validation、fake API の同一変更範囲で解消を確認した。"
+    fix_considerations: "解消済み。credential 参照実値、secret store key、endpoint、modelListSourceToken そのものは公開値へ戻していない。"
+    verification: "final-validation の `python3 scripts/harness/run.py --suite all` は 2026-05-07T21:52:39+0900 時点で pass。レビュー agent は人間指示に従い再実行していない。"
+    fix_required: true
+    status: "resolved"
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_evaluation:
+  required: false
+  assessment: "追加の局所修正は不要である。既存 issue の修正は frontend validation payload、Wails / Go usecase contract、service validation の狭い横断範囲で閉じている。"
+  invariant_test_viewpoint: "credential 参照実値を公開せず、モデル一覧の鮮度だけを検証できること。古いモデル一覧、未更新、取得失敗、fresh success を分けて確認すること。"
+
+evidence:
+  implementation_scope:
+    path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/implementation-scope.md"
+    summary: "Job 側 DB から endpoint、secret store 参照実値、credential_ref 実値を外し、phase 開始時に provider settings を再解決することが承認済み範囲である。Job Setup UI はモデル一覧未更新、モデル未選択、モデル一覧取得失敗を別状態で扱う。"
+  validation:
+    path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+    summary: "python3 scripts/harness/run.py --suite all は 2026-05-07T21:52:39+0900 時点で passed。system test は 9 passed、Sonar security / reliability / maintainability HIGH issues は 0。レビューでは再実行していない。"
+  review_fix:
+    path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+    summary: "5 観点レビューの修正必須指摘は解消済みと記録されている。挙動レビューでは behavior-001 の freshness token 経路を修正済みとして確認した。"
+
+residual_risk:
+  summary: "有料の実 AI API と provider settings 画面再設計は非対象で未確認である。レビュー入力の検証証跡は pass だが、レビュー agent はハーネス再実行をしていない。"
+  level: "low"

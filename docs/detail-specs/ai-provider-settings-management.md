@@ -2,15 +2,15 @@
 
 - `upper_scenario_id`: `ai-provider-settings-management`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/ai-provider-settings-management/plan.md`
+- `source_plan`: `docs/exec-plans/completed/ai-provider-settings-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
 - `scenario_source`: `docs/exec-plans/completed/ai-provider-settings-management/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/ai-provider-settings-management/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/ai-provider-settings-management/plan.md`
-- `review_source`: `docs/exec-plans/completed/ai-provider-settings-management/reviewback.*.yaml`
+- `implementation_source`: `docs/exec-plans/completed/ai-provider-settings-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_source`: `docs/exec-plans/completed/ai-provider-settings-management/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
 ## 要約
 
-- 利用者は AI サービスごとに endpoint と APIキー状態を保存し、翻訳フェーズや master-persona から参照できる。
+- 利用者は AI サービスごとに endpoint と APIキー状態を保存し、Job Setup、翻訳フェーズ、master-persona から参照できる。
 - AIサービス設定は、model、処理方法、Batch API 切り替え、利用 provider の選択を保存しない。
 - APIキー本体と raw payload は、UI、DTO、要約、log、debug 出力に出さない。
 
@@ -32,8 +32,9 @@
 - endpoint はローカル運用の画面と保存要約で表示できる。secret は伏せ字または存在状態だけを表示する。
 - provider settings の更新履歴は保存しない。
 - Job Setup と master-persona は provider settings を参照し、個別の secret や endpoint を fallback にしない。
-- Ready job は実行開始前に最新 provider settings を再解決する。
-- Running phase は開始時 snapshot の endpoint と credential 参照状態を使う。
+- Ready job の実行開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
+- Running phase の job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
+- Running phase は provider adapter へ渡す endpoint と secret を AIサービス設定から解決し、job 側 summary や UI へ出さない。
 - 保存結果と接続確認結果は raw payload ではなく分類と要約で観測する。
 - 実装後検証は fake transport DI と fake secret store を使い、有料の実 AI API を呼ばない。
 

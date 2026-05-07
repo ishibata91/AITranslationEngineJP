@@ -158,17 +158,15 @@ func (repo *fakeTranslationJobSetupJobLifecycleRepository) ListJobPhaseRunsByJob
 func (repo *fakeTranslationJobSetupJobLifecycleRepository) SaveTranslationJobPhaseRuntimeSnapshot(_ context.Context, draft repository.TranslationJobPhaseRuntimeSnapshotDraft) (repository.TranslationJobPhaseRuntimeSnapshot, error) {
 	repo.savedSnapshots = append(repo.savedSnapshots, draft)
 	return repository.TranslationJobPhaseRuntimeSnapshot{
-		ID:                   int64(len(repo.savedSnapshots)),
-		TranslationJobID:     draft.TranslationJobID,
-		PhaseID:              draft.PhaseID,
-		Provider:             draft.Provider,
-		ModelName:            draft.ModelName,
-		CredentialRef:        draft.CredentialRef,
-		CredentialStatus:     draft.CredentialStatus,
-		ExecutionMode:        draft.ExecutionMode,
-		BatchMode:            draft.BatchMode,
-		ModelListSourceToken: draft.ModelListSourceToken,
-		CreatedAt:            time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC),
+		ID:               int64(len(repo.savedSnapshots)),
+		TranslationJobID: draft.TranslationJobID,
+		PhaseID:          draft.PhaseID,
+		Provider:         draft.Provider,
+		ModelName:        draft.ModelName,
+		CredentialStatus: draft.CredentialStatus,
+		ExecutionMode:    draft.ExecutionMode,
+		BatchMode:        draft.BatchMode,
+		CreatedAt:        time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC),
 	}, nil
 }
 
@@ -580,7 +578,6 @@ func TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissin
 	result, err := service.ListProviderModels(context.Background(), ListTranslationJobSetupProviderModelsRequest{
 		PhaseID:          "word_translation",
 		Provider:         "gemini",
-		CredentialRef:    "gemini-primary",
 		CredentialStatus: "missing",
 		RequestToken:     "ui-req-1",
 	})
@@ -616,9 +613,9 @@ func TestTranslationJobSetupServiceReadSummaryReturnsPersistedPhaseRuntimeSnapsh
 	jobRepo := &fakeTranslationJobSetupJobLifecycleRepository{
 		jobByID: repository.TranslationJob{ID: 91, State: "ready"},
 		summarySnapshots: []repository.TranslationJobPhaseRuntimeSnapshot{
-			{PhaseID: "word_translation", Provider: "openai", ModelName: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "word_translation|openai|openai-primary|req-1"},
-			{PhaseID: "npc_persona_generation", Provider: "gemini", ModelName: "gemini-2.5-pro", CredentialRef: "gemini-primary", CredentialStatus: "configured", ExecutionMode: "batch", BatchMode: "enabled", ModelListSourceToken: "npc_persona_generation|gemini|gemini-primary|req-2"},
-			{PhaseID: "text_translation", Provider: "xai", ModelName: "grok-4", CredentialRef: "xai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled", ModelListSourceToken: "text_translation|xai|xai-primary|req-3"},
+			{PhaseID: "word_translation", Provider: "openai", ModelName: "gpt-5.4-mini", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported"},
+			{PhaseID: "npc_persona_generation", Provider: "gemini", ModelName: "gemini-2.5-pro", CredentialStatus: "configured", ExecutionMode: "batch", BatchMode: "enabled"},
+			{PhaseID: "text_translation", Provider: "xai", ModelName: "grok-4", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled"},
 		},
 	}
 	service := NewPersistentTranslationJobSetupService(
@@ -731,8 +728,8 @@ func TestTranslationJobSetupServiceReadSummaryRejectsStartWhenPhaseRuntimeSnapsh
 	jobRepo := &fakeTranslationJobSetupJobLifecycleRepository{
 		jobByID: repository.TranslationJob{ID: 91, State: "ready"},
 		summarySnapshots: []repository.TranslationJobPhaseRuntimeSnapshot{
-			{PhaseID: "word_translation", Provider: "openai", ModelName: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "word_translation|openai|openai-primary|req-1"},
-			{PhaseID: "npc_persona_generation", Provider: "gemini", ModelName: "gemini-2.5-pro", CredentialRef: "gemini-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled", ModelListSourceToken: "npc_persona_generation|gemini|gemini-primary|req-2"},
+			{PhaseID: "word_translation", Provider: "openai", ModelName: "gpt-5.4-mini", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported"},
+			{PhaseID: "npc_persona_generation", Provider: "gemini", ModelName: "gemini-2.5-pro", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled"},
 		},
 	}
 	service := NewPersistentTranslationJobSetupService(

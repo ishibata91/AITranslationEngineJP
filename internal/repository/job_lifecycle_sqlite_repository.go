@@ -167,18 +167,15 @@ type phaseRunDictionaryEntryRow struct {
 }
 
 type translationJobPhaseRuntimeSnapshotRow struct {
-	ID                   int64  `db:"id"`
-	TranslationJobID     int64  `db:"translation_job_id"`
-	PhaseID              string `db:"phase_id"`
-	Provider             string `db:"provider"`
-	ModelName            string `db:"model_name"`
-	CredentialRef        string `db:"credential_ref"`
-	CredentialStatus     string `db:"credential_status"`
-	EndpointSummary      string `db:"endpoint_summary"`
-	ExecutionMode        string `db:"execution_mode"`
-	BatchMode            string `db:"batch_mode"`
-	ModelListSourceToken string `db:"model_list_source_token"`
-	CreatedAt            string `db:"created_at"`
+	ID               int64  `db:"id"`
+	TranslationJobID int64  `db:"translation_job_id"`
+	PhaseID          string `db:"phase_id"`
+	Provider         string `db:"provider"`
+	ModelName        string `db:"model_name"`
+	CredentialStatus string `db:"credential_status"`
+	ExecutionMode    string `db:"execution_mode"`
+	BatchMode        string `db:"batch_mode"`
+	CreatedAt        string `db:"created_at"`
 }
 
 func (r translationJobPhaseRuntimeSnapshotRow) toModel() (TranslationJobPhaseRuntimeSnapshot, error) {
@@ -187,18 +184,15 @@ func (r translationJobPhaseRuntimeSnapshotRow) toModel() (TranslationJobPhaseRun
 		return TranslationJobPhaseRuntimeSnapshot{}, fmt.Errorf("parse phase runtime created_at: %w", err)
 	}
 	return TranslationJobPhaseRuntimeSnapshot{
-		ID:                   r.ID,
-		TranslationJobID:     r.TranslationJobID,
-		PhaseID:              r.PhaseID,
-		Provider:             r.Provider,
-		ModelName:            r.ModelName,
-		CredentialRef:        r.CredentialRef,
-		CredentialStatus:     r.CredentialStatus,
-		EndpointSummary:      r.EndpointSummary,
-		ExecutionMode:        r.ExecutionMode,
-		BatchMode:            r.BatchMode,
-		ModelListSourceToken: r.ModelListSourceToken,
-		CreatedAt:            createdAt,
+		ID:               r.ID,
+		TranslationJobID: r.TranslationJobID,
+		PhaseID:          r.PhaseID,
+		Provider:         r.Provider,
+		ModelName:        r.ModelName,
+		CredentialStatus: r.CredentialStatus,
+		ExecutionMode:    r.ExecutionMode,
+		BatchMode:        r.BatchMode,
+		CreatedAt:        createdAt,
 	}, nil
 }
 
@@ -239,32 +233,29 @@ WHERE id = :id`
 
 	insertTranslationJobPhaseRuntimeSnapshot = `
 INSERT INTO TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
-  (translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
-   endpoint_summary, execution_mode, batch_mode, model_list_source_token, created_at)
+  (translation_job_id, phase_id, provider, model_name, credential_status,
+   execution_mode, batch_mode, created_at)
 VALUES
-  (:translation_job_id, :phase_id, :provider, :model_name, :credential_ref, :credential_status,
-   :endpoint_summary, :execution_mode, :batch_mode, :model_list_source_token, :created_at)
+  (:translation_job_id, :phase_id, :provider, :model_name, :credential_status,
+   :execution_mode, :batch_mode, :created_at)
 ON CONFLICT(translation_job_id, phase_id) DO UPDATE SET
   provider = excluded.provider,
   model_name = excluded.model_name,
-  credential_ref = excluded.credential_ref,
   credential_status = excluded.credential_status,
-  endpoint_summary = excluded.endpoint_summary,
   execution_mode = excluded.execution_mode,
   batch_mode = excluded.batch_mode,
-  model_list_source_token = excluded.model_list_source_token,
   created_at = excluded.created_at`
 
 	selectTranslationJobPhaseRuntimeSnapshotsByJobID = `
-SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
-       endpoint_summary, execution_mode, batch_mode, model_list_source_token, created_at
+SELECT id, translation_job_id, phase_id, provider, model_name, credential_status,
+       execution_mode, batch_mode, created_at
 FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
 WHERE translation_job_id = ?
 ORDER BY id ASC`
 
 	selectTranslationJobPhaseRuntimeSnapshotByJobAndPhase = `
-SELECT id, translation_job_id, phase_id, provider, model_name, credential_ref, credential_status,
-       endpoint_summary, execution_mode, batch_mode, model_list_source_token, created_at
+SELECT id, translation_job_id, phase_id, provider, model_name, credential_status,
+       execution_mode, batch_mode, created_at
 FROM TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT
 WHERE translation_job_id = ? AND phase_id = ?
 LIMIT 1`
@@ -639,17 +630,14 @@ func (r *SQLiteJobLifecycleRepository) SaveTranslationJobPhaseRuntimeSnapshot(
 ) (TranslationJobPhaseRuntimeSnapshot, error) {
 	ext := extractTx(ctx, r.db)
 	row := translationJobPhaseRuntimeSnapshotRow{
-		TranslationJobID:     draft.TranslationJobID,
-		PhaseID:              draft.PhaseID,
-		Provider:             draft.Provider,
-		ModelName:            draft.ModelName,
-		CredentialRef:        draft.CredentialRef,
-		CredentialStatus:     draft.CredentialStatus,
-		EndpointSummary:      draft.EndpointSummary,
-		ExecutionMode:        draft.ExecutionMode,
-		BatchMode:            draft.BatchMode,
-		ModelListSourceToken: draft.ModelListSourceToken,
-		CreatedAt:            time.Now().UTC().Format(time.RFC3339),
+		TranslationJobID: draft.TranslationJobID,
+		PhaseID:          draft.PhaseID,
+		Provider:         draft.Provider,
+		ModelName:        draft.ModelName,
+		CredentialStatus: draft.CredentialStatus,
+		ExecutionMode:    draft.ExecutionMode,
+		BatchMode:        draft.BatchMode,
+		CreatedAt:        time.Now().UTC().Format(time.RFC3339),
 	}
 	q, args, err := sqlx.Named(insertTranslationJobPhaseRuntimeSnapshot, row)
 	if err != nil {

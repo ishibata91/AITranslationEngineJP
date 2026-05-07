@@ -4,11 +4,9 @@ CREATE TABLE IF NOT EXISTS TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT (
   phase_id                TEXT    NOT NULL,
   provider                TEXT    NOT NULL DEFAULT '',
   model_name              TEXT    NOT NULL DEFAULT '',
-  credential_ref          TEXT    NOT NULL DEFAULT '',
   credential_status       TEXT    NOT NULL DEFAULT '',
   execution_mode          TEXT    NOT NULL DEFAULT '',
   batch_mode              TEXT    NOT NULL DEFAULT '',
-  model_list_source_token TEXT    NOT NULL DEFAULT '',
   created_at              TEXT    NOT NULL
 );
 

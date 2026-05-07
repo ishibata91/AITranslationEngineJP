@@ -86,10 +86,6 @@ func TestTranslationJobSetupControllerGetOptionsMapsOptionsContract(t *testing.T
 					{Provider: "openai", Model: "gpt-5.4-mini", Mode: "batch"},
 					{Provider: "gemini", Model: "gemini-2.5-pro", Mode: "sync"},
 				},
-				CredentialRefs: []usecase.TranslationJobSetupCredentialReference{
-					{Provider: "openai", CredentialRef: "openai-primary", IsConfigured: true, IsMissingSecret: false},
-					{Provider: "gemini", CredentialRef: "gemini-missing", IsConfigured: false, IsMissingSecret: true},
-				},
 			}, nil
 		},
 	})
@@ -218,7 +214,6 @@ func TestTranslationJobSetupControllerValidateMapsValidationShape(t *testing.T) 
 			Model:         "gpt-5.4-mini",
 			ExecutionMode: "batch",
 		},
-		CredentialRef: "openai-primary",
 	})
 	if err != nil {
 		t.Fatalf("expected validation request to succeed: %v", err)
@@ -261,7 +256,6 @@ func TestTranslationJobSetupControllerValidateNormalizesNilSlicesToEmptyArrays(t
 			Model:         "local-model",
 			ExecutionMode: "sync",
 		},
-		CredentialRef: "lm_studio-primary",
 	})
 	if err != nil {
 		t.Fatalf("expected validation request to succeed: %v", err)
@@ -326,7 +320,6 @@ func TestTranslationJobSetupControllerValidateReturnsBlockingFailureContract(t *
 								BlockingFailureCategory: &blockingCategory,
 								CanCreate:               false,
 								ModelListState:          usecase.TranslationJobSetupProviderModelListStatusFailed,
-								ModelListSourceToken:    "word:openai:token",
 								IsModelSelectionStale:   blockingCategory == "model_selection_stale",
 							},
 						},
@@ -341,7 +334,6 @@ func TestTranslationJobSetupControllerValidateReturnsBlockingFailureContract(t *
 					Model:         "gpt-5.4-mini",
 					ExecutionMode: "sync",
 				},
-				CredentialRef: "openai-primary",
 			})
 			if err != nil {
 				t.Fatalf("expected blocking validation response without transport error: %v", err)
@@ -389,7 +381,6 @@ func TestTranslationJobSetupControllerCreateMapsReadyJobResponse(t *testing.T) {
 			Model:         "gpt-5.4-mini",
 			ExecutionMode: "batch",
 		},
-		CredentialRef: "openai-primary",
 	}
 	setTranslationJobSetupFreshness(t, &request, validatedAt)
 
@@ -412,7 +403,6 @@ func TestTranslationJobSetupControllerCreateRejectsStaleValidationWithValidation
 			Model:         "gpt-5.4-mini",
 			ExecutionMode: "batch",
 		},
-		CredentialRef: "openai-primary",
 	}
 	setTranslationJobSetupFreshness(t, &request, time.Date(2026, 4, 27, 8, 30, 0, 0, time.UTC))
 
@@ -529,7 +519,6 @@ func TestTranslationJobSetupControllerCreateRejectsCreateWhenValidationDidNotPas
 			Model:         "gpt-5.4-mini",
 			ExecutionMode: "batch",
 		},
-		CredentialRef: "openai-primary",
 	})
 	if err != nil {
 		t.Fatalf("expected rejected create response without transport error, got %v", err)
@@ -569,7 +558,6 @@ func assertTranslationJobSetupOptionsContractResponse(t *testing.T, response Tra
 	t.Helper()
 
 	assertTranslationJobSetupInputCandidate(t, response.InputCandidates)
-	assertTranslationJobSetupCredentialRefs(t, response.CredentialRefs)
 	assertTranslationJobSetupExistingJob(t, response.ExistingJob)
 	assertTranslationJobSetupRuntimeOptions(t, response.AIRuntimeOptions)
 }
@@ -585,27 +573,6 @@ func assertTranslationJobSetupInputCandidate(t *testing.T, candidates []Translat
 	}
 	if candidates[0].SourceKind != "translation_input" || candidates[0].Label != "Dialogues import" {
 		t.Fatalf("expected input source identity to be preserved, got %#v", candidates[0])
-	}
-}
-
-func assertTranslationJobSetupCredentialRefs(t *testing.T, credentialRefs []TranslationJobSetupCredentialReferenceDTO) {
-	t.Helper()
-
-	if len(credentialRefs) != 2 {
-		t.Fatalf("expected credential references, got %#v", credentialRefs)
-	}
-	assertTranslationJobSetupCredentialRef(t, credentialRefs[0], "openai-primary", true, false)
-	assertTranslationJobSetupCredentialRef(t, credentialRefs[1], "gemini-missing", false, true)
-}
-
-func assertTranslationJobSetupCredentialRef(t *testing.T, credentialRef TranslationJobSetupCredentialReferenceDTO, wantRef string, wantConfigured bool, wantMissingSecret bool) {
-	t.Helper()
-
-	if credentialRef.SecretPlaintext != nil {
-		t.Fatalf("expected secret plaintext to stay omitted, got %#v", credentialRef.SecretPlaintext)
-	}
-	if credentialRef.CredentialRef != wantRef || credentialRef.IsConfigured != wantConfigured || credentialRef.IsMissingSecret != wantMissingSecret {
-		t.Fatalf("expected credential reference state ref=%q configured=%t missingSecret=%t, got %#v", wantRef, wantConfigured, wantMissingSecret, credentialRef)
 	}
 }
 
@@ -672,9 +639,6 @@ func assertCreateTranslationJobRequestReadyContract(t *testing.T, request usecas
 	}
 	if request.Runtime.Provider != "openai" || request.Runtime.Model != "gpt-5.4-mini" || request.Runtime.ExecutionMode != "batch" {
 		t.Fatalf("expected runtime selection to be forwarded, got %#v", request)
-	}
-	if request.CredentialRef != "openai-primary" {
-		t.Fatalf("expected credential ref to be forwarded, got %#v", request)
 	}
 }
 

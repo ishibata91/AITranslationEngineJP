@@ -51,6 +51,7 @@ const (
 	personaGenerationErrorKindBodyBlocked      = "body_readiness_blocked"
 	personaGenerationErrorKindInputMissing     = "input_missing"
 	personaGenerationTerminalJobReason         = "terminal job"
+	personaGenerationReasonPhaseRuntimeMissing = "phase runtime snapshot is missing"
 	personaGenerationRunLoadErrorMessage       = "load persona generation phase run: %w"
 	personaGenerationRedactedPublicSummary     = "redacted public summary"
 )
@@ -395,7 +396,7 @@ func (service *PersonaGenerationPhaseService) PausePhase(
 	jobID int64,
 	phaseRunID int64,
 ) (PersonaGenerationPhaseCommandReadModel, error) {
-	return service.mutatePhaseState(ctx, jobID, phaseRunID, personaGenerationPhaseStateRunning, personaGenerationPhaseStatePaused)
+	return service.mutatePhaseState(ctx, jobID, phaseRunID, personaGenerationPhaseStateRunning, personaGenerationPhaseStatePaused, nil)
 }
 
 // ResumePhase resumes one paused or recoverable-failed persona phase run.
@@ -411,7 +412,7 @@ func (service *PersonaGenerationPhaseService) ResumePhase(
 	if run.State != personaGenerationPhaseStatePaused && run.State != personaGenerationPhaseStateRecoverableFail {
 		return service.phaseMutationRejected(ctx, jobID, &run, personaGenerationErrorKindTermIncomplete, "persona phase is not resumable"), nil
 	}
-	command, err := service.mutatePhaseState(ctx, jobID, phaseRunID, run.State, personaGenerationPhaseStateRunning)
+	command, err := service.mutatePhaseState(ctx, jobID, phaseRunID, run.State, personaGenerationPhaseStateRunning, nil)
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, err
 	}
@@ -452,7 +453,22 @@ func (service *PersonaGenerationPhaseService) RetryPhase(
 	if !personaGenerationRetryAllowed(run.State, run.LatestError) {
 		return service.phaseMutationRejected(ctx, jobID, &run, personaGenerationErrorKindTermIncomplete, "persona phase is not retryable"), nil
 	}
-	command, err := service.mutatePhaseState(ctx, jobID, phaseRunID, run.State, personaGenerationPhaseStateRunning)
+	resolvedRun, resolvedSnapshot, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, run)
+	if resolveErr != nil {
+		return PersonaGenerationPhaseCommandReadModel{}, resolveErr
+	}
+	if rejection != nil {
+		return service.phaseMutationRejected(ctx, jobID, &run, rejection.kind, rejection.reason), nil
+	}
+	run = resolvedRun
+	command, err := service.mutatePhaseState(
+		ctx,
+		jobID,
+		phaseRunID,
+		run.State,
+		personaGenerationPhaseStateRunning,
+		resolvedSnapshot,
+	)
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, err
 	}
@@ -464,6 +480,9 @@ func (service *PersonaGenerationPhaseService) RetryPhase(
 	}
 	if refreshedRun == nil {
 		return command, nil
+	}
+	if resolvedSnapshot != nil && strings.TrimSpace(refreshedRun.State) == personaGenerationPhaseStateRunning {
+		service.executionSnapshots[refreshedRun.ID] = *resolvedSnapshot
 	}
 	updatedRun, execErr := service.executePhaseRun(ctx, job, *refreshedRun, snapshot)
 	if execErr != nil {
@@ -495,7 +514,7 @@ func (service *PersonaGenerationPhaseService) CancelPhase(
 	if !personaGenerationCancelAllowed(job.State, run.State) {
 		return service.phaseMutationRejected(ctx, jobID, &run, personaGenerationErrorKindTermIncomplete, "persona phase is not cancelable"), nil
 	}
-	return service.mutatePhaseState(ctx, jobID, phaseRunID, "", personaGenerationPhaseStateCanceled)
+	return service.mutatePhaseState(ctx, jobID, phaseRunID, "", personaGenerationPhaseStateCanceled, nil)
 }
 
 // ReadBodyReadiness reports whether the body phase may start.
@@ -641,6 +660,7 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 	phaseRunID int64,
 	requiredState string,
 	nextState string,
+	startExecutionSnapshot *providerExecutionSnapshot,
 ) (PersonaGenerationPhaseCommandReadModel, error) {
 	if service.transactor == nil {
 		return PersonaGenerationPhaseCommandReadModel{}, fmt.Errorf("mutate persona generation phase: transactor is not configured")
@@ -649,17 +669,8 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, fmt.Errorf("load persona generation phase for mutation: %w", err)
 	}
-	if run == nil || run.ID != phaseRunID {
-		return PersonaGenerationPhaseCommandReadModel{}, fmt.Errorf(personaGenerationRunLoadErrorMessage, repository.ErrNotFound)
-	}
-	if isPersonaGenerationTerminalJob(job.State) {
-		return service.phaseMutationRejected(ctx, jobID, run, personaGenerationErrorKindTerminalJob, personaGenerationTerminalJobReason), nil
-	}
-	if snapshotDriftReason := personaGenerationSnapshotDriftReason(run, snapshot); snapshotDriftReason != nil {
-		return service.phaseMutationRejected(ctx, jobID, run, personaGenerationErrorKindSnapshotMissing, *snapshotDriftReason), nil
-	}
-	if requiredState != "" && run.State != requiredState {
-		return service.phaseMutationRejected(ctx, jobID, run, personaGenerationErrorKindTermIncomplete, "persona phase state does not allow this command"), nil
+	if rejected, ok, rejectErr := service.rejectInvalidPhaseMutation(ctx, jobID, job, run, snapshot, phaseRunID, requiredState); rejectErr != nil || ok {
+		return rejected, rejectErr
 	}
 	var updatedRun repository.JobPhaseRun
 	err = service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
@@ -673,6 +684,9 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 		})
 		if updateErr != nil {
 			return fmt.Errorf("update persona generation phase run state: %w", updateErr)
+		}
+		if snapshotErr := service.persistPersonaGenerationRuntimeSnapshotForTransition(txCtx, job.ID, nextState, startExecutionSnapshot); snapshotErr != nil {
+			return snapshotErr
 		}
 		updatedRun = nextRun
 		return nil
@@ -704,6 +718,42 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 		Retryable:         personaGenerationRetryAllowed(updatedRun.State, updatedRun.LatestError),
 		CanStartBodyPhase: canStartBodyPhase,
 	}, nil
+}
+
+func (service *PersonaGenerationPhaseService) rejectInvalidPhaseMutation(
+	ctx context.Context,
+	jobID int64,
+	job repository.TranslationJob,
+	run *repository.JobPhaseRun,
+	snapshot personaGenerationTargetSnapshot,
+	phaseRunID int64,
+	requiredState string,
+) (PersonaGenerationPhaseCommandReadModel, bool, error) {
+	if run == nil || run.ID != phaseRunID {
+		return PersonaGenerationPhaseCommandReadModel{}, false, fmt.Errorf(personaGenerationRunLoadErrorMessage, repository.ErrNotFound)
+	}
+	if isPersonaGenerationTerminalJob(job.State) {
+		return service.phaseMutationRejected(ctx, jobID, run, personaGenerationErrorKindTerminalJob, personaGenerationTerminalJobReason), true, nil
+	}
+	if snapshotDriftReason := personaGenerationSnapshotDriftReason(run, snapshot); snapshotDriftReason != nil {
+		return service.phaseMutationRejected(ctx, jobID, run, personaGenerationErrorKindSnapshotMissing, *snapshotDriftReason), true, nil
+	}
+	if requiredState != "" && run.State != requiredState {
+		return service.phaseMutationRejected(ctx, jobID, run, personaGenerationErrorKindTermIncomplete, "persona phase state does not allow this command"), true, nil
+	}
+	return PersonaGenerationPhaseCommandReadModel{}, false, nil
+}
+
+func (service *PersonaGenerationPhaseService) persistPersonaGenerationRuntimeSnapshotForTransition(
+	ctx context.Context,
+	jobID int64,
+	nextState string,
+	startExecutionSnapshot *providerExecutionSnapshot,
+) error {
+	if nextState != personaGenerationPhaseStateRunning || startExecutionSnapshot == nil {
+		return nil
+	}
+	return service.persistRuntimeSnapshot(ctx, jobID, "npc_persona_generation", *startExecutionSnapshot)
 }
 
 func (service *PersonaGenerationPhaseService) phaseMutationRejected(
@@ -815,7 +865,7 @@ func (service *PersonaGenerationPhaseService) applyPersonaGenerationRuntimeSnaps
 	termRun.AIProvider = snapshot.Provider
 	termRun.ModelName = snapshot.ModelName
 	termRun.ExecutionMode = snapshot.ExecutionMode
-	termRun.CredentialRef = snapshot.CredentialRef
+	termRun.CredentialRef = ""
 	return termRun, nil
 }
 
@@ -1086,7 +1136,7 @@ func (service *PersonaGenerationPhaseService) startRejection(
 	if !personaGenerationExecutionConfigured(termRun) {
 		return &personaGenerationStartRejection{
 			kind:   personaGenerationErrorKindTermIncomplete,
-			reason: "phase runtime snapshot is missing",
+			reason: personaGenerationReasonPhaseRuntimeMissing,
 		}
 	}
 	if run != nil && isPersonaGenerationActiveState(run.State) {
@@ -1102,8 +1152,14 @@ func (service *PersonaGenerationPhaseService) resolveExecutionSnapshotForStart(
 	ctx context.Context,
 	termRun repository.JobPhaseRun,
 ) (repository.JobPhaseRun, *providerExecutionSnapshot, *personaGenerationStartRejection, error) {
-	if service.providerSettings == nil || !providerExecutionUsesProviderSettings(termRun.AIProvider) {
+	if !providerExecutionUsesProviderSettings(termRun.AIProvider) {
 		return termRun, nil, nil, nil
+	}
+	if service.providerSettings == nil {
+		return termRun, nil, &personaGenerationStartRejection{
+			kind:   personaGenerationErrorKindTermIncomplete,
+			reason: personaGenerationReasonPhaseRuntimeMissing,
+		}, nil
 	}
 	resolved, err := service.providerSettings.ResolveProviderExecutionSettings(ctx, ProviderSettingsResolveInput{
 		ConsumerID:          "persona_generation_phase",
@@ -1118,13 +1174,12 @@ func (service *PersonaGenerationPhaseService) resolveExecutionSnapshotForStart(
 	if err != nil {
 		return repository.JobPhaseRun{}, nil, nil, fmt.Errorf("resolve persona generation provider settings: %w", err)
 	}
-	termRun.CredentialRef = providerExecutionOptionalString(resolved.CredentialReferenceID)
 	if resolved.ErrorKind != nil {
 		switch strings.TrimSpace(*resolved.ErrorKind) {
 		case providerSettingsErrorKindCredentialMissing, providerSettingsErrorKindEndpointMissing:
 			return termRun, nil, &personaGenerationStartRejection{
 				kind:   personaGenerationErrorKindTermIncomplete,
-				reason: "phase runtime snapshot is missing",
+				reason: personaGenerationReasonPhaseRuntimeMissing,
 			}, nil
 		default:
 			return termRun, nil, &personaGenerationStartRejection{
@@ -1137,7 +1192,7 @@ func (service *PersonaGenerationPhaseService) resolveExecutionSnapshotForStart(
 		Provider:        strings.TrimSpace(termRun.AIProvider),
 		Model:           strings.TrimSpace(termRun.ModelName),
 		ExecutionMode:   strings.TrimSpace(termRun.ExecutionMode),
-		CredentialRef:   strings.TrimSpace(termRun.CredentialRef),
+		CredentialRef:   providerExecutionOptionalString(resolved.CredentialReferenceID),
 		CredentialState: strings.TrimSpace(resolved.CredentialState),
 		EndpointSummary: providerExecutionEndpointSummary(resolved.Endpoint),
 		RequestToken:    providerExecutionEndpointSummary(resolved.RequestToken),
@@ -1364,16 +1419,13 @@ func (service *PersonaGenerationPhaseService) persistRuntimeSnapshot(
 		return fmt.Errorf("persist persona generation runtime snapshot: %w", err)
 	}
 	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID:     jobID,
-		PhaseID:              phaseID,
-		Provider:             snapshot.Provider,
-		ModelName:            snapshot.Model,
-		CredentialRef:        snapshot.CredentialRef,
-		CredentialStatus:     snapshot.CredentialState,
-		EndpointSummary:      providerExecutionOptionalString(snapshot.EndpointSummary),
-		ExecutionMode:        snapshot.ExecutionMode,
-		BatchMode:            providerExecutionBatchMode(current),
-		ModelListSourceToken: providerExecutionModelListSourceToken(current),
+		TranslationJobID: jobID,
+		PhaseID:          phaseID,
+		Provider:         snapshot.Provider,
+		ModelName:        snapshot.Model,
+		CredentialStatus: snapshot.CredentialState,
+		ExecutionMode:    snapshot.ExecutionMode,
+		BatchMode:        providerExecutionBatchMode(current),
 	}); err != nil {
 		return fmt.Errorf("persist persona generation runtime snapshot: %w", err)
 	}
@@ -1672,6 +1724,9 @@ func (service *PersonaGenerationPhaseService) buildProviderRequest(
 	provider := strings.TrimSpace(run.AIProvider)
 	model := strings.TrimSpace(run.ModelName)
 	credentialRef := strings.TrimSpace(run.CredentialRef)
+	if snapshot, ok := service.executionSnapshots[run.ID]; ok && strings.TrimSpace(snapshot.CredentialRef) != "" {
+		credentialRef = strings.TrimSpace(snapshot.CredentialRef)
+	}
 	if provider == "" || model == "" {
 		return PersonaGenerationProviderRequest{}, fmt.Errorf("persona generation provider input is incomplete")
 	}
@@ -2111,7 +2166,6 @@ func (service *PersonaGenerationPhaseService) buildExecutionSummary(
 	if executionRun != nil {
 		if snapshot, ok := service.executionSnapshots[executionRun.ID]; ok {
 			summary.CredentialState = snapshot.CredentialState
-			summary.EndpointSummary = providerExecutionEndpointSummary(snapshot.EndpointSummary)
 		}
 	}
 	return summary

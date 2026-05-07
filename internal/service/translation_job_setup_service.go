@@ -240,7 +240,16 @@ type TranslationJobSetupPhaseRuntimeDraftReadModel struct {
 }
 
 // TranslationJobSetupPhaseRuntimeSummaryReadModel stores one persisted phase runtime snapshot.
-type TranslationJobSetupPhaseRuntimeSummaryReadModel = TranslationJobSetupPhaseRuntimeDraftReadModel
+type TranslationJobSetupPhaseRuntimeSummaryReadModel struct {
+	PhaseID              string
+	Provider             string
+	Model                string
+	CredentialRef        string
+	CredentialStatus     string
+	ExecutionMode        string
+	BatchMode            string
+	ModelListSourceToken string
+}
 
 // ListTranslationJobSetupProviderModelsRequest carries the provider model-list request input.
 type ListTranslationJobSetupProviderModelsRequest struct {
@@ -571,10 +580,9 @@ func (service *TranslationJobSetupService) listProviderModelsViaProviderSettings
 		result.FailureKind = "required_setting_missing"
 		return result, nil
 	}
-	credentialRef := strings.TrimSpace(pointerStringValue(summary.CredentialReferenceID))
 	settingsRequestToken := strings.TrimSpace(pointerStringValue(summary.RequestToken))
 	result.CredentialStatus = strings.TrimSpace(summary.CredentialState)
-	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, settingsRequestToken)
+	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, settingsRequestToken)
 	listed, err := service.providerSettings.ListProviderModels(ctx, ProviderSettingsModelListInput{
 		ProviderID:            spec.ID,
 		Endpoint:              cloneTranslationJobSetupOptionalString(summary.Endpoint),
@@ -587,7 +595,7 @@ func (service *TranslationJobSetupService) listProviderModelsViaProviderSettings
 	}
 	result.CredentialStatus = strings.TrimSpace(listed.CredentialState)
 	settingsRequestToken = strings.TrimSpace(listed.RequestToken)
-	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, settingsRequestToken)
+	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, settingsRequestToken)
 	result.Status = translationJobSetupMapProviderSettingsModelListState(listed.State)
 	result.FailureKind = translationJobSetupMapProviderSettingsFailureKind(listed.FailureKind)
 	result.Models = translationJobSetupProviderModelOptions(listed.Models)
@@ -601,7 +609,7 @@ func (service *TranslationJobSetupService) listProviderModelsDirect(
 	result ListTranslationJobSetupProviderModelsResult,
 ) (ListTranslationJobSetupProviderModelsResult, error) {
 	credentialRef := translationJobSetupNormalizeCredentialRef(spec, request.CredentialRef)
-	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, credentialRef, result.RequestToken)
+	result.SourceToken = translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, result.RequestToken)
 	if !spec.CredentialRequired {
 		models, listErr := service.requestProviderModels(ctx, spec.ID, "")
 		if listErr != nil {
@@ -840,7 +848,6 @@ func (service *TranslationJobSetupService) createInitialTranslationPhaseRun(
 		AIProvider:       wordRuntime.Provider,
 		ModelName:        wordRuntime.Model,
 		ExecutionMode:    wordRuntime.ExecutionMode,
-		CredentialRef:    wordRuntime.CredentialRef,
 		InstructionKind:  translationJobSetupInstructionKindWord,
 	}); err != nil {
 		return fmt.Errorf("create translation setup initial phase: %w", err)
@@ -863,19 +870,17 @@ func (service *TranslationJobSetupService) savePhaseRuntimeSnapshots(
 		runtime := sanitizeTranslationJobSetupPhaseRuntime(phaseRuntimes[phaseID])
 		runtime.PhaseID = phaseID
 		if _, err := snapshotStore.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-			TranslationJobID:     jobID,
-			PhaseID:              runtime.PhaseID,
-			Provider:             runtime.Provider,
-			ModelName:            runtime.Model,
-			CredentialRef:        runtime.CredentialRef,
-			CredentialStatus:     runtime.CredentialStatus,
-			ExecutionMode:        runtime.ExecutionMode,
-			BatchMode:            runtime.BatchMode,
-			ModelListSourceToken: runtime.ModelListSourceToken,
+			TranslationJobID: jobID,
+			PhaseID:          runtime.PhaseID,
+			Provider:         runtime.Provider,
+			ModelName:        runtime.Model,
+			CredentialStatus: runtime.CredentialStatus,
+			ExecutionMode:    runtime.ExecutionMode,
+			BatchMode:        runtime.BatchMode,
 		}); err != nil {
 			return nil, fmt.Errorf("create translation job phase runtime snapshot: %w", err)
 		}
-		summaries = append(summaries, runtime)
+		summaries = append(summaries, translationJobSetupPhaseRuntimeSummaryFromDraft(runtime))
 	}
 	return summaries, nil
 }
@@ -903,14 +908,12 @@ func (service *TranslationJobSetupService) ReadSummary(
 	summaries := make([]TranslationJobSetupPhaseRuntimeSummaryReadModel, 0, len(snapshots))
 	for _, snapshot := range snapshots {
 		summaries = append(summaries, TranslationJobSetupPhaseRuntimeSummaryReadModel{
-			PhaseID:              snapshot.PhaseID,
-			Provider:             snapshot.Provider,
-			Model:                snapshot.ModelName,
-			CredentialRef:        snapshot.CredentialRef,
-			CredentialStatus:     snapshot.CredentialStatus,
-			ExecutionMode:        snapshot.ExecutionMode,
-			BatchMode:            snapshot.BatchMode,
-			ModelListSourceToken: snapshot.ModelListSourceToken,
+			PhaseID:          snapshot.PhaseID,
+			Provider:         snapshot.Provider,
+			Model:            snapshot.ModelName,
+			CredentialStatus: snapshot.CredentialStatus,
+			ExecutionMode:    snapshot.ExecutionMode,
+			BatchMode:        snapshot.BatchMode,
 		})
 	}
 	sort.SliceStable(summaries, func(i, j int) bool {
@@ -957,6 +960,7 @@ func (service *TranslationJobSetupService) validatePhaseRuntime(
 	runtime TranslationJobSetupPhaseRuntimeDraftReadModel,
 ) TranslationJobSetupPhaseValidationReadModel {
 	sanitized := sanitizeTranslationJobSetupPhaseRuntime(runtime)
+	selectionModelListSourceToken := sanitized.ModelListSourceToken
 	result := TranslationJobSetupPhaseValidationReadModel{
 		PhaseID:              sanitized.PhaseID,
 		Status:               translationJobSetupValidationStatusPass,
@@ -1000,7 +1004,7 @@ func (service *TranslationJobSetupService) validatePhaseRuntime(
 		result.ModelListState = "credential_not_required"
 	}
 
-	if sanitized.ModelListSourceToken == "" || !strings.HasPrefix(sanitized.ModelListSourceToken, translationJobSetupModelListSourcePrefix(sanitized.PhaseID, sanitized.Provider, sanitized.CredentialRef)) {
+	if selectionModelListSourceToken == "" || selectionModelListSourceToken != sanitized.ModelListSourceToken {
 		result.Status = translationJobSetupValidationStatusFail
 		result.CanCreate = false
 		result.BlockingFailureCategory = stringPointer("model_selection_stale")
@@ -1390,6 +1394,12 @@ func firstTranslationJobSetupPhaseSummary(
 	return TranslationJobSetupPhaseRuntimeSummaryReadModel{}
 }
 
+func translationJobSetupPhaseRuntimeSummaryFromDraft(
+	runtime TranslationJobSetupPhaseRuntimeDraftReadModel,
+) TranslationJobSetupPhaseRuntimeSummaryReadModel {
+	return TranslationJobSetupPhaseRuntimeSummaryReadModel(runtime)
+}
+
 func translationJobSetupJobName(inputSourceID int64) string {
 	return fmt.Sprintf("translation-job-%d", inputSourceID)
 }
@@ -1410,12 +1420,12 @@ func translationJobSetupValidationFreshnessCutoff(now time.Time) time.Time {
 	return cutoff
 }
 
-func translationJobSetupModelListSourcePrefix(phaseID string, provider string, credentialRef string) string {
-	return fmt.Sprintf("%s|%s|%s|", normalizeTranslationJobSetupField(phaseID), normalizeTranslationJobSetupField(provider), strings.TrimSpace(credentialRef))
+func translationJobSetupModelListSourcePrefix(phaseID string, provider string) string {
+	return fmt.Sprintf("%s|%s||", normalizeTranslationJobSetupField(phaseID), normalizeTranslationJobSetupField(provider))
 }
 
-func translationJobSetupModelListSourceToken(phaseID string, provider string, credentialRef string, requestToken string) string {
-	return translationJobSetupModelListSourcePrefix(phaseID, provider, credentialRef) + strings.TrimSpace(requestToken)
+func translationJobSetupModelListSourceToken(phaseID string, provider string, requestToken string) string {
+	return translationJobSetupModelListSourcePrefix(phaseID, provider) + strings.TrimSpace(requestToken)
 }
 
 func translationJobSetupEmptyPhaseRuntimeDrafts() []TranslationJobSetupPhaseRuntimeDraftReadModel {
@@ -1510,14 +1520,12 @@ func TranslationJobSetupReadOptions() TranslationJobSetupOptionsReadModel {
 // TranslationJobSetupReadSummary returns the read-only re-display for one created job.
 func TranslationJobSetupReadSummary(jobID int64) TranslationJobSetupSummaryReadModel {
 	word := TranslationJobSetupPhaseRuntimeSummaryReadModel{
-		PhaseID:              "word_translation",
-		Provider:             translationJobSetupProviderGemini,
-		Model:                "gemini-2.5-pro",
-		CredentialRef:        translationJobSetupCredentialRefGeminiPrimary,
-		CredentialStatus:     "configured",
-		ExecutionMode:        "sync",
-		BatchMode:            "disabled",
-		ModelListSourceToken: translationJobSetupModelListSourceToken("word_translation", translationJobSetupProviderGemini, translationJobSetupCredentialRefGeminiPrimary, "bootstrap"),
+		PhaseID:          "word_translation",
+		Provider:         translationJobSetupProviderGemini,
+		Model:            "gemini-2.5-pro",
+		CredentialStatus: "configured",
+		ExecutionMode:    "sync",
+		BatchMode:        "disabled",
 	}
 	return TranslationJobSetupSummaryReadModel{
 		JobID:                 jobID,
@@ -1615,7 +1623,6 @@ func (service *TranslationJobSetupService) resolvePhaseRuntimeAgainstProviderSet
 	sanitized.ModelListSourceToken = translationJobSetupModelListSourceToken(
 		sanitized.PhaseID,
 		sanitized.Provider,
-		sanitized.CredentialRef,
 		pointerStringValue(resolved.RequestToken),
 	)
 	if resolved.ErrorKind != nil {

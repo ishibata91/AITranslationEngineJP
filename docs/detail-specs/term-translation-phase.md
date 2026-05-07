@@ -2,11 +2,11 @@
 
 - `upper_scenario_id`: `term-translation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/term-translation-phase/plan.md`
+- `source_plan`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
 - `scenario_source`: `docs/exec-plans/completed/term-translation-phase/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/term-translation-phase/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/term-translation-phase/plan.md`
-- `review_source`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`
+- `implementation_source`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_source`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
 ## 要約
 
@@ -21,12 +21,14 @@
 - 対象利用者は、翻訳ジョブを実行するユーザーである。
 - 開始条件は、対象ジョブが Ready であり、active な単語翻訳 phase run が存在しないことである。
 - 完了状態は、単語翻訳フェーズが Completed になり、ジョブ内辞書参照が成立することである。
-- 主要データは、`JOB_PHASE_RUN`、`DICTIONARY_ENTRY`、`PHASE_RUN_DICTIONARY_ENTRY`、共通辞書 snapshot、provider / model / execution mode の要約である。
+- 主要データは、`JOB_PHASE_RUN`、`DICTIONARY_ENTRY`、`PHASE_RUN_DICTIONARY_ENTRY`、共通辞書 snapshot、provider / model / execution mode / batch mode の要約である。
 
 ## 仕様
 
 Ready 以外のジョブ、terminal job、既存 active phase run があるジョブでは、単語翻訳フェーズを開始できない。
 job は Running のまま維持し、単語翻訳フェーズの状態で完了、中断、回復可能失敗、再実行準備を区別する。
+phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
+job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
 
 共通辞書は phase 開始時の snapshot で固定する。
 共通辞書に完全一致する語は provider request へ含めず、共通辞書完全一致ではない語は確定済みとして保存しない。
@@ -54,14 +56,14 @@ invalid response、response 欠落、余分な応答、空訳語は対象語単�
 単語翻訳フェーズ完了後だけ、後続 phase の入力 summary が成立する。
 terminal job への後書きは拒否する。
 
-secret、API key 平文、復号可能な値、provider raw request / response、翻訳フィールド本文の全文は表示しない。
+secret、API key 平文、復号可能な値、credential 参照実値、secret store key、endpoint、provider raw request / response、翻訳フィールド本文の全文は表示しない。
 同じ情報は error summary、structured log、fake transport log、保存データにも出さない。
-監査要約には provider、model、execution mode、input count、output count、prompt version または digest、共通辞書 snapshot の digest または version を残す。
+監査要約には provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt version または digest、共通辞書 snapshot の digest または version を残す。
 
 ## UI 契約由来の恒久仕様
 
 Job Run は current phase、phase state、progress、開始時刻、完了時刻、対象語件数、共通辞書 hit 件数、AI 実行対象語件数を表示する。
-phase result は確定訳語件数、ジョブ内辞書反映件数、置換対象件数、未一致件数、provider / model / execution mode の要約を表示する。
+phase result は確定訳語件数、ジョブ内辞書反映件数、置換対象件数、未一致件数、provider / model / execution mode / batch mode / credential 状態分類の要約を表示する。
 
 エラー時は error kind、短い理由、retryable flag、後続 phase 不可理由を表示する。
 secret、API key 平文、provider raw request / response、翻訳フィールド本文の全文は表示しない。

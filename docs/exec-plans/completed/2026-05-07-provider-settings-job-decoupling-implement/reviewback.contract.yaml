@@ -1,0 +1,135 @@
+reviewback_version: 1
+task_id: "2026-05-07-provider-settings-job-decoupling-implement"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "contract-001 と contract-002 は解消済みである。Job Setup の公開契約では、options response、provider model list request、validate request、validate response、create request、create response、summary response から credentialRef と modelListSourceToken が削除されている。stale 判定の選択鮮度は validation / create request の modelListFreshnessToken と Go usecase の FreshnessToken に限定されており、公開 response へ model list token は戻っていない。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、review-fix-result、final-validation、既存 reviewback、指定された TypeScript / Wails / Go usecase の公開型と変換処理を確認した。広いハーネス再実行は人間指示により実施していない。"
+
+checked_scope:
+  summary: "Job Setup の frontend gateway contract、frontend Wails gateway DTO、Wails gateway 変換、Go usecase contract、Go usecase 変換、Wails controller DTO / 変換を確認した。公開 JSON field と frontend application gateway contract に credentialRef / modelListSourceToken が戻っていないことを確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/implementation-scope.md"
+      line: 24
+      symbol: "Fixed Decisions"
+      reason: "Job Setup が扱ってよい値と、Job 側が所有しない値の承認済み条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+      line: 12
+      symbol: "contract-001"
+      reason: "create / validate request と phase runtime selection / summary の公開型から credentialRef と modelListSourceToken を削除する修正意図を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+      line: 36
+      symbol: "モデル一覧トークン修正後の最終結果"
+      reason: "モデル一覧 token 修正後の全 suite pass 証跡を確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 84
+      symbol: "TranslationJobSetupOptionsResponse"
+      reason: "frontend 公開 options 型が credentialRefs を持たないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 100
+      symbol: "TranslationJobSetupPhaseRuntimeSelection"
+      reason: "frontend 公開 phase runtime selection 型が credentialRef と modelListSourceToken を持たないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 109
+      symbol: "TranslationJobSetupPhaseRuntimeValidationSelection"
+      reason: "stale 判定用の入力値が modelListFreshnessToken として分離されていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 142
+      symbol: "TranslationJobSetupPhaseValidationResult"
+      reason: "frontend 公開 validate response が modelListSourceToken を持たないことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 53
+      symbol: "toPhaseRuntimeSelectionDto"
+      reason: "Wails へ送る request 変換が modelListFreshnessToken だけを渡し、credentialRef と modelListSourceToken を渡さないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 241
+      symbol: "TranslationJobSetupPhaseRuntimeSelection"
+      reason: "Go usecase 公開 selection 型が FreshnessToken だけを持ち、credentialRef と ModelListSourceToken を持たないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 285
+      symbol: "TranslationJobSetupPhaseValidationResult"
+      reason: "Go usecase 公開 validate result 型から ModelListSourceToken が削除されていることを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 229
+      symbol: "toServiceTranslationJobSetupPhaseRuntimes"
+      reason: "内部 service へ渡す stale 判定 token は FreshnessToken 由来に限定され、公開 result へ戻していないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 116
+      symbol: "TranslationJobSetupPhaseRuntimeSelectionDTO"
+      reason: "Wails request DTO の公開 JSON field が modelListFreshnessToken であり、credentialRef と modelListSourceToken を公開しないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 160
+      symbol: "TranslationJobSetupPhaseValidationResponseDTO"
+      reason: "Wails validation response DTO が modelListSourceToken を公開しないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 608
+      symbol: "toTranslationJobSetupPhaseValidationResponseDTOs"
+      reason: "Go usecase validate result から Wails validation response へ token をコピーしていないことを確認した。"
+
+unchecked_scope:
+  - target: "広いハーネス再実行"
+    reason: "人間指示と review_contract skill により、広いハーネス再実行はレビュー agent の責務外である。"
+    risk: "最終検証後の未コミット変更が検証証跡とずれていても、このレビューではコマンド実行で検出しない。"
+  - target: "有料の実 AI API 呼び出し"
+    reason: "final-validation.md の残留事項で未実施と記録されている。"
+    risk: "実 provider の transport 契約差分は、fake と API テストの範囲でしか確認していない。"
+
+issues:
+  - id: "contract-001"
+    level: "major"
+    title: "validate result の Go usecase 公開型に model list token が残っている"
+    problem: "修正前は Go usecase の validate result 公開型が ModelListSourceToken を持ち、Wails DTO 変換でも token を受け取っていた。修正後は TranslationJobSetupPhaseValidationResult から ModelListSourceToken が削除され、Wails validation response DTO へ token をコピーしていない。"
+    reason: "承認済み範囲は Job Setup の公開接点を provider、model、execution mode、batch mode、credential 状態分類へ縮めることを完了条件にしている。修正後の validate response は model list token を公開しない。"
+    violated_condition: "Job Setup validate の公開型は、credential 参照値と model list token を扱わない。"
+    cause_candidate: "修正前は frontend / Wails JSON 境界の削除に対して、Go usecase の TranslationJobSetupPhaseValidationResult と Wails validation response 変換が追従していなかった可能性がある。修正後は Go usecase contract と controller 変換が同じ公開型へ揃っている。"
+    evidence:
+      - path: "internal/usecase/translation_job_setup_contract.go"
+        line: 285
+        excerpt: "TranslationJobSetupPhaseValidationResult は PhaseID、Status、BlockingFailureCategory、CanCreate、ModelListState、IsModelSelectionStale だけを持つ。"
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 160
+        excerpt: "TranslationJobSetupPhaseValidationResponseDTO は modelListSourceToken JSON field を持たない。"
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 608
+        excerpt: "toTranslationJobSetupPhaseValidationResponseDTOs は ModelListState と IsModelSelectionStale をコピーし、token をコピーしない。"
+      - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+        line: 142
+        excerpt: "TranslationJobSetupPhaseValidationResult は modelListSourceToken を持たない。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "none。指定された Go usecase contract、Wails DTO、frontend gateway contract、変換処理では解消済みである。"
+    fix_considerations: "今後 stale 判定を拡張する場合も、validation / create request の選択鮮度と validation response の公開結果を混同しない必要がある。"
+    verification: "静的確認で validate result の ModelListSourceToken と modelListSourceToken が公開型と response 変換から消えていることを確認した。渡された最終検証証跡では python3 scripts/harness/run.py --suite all が pass している。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "contract-002"
+    level: "major"
+    title: "Job Setup options DTO が credential 参照値を公開していた"
+    problem: "修正前は Wails の Job Setup options response と frontend application contract が credentialRefs[].credentialRef と phase draft の modelListSourceToken を公開していた。修正後は options の公開型から credentialRefs が削除され、phaseRuntimeDrafts は credentialRef と modelListSourceToken を公開しない。"
+    reason: "承認済み範囲の secret 境界は、UI、DTO、read model に出してよい値を provider、model、execution mode、batch mode、credential 状態分類などに限定している。修正後の公開 options 型は credential 参照実値を返さない。"
+    violated_condition: "Job Setup の DTO / read model は credential 参照実値、secret store key 名、model list token を出さない。"
+    cause_candidate: "修正前は options と provider model list の既存契約が残っていた。修正後は Wails DTO、frontend gateway contract、gateway 変換、Go usecase contract が同じ公開型へ揃っている。"
+    evidence:
+      - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+        line: 84
+        excerpt: "TranslationJobSetupOptionsResponse は credentialRefs を持たない。"
+      - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+        line: 75
+        excerpt: "TranslationJobSetupPhaseRuntimeDraft は credentialRef と modelListSourceToken を持たない。"
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 98
+        excerpt: "TranslationJobSetupOptionsResponseDTO は credentialRefs JSON field を持たない。"
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 86
+        excerpt: "TranslationJobSetupPhaseRuntimeDraftDTO の credentialRef と modelListSourceToken は json:\"-\" で公開 JSON に出ない。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "none。指定された公開 options 型、request 型、response 型、変換処理では解消済みである。"
+    fix_considerations: "今後 options を拡張する場合も、credential 参照実値ではなく provider capability と credential 状態分類だけを公開する必要がある。"
+    verification: "静的確認で options response と phase runtime draft の公開契約から credentialRefs、credentialRef、modelListSourceToken が消えていることを確認した。渡された最終検証証跡では python3 scripts/harness/run.py --suite all が pass している。"
+    fix_required: true
+    status: "resolved"

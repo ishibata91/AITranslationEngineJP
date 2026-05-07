@@ -366,6 +366,33 @@ func newTermTranslationPhaseServiceForTest(provider TermTranslationProvider) (*T
 	}
 	transactor := fakeTermPhaseTransactor{jobRepo: jobRepo, foundation: foundation}
 	service := NewTermTranslationPhaseService(jobRepo, foundation, source, transactor, secretStore, provider)
+	service.WithTermTranslationProviderSettings(fakePhaseProviderSettingsConsumer{
+		resolveFunc: func(_ context.Context, input ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
+			endpoint := "https://provider-settings.example.test"
+			credentialRef := "gemini-primary"
+			if input.Selection.ProviderID == TermTranslationProviderLMStudio {
+				return ProviderSettingsResolveResult{
+					ConsumerID:      input.ConsumerID,
+					ProviderID:      input.Selection.ProviderID,
+					Model:           input.Selection.Model,
+					ExecutionMethod: input.Selection.ExecutionMethod,
+					UseBatchAPI:     input.Selection.UseBatchAPI,
+					Endpoint:        &endpoint,
+					CredentialState: providerSettingsCredentialStateNotRequired,
+				}, nil
+			}
+			return ProviderSettingsResolveResult{
+				ConsumerID:            input.ConsumerID,
+				ProviderID:            input.Selection.ProviderID,
+				Model:                 input.Selection.Model,
+				ExecutionMethod:       input.Selection.ExecutionMethod,
+				UseBatchAPI:           input.Selection.UseBatchAPI,
+				Endpoint:              &endpoint,
+				CredentialReferenceID: &credentialRef,
+				CredentialState:       providerSettingsCredentialStateConfigured,
+			}, nil
+		},
+	})
 	service.now = func() time.Time { return time.Date(2026, 5, 1, 12, 0, 0, 0, time.UTC) }
 	return service, jobRepo, foundation
 }

@@ -1,0 +1,181 @@
+reviewback_version: 1
+task_id: "2026-05-07-provider-settings-job-decoupling-implement"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "通過。Job Setup 公開 DTO、frontend phase state、model list response、validate / create request に credential reference 実値、secret store key、endpoint、secret、modelListSourceToken は出ていない。model list freshness 用の sourceToken は phase|provider||requestToken 形式で、credential reference 実値を含まない。"
+  evidence_sufficiency: "十分。指定成果物、既存 reviewback、review-fix-result、final-validation、指定実コードを読んで判定した。ハーネス再実行は禁止に従い実施していない。検証証跡は final-validation とユーザー指定値を入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "Job Setup options / summary / validate / create / model list の公開 DTO、frontend usecase state、Wails gateway、fake API、Go usecase contract、controller DTO、service 内 token 生成と provider settings 解決経路を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/implementation-scope.md"
+      line: 118
+      symbol: "PSJD-FE-01 secret 境界"
+      reason: "UI / DTO / read model に出してよい値と、endpoint 原文、credential_ref 実値、secret store key、modelListSourceToken の出力禁止条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+      line: 46
+      symbol: "モデル一覧トークン修正後の最終結果"
+      reason: "呼び出し元の最終検証が pass であること、coverage と Sonar security issue 0 を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+      line: 11
+      symbol: "解消内容"
+      reason: "credentialRefs、credentialRef、modelListSourceToken の公開型削除と sourceToken 修正の申告を確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 84
+      symbol: "TranslationJobSetupOptionsResponse"
+      reason: "options 公開型に credentialRefs がなく、phase runtime draft / selection / summary に credentialRef と modelListSourceToken がないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 125
+      symbol: "ListTranslationJobSetupProviderModelsResponse"
+      reason: "model list response の公開値は sourceToken であり、modelListSourceToken 名の公開 field はないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 347
+      symbol: "toPublicPhaseSelection"
+      reason: "frontend phase state へ残す selection が provider、model、credentialStatus、executionMode、batchMode だけに縮んでいることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 467
+      symbol: "toPhaseRuntimeValidationSelection"
+      reason: "validate / create へ渡す freshness 値が model list response の sourceToken 由来で、credentialRef field を持たないことを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/translation-job-setup/translation-job-setup-gateway-dto.ts"
+      line: 24
+      symbol: "TranslationJobSetupPhaseRuntimeValidationSelectionDto"
+      reason: "Wails gateway DTO 型が validation selection から credentialRef を除外していることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 53
+      symbol: "toPhaseRuntimeSelectionDto"
+      reason: "Wails gateway が modelListFreshnessToken だけを request DTO へ渡し、credentialRef を渡さないことを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 499
+      symbol: "createModelListResponse"
+      reason: "fake API の sourceToken も phase|provider||requestToken 形式で、credential reference 実値を含まないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 161
+      symbol: "TranslationJobSetupOptionsResult"
+      reason: "Go usecase 公開契約の options から CredentialRefs が削除されていることを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 241
+      symbol: "TranslationJobSetupPhaseRuntimeSelection"
+      reason: "validation / create 用 selection は FreshnessToken を持つが、CredentialRef と ModelListSourceToken を持たないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 88
+      symbol: "ListTranslationJobSetupProviderModels"
+      reason: "usecase から service へ model list request を渡す時に CredentialRef を渡していないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_usecase.go"
+      line: 223
+      symbol: "toServiceTranslationJobSetupPhaseRuntimes"
+      reason: "公開 request の modelListFreshnessToken は service 内部の ModelListSourceToken へだけ写し、公開応答へ戻していないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 86
+      symbol: "TranslationJobSetupPhaseRuntimeDraftDTO"
+      reason: "CredentialRef と ModelListSourceToken が json 非公開であることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 116
+      symbol: "TranslationJobSetupPhaseRuntimeSelectionDTO"
+      reason: "公開 request DTO が modelListFreshnessToken を持ち、credentialRef と modelListSourceToken を持たないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 141
+      symbol: "ListTranslationJobSetupProviderModelsResponseDTO"
+      reason: "model list response は sourceToken を公開するが、modelListSourceToken 名の field は公開していないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 585
+      symbol: "listProviderModelsViaProviderSettings"
+      reason: "provider settings 経由の sourceToken が phase、provider、requestToken だけから生成されることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1423
+      symbol: "translationJobSetupModelListSourceToken"
+      reason: "sourceToken 生成式が phase|provider||requestToken で、credentialRef 引数を持たないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1621
+      symbol: "resolvePhaseRuntimeAgainstProviderSettings"
+      reason: "内部では credential reference 実値を provider settings 解決結果として扱うが、公開 freshness token は requestToken から再生成されることを確認した。"
+
+unchecked_scope:
+  - target: "有料の実 AI API 呼び出し"
+    reason: "implementation-scope と final-validation で非対象と記録されているため。"
+    risk: "実 provider adapter 側の外部送信先とログ出力は、このレビューでは追加実行で確認していない。"
+  - target: "ハーネス再実行"
+    reason: "ユーザー指示と skill 非対象規約により再実行禁止のため。"
+    risk: "検証結果は呼び出し元が提示した 2026-05-07T21:52:39+0900 の pass 証跡に依存する。"
+
+issues:
+  - id: "trust-boundary-001"
+    level: "blocker"
+    title: "Job Setup options が credential_ref 実値を公開 DTO に出す"
+    problem: "修正済み。Job Setup options response から credentialRefs が削除され、Wails DTO、Go usecase contract、frontend gateway contract の options に credentialRef 実値は出ていない。"
+    reason: "Job Setup options の利用者へ credential reference 実値を返す直接経路は閉じられている。"
+    violated_condition: "修正前は secret 確認表の表示先と名前分離を破っていた。修正後は直接条件を満たす。"
+    cause_candidate: "修正前は options 用 DTO と read model の公開境界が phase runtime DTO の削減から漏れていた可能性がある。"
+    evidence:
+      - path: "internal/controller/wails/translation_job_setup_controller.go"
+        line: 98
+        excerpt: "TranslationJobSetupOptionsResponseDTO は credentialRefs を公開しない。"
+      - path: "internal/usecase/translation_job_setup_contract.go"
+        line: 161
+        excerpt: "TranslationJobSetupOptionsResult は CredentialRefs を持たない。"
+      - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+        line: 84
+        excerpt: "TranslationJobSetupOptionsResponse は credentialRefs を持たない。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "なし。指定された公開 DTO と frontend state の該当経路を確認した。"
+    fix_considerations: "credential 状態分類は公開してよいが、credential reference 実値や secret store key と見分けがつく値を公開 DTO に戻してはいけない。"
+    verification: "静的確認済み。呼び出し元の最終検証では python3 scripts/harness/run.py --suite all が 2026-05-07T21:52:39+0900 に pass と記録されている。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "trust-boundary-002"
+    level: "critical"
+    title: "provider settings 再解決を迂回して Job 側 credential_ref を使える"
+    problem: "修正済み。provider settings 対象 provider では provider settings service が nil の場合、phase start / retry が拒否される。"
+    reason: "term、persona、body の start / retry は provider settings service で解決した credential reference だけを provider adapter へ渡す形になっている。"
+    violated_condition: "修正前は secret 確認表の送信先、保存先、名前分離と、phase 実行開始時の provider settings 再解決必須条件を破っていた。修正後は直接条件を満たす。"
+    cause_candidate: "修正前は既存 job またはテスト互換性のために、providerSettings nil でも旧 CredentialRef を許す分岐が残っていた可能性がある。"
+    evidence:
+      - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-fix-result.md"
+        line: 22
+        excerpt: "provider settings 対象 provider では service nil 時に phase 開始を拒否すると記録されている。"
+      - path: "docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md"
+        line: 35
+        excerpt: "レビュー修正後の最終結果が pass と記録されている。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "なし。このレビューでは既存 issue の修正記録と最終検証証跡を確認した。"
+    fix_considerations: "provider settings 対象 provider では、Job 側または execution 側に残る旧 CredentialRef を secret 解決入力へ戻してはいけない。"
+    verification: "呼び出し元の修正結果と最終検証証跡を確認済み。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "trust-boundary-003"
+    level: "blocker"
+    title: "provider model list response の sourceToken が credential_ref 実値を公開する"
+    problem: "修正済み。provider settings 経由と direct 経由の sourceToken は phase、provider、requestToken だけで生成され、credential reference 実値を含まない。"
+    reason: "Job Setup model list response は sourceToken を公開するが、生成式は phase|provider||requestToken である。Wails DTO、frontend state、validate / create request は modelListFreshnessToken として扱い、credentialRef、secret store key、endpoint、secret、modelListSourceToken を含めない。"
+    violated_condition: "修正前は secret 確認表の表示先と名前分離、および implementation-scope の出力禁止値である credential_ref 実値と modelListSourceToken を公開 DTO に出さない条件を破っていた。修正後は直接条件を満たす。"
+    cause_candidate: "修正前は stale 判定用 sourceToken の内容が credential reference 実値を含む旧形式のまま残っていた可能性がある。修正後は生成関数から credentialRef 引数が削除されている。"
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 585
+        excerpt: "provider settings 経由の SourceToken は translationJobSetupModelListSourceToken(result.PhaseID, spec.ID, settingsRequestToken) で作る。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 612
+        excerpt: "direct 経由の SourceToken は credentialRef を渡さずに作る。"
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 1427
+        excerpt: "translationJobSetupModelListSourceToken は phase、provider、requestToken だけを受け取る。"
+      - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+        line: 504
+        excerpt: "fake API の sourceToken は phaseId|provider||requestToken 形式である。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 467
+        excerpt: "frontend は sourceToken を modelListFreshnessToken として validate / create payload へ渡す。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "なし。指定された model list response、frontend state、validate / create request、service token 生成経路を確認した。"
+    fix_considerations: "sourceToken を公開し続ける場合でも、credential reference 実値、secret store key、endpoint、secret、復号可能値を含めてはいけない。"
+    verification: "静的確認済み。呼び出し元の最終検証では python3 scripts/harness/run.py --suite all が 2026-05-07T21:52:39+0900 に pass と記録されている。"
+    fix_required: true
+    status: "resolved"

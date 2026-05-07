@@ -3,6 +3,7 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	jobsetupservice "aitranslationenginejp/internal/service"
 )
@@ -70,7 +71,6 @@ func (usecase *TranslationJobSetupUsecase) GetTranslationJobSetupOptions(
 		SharedDictionaries:   toTranslationJobSetupDictionaryOptions(readModel.SharedDictionaries),
 		SharedPersonas:       toTranslationJobSetupPersonaOptions(readModel.SharedPersonas),
 		AIRuntimeOptions:     toTranslationJobSetupRuntimeOptions(readModel.AIRuntimeOptions),
-		CredentialRefs:       toTranslationJobSetupCredentialReferences(readModel.CredentialRefs),
 		ProviderCapabilities: toTranslationJobSetupProviderCapabilities(readModel.ProviderCapabilities),
 		PhaseRuntimeDrafts:   toTranslationJobSetupPhaseRuntimeDrafts(readModel.PhaseRuntimeDrafts),
 	}, nil
@@ -88,7 +88,6 @@ func (usecase *TranslationJobSetupUsecase) ListTranslationJobSetupProviderModels
 	result, err := reader.ListProviderModels(ctx, jobsetupservice.ListTranslationJobSetupProviderModelsRequest{
 		PhaseID:          string(request.PhaseID),
 		Provider:         request.Provider,
-		CredentialRef:    request.CredentialRef,
 		CredentialStatus: string(request.CredentialStatus),
 		RequestToken:     request.RequestToken,
 	})
@@ -230,11 +229,10 @@ func toServiceTranslationJobSetupPhaseRuntimes(
 			PhaseID:              string(runtime.PhaseID),
 			Provider:             runtime.Provider,
 			Model:                runtime.Model,
-			CredentialRef:        runtime.CredentialRef,
 			CredentialStatus:     string(runtime.CredentialStatus),
 			ExecutionMode:        runtime.ExecutionMode,
 			BatchMode:            string(runtime.BatchMode),
-			ModelListSourceToken: runtime.ModelListSourceToken,
+			ModelListSourceToken: strings.TrimSpace(runtime.FreshnessToken),
 		})
 	}
 	return result
@@ -251,7 +249,6 @@ func toTranslationJobSetupPhaseValidationResults(
 			BlockingFailureCategory: cloneOptionalString(result.BlockingFailureCategory),
 			CanCreate:               result.CanCreate,
 			ModelListState:          TranslationJobSetupProviderModelListStatus(result.ModelListState),
-			ModelListSourceToken:    result.ModelListSourceToken,
 			IsModelSelectionStale:   result.IsModelSelectionStale,
 		})
 	}
@@ -329,21 +326,6 @@ func toTranslationJobSetupRuntimeOptions(
 	return result
 }
 
-func toTranslationJobSetupCredentialReferences(
-	refs []jobsetupservice.TranslationJobSetupCredentialReferenceReadModel,
-) []TranslationJobSetupCredentialReference {
-	result := make([]TranslationJobSetupCredentialReference, 0, len(refs))
-	for _, ref := range refs {
-		result = append(result, TranslationJobSetupCredentialReference{
-			Provider:        ref.Provider,
-			CredentialRef:   ref.CredentialRef,
-			IsConfigured:    ref.IsConfigured,
-			IsMissingSecret: ref.IsMissingSecret,
-		})
-	}
-	return result
-}
-
 func toTranslationJobSetupProviderCapabilities(
 	capabilities []jobsetupservice.TranslationJobSetupProviderCapabilityReadModel,
 ) []TranslationJobSetupProviderCapability {
@@ -365,14 +347,12 @@ func toTranslationJobSetupPhaseRuntimeDrafts(
 	result := make([]TranslationJobSetupPhaseRuntimeDraft, 0, len(drafts))
 	for _, draft := range drafts {
 		result = append(result, TranslationJobSetupPhaseRuntimeDraft{
-			PhaseID:              TranslationJobSetupPhaseID(draft.PhaseID),
-			Provider:             draft.Provider,
-			Model:                draft.Model,
-			CredentialRef:        draft.CredentialRef,
-			CredentialStatus:     TranslationJobSetupCredentialStatus(draft.CredentialStatus),
-			ExecutionMode:        draft.ExecutionMode,
-			BatchMode:            TranslationJobSetupBatchMode(draft.BatchMode),
-			ModelListSourceToken: draft.ModelListSourceToken,
+			PhaseID:          TranslationJobSetupPhaseID(draft.PhaseID),
+			Provider:         draft.Provider,
+			Model:            draft.Model,
+			CredentialStatus: TranslationJobSetupCredentialStatus(draft.CredentialStatus),
+			ExecutionMode:    draft.ExecutionMode,
+			BatchMode:        TranslationJobSetupBatchMode(draft.BatchMode),
 		})
 	}
 	return result
@@ -384,14 +364,12 @@ func toTranslationJobSetupPhaseRuntimeSummaries(
 	result := make([]TranslationJobSetupPhaseRuntimeSummary, 0, len(summaries))
 	for _, summary := range summaries {
 		result = append(result, TranslationJobSetupPhaseRuntimeSummary{
-			PhaseID:              TranslationJobSetupPhaseID(summary.PhaseID),
-			Provider:             summary.Provider,
-			Model:                summary.Model,
-			CredentialRef:        summary.CredentialRef,
-			CredentialStatus:     TranslationJobSetupCredentialStatus(summary.CredentialStatus),
-			ExecutionMode:        summary.ExecutionMode,
-			BatchMode:            TranslationJobSetupBatchMode(summary.BatchMode),
-			ModelListSourceToken: summary.ModelListSourceToken,
+			PhaseID:          TranslationJobSetupPhaseID(summary.PhaseID),
+			Provider:         summary.Provider,
+			Model:            summary.Model,
+			CredentialStatus: TranslationJobSetupCredentialStatus(summary.CredentialStatus),
+			ExecutionMode:    summary.ExecutionMode,
+			BatchMode:        TranslationJobSetupBatchMode(summary.BatchMode),
 		})
 	}
 	return result

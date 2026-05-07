@@ -24,9 +24,9 @@ const PROVIDER_LABELS: Record<string, string> = {
 }
 
 export const VALIDATION_LABELS = {
-  pass: "validation pass",
-  fail: "validation fail",
-  warning: "validation warning",
+  pass: "確認済み",
+  fail: "確認失敗",
+  warning: "要確認",
   not_ready: "未完了",
   ready: "確認済み",
   running: "確認中"
@@ -212,14 +212,14 @@ function buildCredentialStatusLabel(
   }
 
   if (selection.credentialStatus === "configured") {
-    return "登録済み"
+    return "設定済み"
   }
 
   if (selection.credentialStatus === "not_required") {
-    return "不要"
+    return "APIキー不要"
   }
 
-  return "未設定"
+  return "APIキー未設定"
 }
 
 function buildPhaseStatus(
@@ -237,9 +237,17 @@ function buildPhaseStatus(
 
   if (selection.credentialStatus === "missing") {
     return {
-      label: "設定が必要",
+      label: "APIキー未設定",
       tone: "warning",
-      helper: "AIサービス設定が未完了です。設定が必要です。"
+      helper: "APIキーを設定してください。"
+    }
+  }
+
+  if (!modelList || modelList.status === "not_updated") {
+    return {
+      label: "モデル一覧未更新",
+      tone: "warning",
+      helper: "モデル一覧を更新してください。"
     }
   }
 
@@ -253,7 +261,7 @@ function buildPhaseStatus(
 
   if (modelList?.status === "failed") {
     return {
-      label: "取得失敗",
+      label: "モデル一覧取得失敗",
       tone: "warning",
       helper: "モデル一覧の取得に失敗しました。"
     }
@@ -295,14 +303,7 @@ function buildProviderOptions(state: TranslationJobSetupScreenState): Array<{
       credentialStatus:
         capability.credentialRequirement === "not_required"
           ? "not_required"
-          : (state.options?.credentialRefs.some(
-                (credential) =>
-                  credential.provider === capability.provider &&
-                  credential.isConfigured &&
-                  !credential.isMissingSecret
-              )
-            ? "configured"
-            : "missing")
+          : "missing"
     })) ?? []
   )
 }
@@ -432,33 +433,23 @@ function findSelectedRuntimeOption(
   )
 }
 
-function resolveAvailableCredentialRefs(state: TranslationJobSetupScreenState) {
-  const selectedRuntimeOption = findSelectedRuntimeOption(state)
-  const credentialRefs = state.options?.credentialRefs ?? []
-  if (!selectedRuntimeOption) {
-    return credentialRefs
-  }
-
-  const providerMatches = credentialRefs.filter(
-    (credential) => credential.provider === selectedRuntimeOption.provider
-  )
-
-  return providerMatches.length > 0 ? providerMatches : credentialRefs
+function resolveAvailableCredentialRefs() {
+  return []
 }
 
 function buildLegacyValidationStatusText(
   state: TranslationJobSetupScreenState
 ): string {
   if (state.validationState === "running") {
-    return "validation を実行しています。完了後に pass / fail / warning を更新します。"
+    return "作成前確認を実行しています。"
   }
 
   if (state.validationState === "stale") {
-    return "設定を変更したため validation が失効しました。create 前に再実行が必要です。"
+    return "設定を変更したため、作成前確認の再実行が必要です。"
   }
 
   if (state.validationState === "not-run" || !state.validationResult) {
-    return "validation 未実行です。入力、runtime、credential を確認して実行してください。"
+    return "作成前確認は未実行です。入力データと AIサービスを確認してください。"
   }
 
   const label =
@@ -467,7 +458,7 @@ function buildLegacyValidationStatusText(
     ] ?? state.validationResult.status
   const sliceText =
     state.validationResult.targetSlices.length > 0
-      ? `対象断面: ${state.validationResult.targetSlices.join(" / ")}`
+      ? `確認対象: ${state.validationResult.targetSlices.join(" / ")}`
       : "対象断面はありません。"
   const failureText = state.validationResult.blockingFailureCategory
     ? ` 失敗理由: ${state.validationResult.blockingFailureCategory}`
@@ -486,19 +477,15 @@ function buildLegacyBlockedReasons(
   }
 
   if (state.validationState === "not-run") {
-    reasons.push("validation 未実行です。")
+    reasons.push("作成前確認が未実行です。")
   }
 
   if (state.validationState === "stale" || state.dirty) {
-    reasons.push("validation が失効しています。")
+    reasons.push("作成前確認の再実行が必要です。")
   }
 
   if (!state.validationResult?.canCreate) {
-    reasons.push("blocking failure を解消するまで create できません。")
-  }
-
-  if (!state.selectedCredentialRef) {
-    reasons.push("credential 参照を選択してください。")
+    reasons.push("作成できない理由を解消してください。")
   }
 
   return Array.from(new Set(reasons))
@@ -508,52 +495,65 @@ function buildLegacyCreateStatusText(
   state: TranslationJobSetupScreenState
 ): string {
   if (state.phase === "creating") {
-    return "translation job を作成しています。成功後は read-only summary へ切り替えます。"
+    return "翻訳ジョブを作成しています。"
   }
 
   if (state.summary) {
-    return "create 成功済みです。ready job summary を read-only で表示しています。"
+    return "作成済みの設定内容を読み取り専用で表示しています。"
   }
 
   if (state.createErrorKind) {
     return CREATE_ERROR_LABELS[state.createErrorKind] ?? state.createErrorKind
   }
 
-  return "validation が fresh かつ create 可能な時だけ job を作成できます。"
+  return "作成前確認が完了した時だけ、翻訳ジョブを作成できます。"
 }
 
-function buildLegacyCredentialStateText(
-  availableCredentialRefs: Array<{
-    provider: string
-    credentialRef: string
-    isConfigured: boolean
-    isMissingSecret: boolean
-  }>,
-  selectedCredentialRef: string
-): string {
-  if (availableCredentialRefs.length === 0) {
-    return "credential 参照はありません。"
+function sanitizePhaseRuntimeSelectionForView(
+  selection: TranslationJobSetupPhaseRuntimeSelection
+): TranslationJobSetupPhaseRuntimeSelection {
+  return { ...selection }
+}
+
+function sanitizePhaseRuntimeSummaryForView(
+  summary: TranslationJobSetupPhaseRuntimeSummary
+): TranslationJobSetupPhaseRuntimeSummary {
+  return { ...summary }
+}
+
+function sanitizeSummaryForView(
+  summary: TranslationJobSetupScreenState["summary"]
+): TranslationJobSetupScreenState["summary"] {
+  if (!summary) {
+    return null
   }
 
-  const selectedCredential = availableCredentialRefs.find(
-    (credential) => credential.credentialRef === selectedCredentialRef
-  )
-  if (!selectedCredential) {
-    return "credential 参照を選択してください。"
+  return {
+    ...summary,
+    executionSummary: { ...summary.executionSummary },
+    validationPassSlices: [...summary.validationPassSlices],
+    phaseRuntimeSummaries: summary.phaseRuntimeSummaries?.map(
+      sanitizePhaseRuntimeSummaryForView
+    )
+  }
+}
+
+function sanitizeValidationForView(
+  validation: TranslationJobSetupScreenState["validationResult"]
+): TranslationJobSetupScreenState["validationResult"] {
+  if (!validation) {
+    return null
   }
 
-  if (!selectedCredential.isConfigured) {
-    return "credential は未設定です。"
+  return {
+    ...validation,
+    targetSlices: [...validation.targetSlices],
+    passSlices: [...validation.passSlices],
+    phaseResults: validation.phaseResults?.map((result) => ({ ...result })),
+    staleModelListPhaseIds: validation.staleModelListPhaseIds
+      ? [...validation.staleModelListPhaseIds]
+      : undefined
   }
-
-  if (
-    selectedCredential.isMissingSecret &&
-    selectedCredential.provider !== "lm_studio"
-  ) {
-    return "credential 参照はありますが secret が不足しています。"
-  }
-
-  return "credential 参照は設定済みです。"
 }
 
 function buildSummaryPhaseCards(
@@ -576,11 +576,9 @@ function buildSummaryPhaseCards(
                 phaseId,
                 provider: summary.provider,
                 model: summary.model,
-                credentialRef: summary.credentialRef,
                 credentialStatus: summary.credentialStatus,
                 executionMode: summary.executionMode,
-                batchMode: summary.batchMode,
-                modelListSourceToken: summary.modelListSourceToken
+                batchMode: summary.batchMode
               }
             : null
         ),
@@ -688,7 +686,6 @@ interface TranslationJobSetupDerivedState {
   } | null
   availableCredentialRefs: Array<{
     provider: string
-    credentialRef: string
     isConfigured: boolean
     isMissingSecret: boolean
   }>
@@ -706,7 +703,7 @@ function buildLegacyDerivedState(
   state: TranslationJobSetupScreenState
 ): TranslationJobSetupDerivedState {
   const selectedRuntimeOption = findSelectedRuntimeOption(state)
-  const availableCredentialRefs = resolveAvailableCredentialRefs(state)
+  const availableCredentialRefs = resolveAvailableCredentialRefs()
   const globalBlockedReasons = buildLegacyBlockedReasons(state)
 
   return {
@@ -725,10 +722,7 @@ function buildLegacyDerivedState(
     validationStatusLabel: buildValidationStatusLabel(state, true),
     validationStatusText: buildLegacyValidationStatusText(state),
     createStatusText: buildLegacyCreateStatusText(state),
-    credentialStateText: buildLegacyCredentialStateText(
-      availableCredentialRefs,
-      state.selectedCredentialRef
-    )
+    credentialStateText: ""
   }
 }
 
@@ -772,19 +766,21 @@ export class TranslationJobSetupPresenter {
 
     return {
       ...state,
+      selectedCredentialRef: "",
+      phaseRuntimeSelections: state.phaseRuntimeSelections?.map(
+        sanitizePhaseRuntimeSelectionForView
+      ),
+      validationResult: sanitizeValidationForView(state.validationResult),
+      summary: sanitizeSummaryForView(state.summary),
       gatewayStatus: isGatewayConnected ? "接続準備済み" : "未接続",
       selectedInputCandidate,
       selectedRuntimeOption: derivedState.selectedRuntimeOption,
-      availableCredentialRefs: derivedState.availableCredentialRefs,
+      availableCredentialRefs: [],
       phaseValidationResults: state.validationResult?.phaseResults?.map(
-        (result) => ({
-          ...result
-        })
+        (result) => ({ ...result })
       ),
       phaseRuntimeSummaries: state.summary?.phaseRuntimeSummaries?.map(
-        (summary) => ({
-          ...summary
-        })
+        sanitizePhaseRuntimeSummaryForView
       ),
       selectedInputLabel: selectedInputCandidate?.label ?? "未選択",
       selectedInputSourceKind: selectedInputCandidate?.sourceKind ?? "-",
@@ -814,7 +810,7 @@ export class TranslationJobSetupPresenter {
       showCacheMissingGuidance:
         state.validationResult?.blockingFailureCategory?.toLowerCase() ===
         "cache missing",
-      credentialStateText: derivedState.credentialStateText,
+      credentialStateText: "",
       phaseCards: derivedState.phaseCards,
       summaryPhaseCards: buildSummaryPhaseCards(state),
       createSectionTitle: "作成前確認",

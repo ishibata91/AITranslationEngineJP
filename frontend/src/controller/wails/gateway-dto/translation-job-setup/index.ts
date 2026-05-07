@@ -8,6 +8,7 @@ export type {
   GetTranslationJobSetupSummaryResponseDto,
   ListTranslationJobSetupProviderModelsRequestDto,
   ListTranslationJobSetupProviderModelsResponseDto,
+  TranslationJobSetupPhaseRuntimeValidationSelectionDto,
   ValidateTranslationJobSetupRequestDto,
   ValidateTranslationJobSetupResponseDto
 } from "./translation-job-setup-gateway-dto"

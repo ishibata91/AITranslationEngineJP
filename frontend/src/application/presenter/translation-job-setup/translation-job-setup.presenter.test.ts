@@ -37,14 +37,6 @@ function createOptions(
         mode: "batch"
       }
     ],
-    credentialRefs: [
-      {
-        provider: "openai",
-        credentialRef: "openai-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      }
-    ],
     ...overrides
   }
 }
@@ -156,31 +148,25 @@ describe("TranslationJobSetupPresenter", () => {
             phaseId: "word_translation",
             provider: "openai",
             model: "gpt-5.4-mini",
-            credentialRef: "openai-primary",
             credentialStatus: "configured",
             executionMode: "batch",
             batchMode: "enabled",
-            modelListSourceToken: "word-1"
           },
           {
             phaseId: "npc_persona_generation",
             provider: "openai",
             model: "gpt-5.4-mini",
-            credentialRef: "openai-primary",
             credentialStatus: "configured",
             executionMode: "batch",
             batchMode: "enabled",
-            modelListSourceToken: "npc-1"
           },
           {
             phaseId: "text_translation",
             provider: "openai",
             model: "gpt-5.4-mini",
-            credentialRef: "openai-primary",
             credentialStatus: "configured",
             executionMode: "batch",
             batchMode: "enabled",
-            modelListSourceToken: "text-1"
           }
         ],
         providerModelLists: [
@@ -219,7 +205,6 @@ describe("TranslationJobSetupPresenter", () => {
               status: "pass",
               canCreate: true,
               modelListState: "success",
-              modelListSourceToken: "word-1",
               isModelSelectionStale: false
             },
             {
@@ -227,7 +212,6 @@ describe("TranslationJobSetupPresenter", () => {
               status: "pass",
               canCreate: true,
               modelListState: "success",
-              modelListSourceToken: "npc-1",
               isModelSelectionStale: false
             },
             {
@@ -235,7 +219,6 @@ describe("TranslationJobSetupPresenter", () => {
               status: "pass",
               canCreate: true,
               modelListState: "success",
-              modelListSourceToken: "text-1",
               isModelSelectionStale: false
             }
           ]

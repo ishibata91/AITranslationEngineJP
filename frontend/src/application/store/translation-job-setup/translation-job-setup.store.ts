@@ -24,27 +24,43 @@ function cloneOptions(
   if (!options) {
     return null
   }
+  const publicOptions = {
+    ...options
+  } as TranslationJobSetupOptionsResponse & {
+    credentialRefs?: unknown
+  }
+  delete publicOptions.credentialRefs
 
   return {
-    ...options,
-    inputCandidates: options.inputCandidates.map((candidate) => ({
+    ...publicOptions,
+    inputCandidates: publicOptions.inputCandidates.map((candidate) => ({
       ...candidate
     })),
-    existingJob: options.existingJob ? { ...options.existingJob } : undefined,
-    sharedDictionaries: options.sharedDictionaries.map((option) => ({
+    existingJob: publicOptions.existingJob
+      ? { ...publicOptions.existingJob }
+      : undefined,
+    sharedDictionaries: publicOptions.sharedDictionaries.map((option) => ({
       ...option
     })),
-    sharedPersonas: options.sharedPersonas.map((option) => ({ ...option })),
-    aiRuntimeOptions: options.aiRuntimeOptions.map((option) => ({ ...option })),
-    credentialRefs: options.credentialRefs.map((credential) => ({
-      ...credential
+    sharedPersonas: publicOptions.sharedPersonas.map((option) => ({
+      ...option
     })),
-    providerCapabilities: options.providerCapabilities?.map((capability) => ({
-      ...capability,
-      supportedExecutionModes: [...capability.supportedExecutionModes]
+    aiRuntimeOptions: publicOptions.aiRuntimeOptions.map((option) => ({
+      ...option
     })),
-    phaseRuntimeDrafts: options.phaseRuntimeDrafts?.map((draft) => ({
-      ...draft
+    providerCapabilities: publicOptions.providerCapabilities?.map(
+      (capability) => ({
+        ...capability,
+        supportedExecutionModes: [...capability.supportedExecutionModes]
+      })
+    ),
+    phaseRuntimeDrafts: publicOptions.phaseRuntimeDrafts?.map((draft) => ({
+      phaseId: draft.phaseId,
+      provider: draft.provider,
+      model: draft.model,
+      credentialStatus: draft.credentialStatus,
+      executionMode: draft.executionMode,
+      batchMode: draft.batchMode
     }))
   }
 }

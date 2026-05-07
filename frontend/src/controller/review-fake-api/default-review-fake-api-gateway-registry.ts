@@ -21,6 +21,7 @@ import type {
   TranslationJobSetupOptionsResponse,
   TranslationJobSetupPhaseId,
   TranslationJobSetupPhaseRuntimeSelection,
+  TranslationJobSetupPhaseRuntimeValidationSelection,
   TranslationJobSetupPhaseValidationResult,
   TranslationJobSetupSummaryResponse,
   TranslationJobSetupValidationResponse,
@@ -260,8 +261,12 @@ function createMasterPersonaRunStatus(
 function createMasterPersonaAISettingsResponse(
   scenarioId: ReviewFakeApiScenarioId
 ): MasterPersonaAISettingsResponse {
-  const credentialStatus = scenarioId === "config-missing" ? "missing" : "configured"
-  const model = credentialStatus === "configured" && scenarioId !== "empty" ? "fake-model" : ""
+  const credentialStatus =
+    scenarioId === "config-missing" ? "missing" : "configured"
+  const model =
+    credentialStatus === "configured" && scenarioId !== "empty"
+      ? "fake-model"
+      : ""
   return {
     aiSettings: {
       provider: "gemini",
@@ -270,13 +275,21 @@ function createMasterPersonaAISettingsResponse(
     },
     providerOptions: [
       { value: "gemini", label: "Gemini", credentialStatus },
-      { value: "lm_studio", label: "LM Studio", credentialStatus: "not_required" as const },
+      {
+        value: "lm_studio",
+        label: "LM Studio",
+        credentialStatus: "not_required" as const
+      },
       { value: "xai", label: "xAI", credentialStatus: "missing" as const }
     ],
     modelList: {
       provider: "gemini",
       credentialStatus,
-      status: model ? "success" as const : credentialStatus === "missing" ? "credential_missing" as const : "not_updated" as const,
+      status: model
+        ? ("success" as const)
+        : credentialStatus === "missing"
+          ? ("credential_missing" as const)
+          : ("not_updated" as const),
       models: model ? [{ modelId: model, label: model }] : []
     }
   }
@@ -336,14 +349,21 @@ function createMasterPersonaGateway(
       Promise.resolve({
         provider: request.provider,
         credentialStatus:
-          scenarioId === "config-missing" ? "missing" : request.provider === "lm_studio" ? "not_required" : "configured",
+          scenarioId === "config-missing"
+            ? "missing"
+            : request.provider === "lm_studio"
+              ? "not_required"
+              : "configured",
         status:
           scenarioId === "config-missing"
             ? "credential_missing"
             : request.provider === "lm_studio"
               ? "credential_not_required"
               : "success",
-        models: scenarioId === "config-missing" ? [] : [{ modelId: "fake-model", label: "fake-model" }]
+        models:
+          scenarioId === "config-missing"
+            ? []
+            : [{ modelId: "fake-model", label: "fake-model" }]
       }),
     saveMasterPersonaAISettings: (request) => {
       if (scenarioId === "error") {
@@ -399,7 +419,6 @@ function createJobSetupOptions(
       sharedDictionaries: [],
       sharedPersonas: [],
       aiRuntimeOptions: [],
-      credentialRefs: [],
       providerCapabilities: [],
       phaseRuntimeDrafts: []
     }
@@ -422,20 +441,6 @@ function createJobSetupOptions(
     aiRuntimeOptions: [
       { provider: "gemini", model: "fake-model", mode: "single_request" }
     ],
-    credentialRefs: [
-      {
-        provider: "gemini",
-        credentialRef: credentialConfigured ? "credential-review" : "",
-        isConfigured: credentialConfigured,
-        isMissingSecret: !credentialConfigured
-      },
-      {
-        provider: "lm_studio",
-        credentialRef: "",
-        isConfigured: true,
-        isMissingSecret: false
-      }
-    ],
     providerCapabilities: [
       {
         provider: "gemini",
@@ -454,11 +459,9 @@ function createJobSetupOptions(
       phaseId,
       provider: "gemini",
       model: restoredModel,
-      credentialRef: credentialConfigured ? "credential-review" : "",
       credentialStatus: credentialConfigured ? "configured" : "missing",
       executionMode: "single_request",
-      batchMode: "disabled",
-      modelListSourceToken: restoredModel
+      batchMode: "disabled"
     }))
   }
 }
@@ -498,7 +501,7 @@ function createModelListResponse(
     provider: request.provider,
     credentialStatus: request.credentialStatus,
     requestToken: request.requestToken,
-    sourceToken: "fake-model",
+    sourceToken: `${request.phaseId}|${request.provider}||${request.requestToken}`,
     status: "success",
     models:
       scenarioId === "empty"
@@ -508,16 +511,21 @@ function createModelListResponse(
 }
 
 function toPhaseValidationResults(
-  selections: TranslationJobSetupPhaseRuntimeSelection[] | undefined
+  selections: TranslationJobSetupPhaseRuntimeValidationSelection[] | undefined
 ): TranslationJobSetupPhaseValidationResult[] {
   return (selections ?? []).map((selection) => ({
     phaseId: selection.phaseId,
-    status: selection.model ? "pass" : "blocked",
-    blockingFailureCategory: selection.model ? undefined : "model_list_failed",
-    canCreate: selection.model !== "",
+    status:
+      selection.model && selection.modelListFreshnessToken ? "pass" : "blocked",
+    blockingFailureCategory:
+      selection.model && selection.modelListFreshnessToken
+        ? undefined
+        : "model_list_failed",
+    canCreate:
+      selection.model !== "" && selection.modelListFreshnessToken !== "",
     modelListState: selection.model ? "success" : "not_updated",
-    modelListSourceToken: selection.modelListSourceToken,
-    isModelSelectionStale: false
+    isModelSelectionStale:
+      selection.model !== "" && selection.modelListFreshnessToken === ""
   }))
 }
 
@@ -561,6 +569,8 @@ function createJobSetupSummary(
 function createTranslationJobSetupGateway(
   scenarioId: ReviewFakeApiScenarioId
 ): TranslationJobSetupGatewayContract {
+  let latestCreatedSelections: TranslationJobSetupPhaseRuntimeSelection[] = []
+
   if (scenarioId === "loading") {
     return {
       getTranslationJobSetupOptions: () => new Promise(() => undefined),
@@ -588,6 +598,16 @@ function createTranslationJobSetupGateway(
       const canCreate = (request.phaseRuntimeSelections ?? []).every(
         (selection) => selection.model !== ""
       )
+      latestCreatedSelections = canCreate
+        ? (request.phaseRuntimeSelections ?? []).map((selection) => ({
+            phaseId: selection.phaseId,
+            provider: selection.provider,
+            model: selection.model,
+            credentialStatus: selection.credentialStatus,
+            executionMode: selection.executionMode,
+            batchMode: selection.batchMode
+          }))
+        : []
       return Promise.resolve({
         jobId: 9001,
         jobState: canCreate ? "ready" : "draft",
@@ -610,7 +630,10 @@ function createTranslationJobSetupGateway(
       Promise.resolve({ deletedInputSourceId: request.inputSourceId }),
     getTranslationJobSetupSummary: (
       request: GetTranslationJobSetupSummaryRequest
-    ) => Promise.resolve(createJobSetupSummary(request.jobId))
+    ) =>
+      Promise.resolve(
+        createJobSetupSummary(request.jobId, latestCreatedSelections)
+      )
   }
 }
 

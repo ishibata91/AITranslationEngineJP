@@ -165,7 +165,6 @@ type TranslationJobSetupOptionsResult struct {
 	SharedDictionaries   []TranslationJobSetupDictionaryOption
 	SharedPersonas       []TranslationJobSetupPersonaOption
 	AIRuntimeOptions     []TranslationJobSetupRuntimeOption
-	CredentialRefs       []TranslationJobSetupCredentialReference
 	ProviderCapabilities []TranslationJobSetupProviderCapability
 	PhaseRuntimeDrafts   []TranslationJobSetupPhaseRuntimeDraft
 }
@@ -210,7 +209,6 @@ type TranslationJobSetupRuntimeOption struct {
 // TranslationJobSetupCredentialReference exposes only credential reference state.
 type TranslationJobSetupCredentialReference struct {
 	Provider        string
-	CredentialRef   string
 	IsConfigured    bool
 	IsMissingSecret bool
 }
@@ -225,14 +223,12 @@ type TranslationJobSetupProviderCapability struct {
 
 // TranslationJobSetupPhaseRuntimeDraft returns the current draft state for one phase.
 type TranslationJobSetupPhaseRuntimeDraft struct {
-	PhaseID              TranslationJobSetupPhaseID
-	Provider             string
-	Model                string
-	CredentialRef        string
-	CredentialStatus     TranslationJobSetupCredentialStatus
-	ExecutionMode        string
-	BatchMode            TranslationJobSetupBatchMode
-	ModelListSourceToken string
+	PhaseID          TranslationJobSetupPhaseID
+	Provider         string
+	Model            string
+	CredentialStatus TranslationJobSetupCredentialStatus
+	ExecutionMode    string
+	BatchMode        TranslationJobSetupBatchMode
 }
 
 // TranslationJobSetupRuntimeSelection is the selected runtime configuration.
@@ -244,21 +240,19 @@ type TranslationJobSetupRuntimeSelection struct {
 
 // TranslationJobSetupPhaseRuntimeSelection is the selected runtime configuration for one phase.
 type TranslationJobSetupPhaseRuntimeSelection struct {
-	PhaseID              TranslationJobSetupPhaseID
-	Provider             string
-	Model                string
-	CredentialRef        string
-	CredentialStatus     TranslationJobSetupCredentialStatus
-	ExecutionMode        string
-	BatchMode            TranslationJobSetupBatchMode
-	ModelListSourceToken string
+	PhaseID          TranslationJobSetupPhaseID
+	Provider         string
+	Model            string
+	CredentialStatus TranslationJobSetupCredentialStatus
+	ExecutionMode    string
+	BatchMode        TranslationJobSetupBatchMode
+	FreshnessToken   string
 }
 
 // ListTranslationJobSetupProviderModelsRequest carries the transport-stable provider model list input.
 type ListTranslationJobSetupProviderModelsRequest struct {
 	PhaseID          TranslationJobSetupPhaseID
 	Provider         string
-	CredentialRef    string
 	CredentialStatus TranslationJobSetupCredentialStatus
 	RequestToken     string
 }
@@ -285,7 +279,6 @@ type ListTranslationJobSetupProviderModelsResult struct {
 type ValidateTranslationJobSetupRequest struct {
 	InputSourceID          int64
 	Runtime                TranslationJobSetupRuntimeSelection
-	CredentialRef          string
 	PhaseRuntimeSelections []TranslationJobSetupPhaseRuntimeSelection
 }
 
@@ -296,7 +289,6 @@ type TranslationJobSetupPhaseValidationResult struct {
 	BlockingFailureCategory *string
 	CanCreate               bool
 	ModelListState          TranslationJobSetupProviderModelListStatus
-	ModelListSourceToken    string
 	IsModelSelectionStale   bool
 }
 
@@ -320,7 +312,6 @@ type CreateTranslationJobRequest struct {
 	ValidatedAt            time.Time
 	ValidationPassSlices   []string
 	Runtime                TranslationJobSetupRuntimeSelection
-	CredentialRef          string
 	PhaseRuntimeSelections []TranslationJobSetupPhaseRuntimeSelection
 }
 
@@ -333,14 +324,12 @@ type TranslationJobExecutionSummary struct {
 
 // TranslationJobSetupPhaseRuntimeSummary returns the runtime snapshot captured per phase.
 type TranslationJobSetupPhaseRuntimeSummary struct {
-	PhaseID              TranslationJobSetupPhaseID
-	Provider             string
-	Model                string
-	CredentialRef        string
-	CredentialStatus     TranslationJobSetupCredentialStatus
-	ExecutionMode        string
-	BatchMode            TranslationJobSetupBatchMode
-	ModelListSourceToken string
+	PhaseID          TranslationJobSetupPhaseID
+	Provider         string
+	Model            string
+	CredentialStatus TranslationJobSetupCredentialStatus
+	ExecutionMode    string
+	BatchMode        TranslationJobSetupBatchMode
 }
 
 // CreateTranslationJobResult returns either a ready job summary or a rejected error kind.
@@ -404,14 +393,14 @@ func (TranslationJobSetupContractStub) ValidateTranslationJobSetup(
 	decision, err := jobsetupservice.NewTranslationJobSetupService().ValidateRequest(ctx, jobsetupservice.TranslationJobSetupValidationRequest{
 		InputSourceID: request.InputSourceID,
 		PhaseRuntimes: []jobsetupservice.TranslationJobSetupPhaseRuntimeDraftReadModel{{
-			PhaseID:              string(TranslationJobSetupPhaseIDWordTranslation),
-			Provider:             request.Runtime.Provider,
-			Model:                request.Runtime.Model,
-			CredentialRef:        request.CredentialRef,
-			CredentialStatus:     string(TranslationJobSetupCredentialStatusConfigured),
-			ExecutionMode:        request.Runtime.ExecutionMode,
-			BatchMode:            string(TranslationJobSetupBatchModeUnsupported),
-			ModelListSourceToken: "stub",
+			PhaseID:          string(TranslationJobSetupPhaseIDWordTranslation),
+			Provider:         request.Runtime.Provider,
+			Model:            request.Runtime.Model,
+			CredentialStatus: string(TranslationJobSetupCredentialStatusConfigured),
+			ExecutionMode:    request.Runtime.ExecutionMode,
+			BatchMode:        string(TranslationJobSetupBatchModeUnsupported),
+			ModelListSourceToken: "word_translation|" +
+				strings.TrimSpace(request.Runtime.Provider) + "||stub",
 		}},
 	})
 	if err != nil {

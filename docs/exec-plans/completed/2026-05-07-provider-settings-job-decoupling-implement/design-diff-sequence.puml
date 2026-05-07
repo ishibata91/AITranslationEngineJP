@@ -1,0 +1,96 @@
+@startuml
+
+title provider settings job decoupling design diff sequence
+autonumber
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam wrapWidth 220
+skinparam maxMessageSize 180
+
+actor "利用者" as User
+participant "Job Setup" as JobSetup
+participant "Ready job 実行開始" as StartUseCase
+database "JOB_PHASE_RUN" as JobPhaseRun
+database "PROVIDER_SETTINGS" as ProviderSettings
+collections "SecretStore\n実値解決のみ" as SecretStore
+database "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT" as RuntimeSnapshot
+participant "Provider Execution" as ProviderExecution
+
+== Job Setup ==
+
+User -> JobSetup : provider / model /\nexecution mode / batch mode を選択
+JobSetup -> ProviderSettings : provider 状態分類を参照
+ProviderSettings --> JobSetup : APIキー状態分類 / 接続確認状態
+note right of JobSetup
+表示しない:
+- credential reference 選択
+- endpoint 原文
+- secret store 参照実値
+end note
+
+JobSetup -> JobPhaseRun : Ready job の選択値だけを保存
+note right of JobPhaseRun
+Ready 保存時に残す:
+- provider
+- model
+- execution mode
+- batch mode
+end note
+note over JobSetup,JobPhaseRun #fff5f5
+削除予定:
+Job Setup から credential reference 選択表示を外す。
+Job 側 DB に credential_ref 実値と endpoint 要約を保存しない。
+end note
+
+== Ready job 実行開始 ==
+
+User -> StartUseCase : Ready job を開始
+StartUseCase -> JobPhaseRun : Ready の選択値を取得
+JobPhaseRun --> StartUseCase : provider / model /\nexecution mode / batch mode
+
+StartUseCase -> ProviderSettings : 最新 provider settings を再解決
+ProviderSettings -> SecretStore : secret 実値をその場で解決
+SecretStore --> ProviderSettings : 実行用 credential
+ProviderSettings --> StartUseCase : endpoint / credential から導いた\n非 secret 分類要約つき結果
+
+alt provider settings が未設定または参照不能
+  StartUseCase -> JobPhaseRun : Running を開始せず失敗分類だけ更新
+  note right of JobPhaseRun
+  保存するのは短い分類要約だけである。
+  secret 本体も endpoint 原文も残さない。
+  end note
+else provider settings が実行可能
+  StartUseCase -> RuntimeSnapshot : Running 開始時の\n非 secret 要約だけを保存
+  note right of RuntimeSnapshot
+  保存する:
+  - provider
+  - model
+  - execution mode
+  - batch mode
+  - credential 状態分類
+  - 接続確認状態
+  - 再解決結果分類
+  - 再解決時刻
+  end note
+  note over StartUseCase,RuntimeSnapshot #fff5f5
+  保存しない:
+  - credential_ref 実値
+  - endpoint 原文 / endpoint summary
+  - raw request / raw response
+  end note
+
+  StartUseCase -> JobPhaseRun : Running 開始状態へ更新
+  StartUseCase -> ProviderExecution : 再解決結果をその場で渡して実行開始
+  ProviderExecution --> StartUseCase : 実行開始受理
+end
+
+== Running 中の意味 ==
+
+note over RuntimeSnapshot,ProviderExecution
+Running phase は開始時の非 secret 要約だけを保存する。
+実行中に provider settings が変わっても、
+Job 側へ credential / endpoint fallback を再保存しない。
+end note
+
+@enduml

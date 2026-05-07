@@ -44,14 +44,6 @@ function createOptions(): TranslationJobSetupOptionsResponse {
         mode: "sync"
       }
     ],
-    credentialRefs: [
-      {
-        provider: "fake",
-        credentialRef: "test-ref-a",
-        isConfigured: true,
-        isMissingSecret: false
-      }
-    ],
     providerCapabilities: [
       {
         provider: "fake",
@@ -65,11 +57,9 @@ function createOptions(): TranslationJobSetupOptionsResponse {
         phaseId: "word_translation",
         provider: "fake",
         model: "test-model-a",
-        credentialRef: "test-ref-a",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "disabled",
-        modelListSourceToken: "token-a"
       }
     ]
   }
@@ -88,7 +78,6 @@ function createValidation(): TranslationJobSetupValidationResponse {
         status: "ready",
         canCreate: true,
         modelListState: "success",
-        modelListSourceToken: "token-a",
         isModelSelectionStale: false
       }
     ],
@@ -113,11 +102,9 @@ function createSummary(): TranslationJobSetupSummaryResponse {
         phaseId: "word_translation",
         provider: "fake",
         model: "test-model-a",
-        credentialRef: "test-ref-a",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "disabled",
-        modelListSourceToken: "token-a"
       }
     ]
   }
@@ -198,7 +185,6 @@ describe("TranslationJobSetupStore", () => {
     snapshot.options!.sharedDictionaries[0].label = "changed"
     snapshot.options!.sharedPersonas[0].label = "changed"
     snapshot.options!.aiRuntimeOptions[0].model = "changed"
-    snapshot.options!.credentialRefs[0].credentialRef = "changed"
     snapshot.options!.providerCapabilities![0].supportedExecutionModes[0] =
       "changed"
     snapshot.options!.phaseRuntimeDrafts![0].model = "changed"
@@ -223,9 +209,6 @@ describe("TranslationJobSetupStore", () => {
     )
     expect(nextSnapshot.options?.aiRuntimeOptions[0]?.model).toBe(
       "test-model-a"
-    )
-    expect(nextSnapshot.options?.credentialRefs[0]?.credentialRef).toBe(
-      "test-ref-a"
     )
     expect(
       nextSnapshot.options?.providerCapabilities?.[0]?.supportedExecutionModes[0]

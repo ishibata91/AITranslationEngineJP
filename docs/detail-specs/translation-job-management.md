@@ -2,11 +2,11 @@
 
 - `upper_scenario_id`: `translation-job-management`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/translation-job-management/plan.md`
+- `source_plan`: `docs/exec-plans/completed/translation-job-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
 - `scenario_source`: `docs/exec-plans/completed/translation-job-management/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/translation-job-management/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/translation-job-management/plan.md`
-- `review_source`: `docs/exec-plans/completed/translation-job-management/reviewback.*.yaml`
+- `implementation_source`: `docs/exec-plans/completed/translation-job-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_source`: `docs/exec-plans/completed/translation-job-management/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
 ## 要約
 
@@ -19,7 +19,7 @@
 - 対象利用者は、作成済みの未完了翻訳 job を確認し、再開、停止、削除の判断をしたい利用者である。
 - 開始条件は、翻訳 job が作成済みであり、翻訳管理を開けることである。
 - 完了状態は、未完了 job の一覧、状態、操作可否、理由カテゴリ、Job Run への導線を確認できることである。
-- 主要データは `TRANSLATION_JOB`、入力出自、phase progress、AI 設定要約、credential 参照状態、reason category である。
+- 主要データは `TRANSLATION_JOB`、入力出自、phase progress、AI 設定要約、credential 状態分類、reason category である。
 
 ## 仕様
 
@@ -43,7 +43,9 @@
 - 一覧読み込み失敗は空一覧にしない。
 - 参照不能 job は Job Run の表示対象にしない。
 - phase progress 集約不能は成功値として表示せず、危険操作を無効にする。
-- provider、model、execution mode、credential 参照状態は表示できる。
+- provider、model、execution mode、batch mode、credential 状態分類は表示できる。
+- Ready job の実行開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
+- job 一覧と操作結果 summary は、endpoint、credential 参照実値、secret store key、API key 本文を表示しない。
 - API key 平文、credential 値、外部 provider 応答原文は UI、エラー、履歴要約に表示しない。
 - Job Management は job 未作成 input を一覧へ混ぜない。
 - Data Load の新規登録は input 作成だけであり、job は自動作成しない。
@@ -73,7 +75,7 @@
 - 登録済みまたは警告ありの selected input だけ、Data Load から `Job Setup へ進む` 導線を表示する。
 - 失敗または再構築が必要な selected input では、`Job Setup へ進む` 導線を表示しない。
 - 読み込み失敗、stale selection、集約不能は空状態や成功状態と区別して表示する。
-- secret は存在状態だけを表示し、API key 本文を表示しない。
+- secret は credential 状態分類だけを表示し、API key 本文を表示しない。
 
 ## 対象外
 

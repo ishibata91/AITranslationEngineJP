@@ -374,6 +374,7 @@ func (fixture *bodyTranslationAPIFixture) controller() *controllerwails.BodyTran
 	if fixture.optionsProvider() != nil {
 		phaseService.WithBodyTranslationProvider(fixture.optionsProvider())
 	}
+	phaseService.WithBodyTranslationProviderSettings(bodyTranslationAPIProviderSettings{})
 	phaseUsecase := usecase.NewBodyTranslationPhaseUsecase(phaseService)
 	return controllerwails.NewBodyTranslationPhaseController(phaseUsecase)
 }
@@ -381,6 +382,35 @@ func (fixture *bodyTranslationAPIFixture) controller() *controllerwails.BodyTran
 func (fixture *bodyTranslationAPIFixture) optionsProvider() service.BodyTranslationProvider {
 	fixture.t.Helper()
 	return fixture.store.provider
+}
+
+type bodyTranslationAPIProviderSettings struct{}
+
+func (bodyTranslationAPIProviderSettings) ListProviderSettings(context.Context) (service.ProviderSettingsRoute, []service.ProviderSettingsSummary, error) {
+	return service.ProviderSettingsRoute{}, nil, nil
+}
+
+func (bodyTranslationAPIProviderSettings) SaveProviderSettings(context.Context, service.ProviderSettingsSaveInput) (service.ProviderSettingsSummary, error) {
+	return service.ProviderSettingsSummary{}, nil
+}
+
+func (bodyTranslationAPIProviderSettings) ListProviderModels(context.Context, service.ProviderSettingsModelListInput) (service.ProviderSettingsModelListResult, error) {
+	return service.ProviderSettingsModelListResult{}, nil
+}
+
+func (bodyTranslationAPIProviderSettings) ResolveProviderExecutionSettings(_ context.Context, input service.ProviderSettingsResolveInput) (service.ProviderSettingsResolveResult, error) {
+	endpoint := "https://body-provider.example.test"
+	providerReference := "body-fixture-ref"
+	return service.ProviderSettingsResolveResult{
+		ConsumerID:            input.ConsumerID,
+		ProviderID:            input.Selection.ProviderID,
+		Model:                 input.Selection.Model,
+		ExecutionMethod:       input.Selection.ExecutionMethod,
+		UseBatchAPI:           input.Selection.UseBatchAPI,
+		Endpoint:              &endpoint,
+		CredentialReferenceID: &providerReference,
+		CredentialState:       "configured",
+	}, nil
 }
 
 func bodyTranslationAPIOutputField(

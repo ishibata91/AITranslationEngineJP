@@ -2,11 +2,11 @@
 
 - `upper_scenario_id`: `persona-generation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/persona-generation-phase/plan.md`
+- `source_plan`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
 - `scenario_source`: `docs/exec-plans/completed/persona-generation-phase/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/persona-generation-phase/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/persona-generation-phase/plan.md`
-- `review_source`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`
+- `implementation_source`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_source`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
 ## 要約
 
@@ -28,7 +28,9 @@ provider 失敗、入力不備、保存失敗、partial state は successful Com
 - 生成対象 summary は、NPC count、入力種類、対象件数、common persona hit / miss、対象外理由を含む。
 - 共通ペルソナ hit 時は新規 `PERSONA` を作らず、ジョブの persona snapshot 参照だけを固定する。
 - persona 生成は 1 NPC を 1 request unit とし、NPC 属性と会話文脈を同じ request で扱う。
-- provider、model、execution mode は Job Setup の persona 専用設定を継承する。
+- provider、model、execution mode、batch mode は Job Setup の persona 専用設定を継承する。
+- phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
+- job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
 - valid provider output は、ジョブ内ペルソナまたは persona snapshot 参照へ自動採用する。
 - 生成対象 0 件は Completed とし、対象 0 件、provider 未実行、snapshot 空を result summary に出す。
 
@@ -47,7 +49,7 @@ persona 未完了、失敗、snapshot 参照不能では本文翻訳フェーズ
 - Job Run は current phase として `NPC ペルソナ生成` を表示する。
 - Job Run は phase state、progress、target count、generated count、failed count、skipped count を表示する。
 - Job Run は persona snapshot ID または snapshot digest、snapshot 参照状態、missing count、body phase readiness を表示する。
-- Job Run は provider、model、execution mode、credential ref、input count、output count、短い error kind を表示する。
+- Job Run は provider、model、execution mode、batch mode、credential 状態分類、input count、output count、短い error kind を表示する。
 - Job Run 再表示時は redacted phase result summary を復元できる形で表示する。
 - 長い NPC 名、provider 名、model 名、error reason、snapshot digest は desktop と mobile で表示を破綻させない。
 
@@ -63,11 +65,11 @@ progress は数値と state label を併記する。
 
 ## 保護仕様
 
-secret、API key 平文、provider raw request / response、raw prompt、原文発話全文、会話文脈全文は UI、error summary、structured log、final validation summary に出さない。
+secret、API key 平文、credential 参照実値、secret store key、endpoint、provider raw request / response、raw prompt、原文発話全文、会話文脈全文は UI、error summary、structured log、final validation summary に出さない。
 UI と DB summary には ID、digest、件数、evidence ref、redacted phase result summary だけを出す。
 
 debug log に prompt または request body を出す場合でも、secret と API key は出さない。
-障害調査用の要約では、provider、model、execution mode、credential ref、input count、output count、prompt digest、error kind を確認できる。
+障害調査用の要約では、provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt digest、error kind を確認できる。
 
 ## 受け入れ根拠
 

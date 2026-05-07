@@ -49,20 +49,6 @@ function createOptions(
         mode: "sync"
       }
     ],
-    credentialRefs: [
-      {
-        provider: "openai-compatible",
-        credentialRef: "cred-main",
-        isConfigured: true,
-        isMissingSecret: false
-      },
-      {
-        provider: "anthropic",
-        credentialRef: "cred-missing",
-        isConfigured: true,
-        isMissingSecret: true
-      }
-    ],
     ...overrides
   }
 }
@@ -72,26 +58,6 @@ function createPhaseOptions(
 ): TranslationJobSetupOptionsResponse {
   return createOptions({
     aiRuntimeOptions: [],
-    credentialRefs: [
-      {
-        provider: "gemini",
-        credentialRef: "gemini-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      },
-      {
-        provider: "xai",
-        credentialRef: "xai-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      },
-      {
-        provider: "openai",
-        credentialRef: "openai-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      }
-    ],
     providerCapabilities: [
       {
         provider: "gemini",
@@ -123,31 +89,25 @@ function createPhaseOptions(
         phaseId: "word_translation",
         provider: "gemini",
         model: "gemini-model-core",
-        credentialRef: "gemini-primary",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "enabled",
-        modelListSourceToken: "models-word-v1"
       },
       {
         phaseId: "npc_persona_generation",
         provider: "xai",
         model: "xai-persona-model",
-        credentialRef: "xai-primary",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "disabled",
-        modelListSourceToken: "models-persona-v1"
       },
       {
         phaseId: "text_translation",
         provider: "lm_studio",
         model: "local-text-model",
-        credentialRef: "",
         credentialStatus: "not_required",
         executionMode: "sync",
         batchMode: "unsupported",
-        modelListSourceToken: "models-text-v1"
       }
     ],
     ...overrides
@@ -200,7 +160,7 @@ function createState(
     selectedRuntimeKey: selectedRuntimeOption
       ? createTranslationJobSetupRuntimeKey(selectedRuntimeOption)
       : null,
-    selectedCredentialRef: options.credentialRefs[0]?.credentialRef ?? "",
+    selectedCredentialRef: "",
     validationResult: createValidationResult(),
     validationState: "stale",
     dirty: true,
@@ -233,7 +193,7 @@ function createPresentedPhaseViewModel(
       provider: selection.provider,
       credentialStatus: selection.credentialStatus,
       requestToken: "",
-      sourceToken: selection.modelListSourceToken,
+      sourceToken: "",
       status: "success",
       models: selection.model
         ? [{ modelId: selection.model, label: selection.model }]
@@ -294,9 +254,7 @@ function createViewModel(
     gatewayStatus: "接続準備済み",
     selectedInputCandidate: options.inputCandidates[0] ?? null,
     selectedRuntimeOption: options.aiRuntimeOptions[0] ?? null,
-    availableCredentialRefs: options.credentialRefs.filter(
-      (credential) => credential.provider === "openai-compatible"
-    ),
+    availableCredentialRefs: [],
     selectedInputLabel: options.inputCandidates[0]?.label ?? "未選択",
     selectedInputSourceKind: options.inputCandidates[0]?.sourceKind ?? "-",
     selectedInputRecordCountLabel: "128 件",
@@ -464,31 +422,25 @@ describe("JobSetupPage", () => {
               phaseId: "word_translation",
               provider: "gemini",
               model: "gemini-model-core",
-              credentialRef: "gemini-primary",
               credentialStatus: "configured",
               executionMode: "sync",
               batchMode: "enabled",
-              modelListSourceToken: "models-word-v1"
             },
             {
               phaseId: "npc_persona_generation",
               provider: "xai",
               model: "xai-persona-model",
-              credentialRef: "xai-primary",
               credentialStatus: "configured",
               executionMode: "sync",
               batchMode: "disabled",
-              modelListSourceToken: "models-persona-v1"
             },
             {
               phaseId: "text_translation",
               provider: "lm_studio",
               model: "local-text-model",
-              credentialRef: "",
               credentialStatus: "not_required",
               executionMode: "sync",
               batchMode: "unsupported",
-              modelListSourceToken: "models-text-v1"
             }
           ]
         })
@@ -504,8 +456,186 @@ describe("JobSetupPage", () => {
     expect(screen.getByText("gemini-model-core")).toBeInTheDocument()
     expect(screen.getByText("xai-persona-model")).toBeInTheDocument()
     expect(screen.getByText("local-text-model")).toBeInTheDocument()
-    expect(screen.getAllByText("登録済み").length).toBeGreaterThan(0)
-    expect(screen.getByText("不要")).toBeInTheDocument()
+    expect(screen.getAllByText("設定済み").length).toBeGreaterThan(0)
+    expect(screen.getByText("APIキー不要")).toBeInTheDocument()
+    expect(screen.queryByText("credential reference")).not.toBeInTheDocument()
+    expect(screen.queryByText("modelListSourceToken")).not.toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent("sk-")
+  })
+
+  test("SCN-PSJD-002: Job Setup の Ready job 作成後要約は選択値だけを表示する", async () => {
+    const user = userEvent.setup()
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createPresentedPhaseViewModel()
+    )
+
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    await user.click(screen.getByRole("button", { name: "次へ" }))
+
+    controller.pushViewModel(
+      createPresentedPhaseViewModel({
+        summary: createSummary({
+          phaseRuntimeSummaries: [
+            {
+              phaseId: "word_translation",
+              provider: "gemini",
+              model: "gemini-ready-model",
+              credentialStatus: "configured",
+              executionMode: "sync",
+              batchMode: "enabled",
+            },
+            {
+              phaseId: "npc_persona_generation",
+              provider: "xai",
+              model: "xai-ready-model",
+              credentialStatus: "configured",
+              executionMode: "sync",
+              batchMode: "disabled",
+            },
+            {
+              phaseId: "text_translation",
+              provider: "lm_studio",
+              model: "local-ready-model",
+              credentialStatus: "not_required",
+              executionMode: "sync",
+              batchMode: "unsupported",
+            }
+          ]
+        })
+      })
+    )
+
+    expect(
+      await screen.findByRole("heading", { name: "翻訳段階ごとの設定" })
+    ).toBeInTheDocument()
+    expect(screen.getByText("gemini-ready-model")).toBeInTheDocument()
+    expect(screen.getByText("xai-ready-model")).toBeInTheDocument()
+    expect(screen.getByText("local-ready-model")).toBeInTheDocument()
+    expect(screen.getAllByText("設定済み").length).toBeGreaterThan(0)
+    expect(screen.getByText("APIキー不要")).toBeInTheDocument()
+    expect(document.body).not.toHaveTextContent(
+      "credential-ref-must-stay-hidden"
+    )
+    expect(document.body).not.toHaveTextContent(
+      "xai-secret-ref-must-stay-hidden"
+    )
+    expect(document.body).not.toHaveTextContent(
+      "model-list-token-must-stay-hidden"
+    )
+    expect(document.body).not.toHaveTextContent("endpoint")
+    expect(document.body).not.toHaveTextContent("raw request")
+  })
+
+  test("SCN-PSJD-003: Job Setup は APIキー未設定、取得失敗、モデル未選択を分けて表示する", async () => {
+    const user = userEvent.setup()
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createPresentedPhaseViewModel({
+        phaseRuntimeSelections: [
+          {
+            phaseId: "word_translation",
+            provider: "gemini",
+            model: "",
+            credentialStatus: "missing",
+            executionMode: "sync",
+            batchMode: "enabled",
+          },
+          {
+            phaseId: "npc_persona_generation",
+            provider: "xai",
+            model: "",
+            credentialStatus: "configured",
+            executionMode: "sync",
+            batchMode: "disabled",
+          },
+          {
+            phaseId: "text_translation",
+            provider: "lm_studio",
+            model: "",
+            credentialStatus: "not_required",
+            executionMode: "sync",
+            batchMode: "unsupported",
+          }
+        ],
+        providerModelLists: [
+          {
+            phaseId: "word_translation",
+            provider: "gemini",
+            credentialStatus: "missing",
+            requestToken: "",
+            sourceToken: "",
+            status: "credential_missing",
+            models: [],
+            failureKind: "model_list_credential_missing"
+          },
+          {
+            phaseId: "npc_persona_generation",
+            provider: "xai",
+            credentialStatus: "configured",
+            requestToken: "",
+            sourceToken: "",
+            status: "failed",
+            models: [],
+            failureKind: "model_list_failed"
+          },
+          {
+            phaseId: "text_translation",
+            provider: "lm_studio",
+            credentialStatus: "not_required",
+            requestToken: "",
+            sourceToken: "",
+            status: "success",
+            models: [
+              { modelId: "local-ready-model", label: "local-ready-model" }
+            ]
+          }
+        ],
+        validationResult: createValidationResult({
+          status: "fail",
+          blockingFailureCategory: "phase_runtime_missing",
+          targetSlices: ["phase-runtime"],
+          canCreate: false,
+          passSlices: []
+        }),
+        validationState: "fresh",
+        dirty: false
+      })
+    )
+
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller
+      }
+    })
+
+    expect(screen.getAllByText("APIキー未設定").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("モデル一覧取得失敗").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("モデル未選択").length).toBeGreaterThan(0)
+    expect(
+      screen.getByText("単語翻訳: APIキーを設定してください。")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText("NPC ペルソナ生成: モデル一覧の取得に失敗しました。")
+    ).toBeInTheDocument()
+    expect(
+      screen.getByText(
+        "本文翻訳: モデル一覧を更新して、使うモデルを選んでください。"
+      )
+    ).toBeInTheDocument()
+
+    const blockedRefresh = screen.getByRole("button", {
+      name: "単語翻訳のモデル一覧を更新"
+    })
+    expect(blockedRefresh).toBeDisabled()
+    await user.click(blockedRefresh)
+
+    expect(controller.refreshPhaseModels).not.toHaveBeenCalled()
+    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled()
+    expect(document.body).not.toHaveTextContent("raw response")
     expect(document.body).not.toHaveTextContent("sk-")
   })
 
@@ -573,12 +703,12 @@ describe("JobSetupPage", () => {
       screen.getByText("Foundation Persona / Translation Main")
     ).toBeInTheDocument()
     expect(
-      screen.getByText("credential 参照は設定済みです。")
-    ).toBeInTheDocument()
-    expect(screen.getAllByText("validation warning").length).toBeGreaterThan(0)
+      screen.queryByText("credential 参照は設定済みです。")
+    ).not.toBeInTheDocument()
+    expect(screen.getAllByText("要確認").length).toBeGreaterThan(0)
     expect(screen.getByText("invalid-timestamp")).toBeInTheDocument()
     expect(screen.getByText("cache missing")).toBeInTheDocument()
-    expect(screen.getByText("dirty")).toBeInTheDocument()
+    expect(screen.getByText("再確認が必要")).toBeInTheDocument()
     expect(screen.getAllByText("credential").length).toBeGreaterThan(0)
     expect(screen.getAllByText("runtime").length).toBeGreaterThan(0)
     expect(screen.getAllByText("input").length).toBeGreaterThan(0)
@@ -606,7 +736,7 @@ describe("JobSetupPage", () => {
     })
   })
 
-  test("入力カード選択、削除、runtime、credential の操作を controller へ委譲する", async () => {
+  test("入力カード選択、削除、AIサービス・モデル・実行方法の操作を controller へ委譲する", async () => {
     const user = userEvent.setup()
     const controller = new TranslationJobSetupScreenControllerFake(
       createViewModel({
@@ -635,21 +765,17 @@ describe("JobSetupPage", () => {
     )
     await user.click(screen.getByRole("button", { name: "削除" }))
     await user.selectOptions(
-      screen.getByLabelText("provider / model / execution mode"),
+      screen.getByLabelText("AIサービス / モデル / 実行方法"),
       "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
     )
-    await user.selectOptions(
-      screen.getByLabelText("credential reference"),
-      "cred-main"
-    )
-    await user.click(screen.getByRole("button", { name: "validation を実行" }))
+    await user.click(screen.getByRole("button", { name: "確認を実行" }))
 
     expect(controller.selectInputSource).toHaveBeenCalledWith(41)
     expect(controller.deleteInputSource).toHaveBeenCalledWith(41)
     expect(controller.selectRuntime).toHaveBeenCalledWith(
       "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
     )
-    expect(controller.selectCredentialRef).toHaveBeenCalledWith("cred-main")
+    expect(controller.selectCredentialRef).not.toHaveBeenCalled()
     expect(controller.runValidation).toHaveBeenCalledTimes(1)
     expect(controller.createJob).not.toHaveBeenCalled()
   })

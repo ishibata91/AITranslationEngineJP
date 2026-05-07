@@ -64,25 +64,10 @@ func providerExecutionSnapshotFromRuntimeSnapshot(
 		Provider:        strings.TrimSpace(snapshot.Provider),
 		Model:           strings.TrimSpace(snapshot.ModelName),
 		ExecutionMode:   strings.TrimSpace(snapshot.ExecutionMode),
-		CredentialRef:   strings.TrimSpace(snapshot.CredentialRef),
 		CredentialState: strings.TrimSpace(snapshot.CredentialStatus),
-		EndpointSummary: providerExecutionStringPointer(snapshot.EndpointSummary),
 	}
-}
-
-func providerExecutionStringPointer(value string) *string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return nil
-	}
-	cloned := trimmed
-	return &cloned
 }
 
 func providerExecutionBatchMode(snapshot repository.TranslationJobPhaseRuntimeSnapshot) string {
 	return strings.TrimSpace(snapshot.BatchMode)
-}
-
-func providerExecutionModelListSourceToken(snapshot repository.TranslationJobPhaseRuntimeSnapshot) string {
-	return strings.TrimSpace(snapshot.ModelListSourceToken)
 }

@@ -44,14 +44,6 @@ function createOptions(
         mode: "batch"
       }
     ],
-    credentialRefs: [
-      {
-        provider: "openai",
-        credentialRef: "openai-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      }
-    ],
     ...overrides
   }
 }
@@ -61,26 +53,6 @@ function createPhaseOptions(
 ): TranslationJobSetupOptionsResponse {
   return createOptions({
     aiRuntimeOptions: [],
-    credentialRefs: [
-      {
-        provider: "gemini",
-        credentialRef: "gemini-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      },
-      {
-        provider: "xai",
-        credentialRef: "xai-primary",
-        isConfigured: true,
-        isMissingSecret: false
-      },
-      {
-        provider: "lm_studio",
-        credentialRef: "lmstudio-local",
-        isConfigured: true,
-        isMissingSecret: false
-      }
-    ],
     providerCapabilities: [
       {
         provider: "gemini",
@@ -106,31 +78,25 @@ function createPhaseOptions(
         phaseId: "word_translation",
         provider: "gemini",
         model: "gemini-word-model",
-        credentialRef: "gemini-primary",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "enabled",
-        modelListSourceToken: "gemini-source-current"
       },
       {
         phaseId: "npc_persona_generation",
         provider: "xai",
         model: "xai-persona-model",
-        credentialRef: "xai-primary",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "disabled",
-        modelListSourceToken: "xai-source-current"
       },
       {
         phaseId: "text_translation",
         provider: "xai",
         model: "xai-text-model",
-        credentialRef: "xai-primary",
         credentialStatus: "configured",
         executionMode: "sync",
         batchMode: "disabled",
-        modelListSourceToken: "xai-source-text"
       }
     ],
     ...overrides
@@ -188,7 +154,14 @@ function createPhaseDrivenState(
   const options = createPhaseOptions()
   const phaseRuntimeSelections =
     options.phaseRuntimeDrafts?.map(
-      (draft): TranslationJobSetupPhaseRuntimeSelection => ({ ...draft })
+      (draft): TranslationJobSetupPhaseRuntimeSelection => ({
+        phaseId: draft.phaseId,
+        provider: draft.provider,
+        model: draft.model,
+        credentialStatus: draft.credentialStatus,
+        executionMode: draft.executionMode,
+        batchMode: draft.batchMode
+      })
     ) ?? []
   const providerModelLists = phaseRuntimeSelections.map(
     (selection): ListTranslationJobSetupProviderModelsResponse => ({
@@ -196,7 +169,7 @@ function createPhaseDrivenState(
       provider: selection.provider,
       credentialStatus: selection.credentialStatus,
       requestToken: "",
-      sourceToken: selection.modelListSourceToken,
+      sourceToken: `${selection.phaseId}-source`,
       status: "success",
       models: [{ modelId: selection.model, label: selection.model }]
     })
@@ -514,8 +487,7 @@ describe("TranslationJobSetupUseCase", () => {
         provider: "openai",
         model: "gpt-5.4-mini",
         executionMode: "batch"
-      },
-      credentialRef: "openai-primary"
+      }
     })
   })
 
@@ -681,8 +653,7 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "xai",
-        model: "",
-        modelListSourceToken: ""
+        model: ""
       })
     )
 
@@ -712,8 +683,7 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "xai",
-        model: "",
-        modelListSourceToken: ""
+        model: ""
       })
     )
     expect(
@@ -793,8 +763,7 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "xai",
-        model: "",
-        modelListSourceToken: ""
+        model: ""
       })
     )
     expect(
@@ -842,8 +811,7 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "xai",
-        model: "",
-        modelListSourceToken: ""
+        model: ""
       })
     )
     expect(
@@ -888,7 +856,6 @@ describe("TranslationJobSetupUseCase", () => {
       expect.objectContaining({
         phaseId: "text_translation",
         provider: "lm_studio",
-        credentialRef: "",
         credentialStatus: "not_required"
       })
     )
@@ -901,15 +868,13 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "lm_studio",
-        credentialRef: "",
         credentialStatus: "not_required",
-        model: "lmstudio-community",
-        modelListSourceToken: "text_translation|lm_studio||req-lm-1"
+        model: "lmstudio-community"
       })
     )
   })
 
-  test("credentialStatus が missing でも refreshPhaseModels は gateway 応答で model list と選択状態を更新する", async () => {
+  test("credentialStatus が missing の phase は refreshPhaseModels で gateway を呼ばず missing 状態を維持する", async () => {
     const gateway = createGateway()
     const listProviderModelsSpy = vi.fn(
       (
@@ -933,31 +898,25 @@ describe("TranslationJobSetupUseCase", () => {
             phaseId: "word_translation",
             provider: "gemini",
             model: "",
-            credentialRef: "gemini-primary",
             credentialStatus: "missing",
             executionMode: "sync",
             batchMode: "enabled",
-            modelListSourceToken: ""
           },
           {
             phaseId: "npc_persona_generation",
             provider: "xai",
             model: "xai-persona-model",
-            credentialRef: "xai-primary",
             credentialStatus: "configured",
             executionMode: "sync",
             batchMode: "disabled",
-            modelListSourceToken: "xai-source-current"
           },
           {
             phaseId: "text_translation",
             provider: "xai",
             model: "xai-text-model",
-            credentialRef: "xai-primary",
             credentialStatus: "configured",
             executionMode: "sync",
             batchMode: "disabled",
-            modelListSourceToken: "xai-source-text"
           }
         ]
       })
@@ -966,14 +925,7 @@ describe("TranslationJobSetupUseCase", () => {
 
     await usecase.refreshPhaseModels("word_translation")
 
-    expect(listProviderModelsSpy).toHaveBeenCalledTimes(1)
-    expect(listProviderModelsSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        phaseId: "word_translation",
-        provider: "gemini",
-        credentialStatus: "missing"
-      })
-    )
+    expect(listProviderModelsSpy).toHaveBeenCalledTimes(0)
     expect(
       store
         .snapshot()
@@ -983,10 +935,10 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "gemini",
-        credentialStatus: "not_required",
-        status: "success",
-        sourceToken: "word_translation|gemini||req-test-safe",
-        models: [{ modelId: "gemini-test-safe", label: "Gemini Test Safe" }]
+        credentialStatus: "missing",
+        status: "credential_missing",
+        sourceToken: "",
+        models: []
       })
     )
     expect(
@@ -998,8 +950,7 @@ describe("TranslationJobSetupUseCase", () => {
     ).toEqual(
       expect.objectContaining({
         provider: "gemini",
-        model: "gemini-test-safe",
-        modelListSourceToken: "word_translation|gemini||req-test-safe"
+        model: "",
       })
     )
   })
@@ -1036,8 +987,7 @@ describe("TranslationJobSetupUseCase", () => {
       expect.objectContaining({
         provider: "lm_studio",
         credentialStatus: "not_required",
-        model: "single-available-model",
-        modelListSourceToken: "text_translation|lm_studio||req-fake-1"
+        model: "single-available-model"
       })
     )
   })
@@ -1053,11 +1003,9 @@ describe("TranslationJobSetupUseCase", () => {
             phaseId: "word_translation",
             provider: "",
             model: "",
-            credentialRef: "",
             credentialStatus: "missing",
             executionMode: "sync",
             batchMode: "unsupported",
-            modelListSourceToken: ""
           }
         ]
       })
@@ -1099,19 +1047,13 @@ describe("TranslationJobSetupUseCase", () => {
       | ValidateTranslationJobSetupRequest
       | undefined
     expect(lastPayload).toBeDefined()
-    expect(lastPayload).toEqual(
-      expect.objectContaining({
-        credentialRef: "gemini-primary"
-      })
-    )
+    expect(lastPayload).toBeDefined()
     expect(lastPayload?.phaseRuntimeSelections).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
           phaseId: "text_translation",
           provider: "lm_studio",
-          credentialRef: "",
-          model: "lmstudio-community",
-          modelListSourceToken: "text_translation|lm_studio||req-lm-1"
+          model: "lmstudio-community"
         })
       ])
     )

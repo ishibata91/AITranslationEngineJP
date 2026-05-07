@@ -67,14 +67,12 @@ func TestTranslationJobSetupUsecaseValidateForwardsPhaseRuntimes(t *testing.T) {
 	got, err := usecase.ValidateTranslationJobSetup(context.Background(), ValidateTranslationJobSetupRequest{
 		InputSourceID: 44,
 		PhaseRuntimeSelections: []TranslationJobSetupPhaseRuntimeSelection{{
-			PhaseID:              "word_translation",
-			Provider:             "openai",
-			Model:                "gpt-5.4-mini",
-			CredentialRef:        "openai-primary",
-			CredentialStatus:     "configured",
-			ExecutionMode:        "sync",
-			BatchMode:            "unsupported",
-			ModelListSourceToken: "word_translation|openai|openai-primary|req-1",
+			PhaseID:          "word_translation",
+			Provider:         "openai",
+			Model:            "gpt-5.4-mini",
+			CredentialStatus: "configured",
+			ExecutionMode:    "sync",
+			BatchMode:        "unsupported",
 		}},
 	})
 	if err != nil {
@@ -109,7 +107,6 @@ func TestTranslationJobSetupUsecaseListProviderModelsMapsResponse(t *testing.T) 
 	got, err := usecase.ListTranslationJobSetupProviderModels(context.Background(), ListTranslationJobSetupProviderModelsRequest{
 		PhaseID:          "npc_persona_generation",
 		Provider:         "gemini",
-		CredentialRef:    "gemini-primary",
 		CredentialStatus: "configured",
 		RequestToken:     "req-2",
 	})
@@ -167,9 +164,9 @@ func TestTranslationJobSetupUsecaseCreateReturnsPhaseRuntimeSummaries(t *testing
 		ValidationStatus: "pass",
 		ValidatedAt:      time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC),
 		PhaseRuntimeSelections: []TranslationJobSetupPhaseRuntimeSelection{
-			{PhaseID: "word_translation", Provider: "openai", Model: "gpt-5.4-mini", CredentialRef: "openai-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported", ModelListSourceToken: "word_translation|openai|openai-primary|req-1"},
-			{PhaseID: "npc_persona_generation", Provider: "gemini", Model: "gemini-2.5-pro", CredentialRef: "gemini-primary", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled", ModelListSourceToken: "npc_persona_generation|gemini|gemini-primary|req-2"},
-			{PhaseID: "text_translation", Provider: "xai", Model: "grok-4", CredentialRef: "xai-primary", CredentialStatus: "configured", ExecutionMode: "batch", BatchMode: "enabled", ModelListSourceToken: "text_translation|xai|xai-primary|req-3"},
+			{PhaseID: "word_translation", Provider: "openai", Model: "gpt-5.4-mini", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "unsupported"},
+			{PhaseID: "npc_persona_generation", Provider: "gemini", Model: "gemini-2.5-pro", CredentialStatus: "configured", ExecutionMode: "sync", BatchMode: "disabled"},
+			{PhaseID: "text_translation", Provider: "xai", Model: "grok-4", CredentialStatus: "configured", ExecutionMode: "batch", BatchMode: "enabled"},
 		},
 	})
 	if err != nil {

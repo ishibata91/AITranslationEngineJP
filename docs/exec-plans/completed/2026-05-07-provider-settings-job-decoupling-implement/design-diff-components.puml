@@ -1,0 +1,113 @@
+@startuml
+
+title provider settings job decoupling design diff components
+top to bottom direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam defaultTextAlignment center
+skinparam wrapWidth 220
+skinparam maxMessageSize 180
+
+skinparam package {
+  BorderColor #4a5568
+  FontColor #1a202c
+  BackgroundColor #f7fafc
+}
+
+skinparam rectangle {
+  BorderColor #4a5568
+  FontColor #1a202c
+  BackgroundColor #ffffff
+}
+
+skinparam database {
+  BorderColor #4a5568
+  FontColor #1a202c
+  BackgroundColor #ffffff
+}
+
+skinparam note {
+  BorderColor #4a5568
+  FontColor #1a202c
+  BackgroundColor #fffbea
+}
+
+rectangle "追加予定" as LegendAdd #e6fffa
+rectangle "削除予定" as LegendRemove #fff5f5
+rectangle "維持する境界" as LegendKeep #ebf8ff
+
+package "Job Setup" as JobSetupPkg #ebf8ff {
+  rectangle "Job Setup UI\n維持: provider / model /\nexecution mode / batch mode の選択" as JobSetupUi #ebf8ff
+  rectangle "作成後要約\n維持: AIサービス / モデル /\n実行方法 / 一括処理 /\nAPIキー状態分類" as JobSetupSummary #ebf8ff
+  rectangle "削除予定:\ncredential reference 選択表示" as RemovedCredentialUi #fff5f5
+}
+
+package "共通 provider settings" as ProviderSettingsPkg #e6fffa {
+  rectangle "PROVIDER_SETTINGS\n追加: provider 共通設定の正本" as ProviderSettingsSoT #e6fffa
+  rectangle "保持する情報\nendpoint\ncredential 状態分類\n接続確認状態" as ProviderSettingsOwned #e6fffa
+  rectangle "再解決結果の非 secret 分類要約\n追加: 実行開始に使う説明用分類" as ResolvedSummary #e6fffa
+}
+
+package "Job runtime DB 境界" as JobRuntimePkg {
+  database "JOB_PHASE_RUN\n維持: phase type / state /\nprovider / model /\nexecution mode / batch mode\n追加: 状態分類だけを保持" as JobPhaseRun #ebf8ff
+  database "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT\n追加: Running 開始時の\n非 secret 要約だけを保持" as RuntimeSnapshot #e6fffa
+  rectangle "削除予定:\ncredential_ref 実値所有" as RemovedCredentialDb #fff5f5
+  rectangle "削除予定:\nendpoint 原文 / endpoint summary 所有" as RemovedEndpointDb #fff5f5
+}
+
+package "実行開始" as StartPkg #ebf8ff {
+  rectangle "Ready job 実行開始\n維持: Job 側選択値を読む\n追加: 最新 provider settings を再解決" as ReadyStart #ebf8ff
+  rectangle "provider execution 入力\n追加: 再解決結果をその場で使う\nsecret 本体は永続化しない" as ProviderExecution #e6fffa
+}
+
+JobSetupUi --> ProviderSettingsSoT : provider 状態を参照
+JobSetupUi --> JobPhaseRun : 選択値だけを保存
+JobSetupSummary --> JobPhaseRun : Job 側に残す値を表示
+
+ProviderSettingsSoT --> ProviderSettingsOwned
+ReadyStart --> JobPhaseRun : Ready の選択値を取得
+ReadyStart --> ProviderSettingsSoT : 最新設定を再解決
+ProviderSettingsSoT --> ResolvedSummary : 非 secret 分類を生成
+ReadyStart --> ProviderExecution : 再解決結果を渡す
+ReadyStart --> RuntimeSnapshot : Running 開始時要約を保存
+RuntimeSnapshot --> JobPhaseRun : phase 状態説明を補助
+
+RemovedCredentialUi -[hidden]-> ProviderSettingsSoT
+RemovedCredentialDb -[hidden]-> ProviderSettingsSoT
+RemovedEndpointDb -[hidden]-> ProviderSettingsSoT
+
+RemovedCredentialUi ..x JobSetupUi : 表示しない
+RemovedCredentialDb ..x JobPhaseRun : 保存しない
+RemovedCredentialDb ..x RuntimeSnapshot : 保存しない
+RemovedEndpointDb ..x JobPhaseRun : 保存しない
+RemovedEndpointDb ..x RuntimeSnapshot : 保存しない
+RemovedEndpointDb ..x JobSetupSummary : 要約へ出さない
+
+note right of JobPhaseRun
+残してよい境界:
+- provider
+- model
+- execution mode
+- batch mode
+- phase state
+- credential 状態分類
+- 再解決結果分類
+end note
+
+note right of RuntimeSnapshot
+保存禁止:
+- secret 本体
+- credential_ref 実値
+- endpoint 原文
+- endpoint summary
+- raw request / raw response
+end note
+
+legend bottom
+  <back:#e6fffa>追加予定</back> provider settings 再解決と非 secret 要約
+  <back:#fff5f5>削除予定</back> Job 側 credential / endpoint 所有
+  <back:#ebf8ff>維持する境界</back> Job の選択値と phase 状態集約
+endlegend
+
+@enduml

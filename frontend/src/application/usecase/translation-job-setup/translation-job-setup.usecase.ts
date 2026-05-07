@@ -3,13 +3,13 @@ import type {
   DeleteTranslationJobSetupInputResponse,
   ListTranslationJobSetupProviderModelsResponse,
   TranslationJobSetupBatchMode,
-  TranslationJobSetupCredentialReference,
   TranslationJobSetupCredentialStatus,
   TranslationJobSetupGatewayContract,
   TranslationJobSetupOptionsResponse,
   TranslationJobSetupPhaseId,
   TranslationJobSetupPhaseRuntimeDraft,
   TranslationJobSetupPhaseRuntimeSelection,
+  TranslationJobSetupPhaseRuntimeValidationSelection,
   TranslationJobSetupProviderCapability,
   TranslationJobSetupProviderModelListStatus,
   TranslationJobSetupScreenState,
@@ -72,17 +72,6 @@ function findRuntimeOption(
   )
 }
 
-function isUsableCredentialRef(options: {
-  provider: string
-  isConfigured: boolean
-  isMissingSecret: boolean
-}): boolean {
-  return (
-    options.isConfigured &&
-    (!options.isMissingSecret || credentialAllowsEmptySecret(options.provider))
-  )
-}
-
 function resolveInitialRuntimeKey(
   options: TranslationJobSetupOptionsResponse
 ): string | null {
@@ -95,62 +84,14 @@ function resolveInitialRuntimeKey(
     : null
 }
 
-function resolveLegacyCredentialRef(
-  options: TranslationJobSetupOptionsResponse,
-  runtimeOption: {
-    provider: string
-    model: string
-    mode: string
-  } | null,
-  currentCredentialRef = ""
-): string {
-  const credentialRefs = runtimeOption
-    ? options.credentialRefs.filter(
-        (credential) => credential.provider === runtimeOption.provider
-      )
-    : options.credentialRefs
-  const candidates =
-    credentialRefs.length > 0 ? credentialRefs : options.credentialRefs
-
-  if (
-    currentCredentialRef &&
-    candidates.some(
-      (credential) => credential.credentialRef === currentCredentialRef
-    )
-  ) {
-    return currentCredentialRef
-  }
-
-  return (
-    candidates.find((credential) => isUsableCredentialRef(credential))
-      ?.credentialRef ??
-    candidates[0]?.credentialRef ??
-    ""
-  )
+function resolveLegacyCredentialRef(): string {
+  return ""
 }
 
 function providerNeedsCredential(
   capability: TranslationJobSetupProviderCapability | null
 ): boolean {
   return capability?.credentialRequirement === "required"
-}
-
-function normalizePhaseCredentialRef(
-  options: TranslationJobSetupOptionsResponse | null,
-  provider: string,
-  credentialRef: string
-): string {
-  const capability = findCapability(options, provider)
-  if (!providerNeedsCredential(capability)) {
-    return ""
-  }
-
-  const credential = resolveCredentialReference(
-    options,
-    provider,
-    credentialRef
-  )
-  return credential?.credentialRef ?? ""
 }
 
 function sanitizeErrorMessage(error: unknown, fallback: string): string {
@@ -234,31 +175,13 @@ function resolveExecutionMode(
   return capability?.supportedExecutionModes[0] ?? "sync"
 }
 
-function resolveCredentialReference(
-  options: TranslationJobSetupOptionsResponse | null,
-  provider: string,
-  currentCredentialRef = ""
-): TranslationJobSetupCredentialReference | null {
-  const matches =
-    options?.credentialRefs.filter(
-      (credential) => credential.provider === provider
-    ) ?? []
-
-  if (currentCredentialRef) {
-    const current = matches.find(
-      (credential) => credential.credentialRef === currentCredentialRef
-    )
-    if (current) {
-      return current
-    }
-  }
-
-  return matches[0] ?? null
-}
-
 function toCredentialStatus(
   capability: TranslationJobSetupProviderCapability | null,
-  credential: TranslationJobSetupCredentialReference | null
+  credential: {
+    provider: string
+    isConfigured: boolean
+    isMissingSecret: boolean
+  } | null
 ): TranslationJobSetupCredentialStatus {
   if (!providerNeedsCredential(capability)) {
     return "not_required"
@@ -295,26 +218,17 @@ function buildPhaseSelection(
   sourceDraft?: TranslationJobSetupPhaseRuntimeDraft
 ): TranslationJobSetupPhaseRuntimeSelection {
   const provider =
-    sourceDraft?.provider.trim() || options.providerCapabilities?.[0]?.provider || ""
+    sourceDraft?.provider.trim() ||
+    options.providerCapabilities?.[0]?.provider ||
+    ""
   const capability = findCapability(options, provider)
-  const credential = resolveCredentialReference(
-    options,
-    provider,
-    sourceDraft?.credentialRef ?? ""
-  )
 
   return {
     phaseId,
     provider,
     model: sourceDraft?.model ?? "",
-    credentialRef: normalizePhaseCredentialRef(
-      options,
-      provider,
-      credential?.credentialRef ?? sourceDraft?.credentialRef ?? ""
-    ),
     credentialStatus:
-      sourceDraft?.credentialStatus ??
-      toCredentialStatus(capability, credential),
+      sourceDraft?.credentialStatus ?? toCredentialStatus(capability, null),
     executionMode: resolveExecutionMode(
       capability,
       sourceDraft?.executionMode ?? ""
@@ -322,8 +236,7 @@ function buildPhaseSelection(
     batchMode: normalizeBatchMode(
       capability,
       sourceDraft?.batchMode ?? "disabled"
-    ),
-    modelListSourceToken: sourceDraft?.modelListSourceToken ?? ""
+    )
   }
 }
 
@@ -342,14 +255,13 @@ function createPhaseSelections(
 function createModelListState(
   selection: TranslationJobSetupPhaseRuntimeSelection
 ): ListTranslationJobSetupProviderModelsResponse {
-  const hasRestoredModel =
-    selection.model.trim() !== "" && selection.modelListSourceToken.trim() !== ""
+  const hasRestoredModel = false
   return {
     phaseId: selection.phaseId,
     provider: selection.provider,
     credentialStatus: selection.credentialStatus,
     requestToken: "",
-    sourceToken: selection.modelListSourceToken,
+    sourceToken: "",
     status: hasRestoredModel ? "success" : "not_updated",
     models: hasRestoredModel
       ? [{ modelId: selection.model, label: selection.model }]
@@ -420,13 +332,29 @@ function replacePhaseSelection(
   draft: TranslationJobSetupScreenState,
   nextSelection: TranslationJobSetupPhaseRuntimeSelection
 ): void {
+  const publicNextSelection = toPublicPhaseSelection(nextSelection)
   draft.phaseRuntimeSelections = PHASE_IDS.map((phaseId) =>
-    phaseId === nextSelection.phaseId
-      ? { ...nextSelection }
-      : (draft.phaseRuntimeSelections?.find(
-          (selection) => selection.phaseId === phaseId
-        ) ?? nextSelection)
+    phaseId === publicNextSelection.phaseId
+      ? publicNextSelection
+      : toPublicPhaseSelection(
+          draft.phaseRuntimeSelections?.find(
+            (selection) => selection.phaseId === phaseId
+          ) ?? publicNextSelection
+        )
   )
+}
+
+function toPublicPhaseSelection(
+  selection: TranslationJobSetupPhaseRuntimeSelection
+): TranslationJobSetupPhaseRuntimeSelection {
+  return {
+    phaseId: selection.phaseId,
+    provider: selection.provider,
+    model: selection.model,
+    credentialStatus: selection.credentialStatus,
+    executionMode: selection.executionMode,
+    batchMode: selection.batchMode
+  }
 }
 
 function replaceModelList(
@@ -477,7 +405,7 @@ function isPhaseLocallyComplete(
     return false
   }
 
-  if (selection.modelListSourceToken === "") {
+  if (!modelList.sourceToken.trim()) {
     return false
   }
 
@@ -501,8 +429,7 @@ function createValidationPayload(state: TranslationJobSetupScreenState): {
     model: string
     executionMode: string
   }
-  credentialRef: string
-  phaseRuntimeSelections: TranslationJobSetupPhaseRuntimeSelection[]
+  phaseRuntimeSelections: TranslationJobSetupPhaseRuntimeValidationSelection[]
 } | null {
   if (
     !state.options ||
@@ -527,20 +454,23 @@ function createValidationPayload(state: TranslationJobSetupScreenState): {
       model: primarySelection.model,
       executionMode: primarySelection.executionMode
     },
-    credentialRef: normalizePhaseCredentialRef(
-      state.options,
-      primarySelection.provider,
-      primarySelection.credentialRef
-    ),
     phaseRuntimeSelections:
-      state.phaseRuntimeSelections?.map((selection) => ({
-        ...selection,
-        credentialRef: normalizePhaseCredentialRef(
-          state.options,
-          selection.provider,
-          selection.credentialRef
+      state.phaseRuntimeSelections?.map((selection) =>
+        toPhaseRuntimeValidationSelection(
+          selection,
+          findModelList(state, selection.phaseId)
         )
-      })) ?? []
+      ) ?? []
+  }
+}
+
+function toPhaseRuntimeValidationSelection(
+  selection: TranslationJobSetupPhaseRuntimeSelection,
+  modelList: ListTranslationJobSetupProviderModelsResponse | null
+): TranslationJobSetupPhaseRuntimeValidationSelection {
+  return {
+    ...toPublicPhaseSelection(selection),
+    modelListFreshnessToken: modelList?.sourceToken ?? ""
   }
 }
 
@@ -578,10 +508,7 @@ function applyLoadedOptions(
     : resolveInitialRuntimeKey(options)
   const selectedCredentialRef = hasPhaseDrafts
     ? ""
-    : resolveLegacyCredentialRef(
-        options,
-        findRuntimeOption(options, selectedRuntimeKey)
-      )
+    : resolveLegacyCredentialRef()
   const selectedInputSourceId =
     preferredInputSourceId !== null &&
     options.inputCandidates.some(
@@ -620,7 +547,9 @@ function findNextInputSourceIdAfterDelete(
     return null
   }
 
-  return candidates[deletedIndex + 1]?.id ?? candidates[deletedIndex - 1]?.id ?? null
+  return (
+    candidates[deletedIndex + 1]?.id ?? candidates[deletedIndex - 1]?.id ?? null
+  )
 }
 
 function resolveDeleteInputErrorMessage(
@@ -799,11 +728,7 @@ export class TranslationJobSetupUseCase {
 
       draft.selectedRuntimeKey = runtimeKey
       draft.selectedCredentialRef = draft.options
-        ? resolveLegacyCredentialRef(
-            draft.options,
-            findRuntimeOption(draft.options, runtimeKey),
-            draft.selectedCredentialRef
-          )
+        ? resolveLegacyCredentialRef()
         : ""
       invalidateValidation(draft, "stale")
     })
@@ -840,27 +765,16 @@ export class TranslationJobSetupUseCase {
       }
 
       const capability = findCapability(draft.options, provider)
-      const credential = resolveCredentialReference(
-        draft.options,
-        provider,
-        currentSelection.credentialRef
-      )
       const nextSelection: TranslationJobSetupPhaseRuntimeSelection = {
         ...currentSelection,
         provider,
         model: "",
-        credentialRef: normalizePhaseCredentialRef(
-          draft.options,
-          provider,
-          credential?.credentialRef ?? ""
-        ),
-        credentialStatus: toCredentialStatus(capability, credential),
+        credentialStatus: toCredentialStatus(capability, null),
         executionMode: resolveExecutionMode(
           capability,
           currentSelection.executionMode
         ),
-        batchMode: normalizeBatchMode(capability, currentSelection.batchMode),
-        modelListSourceToken: ""
+        batchMode: normalizeBatchMode(capability, currentSelection.batchMode)
       }
 
       replacePhaseSelection(draft, nextSelection)
@@ -888,6 +802,36 @@ export class TranslationJobSetupUseCase {
       return
     }
 
+    if (selection.credentialStatus === "missing") {
+      this.store.update((draft) => {
+        replaceModelList(draft, {
+          phaseId,
+          provider: selection.provider,
+          credentialStatus: "missing",
+          requestToken: "",
+          sourceToken: "",
+          status: "credential_missing",
+          models: [],
+          failureKind: "credential_missing"
+        })
+        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map(
+          (card) =>
+            card.referenceId === phaseId
+              ? applyModelSettingsListResult(card, {
+                  provider: selection.provider,
+                  credentialStatus: "missing",
+                  status: "credential_missing",
+                  models: [],
+                  failureKind: "credential_missing"
+                })
+              : card
+        )
+        syncModelSettingsCards(draft)
+        invalidateValidation(draft, "stale")
+      })
+      return
+    }
+
     const requestToken = this.nextRequestToken(selection.provider)
     this.store.update((draft) => {
       replaceModelList(draft, {
@@ -908,16 +852,10 @@ export class TranslationJobSetupUseCase {
     })
 
     try {
-      const requestCredentialRef = normalizePhaseCredentialRef(
-        state.options,
-        selection.provider,
-        selection.credentialRef
-      )
       const response = await this.gateway.listTranslationJobSetupProviderModels(
         {
           phaseId,
           provider: selection.provider,
-          credentialRef: requestCredentialRef,
           credentialStatus: selection.credentialStatus,
           requestToken
         }
@@ -945,8 +883,7 @@ export class TranslationJobSetupUseCase {
         if (!isModelListUsable(response.status)) {
           replacePhaseSelection(draft, {
             ...currentSelection,
-            model: "",
-            modelListSourceToken: ""
+            model: ""
           })
         } else if (
           !response.models.some(
@@ -954,24 +891,26 @@ export class TranslationJobSetupUseCase {
           )
         ) {
           const fallbackModel =
-            response.models.length === 1 ? (response.models[0]?.modelId ?? "") : ""
+            response.models.length === 1
+              ? (response.models[0]?.modelId ?? "")
+              : ""
           replacePhaseSelection(draft, {
             ...currentSelection,
-            model: fallbackModel,
-            modelListSourceToken: fallbackModel ? response.sourceToken : ""
+            model: fallbackModel
           })
         }
 
-        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
-          card.referenceId === phaseId
-            ? applyModelSettingsListResult(card, {
-                provider: response.provider,
-                credentialStatus: response.credentialStatus,
-                status: response.status,
-                models: response.models,
-                failureKind: response.failureKind
-              })
-            : card
+        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map(
+          (card) =>
+            card.referenceId === phaseId
+              ? applyModelSettingsListResult(card, {
+                  provider: response.provider,
+                  credentialStatus: response.credentialStatus,
+                  status: response.status,
+                  models: response.models,
+                  failureKind: response.failureKind
+                })
+              : card
         )
         syncModelSettingsCards(draft)
 
@@ -1002,10 +941,11 @@ export class TranslationJobSetupUseCase {
           models: [],
           failureKind: "provider_unreachable"
         })
-        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
-          card.referenceId === phaseId
-            ? failModelSettingsListRefresh(card)
-            : card
+        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map(
+          (card) =>
+            card.referenceId === phaseId
+              ? failModelSettingsListRefresh(card)
+              : card
         )
         syncModelSettingsCards(draft)
         draft.errorMessage = sanitizeErrorMessage(
@@ -1033,8 +973,7 @@ export class TranslationJobSetupUseCase {
 
       replacePhaseSelection(draft, {
         ...currentSelection,
-        model,
-        modelListSourceToken: modelList.sourceToken
+        model
       })
       draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
         card.referenceId === phaseId
@@ -1125,8 +1064,7 @@ export class TranslationJobSetupUseCase {
           provider: runtimeOption.provider,
           model: runtimeOption.model,
           executionMode: runtimeOption.mode
-        },
-        credentialRef: state.selectedCredentialRef
+        }
       })
 
       this.store.update((draft) => {
@@ -1270,7 +1208,6 @@ export class TranslationJobSetupUseCase {
         validatedAt: latestState.validationResult.validatedAt,
         validationPassSlices: [...latestState.validationResult.passSlices],
         runtime: payload.runtime,
-        credentialRef: payload.credentialRef,
         phaseRuntimeSelections: payload.phaseRuntimeSelections
       })
 
@@ -1355,8 +1292,7 @@ export class TranslationJobSetupUseCase {
           provider: runtimeOption.provider,
           model: runtimeOption.model,
           executionMode: runtimeOption.mode
-        },
-        credentialRef: state.selectedCredentialRef
+        }
       })
 
       if (response.errorKind) {
