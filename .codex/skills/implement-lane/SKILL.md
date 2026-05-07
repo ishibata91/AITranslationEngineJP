@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`実装引き継ぎ入力`、`frontend 実装後人間レビュー`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
+- 担当成果物は `task 枠`、`設計差分図`、`実装引き継ぎ入力`、`frontend 実装後人間レビュー`、`最終検証`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
 
 ## 入力規約
 
@@ -28,6 +28,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 仕様入口は [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md) とする。
 - エージェント実行定義 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) とする。
 - エージェント実行定義と実行境界は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) に従う。
+- 設計差分図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
 - fakeAPI 運用仕様: 人間レビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
 
 ## 内部参照規約
@@ -44,7 +45,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `scenario_candidates` | はい | シナリオ候補 生成 agent | `task 枠` | `scenario_actor_goal_generator`, `scenario_lifecycle_generator`, `scenario_state_transition_generator`, `scenario_failure_generator`, `scenario_external_integration_generator`, `scenario_operation_audit_generator` |
 | `シナリオ設計` | はい | `designer` | `scenario_candidates` | `designer` |
 | `UI設計` | 条件付き | `designer` | `シナリオ設計` | `designer` |
-| `人間設計レビュー` | はい | 人間 | `シナリオ設計`, `UI設計?` | 人間 |
+| `設計差分図` | はい | `diagrammer` | `シナリオ設計`, `UI設計?` | `diagrammer` |
+| `人間設計レビュー` | はい | 人間 | `シナリオ設計`, `UI設計?`, `設計差分図` | 人間 |
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
 | `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `implementation_implementer` |
@@ -142,6 +144,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 次の実行判断は 成果物依存表 の未完了 成果物、満たされた `依存対象`、既存 成果物、対象 skill の完了規約で決める。
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
+- `設計差分図` は `diagrammer` を起動して作る。
+- `設計差分図` は、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 に限定する。
+- `設計差分図` は、全体構成図、正本図、変更しない箇所の網羅図として作らない。
+- `設計差分図` の起動入力には、シナリオ設計、UI設計がある場合の UI設計、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、出力先を含める。
 - `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
 - レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダを確定する。
 - レビュー agent 起動入力には、最終検証、coverage、issue 数、system test 件数を含む 検証証跡 を明示する。
@@ -184,6 +190,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 人間向け返却: 人間向けには、成果物依存表 の現在 成果物、着手可能 成果物、停止中 成果物、停止理由を短く返す。
 - 起動先向け返却: 起動先 agent 向けには、対象 成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する 成果物 を渡す。
+- 設計差分図起動入力: `diagrammer` 向けには、図化目的、根拠参照、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、対象作業計画フォルダを渡す。
+- 設計差分図: 人間設計レビュー向けには、追加・削除差分のコンポーネント図、追加・削除差分のシーケンス図、根拠参照、検証結果、未決事項を返す。
 - レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスを渡す。
 - 改善ログ: `work_history/runs/<run>/workflow-improvement-log.jsonl` へ追記した改善ログ項目を返す。
 - 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 と 作業計画フォルダ の移動結果を返す。
@@ -192,6 +200,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
+- `設計差分図` が人間設計レビュー前に揃っている。
+- `設計差分図` が予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 を含んでいる。
 - UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
 - UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
 - UI が関係する場合は、人間レビュー前に fakeAPI による実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
@@ -215,6 +225,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 依頼が新規実装または機能拡張か判断できない場合は停止する。
 - `designer`、`investigator` の必要判定ができない場合は停止する。
+- `設計差分図` なしで `人間設計レビュー` へ進みそうな場合は停止する。
+- `設計差分図` が予定変更箇所以外を網羅図として含む場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
 - UI が関係する task で fakeAPI による実画面確認の review URL、確認状態、未確認理由が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。

@@ -1,144 +1,119 @@
 ---
 name: diagramming
-description: Codex 側の図作成作業プロトコル。PlantUML source と レビュー 成果物 の扱いを提供する。
+description: Codex 側の図成果物プロトコル。レーン判断に必要な PlantUML 図、根拠、説明、検証を固定する。
 ---
 # Diagramming
 
 ## 目的
 
-`diagramming` は作業プロトコルである。
-`designer` agent が diagram を必要資料として作る時に、正本、レビュー 成果物、検証 の見方を提供する。
+`diagramming` は、`diagrammer` がレーン判断に必要な図成果物を作る時の作業プロトコルである。
+図は仕様正本ではなく、task 内の判断補助成果物として扱う。
 
-標準 `implement_lane` flow には含めない。
-人間が明示した時、または `wall-discussion` の結論として図が必要になった時だけ参照する。
+この skill は、設計差分図、原因箇所シーケンス図、人間が明示した補助図だけを扱う。
+目的に合わない旧規約は、保持せず作り直してよい。
 
 ## 対応ロール
 
 - `diagrammer` が使う。
-- 返却先は 呼び出し元 または次 agent とする。
-- 担当成果物は `diagramming` の出力規約で固定する。
+- 呼び出し元は `designer`、`implement_lane`、`light_change_lane`、`fix_lane`、または人間とする。
+- 返却先は呼び出し元とする。
+- 担当成果物は `設計差分図`、`原因箇所シーケンス図`、明示された補助図とする。
 
 ## 入力規約
 
 - 必須呼び出し元: 図作成を依頼した agent または人間。
-- 必須図化目的: 図で固定する判断または比較対象。
-- 必須正本参照: 図の根拠にする正本または task 内成果物。
-- 必須成果物: PlantUML source または対象 task folder。
-- 非必須図種別: structure-diff または plantuml。
-- 非必須対象フォルダ: 図を置く task folder。
-- 非必須検証コマンド: PlantUML source を検証または描画する command。
+- 必須図化目的: 図で固定する判断。
+- 必須根拠参照: 図の根拠にする task 内成果物または docs 正本。
+- 必須作業計画フォルダ: 図成果物を置く `docs/exec-plans/active/<task-id>/`。
+- 必須図成果物種別: `設計差分図`、`原因箇所シーケンス図`、明示された補助図のいずれか。
+- 非必須予定変更箇所: 追加予定箇所、削除予定箇所、変更しない接続先。
+- 非必須原因箇所: 修正前調査で確認した原因箇所。
+- 非必須問題点: 修正前調査で確認した問題。
+- 非必須修正方針: 修正前調査で確認した直し方。
+- 非必須禁止範囲: 図に含めてはいけない範囲。
 
 ## 外部参照規約
 
 - エージェント実行定義と実行境界は [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml) に従う。
-- standard 呼び出し元: [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
-- explicit helper 紐づけ: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
-- エージェント実行定義: [diagrammer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/diagrammer.toml)
-- 実行境界: エージェント実行定義に従う
-- primary 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
-- 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
-- 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md
+- PlantUML source を図の正本とする。
+- 図成果物の置き場所は呼び出し元が指定した作業計画フォルダとする。
+- 差分図の凡例を使う場合は [review-diff-style-legend.puml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/references/templates/review-diff-style-legend.puml) を参照する。
+- 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
 
-### 拘束観点
+| 図成果物種別 | 用途 | 必須図 | 必須説明 | 含める範囲 | 含めない範囲 |
+| --- | --- | --- | --- | --- | --- |
+| `設計差分図` | 人間設計レビューまたは軽量変更の実装着手判断 | コンポーネント図、シーケンス図 | 追加予定、削除予定、変更しない接続先 | 予定変更箇所と接続先の最小範囲 | 全体構成図、正本図、変更しない箇所の網羅 |
+| `原因箇所シーケンス図` | 修正レーンの修正着手判断 | シーケンス図 | 何が問題か、どう直すか | 修正前調査で確認した原因箇所 | 未確認の原因、未確認の修正案、全体シーケンス |
+| 明示された補助図 | 人間または呼び出し元が指定した判断 | 指定された図 | 図が補う判断 | 指定された範囲 | 指定外の範囲 |
 
-- PlantUML source を使った structure diff と設計補助図
-- 正本 と レビュー 成果物 の分離
-- render、validate、差分確認の扱い
-- 一時 PNG と AI 目視による可読性確認
-- 図を分割すべき大きさの判断
+図 source の正本性は次の表に従う。
 
-### Readability Gate
-
-- 一時 PNG は `/tmp` へ生成し、repo の正本にしない。
-- AI が画像を確認し、線、文字、余白、線長、交差、legend の干渉を確認する。
-- 可読性が悪い場合は、配置調整ではなく図の分割を先に検討する。
-
-### Readability Patterns
-
-- 正本図の用語、package 名、層 名は、対象 docs の構造主語と節名に合わせる。
-- architecture 図では [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の構造主語、依存方向、節名を優先する。
-- 正本図では可読性のために node を勝手に畳まず、まず edge、legend、補足 の粒度で調整する。
-- package / group は意味単位または 層 単位で作り、上から下に主依存を読める順序に固定する。
-- 長距離の wiring や bootstrap の concrete 生成線は、全 edge を描くより legend へ要約する。
-- ER 図は table の意味単位で group を作り、関係線を最小限にして読む順序を安定させる。
-- docs 正本図は neutral な構造図にし、差分図 style は `docs/exec-plans/` 配下の レビュー 成果物 に限定する。
-- `skinparam linetype ortho` のような角ばった線指定は、読みやすさが下がる場合があるため既定では使わない。
-
-### Split Rule
-
-- primary node が 12 個を超える時は分割する。
-- attribute 付き class / table が 8 個を超える時は分割する。
-- visible edge が 20 本を超える時は分割する。
-- package / 境界 が 4 個を超える時は分割する。
-- package をまたぐ長距離 edge が複数ある時は overview と detail に分ける。
-
-- 参照 雛形 は [review-diff-style-legend.puml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/references/templates/review-diff-style-legend.puml) とする。
-- 参照 example は [review-diff-template.puml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/references/examples/review-diff-template.puml) とする。
+| 成果物 | 扱い |
+| --- | --- |
+| `.puml` | task 内の図 source 正本 |
+| `.svg` | レビュー確認用の描画結果 |
+| `.png` | 一時目視確認用の描画結果 |
+| screenshot | 一時目視確認用の証跡 |
 
 ## 判断規約
 
-- 図の 正本 を先に明示する
-- レビュー 用 SVG、PNG、screenshot を正本にしない
-- PlantUML や diagram library の書き方は `npx ctx7 library` / `npx ctx7 docs` で確認する
-- 図の方向は常に上から下にする
-- 検証 できない diagram は 不足 として返す
-- 原則日本語で書くが、必要に応じて英語も使う
-
-- source と レビュー 成果物 を別物として扱う
-- 検証 結果と未確認 不足 を残す
-- 図が補う設計判断を明示する
-- 大きすぎる図は overview と detail に分ける
-- active 規約 は agent に対して 1 ファイルだけ置く。diagram kind は selector で扱う。
+- 図は呼び出し元の次判断を補う範囲だけに限定する。
+- 図 source は PlantUML で作る。
+- 図の方向は上から下を基本にする。
+- 図が大きくなり、対象判断を読みにくくする場合は図を分割する。
+- `設計差分図` は追加、削除、変更しない接続先を区別する。
+- `原因箇所シーケンス図` は修正前調査で確認した原因箇所だけを扱う。
+- `原因箇所シーケンス図` は問題点と修正方針を 1 文ずつ明示する。
+- 目的に合わない古い diagramming 規約は、互換目的で残さない。
+- レーン成果物として不要な汎用図作成規約は、保守時に削除または再整理してよい。
 
 ## 非対象規約
 
-- UI 要件契約だけで足りる作業は扱わない。
-- プロダクトコード構造の実装修正は扱わない。
-- docs 正本化だけの作業は扱わない。
-- レビュー用 SVG、PNG、screenshot は正本にしない。
-- PlantUML 以外の diagram source は新規作成しない。
+- プロダクトコードの変更は扱わない。
+- プロダクトテストの変更は扱わない。
+- docs 正本図の更新は扱わない。
+- UI 要件契約だけで足りる判断は扱わない。
+- PlantUML 以外の図 source を新規作成しない。
+- 描画結果だけを図 source 正本として扱わない。
 
 ## 出力規約
 
-- 判断結果: 図作成または図確認の完了、未完了、停止の判定を返す。
-- 根拠参照: 図の根拠にした正本または task 内成果物を返す。
-- 不足情報: 図作成または図確認を完了できない不足項目を返す。
-- 次判断材料: 次 agent が判断できる材料を返す。
-- 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
-- 図化対象判断: どの diagram 成果物 を扱うかを返す。
-- source 対象: 図の根拠にした 根拠 path を返す。
-- レビュー diff diagram: レビュー に使う差分図を返す。
-- 確認結果: render または 検証 の結果を返す。
-- 未決事項: 採否判断に必要な open question を返す。
+- 判断結果: 図作成の完了、未完了、停止の判定を返す。
+- 図成果物種別: 扱った図成果物種別を返す。
+- source path: 作成または更新した PlantUML source の path を返す。
+- 描画結果 path: 作成した SVG、PNG、screenshot の path を返す。
+- 根拠参照: 図の根拠にした task 内成果物または docs 正本を返す。
+- 図説明: 図が補う判断を返す。
+- 問題点: `原因箇所シーケンス図` の場合に、確認済みの問題を返す。
+- 修正方針: `原因箇所シーケンス図` の場合に、確認済みの直し方を返す。
+- 検証結果: PlantUML 検証または描画確認の結果を返す。
+- 不足情報: 図作成を完了できない不足項目を返す。
+- 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
 ## 完了規約
 
-- 出力規約を満たし、次の 実行者 が再解釈なしで判断できる。
-- 不足情報または停止理由がある場合は明示されている。
-- 図の 正本 と レビュー 成果物 を分けた。
-- diagram kind と読者を明示した。
-- PlantUML や library が関係する場合は `npx ctx7 library` / `npx ctx7 docs` で確認した。
-- 一時 PNG を生成し、AI が画像で可読性を確認した。
-- 図の分割条件に当たらないことを確認した。
-- 正本 docs の用語、構造主語、層 名と diagram の package 名を揃えた。
-- 正本図では node を勝手に畳まず、edge、legend、補足 の粒度で調整した。
-- 必須 根拠: 根拠 path, render or 検証結果
-- 完了判断材料: designer が diagram 成果物 の採否を判断できる。
-- 残留リスク: 採否判断に必要な未決事項が返っている。
+- PlantUML source の path が返っている。
+- 根拠参照が返っている。
+- 図説明が返っている。
+- PlantUML 検証または描画確認の結果が返っている。
+- `設計差分図` の場合は、コンポーネント図とシーケンス図が揃っている。
+- `設計差分図` の場合は、追加予定、削除予定、変更しない接続先が区別されている。
+- `原因箇所シーケンス図` の場合は、原因箇所の呼び出し順序が図で示されている。
+- `原因箇所シーケンス図` の場合は、問題点と修正方針が返っている。
 
 ## 停止規約
 
-- UI 要件契約だけで diagram が不要な時
-- 必須呼び出し元、必須図化目的、必須正本参照、必須成果物が不足する時
-- プロダクトコードの構造を実装で変更する時
-- docs 正本化だけが目的の時
-- source が不明な場合は停止する。
+- 必須呼び出し元が不足する場合は停止する。
+- 必須図化目的が不足する場合は停止する。
+- 必須根拠参照が不足する場合は停止する。
+- 必須作業計画フォルダが不足する場合は停止する。
+- 必須図成果物種別が不足する場合は停止する。
+- `設計差分図` で予定変更箇所が不足する場合は停止する。
+- `設計差分図` でコンポーネント図またはシーケンス図が不足する場合は停止する。
+- `設計差分図` が予定変更箇所以外を網羅図として含む場合は停止する。
+- `原因箇所シーケンス図` で原因箇所、問題点、修正方針のいずれかが不足する場合は停止する。
+- `原因箇所シーケンス図` に未確認の原因または未確認の修正案が含まれる場合は停止する。
+- PlantUML source の検証または描画確認ができない場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- render または検証ができない場合は停止する。
-- 線、文字、legend、補足 の重なりを解消できない場合は停止する。
-- 可読性向上を理由に正本 node を消さなかった場合は停止する。
-- 角ばった線指定で読みやすさを下げなかった場合は停止する。
-- 拒否条件: 正本 が不明
-- 拒否条件: プロダクト実装 が必要
