@@ -1,0 +1,27 @@
+@startuml
+title Job Setup モデル一覧取得失敗の原因箇所
+
+autonumber
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+
+actor "Job Setup UI" as UI
+participant "TranslationJobSetupService" as JobSetup
+participant "ProviderSettingsService" as ProviderSettings
+
+UI -> JobSetup: ListProviderModels(phaseRequestToken)
+JobSetup -> ProviderSettings: ListProviderSettings()
+ProviderSettings --> JobSetup: ProviderSettingsSummary(summary.RequestToken)
+JobSetup -> ProviderSettings: ListProviderModels(\nendpoint, credentialState,\ncredentialReferenceID,\nrequestToken = phaseRequestToken)
+ProviderSettings -> ProviderSettings: providerSettingsMatchesSnapshot(\nsummary.RequestToken,\nrequestToken = phaseRequestToken)
+ProviderSettings --> JobSetup: failed(validation_stale)
+JobSetup --> UI: 「モデルを取得できませんでした」
+
+note right of JobSetup
+原因箇所:
+job setup 側が
+summary.RequestToken ではなく
+phaseRequestToken を渡す
+end note
+
+@enduml

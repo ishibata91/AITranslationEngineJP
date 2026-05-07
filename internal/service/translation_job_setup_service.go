@@ -580,7 +580,7 @@ func (service *TranslationJobSetupService) listProviderModelsViaProviderSettings
 		Endpoint:              cloneTranslationJobSetupOptionalString(summary.Endpoint),
 		CredentialState:       strings.TrimSpace(summary.CredentialState),
 		CredentialReferenceID: cloneTranslationJobSetupOptionalString(summary.CredentialReferenceID),
-		RequestToken:          result.RequestToken,
+		RequestToken:          settingsRequestToken,
 	})
 	if err != nil {
 		return ListTranslationJobSetupProviderModelsResult{}, fmt.Errorf("list translation job setup provider models via provider settings: %w", err)

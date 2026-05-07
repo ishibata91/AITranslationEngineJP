@@ -599,10 +599,16 @@ func TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissin
 	if len(providerSettingsModelListCalls) != 1 {
 		t.Fatalf("expected one provider settings model list call, got %#v", providerSettingsModelListCalls)
 	}
+	if providerSettingsModelListCalls[0].RequestToken != "gemini|test-safe" {
+		t.Fatalf("expected provider settings request token from summary, got %#v", providerSettingsModelListCalls[0])
+	}
 	if providerSettingsModelListCalls[0].CredentialState != "missing" ||
 		providerSettingsModelListCalls[0].CredentialReferenceID != nil ||
 		providerSettingsModelListCalls[0].Endpoint != nil {
 		t.Fatalf("expected provider settings input to preserve missing snapshot, got %#v", providerSettingsModelListCalls[0])
+	}
+	if result.RequestToken != "ui-req-1" {
+		t.Fatalf("expected response request token to keep ui token, got %#v", result)
 	}
 }
 

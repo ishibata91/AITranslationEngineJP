@@ -1,0 +1,74 @@
+reviewback_version: 1
+task_id: "2026-05-07-job-setup-model-list-token-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持。provider 設定 snapshot token は provider 設定 service への入力に使われ、UI request token は Job Setup response に残る。source token は provider 設定 snapshot token 由来で再計算されるため、モデル選択 stale 判定と phase validation の prefix 不変条件を崩していない。破られた不変条件はない。原因候補は解消済みで、局所修正で閉じている。"
+  evidence_sufficiency: "十分。実コード差分、provider 設定側の snapshot 照合、Job Setup 側の source token 生成、回帰テスト証跡を確認した。"
+
+checked_scope:
+  summary: "provider 設定経由のモデル一覧取得で、snapshot token、source token、UI request token の境界を確認した。stale 判定と phase validation が参照する source token prefix も確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 575
+      symbol: "listProviderModelsViaProviderSettings"
+      reason: "provider 設定 summary の request token を provider 設定 service 入力へ渡す実装を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 577
+      symbol: "listProviderModelsViaProviderSettings"
+      reason: "provider 設定 snapshot token 由来の source token を作る実装を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 583
+      symbol: "listProviderModelsViaProviderSettings"
+      reason: "UI request token ではなく provider 設定 snapshot token を渡す差分を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 590
+      symbol: "listProviderModelsViaProviderSettings"
+      reason: "provider 設定 service の応答 token で source token を再計算する実装を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1003
+      symbol: "validatePhaseRuntime"
+      reason: "モデル選択 stale 判定が phase、provider、credential ref の prefix を不変条件として使うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 687
+      symbol: "providerSettingsApplyModelListPreflight"
+      reason: "provider 設定側の snapshot 照合が request token を含むことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 1117
+      symbol: "providerSettingsMatchesSnapshot"
+      reason: "provider 設定 summary の request token と入力 token の一致が必須であることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 602
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "provider 設定 consumer に渡す token が summary token であることをテストが証明している。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 610
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "Job Setup response の request token が UI request token のまま維持されることをテストが証明している。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+      line: 20
+      symbol: "検証"
+      reason: "実装後に go test ./internal/service が通過した証跡を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+      line: 21
+      symbol: "検証"
+      reason: "backend-local harness が通過した証跡を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/regression-test-evidence.md"
+      line: 19
+      symbol: "検証"
+      reason: "対象回帰テストの通過証跡を確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "レビュー agent の規約上、ハーネスを再実行しない。呼び出し元から渡された検証証跡をレビュー入力として扱った。"
+    risk: "現在の作業環境での再実行時差分は未確認だが、証跡上は backend-local と対象単体テストが通過している。"
+  - target: "同時実行競合の実測"
+    reason: "変更は provider 設定 service 入力 token の差し替えに限定され、lock 実装自体は変更対象ではない。"
+    risk: "provider 設定 service の既存 lock 境界に依存するが、今回差分による新規競合状態は確認されない。"
+
+issues: []

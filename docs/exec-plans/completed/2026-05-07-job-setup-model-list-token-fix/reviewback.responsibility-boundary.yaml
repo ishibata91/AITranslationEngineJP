@@ -1,0 +1,89 @@
+reviewback_version: 1
+task_id: "2026-05-07-job-setup-model-list-token-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。provider 設定照合用 token の変換は backend service の provider settings 接続直前に閉じており、frontend、Wails gateway、provider settings service へ責務を移していない。"
+  evidence_sufficiency: "十分。修正目的、原因箇所、実装証跡、回帰テスト証跡、対象差分、実コードを確認した。"
+
+checked_scope:
+  summary: "TranslationJobSetupService の provider settings 接続経路と、対応する service 単体テストだけを確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 553
+      symbol: "TranslationJobSetupService.ListProviderModels"
+      reason: "provider settings 経由と直接 provider 経由の分岐が backend service 内に閉じていることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 575
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider 設定 summary の RequestToken を service 内で settingsRequestToken へ変換していることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 583
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings consumer へ渡す RequestToken が settingsRequestToken であり、画面操作用 token ではないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 589
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings から返った RequestToken は SourceToken 再計算に使われ、response の RequestToken を置き換えていないことを確認した。"
+    - path: "internal/service/provider_settings_consumer.go"
+      line: 9
+      symbol: "ProviderSettingsReader"
+      reason: "provider settings 連携が backend-internal seam として定義され、Wails gateway や frontend を経由していないことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 542
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "テストが service の provider settings consumer fake を注入しており、frontend や Wails gateway を責務確認に巻き込んでいないことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 602
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "provider settings consumer へ渡る token が provider 設定 summary の token であることを検証している。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 610
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "Job Setup response の RequestToken が画面操作用 token のまま維持されることを検証している。"
+    - path: "docs/architecture.md"
+      line: 157
+      symbol: "Service"
+      reason: "Service が実処理を担い、adapter concrete や runtime API を直接参照しない正本条件と照合した。"
+    - path: "docs/coding-guidelines.md"
+      line: 20
+      symbol: "共通原則"
+      reason: "境界入力を使用直前に検証する規約と、token 変換位置の妥当性を照合した。"
+
+unchecked_scope:
+  - target: "frontend 実画面"
+    reason: "責務境界レビュー agent はハーネスや実画面確認を実行しない。差分上も frontend 変更はないため、コード責務漏れの判定対象外にした。"
+    risk: "画面表示上の失敗有無は別観点の挙動確認に残る。"
+  - target: "Wails gateway 実装"
+    reason: "git diff --name-only で Wails gateway 変更がないことを確認した。実コードの再読は対象差分外のため実施していない。"
+    risk: "既存 gateway 側に潜在責務混在があっても、このレビューでは新規混入として扱わない。"
+  - target: "provider settings service 本体"
+    reason: "修正は provider settings consumer への入力値選択に閉じており、provider settings service 本体の差分はない。"
+    risk: "provider settings service 側の既存照合仕様の妥当性は契約または挙動観点の対象になる。"
+
+issues: []
+
+responsibility_boundary_details:
+  boundary_maintenance_degree: "high"
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "local。修正は TranslationJobSetupService の provider settings 呼び出し入力選択と、その service 単体テストに閉じている。"
+  boundary_fixed_test_viewpoints:
+    - "provider settings consumer へ渡す RequestToken は provider 設定 summary の token である。"
+    - "Job Setup response の RequestToken は画面操作用 token のまま維持される。"
+    - "frontend、Wails gateway、provider settings service の責務変更を伴わない。"
+  validation_evidence:
+    - command: "go test ./internal/service"
+      result: "passed"
+      source_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "passed"
+      source_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+    - command: "go test ./internal/service -run 'TranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential'"
+      result: "passed"
+      source_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/regression-test-evidence.md"

@@ -1,0 +1,164 @@
+reviewback_version: 1
+task_id: "2026-05-07-job-setup-model-list-token-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: >
+    no_issue。対象差分は Job Setup service が provider settings consumer へ渡す
+    RequestToken を、Job Setup 画面操作用 token から provider settings summary の
+    snapshot token へ差し替える変更に閉じている。frontend gateway contract、
+    Wails DTO、backend usecase response、provider settings public contract、
+    DB schema、event 入力内容の shape 変更は確認範囲にない。
+    Job Setup response の RequestToken は画面操作用 token のまま維持され、
+    frontend の遅延応答破棄契約を壊していない。
+  evidence_sufficiency: >
+    十分。実装目的、原因シーケンス、修正実行入力、実装証跡、
+    回帰テスト証跡、対象 2 ファイルの diff、公開 DTO、Wails binding、
+    usecase response mapping、provider settings snapshot 照合条件を確認した。
+    review_contract では広いハーネス再実行を担当しないため、
+    検証コマンドは入力成果物の証跡として扱った。
+  contract_invariants:
+    - name: "frontend は Job Setup response の RequestToken を遅延応答破棄に使う"
+      status: "maintained"
+      evidence: "internal/service/translation_job_setup_service.go:550 と internal/service/translation_job_setup_service_test.go:610"
+    - name: "Wails DTO の requestToken / response requestToken shape を変更しない"
+      status: "maintained"
+      evidence: "internal/controller/wails/translation_job_setup_controller.go:131 と internal/controller/wails/translation_job_setup_controller.go:146"
+    - name: "backend usecase response の RequestToken 返却契約を変更しない"
+      status: "maintained"
+      evidence: "internal/usecase/translation_job_setup_usecase.go:98"
+    - name: "provider settings consumer は summary snapshot token で照合する"
+      status: "maintained"
+      evidence: "internal/service/translation_job_setup_service.go:575 と internal/service/provider_settings_service.go:1117"
+    - name: "provider settings public contract を変更しない"
+      status: "maintained"
+      evidence: "internal/service/provider_settings_service.go:128"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "not_required"
+    reason: >
+      契約・互換性観点の未解決指摘はない。
+      修正は provider settings consumer への RequestToken 引数に局所化され、
+      DTO、Wails binding、provider settings contract の追加変更は不要である。
+
+validation_evidence:
+  - command: "go test ./internal/service"
+    result: "pass"
+    details: "implementation-evidence.md と regression-test-evidence.md の提供証跡。review_contract では再実行していない。"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    details: "implementation-evidence.md の提供証跡。review_contract では再実行していない。"
+  - command: "go test ./internal/service -run 'TranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential'"
+    result: "pass"
+    details: "regression-test-evidence.md の提供証跡。review_contract では再実行していない。"
+
+checked_scope:
+  summary: >
+    入力成果物、対象 2 ファイルの diff、Job Setup service の RequestToken 伝播、
+    provider settings snapshot 照合、Master Persona 側の比較経路、
+    frontend gateway contract、Wails DTO、backend usecase mapping を確認した。
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/human-observation.md"
+      line: 9
+      symbol: "期待"
+      reason: "Job Setup 画面操作用 token と provider settings snapshot token の境界を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/cause-sequence.md"
+      line: 41
+      symbol: "問題点"
+      reason: "修正前の契約不一致が provider settings snapshot 照合にあることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/fix-execution-input.md"
+      line: 21
+      symbol: "修正方針"
+      reason: "response の RequestToken 維持と provider settings 側 token 差し替えを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+      line: 11
+      symbol: "変更内容"
+      reason: "実装が provider settings consumer への引数変更に閉じていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/regression-test-evidence.md"
+      line: 10
+      symbol: "証明内容"
+      reason: "consumer へ渡す token と response token の契約がテストで証明されていることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 550
+      symbol: "TranslationJobSetupService.ListProviderModels"
+      reason: "public service response の RequestToken が request token を維持することを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 575
+      symbol: "listProviderModelsViaProviderSettings"
+      reason: "provider settings summary の RequestToken を snapshot token として取得していることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 583
+      symbol: "ProviderSettingsModelListInput.RequestToken"
+      reason: "provider settings consumer へ summary の snapshot token を渡していることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 602
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "consumer へ provider settings summary token を渡す回帰確認を確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 610
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "Job Setup response の RequestToken が画面操作用 token のままである確認を確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 687
+      symbol: "providerSettingsApplyModelListPreflight"
+      reason: "provider settings model list が snapshot 照合契約を使うことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 1117
+      symbol: "providerSettingsMatchesSnapshot"
+      reason: "requestToken が summary.RequestToken と一致しない場合に stale と判定されることを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 395
+      symbol: "MasterPersonaGenerationService.ListProviderModels"
+      reason: "比較経路が summary RequestToken を provider settings consumer へ渡すことを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 257
+      symbol: "ListTranslationJobSetupProviderModelsRequest"
+      reason: "backend usecase public request contract の shape が変更されていないことを確認した。"
+    - path: "internal/usecase/translation_job_setup_contract.go"
+      line: 272
+      symbol: "ListTranslationJobSetupProviderModelsResult"
+      reason: "backend usecase public response contract の shape が変更されていないことを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 131
+      symbol: "ListTranslationJobSetupProviderModelsRequestDTO"
+      reason: "Wails request DTO の requestToken field が維持されていることを確認した。"
+    - path: "internal/controller/wails/translation_job_setup_controller.go"
+      line: 146
+      symbol: "ListTranslationJobSetupProviderModelsResponseDTO"
+      reason: "Wails response DTO の requestToken field が維持されていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 115
+      symbol: "ListTranslationJobSetupProviderModelsRequest"
+      reason: "frontend gateway request contract の requestToken が維持されていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 128
+      symbol: "ListTranslationJobSetupProviderModelsResponse"
+      reason: "frontend gateway response contract の requestToken が維持されていることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 891
+      symbol: "TranslationJobSetupUsecase.refreshPhaseModels"
+      reason: "frontend が画面操作用 requestToken を生成して送信する契約を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 929
+      symbol: "TranslationJobSetupUsecase.refreshPhaseModels"
+      reason: "frontend が response.requestToken で遅延応答を破棄する契約を確認した。"
+
+unchecked_scope:
+  - target: "Wails 生成物の再生成"
+    reason: "対象差分に DTO shape 変更がなく、レビュー観点では再生成が不要であるため確認対象外とした。"
+    risk: "将来 DTO shape を変更する場合は、frontend/wailsjs/go 配下の生成物更新確認が別途必要になる。"
+  - target: "frontend-local 全体"
+    reason: "修正対象は backend service と backend test に閉じており、review_contract は広いハーネス再実行を担当しない。"
+    risk: "画面描画や実ブラウザ挙動の問題は契約・互換性レビューの判定範囲外に残る。"
+  - target: "provider settings service 自体の再実行"
+    reason: "provider settings contract は定義と既存照合条件を読んで確認した。review_contract では追加テストを実行していない。"
+    risk: "provider settings service 側に未観測の回帰がある場合は、別観点または最終検証で検出する必要がある。"
+
+issues: []

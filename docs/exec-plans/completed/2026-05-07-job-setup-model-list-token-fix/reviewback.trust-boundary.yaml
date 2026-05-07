@@ -1,0 +1,113 @@
+reviewback_version: 1
+task_id: "2026-05-07-job-setup-model-list-token-fix"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "provider settings snapshot token を provider settings service 内部の snapshot 照合へ渡す変更に限定されている。UI request token は Job Setup response に残り、provider settings snapshot token と secret 本体の境界を弱めていない。API key、credential secret、raw provider response の新規露出は確認されなかった。authn/authz、tenant isolation、injection の新規経路も確認されなかった。"
+  evidence_sufficiency: "十分。対象差分、修正実行入力、実装証跡、回帰テスト証跡、provider settings 側の snapshot 照合と secret 解決経路を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "Job Setup の provider settings 経由モデル一覧取得で、UI request token と provider settings snapshot token の分離、credential reference と secret 本体の扱い、provider response の返却内容を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 574
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings summary から credential reference と snapshot token を読み、provider settings service へ渡す境界を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 583
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings service へ渡す RequestToken が UI request token ではなく snapshot token へ変更されたことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 588
+      symbol: "TranslationJobSetupService.listProviderModelsViaProviderSettings"
+      reason: "provider settings service の返却値から credential state、request token、model options、failure kind だけを反映し、secret 本体や raw provider response を返していないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 127
+      symbol: "ProviderSettingsModelListInput"
+      reason: "provider settings service へ渡る入力は endpoint、credential state、credential reference、request token であり、API key 本体を含まないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 644
+      symbol: "ProviderSettingsService.listProviderModelsLocked"
+      reason: "snapshot 照合後に provider settings service 内部で secret を解決し、loader へ渡す境界を確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 653
+      symbol: "ProviderSettingsService.listProviderModelsLocked"
+      reason: "provider model list loader へ渡る secret は provider settings service 内部で解決された API key に限定され、Job Setup response へ戻らないことを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 687
+      symbol: "providerSettingsApplyModelListPreflight"
+      reason: "snapshot token、endpoint、credential state、credential reference の一致確認が provider settings service 側で維持されていることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 1137
+      symbol: "ProviderSettingsService.resolveValidationSecret"
+      reason: "secret 本体は secret store から provider settings service 内部で読み出され、空値確認後に呼び出し元へ直接露出しない経路を確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 602
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "provider settings service へ渡す token が provider settings summary の token であることを回帰テストで確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 610
+      symbol: "TestTranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential"
+      reason: "Job Setup response の RequestToken が UI request token のまま維持されることを回帰テストで確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/fix-execution-input.md"
+      line: 21
+      symbol: "修正方針"
+      reason: "provider 設定の公開契約、secret 保存、credential 解決境界を変更禁止範囲として扱っていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+      line: 17
+      symbol: "検証"
+      reason: "実装側検証として go test と backend-local が通過していることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/regression-test-evidence.md"
+      line: 16
+      symbol: "検証"
+      reason: "回帰テスト側検証として対象単体テストと internal/service 全体テストが通過していることを確認した。"
+
+unchecked_scope:
+  - target: "frontend 画面表示と Wails binding"
+    reason: "修正実行入力で変更禁止範囲にされ、対象差分にも含まれていないため確認対象外にした。"
+    risk: "既存 UI が SourceToken や RequestToken をどの表示先へ使うかは、このレビューでは再確認していない。"
+  - target: "provider ごとの実外部 API response 本文"
+    reason: "ハーネス再実行や外部 provider 呼び出しはレビュー agent の対象外であり、証跡は実装側と回帰テスト側の結果を入力として扱った。"
+    risk: "外部 provider 固有の raw response 形状は、このレビューでは直接観測していない。"
+
+issues: []
+
+invariants:
+  violated: []
+  maintained:
+    - "UI request token は Job Setup response の遅延応答破棄用として維持され、provider settings snapshot 照合には使われない。"
+    - "provider settings snapshot token は provider settings service の snapshot 照合に使われ、API key 本体として扱われない。"
+    - "credential reference は secret 本体ではなく参照値として渡され、secret 本体は provider settings service 内部で解決される。"
+    - "provider model list の失敗時は redacted failure kind を返し、transport error や raw provider response を公開しない既存境界を維持する。"
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "local"
+  reason: "変更は TranslationJobSetupService から ProviderSettingsService へ渡す RequestToken の選択に限定され、公開 DTO、secret store、provider settings 保存境界、外部 provider loader の契約を変更していない。"
+
+verification:
+  commands_from_evidence:
+    - command: "go test ./internal/service"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/implementation-evidence.md"
+    - command: "go test ./internal/service -run 'TranslationJobSetupServiceProviderSettingsTestSafeModelListAllowsMissingCredential'"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/2026-05-07-job-setup-model-list-token-fix/regression-test-evidence.md"
+  invariant_test_viewpoints:
+    - "provider settings service へ渡す RequestToken が provider settings summary の token であること。"
+    - "Job Setup response の RequestToken が UI request token のまま維持されること。"
+    - "provider settings service input に API key 本体が含まれないこと。"
+
+residual_risk:
+  - "SourceToken には既存仕様として provider settings snapshot token 由来の値が含まれる。対象差分は SourceToken の公開範囲を広げていないが、UI 表示先の再監査は対象外にした。"
+  - "tenant isolation は対象サービスに tenant 入力が存在しないため、新規危険経路なしと判定した。multi-tenant 化を前提にした再設計確認は対象外にした。"
