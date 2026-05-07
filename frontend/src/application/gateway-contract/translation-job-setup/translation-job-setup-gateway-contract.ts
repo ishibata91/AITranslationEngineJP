@@ -1,3 +1,5 @@
+import type { ModelSettingsCardState } from "@application/gateway-contract/model-settings-card"
+
 export interface TranslationJobSetupInputCandidate {
   id: number
   label: string
@@ -267,6 +269,7 @@ export interface TranslationJobSetupScreenState {
   selectedCredentialRef: string
   phaseRuntimeSelections?: TranslationJobSetupPhaseRuntimeSelection[]
   providerModelLists?: ListTranslationJobSetupProviderModelsResponse[]
+  modelSettingsCards?: ModelSettingsCardState[]
   validationResult: TranslationJobSetupValidationResponse | null
   validationState: TranslationJobSetupValidationState
   dirty: boolean

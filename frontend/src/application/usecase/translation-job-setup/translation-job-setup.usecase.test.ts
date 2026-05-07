@@ -727,6 +727,14 @@ describe("TranslationJobSetupUseCase", () => {
         models: []
       })
     )
+    const cardAfterProviderSwitch = state.modelSettingsCards?.find(
+      (card) => card.referenceId === "word_translation"
+    )
+    expect(cardAfterProviderSwitch?.provider).toBe("xai")
+    expect(cardAfterProviderSwitch?.model).toBe("")
+    expect(cardAfterProviderSwitch?.modelList.provider).toBe("xai")
+    expect(cardAfterProviderSwitch?.modelList.status).toBe("not_updated")
+    expect(cardAfterProviderSwitch?.modelList.models).toEqual([])
 
     await usecase.createJob()
     expect(gateway.createTranslationJob).not.toHaveBeenCalled()
@@ -798,6 +806,12 @@ describe("TranslationJobSetupUseCase", () => {
         provider: "xai"
       })
     )
+    const cardAfterStaleFailed = state.modelSettingsCards?.find(
+      (card) => card.referenceId === "word_translation"
+    )
+    expect(cardAfterStaleFailed?.provider).toBe("xai")
+    expect(cardAfterStaleFailed?.model).toBe("")
+    expect(cardAfterStaleFailed?.modelList.provider).toBe("xai")
     expect(state.validationState).toBe("stale")
   })
 

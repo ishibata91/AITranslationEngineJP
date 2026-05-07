@@ -6,6 +6,9 @@ import type {
   MasterPersonaMutationResponse,
   MasterPersonaPageRequest,
   MasterPersonaPageResponse,
+  MasterPersonaAISettingsResponse,
+  MasterPersonaProviderModelsRequest,
+  MasterPersonaProviderModelsResponse,
   MasterPersonaPreviewRequest,
   MasterPersonaPreviewResult,
   MasterPersonaRunStatus,
@@ -17,6 +20,11 @@ export type MasterPersonaPageResponseDto = MasterPersonaPageResponse
 export type MasterPersonaIdentityRequestDto = MasterPersonaIdentityRequest
 export type MasterPersonaDetailResponseDto = MasterPersonaDetailResponse
 export type MasterPersonaAISettingsDto = MasterPersonaAISettings
+export type MasterPersonaAISettingsResponseDto = MasterPersonaAISettingsResponse
+export type MasterPersonaProviderModelsRequestDto =
+  MasterPersonaProviderModelsRequest
+export type MasterPersonaProviderModelsResponseDto =
+  MasterPersonaProviderModelsResponse
 export type MasterPersonaPreviewRequestDto = MasterPersonaPreviewRequest
 export type MasterPersonaPreviewResultDto = MasterPersonaPreviewResult
 export type MasterPersonaRunStatusDto = MasterPersonaRunStatus

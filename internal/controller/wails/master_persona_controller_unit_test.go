@@ -15,7 +15,8 @@ import (
 type fakeMasterPersonaUsecase struct {
 	getPageFunc             func(ctx context.Context, query usecase.MasterPersonaListQuery, preferredIdentityKey *string) (usecase.MasterPersonaPageState, error)
 	getDetailFunc           func(ctx context.Context, identityKey string) (usecase.MasterPersonaEntry, error)
-	loadAISettingsFunc      func(ctx context.Context) (usecase.MasterPersonaAISettings, error)
+	loadAISettingsFunc      func(ctx context.Context) (usecase.MasterPersonaAISettingsState, error)
+	listProviderModelsFunc  func(ctx context.Context, provider string) (usecase.MasterPersonaModelListResult, error)
 	saveAISettingsFunc      func(ctx context.Context, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaAISettings, error)
 	previewGenerationFunc   func(ctx context.Context, filePath string, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error)
 	executeGenerationFunc   func(ctx context.Context, filePath string, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaRunStatus, error)
@@ -38,11 +39,17 @@ func (fake fakeMasterPersonaUsecase) GetDetail(ctx context.Context, identityKey 
 	}
 	return fake.getDetailFunc(ctx, identityKey)
 }
-func (fake fakeMasterPersonaUsecase) LoadAISettings(ctx context.Context) (usecase.MasterPersonaAISettings, error) {
+func (fake fakeMasterPersonaUsecase) LoadAISettingsState(ctx context.Context) (usecase.MasterPersonaAISettingsState, error) {
 	if fake.loadAISettingsFunc == nil {
-		return usecase.MasterPersonaAISettings{}, nil
+		return usecase.MasterPersonaAISettingsState{}, nil
 	}
 	return fake.loadAISettingsFunc(ctx)
+}
+func (fake fakeMasterPersonaUsecase) ListProviderModels(ctx context.Context, provider string) (usecase.MasterPersonaModelListResult, error) {
+	if fake.listProviderModelsFunc == nil {
+		return usecase.MasterPersonaModelListResult{}, nil
+	}
+	return fake.listProviderModelsFunc(ctx, provider)
 }
 func (fake fakeMasterPersonaUsecase) SaveAISettings(ctx context.Context, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaAISettings, error) {
 	if fake.saveAISettingsFunc == nil {
@@ -680,10 +687,12 @@ func TestMasterPersonaControllerPersonaJSONPreviewCutoverOmitsLegacyFields(t *te
 // persona-ai-settings-restart-cutover: MasterPersonaLoadAISettings は usecase から復元済み provider と model を返すことを証明する。
 func TestMasterPersonaControllerPersonaAISettingsRestartCutoverLoadAISettingsReturnsRestoredProviderModel(t *testing.T) {
 	controller := NewMasterPersonaController(fakeMasterPersonaUsecase{
-		loadAISettingsFunc: func(_ context.Context) (usecase.MasterPersonaAISettings, error) {
-			return usecase.MasterPersonaAISettings{
-				Provider: "gemini",
-				Model:    "restart-model",
+		loadAISettingsFunc: func(_ context.Context) (usecase.MasterPersonaAISettingsState, error) {
+			return usecase.MasterPersonaAISettingsState{
+				Settings: usecase.MasterPersonaAISettings{
+					Provider: "gemini",
+					Model:    "restart-model",
+				},
 			}, nil
 		},
 	})
@@ -692,7 +701,7 @@ func TestMasterPersonaControllerPersonaAISettingsRestartCutoverLoadAISettingsRet
 	if err != nil {
 		t.Fatalf("expected load ai settings to succeed: %v", err)
 	}
-	if dto.Provider != "gemini" || dto.Model != "restart-model" {
+	if dto.AISettings.Provider != "gemini" || dto.AISettings.Model != "restart-model" {
 		t.Fatalf("expected restored provider/model in dto, got %#v", dto)
 	}
 }

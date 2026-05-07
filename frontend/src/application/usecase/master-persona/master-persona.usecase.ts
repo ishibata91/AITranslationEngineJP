@@ -1,4 +1,14 @@
 import * as MasterPersonaGateway from "@application/gateway-contract/master-persona"
+import {
+  applyModelSettingsListResult,
+  failModelSettingsListRefresh,
+  markModelSettingsSaved,
+  markModelSettingsSaveFailed,
+  markModelSettingsSaving,
+  selectModelSettingsModel,
+  startModelSettingsListRefresh,
+  updateModelSettingsProvider
+} from "@application/gateway-contract/model-settings-card"
 
 type MasterPersonaAISettings = MasterPersonaGateway.MasterPersonaAISettings
 type MasterPersonaDetail = MasterPersonaGateway.MasterPersonaDetail
@@ -6,8 +16,14 @@ type MasterPersonaGatewayContract =
   MasterPersonaGateway.MasterPersonaGatewayContract
 type MasterPersonaModalState = MasterPersonaGateway.MasterPersonaModalState
 type MasterPersonaPageState = MasterPersonaGateway.MasterPersonaPageState
+type MasterPersonaProviderModelsResponse =
+  MasterPersonaGateway.MasterPersonaProviderModelsResponse
 type MasterPersonaRunStatus = MasterPersonaGateway.MasterPersonaRunStatus
 type MasterPersonaScreenState = MasterPersonaGateway.MasterPersonaScreenState
+type ModelSettingsCardState = NonNullable<
+  MasterPersonaScreenState["modelSettingsCard"]
+>
+type ModelSettingsProviderOption = MasterPersonaScreenState["providerOptions"][number]
 
 interface MasterPersonaStoreLike {
   snapshot(): MasterPersonaScreenState
@@ -60,22 +76,6 @@ function mergeAISettings(
   }
 }
 
-function mergeRefreshedAISettings(
-  currentSettings: MasterPersonaAISettings,
-  loadedSettings: MasterPersonaAISettings,
-  canRefreshModel: boolean
-): MasterPersonaAISettings {
-  const loadedModel = loadedSettings.model.trim()
-  return {
-    provider: currentSettings.provider.trim(),
-    model:
-      canRefreshModel && loadedModel !== ""
-        ? loadedModel
-        : currentSettings.model.trim(),
-    executionMethod: currentSettings.executionMethod.trim()
-  }
-}
-
 function createModelOptions(settings: MasterPersonaAISettings) {
   const model = settings.model.trim()
   if (model === "") {
@@ -83,6 +83,63 @@ function createModelOptions(settings: MasterPersonaAISettings) {
   }
 
   return [{ modelId: model, label: model }]
+}
+
+function credentialStatusForProvider(
+  provider: string,
+  providerOptions: ModelSettingsProviderOption[]
+): ModelSettingsCardState["credentialStatus"] {
+  const providerId = provider.trim()
+  const found = providerOptions.find((option) => option.value === providerId)
+  if (found) {
+    return found.credentialStatus
+  }
+  if (providerId === "lm_studio") {
+    return "not_required"
+  }
+  return "missing"
+}
+
+function createAISettingsCardState(
+  settings: MasterPersonaAISettings,
+  providerOptions: ModelSettingsProviderOption[],
+  saveStatus: ModelSettingsCardState["saveStatus"] = "clean",
+  saveMessage = "",
+  modelList?: ModelSettingsCardState["modelList"]
+): ModelSettingsCardState {
+  const provider = settings.provider.trim()
+  const model = settings.model.trim()
+  const models = createModelOptions({ ...settings, provider, model })
+  const credentialStatus =
+    modelList?.credentialStatus ??
+    credentialStatusForProvider(provider, providerOptions)
+  return {
+    referenceId: "master-persona",
+    provider,
+    model,
+    credentialStatus,
+    modelList:
+      modelList ?? {
+        provider,
+        credentialStatus,
+        status: models.length > 0 ? "success" : "not_updated",
+        models
+      },
+    saveStatus,
+    saveMessage
+  }
+}
+
+function toModelSettingsListState(
+  response: MasterPersonaProviderModelsResponse
+): ModelSettingsCardState["modelList"] {
+  return {
+    provider: response.provider.trim(),
+    credentialStatus: response.credentialStatus,
+    status: response.status,
+    models: response.models.map((model) => ({ ...model })),
+    failureKind: response.failureKind
+  }
 }
 
 function hasPersistedAISettings(settings: MasterPersonaAISettings): boolean {
@@ -99,6 +156,9 @@ function isRunActive(runStatus: MasterPersonaRunStatus): boolean {
 
 export class MasterPersonaUseCase {
   private readonly gateway: MasterPersonaGatewayContract | null
+  private activeModelListRequest: { provider: string; token: number } | null =
+    null
+  private modelListRequestSequence = 0
 
   constructor(
     gateway: MasterPersonaGatewayContract | null,
@@ -129,11 +189,21 @@ export class MasterPersonaUseCase {
 
     try {
       const settings = await this.gateway.loadMasterPersonaAISettings()
-      const mergedSettings = mergeAISettings(settings)
+      const mergedSettings = mergeAISettings(settings.aiSettings)
       this.store.update((draft) => {
         draft.aiSettings = mergedSettings
         draft.aiSettingsMessage = ""
+        draft.providerOptions = settings.providerOptions.map((option) => ({
+          ...option
+        }))
         draft.modelOptions = createModelOptions(mergedSettings)
+        draft.modelSettingsCard = createAISettingsCardState(
+          mergedSettings,
+          draft.providerOptions,
+          "clean",
+          "",
+          settings.modelList
+        )
         draft.errorMessage = ""
       })
     } catch (error) {
@@ -141,6 +211,10 @@ export class MasterPersonaUseCase {
         if (hasPersistedAISettings(previousSettings)) {
           draft.aiSettings = previousSettings
           draft.modelOptions = previousModelOptions
+          draft.modelSettingsCard = createAISettingsCardState(
+            previousSettings,
+            draft.providerOptions
+          )
         }
         draft.errorMessage = toErrorMessage(
           error,
@@ -156,32 +230,70 @@ export class MasterPersonaUseCase {
     }
 
     const refreshProvider = this.store.snapshot().aiSettings.provider.trim()
+    const requestToken = ++this.modelListRequestSequence
+    this.activeModelListRequest = {
+      provider: refreshProvider,
+      token: requestToken
+    }
+    this.store.update((draft) => {
+      if (!draft.modelSettingsCard) {
+        draft.modelSettingsCard = createAISettingsCardState(
+          draft.aiSettings,
+          draft.providerOptions
+        )
+      }
+      draft.modelSettingsCard = startModelSettingsListRefresh(
+        draft.modelSettingsCard
+      )
+    })
 
     try {
-      const settings = await this.gateway.loadMasterPersonaAISettings()
-      const loadedModelOptions = createModelOptions(settings)
+      const response = await this.gateway.listMasterPersonaProviderModels({
+        provider: refreshProvider
+      })
       this.store.update((draft) => {
-        const currentSettings = { ...draft.aiSettings }
-        const canRefreshModel =
-          currentSettings.provider.trim() === refreshProvider
-        const mergedSettings = mergeRefreshedAISettings(
-          currentSettings,
-          settings,
-          canRefreshModel
-        )
-        draft.aiSettings = mergedSettings
-        draft.aiSettingsMessage = ""
-        if (canRefreshModel && loadedModelOptions.length > 0) {
-          draft.modelOptions = loadedModelOptions
+        const activeRequest = this.activeModelListRequest
+        if (
+          !activeRequest ||
+          activeRequest.token !== requestToken ||
+          activeRequest.provider !== response.provider.trim() ||
+          draft.aiSettings.provider.trim() !== response.provider.trim()
+        ) {
+          return
         }
+        const currentSettings = { ...draft.aiSettings }
+        draft.aiSettings = {
+          ...currentSettings,
+          provider: response.provider.trim()
+        }
+        draft.aiSettingsMessage = ""
+        draft.modelOptions = response.models.map((model) => ({ ...model }))
+        draft.modelSettingsCard = applyModelSettingsListResult(
+          draft.modelSettingsCard ??
+            createAISettingsCardState(draft.aiSettings, draft.providerOptions),
+          toModelSettingsListState(response)
+        )
         draft.errorMessage = ""
       })
     } catch (error) {
       this.store.update((draft) => {
+        const activeRequest = this.activeModelListRequest
+        if (
+          !activeRequest ||
+          activeRequest.token !== requestToken ||
+          activeRequest.provider !== draft.aiSettings.provider.trim()
+        ) {
+          return
+        }
         draft.errorMessage = toErrorMessage(
           error,
-          "AI設定の取得に失敗しました。"
+          "モデル一覧の取得に失敗しました。"
         )
+        if (draft.modelSettingsCard) {
+          draft.modelSettingsCard = failModelSettingsListRefresh(
+            draft.modelSettingsCard
+          )
+        }
       })
     }
   }
@@ -193,6 +305,12 @@ export class MasterPersonaUseCase {
     }
 
     try {
+      this.store.update((draft) => {
+        draft.modelSettingsCard = markModelSettingsSaving(
+          draft.modelSettingsCard ??
+            createAISettingsCardState(draft.aiSettings, draft.providerOptions)
+        )
+      })
       const settings = await this.gateway.saveMasterPersonaAISettings(
         state.aiSettings
       )
@@ -201,6 +319,16 @@ export class MasterPersonaUseCase {
         draft.aiSettings = mergedSettings
         draft.aiSettingsMessage = "この画面で使う設定を保存しました。"
         draft.modelOptions = createModelOptions(mergedSettings)
+        draft.modelSettingsCard = markModelSettingsSaved(
+          draft.modelSettingsCard ??
+            createAISettingsCardState(mergedSettings, draft.providerOptions),
+          {
+            provider: mergedSettings.provider,
+            model: mergedSettings.model,
+            models: createModelOptions(mergedSettings),
+            message: "この画面で使う設定を保存しました。"
+          }
+        )
         draft.errorMessage = ""
       })
     } catch (error) {
@@ -208,6 +336,11 @@ export class MasterPersonaUseCase {
         draft.aiSettingsMessage = ""
         draft.errorMessage = toErrorMessage(
           error,
+          "AI設定の保存に失敗しました。"
+        )
+        draft.modelSettingsCard = markModelSettingsSaveFailed(
+          draft.modelSettingsCard ??
+            createAISettingsCardState(draft.aiSettings, draft.providerOptions),
           "AI設定の保存に失敗しました。"
         )
       })
@@ -282,6 +415,17 @@ export class MasterPersonaUseCase {
       draft.aiSettings.provider = normalizedProvider
       draft.aiSettings.model = ""
       draft.modelOptions = []
+      draft.modelSettingsCard = updateModelSettingsProvider(
+        draft.modelSettingsCard ??
+          createAISettingsCardState(draft.aiSettings, draft.providerOptions),
+        {
+          provider: normalizedProvider,
+          credentialStatus: credentialStatusForProvider(
+            normalizedProvider,
+            draft.providerOptions
+          )
+        }
+      )
       draft.aiSettingsMessage = ""
       draft.errorMessage = ""
     })
@@ -294,6 +438,11 @@ export class MasterPersonaUseCase {
       draft.modelOptions = normalizedModel
         ? [{ modelId: normalizedModel, label: normalizedModel }]
         : []
+      draft.modelSettingsCard = selectModelSettingsModel(
+        draft.modelSettingsCard ??
+          createAISettingsCardState(draft.aiSettings, draft.providerOptions),
+        normalizedModel
+      )
       draft.aiSettingsMessage = ""
       draft.errorMessage = ""
     })

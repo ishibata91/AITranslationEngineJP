@@ -1,0 +1,205 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-settings-card-controller"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: >
+    no_issue。contract-001 の修正後、Master Persona の credential state は
+    frontend の provider 名合成ではなく、Wails DTO / backend usecase / backend service
+    由来の `providerOptions` と `modelList.credentialStatus` から共有カードへ渡る。
+    `MasterPersonaLoadAISettings` は page-local AI settings だけでなく
+    provider state と model list state を返す契約へ更新され、
+    `MasterPersonaListProviderModels` も credential state を応答に含める。
+    API キー本体、secret、raw request、raw response、内部 request token は
+    Master Persona の DTO へ露出していない。
+  evidence_sufficiency: >
+    十分。実装目的、承認済み実装範囲、修正実装結果、最終検証結果、
+    frontend gateway contract、frontend Wails gateway DTO、store、usecase、
+    presenter、backend Wails DTO、usecase、service、関連テストを確認した。
+    人間指示に従い、広いハーネスは再実行していない。
+  contract_invariants:
+    - name: "Wails DTO と frontend gateway DTO は provider / model / credential state / model list status を同じ意味で扱う"
+      status: "maintained"
+      evidence: "internal/controller/wails/master_persona_controller.go:140"
+    - name: "Master Persona 共有カードの credential state は実 credential 状態または not_required を表す"
+      status: "maintained"
+      evidence: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts:113"
+    - name: "provider settings は model 保存元にならず、credential 参照状態と model list 取得元を提供する"
+      status: "maintained"
+      evidence: "internal/service/master_persona_service.go:354"
+    - name: "内部 request token を DTO / 共有カード state / view model へ露出しない"
+      status: "maintained"
+      evidence: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts:80"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment:
+    required: false
+    scope: "none"
+    reason: >
+      未解決の契約破壊は確認されなかった。
+      contract-001 の原因だった credential state 欠落は、
+      Master Persona AI settings response と provider model list response の
+      DTO 拡張により閉じている。
+
+validation_evidence:
+  - command: "npm --prefix frontend run check"
+    result: "pass"
+    details: "final-validation-result.md の修正後証跡。review_contract では再実行していない。"
+  - command: "npm --prefix frontend run test"
+    result: "pass"
+    details: "57 files / 494 tests passed。final-validation-result.md の修正後証跡。"
+  - command: "go test ./internal/..."
+    result: "pass"
+    details: "final-validation-result.md の修正後証跡。"
+  - command: "python3 scripts/harness/run.py --suite scenario-gate"
+    result: "pass"
+    details: "final-validation-result.md の修正後証跡。"
+  - command: "python3 scripts/harness/run.py --suite coverage"
+    result: "pass"
+    details: "Sonar coverage 70.5%。security 0 / reliability 0 / maintainability HIGH 0。"
+
+checked_scope:
+  summary: >
+    contract-001 の修正確認として、Master Persona の AI settings load、
+    provider model list、frontend gateway contract、Wails DTO、backend service、
+    共有カード状態反映、関連テストを確認した。
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-fix-implementation-result.md"
+      line: 24
+      symbol: "contract-001"
+      reason: "credential state を Wails DTO 由来へ変更した修正結果を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+      line: 55
+      symbol: "修正後検証"
+      reason: "修正後の検証コマンド通過と coverage / Sonar 結果を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/scenario-design.md"
+      line: 15
+      symbol: "must_pass_requirements"
+      reason: "provider settings が credential 参照状態の正本である要求を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/implementation-scope.md"
+      line: 181
+      symbol: "integration-model-settings-wails-gateway completion_signal"
+      reason: "Wails DTO と frontend gateway DTO が credential state を同じ意味で扱う完了条件を確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 80
+      symbol: "MasterPersonaAISettingsResponse"
+      reason: "frontend gateway contract が providerOptions と modelList を応答に含めることを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 90
+      symbol: "MasterPersonaProviderModelsResponse"
+      reason: "provider model list 応答が credentialStatus と status を持つことを確認した。"
+    - path: "frontend/src/application/store/master-persona/master-persona.store.ts"
+      line: 24
+      symbol: "providerOptions"
+      reason: "store が backend 由来 provider credential state を保持することを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 113
+      symbol: "createAISettingsCardState"
+      reason: "共有カードの credentialStatus が modelList または providerOptions から作られることを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 191
+      symbol: "loadMasterPersonaAISettings"
+      reason: "AI settings load 応答から providerOptions と modelList を store へ反映することを確認した。"
+    - path: "frontend/src/application/presenter/master-persona/master-persona.presenter.ts"
+      line: 27
+      symbol: "credentialStatusForProvider"
+      reason: "presenter fallback が provider 名だけで configured を合成しないことを確認した。"
+    - path: "frontend/src/controller/wails/master-persona.gateway.ts"
+      line: 116
+      symbol: "loadMasterPersonaAISettings"
+      reason: "Wails gateway が AI settings response DTO を返す契約に追従したことを確認した。"
+    - path: "frontend/src/controller/wails/master-persona.gateway.ts"
+      line: 120
+      symbol: "listMasterPersonaProviderModels"
+      reason: "Wails gateway が provider model list DTO を追加したことを確認した。"
+    - path: "internal/controller/wails/master_persona_controller.go"
+      line: 140
+      symbol: "MasterPersonaAISettingsResponseDTO"
+      reason: "Wails DTO が providerOptions と modelList を含むことを確認した。"
+    - path: "internal/controller/wails/master_persona_controller.go"
+      line: 257
+      symbol: "MasterPersonaLoadAISettings"
+      reason: "controller が LoadAISettingsState を返すことを確認した。"
+    - path: "internal/usecase/master_persona_usecase.go"
+      line: 164
+      symbol: "LoadAISettingsState"
+      reason: "usecase 境界が service 由来 provider state を公開 read model へ写すことを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 354
+      symbol: "LoadSettingsState"
+      reason: "service が provider settings summary から providerOptions と initial modelList を作ることを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 370
+      symbol: "ListProviderModels"
+      reason: "provider settings 経由の model list 応答が credential state を含むことを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.test.ts"
+      line: 700
+      symbol: "providerOptions credentialStatus"
+      reason: "API キー未設定 provider を missing として受け取る frontend test を確認した。"
+    - path: "frontend/src/controller/wails/master-persona.gateway.test.ts"
+      line: 78
+      symbol: "loadMasterPersonaAISettings"
+      reason: "frontend Wails gateway test が providerOptions と modelList の DTO shape を確認している。"
+
+unchecked_scope:
+  - target: "production 実 provider の model list 取得"
+    reason: "最終検証結果に、環境の provider settings と secret store 状態に依存すると記録されている。"
+    risk: "実 provider の live catalog 差分は残るが、DTO shape と credential state 互換性の判定には直接影響しない。"
+  - target: "広いハーネス再実行"
+    reason: "人間指示で広いハーネス再実行は禁止されている。"
+    risk: "review_contract は final-validation-result.md の提供証跡を根拠にした。"
+
+issues:
+  - id: "contract-001"
+    level: "major"
+    title: "Master Persona の credential state が DTO 由来ではなく provider 名から合成されていた"
+    problem: >
+      修正前は Master Persona の共有モデル設定カードが `credentialStatus` を
+      Wails DTO から受け取らず、frontend usecase が provider 名から合成していた。
+      修正後は `MasterPersonaAISettingsResponse` と
+      `MasterPersonaProviderModelsResponse` が credential state を運ぶ。
+    reason: >
+      修正後の通常経路では、API キー未設定の Gemini / xAI は backend 由来の
+      `missing` として providerOptions または modelList から共有カードへ渡る。
+      `lm_studio` は backend 由来または fallback の `not_required` として扱われる。
+    violated_condition: >
+      Wails DTO と frontend gateway DTO は provider / model / credential state /
+      model list status を同じ意味で扱う。共有カードの credential state は
+      実 credential 状態または not_required を表す。
+    cause_candidate: >
+      修正前は `MasterPersonaAISettingsDTO` が credential state を含まず、
+      frontend usecase が provider 名だけで credential state を補完していた。
+      修正後は `MasterPersonaAISettingsResponseDTO` と
+      `MasterPersonaModelListDTO` が credential state を運ぶ。
+    evidence:
+      - path: "internal/controller/wails/master_persona_controller.go"
+        line: 140
+        excerpt: "MasterPersonaAISettingsResponseDTO は providerOptions と modelList を持つ。"
+      - path: "internal/controller/wails/master_persona_controller.go"
+        line: 257
+        excerpt: "MasterPersonaLoadAISettings は LoadAISettingsState の結果を DTO 化して返す。"
+      - path: "internal/service/master_persona_service.go"
+        line: 354
+        excerpt: "LoadSettingsState は provider settings 由来の providerOptions と initial modelList を返す。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 113
+        excerpt: "credentialStatus は modelList.credentialStatus または providerOptions から決まる。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.test.ts"
+        line: 700
+        excerpt: "Gemini と xAI の credentialStatus missing を応答 fixture で扱う。"
+    local_fix_assessment: "fixed-cross-layer"
+    additional_check_scope: "none。contract-001 の修正確認に必要な Wails DTO、frontend gateway DTO、usecase、service、関連テストを確認済みである。"
+    fix_considerations: >
+      今後 credential state を追加変更する場合も、API キー本体、復号可能値、
+      raw request、raw response、内部 request token は DTO へ出さない。
+      provider / model の保存元と provider settings の credential 参照元を混同しない。
+    verification: >
+      提供証跡では frontend check、frontend test、go test、scenario-gate、
+      coverage が通過している。review_contract では再実行していない。
+    fix_required: true
+    status: "resolved"

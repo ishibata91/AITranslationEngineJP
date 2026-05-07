@@ -8,6 +8,7 @@
   } from "@application/presenter/translation-job-setup/translation-job-setup.presenter"
   import { VALIDATION_LABELS } from "@application/presenter/translation-job-setup"
   import AIModelSelectionCard from "@ui/components/AIModelSelectionCard.svelte"
+  import StickyActionFooter from "@ui/components/StickyActionFooter.svelte"
 
   type CreateTranslationJobSetupScreenController =
     import("@application/contract/translation-job-setup/translation-job-setup-screen-contract").CreateTranslationJobSetupScreenController
@@ -587,6 +588,7 @@
                   batchHelpText={phaseCard.batchHelpText}
                   credentialStatusLabel={phaseCard.credentialStatusLabel}
                   credentialStatusTone={phaseCard.credentialStatusTone}
+                  credentialWarningText={phaseCard.credentialWarningText}
                   emptyModelLabel={phaseCard.showModelSelect
                     ? "選んでください"
                     : "モデル一覧を更新してください"}
@@ -608,46 +610,34 @@
       {/if}
     </section>
 
-    <section class="create-bar" aria-labelledby="jobSetupCreateHeading">
-      <div class="create-copy">
-        <h3 id="jobSetupCreateHeading">作成前確認</h3>
-        <p class="mini-text">{viewModel.createSectionText}</p>
-        {#if viewModel.showCacheMissingGuidance}
-          <p class="mini-text">
-            cache missing は Job Setup で再構築しません。Input Review
-            の再構築導線へ戻ってください。
-          </p>
-        {/if}
-        {#if viewModel.showCacheMissingGuidance && onReturnToInputReview}
-          <button
-            class="button-secondary"
-            onclick={() => onReturnToInputReview?.()}
-            type="button"
-          >
-            Input Review へ戻る
-          </button>
-        {/if}
-      </div>
-      <div class="create-actions">
-        {#if viewModel.globalBlockedReasons.length === 0}
-          <p class="empty-text">不足はありません。</p>
-        {:else}
-          <ul class="reason-list">
-            {#each viewModel.globalBlockedReasons as reason (reason)}
-              <li>{reason}</li>
-            {/each}
-          </ul>
-        {/if}
+    <StickyActionFooter
+      title="作成前確認"
+      titleId="jobSetupCreateHeading"
+      description={viewModel.createSectionText}
+      reasons={viewModel.globalBlockedReasons}
+      emptyText={viewModel.canCreate
+        ? "不足はありません。"
+        : "作成前確認はまだ未完了です。"}
+      primaryLabel="次へ"
+      primaryDisabled={!viewModel.canCreate}
+      onPrimary={() => void controller.createJob()}
+    >
+      {#if viewModel.showCacheMissingGuidance}
+        <p class="mini-text">
+          cache missing は Job Setup で再構築しません。Input Review
+          の再構築導線へ戻ってください。
+        </p>
+      {/if}
+      {#if viewModel.showCacheMissingGuidance && onReturnToInputReview}
         <button
-          class="button-primary"
-          disabled={!viewModel.canCreate}
-          onclick={() => void controller.createJob()}
+          class="button-secondary"
+          onclick={() => onReturnToInputReview?.()}
           type="button"
         >
-          次へ
+          Input Review へ戻る
         </button>
-      </div>
-    </section>
+      {/if}
+    </StickyActionFooter>
   {/if}
 </section>
 
@@ -665,8 +655,7 @@
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .job-setup-card,
-  .create-bar {
+  .job-setup-card {
     display: grid;
     gap: 1rem;
     padding: 1.25rem;
@@ -680,8 +669,7 @@
     gap: 0.6rem;
   }
 
-  .section-head,
-  .create-bar {
+  .section-head {
     display: flex;
     align-items: flex-start;
     justify-content: space-between;
@@ -698,7 +686,6 @@
   .lead,
   .mini-text,
   .empty-text,
-  .reason-list,
   .plain-list {
     color: rgba(252, 241, 232, 0.86);
   }
@@ -751,8 +738,6 @@
   .phase-grid,
   .summary-phase-grid,
   .summary-phase-card,
-  .create-copy,
-  .create-actions,
   .foundation-table,
   .phase-card-wrap,
   .input-card,
@@ -824,23 +809,16 @@
     padding-right: 0.35rem;
   }
 
-  .plain-list,
-  .reason-list {
+  .plain-list {
     margin: 0;
     padding-left: 1.1rem;
   }
 
-  .button-primary,
   .button-secondary {
     padding: 0.8rem 1rem;
     border-radius: 0.9rem;
     border: 1px solid rgba(255, 212, 165, 0.18);
     cursor: pointer;
-  }
-
-  .button-primary {
-    background: linear-gradient(135deg, #ff9f5a, #ffcc88);
-    color: #24150d;
   }
 
   .button-secondary {
@@ -854,22 +832,7 @@
     cursor: not-allowed;
   }
 
-  .create-bar {
-    position: sticky;
-    bottom: 1rem;
-    align-items: end;
-    background: rgba(27, 20, 17, 0.95);
-    backdrop-filter: blur(12px);
-    z-index: 2;
-  }
-
-  .create-actions {
-    min-width: min(30rem, 100%);
-    justify-items: end;
-  }
-
   .wrap-value,
-  .reason-list li,
   .plain-list li {
     overflow-wrap: anywhere;
     word-break: break-word;
@@ -891,8 +854,7 @@
   }
 
   @media (max-width: 720px) {
-    .section-head,
-    .create-bar {
+    .section-head {
       flex-direction: column;
     }
 
@@ -900,9 +862,5 @@
       grid-template-columns: minmax(0, 1fr);
     }
 
-    .create-actions {
-      min-width: 100%;
-      justify-items: stretch;
-    }
   }
 </style>

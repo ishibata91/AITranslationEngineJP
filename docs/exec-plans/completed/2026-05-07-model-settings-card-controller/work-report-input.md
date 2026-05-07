@@ -1,0 +1,150 @@
+# 作業レポート入力
+
+## 完了または停止した成果物
+
+- `task 枠`: 完了
+- `軽量変更計画`: 完了
+- `scenario_candidates`: 完了
+- `シナリオ設計`: 完了
+- `UI設計`: 完了
+- `人間設計レビュー`: 完了
+- `実装範囲`: 完了
+- `実装引き継ぎ入力`: 完了
+- `frontend 実装`: 完了
+- `frontend 実装後人間レビュー`: 完了
+- `backend 実装`: 完了
+- `統合境界実装`: 完了
+- `シナリオテスト`: 完了
+- `単体テスト`: 完了
+- `最終検証`: 完了
+- `レビュー通過根拠`: 完了
+- `レビュー指摘修正`: 完了
+- `修正後最終検証`: 完了
+- `正本化判断`: 完了
+- `詳細仕様正本反映`: 停止
+
+## 検証
+
+- `.env` を repo 直下へ作成した。
+- `.env` は `.gitignore` 対象であるため、tracked file ではない。
+- 6 観点のシナリオ候補を作成した。
+- `scenario-design.md`、`scenario-design.candidate-coverage.json`、`scenario-design.requirement-coverage.json`、`scenario-design.questions.md`、`ui-design.md` を作成した。
+- `Q-MSCC-001` から `Q-MSCC-004` までの人間回答を設計成果物へ反映した。
+- `implementation-scope.md` を作成した。
+- `frontend-implementation-input.md` を作成した。
+- `frontend-implementation-result.md` を作成した。
+- `frontend-human-review-input.md` を作成した。
+- `npm --prefix frontend run check` は通過した。
+- `python3 scripts/harness/run.py --suite frontend-local` は通過した。
+- agent-browser でマスターペルソナと Job Setup を確認した。
+- fakeAPI 付き URL でマスターペルソナと Job Setup を確認した。
+- fakeAPI error URL をマスターペルソナと Job Setup の人間レビュー入力へ追加した。
+- fakeAPI error で、マスターペルソナと Job Setup の利用者向けエラー表示を agent-browser snapshot で確認した。
+- 人間レビュー指摘を受け、Job Setup の不足理由表示を修正した。
+- `config-missing` で、不要な不足理由が消えていることを agent-browser で確認した。
+- 人間が「フロントレビュー終わり」と回答したため、frontend 実装後人間レビューを承認済みとした。
+- `backend-implementation-input.md` を作成した。
+- `backend-implementation-result.md` を作成した。
+- 既存 backend core が承認済み backend 範囲を満たすため、backend プロダクトコード変更は不要と判定した。
+- `go test ./internal/usecase ./internal/service ./internal/repository ./internal/infra/ai -run 'ProviderSettings|Model|MasterPersona|TranslationJobSetup|Fake'` は通過した。
+- `python3 scripts/harness/run.py --suite backend-local` は通過した。
+- `integration-implementation-input.md` を作成した。
+- `integration-implementation-result.md` を作成した。
+- 既存 Wails / gateway 接続が承認済み integration 範囲を満たすため、統合境界プロダクトコード変更は不要と判定した。
+- `go test ./internal/controller/wails ./internal/bootstrap -run 'ProviderSettings|Model|MasterPersona|TranslationJobSetup'` は通過した。
+- 統合境界確認時の `npm --prefix frontend run check` は通過した。
+- 統合境界確認時の代替 frontend 対象テストは 4 files / 64 tests 通過した。
+- 統合境界確認時の `python3 scripts/harness/run.py --suite backend-local` は通過した。
+- 統合境界確認時の `python3 scripts/harness/run.py --suite frontend-local` は通過した。
+- agent-browser で、マスターペルソナと Job Setup の共有カードに `Gemini` provider のまま `fake-model` が表示されることを確認した。
+- `scenario-test-implementation-input.md` と `unit-test-implementation-input.md` を作成した。
+- `scenario-test-implementation-result.md` と `unit-test-implementation-result.md` を作成した。
+- `SCN-MSCC-003` の API 受け入れテストを追加した。
+- `go test ./internal/apitest ./internal/integrationtest -run 'ModelSettings|ProviderSettings|TranslationJobSetup|MasterPersona'` は通過した。
+- シナリオテスト担当の `python3 scripts/harness/run.py --suite backend-local` は通過した。
+- provider 切替時の旧 model list / model 混入禁止、遅延応答破棄、保存拒否を frontend usecase 単体テストへ追加した。
+- 単体テスト担当の対象 usecase 直指定テストは 3 files / 48 tests 通過した。
+- `go test ./internal/usecase ./internal/service ./internal/repository ./internal/infra/ai -run 'Model|ProviderSettings|MasterPersona|TranslationJobSetup|Redaction'` は通過した。
+- 単体テスト担当の `python3 scripts/harness/run.py --suite frontend-local` は通過した。
+- `python3 scripts/harness/run.py --suite coverage` は通過し、coverage は 70.7% である。
+- `final-validation-result.md` を作成した。
+- `npm --prefix frontend run check` は通過した。
+- `npm --prefix frontend run test` は 57 files / 494 tests passed で通過した。
+- `go test ./internal/...` は通過した。
+- `python3 scripts/harness/run.py --suite all` は通過した。
+- system test は 9 tests passed で通過した。
+- Sonar security / reliability / maintainability HIGH issues は 0 件である。
+- `reviewback.behavior.yaml` を作成した。`behavior-001` は未解決 major である。
+- `reviewback.contract.yaml` を作成した。`contract-001` は未解決 major である。
+- `reviewback.trust-boundary.yaml` を作成した。`trust-boundary-001` は未解決 blocker であり、hard gate である。
+- `reviewback.state-invariant.yaml` を作成した。修正必須指摘はない。
+- `reviewback.responsibility-boundary.yaml` を作成した。修正必須指摘はなく、minor 指摘のみである。
+- `review-fix-implementation-input.md` を作成した。
+- `review-fix-implementation-result.md` を作成した。
+- `behavior-001`、`contract-001`、`trust-boundary-001` を解消する修正を実装した。
+- 修正担当の `npm --prefix frontend run check` は通過した。
+- 修正担当の master persona 対象 frontend test は 3 files / 56 tests 通過した。
+- 修正担当の `go test ./internal/controller/wails ./internal/usecase ./internal/service ./internal/infra/ai -run 'ProviderSettings|Model|MasterPersona|Fake'` は通過した。
+- 修正担当の `python3 scripts/harness/run.py --suite frontend-local` は通過した。
+- 修正担当の `python3 scripts/harness/run.py --suite backend-local` は通過した。
+- `python3 scripts/scenario/requirement_gate.py ... --json` は通過した。
+- `python3 scripts/harness/run.py --suite scenario-gate` は通過した。
+- 修正後の `npm --prefix frontend run check` は通過した。
+- 修正後の `npm --prefix frontend run test` は 57 files / 494 tests passed で通過した。
+- 修正後の `go test ./internal/...` は通過した。
+- 修正後の `python3 scripts/harness/run.py --suite scenario-gate` は通過した。
+- 修正後の `python3 scripts/harness/run.py --suite all` は Sonar reliability issue 1 件で失敗した。
+- 失敗箇所は `frontend/src/application/usecase/master-persona/master-persona.usecase.ts` の typescript:S3923 である。
+- `credentialStatusForProvider` の同値分岐を `return "missing"` へ簡素化した。
+- 再確認の `npm --prefix frontend run check` は通過した。
+- 再確認の `npm --prefix frontend run test -- src/application/usecase/master-persona/master-persona.usecase.test.ts` は 1 file / 28 tests passed で通過した。
+- 再確認の `python3 scripts/harness/run.py --suite coverage` は通過した。
+- 修正後 coverage は Sonar coverage 70.5% である。
+- 修正後 Sonar security / reliability / maintainability HIGH issues は 0 件である。
+- 修正後レビュー再実行で `behavior-001` は解消済みになった。
+- 修正後レビュー再実行で `contract-001` は解消済みになった。
+- 修正後レビュー再実行で `trust-boundary-001` は解消済みになった。
+- 5 観点の `must_fix_open` はすべて false である。
+- `implementation_action` は `close` である。
+- 詳細仕様正本反映は `docs/index.md` の規約により停止した。
+- 正本更新候補は `canonicalization-decision.md` に記録した。
+- 作業レポート生成では、プロダクトコードとプロダクトテストを追加変更していない。
+
+## 残留リスク
+
+- 指定 frontend test command は現行 `vitest` の filter と合わないため、同じ対象を file 指定で代替した。
+- production 実 provider の model list 取得は、環境の provider settings と secret store 状態に依存する。
+- success / error 以外の状態 variant の幅別 UI 確認は未実行である。
+- `responsibility-boundary-001` は minor の残留指摘である。
+- 詳細仕様正本反映は human が直接起動する `updating-docs` で扱う必要がある。
+
+## 次に見るべき場所
+
+- [light-change-planning.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/light-change-planning.md)
+- [scenario-design.questions.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/scenario-design.questions.md)
+- [scenario-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/scenario-design.md)
+- [ui-design.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/ui-design.md)
+- [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/implementation-scope.md)
+- [frontend-implementation-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/frontend-implementation-input.md)
+- [frontend-implementation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/frontend-implementation-result.md)
+- [frontend-human-review-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/frontend-human-review-input.md)
+- [backend-implementation-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/backend-implementation-input.md)
+- [backend-implementation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/backend-implementation-result.md)
+- [integration-implementation-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/integration-implementation-input.md)
+- [integration-implementation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/integration-implementation-result.md)
+- [scenario-test-implementation-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/scenario-test-implementation-input.md)
+- [unit-test-implementation-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/unit-test-implementation-input.md)
+- [scenario-test-implementation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/scenario-test-implementation-result.md)
+- [unit-test-implementation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/unit-test-implementation-result.md)
+- [final-validation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md)
+- [reviewback.behavior.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.behavior.yaml)
+- [reviewback.contract.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.contract.yaml)
+- [reviewback.trust-boundary.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.trust-boundary.yaml)
+- [reviewback.state-invariant.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.state-invariant.yaml)
+- [reviewback.responsibility-boundary.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.responsibility-boundary.yaml)
+- [review-fix-implementation-input.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-fix-implementation-input.md)
+- [review-fix-implementation-result.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-fix-implementation-result.md)
+- [review-aggregation.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-aggregation.md)
+- [canonicalization-decision.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/2026-05-07-model-settings-card-controller/canonicalization-decision.md)
+- [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md)
+- [AIModelSelectionCard.svelte](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/src/ui/components/AIModelSelectionCard.svelte)

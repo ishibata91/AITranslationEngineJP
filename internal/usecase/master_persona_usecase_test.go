@@ -45,6 +45,12 @@ type fakeMasterPersonaGenerationService struct {
 func (fake fakeMasterPersonaGenerationService) LoadSettings(_ context.Context) (service.MasterPersonaAISettings, error) {
 	return service.MasterPersonaAISettings{}, nil
 }
+func (fake fakeMasterPersonaGenerationService) LoadSettingsState(_ context.Context) (service.MasterPersonaAISettingsState, error) {
+	return service.MasterPersonaAISettingsState{}, nil
+}
+func (fake fakeMasterPersonaGenerationService) ListProviderModels(_ context.Context, _ string) (service.MasterPersonaModelListResult, error) {
+	return service.MasterPersonaModelListResult{}, nil
+}
 func (fake fakeMasterPersonaGenerationService) SaveSettings(_ context.Context, settings service.MasterPersonaAISettings) (service.MasterPersonaAISettings, error) {
 	return settings, nil
 }
@@ -82,6 +88,13 @@ func (fake fakeMasterPersonaGenerationServiceWithLoad) LoadSettings(ctx context.
 		return service.MasterPersonaAISettings{}, nil
 	}
 	return fake.loadSettingsFunc(ctx)
+}
+func (fake fakeMasterPersonaGenerationServiceWithLoad) LoadSettingsState(ctx context.Context) (service.MasterPersonaAISettingsState, error) {
+	settings, err := fake.LoadSettings(ctx)
+	return service.MasterPersonaAISettingsState{Settings: settings}, err
+}
+func (fake fakeMasterPersonaGenerationServiceWithLoad) ListProviderModels(_ context.Context, _ string) (service.MasterPersonaModelListResult, error) {
+	return service.MasterPersonaModelListResult{}, nil
 }
 func (fake fakeMasterPersonaGenerationServiceWithLoad) SaveSettings(_ context.Context, settings service.MasterPersonaAISettings) (service.MasterPersonaAISettings, error) {
 	return settings, nil

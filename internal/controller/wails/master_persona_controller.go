@@ -13,7 +13,8 @@ import (
 type MasterPersonaUsecasePort interface {
 	GetPage(ctx context.Context, query usecase.MasterPersonaListQuery, preferredIdentityKey *string) (usecase.MasterPersonaPageState, error)
 	GetDetail(ctx context.Context, identityKey string) (usecase.MasterPersonaEntry, error)
-	LoadAISettings(ctx context.Context) (usecase.MasterPersonaAISettings, error)
+	LoadAISettingsState(ctx context.Context) (usecase.MasterPersonaAISettingsState, error)
+	ListProviderModels(ctx context.Context, provider string) (usecase.MasterPersonaModelListResult, error)
 	SaveAISettings(ctx context.Context, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaAISettings, error)
 	PreviewGeneration(ctx context.Context, filePath string, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaPreviewResult, error)
 	ExecuteGeneration(ctx context.Context, filePath string, settings usecase.MasterPersonaAISettings) (usecase.MasterPersonaRunStatus, error)
@@ -113,6 +114,43 @@ type MasterPersonaAISettingsDTO struct {
 	Model           string `json:"model"`
 	ExecutionMethod string `json:"executionMethod"`
 }
+
+// MasterPersonaProviderOptionDTO carries one public provider state.
+type MasterPersonaProviderOptionDTO struct {
+	Value            string `json:"value"`
+	Label            string `json:"label"`
+	CredentialStatus string `json:"credentialStatus"`
+}
+
+// MasterPersonaModelOptionDTO carries one public provider model option.
+type MasterPersonaModelOptionDTO struct {
+	ModelID string `json:"modelId"`
+	Label   string `json:"label"`
+}
+
+// MasterPersonaModelListDTO carries public model-list state without request identifiers.
+type MasterPersonaModelListDTO struct {
+	Provider         string                        `json:"provider"`
+	CredentialStatus string                        `json:"credentialStatus"`
+	Status           string                        `json:"status"`
+	Models           []MasterPersonaModelOptionDTO `json:"models"`
+	FailureKind      *string                       `json:"failureKind,omitempty"`
+}
+
+// MasterPersonaAISettingsResponseDTO returns page-local settings plus provider state.
+type MasterPersonaAISettingsResponseDTO struct {
+	AISettings      MasterPersonaAISettingsDTO       `json:"aiSettings"`
+	ProviderOptions []MasterPersonaProviderOptionDTO `json:"providerOptions"`
+	ModelList       MasterPersonaModelListDTO        `json:"modelList"`
+}
+
+// MasterPersonaProviderModelsRequestDTO requests a provider model list.
+type MasterPersonaProviderModelsRequestDTO struct {
+	Provider string `json:"provider"`
+}
+
+// MasterPersonaProviderModelsResponseDTO returns a provider model list.
+type MasterPersonaProviderModelsResponseDTO = MasterPersonaModelListDTO
 
 // MasterPersonaPreviewRequestDTO requests a preview calculation.
 type MasterPersonaPreviewRequestDTO struct {
@@ -216,12 +254,21 @@ func (controller *MasterPersonaController) MasterPersonaGetDetail(request Master
 }
 
 // MasterPersonaLoadAISettings returns page-local AI settings.
-func (controller *MasterPersonaController) MasterPersonaLoadAISettings() (MasterPersonaAISettingsDTO, error) {
-	settings, err := controller.masterPersonaUsecase.LoadAISettings(context.Background())
+func (controller *MasterPersonaController) MasterPersonaLoadAISettings() (MasterPersonaAISettingsResponseDTO, error) {
+	settings, err := controller.masterPersonaUsecase.LoadAISettingsState(context.Background())
 	if err != nil {
-		return MasterPersonaAISettingsDTO{}, fmt.Errorf("master persona load ai settings: %w", err)
+		return MasterPersonaAISettingsResponseDTO{}, fmt.Errorf("master persona load ai settings: %w", err)
 	}
-	return toMasterPersonaAISettingsDTO(settings), nil
+	return toMasterPersonaAISettingsResponseDTO(settings), nil
+}
+
+// MasterPersonaListProviderModels returns provider model options for the page-local model card.
+func (controller *MasterPersonaController) MasterPersonaListProviderModels(request MasterPersonaProviderModelsRequestDTO) (MasterPersonaProviderModelsResponseDTO, error) {
+	result, err := controller.masterPersonaUsecase.ListProviderModels(context.Background(), strings.TrimSpace(request.Provider))
+	if err != nil {
+		return MasterPersonaProviderModelsResponseDTO{}, fmt.Errorf("master persona list provider models: %w", err)
+	}
+	return toMasterPersonaModelListDTO(result), nil
 }
 
 // MasterPersonaSaveAISettings stores page-local AI settings.
@@ -313,6 +360,36 @@ func toMasterPersonaAISettingsDTO(settings usecase.MasterPersonaAISettings) Mast
 		Provider:        settings.Provider,
 		Model:           settings.Model,
 		ExecutionMethod: settings.ExecutionMethod,
+	}
+}
+
+func toMasterPersonaAISettingsResponseDTO(settings usecase.MasterPersonaAISettingsState) MasterPersonaAISettingsResponseDTO {
+	providerOptions := make([]MasterPersonaProviderOptionDTO, 0, len(settings.ProviderOptions))
+	for _, option := range settings.ProviderOptions {
+		providerOptions = append(providerOptions, MasterPersonaProviderOptionDTO{
+			Value:            option.ProviderID,
+			Label:            option.Label,
+			CredentialStatus: option.CredentialStatus,
+		})
+	}
+	return MasterPersonaAISettingsResponseDTO{
+		AISettings:      toMasterPersonaAISettingsDTO(settings.Settings),
+		ProviderOptions: providerOptions,
+		ModelList:       toMasterPersonaModelListDTO(settings.ModelList),
+	}
+}
+
+func toMasterPersonaModelListDTO(result usecase.MasterPersonaModelListResult) MasterPersonaModelListDTO {
+	models := make([]MasterPersonaModelOptionDTO, 0, len(result.Models))
+	for _, model := range result.Models {
+		models = append(models, MasterPersonaModelOptionDTO{ModelID: model.ModelID, Label: model.Label})
+	}
+	return MasterPersonaModelListDTO{
+		Provider:         result.Provider,
+		CredentialStatus: result.CredentialStatus,
+		Status:           result.Status,
+		Models:           models,
+		FailureKind:      result.FailureKind,
 	}
 }
 

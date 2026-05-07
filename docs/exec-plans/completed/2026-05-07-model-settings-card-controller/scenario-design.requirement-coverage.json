@@ -1,0 +1,433 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-MSCC-001",
+      "title": "共有モデル設定カード制御",
+      "kind": "operation",
+      "source_requirement": "マスターペルソナと翻訳ジョブ設定が、同じモデル設定カード制御を使う。provider と model は参照側ごとに保存し、相互に混入しない。",
+      "required_detail_types": [
+        "success_requirement",
+        "data_requirement",
+        "consistency_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "task-frame.md は対象をマスターペルソナと翻訳ジョブ設定の共有カード全体とする。",
+          "verification_hint": "両画面で同じ状態規則、同じ provider list、同じ model list 状態を観測する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-001 により、provider と model は参照側ごとに保存し、マスターペルソナと翻訳ジョブ設定は相互に混入しない。",
+          "verification_hint": "マスターペルソナと翻訳ジョブ設定を再取得しても、相互の provider と model が混入しないことを確認する。",
+          "human_answer_id": "Q-MSCC-001"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Setup は master-persona の AI 設定を既定値または保存元として扱わない。",
+          "verification_hint": "Job Setup 初期表示に master-persona の provider と model が混入しないことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "AIModelSelectionCard.svelte は表示部品のまま維持するという task 枠の境界。",
+          "verification_hint": "表示部品が backend DTO、generated binding、Store、Gateway を直接扱わないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "light-change-planning は共有 controller、usecase、store と Wails 公開口の追加を設計戻し理由にしている。",
+          "verification_hint": "Wails gateway stub と store 観測で保存取得の境界を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-002",
+      "title": "provider 変更と model list 選択状態",
+      "kind": "operation",
+      "source_requirement": "provider 変更、model list 更新、model 選択、保存、取得、遅延応答破棄の責務境界を固定する。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "failure_handling_requirement",
+        "冪等性_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider ごとの model list API から model 候補を取得する。",
+          "verification_hint": "provider 変更後に現在 provider の model list だけから model を選ぶ。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "モデル一覧未更新、更新中、取得済み、取得失敗、APIキー未設定で更新不可を分けて表示する。",
+          "verification_hint": "provider 変更直後は旧 model list と旧 model を現在 provider の設定済み状態へ使わない。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "変更前 provider の model を誤って保存しないという候補要件。",
+          "verification_hint": "旧 provider の model を現在 provider の保存 payload に入れない。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider 変更後に旧 provider の model 保存を拒否する失敗候補。",
+          "verification_hint": "現在 provider で model 未選択であることを表示する。"
+        },
+        {
+          "type": "冪等性_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ取得または保存の再実行で状態を二重作成しない候補。",
+          "verification_hint": "連続更新後も現在値が 1 つだけ残る。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-003",
+      "title": "fake mode の provider 表示境界",
+      "kind": "external",
+      "source_requirement": "fake mode では通常 provider ID のまま model list から `fake-model` を選べる。`fake` provider ID を user-facing provider list へ追加しない。",
+      "required_detail_types": [
+        "success_requirement",
+        "security_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "task-frame.md は fake mode で通常 provider ID のまま `fake-model` を選べることを期待結果にしている。",
+          "verification_hint": "fake mode で通常 provider を選び、model list に `fake-model` が出ることを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`fake` provider ID を user-facing provider list へ追加しない。",
+          "verification_hint": "provider list と保存要約に `fake` provider ID が出ない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "frontend に fake mode 判定や `fake-model` 固有分岐を追加しない。",
+          "verification_hint": "frontend は取得結果として `fake-model` を扱う。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "実装後検証は fake transport DI と fake secret store を使う。",
+          "verification_hint": "有料の実 AI API を呼ばずに fake mode を再現する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-004",
+      "title": "credential 条件と外部取得境界",
+      "kind": "external",
+      "source_requirement": "API key が設定済みの場合だけ、API key が必要な provider の model list 外部取得を試みる。LM Studio は API key を要求しない。",
+      "required_detail_types": [
+        "authorization_requirement",
+        "security_requirement",
+        "alternative_success_requirement",
+        "failure_handling_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "authorization_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキーが必要な AIサービスで APIキー未設定の場合、model list 更新は押せない。",
+          "verification_hint": "Gemini または xAI で APIキー未設定時に外部取得が起動しない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー本体と raw payload は UI、DTO、要約、log、debug 出力に出さない。",
+          "verification_hint": "表示、DTO、fake transport log に secret と raw payload がない。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "LM Studio は API key を要求しないため、API key 入力、API key 未設定 warning、credential select に出さない。",
+          "verification_hint": "LM Studio では credential なしで endpoint による model list 更新を試みる。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "APIキー不要 provider の参照不能を APIキー不足に誤分類しない。",
+          "verification_hint": "endpoint 参照不能は APIキー不足とは別の短い要約で表示する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake secret store で APIキー未設定状態を返し、provider 通信 stub が呼ばれないことを観測できる。",
+          "verification_hint": "adapter 呼び出し有無を stub で確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-005",
+      "title": "遅延応答破棄",
+      "kind": "concurrency",
+      "source_requirement": "遅延応答破棄の責務境界を設計成果物で固定する。",
+      "required_detail_types": [
+        "concurrency_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "concurrency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "task-frame.md は遅延応答破棄を責務境界として固定対象にしている。",
+          "verification_hint": "provider A の遅延応答が provider B の現在状態へ反映されない。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "Store の現在 provider、model list、model 選択状態は新しい要求に対応する結果だけで更新される。",
+          "verification_hint": "古い応答後も現在 provider と model list が一致する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "現在 provider と一致しない応答を画面状態へ反映しない。",
+          "verification_hint": "古い候補が表示されず、現在 model 選択が維持される。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "利用者から見る状態は現在 provider の更新状態、model 選択状態、失敗状態だけで説明できる。",
+          "verification_hint": "破棄時に内部 request 識別子を UI へ出さない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "遅延応答を返す gateway stub を使う候補。",
+          "verification_hint": "応答順序を制御できる stub で検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-006",
+      "title": "保存と再取得",
+      "kind": "data",
+      "source_requirement": "保存取得と model list 取得は専用 controller / usecase / store 層へ集約する。保存失敗後は未保存変更として残す。",
+      "required_detail_types": [
+        "data_requirement",
+        "state_requirement",
+        "failure_handling_requirement",
+        "recovery_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-001 により、provider と model は参照側ごとに保存し、マスターペルソナと翻訳ジョブ設定は相互に混入しない。",
+          "verification_hint": "マスターペルソナと翻訳ジョブ設定を再取得しても、相互の provider と model が混入しないことを確認する。",
+          "human_answer_id": "Q-MSCC-001"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "未保存変更あり、保存中、保存済み、再取得を分ける候補。",
+          "verification_hint": "保存中と保存済みの表示を区別する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-002 により、保存失敗後は未保存変更として残し、保存済み扱いにしない。",
+          "verification_hint": "保存失敗後に選択値が残り、未保存表示と再試行操作が表示され、保存済み表示にならないことを確認する。",
+          "human_answer_id": "Q-MSCC-002"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-002 により、保存失敗後は未保存変更として残し、保存済み扱いにしない。",
+          "verification_hint": "保存失敗後に選択値が残り、未保存表示と再試行操作が表示され、保存済み表示にならないことを確認する。",
+          "human_answer_id": "Q-MSCC-002"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "保存内容に APIキー本体、raw request、raw response、raw prompt は含めない。",
+          "verification_hint": "保存要約と DTO に secret と raw payload がない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-007",
+      "title": "Job Setup の作成可否反映",
+      "kind": "operation",
+      "source_requirement": "3 つの翻訳段階で APIキー不足と model 未選択がない時だけ、翻訳 job を作成できる。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "failure_handling_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-setup.md は 3 翻訳段階と作成条件を明示している。",
+          "verification_hint": "3 段階すべてで不足がない時だけ Ready job 作成が可能になる。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "設定済み、APIキー未設定、model 未選択、model list 取得失敗、model list 更新中を分けて表示する。",
+          "verification_hint": "段階別状態を作成可否へ反映する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "model 未選択または更新中のまま job 作成を拒否する失敗候補。",
+          "verification_hint": "作成要求が送信されず、対象段階の理由が出る。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "作成後の設定内容には段階ごとの AIサービス、model、APIキー状態、一括処理の有無だけを表示する。",
+          "verification_hint": "secret と raw payload を出さず、既存 Job Setup 表示を維持する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-008",
+      "title": "model list 失敗と空状態",
+      "kind": "failure",
+      "source_requirement": "モデル一覧未更新、更新中、取得済み、取得済み 0 件、取得失敗、APIキー未設定で更新不可を分けて表示する。",
+      "required_detail_types": [
+        "failure_handling_requirement",
+        "boundary_requirement",
+        "security_requirement",
+        "recovery_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider 不正応答または通信失敗を分類して表示する候補。",
+          "verification_hint": "timeout、不正応答、参照不能を短い日本語要約へ丸める。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-003 により、空の model list 成功は取得済み 0 件として表示する。",
+          "verification_hint": "空配列成功を取得失敗と混同せず、model 未選択として保存と job 作成を拒否することを確認する。",
+          "human_answer_id": "Q-MSCC-003"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー、raw request、raw response、raw prompt は error summary へ出さない。",
+          "verification_hint": "取得失敗表示に raw payload と secret がない。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "model list 取得失敗は再更新できる状態として扱う。",
+          "verification_hint": "失敗後も再更新操作が可能である。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider 失敗応答 stub と timeout stub を使う候補。",
+          "verification_hint": "有料 API なしで失敗分類を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-009",
+      "title": "結果要約と監査非対象",
+      "kind": "observability",
+      "source_requirement": "保存結果と接続確認結果は raw payload ではなく分類と要約で観測する。provider settings の更新履歴は保存しない。",
+      "required_detail_types": [
+        "observability_requirement",
+        "security_requirement",
+        "data_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "model list 更新結果、保存結果、取得結果は分類と短い要約で確認する。",
+          "verification_hint": "provider、対象画面、結果分類、model 数、短い要約だけを見る。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー、raw request、raw response、raw prompt、内部ログ用識別子は保存要約へ出さない。",
+          "verification_hint": "要約と log に secret と raw payload がない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "永続監査ログと provider settings 更新履歴は既存仕様で対象外である。",
+          "verification_hint": "更新履歴の永続化を受け入れ条件にしない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake transport DI と fake secret store で検証する。",
+          "verification_hint": "有料 API なしで結果分類を観測する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MSCC-010",
+      "title": "APIキー未設定時の UI 導線",
+      "kind": "ui",
+      "source_requirement": "APIキー未設定時は共有カードに AIサービス設定を開く導線を出さず、状態表示だけにする。",
+      "required_detail_types": [
+        "authorization_requirement",
+        "state_requirement",
+        "compatibility_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "authorization_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-004 により、共有カードには AIサービス設定を開く導線を出さず、APIキー未設定の状態表示だけにする。既存バナーの導線を使う。",
+          "verification_hint": "共有カード内に AIサービス設定を開くボタンを出さず、APIキー未設定状態と更新不可だけを表示することを確認する。",
+          "human_answer_id": "Q-MSCC-004"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答 Q-MSCC-004 により、共有カードには AIサービス設定を開く導線を出さず、APIキー未設定の状態表示だけにする。既存バナーの導線を使う。",
+          "verification_hint": "共有カード内に AIサービス設定を開くボタンを出さず、APIキー未設定状態と更新不可だけを表示することを確認する。",
+          "human_answer_id": "Q-MSCC-004"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "LM Studio では APIキー未設定 warning と credential select を出さない。",
+          "verification_hint": "LM Studio のカード表示に APIキー設定導線が出ない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "APIキー本体はモデル設定カードに表示しない。",
+          "verification_hint": "UI 文言、DTO、要約に secret が出ない。"
+        }
+      ]
+    }
+  ]
+}

@@ -6,6 +6,128 @@
       "type": "shell",
       "command": "python3 ${workspaceFolder}/scripts/codex/apply_tmp_codex.py",
       "problemMatcher": []
+    },
+    {
+      "label": "frontend: start fakeAPI review server",
+      "type": "shell",
+      "command": "npm run dev:wails:agent-browser",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated",
+        "clear": false
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: backend-lint",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite backend-lint",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: backend-local",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite backend-local",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: backend-test",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite backend-test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: frontend-lint",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite frontend-lint",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: frontend-local",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite frontend-local",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: frontend-test",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite frontend-test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: system-test",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite system-test",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: scenario-gate",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite scenario-gate",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: coverage",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite coverage",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: structure",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite structure",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: execution",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite execution",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "harness: all",
+      "type": "shell",
+      "command": "python3 scripts/harness/run.py --suite all",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
     }
   ]
 }

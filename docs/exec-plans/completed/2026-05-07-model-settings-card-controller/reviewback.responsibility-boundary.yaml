@@ -1,0 +1,127 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-settings-card-controller"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "issues_open"
+must_fix_open: false
+max_level: "minor"
+
+assessment:
+  responsibility_boundary: "主要な層責務、依存方向、関数責務は維持されている。AIModelSelectionCard.svelte は props と event だけを扱う表示部品に留まり、provider/model/list/save/load/current selection は application 側の shared policy、usecase、store、presenter へ集約されている。frontend production 経路に fake provider 判定や fake-model 固有分岐は見つからない。review fakeAPI と API テストは別領域に閉じている。一方で、GenerationSetupPanel.svelte が共有カード view model の fallback を組み立てており、View 側に presenter 由来の表示整形責務が一部残っている。"
+  evidence_sufficiency: "十分。指定成果物、architecture.md、実コード差分、review fakeAPI、API テストを確認した。検証証跡は呼び出し元入力と final-validation-result.md の通過結果を採用した。"
+
+checked_scope:
+  summary: "共有モデル設定カードの表示部品、frontend shared state/policy/usecase/presenter、review fakeAPI、Wails/bootstrap 接続、SCN-MSCC-003 API テストを確認した。ハーネスは人間指示に従い実行していない。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/implementation-scope.md"
+      line: 15
+      symbol: "Fixed Decisions"
+      reason: "承認済み実装範囲と fake mode の責務境界を確認した。"
+    - path: "docs/architecture.md"
+      line: 72
+      symbol: "UI Component"
+      reason: "UI Component が Store、Gateway、backend DTO、generated binding を直接扱わない責務を確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.svelte"
+      line: 7
+      symbol: "Props"
+      reason: "表示部品が props と event handler だけを受ける構造を確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 90
+      symbol: "updateModelSettingsProvider"
+      reason: "provider 変更、model list 更新、保存状態、表示用 view model が共有処理へ集約されていることを確認した。"
+    - path: "frontend/src/application/store/translation-job-setup/translation-job-setup.store.ts"
+      line: 112
+      symbol: "createInitialState"
+      reason: "Job Setup 側が providerModelLists と modelSettingsCards を store state として保持することを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 830
+      symbol: "selectPhaseProvider"
+      reason: "provider 切替、model list 初期化、遅延応答破棄、model 選択を usecase 側で扱うことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+      line: 333
+      symbol: "buildModelSettingsCardViewModel"
+      reason: "共有カード view model の整形が presenter 経路から呼ばれていることを確認した。"
+    - path: "frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts"
+      line: 467
+      symbol: "createModelListResponse"
+      reason: "fake-model は review fakeAPI の fixture 応答に閉じていることを確認した。"
+    - path: "frontend/src/main.ts"
+      line: 16
+      symbol: "reviewFakeApiContext"
+      reason: "fakeAPI 起動判定が DEV 時の bootstrap 切替に限定されていることを確認した。"
+    - path: "internal/apitest/model_settings_card_fake_mode_test.go"
+      line: 19
+      symbol: "TestSCN_MSCC_003_ModelSettingsFakeModeListsFakeModelUnderRealProvider"
+      reason: "fake mode の model list が backend / adapter 境界側で証明されていることを確認した。"
+
+unchecked_scope:
+  - target: "frontend/wailsjs 生成物"
+    reason: "integration-implementation-result.md で未変更かつ生成不要と記録されているため、実ファイル詳細は確認対象外にした。"
+    risk: "生成物が後から更新された場合、DTO 接続境界の再確認が必要になる。"
+  - target: "production 実 provider への実接続"
+    reason: "final-validation-result.md が環境依存の残留リスクとして記録しており、責務境界レビューでは実 API 呼び出しを行わない。"
+    risk: "実 provider の model list 応答差異が adapter 境界の追加調整を要求する可能性がある。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "minor"
+    title: "View 側に共有カード view model の fallback 組み立てが残っている"
+    problem: "GenerationSetupPanel.svelte が createFallbackModelCard で provider options、credential 表示、model list 表示文言、ボタン状態を組み立てている。これは presenter が作るべき共有カード view model の代替整形であり、View が UI Component へ props を渡す責務を少し越えている。"
+    reason: "architecture.md は View を UI Component の組み合わせと DOM event の受け渡しに限定し、Presenter が Store state から view model を組み立てると定めている。現在の presenter は modelSettingsCardViewModel を常に返しているため実行時影響は小さいが、fallback 経路が残ると provider/model 表示規則が presenter と View に分散する。"
+    violated_condition: "View は表示部品の組み合わせと event 受け渡しに留め、表示整形は Presenter または共有 model-settings-card policy に集約する。"
+    cause_candidate: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte:50 の createFallbackModelCard が、旧 viewModel 互換のために表示モデルを View 内で再構築している可能性がある。"
+    evidence:
+      - path: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte"
+        line: 50
+        excerpt: "createFallbackModelCard が providerOptions、credentialStatus、modelListStatusText、statusLabel を View 内で組み立てている。"
+      - path: "frontend/src/application/presenter/master-persona/master-persona.presenter.ts"
+        line: 187
+        excerpt: "presenter は buildModelSettingsCardViewModel で modelSettingsCardViewModel を返している。"
+      - path: "docs/architecture.md"
+        line: 63
+        excerpt: "View は UI Component を組み合わせ、DOM event を ScreenController へ渡す。"
+    local_fix_assessment: "local"
+    additional_check_scope: "MasterPersonaPresenter が全呼び出し経路で modelSettingsCardViewModel を返す前提を確認する範囲。"
+    fix_considerations: "fallback を残す場合でも、provider options と model list 文言の正本が presenter と共有 policy に分散しないことを保つ。"
+    verification: "frontend の presenter / screen component test で modelSettingsCardViewModel が欠落しないこと、または fallback を削除して既存 UI test が通ることを確認する。"
+    fix_required: false
+    status: "open"
+
+boundary_breaks:
+  - boundary: "View / Presenter"
+    status: "minor-open"
+    evidence: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte:50"
+    detail: "View が共有カード view model fallback を持つ。実行時の主経路は presenter 生成の view model を使うため、修正必須ではない。"
+
+cause_candidates:
+  - cause: "旧 viewModel 互換の fallback を画面側へ残した。"
+    evidence: "frontend/src/ui/screens/master-persona/GenerationSetupPanel.svelte:50"
+  - cause: "shared model card policy の導入後も、画面 component 側の代替 path を消していない。"
+    evidence: "frontend/src/application/presenter/master-persona/master-persona.presenter.ts:187"
+
+local_fix_assessment:
+  overall: "局所修正で閉じる。GenerationSetupPanel.svelte の fallback を presenter 出力前提へ寄せるか、fallback 作成を shared policy / presenter 側へ戻すだけでよい。Wails、DTO、backend、fakeAPI への波及は不要である可能性が高い。"
+  boundary_fixed_tests:
+    - "MasterPersonaPresenter が modelSettingsCardViewModel を返すことを単体テストで固定する。"
+    - "GenerationSetupPanel.svelte が providerOptions や credential 表示規則を独自構築しないことを静的確認する。"
+
+validation_evidence:
+  - command: "python3 scripts/harness/run.py --suite all"
+    result: "通過"
+    source: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+  - command: "npm --prefix frontend run check"
+    result: "通過"
+    source: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+  - command: "npm --prefix frontend run test"
+    result: "通過"
+    source: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+  - command: "go test ./internal/..."
+    result: "通過"
+    source: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+
+residual_risks:
+  - risk: "実 provider の model list 取得は環境の provider settings と secret store に依存する。"
+    reason: "final-validation-result.md に残留リスクとして記録されている。責務境界上は adapter / backend 境界へ残っているため、実接続差異は挙動または統合確認で扱う。"
+  - risk: "review fakeAPI は frontend bootstrap から DEV 時だけ差し替えられる。"
+    reason: "main.ts の import.meta.env.DEV で無効化されることを確認したが、build 設定変更時は fakeAPI と production wiring の境界を再確認する必要がある。"

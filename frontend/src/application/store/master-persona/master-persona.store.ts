@@ -1,4 +1,8 @@
 import * as MasterPersonaGateway from "@application/gateway-contract/master-persona"
+import {
+  cloneModelSettingsCardState,
+  createModelSettingsCardState
+} from "@application/gateway-contract/model-settings-card"
 
 type MasterPersonaScreenState = MasterPersonaGateway.MasterPersonaScreenState
 type Listener = (state: MasterPersonaScreenState) => void
@@ -17,6 +21,13 @@ function createInitialState(): MasterPersonaScreenState {
     errorMessage: "",
     aiSettings: MasterPersonaGateway.createDefaultMasterPersonaAISettings(),
     aiSettingsMessage: "",
+    providerOptions: [],
+    modelSettingsCard: createModelSettingsCardState({
+      referenceId: "master-persona",
+      provider: "",
+      model: "",
+      credentialStatus: "missing"
+    }),
     modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
@@ -57,6 +68,12 @@ export class MasterPersonaStore {
         ? { ...this.state.selectedEntry }
         : null,
       aiSettings: { ...this.state.aiSettings },
+      providerOptions: this.state.providerOptions.map((option) => ({
+        ...option
+      })),
+      modelSettingsCard: this.state.modelSettingsCard
+        ? cloneModelSettingsCardState(this.state.modelSettingsCard)
+        : undefined,
       modelOptions: this.state.modelOptions.map((option) => ({ ...option })),
       preview: this.state.preview ? { ...this.state.preview } : null,
       runStatus: { ...this.state.runStatus },

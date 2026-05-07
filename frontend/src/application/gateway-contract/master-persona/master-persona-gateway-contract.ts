@@ -1,3 +1,11 @@
+import type {
+  ModelSettingsCardState,
+  ModelSettingsCredentialStatus,
+  ModelSettingsModelListState,
+  ModelSettingsProviderOption,
+  ModelSettingsCardViewModel
+} from "@application/gateway-contract/model-settings-card"
+
 export interface MasterPersonaFrontendRefresh {
   keyword: string
   pluginFilter: string
@@ -67,6 +75,24 @@ export interface MasterPersonaAISettings {
 export interface MasterPersonaModelOption {
   modelId: string
   label: string
+}
+
+export interface MasterPersonaAISettingsResponse {
+  aiSettings: MasterPersonaAISettings
+  providerOptions: ModelSettingsProviderOption[]
+  modelList: ModelSettingsModelListState
+}
+
+export interface MasterPersonaProviderModelsRequest {
+  provider: string
+}
+
+export interface MasterPersonaProviderModelsResponse {
+  provider: string
+  credentialStatus: ModelSettingsCredentialStatus
+  status: ModelSettingsModelListState["status"]
+  models: MasterPersonaModelOption[]
+  failureKind?: string
 }
 
 export interface MasterPersonaPreviewRequest {
@@ -158,6 +184,8 @@ export interface MasterPersonaScreenState {
   errorMessage: string
   aiSettings: MasterPersonaAISettings
   aiSettingsMessage: string
+  providerOptions: ModelSettingsProviderOption[]
+  modelSettingsCard?: ModelSettingsCardState
   modelOptions: MasterPersonaModelOption[]
   selectedFileName: string
   selectedFileReference: string | null
@@ -184,6 +212,7 @@ export interface MasterPersonaScreenViewModel extends MasterPersonaScreenState {
   aiProviderLabel: string
   aiSettingsWarningText: string
   aiSettingsStatusText: string
+  modelSettingsCardViewModel?: ModelSettingsCardViewModel
   canSelectModel: boolean
   executionMethodOptions: Array<{ value: string; label: string }>
   promptTemplateDescription: string
@@ -243,7 +272,10 @@ export interface MasterPersonaGatewayContract {
   getMasterPersonaDetail(
     request: MasterPersonaIdentityRequest
   ): Promise<MasterPersonaDetailResponse>
-  loadMasterPersonaAISettings(): Promise<MasterPersonaAISettings>
+  loadMasterPersonaAISettings(): Promise<MasterPersonaAISettingsResponse>
+  listMasterPersonaProviderModels(
+    request: MasterPersonaProviderModelsRequest
+  ): Promise<MasterPersonaProviderModelsResponse>
   saveMasterPersonaAISettings(
     request: MasterPersonaAISettings
   ): Promise<MasterPersonaAISettings>

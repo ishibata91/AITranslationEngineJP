@@ -43,6 +43,52 @@
       ? `候補 ${viewModel.preview.candidateCount} 件のうち、新規 ${viewModel.preview.newlyAddableCount} 件を作成できます。`
       : "ベースゲームや大型 Mod の対象 NPC から、未作成のペルソナだけを追加します。"
   )
+  type ModelCardViewModel = NonNullable<
+    MasterPersonaScreenViewModel["modelSettingsCardViewModel"]
+  >
+
+  function createFallbackModelCard(): ModelCardViewModel {
+    return {
+      referenceId: "master-persona",
+      provider: viewModel.aiSettings.provider,
+      model: viewModel.aiSettings.model,
+      providerOptions: [
+        { value: "gemini", label: "Gemini" },
+        { value: "lm_studio", label: "LM Studio" },
+        { value: "xai", label: "xAI" }
+      ],
+      credentialStatusLabel: viewModel.aiSettingsStatusText,
+      credentialStatusTone: viewModel.aiSettingsWarningText
+        ? "warning"
+        : "success",
+      showCredentialStatus: true,
+      showCredentialWarning: viewModel.aiSettingsWarningText !== "",
+      credentialWarningText:
+        "APIキーが未設定のため、モデル一覧を更新できません。",
+      modelListButtonEnabled: true,
+      modelListButtonLabel: "モデル一覧を更新",
+      modelListButtonAriaLabel: "モデル一覧を更新",
+      isModelListRefreshing: isAISettingsRefreshing,
+      modelListStatusText: viewModel.canSelectModel
+        ? "使うモデルを選んでください。"
+        : "モデル一覧を更新してください。",
+      modelOptions: viewModel.modelOptions,
+      modelSelectEnabled: viewModel.canSelectModel,
+      emptyModelLabel: viewModel.canSelectModel
+        ? "選んでください"
+        : "設定が必要",
+      statusLabel: viewModel.aiProviderLabel || "未選択",
+      statusTone: viewModel.aiSettingsWarningText ? "warning" : "neutral",
+      helperText: "ペルソナ作成に使う AI サービスとモデルを選びます。",
+      footerMessage: "",
+      footerWarningText: "",
+      actionButtonDisabled: isAISettingsRefreshing
+    }
+  }
+
+  const modelCard = $derived(
+    viewModel.modelSettingsCardViewModel ?? createFallbackModelCard()
+  )
 </script>
 
 <section class="panel setup-panel" aria-labelledby="setupHeading">
@@ -57,47 +103,48 @@
   <div class="setup-grid">
     <div class="model-panel">
       <AIModelSelectionCard
-        credentialStatusLabel={viewModel.aiSettingsStatusText}
-        credentialStatusTone={viewModel.aiSettingsWarningText ? "warning" : "success"}
+        actionButtonDisabled={modelCard.actionButtonDisabled || isAISettingsRefreshing}
+        actionButtonId="saveAiSettingsButton"
+        actionButtonLabel="設定を保存"
+        credentialStatusLabel={modelCard.credentialStatusLabel}
+        credentialStatusTone={modelCard.credentialStatusTone}
+        credentialWarningText={modelCard.credentialWarningText}
         eyebrow="AI 設定"
         executionDisabled={isAISettingsRefreshing}
         executionOptions={viewModel.executionMethodOptions}
         executionSelectId="executionMethodSelect"
         executionValue={viewModel.aiSettings.executionMethod}
-        helperText="ペルソナ作成に使う AI サービスとモデルを選びます。"
-        modelDisabled={isAISettingsRefreshing || !viewModel.canSelectModel}
-        modelOptions={viewModel.modelOptions}
+        footerMessage={modelCard.footerMessage || "モデル設定はこの画面専用です。必要なら保存できます。"}
+        footerWarningText={modelCard.footerWarningText}
+        helperText={modelCard.helperText}
+        modelDisabled={isAISettingsRefreshing || !modelCard.modelSelectEnabled}
+        modelOptions={modelCard.modelOptions}
         modelSelectId="modelInput"
-        modelStatusText={viewModel.canSelectModel
-          ? "使うモデルを選んでください。"
-          : "モデル一覧を更新してください。"}
-        modelValue={viewModel.aiSettings.model}
+        modelStatusText={modelCard.modelListStatusText}
+        modelValue={modelCard.model}
+        onAction={saveAISettings}
         onExecutionChange={handleAIExecutionMethodChange}
         onModelChange={handleAIModelChange}
         onProviderChange={handleAIProviderChange}
         onRefresh={() => void refreshAISettings()}
         providerFieldLabel="AI サービス"
-        providerOptions={[
-          { value: "gemini", label: "Gemini" },
-          { value: "lm_studio", label: "LM Studio" },
-          { value: "xai", label: "xAI" }
-        ]}
+        providerOptions={modelCard.providerOptions}
         providerDisabled={isAISettingsRefreshing}
         providerSelectId="providerSelect"
-        providerValue={viewModel.aiSettings.provider}
-        refreshButtonAriaLabel="モデル一覧を更新"
-        refreshButtonLabel="モデル一覧を更新"
-        refreshDisabled={isAISettingsRefreshing}
-        refreshSpinning={isAISettingsRefreshing}
+        providerValue={modelCard.provider}
+        refreshButtonAriaLabel={modelCard.modelListButtonAriaLabel}
+        refreshButtonLabel={modelCard.modelListButtonLabel}
+        refreshDisabled={!modelCard.modelListButtonEnabled || isAISettingsRefreshing}
+        refreshSpinning={modelCard.isModelListRefreshing || isAISettingsRefreshing}
         secondaryControlMode="execution-select"
-        showCredentialStatus={true}
-        showCredentialWarning={viewModel.aiSettingsWarningText !== ""}
-        statusLabel={viewModel.aiProviderLabel || "未選択"}
-        statusTone={viewModel.aiSettingsWarningText ? "warning" : "neutral"}
+        showCredentialStatus={modelCard.showCredentialStatus}
+        showCredentialWarning={modelCard.showCredentialWarning}
+        statusLabel={modelCard.statusLabel}
+        statusTone={modelCard.statusTone}
         title="この画面で使う AI 設定"
         titleId="settingsHeading"
         titleTag="h3"
-        emptyModelLabel={viewModel.canSelectModel ? "選んでください" : "設定が必要"}
+        emptyModelLabel={modelCard.emptyModelLabel}
       />
 
       <div class="model-footer">
@@ -107,15 +154,6 @@
         <p class="sr-only">
           プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。
         </p>
-        <button
-          class="button-secondary"
-          disabled={isAISettingsRefreshing}
-          id="saveAiSettingsButton"
-          onclick={saveAISettings}
-          type="button"
-        >
-          設定を保存
-        </button>
       </div>
     </div>
 

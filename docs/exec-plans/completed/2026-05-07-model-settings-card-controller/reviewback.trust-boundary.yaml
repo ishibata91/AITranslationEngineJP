@@ -1,0 +1,128 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-settings-card-controller"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "trust-boundary-001 の修正後確認では、共有モデル設定カード状態、Master Persona の DTO、画面状態、store snapshot、view model へ requestToken と sourceToken は露出していない。Master Persona の遅延応答破棄 token は usecase private state に閉じており、共有カード状態へコピーされない。"
+  evidence_sufficiency: "判定可能。必須入力成果物、修正結果、最終検証結果、共有カード contract、Master Persona gateway contract、store、usecase、Wails DTO、Job Setup の共有カード変換経路を確認した。ハーネスは人間指示に従い再実行していない。"
+  hard_gate: true
+
+checked_scope:
+  summary: "共有モデル設定カード状態、Master Persona の DTO / view model / store / usecase、Job Setup の共有カード変換経路を権限・信頼境界観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/implementation-scope.md"
+      line: 30
+      symbol: "Fixed Decisions"
+      reason: "APIキー本体、secret、raw payload、内部ログ用識別子を UI、DTO、要約、log へ出さない条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-fix-implementation-result.md"
+      line: 28
+      symbol: "修正内容"
+      reason: "requestToken と sourceToken を共有カード state、view model、master persona DTO へ出さない修正方針を確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+      line: 50
+      symbol: "修正後検証"
+      reason: "修正後の check、test、backend test、scenario-gate、coverage の検証結果を確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-contract.ts"
+      line: 32
+      symbol: "ModelSettingsModelListState"
+      reason: "共有カードの model list 状態が provider、credentialStatus、status、models、failureKind だけを公開することを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-contract.ts"
+      line: 40
+      symbol: "ModelSettingsCardState"
+      reason: "共有カード状態が requestToken と sourceToken を保持しないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-contract.ts"
+      line: 50
+      symbol: "ModelSettingsCardViewModel"
+      reason: "表示用 view model が requestToken と sourceToken を保持しないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 80
+      symbol: "MasterPersonaAISettingsResponse"
+      reason: "Master Persona の AI 設定読込応答が共有カード model list 状態だけを含み、内部 request 識別子を含まないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 90
+      symbol: "MasterPersonaProviderModelsResponse"
+      reason: "Master Persona の provider model list 応答が provider、credentialStatus、status、models、failureKind だけを返すことを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 174
+      symbol: "MasterPersonaScreenState"
+      reason: "Master Persona 画面状態が ModelSettingsCardState を保持するが token field を追加していないことを確認した。"
+    - path: "frontend/src/application/store/master-persona/master-persona.store.ts"
+      line: 62
+      symbol: "MasterPersonaStore.snapshot"
+      reason: "store snapshot が ModelSettingsCardState を clone するだけで内部 token を公開しないことを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 103
+      symbol: "createAISettingsCardState"
+      reason: "Master Persona 共有カード初期化が provider、model、credentialStatus、modelList だけを返すことを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 133
+      symbol: "toModelSettingsListState"
+      reason: "Master Persona の gateway response から共有カード model list へ token をコピーしないことを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 232
+      symbol: "refreshAISettings"
+      reason: "遅延応答破棄 token が activeModelListRequest と local 変数に限定され、gateway request / response / screen state へ露出しないことを確認した。"
+    - path: "internal/controller/wails/master_persona_controller.go"
+      line: 131
+      symbol: "MasterPersonaModelListDTO"
+      reason: "Wails DTO が request identifier を持たない公開 model list 状態であることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 366
+      symbol: "toModelSettingsCards"
+      reason: "Translation Job Setup の既存 provider model list response から共有カード状態へ requestToken と sourceToken をコピーしないことを確認した。"
+
+unchecked_scope:
+  - target: "Translation Job Setup の provider model list API 既存契約"
+    reason: "人間指示により、既存契約に requestToken / sourceToken が残る可能性は共有カード状態への露出と Master Persona 画面状態への露出の主判定対象から外した。共有カード変換経路は確認済みである。"
+    risk: "既存 API response 自体には内部 request 識別子が残るため、将来の別画面や debug 表示が response 全体を表示する変更を入れると再露出する可能性がある。"
+  - target: "production provider adapter の raw request / raw response logging"
+    reason: "レビュー対象差分では provider adapter 本体が変更されていないため、実コード再監査の中心にしていない。"
+    risk: "既存 adapter 側に raw payload ログがある場合、今回の共有カード差分だけでは検出できない。"
+  - target: "広いハーネスの再実行"
+    reason: "人間指示で広いハーネス再実行は禁止されているため、呼び出し元から渡された検証証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業ツリーで検証コマンドを再現していない。"
+
+issues:
+  - id: "trust-boundary-001"
+    level: "blocker"
+    title: "内部 request 識別子が共有カード状態契約へ露出している"
+    problem: "修正済み。ModelSettingsModelListState、ModelSettingsCardState、ModelSettingsCardViewModel、MasterPersonaScreenState、Master Persona DTO から requestToken と sourceToken が除去されている。"
+    reason: "遅延 model list 応答の破棄に使う token は MasterPersonaUseCase の private state に閉じており、共有カード状態と Master Persona 画面状態へコピーされない。Translation Job Setup の既存 provider model list response には token が残るが、toModelSettingsCards では共有カード状態へ provider、credentialStatus、status、models、failureKind だけを写している。"
+    violated_condition: "解消済み。内部 request 識別子は UI、DTO、console、log、error summary へ出さない。権限・信頼境界グループは hard gate として相殺しない。"
+    cause_candidate: "解消済み。修正前は遅延応答破棄用 token と画面向け共有カード state が同じ ModelSettingsModelListState にまとまっていた。修正後は Master Persona 側の token を usecase private state へ閉じ、共有カード state は公開表示値だけを持つ。"
+    evidence:
+      - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-contract.ts"
+        line: 32
+        excerpt: "ModelSettingsModelListState は provider、credentialStatus、status、models、failureKind だけを持つ。"
+      - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-contract.ts"
+        line: 50
+        excerpt: "ModelSettingsCardViewModel は表示用 field だけを持ち、requestToken と sourceToken を持たない。"
+      - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+        line: 90
+        excerpt: "MasterPersonaProviderModelsResponse は provider、credentialStatus、status、models、failureKind だけを持つ。"
+      - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+        line: 174
+        excerpt: "MasterPersonaScreenState は ModelSettingsCardState を保持するが、token field を追加していない。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 232
+        excerpt: "requestToken は refreshAISettings 内の local 変数と activeModelListRequest.token に閉じている。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 133
+        excerpt: "toModelSettingsListState は response から provider、credentialStatus、status、models、failureKind だけを共有カード状態へ写す。"
+      - path: "internal/controller/wails/master_persona_controller.go"
+        line: 131
+        excerpt: "MasterPersonaModelListDTO は public model-list state without request identifiers として定義されている。"
+      - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+        line: 366
+        excerpt: "toModelSettingsCards は既存 response の requestToken と sourceToken を共有カード状態へコピーしない。"
+    local_fix_assessment: "resolved。frontend contract、Master Persona usecase、Wails DTO、Job Setup の共有カード変換経路の範囲で閉じている。"
+    additional_check_scope: "今後 Translation Job Setup の provider model list response 全体を UI、console、error summary に出す変更を入れる場合は、既存 requestToken / sourceToken の露出を再確認する。"
+    fix_considerations: "解消済み。遅延応答破棄の不変条件は、非公開の token 管理で維持する必要がある。公開 DTO、screen state、view model へ token を戻さないことが残る条件である。"
+    verification: "静的確認として対象候補へ requestToken / sourceToken を検索し、共有カード contract と Master Persona contract / DTO / store / usecase に露出がないことを確認した。呼び出し元証跡では npm --prefix frontend run check、npm --prefix frontend run test、go test ./internal/...、scenario-gate、coverage が通過している。"
+    fix_required: true
+    status: "resolved"

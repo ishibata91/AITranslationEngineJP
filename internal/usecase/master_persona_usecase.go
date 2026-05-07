@@ -39,6 +39,22 @@ type MasterPersonaAISettings struct {
 	ExecutionMethod string
 }
 
+// MasterPersonaProviderOption stores one public provider state.
+type MasterPersonaProviderOption = service.MasterPersonaProviderOption
+
+// MasterPersonaModelOption stores one public provider model option.
+type MasterPersonaModelOption = service.MasterPersonaModelOption
+
+// MasterPersonaModelListResult stores one public provider model-list state.
+type MasterPersonaModelListResult = service.MasterPersonaModelListResult
+
+// MasterPersonaAISettingsState stores settings with provider-side public state.
+type MasterPersonaAISettingsState struct {
+	Settings        MasterPersonaAISettings
+	ProviderOptions []MasterPersonaProviderOption
+	ModelList       MasterPersonaModelListResult
+}
+
 // MasterPersonaPreviewResult aliases the service-layer preview result.
 type MasterPersonaPreviewResult = service.MasterPersonaPreviewResult
 
@@ -64,6 +80,8 @@ type MasterPersonaQueryServicePort interface {
 // MasterPersonaGenerationServicePort defines master persona generation and mutation dependencies.
 type MasterPersonaGenerationServicePort interface {
 	LoadSettings(ctx context.Context) (service.MasterPersonaAISettings, error)
+	LoadSettingsState(ctx context.Context) (service.MasterPersonaAISettingsState, error)
+	ListProviderModels(ctx context.Context, provider string) (service.MasterPersonaModelListResult, error)
 	SaveSettings(ctx context.Context, settings service.MasterPersonaAISettings) (service.MasterPersonaAISettings, error)
 	Preview(ctx context.Context, filePath string, requestSettings service.MasterPersonaAISettings) (service.MasterPersonaPreviewResult, error)
 	Execute(ctx context.Context, filePath string, requestSettings service.MasterPersonaAISettings) (service.MasterPersonaRunStatus, error)
@@ -140,6 +158,28 @@ func (usecase *MasterPersonaUsecase) LoadAISettings(ctx context.Context) (Master
 		return MasterPersonaAISettings{}, fmt.Errorf("load master persona ai settings: %w", err)
 	}
 	return toUsecaseMasterPersonaAISettings(result), nil
+}
+
+// LoadAISettingsState loads page-local AI settings with public provider state.
+func (usecase *MasterPersonaUsecase) LoadAISettingsState(ctx context.Context) (MasterPersonaAISettingsState, error) {
+	result, err := usecase.generationService.LoadSettingsState(ctx)
+	if err != nil {
+		return MasterPersonaAISettingsState{}, fmt.Errorf("load master persona ai settings state: %w", err)
+	}
+	return MasterPersonaAISettingsState{
+		Settings:        toUsecaseMasterPersonaAISettings(result.Settings),
+		ProviderOptions: append([]MasterPersonaProviderOption(nil), result.ProviderOptions...),
+		ModelList:       result.ModelList,
+	}, nil
+}
+
+// ListProviderModels loads provider models for the master persona model card.
+func (usecase *MasterPersonaUsecase) ListProviderModels(ctx context.Context, provider string) (MasterPersonaModelListResult, error) {
+	result, err := usecase.generationService.ListProviderModels(ctx, provider)
+	if err != nil {
+		return MasterPersonaModelListResult{}, fmt.Errorf("list master persona provider models: %w", err)
+	}
+	return result, nil
 }
 
 // SaveAISettings saves page-local AI settings.

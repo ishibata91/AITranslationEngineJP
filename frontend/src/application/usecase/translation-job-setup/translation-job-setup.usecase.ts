@@ -16,11 +16,22 @@ import type {
   TranslationJobSetupSummaryResponse,
   TranslationJobSetupValidationState
 } from "@application/gateway-contract/translation-job-setup"
+import {
+  applyModelSettingsListResult,
+  failModelSettingsListRefresh,
+  selectModelSettingsModel,
+  startModelSettingsListRefresh,
+  updateModelSettingsProvider
+} from "@application/gateway-contract/model-settings-card"
 
 interface TranslationJobSetupStoreLike {
   snapshot(): TranslationJobSetupScreenState
   update(mutator: (draft: TranslationJobSetupScreenState) => void): void
 }
+
+type ModelSettingsCardState = NonNullable<
+  TranslationJobSetupScreenState["modelSettingsCards"]
+>[number]
 
 const PHASE_IDS: TranslationJobSetupPhaseId[] = [
   "word_translation",
@@ -331,14 +342,18 @@ function createPhaseSelections(
 function createModelListState(
   selection: TranslationJobSetupPhaseRuntimeSelection
 ): ListTranslationJobSetupProviderModelsResponse {
+  const hasRestoredModel =
+    selection.model.trim() !== "" && selection.modelListSourceToken.trim() !== ""
   return {
     phaseId: selection.phaseId,
     provider: selection.provider,
     credentialStatus: selection.credentialStatus,
     requestToken: "",
     sourceToken: selection.modelListSourceToken,
-    status: "not_updated",
-    models: []
+    status: hasRestoredModel ? "success" : "not_updated",
+    models: hasRestoredModel
+      ? [{ modelId: selection.model, label: selection.model }]
+      : []
   }
 }
 
@@ -346,6 +361,39 @@ function createModelListStates(
   selections: TranslationJobSetupPhaseRuntimeSelection[]
 ): ListTranslationJobSetupProviderModelsResponse[] {
   return selections.map((selection) => createModelListState(selection))
+}
+
+function toModelSettingsCards(
+  selections: TranslationJobSetupPhaseRuntimeSelection[],
+  modelLists: ListTranslationJobSetupProviderModelsResponse[]
+): ModelSettingsCardState[] {
+  return selections.map((selection) => {
+    const modelList =
+      modelLists.find((entry) => entry.phaseId === selection.phaseId) ??
+      createModelListState(selection)
+    return {
+      referenceId: selection.phaseId,
+      provider: selection.provider,
+      model: selection.model,
+      credentialStatus: selection.credentialStatus,
+      modelList: {
+        provider: modelList.provider,
+        credentialStatus: modelList.credentialStatus,
+        status: modelList.status,
+        models: modelList.models,
+        failureKind: modelList.failureKind
+      },
+      saveStatus: selection.model === "" ? "clean" : "saved",
+      saveMessage: ""
+    }
+  })
+}
+
+function syncModelSettingsCards(draft: TranslationJobSetupScreenState): void {
+  draft.modelSettingsCards = toModelSettingsCards(
+    draft.phaseRuntimeSelections ?? [],
+    draft.providerModelLists ?? []
+  )
 }
 
 function findPhaseSelection(
@@ -550,6 +598,10 @@ function applyLoadedOptions(
   draft.selectedCredentialRef = selectedCredentialRef
   draft.phaseRuntimeSelections = phaseRuntimeSelections
   draft.providerModelLists = providerModelLists
+  draft.modelSettingsCards = toModelSettingsCards(
+    phaseRuntimeSelections,
+    providerModelLists
+  )
   draft.validationResult = null
   draft.validationState = "not-run"
   draft.dirty = false
@@ -813,6 +865,16 @@ export class TranslationJobSetupUseCase {
 
       replacePhaseSelection(draft, nextSelection)
       replaceModelList(draft, createModelListState(nextSelection))
+      const currentCards = draft.modelSettingsCards ?? []
+      draft.modelSettingsCards = currentCards.map((card) =>
+        card.referenceId === phaseId
+          ? updateModelSettingsProvider(card, {
+              provider,
+              credentialStatus: nextSelection.credentialStatus
+            })
+          : card
+      )
+      syncModelSettingsCards(draft)
       invalidateValidation(draft, "stale")
     })
 
@@ -837,6 +899,11 @@ export class TranslationJobSetupUseCase {
         status: "loading",
         models: []
       })
+      draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
+        card.referenceId === phaseId
+          ? startModelSettingsListRefresh(card)
+          : card
+      )
       invalidateValidation(draft, "stale")
     })
 
@@ -871,6 +938,7 @@ export class TranslationJobSetupUseCase {
         replaceModelList(draft, response)
         const currentSelection = findPhaseSelection(draft, phaseId)
         if (!currentSelection) {
+          syncModelSettingsCards(draft)
           return
         }
 
@@ -893,6 +961,19 @@ export class TranslationJobSetupUseCase {
             modelListSourceToken: fallbackModel ? response.sourceToken : ""
           })
         }
+
+        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
+          card.referenceId === phaseId
+            ? applyModelSettingsListResult(card, {
+                provider: response.provider,
+                credentialStatus: response.credentialStatus,
+                status: response.status,
+                models: response.models,
+                failureKind: response.failureKind
+              })
+            : card
+        )
+        syncModelSettingsCards(draft)
 
         invalidateValidation(draft, "stale")
       })
@@ -921,6 +1002,12 @@ export class TranslationJobSetupUseCase {
           models: [],
           failureKind: "provider_unreachable"
         })
+        draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
+          card.referenceId === phaseId
+            ? failModelSettingsListRefresh(card)
+            : card
+        )
+        syncModelSettingsCards(draft)
         draft.errorMessage = sanitizeErrorMessage(
           error,
           "モデル一覧の取得に失敗しました。"
@@ -949,6 +1036,12 @@ export class TranslationJobSetupUseCase {
         model,
         modelListSourceToken: modelList.sourceToken
       })
+      draft.modelSettingsCards = (draft.modelSettingsCards ?? []).map((card) =>
+        card.referenceId === phaseId
+          ? selectModelSettingsModel(card, model)
+          : card
+      )
+      syncModelSettingsCards(draft)
       invalidateValidation(draft, "stale")
     })
 

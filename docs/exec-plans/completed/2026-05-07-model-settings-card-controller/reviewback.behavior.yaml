@@ -1,0 +1,106 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-settings-card-controller"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "修正後のマスターペルソナ側は、モデル一覧更新が保存済み AI 設定の再読込ではなく provider model list 取得経路へ接続されている。frontend usecase は listMasterPersonaProviderModels を呼び、遅延応答を token と provider 照合で破棄する。Wails gateway、controller、usecase、service は MasterPersonaListProviderModels から provider settings 経由の ListProviderModels まで接続されており、behavior-001 の主要不一致は解消済みである。"
+  evidence_sufficiency: "十分。承認済み scenario-design、implementation-scope、修正実装結果、最終検証結果、対象実コードを確認した。広いハーネスは人間指示により再実行していないが、呼び出し元の修正後検証証跡は通過として扱った。"
+
+checked_scope:
+  summary: "behavior-001 の修正確認として、マスターペルソナ usecase の更新経路、gateway contract、Wails gateway、backend controller、backend usecase、backend service、関連テスト、修正後検証証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/scenario-design.md"
+      line: 62
+      symbol: "SCN-MSCC-001..010"
+      reason: "期待される主要挙動、fake mode、APIキー未設定、model list 更新、保存失敗を確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 90
+      symbol: "updateModelSettingsProvider"
+      reason: "共有カード制御の provider 変更と model list 初期化を確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 130
+      symbol: "applyModelSettingsListResult"
+      reason: "遅延応答破棄と model list 結果適用の条件を確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 888
+      symbol: "refreshPhaseModels"
+      reason: "Job Setup の model list 更新、古い応答破棄、model 選択リセットを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 227
+      symbol: "refreshAISettings"
+      reason: "保存済み AI 設定の再読込ではなく listMasterPersonaProviderModels を呼び、provider と token で遅延応答を破棄することを確認した。"
+    - path: "frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts"
+      line: 268
+      symbol: "MasterPersonaGatewayContract"
+      reason: "master persona gateway contract に listMasterPersonaProviderModels が追加され、AI 設定読込とモデル一覧取得の経路が分離されたことを確認した。"
+    - path: "frontend/src/controller/wails/master-persona.gateway.ts"
+      line: 120
+      symbol: "listMasterPersonaProviderModels"
+      reason: "frontend Wails gateway が MasterPersonaListProviderModels binding を呼ぶことを確認した。"
+    - path: "internal/controller/wails/master_persona_controller.go"
+      line: 265
+      symbol: "MasterPersonaListProviderModels"
+      reason: "Wails controller が provider を受け取り usecase の ListProviderModels へ渡すことを確認した。"
+    - path: "internal/usecase/master_persona_usecase.go"
+      line: 176
+      symbol: "ListProviderModels"
+      reason: "backend usecase が service の ListProviderModels を呼び、provider model list 結果を返すことを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 370
+      symbol: "ListProviderModels"
+      reason: "backend service が provider settings summary を使い、providerSettings.ListProviderModels へ接続することを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-fix-implementation-result.md"
+      line: 20
+      symbol: "修正内容"
+      reason: "修正結果が MasterPersonaListProviderModels 経路への接続を明示していることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+      line: 44
+      symbol: "修正後検証"
+      reason: "呼び出し元の修正後検証が通過していることを確認した。"
+
+unchecked_scope:
+  - target: "実 provider の model list 取得"
+    reason: "人間指示によりハーネスと実 API 呼び出しを実行していない。"
+    risk: "環境依存の endpoint / credential 状態による production 取得失敗は、このレビューでは直接観測していない。"
+  - target: "幅別 UI スクリーンショット"
+    reason: "挙動正しさレビューの主対象外であり、既存の実装結果に記録済みの UI 証跡だけを参照した。"
+    risk: "表示崩れ由来の操作不能は、このレビューでは主判定にしていない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "マスターペルソナ側で model list 更新が実一覧取得になっていない"
+    problem: "マスターペルソナの共有カードは、モデル一覧更新時に provider の model list を取得せず、保存済み AI 設定を再読込している。候補一覧も保存済み model 1 件から作られるため、provider 変更後に model list を更新して model を選ぶ経路が成立しない。"
+    reason: "解消済み。修正後のマスターペルソナ gateway contract には listMasterPersonaProviderModels があり、refreshAISettings は loadMasterPersonaAISettings ではなく listMasterPersonaProviderModels を呼ぶ。backend 側も MasterPersonaListProviderModels から usecase と service を経由し、provider settings の ListProviderModels へ接続されている。"
+    violated_condition: "SCN-MSCC-002、SCN-MSCC-004、SCN-MSCC-008、SCN-MSCC-010。マスターペルソナと翻訳ジョブ設定が同じモデル設定カード制御を使い、model list 更新、credential 条件、空一覧、更新不可を同じ操作規則で扱う条件。"
+    cause_candidate: "解消済み。frontend/src/application/gateway-contract/master-persona/master-persona-gateway-contract.ts:268 に listMasterPersonaProviderModels が追加された。frontend/src/application/usecase/master-persona/master-persona.usecase.ts:250 は gateway.listMasterPersonaProviderModels を呼ぶ。internal/service/master_persona_service.go:395 は providerSettings.ListProviderModels へ接続する。"
+    evidence:
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 250
+        excerpt: "refreshAISettings は listMasterPersonaProviderModels に provider を渡し、provider model list 取得結果を待つ。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 255
+        excerpt: "activeModelListRequest と response.provider と現在 provider を照合し、遅延応答を現在状態へ反映しない。"
+      - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+        line: 88
+        excerpt: "credentialStatusForProvider は backend 由来 providerOptions から APIキー状態を決め、未登録 provider は missing とする。"
+      - path: "frontend/src/controller/wails/master-persona.gateway.ts"
+        line: 120
+        excerpt: "listMasterPersonaProviderModels は MasterPersonaListProviderModels binding を呼ぶ。"
+      - path: "internal/controller/wails/master_persona_controller.go"
+        line: 265
+        excerpt: "MasterPersonaListProviderModels は usecase.ListProviderModels へ provider を渡す。"
+      - path: "internal/service/master_persona_service.go"
+        line: 395
+        excerpt: "service.ListProviderModels は providerSettings.ListProviderModels を呼び、取得した models と credential state を返す。"
+    local_fix_assessment: "cross-layer resolved。マスターペルソナ側の application gateway contract、usecase、presenter、Wails gateway、backend controller、backend usecase、backend service の接続で修正済みである。"
+    additional_check_scope: "未確認範囲は production 実 provider の model list 取得だけである。理由は実 API 呼び出しと広いハーネス再実行が人間指示で禁止されているためである。"
+    fix_considerations: "修正後確認では、Job Setup 側の遅延応答破棄、通常 provider ID の維持、fake provider 非表示、secret 非露出、参照側保存 namespace の分離を壊していないことを前提にした。呼び出し元の修正後検証は通過している。"
+    verification: "呼び出し元証跡では npm --prefix frontend run check、npm --prefix frontend run test、go test ./internal/...、scenario-gate、coverage が通過している。Sonar coverage は 70.5%、security 0、reliability 0、maintainability HIGH 0 である。"
+    fix_required: true
+    status: "resolved"

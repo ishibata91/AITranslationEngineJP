@@ -1,0 +1,114 @@
+reviewback_version: 1
+task_id: "2026-05-07-model-settings-card-controller"
+review_yaml_path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持されている。provider 変更時の model と model list 初期化、遅延応答の provider/requestToken 照合、保存成功時だけの保存済み状態更新、参照側ごとの保存単位分離を実コードで確認した。"
+  evidence_sufficiency: "十分。対象 task 成果物、frontend 実装、既存 backend 永続経路、追加テスト、最終検証証跡を確認した。ハーネスは人間指示により再実行していない。"
+
+checked_scope:
+  summary: "共有モデル設定カード状態、Job Setup の phase 別 model list 更新、マスターペルソナの AI 設定保存、Job Setup 作成時の transaction と phase runtime snapshot、fake mode API テスト、最終検証証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/implementation-scope.md"
+      line: 33
+      symbol: "Fixed Decisions"
+      reason: "参照側ごとの保存、旧 provider 混入禁止、保存失敗後の保存済み状態更新禁止をレビュー条件として確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 90
+      symbol: "updateModelSettingsProvider"
+      reason: "provider 変更時に model を空へ戻し、modelList を新 provider の未取得状態へ作り直すことを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 130
+      symbol: "applyModelSettingsListResult"
+      reason: "model list 応答の provider と requestToken が現在 state と一致しない場合に state を更新しないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 830
+      symbol: "selectPhaseProvider"
+      reason: "Job Setup の phase ごとに provider 変更時の model、modelListSourceToken、providerModelLists を初期化することを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 886
+      symbol: "refreshPhaseModels"
+      reason: "model list の success と failure の両経路で provider と requestToken を確認し、遅延応答を現在 state へ反映しないことを確認した。"
+    - path: "frontend/src/application/usecase/master-persona/master-persona.usecase.ts"
+      line: 257
+      symbol: "saveAISettings"
+      reason: "保存成功後だけ markModelSettingsSaved を呼び、保存失敗時は markModelSettingsSaveFailed に留めることを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 311
+      symbol: "MasterPersonaGenerationService.LoadSettings"
+      reason: "マスターペルソナの provider/model は page-local AI settings repository から読み込まれることを確認した。"
+    - path: "internal/service/master_persona_service.go"
+      line: 325
+      symbol: "MasterPersonaGenerationService.SaveSettings"
+      reason: "マスターペルソナの provider/model は MasterPersonaAISettingsRecord として保存され、Job Setup の phase runtime と混ざらないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 740
+      symbol: "TranslationJobSetupService.CreateTranslationJob"
+      reason: "Job Setup の job 作成と phase runtime snapshot 保存が transaction 内で扱われることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 851
+      symbol: "savePhaseRuntimeSnapshots"
+      reason: "Job Setup の provider/model は phaseId 付き snapshot として保存され、マスターペルソナ設定とは別単位で保持されることを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.test.ts"
+      line: 638
+      symbol: "SCN-TJSPPS-006 delayed model list tests"
+      reason: "provider 変更後の遅延 success/failed 応答が現在 phase state を巻き戻さないことをテストで確認した。"
+    - path: "internal/apitest/model_settings_card_fake_mode_test.go"
+      line: 40
+      symbol: "TestSCN_MSCC_003_ModelSettingsFakeModeListsFakeModelUnderRealProvider"
+      reason: "fake mode でも保存 provider が gemini のまま残り、fake provider row を作らないことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+      line: 29
+      symbol: "検証結果"
+      reason: "frontend test、go test、scenario-gate、all harness、coverage 70.7% の通過証跡を確認した。"
+
+unchecked_scope:
+  - target: "production 実 provider の model list 取得"
+    reason: "レビュー指示によりハーネスと実 provider 呼び出しを実行していない。最終検証も fake / test-safe 経路を中心に証明している。"
+    risk: "実 provider 側の応答遅延や異常形で、adapter 境界の変換が異なる場合に UI state へ到達する前の failureKind が想定外になる可能性が残る。"
+  - target: "マスターペルソナの refreshAISettings に対する連続更新競合"
+    reason: "マスターペルソナは Job Setup と違い、provider 別 model list API ではなく page-local AI settings の再読込経路である。今回の重点条件は Job Setup の provider model list 経路で直接確認した。"
+    risk: "保存済み設定の再読込と利用者操作が重なった場合、旧 provider の model 混入は抑止されるが、modelOptions の表示鮮度は追加確認余地がある。"
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  required: false
+  assessment: "局所修正は不要。未確認範囲を補強する場合は、既存 usecase test へ連続 refresh 操作の追加ケースを足すだけで閉じられる見込みである。"
+
+invariant_test_viewpoints:
+  - "provider 変更後に phase selection、providerModelLists、modelSettingsCards の 3 state が同じ provider と空 model へ同期すること。"
+  - "遅延した success 応答と failed 応答は provider と requestToken が一致しない限り現在 state を変更しないこと。"
+  - "保存失敗時は saveStatus が failed になり、保存済み message と saved state を作らないこと。"
+  - "マスターペルソナの page-local AI settings と Job Setup の phase runtime snapshot が別 repository / 別 request 単位で保持されること。"
+
+verification_evidence:
+  commands:
+    - command: "npm --prefix frontend run test"
+      result: "passed"
+      evidence: "57 files / 494 tests passed"
+    - command: "go test ./internal/..."
+      result: "passed"
+      evidence: "final-validation-result.md に通過記録あり"
+    - command: "python3 scripts/harness/run.py --suite all"
+      result: "passed"
+      evidence: "structure、scenario requirement gate、execution、system test、coverage、Sonar scan が通過。system test は 9 tests passed"
+  coverage:
+    sonar_coverage: "70.7%"
+    line: "71.8%"
+    branch: "62.9%"
+  rerun_by_reviewer: false
+  rerun_reason: "人間指示によりハーネスを実行していない。"
+
+residual_risks:
+  - "production 実 provider の model list 取得は環境の provider settings と secret store に依存するため、今回のレビューでは test-safe / fake 証跡を根拠にした。"
+  - "マスターペルソナの model list 相当は保存済み AI settings の再読込で表現されるため、Job Setup と同じ requestToken 付き provider model list 経路ではない。"

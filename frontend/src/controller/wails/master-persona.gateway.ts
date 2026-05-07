@@ -1,12 +1,15 @@
 import type { MasterPersonaGatewayContract } from "@application/gateway-contract/master-persona"
 import type {
   MasterPersonaAISettingsDto,
+  MasterPersonaAISettingsResponseDto,
   MasterPersonaDeleteRequestDto,
   MasterPersonaDetailResponseDto,
   MasterPersonaIdentityRequestDto,
   MasterPersonaMutationResponseDto,
   MasterPersonaPageRequestDto,
   MasterPersonaPageResponseDto,
+  MasterPersonaProviderModelsRequestDto,
+  MasterPersonaProviderModelsResponseDto,
   MasterPersonaPreviewRequestDto,
   MasterPersonaPreviewResultDto,
   MasterPersonaRunStatusDto,
@@ -17,6 +20,7 @@ type MasterPersonaBindingName =
   | "MasterPersonaGetPage"
   | "MasterPersonaGetDetail"
   | "MasterPersonaLoadAISettings"
+  | "MasterPersonaListProviderModels"
   | "MasterPersonaSaveAISettings"
   | "MasterPersonaPreviewGeneration"
   | "MasterPersonaExecuteGeneration"
@@ -109,8 +113,14 @@ class MasterPersonaGateway implements MasterPersonaGatewayContract {
     return this.invokeBinding("MasterPersonaGetDetail", request)
   }
 
-  loadMasterPersonaAISettings(): Promise<MasterPersonaAISettingsDto> {
+  loadMasterPersonaAISettings(): Promise<MasterPersonaAISettingsResponseDto> {
     return this.invokeBinding("MasterPersonaLoadAISettings")
+  }
+
+  listMasterPersonaProviderModels(
+    request: MasterPersonaProviderModelsRequestDto
+  ): Promise<MasterPersonaProviderModelsResponseDto> {
+    return this.invokeBinding("MasterPersonaListProviderModels", request)
   }
 
   saveMasterPersonaAISettings(

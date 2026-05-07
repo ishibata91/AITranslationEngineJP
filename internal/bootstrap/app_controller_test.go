@@ -467,7 +467,7 @@ func TestNewAppControllerProvidesMasterPersonaAISettingsPersistence(t *testing.T
 	if err != nil {
 		t.Fatalf("expected master persona ai settings load to succeed: %v", err)
 	}
-	if loaded.Provider != "gemini" || loaded.Model != "gemini-2.5-pro" {
+	if loaded.AISettings.Provider != "gemini" || loaded.AISettings.Model != "gemini-2.5-pro" {
 		t.Fatalf("expected loaded provider/model settings, got %#v", loaded)
 	}
 }
@@ -534,7 +534,7 @@ func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreati
 	if err != nil {
 		t.Fatalf("expected master persona ai settings load through second controller to succeed: %v", err)
 	}
-	if loaded.Provider != "gemini" || loaded.Model != bootstrapMasterPersonaPersistedModel {
+	if loaded.AISettings.Provider != "gemini" || loaded.AISettings.Model != bootstrapMasterPersonaPersistedModel {
 		t.Fatalf("expected provider/model settings to persist, got %#v", loaded)
 	}
 

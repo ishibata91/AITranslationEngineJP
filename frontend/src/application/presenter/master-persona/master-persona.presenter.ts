@@ -1,13 +1,58 @@
 import * as MasterPersonaGateway from "@application/gateway-contract/master-persona"
+import { buildModelSettingsCardViewModel } from "@application/gateway-contract/model-settings-card"
 
 type MasterPersonaScreenState = MasterPersonaGateway.MasterPersonaScreenState
 type MasterPersonaScreenViewModel =
   MasterPersonaGateway.MasterPersonaScreenViewModel
+type ModelSettingsCardState = NonNullable<
+  MasterPersonaScreenState["modelSettingsCard"]
+>
 
 const AI_PROVIDER_LABEL_BY_ID: Record<string, string> = {
   gemini: "Gemini",
   lm_studio: "LM Studio",
   xai: "xAI"
+}
+
+const MASTER_PERSONA_PROVIDER_OPTIONS = [
+  { value: "gemini", label: "Gemini", credentialStatus: "configured" as const },
+  {
+    value: "lm_studio",
+    label: "LM Studio",
+    credentialStatus: "not_required" as const
+  },
+  { value: "xai", label: "xAI", credentialStatus: "configured" as const }
+]
+
+function credentialStatusForProvider(
+  state: MasterPersonaScreenState
+): ModelSettingsCardState["credentialStatus"] {
+  const provider = state.aiSettings.provider.trim()
+  const found = state.providerOptions.find((option) => option.value === provider)
+  if (found) {
+    return found.credentialStatus
+  }
+  return provider === "lm_studio" ? "not_required" : "missing"
+}
+
+function createFallbackModelSettingsCard(
+  state: MasterPersonaScreenState
+): ModelSettingsCardState {
+  const credentialStatus = credentialStatusForProvider(state)
+  return {
+    referenceId: "master-persona",
+    provider: state.aiSettings.provider,
+    model: state.aiSettings.model,
+    credentialStatus,
+    modelList: {
+      provider: state.aiSettings.provider,
+      credentialStatus,
+      status: state.modelOptions.length > 0 ? "success" : "not_updated",
+      models: state.modelOptions.map((model) => ({ ...model }))
+    },
+    saveStatus: "clean",
+    saveMessage: ""
+  }
 }
 
 function buildPluginOptions(state: MasterPersonaScreenState): Array<{
@@ -121,6 +166,8 @@ export class MasterPersonaPresenter {
     const executionMethodOptions = buildExecutionMethodOptions(
       state.aiSettings.provider
     )
+    const modelSettingsCard =
+      state.modelSettingsCard ?? createFallbackModelSettingsCard(state)
 
     return {
       ...state,
@@ -147,6 +194,15 @@ export class MasterPersonaPresenter {
       aiSettingsWarningText,
       aiSettingsStatusText:
         aiSettingsWarningText === "" ? "設定済み" : "設定が必要",
+      modelSettingsCardViewModel: buildModelSettingsCardViewModel({
+        state: modelSettingsCard,
+        providerOptions:
+          state.providerOptions.length > 0
+            ? state.providerOptions
+            : MASTER_PERSONA_PROVIDER_OPTIONS,
+        actionDisabled: activeRun,
+        titleLabel: "マスターペルソナ"
+      }),
       canSelectModel: state.modelOptions.length > 0 && aiSettingsWarningText === "",
       executionMethodOptions,
       promptTemplateDescription:

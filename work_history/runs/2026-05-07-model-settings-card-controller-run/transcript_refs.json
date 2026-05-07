@@ -1,0 +1,46 @@
+{
+  "status": "partial",
+  "reason": "会話ログ全文と改善ログ実体を run 直下で参照できないため、確認できた計画・レビュー・検証根拠のみを残す。",
+  "entries": [
+    {
+      "kind": "plan",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/plan.md"
+    },
+    {
+      "kind": "work-report-input",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/work-report-input.md"
+    },
+    {
+      "kind": "final-validation",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/final-validation-result.md"
+    },
+    {
+      "kind": "review-aggregation",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/review-aggregation.md"
+    },
+    {
+      "kind": "canonicalization-decision",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/canonicalization-decision.md"
+    },
+    {
+      "kind": "reviewback",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.behavior.yaml"
+    },
+    {
+      "kind": "reviewback",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.contract.yaml"
+    },
+    {
+      "kind": "reviewback",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.trust-boundary.yaml"
+    },
+    {
+      "kind": "reviewback",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.state-invariant.yaml"
+    },
+    {
+      "kind": "reviewback",
+      "path": "docs/exec-plans/active/2026-05-07-model-settings-card-controller/reviewback.responsibility-boundary.yaml"
+    }
+  ]
+}

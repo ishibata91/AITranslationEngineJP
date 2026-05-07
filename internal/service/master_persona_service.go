@@ -81,6 +81,35 @@ type MasterPersonaAISettings struct {
 	APIKey          string
 }
 
+// MasterPersonaProviderOption stores one public provider state for the shared model card.
+type MasterPersonaProviderOption struct {
+	ProviderID       string
+	Label            string
+	CredentialStatus string
+}
+
+// MasterPersonaModelOption stores one public provider model option.
+type MasterPersonaModelOption struct {
+	ModelID string
+	Label   string
+}
+
+// MasterPersonaModelListResult stores one public provider model-list state.
+type MasterPersonaModelListResult struct {
+	Provider         string
+	CredentialStatus string
+	Status           string
+	Models           []MasterPersonaModelOption
+	FailureKind      *string
+}
+
+// MasterPersonaAISettingsState stores page-local settings with provider-side public state.
+type MasterPersonaAISettingsState struct {
+	Settings        MasterPersonaAISettings
+	ProviderOptions []MasterPersonaProviderOption
+	ModelList       MasterPersonaModelListResult
+}
+
 type masterPersonaResolvedSettings struct {
 	Provider        string
 	Model           string
@@ -319,6 +348,71 @@ func (service *MasterPersonaGenerationService) LoadSettings(ctx context.Context)
 		ExecutionMethod: normalizeMasterPersonaExecutionMethod(record.ExecutionMethod),
 		APIKey:          "",
 	}, nil
+}
+
+// LoadSettingsState loads page-local AI settings with public provider state.
+func (service *MasterPersonaGenerationService) LoadSettingsState(ctx context.Context) (MasterPersonaAISettingsState, error) {
+	settings, err := service.LoadSettings(ctx)
+	if err != nil {
+		return MasterPersonaAISettingsState{}, err
+	}
+	options, err := service.masterPersonaProviderOptions(ctx)
+	if err != nil {
+		return MasterPersonaAISettingsState{}, err
+	}
+	return MasterPersonaAISettingsState{
+		Settings:        settings,
+		ProviderOptions: options,
+		ModelList:       service.initialMasterPersonaModelList(settings, options),
+	}, nil
+}
+
+// ListProviderModels loads public model options through provider settings without exposing request identifiers.
+func (service *MasterPersonaGenerationService) ListProviderModels(ctx context.Context, provider string) (MasterPersonaModelListResult, error) {
+	providerID, err := normalizeMasterPersonaProvider(provider)
+	if err != nil {
+		return MasterPersonaModelListResult{}, err
+	}
+	summary, ok, err := providerSettingsSummaryForProvider(ctx, service.providerSettings, providerID)
+	if err != nil {
+		return MasterPersonaModelListResult{}, err
+	}
+	if !ok {
+		return MasterPersonaModelListResult{
+			Provider:         providerID,
+			CredentialStatus: masterPersonaFallbackCredentialStatus(providerID),
+			Status:           "failed",
+			Models:           []MasterPersonaModelOption{},
+			FailureKind:      stringPointer("settings_not_saved"),
+		}, nil
+	}
+	result := MasterPersonaModelListResult{
+		Provider:         providerID,
+		CredentialStatus: masterPersonaCredentialStatus(summary.CredentialState),
+		Status:           "not_updated",
+		Models:           []MasterPersonaModelOption{},
+	}
+	listed, err := service.providerSettings.ListProviderModels(ctx, ProviderSettingsModelListInput{
+		ProviderID:            providerID,
+		Endpoint:              normalizeServiceOptionalString(summary.Endpoint),
+		CredentialState:       summary.CredentialState,
+		CredentialReferenceID: normalizeServiceOptionalString(summary.CredentialReferenceID),
+		RequestToken:          strings.TrimSpace(valueOrEmpty(summary.RequestToken)),
+	})
+	if err != nil {
+		return MasterPersonaModelListResult{}, fmt.Errorf("list master persona provider models: %w", err)
+	}
+	result.CredentialStatus = masterPersonaCredentialStatus(listed.CredentialState)
+	result.Status = masterPersonaModelListStatus(listed.State)
+	result.FailureKind = normalizeServiceOptionalString(listed.FailureKind)
+	result.Models = make([]MasterPersonaModelOption, 0, len(listed.Models))
+	for _, model := range listed.Models {
+		result.Models = append(result.Models, MasterPersonaModelOption{
+			ModelID: strings.TrimSpace(model.ModelID),
+			Label:   strings.TrimSpace(model.Label),
+		})
+	}
+	return result, nil
 }
 
 // SaveSettings saves page-local AI settings.
@@ -1161,6 +1255,117 @@ func masterPersonaCreatedIncrement(created bool) int {
 		return 1
 	}
 	return 0
+}
+
+func (service *MasterPersonaGenerationService) masterPersonaProviderOptions(ctx context.Context) ([]MasterPersonaProviderOption, error) {
+	if service.providerSettings == nil {
+		providers := MasterPersonaSupportedProviders()
+		options := make([]MasterPersonaProviderOption, 0, len(providers))
+		for _, provider := range providers {
+			options = append(options, MasterPersonaProviderOption{
+				ProviderID:       provider,
+				Label:            masterPersonaProviderLabel(provider),
+				CredentialStatus: masterPersonaFallbackCredentialStatus(provider),
+			})
+		}
+		return options, nil
+	}
+	_, summaries, err := service.providerSettings.ListProviderSettings(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("list master persona provider settings: %w", err)
+	}
+	options := make([]MasterPersonaProviderOption, 0, len(summaries))
+	for _, summary := range summaries {
+		providerID := strings.TrimSpace(summary.ProviderID)
+		if providerID == "" || !isMasterPersonaProviderSupported(providerID) {
+			continue
+		}
+		options = append(options, MasterPersonaProviderOption{
+			ProviderID:       providerID,
+			Label:            strings.TrimSpace(summary.Label),
+			CredentialStatus: masterPersonaCredentialStatus(summary.CredentialState),
+		})
+	}
+	return options, nil
+}
+
+func (service *MasterPersonaGenerationService) initialMasterPersonaModelList(
+	settings MasterPersonaAISettings,
+	options []MasterPersonaProviderOption,
+) MasterPersonaModelListResult {
+	providerID := strings.TrimSpace(settings.Provider)
+	credentialStatus := masterPersonaCredentialStatusForProvider(providerID, options)
+	model := strings.TrimSpace(settings.Model)
+	result := MasterPersonaModelListResult{
+		Provider:         providerID,
+		CredentialStatus: credentialStatus,
+		Status:           "not_updated",
+		Models:           []MasterPersonaModelOption{},
+	}
+	if model != "" {
+		result.Status = "success"
+		result.Models = []MasterPersonaModelOption{{ModelID: model, Label: model}}
+	}
+	if model == "" && credentialStatus == "missing" && providerID != "" {
+		result.Status = "credential_missing"
+	}
+	return result
+}
+
+func masterPersonaCredentialStatusForProvider(
+	providerID string,
+	options []MasterPersonaProviderOption,
+) string {
+	for _, option := range options {
+		if strings.TrimSpace(option.ProviderID) == strings.TrimSpace(providerID) {
+			return masterPersonaCredentialStatus(option.CredentialStatus)
+		}
+	}
+	return masterPersonaFallbackCredentialStatus(providerID)
+}
+
+func masterPersonaCredentialStatus(status string) string {
+	switch strings.TrimSpace(status) {
+	case providerSettingsCredentialStateConfigured:
+		return "configured"
+	case providerSettingsCredentialStateNotRequired:
+		return "not_required"
+	default:
+		return "missing"
+	}
+}
+
+func masterPersonaFallbackCredentialStatus(providerID string) string {
+	if strings.TrimSpace(providerID) == MasterPersonaProviderLMStudio {
+		return "not_required"
+	}
+	return "missing"
+}
+
+func masterPersonaModelListStatus(status string) string {
+	switch strings.TrimSpace(status) {
+	case providerSettingsModelListStateReady:
+		return "success"
+	case providerSettingsModelListStateCredentialNotNeeded:
+		return "credential_not_required"
+	case providerSettingsModelListStateCredentialMissing:
+		return "credential_missing"
+	default:
+		return "failed"
+	}
+}
+
+func masterPersonaProviderLabel(providerID string) string {
+	switch strings.TrimSpace(providerID) {
+	case MasterPersonaProviderGemini:
+		return "Gemini"
+	case MasterPersonaProviderLMStudio:
+		return "LM Studio"
+	case MasterPersonaProviderXAI:
+		return "xAI"
+	default:
+		return strings.TrimSpace(providerID)
+	}
 }
 
 func firstNonEmpty(values ...string) string {

@@ -9,6 +9,7 @@ import type {
   TranslationJobSetupScreenState,
   TranslationJobSetupScreenViewModel
 } from "@application/gateway-contract/translation-job-setup"
+import { buildModelSettingsCardViewModel } from "@application/gateway-contract/model-settings-card"
 
 const PHASE_LABELS: Record<TranslationJobSetupPhaseId, string> = {
   word_translation: "単語翻訳",
@@ -19,11 +20,7 @@ const PHASE_LABELS: Record<TranslationJobSetupPhaseId, string> = {
 const PROVIDER_LABELS: Record<string, string> = {
   gemini: "Gemini",
   xai: "xAI",
-  lm_studio: "LM Studio",
-  openai: "OpenAI",
-  openai_compatible: "OpenAI Compatible",
-  "openai-compatible": "OpenAI Compatible",
-  anthropic: "Anthropic"
+  lm_studio: "LM Studio"
 }
 
 export const VALIDATION_LABELS = {
@@ -67,6 +64,7 @@ export interface TranslationJobSetupPhaseCardViewModel {
   credentialStatusTone: "neutral" | "warning" | "success"
   showCredentialStatus: boolean
   showCredentialWarning: boolean
+  credentialWarningText: string
   modelListButtonEnabled: boolean
   modelListButtonLabel: string
   modelListButtonAriaLabel: string
@@ -125,6 +123,49 @@ function findModelList(
   )
 }
 
+function findModelSettingsCard(
+  state: TranslationJobSetupScreenState,
+  phaseId: TranslationJobSetupPhaseId
+) {
+  return (
+    state.modelSettingsCards?.find((card) => card.referenceId === phaseId) ??
+    null
+  )
+}
+
+function createFallbackModelSettingsCard(options: {
+  phaseId: TranslationJobSetupPhaseId
+  selection: TranslationJobSetupPhaseRuntimeSelection | null
+  modelList: ListTranslationJobSetupProviderModelsResponse | null
+}) {
+  const provider = options.selection?.provider ?? ""
+  const credentialStatus = options.selection?.credentialStatus ?? "missing"
+  return {
+    referenceId: options.phaseId,
+    provider,
+    model: options.selection?.model ?? "",
+    credentialStatus,
+    modelList: options.modelList
+      ? {
+          provider: options.modelList.provider,
+          credentialStatus: options.modelList.credentialStatus,
+          status: options.modelList.status,
+          models: options.modelList.models,
+          failureKind: options.modelList.failureKind
+        }
+      : {
+          provider,
+          credentialStatus,
+          status: "not_updated" as const,
+          models: []
+        },
+    saveStatus: options.selection?.model
+      ? ("saved" as const)
+      : ("clean" as const),
+    saveMessage: ""
+  }
+}
+
 function findCapability(
   state: TranslationJobSetupScreenState,
   provider: string
@@ -154,12 +195,6 @@ function findPhaseSummary(
   return summaries?.find((summary) => summary.phaseId === phaseId) ?? null
 }
 
-function isCredentialMissing(
-  selection: TranslationJobSetupPhaseRuntimeSelection | null
-): boolean {
-  return selection?.credentialStatus === "missing"
-}
-
 function isModelListUsable(
   modelList: ListTranslationJobSetupProviderModelsResponse | null
 ): boolean {
@@ -185,34 +220,6 @@ function buildCredentialStatusLabel(
   }
 
   return "未設定"
-}
-
-function buildModelListStatusText(
-  modelList: ListTranslationJobSetupProviderModelsResponse | null,
-  selection: TranslationJobSetupPhaseRuntimeSelection | null
-): string {
-  if (!selection || selection.provider === "") {
-    return "AI サービスを選んでください。"
-  }
-
-  if (selection.credentialStatus === "missing") {
-    return "AIサービス設定が未完了です。設定が必要です。"
-  }
-
-  switch (modelList?.status) {
-    case "loading":
-      return "モデル一覧を更新しています。"
-    case "success":
-    case "credential_not_required":
-      return "モデル一覧を更新しました。"
-    case "credential_missing":
-      return "AIサービス設定が未完了です。設定が必要です。"
-    case "failed":
-      return "モデル一覧を取得できませんでした。時間をおいて再実行してください。"
-    case "not_updated":
-    default:
-      return "モデル一覧を更新してください。"
-  }
 }
 
 function buildPhaseStatus(
@@ -279,11 +286,23 @@ function buildPhaseStatus(
 function buildProviderOptions(state: TranslationJobSetupScreenState): Array<{
   value: string
   label: string
+  credentialStatus: "configured" | "missing" | "not_required"
 }> {
   return (
     state.options?.providerCapabilities?.map((capability) => ({
       value: capability.provider,
-      label: formatProviderLabel(capability.provider)
+      label: formatProviderLabel(capability.provider),
+      credentialStatus:
+        capability.credentialRequirement === "not_required"
+          ? "not_required"
+          : (state.options?.credentialRefs.some(
+                (credential) =>
+                  credential.provider === capability.provider &&
+                  credential.isConfigured &&
+                  !credential.isMissingSecret
+              )
+            ? "configured"
+            : "missing")
     })) ?? []
   )
 }
@@ -300,51 +319,57 @@ function buildPhaseCards(
       const capability = findCapability(state, selection?.provider ?? "")
       const validation = findPhaseValidation(state, phaseId)
       const phaseStatus = buildPhaseStatus(selection, modelList, validation)
+      const modelSettingsCard =
+        findModelSettingsCard(state, phaseId) ??
+        createFallbackModelSettingsCard({
+          phaseId,
+          selection,
+          modelList
+        })
+      const cardViewModel = buildModelSettingsCardViewModel({
+        state: modelSettingsCard,
+        providerOptions,
+        refreshDisabled: state.phase === "creating",
+        actionDisabled: true,
+        titleLabel: PHASE_LABELS[phaseId]
+      })
 
       return {
         phaseId,
         phaseLabel: PHASE_LABELS[phaseId],
-        provider: selection?.provider ?? "",
-        providerLabel: formatProviderLabel(selection?.provider ?? ""),
-        providerOptions,
-        credentialStatusLabel: buildCredentialStatusLabel(selection),
-        credentialStatusTone:
-          selection?.credentialStatus === "configured"
-            ? "success"
-            : selection?.credentialStatus === "not_required"
-              ? "neutral"
-              : "warning",
-        showCredentialStatus: true,
-        showCredentialWarning:
-          isCredentialMissing(selection) ||
-          modelList?.status === "credential_missing",
-        modelListButtonEnabled:
-          state.phase !== "creating" &&
-          modelList?.status !== "loading" &&
-          selection?.provider !== "" &&
-          selection?.credentialStatus !== "missing",
-        modelListButtonLabel: "モデル一覧を更新",
-        modelListButtonAriaLabel:
-          modelList?.status === "loading"
-            ? `${PHASE_LABELS[phaseId]}のモデル一覧を更新中`
-            : `${PHASE_LABELS[phaseId]}のモデル一覧を更新`,
-        isModelListRefreshing: modelList?.status === "loading",
-        modelListStatusText: buildModelListStatusText(modelList, selection),
-        modelOptions: isModelListUsable(modelList)
-          ? (modelList?.models ?? [])
-          : [],
+        provider: cardViewModel.provider,
+        providerLabel: formatProviderLabel(cardViewModel.provider),
+        providerOptions: cardViewModel.providerOptions,
+        credentialStatusLabel: cardViewModel.credentialStatusLabel,
+        credentialStatusTone: cardViewModel.credentialStatusTone,
+        showCredentialStatus: cardViewModel.showCredentialStatus,
+        showCredentialWarning: cardViewModel.showCredentialWarning,
+        credentialWarningText: cardViewModel.credentialWarningText,
+        modelListButtonEnabled: cardViewModel.modelListButtonEnabled,
+        modelListButtonLabel: cardViewModel.modelListButtonLabel,
+        modelListButtonAriaLabel: cardViewModel.modelListButtonAriaLabel,
+        isModelListRefreshing: cardViewModel.isModelListRefreshing,
+        modelListStatusText: cardViewModel.modelListStatusText,
+        modelOptions: cardViewModel.modelOptions,
         showModelSelect: isModelListUsable(modelList),
         modelSelectEnabled:
-          state.phase !== "creating" &&
-          isModelListUsable(modelList) &&
-          selection?.credentialStatus !== "missing",
-        selectedModel: selection?.model ?? "",
+          state.phase !== "creating" && cardViewModel.modelSelectEnabled,
+        selectedModel: cardViewModel.model,
         showBatchToggle: capability?.supportsBatchMode === true,
         batchEnabled: selection?.batchMode === "enabled",
         batchHelpText: "API利用料が安くなる場合があります。",
-        statusLabel: phaseStatus.label,
-        statusTone: phaseStatus.tone,
-        helperText: phaseStatus.helper
+        statusLabel:
+          phaseStatus.label === "設定済み"
+            ? cardViewModel.statusLabel
+            : phaseStatus.label,
+        statusTone:
+          phaseStatus.label === "設定済み"
+            ? cardViewModel.statusTone
+            : phaseStatus.tone,
+        helperText:
+          phaseStatus.label === "設定済み"
+            ? cardViewModel.helperText
+            : phaseStatus.helper
       }
     }
   )
@@ -371,9 +396,7 @@ function buildGlobalBlockedReasons(
 
   if (state.validationState === "running") {
     reasons.push("作成前確認を更新しています。")
-  } else if (!state.validationResult) {
-    reasons.push("3 つの翻訳段階が揃うと作成前確認を実行します。")
-  } else if (!state.validationResult.canCreate) {
+  } else if (state.validationResult && !state.validationResult.canCreate) {
     reasons.push(
       state.validationResult.blockingFailureCategory ??
         "作成前確認に失敗しています。"
@@ -585,7 +608,9 @@ function buildCreateSectionText(
   }
 
   if (blockedReasons.length === 0) {
-    return "3 つの翻訳段階の不足はありません。次へ進めます。"
+    return state.validationResult
+      ? "作成前確認は完了しています。"
+      : "作成前確認はまだ未完了です。"
   }
 
   return "不足を解消すると、次へ進めます。"

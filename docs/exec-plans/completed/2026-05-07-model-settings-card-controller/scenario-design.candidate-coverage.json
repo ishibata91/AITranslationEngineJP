@@ -1,0 +1,574 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "CAND-MSCC-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとに保存し、マスターペルソナと翻訳ジョブ設定を相互に混入しない仕様として採用した。",
+      "final_scenario_id": "SCN-MSCC-001"
+    },
+    {
+      "candidate_id": "CAND-MSCC-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-MSCC-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-007",
+      "decision_rationale": "Job Setup の 3 翻訳段階と Ready job 作成条件に直結する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "provider 変更後の model list 更新と保存拒否へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-MSCC-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-003",
+      "decision_rationale": "fake mode の利用者向け provider 表示と frontend 責務境界を固定する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "遅延応答破棄の利用者可視結果として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-MSCC-010",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-004 により、共有カードでは AIサービス設定導線を出さず、APIキー未設定状態だけを表示する仕様として採用した。",
+      "final_scenario_id": "SCN-MSCC-010"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとの初期取得として統合した。",
+      "final_scenario_id": "SCN-MSCC-001"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "provider 変更後の未更新状態へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "model list 更新 lifecycle の中心候補として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "model list 取得済み後の選択状態として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-006",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとの保存 lifecycle として採用した。",
+      "final_scenario_id": "SCN-MSCC-006"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-006",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとの再取得と復元として統合した。",
+      "final_scenario_id": "SCN-MSCC-001"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "遅延応答破棄の状態不変条件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-LC-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-MSCC-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-007",
+      "decision_rationale": "翻訳ジョブ設定側の完了状態として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとの保存済み provider と model の反映として採用した。",
+      "final_scenario_id": "SCN-MSCC-001"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "provider 変更時の不整合防止へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "model list 更新成功の状態遷移へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-004",
+      "decision_rationale": "APIキー未設定時の外部取得抑止へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "model 選択済み状態と Job Setup 作成可否へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "遅延応答破棄の主要シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-006",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-002 により、保存失敗後も未保存変更として残す保存状態遷移として採用した。",
+      "final_scenario_id": "SCN-MSCC-006"
+    },
+    {
+      "candidate_id": "CAND-MSC-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "連続実行後も現在値を 1 つに保つ条件として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-004",
+      "decision_rationale": "APIキー未設定時の外部取得抑止として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-004",
+      "decision_rationale": "LM Studio を APIキー不足に誤分類しない条件として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-003",
+      "decision_rationale": "fake provider ID の混入拒否として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-008",
+      "decision_rationale": "model list 取得失敗時の secret 非露出へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-008",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-003 により、空の model list 成功を取得済み 0 件として扱う境界条件として採用した。",
+      "final_scenario_id": "SCN-MSCC-008"
+    },
+    {
+      "candidate_id": "CAND-MSCF-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "provider 変更後の遅延応答破棄へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-002",
+      "decision_rationale": "旧 provider の model 保存拒否へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、取得失敗時も画面ごとの fallback へ逃げない条件として統合した。",
+      "final_scenario_id": "SCN-MSCC-001"
+    },
+    {
+      "candidate_id": "CAND-MSCF-009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-006",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-002 により、保存失敗後の未保存変更維持と再試行へ統合した。",
+      "final_scenario_id": "SCN-MSCC-006"
+    },
+    {
+      "candidate_id": "CAND-MSCF-010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-007",
+      "decision_rationale": "Job Setup の作成拒否条件として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSCF-011",
+      "generator": "failure",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "adopted",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、マスターペルソナの保存済み設定を Job Setup の既定値または保存元にしない条件として採用した。",
+      "final_scenario_id": "SCN-MSCC-001"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-003",
+      "decision_rationale": "fake mode を frontend に漏らさない境界として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-004",
+      "decision_rationale": "APIキー未設定時に外部取得を開始しない境界として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-004",
+      "decision_rationale": "LM Studio の APIキー不要条件として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとの保存取得契約として統合した。",
+      "final_scenario_id": "SCN-MSCC-006"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "遅延応答破棄の外部応答順序観点として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-008",
+      "decision_rationale": "provider 失敗分類と secret 非露出へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSCC-EI-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-MSCC-001",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、provider settings 参照と model 保存先を分離する条件として統合した。",
+      "final_scenario_id": "SCN-MSCC-006"
+    },
+    {
+      "candidate_id": "CAND-MSC-OA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-MSCC-009",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MSCC-009",
+      "decision_rationale": "model list 更新結果の短い要約として採用する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-OA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-MSCC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-005",
+      "decision_rationale": "遅延応答破棄の後追い確認として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-OA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-MSCC-006",
+      "decision": "merged",
+      "decision_rationale": "人間回答 Q-MSCC-001 により、参照側ごとの保存、取得、要約確認として統合した。",
+      "final_scenario_id": "SCN-MSCC-006"
+    },
+    {
+      "candidate_id": "CAND-MSC-OA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-MSCC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-004",
+      "decision_rationale": "secret 非露出の失敗表示として統合する。"
+    },
+    {
+      "candidate_id": "CAND-MSC-OA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-MSCC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MSCC-003",
+      "decision_rationale": "fake mode の保存要約非露出として統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-MSCC-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "CAND-MSCC-001",
+        "CAND-MSCC-LC-001",
+        "CAND-MSCC-LC-005",
+        "CAND-MSCC-LC-006",
+        "CAND-MSC-ST-001",
+        "CAND-MSCF-008",
+        "CAND-MSCF-011",
+        "CAND-MSCC-EI-004",
+        "CAND-MSCC-EI-007",
+        "CAND-MSC-OA-003"
+      ],
+      "conflict_type": "data_boundary",
+      "question_id": "Q-MSCC-001",
+      "reason": "人間回答 Q-MSCC-001 により、provider と model は参照側ごとに保存し、マスターペルソナと翻訳ジョブ設定を相互に混入しない仕様として解決した。",
+      "resolution_source": "Q-MSCC-001"
+    },
+    {
+      "conflict_id": "CONFLICT-MSCC-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "CAND-MSC-ST-007",
+        "CAND-MSCF-009"
+      ],
+      "conflict_type": "recovery",
+      "question_id": "Q-MSCC-002",
+      "reason": "人間回答 Q-MSCC-002 により、保存失敗後は未保存変更として残し、保存済み扱いにしない仕様として解決した。",
+      "resolution_source": "Q-MSCC-002"
+    },
+    {
+      "conflict_id": "CONFLICT-MSCC-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "CAND-MSCF-005"
+      ],
+      "conflict_type": "failure_classification",
+      "question_id": "Q-MSCC-003",
+      "reason": "人間回答 Q-MSCC-003 により、空の model list 成功は取得済み 0 件として表示する仕様として解決した。",
+      "resolution_source": "Q-MSCC-003"
+    },
+    {
+      "conflict_id": "CONFLICT-MSCC-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "CAND-MSCC-006",
+        "CAND-MSC-ST-004"
+      ],
+      "conflict_type": "ui_flow",
+      "question_id": "Q-MSCC-004",
+      "reason": "人間回答 Q-MSCC-004 により、共有カードには AIサービス設定を開く導線を出さず、状態表示だけにする仕様として解決した。",
+      "resolution_source": "Q-MSCC-004"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-MSCC-001",
+      "candidate_ids": [
+        "CAND-MSCC-001",
+        "CAND-MSCC-LC-001",
+        "CAND-MSCC-LC-006",
+        "CAND-MSC-ST-001",
+        "CAND-MSCF-011"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-002",
+      "candidate_ids": [
+        "CAND-MSCC-003",
+        "CAND-MSCC-LC-002",
+        "CAND-MSCC-LC-003",
+        "CAND-MSCC-LC-004",
+        "CAND-MSC-ST-002",
+        "CAND-MSC-ST-003",
+        "CAND-MSC-ST-005",
+        "CAND-MSCF-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-003",
+      "candidate_ids": [
+        "CAND-MSCC-004",
+        "CAND-MSCF-003",
+        "CAND-MSCC-EI-001",
+        "CAND-MSC-OA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-004",
+      "candidate_ids": [
+        "CAND-MSC-ST-004",
+        "CAND-MSCF-001",
+        "CAND-MSCF-002",
+        "CAND-MSCC-EI-002",
+        "CAND-MSCC-EI-003",
+        "CAND-MSC-OA-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-005",
+      "candidate_ids": [
+        "CAND-MSCC-005",
+        "CAND-MSCC-LC-007",
+        "CAND-MSC-ST-006",
+        "CAND-MSC-ST-008",
+        "CAND-MSCF-006",
+        "CAND-MSCC-EI-005",
+        "CAND-MSC-OA-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-006",
+      "candidate_ids": [
+        "CAND-MSCC-LC-005",
+        "CAND-MSC-ST-007",
+        "CAND-MSCF-009",
+        "CAND-MSC-OA-003",
+        "CAND-MSCC-EI-004",
+        "CAND-MSCC-EI-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-007",
+      "candidate_ids": [
+        "CAND-MSCC-002",
+        "CAND-MSCC-LC-008",
+        "CAND-MSCF-010"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-008",
+      "candidate_ids": [
+        "CAND-MSCF-004",
+        "CAND-MSCF-005",
+        "CAND-MSCC-EI-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-009",
+      "candidate_ids": [
+        "CAND-MSC-OA-001",
+        "CAND-MSC-OA-002",
+        "CAND-MSC-OA-003",
+        "CAND-MSC-OA-004",
+        "CAND-MSC-OA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MSCC-010",
+      "candidate_ids": [
+        "CAND-MSCC-006",
+        "CAND-MSC-ST-004",
+        "CAND-MSCF-001"
+      ]
+    }
+  ],
+  "unresolved_questions": [],
+  "resolved_questions": [
+    {
+      "question_id": "Q-MSCC-001",
+      "answer": "選択肢 1。参照側ごとに保存する。マスターペルソナと翻訳ジョブ設定は相互に混入しない。"
+    },
+    {
+      "question_id": "Q-MSCC-002",
+      "answer": "選択肢 1。保存失敗後は未保存変更として残す。"
+    },
+    {
+      "question_id": "Q-MSCC-003",
+      "answer": "選択肢 1。空の model list 成功は取得済み 0 件として表示する。"
+    },
+    {
+      "question_id": "Q-MSCC-004",
+      "answer": "選択肢 2。共有カードには AIサービス設定を開く導線を出さず、状態表示だけにする。理由は既存バナーに導線があり、共有カード内導線は不要な UX になるため。"
+    }
+  ]
+}

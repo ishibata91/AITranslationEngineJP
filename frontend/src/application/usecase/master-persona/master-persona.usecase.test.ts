@@ -2,12 +2,65 @@ import { describe, expect, test, vi } from "vitest"
 
 import type {
   MasterPersonaAISettings,
+  MasterPersonaAISettingsResponse,
   MasterPersonaDetail,
+  MasterPersonaGatewayContract,
+  MasterPersonaProviderModelsResponse,
   MasterPersonaUpdateRequest,
   MasterPersonaScreenState
 } from "@application/gateway-contract/master-persona"
 
 import { MasterPersonaUseCase } from "./master-persona.usecase"
+
+type TestMasterPersonaGateway = MasterPersonaGatewayContract & {
+  getMasterPersonaPage: ReturnType<typeof vi.fn>
+  getMasterPersonaDetail: ReturnType<typeof vi.fn>
+  loadMasterPersonaAISettings: ReturnType<typeof vi.fn>
+  saveMasterPersonaAISettings: ReturnType<typeof vi.fn>
+  previewMasterPersonaGeneration: ReturnType<typeof vi.fn>
+  executeMasterPersonaGeneration: ReturnType<typeof vi.fn>
+  getMasterPersonaRunStatus: ReturnType<typeof vi.fn>
+  interruptMasterPersonaGeneration: ReturnType<typeof vi.fn>
+  cancelMasterPersonaGeneration: ReturnType<typeof vi.fn>
+  updateMasterPersona: ReturnType<typeof vi.fn>
+  deleteMasterPersona: ReturnType<typeof vi.fn>
+  listMasterPersonaProviderModels: ReturnType<typeof vi.fn>
+  getMasterPersonaDialogueList: ReturnType<typeof vi.fn>
+}
+
+function createAISettingsResponse(): MasterPersonaAISettingsResponse {
+  return {
+    aiSettings: {
+      provider: "gemini",
+      model: "gemini-2.5-pro",
+      executionMethod: "single_request"
+    },
+    providerOptions: [
+      { value: "gemini", label: "Gemini", credentialStatus: "configured" },
+      {
+        value: "lm_studio",
+        label: "LM Studio",
+        credentialStatus: "not_required"
+      },
+      { value: "xai", label: "xAI", credentialStatus: "missing" }
+    ],
+    modelList: {
+      provider: "gemini",
+      credentialStatus: "configured",
+      status: "success",
+      models: [{ modelId: "gemini-2.5-pro", label: "gemini-2.5-pro" }]
+    }
+  }
+}
+
+function createProviderModelsResponse(): MasterPersonaProviderModelsResponse {
+  return {
+    provider: "gemini",
+    credentialStatus: "configured",
+    status: "success",
+    models: [{ modelId: "gemini-2.5-pro", label: "gemini-2.5-pro" }]
+  }
+}
 
 function createStore(initialState?: Partial<MasterPersonaScreenState>) {
   let state: MasterPersonaScreenState = {
@@ -27,6 +80,11 @@ function createStore(initialState?: Partial<MasterPersonaScreenState>) {
       executionMethod: "single_request"
     },
     aiSettingsMessage: "",
+    providerOptions: [
+      { value: "gemini", label: "Gemini", credentialStatus: "configured" },
+      { value: "lm_studio", label: "LM Studio", credentialStatus: "not_required" },
+      { value: "xai", label: "xAI", credentialStatus: "missing" }
+    ],
     modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,
@@ -65,7 +123,7 @@ function createStore(initialState?: Partial<MasterPersonaScreenState>) {
   }
 }
 
-function createGateway() {
+function createGateway(): TestMasterPersonaGateway {
   return {
     getMasterPersonaPage: vi.fn(() =>
       Promise.resolve({
@@ -115,11 +173,10 @@ function createGateway() {
     ),
     getMasterPersonaDialogueList: vi.fn(),
     loadMasterPersonaAISettings: vi.fn(() =>
-      Promise.resolve({
-        provider: "gemini",
-        model: "gemini-2.5-pro",
-        executionMethod: "single_request"
-      })
+      Promise.resolve(createAISettingsResponse())
+    ),
+    listMasterPersonaProviderModels: vi.fn(() =>
+      Promise.resolve(createProviderModelsResponse())
     ),
     saveMasterPersonaAISettings: vi.fn((request: MasterPersonaAISettings) =>
       Promise.resolve({ ...request })
@@ -217,7 +274,9 @@ function createGateway() {
 function latestUpdateMasterPersonaRequest(
   gateway: ReturnType<typeof createGateway>
 ): MasterPersonaUpdateRequest {
-  const [request] = gateway.updateMasterPersona.mock.calls.at(-1) ?? []
+  const calls = gateway.updateMasterPersona.mock
+    .calls as unknown as MasterPersonaUpdateRequest[][]
+  const request = calls.at(-1)?.[0]
   if (!request) {
     throw new Error("updateMasterPersona was not called")
   }
@@ -633,9 +692,26 @@ describe("MasterPersonaUseCase", () => {
     })
     const gateway = createGateway()
     gateway.loadMasterPersonaAISettings.mockResolvedValueOnce({
-      provider: "lm_studio",
-      model: "restored-model",
-      executionMethod: "single_request"
+      aiSettings: {
+        provider: "lm_studio",
+        model: "restored-model",
+        executionMethod: "single_request"
+      },
+      providerOptions: [
+        { value: "gemini", label: "Gemini", credentialStatus: "missing" },
+        {
+          value: "lm_studio",
+          label: "LM Studio",
+          credentialStatus: "not_required"
+        },
+        { value: "xai", label: "xAI", credentialStatus: "missing" }
+      ],
+      modelList: {
+        provider: "lm_studio",
+        credentialStatus: "not_required",
+        status: "success",
+        models: [{ modelId: "restored-model", label: "restored-model" }]
+      }
     })
     const useCase = new MasterPersonaUseCase(gateway, store)
 

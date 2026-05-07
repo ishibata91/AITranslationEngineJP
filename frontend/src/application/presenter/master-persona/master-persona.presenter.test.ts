@@ -27,6 +27,11 @@ function createState(
       executionMethod: "single_request"
     },
     aiSettingsMessage: "",
+    providerOptions: [
+      { value: "gemini", label: "Gemini", credentialStatus: "configured" },
+      { value: "lm_studio", label: "LM Studio", credentialStatus: "not_required" },
+      { value: "xai", label: "xAI", credentialStatus: "missing" }
+    ],
     modelOptions: [],
     selectedFileName: "未選択",
     selectedFileReference: null,

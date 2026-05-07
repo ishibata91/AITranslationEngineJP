@@ -1,5 +1,6 @@
 export type {
   MasterPersonaAISettings,
+  MasterPersonaAISettingsResponse,
   MasterPersonaDeleteRequest,
   MasterPersonaDetail,
   MasterPersonaDetailResponse,
@@ -10,6 +11,8 @@ export type {
   MasterPersonaPageRequest,
   MasterPersonaPageResponse,
   MasterPersonaPageState,
+  MasterPersonaProviderModelsRequest,
+  MasterPersonaProviderModelsResponse,
   MasterPersonaPreviewRequest,
   MasterPersonaPreviewResult,
   MasterPersonaRunStatus,

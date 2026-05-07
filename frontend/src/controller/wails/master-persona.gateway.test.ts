@@ -34,9 +34,20 @@ describe("createMasterPersonaGateway", () => {
   test("no-arg bindings は request なしで Wails binding を呼ぶ", async () => {
     const loadMasterPersonaAISettings = vi.fn(() =>
       Promise.resolve({
-        provider: "gemini",
-        model: "gemini-2.5-pro",
-        executionMethod: "single_request"
+        aiSettings: {
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          executionMethod: "single_request"
+        },
+        providerOptions: [
+          { value: "gemini", label: "Gemini", credentialStatus: "configured" }
+        ],
+        modelList: {
+          provider: "gemini",
+          credentialStatus: "configured",
+          status: "success",
+          models: [{ modelId: "gemini-2.5-pro", label: "gemini-2.5-pro" }]
+        }
       })
     )
     const getMasterPersonaRunStatus = vi.fn(() =>
@@ -65,9 +76,20 @@ describe("createMasterPersonaGateway", () => {
     const gateway = createMasterPersonaGateway()
 
     await expect(gateway.loadMasterPersonaAISettings()).resolves.toEqual({
-      provider: "gemini",
-      model: "gemini-2.5-pro",
-      executionMethod: "single_request"
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMethod: "single_request"
+      },
+      providerOptions: [
+        { value: "gemini", label: "Gemini", credentialStatus: "configured" }
+      ],
+      modelList: {
+        provider: "gemini",
+        credentialStatus: "configured",
+        status: "success",
+        models: [{ modelId: "gemini-2.5-pro", label: "gemini-2.5-pro" }]
+      }
     })
     await expect(gateway.getMasterPersonaRunStatus()).resolves.toEqual({
       runState: "入力待ち",
@@ -200,9 +222,26 @@ describe("createMasterPersonaGateway", () => {
     // Arrange
     const loadAISettings = vi.fn(() =>
       Promise.resolve({
-        provider: "lm_studio",
-        model: "restart-cutover-model",
-        executionMethod: "single_request"
+        aiSettings: {
+          provider: "lm_studio",
+          model: "restart-cutover-model",
+          executionMethod: "single_request"
+        },
+        providerOptions: [
+          {
+            value: "lm_studio",
+            label: "LM Studio",
+            credentialStatus: "not_required"
+          }
+        ],
+        modelList: {
+          provider: "lm_studio",
+          credentialStatus: "not_required",
+          status: "success",
+          models: [
+            { modelId: "restart-cutover-model", label: "restart-cutover-model" }
+          ]
+        }
       })
     )
     installGo({
@@ -219,8 +258,8 @@ describe("createMasterPersonaGateway", () => {
     const result = await gateway.loadMasterPersonaAISettings()
 
     // Assert
-    expect(result.provider).toBe("lm_studio")
-    expect(result.model).toBe("restart-cutover-model")
+    expect(result.aiSettings.provider).toBe("lm_studio")
+    expect(result.aiSettings.model).toBe("restart-cutover-model")
     expect(loadAISettings).toHaveBeenCalledTimes(1)
     expect(loadAISettings).toHaveBeenCalledWith()
   })

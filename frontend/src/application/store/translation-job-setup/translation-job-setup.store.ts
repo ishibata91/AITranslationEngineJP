@@ -6,6 +6,7 @@ import type {
   TranslationJobSetupSummaryResponse,
   TranslationJobSetupValidationResponse
 } from "@application/gateway-contract/translation-job-setup"
+import { cloneModelSettingsCardStates } from "@application/gateway-contract/model-settings-card"
 
 type Listener = (state: TranslationJobSetupScreenState) => void
 
@@ -118,6 +119,7 @@ function createInitialState(): TranslationJobSetupScreenState {
     selectedCredentialRef: "",
     phaseRuntimeSelections: [],
     providerModelLists: [],
+    modelSettingsCards: [],
     validationResult: null,
     validationState: "not-run",
     dirty: false,
@@ -148,6 +150,9 @@ export class TranslationJobSetupStore {
         this.state.phaseRuntimeSelections
       ),
       providerModelLists: cloneProviderModelLists(this.state.providerModelLists),
+      modelSettingsCards: cloneModelSettingsCardStates(
+        this.state.modelSettingsCards
+      ),
       validationResult: cloneValidation(this.state.validationResult),
       summary: cloneSummary(this.state.summary)
     }
