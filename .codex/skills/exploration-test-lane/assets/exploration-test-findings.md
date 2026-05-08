@@ -25,7 +25,7 @@
 ## Routing
 
 - `needs_implementation`: `yes | no`
-- `implementation_owner`: `implementation_implementer | N/A`
+- `implementation_owner`: `backend_implementer | frontend_implementer | integration_implementer | N/A`
 - `regression_test_owner`: `implementation_scenario_tester | implementation_unit_tester | N/A`
 - `blocked_reason`:
 

@@ -7,11 +7,11 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_implementer` agent が backend 承認済み実装範囲 を実装する時に、usecase、service、repository、adapter の責務整合と 依存方向 を守る判断基準を提供する。
+`backend_implementer` agent が backend 承認済み実装範囲 を実装する時に、usecase、service、repository、adapter の責務整合と 依存方向 を守る判断基準を提供する。
 
 ## 対応ロール
 
-- `implementation_implementer` が使う。
+- `backend_implementer` が使う。
 - 呼び出し元は `implement_lane` とする。
 - 返却先は `implement_lane` とする。
 - 担当成果物は `implement-backend` の出力規約で固定する。
@@ -27,7 +27,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 
 ## 外部参照規約
 
-- エージェント実行定義と実行境界は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) に従う。
+- エージェント実行定義と実行境界は [backend_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/backend_implementer.toml) に従う。
 - コーディング規約: [coding-guidelines-backend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-backend.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の backend 境界だけを参照する。

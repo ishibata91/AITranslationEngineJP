@@ -48,7 +48,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 | `テストデータ` | `exploration_test_lane` | `探索計画` | なし |
 | `探索証跡` | `investigator` | `探索計画`, `テストデータ` | `investigator` |
 | `バグ一覧とログ、影響ファイル` | `exploration_test_lane` | `探索証跡` | なし |
-| `実装証跡` | `implementation_implementer` | `バグ一覧とログ、影響ファイル` | `implementation_implementer` |
+| `実装証跡` | 実装種別別 agent | `バグ一覧とログ、影響ファイル` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
 | `レビュー通過根拠` | `exploration_test_lane` | `探索計画`, `探索証跡`, `バグ一覧とログ、影響ファイル`, `実装証跡?`, `回帰テスト証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `作業レポート入力` | `exploration_test_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
@@ -62,7 +62,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - `探索計画` は `planning_blockers` が空になるまで後続成果物へ進めない。
 - `探索証跡` は `investigator` へ渡す。
 - `バグ一覧とログ、影響ファイル` は探索証跡の観測事実、UI 証跡、ログ、未確認事項から集約する。
-- `実装証跡` は `implementation_implementer` へ渡し、実装 skill を `implement-backend`、`implement-frontend`、`implement-integration` のいずれか 1 つに固定する。
+- `実装証跡` は実装種別別 agent へ渡し、実装 agent と実装 skill を `backend_implementer` / `implement-backend`、`frontend_implementer` / `implement-frontend`、`integration_implementer` / `implement-integration` のいずれか 1 組に固定する。
 - `回帰テスト証跡` は変更範囲と検証目的から `implementation_scenario_tester` または `implementation_unit_tester` へ渡す。
 - `レビュー通過根拠` は探索計画、探索証跡、バグ一覧、実装証跡、回帰テスト証跡を入力にして観点別レビュー agent を起動する。
 - 観点別レビュー agent の結果は `reviewback.<観点>.yaml` に記録する。

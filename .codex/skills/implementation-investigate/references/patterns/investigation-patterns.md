@@ -25,5 +25,5 @@ agent TOML の ツール権限 と skill の出力規約は上書きしない。
 
 - `catch {}`、`.catch(() => [])`、原因を隠す 既定 value がある。
 - 再現条件を変えたまま 通過 と判断している。
-- 仮説を fact として implementation_implementer へ渡している。
+- 仮説を fact として実装種別別 agent へ渡している。
 - temporary 変更 が残ったまま 完了 している。

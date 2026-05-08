@@ -16,7 +16,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
 - 担当成果物は `人間観測記録`、`原因箇所シーケンス図`、`修正実行入力`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
-- 起動担当 agent は `investigator`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
+- 起動担当 agent は `investigator`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
 
 ## 入力規約
 
@@ -52,7 +52,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `修正前調査` | `investigator` | `人間観測記録` | `investigator` |
 | `原因箇所シーケンス図` | `diagrammer` | `人間観測記録`, `修正前調査` | `diagrammer` |
 | `修正実行入力` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図` | なし |
-| `実装証跡` | `implementation_implementer` / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力` | `implementation_implementer` |
+| `実装証跡` | 実装種別別 agent / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
 | `実装後ブラウザ確認` | `browser_confirmation` | `実装証跡`, `回帰テスト証跡?` | `browser_confirmation` |
 | `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `原因箇所シーケンス図`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
@@ -74,7 +74,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 大規模修正は、既存仕様へ戻す修正として始まったが、期待状態、回帰確認、修正方針を既存根拠だけで固定できない状態とする。
 - 仕様変更、機能追加、受け入れ条件の新規判断が必要な場合は、修正レーン対象外として扱う。
 - 大規模修正または修正レーン対象外の場合は、恒久修正へ進めず、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
-- `implementation_implementer` を起動する時は、実装 skill を `implement-backend`、`implement-frontend`、`implement-integration` のいずれか 1 つに固定する。
+- 実装 agent を起動する時は、`backend_implementer`、`frontend_implementer`、`integration_implementer` のいずれか 1 つに固定する。
 - 回帰テスト証跡は変更範囲と検証目的から `implementation_scenario_tester` または `implementation_unit_tester` を起動して渡す。
 - `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、人間観測、修正前調査、原因箇所シーケンス図、修正実行入力から `fix_lane` が定義する。
 - `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
@@ -102,7 +102,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 修正前調査起動入力: `investigator` 向けに人間観測記録、既存レビューYAML、検証ログ、禁止事項、期待する成果物を返す。
 - 原因箇所シーケンス図起動入力: `diagrammer` 向けに人間観測記録、修正前調査、原因箇所、問題点、修正方針、禁止範囲、対象作業計画フォルダを返す。
 - 原因箇所シーケンス図: 修正前判断材料として、原因箇所のシーケンス図、問題点、修正方針、根拠参照、検証結果、未決事項を返す。
-- 修正実行入力: `implementation_implementer` 向けに人間観測記録、修正前調査、原因箇所シーケンス図、影響ファイル候補、禁止変更範囲、実装 skill、回帰確認観点を返す。
+- 修正実行入力: 実装種別別 agent 向けに人間観測記録、修正前調査、原因箇所シーケンス図、影響ファイル候補、禁止変更範囲、実装 skill、回帰確認観点を返す。
 - 実装後ブラウザ確認起動入力: `browser_confirmation` 向けに確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を返す。
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - レーン戻し入力: 大規模修正または修正レーン対象外の場合に、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
@@ -117,7 +117,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 人間観測記録、修正前調査、原因箇所シーケンス図、修正実行入力、実装証跡が根拠参照付きで確認されている。
 - `原因箇所シーケンス図` が修正着手前に揃っている。
 - `原因箇所シーケンス図` が原因箇所の呼び出し順序、問題点、修正方針を含んでいる。
-- `implementation_implementer` へ渡す実装 skill が `implement-backend`、`implement-frontend`、`implement-integration` のいずれか 1 つに固定されている。
+- 実装 agent と実装 skill が `backend_implementer` / `implement-backend`、`frontend_implementer` / `implement-frontend`、`integration_implementer` / `implement-integration` のいずれか 1 組に固定されている。
 - 回帰テスト証跡が必要な場合は、test agent の完了結果が確認されている。
 - `実装後ブラウザ確認` が確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。

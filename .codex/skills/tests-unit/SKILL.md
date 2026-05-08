@@ -21,7 +21,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 単一引き継ぎ入力: `implementation-scope` から切り出された tests-unit 用 引き継ぎ 1 件、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
 - 実行中タスク成果物場所: テスト成果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 対象テスト範囲: 変更してよい 単体テスト と必要最小限の テスト補助 の path。
-- 実装済み対象: implementation_implementer が変更済みのファイル、公開接点、symbol。
+- 実装済み対象: 実装種別別 agent が変更済みのファイル、公開接点、symbol。
 - 証明対象: 公開振る舞い、分岐、エラー経路 のいずれを証明するかを示す対象。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
 - 網羅率検証コマンド: `python3 scripts/harness/run.py --suite coverage` で実行する harness command。

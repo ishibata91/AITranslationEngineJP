@@ -15,7 +15,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
 - 担当成果物は `task 枠`、`軽量変更計画`、`設計差分図`、`実装証跡`、`人間確認`、`テスト修正証跡`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力`、`作業計画完了移動` とする。
-- 起動担当 agent は `light_change_planner`、`diagrammer`、`implementation_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater`、`work_reporter` とする。
+- 起動担当 agent は `light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater`、`work_reporter` とする。
 
 ## 入力規約
 
@@ -50,7 +50,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 | `task 枠` | `light_change_lane` | `[]` | なし |
 | `軽量変更計画` | `light_change_planner` | `task 枠` | `light_change_planner` |
 | `設計差分図` | `diagrammer` | `軽量変更計画` | `diagrammer` |
-| `実装証跡` | `implementation_implementer` / `implement-backend` または `implement-frontend` または `implement-integration` | `軽量変更計画`, `設計差分図` | `implementation_implementer` |
+| `実装証跡` | 実装種別別 agent / `implement-backend` または `implement-frontend` または `implement-integration` | `軽量変更計画`, `設計差分図` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
 | `人間確認` | 人間 | `実装証跡` | 人間 |
 | `テスト修正証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡`, `人間確認?` | `implementation_scenario_tester` または `implementation_unit_tester` |
 | `実装後ブラウザ確認` | `browser_confirmation` | `実装証跡`, `人間確認?`, `テスト修正証跡?` | `browser_confirmation` |
@@ -79,7 +79,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - `設計差分図` は、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 に限定する。
 - `設計差分図` は、全体構成図、正本図、変更しない箇所の網羅図として作らない。
 - `設計差分図` の起動入力には、軽量変更計画、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、出力先を含める。
-- `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
+- 実装 agent の起動入力には、`backend_implementer`、`frontend_implementer`、`integration_implementer` のどれを起動するかを必ず明示する。
 - backend、frontend、統合境界のどれか 1 つの実装 skill に固定できない変更は、軽量変更として扱わない。
 - backend と frontend を同時に触る必要がある場合は、統合境界変更として扱える時だけ進める。
 - `人間確認` は実物確認、操作、表示、出力、状態変化、検証結果の確認を扱う。
@@ -114,7 +114,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 軽量変更計画起動入力: `light_change_planner` 向けに task 枠、既存成果物、非必須検証ログ、禁止事項、期待する成果物を返す。
 - 設計差分図起動入力: `diagrammer` 向けに図化目的、軽量変更計画、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、対象作業計画フォルダを返す。
 - 設計差分図: 人間確認前の判断材料として、追加・削除差分のコンポーネント図、追加・削除差分のシーケンス図、根拠参照、検証結果、未決事項を返す。
-- 実装起動入力: `implementation_implementer` 向けに軽量変更計画、実装 skill、変更対象、検証コマンド、停止条件を返す。
+- 実装起動入力: 実装種別別 agent 向けに軽量変更計画、実装 skill、変更対象、検証コマンド、停止条件を返す。
 - 人間確認記録: 人間確認の承認、差し戻し、追加質問、確認根拠を返す。
 - テスト修正起動入力: テスト修正担当 agent 向けに対象テスト範囲、検証目的、実装結果、人間確認結果、検証コマンド、停止条件を返す。
 - 実装後ブラウザ確認起動入力: `browser_confirmation` 向けに確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を返す。

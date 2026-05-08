@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`設計差分図`、`実装引き継ぎ入力`、`frontend 実装後人間レビュー`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
+- 担当成果物は `task 枠`、`設計差分図`、`実装引き継ぎ入力`、`UX事前確認`、`frontend 実装後人間レビュー`、`合意済みfrontend保護`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
 
 ## 入力規約
 
@@ -30,6 +30,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - エージェント実行定義と実行境界は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) に従う。
 - 設計差分図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
+- UX 事前確認は [ux-review](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ux-review/SKILL.md) に従う。
 - fakeAPI 運用仕様: 人間レビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
 
 ## 内部参照規約
@@ -50,13 +51,15 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `人間設計レビュー` | はい | 人間 | `シナリオ設計`, `UI設計?`, `設計差分図` | 人間 |
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
-| `frontend 実装` | 条件付き | `implementation_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `implementation_implementer` |
-| `frontend 実装後人間レビュー` | 条件付き | 人間 | `frontend 実装` | 人間 |
-| `backend 実装` | 条件付き | `implementation_implementer` / `implement-backend` | `実装引き継ぎ入力`, `frontend 実装後人間レビュー?` | `implementation_implementer` |
-| `統合境界実装` | 条件付き | `implementation_implementer` / `implement-integration` | `backend 実装`, `frontend 実装後人間レビュー?` | `implementation_implementer` |
-| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_scenario_tester` |
-| `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?` | `implementation_unit_tester` |
-| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `frontend 実装後人間レビュー?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
+| `frontend 実装` | 条件付き | `frontend_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `frontend_implementer` |
+| `UX事前確認` | 条件付き | `ux_review` | `frontend 実装` | `ux_review` |
+| `frontend 実装後人間レビュー` | 条件付き | 人間 | `UX事前確認` | 人間 |
+| `合意済みfrontend保護` | 条件付き | `implement_lane` | `frontend 実装後人間レビュー` | なし |
+| `backend 実装` | 条件付き | `backend_implementer` / `implement-backend` | `実装引き継ぎ入力`, `合意済みfrontend保護?` | `backend_implementer` |
+| `統合境界実装` | 条件付き | `integration_implementer` / `implement-integration` | `backend 実装`, `合意済みfrontend保護?` | `integration_implementer` |
+| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_scenario_tester` |
+| `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_unit_tester` |
+| `最終検証` | 条件付き | `implement_lane` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | なし |
 | `実装後ブラウザ確認` | はい | `browser_confirmation` | `最終検証` | `browser_confirmation` |
 | `レビュー通過根拠` | はい | `implement_lane` | `最終検証`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 仕様変更または仕様追加あり | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
@@ -141,6 +144,29 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `scenario_external_integration_generator` | `scenario-candidates.external-integration.md` | 外部連携 |
 | `scenario_operation_audit_generator` | `scenario-candidates.operation-audit.md` | 運用・監査 |
 
+### UX事前確認規約
+
+`implement_lane` は UI がある task で frontend 実装が完了した後、frontend 人間レビュー前に `ux_review` を起動する。
+`ux_review` は `ux-review.yaml` だけを更新し、プロダクトコードとプロダクトテストを変更しない。
+`ux-review.yaml` は `docs/exec-plans/active/<task-id>/` に置く。
+`implement_lane` は `ux-review.yaml` の `must_fix_open` と `max_level` を読む。
+`blocker` と `major` は frontend 人間レビュー前の修正必須問題として扱う。
+`minor` と `nit` は人間レビュー時の注意として扱い、単独では人間レビューを止めない。
+`ux-review.yaml` の `review_status: stopped` は人間レビュー前の停止として扱う。
+
+### 合意済みfrontend保護規約
+
+`frontend 実装後人間レビュー` が承認された時点で、`implement_lane` は合意済み frontend 保護対象を固定する。
+合意済み frontend 保護対象は、後続の `backend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` の起動入力へ渡す。
+
+| 保護対象 | 意味 |
+| --- | --- |
+| 承認済み画面 | 人間レビューで承認された画面、主要区画、主要導線、状態表示 |
+| 承認済み表示規則 | 人間レビューで承認された文言、余白、密度、要素サイズ、既存画面との統一条件 |
+| 確認済み実画面 | review URL と確認済み `fakeScenario` |
+| UX確認結果 | `ux-review.yaml` の未解決なし判定、または人間承認済み残留事項 |
+| 変更禁止範囲 | 承認済み frontend touched files と後続 agent が変更してはいけない範囲 |
+
 ## 判断規約
 
 - 次の実行判断は 成果物依存表 の未完了 成果物、満たされた `依存対象`、既存 成果物、対象 skill の完了規約で決める。
@@ -150,7 +176,14 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `設計差分図` は、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 に限定する。
 - `設計差分図` は、全体構成図、正本図、変更しない箇所の網羅図として作らない。
 - `設計差分図` の起動入力には、シナリオ設計、UI設計がある場合の UI設計、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、出力先を含める。
-- `implementation_implementer` の起動入力には、`implement-backend`、`implement-frontend`、`implement-integration` のどれを読むかを必ず明示する。
+- 実装 agent の起動入力には、`backend_implementer`、`frontend_implementer`、`integration_implementer` のどれを起動するかを必ず明示する。
+- `backend_implementer` の起動入力には `implement-backend` を必ず明示する。
+- `frontend_implementer` の起動入力には `implement-frontend` を必ず明示する。
+- `integration_implementer` の起動入力には `implement-integration` を必ず明示する。
+- `ux_review` の起動入力には、UX確認対象差分、実装目的、UI根拠、実装結果、実画面確認入力、変更ファイル、作業計画フォルダ、UX確認YAMLパスを含める。
+- `UX事前確認` が `must_fix_open: true` または `review_status: stopped` の場合は、frontend 人間レビューへ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
+- `frontend 実装後人間レビュー` が承認済みの場合は、合意済み frontend 保護対象を後続実装の変更禁止範囲として起動入力へ含める。
+- 後続実装で画面、部品、文言、style の変更が必要な場合は、実装を続けず `frontend 実装` の再実行入力または人間への返却を固定する。
 - レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダを確定する。
 - レビュー agent 起動入力には、最終検証、coverage、issue 数、system test 件数を含む 検証証跡 を明示する。
 - レビュー agent の結果は `reviewback.<観点>.yaml` の `must_fix_open`、`max_level`、`review_status` から レビュー集約規約 の優先度で集約する。
@@ -170,11 +203,13 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 恒久修正、構造整理、探索テスト、軽量変更はこの skill で詳細化しない。
 - backend、frontend、統合境界 は別 成果物 として扱い、単一の実装成果物に束ねない。
 - UI がある task では `frontend 実装` を必須成果物にし、UI がない task では `frontend 実装` を省略できる。
+- UI がある task では `UX事前確認` を必須成果物にし、UI がない task では `UX事前確認` を省略できる。
 - UI がある task では `frontend 実装後人間レビュー` を必須成果物にし、UI がない task では `frontend 実装後人間レビュー` を省略できる。
 - UI がある task の `frontend 実装` は、`backend 実装` より先に起動する。
 - UI がある task の `frontend 実装` は、人間レビュー前に fakeAPI を整備し、実画面で確認できる review URL、確認状態、未確認理由を `frontend 実装後人間レビュー` の入力へ含める。
 - UI がある task の `frontend 実装` は、backend 実装、統合境界実装、永続化仕様の代替として fakeAPI を扱わない。
-- UI がある task の `backend 実装` と `統合境界実装` は、`frontend 実装後人間レビュー` の承認後に着手する。
+- UI がある task の `frontend 実装後人間レビュー` は、`UX事前確認` の通過後に着手する。
+- UI がある task の `backend 実装` と `統合境界実装` は、`合意済みfrontend保護` の固定後に着手する。
 - `frontend 実装後人間レビュー` が差し戻しまたは追加質問の場合は、後続実装へ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
 - `統合境界実装` は frontend と backend の接続結果を実画面で確認する。
 - `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、承認済みシナリオ、UI 要件契約、実装範囲、最終検証観点から `implement_lane` が定義する。
@@ -198,6 +233,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 設計差分図: 人間設計レビュー向けには、追加・削除差分のコンポーネント図、追加・削除差分のシーケンス図、根拠参照、検証結果、未決事項を返す。
 - 実装後ブラウザ確認起動入力: `browser_confirmation` 向けには、確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を渡す。
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
+- UX事前確認起動入力: `ux_review` 向けには、UX確認対象差分、実装目的、UI根拠、実装結果、実画面確認入力、変更ファイル、作業計画フォルダ、UX確認YAMLパスを渡す。
+- UX事前確認: `ux-review.yaml` の `review_status`、`must_fix_open`、`max_level`、確認済み状態、未確認状態、UX指摘を返す。
+- 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済み実画面、UX確認結果、変更禁止範囲を返す。
 - レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスを渡す。
 - 改善ログ: `work_history/runs/<run>/workflow-improvement-log.jsonl` へ追記した改善ログ項目を返す。
 - 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 と 作業計画フォルダ の移動結果を返す。
@@ -211,7 +249,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
 - UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
 - UI が関係する場合は、人間レビュー前に fakeAPI による実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
+- UI が関係する場合は、`ux-review.yaml` に `review_status`、`must_fix_open`、`max_level`、確認済み状態、未確認状態が記録されている。
+- UI が関係する場合は、`UX事前確認` に `blocker` または `major` の未解決問題が残っていない。
 - UI が関係する場合は、`frontend 実装後人間レビュー` の承認が記録されている。
+- UI が関係する場合は、`合意済みfrontend保護` が固定されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` 後は `最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠` が 根拠参照 付きで確認されている。
@@ -237,7 +278,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
 - UI が関係する task で fakeAPI による実画面確認の review URL、確認状態、未確認理由が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
-- UI が関係する task で `frontend 実装後人間レビュー` の承認がないまま `backend 実装`、`統合境界実装`、`最終検証` へ進みそうな場合は停止する。
+- UI が関係する task で `UX事前確認` が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
+- UI が関係する task で `UX事前確認` に `blocker` または `major` の未解決問題が残るまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
+- UI が関係する task で `frontend 実装後人間レビュー` の承認がないまま `合意済みfrontend保護` へ進みそうな場合は停止する。
+- UI が関係する task で `合意済みfrontend保護` がないまま `backend 実装`、`統合境界実装`、`最終検証` へ進みそうな場合は停止する。
 - `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先が不足する場合は停止する。
 - `実装後ブラウザ確認` なしで `レビュー通過根拠` へ進みそうな場合は停止する。
 - `python3 scripts/harness/run.py --suite all` の失敗原因が承認済み実装範囲 外にある場合は停止する。

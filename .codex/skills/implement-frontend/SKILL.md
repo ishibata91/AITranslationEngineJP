@@ -7,11 +7,11 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_implementer` agent が frontend 承認済み実装範囲 を実装する時に、画面導線、状態 反映、Wails bridge 呼び出しを守る判断基準を提供する。
+`frontend_implementer` agent が frontend 承認済み実装範囲 を実装する時に、画面導線、状態 反映、Wails bridge 呼び出しを守る判断基準を提供する。
 
 ## 対応ロール
 
-- `implementation_implementer` が使う。
+- `frontend_implementer` が使う。
 - 呼び出し元は `implement_lane` または `light_change_lane` とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-frontend` の出力規約で固定する。
@@ -28,7 +28,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 
 ## 外部参照規約
 
-- エージェント実行定義と実行境界は [implementation_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_implementer.toml) に従う。
+- エージェント実行定義と実行境界は [frontend_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/frontend_implementer.toml) に従う。
 - コーディング規約: [coding-guidelines-frontend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-frontend.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
