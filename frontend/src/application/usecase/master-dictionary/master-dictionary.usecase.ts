@@ -400,6 +400,10 @@ export class MasterDictionaryUseCase {
       return
     }
 
+    if (this.store.snapshot().importStage === "done") {
+      return
+    }
+
     const progress = payload.progress
     this.store.update((draft) => {
       draft.importStage = "running"

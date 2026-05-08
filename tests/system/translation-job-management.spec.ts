@@ -16,14 +16,18 @@ async function openJobManagement(page: Page) {
   await page.goto(JOB_MANAGEMENT_URL)
   await page
     .getByRole("tab", {
-      name: /ジョブ管理/
+      name: /未完了のジョブ/
     })
     .click()
-  await expect(page.getByRole("heading", { name: "ジョブ管理" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { level: 2, name: "未完了ジョブ一覧" })
+  ).toBeVisible()
 }
 
 function jobCard(page: Page, jobId: number) {
-  return page.getByRole("button", { name: `Job ${jobId} を選択` })
+  return page.getByRole("link", {
+    name: `ジョブ ${jobId} を選択して現在の翻訳段階へ進む`
+  })
 }
 
 test("SCN-TJM-001 translation-job-management lists incomplete jobs and excludes completed", async ({
@@ -32,7 +36,7 @@ test("SCN-TJM-001 translation-job-management lists incomplete jobs and excludes 
   await openJobManagement(page)
 
   for (const jobId of [401, 402, 403, 404, 405, 406]) {
-    await expect(jobCard(page, jobId).getByText(`Job #${jobId}`)).toBeVisible()
+    await expect(jobCard(page, jobId).getByText(`ジョブ #${jobId}`)).toBeVisible()
   }
   await expect(page.getByText("Completed")).toHaveCount(0)
 
@@ -56,13 +60,14 @@ test("SCN-TJM-003 translation-job-management opens selected job in Job Run witho
   await openJobManagement(page)
 
   await page
-    .getByLabel("Job 403 の操作")
+    .getByLabel("ジョブ 403 の操作")
     .getByRole("button", { name: "再開" })
     .click()
 
-  await expect(page.getByRole("heading", { name: "Job Run" }).first()).toBeVisible()
-  await expect(page.getByRole("heading", { name: "Job #403" })).toBeVisible()
-  await expect(page.locator("#termPhaseJobIdInput")).toHaveValue("403")
+  await expect(page.getByRole("heading", { name: "ジョブ #403" })).toBeVisible()
+  await expect(
+    page.getByRole("heading", { level: 2, name: "NPC ペルソナ生成" })
+  ).toBeVisible()
   const targetSummary = page.locator(".job-run-target-summary")
   await expect(targetSummary.getByText("中断中 / 中断中")).toBeVisible()
   await expect(targetSummary.getByText("NPC ペルソナ生成")).toBeVisible()
@@ -78,11 +83,11 @@ test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows resume entry 
   await openJobManagement(page)
 
   await expect(
-    page.getByLabel("Job 403 の操作").getByRole("button", { name: "再開" })
+    page.getByLabel("ジョブ 403 の操作").getByRole("button", { name: "再開" })
   ).toBeEnabled()
 
   const cacheMissingResume = page
-    .getByLabel("Job 404 の操作")
+    .getByLabel("ジョブ 404 の操作")
     .getByRole("button", { name: "再開" })
   await expect(cacheMissingResume).toBeDisabled()
   await expect(cacheMissingResume.locator("..")).toHaveAttribute(
@@ -91,7 +96,7 @@ test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows resume entry 
   )
 
   const projectionFailureResume = page
-    .getByLabel("Job 405 の操作")
+    .getByLabel("ジョブ 405 の操作")
     .getByRole("button", { name: "再開" })
   await expect(projectionFailureResume).toBeDisabled()
   await expect(projectionFailureResume.locator("..")).toHaveAttribute(
@@ -100,7 +105,7 @@ test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows resume entry 
   )
 
   const terminalResume = page
-    .getByLabel("Job 406 の操作")
+    .getByLabel("ジョブ 406 の操作")
     .getByRole("button", { name: "再開" })
   await expect(terminalResume).toBeDisabled()
   await expect(terminalResume.locator("..")).toHaveAttribute(

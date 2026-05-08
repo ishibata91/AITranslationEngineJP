@@ -73,13 +73,25 @@ class NoopFrontendDiagnosticLogger implements FrontendDiagnosticLogger {
     return this
   }
 
-  debug(): void {}
+  debug(): void {
+    return ignoreDiagnosticMessage()
+  }
 
-  info(): void {}
+  info(): void {
+    return ignoreDiagnosticMessage()
+  }
 
-  warn(): void {}
+  warn(): void {
+    return ignoreDiagnosticMessage()
+  }
 
-  error(): void {}
+  error(): void {
+    return ignoreDiagnosticMessage()
+  }
+}
+
+function ignoreDiagnosticMessage(): void {
+  return undefined
 }
 
 function sanitizeDiagnosticFields(fields: DiagnosticFields): DiagnosticFields {

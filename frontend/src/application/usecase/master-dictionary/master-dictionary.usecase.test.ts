@@ -66,6 +66,53 @@ describe("MasterDictionaryUseCase", () => {
     expect(state.importSummary?.totalCount).toBe(740)
     expect(state.importSummary?.selectedSource).toBe("Ancient Vampire")
   })
+
+  test("handleImportProgress は完了後の progress event で done を running に戻さない", async () => {
+    const store = new MasterDictionaryStore()
+    const useCase = new MasterDictionaryUseCase(null, store)
+
+    store.update((draft) => {
+      draft.selectedFileName = "Dawnguard_english_japanese.xml"
+      draft.importStage = "running"
+      draft.importProgress = 80
+      draft.totalCount = 40
+    })
+
+    await useCase.handleImportCompleted({
+      page: {
+        items: [
+          {
+            id: 740,
+            source: "Ancient Vampire",
+            translation: "太古の吸血鬼",
+            category: "NPC",
+            origin: "XML取込",
+            updatedAt: "2026-04-12T00:00:00Z"
+          }
+        ],
+        totalCount: 740,
+        page: 1,
+        pageSize: 30,
+        selectedId: 740
+      },
+      summary: {
+        filePath: "Dawnguard_english_japanese.xml",
+        fileName: "Dawnguard_english_japanese.xml",
+        importedCount: 700,
+        updatedCount: 947,
+        skippedCount: 7235,
+        lastEntryId: 740
+      }
+    })
+
+    useCase.handleImportProgress({ progress: 90 })
+
+    const state = store.snapshot()
+
+    expect(state.importStage).toBe("done")
+    expect(state.importProgress).toBe(100)
+    expect(state.importSummary?.importedCount).toBe(700)
+  })
 })
 
 describe("loadEntryDetail", () => {
