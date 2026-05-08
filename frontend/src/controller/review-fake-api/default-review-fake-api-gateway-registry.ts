@@ -1,4 +1,11 @@
 import type {
+  BodyTranslationOutputReadinessResponse,
+  BodyTranslationPhaseCommandResponse,
+  BodyTranslationPhaseGatewayContract,
+  BodyTranslationPhaseSummaryResponse
+} from "@application/gateway-contract/body-translation-phase"
+
+import type {
   MasterPersonaDeleteRequest,
   MasterPersonaDetail,
   MasterPersonaAISettingsResponse,
@@ -27,6 +34,12 @@ import type {
   TranslationJobSetupValidationResponse,
   ValidateTranslationJobSetupRequest
 } from "@application/gateway-contract/translation-job-setup"
+
+import type {
+  TranslationOutputArtifactGatewayContract,
+  TranslationOutputDiffPreviewResponse,
+  TranslationOutputReviewResponse
+} from "@application/gateway-contract/translation-output-artifact"
 
 import type {
   ListProviderSettingsResponse,
@@ -637,12 +650,353 @@ function createTranslationJobSetupGateway(
   }
 }
 
+function createBodyTranslationSummary(
+  scenarioId: ReviewFakeApiScenarioId,
+  jobId: number
+): BodyTranslationPhaseSummaryResponse {
+  const state = createBodyTranslationState(scenarioId)
+
+  return {
+    jobId,
+    currentPhase: "body_translation",
+    phaseState: state.completed ? "completed" : state.running ? "running" : "ready",
+    phaseRunId: 4021,
+    startedAt: "2026-05-08T09:00:00Z",
+    finishedAt: state.completed ? "2026-05-08T09:12:00Z" : undefined,
+    progress: createBodyTranslationProgress(state),
+    inputSummary: {
+      targetCount: 12,
+      skippedReasons: state.configMissing ? ["AI サービス設定不足"] : [],
+      inputSnapshotRef: "snapshot:review-body-402",
+      dictionaryDigest: "sha256:review-dictionary",
+      personaDigest: "sha256:review-persona",
+      metadataDigest: "sha256:review-metadata",
+      promptDigest: "sha256:review-prompt"
+    },
+    requestSummary: {
+      providerTargetCount: 12,
+      exactDictionaryExclusionCount: 0,
+      partialDictionaryConstraintCount: 3
+    },
+    execution: createBodyTranslationExecution(state),
+    fieldResults: createBodyTranslationFieldResults(state),
+    resultSummary: createBodyTranslationResultSummary(state),
+    errorSummary: createBodyTranslationErrorSummary(state),
+    actionEnablement: createBodyTranslationActionEnablement(state),
+    outputReadiness: createBodyTranslationOutputReadiness(state)
+  }
+}
+
+interface BodyTranslationReviewState {
+  completed: boolean
+  configMissing: boolean
+  running: boolean
+}
+
+function createBodyTranslationState(
+  scenarioId: ReviewFakeApiScenarioId
+): BodyTranslationReviewState {
+  const completed = scenarioId === "success"
+  const configMissing = scenarioId === "config-missing"
+
+  return {
+    completed,
+    configMissing,
+    running: scenarioId === "running" || (!completed && !configMissing)
+  }
+}
+
+function getBodyTranslationProcessedCount(
+  state: BodyTranslationReviewState
+): number {
+  if (state.completed) {
+    return 12
+  }
+
+  return state.running ? 7 : 0
+}
+
+function getBodyTranslationOutputReadinessBlockedReason(
+  state: BodyTranslationReviewState
+): string | undefined {
+  if (state.completed) {
+    return undefined
+  }
+
+  return state.configMissing
+    ? "設定不足のため出力準備を確認できません。"
+    : "本文翻訳が実行中です。完了後に確認してください。"
+}
+
+function createBodyTranslationProgress(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["progress"] {
+  const processedCount = getBodyTranslationProcessedCount(state)
+
+  return {
+    percent: state.completed ? 100 : state.running ? 61 : 0,
+    processedCount,
+    totalCount: 12,
+    targetCount: 12,
+    translatedCount: processedCount,
+    skippedCount: 0,
+    currentStep: state.completed
+      ? "completed"
+      : state.running
+        ? "provider_request"
+        : "blocked"
+  }
+}
+
+function createBodyTranslationExecution(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["execution"] {
+  return {
+    credentialRef: state.configMissing ? "未設定" : "credential 状態分類だけ表示",
+    provider: state.configMissing ? "Gemini 設定不足" : "xAI",
+    model: state.configMissing
+      ? "model 未選択"
+      : "grok-4-super-long-model-name-review",
+    executionMode: state.running ? "同期実行中" : "同期実行",
+    requestUnitCount: state.configMissing ? 0 : 12,
+    outputCount: getBodyTranslationProcessedCount(state)
+  }
+}
+
+function createBodyTranslationFieldResults(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["fieldResults"] {
+  if (!state.completed) {
+    return []
+  }
+
+  return [
+    {
+      fieldId: 1,
+      fieldLabel: "DIAL 0001",
+      sourceExcerpt: "We should leave before the storm reaches town.",
+      translatedText: "嵐が町へ来る前に出発しましょう。",
+      outputStatus: "ready",
+      protectionValidationResult: "pass",
+      retryCount: 0
+    },
+    {
+      fieldId: 2,
+      fieldLabel: "BOOK 0002",
+      sourceExcerpt: "A short note for review.",
+      translatedText: "確認用の短いメモです。",
+      outputStatus: "ready",
+      protectionValidationResult: "pass",
+      retryCount: 0
+    }
+  ]
+}
+
+function createBodyTranslationResultSummary(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["resultSummary"] {
+  const outputCount = getBodyTranslationProcessedCount(state)
+
+  return {
+    translatedCount: outputCount,
+    failedCount: 0,
+    skippedCount: 0,
+    protectionFailedCount: 0,
+    outputReadyCount: state.completed ? 12 : 0,
+    outputCount
+  }
+}
+
+function createBodyTranslationErrorSummary(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["errorSummary"] {
+  if (!state.configMissing) {
+    return undefined
+  }
+
+  return {
+    errorKind: "secret_redacted",
+    reason: "API キーと model を確認してください。secret 本体は表示しません。",
+    retryable: true,
+    isRedacted: true
+  }
+}
+
+function createBodyTranslationActionEnablement(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["actionEnablement"] {
+  return {
+    canStart: state.configMissing,
+    startBlockedReason: state.configMissing
+      ? "API キーと model を確認してください。"
+      : "本文翻訳は開始済みです。",
+    canPause: state.running,
+    pauseBlockedReason: state.running ? undefined : "実行中ではありません。",
+    canResume: false,
+    resumeBlockedReason: state.running
+      ? "実行中のため再開は不要です。"
+      : "再開対象ではありません。",
+    canRetry: false,
+    retryBlockedReason: "再試行対象ではありません。",
+    canCancel: state.running,
+    cancelBlockedReason: state.running ? undefined : "実行中ではありません。",
+    canCheckOutputReadiness: true,
+    outputReadinessBlockedReason:
+      getBodyTranslationOutputReadinessBlockedReason(state)
+  }
+}
+
+function createBodyTranslationOutputReadiness(
+  state: BodyTranslationReviewState
+): BodyTranslationPhaseSummaryResponse["outputReadiness"] {
+  return {
+    ready: state.completed,
+    blockedReason: getBodyTranslationOutputReadinessBlockedReason(state),
+    errorKind: state.completed ? undefined : "output_readiness_blocked",
+    completedFieldCount: getBodyTranslationProcessedCount(state),
+    statusConsistent: state.completed
+  }
+}
+
+function createBodyTranslationReadiness(
+  scenarioId: ReviewFakeApiScenarioId,
+  jobId: number
+): BodyTranslationOutputReadinessResponse {
+  const summary = createBodyTranslationSummary(scenarioId, jobId)
+
+  return {
+    jobId,
+    currentPhase: summary.currentPhase,
+    phaseState: summary.phaseState,
+    ready: summary.outputReadiness.ready,
+    blockedReason: summary.outputReadiness.blockedReason,
+    errorKind: summary.outputReadiness.errorKind,
+    completedFieldCount: summary.outputReadiness.completedFieldCount,
+    statusConsistent: summary.outputReadiness.statusConsistent,
+    outputCount: summary.execution.outputCount
+  }
+}
+
+function createBodyTranslationPhaseGateway(
+  scenarioId: ReviewFakeApiScenarioId
+): BodyTranslationPhaseGatewayContract {
+  if (scenarioId === "loading") {
+    return {
+      getBodyTranslationPhaseSummary: () => new Promise(() => undefined),
+      startBodyTranslationPhase: () => new Promise(() => undefined),
+      pauseBodyTranslationPhase: () => new Promise(() => undefined),
+      resumeBodyTranslationPhase: () => new Promise(() => undefined),
+      retryBodyTranslationPhase: () => new Promise(() => undefined),
+      cancelBodyTranslationPhase: () => new Promise(() => undefined),
+      getBodyTranslationOutputReadiness: () => new Promise(() => undefined)
+    }
+  }
+
+  const command = (jobId: number): BodyTranslationPhaseCommandResponse => ({
+    ...createBodyTranslationSummary("running", jobId),
+    retryable: true
+  })
+
+  return {
+    getBodyTranslationPhaseSummary: ({ jobId }) =>
+      Promise.resolve(createBodyTranslationSummary(scenarioId, jobId)),
+    startBodyTranslationPhase: ({ jobId }) => Promise.resolve(command(jobId)),
+    pauseBodyTranslationPhase: ({ jobId }) => Promise.resolve(command(jobId)),
+    resumeBodyTranslationPhase: ({ jobId }) => Promise.resolve(command(jobId)),
+    retryBodyTranslationPhase: ({ jobId }) => Promise.resolve(command(jobId)),
+    cancelBodyTranslationPhase: ({ jobId }) => Promise.resolve(command(jobId)),
+    getBodyTranslationOutputReadiness: ({ jobId }) =>
+      Promise.resolve(createBodyTranslationReadiness(scenarioId, jobId))
+  }
+}
+
+function createTranslationOutputReview(
+  selectedJobId?: number
+): TranslationOutputReviewResponse {
+  const selectedId = selectedJobId ?? 402
+
+  return {
+    completedJobs: [
+      {
+        jobId: 402,
+        jobStatus: "completed",
+        artifactStatus: "not_generated",
+        outputReady: true,
+        translatedCount: 12
+      }
+    ],
+    hasSelectedJob: selectedJobId !== undefined,
+    selectedJob: {
+      jobId: selectedId,
+      jobStatus: "completed",
+      bodyPhaseStatus: "completed",
+      outputReady: true,
+      resultSummary: {
+        translatedCount: 12,
+        rowCount: 12,
+        inputProvenance: {
+          inputSnapshotDigest: "sha256:review-body-402",
+          sourceFileDigest: "sha256:review-source"
+        }
+      }
+    },
+    outputReadiness: {
+      ready: true,
+      retryable: false
+    },
+    artifactStatus: {
+      artifactId: 0,
+      status: "not_generated",
+      rowCount: 0,
+      currentVersion: false
+    }
+  }
+}
+
+function createTranslationOutputArtifactGateway(): TranslationOutputArtifactGatewayContract {
+  const diffPreview: TranslationOutputDiffPreviewResponse = {
+    jobId: 402,
+    artifactId: 0,
+    rows: [],
+    compatibilitySummary: {
+      passed: true,
+      warningCount: 0,
+      rejectCount: 0
+    }
+  }
+
+  return {
+    getTranslationOutputReview: ({ selectedJobId }) =>
+      Promise.resolve(createTranslationOutputReview(selectedJobId)),
+    getTranslationOutputDiffPreview: () => Promise.resolve(diffPreview),
+    generateXTranslatorOutputArtifact: (request) =>
+      Promise.resolve({
+        jobId: request.jobId,
+        artifactId: 9101,
+        artifactStatus: "generated",
+        rowCount: 12,
+        targetGame: request.targetGame
+      }),
+    regenerateXTranslatorOutputArtifact: (request) =>
+      Promise.resolve({
+        jobId: request.jobId,
+        artifactId: request.artifactId,
+        artifactStatus: "generated",
+        rowCount: 12,
+        targetGame: request.targetGame
+      })
+  }
+}
+
 export function createDefaultReviewFakeApiGatewayRegistry(): ReviewFakeApiGatewayRegistry {
   return {
+    bodyTranslationPhase: (context) =>
+      createBodyTranslationPhaseGateway(context.scenarioId),
     masterPersona: (context) => createMasterPersonaGateway(context.scenarioId),
     providerSettings: (context) =>
       createProviderSettingsGateway(context.scenarioId),
     translationJobSetup: (context) =>
-      createTranslationJobSetupGateway(context.scenarioId)
+      createTranslationJobSetupGateway(context.scenarioId),
+    translationOutputArtifact: () => createTranslationOutputArtifactGateway()
   }
 }

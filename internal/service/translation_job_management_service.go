@@ -52,6 +52,7 @@ type TranslationJobManagementInputSourceSummaryReadModel struct {
 
 // TranslationJobManagementProgressSummaryReadModel summarizes one job progress state.
 type TranslationJobManagementProgressSummaryReadModel struct {
+	CurrentPhase      string
 	CurrentPhaseLabel string
 	Percent           int
 	ProgressLabel     string
@@ -90,6 +91,8 @@ type TranslationJobManagementJobSummaryReadModel struct {
 	JobState           string
 	JobStateLabel      string
 	StateTone          string
+	CanOpenPhase       bool
+	OpenBlockedReason  *TranslationJobManagementBlockedReasonReadModel
 	InputSource        TranslationJobManagementInputSourceSummaryReadModel
 	Progress           TranslationJobManagementProgressSummaryReadModel
 	StopAvailability   TranslationJobManagementOperationAvailabilityReadModel
@@ -463,6 +466,7 @@ func (service *TranslationJobManagementService) buildJobDetail(
 	stopAvailability := buildTranslationJobManagementStopAvailability(job, phaseRuns)
 	resumeAvailability := buildTranslationJobManagementResumeAvailability(job, resumeBlockedReasons)
 	deleteAvailability := buildTranslationJobManagementDeleteAvailability(job, warnings, phaseRuns)
+	canOpenPhase, openBlockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, progressSummary, warnings)
 
 	detail := TranslationJobManagementJobDetailReadModel{
 		TranslationJobManagementJobSummaryReadModel: TranslationJobManagementJobSummaryReadModel{
@@ -470,6 +474,8 @@ func (service *TranslationJobManagementService) buildJobDetail(
 			JobState:           publicTranslationJobManagementState(job.State),
 			JobStateLabel:      publicTranslationJobManagementStateLabel(job.State),
 			StateTone:          publicTranslationJobManagementStateTone(job.State),
+			CanOpenPhase:       canOpenPhase,
+			OpenBlockedReason:  openBlockedReason,
 			InputSource:        inputSource,
 			Progress:           progressSummary,
 			StopAvailability:   stopAvailability,
@@ -582,6 +588,7 @@ func buildTranslationJobManagementProgress(
 	job repository.TranslationJob,
 	phaseRuns []repository.JobPhaseRun,
 ) (TranslationJobManagementProgressSummaryReadModel, []TranslationJobManagementBlockedReasonReadModel) {
+	currentPhase := "term_translation"
 	currentPhaseLabel := "開始待ち"
 	percent := clampTranslationJobManagementPercent(job.ProgressPercent)
 	lastUpdated := translationJobManagementTimestamp(job.CreatedAt)
@@ -589,6 +596,7 @@ func buildTranslationJobManagementProgress(
 
 	currentRun, hasRun := findTranslationJobManagementCurrentRun(phaseRuns)
 	if hasRun {
+		currentPhase = publicTranslationJobManagementPhase(currentRun.PhaseType)
 		currentPhaseLabel = publicTranslationJobManagementPhaseLabel(currentRun.PhaseType)
 		percent = clampTranslationJobManagementPercent(currentRun.ProgressPercent)
 		lastUpdated = translationJobManagementMostRecentTimestamp(job, currentRun)
@@ -608,11 +616,44 @@ func buildTranslationJobManagementProgress(
 	}
 
 	return TranslationJobManagementProgressSummaryReadModel{
+		CurrentPhase:      currentPhase,
 		CurrentPhaseLabel: currentPhaseLabel,
 		Percent:           percent,
 		ProgressLabel:     fmt.Sprintf("%d%%", percent),
 		LastUpdatedLabel:  lastUpdated,
 	}, warnings
+}
+
+func buildTranslationJobManagementPhaseNavigationAvailability(
+	job repository.TranslationJob,
+	progress TranslationJobManagementProgressSummaryReadModel,
+	warnings []TranslationJobManagementBlockedReasonReadModel,
+) (bool, *TranslationJobManagementBlockedReasonReadModel) {
+	state := normalizeTranslationJobManagementValue(job.State)
+	if state == translationJobManagementJobStateCompleted {
+		reason := TranslationJobManagementBlockedReasonReadModel{
+			Category: translationJobManagementReasonStaleSelection,
+			Title:    "完了済み job です",
+			Detail:   "完了済み job は未完了一覧ではなく出力管理で扱います。",
+		}
+		return false, &reason
+	}
+	for _, warning := range warnings {
+		if warning.Category == translationJobManagementReasonStateProjectionInconsistent ||
+			warning.Category == translationJobManagementReasonPhaseProgressAggregationFailed {
+			reason := warning
+			return false, &reason
+		}
+	}
+	if strings.TrimSpace(progress.CurrentPhase) == "" {
+		reason := TranslationJobManagementBlockedReasonReadModel{
+			Category: translationJobManagementReasonStateProjectionInconsistent,
+			Title:    "現在の翻訳段階を判定できません",
+			Detail:   "job 状態を変えずに未完了一覧で理由だけを表示します。",
+		}
+		return false, &reason
+	}
+	return true, nil
 }
 
 func buildTranslationJobManagementRuntimeSummary(
@@ -895,6 +936,19 @@ func publicTranslationJobManagementPhaseLabel(value string) string {
 		return "本文翻訳"
 	default:
 		return "開始待ち"
+	}
+}
+
+func publicTranslationJobManagementPhase(value string) string {
+	switch normalizeTranslationJobManagementValue(value) {
+	case "translation", "term_translation":
+		return "term_translation"
+	case "persona_generation":
+		return "persona_generation"
+	case "body_translation":
+		return "body_translation"
+	default:
+		return "term_translation"
 	}
 }
 

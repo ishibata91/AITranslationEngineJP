@@ -1,5 +1,7 @@
 import type {
   TranslationJobManagementJobDetail,
+  TranslationJobManagementBlockedReason,
+  TranslationJobManagementCurrentPhase,
   TranslationJobManagementOperationAvailability,
   TranslationJobManagementReasonCategory
 } from "@application/gateway-contract/translation-job-management"
@@ -39,6 +41,8 @@ interface TranslationJobManagementScreenState {
     stateTone: TranslationJobManagementJobDetail["stateTone"]
     inputSource: TranslationJobManagementJobDetail["inputSource"]
     progress: TranslationJobManagementJobDetail["progress"]
+    canOpenPhase?: boolean
+    openBlockedReason?: TranslationJobManagementBlockedReason
     stopAvailability: TranslationJobManagementOperationAvailability
     resumeAvailability: TranslationJobManagementOperationAvailability
     deleteAvailability: TranslationJobManagementOperationAvailability
@@ -69,9 +73,16 @@ interface TranslationJobManagementJobCardViewModel {
   stateLabel: string
   stateDescription: string
   stateTone: TranslationJobManagementJobDetail["stateTone"]
+  inputSourceLabel: string
+  sourcePath: string
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   progressLabel: string
   lastUpdatedLabel: string
+  canOpenPhase: boolean
+  openBlockedReason: TranslationJobManagementBlockedReason | null
+  openBlockedReasonText: string
+  jobRunTarget: TranslationJobManagementJobRunTarget | null
   isSelected: boolean
   stopOperation: TranslationJobManagementOperationViewModel
   resumeOperation: TranslationJobManagementOperationViewModel
@@ -97,6 +108,7 @@ interface TranslationJobManagementSelectedJobViewModel {
   sourcePath: string
   pluginName: string
   extractedJsonLabel: string
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   progressLabel: string
   lastUpdatedLabel: string
@@ -125,6 +137,7 @@ interface TranslationJobManagementJobRunTarget {
   jobId: number
   stateLabel: string
   stateDescription: string
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   progressLabel: string
   inputSourceLabel: string
@@ -255,6 +268,8 @@ function toJobCard(
 ): TranslationJobManagementJobCardViewModel {
   const stateLabel =
     STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
+  const canOpenPhase = detail.canOpenPhase !== false
+  const openBlockedReason = detail.openBlockedReason ?? null
 
   return {
     jobId: detail.jobId,
@@ -263,9 +278,27 @@ function toJobCard(
     stateLabel,
     stateDescription: stateLabel,
     stateTone: detail.stateTone,
+    inputSourceLabel: detail.inputSource.inputSourceLabel,
+    sourcePath: detail.inputSource.sourcePath,
+    currentPhase: detail.progress.currentPhase,
     currentPhaseLabel: detail.progress.currentPhaseLabel,
     progressLabel: detail.progress.progressLabel,
     lastUpdatedLabel: detail.progress.lastUpdatedLabel,
+    canOpenPhase,
+    openBlockedReason,
+    openBlockedReasonText: openBlockedReason?.detail ?? "",
+    jobRunTarget: canOpenPhase
+      ? {
+          jobId: detail.jobId,
+          stateLabel,
+          stateDescription: stateLabel,
+          currentPhase: detail.progress.currentPhase,
+          currentPhaseLabel: detail.progress.currentPhaseLabel,
+          progressLabel: detail.progress.progressLabel,
+          inputSourceLabel: detail.inputSource.inputSourceLabel,
+          sourcePath: detail.inputSource.sourcePath
+        }
+      : null,
     isSelected: selectedJobId === detail.jobId,
     stopOperation: toOperationViewModel(
       detail.stopAvailability,
@@ -289,6 +322,10 @@ function toJobRunTarget(
     return null
   }
 
+  if (detail.canOpenPhase === false) {
+    return null
+  }
+
   const stateLabel =
     STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
 
@@ -296,6 +333,7 @@ function toJobRunTarget(
     jobId: detail.jobId,
     stateLabel,
     stateDescription: stateLabel,
+    currentPhase: detail.progress.currentPhase,
     currentPhaseLabel: detail.progress.currentPhaseLabel,
     progressLabel: detail.progress.progressLabel,
     inputSourceLabel: detail.inputSource.inputSourceLabel,
@@ -320,7 +358,7 @@ export class TranslationJobManagementPresenter {
     const selectedJob = state.selectedJobDetail
       ? {
           jobId: state.selectedJobDetail.jobId,
-          jobIdLabel: `Job #${state.selectedJobDetail.jobId}`,
+          jobIdLabel: `ジョブ #${state.selectedJobDetail.jobId}`,
           jobState: state.selectedJobDetail.jobState,
           stateLabel:
             STATE_DESCRIPTION[state.selectedJobDetail.jobState] ??
@@ -337,6 +375,7 @@ export class TranslationJobManagementPresenter {
           pluginName: state.selectedJobDetail.inputSource.pluginName,
           extractedJsonLabel:
             state.selectedJobDetail.inputSource.extractedJsonLabel,
+          currentPhase: state.selectedJobDetail.progress.currentPhase,
           currentPhaseLabel: state.selectedJobDetail.progress.currentPhaseLabel,
           progressLabel: state.selectedJobDetail.progress.progressLabel,
           lastUpdatedLabel: state.selectedJobDetail.progress.lastUpdatedLabel,
@@ -369,16 +408,17 @@ export class TranslationJobManagementPresenter {
 
     return {
       gatewayStatus: isGatewayConnected ? "接続済み" : "未接続",
-      pageTitle: "ジョブ管理",
-      pageLead: "進行中翻訳ジョブの再開，停止が可能です",
+      pageTitle: "未完了ジョブ一覧",
+      pageLead:
+        "新規翻訳を開始するか、未完了ジョブを選んで現在の翻訳段階から再開します。",
       headerCountLabel: `${jobCards.length} 件を表示`,
       listEmptyTitle: "管理対象がありません",
       listEmptyDescription:
-        "未完了 job はありません。入力確認または Job Setup から新しい job を用意してください。",
+        "未完了ジョブはありません。新規翻訳を開始して入力データの登録から進めてください。",
       listErrorTitle: "一覧を読み込めません",
       listErrorDescription:
-        "未完了 job の一覧取得に失敗しました。再読込しても直らない場合は、統合後の gateway を確認してください。",
-      detailPlaceholderTitle: "job を選択してください",
+        "未完了ジョブの一覧取得に失敗しました。再読込しても直らない場合は、統合後の gateway を確認してください。",
+      detailPlaceholderTitle: "ジョブを選択してください",
       detailPlaceholderDescription:
         "一覧から 1 件選ぶと、入力出自、進捗、再開不可理由、削除影響を確認できます。",
       phase: state.phase,
@@ -394,7 +434,7 @@ export class TranslationJobManagementPresenter {
           ? {
               title: `${selectedJob.jobIdLabel} を削除しますか`,
               lines: [...selectedJob.deleteImpactLines],
-              confirmLabel: "job 情報だけを削除する",
+              confirmLabel: "ジョブ情報だけを削除する",
               cancelLabel: "戻る",
               busy: state.activeOperation === "delete"
             }

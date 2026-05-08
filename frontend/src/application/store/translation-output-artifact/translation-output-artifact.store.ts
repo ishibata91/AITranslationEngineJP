@@ -79,6 +79,7 @@ interface TranslationOutputArtifactScreenState {
   viewState:
     | "loading"
     | "empty"
+    | "awaiting_selection"
     | "not_ready"
     | "ready"
     | "generating"

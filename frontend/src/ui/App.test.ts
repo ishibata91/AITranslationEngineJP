@@ -20,9 +20,11 @@ import type {
   TermTranslationPhaseScreenViewModel,
   TermTranslationPhaseScreenViewModelListener
 } from "@application/contract/term-translation-phase"
-import type { TranslationInputScreenControllerContract } from "@application/contract/translation-input"
-import type { TranslationInputScreenViewModelListener } from "@application/contract/translation-input/translation-input-screen-contract"
-import type { TranslationInputScreenViewModel } from "@application/gateway-contract/translation-input"
+import type {
+  TranslationJobManagementScreenControllerContract,
+  TranslationJobManagementScreenViewModelListener
+} from "@application/contract/translation-job-management/translation-job-management-screen-contract"
+import type { TranslationJobManagementScreenViewModel } from "@application/contract/translation-job-management/translation-job-management-screen-types"
 import type {
   MasterPersonaScreenViewModel,
   MasterPersonaDetail
@@ -397,39 +399,6 @@ function buildPersonaGenerationPhaseScreenViewModel(
   }
 }
 
-function buildTranslationInputScreenViewModel(
-  overrides: Partial<TranslationInputScreenViewModel> = {}
-): TranslationInputScreenViewModel {
-  return {
-    items: [],
-    selectedItemId: null,
-    stagedFile: null,
-    operationState: "idle",
-    errorMessage: "",
-    latestResponse: null,
-    selectedItem: null,
-    gatewayStatus: "接続準備済み",
-    hasStagedFile: false,
-    canImport: false,
-    canRebuildSelected: false,
-    isImporting: false,
-    isRebuilding: false,
-    stagedFileName: "未選択",
-    stagedFilePath: "-",
-    stagedFileHash: "-",
-    operationStatusLabel: "待機中",
-    operationStatusText:
-      "xEdit JSON を 1 件選び、登録結果と再構築状態をここで確認します。",
-    latestOutcomeTitle: "登録結果はまだありません。",
-    latestOutcomeText: "登録後に選択した入力データの概要をここへ表示します。",
-    selectionStatusText: "一覧から選択すると概要を右側へ表示します。",
-    totalItemCountLabel: "0 件の input review を保持しています。",
-    emptyStateText:
-      "まだ入力データがありません。JSON file を登録すると、一覧と sample field がここへ表示されます。",
-    ...overrides
-  }
-}
-
 class MasterDictionaryScreenControllerFake implements MasterDictionaryScreenControllerContract {
   private viewModel: MasterDictionaryScreenViewModel
 
@@ -623,27 +592,55 @@ class PersonaGenerationPhaseScreenControllerFake implements PersonaGenerationPha
   }
 }
 
-class TranslationInputScreenControllerFake implements TranslationInputScreenControllerContract {
-  private readonly viewModel: TranslationInputScreenViewModel
+function buildTranslationJobManagementScreenViewModel(): TranslationJobManagementScreenViewModel {
+  return {
+    gatewayStatus: "接続済み",
+    pageTitle: "未完了ジョブ一覧",
+    pageLead:
+      "新規翻訳を開始するか、未完了ジョブを選んで現在の翻訳段階から再開します。",
+    headerCountLabel: "0 件を表示",
+    listEmptyTitle: "管理対象がありません",
+    listEmptyDescription: "未完了ジョブはありません。",
+    listErrorTitle: "一覧を読み込めません",
+    listErrorDescription: "未完了ジョブの一覧取得に失敗しました。",
+    detailPlaceholderTitle: "job を選択してください",
+    detailPlaceholderDescription: "一覧から 1 件選びます。",
+    phase: "empty",
+    detailPhase: "idle",
+    isReloading: false,
+    searchQuery: "",
+    filterChips: [{ id: "all", label: "すべて", count: 0, selected: true }],
+    jobs: [],
+    feedback: null,
+    selectedJob: null,
+    deleteConfirmation: null,
+    jobRunTarget: null
+  }
+}
+
+class TranslationJobManagementScreenControllerFake
+  implements TranslationJobManagementScreenControllerContract
+{
+  private readonly viewModel = buildTranslationJobManagementScreenViewModel()
 
   readonly mount = vi.fn(async () => {})
   readonly dispose = vi.fn(() => {})
-  readonly selectItem = vi.fn(() => {})
-  readonly stageJsonImport = vi.fn(async () => {})
-  readonly resetImportSelection = vi.fn(() => {})
-  readonly startImport = vi.fn(async () => {})
-  readonly rebuildSelected = vi.fn(async () => {})
+  readonly reload = vi.fn(async () => {})
+  readonly selectJob = vi.fn(async () => {})
+  readonly setFilter = vi.fn()
+  readonly setSearchQuery = vi.fn()
+  readonly requestStop = vi.fn(async () => {})
+  readonly requestResume = vi.fn(async () => {})
+  readonly openDeleteConfirmation = vi.fn()
+  readonly closeDeleteConfirmation = vi.fn()
+  readonly deleteSelectedJob = vi.fn(async () => {})
 
-  constructor(initialViewModel = buildTranslationInputScreenViewModel()) {
-    this.viewModel = initialViewModel
-  }
-
-  subscribe(listener: TranslationInputScreenViewModelListener): () => void {
+  subscribe(listener: TranslationJobManagementScreenViewModelListener): () => void {
     void listener
     return () => {}
   }
 
-  getViewModel(): TranslationInputScreenViewModel {
+  getViewModel(): TranslationJobManagementScreenViewModel {
     return this.viewModel
   }
 }
@@ -1623,18 +1620,17 @@ describe("App term translation phase screen", () => {
     window.history.replaceState(null, "", "#translation-management")
   })
 
-  test("注入された term phase controller factory で Job Run を描画する", async () => {
-    const user = userEvent.setup()
+  test("未完了ジョブ未選択では翻訳段階 controller factory を起動しない", () => {
     const controller = new TermTranslationPhaseScreenControllerFake()
     const personaController = new PersonaGenerationPhaseScreenControllerFake()
-    const translationInputController =
-      new TranslationInputScreenControllerFake()
+    const jobManagementController =
+      new TranslationJobManagementScreenControllerFake()
     const createTermTranslationPhaseScreenController = vi.fn(() => controller)
     const createPersonaGenerationPhaseScreenController = vi.fn(
       () => personaController
     )
-    const createTranslationInputScreenController = vi.fn(
-      () => translationInputController
+    const createTranslationJobManagementScreenController = vi.fn(
+      () => jobManagementController
     )
 
     render(App, {
@@ -1645,32 +1641,18 @@ describe("App term translation phase screen", () => {
           new MasterPersonaScreenControllerFake(),
         createPersonaGenerationPhaseScreenController,
         createTermTranslationPhaseScreenController,
-        createTranslationInputScreenController
+        createTranslationJobManagementScreenController
       }
     })
 
-    expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(0)
-    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(
-      0
-    )
-    expect(createTranslationInputScreenController).toHaveBeenCalledTimes(1)
-
-    await user.click(screen.getByRole("tab", { name: /Job Run/ }))
-
     expect(
-      screen.getByRole("button", { name: "summary 取得" })
+      screen.getByRole("heading", { level: 2, name: "未完了ジョブ一覧" })
     ).toBeInTheDocument()
-
-    await waitFor(() => {
-      expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(
-        1
-      )
-      expect(
-        createPersonaGenerationPhaseScreenController
-      ).toHaveBeenCalledTimes(1)
-      expect(controller.mount).toHaveBeenCalledTimes(1)
-      expect(personaController.mount).toHaveBeenCalledTimes(1)
-    })
+    expect(screen.queryByRole("tab", { name: /Job Run|実行/ })).not.toBeInTheDocument()
+    expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(0)
+    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(0)
+    expect(controller.mount).toHaveBeenCalledTimes(0)
+    expect(personaController.mount).toHaveBeenCalledTimes(0)
   })
 })
 

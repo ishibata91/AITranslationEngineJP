@@ -12,9 +12,9 @@
 
   let { currentViewId, views, onSelect }: Props = $props()
 
-  function getStepState(
-    viewId: TranslationManagementViewId
-  ): "complete" | "current" | "upcoming" {
+  type StepState = "complete" | "current" | "upcoming"
+
+  function getStepState(viewId: TranslationManagementViewId): StepState {
     const currentIndex = views.findIndex((view) => view.id === currentViewId)
     const targetIndex = views.findIndex((view) => view.id === viewId)
 
@@ -34,41 +34,24 @@
   }
 
   function getStepStateLabel(
-    stepState: "complete" | "current" | "upcoming"
+    stepState: StepState,
+    directNavigation: boolean
   ): string {
-    switch (stepState) {
-      case "complete":
-        return "完了済み"
-      case "current":
-        return "現在位置"
-      default:
-        return "次の工程"
+    if (stepState === "current") {
+      return "現在の作業"
     }
-  }
 
-  function getLegacyLabel(viewId: TranslationManagementViewId): string | null {
-    switch (viewId) {
-      case "job-management":
-        return "Job Management"
-      case "job-setup":
-        return "Job Setup"
-      case "job-run":
-        return "Job Run"
-      default:
-        return null
-    }
+    return directNavigation ? "ここから開けます" : "順番に進む作業"
   }
 
   function getTabAriaLabel(
     view: TranslationManagementViewContract,
-    stepState: "complete" | "current" | "upcoming"
+    stepState: StepState
   ): string {
-    const legacyLabel = getLegacyLabel(view.id)
-    const labels = [getStepStateLabel(stepState), view.label]
-
-    if (legacyLabel) {
-      labels.push(legacyLabel)
-    }
+    const labels = [
+      getStepStateLabel(stepState, view.directNavigation),
+      view.label
+    ]
 
     labels.push(view.description)
     return labels.join(" ")
@@ -78,40 +61,65 @@
 <section class="translation-stepper">
   <div class="section-head">
     <div>
-      <p class="page-label">翻訳セクション</p>
-      <h2>進行ステップ</h2>
+      <p class="page-label">翻訳管理</p>
+      <h2>ジョブの進み方</h2>
     </div>
   </div>
 
-  <ol class="stepper-list" role="tablist" aria-label="翻訳管理セクション">
+  <ol class="stepper-list" aria-label="翻訳管理の進行状況">
     {#each views as view, index (view.id)}
       {@const stepState = getStepState(view.id)}
       <li
         class="stepper-item"
         class:is-complete={stepState === "complete"}
         class:is-current={stepState === "current"}
+        class:is-reference={!view.directNavigation}
       >
-        <button
-          aria-label={getTabAriaLabel(view, stepState)}
-          aria-selected={view.id === currentViewId ? "true" : "false"}
-          class="stepper-button"
-          data-step-state={stepState}
-          onclick={() => onSelect(view.id)}
-          role="tab"
-          type="button"
-        >
-          <span class="step-rail" aria-hidden="true">
-            <span class="step-marker">{view.stepNumber}</span>
-            {#if index < views.length - 1}
-              <span class="step-line"></span>
-            {/if}
-          </span>
-          <span class="step-body">
-            <span class="step-meta">{getStepStateLabel(stepState)}</span>
-            <strong>{view.label}</strong>
-            <small>{view.description}</small>
-          </span>
-        </button>
+        {#if view.directNavigation}
+          <button
+            aria-current={view.id === currentViewId ? "step" : undefined}
+            aria-label={getTabAriaLabel(view, stepState)}
+            class="stepper-card"
+            data-step-state={stepState}
+            onclick={() => onSelect(view.id)}
+            role="tab"
+            type="button"
+          >
+            <span class="step-rail" aria-hidden="true">
+              <span class="step-marker">{view.stepNumber}</span>
+              {#if index < views.length - 1}
+                <span class="step-line"></span>
+              {/if}
+            </span>
+            <span class="step-body">
+              <span class="step-meta">
+                {getStepStateLabel(stepState, view.directNavigation)}
+              </span>
+              <strong>{view.label}</strong>
+              <small>{view.description}</small>
+            </span>
+          </button>
+        {:else}
+          <div
+            aria-current={view.id === currentViewId ? "step" : undefined}
+            class="stepper-card"
+            data-step-state={stepState}
+          >
+            <span class="step-rail" aria-hidden="true">
+              <span class="step-marker">{view.stepNumber}</span>
+              {#if index < views.length - 1}
+                <span class="step-line"></span>
+              {/if}
+            </span>
+            <span class="step-body">
+              <span class="step-meta">
+                {getStepStateLabel(stepState, view.directNavigation)}
+              </span>
+              <strong>{view.label}</strong>
+              <small>{view.description}</small>
+            </span>
+          </div>
+        {/if}
       </li>
     {/each}
   </ol>
@@ -159,7 +167,7 @@
     min-width: 0;
   }
 
-  .stepper-button {
+  .stepper-card {
     width: 100%;
     min-height: 100%;
     position: relative;
@@ -180,8 +188,12 @@
       box-shadow var(--transition);
   }
 
-  .stepper-button:hover,
-  .stepper-button:focus-visible {
+  button.stepper-card {
+    cursor: pointer;
+  }
+
+  button.stepper-card:hover,
+  button.stepper-card:focus-visible {
     border-color: rgba(255, 186, 56, 0.24);
     background: rgba(255, 186, 56, 0.08);
     transform: translateY(-1px);
@@ -252,7 +264,11 @@
     background: rgba(255, 186, 56, 0.34);
   }
 
-  .stepper-item.is-current .stepper-button {
+  .stepper-item.is-reference .stepper-card {
+    cursor: default;
+  }
+
+  .stepper-item.is-current .stepper-card {
     border-color: rgba(255, 186, 56, 0.26);
     background:
       linear-gradient(180deg, rgba(255, 186, 56, 0.14), rgba(255, 186, 56, 0.06)),
@@ -286,7 +302,7 @@
       grid-template-columns: 1fr;
     }
 
-    .stepper-button {
+    .stepper-card {
       grid-template-columns: auto 1fr;
     }
 

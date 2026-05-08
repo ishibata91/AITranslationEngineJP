@@ -191,7 +191,7 @@ describe("InputReviewPage", () => {
     ).not.toBeInTheDocument()
   })
 
-  test("登録成功後は Job Setup へ進む button を表示し、クリックで callback を呼ぶ", async () => {
+  test("登録成功後は翻訳設定へ進む footer を表示し、クリックで callback を呼ぶ", async () => {
     const user = userEvent.setup()
     const onOpenJobSetup = vi.fn()
     const controller = new TranslationInputScreenControllerFake()
@@ -209,14 +209,18 @@ describe("InputReviewPage", () => {
       )
     ).toBeInTheDocument()
 
+    const footer = screen.getByRole("region", {
+      name: "次の作業"
+    })
+
     await user.click(
-      screen.getByRole("button", { name: "Job Setup へ進む" })
+      within(footer).getByRole("button", { name: "翻訳設定へ進む" })
     )
 
     expect(onOpenJobSetup).toHaveBeenCalledTimes(1)
   })
 
-  test("failed item では Job Setup へ進む button を表示しない", () => {
+  test("failed item では翻訳設定へ進む button を表示しない", () => {
     const failedItem = createItem({
       localId: "failed-item",
       status: "failed",
@@ -244,7 +248,7 @@ describe("InputReviewPage", () => {
     })
 
     expect(
-      screen.queryByRole("button", { name: "Job Setup へ進む" })
+      screen.queryByRole("button", { name: "翻訳設定へ進む" })
     ).not.toBeInTheDocument()
   })
 

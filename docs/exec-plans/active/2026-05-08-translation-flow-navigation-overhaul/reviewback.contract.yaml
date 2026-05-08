@@ -1,0 +1,158 @@
+reviewback_version: 1
+task_id: "2026-05-08-translation-flow-navigation-overhaul"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "review_status: pass 相当。frontend contract、fake gateway、Wails DTO、backend usecase/controller の navigation readiness shape は整合している。progress.currentPhase、canOpenPhase、openBlockedReason は画面 contract と presenter を経由して jobRunTarget と View guard に反映されている。"
+  evidence_sufficiency: "十分。呼び出し元の frontend-local、backend-local、coverage pass を検証証跡として扱い、差分の contract seam を静的に確認した。"
+
+checked_scope:
+  summary: "前回 issue の対象である progress.currentPhase、phase open guard、fake gateway、Wails DTO、frontend contract、presenter、View、job-run target、直リンク正規化を確認した。新規 major 以上 issue は見つからなかった。"
+  files:
+    - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+      line: 23
+      symbol: "TranslationJobManagementCurrentPhase"
+      reason: "frontend gateway contract が currentPhase の安定 ID を持つことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+      line: 55
+      symbol: "TranslationJobManagementProgressSummary"
+      reason: "progress.currentPhase が frontend gateway contract に追加されたことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+      line: 86
+      symbol: "TranslationJobManagementJobSummary"
+      reason: "canOpenPhase と openBlockedReason が frontend gateway contract に存在することを確認した。"
+    - path: "frontend/src/application/contract/translation-job-management/translation-job-management-screen-types.ts"
+      line: 77
+      symbol: "TranslationJobManagementJobCardViewModel"
+      reason: "画面 contract が currentPhase、canOpenPhase、openBlockedReason、jobRunTarget を持つことを確認した。"
+    - path: "frontend/src/application/contract/translation-job-management/translation-job-management-screen-types.ts"
+      line: 144
+      symbol: "TranslationJobManagementJobRunTarget"
+      reason: "jobRunTarget が currentPhase を持ち、表示 label 依存から外れたことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 264
+      symbol: "toJobCard"
+      reason: "presenter が guard と currentPhase を job card と jobRunTarget へ写すことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 318
+      symbol: "toJobRunTarget"
+      reason: "selected job detail 側でも canOpenPhase false なら jobRunTarget を作らないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 103
+      symbol: "handleOpenJob"
+      reason: "View が presenter の jobRunTarget と canOpenPhase guard に従うことを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 119
+      symbol: "syncRouteFromHash"
+      reason: "#translation-management/job-run 直リンクを未完了一覧へ正規化することを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+      symbol: "openTranslationJobRun"
+      reason: "一覧選択後の target だけが job-run 表示へ進むことを確認した。"
+    - path: "frontend/src/ui/screens/job-run/JobRunPage.svelte"
+      line: 84
+      symbol: "resolveInitialPhasePage"
+      reason: "JobRunPage が currentPhase の安定 ID で初期 phase page を解決することを確認した。"
+    - path: "frontend/src/controller/translation-job-management/translation-job-management-review-gateway.ts"
+      line: 698
+      symbol: "toSummary"
+      reason: "fake gateway の summary が canOpenPhase と openBlockedReason を返すことを確認した。"
+    - path: "internal/usecase/translation_job_management_contract.go"
+      line: 31
+      symbol: "TranslationJobManagementProgressSummary"
+      reason: "backend usecase contract が CurrentPhase を返すことを確認した。"
+    - path: "internal/controller/wails/translation_job_management_controller.go"
+      line: 34
+      symbol: "TranslationJobManagementProgressSummaryDTO"
+      reason: "Wails DTO が currentPhase を json field として返すことを確認した。"
+    - path: "internal/controller/wails/translation_job_management_controller.go"
+      line: 69
+      symbol: "TranslationJobManagementJobSummaryDTO"
+      reason: "Wails DTO が canOpenPhase と openBlockedReason を返すことを確認した。"
+    - path: "frontend/wailsjs/go/models.ts"
+      line: 3483
+      symbol: "TranslationJobManagementProgressSummaryDTO"
+      reason: "generated Wails model に currentPhase が反映されていることを確認した。"
+    - path: "frontend/wailsjs/go/models.ts"
+      line: 3546
+      symbol: "TranslationJobManagementJobSummaryDTO"
+      reason: "generated Wails model に canOpenPhase と openBlockedReason が反映されていることを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.test.ts"
+      line: 188
+      symbol: "開けない job は理由を保持し、phase page target を作らない"
+      reason: "guard false の presenter 契約テストが追加されていることを確認した。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 1623
+      symbol: "未完了ジョブ未選択では翻訳段階 controller factory を起動しない"
+      reason: "未選択時に phase controller を起動しない契約テストがあることを確認した。"
+
+unchecked_scope:
+  - target: "広いハーネス再実行"
+    reason: "呼び出し元が frontend-local、backend-local、coverage の pass を提示済みであり、広い再実行は契約レビューの責務外とした。"
+    risk: "レビュー時点の作業ツリーから再実行した結果との差分は未確認。"
+  - target: "実ブラウザ操作証跡"
+    reason: "契約・互換性レビューでは差分の public seam と提示済み検証結果を確認した。"
+    risk: "実画面上の文言表示位置や視認性の問題は UX/behavior 観点に残る可能性がある。"
+
+issues:
+  - id: "contract-001"
+    level: "major"
+    title: "翻訳段階 ID が frontend gateway contract に存在しない"
+    problem: "前回は backend と Wails DTO が progress.currentPhase を返す一方で、frontend gateway contract と jobRunTarget が currentPhase を持たなかった。"
+    reason: "修正後は frontend gateway contract、画面 contract、presenter、jobRunTarget、JobRunPage が currentPhase を保持し、表示 label ではなく安定 ID で phase page を解決している。"
+    violated_condition: "frontend contract、gateway contract、Wails DTO、backend usecase/controller contract は同じ navigation readiness shape を共有する。"
+    cause_candidate: "修正前は Wails DTO と backend usecase への追加に対して frontend contract と job run target の追随が不足していた。修正後は同一 field が伝播している。"
+    evidence:
+      - path: "frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts"
+        line: 55
+        excerpt: "TranslationJobManagementProgressSummary が currentPhase を持つ。"
+      - path: "frontend/src/application/contract/translation-job-management/translation-job-management-screen-types.ts"
+        line: 144
+        excerpt: "TranslationJobManagementJobRunTarget が currentPhase を持つ。"
+      - path: "frontend/src/ui/screens/job-run/JobRunPage.svelte"
+        line: 84
+        excerpt: "resolveInitialPhasePage が target.currentPhase で phase page を解決する。"
+      - path: "internal/controller/wails/translation_job_management_controller.go"
+        line: 34
+        excerpt: "TranslationJobManagementProgressSummaryDTO が currentPhase を返す。"
+    local_fix_assessment: "closed"
+    additional_check_scope: "none。契約 shape と伝播先は確認済み。"
+    fix_considerations: "今後 currentPhase の値を増やす場合は backend の public phase 値、frontend union、JobRunPage の解決先を同時更新する必要がある。"
+    verification: "提示済み検証では frontend-local 57 files / 503 tests、backend-local、coverage が pass。presenter test で currentPhase を含む jobRunTarget を確認している。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "contract-002"
+    level: "major"
+    title: "phase open guard が frontend contract と fake gateway に伝播していない"
+    problem: "前回は backend と Wails DTO が canOpenPhase と openBlockedReason を返す一方で、frontend view model と fake gateway が同じ guard を保持せず、UI が常に job-run target を作れた。"
+    reason: "修正後は fake gateway summary、frontend gateway contract、screen contract、presenter、View が canOpenPhase と openBlockedReason を扱い、canOpenPhase false では jobRunTarget を null にして phase page を開かない。"
+    violated_condition: "phase page は job 確定後だけ表示し、開けない理由は gateway contract から frontend contract まで欠落なく伝播する。"
+    cause_candidate: "修正前は frontend view model と fake gateway の追随不足により、backend readiness seam が画面導線に届いていなかった。修正後は presenter と View guard に反映されている。"
+    evidence:
+      - path: "frontend/src/controller/translation-job-management/translation-job-management-review-gateway.ts"
+        line: 698
+        excerpt: "toSummary が canOpenPhase と openBlockedReason を返す。"
+      - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+        line: 271
+        excerpt: "canOpenPhase が false のとき jobRunTarget を作らない。"
+      - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+        line: 103
+        excerpt: "handleOpenJob が canOpenPhase と jobRunTarget を確認する。"
+      - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+        line: 291
+        excerpt: "openBlockedReasonText を翻訳段階の無効理由として表示する。"
+      - path: "frontend/src/ui/views/AppShell.svelte"
+        line: 140
+        excerpt: "job-run hash 直リンクは selectedJobRunTarget を作らず未完了一覧へ正規化する。"
+    local_fix_assessment: "closed"
+    additional_check_scope: "none。fake gateway、Wails DTO、frontend contract、presenter、View guard は確認済み。"
+    fix_considerations: "canOpenPhase を optional として受ける frontend contract は既存 fake fixture の後方互換を保つ。Wails 由来の false は presenter で必ず false として扱う必要がある。"
+    verification: "提示済み検証では frontend-local 57 files / 503 tests、backend-local、coverage が pass。presenter test で canOpenPhase false の jobRunTarget null を確認している。"
+    fix_required: true
+    status: "resolved"

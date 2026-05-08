@@ -1,0 +1,116 @@
+reviewback_version: 1
+task_id: "2026-05-08-translation-flow-navigation-overhaul"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "pass。前回指摘の canOpenPhase=false job の phase page 遷移抑止と、旧 #translation-management/job-run 直リンクの未完了一覧正規化は実コード上で閉じている。progress.currentPhase も view model と jobRunTarget へ伝播し、一覧選択後は現在の翻訳段階に対応する phase view を開く。新規 major 以上 issue は確認しなかった。"
+  evidence_sufficiency: "十分。task 内の implementation-scope、既存 reviewback、frontend の shell、未完了一覧 page、translation-job-management presenter、screen type、AppShell test、presenter test を確認した。呼び出し元の frontend-local、backend-local、coverage の pass 証跡もレビュー入力として扱った。"
+
+checked_scope:
+  summary: "前回 finding の修正差分を中心に、一覧行、現在の翻訳段階へ進むボタン、jobRunTarget 生成、currentPhase 伝播、旧 job-run hash 正規化を確認した。"
+  files:
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 271
+      symbol: "toJobCard"
+      reason: "canOpenPhase=false を job card view model に伝播し、jobRunTarget を null にすることを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 325
+      symbol: "toJobRunTarget"
+      reason: "選択済み detail でも canOpenPhase=false の場合は phase page target を作らないことを確認した。"
+    - path: "frontend/src/application/contract/translation-job-management/translation-job-management-screen-types.ts"
+      line: 77
+      symbol: "TranslationJobManagementJobCardViewModel"
+      reason: "canOpenPhase、openBlockedReason、currentPhase、jobRunTarget が view model に含まれることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 103
+      symbol: "handleOpenJob"
+      reason: "canOpenPhase=false または jobRunTarget=null の job は selectJob だけを行い、phase page を開かないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 221
+      symbol: "job-card href"
+      reason: "開けない job の href は未完了一覧に留まり、click handler も phase page 遷移を抑止することを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 248
+      symbol: "continue-button"
+      reason: "現在の翻訳段階へ進むボタンが canOpenPhase=false で disabled になることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 140
+      symbol: "syncRouteFromHash"
+      reason: "#translation-management/job-run で始まる hash を未完了一覧へ正規化することを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+      symbol: "openTranslationJobRun"
+      reason: "一覧選択で受け取った jobRunTarget がある場合だけ job-run 表示へ進み、currentPhase から phase view を解決することを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 139
+      symbol: "hash direct link test"
+      reason: "旧 job-run hash 直リンクが #translation-management に戻り、未完了一覧を表示するテストを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.test.ts"
+      line: 188
+      symbol: "canOpenPhase=false test"
+      reason: "開けない job が理由を保持し、phase page target を作らないテストを確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "codex-review-behavior skill はハーネスを実行しないため、呼び出し元の検証証跡を入力として扱った。"
+    risk: "レビュー時点の作業ツリーで同じ pass が再現するかは未確認である。"
+  - target: "実装後ブラウザ確認の画像内容"
+    reason: "今回の再レビュー依頼は前回 finding の実コード閉塞確認であり、画像の視覚再確認は実施していない。"
+    risk: "表示崩れや文言の細部差分は別 UX / ブラウザ確認の証跡に依存する。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "参照不能 job をフェーズページへ進める"
+    problem: "前回は canOpenPhase=false の job でも一覧行と現在の翻訳段階へ進むボタンから phase page を開けた。修正後は presenter が canOpenPhase と openBlockedReason を view model に渡し、canOpenPhase=false の jobRunTarget を null にする。page 側も canOpenPhase=false の job では selectJob だけを行い、phase page を開かない。"
+    reason: "参照不能 job は一覧で理由を見せ、フェーズページには進めないという SCN-TFN-003 の挙動に一致する。"
+    violated_condition: "解決済み。SCN-TFN-003: 参照不能 job は一覧で理由を見せ、フェーズページには進めない。"
+    cause_candidate: "解決済み。frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts:271 と frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte:103 により、前回原因の canOpenPhase 未伝播と無条件遷移が閉じている。"
+    evidence:
+      - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+        line: 271
+        excerpt: "detail.canOpenPhase !== false を canOpenPhase とし、false の場合は jobRunTarget を null にする。"
+      - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+        line: 103
+        excerpt: "job.canOpenPhase または job.jobRunTarget がない場合は selectJob だけを行って return する。"
+      - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+        line: 248
+        excerpt: "現在の翻訳段階へ進むボタンは disabled={!job.canOpenPhase} を持つ。"
+      - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.test.ts"
+        line: 188
+        excerpt: "開けない job は理由を保持し、phase page target を作らないことを確認している。"
+    local_fix_assessment: "resolved。frontend の presenter、screen type、page、presenter test の局所修正で前回症状は閉じている。"
+    additional_check_scope: "none。前回 finding の主要経路は実コードと presenter test で確認済み。"
+    fix_considerations: "修正済み確認。開けない job でも一覧表示、理由表示、削除などの操作表示は維持されている。"
+    verification: "呼び出し元証跡として python3 scripts/harness/run.py --suite frontend-local、backend-local、coverage が pass。presenter test で canOpenPhase=false の target null 化を確認している。"
+    fix_required: false
+    status: "resolved"
+
+  - id: "behavior-002"
+    level: "major"
+    title: "hash query でフェーズページへ直接入れる"
+    problem: "前回は #translation-management/job-run?jobId=... の hash query から jobRunTarget を生成し、未完了一覧選択なしに phase page へ入れた。修正後は #translation-management/job-run で始まる hash を未完了一覧へ正規化し、URL から jobRunTarget を生成しない。"
+    reason: "フェーズページへの直移動は未完了 job 一覧へ戻すという REQ-TFN-004 の挙動に一致する。"
+    violated_condition: "解決済み。REQ-TFN-004: フェーズページへの直移動は未完了 job 一覧へ戻す。"
+    cause_candidate: "解決済み。frontend/src/ui/views/AppShell.svelte:140 の syncRouteFromHash が旧 job-run hash を未完了一覧へ正規化し、前回原因の hash query 信頼経路を削除している。"
+    evidence:
+      - path: "frontend/src/ui/views/AppShell.svelte"
+        line: 140
+        excerpt: "#translation-management/job-run で始まる hash では selectedJobRunTarget を null にし、#translation-management へ replaceState する。"
+      - path: "frontend/src/ui/views/AppShell.svelte"
+        line: 177
+        excerpt: "openTranslationJobRun は引数または既存 state の jobRunTarget がある場合だけ job-run 表示へ進む。"
+      - path: "frontend/src/ui/views/AppShell.test.ts"
+        line: 139
+        excerpt: "#translation-management/job-run?jobId=10&phase=本文翻訳 が #translation-management へ戻ることを確認している。"
+    local_fix_assessment: "resolved。AppShell の hash 同期と AppShell test の局所修正で前回症状は閉じている。"
+    additional_check_scope: "none。前回 finding の主要経路は実コードと AppShell test で確認済み。"
+    fix_considerations: "修正済み確認。一覧選択後の onOpenJobRun(target) 経路は維持され、URL 文字列だけで jobId を採用しない。"
+    verification: "呼び出し元証跡として python3 scripts/harness/run.py --suite frontend-local、backend-local、coverage が pass。AppShell test で旧 hash 直リンクの正規化を確認している。"
+    fix_required: false
+    status: "resolved"

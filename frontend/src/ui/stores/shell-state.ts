@@ -11,6 +11,11 @@ export type TranslationManagementViewId =
   | "job-setup"
   | "job-management"
   | "job-run"
+  | "term-translation"
+  | "persona-generation"
+  | "body-translation"
+  | "translation-complete"
+  | "output-management"
 
 export interface ShellRouteContract {
   id: ShellRouteId
@@ -25,6 +30,7 @@ export interface TranslationManagementViewContract {
   label: string
   description: string
   stepNumber: number
+  directNavigation: boolean
 }
 
 const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
@@ -59,10 +65,10 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "translation-management",
     label: "翻訳管理",
-    state: "ジョブ管理を含む",
-    lead: "ジョブ管理、データロード、セットアップ、実行を順番に切り替え、未完了 job 管理から翻訳実行表示までを確認するページです。",
+    state: "未完了ジョブ入口",
+    lead: "未完了ジョブ一覧から新規翻訳の開始と途中再開を選び、対象ジョブを固定して翻訳を進めるページです。",
     description:
-      "ジョブ管理、データロード、validation、ready job 作成、term phase、persona phase、body phase の実行状況をまとめて確認します。"
+      "未完了ジョブ一覧、新規翻訳の開始、対象ジョブの現在の翻訳段階への再開を扱います。"
   },
   {
     id: "output-management",
@@ -77,28 +83,59 @@ const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementV
   [
     {
       id: "job-management",
-      label: "ジョブ管理",
-      description: "未完了 job の一覧、詳細、操作可否を最初に確認します。",
-      stepNumber: 1
+      label: "未完了のジョブ",
+      description: "新しい翻訳を始めるか、途中のジョブを再開します。",
+      stepNumber: 1,
+      directNavigation: true
     },
     {
       id: "input-review",
-      label: "データロード",
-      description: "入力ファイルの登録結果と再構築判断を確認します。",
-      stepNumber: 2
+      label: "入力データの確認",
+      description: "翻訳に使う入力データを選び、登録結果を確認します。",
+      stepNumber: 2,
+      directNavigation: false
     },
     {
       id: "job-setup",
-      label: "セットアップ",
-      description: "validation と ready job 作成を確認します。",
-      stepNumber: 3
+      label: "翻訳設定",
+      description: "入力データと AI 設定を確認し、ジョブを作成します。",
+      stepNumber: 3,
+      directNavigation: false
     },
     {
-      id: "job-run",
-      label: "実行",
-      description:
-        "term phase、persona phase、body phase の progress、result summary、output readiness を確認します。",
-      stepNumber: 4
+      id: "term-translation",
+      label: "単語翻訳",
+      description: "選択したジョブで、単語翻訳を実行します。",
+      stepNumber: 4,
+      directNavigation: false
+    },
+    {
+      id: "persona-generation",
+      label: "NPC ペルソナ生成",
+      description: "単語翻訳の完了後に、NPC の話し方や役割を整理します。",
+      stepNumber: 5,
+      directNavigation: false
+    },
+    {
+      id: "body-translation",
+      label: "本文翻訳",
+      description: "NPC ペルソナを参照できる状態で、本文の翻訳を実行します。",
+      stepNumber: 6,
+      directNavigation: false
+    },
+    {
+      id: "translation-complete",
+      label: "翻訳結果の確認",
+      description: "本文翻訳が完了した後に、原文と訳文を確認します。",
+      stepNumber: 7,
+      directNavigation: false
+    },
+    {
+      id: "output-management",
+      label: "出力管理",
+      description: "翻訳結果を確認した後に、出力するジョブを選びます。",
+      stepNumber: 8,
+      directNavigation: false
     }
   ]
 
@@ -113,7 +150,7 @@ export function createShellState(): ShellState {
   return {
     defaultRouteId: "dashboard",
     routes: SHELL_ROUTE_CONTRACT.map((route) => ({ ...route })),
-    defaultTranslationManagementViewId: "input-review",
+    defaultTranslationManagementViewId: "job-management",
     translationManagementViews: TRANSLATION_MANAGEMENT_VIEW_CONTRACT.map(
       (view) => ({
         ...view

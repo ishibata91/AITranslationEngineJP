@@ -82,6 +82,7 @@ export interface TranslationOutputArtifactErrorSummary {
 
 export interface TranslationOutputReviewResponse {
   completedJobs: TranslationOutputCompletedJobSummary[]
+  hasSelectedJob?: boolean
   selectedJob: TranslationOutputSelectedJobSummary
   outputReadiness: TranslationOutputReadinessSummary
   artifactStatus: TranslationOutputArtifactStatusSummary

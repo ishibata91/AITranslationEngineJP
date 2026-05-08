@@ -19,6 +19,7 @@ export type TranslationOutputArtifactErrorKind =
 export type TranslationOutputArtifactViewState =
   | "loading"
   | "empty"
+  | "awaiting_selection"
   | "not_ready"
   | "ready"
   | "generating"

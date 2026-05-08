@@ -13,7 +13,6 @@
     formatErrorKind: (errorKind: string | null) => string
     formatWarningKind: (kind: string) => string
     onRebuild: () => void | Promise<void>
-    onOpenJobSetup?: () => void
   }
 
   let {
@@ -26,11 +25,10 @@
     formatDate,
     formatErrorKind,
     formatWarningKind,
-    onRebuild,
-    onOpenJobSetup = undefined
+    onRebuild
   }: Props = $props()
 
-  const showOpenJobSetup = $derived(canOpenJobSetup(selectedItem))
+  const showNextStepGuidance = $derived(canOpenJobSetup(selectedItem))
 </script>
 
 <section class="panel detail-panel" aria-labelledby="inputReviewDetailHeading">
@@ -206,7 +204,7 @@
         </div>
       </section>
 
-      {#if showOpenJobSetup}
+      {#if showNextStepGuidance}
         <section class="detail-section" aria-labelledby="inputReviewNextStepHeading">
           <div class="section-head section-head-compact issue-head">
             <div class="title-stack">
@@ -216,13 +214,6 @@
                 で job を作成してください。
               </p>
             </div>
-            <button
-              class="button-primary"
-              onclick={() => onOpenJobSetup?.()}
-              type="button"
-            >
-              Job Setup へ進む
-            </button>
           </div>
         </section>
       {/if}

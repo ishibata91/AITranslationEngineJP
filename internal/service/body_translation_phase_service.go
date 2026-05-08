@@ -363,6 +363,9 @@ func (service *BodyTranslationPhaseService) StartPhase(
 		result := service.rejectedCommand(loaded, *rejection)
 		return result, errBodyTranslationPhaseExecutionRejected
 	}
+	if loaded.bodyRun != nil {
+		return service.existingBodyTranslationPhaseRun(loaded)
+	}
 
 	createdRun, updatedJob, err := service.createBodyTranslationPhaseRun(ctx, loaded)
 	if err != nil {
@@ -379,6 +382,12 @@ func (service *BodyTranslationPhaseService) StartPhase(
 }
 
 const errLoadBodyTranslationPhaseRun = "load body translation phase run: %w"
+
+func (service *BodyTranslationPhaseService) existingBodyTranslationPhaseRun(
+	loaded bodyTranslationLoadedContext,
+) (BodyTranslationPhaseCommandReadModel, error) {
+	return service.bodyTranslationCommandFromLoaded(loaded, nil, nil), nil
+}
 
 type bodyTranslationStartState struct {
 	runState        string
@@ -844,12 +853,6 @@ func (service *BodyTranslationPhaseService) startRejection(
 			reason:    bodyTranslationRuntimeSnapshotMissing,
 		}
 	}
-	if loaded.bodyRun != nil && isBodyTranslationActiveRunState(strings.TrimSpace(loaded.bodyRun.State)) {
-		return &bodyTranslationStartRejection{
-			errorKind: "active_phase_exists",
-			reason:    "body translation phase run already exists",
-		}
-	}
 	return nil
 }
 
@@ -1308,6 +1311,9 @@ func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransi
 	if loaded.bodyRun == nil || loaded.bodyRun.ID != phaseRunID {
 		return loaded, repository.JobPhaseRun{}, fmt.Errorf(errLoadBodyTranslationPhaseRun, repository.ErrNotFound)
 	}
+	if isBodyTranslationTerminalJob(loaded.job.State) {
+		return loaded, *loaded.bodyRun, fmt.Errorf("body translation phase state transition rejected: terminal job")
+	}
 	if nextState == bodyTranslationPhaseStateRunning && loaded.inputSnapshotDrifted {
 		return loaded, *loaded.bodyRun, errors.New(bodyTranslationInputSnapshotDriftReason)
 	}
@@ -1727,15 +1733,6 @@ func toBodyTranslationRequestSummaryReadModel(
 func isBodyTranslationTerminalJob(state string) bool {
 	switch strings.TrimSpace(state) {
 	case bodyTranslationJobStateCompleted, bodyTranslationJobStateFailed, bodyTranslationJobStateCanceled:
-		return true
-	default:
-		return false
-	}
-}
-
-func isBodyTranslationActiveRunState(state string) bool {
-	switch strings.TrimSpace(state) {
-	case bodyTranslationPhaseStateRunning, bodyTranslationPhaseStatePaused, bodyTranslationPhaseStateRecoverableFail:
 		return true
 	default:
 		return false

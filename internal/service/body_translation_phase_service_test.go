@@ -504,6 +504,159 @@ func TestBodyTranslationPhaseServiceStartPhaseCompletesWithoutPersonaSnapshot(t 
 	assertBodyPhaseCompletedJobState(t, result, jobRepo.job)
 }
 
+func TestBodyTranslationPhaseServiceStartPhaseReusesRunningRunWithoutProviderRequest(t *testing.T) {
+	requests := make([]BodyTranslationProviderRequest, 0)
+	provider := fakeBodyPhaseProvider{
+		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {
+			requests = append(requests, request)
+			return BodyTranslationProviderResult{
+				RequestUnitID:       request.RequestUnitID,
+				FieldCorrelationKey: request.FieldCorrelationKey,
+				RecordType:          request.RecordType,
+				FieldType:           request.FieldType,
+				TranslatedCandidate: &BodyTranslationTranslatedCandidate{
+					RequestUnitID:       request.RequestUnitID,
+					FieldCorrelationKey: request.FieldCorrelationKey,
+					RecordType:          request.RecordType,
+					FieldType:           request.FieldType,
+					TranslatedText:      request.SourceText + "_ja",
+				},
+				ProtectionValidationTarget: &BodyTranslationProtectionValidationTarget{
+					RequestUnitID:       request.RequestUnitID,
+					FieldCorrelationKey: request.FieldCorrelationKey,
+					TranslatedText:      request.SourceText + "_ja",
+				},
+			}
+		},
+	}
+	service, jobRepo, outputRepo := newBodyTranslationPhaseServiceForTest(provider)
+	startedAt := time.Date(2026, 5, 3, 11, 0, 0, 0, time.UTC)
+	jobRepo.job.State = bodyTranslationJobStateRunning
+	jobRepo.runsByPhaseType[bodyTranslationPhaseType] = repository.JobPhaseRun{
+		ID:               220,
+		TranslationJobID: 1,
+		PhaseType:        bodyTranslationPhaseType,
+		State:            bodyTranslationPhaseStateRunning,
+		ProgressPercent:  50,
+		StartedAt:        &startedAt,
+		ExecutionMode:    "sync",
+		AIProvider:       BodyTranslationProviderLMStudio,
+		ModelName:        "local-model",
+		CredentialRef:    "lmstudio-local",
+	}
+	outputRepo.fields = []repository.JobTranslationField{
+		{
+			ID:                 1,
+			TranslationJobID:   1,
+			TranslationFieldID: 101,
+			TranslatedText:     "Hello there_ja",
+			OutputStatus:       bodyTranslationOutputStatusReady,
+		},
+	}
+	outputRepo.nextID = 1
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start resend to reuse running run, got %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != 220 {
+		t.Fatalf("expected existing phase run id, got %#v", result.PhaseRunID)
+	}
+	if len(outputRepo.fields) != 1 {
+		t.Fatalf("expected no output to be created on start resend, got %#v", outputRepo.fields)
+	}
+	if len(requests) != 0 {
+		t.Fatalf("expected no provider request on start resend, got %#v", requests)
+	}
+	if jobRepo.nextPhaseRunID != 200 {
+		t.Fatalf("expected no new phase run, got next id %d", jobRepo.nextPhaseRunID)
+	}
+}
+
+func TestBodyTranslationPhaseServiceRejectsLateResponseForOldPhaseRun(t *testing.T) {
+	service, jobRepo, outputRepo := newBodyTranslationPhaseServiceForTest(nil)
+	jobRepo.job.State = bodyTranslationJobStateRunning
+	jobRepo.runsByPhaseType[bodyTranslationPhaseType] = repository.JobPhaseRun{
+		ID:               220,
+		TranslationJobID: 1,
+		PhaseType:        bodyTranslationPhaseType,
+		State:            bodyTranslationPhaseStateRunning,
+		ProgressPercent:  50,
+		ExecutionMode:    "sync",
+		AIProvider:       BodyTranslationProviderLMStudio,
+		ModelName:        "local-model",
+		CredentialRef:    "lmstudio-local",
+	}
+
+	result, err := service.PersistBodyTranslationFieldResults(context.Background(), BodyTranslationFieldResultPersistenceRequest{
+		TranslationJobID: 1,
+		PhaseRunID:       999,
+		TargetFields: []BodyTranslationFieldResultTarget{
+			{
+				TranslationFieldID:    101,
+				FieldCorrelationKey:   "field:101",
+				OutputStatusCandidate: bodyTranslationOutputStatusReady,
+			},
+		},
+		ProviderResults: []BodyTranslationProviderResult{
+			{
+				RequestUnitID:       "body-field-101",
+				FieldCorrelationKey: "field:101",
+				TranslatedCandidate: &BodyTranslationTranslatedCandidate{
+					RequestUnitID:       "body-field-101",
+					FieldCorrelationKey: "field:101",
+					RecordType:          "INFO",
+					FieldType:           "FULL",
+					TranslatedText:      "late text",
+				},
+				ProtectionValidationTarget: &BodyTranslationProtectionValidationTarget{
+					RequestUnitID:       "body-field-101",
+					FieldCorrelationKey: "field:101",
+					TranslatedText:      "late text",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("expected late response rejection without persistence error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "late_response_rejected" {
+		t.Fatalf("expected late response rejected summary, got %#v", result.ErrorSummary)
+	}
+	if len(outputRepo.fields) != 0 {
+		t.Fatalf("expected no output persistence for old run, got %#v", outputRepo.fields)
+	}
+	if len(jobRepo.updateJobDrafts) != 0 || len(jobRepo.updatePhaseRunDrafts) != 0 {
+		t.Fatalf("expected no state mutation for old run, got job=%#v run=%#v", jobRepo.updateJobDrafts, jobRepo.updatePhaseRunDrafts)
+	}
+}
+
+func TestBodyTranslationPhaseServiceRejectsTerminalJobTransitionWithoutMutation(t *testing.T) {
+	service, jobRepo, _ := newBodyTranslationPhaseServiceForTest(nil)
+	finishedAt := time.Date(2026, 5, 3, 11, 0, 0, 0, time.UTC)
+	jobRepo.job.State = bodyTranslationJobStateCompleted
+	jobRepo.job.FinishedAt = &finishedAt
+	jobRepo.runsByPhaseType[bodyTranslationPhaseType] = repository.JobPhaseRun{
+		ID:               220,
+		TranslationJobID: 1,
+		PhaseType:        bodyTranslationPhaseType,
+		State:            bodyTranslationPhaseStatePaused,
+		ProgressPercent:  50,
+		FinishedAt:       &finishedAt,
+	}
+
+	_, err := service.ResumePhase(context.Background(), 1, 220)
+	if err == nil {
+		t.Fatal("expected terminal job transition rejection")
+	}
+	if jobRepo.job.State != bodyTranslationJobStateCompleted || jobRepo.job.FinishedAt == nil {
+		t.Fatalf("expected terminal job state unchanged, got %#v", jobRepo.job)
+	}
+	if len(jobRepo.updateJobDrafts) != 0 || len(jobRepo.updatePhaseRunDrafts) != 0 {
+		t.Fatalf("expected no terminal mutation, got job=%#v run=%#v", jobRepo.updateJobDrafts, jobRepo.updatePhaseRunDrafts)
+	}
+}
+
 func assertBodyPhaseStartPhaseState(t *testing.T, result BodyTranslationPhaseCommandReadModel) {
 	t.Helper()
 	if result.PhaseState != bodyTranslationPhaseStateRunning && result.PhaseState != bodyTranslationPhaseStateCompleted {

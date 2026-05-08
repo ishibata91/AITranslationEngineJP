@@ -1,0 +1,566 @@
+task_id: 2026-05-08-translation-flow-navigation-overhaul
+role: ux_review
+review_status: issues_open
+must_fix_open: false
+max_level: minor
+human_review_ready: true
+return_to: implement_lane_frontend_human_review_gate
+
+scope:
+  target: frontend_human_review_precheck
+  ux_review_yaml_path: docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/ux-review.yaml
+  reviewed_difference:
+    - 翻訳管理初期ページを未完了 job 一覧に変更。
+    - 旧 Job Run 直リンクを翻訳管理入口から削除。
+    - JobRunPage から job id 入力と summary 取得 UI を削除。
+    - 選択済み job 起点のフェーズページと移動専用 sticky footer を追加。
+    - 翻訳完了ページを追加。
+    - "出力管理は初期表示で job #402 を自動選択せず、一覧から選ぶ状態に修正。"
+    - データロード本文内の "Job Setup へ進む" button を削除し、StickyActionFooter の primary action を "翻訳設定へ進む" へ変更。
+  non_target:
+    - product code
+    - product test
+    - test helper
+    - snapshot
+    - validation data
+    - implementation five-perspective review
+
+source_documents:
+  skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ux-review/SKILL.md
+  ui_design: docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/ui-design.md
+  scenario_design: docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/scenario-design.md
+  implementation_scope: docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/implementation-scope.md
+  fake_api_spec: docs/frontend-fake-api.md
+  ux_standard: docs/UX-standard.md
+  changed_product_files_read:
+    - frontend/src/ui/screens/translation-input/InputReviewPage.svelte
+    - frontend/src/ui/components/StickyActionFooter.svelte
+    - frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte
+    - frontend/src/ui/screens/job-run/PhaseNavigationFooter.svelte
+    - frontend/src/ui/screens/job-run/JobRunPage.svelte
+    - frontend/src/ui/screens/translation-job-management/TranslationManagementStepper.svelte
+    - frontend/src/ui/stores/shell-state.ts
+    - frontend/src/ui/screens/translation-input/InputReviewPage.test.ts
+    - frontend/src/ui/screens/translation-job-setup/JobSetupPage.test.ts
+    - frontend/src/ui/screens/translation-input/LoadedInputDetail.svelte
+  copy_review_source: docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/copy-review-sticky-footer-and-translation-section.md
+
+runtime_input:
+  review_url: "http://localhost:34115/?fakeApi=1&fakeScenario=success#translation-management"
+  server_state: 初回 agent-browser open は ERR_CONNECTION_REFUSED。npm run dev:wails:agent-browser を起動後、port 34115 の表示を確認した。
+  fake_api_enabled: true
+  confirmed_console_browser_errors: 今回再確認した範囲で agent-browser errors は出力なし。
+  inherited_validation:
+    - command: npm --prefix frontend run check
+      status: pass
+      note: frontend_implementer 報告を継承。ux_review では再実行していない。
+    - command: python3 scripts/harness/run.py --suite frontend-local
+      status: pass
+      note: frontend_implementer 報告を継承。ux_review ではハーネスを再実行していない。57 files、497 tests passed。
+  rereview_reason: 人間が記載した copy-review-sticky-footer-and-translation-section.md の文言修正案を frontend_implementer が反映したため、UX 事前確認を再実行した。
+  latest_rereview_reason: UX-TFN-009 major を受け、frontend 実装が利用者向け表示の job / Job と phase / フェーズを修正したため、UX 事前確認を再実行した。
+  inherited_evidence:
+    - test-results/translation-flow-navigation-output-management-unselected.png
+    - test-results/translation-flow-navigation-output-management-after-select.png
+    - test-results/translation-flow-navigation-job402-body-mobile.png
+    - test-results/translation-flow-navigation-running-list.png
+    - test-results/translation-flow-navigation-config-missing-list.png
+    - test-results/translation-flow-navigation-complete-page.png
+  new_evidence:
+    - agent-browser snapshot
+    - agent-browser errors
+    - "agent-browser open success #translation-management"
+    - "agent-browser click @e11 は実画面で input-review へ遷移せず、登録済み入力データ選択状態の footer 表示までは到達しなかった。"
+    - "agent-browser open success #translation-management/job-run?jobId=402..."
+    - "Playwright CDP scrollIntoViewIfNeeded + click a[data-job-id='402']"
+    - test-results/agent-browser/job-402-body-translation-click.png
+    - test-results/agent-browser/translation-data-load-empty-after-new-start.png
+    - "agent-browser open success #translation-management rereview 2026-05-08"
+    - "agent-browser snapshot #translation-management rereview 2026-05-08"
+    - "agent-browser open success #translation-management/job-run?jobId=402 rereview 2026-05-08"
+    - "agent-browser snapshot #translation-management/job-run?jobId=402 rereview 2026-05-08"
+
+human_review_rereview:
+  reason: frontend 実装が人間レビュー差し戻しへ対応したため再確認した。
+  returned_points:
+    - id: human-rereview-001
+      title: 翻訳セクションから Job Setup とデータロードへ直接遷移できる。
+      status: resolved
+      evidence:
+        - shell-state の translationManagementViews は directNavigation true を未完了 job 一覧だけにしている。
+        - 実画面 snapshot で未完了 job 一覧だけが tab/button で、データロード、Job Setup、各フェーズ、翻訳完了、出力管理は参照のみ表示である。
+      ux_judgement: 直接移動可能な翻訳セクション項目は未完了 job 一覧だけである。
+    - id: human-rereview-002
+      title: 各フェーズの情報が翻訳セクションから失われており現在地が分からない。
+      status: resolved
+      evidence:
+        - 実画面 snapshot で翻訳セクションに単語翻訳、NPC ペルソナ生成、本文翻訳、翻訳完了、出力管理が表示される。
+        - Job #402 の本文翻訳表示では本文翻訳ステップが現在位置として表示される。
+      ux_judgement: ユーザーは翻訳セクション上で現在ページと前後工程を判断できる。
+    - id: human-rereview-003
+      title: 各翻訳フェーズを参照表示にし、一覧以外への直接移動を禁止する。
+      status: resolved
+      evidence:
+        - TranslationManagementStepper は directNavigation false の項目を div で描画し、button と onSelect を持たない。
+        - 実画面 snapshot で未完了 job 一覧以外は参照のみとして表示される。
+      ux_judgement: 各翻訳フェーズは工程参照として表示され、直接移動の入口にはなっていない。
+    - id: human-rereview-004
+      title: sticky footer が sticky ではないページがある。
+      status: resolved
+      evidence:
+        - StickyActionFooter は position fixed、bottom 1rem、z-index 20 で viewport 下部に固定される。
+        - PhaseNavigationFooter は StickyActionFooter を使って各フェーズの移動 footer を描画する。
+        - 390x844 の本文翻訳ページで footer は position fixed、bottom 16px、viewport 下端から 16px に表示された。
+        - JobRunPage は mobile で padding-bottom 16rem を持ち、本文と footer の重なりを避ける。
+      ux_judgement: 対象フェーズページの footer は viewport 下部固定として扱える。
+    - id: human-rereview-005
+      title: データロード画面の翻訳設定への移動が本文内 button で、sticky footer ではない。
+      status: resolved
+      evidence:
+        - InputReviewPage は canOpenJobSetup(viewModel.selectedItem) が true の時だけ StickyActionFooter を描画する。
+        - StickyActionFooter の primaryLabel は "翻訳設定へ進む" で、onPrimary は onOpenJobSetup だけを呼ぶ。
+        - LoadedInputDetail には "Job Setup へ進む" button が残っていない。
+        - LoadedInputDetail は次の手順説明だけを残し、移動操作を本文内に持たない。
+        - InputReviewPage は footer 分として desktop 10rem、mobile 14rem の padding-bottom を持つ。
+        - InputReviewPage.test.ts は登録成功後に footer 内 button click が onOpenJobSetup を 1 回呼ぶことを確認している。
+        - InputReviewPage.test.ts は failed item では翻訳設定へ進む button を表示しないことを確認している。
+      ux_judgement: データロードから Job Setup への移動操作は sticky footer に統一された。実画面では fake success の登録済みデータ 0 件により footer 表示状態へ到達できなかったが、実装と対象テストで表示条件と callback は確認できる。
+
+checked_states:
+  - id: success_translation_management_copy_rereview_current
+    fake_scenario: success
+    route: "#translation-management"
+    viewport: desktop
+    evidence:
+      - "agent-browser open http://localhost:34115/?fakeApi=1&fakeScenario=success#translation-management"
+      - "agent-browser snapshot"
+      - "agent-browser errors は出力なし。"
+      - docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/copy-review-sticky-footer-and-translation-section.md
+      - frontend/src/ui/stores/shell-state.ts
+      - frontend/src/ui/screens/translation-job-management/TranslationManagementStepper.svelte
+    confirmed:
+      - stepper は "ジョブの進み方"、"未完了のジョブ"、"入力データの確認"、"翻訳設定"、"翻訳結果の確認" を表示する。
+      - stepper は "ここから開けます" と "順番に進む作業" を表示し、直接移動可能な項目を未完了のジョブだけにしている。
+      - 画面リードは "未完了ジョブ一覧"、"対象ジョブ"、"翻訳段階" を表示する。
+      - 一覧見出しと一覧ラベルは "未完了ジョブ" を表示する。
+      - ジョブカード、リンク名、操作ラベル、無効理由は "ジョブ #401"、"ジョブ 401 の操作"、"実行前のジョブ" を表示する。
+      - 検索欄 placeholder は "ジョブID、入力名、翻訳段階で検索" を表示する。
+    ux_observation:
+      - 翻訳セクション stepper の文言修正は成立している。
+      - copy review の "job は画面表示では ジョブ" 方針に反した表示は、今回確認した翻訳管理一覧では確認されない。
+      - copy review の "phase は原則として 翻訳段階" 方針に反した表示は、今回確認した翻訳管理一覧では確認されない。
+  - id: success_phase_footer_copy_rereview_current
+    fake_scenario: success
+    route: "#translation-management/job-run?jobId=402"
+    viewport: desktop
+    evidence:
+      - "agent-browser open http://localhost:34115/?fakeApi=1&fakeScenario=success#translation-management/job-run?jobId=402"
+      - "agent-browser snapshot"
+      - "agent-browser errors は出力なし。"
+      - frontend/src/ui/screens/job-run/PhaseNavigationFooter.svelte
+      - frontend/src/ui/screens/job-run/JobRunPage.svelte
+    confirmed:
+      - 直接 URL では単語翻訳ページが表示された。
+      - 対象 summary は "選択中のジョブ"、"ジョブ #402"、"現在の翻訳段階" を表示する。
+      - footer は "単語翻訳の次の作業" を表示する。
+      - footer は "次へ進めません。単語翻訳の完了状況と辞書の参照状態を確認してください。" を表示する。
+      - footer は "未完了一覧へ戻る" と "次へ進む" を表示する。
+    ux_observation:
+      - phase footer の共通文言は、移動先と移動できない理由を伝える方針に寄っている。
+      - copy review の "job は画面表示では ジョブ" 方針に反した表示は、今回確認したフェーズ画面 summary では確認されない。
+      - copy review の "phase は原則として 翻訳段階" 方針に反した表示は、今回確認したフェーズ画面 summary と footer では確認されない。
+      - 実画面は Job #402 の本文翻訳 footer ではなく単語翻訳 footer として表示されたため、本文翻訳 footer は未確認範囲に残す。
+  - id: success_translation_management_stepper_rereview
+    fake_scenario: success
+    route: "#translation-management"
+    viewport: desktop
+    evidence:
+      - agent-browser snapshot
+      - frontend/src/ui/stores/shell-state.ts
+      - frontend/src/ui/screens/translation-job-management/TranslationManagementStepper.svelte
+    confirmed:
+      - 翻訳セクションは未完了 job 一覧、データロード、Job Setup、単語翻訳、NPC ペルソナ生成、本文翻訳、翻訳完了、出力管理を表示する。
+      - 直接移動可は未完了 job 一覧だけである。
+      - データロード、Job Setup、各フェーズ、翻訳完了、出力管理は参照のみである。
+      - TranslationManagementStepper は直接移動不可項目を button ではなく div として描画する。
+    ux_observation:
+      - 人間レビュー差し戻し 1 と 3 は解消された。
+      - ユーザーは翻訳セクションの全工程を参照できるが、一覧以外へ直接移動できない。
+  - id: success_data_load_initial_empty_rereview
+    fake_scenario: success
+    route: "#translation-management -> 新規翻訳を開始"
+    viewport: desktop
+    evidence:
+      - test-results/agent-browser/translation-data-load-empty-after-new-start.png
+      - "agent-browser click @e11 は実画面で input-review へ遷移せず、今回の直接操作では footer 表示状態に到達できなかった。"
+      - frontend/src/controller/review-fake-api/default-review-fake-api-gateway-registry.ts
+    confirmed:
+      - fakeAPI の default gateway registry は translationInput gateway を登録していない。
+      - 既知の実装者報告では、fake success のデータロード初期状態は登録済みデータ 0 件である。
+      - 登録済み入力データが選択されないため、Job Setup footer の実画面表示は確認できない。
+    ux_observation:
+      - 実画面 footer 未到達は、登録済み選択状態 fixture 不足に由来する。
+      - footer 未到達は人間レビュー差し戻し解消の blocker または major としては扱わない。
+  - id: code_and_test_data_load_job_setup_footer_rereview
+    fake_scenario: success
+    route: "input-review registered item state"
+    viewport: not_applicable
+    evidence:
+      - frontend/src/ui/screens/translation-input/InputReviewPage.svelte
+      - frontend/src/ui/screens/translation-input/LoadedInputDetail.svelte
+      - frontend/src/ui/components/StickyActionFooter.svelte
+      - frontend/src/ui/screens/translation-input/InputReviewPage.test.ts
+      - frontend/src/ui/translation-input-app.test.ts
+    confirmed:
+      - InputReviewPage は showJobSetupFooter が true の場合だけ StickyActionFooter を表示する。
+      - StickyActionFooter の primaryLabel は "翻訳設定へ進む" である。
+      - StickyActionFooter の onPrimary は onOpenJobSetup だけを呼ぶ。
+      - LoadedInputDetail には "Job Setup へ進む" button が残っていない。
+      - failed item では footer button が表示されない。
+      - data-load-shell は sticky footer 分の padding-bottom を持つ。
+    ux_observation:
+      - 画面内 button 削除と sticky footer 移動は、コードと対象テスト上は成立している。
+      - 移動操作を footer に集約する UI 根拠と整合する。
+  - id: success_job402_normal_click_to_body_phase_rereview
+    fake_scenario: success
+    route: "#translation-management -> Job #402 click -> #translation-management/job-run"
+    viewport: desktop
+    evidence:
+      - "Playwright CDP scrollIntoViewIfNeeded + click a[data-job-id='402']"
+      - "agent-browser open direct job #402 body phase URL"
+      - test-results/agent-browser/job-402-body-translation-click.png
+    confirmed:
+      - Job #402 の通常クリック導線は本文翻訳ページへ遷移する。
+      - 遷移後 URL は "#translation-management/job-run?jobId=402..." になる。
+      - 本文翻訳ページで Job #402、状態、現在 phase、進捗、入力が表示される。
+      - 翻訳セクションでは本文翻訳が現在位置として表示される。
+      - footer に "本文翻訳の移動"、"一覧へ戻る"、"次へ進む" が表示される。
+    ux_observation:
+      - 人間レビュー差し戻し 2 と Job #402 の通常クリック導線は UX 確認上成立する。
+      - agent-browser click は offscreen 要素では URL が変わらなかったため、スクロール後クリックを CDP 接続で補助確認した。
+  - id: success_job402_mobile_sticky_footer_rereview
+    fake_scenario: success
+    route: "#translation-management/job-run?jobId=402..."
+    viewport: 390x844
+    evidence:
+      - "Playwright CDP viewport 390x844"
+    confirmed:
+      - 本文翻訳ページの footer は position fixed である。
+      - footer の CSS bottom は 16px、z-index は 20 である。
+      - footer の下端は viewport 下端から 16px に位置する。
+      - documentElement.scrollWidth は 390 で、viewport 幅 390 と一致する。
+    ux_observation:
+      - 人間レビュー差し戻し 4 は本文翻訳ページで解消された。
+      - mobile でも横方向 overflow は確認されない。
+  - id: success_output_management_direct_unselected_rereview
+    fake_scenario: success
+    route: "#output-management"
+    viewport: desktop
+    evidence:
+      - agent-browser snapshot
+      - 'agent-browser get text "#translationOutputArtifactView"'
+    confirmed:
+      - "出力管理の初期表示で completed job list と job #402 が表示される。"
+      - selected job summary は "job 選択待ち" と表示される。
+      - status は "awaiting selection" と表示される。
+      - '"出力候補から completed job を選ぶと、summary と出力準備を表示します。" と読める。'
+      - '"XML を出力" と "再出力" はどちらも disabled である。'
+      - disabled 理由として "completed job を選択してください。" が表示される。
+    ux_observation:
+      - 出力管理へ入った直後に job が自動選択されたとは読めない。
+      - 出力対象は出力管理側の completed job list から選ぶ状態として判断できる。
+  - id: success_output_management_after_select_rereview
+    fake_scenario: success
+    route: "#output-management -> job #402 selection"
+    viewport: desktop
+    evidence:
+      - agent-browser snapshot
+      - 'agent-browser get text "#translationOutputArtifactView"'
+    confirmed:
+      - 'job #402 を一覧から選ぶと selected job summary が "選択中 job" へ変わる。'
+      - job id 402、job status completed、body phase completed、readiness ready が表示される。
+      - job 選択後だけ "XML を出力" が enabled になる。
+      - diff preview は未取得状態として表示される。
+    ux_observation:
+      - 未選択開始と一覧選択後の責務分離を利用者が区別できる。
+  - id: inherited_success_translation_management_incomplete_job_list_desktop
+    fake_scenario: success
+    route: "#translation-management"
+    viewport: desktop
+    evidence:
+      - 前回 ux-review.yaml の確認結果を継承。
+    confirmed:
+      - 翻訳管理の初期ページとして未完了 job 一覧が表示される。
+      - 新規翻訳を開始する導線が未完了 job 一覧ページに表示される。
+      - Ready、Running、Paused、RecoverableFailed、Failed、Canceled の job が一覧で区別される。
+      - 旧 Job Run 直リンクは確認済み desktop 画面上では見えない。
+  - id: inherited_success_job402_selection_to_body_phase_mobile
+    fake_scenario: success
+    route: "#translation-management -> #translation-management/job-run"
+    viewport: 390x844
+    evidence:
+      - test-results/translation-flow-navigation-job402-body-mobile.png
+      - 前回 ux-review.yaml の確認結果を継承。
+    confirmed:
+      - "未完了 job 一覧の Job #402 選択から本文翻訳ページへ遷移する。"
+      - 390x844 で document.documentElement.scrollWidth は 390、window.innerWidth は 390。
+      - 390x844 で document.body.scrollWidth は 390。
+      - footer 内の "一覧へ戻る" と "次へ進む" が確認できる。
+  - id: inherited_running_and_config_missing_states
+    fake_scenario:
+      - running
+      - config-missing
+    route: "#translation-management"
+    viewport: desktop
+    evidence:
+      - test-results/translation-flow-navigation-running-list.png
+      - test-results/translation-flow-navigation-config-missing-list.png
+      - 前回 ux-review.yaml の確認結果を継承。
+    confirmed:
+      - running は実行中 job の制限理由が読める。
+      - config-missing は API キーと model 確認が次操作として読める。
+  - id: inherited_translation_complete_page
+    fake_scenario: success
+    route: "#translation-management -> #translation-management/job-run -> complete"
+    viewport: desktop
+    evidence:
+      - test-results/translation-flow-navigation-complete-page.png
+      - 前回 ux-review.yaml の確認結果を継承。
+    confirmed:
+      - "翻訳完了ページで job #402、原文、訳文、ページング、一覧へ戻る、出力管理へ移動が表示される。"
+      - 翻訳完了ページ本文では XML 出力、preview、再出力は表示されない。
+      - 翻訳完了ページは結果確認と出力管理への移動に責務を限定している。
+  - id: inherited_empty_loading_error_states
+    fake_scenario:
+      - empty
+      - loading
+      - error
+    route: "#translation-management"
+    viewport: desktop
+    evidence:
+      - 前回 ux-review.yaml の確認結果を継承。
+    confirmed:
+      - empty は未完了 job 0 件の空状態として表示された。
+      - loading は "一覧を読み込んでいます" と表示された。
+      - error は "一覧を読み込めません" と再読込を促す文言を表示した。
+
+unchecked_states:
+  - id: translation_complete_click_path_to_output_management_rereview
+    fake_scenario: success
+    target:
+      - 翻訳完了ページから出力管理へ移動するクリック経路そのもの
+    reason: frontend_implementer 報告では到達不能。ux_review の再確認では UX-TFN-005 の再判定を優先し、出力管理 route の mount 後初期状態と一覧選択後状態を直接確認した。
+    remaining_risk: 翻訳完了ページのクリック操作自体に別の遷移不具合がある場合は、この再確認では検出できない。ただし同じ "#output-management" route に入った後の mount 処理は未選択開始になることを確認した。
+  - id: data_load_registered_item_footer_visual_state
+    fake_scenario: success
+    target:
+      - 登録済み入力データ選択状態のデータロード画面
+      - '"翻訳設定へ進む" sticky footer の実画面表示'
+      - sticky footer primary click による翻訳設定画面遷移
+    reason: fake success の実画面では登録済み入力データ 0 件であり、登録済みデータ選択状態に到達できなかった。今回再確認でも実画面の登録済み選択状態は確認できなかった。
+    remaining_risk: 実画面上の footer 見た目、固定位置、本文との重なり、実画面 click 遷移は未確認である。ただし InputReviewPage.svelte と InputReviewPage.test.ts が登録済み選択状態の footer 表示、callback、翻訳設定への遷移を確認しているため、この未確認だけでは blocker または major にはしない。
+  - id: body_translation_footer_visual_state_current
+    fake_scenario: success
+    target:
+      - Job #402 の本文翻訳 footer
+      - 本文翻訳から翻訳結果の確認へ進む footer 文言
+    reason: 今回再確認で "#translation-management/job-run?jobId=402" を直接開いたが、実画面は本文翻訳ではなく単語翻訳ページとして表示された。実装者報告でも Job #402 本文翻訳 footer は一覧から到達できなかった。
+    remaining_risk: 本文翻訳 footer の実画面上の固定位置、本文との重なり、クリック遷移は未確認である。ただし PhaseNavigationFooter.svelte と JobRunPage.svelte の文言定義は確認済みであり、この未確認だけでは blocker または major にはしない。
+  - id: term_and_persona_phase_pages
+    fake_scenario: success
+    target:
+      - 単語翻訳ページ
+      - NPC ペルソナ生成ページ
+      - 各 phase の sticky footer
+    reason: 今回は UX-TFN-005 の再判定を優先し、出力管理の初期未選択状態と一覧選択後状態を確認した。
+    remaining_risk: 単語翻訳と NPC ペルソナ生成の次工程可否、理由表示、footer 分離を今回の実画面では再判定していない。
+
+issues:
+  - id: UX-TFN-001
+    level: blocker
+    status: resolved
+    fix_required: false
+    title: 未完了 job 一覧からフェーズページへ遷移できず、主要 UX を確認できない。
+    evidence:
+      - "今回確認で Job #402 の通常クリック導線から本文翻訳ページへ到達した。"
+      - "今回確認で遷移後 URL は #translation-management/job-run?jobId=402... になった。"
+      - "今回確認で本文翻訳ページに Job #402、状態、現在 phase、進捗、入力が表示された。"
+      - "前回確認で 390x844 でも Job #402 の本文翻訳ページへ到達した。"
+    ux_standard_reference:
+      - 画面構造 No.24 画面遷移
+      - 画面構造 No.32 検査可能性
+      - UI配置 No.8 操作対象との対応
+    impact: blocker は解消済み。
+    verification_method: fakeScenario=success の未完了 job 一覧から Job #402 を選び、本文翻訳ページへ遷移することを確認する。
+  - id: UX-TFN-006
+    level: major
+    status: resolved
+    fix_required: false
+    title: 翻訳セクションから Job Setup とデータロードへ直接移動でき、フェーズ情報も現在地も分からない。
+    evidence:
+      - "今回確認で翻訳セクションは未完了 job 一覧、データロード、Job Setup、単語翻訳、NPC ペルソナ生成、本文翻訳、翻訳完了、出力管理を表示した。"
+      - "今回確認で直接移動可は未完了 job 一覧だけで、他工程は参照のみとして表示された。"
+      - "TranslationManagementStepper は directNavigation false の項目を div として描画し、button と onSelect を持たない。"
+      - "Job #402 の本文翻訳ページでは、翻訳セクション上で本文翻訳が現在位置として表示された。"
+    ux_standard_reference:
+      - 画面構造 No.7 状態表示
+      - 画面構造 No.10 禁止条件
+      - 画面構造 No.24 画面遷移
+      - 画面構造 No.25 現在地表示
+      - UI配置 No.8 操作対象との対応
+    impact: 人間レビュー差し戻し 1、2、3 の major 相当問題は解消済み。
+    verification_method: fakeScenario=success の翻訳管理を開き、翻訳セクションの全工程表示、未完了 job 一覧だけの button 化、本文翻訳現在位置を確認する。
+  - id: UX-TFN-007
+    level: major
+    status: resolved
+    fix_required: false
+    title: sticky footer が対象フェーズページで viewport 下部に固定されない。
+    evidence:
+      - "StickyActionFooter は position fixed、bottom 1rem、z-index 20 を持つ。"
+      - "PhaseNavigationFooter は StickyActionFooter を使って各フェーズの移動 footer を描画する。"
+      - "390x844 の本文翻訳ページで footer は position fixed、bottom 16px、viewport 下端から 16px に表示された。"
+      - "JobRunPage は mobile で padding-bottom 16rem を持ち、本文と footer の重なりを避ける。"
+      - "390x844 の本文翻訳ページで documentElement.scrollWidth は 390 で、viewport 幅 390 と一致した。"
+    ux_standard_reference:
+      - UI配置 No.9 固定領域
+      - UI配置 No.30 CTA配置変形
+      - UI配置 No.33 固定要素の干渉
+      - UI配置 No.36 最小幅保証
+      - UI配置 No.37 タップ領域
+    impact: 人間レビュー差し戻し 4 の major 相当問題は解消済み。
+    verification_method: mobile viewport で各フェーズページを開き、footer の position、下端固定、本文との重なり、横方向 overflow を確認する。
+  - id: UX-TFN-002
+    level: major
+    status: resolved
+    fix_required: false
+    title: fakeAPI の標準状態が task 固有 UI として十分に分かれていない。
+    evidence:
+      - "前回確認で running は Job #402 の 1 件一覧として表示され、実行中 job の停止以外の制限理由が読めた。"
+      - "前回確認で config-missing は Job #404 の 1 件一覧として表示され、API キーと model 確認が次操作として読めた。"
+      - 前回確認で Completed job の翻訳完了ページを fakeAPI で確認できた。
+      - 今回確認で出力管理の未選択開始と一覧選択後状態を fakeAPI で確認できた。
+    ux_standard_reference:
+      - 画面構造 No.12 空状態
+      - 画面構造 No.13 ローディング状態
+      - 画面構造 No.14 エラー状態
+      - 画面構造 No.32 検査可能性
+    impact: fakeAPI 状態不足としての major は解消済み。
+    verification_method: 標準 fakeScenario が対象画面の固有状態として区別され、Completed job の翻訳完了ページと出力管理状態も確認できることを記録する。
+  - id: UX-TFN-003
+    level: major
+    status: resolved
+    fix_required: false
+    title: mobile viewport で本文翻訳ページと footer に横方向 overflow があり、理由文と操作が切れる。
+    evidence:
+      - "前回確認で 390x844 の Job #402 本文翻訳ページへ到達した。"
+      - 前回確認で document.documentElement.scrollWidth は 390、window.innerWidth は 390。
+      - 前回確認で document.body.scrollWidth は 390。
+      - 前回確認で footer の "一覧へ戻る" と "次へ進む" が確認できた。
+    ux_standard_reference:
+      - UI配置 No.25 ブレークポイント
+      - UI配置 No.33 固定要素の干渉
+      - UI配置 No.36 最小幅保証
+      - UI配置 No.37 タップ領域
+      - UI配置 No.61 幅別スクリーンショット
+    impact: mobile overflow と footer 横切れの major は解消済み。
+    verification_method: 390x844 で本文翻訳ページを開き、document scrollWidth が viewport 幅以内で、footer 理由文と "一覧へ戻る"、"次へ進む" が横切れせず表示されることを確認する。
+  - id: UX-TFN-004
+    level: minor
+    status: open
+    fix_required: false
+    title: 未完了 job 一覧で削除操作が再開操作と同じ強さで並び、主要判断が弱まる可能性がある。
+    evidence:
+      - desktop 証跡では各 job card 右側に停止、再開、削除が横並びで表示されている。
+      - 実装目的は、新規開始と途中再開を未完了 job 一覧から選ばせることである。
+      - 削除の確認有無は今回の UX 事前確認では操作していない。
+    ux_standard_reference:
+      - 画面構造 No.3 主要CTA
+      - 画面構造 No.19 危険操作
+      - UI配置 No.4 危険操作位置
+      - UI配置 No.38 誤操作防止
+    impact: 人間レビュー時に、途中再開より削除操作が目立ちすぎないか確認が必要である。
+    verification_method: 人間レビューで削除の確認表示、誤操作防止、再開導線との視覚的強弱を確認する。
+  - id: UX-TFN-005
+    level: major
+    status: resolved
+    fix_required: false
+    title: "出力管理へ移動した直後に job #402 が選択済みに見え、出力対象を自動選択しない設計と衝突する。"
+    evidence:
+      - '今回の再確認で "#output-management" 直入後の selected job summary は "job 選択待ち" と表示された。'
+      - 今回の再確認で status は "awaiting selection" と表示された。
+      - 今回の再確認で "XML を出力" と "再出力" は disabled で、理由は "completed job を選択してください。" と表示された。
+      - '今回の再確認で job #402 を一覧から選んだ後だけ selected job summary が "選択中 job" になった。'
+      - agent-browser errors は出力なし。
+    ux_standard_reference:
+      - 画面構造 No.6 画面責務
+      - 画面構造 No.8 状態別操作
+      - 画面構造 No.24 画面遷移
+      - 画面構造 No.29 UI文言
+      - UI配置 No.5 関連情報の近接
+    impact: 出力管理の自動選択衝突としての major は解消済み。
+    verification_method: '"#output-management" を開き、初期表示が completed job list と "job 選択待ち" summary になり、job 選択後だけ selected job summary が表示されることを確認する。'
+  - id: UX-TFN-008
+    level: major
+    status: resolved
+    fix_required: false
+    title: データロード画面の翻訳設定への移動が本文内 button に残り、sticky footer の移動操作に統一されていない。
+    evidence:
+      - "InputReviewPage は canOpenJobSetup(viewModel.selectedItem) が true の時だけ StickyActionFooter を描画する。"
+      - "StickyActionFooter の primaryLabel は \"翻訳設定へ進む\" である。"
+      - "StickyActionFooter の onPrimary は onOpenJobSetup だけを呼ぶ。"
+      - "LoadedInputDetail には \"Job Setup へ進む\" button が残っていない。"
+      - "InputReviewPage は footer 分として padding-bottom 10rem、mobile 14rem を持つ。"
+      - "InputReviewPage.test.ts は登録成功後の footer button click で onOpenJobSetup が 1 回呼ばれることを確認している。"
+      - "InputReviewPage.test.ts は failed item では \"翻訳設定へ進む\" button を表示しないことを確認している。"
+    ux_standard_reference:
+      - 画面構造 No.3 主要CTA
+      - 画面構造 No.24 画面遷移
+      - UI配置 No.2 主要CTA位置
+      - UI配置 No.7 上下左右の一貫性
+      - UI配置 No.30 CTA配置変形
+      - UI配置 No.33 固定要素の干渉
+    impact: 人間レビュー差し戻しの major 相当問題は解消済み。実画面の登録済み入力データ選択状態には到達できなかったため、未確認範囲として残す。
+    verification_method: 登録済み入力データを持つ fakeAPI 状態または人間操作でデータロード画面を開き、本文内 button がなく、viewport 下部の StickyActionFooter に "翻訳設定へ進む" が表示されることを確認する。
+  - id: UX-TFN-009
+    level: major
+    status: resolved
+    fix_required: false
+    title: 翻訳管理の画面表示に "job" と "phase" が残り、文言方針と衝突する。
+    evidence:
+      - copy-review-sticky-footer-and-translation-section.md は "job は画面表示では ジョブ" と定義している。
+      - copy-review-sticky-footer-and-translation-section.md は "phase は原則として 翻訳段階" と定義している。
+      - 実画面のページリードは "未完了ジョブ一覧"、"対象ジョブ"、"翻訳段階" を表示する。
+      - 実画面の一覧見出しと一覧ラベルは "未完了ジョブ" を表示する。
+      - 実画面のカードと支援ラベルは "ジョブ #401"、"ジョブ 401 の操作"、"実行前のジョブ" を表示する。
+      - 実画面の検索欄 placeholder は "ジョブID、入力名、翻訳段階で検索" を表示する。
+      - 実画面のフェーズ画面 summary は "選択中のジョブ"、"ジョブ #402"、"現在の翻訳段階" を表示する。
+      - frontend/src/ui/stores/shell-state.ts の translation-management route は "未完了ジョブ入口"、"未完了ジョブ一覧"、"対象ジョブ" を表示文言として保持している。
+      - frontend/src/ui/screens/job-run/JobRunPage.svelte は "選択中のジョブ"、"現在の翻訳段階"、"ジョブ未選択" を表示文言として保持している。
+      - agent-browser errors は出力なし。
+    ux_standard_reference:
+      - 画面構造 No.29 UI文言
+      - 画面構造 No.32 検査可能性
+      - UI配置 No.7 上下左右の一貫性
+    impact: 人間が明示した文言方針に反した利用者向け表示は、今回確認範囲では解消済み。frontend 人間レビュー前に、UX-TFN-009 は停止理由として扱わない。
+    verification_method: fakeScenario=success の "#translation-management" と "#translation-management/job-run?jobId=402" を開き、利用者向け表示から "job"、"Job"、"phase"、"フェーズ" が意図しない形で残っていないことを確認する。
+
+ux_assessment:
+  purpose_state_action_result:
+    status: passed_with_unchecked_states
+    note: 翻訳管理 stepper と footer は目的、状態、操作を判断できる。今回確認した翻訳管理の初期画面とフェーズ画面 summary では、"job" と "phase" の利用者向け残存表示は確認されない。
+  ux_standard_compliance:
+    status: passed_with_minor
+    note: UX 標準の UI文言観点に対し、UX-TFN-009 は解消済み。削除操作の強さは UX-TFN-004 minor として人間レビュー時の注意に残す。
+  fake_api_state_sufficiency:
+    status: passed
+    note: 標準状態の running、config-missing、Completed job の翻訳完了ページ、出力管理の未選択開始と一覧選択後状態は確認できる。
+  visibility:
+    status: passed_with_unchecked_states
+    note: 今回確認した翻訳管理一覧と単語翻訳 footer では表示崩れと console error は確認されない。データロードの登録済み選択状態 footer と Job #402 本文翻訳 footer は実画面未到達だが、共通部品と対象テストで補完できるため未到達単独では blocker または major にしない。
+  consistency_with_existing_screens:
+    status: passed_with_minor
+    note: stepper、app shell、一覧、フェーズ画面 summary の表示語彙は task 内 copy review と整合した。削除操作の視覚的強さは UX-TFN-004 minor として残す。
+
+decision:
+  proceed_to_human_review: true
+  reason: 実画面 footer 未到達は fakeAPI の登録済み選択状態不足と Job #402 到達状態の不一致に由来し、コードと対象テストで補完できるため単独 blocker または major にはしない。UX-TFN-009 は今回再確認で解消済み。未解決は UX-TFN-004 minor のみで、frontend 人間レビュー前の停止理由にしないため human_review_ready は true とする。

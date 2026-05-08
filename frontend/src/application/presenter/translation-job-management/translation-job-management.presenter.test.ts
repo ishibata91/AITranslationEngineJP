@@ -34,6 +34,7 @@ function createState(): PresenterState {
           extractedJsonLabel: "抽出データ #100"
         },
         progress: {
+          currentPhase: "body_translation",
           currentPhaseLabel: "本文翻訳",
           percent: 45,
           progressLabel: "45%",
@@ -59,7 +60,7 @@ function createState(): PresenterState {
           label: "削除",
           helperText: "削除不可",
           reasonCategory: "running_delete_blocked",
-          reasonText: "Running job は削除できません"
+          reasonText: "Running ジョブは削除できません"
         }
       }
     ],
@@ -78,6 +79,7 @@ function createState(): PresenterState {
         extractedJsonLabel: "抽出データ #100"
       },
       progress: {
+        currentPhase: "body_translation",
         currentPhaseLabel: "本文翻訳",
         percent: 45,
         progressLabel: "45%",
@@ -103,7 +105,7 @@ function createState(): PresenterState {
         label: "削除",
         helperText: "削除不可",
         reasonCategory: "running_delete_blocked",
-        reasonText: "Running job は削除できません"
+        reasonText: "Running ジョブは削除できません"
       },
       cacheState: "missing",
       cacheStateLabel: "欠落",
@@ -125,10 +127,10 @@ function createState(): PresenterState {
         {
           category: "phase_progress_aggregation_failed",
           title: "進捗を集約できません",
-          detail: "phase progress の集約に失敗しました。再読込してください。"
+          detail: "翻訳段階の進捗集約に失敗しました。再読込してください。"
         }
       ],
-      deleteImpactLines: ["job のみ削除", "入力データは残る"]
+      deleteImpactLines: ["ジョブのみ削除", "入力データは残る"]
     }
   }
 }
@@ -167,5 +169,71 @@ describe("TranslationJobManagementPresenter", () => {
 
     expect(viewModel.jobs).toHaveLength(1)
     expect(viewModel.headerCountLabel).toBe("1 件を表示")
+  })
+
+  test("Completed 用 filter を持たず、未完了選択時だけ phase page target を作る", () => {
+    const presenter = new TranslationJobManagementPresenter()
+    const state = createState()
+
+    const viewModel = presenter.toViewModel(state, true)
+
+    expect(viewModel.filterChips.some((chip) => chip.id === ("Completed" as never))).toBe(false)
+    expect(viewModel.jobRunTarget).toMatchObject({
+      jobId: 10,
+      currentPhase: "body_translation",
+      currentPhaseLabel: "本文翻訳"
+    })
+  })
+
+  test("開けない job は理由を保持し、phase page target を作らない", () => {
+    const presenter = new TranslationJobManagementPresenter()
+    const state = createState()
+    state.jobs[0].canOpenPhase = false
+    state.jobs[0].openBlockedReason = {
+      category: "phase_progress_aggregation_failed",
+      title: "翻訳段階を開けません",
+      detail: "進捗を確認できないため一覧で確認してください。"
+    }
+    if (state.selectedJobDetail) {
+      state.selectedJobDetail.canOpenPhase = false
+      state.selectedJobDetail.openBlockedReason =
+        state.jobs[0].openBlockedReason
+    }
+
+    const viewModel = presenter.toViewModel(state, true)
+
+    expect(viewModel.jobs[0].canOpenPhase).toBe(false)
+    expect(viewModel.jobs[0].jobRunTarget).toBeNull()
+    expect(viewModel.jobs[0].openBlockedReasonText).toContain("進捗")
+    expect(viewModel.jobRunTarget).toBeNull()
+  })
+
+  test("action response 後の一覧状態でも phase page target を作らない", () => {
+    const presenter = new TranslationJobManagementPresenter()
+    const state = createState()
+    const openBlockedReason = {
+      category: "phase_progress_aggregation_failed" as const,
+      title: "翻訳段階を開けません",
+      detail: "進捗を確認できないため一覧で確認してください。"
+    }
+    state.jobs[0] = {
+      ...state.jobs[0],
+      canOpenPhase: false,
+      openBlockedReason
+    }
+    if (state.selectedJobDetail) {
+      state.selectedJobDetail = {
+        ...state.selectedJobDetail,
+        canOpenPhase: false,
+        openBlockedReason
+      }
+    }
+
+    const viewModel = presenter.toViewModel(state, true)
+
+    expect(viewModel.jobs[0].canOpenPhase).toBe(false)
+    expect(viewModel.jobs[0].openBlockedReason).toEqual(openBlockedReason)
+    expect(viewModel.jobs[0].jobRunTarget).toBeNull()
+    expect(viewModel.jobRunTarget).toBeNull()
   })
 })

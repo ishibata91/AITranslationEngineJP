@@ -7,6 +7,7 @@ import type {
 type TranslationOutputArtifactViewState =
   | "loading"
   | "empty"
+  | "awaiting_selection"
   | "not_ready"
   | "ready"
   | "generating"
@@ -134,6 +135,8 @@ function buildStatusTitle(state: TranslationOutputArtifactScreenState): string {
       return "Output Review を読み込み中です。"
     case "empty":
       return "出力対象の completed job はありません。"
+    case "awaiting_selection":
+      return "出力する completed job を選択してください。"
     case "not_ready":
       return "出力前の確認が必要です。"
     case "ready":
@@ -156,7 +159,7 @@ function buildStatusText(state: TranslationOutputArtifactScreenState): string {
 
   const review = state.review
   if (!review) {
-    return "completed job、result summary、diff preview を読み込むと状態が更新されます。"
+    return "出力候補の一覧から job を選ぶと、summary と diff preview を確認できます。"
   }
 
   if (review.rejectionReasons.length > 0) {

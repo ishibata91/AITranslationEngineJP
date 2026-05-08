@@ -71,6 +71,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
           extractedJsonLabel: "skyrim-main.extract.json"
         },
         progress: {
+          currentPhase: "term_translation",
           currentPhaseLabel: "単語翻訳の準備",
           percent: 0,
           progressLabel: "0% / 未開始",
@@ -89,12 +90,13 @@ function createBaseFixtures(): ReviewJobFixture[] {
           {
             category: "terminal_state",
             title: "再開できません",
-            detail: "実行前の job です。Job Run から開始してください。"
+            detail:
+              "実行前のジョブです。一覧でジョブを選び、単語翻訳ページから開始してください。"
           }
         ],
         warnings: [],
         deleteImpactLines: [
-          "削除対象は job 本体と job 配下の DB 情報です。",
+          "削除対象はジョブ本体とジョブ配下の DB 情報です。",
           "入力データと抽出 JSON は残ります。"
         ]
       },
@@ -110,12 +112,12 @@ function createBaseFixtures(): ReviewJobFixture[] {
           label: "再開",
           helperText: "まだ実行されていません。",
           reasonCategory: "terminal_state",
-          reasonText: "再開できません。実行前の job です。"
+          reasonText: "再開できません。実行前のジョブです。"
         }),
         delete: createOperation("delete", {
           enabled: true,
           label: "削除",
-          helperText: "job の DB 情報だけを削除します。"
+          helperText: "ジョブの DB 情報だけを削除します。"
         })
       }
     ),
@@ -135,6 +137,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
           extractedJsonLabel: "legacy-quest.extract.json"
         },
         progress: {
+          currentPhase: "body_translation",
           currentPhaseLabel: "本文翻訳",
           percent: 61,
           progressLabel: "61% / 実行中",
@@ -161,7 +164,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
             category: "running_delete_blocked",
             title: "削除は停止後に再判定します",
             detail:
-              "Running の job は削除できません。停止入口を使い、Paused へ収束した後に削除可否を再判定してください。"
+              "Running のジョブは削除できません。停止入口を使い、Paused へ収束した後に削除可否を再判定してください。"
           }
         ],
         deleteImpactLines: [
@@ -207,6 +210,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
           extractedJsonLabel: "npc-pack.extract.json"
         },
         progress: {
+          currentPhase: "persona_generation",
           currentPhaseLabel: "NPC ペルソナ生成",
           percent: 44,
           progressLabel: "44% / 中断中",
@@ -224,7 +228,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
         resumeBlockedReasons: [],
         warnings: [],
         deleteImpactLines: [
-          "削除対象は job 本体と job 配下の DB 情報です。",
+          "削除対象はジョブ本体とジョブ配下の DB 情報です。",
           "入力データと抽出 JSON は残ります。"
         ]
       },
@@ -243,7 +247,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
         delete: createOperation("delete", {
           enabled: true,
           label: "削除",
-          helperText: "job の DB 情報だけを削除します。"
+          helperText: "ジョブの DB 情報だけを削除します。"
         })
       }
     ),
@@ -263,6 +267,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
           extractedJsonLabel: "city-overhaul.extract.json"
         },
         progress: {
+          currentPhase: "body_translation",
           currentPhaseLabel: "本文翻訳",
           percent: 72,
           progressLabel: "72% / 再開可能な失敗",
@@ -286,7 +291,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
         ],
         warnings: [],
         deleteImpactLines: [
-          "削除対象は job 本体と job 配下の DB 情報です。",
+          "削除対象はジョブ本体とジョブ配下の DB 情報です。",
           "入力データと抽出 JSON は残ります。"
         ]
       },
@@ -308,7 +313,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
         delete: createOperation("delete", {
           enabled: true,
           label: "削除",
-          helperText: "job の DB 情報だけを削除します。"
+          helperText: "ジョブの DB 情報だけを削除します。"
         })
       }
     ),
@@ -318,6 +323,13 @@ function createBaseFixtures(): ReviewJobFixture[] {
         jobState: "Failed",
         jobStateLabel: "Failed",
         stateTone: "danger",
+        canOpenPhase: false,
+        openBlockedReason: {
+          category: "phase_progress_aggregation_failed",
+          title: "翻訳段階を開けません",
+          detail:
+            "翻訳段階の進捗を確認できないため、一覧で状態を確認してください。"
+        },
         inputSource: {
           inputSourceId: 105,
           inputSourceLabel: "museum-addon.esp",
@@ -328,6 +340,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
           extractedJsonLabel: "museum-addon.extract.json"
         },
         progress: {
+          currentPhase: "term_translation",
           currentPhaseLabel: "進捗投影",
           percent: 0,
           progressLabel: "進捗を確認できません",
@@ -354,11 +367,11 @@ function createBaseFixtures(): ReviewJobFixture[] {
             category: "phase_progress_aggregation_failed",
             title: "進捗を集約できません",
             detail:
-              "phase progress の集約に失敗しました。再読込しても直らない場合は backend projection を確認してください。"
+              "翻訳段階の進捗集約に失敗しました。再読込しても直らない場合は backend projection を確認してください。"
           }
         ],
         deleteImpactLines: [
-          "削除対象は job 本体と job 配下の DB 情報です。",
+          "削除対象はジョブ本体とジョブ配下の DB 情報です。",
           "入力データと抽出 JSON は残ります。"
         ]
       },
@@ -379,7 +392,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
         delete: createOperation("delete", {
           enabled: true,
           label: "削除",
-          helperText: "job の DB 情報だけを削除します。"
+          helperText: "ジョブの DB 情報だけを削除します。"
         })
       }
     ),
@@ -399,6 +412,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
           extractedJsonLabel: "worldspace-fixup.extract.json"
         },
         progress: {
+          currentPhase: "term_translation",
           currentPhaseLabel: "停止済み",
           percent: 100,
           progressLabel: "停止済み / 再開不可",
@@ -417,12 +431,12 @@ function createBaseFixtures(): ReviewJobFixture[] {
           {
             category: "terminal_state",
             title: "再開できません",
-            detail: "Canceled は terminal state です。新しい job を作成してください。"
+            detail: "Canceled は terminal state です。新しいジョブを作成してください。"
           }
         ],
         warnings: [],
         deleteImpactLines: [
-          "削除対象は job 本体と job 配下の DB 情報です。",
+          "削除対象はジョブ本体とジョブ配下の DB 情報です。",
           "入力データと抽出 JSON は残ります。"
         ]
       },
@@ -444,7 +458,7 @@ function createBaseFixtures(): ReviewJobFixture[] {
         delete: createOperation("delete", {
           enabled: true,
           label: "削除",
-          helperText: "job の DB 情報だけを削除します。"
+          helperText: "ジョブの DB 情報だけを削除します。"
         })
       }
     )
@@ -468,11 +482,11 @@ export function createTranslationJobManagementReviewGateway(
     return {
       ListIncompleteJobs: () =>
         Promise.reject(
-          new Error("未完了 job の一覧取得に失敗しました。再読込してください。")
+          new Error("未完了ジョブの一覧取得に失敗しました。再読込してください。")
         ),
       GetJobDetail: () =>
         Promise.reject(
-          new Error("選択した job を再度読み込めませんでした。")
+          new Error("選択したジョブを再度読み込めませんでした。")
         ),
       RequestStop: () =>
         Promise.reject(new Error("停止要求に失敗しました。")),
@@ -490,14 +504,85 @@ export function createTranslationJobManagementReviewGateway(
     fixtureMap.clear()
   }
 
+  if (scenarioId === "running") {
+    for (const [jobId, fixture] of fixtureMap) {
+      if (jobId !== 402) {
+        fixtureMap.delete(jobId)
+        continue
+      }
+
+      fixture.detail.progress.progressLabel =
+        "61% / 本文翻訳を実行中です"
+      fixture.detail.runtimeSummary.executionModeLabel =
+        "実行中のため移動操作だけ確認可能"
+      fixture.detail.resumeBlockedReasons = [
+        {
+          category: "terminal_state",
+          title: "実行中です",
+          detail:
+            "本文翻訳が実行中です。再開や削除は使わず、停止するか進行状況を確認してください。"
+        }
+      ]
+      fixture.detail.warnings = [
+        {
+          category: "running_delete_blocked",
+          title: "実行中の制限",
+          detail:
+            "Running のジョブは削除できません。一覧では停止だけを次操作として確認します。"
+        }
+      ]
+      fixture.detail.stopAvailability.helperText =
+        "実行中です。停止要求を送信できます。"
+      fixture.detail.resumeAvailability.helperText =
+        "実行中のため再開は不要です。"
+      fixture.detail.resumeAvailability.reasonText =
+        "再開できません。本文翻訳が実行中です。停止または進行状況確認を行ってください。"
+      fixture.detail.deleteAvailability.reasonText =
+        "削除できません。本文翻訳が実行中です。停止後に削除可否を再判定します。"
+    }
+  }
+
   if (scenarioId === "config-missing") {
     for (const [jobId, fixture] of fixtureMap) {
-      if (jobId !== 404 && jobId !== 405) {
+      if (jobId !== 404) {
+        fixtureMap.delete(jobId)
         continue
       }
       fixture.detail.runtimeSummary.credentialState = "missing"
       fixture.detail.runtimeSummary.credentialStateLabel =
         "credential を確認してください"
+      fixture.detail.progress.currentPhaseLabel = "本文翻訳の設定確認"
+      fixture.detail.progress.progressLabel =
+        "設定不足 / API キー確認待ち"
+      fixture.detail.cacheState = "available"
+      fixture.detail.cacheStateLabel = "入力キャッシュあり"
+      fixture.detail.resumeBlockedReasons = [
+        {
+          category: "cache_missing",
+          title: "設定不足です",
+          detail:
+            "AI サービス設定で API キーと model を確認してください。設定が揃うまで本文翻訳へ進めません。"
+        }
+      ]
+      fixture.detail.warnings = [
+        {
+          category: "cache_missing",
+          title: "次操作",
+          detail:
+            "設定画面で credential 状態と model 選択を確認し、一覧へ戻ってジョブを選び直してください。"
+        }
+      ]
+      fixture.detail.stopAvailability.enabled = false
+      fixture.detail.stopAvailability.helperText =
+        "実行中ではありません。設定確認が必要です。"
+      fixture.detail.stopAvailability.reasonText =
+        "停止できません。設定不足のため実行は始まっていません。"
+      fixture.detail.resumeAvailability.enabled = false
+      fixture.detail.resumeAvailability.helperText =
+        "API キーと model の確認が必要です。"
+      fixture.detail.resumeAvailability.reasonCategory = "cache_missing"
+      fixture.detail.resumeAvailability.reasonText =
+        "再開できません。AI サービス設定で API キーと model を確認してください。"
     }
   }
 
@@ -510,7 +595,7 @@ export function createTranslationJobManagementReviewGateway(
       const fixture = fixtureMap.get(jobId)
       if (!fixture) {
         throw new Error(
-          "選択した job は見つかりません。一覧を更新して選び直してください。"
+          "選択したジョブは見つかりません。一覧を更新して選び直してください。"
         )
       }
       return Promise.resolve(cloneDetail(fixture.detail))
@@ -592,7 +677,7 @@ export function createTranslationJobManagementReviewGateway(
       return Promise.resolve({
         tone: "success",
         message:
-          "job 本体と配下の DB 情報を削除しました。入力データと抽出 JSON は残ります。",
+          "ジョブ本体と配下の DB 情報を削除しました。入力データと抽出 JSON は残ります。",
         deletedJobId: jobId
       })
     }
@@ -605,7 +690,7 @@ function requireFixture(
 ): ReviewJobFixture {
   const fixture = fixtureMap.get(jobId)
   if (!fixture) {
-    throw new Error("選択した job は見つかりません。")
+    throw new Error("選択したジョブは見つかりません。")
   }
   return fixture
 }
@@ -616,6 +701,10 @@ function toSummary(detail: TranslationJobManagementJobDetail): TranslationJobMan
     jobState: detail.jobState,
     jobStateLabel: detail.jobStateLabel,
     stateTone: detail.stateTone,
+    canOpenPhase: detail.canOpenPhase,
+    openBlockedReason: detail.openBlockedReason
+      ? { ...detail.openBlockedReason }
+      : undefined,
     inputSource: { ...detail.inputSource },
     progress: { ...detail.progress },
     stopAvailability: { ...detail.stopAvailability },

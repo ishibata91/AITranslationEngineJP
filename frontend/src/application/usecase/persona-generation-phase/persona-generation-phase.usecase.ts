@@ -49,11 +49,11 @@ function sanitizeErrorMessage(error: unknown, fallback: string): string {
 }
 
 function createNoJobSelectedMessage(): string {
-  return "job id を入力して summary を取得してください。"
+  return "ジョブIDを指定して summary を取得してください。"
 }
 
 function createGatewayDisconnectedMessage(): string {
-  return "persona-generation-phase gateway が未接続です。"
+  return "NPC ペルソナ生成段階の gateway が未接続です。"
 }
 
 export class PersonaGenerationPhaseUseCase {
@@ -178,7 +178,7 @@ export class PersonaGenerationPhaseUseCase {
   startBodyPhase(): Promise<void> {
     this.store.update((draft) => {
       draft.errorMessage =
-        "body phase 開始の Wails 接続は integration-persona-phase-wails-gateway で実装します。"
+        "本文翻訳開始の Wails 接続は integration-persona-phase-wails-gateway で実装します。"
     })
     return Promise.resolve()
   }
@@ -221,7 +221,7 @@ export class PersonaGenerationPhaseUseCase {
         draft.bodyReadiness = before.bodyReadiness
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "NPC ペルソナ生成フェーズ summary の取得に失敗しました。"
+          "NPC ペルソナ生成段階の summary 取得に失敗しました。"
         )
       })
     }
@@ -254,7 +254,7 @@ export class PersonaGenerationPhaseUseCase {
 
     if (action !== "start" && typeof state.summary?.phaseRunId !== "number") {
       this.store.update((draft) => {
-        draft.errorMessage = "phase run が未確定のため操作できません。"
+        draft.errorMessage = "翻訳段階の実行情報が未確定のため操作できません。"
       })
       return
     }
@@ -281,7 +281,7 @@ export class PersonaGenerationPhaseUseCase {
         draft.pendingAction = null
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "NPC ペルソナ生成フェーズ操作に失敗しました。"
+          "NPC ペルソナ生成段階の操作に失敗しました。"
         )
       })
     }

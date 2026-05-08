@@ -208,7 +208,7 @@ describe("TermTranslationPhaseUseCase", () => {
     await useCase.refresh()
 
     expect(store.snapshot().errorMessage).toBe(
-      "term-translation-phase gateway が未接続です。"
+      "単語翻訳段階の gateway が未接続です。"
     )
   })
 
@@ -226,6 +226,30 @@ describe("TermTranslationPhaseUseCase", () => {
       jobId: 9
     })
     expect(store.snapshot().hasLoaded).toBe(true)
+  })
+
+  test("setJobId null は phase readiness を取得せず未選択エラーを設定する", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const store = createStore({
+      jobId: 9,
+      phase: "ready",
+      summary: createSummary(),
+      nextPhaseReadiness: createReadiness(),
+      hasLoaded: true
+    })
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    await useCase.setJobId(null)
+
+    expect(spies.getTermTranslationPhaseSummary).not.toHaveBeenCalled()
+    expect(spies.getTermTranslationNextPhaseReadiness).not.toHaveBeenCalled()
+    expect(store.snapshot()).toMatchObject({
+      jobId: null,
+      summary: null,
+      nextPhaseReadiness: null,
+      hasLoaded: false,
+      errorMessage: "ジョブIDを指定して summary を取得してください。"
+    })
   })
 
   test("summary refresh 失敗時は前回 snapshot を保持する", async () => {
@@ -250,7 +274,7 @@ describe("TermTranslationPhaseUseCase", () => {
     expect(snapshot.summary).toMatchObject(oldSummary)
     expect(snapshot.nextPhaseReadiness).toMatchObject(oldReadiness)
     expect(snapshot.errorMessage).toBe(
-      "単語翻訳フェーズ summary の取得に失敗しました。"
+      "単語翻訳段階の summary 取得に失敗しました。"
     )
   })
 
@@ -283,7 +307,7 @@ describe("TermTranslationPhaseUseCase", () => {
 
     expect(spies.pauseTermTranslationPhase).not.toHaveBeenCalled()
     expect(store.snapshot().errorMessage).toBe(
-      "phase run が未確定のため操作できません。"
+      "翻訳段階の実行情報が未確定のため操作できません。"
     )
   })
 
@@ -321,7 +345,7 @@ describe("TermTranslationPhaseUseCase", () => {
     await useCase.retryPhase()
 
     expect(store.snapshot().errorMessage).toBe(
-      "単語翻訳フェーズ操作に失敗しました。"
+      "単語翻訳段階の操作に失敗しました。"
     )
     expect(store.snapshot().phase).toBe("ready")
   })

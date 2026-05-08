@@ -22,6 +22,7 @@ const (
 	bodyTranslationFieldResultReasonProtectionValidationFailed = "protected element validation failed"
 	bodyTranslationFieldResultReasonProviderFailure            = "provider execution failed"
 	bodyTranslationFieldResultReasonInvalidProviderResponse    = "provider response was invalid"
+	bodyTranslationFieldResultReasonLateProviderResponse       = "late provider response was rejected"
 )
 
 // BodyTranslationFieldResultPersistenceRequest identifies one persistence attempt for one phase run.
@@ -158,7 +159,7 @@ func (service *BodyTranslationPhaseService) loadBodyTranslationRunForMutation(
 		return bodyTranslationLoadedContext{}, repository.JobPhaseRun{}, err
 	}
 	if loaded.bodyRun == nil || loaded.bodyRun.ID != phaseRunID {
-		return bodyTranslationLoadedContext{}, repository.JobPhaseRun{}, fmt.Errorf("load body translation phase run: %w", repository.ErrNotFound)
+		return loaded, repository.JobPhaseRun{ID: phaseRunID}, nil
 	}
 	if rejection := bodyTranslationLateResponseRejection(loaded, *loaded.bodyRun); rejection != nil {
 		return loaded, *loaded.bodyRun, nil
@@ -170,10 +171,18 @@ func bodyTranslationLateResponseRejection(
 	loaded bodyTranslationLoadedContext,
 	run repository.JobPhaseRun,
 ) *BodyTranslationPhaseErrorSummaryReadModel {
+	if loaded.bodyRun == nil || loaded.bodyRun.ID != run.ID {
+		return &BodyTranslationPhaseErrorSummaryReadModel{
+			ErrorKind:  "late_response_rejected",
+			Reason:     bodyTranslationFieldResultReasonLateProviderResponse,
+			Retryable:  true,
+			IsRedacted: true,
+		}
+	}
 	if isBodyTranslationTerminalJob(loaded.job.State) {
 		return &BodyTranslationPhaseErrorSummaryReadModel{
 			ErrorKind:  "late_response_rejected",
-			Reason:     "late provider response was rejected",
+			Reason:     bodyTranslationFieldResultReasonLateProviderResponse,
 			Retryable:  true,
 			IsRedacted: true,
 		}
@@ -182,7 +191,7 @@ func bodyTranslationLateResponseRejection(
 	case bodyTranslationPhaseStateCanceled, bodyTranslationPhaseStateCompleted:
 		return &BodyTranslationPhaseErrorSummaryReadModel{
 			ErrorKind:  "late_response_rejected",
-			Reason:     "late provider response was rejected",
+			Reason:     bodyTranslationFieldResultReasonLateProviderResponse,
 			Retryable:  true,
 			IsRedacted: true,
 		}

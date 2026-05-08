@@ -1,0 +1,721 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TFN-001",
+      "source_candidate_id": "CAND-TFN-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "Job Setup 完了後に単語翻訳ページへ進む主経路である。旧セッション取得廃止も同じ観測点で確認する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-002",
+      "source_candidate_id": "CAND-TFN-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "未完了 job 一覧を途中再開の唯一の入口として採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-003",
+      "source_candidate_id": "CAND-TFN-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "Ready job は再編集ではなく単語翻訳ページの実行入口として扱うため、未完了 job 一覧からの再開に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-004",
+      "source_candidate_id": "CAND-TFN-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-005",
+      "decision_rationale": "単語翻訳完了とジョブ内辞書参照成立だけを次工程条件にする。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-005",
+      "source_candidate_id": "CAND-TFN-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-006",
+      "decision_rationale": "NPC ペルソナ生成完了と snapshot 参照成立だけを本文翻訳条件にする。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-006",
+      "source_candidate_id": "CAND-TFN-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-007",
+      "decision_rationale": "本文翻訳が Completed になった時の結果確認として採用する。Canceled と Failed は完了ページ対象にしない固定判断へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-007",
+      "source_candidate_id": "CAND-TFN-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-009",
+      "decision_rationale": "翻訳完了ページから出力管理へ移動する導線として採用する。出力対象 job は出力管理側で選ばせる固定判断に統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-008",
+      "source_candidate_id": "CAND-TFN-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "対象 job 未確定時の直リンク防止として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-009",
+      "source_candidate_id": "CAND-TFN-009",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "フェーズページから入力データページや Job Setup へ戻らない禁止移動として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TFN-010",
+      "source_candidate_id": "CAND-TFN-010",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "旧 Job Run のセッション取得廃止は、作成結果または一覧選択だけを job 入口にする要件へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-001",
+      "source_candidate_id": "CAND-TFNO-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-001",
+      "decision_rationale": "翻訳セクション入口で新規開始と途中再開を分ける起点として採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-002",
+      "source_candidate_id": "CAND-TFNO-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "入力データ固定から Job Setup へ進む job 作成前段として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-003",
+      "source_candidate_id": "CAND-TFNO-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "Job Setup 完了直後の単語翻訳ページ遷移へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-004",
+      "source_candidate_id": "CAND-TFNO-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "未完了 job 一覧から表示フェーズを固定する再開経路へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-005",
+      "source_candidate_id": "CAND-TFNO-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-005",
+      "decision_rationale": "単語翻訳から NPC ペルソナ生成への許可遷移へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-006",
+      "source_candidate_id": "CAND-TFNO-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-006",
+      "decision_rationale": "NPC ペルソナ生成から本文翻訳への許可遷移へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-007",
+      "source_candidate_id": "CAND-TFNO-LC-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-007",
+      "decision_rationale": "本文翻訳 Completed 後の翻訳完了ページ表示へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-008",
+      "source_candidate_id": "CAND-TFNO-LC-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-009",
+      "decision_rationale": "翻訳完了ページから出力管理へ移動する導線へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-009",
+      "source_candidate_id": "CAND-TFNO-LC-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-009",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-010",
+      "decision_rationale": "Completed job 一覧から Output Review へ進む成果物出力側の主経路として採用する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TFNO-LC-010",
+      "source_candidate_id": "CAND-TFNO-LC-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "フェーズページから前工程へ戻らない禁止移動へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-001",
+      "source_candidate_id": "CAND-TFNO-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "Job Setup 完了後の許可遷移として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-002",
+      "source_candidate_id": "CAND-TFNO-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "未完了 job 一覧から対象 job と表示フェーズを固定する許可遷移へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-003",
+      "source_candidate_id": "CAND-TFNO-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-010",
+      "decision_rationale": "Completed job は翻訳管理の未完了一覧から除外し、成果物出力側へ分離する不変条件へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-004",
+      "source_candidate_id": "CAND-TFNO-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "直リンク防止の禁止遷移として採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-005",
+      "source_candidate_id": "CAND-TFNO-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "作成済み job の前工程戻り禁止へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-006",
+      "source_candidate_id": "CAND-TFNO-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-005",
+      "decision_rationale": "単語翻訳完了と辞書参照成立だけを次工程条件にする許可遷移へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-007",
+      "source_candidate_id": "CAND-TFNO-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-006",
+      "decision_rationale": "persona snapshot 参照成立だけを本文翻訳条件にする許可遷移へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-008",
+      "source_candidate_id": "CAND-TFNO-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-008",
+      "decision_rationale": "本文翻訳 Completed だけで output readiness を成立させる不変条件として採用する。Canceled と Failed は完了ページと出力候補から除外する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-009",
+      "source_candidate_id": "CAND-TFNO-ST-009",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-010",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-011",
+      "decision_rationale": "再送、再開、リトライの重複作成防止として採用する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-010",
+      "source_candidate_id": "CAND-TFNO-ST-010",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-009",
+      "decision_rationale": "翻訳完了ページは確認と出力管理への移動だけを扱う責務境界へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-011",
+      "source_candidate_id": "CAND-TFNO-ST-011",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-010",
+      "decision_rationale": "成果物出力は Completed job だけを出力候補にする不変条件へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TFNO-ST-012",
+      "source_candidate_id": "CAND-TFNO-ST-012",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "旧 Job Run のセッション取得廃止と対象 job 未確定時の一覧復帰へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-001",
+      "source_candidate_id": "CAND-TFN-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "対象 job 未確定のフェーズ表示拒否として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-002",
+      "source_candidate_id": "CAND-TFN-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "参照不能 job は一覧で理由を表示し、フェーズページの対象にしない安全側表示へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-003",
+      "source_candidate_id": "CAND-TFN-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "グローバルナビや復元状態からのフェーズ直移動禁止へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-004",
+      "source_candidate_id": "CAND-TFN-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "Job Setup 作成失敗時は単語翻訳ページへ進まない境界として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-005",
+      "source_candidate_id": "CAND-TFN-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-005",
+      "decision_rationale": "単語翻訳未完了または辞書参照不能時のブロック表示として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-006",
+      "source_candidate_id": "CAND-TFN-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-006",
+      "decision_rationale": "persona snapshot 参照不能時のブロック表示として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-007",
+      "source_candidate_id": "CAND-TFN-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-008",
+      "decision_rationale": "Failed、Canceled、RecoverableFailed、不整合では output readiness を成立させない固定判断へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-008",
+      "source_candidate_id": "CAND-TFN-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-010",
+      "decision_rationale": "Completed job と未完了 job の一覧分離へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-009",
+      "source_candidate_id": "CAND-TFN-009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "旧セッション取得に依存しない job 表示として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-TFN-010",
+      "source_candidate_id": "CAND-TFN-010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TFN-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-010",
+      "decision_rationale": "出力管理へ移動後も未選択 job を成功扱いせず、Completed job 一覧で選ばせる境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-001",
+      "source_candidate_id": "CAND-TFNO-EI-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "Job Setup 作成結果の jobId と redacted summary 引き継ぎへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-002",
+      "source_candidate_id": "CAND-TFNO-EI-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "provider 情報 stale または未設定時の作成拒否へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-003",
+      "source_candidate_id": "CAND-TFNO-EI-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "直リンク時に phase summary を読まず未完了 job 一覧へ戻す境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-004",
+      "source_candidate_id": "CAND-TFNO-EI-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "未完了 job 一覧の選択結果だけでフェーズページを開始する境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-005",
+      "source_candidate_id": "CAND-TFNO-EI-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-005",
+      "decision_rationale": "sticky footer の次へ進むは readiness summary だけを使い、provider 実行を起動しない境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-006",
+      "source_candidate_id": "CAND-TFNO-EI-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-010",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TFN-012",
+      "decision_rationale": "runtime event は現在選択中 job だけを更新する外部連携境界として採用する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-007",
+      "source_candidate_id": "CAND-TFNO-EI-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-009",
+      "decision_rationale": "翻訳完了ページのボタンが成果物出力を直接開始しない境界へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TFNO-EI-008",
+      "source_candidate_id": "CAND-TFNO-EI-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TFN-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-010",
+      "decision_rationale": "成果物出力側の AI provider 非依存と secret 非露出として統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-001",
+      "source_candidate_id": "CAND-TFNO-OA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-002",
+      "decision_rationale": "Job Setup 作成結果から単語翻訳ページへ進んだ材料確認へ統合する。監査ログ形式は固定しない。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-002",
+      "source_candidate_id": "CAND-TFNO-OA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "未完了 job 一覧の選択材料確認へ統合する。保存形式や保持期間は固定しない。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-003",
+      "source_candidate_id": "CAND-TFNO-OA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-004",
+      "decision_rationale": "直リンク防止と未完了 job 一覧への復帰観測へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-004",
+      "source_candidate_id": "CAND-TFNO-OA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-005",
+      "decision_rationale": "前工程戻り禁止と次へ進めない理由の表示へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-005",
+      "source_candidate_id": "CAND-TFNO-OA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-010",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-012",
+      "decision_rationale": "分解後の各フェーズページで redacted result summary を再表示する境界へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-006",
+      "source_candidate_id": "CAND-TFNO-OA-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-003",
+      "decision_rationale": "旧 Job Run セッション取得経路の廃止確認へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TFNO-OA-007",
+      "source_candidate_id": "CAND-TFNO-OA-007",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TFN-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TFN-009",
+      "decision_rationale": "翻訳完了ページから出力管理へ移った後の対象 job 材料確認へ統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-TFN-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-006",
+        "lifecycle:CAND-TFNO-LC-007",
+        "state-transition:CAND-TFNO-ST-008",
+        "failure:CAND-TFN-007"
+      ],
+      "conflict_type": "state_transition",
+      "resolution": "翻訳完了ページは Completed job 専用にする。Canceled と Failed は本文翻訳ページの terminal 表示または未完了 job 一覧の再開不可理由として扱い、output readiness と出力管理導線を成立させない。",
+      "reason": "plan D-06 は翻訳完了直後の原文と訳文確認を目的にし、D-07 と translation-output-artifact は Completed job だけを出力候補にする。body-translation-phase も Completed だけを output readiness true にする。"
+    },
+    {
+      "conflict_id": "CONFLICT-TFN-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-007",
+        "lifecycle:CAND-TFNO-LC-008",
+        "state-transition:CAND-TFNO-ST-010",
+        "failure:CAND-TFN-010"
+      ],
+      "conflict_type": "section_boundary",
+      "resolution": "翻訳完了ページから出力管理へ移動しても出力対象 job を自動選択しない。出力管理側の Completed job 一覧で利用者が選ぶ。",
+      "reason": "plan D-07 と translation-output-artifact は成果物出力側の completed job list を入口にしている。翻訳管理側のボタンは別セクションへの導線に限定する。"
+    },
+    {
+      "conflict_id": "CONFLICT-TFN-003",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-010",
+        "state-transition:CAND-TFNO-ST-012",
+        "failure:CAND-TFN-009",
+        "operation-audit:CAND-TFNO-OA-006"
+      ],
+      "conflict_type": "compatibility",
+      "resolution": "旧 Job Run は画面名とセッション取得入口として残さない。既存詳細仕様の Job Run 表記は、分解後の各フェーズページに読み替える。",
+      "reason": "plan D-01 と D-05 が旧 Job Run の分解とセッション取得廃止を決定している。"
+    },
+    {
+      "conflict_id": "CONFLICT-TFN-004",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-TFN-002",
+        "state-transition:CAND-TFNO-ST-002"
+      ],
+      "conflict_type": "failure_display",
+      "resolution": "参照不能 job は未完了 job 一覧に残して理由を表示し、フェーズページの対象にはしない。",
+      "reason": "translation-job-management は参照不能と phase progress 集約不能を安全側に表示し、Job Run 表示対象にしないと定義している。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TFN-001",
+      "candidate_ids": [
+        "lifecycle:CAND-TFNO-LC-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-002",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-001",
+        "lifecycle:CAND-TFNO-LC-002",
+        "lifecycle:CAND-TFNO-LC-003",
+        "state-transition:CAND-TFNO-ST-001",
+        "failure:CAND-TFN-004",
+        "external-integration:CAND-TFNO-EI-001",
+        "external-integration:CAND-TFNO-EI-002",
+        "operation-audit:CAND-TFNO-OA-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-003",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-002",
+        "actor-goal:CAND-TFN-003",
+        "actor-goal:CAND-TFN-010",
+        "lifecycle:CAND-TFNO-LC-004",
+        "state-transition:CAND-TFNO-ST-002",
+        "state-transition:CAND-TFNO-ST-012",
+        "failure:CAND-TFN-002",
+        "failure:CAND-TFN-009",
+        "external-integration:CAND-TFNO-EI-004",
+        "operation-audit:CAND-TFNO-OA-002",
+        "operation-audit:CAND-TFNO-OA-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-004",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-008",
+        "actor-goal:CAND-TFN-009",
+        "lifecycle:CAND-TFNO-LC-010",
+        "state-transition:CAND-TFNO-ST-004",
+        "state-transition:CAND-TFNO-ST-005",
+        "failure:CAND-TFN-001",
+        "failure:CAND-TFN-003",
+        "external-integration:CAND-TFNO-EI-003",
+        "operation-audit:CAND-TFNO-OA-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-005",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-004",
+        "lifecycle:CAND-TFNO-LC-005",
+        "state-transition:CAND-TFNO-ST-006",
+        "failure:CAND-TFN-005",
+        "external-integration:CAND-TFNO-EI-005",
+        "operation-audit:CAND-TFNO-OA-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-006",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-005",
+        "lifecycle:CAND-TFNO-LC-006",
+        "state-transition:CAND-TFNO-ST-007",
+        "failure:CAND-TFN-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-007",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-006",
+        "lifecycle:CAND-TFNO-LC-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-008",
+      "candidate_ids": [
+        "state-transition:CAND-TFNO-ST-008",
+        "failure:CAND-TFN-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-009",
+      "candidate_ids": [
+        "actor-goal:CAND-TFN-007",
+        "lifecycle:CAND-TFNO-LC-008",
+        "state-transition:CAND-TFNO-ST-010",
+        "failure:CAND-TFN-010",
+        "external-integration:CAND-TFNO-EI-007",
+        "operation-audit:CAND-TFNO-OA-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-010",
+      "candidate_ids": [
+        "lifecycle:CAND-TFNO-LC-009",
+        "state-transition:CAND-TFNO-ST-003",
+        "state-transition:CAND-TFNO-ST-011",
+        "failure:CAND-TFN-008",
+        "external-integration:CAND-TFNO-EI-008"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-011",
+      "candidate_ids": [
+        "state-transition:CAND-TFNO-ST-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TFN-012",
+      "candidate_ids": [
+        "external-integration:CAND-TFNO-EI-006",
+        "operation-audit:CAND-TFNO-OA-005"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

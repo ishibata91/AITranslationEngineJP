@@ -1,0 +1,150 @@
+reviewback_version: 1
+task_id: "2026-05-08-translation-flow-navigation-overhaul"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "pass。前回指摘の本文翻訳開始再送は、既存 body phase run を検出した時点で既存 run の read model を返す。pending target が残っていても executeBodyTranslationRun へ進まないため、provider request、output 作成、phase run 作成を再実行しない。duplicate output prevention、late response rejection、terminal job 防御にも新規 major 以上の状態不変条件違反は確認していない。"
+  evidence_sufficiency: "十分。実装目的、前回 issue、修正内容、受領済み検証証跡、対象 diff、本文翻訳 service、provider response 永続化、関連 service / API テストを確認した。reviewer 規約によりハーネスは再実行していない。"
+
+state_invariant_review:
+  gate_result: "pass"
+  maintained_invariants:
+    - "本文翻訳開始再送は、既存 Running run に対して provider request を再発行せず、既存 run の read model を返す。"
+    - "本文翻訳開始再送は、pending target が残っていても executeBodyTranslationRun へ進まない。"
+    - "本文翻訳 output は translation field 単位の既存行を参照し、既存 output がある field では重複行を作らない。"
+    - "古い phase run ID の provider response は late_response_rejected として扱われ、output、phase run、job state を変更しない。"
+    - "terminal job への本文翻訳 phase state 遷移は、永続化 transaction 前に拒否される。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "前回 issue は局所修正で閉じている。StartPhase の既存 run 分岐と、本文翻訳 response 永続化の拒否条件に変更が集中しており、出力管理や phase navigation readiness への新規状態不変条件違反は確認していない。"
+  invariant_test_viewpoints:
+    - "Running の既存 body phase run がある状態で StartPhase を再送しても、provider mock が呼ばれず、output と phase run が増えないこと。"
+    - "Running の既存 body phase run に pending field が残っていても、StartPhase 再送は pending field を処理しないこと。"
+    - "古い phaseRunId の PersistBodyTranslationFieldResults が late_response_rejected を返し、job、phase run、output、phase link を変更しないこと。"
+    - "terminal job の ResumePhase が永続化前に拒否され、job と phase run を変更しないこと。"
+  validation_evidence:
+    - command: "go test ./internal/service"
+      result: "PASS"
+      evidence_path: "user-provided"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "PASS"
+      evidence_path: "user-provided"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "PASS"
+      evidence_path: "user-provided"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite coverage"
+      result: "PASS"
+      evidence_path: "user-provided"
+      coverage: "70.3% >= 70.0%"
+      issue_count: "security 0 / reliability 0 / maintainability HIGH 0"
+      system_test_count: null
+      failure: null
+
+checked_scope:
+  summary: "本文翻訳の開始再送、retry / resume、provider response 永続化、late response rejection、terminal job 遷移拒否、重複 output 防止、関連テスト、受領済み検証証跡を確認した。"
+  files:
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 340
+      symbol: "BodyTranslationPhaseService.StartPhase"
+      reason: "既存 body phase run がある場合、executeBodyTranslationRun へ進まず既存 run の read model を返す根拠。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 386
+      symbol: "BodyTranslationPhaseService.existingBodyTranslationPhaseRun"
+      reason: "既存 run 再送が副作用なしの read model 返却に閉じる根拠。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 552
+      symbol: "BodyTranslationPhaseService.RetryPhase"
+      reason: "retry / resume 経路で state transition 後に executeBodyTranslationRun へ進む対象を確認した根拠。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1299
+      symbol: "BodyTranslationPhaseService.persistBodyTranslationRunStateTransition"
+      reason: "terminal job の phase state 遷移を transaction 前に拒否する根拠。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1437
+      symbol: "BodyTranslationPhaseService.executeBodyTranslationRun"
+      reason: "provider request 発行が pending target 処理に限定され、StartPhase 既存 run 分岐から呼ばれないことを確認する根拠。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 81
+      symbol: "BodyTranslationPhaseService.PersistBodyTranslationFieldResults"
+      reason: "provider response 永続化の入口で late response rejection を先に評価する根拠。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 170
+      symbol: "bodyTranslationLateResponseRejection"
+      reason: "古い phase run ID、terminal job、Completed / Canceled run を副作用なしで拒否する根拠。"
+    - path: "internal/service/body_translation_field_result.go"
+      line: 675
+      symbol: "BodyTranslationPhaseService.upsertBodyTranslationJobField"
+      reason: "translation field 単位で既存 output を再利用し、重複行を避ける根拠。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 507
+      symbol: "TestBodyTranslationPhaseServiceStartPhaseReusesRunningRunWithoutProviderRequest"
+      reason: "既存 Running run 再送時に provider request、output 作成、phase run 作成が起きない単体テスト根拠。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 576
+      symbol: "TestBodyTranslationPhaseServiceRejectsLateResponseForOldPhaseRun"
+      reason: "古い phase run ID の response が output と state を変更しない単体テスト根拠。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 634
+      symbol: "TestBodyTranslationPhaseServiceRejectsTerminalJobTransitionWithoutMutation"
+      reason: "terminal job への state transition が永続化前に拒否される単体テスト根拠。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 132
+      symbol: "TestSCN_TFN_011_RetryResumeAndStartResendReusePhaseRunWithoutDuplicateResults"
+      reason: "public command 経路で既存結果の重複作成が起きない API テスト根拠。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 189
+      symbol: "TestSCN_TFN_011_LateResponseForOldPhaseRunIsRejectedWithoutResultOrArtifactMutation"
+      reason: "public service 経路で古い phase run response が artifact と state を変更しない API テスト根拠。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "codex-review-state-invariant の非対象規約でハーネスを実行しないため。"
+    risk: "受領済み検証証跡を根拠にしており、レビュー担当自身の再実行証跡はない。"
+  - target: "実 provider の並行 StartPhase 再送"
+    reason: "差分読解と単体テスト確認に限定し、実 provider への多重送信操作は行っていないため。"
+    risk: "実 provider 側の遅延や外部課金状態までは確認していない。"
+  - target: "DB 固有の同時書き込み分離レベル"
+    reason: "repository 実装と migration の全件監査は今回の状態不変条件レビュー範囲に含めていないため。"
+    risk: "同一 field への同時 create conflict は service 側で扱うが、DB 分離レベル依存の順序差までは確認していない。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "本文翻訳開始再送が Running run で provider を再実行する"
+    problem: "resolved。StartPhase は既存 body phase run を検出した後、executeBodyTranslationRun を呼ばず existingBodyTranslationPhaseRun を返す。"
+    reason: "既存 Running run の開始再送で provider request、output 作成、phase run 作成が再実行されないことを実コードと単体テストで確認した。"
+    violated_condition: "修正前は、本文翻訳の開始再送が既存 run を返すだけでなく provider request を再発行していた。修正後は条件を満たしている。"
+    cause_candidate: "修正前の continueBodyTranslationPhaseRun 経路は StartPhase から削除され、StartPhase は internal/service/body_translation_phase_service.go:366 で既存 run を read model 返却に閉じる。"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 366
+        excerpt: "loaded.bodyRun が nil でなければ existingBodyTranslationPhaseRun を返す。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 386
+        excerpt: "existingBodyTranslationPhaseRun は bodyTranslationCommandFromLoaded を返すだけで provider 実行を呼ばない。"
+      - path: "internal/service/body_translation_phase_service_test.go"
+        line: 507
+        excerpt: "StartPhase 再送時に provider request が 0 件であることを確認する。"
+    local_fix_assessment: "local。本文翻訳 StartPhase の既存 run 分岐と service / API テストで閉じている。"
+    additional_check_scope: "none。今回の確認範囲では、idempotent start、duplicate output prevention、late response rejection、terminal job 防御に新規 major 以上 issue はない。"
+    fix_considerations: "resolved。今後の変更では、StartPhase 再送を recovery 実行の入口に戻さないことが不変条件になる。"
+    verification: "go test ./internal/service、backend-local、frontend-local、coverage は user-provided 証跡で pass。レビューでは該当単体テストと diff を確認した。"
+    fix_required: true
+    status: "resolved"

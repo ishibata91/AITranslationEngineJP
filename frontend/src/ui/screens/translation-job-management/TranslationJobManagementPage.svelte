@@ -6,6 +6,7 @@
   } from "@application/contract/translation-job-management"
   import type {
     TranslationJobManagementJobRunTarget,
+    TranslationJobManagementJobCardViewModel,
     TranslationJobManagementOperationViewModel,
     TranslationJobManagementFilterChipViewModel,
     TranslationJobManagementScreenViewModel
@@ -17,15 +18,13 @@
     createController: CreateTranslationJobManagementScreenController | null
     onJobRunTargetChange?: (target: TranslationJobManagementJobRunTarget | null) => void
     onOpenInputReview?: () => void
-    onOpenJobSetup?: () => void
-    onOpenJobRun?: () => void
+    onOpenJobRun?: (target: TranslationJobManagementJobRunTarget | null) => void
   }
 
   let {
     createController,
     onJobRunTargetChange = () => undefined,
     onOpenInputReview = () => undefined,
-    onOpenJobSetup = () => undefined,
     onOpenJobRun = () => undefined
   }: Props = $props()
 
@@ -71,26 +70,21 @@
       return
     }
 
-    if (viewModel.selectedJob?.jobIdLabel !== `Job #${jobId}`) {
+    if (viewModel.selectedJob?.jobIdLabel !== `ジョブ #${jobId}`) {
       await controller.selectJob(jobId)
     }
 
     if (operation.kind === "stop") {
       await controller.requestStop()
-      if (jobState === "Ready") {
-        onOpenJobSetup()
-      } else {
-        onOpenJobRun()
-      }
       return
     }
 
     if (operation.kind === "resume") {
       await controller.requestResume()
-      if (jobState === "Ready") {
-        onOpenJobSetup()
-      } else {
-        onOpenJobRun()
+      const nextTarget = controller.getViewModel().jobRunTarget
+      if (jobState !== "Ready" && nextTarget) {
+        onJobRunTargetChange(nextTarget)
+        onOpenJobRun(nextTarget)
       }
       return
     }
@@ -106,25 +100,27 @@
     return `tone-${tone}`
   }
 
-  function handleOpenJobRun(event: MouseEvent): void {
-    event.stopPropagation()
-    onOpenJobRun()
-  }
+  async function handleOpenJob(job: TranslationJobManagementJobCardViewModel): Promise<void> {
+    if (!job.canOpenPhase || !job.jobRunTarget) {
+      await controller.selectJob(job.jobId)
+      return
+    }
 
-  async function handleSelectJob(jobId: number): Promise<void> {
-    await controller.selectJob(jobId)
+    onJobRunTargetChange(job.jobRunTarget)
+    onOpenJobRun(job.jobRunTarget)
+    await controller.selectJob(job.jobId)
   }
 
   async function handleCardKeydown(
     event: KeyboardEvent,
-    jobId: number
+    job: TranslationJobManagementJobCardViewModel
   ): Promise<void> {
     if (event.key !== "Enter" && event.key !== " ") {
       return
     }
 
     event.preventDefault()
-    await handleSelectJob(jobId)
+    await handleOpenJob(job)
   }
 
 </script>
@@ -140,7 +136,7 @@
       onclick={onOpenInputReview}
       type="button"
     >
-      新規登録
+      新規翻訳を開始
     </button>
   </section>
 
@@ -155,7 +151,7 @@
     <section class="panel job-list-panel" aria-labelledby="jobManagementListHeading">
       <div class="section-head">
         <div>
-          <p class="page-label">未完了 job</p>
+          <p class="page-label">未完了ジョブ</p>
           <h3 id="jobManagementListHeading">一覧</h3>
         </div>
       </div>
@@ -169,7 +165,7 @@
               controller.setSearchQuery(
                 (event.currentTarget as HTMLInputElement).value
               )}
-            placeholder="job id、入力名、phase で検索"
+            placeholder="ジョブID、入力名、翻訳段階で検索"
             type="search"
             value={viewModel.searchQuery}
           />
@@ -192,7 +188,7 @@
       {#if viewModel.phase === "loading"}
         <div class="panel-empty">
           <p class="empty-title">一覧を読み込んでいます</p>
-          <p class="empty-description">未完了 job の状態を取得しています。</p>
+          <p class="empty-description">未完了ジョブの状態を取得しています。</p>
         </div>
       {:else if viewModel.phase === "error"}
         <div class="panel-empty tone-danger">
@@ -207,45 +203,59 @@
       {:else}
         <div class="job-card-list">
           {#each viewModel.jobs as job (job.jobId)}
-            <div
-              aria-label={`Job ${job.jobId} を選択`}
+            <article
               class="job-card"
               class:is-selected={job.isSelected}
-              onclick={() => void handleSelectJob(job.jobId)}
-              onkeydown={(event) => void handleCardKeydown(event, job.jobId)}
-              role="button"
-              tabindex="0"
             >
-              <div class="job-card-main">
-                <div class="job-card-title">
-                  <p class="job-card-id">Job #{job.jobId}</p>
-                  <h4 class="overflow-text">{job.title}</h4>
-                </div>
-                <div class="job-card-inline">
+              <a
+                aria-label={`ジョブ ${job.jobId} を選択して現在の翻訳段階へ進む`}
+                class="job-card-main job-card-select"
+                class:is-disabled={!job.canOpenPhase}
+                data-current-phase-label={job.currentPhaseLabel}
+                data-input-source-label={job.inputSourceLabel}
+                data-job-id={job.jobId}
+                data-progress-label={job.progressLabel}
+                data-source-path={job.sourcePath}
+                data-state-description={job.stateDescription}
+                data-state-label={job.stateLabel}
+                href={job.canOpenPhase ? "#translation-management/job-run" : "#translation-management"}
+                onclick={(event) => {
+                  event.preventDefault()
+                  void handleOpenJob(job)
+                }}
+                onkeydown={(event) => void handleCardKeydown(event, job)}
+              >
+                <span class="job-card-title">
+                  <span class="job-card-id">ジョブ #{job.jobId}</span>
+                  <span class="job-card-heading overflow-text">{job.title}</span>
+                </span>
+                <span class="job-card-inline">
                   <span>{job.stateDescription}</span>
                   <span>{job.currentPhaseLabel}</span>
                   <span>{job.progressLabel}</span>
-                </div>
-                <p class="job-card-updated">{job.lastUpdatedLabel}</p>
-              </div>
+                </span>
+                <span class="job-card-updated">{job.lastUpdatedLabel}</span>
+              </a>
 
               <div class="job-card-side">
                 <div class="job-card-status">
                   <span class={`state-badge ${toneClass(job.stateTone)}`}>
                     {job.stateLabel}
                   </span>
-                  {#if job.isSelected}
-                    <button
-                      class="ghost-button job-run-link"
-                      onclick={handleOpenJobRun}
-                      type="button"
-                    >
-                      Job Run
-                    </button>
-                  {/if}
                 </div>
 
-                <div class="job-card-actions" aria-label={`Job ${job.jobId} の操作`}>
+                <div class="job-card-actions" aria-label={`ジョブ ${job.jobId} の操作`}>
+                  <button
+                    class="continue-button"
+                    disabled={!job.canOpenPhase}
+                    onclick={(event) => {
+                      event.stopPropagation()
+                      void handleOpenJob(job)
+                    }}
+                    type="button"
+                  >
+                    現在の翻訳段階へ進む
+                  </button>
                   {#each [job.stopOperation, job.resumeOperation] as operation (operation.kind)}
                     <TranslationJobManagementActionButton
                       compact={true}
@@ -262,7 +272,7 @@
                   />
                 </div>
 
-                <div class="job-card-reasons" aria-label={`Job ${job.jobId} の無効理由`}>
+                <div class="job-card-reasons" aria-label={`ジョブ ${job.jobId} の無効理由`}>
                   {#if !job.stopOperation.enabled && job.stopOperation.reasonText}
                     <p class="job-card-reason overflow-text">
                       停止: {job.stopOperation.reasonText}
@@ -278,9 +288,14 @@
                       削除: {job.deleteOperation.reasonText}
                     </p>
                   {/if}
+                  {#if !job.canOpenPhase && job.openBlockedReasonText}
+                    <p class="job-card-reason overflow-text">
+                      翻訳段階: {job.openBlockedReasonText}
+                    </p>
+                  {/if}
                 </div>
               </div>
-            </div>
+            </article>
           {/each}
         </div>
       {/if}
@@ -325,7 +340,6 @@
 
   h2,
   h3,
-  h4,
   .feedback-title,
   .empty-title {
     margin: 0;
@@ -414,7 +428,6 @@
     border-radius: 16px;
     border: 1px solid rgba(233, 213, 186, 0.18);
     background: rgba(255, 255, 255, 0.04);
-    cursor: pointer;
   }
 
   .job-card.is-selected {
@@ -428,8 +441,34 @@
     text-align: left;
   }
 
-  .job-card-title h4 {
+  .job-card-select {
+    width: 100%;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+  }
+
+  .job-card-select.is-disabled {
+    cursor: default;
+  }
+
+  .job-card-select:focus-visible {
+    outline: 3px solid rgba(255, 186, 56, 0.55);
+    outline-offset: 4px;
+    border-radius: 12px;
+  }
+
+  .job-card-title {
+    display: grid;
+    gap: 0.12rem;
+  }
+
+  .job-card-heading {
+    display: block;
     font-size: 1rem;
+    font-weight: 700;
   }
 
   .job-card-side {
@@ -488,13 +527,24 @@
     color: rgba(236, 223, 205, 0.82);
   }
 
-  .job-run-link {
-    min-height: 2.2rem;
-    padding: 0.5rem 0.8rem;
-  }
-
   .danger-text {
     color: rgba(255, 189, 173, 0.92);
+  }
+
+  .continue-button {
+    min-height: 2.35rem;
+    border: 1px solid rgba(240, 180, 100, 0.36);
+    border-radius: 0.8rem;
+    background: rgba(240, 180, 100, 0.12);
+    color: #ffe0b8;
+    cursor: pointer;
+    font: inherit;
+    padding: 0.5rem 0.75rem;
+  }
+
+  .continue-button:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
   }
 
   .panel-empty {

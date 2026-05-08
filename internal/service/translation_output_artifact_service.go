@@ -60,6 +60,7 @@ type translationOutputArtifactJobLister interface {
 // TranslationOutputReviewReadModel stores the Output Review read model.
 type TranslationOutputReviewReadModel struct {
 	CompletedJobs    []TranslationOutputCompletedJobSummaryReadModel
+	HasSelectedJob   bool
 	SelectedJob      TranslationOutputSelectedJobSummaryReadModel
 	OutputReadiness  TranslationOutputReadinessSummaryReadModel
 	ArtifactStatus   TranslationOutputArtifactStatusSummaryReadModel
@@ -229,19 +230,9 @@ func (service *TranslationOutputArtifactService) ReadReview(
 	if err != nil {
 		return TranslationOutputReviewReadModel{}, fmt.Errorf("list translation jobs: %w", err)
 	}
-	if len(jobs) == 0 {
-		return TranslationOutputReviewReadModel{}, nil
-	}
-
 	sort.Slice(jobs, func(i, j int) bool {
 		return jobs[i].ID < jobs[j].ID
 	})
-
-	selectedID := service.resolveSelectedJobID(jobs, selectedJobID)
-	selectedLoaded, err := service.loadJob(ctx, selectedID)
-	if err != nil {
-		return TranslationOutputReviewReadModel{}, fmt.Errorf("load selected translation job %d: %w", selectedID, err)
-	}
 
 	completedJobs := make([]TranslationOutputCompletedJobSummaryReadModel, 0)
 	for _, job := range jobs {
@@ -267,6 +258,22 @@ func (service *TranslationOutputArtifactService) ReadReview(
 		})
 	}
 
+	if selectedJobID == nil {
+		return TranslationOutputReviewReadModel{
+			CompletedJobs:   completedJobs,
+			HasSelectedJob:  false,
+			OutputReadiness: buildReadinessSummary("not_completed"),
+			RejectionReasons: []TranslationOutputArtifactErrorSummaryReadModel{
+				buildReadinessRejection("not_completed"),
+			},
+		}, nil
+	}
+
+	selectedLoaded, err := service.loadJob(ctx, *selectedJobID)
+	if err != nil {
+		return TranslationOutputReviewReadModel{}, fmt.Errorf("load selected translation job %d: %w", *selectedJobID, err)
+	}
+
 	selectedReadiness := service.buildReadiness(selectedLoaded)
 	selectedArtifactStatus := service.lookupArtifactStatus(ctx, selectedLoaded.job.ID)
 	rejectionReasons := []TranslationOutputArtifactErrorSummaryReadModel(nil)
@@ -275,7 +282,8 @@ func (service *TranslationOutputArtifactService) ReadReview(
 	}
 
 	return TranslationOutputReviewReadModel{
-		CompletedJobs: completedJobs,
+		CompletedJobs:  completedJobs,
+		HasSelectedJob: true,
 		SelectedJob: TranslationOutputSelectedJobSummaryReadModel{
 			JobID:           selectedLoaded.job.ID,
 			JobStatus:       selectedLoaded.job.State,
@@ -390,21 +398,6 @@ func (service *TranslationOutputArtifactService) listTranslationJobs(
 		jobs = append(jobs, job)
 	}
 	return jobs, nil
-}
-
-func (service *TranslationOutputArtifactService) resolveSelectedJobID(
-	jobs []repository.TranslationJob,
-	selectedJobID *int64,
-) int64 {
-	if selectedJobID != nil {
-		return *selectedJobID
-	}
-	for _, job := range jobs {
-		if strings.EqualFold(strings.TrimSpace(job.State), translationOutputArtifactJobStateCompleted) {
-			return job.ID
-		}
-	}
-	return jobs[0].ID
 }
 
 func findBodyPhaseRun(phaseRuns []repository.JobPhaseRun) *repository.JobPhaseRun {

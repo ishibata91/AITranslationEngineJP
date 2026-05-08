@@ -251,15 +251,15 @@ function buildStatusCopy(
 ): { title: string; text: string } {
   if (state.jobId === null) {
     return {
-      title: "job 未選択",
-      text: "job id を入力して summary を読み込むと、persona phase の状態を確認できます。"
+      title: "ジョブ未選択",
+      text: "ジョブIDを指定すると、NPC ペルソナ生成段階の状態を確認できます。"
     }
   }
 
   if (state.phase === "loading" && !state.summary) {
     return {
       title: "summary を取得中",
-      text: "NPC ペルソナ生成の current phase、progress、phase result を読み込んでいます。"
+      text: "NPC ペルソナ生成段階の現在状態、進行状況、結果を読み込んでいます。"
     }
   }
 
@@ -275,7 +275,7 @@ function buildStatusCopy(
     case "not_started":
       return {
         title: "開始可能",
-        text: "単語翻訳フェーズ完了後なら、同じ Job Run から NPC ペルソナ生成を開始できます。"
+        text: "単語翻訳段階の完了後なら、NPC ペルソナ生成を開始できます。"
       }
     case "running":
       return {
@@ -285,7 +285,7 @@ function buildStatusCopy(
     case "paused":
       return {
         title: "中断中",
-        text: "同じ phase run を再開できます。progress と target snapshot は維持されます。"
+        text: "同じ翻訳段階の処理を再開できます。進行状況と対象 snapshot は維持されます。"
       }
     case "recoverable_failed":
       return {
@@ -300,7 +300,7 @@ function buildStatusCopy(
     case "completed":
       return {
         title: "完了",
-        text: "snapshot 参照状態と body phase readiness を確認して、後続 phase へ進めるか判断できます。"
+        text: "snapshot 参照状態と本文翻訳の開始可否を確認して、次の翻訳段階へ進めるか判断できます。"
       }
     case "empty_completed":
       return {
@@ -310,17 +310,17 @@ function buildStatusCopy(
     case "snapshot_missing":
       return {
         title: "snapshot 参照が不足",
-        text: "snapshot missing のため、body readiness と後続 phase 開始を制限しています。"
+        text: "snapshot missing のため、本文翻訳の開始可否と次の翻訳段階への開始を制限しています。"
       }
     case "blocked":
       return {
         title: "開始条件未達",
-        text: "term phase 完了、terminal job ではないこと、active phase がないことを満たすまで操作を制限しています。"
+        text: "単語翻訳段階の完了、終端ジョブではないこと、実行中の翻訳段階がないことを満たすまで操作を制限しています。"
       }
     default:
       return {
         title: "読み込み中",
-        text: "phase summary を更新しています。"
+        text: "翻訳段階の summary を更新しています。"
       }
   }
 }
@@ -454,14 +454,14 @@ function buildActionCards(
     },
     {
       id: "check-body-readiness",
-      label: "body readiness 確認",
+      label: "本文翻訳の開始可否を確認",
       disabled: !screenEnablement.canCheckBodyReadiness,
-      blockedReason: state.jobId === null ? "job id を入力してください。" : "",
+      blockedReason: state.jobId === null ? "ジョブIDを指定してください。" : "",
       tone: "default"
     },
     {
       id: "start-body-phase",
-      label: "body phase 開始",
+      label: "本文翻訳を開始",
       disabled: !screenEnablement.canStartBodyPhase,
       blockedReason: bodyReadinessBlockedReason,
       tone: "primary"
@@ -470,7 +470,7 @@ function buildActionCards(
       id: "refresh",
       label: "更新",
       disabled: !screenEnablement.canRefresh,
-      blockedReason: state.jobId === null ? "job id を入力してください。" : "",
+      blockedReason: state.jobId === null ? "ジョブIDを指定してください。" : "",
       tone: "default"
     }
   ]

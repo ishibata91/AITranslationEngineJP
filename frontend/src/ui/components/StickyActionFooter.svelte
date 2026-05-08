@@ -18,7 +18,7 @@
     titleId,
     description,
     reasons,
-    emptyText = "確認する項目はありません。",
+    emptyText = "",
     primaryLabel,
     primaryDisabled = false,
     onPrimary,
@@ -39,7 +39,9 @@
   <div class="footer-copy">
     <h3 id={titleId}>{title}</h3>
     {#if reasons.length === 0}
-      <p class="reason-summary">{emptyText}</p>
+      {#if emptyText}
+        <p class="reason-summary">{emptyText}</p>
+      {/if}
     {:else}
       <div class="reason-summary" aria-live="polite">
         <span class="reason-primary">{firstReason}</span>
@@ -50,10 +52,10 @@
               class="reason-more"
               type="button"
             >
-              ほか {remainingCount} 件
+              ほか {remainingCount} 件の確認が必要です
             </button>
             <span class="reason-tooltip" id={tooltipId} role="tooltip">
-              <span class="tooltip-title">残りの不足</span>
+              <span class="tooltip-title">確認が必要な項目</span>
               <ul>
                 {#each remainingReasons as reason (reason)}
                   <li>{reason}</li>
@@ -90,9 +92,14 @@
     display: flex;
     gap: 1rem;
     justify-content: space-between;
+    left: 50%;
+    max-width: 100%;
+    min-width: 0;
     padding: 1rem 1.25rem;
-    position: sticky;
-    z-index: 2;
+    position: fixed;
+    transform: translateX(-50%);
+    width: min(calc(100vw - 2rem), 1392px);
+    z-index: 20;
   }
 
   .footer-copy,
@@ -108,6 +115,7 @@
   .footer-actions {
     align-self: end;
     justify-items: end;
+    min-width: 0;
   }
 
   .reason-summary {
@@ -126,9 +134,8 @@
 
   .reason-primary {
     max-width: min(44rem, 68vw);
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow-wrap: anywhere;
+    white-space: normal;
   }
 
   .reason-more-shell {
@@ -202,7 +209,9 @@
     border-radius: 0.9rem;
     color: #24150d;
     cursor: pointer;
+    max-width: 100%;
     padding: 0.8rem 1rem;
+    white-space: normal;
   }
 
   .button-primary:disabled {
@@ -214,10 +223,15 @@
     .sticky-action-footer {
       align-items: stretch;
       flex-direction: column;
+      padding: 0.9rem;
     }
 
     .footer-actions {
       justify-items: stretch;
+    }
+
+    .button-primary {
+      width: 100%;
     }
 
     .reason-primary {

@@ -1,0 +1,139 @@
+@startuml
+
+title 翻訳フロー移動オーバーホール 設計差分図 コンポーネント
+
+top to bottom direction
+left to right direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+legend bottom right
+    |= Style |= Meaning |
+    |<#F7F9FC> existing | 変更しない接続先 |
+    |<#EEF9EF> added | 追加予定 |
+    |<#FFF1F1> removed | 削除予定 |
+    |<#FFF8E1> changed | 振る舞い変更 |
+    |<#F4F7FA> risk | 制約またはレビュー注記 |
+endlegend
+
+package "旧 Job Run\n解体対象" {
+    class "Job Run\n大箱画面" as JobRun <<removed>>
+    class "Session Fetch\njob 探索 / summary 取得入口" as SessionFetch <<removed>>
+    class "Phase Switcher\n同一画面内フェーズ切替" as PhaseSwitcher <<removed>>
+    class "Run Controls\n実行 / 一時停止 / 再開 / 再試行 / 取消" as RunControls <<removed>>
+    class "Phase Summary Panel\n3 フェーズ状態表示" as SummaryPanel <<removed>>
+    class "Output Handoff\n完了後出力導線" as OutputHandoff <<removed>>
+}
+
+package "翻訳管理\n初期ページと作成前フロー" {
+    class "IncompleteJobListPage\n初期ページ兼 未完了 job 一覧" as IncompleteList <<changed>>
+    class "InputDataPage\n入力データ登録" as InputData <<existing>>
+    class "Job Setup\n作成前検証と job 作成" as JobSetup <<existing>>
+}
+
+package "フェーズ分離後\n翻訳セクション直下の同列ページ" {
+    class "TermPhasePage\n単語翻訳ページ" as TermPage <<added>>
+    class "PersonaPhasePage\nNPC ペルソナ生成ページ" as PersonaPage <<added>>
+    class "BodyPhasePage\n本文翻訳ページ" as BodyPage <<added>>
+    class "TranslationCompletePage\n翻訳完了ページ" as CompletePage <<added>>
+}
+
+package "フェーズページ内の分離責務" {
+    class "PhasePageBody\n実行操作と phase summary" as PhaseBody <<added>>
+    class "PhaseNavigationFooter\n移動専用 sticky footer" as Footer <<added>>
+    class "NavigationGuard\njob 未確定の直移動防止" as Guard <<added>>
+}
+
+package "出力管理\n翻訳管理から分離" {
+    class "CompletedJobListPage\nCompleted job 一覧" as CompletedList <<added>>
+    class "Output Review\nXML 出力と preview" as OutputReview <<existing>>
+}
+
+class "Global Phase Shortcut\nグローバルナビからのフェーズ直移動" as GlobalShortcut <<removed>>
+class "Phase Backend\n各フェーズ実行本体" as PhaseBackend <<existing>>
+class "AI Provider / Secret Store /\nRuntime Event 内部処理" as InternalRuntime <<existing>>
+class "Output Artifact Backend\nXML 出力、preview、再出力、互換性確認" as OutputBackend <<existing>>
+class "Review Note\nフェーズページから InputDataPage と Job Setup へ戻る導線は持たない" as BackwardRule <<risk>>
+class "Review Note\n翻訳完了ページから出力管理へ移動しても job は自動選択しない" as OutputSelectionRule <<risk>>
+
+JobRun -[#C62828,dashed]-> SessionFetch : 廃止
+JobRun -[#C62828,dashed]-> PhaseSwitcher : 解体
+JobRun -[#C62828,dashed]-> RunControls : 解体
+JobRun -[#C62828,dashed]-> SummaryPanel : 解体
+JobRun -[#C62828,dashed]-> OutputHandoff : 解体
+
+SessionFetch -[#F9A825]-> IncompleteList : job 探索を一覧選択へ移す
+PhaseSwitcher -[#2E7D32]-> TermPage : 単語翻訳を独立ページ化
+PhaseSwitcher -[#2E7D32]-> PersonaPage : NPC ペルソナ生成を独立ページ化
+PhaseSwitcher -[#2E7D32]-> BodyPage : 本文翻訳を独立ページ化
+RunControls -[#2E7D32]-> PhaseBody : 実行操作をページ本文へ移す
+SummaryPanel -[#2E7D32]-> PhaseBody : phase summary を対象ページへ移す
+OutputHandoff -[#2E7D32]-> CompletePage : Completed 結果確認へ移す
+
+IncompleteList -[#546E7A]-> InputData : 新規翻訳を開始
+InputData -[#546E7A]-> JobSetup : 作成前フローを維持
+JobSetup -[#2E7D32]-> TermPage : job 作成直後に単語翻訳へ引き継ぐ
+
+IncompleteList -[#F9A825]-> Guard : 一覧選択で対象 job と表示フェーズを固定
+Guard -[#2E7D32]-> TermPage : current phase = term
+Guard -[#2E7D32]-> PersonaPage : current phase = persona
+Guard -[#2E7D32]-> BodyPage : current phase = body
+Guard -[#F9A825]-> IncompleteList : job 未確定 / 参照不能
+GlobalShortcut -[#C62828,dashed]-> Guard : 直移動は一覧へ戻す
+
+TermPage -[#2E7D32]-> PhaseBody : 単語翻訳本文
+PersonaPage -[#2E7D32]-> PhaseBody : ペルソナ生成本文
+BodyPage -[#2E7D32]-> PhaseBody : 本文翻訳本文
+PhaseBody -[#546E7A]-> PhaseBackend : 実行操作
+PhaseBackend -[#546E7A]-> InternalRuntime : 内部処理は変更しない
+
+TermPage -[#2E7D32]-> Footer : 一覧へ戻る / 次へ進む
+PersonaPage -[#2E7D32]-> Footer : 一覧へ戻る / 次へ進む
+BodyPage -[#2E7D32]-> Footer : 一覧へ戻る / 次へ進む
+CompletePage -[#2E7D32]-> Footer : 一覧へ戻る / 出力管理へ移動
+
+Footer -[#2E7D32]-> IncompleteList : 一覧へ戻る
+Footer -[#2E7D32]-> PersonaPage : 単語翻訳 Completed 後
+Footer -[#2E7D32]-> BodyPage : ペルソナ生成 Completed 後
+Footer -[#2E7D32]-> CompletePage : 本文翻訳 Completed 後だけ
+Footer -[#2E7D32]-> CompletedList : 出力管理へ移動
+
+CompletedList -[#546E7A]-> OutputReview : 出力対象は出力管理で選ぶ
+OutputReview -[#546E7A]-> OutputBackend : XML 出力処理を維持
+
+TermPage -[#C62828,dashed]-> InputData : 表示しない
+TermPage -[#C62828,dashed]-> JobSetup : 表示しない
+PersonaPage -[#C62828,dashed]-> InputData : 表示しない
+PersonaPage -[#C62828,dashed]-> JobSetup : 表示しない
+BodyPage -[#C62828,dashed]-> InputData : 表示しない
+BodyPage -[#C62828,dashed]-> JobSetup : 表示しない
+
+BackwardRule -[#607D8B,dotted]-> TermPage
+BackwardRule -[#607D8B,dotted]-> PersonaPage
+BackwardRule -[#607D8B,dotted]-> BodyPage
+OutputSelectionRule -[#607D8B,dotted]-> CompletedList
+
+@enduml

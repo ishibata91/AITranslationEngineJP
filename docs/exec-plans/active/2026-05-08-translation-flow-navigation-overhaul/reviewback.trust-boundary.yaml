@@ -1,0 +1,156 @@
+reviewback_version: 1
+task_id: "2026-05-08-translation-flow-navigation-overhaul"
+review_yaml_path: "docs/exec-plans/active/2026-05-08-translation-flow-navigation-overhaul/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "pass。URL hash の `#translation-management/job-run?...` は未完了一覧へ正規化され、URL query 由来の jobId と phase は phase page 起動に使われていない。`canOpenPhase=false` の job は phase page target を作らず、backend の本文翻訳開始再送は既存 run を返して provider request を再発行しない。"
+  evidence_sufficiency: "十分。差し戻し後差分、implementation-scope、前回 issue、呼び出し元の検証済みコマンド、主要 frontend route、job card、presenter、backend service を確認した。ハーネス再実行は review skill の非対象規約により行っていない。"
+  hard_gate: true
+
+checked_scope:
+  summary: "翻訳管理入口、URL hash 正規化、jobId と phase の URL query 非採用、canOpenPhase による phase page 抑止、本文翻訳 Running 開始再送の provider request 抑止を確認した。"
+  files:
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 119
+      symbol: "syncRouteFromHash"
+      reason: "`#translation-management/job-run` hash を未完了一覧へ正規化し、hash query から target を作らないことを確認したため。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+      symbol: "openTranslationJobRun"
+      reason: "phase page 表示が `selectedJobRunTarget` の存在を前提にし、URL query ではなく一覧由来 target を使うことを確認したため。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 103
+      symbol: "handleOpenJob"
+      reason: "`canOpenPhase=false` または `jobRunTarget=null` の job では phase page を開かないことを確認したため。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 264
+      symbol: "toJobCard"
+      reason: "`canOpenPhase=false` の job card が `jobRunTarget=null` になることを確認したため。"
+    - path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 318
+      symbol: "toJobRunTarget"
+      reason: "selected job detail でも `canOpenPhase=false` の target を作らないことを確認したため。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 627
+      symbol: "buildTranslationJobManagementPhaseNavigationAvailability"
+      reason: "backend public seam が完了済み job と不整合 warning を phase page 不可として返すことを確認したため。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 340
+      symbol: "StartPhase"
+      reason: "既存 body phase run がある開始再送では既存 run を返し、provider request を再発行しないことを確認したため。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1299
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "terminal job の状態遷移を永続化前に拒否する防御が維持されていることを確認したため。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 134
+      symbol: "翻訳段階ページの hash 直リンクは未完了一覧へ戻す"
+      reason: "前回 finding の回帰テスト観点が追加されていることを確認したため。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 507
+      symbol: "TestBodyTranslationPhaseServiceStartPhaseReusesRunningRunWithoutProviderRequest"
+      reason: "Running 開始再送で provider request が発行されないテスト観点が追加されていることを確認したため。"
+
+unchecked_scope:
+  - target: "実行済み検証コマンドの再実行"
+    reason: "この review skill の非対象規約でハーネスを実行しないため。呼び出し元の pass 入力を検証証跡として扱った。"
+    risk: "レビュー時点の作業ツリーで同じ結果が再現するかは未確認である。"
+  - target: "実ブラウザでの direct URL 手入力"
+    reason: "review_trust_boundary ではブラウザ操作を再実行していないため。"
+    risk: "実画面での hash 置換表示はコードと frontend test 根拠で判定している。"
+  - target: "term translation と persona generation の開始再送"
+    reason: "呼び出し元の修正済み内容は backend の Running 開始再送全般を述べているが、差分上の provider request 再発行抑止は本文翻訳 service を主根拠に確認したため。"
+    risk: "他 phase の再送 idempotency は既存実装と別観点の確認に残る。今回の URL hash、jobId、phase 指定の信頼境界には影響しない。"
+
+issues:
+  - id: "trust-boundary-001"
+    level: "major"
+    title: "URL hash 直リンクからフェーズ画面へ入れる"
+    problem: "前回は URL hash の `#translation-management/job-run?...` から `jobId` と `phase` を読み取り、未完了一覧で選択した事実がないまま phase page target を作成していた。"
+    reason: "差し戻し後は `syncRouteFromHash` が `#translation-management/job-run` を未完了一覧へ置換し、URL query 由来の jobId と phase を target 作成に使わないため、直リンク防止の信頼境界は閉じている。"
+    violated_condition: "フェーズページへの直移動は未完了一覧へ戻す。job 確定は未完了一覧で対象 job と表示フェーズを固定した場合だけ許可する。"
+    cause_candidate: "前回原因は URL hash 復元と一覧クリック後 state を同じ `translation-management/job-run` hash で扱っていたことである。差し戻し後は hash 復元側が target を作らず未完了一覧へ正規化する。"
+    evidence:
+      - path: "frontend/src/ui/views/AppShell.svelte"
+        line: 140
+        excerpt: "`#translation-management/job-run` hash の場合に selectedJobRunTarget を null にし、未完了一覧へ戻す。"
+      - path: "frontend/src/ui/views/AppShell.svelte"
+        line: 177
+        excerpt: "phase page を開く処理は target または既存 selectedJobRunTarget を必要とする。"
+      - path: "frontend/src/ui/views/AppShell.test.ts"
+        line: 134
+        excerpt: "`#translation-management/job-run?jobId=10&phase=本文翻訳` が `#translation-management` へ戻ることを確認する。"
+      - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+        line: 103
+        excerpt: "`canOpenPhase=false` または `jobRunTarget=null` では phase page を開かない。"
+    local_fix_assessment: "resolved。frontend route 層と job management page の範囲で閉じており、backend DB schema 変更は不要である。"
+    additional_check_scope: "none。URL hash、jobId、phase 指定の信頼境界としては未解決の major 以上 issue は確認されない。"
+    fix_considerations: "今後も URL query 由来の jobId、phase、state、progress を phase page target として復元しないこと。"
+    verification: "呼び出し元提示の frontend-local、backend-local、coverage は pass。frontend test に direct hash 正規化の回帰観点がある。"
+    fix_required: true
+    status: "resolved"
+
+broken_invariants:
+  - invariant: "URL hash や query は外部入力であり、job 確定済み state として扱わない。"
+    status: "maintained"
+    evidence:
+      path: "frontend/src/ui/views/AppShell.svelte"
+      line: 140
+  - invariant: "フェーズ画面は未完了一覧から対象 job を選んだ後だけ表示する。"
+    status: "maintained"
+    evidence:
+      path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+  - invariant: "`canOpenPhase=false` の job は phase page target を作らない。"
+    status: "maintained"
+    evidence:
+      path: "frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts"
+      line: 325
+  - invariant: "Running 開始再送は既存 run を返し、provider request を再発行しない。"
+    status: "maintained_in_checked_scope"
+    evidence:
+      path: "internal/service/body_translation_phase_service.go"
+      line: 366
+  - invariant: "terminal job への状態遷移は永続化前に拒否する。"
+    status: "maintained_in_checked_scope"
+    evidence:
+      path: "internal/service/body_translation_phase_service.go"
+      line: 1314
+
+cause_candidates:
+  - "前回の原因候補は解消済みである。URL hash 復元処理は `job-run` sub-route を未完了一覧へ正規化し、query から target を復元しない。"
+  - "`canOpenPhase` は backend public seam から presenter、job card、selected detail target まで伝播し、false の場合は phase page target を作らない。"
+  - "本文翻訳の開始再送は既存 run を返す分岐に入り、provider request の再発行に進まない。"
+
+local_fix_evaluation:
+  assessment: "前回指摘は局所修正で閉じている。修正後の境界は frontend route 正規化、一覧由来 target、backend canOpenPhase seam に分かれ、今回確認範囲では新規 major 以上 issue はない。"
+  invariant_test_viewpoints:
+    - "`#translation-management/job-run?jobId=1&phase=本文翻訳` を直接開くと未完了一覧へ戻る。"
+    - "一覧の `canOpenPhase=true` job を選ぶと対象 job の現在フェーズへ進む。"
+    - "`canOpenPhase=false` job を選んでも phase page へ進まない。"
+    - "URL query の phase 文字列を変えても表示フェーズは URL 由来にならない。"
+    - "本文翻訳の Running 開始再送は provider request を再発行しない。"
+
+residual_risks:
+  - "呼び出し元が提示した検証は pass だが、review_trust_boundary ではハーネスを再実行していない。"
+  - "実ブラウザでの URL 手入力は未実行であり、コードと frontend test を根拠に判定している。"
+  - "secret 本体、API key 平文、provider raw payload は確認範囲では URL、DTO、UI、log に露出していない。provider adapter と runtime event 全体は今回の主確認範囲外である。"
+
+validation_evidence:
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "pass"
+    detail: "57 files / 503 tests"
+    source: "caller-provided"
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    detail: "詳細件数は呼び出し元入力なし"
+    source: "caller-provided"
+  - command: "python3 scripts/harness/run.py --suite coverage"
+    result: "pass"
+    detail: "coverage 70.3% >= 70.0, security 0, reliability 0, maintainability HIGH 0"
+    source: "caller-provided"

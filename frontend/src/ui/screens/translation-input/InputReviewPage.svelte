@@ -6,10 +6,12 @@
     TranslationInputScreenControllerContract
   } from "@application/contract/translation-input"
   import {
+    canOpenJobSetup,
     ERROR_LABELS,
     STATUS_LABELS,
     WARNING_LABELS
   } from "@application/presenter/translation-input"
+  import StickyActionFooter from "@ui/components/StickyActionFooter.svelte"
 
   import DataLoadHero from "./DataLoadHero.svelte"
   import DataLoadImportPanel from "./DataLoadImportPanel.svelte"
@@ -36,6 +38,7 @@
   const controller = resolveController()
   let viewModel = $state(controller.getViewModel())
   let fileInput: HTMLInputElement | null = null
+  const showJobSetupFooter = $derived(canOpenJobSetup(viewModel.selectedItem))
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
     viewModel = nextViewModel
@@ -191,16 +194,28 @@
       latestOutcomeTitle={localizeUiText(viewModel.latestOutcomeTitle)}
       selectedItem={viewModel.selectedItem}
       selectionStatusText={localizeUiText(viewModel.selectionStatusText)}
-      onOpenJobSetup={onOpenJobSetup}
       onRebuild={rebuildSelectedInput}
     />
   </section>
+
+  {#if showJobSetupFooter}
+    <StickyActionFooter
+      title="次の作業"
+      titleId="translationInputNextNavigationHeading"
+      description="選択した入力データで、ジョブの作成確認へ進みます。"
+      reasons={[]}
+      emptyText="入力データを選択済みです。次に翻訳設定を確認します。"
+      primaryLabel="翻訳設定へ進む"
+      onPrimary={() => onOpenJobSetup?.()}
+    />
+  {/if}
 </section>
 
 <style>
   .data-load-shell {
     display: grid;
     gap: 1.25rem;
+    padding-bottom: 10rem;
   }
 
   .file-input {
@@ -217,6 +232,12 @@
   @media (max-width: 960px) {
     .content-grid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .data-load-shell {
+      padding-bottom: 14rem;
     }
   }
 </style>

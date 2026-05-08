@@ -16,6 +16,7 @@ type TranslationOutputArtifactActionKind = "generate" | "regenerate"
 type TranslationOutputArtifactViewState =
   | "loading"
   | "empty"
+  | "awaiting_selection"
   | "not_ready"
   | "ready"
   | "generating"
@@ -149,6 +150,17 @@ function mapReviewResponse(
         ...reason
       })) ?? []
   }
+}
+
+function mapCompletedJobs(
+  response: TranslationOutputReviewResponse
+): TranslationOutputReviewResponse["completedJobs"] {
+  return response.completedJobs.map((job) => ({
+    ...job,
+    outputStatusDistribution: job.outputStatusDistribution
+      ? { ...job.outputStatusDistribution }
+      : undefined
+  }))
 }
 
 function mapDiffPreviewResponse(
@@ -353,6 +365,10 @@ function resolveViewState(
     return "empty"
   }
 
+  if (state.hasLoaded && state.selectedJobId === null) {
+    return "awaiting_selection"
+  }
+
   if (
     state.lastCommand?.errorKind ||
     state.review?.artifactStatus === "failed"
@@ -478,6 +494,29 @@ export class TranslationOutputArtifactUseCase {
       const response = await this.gateway.getTranslationOutputReview({
         selectedJobId: state.selectedJobId ?? undefined
       } satisfies GetTranslationOutputReviewRequest)
+      const completedJobs = mapCompletedJobs(response)
+
+      if (
+        response.hasSelectedJob === false ||
+        state.selectedJobId === null
+      ) {
+        this.store.update((draft) => {
+          draft.phase = "ready"
+          draft.pendingAction = null
+          draft.refreshPending = false
+          draft.hasLoaded = true
+          draft.completedJobs = completedJobs
+          draft.review = null
+          draft.selectedJobId = null
+          draft.selectedArtifactId = null
+          draft.diffPreview = null
+          draft.errorMessage = ""
+          draft.actionDisablements = buildActionDisablements(draft, true)
+          draft.viewState = resolveViewState(draft)
+        })
+        return
+      }
+
       const review = mapReviewResponse(response)
       const selectedArtifactId =
         state.selectedArtifactId ??
@@ -488,12 +527,7 @@ export class TranslationOutputArtifactUseCase {
         draft.pendingAction = null
         draft.refreshPending = false
         draft.hasLoaded = true
-        draft.completedJobs = review.completedJobs.map((job) => ({
-          ...job,
-          outputStatusDistribution: job.outputStatusDistribution
-            ? { ...job.outputStatusDistribution }
-            : undefined
-        }))
+        draft.completedJobs = completedJobs
         draft.review = review
         draft.selectedJobId = review.selectedJobId
         draft.selectedArtifactId = selectedArtifactId

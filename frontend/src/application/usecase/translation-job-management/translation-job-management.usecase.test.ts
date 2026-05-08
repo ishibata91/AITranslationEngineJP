@@ -52,6 +52,7 @@ function createJobSummary(jobId: number) {
       extractedJsonLabel: "抽出データ #1"
     },
     progress: {
+      currentPhase: "body_translation",
       currentPhaseLabel: "本文翻訳",
       percent: 20,
       progressLabel: "20%",
@@ -369,5 +370,59 @@ describe("TranslationJobManagementUseCase", () => {
 
     const state = store.snapshot()
     expect(state.feedback?.category).toBe("resume_success")
+  })
+
+  test("action response 後も開けない理由を一覧へ同期し phase page target を再生成しない", async () => {
+    const openBlockedReason = {
+      category: "phase_progress_aggregation_failed" as const,
+      title: "翻訳段階を開けません",
+      detail: "進捗を確認できないため一覧で確認してください。"
+    }
+    const detail = {
+      ...createJobSummary(44),
+      canOpenPhase: false,
+      openBlockedReason,
+      cacheState: "available" as const,
+      cacheStateLabel: "利用可能",
+      runtimeSummary: {
+        providerLabel: "openai",
+        modelLabel: "gpt-5",
+        executionModeLabel: "batch",
+        credentialState: "configured" as const,
+        credentialStateLabel: "設定済み"
+      },
+      resumeBlockedReasons: [],
+      warnings: [openBlockedReason],
+      deleteImpactLines: ["job のみ削除"]
+    }
+    const gateway: TranslationJobManagementGatewayContract = {
+      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(44)] }),
+      GetJobDetail: vi.fn().mockResolvedValue({
+        ...detail,
+        canOpenPhase: true,
+        openBlockedReason: undefined,
+        warnings: []
+      }),
+      RequestStop: vi.fn().mockResolvedValue({
+        message: "停止を受け付けました",
+        tone: "success",
+        detail
+      }),
+      ResumeJob: vi.fn(),
+      DeleteJob: vi.fn()
+    }
+    const store = createStore()
+    const usecase = new TranslationJobManagementUseCase(gateway, store)
+
+    await usecase.load()
+    await usecase.selectJob(44)
+    await usecase.requestStop()
+
+    const state = store.snapshot()
+    expect(state.jobs[0].canOpenPhase).toBe(false)
+    expect(state.jobs[0].openBlockedReason).toEqual(openBlockedReason)
+    expect(state.selectedJobDetail?.canOpenPhase).toBe(false)
+
+    expect(state.selectedJobDetail?.openBlockedReason).toEqual(openBlockedReason)
   })
 })

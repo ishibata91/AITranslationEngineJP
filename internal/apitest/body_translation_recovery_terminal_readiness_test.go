@@ -129,6 +129,119 @@ func TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults(t *test
 	}
 }
 
+func TestSCN_TFN_011_RetryResumeAndStartResendReusePhaseRunWithoutDuplicateResults(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "recoverable_failed",
+		LatestError:  "provider_failure",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	assertBodyTranslationPhaseCommandReusesExistingResult(t, "retry", fixture, func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error) {
+		return controller.RetryBodyTranslationPhase(
+			controllerwails.RetryBodyTranslationPhaseRequestDTO{
+				JobID:      fixture.job.ID,
+				PhaseRunID: fixture.bodyRun.ID,
+			},
+		)
+	})
+	assertBodyTranslationPhaseCommandReusesExistingResult(t, "resume", fixture, func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error) {
+		return controller.ResumeBodyTranslationPhase(
+			controllerwails.ResumeBodyTranslationPhaseRequestDTO{
+				JobID:      fixture.job.ID,
+				PhaseRunID: fixture.bodyRun.ID,
+			},
+		)
+	})
+	assertBodyTranslationPhaseCommandReusesExistingResult(t, "start resend", fixture, func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error) {
+		return controller.StartBodyTranslationPhase(
+			controllerwails.StartBodyTranslationPhaseRequestDTO{JobID: fixture.job.ID},
+		)
+	})
+}
+
+func assertBodyTranslationPhaseCommandReusesExistingResult(
+	t *testing.T,
+	action string,
+	fixture *bodyTranslationAPIFixture,
+	command func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error),
+) {
+	t.Helper()
+
+	result, err := command()
+	if err != nil {
+		t.Fatalf("SCN-TFN-011 public %s returned error: %v", action, err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != fixture.bodyRun.ID {
+		t.Fatalf("SCN-TFN-011 expected %s to reuse phase run %d, got %#v", action, fixture.bodyRun.ID, result.PhaseRunID)
+	}
+	if len(fixture.store.phaseRuns) != 2 {
+		t.Fatalf("SCN-TFN-011 expected %s not to create phase run, got %#v", action, fixture.store.phaseRuns)
+	}
+	if len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
+		t.Fatalf("SCN-TFN-011 expected %s not to duplicate existing result, outputs=%#v links=%#v", action, fixture.store.outputs, fixture.store.phaseLinks)
+	}
+}
+
+func TestSCN_TFN_011_LateResponseForOldPhaseRunIsRejectedWithoutResultOrArtifactMutation(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "running",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	phaseService := service.NewBodyTranslationPhaseService(
+		fixture.store,
+		fixture.store,
+		fixture.store,
+		fixture.store,
+		fixture.store,
+	)
+
+	result, err := phaseService.PersistBodyTranslationFieldResults(context.Background(), service.BodyTranslationFieldResultPersistenceRequest{
+		TranslationJobID: fixture.job.ID,
+		PhaseRunID:       fixture.bodyRun.ID + 999,
+		TargetFields: []service.BodyTranslationFieldResultTarget{
+			{
+				TranslationFieldID:    702,
+				FieldCorrelationKey:   "field:702",
+				OutputStatusCandidate: "ready",
+			},
+		},
+		ProviderResults: []service.BodyTranslationProviderResult{
+			{
+				FieldCorrelationKey: "field:702",
+				TranslatedCandidate: &service.BodyTranslationTranslatedCandidate{
+					FieldCorrelationKey: "field:702",
+					RecordType:          "NPC_",
+					FieldType:           "DESC",
+					TranslatedText:      "late translated fixture",
+				},
+				ProtectionValidationTarget: &service.BodyTranslationProtectionValidationTarget{
+					FieldCorrelationKey: "field:702",
+					TranslatedText:      "late translated fixture",
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SCN-TFN-011 expected late response rejection without persistence error, got %v", err)
+	}
+	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "late_response_rejected" || !result.ErrorSummary.IsRedacted {
+		t.Fatalf("SCN-TFN-011 expected redacted late_response_rejected summary, got %#v", result.ErrorSummary)
+	}
+	if len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
+		t.Fatalf("SCN-TFN-011 expected no result or artifact row mutation, outputs=%#v links=%#v", fixture.store.outputs, fixture.store.phaseLinks)
+	}
+	if len(fixture.store.phaseRuns) != 2 {
+		t.Fatalf("SCN-TFN-011 expected no phase run mutation, got %#v", fixture.store.phaseRuns)
+	}
+}
+
 func TestSCN_BTP_009_PauseThenCancelPersistsTerminalState(t *testing.T) {
 	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
 		JobState:     "running",

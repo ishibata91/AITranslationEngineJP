@@ -3,6 +3,11 @@ import userEvent from "@testing-library/user-event"
 import { describe, expect, test, vi } from "vitest"
 
 import type { MasterPersonaScreenControllerContract } from "@application/contract/master-persona/master-persona-screen-contract"
+import type {
+  TranslationJobManagementScreenControllerContract,
+  TranslationJobManagementScreenViewModelListener
+} from "@application/contract/translation-job-management/translation-job-management-screen-contract"
+import type { TranslationJobManagementScreenViewModel } from "@application/contract/translation-job-management/translation-job-management-screen-types"
 import type { TranslationInputScreenControllerContract } from "@application/contract/translation-input"
 import type { TranslationInputScreenViewModelListener } from "@application/contract/translation-input/translation-input-screen-contract"
 import type {
@@ -136,17 +141,75 @@ class TranslationInputScreenControllerFake implements TranslationInputScreenCont
   }
 }
 
+function createTranslationJobManagementViewModel(): TranslationJobManagementScreenViewModel {
+  return {
+    gatewayStatus: "接続済み",
+    pageTitle: "未完了ジョブ一覧",
+    pageLead:
+      "新規翻訳を開始するか、未完了ジョブを選んで現在の翻訳段階から再開します。",
+    headerCountLabel: "0 件を表示",
+    listEmptyTitle: "管理対象がありません",
+    listEmptyDescription: "未完了ジョブはありません。",
+    listErrorTitle: "一覧を読み込めません",
+    listErrorDescription: "未完了ジョブの一覧取得に失敗しました。",
+    detailPlaceholderTitle: "job を選択してください",
+    detailPlaceholderDescription: "一覧から 1 件選びます。",
+    phase: "empty",
+    detailPhase: "idle",
+    isReloading: false,
+    searchQuery: "",
+    filterChips: [{ id: "all", label: "すべて", count: 0, selected: true }],
+    jobs: [],
+    feedback: null,
+    selectedJob: null,
+    deleteConfirmation: null,
+    jobRunTarget: null
+  }
+}
+
+class TranslationJobManagementScreenControllerFake
+  implements TranslationJobManagementScreenControllerContract
+{
+  private readonly viewModel = createTranslationJobManagementViewModel()
+
+  readonly mount = vi.fn(async () => {})
+  readonly dispose = vi.fn(() => {})
+  readonly reload = vi.fn(async () => {})
+  readonly selectJob = vi.fn(async () => {})
+  readonly setFilter = vi.fn()
+  readonly setSearchQuery = vi.fn()
+  readonly requestStop = vi.fn(async () => {})
+  readonly requestResume = vi.fn(async () => {})
+  readonly openDeleteConfirmation = vi.fn()
+  readonly closeDeleteConfirmation = vi.fn()
+  readonly deleteSelectedJob = vi.fn(async () => {})
+
+  subscribe(listener: TranslationJobManagementScreenViewModelListener): () => void {
+    void listener
+    return () => {}
+  }
+
+  getViewModel(): TranslationJobManagementScreenViewModel {
+    return this.viewModel
+  }
+}
+
 describe("App translation-input route", () => {
-  test("translation-management route でデータロード画面を描画する", async () => {
+  test("translation-management route は未完了ジョブ一覧から新規開始でデータロードへ進む", async () => {
     window.history.replaceState(null, "", "#translation-management")
 
+    const user = userEvent.setup()
     const controller = new TranslationInputScreenControllerFake()
+    const jobManagementController =
+      new TranslationJobManagementScreenControllerFake()
     const masterPersonaStub = (() =>
       ({}) as MasterPersonaScreenControllerContract) as () => MasterPersonaScreenControllerContract
 
     render(App, {
       props: {
         createMasterPersonaScreenController: masterPersonaStub,
+        createTranslationJobManagementScreenController: () =>
+          jobManagementController,
         createTranslationInputScreenController: () => controller
       }
     })
@@ -154,6 +217,14 @@ describe("App translation-input route", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "翻訳管理" })
     ).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { level: 2, name: "未完了ジョブ一覧" })
+    ).toBeInTheDocument()
+
+    expect(screen.queryByRole("tab", { name: /データロード/ })).toBeNull()
+
+    await user.click(screen.getByRole("button", { name: "新規翻訳を開始" }))
+
     expect(
       screen.getByRole("heading", { level: 2, name: "データロード" })
     ).toBeInTheDocument()
@@ -171,6 +242,8 @@ describe("App translation-input route", () => {
 
     const user = userEvent.setup()
     const selectedItem = createItem()
+    const jobManagementController =
+      new TranslationJobManagementScreenControllerFake()
     const controller = new TranslationInputScreenControllerFake(
       createViewModel({
         items: [selectedItem],
@@ -189,9 +262,15 @@ describe("App translation-input route", () => {
     const { unmount } = render(App, {
       props: {
         createMasterPersonaScreenController: masterPersonaStub,
+        createTranslationJobManagementScreenController: () =>
+          jobManagementController,
         createTranslationInputScreenController
       }
     })
+
+    expect(screen.queryByRole("tab", { name: /データロード/ })).toBeNull()
+
+    await user.click(screen.getByRole("button", { name: "新規翻訳を開始" }))
 
     await waitFor(() => {
       expect(controller.mount).toHaveBeenCalledTimes(1)
@@ -211,6 +290,11 @@ describe("App translation-input route", () => {
     expect(controller.dispose).toHaveBeenCalledTimes(1)
 
     await user.click(screen.getByRole("link", { name: "翻訳管理" }))
+    expect(
+      screen.getByRole("heading", { level: 2, name: "未完了ジョブ一覧" })
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("tab", { name: /データロード/ })).toBeNull()
+    await user.click(screen.getByRole("button", { name: "新規翻訳を開始" }))
 
     expect(
       screen.getByRole("heading", { level: 2, name: "データロード" })

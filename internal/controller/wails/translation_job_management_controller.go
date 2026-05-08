@@ -33,6 +33,7 @@ type TranslationJobManagementInputSourceSummaryDTO struct {
 
 // TranslationJobManagementProgressSummaryDTO returns one progress summary.
 type TranslationJobManagementProgressSummaryDTO struct {
+	CurrentPhase      string `json:"currentPhase"`
 	CurrentPhaseLabel string `json:"currentPhaseLabel"`
 	Percent           int    `json:"percent"`
 	ProgressLabel     string `json:"progressLabel"`
@@ -71,6 +72,8 @@ type TranslationJobManagementJobSummaryDTO struct {
 	JobState           string                                           `json:"jobState"`
 	JobStateLabel      string                                           `json:"jobStateLabel"`
 	StateTone          string                                           `json:"stateTone"`
+	CanOpenPhase       bool                                             `json:"canOpenPhase"`
+	OpenBlockedReason  *TranslationJobManagementBlockedReasonDTO        `json:"openBlockedReason,omitempty"`
 	InputSource        TranslationJobManagementInputSourceSummaryDTO    `json:"inputSource"`
 	Progress           TranslationJobManagementProgressSummaryDTO       `json:"progress"`
 	StopAvailability   TranslationJobManagementOperationAvailabilityDTO `json:"stopAvailability"`
@@ -198,12 +201,24 @@ func toTranslationJobManagementJobSummaryDTO(
 		JobState:           source.JobState,
 		JobStateLabel:      source.JobStateLabel,
 		StateTone:          source.StateTone,
+		CanOpenPhase:       source.CanOpenPhase,
+		OpenBlockedReason:  toTranslationJobManagementBlockedReasonDTOPointer(source.OpenBlockedReason),
 		InputSource:        toTranslationJobManagementInputSourceSummaryDTO(source.InputSource),
 		Progress:           toTranslationJobManagementProgressSummaryDTO(source.Progress),
 		StopAvailability:   toTranslationJobManagementOperationAvailabilityDTO(source.StopAvailability),
 		ResumeAvailability: toTranslationJobManagementOperationAvailabilityDTO(source.ResumeAvailability),
 		DeleteAvailability: toTranslationJobManagementOperationAvailabilityDTO(source.DeleteAvailability),
 	}
+}
+
+func toTranslationJobManagementBlockedReasonDTOPointer(
+	source *usecase.TranslationJobManagementBlockedReason,
+) *TranslationJobManagementBlockedReasonDTO {
+	if source == nil {
+		return nil
+	}
+	result := TranslationJobManagementBlockedReasonDTO(*source)
+	return &result
 }
 
 func toTranslationJobManagementJobDetailDTO(

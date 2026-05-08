@@ -409,8 +409,10 @@ describe("JobSetupPage", () => {
       }
     })
 
-    expect(screen.getByText("不足はありません。")).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "次へ" }))
+    expect(
+      screen.getByText("作成に必要な確認は完了しています。")
+    ).toBeInTheDocument()
+    await user.click(screen.getByRole("button", { name: "単語翻訳へ進む" }))
 
     expect(controller.createJob).toHaveBeenCalledTimes(1)
 
@@ -475,7 +477,7 @@ describe("JobSetupPage", () => {
       }
     })
 
-    await user.click(screen.getByRole("button", { name: "次へ" }))
+    await user.click(screen.getByRole("button", { name: "単語翻訳へ進む" }))
 
     controller.pushViewModel(
       createPresentedPhaseViewModel({
@@ -636,7 +638,9 @@ describe("JobSetupPage", () => {
     expect(controller.refreshPhaseModels).toHaveBeenCalledWith(
       "word_translation"
     )
-    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: "単語翻訳へ進む" })
+    ).toBeDisabled()
     expect(document.body).not.toHaveTextContent("raw response")
     expect(document.body).not.toHaveTextContent("sk-")
   })
@@ -715,7 +719,9 @@ describe("JobSetupPage", () => {
     expect(screen.getAllByText("runtime").length).toBeGreaterThan(0)
     expect(screen.getAllByText("input").length).toBeGreaterThan(0)
     expect(screen.getAllByText("foundation").length).toBeGreaterThan(0)
-    expect(screen.getByRole("button", { name: "次へ" })).toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: "単語翻訳へ進む" })
+    ).toBeDisabled()
     expect(
       screen.getByText("validation が失効しています。")
     ).toBeInTheDocument()
@@ -724,12 +730,12 @@ describe("JobSetupPage", () => {
     ).toBeInTheDocument()
     expect(
       screen.getByText(
-        "cache missing は Job Setup で再構築しません。Input Review の再構築導線へ戻ってください。"
+        "入力データの再構築が必要です。入力データの確認画面に戻ってください。"
       )
     ).toBeInTheDocument()
 
     await user.click(
-      screen.getByRole("button", { name: "Input Review へ戻る" })
+      screen.getByRole("button", { name: "入力データの確認へ戻る" })
     )
 
     expect(onReturnToInputReview).toHaveBeenCalledTimes(1)

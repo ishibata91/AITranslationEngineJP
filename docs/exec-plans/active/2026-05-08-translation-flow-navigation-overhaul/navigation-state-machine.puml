@@ -1,0 +1,146 @@
+@startuml
+
+title 翻訳セクション移動オーバーホール 状態遷移
+
+hide empty description
+
+skinparam state {
+  BackgroundColor #F7F9FC
+  BorderColor #546E7A
+  ArrowColor #546E7A
+}
+
+[*] --> IncompleteJobListPage : 翻訳セクションを開く
+
+state "翻訳セクション" as TranslationSection {
+  [*] --> IncompleteJobListPage
+
+  state "入力データページ" as InputDataPage
+  InputDataPage : entry / 入力データを選択する
+  InputDataPage : do / 登録済み input の状態を確認する
+  InputDataPage : exit / Job Setup に渡す input を固定する
+
+  state "Job Setup ページ" as JobSetupPage
+  JobSetupPage : entry / phase runtime と provider 設定を選ぶ
+  JobSetupPage : do / job 作成前の検証を行う
+  JobSetupPage : exit / job と初期 phase 状態を作成する
+
+  state "未完了 job 一覧ページ" as IncompleteJobListPage
+  IncompleteJobListPage : entry / グローバルナビまたは dashboard から最初に入る
+  IncompleteJobListPage : do / Completed 以外の job を一覧する
+  IncompleteJobListPage : do / 状態、現在フェーズ、操作可否を表示する
+  IncompleteJobListPage : exit / 新規開始または再開対象 jobId と表示フェーズを固定する
+
+  state "単語翻訳ページ" as TermPhasePage
+  TermPhasePage : entry / jobId と単語翻訳 summary を読む
+  TermPhasePage : do / start、pause、resume、retry はページ本文に出す
+  TermPhasePage : do / 次へ進む、一覧へ戻るを sticky footer に出す
+  TermPhasePage : do / 次へ進めない理由を sticky footer に反映する
+  TermPhasePage : exit / Completed なら辞書参照成立を確認する
+
+  state "NPC ペルソナ生成ページ" as PersonaPhasePage
+  PersonaPhasePage : entry / persona summary と body readiness を読む
+  PersonaPhasePage : do / start、pause、resume、retry、cancel はページ本文に出す
+  PersonaPhasePage : do / 次へ進む、一覧へ戻るを sticky footer に出す
+  PersonaPhasePage : do / 次へ進めない理由を sticky footer に反映する
+  PersonaPhasePage : exit / Completed なら snapshot 参照成立を確認する
+
+  state "本文翻訳ページ" as BodyPhasePage
+  BodyPhasePage : entry / body summary と job 完了可否を読む
+  BodyPhasePage : do / start、pause、resume、retry、cancel はページ本文に出す
+  BodyPhasePage : do / 次へ進む、一覧へ戻るを sticky footer に出す
+  BodyPhasePage : do / 次へ進めない理由を sticky footer に反映する
+  BodyPhasePage : exit / Completed なら job Completed を確認する
+
+  state "翻訳完了ページ" as TranslationCompletePage
+  TranslationCompletePage : entry / 原文と訳文をページング表示する
+  TranslationCompletePage : do / 出力管理への移動ボタンを表示する
+  TranslationCompletePage : exit / 未完了 job 一覧または翻訳セクション外へ戻る
+
+  state "出口" as TranslationSectionExit
+  TranslationSectionExit : entry / 翻訳セクションを閉じる
+
+  IncompleteJobListPage --> InputDataPage : 新規翻訳を開始
+  IncompleteJobListPage --> IncompleteJobListPage : 直リンク防止で未完了一覧へ戻す
+
+  InputDataPage --> JobSetupPage : 次へ進む
+  JobSetupPage --> TermPhasePage : job 作成完了
+  JobSetupPage --> IncompleteJobListPage : 既存 job を確認
+
+  IncompleteJobListPage --> TermPhasePage : 単語翻訳から再開
+  IncompleteJobListPage --> PersonaPhasePage : NPC ペルソナ生成から再開
+  IncompleteJobListPage --> BodyPhasePage : 本文翻訳から再開
+
+  TermPhasePage --> TermPhasePage : 実行 / 一時停止 / 再開 / 再試行
+  TermPhasePage --> PersonaPhasePage : 次へ進む
+  TermPhasePage --> IncompleteJobListPage : 一覧へ戻る
+
+  PersonaPhasePage --> PersonaPhasePage : 実行 / 一時停止 / 再開 / 再試行 / 取消
+  PersonaPhasePage --> BodyPhasePage : 次へ進む
+  PersonaPhasePage --> IncompleteJobListPage : 一覧へ戻る
+
+  BodyPhasePage --> BodyPhasePage : 実行 / 一時停止 / 再開 / 再試行 / 取消
+  BodyPhasePage --> TranslationCompletePage : job Completed / Canceled / Failed
+  BodyPhasePage --> IncompleteJobListPage : 一覧へ戻る
+
+  TranslationCompletePage --> IncompleteJobListPage : 一覧へ戻る
+  TranslationCompletePage --> OutputArtifactSection : 出力管理へ移動
+  TranslationCompletePage --> TranslationSectionExit : 翻訳セクションを離れる
+}
+
+state "成果物出力セクション" as OutputArtifactSection {
+  [*] --> OutputEntry
+
+  state "入口" as OutputEntry
+  OutputEntry : entry / グローバルナビから入る
+  OutputEntry : exit / Completed job 一覧を読む
+
+  state "Completed job 一覧ページ" as CompletedJobListPage
+  CompletedJobListPage : entry / Completed job だけを一覧する
+  CompletedJobListPage : exit / 出力対象 jobId を固定する
+
+  state "Output Review ページ" as OutputReviewPage
+  OutputReviewPage : entry / 出力準備状態と preview を読む
+  OutputReviewPage : do / XML 出力または再出力を行う
+  OutputReviewPage : exit / 出力結果または失敗理由を確定する
+
+  state "出口" as OutputExit
+  OutputExit : entry / 成果物出力セクションを閉じる
+
+  OutputEntry --> CompletedJobListPage
+  CompletedJobListPage --> OutputReviewPage : Completed job を選択
+  OutputReviewPage --> OutputReviewPage : preview / XML 出力 / 再出力
+  OutputReviewPage --> CompletedJobListPage : completed job 一覧へ戻る
+  OutputReviewPage --> OutputExit : 出力確認完了
+}
+
+TranslationSection --> OutputArtifactSection : グローバルナビで別セクションへ移動
+OutputArtifactSection --> TranslationSection : グローバルナビで別セクションへ移動
+
+TermPhasePage -[#C62828,dashed]-> JobSetupPage : 禁止。作成済み job は戻って編集しない
+PersonaPhasePage -[#C62828,dashed]-> JobSetupPage : 禁止。作成済み job は戻って編集しない
+BodyPhasePage -[#C62828,dashed]-> JobSetupPage : 禁止。作成済み job は戻って編集しない
+TermPhasePage -[#C62828,dashed]-> InputDataPage : 禁止。入力変更は新規 job 作成で扱う
+PersonaPhasePage -[#C62828,dashed]-> InputDataPage : 禁止。入力変更は新規 job 作成で扱う
+BodyPhasePage -[#C62828,dashed]-> InputDataPage : 禁止。入力変更は新規 job 作成で扱う
+[*] -[#C62828,dashed]-> TermPhasePage : 直リンク防止。対象 job が曖昧になる
+[*] -[#C62828,dashed]-> PersonaPhasePage : 直リンク防止。対象 job が曖昧になる
+[*] -[#C62828,dashed]-> BodyPhasePage : 直リンク防止。対象 job が曖昧になる
+
+note right of TranslationSection
+  旧 Job Run は大箱として残さない。
+  各フェーズページを翻訳セクション直下の同列ページに分解する。
+  セッション取得は廃止する。
+end note
+
+note right of OutputArtifactSection
+  成果物出力は翻訳セクション外の別セクション。
+  Completed job 一覧を入口にする。
+end note
+
+note bottom
+  赤破線は表示してはいけない移動を示す。
+  直リンクが発生した場合は未完了 job 一覧へ戻す。
+end note
+
+@enduml

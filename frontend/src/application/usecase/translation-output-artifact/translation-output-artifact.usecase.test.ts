@@ -46,6 +46,7 @@ describe("TranslationOutputArtifactUseCase", () => {
     const usecase = new TranslationOutputArtifactUseCase(gateway, store)
 
     await usecase.load()
+    await usecase.setJobId(303)
     await usecase.generateArtifact()
 
     expect(generateXTranslatorOutputArtifact).toHaveBeenCalledTimes(1)
@@ -72,6 +73,7 @@ describe("TranslationOutputArtifactUseCase", () => {
     const usecase = new TranslationOutputArtifactUseCase(gateway, store)
 
     await usecase.load()
+    await usecase.setJobId(101)
     await usecase.regenerateArtifact()
 
     expect(getTranslationOutputDiffPreview).toHaveBeenCalledWith({
@@ -84,6 +86,65 @@ describe("TranslationOutputArtifactUseCase", () => {
       targetGame: "skyrim_se",
       outputPath: "/tmp/zero-target.xml"
     })
+  })
+
+  test("output readiness が false の job は generate を実行せず理由を返す", async () => {
+    const { gateway, generateXTranslatorOutputArtifact } =
+      createTranslationOutputArtifactGatewayFixture({
+        review: {
+          ...createZeroRowReadyReviewResponse(),
+          outputReadiness: {
+            ready: false,
+            retryable: false,
+            rejectionKind: "not_completed"
+          },
+          rejectionReasons: [
+            {
+              errorKind: "not_completed",
+              reason: "job is not completed",
+              retryable: false,
+              isRedacted: true
+            }
+          ]
+        }
+      })
+    const store = new TranslationOutputArtifactTestStore(
+      createInitialScreenState()
+    )
+    const usecase = new TranslationOutputArtifactUseCase(gateway, store)
+
+    await usecase.load()
+    await usecase.setJobId(303)
+    await usecase.generateArtifact()
+
+    expect(generateXTranslatorOutputArtifact).not.toHaveBeenCalled()
+    expect(store.snapshot().errorMessage).toBe("job is not completed")
+  })
+
+  test("初期 load は completed job を自動選択せず、明示選択後だけ summary を保持する", async () => {
+    const { gateway, getTranslationOutputReview } =
+      createTranslationOutputArtifactGatewayFixture({
+        review: createZeroRowReadyReviewResponse()
+      })
+    const store = new TranslationOutputArtifactTestStore(
+      createInitialScreenState()
+    )
+    const usecase = new TranslationOutputArtifactUseCase(gateway, store)
+
+    await usecase.load()
+
+    expect(store.snapshot().selectedJobId).toBeNull()
+    expect(store.snapshot().review).toBeNull()
+    expect(store.snapshot().viewState).toBe("awaiting_selection")
+
+    await usecase.setJobId(303)
+
+    expect(getTranslationOutputReview).toHaveBeenLastCalledWith({
+      selectedJobId: 303
+    })
+    expect(store.snapshot().selectedJobId).toBe(303)
+    expect(store.snapshot().review?.selectedJobId).toBe(303)
+    expect(store.snapshot().viewState).toBe("stale")
   })
 })
 

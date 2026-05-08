@@ -1,0 +1,132 @@
+@startuml
+
+title 翻訳フロー移動オーバーホール 設計差分図 シーケンス
+
+skinparam shadowing false
+skinparam participantPadding 20
+skinparam BoxPadding 10
+skinparam sequenceMessageAlign center
+skinparam wrapWidth 200
+
+legend bottom right
+    added = 追加予定
+    removed = 削除予定
+    changed = 変更予定
+    existing = 変更しない接続先
+endlegend
+
+actor User
+participant IncompleteList
+participant InputData
+participant JobSetup
+participant Guard
+participant PhasePage
+participant PhaseBody
+participant Footer
+participant CompletePage
+participant CompletedList
+participant OutputReview
+participant LegacyRun
+participant SessionFetch
+participant PhaseBackend
+participant OutputBackend
+
+== 旧 Job Run の解体 removed ==
+User -[#C62828]> LegacyRun : removed 旧 Job Run を開く
+LegacyRun -[#C62828]> SessionFetch : removed job を探す
+LegacyRun -[#C62828]> LegacyRun : removed 画面内でフェーズを切り替える
+LegacyRun -[#C62828]> PhaseBackend : removed 実行操作と移動判断を同じ画面で扱う
+
+note over LegacyRun
+removed:
+旧 Job Run は大箱として残さない。
+job 探索、フェーズ切替、実行操作、移動導線を分離する。
+end note
+
+== 新規 job から単語翻訳へ changed ==
+User -> IncompleteList : 翻訳管理を開く
+IncompleteList -> User : changed 未完了 job 一覧を初期表示
+User -> IncompleteList : 新規翻訳を開始
+IncompleteList -> InputData : existing 入力データページへ進む
+InputData -> JobSetup : existing 選択 input を引き継ぐ
+User -> JobSetup : job 作成を実行
+JobSetup -> PhaseBackend : existing Ready job と初期 phase 状態を作成
+PhaseBackend --> JobSetup : jobId と term phase summary
+JobSetup -> PhasePage : added 単語翻訳ページを開く
+PhasePage -> PhaseBody : added 単語翻訳本文を表示
+
+note over JobSetup,PhasePage
+changed:
+作成成功後は旧 Job Run もセッション取得も経由しない。
+最初のフェーズページは単語翻訳ページである。
+end note
+
+== 未完了 job 一覧からフェーズページへ changed ==
+User -> IncompleteList : job を選ぶ
+IncompleteList -> Guard : added jobId と current phase を渡す
+
+alt current phase = term
+    Guard -> PhasePage : added 単語翻訳ページを開く
+    PhasePage -> PhaseBody : added 辞書参照状態と単語翻訳操作を表示
+else current phase = persona
+    Guard -> PhasePage : added NPC ペルソナ生成ページを開く
+    PhasePage -> PhaseBody : added snapshot 参照状態とペルソナ生成操作を表示
+else current phase = body
+    Guard -> PhasePage : added 本文翻訳ページを開く
+    PhasePage -> PhaseBody : added field result と本文翻訳操作を表示
+else job 未確定 または 参照不能
+    Guard -> IncompleteList : changed 一覧へ戻し、理由を表示
+end
+
+== 直移動防止 added ==
+User -> Guard : フェーズページへ直接入る
+Guard -> IncompleteList : changed phase summary を読まず一覧へ戻す
+
+note over Guard,IncompleteList
+risk:
+復帰先は未完了 job 一覧だけにする。
+InputData と Job Setup へは戻さない。
+end note
+
+== フェーズ本文と footer の責務分離 changed ==
+User -> PhaseBody : 実行 / 一時停止 / 再開 / 再試行 / 取消
+PhaseBody -> PhaseBackend : existing phase 実行操作
+PhaseBackend --> PhaseBody : existing phase state、result summary、readiness
+
+PhasePage -> Footer : added readiness だけを渡す
+Footer --> User : changed 次へ進めない理由を表示
+User -> Footer : 次へ進む
+
+alt term Completed and dictionary ready
+    Footer -> PhasePage : added NPC ペルソナ生成ページへ移動
+else persona Completed and snapshot ready
+    Footer -> PhasePage : added 本文翻訳ページへ移動
+else body Completed and output ready
+    Footer -> CompletePage : changed 翻訳完了ページへ移動
+else readiness 不成立
+    Footer --> User : changed 移動せず理由を表示
+end
+
+note over Footer
+changed:
+footer は移動だけを扱う。
+phase 実行、retry、cancel は PhaseBody が扱う。
+end note
+
+== 翻訳完了から出力管理へ changed ==
+CompletePage -> User : added 原文、訳文、ページングを表示
+User -> Footer : 出力管理へ移動
+Footer -> CompletedList : added Completed job 一覧を開く
+
+note over CompletedList
+risk:
+出力対象 job は自動選択しない。
+Completed job 一覧から選ばせる。
+end note
+
+User -> CompletedList : Completed job を選ぶ
+CompletedList -> OutputReview : existing Output Review を開く
+OutputReview -> OutputBackend : existing preview と XML 出力
+OutputBackend --> OutputReview : existing 結果要約と互換性確認
+
+@enduml

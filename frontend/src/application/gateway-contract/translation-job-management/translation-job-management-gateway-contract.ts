@@ -20,6 +20,11 @@ export type TranslationJobManagementCredentialState =
 
 export type TranslationJobManagementCacheState = "available" | "missing"
 
+export type TranslationJobManagementCurrentPhase =
+  | "term_translation"
+  | "persona_generation"
+  | "body_translation"
+
 export type TranslationJobManagementReasonCategory =
   | "cache_missing"
   | "terminal_state"
@@ -48,6 +53,7 @@ export interface TranslationJobManagementInputSourceSummary {
 }
 
 export interface TranslationJobManagementProgressSummary {
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   percent: number
   progressLabel: string
@@ -82,6 +88,8 @@ export interface TranslationJobManagementJobSummary {
   jobState: TranslationJobManagementJobState
   jobStateLabel: string
   stateTone: TranslationJobManagementStateTone
+  canOpenPhase?: boolean
+  openBlockedReason?: TranslationJobManagementBlockedReason
   inputSource: TranslationJobManagementInputSourceSummary
   progress: TranslationJobManagementProgressSummary
   stopAvailability: TranslationJobManagementOperationAvailability

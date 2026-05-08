@@ -100,6 +100,7 @@ type RegenerateXTranslatorOutputArtifactRequest struct {
 // TranslationOutputReviewResult returns the frozen Output Review summary.
 type TranslationOutputReviewResult struct {
 	CompletedJobs    []TranslationOutputCompletedJobSummary
+	HasSelectedJob   bool
 	SelectedJob      TranslationOutputSelectedJobSummary
 	OutputReadiness  TranslationOutputReadinessSummary
 	ArtifactStatus   TranslationOutputArtifactStatusSummary

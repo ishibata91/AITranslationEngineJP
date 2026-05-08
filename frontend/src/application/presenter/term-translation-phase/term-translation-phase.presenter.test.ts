@@ -61,7 +61,7 @@ function createState(
 }
 
 describe("TermTranslationPhasePresenter", () => {
-  test("job 未選択時は blocked view と job 未選択メッセージを返す", () => {
+  test("ジョブ未選択時は blocked view と未選択メッセージを返す", () => {
     const presenter = new TermTranslationPhasePresenter()
 
     const viewModel = presenter.toViewModel(
@@ -70,7 +70,7 @@ describe("TermTranslationPhasePresenter", () => {
     )
 
     expect(viewModel.viewState).toBe("blocked")
-    expect(viewModel.statusTitle).toBe("job 未選択")
+    expect(viewModel.statusTitle).toBe("ジョブ未選択")
     expect(viewModel.gatewayStatus).toBe("未接続")
   })
 

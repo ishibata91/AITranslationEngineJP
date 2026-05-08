@@ -20,6 +20,7 @@ function createState() {
           extractedJsonLabel: "抽出データ #10"
         },
         progress: {
+          currentPhase: "body_translation",
           currentPhaseLabel: "本文翻訳",
           percent: 20,
           progressLabel: "20%",
@@ -52,6 +53,7 @@ function createState() {
         extractedJsonLabel: "抽出データ #10"
       },
       progress: {
+        currentPhase: "body_translation",
         currentPhaseLabel: "本文翻訳",
         percent: 20,
         progressLabel: "20%",

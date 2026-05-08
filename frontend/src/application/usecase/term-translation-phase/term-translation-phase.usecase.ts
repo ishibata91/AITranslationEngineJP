@@ -45,11 +45,11 @@ function sanitizeErrorMessage(error: unknown, fallback: string): string {
 }
 
 function createNoJobSelectedMessage(): string {
-  return "job id を入力して summary を取得してください。"
+  return "ジョブIDを指定して summary を取得してください。"
 }
 
 function createGatewayDisconnectedMessage(): string {
-  return "term-translation-phase gateway が未接続です。"
+  return "単語翻訳段階の gateway が未接続です。"
 }
 
 function patchSummaryFromCommand(
@@ -209,7 +209,7 @@ export class TermTranslationPhaseUseCase {
         draft.nextPhaseReadiness = before.nextPhaseReadiness
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "単語翻訳フェーズ summary の取得に失敗しました。"
+          "単語翻訳段階の summary 取得に失敗しました。"
         )
       })
     }
@@ -239,7 +239,7 @@ export class TermTranslationPhaseUseCase {
 
     if (action !== "start" && typeof state.summary?.phaseRunId !== "number") {
       this.store.update((draft) => {
-        draft.errorMessage = "phase run が未確定のため操作できません。"
+        draft.errorMessage = "翻訳段階の実行情報が未確定のため操作できません。"
       })
       return
     }
@@ -269,7 +269,7 @@ export class TermTranslationPhaseUseCase {
         draft.pendingAction = null
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "単語翻訳フェーズ操作に失敗しました。"
+          "単語翻訳段階の操作に失敗しました。"
         )
       })
     }

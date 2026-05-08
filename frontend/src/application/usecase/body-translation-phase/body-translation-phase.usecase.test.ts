@@ -190,7 +190,7 @@ function createGateway() {
 }
 
 describe("BodyTranslationPhaseUseCase", () => {
-  test("load は job 未選択時に未選択エラーを設定する", async () => {
+  test("load はジョブ未選択時に未選択エラーを設定する", async () => {
     const { gateway } = createGateway()
     const store = createStore(createState({ jobId: null }))
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
@@ -199,7 +199,7 @@ describe("BodyTranslationPhaseUseCase", () => {
 
     expect(store.getState().phase).toBe("ready")
     expect(store.getState().errorMessage).toBe(
-      "job id を入力して summary を取得してください。"
+      "ジョブIDを指定して summary を取得してください。"
     )
   })
 
@@ -218,7 +218,7 @@ describe("BodyTranslationPhaseUseCase", () => {
       pendingAction: null,
       hasLoaded: false,
       phase: "ready",
-      errorMessage: "job id を入力して summary を取得してください。"
+      errorMessage: "ジョブIDを指定して summary を取得してください。"
     })
   })
 
@@ -259,7 +259,7 @@ describe("BodyTranslationPhaseUseCase", () => {
     await useCase.refresh()
 
     expect(store.getState().errorMessage).toBe(
-      "body-translation-phase gateway が未接続です。"
+      "本文翻訳段階の gateway が未接続です。"
     )
     expect(store.getState().phase).toBe("ready")
   })
@@ -285,7 +285,7 @@ describe("BodyTranslationPhaseUseCase", () => {
     expect(store.getState().summary).toEqual(currentSummary)
     expect(store.getState().outputReadiness).toEqual(currentReadiness)
     expect(store.getState().errorMessage).toBe(
-      "本文翻訳フェーズ summary の取得に失敗しました。"
+      "本文翻訳段階の summary 取得に失敗しました。"
     )
     expect(store.getState().pendingAction).toBeNull()
   })
@@ -377,7 +377,7 @@ describe("BodyTranslationPhaseUseCase", () => {
 
     expect(spies.pauseBodyTranslationPhase).not.toHaveBeenCalled()
     expect(store.getState().errorMessage).toBe(
-      "phase run が未確定のため操作できません。"
+      "翻訳段階の実行情報が未確定のため操作できません。"
     )
   })
 
@@ -392,7 +392,7 @@ describe("BodyTranslationPhaseUseCase", () => {
     await useCase.resumePhase()
 
     expect(store.getState().errorMessage).toBe(
-      "本文翻訳フェーズ操作の反映に失敗しました。"
+      "本文翻訳段階の操作反映に失敗しました。"
     )
     expect(store.getState().phase).toBe("ready")
     expect(store.getState().pendingAction).toBeNull()
@@ -413,7 +413,7 @@ describe("BodyTranslationPhaseUseCase", () => {
     )
   })
 
-  test("cancelPhase は job 未選択時に未選択エラーを設定する", async () => {
+  test("cancelPhase はジョブ未選択時に未選択エラーを設定する", async () => {
     const { gateway, spies } = createGateway()
     const store = createStore(createState({ jobId: null }))
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
@@ -422,7 +422,7 @@ describe("BodyTranslationPhaseUseCase", () => {
 
     expect(spies.cancelBodyTranslationPhase).not.toHaveBeenCalled()
     expect(store.getState().errorMessage).toBe(
-      "job id を入力して summary を取得してください。"
+      "ジョブIDを指定して summary を取得してください。"
     )
   })
 })

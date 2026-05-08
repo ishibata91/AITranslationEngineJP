@@ -1,6 +1,8 @@
 import type {
   TranslationJobManagementJobDetail,
   TranslationJobManagementJobSummary,
+  TranslationJobManagementBlockedReason,
+  TranslationJobManagementCurrentPhase,
   TranslationJobManagementOperationKind,
   TranslationJobManagementReasonCategory,
   TranslationJobManagementStateTone
@@ -79,9 +81,16 @@ export interface TranslationJobManagementJobCardViewModel {
   stateLabel: string
   stateDescription: string
   stateTone: TranslationJobManagementStateTone
+  inputSourceLabel: string
+  sourcePath: string
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   progressLabel: string
   lastUpdatedLabel: string
+  canOpenPhase: boolean
+  openBlockedReason: TranslationJobManagementBlockedReason | null
+  openBlockedReasonText: string
+  jobRunTarget: TranslationJobManagementJobRunTarget | null
   isSelected: boolean
   stopOperation: TranslationJobManagementOperationViewModel
   resumeOperation: TranslationJobManagementOperationViewModel
@@ -107,6 +116,7 @@ export interface TranslationJobManagementSelectedJobViewModel {
   sourcePath: string
   pluginName: string
   extractedJsonLabel: string
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   progressLabel: string
   lastUpdatedLabel: string
@@ -135,6 +145,7 @@ export interface TranslationJobManagementJobRunTarget {
   jobId: number
   stateLabel: string
   stateDescription: string
+  currentPhase: TranslationJobManagementCurrentPhase
   currentPhaseLabel: string
   progressLabel: string
   inputSourceLabel: string

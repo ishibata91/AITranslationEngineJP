@@ -61,11 +61,11 @@ function sanitizeErrorMessage(error: unknown, fallback: string): string {
 }
 
 function createNoJobSelectedMessage(): string {
-  return "job id を入力して summary を取得してください。"
+  return "ジョブIDを指定して summary を取得してください。"
 }
 
 function createGatewayDisconnectedMessage(): string {
-  return "body-translation-phase gateway が未接続です。"
+  return "本文翻訳段階の gateway が未接続です。"
 }
 
 function patchSummaryFromCommand(
@@ -288,7 +288,7 @@ export class BodyTranslationPhaseUseCase {
         draft.outputReadiness = before.outputReadiness
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "本文翻訳フェーズ summary の取得に失敗しました。"
+          "本文翻訳段階の summary 取得に失敗しました。"
         )
       })
     }
@@ -321,7 +321,7 @@ export class BodyTranslationPhaseUseCase {
 
     if (action !== "start" && typeof state.summary?.phaseRunId !== "number") {
       this.store.update((draft) => {
-        draft.errorMessage = "phase run が未確定のため操作できません。"
+        draft.errorMessage = "翻訳段階の実行情報が未確定のため操作できません。"
       })
       return
     }
@@ -364,7 +364,7 @@ export class BodyTranslationPhaseUseCase {
         draft.pendingAction = null
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "本文翻訳フェーズ操作の反映に失敗しました。"
+          "本文翻訳段階の操作反映に失敗しました。"
         )
       })
     }

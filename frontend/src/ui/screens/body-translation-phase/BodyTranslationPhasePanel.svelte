@@ -32,8 +32,7 @@
       <p class="gateway-status">Gateway: {viewModel.gatewayStatus}</p>
     </div>
     <p class="lead">
-      current phase、progress、field result、error summary、output readiness
-      を同じ画面で確認し、開始、中断、再開、回復を判断します。
+      現在の翻訳段階、進行状況、項目ごとの結果、失敗情報、出力準備を同じ画面で確認し、開始、中断、再開、回復を判断します。
     </p>
     <div class="status-block">
       <span
@@ -80,7 +79,7 @@
   >
     <div class="section-head">
       <div>
-        <p class="eyebrow">phase control</p>
+        <p class="eyebrow">翻訳段階の操作</p>
         <h3 id="bodyPhaseActionsHeading">操作</h3>
       </div>
       <span class="mini-text">{viewModel.currentPhaseLabel}</span>
@@ -112,7 +111,7 @@
     <section class="job-run-card" aria-labelledby="bodyPhaseProgressHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">phase progress</p>
+          <p class="eyebrow">翻訳段階の進行状況</p>
           <h3 id="bodyPhaseProgressHeading">進行状況</h3>
         </div>
         <span class="mini-text">{viewModel.progressLabel}</span>
@@ -414,6 +413,7 @@
   .job-run-shell {
     display: grid;
     gap: 1.25rem;
+    min-width: 0;
   }
 
   .job-run-card {
@@ -424,6 +424,7 @@
     border-radius: 20px;
     background: rgba(33, 27, 24, 0.88);
     box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
+    min-width: 0;
   }
 
   .hero-card {
@@ -437,6 +438,7 @@
     gap: 0.8rem;
     justify-content: space-between;
     align-items: flex-start;
+    min-width: 0;
   }
 
   .eyebrow,
@@ -509,6 +511,7 @@
   .field-result-grid {
     display: grid;
     gap: 0.8rem;
+    min-width: 0;
   }
 
   .counter-grid {
@@ -520,6 +523,7 @@
     padding: 0.85rem 0.95rem;
     border-radius: 16px;
     background: rgba(255, 255, 255, 0.04);
+    min-width: 0;
   }
 
   .counter-grid span,
@@ -597,10 +601,26 @@
   .field-result-list {
     display: grid;
     gap: 0.8rem;
+    min-width: 0;
   }
 
   .field-result-grid {
     grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  }
+
+  .detail-grid > div,
+  .field-result-grid > div {
+    min-width: 0;
+  }
+
+  .field-result-head strong,
+  .field-result-head span,
+  .mini-text,
+  .gateway-status,
+  .lead,
+  .status-copy,
+  .progress-copy {
+    overflow-wrap: anywhere;
   }
 
   dd {
@@ -631,6 +651,23 @@
     .field-result-head {
       flex-direction: column;
       align-items: stretch;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .job-run-card {
+      padding: 1rem;
+      border-radius: 14px;
+    }
+
+    .counter-grid,
+    .detail-grid.compact,
+    .field-result-grid {
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .state-pill {
+      white-space: normal;
     }
   }
 </style>

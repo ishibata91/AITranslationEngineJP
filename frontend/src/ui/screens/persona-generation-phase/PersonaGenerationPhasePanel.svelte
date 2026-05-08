@@ -31,8 +31,7 @@
       <p class="gateway-status">Gateway: {viewModel.gatewayStatus}</p>
     </div>
     <p class="lead">
-      current phase、progress、target summary、phase result、body readiness
-      を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。
+      現在の翻訳段階、進行状況、対象 summary、翻訳段階の結果、本文翻訳の開始可否を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。
     </p>
     <div class="status-block">
       <span
@@ -75,7 +74,7 @@
   >
     <div class="section-head">
       <div>
-        <p class="eyebrow">phase control</p>
+        <p class="eyebrow">翻訳段階の操作</p>
         <h3 id="personaPhaseActionsHeading">操作</h3>
       </div>
       <span class="mini-text">{viewModel.currentPhaseLabel}</span>
@@ -107,7 +106,7 @@
     <section class="job-run-card" aria-labelledby="personaPhaseProgressHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">phase progress</p>
+          <p class="eyebrow">翻訳段階の進行状況</p>
           <h3 id="personaPhaseProgressHeading">進行状況</h3>
         </div>
         <span class="mini-text">{viewModel.progressLabel}</span>
@@ -230,7 +229,7 @@
     <section class="job-run-card" aria-labelledby="personaResultHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">phase result</p>
+          <p class="eyebrow">翻訳段階の結果</p>
           <h3 id="personaResultHeading">結果 summary</h3>
         </div>
         <span class="mini-text">{viewModel.bodyReadinessLabel}</span>
@@ -271,8 +270,8 @@
     <section class="job-run-card" aria-labelledby="personaBodyReadinessHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">body readiness</p>
-          <h3 id="personaBodyReadinessHeading">body phase 入力</h3>
+          <p class="eyebrow">本文翻訳の開始可否</p>
+          <h3 id="personaBodyReadinessHeading">本文翻訳の入力</h3>
         </div>
       </div>
       <dl class="detail-grid compact">

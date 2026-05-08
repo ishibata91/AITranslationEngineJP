@@ -94,6 +94,8 @@ func toTranslationJobManagementJobSummaries(
 			JobState:           item.JobState,
 			JobStateLabel:      item.JobStateLabel,
 			StateTone:          item.StateTone,
+			CanOpenPhase:       item.CanOpenPhase,
+			OpenBlockedReason:  toTranslationJobManagementBlockedReasonPointer(item.OpenBlockedReason),
 			InputSource:        toTranslationJobManagementInputSourceSummary(item.InputSource),
 			Progress:           toTranslationJobManagementProgressSummary(item.Progress),
 			StopAvailability:   toTranslationJobManagementOperationAvailability(item.StopAvailability),
@@ -113,6 +115,8 @@ func toTranslationJobManagementJobDetail(
 			JobState:           source.JobState,
 			JobStateLabel:      source.JobStateLabel,
 			StateTone:          source.StateTone,
+			CanOpenPhase:       source.CanOpenPhase,
+			OpenBlockedReason:  toTranslationJobManagementBlockedReasonPointer(source.OpenBlockedReason),
 			InputSource:        toTranslationJobManagementInputSourceSummary(source.InputSource),
 			Progress:           toTranslationJobManagementProgressSummary(source.Progress),
 			StopAvailability:   toTranslationJobManagementOperationAvailability(source.StopAvailability),
@@ -164,11 +168,26 @@ func toTranslationJobManagementProgressSummary(
 	source jobmanagementservice.TranslationJobManagementProgressSummaryReadModel,
 ) TranslationJobManagementProgressSummary {
 	return TranslationJobManagementProgressSummary{
+		CurrentPhase:      source.CurrentPhase,
 		CurrentPhaseLabel: source.CurrentPhaseLabel,
 		Percent:           source.Percent,
 		ProgressLabel:     source.ProgressLabel,
 		LastUpdatedLabel:  source.LastUpdatedLabel,
 	}
+}
+
+func toTranslationJobManagementBlockedReasonPointer(
+	source *jobmanagementservice.TranslationJobManagementBlockedReasonReadModel,
+) *TranslationJobManagementBlockedReason {
+	if source == nil {
+		return nil
+	}
+	result := TranslationJobManagementBlockedReason{
+		Category: source.Category,
+		Title:    source.Title,
+		Detail:   source.Detail,
+	}
+	return &result
 }
 
 func toTranslationJobManagementProtectedSettingSummary(

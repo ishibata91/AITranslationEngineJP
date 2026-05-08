@@ -258,6 +258,9 @@ type BodyTranslationPhaseSummaryResult struct {
 }
 
 // BodyTranslationPhaseCommandResult is the frozen write-seam response contract.
+// Terminal jobs must not be moved by command responses.
+// Late provider responses must not overwrite persisted results when the
+// current phase run does not match the response phase run.
 type BodyTranslationPhaseCommandResult struct {
 	JobID               int64
 	CurrentPhase        string

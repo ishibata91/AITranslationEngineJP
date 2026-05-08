@@ -16,6 +16,8 @@
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
   // eslint-disable-next-line local/enforce-layer-boundaries
+  import { createTranslationJobManagementScreenControllerFactory } from "@controller/translation-job-management"
+  // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
@@ -23,6 +25,8 @@
   import { createMasterPersonaGateway } from "@controller/wails/master-persona.gateway"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
+  // eslint-disable-next-line local/enforce-layer-boundaries
+  import { createTranslationJobManagementGateway } from "@controller/wails/translation-job-management.gateway"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
   import { createShellState } from "@ui/stores/shell-state"
@@ -88,6 +92,15 @@
     )
   }
 
+  function resolveTranslationJobManagementScreenControllerFactory(): CreateTranslationJobManagementScreenController {
+    return (
+      createTranslationJobManagementScreenController ??
+      createTranslationJobManagementScreenControllerFactory(
+        createTranslationJobManagementGateway()
+      )
+    )
+  }
+
   function resolveTranslationOutputArtifactScreenControllerFactory(): CreateTranslationOutputArtifactScreenController {
     return (
       createTranslationOutputArtifactScreenController ??
@@ -105,7 +118,7 @@
   {createPersonaGenerationPhaseScreenController}
   createProviderSettingsScreenController={resolveProviderSettingsScreenControllerFactory()}
   {createTermTranslationPhaseScreenController}
-  {createTranslationJobManagementScreenController}
+  createTranslationJobManagementScreenController={resolveTranslationJobManagementScreenControllerFactory()}
   createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
   createTranslationOutputArtifactScreenController={resolveTranslationOutputArtifactScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}

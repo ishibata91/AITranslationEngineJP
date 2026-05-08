@@ -13,6 +13,9 @@
   }
 
   let { viewModel, onAction }: Props = $props()
+  const phaseActionCards = $derived(
+    viewModel.actionCards.filter((action) => action.id !== "next-phase")
+  )
 
   function resolveStateToken(viewState: TermTranslationPhaseViewState): string {
     return viewState
@@ -24,14 +27,12 @@
     <div class="hero-head">
       <div>
         <p class="eyebrow">translation-management</p>
-        <h2>Job Run</h2>
+        <h2>単語翻訳</h2>
       </div>
       <p class="gateway-status">Gateway: {viewModel.gatewayStatus}</p>
     </div>
     <p class="lead">
-      current phase、progress、phase result、error summary
-      を同じ画面で確認し、開始、中断、再開、リトライ、後続 phase
-      可否を判断します。
+      現在の翻訳段階、進行状況、翻訳段階の結果、失敗情報を同じ画面で確認し、開始、中断、再開、リトライ、次の作業へ進めるかを判断します。
     </p>
     <div class="status-block">
       <span
@@ -56,13 +57,13 @@
   >
     <div class="section-head">
       <div>
-        <p class="eyebrow">phase control</p>
+        <p class="eyebrow">翻訳段階の操作</p>
         <h3 id="termPhaseActionsHeading">操作</h3>
       </div>
       <span class="mini-text">{viewModel.currentPhaseLabel}</span>
     </div>
     <div class="action-grid">
-      {#each viewModel.actionCards as action (action.id)}
+      {#each phaseActionCards as action (action.id)}
         <button
           class="action-button"
           class:primary={action.tone === "primary"}
@@ -76,7 +77,7 @@
       {/each}
     </div>
     <div class="action-hints">
-      {#each viewModel.actionCards as action (action.id)}
+      {#each phaseActionCards as action (action.id)}
         {#if action.disabled && action.blockedReason}
           <p>{action.label}: {action.blockedReason}</p>
         {/if}
@@ -88,7 +89,7 @@
     <section class="job-run-card" aria-labelledby="termPhaseProgressHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">phase progress</p>
+          <p class="eyebrow">翻訳段階の進行状況</p>
           <h3 id="termPhaseProgressHeading">進行状況</h3>
         </div>
         <span class="mini-text">{viewModel.progressLabel}</span>
@@ -165,7 +166,7 @@
     <section class="job-run-card" aria-labelledby="termPhaseResultHeading">
       <div class="section-head">
         <div>
-          <p class="eyebrow">phase result</p>
+          <p class="eyebrow">翻訳段階の結果</p>
           <h3 id="termPhaseResultHeading">結果 summary</h3>
         </div>
         <span class="mini-text">{viewModel.nextPhaseStatusLabel}</span>
@@ -188,7 +189,7 @@
           <dd>{viewModel.unmatchedCountLabel}</dd>
         </div>
         <div>
-          <dt>後続 phase</dt>
+          <dt>次の翻訳段階</dt>
           <dd class="wrap-value">
             {viewModel.nextPhaseStatusLabel}
             {#if viewModel.nextPhaseBlockedReason}

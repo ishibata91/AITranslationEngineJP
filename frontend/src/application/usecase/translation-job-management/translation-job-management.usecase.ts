@@ -314,7 +314,7 @@ export class TranslationJobManagementUseCase {
           "一覧を読み込めません",
           sanitizeErrorMessage(
             error,
-            "未完了 job の一覧取得に失敗しました。再読込してください。"
+            "未完了ジョブの一覧取得に失敗しました。再読込してください。"
           ),
           "danger",
           "list_load_failure"
@@ -382,6 +382,10 @@ function syncDetailIntoList(
     jobState: detail.jobState,
     jobStateLabel: detail.jobStateLabel,
     stateTone: detail.stateTone,
+    canOpenPhase: detail.canOpenPhase,
+    openBlockedReason: detail.openBlockedReason
+      ? { ...detail.openBlockedReason }
+      : undefined,
     inputSource: { ...detail.inputSource },
     progress: { ...detail.progress },
     stopAvailability: { ...detail.stopAvailability },

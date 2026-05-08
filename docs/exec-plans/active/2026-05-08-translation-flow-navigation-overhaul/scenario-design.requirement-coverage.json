@@ -1,0 +1,438 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TFN-001",
+      "title": "翻訳セクションの初期ページを未完了 job 一覧ページにする",
+      "kind": "workflow",
+      "source_requirement": "翻訳管理を開くと未完了 job 一覧ページを初期表示する。新規翻訳は未完了 job 一覧ページ上の導線から入力データページへ進む。対象 job が未確定のフェーズページ復元は未完了 job 一覧へ戻す。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間レビュー指摘により、翻訳管理の初期ページは入口ページではなく未完了 job 一覧ページと固定した。",
+          "verification_hint": "翻訳管理を開いた時に未完了 job 一覧ページが表示されることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "navigation-state-machine.puml は未完了 job 一覧ページを翻訳セクションの初期状態にする。",
+          "verification_hint": "未完了 job 一覧ページの表示だけでは job state が変わらないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "新規開始導線と一覧内 job 選択を未完了 job 一覧ページに置くことで、対象 job 未確定のフェーズページ表示を避ける。",
+          "verification_hint": "フェーズ直移動が未完了 job 一覧ページへ戻ることを確認する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "現行 spec と task は利用者ロール差分を定義していない。ローカル単一利用者の操作として扱う。",
+          "verification_hint": "ロール差分の検証は要求しない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "dashboard-and-app-shell はグローバルナビから翻訳管理へ入る導線を正本化している。フェーズ直リンクはグローバルナビに追加しない。",
+          "verification_hint": "グローバルナビに単語翻訳、NPC ペルソナ生成、本文翻訳の直リンクがないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-002",
+      "title": "Job Setup 完了直後に単語翻訳ページへ進む",
+      "kind": "workflow",
+      "source_requirement": "入力データと Job Setup の作成前検証が成立し、Ready job と初期 phase 状態が作成された時だけ単語翻訳ページへ進む。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "security_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-01 と D-05 は旧 Job Run を分解し、Job Setup 完了結果から job をフェーズページへ渡すと決めている。",
+          "verification_hint": "job 作成成功後に単語翻訳ページへ移動し、セッション取得操作が表示されないことを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-job-setup は API キー不足、model 未選択、stale なモデル一覧を作成不可にする。",
+          "verification_hint": "job 作成失敗時に Job Setup に留まり、単語翻訳 summary を読まないことを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-setup は 3 つの翻訳段階で APIキー不足と model 未選択がない時だけ job 作成できると定義している。",
+          "verification_hint": "作成前検証を満たさない入力では単語翻訳ページへ進まない。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-setup は credential 参照実値、secret store key、endpoint、APIキー本文を DTO と UI に出さないと定義している。",
+          "verification_hint": "単語翻訳ページの作成後 summary に secret 平文が出ないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "Job Setup gateway fake は作成成功、stale 拒否、API key 不足拒否を返せる。",
+          "verification_hint": "fake gateway で成功と失敗の遷移を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-003",
+      "title": "未完了 job 一覧だけを途中再開入口にする",
+      "kind": "workflow",
+      "source_requirement": "途中再開は未完了 job 一覧から対象 job と表示フェーズを固定して始める。旧 Job Run のセッション取得では対象 job を探さない。",
+      "required_detail_types": [
+        "alternative_success_requirement",
+        "failure_handling_requirement",
+        "data_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-02 と D-05 は途中再開を未完了 job 一覧から対象 job を選ぶ形に固定している。",
+          "verification_hint": "未完了 job 一覧で job を選ぶと該当フェーズページへ移動する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-job-management は参照不能 job を Job Run 表示対象にせず、再開不可理由を理由カテゴリとして表示する。",
+          "verification_hint": "参照不能または phase progress 集約不能の job は一覧で理由を表示し、フェーズページへ進まない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-management は Ready、Running、Paused、RecoverableFailed、Failed、Canceled を未完了一覧対象にし、Completed を除外する。",
+          "verification_hint": "Completed 以外の job が一覧対象になり、Completed は出力管理側へ分離される。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧選択とセッション取得の二経路が併存すると表示対象 job が重複して曖昧になる。",
+          "verification_hint": "フェーズページにセッション取得ボタン、未選択 job summary 取得、別 job 探索操作がない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存詳細仕様の Job Run 表記は、plan D-01 と D-05 により分解後の各フェーズページへ読み替える。",
+          "verification_hint": "旧 Job Run 画面名と session fetch 前提が残らないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-004",
+      "title": "フェーズページ直移動と前工程戻りを禁止する",
+      "kind": "navigation",
+      "source_requirement": "フェーズページへの直移動は未完了 job 一覧へ戻す。フェーズページから入力データページまたは Job Setup へ戻る導線は出さない。",
+      "required_detail_types": [
+        "failure_handling_requirement",
+        "state_requirement",
+        "recovery_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-04 はフェーズページへの直リンクを防止し、直接入った場合は未完了 job 一覧へ戻すと決めている。",
+          "verification_hint": "対象 job 未確定の route state で未完了 job 一覧へ戻ることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "フェーズページは jobId と summary が確定していることを entry 条件にする。",
+          "verification_hint": "jobId 未確定では phase summary 取得、runtime event 購読、phase 操作表示を始めない。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "Wails で URL 直リンクが起きにくくても、route state や復元 state の不整合は未完了 job 一覧で選び直せる。",
+          "verification_hint": "不整合復帰後に job 状態を変更せず、一覧で再選択できる。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-02 はフェーズページから Job Setup や入力データページへ戻る導線を出さないと決めている。",
+          "verification_hint": "単語翻訳、NPC ペルソナ生成、本文翻訳の各ページに前工程編集導線がない。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "直移動防止は権限差分ではなく、対象 job 確定の状態制約である。",
+          "verification_hint": "ロール別の許可差分は検証対象にしない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-005",
+      "title": "単語翻訳完了後だけ NPC ペルソナ生成へ進む",
+      "kind": "phase_transition",
+      "source_requirement": "単語翻訳フェーズが Completed で、ジョブ内辞書参照が成立している場合だけ NPC ペルソナ生成ページへ進む。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term-translation-phase は単語翻訳フェーズ完了後だけ後続 phase の入力 summary が成立すると定義している。",
+          "verification_hint": "Completed と辞書参照成立時だけ次へ進むが有効になる。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term-translation-phase は未完了、失敗中、辞書参照不能の場合に後続 phase run を作成しないと定義している。",
+          "verification_hint": "sticky footer に次へ進めない理由を表示し、ページ本文の実行または回復操作へ誘導する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "sticky footer の次へ進むは readiness summary だけを使い、provider request、phase start、retry、cancel を起動しない。",
+          "verification_hint": "footer 操作で provider fake が呼ばれないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term-translation-phase の UI 契約は後続 phase 不可理由、phase result、error summary を表示すると定義している。",
+          "verification_hint": "次へ進めない理由がボタン近くまたは既存 footer エラー表示で読める。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "phase summary fake は completed、blocked、recoverable failed、参照不能を返せる。",
+          "verification_hint": "状態別 fixture で footer enablement を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-006",
+      "title": "NPC ペルソナ生成完了後だけ本文翻訳へ進む",
+      "kind": "phase_transition",
+      "source_requirement": "NPC ペルソナ生成フェーズが Completed で、persona snapshot 参照が成立している場合だけ本文翻訳ページへ進む。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "data_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "persona-generation-phase は persona phase Completed と snapshot 参照成立の両方が true の時だけ body readiness が成立すると定義している。",
+          "verification_hint": "Completed と snapshot 参照成立時だけ本文翻訳ページへ進める。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "persona-generation-phase は persona 未完了、失敗、snapshot 参照不能では本文翻訳 phase run を作成しないと定義している。",
+          "verification_hint": "本文翻訳へ進めない理由が footer とページ本文の readiness 表示で読める。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "本文翻訳ページは persona snapshot 参照を入力前提にするため、snapshot 参照不能では移動しない。",
+          "verification_hint": "snapshot missing fixture で本文翻訳 summary または run が作成されないことを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "persona-generation-phase の主要データは persona snapshot summary と PHASE_RUN_PERSONA である。",
+          "verification_hint": "snapshot 参照状態、missing count、body readiness を表示する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "persona-generation-phase は raw prompt、原文発話全文、会話文脈全文を UI と summary に出さないと定義している。",
+          "verification_hint": "redacted summary だけを表示する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-007",
+      "title": "本文翻訳 Completed だけを翻訳完了ページ対象にする",
+      "kind": "completion",
+      "source_requirement": "本文翻訳が Completed になり、field result 整合と output status 整合が成立した時だけ翻訳完了ページで原文と訳文を確認できる。Canceled と Failed は翻訳完了ページ対象にしない。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "consistency_requirement",
+        "data_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body-translation-phase は本文翻訳フェーズ完了時点で翻訳 job 全体が Completed になり、成果物出力へ渡せる状態を作ると定義している。",
+          "verification_hint": "Completed job だけが翻訳完了ページで原文、訳文、ページングを表示する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "body-translation-phase と translation-output-artifact は Failed、Canceled、不整合 job を出力候補にしない。翻訳完了ページは出力管理導線を持つため Completed 専用にする。",
+          "verification_hint": "Failed と Canceled は本文翻訳ページの terminal 表示または未完了 job 一覧の再開不可理由として確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "body phase Completed、field result 整合、output status 整合を満たす時だけ output readiness true になる。",
+          "verification_hint": "field result 不整合、status 不整合、validation failure では翻訳完了ページと出力管理導線へ進まない。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-06 は翻訳完了ページで原文と訳文をページング表示すると決めている。",
+          "verification_hint": "原文、訳文、ページング、一覧へ戻る、出力管理への移動ボタンを表示する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "navigation-state-machine.puml の Canceled / Failed 表記は、D-06、D-07、detail specs により Completed 専用へ制約する。",
+          "verification_hint": "Canceled / Failed fixture が翻訳完了ページに入らないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-008",
+      "title": "翻訳完了ページは確認と出力管理への移動だけを扱う",
+      "kind": "responsibility_boundary",
+      "source_requirement": "翻訳完了ページは原文と訳文の確認と出力管理への案内だけを扱い、XML 出力、preview、再出力、互換性確認を扱わない。",
+      "required_detail_types": [
+        "success_requirement",
+        "boundary_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-06 は翻訳完了ページが原文と訳文をページング表示し、出力管理への移動ボタンを持つと決めている。",
+          "verification_hint": "翻訳完了ページで結果確認と出力管理への移動ボタンを確認する。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md D-06 と D-07 は出力処理を翻訳完了ページではなく既存の出力管理の責務にする。",
+          "verification_hint": "翻訳完了ページに XML 出力、preview、再出力、互換性確認操作がない。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "translation-output-artifact は Output Review を出力準備状態、拒否理由、preview、成果物状態の上位シナリオとして扱っている。",
+          "verification_hint": "出力処理の操作は出力管理側でだけ表示される。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "翻訳管理 gateway spy で、出力管理への移動ボタンが XML 出力 command を呼ばないことを確認できる。",
+          "verification_hint": "翻訳完了ページのボタン押下で artifact 生成 command が呼ばれない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-009",
+      "title": "成果物出力は出力管理の Completed job 一覧で選ばせる",
+      "kind": "section_boundary",
+      "source_requirement": "出力管理へ移動した後は、出力管理側の Completed job 一覧で対象 job を選ぶ。翻訳管理側から出力対象 job を自動選択しない。",
+      "required_detail_types": [
+        "alternative_success_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "plan.md の未決事項は、translation-output-artifact の completed job list 入口と D-07 の責務分離から、出力管理側で選ばせる方へ固定できる。",
+          "verification_hint": "翻訳完了ページから出力管理へ移動しても selected job は未選択で始まり、Completed job 一覧から選ぶ。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-output-artifact は未完了、失敗中、Canceled、不整合 job では artifact 生成を開始しないと定義している。",
+          "verification_hint": "出力対象 job 未選択または invalid job では出力 action が無効で理由が表示される。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-output-artifact は出力候補を body phase Completed、job-level Completed、field result 整合、output status 整合を満たす job だけにする。",
+          "verification_hint": "Completed job 一覧に Completed だけが表示される。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-output-artifact は UI、DTO、summary、structured log、runtime event へ secret、API key、provider raw payload、過剰な本文全文を出さないと定義している。",
+          "verification_hint": "Output Review の summary と error に secret と過剰本文が出ない。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "本 task は移動と責務分離を扱い、出力行数や処理時間の上限変更を扱わない。",
+          "verification_hint": "性能上限は既存 translation-output-artifact の範囲で扱う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TFN-010",
+      "title": "フェーズページ分解後も現在 job だけを更新し redacted summary を表示する",
+      "kind": "external_integration",
+      "source_requirement": "分解後の各フェーズページは、現在選択中 job の summary と runtime event だけを扱い、古い job の event や secret を表示に混ぜない。",
+      "required_detail_types": [
+        "concurrency_requirement",
+        "observability_requirement",
+        "security_requirement",
+        "冪等性_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "architecture.md は runtime event を screen local handler へ流し、query / command を置き換えないと定義している。",
+          "verification_hint": "現在 job 以外の runtime event で画面遷移や summary 更新が起きない。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "各 phase detail spec は redacted phase result summary、progress、error kind、retryable flag を表示すると定義している。",
+          "verification_hint": "単語翻訳、NPC ペルソナ生成、本文翻訳の各ページで redacted result summary を再表示できる。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "各 phase detail spec は secret、API key 平文、provider raw request / response、raw prompt を UI、error summary、structured log に出さないと定義している。",
+          "verification_hint": "フェーズページ、console、error summary に secret 平文が出ない。"
+        },
+        {
+          "type": "冪等性_requirement",
+          "status": "explicit",
+          "source_or_rationale": "term、persona、body の各 detail spec は再送、再開、リトライで同じ JOB_PHASE_RUN を継続し、成功済み result を重複作成しないと定義している。",
+          "verification_hint": "retry、resume、late response で重複 row、辞書 entry、persona、field result が作成されない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "runtime event adapter fake は現在 job、別 job、古い phase run、late response rejected を送れる。",
+          "verification_hint": "fake event で現在 job だけ更新することを検証する。"
+        }
+      ]
+    }
+  ]
+}

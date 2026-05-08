@@ -187,15 +187,15 @@ function buildStatusCopy(
 ): { title: string; text: string } {
   if (state.jobId === null) {
     return {
-      title: "job 未選択",
-      text: "job id を入力して summary を読み込むと、単語翻訳フェーズの状態を確認できます。"
+      title: "ジョブ未選択",
+      text: "ジョブIDを指定すると、単語翻訳段階の状態を確認できます。"
     }
   }
 
   if (state.phase === "loading" && !state.summary) {
     return {
       title: "summary を取得中",
-      text: "単語翻訳フェーズの current phase、progress、result summary を読み込んでいます。"
+      text: "単語翻訳段階の現在状態、進行状況、結果 summary を読み込んでいます。"
     }
   }
 
@@ -211,12 +211,12 @@ function buildStatusCopy(
     case "idle_ready":
       return {
         title: "開始可能",
-        text: "Ready job かつ active run なしのため、単語翻訳フェーズを開始できます。"
+        text: "Ready ジョブで、実行中の処理がないため、単語翻訳段階を開始できます。"
       }
     case "running":
       return {
         title: "進行中",
-        text: "progress と current step を確認しながら、必要に応じて中断できます。"
+        text: "進行状況と現在の作業を確認しながら、必要に応じて中断できます。"
       }
     case "empty_completed":
       return {
@@ -226,12 +226,12 @@ function buildStatusCopy(
     case "completed":
       return {
         title: "完了",
-        text: "確定訳語とジョブ内辞書反映を確認して、後続 phase へ進めるか判断できます。"
+        text: "確定訳語とジョブ内辞書反映を確認して、次の翻訳段階へ進めるか判断できます。"
       }
     case "paused":
       return {
         title: "中断中",
-        text: "同じ phase run を再開できます。progress は保持されています。"
+        text: "同じ翻訳段階の処理を再開できます。進行状況は保持されています。"
       }
     case "recoverable_failed":
       return {
@@ -241,12 +241,12 @@ function buildStatusCopy(
     case "blocked":
       return {
         title: "開始条件未達",
-        text: "job 状態または辞書参照条件を満たすまで操作を制限しています。"
+        text: "ジョブ状態または辞書参照条件を満たすまで操作を制限しています。"
       }
     default:
       return {
         title: "読み込み中",
-        text: "phase summary を更新しています。"
+        text: "翻訳段階の summary を更新しています。"
       }
   }
 }
@@ -350,7 +350,7 @@ function buildActionCards(
     },
     {
       id: "next-phase",
-      label: "後続 phase へ進む",
+      label: "次の翻訳段階へ進む",
       disabled: isBusy || !canStartNextPhase,
       blockedReason: nextPhaseBlockedReason,
       tone: "primary"

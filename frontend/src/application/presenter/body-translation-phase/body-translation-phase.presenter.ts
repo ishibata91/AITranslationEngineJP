@@ -288,15 +288,15 @@ function buildStatusCopy(
 ): { title: string; text: string } {
   if (state.jobId === null) {
     return {
-      title: "job 未選択",
-      text: "job id を入力して summary を読み込むと、本文翻訳フェーズの状態を確認できます。"
+      title: "ジョブ未選択",
+      text: "ジョブIDを指定すると、本文翻訳段階の状態を確認できます。"
     }
   }
 
   if (state.phase === "loading" && !state.summary) {
     return {
       title: "summary を取得中",
-      text: "current phase、progress、output readiness を読み込んでいます。"
+      text: "現在の翻訳段階、進行状況、出力準備を読み込んでいます。"
     }
   }
 
@@ -311,17 +311,17 @@ function buildStatusCopy(
     case "ready":
       return {
         title: "開始可能",
-        text: "persona phase 完了と前段参照成立が確認できたため、本文翻訳フェーズを開始できます。"
+        text: "NPC ペルソナ生成段階の完了と前段参照成立が確認できたため、本文翻訳段階を開始できます。"
       }
     case "running":
       return {
         title: "実行中",
-        text: "progress、件数、失敗要約を見ながら pause を判断できます。"
+        text: "進行状況、件数、失敗要約を見ながら中断を判断できます。"
       }
     case "paused":
       return {
         title: "中断中",
-        text: "同じ phase run を resume または cancel できます。"
+        text: "同じ翻訳段階の処理を再開またはキャンセルできます。"
       }
     case "recoverable_failed":
       return {
@@ -356,12 +356,12 @@ function buildStatusCopy(
     case "not_ready":
       return {
         title: "開始条件未達",
-        text: "persona phase、job 状態、参照 snapshot の条件が揃うまで操作を制限しています。"
+        text: "NPC ペルソナ生成段階、ジョブ状態、参照 snapshot の条件が揃うまで操作を制限しています。"
       }
     default:
       return {
         title: "読み込み中",
-        text: "phase summary を更新しています。"
+        text: "翻訳段階の summary を更新しています。"
       }
   }
 }

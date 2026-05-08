@@ -591,21 +591,20 @@
     </section>
 
     <StickyActionFooter
-      title="作成前確認"
+      title="ジョブの作成確認"
       titleId="jobSetupCreateHeading"
-      description={viewModel.createSectionText}
+      description="入力データと翻訳設定を確認し、最初の翻訳段階へ進む準備をします。"
       reasons={viewModel.globalBlockedReasons}
       emptyText={viewModel.canCreate
-        ? "不足はありません。"
-        : "作成前確認はまだ未完了です。"}
-      primaryLabel="次へ"
+        ? "作成に必要な確認は完了しています。"
+        : "作成前に確認が必要な項目があります。"}
+      primaryLabel="単語翻訳へ進む"
       primaryDisabled={!viewModel.canCreate}
       onPrimary={() => void controller.createJob()}
     >
       {#if viewModel.showCacheMissingGuidance}
         <p class="mini-text">
-          cache missing は Job Setup で再構築しません。Input Review
-          の再構築導線へ戻ってください。
+          入力データの再構築が必要です。入力データの確認画面に戻ってください。
         </p>
       {/if}
       {#if viewModel.showCacheMissingGuidance && onReturnToInputReview}
@@ -614,7 +613,7 @@
           onclick={() => onReturnToInputReview?.()}
           type="button"
         >
-          Input Review へ戻る
+          入力データの確認へ戻る
         </button>
       {/if}
     </StickyActionFooter>

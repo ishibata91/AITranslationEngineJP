@@ -30,6 +30,7 @@ type TranslationJobManagementInputSourceSummary struct {
 
 // TranslationJobManagementProgressSummary summarizes the current job progress.
 type TranslationJobManagementProgressSummary struct {
+	CurrentPhase      string
 	CurrentPhaseLabel string
 	Percent           int
 	ProgressLabel     string
@@ -68,6 +69,8 @@ type TranslationJobManagementJobSummary struct {
 	JobState           string
 	JobStateLabel      string
 	StateTone          string
+	CanOpenPhase       bool
+	OpenBlockedReason  *TranslationJobManagementBlockedReason
 	InputSource        TranslationJobManagementInputSourceSummary
 	Progress           TranslationJobManagementProgressSummary
 	StopAvailability   TranslationJobManagementOperationAvailability

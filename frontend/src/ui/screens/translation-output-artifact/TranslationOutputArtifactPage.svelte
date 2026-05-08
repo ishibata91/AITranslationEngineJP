@@ -62,7 +62,9 @@
   })
 
   onMount(() => {
-    void controller.mount()
+    void (async () => {
+      await controller.mount()
+    })()
 
     return () => {
       unsubscribe()
@@ -151,7 +153,9 @@
       <div class="section-head">
         <div>
           <p class="eyebrow">selected job summary</p>
-          <h3 id="outputSummaryHeading">選択中 job</h3>
+          <h3 id="outputSummaryHeading">
+            {viewModel.review ? "選択中 job" : "job 選択待ち"}
+          </h3>
         </div>
         <span class="status-pill" data-view-state={viewModel.viewState}>
           {formatStatus(viewModel.viewState)}
@@ -210,7 +214,9 @@
           </div>
         {/if}
       {:else}
-        <p class="empty-text">selected job summary は未取得です。</p>
+        <p class="empty-text">
+          出力候補から completed job を選ぶと、summary と出力準備を表示します。
+        </p>
       {/if}
     </section>
 

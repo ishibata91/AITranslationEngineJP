@@ -49,6 +49,7 @@ type RegenerateXTranslatorOutputArtifactRequestDTO struct {
 // TranslationOutputReviewResponseDTO returns the frozen Output Review response shape.
 type TranslationOutputReviewResponseDTO struct {
 	CompletedJobs    []TranslationOutputCompletedJobSummaryDTO  `json:"completedJobs"`
+	HasSelectedJob   bool                                       `json:"hasSelectedJob"`
 	SelectedJob      TranslationOutputSelectedJobSummaryDTO     `json:"selectedJob"`
 	OutputReadiness  TranslationOutputReadinessSummaryDTO       `json:"outputReadiness"`
 	ArtifactStatus   TranslationOutputArtifactStatusSummaryDTO  `json:"artifactStatus"`
@@ -254,7 +255,8 @@ func toTranslationOutputReviewResponseDTO(result usecase.TranslationOutputReview
 	}
 
 	return TranslationOutputReviewResponseDTO{
-		CompletedJobs: completedJobs,
+		CompletedJobs:  completedJobs,
+		HasSelectedJob: result.HasSelectedJob,
 		SelectedJob: TranslationOutputSelectedJobSummaryDTO{
 			JobID:           result.SelectedJob.JobID,
 			JobStatus:       result.SelectedJob.JobStatus,

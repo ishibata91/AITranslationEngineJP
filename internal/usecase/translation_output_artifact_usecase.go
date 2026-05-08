@@ -109,7 +109,8 @@ func toTranslationOutputReviewResult(
 	}
 
 	return TranslationOutputReviewResult{
-		CompletedJobs: completedJobs,
+		CompletedJobs:  completedJobs,
+		HasSelectedJob: readModel.HasSelectedJob,
 		SelectedJob: TranslationOutputSelectedJobSummary{
 			JobID:           readModel.SelectedJob.JobID,
 			JobStatus:       readModel.SelectedJob.JobStatus,

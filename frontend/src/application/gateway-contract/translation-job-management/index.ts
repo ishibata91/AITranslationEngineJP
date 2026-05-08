@@ -1,6 +1,8 @@
 export type {
   TranslationJobManagementActionRequest,
   TranslationJobManagementActionResponse,
+  TranslationJobManagementBlockedReason,
+  TranslationJobManagementCurrentPhase,
   TranslationJobManagementGatewayContract,
   TranslationJobManagementJobDetail,
   TranslationJobManagementJobSummary,
