@@ -8,6 +8,10 @@ import type { CreateTranslationJobManagementScreenController } from "@applicatio
 import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
 import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
 import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
+import {
+  createNoopFrontendDiagnosticLogger,
+  createPinoFrontendDiagnosticLogger
+} from "@application/diagnostic"
 import { createBodyTranslationPhaseScreenControllerFactory } from "@controller/body-translation-phase"
 import { createMasterDictionaryScreenControllerFactory } from "@controller/master-dictionary"
 import { createMasterPersonaScreenControllerFactory } from "@controller/master-persona"
@@ -36,7 +40,12 @@ import type {
   ReviewFakeApiRuntimeContext
 } from "../controller/review-fake-api/review-fake-api-runtime"
 
+type FrontendDiagnosticLogger = ReturnType<
+  typeof createNoopFrontendDiagnosticLogger
+>
+
 interface AppScreenControllerFactories {
+  diagnosticLogger: FrontendDiagnosticLogger
   createBodyTranslationPhaseScreenController: CreateBodyTranslationPhaseScreenController
   createMasterDictionaryScreenController: CreateMasterDictionaryScreenController
   createMasterPersonaScreenController: CreateMasterPersonaScreenController
@@ -61,8 +70,12 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
   const translationOutputArtifactGateway =
     createTranslationOutputArtifactGateway()
   const masterPersonaGateway = createMasterPersonaGateway()
+  const diagnosticLogger = createPinoFrontendDiagnosticLogger({
+    source: "frontend"
+  })
 
   return {
+    diagnosticLogger,
     createBodyTranslationPhaseScreenController:
       createBodyTranslationPhaseScreenControllerFactory(
         bodyTranslationPhaseGateway
@@ -103,6 +116,7 @@ export function createReviewFakeApiAppFactories(
   registry: ReviewFakeApiGatewayRegistry = {}
 ): AppScreenControllerFactories {
   return {
+    diagnosticLogger: createNoopFrontendDiagnosticLogger(),
     createBodyTranslationPhaseScreenController:
       createBodyTranslationPhaseScreenControllerFactory(
         registry.bodyTranslationPhase?.(context) ?? null

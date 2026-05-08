@@ -49,5 +49,8 @@
     "ignore": [
       "src/test/setup.ts"
     ]
+  },
+  "dependencies": {
+    "pino": "^10.3.1"
   }
 }
