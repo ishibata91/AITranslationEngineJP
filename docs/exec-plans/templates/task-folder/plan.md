@@ -15,7 +15,9 @@
 - `ux_task_frame`: `task 枠` の記録位置 または `N/A`
 - `ui_design`: `./ui-design.md` または `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
+- `ux_review`: `./ux-review.yaml` または `N/A`
 - `frontend_human_review`: frontend 実装後人間レビューの記録位置 または `N/A`
+- `approved_frontend_protection`: 合意済み frontend 保護対象の記録位置 または `N/A`
 - `scenario_design`: `./scenario-design.md`
 - `implementation_scope`: `pending-after-human-review` または `./implementation-scope.md`
 - `detail_spec_target`: `docs/detail-specs/<upper-scenario-id>.md` または `N/A`
@@ -30,6 +32,7 @@
 ## HITL Status
 
 - `functional_or_design_hitl`: `required-after-design-bundle` / `approved` / `not-required`
+- `ux_review`: `required-before-frontend-human-review` / `passed` / `rework-required` / `not-required`
 - `frontend_human_review`: `required-after-frontend-implementation` / `approved` / `rework-requested` / `not-required`
 - `approval_record`: `pending-after-design-bundle` または human review の記録
 
@@ -41,6 +44,8 @@
 - `test_results`:
 - `implementation_investigation`:
 - `ui_evidence`:
+- `ux_review_result`:
+- `approved_frontend_protection`:
 - `codex_review_result`:
 - `sonar_gate_result`:
 - `residual_risks`:
