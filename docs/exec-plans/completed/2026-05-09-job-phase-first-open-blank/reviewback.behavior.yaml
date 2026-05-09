@@ -1,0 +1,66 @@
+reviewback_version: 1
+task_id: "2026-05-09-job-phase-first-open-blank"
+review_yaml_path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。初回の現在の翻訳段階へ進む操作後、job-run 表示中の detail loading 由来 null は親の selected job target を消さない。JobRunPage には保持済み target が渡り、ジョブ #1 と単語翻訳 UI が表示される。未完了一覧へ戻る操作後の再実行でも同じ表示を維持する。"
+  evidence_sufficiency: "十分。対象差分の実コード、回帰テスト、frontend-local、実ブラウザ再確認が、初回操作、detail loading 中 null、再実行の主要経路を直接確認している。"
+  hard_gate: false
+  violated_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "局所修正で閉じている。保持対象は AppShell の selectedJobRunTarget と job-run 表示中 null 同期に限定され、一覧へ戻る、主要ページ切り替え、出力管理遷移の明示的な target 破棄は維持されている。"
+
+checked_scope:
+  summary: "AppShell の job-run 遷移、selectedJobRunTarget 同期、JobRunPage への target 受け渡し、AppShell component scenario test、実装証跡、回帰証跡、browser confirmation retry を確認した。"
+  files:
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+      symbol: "openTranslationJobRun"
+      reason: "一覧 card 由来 target を保持して job-run へ遷移する主要経路を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 208
+      symbol: "openTranslationJobManagement"
+      reason: "未完了一覧へ戻る操作で target を明示的に破棄する既存挙動が維持されていることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 231
+      symbol: "syncJobRunTarget"
+      reason: "job-run 表示中の null target 通知を破棄し、親の selectedJobRunTarget を保持する実装を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 391
+      symbol: "JobRunPage"
+      reason: "保持済み selectedJobRunTarget が JobRunPage に渡ることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 221
+      symbol: "createTranslationJobManagementScenarioController"
+      reason: "selectJob 後に detail loading 相当の jobRunTarget null を通知する再現条件を確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 389
+      symbol: "AppShell scenario test"
+      reason: "初回操作と再実行で hash、ジョブ #1、単語翻訳、未選択文言非表示を確認する回帰テストを確認した。"
+    - path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/implementation-evidence.md"
+      line: 1
+      symbol: "実装証跡"
+      reason: "frontend-local 成功と初回操作、再実行の UI 証跡を確認した。"
+    - path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/regression-evidence.md"
+      line: 1
+      symbol: "回帰テスト証跡"
+      reason: "AppShell.test.ts 単体実行と frontend-local 成功を確認した。"
+    - path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/browser-confirmation-result.retry.md"
+      line: 1
+      symbol: "実装後ブラウザ確認結果"
+      reason: "実ブラウザで初回操作と再実行の表示一致を確認した。"
+
+unchecked_scope:
+  - target: "GetJobDetail 失敗時や選択中 job 消失時の job-run 表示"
+    reason: "今回の実装目的は detail loading 中の一時的な viewModel.jobRunTarget null に限定される。"
+    risk: "一時 null ではない恒久的な対象消失時の表示判断は、別仕様として確認が必要になる可能性がある。"
+  - target: "backend と Wails bridge"
+    reason: "レビュー対象差分は AppShell と AppShell.test.ts に限定され、検証証跡も frontend 経路を対象にしている。"
+    risk: "backend 側の job detail 取得失敗原因は、この挙動レビューでは判定していない。"
+
+issues: []

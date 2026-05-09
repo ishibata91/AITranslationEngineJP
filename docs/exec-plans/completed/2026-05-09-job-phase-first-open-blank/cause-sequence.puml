@@ -1,0 +1,72 @@
+@startuml
+title job-run 初回表示で job target が消える原因箇所シーケンス
+
+skinparam backgroundColor white
+skinparam sequence {
+  ArrowColor #2f4f4f
+  LifeLineBorderColor #4b5563
+  LifeLineBackgroundColor #f8fafc
+  ParticipantBorderColor #4b5563
+  ParticipantBackgroundColor #f8fafc
+  ParticipantFontColor #111827
+  NoteBackgroundColor #fff7d6
+  NoteBorderColor #d1a938
+  GroupBorderColor #94a3b8
+  GroupBackgroundColor #f8fafc
+}
+
+actor "利用者" as User
+participant "TranslationJobManagementPage\nhandleOpenJob" as Page
+participant "AppShell\nselectedJobRunTarget" as Shell
+participant "Usecase\nselectJob" as Usecase
+participant "Presenter\nviewModel.jobRunTarget" as Presenter
+participant "JobRunPage" as JobRun
+
+group 初回操作
+  User -> Page: 一覧 card で\n`現在の翻訳段階へ進む`
+  Page -> Shell: `onJobRunTargetChange(job.jobRunTarget)`
+  Page -> Shell: `onOpenJobRun(job.jobRunTarget)`
+  note right of Shell
+    `selectedJobRunTarget` を設定する。
+    route を `#translation-management/job-run` へ進める。
+  end note
+  Shell -> JobRun: `selectedJobTarget = job.jobRunTarget`
+  Page -> Usecase: `selectJob(job.jobId)`
+  Usecase -> Usecase: loading 更新\n`selectedJobId = jobId`\n`detailPhase = "loading"`
+  note right of Usecase
+    loading 更新時点では
+    `selectedJobDetail` は未設定のまま。
+  end note
+  Usecase -> Presenter: state 更新を通知
+  Presenter -> Presenter: `toJobRunTarget(state.selectedJobDetail)`
+  note right of Presenter
+    `selectedJobDetail == null` のため
+    `viewModel.jobRunTarget = null`
+  end note
+  Presenter -> Page: subscription 更新
+  Page -> Shell: `onJobRunTargetChange(null)`
+  Shell -> JobRun: `selectedJobTarget = null`
+  JobRun -> JobRun: phase controller 全部へ\n`setJobId(null)`
+  JobRun -> User: `ジョブ未選択`\n`未完了ジョブ一覧でジョブを選んでください`
+end
+
+group 再実行で見える差分
+  User -> Page: 同じ job で同じ操作を再実行
+  Page -> Shell: `onOpenJobRun(job.jobRunTarget)`
+  Shell -> JobRun: `selectedJobTarget` を保持したまま描画
+  JobRun -> User: `ジョブ #1` と `単語翻訳` UI を表示
+  note right of JobRun
+    修正着手判断に必要な差分は、
+    route 成立の有無ではなく
+    `JobRunPage` に target が残るかどうか。
+  end note
+end
+
+note over Page,JobRun
+  修正方針:
+  detail loading 中は `selectedJobId` に対応する一覧 summary から
+  `viewModel.jobRunTarget` を生成する。
+  stale 状態では summary から target を復元しない。
+end note
+
+@enduml

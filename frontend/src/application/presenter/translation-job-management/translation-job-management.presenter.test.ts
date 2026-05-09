@@ -185,6 +185,22 @@ describe("TranslationJobManagementPresenter", () => {
     })
   })
 
+  test("detail loading 中は一覧 summary から phase page target を維持する", () => {
+    const presenter = new TranslationJobManagementPresenter()
+    const state = createState()
+    state.detailPhase = "loading"
+    state.selectedJobDetail = null
+
+    const viewModel = presenter.toViewModel(state, true)
+
+    expect(viewModel.selectedJob).toBeNull()
+    expect(viewModel.jobRunTarget).toMatchObject({
+      jobId: 10,
+      currentPhase: "body_translation",
+      currentPhaseLabel: "本文翻訳"
+    })
+  })
+
   test("開けない job は理由を保持し、phase page target を作らない", () => {
     const presenter = new TranslationJobManagementPresenter()
     const state = createState()

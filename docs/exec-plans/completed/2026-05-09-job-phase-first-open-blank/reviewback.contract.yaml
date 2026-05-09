@@ -1,0 +1,91 @@
+reviewback_version: 1
+task_id: "2026-05-09-job-phase-first-open-blank"
+review_yaml_path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "公開 API、DB schema、event 入力内容、route 文字列の互換性破壊は確認しなかった。変更は AppShell 内の selected job target 保持条件と、同経路を固定する component scenario test に閉じている。"
+  evidence_sufficiency: "十分。対象差分、修正実行入力、実装証跡、回帰テスト証跡、browser confirmation retry 成功を確認した。"
+
+checked_scope:
+  summary: "初回の現在の翻訳段階へ進む操作、既存 job-run route、一覧へ戻る、主要ページ切り替え、出力管理へ進む時の selected job target 破棄契約を確認した。"
+  files:
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 136
+      symbol: "syncRouteFromHash"
+      reason: "translation-management の base hash と job-run 直リンク時に selectedJobRunTarget を破棄する既存契約を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 149
+      symbol: "selectRoute"
+      reason: "主要ページ切り替えで translation-management へ戻る時に selectedJobRunTarget を破棄する既存契約を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+      symbol: "openTranslationJobRun"
+      reason: "一覧 card 由来の target を保持し、既存 route #translation-management/job-run へ進む契約を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 208
+      symbol: "openTranslationJobManagement"
+      reason: "未完了一覧へ戻る操作で selectedJobRunTarget を破棄する契約を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 217
+      symbol: "openOutputManagementFromJobRun"
+      reason: "出力管理へ進む操作で selectedJobRunTarget を破棄し、#output-management へ進む契約を確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 231
+      symbol: "syncJobRunTarget"
+      reason: "job-run 表示中の一時 null target だけを破棄し、非 job-run の target 同期契約を維持していることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 103
+      symbol: "handleOpenJob"
+      reason: "一覧 card が onJobRunTargetChange と onOpenJobRun へ同じ target を渡した後、selectJob の非同期更新が走る既存入力順を確認した。"
+    - path: "frontend/src/ui/screens/job-run/JobRunPage.svelte"
+      line: 397
+      symbol: "selectedJobTarget fallback"
+      reason: "selectedJobTarget が null の場合だけジョブ未選択分岐になる既存契約を確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 389
+      symbol: "未完了ジョブ一覧で現在の翻訳段階へ進む操作は初回と再実行で単語翻訳を表示する"
+      reason: "初回操作、job-run route、ジョブ #1、単語翻訳、未選択分岐の非表示、一覧へ戻った後の再実行を固定していることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/implementation-evidence.md"
+      line: 23
+      symbol: "検証結果"
+      reason: "frontend-local 成功、Vitest 517 tests passed、boundary test 23 tests passed を確認した。"
+    - path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/regression-evidence.md"
+      line: 36
+      symbol: "検証結果"
+      reason: "AppShell.test.ts と frontend-local の成功、Vitest 518 tests passed を確認した。"
+    - path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/browser-confirmation-result.retry.md"
+      line: 3
+      symbol: "操作確認結果"
+      reason: "browser confirmation retry で初回操作と再実行が同じ job-run 表示契約を満たしたことを確認した。"
+
+unchecked_scope:
+  - target: "backend API、DB schema、Wails bridge"
+    reason: "対象差分が frontend/src/ui/views/AppShell.svelte と AppShell.test.ts に限定され、request / response や schema 変更を含まないため。"
+    risk: "低い。公開 API 境界に変更がないため、契約破壊の主リスクは UI 内部の target 保持に限定される。"
+  - target: "広い harness の再実行"
+    reason: "review_contract の責務ではなく、呼び出し元から frontend-local 成功証跡が渡されているため。"
+    risk: "低い。対象契約は regression test と browser confirmation retry で確認済み。"
+
+issues: []
+
+invariants:
+  broken: []
+  preserved:
+    - "初回の現在の翻訳段階へ進む操作は #translation-management/job-run へ進み、一覧 card 由来の selected job target を JobRunPage へ渡す。"
+    - "detail loading 中に TranslationJobManagementPage から jobRunTarget = null が届いても、job-run 表示中の selected job target は破棄しない。"
+    - "未完了一覧へ戻る、主要ページ切り替え、出力管理へ進む操作では selected job target を明示的に破棄する。"
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "local"
+  reason: "変更は AppShell 内の target 同期条件に限定され、公開 API、DB schema、Wails bridge、route 文字列を変更していない。"
+
+residual_risks:
+  - "job-run 直リンク時は既存どおり #translation-management へ戻す。今回の実装目的外だが、既存 route 互換性として維持されている。"
+  - "GetJobDetail 失敗時の画面詳細は契約観点の主判定外。target 保持契約は browser confirmation retry と AppShell scenario test で確認済み。"

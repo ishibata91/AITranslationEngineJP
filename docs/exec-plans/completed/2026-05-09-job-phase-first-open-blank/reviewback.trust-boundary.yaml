@@ -1,0 +1,62 @@
+reviewback_version: 1
+task_id: "2026-05-09-job-phase-first-open-blank"
+review_yaml_path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  safety: "変更は job-run 表示中の selected job target 保持と、その回帰テスト追加に限定される。secret、外部送信、認証認可境界、tenant 境界、phase 実行開始経路の変更は確認されない。"
+  evidence_sufficiency: "十分。指定差分、実装証跡、回帰テスト証跡、ブラウザ確認 retry 証跡を確認した。検証は frontend-local 成功と画面遷移、表示確認であり、禁止操作は押されていない。"
+  hard_gate: true
+checked_scope:
+  summary: "AppShell の job-run target 同期、JobRunPage への target 受け渡し、追加シナリオテストの fake controller を確認した。"
+  files:
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 231
+      symbol: "syncJobRunTarget"
+      reason: "job-run 表示中の null target を破棄する変更点であり、保持される値が一覧 card 由来の表示 target に限定されることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 391
+      symbol: "JobRunPage"
+      reason: "selectedJobRunTarget が JobRunPage の selectedJobTarget へ渡るだけで、外部送信、secret 表示、認証認可処理、phase 実行開始呼び出しを追加していないことを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 50
+      symbol: "jobOneRunTarget"
+      reason: "テスト用 target は jobId、phase、表示ラベル、入力元 path の fake 値で構成され、secret 本体や credential 本体を含まないことを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 169
+      symbol: "createTermTranslationPhaseController"
+      reason: "phase 操作 controller は vi.fn の fake であり、startPhase、pausePhase、resumePhase、retryPhase の実送信や実行開始が行われないことを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 389
+      symbol: "AppShell scenario test"
+      reason: "追加テストは画面遷移と表示確認に限定され、外部 provider、secret、認証認可、実行開始の確認対象を広げていないことを確認した。"
+unchecked_scope:
+  - target: "backend、Wails bridge、provider adapter、secret 保存先、認証認可層"
+    reason: "レビュー対象差分に含まれず、実装目的も selected job target 保持だけに限定されているため確認対象外にした。"
+    risk: "このレビューでは既存境界の安全性を再保証しない。今回差分が既存境界へ新しい経路を追加していないことだけを判定した。"
+  - target: "phase 実行開始の実操作"
+    reason: "検証証跡は画面遷移と表示確認だけであり、禁止操作として phase 実行開始 button は押されていない。"
+    risk: "phase 実行開始経路の既存安全性は、このレビューの追加根拠にはならない。"
+issues: []
+broken_invariants: []
+cause_candidates: []
+local_fix_assessment:
+  result: "local"
+  reason: "変更は AppShell 内の selectedJobRunTarget 更新条件だけに閉じている。外部入力の解釈、secret、外部送信、認証認可、tenant 境界、phase 実行開始経路を変更していないため、権限・信頼境界観点では局所変更として評価できる。"
+invariant_test_viewpoints:
+  - "job-run 表示中に detail loading 相当の null target 通知が来ても、一覧 card 由来の selected job target が維持される。"
+  - "一覧へ戻る操作では selected job target が破棄され、保持が job-run 表示中だけに限定される。"
+residual_risks:
+  - target: "直リンク時の job-run 表示"
+    reason: "実装証跡により既存どおり translation-management へ戻す扱いとされている。今回差分は初回操作後の target 保持に限定される。"
+    risk: "直リンク時の保護挙動は既存仕様に依存する。"
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "success"
+    source: "implementation-evidence.md と regression-evidence.md"
+  - command: "browser confirmation retry"
+    result: "success"
+    source: "browser-confirmation-result.retry.md"

@@ -1,0 +1,85 @@
+reviewback_version: 1
+task_id: "2026-05-09-job-phase-first-open-blank"
+review_yaml_path: "docs/exec-plans/active/2026-05-09-job-phase-first-open-blank/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。AppShell の route と selected job target の画面状態保持に変更が閉じており、View、ScreenController、UseCase、Gateway の責務境界を越えていない。"
+  evidence_sufficiency: "十分。対象差分、実装証跡、回帰テスト証跡、ブラウザ確認証跡、architecture.md、coding-guidelines.md を確認した。"
+
+checked_scope:
+  summary: "AppShell の route / selected target 状態保持、TranslationJobManagementPage からの target 同期、JobRunPage への selectedJobTarget 受け渡し、境界固定テストを確認した。"
+  files:
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 74
+      symbol: "selectedTranslationManagementViewId / selectedJobRunTarget"
+      reason: "AppShell が route と selected job target を View 内の画面状態として保持していることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 177
+      symbol: "openTranslationJobRun"
+      reason: "一覧 card 由来の target を保持し、job-run 表示へ遷移する処理が View の画面遷移制御に閉じていることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 231
+      symbol: "syncJobRunTarget"
+      reason: "job-run 表示中の一時的な null target を親 View の selected target へ反映しない条件が、状態保持だけに閉じていることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 382
+      symbol: "TranslationJobManagementPage / JobRunPage"
+      reason: "ScreenController、UseCase、Gateway を直接扱わず、View が child page と event / props で接続していることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 208
+      symbol: "createTranslationJobManagementScenarioController"
+      reason: "テスト fake が ScreenController contract に限定され、実 Gateway や UseCase 実装へ依存していないことを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 389
+      symbol: "未完了ジョブ一覧で現在の翻訳段階へ進む操作は初回と再実行で単語翻訳を表示する"
+      reason: "境界固定テストが AppShell から見える route と selected target の連携だけを検証していることを確認した。"
+
+unchecked_scope:
+  - target: "frontend/src/ui/screens/job-run/JobRunPage.svelte の内部実装"
+    reason: "レビュー対象差分に含まれず、今回は AppShell から渡す selectedJobTarget の境界だけを確認した。"
+    risk: "JobRunPage 内部の責務分離に既存問題があっても、この観点レビューでは新規混入として検出しない。"
+  - target: "ScreenController、Frontend UseCase、Gateway の実装本体"
+    reason: "レビュー対象差分に含まれず、今回の変更は該当層を変更していない。"
+    risk: "該当層の既存責務違反は、このレビュー結果に含まれない。"
+  - target: "検証コマンドの再実行"
+    reason: "skill の非対象規約がハーネス実行を禁止しているため、呼び出し元の検証証跡を入力として扱った。"
+    risk: "現在の作業環境での再現性は、この agent では直接確認していない。"
+
+issues: []
+
+broken_boundaries: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "local"
+  reason: "変更は AppShell の画面状態同期条件と AppShell の境界固定テストに閉じている。ScreenController、UseCase、Gateway、backend への責務移動を伴わない。"
+
+boundary_test_viewpoints:
+  - "AppShell.test.ts の追加シナリオが、一覧 card 由来の target 保持を固定している。"
+  - "AppShell.test.ts の追加シナリオが、detail loading 相当の null 通知を固定している。"
+  - "AppShell.test.ts の追加シナリオが、job-run route と単語翻訳表示を固定している。"
+
+residual_risks:
+  - target: "JobRunPage 内部の責務分離"
+    reason: "レビュー対象差分に含まれず、今回は AppShell から渡す selectedJobTarget の境界だけを確認した。"
+    risk: "JobRunPage 内部の既存責務違反は、このレビュー結果に含まれない。"
+  - target: "ScreenController、Frontend UseCase、Gateway の実装本体"
+    reason: "レビュー対象差分に含まれず、今回の変更は該当層を変更していない。"
+    risk: "該当層の既存責務違反は、このレビュー結果に含まれない。"
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite frontend-local"
+    result: "success"
+    source: "implementation-evidence.md と regression-evidence.md"
+  - command: "boundary test"
+    result: "23 tests passed"
+    source: "implementation-evidence.md と regression-evidence.md"
+  - command: "browser confirmation retry"
+    result: "success"
+    source: "browser-confirmation-result.retry.md"

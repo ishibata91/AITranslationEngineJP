@@ -315,8 +315,18 @@ function toJobCard(
   }
 }
 
+type JobRunTargetSource = Pick<
+  TranslationJobManagementJobDetail,
+  | "jobId"
+  | "jobState"
+  | "jobStateLabel"
+  | "inputSource"
+  | "progress"
+  | "canOpenPhase"
+>
+
 function toJobRunTarget(
-  detail: TranslationJobManagementJobDetail | null
+  detail: JobRunTargetSource | null
 ): TranslationJobManagementJobRunTarget | null {
   if (!detail) {
     return null
@@ -339,6 +349,24 @@ function toJobRunTarget(
     inputSourceLabel: detail.inputSource.inputSourceLabel,
     sourcePath: detail.inputSource.sourcePath
   }
+}
+
+function resolveJobRunTarget(
+  state: TranslationJobManagementScreenState
+): TranslationJobManagementJobRunTarget | null {
+  if (state.selectedJobDetail) {
+    return toJobRunTarget(state.selectedJobDetail)
+  }
+
+  if (state.detailPhase !== "loading" || state.selectedJobId === null) {
+    return null
+  }
+
+  const selectedJobSummary = state.jobs.find(
+    (job) => job.jobId === state.selectedJobId
+  )
+
+  return toJobRunTarget(selectedJobSummary ?? null)
 }
 
 export class TranslationJobManagementPresenter {
@@ -439,7 +467,7 @@ export class TranslationJobManagementPresenter {
               busy: state.activeOperation === "delete"
             }
           : null,
-      jobRunTarget: toJobRunTarget(state.selectedJobDetail)
+      jobRunTarget: resolveJobRunTarget(state)
     }
   }
 }

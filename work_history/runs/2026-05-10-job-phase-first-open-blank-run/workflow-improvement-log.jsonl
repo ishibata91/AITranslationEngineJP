@@ -1,0 +1,1 @@
+{"task_id":"2026-05-09-job-phase-first-open-blank","category":"browser_confirmation","severity":"medium","finding":"初回 browser confirmation は viewport と起動状態の固定不足で失敗し、retry が必要だった。","evidence":"browser-confirmation-result.md, browser-confirmation-result.retry.md","next_action":"確認前に viewport、起動 URL、起動状態を固定する。"}
