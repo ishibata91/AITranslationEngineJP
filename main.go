@@ -4,8 +4,11 @@ package main
 import (
 	"embed"
 	"log"
+	"log/slog"
+	"os"
 
 	"aitranslationenginejp/internal/bootstrap"
+	infraruntime "aitranslationenginejp/internal/infra/runtime"
 
 	"github.com/wailsapp/wails/v2"
 	"github.com/wailsapp/wails/v2/pkg/options"
@@ -16,6 +19,7 @@ import (
 var frontendAssets embed.FS
 
 func main() {
+	infraruntime.InstallDiagnosticLogger(os.Stderr, "backend", slog.LevelInfo)
 	appController := bootstrap.NewAppController()
 
 	err := wails.Run(&options.App{

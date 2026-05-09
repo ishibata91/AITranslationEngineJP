@@ -18,6 +18,9 @@ agent TOML の ツール権限 と skill の出力規約は上書きしない。
 - Wails 紐づけ、frontend gateway、backend service、infra adapter のどこで失敗したかを分ける。
 - console、backend log、test 出力、UI 状態 を 根拠 として区別する。
 - UI 状態、console、screenshot は `agent-browser` CLI の コマンド 出力 として残す。
+- frontend log は browser console の根拠として残す。
+- backend log は `tmp/logs/wails-dev.log` の根拠として残す。
+- frontend log と backend log は同じ根拠 path に混ぜない。
 - paid real AI API を調査で呼ばない。fake / DI seam / test mode を使う。
 - 一時観測点は返却前に除去し、cleanup_status を必ず返す。
 

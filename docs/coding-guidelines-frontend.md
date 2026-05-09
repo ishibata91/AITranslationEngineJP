@@ -1,6 +1,6 @@
 # フロントエンド コーディング規約
 
-関連文書: [`coding-guidelines.md`](./coding-guidelines.md), [`architecture.md`](./architecture.md), [`lint-policy.md`](./lint-policy.md)
+関連文書: [`coding-guidelines.md`](./coding-guidelines.md), [`architecture.md`](./architecture.md), [`lint-policy.md`](./lint-policy.md), [`observability-logging.md`](./observability-logging.md)
 
 本書は、`frontend/src/` の TypeScript / Svelte 実装規約を定義する。
 Wails bridge、画面状態、表示イベントの責務を対象にする。
@@ -43,6 +43,7 @@ backend と test の規約は別文書を正本にする。
 - 状態更新は既存 object の破壊的変更ではなく、新しい値を返す形を優先する
 - 長い条件分岐は早期 return や小さい関数へ分け、template に深い判断を置かない
 - magic number、遅延時間、件数上限、表示閾値は名前付き定数にする
+- 観測ログの出力先、payload、禁止事項は [`observability-logging.md`](./observability-logging.md) に従う
 - `console.log` を本番コードへ残さず、必要な観測は規約化された logger または一時観測として扱う
 
 ## 6. Wails 境界

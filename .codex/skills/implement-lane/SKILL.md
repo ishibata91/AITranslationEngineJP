@@ -32,6 +32,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
 - UX 事前確認は [ux-review](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ux-review/SKILL.md) に従う。
 - 観測ログ追加は [observability-implementer](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/observability-implementer/SKILL.md) に従う。
+- 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - fakeAPI 運用仕様: 人間レビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
 
 ## 内部参照規約
@@ -186,7 +187,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `UX事前確認` が `must_fix_open: true` または `review_status: stopped` の場合は、frontend 人間レビューへ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
 - `frontend 実装後人間レビュー` が承認済みの場合は、合意済み frontend 保護対象を後続実装の変更禁止範囲として起動入力へ含める。
 - 後続実装で画面、部品、文言、style の変更が必要な場合は、実装を続けず `frontend 実装` の再実行入力または人間への返却を固定する。
-- `観測ログ追加` の起動入力には、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダを含める。
+- `観測ログ追加` の起動入力には、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダ、観測ログ仕様を含める。
 - `観測ログ追加` は `backend 実装`、`frontend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` が必要分だけ揃った後、`最終検証` の前に起動する。
 - `観測ログ追加` が停止した場合は、`最終検証` へ進めず、人間または該当 実装 agent への戻しを固定する。
 - レビュー agent を起動する前に、ゲート判断用 `reviewback.<観点>.yaml` の作業計画フォルダを確定する。
@@ -219,6 +220,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `統合境界実装` は frontend と backend の接続結果を実画面で確認する。
 - `観測ログ追加` は実行時にしか確定しない値、実行後に消える中間状態、消えると原因候補を分離できない分岐理由だけを残す。
 - `観測ログ追加` はループや大量処理で同種ログを増やさず、件数、分類、集約、代表的な識別子、最初の失敗、最後の失敗を優先する。
+- `観測ログ追加` は `event`、`where`、`result` を共通 payload とし、trace ID を使わない。
+- `観測ログ追加` は backend の `slog` 出力と frontend の `pino` 出力を同じ file へ集約しない。
 - `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、承認済みシナリオ、UI 要件契約、実装範囲、最終検証観点から `implement_lane` が定義する。
 - `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
 - `シナリオテスト` と `単体テスト` は別成果物にし、依存対象が揃った後に並列起動できる。
@@ -240,7 +243,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 設計差分図: 人間設計レビュー向けには、追加・削除差分のコンポーネント図、追加・削除差分のシーケンス図、根拠参照、検証結果、未決事項を返す。
 - 実装後ブラウザ確認起動入力: `browser_confirmation` 向けには、確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を渡す。
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
-- 観測ログ追加起動入力: `observability_implementer` 向けには、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダを渡す。
+- 観測ログ追加起動入力: `observability_implementer` 向けには、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダ、観測ログ仕様を渡す。
 - 観測ログ追加: 追加ログ、追加しない理由、禁止ログ確認、変更ファイル、検証未実行理由を返す。
 - UX事前確認起動入力: `ux_review` 向けには、UX確認対象差分、実装目的、UI根拠、実装結果、実画面確認入力、変更ファイル、作業計画フォルダ、UX確認YAMLパスを渡す。
 - UX事前確認: `ux-review.yaml` の `review_status`、`must_fix_open`、`max_level`、確認済み状態、未確認状態、UX指摘を返す。

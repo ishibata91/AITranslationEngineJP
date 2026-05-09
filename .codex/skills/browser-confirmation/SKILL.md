@@ -30,6 +30,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 
 - エージェント実行定義と実行境界は [browser_confirmation.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/browser_confirmation.toml) に従う。
 - `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
+- 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 確認経路と期待値の定義は呼び出し元 lane の成果物に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -50,6 +51,9 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 - 確認 URL、操作経路、操作期待値、安全条件に従って実行する。
 - `snapshot` と `errors` は必ず取得する。
 - `screenshot` は画面状態、表示差分、未確認理由の説明に必要な場合に取得する。
+- frontend の観測ログは browser console の証跡として扱う。
+- backend の観測ログは `tmp/logs/wails-dev.log` の証跡として扱う。
+- frontend log と backend log は同じ証跡として混ぜない。
 - 期待値の妥当性は判断しない。
 - 仕様判断、原因推定、修正方針作成は行わない。
 

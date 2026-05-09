@@ -36,6 +36,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - エージェント実行定義と実行境界は [integration_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/integration_implementer.toml) に従う。
 - frontend コーディング規約: frontend 変更がある場合は [coding-guidelines-frontend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-frontend.md) とする。
 - backend コーディング規約: backend 変更がある場合は [coding-guidelines-backend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-backend.md) とする。
+- 観測ログ仕様: 観測ログを追加または確認する場合は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の統合境界だけを参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
@@ -65,6 +66,7 @@ secret 分離観点表は次を拘束する。
 - secret 本体は provider、外部 API、内部認証 へ渡す直前に secret 解決責務層から受け取る
 - URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ secret 本体を出さない
 - 検証 は frontend、backend、統合境界 契約 の証跡を分ける
+- 観測ログを確認する場合は、frontend の browser console と backend の `tmp/logs/wails-dev.log` を分ける
 
 - API / Wails / DTO / gateway / adapter 契約 のどれを統合境界として変更したか 終了処理 に残す
 - UI がある task では、実画面で主要操作が backend まで到達することを確認する

@@ -27,6 +27,7 @@ description: Codex 実装レーン 側の観測ログ追加作業プロトコル
 ## 外部参照規約
 
 - エージェント実行定義と実行境界は [observability_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/observability_implementer.toml) に従う。
+- 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -40,15 +41,26 @@ description: Codex 実装レーン 側の観測ログ追加作業プロトコル
 | 分岐理由 | 消えると原因候補を分離できない分岐理由は残す。 |
 | 外部境界 | 外部提供元、DB、ファイル、Wails 境界の呼び出し前後は、失敗分類に必要な場合だけ残す。 |
 | 状態遷移 | 変更前、変更後、遷移理由、拒否理由は、状態不整合を分離できる場合だけ残す。 |
+| 出力境界 | backend は `slog`、frontend は `pino` を使い、出力先を混ぜない。 |
 
 ## 判断規約
 
 - 観測ログ追加は承認済み実装範囲 内に限定する。
 - 完成済み実装成果物 の振る舞いを広げない。
 - 実行後に消えるため原因候補を分離できない情報だけを残す。
+- 観測ログの共通 payload は `event`、`where`、`result` を基本にする。
+- 必要なログだけ `id`、`count`、`reason` を追加する。
+- backend は `slog` の JSON log を `stderr` へ出す。
+- frontend は `pino` の browser console 出力へ出す。
 - ループや大量処理では同種ログを増やさない。
 - 大量処理では件数、分類、集約、代表的な識別子、最初の失敗、最後の失敗を優先する。
 - 秘密情報、全文入力、巨大データは残さない。
+- trace ID は追加しない。
+- 全 command の start / finish log は追加しない。
+- frontend log を Wails 経由で backend へ送らない。
+- backend log と frontend log を同じ file へ集約しない。
+- logger のために constructor 引数を広げない。
+- context へ logger を埋め込まない。
 - 合意済みfrontend保護 がある場合は、承認済み画面、表示規則、変更禁止範囲を変更しない。
 
 ## 非対象規約
@@ -77,6 +89,7 @@ description: Codex 実装レーン 側の観測ログ追加作業プロトコル
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 追加ログ または 追加しない理由 が根拠参照付きで返っている。
 - 禁止ログ確認 が返っている。
+- 観測ログ仕様に従った payload、出力先、禁止項目の確認が返っている。
 - 変更ファイル が返っている。
 - 検証未実行理由 または呼び出し元の最終検証へ渡す理由が返っている。
 - `implement_lane` が最終検証へ進むか判断できる。

@@ -19,6 +19,7 @@
 - frontend build tool は `Vite` を採用する
 - frontend package root は `frontend/` を採用する
 - 初期スタイリングは repo-local CSS を採用し、CSS framework は初期必須要件に含めない
+- frontend 観測ログは `pino` の browser console 出力を採用する
 
 ## 3. バックエンド基盤
 
@@ -28,6 +29,7 @@
 - JSON シリアライズは `encoding/json` を標準とする
 - XML 出力は `encoding/xml` を第一候補とする
 - ログ計測は `log/slog` を採用する
+- backend 観測ログは `slog` JSON を `stderr` へ出す
 
 ## 4. 永続化
 

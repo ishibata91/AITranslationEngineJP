@@ -31,6 +31,7 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 
 - エージェント実行定義と実行境界は [review_trust_boundary.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_trust_boundary.toml) に従う。
 - レビューYAMLの正本形式は [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) に従う。
+- 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -78,6 +79,8 @@ secret 確認表は次を拘束する。
 - `assessment.hard_gate` は常に `true` にする。
 - secret を扱う差分では、secret 本体の送信先、表示先、保存先、ログ出力先を別々に確認する。
 - secret を扱う差分では、参照値と secret 本体が UI、DTO、read model、URL、log、error summary、audit、要求捕捉で混ざっていないか確認する。
+- 観測ログを扱う差分では、backend log、frontend log、要求捕捉を分けて確認する。
+- 観測ログを扱う差分では、trace ID、secret 本体、API key、raw payload、全文入力が出ないことを確認する。
 - 呼び出し元から渡された検証証跡をレビュー入力として扱ってよい。
 
 ## 非対象規約

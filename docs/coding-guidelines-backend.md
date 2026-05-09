@@ -1,6 +1,6 @@
 # バックエンド コーディング規約
 
-関連文書: [`coding-guidelines.md`](./coding-guidelines.md), [`architecture.md`](./architecture.md), [`lint-policy.md`](./lint-policy.md)
+関連文書: [`coding-guidelines.md`](./coding-guidelines.md), [`architecture.md`](./architecture.md), [`lint-policy.md`](./lint-policy.md), [`observability-logging.md`](./observability-logging.md)
 
 本書は、`internal/` と Wails backend 起点の Go 実装規約を定義する。
 usecase、service、repository、adapter、transport boundary の責務を対象にする。
@@ -48,6 +48,7 @@ frontend と test の規約は別文書を正本にする。
 
 ## 6. ログと機密情報
 
+- 観測ログの出力先、payload、禁止事項は [`observability-logging.md`](./observability-logging.md) に従う
 - ログは原因追跡に必要な情報を残しつつ、機密値を無加工で出さない
 - user-facing message と internal diagnostic を分ける
 - ログ message は検索しやすい語彙を使い、同じ失敗を複数の曖昧な表現で記録しない

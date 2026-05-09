@@ -1,138 +1,61 @@
 package runtime
 
 import (
+	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"log/slog"
-	"path/filepath"
 	"testing"
-	"time"
-
-	_ "modernc.org/sqlite"
 )
 
-func TestSQLiteDiagnosticHandlerWritesStructuredLog(t *testing.T) {
-	ctx := context.Background()
-	databasePath := filepath.Join(t.TempDir(), "diagnostic-log.sqlite")
-	diagnosticLog, err := OpenDiagnosticLog(ctx, databasePath)
-	if err != nil {
-		t.Fatalf("open diagnostic log: %v", err)
-	}
-	defer func() {
-		if err := diagnosticLog.Close(); err != nil {
-			t.Fatalf("close diagnostic log: %v", err)
-		}
-	}()
+func TestInstallDiagnosticLoggerWritesJSONToWriter(t *testing.T) {
+	var buffer bytes.Buffer
+	InstallDiagnosticLogger(&buffer, "backend-test", slog.LevelInfo)
 
-	now := time.Date(2026, 5, 9, 1, 2, 3, 4, time.UTC)
-	handler := diagnosticLog.Handler(
-		WithDiagnosticLogSource("backend-test"),
-		WithDiagnosticLogClock(func() time.Time { return now }),
-	).WithAttrs([]slog.Attr{
-		slog.String("trace_id", "trace-1"),
-		slog.String("boundary", "unit-test"),
-	})
-	record := slog.NewRecord(now, slog.LevelInfo, "diagnostic sqlite write", 0)
-	record.AddAttrs(
-		slog.String("event_name", "diagnostic_sqlite_write"),
-		slog.String("screen", "N/A"),
+	slog.InfoContext(context.Background(), "diagnostic event",
+		slog.String("event", "diagnostic_event"),
+		slog.String("where", "backend.runtime"),
+		slog.String("result", "success"),
 		slog.Int("count", 2),
 	)
-	if err := handler.Handle(ctx, record); err != nil {
-		t.Fatalf("handle diagnostic log record: %v", err)
-	}
 
-	row := readDiagnosticLogRow(t, databasePath)
-	if row.OccurredAt != "2026-05-09T01:02:03.000000004Z" {
-		t.Fatalf("unexpected occurred_at: %q", row.OccurredAt)
+	var payload map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal diagnostic log payload: %v", err)
 	}
-	if row.Level != "info" {
-		t.Fatalf("unexpected level: %q", row.Level)
+	if payload["source"] != "backend-test" {
+		t.Fatalf("unexpected source: %#v", payload)
 	}
-	if row.Source != "backend-test" {
-		t.Fatalf("unexpected source: %q", row.Source)
+	if payload["event"] != "diagnostic_event" {
+		t.Fatalf("unexpected event: %#v", payload)
 	}
-	if row.TraceID.String != "trace-1" || !row.TraceID.Valid {
-		t.Fatalf("unexpected trace_id: %#v", row.TraceID)
+	if payload["where"] != "backend.runtime" {
+		t.Fatalf("unexpected where: %#v", payload)
 	}
-	if row.EventName != "diagnostic_sqlite_write" {
-		t.Fatalf("unexpected event_name: %q", row.EventName)
+	if payload["result"] != "success" {
+		t.Fatalf("unexpected result: %#v", payload)
 	}
-
-	var attrs map[string]string
-	if err := json.Unmarshal([]byte(row.AttrsJSON), &attrs); err != nil {
-		t.Fatalf("unmarshal attrs_json: %v", err)
-	}
-	if attrs["boundary"] != "unit-test" {
-		t.Fatalf("unexpected boundary attr: %#v", attrs)
-	}
-	if attrs["count"] != "2" {
-		t.Fatalf("unexpected count attr: %#v", attrs)
+	if payload["count"] != float64(2) {
+		t.Fatalf("unexpected count: %#v", payload)
 	}
 }
 
-func TestSQLiteDiagnosticHandlerHonorsMinimumLevel(t *testing.T) {
-	ctx := context.Background()
-	databasePath := filepath.Join(t.TempDir(), "diagnostic-log.sqlite")
-	diagnosticLog, err := OpenDiagnosticLog(ctx, databasePath)
-	if err != nil {
-		t.Fatalf("open diagnostic log: %v", err)
-	}
-	defer func() {
-		if err := diagnosticLog.Close(); err != nil {
-			t.Fatalf("close diagnostic log: %v", err)
-		}
-	}()
+func TestInstallDiagnosticLoggerHonorsMinimumLevel(t *testing.T) {
+	var buffer bytes.Buffer
+	InstallDiagnosticLogger(&buffer, "backend-test", slog.LevelWarn)
 
-	logger := slog.New(diagnosticLog.Handler(WithDiagnosticLogLevel(slog.LevelWarn)))
-	logger.InfoContext(ctx, "ignored info", "event_name", "ignored_info")
-	logger.WarnContext(ctx, "kept warn", "event_name", "kept_warn")
+	slog.InfoContext(context.Background(), "ignored info",
+		slog.String("event", "ignored_info"),
+	)
+	slog.WarnContext(context.Background(), "kept warn",
+		slog.String("event", "kept_warn"),
+	)
 
-	row := readDiagnosticLogRow(t, databasePath)
-	if row.Level != "warn" {
-		t.Fatalf("unexpected level: %q", row.Level)
+	var payload map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal diagnostic log payload: %v", err)
 	}
-	if row.EventName != "kept_warn" {
-		t.Fatalf("unexpected event_name: %q", row.EventName)
+	if payload["event"] != "kept_warn" {
+		t.Fatalf("unexpected event: %#v", payload)
 	}
-}
-
-type diagnosticLogRow struct {
-	OccurredAt string
-	Level      string
-	Source     string
-	TraceID    sql.NullString
-	EventName  string
-	AttrsJSON  string
-}
-
-func readDiagnosticLogRow(t *testing.T, databasePath string) diagnosticLogRow {
-	t.Helper()
-	db, err := sql.Open(sqliteDriverName, diagnosticSQLiteDSN(databasePath))
-	if err != nil {
-		t.Fatalf("open written diagnostic database: %v", err)
-	}
-	defer func() {
-		if err := db.Close(); err != nil {
-			t.Fatalf("close written diagnostic database: %v", err)
-		}
-	}()
-
-	var row diagnosticLogRow
-	if err := db.QueryRowContext(context.Background(), `
-SELECT occurred_at, level, source, trace_id, event_name, attrs_json
-FROM diagnostic_log
-ORDER BY id
-LIMIT 1;`).Scan(
-		&row.OccurredAt,
-		&row.Level,
-		&row.Source,
-		&row.TraceID,
-		&row.EventName,
-		&row.AttrsJSON,
-	); err != nil {
-		t.Fatalf("select diagnostic log row: %v", err)
-	}
-	return row
 }

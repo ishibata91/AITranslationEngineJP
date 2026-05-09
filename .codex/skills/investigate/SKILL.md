@@ -33,6 +33,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - エージェント実行定義: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - 実行境界: エージェント実行定義に従う
 - `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
+- 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 探索テストレーンの探索計画は [exploration-test-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/exploration-test-planning/SKILL.md) に従う。
 - 探索テスト証跡の雛形は [exploration-test-evidence.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/assets/exploration-test-evidence.md) とする。
 - 探索テスト証跡の task 内 artifact は `docs/exec-plans/active/<task-id>/exploration-test-evidence.md` とする。
@@ -55,6 +56,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 観測事実と仮説を混ぜない
 - 設計前の UI 根拠 は `agent-browser` CLI で確認する
 - UI 根拠 は画面状態、console、screenshot、操作条件を分けて残す
+- frontend log は browser console の観測事実として残す
+- backend log は `tmp/logs/wails-dev.log` の観測事実として残す
+- frontend log と backend log は同じ根拠 path に混ぜない
 - 実装 レーン の調査は Codex implementation レーンへ戻す
 - 探索テスト証跡は探索計画とテストデータを超えない
 - 探索テスト証跡では探索範囲を広げる判断をしない
