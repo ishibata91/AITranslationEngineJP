@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"testing"
@@ -233,6 +236,38 @@ func (stub *translationInputRepositoryStub) CreateTranslationRecord(_ context.Co
 		EditorID:             draft.EditorID,
 		RecordType:           draft.RecordType,
 	}, nil
+}
+
+func TestLogTranslationInputImportBulkSummaryUsesAggregateSafePayload(t *testing.T) {
+	var buffer bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buffer, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	logTranslationInputImportBulkSummary(context.Background(), "import", TranslationInputImportSummary{
+		TranslationRecordCount: 2,
+		TranslationFieldCount:  5,
+		Warnings: []TranslationInputWarning{
+			{Kind: TranslationInputWarningKindUnknownFieldDefinition},
+		},
+	})
+
+	var payload map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal translation input payload: %v", err)
+	}
+	if payload["event"] != "translation_input_import_bulk_summary" || payload["result"] != "completed" {
+		t.Fatalf("unexpected translation input payload: %#v", payload)
+	}
+	if payload["input_count"] != float64(2) || payload["output_count"] != float64(5) || payload["skipped_count"] != float64(1) || payload["failed_count"] != float64(0) {
+		t.Fatalf("unexpected aggregate counts: %#v", payload)
+	}
+	forbidden := []string{"api_key", "endpoint", "raw_request", "raw_response", "full_path", "trace_id", "dto"}
+	for _, key := range forbidden {
+		if _, ok := payload[key]; ok {
+			t.Fatalf("forbidden key %q in payload: %#v", key, payload)
+		}
+	}
 }
 
 func (stub *translationInputRepositoryStub) GetTranslationRecordByID(context.Context, int64) (repository.TranslationRecord, error) {

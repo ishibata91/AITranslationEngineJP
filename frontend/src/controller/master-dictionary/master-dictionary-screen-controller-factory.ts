@@ -14,21 +14,30 @@ import { MasterDictionaryRuntimeEventAdapter } from "@controller/runtime/master-
 
 import { MasterDictionaryScreenController } from "./master-dictionary-screen-controller"
 
+interface MasterDictionaryDiagnosticLogger {
+  info(message: string, fields?: Record<string, string | undefined>): void
+  warn(message: string, fields?: Record<string, string | undefined>): void
+}
+
 export function createMasterDictionaryScreenControllerFactory(
-  gateway: MasterDictionaryGatewayContract | null
+  gateway: MasterDictionaryGatewayContract | null,
+  diagnosticLogger?: MasterDictionaryDiagnosticLogger
 ): CreateMasterDictionaryScreenController {
   return (): MasterDictionaryScreenControllerContract => {
     const store = new MasterDictionaryStore()
     const presenter = new MasterDictionaryPresenter()
     const useCase = new MasterDictionaryUseCase(gateway, store)
-    const runtimeEventAdapter = new MasterDictionaryRuntimeEventAdapter({
-      onImportProgress: (payload: RuntimeImportProgressPayload) => {
-        useCase.handleImportProgress(payload)
+    const runtimeEventAdapter = new MasterDictionaryRuntimeEventAdapter(
+      {
+        onImportProgress: (payload: RuntimeImportProgressPayload) => {
+          useCase.handleImportProgress(payload)
+        },
+        onImportCompleted: (payload: RuntimeImportCompletedPayload) => {
+          void useCase.handleImportCompleted(payload)
+        }
       },
-      onImportCompleted: (payload: RuntimeImportCompletedPayload) => {
-        void useCase.handleImportCompleted(payload)
-      }
-    })
+      diagnosticLogger
+    )
 
     return new MasterDictionaryScreenController({
       isGatewayConnected: gateway !== null,

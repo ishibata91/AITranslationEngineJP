@@ -3,6 +3,7 @@ package wails
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"time"
 
 	"aitranslationenginejp/internal/usecase"
@@ -113,6 +114,12 @@ func (controller *TranslationInputController) ImportTranslationInput(
 	if request.FileName != "" || request.FileContent != "" {
 		contentImportUsecase, ok := controller.translationInputUsecase.(translationInputContentImportUsecasePort)
 		if !ok {
+			slog.WarnContext(context.Background(), "translation input request invalid",
+				slog.String("event", "translation_input_boundary_failed"),
+				slog.String("where", "backend.controller.wails.translation_input.import"),
+				slog.String("result", "failed"),
+				slog.String("reason", "request_invalid"),
+			)
 			return TranslationInputImportResponseDTO{}, fmt.Errorf("import translation input: usecase does not support content import")
 		}
 		result, err = contentImportUsecase.ImportXEditJSONWithContent(

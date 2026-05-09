@@ -204,7 +204,7 @@ func TestNewAppControllerStartupDoesNotEmitRuntimeEvents(t *testing.T) {
 	controller := newBootstrapTestController(t)
 	emitter := &recordingRuntimeEventEmitter{}
 
-	controller.OnStartup(runtimeEventsTestContext{Context: context.Background(), emitter: emitter})
+	NewAppLifecycle(controller).OnStartup(runtimeEventsTestContext{Context: context.Background(), emitter: emitter})
 
 	if len(emitter.events) != 0 {
 		t.Fatalf("expected startup not to emit events by itself, got %#v", emitter.events)
@@ -218,7 +218,7 @@ func TestNewAppControllerImportXMLReturnsImportSummary(t *testing.T) {
 		t.Fatalf("expected imported entry summary, got %#v", result.Summary)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerImportXMLSelectsImportedEntry(t *testing.T) {
@@ -228,7 +228,7 @@ func TestNewAppControllerImportXMLSelectsImportedEntry(t *testing.T) {
 		t.Fatalf("expected import refresh to select last entry id, got page=%#v summary=%#v", result.Page, result.Summary)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerImportXMLMakesImportedDetailQueryable(t *testing.T) {
@@ -243,7 +243,7 @@ func TestNewAppControllerImportXMLMakesImportedDetailQueryable(t *testing.T) {
 		t.Fatalf("expected imported entry to be queryable, got %#v", detail.Entry)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerImportXMLPublishesRuntimeEvents(t *testing.T) {
@@ -256,7 +256,7 @@ func TestNewAppControllerImportXMLPublishesRuntimeEvents(t *testing.T) {
 		bootstrapImportCompletedEvent,
 	)
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerCreateMutationReturnsCreatedEntry(t *testing.T) {
@@ -266,7 +266,7 @@ func TestNewAppControllerCreateMutationReturnsCreatedEntry(t *testing.T) {
 		t.Fatalf("unexpected created entry: %#v", created.Entry)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerCreateMutationReturnsSelectedPage(t *testing.T) {
@@ -276,7 +276,7 @@ func TestNewAppControllerCreateMutationReturnsSelectedPage(t *testing.T) {
 		t.Fatalf("expected create to return selected page, got %#v", created.Page)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerCreateMutationPersistsDetail(t *testing.T) {
@@ -291,7 +291,7 @@ func TestNewAppControllerCreateMutationPersistsDetail(t *testing.T) {
 		t.Fatalf("unexpected created detail payload: %#v", createdDetail.Entry)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerUpdateMutationReturnsUpdatedEntry(t *testing.T) {
@@ -302,7 +302,7 @@ func TestNewAppControllerUpdateMutationReturnsUpdatedEntry(t *testing.T) {
 		t.Fatalf("unexpected updated entry payload: %#v", updated.Entry)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerDeleteMutationReturnsDeletedID(t *testing.T) {
@@ -313,7 +313,7 @@ func TestNewAppControllerDeleteMutationReturnsDeletedID(t *testing.T) {
 		t.Fatalf("expected deleted id %q, got %#v", created.RefreshTargetID, deleted)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerDeleteMutationMapsMissingDetailToNil(t *testing.T) {
@@ -329,7 +329,7 @@ func TestNewAppControllerDeleteMutationMapsMissingDetailToNil(t *testing.T) {
 		t.Fatalf("expected deleted entry detail to be nil, got %#v", deletedDetail.Entry)
 	}
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerPersistsEntriesAcrossControllerRecreation(t *testing.T) {
@@ -337,7 +337,7 @@ func TestNewAppControllerPersistsEntriesAcrossControllerRecreation(t *testing.T)
 	firstController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 	created := mustBootstrapCreatePersistedEntry(t, firstController)
 
-	firstController.OnShutdown(context.Background())
+	NewAppLifecycle(firstController).OnShutdown(context.Background())
 
 	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 	loaded, err := secondController.GetMasterDictionaryEntry(controllerwails.GetMasterDictionaryEntryRequestDTO{ID: created.RefreshTargetID})
@@ -349,7 +349,7 @@ func TestNewAppControllerPersistsEntriesAcrossControllerRecreation(t *testing.T)
 		t.Fatalf("expected recreated controller to read persisted entry, got %#v", loaded.Entry)
 	}
 
-	secondController.OnShutdown(context.Background())
+	NewAppLifecycle(secondController).OnShutdown(context.Background())
 }
 
 func TestMasterDictionaryDatabasePathDefaultsToRepositoryRootDB(t *testing.T) {
@@ -502,7 +502,7 @@ func TestNewAppControllerPersistsMasterPersonaEntryAcrossControllerRecreation(t 
 	if err != nil {
 		t.Fatalf("expected master persona update through first controller to succeed: %v", err)
 	}
-	firstController.OnShutdown(context.Background())
+	NewAppLifecycle(firstController).OnShutdown(context.Background())
 
 	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 	persistedDetail, err := secondController.MasterPersonaGetDetail(controllerwails.MasterPersonaDetailRequestDTO{IdentityKey: bootstrapMasterPersonaIdentityKey})
@@ -513,7 +513,7 @@ func TestNewAppControllerPersistsMasterPersonaEntryAcrossControllerRecreation(t 
 		t.Fatalf("expected updated master persona body to persist, got %#v", persistedDetail.Entry)
 	}
 
-	secondController.OnShutdown(context.Background())
+	NewAppLifecycle(secondController).OnShutdown(context.Background())
 }
 
 func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreation(t *testing.T) {
@@ -527,7 +527,7 @@ func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreati
 	if err != nil {
 		t.Fatalf("expected master persona ai settings save through first controller to succeed: %v", err)
 	}
-	firstController.OnShutdown(context.Background())
+	NewAppLifecycle(firstController).OnShutdown(context.Background())
 
 	secondController := newBootstrapTestControllerWithDatabasePath(t, databasePath)
 	loaded, err := secondController.MasterPersonaLoadAISettings()
@@ -538,7 +538,7 @@ func TestNewAppControllerPersistsMasterPersonaAISettingsAcrossControllerRecreati
 		t.Fatalf("expected provider/model settings to persist, got %#v", loaded)
 	}
 
-	secondController.OnShutdown(context.Background())
+	NewAppLifecycle(secondController).OnShutdown(context.Background())
 }
 
 // persona-ai-settings-restart-cutover: run state は再起動後に "入力待ち" へ戻ることを actual repository path で証明する。
@@ -755,7 +755,7 @@ func TestNewAppControllerPersonaAISettingsRestartCutoverSameInstanceRunStatusIsI
 	// Arrange: 実 SQLite wiring で AppController を構築する (persona entry seed なし)。
 	databasePath := configureBootstrapTestDatabase(t)
 	controller := newBootstrapRunStatusTestController(t, databasePath)
-	defer controller.OnShutdown(context.Background())
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	// Act: 実 controller → usecase → service → SQLiteRunStatusRepository の経路で run status を取得する。
 	status, err := controller.MasterPersonaGetRunStatus()
@@ -794,11 +794,11 @@ func TestNewAppControllerPersonaAISettingsRestartCutoverRecreatedControllerRunSt
 	if firstStatus.RunState != "入力待ち" {
 		t.Fatalf("expected first controller initial run state %q, got %q", "入力待ち", firstStatus.RunState)
 	}
-	firstController.OnShutdown(context.Background())
+	NewAppLifecycle(firstController).OnShutdown(context.Background())
 
 	// Act: 同じ DB パスで controller を再作成する (再起動をシミュレート)。
 	secondController := newBootstrapRunStatusTestController(t, databasePath)
-	defer secondController.OnShutdown(context.Background())
+	defer NewAppLifecycle(secondController).OnShutdown(context.Background())
 	secondStatus, err := secondController.MasterPersonaGetRunStatus()
 
 	// Assert: 再起動後の run state も "入力待ち" に戻る (run state は DB に永続化されない)。
@@ -816,7 +816,7 @@ func runBootstrapImport(t *testing.T) (controllerwails.MasterDictionaryImportRes
 	xmlPath := writeBootstrapImportFixture(t)
 	controller := newBootstrapTestController(t)
 	emitter := &recordingRuntimeEventEmitter{}
-	controller.OnStartup(runtimeEventsTestContext{Context: context.Background(), emitter: emitter})
+	NewAppLifecycle(controller).OnStartup(runtimeEventsTestContext{Context: context.Background(), emitter: emitter})
 
 	result, err := controller.MasterDictionaryImportXML(controllerwails.MasterDictionaryImportRequestDTO{
 		XMLPath: xmlPath,
@@ -1133,7 +1133,7 @@ func newBootstrapInMemoryRunStatusControllerWithRepo(t *testing.T) (*controllerw
 func TestNewAppControllerPersonaAISettingsRestartCutoverSameInstanceGetRunStatusAfterExecuteIsNonIdle(t *testing.T) {
 	// Arrange: InMemory wiring で AppController を構築する (空 AI 設定)。
 	controller, _ := newBootstrapInMemoryRunStatusControllerWithRepo(t)
-	defer controller.OnShutdown(context.Background())
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	// Act: 空設定で ExecuteGeneration を呼ぶ → "設定未完了" が返り、InMemory に保存される。
 	execResult, err := controller.MasterPersonaExecuteGeneration(controllerwails.MasterPersonaExecuteRequestDTO{})
@@ -1161,7 +1161,7 @@ func TestNewAppControllerPersonaAISettingsRestartCutoverSameInstanceGetRunStatus
 func TestNewAppControllerPersonaAISettingsRestartCutoverInterruptSeesCurrentRunningStateAndTransitions(t *testing.T) {
 	// Arrange: InMemory wiring + "生成中" で run status を事前設定する。
 	controller, inMemoryRepo := newBootstrapInMemoryRunStatusControllerWithRepo(t)
-	defer controller.OnShutdown(context.Background())
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	if err := inMemoryRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
 		RunState: service.MasterPersonaStatusRunning,
@@ -1186,7 +1186,7 @@ func TestNewAppControllerPersonaAISettingsRestartCutoverInterruptSeesCurrentRunn
 func TestNewAppControllerPersonaAISettingsRestartCutoverCancelSeesCurrentRunningStateAndTransitions(t *testing.T) {
 	// Arrange: InMemory wiring + "生成中" で run status を事前設定する。
 	controller, inMemoryRepo := newBootstrapInMemoryRunStatusControllerWithRepo(t)
-	defer controller.OnShutdown(context.Background())
+	defer NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	if err := inMemoryRepo.SaveRunStatus(context.Background(), repository.MasterPersonaRunStatusRecord{
 		RunState: service.MasterPersonaStatusRunning,
@@ -1235,7 +1235,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalNPCProfil
 		FilePath:   extractPath,
 		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	// Assert: 生成が成功する (canonical write path が実装されるまで FAIL する)。
 	if execErr != nil {
@@ -1296,7 +1296,7 @@ func TestNewAppControllerPersonaGenerationCutoverExecuteWritesCanonicalPersonaRo
 		FilePath:   extractPath,
 		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	// Assert: 生成が成功する。
 	if execErr != nil {
@@ -1382,7 +1382,7 @@ func TestNewAppControllerPersonaGenerationCutoverFailedExecutionLeavesNoPartialC
 		FilePath:   extractPath,
 		AISettings: controllerwails.MasterPersonaAISettingsDTO{Provider: "gemini", Model: "gemini-2.5-pro"},
 	})
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	// Assert: 失敗後に partial canonical rows が存在しない (write はアトミックであるべき)。
 	db, openErr := repository.OpenSQLiteDatabase(context.Background(), databasePath)

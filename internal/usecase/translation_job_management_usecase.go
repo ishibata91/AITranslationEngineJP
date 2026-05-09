@@ -3,6 +3,8 @@ package usecase
 import (
 	"context"
 	"fmt"
+	"log/slog"
+	"strings"
 
 	jobmanagementservice "aitranslationenginejp/internal/service"
 )
@@ -14,6 +16,8 @@ type translationJobManagementServicePort interface {
 	RequestStop(ctx context.Context, jobID int64) (jobmanagementservice.TranslationJobManagementActionReadModel, error)
 	ResumeJob(ctx context.Context, jobID int64) (jobmanagementservice.TranslationJobManagementActionReadModel, error)
 }
+
+const translationJobManagementLogIDFormat = "job:%d"
 
 // TranslationJobManagementUsecase adapts the service layer to the Wails-facing contract.
 type TranslationJobManagementUsecase struct {
@@ -66,6 +70,7 @@ func (usecase *TranslationJobManagementUsecase) RequestStop(
 	request TranslationJobManagementActionRequest,
 ) (TranslationJobManagementActionResult, error) {
 	result, err := usecase.service.RequestStop(ctx, request.JobID)
+	logTranslationJobManagementAction(ctx, "translation_job_stop", request.JobID, result, err)
 	if err != nil {
 		return TranslationJobManagementActionResult{}, fmt.Errorf("request translation job stop: %w", err)
 	}
@@ -78,10 +83,135 @@ func (usecase *TranslationJobManagementUsecase) ResumeJob(
 	request TranslationJobManagementActionRequest,
 ) (TranslationJobManagementActionResult, error) {
 	result, err := usecase.service.ResumeJob(ctx, request.JobID)
+	logTranslationJobManagementAction(ctx, "translation_job_resume", request.JobID, result, err)
 	if err != nil {
 		return TranslationJobManagementActionResult{}, fmt.Errorf("resume translation job: %w", err)
 	}
 	return toTranslationJobManagementActionResult(result), nil
+}
+
+func logTranslationJobManagementAction(
+	ctx context.Context,
+	event string,
+	jobID int64,
+	result jobmanagementservice.TranslationJobManagementActionReadModel,
+	err error,
+) {
+	beforeState := "unknown"
+	afterState := "unknown"
+	if result.Detail != nil {
+		beforeState = normalizeUsecaseLogValue(result.Detail.JobState, beforeState)
+		afterState = beforeState
+	}
+	reason := normalizeUsecaseLogValue(result.ReasonCategory, "service_error")
+	if err != nil || strings.TrimSpace(result.ReasonCategory) != "" {
+		slog.WarnContext(ctx, "translation job action rejected",
+			slog.String("event", event),
+			slog.String("where", "backend.usecase.translation_job_management"),
+			slog.String("result", "rejected"),
+			slog.String("id", fmt.Sprintf(translationJobManagementLogIDFormat, jobID)),
+			slog.String("before_state", beforeState),
+			slog.String("after_state", afterState),
+			slog.String("reason", reason),
+		)
+		return
+	}
+	slog.InfoContext(ctx, "translation job action accepted",
+		slog.String("event", event),
+		slog.String("where", "backend.usecase.translation_job_management"),
+		slog.String("result", "accepted"),
+		slog.String("id", fmt.Sprintf(translationJobManagementLogIDFormat, jobID)),
+		slog.String("before_state", beforeState),
+		slog.String("after_state", afterState),
+	)
+}
+
+func logPhaseStateCommand(
+	ctx context.Context,
+	event string,
+	where string,
+	jobID int64,
+	phaseRunID *int64,
+	actualBeforeState string,
+	actualAfterState string,
+	reason string,
+	err error,
+) {
+	normalizedAfterState := normalizeUsecaseLogValue(actualAfterState, "unknown")
+	normalizedBeforeState := normalizeUsecaseLogValue(actualBeforeState, "unknown")
+	rejected := err != nil || strings.TrimSpace(reason) != "" || normalizedAfterState == "rejected"
+	if rejected {
+		if normalizedBeforeState == "unknown" {
+			normalizedBeforeState = normalizedAfterState
+		}
+		if normalizedAfterState == "unknown" {
+			normalizedAfterState = normalizedBeforeState
+		}
+	}
+	attrs := []slog.Attr{
+		slog.String("event", event),
+		slog.String("where", where),
+		slog.String("id", formatPhaseStateLogID(jobID, phaseRunID)),
+		slog.String("before_state", normalizedBeforeState),
+		slog.String("after_state", normalizedAfterState),
+	}
+	if rejected {
+		attrs = append(attrs,
+			slog.String("result", "rejected"),
+			slog.String("reason", normalizeUsecaseLogValue(reason, "service_error")),
+		)
+		slog.LogAttrs(ctx, slog.LevelWarn, "phase state transition rejected", attrs...)
+		return
+	}
+	attrs = append(attrs, slog.String("result", "accepted"))
+	slog.LogAttrs(ctx, slog.LevelInfo, "phase state transition accepted", attrs...)
+}
+
+func logPhaseReadiness(
+	ctx context.Context,
+	event string,
+	where string,
+	jobID int64,
+	phaseState string,
+	ready bool,
+	reason *string,
+	err error,
+) {
+	result := "blocked"
+	level := slog.LevelWarn
+	if err == nil && ready {
+		result = "ready"
+		level = slog.LevelInfo
+	}
+	attrs := []slog.Attr{
+		slog.String("event", event),
+		slog.String("where", where),
+		slog.String("result", result),
+		slog.String("id", fmt.Sprintf(translationJobManagementLogIDFormat, jobID)),
+		slog.String("before_state", normalizeUsecaseLogValue(phaseState, "unknown")),
+		slog.String("after_state", normalizeUsecaseLogValue(phaseState, "unknown")),
+	}
+	if err != nil {
+		attrs = append(attrs, slog.String("reason", "service_error"))
+	} else if reason != nil && strings.TrimSpace(*reason) != "" {
+		attrs = append(attrs, slog.String("reason", strings.TrimSpace(*reason)))
+	}
+	slog.LogAttrs(ctx, level, "phase readiness evaluated", attrs...)
+}
+
+func formatPhaseStateLogID(jobID int64, phaseRunID *int64) string {
+	if phaseRunID == nil {
+		return fmt.Sprintf(translationJobManagementLogIDFormat, jobID)
+	}
+	return fmt.Sprintf(translationJobManagementLogIDFormat+" phase_run:%d", jobID, *phaseRunID)
+}
+
+func normalizeUsecaseLogValue(value string, fallback string) string {
+	normalized := strings.TrimSpace(value)
+	if normalized == "" {
+		return fallback
+	}
+	return normalized
 }
 
 func toTranslationJobManagementJobSummaries(

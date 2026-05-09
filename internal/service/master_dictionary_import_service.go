@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"fmt"
+	"log/slog"
 	"strings"
 	"time"
 )
@@ -82,6 +83,7 @@ func (service *MasterDictionaryImportService) ImportXML(
 	}
 
 	service.emitImportProgress(ctx, 100)
+	logMasterDictionaryImportBulkSummary(ctx, totalRecords, counters)
 	return MasterDictionaryImportSummary{
 		FilePath:      resolvedPath,
 		FileName:      baseName(resolvedPath),
@@ -210,6 +212,18 @@ func (service *MasterDictionaryImportService) persistXMLProvenance(
 		return 0, fmt.Errorf("persist xml provenance: %w", err)
 	}
 	return provenanceID, nil
+}
+
+func logMasterDictionaryImportBulkSummary(ctx context.Context, inputCount int, counters masterDictionaryImportCounters) {
+	slog.InfoContext(ctx, "master dictionary import bulk summary",
+		slog.String("event", "master_dictionary_import_bulk_summary"),
+		slog.String("where", "backend.service.master_dictionary_import"),
+		slog.String("result", "completed"),
+		slog.Int("input_count", inputCount),
+		slog.Int("output_count", counters.importedCount+counters.updatedCount),
+		slog.Int("skipped_count", counters.skippedCount),
+		slog.Int("failed_count", 0),
+	)
 }
 
 func pluginNameFromPath(path string) string {

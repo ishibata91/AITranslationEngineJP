@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"sort"
 	"strconv"
@@ -37,6 +38,7 @@ const (
 	translationJobSetupCredentialRefGeminiPrimary = "gemini-primary"
 	translationJobSetupModelGPT54Mini             = "gpt-5.4-mini"
 	translationJobSetupSecretTimeout              = 250 * time.Millisecond
+	translationJobSetupServiceWhere               = "translation_job_setup.service"
 )
 
 var translationJobSetupAllSlices = []string{"input", "runtime", "credentials"}
@@ -612,6 +614,7 @@ func (service *TranslationJobSetupService) listProviderModelsDirect(
 		if listErr != nil {
 			result.Status = "failed"
 			result.FailureKind = "model_list_failed"
+			logProviderBoundaryFailure(ctx, "translation_job_setup_model_list", translationJobSetupServiceWhere, spec.ID, classifyProviderBoundaryError(listErr, "model_list_failed"))
 			//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
 			return result, nil
 		}
@@ -623,24 +626,28 @@ func (service *TranslationJobSetupService) listProviderModelsDirect(
 		result.CredentialStatus = "missing"
 		result.Status = "credential_missing"
 		result.FailureKind = "model_list_credential_missing"
+		logProviderBoundaryFailure(ctx, "translation_job_setup_model_list", translationJobSetupServiceWhere, spec.ID, providerSettingsErrorKindCredentialMissing)
 		return result, nil
 	}
 	apiKey, resolved, resolveErr := service.loadCredentialSecret(ctx, credentialRef)
 	if resolveErr != nil {
 		result.Status = "failed"
 		result.FailureKind = "model_list_failed"
+		logProviderBoundaryFailure(ctx, "translation_job_setup_model_list", translationJobSetupServiceWhere, spec.ID, "secret_store_failed")
 		//nolint:nilerr // public contract intentionally returns a redacted failure instead of the secret-store error.
 		return result, nil
 	}
 	if !resolved || strings.TrimSpace(apiKey) == "" {
 		result.Status = "credential_missing"
 		result.FailureKind = "model_list_credential_missing"
+		logProviderBoundaryFailure(ctx, "translation_job_setup_model_list", translationJobSetupServiceWhere, spec.ID, providerSettingsErrorKindCredentialMissing)
 		return result, nil
 	}
 	models, listErr := service.requestProviderModels(ctx, spec.ID, apiKey)
 	if listErr != nil {
 		result.Status = "failed"
 		result.FailureKind = "model_list_failed"
+		logProviderBoundaryFailure(ctx, "translation_job_setup_model_list", translationJobSetupServiceWhere, spec.ID, classifyProviderBoundaryError(listErr, "model_list_failed"))
 		//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
 		return result, nil
 	}
@@ -761,6 +768,13 @@ func (service *TranslationJobSetupService) CreateTranslationJob(
 		return nil
 	})
 	if err != nil {
+		slog.WarnContext(requestContextOrBackground(ctx), "translation job setup transaction failed",
+			slog.String("event", "translation_job_setup_boundary_failed"),
+			slog.String("where", "backend.service.translation_job_setup.create"),
+			slog.String("result", "failed"),
+			slog.String("id", fmt.Sprintf("input:%d", request.InputSourceID)),
+			slog.String("reason", "transaction_failed"),
+		)
 		return TranslationJobSetupCreatedJobReadModel{}, fmt.Errorf("create translation job transaction: %w", err)
 	}
 	return created, nil
@@ -824,6 +838,13 @@ func (service *TranslationJobSetupService) createReadyTranslationJob(
 		ProgressPercent:      0,
 	})
 	if err != nil {
+		slog.WarnContext(ctx, "translation job setup db save failed",
+			slog.String("event", "translation_job_setup_boundary_failed"),
+			slog.String("where", "backend.service.translation_job_setup.create_job"),
+			slog.String("result", "failed"),
+			slog.String("id", fmt.Sprintf("input:%d", inputSourceID)),
+			slog.String("reason", "db_save_failed"),
+		)
 		return repository.TranslationJob{}, fmt.Errorf("create translation job: %w", err)
 	}
 	return job, nil
@@ -852,6 +873,13 @@ func (service *TranslationJobSetupService) savePhaseRuntimeSnapshots(
 			ExecutionMode:    runtime.ExecutionMode,
 			BatchMode:        runtime.BatchMode,
 		}); err != nil {
+			slog.WarnContext(ctx, "translation job setup db save failed",
+				slog.String("event", "translation_job_setup_boundary_failed"),
+				slog.String("where", "backend.service.translation_job_setup.save_phase_runtime_snapshot"),
+				slog.String("result", "failed"),
+				slog.String("id", fmt.Sprintf("job:%d", jobID)),
+				slog.String("reason", "db_save_failed"),
+			)
 			return nil, fmt.Errorf("create translation job phase runtime snapshot: %w", err)
 		}
 		summaries = append(summaries, translationJobSetupPhaseRuntimeSummaryFromDraft(runtime))
@@ -1600,6 +1628,7 @@ func (service *TranslationJobSetupService) resolvePhaseRuntimeAgainstProviderSet
 		pointerStringValue(resolved.RequestToken),
 	)
 	if resolved.ErrorKind != nil {
+		logProviderBoundaryFailure(ctx, "translation_job_setup_provider_settings", translationJobSetupServiceWhere, spec.ID, *resolved.ErrorKind)
 		switch strings.TrimSpace(*resolved.ErrorKind) {
 		case providerSettingsErrorKindCredentialMissing:
 			sanitized.CredentialStatus = "missing"

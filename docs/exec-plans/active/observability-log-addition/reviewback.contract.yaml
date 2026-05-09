@@ -1,0 +1,259 @@
+reviewback_version: 1
+task_id: "observability-log-addition"
+review_yaml_path: "docs/exec-plans/active/observability-log-addition/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "契約・互換性観点で未解決問題はない。`contract-002` は、`implement-lane` の非対象規約から「ハーネス結果など」の例が削除され、レビュー agent へ渡す対象としてレビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスが明示されたため解消している。入口、agent TOML、skill 間の影響範囲修正は、今回変更の直接影響、担当責務内、生成元または公開境界、担当テスト成果物、観測ログ payload / 出力先 / 禁止項目確認に限定されている。UI、secret、trust boundary、API / DTO / DB / schema、docs 正本、`.codex` 作業流れの停止条件も残っている。"
+  evidence_sufficiency: "十分。指定された確認対象、関連する agent 実行境界、前回指摘、検証証跡を確認した。広いハーネス再実行は review_contract の非対象規約により未実施である。"
+
+checked_scope:
+  summary: "前回 `contract-001`、前回 `contract-002`、trust-boundary blocker 修正、影響範囲修正の入力、完了、停止、agent 実行境界、レビュー起動入力の整合を確認した。"
+  files:
+    - path: ".codex/README.md"
+      line: 94
+      symbol: "責務境界"
+      reason: "backend 実装 agent が、承認済み backend 実装範囲と backend 責務内に閉じる影響範囲だけを変更する入口契約を確認した。"
+    - path: ".codex/README.md"
+      line: 98
+      symbol: "責務境界"
+      reason: "observability 実装 agent が、完成済み成果物内の恒久ログだけを追加する入口契約を確認した。"
+    - path: ".codex/README.md"
+      line: 112
+      symbol: "責務境界"
+      reason: "プロダクトコード変更権限が実装 agent と限定された影響範囲に閉じている入口契約を確認した。"
+    - path: ".codex/agents/backend_implementer.toml"
+      line: 16
+      symbol: "developer_instructions"
+      reason: "backend agent の書き換え可能範囲が、承認済み backend 実装範囲と backend 責務内プロダクトコードの影響範囲に限定されていることを確認した。"
+    - path: ".codex/agents/backend_implementer.toml"
+      line: 17
+      symbol: "developer_instructions"
+      reason: "secret、trust boundary、API / DTO / DB / schema の意味拡張が書き換え禁止範囲に入っていることを確認した。"
+    - path: ".codex/agents/observability_implementer.toml"
+      line: 16
+      symbol: "developer_instructions"
+      reason: "observability agent の書き換え可能範囲が、承認済み実装範囲、ログ payload、出力先、禁止項目確認に限定されていることを確認した。"
+    - path: ".codex/agents/observability_implementer.toml"
+      line: 17
+      symbol: "developer_instructions"
+      reason: "新規機能、恒久修正、secret、trust boundary、API / DTO / DB / schema の意味拡張が書き換え禁止範囲に入っていることを確認した。"
+    - path: ".codex/agents/frontend_implementer.toml"
+      line: 16
+      symbol: "developer_instructions"
+      reason: "frontend agent の書き換え可能範囲が、承認済み frontend 実装範囲、generated file、生成元、公開境界、今回変更が直接壊した frontend 責務内プロダクトコードに限定されていることを確認した。"
+    - path: ".codex/agents/frontend_implementer.toml"
+      line: 17
+      symbol: "developer_instructions"
+      reason: "UI 根拠を越える UI 表示、画面文言、layout、style が書き換え禁止範囲に入っていることを確認した。"
+    - path: ".codex/agents/implementation_scenario_tester.toml"
+      line: 16
+      symbol: "developer_instructions"
+      reason: "シナリオテスト agent の書き換え可能範囲が、承認済みシナリオ、承認済み実装範囲、軽量変更レーンの task 枠、今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当シナリオテスト成果物に限定されていることを確認した。"
+    - path: ".codex/agents/implementation_scenario_tester.toml"
+      line: 17
+      symbol: "developer_instructions"
+      reason: "プロダクトコード、単体テスト、UI 変更、secret / trust boundary 変更、API / DTO / DB / schema の意味拡張、docs、`.codex` 作業流れが書き換え禁止範囲に入っていることを確認した。"
+    - path: ".codex/agents/implementation_unit_tester.toml"
+      line: 16
+      symbol: "developer_instructions"
+      reason: "単体テスト agent の書き換え可能範囲が、承認済み実装範囲、軽量変更レーンの task 枠、今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当単体テスト成果物に限定されていることを確認した。"
+    - path: ".codex/agents/implementation_unit_tester.toml"
+      line: 17
+      symbol: "developer_instructions"
+      reason: "プロダクトコード、シナリオテスト、UI 変更、secret / trust boundary 変更、API / DTO / DB / schema の意味拡張、docs、`.codex` 作業流れが書き換え禁止範囲に入っていることを確認した。"
+    - path: ".codex/skills/implement-backend/SKILL.md"
+      line: 67
+      symbol: "出力規約"
+      reason: "backend の影響範囲修正が、今回変更が直接壊した生成物、公開境界、検証経路、backend 責務内プロダクトコードに限定されていることを確認した。"
+    - path: ".codex/skills/implement-backend/SKILL.md"
+      line: 91
+      symbol: "停止規約"
+      reason: "backend-local 失敗時の修正は、今回変更の直接影響で backend 責務内プロダクトコードに閉じる場合だけ許可されていることを確認した。"
+    - path: ".codex/skills/implement-backend/SKILL.md"
+      line: 93
+      symbol: "停止規約"
+      reason: "secret、trust boundary、API / DTO / DB / schema の意味拡張が必要な場合に停止する契約を確認した。"
+    - path: ".codex/skills/implement-frontend/SKILL.md"
+      line: 53
+      symbol: "判断規約"
+      reason: "frontend-local 失敗時の影響範囲修正が generated file、生成元、公開境界、検証を壊した frontend プロダクトコードに限定されていることを確認した。"
+    - path: ".codex/skills/implement-frontend/SKILL.md"
+      line: 54
+      symbol: "判断規約"
+      reason: "影響範囲修正を UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更に使わない契約を確認した。"
+    - path: ".codex/skills/implement-frontend/SKILL.md"
+      line: 109
+      symbol: "停止規約"
+      reason: "実画面と UI 根拠の差分が承認済み実装範囲外の修正を必要とする場合、人間承認へ戻す契約を確認した。"
+    - path: ".codex/skills/implement-frontend/SKILL.md"
+      line: 113
+      symbol: "停止規約"
+      reason: "検証失敗修正が UI 契約を越える場合、人間承認へ戻す契約を確認した。"
+    - path: ".codex/skills/implement-integration/SKILL.md"
+      line: 98
+      symbol: "出力規約"
+      reason: "integration の影響範囲修正が、今回変更が直接壊した生成物、公開境界、検証経路、承認済み統合境界内プロダクトコードに限定されていることを確認した。"
+    - path: ".codex/skills/implement-integration/SKILL.md"
+      line: 139
+      symbol: "停止規約"
+      reason: "backend-local または frontend-local 失敗時の修正は、今回変更の直接影響で承認済み統合境界内プロダクトコードに閉じる場合だけ許可されていることを確認した。"
+    - path: ".codex/skills/implement-integration/SKILL.md"
+      line: 142
+      symbol: "停止規約"
+      reason: "secret、trust boundary、API / DTO / DB / schema の意味拡張が必要な場合に停止する契約を確認した。"
+    - path: ".codex/agents/integration_implementer.toml"
+      line: 16
+      symbol: "developer_instructions"
+      reason: "agent 実行境界の書き換え可能範囲が、承認済み統合境界と今回変更が直接壊した生成物、公開境界、検証経路、承認済み統合境界内プロダクトコードに限定されていることを確認した。"
+    - path: ".codex/agents/integration_implementer.toml"
+      line: 17
+      symbol: "developer_instructions"
+      reason: "承認済み統合境界外の UI、secret、trust boundary、API / DTO / DB / schema の意味拡張が書き換え禁止範囲に入っていることを確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 199
+      symbol: "判断規約"
+      reason: "backend-local または frontend-local の範囲外失敗を、generated file、生成元、公開境界、検証を壊したプロダクトコードに限って影響範囲修正として渡す契約を確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 201
+      symbol: "判断規約"
+      reason: "UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更は実装を続けず人間へ返す契約を確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 277
+      symbol: "完了規約"
+      reason: "影響範囲修正がある場合は、対象、理由、変更結果、再検証結果を根拠参照付きで記録する契約を確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 306
+      symbol: "停止規約"
+      reason: "all harness の範囲外失敗も、generated file、生成元、公開境界、検証を壊したプロダクトコードに限り影響範囲修正として渡す契約を確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 309
+      symbol: "停止規約"
+      reason: "UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更が必要な場合に停止し、人間へ返す契約を確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 78
+      symbol: "レビュー集約規約"
+      reason: "レビュー agent 起動時に、呼び出し元が実行済みの検証証跡を起動入力へ明示する契約を確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 240
+      symbol: "非対象規約"
+      reason: "レビュー agent に渡す対象が、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスに限定され、無関係な資料だけを除外する契約になっていることを確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 256
+      symbol: "出力規約"
+      reason: "レビュー起動入力に検証証跡を含める契約を確認した。"
+    - path: ".codex/skills/observability-implementer/SKILL.md"
+      line: 49
+      symbol: "判断規約"
+      reason: "観測ログ追加の影響範囲修正が、既存ログ追加が直接壊したログ payload、出力先、禁止項目確認だけに限定されていることを確認した。"
+    - path: ".codex/skills/observability-implementer/SKILL.md"
+      line: 108
+      symbol: "停止規約"
+      reason: "secret、trust boundary、API / DTO / DB / schema の意味拡張が必要な場合に停止する契約を確認した。"
+    - path: ".codex/skills/tests-scenario/SKILL.md"
+      line: 99
+      symbol: "停止規約"
+      reason: "局所ハーネス失敗の修正が、今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当シナリオテスト成果物に閉じない場合に停止する契約を確認した。"
+    - path: ".codex/skills/tests-scenario/SKILL.md"
+      line: 100
+      symbol: "停止規約"
+      reason: "プロダクトコード変更、UI 変更、secret / trust boundary 変更、API / DTO / DB / schema の意味拡張、docs 正本化、`.codex` 作業流れの変更が必要な場合に停止する契約を確認した。"
+    - path: ".codex/skills/tests-unit/SKILL.md"
+      line: 93
+      symbol: "停止規約"
+      reason: "局所ハーネス失敗の修正が、今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当単体テスト成果物に閉じない場合に停止する契約を確認した。"
+    - path: ".codex/skills/tests-unit/SKILL.md"
+      line: 95
+      symbol: "停止規約"
+      reason: "プロダクトコード変更、UI 変更、secret / trust boundary 変更、API / DTO / DB / schema の意味拡張、docs 正本化、`.codex` 作業流れの変更が必要な場合に停止する契約を確認した。"
+    - path: ".codex/skills/implementation-investigate/SKILL.md"
+      line: 61
+      symbol: "判断規約"
+      reason: "承認済み実装範囲外の観測は、今回変更の直接影響を切り分ける観測範囲確認だけに限定されていることを確認した。"
+    - path: ".codex/skills/implementation-investigate/SKILL.md"
+      line: 113
+      symbol: "停止規約"
+      reason: "承認済み実装範囲外の調査が影響範囲確認に閉じない場合に停止する契約を確認した。"
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-progress.md"
+      line: 315
+      symbol: "contract-001"
+      reason: "前回指摘の修正内容と検証通過が記録されていることを確認した。"
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-progress.md"
+      line: 402
+      symbol: "再修正後検証"
+      reason: "git diff check、backend-local、frontend-local、coverage、Sonar issue gate の通過証跡を確認した。"
+
+unchecked_scope:
+  - target: "広いハーネス再実行"
+    reason: "codex-review-contract の非対象規約により、呼び出し元の検証証跡をレビュー入力として扱う。"
+    risk: "現在環境での再実行差分は本 reviewback には含まれない。"
+  - target: "UI 実画面の詳細表示差分"
+    reason: "画面表示、画面文言、layout、style は変更しない契約であり、review_contract は UI 見た目の主判定を扱わない。"
+    risk: "見た目の微差は UX 確認または browser confirmation 側の証跡に依存する。"
+
+issues:
+  - id: "contract-001"
+    level: "major"
+    title: "影響範囲修正の許可範囲が承認済み UI 契約を越えていた"
+    problem: "前回レビュー時点では、implement-frontend の停止規約が、実画面と UI 根拠の差分が承認済み実装範囲外の修正を必要とする場合も停止せず影響範囲修正として直せる契約へ広がっていた。"
+    reason: "人間承認と implementation-scope は、観測ログ追加 task で UI 表示、画面文言、layout、style を変更しない契約を固定している。承認済み範囲外の UI 差分修正を停止しない契約は、人間承認済み UI 契約を越える可能性があった。"
+    violated_condition: "Codex implementation lane は承認済み implementation-scope から実装する。observability-log-addition では UI 表示、画面文言、layout、style を変更しない。"
+    cause_candidate: "Wails generated file 由来の frontend-local 失敗を直すための影響範囲修正規約を、generated file または公開境界修正に限定せず、UI 差分や承認済み実装範囲外の frontend プロダクトコード修正全体へ一般化した可能性があった。"
+    evidence:
+      - path: ".codex/skills/implement-frontend/SKILL.md"
+        line: 54
+        excerpt: "影響範囲修正は、UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更に使わない。"
+      - path: ".codex/skills/implement-frontend/SKILL.md"
+        line: 109
+        excerpt: "実画面と UI 根拠の差分が承認済み実装範囲外の修正を必要とする場合は停止し、人間承認へ戻す。"
+      - path: ".codex/skills/implement-frontend/SKILL.md"
+        line: 113
+        excerpt: "検証失敗修正に UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更が必要な場合は停止し、人間承認へ戻す。"
+      - path: ".codex/skills/implement-lane/SKILL.md"
+        line: 201
+        excerpt: "UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更が必要な場合は、実装を続けず人間への返却を固定する。"
+      - path: ".codex/skills/implement-lane/SKILL.md"
+        line: 309
+        excerpt: "UI 表示、画面文言、layout、style、承認済み UI 根拠を越える変更が必要な場合は停止し、人間へ返す。"
+      - path: "docs/exec-plans/active/observability-log-addition/implementation-progress.md"
+        line: 315
+        excerpt: "`contract-001` は修正完了、検証通過として記録されている。"
+    local_fix_assessment: "workflow-contract-local。修正後は影響範囲修正の許可範囲と UI 契約の停止条件が `implement-frontend` と `implement-lane` の契約内で閉じている。"
+    additional_check_scope: "none。修正後の `implement-frontend` と `implement-lane` の契約差分で、前回破れた条件は確認できる。"
+    fix_considerations: "Wails generated file 失敗を生成元または公開境界で直す経路は維持されている。UI 表示、画面文言、layout、style、承認済み UI 根拠の範囲外修正は人間承認へ戻す契約として維持されている。"
+    verification: "修正後差分で、影響範囲修正の許可範囲、generated file 直接編集禁止、UI 契約超過時の停止または人間承認戻しを確認した。呼び出し元証跡では `git diff --check`、`backend-local`、`frontend-local`、`coverage` が pass である。"
+    fix_required: true
+    status: "resolved"
+  - id: "contract-002"
+    level: "major"
+    title: "レビュー起動入力の検証証跡契約が非対象規約と衝突している"
+    problem: "前回レビュー時点では、`implement-lane` はレビュー agent 起動入力に検証証跡を含める契約を持つ一方で、非対象規約にハーネス結果をレビュー agent へ渡さない例が残っていた。"
+    reason: "修正後は、非対象規約がレビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパス以外の無関係な資料を渡さない契約になっている。`codex-review-contract` の入力規約と `implement-lane` のレビュー起動入力は、検証証跡を渡す点で一致している。"
+    violated_condition: "レビュー agent 起動入力には、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む検証証跡を明示する。"
+    cause_candidate: "レビュー agent へ無関係な資料を渡さない規約を追加した際、検証証跡のうちハーネス結果だけを不要物の例に含めた可能性がある。"
+    evidence:
+      - path: ".codex/skills/implement-lane/SKILL.md"
+        line: 78
+        excerpt: "レビュー agent 起動時に、呼び出し元が実行済みの検証証跡を起動入力へ明示する。"
+      - path: ".codex/skills/implement-lane/SKILL.md"
+        line: 194
+        excerpt: "レビュー agent 起動入力には、最終検証、coverage、issue 数、system test 件数を含む検証証跡を明示する。"
+      - path: ".codex/skills/implement-lane/SKILL.md"
+        line: 240
+        excerpt: "レビュー agent に、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパス以外の無関係な資料を渡さない。"
+      - path: ".codex/skills/implement-lane/SKILL.md"
+        line: 256
+        excerpt: "レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスを渡す。"
+      - path: ".codex/skills/codex-review-contract/SKILL.md"
+        line: 26
+        excerpt: "最終検証結果と検証証跡を入力規約に含める。"
+    local_fix_assessment: "workflow-contract-local。`implement-lane` の非対象規約だけで解消しており、レビュー agent の入力規約や停止規約に追加修正は不要である。"
+    additional_check_scope: "none。5 観点 review skill の入力規約と停止規約は、検証証跡を必須入力として受け取る契約で一致している。"
+    fix_considerations: "レビュー agent へ渡す資料を絞る意図は維持する。検証証跡は reviewback 判定の必須入力として残す。未整理の command output 全文を渡すことと、整理済み検証証跡を渡すことを分ける必要がある。"
+    verification: "`implement-lane` のレビュー集約規約、非対象規約、出力規約、停止規約、各レビュー skill の入力規約が、検証証跡を必須入力として同じ意味になっていることを静的確認した。"
+    fix_required: true
+    status: "resolved"

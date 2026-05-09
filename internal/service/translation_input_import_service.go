@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sort"
@@ -151,11 +152,13 @@ func (service *TranslationInputImportService) importXEditJSON(
 ) (TranslationInputImportSummary, error) {
 	validatedPath, content, err := resolveTranslationInputImportSource(filePath, fileName, fileContent)
 	if err != nil {
+		logTranslationInputBoundaryFailure(ctx, "import", err)
 		return TranslationInputImportSummary{}, err
 	}
 
 	prepared, err := service.prepareImportFromContent(ctx, validatedPath, content, 0)
 	if err != nil {
+		logTranslationInputBoundaryFailure(ctx, "import", err)
 		return TranslationInputImportSummary{}, err
 	}
 
@@ -169,9 +172,11 @@ func (service *TranslationInputImportService) importXEditJSON(
 		return nil
 	})
 	if txErr != nil {
+		logTranslationInputBoundaryFailure(ctx, "import", txErr)
 		return TranslationInputImportSummary{}, fmt.Errorf("persist translation input: %w", txErr)
 	}
 
+	logTranslationInputImportBulkSummary(ctx, "import", summary)
 	return summary, nil
 }
 
@@ -200,6 +205,7 @@ func (service *TranslationInputImportService) RebuildInputCache(
 
 	prepared, err := service.prepareRebuildImport(ctx, existingInput)
 	if err != nil {
+		logTranslationInputBoundaryFailure(ctx, "cache_rebuild", err)
 		return TranslationInputImportSummary{}, err
 	}
 
@@ -224,10 +230,56 @@ func (service *TranslationInputImportService) RebuildInputCache(
 		return nil
 	})
 	if txErr != nil {
+		logTranslationInputBoundaryFailure(ctx, "cache_rebuild", txErr)
 		return TranslationInputImportSummary{}, fmt.Errorf("rebuild translation input cache: %w", txErr)
 	}
 
+	logTranslationInputImportBulkSummary(ctx, "cache_rebuild", summary)
 	return summary, nil
+}
+
+func logTranslationInputImportBulkSummary(ctx context.Context, stage string, summary TranslationInputImportSummary) {
+	slog.InfoContext(ctx, "translation input import bulk summary",
+		slog.String("event", "translation_input_import_bulk_summary"),
+		slog.String("where", "backend.service.translation_input_import."+stage),
+		slog.String("result", "completed"),
+		slog.Int("input_count", summary.TranslationRecordCount),
+		slog.Int("output_count", summary.TranslationFieldCount),
+		slog.Int("skipped_count", len(summary.Warnings)),
+		slog.Int("failed_count", 0),
+	)
+}
+
+func logTranslationInputBoundaryFailure(ctx context.Context, stage string, err error) {
+	slog.WarnContext(ctx, "translation input boundary failed",
+		slog.String("event", "translation_input_boundary_failed"),
+		slog.String("where", "backend.service.translation_input_import."+stage),
+		slog.String("result", "failed"),
+		slog.String("reason", classifyTranslationInputBoundaryFailure(err)),
+	)
+}
+
+func classifyTranslationInputBoundaryFailure(err error) string {
+	message := err.Error()
+	if strings.Contains(message, "source file is missing and rebuild cache is empty") {
+		return "cache_missing"
+	}
+	if kind, ok := TranslationInputErrorKindOf(err); ok {
+		switch kind {
+		case TranslationInputErrorKindInvalidJSON:
+			return "invalid_json"
+		case TranslationInputErrorKindSourceFileMissing:
+			return "source_file_missing"
+		}
+	}
+	switch {
+	case strings.Contains(message, "persist translation input"),
+		strings.Contains(message, "update translation input metadata"),
+		strings.Contains(message, "delete translation input cache"):
+		return "db_save_failed"
+	default:
+		return "input_boundary_failed"
+	}
 }
 
 func (service *TranslationInputImportService) prepareRebuildImport(

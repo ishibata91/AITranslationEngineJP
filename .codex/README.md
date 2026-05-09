@@ -90,14 +90,14 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `ux_review` は frontend 人間レビュー前の UX 事前確認で、呼び出し元が渡した review URL、確認済み `fakeScenario`、UI 根拠、実装結果に従い、UX 標準適合、fakeAPI 状態十分性、視認性、既存画面との統一性を `ux-review.yaml` に残す。実装修正、仕様判断、5 観点レビューは扱わない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、最終検証、検証証跡を渡した観点別 レビュー agent の並列 起動、`reviewback.<観点>.yaml` 群の欠落なし集約、`implementation_action` 分岐を進める
 - `implement_lane` は観点別 レビュー結果を `reviewback.<観点>.yaml` の `must_fix_open` と `max_level` から集約し、behavior、security、responsibility_boundary、その他 の優先度で上位観点の失敗または停止を下位観点の通過で相殺しない
-- `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う
-- `backend_implementer` は 承認済み backend 実装範囲 内の プロダクトコードだけを変更する
-- `frontend_implementer` は 承認済み frontend 実装範囲 内の プロダクトコードだけを変更する
-- `integration_implementer` は 承認済み 統合境界実装範囲 内の プロダクトコードだけを変更する
-- `integration_implementer` は 合意済み frontend 保護 がある場合、承認済み統合境界ファイル以外の画面、部品、文言、style を変更しない
+- `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う。承認済み実装範囲 外は、今回変更の直接影響を切り分ける観測範囲確認だけを扱う
+- `backend_implementer` は 承認済み backend 実装範囲 と、今回変更の直接影響で backend 責務内プロダクトコードに閉じる影響範囲だけを変更する
+- `frontend_implementer` は 承認済み frontend 実装範囲 と、今回変更の直接影響で frontend 責務内プロダクトコードに閉じる影響範囲だけを変更する
+- `integration_implementer` は 承認済み 統合境界実装範囲 と、今回変更の直接影響で統合境界責務内プロダクトコードに閉じる影響範囲だけを変更する
+- `integration_implementer` は 合意済み frontend 保護 がある場合、承認済み統合境界実装範囲 または限定された影響範囲に閉じる原因箇所だけを変更する
 - `observability_implementer` は 完成済み実装成果物 内で、実行時にしか確定しない値、実行後に消える中間状態、消えると原因候補を分離できない分岐理由を残す恒久ログだけを追加する
-- `implementation_scenario_tester` は 承認済みシナリオ と 承認済み実装範囲 を証明する シナリオテスト と必要最小限の テスト補助 だけを変更する
-- `implementation_unit_tester` は 実装済み責務 と 承認済み実装範囲 を証明する 単体テスト と必要最小限の テスト補助 だけを変更する
+- `implementation_scenario_tester` は 承認済みシナリオ、承認済み実装範囲、今回のテスト変更が直接壊した検証経路を証明する シナリオテスト と必要最小限の テスト補助 だけを変更する
+- `implementation_unit_tester` は 実装済み責務、承認済み実装範囲、今回のテスト変更が直接壊した検証経路を証明する 単体テスト と必要最小限の テスト補助 だけを変更する
 - `docs_updater` は実装と レビュー の完了が分かった後、human 承認済み 対象範囲 だけを正本化する
 - `work_reporter` は 完了根拠、`transcript_refs.json`、レビュー最終状態 YAML、改善ログ、検証結果 から `work_history` の run 全体レポート を生成する。明示 完了根拠 が不足する場合は Codex 会話ログ または chat session file を 根拠参照 付き 根拠 として確認する
 - `implement_lane` は全 implementation 引き継ぎ と 最終検証 完了後、diff から取得した実コードを観点グループ別に 評価し、`reviewback.<観点>.yaml`、集約記録、主な失敗種別、主要不変条件、最小恒久修正境界 を 完了根拠 に残す
@@ -109,9 +109,9 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、work_history 側に観点別の非通過 YAML は作らない
 - `workflow-improvement-log.jsonl` は作業流れ改善用の run 内観測ログとし、ゲート判断には使わない
 - `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`light_change_planner`、`exploration_test_planner`、`designer`、`diagrammer`、`investigator`、`browser_confirmation`、`ux_review`、`docs_updater`、`work_reporter`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
-- プロダクトコード は `backend_implementer`、`frontend_implementer`、`integration_implementer`、`observability_implementer` だけが 承認済み実装範囲 内で変更できる
-- シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 内で変更できる
-- 単体テスト は `implementation_unit_tester` だけが 承認済み実装範囲 内で変更できる
+- プロダクトコード は `backend_implementer`、`frontend_implementer`、`integration_implementer`、`observability_implementer` だけが 承認済み実装範囲 または担当 agent の責務内に閉じる限定された影響範囲で変更できる
+- シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 または今回のテスト変更が直接壊した担当テスト成果物の影響範囲で変更できる
+- 単体テスト は `implementation_unit_tester` だけが 承認済み実装範囲 または今回のテスト変更が直接壊した担当テスト成果物の影響範囲で変更できる
 - implementation レーン は docs 正本、`.codex/` 作業流れ 文書、agent 実行定義、ツール権限 を変更しない
 
 

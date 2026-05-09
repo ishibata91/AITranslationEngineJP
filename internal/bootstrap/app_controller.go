@@ -28,6 +28,11 @@ func NewAppController() *controllerwails.AppController {
 	)
 }
 
+// NewAppLifecycle builds Wails lifecycle hooks for an app controller.
+func NewAppLifecycle(controller *controllerwails.AppController) *controllerwails.AppLifecycle {
+	return controllerwails.NewAppLifecycle(controller)
+}
+
 func newAppControllerWithMasterDictionarySeed(
 	masterDictionarySeed []repository.MasterDictionaryEntry,
 	now func() time.Time,

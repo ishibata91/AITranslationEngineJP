@@ -1,0 +1,136 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-OBSLOG-001",
+      "title": "状態遷移の成功、拒否、失敗を分離する",
+      "source_requirement": "SCN-OBSLOG-001",
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "summary": "job または phase run の変更前状態、変更後状態、拒否理由を同じ backend 境界で確認できる。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "summary": "開始拒否、terminal state、active phase 既存、前段 phase 未完了、再開不可、削除拒否を区別する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "summary": "backend JSON log は event、where、result、代表 id、reason を持つ。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-OBSLOG-002",
+      "title": "provider、secret、credential 再解決の失敗を分離する",
+      "source_requirement": "SCN-OBSLOG-002",
+      "detail_requirements": [
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "summary": "provider、secret store、credential 再解決の失敗分類を backend 境界で確認できる。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "summary": "secret、API key、endpoint 実値、provider raw payload を出さない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "summary": "実 AI API を使わず fake provider と fake secret store で再現する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-OBSLOG-003",
+      "title": "file、DB、Wails Bind、成果物出力の失敗段階を分離する",
+      "source_requirement": "SCN-OBSLOG-003",
+      "detail_requirements": [
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "summary": "file、DB、Wails Bind、成果物出力の失敗 stage を区別する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "summary": "代表 id と count は原因分離に必要な最小数だけ残す。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "summary": "既存 DTO 境界、Wails event の push 専用方針、UI 表示を変えない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-OBSLOG-004",
+      "title": "frontend runtime event の受信、適用、破棄を分離する",
+      "source_requirement": "SCN-OBSLOG-004",
+      "detail_requirements": [
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "summary": "frontend pino log で subscribed、accepted、dropped、skipped、detached を区別する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "summary": "stale event は現在の store state を上書きせず、破棄理由を分類する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "summary": "frontend log を backend へ送らず、利用者入力全文や DTO 全体を出さない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-OBSLOG-005",
+      "title": "大量処理は集約 log だけで原因分離する",
+      "source_requirement": "SCN-OBSLOG-005",
+      "detail_requirements": [
+        {
+          "type": "performance_requirement",
+          "status": "explicit",
+          "summary": "loop 内 1 件ごとの log を出さず、件数と失敗分類を集約する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "summary": "input count、output count、skipped count、failed count、最初と最後の失敗分類を残す。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "summary": "保護要素検証失敗、provider 失敗、成果物 row validation 失敗を成功扱いにしない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-OBSLOG-006",
+      "title": "禁止 log が出ないことを確認する",
+      "source_requirement": "SCN-OBSLOG-006",
+      "detail_requirements": [
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "summary": "secret、API key、endpoint 実値、raw request、raw response、prompt 全文、翻訳本文全文、XML 全文、DTO 全体、full path、trace ID を含めない。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "summary": "fake provider、fake Wails binding、temp file、SQLite test DB、frontend runtime fixture で検査する。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "summary": "本 task は利用者権限を追加または変更しない。"
+        }
+      ]
+    }
+  ]
+}

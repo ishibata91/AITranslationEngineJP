@@ -2,9 +2,11 @@ package service
 
 import (
 	"bytes"
+	"context"
 	"encoding/xml"
 	"errors"
 	"fmt"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"strings"
@@ -79,6 +81,13 @@ func (xTranslatorOutputArtifactXMLSerializer) Serialize(
 
 	payload, err := xml.MarshalIndent(document, "", "  ")
 	if err != nil {
+		slog.WarnContext(context.Background(), "translation output artifact response mapping failed",
+			slog.String("event", "translation_output_artifact_boundary_failed"),
+			slog.String("where", "backend.service.translation_output_artifact.xml_serialize"),
+			slog.String("result", "failed"),
+			slog.String("reason", "response_mapping_failed"),
+			slog.Int("count", len(rows)),
+		)
 		return nil, fmt.Errorf("marshal xtranslator xml: %w", err)
 	}
 	return bytes.Join([][]byte{[]byte(xml.Header), payload, []byte("\n")}, nil), nil
@@ -111,24 +120,29 @@ func validateTranslationOutputArtifactPath(path string) (string, error) {
 func (localTranslationOutputArtifactFileWriter) WriteTemporaryFile(path string, payload []byte) (string, error) {
 	trimmed, pathErr := validateTranslationOutputArtifactPath(path)
 	if pathErr != nil {
+		logTranslationOutputArtifactFileWriteFailed("validate")
 		return "", pathErr
 	}
 	directory := filepath.Dir(trimmed)
 	if err := os.MkdirAll(directory, 0o750); err != nil {
+		logTranslationOutputArtifactFileWriteFailed("create_directory")
 		return "", fmt.Errorf("create output artifact directory: %w", err)
 	}
 	tempFile, err := os.CreateTemp(directory, ".translation-output-artifact-*.xml")
 	if err != nil {
+		logTranslationOutputArtifactFileWriteFailed("create_temp_file")
 		return "", fmt.Errorf("create output artifact temp file: %w", err)
 	}
 	tempPath := tempFile.Name()
 	if _, err := tempFile.Write(payload); err != nil {
 		_ = tempFile.Close()
 		_ = os.Remove(tempPath)
+		logTranslationOutputArtifactFileWriteFailed("write_temp_file")
 		return "", fmt.Errorf("write output artifact temp file: %w", err)
 	}
 	if err := tempFile.Close(); err != nil {
 		_ = os.Remove(tempPath)
+		logTranslationOutputArtifactFileWriteFailed("close_temp_file")
 		return "", fmt.Errorf("close output artifact temp file: %w", err)
 	}
 	return tempPath, nil
@@ -148,6 +162,7 @@ func (writer localTranslationOutputArtifactFileWriter) WriteFile(path string, pa
 
 func (localTranslationOutputArtifactFileWriter) PublishTemporaryFile(tempPath string, finalPath string) error {
 	if err := os.Rename(tempPath, finalPath); err != nil {
+		logTranslationOutputArtifactFileWriteFailed("publish")
 		return fmt.Errorf("publish output artifact file: %w", err)
 	}
 	return nil
@@ -161,6 +176,15 @@ func (localTranslationOutputArtifactFileWriter) RemoveFile(path string) error {
 		return fmt.Errorf("remove output artifact file: %w", err)
 	}
 	return nil
+}
+
+func logTranslationOutputArtifactFileWriteFailed(stage string) {
+	slog.WarnContext(context.Background(), "translation output artifact file write failed",
+		slog.String("event", "translation_output_artifact_boundary_failed"),
+		slog.String("where", "backend.service.translation_output_artifact.file_write."+stage),
+		slog.String("result", "failed"),
+		slog.String("reason", "file_write_failed"),
+	)
 }
 
 func isReadonlyTranslationOutputPath(path string) bool {

@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"testing"
 	"time"
@@ -275,5 +278,31 @@ func TestTranslationJobManagementServiceResumeJobReturnsCacheMissingReason(t *te
 	}
 	if result.Detail == nil || result.Detail.RuntimeSummary.CredentialState == "" {
 		t.Fatalf("expected redacted runtime summary, got %#v", result.Detail)
+	}
+}
+
+func TestLogTranslationJobDeleteRejectedUsesSafePayloadOnly(t *testing.T) {
+	var buffer bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buffer, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	logTranslationJobDeleteRejected(context.Background(), 41, "paused", "")
+
+	var payload map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal translation job payload: %v", err)
+	}
+	if payload["event"] != "translation_job_delete" || payload["where"] != "backend.service.translation_job_management.delete" || payload["result"] != "rejected" {
+		t.Fatalf("unexpected translation job payload: %#v", payload)
+	}
+	if payload["id"] != "job:41" || payload["reason"] != translationJobManagementReasonDeleteFailed {
+		t.Fatalf("unexpected id/reason payload: %#v", payload)
+	}
+	forbidden := []string{"api_key", "endpoint", "raw_request", "raw_response", "full_path", "trace_id"}
+	for _, key := range forbidden {
+		if _, ok := payload[key]; ok {
+			t.Fatalf("forbidden key %q in payload: %#v", key, payload)
+		}
 	}
 }

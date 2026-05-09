@@ -1,0 +1,130 @@
+@startuml
+
+title 観測ログ追加 設計差分図 コンポーネント
+
+top to bottom direction
+left to right direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+legend bottom right
+    |= Style |= Meaning |
+    |<#F7F9FC> existing | 変更しない接続先 |
+    |<#EEF9EF> added | 追加予定 |
+    |<#FFF1F1> removed | 追加しない接続または廃案 |
+    |<#FFF8E1> changed | 観測点を足す変更予定 |
+    |<#F4F7FA> risk | 制約または未決事項 |
+endlegend
+
+package "backend 状態遷移境界" {
+    class "Wails Bind Controller\ncommand 入口" as BackendController <<existing>>
+    class "Backend UseCase\n状態変更 orchestration" as BackendUseCase <<changed>>
+    class "StateMachine\n遷移許可 / 拒否判定" as StateMachine <<existing>>
+    class "JobIOService\njob / phase run 保存" as JobIOService <<existing>>
+    class "State Transition Log\nslog JSON\nbefore / after / reason" as StateLog <<added>>
+}
+
+package "backend 外部境界" {
+    class "Service\nprovider / file / DB /\nWails DTO / 成果物出力" as BackendService <<changed>>
+    class "Provider Adapter" as ProviderAdapter <<existing>>
+    class "Secret Store Adapter" as SecretStore <<existing>>
+    class "File / XML Adapter" as FileAdapter <<existing>>
+    class "Repository" as Repository <<existing>>
+    class "Response DTO Mapper" as DtoMapper <<existing>>
+    class "Output Writer" as OutputWriter <<existing>>
+    class "External Boundary Log\nslog JSON\nresult / reason / count" as BoundaryLog <<added>>
+}
+
+package "frontend runtime event 境界" {
+    class "ScreenController" as ScreenController <<changed>>
+    class "Frontend UseCase" as FrontendUseCase <<existing>>
+    class "Store" as FrontendStore <<existing>>
+    class "RuntimeEventAdapter" as RuntimeEventAdapter <<changed>>
+    class "Browser Console Log\npino\naccepted / dropped / detached" as FrontendLog <<added>>
+}
+
+package "大量処理境界" {
+    class "Bulk Processor\n入力取り込み / phase 実行 /\n成果物 row 生成" as BulkProcessor <<changed>>
+    class "Aggregate Count Log\ncount / first_reason / last_reason" as AggregateLog <<added>>
+}
+
+class "Wails Runtime Event\npush 通知専用" as RuntimeEvent <<existing>>
+class "tmp/logs/wails-dev.log\nbackend stderr 保存先" as BackendLogFile <<existing>>
+class "Browser Console" as BrowserConsole <<existing>>
+
+class "Frontend -> Backend Log Transfer" as RemovedLogTransfer <<removed>>
+class "Unified Log File\nbackend と frontend を同一 file へ集約" as RemovedUnifiedFile <<removed>>
+class "Trace ID / Command StartFinish /\nDTO Full Dump" as RemovedHeavyPayload <<removed>>
+class "Review Note\n最初の実装 slice 順序は\nimplementation-scope で固定する" as SliceOrderNote <<risk>>
+class "Review Note\nUI 表示、画面文言、layout、style は変更しない" as UINote <<risk>>
+
+BackendController -[#546E7A]-> BackendUseCase : command を渡す
+BackendUseCase -[#546E7A]-> StateMachine : 遷移可否を判定
+BackendUseCase -[#546E7A]-> JobIOService : 状態を読む / 保存
+BackendUseCase -[#2E7D32]-> StateLog : 変更前 / 変更後 / 拒否理由を出す
+StateLog -[#546E7A]-> BackendLogFile : stderr 保存は維持
+
+BackendController -[#546E7A]-> BackendService : request DTO を内部処理へ渡す
+BackendService -[#546E7A]-> ProviderAdapter : provider 実行
+BackendService -[#546E7A]-> SecretStore : credential 再解決
+BackendService -[#546E7A]-> FileAdapter : file / XML 読み書き
+BackendService -[#546E7A]-> Repository : DB 保存 / 参照
+BackendService -[#546E7A]-> DtoMapper : Wails response 変換
+BackendService -[#546E7A]-> OutputWriter : 成果物出力
+BackendService -[#2E7D32]-> BoundaryLog : 失敗境界と理由分類を出す
+BoundaryLog -[#546E7A]-> BackendLogFile : stderr 保存は維持
+
+ScreenController -[#546E7A]-> FrontendUseCase : 画面操作を起動
+ScreenController -[#546E7A]-> RuntimeEventAdapter : mount / dispose を管理
+FrontendUseCase -[#546E7A]-> FrontendStore : state 更新
+RuntimeEventAdapter -[#546E7A]-> RuntimeEvent : push 通知を受信
+RuntimeEventAdapter -[#F9A825]-> FrontendStore : stale event は更新しない
+RuntimeEventAdapter -[#2E7D32]-> FrontendLog : subscribe / accept / drop / detach を出す
+FrontendLog -[#546E7A]-> BrowserConsole : console 出力は維持
+
+BackendUseCase -[#F9A825]-> BulkProcessor : 大量処理を起動
+BulkProcessor -[#546E7A]-> ProviderAdapter : request unit 実行
+BulkProcessor -[#546E7A]-> Repository : row 保存
+BulkProcessor -[#546E7A]-> OutputWriter : row 出力
+BulkProcessor -[#2E7D32]-> AggregateLog : count と reason を集約
+AggregateLog -[#546E7A]-> BackendLogFile : stderr 保存は維持
+
+RemovedLogTransfer -[#C62828,dashed]-> FrontendLog : backend へ送らない
+RemovedLogTransfer -[#C62828,dashed]-> BoundaryLog : frontend log 集約を追加しない
+RemovedUnifiedFile -[#C62828,dashed]-> BackendLogFile : 同一 file にしない
+RemovedUnifiedFile -[#C62828,dashed]-> BrowserConsole : browser console を file 集約しない
+RemovedHeavyPayload -[#C62828,dashed]-> StateLog : 追加しない
+RemovedHeavyPayload -[#C62828,dashed]-> BoundaryLog : 追加しない
+RemovedHeavyPayload -[#C62828,dashed]-> FrontendLog : 追加しない
+RemovedHeavyPayload -[#C62828,dashed]-> AggregateLog : 追加しない
+
+SliceOrderNote -[#607D8B,dotted]-> StateLog
+SliceOrderNote -[#607D8B,dotted]-> BoundaryLog
+SliceOrderNote -[#607D8B,dotted]-> FrontendLog
+SliceOrderNote -[#607D8B,dotted]-> AggregateLog
+UINote -[#607D8B,dotted]-> ScreenController
+
+@enduml

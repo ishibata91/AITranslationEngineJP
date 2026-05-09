@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"sync"
@@ -54,6 +55,7 @@ const (
 	providerSettingsErrorKindProviderUnreachable = "provider_unreachable"
 	providerSettingsErrorKindModelListFailed     = "model_list_failed"
 	providerSettingsErrorKindSettingsNotSaved    = "settings_not_saved"
+	providerSettingsServiceWhere                 = "provider_settings.service"
 )
 
 type providerSettingsProviderSpec struct {
@@ -507,13 +509,16 @@ func (service *ProviderSettingsService) validateProviderSettingsLocked(
 		return ProviderSettingsValidationResult{}, fmt.Errorf("%w: request token is required", ErrProviderSettingsValidation)
 	}
 	if failureKind := providerSettingsValidationPreflightFailure(spec, summary, input, requestToken); failureKind != "" {
+		logProviderBoundaryFailure(ctx, "provider_settings_validation", providerSettingsServiceWhere, spec.ID, failureKind)
 		return providerSettingsValidationFailure(spec.ID, requestToken, failureKind), nil
 	}
 	apiKey, failureKind, err := service.resolveValidationSecret(ctx, spec, summary)
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "provider_settings_validation", providerSettingsServiceWhere, spec.ID, "secret_store_failed")
 		return ProviderSettingsValidationResult{}, err
 	}
 	if failureKind != nil {
+		logProviderBoundaryFailure(ctx, "provider_settings_validation", providerSettingsServiceWhere, spec.ID, *failureKind)
 		return providerSettingsValidationFailurePointer(spec.ID, requestToken, failureKind), nil
 	}
 	pendingStale, pendingErr := service.updateProviderSettingsValidation(ctx, spec.ID, requestToken, providerSettingsValidationStatePending, nil, "mark provider settings validation pending")
@@ -578,6 +583,7 @@ func (service *ProviderSettingsService) validateProviderSettingsProbe(
 		APIKey:     apiKey,
 	})
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "provider_settings_validation", providerSettingsServiceWhere, spec.ID, classifyProviderBoundaryError(err, providerSettingsErrorKindProviderUnreachable))
 		return providerSettingsValidationStateFailed, providerSettingsStringPointer(providerSettingsErrorKindProviderUnreachable)
 	}
 	return providerSettingsValidationStateValidated, nil
@@ -644,16 +650,24 @@ func (service *ProviderSettingsService) listProviderModelsLocked(
 	requestToken := strings.TrimSpace(input.RequestToken)
 	result := providerSettingsInitialModelListResult(spec.ID, summary, requestToken)
 	if done := providerSettingsApplyModelListPreflight(&result, summary, input, requestToken); done {
+		logProviderBoundaryFailure(ctx, "provider_model_list", providerSettingsServiceWhere, spec.ID, valueOrEmpty(result.FailureKind))
 		return result, nil
 	}
 	apiKey, done, err := service.resolveModelListAPIKey(ctx, spec, summary, &result)
 	if err != nil || done {
+		if err != nil {
+			logProviderBoundaryFailure(ctx, "provider_model_list", providerSettingsServiceWhere, spec.ID, "secret_store_failed")
+		}
+		if done {
+			logProviderBoundaryFailure(ctx, "provider_model_list", providerSettingsServiceWhere, spec.ID, valueOrEmpty(result.FailureKind))
+		}
 		return result, err
 	}
 	models, loadErr := service.modelListLoader.ListProviderModelsWithEndpoint(ctx, spec.ID, *summary.Endpoint, apiKey)
 	if loadErr != nil {
 		result.State = providerSettingsModelListStateFailed
 		result.FailureKind = providerSettingsStringPointer(providerSettingsErrorKindModelListFailed)
+		logProviderBoundaryFailure(ctx, "provider_model_list", providerSettingsServiceWhere, spec.ID, classifyProviderBoundaryError(loadErr, providerSettingsErrorKindModelListFailed))
 		_ = loadErr
 		//nolint:nilerr // public contract intentionally returns a redacted failure instead of the transport error.
 		return result, nil
@@ -786,9 +800,64 @@ func (service *ProviderSettingsService) resolveProviderExecutionSettingsUnlocked
 	}
 	result := providerSettingsResolveResult(spec, input, summary)
 	if err := service.applyProviderSettingsExecutionSnapshot(ctx, spec, input, summary, &result); err != nil {
+		logProviderBoundaryFailure(ctx, "provider_execution_settings", providerSettingsServiceWhere, spec.ID, "secret_store_failed")
 		return ProviderSettingsResolveResult{}, err
 	}
+	if result.ErrorKind != nil {
+		logProviderBoundaryFailure(ctx, "provider_execution_settings", providerSettingsServiceWhere, spec.ID, *result.ErrorKind)
+	}
 	return result, nil
+}
+
+func logProviderBoundaryFailure(ctx context.Context, event string, where string, providerID string, reason string) {
+	trimmedReason := strings.TrimSpace(reason)
+	if trimmedReason == "" {
+		trimmedReason = "unknown"
+	}
+	slog.WarnContext(providerSettingsContextOrBackground(ctx), "provider boundary failed",
+		slog.String("event", strings.TrimSpace(event)),
+		slog.String("where", strings.TrimSpace(where)),
+		slog.String("result", "failed"),
+		slog.String("provider", strings.TrimSpace(providerID)),
+		slog.String("reason", trimmedReason),
+	)
+}
+
+func logProviderBoundarySkipped(ctx context.Context, event string, where string, providerID string, reason string, count int) {
+	trimmedReason := strings.TrimSpace(reason)
+	if trimmedReason == "" {
+		trimmedReason = "provider_skipped"
+	}
+	slog.InfoContext(providerSettingsContextOrBackground(ctx), "provider boundary skipped",
+		slog.String("event", strings.TrimSpace(event)),
+		slog.String("where", strings.TrimSpace(where)),
+		slog.String("result", "skipped"),
+		slog.String("provider", strings.TrimSpace(providerID)),
+		slog.String("reason", trimmedReason),
+		slog.Int("count", count),
+	)
+}
+
+func classifyProviderBoundaryError(err error, fallback string) string {
+	if errors.Is(err, context.DeadlineExceeded) {
+		return "provider_timeout"
+	}
+	trimmedFallback := strings.TrimSpace(fallback)
+	if trimmedFallback == "" {
+		return "provider_failure"
+	}
+	return trimmedFallback
+}
+
+func normalizePersonaGenerationProviderFailureKind(kind string) string {
+	switch strings.TrimSpace(kind) {
+	case personaGenerationErrorKindInvalidProvider:
+		return "invalid_provider_response"
+	case "provider_timeout":
+		return "provider_timeout"
+	default:
+		return personaGenerationErrorKindProviderFailure
+	}
 }
 
 func providerSettingsResolveResult(

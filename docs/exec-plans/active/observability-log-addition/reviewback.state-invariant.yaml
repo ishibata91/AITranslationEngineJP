@@ -1,0 +1,124 @@
+reviewback_version: 1
+task_id: "observability-log-addition"
+review_yaml_path: "docs/exec-plans/active/observability-log-addition/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持。state-invariant-001 は解消済みである。completed runtime event は page または summary のどちらかが有効な payload である場合だけ完了 handler へ進む。空 object、未知 key object、不正 page object は dropped になり、store 完了状態へ進まない。phase state log 修正は service read model と usecase log に閉じており、状態遷移そのもの、public DTO、DB schema、UI 表示を変えていない。"
+  evidence_sufficiency: "十分。指定された既存 review YAML、実装進行記録、対象差分、completed payload validation、frontend unit test、phase state log helper、service read model、public DTO mapping、提供済み検証証跡を確認した。ハーネス再実行は skill 非対象規約に従い実施していない。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "local resolved。state-invariant-001 は runtime event adapter の completed payload validation と frontend unit test 追加で閉じている。store usecase、public DTO、DB schema、UI 表示への変更は不要だったと評価する。"
+  invariant_test_perspective: "completed payload が空 object、未知 key object、不正 page object の場合に onImportCompleted を呼ばないことを確認済みである。phase state log は accepted と rejected の before_state / after_state が実 read model 起点または unknown fallback になることを確認済みである。"
+
+checked_scope:
+  summary: "completed runtime event の完了 handler 到達条件、malformed object payload の拒否テスト、phase state log の rejected 経路、service read model の before/after state 保持、public DTO 非変更、DB schema / UI 表示非変更範囲を確認した。"
+  files:
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 118
+      symbol: "isRuntimeImportCompletedPayload"
+      reason: "completed payload は page または summary のどちらかが有効な場合だけ true になり、空 object や未知 key object は false になることを根拠にした。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 264
+      symbol: "handleImportCompletedEvent"
+      reason: "completed event は invalid payload を dropped として return し、onImportCompleted を呼ばないことを根拠にした。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+      line: 381
+      symbol: "completed payload が空 object の時は dropped log として扱われ完了 handler を呼ばない"
+      reason: "空 object の completed payload が完了 handler へ進まない回帰確認を根拠にした。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+      line: 408
+      symbol: "completed payload が未知 key だけの object の時は dropped log として扱われ完了 handler を呼ばない"
+      reason: "未知 key object の completed payload が完了 handler へ進まない回帰確認を根拠にした。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+      line: 435
+      symbol: "completed payload の page が有効な page state でない時は dropped log として扱われ完了 handler を呼ばない"
+      reason: "不正 page object が store 完了へ進まない回帰確認を根拠にした。"
+    - path: "internal/usecase/translation_job_management_usecase.go"
+      line: 129
+      symbol: "logPhaseStateCommand"
+      reason: "phase state log は渡された actual before/after state を記録し、rejected 時は unknown fallback 以外で状態遷移を仮定しないことを根拠にした。"
+    - path: "internal/usecase/translation_job_management_usecase_test.go"
+      line: 114
+      symbol: "TestLogPhaseStateCommandUsesActualReadModelState"
+      reason: "accepted は idle_ready から running、rejected は completed から completed として記録されることを根拠にした。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 188
+      symbol: "TermTranslationPhaseCommandReadModel"
+      reason: "before/after state は service read model に追加され、log 用の内部状態として保持されていることを根拠にした。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 197
+      symbol: "PersonaGenerationPhaseCommandReadModel"
+      reason: "before/after state は service read model に追加され、log 用の内部状態として保持されていることを根拠にした。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 207
+      symbol: "BodyTranslationPhaseCommandReadModel"
+      reason: "before/after state は service read model に追加され、log 用の内部状態として保持されていることを根拠にした。"
+    - path: "internal/usecase/term_translation_phase_contract.go"
+      line: 146
+      symbol: "TermTranslationPhaseCommandResult"
+      reason: "public DTO に before_state / after_state 相当のフィールドが追加されていないことを根拠にした。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 212
+      symbol: "PersonaGenerationPhaseCommandResult"
+      reason: "public DTO に before_state / after_state 相当のフィールドが追加されていないことを根拠にした。"
+    - path: "internal/usecase/body_translation_phase_contract.go"
+      line: 260
+      symbol: "BodyTranslationPhaseCommandResult"
+      reason: "public DTO に before_state / after_state 相当のフィールドが追加されていないことを根拠にした。"
+    - path: "internal/usecase/term_translation_phase_usecase.go"
+      line: 154
+      symbol: "toTermTranslationPhaseCommandResult"
+      reason: "service read model の before/after state を public DTO へ写していないことを根拠にした。"
+    - path: "internal/usecase/persona_generation_phase_usecase.go"
+      line: 194
+      symbol: "toPersonaGenerationPhaseCommandResult"
+      reason: "service read model の before/after state を public DTO へ写していないことを根拠にした。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 179
+      symbol: "toBodyTranslationPhaseCommandResult"
+      reason: "service read model の before/after state を public DTO へ写していないことを根拠にした。"
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-progress.md"
+      line: 199
+      symbol: "最終検証"
+      reason: "git diff --check、backend-local、frontend-local、coverage が pass している提供証跡を確認した。"
+
+unchecked_scope:
+  - target: "指定されたレビュー対象差分以外の dirty worktree"
+    reason: "人間指示のレビュー対象差分に含まれないため、状態・データ不変条件の主判定へ含めていない。"
+    risk: "指定外差分に起因する状態不変条件の破れは本 YAML では未判定である。"
+  - target: "ハーネスとブラウザ操作の再実行"
+    reason: "検証証跡は提供済みであり、codex-review-state-invariant skill の非対象規約でハーネスを実行しないため再実行していない。"
+    risk: "現在の作業環境での再現性は implement_lane の提供証跡に依存する。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "object 型の malformed completed payload が store 完了へ進む"
+    problem: "解消済み。completed runtime event は、空 object、未知 key object、不正 page object を invalid_payload として dropped にし、onImportCompleted へ渡さない。"
+    reason: "handleImportCompletedEvent は isRuntimeImportCompletedPayload が false の payload を return で止める。対応する unit test は空 object と未知 key object で完了 handler が呼ばれないことを確認している。"
+    violated_condition: "解消済み。malformed completed runtime event は store の完了状態へ進まない。"
+    cause_candidate: "解消済み。frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts:118 の isRuntimeImportCompletedPayload が page または summary の有効性を検証する。"
+    evidence:
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+        line: 118
+        excerpt: "isRuntimeImportCompletedPayload は有効な page または summary がない completed payload を false にする。"
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+        line: 277
+        excerpt: "handleImportCompletedEvent は invalid payload を dropped として記録し、完了 handler を呼ばずに return する。"
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+        line: 381
+        excerpt: "空 object の completed payload で onImportCompleted が呼ばれないことを確認している。"
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+        line: 408
+        excerpt: "未知 key object の completed payload で onImportCompleted が呼ばれないことを確認している。"
+    local_fix_assessment: "local resolved。adapter validation と frontend unit test で状態不変条件を閉じており、store usecase、public DTO、DB schema、UI 表示へ変更は広がっていない。"
+    additional_check_scope: "none。重点確認の空 object と未知 key object は対象 unit test と実コードで確認済みである。"
+    fix_considerations: "解消済み。今後 completed payload の正当形を増やす場合も、完了 handler へ渡す前に意味のある完了データを検証する必要がある。"
+    verification: "提供証跡では frontend-local が pass している。レビューでは malformed object completed payload の unit test と adapter validation を確認した。"
+    fix_required: true
+    status: "resolved"

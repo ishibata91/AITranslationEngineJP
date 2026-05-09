@@ -1,0 +1,154 @@
+reviewback_version: 1
+task_id: "observability-log-addition"
+review_yaml_path: "docs/exec-plans/active/observability-log-addition/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "再修正後の実コードは、重点確認 2 件の期待挙動に一致している。phase state log は service read model の BeforePhaseState / AfterPhaseState を usecase log に渡し、許可経路の before_state が実変更前状態になる。completed runtime event は非 object payload、空 object、未知 key だけの object、不正な page / summary を dropped とし、完了 handler を呼ばない。"
+  evidence_sufficiency: "十分。既存 reviewback、implementation-scope、implementation-progress、レビュー対象差分の実コード、対象テスト、呼び出し元の検証証跡を確認した。ハーネスは codex-review-behavior の非対象規約により再実行していない。"
+
+checked_scope:
+  summary: "前回 behavior-002 の再修正と completed runtime event の malformed payload 経路を重点確認した。term / persona / body の service read model、usecase log 呼び出し、logPhaseStateCommand、frontend adapter、frontend adapter test、usecase log test を確認した。"
+  files:
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-scope.md"
+      line: 52
+      symbol: "OBS-BE-001 completion_signal"
+      reason: "許可された状態変更は変更前状態、変更後状態、代表 id を含むという実装目的を確認した。"
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-scope.md"
+      line: 121
+      symbol: "OBS-UNIT-FE-001 completion_signal"
+      reason: "payload parse 失敗を dropped として扱い、画面状態を壊さないという frontend テスト目的を確認した。"
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-progress.md"
+      line: 333
+      symbol: "behavior-002 再修正"
+      reason: "service の BeforePhaseState / AfterPhaseState を usecase へ渡す再修正内容を確認した。"
+    - path: "docs/exec-plans/active/observability-log-addition/implementation-progress.md"
+      line: 360
+      symbol: "再修正後検証"
+      reason: "呼び出し元が提示した backend-local、frontend-local、coverage、Sonar issue gate の pass 証跡と一致することを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 118
+      symbol: "isRuntimeImportCompletedPayload"
+      reason: "completed payload が有効な page または summary を持つ場合だけ accepted になることを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 264
+      symbol: "handleImportCompletedEvent"
+      reason: "completed payload の非 object と invalid object が dropped になり、onImportCompleted を呼ばないことを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+      line: 354
+      symbol: "completed malformed payload tests"
+      reason: "非 object、空 object、未知 key、不正 page、不正 page + valid summary が dropped になり、完了 handler を呼ばないテストを確認した。"
+    - path: "internal/usecase/translation_job_management_usecase.go"
+      line: 129
+      symbol: "logPhaseStateCommand"
+      reason: "actualBeforeState と actualAfterState を log の before_state / after_state に使うことを確認した。"
+    - path: "internal/usecase/translation_job_management_usecase_test.go"
+      line: 114
+      symbol: "TestLogPhaseStateCommandUsesActualReadModelState"
+      reason: "許可経路の before_state=idle_ready、after_state=running と、拒否経路の同一実状態を検査していることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 188
+      symbol: "TermTranslationPhaseCommandReadModel"
+      reason: "BeforePhaseState / AfterPhaseState が command read model に含まれることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 525
+      symbol: "executePhaseTransaction"
+      reason: "実行 plan の BeforePhaseState が成功 response に渡ることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 197
+      symbol: "PersonaGenerationPhaseCommandReadModel"
+      reason: "BeforePhaseState / AfterPhaseState が command read model に含まれることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 723
+      symbol: "mutatePhaseState"
+      reason: "更新前 run.State を before_state にし、更新後 state を after_state にすることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 207
+      symbol: "BodyTranslationPhaseCommandReadModel"
+      reason: "BeforePhaseState / AfterPhaseState が command read model に含まれることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1340
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "状態遷移前に beforePhaseState を取得し、更新後 response と組み合わせる経路を確認した。"
+    - path: "internal/usecase/term_translation_phase_usecase.go"
+      line: 49
+      symbol: "StartTermTranslationPhase"
+      reason: "service read model の BeforePhaseState / AfterPhaseState を logPhaseStateCommand へ渡すことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_usecase.go"
+      line: 50
+      symbol: "StartPersonaGenerationPhase"
+      reason: "service read model の BeforePhaseState / AfterPhaseState を logPhaseStateCommand へ渡すことを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 49
+      symbol: "StartBodyTranslationPhase"
+      reason: "service read model の BeforePhaseState / AfterPhaseState を logPhaseStateCommand へ渡すことを確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "codex-review-behavior の非対象規約により、レビュー agent はハーネスを実行しない。呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業ツリーで同じ pass 結果を再確認していない。"
+  - target: "全 command の API 実行"
+    reason: "挙動正しさレビューは差分実コードと代表テストを根拠にした。term / persona / body の全 phase command を API 経由では実行していない。"
+    risk: "API 経由でのみ発生する adapter 層の問題は、この観点レビューでは検出していない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "completed runtime event の malformed payload が accepted になる"
+    problem: "前回問題は解決済みである。completed runtime event は payload が object でない場合と、有効な page / summary を持たない object の場合に dropped log を出し、onImportCompleted を呼ばない。"
+    reason: "malformed completed payload を accepted として扱わないため、store を誤って完了状態へ更新する経路は閉じている。"
+    violated_condition: "frontend runtime event log は payload parse 失敗または invalid payload を dropped として分類し、画面状態を壊さない。"
+    cause_candidate: "修正前は completed 分岐が payload shape を十分に確認していなかった。修正後は frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts:277 で isRuntimeImportCompletedPayload に失敗した payload を dropped として return する。"
+    evidence:
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+        line: 264
+        excerpt: "handleImportCompletedEvent は非 object payload を dropped / payload_parse_failed として return する。"
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+        line: 277
+        excerpt: "有効な completed payload でない object は dropped / invalid_payload として return する。"
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+        line: 354
+        excerpt: "非 object completed payload は dropped になり、onImportCompleted を呼ばない。"
+      - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.test.ts"
+        line: 381
+        excerpt: "空 object completed payload は dropped になり、onImportCompleted を呼ばない。"
+    local_fix_assessment: "resolved。runtime event adapter と対応テストの局所修正で閉じている。"
+    additional_check_scope: "none。frontend-local pass 証跡と malformed payload テストで主要経路は確認できる。"
+    fix_considerations: "解決済みのため追加修正指示はない。frontend log を backend へ送らない条件は維持されている。"
+    verification: "呼び出し元の python3 scripts/harness/run.py --suite frontend-local は pass。対象テストは malformed completed payload の dropped と handler 未呼び出しを検査している。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "behavior-002"
+    level: "major"
+    title: "phase state log の許可経路で before_state が変更前状態にならない"
+    problem: "前回問題は解決済みである。phase start / pause / resume / retry / cancel の許可経路では、service が実変更前状態と実変更後状態を command read model に詰め、usecase log が before_state / after_state として出す。"
+    reason: "承認済み範囲が求める変更前状態と変更後状態が、固定前提値や unknown ではなく service が判断した実状態から渡るため、状態変更前後の原因分離に使える。"
+    violated_condition: "backend state transition log は、許可された状態変更で変更前状態、変更後状態、代表 id を含む。"
+    cause_candidate: "修正前は service 後の PhaseState だけが log 入力に渡っていた。修正後は internal/service/*_phase_service.go の command read model が BeforePhaseState / AfterPhaseState を持ち、internal/usecase/*_phase_usecase.go が両値を logPhaseStateCommand へ渡す。"
+    evidence:
+      - path: "internal/usecase/translation_job_management_usecase.go"
+        line: 140
+        excerpt: "logPhaseStateCommand は actualBeforeState と actualAfterState を正規化し、before_state と after_state に使う。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 525
+        excerpt: "term phase は execution plan の BeforePhaseState を成功 response へ渡す。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 723
+        excerpt: "persona phase の mutatePhaseState は更新前 run.State と更新後 state を返す。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1340
+        excerpt: "body phase は状態遷移前に beforePhaseState を取得し、更新後 response に組み合わせる。"
+      - path: "internal/usecase/translation_job_management_usecase_test.go"
+        line: 114
+        excerpt: "許可経路で before_state=idle_ready、after_state=running を検査している。"
+    local_fix_assessment: "resolved。service read model と usecase log 入力の連携修正で閉じている。実状態を取れない service error だけ unknown へ戻す挙動もテストされている。"
+    additional_check_scope: "none。term / persona / body の service read model と usecase 呼び出しの主要経路を確認した。API 経由の網羅確認は未実施だが、呼び出し元の backend-local pass 証跡がある。"
+    fix_considerations: "解決済みのため追加修正指示はない。固定前提値に戻さず、service が取得した実状態を log payload に流す条件を維持する必要がある。"
+    verification: "呼び出し元の go test ./internal/usecase、go test ./internal/service、python3 scripts/harness/run.py --suite backend-local は pass。対象テストは許可経路の actual before / after と service error 時の unknown fallback を検査している。"
+    fix_required: true
+    status: "resolved"

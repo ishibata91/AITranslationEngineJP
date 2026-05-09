@@ -18,6 +18,8 @@ type personaGenerationPhaseServicePort interface {
 	ReadBodyReadiness(ctx context.Context, jobID int64) (service.PersonaGenerationBodyReadinessReadModel, error)
 }
 
+const personaGenerationPhaseUsecaseLogWhere = "backend.usecase.persona_generation_phase"
+
 // PersonaGenerationPhaseUsecase bridges the persona phase contract to the service layer.
 type PersonaGenerationPhaseUsecase struct {
 	service personaGenerationPhaseServicePort
@@ -46,6 +48,7 @@ func (usecase *PersonaGenerationPhaseUsecase) StartPersonaGenerationPhase(
 	request StartPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
 	readModel, err := usecase.service.StartPhase(ctx, request.JobID)
+	logPhaseStateCommand(ctx, "persona_generation_phase_start", personaGenerationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toPersonaGenerationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("start persona generation phase: %w", err)
@@ -59,6 +62,8 @@ func (usecase *PersonaGenerationPhaseUsecase) PausePersonaGenerationPhase(
 	request PausePersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
 	readModel, err := usecase.service.PausePhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "persona_generation_phase_pause", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
 		return PersonaGenerationPhaseCommandResult{}, fmt.Errorf("pause persona generation phase: %w", err)
 	}
@@ -71,6 +76,8 @@ func (usecase *PersonaGenerationPhaseUsecase) ResumePersonaGenerationPhase(
 	request ResumePersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
 	readModel, err := usecase.service.ResumePhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "persona_generation_phase_resume", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toPersonaGenerationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("resume persona generation phase: %w", err)
@@ -84,6 +91,8 @@ func (usecase *PersonaGenerationPhaseUsecase) RetryPersonaGenerationPhase(
 	request RetryPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
 	readModel, err := usecase.service.RetryPhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "persona_generation_phase_retry", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toPersonaGenerationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("retry persona generation phase: %w", err)
@@ -97,6 +106,8 @@ func (usecase *PersonaGenerationPhaseUsecase) CancelPersonaGenerationPhase(
 	request CancelPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
 	readModel, err := usecase.service.CancelPhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "persona_generation_phase_cancel", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
 		return PersonaGenerationPhaseCommandResult{}, fmt.Errorf("cancel persona generation phase: %w", err)
 	}
@@ -109,6 +120,7 @@ func (usecase *PersonaGenerationPhaseUsecase) GetPersonaGenerationBodyReadiness(
 	request GetPersonaGenerationBodyReadinessRequest,
 ) (PersonaGenerationBodyReadinessResult, error) {
 	readModel, err := usecase.service.ReadBodyReadiness(ctx, request.JobID)
+	logPhaseReadiness(ctx, "persona_generation_body_readiness", personaGenerationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseState, readModel.Ready, readModel.BlockedReason, err)
 	result := PersonaGenerationBodyReadinessResult{
 		JobID:         readModel.JobID,
 		CurrentPhase:  readModel.CurrentPhase,
@@ -128,6 +140,13 @@ func (usecase *PersonaGenerationPhaseUsecase) GetPersonaGenerationBodyReadiness(
 		return result, fmt.Errorf("get persona generation body readiness: %w", err)
 	}
 	return result, nil
+}
+
+func personaGenerationReadModelErrorReason(readModel *service.PersonaGenerationPhaseErrorSummaryReadModel) string {
+	if readModel == nil {
+		return ""
+	}
+	return readModel.ErrorKind
 }
 
 func toPersonaGenerationPhaseSummaryResult(

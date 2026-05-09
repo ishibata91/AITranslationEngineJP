@@ -1,8 +1,11 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -283,6 +286,35 @@ func TestProviderSettingsServiceValidateRejectsDelayedResponseByRequestToken(t *
 	}
 	if current.ValidationState != "not_validated" {
 		t.Fatalf("expected delayed validation not to overwrite current validation state, got %#v", current)
+	}
+}
+
+func TestLogProviderBoundaryFailureUsesSafePayloadOnly(t *testing.T) {
+	var buffer bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buffer, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	logProviderBoundaryFailure(context.Background(), "provider_execution_settings", "provider_settings.service", "gemini", "")
+
+	var payload map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal provider settings payload: %v", err)
+	}
+	if payload["event"] != "provider_execution_settings" || payload["where"] != "provider_settings.service" || payload["result"] != "failed" {
+		t.Fatalf("unexpected provider settings payload: %#v", payload)
+	}
+	if payload["reason"] != "unknown" {
+		t.Fatalf("expected normalized reason, got %#v", payload)
+	}
+	if payload["provider"] != "gemini" {
+		t.Fatalf("expected provider id, got %#v", payload)
+	}
+	forbidden := []string{"api_key", "endpoint", "raw_request", "raw_response", "full_path", "trace_id"}
+	for _, key := range forbidden {
+		if _, ok := payload[key]; ok {
+			t.Fatalf("forbidden key %q in payload: %#v", key, payload)
+		}
 	}
 }
 

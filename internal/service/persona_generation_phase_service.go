@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -52,6 +53,7 @@ const (
 	personaGenerationErrorKindInputMissing     = "input_missing"
 	personaGenerationTerminalJobReason         = "terminal job"
 	personaGenerationReasonPhaseRuntimeMissing = "phase runtime snapshot is missing"
+	personaGenerationPhaseServiceWhere         = "persona_generation_phase.service"
 	personaGenerationRunLoadErrorMessage       = "load persona generation phase run: %w"
 	personaGenerationRedactedPublicSummary     = "redacted public summary"
 )
@@ -196,6 +198,8 @@ type PersonaGenerationPhaseSummaryReadModel struct {
 type PersonaGenerationPhaseCommandReadModel struct {
 	JobID             int64
 	CurrentPhase      string
+	BeforePhaseState  string
+	AfterPhaseState   string
 	PhaseState        string
 	PhaseRunID        *int64
 	StartedAt         *time.Time
@@ -359,6 +363,10 @@ func (service *PersonaGenerationPhaseService) StartPhase(
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, err
 	}
+	beforePhaseState := normalizePersonaGenerationPhaseState("", snapshot.targetCount)
+	if run != nil {
+		beforePhaseState = normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
+	}
 	var startExecutionSnapshot *providerExecutionSnapshot
 	if run == nil {
 		resolvedRun, resolvedSnapshot, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, termRun)
@@ -387,7 +395,10 @@ func (service *PersonaGenerationPhaseService) StartPhase(
 	if err != nil {
 		return service.commandFromRun(ctx, updatedJob, updatedRun, snapshot, &termRun), err
 	}
-	return service.startPhaseCommandReadModel(ctx, updatedJob, updatedRun, snapshot), nil
+	response := service.startPhaseCommandReadModel(ctx, updatedJob, updatedRun, snapshot)
+	response.BeforePhaseState = beforePhaseState
+	response.AfterPhaseState = response.PhaseState
+	return response, nil
 }
 
 // PausePhase pauses one running persona phase run.
@@ -425,9 +436,15 @@ func (service *PersonaGenerationPhaseService) ResumePhase(
 	}
 	updatedRun, execErr := service.executePhaseRun(ctx, job, *refreshedRun, snapshot)
 	if execErr != nil {
-		return service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun), execErr
+		response := service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun)
+		response.BeforePhaseState = command.BeforePhaseState
+		response.AfterPhaseState = response.PhaseState
+		return response, execErr
 	}
-	return service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun), nil
+	response := service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun)
+	response.BeforePhaseState = command.BeforePhaseState
+	response.AfterPhaseState = response.PhaseState
+	return response, nil
 }
 
 // RetryPhase retries one persona phase run or returns its redacted failure.
@@ -486,9 +503,15 @@ func (service *PersonaGenerationPhaseService) RetryPhase(
 	}
 	updatedRun, execErr := service.executePhaseRun(ctx, job, *refreshedRun, snapshot)
 	if execErr != nil {
-		return service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun), execErr
+		response := service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun)
+		response.BeforePhaseState = command.BeforePhaseState
+		response.AfterPhaseState = response.PhaseState
+		return response, execErr
 	}
-	return service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun), nil
+	response := service.commandFromRun(ctx, job, updatedRun, snapshot, &termRun)
+	response.BeforePhaseState = command.BeforePhaseState
+	response.AfterPhaseState = response.PhaseState
+	return response, nil
 }
 
 // CancelPhase cancels one persona phase run.
@@ -698,13 +721,15 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 	progress := service.buildProgress(state, &updatedRun, snapshot)
 	resultSummary, _, canStartBodyPhase := service.buildResultState(ctx, &updatedRun, snapshot)
 	return PersonaGenerationPhaseCommandReadModel{
-		JobID:        job.ID,
-		CurrentPhase: personaGenerationCurrentPhase,
-		PhaseState:   state,
-		PhaseRunID:   clonePersonaInt64Pointer(&updatedRun.ID),
-		StartedAt:    clonePersonaTimePointer(updatedRun.StartedAt),
-		FinishedAt:   clonePersonaTimePointer(updatedRun.FinishedAt),
-		Progress:     progress,
+		JobID:            job.ID,
+		CurrentPhase:     personaGenerationCurrentPhase,
+		BeforePhaseState: normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount),
+		AfterPhaseState:  state,
+		PhaseState:       state,
+		PhaseRunID:       clonePersonaInt64Pointer(&updatedRun.ID),
+		StartedAt:        clonePersonaTimePointer(updatedRun.StartedAt),
+		FinishedAt:       clonePersonaTimePointer(updatedRun.FinishedAt),
+		Progress:         progress,
 		TargetSummary: PersonaGenerationTargetSummaryReadModel{
 			TargetCount:            snapshot.targetCount,
 			CommonPersonaHitCount:  snapshot.commonHits,
@@ -765,10 +790,16 @@ func (service *PersonaGenerationPhaseService) phaseMutationRejected(
 ) PersonaGenerationPhaseCommandReadModel {
 	job, _, termRun, snapshot, loadErr := service.loadContext(ctx, jobID)
 	if loadErr != nil {
+		actualState := personaGenerationPhaseStateRejected
+		if run != nil {
+			actualState = strings.TrimSpace(run.State)
+		}
 		return PersonaGenerationPhaseCommandReadModel{
-			JobID:        jobID,
-			CurrentPhase: personaGenerationCurrentPhase,
-			PhaseState:   personaGenerationPhaseStateRejected,
+			JobID:            jobID,
+			CurrentPhase:     personaGenerationCurrentPhase,
+			BeforePhaseState: actualState,
+			AfterPhaseState:  actualState,
+			PhaseState:       personaGenerationPhaseStateRejected,
 			ErrorSummary: &PersonaGenerationPhaseErrorSummaryReadModel{
 				ErrorKind:  errorKind,
 				Reason:     reason,
@@ -777,14 +808,20 @@ func (service *PersonaGenerationPhaseService) phaseMutationRejected(
 			},
 		}
 	}
+	actualState := personaGenerationPhaseStateRejected
+	if run != nil {
+		actualState = normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
+	}
 	return PersonaGenerationPhaseCommandReadModel{
-		JobID:        job.ID,
-		CurrentPhase: personaGenerationCurrentPhase,
-		PhaseState:   personaGenerationPhaseStateRejected,
-		PhaseRunID:   clonePersonaInt64Pointer(&run.ID),
-		StartedAt:    clonePersonaTimePointer(run.StartedAt),
-		FinishedAt:   clonePersonaTimePointer(run.FinishedAt),
-		Progress:     service.buildProgress(personaGenerationPhaseStateRejected, run, snapshot),
+		JobID:            job.ID,
+		CurrentPhase:     personaGenerationCurrentPhase,
+		BeforePhaseState: actualState,
+		AfterPhaseState:  actualState,
+		PhaseState:       personaGenerationPhaseStateRejected,
+		PhaseRunID:       clonePersonaInt64Pointer(&run.ID),
+		StartedAt:        clonePersonaTimePointer(run.StartedAt),
+		FinishedAt:       clonePersonaTimePointer(run.FinishedAt),
+		Progress:         service.buildProgress(personaGenerationPhaseStateRejected, run, snapshot),
 		TargetSummary: PersonaGenerationTargetSummaryReadModel{
 			TargetCount:            snapshot.targetCount,
 			CommonPersonaHitCount:  snapshot.commonHits,
@@ -1153,6 +1190,7 @@ func (service *PersonaGenerationPhaseService) resolveExecutionSnapshotForStart(
 	termRun repository.JobPhaseRun,
 ) (repository.JobPhaseRun, *providerExecutionSnapshot, *personaGenerationStartRejection, error) {
 	if !providerExecutionUsesProviderSettings(termRun.AIProvider) {
+		logProviderBoundarySkipped(ctx, "persona_generation_provider_settings", personaGenerationPhaseServiceWhere, termRun.AIProvider, "provider_skipped", 1)
 		return termRun, nil, nil, nil
 	}
 	if service.providerSettings == nil {
@@ -1172,9 +1210,11 @@ func (service *PersonaGenerationPhaseService) resolveExecutionSnapshotForStart(
 		},
 	})
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "persona_generation_provider_settings", personaGenerationPhaseServiceWhere, termRun.AIProvider, "secret_store_failed")
 		return repository.JobPhaseRun{}, nil, nil, fmt.Errorf("resolve persona generation provider settings: %w", err)
 	}
 	if resolved.ErrorKind != nil {
+		logProviderBoundaryFailure(ctx, "persona_generation_provider_settings", personaGenerationPhaseServiceWhere, termRun.AIProvider, *resolved.ErrorKind)
 		switch strings.TrimSpace(*resolved.ErrorKind) {
 		case providerSettingsErrorKindCredentialMissing, providerSettingsErrorKindEndpointMissing:
 			return termRun, nil, &personaGenerationStartRejection{
@@ -1220,13 +1260,19 @@ func (service *PersonaGenerationPhaseService) rejectedCommand(
 		startedAt = clonePersonaTimePointer(run.StartedAt)
 		finishedAt = clonePersonaTimePointer(run.FinishedAt)
 	}
+	actualState := personaGenerationPhaseStateRejected
+	if run != nil {
+		actualState = normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
+	}
 	return PersonaGenerationPhaseCommandReadModel{
-		JobID:        job.ID,
-		CurrentPhase: personaGenerationCurrentPhase,
-		PhaseState:   personaGenerationPhaseStateRejected,
-		PhaseRunID:   clonePersonaInt64Pointer(phaseRunID),
-		StartedAt:    startedAt,
-		FinishedAt:   finishedAt,
+		JobID:            job.ID,
+		CurrentPhase:     personaGenerationCurrentPhase,
+		BeforePhaseState: actualState,
+		AfterPhaseState:  actualState,
+		PhaseState:       personaGenerationPhaseStateRejected,
+		PhaseRunID:       clonePersonaInt64Pointer(phaseRunID),
+		StartedAt:        startedAt,
+		FinishedAt:       finishedAt,
 		Progress: PersonaGenerationPhaseProgressReadModel{
 			Percent:     0,
 			TotalCount:  snapshot.targetCount,
@@ -1302,7 +1348,32 @@ func (service *PersonaGenerationPhaseService) executePhaseRun(
 		}
 		runSnapshot = nextSnapshot
 	}
+	logPersonaGenerationBulkSummary(ctx, snapshot, runSnapshot, failures)
 	return service.finishPhaseRun(ctx, run, snapshot, runSnapshot, failures)
+}
+
+func logPersonaGenerationBulkSummary(
+	ctx context.Context,
+	snapshot personaGenerationTargetSnapshot,
+	runSnapshot personaGenerationRunSnapshot,
+	failures []personaGenerationExecutionFailure,
+) {
+	attrs := []slog.Attr{
+		slog.String("event", "persona_generation_bulk_summary"),
+		slog.String("where", "backend.service.persona_generation_phase.provider_execution"),
+		slog.String("result", "completed"),
+		slog.Int("input_count", snapshot.targetCount),
+		slog.Int("output_count", runSnapshot.totalLinkedCount),
+		slog.Int("skipped_count", len(snapshot.skippedReasons)),
+		slog.Int("failed_count", len(failures)),
+	}
+	if len(failures) > 0 {
+		attrs = append(attrs,
+			slog.String("first_failure_kind", normalizePersonaField(failures[0].kind)),
+			slog.String("last_failure_kind", normalizePersonaField(failures[len(failures)-1].kind)),
+		)
+	}
+	slog.LogAttrs(ctx, slog.LevelInfo, "persona generation bulk summary", attrs...)
 }
 
 func (service *PersonaGenerationPhaseService) startPhaseRunTransaction(
@@ -1369,13 +1440,15 @@ func (service *PersonaGenerationPhaseService) startPhaseCommandReadModel(
 	progress := service.buildProgress(state, &run, snapshot)
 	resultSummary, _, canStartBodyPhase := service.buildResultState(ctx, &run, snapshot)
 	return PersonaGenerationPhaseCommandReadModel{
-		JobID:        job.ID,
-		CurrentPhase: personaGenerationCurrentPhase,
-		PhaseState:   state,
-		PhaseRunID:   clonePersonaInt64Pointer(&run.ID),
-		StartedAt:    clonePersonaTimePointer(run.StartedAt),
-		FinishedAt:   clonePersonaTimePointer(run.FinishedAt),
-		Progress:     progress,
+		JobID:            job.ID,
+		CurrentPhase:     personaGenerationCurrentPhase,
+		BeforePhaseState: state,
+		AfterPhaseState:  state,
+		PhaseState:       state,
+		PhaseRunID:       clonePersonaInt64Pointer(&run.ID),
+		StartedAt:        clonePersonaTimePointer(run.StartedAt),
+		FinishedAt:       clonePersonaTimePointer(run.FinishedAt),
+		Progress:         progress,
 		TargetSummary: PersonaGenerationTargetSummaryReadModel{
 			TargetCount:            snapshot.targetCount,
 			CommonPersonaHitCount:  snapshot.commonHits,
@@ -1632,6 +1705,7 @@ func (service *PersonaGenerationPhaseService) executeGeneratedPersonaTarget(
 		return personaGenerationRunSnapshot{}, failure, nil
 	}
 	if service.provider == nil {
+		logProviderBoundaryFailure(ctx, "persona_generation_provider_execute", personaGenerationPhaseServiceWhere, run.AIProvider, "provider_unavailable")
 		failure := personaGenerationExecutionFailure{
 			kind:      personaGenerationErrorKindProviderFailure,
 			reason:    personaGenerationRedactedPublicSummary,
@@ -1641,6 +1715,7 @@ func (service *PersonaGenerationPhaseService) executeGeneratedPersonaTarget(
 	}
 	result := service.provider.GeneratePersona(ctx, request)
 	if result.Failure != nil {
+		logProviderBoundaryFailure(ctx, "persona_generation_provider_execute", personaGenerationPhaseServiceWhere, run.AIProvider, normalizePersonaGenerationProviderFailureKind(string(result.Failure.Kind)))
 		failure := personaGenerationExecutionFailure{
 			kind:      normalizePersonaField(string(result.Failure.Kind)),
 			reason:    personaGenerationRedactedPublicSummary,
@@ -1649,6 +1724,7 @@ func (service *PersonaGenerationPhaseService) executeGeneratedPersonaTarget(
 		return personaGenerationRunSnapshot{}, &failure, nil
 	}
 	if !personaGenerationProviderResultMatchesRequest(result, request) {
+		logProviderBoundaryFailure(ctx, "persona_generation_provider_execute", personaGenerationPhaseServiceWhere, run.AIProvider, "correlation_error")
 		failure := personaGenerationExecutionFailure{
 			kind:      personaGenerationErrorKindInvalidProvider,
 			reason:    personaGenerationRedactedPublicSummary,
@@ -2046,13 +2122,15 @@ func (service *PersonaGenerationPhaseService) commandFromRun(
 	progress := service.buildProgress(state, &run, snapshot)
 	resultSummary, errorSummary, canStartBodyPhase := service.buildResultState(ctx, &run, snapshot)
 	command := PersonaGenerationPhaseCommandReadModel{
-		JobID:        job.ID,
-		CurrentPhase: personaGenerationCurrentPhase,
-		PhaseState:   state,
-		PhaseRunID:   clonePersonaInt64Pointer(&run.ID),
-		StartedAt:    clonePersonaTimePointer(run.StartedAt),
-		FinishedAt:   clonePersonaTimePointer(run.FinishedAt),
-		Progress:     progress,
+		JobID:            job.ID,
+		CurrentPhase:     personaGenerationCurrentPhase,
+		BeforePhaseState: state,
+		AfterPhaseState:  state,
+		PhaseState:       state,
+		PhaseRunID:       clonePersonaInt64Pointer(&run.ID),
+		StartedAt:        clonePersonaTimePointer(run.StartedAt),
+		FinishedAt:       clonePersonaTimePointer(run.FinishedAt),
+		Progress:         progress,
 		TargetSummary: PersonaGenerationTargetSummaryReadModel{
 			TargetCount:            snapshot.targetCount,
 			CommonPersonaHitCount:  snapshot.commonHits,

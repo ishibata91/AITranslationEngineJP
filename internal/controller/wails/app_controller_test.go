@@ -33,7 +33,7 @@ func TestAppControllerOnStartupRetainsRuntimeContext(t *testing.T) {
 	controller := NewAppController(masterDictionaryController, NewMasterPersonaController(fakeMasterPersonaUsecase{}), nil)
 	emitter := &fakeRuntimeEventEmitter{}
 
-	controller.OnStartup(newRuntimeEventContext(emitter))
+	NewAppLifecycle(controller).OnStartup(newRuntimeEventContext(emitter))
 
 	runtimeCtx, ok := controller.runtimeEventContext()
 	if !ok || runtimeCtx == nil {
@@ -49,9 +49,9 @@ func TestAppControllerOnShutdownClearsRuntimeContext(t *testing.T) {
 	runtimeState := NewRuntimeEmitterState()
 	masterDictionaryController := NewMasterDictionaryController(fakeMasterDictionaryUsecase{}, runtimeState)
 	controller := NewAppController(masterDictionaryController, NewMasterPersonaController(fakeMasterPersonaUsecase{}), nil)
-	controller.OnStartup(newRuntimeEventContext(&fakeRuntimeEventEmitter{}))
+	NewAppLifecycle(controller).OnStartup(newRuntimeEventContext(&fakeRuntimeEventEmitter{}))
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	clearedCtx, ok := controller.runtimeEventContext()
 	if ok || clearedCtx != nil {
@@ -70,7 +70,7 @@ func TestAppControllerOnShutdownRunsCleanupCallback(t *testing.T) {
 		},
 	)
 
-	controller.OnShutdown(context.Background())
+	NewAppLifecycle(controller).OnShutdown(context.Background())
 
 	if !shutdownCalled {
 		t.Fatal("expected shutdown hook to run cleanup callback")

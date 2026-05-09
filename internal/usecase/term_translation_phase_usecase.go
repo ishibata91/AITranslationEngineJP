@@ -17,6 +17,8 @@ type termTranslationPhaseServicePort interface {
 	ReadNextPhaseReadiness(ctx context.Context, jobID int64) (service.TermTranslationNextPhaseReadinessReadModel, error)
 }
 
+const termTranslationPhaseUsecaseLogWhere = "backend.usecase.term_translation_phase"
+
 // TermTranslationPhaseUsecase bridges the frozen term phase contract to the service layer.
 type TermTranslationPhaseUsecase struct {
 	service termTranslationPhaseServicePort
@@ -45,6 +47,7 @@ func (usecase *TermTranslationPhaseUsecase) StartTermTranslationPhase(
 	request StartTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.StartPhase(ctx, request.JobID)
+	logPhaseStateCommand(ctx, "term_translation_phase_start", termTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
 		return TermTranslationPhaseCommandResult{}, fmt.Errorf("start term translation phase: %w", err)
 	}
@@ -57,6 +60,8 @@ func (usecase *TermTranslationPhaseUsecase) PauseTermTranslationPhase(
 	request PauseTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.PausePhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "term_translation_phase_pause", termTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
 		return TermTranslationPhaseCommandResult{}, fmt.Errorf("pause term translation phase: %w", err)
 	}
@@ -69,6 +74,8 @@ func (usecase *TermTranslationPhaseUsecase) ResumeTermTranslationPhase(
 	request ResumeTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.ResumePhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "term_translation_phase_resume", termTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
 		return TermTranslationPhaseCommandResult{}, fmt.Errorf("resume term translation phase: %w", err)
 	}
@@ -81,6 +88,8 @@ func (usecase *TermTranslationPhaseUsecase) RetryTermTranslationPhase(
 	request RetryTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.RetryPhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "term_translation_phase_retry", termTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
 		return TermTranslationPhaseCommandResult{}, fmt.Errorf("retry term translation phase: %w", err)
 	}
@@ -93,6 +102,7 @@ func (usecase *TermTranslationPhaseUsecase) GetTermTranslationNextPhaseReadiness
 	request GetTermTranslationNextPhaseReadinessRequest,
 ) (TermTranslationNextPhaseReadinessResult, error) {
 	readModel, err := usecase.service.ReadNextPhaseReadiness(ctx, request.JobID)
+	logPhaseReadiness(ctx, "term_translation_next_phase_readiness", termTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseState, readModel.CanStartNextPhase, readModel.BlockedReason, err)
 	if err != nil {
 		return TermTranslationNextPhaseReadinessResult{}, fmt.Errorf("get term translation next phase readiness: %w", err)
 	}
@@ -104,6 +114,13 @@ func (usecase *TermTranslationPhaseUsecase) GetTermTranslationNextPhaseReadiness
 		BlockedReason:     cloneStringPointer(readModel.BlockedReason),
 		ErrorKind:         NormalizeTermTranslationPhasePublicErrorKind(readModel.ErrorKind),
 	}, nil
+}
+
+func termTranslationReadModelErrorReason(readModel *service.TermTranslationPhaseErrorReadModel) string {
+	if readModel == nil {
+		return ""
+	}
+	return readModel.ErrorKind
 }
 
 func toTermTranslationPhaseSummaryResult(

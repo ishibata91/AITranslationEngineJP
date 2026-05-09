@@ -1,8 +1,11 @@
 package usecase
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
 	"errors"
+	"log/slog"
 	"strings"
 	"testing"
 
@@ -106,4 +109,65 @@ func TestTranslationJobManagementUsecaseGetDetailMapsReasonCategory(t *testing.T
 	if len(result.ResumeBlockedReasons) != 1 || result.ResumeBlockedReasons[0].Category != "cache_missing" {
 		t.Fatalf("expected blocked reason category mapping, got %#v", result.ResumeBlockedReasons)
 	}
+}
+
+func TestLogPhaseStateCommandUsesActualReadModelState(t *testing.T) {
+	phaseRunID := int64(12)
+
+	accepted := capturePhaseStateCommandLog(t, func(ctx context.Context) {
+		logPhaseStateCommand(ctx, "phase_start", "backend.usecase.test", 7, &phaseRunID, "idle_ready", "running", "", nil)
+	})
+	if accepted["result"] != "accepted" {
+		t.Fatalf("expected accepted result, got %#v", accepted)
+	}
+	if accepted["before_state"] != "idle_ready" || accepted["after_state"] != "running" {
+		t.Fatalf("expected accepted state log to use actual before and after state, got %#v", accepted)
+	}
+
+	rejected := capturePhaseStateCommandLog(t, func(ctx context.Context) {
+		logPhaseStateCommand(ctx, "phase_pause", "backend.usecase.test", 7, &phaseRunID, "completed", "completed", "invalid_phase_state", nil)
+	})
+	if rejected["result"] != "rejected" || rejected["reason"] != "invalid_phase_state" {
+		t.Fatalf("expected rejected result and reason, got %#v", rejected)
+	}
+	if rejected["before_state"] != "completed" || rejected["after_state"] != "completed" {
+		t.Fatalf("expected rejected state log to use actual unchanged state, got %#v", rejected)
+	}
+}
+
+func TestLogPhaseStateCommandFallsBackToUnknownWhenActualStateMissing(t *testing.T) {
+	entry := capturePhaseStateCommandLog(t, func(ctx context.Context) {
+		logPhaseStateCommand(ctx, "phase_retry", "backend.usecase.test", 7, nil, "", "", "", errors.New("db down"))
+	})
+	if entry["result"] != "rejected" || entry["reason"] != "service_error" {
+		t.Fatalf("expected service error rejection, got %#v", entry)
+	}
+	if entry["before_state"] != "unknown" || entry["after_state"] != "unknown" {
+		t.Fatalf("expected unknown fallback for missing actual state, got %#v", entry)
+	}
+}
+
+func capturePhaseStateCommandLog(t *testing.T, writeLog func(context.Context)) map[string]string {
+	t.Helper()
+
+	var buffer bytes.Buffer
+	previousLogger := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buffer, nil)))
+	t.Cleanup(func() {
+		slog.SetDefault(previousLogger)
+	})
+
+	writeLog(context.Background())
+
+	var raw map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &raw); err != nil {
+		t.Fatalf("expected JSON log entry, got %q: %v", buffer.String(), err)
+	}
+	entry := make(map[string]string, len(raw))
+	for key, value := range raw {
+		if text, ok := value.(string); ok {
+			entry[key] = text
+		}
+	}
+	return entry
 }

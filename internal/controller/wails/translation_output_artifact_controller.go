@@ -3,6 +3,7 @@ package wails
 import (
 	"context"
 	"fmt"
+	"log/slog"
 
 	"aitranslationenginejp/internal/usecase"
 )
@@ -214,6 +215,7 @@ func (controller *TranslationOutputArtifactController) GenerateXTranslatorOutput
 	if err != nil {
 		return TranslationOutputArtifactCommandResponseDTO{}, fmt.Errorf("generate xtranslator output artifact: %w", err)
 	}
+	logTranslationOutputArtifactCommandFailure("generate", result)
 	return toTranslationOutputArtifactCommandResponseDTO(result), nil
 }
 
@@ -233,7 +235,37 @@ func (controller *TranslationOutputArtifactController) RegenerateXTranslatorOutp
 	if err != nil {
 		return TranslationOutputArtifactCommandResponseDTO{}, fmt.Errorf("regenerate xtranslator output artifact: %w", err)
 	}
+	logTranslationOutputArtifactCommandFailure("regenerate", result)
 	return toTranslationOutputArtifactCommandResponseDTO(result), nil
+}
+
+func logTranslationOutputArtifactCommandFailure(
+	operation string,
+	result usecase.XTranslatorOutputArtifactCommandResult,
+) {
+	if result.ErrorSummary == nil {
+		return
+	}
+	slog.WarnContext(context.Background(), "translation output artifact boundary failed",
+		slog.String("event", "translation_output_artifact_boundary_failed"),
+		slog.String("where", "backend.controller.wails.translation_output_artifact."+operation),
+		slog.String("result", "failed"),
+		slog.String("id", fmt.Sprintf("job:%d", result.JobID)),
+		slog.String("reason", classifyTranslationOutputArtifactBoundaryFailure(result.ErrorSummary.ErrorKind)),
+	)
+}
+
+func classifyTranslationOutputArtifactBoundaryFailure(errorKind string) string {
+	switch errorKind {
+	case "file_write_failed":
+		return "file_write_failed"
+	case "artifact_save_failed":
+		return "db_save_failed"
+	case "xml_serialization_failed":
+		return "response_mapping_failed"
+	default:
+		return "response_mapping_failed"
+	}
 }
 
 func toTranslationOutputReviewResponseDTO(result usecase.TranslationOutputReviewResult) TranslationOutputReviewResponseDTO {

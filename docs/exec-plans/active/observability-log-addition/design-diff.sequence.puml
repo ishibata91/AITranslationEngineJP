@@ -1,0 +1,114 @@
+@startuml
+
+title 観測ログ追加 設計差分図 シーケンス
+
+skinparam shadowing false
+skinparam participantPadding 20
+skinparam BoxPadding 10
+skinparam sequenceMessageAlign center
+skinparam wrapWidth 200
+
+legend bottom right
+    added = 追加予定
+    removed = 追加しない接続または廃案
+    changed = 観測点を足す変更予定
+    existing = 変更しない接続先
+endlegend
+
+actor User
+participant "Wails Bind Controller" as BackendController
+participant "Backend UseCase" as BackendUseCase
+participant "StateMachine" as StateMachine
+participant "JobIOService" as JobIOService
+participant "State Transition Log" as StateLog
+participant "Service" as BackendService
+participant "Provider / Secret / File / DB /\nDTO Mapper / Output Writer" as ExternalBoundary
+participant "External Boundary Log" as BoundaryLog
+participant "Bulk Processor" as BulkProcessor
+participant "Aggregate Count Log" as AggregateLog
+participant "RuntimeEventAdapter" as RuntimeEventAdapter
+participant "ScreenController" as ScreenController
+participant "Store" as FrontendStore
+participant "Browser Console Log" as FrontendLog
+participant "Browser Console" as BrowserConsole
+participant "backend stderr" as BackendStderr
+participant "Removed Paths" as RemovedPaths
+
+== backend 状態遷移 changed ==
+User -> BackendController : command を実行する
+BackendController -> BackendUseCase : existing request DTO を渡す
+BackendUseCase -> StateMachine : existing 遷移可否を確認する
+BackendUseCase -> JobIOService : existing 現在状態を読む
+
+alt 遷移を許可する
+    BackendUseCase -> JobIOService : existing 変更後状態を保存する
+    BackendUseCase -> StateLog : added event / where / result\nbefore / after / id を記録する
+    StateLog -> BackendStderr : existing stderr へ JSON log を出す
+else 遷移を拒否する
+    BackendUseCase -> StateLog : added event / where / result\nreason / before / id を記録する
+    StateLog -> BackendStderr : existing stderr へ JSON log を出す
+end
+
+note over BackendUseCase,StateLog
+changed:
+状態遷移境界で変更前、変更後、拒否理由を同じ箇所へ寄せる。
+trace ID と全 command start / finish log は追加しない。
+end note
+
+== backend 外部境界 changed ==
+BackendController -> BackendService : existing provider / file / DB / output 操作を起動する
+BackendService -> ExternalBoundary : existing 外部 adapter を呼ぶ
+
+alt provider / secret / file / DB / DTO / output が失敗する
+    ExternalBoundary --> BackendService : existing 失敗を返す
+    BackendService -> BoundaryLog : added event / where / result / reason\n必要な id / count を記録する
+    BoundaryLog -> BackendStderr : existing stderr へ JSON log を出す
+else 成功する
+    ExternalBoundary --> BackendService : existing 結果を返す
+end
+
+note over BackendService,BoundaryLog
+changed:
+provider 失敗、secret 再解決失敗、file 失敗、DB 失敗、
+Wails response 変換失敗、成果物出力失敗を別 reason に分ける。
+endpoint 実値、secret、DTO 全体 dump は出さない。
+end note
+
+== frontend runtime event changed ==
+ScreenController -> RuntimeEventAdapter : existing subscribe / detach を管理する
+RuntimeEventAdapter -> RuntimeEventAdapter : changed payload を parse する
+
+alt event を適用できる
+    RuntimeEventAdapter -> FrontendStore : existing state を更新する
+    RuntimeEventAdapter -> FrontendLog : added subscribed / accepted を記録する
+    FrontendLog -> BrowserConsole : existing console へ出す
+else stale event または parse 失敗
+    RuntimeEventAdapter -> FrontendLog : added dropped / skipped / detached を記録する
+    FrontendLog -> BrowserConsole : existing console へ出す
+end
+
+note over RuntimeEventAdapter,FrontendLog
+changed:
+frontend log は browser console に限定する。
+backend へ転送しない。
+end note
+
+== 大量処理 changed ==
+BackendUseCase -> BulkProcessor : changed bulk 実行を起動する
+BulkProcessor -> ExternalBoundary : existing loop 内で provider / DB / output を呼ぶ
+BulkProcessor -> AggregateLog : added input count / output count /\nskipped count / failed count /\nfirst reason / last reason を集約する
+AggregateLog -> BackendStderr : existing stderr へ JSON log を出す
+
+note over BulkProcessor,AggregateLog
+changed:
+loop 内 1 件ごとの log は出さない。
+集約 count と reason だけを残す。
+end note
+
+== 追加しない接続 removed ==
+FrontendLog -[#C62828]> RemovedPaths : removed frontend log を backend へ送らない
+StateLog -[#C62828]> RemovedPaths : removed trace ID を一律追加しない
+BoundaryLog -[#C62828]> RemovedPaths : removed 全 command start / finish log を追加しない
+AggregateLog -[#C62828]> RemovedPaths : removed DTO 全体 dump を追加しない
+
+@enduml

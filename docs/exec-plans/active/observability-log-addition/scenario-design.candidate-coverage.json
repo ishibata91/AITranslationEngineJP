@@ -1,0 +1,147 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "CAND-OBSLOG-GROUP-001",
+      "generator": "merged-groups",
+      "source_requirement_id": "SCN-OBSLOG-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-OBSLOG-001",
+      "decision_rationale": "状態変更、拒否、再開、削除、後続 phase readiness の候補を、変更前、変更後、拒否理由の観測要件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-OBSLOG-GROUP-002",
+      "generator": "merged-groups",
+      "source_requirement_id": "SCN-OBSLOG-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-OBSLOG-002",
+      "decision_rationale": "provider、secret、credential 再解決の候補を、外部境界の失敗分類へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-OBSLOG-GROUP-003",
+      "generator": "merged-groups",
+      "source_requirement_id": "SCN-OBSLOG-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-OBSLOG-003",
+      "decision_rationale": "file、DB、Wails Bind、成果物出力の候補を、外部境界または永続化境界の失敗分類へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-OBSLOG-GROUP-004",
+      "generator": "merged-groups",
+      "source_requirement_id": "SCN-OBSLOG-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-OBSLOG-004",
+      "decision_rationale": "frontend runtime event の受信、適用、破棄を、frontend console log の観測要件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-OBSLOG-GROUP-005",
+      "generator": "merged-groups",
+      "source_requirement_id": "SCN-OBSLOG-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-OBSLOG-005",
+      "decision_rationale": "phase 実行、入力取り込み、成果物生成の大量処理を、集約 count と失敗分類の観測要件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-OBSLOG-GROUP-006",
+      "generator": "merged-groups",
+      "source_requirement_id": "SCN-OBSLOG-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-OBSLOG-006",
+      "decision_rationale": "全候補の禁止ログ条件を、共通の安全受け入れ条件として採用する。"
+    },
+    {
+      "candidate_id": "CAND-OBSLOG-REJECT-001",
+      "generator": "merged-groups",
+      "source_requirement_id": "OBSLOG-FORBIDDEN",
+      "decision": "rejected",
+      "decision_rationale": "trace ID、全 command の start / finish log、frontend log の backend 転送、監査履歴テーブル追加は観測ログ仕様の範囲外である。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONF-OBSLOG-001",
+      "status": "resolved",
+      "resolution": "provider settings の更新履歴保存案は、観測ログ仕様の範囲外として不採用にする。"
+    },
+    {
+      "conflict_id": "CONF-OBSLOG-002",
+      "status": "resolved",
+      "resolution": "frontend log 集約案は、frontend log を backend へ送らない仕様を優先して不採用にする。"
+    },
+    {
+      "conflict_id": "CONF-OBSLOG-003",
+      "status": "resolved",
+      "resolution": "endpoint、full path、credential 参照実値を残す案は、機密情報と環境情報の露出を避けるため不採用にする。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-OBSLOG-001",
+      "candidate_ids": [
+        "CAND-OBSLOG-GROUP-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-OBSLOG-002",
+      "candidate_ids": [
+        "CAND-OBSLOG-GROUP-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-OBSLOG-003",
+      "candidate_ids": [
+        "CAND-OBSLOG-GROUP-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-OBSLOG-004",
+      "candidate_ids": [
+        "CAND-OBSLOG-GROUP-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-OBSLOG-005",
+      "candidate_ids": [
+        "CAND-OBSLOG-GROUP-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-OBSLOG-006",
+      "candidate_ids": [
+        "CAND-OBSLOG-GROUP-006"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

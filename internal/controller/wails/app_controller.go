@@ -17,6 +17,11 @@ type AppController struct {
 	shutdown func(context.Context) error
 }
 
+// AppLifecycle exposes Wails lifecycle hooks without binding them to the frontend.
+type AppLifecycle struct {
+	controller *AppController
+}
+
 // NewAppController builds the root Wails controller.
 func NewAppController(masterDictionaryController *MasterDictionaryController, masterPersonaController *MasterPersonaController, shutdown func(context.Context) error) *AppController {
 	if shutdown == nil {
@@ -37,15 +42,34 @@ func NewAppController(masterDictionaryController *MasterDictionaryController, ma
 	}
 }
 
+// NewAppLifecycle builds the lifecycle hook adapter for Wails options.
+func NewAppLifecycle(controller *AppController) *AppLifecycle {
+	return &AppLifecycle{controller: controller}
+}
+
 // OnStartup matches the Wails lifecycle hook.
-func (controller *AppController) OnStartup(ctx context.Context) {
+func (lifecycle *AppLifecycle) OnStartup(ctx context.Context) {
+	if lifecycle == nil || lifecycle.controller == nil {
+		return
+	}
+	lifecycle.controller.onStartup(ctx)
+}
+
+func (controller *AppController) onStartup(ctx context.Context) {
 	if controller.MasterDictionaryController != nil {
 		controller.setRuntimeContext(ctx)
 	}
 }
 
 // OnShutdown matches the Wails lifecycle hook.
-func (controller *AppController) OnShutdown(ctx context.Context) {
+func (lifecycle *AppLifecycle) OnShutdown(ctx context.Context) {
+	if lifecycle == nil || lifecycle.controller == nil {
+		return
+	}
+	lifecycle.controller.onShutdown(ctx)
+}
+
+func (controller *AppController) onShutdown(ctx context.Context) {
 	if controller.MasterDictionaryController != nil {
 		controller.clearRuntimeContext()
 	}

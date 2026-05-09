@@ -64,18 +64,19 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - 不足情報: 実装を完了できない不足項目を返す。
 - 次判断材料: `implement_lane` が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する backend プロダクトコードだけを返す。
-- レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
+- 影響範囲修正: 今回変更が直接壊した生成物、公開境界、検証経路、backend 責務内プロダクトコードを修正した場合に、対象、理由、変更結果を返す。
+- レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時は、承認済み実装範囲 または backend 責務内の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
 
-- 承認済み実装範囲 内の成果だけが返却されている。
+- 承認済み実装範囲 または backend 責務内の影響範囲修正 の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 単一引き継ぎ入力、実装対象、対象変更範囲、依存完了情報、検証コマンドを確認した。
 - 層 責務と 依存方向 を確認した。
 - backend lint の format、static、arch、module 観点を確認した。
-- 検証 と エラー経路 を 承認済み実装範囲 内で確認した。
-- backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 内でその場で直して再実行し、通過結果または未実行理由を返した。
+- 検証 と エラー経路 を 承認済み実装範囲 または backend 責務内の影響範囲修正 で確認した。
+- backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または backend 責務内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 - 単一引き継ぎ入力 と レーン内検証 を確認した。
 
 ## 停止規約
@@ -87,6 +88,9 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - controller、usecase、service で concrete 実装を new する必要がある場合は停止する。
 - service core から filesystem、Wails 実行定義、DB driver の concrete API を直接呼ぶ必要がある場合は停止する。
 - プロダクトテスト、検証データ、スナップショット、test helper の変更が必要になる場合は停止する。
-- `python3 scripts/harness/run.py --suite backend-local` の失敗原因が承認済み実装範囲 外にある場合は停止する。
-- 承認済み実装範囲外へ実装を広げる必要がある場合は停止する。
+- `python3 scripts/harness/run.py --suite backend-local` の失敗原因が今回変更の直接影響で、backend 責務内プロダクトコードに閉じる場合だけ、影響範囲修正 として直す。
+- UI 表示、画面、部品、文言、style、人間承認済み UI 証跡の差分が必要になる場合は停止する。
+- secret、trust boundary、API / DTO / DB / schema の意味拡張が必要になる場合は停止する。
+- docs 正本化 または `.codex` 作業流れの変更が必要になる場合は停止する。
+- 承認済み実装範囲外へ実装を広げる必要があり、今回変更の直接影響または backend 責務内プロダクトコードとして説明できない場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

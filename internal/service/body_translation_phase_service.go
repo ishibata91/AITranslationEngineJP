@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -29,6 +30,7 @@ const (
 	bodyTranslationInputSnapshotFailedKind   = "input_snapshot_failed"
 	bodyTranslationInputSnapshotDriftReason  = "body translation input snapshot changed after phase start"
 	bodyTranslationRuntimeSnapshotMissing    = "phase runtime snapshot is missing"
+	bodyTranslationPhaseServiceWhere         = "body_translation_phase.service"
 )
 
 var errBodyTranslationPhaseExecutionRejected = errors.New(bodyTranslationStartRejectMessage)
@@ -206,6 +208,8 @@ type BodyTranslationPhaseSummaryReadModel struct {
 type BodyTranslationPhaseCommandReadModel struct {
 	JobID               int64
 	CurrentPhase        string
+	BeforePhaseState    string
+	AfterPhaseState     string
 	PhaseState          string
 	PhaseRunID          *int64
 	StartedAt           *time.Time
@@ -348,6 +352,10 @@ func (service *BodyTranslationPhaseService) StartPhase(
 	if err != nil {
 		return BodyTranslationPhaseCommandReadModel{}, err
 	}
+	beforePhaseState := bodyTranslationPhaseStateIdleReady
+	if loaded.bodyRun != nil {
+		beforePhaseState = strings.TrimSpace(loaded.bodyRun.State)
+	}
 	if loaded.bodyRun == nil {
 		resolvedExecution, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, loaded.execution)
 		if resolveErr != nil {
@@ -364,7 +372,7 @@ func (service *BodyTranslationPhaseService) StartPhase(
 		return result, errBodyTranslationPhaseExecutionRejected
 	}
 	if loaded.bodyRun != nil {
-		return service.existingBodyTranslationPhaseRun(loaded)
+		return service.existingBodyTranslationPhaseRun(loaded, beforePhaseState)
 	}
 
 	createdRun, updatedJob, err := service.createBodyTranslationPhaseRun(ctx, loaded)
@@ -376,17 +384,32 @@ func (service *BodyTranslationPhaseService) StartPhase(
 	loaded.bodyRun = &createdRun
 	loaded.execution.RequestUnitCount = loaded.snapshot.ProviderTargetCount
 	if createdRun.State == bodyTranslationPhaseStateCompleted {
-		return service.bodyTranslationCommandFromLoaded(loaded, nil, nil), nil
+		return bodyTranslationCommandWithLogStates(service.bodyTranslationCommandFromLoaded(loaded, nil, nil), beforePhaseState, createdRun.State), nil
 	}
-	return service.executeBodyTranslationRun(ctx, loaded, createdRun)
+	response, err := service.executeBodyTranslationRun(ctx, loaded, createdRun)
+	response.BeforePhaseState = beforePhaseState
+	response.AfterPhaseState = response.PhaseState
+	return response, err
 }
 
 const errLoadBodyTranslationPhaseRun = "load body translation phase run: %w"
 
 func (service *BodyTranslationPhaseService) existingBodyTranslationPhaseRun(
 	loaded bodyTranslationLoadedContext,
+	beforePhaseState string,
 ) (BodyTranslationPhaseCommandReadModel, error) {
-	return service.bodyTranslationCommandFromLoaded(loaded, nil, nil), nil
+	response := service.bodyTranslationCommandFromLoaded(loaded, nil, nil)
+	return bodyTranslationCommandWithLogStates(response, beforePhaseState, response.PhaseState), nil
+}
+
+func bodyTranslationCommandWithLogStates(
+	command BodyTranslationPhaseCommandReadModel,
+	beforePhaseState string,
+	afterPhaseState string,
+) BodyTranslationPhaseCommandReadModel {
+	command.BeforePhaseState = beforePhaseState
+	command.AfterPhaseState = afterPhaseState
+	return command
 }
 
 type bodyTranslationStartState struct {
@@ -560,11 +583,16 @@ func (service *BodyTranslationPhaseService) RetryPhase(
 		return BodyTranslationPhaseCommandReadModel{}, loadErr
 	}
 	if loadedForResolve.bodyRun == nil || loadedForResolve.bodyRun.ID != phaseRunID {
-		return service.bodyTranslationCommandFromLoaded(
+		response := service.bodyTranslationCommandFromLoaded(
 			loadedForResolve,
 			nil,
 			bodyTranslationPhaseErrorSummaryRejectResume(),
-		), fmt.Errorf(errLoadBodyTranslationPhaseRun, repository.ErrNotFound)
+		)
+		beforePhaseState := bodyTranslationPhaseStateIdleReady
+		if loadedForResolve.bodyRun != nil {
+			beforePhaseState = strings.TrimSpace(loadedForResolve.bodyRun.State)
+		}
+		return bodyTranslationCommandWithLogStates(response, beforePhaseState, beforePhaseState), fmt.Errorf(errLoadBodyTranslationPhaseRun, repository.ErrNotFound)
 	}
 	if strings.TrimSpace(loadedForResolve.bodyRun.State) == bodyTranslationPhaseStateRecoverableFail {
 		resolvedExecution, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, loadedForResolve.execution)
@@ -579,7 +607,7 @@ func (service *BodyTranslationPhaseService) RetryPhase(
 		loadedForResolve.execution = resolvedExecution
 		loadedForResolve.pendingStartSnapshot = &resolvedSnapshot
 	}
-	loaded, run, err := service.persistBodyTranslationRunStateTransition(
+	loaded, run, beforePhaseState, err := service.persistBodyTranslationRunStateTransition(
 		ctx,
 		jobID,
 		phaseRunID,
@@ -592,12 +620,15 @@ func (service *BodyTranslationPhaseService) RetryPhase(
 		if loaded.inputSnapshotDrifted {
 			errorSummary = bodyTranslationInputSnapshotDriftErrorSummary()
 		}
-		return service.bodyTranslationCommandFromLoaded(loaded, nil, errorSummary), err
+		return bodyTranslationCommandWithLogStates(service.bodyTranslationCommandFromLoaded(loaded, nil, errorSummary), beforePhaseState, beforePhaseState), err
 	}
 	if loadedForResolve.pendingStartSnapshot != nil && strings.TrimSpace(run.State) == bodyTranslationPhaseStateRunning {
 		service.executionSnapshots[run.ID] = *loadedForResolve.pendingStartSnapshot
 	}
-	return service.executeBodyTranslationRun(ctx, loaded, run)
+	response, execErr := service.executeBodyTranslationRun(ctx, loaded, run)
+	response.BeforePhaseState = beforePhaseState
+	response.AfterPhaseState = response.PhaseState
+	return response, execErr
 }
 
 // CancelPhase returns the current phase payload for deferred cancel handling.
@@ -867,6 +898,7 @@ func (service *BodyTranslationPhaseService) resolveExecutionSnapshotForStart(
 	execution BodyTranslationPhaseExecutionSummaryReadModel,
 ) (BodyTranslationPhaseExecutionSummaryReadModel, *bodyTranslationStartRejection, error) {
 	if !providerExecutionUsesProviderSettings(execution.Provider) {
+		logProviderBoundarySkipped(ctx, "body_translation_provider_settings", bodyTranslationPhaseServiceWhere, execution.Provider, "provider_skipped", 1)
 		return execution, nil, nil
 	}
 	if service.providerSettings == nil {
@@ -886,6 +918,7 @@ func (service *BodyTranslationPhaseService) resolveExecutionSnapshotForStart(
 		},
 	})
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "body_translation_provider_settings", bodyTranslationPhaseServiceWhere, execution.Provider, "secret_store_failed")
 		return BodyTranslationPhaseExecutionSummaryReadModel{}, nil, fmt.Errorf("resolve body translation provider settings: %w", err)
 	}
 	execution.CredentialRef = providerExecutionOptionalString(resolved.CredentialReferenceID)
@@ -894,6 +927,7 @@ func (service *BodyTranslationPhaseService) resolveExecutionSnapshotForStart(
 	if resolved.ErrorKind == nil {
 		return execution, nil, nil
 	}
+	logProviderBoundaryFailure(ctx, "body_translation_provider_settings", bodyTranslationPhaseServiceWhere, execution.Provider, *resolved.ErrorKind)
 	switch strings.TrimSpace(*resolved.ErrorKind) {
 	case providerSettingsErrorKindCredentialMissing:
 		return execution, &bodyTranslationStartRejection{
@@ -918,9 +952,15 @@ func (service *BodyTranslationPhaseService) rejectedCommand(
 	rejection bodyTranslationStartRejection,
 ) BodyTranslationPhaseCommandReadModel {
 	outputReadiness := service.buildOutputReadiness(loaded)
+	actualState := bodyTranslationPhaseStateIdleReady
+	if loaded.bodyRun != nil {
+		actualState = strings.TrimSpace(loaded.bodyRun.State)
+	}
 	return BodyTranslationPhaseCommandReadModel{
 		JobID:               loaded.job.ID,
 		CurrentPhase:        bodyTranslationCurrentPhase,
+		BeforePhaseState:    actualState,
+		AfterPhaseState:     actualState,
 		PhaseState:          bodyTranslationPhaseStateIdleReady,
 		PhaseRunID:          nil,
 		StartedAt:           nil,
@@ -1273,7 +1313,7 @@ func (service *BodyTranslationPhaseService) transitionBodyTranslationRunState(
 	nextState string,
 	reject func() *BodyTranslationPhaseErrorSummaryReadModel,
 ) (BodyTranslationPhaseCommandReadModel, error) {
-	loaded, updatedRun, err := service.persistBodyTranslationRunStateTransition(
+	loaded, updatedRun, beforePhaseState, err := service.persistBodyTranslationRunStateTransition(
 		ctx,
 		jobID,
 		phaseRunID,
@@ -1286,14 +1326,15 @@ func (service *BodyTranslationPhaseService) transitionBodyTranslationRunState(
 		if loaded.inputSnapshotDrifted {
 			errorSummary = bodyTranslationInputSnapshotDriftErrorSummary()
 		}
-		return service.bodyTranslationCommandFromLoaded(loaded, nil, errorSummary), err
+		return bodyTranslationCommandWithLogStates(service.bodyTranslationCommandFromLoaded(loaded, nil, errorSummary), beforePhaseState, beforePhaseState), err
 	}
 	loaded.bodyRun = &updatedRun
 	reloaded, reloadErr := service.loadContext(ctx, jobID)
 	if reloadErr != nil {
 		return BodyTranslationPhaseCommandReadModel{}, reloadErr
 	}
-	return service.bodyTranslationCommandFromLoaded(reloaded, nil, nil), nil
+	response := service.bodyTranslationCommandFromLoaded(reloaded, nil, nil)
+	return bodyTranslationCommandWithLogStates(response, beforePhaseState, response.PhaseState), nil
 }
 
 func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransition(
@@ -1303,25 +1344,19 @@ func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransi
 	requiredState string,
 	nextState string,
 	startExecutionSnapshot *providerExecutionSnapshot,
-) (bodyTranslationLoadedContext, repository.JobPhaseRun, error) {
+) (bodyTranslationLoadedContext, repository.JobPhaseRun, string, error) {
 	loaded, err := service.loadContext(ctx, jobID)
 	if err != nil {
-		return bodyTranslationLoadedContext{}, repository.JobPhaseRun{}, err
+		return bodyTranslationLoadedContext{}, repository.JobPhaseRun{}, "", err
 	}
-	if loaded.bodyRun == nil || loaded.bodyRun.ID != phaseRunID {
-		return loaded, repository.JobPhaseRun{}, fmt.Errorf(errLoadBodyTranslationPhaseRun, repository.ErrNotFound)
-	}
-	if isBodyTranslationTerminalJob(loaded.job.State) {
-		return loaded, *loaded.bodyRun, fmt.Errorf("body translation phase state transition rejected: terminal job")
-	}
-	if nextState == bodyTranslationPhaseStateRunning && loaded.inputSnapshotDrifted {
-		return loaded, *loaded.bodyRun, errors.New(bodyTranslationInputSnapshotDriftReason)
-	}
-	if !bodyTranslationRunStateTransitionAllowed(strings.TrimSpace(loaded.bodyRun.State), requiredState) {
-		return loaded, *loaded.bodyRun, fmt.Errorf("body translation phase state transition rejected")
-	}
-	if service.transactor == nil {
-		return loaded, repository.JobPhaseRun{}, fmt.Errorf("body translation phase state transition: transactor is not configured")
+	currentRun, beforePhaseState, err := service.validateBodyTranslationRunStateTransition(
+		loaded,
+		phaseRunID,
+		requiredState,
+		nextState,
+	)
+	if err != nil {
+		return loaded, currentRun, beforePhaseState, err
 	}
 	now := service.now()
 	var updatedRun repository.JobPhaseRun
@@ -1344,11 +1379,40 @@ func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransi
 		return nil
 	})
 	if err != nil {
-		return loaded, repository.JobPhaseRun{}, fmt.Errorf("persist body translation phase state transition: %w", err)
+		return loaded, repository.JobPhaseRun{}, beforePhaseState, fmt.Errorf("persist body translation phase state transition: %w", err)
 	}
 	loaded.job = updatedJob
 	loaded.bodyRun = &updatedRun
-	return loaded, updatedRun, nil
+	return loaded, updatedRun, beforePhaseState, nil
+}
+
+func (service *BodyTranslationPhaseService) validateBodyTranslationRunStateTransition(
+	loaded bodyTranslationLoadedContext,
+	phaseRunID int64,
+	requiredState string,
+	nextState string,
+) (repository.JobPhaseRun, string, error) {
+	beforePhaseState := bodyTranslationPhaseStateIdleReady
+	if loaded.bodyRun != nil {
+		beforePhaseState = strings.TrimSpace(loaded.bodyRun.State)
+	}
+	if loaded.bodyRun == nil || loaded.bodyRun.ID != phaseRunID {
+		return repository.JobPhaseRun{}, beforePhaseState, fmt.Errorf(errLoadBodyTranslationPhaseRun, repository.ErrNotFound)
+	}
+	currentRun := *loaded.bodyRun
+	if isBodyTranslationTerminalJob(loaded.job.State) {
+		return currentRun, beforePhaseState, fmt.Errorf("body translation phase state transition rejected: terminal job")
+	}
+	if nextState == bodyTranslationPhaseStateRunning && loaded.inputSnapshotDrifted {
+		return currentRun, beforePhaseState, errors.New(bodyTranslationInputSnapshotDriftReason)
+	}
+	if !bodyTranslationRunStateTransitionAllowed(strings.TrimSpace(currentRun.State), requiredState) {
+		return currentRun, beforePhaseState, fmt.Errorf("body translation phase state transition rejected")
+	}
+	if service.transactor == nil {
+		return repository.JobPhaseRun{}, beforePhaseState, fmt.Errorf("body translation phase state transition: transactor is not configured")
+	}
+	return currentRun, beforePhaseState, nil
 }
 
 func (service *BodyTranslationPhaseService) persistBodyTranslationRuntimeSnapshotForTransition(
@@ -1443,6 +1507,7 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationRun(
 		return service.bodyTranslationCommandFromLoaded(loaded, nil, bodyTranslationInputSnapshotDriftErrorSummary()), nil
 	}
 	if service.bodyTranslationProviderUnavailable() {
+		logProviderBoundaryFailure(ctx, "body_translation_provider_execute", bodyTranslationPhaseServiceWhere, loaded.execution.Provider, "provider_unavailable")
 		updatedLoaded, err := service.persistBodyTranslationRunFailure(ctx, loaded, run, "provider_failure")
 		if err != nil {
 			return BodyTranslationPhaseCommandReadModel{}, err
@@ -1451,14 +1516,33 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationRun(
 	}
 	pendingTargets := service.pendingBodyTranslationTargets(loaded)
 	if len(pendingTargets) == 0 {
+		logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 0, "")
 		return service.reloadedBodyTranslationCommand(ctx, loaded.job.ID)
 	}
+	return service.executeBodyTranslationPendingTargets(ctx, loaded, run, pendingTargets)
+}
+
+func (service *BodyTranslationPhaseService) executeBodyTranslationPendingTargets(
+	ctx context.Context,
+	loaded bodyTranslationLoadedContext,
+	run repository.JobPhaseRun,
+	pendingTargets []normalizedBodyTranslationFieldTarget,
+) (BodyTranslationPhaseCommandReadModel, error) {
 	for _, target := range pendingTargets {
 		command, err := service.executeBodyTranslationTarget(ctx, loaded, run, target)
 		if err != nil {
+			failureKind := classifyBodyTranslationProviderPersistenceError(err)
+			logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 1, failureKind)
 			return command, err
 		}
 		if command.PhaseState != bodyTranslationPhaseStateRunning && command.PhaseState != bodyTranslationPhaseStateCompleted {
+			failedCount := 0
+			failureKind := ""
+			if command.ErrorSummary != nil {
+				failedCount++
+				failureKind = normalizeBodyTranslationFailureKind(command.ErrorSummary.ErrorKind)
+			}
+			logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, command.ResultSummary.OutputCount, failedCount, failureKind)
 			return command, nil
 		}
 		loaded, err = service.loadContext(ctx, loaded.job.ID)
@@ -1470,7 +1554,49 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationRun(
 		}
 		run = *loaded.bodyRun
 	}
+	logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 0, "")
 	return service.reloadedBodyTranslationCommand(ctx, loaded.job.ID)
+}
+
+func (service *BodyTranslationPhaseService) bodyTranslationPersistedOutputCount(loaded bodyTranslationLoadedContext) int {
+	summary := service.buildFieldResultSummary(loaded.outputFields)
+	if summary == nil {
+		return 0
+	}
+	return summary.OutputCount
+}
+
+func normalizeBodyTranslationFailureKind(failureKind string) string {
+	normalized := strings.ToLower(strings.TrimSpace(failureKind))
+	if normalized == "" {
+		return "body_translation_failed"
+	}
+	return normalized
+}
+
+func logBodyTranslationProviderBulkSummary(
+	ctx context.Context,
+	inputCount int,
+	outputCount int,
+	failedCount int,
+	failureKind string,
+) {
+	attrs := []slog.Attr{
+		slog.String("event", "body_translation_provider_bulk_summary"),
+		slog.String("where", "backend.service.body_translation_phase.provider_execution"),
+		slog.String("result", "completed"),
+		slog.Int("input_count", inputCount),
+		slog.Int("output_count", outputCount),
+		slog.Int("skipped_count", maxInt(0, inputCount-outputCount-failedCount)),
+		slog.Int("failed_count", failedCount),
+	}
+	if failureKind != "" {
+		attrs = append(attrs,
+			slog.String("first_failure_kind", failureKind),
+			slog.String("last_failure_kind", failureKind),
+		)
+	}
+	slog.LogAttrs(ctx, slog.LevelInfo, "body translation provider bulk summary", attrs...)
 }
 
 func (service *BodyTranslationPhaseService) bodyTranslationProviderUnavailable() bool {
@@ -1494,7 +1620,10 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationTarget(
 ) (BodyTranslationPhaseCommandReadModel, error) {
 	providerRequest := service.buildBodyTranslationProviderRequest(loaded, target)
 	providerResult := service.bodyTranslationProvider.TranslateBodyField(ctx, providerRequest)
-	return service.PersistBodyTranslationFieldResults(ctx, BodyTranslationFieldResultPersistenceRequest{
+	if providerResult.Failure != nil {
+		logProviderBoundaryFailure(ctx, "body_translation_provider_execute", bodyTranslationPhaseServiceWhere, loaded.execution.Provider, classifyBodyTranslationProviderFailure(providerResult.Failure.Kind))
+	}
+	command, err := service.PersistBodyTranslationFieldResults(ctx, BodyTranslationFieldResultPersistenceRequest{
 		TranslationJobID: loaded.job.ID,
 		PhaseRunID:       run.ID,
 		TargetFields: []BodyTranslationFieldResultTarget{
@@ -1507,6 +1636,38 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationTarget(
 		},
 		ProviderResults: []BodyTranslationProviderResult{providerResult},
 	})
+	if err != nil {
+		logProviderBoundaryFailure(ctx, "body_translation_provider_execute", bodyTranslationPhaseServiceWhere, loaded.execution.Provider, classifyBodyTranslationProviderPersistenceError(err))
+	}
+	return command, err
+}
+
+func classifyBodyTranslationProviderFailure(kind BodyTranslationProviderErrorKind) string {
+	switch kind {
+	case BodyTranslationProviderErrorKindInvalidProviderResponse:
+		return "invalid_provider_response"
+	case "provider_timeout":
+		return "provider_timeout"
+	default:
+		return "provider_failure"
+	}
+}
+
+func classifyBodyTranslationProviderPersistenceError(err error) string {
+	if err == nil {
+		return "unknown"
+	}
+	message := err.Error()
+	switch {
+	case strings.Contains(message, "correlation key"):
+		return "correlation_error"
+	case strings.Contains(message, "provider result is missing"),
+		strings.Contains(message, "does not match"),
+		strings.Contains(message, "incompatible"):
+		return "invalid_provider_response"
+	default:
+		return "provider_failure"
+	}
 }
 
 func (service *BodyTranslationPhaseService) reloadedBodyTranslationCommand(

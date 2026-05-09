@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"path/filepath"
 	"strings"
 	"time"
@@ -232,16 +233,23 @@ func (service *TranslationJobManagementService) executeDeleteJobTransaction(
 ) (repository.TranslationJobDeleteResult, *TranslationJobManagementActionReadModel, error) {
 	job, blockedAction, err := service.getDeleteCandidate(ctx, jobID)
 	if err != nil || blockedAction != nil {
+		if blockedAction != nil {
+			logTranslationJobDeleteRejected(ctx, jobID, "", blockedAction.ReasonCategory)
+		}
 		return repository.TranslationJobDeleteResult{}, blockedAction, err
 	}
 	blockedAction, err = service.buildDeleteBlockedAction(ctx, job)
 	if err != nil || blockedAction != nil {
+		if blockedAction != nil {
+			logTranslationJobDeleteRejected(ctx, jobID, job.State, blockedAction.ReasonCategory)
+		}
 		return repository.TranslationJobDeleteResult{}, blockedAction, err
 	}
 	result, err := service.managementRepository.DeleteNonRunningTranslationJob(ctx, jobID)
 	if err != nil {
 		return repository.TranslationJobDeleteResult{}, nil, fmt.Errorf("delete non-running translation job: %w", err)
 	}
+	logTranslationJobDeleteResult(ctx, jobID, job.State, result.Outcome)
 	return result, nil, nil
 }
 
@@ -363,6 +371,57 @@ func buildBlockedDeleteActionForDetail(
 		Detail:         detail,
 		ReasonCategory: category,
 	}
+}
+
+func logTranslationJobDeleteResult(
+	ctx context.Context,
+	jobID int64,
+	beforeState string,
+	outcome repository.TranslationJobDeleteOutcome,
+) {
+	switch outcome {
+	case repository.TranslationJobDeleteOutcomeDeleted:
+		slog.InfoContext(ctx, "translation job delete state changed",
+			slog.String("event", "translation_job_delete"),
+			slog.String("where", "backend.service.translation_job_management.delete"),
+			slog.String("result", "allowed"),
+			slog.String("id", fmt.Sprintf("job:%d", jobID)),
+			slog.String("before_state", normalizeTranslationJobManagementValue(beforeState)),
+			slog.String("after_state", "deleted"),
+		)
+	case repository.TranslationJobDeleteOutcomeNotFound:
+		logTranslationJobDeleteRejected(ctx, jobID, beforeState, translationJobManagementReasonStaleSelection)
+	case repository.TranslationJobDeleteOutcomeBlockedRunning:
+		logTranslationJobDeleteRejected(ctx, jobID, beforeState, translationJobManagementReasonRunningDeleteBlocked)
+	case repository.TranslationJobDeleteOutcomeBlockedUnsafe:
+		logTranslationJobDeleteRejected(ctx, jobID, beforeState, translationJobManagementReasonDeleteFailed)
+	default:
+		logTranslationJobDeleteRejected(ctx, jobID, beforeState, translationJobManagementReasonDeleteFailed)
+	}
+}
+
+func logTranslationJobDeleteRejected(
+	ctx context.Context,
+	jobID int64,
+	state string,
+	reason string,
+) {
+	if strings.TrimSpace(reason) == "" {
+		reason = translationJobManagementReasonDeleteFailed
+	}
+	normalizedState := normalizeTranslationJobManagementValue(state)
+	if normalizedState == "" {
+		normalizedState = "unknown"
+	}
+	slog.WarnContext(ctx, "translation job delete rejected",
+		slog.String("event", "translation_job_delete"),
+		slog.String("where", "backend.service.translation_job_management.delete"),
+		slog.String("result", "rejected"),
+		slog.String("id", fmt.Sprintf("job:%d", jobID)),
+		slog.String("before_state", normalizedState),
+		slog.String("after_state", normalizedState),
+		slog.String("reason", reason),
+	)
 }
 
 // RequestStop returns the stop-facing projection without executing stop control.

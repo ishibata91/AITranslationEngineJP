@@ -1,0 +1,145 @@
+reviewback_version: 1
+task_id: "observability-log-addition"
+review_yaml_path: "docs/exec-plans/active/observability-log-addition/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "issues_open"
+must_fix_open: false
+max_level: "minor"
+
+assessment:
+  responsibility_boundary: "再修正後差分では、service command read model に追加された BeforePhaseState と AfterPhaseState は service から usecase の観測ログへ渡す内部値に閉じている。usecase の frozen command result、controller DTO、generated frontend API へは露出していないため、公開契約や frontend 表示責務へ内部観測値を漏らしていない。frontend payload validation は MasterDictionaryRuntimeEventAdapter 内の Wails event 受信境界に閉じており、View、ScreenController、Frontend UseCase、Gateway へ検証責務を広げていない。backend log は controller、usecase、service、adapter の既存責務上の観測点に置かれており、既存 minor 指摘以外に修正必須の責務境界問題は確認しなかった。既存 minor 指摘として、provider settings service ファイルに横断 provider log helper と persona generation 固有変換が同居している軽微な責務混在は残る。"
+  evidence_sufficiency: "十分。skill、agent 実行定義、architecture、coding-guidelines、reviewback template、implementation-progress、既存 reviewback、再修正後差分の実コード、呼び出し元が渡した検証証跡を確認した。"
+
+checked_scope:
+  summary: "service command read model の内部観測値、usecase ログ変換、public command result 非露出、frontend RuntimeEventAdapter の payload validation、backend provider 境界 log helper の配置、workflow 契約修正の責務分離を確認した。"
+  files:
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 188
+      symbol: "TermTranslationPhaseCommandReadModel"
+      reason: "BeforePhaseState と AfterPhaseState が service から usecase へ渡す command read model に追加されていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 568
+      symbol: "prepareExecutionPlan"
+      reason: "開始前の phase state を service 内の実処理文脈で取得し、usecase ログ用の内部値として保持していることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1895
+      symbol: "termTranslationRejectedCommand"
+      reason: "拒否時の before / after state が service read model 内で組み立てられ、公開 result へ直接渡されていないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 207
+      symbol: "BodyTranslationPhaseCommandReadModel"
+      reason: "body phase の command read model に追加された before / after state が service-usecase 間の内部観測値であることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 343
+      symbol: "StartPhase"
+      reason: "開始前 state の取得と実行後 state の設定が service の状態遷移文脈内に閉じていることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1308
+      symbol: "transitionBodyTranslationRunState"
+      reason: "状態遷移の前後 state 取得が persistence と service read model 組み立ての近くに置かれていることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 197
+      symbol: "PersonaGenerationPhaseCommandReadModel"
+      reason: "persona phase の command read model に追加された before / after state が service-usecase 間の内部観測値であることを確認した。"
+    - path: "internal/usecase/translation_job_management_usecase.go"
+      line: 129
+      symbol: "logPhaseStateCommand"
+      reason: "usecase が service read model の内部観測値を観測ログへ整形し、service 処理や frontend 表示を持っていないことを確認した。"
+    - path: "internal/usecase/term_translation_phase_contract.go"
+      line: 146
+      symbol: "TermTranslationPhaseCommandResult"
+      reason: "frozen write-seam response contract に BeforePhaseState と AfterPhaseState が追加されていないことを確認した。"
+    - path: "internal/usecase/body_translation_phase_contract.go"
+      line: 260
+      symbol: "BodyTranslationPhaseCommandResult"
+      reason: "public command result に before / after state が露出していないことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 212
+      symbol: "PersonaGenerationPhaseCommandResult"
+      reason: "public command result に before / after state が露出していないことを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 67
+      symbol: "isMasterDictionaryPageEntry"
+      reason: "completed payload の entry 形状検証が frontend RuntimeEventAdapter 内に閉じていることを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 118
+      symbol: "isRuntimeImportCompletedPayload"
+      reason: "completed payload の page / summary 検証が runtime event adapter 内に置かれていることを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 233
+      symbol: "handleImportProgressEvent"
+      reason: "progress payload の検証、破棄 log、accepted log、handler 呼び出しが adapter 内にまとまっていることを確認した。"
+    - path: "frontend/src/controller/runtime/master-dictionary/master-dictionary-runtime-event-adapter.ts"
+      line: 264
+      symbol: "handleImportCompletedEvent"
+      reason: "completed payload の検証と usecase handler への引き渡しが adapter 内に閉じていることを確認した。"
+    - path: "frontend/src/controller/master-dictionary/master-dictionary-screen-controller-factory.ts"
+      line: 22
+      symbol: "createMasterDictionaryScreenControllerFactory"
+      reason: "ScreenController factory は logger 注入と RuntimeEventAdapter 生成だけを担当し、payload validation を持っていないことを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 74
+      symbol: "createProductionAppFactories"
+      reason: "frontend bootstrap が diagnostic logger を生成し、screen controller factory へ注入する composition root に留まっていることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 812
+      symbol: "logProviderBoundaryFailure"
+      reason: "既存 minor 指摘の provider 境界 log helper 配置が残っていることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 852
+      symbol: "normalizePersonaGenerationProviderFailureKind"
+      reason: "既存 minor 指摘の persona generation 固有変換が provider settings service ファイルへ残っていることを確認した。"
+    - path: ".codex/skills/implement-frontend/SKILL.md"
+      line: 53
+      symbol: "判断規約"
+      reason: "frontend-local 失敗時の影響範囲修正が generated file、生成元、公開境界、検証を壊した frontend プロダクトコードに限定されていることを確認した。"
+    - path: ".codex/skills/implement-lane/SKILL.md"
+      line: 199
+      symbol: "判断規約"
+      reason: "implement_lane が範囲外失敗を直接実装修正せず、対応する担当 agent へ影響範囲修正として渡す責務に限定されていることを確認した。"
+
+unchecked_scope:
+  - target: "runtime 上の実 log 全件"
+    reason: "本 agent はハーネスを実行しない規約であり、呼び出し元が渡した検証証跡と差分上の実コードを根拠に判定した。"
+    risk: "実行時にだけ現れる log 発火順や出力頻度の問題は、挙動レビューまたは検証結果側の判定に残る。"
+  - target: "挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件"
+    reason: "codex-review-responsibility-boundary の非対象規約に従い、責務境界の主判定から外した。"
+    risk: "他観点のレビュー結果に未解決問題がある場合でも、本 YAML だけでは検出しない。"
+  - target: "docs/exec-plans/active/observability-logger-lightweight/plan.md の削除と completed 側成果物移動"
+    reason: "呼び出し元の重点確認は再修正後コード差分の責務境界であり、出力対象以外の docs 正本本文や改善ログを変更しない指定があるため主判定に使っていない。"
+    risk: "成果物移動の文書運用上の責務境界は、本レビューでは判定しない。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "minor"
+    title: "provider settings service ファイルに横断 provider log helper と persona 固有変換が混在している"
+    problem: "`internal/service/provider_settings_service.go` に、provider settings service 自身の処理だけでなく、term translation、translation job setup、body translation、persona generation から使われる provider 境界 log helper が置かれている。同じ場所に persona generation 固有の失敗種別変換も置かれている。"
+    reason: "`docs/coding-guidelines.md` は 1 ファイルへ置く処理を同じ責務、同じ変更理由、同じ検証単位でそろえる規約にしている。現在の配置では provider settings service の変更理由と、複数 phase service の観測 log 共通処理、persona generation 固有変換の変更理由が 1 ファイルへ混在する。"
+    violated_condition: "ファイル分割責務。境界処理、変換処理、複数 service slice の共通観測処理は、同じ変更理由で説明できる単位にそろえる必要がある。"
+    cause_candidate: "`provider/secret 境界 log` を最初に provider settings service の近くへ追加し、その後に term translation、translation job setup、body translation、persona generation へ利用範囲を広げた可能性がある。persona generation 固有の `normalizePersonaGenerationProviderFailureKind` も、共有 helper の近くに置かれたため provider settings service ファイルへ残った可能性がある。"
+    evidence:
+      - path: "internal/service/provider_settings_service.go"
+        line: 812
+        excerpt: "logProviderBoundaryFailure は provider_settings_service.go に定義されているが、複数 service ファイルから呼ばれている。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 826
+        excerpt: "logProviderBoundarySkipped は provider_settings_service.go に定義されているが、複数 service ファイルから呼ばれている。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 852
+        excerpt: "normalizePersonaGenerationProviderFailureKind は persona generation 固有の失敗種別を扱うが、provider_settings_service.go に定義されている。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1718
+        excerpt: "persona generation service は provider_settings_service.go の persona 固有 helper を呼んでいる。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 778
+        excerpt: "term translation service は provider_settings_service.go の provider 境界 log helper を呼んでいる。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 898
+        excerpt: "body translation service は provider_settings_service.go の provider 境界 log helper を呼んでいる。"
+    local_fix_assessment: "local。層や公開 API の再設計は不要であり、service package 内の責務単位整理で閉じる可能性が高い。"
+    additional_check_scope: "provider 境界 log helper を使う service 群と、その helper を直接対象にした unit test。log payload の key と分類値が変わらないことを確認する。"
+    fix_considerations: "log payload の `event`、`where`、`result`、`provider`、`reason` は変えない。persona generation 固有の分類規則は persona generation service の変更理由から追える場所に保つ。"
+    verification: "service package の unit test と backend-local で、provider 境界 log payload と既存 service 経路が変わらないことを確認する。"
+    fix_required: false
+    status: "open"

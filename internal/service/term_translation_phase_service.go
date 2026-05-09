@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 	"time"
@@ -49,6 +50,7 @@ const (
 	termTranslationReasonCredentialMissing   = "term translation provider credential is unavailable"
 	termTranslationReasonActivePhaseExists   = "active phase run already exists"
 	termTranslationReasonPhaseIncomplete     = "term phase state does not allow this command"
+	termTranslationPhaseServiceWhere         = "term_translation_phase.service"
 	termTranslationSecretLoadTimeout         = 250 * time.Millisecond
 )
 
@@ -187,6 +189,8 @@ type TermTranslationPhaseSummaryReadModel struct {
 type TermTranslationPhaseCommandReadModel struct {
 	JobID             int64
 	CurrentPhase      string
+	BeforePhaseState  string
+	AfterPhaseState   string
 	PhaseState        string
 	PhaseRunID        *int64
 	StartedAt         *time.Time
@@ -215,15 +219,16 @@ type termTranslationCandidate struct {
 }
 
 type termTranslationExecutionPlan struct {
-	Job            repository.TranslationJob
-	PhaseRun       repository.JobPhaseRun
-	RunCreated     bool
-	Execution      TermTranslationExecutionConfigReadModel
-	Candidates     []termTranslationCandidate
-	SnapshotHits   map[string]repository.DictionaryEntry
-	ConfirmedTerms map[string]repository.DictionaryEntry
-	Rejection      *TermTranslationPhaseErrorReadModel
-	StartSnapshot  *providerExecutionSnapshot
+	Job              repository.TranslationJob
+	PhaseRun         repository.JobPhaseRun
+	BeforePhaseState string
+	RunCreated       bool
+	Execution        TermTranslationExecutionConfigReadModel
+	Candidates       []termTranslationCandidate
+	SnapshotHits     map[string]repository.DictionaryEntry
+	ConfirmedTerms   map[string]repository.DictionaryEntry
+	Rejection        *TermTranslationPhaseErrorReadModel
+	StartSnapshot    *providerExecutionSnapshot
 }
 
 type termTranslationAttemptFailure struct {
@@ -250,11 +255,12 @@ func (failure *termTranslationAttemptFailure) Unwrap() error {
 }
 
 type termTranslationPersistedFailure struct {
-	job        repository.TranslationJob
-	run        repository.JobPhaseRun
-	runCreated bool
-	snapshots  map[string]repository.DictionaryEntry
-	failure    *termTranslationAttemptFailure
+	job              repository.TranslationJob
+	run              repository.JobPhaseRun
+	beforePhaseState string
+	runCreated       bool
+	snapshots        map[string]repository.DictionaryEntry
+	failure          *termTranslationAttemptFailure
 }
 
 // NewTermTranslationPhaseService creates the backend service for the term translation phase.
@@ -394,6 +400,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 				Retryable:  false,
 				IsRedacted: false,
 			})
+			response.BeforePhaseState = run.State
 			return nil
 		}
 		now := service.now()
@@ -419,6 +426,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 			return fmt.Errorf("pause translation job: %w", err)
 		}
 		response = termTranslationCommandFromRun(updatedJob, updatedRun, false, false, nil)
+		response.BeforePhaseState = run.State
 		return nil
 	})
 	if err != nil {
@@ -490,13 +498,15 @@ func (service *TermTranslationPhaseService) executePhase(
 		if persistErr != nil {
 			return TermTranslationPhaseCommandReadModel{}, fmt.Errorf("execute term translation phase transaction: %w", persistErr)
 		}
-		return termTranslationCommandFromRun(
+		failureResponse := termTranslationCommandFromRun(
 			persistedFailure.job,
 			failedRun,
 			persistedFailure.failure.summary.Retryable,
 			false,
 			&persistedFailure.failure.summary,
-		), nil
+		)
+		failureResponse.BeforePhaseState = persistedFailure.beforePhaseState
+		return failureResponse, nil
 	}
 	if err != nil {
 		return TermTranslationPhaseCommandReadModel{}, fmt.Errorf("execute term translation phase transaction: %w", err)
@@ -532,6 +542,7 @@ func (service *TermTranslationPhaseService) executePhaseTransaction(
 		confirmedCount == len(plan.Candidates),
 		errSummary,
 	)
+	response.BeforePhaseState = plan.BeforePhaseState
 	return nil
 }
 
@@ -545,11 +556,12 @@ func (service *TermTranslationPhaseService) captureAttemptFailure(
 		return
 	}
 	*persistedFailure = &termTranslationPersistedFailure{
-		job:        plan.Job,
-		run:        plan.PhaseRun,
-		runCreated: plan.RunCreated,
-		snapshots:  cloneTermTranslationDictionaryEntries(plan.SnapshotHits),
-		failure:    attemptFailure,
+		job:              plan.Job,
+		run:              plan.PhaseRun,
+		beforePhaseState: plan.BeforePhaseState,
+		runCreated:       plan.RunCreated,
+		snapshots:        cloneTermTranslationDictionaryEntries(plan.SnapshotHits),
+		failure:          attemptFailure,
 	}
 }
 
@@ -563,10 +575,12 @@ func (service *TermTranslationPhaseService) prepareExecutionPlan(
 	if err != nil {
 		return termTranslationExecutionPlan{}, err
 	}
+	beforePhaseState := termTranslationPhaseStateFromRun(run)
 	if termTranslationJobIsTerminal(job.State) {
 		return termTranslationExecutionPlan{
-			Job:      job,
-			PhaseRun: valueOrEmptyRun(run),
+			Job:              job,
+			PhaseRun:         valueOrEmptyRun(run),
+			BeforePhaseState: beforePhaseState,
 			Rejection: &TermTranslationPhaseErrorReadModel{
 				ErrorKind:  "terminal_job",
 				Reason:     termTranslationReasonTerminalJob,
@@ -593,13 +607,14 @@ func (service *TermTranslationPhaseService) prepareExecutionPlan(
 		return termTranslationExecutionPlan{}, err
 	}
 	if run == nil {
-		return termTranslationExecutionPlan{Job: job}, errTermTranslationPhaseExecutionRejected
+		return termTranslationExecutionPlan{Job: job, BeforePhaseState: beforePhaseState}, errTermTranslationPhaseExecutionRejected
 	}
 	snapshotHits, err := service.termTranslationSnapshotHitsForPlan(ctx, createdRun, run, candidates)
 	if err != nil {
 		return termTranslationExecutionPlan{
-			Job:      job,
-			PhaseRun: *run,
+			Job:              job,
+			PhaseRun:         *run,
+			BeforePhaseState: beforePhaseState,
 		}, err
 	}
 	confirmedEntries, err := service.loadJobDictionaryEntries(ctx, job.ID)
@@ -607,14 +622,15 @@ func (service *TermTranslationPhaseService) prepareExecutionPlan(
 		return termTranslationExecutionPlan{}, err
 	}
 	return termTranslationExecutionPlan{
-		Job:            job,
-		PhaseRun:       *run,
-		RunCreated:     createdRun,
-		Execution:      execution,
-		Candidates:     candidates,
-		SnapshotHits:   snapshotHits,
-		ConfirmedTerms: confirmedEntries,
-		StartSnapshot:  termTranslationStartSnapshotForMode(mode, execution),
+		Job:              job,
+		PhaseRun:         *run,
+		BeforePhaseState: beforePhaseState,
+		RunCreated:       createdRun,
+		Execution:        execution,
+		Candidates:       candidates,
+		SnapshotHits:     snapshotHits,
+		ConfirmedTerms:   confirmedEntries,
+		StartSnapshot:    termTranslationStartSnapshotForMode(mode, execution),
 	}, nil
 }
 
@@ -745,8 +761,9 @@ func (service *TermTranslationPhaseService) buildRejectedExecutionPlan(
 	reason string,
 ) termTranslationExecutionPlan {
 	return termTranslationExecutionPlan{
-		Job:      job,
-		PhaseRun: valueOrEmptyRun(run),
+		Job:              job,
+		PhaseRun:         valueOrEmptyRun(run),
+		BeforePhaseState: termTranslationPhaseStateFromRun(run),
 		Rejection: &TermTranslationPhaseErrorReadModel{
 			ErrorKind:  errorKind,
 			Reason:     reason,
@@ -761,6 +778,7 @@ func (service *TermTranslationPhaseService) resolveExecutionSnapshotForStart(
 	execution TermTranslationExecutionConfigReadModel,
 ) (TermTranslationExecutionConfigReadModel, *TermTranslationPhaseErrorReadModel, error) {
 	if !providerExecutionUsesProviderSettings(execution.Provider) {
+		logProviderBoundarySkipped(ctx, "term_translation_provider_settings", termTranslationPhaseServiceWhere, execution.Provider, "provider_skipped", 1)
 		return execution, nil, nil
 	}
 	if service.providerSettings == nil {
@@ -782,6 +800,7 @@ func (service *TermTranslationPhaseService) resolveExecutionSnapshotForStart(
 		},
 	})
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "term_translation_provider_settings", termTranslationPhaseServiceWhere, execution.Provider, "secret_store_failed")
 		return TermTranslationExecutionConfigReadModel{}, nil, fmt.Errorf("resolve term translation provider settings: %w", err)
 	}
 	execution.CredentialRef = providerExecutionOptionalString(resolved.CredentialReferenceID)
@@ -790,6 +809,7 @@ func (service *TermTranslationPhaseService) resolveExecutionSnapshotForStart(
 	if resolved.ErrorKind == nil {
 		return execution, nil, nil
 	}
+	logProviderBoundaryFailure(ctx, "term_translation_provider_settings", termTranslationPhaseServiceWhere, execution.Provider, *resolved.ErrorKind)
 	switch strings.TrimSpace(*resolved.ErrorKind) {
 	case providerSettingsErrorKindCredentialMissing:
 		return execution, &TermTranslationPhaseErrorReadModel{
@@ -971,6 +991,7 @@ func (service *TermTranslationPhaseService) applyExecutionPlan(
 	}
 	plan.PhaseRun = updatedRun
 	if service.provider == nil {
+		logProviderBoundaryFailure(ctx, "term_translation_provider_execute", termTranslationPhaseServiceWhere, plan.Execution.Provider, "provider_unavailable")
 		return repository.JobPhaseRun{}, 0, nil, newTermTranslationAttemptFailure(
 			termTranslationErrorKindProviderFailure,
 			termTranslationReasonProviderFailed,
@@ -982,6 +1003,7 @@ func (service *TermTranslationPhaseService) applyExecutionPlan(
 	}
 	apiKey, err := service.resolveProviderAPIKey(ctx, plan.Execution)
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "term_translation_provider_secret", termTranslationPhaseServiceWhere, plan.Execution.Provider, classifyTermTranslationCredentialFailure(err))
 		return repository.JobPhaseRun{}, 0, nil, newTermTranslationAttemptFailure(
 			termTranslationErrorKindProviderFailure,
 			redactedTermTranslationProviderFailureReason(err),
@@ -993,10 +1015,45 @@ func (service *TermTranslationPhaseService) applyExecutionPlan(
 	}
 	for _, candidate := range aiTargets {
 		if err := service.applyProviderCandidate(ctx, plan, candidate, apiKey, confirmedTerms, baseConfirmedCount); err != nil {
+			logTermTranslationProviderBulkSummary(ctx, len(plan.Candidates), len(confirmedTerms), 1, classifyTermTranslationBulkFailure(err))
 			return repository.JobPhaseRun{}, 0, nil, err
 		}
 	}
+	logTermTranslationProviderBulkSummary(ctx, len(plan.Candidates), len(confirmedTerms), 0, "")
 	return service.markPhaseRunCompleted(ctx, plan.Job, plan.PhaseRun, len(plan.Candidates))
+}
+
+func logTermTranslationProviderBulkSummary(
+	ctx context.Context,
+	inputCount int,
+	outputCount int,
+	failedCount int,
+	failureKind string,
+) {
+	attrs := []slog.Attr{
+		slog.String("event", "term_translation_provider_bulk_summary"),
+		slog.String("where", "backend.service.term_translation_phase.provider_execution"),
+		slog.String("result", "completed"),
+		slog.Int("input_count", inputCount),
+		slog.Int("output_count", outputCount),
+		slog.Int("skipped_count", maxInt(0, inputCount-outputCount-failedCount)),
+		slog.Int("failed_count", failedCount),
+	}
+	if failureKind != "" {
+		attrs = append(attrs,
+			slog.String("first_failure_kind", failureKind),
+			slog.String("last_failure_kind", failureKind),
+		)
+	}
+	slog.LogAttrs(ctx, slog.LevelInfo, "term translation provider bulk summary", attrs...)
+}
+
+func classifyTermTranslationBulkFailure(err error) string {
+	var attemptFailure *termTranslationAttemptFailure
+	if errors.As(err, &attemptFailure) {
+		return normalizeTermTranslationText(attemptFailure.summary.ErrorKind)
+	}
+	return "provider_execution_failed"
 }
 
 func (service *TermTranslationPhaseService) applySnapshotHits(
@@ -1125,9 +1182,11 @@ func (service *TermTranslationPhaseService) applyProviderCandidate(
 		PromptVersion:   "term-translation-v1",
 	})
 	if err != nil {
+		logProviderBoundaryFailure(ctx, "term_translation_provider_execute", termTranslationPhaseServiceWhere, plan.Execution.Provider, classifyProviderBoundaryError(err, termTranslationErrorKindProviderFailure))
 		return service.failProviderCandidate(err, baseConfirmedCount, len(plan.Candidates))
 	}
 	if validateErr := validateProviderCandidateResult(candidate, result); validateErr != nil {
+		logProviderBoundaryFailure(ctx, "term_translation_provider_execute", termTranslationPhaseServiceWhere, plan.Execution.Provider, "invalid_provider_response")
 		return service.failInvalidProviderCandidate(validateErr, baseConfirmedCount, len(plan.Candidates))
 	}
 	jobEntry, err := service.ensureJobDictionaryEntry(
@@ -1846,6 +1905,8 @@ func termTranslationRejectedCommand(jobID int64, plan termTranslationExecutionPl
 	return TermTranslationPhaseCommandReadModel{
 		JobID:             jobID,
 		CurrentPhase:      termTranslationCurrentPhase,
+		BeforePhaseState:  plan.BeforePhaseState,
+		AfterPhaseState:   termTranslationPhaseStateFromRun(&plan.PhaseRun),
 		PhaseState:        termTranslationPhaseStateFromRun(&plan.PhaseRun),
 		PhaseRunID:        int64PointerOrNil(plan.PhaseRun.ID),
 		StartedAt:         cloneTimePointer(plan.PhaseRun.StartedAt),
@@ -1867,6 +1928,8 @@ func termTranslationCommandFromRun(
 	return TermTranslationPhaseCommandReadModel{
 		JobID:             job.ID,
 		CurrentPhase:      termTranslationCurrentPhase,
+		BeforePhaseState:  run.State,
+		AfterPhaseState:   run.State,
 		PhaseState:        run.State,
 		PhaseRunID:        int64Pointer(run.ID),
 		StartedAt:         cloneTimePointer(run.StartedAt),
@@ -2146,6 +2209,16 @@ func (service *TermTranslationPhaseService) resolveProviderAPIKey(
 		return "", errors.New(termTranslationReasonCredentialMissing)
 	}
 	return trimmedSecret, nil
+}
+
+func classifyTermTranslationCredentialFailure(err error) string {
+	if err == nil {
+		return "unknown"
+	}
+	if strings.Contains(err.Error(), termTranslationReasonCredentialMissing) {
+		return providerSettingsErrorKindCredentialMissing
+	}
+	return "secret_store_failed"
 }
 
 type termTranslationSecretLoadResult struct {

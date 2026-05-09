@@ -17,6 +17,8 @@ type bodyTranslationPhaseServicePort interface {
 	ReadOutputReadiness(ctx context.Context, jobID int64) (service.BodyTranslationOutputReadinessReadModel, error)
 }
 
+const bodyTranslationPhaseUsecaseLogWhere = "backend.usecase.body_translation_phase"
+
 // BodyTranslationPhaseUsecase bridges the frozen body translation contract to the service layer.
 type BodyTranslationPhaseUsecase struct {
 	service bodyTranslationPhaseServicePort
@@ -45,6 +47,7 @@ func (usecase *BodyTranslationPhaseUsecase) StartBodyTranslationPhase(
 	request StartBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.StartPhase(ctx, request.JobID)
+	logPhaseStateCommand(ctx, "body_translation_phase_start", bodyTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toBodyTranslationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("start body translation phase: %w", err)
@@ -58,6 +61,8 @@ func (usecase *BodyTranslationPhaseUsecase) PauseBodyTranslationPhase(
 	request PauseBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.PausePhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "body_translation_phase_pause", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toBodyTranslationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("pause body translation phase: %w", err)
@@ -71,6 +76,8 @@ func (usecase *BodyTranslationPhaseUsecase) ResumeBodyTranslationPhase(
 	request ResumeBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.ResumePhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "body_translation_phase_resume", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toBodyTranslationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("resume body translation phase: %w", err)
@@ -84,6 +91,8 @@ func (usecase *BodyTranslationPhaseUsecase) RetryBodyTranslationPhase(
 	request RetryBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.RetryPhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "body_translation_phase_retry", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toBodyTranslationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("retry body translation phase: %w", err)
@@ -97,6 +106,8 @@ func (usecase *BodyTranslationPhaseUsecase) CancelBodyTranslationPhase(
 	request CancelBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
 	readModel, err := usecase.service.CancelPhase(ctx, request.JobID, request.PhaseRunID)
+	phaseRunID := request.PhaseRunID
+	logPhaseStateCommand(ctx, "body_translation_phase_cancel", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toBodyTranslationPhaseCommandResult(readModel)
 	if err != nil {
 		return result, fmt.Errorf("cancel body translation phase: %w", err)
@@ -110,6 +121,7 @@ func (usecase *BodyTranslationPhaseUsecase) GetBodyTranslationOutputReadiness(
 	request GetBodyTranslationOutputReadinessRequest,
 ) (BodyTranslationOutputReadinessResult, error) {
 	readModel, err := usecase.service.ReadOutputReadiness(ctx, request.JobID)
+	logPhaseReadiness(ctx, "body_translation_output_readiness", bodyTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseState, readModel.Ready, stringPointerIfNotBlank(readModel.BlockedReason), err)
 	result := BodyTranslationOutputReadinessResult{
 		JobID:               readModel.JobID,
 		CurrentPhase:        readModel.CurrentPhase,
@@ -125,6 +137,20 @@ func (usecase *BodyTranslationPhaseUsecase) GetBodyTranslationOutputReadiness(
 		return result, fmt.Errorf("get body translation output readiness: %w", err)
 	}
 	return result, nil
+}
+
+func stringPointerIfNotBlank(value string) *string {
+	if value == "" {
+		return nil
+	}
+	return &value
+}
+
+func bodyTranslationReadModelErrorReason(readModel *service.BodyTranslationPhaseErrorSummaryReadModel) string {
+	if readModel == nil {
+		return ""
+	}
+	return readModel.ErrorKind
 }
 
 func toBodyTranslationPhaseSummaryResult(

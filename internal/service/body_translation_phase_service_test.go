@@ -1,7 +1,10 @@
 package service
 
 import (
+	"bytes"
 	"context"
+	"encoding/json"
+	"log/slog"
 	"testing"
 	"time"
 
@@ -250,6 +253,35 @@ func (fake fakeBodyPhaseTranslationSourceRepository) ListTranslationFieldsByTran
 	recordID int64,
 ) ([]repository.TranslationField, error) {
 	return append([]repository.TranslationField(nil), fake.fields[recordID]...), nil
+}
+
+func TestLogBodyTranslationProviderBulkSummaryUsesAggregateSafePayload(t *testing.T) {
+	var buffer bytes.Buffer
+	previous := slog.Default()
+	slog.SetDefault(slog.New(slog.NewJSONHandler(&buffer, nil)))
+	t.Cleanup(func() { slog.SetDefault(previous) })
+
+	logBodyTranslationProviderBulkSummary(context.Background(), 8, 5, 1, "provider_timeout")
+
+	var payload map[string]any
+	if err := json.Unmarshal(buffer.Bytes(), &payload); err != nil {
+		t.Fatalf("unmarshal body translation payload: %v", err)
+	}
+	if payload["event"] != "body_translation_provider_bulk_summary" || payload["result"] != "completed" {
+		t.Fatalf("unexpected body translation payload: %#v", payload)
+	}
+	if payload["input_count"] != float64(8) || payload["output_count"] != float64(5) || payload["failed_count"] != float64(1) {
+		t.Fatalf("unexpected aggregate counts: %#v", payload)
+	}
+	if payload["first_failure_kind"] != "provider_timeout" || payload["last_failure_kind"] != "provider_timeout" {
+		t.Fatalf("unexpected failure kind summary: %#v", payload)
+	}
+	forbidden := []string{"api_key", "endpoint", "raw_request", "raw_response", "prompt", "full_path", "trace_id"}
+	for _, key := range forbidden {
+		if _, ok := payload[key]; ok {
+			t.Fatalf("forbidden key %q in payload: %#v", key, payload)
+		}
+	}
 }
 
 type fakeBodyPhaseOutputRepository struct {

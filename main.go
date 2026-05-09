@@ -21,6 +21,7 @@ var frontendAssets embed.FS
 func main() {
 	infraruntime.InstallDiagnosticLogger(os.Stderr, "backend", slog.LevelInfo)
 	appController := bootstrap.NewAppController()
+	appLifecycle := bootstrap.NewAppLifecycle(appController)
 
 	err := wails.Run(&options.App{
 		Title:  "AITranslationEngineJp",
@@ -29,8 +30,8 @@ func main() {
 		AssetServer: &assetserver.Options{
 			Assets: frontendAssets,
 		},
-		OnStartup:  appController.OnStartup,
-		OnShutdown: appController.OnShutdown,
+		OnStartup:  appLifecycle.OnStartup,
+		OnShutdown: appLifecycle.OnShutdown,
 		Bind: []interface{}{
 			appController,
 		},

@@ -66,7 +66,8 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
   const providerSettingsGateway = createProviderSettingsGateway()
   const translationInputGateway = createTranslationInputGateway()
   const translationJobSetupGateway = createTranslationJobSetupGateway()
-  const translationJobManagementGateway = createTranslationJobManagementGateway()
+  const translationJobManagementGateway =
+    createTranslationJobManagementGateway()
   const translationOutputArtifactGateway =
     createTranslationOutputArtifactGateway()
   const masterPersonaGateway = createMasterPersonaGateway()
@@ -81,7 +82,10 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
         bodyTranslationPhaseGateway
       ),
     createMasterDictionaryScreenController:
-      createMasterDictionaryScreenControllerFactory(masterDictionaryGateway),
+      createMasterDictionaryScreenControllerFactory(
+        masterDictionaryGateway,
+        diagnosticLogger
+      ),
     createMasterPersonaScreenController:
       createMasterPersonaScreenControllerFactory(masterPersonaGateway),
     createPersonaGenerationPhaseScreenController:
@@ -123,7 +127,8 @@ export function createReviewFakeApiAppFactories(
       ),
     createMasterDictionaryScreenController:
       createMasterDictionaryScreenControllerFactory(
-        registry.masterDictionary?.(context) ?? null
+        registry.masterDictionary?.(context) ?? null,
+        createNoopFrontendDiagnosticLogger()
       ),
     createMasterPersonaScreenController:
       createMasterPersonaScreenControllerFactory(
