@@ -66,9 +66,11 @@ type fakeTermPhaseJobLifecycleRepository struct {
 	phases              []repository.JobPhaseRun
 	updateJobDrafts     []repository.TranslationJobUpdateDraft
 	updatePhaseRunDraft []repository.JobPhaseRunUpdateDraft
+	updateExpectedState []string
 	phaseLinks          []repository.PhaseRunDictionaryEntry
 	nextPhaseRunID      int64
 	createLinkErr       error
+	updatePhaseRunErr   error
 }
 
 func (fake *fakeTermPhaseJobLifecycleRepository) GetTranslationJobByID(context.Context, int64) (repository.TranslationJob, error) {
@@ -112,13 +114,30 @@ func (fake *fakeTermPhaseJobLifecycleRepository) UpdateJobPhaseRun(_ context.Con
 	if fake.run == nil {
 		return repository.JobPhaseRun{}, repository.ErrNotFound
 	}
+	if fake.updatePhaseRunErr != nil {
+		return repository.JobPhaseRun{}, fake.updatePhaseRunErr
+	}
 	fake.updatePhaseRunDraft = append(fake.updatePhaseRunDraft, draft)
 	fake.run.State = draft.State
 	fake.run.ProgressPercent = draft.ProgressPercent
 	fake.run.LatestError = draft.LatestError
+	fake.run.AIProvider = draft.AIProvider
+	fake.run.ModelName = draft.ModelName
+	fake.run.ExecutionMode = draft.ExecutionMode
+	fake.run.CredentialRef = draft.CredentialRef
+	fake.run.InstructionKind = draft.InstructionKind
 	fake.run.StartedAt = draft.StartedAt
 	fake.run.FinishedAt = draft.FinishedAt
 	return *fake.run, nil
+}
+func (fake *fakeTermPhaseJobLifecycleRepository) UpdateJobPhaseRunWhenState(
+	ctx context.Context,
+	id int64,
+	expectedState string,
+	draft repository.JobPhaseRunUpdateDraft,
+) (repository.JobPhaseRun, error) {
+	fake.updateExpectedState = append(fake.updateExpectedState, expectedState)
+	return fake.UpdateJobPhaseRun(ctx, id, draft)
 }
 func (fake *fakeTermPhaseJobLifecycleRepository) ListJobPhaseRunsByJobID(context.Context, int64) ([]repository.JobPhaseRun, error) {
 	if len(fake.phases) != 0 {
@@ -151,6 +170,7 @@ func (fake *fakeTermPhaseJobLifecycleRepository) clone() *fakeTermPhaseJobLifecy
 	cloned.phases = append([]repository.JobPhaseRun(nil), fake.phases...)
 	cloned.updateJobDrafts = append([]repository.TranslationJobUpdateDraft(nil), fake.updateJobDrafts...)
 	cloned.updatePhaseRunDraft = append([]repository.JobPhaseRunUpdateDraft(nil), fake.updatePhaseRunDraft...)
+	cloned.updateExpectedState = append([]string(nil), fake.updateExpectedState...)
 	cloned.phaseLinks = append([]repository.PhaseRunDictionaryEntry(nil), fake.phaseLinks...)
 	if fake.run != nil {
 		runCopy := *fake.run
@@ -335,6 +355,12 @@ func (fake fakeTermPhaseTranslationSourceRepository) ListTranslationFieldsByTran
 func newTermTranslationPhaseServiceForTest(provider TermTranslationProvider) (*TermTranslationPhaseService, *fakeTermPhaseJobLifecycleRepository, *fakeTermPhaseFoundationDataRepository) {
 	jobRepo := &fakeTermPhaseJobLifecycleRepository{
 		job: repository.TranslationJob{ID: 1, XEditExtractedDataID: 1, JobName: "job-1", State: termTranslationJobStateReady},
+		run: &repository.JobPhaseRun{
+			ID:               200,
+			TranslationJobID: 1,
+			PhaseType:        termTranslationPhaseType,
+			State:            termTranslationPhaseStatePending,
+		},
 		phases: []repository.JobPhaseRun{{
 			ID:               100,
 			TranslationJobID: 1,
@@ -452,6 +478,68 @@ func TestTermTranslationPhaseServiceReadSummaryCountsSnapshotHitsAndConfirmedTer
 	}
 	if summary.Execution.SnapshotDigest == nil || summary.Execution.SnapshotVersion == nil {
 		t.Fatalf("expected snapshot metadata, got %#v", summary.Execution)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadSummaryReturnsNotFoundForReadyJobWithoutPhaseRuns(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.run = nil
+	jobRepo.phases = nil
+
+	_, err := service.ReadSummary(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected service error for ready job without phase runs")
+	}
+	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
+		t.Fatalf("expected load initial execution phase not found error, got %v", err)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadSummaryReturnsNotFoundForNonReadyJobWithoutPhaseRuns(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.job.State = termTranslationJobStateRunning
+	jobRepo.run = nil
+	jobRepo.phases = nil
+
+	_, err := service.ReadSummary(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected service error for non-ready job without phase runs")
+	}
+	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
+		t.Fatalf("expected load initial execution phase not found error, got %v", err)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{
+		ID:               220,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStatePaused,
+		AIProvider:       TermTranslationProviderXAI,
+		ModelName:        "grok-2-latest",
+		ExecutionMode:    "batch",
+		CredentialRef:    "xai-primary",
+	}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success with existing run, got %v", err)
+	}
+	if summary.Execution.Provider != TermTranslationProviderXAI {
+		t.Fatalf("expected execution provider from existing run, got %#v", summary.Execution)
+	}
+	if summary.Execution.Model != "grok-2-latest" {
+		t.Fatalf("expected execution model from existing run, got %#v", summary.Execution)
+	}
+	if summary.Execution.ExecutionMode != "batch" {
+		t.Fatalf("expected execution mode from existing run, got %#v", summary.Execution)
+	}
+	if summary.Execution.CredentialRef != "xai-primary" {
+		t.Fatalf("expected execution credential ref from existing run, got %#v", summary.Execution)
 	}
 }
 
@@ -778,6 +866,93 @@ func TestTermTranslationPhaseServiceStartPhaseRejectsNonReadyJobWithCompletedRun
 	}
 }
 
+func TestTermTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{})
+	existingRun := repository.JobPhaseRun{
+		ID:               260,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStatePending,
+		ExecutionMode:    "sync",
+		AIProvider:       TermTranslationProviderGemini,
+		ModelName:        "gemini-2.5-pro",
+		CredentialRef:    "gemini-primary",
+	}
+	jobRepo.run = &existingRun
+	jobRepo.phases = append(jobRepo.phases, existingRun)
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success with pre-created unstarted run: %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != existingRun.ID {
+		t.Fatalf("expected existing phase run id reuse, got %#v", result.PhaseRunID)
+	}
+	if len(jobRepo.updatePhaseRunDraft) == 0 {
+		t.Fatalf("expected phase run updates, got %#v", jobRepo.updatePhaseRunDraft)
+	}
+	if jobRepo.updatePhaseRunDraft[0].State != termTranslationPhaseStateRunning {
+		t.Fatalf("expected first phase run update to running, got %#v", jobRepo.updatePhaseRunDraft[0])
+	}
+	if jobRepo.updateExpectedState[0] != termTranslationPhaseStatePending {
+		t.Fatalf("expected optimistic expected state pending, got %#v", jobRepo.updateExpectedState)
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *testing.T) {
+	requestCount := 0
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, _ TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			requestCount++
+			return TermTranslationProviderResult{}, nil
+		},
+	})
+	jobRepo.run = nil
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected missing term phase run error")
+	}
+	if !strings.Contains(err.Error(), "find term translation phase run for start: not found") {
+		t.Fatalf("expected missing term phase run error, got %v", err)
+	}
+	if requestCount != 0 {
+		t.Fatalf("expected no provider request without phase run, got %d", requestCount)
+	}
+}
+
+func TestTermTranslationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromotionConflicts(t *testing.T) {
+	requestCount := 0
+	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+		translateFunc: func(_ context.Context, _ TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+			requestCount++
+			return TermTranslationProviderResult{}, nil
+		},
+	})
+	existingRun := repository.JobPhaseRun{
+		ID:               261,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStatePending,
+		ExecutionMode:    "sync",
+		AIProvider:       TermTranslationProviderGemini,
+		ModelName:        "gemini-2.5-pro",
+		CredentialRef:    "gemini-primary",
+	}
+	jobRepo.run = &existingRun
+	jobRepo.phases = append(jobRepo.phases, existingRun)
+	jobRepo.updatePhaseRunErr = repository.ErrConflict
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if !errors.Is(err, repository.ErrConflict) {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+	if requestCount != 0 {
+		t.Fatalf("expected no provider request on phase promotion conflict, got %d", requestCount)
+	}
+	assertNoTermTranslationJobEntries(t, foundation)
+}
+
 func TestTermTranslationPhaseServiceResumePhaseRejectsNonResumableState(t *testing.T) {
 	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
 	run := repository.JobPhaseRun{ID: 350, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateCompleted}
@@ -1076,5 +1251,34 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(
 	}
 	if readiness.CanStartNextPhase {
 		t.Fatalf("expected candidate coverage guard to remain false, got %#v", readiness)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForReadyJobWithoutPhaseRuns(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.run = nil
+	jobRepo.phases = nil
+
+	_, err := service.ReadNextPhaseReadiness(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected service error for ready job without phase runs")
+	}
+	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
+		t.Fatalf("expected load initial execution phase not found error, got %v", err)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForNonReadyJobWithoutPhaseRuns(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.job.State = termTranslationJobStateRunning
+	jobRepo.run = nil
+	jobRepo.phases = nil
+
+	_, err := service.ReadNextPhaseReadiness(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected service error for non-ready job without phase runs")
+	}
+	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
+		t.Fatalf("expected load initial execution phase not found error, got %v", err)
 	}
 }

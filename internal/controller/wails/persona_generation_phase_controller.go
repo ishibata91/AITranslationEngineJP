@@ -340,7 +340,7 @@ func toPersonaGenerationBodyReadinessResponseDTO(
 			MissingCount:   result.InputSummary.MissingCount,
 			SnapshotID:     result.InputSummary.SnapshotID,
 			SnapshotDigest: result.InputSummary.SnapshotDigest,
-			EvidenceRefs:   append([]string(nil), result.InputSummary.EvidenceRefs...),
+			EvidenceRefs:   toPersonaGenerationStringArrayDTO(result.InputSummary.EvidenceRefs),
 		},
 	}
 }
@@ -365,7 +365,7 @@ func toPersonaGenerationTargetSummaryDTO(
 		CommonPersonaHitCount:  summary.CommonPersonaHitCount,
 		CommonPersonaMissCount: summary.CommonPersonaMissCount,
 		SkippedCount:           summary.SkippedCount,
-		SkippedReasons:         append([]string(nil), summary.SkippedReasons...),
+		SkippedReasons:         toPersonaGenerationStringArrayDTO(summary.SkippedReasons),
 		TargetSnapshotID:       cloneOptionalString(summary.TargetSnapshotID),
 		TargetSnapshotDigest:   summary.TargetSnapshotDigest,
 	}
@@ -382,8 +382,15 @@ func toPersonaGenerationExecutionSummaryDTO(
 		PromptDigest:  summary.PromptDigest,
 		InputCount:    summary.InputCount,
 		OutputCount:   summary.OutputCount,
-		EvidenceRefs:  append([]string(nil), summary.EvidenceRefs...),
+		EvidenceRefs:  toPersonaGenerationStringArrayDTO(summary.EvidenceRefs),
 	}
+}
+
+func toPersonaGenerationStringArrayDTO(values []string) []string {
+	if values == nil {
+		return []string{}
+	}
+	return append([]string{}, values...)
 }
 
 func toOptionalPersonaGenerationPhaseResultSummaryDTO(

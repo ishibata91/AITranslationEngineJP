@@ -19,6 +19,7 @@ const (
 	termTranslationCurrentPhase              = "term_translation"
 	termTranslationInitialPhaseType          = "translation"
 	termTranslationPhaseStateIdleReady       = "idle_ready"
+	termTranslationPhaseStatePending         = "pending"
 	termTranslationPhaseStateRunning         = "running"
 	termTranslationPhaseStateCompleted       = "completed"
 	termTranslationPhaseStatePaused          = "paused"
@@ -82,6 +83,7 @@ type termTranslationPhaseJobLifecycleRepository interface {
 	CreateJobPhaseRun(ctx context.Context, draft repository.JobPhaseRunDraft) (repository.JobPhaseRun, error)
 	FindJobPhaseRun(ctx context.Context, translationJobID int64, phaseType string) (repository.JobPhaseRun, error)
 	UpdateJobPhaseRun(ctx context.Context, id int64, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error)
+	UpdateJobPhaseRunWhenState(ctx context.Context, id int64, expectedState string, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]repository.JobPhaseRun, error)
 	CreatePhaseRunDictionaryEntry(ctx context.Context, draft repository.PhaseRunDictionaryEntryDraft) (repository.PhaseRunDictionaryEntry, error)
 	ListPhaseRunDictionaryEntriesByPhaseRunID(ctx context.Context, phaseRunID int64) ([]repository.PhaseRunDictionaryEntry, error)
@@ -673,9 +675,38 @@ func (service *TermTranslationPhaseService) ensureExecutionPlanRun(
 	execution TermTranslationExecutionConfigReadModel,
 ) (repository.TranslationJob, *repository.JobPhaseRun, TermTranslationExecutionConfigReadModel, bool, error) {
 	if run != nil {
-		return job, run, execution, false, nil
+		if strings.TrimSpace(run.State) != termTranslationPhaseStatePending {
+			return job, run, execution, false, nil
+		}
+		updatedJob, err := service.markExecutionPlanJobRunning(ctx, job)
+		if err != nil {
+			return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
+		}
+		updatedRun, err := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(ctx, run.ID, termTranslationPhaseStatePending, repository.JobPhaseRunUpdateDraft{
+			State:           termTranslationPhaseStateRunning,
+			ProgressPercent: 0,
+			AIProvider:      execution.Provider,
+			ModelName:       execution.Model,
+			ExecutionMode:   execution.ExecutionMode,
+			CredentialRef:   execution.CredentialRef,
+			InstructionKind: termTranslationInstructionKindDefault,
+			StartedAt:       termTranslationRunStartedAt(run.StartedAt, service.now()),
+			FinishedAt:      nil,
+		})
+		if err != nil {
+			return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, fmt.Errorf("update term translation phase run for start: %w", err)
+		}
+		execution.Provider = updatedRun.AIProvider
+		execution.Model = updatedRun.ModelName
+		execution.ExecutionMode = updatedRun.ExecutionMode
+		startSnapshot := termTranslationProviderExecutionSnapshot(execution)
+		if err := service.persistRuntimeSnapshot(ctx, updatedJob.ID, "word_translation", startSnapshot); err != nil {
+			return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
+		}
+		service.executionSnapshots[updatedRun.ID] = startSnapshot
+		return updatedJob, &updatedRun, execution, true, nil
 	}
-	return service.initializeExecutionPlanRun(ctx, job, execution)
+	return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, fmt.Errorf("find term translation phase run for start: %w", repository.ErrNotFound)
 }
 
 func (service *TermTranslationPhaseService) termTranslationSnapshotHitsForPlan(
@@ -835,34 +866,6 @@ func (service *TermTranslationPhaseService) resolveExecutionSnapshotForStart(
 	}
 }
 
-func (service *TermTranslationPhaseService) initializeExecutionPlanRun(
-	ctx context.Context,
-	job repository.TranslationJob,
-	execution TermTranslationExecutionConfigReadModel,
-) (repository.TranslationJob, *repository.JobPhaseRun, TermTranslationExecutionConfigReadModel, bool, error) {
-	jobPhases, err := service.jobLifecycleRepository.ListJobPhaseRunsByJobID(ctx, job.ID)
-	if err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, fmt.Errorf("list translation job phases: %w", err)
-	}
-	updatedJob, err := service.markExecutionPlanJobRunning(ctx, job)
-	if err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
-	}
-	run, created, err := service.createOrFindExecutionPlanRun(ctx, updatedJob.ID, len(jobPhases)+1, execution)
-	if err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
-	}
-	execution.Provider = run.AIProvider
-	execution.Model = run.ModelName
-	execution.ExecutionMode = run.ExecutionMode
-	startSnapshot := termTranslationProviderExecutionSnapshot(execution)
-	if err := service.persistRuntimeSnapshot(ctx, updatedJob.ID, "word_translation", startSnapshot); err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
-	}
-	service.executionSnapshots[run.ID] = startSnapshot
-	return updatedJob, run, execution, created, nil
-}
-
 func termTranslationProviderExecutionSnapshot(
 	execution TermTranslationExecutionConfigReadModel,
 ) providerExecutionSnapshot {
@@ -928,36 +931,6 @@ func (service *TermTranslationPhaseService) markExecutionPlanJobRunning(
 		return repository.TranslationJob{}, fmt.Errorf("update translation job running state: %w", err)
 	}
 	return updatedJob, nil
-}
-
-func (service *TermTranslationPhaseService) createOrFindExecutionPlanRun(
-	ctx context.Context,
-	jobID int64,
-	executionOrder int,
-	execution TermTranslationExecutionConfigReadModel,
-) (*repository.JobPhaseRun, bool, error) {
-	createdRun, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
-		TranslationJobID: jobID,
-		PhaseType:        termTranslationPhaseType,
-		State:            termTranslationPhaseStateRunning,
-		ExecutionOrder:   executionOrder,
-		AIProvider:       execution.Provider,
-		ModelName:        execution.Model,
-		ExecutionMode:    execution.ExecutionMode,
-		CredentialRef:    "",
-		InstructionKind:  termTranslationInstructionKindDefault,
-	})
-	if err == nil {
-		return &createdRun, true, nil
-	}
-	if !errors.Is(err, repository.ErrConflict) {
-		return nil, false, fmt.Errorf("create term translation phase run: %w", err)
-	}
-	existingRun, findErr := service.jobLifecycleRepository.FindJobPhaseRun(ctx, jobID, termTranslationPhaseType)
-	if findErr != nil {
-		return nil, false, fmt.Errorf("find existing term translation phase run after conflict: %w", findErr)
-	}
-	return &existingRun, false, nil
 }
 
 func (service *TermTranslationPhaseService) applyExecutionPlan(
@@ -1377,11 +1350,11 @@ func (service *TermTranslationPhaseService) loadExecutionContext(
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, fmt.Errorf("list translation job phases: %w", err)
 	}
-	initial, err := termTranslationInitialExecutionPhase(phases)
+	initial, applyRuntimeSnapshot, err := termTranslationExecutionBasePhase(job.ID, job.State, run, phases)
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
 	}
-	initial, err = service.applyTermTranslationRuntimeSnapshot(ctx, job.ID, initial, run == nil)
+	initial, err = service.applyTermTranslationRuntimeSnapshot(ctx, job.ID, initial, applyRuntimeSnapshot)
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
 	}
@@ -1830,6 +1803,24 @@ func termTranslationInitialExecutionPhase(phases []repository.JobPhaseRun) (repo
 		}
 	}
 	return repository.JobPhaseRun{}, fmt.Errorf("load initial execution phase: %w", repository.ErrNotFound)
+}
+
+func termTranslationExecutionBasePhase(
+	jobID int64,
+	jobState string,
+	run *repository.JobPhaseRun,
+	phases []repository.JobPhaseRun,
+) (repository.JobPhaseRun, bool, error) {
+	initial, err := termTranslationInitialExecutionPhase(phases)
+	if err == nil {
+		return initial, run == nil, nil
+	}
+	if run != nil || !errors.Is(err, repository.ErrNotFound) {
+		return repository.JobPhaseRun{}, false, err
+	}
+	_ = jobID
+	_ = jobState
+	return repository.JobPhaseRun{}, false, fmt.Errorf("load initial execution phase: %w", repository.ErrNotFound)
 }
 
 func termTranslationCurrentStep(run *repository.JobPhaseRun, result *TermTranslationPhaseResultReadModel) string {

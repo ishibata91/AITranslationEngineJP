@@ -355,15 +355,37 @@ SELECT id, translation_job_id, phase_type, state, execution_order, progress_perc
        latest_external_run_id, latest_error, started_at, finished_at
 FROM JOB_PHASE_RUN WHERE id = ?`
 
-	updateJobPhaseRun = `
-UPDATE JOB_PHASE_RUN SET
+	updateJobPhaseRunSetClause = `
   state                 = :state,
   progress_percent      = :progress_percent,
+  snapshot_field_count  = :snapshot_field_count,
+  provider_target_count = :provider_target_count,
+  exact_exclusion_count = :exact_exclusion_count,
+  partial_constraint_count = :partial_constraint_count,
+  ai_provider           = :ai_provider,
+  model_name            = :model_name,
+  execution_mode        = :execution_mode,
+  credential_ref        = :credential_ref,
+  instruction_kind      = :instruction_kind,
+  input_snapshot_digest = :input_snapshot_digest,
+  dictionary_digest     = :dictionary_digest,
+  persona_digest        = :persona_digest,
+  metadata_digest       = :metadata_digest,
+  prompt_digest         = :prompt_digest,
   latest_external_run_id = :latest_external_run_id,
   latest_error          = :latest_error,
   started_at            = :started_at,
-  finished_at           = :finished_at
+  finished_at           = :finished_at`
+
+	updateJobPhaseRun = `
+UPDATE JOB_PHASE_RUN SET
+` + updateJobPhaseRunSetClause + `
 WHERE id = :id`
+
+	updateJobPhaseRunWhenState = `
+UPDATE JOB_PHASE_RUN SET
+` + updateJobPhaseRunSetClause + `
+WHERE id = :id AND state = :expected_state`
 
 	selectJobPhaseRunsByJobID = `
 SELECT id, translation_job_id, phase_type, state, execution_order, progress_percent,
@@ -613,7 +635,7 @@ func normalizeTranslationJobManagementState(state string) string {
 func hasUnsafeDeletePhaseRun(phaseRuns []JobPhaseRun) bool {
 	for _, phaseRun := range phaseRuns {
 		state := normalizeTranslationJobManagementState(phaseRun.State)
-		if state == "running" || state == "pending" {
+		if state == "running" {
 			return true
 		}
 		if normalizeTranslationJobManagementState(phaseRun.LatestError) == "stop_requested" {
@@ -758,6 +780,120 @@ func (r *SQLiteJobLifecycleRepository) UpdateJobPhaseRun(
 	draft JobPhaseRunUpdateDraft,
 ) (JobPhaseRun, error) {
 	ext := extractTx(ctx, r.db)
+	current, err := r.GetJobPhaseRunByID(ctx, id)
+	if err != nil {
+		return JobPhaseRun{}, err
+	}
+	completedDraft := completeJobPhaseRunUpdateDraft(current, draft)
+	args := buildJobPhaseRunUpdateArgs(id, "", completedDraft)
+	q, qArgs, err := sqlx.Named(updateJobPhaseRun, args)
+	if err != nil {
+		return JobPhaseRun{}, fmt.Errorf("update job_phase_run named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, qArgs...)
+	if err != nil {
+		return JobPhaseRun{}, mapFoundationSQLError(err, "update job_phase_run")
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return JobPhaseRun{}, fmt.Errorf("update job_phase_run rows affected: %w", err)
+	}
+	if affected == 0 {
+		return r.GetJobPhaseRunByID(ctx, id)
+	}
+	return r.GetJobPhaseRunByID(ctx, id)
+}
+
+// UpdateJobPhaseRunWhenState は現在状態が expectedState の場合だけ JobPhaseRun を更新する。
+func (r *SQLiteJobLifecycleRepository) UpdateJobPhaseRunWhenState(
+	ctx context.Context,
+	id int64,
+	expectedState string,
+	draft JobPhaseRunUpdateDraft,
+) (JobPhaseRun, error) {
+	ext := extractTx(ctx, r.db)
+	current, err := r.GetJobPhaseRunByID(ctx, id)
+	if err != nil {
+		return JobPhaseRun{}, err
+	}
+	completedDraft := completeJobPhaseRunUpdateDraft(current, draft)
+	args := buildJobPhaseRunUpdateArgs(id, expectedState, completedDraft)
+	q, qArgs, err := sqlx.Named(updateJobPhaseRunWhenState, args)
+	if err != nil {
+		return JobPhaseRun{}, fmt.Errorf("update job_phase_run when state named: %w", err)
+	}
+	result, err := ext.ExecContext(ctx, q, qArgs...)
+	if err != nil {
+		return JobPhaseRun{}, mapFoundationSQLError(err, "update job_phase_run when state")
+	}
+	affected, err := result.RowsAffected()
+	if err != nil {
+		return JobPhaseRun{}, fmt.Errorf("update job_phase_run when state rows affected: %w", err)
+	}
+	if affected == 0 {
+		if _, err := r.GetJobPhaseRunByID(ctx, id); err != nil {
+			return JobPhaseRun{}, err
+		}
+		return JobPhaseRun{}, fmt.Errorf("update job_phase_run expected state: %w", ErrConflict)
+	}
+	return r.GetJobPhaseRunByID(ctx, id)
+}
+
+func completeJobPhaseRunUpdateDraft(
+	current JobPhaseRun,
+	draft JobPhaseRunUpdateDraft,
+) JobPhaseRunUpdateDraft {
+	completed := draft
+	if completed.SnapshotFieldCount == 0 {
+		completed.SnapshotFieldCount = current.SnapshotFieldCount
+	}
+	if completed.ProviderTargetCount == 0 {
+		completed.ProviderTargetCount = current.ProviderTargetCount
+	}
+	if completed.ExactExclusionCount == 0 {
+		completed.ExactExclusionCount = current.ExactExclusionCount
+	}
+	if completed.PartialConstraintCount == 0 {
+		completed.PartialConstraintCount = current.PartialConstraintCount
+	}
+	if completed.AIProvider == "" {
+		completed.AIProvider = current.AIProvider
+	}
+	if completed.ModelName == "" {
+		completed.ModelName = current.ModelName
+	}
+	if completed.ExecutionMode == "" {
+		completed.ExecutionMode = current.ExecutionMode
+	}
+	if completed.CredentialRef == "" {
+		completed.CredentialRef = current.CredentialRef
+	}
+	if completed.InstructionKind == "" {
+		completed.InstructionKind = current.InstructionKind
+	}
+	if completed.InputSnapshotDigest == "" {
+		completed.InputSnapshotDigest = current.InputSnapshotDigest
+	}
+	if completed.DictionaryDigest == "" {
+		completed.DictionaryDigest = current.DictionaryDigest
+	}
+	if completed.PersonaDigest == "" {
+		completed.PersonaDigest = current.PersonaDigest
+	}
+	if completed.MetadataDigest == "" {
+		completed.MetadataDigest = current.MetadataDigest
+	}
+	if completed.PromptDigest == "" {
+		completed.PromptDigest = current.PromptDigest
+	}
+	return completed
+}
+
+func buildJobPhaseRunUpdateArgs(
+	id int64,
+	expectedState string,
+	draft JobPhaseRunUpdateDraft,
+) map[string]interface{} {
 	var startedAt *string
 	if draft.StartedAt != nil {
 		s := draft.StartedAt.UTC().Format(time.RFC3339)
@@ -768,23 +904,30 @@ func (r *SQLiteJobLifecycleRepository) UpdateJobPhaseRun(
 		s := draft.FinishedAt.UTC().Format(time.RFC3339)
 		finishedAt = &s
 	}
-	args := map[string]interface{}{
-		"id":                     id,
-		"state":                  draft.State,
-		"progress_percent":       draft.ProgressPercent,
-		"latest_external_run_id": draft.LatestExternalRunID,
-		"latest_error":           draft.LatestError,
-		"started_at":             startedAt,
-		"finished_at":            finishedAt,
+	return map[string]interface{}{
+		"id":                       id,
+		"expected_state":           expectedState,
+		"state":                    draft.State,
+		"progress_percent":         draft.ProgressPercent,
+		"snapshot_field_count":     draft.SnapshotFieldCount,
+		"provider_target_count":    draft.ProviderTargetCount,
+		"exact_exclusion_count":    draft.ExactExclusionCount,
+		"partial_constraint_count": draft.PartialConstraintCount,
+		"ai_provider":              draft.AIProvider,
+		"model_name":               draft.ModelName,
+		"execution_mode":           draft.ExecutionMode,
+		"credential_ref":           draft.CredentialRef,
+		"instruction_kind":         draft.InstructionKind,
+		"input_snapshot_digest":    draft.InputSnapshotDigest,
+		"dictionary_digest":        draft.DictionaryDigest,
+		"persona_digest":           draft.PersonaDigest,
+		"metadata_digest":          draft.MetadataDigest,
+		"prompt_digest":            draft.PromptDigest,
+		"latest_external_run_id":   draft.LatestExternalRunID,
+		"latest_error":             draft.LatestError,
+		"started_at":               startedAt,
+		"finished_at":              finishedAt,
 	}
-	q, qArgs, err := sqlx.Named(updateJobPhaseRun, args)
-	if err != nil {
-		return JobPhaseRun{}, fmt.Errorf("update job_phase_run named: %w", err)
-	}
-	if _, err := ext.ExecContext(ctx, q, qArgs...); err != nil {
-		return JobPhaseRun{}, mapFoundationSQLError(err, "update job_phase_run")
-	}
-	return r.GetJobPhaseRunByID(ctx, id)
 }
 
 // ListJobPhaseRunsByJobID は JobID に紐づく JobPhaseRun 一覧を返す。

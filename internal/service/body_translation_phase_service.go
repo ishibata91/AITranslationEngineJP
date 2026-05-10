@@ -17,6 +17,7 @@ const (
 	bodyTranslationPhaseType                 = "body_translation"
 	bodyTranslationPersonaPhaseType          = "persona_generation"
 	bodyTranslationPhaseStateIdleReady       = "idle_ready"
+	bodyTranslationPhaseStatePending         = "pending"
 	bodyTranslationPhaseStateRunning         = "running"
 	bodyTranslationPhaseStateCompleted       = "completed"
 	bodyTranslationPhaseStatePaused          = "paused"
@@ -41,6 +42,7 @@ type bodyTranslationPhaseJobLifecycleRepository interface {
 	CreateJobPhaseRun(ctx context.Context, draft repository.JobPhaseRunDraft) (repository.JobPhaseRun, error)
 	FindJobPhaseRun(ctx context.Context, translationJobID int64, phaseType string) (repository.JobPhaseRun, error)
 	UpdateJobPhaseRun(ctx context.Context, id int64, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error)
+	UpdateJobPhaseRunWhenState(ctx context.Context, id int64, expectedState string, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]repository.JobPhaseRun, error)
 	CreatePhaseRunTranslationField(ctx context.Context, draft repository.PhaseRunTranslationFieldDraft) (repository.PhaseRunTranslationField, error)
 	ListPhaseRunTranslationFieldsByPhaseRunID(ctx context.Context, phaseRunID int64) ([]repository.PhaseRunTranslationField, error)
@@ -356,7 +358,11 @@ func (service *BodyTranslationPhaseService) StartPhase(
 	if loaded.bodyRun != nil {
 		beforePhaseState = strings.TrimSpace(loaded.bodyRun.State)
 	}
-	if loaded.bodyRun == nil {
+	bodyRunState := ""
+	if loaded.bodyRun != nil {
+		bodyRunState = strings.TrimSpace(loaded.bodyRun.State)
+	}
+	if loaded.bodyRun == nil || bodyRunState == bodyTranslationPhaseStatePending {
 		resolvedExecution, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, loaded.execution)
 		if resolveErr != nil {
 			return BodyTranslationPhaseCommandReadModel{}, resolveErr
@@ -371,7 +377,7 @@ func (service *BodyTranslationPhaseService) StartPhase(
 		result := service.rejectedCommand(loaded, *rejection)
 		return result, errBodyTranslationPhaseExecutionRejected
 	}
-	if loaded.bodyRun != nil {
+	if loaded.bodyRun != nil && bodyRunState != bodyTranslationPhaseStatePending {
 		return service.existingBodyTranslationPhaseRun(loaded, beforePhaseState)
 	}
 
@@ -476,39 +482,36 @@ func (service *BodyTranslationPhaseService) createBodyTranslationRunRecord(
 	startState bodyTranslationStartState,
 	now time.Time,
 ) (repository.JobPhaseRun, error) {
-	run, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
-		TranslationJobID:       loaded.job.ID,
-		PhaseType:              bodyTranslationPhaseType,
-		State:                  startState.runState,
-		ExecutionOrder:         service.nextExecutionOrder(loaded),
-		SnapshotFieldCount:     loaded.snapshot.TargetCount,
-		ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
-		ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
-		PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
-		AIProvider:             loaded.execution.Provider,
-		ModelName:              loaded.execution.Model,
-		ExecutionMode:          loaded.execution.ExecutionMode,
-		CredentialRef:          "",
-		InstructionKind:        bodyTranslationPhaseType,
-		InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
-		DictionaryDigest:       loaded.snapshot.DictionaryDigest,
-		PersonaDigest:          loaded.snapshot.PersonaDigest,
-		MetadataDigest:         loaded.snapshot.MetadataDigest,
-		PromptDigest:           loaded.snapshot.PromptDigest,
-	})
-	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("create body translation phase run: %w", err)
+	if loaded.bodyRun != nil {
+		run, err := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(ctx, loaded.bodyRun.ID, bodyTranslationPhaseStatePending, repository.JobPhaseRunUpdateDraft{
+			State:                  startState.runState,
+			ProgressPercent:        startState.progressPercent,
+			SnapshotFieldCount:     loaded.snapshot.TargetCount,
+			ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
+			ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
+			PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
+			AIProvider:             loaded.execution.Provider,
+			ModelName:              loaded.execution.Model,
+			ExecutionMode:          loaded.execution.ExecutionMode,
+			CredentialRef:          loaded.execution.CredentialRef,
+			InstructionKind:        bodyTranslationPhaseType,
+			InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
+			DictionaryDigest:       loaded.snapshot.DictionaryDigest,
+			PersonaDigest:          loaded.snapshot.PersonaDigest,
+			MetadataDigest:         loaded.snapshot.MetadataDigest,
+			PromptDigest:           loaded.snapshot.PromptDigest,
+			StartedAt:              &now,
+			FinishedAt:             startState.finishedAt,
+		})
+		if err != nil {
+			return repository.JobPhaseRun{}, fmt.Errorf("update body translation phase run: %w", err)
+		}
+		return run, nil
 	}
-	run, err = service.jobLifecycleRepository.UpdateJobPhaseRun(ctx, run.ID, repository.JobPhaseRunUpdateDraft{
-		State:           startState.runState,
-		ProgressPercent: startState.progressPercent,
-		StartedAt:       &now,
-		FinishedAt:      startState.finishedAt,
-	})
-	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("update body translation phase run: %w", err)
-	}
-	return run, nil
+	_ = ctx
+	_ = startState
+	_ = now
+	return repository.JobPhaseRun{}, fmt.Errorf("find body translation phase run for start: %w", repository.ErrNotFound)
 }
 
 func (service *BodyTranslationPhaseService) updateBodyTranslationJobForStart(
@@ -1840,17 +1843,6 @@ func bodyTranslationSkippedReasonsFromCount(count int) []string {
 		reasons = append(reasons, bodyTranslationSkippedReasonExactDictionary)
 	}
 	return reasons
-}
-
-func (service *BodyTranslationPhaseService) nextExecutionOrder(loaded bodyTranslationLoadedContext) int {
-	order := 0
-	if loaded.personaRun != nil && loaded.personaRun.ExecutionOrder > order {
-		order = loaded.personaRun.ExecutionOrder
-	}
-	if loaded.bodyRun != nil && loaded.bodyRun.ExecutionOrder > order {
-		order = loaded.bodyRun.ExecutionOrder
-	}
-	return order + 1
 }
 
 func bodyTranslationExecutionSummaryFromRun(

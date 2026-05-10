@@ -133,6 +133,17 @@ const PHASE_STATE_LABELS: Record<string, string> = {
   snapshot_missing: "snapshot 不足"
 }
 
+const PHASE_VIEW_STATE_BY_PHASE_STATE: Partial<
+  Record<string, PersonaGenerationPhaseViewState>
+> = {
+  failed: "failed",
+  in_progress: "running",
+  paused: "paused",
+  pending: "not_started",
+  processing: "running",
+  running: "running"
+}
+
 function formatDate(value: string | undefined): string {
   if (!value) {
     return "-"
@@ -179,6 +190,52 @@ function isSnapshotMissing(state: PersonaGenerationPhaseScreenState): boolean {
   )
 }
 
+function isRecoverableFailureState(
+  normalizedState: string,
+  summary: PersonaGenerationPhaseSummaryResponse
+): boolean {
+  return (
+    normalizedState === "recoverable_failed" ||
+    normalizedState === "retryable_failed" ||
+    summary.errorSummary?.retryable === true
+  )
+}
+
+function isCompletedState(normalizedState: string): boolean {
+  return (
+    normalizedState === "completed" ||
+    normalizedState === "succeeded" ||
+    normalizedState === "done"
+  )
+}
+
+function buildSummaryViewState(
+  summary: PersonaGenerationPhaseSummaryResponse
+): PersonaGenerationPhaseViewState {
+  const normalizedState = normalizePhaseState(summary.phaseState)
+
+  if (isRecoverableFailureState(normalizedState, summary)) {
+    return "recoverable_failed"
+  }
+
+  const mappedState = PHASE_VIEW_STATE_BY_PHASE_STATE[normalizedState]
+  if (mappedState) {
+    return mappedState
+  }
+
+  if (isCompletedState(normalizedState)) {
+    return summary.targetSummary.targetCount === 0
+      ? "empty_completed"
+      : "completed"
+  }
+
+  if (!summary.phaseRunId && summary.actionEnablement.canStart) {
+    return "not_started"
+  }
+
+  return "blocked"
+}
+
 function buildViewState(
   state: PersonaGenerationPhaseScreenState
 ): PersonaGenerationPhaseViewState {
@@ -195,50 +252,7 @@ function buildViewState(
     return state.jobId === null ? "blocked" : "loading"
   }
 
-  const normalizedState = normalizePhaseState(summary.phaseState)
-  if (normalizedState === "pending") {
-    return "not_started"
-  }
-
-  if (normalizedState === "paused") {
-    return "paused"
-  }
-
-  if (
-    normalizedState === "recoverable_failed" ||
-    normalizedState === "retryable_failed" ||
-    summary.errorSummary?.retryable
-  ) {
-    return "recoverable_failed"
-  }
-
-  if (normalizedState === "failed") {
-    return "failed"
-  }
-
-  if (
-    normalizedState === "running" ||
-    normalizedState === "in_progress" ||
-    normalizedState === "processing"
-  ) {
-    return "running"
-  }
-
-  if (
-    normalizedState === "completed" ||
-    normalizedState === "succeeded" ||
-    normalizedState === "done"
-  ) {
-    return summary.targetSummary.targetCount === 0
-      ? "empty_completed"
-      : "completed"
-  }
-
-  if (!summary.phaseRunId && summary.actionEnablement.canStart) {
-    return "not_started"
-  }
-
-  return "blocked"
+  return buildSummaryViewState(summary)
 }
 
 function buildPhaseStateLabel(phaseState: string | undefined): string {

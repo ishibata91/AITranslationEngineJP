@@ -1137,6 +1137,15 @@ func (store *translationOutputReviewReadinessAPIStore) UpdateJobPhaseRun(
 	return repository.JobPhaseRun{}, repository.ErrNotFound
 }
 
+func (store *translationOutputReviewReadinessAPIStore) UpdateJobPhaseRunWhenState(
+	context.Context,
+	int64,
+	string,
+	repository.JobPhaseRunUpdateDraft,
+) (repository.JobPhaseRun, error) {
+	return repository.JobPhaseRun{}, repository.ErrNotFound
+}
+
 func (store *translationOutputReviewReadinessAPIStore) CreatePhaseRunTranslationField(
 	context.Context,
 	repository.PhaseRunTranslationFieldDraft,

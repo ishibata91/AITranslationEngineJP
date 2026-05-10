@@ -4,7 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"log/slog"
+	"strings"
 	"testing"
 	"time"
 
@@ -50,9 +52,11 @@ type fakeBodyPhaseJobLifecycleRepository struct {
 	runsByPhaseType         map[string]repository.JobPhaseRun
 	updateJobDrafts         []repository.TranslationJobUpdateDraft
 	updatePhaseRunDrafts    []repository.JobPhaseRunUpdateDraft
+	updateExpectedStates    []string
 	phaseRunFieldLinks      []repository.PhaseRunTranslationField
 	nextPhaseRunID          int64
 	nextPhaseRunFieldLinkID int64
+	updatePhaseRunErr       error
 }
 
 func (fake *fakeBodyPhaseJobLifecycleRepository) GetTranslationJobByID(context.Context, int64) (repository.TranslationJob, error) {
@@ -123,6 +127,9 @@ func (fake *fakeBodyPhaseJobLifecycleRepository) UpdateJobPhaseRun(
 	id int64,
 	draft repository.JobPhaseRunUpdateDraft,
 ) (repository.JobPhaseRun, error) {
+	if fake.updatePhaseRunErr != nil {
+		return repository.JobPhaseRun{}, fake.updatePhaseRunErr
+	}
 	for phaseType, run := range fake.runsByPhaseType {
 		if run.ID != id {
 			continue
@@ -130,6 +137,20 @@ func (fake *fakeBodyPhaseJobLifecycleRepository) UpdateJobPhaseRun(
 		fake.updatePhaseRunDrafts = append(fake.updatePhaseRunDrafts, draft)
 		run.State = draft.State
 		run.ProgressPercent = draft.ProgressPercent
+		run.SnapshotFieldCount = draft.SnapshotFieldCount
+		run.ProviderTargetCount = draft.ProviderTargetCount
+		run.ExactExclusionCount = draft.ExactExclusionCount
+		run.PartialConstraintCount = draft.PartialConstraintCount
+		run.AIProvider = draft.AIProvider
+		run.ModelName = draft.ModelName
+		run.ExecutionMode = draft.ExecutionMode
+		run.CredentialRef = draft.CredentialRef
+		run.InstructionKind = draft.InstructionKind
+		run.InputSnapshotDigest = draft.InputSnapshotDigest
+		run.DictionaryDigest = draft.DictionaryDigest
+		run.PersonaDigest = draft.PersonaDigest
+		run.MetadataDigest = draft.MetadataDigest
+		run.PromptDigest = draft.PromptDigest
 		run.LatestExternalRunID = draft.LatestExternalRunID
 		run.LatestError = draft.LatestError
 		run.StartedAt = draft.StartedAt
@@ -138,6 +159,15 @@ func (fake *fakeBodyPhaseJobLifecycleRepository) UpdateJobPhaseRun(
 		return run, nil
 	}
 	return repository.JobPhaseRun{}, repository.ErrNotFound
+}
+func (fake *fakeBodyPhaseJobLifecycleRepository) UpdateJobPhaseRunWhenState(
+	ctx context.Context,
+	id int64,
+	expectedState string,
+	draft repository.JobPhaseRunUpdateDraft,
+) (repository.JobPhaseRun, error) {
+	fake.updateExpectedStates = append(fake.updateExpectedStates, expectedState)
+	return fake.UpdateJobPhaseRun(ctx, id, draft)
 }
 
 func (fake *fakeBodyPhaseJobLifecycleRepository) ListJobPhaseRunsByJobID(context.Context, int64) ([]repository.JobPhaseRun, error) {
@@ -191,6 +221,7 @@ func (fake *fakeBodyPhaseJobLifecycleRepository) clone() *fakeBodyPhaseJobLifecy
 	}
 	cloned.updateJobDrafts = append([]repository.TranslationJobUpdateDraft(nil), fake.updateJobDrafts...)
 	cloned.updatePhaseRunDrafts = append([]repository.JobPhaseRunUpdateDraft(nil), fake.updatePhaseRunDrafts...)
+	cloned.updateExpectedStates = append([]string(nil), fake.updateExpectedStates...)
 	cloned.phaseRunFieldLinks = append([]repository.PhaseRunTranslationField(nil), fake.phaseRunFieldLinks...)
 	return &cloned
 }
@@ -203,6 +234,7 @@ func (fake *fakeBodyPhaseJobLifecycleRepository) restore(snapshot *fakeBodyPhase
 	}
 	fake.updateJobDrafts = append([]repository.TranslationJobUpdateDraft(nil), snapshot.updateJobDrafts...)
 	fake.updatePhaseRunDrafts = append([]repository.JobPhaseRunUpdateDraft(nil), snapshot.updatePhaseRunDrafts...)
+	fake.updateExpectedStates = append([]string(nil), snapshot.updateExpectedStates...)
 	fake.phaseRunFieldLinks = append([]repository.PhaseRunTranslationField(nil), snapshot.phaseRunFieldLinks...)
 }
 
@@ -386,6 +418,12 @@ func newBodyTranslationPhaseServiceForTest(
 				AIProvider:       BodyTranslationProviderLMStudio,
 				ModelName:        "local-model",
 				CredentialRef:    "lmstudio-local",
+			},
+			bodyTranslationPhaseType: {
+				ID:               200,
+				TranslationJobID: 1,
+				PhaseType:        bodyTranslationPhaseType,
+				State:            bodyTranslationPhaseStatePending,
 			},
 		},
 		nextPhaseRunID: 200,
@@ -602,6 +640,115 @@ func TestBodyTranslationPhaseServiceStartPhaseReusesRunningRunWithoutProviderReq
 	}
 	if jobRepo.nextPhaseRunID != 200 {
 		t.Fatalf("expected no new phase run, got next id %d", jobRepo.nextPhaseRunID)
+	}
+}
+
+func TestBodyTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning(t *testing.T) {
+	provider := fakeBodyPhaseProvider{
+		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {
+			return BodyTranslationProviderResult{
+				RequestUnitID:       request.RequestUnitID,
+				FieldCorrelationKey: request.FieldCorrelationKey,
+				RecordType:          request.RecordType,
+				FieldType:           request.FieldType,
+				TranslatedCandidate: &BodyTranslationTranslatedCandidate{
+					RequestUnitID:       request.RequestUnitID,
+					FieldCorrelationKey: request.FieldCorrelationKey,
+					RecordType:          request.RecordType,
+					FieldType:           request.FieldType,
+					TranslatedText:      request.SourceText + "_ja",
+				},
+				ProtectionValidationTarget: &BodyTranslationProtectionValidationTarget{
+					RequestUnitID:       request.RequestUnitID,
+					FieldCorrelationKey: request.FieldCorrelationKey,
+					TranslatedText:      request.SourceText + "_ja",
+				},
+			}
+		},
+	}
+	service, jobRepo, _ := newBodyTranslationPhaseServiceForTest(provider)
+	jobRepo.runsByPhaseType[bodyTranslationPhaseType] = repository.JobPhaseRun{
+		ID:               240,
+		TranslationJobID: 1,
+		PhaseType:        bodyTranslationPhaseType,
+		State:            bodyTranslationPhaseStatePending,
+		ExecutionMode:    "sync",
+		AIProvider:       BodyTranslationProviderLMStudio,
+		ModelName:        "local-model",
+		CredentialRef:    "lmstudio-local",
+	}
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success for pre-created pending run: %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != 240 {
+		t.Fatalf("expected existing run id reuse, got %#v", result.PhaseRunID)
+	}
+	if jobRepo.nextPhaseRunID != 200 {
+		t.Fatalf("expected no new run creation for pre-created row, got next id %d", jobRepo.nextPhaseRunID)
+	}
+	if len(jobRepo.updatePhaseRunDrafts) == 0 {
+		t.Fatalf("expected update drafts for pre-created row, got %#v", jobRepo.updatePhaseRunDrafts)
+	}
+	if jobRepo.updateExpectedStates[0] != bodyTranslationPhaseStatePending {
+		t.Fatalf("expected optimistic expected state pending, got %#v", jobRepo.updateExpectedStates)
+	}
+}
+
+func TestBodyTranslationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *testing.T) {
+	requests := make([]BodyTranslationProviderRequest, 0, 1)
+	provider := fakeBodyPhaseProvider{
+		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {
+			requests = append(requests, request)
+			return BodyTranslationProviderResult{}
+		},
+	}
+	service, jobRepo, _ := newBodyTranslationPhaseServiceForTest(provider)
+	delete(jobRepo.runsByPhaseType, bodyTranslationPhaseType)
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected missing body translation phase run error")
+	}
+	if !strings.Contains(err.Error(), "find body translation phase run for start: not found") {
+		t.Fatalf("expected missing body translation phase run error, got %v", err)
+	}
+	if len(requests) != 0 {
+		t.Fatalf("expected no provider request without phase run, got %#v", requests)
+	}
+}
+
+func TestBodyTranslationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromotionConflicts(t *testing.T) {
+	requests := make([]BodyTranslationProviderRequest, 0, 1)
+	provider := fakeBodyPhaseProvider{
+		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {
+			requests = append(requests, request)
+			return BodyTranslationProviderResult{}
+		},
+	}
+	service, jobRepo, outputRepo := newBodyTranslationPhaseServiceForTest(provider)
+	jobRepo.runsByPhaseType[bodyTranslationPhaseType] = repository.JobPhaseRun{
+		ID:               241,
+		TranslationJobID: 1,
+		PhaseType:        bodyTranslationPhaseType,
+		State:            bodyTranslationPhaseStatePending,
+		ExecutionMode:    "sync",
+		AIProvider:       BodyTranslationProviderLMStudio,
+		ModelName:        "local-model",
+		CredentialRef:    "lmstudio-local",
+	}
+	jobRepo.updatePhaseRunErr = repository.ErrConflict
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if !errors.Is(err, repository.ErrConflict) {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+	if len(requests) != 0 {
+		t.Fatalf("expected no provider request on phase promotion conflict, got %#v", requests)
+	}
+	if len(outputRepo.fields) != 0 {
+		t.Fatalf("expected no output persistence on phase promotion conflict, got %#v", outputRepo.fields)
 	}
 }
 

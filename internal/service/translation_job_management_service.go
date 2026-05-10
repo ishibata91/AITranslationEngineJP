@@ -882,14 +882,33 @@ func findTranslationJobManagementCurrentRun(
 	activeIndex := -1
 	for index, run := range phaseRuns {
 		switch normalizeTranslationJobManagementValue(run.State) {
-		case "running", "paused", "recoverable_failed", "pending":
+		case "running", "paused", "recoverable_failed":
 			activeIndex = index
 		}
 	}
 	if activeIndex >= 0 {
 		return phaseRuns[activeIndex], true
 	}
+	for _, phaseType := range []string{"term_translation", "translation", "persona_generation", "body_translation"} {
+		for _, run := range phaseRuns {
+			if normalizeTranslationJobManagementValue(run.PhaseType) != phaseType {
+				continue
+			}
+			if !translationJobManagementPhaseRunCompleted(run) {
+				return run, true
+			}
+		}
+	}
 	return phaseRuns[len(phaseRuns)-1], true
+}
+
+func translationJobManagementPhaseRunCompleted(run repository.JobPhaseRun) bool {
+	switch normalizeTranslationJobManagementValue(run.State) {
+	case "completed", "empty_completed":
+		return true
+	default:
+		return false
+	}
 }
 
 func chooseTranslationJobManagementSnapshot(
@@ -923,7 +942,7 @@ func hasTranslationJobManagementRunningEquivalentPhaseRun(
 ) bool {
 	for _, run := range phaseRuns {
 		state := normalizeTranslationJobManagementValue(run.State)
-		if state == "running" || state == "pending" {
+		if state == "running" {
 			return true
 		}
 	}

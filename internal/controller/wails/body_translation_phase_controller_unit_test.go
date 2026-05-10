@@ -174,6 +174,29 @@ func TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets
 	assertBodyTranslationDTOHasNoForbiddenSecretFields(t, response)
 }
 
+func TestBodyTranslationPhaseControllerGetSummaryReturnsEmptySkippedReasonsArray(t *testing.T) {
+	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
+		getSummaryFunc: func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error) {
+			return usecase.BodyTranslationPhaseSummaryResult{}, nil
+		},
+	})
+
+	response, err := controller.GetBodyTranslationPhaseSummary(GetBodyTranslationPhaseSummaryRequestDTO{JobID: 501})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	payload, err := json.Marshal(response)
+	if err != nil {
+		t.Fatalf("expected marshal success, got %v", err)
+	}
+	if strings.Contains(string(payload), `"skippedReasons":null`) {
+		t.Fatalf("expected skippedReasons array, got %s", payload)
+	}
+	if !strings.Contains(string(payload), `"skippedReasons":[]`) {
+		t.Fatalf("expected empty skippedReasons array, got %s", payload)
+	}
+}
+
 func TestBodyTranslationPhaseControllerStartCommandSeamForwardsJobID(t *testing.T) {
 	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
 		startFunc: func(_ context.Context, request usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error) {

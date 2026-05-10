@@ -127,12 +127,26 @@ type JobPhaseRunDraft struct {
 
 // JobPhaseRunUpdateDraft は JOB_PHASE_RUN の更新ペイロードを表す。
 type JobPhaseRunUpdateDraft struct {
-	State               string
-	ProgressPercent     int
-	LatestExternalRunID string
-	LatestError         string
-	StartedAt           *time.Time
-	FinishedAt          *time.Time
+	State                  string
+	ProgressPercent        int
+	LatestExternalRunID    string
+	LatestError            string
+	StartedAt              *time.Time
+	FinishedAt             *time.Time
+	AIProvider             string
+	ModelName              string
+	ExecutionMode          string
+	CredentialRef          string
+	InstructionKind        string
+	SnapshotFieldCount     int
+	ProviderTargetCount    int
+	ExactExclusionCount    int
+	PartialConstraintCount int
+	InputSnapshotDigest    string
+	DictionaryDigest       string
+	PersonaDigest          string
+	MetadataDigest         string
+	PromptDigest           string
 }
 
 // PhaseRunTranslationField は PHASE_RUN_TRANSLATION_FIELD テーブルの 1 レコードを表す。
@@ -193,6 +207,7 @@ type JobLifecycleRepository interface {
 	CreateJobPhaseRun(ctx context.Context, draft JobPhaseRunDraft) (JobPhaseRun, error)
 	GetJobPhaseRunByID(ctx context.Context, id int64) (JobPhaseRun, error)
 	UpdateJobPhaseRun(ctx context.Context, id int64, draft JobPhaseRunUpdateDraft) (JobPhaseRun, error)
+	UpdateJobPhaseRunWhenState(ctx context.Context, id int64, expectedState string, draft JobPhaseRunUpdateDraft) (JobPhaseRun, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]JobPhaseRun, error)
 	FindJobPhaseRun(ctx context.Context, translationJobID int64, phaseType string) (JobPhaseRun, error)
 

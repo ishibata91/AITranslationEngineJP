@@ -679,6 +679,20 @@ func (store *bodyTranslationAPIStore) UpdateJobPhaseRun(
 	return repository.JobPhaseRun{}, repository.ErrNotFound
 }
 
+func (store *bodyTranslationAPIStore) UpdateJobPhaseRunWhenState(
+	ctx context.Context,
+	id int64,
+	expectedState string,
+	draft repository.JobPhaseRunUpdateDraft,
+) (repository.JobPhaseRun, error) {
+	for _, run := range store.phaseRuns {
+		if run.ID == id && strings.TrimSpace(run.State) != strings.TrimSpace(expectedState) {
+			return repository.JobPhaseRun{}, repository.ErrConflict
+		}
+	}
+	return store.UpdateJobPhaseRun(ctx, id, draft)
+}
+
 func (store *bodyTranslationAPIStore) ListJobPhaseRunsByJobID(
 	_ context.Context,
 	jobID int64,

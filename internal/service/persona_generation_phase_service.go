@@ -20,6 +20,7 @@ const (
 	personaGenerationTermPhaseType             = "term_translation"
 	personaGenerationInitialPhaseType          = "translation"
 	personaGenerationPhaseStateNotStarted      = "not_started"
+	personaGenerationPhaseStatePending         = "pending"
 	personaGenerationPhaseStateRunning         = "running"
 	personaGenerationPhaseStateCompleted       = "completed"
 	personaGenerationPhaseStatePaused          = "paused"
@@ -64,6 +65,7 @@ type personaGenerationPhaseJobLifecycleRepository interface {
 	CreateJobPhaseRun(ctx context.Context, draft repository.JobPhaseRunDraft) (repository.JobPhaseRun, error)
 	FindJobPhaseRun(ctx context.Context, translationJobID int64, phaseType string) (repository.JobPhaseRun, error)
 	UpdateJobPhaseRun(ctx context.Context, id int64, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error)
+	UpdateJobPhaseRunWhenState(ctx context.Context, id int64, expectedState string, draft repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]repository.JobPhaseRun, error)
 	CreatePhaseRunPersona(ctx context.Context, draft repository.PhaseRunPersonaDraft) (repository.PhaseRunPersona, error)
 	ListPhaseRunPersonasByPhaseRunID(ctx context.Context, phaseRunID int64) ([]repository.PhaseRunPersona, error)
@@ -368,7 +370,7 @@ func (service *PersonaGenerationPhaseService) StartPhase(
 		beforePhaseState = normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
 	}
 	var startExecutionSnapshot *providerExecutionSnapshot
-	if run == nil {
+	if run == nil || strings.TrimSpace(run.State) == personaGenerationPhaseStatePending {
 		resolvedRun, resolvedSnapshot, rejection, resolveErr := service.resolveExecutionSnapshotForStart(ctx, termRun)
 		if resolveErr != nil {
 			return PersonaGenerationPhaseCommandReadModel{}, resolveErr
@@ -388,7 +390,7 @@ func (service *PersonaGenerationPhaseService) StartPhase(
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, fmt.Errorf("start persona generation phase transaction: %w", err)
 	}
-	if run == nil && startExecutionSnapshot != nil {
+	if startExecutionSnapshot != nil {
 		service.executionSnapshots[updatedRun.ID] = *startExecutionSnapshot
 	}
 	updatedRun, err = service.executePhaseRun(ctx, updatedJob, updatedRun, snapshot)
@@ -1405,14 +1407,30 @@ func (service *PersonaGenerationPhaseService) startPhaseRunTransaction(
 		if ensureErr != nil {
 			return ensureErr
 		}
-		nextRun, updateErr := service.jobLifecycleRepository.UpdateJobPhaseRun(txCtx, currentRun.ID, repository.JobPhaseRunUpdateDraft{
+		draft := repository.JobPhaseRunUpdateDraft{
 			State:               runState,
 			ProgressPercent:     progressPercent,
 			LatestExternalRunID: snapshot.digest,
 			LatestError:         "",
+			AIProvider:          termRun.AIProvider,
+			ModelName:           termRun.ModelName,
+			ExecutionMode:       termRun.ExecutionMode,
+			CredentialRef:       termRun.CredentialRef,
+			InstructionKind:     personaGenerationInstructionKindDefault,
 			StartedAt:           startedAt,
 			FinishedAt:          finishedAt,
-		})
+		}
+		var nextRun repository.JobPhaseRun
+		if run != nil {
+			nextRun, updateErr = service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(
+				txCtx,
+				currentRun.ID,
+				personaGenerationPhaseStatePending,
+				draft,
+			)
+		} else {
+			nextRun, updateErr = service.jobLifecycleRepository.UpdateJobPhaseRun(txCtx, currentRun.ID, draft)
+		}
 		if updateErr != nil {
 			return fmt.Errorf("update persona generation phase run: %w", updateErr)
 		}
@@ -1522,25 +1540,11 @@ func (service *PersonaGenerationPhaseService) ensurePersonaPhaseRun(
 	if run != nil {
 		return *run, nil
 	}
-	phases, listErr := service.jobLifecycleRepository.ListJobPhaseRunsByJobID(ctx, jobID)
-	if listErr != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("list translation job phases for persona phase create: %w", listErr)
-	}
-	created, createErr := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
-		TranslationJobID: jobID,
-		PhaseType:        personaGenerationPhaseType,
-		State:            runState,
-		ExecutionOrder:   len(phases) + 1,
-		AIProvider:       termRun.AIProvider,
-		ModelName:        termRun.ModelName,
-		ExecutionMode:    termRun.ExecutionMode,
-		CredentialRef:    termRun.CredentialRef,
-		InstructionKind:  personaGenerationInstructionKindDefault,
-	})
-	if createErr != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("create persona generation phase run: %w", createErr)
-	}
-	return created, nil
+	_ = ctx
+	_ = jobID
+	_ = termRun
+	_ = runState
+	return repository.JobPhaseRun{}, fmt.Errorf("find persona generation phase run for start: %w", repository.ErrNotFound)
 }
 
 func personaGenerationTargetSnapshotIDPointer(runID int64) *string {

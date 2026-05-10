@@ -2,6 +2,7 @@ package wails
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -86,6 +87,58 @@ func TestPersonaGenerationPhaseControllerGetSummaryFormatsTimeAndNormalizesError
 	}
 	if response.ErrorSummary == nil || response.ErrorSummary.ErrorKind != "provider_failure" {
 		t.Fatalf("expected normalized error kind, got %#v", response.ErrorSummary)
+	}
+}
+
+func TestPersonaGenerationPhaseControllerGetSummaryReturnsEmptySkippedReasonsArray(t *testing.T) {
+	controller := NewPersonaGenerationPhaseController(fakePersonaGenerationPhaseUsecase{
+		getSummaryFunc: func(context.Context, usecase.GetPersonaGenerationPhaseSummaryRequest) (usecase.PersonaGenerationPhaseSummaryResult, error) {
+			return usecase.PersonaGenerationPhaseSummaryResult{}, nil
+		},
+	})
+
+	response, err := controller.GetPersonaGenerationPhaseSummary(GetPersonaGenerationPhaseSummaryRequestDTO{JobID: 10})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	payload, err := json.Marshal(response)
+	if err != nil {
+		t.Fatalf("expected marshal success, got %v", err)
+	}
+	if strings.Contains(string(payload), `"skippedReasons":null`) {
+		t.Fatalf("expected skippedReasons array, got %s", payload)
+	}
+	if !strings.Contains(string(payload), `"skippedReasons":[]`) {
+		t.Fatalf("expected empty skippedReasons array, got %s", payload)
+	}
+	if strings.Contains(string(payload), `"evidenceRefs":null`) {
+		t.Fatalf("expected evidenceRefs array, got %s", payload)
+	}
+	if !strings.Contains(string(payload), `"evidenceRefs":[]`) {
+		t.Fatalf("expected empty evidenceRefs array, got %s", payload)
+	}
+}
+
+func TestPersonaGenerationPhaseControllerGetBodyReadinessReturnsEmptyEvidenceRefsArray(t *testing.T) {
+	controller := NewPersonaGenerationPhaseController(fakePersonaGenerationPhaseUsecase{
+		getBodyReadinessFunc: func(context.Context, usecase.GetPersonaGenerationBodyReadinessRequest) (usecase.PersonaGenerationBodyReadinessResult, error) {
+			return usecase.PersonaGenerationBodyReadinessResult{}, nil
+		},
+	})
+
+	response, err := controller.GetPersonaGenerationBodyReadiness(GetPersonaGenerationBodyReadinessRequestDTO{JobID: 10})
+	if err != nil {
+		t.Fatalf("expected success, got %v", err)
+	}
+	payload, err := json.Marshal(response)
+	if err != nil {
+		t.Fatalf("expected marshal success, got %v", err)
+	}
+	if strings.Contains(string(payload), `"evidenceRefs":null`) {
+		t.Fatalf("expected evidenceRefs array, got %s", payload)
+	}
+	if !strings.Contains(string(payload), `"evidenceRefs":[]`) {
+		t.Fatalf("expected empty evidenceRefs array, got %s", payload)
 	}
 }
 

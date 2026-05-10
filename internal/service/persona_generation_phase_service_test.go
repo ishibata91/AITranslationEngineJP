@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"testing"
 	"time"
 
@@ -21,6 +22,8 @@ type fakePersonaPhaseJobLifecycleRepository struct {
 	personaRun       *repository.JobPhaseRun
 	phaseRunPersonas []repository.PhaseRunPersona
 	updateDrafts     []repository.JobPhaseRunUpdateDraft
+	updateStates     []string
+	updateErr        error
 }
 
 func (fake *fakePersonaPhaseJobLifecycleRepository) GetTranslationJobByID(context.Context, int64) (repository.TranslationJob, error) {
@@ -58,6 +61,9 @@ func (fake *fakePersonaPhaseJobLifecycleRepository) UpdateJobPhaseRun(_ context.
 	if fake.personaRun == nil || fake.personaRun.ID != id {
 		return repository.JobPhaseRun{}, repository.ErrNotFound
 	}
+	if fake.updateErr != nil {
+		return repository.JobPhaseRun{}, fake.updateErr
+	}
 	fake.updateDrafts = append(fake.updateDrafts, draft)
 	fake.personaRun.State = draft.State
 	fake.personaRun.ProgressPercent = draft.ProgressPercent
@@ -65,6 +71,15 @@ func (fake *fakePersonaPhaseJobLifecycleRepository) UpdateJobPhaseRun(_ context.
 	fake.personaRun.StartedAt = draft.StartedAt
 	fake.personaRun.FinishedAt = draft.FinishedAt
 	return *fake.personaRun, nil
+}
+func (fake *fakePersonaPhaseJobLifecycleRepository) UpdateJobPhaseRunWhenState(
+	ctx context.Context,
+	id int64,
+	expectedState string,
+	draft repository.JobPhaseRunUpdateDraft,
+) (repository.JobPhaseRun, error) {
+	fake.updateStates = append(fake.updateStates, expectedState)
+	return fake.UpdateJobPhaseRun(ctx, id, draft)
 }
 
 func (fake *fakePersonaPhaseJobLifecycleRepository) ListJobPhaseRunsByJobID(context.Context, int64) ([]repository.JobPhaseRun, error) {
@@ -289,9 +304,22 @@ func newPersonaPhaseServiceForTest(jobState string, termState string, personaRun
 	return service, jobRepo
 }
 
+func preCreatedPersonaGenerationRun() *repository.JobPhaseRun {
+	return &repository.JobPhaseRun{
+		ID:               88,
+		TranslationJobID: 1,
+		PhaseType:        personaGenerationPhaseType,
+		State:            personaGenerationPhaseStatePending,
+		AIProvider:       "fake",
+		ModelName:        "m",
+		ExecutionMode:    PersonaGenerationExecutionModeSingleRequest,
+		CredentialRef:    "cred",
+	}
+}
+
 func TestPersonaGenerationPhaseServiceStartPhaseReResolvesProviderSettingsBeforeExecution(t *testing.T) {
 	sourceRecords := []repository.TranslationRecord{{ID: 21, RecordType: "NPC_", EditorID: "Lydia", FormID: "000ABC"}}
-	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, sourceRecords)
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, preCreatedPersonaGenerationRun(), sourceRecords)
 	repo.termRun = repository.JobPhaseRun{
 		ID:               10,
 		TranslationJobID: 1,
@@ -448,7 +476,7 @@ func TestPersonaGenerationPhaseService_StartPhaseRejectsWhenActiveRunExists(t *t
 }
 
 func TestPersonaGenerationPhaseService_StartPhaseTargetZeroCompletesImmediately(t *testing.T) {
-	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, nil)
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, preCreatedPersonaGenerationRun(), nil)
 
 	result, err := service.StartPhase(context.Background(), 1)
 	if err != nil {
@@ -462,6 +490,74 @@ func TestPersonaGenerationPhaseService_StartPhaseTargetZeroCompletesImmediately(
 	}
 	if len(repo.updateDrafts) == 0 {
 		t.Fatal("expected phase run update")
+	}
+}
+
+func TestPersonaGenerationPhaseServiceStartPhasePromotesPreCreatedPendingRunToRunning(t *testing.T) {
+	sourceRecords := []repository.TranslationRecord{{ID: 21, RecordType: "NPC_", EditorID: "Lydia", FormID: "000ABC"}}
+	preCreatedRun := preCreatedPersonaGenerationRun()
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, preCreatedRun, sourceRecords)
+	service.WithPersonaGenerationProvider(fakePersonaGenerationProvider{})
+
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success with pre-created run: %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != preCreatedRun.ID {
+		t.Fatalf("expected existing run id reuse, got %#v", result.PhaseRunID)
+	}
+	if len(repo.updateDrafts) == 0 {
+		t.Fatalf("expected update drafts for pre-created run, got %#v", repo.updateDrafts)
+	}
+	if repo.updateDrafts[0].State != personaGenerationPhaseStateRunning {
+		t.Fatalf("expected first update to running, got %#v", repo.updateDrafts[0])
+	}
+	if repo.updateStates[0] != personaGenerationPhaseStatePending {
+		t.Fatalf("expected optimistic expected state pending, got %#v", repo.updateStates)
+	}
+}
+
+func TestPersonaGenerationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *testing.T) {
+	sourceRecords := []repository.TranslationRecord{{ID: 21, RecordType: "NPC_", EditorID: "Lydia", FormID: "000ABC"}}
+	service, _ := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, sourceRecords)
+	capturingProvider := &capturingPersonaGenerationProvider{}
+	service.WithPersonaGenerationProvider(capturingProvider)
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if err == nil {
+		t.Fatal("expected missing persona generation phase run error")
+	}
+	if !strings.Contains(err.Error(), "find persona generation phase run for start: not found") {
+		t.Fatalf("expected missing persona generation phase run error, got %v", err)
+	}
+	if len(capturingProvider.requests) != 0 {
+		t.Fatalf("expected no provider request without phase run, got %#v", capturingProvider.requests)
+	}
+}
+
+func TestPersonaGenerationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromotionConflicts(t *testing.T) {
+	sourceRecords := []repository.TranslationRecord{{ID: 21, RecordType: "NPC_", EditorID: "Lydia", FormID: "000ABC"}}
+	preCreatedRun := &repository.JobPhaseRun{
+		ID:               89,
+		TranslationJobID: 1,
+		PhaseType:        personaGenerationPhaseType,
+		State:            personaGenerationPhaseStatePending,
+		AIProvider:       "fake",
+		ModelName:        "m",
+		ExecutionMode:    PersonaGenerationExecutionModeSingleRequest,
+		CredentialRef:    "cred",
+	}
+	provider := &capturingPersonaGenerationProvider{}
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, preCreatedRun, sourceRecords)
+	service.WithPersonaGenerationProvider(provider)
+	repo.updateErr = repository.ErrConflict
+
+	_, err := service.StartPhase(context.Background(), 1)
+	if !errors.Is(err, repository.ErrConflict) {
+		t.Fatalf("expected conflict error, got %v", err)
+	}
+	if len(provider.requests) != 0 {
+		t.Fatalf("expected no provider request on phase promotion conflict, got %#v", provider.requests)
 	}
 }
 
@@ -748,7 +844,7 @@ func TestPersonaGenerationPhaseService_FinishPhaseRunSaveFailureAndLoadRunSnapsh
 
 func TestPersonaGenerationPhaseService_ExecutionPromptDigestUsesAggregatePromptDigest(t *testing.T) {
 	sourceRecords := []repository.TranslationRecord{{ID: 100, RecordType: "NPC_", EditorID: "NPC_A", FormID: "0001"}}
-	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, sourceRecords)
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, preCreatedPersonaGenerationRun(), sourceRecords)
 	service.provider = fakePersonaGenerationProvider{}
 
 	result, err := service.StartPhase(context.Background(), 1)

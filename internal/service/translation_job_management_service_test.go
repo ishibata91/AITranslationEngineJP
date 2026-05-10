@@ -43,6 +43,9 @@ func (repo *fakeTranslationJobManagementLifecycleRepository) GetJobPhaseRunByID(
 func (repo *fakeTranslationJobManagementLifecycleRepository) UpdateJobPhaseRun(context.Context, int64, repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error) {
 	return repository.JobPhaseRun{}, errors.New("not used")
 }
+func (repo *fakeTranslationJobManagementLifecycleRepository) UpdateJobPhaseRunWhenState(context.Context, int64, string, repository.JobPhaseRunUpdateDraft) (repository.JobPhaseRun, error) {
+	return repository.JobPhaseRun{}, errors.New("not used")
+}
 func (repo *fakeTranslationJobManagementLifecycleRepository) ListJobPhaseRunsByJobID(_ context.Context, jobID int64) ([]repository.JobPhaseRun, error) {
 	return append([]repository.JobPhaseRun(nil), repo.phaseRunsByJobID[jobID]...), nil
 }

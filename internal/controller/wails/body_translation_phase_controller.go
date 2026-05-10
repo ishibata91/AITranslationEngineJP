@@ -404,7 +404,7 @@ func toBodyTranslationPhaseInputSummaryDTO(
 ) BodyTranslationPhaseInputSummaryDTO {
 	return BodyTranslationPhaseInputSummaryDTO{
 		TargetCount:      summary.TargetCount,
-		SkippedReasons:   append([]string(nil), summary.SkippedReasons...),
+		SkippedReasons:   append([]string{}, summary.SkippedReasons...),
 		InputSnapshotRef: cloneOptionalString(summary.InputSnapshotRef),
 		DictionaryDigest: summary.DictionaryDigest,
 		PersonaDigest:    summary.PersonaDigest,
