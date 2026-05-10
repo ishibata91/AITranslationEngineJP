@@ -1,0 +1,111 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-setup-unstarted-phase-run-fix"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "実装目的どおり、setup 完了時に未開始 JOB_PHASE_RUN を pending 以外で作成し、summary、readiness、start、delete guard、job management が未開始 row を実行中扱いしない経路を確認した。修正必須の挙動不一致は見つからない。"
+  evidence_sufficiency: "十分。実コード差分、実装証跡、回帰テスト証跡、ブラウザ確認証跡を確認した。レビュー agent はハーネスを再実行していない。"
+
+behavior_details:
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "局所修正で閉じている。未開始 row の作成、開始時 update、delete guard、job management 投影、旧 DB fallback の各変更は、対象 service と repository の既存分岐内で完結している。"
+  invariant_test_viewpoints:
+    - "setup 完了時の 4 件の未開始 JOB_PHASE_RUN が pending ではないこと。"
+    - "単語翻訳、ペルソナ生成、本文翻訳の start が既存未開始 row を再利用して running へ更新すること。"
+    - "idle_ready は削除可能、pending は削除不可として扱われること。"
+    - "phase run が無い ready job の summary と readiness の fallback が維持されること。"
+
+checked_scope:
+  summary: "未開始 JOB_PHASE_RUN 作成、開始遷移、summary/readiness fallback、delete guard、job management current run 選択、回帰テスト証跡を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 815
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "setup 完了時に未開始 phase run 作成を transaction 内へ組み込む主要経路を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 857
+      symbol: "TranslationJobSetupService.createUnstartedPhaseRuns"
+      reason: "translation、term_translation、persona_generation、body_translation の state が pending 以外で作成されることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 675
+      symbol: "TermTranslationPhaseService.ensureExecutionPlanRun"
+      reason: "term_translation の idle_ready row を既存 ID のまま running へ更新する経路を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1409
+      symbol: "TermTranslationPhaseService.loadExecutionContext"
+      reason: "既存 row がある経路と旧 DB fallback の切り替えが summary と readiness に影響しないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 371
+      symbol: "PersonaGenerationPhaseService.StartPhase"
+      reason: "not_started の persona_generation row が start 対象として扱われることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1408
+      symbol: "PersonaGenerationPhaseService.startPhaseRunTransaction"
+      reason: "既存 persona_generation row の実行設定と running 状態が update されることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 363
+      symbol: "BodyTranslationPhaseService.StartPhase"
+      reason: "body_translation の idle_ready row が新規作成ではなく開始対象になることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 483
+      symbol: "BodyTranslationPhaseService.createBodyTranslationRunRecord"
+      reason: "既存 body_translation row へ snapshot digest と実行設定を保存して開始することを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 358
+      symbol: "updateJobPhaseRun"
+      reason: "UpdateJobPhaseRun が開始時に必要な実行設定と digest を保持または更新できることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 627
+      symbol: "hasUnsafeDeletePhaseRun"
+      reason: "idle_ready は unsafe ではなく、pending は unsafe のまま残ることを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 876
+      symbol: "findTranslationJobManagementCurrentRun"
+      reason: "未開始 row だけの job が後続 phase 進行中として選ばれにくい優先順になっていることを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 940
+      symbol: "hasTranslationJobManagementRunningEquivalentPhaseRun"
+      reason: "running-equivalent 判定が running と pending に限定され、idle_ready と not_started を実行中扱いしないことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 445
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntimeSettings"
+      reason: "setup 完了時の 4 件の未開始 row と pending 非使用の回帰確認を見た。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 846
+      symbol: "TestTermTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning"
+      reason: "単語翻訳 start が既存 idle_ready row を running へ更新する回帰確認を見た。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 468
+      symbol: "TestPersonaGenerationPhaseServiceStartPhasePromotesPreCreatedNotStartedRunToRunning"
+      reason: "ペルソナ生成 start が既存 not_started row を running へ更新する回帰確認を見た。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 608
+      symbol: "TestBodyTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning"
+      reason: "本文翻訳 start が既存 idle_ready row を再利用する回帰確認を見た。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: 14
+      symbol: "TestSQLiteJobLifecycleRepositoryDeleteNonRunningTranslationJobTreatsIdleReadyAsSafe"
+      reason: "idle_ready row が削除可能であることを確認する test を見た。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: 42
+      symbol: "TestSQLiteJobLifecycleRepositoryDeleteNonRunningTranslationJobBlocksPendingRun"
+      reason: "pending row が削除不可のまま維持されることを確認する test を見た。"
+
+unchecked_scope:
+  - target: "review agent による harness 再実行"
+    reason: "codex-review-behavior の非対象規約でハーネス実行が禁止されているため。"
+    risk: "回帰テスト証跡作成後の環境差分は、このレビュー単体では再検証していない。"
+  - target: "ブラウザ上の phase 開始、削除、中断、再開、リトライ操作"
+    reason: "browser-confirmation.md では禁止操作として押下されていないため。"
+    risk: "UI 操作から backend start/delete へ到達する統合経路は、証跡上は表示確認までに限定される。"
+  - target: "既存 DB に残る任意の過去 phase_type / state の全組み合わせ"
+    reason: "今回のレビューは指定差分と既存 fallback の確認に限定したため。"
+    risk: "旧データの特殊な state 組み合わせが job management 投影へ与える影響は残留リスクとして残る。"
+
+issues: []

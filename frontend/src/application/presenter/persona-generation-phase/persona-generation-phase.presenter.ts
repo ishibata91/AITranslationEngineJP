@@ -125,6 +125,7 @@ const PHASE_STATE_LABELS: Record<string, string> = {
   idle: "未開始",
   not_started: "未開始",
   paused: "中断",
+  pending: "開始待ち",
   ready: "開始可能",
   recoverable_failed: "再試行可能な失敗",
   retryable_failed: "再試行可能な失敗",
@@ -195,6 +196,10 @@ function buildViewState(
   }
 
   const normalizedState = normalizePhaseState(summary.phaseState)
+  if (normalizedState === "pending") {
+    return "not_started"
+  }
+
   if (normalizedState === "paused") {
     return "paused"
   }
@@ -243,6 +248,26 @@ function buildPhaseStateLabel(phaseState: string | undefined): string {
 
   const normalized = normalizePhaseState(phaseState)
   return PHASE_STATE_LABELS[normalized] ?? phaseState
+}
+
+const CURRENT_STEP_LABELS: Record<string, string> = {
+  completed: "完了",
+  generating: "生成中",
+  not_started: "未開始",
+  paused: "中断",
+  pending: "開始待ち",
+  provider_request: "AI 処理中",
+  rejected: "開始不可",
+  running: "実行中"
+}
+
+function buildCurrentStepLabel(currentStep: string | undefined): string {
+  if (!currentStep) {
+    return "-"
+  }
+
+  const normalized = normalizePhaseState(currentStep)
+  return CURRENT_STEP_LABELS[normalized] ?? currentStep
 }
 
 function buildStatusCopy(
@@ -339,7 +364,7 @@ function buildProgressDetail(state: PersonaGenerationPhaseScreenState): string {
   }
 
   const progress = state.summary.progress
-  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / target ${progress.targetCount.toLocaleString("ja-JP")} 件 / ${progress.currentStep}`
+  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / 対象 ${progress.targetCount.toLocaleString("ja-JP")} 件 / ${buildCurrentStepLabel(progress.currentStep)}`
 }
 
 function buildTargetSnapshotLabel(

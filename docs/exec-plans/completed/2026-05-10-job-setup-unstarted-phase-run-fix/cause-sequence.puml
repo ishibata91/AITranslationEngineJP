@@ -1,0 +1,139 @@
+@startuml
+title 原因箇所シーケンス図: job setup 後の未開始 phase 情報が fallback と run 不在分岐へ散る
+
+autonumber
+hide footbox
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 140
+
+actor "利用者" as User
+participant "TranslationJobSetupService\nCreateTranslationJob" as Setup
+participant "TermTranslationPhaseService\nsummary / readiness" as TermRead
+participant "TermTranslationPhaseService\nStartPhase" as TermStart
+participant "PersonaGenerationPhaseService\nStartPhase" as PersonaStart
+participant "BodyTranslationPhaseService\nStartPhase" as BodyStart
+participant "TranslationJobManagementService\nprogress / state projection" as Mgmt
+participant "SQLiteJobLifecycleRepository\nDeleteNonRunningTranslationJob" as DeleteGuard
+database "JobLifecycleRepository\nTRANSLATION_JOB / JOB_PHASE_RUN /\nruntime snapshot" as Repo
+
+note over Setup, Repo
+対象:
+原因箇所は job setup 完了直後から
+summary / readiness / start / 削除 guard までに限定する。
+全体フローは含めない。
+end note
+
+group 1. job setup 完了時点
+User -> Setup: ジョブ作成
+Setup -> Repo: CreateTranslationJob(state=ready)
+Setup -> Repo: SaveTranslationJobPhaseRuntimeSnapshot(x3)
+Setup --> User: ready job を返す
+note right of Setup
+`translation_job_setup_service.go:751-888`
+ready job と runtime snapshot を保存する。
+`CreateJobPhaseRun` は呼ばない。
+end note
+note right of Repo
+`translation_job_setup_service_test.go:440-458`
+setup test は
+`createdPhaseRuns == 0` を固定する。
+end note
+end
+
+group 2. summary / readiness は run 不在 fallback へ入る
+User -> TermRead: summary または readiness を取得
+TermRead -> Repo: FindJobPhaseRun(jobID, term_translation)
+Repo --> TermRead: ErrNotFound
+TermRead -> Repo: ListJobPhaseRunsByJobID(jobID)
+Repo --> TermRead: []
+TermRead -> TermRead: termTranslationExecutionBasePhase(...)\napplyTermTranslationRuntimeSnapshot(...)
+TermRead --> User: 仮想初期 phase を使って応答
+note right of TermRead
+`term_translation_phase_service.go:1370-1450`
+ready job かつ phase run なしの時だけ
+`translation` 初期 phase を仮想構築し、
+runtime snapshot を重ねる。
+phase の存在、実行設定、未開始状態の読み取りが
+この fallback に寄る。
+end note
+end
+
+group 3. phase start は run 不在前提で create する
+User -> TermStart: 単語翻訳を開始
+TermStart -> Repo: CreateJobPhaseRun(phase_type=term_translation,\nstate=running)
+Repo --> TermStart: 新規 run\nまたは conflict 後に既存 run を再取得
+note right of TermStart
+`term_translation_phase_service.go:933-960`
+start 時 create が先で、
+conflict の時だけ既存 run を取り直す。
+end note
+
+User -> PersonaStart: ペルソナ生成を開始
+PersonaStart -> Repo: CreateJobPhaseRun(phase_type=persona_generation,\nstate=...)
+Repo --> PersonaStart: 新規 run
+note right of PersonaStart
+`persona_generation_phase_service.go:1518-1543`
+run 不在を前提に create する。
+end note
+
+User -> BodyStart: 本文翻訳を開始
+BodyStart -> Repo: CreateJobPhaseRun(phase_type=body_translation,\nstate=...)
+BodyStart -> Repo: UpdateJobPhaseRun(started_at, progress_percent, ...)
+Repo --> BodyStart: 新規 run を開始状態へ更新
+note right of BodyStart
+`body_translation_phase_service.go:473-511`
+body phase も run 不在前提で create する。
+end note
+end
+
+group 4. 過去の `pending` placeholder は guard で危険扱いされた
+note over Setup, Repo
+過去の問題は row 作成自体ではない。
+未開始 row の state を `pending` にしたため、
+guard が実行中相当として扱った。
+end note
+
+User -> DeleteGuard: 削除を実行
+DeleteGuard -> Repo: ListJobPhaseRunsByJobID(jobID)
+Repo --> DeleteGuard: [phaseRun(state=pending)]
+DeleteGuard --> User: blocked unsafe
+note right of DeleteGuard
+`job_lifecycle_sqlite_repository.go:546-624`
+delete guard は `running` と `pending` を
+unsafe とみなす。
+end note
+
+User -> Mgmt: 一覧 / progress を取得
+Mgmt -> Repo: ListJobPhaseRunsByJobID(jobID)
+Repo --> Mgmt: [phaseRun(state=pending)]
+Mgmt --> User: running-equivalent として投影
+note right of Mgmt
+`translation_job_management_service.go:876-930`
+job management は `pending` を
+active 候補と running-equivalent に含める。
+end note
+end
+
+group 5. 修正方針
+note over Setup, Repo
+job setup 完了時に未開始 phase row を `JOB_PHASE_RUN` へ作る。
+未開始 row の state は `pending` にしない。
+新しい中間 table は作らない。
+end note
+
+note over TermStart, BodyStart
+phase start は先置き済み row を
+実行中状態へ遷移させる。
+summary / readiness は
+run 不在 fallback ではなく
+未開始 row を正本として読める形へ寄せる。
+end note
+
+note over DeleteGuard, Mgmt
+削除 guard と job management は
+未開始 state を危険状態として扱わない。
+end note
+end
+
+@enduml

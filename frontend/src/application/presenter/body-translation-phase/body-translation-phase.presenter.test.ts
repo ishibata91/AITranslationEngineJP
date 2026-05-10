@@ -121,6 +121,34 @@ describe("BodyTranslationPhasePresenter", () => {
     expect(viewModel.retryableLabel).toBe("再試行可能")
   })
 
+  test("pending phase state は開始待ちとして表示する", () => {
+    const presenter = new BodyTranslationPhasePresenter()
+    const base = createState()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        summary: {
+          ...base.summary!,
+          phaseState: "pending",
+          progress: {
+            ...base.summary!.progress,
+            currentStep: "pending"
+          },
+          actionEnablement: {
+            ...base.summary!.actionEnablement,
+            canStart: true
+          }
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.viewState).toBe("ready")
+    expect(viewModel.phaseStateLabel).toBe("開始待ち")
+    expect(viewModel.progressDetail).toContain("開始待ち")
+    expect(viewModel.progressDetail).not.toContain("pending")
+  })
+
   test("output readiness の上書き値を表示に使う", () => {
     const presenter = new BodyTranslationPhasePresenter()
 

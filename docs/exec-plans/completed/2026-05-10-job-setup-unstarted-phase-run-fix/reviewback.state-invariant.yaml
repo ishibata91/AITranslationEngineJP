@@ -1,0 +1,79 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-setup-unstarted-phase-run-fix"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "issues_open"
+must_fix_open: true
+max_level: "major"
+assessment:
+  invariant_maintenance: "ジョブセットアップ時の未開始 phase row 作成、pending 非使用、delete guard の安全状態判定は維持されている。ただし未開始 row を running へ昇格する更新が読み取り済み状態だけを前提にしており、同時開始時の単一開始不変条件が未保護である。"
+  evidence_sufficiency: "不足だが判定可能。回帰テスト証跡は単体テスト成功と coverage 70.8% を示すが、同時開始または二重送信の証跡は無い。"
+checked_scope:
+  summary: "ジョブ作成 transaction、未開始 JOB_PHASE_RUN 作成、phase start 時の既存 row 更新、SQLite 更新条件、delete guard、単語翻訳 fallback を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 811
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "TRANSLATION_JOB、runtime snapshot、未開始 JOB_PHASE_RUN が同じ transaction 内で作成される根拠にした。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 857
+      symbol: "TranslationJobSetupService.createUnstartedPhaseRuns"
+      reason: "未開始 row の phase_type、state、execution_order が作成される根拠にした。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 675
+      symbol: "TermTranslationPhaseService.ensureExecutionPlanRun"
+      reason: "単語翻訳 phase の idle_ready row が running へ更新される経路を確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1408
+      symbol: "PersonaGenerationPhaseService.startPhaseRunTransaction"
+      reason: "ペルソナ生成 phase の not_started row が実行状態へ更新される経路を確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 483
+      symbol: "BodyTranslationPhaseService.createBodyTranslationRunRecord"
+      reason: "本文翻訳 phase の idle_ready row が実行状態へ更新される経路を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 358
+      symbol: "updateJobPhaseRun"
+      reason: "JOB_PHASE_RUN 更新 SQL の WHERE 条件が id のみであることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 627
+      symbol: "hasUnsafeDeletePhaseRun"
+      reason: "pending と running を delete unsafe とし、idle_ready を delete safe と扱う根拠にした。"
+unchecked_scope:
+  - target: "同時に StartPhase を二重実行する実動作"
+    reason: "呼び出し元の検証証跡に同時開始テストが無く、skill の非対象規約によりハーネスを実行していない。"
+    risk: "同じ未開始 JOB_PHASE_RUN から複数の provider 実行や重複保存処理が進む可能性が残る。"
+  - target: "ブラウザ確認の実操作詳細"
+    reason: "本観点では regression-test-evidence.md と実コード差分を主根拠にし、ブラウザ証跡の再実行はしていない。"
+    risk: "画面経由の連打や再送信で同時開始に近い状態が起きるかは未確認である。"
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "未開始 phase row の開始昇格が状態条件なしで更新される"
+    problem: "未開始 row を実行状態へ変える更新は、読み取り時点の state だけで開始可否を判断し、DB 更新時に state がまだ未開始であることを条件にしていない。"
+    reason: "同じ job に対する StartPhase が並行または二重送信されると、複数処理が同じ JOB_PHASE_RUN を running として扱い、provider 実行、snapshot 保存、phase 結果保存へ進む可能性がある。"
+    violated_condition: "開始、再送、同時実行では同じ JOB_PHASE_RUN の状態遷移が一度だけ成功し、重複副作用を作らない。"
+    cause_candidate: "internal/repository/job_lifecycle_sqlite_repository.go の updateJobPhaseRun は WHERE id = :id だけで更新する。term、persona、body の開始処理は読み取り済みの idle_ready または not_started を前提に UpdateJobPhaseRun を呼ぶ。"
+    evidence:
+      - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+        line: 358
+        excerpt: "updateJobPhaseRun は state を更新するが WHERE 条件は id のみである。"
+      - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+        line: 812
+        excerpt: "UpdateJobPhaseRun は RowsAffected による状態競合検出をしていない。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 675
+        excerpt: "term phase は読み取り済み run.State が idle_ready の場合に既存 row を running へ更新する。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1408
+        excerpt: "persona phase は currentRun.ID を状態条件なしの UpdateJobPhaseRun へ渡す。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 483
+        excerpt: "body phase は loaded.bodyRun が存在する場合に既存 row を状態条件なしで更新する。"
+    local_fix_assessment: "cross-layer。repository の状態条件付き更新、service 側の競合検出、二重開始時の戻り値を合わせて扱う必要がある。"
+    additional_check_scope: "term、persona、body の StartPhase 二重送信と、更新失敗時に provider 実行と結果保存へ進まないこと。"
+    fix_considerations: "未開始 row の再利用、ready job かつ phase run なし fallback、delete guard の idle_ready 安全判定を壊さないこと。"
+    verification: "同一 job の同一 phase を二重開始した時に、片方だけが未開始から実行状態へ遷移し、もう片方が既存実行として扱われ、provider 呼び出しと保存副作用が重複しないことを確認する。"
+    fix_required: true
+    status: "open"

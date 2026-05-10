@@ -146,6 +146,7 @@ const PHASE_STATE_LABELS: Record<string, string> = {
   failed: "失敗",
   not_ready: "開始待ち",
   paused: "中断",
+  pending: "開始待ち",
   ready: "開始可能",
   recoverable_failed: "再試行可能な失敗",
   running: "実行中",
@@ -227,6 +228,10 @@ function buildViewState(
   }
 
   const normalizedState = normalizePhaseState(summary.phaseState)
+  if (normalizedState === "pending") {
+    return "ready"
+  }
+
   if (normalizedState === "paused") {
     return "paused"
   }
@@ -280,6 +285,27 @@ function buildPhaseStateLabel(phaseState: string | undefined): string {
   }
 
   return PHASE_STATE_LABELS[normalizePhaseState(phaseState)] ?? phaseState
+}
+
+const CURRENT_STEP_LABELS: Record<string, string> = {
+  canceled: "キャンセル済み",
+  completed: "完了",
+  idle_ready: "開始待ち",
+  paused: "中断",
+  pending: "開始待ち",
+  protection_validation_failed: "保護検証失敗",
+  provider_request: "AI 処理中",
+  ready: "開始可能",
+  running: "実行中"
+}
+
+function buildCurrentStepLabel(currentStep: string | undefined): string {
+  if (!currentStep) {
+    return "-"
+  }
+
+  const normalized = normalizePhaseState(currentStep)
+  return CURRENT_STEP_LABELS[normalized] ?? currentStep
 }
 
 function buildStatusCopy(
@@ -372,7 +398,7 @@ function buildProgressDetail(state: BodyTranslationPhaseScreenState): string {
   }
 
   const progress = state.summary.progress
-  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / success ${progress.translatedCount.toLocaleString("ja-JP")} 件 / skipped ${progress.skippedCount.toLocaleString("ja-JP")} 件 / ${progress.currentStep}`
+  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / 成功 ${progress.translatedCount.toLocaleString("ja-JP")} 件 / スキップ ${progress.skippedCount.toLocaleString("ja-JP")} 件 / ${buildCurrentStepLabel(progress.currentStep)}`
 }
 
 function extractFieldResultItems(

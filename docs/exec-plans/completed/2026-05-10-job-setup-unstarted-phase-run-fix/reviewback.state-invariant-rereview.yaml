@@ -1,0 +1,108 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-setup-unstarted-phase-run-fix"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.state-invariant-rereview.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  invariant_maintenance: "初回指摘の未開始 phase row 開始昇格は、ExpectedState による状態条件付き DB 更新、RowsAffected 0 件時の ErrConflict、term、persona、body 各開始処理の競合時副作用停止で保護された。開始、再送、同時実行では、同じ JOB_PHASE_RUN の未開始から実行状態への昇格は 1 回だけ成功する不変条件を維持している。"
+  evidence_sufficiency: "十分。実コードで WHERE 条件と RowsAffected 判定を確認し、unit test で ExpectedState 成功、不一致時 ErrConflict、term、persona、body の競合時 provider 呼び出し停止を確認した。"
+checked_scope:
+  summary: "初回 issue state-invariant-001 の修正範囲として、JobPhaseRunUpdateDraft、SQLite 更新 SQL、RowsAffected 判定、term、persona、body の未開始 phase row 開始昇格、競合時副作用停止テストを確認した。"
+  files:
+    - path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.state-invariant.yaml"
+      line: 46
+      symbol: "state-invariant-001"
+      reason: "初回指摘の問題条件と閉じるべき不変条件を確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 129
+      symbol: "JobPhaseRunUpdateDraft.ExpectedState"
+      reason: "更新 payload が期待 state を表せることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 380
+      symbol: "updateJobPhaseRun"
+      reason: "JOB_PHASE_RUN 更新 SQL が id と expected_state を同時に条件化していることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 818
+      symbol: "SQLiteJobLifecycleRepository.UpdateJobPhaseRun"
+      reason: "RowsAffected 0 件を検出し、既存 row がある場合は ErrConflict を返すことを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: 43
+      symbol: "TestSQLiteJobLifecycleRepositoryUpdateJobPhaseRunSucceedsWhenExpectedStateMatches"
+      reason: "ExpectedState 一致時だけ更新が成功するテストを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: 75
+      symbol: "TestSQLiteJobLifecycleRepositoryUpdateJobPhaseRunReturnsConflictWhenExpectedStateMismatches"
+      reason: "ExpectedState 不一致時に ErrConflict となり、既存 state が維持されるテストを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 683
+      symbol: "TermTranslationPhaseService.ensureExecutionPlanRun"
+      reason: "単語翻訳段階の idle_ready から running への昇格が ExpectedState を使うことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 847
+      symbol: "TestTermTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning"
+      reason: "単語翻訳段階で pre-created idle_ready row を再利用し、ExpectedState を渡すテストを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 883
+      symbol: "TestTermTranslationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromotionConflicts"
+      reason: "単語翻訳段階で昇格競合時に provider 呼び出しと辞書保存副作用へ進まないテストを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1412
+      symbol: "PersonaGenerationPhaseService.startPhaseRunTransaction"
+      reason: "ペルソナ生成段階の not_started から実行状態への昇格が ExpectedState を使うことを確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 469
+      symbol: "TestPersonaGenerationPhaseServiceStartPhasePromotesPreCreatedNotStartedRunToRunning"
+      reason: "ペルソナ生成段階で pre-created not_started row を再利用し、ExpectedState を渡すテストを確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 506
+      symbol: "TestPersonaGenerationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromotionConflicts"
+      reason: "ペルソナ生成段階で昇格競合時に provider 呼び出しへ進まないテストを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 484
+      symbol: "BodyTranslationPhaseService.createBodyTranslationRunRecord"
+      reason: "本文翻訳段階の idle_ready から実行状態への昇格が ExpectedState を使うことを確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 610
+      symbol: "TestBodyTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning"
+      reason: "本文翻訳段階で pre-created idle_ready row を再利用し、ExpectedState を渡すテストを確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 668
+      symbol: "TestBodyTranslationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromotionConflicts"
+      reason: "本文翻訳段階で昇格競合時に provider 呼び出しと出力保存副作用へ進まないテストを確認した。"
+unchecked_scope:
+  - target: "実 DB で同一 job の同一 phase を同時開始する並行実行テスト"
+    reason: "本 skill の非対象規約に従い、ハーネスや単体テストの実行はしていない。今回は実コードと追加済み unit test をレビュー入力として確認した。"
+    risk: "SQLite の接続設定や実トランザクション境界に依存する待機順序の差分は、今回の再レビューだけでは観測していない。"
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "未開始 phase row の開始昇格が状態条件なしで更新される"
+    problem: "初回レビュー時点では、未開始 row を実行状態へ変える更新が DB 更新時に state 条件を持たず、同時開始時の単一開始不変条件が未保護だった。"
+    reason: "再レビュー時点では、UpdateJobPhaseRun が ExpectedState を受け取り、SQLite 更新 SQL が state 条件を持つ。RowsAffected 0 件は ErrConflict となり、各 phase service は競合時に provider 呼び出しや保存副作用へ進まない。"
+    violated_condition: "開始、再送、同時実行では同じ JOB_PHASE_RUN の状態遷移が一度だけ成功し、重複副作用を作らない。"
+    cause_candidate: "解決済み。原因だった WHERE id のみの更新は、WHERE id = :id AND (:expected_state = '' OR state = :expected_state) に変更されている。"
+    evidence:
+      - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+        line: 380
+        excerpt: "updateJobPhaseRun は id と expected_state の両方を WHERE 条件に含める。"
+      - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+        line: 822
+        excerpt: "RowsAffected が 0 件の場合、既存 row を確認したうえで ErrConflict を返す。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 683
+        excerpt: "term phase の idle_ready 昇格は ExpectedState に idle_ready を渡す。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1412
+        excerpt: "persona phase の not_started 昇格は ExpectedState に not_started を渡す。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 484
+        excerpt: "body phase の idle_ready 昇格は ExpectedState に idle_ready を渡す。"
+    local_fix_assessment: "closed。repository の条件付き更新と service 側の競合停止で閉じており、追加の設計境界変更は不要と判断した。"
+    additional_check_scope: "実 DB 並行開始テストは未実行。unit test は競合を ErrConflict として注入し、副作用停止を確認している。"
+    fix_considerations: "解決済み。今後の変更では、未開始 row の開始昇格に ExpectedState を渡す条件を維持する必要がある。"
+    verification: "ExpectedState 一致、不一致、term、persona、body の昇格競合時副作用停止テストを確認した。YAML 構文確認は別途実行する。"
+    fix_required: true
+    status: "resolved"

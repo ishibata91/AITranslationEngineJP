@@ -1,0 +1,99 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-1-term-summary-resume-investigate"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持されている。ready job かつ JOB_PHASE_RUN 0 件の正しい空状態では、読み取り用の仮 JobPhaseRun だけを作り、runtime snapshot から実行設定を復元する。既存 run がある job と非 ready job では、初期 execution phase 不在を従来どおりエラーにするため、実行済み状態や進行中状態の欠損を読み取りで隠さない。"
+  evidence_sufficiency: "十分。対象差分、実装証跡、回帰テスト証跡、ブラウザ確認証跡を確認した。検証コマンドは backend-local、coverage、対象 service の go test が成功している。"
+
+checked_scope:
+  summary: "単語翻訳 summary と next phase readiness の読み取り経路で、phase run 不在時の空状態、runtime snapshot 読み取り、既存 run の実行設定維持、blocked readiness を確認した。"
+  files:
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1380
+      symbol: "TermTranslationPhaseService.loadExecutionContext"
+      reason: "初期 execution phase の取得を termTranslationExecutionBasePhase 経由に変更し、runtime snapshot 適用条件を分離しているため。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1407
+      symbol: "TermTranslationPhaseService.applyTermTranslationRuntimeSnapshot"
+      reason: "runtime snapshot が無い場合は空の execution 設定を返し、読み取り時に永続状態を変更しないため。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1835
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "run が無く、初期 execution phase も無い場合だけ仮の初期 phase を返す境界を確認したため。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1804
+      symbol: "TermTranslationPhaseService.readinessFromState"
+      reason: "run nil を term_phase_incomplete の blocked readiness に落とし、next phase 開始可能状態へ進めないため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 458
+      symbol: "TestTermTranslationPhaseServiceReadSummaryAllowsReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ JOB_PHASE_RUN 0 件で summary が service error にならないことを確認しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 475
+      symbol: "TestTermTranslationPhaseServiceReadSummaryReturnsNotFoundForNonReadyJobWithoutPhaseRuns"
+      reason: "非 ready job かつ JOB_PHASE_RUN 0 件では phase 欠損を service error として残すことを確認しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 490
+      symbol: "TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig"
+      reason: "既存 run の実行設定が仮初期 phase で上書きされないことを確認しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1147
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessBlocksReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ JOB_PHASE_RUN 0 件で next phase readiness が blocked になることを確認しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1164
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForNonReadyJobWithoutPhaseRuns"
+      reason: "非 ready job かつ JOB_PHASE_RUN 0 件では next phase readiness が欠損状態を隠さないことを確認しているため。"
+
+unchecked_scope:
+  - target: "StartTermTranslationPhase の実ブラウザ操作"
+    reason: "実装後ブラウザ確認は表示、開始ボタン表示、次へ進む disabled、service error 非表示を確認しており、開始操作による状態変更は今回の確認対象外だった。"
+    risk: "runtime snapshot だけを持つ ready job の開始時に、phase run 作成と job 状態更新の永続化順序で別の不整合が残る可能性がある。"
+  - target: "単語翻訳以外の phase summary"
+    reason: "レビュー対象差分は単語翻訳 service と単体テストに限定されている。"
+    risk: "他 phase に同じ ready job かつ JOB_PHASE_RUN 0 件の前提ずれが残る可能性がある。"
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates:
+  - condition: "修正前の破れた条件"
+    cause: "loadExecutionContext は単語翻訳 phase run 不在を許容した後で、JOB_PHASE_RUN 一覧から初期 execution phase を必須取得していた。"
+    evidence:
+      path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/investigation.md"
+      line: 25
+  - condition: "修正後の維持条件"
+    cause: "termTranslationExecutionBasePhase は run nil かつ ErrNotFound の場合だけ仮の初期 phase を返し、既存 run がある場合の phase 欠損はエラーとして残す。"
+    evidence:
+      path: "internal/service/term_translation_phase_service.go"
+      line: 1835
+
+local_fix_assessment:
+  result: "local"
+  reason: "変更は loadExecutionContext の初期 execution phase 解決と、その単体テストに閉じている。DB schema、repository 契約、provider 境界、frontend 状態は変更していない。"
+  invariant_test_viewpoints:
+    - "ready job かつ JOB_PHASE_RUN 0 件では、ReadSummary が service error を返さない。"
+    - "ready job かつ JOB_PHASE_RUN 0 件では、ReadNextPhaseReadiness が term_phase_incomplete として blocked を返す。"
+    - "既存 run がある job では、run の Provider、Model、ExecutionMode、CredentialRef を維持する。"
+    - "非 ready job かつ JOB_PHASE_RUN 0 件では、phase 欠損を service error として維持する。"
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "success"
+    evidence_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/regression-test-evidence.md"
+  - command: "python3 scripts/harness/run.py --suite coverage"
+    result: "success"
+    evidence_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/regression-test-evidence.md"
+  - command: "go test ./internal/service -run 'TestTermTranslationPhaseServiceRead(Summary|NextPhaseReadiness)' -count=1"
+    result: "success"
+    evidence_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/regression-test-evidence.md"
+  - command: "agent-browser snapshot -i --compact --depth 4"
+    result: "success"
+    evidence_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/browser-confirmation.md"

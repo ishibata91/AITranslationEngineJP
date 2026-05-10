@@ -1,0 +1,95 @@
+@startuml
+title Job 1 ready job の summary / next phase readiness 失敗原因
+
+skinparam shadowing false
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 120
+
+participant "Usecase" as Usecase
+participant "Gateway" as Gateway
+participant "Service" as Service
+participant "Repo" as Repo
+participant "Snapshot" as Snapshot
+
+autonumber
+
+note over Usecase, Snapshot
+対象:
+Usecase は `frontend/src/application/usecase/term-translation-phase/term-translation-phase.usecase.ts`
+Gateway は Wails binding の summary / readiness 呼び出し
+Service は `internal/service/term_translation_phase_service.go`
+Repo は `TRANSLATION_JOB` と `JOB_PHASE_RUN`
+Snapshot は `TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT`
+end note
+
+== summary 取得 ==
+
+Usecase -> Gateway : GetTermTranslationPhaseSummary({jobId: 1})
+Gateway -> Service : ReadSummary(jobId=1)
+Service -> Service : loadExecutionContext(jobId=1)
+Service -> Repo : GetTranslationJobByID(1)
+Repo --> Service : TRANSLATION_JOB.state=ready
+Service -> Repo : FindJobPhaseRun(1, termTranslationPhaseType)
+Repo --> Service : ErrNotFound
+note right of Service
+`term_translation_phase_service.go:1370`
+単語翻訳 phase run 不在でも
+`run=nil` のまま継続する。
+end note
+
+Service -> Repo : ListJobPhaseRunsByJobID(1)
+Repo --> Service : []\nJOB_PHASE_RUN 0件
+Service -> Service : termTranslationInitialExecutionPhase(phases)
+note right of Service
+`term_translation_phase_service.go:1380`
+初期 execution phase を
+`JOB_PHASE_RUN` 一覧から探す。
+end note
+
+Service --> Gateway : error\nload initial execution phase: not found
+note right of Service
+`term_translation_phase_service.go:1826`
+対象 phase 不在を
+エラーとして返す。
+end note
+
+Gateway --> Usecase : reject(error)
+Usecase -> Usecase : sanitizeErrorMessage(error,\n"単語翻訳段階の summary 取得に失敗しました。")
+note right of Usecase
+`term-translation-phase.usecase.ts:210`
+summary 取得失敗の文言を表示する。
+end note
+
+== next phase readiness 取得 ==
+
+Usecase -> Gateway : GetTermTranslationNextPhaseReadiness({jobId: 1})
+Gateway -> Service : ReadNextPhaseReadiness(jobId=1)
+ref over Service, Repo
+共有原因箇所
+loadExecutionContext(jobId=1)
+- FindJobPhaseRun は ErrNotFound を許容
+- ListJobPhaseRunsByJobID は 0件を返す
+- termTranslationInitialExecutionPhase が
+  `load initial execution phase: not found` を返す
+end ref
+Service --> Gateway : error\nload initial execution phase: not found
+Gateway --> Usecase : reject(error)
+
+note over Service, Snapshot
+問題点:
+ready job は `JOB_PHASE_RUN` なしで存在できる。
+しかし summary と next phase readiness は、
+初期 execution phase の取得だけで
+`JOB_PHASE_RUN` 必須として扱っている。
+end note
+
+note over Service, Snapshot
+修正方針:
+ready job に `JOB_PHASE_RUN` が無い状態を正として扱う。
+初期 execution phase 未作成をエラーにせず、
+runtime snapshot または ready 状態から
+実行前表示の summary / readiness を返す。
+end note
+
+@enduml

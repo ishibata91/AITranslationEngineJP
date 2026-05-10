@@ -1,0 +1,73 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-1-term-summary-resume-investigate"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "公開接点 `GetTermTranslationPhaseSummary({jobId})` と `GetTermTranslationNextPhaseReadiness({jobId})` は、ready job かつ `JOB_PHASE_RUN` 0 件を service error にしない形へ互換拡張されている。既存 run がある job の execution 設定読み取りは、run 値を優先する経路と回帰テストで維持されている。DB schema、migration、event 入力内容、error code の変更は差分に含まれない。契約・互換性を破る不変条件は確認していない。原因候補は、旧実装が初期 execution phase を常に必須扱いした点である。局所修正評価は local であり、service の読み取り補完に閉じている。"
+  evidence_sufficiency: "不足だが判定可能。`backend-local`、`coverage`、対象単体テストの成功は証跡にある。Sonar maintainability HIGH 0 件も証跡にある。coverage 数値、system test 件数、issue 総数は証跡に明記されていない。今回の契約互換性判断は対象 service 差分、単体回帰、ブラウザ確認で判定できる。"
+
+checked_scope:
+  summary: "単語翻訳 summary と next phase readiness の公開接点に対し、phase run 不在時の互換拡張、既存 run の execution 設定維持、DB schema 非変更、event 入力内容非変更、error code 非変更を確認した。"
+  files:
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 299
+      symbol: "TermTranslationPhaseService.ReadSummary"
+      reason: "summary 公開接点が `loadExecutionContext` を通じて変更経路を使うため確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 457
+      symbol: "TermTranslationPhaseService.ReadNextPhaseReadiness"
+      reason: "next phase readiness 公開接点が同じ execution context を使い、ready job の blocked 応答契約に影響するため確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1380
+      symbol: "TermTranslationPhaseService.loadExecutionContext"
+      reason: "phase run 不在時の初期 execution phase 補完と runtime snapshot 適用条件を決める変更点であるため確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1835
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "ready job かつ phase run なしだけを許容し、既存 run がある場合の not found は従来どおり error にする分岐を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 458
+      symbol: "TestTermTranslationPhaseServiceReadSummaryAllowsReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ `JOB_PHASE_RUN` 0 件で summary が service error にならない契約を確認するテストであるため確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 475
+      symbol: "TestTermTranslationPhaseServiceReadSummaryReturnsNotFoundForNonReadyJobWithoutPhaseRuns"
+      reason: "非 ready job かつ `JOB_PHASE_RUN` 0 件では従来の not found error を維持するテストであるため確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 490
+      symbol: "TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig"
+      reason: "既存 run の execution 設定読み取り互換性を確認するテストであるため確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1147
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessBlocksReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ `JOB_PHASE_RUN` 0 件で readiness が service error ではなく blocked になる契約を確認するテストであるため確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1164
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForNonReadyJobWithoutPhaseRuns"
+      reason: "非 ready job かつ `JOB_PHASE_RUN` 0 件では従来の not found error を維持するテストであるため確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/regression-test-evidence.md"
+      line: 25
+      symbol: "検証結果"
+      reason: "`backend-local`、`coverage`、対象単体テストの成功を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/browser-confirmation.md"
+      line: 8
+      symbol: "操作確認結果"
+      reason: "公開接点経由の画面で summary error が消え、readiness が blocked として返ることを確認した。"
+
+unchecked_scope:
+  - target: "coverage 数値"
+    reason: "`regression-test-evidence.md` には coverage suite 成功はあるが、coverage 数値は明記されていない。"
+    risk: "coverage 閾値そのものの変動は、このレビュー YAML からは追跡できない。"
+  - target: "system test 件数"
+    reason: "今回のレビュー入力と検証証跡には system test 実行が含まれていない。"
+    risk: "frontend と backend をまたぐ別導線の契約破壊は、system test 件数では確認していない。"
+  - target: "単語翻訳以外の phase summary"
+    reason: "レビュー対象差分は `term_translation_phase_service.go` とその単体テストに限定されている。"
+    risk: "別 phase が ready job かつ phase run なしを同じ契約で扱うかは、このレビューでは判定していない。"
+
+issues: []

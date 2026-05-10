@@ -1,0 +1,101 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-setup-unstarted-phase-run-fix"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "互換性は維持されている。Job Setup は `JOB_PHASE_RUN` に未開始 row を 4 件作るが、DB schema と migration は変更していない。未開始 row は既存 state 語彙の `idle_ready` と `not_started` を使い、過去に削除不可を起こした `pending` を使わない。phase start は既存 row を `running` へ更新し、phase run が無い ready job の fallback も残している。`UpdateJobPhaseRun` の内部 update payload は実行設定と digest を更新できるように拡張されているが、既存 field の意味、nullable、必須性、error code、event 入力内容の破壊は確認していない。契約・互換性を破る不変条件は確認していない。原因候補は、旧実装が未開始 phase row を作らず、読み取り側 fallback と開始時 create path に未開始状態を分散させていた点である。局所修正評価は local であり、Job Setup、phase start、Job Management、SQLite repository の既存境界内に収まっている。"
+  evidence_sufficiency: "十分。review-input、fix-execution-input、implementation-evidence、regression-test-evidence、対象差分、repository interface、SQLite repository、phase service、Job Management service、関連単体テストを照合した。coverage 値は 70.8% として証跡に明記されている。system test 件数は証跡に含まれないが、今回の契約互換性判断は backend 差分と単体回帰で判定できる。"
+
+checked_scope:
+  summary: "Job Setup の作成時 phase run 契約、`JOB_PHASE_RUN` の DB schema 互換性、phase start の update 互換性、phase run 不在 ready job の fallback、delete guard、Job Management の current run 判定、検証証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/review-input.md"
+      line: 9
+      symbol: "実装目的"
+      reason: "未開始 phase row を `JOB_PHASE_RUN` に作り、`pending` を使わず、summary、readiness、start、delete guard、job management に扱わせる目的を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/fix-execution-input.md"
+      line: 35
+      symbol: "修正方針"
+      reason: "新しい table を作らず、旧 DB fallback を残す互換方針を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/regression-test-evidence.md"
+      line: 19
+      symbol: "証明済み完了条件"
+      reason: "未開始 row 4 件、`pending` 非使用、start 更新、旧 DB fallback、delete guard の契約回帰確認を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/regression-test-evidence.md"
+      line: 32
+      symbol: "検証結果"
+      reason: "`backend-local` と `coverage` の成功、coverage summary 70.8%、security、reliability、maintainability 基準内を確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 314
+      symbol: "translationJobSetupJobLifecycleRepository"
+      reason: "Job Setup 専用の内部 repository interface に `CreateJobPhaseRun` が追加され、公開 DB schema ではなく既存 repository 操作を使うことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 815
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "ready job と runtime snapshot 保存後に未開始 phase run を同一 transaction で作ることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 857
+      symbol: "TranslationJobSetupService.createUnstartedPhaseRuns"
+      reason: "`translation`、`term_translation`、`persona_generation`、`body_translation` の未開始 row と state 値を確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 128
+      symbol: "JobPhaseRunUpdateDraft"
+      reason: "phase start が既存 row の実行設定と digest を更新できる内部 payload 拡張を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 358
+      symbol: "updateJobPhaseRun"
+      reason: "既存 row の state、progress、実行設定、digest を更新し、DB schema 変更なしで開始状態へ移せることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 627
+      symbol: "hasUnsafeDeletePhaseRun"
+      reason: "`running` と `pending` は unsafe のまま維持され、`idle_ready` と `not_started` を unsafe に追加していないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 669
+      symbol: "TermTranslationPhaseService.ensureExecutionPlanRun"
+      reason: "先置き済み `idle_ready` row を `running` へ更新し、既存 running などは上書きしないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1864
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "phase run が無い ready job の互換 fallback が残っていることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 371
+      symbol: "PersonaGenerationPhaseService.StartPhase"
+      reason: "先置き済み `not_started` row を開始対象として扱い、実行設定解決を行うことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 363
+      symbol: "BodyTranslationPhaseService.StartPhase"
+      reason: "先置き済み `idle_ready` row を開始対象として扱うことを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 892
+      symbol: "findTranslationJobManagementCurrentRun"
+      reason: "未開始 row だけの job を `pending` active 候補とは別に扱い、phase type 順の未完了 row として選ぶことを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: 14
+      symbol: "TestSQLiteJobLifecycleRepositoryDeleteNonRunningTranslationJobTreatsIdleReadyAsSafe"
+      reason: "`idle_ready` row が delete safe である契約回帰確認を確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: 42
+      symbol: "TestSQLiteJobLifecycleRepositoryDeleteNonRunningTranslationJobBlocksPendingRun"
+      reason: "`pending` row を delete unsafe とする既存互換条件が維持されていることを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 445
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime"
+      reason: "setup 完了時の未開始 row 4 件と `pending` 非使用の回帰確認を確認した。"
+
+unchecked_scope:
+  - target: "system test 件数"
+    reason: "review-input と regression-test-evidence には system test 実行件数が含まれていない。review_contract は広いハーネス再実行を主責務にしない。"
+    risk: "frontend と backend をまたぐ導線の表示互換性は、system test 件数では確認していない。"
+  - target: "実データ上の既存 `JOB_PHASE_RUN` 分布"
+    reason: "investigation で未確認範囲として記録されており、今回の実装差分にも実 DB 分布調査は含まれていない。"
+    risk: "過去 migration 適用済み DB に特殊な phase row が残っている場合、今回のレビューだけでは分布依存の影響を評価できない。"
+  - target: "有料 provider 到達を伴う開始後完了経路"
+    reason: "検証証跡は backend-local と coverage が中心であり、外部 provider 実行を伴う system test は含まれていない。"
+    risk: "外部 provider 実行後の完了、失敗、再開に関する詳細互換性は、このレビューの直接根拠に含まれない。"
+
+issues: []

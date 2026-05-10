@@ -1,0 +1,60 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-1-term-summary-resume-investigate"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "再レビュー結果は no issue。ready job かつ JOB_PHASE_RUN 0 件の読み取り経路は、認証、認可、tenant、外部入力、secret、injection の境界を新しく広げていない。CredentialRef は参照値として read model に残るが、secret 本体の読み取り、表示、保存、ログ出力は追加されていない。"
+  evidence_sufficiency: "十分。レビュー入力、実装証跡、回帰テスト証跡、実装後ブラウザ確認、対象 diff、対象関数本文、観測ログ仕様を確認した。検証済みコマンドはレビュー入力と証跡ファイルから確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "単語翻訳 summary と next phase readiness の読み取り経路で、phase run 不在時の実行設定構成、runtime snapshot 参照、CredentialRef の扱い、ログ追加有無、外部 API 呼び出し追加有無を確認した。"
+  files:
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1355
+      symbol: "TermTranslationPhaseService.loadExecutionContext"
+      reason: "jobID を使う読み取り入口で、job、phase run、runtime snapshot、execution read model の構成が信頼境界を変えていないか確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1407
+      symbol: "TermTranslationPhaseService.applyTermTranslationRuntimeSnapshot"
+      reason: "runtime snapshot から provider、model、execution mode を読むが、CredentialRef を空にして secret 本体を扱わないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1835
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "phase run 不在時に空の JobPhaseRun 設定を作るだけで、権限境界や外部 API 境界を拡張していないことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 458
+      symbol: "TestTermTranslationPhaseServiceReadSummaryAllowsReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ JOB_PHASE_RUN 0 件の summary 読み取りが service error にならない検証を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 475
+      symbol: "TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig"
+      reason: "既存 run がある場合に CredentialRef 参照値を含む実行設定読み取りが維持される検証を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1132
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessBlocksReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ JOB_PHASE_RUN 0 件の next phase readiness が blocked になる検証を確認した。"
+
+unchecked_scope:
+  - target: "認証、認可、tenant isolation の上位 API 境界"
+    reason: "レビュー対象差分が backend service 内の既存読み取り経路だけであり、上位 Wails handler や routing の差分は含まれていないため。"
+    risk: "上位境界に既存不備がある場合は、このレビューだけでは検出しない。今回の差分は上位境界を変更していない。"
+  - target: "secret store の実 secret 読み取り経路"
+    reason: "今回の差分は summary と readiness の読み取り経路であり、secretStore.Load を呼ぶ provider 実行経路を変更していないため。"
+    risk: "provider 実行時の secret 送信先、保存先、ログ出力先の既存リスクは、このレビュー対象外である。"
+  - target: "検証コマンドの再実行"
+    reason: "レビュー skill の非対象規約によりハーネスを実行しないため。レビュー入力、実装証跡、回帰テスト証跡に記録された結果を検証証跡として扱った。"
+    risk: "ローカル環境でレビュー時点の再実行結果が変わる可能性は、このレビュー単体では検出しない。"
+
+issues: []
+
+residual_risk:
+  invariant_violated: "なし。権限・信頼境界の不変条件は破られていない。"
+  cause_candidate: "なし。未解決 issue がないため、原因候補はない。"
+  local_fix_assessment: "追加修正不要。今回の変更は読み取り経路の局所変更で閉じており、provider、secret、外部 API、DB schema、migration へ波及していない。"
+  invariant_test_viewpoint: "追加単体テストで phase run 不在時の summary と readiness を確認している。信頼境界としては、secret 本体が read model、log、error summary に出ないことを将来差分で維持する。"

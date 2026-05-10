@@ -117,6 +117,31 @@ describe("TermTranslationPhasePresenter", () => {
     expect(viewModel.statusTitle).toBe("対象語なしで完了")
   })
 
+  test("pending phase state は開始待ちとして表示する", () => {
+    const presenter = new TermTranslationPhasePresenter()
+    const baseState = createState()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        summary: {
+          ...baseState.summary!,
+          phaseState: "pending",
+          phaseRunId: 44,
+          progress: {
+            ...baseState.summary!.progress,
+            currentStep: "pending"
+          }
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.viewState).toBe("idle_ready")
+    expect(viewModel.phaseStateLabel).toBe("開始待ち")
+    expect(viewModel.progressDetail).toContain("開始待ち")
+    expect(viewModel.progressDetail).not.toContain("pending")
+  })
+
   test("loading 中は action card を無効化し readiness の blocked reason を優先する", () => {
     const presenter = new TermTranslationPhasePresenter()
 

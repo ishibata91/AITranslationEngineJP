@@ -1,0 +1,142 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-setup-unstarted-phase-run-fix"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。setup service は job 作成時の未開始 phase run 作成に閉じている。各 phase service は既存の start 処理内で先置き済み run を running へ更新している。repository は JOB_PHASE_RUN の永続化 adapter として update payload を SQL へ写像している。Job Management service は既存の進行表示用 projection 内で current run 選択を補正している。Bootstrap 以外で具象実装生成は増えておらず、Service core から driver 固有 API へ直接依存する変更も確認しなかった。"
+  evidence_sufficiency: "十分。review-input、fix-execution-input、implementation-evidence、regression-test-evidence、browser-confirmation、実コード差分、architecture.md、coding-guidelines.md、reviewback template を確認した。ハーネスは skill の非対象規約に従い再実行していない。"
+
+checked_scope:
+  summary: "未開始 JOB_PHASE_RUN 作成、phase start 時の既存 run 更新、Job Management の current run 選択、repository update payload の永続化写像、境界固定 test、呼び出し元の検証証跡を確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 815
+      symbol: "createTranslationJobInTransaction"
+      reason: "job 作成 transaction 内で snapshot 保存後に未開始 phase run 作成を呼び、setup service の job setup 責務に閉じていることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 857
+      symbol: "createUnstartedPhaseRuns"
+      reason: "未開始 phase row の draft 作成と repository port 呼び出しだけを扱い、repository concrete や driver 固有処理を持っていないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 669
+      symbol: "ensureExecutionPlanRun"
+      reason: "単語翻訳 start の既存 run 更新が phase service の開始処理に閉じていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1384
+      symbol: "loadExecutionContext"
+      reason: "単語翻訳 summary/readiness 用の execution base 解決が service 内の読み取り文脈に閉じていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1864
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "旧 DB fallback と先置き row の選択が service helper に閉じ、repository の phase_type 取得責務へ別名解釈を漏らしていないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 371
+      symbol: "StartPhase"
+      reason: "not_started の先置き run を start 対象として扱う判断が persona generation phase service の開始処理に閉じていることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1408
+      symbol: "startPhaseRunTransaction"
+      reason: "既存 run の更新と runtime snapshot 保存が transaction 内の phase start 責務に閉じていることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 363
+      symbol: "StartPhase"
+      reason: "idle_ready の先置き run を start 対象として扱う判断が body translation phase service の開始処理に閉じていることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 477
+      symbol: "createBodyTranslationRunRecord"
+      reason: "既存 run 更新と新規 run 作成の分岐が body translation phase run 永続化手順に閉じていることを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 892
+      symbol: "findTranslationJobManagementCurrentRun"
+      reason: "current run 選択の補正が Job Management service の表示用 projection 選択に閉じていることを確認した。"
+    - path: "internal/repository/job_lifecycle_repository.go"
+      line: 128
+      symbol: "JobPhaseRunUpdateDraft"
+      reason: "phase run 更新 payload の追加項目が repository port の値定義に置かれていることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 358
+      symbol: "updateJobPhaseRun"
+      reason: "JOB_PHASE_RUN 更新項目の SQL 写像が SQLite repository adapter に閉じていることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 768
+      symbol: "UpdateJobPhaseRun"
+      reason: "repository concrete が update draft を SQL 引数へ写像し、service や domain rule を生成していないことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 442
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntimeSettings"
+      reason: "setup 完了時の未開始 phase run 作成が service 境界の test として固定されていることを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 843
+      symbol: "TestTermTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning"
+      reason: "単語翻訳 start が先置き済み run を更新する境界固定 test として追加されていることを確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 465
+      symbol: "TestPersonaGenerationPhaseServiceStartPhasePromotesPreCreatedNotStartedRunToRunning"
+      reason: "ペルソナ生成 start が先置き済み run を更新する境界固定 test として追加されていることを確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 605
+      symbol: "TestBodyTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRunning"
+      reason: "本文翻訳 start が先置き済み run を更新する境界固定 test として追加されていることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository_test.go"
+      line: null
+      symbol: "JOB_PHASE_RUN delete guard / UpdateJobPhaseRun tests"
+      reason: "repository adapter の delete guard と phase run update 永続化が repository test で固定されていることを回帰テスト証跡から確認した。"
+
+unchecked_scope:
+  - target: "frontend 実装本体"
+    reason: "レビュー対象差分に frontend は含まれず、fix-execution-input でも frontend 変更は禁止範囲である。"
+    risk: "frontend 内部の既存責務違反は、この YAML では検出しない。"
+  - target: "実行時 DB 上の全既存データ分布"
+    reason: "本 agent はハーネス実行を行わず、実データ調査は修正前調査でも未確認範囲として扱われている。"
+    risk: "既存データ分布に由来する追加の責務整理必要性は、この観点レビューでは確定しない。"
+  - target: "挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件"
+    reason: "codex-review-responsibility-boundary の非対象規約に従い、責務境界の主判定から外した。"
+    risk: "他観点のレビュー結果に未解決問題がある場合でも、本 YAML だけでは検出しない。"
+  - target: "検証コマンドの再実行"
+    reason: "codex-review-responsibility-boundary の非対象規約がハーネス実行を禁止しているため、呼び出し元の検証証跡を入力として扱った。"
+    risk: "現在の作業環境での再現性は、この agent では直接確認していない。"
+
+issues: []
+
+broken_boundaries: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "local"
+  reason: "変更は backend service と repository adapter の既存責務内に収まっている。setup、phase start、management projection、SQLite 永続化のそれぞれで変更理由が説明できるため、層再設計や新しい境界の追加は不要と判断した。"
+
+boundary_test_viewpoints:
+  - "setup service test が、job setup 完了時の未開始 phase run 作成を固定している。"
+  - "phase service tests が、先置き済み run を start 時に running へ更新する境界を固定している。"
+  - "repository test が、JOB_PHASE_RUN の delete guard と update persistence の adapter 境界を固定している。"
+
+residual_risks:
+  - target: "translation_job_management_service_test.go への直接追記なし"
+    reason: "regression-test-evidence は backend-local 全体通過で投影回帰なしを確認しているが、該当 service test への直接追記は未実施としている。"
+    risk: "Job Management projection の境界固定は、既存 test とブラウザ確認に依存する。"
+  - target: "repository update draft の部分更新表現"
+    reason: "UpdateJobPhaseRun は空文字と 0 を既存値維持として扱う。今回の用途では adapter の永続化写像に閉じるが、将来に値を明示的に空へ戻す要件が出た場合は port 表現の見直しが必要になる可能性がある。"
+    risk: "将来の別用途で update semantics の責務境界が曖昧になる可能性がある。"
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "success"
+    source: "regression-test-evidence.md"
+  - command: "python3 scripts/harness/run.py --suite coverage"
+    result: "success; coverage summary 70.8%"
+    source: "regression-test-evidence.md"
+  - command: "plantuml --check-syntax --no-error-image docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/cause-sequence.puml"
+    result: "success"
+    source: "review-input.md"
+  - command: "plantuml -tsvg docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/cause-sequence.puml"
+    result: "success"
+    source: "review-input.md"
+  - command: "agent-browser confirmation"
+    result: "success; pending text and summary failure text were not observed"
+    source: "browser-confirmation.md"

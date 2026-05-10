@@ -1,0 +1,116 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-1-term-summary-resume-investigate"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持。変更は TermTranslationPhaseService の実行文脈読み取りと service test に閉じている。ready job かつ JOB_PHASE_RUN 0 件の execution base phase 合成は service の repository port 読み取り結果を使う実処理責務の範囲であり、repository、controller、frontend、bootstrap、infra へ責務を広げていない。"
+  evidence_sufficiency: "十分。review-input.md、人間観測記録、修正前調査、原因箇所シーケンス図、修正実行入力、実装証跡、回帰テスト証跡、実装後ブラウザ確認、対象差分、architecture.md、coding-guidelines.md、reviewback.yaml を確認した。検証コマンドは呼び出し元証跡を入力として扱った。"
+
+checked_scope:
+  summary: "TermTranslationPhaseService.loadExecutionContext の repository port 読み取り、termTranslationExecutionBasePhase の ready job fallback 条件、applyTermTranslationRuntimeSnapshot 呼び出し条件、service test の境界固定観点を確認した。"
+  files:
+    - path: "docs/architecture.md"
+      line: 151
+      symbol: "Backend UseCase / Service"
+      reason: "Backend UseCase は orchestration、Service は実処理と repository port 経由の永続化読み書きを担う正本責務を確認した。"
+    - path: "docs/architecture.md"
+      line: 167
+      symbol: "Adapter 群"
+      reason: "SQLite などの具象永続化は adapter 群へ閉じる正本責務を確認した。"
+    - path: "docs/coding-guidelines.md"
+      line: 11
+      symbol: "ファイル分割方針"
+      reason: "同じ責務、同じ変更理由、同じ検証単位でファイルをそろえる規約を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/review-input.md"
+      line: 10
+      symbol: "実装目的"
+      reason: "ready job かつ JOB_PHASE_RUN 0 件で summary と next phase readiness が service error にならない目的を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/fix-execution-input.md"
+      line: 31
+      symbol: "修正方針"
+      reason: "ready job に JOB_PHASE_RUN が無い状態を正として扱い、既存の runtime snapshot 読み取りで execution 設定を構成する方針を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1355
+      symbol: "TermTranslationPhaseService.loadExecutionContext"
+      reason: "job、phase run、phase 一覧、runtime snapshot、candidate の読み取りが service の既存 repository port 経由に閉じていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1380
+      symbol: "termTranslationExecutionBasePhase 呼び出し"
+      reason: "初期 execution phase の選択条件を helper へ分け、loadExecutionContext が手順の組み立てに集中していることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1407
+      symbol: "TermTranslationPhaseService.applyTermTranslationRuntimeSnapshot"
+      reason: "runtime snapshot 読み取りは既存 helper を再利用し、snapshot 具象や DB driver を service core に持ち込んでいないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1835
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "ready job かつ run 不在かつ初期 phase 不在の場合だけ空の JobPhaseRun read model を合成し、非 ready job と既存 run あり job は従来エラーへ戻す条件を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 458
+      symbol: "TestTermTranslationPhaseServiceReadSummaryAllowsReadyJobWithoutPhaseRuns"
+      reason: "service test が ready job の summary 読み取り責務を固定し、frontend や controller の責務を混ぜていないことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 490
+      symbol: "TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig"
+      reason: "既存 run がある job の execution 設定読み取りを service test で境界固定していることを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1147
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessBlocksReadyJobWithoutPhaseRuns"
+      reason: "ready job の next phase readiness を service test で固定し、UI 表示判定を持ち込んでいないことを確認した。"
+
+unchecked_scope:
+  - target: "frontend production code"
+    reason: "レビュー対象差分に frontend は含まれていない。browser-confirmation.md は呼び出し元証跡として確認した。"
+    risk: "画面側の表示責務や操作導線の問題は別レビュー観点に残る。"
+  - target: "controller と Wails DTO"
+    reason: "レビュー対象差分に controller と DTO は含まれていない。今回の変更は service の内部実行文脈読み取りに閉じている。"
+    risk: "公開接点の互換性問題は contract 観点に残る。"
+  - target: "repository concrete と SQLite schema"
+    reason: "レビュー対象差分に repository concrete、migration、schema は含まれていない。service は既存 repository port だけを使っている。"
+    risk: "永続化 adapter 側の既存責務違反は、このレビュー結果に含まれない。"
+  - target: "検証コマンドの再実行"
+    reason: "codex-review-responsibility-boundary skill はハーネス実行を禁止しているため、呼び出し元の検証証跡を入力として扱った。"
+    risk: "検証結果の最新性は呼び出し元証跡に依存する。"
+
+issues: []
+
+broken_boundaries: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "local"
+  reason: "変更は TermTranslationPhaseService の ready job 実行文脈読み取り条件と service test に閉じている。repository port、frontend、controller、bootstrap、infra の責務移動を伴わない。"
+
+boundary_test_viewpoints:
+  - "ready job かつ JOB_PHASE_RUN 0 件で ReadSummary が service error を返さないこと。"
+  - "ready job かつ JOB_PHASE_RUN 0 件で ReadNextPhaseReadiness が term_phase_incomplete の blocked readiness を返すこと。"
+  - "既存 run がある job では run の execution 設定が維持されること。"
+  - "非 ready job かつ JOB_PHASE_RUN 0 件では初期 execution phase 不在を従来どおり error として扱うこと。"
+
+residual_risks:
+  - target: "単語翻訳以外の phase summary"
+    reason: "レビュー対象差分は term translation phase service に限定されている。"
+    risk: "他 phase に同種の ready job と phase run 不在の前提ずれがある場合、このレビューでは検出しない。"
+  - target: "paused、completed など running 以外の非 ready 状態"
+    reason: "regression-test-evidence.md は non-ready の代表として running を確認したと記録している。責務境界上は service helper の条件を確認した。"
+    risk: "状態値別の挙動差は状態不変条件または挙動正しさ観点に残る。"
+
+verification_evidence:
+  - command: "python3 scripts/harness/run.py --suite backend-local"
+    result: "pass"
+    source: "implementation-evidence.md と regression-test-evidence.md"
+  - command: "python3 scripts/harness/run.py --suite coverage"
+    result: "pass"
+    source: "implementation-evidence.md と regression-test-evidence.md"
+  - command: "go test ./internal/service -run 'TestTermTranslationPhaseServiceRead(Summary|NextPhaseReadiness)' -count=1"
+    result: "pass"
+    source: "review-input.md と regression-test-evidence.md"
+  - command: "browser confirmation"
+    result: "pass"
+    source: "browser-confirmation.md"

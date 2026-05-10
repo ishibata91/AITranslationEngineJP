@@ -1,0 +1,102 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-1-term-summary-resume-investigate"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "現在の実コードは、ready job かつ JOB_PHASE_RUN 0 件で summary と next phase readiness が service error にならない目的に一致している。初期 execution phase 不在を許容する条件は job state が ready で run が nil の場合に限定され、非 ready job の既存エラー経路も維持されている。既存 run がある job の execution 設定読み取りも維持されている。"
+  evidence_sufficiency: "十分。レビュー対象差分、修正実行入力、実装証跡、回帰テスト証跡、実コード、対象単体テストを確認した。検証証跡では backend-local、coverage、対象 go test が成功している。coverage 数値は証跡に未記載だが、Sonar maintainability HIGH は 0 <= 0 で通過している。ハーネスは codex-review-behavior の非対象規約に従い再実行していない。"
+
+checked_scope:
+  summary: "TermTranslationPhaseService.loadExecutionContext から ReadSummary と ReadNextPhaseReadiness へ至る読み取り経路を確認した。ready job の phase run 不在許容、非 ready job の not found 維持、既存 run の execution 設定読み取り維持を確認した。"
+  files:
+    - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/fix-execution-input.md"
+      line: 27
+      symbol: "修正方針"
+      reason: "ready job に JOB_PHASE_RUN が無い状態を正として扱い、実行済み job、実行中 job、完了 job の既存読み取りを変えない目的を確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/regression-test-evidence.md"
+      line: 27
+      symbol: "検証結果"
+      reason: "backend-local、coverage、対象 go test の成功証跡を確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1355
+      symbol: "TermTranslationPhaseService.loadExecutionContext"
+      reason: "summary と next phase readiness が共有する execution context 読み取り経路であるため。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1380
+      symbol: "termTranslationExecutionBasePhase 呼び出し"
+      reason: "job.State を渡して、phase run 不在許容の条件に job state を含めているため。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1835
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "初期 execution phase 不在を ready job かつ run nil の場合だけ許容する分岐であるため。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1786
+      symbol: "TermTranslationPhaseService.readinessFromState"
+      reason: "run nil の ready job が blocked readiness へ変換される根拠であるため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 458
+      symbol: "TestTermTranslationPhaseServiceReadSummaryAllowsReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ phase run 0 件の summary 成功を検証しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 475
+      symbol: "TestTermTranslationPhaseServiceReadSummaryReturnsNotFoundForNonReadyJobWithoutPhaseRuns"
+      reason: "非 ready job かつ phase run 0 件では not found error を維持することを検証しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 490
+      symbol: "TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig"
+      reason: "既存 run がある job の execution 設定読み取りを検証しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1147
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessBlocksReadyJobWithoutPhaseRuns"
+      reason: "ready job かつ phase run 0 件の next phase readiness が blocked になることを検証しているため。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1164
+      symbol: "TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForNonReadyJobWithoutPhaseRuns"
+      reason: "非 ready job かつ phase run 0 件では next phase readiness でも not found error を維持することを検証しているため。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "codex-review-behavior の非対象規約により、レビュー agent はハーネスを実行しない。呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業ツリーで同じ pass 結果を再確認していない。"
+  - target: "非 ready job の全状態"
+    reason: "回帰テスト証跡は running を代表状態として確認している。paused、completed などの個別状態は直接確認されていない。"
+    risk: "job state 固有の分岐が今後追加された場合、代表状態だけでは全状態の読み取り意味を保証しきれない。"
+  - target: "ready job かつ単語翻訳以外の phase run だけが存在する異常データ"
+    reason: "実装目的と回帰テストは JOB_PHASE_RUN 0 件を主対象としている。"
+    risk: "初期 execution phase が無く、他 phase run だけがある異常データの表示意味は、この観点レビューでは確定していない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "phase run 不在許容が ready job に限定されていない"
+    problem: "解決済みである。現在の termTranslationExecutionBasePhase は、run が nil で初期 execution phase が見つからない場合でも、job state が ready でない場合は not found error を返す。"
+    reason: "実装目的は ready job かつ JOB_PHASE_RUN 0 件を実行前状態として表示することである。現在の分岐は非 ready job を許容対象から外しているため、running 代表状態の summary と next phase readiness は既存どおり service error になる。"
+    violated_condition: "ready job かつ JOB_PHASE_RUN 0 件だけを正として扱い、実行済み job、実行中 job、完了 job の既存読み取り意味を不要に変えないこと。"
+    cause_candidate: "修正前は ErrNotFound の許容条件に job state が含まれない可能性があった。現在は internal/service/term_translation_phase_service.go:1380 で job.State を渡し、internal/service/term_translation_phase_service.go:1845 で jobState != termTranslationJobStateReady をエラー条件にしている。"
+    evidence:
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1380
+        excerpt: "loadExecutionContext は termTranslationExecutionBasePhase に job.State を渡している。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1845
+        excerpt: "run != nil、jobState != ready、ErrNotFound 以外のいずれかでは error を返す。"
+      - path: "internal/service/term_translation_phase_service_test.go"
+        line: 475
+        excerpt: "running job かつ phase run 0 件の summary は load initial execution phase: not found を返す。"
+      - path: "internal/service/term_translation_phase_service_test.go"
+        line: 1164
+        excerpt: "running job かつ phase run 0 件の next phase readiness は load initial execution phase: not found を返す。"
+      - path: "docs/exec-plans/completed/2026-05-10-job-1-term-summary-resume-investigate/regression-test-evidence.md"
+        line: 35
+        excerpt: "major 指摘対応後の go test、backend-local、coverage は成功している。"
+    local_fix_assessment: "resolved。loadExecutionContext と termTranslationExecutionBasePhase の局所修正で閉じている。ready job の空状態、非 ready job の error 維持、既存 run の execution 設定読み取りを対象単体テストが確認している。"
+    additional_check_scope: "none。未解決指摘として追加確認が必要な範囲はない。残留リスクは unchecked_scope に記録した。"
+    fix_considerations: "解決済みのため追加修正指示はない。今後変更する場合も、ready job の空状態を service error に戻さず、非 ready job の phase run 不在を成功扱いに広げない条件を維持する必要がある。"
+    verification: "呼び出し元の go test ./internal/service -run 'TestTermTranslationPhaseServiceRead(Summary|NextPhaseReadiness)' -count=1、python3 scripts/harness/run.py --suite backend-local、python3 scripts/harness/run.py --suite coverage は成功している。"
+    fix_required: true
+    status: "resolved"

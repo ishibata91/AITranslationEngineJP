@@ -92,4 +92,62 @@ describe("PersonaGenerationPhasePresenter", () => {
     expect(vm.viewState).toBe("snapshot_missing")
     expect(vm.errorKindLabel).toContain("snapshot_missing")
   })
+
+  test("pending phase state は開始待ちとして表示する", () => {
+    const vm = presenter.toViewModel(
+      {
+        jobId: 10,
+        phase: "ready",
+        summary: {
+          jobId: 10,
+          currentPhase: "persona_generation",
+          phaseState: "pending",
+          phaseRunId: 20,
+          progress: {
+            percent: 0,
+            processedCount: 0,
+            totalCount: 1,
+            targetCount: 1,
+            currentStep: "pending"
+          },
+          targetSummary: {
+            targetCount: 1,
+            commonPersonaHitCount: 0,
+            commonPersonaMissCount: 1,
+            skippedCount: 0,
+            skippedReasons: [],
+            targetSnapshotDigest: "sha256:1"
+          },
+          execution: {
+            credentialRef: "cred",
+            provider: "fake",
+            model: "m",
+            executionMode: "single_request",
+            promptDigest: "sha256:1",
+            inputCount: 1,
+            outputCount: 0,
+            evidenceRefs: []
+          },
+          actionEnablement: {
+            canStart: true,
+            canPause: false,
+            canResume: false,
+            canRetry: false,
+            canCancel: false,
+            canStartBodyPhase: false
+          }
+        },
+        bodyReadiness: null,
+        errorMessage: "",
+        pendingAction: null,
+        hasLoaded: true
+      },
+      true
+    )
+
+    expect(vm.viewState).toBe("not_started")
+    expect(vm.phaseStateLabel).toBe("開始待ち")
+    expect(vm.progressDetail).toContain("開始待ち")
+    expect(vm.progressDetail).not.toContain("pending")
+  })
 })

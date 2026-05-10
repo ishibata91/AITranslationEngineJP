@@ -1,0 +1,81 @@
+reviewback_version: 1
+task_id: "2026-05-10-job-setup-unstarted-phase-run-fix"
+review_yaml_path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "未開始 JOB_PHASE_RUN の作成と開始時更新は、credential_ref を参照値として扱っている。secret 本体、API key、raw payload、全文入力を保存、表示、ログ出力する差分はない。SQL 更新は named parameter で実行され、外部入力由来の provider、model、execution_mode、credential_ref は既存の正規化経路または provider settings 解決結果を通る。"
+  evidence_sufficiency: "十分。レビュー対象差分、実装目的、回帰テスト証跡、agent 実行境界、reviewback YAML 形式、観測ログ仕様を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "job setup で未開始 phase run を作成する経路、各 phase start が既存 row を running へ更新する経路、SQLite 更新 SQL、job management の投影経路、secret 参照値とログ出力の扱いを確認した。"
+  files:
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 801
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "phase runtime の正規化と provider settings 解決後に未開始 phase run が作られることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 857
+      symbol: "TranslationJobSetupService.createUnstartedPhaseRuns"
+      reason: "未開始 phase run に保存される値が provider、model、execution_mode、credential_ref などの参照値であることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1357
+      symbol: "sanitizeTranslationJobSetupPhaseRuntime"
+      reason: "外部入力由来の phase runtime が正規化され、credential_ref が許可された参照値へ制限されることを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 1625
+      symbol: "TranslationJobSetupService.resolvePhaseRuntimeMapAgainstProviderSettings"
+      reason: "provider settings 経由では secret 本体ではなく CredentialReferenceID と CredentialState だけが runtime へ反映されることを確認した。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 358
+      symbol: "updateJobPhaseRun"
+      reason: "更新 SQL が named parameter を使い、文字列連結による SQL injection 経路を追加していないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 669
+      symbol: "TermTranslationPhaseService.ensureExecutionPlanRun"
+      reason: "先置き済み term_translation row の開始時更新で credential_ref が参照値として渡ることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 477
+      symbol: "BodyTranslationPhaseService.createBodyTranslationRunRecord"
+      reason: "先置き済み body_translation row の開始時更新で secret 本体を扱わないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1408
+      symbol: "PersonaGenerationPhaseService.startPhaseRunTransaction"
+      reason: "persona_generation の開始時更新が term run の参照値を引き継ぎ、secret 本体を保存しないことを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 876
+      symbol: "findTranslationJobManagementCurrentRun"
+      reason: "job management の現在 phase 投影が認可、secret、外部 URL の新経路を追加していないことを確認した。"
+    - path: "docs/exec-plans/completed/2026-05-10-job-setup-unstarted-phase-run-fix/regression-test-evidence.md"
+      line: 19
+      symbol: "検証結果"
+      reason: "backend-local と coverage が成功し、coverage summary が 70.8% であることを確認した。"
+
+unchecked_scope:
+  - target: "frontend 表示経路"
+    reason: "レビュー対象差分に frontend ファイルが含まれていないため確認対象外とした。"
+    risk: "既存 frontend が credential_ref 参照値を表示する可能性は残る。ただし secret 本体ではないため、今回差分の強制停止条件には該当しない。"
+  - target: "実 provider への通信内容"
+    reason: "非対象規約によりハーネス実行とブラウザ実行は行っていない。実 provider 呼び出しは差分の主変更ではないため、静的確認に限定した。"
+    risk: "provider 実行時の secret 送信先は既存の secretStore 読み出し経路に依存する。今回差分は送信先を追加していない。"
+
+issues: []
+
+broken_invariants: []
+cause_candidates: []
+local_fix_assessment:
+  result: "not_required"
+  reason: "未解決の権限・信頼境界 issue がないため、局所修正は不要である。"
+invariant_test_viewpoints:
+  - "credential_ref は secret 本体ではなく参照値としてだけ DB、DTO、read model に現れること。"
+  - "provider secret は secretStore から読み出した後、log、error summary、URL、runtime snapshot、JOB_PHASE_RUN に出ないこと。"
+  - "phase runtime の外部入力値は provider catalog または provider settings の解決結果で正規化されること。"
+residual_risks:
+  - target: "既存 read model の credential_ref 表示"
+    reason: "credential_ref は参照値として既存 UI 契約に含まれる。今回レビューでは secret 本体の混入だけを確認した。"
+    impact: "参照値を機密扱いへ変更する設計判断が将来入る場合は、UI、DTO、DB の扱いを別タスクで再評価する必要がある。"
