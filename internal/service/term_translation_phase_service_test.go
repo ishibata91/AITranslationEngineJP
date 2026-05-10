@@ -543,6 +543,66 @@ func TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig(t 
 	}
 }
 
+func TestTermTranslationPhaseServiceReadSummaryAllowsResumeForRecoverableFailedRun(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{
+		ID:               360,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStateRecoverableFail,
+		ProgressPercent:  0,
+		LatestError:      termTranslationErrorKindInvalidProvider,
+	}
+	jobRepo.job.State = termTranslationJobStateRunning
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success with recoverable failed run, got %v", err)
+	}
+	if !summary.ActionEnablement.CanResume {
+		t.Fatalf("expected recoverable failed run to be resumable, got %#v", summary.ActionEnablement)
+	}
+	if summary.ActionEnablement.ResumeBlockedReason != nil {
+		t.Fatalf("expected no resume blocked reason, got %#v", summary.ActionEnablement.ResumeBlockedReason)
+	}
+	if !summary.ActionEnablement.CanRetry {
+		t.Fatalf("expected recoverable failed run to be retryable, got %#v", summary.ActionEnablement)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadSummaryReturnsJapaneseBlockedReasons(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	run := repository.JobPhaseRun{
+		ID:               361,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStateCompleted,
+		ProgressPercent:  100,
+	}
+	jobRepo.job.State = termTranslationJobStateRunning
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success with completed run, got %v", err)
+	}
+	if summary.ActionEnablement.PauseBlockedReason == nil ||
+		*summary.ActionEnablement.PauseBlockedReason != termTranslationReasonPhaseNotRunning {
+		t.Fatalf("expected Japanese pause blocked reason, got %#v", summary.ActionEnablement.PauseBlockedReason)
+	}
+	if summary.ActionEnablement.ResumeBlockedReason == nil ||
+		*summary.ActionEnablement.ResumeBlockedReason != termTranslationReasonPhaseNotResumable {
+		t.Fatalf("expected Japanese resume blocked reason, got %#v", summary.ActionEnablement.ResumeBlockedReason)
+	}
+	if summary.ActionEnablement.RetryBlockedReason == nil ||
+		*summary.ActionEnablement.RetryBlockedReason != termTranslationReasonPhaseNotRetryable {
+		t.Fatalf("expected Japanese retry blocked reason, got %#v", summary.ActionEnablement.RetryBlockedReason)
+	}
+}
+
 func TestTermTranslationPhaseServiceStartPhaseReturnsProviderFailureWhenProviderIsNil(t *testing.T) {
 	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
 

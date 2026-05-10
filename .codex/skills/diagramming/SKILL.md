@@ -15,7 +15,7 @@ description: Codex 側の図成果物プロトコル。レーン判断に必要�
 ## 対応ロール
 
 - `diagrammer` が使う。
-- 呼び出し元は `designer`、`implement_lane`、`light_change_lane`、`fix_lane`、または人間とする。
+- 呼び出し元は `designer`、`implement_lane`、`light_change_lane`、または人間とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `設計差分図`、`原因箇所シーケンス図`、明示された補助図とする。
 

@@ -525,7 +525,7 @@ func (service *TranslationJobManagementService) buildJobDetail(
 	stopAvailability := buildTranslationJobManagementStopAvailability(job, phaseRuns)
 	resumeAvailability := buildTranslationJobManagementResumeAvailability(job, resumeBlockedReasons)
 	deleteAvailability := buildTranslationJobManagementDeleteAvailability(job, warnings, phaseRuns)
-	canOpenPhase, openBlockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, progressSummary, warnings)
+	canOpenPhase, openBlockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, phaseRuns)
 
 	detail := TranslationJobManagementJobDetailReadModel{
 		TranslationJobManagementJobSummaryReadModel: TranslationJobManagementJobSummaryReadModel{
@@ -685,8 +685,7 @@ func buildTranslationJobManagementProgress(
 
 func buildTranslationJobManagementPhaseNavigationAvailability(
 	job repository.TranslationJob,
-	progress TranslationJobManagementProgressSummaryReadModel,
-	warnings []TranslationJobManagementBlockedReasonReadModel,
+	phaseRuns []repository.JobPhaseRun,
 ) (bool, *TranslationJobManagementBlockedReasonReadModel) {
 	state := normalizeTranslationJobManagementValue(job.State)
 	if state == translationJobManagementJobStateCompleted {
@@ -697,14 +696,19 @@ func buildTranslationJobManagementPhaseNavigationAvailability(
 		}
 		return false, &reason
 	}
-	for _, warning := range warnings {
-		if warning.Category == translationJobManagementReasonStateProjectionInconsistent ||
-			warning.Category == translationJobManagementReasonPhaseProgressAggregationFailed {
-			reason := warning
-			return false, &reason
+	if len(phaseRuns) == 0 {
+		if state == translationJobManagementJobStateReady {
+			return true, nil
 		}
+		reason := TranslationJobManagementBlockedReasonReadModel{
+			Category: translationJobManagementReasonStateProjectionInconsistent,
+			Title:    "phase 状態が見つかりません",
+			Detail:   "job は未完了ですが phase run が存在しません。状態表示を安全側に固定します。",
+		}
+		return false, &reason
 	}
-	if strings.TrimSpace(progress.CurrentPhase) == "" {
+	currentRun, hasRun := findTranslationJobManagementCurrentRun(phaseRuns)
+	if !hasRun || !translationJobManagementPhaseRunHasNavigablePhase(currentRun) {
 		reason := TranslationJobManagementBlockedReasonReadModel{
 			Category: translationJobManagementReasonStateProjectionInconsistent,
 			Title:    "現在の翻訳段階を判定できません",
@@ -713,6 +717,15 @@ func buildTranslationJobManagementPhaseNavigationAvailability(
 		return false, &reason
 	}
 	return true, nil
+}
+
+func translationJobManagementPhaseRunHasNavigablePhase(run repository.JobPhaseRun) bool {
+	switch normalizeTranslationJobManagementValue(run.PhaseType) {
+	case "translation", "term_translation", "persona_generation", "body_translation":
+		return true
+	default:
+		return false
+	}
 }
 
 func buildTranslationJobManagementRuntimeSummary(

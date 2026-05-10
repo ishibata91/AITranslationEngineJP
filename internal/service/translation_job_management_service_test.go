@@ -259,6 +259,90 @@ func TestTranslationJobManagementServiceDeleteJobRejectsProjectionInconsistentRu
 	}
 }
 
+func TestBuildTranslationJobManagementPhaseNavigationAvailabilityAllowsRecoverableFailedCurrentPhaseEvenWhenProgressIsZero(t *testing.T) {
+	job := repository.TranslationJob{ID: 101, State: "running"}
+	phaseRuns := []repository.JobPhaseRun{
+		{ID: 1001, TranslationJobID: 101, PhaseType: "term_translation", State: "recoverable_failed", ProgressPercent: 0},
+	}
+
+	canOpenPhase, blockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, phaseRuns)
+
+	if !canOpenPhase {
+		t.Fatalf("expected canOpenPhase=true, got blockedReason=%#v", blockedReason)
+	}
+	if blockedReason != nil {
+		t.Fatalf("expected blockedReason=nil, got %#v", blockedReason)
+	}
+}
+
+func TestBuildTranslationJobManagementPhaseNavigationAvailabilityAllowsPendingCurrentPhaseEvenWhenProgressIsZero(t *testing.T) {
+	job := repository.TranslationJob{ID: 102, State: "running"}
+	phaseRuns := []repository.JobPhaseRun{
+		{ID: 1002, TranslationJobID: 102, PhaseType: "term_translation", State: "pending", ProgressPercent: 0},
+	}
+
+	canOpenPhase, blockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, phaseRuns)
+
+	if !canOpenPhase {
+		t.Fatalf("expected canOpenPhase=true, got blockedReason=%#v", blockedReason)
+	}
+	if blockedReason != nil {
+		t.Fatalf("expected blockedReason=nil, got %#v", blockedReason)
+	}
+}
+
+func TestBuildTranslationJobManagementPhaseNavigationAvailabilityAllowsReadyJobWithoutPhaseRuns(t *testing.T) {
+	job := repository.TranslationJob{ID: 103, State: "ready"}
+
+	canOpenPhase, blockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, nil)
+
+	if !canOpenPhase {
+		t.Fatalf("expected canOpenPhase=true, got blockedReason=%#v", blockedReason)
+	}
+	if blockedReason != nil {
+		t.Fatalf("expected blockedReason=nil, got %#v", blockedReason)
+	}
+}
+
+func TestBuildTranslationJobManagementPhaseNavigationAvailabilityBlocksIncompleteJobWithoutPhaseRuns(t *testing.T) {
+	job := repository.TranslationJob{ID: 104, State: "running"}
+
+	canOpenPhase, blockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, nil)
+
+	if canOpenPhase {
+		t.Fatal("expected canOpenPhase=false")
+	}
+	if blockedReason == nil {
+		t.Fatal("expected blockedReason")
+	}
+	if blockedReason.Category != translationJobManagementReasonStateProjectionInconsistent {
+		t.Fatalf("expected category state_projection_inconsistent, got %#v", blockedReason)
+	}
+}
+
+func TestBuildTranslationJobManagementPhaseNavigationAvailabilityDoesNotUsePhaseProgressAggregationFailedAsBlockedReason(t *testing.T) {
+	job := repository.TranslationJob{ID: 105, State: "running"}
+	phaseRuns := []repository.JobPhaseRun{
+		{ID: 1005, TranslationJobID: 105, PhaseType: "term_translation", State: "recoverable_failed", ProgressPercent: 0},
+	}
+
+	canOpenPhase, blockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, phaseRuns)
+	_, warnings := buildTranslationJobManagementProgress(job, phaseRuns)
+
+	if !canOpenPhase {
+		t.Fatalf("expected canOpenPhase=true, got blockedReason=%#v", blockedReason)
+	}
+	if blockedReason != nil {
+		t.Fatalf("expected blockedReason=nil, got %#v", blockedReason)
+	}
+	if len(warnings) == 0 {
+		t.Fatal("expected phase progress warnings")
+	}
+	if warnings[0].Category != translationJobManagementReasonPhaseProgressAggregationFailed {
+		t.Fatalf("expected warning category phase_progress_aggregation_failed, got %#v", warnings[0])
+	}
+}
+
 func TestTranslationJobManagementServiceResumeJobReturnsCacheMissingReason(t *testing.T) {
 	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
 	job := repository.TranslationJob{ID: 50, XEditExtractedDataID: 10, State: "paused", CreatedAt: now}

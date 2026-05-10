@@ -7,7 +7,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 ## 目的
 
 `fix-lane` は、人間が確認した不具合、レビュー非通過、検証失敗を恒久修正へ渡す進行判断を task 内成果物DAG と起動入力へ固定する作業プロトコルである。
-`fix_lane` が人間観測記録、修正前調査、修正方針判断、人間修正レビュー、修正実行入力、実装証跡、回帰確認、最終検証、レビュー通過根拠を管理する時に使う。
+`fix_lane` が人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰確認、最終検証、レビュー通過根拠を管理する時に使う。
 `fix_lane` は担当 agent を起動し、各 agent の完了結果を集約する。
 
 ## 対応ロール
@@ -16,7 +16,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
 - 担当成果物は `人間観測記録`、`修正方針判断`、`原因箇所シーケンス図`、`人間修正レビュー`、`修正実行入力`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
-- 起動担当 agent は `investigator`、`fix_decider`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
+- 起動担当 agent は `investigator`、`fix_decider`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
 
 ## 入力規約
 
@@ -34,8 +34,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 
 - エージェント実行定義と実行境界は [fix_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/fix_lane.toml) に従う。
 - 修正前調査は [investigate](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md) に従う。
-- 修正方針判断は [fix-decision](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/fix-decision/SKILL.md) に従う。
-- 原因箇所シーケンス図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
+- 修正方針判断と原因箇所シーケンス図は [fix-decision](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/fix-decision/SKILL.md) に従う。
 - プロダクトコード実装は `implement-backend`、`implement-frontend`、`implement-integration` のいずれかに従う。
 - 回帰テスト証跡は `tests-scenario` または `tests-unit` に従う。
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
@@ -52,7 +51,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `人間観測記録` | `fix_lane` | `task 枠` | なし |
 | `修正前調査` | `investigator` | `人間観測記録` | `investigator` |
 | `修正方針判断` | `fix_decider` | `人間観測記録`, `修正前調査` | `fix_decider` |
-| `原因箇所シーケンス図` | `diagrammer` | `人間観測記録`, `修正前調査`, `修正方針判断` | `diagrammer` |
+| `原因箇所シーケンス図` | `fix_decider` | `人間観測記録`, `修正前調査`, `修正方針判断` | なし |
 | `人間修正レビュー` | human | `修正方針判断`, `原因箇所シーケンス図` | human |
 | `修正実行入力` | `fix_lane` | `人間観測記録`, `修正前調査`, `修正方針判断`, `原因箇所シーケンス図`, `人間修正レビュー` | なし |
 | `実装証跡` | 実装種別別 agent / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
@@ -70,7 +69,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `修正方針判断` は `fix_decider` を起動して作る。
 - `修正方針判断` は原因の原因、責務境界、採用する修正方針、禁止する修正を分ける。
 - `修正方針判断` は `null` の握りつぶし、新しい状態値の追加、症状だけを隠す分岐を採用または禁止のどちらかへ分類する。
-- `原因箇所シーケンス図` は `diagrammer` を起動して作る。
+- `原因箇所シーケンス図` は `fix_decider` が `修正方針判断` と同じ判断材料から作る。
 - `原因箇所シーケンス図` は修正前調査と修正方針判断で確認した原因箇所の呼び出し順序だけを示す。
 - `原因箇所シーケンス図` は何が問題か、どう直すかを説明する。
 - `原因箇所シーケンス図` は全体シーケンス、推測原因、未確認の修正案を含めない。
@@ -115,9 +114,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 起動先向け返却: 起動先 agent 向けに対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を返す。
 - 人間観測記録: 人間が見た画面、操作、ログ、失敗、期待との差分を返す。
 - 修正前調査起動入力: `investigator` 向けに人間観測記録、既存レビューYAML、検証ログ、禁止事項、期待する成果物を返す。
-- 修正方針判断起動入力: `fix_decider` 向けに人間観測記録、修正前調査、既存レビューYAML、検証ログ、禁止事項、期待する成果物を返す。
+- 修正方針判断起動入力: `fix_decider` 向けに人間観測記録、修正前調査、既存レビューYAML、検証ログ、禁止事項、期待する修正方針判断、期待する原因箇所シーケンス図を返す。
 - 修正方針判断: 修正前判断材料として、観測済み問題、原因の原因、責務境界、採用する修正方針、禁止する修正、根拠参照、未決事項を返す。
-- 原因箇所シーケンス図起動入力: `diagrammer` 向けに人間観測記録、修正前調査、修正方針判断、原因箇所、問題点、修正方針、禁止範囲、対象作業計画フォルダを返す。
 - 原因箇所シーケンス図: 修正前判断材料として、原因箇所のシーケンス図、問題点、修正方針、根拠参照、検証結果、未決事項を返す。
 - 人間修正レビュー依頼: 人間向けに修正方針判断、原因箇所シーケンス図、承認対象、差し戻し対象、確認してほしい点を返す。
 - 人間修正レビュー結果: 人間が承認、差し戻し、追加確認のどれを選んだかを返す。
@@ -154,7 +152,6 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 人間観測、レビュー非通過、検証失敗の根拠がない場合は停止する。
 - 原因の原因が未確認なのに恒久修正へ進みそうな場合は停止する。
 - 修正前調査なしで修正実行入力へ進みそうな場合は停止する。
-- `修正方針判断` なしで原因箇所シーケンス図へ進みそうな場合は停止する。
 - `修正方針判断` なしで人間修正レビューへ進みそうな場合は停止する。
 - `原因箇所シーケンス図` なしで修正実行入力へ進みそうな場合は停止する。
 - `原因箇所シーケンス図` に原因未確認の推測または未確認の修正案が含まれる場合は停止する。

@@ -1,0 +1,92 @@
+@startuml
+title 原因箇所シーケンス図\n未完了一覧が progress_percent を navigation 状態判断へ混入させる責務違反
+hide footbox
+
+actor "利用者" as User
+participant "TranslationJobManagementUsecase" as Usecase
+participant "TranslationJobManagementService" as Service
+database "TRANSLATION_JOB\nstate=running" as JobTable
+database "JOB_PHASE_RUN\nphase_type=term_translation\nstate=recoverable_failed または pending" as PhaseRunTable
+
+note over JobTable,PhaseRunTable
+入力状態:
+- case A: current run は term_translation / recoverable_failed
+- case B: current run は term_translation / pending
+- どちらも current phase は特定できる
+- provider 応答不正の内部原因は今回の図に含めない
+end note
+
+User -> Usecase: 未完了一覧を開く
+Usecase -> Service: ListIncompleteJobs()
+Service -> JobTable: job を読む
+JobTable --> Service: state=running
+Service -> PhaseRunTable: phase runs を読む
+PhaseRunTable --> Service: current run=term_translation / state=recoverable_failed or pending
+
+group current phase 特定
+Service -> Service: findTranslationJobManagementCurrentRun(phaseRuns)
+note right
+recoverable_failed は current run 候補として扱う
+pending も未完了 phase run として current phase を特定できる
+end note
+Service --> Service: current run=term_translation\ncurrent phase を特定できる
+end
+
+group 修正前の責務違反
+Service -> Service: buildTranslationJobManagementProgress(job, phaseRuns)
+note right
+問題点:
+phase run state を見ずに
+progress_percent を条件に含めて
+phase_progress_aggregation_failed warning を作る
+end note
+Service --> Service: progress.currentPhase=term_translation\nwarnings += phase_progress_aggregation_failed
+
+Service -> Service: buildTranslationJobManagementPhaseNavigationAvailability(job, progress, warnings)
+note right
+問題点:
+表示用 progress warning を
+navigation block 理由へ変換する
+end note
+Service --> Usecase: canOpenPhase=false\nblockedReason=phase_progress_aggregation_failed
+Usecase --> User: 現在の翻訳段階へ進む が disabled
+end
+
+group 修正後の責務分離
+Service -> Service: buildTranslationJobManagementProgress(job, phaseRuns)
+note right
+修正方針:
+progress_percent は表示値として扱う
+進捗補足 warning が必要でも
+navigation 可否には使わない
+end note
+Service --> Service: progress.currentPhase=term_translation\nwarnings は表示補足に限定
+
+Service -> Service: buildTranslationJobManagementPhaseNavigationAvailability(job, currentRun, currentPhase)
+note right
+修正方針:
+navigation 可否は
+phase run state と current phase 特定可否で判断する
+progress_percent の値に関係なく
+current phase を特定できる phase run は
+現在の翻訳段階へ進める状態として扱う
+end note
+Service --> Usecase: canOpenPhase=true
+Usecase --> User: 現在の翻訳段階へ進む が enabled
+end
+
+legend bottom
+対象範囲:
+- TranslationJobManagementService の未完了一覧 read model 生成
+- buildTranslationJobManagementProgress の warning 作成
+- buildTranslationJobManagementPhaseNavigationAvailability の navigation 可否判定
+
+対象外:
+- provider raw response
+- prompt
+- 翻訳本文全文
+- 未確認の UI 修正案
+- 全体翻訳 flow
+end legend
+
+@enduml

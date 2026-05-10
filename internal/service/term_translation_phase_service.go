@@ -51,6 +51,9 @@ const (
 	termTranslationReasonCredentialMissing   = "term translation provider credential is unavailable"
 	termTranslationReasonActivePhaseExists   = "active phase run already exists"
 	termTranslationReasonPhaseIncomplete     = "term phase state does not allow this command"
+	termTranslationReasonPhaseNotRunning     = "単語翻訳段階は実行中ではありません。"
+	termTranslationReasonPhaseNotResumable   = "単語翻訳段階は再開できる状態ではありません。"
+	termTranslationReasonPhaseNotRetryable   = "単語翻訳段階はリトライできる状態ではありません。"
 	termTranslationPhaseServiceWhere         = "term_translation_phase.service"
 	termTranslationSecretLoadTimeout         = 250 * time.Millisecond
 )
@@ -361,7 +364,7 @@ func (service *TermTranslationPhaseService) ReadSummary(
 			StartBlockedReason:     termTranslationStartBlockedReason(job, run, execution),
 			CanPause:               run != nil && run.State == termTranslationPhaseStateRunning,
 			PauseBlockedReason:     termTranslationPauseBlockedReason(run),
-			CanResume:              run != nil && run.State == termTranslationPhaseStatePaused,
+			CanResume:              run != nil && (run.State == termTranslationPhaseStatePaused || run.State == termTranslationPhaseStateRecoverableFail),
 			ResumeBlockedReason:    termTranslationResumeBlockedReason(run),
 			CanRetry:               run != nil && run.State == termTranslationPhaseStateRecoverableFail,
 			RetryBlockedReason:     termTranslationRetryBlockedReason(run),
@@ -398,7 +401,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 		if run.State != termTranslationPhaseStateRunning {
 			response = termTranslationCommandFromRun(job, run, true, false, &TermTranslationPhaseErrorReadModel{
 				ErrorKind:  "term_phase_incomplete",
-				Reason:     "phase is not running",
+				Reason:     termTranslationReasonPhaseNotRunning,
 				Retryable:  false,
 				IsRedacted: false,
 			})
@@ -766,7 +769,7 @@ func (service *TermTranslationPhaseService) rejectResumeExecutionPlan(
 		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseIncomplete), true
 	}
 	if run.State != termTranslationPhaseStatePaused && run.State != termTranslationPhaseStateRecoverableFail {
-		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", "phase is not resumable"), true
+		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseNotResumable), true
 	}
 	return termTranslationExecutionPlan{}, false
 }
@@ -780,7 +783,7 @@ func (service *TermTranslationPhaseService) rejectRetryExecutionPlan(
 		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseIncomplete), true
 	}
 	if run.State != termTranslationPhaseStateRecoverableFail {
-		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", "phase is not retryable"), true
+		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseNotRetryable), true
 	}
 	return termTranslationExecutionPlan{}, false
 }
@@ -1990,21 +1993,21 @@ func termTranslationPauseBlockedReason(run *repository.JobPhaseRun) *string {
 	if run == nil || run.State == termTranslationPhaseStateRunning {
 		return nil
 	}
-	return termTranslationStringPointer("phase is not running")
+	return termTranslationStringPointer(termTranslationReasonPhaseNotRunning)
 }
 
 func termTranslationResumeBlockedReason(run *repository.JobPhaseRun) *string {
-	if run == nil || run.State == termTranslationPhaseStatePaused {
+	if run == nil || run.State == termTranslationPhaseStatePaused || run.State == termTranslationPhaseStateRecoverableFail {
 		return nil
 	}
-	return termTranslationStringPointer("phase is not paused")
+	return termTranslationStringPointer(termTranslationReasonPhaseNotResumable)
 }
 
 func termTranslationRetryBlockedReason(run *repository.JobPhaseRun) *string {
 	if run == nil || run.State == termTranslationPhaseStateRecoverableFail {
 		return nil
 	}
-	return termTranslationStringPointer("phase is not retryable")
+	return termTranslationStringPointer(termTranslationReasonPhaseNotRetryable)
 }
 
 func candidateKey(recordType string, sourceTerm string) string {
