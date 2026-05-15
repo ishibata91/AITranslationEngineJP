@@ -1181,25 +1181,27 @@ func (service *PersonaGenerationPhaseService) buildActionEnablement(
 	if rejection != nil {
 		startBlockedReason = stringPersonaPointer(rejection.reason)
 	}
-	canPause := !isPersonaGenerationTerminalJob(jobState) && state == personaGenerationPhaseStateRunning
-	canResume := !isPersonaGenerationTerminalJob(jobState) && state == personaGenerationPhaseStatePaused
-	canRetry := run != nil && !isPersonaGenerationTerminalJob(jobState) && normalizePersonaField(run.State) == personaGenerationPhaseStateRecoverableFail
-	canCancel := run != nil && !isPersonaGenerationTerminalJob(jobState) && normalizePersonaField(run.State) == personaGenerationPhaseStatePaused
+	availability := commonPhaseActionAvailability(phaseActionAvailabilityInput{
+		JobState:       jobState,
+		PhaseState:     state,
+		PhaseRunExists: run != nil,
+		StartAllowed:   rejection == nil,
+	})
 	bodyReason := stringPersonaPointer("persona snapshot reference is not ready")
 	if canStartBodyPhase {
 		bodyReason = nil
 	}
 	return PersonaGenerationPhaseActionEnablementReadModel{
-		CanStart:               rejection == nil,
+		CanStart:               availability.CanStart,
 		StartBlockedReason:     clonePersonaStringPointer(startBlockedReason),
-		CanPause:               canPause,
-		PauseBlockedReason:     personaBlockedReason(canPause, "persona phase is not running"),
-		CanResume:              canResume,
-		ResumeBlockedReason:    personaBlockedReason(canResume, "persona phase is not resumable"),
-		CanRetry:               canRetry,
-		RetryBlockedReason:     personaBlockedReason(canRetry, "persona phase is not retryable"),
-		CanCancel:              canCancel,
-		CancelBlockedReason:    personaBlockedReason(canCancel, "persona phase is not cancelable"),
+		CanPause:               availability.CanPause,
+		PauseBlockedReason:     personaBlockedReason(availability.CanPause, "persona phase is not running"),
+		CanResume:              availability.CanResume,
+		ResumeBlockedReason:    personaBlockedReason(availability.CanResume, "persona phase is not resumable"),
+		CanRetry:               availability.CanRetry,
+		RetryBlockedReason:     personaBlockedReason(availability.CanRetry, "persona phase is not retryable"),
+		CanCancel:              availability.CanCancel,
+		CancelBlockedReason:    personaBlockedReason(availability.CanCancel, "persona phase is not cancelable"),
 		CanStartBodyPhase:      canStartBodyPhase,
 		BodyPhaseBlockedReason: clonePersonaStringPointer(bodyReason),
 	}

@@ -182,14 +182,14 @@ func (usecase *BodyTranslationPhaseUsecase) evaluateBodyPolicy(
 	if bodyPolicySummaryMissing(summary) {
 		return BodyTranslationPhaseCommandResult{}, true
 	}
-	decision := translationjobpolicy.Evaluate(translationjobpolicy.Input{
+	decision := translationjobpolicy.Evaluate(phasePolicyInput(phasePolicyInputSource{
 		Operation:            operation,
 		JobState:             summary.JobState,
 		PhaseState:           summary.PhaseState,
-		PhaseRunExists:       phasePolicyRunMatches(summary.PhaseRunID, phaseRunID, operation),
-		ActivePhaseRunExists: phasePolicyActivePhaseRunExists(summary.PhaseRunID, summary.PhaseState),
+		PhaseRunID:           summary.PhaseRunID,
+		RequestedPhaseRunID:  phaseRunID,
 		StartPrerequisiteMet: summary.ActionEnablement.CanStart,
-	})
+	}))
 	if decision.Allowed {
 		return BodyTranslationPhaseCommandResult{}, true
 	}

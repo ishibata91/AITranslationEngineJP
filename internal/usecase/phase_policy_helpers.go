@@ -28,6 +28,26 @@ func phasePolicyActivePhaseRunExists(phaseRunID *int64, phaseState string) bool 
 	}
 }
 
+func phasePolicyInput(input phasePolicyInputSource) translationjobpolicy.Input {
+	return translationjobpolicy.Input{
+		Operation:            input.Operation,
+		JobState:             input.JobState,
+		PhaseState:           input.PhaseState,
+		PhaseRunExists:       phasePolicyRunMatches(input.PhaseRunID, input.RequestedPhaseRunID, input.Operation),
+		ActivePhaseRunExists: phasePolicyActivePhaseRunExists(input.PhaseRunID, input.PhaseState),
+		StartPrerequisiteMet: input.StartPrerequisiteMet,
+	}
+}
+
+type phasePolicyInputSource struct {
+	Operation            translationjobpolicy.Operation
+	JobState             string
+	PhaseState           string
+	PhaseRunID           *int64
+	RequestedPhaseRunID  int64
+	StartPrerequisiteMet bool
+}
+
 func stringFromPointer(value *string, fallback string) string {
 	if value == nil || *value == "" {
 		return fallback

@@ -79,9 +79,11 @@
 | --- | --- | --- | --- | --- |
 | `task 枠` | 完了 | `light_change_lane` | なし | `plan.md` |
 | `軽量変更計画` | 完了 | `light_change_planner` | `task 枠` | `light-change-planning.md` |
-| `設計差分図` | 未着手 | `diagrammer` | `軽量変更計画` | component / sequence の差分図 |
-| `実装証跡` | 未着手 | `backend_implementer` | `軽量変更計画`, `設計差分図` | stale 廃止差分 |
-| `人間確認` | 未着手 | 人間 | `実装証跡` | 削減範囲の確認 |
+| `設計差分図` | 完了 | `diagrammer` | `軽量変更計画` | `design-diff.md`, `design-diff.component.puml`, `design-diff.sequence.puml` |
+| `実装証跡` | 完了 | `backend_implementer` | `軽量変更計画`, `設計差分図` | `backend-implementation-input.md`, `backend-implementation-result.md` |
+| `状態知識追加調査` | 完了 | `investigator` | `実装証跡` | `state-knowledge-investigation-input.md`, `state-knowledge-investigation.md` |
+| `追加判断` | 停止中 | 人間 / `designer` | `状態知識追加調査` | `state-knowledge-investigation-lane-decision.md` |
+| `人間確認` | 停止中 | 人間 | `実装証跡`, `追加判断` | `human-confirmation-request.md` |
 | `テスト修正証跡` | 未着手 | `implementation_unit_tester` | `実装証跡`, `人間確認?` | policy / read model の単体テスト整理 |
 | `実装後ブラウザ確認` | 該当なし | `light_change_lane` | `実装証跡`, `テスト修正証跡?` | UI 変更なし |
 | `レビュー通過根拠` | 未着手 | `light_change_lane` | `実装証跡`, `テスト修正証跡?` | 5 観点 reviewback 集約 |
@@ -114,6 +116,6 @@
 
 ## 着手可能成果物
 
-`設計差分図` が着手可能である。
-図では、削除する package、残す policy、UseCase から service への呼び出し範囲だけを示す。
-
+`追加判断` で停止中である。
+現在の削減範囲だけでは stale 廃止は閉じない。
+`人間確認` は、追加判断が固定されるまで停止する。

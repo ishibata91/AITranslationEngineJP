@@ -345,11 +345,12 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		confirmedCount = resultSummary.ConfirmedCount
 	}
 	readiness := service.readinessFromState(job, run, total, confirmedCount, errorSummary)
-	canStart := job.State == termTranslationJobStateReady && !termTranslationPhaseIsActive(run) && termTranslationExecutionConfigured(execution)
-	isTerminalJob := termTranslationJobIsTerminal(job.State)
-	canPause := !isTerminalJob && run != nil && run.State == termTranslationPhaseStateRunning
-	canResume := !isTerminalJob && run != nil && run.State == termTranslationPhaseStatePaused
-	canRetry := !isTerminalJob && run != nil && run.State == termTranslationPhaseStateRecoverableFail
+	availability := commonPhaseActionAvailability(phaseActionAvailabilityInput{
+		JobState:       job.State,
+		PhaseState:     state,
+		PhaseRunExists: run != nil,
+		StartAllowed:   job.State == termTranslationJobStateReady && !termTranslationPhaseIsActive(run) && termTranslationExecutionConfigured(execution),
+	})
 	return TermTranslationPhaseSummaryReadModel{
 		JobID:              job.ID,
 		JobState:           job.State,
@@ -366,13 +367,13 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		ResultSummary:      resultSummary,
 		ErrorSummary:       errorSummary,
 		ActionEnablement: TermTranslationPhaseActionEnablementReadModel{
-			CanStart:               canStart,
+			CanStart:               availability.CanStart,
 			StartBlockedReason:     termTranslationStartBlockedReason(job, run, execution),
-			CanPause:               canPause,
+			CanPause:               availability.CanPause,
 			PauseBlockedReason:     termTranslationPauseBlockedReason(job, run),
-			CanResume:              canResume,
+			CanResume:              availability.CanResume,
 			ResumeBlockedReason:    termTranslationResumeBlockedReason(job, run),
-			CanRetry:               canRetry,
+			CanRetry:               availability.CanRetry,
 			RetryBlockedReason:     termTranslationRetryBlockedReason(job, run),
 			CanRefresh:             true,
 			CanStartNextPhase:      readiness.CanStartNextPhase,

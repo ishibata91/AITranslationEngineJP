@@ -1,0 +1,94 @@
+@startuml
+
+title translation job state stale 廃止 設計差分 component 図
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+package "変更対象の backend usecase" as UsecaseLayer {
+    class "internal/usecase/*_phase_usecase.go\nphase command orchestration" as PhaseUsecase <<changed>>
+    class "internal/usecase/phase_policy_helpers.go\npolicy input 共通 helper" as PolicyHelper <<added>>
+    class "TranslationJobPolicy\n状態意味は維持" as TranslationJobPolicy <<existing>>
+    class "phase 別 policy wrapper\n同型の evaluateXPolicy" as DuplicatePolicyWrapper <<removed>>
+}
+
+package "変更対象の service" as ServiceLayer {
+    class "internal/service/*_phase_service.go\nphase summary / execution" as PhaseService <<changed>>
+    class "操作可否 helper\nTranslationJobPolicy 由来の薄い接続" as PolicyDerivedEnablement <<added>>
+    class "phase 別 action enablement 分岐\nCanPause / CanResume / CanRetry / CanCancel" as DuplicateEnablement <<removed>>
+}
+
+package "旧設計 package と lint" as LegacyLayer {
+    class "internal/statemachine/\ndoc.go のみ" as StateMachinePkg <<removed>>
+    class "internal/jobio/\ndoc.go のみ\narchitecture 正本と衝突" as JobIOPkg <<risk>>
+    class ".go-arch-lint.yml\nstatemachine component / 許可依存" as ArchLintStateMachine <<removed>>
+    class ".go-arch-lint.yml\njobio component / 許可依存" as ArchLintJobIO <<changed>>
+}
+
+package "別成果物または人間判断が必要な参照" as ReviewLayer {
+    class "docs/exec-plans/active/observability-log-addition/\nStateMachine / JobIOService 旧名参照" as ObservabilityRefs <<risk>>
+}
+
+package "変更しない接続先" as UnchangedLayer {
+    class "DB schema" as DbSchema <<existing>>
+    class "Wails DTO" as WailsDto <<existing>>
+    class "frontend UI" as FrontendUi <<existing>>
+    class "domain stale reason\nstale_selection / validation_stale / model_selection_stale" as DomainStale <<existing>>
+    class "TranslationJobPolicy の状態意味" as PolicyMeaning <<existing>>
+    class "docs/exec-plans/completed/**" as CompletedArtifacts <<existing>>
+}
+
+PhaseUsecase -[#F9A825]-> PolicyHelper : policy input を統合
+PolicyHelper -[#2E7D32]-> TranslationJobPolicy : 共通規則を評価
+PhaseUsecase -[#C62828,dashed]-> DuplicatePolicyWrapper : 廃止予定
+
+PhaseService -[#2E7D32]-> PolicyDerivedEnablement : 操作可否を寄せる
+PhaseService -[#C62828,dashed]-> DuplicateEnablement : 廃止予定
+
+StateMachinePkg -[#C62828,dashed]-> ArchLintStateMachine : package 廃止に追従
+JobIOPkg -[#607D8B,dotted]-> ArchLintJobIO : component 継続可否を再判断
+
+ObservabilityRefs -[#607D8B,dotted]-> TranslationJobPolicy : StateMachine 旧名の置換候補
+ObservabilityRefs -[#607D8B,dotted]-> JobIOPkg : JobIOService 旧名の扱いは別判断
+
+PhaseUsecase -[#546E7A,dotted]-> DbSchema : 今回は変更しない
+PhaseUsecase -[#546E7A,dotted]-> WailsDto : 今回は変更しない
+PhaseUsecase -[#546E7A,dotted]-> FrontendUi : 今回は変更しない
+TranslationJobPolicy -[#546E7A,dotted]-> PolicyMeaning : 状態意味は変更しない
+PhaseService -[#546E7A,dotted]-> DomainStale : stale 理由分類は変更しない
+ObservabilityRefs -[#546E7A,dotted]-> CompletedArtifacts : completed 側は更新しない
+
+legend bottom right
+    |= Style |= 意味 |
+    |<#FFF1F1> removed | 削除予定 |
+    |<#EEF9EF> added | 追加または統合予定 |
+    |<#FFF8E1> changed | 変更対象 |
+    |<#F4F7FA> risk | 人間判断または正本化判断が必要 |
+    |<#F7F9FC> existing | 変更しない接続先 |
+endlegend
+
+@enduml

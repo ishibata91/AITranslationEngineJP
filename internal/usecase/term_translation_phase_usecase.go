@@ -149,14 +149,14 @@ func (usecase *TermTranslationPhaseUsecase) evaluateTermPolicy(
 	if termPolicySummaryMissing(summary) {
 		return TermTranslationPhaseCommandResult{}, true
 	}
-	decision := translationjobpolicy.Evaluate(translationjobpolicy.Input{
+	decision := translationjobpolicy.Evaluate(phasePolicyInput(phasePolicyInputSource{
 		Operation:            operation,
 		JobState:             summary.JobState,
 		PhaseState:           summary.PhaseState,
-		PhaseRunExists:       termPolicyPhaseRunMatches(summary.PhaseRunID, phaseRunID, operation),
-		ActivePhaseRunExists: termPolicyActivePhaseRunExists(summary),
+		PhaseRunID:           summary.PhaseRunID,
+		RequestedPhaseRunID:  phaseRunID,
 		StartPrerequisiteMet: summary.ActionEnablement.CanStart,
-	})
+	}))
 	if decision.Allowed {
 		return TermTranslationPhaseCommandResult{}, true
 	}
@@ -168,27 +168,6 @@ func (usecase *TermTranslationPhaseUsecase) evaluateTermPolicy(
 
 func termPolicySummaryMissing(summary service.TermTranslationPhaseSummaryReadModel) bool {
 	return summary.JobID == 0 && summary.CurrentPhase == "" && summary.PhaseState == ""
-}
-
-func termPolicyPhaseRunMatches(phaseRunID *int64, requestedPhaseRunID int64, operation translationjobpolicy.Operation) bool {
-	if operation == translationjobpolicy.OperationStart {
-		return false
-	}
-	return phaseRunID != nil && *phaseRunID == requestedPhaseRunID
-}
-
-func termPolicyActivePhaseRunExists(summary service.TermTranslationPhaseSummaryReadModel) bool {
-	if summary.PhaseRunID == nil {
-		return false
-	}
-	switch summary.PhaseState {
-	case translationjobpolicy.PhaseStateRunning,
-		translationjobpolicy.PhaseStatePaused,
-		translationjobpolicy.PhaseStateRecoverableFailed:
-		return true
-	default:
-		return false
-	}
 }
 
 func termPolicyErrorSummary(

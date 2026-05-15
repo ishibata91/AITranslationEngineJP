@@ -1,0 +1,521 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TJSR-001",
+      "title": "正本 state と内部一時 state の分離",
+      "kind": "state",
+      "source_requirement": "docs/spec.md は TRANSLATION_JOB.state と JOB_PHASE_RUN.state を限定し、Ready job には JOB_PHASE_RUN を事前作成しないと定義している。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "data_requirement",
+        "consistency_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md 7.1 と 7.2 は phase start 許可時に phase run を作成し、JOB_PHASE_RUN.state は Running から始まると定義している。",
+          "verification_hint": "Ready job の読み取りと phase start command で phase run 作成有無と Running state を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "pending は正本 state に存在しないため、成功 state や操作可能 state へ丸めない。",
+          "verification_hint": "pending を含む検証データで危険操作が無効になることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md 7.1、7.2、7.5 は正本 state 一覧を定義し、pending を含めていない。",
+          "verification_hint": "DTO、read model、operation summary、DB 安定状態に pending が正本 state として出ないことを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は Ready job へ JOB_PHASE_RUN を事前作成しないと定義している。",
+          "verification_hint": "Ready job 作成直後に active phase run が存在しないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "job state と phase state は別の正本であり、表示用 state と永続 state を混ぜない必要がある。",
+          "verification_hint": "読み取りだけで TRANSLATION_JOB.state と JOB_PHASE_RUN.state が変わらないことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "implement-lane-task-frame.md は DB schema と Wails 公開 DTO を設計レビューなしに変更しないと定義している。",
+          "verification_hint": "公開 DTO と schema に新 state を追加していないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "APIテストで state と operation availability を観測できる。",
+          "verification_hint": "Ready、Running、pending-like fixture の API レベル検証を行う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-002",
+      "title": "共通操作規則の read model 再利用",
+      "kind": "operation",
+      "source_requirement": "docs/spec.md は pause、resume、retry、cancel の共通操作規則を JOB_PHASE_RUN.state から決めると定義している。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "compatibility_requirement",
+        "failure_handling_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md 7.3 は Running、Paused、RecoverableFailed の操作可否を定義している。",
+          "verification_hint": "phase state ごとに pause、resume、retry、cancel の可否を確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "操作可否は JOB_PHASE_RUN.state を正本にする。",
+          "verification_hint": "read model の Can 系 field が phase state と矛盾しないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "TranslationJobPolicy が扱う共通操作規則と read model の操作可否は、同じ state 事実から導出される必要がある。",
+          "verification_hint": "phase type 横断で同じ state と同じ操作に対する可否が一致することを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/architecture.md は TranslationJobPolicy を UseCase 専用とし、PolicyResult や rule 名を DTO や永続契約へ出さないと定義している。",
+          "verification_hint": "read model に policy rule 名、判定履歴、PolicyResult を出していないことを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "不許可操作は phase type 固有の重複理由ではなく、利用者が読める拒否理由カテゴリへ収束させる必要がある。",
+          "verification_hint": "不許可操作ごとの拒否理由カテゴリが 1 件に収束することを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "operation summary は DB に永続保存せず、状態事実から導出する。",
+          "verification_hint": "operation summary に policy 判定履歴や secret が含まれないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "状態と操作の table-driven 検証で確認できる。",
+          "verification_hint": "Running、Paused、RecoverableFailed、terminal state と 4 操作の組み合わせを検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-003",
+      "title": "状態不整合時の安全側動作",
+      "kind": "failure",
+      "source_requirement": "docs/detail-specs/translation-job-management.md は保存済み job state と現在 phase state が食い違う場合、表示だけで状態を書き換えず危険操作を無効にすると定義している。",
+      "required_detail_types": [
+        "failure_handling_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "recovery_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translation-job-management 詳細仕様は状態不整合時の危険操作無効化を定義している。",
+          "verification_hint": "不整合 fixture で start、pause、resume、retry、cancel が拒否されることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "一覧表示だけでは job 状態を変えない。",
+          "verification_hint": "読み取り前後の DB state が変わらないことを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "参照不能や集約不能を成功状態や空状態へ丸めない必要がある。",
+          "verification_hint": "reason category が返り、成功値ではないことを確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "explicit",
+          "source_or_rationale": "危険操作は正本 state と整合する場合だけ有効にする。",
+          "verification_hint": "整合状態へ戻した fixture でだけ操作が有効になることを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "job state と phase state の組み合わせ fixture で検証できる。",
+          "verification_hint": "Ready + active phase run、terminal job + non-terminal phase run を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-004",
+      "title": "terminal guard と外部境界保護",
+      "kind": "external_integration",
+      "source_requirement": "docs/spec.md と各 phase 詳細仕様は terminal job への後書き拒否と secret / provider raw payload 非露出を定義している。",
+      "required_detail_types": [
+        "state_requirement",
+        "failure_handling_requirement",
+        "concurrency_requirement",
+        "security_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "terminal job では phase run 作成、保存、readiness 更新、late response 後書きを拒否する。",
+          "verification_hint": "Completed、Failed、Canceled で後書き拒否を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "provider 失敗、応答不正、保存失敗、検証失敗は successful Completed として扱わない。",
+          "verification_hint": "fake provider の不正応答で RecoverableFailed または Failed へ写像されることを確認する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "late response は terminal state へ後書きされない必要がある。",
+          "verification_hint": "遅延応答 fake で state と readiness が変わらないことを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "secret、API key、provider raw payload、prompt 全文、翻訳本文全文を保存、表示、ログへ増やさない。",
+          "verification_hint": "operation summary、structured log、DTO に禁止値が含まれないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "破棄事実や provider 未実行は redacted summary として観測できる。",
+          "verification_hint": "redacted summary に分類値と件数だけが含まれることを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "fake provider と stub credential store で検証できる。",
+          "verification_hint": "実 API を使わず provider request count と summary を検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-005",
+      "title": "JobIOService の状態保存境界",
+      "kind": "responsibility_boundary",
+      "source_requirement": "docs/architecture.md は JobIOService を構造主語にしているが、state-knowledge-investigation.md は実体 package が doc.go だけと記録している。",
+      "required_detail_types": [
+        "data_requirement",
+        "consistency_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "data_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-001",
+          "question_title": "JobIOService の扱い",
+          "unresolved_decision": "状態事実の取得と保存を、現行 architecture 正本の JobIOService として実体化するか、architecture 正本から外して既存境界へ寄せるかを決める。",
+          "premise": "JobIOService は状態遷移可否、terminal guard、provider 応答検証、UI 表示文言を判断しない。現時点の実体 package は doc.go だけである。",
+          "undecided_reason": "JobIOService を今回の stale 廃止で外すか、別 task で実体化するかが未確定である。",
+          "options": [
+            {
+              "label": "JobIOService を architecture 正本から外し、状態事実の取得と保存の境界を既存の usecase、service、repository へ寄せる。",
+              "impact": "状態保存境界の誤読が減るが、docs 正本化判断が必要になる。"
+            },
+            {
+              "label": "JobIOService を別 task で実体化し、今回の stale 廃止では残留理由と後続 task 条件だけを記録する。",
+              "impact": "正本構造は維持できるが、未実体境界は残る。"
+            },
+            {
+              "label": "今回は判断保留とし、JobIOService 参照を既知の残留参照として残す。",
+              "impact": "今回の実装範囲は小さくなるが、旧境界の再注入リスクが残る。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "JobIOService を architecture 正本から外す。",
+          "recommendation_reason": "実体 package がない構造主語を残すと、状態保存境界と状態遷移判断の誤読が続く。",
+          "after_answer_generates": [
+            "SCN-TJSR-005",
+            "implementation-scope dependency"
+          ]
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-001",
+          "question_title": "JobIOService の扱い",
+          "unresolved_decision": "JobIOService を残す場合と外す場合で、状態事実の保存境界を一貫させる。",
+          "premise": "JobIOService は状態遷移判断を持たない。",
+          "undecided_reason": "保存境界をどこへ置くかが未確定である。",
+          "options": [
+            {
+              "label": "JobIOService を architecture 正本から外し、状態事実の取得と保存の境界を既存の usecase、service、repository へ寄せる。",
+              "impact": "状態保存境界の誤読が減るが、docs 正本化判断が必要になる。"
+            },
+            {
+              "label": "JobIOService を別 task で実体化し、今回の stale 廃止では残留理由と後続 task 条件だけを記録する。",
+              "impact": "正本構造は維持できるが、未実体境界は残る。"
+            },
+            {
+              "label": "今回は判断保留とし、JobIOService 参照を既知の残留参照として残す。",
+              "impact": "今回の実装範囲は小さくなるが、旧境界の再注入リスクが残る。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "JobIOService を architecture 正本から外す。",
+          "recommendation_reason": "実体 package がない構造主語を残すと、状態保存境界と状態遷移判断の誤読が続く。",
+          "after_answer_generates": [
+            "SCN-TJSR-005"
+          ]
+        },
+        {
+          "type": "observability_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-001",
+          "question_title": "JobIOService の扱い",
+          "unresolved_decision": "運用確認者が状態事実の保存境界を追えるようにする。",
+          "premise": "状態名、境界名、path だけを残し、policy 判定履歴や provider raw payload は保存しない。",
+          "undecided_reason": "監査対象の境界が未確定である。",
+          "options": [
+            {
+              "label": "JobIOService を architecture 正本から外し、状態事実の取得と保存の境界を既存の usecase、service、repository へ寄せる。",
+              "impact": "状態保存境界の誤読が減るが、docs 正本化判断が必要になる。"
+            },
+            {
+              "label": "JobIOService を別 task で実体化し、今回の stale 廃止では残留理由と後続 task 条件だけを記録する。",
+              "impact": "正本構造は維持できるが、未実体境界は残る。"
+            },
+            {
+              "label": "今回は判断保留とし、JobIOService 参照を既知の残留参照として残す。",
+              "impact": "今回の実装範囲は小さくなるが、旧境界の再注入リスクが残る。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "JobIOService を architecture 正本から外す。",
+          "recommendation_reason": "実体 package がない構造主語を残すと、状態保存境界と状態遷移判断の誤読が続く。",
+          "after_answer_generates": [
+            "SCN-TJSR-005"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-006",
+      "title": "active task-local 旧名参照の扱い",
+      "kind": "operation_audit",
+      "source_requirement": "implement-lane-task-frame.md は observability-log-addition の StateMachine / JobIOService 旧名参照を今回含めるか判断対象にしている。",
+      "required_detail_types": [
+        "compatibility_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "compatibility_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-002",
+          "question_title": "active observability-log-addition 旧名参照の扱い",
+          "unresolved_decision": "active observability-log-addition に残る StateMachine / JobIOService 旧名参照を、今回の task-local 更新に含めるかを決める。",
+          "premise": "docs/exec-plans/completed/** は履歴として変更しない。product code から StateMachine 旧名は外れている。",
+          "undecided_reason": "active task-local の旧名参照を今回更新するか、observability task 再開時に更新するかが未確定である。",
+          "options": [
+            {
+              "label": "今回の stale 廃止に含め、active task-local の旧名参照を現在の責務名または残留理由へ更新する。",
+              "impact": "後続作業が旧境界を入力として再利用しにくくなる。"
+            },
+            {
+              "label": "observability task 再開時に更新し、今回の task では残留参照と後続条件だけを記録する。",
+              "impact": "今回の範囲は狭くなるが、再開まで旧名参照が残る。"
+            },
+            {
+              "label": "今回は検索結果だけを記録し、更新 task はまだ起票しない。",
+              "impact": "判断を遅らせられるが、旧名参照の再注入リスクが高い。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "今回の stale 廃止に含める。",
+          "recommendation_reason": "active task-local は後続作業の入力になるため、旧名参照を残すと古い責務境界が再注入される可能性がある。",
+          "after_answer_generates": [
+            "SCN-TJSR-006",
+            "implementation-scope dependency"
+          ]
+        },
+        {
+          "type": "observability_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-002",
+          "question_title": "active observability-log-addition 旧名参照の扱い",
+          "unresolved_decision": "旧名参照の更新対象 path と残留 path を区別できるようにする。",
+          "premise": "path と固定名だけを残し、runtime payload は残さない。",
+          "undecided_reason": "更新対象と残留対象が未確定である。",
+          "options": [
+            {
+              "label": "今回の stale 廃止に含め、active task-local の旧名参照を現在の責務名または残留理由へ更新する。",
+              "impact": "後続作業が旧境界を入力として再利用しにくくなる。"
+            },
+            {
+              "label": "observability task 再開時に更新し、今回の task では残留参照と後続条件だけを記録する。",
+              "impact": "今回の範囲は狭くなるが、再開まで旧名参照が残る。"
+            },
+            {
+              "label": "今回は検索結果だけを記録し、更新 task はまだ起票しない。",
+              "impact": "判断を遅らせられるが、旧名参照の再注入リスクが高い。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "今回の stale 廃止に含める。",
+          "recommendation_reason": "active task-local は後続作業の入力になるため、旧名参照を残すと古い責務境界が再注入される可能性がある。",
+          "after_answer_generates": [
+            "SCN-TJSR-006"
+          ]
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "検索 command で active task-local の旧名参照を確認できる。",
+          "verification_hint": "StateMachine、JobIOService の検索結果を completed archive と active task-local に分ける。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-007",
+      "title": "ドメイン stale reason の保持",
+      "kind": "compatibility",
+      "source_requirement": "implement-lane-task-frame.md と plan.md は stale_selection、validation_stale、model_selection_stale を削除対象にしないと定義している。",
+      "required_detail_types": [
+        "compatibility_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "observability_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "stale_selection、validation_stale、model_selection_stale は削除対象外である。",
+          "verification_hint": "reason category が残っていることを確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "読み込み失敗、stale selection、集約不能は空状態や成功状態と区別して表示する。",
+          "verification_hint": "stale reason が空状態や success と区別されることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "stale reason は state value ではなく理由分類である。",
+          "verification_hint": "state enum と reason category を混ぜていないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "stale 語彙は削除対象か保持対象かを確認できる必要がある。",
+          "verification_hint": "stale 語彙の検索結果を分類する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "reason category の確認で runtime event payload 全体、翻訳本文、credential 実値を保存しない。",
+          "verification_hint": "summary に reason 名と path だけが含まれることを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSR-008",
+      "title": "cancel state spelling の扱い",
+      "kind": "compatibility",
+      "source_requirement": "docs/spec.md は terminal state を Canceled と定義し、state-knowledge-investigation.md は cancelled fixture spelling の残留を記録している。",
+      "required_detail_types": [
+        "state_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "正本仕様は Canceled / canceled を使う。",
+          "verification_hint": "Canceled / canceled を terminal state として確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-003",
+          "question_title": "cancelled fixture spelling の今回範囲",
+          "unresolved_decision": "正本 spelling と異なる cancelled fixture spelling を、今回の stale 廃止で修正するかを決める。",
+          "premise": "正本仕様と service 実装は Canceled / canceled を使う。cancelled は正本 state として扱わない。",
+          "undecided_reason": "PersonaGenerationPhaseContractStub の fixture spelling 修正を今回の実装範囲へ含めるか、別 task に送るかが未確定である。",
+          "options": [
+            {
+              "label": "今回の stale 廃止に含め、fixture spelling を canceled へそろえる。",
+              "impact": "検索漏れと state 誤読を小さな範囲で減らせる。"
+            },
+            {
+              "label": "別 task に送り、今回の task では検索漏れ防止の残留参照として記録する。",
+              "impact": "今回の実装範囲は狭くなるが、残留 spelling が続く。"
+            },
+            {
+              "label": "fixture だけの差分として現状維持し、正本 state との差分を検証対象にしない。",
+              "impact": "検索漏れリスクが残る。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "今回の stale 廃止に含める。",
+          "recommendation_reason": "正本 spelling が明示済みであり、検索漏れと terminal 判定の誤読を小さな範囲で減らせる。",
+          "after_answer_generates": [
+            "SCN-TJSR-008",
+            "implementation-scope dependency"
+          ]
+        },
+        {
+          "type": "testability_requirement",
+          "status": "needs_human_decision",
+          "question_id": "Q-003",
+          "question_title": "cancelled fixture spelling の今回範囲",
+          "unresolved_decision": "canceled と cancelled の検索観測を今回の検証対象へ含めるかを決める。",
+          "premise": "cancelled は正本 state ではない。",
+          "undecided_reason": "fixture 修正を今回含めるかが未確定である。",
+          "options": [
+            {
+              "label": "今回の stale 廃止に含め、fixture spelling を canceled へそろえる。",
+              "impact": "検索漏れと state 誤読を小さな範囲で減らせる。"
+            },
+            {
+              "label": "別 task に送り、今回の task では検索漏れ防止の残留参照として記録する。",
+              "impact": "今回の実装範囲は狭くなるが、残留 spelling が続く。"
+            },
+            {
+              "label": "fixture だけの差分として現状維持し、正本 state との差分を検証対象にしない。",
+              "impact": "検索漏れリスクが残る。"
+            }
+          ],
+          "recommended_option": 1,
+          "recommended": "今回の stale 廃止に含める。",
+          "recommendation_reason": "正本 spelling が明示済みであり、検索漏れと terminal 判定の誤読を小さな範囲で減らせる。",
+          "after_answer_generates": [
+            "SCN-TJSR-008"
+          ]
+        }
+      ]
+    }
+  ]
+}

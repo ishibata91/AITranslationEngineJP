@@ -1,0 +1,649 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-001",
+      "source_candidate_id": "CAND-TJSR-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "Ready job と pending 漏出防止は正本 state と内部一時 state の分離に統合した。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-002",
+      "source_candidate_id": "CAND-TJSR-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "phase 共通操作可否は共通操作規則シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-003",
+      "source_candidate_id": "CAND-TJSR-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-003",
+      "decision_rationale": "状態不整合時の危険操作無効化へ統合した。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-004",
+      "source_candidate_id": "CAND-TJSR-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-005",
+      "decision": "needs_human_decision",
+      "question_id": "Q-001",
+      "decision_rationale": "JobIOService を外すか実体化するかが未確定である。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-005",
+      "source_candidate_id": "CAND-TJSR-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-006",
+      "decision": "needs_human_decision",
+      "question_id": "Q-002",
+      "decision_rationale": "active observability task-local の旧名参照を今回更新するかが未確定である。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-006",
+      "source_candidate_id": "CAND-TJSR-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-008",
+      "decision": "needs_human_decision",
+      "question_id": "Q-003",
+      "decision_rationale": "cancelled fixture spelling を今回含めるかが未確定である。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-TJSR-007",
+      "source_candidate_id": "CAND-TJSR-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-TJSR-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-007",
+      "decision_rationale": "ドメイン stale reason の保持シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-001",
+      "source_candidate_id": "CAND-TJSR-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "Ready job に phase run を事前作成しない条件として統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-002",
+      "source_candidate_id": "CAND-TJSR-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "phase start 許可時だけ Running phase run を作る条件として統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-003",
+      "source_candidate_id": "CAND-TJSR-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "pending を canonical state にしない判断は docs/spec.md から固定できる。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-004",
+      "source_candidate_id": "CAND-TJSR-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "pending を内部一時 state として扱う場合も外部露出禁止として統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-005",
+      "source_candidate_id": "CAND-TJSR-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "pause の共通操作規則へ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-006",
+      "source_candidate_id": "CAND-TJSR-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "resume の同一 phase run 継続条件へ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-007",
+      "source_candidate_id": "CAND-TJSR-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "retry の同一 phase run 継続条件へ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-008",
+      "source_candidate_id": "CAND-TJSR-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "cancel の共通操作規則と terminal guard へ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-009",
+      "source_candidate_id": "CAND-TJSR-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "body phase 完了による job Completed は terminal guard シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-010",
+      "source_candidate_id": "CAND-TJSR-010",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "回復不能失敗と terminal guard へ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-011",
+      "source_candidate_id": "CAND-TJSR-011",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "late response 後書き拒否へ統合した。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-TJSR-012",
+      "source_candidate_id": "CAND-TJSR-012",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-TJSR-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-003",
+      "decision_rationale": "状態不整合時の読み取り安全側動作へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-001",
+      "source_candidate_id": "CAND-TJSR-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "Ready から Running への start 成功条件へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-002",
+      "source_candidate_id": "CAND-TJSR-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "pending を正本 state として扱わず危険操作を許可しない条件へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-003",
+      "source_candidate_id": "CAND-TJSR-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "read model state と永続 state の分離へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-004",
+      "source_candidate_id": "CAND-TJSR-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "TranslationJobPolicy と同じ state 事実を使う共通操作規則へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-005",
+      "source_candidate_id": "CAND-TJSR-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-008",
+      "decision": "needs_human_decision",
+      "question_id": "Q-003",
+      "decision_rationale": "cancelled fixture spelling を今回含めるかが未確定である。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-006",
+      "source_candidate_id": "CAND-TJSR-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "terminal guard へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-007",
+      "source_candidate_id": "CAND-TJSR-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "retry の同一 phase run 継続へ統合した。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-TJSR-ST-008",
+      "source_candidate_id": "CAND-TJSR-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "body phase Completed 後だけ job Completed へ進む条件へ統合した。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSSR-001",
+      "source_candidate_id": "CAND-TJSSR-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "pending 漏出防止へ統合した。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSSR-002",
+      "source_candidate_id": "CAND-TJSSR-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSR-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-003",
+      "decision_rationale": "状態不整合時の危険操作拒否へ統合した。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSSR-003",
+      "source_candidate_id": "CAND-TJSSR-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "拒否理由の重複防止と共通操作規則へ統合した。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSSR-004",
+      "source_candidate_id": "CAND-TJSSR-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSR-006",
+      "decision": "needs_human_decision",
+      "question_id": "Q-002",
+      "decision_rationale": "旧名参照を今回更新するかが未確定である。"
+    },
+    {
+      "candidate_id": "failure:CAND-TJSSR-005",
+      "source_candidate_id": "CAND-TJSSR-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-TJSR-008",
+      "decision": "needs_human_decision",
+      "question_id": "Q-003",
+      "decision_rationale": "cancelled fixture spelling を今回含めるかが未確定である。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSR-EI-001",
+      "source_candidate_id": "CAND-TJSR-EI-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "仕様外 state の開始拒否と provider 未呼び出し条件へ統合した。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSR-EI-002",
+      "source_candidate_id": "CAND-TJSR-EI-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSR-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-002",
+      "decision_rationale": "retry の同一 phase run 継続と重複 provider request 防止へ統合した。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSR-EI-003",
+      "source_candidate_id": "CAND-TJSR-EI-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "secret 非露出と credential 分類観測へ統合した。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSR-EI-004",
+      "source_candidate_id": "CAND-TJSR-EI-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "late response 後書き拒否へ統合した。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSR-EI-005",
+      "source_candidate_id": "CAND-TJSR-EI-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "provider 応答不正の canonical failure state 写像へ統合した。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-TJSR-EI-006",
+      "source_candidate_id": "CAND-TJSR-EI-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-TJSR-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-004",
+      "decision_rationale": "provider 未実行完了と redacted summary へ統合した。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJSSR-OA-001",
+      "source_candidate_id": "CAND-TJSSR-OA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSR-006",
+      "decision": "needs_human_decision",
+      "question_id": "Q-002",
+      "decision_rationale": "active task-local 旧名参照を今回更新するかが未確定である。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJSSR-OA-002",
+      "source_candidate_id": "CAND-TJSSR-OA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSR-006",
+      "decision": "needs_human_decision",
+      "question_id": "Q-002",
+      "decision_rationale": "旧名参照を別 task に送るかが未確定である。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJSSR-OA-003",
+      "source_candidate_id": "CAND-TJSSR-OA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSR-005",
+      "decision": "needs_human_decision",
+      "question_id": "Q-001",
+      "decision_rationale": "JobIOService の扱いが未確定である。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJSSR-OA-004",
+      "source_candidate_id": "CAND-TJSSR-OA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSR-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-001",
+      "decision_rationale": "pending と正本 state の差分追跡へ統合した。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJSSR-OA-005",
+      "source_candidate_id": "CAND-TJSSR-OA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSR-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-TJSR-007",
+      "decision_rationale": "ドメイン stale reason 保持へ統合した。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-TJSSR-OA-006",
+      "source_candidate_id": "CAND-TJSSR-OA-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-TJSR-008",
+      "decision": "needs_human_decision",
+      "question_id": "Q-003",
+      "decision_rationale": "cancelled fixture spelling を今回含めるかが未確定である。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-TJSR-001",
+      "status": "unresolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-004",
+        "operation-audit:CAND-TJSSR-OA-003"
+      ],
+      "conflict_type": "responsibility_boundary",
+      "question_id": "Q-001",
+      "reason": "JobIOService を architecture 正本から外すか、別 task で実体化するかが未確定である。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJSR-002",
+      "status": "unresolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-005",
+        "failure:CAND-TJSSR-004",
+        "operation-audit:CAND-TJSSR-OA-001",
+        "operation-audit:CAND-TJSSR-OA-002"
+      ],
+      "conflict_type": "operation_audit_scope",
+      "question_id": "Q-002",
+      "reason": "active observability task-local の旧名参照を今回更新するか、別 task に送るかが未確定である。"
+    },
+    {
+      "conflict_id": "CONFLICT-TJSR-003",
+      "status": "unresolved",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-006",
+        "state-transition:CAND-TJSR-ST-005",
+        "failure:CAND-TJSSR-005",
+        "operation-audit:CAND-TJSSR-OA-006"
+      ],
+      "conflict_type": "compatibility_scope",
+      "question_id": "Q-003",
+      "reason": "cancelled fixture spelling を今回の stale 廃止に含めるかが未確定である。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-TJSR-001",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-001",
+        "lifecycle:CAND-TJSR-001",
+        "lifecycle:CAND-TJSR-002",
+        "lifecycle:CAND-TJSR-003",
+        "lifecycle:CAND-TJSR-004",
+        "state-transition:CAND-TJSR-ST-001",
+        "state-transition:CAND-TJSR-ST-002",
+        "state-transition:CAND-TJSR-ST-003",
+        "failure:CAND-TJSSR-001",
+        "external-integration:CAND-TJSR-EI-001",
+        "operation-audit:CAND-TJSSR-OA-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-002",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-002",
+        "lifecycle:CAND-TJSR-005",
+        "lifecycle:CAND-TJSR-006",
+        "lifecycle:CAND-TJSR-007",
+        "lifecycle:CAND-TJSR-008",
+        "state-transition:CAND-TJSR-ST-004",
+        "state-transition:CAND-TJSR-ST-007",
+        "failure:CAND-TJSSR-003",
+        "external-integration:CAND-TJSR-EI-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-003",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-003",
+        "lifecycle:CAND-TJSR-012",
+        "failure:CAND-TJSSR-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-004",
+      "candidate_ids": [
+        "lifecycle:CAND-TJSR-009",
+        "lifecycle:CAND-TJSR-010",
+        "lifecycle:CAND-TJSR-011",
+        "state-transition:CAND-TJSR-ST-006",
+        "state-transition:CAND-TJSR-ST-008",
+        "external-integration:CAND-TJSR-EI-003",
+        "external-integration:CAND-TJSR-EI-004",
+        "external-integration:CAND-TJSR-EI-005",
+        "external-integration:CAND-TJSR-EI-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-005",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-004",
+        "operation-audit:CAND-TJSSR-OA-003"
+      ],
+      "blocked_by": "Q-001"
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-006",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-005",
+        "failure:CAND-TJSSR-004",
+        "operation-audit:CAND-TJSSR-OA-001",
+        "operation-audit:CAND-TJSSR-OA-002"
+      ],
+      "blocked_by": "Q-002"
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-007",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-007",
+        "operation-audit:CAND-TJSSR-OA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-TJSR-008",
+      "candidate_ids": [
+        "actor-goal:CAND-TJSR-006",
+        "state-transition:CAND-TJSR-ST-005",
+        "failure:CAND-TJSSR-005",
+        "operation-audit:CAND-TJSSR-OA-006"
+      ],
+      "blocked_by": "Q-003"
+    }
+  ],
+  "unresolved_questions": [
+    {
+      "question_id": "Q-001",
+      "question_title": "JobIOService の扱い",
+      "source_requirement": "REQ-TJSR-005",
+      "unresolved_decision": "状態事実の取得と保存を、現行 architecture 正本の JobIOService として実体化するか、architecture 正本から外して既存境界へ寄せるかを決める。",
+      "premise": "JobIOService は状態遷移可否、terminal guard、provider 応答検証、UI 表示文言を判断しない。現時点の実体 package は doc.go だけである。",
+      "undecided_reason": "JobIOService を今回の stale 廃止で外すか、別 task で実体化するかが未確定である。",
+      "options": [
+        {
+          "label": "JobIOService を architecture 正本から外し、状態事実の取得と保存の境界を既存の usecase、service、repository へ寄せる。",
+          "impact": "状態保存境界の誤読が減るが、docs 正本化判断が必要になる。"
+        },
+        {
+          "label": "JobIOService を別 task で実体化し、今回の stale 廃止では残留理由と後続 task 条件だけを記録する。",
+          "impact": "正本構造は維持できるが、未実体境界は残る。"
+        },
+        {
+          "label": "今回は判断保留とし、JobIOService 参照を既知の残留参照として残す。",
+          "impact": "今回の実装範囲は小さくなるが、旧境界の再注入リスクが残る。"
+        }
+      ],
+      "recommended_option": 1,
+      "recommended": "JobIOService を architecture 正本から外す。",
+      "recommendation_reason": "実体 package がない構造主語を残すと、状態保存境界と状態遷移判断の誤読が続く。",
+      "after_answer_generates": [
+        "SCN-TJSR-005",
+        "implementation-scope dependency"
+      ]
+    },
+    {
+      "question_id": "Q-002",
+      "question_title": "active observability-log-addition 旧名参照の扱い",
+      "source_requirement": "REQ-TJSR-006",
+      "unresolved_decision": "active observability-log-addition に残る StateMachine / JobIOService 旧名参照を、今回の task-local 更新に含めるかを決める。",
+      "premise": "docs/exec-plans/completed/** は履歴として変更しない。product code から StateMachine 旧名は外れている。",
+      "undecided_reason": "active task-local の旧名参照を今回更新するか、observability task 再開時に更新するかが未確定である。",
+      "options": [
+        {
+          "label": "今回の stale 廃止に含め、active task-local の旧名参照を現在の責務名または残留理由へ更新する。",
+          "impact": "後続作業が旧境界を入力として再利用しにくくなる。"
+        },
+        {
+          "label": "observability task 再開時に更新し、今回の task では残留参照と後続条件だけを記録する。",
+          "impact": "今回の範囲は狭くなるが、再開まで旧名参照が残る。"
+        },
+        {
+          "label": "今回は検索結果だけを記録し、更新 task はまだ起票しない。",
+          "impact": "判断を遅らせられるが、旧名参照の再注入リスクが高い。"
+        }
+      ],
+      "recommended_option": 1,
+      "recommended": "今回の stale 廃止に含める。",
+      "recommendation_reason": "active task-local は後続作業の入力になるため、旧名参照を残すと古い責務境界が再注入される可能性がある。",
+      "after_answer_generates": [
+        "SCN-TJSR-006",
+        "implementation-scope dependency"
+      ]
+    },
+    {
+      "question_id": "Q-003",
+      "question_title": "cancelled fixture spelling の今回範囲",
+      "source_requirement": "REQ-TJSR-008",
+      "unresolved_decision": "正本 spelling と異なる cancelled fixture spelling を、今回の stale 廃止で修正するかを決める。",
+      "premise": "正本仕様と service 実装は Canceled / canceled を使う。cancelled は正本 state として扱わない。",
+      "undecided_reason": "PersonaGenerationPhaseContractStub の fixture spelling 修正を今回の実装範囲へ含めるか、別 task に送るかが未確定である。",
+      "options": [
+        {
+          "label": "今回の stale 廃止に含め、fixture spelling を canceled へそろえる。",
+          "impact": "検索漏れと state 誤読を小さな範囲で減らせる。"
+        },
+        {
+          "label": "別 task に送り、今回の task では検索漏れ防止の残留参照として記録する。",
+          "impact": "今回の実装範囲は狭くなるが、残留 spelling が続く。"
+        },
+        {
+          "label": "fixture だけの差分として現状維持し、正本 state との差分を検証対象にしない。",
+          "impact": "検索漏れリスクが残る。"
+        }
+      ],
+      "recommended_option": 1,
+      "recommended": "今回の stale 廃止に含める。",
+      "recommendation_reason": "正本 spelling が明示済みであり、検索漏れと terminal 判定の誤読を小さな範囲で減らせる。",
+      "after_answer_generates": [
+        "SCN-TJSR-008",
+        "implementation-scope dependency"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,74 @@
+@startuml
+
+title translation job state stale 廃止 設計差分 sequence 図
+
+autonumber
+hide footbox
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 25
+skinparam BoxPadding 10
+
+actor "phase command caller" as Caller
+participant "phase usecase\ninternal/usecase/*_phase_usecase.go" as PhaseUsecase
+participant "phase service\ninternal/service/*_phase_service.go" as PhaseService
+participant "重複 policy wrapper\n evaluateTermPolicy / evaluatePersonaPolicy / evaluateBodyPolicy" as DuplicateWrapper
+participant "phase_policy_helpers.go\n共通 helper" as SharedHelper
+participant "TranslationJobPolicy" as TranslationJobPolicy
+participant "重複 action enablement 分岐" as DuplicateEnablement
+participant "policy 由来の\n薄い操作可否接続" as PolicyDerivedEnablement
+participant "変更しない接続先\nDB schema / DTO / frontend UI / stale reason" as UnchangedTargets
+
+== 変更前の重複経路 ==
+
+Caller -> PhaseUsecase : start / pause / resume / retry / cancel
+PhaseUsecase -> PhaseService : ReadSummary(jobID)
+PhaseService --> PhaseUsecase : job state / phase state / action enablement
+PhaseUsecase -> DuplicateWrapper : phaseRun 一致と active run を phase ごとに評価
+DuplicateWrapper -> TranslationJobPolicy : Input を phase ごとに組み立てる
+TranslationJobPolicy --> DuplicateWrapper : allowed / reason
+DuplicateWrapper --> PhaseUsecase : 拒否理由または続行判定
+PhaseUsecase -> PhaseService : command 実行
+PhaseService -> DuplicateEnablement : CanPause などを phase ごとに再計算
+DuplicateEnablement --> PhaseService : read model の操作可否
+PhaseService -> UnchangedTargets : 変更なし
+
+== 変更後の統合経路 ==
+
+Caller -> PhaseUsecase : start / pause / resume / retry / cancel
+PhaseUsecase -> SharedHelper : policy input を共通化して求める
+SharedHelper -> PhaseService : ReadSummary(jobID)
+PhaseService --> SharedHelper : job state / phase state / start 可否
+SharedHelper -> TranslationJobPolicy : 共通 Input を評価
+TranslationJobPolicy --> SharedHelper : allowed / reason
+SharedHelper --> PhaseUsecase : 判定結果と blocked reason 生成材料
+
+alt policy が拒否する
+    PhaseUsecase --> Caller : policy 由来の拒否結果を返す
+else policy が許可する
+    PhaseUsecase -> PhaseService : command 実行
+    PhaseService -> PolicyDerivedEnablement : policy 由来の操作可否へ寄せる
+    PolicyDerivedEnablement --> PhaseService : 薄い read model 接続
+    PhaseService --> Caller : summary / command result
+end
+
+PhaseService -> UnchangedTargets : 変更なし
+
+note right of SharedHelper
+削除対象:
+- phase 別 policy wrapper
+
+追加または統合対象:
+- policy input 共通 helper
+end note
+
+note right of PolicyDerivedEnablement
+削除対象:
+- phase 別 action enablement 分岐
+
+変更しない:
+- TranslationJobPolicy の状態意味
+- stale_* 理由分類
+end note
+
+@enduml

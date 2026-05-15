@@ -25,14 +25,23 @@
 - `RuntimeEventAdapter`: Wails event を購読し、screen local な handler へ流す frontend adapter
 - `Backend Bootstrap`: `internal/bootstrap/`。production graph を手動 DI で組み立てる composition root
 - `Controller`: backend の入口。Wails Bind の request / response DTO を内部境界へ写像する
-- `Backend UseCase`: 操作単位の orchestration を担う
-- `Service`: 実処理を担う
+- `UseCasePort`: `Controller` から `Backend UseCase` へ向かう controller 依存境界
+- `Backend UseCase`: query / command / import を orchestrate し、job 状態と application result を扱う
+- `ServicePort`: `Backend UseCase` から `Service` へ向かう usecase 依存境界
 - `TranslationJobPolicy`: 翻訳ジョブ操作の共通操作規則と phase 開始前提を評価する UseCase 専用の純粋な規則オブジェクト
 - `JobIOService`: job と phase run の状態取得と、UseCase が確定した状態事実の保存だけを扱う
 - `NotificationSinkPort`: 実行側の複数主体が進捗事実、完了事実、破棄事実を横から渡す通知入口
 - `NotificationDispatcher`: `NotificationSinkPort` の実装として、通知事実を Wails 非依存の通知へ整形する
-- `NotificationPort`: 通知 module から transport adapter へ渡す送信境界
-- `Repository` / `XML adapter` / `Runtime adapter` / `AIProvider`: backend の adapter 群
+- `NotificationPort`: `Notification` から transport adapter へ渡す送信境界
+- `Service`: CRUD / import の実処理を担い、concrete API を直接持たない
+- `RepositoryPort`: `Service` から永続化 adapter へ向かう永続化境界
+- `XMLFilePort`: `Service` から XML file adapter へ向かう path 解決と file open の境界
+- `XMLRecordReaderPort`: `Service` から XML reader adapter へ向かう XML record 読み出し境界
+- `Repository`: SQLite などの concrete 永続化を持つ adapter
+- `XML adapter: file`: file path と file open の concrete 実装
+- `XML adapter: reader`: XML decoder の concrete 実装
+- `Runtime adapter`: Wails runtime event の送信だけを扱う transport adapter
+- `AIProvider`: provider ごとの差異を吸収する adapter
 
 本書でいう構造図は、この主語同士の依存方向だけを示す。
 DB テーブル、DTO 項目、要件フロー、画面遷移は構造図へ混ぜない。
@@ -48,12 +57,17 @@ DB テーブル、DTO 項目、要件フロー、画面遷移は構造図へ混�
 - `ScreenController -> Frontend UseCase / Presenter / Store / RuntimeEventAdapter`
 - `Frontend UseCase -> GatewayContract / Store`
 - `Gateway -> generated wailsjs -> backend Controller`
-- `Backend Bootstrap -> Controller / UseCase / Service / NotificationDispatcher / adapter concrete`
+- `Backend Bootstrap -> Controller`
 - `Controller -> UseCasePort`
+- `UseCasePort -> Backend UseCase`
 - `Backend UseCase -> ServicePort / TranslationJobPolicy / JobIOService / NotificationSinkPort`
+- `ServicePort -> Service`
 - `Service -> RepositoryPort / XMLFilePort / XMLRecordReaderPort / NotificationSinkPort / AIProvider`
 - `NotificationSinkPort -> NotificationDispatcher`
 - `NotificationDispatcher -> NotificationPort`
+- `RepositoryPort -> Repository`
+- `XMLFilePort -> XML adapter: file`
+- `XMLRecordReaderPort -> XML adapter: reader`
 - `NotificationPort -> Runtime adapter`
 
 `Bootstrap` 以外の層は concrete 実装を new しない。
@@ -148,14 +162,14 @@ UI Component の部品化判断は次の表に従う。
 - request / response DTO を usecase 境界へ写像する
 - caller-owned の `UseCasePort` を起動する
 - synchronous response を返す
-- Wails runtime event payload は組み立てない
 
 `Controller` は service concrete、repository concrete、`NotificationDispatcher` を直接 new しない。
 `Controller` は実行中の途中経過通知の戻り先にならない。
 
 ### 4.3 Backend UseCase
 
-- 操作単位の orchestration を担う
+- query / command / import を orchestrate する
+- job 状態と application result を扱う
 - `ServicePort` を使って query / command / import を起動する
 - `TranslationJobPolicy` と `JobIOService` を使って job / phase run 状態を扱う
 - `TranslationJobPolicy` から操作可否、拒否理由、状態作用、呼び出す service method の種類を得る
@@ -186,9 +200,9 @@ UI Component の部品化判断は次の表に従う。
 `JobIOService` が保存する対象は、UseCase が確定した `TRANSLATION_JOB.state`、`JOB_PHASE_RUN.state`、継続または作成された `JOB_PHASE_RUN` id、進捗、開始時刻、終了時刻、失敗 reason category などの状態事実だけである。
 operation summary、provider raw payload、secret、API key、credential 参照実値は保存しない。
 
-### 4.6 Notification Module
+### 4.6 Notification
 
-`NotificationSinkPort` は実行側から通知 module へ入る横接続の入口である。
+`NotificationSinkPort` は実行側から `Notification` へ入る横接続の入口である。
 UseCase、Service、将来の Runner / Worker は、進捗事実、完了事実、破棄事実を `NotificationSinkPort` へ渡せる。
 途中経過通知は `Controller` へ戻さない。
 
@@ -199,7 +213,7 @@ UseCase、Service、将来の Runner / Worker は、進捗事実、完了事実�
 `NotificationDispatcher` は状態遷移可否、terminal guard、provider response validation を判断しない。
 `NotificationDispatcher` は operation summary、Wails event payload、通知結果を DB に永続化しない。
 
-`NotificationPort` は通知 module から transport adapter への境界である。
+`NotificationPort` は `Notification` から transport adapter への境界である。
 `Runtime adapter` は `NotificationPort` を実装し、Wails runtime event の実送信だけを扱う。
 
 Service は `NotificationSinkPort` へ進捗事実と完了事実を渡す。
@@ -207,7 +221,9 @@ Service は Wails runtime event payload を組み立てず、runtime handle も�
 
 ### 4.7 Service
 
-- 永続化 port を通して master data を読む、書く
+- CRUD / import の実処理を担う
+- concrete API を直接持たない
+- 永続化 port を通してデータを読む、書く
 - XML file / reader port を通して import を実行する
 - `NotificationSinkPort` を通して進捗事実、完了事実、破棄事実を渡す
 - AI 実行が必要な機能では `AIProvider` を使う
@@ -216,9 +232,10 @@ Service は Wails runtime event payload を組み立てず、runtime handle も�
 
 ### 4.8 Adapter 群
 
-- `Repository` は SQLite などの永続化実装を持つ
-- `XML adapter` は path 解決、file open、record 読み出しを持つ
-- `Runtime adapter` は `NotificationPort` を実装し、Wails runtime event の具体送信だけを持つ
+- `Repository` は SQLite などの concrete 永続化を持つ
+- `XML adapter: file` は file path と file open の concrete 実装を持つ
+- `XML adapter: reader` は XML decoder の concrete 実装を持つ
+- `Runtime adapter` は `NotificationPort` を実装し、Wails runtime event の送信だけを持つ
 - `AIProvider` は provider ごとの差異を吸収する
 
 adapter concrete は `internal/repository/`、`internal/service/`、`internal/infra/` に閉じ込める。

@@ -1176,6 +1176,16 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 	if loaded.bodyRun == nil {
 		return result
 	}
+	availability := commonPhaseActionAvailability(phaseActionAvailabilityInput{
+		JobState:       loaded.job.State,
+		PhaseState:     loaded.bodyRun.State,
+		PhaseRunExists: true,
+		StartAllowed:   result.CanStart,
+	})
+	result.CanPause = availability.CanPause
+	result.CanResume = availability.CanResume
+	result.CanRetry = availability.CanRetry
+	result.CanCancel = availability.CanCancel
 	if isBodyTranslationTerminalJob(loaded.job.State) {
 		reason := "terminal_job"
 		result.PauseBlockedReason = &reason
@@ -1188,26 +1198,18 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 	if state != bodyTranslationPhaseStateRunning {
 		reason := "body translation phase is not running"
 		result.PauseBlockedReason = &reason
-	} else {
-		result.CanPause = true
 	}
 	if state != bodyTranslationPhaseStatePaused {
 		reason := "phase_not_paused"
 		result.ResumeBlockedReason = &reason
-	} else {
-		result.CanResume = true
 	}
 	if state != bodyTranslationPhaseStateRecoverableFail {
 		reason := "body translation phase is not retryable"
 		result.RetryBlockedReason = &reason
-	} else {
-		result.CanRetry = true
 	}
 	if state != bodyTranslationPhaseStatePaused {
 		reason := "body translation phase is not cancelable"
 		result.CancelBlockedReason = &reason
-	} else {
-		result.CanCancel = true
 	}
 	return result
 }
