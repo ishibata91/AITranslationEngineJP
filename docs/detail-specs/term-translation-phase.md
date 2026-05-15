@@ -2,8 +2,8 @@
 
 - `upper_scenario_id`: `term-translation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/term-translation-phase/scenario-design.md`
+- `source_plan`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `scenario_source`: `docs/exec-plans/completed/term-translation-phase/scenario-design.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/term-translation-phase/ui-design.md`
 - `implementation_source`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_source`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
@@ -26,9 +26,13 @@
 ## 仕様
 
 Ready 以外のジョブ、terminal job、既存 active phase run があるジョブでは、単語翻訳フェーズを開始できない。
-job は Running のまま維持し、単語翻訳フェーズの状態で完了、中断、回復可能失敗、再実行準備を区別する。
+Ready job には `JOB_PHASE_RUN` を事前作成しない。
+単語翻訳フェーズ開始が許可された時だけ、単語翻訳用の `JOB_PHASE_RUN` を作成する。
+job は Running のまま維持し、単語翻訳フェーズの状態で完了、中断、回復可能失敗を区別する。
 phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
 job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
+操作可否は `JOB_PHASE_RUN.state` と共通操作規則から決める。
+単語翻訳フェーズ固有の `canRetry`、`canResume`、`canPause`、`canCancel` は持たない。
 
 共通辞書は phase 開始時の snapshot で固定する。
 共通辞書に完全一致する語は provider request へ含めず、共通辞書完全一致ではない語は確定済みとして保存しない。
@@ -58,7 +62,8 @@ terminal job への後書きは拒否する。
 
 secret、API key 平文、復号可能な値、credential 参照実値、secret store key、endpoint、provider raw request / response、翻訳フィールド本文の全文は表示しない。
 同じ情報は error summary、structured log、fake transport log、保存データにも出さない。
-監査要約には provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt version または digest、共通辞書 snapshot の digest または version を残す。
+operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
+監査用に導出できる要約は provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt version または digest、共通辞書 snapshot の digest または version を中心にする。
 
 ## UI 契約由来の恒久仕様
 
@@ -70,7 +75,10 @@ secret、API key 平文、provider raw request / response、翻訳フィール�
 
 開始操作は Ready job かつ active な単語翻訳 phase run がない時だけ有効にする。
 後続 phase へ進む操作は、単語翻訳フェーズ完了と辞書参照成立後だけ有効にする。
-リトライは retryable failure の時だけ有効にする。
+pause は Running の時だけ有効にする。
+resume は Paused の時だけ有効にする。
+リトライは RecoverableFailed かつ retryable failure の時だけ有効にする。
+cancel は Paused の時だけ有効にする。
 
 Job Run は `idle_ready`、`running`、`empty_completed`、`completed`、`paused`、`recoverable_failed`、`blocked` の状態差分を示す。
 loading 中は既存 summary を保持し、更新中であることを表示する。

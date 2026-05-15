@@ -135,9 +135,8 @@ note right of PhaseRun::フェーズ種別
     本文翻訳, 出力生成
 end note
 note right of PhaseRun::状態
-    Pending, Ready, Running, Paused,
-    RecoverableFailed, Completed,
-    Failed, Skipped, Canceled
+    Running, Paused, RecoverableFailed,
+    Completed, Failed, Canceled
 end note
 
 ' Metadata and dictionary

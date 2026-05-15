@@ -1,0 +1,154 @@
+reviewback_version: 1
+task_id: "2026-05-10-translation-job-state-machine-redesign"
+review_yaml_path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "確認範囲では、権限・信頼境界の未解決 issue はない。修正 3 の単語翻訳 resume / retry は、UseCase が読み取った状態分類と Service 内の固定 expected state で条件付き更新する。外部入力が expected state を指定する経路は確認されなかった。expected state conflict 相当の repository.ErrConflict は provider request 前に返り、secret、API key、provider raw payload、prompt 全文、翻訳本文全文をログへ出さない。PolicyResult 相当の translationjobpolicy.Result、rule 名、判定履歴を DB、repository、外部 provider、Wails DTO、frontend log へ保存または送信する差分は確認されなかった。"
+  evidence_sufficiency: "十分。review-rerun3-input.md、backend-review-fix3-result.md、final-validation.md、観測ログ仕様、review-rerun3-input.md の変更ファイルだけを確認した。ハーネスは review skill の非対象規約に従い実行していない。"
+  hard_gate: true
+
+checked_scope:
+  summary: "翻訳ジョブ状態関連実装のレビュー再実行 3 として、review-rerun3-input.md の変更ファイルだけを対象にした。重点確認として、secret / API key / provider raw payload / prompt 全文 / 翻訳本文全文のログまたは DTO 露出、expected state conflict の外部入力委譲有無、translationjobpolicy.Result と rule 名と判定履歴の保存有無を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/review-rerun3-input.md"
+      line: 1
+      symbol: "5 観点レビュー再実行 3 入力"
+      reason: "実装目的、レビュー対象差分、対象外差分、検証証跡、重点確認事項を確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/backend-review-fix3-result.md"
+      line: 1
+      symbol: "Backend レビュー修正 3 結果"
+      reason: "修正 3 が単語翻訳 phase の resume / retry に expected state を渡す変更であることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/final-validation.md"
+      line: 1
+      symbol: "最終検証"
+      reason: "呼び出し元が渡した検証証跡として gofmt、backend-local、coverage、Sonar issue 0 件、system test 未実行理由を確認した。"
+    - path: "docs/observability-logging.md"
+      line: 35
+      symbol: "禁止事項"
+      reason: "DTO 全体、secret、API key、provider raw payload、prompt 全文、翻訳本文全文、XML 全文をログへ出さない規約を確認した。"
+    - path: ".go-arch-lint.yml"
+      line: 11
+      symbol: "translationjobpolicy component"
+      reason: "translationjobpolicy package は usecase 専用 component として定義され、service、repository、provider、secret store から直接参照されない境界を lint へ反映している。"
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 51
+      symbol: "Input"
+      reason: "policy 入力は operation、job state、phase state、phase run の存在、active phase run の存在、start 前提条件に閉じ、secret、API key、provider raw payload、prompt、翻訳本文を受け取らない。"
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 61
+      symbol: "Result"
+      reason: "policy 結果は Allowed と Reason だけであり、usecase-local decision と明記されている。rule 名、判定履歴、secret、provider raw payload、本文を保持しない。"
+    - path: "internal/usecase/phase_policy_helpers.go"
+      line: 38
+      symbol: "logPhasePolicyRejected"
+      reason: "policy 拒否ログは event、where、result、id、reason だけを出力し、secret、API key、provider raw payload、prompt 全文、翻訳本文全文を出していない。"
+    - path: "internal/usecase/term_translation_phase_usecase.go"
+      line: 139
+      symbol: "TermTranslationPhaseUsecase.evaluateTermPolicy"
+      reason: "translationjobpolicy.Result は command result の固定分類理由に変換され、repository、DB、provider request、DTO 全体保存へ渡されない。"
+    - path: "internal/usecase/persona_generation_phase_usecase.go"
+      line: 168
+      symbol: "PersonaGenerationPhaseUsecase.evaluatePersonaPolicy"
+      reason: "translationjobpolicy.Result は error kind と reason の分類値へ変換され、prompt、会話文脈、provider raw payload をログへ渡していない。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 172
+      symbol: "BodyTranslationPhaseUsecase.evaluateBodyPolicy"
+      reason: "translationjobpolicy.Result は error kind と reason の分類値へ変換され、SourceExcerpt、TranslatedText、provider raw payload をログへ渡していない。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 459
+      symbol: "TermTranslationPhaseService.ResumePhase"
+      reason: "resume は phaseRunID を受けるが expected state を外部入力から受けず、Service 内の mode 判定へ委譲している。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 468
+      symbol: "TermTranslationPhaseService.RetryPhase"
+      reason: "retry は phaseRunID を受けるが expected state を外部入力から受けず、Service 内の mode 判定へ委譲している。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1113
+      symbol: "TermTranslationPhaseService.resumeExecutionPlanRun"
+      reason: "resume は paused、retry は recoverable_failed を Service 内の固定 expected state として選ぶ。外部入力に状態選択を委譲していない。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1139
+      symbol: "TermTranslationPhaseService.updateExecutionPlanRunState"
+      reason: "UpdateJobPhaseRunWhenState へ渡す expected state は caller が固定した状態分類であり、provider request 前に phase run を running へ昇格する境界で使われる。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1159
+      symbol: "TermTranslationPhaseService.applyProviderCandidate"
+      reason: "provider request は updateExecutionPlanRunState 成功後に進む。API key は provider request に渡るが、ログや DTO へ追加する差分は確認されない。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 2192
+      symbol: "TermTranslationPhaseService.resolveProviderAPIKey"
+      reason: "secret 本体は secret store から読み、provider request 用に返す。ログ、DTO、PolicyResult 保存へ渡す差分は確認されない。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1058
+      symbol: "TestTermTranslationPhaseServiceResumePhasePromotesPausedRunWithExpectedState"
+      reason: "resume が expected state paused で running へ昇格することを補助的に確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1089
+      symbol: "TestTermTranslationPhaseServiceResumeAndRetryStopBeforeProviderWhenStatePromotionConflicts"
+      reason: "resume / retry の repository.ErrConflict では provider request が発生せず、phase run が running にならないことを補助的に確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 786
+      symbol: "UpdateJobPhaseRunWhenState call"
+      reason: "persona generation phase の状態更新は expected state 条件付きであり、PolicyResult、rule 名、判定履歴を保存していない。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1389
+      symbol: "UpdateJobPhaseRunWhenState call"
+      reason: "body translation phase の状態更新は expected state 条件付きであり、PolicyResult、rule 名、判定履歴を保存していない。"
+    - path: "internal/usecase/translationjobpolicy/policy_test.go"
+      line: 1
+      symbol: "translationjobpolicy tests"
+      reason: "policy の固定 reason と allowed 判定を補助的に確認した。"
+    - path: "internal/usecase/phase_policy_helpers_test.go"
+      line: 1
+      symbol: "phase policy helper tests"
+      reason: "phase run matching と active phase 判定が ID と state 分類に閉じることを補助的に確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 1
+      symbol: "persona generation service tests"
+      reason: "persona generation phase の状態操作が分類値に閉じることを補助的に確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 1
+      symbol: "body translation service tests"
+      reason: "body translation phase の状態操作が分類値に閉じることを補助的に確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 1
+      symbol: "body translation recovery API tests"
+      reason: "公開 API 起点の拒否 payload が分類値に閉じ、状態変異しないことを補助的に確認した。"
+
+unchecked_scope:
+  - target: "docs 正本差分"
+    reason: "ユーザー指示により、docs 正本差分はレビュー対象外である。必須入力として指定された task-local 入力文書だけを確認した。"
+    risk: "docs 正本側に別の境界記述差分がある場合、本レビューでは判定しない。"
+  - target: "2026-05-13-notification-module-dependency-separation"
+    reason: "ユーザー指示により、別 task の差分はレビュー対象外である。"
+    risk: "別 task の通知 module 変更に trust boundary 問題がある場合、本レビューでは検出しない。"
+  - target: "実行時 backend log 全量"
+    reason: "レビューでは対象差分を静的確認した。review skill の非対象規約によりハーネスは実行していない。"
+    risk: "未変更経路や環境固有 logger 設定が危険 payload を出す場合、本レビューでは検出できない。"
+  - target: "frontend log と Wails DTO の実ブラウザ確認"
+    reason: "今回のレビュー対象は backend policy、UseCase、Service、backend test、backend lint 設定であり、frontend と Wails DTO 実ブラウザ経路は変更ファイルに含まれない。"
+    risk: "既存 frontend 側が command result を別途 console 出力する場合、本レビュー対象差分だけでは検出できない。"
+  - target: "provider 実 API の raw request / raw response"
+    reason: "provider 実 API を呼ばず、対象変更ファイル内の provider 境界ログと分類理由だけを確認した。"
+    risk: "provider adapter 内部の未変更経路に raw payload log がある場合、本レビュー対象差分だけでは検出できない。"
+
+issues: []
+
+trust_boundary_details:
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決 issue はない。修正 3 の resume / retry expected state は Service 内の固定分類値に閉じており、外部入力へ状態操作を委譲していない。現時点で権限・信頼境界観点の修正要求は不要である。"
+  invariant_test_viewpoints:
+    - "policy 拒否ログは event、where、result、id、reason だけを出す。"
+    - "policy 拒否ログの reason は状態分類または拒否分類に限定し、secret、API key、credential 参照実値、provider raw payload、prompt 全文、翻訳本文全文を含めない。"
+    - "PolicyResult 相当の translationjobpolicy.Result、rule 名、判定履歴を repository、DB、外部 provider、Wails DTO、frontend log へ渡さない。"
+    - "resume の expected state は paused に限定し、外部入力で上書きしない。"
+    - "retry の expected state は recoverable_failed に限定し、外部入力で上書きしない。"
+    - "repository.ErrConflict では provider request、secret 使用、phase run running 化が発生しない。"
+    - "secret 本体は provider 実行または内部 secret store 以外へ渡さない。"
+  residual_risk: "未解決 issue はない。残留する未確認範囲は unchecked_scope に記録した。hard_gate は true であり、他観点で相殺しない。"

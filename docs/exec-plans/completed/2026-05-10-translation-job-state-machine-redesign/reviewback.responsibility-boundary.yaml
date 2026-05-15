@@ -1,0 +1,124 @@
+reviewback_version: 1
+task_id: "2026-05-10-translation-job-state-machine-redesign"
+review_yaml_path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "責務境界は維持されている。修正 3 後も Service は translationjobpolicy を import していない。translationjobpolicy は UseCase 専用の pure rule に留まり、DB、Service、repository に依存していない。Service 側の UpdateJobPhaseRunWhenState 利用は、実行直前の状態条件付き更新に留まっている。JobIO と repository に policy rule 名、PolicyResult、policy 判定履歴を保存する変更は見つからなかった。破られた境界はない。原因候補はない。局所修正評価は local であり、単語翻訳 phase の resume / retry 修正は Service の状態更新直前 guard と対応テストに閉じている。"
+  evidence_sufficiency: "十分。review-rerun3-input、backend-review-fix3-result、final-validation、architecture、coding-guidelines、reviewback template、対象変更ファイル、JobIO と repository の policy 参照検索を確認した。ハーネスは skill 規約により再実行せず、final-validation の証跡を確認した。"
+
+checked_scope:
+  summary: "UseCase 専用 policy、UseCase からの policy 呼び出し、Service から policy への非依存、Service mutation guard、policy 判断結果の非永続化、arch lint 境界、修正 3 の単語翻訳 resume / retry guard を確認した。"
+  files:
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 51
+      symbol: "Input"
+      reason: "policy 入力が既に読み込まれた job / phase run 事実だけであり、DB、Service、repository へ依存しないことを確認した。"
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 61
+      symbol: "Result"
+      reason: "Result が UseCase 内一時値であり、保存してはいけない値として定義されていることを確認した。"
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 67
+      symbol: "Evaluate"
+      reason: "terminal job、start、pause、resume、retry、cancel の共通操作規則が pure function に閉じていることを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 172
+      symbol: "evaluateBodyPolicy"
+      reason: "本文翻訳 UseCase が service 実行前に translationjobpolicy を呼び、拒否 payload への変換を UseCase 内に閉じていることを確認した。"
+    - path: "internal/usecase/persona_generation_phase_usecase.go"
+      line: 168
+      symbol: "evaluatePersonaPolicy"
+      reason: "NPC ペルソナ生成 UseCase が service 実行前に translationjobpolicy を呼び、拒否 payload への変換を UseCase 内に閉じていることを確認した。"
+    - path: "internal/usecase/term_translation_phase_usecase.go"
+      line: 139
+      symbol: "evaluateTermPolicy"
+      reason: "単語翻訳 UseCase が service 実行前に translationjobpolicy を呼び、拒否 payload への変換を UseCase 内に閉じていることを確認した。"
+    - path: "internal/usecase/phase_policy_helpers.go"
+      line: 38
+      symbol: "logPhasePolicyRejected"
+      reason: "policy 拒否ログが UseCase 層にあり、policy 結果の保存や Service 依存に流れていないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 3
+      symbol: "import"
+      reason: "単語翻訳 Service が translationjobpolicy を import していないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1120
+      symbol: "resolveExistingExecutionPlanRun"
+      reason: "単語翻訳 resume は paused、retry は recoverable_failed を expected state として実行直前の条件付き更新へ渡すことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1139
+      symbol: "updateExecutionPlanRunState"
+      reason: "単語翻訳 Service の UpdateJobPhaseRunWhenState 利用が expected state 付きの状態変更直前 guard に留まることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 3
+      symbol: "import"
+      reason: "本文翻訳 Service が translationjobpolicy を import していないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1349
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "本文翻訳 Service の状態変更が transaction 内再読込、再検証、UpdateJobPhaseRunWhenState による実行直前 guard に留まることを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 3
+      symbol: "import"
+      reason: "NPC ペルソナ生成 Service が translationjobpolicy を import していないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1475
+      symbol: "persistPersonaGenerationPhaseStart"
+      reason: "NPC ペルソナ生成 Service の状態更新が UpdateJobPhaseRunWhenState による実行直前 guard に留まることを確認した。"
+    - path: ".go-arch-lint.yml"
+      line: 50
+      symbol: "deps.usecase"
+      reason: "translationjobpolicy への依存を usecase からだけ許可し、service、jobio、repository の依存先に追加していないことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 576
+      symbol: "TestTermTranslationPhaseServiceReadSummaryDisablesActionsForTerminalJob"
+      reason: "単語翻訳 phase の terminal job + active phase run で操作可否が false になる固定テストを確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 839
+      symbol: "TestBodyTranslationPhaseServiceReadSummaryDisablesActionsForTerminalJob"
+      reason: "本文翻訳 phase の terminal job + active phase run で操作可否が false になる固定テストを確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 753
+      symbol: "TestPersonaGenerationPhaseService_CancelRejectsNonCancelableStateAndTerminalJobWithoutMutation"
+      reason: "NPC ペルソナ生成 phase の terminal job 拒否が mutation なしで閉じる固定テストを確認した。"
+    - path: "internal/jobio"
+      line: null
+      symbol: "policy reference search"
+      reason: "policy rule 名、PolicyResult、policy 判定履歴の参照が見つからないことを検索で確認した。"
+    - path: "internal/repository"
+      line: null
+      symbol: "policy reference search"
+      reason: "policy rule 名、PolicyResult、policy 判定履歴の参照が見つからないことを検索で確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/review-rerun3-input.md"
+      line: 1
+      symbol: "5 観点レビュー再実行 3 入力"
+      reason: "今回のレビュー対象差分、重点確認、検証証跡、対象外範囲を確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/backend-review-fix3-result.md"
+      line: 1
+      symbol: "Backend レビュー修正 3 結果"
+      reason: "修正 3 が単語翻訳 phase の resume / retry に expected state を渡す変更であることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/final-validation.md"
+      line: 1
+      symbol: "最終検証"
+      reason: "呼び出し元が渡した検証証跡、coverage、issue 数、system test 未実行理由を確認した。"
+
+unchecked_scope:
+  - target: "docs 正本差分"
+    reason: "呼び出し元が対象外に指定したため確認対象から外した。"
+    risk: "docs 正本と実装の同期状態は本観点では未判定である。"
+  - target: "別 task 2026-05-13-notification-module-dependency-separation"
+    reason: "呼び出し元が対象外に指定したため確認対象から外した。"
+    risk: "通知 module 分離 task 側の境界維持は本 YAML では未判定である。"
+  - target: "ハーネス再実行"
+    reason: "codex-review-responsibility-boundary の非対象規約がハーネス実行を禁止するため、final-validation の記録だけを証跡として扱った。"
+    risk: "ローカル環境での現在時点の再現性は本レビューでは未確認である。"
+  - target: "JobIO と repository の詳細実装レビュー"
+    reason: "review-rerun3-input の変更ファイルに JobIO と repository は含まれていないため、policy 名と policy 判断結果の参照検索だけを行った。"
+    risk: "既存永続化実装全体の設計品質は本再レビューの主判定では未判定である。"
+
+issues: []

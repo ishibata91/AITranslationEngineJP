@@ -33,6 +33,7 @@ package "Controller" as TransportLayer {
         + Wails Bind の入口
         + request / response DTO を写像する
         + caller-owned UseCasePort を起動する
+        + synchronous response を返す
     }
 
     class "UseCasePort" as UseCasePort {
@@ -45,29 +46,47 @@ package "Controller" as TransportLayer {
 package "Backend UseCase" as ApplicationLayer {
     class "Backend UseCase" as BackendUseCase {
         + query / command / import を orchestrate する
-        + job 状態と完了 payload を扱う
+        + job 状態と application result を扱う
     }
 
     class "ServicePort" as ServicePort {
         + usecase 依存境界
     }
 
-    class "RuntimeEventPublisherPort" as RuntimeEventPublisherPort {
-        + runtime event 完了 payload 境界
-    }
-
-    class "StateMachine" as StateMachine {
-        + 状態遷移規則だけを持つ
+    class "TranslationJobPolicy" as TranslationJobPolicy {
+        + 共通操作規則を評価する
+        + start 時だけ phase 開始前提を評価する
+        + DB を読まない / 保存しない
     }
 
     class "JobIOService" as JobIOService {
-        + job 状態を取得 / 保存する
+        + job / phase run 状態を取得する
+        + 確定済み状態事実だけ保存する
     }
 
     BackendUseCase -[hidden]down-> ServicePort
-    ServicePort -[hidden]right-> RuntimeEventPublisherPort
-    RuntimeEventPublisherPort -[hidden]right-> StateMachine
-    StateMachine -[hidden]right-> JobIOService
+    ServicePort -[hidden]right-> TranslationJobPolicy
+    TranslationJobPolicy -[hidden]right-> JobIOService
+}
+
+package "Notification" as NotificationLayer {
+    class "NotificationSinkPort" as NotificationSinkPort {
+        + 実行側の横接続入口
+        + 進捗 / 完了 / 破棄事実境界
+    }
+
+    class "NotificationDispatcher" as NotificationDispatcher {
+        + 通知種別を決める
+        + redaction を行う
+        + 送信可否を決める
+    }
+
+    class "NotificationPort" as NotificationPort {
+        + transport 送信境界
+    }
+
+    NotificationSinkPort -[hidden]right-> NotificationDispatcher
+    NotificationDispatcher -[hidden]right-> NotificationPort
 }
 
 package "Service" as ServiceLayer {
@@ -88,13 +107,8 @@ package "Service" as ServiceLayer {
         + XML record 読み出し境界
     }
 
-    class "RuntimeContextPort" as RuntimeContextPort {
-        + progress event 境界
-    }
-
     RepositoryPort -[hidden]right-> XmlFilePort
     XmlFilePort -[hidden]right-> XmlRecordReaderPort
-    XmlRecordReaderPort -[hidden]right-> RuntimeContextPort
 }
 
 package "Adapter 群" as AdapterLayer {
@@ -131,29 +145,33 @@ UseCasePort --> BackendUseCase : 実装する
 
 BackendUseCase --> ServicePort : 依存する
 ServicePort --> Service : 実装する
-BackendUseCase --> StateMachine : 状態遷移を使う
-BackendUseCase --> JobIOService : job 状態を扱う
-BackendUseCase --> RuntimeEventPublisherPort : 完了 payload を扱う
+BackendUseCase --> TranslationJobPolicy : 操作可否を判断する
+BackendUseCase --> JobIOService : 状態事実を取得 / 保存する
+BackendUseCase --> NotificationSinkPort : 通知事実を渡す
 
 Service --> RepositoryPort : 依存する
 Service --> XmlFilePort : 依存する
 Service --> XmlRecordReaderPort : 依存する
-Service --> RuntimeContextPort : 依存する
+Service --> NotificationSinkPort : 通知事実を渡す
 Service --> AiProvider : 必要時に依存する
+
+NotificationSinkPort --> NotificationDispatcher : 実装する
+NotificationDispatcher --> NotificationPort : 依存する
 
 RepositoryPort --> RepositoryAdapter : 実装する
 XmlFilePort --> XmlFileAdapter : 実装する
 XmlRecordReaderPort --> XmlReaderAdapter : 実装する
-RuntimeContextPort --> RuntimeAdapter : 実装する
-RuntimeEventPublisherPort --> RuntimeAdapter : 実装する
+NotificationPort --> RuntimeAdapter : 実装する
 
 BootstrapLayer -[hidden]down-> TransportLayer
 TransportLayer -[hidden]down-> ApplicationLayer
-ApplicationLayer -[hidden]down-> ServiceLayer
+ApplicationLayer -[hidden]down-> NotificationLayer
+NotificationLayer -[hidden]down-> ServiceLayer
 ServiceLayer -[hidden]down-> AdapterLayer
 
 BackendBootstrap -[hidden]down-> Controller
 Controller -[hidden]down-> BackendUseCase
+BackendUseCase -[hidden]down-> NotificationSinkPort
 BackendUseCase -[hidden]down-> Service
 Service -[hidden]down-> RepositoryAdapter
 

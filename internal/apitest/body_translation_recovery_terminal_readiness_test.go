@@ -129,7 +129,67 @@ func TestSCN_BTP_008_RetryRejectsInputSnapshotDriftWithoutWritingResults(t *test
 	}
 }
 
-func TestSCN_TFN_011_RetryResumeAndStartResendReusePhaseRunWithoutDuplicateResults(t *testing.T) {
+func TestSCN_TJSM_003_RetryRecoverableFailedReusesPhaseRunAndDoesNotDuplicateExistingResult(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "recoverable_failed",
+		LatestError:  "provider_failure",
+		AIProvider:   "xai",
+		Provider:     bodyTranslationAPISuccessProvider{},
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.RetryBodyTranslationPhase(
+		controllerwails.RetryBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-TJSM-003 public retry returned error: %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != fixture.bodyRun.ID {
+		t.Fatalf("SCN-TJSM-003 expected retry to reuse phase run %d, got %#v", fixture.bodyRun.ID, result.PhaseRunID)
+	}
+	if len(fixture.store.phaseRuns) != 2 {
+		t.Fatalf("SCN-TJSM-003 expected retry not to create phase run, got %#v", fixture.store.phaseRuns)
+	}
+	if bodyTranslationAPIOutputCountForField(fixture.store.outputs, 701) != 1 {
+		t.Fatalf("SCN-TJSM-003 expected retry not to duplicate existing field result, got %#v", fixture.store.outputs)
+	}
+}
+
+func TestSCN_TJSM_003_ResumePausedReusesPhaseRun(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "paused",
+		BodyRunState: "paused",
+	})
+	controller := fixture.controller()
+
+	result, err := controller.ResumeBodyTranslationPhase(
+		controllerwails.ResumeBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-TJSM-003 public resume returned error: %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != fixture.bodyRun.ID {
+		t.Fatalf("SCN-TJSM-003 expected resume to reuse phase run %d, got %#v", fixture.bodyRun.ID, result.PhaseRunID)
+	}
+	if result.PhaseState != "running" {
+		t.Fatalf("SCN-TJSM-003 expected paused resume to continue as running, got %#v", result)
+	}
+	if len(fixture.store.phaseRuns) != 2 {
+		t.Fatalf("SCN-TJSM-003 expected resume not to create phase run, got %#v", fixture.store.phaseRuns)
+	}
+}
+
+func TestSCN_TJSM_003_ResumeRecoverableFailedIsRejectedWithoutMutation(t *testing.T) {
 	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
 		JobState:     "running",
 		BodyRunState: "recoverable_failed",
@@ -140,49 +200,46 @@ func TestSCN_TFN_011_RetryResumeAndStartResendReusePhaseRunWithoutDuplicateResul
 	})
 	controller := fixture.controller()
 
-	assertBodyTranslationPhaseCommandReusesExistingResult(t, "retry", fixture, func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error) {
-		return controller.RetryBodyTranslationPhase(
-			controllerwails.RetryBodyTranslationPhaseRequestDTO{
-				JobID:      fixture.job.ID,
-				PhaseRunID: fixture.bodyRun.ID,
-			},
-		)
-	})
-	assertBodyTranslationPhaseCommandReusesExistingResult(t, "resume", fixture, func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error) {
-		return controller.ResumeBodyTranslationPhase(
-			controllerwails.ResumeBodyTranslationPhaseRequestDTO{
-				JobID:      fixture.job.ID,
-				PhaseRunID: fixture.bodyRun.ID,
-			},
-		)
-	})
-	assertBodyTranslationPhaseCommandReusesExistingResult(t, "start resend", fixture, func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error) {
-		return controller.StartBodyTranslationPhase(
-			controllerwails.StartBodyTranslationPhaseRequestDTO{JobID: fixture.job.ID},
-		)
-	})
+	result, err := controller.ResumeBodyTranslationPhase(
+		controllerwails.ResumeBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-TJSM-003 expected RecoverableFailed resume rejection payload without Wails error, got %v", err)
+	}
+	assertBodyTranslationAPIRejectedCommand(t, "SCN-TJSM-003", result, "persona_phase_incomplete", "phase_not_paused")
+	if result.PhaseState != "recoverable_failed" {
+		t.Fatalf("SCN-TJSM-003 expected rejected resume to keep recoverable_failed, got %#v", result)
+	}
+	if len(fixture.store.phaseRuns) != 2 || len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
+		t.Fatalf("SCN-TJSM-003 expected rejected resume not to mutate rows, phaseRuns=%#v outputs=%#v links=%#v", fixture.store.phaseRuns, fixture.store.outputs, fixture.store.phaseLinks)
+	}
 }
 
-func assertBodyTranslationPhaseCommandReusesExistingResult(
-	t *testing.T,
-	action string,
-	fixture *bodyTranslationAPIFixture,
-	command func() (controllerwails.BodyTranslationPhaseCommandResponseDTO, error),
-) {
-	t.Helper()
+func TestSCN_TJSM_003_StartResendWithActivePhaseRunIsRejectedWithoutNewRun(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "running",
+		BodyRunState: "running",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
 
-	result, err := command()
+	result, err := controller.StartBodyTranslationPhase(
+		controllerwails.StartBodyTranslationPhaseRequestDTO{JobID: fixture.job.ID},
+	)
 	if err != nil {
-		t.Fatalf("SCN-TFN-011 public %s returned error: %v", action, err)
+		t.Fatalf("SCN-TJSM-003 expected active start resend rejection payload without Wails error, got %v", err)
 	}
+	assertBodyTranslationAPIRejectedCommand(t, "SCN-TJSM-003", result, "active_phase_exists", "active_phase_exists")
 	if result.PhaseRunID == nil || *result.PhaseRunID != fixture.bodyRun.ID {
-		t.Fatalf("SCN-TFN-011 expected %s to reuse phase run %d, got %#v", action, fixture.bodyRun.ID, result.PhaseRunID)
+		t.Fatalf("SCN-TJSM-003 expected active start resend to keep phase run %d, got %#v", fixture.bodyRun.ID, result.PhaseRunID)
 	}
-	if len(fixture.store.phaseRuns) != 2 {
-		t.Fatalf("SCN-TFN-011 expected %s not to create phase run, got %#v", action, fixture.store.phaseRuns)
-	}
-	if len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
-		t.Fatalf("SCN-TFN-011 expected %s not to duplicate existing result, outputs=%#v links=%#v", action, fixture.store.outputs, fixture.store.phaseLinks)
+	if len(fixture.store.phaseRuns) != 2 || len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
+		t.Fatalf("SCN-TJSM-003 expected active start resend not to mutate rows, phaseRuns=%#v outputs=%#v links=%#v", fixture.store.phaseRuns, fixture.store.outputs, fixture.store.phaseLinks)
 	}
 }
 
@@ -295,9 +352,7 @@ func TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite(t *testi
 	if err != nil {
 		t.Fatalf("SCN-BTP-009 expected Running cancel rejection payload without Wails error, got %v", err)
 	}
-	if result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != "output_readiness_blocked" {
-		t.Fatalf("SCN-BTP-009 expected Running cancel rejection payload, got %#v", result)
-	}
+	assertBodyTranslationAPIRejectedCommand(t, "SCN-TJSM-003", result, "persona_phase_incomplete", "body translation phase is not cancelable")
 	summary, summaryErr := controller.GetBodyTranslationPhaseSummary(
 		controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
 	)
@@ -306,6 +361,66 @@ func TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite(t *testi
 	}
 	if summary.PhaseState != "running" || summary.OutputReadiness.Ready {
 		t.Fatalf("SCN-BTP-009 expected running state and blocked readiness after rejected cancel, got %#v", summary)
+	}
+	if len(fixture.store.phaseRuns) != 2 || len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
+		t.Fatalf("SCN-TJSM-003 expected rejected Running cancel not to mutate rows, phaseRuns=%#v outputs=%#v links=%#v", fixture.store.phaseRuns, fixture.store.outputs, fixture.store.phaseLinks)
+	}
+}
+
+func TestSCN_TJSM_008_TerminalJobRejectsStartWithoutCreatingPhaseRun(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "completed",
+		BodyRunState: "completed",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "ready"),
+			bodyTranslationAPIOutputField(802, 702, "ready"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.StartBodyTranslationPhase(
+		controllerwails.StartBodyTranslationPhaseRequestDTO{JobID: fixture.job.ID},
+	)
+	if err != nil {
+		t.Fatalf("SCN-TJSM-008 expected terminal start rejection payload without Wails error, got %v", err)
+	}
+	assertBodyTranslationAPIRejectedCommand(t, "SCN-TJSM-008", result, "terminal_job", "terminal_job")
+	if result.PhaseState != "completed" {
+		t.Fatalf("SCN-TJSM-008 expected terminal start rejection to keep completed phase, got %#v", result)
+	}
+	if len(fixture.store.phaseRuns) != 2 || len(fixture.store.outputs) != 2 || len(fixture.store.phaseLinks) != 2 {
+		t.Fatalf("SCN-TJSM-008 expected terminal start not to mutate rows, phaseRuns=%#v outputs=%#v links=%#v", fixture.store.phaseRuns, fixture.store.outputs, fixture.store.phaseLinks)
+	}
+}
+
+func TestSCN_TJSM_008_TerminalJobRejectsCancelWithoutStateMutation(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:     "completed",
+		BodyRunState: "paused",
+		Outputs: []repository.JobTranslationField{
+			bodyTranslationAPIOutputField(801, 701, "translated"),
+		},
+	})
+	controller := fixture.controller()
+
+	result, err := controller.CancelBodyTranslationPhase(
+		controllerwails.CancelBodyTranslationPhaseRequestDTO{
+			JobID:      fixture.job.ID,
+			PhaseRunID: fixture.bodyRun.ID,
+		},
+	)
+	if err != nil {
+		t.Fatalf("SCN-TJSM-008 expected terminal cancel rejection payload without Wails error, got %v", err)
+	}
+	assertBodyTranslationAPIRejectedCommand(t, "SCN-TJSM-008", result, "terminal_job", "terminal_job")
+	if result.PhaseState != "paused" {
+		t.Fatalf("SCN-TJSM-008 expected terminal cancel rejection to keep paused phase, got %#v", result)
+	}
+	if fixture.store.job.State != "completed" || fixture.store.phaseRuns[1].State != "paused" {
+		t.Fatalf("SCN-TJSM-008 expected terminal cancel not to mutate state, job=%#v phaseRun=%#v", fixture.store.job, fixture.store.phaseRuns[1])
+	}
+	if len(fixture.store.phaseRuns) != 2 || len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
+		t.Fatalf("SCN-TJSM-008 expected terminal cancel not to mutate rows, phaseRuns=%#v outputs=%#v links=%#v", fixture.store.phaseRuns, fixture.store.outputs, fixture.store.phaseLinks)
 	}
 }
 
@@ -354,6 +469,39 @@ func TestSCN_BTP_010_StatusInconsistencyBlocksOutputReadiness(t *testing.T) {
 	if result.ErrorKind != "output_readiness_blocked" {
 		t.Fatalf("SCN-BTP-010 expected output_readiness_blocked, got %#v", result)
 	}
+}
+
+func assertBodyTranslationAPIRejectedCommand(
+	t *testing.T,
+	scenarioID string,
+	result controllerwails.BodyTranslationPhaseCommandResponseDTO,
+	expectedErrorKind string,
+	expectedReason string,
+) {
+	t.Helper()
+
+	if result.ErrorSummary == nil {
+		t.Fatalf("%s expected rejection payload, got %#v", scenarioID, result)
+	}
+	if result.ErrorSummary.ErrorKind != expectedErrorKind {
+		t.Fatalf("%s expected error kind %q, got %#v", scenarioID, expectedErrorKind, result.ErrorSummary)
+	}
+	if result.ErrorSummary.Reason != expectedReason {
+		t.Fatalf("%s expected reason %q, got %#v", scenarioID, expectedReason, result.ErrorSummary)
+	}
+	if result.ErrorSummary.Retryable || result.Retryable {
+		t.Fatalf("%s expected non-retryable rejection, got %#v", scenarioID, result)
+	}
+}
+
+func bodyTranslationAPIOutputCountForField(outputs []repository.JobTranslationField, translationFieldID int64) int {
+	count := 0
+	for _, output := range outputs {
+		if output.TranslationFieldID == translationFieldID {
+			count++
+		}
+	}
+	return count
 }
 
 type bodyTranslationAPIFixtureOptions struct {

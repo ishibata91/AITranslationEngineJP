@@ -1,0 +1,132 @@
+reviewback_version: 1
+task_id: "2026-05-10-translation-job-state-machine-redesign"
+review_yaml_path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "互換性は維持されている。再実行 3 の対象差分では、単語翻訳 phase の resume は `paused`、retry は `recoverable_failed` を expected state として `UpdateJobPhaseRunWhenState` に渡す。`RecoverableFailed` の resume 拒否と retry 許可は、共通 policy、単語翻訳 summary、本文翻訳 API test の公開結果と一致している。Wails DTO の field 名、JSON 名、nullable 条件、DB schema、repository 永続化型は増減していない。`translationjobpolicy.Result`、rule 名、判定履歴は repository、DB schema、Wails DTO へ出ていない。"
+  evidence_sufficiency: "十分。`review-rerun3-input.md`、`backend-review-fix3-result.md`、`final-validation.md`、対象変更ファイル、UseCase policy 呼び出し、Service の条件付き更新、Wails DTO 変換、backend API test、backend unit test を確認した。system test は未実行だが、今回の契約判定は backend public seam、DTO 型、repository 型、静的差分で判定可能である。"
+  broken_invariants: "なし。既存 DTO field の保持、公開 command response 形の保持、DB schema 非変更、policy 型非公開、resume は `paused` だけ許可、retry は `recoverable_failed` だけ許可、単語翻訳 resume / retry の条件付き同一 phase run 更新を満たしている。"
+  cause_candidates: "未解決 issue がないため該当なし。再実行 3 の修正は `TermTranslationPhaseService.resumeExecutionPlanRun` と `updateExecutionPlanRunState` の expected state 引数追加に閉じている。"
+  local_fix_assessment: "追加修正は不要。再実行 3 の修正は単語翻訳 phase の running 昇格条件を既存 repository method に渡す局所変更で、公開 DTO 形、Wails controller、永続化 schema、policy 保存境界へ波及していない。"
+  invariant_test_perspective: "既存 field の JSON 名が変わらないこと、`RecoverableFailed` で resume が拒否され retry が許可されること、resume 成功時に expected state `paused` が使われること、retry 成功時に expected state `recoverable_failed` が使われること、expected state 不一致時に provider request が発生しないこと、policy 型や rule 名が永続化されないことをテスト観点として確認済み。"
+
+checked_scope:
+  summary: "`review-rerun3-input.md` の変更ファイルだけを対象に、単語翻訳 phase の resume / retry 条件付き更新、RecoverableFailed の公開操作可否、Wails DTO 既存契約、policy 結果の永続化境界を確認した。docs 正本差分と `2026-05-13-notification-module-dependency-separation` は対象外として確認していない。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/review-rerun3-input.md"
+      line: 1
+      symbol: "5 観点レビュー再実行 3 入力"
+      reason: "レビュー対象差分、実装目的、重点確認、検証証跡、対象外範囲を確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/backend-review-fix3-result.md"
+      line: 1
+      symbol: "Backend レビュー修正 3 結果"
+      reason: "単語翻訳 resume / retry の expected state 追加と追加テスト内容を確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/final-validation.md"
+      line: 1
+      symbol: "最終検証"
+      reason: "再実行 3 後の gofmt、backend-local、coverage、issue 数、system test 未実行理由を確認した。"
+    - path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/implementation-targets.md"
+      line: 17
+      symbol: "採用方針"
+      reason: "resume と retry を phase type で分けず、`PolicyResult` を UseCase 内だけで消費する契約を確認した。"
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 61
+      symbol: "Result"
+      reason: "`Result` は usecase-local decision と明記され、永続化型や DTO 型ではないことを確認した。"
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 67
+      symbol: "Evaluate"
+      reason: "resume は `PhaseStatePaused` だけを許可し、retry は `PhaseStateRecoverableFailed` だけを許可することを確認した。"
+    - path: "internal/usecase/phase_policy_helpers.go"
+      line: 38
+      symbol: "logPhasePolicyRejected"
+      reason: "policy 拒否ログは event、where、result、id、reason に閉じ、rule 名や `Result` 全体を出していないことを確認した。"
+    - path: "internal/usecase/term_translation_phase_usecase.go"
+      line: 139
+      symbol: "evaluateTermPolicy"
+      reason: "UseCase が policy decision を command result へ写すが、DTO 型や永続化型として `Result` を公開していないことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_usecase.go"
+      line: 168
+      symbol: "evaluatePersonaPolicy"
+      reason: "NPC ペルソナ生成 phase でも policy 型は UseCase 内の判断値に留まり、公開型へ追加されていないことを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 176
+      symbol: "evaluateBodyPolicy"
+      reason: "本文翻訳 phase でも policy 型は UseCase 内の判断値に留まり、公開型へ追加されていないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 347
+      symbol: "ReadSummary"
+      reason: "単語翻訳 summary は terminal job を除外し、`recoverable_failed` の resume を不可、retry を可にすることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1113
+      symbol: "resumeExecutionPlanRun"
+      reason: "単語翻訳 resume は expected state `paused`、retry は expected state `recoverable_failed` を条件付き更新へ渡すことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1139
+      symbol: "updateExecutionPlanRunState"
+      reason: "単語翻訳の running 昇格は `UpdateJobPhaseRunWhenState` に expected state を渡し、既存 repository 契約を利用することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1173
+      symbol: "buildActionEnablement"
+      reason: "NPC ペルソナ生成 phase の read model は resume と retry の許可 state を分離し、DTO 形を増やしていないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1179
+      symbol: "buildActionEnablement"
+      reason: "本文翻訳 read model は terminal job を既存 blocked reason field で拒否し、`recoverable_failed` の resume 不可と retry 可を表すことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1389
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "本文翻訳 phase の状態更新も `UpdateJobPhaseRunWhenState` で条件付き更新し、policy result を保存していないことを確認した。"
+    - path: "internal/controller/wails/term_translation_phase_controller.go"
+      line: 95
+      symbol: "TermTranslationPhaseActionEnablementDTO"
+      reason: "単語翻訳 phase の Wails DTO は既存 action enablement field を維持し、policy 型や rule 名を追加していないことを確認した。"
+    - path: "internal/controller/wails/body_translation_phase_controller.go"
+      line: 147
+      symbol: "BodyTranslationPhaseActionEnablementDTO"
+      reason: "本文翻訳 phase の Wails DTO は既存 action enablement field を維持し、policy 型や rule 名を追加していないことを確認した。"
+    - path: ".go-arch-lint.yml"
+      line: 50
+      symbol: "deps.usecase"
+      reason: "`translationjobpolicy` への依存許可は UseCase 側だけに追加され、Service、Repository、Controller からの直接依存を追加していないことを確認した。"
+    - path: "internal/usecase/translationjobpolicy/policy_test.go"
+      line: 43
+      symbol: "TestEvaluateResumeAndRetryForRecoverableFailed"
+      reason: "`recoverable_failed` の resume 拒否と retry 許可が policy level で検証されていることを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 550
+      symbol: "TestTermTranslationPhaseServiceReadSummaryRejectsResumeAndAllowsRetryForRecoverableFailedRun"
+      reason: "単語翻訳 summary の公開操作可否で resume 拒否と retry 許可が検証されていることを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1094
+      symbol: "resume / retry expected state cases"
+      reason: "単語翻訳 resume / retry の running 昇格に expected state が渡ることと、競合時に provider request が発生しないことを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 132
+      symbol: "TestSCN_TJSM_003_RetryRecoverableFailedReusesPhaseRunAndDoesNotDuplicateExistingResult"
+      reason: "`recoverable_failed` の retry が公開 API 経由で許可され、既存 result を重複しないことを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 192
+      symbol: "TestSCN_TJSM_003_ResumeRecoverableFailedIsRejectedWithoutMutation"
+      reason: "`recoverable_failed` の resume が公開 API 経由で拒否 payload になり、永続行を変更しないことを確認した。"
+
+unchecked_scope:
+  - target: "system test"
+    reason: "レビュー入力で backend-only 実装のため未実行と記録されている。レビュー agent として広いハーネス再実行はしていない。"
+    risk: "frontend 実画面が `canResume` と `canRetry` をどう表示するかの確認は残る。ただし Wails DTO 形は維持されている。"
+  - target: "docs 正本差分"
+    reason: "人間指示で対象外である。"
+    risk: "docs 側の語彙差分は本レビューの互換性判定に含めていない。"
+  - target: "2026-05-13-notification-module-dependency-separation"
+    reason: "人間指示で別 task は対象外である。"
+    risk: "別 task の差分が同じ検証結果に含まれる場合の影響は本レビューでは扱わない。"
+  - target: "frontend とブラウザ表示"
+    reason: "レビュー対象差分に frontend は含まれず、最終検証でも system test は未実行である。"
+    risk: "表示文言やボタン状態の実画面確認は残る。ただし contract 観点では JSON field の増減は確認されない。"
+
+issues: []

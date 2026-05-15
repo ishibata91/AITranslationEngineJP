@@ -27,8 +27,11 @@
 - `Controller`: backend の入口。Wails Bind の request / response DTO を内部境界へ写像する
 - `Backend UseCase`: 操作単位の orchestration を担う
 - `Service`: 実処理を担う
-- `StateMachine`: 状態遷移規則だけを保持する
-- `JobIOService`: job 状態の取得と保存だけを扱う
+- `TranslationJobPolicy`: 翻訳ジョブ操作の共通操作規則と phase 開始前提を評価する UseCase 専用の純粋な規則オブジェクト
+- `JobIOService`: job と phase run の状態取得と、UseCase が確定した状態事実の保存だけを扱う
+- `NotificationSinkPort`: 実行側の複数主体が進捗事実、完了事実、破棄事実を横から渡す通知入口
+- `NotificationDispatcher`: `NotificationSinkPort` の実装として、通知事実を Wails 非依存の通知へ整形する
+- `NotificationPort`: 通知 module から transport adapter へ渡す送信境界
 - `Repository` / `XML adapter` / `Runtime adapter` / `AIProvider`: backend の adapter 群
 
 本書でいう構造図は、この主語同士の依存方向だけを示す。
@@ -45,10 +48,13 @@ DB テーブル、DTO 項目、要件フロー、画面遷移は構造図へ混�
 - `ScreenController -> Frontend UseCase / Presenter / Store / RuntimeEventAdapter`
 - `Frontend UseCase -> GatewayContract / Store`
 - `Gateway -> generated wailsjs -> backend Controller`
-- `Backend Bootstrap -> Controller / UseCase / Service / adapter concrete`
+- `Backend Bootstrap -> Controller / UseCase / Service / NotificationDispatcher / adapter concrete`
 - `Controller -> UseCasePort`
-- `Backend UseCase -> ServicePort / StateMachine / JobIOService / RuntimeEventPublisherPort`
-- `Service -> RepositoryPort / XMLFilePort / XMLRecordReaderPort / RuntimeContextPort / AIProvider`
+- `Backend UseCase -> ServicePort / TranslationJobPolicy / JobIOService / NotificationSinkPort`
+- `Service -> RepositoryPort / XMLFilePort / XMLRecordReaderPort / NotificationSinkPort / AIProvider`
+- `NotificationSinkPort -> NotificationDispatcher`
+- `NotificationDispatcher -> NotificationPort`
+- `NotificationPort -> Runtime adapter`
 
 `Bootstrap` 以外の層は concrete 実装を new しない。
 DI コンテナは使わず、frontend と backend の両方で手動 DI を使う。
@@ -141,33 +147,78 @@ UI Component の部品化判断は次の表に従う。
 - Wails Bind の入口になる
 - request / response DTO を usecase 境界へ写像する
 - caller-owned の `UseCasePort` を起動する
-- runtime context を受け取り、必要な emitter state へ橋渡しする
+- synchronous response を返す
+- Wails runtime event payload は組み立てない
 
-`Controller` は service concrete や repository concrete を直接 new しない。
+`Controller` は service concrete、repository concrete、`NotificationDispatcher` を直接 new しない。
+`Controller` は実行中の途中経過通知の戻り先にならない。
 
 ### 4.3 Backend UseCase
 
 - 操作単位の orchestration を担う
 - `ServicePort` を使って query / command / import を起動する
-- `StateMachine` と `JobIOService` を使って job 状態を扱う
-- runtime event 完了 payload を組み立てる
+- `TranslationJobPolicy` と `JobIOService` を使って job / phase run 状態を扱う
+- `TranslationJobPolicy` から操作可否、拒否理由、状態作用、呼び出す service method の種類を得る
+- `JobIOService` で job / phase run snapshot を取得し、確定済み状態事実だけを保存する
+- 必要な通知事実を `NotificationSinkPort` へ渡す
+- synchronous response に必要な操作結果を返す
+- Wails runtime event payload を組み立てない
 
-`Backend UseCase` は adapter concrete を直接参照しない。
+`Backend UseCase` は adapter concrete、`NotificationDispatcher`、`NotificationPort` を直接参照しない。
 
-### 4.4 Service
+### 4.4 TranslationJobPolicy
+
+`TranslationJobPolicy` は `internal/usecase/translationjobpolicy/` に置く。
+`TranslationJobPolicy` は DB を読まず、DB へ保存せず、Service を呼ばない。
+
+`TranslationJobPolicy` は UseCase だけが呼び出す。
+`TranslationJobPolicy` は共通操作規則を先に評価し、`start` の時だけ phase 別開始前提を評価する。
+`retry`、`resume`、`pause`、`cancel` の可否は phase type で分けない。
+
+`PolicyResult` は UseCase 内の一時値である。
+`PolicyResult`、適用 rule 名、policy 判定履歴は DB、DTO、repository 永続契約へ出さない。
+
+### 4.5 JobIOService
+
+`JobIOService` は job と phase run の状態取得と保存だけを扱う。
+`JobIOService` は遷移可否、terminal guard、provider response validation、UI 表示文言を判断しない。
+
+`JobIOService` が保存する対象は、UseCase が確定した `TRANSLATION_JOB.state`、`JOB_PHASE_RUN.state`、継続または作成された `JOB_PHASE_RUN` id、進捗、開始時刻、終了時刻、失敗 reason category などの状態事実だけである。
+operation summary、provider raw payload、secret、API key、credential 参照実値は保存しない。
+
+### 4.6 Notification Module
+
+`NotificationSinkPort` は実行側から通知 module へ入る横接続の入口である。
+UseCase、Service、将来の Runner / Worker は、進捗事実、完了事実、破棄事実を `NotificationSinkPort` へ渡せる。
+途中経過通知は `Controller` へ戻さない。
+
+`NotificationDispatcher` は `internal/notification/` に置く。
+`NotificationDispatcher` は `NotificationSinkPort` を実装する。
+`NotificationDispatcher` は通知種別、redaction、送信可否、送信失敗の扱いを決める。
+
+`NotificationDispatcher` は状態遷移可否、terminal guard、provider response validation を判断しない。
+`NotificationDispatcher` は operation summary、Wails event payload、通知結果を DB に永続化しない。
+
+`NotificationPort` は通知 module から transport adapter への境界である。
+`Runtime adapter` は `NotificationPort` を実装し、Wails runtime event の実送信だけを扱う。
+
+Service は `NotificationSinkPort` へ進捗事実と完了事実を渡す。
+Service は Wails runtime event payload を組み立てず、runtime handle も扱わない。
+
+### 4.7 Service
 
 - 永続化 port を通して master data を読む、書く
 - XML file / reader port を通して import を実行する
-- runtime port を通して進捗を通知する
+- `NotificationSinkPort` を通して進捗事実、完了事実、破棄事実を渡す
 - AI 実行が必要な機能では `AIProvider` を使う
 
 `Service` core は filesystem、Wails runtime、XML decoder、driver 固有 API を直接参照しない。
 
-### 4.5 Adapter 群
+### 4.8 Adapter 群
 
 - `Repository` は SQLite などの永続化実装を持つ
 - `XML adapter` は path 解決、file open、record 読み出しを持つ
-- `Runtime adapter` は Wails runtime event の具体送信を持つ
+- `Runtime adapter` は `NotificationPort` を実装し、Wails runtime event の具体送信だけを持つ
 - `AIProvider` は provider ごとの差異を吸収する
 
 adapter concrete は `internal/repository/`、`internal/service/`、`internal/infra/` に閉じ込める。
@@ -180,8 +231,13 @@ adapter concrete は `internal/repository/`、`internal/service/`、`internal/in
 - `UI Component` は backend DTO、generated binding、`Store`、`Gateway` を直接扱わない
 - `Frontend UseCase` は `GatewayContract` と `Store` だけに依存する
 - `Backend Controller` は caller-owned `UseCasePort` だけに依存する
-- `Backend UseCase` は caller-owned `ServicePort` と純粋な rule object に依存する
-- `Service` core は concrete driver や runtime API を直接参照しない
+- `Backend Controller` は途中経過通知の経路にならない
+- `Backend UseCase` は caller-owned `ServicePort`、`TranslationJobPolicy`、`JobIOService`、`NotificationSinkPort` に依存する
+- `Backend UseCase` は `NotificationDispatcher`、`NotificationPort`、`Runtime adapter` に依存しない
+- `TranslationJobPolicy` を呼べる層は `Backend UseCase` だけにする
+- `JobIOService` は policy 判断結果、rule 名、判定履歴を保存しない
+- `NotificationDispatcher` は状態遷移可否を判断しない
+- `Service` core は concrete driver、runtime API、`NotificationDispatcher` を直接参照しない
 - Wails event は push 通知専用に限定し、通常の query / command を置き換えない
 
 ## 6. 現在のディレクトリ正本
@@ -194,9 +250,10 @@ adapter concrete は `internal/repository/`、`internal/service/`、`internal/in
 - `internal/bootstrap/`: backend bootstrap と default wiring
 - `internal/controller/`: backend bind と入出力の受け渡し
 - `internal/usecase/`: 操作単位の orchestration
+- `internal/usecase/translationjobpolicy/`: 翻訳ジョブ操作の共通操作規則と phase 開始前提
+- `internal/notification/`: `NotificationSinkPort`、通知種別、redaction、送信可否、送信失敗の扱い
 - `internal/service/`: 実処理と adapter port
-- `internal/statemachine/`: 状態遷移規則
-- `internal/jobio/`: job 状態の取得と保存
+- `internal/jobio/`: job / phase run 状態の取得と確定済み状態事実の保存
 - `internal/repository/`: 永続化 adapter
 - `internal/aiprovider/`: AI provider 境界
 - `internal/infra/`: runtime、HTTP client、filesystem、database driver などの concrete 実装
@@ -208,7 +265,7 @@ shared contract と Wails adapter だけを別 directory に分ける構成を�
 
 - frontend の query / command は `frontend/src/controller/wails/` から generated `wailsjs` を呼ぶ
 - backend の bind 公開面は `internal/controller/wails/` とする
-- backend から frontend への push は runtime event adapter 経由で送る
+- backend から frontend への push は実行側から `NotificationSinkPort` へ入り、`NotificationDispatcher` から `Runtime adapter` 経由で送る
 - runtime の concrete handle は bootstrap と adapter に閉じ込める
 
 Wails は transport boundary であり、domain rule や画面状態の正本ではない。

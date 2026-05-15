@@ -189,6 +189,7 @@ type BodyTranslationOutputReadinessReadModel struct {
 // BodyTranslationPhaseSummaryReadModel stores body phase summary payload data.
 type BodyTranslationPhaseSummaryReadModel struct {
 	JobID              int64
+	JobState           string
 	CurrentPhase       string
 	PhaseState         string
 	PhaseRunID         *int64
@@ -324,6 +325,7 @@ func (service *BodyTranslationPhaseService) ReadSummary(
 	resultSummary := service.buildLoadedFieldResultSummary(loaded)
 	return BodyTranslationPhaseSummaryReadModel{
 		JobID:              loaded.job.ID,
+		JobState:           loaded.job.State,
 		CurrentPhase:       bodyTranslationCurrentPhase,
 		PhaseState:         phaseState,
 		PhaseRunID:         cloneBodyTranslationInt64Pointer(phaseRunID),
@@ -569,7 +571,7 @@ func (service *BodyTranslationPhaseService) ResumePhase(
 		ctx,
 		jobID,
 		phaseRunID,
-		"",
+		bodyTranslationPhaseStatePaused,
 		bodyTranslationPhaseStateRunning,
 		bodyTranslationPhaseErrorSummaryRejectResume,
 	)
@@ -1174,6 +1176,14 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 	if loaded.bodyRun == nil {
 		return result
 	}
+	if isBodyTranslationTerminalJob(loaded.job.State) {
+		reason := "terminal_job"
+		result.PauseBlockedReason = &reason
+		result.ResumeBlockedReason = &reason
+		result.RetryBlockedReason = &reason
+		result.CancelBlockedReason = &reason
+		return result
+	}
 	state := strings.TrimSpace(loaded.bodyRun.State)
 	if state != bodyTranslationPhaseStateRunning {
 		reason := "body translation phase is not running"
@@ -1181,8 +1191,8 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 	} else {
 		result.CanPause = true
 	}
-	if state != bodyTranslationPhaseStatePaused && state != bodyTranslationPhaseStateRecoverableFail {
-		reason := "body translation phase is not resumable"
+	if state != bodyTranslationPhaseStatePaused {
+		reason := "phase_not_paused"
 		result.ResumeBlockedReason = &reason
 	} else {
 		result.CanResume = true
@@ -1192,13 +1202,6 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 		result.RetryBlockedReason = &reason
 	} else {
 		result.CanRetry = true
-	}
-	if loaded.inputSnapshotDrifted {
-		reason := bodyTranslationInputSnapshotDriftReason
-		result.CanResume = false
-		result.ResumeBlockedReason = &reason
-		result.CanRetry = false
-		result.RetryBlockedReason = &reason
 	}
 	if state != bodyTranslationPhaseStatePaused {
 		reason := "body translation phase is not cancelable"
@@ -1326,6 +1329,9 @@ func (service *BodyTranslationPhaseService) transitionBodyTranslationRunState(
 	)
 	if err != nil {
 		errorSummary := reject()
+		if isBodyTranslationTerminalJob(loaded.job.State) {
+			errorSummary = bodyTranslationTerminalJobErrorSummary()
+		}
 		if loaded.inputSnapshotDrifted {
 			errorSummary = bodyTranslationInputSnapshotDriftErrorSummary()
 		}
@@ -1365,16 +1371,30 @@ func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransi
 	var updatedRun repository.JobPhaseRun
 	var updatedJob repository.TranslationJob
 	err = service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
-		runDraft, jobDraft := bodyTranslationRunStateTransitionDrafts(loaded, nextState, now)
-		run, updateErr := service.jobLifecycleRepository.UpdateJobPhaseRun(txCtx, loaded.bodyRun.ID, runDraft)
+		currentJob, reloadErr := service.jobLifecycleRepository.GetTranslationJobByID(txCtx, jobID)
+		if reloadErr != nil {
+			return fmt.Errorf("reload body translation job for state transition: %w", reloadErr)
+		}
+		currentRun, reloadErr := service.findPhaseRun(txCtx, jobID, bodyTranslationPhaseType)
+		if reloadErr != nil {
+			return fmt.Errorf("reload body translation phase run for state transition: %w", reloadErr)
+		}
+		currentLoaded := loaded
+		currentLoaded.job = currentJob
+		currentLoaded.bodyRun = currentRun
+		if _, _, validateErr := service.validateBodyTranslationRunStateTransition(currentLoaded, phaseRunID, requiredState, nextState); validateErr != nil {
+			return validateErr
+		}
+		runDraft, jobDraft := bodyTranslationRunStateTransitionDrafts(currentLoaded, nextState, now)
+		run, updateErr := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(txCtx, currentRun.ID, requiredState, runDraft)
 		if updateErr != nil {
 			return fmt.Errorf("update body translation phase run state: %w", updateErr)
 		}
-		job, updateErr := service.jobLifecycleRepository.UpdateTranslationJob(txCtx, loaded.job.ID, jobDraft)
+		job, updateErr := service.jobLifecycleRepository.UpdateTranslationJob(txCtx, currentJob.ID, jobDraft)
 		if updateErr != nil {
 			return fmt.Errorf("update body translation phase job state: %w", updateErr)
 		}
-		if snapshotErr := service.persistBodyTranslationRuntimeSnapshotForTransition(txCtx, loaded.job.ID, nextState, startExecutionSnapshot); snapshotErr != nil {
+		if snapshotErr := service.persistBodyTranslationRuntimeSnapshotForTransition(txCtx, currentJob.ID, nextState, startExecutionSnapshot); snapshotErr != nil {
 			return snapshotErr
 		}
 		updatedRun = run
@@ -1393,7 +1413,7 @@ func (service *BodyTranslationPhaseService) validateBodyTranslationRunStateTrans
 	loaded bodyTranslationLoadedContext,
 	phaseRunID int64,
 	requiredState string,
-	nextState string,
+	_ string,
 ) (repository.JobPhaseRun, string, error) {
 	beforePhaseState := bodyTranslationPhaseStateIdleReady
 	if loaded.bodyRun != nil {
@@ -1405,9 +1425,6 @@ func (service *BodyTranslationPhaseService) validateBodyTranslationRunStateTrans
 	currentRun := *loaded.bodyRun
 	if isBodyTranslationTerminalJob(loaded.job.State) {
 		return currentRun, beforePhaseState, fmt.Errorf("body translation phase state transition rejected: terminal job")
-	}
-	if nextState == bodyTranslationPhaseStateRunning && loaded.inputSnapshotDrifted {
-		return currentRun, beforePhaseState, errors.New(bodyTranslationInputSnapshotDriftReason)
 	}
 	if !bodyTranslationRunStateTransitionAllowed(strings.TrimSpace(currentRun.State), requiredState) {
 		return currentRun, beforePhaseState, fmt.Errorf("body translation phase state transition rejected")
@@ -1434,7 +1451,7 @@ func bodyTranslationRunStateTransitionAllowed(currentState string, requiredState
 	if requiredState != "" {
 		return currentState == requiredState
 	}
-	return currentState == bodyTranslationPhaseStatePaused || currentState == bodyTranslationPhaseStateRecoverableFail
+	return currentState == bodyTranslationPhaseStatePaused
 }
 
 func bodyTranslationRunStateTransitionDrafts(
@@ -1483,6 +1500,15 @@ func bodyTranslationPhaseErrorSummaryRejectCancel() *BodyTranslationPhaseErrorSu
 	}
 }
 
+func bodyTranslationTerminalJobErrorSummary() *BodyTranslationPhaseErrorSummaryReadModel {
+	return &BodyTranslationPhaseErrorSummaryReadModel{
+		ErrorKind:  "terminal_job",
+		Reason:     "terminal_job",
+		Retryable:  false,
+		IsRedacted: true,
+	}
+}
+
 func bodyTranslationPhaseErrorSummaryRejectPause() *BodyTranslationPhaseErrorSummaryReadModel {
 	return &BodyTranslationPhaseErrorSummaryReadModel{
 		ErrorKind:  "output_readiness_blocked",
@@ -1495,7 +1521,7 @@ func bodyTranslationPhaseErrorSummaryRejectPause() *BodyTranslationPhaseErrorSum
 func bodyTranslationPhaseErrorSummaryRejectResume() *BodyTranslationPhaseErrorSummaryReadModel {
 	return &BodyTranslationPhaseErrorSummaryReadModel{
 		ErrorKind:  "output_readiness_blocked",
-		Reason:     "body translation phase is not resumable",
+		Reason:     "phase_not_paused",
 		Retryable:  false,
 		IsRedacted: true,
 	}

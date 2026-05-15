@@ -183,6 +183,7 @@ type PersonaGenerationPhaseActionEnablementReadModel struct {
 // PersonaGenerationPhaseSummaryReadModel stores the Job Run summary payload.
 type PersonaGenerationPhaseSummaryReadModel struct {
 	JobID            int64
+	JobState         string
 	CurrentPhase     string
 	PhaseState       string
 	PhaseRunID       *int64
@@ -332,6 +333,7 @@ func (service *PersonaGenerationPhaseService) ReadSummary(
 	execution := service.buildExecutionSummary(run, &termRun, snapshot, resultSummary)
 	return PersonaGenerationPhaseSummaryReadModel{
 		JobID:        job.ID,
+		JobState:     job.State,
 		CurrentPhase: personaGenerationCurrentPhase,
 		PhaseState:   state,
 		PhaseRunID:   clonePersonaInt64Pointer(phaseRunID),
@@ -412,7 +414,7 @@ func (service *PersonaGenerationPhaseService) PausePhase(
 	return service.mutatePhaseState(ctx, jobID, phaseRunID, personaGenerationPhaseStateRunning, personaGenerationPhaseStatePaused, nil)
 }
 
-// ResumePhase resumes one paused or recoverable-failed persona phase run.
+// ResumePhase resumes one paused persona phase run.
 func (service *PersonaGenerationPhaseService) ResumePhase(
 	ctx context.Context,
 	jobID int64,
@@ -422,7 +424,7 @@ func (service *PersonaGenerationPhaseService) ResumePhase(
 	if err != nil {
 		return PersonaGenerationPhaseCommandReadModel{}, err
 	}
-	if run.State != personaGenerationPhaseStatePaused && run.State != personaGenerationPhaseStateRecoverableFail {
+	if run.State != personaGenerationPhaseStatePaused {
 		return service.phaseMutationRejected(ctx, jobID, &run, personaGenerationErrorKindTermIncomplete, "persona phase is not resumable"), nil
 	}
 	command, err := service.mutatePhaseState(ctx, jobID, phaseRunID, run.State, personaGenerationPhaseStateRunning, nil)
@@ -539,7 +541,7 @@ func (service *PersonaGenerationPhaseService) CancelPhase(
 	if !personaGenerationCancelAllowed(job.State, run.State) {
 		return service.phaseMutationRejected(ctx, jobID, &run, personaGenerationErrorKindTermIncomplete, "persona phase is not cancelable"), nil
 	}
-	return service.mutatePhaseState(ctx, jobID, phaseRunID, "", personaGenerationPhaseStateCanceled, nil)
+	return service.mutatePhaseState(ctx, jobID, phaseRunID, personaGenerationPhaseStatePaused, personaGenerationPhaseStateCanceled, nil)
 }
 
 // ReadBodyReadiness reports whether the body phase may start.
@@ -699,16 +701,16 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 	}
 	var updatedRun repository.JobPhaseRun
 	err = service.transactor.WithTransaction(ctx, func(txCtx context.Context) error {
-		nextRun, updateErr := service.jobLifecycleRepository.UpdateJobPhaseRun(txCtx, run.ID, repository.JobPhaseRunUpdateDraft{
-			State:               nextState,
-			ProgressPercent:     run.ProgressPercent,
-			LatestExternalRunID: run.LatestExternalRunID,
-			LatestError:         run.LatestError,
-			StartedAt:           run.StartedAt,
-			FinishedAt:          run.FinishedAt,
-		})
+		nextRun, updateErr := service.updatePersonaGenerationPhaseStateInTransaction(
+			txCtx,
+			jobID,
+			phaseRunID,
+			requiredState,
+			nextState,
+			snapshot,
+		)
 		if updateErr != nil {
-			return fmt.Errorf("update persona generation phase run state: %w", updateErr)
+			return updateErr
 		}
 		if snapshotErr := service.persistPersonaGenerationRuntimeSnapshotForTransition(txCtx, job.ID, nextState, startExecutionSnapshot); snapshotErr != nil {
 			return snapshotErr
@@ -745,6 +747,54 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 		Retryable:         personaGenerationRetryAllowed(updatedRun.State, updatedRun.LatestError),
 		CanStartBodyPhase: canStartBodyPhase,
 	}, nil
+}
+
+func (service *PersonaGenerationPhaseService) updatePersonaGenerationPhaseStateInTransaction(
+	ctx context.Context,
+	jobID int64,
+	phaseRunID int64,
+	requiredState string,
+	nextState string,
+	snapshot personaGenerationTargetSnapshot,
+) (repository.JobPhaseRun, error) {
+	currentJob, reloadErr := service.jobLifecycleRepository.GetTranslationJobByID(ctx, jobID)
+	if reloadErr != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("reload persona generation job for mutation: %w", reloadErr)
+	}
+	currentRunValue, reloadErr := service.jobLifecycleRepository.FindJobPhaseRun(ctx, jobID, personaGenerationPhaseType)
+	if errors.Is(reloadErr, repository.ErrNotFound) {
+		return repository.JobPhaseRun{}, fmt.Errorf(personaGenerationRunLoadErrorMessage, repository.ErrNotFound)
+	}
+	if reloadErr != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("reload persona generation phase run for mutation: %w", reloadErr)
+	}
+	currentRun := &currentRunValue
+	if _, rejected, rejectErr := service.rejectInvalidPhaseMutation(
+		ctx,
+		jobID,
+		currentJob,
+		currentRun,
+		snapshot,
+		phaseRunID,
+		requiredState,
+	); rejectErr != nil || rejected {
+		if rejectErr != nil {
+			return repository.JobPhaseRun{}, rejectErr
+		}
+		return repository.JobPhaseRun{}, fmt.Errorf("persona generation phase state transition rejected")
+	}
+	nextRun, updateErr := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(ctx, currentRun.ID, requiredState, repository.JobPhaseRunUpdateDraft{
+		State:               nextState,
+		ProgressPercent:     currentRun.ProgressPercent,
+		LatestExternalRunID: currentRun.LatestExternalRunID,
+		LatestError:         currentRun.LatestError,
+		StartedAt:           currentRun.StartedAt,
+		FinishedAt:          currentRun.FinishedAt,
+	})
+	if updateErr != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("update persona generation phase run state: %w", updateErr)
+	}
+	return nextRun, nil
 }
 
 func (service *PersonaGenerationPhaseService) rejectInvalidPhaseMutation(
@@ -1132,9 +1182,9 @@ func (service *PersonaGenerationPhaseService) buildActionEnablement(
 		startBlockedReason = stringPersonaPointer(rejection.reason)
 	}
 	canPause := !isPersonaGenerationTerminalJob(jobState) && state == personaGenerationPhaseStateRunning
-	canResume := !isPersonaGenerationTerminalJob(jobState) && (state == personaGenerationPhaseStatePaused || state == personaGenerationPhaseStateRecoverableFail)
-	canRetry := run != nil && !isPersonaGenerationTerminalJob(jobState) && personaGenerationRetryAllowed(run.State, run.LatestError)
-	canCancel := run != nil && personaGenerationCancelAllowed(jobState, run.State)
+	canResume := !isPersonaGenerationTerminalJob(jobState) && state == personaGenerationPhaseStatePaused
+	canRetry := run != nil && !isPersonaGenerationTerminalJob(jobState) && normalizePersonaField(run.State) == personaGenerationPhaseStateRecoverableFail
+	canCancel := run != nil && !isPersonaGenerationTerminalJob(jobState) && normalizePersonaField(run.State) == personaGenerationPhaseStatePaused
 	bodyReason := stringPersonaPointer("persona snapshot reference is not ready")
 	if canStartBodyPhase {
 		bodyReason = nil
@@ -2168,32 +2218,15 @@ func personaGenerationExecutionOutputCount(resultSummary *PersonaGenerationPhase
 	return resultSummary.PersonaCount
 }
 
-func personaGenerationRetryAllowed(state string, latestError string) bool {
-	if normalizePersonaField(state) != personaGenerationPhaseStateRecoverableFail {
-		return false
-	}
-	switch normalizePersonaField(latestError) {
-	case personaGenerationErrorKindProviderFailure,
-		personaGenerationErrorKindInvalidProvider,
-		personaGenerationErrorKindInputMissing:
-		return true
-	default:
-		return false
-	}
+func personaGenerationRetryAllowed(state string, _ string) bool {
+	return normalizePersonaField(state) == personaGenerationPhaseStateRecoverableFail
 }
 
 func personaGenerationCancelAllowed(jobState string, runState string) bool {
 	if isPersonaGenerationTerminalJob(jobState) {
 		return false
 	}
-	switch normalizePersonaField(runState) {
-	case personaGenerationPhaseStateRunning,
-		personaGenerationPhaseStatePaused,
-		personaGenerationPhaseStateRecoverableFail:
-		return true
-	default:
-		return false
-	}
+	return normalizePersonaField(runState) == personaGenerationPhaseStatePaused
 }
 
 func personaGenerationSnapshotDriftReason(

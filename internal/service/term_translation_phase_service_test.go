@@ -67,6 +67,7 @@ type fakeTermPhaseJobLifecycleRepository struct {
 	updateJobDrafts     []repository.TranslationJobUpdateDraft
 	updatePhaseRunDraft []repository.JobPhaseRunUpdateDraft
 	updateExpectedState []string
+	expectedStateLog    *[]string
 	phaseLinks          []repository.PhaseRunDictionaryEntry
 	nextPhaseRunID      int64
 	createLinkErr       error
@@ -137,6 +138,9 @@ func (fake *fakeTermPhaseJobLifecycleRepository) UpdateJobPhaseRunWhenState(
 	draft repository.JobPhaseRunUpdateDraft,
 ) (repository.JobPhaseRun, error) {
 	fake.updateExpectedState = append(fake.updateExpectedState, expectedState)
+	if fake.expectedStateLog != nil {
+		*fake.expectedStateLog = append(*fake.expectedStateLog, expectedState)
+	}
 	return fake.UpdateJobPhaseRun(ctx, id, draft)
 }
 func (fake *fakeTermPhaseJobLifecycleRepository) ListJobPhaseRunsByJobID(context.Context, int64) ([]repository.JobPhaseRun, error) {
@@ -543,7 +547,7 @@ func TestTermTranslationPhaseServiceReadSummaryUsesExistingRunExecutionConfig(t 
 	}
 }
 
-func TestTermTranslationPhaseServiceReadSummaryAllowsResumeForRecoverableFailedRun(t *testing.T) {
+func TestTermTranslationPhaseServiceReadSummaryRejectsResumeAndAllowsRetryForRecoverableFailedRun(t *testing.T) {
 	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
 	run := repository.JobPhaseRun{
 		ID:               360,
@@ -561,14 +565,49 @@ func TestTermTranslationPhaseServiceReadSummaryAllowsResumeForRecoverableFailedR
 	if err != nil {
 		t.Fatalf("expected summary success with recoverable failed run, got %v", err)
 	}
-	if !summary.ActionEnablement.CanResume {
-		t.Fatalf("expected recoverable failed run to be resumable, got %#v", summary.ActionEnablement)
-	}
-	if summary.ActionEnablement.ResumeBlockedReason != nil {
-		t.Fatalf("expected no resume blocked reason, got %#v", summary.ActionEnablement.ResumeBlockedReason)
+	if summary.ActionEnablement.CanResume {
+		t.Fatalf("expected recoverable failed run to reject resume, got %#v", summary.ActionEnablement)
 	}
 	if !summary.ActionEnablement.CanRetry {
 		t.Fatalf("expected recoverable failed run to be retryable, got %#v", summary.ActionEnablement)
+	}
+}
+
+func TestTermTranslationPhaseServiceReadSummaryDisablesActionsForTerminalJob(t *testing.T) {
+	cases := []struct {
+		name  string
+		state string
+	}{
+		{name: "running", state: termTranslationPhaseStateRunning},
+		{name: "paused", state: termTranslationPhaseStatePaused},
+		{name: "recoverable_failed", state: termTranslationPhaseStateRecoverableFail},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+			finishedAt := time.Date(2026, 5, 1, 13, 0, 0, 0, time.UTC)
+			run := repository.JobPhaseRun{
+				ID:               370,
+				TranslationJobID: 1,
+				PhaseType:        termTranslationPhaseType,
+				State:            tc.state,
+				ProgressPercent:  50,
+			}
+			jobRepo.job.State = termTranslationJobStateCompleted
+			jobRepo.job.FinishedAt = &finishedAt
+			jobRepo.run = &run
+			jobRepo.phases = append(jobRepo.phases, run)
+
+			summary, err := service.ReadSummary(context.Background(), 1)
+			if err != nil {
+				t.Fatalf("expected terminal job summary success, got %v", err)
+			}
+			if summary.ActionEnablement.CanPause ||
+				summary.ActionEnablement.CanResume ||
+				summary.ActionEnablement.CanRetry {
+				t.Fatalf("expected terminal job actions disabled, got %#v", summary.ActionEnablement)
+			}
+		})
 	}
 }
 
@@ -767,6 +806,9 @@ func TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurr
 	}
 	if len(capturedSources) != 1 || capturedSources[0] != "Steel Sword" {
 		t.Fatalf("expected retry to translate only non-snapshot term, got %#v", capturedSources)
+	}
+	if len(jobRepo.updateExpectedState) == 0 || jobRepo.updateExpectedState[0] != termTranslationPhaseStateRecoverableFail {
+		t.Fatalf("expected retry to update from recoverable_failed state, got %#v", jobRepo.updateExpectedState)
 	}
 }
 
@@ -1011,6 +1053,120 @@ func TestTermTranslationPhaseServiceStartPhaseStopsBeforeProviderWhenPhasePromot
 		t.Fatalf("expected no provider request on phase promotion conflict, got %d", requestCount)
 	}
 	assertNoTermTranslationJobEntries(t, foundation)
+}
+
+func TestTermTranslationPhaseServiceResumePhasePromotesPausedRunWithExpectedState(t *testing.T) {
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{})
+	run := repository.JobPhaseRun{
+		ID:               262,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStatePaused,
+		ProgressPercent:  50,
+		ExecutionMode:    "sync",
+		AIProvider:       TermTranslationProviderGemini,
+		ModelName:        "gemini-2.5-pro",
+		CredentialRef:    "gemini-primary",
+	}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+
+	result, err := service.ResumePhase(context.Background(), 1, run.ID)
+	if err != nil {
+		t.Fatalf("expected resume success, got %v", err)
+	}
+	if result.PhaseRunID == nil || *result.PhaseRunID != run.ID {
+		t.Fatalf("expected same phase run id, got %#v", result.PhaseRunID)
+	}
+	if len(jobRepo.updateExpectedState) == 0 || jobRepo.updateExpectedState[0] != termTranslationPhaseStatePaused {
+		t.Fatalf("expected resume to update from paused state, got %#v", jobRepo.updateExpectedState)
+	}
+	if len(jobRepo.updatePhaseRunDraft) == 0 || jobRepo.updatePhaseRunDraft[0].State != termTranslationPhaseStateRunning {
+		t.Fatalf("expected resume to promote phase run to running, got %#v", jobRepo.updatePhaseRunDraft)
+	}
+}
+
+func TestTermTranslationPhaseServiceResumeAndRetryStopBeforeProviderWhenStatePromotionConflicts(t *testing.T) {
+	tests := []struct {
+		name          string
+		mode          termTranslationStartMode
+		runState      string
+		expectedState string
+	}{
+		{
+			name:          "resume",
+			mode:          termTranslationStartModeResume,
+			runState:      termTranslationPhaseStatePaused,
+			expectedState: termTranslationPhaseStatePaused,
+		},
+		{
+			name:          "retry",
+			mode:          termTranslationStartModeRetry,
+			runState:      termTranslationPhaseStateRecoverableFail,
+			expectedState: termTranslationPhaseStateRecoverableFail,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			requestCount := 0
+			service, jobRepo, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
+				translateFunc: func(_ context.Context, _ TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
+					requestCount++
+					return TermTranslationProviderResult{}, nil
+				},
+			})
+			run := repository.JobPhaseRun{
+				ID:               263,
+				TranslationJobID: 1,
+				PhaseType:        termTranslationPhaseType,
+				State:            tt.runState,
+				ExecutionMode:    "sync",
+				AIProvider:       TermTranslationProviderGemini,
+				ModelName:        "gemini-2.5-pro",
+				CredentialRef:    "gemini-primary",
+			}
+			jobRepo.run = &run
+			jobRepo.phases = append(jobRepo.phases, run)
+			jobRepo.updatePhaseRunErr = repository.ErrConflict
+			expectedStateLog := make([]string, 0)
+			jobRepo.expectedStateLog = &expectedStateLog
+
+			err := runTermTranslationResumeOrRetry(t, service, tt.mode, run.ID)
+
+			if !errors.Is(err, repository.ErrConflict) {
+				t.Fatalf("expected conflict error, got %v", err)
+			}
+			if requestCount != 0 {
+				t.Fatalf("expected no provider request on state promotion conflict, got %d", requestCount)
+			}
+			if len(expectedStateLog) == 0 || expectedStateLog[0] != tt.expectedState {
+				t.Fatalf("expected state %q, got %#v", tt.expectedState, expectedStateLog)
+			}
+			if jobRepo.run == nil || jobRepo.run.State == termTranslationPhaseStateRunning {
+				t.Fatalf("expected phase run to stay non-running, got %#v", jobRepo.run)
+			}
+		})
+	}
+}
+
+func runTermTranslationResumeOrRetry(
+	t *testing.T,
+	service *TermTranslationPhaseService,
+	mode termTranslationStartMode,
+	phaseRunID int64,
+) error {
+	t.Helper()
+	switch mode {
+	case termTranslationStartModeResume:
+		_, err := service.ResumePhase(context.Background(), 1, phaseRunID)
+		return err
+	case termTranslationStartModeRetry:
+		_, err := service.RetryPhase(context.Background(), 1, phaseRunID)
+		return err
+	default:
+		t.Fatalf("unexpected mode %q", mode)
+		return nil
+	}
 }
 
 func TestTermTranslationPhaseServiceResumePhaseRejectsNonResumableState(t *testing.T) {

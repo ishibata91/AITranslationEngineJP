@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"aitranslationenginejp/internal/service"
+	"aitranslationenginejp/internal/usecase/translationjobpolicy"
 )
 
 type termTranslationPhaseServicePort interface {
@@ -46,6 +47,9 @@ func (usecase *TermTranslationPhaseUsecase) StartTermTranslationPhase(
 	ctx context.Context,
 	request StartTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateTermPolicy(ctx, request.JobID, 0, translationjobpolicy.OperationStart); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.StartPhase(ctx, request.JobID)
 	logPhaseStateCommand(ctx, "term_translation_phase_start", termTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	if err != nil {
@@ -59,6 +63,9 @@ func (usecase *TermTranslationPhaseUsecase) PauseTermTranslationPhase(
 	ctx context.Context,
 	request PauseTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateTermPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationPause); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.PausePhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "term_translation_phase_pause", termTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -73,6 +80,9 @@ func (usecase *TermTranslationPhaseUsecase) ResumeTermTranslationPhase(
 	ctx context.Context,
 	request ResumeTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateTermPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationResume); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.ResumePhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "term_translation_phase_resume", termTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -87,6 +97,9 @@ func (usecase *TermTranslationPhaseUsecase) RetryTermTranslationPhase(
 	ctx context.Context,
 	request RetryTermTranslationPhaseRequest,
 ) (TermTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateTermPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationRetry); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.RetryPhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "term_translation_phase_retry", termTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, termTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -121,6 +134,122 @@ func termTranslationReadModelErrorReason(readModel *service.TermTranslationPhase
 		return ""
 	}
 	return readModel.ErrorKind
+}
+
+func (usecase *TermTranslationPhaseUsecase) evaluateTermPolicy(
+	ctx context.Context,
+	jobID int64,
+	phaseRunID int64,
+	operation translationjobpolicy.Operation,
+) (TermTranslationPhaseCommandResult, bool) {
+	summary, err := usecase.service.ReadSummary(ctx, jobID)
+	if err != nil {
+		return TermTranslationPhaseCommandResult{}, true
+	}
+	if termPolicySummaryMissing(summary) {
+		return TermTranslationPhaseCommandResult{}, true
+	}
+	decision := translationjobpolicy.Evaluate(translationjobpolicy.Input{
+		Operation:            operation,
+		JobState:             summary.JobState,
+		PhaseState:           summary.PhaseState,
+		PhaseRunExists:       termPolicyPhaseRunMatches(summary.PhaseRunID, phaseRunID, operation),
+		ActivePhaseRunExists: termPolicyActivePhaseRunExists(summary),
+		StartPrerequisiteMet: summary.ActionEnablement.CanStart,
+	})
+	if decision.Allowed {
+		return TermTranslationPhaseCommandResult{}, true
+	}
+	result := termCommandResultFromSummary(summary)
+	result.ErrorSummary = termPolicyErrorSummary(decision, summary, operation)
+	logPhasePolicyRejected(ctx, phasePolicyLogEvent("term_translation_phase", operation), termTranslationPhaseUsecaseLogWhere, jobID, phaseRunID, operation, result.ErrorSummary.Reason)
+	return result, false
+}
+
+func termPolicySummaryMissing(summary service.TermTranslationPhaseSummaryReadModel) bool {
+	return summary.JobID == 0 && summary.CurrentPhase == "" && summary.PhaseState == ""
+}
+
+func termPolicyPhaseRunMatches(phaseRunID *int64, requestedPhaseRunID int64, operation translationjobpolicy.Operation) bool {
+	if operation == translationjobpolicy.OperationStart {
+		return false
+	}
+	return phaseRunID != nil && *phaseRunID == requestedPhaseRunID
+}
+
+func termPolicyActivePhaseRunExists(summary service.TermTranslationPhaseSummaryReadModel) bool {
+	if summary.PhaseRunID == nil {
+		return false
+	}
+	switch summary.PhaseState {
+	case translationjobpolicy.PhaseStateRunning,
+		translationjobpolicy.PhaseStatePaused,
+		translationjobpolicy.PhaseStateRecoverableFailed:
+		return true
+	default:
+		return false
+	}
+}
+
+func termPolicyErrorSummary(
+	decision translationjobpolicy.Result,
+	summary service.TermTranslationPhaseSummaryReadModel,
+	operation translationjobpolicy.Operation,
+) *TermTranslationPhaseErrorSummary {
+	reason := termPolicyReason(decision, summary, operation)
+	return &TermTranslationPhaseErrorSummary{
+		ErrorKind:  termPolicyErrorKind(decision),
+		Reason:     reason,
+		Retryable:  false,
+		IsRedacted: false,
+	}
+}
+
+func termPolicyErrorKind(decision translationjobpolicy.Result) string {
+	switch decision.Reason {
+	case translationjobpolicy.ReasonTerminalJob:
+		return TermTranslationPhaseErrorKindTerminalJob
+	case translationjobpolicy.ReasonActivePhaseExists:
+		return TermTranslationPhaseErrorKindActivePhaseExists
+	case translationjobpolicy.ReasonStartPrerequisite:
+		return TermTranslationPhaseErrorKindReadyRequired
+	default:
+		return TermTranslationPhaseErrorKindTermPhaseIncomplete
+	}
+}
+
+func termPolicyReason(
+	decision translationjobpolicy.Result,
+	summary service.TermTranslationPhaseSummaryReadModel,
+	operation translationjobpolicy.Operation,
+) string {
+	switch operation {
+	case translationjobpolicy.OperationStart:
+		return stringFromPointer(summary.ActionEnablement.StartBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationPause:
+		return stringFromPointer(summary.ActionEnablement.PauseBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationResume:
+		return stringFromPointer(summary.ActionEnablement.ResumeBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationRetry:
+		return stringFromPointer(summary.ActionEnablement.RetryBlockedReason, string(decision.Reason))
+	default:
+		return string(decision.Reason)
+	}
+}
+
+func termCommandResultFromSummary(summary service.TermTranslationPhaseSummaryReadModel) TermTranslationPhaseCommandResult {
+	return TermTranslationPhaseCommandResult{
+		JobID:             summary.JobID,
+		CurrentPhase:      summary.CurrentPhase,
+		PhaseState:        summary.PhaseState,
+		PhaseRunID:        cloneInt64Pointer(summary.PhaseRunID),
+		StartedAt:         cloneTimePointer(summary.StartedAt),
+		FinishedAt:        cloneTimePointer(summary.FinishedAt),
+		Progress:          toTermTranslationPhaseProgressSummary(summary.Progress),
+		Retryable:         false,
+		CanStartNextPhase: summary.ActionEnablement.CanStartNextPhase,
+		ErrorSummary:      toTermTranslationPhaseErrorSummary(summary.ErrorSummary),
+	}
 }
 
 func toTermTranslationPhaseSummaryResult(

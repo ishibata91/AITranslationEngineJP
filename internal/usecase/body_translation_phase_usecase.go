@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"aitranslationenginejp/internal/service"
+	"aitranslationenginejp/internal/usecase/translationjobpolicy"
 )
 
 type bodyTranslationPhaseServicePort interface {
@@ -46,6 +47,9 @@ func (usecase *BodyTranslationPhaseUsecase) StartBodyTranslationPhase(
 	ctx context.Context,
 	request StartBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateBodyPolicy(ctx, request.JobID, 0, translationjobpolicy.OperationStart); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.StartPhase(ctx, request.JobID)
 	logPhaseStateCommand(ctx, "body_translation_phase_start", bodyTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toBodyTranslationPhaseCommandResult(readModel)
@@ -60,6 +64,9 @@ func (usecase *BodyTranslationPhaseUsecase) PauseBodyTranslationPhase(
 	ctx context.Context,
 	request PauseBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateBodyPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationPause); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.PausePhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "body_translation_phase_pause", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -75,6 +82,9 @@ func (usecase *BodyTranslationPhaseUsecase) ResumeBodyTranslationPhase(
 	ctx context.Context,
 	request ResumeBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateBodyPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationResume); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.ResumePhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "body_translation_phase_resume", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -90,6 +100,9 @@ func (usecase *BodyTranslationPhaseUsecase) RetryBodyTranslationPhase(
 	ctx context.Context,
 	request RetryBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateBodyPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationRetry); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.RetryPhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "body_translation_phase_retry", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -105,6 +118,9 @@ func (usecase *BodyTranslationPhaseUsecase) CancelBodyTranslationPhase(
 	ctx context.Context,
 	request CancelBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluateBodyPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationCancel); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.CancelPhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "body_translation_phase_cancel", bodyTranslationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, bodyTranslationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -151,6 +167,108 @@ func bodyTranslationReadModelErrorReason(readModel *service.BodyTranslationPhase
 		return ""
 	}
 	return readModel.ErrorKind
+}
+
+func (usecase *BodyTranslationPhaseUsecase) evaluateBodyPolicy(
+	ctx context.Context,
+	jobID int64,
+	phaseRunID int64,
+	operation translationjobpolicy.Operation,
+) (BodyTranslationPhaseCommandResult, bool) {
+	summary, err := usecase.service.ReadSummary(ctx, jobID)
+	if err != nil {
+		return BodyTranslationPhaseCommandResult{}, true
+	}
+	if bodyPolicySummaryMissing(summary) {
+		return BodyTranslationPhaseCommandResult{}, true
+	}
+	decision := translationjobpolicy.Evaluate(translationjobpolicy.Input{
+		Operation:            operation,
+		JobState:             summary.JobState,
+		PhaseState:           summary.PhaseState,
+		PhaseRunExists:       phasePolicyRunMatches(summary.PhaseRunID, phaseRunID, operation),
+		ActivePhaseRunExists: phasePolicyActivePhaseRunExists(summary.PhaseRunID, summary.PhaseState),
+		StartPrerequisiteMet: summary.ActionEnablement.CanStart,
+	})
+	if decision.Allowed {
+		return BodyTranslationPhaseCommandResult{}, true
+	}
+	result := bodyCommandResultFromSummary(summary)
+	result.ErrorSummary = bodyPolicyErrorSummary(decision, summary, operation)
+	logPhasePolicyRejected(ctx, phasePolicyLogEvent("body_translation_phase", operation), bodyTranslationPhaseUsecaseLogWhere, jobID, phaseRunID, operation, result.ErrorSummary.Reason)
+	return result, false
+}
+
+func bodyPolicySummaryMissing(summary service.BodyTranslationPhaseSummaryReadModel) bool {
+	return summary.JobID == 0 && summary.CurrentPhase == "" && summary.PhaseState == ""
+}
+
+func bodyPolicyErrorSummary(
+	decision translationjobpolicy.Result,
+	summary service.BodyTranslationPhaseSummaryReadModel,
+	operation translationjobpolicy.Operation,
+) *BodyTranslationPhaseErrorSummary {
+	return &BodyTranslationPhaseErrorSummary{
+		ErrorKind:  BodyTranslationPhaseErrorKind(bodyPolicyErrorKind(decision)),
+		Reason:     bodyPolicyReason(decision, summary, operation),
+		Retryable:  false,
+		IsRedacted: false,
+	}
+}
+
+func bodyPolicyErrorKind(decision translationjobpolicy.Result) string {
+	switch decision.Reason {
+	case translationjobpolicy.ReasonTerminalJob:
+		return string(BodyTranslationPhaseErrorKindTerminalJob)
+	case translationjobpolicy.ReasonActivePhaseExists:
+		return string(BodyTranslationPhaseErrorKindActivePhaseExists)
+	case translationjobpolicy.ReasonStartPrerequisite:
+		return string(BodyTranslationPhaseErrorKindPersonaPhaseIncomplete)
+	default:
+		return string(BodyTranslationPhaseErrorKindPersonaPhaseIncomplete)
+	}
+}
+
+func bodyPolicyReason(
+	decision translationjobpolicy.Result,
+	summary service.BodyTranslationPhaseSummaryReadModel,
+	operation translationjobpolicy.Operation,
+) string {
+	switch operation {
+	case translationjobpolicy.OperationStart:
+		return stringFromPointer(summary.ActionEnablement.StartBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationPause:
+		return stringFromPointer(summary.ActionEnablement.PauseBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationResume:
+		return stringFromPointer(summary.ActionEnablement.ResumeBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationRetry:
+		return stringFromPointer(summary.ActionEnablement.RetryBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationCancel:
+		return stringFromPointer(summary.ActionEnablement.CancelBlockedReason, string(decision.Reason))
+	default:
+		return string(decision.Reason)
+	}
+}
+
+func bodyCommandResultFromSummary(summary service.BodyTranslationPhaseSummaryReadModel) BodyTranslationPhaseCommandResult {
+	return BodyTranslationPhaseCommandResult{
+		JobID:              summary.JobID,
+		CurrentPhase:       summary.CurrentPhase,
+		PhaseState:         summary.PhaseState,
+		PhaseRunID:         cloneInt64Pointer(summary.PhaseRunID),
+		StartedAt:          cloneTimePointer(summary.StartedAt),
+		FinishedAt:         cloneTimePointer(summary.FinishedAt),
+		Progress:           toBodyTranslationPhaseProgressSummary(summary.Progress),
+		InputSummary:       toBodyTranslationPhaseInputSummary(summary.InputSummary),
+		RequestSummary:     toBodyTranslationPhaseRequestSummary(summary.RequestSummary),
+		Execution:          toBodyTranslationPhaseExecutionSummary(summary.Execution),
+		FieldResultSummary: toOptionalBodyTranslationFieldResultSummary(summary.FieldResultSummary),
+		ResultSummary:      toOptionalBodyTranslationFieldResultSummary(summary.ResultSummary),
+		FieldResults:       toBodyTranslationFieldResultItems(summary.FieldResults),
+		Retryable:          false,
+		OutputReadiness:    toBodyTranslationOutputReadinessSummary(summary.OutputReadiness),
+		ErrorSummary:       toOptionalBodyTranslationErrorSummary(summary.ErrorSummary),
+	}
 }
 
 func toBodyTranslationPhaseSummaryResult(

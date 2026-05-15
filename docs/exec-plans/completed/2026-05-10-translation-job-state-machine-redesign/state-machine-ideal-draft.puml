@@ -1,0 +1,139 @@
+@startuml
+title 理想案: 状態機械を分け、操作可否は共通規則に寄せる
+
+left to right direction
+skinparam shadowing false
+skinparam state {
+  BackgroundColor White
+  BorderColor #555555
+  FontColor #222222
+}
+skinparam note {
+  BackgroundColor #eaf7ff
+  BorderColor #2c7fb8
+}
+
+state "TRANSLATION_JOB.state\nジョブ全体のライフサイクル" as JobState {
+  state "実行前\nready" as JobReady #e9f7ef
+  state "実行中\nrunning" as JobRunning
+  state "停止中\npaused" as JobPaused
+  state "回復待ち\nrecoverable_failed" as JobRecoverableFailed
+  state "完了\ncompleted" as JobCompleted
+  state "回復不能失敗\nfailed" as JobFailed
+  state "取り消し済み\ncanceled" as JobCanceled
+
+  [*] --> JobReady : ジョブ作成 / ready 保存
+  JobReady --> JobRunning : 開始要求 [共通規則OK、phase開始前提OK] / running 保存
+  JobRunning --> JobPaused : 中断要求 [共通規則OK] / paused 保存
+  JobPaused --> JobRunning : 再開要求 [共通規則OK] / running 保存
+  JobRunning --> JobRecoverableFailed : 失敗通知 [現在フェーズが回復可能失敗] / recoverable_failed 保存
+  JobRecoverableFailed --> JobRunning : 再試行要求 [共通規則OK] / running 保存
+  JobRunning --> JobCompleted : 完了通知 [最終フェーズ完了、出力可能] / completed 保存
+  JobRunning --> JobFailed : 失敗通知 [回復不能] / failed 保存
+  JobReady --> JobCanceled : 取り消し要求 / canceled 保存
+  JobPaused --> JobCanceled : 取り消し要求 / canceled 保存
+  JobCompleted --> [*]
+  JobFailed --> [*]
+  JobCanceled --> [*]
+
+  JobReady : 表示要求 / 実行入口を返す
+  JobReady : 開始要求 / 開始判定へ渡す
+  JobRunning : 表示要求 / 現在フェーズ要約を参照して返す
+  JobPaused : 表示要求 / 再開可否を返す
+  JobRecoverableFailed : 表示要求 / 再試行可否を返す
+}
+
+state "JOB_PHASE_RUN.state\n1フェーズ実行のライフサイクル" as PhaseRunState {
+  state "実行中\nrunning" as PhaseRunning
+  state "中断中\npaused" as PhasePaused
+  state "回復可能失敗\nrecoverable_failed" as PhaseRecoverableFailed
+  state "完了\ncompleted" as PhaseCompleted
+  state "回復不能失敗\nfailed" as PhaseFailed
+  state "取り消し済み\ncanceled" as PhaseCanceled
+
+  [*] --> PhaseRunning : 開始要求 [共通規則OK、phase開始前提OK] / フェーズ実行を作成
+  PhaseRunning --> PhasePaused : 中断要求 [共通規則OK] / paused 保存
+  PhasePaused --> PhaseRunning : 再開要求 [共通規則OK] / running 保存
+  PhaseRunning --> PhaseRecoverableFailed : 失敗通知 [再試行可能] / エラー要約保存
+  PhaseRecoverableFailed --> PhaseRunning : 再試行要求 [共通規則OK] / 同じ JOB_PHASE_RUN を継続
+  PhaseRunning --> PhaseCompleted : 完了通知 [フェーズ結果整合] / completed 保存
+  PhaseRunning --> PhaseFailed : 失敗通知 [回復不能] / failed 保存
+  PhasePaused --> PhaseCanceled : 取り消し要求 / canceled 保存
+  PhaseCompleted --> [*]
+  PhaseFailed --> [*]
+  PhaseCanceled --> [*]
+
+  PhaseRunning : entry / 開始時刻と対象フェーズを固定する
+  PhaseRunning : do / プロバイダー実行はサービスが担当する
+  PhaseRunning : 表示要求 / 進捗表示用モデルを返す
+  PhasePaused : 表示要求 / 状態を変えず再開可否を返す
+  PhaseRecoverableFailed : 表示要求 / 再試行可能理由を返す
+}
+
+state "ページ要求" as PageEvent {
+  state "大枠画面要求\n一覧、導線、ジョブ全体表示" as JobPageRequest
+  state "フェーズ画面要求\n対象フェーズ操作可否" as PhasePageRequest
+  state "表示要求" as ViewRequest
+  state "開始要求" as StartRequest
+  state "中断要求" as PauseRequest
+  state "再開要求" as ResumeRequest
+  state "再試行要求" as RetryRequest
+  state "取り消し要求" as CancelRequest
+}
+
+state "translationjobpolicy\n共通操作規則" as CommonRules #dff0d8 {
+  state "pause\nphase=running" as RulePause
+  state "resume\nphase=paused" as RuleResume
+  state "retry\nphase=recoverable_failed" as RuleRetry
+  state "cancel\njob=ready または phase=paused" as RuleCancel
+  state "terminal guard\n終端状態なら変更拒否" as RuleTerminal
+  state "active guard\nactive phase run があれば新規作成拒否" as RuleActive
+}
+
+state "phase 別開始前提\nstart の時だけ参照" as PhasePrerequisites #fcf8e3 {
+  state "term\n入力データと辞書対象あり" as TermPrereq
+  state "persona\nterm 完了結果あり" as PersonaPrereq
+  state "body\npersona snapshot と field 対象あり" as BodyPrereq
+}
+
+JobPageRequest --> JobState : 大枠要求\nTRANSLATION_JOB.state を読む
+PhasePageRequest --> PhaseRunState : フェーズ要求\n対象 JOB_PHASE_RUN.state を読む
+PhaseRunState --> JobState : ジョブ全体の更新が必要な時だけ\nTRANSLATION_JOB.state 作用を返す
+PageEvent --> CommonRules : 要求イベントを評価
+CommonRules --> PhasePrerequisites : start の時だけ\n対象 phase 前提を評価
+CommonRules --> JobState : job state 作用
+CommonRules --> PhaseRunState : phase run state 作用
+
+JobReady -[#blue,dashed]-> PhaseRunState : ready ではフェーズ実行を事前作成しない
+JobRunning -[#blue,dashed]-> PhaseRunning : 現在フェーズが running
+JobPaused -[#blue,dashed]-> PhasePaused : 現在フェーズが paused
+JobRecoverableFailed -[#blue,dashed]-> PhaseRecoverableFailed : 現在フェーズが recoverable_failed
+
+note bottom of JobState
+  TRANSLATION_JOB.state はジョブ全体のライフサイクルを表す。
+  大枠画面は一覧、導線、ジョブ全体表示でこの状態を読む。
+end note
+
+note bottom of PhaseRunState
+  JOB_PHASE_RUN.state は 1 フェーズ実行の状態を表す。
+  各フェーズ画面は操作可否でこの状態を読む。
+  再試行と再開は同じ JOB_PHASE_RUN を継続する。
+end note
+
+note bottom of CommonRules
+  retry、resume、pause、cancel の可否は phase type で分けない。
+  state と要求イベントと guard で決める。
+end note
+
+note bottom of PhasePrerequisites
+  phase type で分ける対象は start 前提だけである。
+  完了判定と service method 選択も phase type を使うが、操作可否 ruleset ではない。
+end note
+
+note bottom of PageEvent
+  ページは状態値を指定しない。
+  ページは要求イベントだけを送る。
+  translationjobpolicy が共通操作規則から作用を決める。
+end note
+
+@enduml

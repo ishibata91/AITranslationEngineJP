@@ -1,0 +1,79 @@
+@startuml
+title 実装予定: 共通操作規則を先に評価し start だけ phase 前提を見る
+
+skinparam shadowing false
+skinparam sequence {
+  ArrowColor #444444
+  LifeLineBorderColor #777777
+  LifeLineBackgroundColor #f8f8f8
+}
+skinparam note {
+  BackgroundColor #eaf7ff
+  BorderColor #2c7fb8
+}
+
+actor "画面" as UI
+participant "Backend UseCase" as UseCase
+participant "JobIOService" as JobIO
+participant "translationjobpolicy.Policy" as Policy
+participant "OperationRuleCatalog\n共通操作規則" as OperationRuleCatalog
+participant "PhasePrerequisiteCatalog\nstart 専用" as PhasePrerequisiteCatalog
+participant "ServiceCommandMap" as ServiceCommandMap
+participant "Phase Service\nterm / persona / body" as PhaseService
+database "TRANSLATION_JOB\nJOB_PHASE_RUN" as DB
+
+UI -> UseCase : 要求イベント\nstart / pause / resume / retry / cancel
+UseCase -> JobIO : LoadTransitionSnapshot(jobID, targetPhase)
+JobIO -> DB : job と phase run を読む
+DB --> JobIO : 永続化状態
+JobIO --> UseCase : PolicyInput の材料
+
+UseCase -> Policy : Evaluate(PolicyInput)
+Policy -> OperationRuleCatalog : state + event + guard で共通規則を評価
+OperationRuleCatalog --> Policy : common allowed / rejected
+
+alt common rejected
+  Policy --> UseCase : PolicyResult rejected
+else common allowed
+  opt event == start
+    Policy -> PhasePrerequisiteCatalog : target phase の開始前提を評価
+    PhasePrerequisiteCatalog --> Policy : prerequisite allowed / rejected
+  end
+  opt allowed
+    Policy -> ServiceCommandMap : event + target phase から service method を選ぶ
+    ServiceCommandMap --> Policy : ServiceCommand
+  end
+  Policy --> UseCase : PolicyResult
+end
+
+alt rejected
+  UseCase --> UI : 拒否理由と disabled reason
+else allowed
+  UseCase -> PhaseService : PolicyResult.ServiceCommand に対応する実処理
+  PhaseService --> UseCase : 実処理結果
+  UseCase -> JobIO : ApplyStateChanges(確定済み状態事実)
+  JobIO -> DB : job / phase run 状態だけ保存
+  DB --> JobIO : 保存結果
+  UseCase --> UI : 更新後 view model
+end
+
+note right of Policy
+  Policy は Service を呼ばない。
+  Policy は DB を読まない。
+  Policy は runtime event を出さない。
+  PolicyResult は永続化しない。
+  retry / resume / pause / cancel を phase type で分けない。
+end note
+
+note right of UseCase
+  UseCase だけが Policy を呼ぶ。
+  UseCase は PolicyResult に従って Service と保存順序を決める。
+  UseCase は保存直前に確定済み状態事実へ変換する。
+end note
+
+note right of JobIO
+  JobIOService は policy の rule 名や判定履歴を保存しない。
+  JobIOService は確定済み状態事実だけを保存する。
+end note
+
+@enduml

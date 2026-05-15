@@ -1,0 +1,216 @@
+reviewback_version: 1
+task_id: "2026-05-10-translation-job-state-machine-redesign"
+review_yaml_path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。再実行 3 では、単語翻訳 phase の resume は paused の phase run だけを running へ昇格し、retry は recoverable_failed の phase run だけを running へ昇格する。RecoverableFailed の resume は共通 policy と Service guard の両方で拒否され、retry だけが許可される。terminal job は read model の操作可否と実処理 guard の両方で状態変更操作を拒否する。provider request は expected state conflict の後に発生しない。"
+  evidence_sufficiency: "十分。review-rerun3-input、backend-review-fix3-result、final-validation、review-rerun3-input が列挙した変更ファイルの実コードと対象 test を確認した。skill 規約に従いハーネスは実行していない。"
+
+checked_scope:
+  summary: "review-rerun3-input の変更ファイルだけを対象に、共通 policy、3 phase の UseCase preflight、単語翻訳 phase の read model と Service 実処理経路、terminal job guard、expected state conflict 後の provider 非到達 test を確認した。"
+  files:
+    - path: "internal/usecase/translationjobpolicy/policy.go"
+      line: 68
+      symbol: "Evaluate"
+      reason: "terminal job を先に拒否し、resume は paused、retry は recoverable_failed だけを許可する共通操作規則を確認した。"
+    - path: "internal/usecase/phase_policy_helpers.go"
+      line: 10
+      symbol: "phasePolicyRunMatches"
+      reason: "start 以外の操作では要求 phase run id と read model の phase run id が一致する場合だけ policy 入力が許可側へ進むことを確認した。"
+    - path: "internal/usecase/term_translation_phase_usecase.go"
+      line: 139
+      symbol: "evaluateTermPolicy"
+      reason: "単語翻訳 phase の UseCase preflight が read model summary を共通 policy 入力へ渡し、拒否時は Service の実行へ進まないことを確認した。"
+    - path: "internal/usecase/body_translation_phase_usecase.go"
+      line: 172
+      symbol: "evaluateBodyPolicy"
+      reason: "本文翻訳 phase の UseCase preflight が同じ共通 policy を使う比較対象として確認した。"
+    - path: "internal/usecase/persona_generation_phase_usecase.go"
+      line: 168
+      symbol: "evaluatePersonaPolicy"
+      reason: "ペルソナ生成 phase の UseCase preflight が同じ共通 policy を使う比較対象として確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 348
+      symbol: "ReadSummary"
+      reason: "単語翻訳 phase の read model が terminal job で pause、resume、retry を false にし、recoverable_failed で resume=false、retry=true にすることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 589
+      symbol: "prepareExecutionPlan"
+      reason: "単語翻訳 phase の実処理 guard が terminal job を execution plan 作成時に拒否することを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 779
+      symbol: "rejectResumeExecutionPlan"
+      reason: "単語翻訳 phase の resume が paused 以外を拒否し、recoverable_failed resume を provider 実行前に止めることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 793
+      symbol: "rejectRetryExecutionPlan"
+      reason: "単語翻訳 phase の retry が recoverable_failed 以外を拒否することを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 955
+      symbol: "applyExecutionPlan"
+      reason: "単語翻訳 phase が provider request 前に resume/retry の phase run 昇格を完了し、昇格 error 時は provider 経路へ進まないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1113
+      symbol: "resumeExecutionPlanRun"
+      reason: "resume は expected state paused、retry は expected state recoverable_failed を渡すことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1139
+      symbol: "updateExecutionPlanRunState"
+      reason: "単語翻訳 phase の resume/retry 昇格が UpdateJobPhaseRunWhenState で条件付き更新されることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1179
+      symbol: "buildActionEnablement"
+      reason: "本文翻訳 phase の read model が terminal job で状態変更操作を false にすることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1412
+      symbol: "validateBodyTranslationRunStateTransition"
+      reason: "本文翻訳 phase の実処理 guard が terminal job と required state 不一致を mutation 前に拒否することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1179
+      symbol: "buildActionEnablement"
+      reason: "ペルソナ生成 phase の read model が terminal job で状態変更操作を false にする比較対象として確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 550
+      symbol: "TestTermTranslationPhaseServiceReadSummaryRejectsResumeAndAllowsRetryForRecoverableFailedRun"
+      reason: "単語翻訳 phase の RecoverableFailed summary が resume を拒否し retry を許可する test を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 576
+      symbol: "TestTermTranslationPhaseServiceReadSummaryDisablesActionsForTerminalJob"
+      reason: "単語翻訳 phase の terminal job summary 操作不可 test を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1058
+      symbol: "TestTermTranslationPhaseServiceResumePhasePromotesPausedRunWithExpectedState"
+      reason: "単語翻訳 phase の resume 成功時に expected state paused が渡る test を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1089
+      symbol: "TestTermTranslationPhaseServiceResumeAndRetryStopBeforeProviderWhenStatePromotionConflicts"
+      reason: "単語翻訳 phase の resume/retry が expected state conflict 時に provider request を発生させず、phase run を running にしない test を確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 813
+      symbol: "TestBodyTranslationPhaseServiceRejectsTerminalJobTransitionWithoutMutation"
+      reason: "本文翻訳 phase の terminal job 実処理拒否 test を確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 839
+      symbol: "TestBodyTranslationPhaseServiceReadSummaryDisablesActionsForTerminalJob"
+      reason: "本文翻訳 phase の terminal job summary 操作不可 test を確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 713
+      symbol: "TestPersonaGenerationPhaseService_RetryRejectsTerminalJobWithoutMutation"
+      reason: "ペルソナ生成 phase の terminal job retry 拒否 test を確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 192
+      symbol: "TestSCN_TJSM_003_ResumeRecoverableFailedIsRejectedWithoutMutation"
+      reason: "公開 API 経路で RecoverableFailed resume が拒否され、mutation しない test を確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 376
+      symbol: "TestSCN_TJSM_008_TerminalJobRejectsStartWithoutCreatingPhaseRun"
+      reason: "公開 API 経路で terminal job start が拒否され、新規 phase run を作らない test を確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 396
+      symbol: "TestSCN_TJSM_008_TerminalJobRejectsCancelWithoutStateMutation"
+      reason: "公開 API 経路で terminal job cancel が拒否され、状態 mutation しない test を確認した。"
+    - path: ".go-arch-lint.yml"
+      line: 8
+      symbol: "translationjobpolicy"
+      reason: "挙動主判定ではないが、review-rerun3-input の変更ファイルとして、共通 policy を usecase 層の依存として扱う設定差分を確認した。"
+
+unchecked_scope:
+  - target: "system test"
+    reason: "final-validation で未実行と記録されている。skill 規約に従いハーネスは実行していない。"
+    risk: "frontend 表示が read model の操作可否をそのまま表示へ反映する統合経路は、今回の挙動レビューでは backend-local と coverage の証跡に依存する。"
+  - target: "docs 正本差分"
+    reason: "人間指示と review-rerun3-input で対象外と明示されている。"
+    risk: "挙動正しさレビューの判定には含めない。"
+  - target: "2026-05-13-notification-module-dependency-separation"
+    reason: "人間指示と review-rerun3-input で対象外と明示されている。"
+    risk: "挙動正しさレビューの判定には含めない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "本文翻訳 read model が recoverable_failed の resume を許可表示する"
+    problem: "初回レビュー時は、本文翻訳 phase の read model が recoverable_failed の phase run に対して CanResume を true にしていた。再実行 3 時点では、recoverable_failed は CanResume=false、CanRetry=true になっている。"
+    reason: "再実行 3 時点の実コードでは、本文翻訳 read model、共通 policy、公開 API 経路が recoverable_failed の resume を拒否し、retry だけを許可する。"
+    violated_condition: "resume は paused の JOB_PHASE_RUN.state だけに許可し、RecoverableFailed の resume は拒否する。"
+    cause_candidate: "修正後の internal/service/body_translation_phase_service.go:1194 は paused だけを resume 可能にし、internal/service/body_translation_phase_service.go:1200 は recoverable_failed だけを retry 可能にしている。internal/usecase/translationjobpolicy/policy.go:77 も同じ条件を使う。"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1194
+        excerpt: "本文翻訳 phase の buildActionEnablement は state が paused でない場合に CanResume を true にしない。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1200
+        excerpt: "本文翻訳 phase の buildActionEnablement は state が recoverable_failed の場合だけ CanRetry を true にする。"
+      - path: "internal/usecase/translationjobpolicy/policy.go"
+        line: 77
+        excerpt: "共通 policy は OperationResume を PhaseStatePaused だけに許可し、OperationRetry を PhaseStateRecoverableFailed だけに許可する。"
+      - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+        line: 192
+        excerpt: "公開 API 経路で RecoverableFailed resume の拒否と非 mutation を確認している。"
+    local_fix_assessment: "resolved。本文翻訳 read model と共通 policy の局所修正で閉じている。"
+    additional_check_scope: "none。再実行 3 対象内で read model、policy、公開 API 経路を確認した。"
+    fix_considerations: "解決済みである。非 terminal job の running pause、paused resume/cancel、recoverable_failed retry は維持されている。"
+    verification: "final-validation で backend-local と coverage は pass と記録されている。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "behavior-002"
+    level: "major"
+    title: "単語翻訳 Service の pause guard が terminal job を拒否しない"
+    problem: "初回レビュー時は、単語翻訳 phase の PausePhase が terminal job を拒否せず、run が running なら phase run と job を更新できた。再実行 3 時点では、terminal job 判定が phase state 判定と update より前に置かれている。"
+    reason: "再実行 3 時点の実コードでは、単語翻訳 Service の pause 実処理 guard が terminal job を mutation 前に拒否する。"
+    violated_condition: "terminal job では状態変更操作を拒否する。Service は実処理側の guard を共通操作規則と同じ結果へ揃える。"
+    cause_candidate: "修正後の internal/service/term_translation_phase_service.go:407 は terminal job を先に判定し、internal/service/term_translation_phase_service.go:428 以降の update へ進ませない。"
+    evidence:
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 407
+        excerpt: "PausePhase は job と run を読み込んだ後、run state 判定と update より前に terminal job を拒否する。"
+      - path: "internal/usecase/translationjobpolicy/policy.go"
+        line: 69
+        excerpt: "共通 policy は terminal job を状態変更操作の前に拒否する。"
+    local_fix_assessment: "resolved。単語翻訳 Service の局所修正で閉じている。"
+    additional_check_scope: "none。再実行 3 対象内で Service guard と共通 policy の該当経路を確認した。"
+    fix_considerations: "解決済みである。"
+    verification: "final-validation で backend-local と coverage は pass と記録されている。"
+    fix_required: true
+    status: "resolved"
+
+  - id: "behavior-003"
+    level: "major"
+    title: "terminal job の read model が操作可能表示を返す"
+    problem: "前回レビュー時は、本文翻訳と単語翻訳の read model が terminal job でも phase run state だけを見て CanPause、CanResume、CanRetry、CanCancel を true にできた。再実行 3 時点では、本文翻訳 phase と単語翻訳 phase の terminal job summary は状態変更操作の可否を false にする。"
+    reason: "本文翻訳 phase の buildActionEnablement は terminal job 判定で pause、resume、retry、cancel を有効化せずに返る。単語翻訳 phase の ReadSummary は isTerminalJob を canPause、canResume、canRetry の前提にしている。Service 実処理 guard も terminal job を mutation 前または execution 前に拒否するため、read model 表示値と実処理 guard の矛盾は解消している。"
+    violated_condition: "terminal job では状態変更操作を拒否する。Service は read model の操作可否と実処理側 guard を同じ規則へ揃える。"
+    cause_candidate: "修正後の internal/service/body_translation_phase_service.go:1179 は terminal job の場合に blocked reason を設定して return する。修正後の internal/service/term_translation_phase_service.go:349 は terminal job 判定を操作可否の前提に入れている。"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1179
+        excerpt: "本文翻訳 buildActionEnablement は terminal job の場合に pause、resume、retry、cancel の blocked reason を terminal_job にして返る。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 349
+        excerpt: "単語翻訳 ReadSummary は terminal job の場合に CanPause、CanResume、CanRetry を true にしない。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1426
+        excerpt: "本文翻訳 Service 実処理 guard は terminal job の state transition を拒否する。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 407
+        excerpt: "単語翻訳 Service pause guard は terminal job を update 前に拒否する。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 600
+        excerpt: "単語翻訳 Service resume/retry guard は terminal job を execution 前に拒否する。"
+      - path: "internal/service/body_translation_phase_service_test.go"
+        line: 839
+        excerpt: "本文翻訳 summary test は terminal job で状態変更操作が false になることを確認する。"
+      - path: "internal/service/term_translation_phase_service_test.go"
+        line: 576
+        excerpt: "単語翻訳 summary test は terminal job で状態変更操作が false になることを確認する。"
+    local_fix_assessment: "resolved。本文翻訳と単語翻訳の read model 局所修正で閉じている。"
+    additional_check_scope: "none。再実行 3 対象内で read model、Service guard、追加 test を確認した。"
+    fix_considerations: "解決済みである。"
+    verification: "final-validation で backend-local と coverage は pass と記録されている。"
+    fix_required: true
+    status: "resolved"

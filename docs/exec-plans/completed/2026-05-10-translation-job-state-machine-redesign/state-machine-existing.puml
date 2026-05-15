@@ -1,0 +1,104 @@
+@startuml
+title 既存問題: JOB.state と JOB_PHASE_RUN.state が分離されていない
+
+left to right direction
+skinparam shadowing false
+skinparam state {
+  BackgroundColor White
+  BorderColor #555555
+  FontColor #222222
+}
+skinparam note {
+  BackgroundColor #fff7d6
+  BorderColor #b39b00
+}
+
+state "TRANSLATION_JOB.state\n外側のジョブ状態" as JobState {
+  state "実行前\nready" as JobReady
+  state "実行中\nrunning" as JobRunning
+  state "中断中\npaused" as JobPaused
+  state "回復可能失敗\nrecoverable_failed" as JobRecoverableFailed
+  state "完了\ncompleted" as JobCompleted
+  state "回復不能失敗\nfailed" as JobFailed
+  state "取り消し済み\ncanceled" as JobCanceled
+
+  [*] --> JobReady : ジョブ作成
+  JobReady --> JobRunning : 開始処理がジョブも更新
+  JobRunning --> JobPaused : 中断処理がジョブも更新
+  JobPaused --> JobRunning : 再開処理がジョブも更新
+  JobRunning --> JobRecoverableFailed : 失敗処理がジョブも更新
+  JobRecoverableFailed --> JobRunning : 回復処理がジョブも更新
+  JobRecoverableFailed --> JobReady : 再実行準備として戻す経路がある
+  JobRunning --> JobCompleted : 全体完了
+  JobRunning --> JobFailed : 回復不能失敗
+  JobReady --> JobCanceled : 取り消し
+  JobPaused --> JobCanceled : 取り消し
+  JobCompleted --> [*]
+  JobFailed --> [*]
+  JobCanceled --> [*]
+
+  JobReady : 表示要求 / 実行入口を返す
+  JobRunning : 表示要求 / 現在フェーズも読んで返す
+  JobPaused : 表示要求 / 再開入口を返す
+  JobRecoverableFailed : 表示要求 / 回復入口を返す
+}
+
+state "JOB_PHASE_RUN.state\n内側のフェーズ実行状態" as PhaseRunState {
+  state "開始待ち\npending" as PhasePending #fff0d9
+  state "実行中\nrunning" as PhaseRunning
+  state "中断中\npaused" as PhasePaused
+  state "回復可能失敗\nrecoverable_failed" as PhaseRecoverableFailed
+  state "完了\ncompleted" as PhaseCompleted
+  state "回復不能失敗\nfailed" as PhaseFailed
+  state "取り消し済み\ncanceled" as PhaseCanceled
+
+  [*] --> PhasePending : ジョブ作成時に事前作成される
+  PhasePending --> PhaseRunning : 開始処理
+  PhaseRunning --> PhasePaused : 中断処理
+  PhasePaused --> PhaseRunning : 再開処理
+  PhaseRunning --> PhaseRecoverableFailed : 再試行可能失敗
+  PhaseRecoverableFailed --> PhaseRunning : 再試行または再開
+  PhaseRunning --> PhaseCompleted : フェーズ完了
+  PhaseRunning --> PhaseFailed : 回復不能失敗
+  PhasePaused --> PhaseCanceled : 取り消し
+  PhaseCompleted --> [*]
+  PhaseFailed --> [*]
+  PhaseCanceled --> [*]
+
+  PhasePending : 表示要求 / 開始待ちか実行中相当かを処理側が再解釈する
+  PhaseRunning : do / プロバイダー実行と進捗保存をサービスが行う
+  PhaseRecoverableFailed : 表示要求 / 再試行入口または再開入口を処理側が選ぶ
+}
+
+state "ページ要求" as PageEvent {
+  state "表示要求" as ViewRequest
+  state "開始要求" as StartRequest
+  state "削除要求" as DeleteRequest
+  state "再開要求" as ResumeRequest
+  state "再試行要求" as RetryRequest
+  state "取り消し要求" as CancelRequest
+}
+
+PageEvent --> JobState : ジョブ要約を要求
+PageEvent --> PhaseRunState : フェーズ要約も要求
+
+JobReady -[#red,dashed]-> PhasePending : 同じジョブが\nready と pending を同時保持
+JobRunning -[#red,dashed]-> PhaseRunning : 二重更新が必要
+JobPaused -[#red,dashed]-> PhasePaused : 二重更新が必要
+JobRecoverableFailed -[#red,dashed]-> PhaseRecoverableFailed : 二重更新が必要
+
+note bottom of JobReady
+  問題:
+  ready は外側のジョブ状態である。
+  しかし pending のフェーズ実行が同時にあるため、
+  実行前なのか開始待ちなのかが混ざる。
+end note
+
+note bottom of PageEvent
+  問題:
+  ページ要求がジョブ状態とフェーズ実行状態の
+  両方を直接読ませている。
+  そのため、どちらが操作可否の正本かが曖昧になる。
+end note
+
+@enduml

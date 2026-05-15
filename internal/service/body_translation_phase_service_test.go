@@ -836,6 +836,43 @@ func TestBodyTranslationPhaseServiceRejectsTerminalJobTransitionWithoutMutation(
 	}
 }
 
+func TestBodyTranslationPhaseServiceReadSummaryDisablesActionsForTerminalJob(t *testing.T) {
+	cases := []struct {
+		name  string
+		state string
+	}{
+		{name: "running", state: bodyTranslationPhaseStateRunning},
+		{name: "paused", state: bodyTranslationPhaseStatePaused},
+		{name: "recoverable_failed", state: bodyTranslationPhaseStateRecoverableFail},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			service, jobRepo, _ := newBodyTranslationPhaseServiceForTest(nil)
+			finishedAt := time.Date(2026, 5, 3, 11, 0, 0, 0, time.UTC)
+			jobRepo.job.State = bodyTranslationJobStateCompleted
+			jobRepo.job.FinishedAt = &finishedAt
+			jobRepo.runsByPhaseType[bodyTranslationPhaseType] = repository.JobPhaseRun{
+				ID:               230,
+				TranslationJobID: 1,
+				PhaseType:        bodyTranslationPhaseType,
+				State:            tc.state,
+				ProgressPercent:  50,
+			}
+
+			summary, err := service.ReadSummary(context.Background(), 1)
+			if err != nil {
+				t.Fatalf("expected terminal job summary success, got %v", err)
+			}
+			if summary.ActionEnablement.CanPause ||
+				summary.ActionEnablement.CanResume ||
+				summary.ActionEnablement.CanRetry ||
+				summary.ActionEnablement.CanCancel {
+				t.Fatalf("expected terminal job actions disabled, got %#v", summary.ActionEnablement)
+			}
+		})
+	}
+}
+
 func assertBodyPhaseStartPhaseState(t *testing.T, result BodyTranslationPhaseCommandReadModel) {
 	t.Helper()
 	if result.PhaseState != bodyTranslationPhaseStateRunning && result.PhaseState != bodyTranslationPhaseStateCompleted {

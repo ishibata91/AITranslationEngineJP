@@ -2,8 +2,8 @@
 
 - `upper_scenario_id`: `persona-generation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/persona-generation-phase/scenario-design.md`
+- `source_plan`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `scenario_source`: `docs/exec-plans/completed/persona-generation-phase/scenario-design.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/persona-generation-phase/ui-design.md`
 - `implementation_source`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_source`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
@@ -26,6 +26,9 @@ provider 失敗、入力不備、保存失敗、partial state は successful Com
 ## 仕様
 
 - 生成対象 summary は、NPC count、入力種類、対象件数、common persona hit / miss、対象外理由を含む。
+- NPC ペルソナ生成フェーズ開始が許可された時だけ、NPC ペルソナ生成用の `JOB_PHASE_RUN` を作成する。
+- 操作可否は `JOB_PHASE_RUN.state` と共通操作規則から決める。
+- NPC ペルソナ生成フェーズ固有の `canRetry`、`canResume`、`canPause`、`canCancel` は持たない。
 - 共通ペルソナ hit 時は新規 `PERSONA` を作らず、ジョブの persona snapshot 参照だけを固定する。
 - persona 生成は 1 NPC を 1 request unit とし、NPC 属性と会話文脈を同じ request で扱う。
 - provider、model、execution mode、batch mode は Job Setup の persona 専用設定を継承する。
@@ -55,8 +58,10 @@ persona 未完了、失敗、snapshot 参照不能では本文翻訳フェーズ
 
 操作可否は phase state と readiness から決まる。
 開始は、term phase Completed、非 terminal job、active phase run なしの場合だけ有効にする。
-pause は Running の時だけ有効にし、resume は Paused または RecoverableFailed の時だけ有効にする。
-retry は retryable failure の時だけ有効にする。
+pause は Running の時だけ有効にする。
+resume は Paused の時だけ有効にする。
+retry は RecoverableFailed かつ retryable failure の時だけ有効にする。
+cancel は Paused の時だけ有効にする。
 body phase 開始は persona phase Completed と snapshot 参照成立が両方 true の時だけ有効にする。
 
 phase state、retryable、body readiness は色だけで示さない。
@@ -66,7 +71,8 @@ progress は数値と state label を併記する。
 ## 保護仕様
 
 secret、API key 平文、credential 参照実値、secret store key、endpoint、provider raw request / response、raw prompt、原文発話全文、会話文脈全文は UI、error summary、structured log、final validation summary に出さない。
-UI と DB summary には ID、digest、件数、evidence ref、redacted phase result summary だけを出す。
+operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
+UI と導出 summary には ID、digest、件数、evidence ref、redacted phase result summary だけを出す。
 
 debug log に prompt または request body を出す場合でも、secret と API key は出さない。
 障害調査用の要約では、provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt digest、error kind を確認できる。

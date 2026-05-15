@@ -8,6 +8,8 @@ components:
     in: controller/**
   usecase:
     in: usecase/**
+  translationjobpolicy:
+    in: usecase/translationjobpolicy/**
   service:
     in: service/**
   statemachine:
@@ -48,6 +50,7 @@ deps:
   usecase:
     mayDependOn:
       - service
+      - translationjobpolicy
       - statemachine
       - jobio
   service:

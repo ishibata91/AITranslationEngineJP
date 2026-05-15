@@ -19,7 +19,8 @@ ER 図の正本は 1 枚だけとする。
 
 - `TRANSLATION_JOB` は 1 つの `X_EDIT_EXTRACTED_DATA` だけを参照する
 - `NPC_PROFILE` は抽出スナップショットをまたいで同じ NPC と見なす根になる
-- ジョブ状態は `JOB_PHASE_RUN` 群から集約する
+- `TRANSLATION_JOB.state` はジョブ全体の一覧、導線、terminal guard に使う
+- `JOB_PHASE_RUN.state` は各フェーズ画面の操作可否、進捗、失敗回復に使う
 - 翻訳結果と出力ステータスは `JOB_TRANSLATION_FIELD` に保持する
 - `PERSONA` と `DICTIONARY_ENTRY` は共通 / ジョブ内を同じテーブルで扱う
 - フェーズ別 AI 設定、指示構成、最終 AI 実行情報は `JOB_PHASE_RUN` に保持する
@@ -63,8 +64,17 @@ AI 向け説明、翻訳対象フラグ、順序あり、順序スコープ、�
 `JOB_PHASE_RUN` は翻訳ジョブ内のフェーズ実行だけを表す。
 共通ペルソナ生成や共通辞書構築などの基盤構築は `JOB_PHASE_RUN` に含めず、`PERSONA` / `DICTIONARY_ENTRY` の作成経路で表す。
 
+`Ready` job には `JOB_PHASE_RUN` を事前作成しない。
+フェーズ開始が許可された時だけ、対象フェーズの `JOB_PHASE_RUN` を作成する。
+大枠の一覧と導線は `TRANSLATION_JOB.state` を参照し、フェーズ画面の操作可否は現在フェーズの `JOB_PHASE_RUN.state` を参照する。
+
 フェーズ再実行は同じ `JOB_PHASE_RUN` の状態を戻す扱いにする。
 Attempt 履歴テーブルは持たない。
+retry、resume、開始再送では同じ `JOB_PHASE_RUN` を継続する。
+`RecoverableFailed` から `Ready` へ戻す保存経路は持たない。
+
+policy 判断結果、適用 rule 名、policy 判定履歴、operation summary は ER に持たない。
+永続化する対象は、job / phase run の状態、進捗、時刻、失敗 reason category などの状態事実だけである。
 
 `PHASE_RUN_TRANSLATION_FIELD`、`PHASE_RUN_PERSONA`、`PHASE_RUN_DICTIONARY_ENTRY` は、フェーズが対象にしたジョブ内翻訳フィールド、ペルソナ、辞書項目を表す。
 

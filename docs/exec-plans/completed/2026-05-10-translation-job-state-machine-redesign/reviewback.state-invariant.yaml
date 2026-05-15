@@ -1,0 +1,135 @@
+reviewback_version: 1
+task_id: "2026-05-10-translation-job-state-machine-redesign"
+review_yaml_path: "docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持。state-invariant-002 は解消済みである。単語翻訳 phase の resume は expected state paused、retry は expected state recoverable_failed を UpdateJobPhaseRunWhenState に渡す。expected state 不一致相当の repository.ErrConflict では provider request に進まず、phase run は running へ更新されない。本文翻訳 phase、NPC ペルソナ生成 phase、単語翻訳 phase は、同じ JOB_PHASE_RUN 継続、terminal job 非変更、runtime snapshot 保存順序の不変条件を維持している。"
+  evidence_sufficiency: "十分。review-rerun3-input.md、backend-review-fix3-result.md、既存 reviewback.state-invariant.yaml、final-validation.md、レビュー対象変更ファイルの実コード、対象テストを確認した。system test は未実行だが、backend-local と coverage は pass している。"
+
+checked_scope:
+  summary: "レビュー対象差分のうち、単語翻訳 phase の resume/retry の条件付き状態更新、expected state 不一致時の provider request 抑止、同じ phase run 継続、terminal job 非変更、runtime snapshot 保存順序を確認した。docs 正本差分と 2026-05-13-notification-module-dependency-separation は対象外として確認していない。"
+  files:
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 503
+      symbol: "executePhase"
+      reason: "単語翻訳 phase の start、resume、retry は transaction 内で execution plan を準備し、状態昇格に失敗した場合は provider request へ進まない経路であることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 779
+      symbol: "rejectResumeExecutionPlan"
+      reason: "単語翻訳 phase の resume は同じ phase run id と paused state を前提にすることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 793
+      symbol: "rejectRetryExecutionPlan"
+      reason: "単語翻訳 phase の retry は同じ phase run id と recoverable_failed state を前提にすることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1113
+      symbol: "resumeExecutionPlanRun"
+      reason: "resume は paused、retry は recoverable_failed を expected state として updateExecutionPlanRunState に渡すことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1139
+      symbol: "updateExecutionPlanRunState"
+      reason: "単語翻訳 phase の resume と retry は UpdateJobPhaseRunWhenState で running へ条件付き更新することを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 690
+      symbol: "ensureExecutionPlanRun"
+      reason: "start 時の pending から running への更新後に runtime snapshot を保存する順序が維持されていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 407
+      symbol: "PausePhase"
+      reason: "terminal job では単語翻訳 phase の pause が状態更新を行わず拒否応答を返すことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1058
+      symbol: "TestTermTranslationPhaseServiceResumePhasePromotesPausedRunWithExpectedState"
+      reason: "resume 成功時に同じ phase run id を維持し、expected state paused で running へ更新する検証を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1089
+      symbol: "TestTermTranslationPhaseServiceResumeAndRetryStopBeforeProviderWhenStatePromotionConflicts"
+      reason: "resume と retry の expected state 不一致相当で provider request が発生せず、phase run が running にならない検証を確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 763
+      symbol: "TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurrentMasterDictionary"
+      reason: "retry 成功時に expected state recoverable_failed を使い、保存済み snapshot を基準に再実行する検証を確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1373
+      symbol: "persistBodyTranslationRunStateTransition"
+      reason: "本文翻訳 phase は transaction 内で job と phase run を再取得し、同じ phase run を required state 条件付きで更新することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 752
+      symbol: "updatePersonaGenerationPhaseStateInTransaction"
+      reason: "NPC ペルソナ生成 phase は transaction 内で job と phase run を再取得し、同じ phase run を required state 条件付きで更新することを確認した。"
+
+unchecked_scope:
+  - target: "system test"
+    reason: "final-validation.md に system test 未実行と記録されている。skill の非対象規約に従い、レビュー中にハーネスは実行していない。"
+    risk: "Wails 境界を含む end-to-end 経路で同じ不変条件が保たれるかは未確認である。"
+  - target: "docs 正本差分"
+    reason: "review-rerun3-input.md が docs 正本差分を対象外と指定している。"
+    risk: "docs 正本との説明整合は別観点または別レーンで確認される。"
+  - target: "2026-05-13-notification-module-dependency-separation"
+    reason: "review-rerun3-input.md が別 task を対象外と指定している。"
+    risk: "通知 module 分離 task 側の状態不変条件は今回の判定に含まれない。"
+
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "body と persona の状態変更 guard が永続更新と原子的でない"
+    problem: "初回レビュー時点では、body phase と persona phase の状態変更が transaction 内で job state と phase state を再確認していなかった。"
+    reason: "backend-review-fix-result.md と backend-validation-fix-result.md の修正後、本文翻訳 phase と NPC ペルソナ生成 phase は transaction 内で現在 job と現在 phase run を再取得し、terminal job と required state を再検証してから UpdateJobPhaseRunWhenState を呼ぶ実装になった。"
+    violated_condition: "terminal job は状態変更操作を拒否する。同じ JOB_PHASE_RUN 継続時も、resume は paused、retry は recoverable_failed、cancel は paused の現在状態だけを更新する。"
+    cause_candidate: "解決済み。internal/service/body_translation_phase_service.go:1373 から transaction 内再取得と再検証を行い、internal/service/body_translation_phase_service.go:1389 で UpdateJobPhaseRunWhenState を使う。internal/service/persona_generation_phase_service.go:752 の helper が同じ処理を行い、internal/service/persona_generation_phase_service.go:786 で UpdateJobPhaseRunWhenState を使う。"
+    evidence:
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1373
+        excerpt: "transaction 内で job と body phase run を再取得している。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 1389
+        excerpt: "requiredState を expectedState として UpdateJobPhaseRunWhenState を呼んでいる。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 752
+        excerpt: "transaction 内 helper が job と persona phase run を再取得している。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 786
+        excerpt: "requiredState を expectedState として UpdateJobPhaseRunWhenState を呼んでいる。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "追加の修正必須確認はない。残留リスクは unchecked_scope に記録した。"
+    fix_considerations: "今後の変更では、transaction 内再確認、同じ phase run id の継続、required state 条件付き更新、terminal job 非変更を崩さないことが重要である。"
+    verification: "final-validation.md に backend-local と coverage の pass が記録されている。対象テストで同じ phase run 継続、terminal job 非変更、UpdateJobPhaseRunWhenState の required state 不一致非更新を確認した。"
+    fix_required: true
+    status: "resolved"
+  - id: "state-invariant-002"
+    level: "major"
+    title: "単語翻訳 resume と retry が条件付き状態更新を使っていない"
+    problem: "前回レビュー時点では、単語翻訳 phase の resume と retry が、transaction 内で事前検証した phase run を running に戻す時、UpdateJobPhaseRunWhenState ではなく UpdateJobPhaseRun を呼んでいた。"
+    reason: "backend-review-fix3-result.md の修正後、resume は expected state paused、retry は expected state recoverable_failed を UpdateJobPhaseRunWhenState に渡す実装になった。expected state 不一致相当の repository.ErrConflict では provider request に進まず、phase run も running へ更新されない。"
+    violated_condition: "resume は paused の現在状態だけを running に更新する。retry は recoverable_failed の現在状態だけを running に更新する。どちらも同じ JOB_PHASE_RUN を required state 条件付きで更新する。"
+    cause_candidate: "解決済み。internal/service/term_translation_phase_service.go:1113 の resumeExecutionPlanRun が resume と retry の expected state を分け、internal/service/term_translation_phase_service.go:1139 の updateExecutionPlanRunState が UpdateJobPhaseRunWhenState を呼ぶ。"
+    evidence:
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1121
+        excerpt: "resume は termTranslationPhaseStatePaused を expectedState として渡している。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1127
+        excerpt: "retry は termTranslationPhaseStateRecoverableFail を expectedState として渡している。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 1145
+        excerpt: "UpdateJobPhaseRunWhenState で expectedState と running 更新 draft を渡している。"
+      - path: "internal/service/term_translation_phase_service_test.go"
+        line: 1058
+        excerpt: "resume 成功時に expected state paused と同じ phase run id を検証している。"
+      - path: "internal/service/term_translation_phase_service_test.go"
+        line: 1089
+        excerpt: "resume と retry の conflict で provider request が発生せず、phase run が running にならないことを検証している。"
+      - path: "internal/service/term_translation_phase_service_test.go"
+        line: 763
+        excerpt: "retry 成功時に expected state recoverable_failed を検証している。"
+    local_fix_assessment: "resolved"
+    additional_check_scope: "追加の修正必須確認はない。残留リスクは unchecked_scope に記録した。"
+    fix_considerations: "今後の変更では、terminal job 拒否、phase run id 一致、paused resume、recoverable_failed retry、同じ JOB_PHASE_RUN 継続、runtime snapshot 更新順序を崩さないことが重要である。"
+    verification: "final-validation.md に backend-local と coverage の pass が記録されている。単語翻訳 phase の resume と retry が required state を expected state として条件付き更新すること、required state 不一致時に ErrConflict 相当で非更新になることを対象テストで確認した。"
+    fix_required: true
+    status: "resolved"

@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"aitranslationenginejp/internal/service"
+	"aitranslationenginejp/internal/usecase/translationjobpolicy"
 )
 
 type personaGenerationPhaseServicePort interface {
@@ -47,6 +48,9 @@ func (usecase *PersonaGenerationPhaseUsecase) StartPersonaGenerationPhase(
 	ctx context.Context,
 	request StartPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluatePersonaPolicy(ctx, request.JobID, 0, translationjobpolicy.OperationStart); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.StartPhase(ctx, request.JobID)
 	logPhaseStateCommand(ctx, "persona_generation_phase_start", personaGenerationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
 	result := toPersonaGenerationPhaseCommandResult(readModel)
@@ -61,6 +65,9 @@ func (usecase *PersonaGenerationPhaseUsecase) PausePersonaGenerationPhase(
 	ctx context.Context,
 	request PausePersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluatePersonaPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationPause); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.PausePhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "persona_generation_phase_pause", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -75,6 +82,9 @@ func (usecase *PersonaGenerationPhaseUsecase) ResumePersonaGenerationPhase(
 	ctx context.Context,
 	request ResumePersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluatePersonaPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationResume); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.ResumePhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "persona_generation_phase_resume", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -90,6 +100,9 @@ func (usecase *PersonaGenerationPhaseUsecase) RetryPersonaGenerationPhase(
 	ctx context.Context,
 	request RetryPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluatePersonaPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationRetry); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.RetryPhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "persona_generation_phase_retry", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -105,6 +118,9 @@ func (usecase *PersonaGenerationPhaseUsecase) CancelPersonaGenerationPhase(
 	ctx context.Context,
 	request CancelPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
+	if result, allowed := usecase.evaluatePersonaPolicy(ctx, request.JobID, request.PhaseRunID, translationjobpolicy.OperationCancel); !allowed {
+		return result, nil
+	}
 	readModel, err := usecase.service.CancelPhase(ctx, request.JobID, request.PhaseRunID)
 	phaseRunID := request.PhaseRunID
 	logPhaseStateCommand(ctx, "persona_generation_phase_cancel", personaGenerationPhaseUsecaseLogWhere, request.JobID, &phaseRunID, readModel.BeforePhaseState, readModel.AfterPhaseState, personaGenerationReadModelErrorReason(readModel.ErrorSummary), err)
@@ -147,6 +163,105 @@ func personaGenerationReadModelErrorReason(readModel *service.PersonaGenerationP
 		return ""
 	}
 	return readModel.ErrorKind
+}
+
+func (usecase *PersonaGenerationPhaseUsecase) evaluatePersonaPolicy(
+	ctx context.Context,
+	jobID int64,
+	phaseRunID int64,
+	operation translationjobpolicy.Operation,
+) (PersonaGenerationPhaseCommandResult, bool) {
+	summary, err := usecase.service.ReadSummary(ctx, jobID)
+	if err != nil {
+		return PersonaGenerationPhaseCommandResult{}, true
+	}
+	if personaPolicySummaryMissing(summary) {
+		return PersonaGenerationPhaseCommandResult{}, true
+	}
+	decision := translationjobpolicy.Evaluate(translationjobpolicy.Input{
+		Operation:            operation,
+		JobState:             summary.JobState,
+		PhaseState:           summary.PhaseState,
+		PhaseRunExists:       phasePolicyRunMatches(summary.PhaseRunID, phaseRunID, operation),
+		ActivePhaseRunExists: phasePolicyActivePhaseRunExists(summary.PhaseRunID, summary.PhaseState),
+		StartPrerequisiteMet: summary.ActionEnablement.CanStart,
+	})
+	if decision.Allowed {
+		return PersonaGenerationPhaseCommandResult{}, true
+	}
+	result := personaCommandResultFromSummary(summary)
+	result.ErrorSummary = personaPolicyErrorSummary(decision, summary, operation)
+	logPhasePolicyRejected(ctx, phasePolicyLogEvent("persona_generation_phase", operation), personaGenerationPhaseUsecaseLogWhere, jobID, phaseRunID, operation, result.ErrorSummary.Reason)
+	return result, false
+}
+
+func personaPolicySummaryMissing(summary service.PersonaGenerationPhaseSummaryReadModel) bool {
+	return summary.JobID == 0 && summary.CurrentPhase == "" && summary.PhaseState == ""
+}
+
+func personaPolicyErrorSummary(
+	decision translationjobpolicy.Result,
+	summary service.PersonaGenerationPhaseSummaryReadModel,
+	operation translationjobpolicy.Operation,
+) *PersonaGenerationPhaseErrorSummary {
+	return &PersonaGenerationPhaseErrorSummary{
+		ErrorKind:  personaPolicyErrorKind(decision),
+		Reason:     personaPolicyReason(decision, summary, operation),
+		Retryable:  false,
+		IsRedacted: false,
+	}
+}
+
+func personaPolicyErrorKind(decision translationjobpolicy.Result) string {
+	switch decision.Reason {
+	case translationjobpolicy.ReasonTerminalJob:
+		return PersonaGenerationPhaseErrorKindTerminalJob
+	case translationjobpolicy.ReasonActivePhaseExists:
+		return PersonaGenerationPhaseErrorKindActivePhaseExists
+	case translationjobpolicy.ReasonStartPrerequisite:
+		return PersonaGenerationPhaseErrorKindTermPhaseIncomplete
+	default:
+		return PersonaGenerationPhaseErrorKindTermPhaseIncomplete
+	}
+}
+
+func personaPolicyReason(
+	decision translationjobpolicy.Result,
+	summary service.PersonaGenerationPhaseSummaryReadModel,
+	operation translationjobpolicy.Operation,
+) string {
+	switch operation {
+	case translationjobpolicy.OperationStart:
+		return stringFromPointer(summary.ActionEnablement.StartBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationPause:
+		return stringFromPointer(summary.ActionEnablement.PauseBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationResume:
+		return stringFromPointer(summary.ActionEnablement.ResumeBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationRetry:
+		return stringFromPointer(summary.ActionEnablement.RetryBlockedReason, string(decision.Reason))
+	case translationjobpolicy.OperationCancel:
+		return stringFromPointer(summary.ActionEnablement.CancelBlockedReason, string(decision.Reason))
+	default:
+		return string(decision.Reason)
+	}
+}
+
+func personaCommandResultFromSummary(summary service.PersonaGenerationPhaseSummaryReadModel) PersonaGenerationPhaseCommandResult {
+	return PersonaGenerationPhaseCommandResult{
+		JobID:             summary.JobID,
+		CurrentPhase:      summary.CurrentPhase,
+		PhaseState:        summary.PhaseState,
+		PhaseRunID:        clonePersonaGenerationInt64Pointer(summary.PhaseRunID),
+		StartedAt:         clonePersonaGenerationTimePointer(summary.StartedAt),
+		FinishedAt:        clonePersonaGenerationTimePointer(summary.FinishedAt),
+		Progress:          toPersonaGenerationPhaseProgressSummary(summary.Progress),
+		TargetSummary:     toPersonaGenerationTargetSummary(summary.TargetSummary),
+		Execution:         toPersonaGenerationExecutionSummary(summary.Execution),
+		ResultSummary:     toPersonaGenerationPhaseResultSummary(summary.ResultSummary),
+		Retryable:         false,
+		CanStartBodyPhase: summary.ActionEnablement.CanStartBodyPhase,
+		ErrorSummary:      toPersonaGenerationPhaseErrorSummary(summary.ErrorSummary),
+	}
 }
 
 func toPersonaGenerationPhaseSummaryResult(
@@ -231,6 +346,47 @@ func toPersonaGenerationPhaseCommandResult(
 		Retryable:         readModel.Retryable,
 		CanStartBodyPhase: readModel.CanStartBodyPhase,
 		ErrorSummary:      toPersonaGenerationPhaseErrorSummary(readModel.ErrorSummary),
+	}
+}
+
+func toPersonaGenerationPhaseProgressSummary(
+	readModel service.PersonaGenerationPhaseProgressReadModel,
+) PersonaGenerationPhaseProgressSummary {
+	return PersonaGenerationPhaseProgressSummary{
+		Percent:        readModel.Percent,
+		ProcessedCount: readModel.ProcessedCount,
+		TotalCount:     readModel.TotalCount,
+		TargetCount:    readModel.TargetCount,
+		CurrentStep:    readModel.CurrentStep,
+	}
+}
+
+func toPersonaGenerationTargetSummary(
+	readModel service.PersonaGenerationTargetSummaryReadModel,
+) PersonaGenerationTargetSummary {
+	return PersonaGenerationTargetSummary{
+		TargetCount:            readModel.TargetCount,
+		CommonPersonaHitCount:  readModel.CommonPersonaHitCount,
+		CommonPersonaMissCount: readModel.CommonPersonaMissCount,
+		SkippedCount:           readModel.SkippedCount,
+		SkippedReasons:         append([]string(nil), readModel.SkippedReasons...),
+		TargetSnapshotID:       clonePersonaGenerationStringPointer(readModel.TargetSnapshotID),
+		TargetSnapshotDigest:   readModel.TargetSnapshotDigest,
+	}
+}
+
+func toPersonaGenerationExecutionSummary(
+	readModel service.PersonaGenerationExecutionSummaryReadModel,
+) PersonaGenerationExecutionSummary {
+	return PersonaGenerationExecutionSummary{
+		CredentialRef: readModel.CredentialRef,
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		PromptDigest:  readModel.PromptDigest,
+		InputCount:    readModel.InputCount,
+		OutputCount:   readModel.OutputCount,
+		EvidenceRefs:  append([]string(nil), readModel.EvidenceRefs...),
 	}
 }
 

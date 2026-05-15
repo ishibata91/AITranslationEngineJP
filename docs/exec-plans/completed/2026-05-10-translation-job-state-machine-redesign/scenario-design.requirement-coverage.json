@@ -1,0 +1,291 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-TJSM-001",
+      "title": "job state 正本と語彙分離",
+      "kind": "state",
+      "source_requirement": "docs/spec.md は job state を直接列挙し、docs/er.md はジョブ状態を JOB_PHASE_RUN 群から集約すると定義する。",
+      "required_detail_types": ["state_requirement", "consistency_requirement", "data_requirement"],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-001",
+          "question_title": "job state の正本",
+          "decision": "画面責務ごとに状態正本を分ける。各フェーズ画面の操作可否は対象フェーズの JOB_PHASE_RUN.state を正本にし、大枠の一覧、導線、ジョブ全体の表示は TRANSLATION_JOB.state を正本にする。",
+          "premise": "docs/spec.md は job state を列挙し、docs/er.md は JOB_PHASE_RUN 群から集約すると定義している。",
+          "decision_source": "human",
+          "remaining_open_detail": "保存済み TRANSLATION_JOB.state と対象フェーズの JOB_PHASE_RUN.state が食い違う場合の拒否理由と復旧入口は別途決める。",
+          "generated": ["state_requirement", "consistency_requirement", "SCN-TJSM-001", "SCN-TJSM-006"]
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "状態正本は API テストで job summary、phase run 集約、操作可否を同時に確認する必要がある。",
+          "verification_hint": "Ready、Running、Paused、RecoverableFailed、Completed、Failed、Canceled の一覧取得と詳細取得を比較する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSM-002",
+      "title": "translationjobpolicy の共通操作規則と JobIOService の責務分離",
+      "kind": "architecture",
+      "source_requirement": "docs/architecture.md は既存名 StateMachine を状態遷移規則だけ、JobIOService を job 状態の取得と保存だけと定義している。今回の設計では StateMachine を translationjobpolicy へ置き換える。",
+      "required_detail_types": ["state_requirement", "data_requirement", "testability_requirement"],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "translationjobpolicy は DB を読まない pure rule とする。",
+          "verification_hint": "translationjobpolicy の入力が snapshot と判定値だけであることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-008",
+          "question_title": "phase 別 ruleset の要否",
+          "decision": "retry、resume、pause、cancel の可否は phase type で分けない。translationjobpolicy は共通操作規則を先に評価し、start の時だけ phase 別開始前提を評価する。",
+          "premise": "phase ごとの service method と開始前提は異なるが、retry、resume、pause、cancel の可否は JOB_PHASE_RUN.state と要求イベントで共通化できる。",
+          "decision_source": "human",
+          "remaining_open_detail": "なし。",
+          "generated": ["state_requirement", "SCN-TJSM-002", "SCN-TJSM-003"]
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "JobIOService は状態取得と保存だけを扱う。",
+          "verification_hint": "JobIOService が遷移可否を判断しないことを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-009",
+          "question_title": "policy 判断結果の永続化",
+          "decision": "policy の判断結果、rule 名、判定履歴、PolicyResult は DB に永続化しない。JobIOService は確定済みの job / phase run 状態と、仕様で保存対象にした安全な状態事実だけを保存する。",
+          "premise": "translationjobpolicy は DB を読まない pure rule であり、operation summary は DB に永続保存しない。",
+          "decision_source": "human",
+          "remaining_open_detail": "なし。",
+          "generated": ["data_requirement", "SCN-TJSM-006", "SCN-TJSM-009"]
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "pure rule は lower-level only で検証でき、JobIOService は repository 境界の API テストで検証できる。",
+          "verification_hint": "共通操作規則、phase 別開始前提、JobIOService 保存結果を分け、PolicyResult が保存対象にならないことを検証する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSM-003",
+      "title": "Ready 作成と pending の扱い",
+      "kind": "state",
+      "source_requirement": "translation-job-management.md は Ready job を read-only の実行入口とし、Job Run 表示だけでは Running へ遷移させない。",
+      "required_detail_types": ["success_requirement", "state_requirement", "consistency_requirement", "compatibility_requirement"],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Job Setup は Ready job を作成する。",
+          "verification_hint": "作成後 summary と未完了一覧に Ready job が出ることを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-002",
+          "question_title": "Ready job と pending phase run",
+          "unresolved_decision": "Ready job が active でない JOB_PHASE_RUN を持ってよいかを決める。",
+          "premise": "Ready job は read-only の実行入口であり、表示だけでは Running にならない。",
+          "answered_reason": "Ready job には JOB_PHASE_RUN を事前作成せず、pending は公開状態にしない。",
+          "options": [
+            {"label": "Ready job には JOB_PHASE_RUN を事前作成しない。", "impact": "作成直後の開始可否と削除可否が単純になる。"},
+            {"label": "Ready job は pending の JOB_PHASE_RUN を持ってよい。", "impact": "事前準備情報を保存できるが、操作可否の分岐が増える。"},
+            {"label": "pending を公開状態として扱う。", "impact": "利用者に短命状態が見える可能性がある。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "Ready job には JOB_PHASE_RUN を事前作成しない。",
+          "recommendation_reason": "作成直後の実行不能と削除不能の再発を防ぎやすい。",
+          "after_answer_generates": ["state_requirement", "SCN-TJSM-001"]
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "過去の ready / pending 不整合を再発させない必要がある。",
+          "verification_hint": "Ready 表示、開始、削除が無言停止しないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSM-004",
+      "title": "phase 順序と開始 guard",
+      "kind": "operation",
+      "source_requirement": "term、persona、body の詳細仕様は前段完了、参照成立、active phase run 不在、非 terminal job を開始条件にしている。今回の設計では phase type ごとの差分を start の開始前提に限定する。",
+      "required_detail_types": ["success_requirement", "state_requirement", "consistency_requirement", "failure_handling_requirement"],
+      "detail_requirements": [
+        {"type": "success_requirement", "status": "explicit", "source_or_rationale": "Ready job から term phase を開始し、term Completed 後に persona、persona Completed 後に body を開始する。", "verification_hint": "共通操作規則で start が通った後、phase 別開始前提で allowed / rejected が決まることを API テストで確認する。"},
+        {"type": "failure_handling_requirement", "status": "explicit", "source_or_rationale": "前段未完了、参照不能、terminal job、active phase run ありでは後続 phase run を作成しない。", "verification_hint": "拒否理由カテゴリと phase run 件数を確認する。"},
+        {"type": "consistency_requirement", "status": "derived", "source_or_rationale": "前段 phase state と job-level 表示値を同一状態として扱わない。", "verification_hint": "term Completed でも job 全体が Completed にならないことを確認する。"}
+      ]
+    },
+    {
+      "id": "REQ-TJSM-005",
+      "title": "共通回復操作と同一 JOB_PHASE_RUN 継続",
+      "kind": "recovery",
+      "source_requirement": "docs/spec.md は RecoverableFailed -> Ready を持ち、各 phase 詳細仕様は retry、resume、開始再送で同じ JOB_PHASE_RUN を継続すると定義する。今回の設計では retry、resume、pause、cancel の可否を phase type で分けない。",
+      "required_detail_types": ["recovery_requirement", "冪等性_requirement", "state_requirement", "concurrency_requirement"],
+      "detail_requirements": [
+        {
+          "type": "recovery_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-003",
+          "question_title": "RecoverableFailed から Ready への再実行準備",
+          "unresolved_decision": "RecoverableFailed -> Ready を残すか、同じ JOB_PHASE_RUN の retry / resume に統合するかを決める。",
+          "premise": "phase 詳細仕様は同じ JOB_PHASE_RUN の継続を求めている。",
+          "answered_reason": "RecoverableFailed から Ready へ戻さず、retry と resume は同じ JOB_PHASE_RUN を継続する。",
+          "options": [
+            {"label": "RecoverableFailed -> Ready を廃止し、同じ JOB_PHASE_RUN を継続する。", "impact": "重複作成を防ぎやすい。"},
+            {"label": "RecoverableFailed -> Ready を残す。", "impact": "利用者が再実行準備を選べるが、progress の扱いが増える。"},
+            {"label": "phase 別に再実行準備の可否を分ける。", "impact": "柔軟だが同じ意味の状態規則が増える。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "RecoverableFailed -> Ready を廃止し、同じ JOB_PHASE_RUN を継続する。",
+          "recommendation_reason": "ER の同一 JOB_PHASE_RUN 継続方針に合う。",
+          "after_answer_generates": ["recovery_requirement", "冪等性_requirement", "SCN-TJSM-003"]
+        },
+        {
+          "type": "state_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-005",
+          "question_title": "resume と retry の共通規則",
+          "unresolved_decision": "Paused、RecoverableFailed、retryable failure に対して、resume と retry のどちらを出すかを決める。",
+          "premise": "body phase と persona phase で resume 可能条件が違う。",
+          "answered_reason": "全 phase で resume は Paused だけ、retry は RecoverableFailed だけにそろえる。phase type ごとの canResume / canRetry は作らない。",
+          "options": [
+            {"label": "全 phase で resume は Paused だけ、retry は RecoverableFailed だけにそろえる。", "impact": "利用者操作と policy input が単純になる。"},
+            {"label": "persona phase だけ RecoverableFailed の resume を残す。", "impact": "既存 persona 仕様を維持できるが、phase 別分岐が残る。"},
+            {"label": "resume と retry を UI では同じ回復操作として表示する。", "impact": "UI は単純になるが、内部理由の説明が必要になる。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "全 phase で resume は Paused だけ、retry は RecoverableFailed だけにそろえる。",
+          "recommendation_reason": "中断再開と失敗再試行を区別しやすい。",
+          "after_answer_generates": ["state_requirement", "SCN-TJSM-003"]
+        },
+        {
+          "type": "state_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-008",
+          "question_title": "phase 別 ruleset の要否",
+          "unresolved_decision": "retry、resume、pause、cancel、phase 開始可否を phase type ごとの ruleset に分けるかを決める。",
+          "premise": "phase ごとの開始前提と service method は異なるが、retry、resume、pause、cancel の可否は JOB_PHASE_RUN.state と要求イベントで共通化できる。",
+          "answered_reason": "phase type ごとの ruleset は作らない。phase type で分ける対象は開始前提データ、完了判定、呼び出す service method だけにする。",
+          "options": [
+            {"label": "retry、resume、pause、cancel の可否は共通操作規則にし、start の前提だけ phase type ごとに分ける。", "impact": "同じ意味の分岐を増やさず、phase 固有データだけを分離できる。"},
+            {"label": "phase type ごとに canRetry、canResume、canPause、canCancel を作る。", "impact": "phase 固有差分を入れやすいが、同じ状態規則が重複する。"},
+            {"label": "全操作を service 内判断へ戻す。", "impact": "短期実装は近いが、現在の分岐過多を温存する。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "retry、resume、pause、cancel の可否は共通操作規則にし、start の前提だけ phase type ごとに分ける。",
+          "recommendation_reason": "操作可否の重複を避け、phase 固有差分を開始前提と service method に閉じ込められる。",
+          "after_answer_generates": ["state_requirement", "SCN-TJSM-002", "SCN-TJSM-003"]
+        }
+      ]
+    },
+    {
+      "id": "REQ-TJSM-006",
+      "title": "cancel、terminal、削除安全性",
+      "kind": "operation",
+      "source_requirement": "docs/spec.md は Ready と Paused から Canceled を持ち、body-translation-phase.md は Running から直接 cancel しないと定義する。translation-job-management.md は Running job と停止要求中 job の削除拒否を定義する。",
+      "required_detail_types": ["state_requirement", "failure_handling_requirement", "data_requirement", "security_requirement"],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-004",
+          "question_title": "cancel の境界",
+          "unresolved_decision": "job-level cancel と phase-level cancel の境界を決める。",
+          "premise": "Ready cancel は spec にあり、Running からの直接 cancel は body phase で禁止されている。",
+          "answered_reason": "Ready cancel は job-level 操作として残し、phase 開始後の cancel は Paused phase からだけ許可する。",
+          "options": [
+            {"label": "Ready cancel は job-level 操作として残し、phase 開始後は Paused phase からだけ cancel できる。", "impact": "spec と phase 詳細仕様を両立しやすい。"},
+            {"label": "cancel は phase 開始後の Paused からだけ許可し、Ready job では削除だけを使う。", "impact": "cancel 語彙は単純になるが、Ready cancel の spec を変える必要がある。"},
+            {"label": "job state が Paused なら current phase に関係なく cancel できる。", "impact": "UI は単純になるが、phase 別制約を失う可能性がある。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "Ready cancel は job-level 操作として残し、phase 開始後は Paused phase からだけ cancel できる。",
+          "recommendation_reason": "Ready cancel と Running 直接 cancel 禁止を両立できる。",
+          "after_answer_generates": ["state_requirement", "SCN-TJSM-003", "SCN-TJSM-005"]
+        },
+        {"type": "data_requirement", "status": "explicit", "source_or_rationale": "非実行中 job を削除しても input data と抽出 JSON 正本は残る。", "verification_hint": "削除後に job は一覧から外れ、input data が残ることを確認する。"},
+        {"type": "security_requirement", "status": "derived", "source_or_rationale": "terminal job への late response 後書きは拒否し、成功値として表示しない。", "verification_hint": "late response 後に保存行と readiness が変わらないことを確認する。"}
+      ]
+    },
+    {
+      "id": "REQ-TJSM-007",
+      "title": "provider 境界失敗と secret 非露出",
+      "kind": "external",
+      "source_requirement": "各 phase 詳細仕様は provider failure、invalid response、保存失敗、検証失敗を successful Completed として扱わず、secret 非露出を求めている。",
+      "required_detail_types": ["failure_handling_requirement", "security_requirement", "observability_requirement", "testability_requirement"],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-006",
+          "question_title": "provider 境界失敗の分類",
+          "unresolved_decision": "credential 未設定、provider timeout、invalid response、correlation error を RecoverableFailed と Failed のどちらへ分類するかを決める。",
+          "premise": "provider failure、invalid response、保存失敗、検証失敗は successful Completed として扱わない。",
+          "answered_reason": "credential 未設定は開始拒否、provider timeout はジョブセットアップ時のヘルスチェック、invalid response は応答不正、correlation error は RecoverableFailed とする。",
+          "options": [
+            {"label": "設定修正や再送で回復できる失敗は RecoverableFailed にし、データ破損や仕様違反だけ Failed にする。", "impact": "利用者の再試行判断に合う。"},
+            {"label": "provider 境界失敗はすべて RecoverableFailed にする。", "impact": "再試行入口は増えるが、回復不能の区別が弱くなる。"},
+            {"label": "invalid response と correlation error は Failed にし、timeout と credential 未設定だけ RecoverableFailed にする。", "impact": "失敗分類は明確だが、修正可能な応答不正も終端になりやすい。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "設定修正や再送で回復できる失敗は RecoverableFailed にし、データ破損や仕様違反だけ Failed にする。",
+          "recommendation_reason": "回復可能性を retryable flag と reason category で観測できる。",
+          "after_answer_generates": ["failure_handling_requirement", "SCN-TJSM-007"]
+        },
+        {"type": "security_requirement", "status": "explicit", "source_or_rationale": "secret、API key、credential 参照実値、endpoint、provider raw payload、prompt 全文は表示、保存、ログに出さない。", "verification_hint": "UI、DTO、structured log、fake transport log に禁止値がないことを確認する。"},
+        {"type": "testability_requirement", "status": "explicit", "source_or_rationale": "fake provider と stub secret store で検証する。", "verification_hint": "real paid API を使わず provider failure と invalid response を固定応答で確認する。"}
+      ]
+    },
+    {
+      "id": "REQ-TJSM-008",
+      "title": "観測要約と保存禁止値",
+      "kind": "observability",
+      "source_requirement": "operation-audit 候補は状態変更、拒否、削除、再開不可、provider 境界、runtime event 破棄の再現材料を求めている。",
+      "required_detail_types": ["observability_requirement", "security_requirement", "data_requirement"],
+      "detail_requirements": [
+        {"type": "observability_requirement", "status": "explicit", "source_or_rationale": "event、where、result、必要最小の ID、状態名、件数、理由カテゴリを残す。", "verification_hint": "状態変更成功、拒否、未変更、削除成功、削除拒否を区別して確認する。"},
+        {
+          "type": "data_requirement",
+          "status": "answered",
+          "question_id": "Q-TJSM-007",
+          "question_title": "operation summary の保存粒度",
+          "unresolved_decision": "source file path、input data 出自、error summary の安全な保存粒度を決める。",
+          "premise": "secret、provider raw payload、prompt 全文、翻訳本文全文、DTO 全体、DB row 全体は残さない。",
+          "answered_reason": "operation summary は DB に永続保存せず、必要な時にロジックで導出する。",
+          "options": [
+            {"label": "source file path は永続 summary に残さず、input data ID と短い出自分類だけ残す。", "impact": "ローカル path の過剰露出を避けやすい。"},
+            {"label": "source file path の basename だけを残す。", "impact": "人間が対象を識別しやすいが、同名 file の区別が難しい。"},
+            {"label": "source file path を残すが、ユーザー home や credential 相当の path 要素を伏せる。", "impact": "調査材料は増えるが、伏せ字処理が必要になる。"}
+          ],
+          "recommended_option": 1,
+          "recommended": "source file path は永続 summary に残さず、input data ID と短い出自分類だけ残す。",
+          "recommendation_reason": "調査に必要な参照性を保ちつつ、ローカル path の過剰露出を避けられる。",
+          "after_answer_generates": ["observability_requirement", "SCN-TJSM-009"]
+        },
+        {"type": "security_requirement", "status": "explicit", "source_or_rationale": "禁止値は UI、DTO、ログ、fake transport log に出さない。", "verification_hint": "禁止値の不在を lower-level only で確認する。"}
+      ]
+    },
+    {
+      "id": "REQ-TJSM-009",
+      "title": "UI 設計の条件分岐",
+      "kind": "ui",
+      "source_requirement": "plan.md は Job Run 表示、未完了一覧、操作可否の契約に影響する場合は UI 設計を必須にするとしている。",
+      "required_detail_types": ["compatibility_requirement", "testability_requirement"],
+      "detail_requirements": [
+        {"type": "compatibility_requirement", "status": "deferred", "source_or_rationale": "人間回答後に表示値、操作可否、無効理由、reason category の変更有無を判断する。担当は designer の ui-design。", "verification_hint": "UI 表示契約が変わる場合だけ ui-design.md を作る。"},
+        {"type": "testability_requirement", "status": "derived", "source_or_rationale": "UI が入口の場合は UI人間操作E2E、backend 公開接点だけなら APIテストにする。", "verification_hint": "人間回答後の scenario matrix でテスト種別を確定する。"}
+      ]
+    }
+  ]
+}

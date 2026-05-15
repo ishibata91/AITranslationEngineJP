@@ -175,6 +175,7 @@ type TermTranslationPhaseActionEnablementReadModel struct {
 // TermTranslationPhaseSummaryReadModel stores summary payload data for the usecase boundary.
 type TermTranslationPhaseSummaryReadModel struct {
 	JobID              int64
+	JobState           string
 	CurrentPhase       string
 	PhaseState         string
 	PhaseRunID         *int64
@@ -345,8 +346,13 @@ func (service *TermTranslationPhaseService) ReadSummary(
 	}
 	readiness := service.readinessFromState(job, run, total, confirmedCount, errorSummary)
 	canStart := job.State == termTranslationJobStateReady && !termTranslationPhaseIsActive(run) && termTranslationExecutionConfigured(execution)
+	isTerminalJob := termTranslationJobIsTerminal(job.State)
+	canPause := !isTerminalJob && run != nil && run.State == termTranslationPhaseStateRunning
+	canResume := !isTerminalJob && run != nil && run.State == termTranslationPhaseStatePaused
+	canRetry := !isTerminalJob && run != nil && run.State == termTranslationPhaseStateRecoverableFail
 	return TermTranslationPhaseSummaryReadModel{
 		JobID:              job.ID,
+		JobState:           job.State,
 		CurrentPhase:       termTranslationCurrentPhase,
 		PhaseState:         state,
 		PhaseRunID:         cloneInt64Pointer(phaseRunID),
@@ -362,12 +368,12 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		ActionEnablement: TermTranslationPhaseActionEnablementReadModel{
 			CanStart:               canStart,
 			StartBlockedReason:     termTranslationStartBlockedReason(job, run, execution),
-			CanPause:               run != nil && run.State == termTranslationPhaseStateRunning,
-			PauseBlockedReason:     termTranslationPauseBlockedReason(run),
-			CanResume:              run != nil && (run.State == termTranslationPhaseStatePaused || run.State == termTranslationPhaseStateRecoverableFail),
-			ResumeBlockedReason:    termTranslationResumeBlockedReason(run),
-			CanRetry:               run != nil && run.State == termTranslationPhaseStateRecoverableFail,
-			RetryBlockedReason:     termTranslationRetryBlockedReason(run),
+			CanPause:               canPause,
+			PauseBlockedReason:     termTranslationPauseBlockedReason(job, run),
+			CanResume:              canResume,
+			ResumeBlockedReason:    termTranslationResumeBlockedReason(job, run),
+			CanRetry:               canRetry,
+			RetryBlockedReason:     termTranslationRetryBlockedReason(job, run),
 			CanRefresh:             true,
 			CanStartNextPhase:      readiness.CanStartNextPhase,
 			NextPhaseBlockedReason: cloneStringPointer(readiness.BlockedReason),
@@ -398,6 +404,16 @@ func (service *TermTranslationPhaseService) PausePhase(
 		if err != nil {
 			return err
 		}
+		if termTranslationJobIsTerminal(job.State) {
+			response = termTranslationCommandFromRun(job, run, false, false, &TermTranslationPhaseErrorReadModel{
+				ErrorKind:  "terminal_job",
+				Reason:     termTranslationReasonTerminalJob,
+				Retryable:  false,
+				IsRedacted: true,
+			})
+			response.BeforePhaseState = run.State
+			return nil
+		}
 		if run.State != termTranslationPhaseStateRunning {
 			response = termTranslationCommandFromRun(job, run, true, false, &TermTranslationPhaseErrorReadModel{
 				ErrorKind:  "term_phase_incomplete",
@@ -409,7 +425,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 			return nil
 		}
 		now := service.now()
-		updatedRun, err := service.jobLifecycleRepository.UpdateJobPhaseRun(txCtx, run.ID, repository.JobPhaseRunUpdateDraft{
+		updatedRun, err := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(txCtx, run.ID, termTranslationPhaseStateRunning, repository.JobPhaseRunUpdateDraft{
 			State:               termTranslationPhaseStatePaused,
 			ProgressPercent:     run.ProgressPercent,
 			LatestExternalRunID: run.LatestExternalRunID,
@@ -768,7 +784,7 @@ func (service *TermTranslationPhaseService) rejectResumeExecutionPlan(
 	if run == nil || run.ID != phaseRunID {
 		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseIncomplete), true
 	}
-	if run.State != termTranslationPhaseStatePaused && run.State != termTranslationPhaseStateRecoverableFail {
+	if run.State != termTranslationPhaseStatePaused {
 		return service.buildRejectedExecutionPlan(job, run, "term_phase_incomplete", termTranslationReasonPhaseNotResumable), true
 	}
 	return termTranslationExecutionPlan{}, false
@@ -1103,14 +1119,14 @@ func (service *TermTranslationPhaseService) resumeExecutionPlanRun(
 ) (repository.JobPhaseRun, error) {
 	switch {
 	case run.State == termTranslationPhaseStatePaused && mode == termTranslationStartModeResume:
-		updatedRun, err := service.updateExecutionPlanRunState(ctx, run, run.ProgressPercent)
+		updatedRun, err := service.updateExecutionPlanRunState(ctx, run, termTranslationPhaseStatePaused, run.ProgressPercent)
 		if err != nil {
 			return repository.JobPhaseRun{}, fmt.Errorf("resume phase run: %w", err)
 		}
 		return updatedRun, nil
-	case run.State == termTranslationPhaseStateRecoverableFail && (mode == termTranslationStartModeRetry || mode == termTranslationStartModeResume):
+	case run.State == termTranslationPhaseStateRecoverableFail && mode == termTranslationStartModeRetry:
 		progress := confirmedCount * 100 / maxInt(totalCount, 1)
-		updatedRun, err := service.updateExecutionPlanRunState(ctx, run, progress)
+		updatedRun, err := service.updateExecutionPlanRunState(ctx, run, termTranslationPhaseStateRecoverableFail, progress)
 		if err != nil {
 			return repository.JobPhaseRun{}, fmt.Errorf("retry phase run: %w", err)
 		}
@@ -1123,9 +1139,10 @@ func (service *TermTranslationPhaseService) resumeExecutionPlanRun(
 func (service *TermTranslationPhaseService) updateExecutionPlanRunState(
 	ctx context.Context,
 	run repository.JobPhaseRun,
+	expectedState string,
 	progressPercent int,
 ) (repository.JobPhaseRun, error) {
-	updatedRun, err := service.jobLifecycleRepository.UpdateJobPhaseRun(ctx, run.ID, repository.JobPhaseRunUpdateDraft{
+	updatedRun, err := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(ctx, run.ID, expectedState, repository.JobPhaseRunUpdateDraft{
 		State:               termTranslationPhaseStateRunning,
 		ProgressPercent:     progressPercent,
 		LatestExternalRunID: run.LatestExternalRunID,
@@ -1989,21 +2006,30 @@ func termTranslationExecutionConfigured(execution TermTranslationExecutionConfig
 		strings.TrimSpace(execution.ExecutionMode) != ""
 }
 
-func termTranslationPauseBlockedReason(run *repository.JobPhaseRun) *string {
+func termTranslationPauseBlockedReason(job repository.TranslationJob, run *repository.JobPhaseRun) *string {
+	if termTranslationJobIsTerminal(job.State) {
+		return termTranslationStringPointer(termTranslationReasonTerminalJob)
+	}
 	if run == nil || run.State == termTranslationPhaseStateRunning {
 		return nil
 	}
 	return termTranslationStringPointer(termTranslationReasonPhaseNotRunning)
 }
 
-func termTranslationResumeBlockedReason(run *repository.JobPhaseRun) *string {
+func termTranslationResumeBlockedReason(job repository.TranslationJob, run *repository.JobPhaseRun) *string {
+	if termTranslationJobIsTerminal(job.State) {
+		return termTranslationStringPointer(termTranslationReasonTerminalJob)
+	}
 	if run == nil || run.State == termTranslationPhaseStatePaused || run.State == termTranslationPhaseStateRecoverableFail {
 		return nil
 	}
 	return termTranslationStringPointer(termTranslationReasonPhaseNotResumable)
 }
 
-func termTranslationRetryBlockedReason(run *repository.JobPhaseRun) *string {
+func termTranslationRetryBlockedReason(job repository.TranslationJob, run *repository.JobPhaseRun) *string {
+	if termTranslationJobIsTerminal(job.State) {
+		return termTranslationStringPointer(termTranslationReasonTerminalJob)
+	}
 	if run == nil || run.State == termTranslationPhaseStateRecoverableFail {
 		return nil
 	}

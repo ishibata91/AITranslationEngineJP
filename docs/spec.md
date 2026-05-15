@@ -132,71 +132,90 @@ ExportArtifact --> ObserveTranslationResult
 - 翻訳ジョブは1つの入力データごとに作成し、複数入力は複数ジョブとして一覧管理する
 - 各翻訳ジョブは中断、再開、失敗回復の対象とし、進捗は UI から観測する
 
-## 7. 翻訳ジョブ状態遷移
+## 7. 翻訳ジョブ状態
 
-このセクションでは、翻訳ジョブの状態遷移を整理する。
+このセクションでは、翻訳ジョブ全体の状態とフェーズ実行状態を分けて整理する。
+大枠の一覧、導線、ジョブ全体の表示は `TRANSLATION_JOB.state` を正本にする。
+各フェーズ画面の操作可否は、現在フェーズの `JOB_PHASE_RUN.state` を正本にする。
 
-#### 正常系
+### 7.1 `TRANSLATION_JOB.state`
+
+`TRANSLATION_JOB.state` はジョブ全体の表示、一覧、導線、terminal guard に使う。
+`Ready` job には `JOB_PHASE_RUN` を事前作成しない。
+フェーズ開始が許可された時だけ、対象フェーズの `JOB_PHASE_RUN` を作成する。
 
 ```plantuml
 @startuml
 
 top to bottom direction
 
-[*] --> Draft : 開始
+[*] --> Draft : 入力準備中
 Draft --> Ready : ジョブ作成
-Ready --> Running : 実行開始
-Running --> Completed : 翻訳完了
+Ready --> Running : phase start 許可
+Running --> Paused : phase pause
+Paused --> Running : phase resume
+Running --> RecoverableFailed : 回復可能な失敗
+RecoverableFailed --> Running : phase retry
+Running --> Completed : 本文翻訳完了
+Running --> Failed : 回復不能な失敗
+Ready --> Canceled : job cancel
+Paused --> Canceled : phase cancel
 Completed --> [*] : 終了
-
-@enduml
-```
-
-#### 操作系
-
-```plantuml
-@startuml
-
-top to bottom direction
-
-Running --> Paused : 中断
-Paused --> Running : 再開
-Ready --> Canceled : キャンセル
-Paused --> Canceled : キャンセル
+Failed --> [*] : 終了
 Canceled --> [*] : 終了
 
 @enduml
 ```
 
-#### 異常系
+### 7.2 `JOB_PHASE_RUN.state`
+
+`JOB_PHASE_RUN.state` はフェーズ画面の操作可否、進捗、失敗回復に使う。
+retry、resume、開始再送は同じ `JOB_PHASE_RUN` を継続する。
+`RecoverableFailed` から `Ready` へ戻す経路は作らない。
 
 ```plantuml
 @startuml
 
 top to bottom direction
 
-Running --> RecoverableFailed : 失敗回復可能
-RecoverableFailed --> Running : 再開 / リトライ
-RecoverableFailed --> Ready : 再実行準備
+[*] --> Running : start 許可時に作成
+Running --> Paused : pause
+Paused --> Running : resume
+Running --> RecoverableFailed : 回復可能な失敗
+RecoverableFailed --> Running : retry
+Running --> Completed : phase 完了
 Running --> Failed : 回復不能な失敗
+Paused --> Canceled : cancel
+Completed --> [*] : 終了
 Failed --> [*] : 終了
+Canceled --> [*] : 終了
 
 @enduml
 ```
 
-### 7.1 状態の要点
+### 7.3 共通操作規則
 
-- `正常系` は `Draft` から `Completed` までの主経路
-- `操作系` は中断、再開、キャンセルのユーザー操作
-- `異常系` は失敗回復可能な状態と回復不能な失敗状態
-- `Draft`はファイルロード前で、初期状態
-- `Ready` はジョブ作成後で、翻訳対象ファイルロード後
-- `Running` は翻訳フェーズを実行中の状態
-- `Paused` は中断後に再開可能な停止状態
-- `RecoverableFailed` は失敗したが再開またはリトライ可能な状態
-- `Completed` は翻訳が完了した状態
-- `Failed` は回復不能な失敗状態
-- `Canceled` はユーザー操作などで終了した状態
+- `Running` の `JOB_PHASE_RUN` だけを pause できる。
+- `Paused` の `JOB_PHASE_RUN` だけを resume できる。
+- `RecoverableFailed` の `JOB_PHASE_RUN` だけを retry できる。
+- phase 開始後の cancel は、`Paused` の対象フェーズからだけ許可する。
+- terminal job では、phase run 作成、保存、readiness 更新、late response 後書きを拒否する。
+
+### 7.4 phase 別開始前提
+
+- 単語翻訳フェーズは、入力データと辞書生成対象を参照できる時だけ開始できる。
+- NPC ペルソナ生成フェーズは、単語翻訳フェーズの完了結果を参照できる時だけ開始できる。
+- 本文翻訳フェーズは、persona snapshot と翻訳対象 field を参照できる時だけ開始できる。
+- phase type で分ける対象は、開始前提データ、完了判定、呼び出す service method だけにする。
+
+### 7.5 状態の要点
+
+- `Draft` は `TRANSLATION_JOB` 作成前の準備状態である。
+- `Ready` は `TRANSLATION_JOB` 作成後で、まだ active な `JOB_PHASE_RUN` がない状態である。
+- `Running` は対象フェーズを実行中の状態である。
+- `Paused` は中断後に resume または cancel を判断できる状態である。
+- `RecoverableFailed` は retry で同じ `JOB_PHASE_RUN` を継続できる失敗状態である。
+- `Completed`、`Failed`、`Canceled` は terminal state である。
 
 ## 8. 用語集
 

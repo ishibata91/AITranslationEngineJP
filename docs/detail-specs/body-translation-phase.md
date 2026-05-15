@@ -2,8 +2,8 @@
 
 - `upper_scenario_id`: `body-translation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/body-translation-phase/scenario-design.md`
+- `source_plan`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `scenario_source`: `docs/exec-plans/completed/body-translation-phase/scenario-design.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/scenario-design.md`
 - `ui_source`: `docs/exec-plans/completed/body-translation-phase/ui-design.md`
 - `implementation_source`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_source`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
@@ -25,6 +25,9 @@
 ## 仕様
 
 - 本文翻訳フェーズは `Job Setup` で設定した本文翻訳用 provider、model、execution mode、batch mode を使う。開始時の再選択 UI は作らない。
+- 本文翻訳フェーズ開始が許可された時だけ、本文翻訳用の `JOB_PHASE_RUN` を作成する。
+- 操作可否は `JOB_PHASE_RUN.state` と共通操作規則から決める。
+- 本文翻訳フェーズ固有の `canRetry`、`canResume`、`canPause`、`canCancel` は持たない。
 - phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
 - job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
 - 入力 summary は対象 field 件数、辞書 snapshot digest、persona snapshot digest、metadata digest、prompt digest を持つ。
@@ -42,6 +45,7 @@
 - 本文翻訳対象 0 件は Completed として扱う。provider 未実行でも、単語だけの plugin は成果物出力へ進める。
 - body phase Completed、field result 整合、output status 整合を満たす時だけ output readiness を true にする。
 - secret、API key 平文、復号可能値、credential 参照実値、secret store key、endpoint、provider raw request / response、raw prompt は UI、DTO、error summary、structured log、debug log、fake transport log に出さない。
+- operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
 - 原文と訳文がローカル UI に表示されること自体は許容する。
 
 ## 受け入れ根拠

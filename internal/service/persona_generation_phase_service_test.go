@@ -561,7 +561,7 @@ func TestPersonaGenerationPhaseServiceStartPhaseStopsBeforeProviderWhenPhaseProm
 	}
 }
 
-func TestPersonaGenerationPhaseService_CommandMutationsAndReadinessBranches(t *testing.T) {
+func TestPersonaGenerationPhaseService_CommandMutationsFollowCommonOperationPolicy(t *testing.T) {
 	run := &repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateRunning, ProgressPercent: 25}
 	sourceRecords := []repository.TranslationRecord{
 		{ID: 100, RecordType: "NPC_"},
@@ -582,10 +582,22 @@ func TestPersonaGenerationPhaseService_CommandMutationsAndReadinessBranches(t *t
 		t.Fatalf("retry should return execution error for missing provider: %#v", retried)
 	}
 	canceled, err := service.CancelPhase(context.Background(), 1, 20)
-	if err != nil || canceled.PhaseState != personaGenerationPhaseStateCanceled {
-		t.Fatalf("cancel failed: state=%s err=%v", canceled.PhaseState, err)
+	if err != nil {
+		t.Fatalf("cancel should return rejected response without transport error: %v", err)
 	}
+	if canceled.PhaseState != personaGenerationPhaseStateRejected || canceled.ErrorSummary == nil || canceled.ErrorSummary.ErrorKind != personaGenerationErrorKindTermIncomplete {
+		t.Fatalf("expected cancel rejection from non-paused state, got %#v", canceled)
+	}
+	_ = repo
+}
 
+func TestPersonaGenerationPhaseService_ReadBodyReadinessBranches(t *testing.T) {
+	run := &repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateRunning, ProgressPercent: 25}
+	sourceRecords := []repository.TranslationRecord{
+		{ID: 100, RecordType: "NPC_"},
+		{ID: 101, RecordType: "NPC_"},
+	}
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, run, sourceRecords)
 	repo.personaRun.State = personaGenerationPhaseStateCompleted
 	repo.phaseRunPersonas = nil
 	missing, missingErr := service.ReadBodyReadiness(context.Background(), 1)
@@ -666,53 +678,51 @@ func TestPersonaGenerationPhaseService_ReadBodyReadinessCountsDistinctPersonaCov
 	}
 }
 
-func TestPersonaGenerationPhaseService_RetryRejectsNonRetryableStatesAndErrorsWithoutMutation(t *testing.T) {
-	sourceRecords := []repository.TranslationRecord{{ID: 100, RecordType: "NPC_"}}
-	testCases := []struct {
-		name        string
-		run         repository.JobPhaseRun
-		jobState    string
-		expectedErr string
-	}{
-		{
-			name:        "completed run",
-			run:         repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateCompleted, LatestError: personaGenerationErrorKindProviderFailure},
-			jobState:    personaGenerationJobStateRunning,
-			expectedErr: personaGenerationErrorKindTermIncomplete,
-		},
-		{
-			name:        "non retryable save failure",
-			run:         repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateRecoverableFail, LatestError: personaGenerationErrorKindSaveFailed},
-			jobState:    personaGenerationJobStateRunning,
-			expectedErr: personaGenerationErrorKindTermIncomplete,
-		},
-		{
-			name:        "terminal job",
-			run:         repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateRecoverableFail, LatestError: personaGenerationErrorKindProviderFailure},
-			jobState:    personaGenerationJobStateCompleted,
-			expectedErr: personaGenerationErrorKindTerminalJob,
-		},
+func TestPersonaGenerationPhaseService_RetryRejectsCompletedRunWithoutMutation(t *testing.T) {
+	run := &repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateCompleted, LatestError: personaGenerationErrorKindProviderFailure}
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, run, []repository.TranslationRecord{{ID: 100, RecordType: "NPC_"}})
+
+	result, err := service.RetryPhase(context.Background(), 1, 20)
+	if err != nil {
+		t.Fatalf("expected rejected result without error, got %v", err)
 	}
+	if result.PhaseState != personaGenerationPhaseStateRejected || result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != personaGenerationErrorKindTermIncomplete {
+		t.Fatalf("unexpected retry rejection: %#v", result)
+	}
+	if len(repo.updateDrafts) != 0 || repo.personaRun.State != personaGenerationPhaseStateCompleted {
+		t.Fatalf("expected no mutation for completed run, got drafts=%#v state=%s", repo.updateDrafts, repo.personaRun.State)
+	}
+}
 
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			run := tc.run
-			service, repo := newPersonaPhaseServiceForTest(tc.jobState, personaGenerationPhaseStateCompleted, &run, sourceRecords)
+func TestPersonaGenerationPhaseService_RetryUsesRecoverableFailedWithoutLatestErrorDependency(t *testing.T) {
+	run := &repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateRecoverableFail, LatestError: personaGenerationErrorKindSaveFailed}
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, run, []repository.TranslationRecord{{ID: 100, RecordType: "NPC_"}})
 
-			result, err := service.RetryPhase(context.Background(), 1, 20)
-			if err != nil {
-				t.Fatalf("expected rejected result without error, got %v", err)
-			}
-			if result.PhaseState != personaGenerationPhaseStateRejected || result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != tc.expectedErr {
-				t.Fatalf("unexpected retry rejection: %#v", result)
-			}
-			if len(repo.updateDrafts) != 0 {
-				t.Fatalf("expected no mutation, got %#v", repo.updateDrafts)
-			}
-			if repo.personaRun.State != tc.run.State {
-				t.Fatalf("expected original state preserved, got %s", repo.personaRun.State)
-			}
-		})
+	_, err := service.RetryPhase(context.Background(), 1, 20)
+	if err == nil || !strings.Contains(err.Error(), "persona generation input missing") {
+		t.Fatalf("expected retry execution error caused by missing input, got %v", err)
+	}
+	if len(repo.updateDrafts) < 2 || repo.updateDrafts[0].State != personaGenerationPhaseStateRunning {
+		t.Fatalf("expected retry execution path updates, got %#v", repo.updateDrafts)
+	}
+	if repo.personaRun.State != personaGenerationPhaseStateRecoverableFail || repo.personaRun.LatestError != personaGenerationErrorKindInputMissing {
+		t.Fatalf("expected recoverable_failed with input_missing after retry execution error, got %#v", repo.personaRun)
+	}
+}
+
+func TestPersonaGenerationPhaseService_RetryRejectsTerminalJobWithoutMutation(t *testing.T) {
+	run := &repository.JobPhaseRun{ID: 20, TranslationJobID: 1, PhaseType: personaGenerationPhaseType, State: personaGenerationPhaseStateRecoverableFail, LatestError: personaGenerationErrorKindProviderFailure}
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateCompleted, personaGenerationPhaseStateCompleted, run, []repository.TranslationRecord{{ID: 100, RecordType: "NPC_"}})
+
+	result, err := service.RetryPhase(context.Background(), 1, 20)
+	if err != nil {
+		t.Fatalf("expected rejected result without error, got %v", err)
+	}
+	if result.PhaseState != personaGenerationPhaseStateRejected || result.ErrorSummary == nil || result.ErrorSummary.ErrorKind != personaGenerationErrorKindTerminalJob {
+		t.Fatalf("unexpected terminal retry rejection: %#v", result)
+	}
+	if len(repo.updateDrafts) != 0 || repo.personaRun.State != personaGenerationPhaseStateRecoverableFail {
+		t.Fatalf("expected no mutation for terminal job retry, got drafts=%#v state=%s", repo.updateDrafts, repo.personaRun.State)
 	}
 }
 

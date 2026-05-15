@@ -1,0 +1,144 @@
+@startuml
+title 実装予定: 共通操作規則と phase 別開始前提で操作可否を分離する
+
+left to right direction
+skinparam shadowing false
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+skinparam component {
+  BackgroundColor White
+  BorderColor #555555
+  FontColor #222222
+}
+skinparam note {
+  BackgroundColor #eaf7ff
+  BorderColor #2c7fb8
+}
+
+legend left
+  |<#dff0d8> 追加予定 |
+  |<#fcf8e3> 変更予定 |
+  |<#eeeeee> 既存接続先 |
+  |<#f2dede> 廃止対象 |
+endlegend
+
+package "既存入口\nBackend UseCase" as UseCasePackage #eeeeee {
+  component "翻訳ジョブ管理 UseCase" as JobManagementUseCase #eeeeee
+  component "各フェーズ UseCase\nterm / persona / body" as PhaseUseCase #eeeeee
+  component "ジョブ作成 UseCase" as JobSetupUseCase #eeeeee
+}
+
+package "internal/usecase/translationjobpolicy\nUseCase 専用の操作可否ポリシー" as PolicyPackage #dff0d8 {
+  component "Policy\nEvaluate(input)" as Policy #dff0d8
+  component "OperationRuleCatalog\n共通操作規則" as OperationRuleCatalog #dff0d8
+  component "PhasePrerequisiteCatalog\nstart 専用の phase 別開始前提" as PhasePrerequisiteCatalog #dff0d8
+  component "ServiceCommandMap\nphase type から service method を選ぶ" as ServiceCommandMap #dff0d8
+  component "GuardFacts\n判定済み事実" as GuardFacts #dff0d8
+  component "PolicyInput\nstate / event / guard / target phase" as PolicyInput #dff0d8
+  component "PolicyResult\nallowed / rejected / command / state effect" as PolicyResult #dff0d8
+  component "Event 定数\nstart / pause / resume / retry / cancel" as EventConst #dff0d8
+  component "State 定数\njob / phase_run" as StateConst #dff0d8
+}
+
+package "internal/jobio\n状態 snapshot と保存" as JobIOPackage #fcf8e3 {
+  component "JobIOService" as JobIO #fcf8e3
+  component "TransitionSnapshotBuilder\nPolicyInput の材料を作る" as SnapshotBuilder #fcf8e3
+  component "StateChangeApplier\n確定済み状態事実だけ保存" as StateChangeApplier #fcf8e3
+}
+
+package "既存 Service\n実処理だけを担当" as ServicePackage #eeeeee {
+  component "TermTranslationService" as TermService #eeeeee
+  component "PersonaGenerationService" as PersonaService #eeeeee
+  component "BodyTranslationService" as BodyService #eeeeee
+  component "TranslationJobManagementService" as JobManagementService #eeeeee
+}
+
+package "既存永続化境界" as RepositoryPackage #eeeeee {
+  interface "JobLifecycleRepositoryPort" as JobLifecycleRepositoryPort
+  database "TRANSLATION_JOB\nJOB_PHASE_RUN" as JobTables #eeeeee
+}
+
+package "廃止対象" as RemovedPackage #f2dede {
+  component "internal/statemachine" as OldStateMachine #f2dede
+  component "StateMachineFacade" as OldFacade #f2dede
+  component "JobState / PhaseRunState\n状態 class 群" as OldStatePattern #f2dede
+  component "Ready 作成時の\npending phase run 事前作成" as PendingPlaceholder #f2dede
+  component "operation summary\nDB 永続保存" as OperationSummaryDB #f2dede
+  component "各 Service 内の\n状態遷移可否判断" as InlineBranching #f2dede
+}
+
+JobManagementUseCase --> JobIO : snapshot 取得
+PhaseUseCase --> JobIO : snapshot 取得
+JobSetupUseCase --> JobIO : ready job 保存
+
+JobManagementUseCase --> Policy : job 操作を評価
+PhaseUseCase --> Policy : phase_run 操作を評価
+JobSetupUseCase --> Policy : 作成後表示を評価
+
+JobIO --> SnapshotBuilder
+JobIO --> StateChangeApplier
+SnapshotBuilder --> JobLifecycleRepositoryPort : 読み出し
+StateChangeApplier --> JobLifecycleRepositoryPort : 確定済み状態保存
+JobLifecycleRepositoryPort --> JobTables
+
+SnapshotBuilder --> PolicyInput : 材料を作る
+PolicyInput --> Policy
+Policy --> OperationRuleCatalog : 共通操作規則を評価
+Policy --> PhasePrerequisiteCatalog : start の時だけ開始前提を評価
+Policy --> ServiceCommandMap : 許可後の service method を選ぶ
+Policy --> GuardFacts : guard 評価結果を読む
+Policy --> PolicyResult
+PolicyResult --> JobIO : 直接保存しない
+
+PhaseUseCase --> TermService : ServiceCommand target=term
+PhaseUseCase --> PersonaService : ServiceCommand target=persona
+PhaseUseCase --> BodyService : ServiceCommand target=body
+JobManagementUseCase --> JobManagementService : ServiceAction=delete / cancel_ready など
+
+OperationRuleCatalog --> EventConst
+OperationRuleCatalog --> StateConst
+PhasePrerequisiteCatalog --> StateConst
+ServiceCommandMap --> EventConst
+
+OldStateMachine -[#red,dashed]-> PolicyPackage : 置き換え
+OldFacade -[#red,dashed]-> Policy : 使わない
+OldStatePattern -[#red,dashed]-> OperationRuleCatalog : 共通操作規則に集約
+PendingPlaceholder -[#red,dashed]-> JobIO : 作らない
+OperationSummaryDB -[#red,dashed]-> PolicyResult : 導出用 reason だけ返す
+InlineBranching -[#red,dashed]-> Policy : 可否判断を移す
+
+note bottom of PolicyPackage
+  translationjobpolicy は UseCase 専用とする。
+  Service、Repository、Controller からの import は禁止する。
+  PolicyResult は UseCase 内の一時値とする。
+  rule 名や判定履歴は DB に保存しない。
+end note
+
+note bottom of OperationRuleCatalog
+  共通操作規則は phase type を主キーにしない。
+  pause、resume、retry、cancel、terminal guard を扱う。
+end note
+
+note bottom of PhasePrerequisiteCatalog
+  phase type は start の前提確認でだけ使う。
+  term、persona、body の参照成立を判定材料にする。
+end note
+
+note bottom of ServiceCommandMap
+  phase type は呼び出す service method の選択にも使う。
+  この選択は操作可否判断ではない。
+end note
+
+note bottom of JobIOPackage
+  JobIOService は取得と保存だけを扱う。
+  遷移可否は判断しない。
+  policy の判断結果は保存しない。
+  確定済み状態事実だけを保存する。
+end note
+
+note bottom of ServicePackage
+  Service は provider 実行、pause、retry などの実処理だけを扱う。
+  状態遷移可否は判断しない。
+end note
+
+@enduml

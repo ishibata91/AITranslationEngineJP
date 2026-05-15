@@ -40,7 +40,8 @@
 - 文字列サイズ上限超過、翻訳非推奨 field、RACE 先頭スペース、末尾スペースなどの xTranslator 互換上の危険値は compatibility summary に出す。
 - 出力処理は AI provider、network、secret store を必須経路にしない。
 - UI、DTO、summary、structured log、debug log、runtime event へ secret、API key、復号可能値、provider raw payload、過剰な本文全文を出さない。
-- 監査要約は artifact id、operation kind、row count、digest、error kind、status を中心にする。
+- operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
+- 監査用に導出できる要約は artifact id、operation kind、row count、digest、error kind、status を中心にする。
 
 ## 受け入れ根拠
 
@@ -60,7 +61,7 @@
 
 ## UI 契約由来の恒久仕様
 
-- 表示項目は completed job list、selected job summary、input provenance summary、output readiness、拒否理由、result summary、output status distribution、diff preview、artifact status、row count、generated_at、file path、re-output state、compatibility summary、redacted error summary、operation summary である。
+- 表示項目は completed job list、selected job summary、input provenance summary、output readiness、拒否理由、result summary、output status distribution、diff preview、artifact status、row count、generated_at、file path、re-output state、compatibility summary、redacted error summary、導出した operation summary である。
 - 主要操作は completed job 選択、diff preview 表示、xTranslator XML 出力、出力済み artifact の再出力、summary から対象 unit への移動である。
 - 出力 action は output readiness true、row validation pass、出力先 path valid の時だけ有効にする。
 - 再出力 action は existing artifact があり、output readiness true で、stale または再出力可能状態の時だけ有効にする。
