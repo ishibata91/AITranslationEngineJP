@@ -1,0 +1,32 @@
+reviewback_version: 1
+task_id: "2026-05-16-dev-fake-secret-store"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-dev-fake-secret-store/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility_boundary"
+reviewer_agent: "implement_lane_local_review"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_match: "一致。secret store 選択は bootstrap、secret 保存契約は repository、dev 起動条件は script に閉じている。"
+  evidence_sufficiency: "十分。実装範囲と変更ファイルの責務境界を照合した。"
+
+checked_scope:
+  summary: "backend wiring、repository helper、dev script、test の責務分離を確認した。"
+  files:
+    - path: "internal/bootstrap/app_controller.go"
+      symbol: "newProviderSettingsSecretStoreFromEnv"
+      reason: "環境変数から backend graph の依存を選ぶ責務に限定していることを確認した。"
+    - path: "internal/repository/master_persona_repository.go"
+      symbol: "NewProviderSettingsInMemorySecretStore"
+      reason: "既存 in-memory secret store を provider settings contract として返す薄い helper に限定していることを確認した。"
+    - path: "scripts/dev/run-wails-agent-browser.sh"
+      symbol: "AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND"
+      reason: "script は非 secret の backend 選択だけを渡し、secret 保存や解決を持たないことを確認した。"
+
+unchecked_scope:
+  - target: "frontend"
+    reason: "frontend 実装は承認済み範囲外であり、差分にも含まれない。"
+    risk: "なし。provider settings 画面は既存表示を維持している。"
+
+issues: []

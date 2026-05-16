@@ -1,0 +1,32 @@
+reviewback_version: 1
+task_id: "2026-05-16-dev-fake-secret-store"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-dev-fake-secret-store/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "implement_lane_local_review"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。agent-browser 用 Wails dev 起動は in-memory secret store を選び、production 既定は keyring-backed store を維持する。"
+  evidence_sufficiency: "十分。implementation-scope、対象差分、対象 Go test、backend-local、coverage、agent-browser 到達確認を確認した。"
+
+checked_scope:
+  summary: "provider settings secret store の選択分岐、dev 起動 script、fake provider 非表示、secret 非露出の挙動を確認した。"
+  files:
+    - path: "internal/bootstrap/app_controller.go"
+      symbol: "newProviderSettingsSecretStoreFromEnv"
+      reason: "未指定は keyring、in-memory 指定は process-local store、未対応値は失敗になることを確認した。"
+    - path: "scripts/dev/run-wails-agent-browser.sh"
+      symbol: "exec env"
+      reason: "agent-browser 用 dev 起動が in-memory backend と frontend dev server URL を渡すことを確認した。"
+    - path: "internal/apitest/model_settings_card_fake_mode_test.go"
+      symbol: "TestSCN_DFSS_005_FakeSecretStoreDoesNotAddFakeProviderToProviderList"
+      reason: "fake secret store mode が user-facing provider list を増やさないことを確認した。"
+
+unchecked_scope:
+  - target: "production package 実機配布"
+    reason: "今回の task は dev 起動 wiring と既存 production 既定維持を対象にしたため。"
+    risk: "配布 packaging は別 task の検証対象である。"
+
+issues: []

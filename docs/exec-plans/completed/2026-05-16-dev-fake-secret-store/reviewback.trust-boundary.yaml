@@ -1,0 +1,48 @@
+reviewback_version: 1
+task_id: "2026-05-16-dev-fake-secret-store"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-dev-fake-secret-store/reviewback.trust-boundary.yaml"
+viewpoint: "trust_boundary"
+reviewer_agent: "implement_lane_local_review"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+hard_gate: true
+
+assessment:
+  trust_boundary_match: "一致。secret 平文、credential 参照実値、secret store key、file backend password を公開境界へ出さない方針を維持している。"
+  evidence_sufficiency: "十分。未対応 backend error の生値出力を削除し、対象 test と log 検索を確認した。"
+
+checked_scope:
+  summary: "secret backend selector、keyring config、dev script、log、browser evidence の信頼境界を確認した。"
+  files:
+    - path: "internal/bootstrap/app_controller.go"
+      symbol: "newProviderSettingsSecretStoreFromEnv"
+      reason: "未対応 backend error が環境変数の値を含まないことを確認した。"
+    - path: "internal/repository/provider_settings_keyring_secret_store.go"
+      symbol: "newProviderSettingsKeyringConfig"
+      reason: "keyring backend override の未対応 error が環境変数の値を含まないことを確認した。"
+    - path: "scripts/dev/run-wails-agent-browser.sh"
+      symbol: "exec env"
+      reason: "script が secret 値ではなく非 secret の backend selector だけを渡すことを確認した。"
+    - path: "tmp/logs/wails-dev.log"
+      symbol: "redaction check"
+      reason: "secret 関連語の検索で一致が無いことを確認した。"
+
+unchecked_scope:
+  - target: "実 secret を入力する browser 操作"
+    reason: "secret 平文を証跡へ出さないため、実 secret 入力は実施していない。"
+    risk: "実 provider 接続確認は別 task の安全条件で扱う。"
+
+issues:
+  - id: "trust-boundary-001"
+    level: "major"
+    title: "未対応 backend error が環境変数値を含む"
+    problem: "解決済み。未対応 backend の error が指定値を含むと、誤って secret 相当値を設定した場合に log へ出る可能性があった。"
+    reason: "secret store backend selector は非 secret 値だが、error boundary では入力値を再出力しない方が安全である。"
+    evidence:
+      - path: "internal/bootstrap/app_controller.go"
+        excerpt: "unsupported provider settings secret backend override"
+      - path: "internal/repository/provider_settings_keyring_secret_store.go"
+        excerpt: "unsupported provider settings keyring backend override"
+    fix_required: true
+    status: "resolved"

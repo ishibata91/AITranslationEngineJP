@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -16,32 +17,69 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
+func TestSCN_DFSS_005_FakeSecretStoreDoesNotAddFakeProviderToProviderList(t *testing.T) {
+	ctx := context.Background()
+	db := openModelSettingsCardAPITestDatabase(t)
+	providerSettings := newModelSettingsCardProviderSettingsUsecase(t, db)
+
+	listed, err := providerSettings.ListProviderSettings(ctx, usecase.ListProviderSettingsRequest{})
+	if err != nil {
+		t.Fatalf("SCN-DFSS-005 expected provider settings list to load: %v", err)
+	}
+	assertModelSettingsCardProviderListExcludesFake(t, "SCN-DFSS-005", listed.Providers)
+	assertModelSettingsCardPublicTextExcludesSecretBackendValues(t, "SCN-DFSS-005", fmt.Sprintf("%#v", listed))
+}
+
+func TestSCN_DFSS_007_FakeSecretStoreEvidenceKeepsSecretValuesOutOfPublicResultAndLog(t *testing.T) {
+	capture := startObservabilityLogCapture(t)
+	ctx := context.Background()
+	db := openModelSettingsCardAPITestDatabase(t)
+	validator := &modelSettingsCardRecordingProviderSettingsValidator{}
+	providerSettings := newModelSettingsCardProviderSettingsUsecaseWithValidator(t, db, validator)
+	endpoint := "https://gemini.example/v1beta"
+
+	saved, err := providerSettings.SaveProviderSettings(ctx, usecase.SaveProviderSettingsRequest{
+		ProviderID: usecase.ProviderSettingsProviderIDGemini,
+		Endpoint:   modelSettingsCardStringPointer(endpoint),
+	})
+	if err != nil {
+		t.Fatalf("SCN-DFSS-007 expected provider settings save without credential input to succeed: %v", err)
+	}
+	validated, err := providerSettings.ValidateProviderSettings(ctx, usecase.ValidateProviderSettingsRequest{
+		ProviderID:            saved.Provider.ProviderID,
+		Endpoint:              saved.Provider.Endpoint,
+		CredentialState:       saved.Provider.CredentialState,
+		CredentialReferenceID: saved.Provider.CredentialReferenceID,
+		RequestToken:          modelSettingsCardPointerValue(saved.Provider.RequestToken),
+	})
+	if err != nil {
+		t.Fatalf("SCN-DFSS-007 expected validation to return redacted failure payload: %v", err)
+	}
+	if validated.FailureKind == nil || *validated.FailureKind != usecase.ProviderSettingsErrorKindCredentialMissing {
+		t.Fatalf("SCN-DFSS-007 expected credential_missing failure kind, got %#v", validated)
+	}
+	if validator.called {
+		t.Fatal("SCN-DFSS-007 expected missing credential to stop before provider request capture")
+	}
+
+	payload := capture.requireEvent(t, "provider_settings_validation", "failed", "credential_missing")
+	if payload["where"] != "provider_settings.service" || payload["provider"] != "gemini" {
+		t.Fatalf("SCN-DFSS-007 expected provider settings boundary log payload, got %#v", payload)
+	}
+	assertModelSettingsCardPublicTextExcludesSecretBackendValues(t, "SCN-DFSS-007", fmt.Sprintf("%#v\n%s", validated, capture.buffer.String()))
+}
+
 func TestSCN_MSCC_003_ModelSettingsFakeModeListsFakeModelUnderRealProvider(t *testing.T) {
 	ctx := context.Background()
 	db := openModelSettingsCardAPITestDatabase(t)
 	repo := repository.NewSQLiteProviderSettingsRepository(db)
-	secretStore := repository.NewInMemorySecretStore()
-	modelListLoader := modelSettingsCardFakeProviderModelListAdapter{
-		loader: ai.NewProviderModelListLoader(
-			ai.NewTestSafeHTTPTransport(),
-			ai.WithProviderModelListDeterministicProviders(),
-		),
-	}
-	providerSettingsService := service.NewProviderSettingsService(
-		repo,
-		secretStore,
-		repository.NewSQLiteTransactor(db),
-		modelListLoader,
-		modelSettingsCardNoopProviderSettingsValidator{},
-		func() time.Time { return time.Date(2026, 5, 7, 10, 0, 0, 0, time.UTC) },
-	)
-	providerSettings := usecase.NewProviderSettingsUsecase(providerSettingsService)
+	providerSettings := newModelSettingsCardProviderSettingsUsecase(t, db)
 
 	listed, err := providerSettings.ListProviderSettings(ctx, usecase.ListProviderSettingsRequest{})
 	if err != nil {
 		t.Fatalf("SCN-MSCC-003 expected provider settings list to load: %v", err)
 	}
-	assertModelSettingsCardProviderListExcludesFake(t, listed.Providers)
+	assertModelSettingsCardProviderListExcludesFake(t, "SCN-MSCC-003", listed.Providers)
 
 	endpoint := "https://gemini.example/v1beta"
 	saved, err := providerSettings.SaveProviderSettingsWithSecret(ctx, usecase.SaveProviderSettingsRequest{
@@ -88,6 +126,45 @@ func TestSCN_MSCC_003_ModelSettingsFakeModeListsFakeModelUnderRealProvider(t *te
 	}
 }
 
+func newModelSettingsCardProviderSettingsUsecase(
+	t *testing.T,
+	db *sqlx.DB,
+) *usecase.ProviderSettingsAppUsecase {
+	t.Helper()
+	return newModelSettingsCardProviderSettingsUsecaseWithValidator(
+		t,
+		db,
+		modelSettingsCardNoopProviderSettingsValidator{},
+	)
+}
+
+func newModelSettingsCardProviderSettingsUsecaseWithValidator(
+	t *testing.T,
+	db *sqlx.DB,
+	validator modelSettingsCardProviderSettingsValidator,
+) *usecase.ProviderSettingsAppUsecase {
+	t.Helper()
+
+	providerSettingsService := service.NewProviderSettingsService(
+		repository.NewSQLiteProviderSettingsRepository(db),
+		repository.NewInMemorySecretStore(),
+		repository.NewSQLiteTransactor(db),
+		modelSettingsCardFakeProviderModelListAdapter{
+			loader: ai.NewProviderModelListLoader(
+				ai.NewTestSafeHTTPTransport(),
+				ai.WithProviderModelListDeterministicProviders(),
+			),
+		},
+		validator,
+		func() time.Time { return time.Date(2026, 5, 7, 10, 0, 0, 0, time.UTC) },
+	)
+	return usecase.NewProviderSettingsUsecase(providerSettingsService)
+}
+
+type modelSettingsCardProviderSettingsValidator interface {
+	ValidateProviderSettings(context.Context, service.ProviderSettingsValidationProbe) error
+}
+
 type modelSettingsCardFakeProviderModelListAdapter struct {
 	loader *ai.ProviderModelListLoader
 }
@@ -121,6 +198,18 @@ func (modelSettingsCardNoopProviderSettingsValidator) ValidateProviderSettings(
 	return nil
 }
 
+type modelSettingsCardRecordingProviderSettingsValidator struct {
+	called bool
+}
+
+func (validator *modelSettingsCardRecordingProviderSettingsValidator) ValidateProviderSettings(
+	context.Context,
+	service.ProviderSettingsValidationProbe,
+) error {
+	validator.called = true
+	return nil
+}
+
 func openModelSettingsCardAPITestDatabase(t *testing.T) *sqlx.DB {
 	t.Helper()
 	databasePath := filepath.Join(t.TempDir(), "model-settings-card.sqlite3")
@@ -134,14 +223,41 @@ func openModelSettingsCardAPITestDatabase(t *testing.T) *sqlx.DB {
 	return db
 }
 
-func assertModelSettingsCardProviderListExcludesFake(t *testing.T, providers []usecase.ProviderSettingsSummary) {
+func assertModelSettingsCardProviderListExcludesFake(
+	t *testing.T,
+	scenarioID string,
+	providers []usecase.ProviderSettingsSummary,
+) {
 	t.Helper()
 	if len(providers) != 3 {
-		t.Fatalf("SCN-MSCC-003 expected three user-facing providers, got %#v", providers)
+		t.Fatalf("%s expected three user-facing providers, got %#v", scenarioID, providers)
 	}
 	for _, provider := range providers {
 		if provider.ProviderID == "fake" {
-			t.Fatalf("SCN-MSCC-003 expected fake provider to stay hidden, got %#v", providers)
+			t.Fatalf("%s expected fake provider to stay hidden, got %#v", scenarioID, providers)
+		}
+	}
+}
+
+func assertModelSettingsCardPublicTextExcludesSecretBackendValues(
+	t *testing.T,
+	scenarioID string,
+	text string,
+) {
+	t.Helper()
+
+	normalized := strings.ToLower(text)
+	for _, forbidden := range []string{
+		"in-memory",
+		"provider-settings:",
+		"secret",
+		"apikey",
+		"credentialinput",
+		"rawrequest",
+		"rawresponse",
+	} {
+		if strings.Contains(normalized, forbidden) {
+			t.Fatalf("%s expected public API result and evidence text to exclude secret boundary value %q", scenarioID, forbidden)
 		}
 	}
 }

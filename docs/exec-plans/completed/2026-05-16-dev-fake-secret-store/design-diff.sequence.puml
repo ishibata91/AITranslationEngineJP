@@ -1,0 +1,82 @@
+@startuml
+
+title dev fake secret store 設計差分 sequence 図
+
+autonumber
+hide footbox
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 25
+skinparam BoxPadding 10
+
+actor "開発者 / AI 確認者" as Operator
+participant "run-wails-agent-browser.sh" as DevScript
+participant "newAppController\ninternal/bootstrap/app_controller.go" as AppController
+participant "開発用 backend selection helper" as BackendSelector
+participant "NewProviderSettingsKeyringSecretStore()" as KeyringStore
+participant "NewInMemorySecretStore()" as InMemoryStore
+participant "NewCachedProviderSettingsSecretStore()" as CachedStore
+participant "ProviderSettingsService" as ProviderSettingsService
+participant "master persona / job setup /\n各 phase service" as SharedConsumers
+participant "変更しない公開境界\nUI / DTO / Wails / DB / provider catalog" as PublicBoundary
+
+== agent-browser 用開発起動 ==
+
+Operator -> DevScript : npm run dev:wails:agent-browser
+DevScript -> DevScript : .env を読む
+DevScript -> AppController : agent-browser 用の非 secret 起動条件で起動
+AppController -> BackendSelector : provider settings secret backend を選ぶ
+
+alt 開発条件が成立する
+    BackendSelector -> InMemoryStore : process-local backend を作る
+    InMemoryStore --> BackendSelector : ProviderSettingsSecretStore
+    note right of InMemoryStore
+    追加予定:
+    - provider settings backend として再利用
+    - secret は process-local にだけ残る
+    end note
+else 開発条件が成立しない
+    BackendSelector -> KeyringStore : production 既定 backend を作る
+    KeyringStore --> BackendSelector : ProviderSettingsSecretStore
+end
+
+BackendSelector --> AppController : 選ばれた backend
+AppController -> CachedStore : backend を wrap する
+CachedStore --> AppController : shared cached store
+AppController -> ProviderSettingsService : cached store を注入
+AppController -> SharedConsumers : 同じ cached store を注入
+ProviderSettingsService -> PublicBoundary : 公開境界は増やさない
+SharedConsumers -> PublicBoundary : fake secret store を user-facing に出さない
+
+== production 既定起動 ==
+
+Operator -> AppController : 通常起動
+AppController -> BackendSelector : provider settings secret backend を選ぶ
+BackendSelector -> KeyringStore : 開発条件なし
+KeyringStore --> BackendSelector : keyring backend
+BackendSelector --> AppController : production 既定 backend
+AppController -> CachedStore : wrapper 役割は変更しない
+CachedStore --> AppController : shared cached store
+AppController -> ProviderSettingsService : 既存注入を維持
+AppController -> SharedConsumers : 既存注入を維持
+
+note right of DevScript
+変更予定:
+- agent-browser 用に keyring を開かない条件を渡す候補
+
+禁止:
+- secret 値や key を script へ書かない
+end note
+
+note right of PublicBoundary
+変更しない:
+- provider settings UI
+- 公開 DTO / Wails method
+- DB schema
+- provider catalog
+
+削除予定:
+- なし
+end note
+
+@enduml

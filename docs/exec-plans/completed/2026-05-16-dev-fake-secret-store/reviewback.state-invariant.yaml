@@ -1,0 +1,32 @@
+reviewback_version: 1
+task_id: "2026-05-16-dev-fake-secret-store"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-dev-fake-secret-store/reviewback.state-invariant.yaml"
+viewpoint: "state_invariant"
+reviewer_agent: "implement_lane_local_review"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_match: "一致。production 既定、in-memory process-local、Delete 後空、別 instance 空、unsupported backend の停止をテストで固定している。"
+  evidence_sufficiency: "十分。unit test と scenario test の検証結果を確認した。"
+
+checked_scope:
+  summary: "secret store backend 選択状態、process-local store の非永続性、provider list の非変化を確認した。"
+  files:
+    - path: "internal/bootstrap/app_controller_test.go"
+      symbol: "TestNewProviderSettingsSecretStoreFromEnvInMemoryBypassesKeyringOpen"
+      reason: "in-memory 指定時に keyring open を不要にする状態を確認した。"
+    - path: "internal/repository/provider_settings_keyring_secret_store_test.go"
+      symbol: "TestProviderSettingsInMemorySecretStoreIsProcessLocalAcrossNewInstance"
+      reason: "別 instance が空で始まることを確認した。"
+    - path: "internal/apitest/model_settings_card_fake_mode_test.go"
+      symbol: "TestSCN_DFSS_007_FakeSecretStoreEvidenceKeepsSecretValuesOutOfPublicResultAndLog"
+      reason: "missing credential の失敗分類と secret 非露出を確認した。"
+
+unchecked_scope:
+  - target: "同時 Save / Load"
+    reason: "今回の task は起動時 wiring と process-local 範囲を対象にしており、同時実行制御は変更していない。"
+    risk: "既存 InMemorySecretStore の mutex 実装に依存する。"
+
+issues: []

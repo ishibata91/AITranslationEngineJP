@@ -1,7 +1,7 @@
 # Task Plan: 2026-05-16-dev-fake-secret-store
 
 - `workflow`: work
-- `status`: planned
+- `status`: completed
 - `lane_owner`: Codex design-bundle
 - `task_id`: `2026-05-16-dev-fake-secret-store`
 - `task_mode`: development environment reliability planning
@@ -21,8 +21,11 @@
 - `ux_review`: `N/A`
 - `frontend_human_review`: `not-required`
 - `approved_frontend_protection`: `N/A`
-- `scenario_design`: `pending`
-- `implementation_scope`: `pending-after-human-review`
+- `scenario_candidates`: `scenario-candidates.*.md`
+- `scenario_design`: `scenario-design.md`
+- `design_diff_component`: `design-diff.component.puml`
+- `design_diff_sequence`: `design-diff.sequence.puml`
+- `implementation_scope`: `implementation-scope.md`
 - `detail_spec_target`: `N/A`
 
 ## Routing Notes
@@ -128,48 +131,48 @@
 - `functional_or_design_hitl`: `required-after-design-bundle`
 - `ux_review`: `not-required`
 - `frontend_human_review`: `not-required`
-- `approval_record`: `pending-after-plan`
+- `approval_record`: `approved-by-human-on-2026-05-16`
 
 ## Codex Implementation Result
 
-- `completed_handoffs`: 未着手
-- `touched_files`: 未着手
-- `implemented_scope`: 未着手
-- `test_results`: 未着手
-- `implementation_investigation`: 未着手
-- `ui_evidence`: `N/A`
+- `completed_handoffs`: `scenario_candidates`、`scenario_design`、`design_diff`、`implementation_scope`、`H-BE-001`、`H-INT-001`、`H-TU-001`、`H-TS-001`、`H-FV-001`、`review_gate`、`work_report_input`、`merge_prep_input`
+- `touched_files`: `scenario-candidates.*.md`、`scenario-design.md`、`design-diff.component.puml`、`design-diff.sequence.puml`、`design-diff.component.svg`、`design-diff.sequence.svg`、`implementation-scope.md`、`internal/bootstrap/app_controller.go`、`internal/repository/master_persona_repository.go`、`scripts/dev/run-wails-agent-browser.sh`、`internal/bootstrap/app_controller_test.go`、`internal/repository/provider_settings_keyring_secret_store_test.go`、`internal/apitest/provider_settings_contract_freeze_test.go`、`internal/apitest/model_settings_card_fake_mode_test.go`
+- `implemented_scope`: provider settings secret store の環境変数選択を追加した。`in-memory` は process-local store を使う。未指定、`default`、`file`、`keychain`、`wincred` は既存 keyring store を使う。未対応値は secret を含まないエラーで停止する。`npm run dev:wails:agent-browser` は in-memory store と 5174 番 frontend URL を明示する。
+- `test_results`: `go test ./internal/bootstrap ./internal/repository ./internal/apitest -run 'TestNewProviderSettingsSecretStoreFromEnv|TestProviderSettingsInMemory|TestSCN_DFSS_006|TestSCN_DFSS_005|TestSCN_DFSS_007'` 成功。`go test ./internal/bootstrap ./internal/apitest` 成功。`go test ./internal/bootstrap ./internal/repository -run 'TestNewProviderSettingsSecretStoreFromEnvRejectsUnsupportedBackend|TestProviderSettingsKeyringConfigRejectsUnsupportedBackendOverride'` 成功。`python3 scripts/harness/run.py --suite backend-local` 成功。`python3 scripts/harness/run.py --suite coverage` 成功。
+- `implementation_investigation`: Wails dev は sandbox 内では GUI 起動を含むビルド段階で失敗した。昇格実行では同じ script が成功した。直接 `go build -buildvcs=false -gcflags "all=-N -l" -tags dev,devtools` は成功した。
+- `ui_evidence`: `agent-browser open http://localhost:34115` 成功。`agent-browser snapshot` は `#provider-settings` で Gemini、LM Studio、xAI の 3 provider だけを表示した。`agent-browser errors` は空。スクリーンショットは `tmp/agent-browser/dev-fake-secret-store-provider-settings.png`。
 - `ux_review_result`: `N/A`
 - `approved_frontend_protection`: `N/A`
-- `codex_review_result`: 未着手
-- `sonar_gate_result`: 未着手
-- `residual_risks`: 現行 password prompt の発生条件は未観測である。実装前に keyring backend と agent-browser 起動環境を追加確認する。
-- `docs_changes`: この plan のみ
+- `codex_review_result`: `review-aggregation.md` で 5 観点すべて `no_issue`。`trust-boundary-001` は closeout 前に解決済み。
+- `sonar_gate_result`: coverage harness 内の Sonar 指標は security、reliability、maintainability の HIGH が 0。coverage は Sonar total 71.1%、line 72.3%、branch 62.8%。
+- `residual_risks`: 現行 password prompt の発生条件そのものは未観測である。今回の確認では agent-browser 起動時に provider settings は OS keyring を使わず、log に secret 関連語は出なかった。Wails dev は GUI 起動を含むため sandbox 外実行が必要である。
+- `docs_changes`: task 内成果物のみ
 
 ## Merge Readiness
 
-- `merge_ready`: `pending`
+- `merge_ready`: `ready-for-merge-lane`
 - `source_branch`: `codex/2026-05-16-dev-fake-secret-store`
 - `target_branch`: `master`
-- `commit_hash`: `N/A`
-- `validation_evidence`: 未着手
-- `review_evidence`: 未着手
-- `residual_risks`: file backend と in-memory backend のどちらを既定化するかは、scenario-design で確定する必要がある。
+- `commit_hash`: `ad22146ffa1782693079aab6dae45da35da163ed`
+- `validation_evidence`: backend-local、coverage、対象 Go test、Wails dev 起動、agent-browser 到達確認が成功した。
+- `review_evidence`: `reviewback.behavior.yaml`、`reviewback.contract.yaml`、`reviewback.responsibility-boundary.yaml`、`reviewback.state-invariant.yaml`、`reviewback.trust-boundary.yaml`、`review-aggregation.md`
+- `residual_risks`: file backend は初期実装候補から外し、restart 復元が必要になった場合の deferred 候補にした。Wails dev は GUI 起動を含むため sandbox 外実行が必要である。
 
 ## Merge Result
 
-- `merge_status`: `pending`
-- `conflict_resolution`: `N/A`
-- `post_merge_validation`: `N/A`
-- `completed_move`: `N/A`
-- `merge_commit_hash`: `N/A`
+- `merge_status`: `local-merge-completed`
+- `conflict_resolution`: conflict なし。source branch の変更をそのまま採用した。
+- `post_merge_validation`: `git diff --check --cached` 成功。`python3 scripts/harness/run.py --suite backend-local` 成功。
+- `completed_move`: `docs/exec-plans/active/2026-05-16-dev-fake-secret-store/` から `docs/exec-plans/completed/2026-05-16-dev-fake-secret-store/` へ移動済み。
+- `merge_commit_hash`: local commit 作成後に merge lane の返却で記録する。
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: 未着手
-- `detail_spec_canonicalization`: 未判断
-- `follow_up`: UI 引き算 task の agent-browser 確認前に、この task を先行させるか判断する。
+- `canonicalized_artifacts`: task 内 scenario candidates、scenario-design、design-diff、implementation-scope
+- `detail_spec_canonicalization`: human 承認済み恒久仕様が未確認のため未実施
+- `follow_up`: dev 起動規約の恒久 docs 正本化は別 task で判断する。
 
 ## Outcome
 
-- 計画作成のみ。
+- `scenario-design.md`、設計差分図、implementation-scope、実装、テスト、agent-browser 証跡、review gate、work report 入力、merge prep 入力を作成した。merge lane で local merge、merge 後検証、completed 移動を完了した。

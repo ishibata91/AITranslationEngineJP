@@ -112,10 +112,7 @@ func newProviderSettingsKeyringConfig(goos string, getenv func(string) string) (
 		config.FileDir = fileDirectory
 		config.FilePasswordFunc = keyring.FixedStringPrompt(filePassword)
 	default:
-		return keyring.Config{}, fmt.Errorf(
-			"unsupported provider settings keyring backend override: %s",
-			requestedBackend,
-		)
+		return keyring.Config{}, fmt.Errorf("unsupported provider settings keyring backend override")
 	}
 
 	return config, nil
