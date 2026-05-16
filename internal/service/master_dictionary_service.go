@@ -7,6 +7,8 @@ import (
 	"io"
 	"strings"
 	"time"
+
+	"aitranslationenginejp/internal/notification"
 )
 
 var (
@@ -136,10 +138,8 @@ type XMLRecordReaderPort interface {
 	ReadStringRecords(reader io.Reader, handle func(xmlStringRecord) error) error
 }
 
-// RuntimeContextPort allows import service to emit runtime progress without knowing Wails.
-type RuntimeContextPort interface {
-	EmitImportProgress(ctx context.Context, progress int)
-}
+// SinkPort allows service code to pass notification facts without knowing transport.
+type SinkPort = notification.SinkPort
 
 // XMLProvenanceDraft is the service-layer payload for persisting XML import provenance.
 type XMLProvenanceDraft struct {

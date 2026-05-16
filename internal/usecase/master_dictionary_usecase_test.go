@@ -6,6 +6,7 @@ import (
 	"testing"
 	"time"
 
+	"aitranslationenginejp/internal/notification"
 	"aitranslationenginejp/internal/service"
 )
 
@@ -74,16 +75,15 @@ func (fake fakeImportService) ImportXML(ctx context.Context, xmlPath string) (se
 	return fake.importXMLFunc(ctx, xmlPath)
 }
 
-type fakeRuntimeEventPublisher struct {
-	publishedCompleted []service.MasterDictionaryImportCompletedPayload
+type fakeNotificationSink struct {
+	notifiedCompleted []notification.MasterDictionaryImportFact
 }
 
-func (fake *fakeRuntimeEventPublisher) PublishImportProgress(_ context.Context, _ int) {
-	// Import progress is irrelevant for these usecase tests.
-}
-
-func (fake *fakeRuntimeEventPublisher) PublishImportCompleted(_ context.Context, payload service.MasterDictionaryImportCompletedPayload) {
-	fake.publishedCompleted = append(fake.publishedCompleted, payload)
+func (fake *fakeNotificationSink) Notify(_ context.Context, fact notification.Fact) {
+	if fact.Kind != notification.KindMasterDictionaryImportCompleted || fact.Import == nil {
+		return
+	}
+	fake.notifiedCompleted = append(fake.notifiedCompleted, *fact.Import)
 }
 
 func TestMasterDictionaryUsecaseGetPagePassesRefreshQueryToService(t *testing.T) {
@@ -297,7 +297,7 @@ func TestMasterDictionaryUsecaseImportXMLPassesContextAndPathToService(t *testin
 			}
 			return service.MasterDictionaryImportSummary{LastEntryID: 88}, nil
 		}},
-		&fakeRuntimeEventPublisher{},
+		&fakeNotificationSink{},
 	)
 
 	_, err := usecase.ImportXML(ctx, usecaseDictionaryXML, MasterDictionaryRefreshQuery{})
@@ -318,16 +318,16 @@ func TestMasterDictionaryUsecaseImportXMLRefreshesSelectedID(t *testing.T) {
 }
 
 func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEvent(t *testing.T) {
-	_, publisher, _ := runSuccessfulUsecaseImport(t)
+	_, sink, _ := runSuccessfulUsecaseImport(t)
 
-	if len(publisher.publishedCompleted) != 1 {
-		t.Fatalf("expected one completed event, got %d", len(publisher.publishedCompleted))
+	if len(sink.notifiedCompleted) != 1 {
+		t.Fatalf("expected one completed event, got %d", len(sink.notifiedCompleted))
 	}
 }
 
 func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventRefreshPayload(t *testing.T) {
-	_, publisher, _ := runSuccessfulUsecaseImport(t)
-	payload := publisher.publishedCompleted[0]
+	_, sink, _ := runSuccessfulUsecaseImport(t)
+	payload := sink.notifiedCompleted[0]
 
 	if payload.Refresh.Category != masterDictionaryDefaultImportCategory || payload.Refresh.Page != masterDictionaryDefaultImportPage || payload.Refresh.PageSize != masterDictionaryDefaultImportPageSize {
 		t.Fatalf("unexpected refresh payload: %#v", payload.Refresh)
@@ -335,8 +335,8 @@ func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventRefreshPayload(t
 }
 
 func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventTargetID(t *testing.T) {
-	_, publisher, _ := runSuccessfulUsecaseImport(t)
-	payload := publisher.publishedCompleted[0]
+	_, sink, _ := runSuccessfulUsecaseImport(t)
+	payload := sink.notifiedCompleted[0]
 
 	if payload.Refresh.RefreshTargetID == nil || *payload.Refresh.RefreshTargetID != 88 {
 		t.Fatalf("expected refresh target id 88, got %#v", payload.Refresh.RefreshTargetID)
@@ -344,8 +344,8 @@ func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventTargetID(t *test
 }
 
 func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventSummary(t *testing.T) {
-	_, publisher, _ := runSuccessfulUsecaseImport(t)
-	payload := publisher.publishedCompleted[0]
+	_, sink, _ := runSuccessfulUsecaseImport(t)
+	payload := sink.notifiedCompleted[0]
 
 	if payload.Summary.FileName != usecaseDictionaryXML {
 		t.Fatalf("unexpected completed payload summary: %#v", payload.Summary)
@@ -353,8 +353,8 @@ func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventSummary(t *testi
 }
 
 func TestMasterDictionaryUsecaseImportXMLPublishesCompletedEventPage(t *testing.T) {
-	_, publisher, _ := runSuccessfulUsecaseImport(t)
-	payload := publisher.publishedCompleted[0]
+	_, sink, _ := runSuccessfulUsecaseImport(t)
+	payload := sink.notifiedCompleted[0]
 
 	if payload.Page.SelectedID == nil || *payload.Page.SelectedID != 88 {
 		t.Fatalf("unexpected completed payload page: %#v", payload.Page)
@@ -370,7 +370,7 @@ func TestMasterDictionaryUsecaseImportXMLReturnsEventBuildError(t *testing.T) {
 		fakeImportService{importXMLFunc: func(_ context.Context, _ string) (service.MasterDictionaryImportSummary, error) {
 			return service.MasterDictionaryImportSummary{LastEntryID: 10}, nil
 		}},
-		&fakeRuntimeEventPublisher{},
+		&fakeNotificationSink{},
 	)
 
 	_, err := usecase.ImportXML(context.Background(), usecaseDictionaryXML, MasterDictionaryRefreshQuery{})
@@ -386,11 +386,11 @@ type fakeImportSearchSequence struct {
 	expected []service.MasterDictionaryQuery
 }
 
-func runSuccessfulUsecaseImport(t *testing.T) (MasterDictionaryImportResult, *fakeRuntimeEventPublisher, *fakeImportSearchSequence) {
+func runSuccessfulUsecaseImport(t *testing.T) (MasterDictionaryImportResult, *fakeNotificationSink, *fakeImportSearchSequence) {
 	t.Helper()
 
 	ctx := context.Background()
-	publisher := &fakeRuntimeEventPublisher{}
+	sink := &fakeNotificationSink{}
 	importedAt := time.Date(2026, 4, 14, 13, 0, 0, 0, time.UTC)
 	searchCalls := newFakeImportSearchSequence(t, importedAt)
 	usecase := NewMasterDictionaryUsecase(
@@ -405,14 +405,14 @@ func runSuccessfulUsecaseImport(t *testing.T) (MasterDictionaryImportResult, *fa
 			}
 			return service.MasterDictionaryImportSummary{FilePath: usecaseDictionaryXML, FileName: usecaseDictionaryXML, ImportedCount: 3, UpdatedCount: 1, SkippedCount: 2, LastEntryID: 88}, nil
 		}},
-		publisher,
+		sink,
 	)
 
 	result, err := usecase.ImportXML(ctx, usecaseDictionaryXML, MasterDictionaryRefreshQuery{SearchTerm: "imported", Category: "書籍", Page: 5, PageSize: 15})
 	if err != nil {
 		t.Fatalf("expected import xml to succeed: %v", err)
 	}
-	return result, publisher, searchCalls
+	return result, sink, searchCalls
 }
 
 func newFakeImportSearchSequence(t *testing.T, importedAt time.Time) *fakeImportSearchSequence {

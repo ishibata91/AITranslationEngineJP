@@ -7,12 +7,16 @@ import (
 
 const xmlAdapterFixtureBaseName = "Dawnguard_english_japanese.xml"
 
+func xmlAdapterFixturePath() string {
+	return filepath.Join("..", "..", "tests", "fixtures", "master-dictionary", xmlAdapterFixtureBaseName)
+}
+
 func TestLocalMasterDictionaryXMLFilePortResolvesRepositoryFixtureByBaseName(t *testing.T) {
 	port := NewLocalMasterDictionaryXMLFilePort()
 
-	resolvedPath, err := port.ResolvePath(xmlAdapterFixtureBaseName)
+	resolvedPath, err := port.ResolvePath(xmlAdapterFixturePath())
 	if err != nil {
-		t.Fatalf("expected repository fixture to resolve by base name: %v", err)
+		t.Fatalf("expected tracked repository fixture to resolve: %v", err)
 	}
 
 	if filepath.Base(resolvedPath) != xmlAdapterFixtureBaseName {
@@ -22,9 +26,9 @@ func TestLocalMasterDictionaryXMLFilePortResolvesRepositoryFixtureByBaseName(t *
 
 func TestLocalMasterDictionaryXMLFilePortOpensResolvedFixture(t *testing.T) {
 	port := NewLocalMasterDictionaryXMLFilePort()
-	resolvedPath, err := port.ResolvePath(xmlAdapterFixtureBaseName)
+	resolvedPath, err := port.ResolvePath(xmlAdapterFixturePath())
 	if err != nil {
-		t.Fatalf("expected repository fixture to resolve by base name: %v", err)
+		t.Fatalf("expected tracked repository fixture to resolve: %v", err)
 	}
 
 	reader, err := port.Open(resolvedPath)

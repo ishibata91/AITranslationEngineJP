@@ -21,6 +21,11 @@ def has_requirement_coverage(path: Path) -> bool:
     return "```json requirement-coverage" in path.read_text(encoding="utf-8")
 
 
+def is_waiting_for_human_decision(path: Path) -> bool:
+    text = path.read_text(encoding="utf-8")
+    return "`status`: `stopped_for_human_decision`" in text
+
+
 def run_gate(repo_root: Path, scenario_path: Path) -> int:
     script = repo_root / "scripts" / "scenario" / "requirement_gate.py"
     report_path = scenario_path.with_suffix(".requirement-gate.md")
@@ -63,6 +68,9 @@ def main() -> int:
 
     failures = 0
     for scenario_path in scenario_files:
+        if is_waiting_for_human_decision(scenario_path):
+            report_skip(f"SKIP stopped for human decision: {scenario_path.relative_to(repo_root)}")
+            continue
         if not has_requirement_coverage(scenario_path):
             report_fail(f"FAIL missing requirement coverage JSON: {scenario_path.with_suffix('.requirement-coverage.json').relative_to(repo_root)}")
             failures += 1

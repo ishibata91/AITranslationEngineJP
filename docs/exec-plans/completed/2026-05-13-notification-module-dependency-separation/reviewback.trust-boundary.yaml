@@ -1,0 +1,44 @@
+reviewback_version: 1
+task_id: "2026-05-13-notification-module-dependency-separation"
+review_yaml_path: "docs/exec-plans/completed/2026-05-13-notification-module-dependency-separation/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "安全性は維持されている。通知 module は file path を runtime payload から除去し、unsafe marker を含む payload を拒否する。dispatch log は kind、result、reason だけを custom key として持ち、secret、API key、provider raw payload、XML 全文、file path を出さない。"
+  evidence_sufficiency: "十分。redaction 実装、ログ出力、禁止値 test、scenario test、観測ログ仕様を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "外部入力由来の XML path、通知 payload、runtime payload、backend log の secret / raw payload 混入を確認した。"
+  files:
+    - path: "internal/notification/notification.go"
+      line: 240
+      symbol: "redactImportFact"
+      reason: "file path を payload から除去し、file name を basename へ落とす処理を確認した。"
+    - path: "internal/notification/notification.go"
+      line: 174
+      symbol: "logDispatchResult"
+      reason: "dispatch log が minimal key だけを出すことを確認した。"
+    - path: "internal/notification/notification_test.go"
+      line: 225
+      symbol: "assertNotificationDispatchLogExcludesForbiddenValues"
+      reason: "secret、provider raw、XML 全文、file path が log に出ない test を確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 107
+      symbol: "TestSCN_NMD_004_DispatcherRedactsPayloadAndRejectsUnsafePayload"
+      reason: "unsafe payload rejection と forbidden payload exclusion の scenario test を確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 201
+      symbol: "TestSCN_NMD_008_NotificationResultIsNotPersistedAndLogsStayMinimal"
+      reason: "通知結果を DB に保存せず、log key を minimal に保つ test を確認した。"
+
+unchecked_scope:
+  - target: "認証、認可、tenant isolation"
+    reason: "この task は master dictionary import の内部通知境界変更であり、認証、認可、tenant 概念を追加しない。"
+    risk: "該当境界が存在しないため追加リスクはない。"
+
+issues: []

@@ -1,0 +1,322 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-NMD-001",
+      "title": "通知入口を NotificationSinkPort に一本化する",
+      "kind": "architecture_boundary",
+      "source_requirement": "plan.md の採用方針と責務境界は、UseCase、Service、将来の Runner / Worker が NotificationSinkPort へ通知事実を渡す構造を固定している。",
+      "required_detail_types": [
+        "success_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は NotificationSinkPort を実行側から通知 module へ入る横接続の port と定義している。",
+          "verification_hint": "SCN-NMD-001 で UseCase と Service が NotificationSinkPort だけを通知入口として使うことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "将来の Runner / Worker が同じ入口を使えることは、入口を Wails runtime ではなく NotificationSinkPort に置く方針から導出できる。",
+          "verification_hint": "SCN-NMD-001 で Controller 経由の途中経過通知を作らないことを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "通知入口を port にするため、fake NotificationSinkPort で受領事実を検証できる。",
+          "verification_hint": "SCN-NMD-001 で fake NotificationSinkPort の受領記録を使う。"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "この task は通知 module の依存方向と責務境界を扱い、操作権限の仕様を変更しない。",
+          "verification_hint": "権限差分はシナリオ対象外にする。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-002",
+      "title": "UseCase と Controller は通知 payload を組み立てない",
+      "kind": "responsibility_boundary",
+      "source_requirement": "plan.md は UseCase が application result と通知事実を分け、Controller が途中経過通知の経路にならないことを固定している。",
+      "required_detail_types": [
+        "success_requirement",
+        "consistency_requirement",
+        "compatibility_requirement",
+        "failure_handling_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の UseCase と Controller の責務境界に明示されている。",
+          "verification_hint": "SCN-NMD-002 で synchronous response と通知事実が分かれることを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "application result と transport payload を混ぜない条件から、通知失敗 reason を command response へ混入させないことを導出できる。",
+          "verification_hint": "SCN-NMD-002 と SCN-NMD-005 で response と通知失敗を分けて確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/architecture.md は Wails event を push 通知専用に限定し、通常の query / command を置き換えないと定義している。",
+          "verification_hint": "SCN-NMD-002 と SCN-NMD-007 で query / command の主経路維持を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "通知失敗時にも Controller を途中経過通知の戻り先にしない条件から導出できる。",
+          "verification_hint": "SCN-NMD-002 で Controller が NotificationDispatcher を呼ばないことを確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-003",
+      "title": "Service は保存済み状態に追従する通知事実だけを渡す",
+      "kind": "application_flow",
+      "source_requirement": "plan.md は Service が実処理中に確定した進捗事実、完了事実、破棄事実を NotificationSinkPort へ渡すと定義している。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の Service 責務境界に明示されている。",
+          "verification_hint": "SCN-NMD-003 で進捗事実と完了事実の通知入口受け渡しを確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "通知は保存済み状態事実に追従するため、phase run state と通知事実の対応が必要である。",
+          "verification_hint": "SCN-NMD-003 で repository fake の保存結果と通知事実を照合する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "完了通知は保存済み job / phase run 状態と矛盾してはならない。",
+          "verification_hint": "SCN-NMD-003 で完了通知と保存済み状態の対応を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider fake、repository fake、NotificationSinkPort fake で再現できる。",
+          "verification_hint": "SCN-NMD-003 の fake_or_stub に従う。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-004",
+      "title": "通知 payload は秘匿対象と raw payload を含めない",
+      "kind": "security_data_boundary",
+      "source_requirement": "plan.md は通知 payload に secret、API key、credential 参照実値、provider raw payload、prompt 全文、翻訳本文全文を含めないと定義している。",
+      "required_detail_types": [
+        "security_requirement",
+        "data_requirement",
+        "failure_handling_requirement",
+        "testability_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の設計上の注意と禁止事項に明示されている。",
+          "verification_hint": "SCN-NMD-004 で NotificationPort fake の payload を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は operation summary、notification result、Wails event payload を DB に永続化しないと定義している。",
+          "verification_hint": "SCN-NMD-004 と SCN-NMD-008 で payload と DB 保存対象を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "redaction 不能時に送信しないことは、送信禁止値を transport へ渡さない条件から導出できる。",
+          "verification_hint": "SCN-NMD-004 で redaction 不能時の NotificationPort 未呼び出しを確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "NotificationPort fake で送信直前 payload を捕捉できる。",
+          "verification_hint": "SCN-NMD-004 で fake payload を検査する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "payload 原文を残さず結果分類だけを残す必要があるため、最小ログで確認する。",
+          "verification_hint": "SCN-NMD-008 で backend JSON log の最小 payload を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-005",
+      "title": "Wails event 写像は RuntimeAdapter に閉じ込める",
+      "kind": "external_integration",
+      "source_requirement": "plan.md と docs/architecture.md は NotificationPort から RuntimeAdapter へ出る境界と、RuntimeAdapter が Wails runtime event の実送信だけを扱うことを定義している。",
+      "required_detail_types": [
+        "success_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の RuntimeAdapter 責務境界に明示されている。",
+          "verification_hint": "SCN-NMD-007 で RuntimeAdapter だけが runtime handle、event name、transport payload 形式を扱うことを確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/architecture.md は Wails event を push 通知専用に限定し、query / command を置き換えないと定義している。",
+          "verification_hint": "SCN-NMD-007 で frontend query / command 主経路の維持を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "NotificationPort fake と RuntimeAdapter stub で Wails runtime に依存せず検証できる。",
+          "verification_hint": "SCN-NMD-007 で fake または stub を使う。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "deferred",
+          "source_or_rationale": "event name、payload field、受信タイミング、表示文言、操作可否表示が frontend から見て変わる場合だけ UI 設計が必要である。現時点の plan は UI 見た目変更を要求していない。",
+          "owner": "designer",
+          "recheck_condition": "人間レビューまたは実装範囲作成時に runtime event 消費側の見え方変更が必要と判明した時。",
+          "verification_hint": "scenario-design.md の UI Design Decision に従い、必要時だけ ui-design.md を作る。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-006",
+      "title": "通知送信失敗は保存済み状態を巻き戻さない",
+      "kind": "failure_handling",
+      "source_requirement": "plan.md は通知の失敗を保存済み job / phase run 状態を成功から失敗へ巻き戻す理由にしないと定義している。",
+      "required_detail_types": [
+        "failure_handling_requirement",
+        "consistency_requirement",
+        "recovery_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の設計上の注意に明示されている。",
+          "verification_hint": "SCN-NMD-005 で NotificationPort fake の送信失敗を使う。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "command response と DB state は通知前に確定した application result と一致する必要がある。",
+          "verification_hint": "SCN-NMD-005 で response と DB state を照合する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "通知失敗は phase failure、job failure、retry 対象状態への遷移を発生させない。",
+          "verification_hint": "SCN-NMD-005 で state が RecoverableFailed や Failed へ変わらないことを確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "送信失敗は状態巻き戻しではなく通知境界の分類として後追い確認する必要がある。",
+          "verification_hint": "SCN-NMD-005 と SCN-NMD-008 で backend JSON log を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-007",
+      "title": "状態判断を通知 module へ移管しない",
+      "kind": "state_invariant",
+      "source_requirement": "plan.md は NotificationSinkPort と NotificationDispatcher が状態遷移可否、terminal guard、provider response validation を判断しないと定義している。",
+      "required_detail_types": [
+        "state_requirement",
+        "consistency_requirement",
+        "concurrency_requirement",
+        "冪等性_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md と docs/spec.md は状態判断の正本を TranslationJobPolicy、UseCase、JOB_PHASE_RUN.state に残すと示している。",
+          "verification_hint": "SCN-NMD-006 で phase start、pause、resume、retry、cancel、terminal guard を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "通知事実は状態判断後に渡されるため、通知送信可否で操作可否が変わってはならない。",
+          "verification_hint": "SCN-NMD-006 で通知 module の有無や送信可否によって操作結果が変わらないことを確認する。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "derived",
+          "source_or_rationale": "late response rejection は terminal guard と同じ状態正本側に残す必要がある。",
+          "verification_hint": "SCN-NMD-006 で late response 後書き拒否を確認する。"
+        },
+        {
+          "type": "冪等性_requirement",
+          "status": "derived",
+          "source_or_rationale": "同じ通知事実の再送や重複だけで状態を二重作成しない必要がある。",
+          "verification_hint": "SCN-NMD-006 で DB state と result の二重作成が起きないことを確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "provider raw response、correlation 判定、保護要素検証を通知 payload 生成へ移さないことで raw payload 混入を防ぐ。",
+          "verification_hint": "SCN-NMD-006 と SCN-NMD-004 を組み合わせて確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-NMD-008",
+      "title": "通知結果を DB に保存せず最小ログで確認する",
+      "kind": "observability",
+      "source_requirement": "plan.md は notification result、operation summary、Wails event payload の DB 永続化を禁止し、docs/observability-logging.md は event、where、result と必要最小 payload のログを定義している。",
+      "required_detail_types": [
+        "data_requirement",
+        "observability_requirement",
+        "security_requirement",
+        "performance_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の設計上の注意と禁止事項に明示されている。",
+          "verification_hint": "SCN-NMD-008 で DB 保存対象を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/observability-logging.md は backend JSON log の共通 payload と任意 payload を定義している。",
+          "verification_hint": "SCN-NMD-008 で event、where、result、必要最小の id、count、reason を確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/observability-logging.md は DTO 全体、secret、API key、provider raw payload、prompt 全文、翻訳本文全文、XML 全文のログ出力を禁止している。",
+          "verification_hint": "SCN-NMD-008 で log payload に禁止値がないことを確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "derived",
+          "source_or_rationale": "docs/observability-logging.md は loop 内 1 件ごとのログと全 command の start / finish log を禁止しているため、通知結果ログも過剰に増やさない必要がある。",
+          "verification_hint": "SCN-NMD-008 でログ粒度が結果分類と代表 ID に留まることを確認する。"
+        }
+      ]
+    }
+  ]
+}
