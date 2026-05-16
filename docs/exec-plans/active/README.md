@@ -17,7 +17,9 @@
 - 質問票は `scenario-design.questions.md` に分ける
 - `implementation-scope.md` は human review 後だけ作る
 - AI は最初に `plan.md` だけ読み、必要な skill 資料だけ追加で読む
-- 完了したら folder ごと `../completed/<task-id>/` へ移動し、`plan.md` に結果を追記する
+- 各レーンの完了後も task folder は active に残し、`マージ準備入力` を `plan.md` に記録する
+- `merge_lane` が local merge、merge 後検証、completed 移動を完了した時だけ folder ごと `../completed/<task-id>/` へ移動する
+- remote repository を変更する操作は active plan の agent が実行しない
 
 ## Legacy
 

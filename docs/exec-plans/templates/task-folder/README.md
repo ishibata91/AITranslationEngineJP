@@ -6,7 +6,7 @@
 ## 作成先
 
 - active: `docs/exec-plans/active/<task-id>/`
-- completed: `docs/exec-plans/completed/<task-id>/`
+- completed: `merge_lane` が local merge 後に移動する `docs/exec-plans/completed/<task-id>/`
 
 ## 標準ファイル
 
@@ -27,5 +27,7 @@
 - 軽量変更レーンの実装時は `plan.md` の `task 枠` と `light-change-planning.md` を読む
 - UI 確認時は実画面を `agent-browser` で確認し、確認結果を human review 記録または実装成果物へ残す
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む
-- close 前の詳細仕様正本反映では、`scenario-design.md`、`ui-design.md`、実装結果、レビュー結果から恒久仕様だけを `docs/detail-specs/<upper-scenario-id>.md` へ製本する
+- マージ準備前の詳細仕様正本反映では、`scenario-design.md`、`ui-design.md`、実装結果、レビュー結果から恒久仕様だけを `docs/detail-specs/<upper-scenario-id>.md` へ製本する
+- 各レーンは worktree 上で branch 作成、local commit、マージ準備入力までを扱う
+- completed 移動は `merge_lane` だけが扱う
 - 過去の flat file 形式は legacy として扱い、新規 task へ混ぜない

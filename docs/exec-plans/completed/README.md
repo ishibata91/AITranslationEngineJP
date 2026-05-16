@@ -7,8 +7,9 @@
 
 ## Rules
 
-- `active/<task-id>/` から folder ごと移動する
-- 完了時点の成果、未解消項目、再実行 command は `plan.md` に記録する
+- `merge_lane` が `active/<task-id>/` から folder ごと移動する
+- merge 完了時点の成果、未解消項目、再実行 command は `plan.md` に記録する
+- source branch、target branch、merge 結果 commit は `plan.md` に記録する
 - task-local artifact は同じ folder 内に残す
 - `implementation-scope.md` は AI handoff 履歴であり、docs 正本へは昇格しない
 - `canonicalized_artifacts` には実際に `docs/` 正本へ反映した artifact だけを記録する

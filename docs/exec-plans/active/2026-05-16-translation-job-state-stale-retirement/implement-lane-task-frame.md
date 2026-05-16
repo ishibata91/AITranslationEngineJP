@@ -76,7 +76,9 @@
 | `正本化判断` | 条件付き停止中 | `implement_lane` | `レビュー通過根拠` | docs update decision |
 | `詳細仕様正本反映` | 条件付き停止中 | `docs_updater` | `正本化判断` | docs canonical update |
 | `作業レポート入力` | 停止中 | `implement_lane` | 全完了または停止済み成果物 | work report input |
-| `作業計画完了移動` | 停止中 | `implement_lane` | `作業レポート入力` | completed move |
+| `branch 準備` | 停止中 | `implement_lane` | `task 枠` | worktree branch |
+| `作業 commit` | 停止中 | `implement_lane` | `作業レポート入力` | local commit |
+| `マージ準備入力` | 停止中 | `implement_lane` | `作業 commit` | merge lane input |
 
 ## 最初に固定する判断
 

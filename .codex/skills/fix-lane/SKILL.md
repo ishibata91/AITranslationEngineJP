@@ -15,7 +15,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `fix_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `人間観測記録`、`修正方針判断`、`原因箇所シーケンス図`、`人間修正レビュー`、`修正実行入力`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業レポート入力`、`作業計画完了移動` とする。
+- 担当成果物は `人間観測記録`、`branch 準備`、`修正方針判断`、`原因箇所シーケンス図`、`人間修正レビュー`、`修正実行入力`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業レポート入力`、`作業 commit`、`マージ準備入力` とする。
 - 起動担当 agent は `investigator`、`fix_decider`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
 
 ## 入力規約
@@ -23,6 +23,9 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 修正対象として扱う観測内容。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
+- 作業worktree: active plan 専用 branch を checkout する worktree。
+- 作業branch: 既定名 `codex/<task-id>` の local branch。
+- 統合先branch: 既定名 `master` の local branch。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
 - 人間観測: 人間が見た画面、操作、ログ、失敗、期待との差分。
 - 既存レビューYAML: 非必須入力として受け取る修正対象に関係する既存のレビュー結果。
@@ -39,6 +42,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 回帰テスト証跡は `tests-scenario` または `tests-unit` に従う。
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
 - 観点別レビューは `codex-review-behavior`、`codex-review-contract`、`codex-review-trust-boundary`、`codex-review-state-invariant`、`codex-review-responsibility-boundary` に従う。
+- マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -49,6 +53,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | 成果物ID | 担当者 | 依存対象 | 次 agent |
 | --- | --- | --- | --- |
 | `人間観測記録` | `fix_lane` | `task 枠` | なし |
+| `branch 準備` | `fix_lane` | `人間観測記録` | なし |
 | `修正前調査` | `investigator` | `人間観測記録` | `investigator` |
 | `修正方針判断` | `fix_decider` | `人間観測記録`, `修正前調査` | `fix_decider` |
 | `原因箇所シーケンス図` | `fix_decider` | `人間観測記録`, `修正前調査`, `修正方針判断` | なし |
@@ -60,11 +65,14 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `実装後ブラウザ確認` | `browser_confirmation` | `最終検証` | `browser_confirmation` |
 | `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `修正方針判断`, `原因箇所シーケンス図`, `人間修正レビュー`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?`, `最終検証`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `作業レポート入力` | `fix_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
-| `作業計画完了移動` | `fix_lane` | `作業レポート入力` | なし |
+| `作業 commit` | `fix_lane` | `作業レポート入力` | なし |
+| `マージ準備入力` | `fix_lane` | `作業 commit` | `merge_lane` |
 
 ## 判断規約
 
 - 人間観測は探索テストの探索範囲拡張ではなく、修正入口の根拠として扱う。
+- `branch 準備` は active plan ごとの worktree 上で `codex/<task-id>` の local branch を作成または確認する。
+- 作業 branch が対象 worktree に checkout されていない場合は、後続成果物へ進めない。
 - `修正前調査` は `investigator` を起動して渡す。
 - `修正方針判断` は `fix_decider` を起動して作る。
 - `修正方針判断` は原因の原因、責務境界、採用する修正方針、禁止する修正を分ける。
@@ -93,6 +101,9 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - レビュー通過根拠は人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、実装後ブラウザ確認を入力にして観点別レビュー agent を起動する。
 - 対症療法的な修正を許可せず，根本的な修正を模索すること。
 - 作業レポート入力は `work_reporter` を起動して渡す。
+- 作業レポート入力を揃えた後、local commit を作る。
+- `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
+- 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
 ## 非対象規約
@@ -107,6 +118,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 作業レポート本文の作成は扱わない。
 - docs 正本化本文の更新は扱わない。
 - task folder の状態更新以外の docs 更新は扱わない。
+- local merge、completed 移動、remote repository の変更は扱わない。
 
 ## 出力規約
 
@@ -126,12 +138,15 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - レーン戻し入力: 大規模修正または修正レーン対象外の場合に、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
 - レビュー起動入力: レビュー agent 向けに人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
-- 作業計画完了移動: 作業計画フォルダを `docs/exec-plans/completed/<task-id>/` へ移動した根拠を返す。
+- branch 準備: 作業worktree、作業branch、統合先branch、checkout 状態を返す。
+- 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
+- マージ準備入力: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
 ## 完了規約
 
 - 修正レーンの次成果物、起動、停止、戻しを再解釈なしで判断できる。
+- 作業 branch が `codex/<task-id>` として存在し、対象 worktree に checkout されている。
 - 人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡が根拠参照付きで確認されている。
 - `修正方針判断` が原因の原因、責務境界、採用する修正方針、禁止する修正を含んでいる。
 - `原因箇所シーケンス図` が修正着手前に揃っている。
@@ -144,7 +159,9 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `実装後ブラウザ確認` が確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
 - 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
-- close 時は作業計画フォルダが `docs/exec-plans/completed/<task-id>/` へ移動済みである。
+- 変更が local commit 済みである。
+- `マージ準備入力` が active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
+- remote repository を変更する command を実行していない。
 
 ## 停止規約
 
@@ -169,4 +186,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `実装後ブラウザ確認` なしで `レビュー通過根拠` へ進みそうな場合は停止する。
 - プロダクトコードまたはプロダクトテストを直接変更しそうな場合は停止する。
 - レビュー agent 起動入力に人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証の必要分が不足する場合は停止する。
+- local commit を作成できない場合は終了不可とする。
+- `マージ準備入力` が不足する場合は終了不可とする。
+- local merge または completed 移動を実行しそうな場合は停止する。
+- `push`、tag push、remote branch delete など remote repository を変更しそうな場合は停止する。
 - 停止時は不足項目、衝突箇所、固定できない判断、戻し先を返す。

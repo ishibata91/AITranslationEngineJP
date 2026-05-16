@@ -6,7 +6,7 @@
 ## 作成先
 
 - active: `docs/exec-plans/active/<task-id>/`
-- completed: `docs/exec-plans/completed/<task-id>/`
+- completed: `merge_lane` が local merge 後に移動する `docs/exec-plans/completed/<task-id>/`
 
 ## 最小構成
 
@@ -26,3 +26,5 @@
 - 軽量変更レーンの実装では `plan.md` の `task 枠` と `light-change-planning.md` を読む
 - UI 確認では実画面を `agent-browser` で確認する
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む
+- 各レーンは worktree 上で branch 作成、local commit、マージ準備入力までを扱う
+- completed 移動は `merge_lane` だけが扱う

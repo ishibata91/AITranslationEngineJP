@@ -13,13 +13,16 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`設計差分図`、`実装引き継ぎ入力`、`UX事前確認`、`frontend 実装後人間レビュー`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業計画完了移動` とする。
+- 担当成果物は `task 枠`、`branch 準備`、`設計差分図`、`実装引き継ぎ入力`、`UX事前確認`、`frontend 実装後人間レビュー`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`詳細仕様正本反映`、`作業レポート入力`、`作業 commit`、`マージ準備入力` とする。
 
 ## 入力規約
 
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 新規実装または機能拡張として扱う依頼内容。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
+- 作業worktree: active plan 専用 branch を checkout する worktree。
+- 作業branch: 既定名 `codex/<task-id>` の local branch。
+- 統合先branch: 既定名 `master` の local branch。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
 - 人間介入状態: 人間レビュー、承認、差し戻し、追加質問の記録。
 
@@ -34,6 +37,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 観測ログ追加は [observability-implementer](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/observability-implementer/SKILL.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - fakeAPI 運用仕様: 人間レビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
+- マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 
 ## 内部参照規約
 
@@ -46,6 +50,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | 成果物ID | 必須 | 担当者 | 依存対象 | 次 agent |
 | --- | --- | --- | --- | --- |
 | `task 枠` | はい | `implement_lane` | `[]` | なし |
+| `branch 準備` | はい | `implement_lane` | `task 枠` | なし |
 | `scenario_candidates` | はい | シナリオ候補 生成 agent | `task 枠` | `scenario_actor_goal_generator`, `scenario_lifecycle_generator`, `scenario_state_transition_generator`, `scenario_failure_generator`, `scenario_external_integration_generator`, `scenario_operation_audit_generator` |
 | `シナリオ設計` | はい | `designer` | `scenario_candidates` | `designer` |
 | `UI設計` | 条件付き | `designer` | `シナリオ設計` | `designer` |
@@ -68,7 +73,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `正本化判断` | 仕様変更または仕様追加あり | `implement_lane` | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | 仕様変更または仕様追加あり | `docs_updater` | `正本化判断` | `docs_updater?` |
 | `作業レポート入力` | はい | `implement_lane` / `work_reporter` | 全完了または停止済み 成果物 | `work_reporter` |
-| `作業計画完了移動` | はい | `implement_lane` | `作業レポート入力` | なし |
+| `作業 commit` | はい | `implement_lane` | `作業レポート入力` | なし |
+| `マージ準備入力` | はい | `implement_lane` | `作業 commit` | `merge_lane` |
 
 ### レビュー集約規約
 
@@ -174,6 +180,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 次の実行判断は 成果物依存表 の未完了 成果物、満たされた `依存対象`、既存 成果物、対象 skill の完了規約で決める。
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
+- `branch 準備` は active plan ごとの worktree 上で `codex/<task-id>` の local branch を作成または確認する。
+- 作業 branch が対象 worktree に checkout されていない場合は、後続成果物へ進めない。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
 - `設計差分図` は `diagrammer` を起動して作る。
 - `設計差分図` は、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 に限定する。
@@ -204,7 +212,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `blocker`、`critical`、`major` の未解決指摘がある場合は `implementation_action` を `fix` または `rerun_codex_review` にする。
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
 - 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
-- `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に 作業計画フォルダ を `docs/exec-plans/active/<task-id>/` から `docs/exec-plans/completed/<task-id>/` へ移す。
+- `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に local commit を作る。
+- `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
+- 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - `scenario-design`、`ui-design`、実装結果、レビュー結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`正本化判断` を必須成果物にする。
 - 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`詳細仕様正本反映` を必須成果物にする。
 - `詳細仕様正本反映` は `docs/detail-specs/` の上位シナリオ単位の正本へ、human 承認済みの恒久仕様だけを反映する。
@@ -239,6 +249,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 起動先 agent の下位 agent 起動は扱わない。
 - レビュー agent に、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパス以外の無関係な資料を渡さない。
 - プロダクトコードとプロダクトテストは変更しない。
+- local merge、completed 移動、remote repository の変更は扱わない。
 
 ## 出力規約
 
@@ -255,11 +266,15 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済み実画面、UX確認結果、変更禁止範囲を返す。
 - レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスを渡す。
 - 改善ログ: `work_history/runs/<run>/workflow-improvement-log.jsonl` へ追記した改善ログ項目を返す。
-- 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` を揃えるための 根拠 と 作業計画フォルダ の移動結果を返す。
+- branch 準備: 作業worktree、作業branch、統合先branch、checkout 状態を返す。
+- 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
+- マージ準備入力: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
+- 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` と `マージ準備入力` を揃えるための 根拠を返す。
 
 ## 完了規約
 
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
+- 作業 branch が `codex/<task-id>` として存在し、対象 worktree に checkout されている。
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - `設計差分図` が人間設計レビュー前に揃っている。
 - `設計差分図` が予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 を含んでいる。
@@ -286,7 +301,9 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - レビュー agent 起動前に、実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を含む 検証証跡 が揃っている。
 - `workflow-improvement-log.jsonl` が必要な場合は、分類、根拠、次回改善が JSONL として追記されている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と 作業観測根拠 が作成されている。
-- `implementation_action: close` の場合は、作業計画フォルダ が `docs/exec-plans/completed/<task-id>/` に移動済みで、`docs/exec-plans/active/<task-id>/` に残っていない。
+- `implementation_action: close` の場合は、変更が local commit 済みである。
+- `implementation_action: close` の場合は、`マージ準備入力` が active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
+- remote repository を変更する command を実行していない。
 
 ## 停止規約
 
@@ -313,5 +330,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 最終検証 または `レビュー通過根拠` が不明なまま正本化が必要な場合は停止する。
 - 仕様変更または仕様追加があるのに `正本化判断` が不足する場合は終了不可とする。
 - human 承認済みの恒久仕様があるのに `詳細仕様正本反映` が不足する場合は終了不可とする。
-- `implementation_action: close` の状態で 作業計画フォルダ を `docs/exec-plans/completed/<task-id>/` へ移動できない場合は終了不可とする。
+- `implementation_action: close` の状態で local commit を作成できない場合は終了不可とする。
+- `マージ準備入力` が不足する場合は終了不可とする。
+- local merge または completed 移動を実行しそうな場合は停止する。
+- `push`、tag push、remote branch delete など remote repository を変更しそうな場合は停止する。
 - `作業レポート入力` または 作業観測根拠 が不足する場合は終了不可とする。

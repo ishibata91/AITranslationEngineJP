@@ -266,3 +266,145 @@ prefix_rule(
         "node ./scripts/node/unknown.mjs",
     ],
 )
+
+prefix_rule(
+    pattern = [
+        "git",
+        [
+            "status",
+            "branch",
+            "diff",
+            "log",
+        ],
+    ],
+    decision = "allow",
+    justification = "Local git inspection commands are required for worktree branch lane operation.",
+    match = [
+        "git status --short",
+        "git branch",
+        "git diff --stat",
+        "git log --oneline -5",
+    ],
+    not_match = [
+        "git push",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "worktree",
+        "list",
+    ],
+    decision = "allow",
+    justification = "Local worktree inspection is required to bind active plans to worktrees.",
+    match = [
+        "git worktree list",
+        "git worktree list --porcelain",
+    ],
+    not_match = [
+        "git worktree remove ../other",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "switch",
+    ],
+    decision = "allow",
+    justification = "Local branch checkout is required for active plan worktree operation.",
+    match = [
+        "git switch master",
+        "git switch -c codex/task-id",
+    ],
+    not_match = [
+        "git checkout -- file",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        [
+            "add",
+            "commit",
+        ],
+    ],
+    decision = "allow",
+    justification = "Local commits are required before merge lane handoff.",
+    match = [
+        "git add .codex/README.md",
+        "git commit -m update-workflow-contract",
+    ],
+    not_match = [
+        "git push",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "merge",
+        "--no-ff",
+    ],
+    decision = "allow",
+    justification = "Merge lane performs local non-fast-forward merges only.",
+    match = [
+        "git merge --no-ff codex/task-id",
+    ],
+    not_match = [
+        "git merge origin/master",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        [
+            "push",
+            "clean",
+        ],
+    ],
+    decision = "deny",
+    justification = "Agents must not change remote repositories or run destructive cleanup commands.",
+    match = [
+        "git push",
+        "git clean -fd",
+    ],
+    not_match = [
+        "git status --short",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "reset",
+        "--hard",
+    ],
+    decision = "deny",
+    justification = "Agents must not discard local changes.",
+    match = [
+        "git reset --hard",
+    ],
+    not_match = [
+        "git reset --soft HEAD~1",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "git",
+        "checkout",
+        "--",
+    ],
+    decision = "deny",
+    justification = "Agents must not discard file changes with checkout.",
+    match = [
+        "git checkout -- .",
+    ],
+    not_match = [
+        "git switch master",
+    ],
+)

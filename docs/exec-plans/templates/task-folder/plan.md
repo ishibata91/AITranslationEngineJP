@@ -9,6 +9,9 @@
 - `goal`:
 - `constraints`:
 - `close_conditions`:
+- `worktree_path`:
+- `source_branch`: `codex/<task-id>`
+- `target_branch`: `master`
 
 ## Artifact Index
 
@@ -28,6 +31,13 @@
 - `canonicalization_targets`:
 - `detail_spec_upper_scenario_id`:
 - `validation_commands`:
+
+## Branch Status
+
+- `worktree_checkout`:
+- `branch_ready`:
+- `commit_hash`:
+- `remote_operation`: `not-performed`
 
 ## HITL Status
 
@@ -50,6 +60,25 @@
 - `sonar_gate_result`:
 - `residual_risks`:
 - `docs_changes`:
+
+## Merge Readiness
+
+- `merge_ready`: `pending` / `ready` / `blocked`
+- `source_branch`:
+- `target_branch`:
+- `commit_hash`:
+- `validation_evidence`:
+- `review_evidence`:
+- `residual_risks`:
+
+## Merge Result
+
+- `merge_status`: `pending` / `merged` / `stopped`
+- `conflict_resolution`:
+- `post_merge_validation`:
+- `completed_move`:
+- `merge_commit_hash`:
+- `remote_operation`: `not-performed`
 
 ## Closeout Notes
 

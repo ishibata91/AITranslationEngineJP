@@ -182,7 +182,9 @@ implementation 後の `正本化判断` と `詳細仕様正本反映` は、後
 | `正本化判断` | 未着手 | `implement_lane` | `レビュー通過根拠` | implementation 後に docs 反映が追加で必要かの判断 |
 | `詳細仕様正本反映` | 条件付き未着手 | `docs_updater` | `正本化判断` | 承認済み恒久仕様がある場合だけ docs 正本反映 |
 | `作業レポート入力` | 未着手 | `implement_lane` | 全完了または停止済み成果物 | work reporter 向け入力 |
-| `作業計画完了移動` | 未着手 | `implement_lane` | `作業レポート入力` | completed への移動 |
+| `branch 準備` | 未着手 | `implement_lane` | `task 枠` | worktree 上の `codex/<task-id>` branch |
+| `作業 commit` | 未着手 | `implement_lane` | `作業レポート入力` | local commit |
+| `マージ準備入力` | 未着手 | `implement_lane` | `作業 commit` | `merge_lane` 向け入力 |
 
 ## 現時点の判断
 

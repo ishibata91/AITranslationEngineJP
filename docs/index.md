@@ -75,7 +75,8 @@
 - Frontend structure changed: update the relevant file under [`diagrams/frontend/`](./diagrams/frontend/)
 - External references or vendor specs changed: update [`references/`](./references/index.md)
 - Work is non-trivial and not yet finished: create a plan in [`exec-plans/active/`](./exec-plans/active/README.md)
-- Work is finished: move the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
+- Work is locally ready: keep the plan in [`exec-plans/active/`](./exec-plans/active/README.md) and record `マージ準備入力`
+- Work is merged locally: `merge_lane` moves the plan into [`exec-plans/completed/`](./exec-plans/completed/README.md)
 - Workflow or role confusion keeps recurring: update [`../.codex/`](../.codex/README.md) or the relevant file under `../.codex/`
 
 ## Repository Checks
