@@ -183,8 +183,8 @@ implementation 後の `正本化判断` と `詳細仕様正本反映` は、後
 | `詳細仕様正本反映` | 条件不成立 | `docs_updater` | `正本化判断` | 追加反映不要 |
 | `作業レポート入力` | 完了 | `implement_lane` | 全完了または停止済み成果物 | `work_history/runs/2026-05-13-notification-module-dependency-separation-run/` |
 | `branch 準備` | 完了 | `implement_lane` | `task 枠` | `codex/2026-05-13-notification-module-dependency-separation` |
-| `作業 commit` | 未着手 | `implement_lane` | `作業レポート入力` | local commit |
-| `マージ準備入力` | 未着手 | `implement_lane` | `作業 commit` | `merge_lane` 向け入力 |
+| `作業 commit` | 完了 | `implement_lane` | `作業レポート入力` | `ef389d2` |
+| `マージ準備入力` | 完了 | `implement_lane` | `作業 commit` | `merge-ready.md` |
 
 ## 現時点の判断
 
@@ -197,8 +197,8 @@ UI 見た目の変更は現時点では不要である可能性が高い。
 
 ## 着手可能成果物
 
-`作業 commit` が着手可能である。
-対象 task の個別検証、lint、harness、Sonar、レビュー通過根拠、作業レポート入力は完了している。
+`implement-lane` の担当成果物は完了している。
+次は `merge-lane` が `merge-ready.md` を読み、local merge、merge 後検証、completed 移動、merge 結果 commit を扱う。
 
 ## branch 準備完了記録
 
@@ -350,6 +350,20 @@ UI 見た目の変更は現時点では不要である可能性が高い。
 - `work_history/runs/2026-05-13-notification-module-dependency-separation-run/codex.md`: Codex report を作成した。
 - `work_history/runs/2026-05-13-notification-module-dependency-separation-run/transcript_refs.json`: transcript path 未確認を記録した。
 - `work_history/runs/2026-05-13-notification-module-dependency-separation-run/workflow-improvement-log.jsonl`: fixture 依存、scenario-gate、agent-browser の改善ログを記録した。
+
+## 作業 commit 完了記録
+
+- 作業branch: `codex/2026-05-13-notification-module-dependency-separation`
+- 統合先branch: `master`
+- commit hash: `ef389d2`
+- commit message: `Separate notification module dependency`
+
+## マージ準備入力完了記録
+
+- `merge-ready.md`: `merge_lane` 向けの active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを記録した。
+- completed 移動は実行していない。
+- local merge は実行していない。
+- remote repository を変更する command は実行していない。
 
 ## 停止理由
 
