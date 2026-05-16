@@ -1,0 +1,43 @@
+reviewback_version: 1
+task_id: "2026-05-13-notification-module-dependency-separation"
+review_yaml_path: "docs/exec-plans/completed/2026-05-13-notification-module-dependency-separation/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "互換性は維持されている。Wails runtime event 名と payload field は既存の `master-dictionary:import-progress`、`master-dictionary:import-completed` を維持する。command response は event 名や notification failure を含まない。DB schema には notification result や operation summary を追加していない。"
+  evidence_sufficiency: "十分。runtime adapter、controller 経由 scenario test、system test、architecture lint を確認した。"
+
+checked_scope:
+  summary: "公開 command response、Wails event payload、DB 永続化有無、runtime event name、既存 system test の互換性を確認した。"
+  files:
+    - path: "internal/infra/runtime/notification.go"
+      line: 11
+      symbol: "masterDictionaryImportProgressEventName"
+      reason: "既存 progress event name が維持されていることを確認した。"
+    - path: "internal/infra/runtime/notification.go"
+      line: 68
+      symbol: "toImportCompletedEventDTO"
+      reason: "通知 module から既存 runtime event DTO へ写像していることを確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 63
+      symbol: "TestSCN_NMD_002_MasterDictionaryCommandResponseStaysSeparateFromNotificationPayload"
+      reason: "command response が notification payload と混ざらない test を確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 201
+      symbol: "TestSCN_NMD_008_NotificationResultIsNotPersistedAndLogsStayMinimal"
+      reason: "notification result が DB schema へ永続化されない test を確認した。"
+    - path: "tests/system/master-dictionary-management.spec.ts"
+      line: 134
+      symbol: "SCN-MDM-008/009"
+      reason: "既存 XML import UI contract が通過していることを確認した。"
+
+unchecked_scope:
+  - target: "外部互換 API versioning"
+    reason: "この task は外部 HTTP API version を持たない Wails 内部境界の変更である。"
+    risk: "外部 versioning の追加判断は不要である。"
+
+issues: []

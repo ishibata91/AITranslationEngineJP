@@ -6,6 +6,8 @@ import (
 	"log/slog"
 	"strings"
 	"time"
+
+	"aitranslationenginejp/internal/notification"
 )
 
 // MasterDictionaryImportService provides XML import operations.
@@ -13,7 +15,7 @@ type MasterDictionaryImportService struct {
 	repository     RepositoryPort
 	xmlFiles       XMLFilePort
 	xmlRecords     XMLRecordReaderPort
-	runtime        RuntimeContextPort
+	notifications  SinkPort
 	foundationData FoundationDataPort
 	now            func() time.Time
 }
@@ -29,15 +31,15 @@ func NewMasterDictionaryImportService(
 	repository RepositoryPort,
 	xmlFiles XMLFilePort,
 	xmlRecords XMLRecordReaderPort,
-	runtime RuntimeContextPort,
+	notifications SinkPort,
 	now func() time.Time,
 ) *MasterDictionaryImportService {
 	return &MasterDictionaryImportService{
-		repository: repository,
-		xmlFiles:   xmlFiles,
-		xmlRecords: xmlRecords,
-		runtime:    runtime,
-		now:        normalizeClock(now),
+		repository:    repository,
+		xmlFiles:      xmlFiles,
+		xmlRecords:    xmlRecords,
+		notifications: notifications,
+		now:           normalizeClock(now),
 	}
 }
 
@@ -153,10 +155,13 @@ func (service *MasterDictionaryImportService) importXMLRecord(
 }
 
 func (service *MasterDictionaryImportService) emitImportProgress(ctx context.Context, progress int) {
-	if service.runtime == nil {
+	if service.notifications == nil {
 		return
 	}
-	service.runtime.EmitImportProgress(ctx, progress)
+	service.notifications.Notify(ctx, notification.Fact{
+		Kind:     notification.KindMasterDictionaryImportProgress,
+		Progress: &notification.ProgressFact{Percent: progress},
+	})
 }
 
 func (service *MasterDictionaryImportService) readAllStringRecords(resolvedPath string) ([]xmlStringRecord, error) {

@@ -1,0 +1,97 @@
+@startuml
+
+title notification module 分離 設計差分 sequence 図
+
+autonumber
+hide footbox
+skinparam responseMessageBelowArrow true
+skinparam sequenceMessageAlign center
+skinparam ParticipantPadding 25
+skinparam BoxPadding 10
+
+actor "caller" as Caller
+participant "Controller" as Controller
+participant "Backend UseCase" as BackendUseCase
+participant "TranslationJobPolicy" as TranslationJobPolicy
+participant "JobIOService" as JobIOService
+participant "Service" as Service
+participant "RuntimeEventPublisherPort\n旧 direct runtime port" as RuntimeEventPublisherPort
+participant "NotificationSinkPort" as NotificationSinkPort
+participant "NotificationDispatcher" as NotificationDispatcher
+participant "NotificationPort" as NotificationPort
+participant "RuntimeAdapter" as RuntimeAdapter
+participant "Wails runtime event" as WailsRuntimeEvent
+
+== 変更前の近すぎる通知経路 ==
+
+Caller -> Controller : query / command
+Controller -> BackendUseCase : request DTO を渡す
+BackendUseCase -> TranslationJobPolicy : 操作可否を確認する
+TranslationJobPolicy --> BackendUseCase : allowed / blocked
+BackendUseCase -> JobIOService : 状態事実を取得 / 保存する
+BackendUseCase -> Service : 実処理を起動する
+Service --> BackendUseCase : 状態事実または処理結果
+
+group 削除予定: UseCase から runtime へ直接近づく
+    BackendUseCase -> RuntimeEventPublisherPort : runtime event 用 payload を渡す
+    RuntimeEventPublisherPort -> RuntimeAdapter : Wails transport へ送る
+    RuntimeAdapter -> WailsRuntimeEvent : 実送信
+end
+
+group 削除予定: Controller を途中経過通知へ使う
+    Service -> Controller : 途中経過通知を戻す
+    Controller -> RuntimeAdapter : runtime event を送る
+    RuntimeAdapter -> WailsRuntimeEvent : 実送信
+end
+
+BackendUseCase --> Controller : synchronous response
+Controller --> Caller : application result
+
+== 変更後の notification module 経路 ==
+
+Caller -> Controller : query / command
+Controller -> BackendUseCase : request DTO を渡す
+BackendUseCase -> TranslationJobPolicy : 操作可否を確認する
+TranslationJobPolicy --> BackendUseCase : allowed / blocked
+BackendUseCase -> JobIOService : 状態事実を取得 / 保存する
+BackendUseCase -> Service : 実処理を起動する
+Service --> BackendUseCase : 状態事実または処理結果
+
+par UseCase が通知事実を渡す
+    BackendUseCase -> NotificationSinkPort : 完了事実 / 破棄事実
+else Service が通知事実を渡す
+    Service -> NotificationSinkPort : 進捗事実 / 完了事実 / 破棄事実
+end
+
+NotificationSinkPort -> NotificationDispatcher : dispatch
+NotificationDispatcher -> NotificationPort : Wails 非依存通知
+NotificationPort -> RuntimeAdapter : transport 送信要求
+RuntimeAdapter -> WailsRuntimeEvent : 実送信
+
+BackendUseCase --> Controller : synchronous response
+Controller --> Caller : application result
+
+note right of Controller
+変更しない:
+- Controller -> UseCase の同期 request / response
+
+削除予定:
+- Controller を途中経過通知の経路にする接続
+end note
+
+note right of NotificationDispatcher
+追加予定:
+- 通知種別の決定
+- redaction
+- 送信可否
+
+変更しない:
+- 状態判断は持たない
+end note
+
+note right of RuntimeAdapter
+変更しない:
+- Wails runtime event の実送信境界
+end note
+
+@enduml

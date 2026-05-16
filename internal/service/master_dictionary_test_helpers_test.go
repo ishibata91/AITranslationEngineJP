@@ -4,6 +4,8 @@ import (
 	"context"
 	"io"
 	"strings"
+
+	"aitranslationenginejp/internal/notification"
 )
 
 type repositoryStub struct {
@@ -143,8 +145,11 @@ type importProgressRecorder struct {
 	values []int
 }
 
-func (recorder *importProgressRecorder) EmitImportProgress(_ context.Context, progress int) {
-	recorder.values = append(recorder.values, progress)
+func (recorder *importProgressRecorder) Notify(_ context.Context, fact notification.Fact) {
+	if fact.Kind != notification.KindMasterDictionaryImportProgress || fact.Progress == nil {
+		return
+	}
+	recorder.values = append(recorder.values, fact.Progress.Percent)
 }
 
 type foundationDataPortStub struct {

@@ -12,6 +12,8 @@ components:
     in: usecase/translationjobpolicy/**
   service:
     in: service/**
+  notification:
+    in: notification/**
   jobio:
     in: jobio/**
   # API test 専用ディレクトリ。
@@ -40,8 +42,10 @@ deps:
       - controller
       - usecase
       - service
+      - notification
       - repository
       - infra_ai
+      - infra_runtime
   controller:
     mayDependOn:
       - usecase
@@ -50,10 +54,12 @@ deps:
       - service
       - translationjobpolicy
       - jobio
+      - notification
   service:
     deepScan: false
     mayDependOn:
       - repository
+      - notification
   jobio:
     mayDependOn:
       - repository
@@ -65,6 +71,7 @@ deps:
       - controller
       - usecase
       - service
+      - notification
       - jobio
       - repository
       - infra_ai
@@ -77,6 +84,10 @@ deps:
   infra_ai:
     mayDependOn:
       - infra_runtime
+  infra_runtime:
+    deepScan: false
+    mayDependOn:
+      - notification
   # integration test 専用コンポーネント。
   # infra_sqlite (dbinit) と repository の両方への依存をここだけに許可する。
   integrationtest:

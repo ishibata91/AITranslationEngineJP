@@ -1,0 +1,431 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "CAND-NMD-AG-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-002",
+      "decision_rationale": "UseCase の同期応答と通知事実分離として採用し、Controller 境界候補と統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMD-AG-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-003",
+      "decision_rationale": "Service から通知入口へ進捗事実を渡す代表正常系として採用した。"
+    },
+    {
+      "candidate_id": "CAND-NMD-AG-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-001",
+      "decision_rationale": "将来主体は今回の直接実装対象ではないが、入口一本化の compatibility 条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMD-AG-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-007",
+      "decision_rationale": "RuntimeAdapter の責務境界を確認する外部連携シナリオとして採用した。"
+    },
+    {
+      "candidate_id": "CAND-NMD-AG-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-004",
+      "decision_rationale": "利用者に安全な要約だけを見せる条件を redaction と payload 禁止のシナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMD-AG-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-005",
+      "decision_rationale": "通知失敗と保存済み状態の分離を確認する中心シナリオとして採用した。"
+    },
+    {
+      "candidate_id": "CAND-NMD-AG-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-NMD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-002",
+      "decision_rationale": "Controller の同期応答責務として UseCase 分離シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-NMD-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-001",
+      "decision_rationale": "通知入口作成と実行側接続の lifecycle 条件として採用した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "phase start 許可後に通知事実を渡す条件を状態判断非移管シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-NMD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-003",
+      "decision_rationale": "進捗通知の lifecycle を Service 通知事実シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-NMD-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-003",
+      "decision_rationale": "完了通知は進捗事実と同じ保存済み状態追従条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-NMD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-005",
+      "decision_rationale": "通知失敗 lifecycle を送信失敗非巻き戻しシナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "terminal job で通知が lifecycle を再開しない条件を状態判断非移管シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "phase start 許可判定を通知 module へ移さない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "terminal guard を状態正本側に残す条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "pause、resume、retry、cancel の可否判断を通知 module へ移さない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "provider valid response 後の完了遷移を状態正本側へ残す条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "invalid provider response の成功拒否を通知ではなく状態正本側で扱う条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "late response rejection を状態正本側へ残す条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-005",
+      "decision_rationale": "通知送信失敗による状態巻き戻し禁止として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NMDS-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-NMD-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-006",
+      "decision_rationale": "通知事実の再送や重複を状態二重作成の入力にしない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-005",
+      "decision_rationale": "通知送信失敗を application result へ混ぜない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-004",
+      "decision_rationale": "送信不可時の抑止と状態判断非移管を redaction / 送信可否シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-004",
+      "decision_rationale": "redaction 漏れを送信前に拒否する主要失敗系として採用した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-004",
+      "decision_rationale": "provider raw payload 混入拒否を payload 禁止シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-008",
+      "decision_rationale": "unsafe payload 拒否時に DB 保存対象を増やさない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-002",
+      "decision_rationale": "UseCase が failure payload を直接組み立てない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIFY-FAIL-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-NMD-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-002",
+      "decision_rationale": "通知失敗時にも Controller へ途中経過通知を戻さない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-EXT-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-NMD-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-007",
+      "decision_rationale": "Wails runtime event への写像を adapter に閉じ込めるシナリオとして採用した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-EXT-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-NMD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-004",
+      "decision_rationale": "秘匿対象を transport へ漏らさない条件として redaction シナリオへ統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-EXT-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-NMD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-005",
+      "decision_rationale": "Wails runtime event 送信失敗時の非巻き戻し条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-EXT-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-NMD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-007",
+      "decision_rationale": "Wails event を push 通知専用にする条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-EXT-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-NMD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-007",
+      "decision_rationale": "NotificationPort fake による差し替え可能性として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-AUDIT-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-NMD-008",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-NMD-008",
+      "decision_rationale": "通知 dispatch 結果の後追い確認を最小ログのシナリオとして採用した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-AUDIT-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-NMD-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-004",
+      "decision_rationale": "通知 payload と観測ログの秘匿条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-AUDIT-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-NMD-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-005",
+      "decision_rationale": "通知送信失敗を状態巻き戻しと分離して確認する条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-AUDIT-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-NMD-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-008",
+      "decision_rationale": "通知結果と operation summary を DB に永続化しない条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-AUDIT-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-NMD-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-008",
+      "decision_rationale": "送信不可理由を通知送信可否に限定してログへ残す条件として統合した。"
+    },
+    {
+      "candidate_id": "CAND-NOTIF-AUDIT-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-NMD-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-NMD-007",
+      "decision_rationale": "Wails event が push 通知専用であることの確認として統合した。frontend runtime log は UI 差分がある場合だけ後続対象にする。"
+    }
+  ],
+  "conflicts": [],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-NMD-001",
+      "candidate_ids": [
+        "CAND-NMD-AG-003",
+        "CAND-NOTIFY-LC-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-002",
+      "candidate_ids": [
+        "CAND-NMD-AG-001",
+        "CAND-NMD-AG-007",
+        "CAND-NOTIFY-FAIL-006",
+        "CAND-NOTIFY-FAIL-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-003",
+      "candidate_ids": [
+        "CAND-NMD-AG-002",
+        "CAND-NOTIFY-LC-003",
+        "CAND-NOTIFY-LC-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-004",
+      "candidate_ids": [
+        "CAND-NMD-AG-005",
+        "CAND-NOTIFY-FAIL-002",
+        "CAND-NOTIFY-FAIL-003",
+        "CAND-NOTIFY-FAIL-004",
+        "CAND-NOTIF-EXT-002",
+        "CAND-NOTIF-AUDIT-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-005",
+      "candidate_ids": [
+        "CAND-NMD-AG-006",
+        "CAND-NOTIFY-LC-005",
+        "CAND-NMDS-ST-007",
+        "CAND-NOTIFY-FAIL-001",
+        "CAND-NOTIF-EXT-003",
+        "CAND-NOTIF-AUDIT-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-006",
+      "candidate_ids": [
+        "CAND-NOTIFY-LC-002",
+        "CAND-NOTIFY-LC-006",
+        "CAND-NMDS-ST-001",
+        "CAND-NMDS-ST-002",
+        "CAND-NMDS-ST-003",
+        "CAND-NMDS-ST-004",
+        "CAND-NMDS-ST-005",
+        "CAND-NMDS-ST-006",
+        "CAND-NMDS-ST-008"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-007",
+      "candidate_ids": [
+        "CAND-NMD-AG-004",
+        "CAND-NOTIF-EXT-001",
+        "CAND-NOTIF-EXT-004",
+        "CAND-NOTIF-EXT-005",
+        "CAND-NOTIF-AUDIT-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-NMD-008",
+      "candidate_ids": [
+        "CAND-NOTIFY-FAIL-005",
+        "CAND-NOTIF-AUDIT-001",
+        "CAND-NOTIF-AUDIT-004",
+        "CAND-NOTIF-AUDIT-005"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

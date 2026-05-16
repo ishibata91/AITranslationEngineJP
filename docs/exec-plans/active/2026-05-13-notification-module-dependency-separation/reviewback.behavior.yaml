@@ -1,0 +1,43 @@
+reviewback_version: 1
+task_id: "2026-05-13-notification-module-dependency-separation"
+review_yaml_path: "docs/exec-plans/completed/2026-05-13-notification-module-dependency-separation/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。XML import は既存の command response を返し、進捗と完了通知だけを notification module へ渡す。通知送信失敗は application result と DB 状態を巻き戻さない。進捗 percent は 0 から 100 に丸められ、完了通知は import 後の persisted state から page payload を作る。"
+  evidence_sufficiency: "十分。実コード、API scenario test、unit test、backend-local、system-test、Playwright trace 付き対象 system test を確認した。"
+
+checked_scope:
+  summary: "通知 module、master dictionary import 経路、runtime adapter、bootstrap DI、API scenario test、system test の XML import 経路を確認した。"
+  files:
+    - path: "internal/service/master_dictionary_import_service.go"
+      line: 60
+      symbol: "ImportXML"
+      reason: "import 処理が確定した処理進捗を通知入口へ渡すことを確認した。"
+    - path: "internal/usecase/master_dictionary_usecase.go"
+      line: 201
+      symbol: "ImportXML"
+      reason: "command response と completion notification fact が分離されていることを確認した。"
+    - path: "internal/notification/notification.go"
+      line: 142
+      symbol: "Dispatch"
+      reason: "redaction、sendability、送信失敗の結果が application result から分離されていることを確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 130
+      symbol: "TestSCN_NMD_005_NotificationSendFailureDoesNotRollbackCommandResponseOrDBState"
+      reason: "通知送信失敗が command response と DB state を巻き戻さない test を確認した。"
+    - path: "tests/system/master-dictionary-management.spec.ts"
+      line: 134
+      symbol: "SCN-MDM-008/009"
+      reason: "実画面相当の XML import 状態遷移が完了へ到達する証跡を確認した。"
+
+unchecked_scope:
+  - target: "実 Wails 画面での import 完了後 agent-browser snapshot"
+    reason: "agent-browser CLI が file upload 後に応答待ちになったため、Playwright trace 付き system test で代替した。"
+    risk: "agent-browser CLI 固有の観測経路は未確認だが、対象画面の import 完了挙動は system test で確認済みである。"
+
+issues: []

@@ -14,6 +14,8 @@ import (
 
 	controllerwails "aitranslationenginejp/internal/controller/wails"
 	ai "aitranslationenginejp/internal/infra/ai"
+	infraruntime "aitranslationenginejp/internal/infra/runtime"
+	"aitranslationenginejp/internal/notification"
 	"aitranslationenginejp/internal/repository"
 	"aitranslationenginejp/internal/service"
 	"aitranslationenginejp/internal/usecase"
@@ -45,7 +47,8 @@ func newAppControllerWithSeeds(
 	now func() time.Time,
 ) *controllerwails.AppController {
 	runtimeEmitterState := controllerwails.NewRuntimeEmitterState()
-	runtimePublisher := usecase.NewWailsMasterDictionaryRuntimeEventPublisher(runtimeEmitterState.RuntimeEventContext)
+	var notificationPort notification.Port = infraruntime.NewNotificationAdapter(runtimeEmitterState.RuntimeEventContext)
+	notificationSink := notification.NewDispatcher(notificationPort)
 	databasePath := masterDictionaryDatabasePath()
 	repositoryAdapter, err := service.NewSQLiteMasterDictionaryRepositoryPort(
 		context.Background(),
@@ -81,14 +84,14 @@ func newAppControllerWithSeeds(
 		repositoryAdapter,
 		service.NewLocalMasterDictionaryXMLFilePort(),
 		service.NewXMLDecoderMasterDictionaryRecordReader(),
-		usecase.NewImportProgressEmitter(runtimePublisher),
+		notificationSink,
 		now,
 	).WithFoundationData(foundationDataPort)
 	masterDictionaryUsecase := usecase.NewMasterDictionaryUsecase(
 		queryService,
 		commandService,
 		importService,
-		runtimePublisher,
+		notificationSink,
 	)
 	masterDictionaryController := controllerwails.NewMasterDictionaryController(
 		masterDictionaryUsecase,

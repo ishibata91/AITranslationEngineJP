@@ -1,0 +1,43 @@
+reviewback_version: 1
+task_id: "2026-05-13-notification-module-dependency-separation"
+review_yaml_path: "docs/exec-plans/completed/2026-05-13-notification-module-dependency-separation/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "不変条件は維持されている。import の DB 書き込みは既存 Service 経路に残り、通知送信失敗は command response と DB state を巻き戻さない。通知 module は通知結果、operation summary、runtime payload を永続化しない。"
+  evidence_sufficiency: "十分。import Service、UseCase completion fact、notification dispatch result、DB 非永続化 scenario test、backend-local を確認した。"
+
+checked_scope:
+  summary: "XML import の DB 書き込み順、通知送信失敗時の state 維持、通知結果非永続化、進捗通知の重複副作用を確認した。"
+  files:
+    - path: "internal/service/master_dictionary_import_service.go"
+      line: 68
+      symbol: "persistXMLProvenance"
+      reason: "import loop 前に provenance を作り、失敗時に entry commit 前で止まる既存不変条件を確認した。"
+    - path: "internal/service/master_dictionary_import_service.go"
+      line: 79
+      symbol: "ImportXML"
+      reason: "entry upsert 後に進捗 fact を通知するが、通知 result を DB 状態に混ぜないことを確認した。"
+    - path: "internal/notification/notification.go"
+      line: 154
+      symbol: "Dispatch"
+      reason: "transport error を DispatchResult に閉じ、application result へ伝播させない構造を確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 130
+      symbol: "TestSCN_NMD_005_NotificationSendFailureDoesNotRollbackCommandResponseOrDBState"
+      reason: "通知送信失敗後も response と persisted entry が成功状態を維持する test を確認した。"
+    - path: "internal/apitest/notification_module_dependency_separation_scenario_test.go"
+      line: 201
+      symbol: "TestSCN_NMD_008_NotificationResultIsNotPersistedAndLogsStayMinimal"
+      reason: "notification result 用 table が追加されない test を確認した。"
+
+unchecked_scope:
+  - target: "同時 import の競合"
+    reason: "今回の承認済み実装範囲は通知 module 分離であり、import transaction model の同時実行再設計を含まない。"
+    risk: "既存 import 同時実行仕様は今回のレビュー対象外である。"
+
+issues: []

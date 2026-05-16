@@ -1,0 +1,100 @@
+@startuml
+
+title notification module 分離 設計差分 component 図
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+package "変更しない同期応答主経路" as SyncLayer {
+    class "Controller\nWails Bind request / response" as Controller <<existing>>
+    class "Backend UseCase\napplication result を返す" as BackendUseCase <<changed>>
+    class "TranslationJobPolicy\n状態判断の正本" as TranslationJobPolicy <<existing>>
+    class "JobIOService\n状態事実の取得 / 保存" as JobIOService <<existing>>
+    class "Service\n実処理と状態事実の確定" as Service <<changed>>
+}
+
+package "追加予定の notification module" as NotificationLayer {
+    class "NotificationSinkPort\n実行側の横接続入口" as NotificationSinkPort <<added>>
+    class "NotificationDispatcher\n通知種別 / redaction / 送信可否" as NotificationDispatcher <<added>>
+    class "NotificationPort\ntransport 送信境界" as NotificationPort <<added>>
+    class "RuntimeAdapter\nWails runtime event 実送信" as RuntimeAdapter <<existing>>
+    class "将来の Runner / Worker\n同じ通知入口を使う" as FutureRunner <<added>>
+}
+
+package "削除予定の直結依存" as LegacyLayer {
+    class "RuntimeEventPublisherPort\nUseCase から runtime へ近い旧 port" as RuntimeEventPublisherPort <<removed>>
+    class "Controller 経由の途中経過通知" as ControllerNotificationRelay <<removed>>
+}
+
+package "変更しない接続先" as UnchangedLayer {
+    class "synchronous response\nController caller へ返す" as SyncResponse <<existing>>
+    class "Wails runtime event\ntransport boundary" as WailsRuntimeEvent <<existing>>
+}
+
+Controller -[#546E7A]-> BackendUseCase : 変更しない
+BackendUseCase -[#546E7A]-> TranslationJobPolicy : 変更しない
+BackendUseCase -[#546E7A]-> JobIOService : 変更しない
+BackendUseCase -[#546E7A]-> Service : 変更しない
+Controller -[#546E7A,dotted]-> SyncResponse : 変更しない
+RuntimeAdapter -[#546E7A,dotted]-> WailsRuntimeEvent : 変更しない
+
+BackendUseCase -[#2E7D32]-> NotificationSinkPort : 追加予定
+Service -[#2E7D32]-> NotificationSinkPort : 追加予定
+FutureRunner -[#2E7D32]-> NotificationSinkPort : 追加予定
+NotificationSinkPort -[#2E7D32]-> NotificationDispatcher : 追加予定
+NotificationDispatcher -[#2E7D32]-> NotificationPort : 追加予定
+NotificationPort -[#2E7D32]-> RuntimeAdapter : 追加予定
+
+BackendUseCase -[#C62828,dashed]-> RuntimeEventPublisherPort : 削除予定
+BackendUseCase -[#C62828,dashed]-> RuntimeAdapter : 削除予定
+Controller -[#C62828,dashed]-> ControllerNotificationRelay : 削除予定
+ControllerNotificationRelay -[#C62828,dashed]-> RuntimeAdapter : 削除予定
+
+note right of NotificationDispatcher
+通知 module が担う範囲:
+- 通知種別
+- redaction
+- 送信可否
+- 送信失敗の扱い
+end note
+
+note right of TranslationJobPolicy
+変更しない判断:
+- 状態遷移可否
+- terminal guard
+- provider response validation
+end note
+
+legend bottom right
+    |= Style |= 意味 |
+    |<#FFF1F1> removed | 削除予定 |
+    |<#EEF9EF> added | 追加予定 |
+    |<#FFF8E1> changed | 依存先または責務が変わる要素 |
+    |<#F7F9FC> existing | 変更しない接続先 |
+endlegend
+
+@enduml

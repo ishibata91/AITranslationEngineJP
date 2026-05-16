@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<SSTXMLRessources>
+  <Content>
+    <String>
+      <EDID>DLC1AurielsBow</EDID>
+      <REC>WEAP:FULL</REC>
+      <Source>Auriel's Bow</Source>
+      <Dest>アーリエルの弓</Dest>
+    </String>
+    <String>
+      <EDID>DLC1CrossbowMount</EDID>
+      <REC>ACTI:FULL</REC>
+      <Source>Crossbow Mount</Source>
+      <Dest>クロスボウ台座</Dest>
+    </String>
+    <String>
+      <EDID>DLC1VampireLordPrompt</EDID>
+      <REC>MESG:DESC</REC>
+      <Source>Transform into the vampire lord.</Source>
+      <Dest>吸血鬼の王に変身する。</Dest>
+    </String>
+  </Content>
+</SSTXMLRessources>

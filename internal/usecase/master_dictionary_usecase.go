@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"aitranslationenginejp/internal/notification"
 	"aitranslationenginejp/internal/service"
 )
 
@@ -34,18 +35,12 @@ type ImportServicePort interface {
 	ImportXML(ctx context.Context, xmlPath string) (service.MasterDictionaryImportSummary, error)
 }
 
-// RuntimeEventPublisherPort defines runtime event publication required by the usecase.
-type RuntimeEventPublisherPort interface {
-	PublishImportProgress(ctx context.Context, progress int)
-	PublishImportCompleted(ctx context.Context, payload service.MasterDictionaryImportCompletedPayload)
-}
-
 // MasterDictionaryUsecase orchestrates operations for master dictionary management.
 type MasterDictionaryUsecase struct {
 	queryService   QueryServicePort
 	commandService CommandServicePort
 	importService  ImportServicePort
-	events         RuntimeEventPublisherPort
+	notifications  notification.SinkPort
 }
 
 // NewMasterDictionaryUsecase creates a new usecase.
@@ -53,13 +48,13 @@ func NewMasterDictionaryUsecase(
 	queryService QueryServicePort,
 	commandService CommandServicePort,
 	importService ImportServicePort,
-	events RuntimeEventPublisherPort,
+	notifications notification.SinkPort,
 ) *MasterDictionaryUsecase {
 	return &MasterDictionaryUsecase{
 		queryService:   queryService,
 		commandService: commandService,
 		importService:  importService,
-		events:         events,
+		notifications:  notifications,
 	}
 }
 
@@ -224,27 +219,30 @@ func (usecase *MasterDictionaryUsecase) ImportXML(
 		return MasterDictionaryImportResult{}, fmt.Errorf("refresh page after import: %w", err)
 	}
 
-	if usecase.events != nil {
-		completedPayload, buildErr := usecase.buildImportCompletedPayload(ctx, summary)
+	if usecase.notifications != nil {
+		completedFact, buildErr := usecase.buildImportCompletedFact(ctx, summary)
 		if buildErr != nil {
-			return MasterDictionaryImportResult{}, fmt.Errorf("build import completed event: %w", buildErr)
+			return MasterDictionaryImportResult{}, fmt.Errorf("build import completed notification: %w", buildErr)
 		}
-		usecase.events.PublishImportCompleted(ctx, completedPayload)
+		usecase.notifications.Notify(ctx, notification.Fact{
+			Kind:   notification.KindMasterDictionaryImportCompleted,
+			Import: &completedFact,
+		})
 	}
 
 	return MasterDictionaryImportResult{Page: responsePage, Summary: summary}, nil
 }
 
-func (usecase *MasterDictionaryUsecase) buildImportCompletedPayload(
+func (usecase *MasterDictionaryUsecase) buildImportCompletedFact(
 	ctx context.Context,
 	summary service.MasterDictionaryImportSummary,
-) (service.MasterDictionaryImportCompletedPayload, error) {
+) (notification.MasterDictionaryImportFact, error) {
 	preferredID := (*int64)(nil)
 	if summary.LastEntryID > 0 {
 		preferredID = &summary.LastEntryID
 	}
 
-	refresh := service.MasterDictionaryImportRefreshPolicy{
+	refresh := notification.MasterDictionaryImportRefresh{
 		Query:           "",
 		Category:        masterDictionaryDefaultImportCategory,
 		Page:            masterDictionaryDefaultImportPage,
@@ -259,18 +257,26 @@ func (usecase *MasterDictionaryUsecase) buildImportCompletedPayload(
 		PageSize:   refresh.PageSize,
 	}, preferredID)
 	if err != nil {
-		return service.MasterDictionaryImportCompletedPayload{}, err
+		return notification.MasterDictionaryImportFact{}, err
 	}
 
-	return service.MasterDictionaryImportCompletedPayload{
-		Page: service.MasterDictionaryImportCompletedPage{
-			Items:      page.Items,
+	return notification.MasterDictionaryImportFact{
+		Page: notification.MasterDictionaryPage{
+			Items:      toNotificationEntries(page.Items),
 			TotalCount: page.TotalCount,
 			Page:       page.Page,
 			PageSize:   page.PageSize,
 			SelectedID: page.SelectedID,
 		},
-		Summary: summary,
+		Summary: notification.MasterDictionaryImportSummary{
+			FilePath:      summary.FilePath,
+			FileName:      summary.FileName,
+			ImportedCount: summary.ImportedCount,
+			UpdatedCount:  summary.UpdatedCount,
+			SkippedCount:  summary.SkippedCount,
+			SelectedREC:   append([]string(nil), summary.SelectedREC...),
+			LastEntryID:   summary.LastEntryID,
+		},
 		Refresh: refresh,
 	}, nil
 }
@@ -289,6 +295,23 @@ func toServiceMutationInput(input MasterDictionaryMutationInput) service.MasterD
 		REC:         input.REC,
 		EDID:        input.EDID,
 	}
+}
+
+func toNotificationEntries(entries []MasterDictionaryEntry) []notification.MasterDictionaryEntry {
+	out := make([]notification.MasterDictionaryEntry, 0, len(entries))
+	for _, entry := range entries {
+		out = append(out, notification.MasterDictionaryEntry{
+			ID:          entry.ID,
+			Source:      entry.Source,
+			Translation: entry.Translation,
+			Category:    entry.Category,
+			Origin:      entry.Origin,
+			REC:         entry.REC,
+			EDID:        entry.EDID,
+			UpdatedAt:   entry.UpdatedAt,
+		})
+	}
+	return out
 }
 
 func selectEntryID(items []MasterDictionaryEntry, preferredID *int64) *int64 {

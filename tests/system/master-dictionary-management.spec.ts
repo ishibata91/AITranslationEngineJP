@@ -6,7 +6,7 @@ test.describe.configure({ mode: "serial" })
 
 const dawnguardXmlPath = path.resolve(
   process.cwd(),
-  "dictionaries/Dawnguard_english_japanese.xml"
+  "tests/fixtures/master-dictionary/Dawnguard_english_japanese.xml"
 )
 
 async function openMasterDictionary(page: Page): Promise<void> {
@@ -25,36 +25,31 @@ async function clickEditModalSave(page: Page): Promise<void> {
 }
 
 async function importDawnguardXml(page: Page): Promise<void> {
-  const xmlFileInput = page.locator("#xmlFileInput")
   const importStatusValue = page.locator("#importStatusValue")
   const importProgressFill = page.locator("#importProgressFill")
   const startImportButton = page.locator("#startImportButton")
 
-  const stageXmlWithResolvedReference = async (usePathInjection: boolean): Promise<void> => {
-    if (usePathInjection) {
-      await page.evaluate((absolutePath) => {
-        const input = document.getElementById("xmlFileInput")
-        if (!(input instanceof HTMLInputElement)) {
-          return
-        }
+  const stageXmlWithResolvedReference = async (): Promise<void> => {
+    await page.evaluate((absolutePath) => {
+      const input = document.getElementById("xmlFileInput")
+      if (!(input instanceof HTMLInputElement)) {
+        return
+      }
 
-        const file = new File([""], "Dawnguard_english_japanese.xml", { type: "text/xml" })
-        Object.defineProperty(file, "path", {
-          value: absolutePath,
-          configurable: true
-        })
+      const file = new File([""], "Dawnguard_english_japanese.xml", { type: "text/xml" })
+      Object.defineProperty(file, "path", {
+        value: absolutePath,
+        configurable: true
+      })
 
-        const transfer = new DataTransfer()
-        transfer.items.add(file)
-        Object.defineProperty(input, "files", {
-          value: transfer.files,
-          configurable: true
-        })
-        input.dispatchEvent(new Event("change", { bubbles: true }))
-      }, dawnguardXmlPath)
-    } else {
-      await xmlFileInput.setInputFiles(dawnguardXmlPath)
-    }
+      const transfer = new DataTransfer()
+      transfer.items.add(file)
+      Object.defineProperty(input, "files", {
+        value: transfer.files,
+        configurable: true
+      })
+      input.dispatchEvent(new Event("change", { bubbles: true }))
+    }, dawnguardXmlPath)
 
     await expect(page.locator("#selectedFileName")).toHaveText("Dawnguard_english_japanese.xml")
     await expect(page.locator("#importBar")).toBeVisible()
@@ -62,33 +57,10 @@ async function importDawnguardXml(page: Page): Promise<void> {
     await expect(importProgressFill).toHaveAttribute("style", /width:\s*0%/)
   }
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    await stageXmlWithResolvedReference(attempt > 0)
-    await startImportButton.click()
-
-    let observedRunning = false
-    let observedStatus = "取込待ち"
-    for (let poll = 0; poll < 10; poll += 1) {
-      observedStatus = (await importStatusValue.innerText()).trim()
-      if (observedStatus === "取込中") {
-        observedRunning = true
-      }
-      if (observedStatus !== "取込待ち") {
-        break
-      }
-      await page.waitForTimeout(250)
-    }
-
-    if (!observedRunning) {
-      continue
-    }
-
-    await expect(importStatusValue).toHaveText("完了", { timeout: 30000 })
-    await expect(page.locator("#importResult")).toBeVisible()
-    return
-  }
-
-  throw new Error("XML 取り込みが完了状態へ到達しませんでした。")
+  await stageXmlWithResolvedReference()
+  await startImportButton.click()
+  await expect(importStatusValue).toHaveText("完了", { timeout: 30000 })
+  await expect(page.locator("#importResult")).toBeVisible()
 }
 
 test("SCN-MDM-001/002 一覧と検索を同一ページで操作できる", async ({ page }) => {
