@@ -32,6 +32,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - エージェント実行定義と実行境界は [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml) に従う。
 - エージェント実行定義: [investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/investigator.toml)
 - 実行境界: エージェント実行定義に従う
+- 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
+- active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
+- 画面設計差分と docs の画面設計が両方ある場合は、active plan の画面設計差分を優先して読む。
 - `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 探索テストレーンの探索計画は [exploration-test-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/exploration-test-planning/SKILL.md) に従う。
@@ -48,6 +51,8 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 観測済み事実、UI 根拠、仮説 の分離
 - 探索計画、テストデータ、探索証跡 の分離
 - 根拠 path と再現条件の残し方
+- 画面設計を操作経路と期待値の補助参照にする条件
+- 画面要素を操作できない理由の分類
 - 設計を止める 残留リスク の表現
 
 ## 判断規約
@@ -55,7 +60,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 根拠 のない結論を書かない
 - 観測事実と仮説を混ぜない
 - 設計前の UI 根拠 は `agent-browser` CLI で確認する
+- UI 根拠 を集める時は、関連する `docs/screen-design/screens/*.md` または active plan の `screen-design-diff.<screen-id>.md` を、操作経路と期待値の補助参照として確認する
 - UI 根拠 は画面状態、console、screenshot、操作条件を分けて残す
+- 画面要素を操作できない時は、操作経路に対応する画面設計がない、セレクタ属性が不足、起動状態が不足、操作経路または期待値と実画面の対応を確認できない、のいずれかで理由を返す
 - frontend log は browser console の観測事実として残す
 - backend log は `tmp/logs/wails-dev.log` の観測事実として残す
 - frontend log と backend log は同じ根拠 path に混ぜない
@@ -95,6 +102,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - ログ証跡: ログを確認した場合は証跡と参照先を返す。
 - 仮説: 事実と分けて原因候補を返す。
 - 観測点: 確認した入口、経路、対象を返す。
+- 操作不能理由: UI 要素を操作できない場合の分類と根拠を返す。
 - 探索証跡: 探索テスト証跡の場合は探索計画とテストデータに対応する観測事実を返す。
 - 修正前調査: 修正レーンの場合は人間観測、レビュー非通過、検証失敗に対応する観測事実、ログ、未確認事項を返す。
 - 影響ファイル候補: 修正前調査の場合は観測事実に基づく影響ファイル候補を返す。
@@ -109,6 +117,8 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 不足情報または停止理由がある場合は明示されている。
 - 観測事実、UI 根拠、仮説、未観測 不足 を分けた。
 - 根拠 path、再現条件、UI check 対象範囲 を残した。
+- UI 根拠を扱った場合は、参照した画面設計または画面設計差分を返した。
+- 操作できない画面要素がある場合は、操作不能理由が分類されている。
 - 探索テスト証跡の場合は、探索計画、テストデータ、観測事実、UI 証跡、ログ証跡、未確認事項を分けた。
 - 探索テスト証跡の場合は、`exploration-test-evidence.md` に証跡が記録されている。
 - 修正前調査の場合は、人間観測、観測事実、UI 証跡、ログ証跡、未確認事項を分けた。

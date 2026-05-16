@@ -28,7 +28,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
 - secret 境界情報: 統合境界で扱う参照値、secret 本体、secret 解決責務層、出力禁止値。
-- UI 確認根拠: UI がある task で参照する承認済み `ui-design.md` と確認対象画面。
+- UI 確認根拠: UI がある task で参照する承認済み `ui-design.md`、関連する `screen-design-diff.<screen-id>.md`、確認対象画面。
 - 合意済みfrontend保護: UI がある task で承認済み frontend 実装を保護する変更禁止範囲。
 
 ## 外部参照規約
@@ -72,7 +72,7 @@ secret 分離観点表は次を拘束する。
 - UI がある task では、実画面で主要操作が backend まで到達することを確認する
 - UI がある task では、実レスポンスが loading、empty、error、success の UI 状態へ反映されることを確認する
 - UI がある task では、console error と Wails 呼び出し失敗が残っていないことを確認する
-- UI がある task では、実画面が承認済み `ui-design.md` の主要区画、導線、状態表示から外れていないことを確認する
+- UI がある task では、実画面が承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` の主要区画、導線、状態表示から外れていないことを確認する
 - secret を扱った場合は、偽 secret 保管先、偽送信経路、要求捕捉による漏れ確認を 終了処理 に残す
 - 両側の touched files を 引き継ぎ と対応づける
 - frontend / backend / 統合境界 契約 の レーン内検証 根拠 を分ける
@@ -115,7 +115,7 @@ secret 分離観点表は次を拘束する。
 - UI がある task では、実画面で主要操作が backend まで到達することを確認した。
 - UI がある task では、実レスポンスが UI 状態へ反映されることを確認した。
 - UI がある task では、console error と Wails 呼び出し失敗が残っていないことを確認した。
-- UI がある task では、承認済み `ui-design.md` の主要区画、導線、状態表示との差分を確認した。
+- UI がある task では、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` の主要区画、導線、状態表示との差分を確認した。
 - backend 側の変更がある場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または承認済み統合境界内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 - frontend 側の変更がある場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または承認済み統合境界内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 - backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 または承認済み統合境界内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。

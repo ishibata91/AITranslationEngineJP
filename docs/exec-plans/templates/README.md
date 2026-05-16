@@ -8,6 +8,7 @@
 - `task-folder/README.md`
 - `task-folder/plan.md`
 - `task-folder/ui-design.md`
+- `task-folder/screen-design-diff.<screen-id>.md`
 - `task-folder/scenario-candidates.viewpoint.md`
 - `task-folder/scenario-design.md`
 - `task-folder/scenario-design.candidate-coverage.json`

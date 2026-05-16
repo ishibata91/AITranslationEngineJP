@@ -5,6 +5,7 @@
 - `source_plan`: `./plan.md`
 - `scenario_source`: `./scenario-design.md`
 - `ux_standard_source`: `docs/UX-standard.md`
+- `screen_design_diff`:
 
 ## UI Contract
 
@@ -29,6 +30,7 @@
 - `layout_constraints`:
 - `responsive_constraints`:
 - `accessibility_constraints`:
+- `screen_design_diff_refs`:
 
 ## UX Standard Review
 
@@ -84,6 +86,10 @@
 ## Rules
 
 - UI は `ui-design.md` の UI 要件契約で固定する
+- 画面設計差分は `screen-design-diff.<screen-id>.md` に固定する
+- 画面設計差分は `docs/screen-design/screens/template.md` の項目に従う
+- 画面設計差分には、`docs/screen-design/screens/` へ適用できる恒久的な画面内容だけを書く
+- 画面設計差分には、実装指示、テスト手順、agent handoff を書かない
 - UI 確認は実画面で行う
 - UX 標準の確認結果を `UX Standard Review` に記録する
 - `agent-browser` 確認後に、専門知識がなくても次に何をするか分かる表現水準かを表示文言レビューで確認する

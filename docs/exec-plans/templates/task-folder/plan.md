@@ -17,6 +17,7 @@
 
 - `ux_task_frame`: `task 枠` の記録位置 または `N/A`
 - `ui_design`: `./ui-design.md` または `N/A`
+- `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `ux_review`: `./ux-review.yaml` または `N/A`
 - `frontend_human_review`: frontend 実装後人間レビューの記録位置 または `N/A`

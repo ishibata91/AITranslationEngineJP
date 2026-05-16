@@ -36,7 +36,7 @@ description: Codex 側の 設計成果物 進行 skill。シナリオ、独立 U
 - 要件正本: [spec.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/spec.md) とする。
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
-- 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
+- 画面設計書正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - 補助参照: 入力に明示された関連 docs、関連 skill、人間の現在指示
@@ -113,6 +113,7 @@ repo-local gate が出す質問票は未回答 ID 一覧にとどめる。
 
 UI 設計は design bundle 本体へ含めず、`ui-design` の独立成果物として扱う。
 UI が関係する task では、`ui-design.md` を人間レビュー前に揃える。
+画面設計書正本へ反映する差分がある task では、active plan 内に `screen-design-diff.<screen-id>.md` を揃える。
 frontend 実装がある task では、承認済み UI 設計成果物を implementation-scope と frontend 実装の根拠にする。
 
 ## 判断規約

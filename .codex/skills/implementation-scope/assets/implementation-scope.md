@@ -12,6 +12,7 @@
 ## Source Artifacts
 
 - `ui_design`: `./ui-design.md` または `N/A`
+- `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `scenario_design`: `./scenario-design.md`
 - `detail_requirement_coverage`: `./scenario-design.requirement-coverage.json`
@@ -20,7 +21,7 @@
 ## Fixed Decisions
 
 - human review 済みの判断だけを書く
-- frontend handoff がある場合は、承認済み `ui-design.md` を source にする
+- frontend handoff がある場合は、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を source にする
 - `needs_human_decision`: `0`
 - 承認済み詳細要求タイプと質問票回答だけを handoff source にする
 - downstream handoff が依存する public seam は各実装 handoff の完了条件として固定する
@@ -44,6 +45,7 @@
 - `implementation_skill`: `implement-backend | implement-frontend | implement-integration | tests-scenario | tests-unit`
 - `frontend_required_sources`:
   - `ui_design`: `./ui-design.md` または `N/A`
+  - `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
   - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `secret_boundary`:
   - `status`: `required | not_required`
@@ -65,7 +67,7 @@
 - `execution_stage`: `実装後 | final validation`
 - `notes`:
   - backend と frontend は必ず別 handoff に分ける。UI がある task では frontend handoff を backend handoff より先に置く。
-  - frontend handoff では、承認済み `ui-design.md` を必須 source にする。
+  - frontend handoff では、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を必須 source にする。
   - frontend handoff では、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書く。
   - API / Wails / DTO / gateway / adapter contract の接続と実画面確認は `統合境界実装` handoff に分ける。
   - `implementation_skill` は `implementation_artifact` と一致させ、Codex implementation lane が読む skill を一意にする。

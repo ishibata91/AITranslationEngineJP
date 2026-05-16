@@ -111,7 +111,7 @@ import、generation、settings save、preview、create / update / delete、expor
 
 同じ受け入れユースケースでも、backend と frontend は 1 引き継ぎ に含めない。
 backend 引き継ぎ は永続化、service / usecase、controller、DTO / gateway 境界までを扱う。
-frontend 引き継ぎ は承認済み `ui-design.md` を必須根拠にし、状態 / UI を扱う。
+frontend 引き継ぎ は承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を根拠にし、状態 / UI を扱う。
 統合境界 引き継ぎ は API、Wails、DTO、gateway、adapter 契約 の接続と実画面確認を扱い、backend 実装や frontend UI 実装の代替にしない。
 
 backend 側の 引き継ぎ に含めてよい 層:
@@ -282,7 +282,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - domain 名や画面名だけを根拠に、複数 use case を同一 引き継ぎ にまとめていない。
 - 層 をまたぐ 引き継ぎ は、受け入れユースケース 完了条件 で完了判定できる。
 - backend、frontend、統合境界 が必要な場合は別 引き継ぎ として分割されている。
-- frontend 引き継ぎ がある場合は、承認済み `ui-design.md` を根拠参照に含めた。
+- frontend 引き継ぎ がある場合は、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を根拠参照に含めた。
 - frontend 引き継ぎ がある場合は、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書いた。
 - UI がある task では、frontend 引き継ぎを backend 引き継ぎより前の依存対象にした。
 - 統合境界 引き継ぎ がある場合は、接続結果の実画面確認を完了条件に書いた。

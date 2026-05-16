@@ -215,10 +215,10 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に local commit を作る。
 - `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
-- `scenario-design`、`ui-design`、実装結果、レビュー結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`正本化判断` を必須成果物にする。
+- `scenario-design`、`ui-design`、`screen-design-diff.<screen-id>.md`、実装結果、レビュー結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`正本化判断` を必須成果物にする。
 - 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`詳細仕様正本反映` を必須成果物にする。
 - `詳細仕様正本反映` は `docs/detail-specs/` の上位シナリオ単位の正本へ、human 承認済みの恒久仕様だけを反映する。
-- `詳細仕様正本反映` の入力は、`scenario-design`、`ui-design`、実装結果、レビュー結果、承認記録のうち正本化判断で承認済みとされた成果物に限定する。
+- `詳細仕様正本反映` の入力は、`scenario-design`、`ui-design`、`screen-design-diff.<screen-id>.md`、実装結果、レビュー結果、承認記録のうち正本化判断で承認済みとされた成果物に限定する。
 - 起動先 agent には 文脈 を引き継がず、必要情報を 引き継ぎ入力 に明示する。
 - 人間介入 が必要な 成果物 は AI だけで完了にしない。
 - 恒久修正、構造整理、探索テスト、軽量変更はこの skill で詳細化しない。
@@ -279,6 +279,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `設計差分図` が人間設計レビュー前に揃っている。
 - `設計差分図` が予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 を含んでいる。
 - UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
+- UI が関係し、画面設計書正本へ反映する差分がある場合は、`screen-design-diff.<screen-id>.md` が人間設計レビュー前に揃っている。
 - UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
 - UI が関係する場合は、人間レビュー前に fakeAPI による実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
 - UI が関係する場合は、`ux-review.yaml` に `review_status`、`must_fix_open`、`max_level`、確認済み状態、未確認状態が記録されている。

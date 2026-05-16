@@ -19,7 +19,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 入力規約
 
 - frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、または 軽量変更レーンの `軽量変更計画`。
-- UI 根拠: 承認済み `ui-design.md`、または 軽量変更レーンの軽量変更計画と人間確認観点。
+- UI 根拠: 承認済み `ui-design.md`、関連する `screen-design-diff.<screen-id>.md`、または 軽量変更レーンの軽量変更計画と人間確認観点。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
@@ -36,6 +36,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - UX 観点正本: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
 - UI 設計規約: `ui-design.md` を受け取る場合は [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) の UI 要件契約に従う。
+- 画面設計差分: `screen-design-diff.<screen-id>.md` を受け取る場合は画面要素、表示条件、操作、結果、セレクタ属性の根拠にする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## 内部参照規約
@@ -48,6 +49,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - Wails bridge 呼び出しの境界を守る
 - generated `wailsjs` は gateway 境界に閉じ込める
 - 承認済み UI 根拠と `docs/UX-standard.md` に従い、実画面と UI 根拠 の差分を確認する
+- セレクタ属性は、画面設計差分の `data-testid` と `aria-label` が実装と一致しているか確認する
 - UI 根拠確認の差分は、承認済み実装範囲 で直す差分と、入力不足または人間承認が必要な差分へ分ける
 - frontend 実行入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
 - `frontend-local` の失敗原因が承認済み実装範囲 外にある場合でも、generated file、生成元、公開境界、または検証を壊した frontend プロダクトコードに限り 影響範囲修正 として直す
@@ -76,7 +78,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 実装成果物: frontend 実行入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
 - 影響範囲修正: generated file、生成元、公開境界、または検証を壊した frontend プロダクトコードを修正した場合に、対象、理由、変更結果を返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
-- UI 根拠確認結果: 実画面と UI 根拠 の一致、差分、未確認理由、`docs/UX-standard.md` との対応を返す。
+- UI 根拠確認結果: 実画面と UI 根拠 の一致、差分、セレクタ属性差分、未確認理由、`docs/UX-standard.md` との対応を返す。
 - UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
@@ -92,6 +94,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - UI 状態 の初期値と更新条件を確認した。
 - 承認済み UI 根拠、`docs/UX-standard.md`、frontend コーディング規約に合わせて実装した。
 - 実画面と UI 根拠 の一致確認結果を返した。
+- 画面設計差分がある場合は、`data-testid` と `aria-label` の実装差分を確認した。
 - UI 根拠確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または許可された 影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。

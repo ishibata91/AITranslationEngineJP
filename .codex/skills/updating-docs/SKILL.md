@@ -36,6 +36,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 実行境界: エージェント実行定義に従う
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md)
+- 画面設計書正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md)
+- 画面設計書雛形: [template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/screens/template.md)
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/updating-docs/SKILL.md
@@ -48,6 +50,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - docs 正本 の選び方
 - 人間承認 記録 の確認
 - 承認済み 成果物 と 正本 対象 の対応
+- 画面設計差分 と 画面設計書正本 の対応
 - 上位シナリオ単位の詳細仕様 製本
 - 検証 と 残り 不足 の記録
 
@@ -59,6 +62,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - implementation-scope を docs 正本へ自動昇格しない
 - `detail-specs` は 上位シナリオ 単位で作り、画面単位または個別ユースケース単位へ独断で分割しない
 - `detail-specs` へ反映する内容は、`scenario-design`、`ui-design`、実装結果、レビュー結果から恒久仕様だけを製本する
+- `screen-design-diff.<screen-id>.md` は、人間承認済みの場合だけ `docs/screen-design/screens/<screen-id>.md` へ反映する
+- 画面設計書正本へ反映する内容は、`docs/screen-design/screens/template.md` の項目に合う画面内容だけに限定する
 - 未確定仕様を独断で補完しない
 
 - Codex implementation 完了 レポート を根拠として残す
@@ -72,6 +77,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - implementation 完了前の正本化と未承認 draft の正本化は扱わない。
 - implementation-scope を docs 正本へ自動昇格しない。
 - task 内の実画面確認結果を docs 正本へそのまま昇格しない。
+- 実装指示、テスト手順、agent handoff を画面設計書正本へ昇格しない。
 - スキーマ移行、DB 移行、基盤移行、cutover 手順は `detail-specs` へ昇格しない。
 - `detail-specs` へ移す対象は、承認済み `scenario-design` にある上位シナリオの恒久仕様だけにする。
 - プロダクト実装を同時に進めない。
@@ -97,6 +103,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - Codex implementation 完了 レポート を確認した。
 - 人間承認 記録 を確認した。
 - 承認済み 成果物 と 正本 対象 を対応づけた。
+- 画面設計差分を反映する場合は、対象の `docs/screen-design/screens/<screen-id>.md` と対応づけた。
 - 検証 結果と 残り 不足 を記録した。
 - 必須 根拠: Codex implementation 完了 レポート、承認 記録、根拠成果物パス、検証結果。
 - 完了判断材料: implementation 完了 後の docs 正本が 承認済み 成果物 と同期している。

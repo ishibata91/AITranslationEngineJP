@@ -20,7 +20,7 @@ description: Codex frontend 人間レビュー前 UX 事前確認作業プロト
 
 - UX確認対象差分: frontend 人間レビュー前に確認する差分を受け取る。
 - 実装目的: frontend 実装が満たすべき目的を受け取る。
-- UI根拠: 承認済み `ui-design.md` と関連する task 内 UI 成果物を受け取る。
+- UI根拠: 承認済み `ui-design.md`、関連する task 内 UI 成果物、画面設計差分を受け取る。
 - 実装結果: frontend 実装 agent が返した実装結果を受け取る。
 - 実画面確認入力: review URL、起動状態、確認済み `fakeScenario`、未確認状態、未確認理由を受け取る。
 - 変更ファイル: frontend 実装差分に含まれる変更ファイル一覧を受け取る。
@@ -33,6 +33,8 @@ description: Codex frontend 人間レビュー前 UX 事前確認作業プロト
 - UX 標準正本は [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - fakeAPI 運用仕様は [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) とする。
 - UI 設計規約は [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) とする。
+- 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
+- active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
 - `agent-browser` 利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -47,6 +49,8 @@ UX 事前確認観点表は次を拘束する。
 | fakeAPI状態十分性 | 人間レビューに必要な `fakeScenario` が確認されているか |
 | 視認性 | 要素サイズ、密度、余白、一覧幅が読みにくくないか |
 | 画面統一性 | 既存画面、既存部品、文言、配置規則との統一感が壊れていないか |
+| 操作対象明確性 | 画面設計または画面設計差分から触れるべき操作対象が分かるか |
+| セレクタ属性整合性 | 画面設計と画面設計差分の `data-testid` と `aria-label` が実装と一致しているか |
 
 重大度指標は次を拘束する。
 
@@ -66,6 +70,9 @@ UX 事前確認観点表は次を拘束する。
 - `max_level` は未解決指摘の最大重大度にする。
 - `ux-review.yaml` の `must_fix_open: true` は frontend 人間レビュー前の停止判断材料にする。
 - UI 根拠にない改善案は、修正指示ではなく未承認改善候補として扱う。
+- 画面設計差分がある場合は、既存画面との統一性と触れるべき操作対象を確認する。
+- 画面設計または画面設計差分がある場合は、`data-testid` と `aria-label` の実装差分を確認する。
+- 画面設計差分がある場合でも、既存の画面設計にある `data-testid` と `aria-label` が壊れていないか確認する。
 - fakeAPI は backend 実装、統合境界実装、永続化仕様の代替として扱わない。
 - 呼び出し元から渡された実画面確認入力を UX 事前確認の根拠として扱ってよい。
 
@@ -96,6 +103,9 @@ UX 事前確認観点表は次を拘束する。
 - fakeAPI 運用仕様の標準 `fakeScenario` と task 固有の確認状態を確認した。
 - 実画面で、目的、状態、操作、結果をユーザーが判断できるか確認した。
 - 実画面で、要素サイズ、密度、余白、一覧幅、既存画面との統一性を確認した。
+- 画面設計差分がある場合は、触れるべき操作対象と実画面の対応を確認した。
+- 画面設計または画面設計差分がある場合は、`data-testid` と `aria-label` の実装差分を確認した。
+- 画面設計差分がある場合でも、既存の画面設計にある `data-testid` と `aria-label` が壊れていないことを確認した。
 - `review_status`、`must_fix_open`、`max_level`、`checked_states`、`unchecked_states`、`issues` が記録されている。
 - 残留リスクとして、未確認状態と理由が記録されている。
 

@@ -30,7 +30,8 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、実
 - 要件正本: [spec.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/spec.md) とする。
 - architecture 正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
-- 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
+- 画面設計書正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
+- 画面設計書雛形: [template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/screens/template.md) とする。
 - UI 部品アーキテクチャ正本: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の `UI Component` とする。
 - 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
@@ -51,6 +52,12 @@ description: Codex 側の UI 設計作業プロトコル。UI 要件契約、実
 - アプリ起動後の実画面 URL、確認 command、実画面と UI 要件契約の差分
 - 読み込み中、空、エラー、無効、進行中、再試行、成功
 - デスクトップ / モバイルで破綻してはいけない条件と実装後確認観点
+
+### 画面設計差分項目
+
+この項目は、active plan 内の `screen-design-diff.<screen-id>.md` に書く内容を拘束する。
+項目説明は [screens/README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/screens/README.md) に従う。
+書式は [template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/screens/template.md) に従う。
 
 ### 表示文言変換例
 
@@ -90,6 +97,12 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - 既存画面変更では、独自の page shell、card、grid、配色、余白体系を新規に作らない
 - 既存画面変更では、変更対象区画だけを差し替え、変更しない区画は既存画面の構造と表示を維持する
 - 新規画面では、`docs/screen-design` の画面設計に従う
+- 画面設計差分は active plan 内の `screen-design-diff.<screen-id>.md` に置く
+- 画面設計差分は `docs/screen-design/screens/template.md` の項目に従って書く
+- 画面設計差分には、`docs/screen-design/screens/` に適用できる恒久的な画面内容だけを書く
+- 画面設計差分には、実装指示、テスト手順、agent handoff を書かない
+- `ui-design` は `docs/screen-design/screens/` を直接更新しない
+- `docs/screen-design/screens/` への反映は、人間承認後に `updating-docs` が扱う
 - `agent-browser` 確認では `docs/references/agent-browser.md` に従い、`open`、`snapshot`、`errors`、`screenshot`、`close` を必要に応じて使う
 - 実画面確認が UI 設計根拠に必要な場合は、`designer.toml` の実行境界に従ってアプリを起動し、`agent-browser` で実画面を確認する
 - 実画面確認は既存表示、既存導線、既存状態、UI 要件契約との差分を確認するために限る
@@ -115,6 +128,7 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 
 - 判断結果: UI 要件契約の完了、未完了、停止の判定を返す。
 - 根拠参照: UI 判断の根拠にした要件、シナリオ、既存画面を返す。
+- 画面設計差分: active plan 内に作成または更新した `screen-design-diff.<screen-id>.md` を返す。
 - UI 部品化判断: 部品化対象、配置先、分けない対象、判断理由を返す。
 - 確認結果: `ui-design.md` の agent-browser 確認結果を返す。
 - 実画面確認結果: アプリ起動 command、確認 URL、実画面確認の根拠、UI 要件契約との差分を返す。
@@ -133,6 +147,9 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - `docs/UX-standard.md` の高優先度項目と対象画面に関係する項目を `ui-design.md` に結果付きで残した。
 - 状態、状態差分、表示幅追従、はみ出しリスク を実装後確認観点として確認した。
 - `ui-design.md` は UI 要件契約と確認観点を含んでいる。
+- UI 変更が `docs/screen-design/screens/` へ反映されるべき恒久仕様を含む場合は、`screen-design-diff.<screen-id>.md` が active plan 内にある。
+- `screen-design-diff.<screen-id>.md` は `docs/screen-design/screens/template.md` の項目に従っている。
+- `screen-design-diff.<screen-id>.md` は実装指示、テスト手順、agent handoff を含んでいない。
 - `ui-design.md` は `agent-browser` で確認した URL、起動 command、人間確認中の起動状態、画面サイズ、UX 標準確認結果、問題、未確認理由を含んでいる。
 - 実画面確認を行った場合は、`ui-design.md` にアプリ起動 command、確認 URL、確認した画面、UI 要件契約との差分、未解決事項を含んでいる。
 - `ui-design.md` は `agent-browser` 確認後の表示文言レビュー結果を含んでいる。
@@ -145,5 +162,6 @@ UI 部品の正本は `architecture.md` の `UI Component` とする。
 - UI が不要で `plan.md` の `ui_design` が `N/A` の時
 - プロダクト frontend コードを実装する時
 - docs 正本へ UI 仕様を反映するだけの時
+- 画面設計差分を `docs/screen-design/screens/` へ直接反映する必要がある時
 - 実画面確認が UI 設計完了に必要で、アプリ起動または `agent-browser` 確認ができない場合は未実行理由を返して停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。

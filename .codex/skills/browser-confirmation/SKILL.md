@@ -25,12 +25,16 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 - 操作期待値: 各操作後に満たすべき画面状態、表示、状態変化。
 - 禁止操作: 実行してはいけない操作。
 - 証跡出力先: `snapshot`、`errors`、必要な `screenshot` とログを置く path。
+- 画面設計参照: 操作経路、操作前の事前条件、操作期待値の確認先にする画面設計。
 
 ## 外部参照規約
 
 - エージェント実行定義と実行境界は [browser_confirmation.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/browser_confirmation.toml) に従う。
 - `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
+- 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
+- active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
+- 画面設計差分と docs の画面設計が両方ある場合は、active plan の画面設計差分を優先して読む。
 - 確認経路と期待値の定義は呼び出し元 lane の成果物に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
@@ -49,11 +53,13 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 ## 判断規約
 
 - 確認 URL、操作経路、操作期待値、安全条件に従って実行する。
+- 画面設計参照がある場合は、操作経路、操作前の事前条件、操作期待値の確認先として読む。
 - `snapshot` と `errors` は必ず取得する。
 - `screenshot` は画面状態、表示差分、未確認理由の説明に必要な場合に取得する。
 - frontend の観測ログは browser console の証跡として扱う。
 - backend の観測ログは `tmp/logs/wails-dev.log` の証跡として扱う。
 - frontend log と backend log は同じ証跡として混ぜない。
+- 触れない画面要素がある場合は、操作経路に対応する画面設計がない、セレクタ属性が不足、起動状態が不足、操作経路または操作期待値と実画面の対応を確認できない、のいずれかで未確認理由を返す。
 - 期待値の妥当性は判断しない。
 - 仕様判断、原因推定、修正方針作成は行わない。
 
