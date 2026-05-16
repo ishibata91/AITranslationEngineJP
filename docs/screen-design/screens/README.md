@@ -7,6 +7,20 @@
 
 - `template.md`: 画面設計書のテンプレート
 - `example-incomplete-job-list.md`: 画面設計書の記述例
+- `dashboard.md`: ダッシュボード
+- `provider-settings.md`: AIサービス設定
+- `master-dictionary.md`: マスター辞書
+- `master-persona.md`: マスターペルソナ
+- `translation-management.md`: 翻訳管理シェル
+- `translation-input-review.md`: 翻訳入力レビュー
+- `translation-job-setup.md`: 翻訳ジョブ設定
+- `translation-job-management.md`: 未完了ジョブ一覧
+- `job-run.md`: 翻訳実行シェル
+- `term-translation-phase.md`: 単語翻訳
+- `persona-generation-phase.md`: NPC ペルソナ生成段階
+- `body-translation-phase.md`: 本文翻訳段階
+- `translation-complete.md`: 翻訳完了確認
+- `output-management.md`: 出力管理
 
 ## Notes
 
