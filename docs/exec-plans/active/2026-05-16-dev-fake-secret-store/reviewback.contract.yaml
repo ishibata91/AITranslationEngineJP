@@ -1,0 +1,32 @@
+reviewback_version: 1
+task_id: "2026-05-16-dev-fake-secret-store"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-dev-fake-secret-store/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "implement_lane_local_review"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  contract_match: "一致。新しい Wails method、公開 DTO、DB schema、provider catalog は追加していない。"
+  evidence_sufficiency: "十分。implementation-scope の Contract Freeze と commit 差分を照合した。"
+
+checked_scope:
+  summary: "公開境界の非変更、既存 keyring backend の互換性、dev script 名の維持を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-16-dev-fake-secret-store/implementation-scope.md"
+      symbol: "Contract Freeze"
+      reason: "変更禁止の公開境界を確認した。"
+    - path: "internal/bootstrap/app_controller.go"
+      symbol: "newAppControllerWithSeeds"
+      reason: "controller graph の内部 wiring だけを変更し、公開 controller 契約を変更していないことを確認した。"
+    - path: "scripts/dev/run-wails-agent-browser.sh"
+      symbol: "wails dev"
+      reason: "既存 npm script 名を維持し、起動引数だけを補強したことを確認した。"
+
+unchecked_scope:
+  - target: "docs 正本"
+    reason: "今回の変更は task 内成果物と dev wiring に閉じ、human 承認済み恒久仕様の docs 正本化は未指定である。"
+    risk: "dev 起動規約を恒久 docs に載せる判断は別途 docs 正本化で扱う。"
+
+issues: []

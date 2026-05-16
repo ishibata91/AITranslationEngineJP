@@ -429,7 +429,7 @@ func newProviderSettingsSecretStoreFromEnv() (repository.ProviderSettingsSecretS
 		}
 		return store, nil
 	default:
-		return nil, fmt.Errorf("unsupported provider settings secret backend override: %s", requestedBackend)
+		return nil, fmt.Errorf("unsupported provider settings secret backend override")
 	}
 }
 
