@@ -22,7 +22,10 @@
 </script>
 
 <section class="job-run-shell" id="personaGenerationPhaseView">
-  <section class="job-run-card hero-card">
+  <section
+    class="job-run-card hero-card"
+    data-testid="persona-generation-phase-persona-generation-phase-screen"
+  >
     <div class="hero-head">
       <div>
         <p class="eyebrow">translation-management</p>
@@ -33,7 +36,10 @@
     <p class="lead">
       現在の翻訳段階、進行状況、対象 summary、翻訳段階の結果、本文翻訳の開始可否を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。
     </p>
-    <div class="status-block">
+    <div
+      class="status-block"
+      data-testid="persona-generation-phase-status-summary-card"
+    >
       <span
         class="state-pill"
         data-state={resolveStateToken(viewModel.viewState)}
@@ -71,6 +77,7 @@
   <section
     class="job-run-card action-card"
     aria-labelledby="personaPhaseActionsHeading"
+    data-testid="persona-generation-phase-action-card"
   >
     <div class="section-head">
       <div>
@@ -103,7 +110,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="personaPhaseProgressHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="personaPhaseProgressHeading"
+      data-testid="persona-generation-phase-progress-card"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">翻訳段階の進行状況</p>
@@ -150,7 +161,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="personaTargetSummaryHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="personaTargetSummaryHeading"
+      data-testid="persona-generation-phase-target-summary-card"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">target summary</p>
@@ -183,7 +198,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="personaExecutionHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="personaExecutionHeading"
+      data-testid="persona-generation-phase-execution-settings-card"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">AI execution summary</p>
@@ -226,7 +245,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="personaResultHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="personaResultHeading"
+      data-testid="persona-generation-phase-result-summary-card"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">翻訳段階の結果</p>
@@ -267,7 +290,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="personaBodyReadinessHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="personaBodyReadinessHeading"
+      data-testid="persona-generation-phase-body-translation-input-card"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">本文翻訳の開始可否</p>
@@ -286,7 +313,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="personaErrorHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="personaErrorHeading"
+      data-testid="persona-generation-phase-failure-information-card"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">error summary</p>

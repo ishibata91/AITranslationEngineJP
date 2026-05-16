@@ -53,7 +53,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-master-dictionary-screen`
   - `aria-label`: なし。
 
 ### [2] 画面ヘッダー
@@ -67,7 +67,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-screen-header`
   - `aria-label`: なし。
 
 ### [3] XML 取り込み領域
@@ -81,7 +81,7 @@
 - 操作: `ファイルを選択` を押して XML ファイルを選ぶ。
 - 結果: 選択ファイル名を表示し、取り込みバーを表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-xml-import-region`
   - `aria-label`: なし。
 
 ### [4] XML 取り込みバー
@@ -95,7 +95,7 @@
 - 操作: `この XML を取り込む` を押す。`選び直す` を押す。
 - 結果: 取り込み開始時は進捗を更新する。取り込み完了時は一覧、詳細、結果件数を同じ画面へ反映する。選び直し時は選択ファイルを解除する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-xml-import-bar`
   - `aria-label`: なし。
 
 ### [5] 辞書操作領域
@@ -109,7 +109,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-dictionary-operation-region`
   - `aria-label`: なし。
 
 ### [6] 辞書一覧パネル
@@ -123,7 +123,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-dictionary-list-panel`
   - `aria-label`: なし。
 
 ### [7] 一覧操作バー
@@ -137,7 +137,7 @@
 - 操作: `新規登録` を押す。検索文字列を入力する。カテゴリを選択する。
 - 結果: 新規登録モーダルを開く。検索条件またはカテゴリ条件に合う一覧へ更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-list-action-bar`
   - `aria-label`: なし。
 
 ### [8] 辞書一覧
@@ -151,7 +151,7 @@
 - 操作: 一覧行を押す。
 - 結果: 選択したエントリを詳細パネルへ表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-dictionary-list`
   - `aria-label`: なし。
 
 ### [9] ページ操作領域
@@ -165,7 +165,7 @@
 - 操作: `前の30件` または `次の30件` を押す。
 - 結果: 表示ページを変更し、一覧と選択状態を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-pagination-region`
   - `aria-label`: なし。
 
 ### [10] 詳細パネル
@@ -179,7 +179,7 @@
 - 操作: `更新` を押す。`削除` を押す。
 - 結果: 更新モーダルまたは削除確認モーダルを開く。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-detail-panel`
   - `aria-label`: なし。
 
 ### [11] 新規登録・更新モーダル
@@ -193,7 +193,7 @@
 - 操作: 原文、カテゴリ、由来、訳語を入力または選択する。`閉じる` または `保存する` を押す。
 - 結果: `閉じる` ではモーダルを閉じる。`保存する` では入力内容を保存し、一覧と詳細を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-create-edit-modal`
   - `aria-label`: なし。
 
 ### [12] 削除確認モーダル
@@ -207,5 +207,5 @@
 - 操作: `やめる` または `削除する` を押す。
 - 結果: `やめる` ではモーダルを閉じる。`削除する` では選択中エントリを削除し、一覧と次の選択状態を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-dictionary-delete-confirmation-modal`
   - `aria-label`: なし。

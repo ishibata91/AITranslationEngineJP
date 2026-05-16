@@ -38,7 +38,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-persona-generation-phase-screen`
   - `aria-label`: なし。
 
 ### [2] 状態概要カード
@@ -52,7 +52,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-status-summary-card`
   - `aria-label`: なし。
 
 ### [3] 操作カード
@@ -66,7 +66,7 @@
 - 操作: 開始する。中断する。再開する。リトライする。キャンセルする。本文翻訳の開始可否を確認する。本文翻訳を開始する。画面を更新する。
 - 結果: 操作対象の状態、進行状況、本文翻訳の開始可否、禁止理由が更新される。本文翻訳開始が成功した場合は次の翻訳段階へ進む。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-action-card`
   - `aria-label`: なし。
 
 ### [4] 進行状況カード
@@ -80,7 +80,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-progress-card`
   - `aria-label`: `progress`
 
 ### [5] 対象 summary カード
@@ -94,7 +94,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-target-summary-card`
   - `aria-label`: なし。
 
 ### [6] 実行設定カード
@@ -108,7 +108,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-execution-settings-card`
   - `aria-label`: なし。
 
 ### [7] 結果 summary カード
@@ -122,7 +122,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-result-summary-card`
   - `aria-label`: なし。
 
 ### [8] 本文翻訳入力カード
@@ -136,7 +136,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-body-translation-input-card`
   - `aria-label`: なし。
 
 ### [9] 失敗情報カード
@@ -150,5 +150,5 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `persona-generation-phase-failure-information-card`
   - `aria-label`: なし。

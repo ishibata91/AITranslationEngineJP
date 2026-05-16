@@ -125,8 +125,14 @@
 
 </script>
 
-<section class="job-management-page">
-  <section class="panel job-management-hero">
+<section
+  class="job-management-page"
+  data-testid="translation-management-child-screen-region"
+>
+  <section
+    class="panel job-management-hero"
+    data-testid="translation-job-management-screen-header"
+  >
     <div class="hero-copy">
       <h2>{viewModel.pageTitle}</h2>
       <p class="hero-lead">{viewModel.pageLead}</p>
@@ -141,14 +147,21 @@
   </section>
 
   {#if viewModel.feedback}
-    <section class={`panel feedback-panel ${toneClass(viewModel.feedback.tone)}`}>
+    <section
+      class={`panel feedback-panel ${toneClass(viewModel.feedback.tone)}`}
+      data-testid="translation-job-management-feedback-notification"
+    >
       <p class="feedback-title">{viewModel.feedback.title}</p>
       <p class="feedback-message">{viewModel.feedback.message}</p>
     </section>
   {/if}
 
   <section class="job-management-layout">
-    <section class="panel job-list-panel" aria-labelledby="jobManagementListHeading">
+    <section
+      class="panel job-list-panel"
+      aria-labelledby="jobManagementListHeading"
+      data-testid="translation-job-management-job-list-region"
+    >
       <div class="section-head">
         <div>
           <p class="page-label">未完了ジョブ</p>
@@ -160,6 +173,7 @@
         <label class="search-field" for="jobManagementSearch">
           <span>検索</span>
           <input
+            data-testid="translation-job-management-search-field"
             id="jobManagementSearch"
             oninput={(event) =>
               controller.setSearchQuery(
@@ -174,6 +188,7 @@
         <label class="select-field" for="jobManagementFilter">
           <span>状態フィルタ</span>
           <select
+            data-testid="translation-job-management-state-filter"
             id="jobManagementFilter"
             onchange={handleFilterChange}
             value={currentFilter?.id ?? "all"}
@@ -186,26 +201,39 @@
       </div>
 
       {#if viewModel.phase === "loading"}
-        <div class="panel-empty">
+        <div
+          class="panel-empty"
+          data-testid="translation-job-management-list-status-display"
+        >
           <p class="empty-title">一覧を読み込んでいます</p>
           <p class="empty-description">未完了ジョブの状態を取得しています。</p>
         </div>
       {:else if viewModel.phase === "error"}
-        <div class="panel-empty tone-danger">
+        <div
+          class="panel-empty tone-danger"
+          data-testid="translation-job-management-list-status-display"
+        >
           <p class="empty-title">{viewModel.listErrorTitle}</p>
           <p class="empty-description">{viewModel.listErrorDescription}</p>
         </div>
       {:else if viewModel.jobs.length === 0}
-        <div class="panel-empty">
+        <div
+          class="panel-empty"
+          data-testid="translation-job-management-list-status-display"
+        >
           <p class="empty-title">{viewModel.listEmptyTitle}</p>
           <p class="empty-description">{viewModel.listEmptyDescription}</p>
         </div>
       {:else}
-        <div class="job-card-list">
+        <div
+          class="job-card-list"
+          data-testid="translation-job-management-list-status-display"
+        >
           {#each viewModel.jobs as job (job.jobId)}
             <article
               class="job-card"
               class:is-selected={job.isSelected}
+              data-testid="translation-job-management-job-card"
             >
               <a
                 aria-label={`ジョブ ${job.jobId} を選択して現在の翻訳段階へ進む`}
@@ -218,6 +246,7 @@
                 data-source-path={job.sourcePath}
                 data-state-description={job.stateDescription}
                 data-state-label={job.stateLabel}
+                data-testid="translation-job-management-job-selection-region"
                 href={job.canOpenPhase ? "#translation-management/job-run" : "#translation-management"}
                 onclick={(event) => {
                   event.preventDefault()
@@ -239,12 +268,19 @@
 
               <div class="job-card-side">
                 <div class="job-card-status">
-                  <span class={`state-badge ${toneClass(job.stateTone)}`}>
+                  <span
+                    class={`state-badge ${toneClass(job.stateTone)}`}
+                    data-testid="translation-job-management-state-label"
+                  >
                     {job.stateLabel}
                   </span>
                 </div>
 
-                <div class="job-card-actions" aria-label={`ジョブ ${job.jobId} の操作`}>
+                <div
+                  class="job-card-actions"
+                  aria-label={`ジョブ ${job.jobId} の操作`}
+                  data-testid="translation-job-management-job-actions"
+                >
                   <button
                     class="continue-button"
                     disabled={!job.canOpenPhase}
@@ -272,7 +308,11 @@
                   />
                 </div>
 
-                <div class="job-card-reasons" aria-label={`ジョブ ${job.jobId} の無効理由`}>
+                <div
+                  class="job-card-reasons"
+                  aria-label={`ジョブ ${job.jobId} の無効理由`}
+                  data-testid="translation-job-management-disabled-reason"
+                >
                   {#if !job.stopOperation.enabled && job.stopOperation.reasonText}
                     <p class="job-card-reason overflow-text">
                       停止: {job.stopOperation.reasonText}

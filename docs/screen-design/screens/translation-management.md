@@ -34,7 +34,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-management-translation-management-header`
   - `aria-label`: なし。
 
 ### [2] 翻訳管理シェル
@@ -48,7 +48,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-management-translation-management-shell`
   - `aria-label`: なし。
 
 ### [3] 翻訳管理の段階表示
@@ -62,7 +62,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-management-translation-management-stepper`
   - `aria-label`: `翻訳管理の進行状況`
 
 ### [4] 段階カード
@@ -76,7 +76,7 @@
 - 操作: 直接開ける段階カードを選択する。
 - 結果: 翻訳管理の下位画面表示領域に、選択した下位画面を表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-management-phase-card`
   - `aria-label`: 状態文言、段階名、説明文を連結した説明。
 
 ### [5] 下位画面表示領域
@@ -90,5 +90,5 @@
 - 操作: 表示中の下位画面で定義された操作を行う。
 - 結果: 表示中の下位画面の操作結果に従い、必要に応じて次の下位画面へ切り替わる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-management-child-screen-region`
   - `aria-label`: なし。

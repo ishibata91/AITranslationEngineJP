@@ -19,6 +19,7 @@
   hidden={!isOpen}
   id="jobDeleteModal"
   role="dialog"
+  data-testid="translation-job-management-delete-confirmation-modal"
 >
   {#if confirmation}
     <section aria-labelledby="jobDeleteModalTitle" class="modal-card">

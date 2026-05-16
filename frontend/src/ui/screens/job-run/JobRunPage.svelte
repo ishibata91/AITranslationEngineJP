@@ -297,9 +297,12 @@
   )
 </script>
 
-<section class="job-run-page">
+<section class="job-run-page" data-testid="job-run-job-run-shell">
   {#if selectedJobTarget}
-    <section class="job-run-target-summary">
+    <section
+      class="job-run-target-summary"
+      data-testid="job-run-selected-job-summary"
+    >
       <div>
         <p class="eyebrow">選択中のジョブ</p>
         <h3>ジョブ #{selectedJobTarget.jobId}</h3>
@@ -328,74 +331,83 @@
       </details>
     </section>
 
-    {#if currentPhasePage === "term"}
-      <TermTranslationPhasePanel
-        {viewModel}
-        onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
-          handleAction(actionId)}
-      />
-      <PhaseNavigationFooter
-        description="単語翻訳が完了し、辞書を参照できる場合だけ次へ進めます。"
-        onBack={onOpenJobManagement}
-        onPrimary={() => {
-          setCurrentPhasePage("persona")
-        }}
-        primaryDisabled={!canOpenPersonaPhase}
-        reasons={termFooterReasons}
-        title="単語翻訳の次の作業"
-        titleId="termPhaseNavigationFooter"
-      />
-    {:else if currentPhasePage === "persona"}
-      <PersonaGenerationPhasePanel
-        viewModel={personaViewModel}
-        onAction={(actionId: PersonaGenerationPhaseActionKind) =>
-          handlePersonaAction(actionId)}
-      />
-      <PhaseNavigationFooter
-        description="ペルソナ生成が完了し、生成結果を参照できる場合だけ次へ進めます。"
-        onBack={onOpenJobManagement}
-        onPrimary={() => {
-          setCurrentPhasePage("body")
-        }}
-        primaryDisabled={!canOpenBodyPhase}
-        reasons={personaFooterReasons}
-        title="NPC ペルソナ生成の次の作業"
-        titleId="personaPhaseNavigationFooter"
-      />
-    {:else if currentPhasePage === "body" && bodyViewModel}
-      <BodyTranslationPhasePanel
-        viewModel={bodyViewModel}
-        onAction={(actionId: BodyTranslationPhaseActionKind) =>
-          handleBodyAction(actionId)}
-      />
-      <PhaseNavigationFooter
-        description="本文翻訳が完了し、翻訳結果を確認できる場合だけ完了確認へ進めます。"
-        onBack={onOpenJobManagement}
-        onPrimary={() => {
-          setCurrentPhasePage("complete")
-        }}
-        primaryDisabled={!canOpenCompletePage}
-        reasons={bodyFooterReasons}
-        title="本文翻訳の次の作業"
-        titleId="bodyPhaseNavigationFooter"
-      />
-    {:else if currentPhasePage === "complete" && bodyViewModel}
-      <TranslationCompletePage
-        jobId={selectedJobTarget.jobId}
-        rows={bodyViewModel.fieldResultItems}
-      />
-      <PhaseNavigationFooter
-        description="翻訳結果を確認した後は、出力管理で出力対象を選びます。"
-        onBack={onOpenJobManagement}
-        onPrimary={onOpenOutputManagement}
-        primaryLabel="出力管理へ進む"
-        reasons={[]}
-        title="翻訳完了後の次の作業"
-        titleId="completeNavigationFooter"
-      />
-    {/if}
+    <section class="job-run-phase-region" data-testid="job-run-phase-screen-region">
+      {#if currentPhasePage === "term"}
+        <TermTranslationPhasePanel
+          {viewModel}
+          onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
+            handleAction(actionId)}
+        />
+        <PhaseNavigationFooter
+          dataTestId="job-run-next-action-footer"
+          description="単語翻訳が完了し、辞書を参照できる場合だけ次へ進めます。"
+          onBack={onOpenJobManagement}
+          onPrimary={() => {
+            setCurrentPhasePage("persona")
+          }}
+          primaryDisabled={!canOpenPersonaPhase}
+          reasons={termFooterReasons}
+          title="単語翻訳の次の作業"
+          titleId="termPhaseNavigationFooter"
+        />
+      {:else if currentPhasePage === "persona"}
+        <PersonaGenerationPhasePanel
+          viewModel={personaViewModel}
+          onAction={(actionId: PersonaGenerationPhaseActionKind) =>
+            handlePersonaAction(actionId)}
+        />
+        <PhaseNavigationFooter
+          dataTestId="job-run-next-action-footer"
+          description="ペルソナ生成が完了し、生成結果を参照できる場合だけ次へ進めます。"
+          onBack={onOpenJobManagement}
+          onPrimary={() => {
+            setCurrentPhasePage("body")
+          }}
+          primaryDisabled={!canOpenBodyPhase}
+          reasons={personaFooterReasons}
+          title="NPC ペルソナ生成の次の作業"
+          titleId="personaPhaseNavigationFooter"
+        />
+      {:else if currentPhasePage === "body" && bodyViewModel}
+        <BodyTranslationPhasePanel
+          viewModel={bodyViewModel}
+          onAction={(actionId: BodyTranslationPhaseActionKind) =>
+            handleBodyAction(actionId)}
+        />
+        <PhaseNavigationFooter
+          dataTestId="job-run-next-action-footer"
+          description="本文翻訳が完了し、翻訳結果を確認できる場合だけ完了確認へ進めます。"
+          onBack={onOpenJobManagement}
+          onPrimary={() => {
+            setCurrentPhasePage("complete")
+          }}
+          primaryDisabled={!canOpenCompletePage}
+          reasons={bodyFooterReasons}
+          title="本文翻訳の次の作業"
+          titleId="bodyPhaseNavigationFooter"
+        />
+      {:else if currentPhasePage === "complete" && bodyViewModel}
+        <TranslationCompletePage
+          jobId={selectedJobTarget.jobId}
+          rows={bodyViewModel.fieldResultItems}
+        />
+        <PhaseNavigationFooter
+          dataTestId="translation-complete-post-completion-next-action"
+          description="翻訳結果を確認した後は、出力管理で出力対象を選びます。"
+          onBack={onOpenJobManagement}
+          onPrimary={onOpenOutputManagement}
+          primaryLabel="出力管理へ進む"
+          reasons={[]}
+          title="翻訳完了後の次の作業"
+          titleId="completeNavigationFooter"
+        />
+      {/if}
+    </section>
   {:else}
-    <section class="job-run-target-summary">
+    <section
+      class="job-run-target-summary"
+      data-testid="job-run-job-unselected-guidance"
+    >
       <div>
         <p class="eyebrow">ジョブ未選択</p>
         <h3>未完了ジョブ一覧でジョブを選んでください</h3>
@@ -417,6 +429,12 @@
     gap: 1.25rem;
     min-width: 0;
     padding-bottom: 7.5rem;
+  }
+
+  .job-run-phase-region {
+    display: grid;
+    gap: 1.25rem;
+    min-width: 0;
   }
 
   .job-run-target-summary {

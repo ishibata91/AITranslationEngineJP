@@ -134,7 +134,11 @@
     </p>
   {/if}
 
-  <div class="status-row" aria-label="マスターペルソナ作成状態">
+  <div
+    class="status-row"
+    aria-label="マスターペルソナ作成状態"
+    data-testid="master-persona-screen-status-region"
+  >
     <span class="status-label">作成状態</span>
     <span class="status-pill" role="status">{viewModel.runStatus.runState}</span>
   </div>

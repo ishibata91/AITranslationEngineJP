@@ -196,7 +196,10 @@
 </script>
 
 <section class="job-setup-shell" id="translationJobSetupView">
-  <section class="job-setup-card hero-card">
+  <section
+    class="job-setup-card hero-card"
+    data-testid="translation-job-setup-screen-purpose-header"
+  >
     <h2>翻訳段階ごとの AI 設定</h2>
     <p class="lead">
       入力済みデータを確認し、3 つの翻訳段階で使う
@@ -209,7 +212,11 @@
 
   {#if viewModel.summary}
     <section class="summary-grid">
-      <section class="job-setup-card" aria-labelledby="jobSetupSummaryHeading">
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupSummaryHeading"
+        data-testid="translation-job-setup-created-summary-region"
+      >
         <div class="section-head">
           <div>
             <p class="eyebrow">create result</p>
@@ -224,7 +231,10 @@
           </div>
           <span class="status-pill success">{viewModel.summary.jobState}</span>
         </div>
-        <dl class="detail-grid compact">
+        <dl
+          class="detail-grid compact"
+          data-testid="translation-job-setup-created-settings-region"
+        >
           <div>
             <dt>job id</dt>
             <dd>{viewModel.summary.jobId}</dd>
@@ -257,6 +267,7 @@
       <section
         class="job-setup-card"
         aria-labelledby="jobSetupSummaryPhaseHeading"
+        data-testid="translation-job-setup-phase-settings-summary"
       >
         <div class="section-head">
           <div>
@@ -300,8 +311,15 @@
       </section>
     </section>
   {:else}
-    <section class="content-grid">
-      <section class="job-setup-card" aria-labelledby="jobSetupInputHeading">
+    <section
+      class="content-grid"
+      data-testid="translation-job-setup-pre-create-settings-region"
+    >
+      <section
+        class="job-setup-card"
+        aria-labelledby="jobSetupInputHeading"
+        data-testid="translation-job-setup-input-data-region"
+      >
         <div class="section-head">
           <div>
             <h3 id="jobSetupInputHeading">入力データ</h3>
@@ -388,6 +406,7 @@
       <section
         class="job-setup-card"
         aria-labelledby="jobSetupFoundationHeading"
+        data-testid="translation-job-setup-shared-dictionary-persona-region"
       >
         <div class="section-head">
           <div>
@@ -430,6 +449,7 @@
         <section
           class="job-setup-card"
           aria-labelledby="jobSetupLegacyRuntimeHeading"
+          data-testid="translation-job-setup-ai-service-model-region"
         >
           <div class="section-head">
             <div>
@@ -468,6 +488,7 @@
         <section
           class="job-setup-card"
           aria-labelledby="jobSetupValidationHeading"
+          data-testid="translation-job-setup-compatibility-precheck-region"
         >
           <div class="section-head">
             <div>
@@ -521,7 +542,11 @@
           </div>
         </section>
       {:else}
-        <section class="job-setup-card" aria-labelledby="jobSetupPhaseHeading">
+        <section
+          class="job-setup-card"
+          aria-labelledby="jobSetupPhaseHeading"
+          data-testid="translation-job-setup-ai-service-model-region"
+        >
           <div class="section-head">
             <div>
               <h3 id="jobSetupPhaseHeading">AI サービスとモデル</h3>
@@ -591,6 +616,7 @@
     </section>
 
     <StickyActionFooter
+      dataTestId="translation-job-setup-job-create-sticky-footer"
       title="ジョブの作成確認"
       titleId="jobSetupCreateHeading"
       description="入力データと翻訳設定を確認し、最初の翻訳段階へ進む準備をします。"

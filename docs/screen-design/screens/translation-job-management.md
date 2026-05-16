@@ -47,7 +47,7 @@
 - 操作: `新規翻訳を開始` を押す。
 - 結果: 入力データ確認画面を開く。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-screen-header`
   - `aria-label`: なし。
 
 ### [2] フィードバック通知
@@ -61,7 +61,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-feedback-notification`
   - `aria-label`: なし。
 
 ### [3] ジョブ一覧領域
@@ -75,7 +75,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-job-list-region`
   - `aria-label`: なし。
 
 ### [4] 検索欄
@@ -89,7 +89,7 @@
 - 操作: 検索語を入力する。
 - 結果: 一覧に表示するジョブカードが検索語に一致するものへ絞り込まれる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-search-field`
   - `aria-label`: なし。
 
 ### [5] 状態フィルタ
@@ -103,7 +103,7 @@
 - 操作: 状態を選択する。
 - 結果: 一覧に表示するジョブカードが選択状態に一致するものへ絞り込まれる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-state-filter`
   - `aria-label`: なし。
 
 ### [6] 一覧状態表示
@@ -117,7 +117,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-list-status-display`
   - `aria-label`: なし。
 
 ### [7] ジョブカード
@@ -131,7 +131,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-job-card`
   - `aria-label`: なし。
 
 ### [8] ジョブ選択領域
@@ -145,7 +145,7 @@
 - 操作: ジョブ選択領域を押す。
 - 結果: 現在の翻訳段階を開けるジョブでは翻訳実行画面へ進む。現在の翻訳段階を開けないジョブでは対象ジョブを選択する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-job-selection-region`
   - `aria-label`: `ジョブ <ジョブID> を選択して現在の翻訳段階へ進む`
 
 ### [9] 状態ラベル
@@ -159,7 +159,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-state-label`
   - `aria-label`: なし。
 
 ### [10] ジョブ操作
@@ -173,7 +173,7 @@
 - 操作: `現在の翻訳段階へ進む`、停止、再開、削除のいずれかを押す。
 - 結果: 現在段階表示は翻訳実行画面へ進む。停止はジョブ停止を要求する。再開はジョブ再開を要求し、必要に応じて翻訳実行画面へ進む。削除は削除確認を開く。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-job-actions`
   - `aria-label`: `ジョブ <ジョブID> の操作`
 
 ### [11] 無効理由
@@ -187,7 +187,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-disabled-reason`
   - `aria-label`: `ジョブ <ジョブID> の無効理由`
 
 ### [12] 削除確認モーダル
@@ -201,5 +201,5 @@
 - 操作: `戻る` または閉じる操作を押す。削除する場合は `ジョブ情報だけを削除する` を押す。
 - 結果: 戻る操作は削除確認を閉じる。削除確定は対象ジョブの削除を要求し、処理中は `削除中...` を表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-management-delete-confirmation-modal`
   - `aria-label`: なし。

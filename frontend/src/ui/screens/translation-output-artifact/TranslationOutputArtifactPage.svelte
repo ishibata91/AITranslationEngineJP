@@ -80,7 +80,10 @@
 </script>
 
 <section class="output-shell" id="translationOutputArtifactView">
-  <section class="output-card hero-card">
+  <section
+    class="output-card hero-card"
+    data-testid="output-management-output-management-summary"
+  >
     <div class="hero-head">
       <div>
         <p class="eyebrow">output-management</p>
@@ -103,6 +106,7 @@
     <section
       class="output-card job-list-card"
       aria-labelledby="outputJobListHeading"
+      data-testid="output-management-output-candidate-list"
     >
       <div class="section-head">
         <div>
@@ -149,6 +153,7 @@
     <section
       class="output-card summary-card"
       aria-labelledby="outputSummaryHeading"
+      data-testid="output-management-selected-job"
     >
       <div class="section-head">
         <div>
@@ -223,6 +228,7 @@
     <section
       class="output-card action-card"
       aria-labelledby="outputActionHeading"
+      data-testid="output-management-output-actions"
     >
       <div class="section-head">
         <div>
@@ -285,7 +291,7 @@
         <p class="helper-text warning">{viewModel.disabledReason}</p>
       {/if}
       {#if viewModel.lastCommand}
-        <div class="notice-block">
+        <div class="notice-block" data-testid="output-management-latest-result">
           <h4>result summary</h4>
           <dl class="detail-grid compact">
             <div>
@@ -317,7 +323,11 @@
     </section>
   </section>
 
-  <section class="output-card diff-card" aria-labelledby="outputDiffHeading">
+  <section
+    class="output-card diff-card"
+    aria-labelledby="outputDiffHeading"
+    data-testid="output-management-diff-preview"
+  >
     <div class="section-head">
       <div>
         <p class="eyebrow">diff preview</p>

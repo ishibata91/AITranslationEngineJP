@@ -35,7 +35,11 @@
   )
 </script>
 
-<section class="review-grid" aria-label="生成結果の確認">
+<section
+  class="review-grid"
+  aria-label="生成結果の確認"
+  data-testid="master-persona-generation-result-list-panel"
+>
   <section class="panel list-panel" aria-labelledby="listHeading">
     <div class="section-head">
       <div>
@@ -119,7 +123,11 @@
     </nav>
   </section>
 
-  <section class="panel detail-panel" aria-labelledby="detailHeading">
+  <section
+    class="panel detail-panel"
+    aria-labelledby="detailHeading"
+    data-testid="master-persona-persona-detail-panel"
+  >
     <div class="section-head">
       <div>
         <p class="eyebrow">詳細</p>

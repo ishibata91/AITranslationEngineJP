@@ -23,7 +23,10 @@
 </script>
 
 <section class="job-run-shell" id="termTranslationPhaseView">
-  <section class="job-run-card hero-card">
+  <section
+    class="job-run-card hero-card"
+    data-testid="term-translation-phase-screen-status-header"
+  >
     <div class="hero-head">
       <div>
         <p class="eyebrow">translation-management</p>
@@ -54,6 +57,7 @@
   <section
     class="job-run-card action-card"
     aria-labelledby="termPhaseActionsHeading"
+    data-testid="term-translation-phase-phase-actions-region"
   >
     <div class="section-head">
       <div>
@@ -86,7 +90,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="termPhaseProgressHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="termPhaseProgressHeading"
+      data-testid="term-translation-phase-progress-region"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">翻訳段階の進行状況</p>
@@ -129,7 +137,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="termPhaseExecutionHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="termPhaseExecutionHeading"
+      data-testid="term-translation-phase-execution-settings-region"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">execution summary</p>
@@ -163,7 +175,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="termPhaseResultHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="termPhaseResultHeading"
+      data-testid="term-translation-phase-result-region"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">翻訳段階の結果</p>
@@ -201,7 +217,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="termPhaseErrorHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="termPhaseErrorHeading"
+      data-testid="term-translation-phase-failure-information-region"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">error summary</p>

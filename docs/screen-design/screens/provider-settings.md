@@ -46,7 +46,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-screen-shell`
   - `aria-label`: なし。
 
 ### [2] 画面概要領域
@@ -60,7 +60,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-screen-summary-region`
   - `aria-label`: なし。
 
 ### [3] AIサービス一覧領域
@@ -74,7 +74,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-ai-service-list-region`
   - `aria-label`: なし。
 
 ### [4] 設定詳細領域
@@ -88,7 +88,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-settings-detail-region`
   - `aria-label`: なし。
 
 ### [5] AIサービス行
@@ -102,7 +102,7 @@
 - 操作: AIサービス行を選択する。
 - 結果: 選択した AIサービスの設定詳細を表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-ai-service-row`
   - `aria-label`: なし。
 
 ### [6] エンドポイント入力
@@ -116,7 +116,7 @@
 - 操作: エンドポイントを入力する。
 - 結果: 選択中 AIサービスの保存待ち設定が更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-endpoint-input`
   - `aria-label`: なし。
 
 ### [7] APIキー状態領域
@@ -130,7 +130,7 @@
 - 操作: `設定` ボタンを押す。
 - 結果: APIキー入力領域を表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-api-key-status-region`
   - `aria-label`: なし。
 
 ### [8] APIキー入力領域
@@ -144,7 +144,7 @@
 - 操作: APIキーを入力する。`保存` ボタンまたは `キャンセル` ボタンを押す。
 - 結果: `保存` ボタンでは APIキーを保存し、入力欄の値を画面から消す。`キャンセル` ボタンでは入力欄の値を消し、APIキー入力領域を閉じる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-api-key-input-region`
   - `aria-label`: なし。
 
 ### [9] APIキー保存操作
@@ -158,7 +158,7 @@
 - 操作: `保存` または `キャンセル` を押す。
 - 結果: `保存` では選択中 AIサービスの設定を保存する。`キャンセル` では入力途中の APIキーを破棄する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-api-key-save-actions`
   - `aria-label`: なし。
 
 ### [10] 接続確認領域
@@ -172,7 +172,7 @@
 - 操作: `接続を確認` ボタンを押す。
 - 結果: 選択中 AIサービスの現在の入力内容で接続確認を開始し、接続確認状態を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-connection-check-region`
   - `aria-label`: なし。
 
 ### [11] 設定操作領域
@@ -186,5 +186,5 @@
 - 操作: `設定を保存` ボタンまたは `リセット` ボタンを押す。
 - 結果: `設定を保存` では選択中 AIサービスの設定を保存する。`リセット` では選択中 AIサービスの設定を初期状態へ戻し、APIキー入力中の値を消す。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `provider-settings-settings-actions-region`
   - `aria-label`: なし。

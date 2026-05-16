@@ -73,8 +73,12 @@
   }
 </script>
 
-<section class="master-dictionary-shell" id="masterDictionaryView">
-  <section class="shell-card">
+<section
+  class="master-dictionary-shell"
+  data-testid="master-dictionary-master-dictionary-screen"
+  id="masterDictionaryView"
+>
+  <section class="shell-card" data-testid="master-dictionary-screen-header">
     <div class="hero-top">
       <div>
         <p class="eyebrow">基盤データ</p>
@@ -96,7 +100,11 @@
     </p>
   </section>
 
-  <section class="shell-card import-shell" aria-labelledby="importHeading">
+  <section
+    class="shell-card import-shell"
+    aria-labelledby="importHeading"
+    data-testid="master-dictionary-xml-import-region"
+  >
     <div class="import-top">
       <div>
         <p class="eyebrow">XMLから取り込み</p>
@@ -130,7 +138,12 @@
       >
     </div>
 
-    <div class="import-bar" hidden={!viewModel.hasStagedFile} id="importBar">
+    <div
+      class="import-bar"
+      data-testid="master-dictionary-xml-import-bar"
+      hidden={!viewModel.hasStagedFile}
+      id="importBar"
+    >
       <div class="import-bar-head">
         <strong id="importFileTitle">{viewModel.selectedFileName}</strong>
         <div class="import-actions">
@@ -213,9 +226,16 @@
     </div>
   </section>
 
-  <section class="content-grid">
-    <section class="shell-card list-panel" aria-labelledby="listHeading">
-      <div class="toolbar">
+  <section
+    class="content-grid"
+    data-testid="master-dictionary-dictionary-operation-region"
+  >
+    <section
+      class="shell-card list-panel"
+      aria-labelledby="listHeading"
+      data-testid="master-dictionary-dictionary-list-panel"
+    >
+      <div class="toolbar" data-testid="master-dictionary-list-action-bar">
         <div class="toolbar-head">
           <div>
             <h3 id="listHeading">辞書一覧</h3>
@@ -263,7 +283,7 @@
         </div>
       </div>
 
-      <div class="list-shell">
+      <div class="list-shell" data-testid="master-dictionary-dictionary-list">
         <div class="column-row" aria-hidden="true">
           <span>訳語</span>
           <span>原文</span>
@@ -295,7 +315,10 @@
           {/if}
         </div>
 
-        <div class="pager-shell">
+        <div
+          class="pager-shell"
+          data-testid="master-dictionary-pagination-region"
+        >
           <div class="mini-text" id="selectionStatus">
             {viewModel.selectionStatusText}
           </div>
@@ -323,7 +346,11 @@
       </div>
     </section>
 
-    <section class="shell-card detail-panel" aria-labelledby="detailHeading">
+    <section
+      class="shell-card detail-panel"
+      aria-labelledby="detailHeading"
+      data-testid="master-dictionary-detail-panel"
+    >
       <div class="detail-head">
         <div>
           <h3 id="detailHeading">詳細</h3>
@@ -415,6 +442,7 @@
   )}
   id="editModal"
   role="dialog"
+  data-testid="master-dictionary-create-edit-modal"
 >
   <section aria-labelledby="editModalTitle" class="modal-card">
     <div class="eyebrow" id="editModalEyebrow">
@@ -493,6 +521,7 @@
   hidden={viewModel.modalState !== "delete"}
   id="deleteModal"
   role="dialog"
+  data-testid="master-dictionary-delete-confirmation-modal"
 >
   <section aria-labelledby="deleteModalTitle" class="modal-card">
     <h3 id="deleteModalTitle">削除の確認</h3>

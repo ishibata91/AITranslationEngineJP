@@ -17,7 +17,11 @@
   )
 </script>
 
-<section class="panel run-panel" aria-labelledby="runHeading">
+<section
+  class="panel run-panel"
+  aria-labelledby="runHeading"
+  data-testid="master-persona-progress-panel"
+>
   <div class="section-head">
     <div>
       <p class="eyebrow">進行状況</p>

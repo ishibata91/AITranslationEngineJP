@@ -10,6 +10,7 @@
     primaryLabel: string
     primaryDisabled?: boolean
     onPrimary: () => void
+    dataTestId?: string
     children?: Snippet
   }
 
@@ -22,6 +23,7 @@
     primaryLabel,
     primaryDisabled = false,
     onPrimary,
+    dataTestId = undefined,
     children
   }: Props = $props()
 
@@ -35,6 +37,7 @@
   class="sticky-action-footer"
   aria-label={`${title}: ${description}`}
   aria-labelledby={titleId}
+  data-testid={dataTestId}
 >
   <div class="footer-copy">
     <h3 id={titleId}>{title}</h3>

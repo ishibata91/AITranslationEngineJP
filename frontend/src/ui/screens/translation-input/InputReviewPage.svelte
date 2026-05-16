@@ -200,6 +200,7 @@
 
   {#if showJobSetupFooter}
     <StickyActionFooter
+      dataTestId="translation-input-review-next-action-footer"
       title="次の作業"
       titleId="translationInputNextNavigationHeading"
       description="選択した入力データで、ジョブの作成確認へ進みます。"

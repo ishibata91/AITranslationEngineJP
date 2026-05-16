@@ -32,7 +32,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `term-translation-phase-screen-status-header`
   - `aria-label`: なし。
 
 ### [2] 翻訳段階の操作領域
@@ -46,7 +46,7 @@
 - 操作: 操作ボタンを押す。
 - 結果: 対象操作の送信後、単語翻訳段階の状態、進行状況、結果、失敗情報を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `term-translation-phase-phase-actions-region`
   - `aria-label`: なし。
 
 ### [3] 進行状況領域
@@ -60,7 +60,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `term-translation-phase-progress-region`
   - `aria-label`: `progress`
 
 ### [4] 実行設定領域
@@ -74,7 +74,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `term-translation-phase-execution-settings-region`
   - `aria-label`: なし。
 
 ### [5] 結果領域
@@ -88,7 +88,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `term-translation-phase-result-region`
   - `aria-label`: なし。
 
 ### [6] 失敗情報領域
@@ -102,5 +102,5 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `term-translation-phase-failure-information-region`
   - `aria-label`: なし。

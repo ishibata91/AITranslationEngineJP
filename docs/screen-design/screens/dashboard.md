@@ -40,7 +40,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-application-header`
   - `aria-label`: なし。
 
 ### [2] ブランド表示
@@ -54,7 +54,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-brand-display`
   - `aria-label`: なし。
 
 ### [3] グローバルナビゲーション
@@ -68,7 +68,7 @@
 - 操作: 主要ページ名を押す。
 - 結果: 選択した主要ページへ切り替わる。選択中の主要ページには現在地表示を付ける。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-global-navigation`
   - `aria-label`: `グローバルナビゲーション`
 
 ### [4] ダッシュボード本文
@@ -82,7 +82,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-dashboard-content`
   - `aria-label`: なし。
 
 ### [5] 現在ページ説明
@@ -96,7 +96,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-current-page-description`
   - `aria-label`: なし。
 
 ### [6] 主要ページ入口領域
@@ -110,7 +110,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-primary-page-entry-region`
   - `aria-label`: なし。
 
 ### [7] 主要ページカード
@@ -124,5 +124,5 @@
 - 操作: カードを押す。
 - 結果: 対象の主要ページへ切り替わる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `dashboard-primary-page-card`
   - `aria-label`: なし。

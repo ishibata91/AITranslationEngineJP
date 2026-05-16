@@ -14,6 +14,7 @@
     onPrimary?: () => void
     onBack?: () => void
     onOutput?: () => void
+    dataTestId?: string
   }
 
   let {
@@ -28,7 +29,8 @@
     showOutput = false,
     onPrimary = () => undefined,
     onBack = () => undefined,
-    onOutput = () => undefined
+    onOutput = () => undefined,
+    dataTestId = undefined
   }: Props = $props()
 </script>
 
@@ -40,6 +42,7 @@
     primaryDisabled={primaryDisabled}
     primaryLabel={primaryLabel}
     reasons={reasons}
+    {dataTestId}
     {title}
     {titleId}
   >

@@ -31,8 +31,15 @@
   }
 </script>
 
-<section class="complete-shell" id="translationCompleteView">
-  <section class="complete-card hero-card">
+<section
+  class="complete-shell"
+  data-testid="translation-complete-translation-complete-screen"
+  id="translationCompleteView"
+>
+  <section
+    class="complete-card hero-card"
+    data-testid="translation-complete-completion-summary"
+  >
     <div class="hero-head">
       <div>
         <p class="eyebrow">translation complete</p>
@@ -45,7 +52,11 @@
     </p>
   </section>
 
-  <section class="complete-card" aria-labelledby="completeResultHeading">
+  <section
+    class="complete-card"
+    aria-labelledby="completeResultHeading"
+    data-testid="translation-complete-source-translation-region"
+  >
     <div class="hero-head">
       <div>
         <p class="eyebrow">field result</p>
@@ -55,11 +66,19 @@
     </div>
 
     {#if currentPageRows.length === 0}
-      <p class="empty-text">表示できる翻訳結果がありません。</p>
+      <p
+        class="empty-text"
+        data-testid="translation-complete-translation-result-empty-state"
+      >
+        表示できる翻訳結果がありません。
+      </p>
     {:else}
       <div class="result-list">
         {#each currentPageRows as row (`${row.fieldId}-${row.fieldLabel}`)}
-          <article class="result-row">
+          <article
+            class="result-row"
+            data-testid="translation-complete-translation-result-row"
+          >
             <div class="result-meta">
               <strong>{row.recordTypeLabel}</strong>
               <span>{row.fieldLabel}</span>
@@ -78,7 +97,11 @@
       </div>
     {/if}
 
-    <div class="pager" aria-label="翻訳結果ページング">
+    <div
+      class="pager"
+      aria-label="翻訳結果ページング"
+      data-testid="translation-complete-translation-result-pagination"
+    >
       <button disabled={pageIndex === 0} onclick={previousPage} type="button">
         前へ
       </button>

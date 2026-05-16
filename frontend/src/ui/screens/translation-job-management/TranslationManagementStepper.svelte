@@ -81,6 +81,7 @@
             aria-label={getTabAriaLabel(view, stepState)}
             class="stepper-card"
             data-step-state={stepState}
+            data-testid="translation-management-phase-card"
             onclick={() => onSelect(view.id)}
             role="tab"
             type="button"
@@ -104,6 +105,7 @@
             aria-current={view.id === currentViewId ? "step" : undefined}
             class="stepper-card"
             data-step-state={stepState}
+            data-testid="translation-management-phase-card"
           >
             <span class="step-rail" aria-hidden="true">
               <span class="step-marker">{view.stepNumber}</span>

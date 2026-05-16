@@ -253,15 +253,20 @@
 </script>
 
 <main class="shell">
-  <header class="shell-bar" class:is-open={isMobileNavOpen}>
+  <header
+    class="shell-bar"
+    class:is-open={isMobileNavOpen}
+    data-testid="dashboard-application-header"
+  >
     <div class="shell-bar-inner">
-      <div class="brand">
+      <div class="brand" data-testid="dashboard-brand-display">
         <p class="brand-eyebrow">AITranslationEngineJp</p>
         <strong>翻訳エンジン</strong>
       </div>
       <nav
         aria-label="グローバルナビゲーション"
         class="global-nav"
+        data-testid="dashboard-global-navigation"
         id="globalNav"
       >
         {#each routes as route (route.id)}
@@ -290,8 +295,15 @@
     </div>
   </header>
 
-  <section class="page">
-    <section class="panel hero-panel">
+  <section class="page" data-testid={isDashboard ? "dashboard-dashboard-content" : undefined}>
+    <section
+      class="panel hero-panel"
+      data-testid={isDashboard
+        ? "dashboard-current-page-description"
+        : currentRoute.id === "translation-management"
+          ? "translation-management-translation-management-header"
+          : undefined}
+    >
       <div class="hero-top">
         <div>
           <p class="page-label">現在のページ</p>
@@ -303,7 +315,10 @@
 
     {#if isDashboard}
       <section class="hero-grid" id="dashboardView">
-        <section class="panel entry-panel">
+        <section
+          class="panel entry-panel"
+          data-testid="dashboard-primary-page-entry-region"
+        >
           <div class="section-head">
             <div>
               <p class="page-label">主要ページ</p>
@@ -314,6 +329,7 @@
             {#each dashboardEntryRoutes as route (route.id)}
               <a
                 class="entry-card"
+                data-testid="dashboard-primary-page-card"
                 href={`#${route.id}`}
                 onclick={() => selectRoute(route.id)}
               >
@@ -352,8 +368,16 @@
     {/if}
 
     {#if !isDashboard && currentRoute.id === "translation-management"}
-      <section class="translation-management-shell">
-        <section class="panel section-switcher">
+      <section
+        class="translation-management-shell"
+        data-testid="translation-management-translation-management-shell"
+      >
+        <section
+          class="panel section-switcher"
+          data-testid={renderedTranslationManagementViewId === "job-run"
+            ? "job-run-translation-management-stepper"
+            : "translation-management-translation-management-stepper"}
+        >
           <TranslationManagementStepper
             currentViewId={currentTranslationManagementViewId}
             onSelect={selectTranslationManagementView}

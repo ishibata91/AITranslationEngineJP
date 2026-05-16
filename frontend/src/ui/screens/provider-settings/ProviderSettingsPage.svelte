@@ -60,8 +60,15 @@
   }
 </script>
 
-<section class="provider-settings-shell" id="providerSettingsView">
-  <section class="provider-settings-card hero-panel">
+<section
+  class="provider-settings-shell"
+  data-testid="provider-settings-screen-shell"
+  id="providerSettingsView"
+>
+  <section
+    class="provider-settings-card hero-panel"
+    data-testid="provider-settings-screen-summary-region"
+  >
     <div class="hero-top">
       <div>
         <p class="eyebrow">中央設定</p>
@@ -83,7 +90,10 @@
   </section>
 
   <section class="provider-layout">
-    <section class="provider-settings-card list-panel">
+    <section
+      class="provider-settings-card list-panel"
+      data-testid="provider-settings-ai-service-list-region"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">AIサービス一覧</p>
@@ -96,6 +106,7 @@
           <button
             class="provider-row"
             class:is-selected={provider.selected}
+            data-testid="provider-settings-ai-service-row"
             onclick={() => controller.selectProvider(provider.providerId)}
             type="button"
           >
@@ -112,7 +123,10 @@
     </section>
 
     {#if viewModel.selectedProvider}
-      <section class="provider-settings-card detail-panel">
+      <section
+        class="provider-settings-card detail-panel"
+        data-testid="provider-settings-settings-detail-region"
+      >
         <div class="section-head">
           <div>
             <p class="eyebrow">設定詳細</p>
@@ -129,6 +143,7 @@
           <span class="field-label">エンドポイント</span>
           <input
             class="text-field"
+            data-testid="provider-settings-endpoint-input"
             id="providerEndpointInput"
             oninput={(event) => controller.updateEndpoint(event)}
             placeholder={viewModel.selectedProvider.endpointPlaceholder}
@@ -138,7 +153,10 @@
         </label>
         <p class="mini-text">{viewModel.selectedProvider.endpointHint}</p>
 
-        <section class="detail-block">
+        <section
+          class="detail-block"
+          data-testid="provider-settings-api-key-status-region"
+        >
           <div class="detail-row">
             <div>
               <p class="field-label">APIキー状態</p>
@@ -159,7 +177,10 @@
           <p class="mini-text">{viewModel.selectedProvider.apiKeyHelpText}</p>
 
           {#if viewModel.selectedProvider.apiKeyRequired && viewModel.selectedProvider.apiKeyPanelOpen}
-            <div class="api-key-panel">
+            <div
+              class="api-key-panel"
+              data-testid="provider-settings-api-key-input-region"
+            >
               <label class="field-group" for="providerApiKeyInput">
                 <span class="field-label">APIキー</span>
                 <input
@@ -176,7 +197,10 @@
                   type="password"
                 />
               </label>
-              <div class="inline-actions">
+              <div
+                class="inline-actions"
+                data-testid="provider-settings-api-key-save-actions"
+              >
                 <button
                   class="button-primary"
                   onclick={saveSettings}
@@ -196,7 +220,10 @@
           {/if}
         </section>
 
-        <section class="detail-block">
+        <section
+          class="detail-block"
+          data-testid="provider-settings-connection-check-region"
+        >
           <div class="detail-row">
             <div>
               <p class="field-label">接続確認</p>
@@ -216,7 +243,10 @@
           </p>
         </section>
 
-        <section class="detail-actions">
+        <section
+          class="detail-actions"
+          data-testid="provider-settings-settings-actions-region"
+        >
           <button
             class="button-primary"
             disabled={!viewModel.selectedProvider.canSave}

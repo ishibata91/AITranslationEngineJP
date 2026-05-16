@@ -40,7 +40,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-translation-complete-screen`
   - `aria-label`: なし。
 
 ### [2] 完了概要
@@ -54,7 +54,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-completion-summary`
   - `aria-label`: なし。
 
 ### [3] 原文と訳文領域
@@ -68,7 +68,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-source-translation-region`
   - `aria-label`: なし。
 
 ### [4] 翻訳結果行
@@ -82,7 +82,7 @@
 - 操作: `原文` または `訳文` を開閉する。
 - 結果: 対象の原文抜粋または訳文の表示と非表示が切り替わる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-translation-result-row`
   - `aria-label`: なし。
 
 ### [5] 翻訳結果空状態
@@ -96,7 +96,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-translation-result-empty-state`
   - `aria-label`: なし。
 
 ### [6] 翻訳結果ページング
@@ -110,7 +110,7 @@
 - 操作: `前へ` または `次へ` を押す。
 - 結果: 表示する翻訳結果のページが切り替わる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-translation-result-pagination`
   - `aria-label`: `翻訳結果ページング`
 
 ### [7] 翻訳完了後の次の作業
@@ -124,5 +124,5 @@
 - 操作: `未完了一覧へ戻る` を押す。`出力管理へ進む` を押す。
 - 結果: `未完了一覧へ戻る` を押すと、未完了ジョブ一覧を表示する。`出力管理へ進む` を押すと、出力管理を表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-complete-post-completion-next-action`
   - `aria-label`: 見出しと説明を連結した文言。

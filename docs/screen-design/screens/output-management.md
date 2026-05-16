@@ -33,7 +33,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `output-management-output-management-summary`
   - `aria-label`: なし。
 
 ### [2] 出力候補
@@ -47,7 +47,7 @@
 - 操作: 更新ボタンを押す。出力候補のジョブを選択する。
 - 結果: 更新ボタンを押すと、完了済みジョブ一覧を再取得する。ジョブを選択すると、選択中ジョブの要約、出力操作、差分プレビューを更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `output-management-output-candidate-list`
   - `aria-label`: なし。
 
 ### [3] 選択中ジョブ
@@ -61,7 +61,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `output-management-selected-job`
   - `aria-label`: なし。
 
 ### [4] 出力操作
@@ -75,7 +75,7 @@
 - 操作: 対象ゲームを選択する。出力先 path を入力する。`XML を出力` または `再出力` を押す。
 - 結果: 対象ゲームまたは出力先 path を変更すると、出力可否を更新する。出力または再出力を実行すると、直近結果と成果物状態を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `output-management-output-actions`
   - `aria-label`: なし。
 
 ### [5] 直近結果
@@ -89,7 +89,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `output-management-latest-result`
   - `aria-label`: なし。
 
 ### [6] 差分プレビュー
@@ -103,5 +103,5 @@
 - 操作: 差分行を選択する。
 - 結果: 選択中成果物 ID を差分プレビューの成果物 ID に更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `output-management-diff-preview`
   - `aria-label`: なし。

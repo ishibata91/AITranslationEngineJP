@@ -14,7 +14,10 @@
   }: Props = $props()
 </script>
 
-<section class="panel hero-panel">
+<section
+  class="panel hero-panel"
+  data-testid="translation-input-review-screen-status-header"
+>
   <div class="hero-head">
     <div class="title-stack">
       <p class="eyebrow">翻訳管理</p>

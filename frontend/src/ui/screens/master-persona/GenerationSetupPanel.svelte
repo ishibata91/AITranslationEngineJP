@@ -91,7 +91,11 @@
   )
 </script>
 
-<section class="panel setup-panel" aria-labelledby="setupHeading">
+<section
+  class="panel setup-panel"
+  aria-labelledby="setupHeading"
+  data-testid="master-persona-generation-setup-panel"
+>
   <div class="section-head">
     <div>
       <p class="eyebrow">生成準備</p>
@@ -101,7 +105,7 @@
   </div>
 
   <div class="setup-grid">
-    <div class="model-panel">
+    <div class="model-panel" data-testid="master-persona-ai-settings-card">
       <AIModelSelectionCard
         actionButtonDisabled={modelCard.actionButtonDisabled || isAISettingsRefreshing}
         actionButtonId="saveAiSettingsButton"
@@ -157,7 +161,11 @@
       </div>
     </div>
 
-    <section class="file-panel" aria-labelledby="fileHeading">
+    <section
+      class="file-panel"
+      aria-labelledby="fileHeading"
+      data-testid="master-persona-input-json-panel"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">入力 JSON</p>

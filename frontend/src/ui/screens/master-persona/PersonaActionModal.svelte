@@ -41,6 +41,7 @@
   hidden={modalState !== "edit"}
   id="editModal"
   role="dialog"
+  data-testid="master-persona-edit-modal"
 >
   <section class="modal-card form-modal">
     <div class="section-head">
@@ -118,6 +119,7 @@
   hidden={modalState !== "delete"}
   id="deleteModal"
   role="dialog"
+  data-testid="master-persona-delete-modal"
 >
   <section class="modal-card">
     <div class="section-head">

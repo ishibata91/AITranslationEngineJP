@@ -24,7 +24,11 @@
   }: Props = $props()
 </script>
 
-<section class="panel import-panel" aria-labelledby="inputReviewImportHeading">
+<section
+  class="panel import-panel"
+  aria-labelledby="inputReviewImportHeading"
+  data-testid="translation-input-review-load-preparation-region"
+>
   <div class="section-head">
     <div class="title-stack">
       <p class="eyebrow">ロード準備</p>

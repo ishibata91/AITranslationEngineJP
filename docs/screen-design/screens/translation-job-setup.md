@@ -48,7 +48,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-screen-purpose-header`
   - `aria-label`: なし。
 
 ### [2] 作成前設定領域
@@ -62,7 +62,7 @@
 - 操作: 子要素ごとの操作に従う。
 - 結果: 子要素ごとの結果に従う。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-pre-create-settings-region`
   - `aria-label`: なし。
 
 ### [3] 入力データ領域
@@ -76,7 +76,7 @@
 - 操作: 入力データ候補を選択する。入力データ候補の `削除` を押す。
 - 結果: 入力データを選択すると、選択中の入力データ詳細と既存 job 状態が更新される。削除すると、対象候補に `削除中...` を表示し、削除後に候補一覧が更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-input-data-region`
   - `aria-label`: `input data`
 
 ### [4] 共通辞書と共通ペルソナ領域
@@ -90,7 +90,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-shared-dictionary-persona-region`
   - `aria-label`: なし。
 
 ### [5] AI サービスとモデル領域
@@ -104,7 +104,7 @@
 - 操作: AI サービスを選択する。モデル一覧を更新する。モデルを選択する。`Batch API` を切り替える。
 - 結果: AI サービスを選択すると、モデル選択と API キー状態が更新される。モデル一覧を更新すると、モデル候補とモデル一覧状態が更新される。モデルを選択すると、段階の現在状態が更新される。`Batch API` を切り替えると、実行方法が有効または無効に更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-ai-service-model-region`
   - `aria-label`: 各段階のモデル一覧更新ボタンは `<翻訳段階>のモデル一覧を更新`
 
 ### [6] 互換設定と作成前確認領域
@@ -118,7 +118,7 @@
 - 操作: `AIサービス / モデル / 実行方法` を選択する。`確認を実行` を押す。
 - 結果: AI 実行設定を選択すると、作成前確認の要否が更新される。作成前確認を実行すると、状態、確認日時、作成できない理由、再確認、確認対象、確認済み項目が更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-compatibility-precheck-region`
   - `aria-label`: なし。
 
 ### [7] ジョブ作成固定フッター
@@ -132,7 +132,7 @@
 - 操作: `単語翻訳へ進む` を押す。必要な場合は `入力データの確認へ戻る` を押す。不足理由が複数ある場合、残り理由のツールチップを確認する。
 - 結果: `単語翻訳へ進む` を押すと、翻訳ジョブを作成する。作成後は作成済み要約を表示する。`入力データの確認へ戻る` を押すと、入力データの確認画面へ戻る。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-job-create-sticky-footer`
   - `aria-label`: `ジョブの作成確認: 入力データと翻訳設定を確認し、最初の翻訳段階へ進む準備をします。`
 
 ### [8] 作成済み要約領域
@@ -146,7 +146,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-created-summary-region`
   - `aria-label`: なし。
 
 ### [9] 作成済み設定領域
@@ -160,7 +160,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-created-settings-region`
   - `aria-label`: 翻訳段階ごとの要約がない場合は `Ready job summary`
 
 ### [10] 翻訳段階ごとの設定要約
@@ -174,5 +174,5 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-job-setup-phase-settings-summary`
   - `aria-label`: なし。

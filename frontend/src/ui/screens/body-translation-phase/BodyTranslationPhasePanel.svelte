@@ -23,7 +23,10 @@
 </script>
 
 <section class="job-run-shell" id="bodyTranslationPhaseView">
-  <section class="job-run-card hero-card">
+  <section
+    class="job-run-card hero-card"
+    data-testid="body-translation-phase-body-translation-summary"
+  >
     <div class="hero-head">
       <div>
         <p class="eyebrow">translation-management</p>
@@ -76,6 +79,7 @@
   <section
     class="job-run-card action-card"
     aria-labelledby="bodyPhaseActionsHeading"
+    data-testid="body-translation-phase-actions"
   >
     <div class="section-head">
       <div>
@@ -108,7 +112,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="bodyPhaseProgressHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="bodyPhaseProgressHeading"
+      data-testid="body-translation-phase-progress"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">翻訳段階の進行状況</p>
@@ -159,7 +167,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="bodyInputSummaryHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="bodyInputSummaryHeading"
+      data-testid="body-translation-phase-input-summary"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">input summary</p>
@@ -196,7 +208,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="bodyExecutionHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="bodyExecutionHeading"
+      data-testid="body-translation-phase-execution-summary"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">execution summary</p>
@@ -248,7 +264,11 @@
       </dl>
     </section>
 
-    <section class="job-run-card" aria-labelledby="bodyResultSummaryHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="bodyResultSummaryHeading"
+      data-testid="body-translation-phase-result-summary"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">result summary</p>
@@ -286,7 +306,11 @@
   </section>
 
   <section class="summary-grid">
-    <section class="job-run-card" aria-labelledby="bodyFieldResultHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="bodyFieldResultHeading"
+      data-testid="body-translation-phase-field-result-list"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">field result list</p>
@@ -352,7 +376,11 @@
       {/if}
     </section>
 
-    <section class="job-run-card" aria-labelledby="bodyErrorHeading">
+    <section
+      class="job-run-card"
+      aria-labelledby="bodyErrorHeading"
+      data-testid="body-translation-phase-failure-information"
+    >
       <div class="section-head">
         <div>
           <p class="eyebrow">recovery panel</p>
@@ -380,7 +408,11 @@
     </section>
   </section>
 
-  <section class="job-run-card" aria-labelledby="bodyReadinessHeading">
+  <section
+    class="job-run-card"
+    aria-labelledby="bodyReadinessHeading"
+    data-testid="body-translation-phase-output-readiness"
+  >
     <div class="section-head">
       <div>
         <p class="eyebrow">output readiness</p>

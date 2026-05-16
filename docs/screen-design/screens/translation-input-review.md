@@ -36,7 +36,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-screen-status-header`
   - `aria-label`: `現在の作業状態`
 
 ### [2] ロード準備領域
@@ -50,7 +50,7 @@
 - 操作: JSON を選ぶ。選んだ JSON を登録する。選択中の JSON を取り消す。
 - 結果: JSON を選ぶとファイル名、保存場所、内容ハッシュ、選択状態が更新される。登録すると読み込み済みデータ一覧と選択データ詳細が更新される。選び直すと登録前のファイル情報が未選択へ戻る。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-load-preparation-region`
   - `aria-label`: なし。
 
 ### [3] 読み込み済みデータ一覧
@@ -64,7 +64,7 @@
 - 操作: 読み込み済みデータの行を選択する。
 - 結果: 選択データ詳細が、選択した読み込み済みデータの内容に更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-loaded-input-list`
   - `aria-label`: なし。
 
 ### [4] 選択データ領域
@@ -78,7 +78,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-selected-input-region`
   - `aria-label`: なし。
 
 ### [5] 入力データ概要
@@ -92,7 +92,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-input-data-summary`
   - `aria-label`: なし。
 
 ### [6] 問題と再構築領域
@@ -106,7 +106,7 @@
 - 操作: `cache を再構築` を押す。
 - 結果: 再構築中の作業状態を表示する。再構築結果に応じて登録結果、警告、問題区分、再構築可否を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-issue-rebuild-region`
   - `aria-label`: なし。
 
 ### [7] 次の作業フッター
@@ -120,5 +120,5 @@
 - 操作: `翻訳設定へ進む` を押す。
 - 結果: 選択した入力データで翻訳設定の確認へ進む。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `translation-input-review-next-action-footer`
   - `aria-label`: `次の作業: 選択した入力データで、ジョブの作成確認へ進みます。`

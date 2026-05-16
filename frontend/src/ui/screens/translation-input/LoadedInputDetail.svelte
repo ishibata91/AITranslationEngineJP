@@ -31,7 +31,11 @@
   const showNextStepGuidance = $derived(canOpenJobSetup(selectedItem))
 </script>
 
-<section class="panel detail-panel" aria-labelledby="inputReviewDetailHeading">
+<section
+  class="panel detail-panel"
+  aria-labelledby="inputReviewDetailHeading"
+  data-testid="translation-input-review-selected-input-region"
+>
   <div class="section-head">
     <div class="title-stack">
       <p class="eyebrow">選択データ</p>
@@ -46,7 +50,10 @@
   </div>
 
   {#if selectedItem}
-    <div class="detail-stack">
+    <div
+      class="detail-stack"
+      data-testid="translation-input-review-input-data-summary"
+    >
       <dl class="summary-grid">
         <div>
           <dt>ファイル名</dt>
@@ -148,7 +155,11 @@
         {/if}
       </section>
 
-      <section class="detail-section" aria-labelledby="inputReviewIssueHeading">
+      <section
+        class="detail-section"
+        aria-labelledby="inputReviewIssueHeading"
+        data-testid="translation-input-review-issue-rebuild-region"
+      >
         <div class="section-head section-head-compact issue-head">
           <div class="title-stack">
             <h4 id="inputReviewIssueHeading">問題と再構築</h4>

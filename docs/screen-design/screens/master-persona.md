@@ -41,7 +41,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-screen-status-region`
   - `aria-label`: `マスターペルソナ作成状態`
 
 ### [2] 生成準備パネル
@@ -55,7 +55,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-generation-setup-panel`
   - `aria-label`: なし。
 
 ### [3] AI 設定カード
@@ -69,7 +69,7 @@
 - 操作: AI サービスを選択する。モデルを選択する。実行方法を選択する。モデル一覧を更新する。設定を保存する。
 - 結果: 選択中の AI 設定、モデル一覧、資格情報状態、設定保存結果が画面に反映される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-ai-settings-card`
   - `aria-label`: `モデル一覧を更新`
 
 ### [4] 入力 JSON パネル
@@ -83,7 +83,7 @@
 - 操作: JSON ファイルを選択する。選択済み JSON を取り消す。ペルソナ作成を開始する。
 - 結果: 選択ファイル名、作成対象件数、作成状態、進行状況が更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-input-json-panel`
   - `aria-label`: `対象件数`
 
 ### [5] 進行状況パネル
@@ -97,7 +97,7 @@
 - 操作: 生成を一時停止する。生成を中止する。
 - 結果: 実行状態、進捗、処理件数、現在の対象、一覧と詳細の操作可否が更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-progress-panel`
   - `aria-label`: `生成進捗`
 
 ### [6] 生成結果一覧パネル
@@ -111,7 +111,7 @@
 - 操作: 名前またはプラグイン名で検索する。プラグインを選択する。ペルソナ行を選択する。前後ページへ移動する。
 - 結果: 一覧、件数範囲、選択中ペルソナ、詳細表示が更新される。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-generation-result-list-panel`
   - `aria-label`: `生成結果の確認`、`ペルソナ一覧のページ操作`
 
 ### [7] ペルソナ詳細パネル
@@ -125,7 +125,7 @@
 - 操作: 編集を開始する。削除を開始する。
 - 結果: 編集モーダルまたは削除モーダルを表示する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-persona-detail-panel`
   - `aria-label`: なし。
 
 ### [8] 編集モーダル
@@ -139,7 +139,7 @@
 - 操作: ペルソナ要約を入力する。話し方を入力する。ペルソナ本文を入力する。編集を閉じる。編集をキャンセルする。編集内容を保存する。
 - 結果: 保存した内容が選択中ペルソナと一覧に反映される。閉じるまたはキャンセルではモーダルを閉じる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-edit-modal`
   - `aria-label`: なし。
 
 ### [9] 削除モーダル
@@ -153,5 +153,5 @@
 - 操作: 削除を閉じる。削除をキャンセルする。削除する。
 - 結果: 削除したペルソナを一覧から外す。閉じるまたはキャンセルではモーダルを閉じる。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `master-persona-delete-modal`
   - `aria-label`: なし。

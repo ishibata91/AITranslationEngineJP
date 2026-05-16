@@ -38,7 +38,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-body-translation-summary`
   - `aria-label`: なし。
 
 ### [2] 操作
@@ -52,7 +52,7 @@
 - 操作: 操作ボタンを押す。
 - 結果: 対象操作の結果に応じて、本文翻訳段階の状態、進行状況、失敗情報、後続出力準備状態を更新する。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-actions`
   - `aria-label`: なし。
 
 ### [3] 進行状況
@@ -66,7 +66,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-progress`
   - `aria-label`: `progress`
 
 ### [4] 入力要約
@@ -80,7 +80,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-input-summary`
   - `aria-label`: なし。
 
 ### [5] 実行要約
@@ -94,7 +94,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-execution-summary`
   - `aria-label`: なし。
 
 ### [6] 結果要約
@@ -108,7 +108,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-result-summary`
   - `aria-label`: なし。
 
 ### [7] 項目別結果
@@ -122,7 +122,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-field-result-list`
   - `aria-label`: なし。
 
 ### [8] 失敗情報
@@ -136,7 +136,7 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-failure-information`
   - `aria-label`: なし。
 
 ### [9] 後続出力準備
@@ -150,5 +150,5 @@
 - 操作: なし。
 - 結果: なし。
 - セレクタ属性:
-  - `data-testid`: なし。
+  - `data-testid`: `body-translation-phase-output-readiness`
   - `aria-label`: なし。
