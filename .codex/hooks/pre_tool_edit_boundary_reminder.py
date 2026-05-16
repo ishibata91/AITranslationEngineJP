@@ -6,7 +6,7 @@ from pathlib import Path
 
 REPO_ROOT = Path("/Users/iorishibata/Repositories/AITranslationEngineJP")
 
-REMINDER = """人間指示を処理する前に、現在の役割に対応する skill / agent を読み直す。"""
+REMINDER = """ファイル編集前に、責務境界と変更可否を確認する。必要な場合だけ skill / agent を読む。"""
 
 
 def main() -> int:
@@ -20,7 +20,7 @@ def main() -> int:
     output = {
         "continue": True,
         "hookSpecificOutput": {
-            "hookEventName": "UserPromptSubmit",
+            "hookEventName": "PreToolUse",
             "additionalContext": REMINDER,
         },
     }
