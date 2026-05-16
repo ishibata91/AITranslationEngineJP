@@ -1,0 +1,107 @@
+@startuml
+
+title dev fake secret store 設計差分 component 図
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+package "agent-browser 用開発起動" as DevStartup {
+    class "scripts/dev/run-wails-agent-browser.sh\nagent-browser 用の非 secret 条件を注入" as DevScript <<changed>>
+}
+
+package "bootstrap wiring" as Bootstrap {
+    class "internal/bootstrap/app_controller.go\nprovider settings secret store 構築を helper へ分離" as AppController <<changed>>
+    class "開発用 fake secret store backend selection helper\n起動条件ごとに backend を選ぶ" as BackendSelector <<added>>
+}
+
+package "provider settings secret store backend" as BackendLayer {
+    class "NewProviderSettingsKeyringSecretStore()\nproduction 既定の keyring backend" as KeyringStore <<existing>>
+    class "repository.NewInMemorySecretStore()\nprocess-local in-memory backend として再利用候補" as InMemoryStore <<added>>
+    class "NewCachedProviderSettingsSecretStore()\nbackend wrapper と process-local cache" as CachedStore <<existing>>
+}
+
+package "同じ cached secret store を共有する既存接続先" as SharedConsumers {
+    class "ProviderSettingsService" as ProviderSettingsService <<existing>>
+    class "master persona generation\nsettings persistence / provider resolution" as MasterPersona <<existing>>
+    class "translation job setup" as TranslationJobSetup <<existing>>
+    class "term / persona / body phase services" as PhaseServices <<existing>>
+}
+
+package "変更しない公開境界" as PublicBoundary {
+    class "provider settings UI" as ProviderSettingsUi <<existing>>
+    class "公開 DTO / Wails method" as WailsBoundary <<existing>>
+    class "DB schema" as DbSchema <<existing>>
+    class "provider catalog" as ProviderCatalog <<existing>>
+}
+
+DevScript -[#F9A825]-> AppController : agent-browser 用起動条件を渡す候補
+AppController -[#2E7D32]-> BackendSelector : backend 選択を helper へ分離
+BackendSelector -[#546E7A]-> KeyringStore : 開発条件なしでは既定経路
+BackendSelector -[#2E7D32]-> InMemoryStore : 開発条件成立時だけ選択
+KeyringStore -[#546E7A]-> CachedStore : backend として wrap
+InMemoryStore -[#2E7D32]-> CachedStore : backend として wrap
+
+CachedStore -[#546E7A]-> ProviderSettingsService : 同じ参照を維持
+CachedStore -[#546E7A]-> MasterPersona : 同じ参照を維持
+CachedStore -[#546E7A]-> TranslationJobSetup : 同じ参照を維持
+CachedStore -[#546E7A]-> PhaseServices : 同じ参照を維持
+
+ProviderSettingsService -[#546E7A,dotted]-> ProviderSettingsUi : fake secret store を UI に出さない
+ProviderSettingsService -[#546E7A,dotted]-> WailsBoundary : 新しい公開境界を増やさない
+ProviderSettingsService -[#546E7A,dotted]-> DbSchema : secret 保存方式で schema を変えない
+ProviderSettingsService -[#546E7A,dotted]-> ProviderCatalog : fake provider を増やさない
+MasterPersona -[#546E7A,dotted]-> WailsBoundary : 既存 read model を維持
+TranslationJobSetup -[#546E7A,dotted]-> WailsBoundary : 既存 read model を維持
+PhaseServices -[#546E7A,dotted]-> WailsBoundary : 実行 API を増やさない
+
+note right of BackendSelector
+追加予定:
+- 開発用 helper
+- agent-browser で keyring を開かない分岐
+
+削除予定:
+- なし
+end note
+
+note right of CachedStore
+変更しない接続:
+- wrapper 役割
+- consumer 共有
+
+変更しない backend 既定:
+- production は keyring のまま
+end note
+
+legend bottom right
+    |= Style |= 意味 |
+    |<#FFF1F1> removed | 削除予定 |
+    |<#EEF9EF> added | 追加予定 |
+    |<#FFF8E1> changed | 変更予定 |
+    |<#F7F9FC> existing | 変更しない接続先 |
+endlegend
+
+@enduml

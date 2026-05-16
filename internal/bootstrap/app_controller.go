@@ -98,10 +98,10 @@ func newAppControllerWithSeeds(
 		runtimeEmitterState,
 	)
 	providerSettingsRepository := repository.NewSQLiteProviderSettingsRepository(foundationDataDB)
-	providerSettingsSecretStore, err := repository.NewProviderSettingsKeyringSecretStore()
+	providerSettingsSecretStore, err := newProviderSettingsSecretStoreFromEnv()
 	if err != nil {
 		tryClose(service.SQLiteMasterDictionaryRepositoryPortCloser(repositoryAdapter))
-		panic(fmt.Errorf("build provider settings keyring secret store: %w", err))
+		panic(fmt.Errorf("build provider settings secret store: %w", err))
 	}
 	cachedProviderSettingsSecretStore, err := repository.NewCachedProviderSettingsSecretStore(providerSettingsSecretStore)
 	if err != nil {
@@ -399,7 +399,39 @@ const (
 	masterPersonaFakeResponseEnv    = "AITRANSLATIONENGINEJP_MASTER_PERSONA_FAKE_RESPONSE"
 	masterPersonaLMStudioBaseURLEnv = "AITRANSLATIONENGINEJP_MASTER_PERSONA_LM_STUDIO_BASE_URL"
 	masterPersonaXAIBaseURLEnv      = "AITRANSLATIONENGINEJP_MASTER_PERSONA_XAI_BASE_URL"
+
+	providerSettingsSecretBackendEnv      = "AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND"
+	providerSettingsSecretBackendInMemory = "in-memory"
+	providerSettingsSecretBackendDefault  = "default"
+	providerSettingsSecretBackendFile     = "file"
+	providerSettingsSecretBackendKeychain = "keychain"
+	providerSettingsSecretBackendWinCred  = "wincred"
 )
+
+func newProviderSettingsSecretStoreFromEnv() (repository.ProviderSettingsSecretStore, error) {
+	requestedBackend := strings.ToLower(strings.TrimSpace(os.Getenv(providerSettingsSecretBackendEnv)))
+	switch requestedBackend {
+	case providerSettingsSecretBackendInMemory:
+		return repository.NewProviderSettingsInMemorySecretStore(), nil
+	case "":
+		store, err := repository.NewProviderSettingsKeyringSecretStore()
+		if err != nil {
+			return nil, fmt.Errorf("build provider settings keyring secret store: %w", err)
+		}
+		return store, nil
+	case providerSettingsSecretBackendDefault,
+		providerSettingsSecretBackendFile,
+		providerSettingsSecretBackendKeychain,
+		providerSettingsSecretBackendWinCred:
+		store, err := repository.NewProviderSettingsKeyringSecretStore()
+		if err != nil {
+			return nil, fmt.Errorf("build provider settings keyring secret store: %w", err)
+		}
+		return store, nil
+	default:
+		return nil, fmt.Errorf("unsupported provider settings secret backend override: %s", requestedBackend)
+	}
+}
 
 func newAIProviderClientFromMasterPersonaEnv() *ai.ProviderClient {
 	return newAIProviderClientFromMasterPersonaEnvWithTransport(nil)

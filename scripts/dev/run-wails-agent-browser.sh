@@ -31,7 +31,9 @@ mkdir -p "$GOCACHE" "$GOPATH" "$GOMODCACHE"
 exec env \
   VITE_HOST="$vite_host" \
   VITE_PORT="$vite_port" \
+  AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_BACKEND="in-memory" \
   wails dev \
   -loglevel "$wails_log_level" \
   -devserver "$devserver_bind" \
+  -frontenddevserverurl "http://127.0.0.1:$vite_port" \
   >"$log_file" 2>&1

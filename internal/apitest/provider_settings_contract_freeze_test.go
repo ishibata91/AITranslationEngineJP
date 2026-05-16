@@ -130,6 +130,32 @@ func TestSCN_AIPSM_004_006_SaveProviderSettingsRequestKeepsReferenceSettingsOut(
 	}
 }
 
+func TestSCN_DFSS_006_ProviderSettingsSecretBackendRejectsUnsupportedBackend(t *testing.T) {
+	source, err := parseProviderSettingsGoSource(
+		providerSettingsRepoRoot(t),
+		"internal/bootstrap/app_controller.go",
+	)
+	if err != nil {
+		t.Fatalf("SCN-DFSS-006 expected bootstrap provider settings backend source: %v", err)
+	}
+
+	requiredSnippets := []string{
+		"providerSettingsSecretBackendEnv",
+		"providerSettingsSecretBackendInMemory",
+		"case providerSettingsSecretBackendInMemory:",
+		`case "":`,
+		"unsupported",
+	}
+	for _, snippet := range requiredSnippets {
+		if !strings.Contains(source.text, snippet) {
+			t.Fatalf("SCN-DFSS-006 expected provider settings backend selector to expose safe unsupported-backend handling")
+		}
+	}
+	if strings.Contains(source.text, "default:\n\t\tstore, err := repository.NewProviderSettingsKeyringSecretStore()") {
+		t.Fatal("SCN-DFSS-006 expected unsupported backend values not to silently fall back to keyring")
+	}
+}
+
 type providerSettingsContractSources struct {
 	goSources []providerSettingsGoSource
 	tsSources map[string]string

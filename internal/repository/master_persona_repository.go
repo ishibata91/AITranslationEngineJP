@@ -177,6 +177,11 @@ func NewInMemorySecretStore() *InMemorySecretStore {
 	return &InMemorySecretStore{secrets: map[string]string{}}
 }
 
+// NewProviderSettingsInMemorySecretStore creates a process-local provider settings secret store.
+func NewProviderSettingsInMemorySecretStore() ProviderSettingsSecretStore {
+	return NewInMemorySecretStore()
+}
+
 // List returns a filtered, paged list of master persona entries.
 func (repository *InMemoryMasterPersonaRepository) List(
 	_ context.Context,

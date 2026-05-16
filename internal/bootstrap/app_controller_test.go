@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"errors"
 	"io"
 	"net/http"
 	"os"
@@ -1080,6 +1081,63 @@ func newBootstrapRunStatusTestController(t *testing.T, databasePath string) *con
 	setBootstrapTestDatabasePath(t, databasePath)
 	setBootstrapTestMasterPersonaSecretStore(t, databasePath)
 	return newAppControllerWithSeeds(bootstrapTestSeed(), bootstrapTestNow)
+}
+
+func TestNewProviderSettingsSecretStoreFromEnvUsesKeyringPathWhenEnvIsUnset(t *testing.T) {
+	t.Setenv(providerSettingsSecretBackendEnv, "")
+	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_DIR", "")
+	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_PASSWORD", "")
+
+	store, err := newProviderSettingsSecretStoreFromEnv()
+	if err == nil {
+		if _, ok := store.(*repository.ProviderSettingsKeyringSecretStore); !ok {
+			t.Fatalf("expected keyring-backed provider settings store when backend env is unset")
+		}
+		return
+	}
+
+	if store != nil {
+		t.Fatalf("expected nil store when constructor fails")
+	}
+	if !strings.Contains(err.Error(), "provider settings keyring") {
+		t.Fatalf("expected keyring path error, got %v", err)
+	}
+}
+
+func TestNewProviderSettingsSecretStoreFromEnvInMemoryBypassesKeyringOpen(t *testing.T) {
+	t.Setenv(providerSettingsSecretBackendEnv, providerSettingsSecretBackendInMemory)
+	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_DIR", "")
+	t.Setenv("AITRANSLATIONENGINEJP_PROVIDER_SETTINGS_SECRET_FILE_PASSWORD", "")
+
+	store, err := newProviderSettingsSecretStoreFromEnv()
+	if err != nil {
+		t.Fatalf("expected in-memory provider settings store to be selectable without keyring open: %v", err)
+	}
+	if store == nil {
+		t.Fatalf("expected in-memory provider settings store instance")
+	}
+
+	if saveErr := store.Save(context.Background(), "provider-settings:test", "value"); saveErr != nil {
+		t.Fatalf("expected in-memory provider settings store to save: %v", saveErr)
+	}
+}
+
+func TestNewProviderSettingsSecretStoreFromEnvRejectsUnsupportedBackend(t *testing.T) {
+	t.Setenv(providerSettingsSecretBackendEnv, "unsupported-backend")
+
+	store, err := newProviderSettingsSecretStoreFromEnv()
+	if err == nil {
+		t.Fatalf("expected unsupported provider settings backend to fail")
+	}
+	if store != nil {
+		t.Fatalf("expected nil store on unsupported backend")
+	}
+	if !strings.Contains(err.Error(), "unsupported provider settings secret backend override") {
+		t.Fatalf("expected unsupported backend error, got %v", err)
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		t.Fatalf("expected validation failure without filesystem fallback")
+	}
 }
 
 func assertEventNames(t *testing.T, events []recordedRuntimeEvent, expected ...string) {
