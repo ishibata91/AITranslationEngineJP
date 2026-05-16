@@ -2,7 +2,7 @@
 
 ## 状態
 
-- `status`: `waiting_human_decision`
+- `status`: `answered`
 - `source`: `./scenario-design.md`
 
 ### [Q-001] `JobIOService` の扱い
@@ -13,8 +13,8 @@
 決定済み:
 `JobIOService` は、状態遷移可否、terminal guard、provider 応答検証、UI 表示文言を判断しない。現時点の実体 package は `doc.go` だけである。
 
-未確定:
-`JobIOService` を今回の stale 廃止で外すか、別 task で実体化するかが未確定である。
+人間回答:
+選択肢 1。`JobIOService` は stale として扱い、architecture 正本から外す。
 
 選択肢:
 1. `JobIOService` を architecture 正本から外し、状態事実の取得と保存の境界を既存の usecase、service、repository へ寄せる。
@@ -33,8 +33,10 @@ active `observability-log-addition` に残る `StateMachine` / `JobIOService` �
 決定済み:
 `docs/exec-plans/completed/**` は履歴として変更しない。product code から `StateMachine` 旧名は外れている。
 
-未確定:
-active task-local の旧名参照を今回更新するか、observability task 再開時に更新するかが未確定である。
+人間回答:
+`observability-log-addition` は completed へ移動済みである。
+今回の active task-local 更新対象にはしない。
+completed archive は履歴として変更しない。
 
 選択肢:
 1. 今回の stale 廃止に含め、active task-local の旧名参照を現在の責務名または残留理由へ更新する。
@@ -53,8 +55,8 @@ AI 推奨:
 決定済み:
 正本仕様と service 実装は `Canceled` / `canceled` を使う。`cancelled` は正本 state として扱わない。
 
-未確定:
-`PersonaGenerationPhaseContractStub` の fixture spelling 修正を今回の実装範囲へ含めるか、別 task に送るかが未確定である。
+人間回答:
+選択肢 1。`cancelled` fixture spelling は今回の stale 廃止に含め、`canceled` へそろえる。
 
 選択肢:
 1. 今回の stale 廃止に含め、fixture spelling を `canceled` へそろえる。

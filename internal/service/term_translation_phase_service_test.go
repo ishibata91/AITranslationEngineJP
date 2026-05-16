@@ -485,17 +485,20 @@ func TestTermTranslationPhaseServiceReadSummaryCountsSnapshotHitsAndConfirmedTer
 	}
 }
 
-func TestTermTranslationPhaseServiceReadSummaryReturnsNotFoundForReadyJobWithoutPhaseRuns(t *testing.T) {
+func TestTermTranslationPhaseServiceReadSummaryKeepsReadyJobWithoutPhaseRunsIdle(t *testing.T) {
 	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
 	jobRepo.run = nil
 	jobRepo.phases = nil
 
-	_, err := service.ReadSummary(context.Background(), 1)
-	if err == nil {
-		t.Fatal("expected service error for ready job without phase runs")
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success for ready job without phase runs: %v", err)
 	}
-	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
-		t.Fatalf("expected load initial execution phase not found error, got %v", err)
+	if summary.PhaseRunID != nil {
+		t.Fatalf("expected no phase run id for ready job without phase runs, got %#v", summary.PhaseRunID)
+	}
+	if summary.PhaseState != termTranslationPhaseStateIdleReady {
+		t.Fatalf("expected idle ready phase state, got %#v", summary)
 	}
 }
 
@@ -1001,7 +1004,7 @@ func TestTermTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRu
 	}
 }
 
-func TestTermTranslationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *testing.T) {
+func TestTermTranslationPhaseServiceStartPhaseCreatesNonPendingRunWithoutPrecreatedPhaseRun(t *testing.T) {
 	requestCount := 0
 	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(fakeTermPhaseProvider{
 		translateFunc: func(_ context.Context, _ TermTranslationProviderRequest) (TermTranslationProviderResult, error) {
@@ -1011,15 +1014,21 @@ func TestTermTranslationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *
 	})
 	jobRepo.run = nil
 
-	_, err := service.StartPhase(context.Background(), 1)
-	if err == nil {
-		t.Fatal("expected missing term phase run error")
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success without pre-created phase run: %v", err)
 	}
-	if !strings.Contains(err.Error(), "find term translation phase run for start: not found") {
-		t.Fatalf("expected missing term phase run error, got %v", err)
+	if result.PhaseRunID == nil || *result.PhaseRunID == 0 {
+		t.Fatalf("expected created phase run id, got %#v", result.PhaseRunID)
 	}
-	if requestCount != 0 {
-		t.Fatalf("expected no provider request without phase run, got %d", requestCount)
+	if jobRepo.run == nil {
+		t.Fatal("expected created term translation phase run")
+	}
+	if jobRepo.run.State == termTranslationPhaseStatePending {
+		t.Fatalf("expected created run not to be pending, got %#v", jobRepo.run)
+	}
+	if requestCount != 1 {
+		t.Fatalf("expected provider request after phase run creation, got %d", requestCount)
 	}
 }
 
@@ -1470,17 +1479,17 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(
 	}
 }
 
-func TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForReadyJobWithoutPhaseRuns(t *testing.T) {
+func TestTermTranslationPhaseServiceReadNextPhaseReadinessKeepsReadyJobWithoutPhaseRunsBlocked(t *testing.T) {
 	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
 	jobRepo.run = nil
 	jobRepo.phases = nil
 
-	_, err := service.ReadNextPhaseReadiness(context.Background(), 1)
-	if err == nil {
-		t.Fatal("expected service error for ready job without phase runs")
+	readiness, err := service.ReadNextPhaseReadiness(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected readiness success for ready job without phase runs: %v", err)
 	}
-	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
-		t.Fatalf("expected load initial execution phase not found error, got %v", err)
+	if readiness.CanStartNextPhase {
+		t.Fatalf("expected next phase readiness to remain blocked, got %#v", readiness)
 	}
 }
 

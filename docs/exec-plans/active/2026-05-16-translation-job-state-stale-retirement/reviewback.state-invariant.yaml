@@ -1,0 +1,149 @@
+reviewback_version: 1
+task_id: "2026-05-16-translation-job-state-stale-retirement"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持されている。Ready job の読み取りは JOB_PHASE_RUN を作成せず、phase start 時だけ non-pending run を作成する。terminal job と late response の後書きは、状態更新前に拒否される。同時 start の二重作成は JOB_PHASE_RUN の job + phase unique index で抑止される。"
+  evidence_sufficiency: "十分。実コード、repository 制約、API test、integration test、unit test、final-validation.md の pass 証跡を確認した。"
+
+checked_scope:
+  summary: "Ready job 読み取り、phase start 時 run 作成、同時 start の二重作成抑止、terminal job guard、late response rejection、pending 非正本化、cancel state spelling、stale JobIOService 削除を確認した。"
+  files:
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 438
+      symbol: "BodyTranslationPhaseService.createBodyTranslationPhaseRun"
+      reason: "run 作成、job 更新、runtime snapshot 保存が transactor.WithTransaction 内にあり、途中失敗時の部分永続化を防ぐ根拠になる。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 514
+      symbol: "BodyTranslationPhaseService.createBodyTranslationRunRecord"
+      reason: "precreated run がない場合に startState.runState で JOB_PHASE_RUN を作成し、pending を新規作成 state にしない根拠になる。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 912
+      symbol: "BodyTranslationPhaseService.startRejection"
+      reason: "terminal job の start を run 作成前に拒否する根拠になる。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1221
+      symbol: "BodyTranslationPhaseService.bodyTranslationCommandFromLoaded"
+      reason: "terminal job の read model で危険操作を無効化する根拠になる。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1460
+      symbol: "BodyTranslationPhaseService.persistBodyTranslationRunStateTransition"
+      reason: "terminal job の pause、resume、cancel、retry 系 state mutation を拒否する根拠になる。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 698
+      symbol: "TestBodyTranslationPhaseServiceStartPhaseCreatesRunWithoutPrecreatedPhaseRun"
+      reason: "precreated phase run なしの start が run を作成し、pending を観測可能 state にしないことを固定している。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 761
+      symbol: "TestBodyTranslationPhaseServiceRejectsLateResponseForOldPhaseRun"
+      reason: "古い phaseRunID の late response が output、job、phase run を変更しないことを固定している。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 819
+      symbol: "TestBodyTranslationPhaseServiceRejectsTerminalJobTransitionWithoutMutation"
+      reason: "terminal job の state transition 拒否が job と phase run を変更しないことを固定している。"
+    - path: "internal/service/phase_action_enablement_helpers_test.go"
+      line: 65
+      symbol: "TestCommonPhaseActionAvailabilityFollowsSharedOperationRules"
+      reason: "pending が操作可能な canonical state にならず、terminal job と状態不整合で危険操作が無効化されることを固定している。"
+    - path: "internal/infra/sqlite/dbinit/migrations/007_term_translation_indexes.sql"
+      line: 1
+      symbol: "idx_job_phase_run_job_phase_type"
+      reason: "translation_job_id と phase_type の unique index により、同一 job の同一 phase run が二重作成されない根拠になる。"
+    - path: "internal/repository/job_lifecycle_sqlite_repository.go"
+      line: 718
+      symbol: "SQLiteJobLifecycleRepository.CreateJobPhaseRun"
+      reason: "同時 start 時の duplicate insert が DB 制約違反として repository error へ写る根拠になる。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 246
+      symbol: "TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNonPendingRun"
+      reason: "API 境界で Ready job の summary が body phase run を作らず、start が non-pending run を作ることを固定している。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 444
+      symbol: "TestSCN_TJSM_008_TerminalJobRejectsStartWithoutCreatingPhaseRun"
+      reason: "terminal job の start が phase run、output、link を増やさないことを固定している。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 148
+      symbol: "TestSCN_TJSR_001_ReadyJobQueryDoesNotCreatePhaseRun"
+      reason: "repository 境界で Ready job query が phase run を作成しないことを固定している。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 168
+      symbol: "TestSCN_TJSR_003_InconsistentFixtureReadDoesNotMutateStateAndBlocksDangerousDelete"
+      reason: "job state と phase state の不整合を読み取りで修正せず、危険な delete を拒否することを固定している。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 356
+      symbol: "PersonaGenerationPhaseContractStub.CancelPersonaGenerationPhase"
+      reason: "cancel fixture が canceled spelling を返し、cancelled と canonical state が混在しない根拠になる。"
+    - path: ".go-arch-lint.yml"
+      line: 12
+      symbol: "components"
+      reason: "stale な jobio component が削除され、状態保存境界として復活しないことを確認した。"
+    - path: "internal/jobio/doc.go"
+      line: null
+      symbol: "package jobio"
+      reason: "stale な JobIOService package が削除され、状態保存境界が増えていないことを確認した。"
+
+unchecked_scope:
+  - target: "ハーネスの再実行"
+    reason: "codex-review-state-invariant の非対象規約がハーネス実行を禁止しているため、final-validation.md の pass 証跡をレビュー入力として扱った。"
+    risk: "レビュー時点の作業ツリーで検証コマンドを再実行していないため、検証後に追加変更が入った場合の regressions は検出しない。"
+
+invariant_result:
+  maintained_invariants:
+    - "Ready job の読み取りだけでは JOB_PHASE_RUN を作成しない。"
+    - "単語翻訳段階、ペルソナ生成段階、本文翻訳段階の start 時だけ、pending ではない phase run を作成する。"
+    - "同一 job の同一 phase には JOB_PHASE_RUN を二重作成しない。"
+    - "precreated pending run がある場合だけ optimistic expected state pending で昇格する。"
+    - "terminal job では phase run 作成、state 保存、readiness 更新、late response 後書きを拒否する。"
+    - "pending は操作可能 state、成功 state、canonical DTO state として扱わない。"
+    - "job state と phase state の不整合を読み取りで自動修復せず、危険操作を拒否する。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘がないため修正不要。今回の変更は service、usecase fixture、test、architecture lint 削除の範囲で閉じている。"
+  invariant_test_perspective: "部分失敗、start 再送、terminal transition、late response、読み取り時の副作用なし、pending 非正本化を API test、integration test、unit test で確認している。二重 start の重複永続化は DB unique index と repository error mapping を静的に確認している。"
+
+validation_evidence:
+  final_validation_path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/final-validation.md"
+  commands:
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "pass"
+    - command: "python3 scripts/harness/run.py --suite backend-lint"
+      result: "pass"
+    - command: "python3 scripts/harness/run.py --suite structure"
+      result: "pass"
+    - command: "python3 scripts/harness/run.py --suite coverage"
+      result: "pass"
+    - command: "python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/scenario-design.md --json"
+      result: "pass"
+    - command: "go test ./internal/apitest ./internal/integrationtest"
+      result: "pass"
+    - command: "go test ./internal/usecase ./internal/service"
+      result: "pass"
+    - command: "git diff --check"
+      result: "pass"
+    - command: "rg -n \"internal/jobio\\|JobIOService\\|jobio\" internal .go-arch-lint.yml --glob '!**/*_test.go'"
+      result: "pass, exit code 1 and no output"
+    - command: "rg -n \"\\\"cancelled\\\"\\|cancelled\" internal/usecase/persona_generation_phase_contract.go"
+      result: "pass, exit code 1 and no output"
+    - command: "rg -n \"stale_selection\\|validation_stale\\|model_selection_stale\" internal"
+      result: "pass, reason categories remain"
+    - command: "test ! -e docs/exec-plans/active/observability-log-addition"
+      result: "pass"
+  coverage:
+    overall_coverage: "68.71%"
+    overall_line_coverage: "69.41%"
+    backend_statements: "70.0%"
+    backend_line_coverage: "69.57%"
+    sonar_coverage: "71.0%"
+    sonar_line_coverage: "72.2%"
+    sonar_branch_coverage: "62.8%"
+    sonar_security: 0
+    sonar_reliability: 0
+    sonar_maintainability_high: 0
+  system_test_count: "未報告。final-validation.md には system test 件数の記載がなく、API test と integration test の pass だけが記録されている。"
+
+issues: []

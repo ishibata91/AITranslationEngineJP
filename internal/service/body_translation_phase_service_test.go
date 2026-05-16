@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log/slog"
-	"strings"
 	"testing"
 	"time"
 
@@ -696,7 +695,7 @@ func TestBodyTranslationPhaseServiceStartPhasePromotesPreCreatedIdleReadyRunToRu
 	}
 }
 
-func TestBodyTranslationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *testing.T) {
+func TestBodyTranslationPhaseServiceStartPhaseCreatesRunWithoutPrecreatedPhaseRun(t *testing.T) {
 	requests := make([]BodyTranslationProviderRequest, 0, 1)
 	provider := fakeBodyPhaseProvider{
 		translateFunc: func(_ context.Context, request BodyTranslationProviderRequest) BodyTranslationProviderResult {
@@ -707,15 +706,22 @@ func TestBodyTranslationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *
 	service, jobRepo, _ := newBodyTranslationPhaseServiceForTest(provider)
 	delete(jobRepo.runsByPhaseType, bodyTranslationPhaseType)
 
-	_, err := service.StartPhase(context.Background(), 1)
-	if err == nil {
-		t.Fatal("expected missing body translation phase run error")
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start to create body translation phase run: %v", err)
 	}
-	if !strings.Contains(err.Error(), "find body translation phase run for start: not found") {
-		t.Fatalf("expected missing body translation phase run error, got %v", err)
+	if result.PhaseRunID == nil {
+		t.Fatalf("expected created phase run id, got %#v", result)
 	}
-	if len(requests) != 0 {
-		t.Fatalf("expected no provider request without phase run, got %#v", requests)
+	run, exists := jobRepo.runsByPhaseType[bodyTranslationPhaseType]
+	if !exists {
+		t.Fatalf("expected body translation phase run to be created")
+	}
+	if run.State == bodyTranslationPhaseStatePending {
+		t.Fatalf("expected created run not to use pending state, got %#v", run)
+	}
+	if len(requests) == 0 {
+		t.Fatalf("expected provider request after start-created phase run, got %#v", requests)
 	}
 }
 

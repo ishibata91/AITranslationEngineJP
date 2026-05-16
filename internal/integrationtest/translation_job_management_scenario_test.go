@@ -117,6 +117,90 @@ func (h translationJobManagementScenarioHarness) createScenarioJob(
 	return job
 }
 
+func (h translationJobManagementScenarioHarness) createReadyScenarioJobWithoutPhaseRun(
+	t *testing.T,
+	suffix string,
+) repository.TranslationJob {
+	t.Helper()
+	xEdit, err := h.sourceRepo.CreateXEditExtractedData(h.ctx, repository.XEditExtractedDataDraft{
+		SourceFilePath:   fmt.Sprintf("job-state-stale-%s.esp", suffix),
+		SourceTool:       "xEdit",
+		TargetPluginName: fmt.Sprintf("JobStateStale%s.esm", suffix),
+		TargetPluginType: "ESM",
+		RecordCount:      3,
+		ImportedAt:       fixedNow,
+	})
+	if err != nil {
+		t.Fatalf("CreateXEditExtractedData failed: %v", err)
+	}
+	job, err := h.jobRepo.CreateTranslationJob(h.ctx, repository.TranslationJobDraft{
+		XEditExtractedDataID: xEdit.ID,
+		JobName:              fmt.Sprintf("job-state-stale-%s", suffix),
+		State:                "ready",
+		ProgressPercent:      0,
+	})
+	if err != nil {
+		t.Fatalf("CreateTranslationJob failed: %v", err)
+	}
+	return job
+}
+
+func TestSCN_TJSR_001_ReadyJobQueryDoesNotCreatePhaseRun(t *testing.T) {
+	h := newTranslationJobManagementScenarioHarness(t)
+	job := h.createReadyScenarioJobWithoutPhaseRun(t, "ready-query")
+
+	loaded, err := h.jobRepo.GetTranslationJobByID(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("GetTranslationJobByID failed: %v", err)
+	}
+	if loaded.State != "ready" {
+		t.Fatalf("expected Ready job state to remain ready, got %#v", loaded)
+	}
+	phaseRuns, err := h.jobRepo.ListJobPhaseRunsByJobID(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("ListJobPhaseRunsByJobID failed: %v", err)
+	}
+	if len(phaseRuns) != 0 {
+		t.Fatalf("expected Ready job query not to create phase runs, got %#v", phaseRuns)
+	}
+}
+
+func TestSCN_TJSR_003_InconsistentFixtureReadDoesNotMutateStateAndBlocksDangerousDelete(t *testing.T) {
+	h := newTranslationJobManagementScenarioHarness(t)
+	job := h.createScenarioJob(t, "state-mismatch", "paused", "running", 52, "")
+
+	loaded, err := h.jobRepo.GetTranslationJobByID(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("GetTranslationJobByID failed: %v", err)
+	}
+	phaseRuns, err := h.jobRepo.ListJobPhaseRunsByJobID(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("ListJobPhaseRunsByJobID failed: %v", err)
+	}
+	if loaded.State != "paused" || len(phaseRuns) != 1 || phaseRuns[0].State != "running" {
+		t.Fatalf("expected state mismatch fixture before action, job=%#v phaseRuns=%#v", loaded, phaseRuns)
+	}
+
+	result, err := h.jobRepo.DeleteNonRunningTranslationJob(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("DeleteNonRunningTranslationJob failed: %v", err)
+	}
+	if result.Outcome != repository.TranslationJobDeleteOutcomeBlockedUnsafe {
+		t.Fatalf("expected state mismatch to block dangerous delete, got %q", result.Outcome)
+	}
+	afterJob, err := h.jobRepo.GetTranslationJobByID(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("GetTranslationJobByID after delete guard failed: %v", err)
+	}
+	afterRuns, err := h.jobRepo.ListJobPhaseRunsByJobID(h.ctx, job.ID)
+	if err != nil {
+		t.Fatalf("ListJobPhaseRunsByJobID after delete guard failed: %v", err)
+	}
+	if afterJob.State != "paused" || len(afterRuns) != 1 || afterRuns[0].State != "running" {
+		t.Fatalf("expected read and guarded delete not to mutate mismatch states, job=%#v phaseRuns=%#v", afterJob, afterRuns)
+	}
+}
+
 func TestSCN_TJM_004_RunningDeleteIsRejectedAndKeepsInput(t *testing.T) {
 	h := newTranslationJobManagementScenarioHarness(t)
 	job := h.createScenarioJob(t, "running", "running", "running", 48, "stop_requested")

@@ -39,7 +39,6 @@ const (
 	translationJobSetupModelGPT54Mini             = "gpt-5.4-mini"
 	translationJobSetupSecretTimeout              = 250 * time.Millisecond
 	translationJobSetupServiceWhere               = "translation_job_setup.service"
-	translationJobSetupPhaseStatePending          = "pending"
 )
 
 var translationJobSetupAllSlices = []string{"input", "runtime", "credentials"}
@@ -813,9 +812,6 @@ func (service *TranslationJobSetupService) createTranslationJobInTransaction(
 	if err != nil {
 		return TranslationJobSetupCreatedJobReadModel{}, err
 	}
-	if err := service.createUnstartedPhaseRuns(txCtx, job.ID, phaseRuntimes); err != nil {
-		return TranslationJobSetupCreatedJobReadModel{}, err
-	}
 
 	return TranslationJobSetupCreatedJobReadModel{
 		JobID:                job.ID,
@@ -853,46 +849,6 @@ func (service *TranslationJobSetupService) createReadyTranslationJob(
 		return repository.TranslationJob{}, fmt.Errorf("create translation job: %w", err)
 	}
 	return job, nil
-}
-
-func (service *TranslationJobSetupService) createUnstartedPhaseRuns(
-	ctx context.Context,
-	jobID int64,
-	phaseRuntimes map[string]TranslationJobSetupPhaseRuntimeDraftReadModel,
-) error {
-	drafts := []repository.JobPhaseRunDraft{
-		translationJobSetupUnstartedPhaseRunDraft(jobID, termTranslationInitialPhaseType, 1, phaseRuntimes["word_translation"], termTranslationInstructionKindDefault),
-		translationJobSetupUnstartedPhaseRunDraft(jobID, termTranslationPhaseType, 2, phaseRuntimes["word_translation"], termTranslationInstructionKindDefault),
-		translationJobSetupUnstartedPhaseRunDraft(jobID, personaGenerationPhaseType, 3, phaseRuntimes["npc_persona_generation"], personaGenerationInstructionKindDefault),
-		translationJobSetupUnstartedPhaseRunDraft(jobID, bodyTranslationPhaseType, 4, phaseRuntimes["text_translation"], bodyTranslationPhaseType),
-	}
-	for _, draft := range drafts {
-		if _, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, draft); err != nil {
-			return fmt.Errorf("create unstarted job phase run %s: %w", draft.PhaseType, err)
-		}
-	}
-	return nil
-}
-
-func translationJobSetupUnstartedPhaseRunDraft(
-	jobID int64,
-	phaseType string,
-	executionOrder int,
-	runtime TranslationJobSetupPhaseRuntimeDraftReadModel,
-	instructionKind string,
-) repository.JobPhaseRunDraft {
-	runtime = sanitizeTranslationJobSetupPhaseRuntime(runtime)
-	return repository.JobPhaseRunDraft{
-		TranslationJobID: jobID,
-		PhaseType:        phaseType,
-		State:            translationJobSetupPhaseStatePending,
-		ExecutionOrder:   executionOrder,
-		AIProvider:       runtime.Provider,
-		ModelName:        runtime.Model,
-		ExecutionMode:    runtime.ExecutionMode,
-		CredentialRef:    runtime.CredentialRef,
-		InstructionKind:  instructionKind,
-	}
 }
 
 func (service *TranslationJobSetupService) savePhaseRuntimeSnapshots(

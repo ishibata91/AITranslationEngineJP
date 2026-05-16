@@ -1,7 +1,7 @@
 # Scenario Design: 2026-05-16-translation-job-state-stale-retirement
 
 - `skill`: `scenario-design`
-- `status`: `stopped_for_human_decision`
+- `status`: `ready_for_human_design_review`
 - `source_plan`: `./implement-lane-task-frame.md`
 - `ui_source`: `N/A`
 - `final_artifact_path`: `N/A`
@@ -31,9 +31,7 @@
   - DB schema、Wails 公開 DTO、新しい永続 state を追加しない。
   - `docs/exec-plans/completed/**` を変更しない。
   - product code、product test、docs 正本本文の変更可否を、このシナリオ設計だけで承認しない。
-  - `JobIOService` の廃止または実体化を、AI 判断だけで確定しない。
-  - active `observability-log-addition` の task-local 更新範囲を、AI 判断だけで確定しない。
-  - `cancelled` fixture spelling の今回実装範囲を、AI 判断だけで確定しない。
+  - `docs/exec-plans/completed/observability-log-addition/**` を履歴として変更しない。
 
 ## Scenario Candidate Coverage
 
@@ -48,14 +46,17 @@
 `TranslationJobPolicy` の共通操作規則は、利用者が観測する操作可否の同一仕様として採用する。
 実装方式は、`TranslationJobPolicy` を UseCase だけが呼ぶという architecture 正本に従い、implementation-scope で人間レビュー後に決める。
 
-`JobIOService`、active `observability-log-addition`、`cancelled` fixture spelling は、人間レビューが必要な範囲として質問票へ分離する。
+人間回答により、`JobIOService` は stale として architecture 正本から外す。
+人間回答時点で `observability-log-addition` は completed へ移動済みなので、今回の active task-local 更新対象にしない。
+人間回答により、`cancelled` fixture spelling は今回の stale 廃止に含め、`canceled` へそろえる。
 
 ## Detail Requirement Coverage
 
 正本: `./scenario-design.requirement-coverage.json`
 
 詳細要求タイプは JSON に分離した。
-`needs_human_decision` が残るため、scenario-design は完了ではなく人間回答待ちで停止する。
+人間回答は反映済みである。
+scenario-design は人間設計レビューへ進める。
 
 ## Scenario Matrix
 
@@ -132,29 +133,30 @@
 
 ### SCN-TJSR-005 state 事実の保存境界を誤認しない
 
-- `status`: `blocked_by_Q-001`
+- `status`: `ready_after_human_review`
 - `受け入れテスト`: `JobIOService` の扱いに応じて、状態事実の取得と保存の境界を確認する。
 - `実行者`: 状態不整合を調査する運用確認者
-- `開始条件`: `JobIOService` が architecture 正本に残り、実体 package が `doc.go` だけである。
+- `開始条件`: `JobIOService` が stale として扱われ、状態事実の取得と保存を既存の usecase、service、repository 境界へ寄せる。
 - `操作`: job state、phase run state、進捗、失敗 reason category の取得または保存経路を追う。
-- `期待結果`: 運用確認者は、状態事実の保存境界と状態遷移判断の境界を混同しない。
-- `観測点`: architecture 正本、arch-lint component、active task-local の境界名、実体 package の有無
+- `期待結果`: 運用確認者は、実体のない `JobIOService` を状態保存境界として扱わない。
+- `期待結果`: 状態事実の取得と保存は、既存の usecase、service、repository 境界で追跡できる。
+- `観測点`: architecture 正本、arch-lint component、`internal/jobio` の有無、状態事実を扱う既存境界
 - `実行テスト種別`: `lower-level only`
 - `実行段階`: `最終検証`
-- `未決`: `Q-001` の回答が必要である。
+- `人間回答`: `JobIOService` は stale として architecture 正本から外す。
 
 ### SCN-TJSR-006 active task-local の旧名参照を再注入させない
 
-- `status`: `blocked_by_Q-002`
-- `受け入れテスト`: active `observability-log-addition` の `StateMachine` / `JobIOService` 旧名参照を、今回更新するか残留管理するか確認する。
-- `実行者`: active observability task を再開する運用確認者
-- `開始条件`: active `observability-log-addition` に `StateMachine` または `JobIOService` 参照が残っている。
-- `操作`: active task-local の scenario、候補、設計差分図を参照する。
-- `期待結果`: 旧名参照を現在の状態境界として誤認しない。残す場合は既知の残留参照として記録される。
-- `観測点`: active task-local の検索結果、残留理由、更新対象 path、更新しない path 分類
+- `status`: `ready_after_human_review`
+- `受け入れテスト`: `observability-log-addition` が completed archive であり、今回の active task-local 更新対象に含まれないことを確認する。
+- `実行者`: 作業計画を確認する運用確認者
+- `開始条件`: `observability-log-addition` は `docs/exec-plans/completed/` 配下へ移動済みである。
+- `操作`: active task-local と completed archive の path を確認する。
+- `期待結果`: completed archive は履歴として変更しない。今回の stale 廃止では、completed archive の旧名参照を正本入力として再利用しない。
+- `観測点`: `docs/exec-plans/active/observability-log-addition` の不存在、`docs/exec-plans/completed/observability-log-addition` の存在、今回の変更対象 path
 - `実行テスト種別`: `lower-level only`
 - `実行段階`: `最終検証`
-- `未決`: `Q-002` の回答が必要である。
+- `人間回答`: `observability-log-addition` は completed へ移動済みなので、今回の active task-local 更新対象にしない。
 
 ### SCN-TJSR-007 ドメイン仕様の stale reason を保持する
 
@@ -175,20 +177,20 @@
 
 ### SCN-TJSR-008 cancel state spelling を検索漏れさせない
 
-- `status`: `blocked_by_Q-003`
+- `status`: `ready_after_human_review`
 - `受け入れテスト`: 正本 spelling の `Canceled` / `canceled` と、残留 spelling の `cancelled` を検索し、正本 state と fixture 差分を区別する。
 - `実行者`: cancel 済み phase または job の状態を確認する運用確認者
 - `開始条件`: `PersonaGenerationPhaseContractStub` に `cancelled` fixture spelling が残っている。
 - `操作`: cancel 結果、fixture 応答、state 検索結果を確認する。
-- `期待結果`: `cancelled` は正本 state として扱わない。今回含める場合は正本 spelling へそろえる。別 task に送る場合は残留参照として記録する。
+- `期待結果`: `cancelled` は正本 state として扱わない。今回の stale 廃止で fixture spelling を `canceled` へそろえる。
 - `観測点`: fixture response、contract stub、operation availability、terminal guard、検索結果
 - `実行テスト種別`: `lower-level only`
 - `実行段階`: `最終検証`
-- `未決`: `Q-003` の回答が必要である。
+- `人間回答`: `cancelled` fixture spelling は今回の stale 廃止に含め、`canceled` へそろえる。
 
 ## Human Review State
 
-- `scenario-design`: 人間回答待ち。
+- `scenario-design`: 人間回答反映済み。人間設計レビュー待ち。
 - `ui-design`: 該当なし。UI 変更は想定しない。
 - `implementation-scope`: 停止中。人間設計レビュー後にだけ作成する。
 
@@ -197,17 +199,15 @@
 - `scenario candidate presence`: 6 種の候補成果物を確認済み。
 - `scenario candidate generator`: 起動していない。
 - `manual browser check`: 未実行。UI 変更がないため不要。
-- `requirement gate`: `needs_human_decision` が残るため fail になる想定で実行する。
+- `requirement gate`: 人間回答反映後に pass することを確認する。
 
-## Open Questions
+## Human Decisions
 
-質問票正本: `./scenario-design.questions.md`
-
-- `Q-001`: `JobIOService` を architecture 正本から外すか、別 task で実体化するか。
-- `Q-002`: active `observability-log-addition` の旧名参照を今回の task-local 更新へ含めるか。
-- `Q-003`: `cancelled` fixture spelling を今回の stale 廃止へ含めるか。
+- `Q-001`: `JobIOService` は stale として architecture 正本から外す。
+- `Q-002`: `observability-log-addition` は completed へ移動済みなので、今回の active task-local 更新対象にしない。
+- `Q-003`: `cancelled` fixture spelling は今回の stale 廃止に含め、`canceled` へそろえる。
 
 ## Return To Implement Lane
 
-`scenario-design` は人間回答待ちで停止する。
-`implement_lane` は、人間設計レビューまたは質問回答を挟んでから、設計差分図、人間設計レビュー、implementation-scope へ進む判断を行う。
+`scenario-design` は人間設計レビューへ進める。
+`implement_lane` は、設計差分図を更新してから人間設計レビューへ進む。

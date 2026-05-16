@@ -1,0 +1,118 @@
+reviewback_version: 1
+task_id: "2026-05-16-translation-job-state-stale-retirement"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持されている。JobIOService の stale 廃止は lint component と product package の削除で閉じられ、状態事実の作成と更新は既存 service から repository port へ渡されている。commonPhaseActionAvailability は service package 内の helper として状態値だけを入力にし、TranslationJobPolicy package を service 層へ直接 import していない。docs 正本本文は implementation lane で直接変更されていない。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、implementation-wave-result、final-validation、対象差分の実コード、補助検索を確認した。"
+
+checked_scope:
+  summary: "JobIOService 廃止、Ready job 作成時の phase run 事前作成廃止、各 phase の start-on-demand、service helper の操作可否、cancel spelling、API/integration/unit test の境界固定、docs 正本本文の非変更を確認した。"
+  files:
+    - path: ".go-arch-lint.yml"
+      line: 4
+      symbol: "components/deps"
+      reason: "jobio component と許可依存が削除され、stale package への構造依存が残っていないことを確認した。"
+    - path: "internal/jobio/doc.go"
+      line: null
+      symbol: "package jobio"
+      reason: "JobIOService の stale package が削除対象として扱われ、product code に新しい状態保存境界が追加されていないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 481
+      symbol: "createBodyTranslationRunRecord"
+      reason: "body phase run 未存在時の作成と初期化が service から repository port へ渡され、service 層の永続化境界内に収まっていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 729
+      symbol: "ensureExecutionPlanRun"
+      reason: "単語翻訳段階の phase run 未存在時の作成が既存 service から repository port へ渡され、新しい状態保存境界を作っていないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1585
+      symbol: "ensurePersonaPhaseRun"
+      reason: "ペルソナ生成段階の phase run 未存在時の作成が既存 service から repository port へ渡され、新しい状態保存境界を作っていないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 811
+      symbol: "createTranslationJobInTransaction"
+      reason: "Ready job 作成時に JOB_PHASE_RUN を事前作成しないため、状態事実の保存責務が setup service に残り続けていないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1197
+      symbol: "buildActionEnablement"
+      reason: "本文翻訳段階の操作可否が service helper の状態事実に基づいており、policy package 直接 import へ戻っていないことを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers.go"
+      line: 25
+      symbol: "commonPhaseActionAvailability"
+      reason: "helper が job state、phase state、phase run existence、start allowed だけを入力にし、repository、policy、DTO へ依存していないことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 353
+      symbol: "CancelPersonaGenerationPhase"
+      reason: "contract stub の fixture spelling 変更が usecase contract stub 内に閉じており、service や repository 境界へ波及していないことを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers_test.go"
+      line: 5
+      symbol: "TestCommonPhaseActionAvailabilityFollowsSharedOperationRules"
+      reason: "service helper の責務を lower-level test で固定していることを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 246
+      symbol: "TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNonPendingRun"
+      reason: "public API 境界から Ready query と start-on-demand の責務分離を確認する test が追加されていることを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 148
+      symbol: "TestSCN_TJSR_001_ReadyJobQueryDoesNotCreatePhaseRun"
+      reason: "repository integration 境界で Ready job query が phase run を作成しないことを確認する test が追加されていることを確認した。"
+    - path: "docs/architecture.md"
+      line: null
+      symbol: "canonical docs body"
+      reason: "git diff --name-only の補助検索で canonical docs 本文が変更対象に含まれないことを確認した。docs 正本化は implementation lane ではなく後続判断へ分離されている。"
+
+unchecked_scope:
+  - target: "docs/architecture.md と architecture 図の JobIOService 参照"
+    reason: "implementation lane の直接変更禁止範囲であり、implementation-scope が docs 正本化判断へ分離している。"
+    risk: "コード境界と docs 正本本文の一時的なずれが残る。review 観点では承認済み docs 分離の残留事項として扱う。"
+  - target: "frontend、Wails DTO、DB schema"
+    reason: "今回のレビュー対象差分に含まれず、implementation-scope でも変更不要と固定されている。"
+    risk: "UI 表示や外部公開 DTO の責務境界までは、このレビューでは再判定していない。"
+
+issues: []
+
+broken_boundaries: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "局所修正として妥当である。JobIOService 削除は lint 定義と stale package の削除に閉じ、phase run 未存在時の start-on-demand は既存 phase service の start record 作成責務内に収まっている。"
+  reason: "新しい層、adapter、DTO、repository contract、policy import を増やさず、既存 service/usecase/repository 境界に沿って状態事実を扱っているためである。"
+
+boundary_fixed_test_viewpoints:
+  - "service helper は Running、Paused、RecoverableFailed、terminal、pending、状態不整合の操作可否を固定している。"
+  - "API test は Ready summary が body phase run を作成しないことと、start が non-pending phase run を作成することを固定している。"
+  - "integration test は Ready job query が phase run を作成しないことと、状態不整合時の読み取り非変更を固定している。"
+
+validation_evidence:
+  source: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/final-validation.md"
+  commands_passed:
+    - "python3 scripts/harness/run.py --suite backend-local"
+    - "python3 scripts/harness/run.py --suite backend-lint"
+    - "python3 scripts/harness/run.py --suite structure"
+    - "python3 scripts/harness/run.py --suite coverage"
+    - "python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/scenario-design.md --json"
+    - "go test ./internal/apitest ./internal/integrationtest"
+    - "go test ./internal/usecase ./internal/service"
+    - "git diff --check"
+  coverage:
+    overall_coverage: "68.71%"
+    overall_line_coverage: "69.41%"
+    backend_statements: "70.0%"
+    backend_line_coverage: "69.57%"
+    sonar_coverage: "71.0%"
+    sonar_line_coverage: "72.2%"
+    sonar_branch_coverage: "62.8%"
+    sonar_security_issues: 0
+    sonar_reliability_issues: 0
+    sonar_maintainability_high_issues: 0
+
+residual_risks:
+  - "architecture 正本本文には JobIOService 記述が残る。docs 正本化は implement lane 後続判断へ分離されている。"
+  - "task-local docs には設計成果物の差分がある。canonical docs 本文の更新有無は docs_updater 判断で別途扱う。"

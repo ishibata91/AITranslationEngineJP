@@ -15,15 +15,19 @@ participant "phase service\ninternal/service/*_phase_service.go" as PhaseService
 participant "重複 policy wrapper\n evaluateTermPolicy / evaluatePersonaPolicy / evaluateBodyPolicy" as DuplicateWrapper
 participant "phase_policy_helpers.go\n共通 helper" as SharedHelper
 participant "TranslationJobPolicy" as TranslationJobPolicy
+participant "PolicyResult / rule 名 / 判定履歴\nUseCase 内だけの一時値" as EphemeralPolicyResult
 participant "重複 action enablement 分岐" as DuplicateEnablement
 participant "policy 由来の\n薄い操作可否接続" as PolicyDerivedEnablement
-participant "変更しない接続先\nDB schema / DTO / frontend UI / stale reason" as UnchangedTargets
+database "保存済み state facts\nTRANSLATION_JOB.state / JOB_PHASE_RUN.state" as StateFacts
+participant "変更しない接続先\nDTO / stale reason / frontend UI" as UnchangedTargets
 
 == 変更前の重複経路 ==
 
 Caller -> PhaseUsecase : start / pause / resume / retry / cancel
 PhaseUsecase -> PhaseService : ReadSummary(jobID)
-PhaseService --> PhaseUsecase : job state / phase state / action enablement
+PhaseService -> StateFacts : Ready job でも pending phase run を前提
+StateFacts --> PhaseService : job state / phase state / action enablement
+PhaseService --> PhaseUsecase : read model summary
 PhaseUsecase -> DuplicateWrapper : phaseRun 一致と active run を phase ごとに評価
 DuplicateWrapper -> TranslationJobPolicy : Input を phase ごとに組み立てる
 TranslationJobPolicy --> DuplicateWrapper : allowed / reason
@@ -38,16 +42,22 @@ PhaseService -> UnchangedTargets : 変更なし
 Caller -> PhaseUsecase : start / pause / resume / retry / cancel
 PhaseUsecase -> SharedHelper : policy input を共通化して求める
 SharedHelper -> PhaseService : ReadSummary(jobID)
-PhaseService --> SharedHelper : job state / phase state / start 可否
+PhaseService -> StateFacts : Ready job に phase run を事前作成しない
+StateFacts --> PhaseService : job state / phase state
+PhaseService --> SharedHelper : state facts / start 可否
 SharedHelper -> TranslationJobPolicy : 共通 Input を評価
-TranslationJobPolicy --> SharedHelper : allowed / reason
+TranslationJobPolicy --> EphemeralPolicyResult : allowed / reason / rule 名
+EphemeralPolicyResult --> SharedHelper : DTO や DB へ出さない一時値
 SharedHelper --> PhaseUsecase : 判定結果と blocked reason 生成材料
 
 alt policy が拒否する
     PhaseUsecase --> Caller : policy 由来の拒否結果を返す
 else policy が許可する
     PhaseUsecase -> PhaseService : command 実行
+    PhaseService -> StateFacts : start 時だけ Running phase run を作成
     PhaseService -> PolicyDerivedEnablement : policy 由来の操作可否へ寄せる
+    PolicyDerivedEnablement -> StateFacts : 同じ state facts から導出
+    StateFacts --> PolicyDerivedEnablement : state facts
     PolicyDerivedEnablement --> PhaseService : 薄い read model 接続
     PhaseService --> Caller : summary / command result
 end
@@ -60,6 +70,7 @@ note right of SharedHelper
 
 追加または統合対象:
 - policy input 共通 helper
+- pending を canonical state にしない
 end note
 
 note right of PolicyDerivedEnablement
@@ -69,6 +80,14 @@ note right of PolicyDerivedEnablement
 変更しない:
 - TranslationJobPolicy の状態意味
 - stale_* 理由分類
+end note
+
+note right of StateFacts
+start 前:
+- Ready job に active phase run はない
+
+start 許可後:
+- 最初に観測できる phase state は Running
 end note
 
 @enduml

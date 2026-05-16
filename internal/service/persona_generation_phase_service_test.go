@@ -517,21 +517,27 @@ func TestPersonaGenerationPhaseServiceStartPhasePromotesPreCreatedPendingRunToRu
 	}
 }
 
-func TestPersonaGenerationPhaseServiceStartPhaseReturnsNotFoundWithoutPhaseRun(t *testing.T) {
+func TestPersonaGenerationPhaseServiceStartPhaseCreatesNonPendingRunWithoutPrecreatedPhaseRun(t *testing.T) {
 	sourceRecords := []repository.TranslationRecord{{ID: 21, RecordType: "NPC_", EditorID: "Lydia", FormID: "000ABC"}}
-	service, _ := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, sourceRecords)
+	service, repo := newPersonaPhaseServiceForTest(personaGenerationJobStateRunning, personaGenerationPhaseStateCompleted, nil, sourceRecords)
 	capturingProvider := &capturingPersonaGenerationProvider{}
 	service.WithPersonaGenerationProvider(capturingProvider)
 
-	_, err := service.StartPhase(context.Background(), 1)
-	if err == nil {
-		t.Fatal("expected missing persona generation phase run error")
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected start success without pre-created phase run: %v", err)
 	}
-	if !strings.Contains(err.Error(), "find persona generation phase run for start: not found") {
-		t.Fatalf("expected missing persona generation phase run error, got %v", err)
+	if result.PhaseRunID == nil || *result.PhaseRunID == 0 {
+		t.Fatalf("expected created persona phase run id, got %#v", result.PhaseRunID)
 	}
-	if len(capturingProvider.requests) != 0 {
-		t.Fatalf("expected no provider request without phase run, got %#v", capturingProvider.requests)
+	if repo.personaRun == nil {
+		t.Fatal("expected created persona generation phase run")
+	}
+	if repo.personaRun.State == personaGenerationPhaseStatePending {
+		t.Fatalf("expected created run not to be pending, got %#v", repo.personaRun)
+	}
+	if len(capturingProvider.requests) != 1 {
+		t.Fatalf("expected one provider request after phase run creation, got %#v", capturingProvider.requests)
 	}
 }
 

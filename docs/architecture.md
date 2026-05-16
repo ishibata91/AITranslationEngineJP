@@ -29,7 +29,6 @@
 - `Backend UseCase`: query / command / import を orchestrate し、job 状態と application result を扱う
 - `ServicePort`: `Backend UseCase` から `Service` へ向かう usecase 依存境界
 - `TranslationJobPolicy`: 翻訳ジョブ操作の共通操作規則と phase 開始前提を評価する UseCase 専用の純粋な規則オブジェクト
-- `JobIOService`: job と phase run の状態取得と、UseCase が確定した状態事実の保存だけを扱う
 - `NotificationSinkPort`: 実行側の複数主体が進捗事実、完了事実、破棄事実を横から渡す通知入口
 - `NotificationDispatcher`: `NotificationSinkPort` の実装として、通知事実を Wails 非依存の通知へ整形する
 - `NotificationPort`: `Notification` から transport adapter へ渡す送信境界
@@ -60,7 +59,7 @@ DB テーブル、DTO 項目、要件フロー、画面遷移は構造図へ混�
 - `Backend Bootstrap -> Controller`
 - `Controller -> UseCasePort`
 - `UseCasePort -> Backend UseCase`
-- `Backend UseCase -> ServicePort / TranslationJobPolicy / JobIOService / NotificationSinkPort`
+- `Backend UseCase -> ServicePort / TranslationJobPolicy / NotificationSinkPort`
 - `ServicePort -> Service`
 - `Service -> RepositoryPort / XMLFilePort / XMLRecordReaderPort / NotificationSinkPort / AIProvider`
 - `NotificationSinkPort -> NotificationDispatcher`
@@ -171,9 +170,10 @@ UI Component の部品化判断は次の表に従う。
 - query / command / import を orchestrate する
 - job 状態と application result を扱う
 - `ServicePort` を使って query / command / import を起動する
-- `TranslationJobPolicy` と `JobIOService` を使って job / phase run 状態を扱う
+- `TranslationJobPolicy` を使って job / phase run 状態の操作可否を判断する
+- job / phase run 状態の取得と保存は既存の `ServicePort`、`Service`、`RepositoryPort`、`Repository` 境界を通す
 - `TranslationJobPolicy` から操作可否、拒否理由、状態作用、呼び出す service method の種類を得る
-- `JobIOService` で job / phase run snapshot を取得し、確定済み状態事実だけを保存する
+- UseCase が確定した状態事実だけを既存の service / repository 経由で保存する
 - 必要な通知事実を `NotificationSinkPort` へ渡す
 - synchronous response に必要な操作結果を返す
 - Wails runtime event payload を組み立てない
@@ -190,14 +190,15 @@ UI Component の部品化判断は次の表に従う。
 `retry`、`resume`、`pause`、`cancel` の可否は phase type で分けない。
 
 `PolicyResult` は UseCase 内の一時値である。
-`PolicyResult`、適用 rule 名、policy 判定履歴は DB、DTO、repository 永続契約へ出さない。
+`PolicyResult`、適用 rule 名、policy 判定履歴は DB、DTO、repository 永続契約、read model の永続値へ出さない。
 
-### 4.5 JobIOService
+### 4.5 Job / phase run 状態事実
 
-`JobIOService` は job と phase run の状態取得と保存だけを扱う。
-`JobIOService` は遷移可否、terminal guard、provider response validation、UI 表示文言を判断しない。
+job / phase run 状態の取得と保存は、既存の UseCase、Service、Repository 境界で扱う。
+専用の状態 IO service を構造主語として置かない。
+状態遷移可否、terminal guard、provider response validation、UI 表示文言は永続化 adapter で判断しない。
 
-`JobIOService` が保存する対象は、UseCase が確定した `TRANSLATION_JOB.state`、`JOB_PHASE_RUN.state`、継続または作成された `JOB_PHASE_RUN` id、進捗、開始時刻、終了時刻、失敗 reason category などの状態事実だけである。
+保存する対象は、UseCase が確定した `TRANSLATION_JOB.state`、`JOB_PHASE_RUN.state`、継続または作成された `JOB_PHASE_RUN` id、進捗、開始時刻、終了時刻、失敗 reason category などの状態事実だけである。
 operation summary、provider raw payload、secret、API key、credential 参照実値は保存しない。
 
 ### 4.6 Notification
@@ -249,10 +250,10 @@ adapter concrete は `internal/repository/`、`internal/service/`、`internal/in
 - `Frontend UseCase` は `GatewayContract` と `Store` だけに依存する
 - `Backend Controller` は caller-owned `UseCasePort` だけに依存する
 - `Backend Controller` は途中経過通知の経路にならない
-- `Backend UseCase` は caller-owned `ServicePort`、`TranslationJobPolicy`、`JobIOService`、`NotificationSinkPort` に依存する
+- `Backend UseCase` は caller-owned `ServicePort`、`TranslationJobPolicy`、`NotificationSinkPort` に依存する
 - `Backend UseCase` は `NotificationDispatcher`、`NotificationPort`、`Runtime adapter` に依存しない
 - `TranslationJobPolicy` を呼べる層は `Backend UseCase` だけにする
-- `JobIOService` は policy 判断結果、rule 名、判定履歴を保存しない
+- policy 判断結果、rule 名、判定履歴は永続化 adapter へ渡さない
 - `NotificationDispatcher` は状態遷移可否を判断しない
 - `Service` core は concrete driver、runtime API、`NotificationDispatcher` を直接参照しない
 - Wails event は push 通知専用に限定し、通常の query / command を置き換えない
@@ -270,7 +271,6 @@ adapter concrete は `internal/repository/`、`internal/service/`、`internal/in
 - `internal/usecase/translationjobpolicy/`: 翻訳ジョブ操作の共通操作規則と phase 開始前提
 - `internal/notification/`: `NotificationSinkPort`、通知種別、redaction、送信可否、送信失敗の扱い
 - `internal/service/`: 実処理と adapter port
-- `internal/jobio/`: job / phase run 状態の取得と確定済み状態事実の保存
 - `internal/repository/`: 永続化 adapter
 - `internal/aiprovider/`: AI provider 境界
 - `internal/infra/`: runtime、HTTP client、filesystem、database driver などの concrete 実装

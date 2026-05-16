@@ -356,8 +356,8 @@ func (PersonaGenerationPhaseContractStub) CancelPersonaGenerationPhase(
 	request CancelPersonaGenerationPhaseRequest,
 ) (PersonaGenerationPhaseCommandResult, error) {
 	result := personaGenerationStartedFixture(request.JobID, request.PhaseRunID)
-	result.PhaseState = "cancelled"
-	result.Progress.CurrentStep = "cancelled"
+	result.PhaseState = "canceled"
+	result.Progress.CurrentStep = "canceled"
 	result.CanStartBodyPhase = false
 	return result, nil
 }

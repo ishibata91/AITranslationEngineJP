@@ -1,0 +1,161 @@
+reviewback_version: 1
+task_id: "2026-05-16-translation-job-state-stale-retirement"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "未解決の権限・信頼境界問題はない。対象差分は実 provider、実 credential、実 endpoint を使う経路を追加せず、追加 backend log は job ID と phase run ID と分類値だけを出している。credential は参照値、prompt は digest として扱われ、provider raw payload、prompt 全文、翻訳本文全文、credential 実値、API key、endpoint 実値を新しく保存、表示、ログ出力していない。test 内の secret 文字列と endpoint 文字列は fake provider、in-memory secret store、example.test または localhost の固定 fixture であり、実 credential や実 provider endpoint ではない。"
+  evidence_sufficiency: "十分。implementation-scope、observability-result、final-validation、対象差分の実コード、追加ログ payload、term/persona/body の start-on-demand、API/integration/unit test fixture を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "JobIOService 削除、persona cancel fixture spelling、translation job setup の pending phase run 廃止、term/persona/body translation start-on-demand、追加 backend log、API/integration/unit test の secret・外部入力・ログ境界を確認した。"
+  files:
+    - path: ".go-arch-lint.yml"
+      line: 4
+      symbol: "components/deps"
+      reason: "jobio component と許可依存が削除され、stale 状態保存境界が新しい依存境界として残っていないことを確認した。"
+    - path: "internal/jobio/doc.go"
+      line: 1
+      symbol: "package jobio"
+      reason: "削除前の package が job state load/save responsibility だけを持つ stale package であり、削除が secret 境界や外部 endpoint 境界を新設しないことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 353
+      symbol: "CancelPersonaGenerationPhase"
+      reason: "cancel fixture は state spelling だけを変更し、credential 実値、API key、prompt 全文、provider payload を返していないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 481
+      symbol: "createBodyTranslationRunRecord"
+      reason: "start-on-demand の phase run 作成は credential_ref と prompt_digest の参照値を使い、endpoint 実値や raw payload を永続化しないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 541
+      symbol: "slog.LogAttrs"
+      reason: "追加 log payload が event、where、result、id、reason だけで、secret、API key、endpoint、prompt、翻訳本文、trace ID を含まないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 733
+      symbol: "ensureExecutionPlanRun"
+      reason: "term translation の start-on-demand は phase run に provider、model、execution mode、credential_ref だけを保存し、API key、endpoint 実値、provider raw payload、prompt 全文を保存またはログ出力しないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 1855
+      symbol: "termTranslationExecutionBasePhase"
+      reason: "Ready job の読み取りでは未永続の idle ready read model を返し、secret、endpoint、provider payload を新しく表示または保存しないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1595
+      symbol: "ensurePersonaPhaseRun"
+      reason: "persona generation の start-on-demand は term run 由来の credential_ref を参照値として引き継ぎ、credential 実値、API key、endpoint 実値を保存またはログ出力しないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 811
+      symbol: "createTranslationJobInTransaction"
+      reason: "Ready job 作成時に pending phase run を事前作成しない差分であり、phase runtime snapshot は credential status などの参照状態だけを保存していることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1640
+      symbol: "logBodyTranslationProviderBulkSummary"
+      reason: "既存 provider summary log は集約数と failure kind だけを出し、raw request、raw response、prompt、endpoint を出さない境界を維持していることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 1775
+      symbol: "buildBodyTranslationProviderRequest"
+      reason: "provider request には SourceText と EndpointSummary が渡るが、対象差分の追加 log と phase run 永続化へそれらを出していないことを確認した。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 289
+      symbol: "TestLogBodyTranslationProviderBulkSummaryUsesAggregateSafePayload"
+      reason: "provider summary log が api_key、endpoint、raw_request、raw_response、prompt、trace_id を payload key として出さない既存確認を見た。"
+    - path: "internal/service/body_translation_phase_service_test.go"
+      line: 696
+      symbol: "TestBodyTranslationPhaseServiceStartPhaseCreatesRunWithoutPrecreatedPhaseRun"
+      reason: "phase run 未作成時の start-on-demand が fake provider だけで実行され、実 provider endpoint や実 credential を必要としないことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 393
+      symbol: "newTermTranslationPhaseServiceForTest"
+      reason: "term translation test は in-memory secret store と fake provider settings を使い、実 credential や実 provider endpoint を使わないことを確認した。"
+    - path: "internal/service/term_translation_phase_service_test.go"
+      line: 1196
+      symbol: "TestTermTranslationPhaseServiceUsesSecretStoreValueInsteadOfCredentialRef"
+      reason: "test 内の API key は gemini-secret という固定 fixture であり、fake provider request 捕捉だけに使われ、product log、DTO、永続 read model へ出ていないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service_test.go"
+      line: 336
+      symbol: "ProviderSettingsResolveResult fixture"
+      reason: "persona generation test の endpoint と credential reference は固定 fixture であり、実 endpoint 実値や実 credential 実値ではないことを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers_test.go"
+      line: 5
+      symbol: "TestCommonPhaseActionAvailabilityFollowsSharedOperationRules"
+      reason: "操作可否の共通規則 test が状態値だけを扱い、secret、外部 URL、user-controlled 入力を扱わないことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract_test.go"
+      line: 60
+      symbol: "persona phase contract fixture"
+      reason: "public contract fixture は credential_ref と prompt_digest を参照値として持ち、raw prompt や secret 実値を露出しない確認があることを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract_test.go"
+      line: 307
+      symbol: "TestPersonaGenerationContract_CancelFixtureUsesCanceledSpelling"
+      reason: "追加 test は state spelling だけを確認し、secret 値や provider payload を扱わないことを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 246
+      symbol: "TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNonPendingRun"
+      reason: "public API 境界の Ready query と start-on-demand は fake provider と fixture credential_ref だけを使うことを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 748
+      symbol: "ResolveProviderExecutionSettings"
+      reason: "API test の endpoint と credential reference は example.test の固定 fixture 値であり、実 endpoint 実値や実 credential 実値を使わないことを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 148
+      symbol: "TestSCN_TJSR_001_ReadyJobQueryDoesNotCreatePhaseRun"
+      reason: "integration test は repository と SQLite 境界の state だけを検証し、実 provider、実 credential、実 endpoint を使わないことを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 168
+      symbol: "TestSCN_TJSR_003_InconsistentFixtureReadDoesNotMutateStateAndBlocksDangerousDelete"
+      reason: "状態不整合 fixture の危険操作抑止は repository 境界だけを扱い、認証情報や外部送信先を扱わないことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/implementation-scope.md"
+      line: 36
+      symbol: "Fixed Decisions"
+      reason: "provider raw payload、prompt 全文、翻訳本文全文、credential 実値、API key、endpoint 実値を新しく保存、表示、ログ出力しない承認済み条件を確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/observability-result.md"
+      line: 20
+      symbol: "追加ログ"
+      reason: "追加ログの payload と禁止ログ確認を確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/final-validation.md"
+      line: 10
+      symbol: "Commands"
+      reason: "backend-local、backend-lint、structure、coverage、scenario gate、API/integration/usecase/service test、補助検索が pass した証跡を確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "codex-review-trust-boundary skill の非対象規約がハーネス実行を禁止しているため、final-validation.md の pass 証跡を入力根拠として扱った。"
+    risk: "レビュー時点の作業ツリーで再実行した結果との差分は直接観測していない。final-validation.md は対象コマンドすべて pass と記録している。"
+  - target: "UI と Wails DTO の実画面確認"
+    reason: "implementation-scope で UI、DB schema、Wails DTO は変更なしと固定され、レビュー対象差分にも frontend / DTO 変更が含まれないため確認対象外にした。"
+    risk: "画面表示上の secret 露出は今回差分からは増えない判断だが、既存 UI 全体の網羅監査はしていない。"
+  - target: "実 provider credential の実行確認"
+    reason: "実装目的が実 API、実 credential、実 provider endpoint を使わないことを要求しているため、実送信確認は行っていない。"
+    risk: "実 provider 側の運用設定値は未確認だが、対象差分は fake provider と参照値だけで検証されている。"
+
+issues: []
+
+safety_checks:
+  authentication: "対象差分は未認証利用者向けの新しい到達経路を追加していない。controller 経由 test は既存 public seam の state 操作だけを使っている。"
+  authorization: "user、role、admin 境界を扱う変更はない。危険操作抑止は state mismatch と terminal job による操作可否に限定されている。"
+  tenant_isolation: "tenant 境界を持つ変更はない。test fixture は単一 job ID と phase run ID の範囲だけを扱っている。"
+  external_input: "追加差分は状態値、ID、fixture 値を扱う。外部 URL、file upload、SQL 断片を user-controlled 入力から組み立てる経路は追加していない。"
+  secret_pii: "credential_ref は参照値として扱われ、credential 実値、API key、endpoint 実値、provider raw payload、prompt 全文、翻訳本文全文の新規保存、表示、ログ出力は見つからない。"
+  injection: "SQL injection、XSS、SSRF、file upload の新経路は対象差分に見つからない。追加 endpoint は test fixture の固定値であり、product log や永続 phase run へ出していない。"
+
+secret_boundary_checks:
+  destination: "実 credential 本体の新しい送信先は追加されていない。provider request には既存の credential_ref と endpoint summary が渡るが、対象差分の新規 provider 実装や実 endpoint 呼び出しはない。"
+  display: "UI、DTO、read model の変更はない。persona contract fixture は credential_ref と prompt_digest を参照値として持つ。"
+  storage: "start-on-demand の phase run 作成は credential_ref、provider、model、digest などの参照値を保存する。credential 実値、API key、endpoint 実値、provider raw payload、prompt 全文、翻訳本文全文は保存していない。"
+  logging: "追加 backend log は event、where、result、id、reason だけを出す。trace ID、secret、API key、provider raw payload、prompt 全文、翻訳本文全文、endpoint 実値は出していない。"
+  name_separation: "CredentialRef は参照値として使われている。test 内の APIKey は fake provider request の捕捉対象であり、credential_ref、token、credential 実値を同じ値として扱う product 差分は見つからない。"
+
+broken_invariants: []
+cause_candidates: []
+local_fix_assessment: "未解決 issue がないため修正不要。仮に追加ログへ payload を増やす場合は、観測ログ仕様の禁止事項と secret 確認表を同じ関数単位で再確認する必要がある。"
+invariant_test_viewpoints:
+  - "追加 log payload に secret、API key、endpoint、raw request、raw response、prompt、trace_id が含まれないこと。"
+  - "start-on-demand の phase run 永続化が credential_ref、provider、model、digest などの参照値だけを扱い、secret 実値や endpoint 実値を保存しないこと。"
+  - "API/integration test が fake provider と fixture 参照値だけで実行され、実 provider endpoint と実 credential を要求しないこと。"
+
+residual_risks:
+  - "既存の provider request には翻訳対象 SourceText と endpoint summary が渡る。対象差分はこの既存 provider 実行境界を拡張していないため、今回レビューでは新規露出なしと判断した。"
+  - "追加 start-on-demand log 自体を直接検査する専用 test はない。実コードの payload 確認と observability-result の禁止ログ確認により判定可能とした。"

@@ -1,7 +1,7 @@
 # Implement Lane Human Decision Request
 
 - `skill`: `implement-lane`
-- `status`: `waiting_human_decision`
+- `status`: `answered`
 - `source`: `scenario-design.questions.md`
 - `return_to`: `implement_lane`
 
@@ -11,16 +11,16 @@
 | --- | --- | --- |
 | `task 枠` | 完了 | `implement-lane-task-frame.md` |
 | `scenario_candidates` | 完了 | `scenario-candidates.*.md` 6 件 |
-| `シナリオ設計` | 停止中 | `scenario-design.md`, `scenario-design.questions.md` |
+| `シナリオ設計` | 人間回答反映済み | `scenario-design.md`, `scenario-design.questions.md` |
 | `UI設計` | 該当なし | UI 変更なし |
-| `設計差分図` | 未着手 | `シナリオ設計` の人間判断待ち |
+| `設計差分図` | 着手可能 | `シナリオ設計` の人間回答反映済み |
 | `人間設計レビュー` | 未着手 | `設計差分図` 未完了 |
 | `実装範囲` | 停止中 | `人間設計レビュー` 未完了 |
 
-## 停止理由
+## 解決結果
 
-`scenario-design` は、人間判断 3 件が残るため完了できない。
-`設計差分図`、`人間設計レビュー`、`implementation-scope` は、質問回答後に進める。
+`scenario-design` の人間判断 3 件は回答済みである。
+次は `設計差分図` を更新し、人間設計レビューへ進む。
 
 ## 人間判断
 
@@ -38,6 +38,9 @@
 AI 推奨:
 1 を推奨する。実体 package がない構造主語を残すと、状態保存境界と状態遷移判断の誤読が続く。
 
+人間回答:
+選択肢 1。`JobIOService` は stale として扱い、architecture 正本から外す。
+
 ### Q-002 active `observability-log-addition` 旧名参照の扱い
 
 決める仕様:
@@ -51,6 +54,11 @@ active `observability-log-addition` に残る `StateMachine` / `JobIOService` �
 
 AI 推奨:
 1 を推奨する。active task-local は後続作業の入力になるため、旧名参照を残すと古い責務境界が再注入される可能性がある。
+
+人間回答:
+`observability-log-addition` は completed へ移動済みである。
+今回の active task-local 更新対象にはしない。
+completed archive は履歴として変更しない。
 
 ### Q-003 `cancelled` fixture spelling の今回範囲
 
@@ -66,9 +74,12 @@ AI 推奨:
 AI 推奨:
 1 を推奨する。正本 spelling が明示済みであり、検索漏れと terminal 判定の誤読を小さな範囲で減らせる。
 
+人間回答:
+選択肢 1。`cancelled` fixture spelling は今回の stale 廃止に含め、`canceled` へそろえる。
+
 ## 再開条件
 
-人間が Q-001、Q-002、Q-003 へ回答したら、`designer` を再起動して `scenario-design` を更新する。
+`scenario-design` は人間回答を反映済みである。
 `scenario-design` が通過した後に、`diagrammer` で設計差分図を作る。
 設計差分図が揃った後に、人間設計レビューへ進む。
 

@@ -2,7 +2,7 @@
 
 ## 目的
 
-翻訳ジョブ状態関連の stale 廃止について、実装着手前に削除予定、追加または統合予定、変更しない接続先、人間判断または正本化判断が必要な候補を再解釈なしで判断できるようにする。
+翻訳ジョブ状態関連の stale 廃止について、実装レーンの人間回答反映後に、削除予定、追加または統合予定、変更しない接続先を再解釈なしで判断できるようにする。
 全体構成図は作らず、予定変更箇所だけを差分として示す。
 
 ## 図成果物
@@ -16,45 +16,39 @@
 
 - `internal/statemachine/` は `doc.go` だけの旧設計 package なので削除予定とした。
 - `.go-arch-lint.yml` の `statemachine` component と `usecase -> statemachine`、`apitest -> statemachine` 許可依存は追従削除予定とした。
+- `internal/jobio/` は `doc.go` だけで、`JobIOService` は stale として architecture 正本から外す人間回答が確定したため、削除予定とした。
+- `.go-arch-lint.yml` の `jobio` component と許可依存は、`internal/jobio/` の削除に追従して削除予定とした。
 - `internal/usecase/*_phase_usecase.go` に散らばる phase 別 policy wrapper は、`phase_policy_helpers.go` へ統合される前提で削除予定とした。
 - `internal/service/*_phase_service.go` に残る phase 別 action enablement 分岐は、policy 由来の薄い接続へ寄せる前提で削除予定とした。
 
 ### 追加または統合予定
 
 - `internal/usecase/phase_policy_helpers.go` は policy input 共通 helper の受け皿として追加または拡張予定とした。
-- `internal/service/*_phase_service.go` 側には、`TranslationJobPolicy` の状態意味を再利用した薄い操作可否接続を追加または統合予定とした。
-
-### 人間判断または正本化判断が必要
-
-- `internal/jobio/` は `doc.go` だけだが、`docs/architecture.md` と `docs/diagrams/backend/backend-architecture.puml` では現行主語として残っている。削除予定とは断定せず、判断保留候補として示した。
-- `.go-arch-lint.yml` の `jobio` component と許可依存は、`internal/jobio/` の扱いが固まるまで変更対象に留めた。
-- `docs/exec-plans/active/observability-log-addition/` に残る `StateMachine` / `JobIOService` 旧名参照は、この task で直接更新せず、別成果物または正本化判断対象として示した。
+- `internal/service/*_phase_service.go` 側には、`TranslationJobPolicy` と同じ state 事実から操作可否を導く薄い read model 接続を追加または統合予定とした。
+- `Ready` job には `JOB_PHASE_RUN` を事前作成せず、start 許可時だけ `Running` の phase run を作る流れを統合予定とした。
+- `cancelled` fixture spelling は、今回の stale 廃止に含めて `canceled` へそろえる予定とした。
 
 ### 変更しない接続先
 
 - DB schema、Wails DTO、frontend UI は今回の stale 廃止差分では変更しない。
 - domain の `stale_selection`、`validation_stale`、`model_selection_stale` は利用者向けまたは API 向けの理由分類なので変更しない。
 - `TranslationJobPolicy` の状態意味そのものは変更しない。
+- `PolicyResult`、rule 名、policy 判定履歴は UseCase 内の一時値のままとし、DTO、DB、repository 永続契約へ出さない。
 - `docs/exec-plans/completed/**` は履歴なので変更しない。
+- `docs/exec-plans/completed/observability-log-addition/**` は completed archive なので今回の active task-local 更新対象にしない。
 
 ## 根拠参照
 
-- `plan.md`: stale の定義、削除候補、追加候補、未決事項。
-- `light-change-planning.md`: `JobIOService` の扱いが正本化判断に依存する点、図で扱う変更対象。
-- `docs/architecture.md`: `TranslationJobPolicy`、`JobIOService`、依存方向の現行正本。
-- `docs/diagrams/backend/backend-architecture.puml`: architecture 正本図で `JobIOService` が backend usecase の依存として残る事実。
-- `.go-arch-lint.yml`: `statemachine` と `jobio` component、許可依存の現行定義。
-- `internal/usecase/translationjobpolicy/policy.go`: 状態意味を変えず共通操作規則だけを使う判断根拠。
-- `internal/statemachine/doc.go`: 旧設計 package が `doc.go` のみである根拠。
-- `internal/jobio/doc.go`: 旧設計 package が `doc.go` のみである根拠。
-- `internal/usecase/phase_policy_helpers.go`: 共通 helper の既存受け皿。
-- `internal/usecase/term_translation_phase_usecase.go`
-- `internal/usecase/persona_generation_phase_usecase.go`
-- `internal/usecase/body_translation_phase_usecase.go`
-- `internal/service/term_translation_phase_service.go`
-- `internal/service/persona_generation_phase_service.go`
-- `internal/service/body_translation_phase_service.go`
-- `docs/exec-plans/active/observability-log-addition/` 配下の `scenario-design.md`、`scenario-candidates.*.md`、既存 `design-diff.*.puml`: `StateMachine` / `JobIOService` 旧名参照。
+- `implement-lane-task-frame.md`: stale 対象、禁止範囲、最初に固定する判断。
+- `scenario-design.md`: `pending` 非昇格、`Ready` job の phase run 非事前作成、`JobIOService` 廃止、completed archive 非更新、`cancelled` spelling 統一。
+- `scenario-design.candidate-coverage.json`: 人間回答 3 件の反映結果。
+- `scenario-design.requirement-coverage.json`: `REQ-TJSR-001`、`REQ-TJSR-002`、`REQ-TJSR-005`、`REQ-TJSR-006`、`REQ-TJSR-008` の差分要求。
+- `implement-lane-human-decision-request.md`: `JobIOService` 廃止、completed archive 非更新、`cancelled` spelling 統一の人間回答。
+- `backend-implementation-result.md`: backend 実装証跡として `statemachine` 削除済み、`jobio` 未変更、helper 統合済みである事実。
+- `docs/spec.md`: `TRANSLATION_JOB.state` と `JOB_PHASE_RUN.state` の正本、`Ready` job の phase run 非事前作成、共通操作規則、`Canceled` spelling。
+- `docs/architecture.md`: `TranslationJobPolicy` の UseCase 専用境界と、現行正本に `JobIOService` が残っている衝突点。
+- `.go-arch-lint.yml`: `jobio` component と許可依存の現行定義。
+- `internal/jobio/doc.go`: `internal/jobio/` が `doc.go` だけである根拠。
 
 ## 検証
 

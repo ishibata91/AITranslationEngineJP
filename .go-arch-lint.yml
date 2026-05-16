@@ -12,8 +12,6 @@ components:
     in: usecase/translationjobpolicy/**
   service:
     in: service/**
-  jobio:
-    in: jobio/**
   # API test 専用ディレクトリ。
   # 公開 API / Wails controller 起点の system-level scenario test だけを置く場所。
   # production code を置いてはいけない。
@@ -49,12 +47,8 @@ deps:
     mayDependOn:
       - service
       - translationjobpolicy
-      - jobio
   service:
     deepScan: false
-    mayDependOn:
-      - repository
-  jobio:
     mayDependOn:
       - repository
   # API test 専用コンポーネント。
@@ -65,7 +59,6 @@ deps:
       - controller
       - usecase
       - service
-      - jobio
       - repository
       - infra_ai
       - infra_runtime
