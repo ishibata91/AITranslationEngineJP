@@ -2,7 +2,7 @@
 
 - `task_id`: `2026-05-16-translation-job-state-stale-retirement`
 - `lane`: `light-change-lane`
-- `status`: `active`
+- `status`: `completed`
 - `created_at`: `2026-05-16`
 - `human_request`: 翻訳ジョブ状態関連の追加差分を、stale 廃止を主目的に整理する。
 
@@ -118,6 +118,34 @@
 
 ## 着手可能成果物
 
-`追加判断` で停止中である。
-現在の削減範囲だけでは stale 廃止は閉じない。
-`人間確認` は、追加判断が固定されるまで停止する。
+完了済みである。
+local merge、merge 後検証、completed 移動、merge 結果 commit は `merge_lane` が実施した。
+
+## merge lane 完了記録
+
+- source branch: `codex/translation-job-state-stale-retirement`
+- target branch: `master`
+- source commit: `3185ce4b565f7067a185c1f25db331aed9e4dffc`
+- merge command: `git merge --no-ff --no-commit codex/translation-job-state-stale-retirement`
+- merge result: conflict なし。
+- completed 移動: `docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/` から `docs/exec-plans/completed/2026-05-16-translation-job-state-stale-retirement/` へ移動した。
+- remote repository を変更する command は実行していない。
+
+## merge 後検証
+
+- pass: `git diff --check --cached`
+- pass: `python3 scripts/scenario/requirement_gate.py docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/scenario-design.md --json`
+- pass: `go test ./internal/usecase ./internal/service`
+- pass: `go test ./internal/apitest ./internal/integrationtest`
+- pass: `python3 scripts/harness/run.py --suite backend-local`
+- pass: `python3 scripts/harness/run.py --suite backend-lint`
+- pass: `python3 scripts/harness/run.py --suite structure`
+- note: 2 件の `go test` は sandbox の Go cache 権限で一度失敗し、同じ command を承認付きで再実行して通過した。
+- note: `coverage` と system test は `final-validation.md` の通過証跡を参照する。merge conflict がなく、merge 後の対象検証が通過したため再実行しない。
+
+## merge 結果 commit 対象
+
+- local merge 結果を含む。
+- completed 移動を含む。
+- merge 後検証記録を含む。
+- `.codex/environments/environment.toml` は人間追加の対象差分として含む。

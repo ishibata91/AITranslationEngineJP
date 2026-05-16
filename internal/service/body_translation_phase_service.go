@@ -484,36 +484,68 @@ func (service *BodyTranslationPhaseService) createBodyTranslationRunRecord(
 	startState bodyTranslationStartState,
 	now time.Time,
 ) (repository.JobPhaseRun, error) {
+	draft := repository.JobPhaseRunUpdateDraft{
+		State:                  startState.runState,
+		ProgressPercent:        startState.progressPercent,
+		SnapshotFieldCount:     loaded.snapshot.TargetCount,
+		ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
+		ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
+		PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
+		AIProvider:             loaded.execution.Provider,
+		ModelName:              loaded.execution.Model,
+		ExecutionMode:          loaded.execution.ExecutionMode,
+		CredentialRef:          loaded.execution.CredentialRef,
+		InstructionKind:        bodyTranslationPhaseType,
+		InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
+		DictionaryDigest:       loaded.snapshot.DictionaryDigest,
+		PersonaDigest:          loaded.snapshot.PersonaDigest,
+		MetadataDigest:         loaded.snapshot.MetadataDigest,
+		PromptDigest:           loaded.snapshot.PromptDigest,
+		StartedAt:              &now,
+		FinishedAt:             startState.finishedAt,
+	}
 	if loaded.bodyRun != nil {
-		run, err := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(ctx, loaded.bodyRun.ID, bodyTranslationPhaseStatePending, repository.JobPhaseRunUpdateDraft{
-			State:                  startState.runState,
-			ProgressPercent:        startState.progressPercent,
-			SnapshotFieldCount:     loaded.snapshot.TargetCount,
-			ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
-			ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
-			PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
-			AIProvider:             loaded.execution.Provider,
-			ModelName:              loaded.execution.Model,
-			ExecutionMode:          loaded.execution.ExecutionMode,
-			CredentialRef:          loaded.execution.CredentialRef,
-			InstructionKind:        bodyTranslationPhaseType,
-			InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
-			DictionaryDigest:       loaded.snapshot.DictionaryDigest,
-			PersonaDigest:          loaded.snapshot.PersonaDigest,
-			MetadataDigest:         loaded.snapshot.MetadataDigest,
-			PromptDigest:           loaded.snapshot.PromptDigest,
-			StartedAt:              &now,
-			FinishedAt:             startState.finishedAt,
-		})
+		run, err := service.jobLifecycleRepository.UpdateJobPhaseRunWhenState(ctx, loaded.bodyRun.ID, bodyTranslationPhaseStatePending, draft)
 		if err != nil {
 			return repository.JobPhaseRun{}, fmt.Errorf("update body translation phase run: %w", err)
 		}
 		return run, nil
 	}
-	_ = ctx
-	_ = startState
-	_ = now
-	return repository.JobPhaseRun{}, fmt.Errorf("find body translation phase run for start: %w", repository.ErrNotFound)
+	run, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
+		TranslationJobID:       loaded.job.ID,
+		PhaseType:              bodyTranslationPhaseType,
+		State:                  startState.runState,
+		ExecutionOrder:         4,
+		AIProvider:             loaded.execution.Provider,
+		ModelName:              loaded.execution.Model,
+		ExecutionMode:          loaded.execution.ExecutionMode,
+		CredentialRef:          loaded.execution.CredentialRef,
+		InstructionKind:        bodyTranslationPhaseType,
+		SnapshotFieldCount:     loaded.snapshot.TargetCount,
+		ProviderTargetCount:    loaded.snapshot.ProviderTargetCount,
+		ExactExclusionCount:    loaded.snapshot.ExactExclusionCount,
+		PartialConstraintCount: loaded.snapshot.PartialConstraintCount,
+		InputSnapshotDigest:    loaded.snapshot.InputSnapshotDigest,
+		DictionaryDigest:       loaded.snapshot.DictionaryDigest,
+		PersonaDigest:          loaded.snapshot.PersonaDigest,
+		MetadataDigest:         loaded.snapshot.MetadataDigest,
+		PromptDigest:           loaded.snapshot.PromptDigest,
+	})
+	if err != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("create body translation phase run: %w", err)
+	}
+	updatedRun, err := service.jobLifecycleRepository.UpdateJobPhaseRun(ctx, run.ID, draft)
+	if err != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("initialize body translation phase run: %w", err)
+	}
+	slog.LogAttrs(ctx, slog.LevelInfo, "body translation phase run created on start",
+		slog.String("event", "body_translation_phase_run_created_on_start"),
+		slog.String("where", "backend.service.body_translation_phase.start"),
+		slog.String("result", "created"),
+		slog.String("id", fmt.Sprintf("job:%d phase_run:%d", loaded.job.ID, updatedRun.ID)),
+		slog.String("reason", "missing_precreated_phase_run"),
+	)
+	return updatedRun, nil
 }
 
 func (service *BodyTranslationPhaseService) updateBodyTranslationJobForStart(

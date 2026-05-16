@@ -1592,11 +1592,21 @@ func (service *PersonaGenerationPhaseService) ensurePersonaPhaseRun(
 	if run != nil {
 		return *run, nil
 	}
-	_ = ctx
-	_ = jobID
-	_ = termRun
-	_ = runState
-	return repository.JobPhaseRun{}, fmt.Errorf("find persona generation phase run for start: %w", repository.ErrNotFound)
+	createdRun, err := service.jobLifecycleRepository.CreateJobPhaseRun(ctx, repository.JobPhaseRunDraft{
+		TranslationJobID: jobID,
+		PhaseType:        personaGenerationPhaseType,
+		State:            runState,
+		ExecutionOrder:   3,
+		AIProvider:       termRun.AIProvider,
+		ModelName:        termRun.ModelName,
+		ExecutionMode:    termRun.ExecutionMode,
+		CredentialRef:    termRun.CredentialRef,
+		InstructionKind:  personaGenerationInstructionKindDefault,
+	})
+	if err != nil {
+		return repository.JobPhaseRun{}, fmt.Errorf("create persona generation phase run for start: %w", err)
+	}
+	return createdRun, nil
 }
 
 func personaGenerationTargetSnapshotIDPointer(runID int64) *string {

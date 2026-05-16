@@ -442,23 +442,8 @@ func TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime
 	if len(jobRepo.savedSnapshots) != 3 {
 		t.Fatalf("SCN-TJSPPS-007: expected three saved snapshots, got %#v", jobRepo.savedSnapshots)
 	}
-	if len(jobRepo.createdPhaseRuns) != 4 {
-		t.Fatalf("SCN-TJSPPS-007: expected four unstarted JOB_PHASE_RUN placeholders, got %#v", jobRepo.createdPhaseRuns)
-	}
-	wantPhaseRuns := []struct {
-		phaseType string
-		state     string
-	}{
-		{phaseType: "translation", state: "pending"},
-		{phaseType: "term_translation", state: "pending"},
-		{phaseType: "persona_generation", state: "pending"},
-		{phaseType: "body_translation", state: "pending"},
-	}
-	for index, wantRun := range wantPhaseRuns {
-		gotRun := jobRepo.createdPhaseRuns[index]
-		if gotRun.PhaseType != wantRun.phaseType || gotRun.State != wantRun.state {
-			t.Fatalf("SCN-TJSPPS-007: expected unstarted run[%d]=%#v, got %#v", index, wantRun, gotRun)
-		}
+	if len(jobRepo.createdPhaseRuns) != 0 {
+		t.Fatalf("SCN-TJSPPS-007: expected no pre-created JOB_PHASE_RUN placeholders, got %#v", jobRepo.createdPhaseRuns)
 	}
 	if jobRepo.savedSnapshots[2].BatchMode != "unsupported" {
 		t.Fatalf("SCN-TJSPPS-007: expected stale batch mode to be stripped for openai, got %#v", jobRepo.savedSnapshots[2])

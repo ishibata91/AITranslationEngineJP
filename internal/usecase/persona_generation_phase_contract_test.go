@@ -303,3 +303,21 @@ func TestPersonaGenerationContract_TerminalJobRejectsPersonaAndBodyReadinessWrit
 		t.Fatal("expected terminal job body readiness to stay false")
 	}
 }
+
+func TestPersonaGenerationContract_CancelFixtureUsesCanceledSpelling(t *testing.T) {
+	api := newPersonaGenerationPhaseContractAPI(t)
+
+	result, err := api.CancelPersonaGenerationPhase(context.Background(), CancelPersonaGenerationPhaseRequest{
+		JobID:      2008,
+		PhaseRunID: 4008,
+	})
+	if err != nil {
+		t.Fatalf("CancelPersonaGenerationPhase failed: %v", err)
+	}
+	if result.PhaseState != "canceled" {
+		t.Fatalf("expected canceled phase state, got %q", result.PhaseState)
+	}
+	if result.Progress.CurrentStep != "canceled" {
+		t.Fatalf("expected canceled progress step, got %q", result.Progress.CurrentStep)
+	}
+}

@@ -1,0 +1,99 @@
+reviewback_version: 1
+task_id: "2026-05-16-translation-job-state-stale-retirement"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "互換性は維持されている。DB schema、Wails DTO、frontend gateway に該当する差分はなく、変更は backend service、usecase stub、architecture lint、backend test に閉じている。PolicyResult、rule 名、policy 判定履歴は DTO、DB、repository 永続契約へ露出していない。pending は既存内部状態値として残るが、canonical state として DTO、DB schema、repository 永続契約へ昇格していない。"
+  evidence_sufficiency: "十分。implementation-scope、implementation-wave-result、final-validation、browser-confirmation-result、レビュー対象差分、補助検索結果を確認した。"
+
+checked_scope:
+  summary: "JobIOService stale 削除、Ready job 作成時の JOB_PHASE_RUN 事前作成廃止、phase start 時の non-pending run 作成、操作可否 read model、cancel fixture spelling、API 境界テスト、差分パスの公開契約非変更を確認した。"
+  files:
+    - path: ".go-arch-lint.yml"
+      line: 4
+      symbol: "components/deps"
+      reason: "jobio component と許可依存が削除され、旧 jobio 境界が architecture lint 契約から外れていることを確認した。"
+    - path: "internal/jobio/doc.go"
+      line: null
+      symbol: "package jobio"
+      reason: "JobIOService stale 実体の package 文書が削除され、新しい公開 package や repository 契約が追加されていないことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 811
+      symbol: "TranslationJobSetupService.createTranslationJobInTransaction"
+      reason: "Ready job 作成時に JOB_PHASE_RUN placeholder を事前作成せず、既存 response DTO 形状は変更していないことを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 691
+      symbol: "TermTranslationPhaseService.ensureExecutionPlanRun"
+      reason: "単語翻訳段階は start 時に既存 repository method で non-pending run を作成し、pending を公開契約へ昇格していないことを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1585
+      symbol: "PersonaGenerationPhaseService.ensurePersonaPhaseRun"
+      reason: "ペルソナ生成段階は start 時に既存 repository method で run を作成し、新しい DTO、DB schema、gateway 契約を追加していないことを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 481
+      symbol: "BodyTranslationPhaseService.createBodyTranslationRunRecord"
+      reason: "本文翻訳段階は事前作成済み pending run の更新経路を残し、未作成時は既存 repository 契約の CreateJobPhaseRun と UpdateJobPhaseRun で non-pending run を作成していることを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 541
+      symbol: "body_translation_phase_run_created_on_start"
+      reason: "追加ログは job id と phase run id、固定 reason だけを出し、PolicyResult、rule 名、policy 判定履歴、credential 実値、prompt 全文を出していないことを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers.go"
+      line: 25
+      symbol: "commonPhaseActionAvailability"
+      reason: "操作可否 helper は service 層の read model flag と reason だけを返し、TranslationJobPolicy の Result や判定履歴を外部契約へ出していないことを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 353
+      symbol: "PersonaGenerationPhaseContractStub.CancelPersonaGenerationPhase"
+      reason: "cancel fixture の PhaseState と Progress.CurrentStep が canceled spelling にそろい、既存 Wails seam の型や field は変更されていないことを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 246
+      symbol: "TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNonPendingRun"
+      reason: "公開 controller 境界で Ready job の読み取りが pending phase run を作らず、start 時だけ non-pending run を返す契約を固定していることを確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 148
+      symbol: "TestSCN_TJSR_001_ReadyJobQueryDoesNotCreatePhaseRun"
+      reason: "repository 境界で Ready job の query が JOB_PHASE_RUN を作成しない契約を固定していることを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers_test.go"
+      line: 5
+      symbol: "TestCommonPhaseActionAvailabilityFollowsSharedOperationRules"
+      reason: "Running、Paused、Recoverable_Failed、pending、terminal job、状態不整合の操作可否を lower-level で固定していることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/final-validation.md"
+      line: 15
+      symbol: "Commands"
+      reason: "backend-local、backend-lint、structure、coverage、scenario gate、API test、unit test、補助検索が pass した証跡を確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/browser-confirmation-result.md"
+      line: 5
+      symbol: "status"
+      reason: "UI、Wails DTO、frontend gateway を変更していないため、ブラウザ確認が not_applicable と判断されていることを確認した。"
+
+unchecked_scope:
+  - target: "frontend runtime 画面操作"
+    reason: "implementation-scope と browser-confirmation-result で UI、Wails DTO、frontend gateway の変更なしと固定され、ブラウザ確認は not_applicable であるため。"
+    risk: "既存 frontend が backend の既存 state 表示へ依存する場合の視覚確認は、この contract review では扱っていない。"
+  - target: "DB migration の実行差分"
+    reason: "レビュー対象差分と git diff name に internal/infra/sqlite や migrations が含まれず、DB schema 変更なしとして扱えるため。"
+    risk: "レビュー対象外の未提示差分で migration が追加された場合は、この判定の前提が崩れる。"
+  - target: "広い harness 再実行"
+    reason: "codex-review-contract の非対象規約により、final-validation.md の検証証跡を入力として扱ったため。"
+    risk: "レビュー時点後に差分が増えた場合は、final-validation.md の証跡が古くなる可能性がある。"
+
+issues: []
+
+contract_review_details:
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決 issue がないため修正不要。今回の変更は既存 repository method、既存 read model field、既存 Wails seam 型の範囲で閉じている。"
+  invariant_test_viewpoints:
+    - "Ready job の query は JOB_PHASE_RUN を作成しない。"
+    - "phase start 許可時だけ non-pending の JOB_PHASE_RUN を作成する。"
+    - "pending は canonical state として DTO、DB schema、repository 永続契約へ昇格しない。"
+    - "PolicyResult、rule 名、policy 判定履歴を DTO、DB、repository 永続契約へ出さない。"
+    - "cancel fixture spelling は canceled にそろえる。"
+  residual_risks:
+    - "docs 正本本文の JobIOService 参照除去は implementation-scope で docs 正本化判断へ分離済みであり、この contract review の直接変更対象ではない。"
+    - "ブラウザ確認は UI 変更なしのため未実施である。"

@@ -243,6 +243,80 @@ func TestSCN_TJSM_003_StartResendWithActivePhaseRunIsRejectedWithoutNewRun(t *te
 	}
 }
 
+func TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNonPendingRun(t *testing.T) {
+	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+		JobState:    "ready",
+		OmitBodyRun: true,
+	})
+	controller := fixture.controller()
+
+	summary, summaryErr := controller.GetBodyTranslationPhaseSummary(
+		controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
+	)
+	if summaryErr != nil {
+		t.Fatalf("SCN-TJSR-001 public summary returned error: %v", summaryErr)
+	}
+	if summary.PhaseState == "pending" || summary.PhaseRunID != nil {
+		t.Fatalf("SCN-TJSR-001 expected read-only Ready summary without canonical pending phase run, got %#v", summary)
+	}
+	if len(fixture.store.phaseRuns) != 1 {
+		t.Fatalf("SCN-TJSR-001 expected Ready query not to create body phase run, got %#v", fixture.store.phaseRuns)
+	}
+
+	started, startErr := controller.StartBodyTranslationPhase(
+		controllerwails.StartBodyTranslationPhaseRequestDTO{JobID: fixture.job.ID},
+	)
+	if startErr != nil {
+		t.Fatalf("SCN-TJSR-001 public start returned error: %v", startErr)
+	}
+	if started.PhaseRunID == nil || started.PhaseState == "pending" {
+		t.Fatalf("SCN-TJSR-001 expected start to create observable non-pending phase run, got %#v", started)
+	}
+	if len(fixture.store.phaseRuns) != 2 || fixture.store.phaseRuns[1].State == "pending" {
+		t.Fatalf("SCN-TJSR-001 expected exactly one new non-pending body phase run, got %#v", fixture.store.phaseRuns)
+	}
+}
+
+func TestSCN_TJSR_002_BodyPhaseActionEnablementUsesCommonStateRules(t *testing.T) {
+	testCases := []struct {
+		name       string
+		jobState   string
+		phaseState string
+		canPause   bool
+		canResume  bool
+		canRetry   bool
+		canCancel  bool
+	}{
+		{name: "running", jobState: "running", phaseState: "running", canPause: true},
+		{name: "paused", jobState: "paused", phaseState: "paused", canResume: true, canCancel: true},
+		{name: "recoverable failed", jobState: "recoverable_failed", phaseState: "recoverable_failed", canRetry: true},
+		{name: "terminal job", jobState: "completed", phaseState: "paused"},
+	}
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
+				JobState:     testCase.jobState,
+				BodyRunState: testCase.phaseState,
+			})
+			controller := fixture.controller()
+
+			summary, err := controller.GetBodyTranslationPhaseSummary(
+				controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
+			)
+			if err != nil {
+				t.Fatalf("SCN-TJSR-002 public summary returned error: %v", err)
+			}
+			action := summary.ActionEnablement
+			if action.CanPause != testCase.canPause ||
+				action.CanResume != testCase.canResume ||
+				action.CanRetry != testCase.canRetry ||
+				action.CanCancel != testCase.canCancel {
+				t.Fatalf("SCN-TJSR-002 expected common action rules for %s, got %#v", testCase.name, action)
+			}
+		})
+	}
+}
+
 func TestSCN_TFN_011_LateResponseForOldPhaseRunIsRejectedWithoutResultOrArtifactMutation(t *testing.T) {
 	fixture := newBodyTranslationAPIFixture(t, bodyTranslationAPIFixtureOptions{
 		JobState:     "running",
@@ -511,6 +585,7 @@ type bodyTranslationAPIFixtureOptions struct {
 	AIProvider   string
 	Outputs      []repository.JobTranslationField
 	Provider     service.BodyTranslationProvider
+	OmitBodyRun  bool
 }
 
 type bodyTranslationAPIFixture struct {
@@ -586,7 +661,9 @@ func newBodyTranslationAPIFixture(
 			StartedAt:        &now,
 			FinishedAt:       &now,
 		},
-		{
+	}
+	if !options.OmitBodyRun {
+		store.phaseRuns = append(store.phaseRuns, repository.JobPhaseRun{
 			ID:               202,
 			TranslationJobID: 101,
 			PhaseType:        "body_translation",
@@ -600,9 +677,9 @@ func newBodyTranslationAPIFixture(
 			InstructionKind:  "body_translation",
 			LatestError:      options.LatestError,
 			StartedAt:        &now,
-		},
+		})
 	}
-	if bodyRunState == "completed" || bodyRunState == "canceled" {
+	if !options.OmitBodyRun && (bodyRunState == "completed" || bodyRunState == "canceled") {
 		store.phaseRuns[1].ProgressPercent = 100
 		store.phaseRuns[1].FinishedAt = &now
 	}
@@ -619,8 +696,17 @@ func newBodyTranslationAPIFixture(
 		t:       t,
 		store:   store,
 		job:     store.job,
-		bodyRun: store.phaseRuns[1],
+		bodyRun: bodyTranslationAPIBodyRun(store.phaseRuns),
 	}
+}
+
+func bodyTranslationAPIBodyRun(phaseRuns []repository.JobPhaseRun) repository.JobPhaseRun {
+	for _, run := range phaseRuns {
+		if run.PhaseType == "body_translation" {
+			return run
+		}
+	}
+	return repository.JobPhaseRun{}
 }
 
 func (fixture *bodyTranslationAPIFixture) controller() *controllerwails.BodyTranslationPhaseController {

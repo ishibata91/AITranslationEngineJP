@@ -47,6 +47,7 @@ package "Backend UseCase" as ApplicationLayer {
     class "Backend UseCase" as BackendUseCase {
         + query / command / import を orchestrate する
         + job 状態と application result を扱う
+        + 状態取得と保存を既存境界で扱う
     }
 
     class "ServicePort" as ServicePort {
@@ -59,14 +60,8 @@ package "Backend UseCase" as ApplicationLayer {
         + DB を読まない / 保存しない
     }
 
-    class "JobIOService" as JobIOService {
-        + job / phase run 状態を取得する
-        + 確定済み状態事実だけ保存する
-    }
-
     BackendUseCase -[hidden]down-> ServicePort
     ServicePort -[hidden]right-> TranslationJobPolicy
-    TranslationJobPolicy -[hidden]right-> JobIOService
 }
 
 package "Notification" as NotificationLayer {
@@ -146,7 +141,6 @@ UseCasePort --> BackendUseCase : 実装する
 BackendUseCase --> ServicePort : 依存する
 ServicePort --> Service : 実装する
 BackendUseCase --> TranslationJobPolicy : 操作可否を判断する
-BackendUseCase --> JobIOService : 状態事実を取得 / 保存する
 BackendUseCase --> NotificationSinkPort : 通知事実を渡す
 
 Service --> RepositoryPort : 依存する

@@ -1,0 +1,118 @@
+reviewback_version: 1
+task_id: "2026-05-16-translation-job-state-stale-retirement"
+review_yaml_path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "一致。以前の behavior-001 は解消済みである。Ready job 作成時の JOB_PHASE_RUN 事前作成は削除され、単語翻訳段階、ペルソナ生成段階、本文翻訳段階は start 時だけ対象 phase run を非 pending state で作成する。pending は既存 pending run の昇格元 state と一部 snapshot 表示値として残るが、Ready job 作成時の placeholder や外部 canonical state としては昇格していない。"
+  evidence_sufficiency: "十分。指定された implementation-scope、implementation-wave-result、final-validation、browser-confirmation-result、既存 reviewback、対象差分の実コードを確認した。ハーネス再実行は review skill の非対象規約に従い実施していない。"
+
+checked_scope:
+  summary: "Ready job 作成経路、phase start-on-demand、pending 非正本化、canceled spelling、JobIOService stale 削除、検証証跡を挙動正しさ観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/implementation-scope.md"
+      line: 29
+      symbol: "Fixed Decisions"
+      reason: "pending 非正本化、Ready job で JOB_PHASE_RUN を事前作成しない決定、UI と DTO を変えない決定を確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/implementation-wave-result.md"
+      line: 69
+      symbol: "behavior-001"
+      reason: "以前の behavior-001 の修正内容と、start-on-demand 実装の追加変更を確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/final-validation.md"
+      line: 14
+      symbol: "Commands"
+      reason: "backend-local、backend-lint、structure、coverage、scenario gate、API/integration test、usecase/service test、補助検索の通過証跡を確認した。"
+    - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/browser-confirmation-result.md"
+      line: 5
+      symbol: "status"
+      reason: "UI、Wails DTO、frontend gateway の変更がなく、ブラウザ確認対象外であることを確認した。"
+    - path: ".go-arch-lint.yml"
+      line: 12
+      symbol: "components"
+      reason: "jobio component と許可依存が削除され、JobIOService stale 削除目的に沿うことを確認した。"
+    - path: "internal/service/translation_job_setup_service.go"
+      line: 784
+      symbol: "createTranslationJobInTransaction"
+      reason: "Ready job 作成後に phase runtime snapshot だけを保存し、JOB_PHASE_RUN placeholder を作成しないことを確認した。"
+    - path: "internal/service/translation_job_setup_service_test.go"
+      line: 445
+      symbol: "TestTJSPPS007TranslationJobSetupServiceCreateCapturesOnlyTargetPhaseRuntime"
+      reason: "setup service 経由の作成で pre-created JOB_PHASE_RUN が 0 件である期待へ更新されていることを確認した。"
+    - path: "internal/service/term_translation_phase_service.go"
+      line: 729
+      symbol: "ensureExecutionPlanRun"
+      reason: "単語翻訳段階の start 時に、既存 run がない場合は running state の phase run を作成することを確認した。"
+    - path: "internal/service/persona_generation_phase_service.go"
+      line: 1585
+      symbol: "ensurePersonaPhaseRun"
+      reason: "ペルソナ生成段階の start 時に、既存 run がない場合は実行開始時の runState で phase run を作成することを確認した。"
+    - path: "internal/service/body_translation_phase_service.go"
+      line: 481
+      symbol: "createBodyTranslationRunRecord"
+      reason: "本文翻訳段階の start 時に、既存 run がない場合は startState.runState で phase run を作成し、pending を作成 state にしないことを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers.go"
+      line: 25
+      symbol: "commonPhaseActionAvailability"
+      reason: "pending は default branch で操作不能となり、Running、Paused、RecoverableFailed だけが操作可能 state として扱われることを確認した。"
+    - path: "internal/service/phase_action_enablement_helpers_test.go"
+      line: 65
+      symbol: "TestCommonPhaseActionAvailabilityFollowsSharedOperationRules"
+      reason: "pending が canonical actionable state ではないことを単体テストで固定していることを確認した。"
+    - path: "internal/apitest/body_translation_recovery_terminal_readiness_test.go"
+      line: 246
+      symbol: "TestSCN_TJSR_001_ReadyJobSummaryDoesNotCreateBodyPhaseRunAndStartCreatesNonPendingRun"
+      reason: "Ready summary の読み取りで body phase run を作らず、start 時だけ非 pending run を作る API 境界確認を確認した。"
+    - path: "internal/integrationtest/translation_job_management_scenario_test.go"
+      line: 148
+      symbol: "TestSCN_TJSR_001_ReadyJobQueryDoesNotCreatePhaseRun"
+      reason: "Ready job の読み取りだけでは phase run が作成されないことを integration test で確認していることを確認した。"
+    - path: "internal/usecase/persona_generation_phase_contract.go"
+      line: 353
+      symbol: "CancelPersonaGenerationPhase"
+      reason: "cancel fixture response が canceled spelling へ統一されていることを確認した。"
+
+unchecked_scope:
+  - target: "frontend / Wails DTO / browser UI"
+    reason: "implementation-scope と browser-confirmation-result が UI、Wails DTO、frontend gateway の変更なしを示しているため、挙動レビュー対象外にした。"
+    risk: "UI 表示は backend read model の結果に従うため、backend 以外の独自表示変換があれば別レビュー観点で確認が必要になる。"
+  - target: "ハーネス再実行"
+    reason: "codex-review-behavior の非対象規約がハーネス実行を禁止しているため、final-validation.md の証跡をレビュー入力として扱った。"
+    risk: "レビュー時点のローカル再実行による追加検出はしていない。"
+
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "実 job setup 経路が pending phase run を事前作成し続ける"
+    problem: "解決済み。以前は Ready job 作成の実経路で JOB_PHASE_RUN が pending state で保存されていたが、現在の createTranslationJobInTransaction は createReadyTranslationJob と savePhaseRuntimeSnapshots の後に read model を返し、phase run 作成 helper を呼ばない。"
+    reason: "Ready job 作成時に JOB_PHASE_RUN を事前作成しない条件は、実 job setup 経路と setup service test の両方で確認できる。各 phase start 経路は、対象 phase run がない場合に start 時だけ非 pending run を作成する。"
+    violated_condition: "解決前に破られていた条件は、Ready job には JOB_PHASE_RUN を事前作成しないこと、および pending を canonical state へ昇格しないことである。現在は破られていない。"
+    cause_candidate: "解決前の原因候補は、translation_job_setup_service.go の createUnstartedPhaseRuns 呼び出しと pending draft 作成であった。現在は該当 helper と呼び出しが削除されている。"
+    evidence:
+      - path: "internal/service/translation_job_setup_service.go"
+        line: 784
+        excerpt: "createTranslationJobInTransaction は Ready job 作成と runtime snapshot 保存だけを行い、phase run を作成しない。"
+      - path: "internal/service/translation_job_setup_service_test.go"
+        line: 445
+        excerpt: "setup service test は pre-created JOB_PHASE_RUN placeholders が 0 件であることを期待する。"
+      - path: "internal/service/term_translation_phase_service.go"
+        line: 733
+        excerpt: "単語翻訳段階は start 時に running state の phase run を作成する。"
+      - path: "internal/service/persona_generation_phase_service.go"
+        line: 1595
+        excerpt: "ペルソナ生成段階は start 時の runState で phase run を作成する。"
+      - path: "internal/service/body_translation_phase_service.go"
+        line: 514
+        excerpt: "本文翻訳段階は start 時の startState.runState で phase run を作成する。"
+      - path: "docs/exec-plans/active/2026-05-16-translation-job-state-stale-retirement/final-validation.md"
+        line: 22
+        excerpt: "backend-local、backend-lint、structure、coverage、scenario gate、API/integration test、usecase/service test が pass。"
+    local_fix_assessment: "cross-layer resolved。job setup service、setup service test、各 phase start-on-demand、API/integration test がそろって更新されているため、以前の局所未達は残っていない。"
+    additional_check_scope: "none。挙動レビュー観点では、旧指摘の解決に必要な job setup 作成経路と各 phase start 経路を確認済みである。"
+    fix_considerations: "今後の変更では、Ready job 作成時の placeholder 復活、pending の DTO 正本化、phase start 前の永続 state 変更を避ける必要がある。"
+    verification: "final-validation.md の pass 証跡と、対象コードの実経路確認で解決を確認した。"
+    fix_required: true
+    status: "resolved"
