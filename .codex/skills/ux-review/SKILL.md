@@ -1,13 +1,13 @@
 ---
 name: ux-review
-description: Codex frontend 人間レビュー前 UX 事前確認作業プロトコル。UX 標準適合、fakeAPI 状態、視認性、既存画面との統一性を確認する。
+description: Codex frontend 人間レビュー前 UX 事前確認作業プロトコル。UX 標準適合、実画面状態、視認性、既存画面との統一性を確認する。
 ---
 # UX Review
 
 ## 目的
 
 `ux-review` は frontend 実装後、人間レビュー前に UX 事前確認を行う作業プロトコルである。
-実画面、UI 根拠、fakeAPI 状態を照合し、人間レビューへ進めるかを `ux-review.yaml` に固定する。
+実画面、UI 根拠、確認済み状態を照合し、人間レビューへ進めるかを `ux-review.yaml` に固定する。
 
 ## 対応ロール
 
@@ -22,7 +22,7 @@ description: Codex frontend 人間レビュー前 UX 事前確認作業プロト
 - 実装目的: frontend 実装が満たすべき目的を受け取る。
 - UI根拠: 承認済み `ui-design.md`、関連する task 内 UI 成果物、画面設計差分を受け取る。
 - 実装結果: frontend 実装 agent が返した実装結果を受け取る。
-- 実画面確認入力: review URL、起動状態、確認済み `fakeScenario`、未確認状態、未確認理由を受け取る。
+- 実画面確認入力: review URL、起動状態、確認済み状態、未確認状態、未確認理由を受け取る。
 - 変更ファイル: frontend 実装差分に含まれる変更ファイル一覧を受け取る。
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - UX確認YAMLパス: `docs/exec-plans/active/<task-id>/ux-review.yaml` を受け取る。
@@ -31,7 +31,6 @@ description: Codex frontend 人間レビュー前 UX 事前確認作業プロト
 
 - エージェント実行定義と実行境界は [ux_review.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/ux_review.toml) に従う。
 - UX 標準正本は [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
-- fakeAPI 運用仕様は [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) とする。
 - UI 設計規約は [ui-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md) とする。
 - 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
 - active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
@@ -46,7 +45,7 @@ UX 事前確認観点表は次を拘束する。
 | --- | --- |
 | UX標準適合 | `docs/UX-standard.md` の高優先度項目に反していないか |
 | ユーザー判断可能性 | ユーザーが目的、状態、操作、結果を判断できるか |
-| fakeAPI状態十分性 | 人間レビューに必要な `fakeScenario` が確認されているか |
+| 実画面状態十分性 | 人間レビューに必要な状態が確認されているか |
 | 視認性 | 要素サイズ、密度、余白、一覧幅が読みにくくないか |
 | 画面統一性 | 既存画面、既存部品、文言、配置規則との統一感が壊れていないか |
 | 操作対象明確性 | 画面設計または画面設計差分から触れるべき操作対象が分かるか |
@@ -57,7 +56,7 @@ UX 事前確認観点表は次を拘束する。
 | レベル | 意味 |
 | --- | --- |
 | `blocker` | 画面確認不能、review URL 不備、状態確認不能により人間レビューへ進めない問題 |
-| `major` | UX標準違反、fakeAPI状態不足、視認性破綻、既存画面との不統一により修正が必要な問題 |
+| `major` | UX標準違反、実画面状態不足、視認性破綻、既存画面との不統一により修正が必要な問題 |
 | `minor` | 人間レビュー時の注意として残せる改善問題 |
 | `nit` | 修正してもよいが、人間レビュー前の判断を止めない微細な問題 |
 
@@ -73,7 +72,7 @@ UX 事前確認観点表は次を拘束する。
 - 画面設計差分がある場合は、既存画面との統一性と触れるべき操作対象を確認する。
 - 画面設計または画面設計差分がある場合は、画面ID と セレクタ（`aria-label`） の実装差分を確認する。
 - 画面設計差分がある場合でも、既存の画面設計にある セレクタ（`aria-label`） が壊れていないか確認する。
-- fakeAPI は backend 実装、統合境界実装、永続化仕様の代替として扱わない。
+- 見た目確認用のデータは backend 実装、統合境界実装、永続化仕様の代替として扱わない。
 - 呼び出し元から渡された実画面確認入力を UX 事前確認の根拠として扱ってよい。
 
 ## 非対象規約
@@ -90,8 +89,8 @@ UX 事前確認観点表は次を拘束する。
 - `review_status`: `no_issue`、`issues_open`、`stopped` のいずれかを返す。
 - `must_fix_open`: `major` 以上の未解決問題があるかを返す。
 - `max_level`: 未解決問題の最大重大度を返す。
-- `checked_states`: 確認した `fakeScenario` と根拠を返す。
-- `unchecked_states`: 未確認の `fakeScenario`、理由、残るリスクを返す。
+- `checked_states`: 確認した状態と根拠を返す。
+- `unchecked_states`: 未確認の状態、理由、残るリスクを返す。
 - `issues`: 問題、重大度、根拠、修正確認方法を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
@@ -100,7 +99,7 @@ UX 事前確認観点表は次を拘束する。
 - `ux-review.yaml` に UX 事前確認の状態、根拠、未解決指摘、未確認範囲が記録されている。
 - UX 事前確認観点表を確認した。
 - `docs/UX-standard.md` の高優先度項目と対象画面に関係する項目を確認した。
-- fakeAPI 運用仕様の標準 `fakeScenario` と task 固有の確認状態を確認した。
+- task 固有の確認状態を確認した。
 - 実画面で、目的、状態、操作、結果をユーザーが判断できるか確認した。
 - 実画面で、要素サイズ、密度、余白、一覧幅、既存画面との統一性を確認した。
 - 画面設計差分がある場合は、触れるべき操作対象と実画面の対応を確認した。

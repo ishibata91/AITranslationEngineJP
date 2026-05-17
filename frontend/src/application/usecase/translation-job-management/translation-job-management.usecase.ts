@@ -56,7 +56,7 @@ function sanitizeErrorMessage(error: unknown, fallback: string): string {
 }
 
 function createMissingGatewayMessage(): string {
-  return "gateway は統合前です。fakeApi で表示確認を行ってください。"
+  return "gateway は未接続です。Wails gateway を接続して確認してください。"
 }
 
 function buildFeedback(

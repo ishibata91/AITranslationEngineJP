@@ -18,10 +18,7 @@ import { createMasterPersonaScreenControllerFactory } from "@controller/master-p
 import { createPersonaGenerationPhaseScreenControllerFactory } from "@controller/persona-generation-phase"
 import { createProviderSettingsScreenControllerFactory } from "@controller/provider-settings"
 import { createTermTranslationPhaseScreenControllerFactory } from "@controller/term-translation-phase"
-import {
-  createTranslationJobManagementReviewGateway,
-  createTranslationJobManagementScreenControllerFactory
-} from "@controller/translation-job-management"
+import { createTranslationJobManagementScreenControllerFactory } from "@controller/translation-job-management"
 import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
 import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
 import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
@@ -35,10 +32,6 @@ import { createTranslationJobManagementGateway } from "@controller/wails/transla
 import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
 import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
 import { createTranslationOutputArtifactGateway } from "@controller/wails/translation-output-artifact.gateway"
-import type {
-  ReviewFakeApiGatewayRegistry,
-  ReviewFakeApiRuntimeContext
-} from "../controller/review-fake-api/review-fake-api-runtime"
 
 type FrontendDiagnosticLogger = ReturnType<
   typeof createNoopFrontendDiagnosticLogger
@@ -111,56 +104,6 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
     createTranslationOutputArtifactScreenController:
       createTranslationOutputArtifactScreenControllerFactory(
         translationOutputArtifactGateway
-      )
-  }
-}
-
-export function createReviewFakeApiAppFactories(
-  context: ReviewFakeApiRuntimeContext,
-  registry: ReviewFakeApiGatewayRegistry = {}
-): AppScreenControllerFactories {
-  return {
-    diagnosticLogger: createNoopFrontendDiagnosticLogger(),
-    createBodyTranslationPhaseScreenController:
-      createBodyTranslationPhaseScreenControllerFactory(
-        registry.bodyTranslationPhase?.(context) ?? null
-      ),
-    createMasterDictionaryScreenController:
-      createMasterDictionaryScreenControllerFactory(
-        registry.masterDictionary?.(context) ?? null,
-        createNoopFrontendDiagnosticLogger()
-      ),
-    createMasterPersonaScreenController:
-      createMasterPersonaScreenControllerFactory(
-        registry.masterPersona?.(context) ?? null
-      ),
-    createPersonaGenerationPhaseScreenController:
-      createPersonaGenerationPhaseScreenControllerFactory(
-        registry.personaGenerationPhase?.(context) ?? null
-      ),
-    createProviderSettingsScreenController:
-      createProviderSettingsScreenControllerFactory(
-        registry.providerSettings?.(context) ?? null
-      ),
-    createTermTranslationPhaseScreenController:
-      createTermTranslationPhaseScreenControllerFactory(
-        registry.termTranslationPhase?.(context) ?? null
-      ),
-    createTranslationJobManagementScreenController:
-      createTranslationJobManagementScreenControllerFactory(
-        createTranslationJobManagementReviewGateway(context.scenarioId)
-      ),
-    createTranslationInputScreenController:
-      createTranslationInputScreenControllerFactory(
-        registry.translationInput?.(context) ?? null
-      ),
-    createTranslationJobSetupScreenController:
-      createTranslationJobSetupScreenControllerFactory(
-        registry.translationJobSetup?.(context) ?? null
-      ),
-    createTranslationOutputArtifactScreenController:
-      createTranslationOutputArtifactScreenControllerFactory(
-        registry.translationOutputArtifact?.(context) ?? null
       )
   }
 }
