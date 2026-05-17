@@ -1,0 +1,62 @@
+reviewback_version: 1
+task_id: "2026-05-18-storybook-foundation"
+review_yaml_path: "docs/exec-plans/active/2026-05-18-storybook-foundation/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持されている。Storybook fixture は固定 props と無処理 callback だけで構成され、backend state、Wails runtime、AI provider、secret store、DB、filesystem business flow を状態源として扱っていない。Storybook import 境界は story と fixture を許可し、production code から Storybook package への import を禁止する判定と単体テストで確認されている。task-local の confirmed は Playwright 証跡と storybook-review.md の確認結果に対応している。破られた不変条件は確認されなかった。原因候補はなし。局所修正評価は不要である。"
+  evidence_sufficiency: "十分。diff 由来の story、fixture、lint rule、lint rule test、task-local review artifact を確認し、呼び出し元の build、lint、frontend-local、browser confirmation の pass 証跡をレビュー入力として扱った。Sonar server issue gate は未実行のため未確認範囲に残す。"
+
+checked_scope:
+  summary: "Storybook 最小 story と fixture の状態源、Storybook import 境界の許可と禁止、task-local confirmed / handoff-ready の成果物整合を確認した。"
+  files:
+    - path: "frontend/src/ui/components/AIModelSelectionCard.stories.ts"
+      line: 1
+      symbol: "FixedProps"
+      reason: "story は Storybook 型、対象 component、component 横 fixture だけを import し、args に固定 fixture を渡している。"
+    - path: "frontend/src/ui/components/__fixtures__/ai-model-selection-card-fixture.ts"
+      line: 6
+      symbol: "aiModelSelectionCardFixture"
+      reason: "fixture は固定表示値、disabled selection、無処理 callback だけを持ち、backend state や runtime state を参照していない。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 358
+      symbol: "isStorybookSourceExempt"
+      reason: "Storybook import を許可する source path は .storybook、__fixtures__、__stories__、stories file に限定されている。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 495
+      symbol: "enforceLayerBoundariesRule"
+      reason: "Storybook package import は exempt source 以外の frontend source で forbidden import として報告される。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 76
+      symbol: "enforce-layer-boundaries valid cases"
+      reason: "story file と fixture file から Storybook package を import できる許可状態が単体テストで固定されている。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 179
+      symbol: "enforce-layer-boundaries invalid cases"
+      reason: "production ui code から Storybook package を import できない禁止状態が単体テストで固定されている。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/implementation-scope.md"
+      line: 4
+      symbol: "status"
+      reason: "handoff-ready は human approved の implementation scope として成立しており、実装対象の backend 非接続条件と fixture 配置条件も同じ成果物内に記録されている。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 4
+      symbol: "status"
+      reason: "confirmed は dev server、story registry、HTTP 200、visible text、console error 0、page error 0 の確認結果と対応している。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation.md"
+      line: 17
+      symbol: "Result"
+      reason: "Playwright による iframe URL 確認は fixed props の表示と backend / Wails / provider / secret store / DB 非接続の期待結果を補強している。"
+
+unchecked_scope:
+  - target: "Sonar server issue gate"
+    reason: "呼び出し元の検証証跡で未実行と明示されている。state invariant 観点では lint、lint:boundaries、frontend-local、build-storybook、browser confirmation の証跡で判定可能である。"
+    risk: "Sonar server 側だけが検出する静的解析 issue が後続集約で残る可能性がある。"
+  - target: "Storybook dev server の長時間稼働時の状態変化"
+    reason: "今回の確認は最小 story の表示、build、lint 境界に限定され、長時間稼働や hot reload 後の状態保持は task の重点確認外である。"
+    risk: "Storybook runtime 固有の preview state が長時間稼働で変化する可能性は残るが、backend state や永続 state との混同リスクは確認範囲では見つからない。"
+
+issues: []

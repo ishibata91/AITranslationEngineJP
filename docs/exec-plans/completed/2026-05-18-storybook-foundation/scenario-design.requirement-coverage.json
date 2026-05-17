@@ -1,0 +1,375 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-SBF-001",
+      "title": "Storybook 最小基盤を起動できる",
+      "kind": "frontend_tooling_foundation",
+      "source_requirement": "plan.md の goal と close_conditions。Storybook dev 入口が動き、空または最小サンプル story で基盤確認できる。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook dev の入口が動き、空または最小サンプル story で基盤確認できる。",
+          "verification_hint": "SCN-SBF-001"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "dev 起動に失敗する場合は review 用 URL を記録できないため、command failure として扱う。",
+          "verification_hint": "SCN-SBF-001"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Master Persona 部品化、画面再設計、gateway mock、backend DTO mock、実行フロー再現をこの task で扱わない。",
+          "verification_hint": "SCN-SBF-001, SCN-SBF-005"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "未導入から設定済み、設定済みから dev 起動可能へ遷移する。",
+          "verification_hint": "SCN-SBF-001"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/tech-selection.md は Svelte 5、TypeScript、Vite を採用する。frontend/vite.config.ts は `@ui`、`@application`、`@controller` alias を持つ。",
+          "verification_hint": "SCN-SBF-001, SCN-SBF-002"
+        },
+        {
+          "type": "冪等性_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook dev または build command を繰り返しても、script、config、最小 story が重複作成や設定破損を起こさない。",
+          "verification_hint": "SCN-SBF-001, SCN-SBF-002"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook dev 起動は secret、API key、AI provider、DB、Wails runtime を要求しない。",
+          "verification_hint": "SCN-SBF-001, SCN-SBF-005"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook URL、最小 story の表示状態、未確認理由を task-local 成果物へ残せる。",
+          "verification_hint": "SCN-SBF-004"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook dev 入口と最小 story 表示を確認できる。",
+          "verification_hint": "SCN-SBF-001"
+        }
+      ]
+    },
+    {
+      "id": "REQ-SBF-002",
+      "title": "Storybook static build を検証できる",
+      "kind": "frontend_tooling_foundation",
+      "source_requirement": "plan.md の validation_commands。`npm --prefix frontend run build-storybook` が検証入口に含まれる。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`npm --prefix frontend run build-storybook` で Storybook static build を検証する。",
+          "verification_hint": "SCN-SBF-002"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook build script、builder 設定、Vite 設定、Svelte 設定の不整合は build failure として扱う。",
+          "verification_hint": "SCN-SBF-002"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook static build は Wails build、backend 実行、AI provider 通信を要求しない。",
+          "verification_hint": "SCN-SBF-002"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook build output は frontend tooling の成果物であり、既存 app build の `dist` と混同しない。",
+          "verification_hint": "SCN-SBF-002"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "frontend/package.json には現状 Storybook script がない。最小基盤で script を追加しても既存 build、check、test、lint の script と責務を混同しない。",
+          "verification_hint": "SCN-SBF-002"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答により、Storybook build は Storybook 専用 gate に分ける。理由は、厳しく harness で制限する必要を感じないためである。",
+          "verification_hint": "SCN-SBF-002, SCN-SBF-006"
+        }
+      ]
+    },
+    {
+      "id": "REQ-SBF-003",
+      "title": "後続 story が fixture 方針に沿って追加できる",
+      "kind": "data_boundary",
+      "source_requirement": "plan.md の goal と人間回答。fixture 配置方針を固定し、後続 Master Persona task が story を追加できる。",
+      "required_detail_types": [
+        "data_requirement",
+        "compatibility_requirement",
+        "security_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "後続 Master Persona task が story を追加できる。",
+          "verification_hint": "SCN-SBF-003"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "fixture 配置が未確定のまま完了すると、後続 story が import path を再判断する必要がある。",
+          "verification_hint": "SCN-SBF-003"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "fixture は fixed props または view model fixture とし、gateway mock、backend DTO mock、実行フロー再現を使わない。",
+          "verification_hint": "SCN-SBF-003, SCN-SBF-005"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答により、Storybook fixture は component 横の `frontend/src/ui/**/__fixtures__` に置く。理由は、component 単位の見た目検証用であり、業務データを Storybook で扱わないためである。",
+          "verification_hint": "SCN-SBF-003"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "fixture は secret、API key、token、外部 provider 応答原文、実ユーザーデータを保存しない。",
+          "verification_hint": "SCN-SBF-003, SCN-SBF-005"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "story は UI Component または screen local component の props 境界に沿う。",
+          "verification_hint": "SCN-SBF-003"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "後続 task が最小 story と fixture 方針を参照して追加 story の検証入口を特定できる。",
+          "verification_hint": "SCN-SBF-003, SCN-SBF-006"
+        }
+      ]
+    },
+    {
+      "id": "REQ-SBF-004",
+      "title": "Storybook review URL を task-local に記録できる",
+      "kind": "operation_record",
+      "source_requirement": "plan.md の goal。review URL 記録方針を最小単位で固定する。",
+      "required_detail_types": [
+        "observability_requirement",
+        "security_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "review URL 記録方針を Storybook 基盤の目的に含める。",
+          "verification_hint": "SCN-SBF-004"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`ui-design.md` と `screen-design-diff.*.md` はこの task では N/A である。",
+          "verification_hint": "SCN-SBF-004"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答により、Storybook review URL と確認状態は専用 `storybook-review.md` に記録する。",
+          "verification_hint": "SCN-SBF-004"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "review URL query に secret、API key、token、ローカル絶対 path、実ユーザーデータを含めない。",
+          "verification_hint": "SCN-SBF-004"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "人間レビュー担当者が同じ Storybook 表示へ到達できる URL と story ID を確認できる。",
+          "verification_hint": "SCN-SBF-004"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "review URL が記録されない場合は未確認理由を残し、後続 task が表示確認入口を再作成できるようにする。",
+          "verification_hint": "SCN-SBF-004"
+        }
+      ]
+    },
+    {
+      "id": "REQ-SBF-005",
+      "title": "Storybook は backend 境界を越えない",
+      "kind": "boundary",
+      "source_requirement": "plan.md の constraints。gateway mock、backend DTO mock、実行フロー再現を Storybook に入れない。",
+      "required_detail_types": [
+        "boundary_requirement",
+        "security_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook は UI 表示確認に限定される。",
+          "verification_hint": "SCN-SBF-005"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "gateway mock、backend DTO mock、実行フロー再現が見つかった場合は scope 逸脱として扱い、基盤確認の成果物に含めない。",
+          "verification_hint": "SCN-SBF-005"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/coding-guidelines-frontend.md は generated `wailsjs` と backend DTO の import を gateway 境界に閉じ込める。UI Component は Store、Gateway、generated binding を直接扱わない。",
+          "verification_hint": "SCN-SBF-005"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "story と fixture は fixed props または view model fixture だけを扱う。",
+          "verification_hint": "SCN-SBF-003, SCN-SBF-005"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook は secret store、AI provider、DB、filesystem business flow を再現しない。",
+          "verification_hint": "SCN-SBF-005"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook 設定は既存 Svelte 5、TypeScript、Vite 前提と矛盾しない。",
+          "verification_hint": "SCN-SBF-001, SCN-SBF-002, SCN-SBF-005"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "story source と fixture source の import 境界を確認できる。",
+          "verification_hint": "SCN-SBF-005"
+        }
+      ]
+    },
+    {
+      "id": "REQ-SBF-006",
+      "title": "検証結果と後続引き継ぎを追跡できる",
+      "kind": "operation_record",
+      "source_requirement": "plan.md の close_conditions と Routing Notes。Storybook dev / build の入口、fixture 配置方針、review URL 記録方針を後続 task へ渡す。",
+      "required_detail_types": [
+        "observability_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook 基盤は完了扱いになり、Master Persona 部品化や画面再設計を含まないまま後続 task へ渡せる。",
+          "verification_hint": "SCN-SBF-006"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "検証未実行または失敗時は、command、結果、未実行理由、短い原因、再実行 command を残す。",
+          "verification_hint": "SCN-SBF-006"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "人間回答により、Storybook 運用は後続 task の plan と POC task が成功した後に skill、agent、docs へ反映する。この task では docs 正本を変更しない。",
+          "verification_hint": "SCN-SBF-006"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "後続 Master Persona task が Storybook scripts、config、最小 story、build 検証結果、review URL 記録形式を参照できる。",
+          "verification_hint": "SCN-SBF-006"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md の validation_commands は `python3 scripts/harness/run.py --suite frontend-local` と `npm --prefix frontend run build-storybook` を挙げている。",
+          "verification_hint": "SCN-SBF-002, SCN-SBF-006"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "command 出力全文、依存 cache の絶対 path、secret、token、ローカル環境固有の長い path は保存しない。",
+          "verification_hint": "SCN-SBF-006"
+        }
+      ]
+    },
+    {
+      "id": "REQ-SBF-007",
+      "title": "既存 lint で Storybook 依存混入を検査できる",
+      "kind": "lint_boundary",
+      "source_requirement": "人間追加 goal。既存 lint に、Storybook への依存がないことをチェックするものを追加する。",
+      "required_detail_types": [
+        "boundary_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "既存 lint は、プロダクトコードから Storybook への依存混入がないことを検査できる。",
+          "verification_hint": "SCN-SBF-007"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook 専用設定、story、fixture 以外から Storybook 依存が見つかった場合は lint failure として扱う。",
+          "verification_hint": "SCN-SBF-007"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook 専用設定、story、fixture は Storybook 依存を持てる。プロダクトコードは Storybook package、Storybook runtime、Storybook 専用 module を import しない。",
+          "verification_hint": "SCN-SBF-007"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "既存 lint の責務に依存境界チェックを追加し、Storybook build 専用 gate とは別の検査として扱う。",
+          "verification_hint": "SCN-SBF-007"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`npm --prefix frontend run lint` で Storybook 依存混入チェックを確認する。",
+          "verification_hint": "SCN-SBF-007"
+        }
+      ]
+    }
+  ]
+}

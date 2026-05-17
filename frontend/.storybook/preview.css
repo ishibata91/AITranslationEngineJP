@@ -1,0 +1,21 @@
+html,
+body,
+#storybook-root {
+  min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top left, rgba(255, 186, 56, 0.12), transparent 32rem),
+    linear-gradient(180deg, #1c1715 0%, #161311 100%);
+  color: #fef3e8;
+}
+
+#storybook-root {
+  box-sizing: border-box;
+  padding: 24px;
+}
+
+* {
+  box-sizing: border-box;
+}

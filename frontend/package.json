@@ -6,6 +6,8 @@
   "scripts": {
     "dev": "vite",
     "dev:wails": "vite --host ${VITE_HOST:-127.0.0.1} --port ${VITE_PORT:-5173} --strictPort",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
     "test": "vitest run",
@@ -22,12 +24,14 @@
   "devDependencies": {
     "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.51.0",
+    "@storybook/svelte-vite": "^10.4.0",
     "@sveltejs/vite-plugin-svelte": "^4.0.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/svelte": "^5.2.8",
     "@testing-library/user-event": "^14.6.1",
     "@types/jsdom": "^21.1.7",
     "@types/node": "^24.6.1",
+    "@types/react": "^19.2.14",
     "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^10.2.0",
     "eslint-import-resolver-typescript": "^4.4.4",
@@ -38,6 +42,7 @@
     "knip": "^6.3.1",
     "prettier": "^3.8.1",
     "prettier-plugin-svelte": "^3.5.1",
+    "storybook": "^10.4.0",
     "svelte": "^5.37.0",
     "svelte-check": "^4.3.1",
     "typescript": "^5.8.3",
@@ -47,7 +52,9 @@
   },
   "knip": {
     "ignore": [
-      "src/test/setup.ts"
+      "src/test/setup.ts",
+      "storybook-static/**",
+      "src/ui/**/__fixtures__/*.ts"
     ]
   },
   "dependencies": {

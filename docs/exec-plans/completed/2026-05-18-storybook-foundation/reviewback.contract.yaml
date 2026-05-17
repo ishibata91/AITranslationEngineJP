@@ -1,0 +1,75 @@
+reviewback_version: 1
+task_id: "2026-05-18-storybook-foundation"
+review_yaml_path: "docs/exec-plans/active/2026-05-18-storybook-foundation/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "Storybook scripts、config、story、fixture、lint 境界、review URL 記録は、承認済み scenario-design と implementation-scope の契約に一致している。既存公開検査入口 npm --prefix frontend run lint は lint:boundaries を含む連結入口として維持されている。"
+  evidence_sufficiency: "十分。差分 source、task-local 証跡、渡された検証結果を確認した。Sonar server issue gate は未実行だが、契約互換性の主判定は lint、lint:boundaries、build-storybook、frontend-local、browser confirmation の通過証跡で判定可能である。"
+
+checked_scope:
+  summary: "frontend package root の npm scripts、Storybook Svelte Vite config、Vite alias 整合、Storybook import 許可範囲、プロダクトコードから Storybook import 禁止、storybook-review.md の URL 記録形式を確認した。"
+  files:
+    - path: "frontend/package.json"
+      line: 6
+      symbol: "scripts"
+      reason: "storybook と build-storybook が frontend package root の npm script として追加され、lint 入口が既存の連結入口を維持していることを確認した。"
+    - path: "frontend/package.json"
+      line: 24
+      symbol: "devDependencies"
+      reason: "Storybook 依存が frontend の開発依存として追加され、Svelte、TypeScript、Vite の既存 tooling と同じ package root に閉じていることを確認した。"
+    - path: "frontend/.storybook/main.ts"
+      line: 4
+      symbol: "config"
+      reason: "Storybook が @storybook/svelte-vite を使い、story pattern と Vite alias が frontend/vite.config.ts の @ui、@application、@controller と矛盾しないことを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.stories.ts"
+      line: 1
+      symbol: "FixedProps"
+      reason: "Storybook 専用 story が Storybook import と component 横 fixture だけを使い、backend DTO、Gateway、Wails binding を import していないことを確認した。"
+    - path: "frontend/src/ui/components/__fixtures__/ai-model-selection-card-fixture.ts"
+      line: 1
+      symbol: "aiModelSelectionCardFixture"
+      reason: "fixture が component props 型と固定表示値だけで構成され、provider 通信、secret、DB、filesystem business flow を含まないことを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 162
+      symbol: "detectTargetType"
+      reason: "Storybook package と runtime module が依存境界 rule の検出対象に追加されていることを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 358
+      symbol: "isStorybookSourceExempt"
+      reason: "Storybook 専用設定、story、fixture が Storybook import 許可対象として扱われることを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 495
+      symbol: "enforceLayerBoundariesRule"
+      reason: "プロダクトコードから Storybook package または Storybook runtime module への import が lint error になることを確認した。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 76
+      symbol: "enforce-layer-boundaries valid cases"
+      reason: "story と fixture から Storybook module への import が許可対象としてテストされていることを確認した。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 179
+      symbol: "enforce-layer-boundaries invalid cases"
+      reason: "プロダクトコードから Storybook module への import 禁止がテストされていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 10
+      symbol: "Review Target"
+      reason: "review_url、iframe_url、story_id、確認状態、command、残留リスクが implementation-scope と scenario-design の記録形式に沿っていることを確認した。"
+
+unchecked_scope:
+  - target: "Sonar server issue gate"
+    reason: "呼び出し元の検証証跡で未実行と明示されているため。"
+    risk: "Sonar server 側だけが検出する issue は未確認である。ただし lint、lint:boundaries、frontend-local、coverage は通過しており、契約互換性の未解決指摘には直結しない。"
+  - target: "agent-browser native snapshot format"
+    reason: "storybook-review.md と browser-confirmation.md で、agent-browser は環境制約により失敗し、headless Playwright で代替確認したと記録されているため。"
+    risk: "agent-browser 固有の snapshot 形式は未取得である。ただし review URL、HTTP 200、期待 text、console error 0、page error 0 は確認済みである。"
+
+broken_invariants: []
+cause_candidates: []
+local_fix_assessment: "未解決指摘なし。局所修正を要求する契約破壊は確認していない。"
+invariant_test_perspective: "Storybook import 許可対象とプロダクトコード import 禁止対象は lint:boundaries の rule test で確認されている。npm --prefix frontend run lint は既存 lint 入口として lint:boundaries を含むため、後続変更でも同じ契約を検査できる。"
+
+issues: []

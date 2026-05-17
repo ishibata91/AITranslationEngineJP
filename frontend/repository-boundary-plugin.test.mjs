@@ -72,6 +72,16 @@ ruleTester.run("enforce-layer-boundaries", rule, {
       filename:
         "F:/AITranslationEngineJp/frontend/src/controller/master-dictionary/master-dictionary-screen-controller-factory.ts",
       code: "import { MasterDictionaryRuntimeEventAdapter } from '@controller/runtime/master-dictionary'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.stories.ts",
+      code: "import { defineMeta } from '@storybook/svelte-vite'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/__fixtures__/storybook.fixture.ts",
+      code: "import { composeStories } from 'storybook/internal/preview-api'"
     }
   ],
   invalid: [
@@ -163,6 +173,16 @@ ruleTester.run("enforce-layer-boundaries", rule, {
         {
           message:
             "controller code must not import other controller roots directly."
+        }
+      ]
+    },
+    {
+      filename: "F:/AITranslationEngineJp/frontend/src/ui/App.svelte",
+      code: "import { defineMeta } from '@storybook/svelte-vite'",
+      errors: [
+        {
+          message:
+            "ui production code must not import Storybook packages or Storybook runtime modules directly."
         }
       ]
     }

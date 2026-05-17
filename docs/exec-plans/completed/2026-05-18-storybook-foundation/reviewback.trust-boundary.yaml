@@ -1,0 +1,95 @@
+reviewback_version: 1
+task_id: "2026-05-18-storybook-foundation"
+review_yaml_path: "docs/exec-plans/active/2026-05-18-storybook-foundation/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  safety: "Storybook story と fixture は固定 props の表示確認だけで、backend DTO mock、Gateway mock、Wails runtime、generated wailsjs、RuntimeEventAdapter、AI provider、secret store、DB、実行フロー再現を含まない。review URL と browser evidence は localhost Storybook だけを指す。secret、API key、token、実ユーザーデータ、不要なローカル絶対 path は確認範囲に残っていない。プロダクトコードから Storybook package への import は lint rule で禁止されている。"
+  evidence_sufficiency: "十分。指定ファイル、Storybook 設定、browser confirmation 証跡、Storybook import 境界、呼び出し元の検証証跡を確認した。network request 全量ログは保存されていないが、対象 story と fixture と確認 URL から外部 API、backend、Wails runtime、有料 API へ到達する実装経路は確認されなかった。"
+  hard_gate: true
+checked_scope:
+  summary: "Storybook 設定、最小 story、fixture、Storybook import 禁止 lint rule、lint rule test、review URL、browser confirmation 証跡、呼び出し元の検証証跡を確認した。"
+  files:
+    - path: "frontend/.storybook/main.ts"
+      line: 4
+      symbol: "config"
+      reason: "Storybook の story 探索範囲が `../src/ui/**/*.stories.@(ts|svelte)` であり、Vite alias 以外の backend、Wails runtime、外部 URL 設定がないことを確認した。"
+    - path: "frontend/.storybook/preview.ts"
+      line: 3
+      symbol: "preview"
+      reason: "Storybook preview が layout 設定だけで、外部送信、secret 表示、browser storage 連携を持たないことを確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.stories.ts"
+      line: 1
+      symbol: "meta"
+      reason: "story が Storybook 型、対象 UI component、固定 fixture だけを参照し、backend DTO mock、gateway mock、実行フロー再現を含まないことを確認した。"
+    - path: "frontend/src/ui/components/__fixtures__/ai-model-selection-card-fixture.ts"
+      line: 8
+      symbol: "aiModelSelectionCardFixture"
+      reason: "fixture が sample provider と sample model の表示値だけを持ち、API key、token、secret、実ユーザーデータを含まないことを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 162
+      symbol: "detectTargetType"
+      reason: "Storybook package import を `storybook` targetType として検出する境界を確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 358
+      symbol: "isStorybookSourceExempt"
+      reason: "Storybook import の許可範囲が `.storybook`、`__fixtures__`、`__stories__`、`.stories.*` に限定されることを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 495
+      symbol: "enforceLayerBoundariesRule"
+      reason: "Storybook import が許可範囲外の production source で report されることを確認した。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 76
+      symbol: "enforce-layer-boundaries tests"
+      reason: "Storybook import の許可例とプロダクトコードでの禁止例が test に含まれることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation.md"
+      line: 10
+      symbol: "Browser Confirmation Input"
+      reason: "headless Playwright 確認の対象が localhost Storybook iframe URL であり、backend API、Wails runtime、外部 paid API 呼び出しが禁止操作として記録されていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation.md"
+      line: 39
+      symbol: "Residual Risk"
+      reason: "前回指摘された Storybook global settings warning が generic 表現へ丸められ、利用者固有のローカル絶対 path が残っていないことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 10
+      symbol: "Review Target"
+      reason: "review URL と iframe URL が localhost Storybook だけを指すことを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 53
+      symbol: "Safety Check"
+      reason: "review URL、story_id、command record に secret、API key、token、local absolute path、実ユーザーデータを含めない確認が記録されていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation/ai-model-selection-card.json"
+      line: 2
+      symbol: "browser confirmation snapshot"
+      reason: "保存済み snapshot に localhost iframe URL、表示 text、console debug message、pageErrors 空配列だけが記録されていることを確認した。"
+unchecked_scope:
+  - target: "headless Playwright 実行時の network request 全量"
+    reason: "保存済み browser confirmation JSON は console message と page error を記録しているが、request log を保存していない。"
+    risk: "Storybook runtime 自体の内部 request までは証跡から再構成できない。ただし対象 story、fixture、Storybook config、確認 URL に fetch、WebSocket、backend、provider 呼び出しは確認されなかった。"
+  - target: "Sonar server issue gate"
+    reason: "呼び出し元の検証証跡で未実行とされている。"
+    risk: "server 側の静的解析で追加 issue が出る可能性がある。lint、Storybook build、frontend-local は pass とされている。"
+issues:
+  - id: "trust-boundary-001"
+    level: "minor"
+    title: "browser confirmation 文書に残っていたローカル絶対 path は解消済み"
+    problem: "前回レビューでは browser confirmation の残留リスク欄に利用者固有のローカル絶対 path が記録されていた。現在の成果物では実パスが削除され、generic な Storybook global settings directory 表現へ置き換えられている。"
+    reason: "レビュー重点では story、fixture、review URL、browser evidence に local absolute path の不要露出がないか確認する必要がある。現在の静的検索では実パスは検出されず、`local absolute path` は safety check の generic phrase としてだけ残っている。"
+    violated_condition: "解消済み。browser evidence には不要な local absolute path を露出しない。"
+    cause_candidate: "解消済み。docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation.md:40 が generic 表現へ修正された。"
+    evidence:
+      - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation.md"
+        line: 40
+        excerpt: "Storybook global settings warning は、利用者固有の絶対 path ではなく generic な settings directory として記録されている。"
+      - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+        line: 57
+        excerpt: "`local absolute path` は story_id の safety check phrase として記録されており、実パスではない。"
+    local_fix_assessment: "resolved-local"
+    additional_check_scope: "none。証跡文書と JSON snapshot の静的検索で利用者固有の home directory prefix、`file://`、secret、API key、token がないことを確認済みである。"
+    fix_considerations: "解消済み。今後の証跡更新時も利用者固有のホームディレクトリ構造や file URL を残さない。"
+    verification: "local absolute path 確認用の静的検索は generic phrase だけを検出し、実パスを検出しない。追加の trust-boundary 検索でも secret、API key、token、file URL は検出されなかった。"
+    fix_required: false
+    status: "resolved"

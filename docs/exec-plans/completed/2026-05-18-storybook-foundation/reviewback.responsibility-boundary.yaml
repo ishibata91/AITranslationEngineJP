@@ -1,0 +1,90 @@
+reviewback_version: 1
+task_id: "2026-05-18-storybook-foundation"
+review_yaml_path: "docs/exec-plans/active/2026-05-18-storybook-foundation/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "維持されている。Storybook 基盤は frontend tooling、UI component 横の story と fixture、既存 repository boundary lint の拡張、task-local 運用記録に閉じている。backend、Wails、generated wailsjs、Gateway、RuntimeEventAdapter、AI provider、secret store、DB への責務漏れは確認していない。"
+  evidence_sufficiency: "十分。実装範囲、Storybook 設定、story、fixture、lint rule、lint test、task-local review 記録、差分ファイル一覧を確認した。検証証跡は呼び出し元入力と storybook-review.md の記録を採用した。"
+
+checked_scope:
+  summary: "Storybook scripts/config/story/fixture、repository boundary plugin の Storybook import 判定、boundary test、task-local storybook-review と observability 記録を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/implementation-scope.md"
+      line: 26
+      symbol: "Fixed Decisions"
+      reason: "Storybook 基盤を frontend tooling とし、backend、Wails runtime、generated wailsjs、Gateway、RuntimeEventAdapter、AI provider、secret store、DB を非対象に固定しているため。"
+    - path: "frontend/package.json"
+      line: 9
+      symbol: "scripts.storybook"
+      reason: "Storybook dev/build 入口が frontend package scripts に追加されているため。"
+    - path: "frontend/.storybook/main.ts"
+      line: 4
+      symbol: "config"
+      reason: "Storybook 設定が UI story 探索と Vite alias に限定され、runtime adapter や backend 接続を生成していないため。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.stories.ts"
+      line: 1
+      symbol: "FixedProps"
+      reason: "story が Storybook 型、UI component、component 横 fixture だけに依存しているため。"
+    - path: "frontend/src/ui/components/__fixtures__/ai-model-selection-card-fixture.ts"
+      line: 8
+      symbol: "aiModelSelectionCardFixture"
+      reason: "fixture が固定 props だけを持ち、Gateway mock、backend DTO mock、Wails event、DB、provider 呼び出しを含まないため。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 162
+      symbol: "detectTargetType"
+      reason: "Storybook package import を既存 frontend repository boundary rule の target type として扱っているため。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 358
+      symbol: "isStorybookSourceExempt"
+      reason: "Storybook 専用 file pattern と fixture path の例外を lint rule 内に閉じているため。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 495
+      symbol: "ImportDeclaration"
+      reason: "プロダクトコードから Storybook package への import を既存 boundary rule の禁止 import として報告しているため。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 76
+      symbol: "valid Storybook imports"
+      reason: "story と fixture の Storybook import 許可を lower-level test で固定しているため。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 179
+      symbol: "invalid production Storybook import"
+      reason: "UI production code から Storybook package への import 禁止を lower-level test で固定しているため。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 10
+      symbol: "Review Target"
+      reason: "Storybook review URL と browser evidence が task-local 記録として閉じているため。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/observability.md"
+      line: 7
+      symbol: "判断結果"
+      reason: "恒久ログ追加なしとし、Storybook 確認を task-local 記録へ閉じているため。"
+
+unchecked_scope:
+  - target: "package-lock の全 transitive dependency"
+    reason: "責務境界観点では package.json の devDependencies と scripts、および lockfile 更新対象の種別だけを確認したため。"
+    risk: "Storybook devDependencies 由来の transitive package 名までは責務境界の直接根拠にしていない。"
+  - target: "Sonar server issue gate"
+    reason: "呼び出し元入力で未実行とされており、skill がハーネス実行を非対象としているため。"
+    risk: "server side static analysis 固有の境界指摘は未確認である。"
+  - target: "agent-browser 固有 snapshot"
+    reason: "storybook-review.md は agent-browser 失敗と Playwright 代替確認を記録しているため。"
+    risk: "agent-browser 固有の snapshot 形式での確認は残っていない。"
+
+responsibility_boundary_notes:
+  maintenance_level: "high"
+  broken_boundaries: []
+  cause_candidates: []
+  local_fix_assessment: "修正必須の境界違反はない。将来 fixture 例外を狭める場合は lint rule 内の Storybook source exemption の path pattern だけで局所修正できる可能性がある。"
+  boundary_fixed_test_perspective:
+    - "Storybook 専用 file pattern だけが Storybook package を import できること。"
+    - "通常の ui production code は Storybook package を import できないこと。"
+    - "Storybook story と fixture は backend DTO、Gateway、RuntimeEventAdapter、AI provider、secret store、DB を import しないこと。"
+  residual_risk:
+    - "isStorybookSourceExempt は `/__fixtures__/` を広く許可している。現差分の fixture は frontend/src/ui/components 配下にあるため問題化していないが、将来 application/controller 側 fixture へ Storybook import を置く余地は残る。"
+    - "Storybook config の alias は @controller も解決可能にしている。現 story は @controller を import していないため境界違反ではないが、後続 story 追加時は lint rule と story review で接続先を確認する必要がある。"
+
+issues: []
