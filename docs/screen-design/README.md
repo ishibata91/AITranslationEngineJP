@@ -1,6 +1,6 @@
 # Screen Design
 
-この directory は、画面構成と visual design の正本を置く。
+この directory は、画面内容と visual design の正本を置く。
 `docs/spec.md` の要件と用語に従い、画面の導線、情報配置、見た目の設計方針を管理する。
 
 ## Records

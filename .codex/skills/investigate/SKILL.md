@@ -62,7 +62,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 設計前の UI 根拠 は `agent-browser` CLI で確認する
 - UI 根拠 を集める時は、関連する `docs/screen-design/screens/*.md` または active plan の `screen-design-diff.<screen-id>.md` を、操作経路と期待値の補助参照として確認する
 - UI 根拠 は画面状態、console、screenshot、操作条件を分けて残す
-- 画面要素を操作できない時は、操作経路に対応する画面設計がない、セレクタ属性が不足、起動状態が不足、操作経路または期待値と実画面の対応を確認できない、のいずれかで理由を返す
+- 画面要素を操作できない時は、操作経路に対応する画面設計がない、画面ID または セレクタ（`aria-label`）が不足、起動状態が不足、操作経路または期待値と実画面の対応を確認できない、のいずれかで理由を返す
 - frontend log は browser console の観測事実として残す
 - backend log は `tmp/logs/wails-dev.log` の観測事実として残す
 - frontend log と backend log は同じ根拠 path に混ぜない
