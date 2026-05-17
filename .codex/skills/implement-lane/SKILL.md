@@ -36,7 +36,6 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - UX 事前確認は [ux-review](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ux-review/SKILL.md) に従う。
 - 観測ログ追加は [observability-implementer](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/observability-implementer/SKILL.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
-- fakeAPI 運用仕様: 人間レビュー前に frontend 実装を実画面で確認する task では [frontend-fake-api.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/frontend-fake-api.md) を起動入力に含める。
 - マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 
 ## 内部参照規約
@@ -172,7 +171,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | --- | --- |
 | 承認済み画面 | 人間レビューで承認された画面、主要区画、主要導線、状態表示 |
 | 承認済み表示規則 | 人間レビューで承認された文言、余白、密度、要素サイズ、既存画面との統一条件 |
-| 確認済み実画面 | review URL と確認済み `fakeScenario` |
+| 確認済み実画面 | review URL と確認済み状態 |
 | UX確認結果 | `ux-review.yaml` の未解決なし判定、または人間承認済み残留事項 |
 | 変更禁止範囲 | 承認済み frontend touched files と後続 agent が変更してはいけない範囲 |
 
@@ -227,8 +226,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - UI がある task では `UX事前確認` を必須成果物にし、UI がない task では `UX事前確認` を省略できる。
 - UI がある task では `frontend 実装後人間レビュー` を必須成果物にし、UI がない task では `frontend 実装後人間レビュー` を省略できる。
 - UI がある task の `frontend 実装` は、`backend 実装` より先に起動する。
-- UI がある task の `frontend 実装` は、人間レビュー前に fakeAPI を整備し、実画面で確認できる review URL、確認状態、未確認理由を `frontend 実装後人間レビュー` の入力へ含める。
-- UI がある task の `frontend 実装` は、backend 実装、統合境界実装、永続化仕様の代替として fakeAPI を扱わない。
+- UI がある task の `frontend 実装` は、人間レビュー前に実画面で確認できる review URL、確認状態、未確認理由を `frontend 実装後人間レビュー` の入力へ含める。
+- UI がある task の `frontend 実装` は、backend 実装、統合境界実装、永続化仕様の代替として見た目確認用のデータを扱わない。
 - UI がある task の `frontend 実装後人間レビュー` は、`UX事前確認` の通過後に着手する。
 - UI がある task の `backend 実装` と `統合境界実装` は、`合意済みfrontend保護` の固定後に着手する。
 - `frontend 実装後人間レビュー` が差し戻しまたは追加質問の場合は、後続実装へ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
@@ -281,7 +280,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - UI が関係する場合は、`ui-design.md` が人間設計レビュー前に揃っている。
 - UI が関係し、画面設計書正本へ反映する差分がある場合は、`screen-design-diff.<screen-id>.md` が人間設計レビュー前に揃っている。
 - UI が関係する場合は、`frontend 実装` が `backend 実装` より先に完了している。
-- UI が関係する場合は、人間レビュー前に fakeAPI による実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
+- UI が関係する場合は、人間レビュー前に実画面確認ができる状態になり、review URL、確認状態、未確認理由が記録されている。
 - UI が関係する場合は、`ux-review.yaml` に `review_status`、`must_fix_open`、`max_level`、確認済み状態、未確認状態が記録されている。
 - UI が関係する場合は、`UX事前確認` に `blocker` または `major` の未解決問題が残っていない。
 - UI が関係する場合は、`frontend 実装後人間レビュー` の承認が記録されている。
@@ -314,7 +313,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `設計差分図` が予定変更箇所以外を網羅図として含む場合は停止する。
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
-- UI が関係する task で fakeAPI による実画面確認の review URL、確認状態、未確認理由が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
+- UI が関係する task で実画面確認の review URL、確認状態、未確認理由が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
 - UI が関係する task で `UX事前確認` が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
 - UI が関係する task で `UX事前確認` に `blocker` または `major` の未解決問題が残るまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。
 - UI が関係する task で `frontend 実装後人間レビュー` の承認がないまま `合意済みfrontend保護` へ進みそうな場合は停止する。

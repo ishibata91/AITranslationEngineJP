@@ -1,9 +1,4 @@
-import {
-  createProductionAppFactories,
-  createReviewFakeApiAppFactories
-} from "./bootstrap/app-screen-controller-factories"
-import { createDefaultReviewFakeApiGatewayRegistry } from "@controller/review-fake-api/default-review-fake-api-gateway-registry"
-import { resolveReviewFakeApiRuntimeContext } from "@controller/review-fake-api/review-fake-api-runtime"
+import { createProductionAppFactories } from "./bootstrap/app-screen-controller-factories"
 import { mount } from "svelte"
 import App from "@ui/App.svelte"
 
@@ -13,18 +8,7 @@ if (!target) {
   throw new Error("app root not found")
 }
 
-const reviewFakeApiContext = resolveReviewFakeApiRuntimeContext(
-  new URLSearchParams(window.location.search),
-  {
-    reviewModeEnabled: import.meta.env.DEV
-  }
-)
-const appFactories = reviewFakeApiContext.enabled
-  ? createReviewFakeApiAppFactories(
-      reviewFakeApiContext,
-      createDefaultReviewFakeApiGatewayRegistry()
-    )
-  : createProductionAppFactories()
+const appFactories = createProductionAppFactories()
 
 mount(App, {
   target,

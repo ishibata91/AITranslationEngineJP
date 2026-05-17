@@ -1,7 +1,7 @@
 # Task Plan: 2026-05-17-fake-api-retirement
 
 - `workflow`: work
-- `status`: planned
+- `status`: implemented-pending-review
 - `lane_owner`: `light_change_lane`
 - `task_id`: `2026-05-17-fake-api-retirement`
 - `task_mode`: cleanup-and-retirement
@@ -22,8 +22,8 @@
 - `ux_review`: `N/A`
 - `frontend_human_review`: `N/A`
 - `approved_frontend_protection`: `N/A`
-- `scenario_design`: `pending`
-- `implementation_scope`: `pending-after-human-review`
+- `scenario_design`: `N/A`
+- `implementation_scope`: `N/A`
 - `detail_spec_target`: `N/A`
 
 ## Decision Record
@@ -42,21 +42,21 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 
 ### 未決事項
 
-- `docs/frontend-fake-api.md` を削除するか、廃止記録として残すか。
-- active / completed の過去 task artifact に残る fakeAPI 証跡を履歴として無視するか、参照だけ注記するか。
-- root workflow 文書に fakeAPI 廃止後のレビュー入口をどの task で正本化するか。
+- `docs/frontend-fake-api.md` は削除する。理由は、廃止済みの起動手順を正本として残すと参照先が二重化するため。
+- completed の過去 task artifact に残る fakeAPI 証跡は履歴として残す。理由は、当時の検証証跡とレビュー入力を改変しないため。
+- 現行 workflow 文書の fakeAPI 参照は、実画面確認の状態確認へ置き換える。Storybook の入口正本化は後続 task で扱う。
 
 ## Routing Notes
 
-- `required_reading`: `docs/frontend-fake-api.md`, `docs/coding-guidelines-frontend.md`, `docs/lint-policy.md`
-- `canonicalization_targets`: `docs/frontend-fake-api.md`, fakeAPI を参照する docs / workflow artifact
+- `required_reading`: `docs/coding-guidelines-frontend.md`, `docs/lint-policy.md`
+- `canonicalization_targets`: `docs/index.md`, fakeAPI を参照する現行 workflow artifact
 - `detail_spec_upper_scenario_id`: `N/A`
 - `validation_commands`: `python3 scripts/harness/run.py --suite frontend-local`, `python3 scripts/harness/run.py --suite structure`
 
 ## Branch Status
 
-- `worktree_checkout`: `pending`
-- `branch_ready`: `pending`
+- `worktree_checkout`: `/Users/iorishibata/.codex/worktrees/9da0/AITranslationEngineJP`
+- `branch_ready`: `codex/2026-05-17-fake-api-retirement`
 - `commit_hash`: `pending`
 - `remote_operation`: `not-performed`
 
@@ -69,18 +69,18 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 
 ## Codex Implementation Result
 
-- `completed_handoffs`: `pending`
-- `touched_files`: `pending`
-- `implemented_scope`: `pending`
-- `test_results`: `pending`
-- `implementation_investigation`: `pending`
+- `completed_handoffs`: `light-change direct implementation`
+- `touched_files`: `frontend/src/main.ts`, `frontend/src/bootstrap/app-screen-controller-factories.ts`, `frontend/src/controller/review-fake-api/`, `frontend/src/controller/translation-job-management/translation-job-management-review-gateway.ts`, `frontend/src/ui/review-fake-api-scenario.test.ts`, `docs/frontend-fake-api.md`, `docs/index.md`, `.codex/skills/implement-lane/SKILL.md`, `.codex/skills/implement-frontend/SKILL.md`, `.codex/skills/ux-review/SKILL.md`, `.codex/agents/ux_review.toml`
+- `implemented_scope`: fakeAPI runtime、review gateway、fakeAPI 専用 test、現行 docs / workflow 参照を削除または実画面状態確認へ置換した。
+- `test_results`: `python3 scripts/harness/run.py --suite frontend-local` pass, `python3 scripts/harness/run.py --suite structure` pass
+- `implementation_investigation`: `rg` で `frontend/src`、`.codex/skills`、`.codex/agents`、`docs/index.md` に fakeAPI 現行参照が残らないことを確認した。completed の過去 task artifact は履歴として残した。
 - `ui_evidence`: `N/A`
 - `ux_review_result`: `N/A`
 - `approved_frontend_protection`: `N/A`
 - `codex_review_result`: `pending`
 - `sonar_gate_result`: `pending`
-- `residual_risks`: `pending`
-- `docs_changes`: `pending`
+- `residual_risks`: `5 観点 review は未実施。Storybook 入口正本化は後続 task で扱う。`
+- `docs_changes`: `docs/frontend-fake-api.md` を削除し、`docs/index.md` から参照を外した。
 
 ## Merge Readiness
 
@@ -88,9 +88,9 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 - `source_branch`: `codex/2026-05-17-fake-api-retirement`
 - `target_branch`: `master`
 - `commit_hash`: `pending`
-- `validation_evidence`: `pending`
+- `validation_evidence`: `frontend-local pass`, `structure pass`
 - `review_evidence`: `pending`
-- `residual_risks`: `pending`
+- `residual_risks`: `5 観点 review は未実施。completed artifact の fakeAPI 証跡は履歴として残る。`
 
 ## Merge Result
 
@@ -103,10 +103,12 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: `pending`
+- `canonicalized_artifacts`: `docs/index.md`, `.codex/skills/implement-lane/SKILL.md`, `.codex/skills/implement-frontend/SKILL.md`, `.codex/skills/ux-review/SKILL.md`, `.codex/agents/ux_review.toml`
 - `detail_spec_canonicalization`: `N/A`
 - `follow_up`: `2026-05-18-storybook-foundation` と `2026-05-17-master-persona-componentization` が人間見た目レビュー正本を固定する`
 
 ## Outcome
 
-- 未着手。
+- fakeAPI runtime、review gateway、fakeAPI 専用 test、現行 docs / workflow 参照を削除または廃止後の実画面状態確認へ置換した。
+- `frontend-local` と `structure` は通過した。
+- 5 観点 review、作業 commit、マージ準備入力は未実施。
