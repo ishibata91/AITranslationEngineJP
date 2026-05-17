@@ -6,7 +6,7 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 
 ## 目的
 
-`merge-lane` は、各レーンが worktree 上で作成した local branch を統合先 branch へ取り込み、active plan を completed archive へ移す作業プロトコルである。
+`merge-lane` は、各レーンが作成した local branch を統合先 branch へ取り込み、active plan を completed archive へ移す作業プロトコルである。
 `merge_lane` がマージ準備確認、local merge、conflict 解消、merge 後検証、completed 移動、merge 結果 commit を管理する時に使う。
 
 ## 対応ロール
@@ -21,7 +21,6 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 - 呼び出し元: この skill を呼び出した人間またはレーン。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
 - マージ準備入力: 各レーンが作成した merge 前提の引き継ぎ情報。
-- 作業worktree: source branch を checkout した worktree。
 - source branch: 統合元の local branch。
 - target branch: 統合先の local branch。
 - commit hash: source branch の作業 commit。
@@ -56,8 +55,8 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 
 - `source branch` の既定名は `codex/<task-id>` とする。
 - `target branch` の既定名は `master` とする。
-- `マージ準備確認` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを確認する。
-- `source branch` が対象 worktree に checkout されていない場合は local merge へ進めない。
+- `マージ準備確認` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを確認する。
+- `source branch` と `commit hash` が対応しない場合は local merge へ進めない。
 - `target branch` が人間指定なしで `master` 以外の場合は local merge へ進めない。
 - `local merge` は remote repository を変更しない local command だけで行う。
 - `conflict 解消` は active plan、source branch 差分、target branch 差分から判断できる範囲だけを扱う。
@@ -77,7 +76,7 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 
 ## 出力規約
 
-- マージ準備確認: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクの確認結果を返す。
+- マージ準備確認: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクの確認結果を返す。
 - local merge: merge command、対象 branch、merge 結果、conflict 有無を返す。
 - conflict 解消: conflict file、採用判断、根拠参照、解消結果を返す。
 - merge 後検証: 実行 command、成否、証跡位置、未実行理由を返す。
@@ -99,7 +98,7 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 
 - マージ準備入力が不足する場合は停止する。
 - source branch または target branch を特定できない場合は停止する。
-- source branch が対象 worktree に checkout されていない場合は停止する。
+- source branch と commit hash が対応しない場合は停止する。
 - target branch が人間指定なしで `master` 以外の場合は停止する。
 - レビュー必須問題が未解決の場合は停止する。
 - conflict 解消が仕様判断、設計変更、レーン外の再実装を必要とする場合は停止する。

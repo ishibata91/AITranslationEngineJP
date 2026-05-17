@@ -23,7 +23,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 修正対象として扱う観測内容。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
-- 作業worktree: active plan 専用 branch を checkout する worktree。
+- 作業場所: Codex app が用意した実行場所。
 - 作業branch: 既定名 `codex/<task-id>` の local branch。
 - 統合先branch: 既定名 `master` の local branch。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
@@ -71,8 +71,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 ## 判断規約
 
 - 人間観測は探索テストの探索範囲拡張ではなく、修正入口の根拠として扱う。
-- `branch 準備` は active plan ごとの worktree 上で `codex/<task-id>` の local branch を作成または確認する。
-- 作業 branch が対象 worktree に checkout されていない場合は、後続成果物へ進めない。
+- `branch 準備` は active plan ごとの `codex/<task-id>` の local branch を作成または確認する。
+- 作業 branch を特定できない場合は、後続成果物へ進めない。
 - `修正前調査` は `investigator` を起動して渡す。
 - `修正方針判断` は `fix_decider` を起動して作る。
 - `修正方針判断` は原因の原因、責務境界、採用する修正方針、禁止する修正を分ける。
@@ -102,7 +102,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 対症療法的な修正を許可せず，根本的な修正を模索すること。
 - 作業レポート入力は `work_reporter` を起動して渡す。
 - 作業レポート入力を揃えた後、local commit を作る。
-- `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
+- `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
@@ -138,15 +138,15 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - レーン戻し入力: 大規模修正または修正レーン対象外の場合に、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
 - レビュー起動入力: レビュー agent 向けに人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
-- branch 準備: 作業worktree、作業branch、統合先branch、checkout 状態を返す。
+- branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
-- マージ準備入力: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
+- マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
 ## 完了規約
 
 - 修正レーンの次成果物、起動、停止、戻しを再解釈なしで判断できる。
-- 作業 branch が `codex/<task-id>` として存在し、対象 worktree に checkout されている。
+- 作業 branch が `codex/<task-id>` として存在する。
 - 人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡が根拠参照付きで確認されている。
 - `修正方針判断` が原因の原因、責務境界、採用する修正方針、禁止する修正を含んでいる。
 - `原因箇所シーケンス図` が修正着手前に揃っている。
@@ -160,7 +160,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
 - 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
 - 変更が local commit 済みである。
-- `マージ準備入力` が active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
+- `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
 ## 停止規約

@@ -278,7 +278,7 @@ prefix_rule(
         ],
     ],
     decision = "allow",
-    justification = "Local git inspection commands are required for worktree branch lane operation.",
+    justification = "Local git inspection commands are required for branch lane operation.",
     match = [
         "git status --short",
         "git branch",
@@ -293,27 +293,10 @@ prefix_rule(
 prefix_rule(
     pattern = [
         "git",
-        "worktree",
-        "list",
-    ],
-    decision = "allow",
-    justification = "Local worktree inspection is required to bind active plans to worktrees.",
-    match = [
-        "git worktree list",
-        "git worktree list --porcelain",
-    ],
-    not_match = [
-        "git worktree remove ../other",
-    ],
-)
-
-prefix_rule(
-    pattern = [
-        "git",
         "switch",
     ],
     decision = "allow",
-    justification = "Local branch checkout is required for active plan worktree operation.",
+    justification = "Local branch selection is required for active plan branch operation.",
     match = [
         "git switch master",
         "git switch -c codex/task-id",

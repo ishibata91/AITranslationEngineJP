@@ -21,7 +21,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 探索テストとして扱う依頼内容。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
-- 作業worktree: active plan 専用 branch を checkout する worktree。
+- 作業場所: Codex app が用意した実行場所。
 - 作業branch: 既定名 `codex/<task-id>` の local branch。
 - 統合先branch: 既定名 `master` の local branch。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
@@ -64,8 +64,8 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 
 - 次の実行判断は成果物DAGの未完了成果物、満たされた `依存対象`、既存成果物、対象 skill の完了規約で決める。
 - 起動先 agent の起動入力には、対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を明示する。
-- `branch 準備` は active plan ごとの worktree 上で `codex/<task-id>` の local branch を作成または確認する。
-- 作業 branch が対象 worktree に checkout されていない場合は、後続成果物へ進めない。
+- `branch 準備` は active plan ごとの `codex/<task-id>` の local branch を作成または確認する。
+- 作業 branch を特定できない場合は、後続成果物へ進めない。
 - `探索計画` は `exploration_test_planner` へ渡す。
 - `探索計画` に `planning_blockers` がある場合は停止せず、`planning_blockers` と `correction_history` を渡して `exploration_test_planner` を再起動する。
 - `探索計画` は `planning_blockers` が空になるまで後続成果物へ進めない。
@@ -76,7 +76,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - `レビュー通過根拠` は探索計画、探索証跡、バグ一覧、実装証跡、回帰テスト証跡を入力にして観点別レビュー agent を起動する。
 - 観点別レビュー agent の結果は `reviewback.<観点>.yaml` に記録する。
 - 作業レポート入力を揃えた後、local commit を作る。
-- `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
+- `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
@@ -99,15 +99,15 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 計画修正履歴: `planning_blockers` と修正結果を返す。
 - レビュー起動入力: レビュー agent 向けに探索計画、探索証跡、バグ一覧、実装証跡、回帰テスト証跡、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
-- branch 準備: 作業worktree、作業branch、統合先branch、checkout 状態を返す。
+- branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
-- マージ準備入力: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
+- マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
 ## 完了規約
 
 - 探索テストレーンの次成果物、起動、停止、戻しを再解釈なしで判断できる。
-- 作業 branch が `codex/<task-id>` として存在し、対象 worktree に checkout されている。
+- 作業 branch が `codex/<task-id>` として存在する。
 - 探索計画、テストデータ、探索証跡、バグ一覧とログ、影響ファイルが根拠参照付きで確認されている。
 - 探索計画の `planning_blockers` が空であり、修正履歴がある場合は根拠参照付きで確認されている。
 - `exploration-test-data.md`、`exploration-test-findings.md`、必要な場合は `regression-test-evidence.md` が作業計画フォルダに記録されている。
@@ -116,7 +116,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
 - 終了処理、停止、戻しのいずれでも `作業レポート入力` と 作業観測根拠が作成されている。
 - 変更が local commit 済みである。
-- `マージ準備入力` が active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
+- `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
 ## 停止規約

@@ -22,7 +22,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 軽量変更として扱う依頼内容。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
-- 作業worktree: active plan 専用 branch を checkout する worktree。
+- 作業場所: Codex app が用意した実行場所。
 - 作業branch: 既定名 `codex/<task-id>` の local branch。
 - 統合先branch: 既定名 `master` の local branch。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
@@ -79,8 +79,8 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 
 - 次の実行判断は成果物DAGの未完了成果物、満たされた `依存対象`、既存成果物、対象 skill の完了規約で決める。
 - `task 枠` は人間依頼、変更禁止範囲、確認したい結果を含める。
-- `branch 準備` は active plan ごとの worktree 上で `codex/<task-id>` の local branch を作成または確認する。
-- 作業 branch が対象 worktree に checkout されていない場合は、後続成果物へ進めない。
+- `branch 準備` は active plan ごとの `codex/<task-id>` の local branch を作成または確認する。
+- 作業 branch を特定できない場合は、後続成果物へ進めない。
 - `軽量変更計画` は `light_change_planner` を起動して渡す。
 - `軽量変更計画` が `設計戻し` または `修正レーン戻し` を返す場合は、実装へ進めない。
 - `設計差分図` は `diagrammer` を起動して作る。
@@ -101,7 +101,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 起動先 agent は下位 agent を起動せず、渡された成果物だけを作る。
 - 人間介入が必要な成果物は AI だけで完了にしない。
 - 作業レポート入力を揃えた後、local commit を作る。
-- `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
+- `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
@@ -133,15 +133,15 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - レビュー起動入力: レビュー agent 向けにレビュー対象差分、実装目的、軽量変更計画、実装結果、検証証跡、変更ファイル、レビューYAMLパスを返す。
 - 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
-- branch 準備: 作業worktree、作業branch、統合先branch、checkout 状態を返す。
+- branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
-- マージ準備入力: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
+- マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
 ## 完了規約
 
 - 軽量変更レーンの次成果物、起動、人間確認、停止、戻しを再解釈なしで判断できる。
-- 作業 branch が `codex/<task-id>` として存在し、対象 worktree に checkout されている。
+- 作業 branch が `codex/<task-id>` として存在する。
 - `task 枠` が人間依頼、変更禁止範囲、確認したい結果を含んでいる。
 - `軽量変更計画` が仕様製本、関連 docs、task-local 成果物、既存実装の突き合わせ結果を含んでいる。
 - `軽量変更計画` が `範囲内修正`、`軽量仕様変更`、`設計戻し`、`修正レーン戻し` のいずれかを返している。
@@ -157,7 +157,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - human 承認済みの恒久仕様がある場合は、`詳細仕様正本反映` の完了結果または停止理由が根拠参照付きで記録されている。
 - 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
 - 変更が local commit 済みである。
-- `マージ準備入力` が active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
+- `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
 ## 停止規約

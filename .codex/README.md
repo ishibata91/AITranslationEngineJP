@@ -134,7 +134,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `refactor_lane` は placeholder とし、必須 成果物、実行者、next agent は未定義のままにする
 - 各 レーン は task 内成果物 DAG を持ち、順序は phase 名ではなく `依存対象` と対象 skill の完了規約で固定する
 - agent は レーン そのものではなく、成果物 を作る実行主体として扱う
-- 実装、修正、探索テスト、軽量変更の各レーンは worktree 上で branch 準備、作業 commit、マージ準備入力までを必須にする
+- 実装、修正、探索テスト、軽量変更の各レーンは branch 準備、作業 commit、マージ準備入力までを必須にする
 - `merge_lane` 以外のレーンは 作業計画 folder の completed 移動を扱わない
 
 

@@ -20,7 +20,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 新規実装または機能拡張として扱う依頼内容。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
-- 作業worktree: active plan 専用 branch を checkout する worktree。
+- 作業場所: Codex app が用意した実行場所。
 - 作業branch: 既定名 `codex/<task-id>` の local branch。
 - 統合先branch: 既定名 `master` の local branch。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
@@ -180,8 +180,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 
 - 次の実行判断は 成果物依存表 の未完了 成果物、満たされた `依存対象`、既存 成果物、対象 skill の完了規約で決める。
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
-- `branch 準備` は active plan ごとの worktree 上で `codex/<task-id>` の local branch を作成または確認する。
-- 作業 branch が対象 worktree に checkout されていない場合は、後続成果物へ進めない。
+- `branch 準備` は active plan ごとの `codex/<task-id>` の local branch を作成または確認する。
+- 作業 branch を特定できない場合は、後続成果物へ進めない。
 - 起動先 agent の 起動入力 は、対象 skill の入力規約、完了規約、停止規約に合わせて作る。
 - `設計差分図` は `diagrammer` を起動して作る。
 - `設計差分図` は、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 に限定する。
@@ -213,7 +213,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `minor`、`nit` だけが未解決の場合は `implementation_action` を `report_residual` または `close` にする。
 - 5 観点すべてが `review_status: no_issue` または未解決修正必須問題なしの場合だけ `close` を選べる。
 - `implementation_action: close` を選ぶ場合は、作業レポート入力を揃えた後に local commit を作る。
-- `マージ準備入力` は active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
+- `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - `scenario-design`、`ui-design`、`screen-design-diff.<screen-id>.md`、実装結果、レビュー結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`正本化判断` を必須成果物にする。
 - 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`詳細仕様正本反映` を必須成果物にする。
@@ -266,15 +266,15 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済み実画面、UX確認結果、変更禁止範囲を返す。
 - レビュー起動入力: レビュー agent 向けには、レビュー対象差分、実装目的、承認済み実装範囲、実装結果、検証証跡、変更ファイル、レビューYAMLパスを渡す。
 - 改善ログ: `work_history/runs/<run>/workflow-improvement-log.jsonl` へ追記した改善ログ項目を返す。
-- branch 準備: 作業worktree、作業branch、統合先branch、checkout 状態を返す。
+- branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
-- マージ準備入力: active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
+- マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 終了処理返却: 終了処理、停止、戻し では、`作業レポート入力` と `マージ準備入力` を揃えるための 根拠を返す。
 
 ## 完了規約
 
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
-- 作業 branch が `codex/<task-id>` として存在し、対象 worktree に checkout されている。
+- 作業 branch が `codex/<task-id>` として存在する。
 - シナリオ 候補成果物 が必要な場合は 6 件揃っている。
 - `設計差分図` が人間設計レビュー前に揃っている。
 - `設計差分図` が予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 を含んでいる。
@@ -303,7 +303,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `workflow-improvement-log.jsonl` が必要な場合は、分類、根拠、次回改善が JSONL として追記されている。
 - 終了処理、停止、戻し のいずれでも `作業レポート入力` と 作業観測根拠 が作成されている。
 - `implementation_action: close` の場合は、変更が local commit 済みである。
-- `implementation_action: close` の場合は、`マージ準備入力` が active plan folder、worktree path、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
+- `implementation_action: close` の場合は、`マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
 ## 停止規約
