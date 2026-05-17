@@ -1,0 +1,386 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-MPC-001",
+      "title": "controller 接続と表示部品の props 境界を分離する",
+      "kind": "frontend_component_boundary",
+      "source_requirement": "plan.md の goal。docs/architecture.md の View と UI Component 責務。docs/coding-guidelines-frontend.md の component 分割基準。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "MasterPersonaPage を薄くし、画面 view model 由来の小さい props を持つ表示部品と story を作る。",
+          "verification_hint": "SCN-MPC-001"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "初期表示、選択済み、生成中、完了後、modal open は親画面の状態から component props へ写す。",
+          "verification_hint": "SCN-MPC-001, SCN-MPC-002, SCN-MPC-003, SCN-MPC-004, SCN-MPC-005"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "component が親 view model とずれる独自業務状態を持つと、画面と story の表示が分岐するため禁止する。",
+          "verification_hint": "SCN-MPC-001"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "既存 screen local component と `AIModelSelectionCard` を前提にし、共有 component の代替実装を作らない。",
+          "verification_hint": "SCN-MPC-001, SCN-MPC-002"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook 上で主要状態を確認できることが close condition である。",
+          "verification_hint": "SCN-MPC-001"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "この画面の権限差分は入力成果物にない。今回の task は同一利用者の表示部品境界を扱う。",
+          "verification_hint": "N/A"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "性能目標は今回の task の acceptance に含まれない。Storybook build 通過だけを検証入口にする。",
+          "verification_hint": "SCN-MPC-007"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MPC-002",
+      "title": "生成準備、AI 設定、入力 JSON の状態を story で確認する",
+      "kind": "ui_state_display",
+      "source_requirement": "docs/screen-design/screens/master-persona.md の生成準備パネル、AI 設定カード、入力 JSON パネル。plan.md の close_conditions。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "boundary_requirement",
+        "state_requirement",
+        "data_requirement",
+        "security_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "AI 設定状態、選択中 JSON、候補数、新規作成数、既存スキップ数、作成開始可否を表示する。",
+          "verification_hint": "SCN-MPC-002"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "JSON 未選択、preview 失敗、AI 設定不足、model list 参照不能は生成開始拒否として表示する。",
+          "verification_hint": "SCN-MPC-002"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook fixture は実 file dialog と実 filesystem に依存せず、file reference は非実パス識別子で足りる。",
+          "verification_hint": "SCN-MPC-002, SCN-MPC-006"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "入力待ち、JSON 選択済み、生成可能、AI 設定更新中、設定不足を状態として扱う。",
+          "verification_hint": "SCN-MPC-002"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "fixture は selected file name、preview counts、provider、model、credential 状態分類だけを持つ。",
+          "verification_hint": "SCN-MPC-002"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "API key、token、endpoint、raw request、raw response、raw prompt を UI、fixture、review 記録へ出さない。",
+          "verification_hint": "SCN-MPC-002, SCN-MPC-006"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "利用者向け provider list に fake provider を表示しない。`AIModelSelectionCard` を再利用する。",
+          "verification_hint": "SCN-MPC-002"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "未選択、選択済み、更新中、設定不足、長い model 名は fixed fixture で検査できる。",
+          "verification_hint": "SCN-MPC-002"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MPC-003",
+      "title": "生成中と非生成中の進行状態を story で確認する",
+      "kind": "ui_state_transition",
+      "source_requirement": "docs/screen-design/screens/master-persona.md の進行状況パネル。UX-standard の状態表示と状態別操作。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "recovery_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "生成中は進捗、件数、現在対象、一時停止、中止を表示する。",
+          "verification_hint": "SCN-MPC-003"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成状態取得失敗、一時停止失敗、中止失敗を成功表示へ変えない。",
+          "verification_hint": "SCN-MPC-003"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "生成中だけ一時停止と中止を有効にし、生成中は編集、削除、再生成を拒否する。",
+          "verification_hint": "SCN-MPC-003"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "`isRunActive` と `canMutate` が進行状況、詳細操作、作成開始可否と矛盾してはならない。",
+          "verification_hint": "SCN-MPC-003"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "失敗後は直前に観測できていた進行状態を勝手に完了扱いにせず、同じ段階へ戻れる表示を保つ。",
+          "verification_hint": "SCN-MPC-003"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成中 story は処理済み件数、作成済み件数、既存スキップ数、現在対象、操作可否を後追い確認できる。",
+          "verification_hint": "SCN-MPC-003, SCN-MPC-007"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "生成中、生成失敗、生成完了を fixture と story で分けて検査する。",
+          "verification_hint": "SCN-MPC-003"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MPC-004",
+      "title": "一覧、詳細、編集、削除の状態を story で確認する",
+      "kind": "ui_review_and_mutation",
+      "source_requirement": "docs/screen-design/screens/master-persona.md の生成結果一覧、詳細、編集モーダル、削除モーダル。",
+      "required_detail_types": [
+        "success_requirement",
+        "alternative_success_requirement",
+        "failure_handling_requirement",
+        "boundary_requirement",
+        "state_requirement",
+        "data_requirement",
+        "consistency_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "利用者は一覧で検索、ページ移動、行選択を行い、詳細で識別情報と本文を確認できる。",
+          "verification_hint": "SCN-MPC-004"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "選択済みペルソナは編集 modal または削除 modal で操作できる。",
+          "verification_hint": "SCN-MPC-005"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "未選択、保存失敗、削除失敗は成功扱いにせず、modal または詳細の状態を維持する。",
+          "verification_hint": "SCN-MPC-004, SCN-MPC-005"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "derived",
+          "source_or_rationale": "modal 単体 story は保存や削除の実 DB 更新を行わず、callback stub だけを持つ。",
+          "verification_hint": "SCN-MPC-005, SCN-MPC-006"
+        },
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "空一覧、一覧あり、選択済み、絞り込み後空、edit modal、delete modal を状態として扱う。",
+          "verification_hint": "SCN-MPC-004, SCN-MPC-005"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "fixture は短い synthetic persona と、長文耐性用の synthetic persona body を使う。",
+          "verification_hint": "SCN-MPC-004, SCN-MPC-005, SCN-MPC-006"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧が選択 identity を含まない時、詳細は古い selected entry を表示しない。",
+          "verification_hint": "SCN-MPC-004"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧、詳細、modal は固定 fixture で個別に表示確認できる。",
+          "verification_hint": "SCN-MPC-004, SCN-MPC-005"
+        },
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "編集と削除の権限差分は入力成果物にない。今回扱う制約は選択状態と生成中状態の操作可否である。",
+          "verification_hint": "N/A"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MPC-005",
+      "title": "Storybook fixture が外部接続と保存禁止情報を持たない",
+      "kind": "storybook_boundary",
+      "source_requirement": "完了済み 2026-05-18-storybook-foundation の implementation-scope と storybook-review。docs/detail-specs/ai-provider-settings-management.md と persona-generation-phase.md の secret / raw payload 境界。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "boundary_requirement",
+        "data_requirement",
+        "security_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "story と fixture は fixed props、view model fixture、callback stub だけで表示できる。",
+          "verification_hint": "SCN-MPC-006"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook が controller、Gateway、Wails binding、provider network、実 file path を要求する場合は境界違反として扱う。",
+          "verification_hint": "SCN-MPC-006"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "backend DTO mock、gateway mock、翻訳実行 flow 再現、AI 実行、DB 書き込みを Storybook に入れない。",
+          "verification_hint": "SCN-MPC-006"
+        },
+        {
+          "type": "data_requirement",
+          "status": "derived",
+          "source_or_rationale": "fixture は synthetic data と状態値だけを持つ。実 JSON 本文、実 NPC 本文、原文発話全文、会話文脈全文を保存しない。",
+          "verification_hint": "SCN-MPC-006"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "secret、API key、token、credential 参照実値、secret store key、endpoint、raw request、raw response、raw prompt を保存しない。",
+          "verification_hint": "SCN-MPC-006"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "状態別 fixture と story ID から、どの UI 状態を確認したか後追いできる。",
+          "verification_hint": "SCN-MPC-006, SCN-MPC-007"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`npm --prefix frontend run build-storybook` は backend、Wails runtime、AI provider、secret store、DB、実 filesystem なしで成立する。",
+          "verification_hint": "SCN-MPC-006, SCN-MPC-007"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "Storybook fixture は外部更新や同時実行を開始しない。遅延応答の扱いは表示状態 fixture として表す。",
+          "verification_hint": "SCN-MPC-006"
+        }
+      ]
+    },
+    {
+      "id": "REQ-MPC-006",
+      "title": "Storybook review 証跡と検証結果を task-local に残す",
+      "kind": "review_evidence",
+      "source_requirement": "plan.md の close_conditions と validation_commands。完了済み Storybook 基盤の `storybook-review.md` 記録方針。",
+      "required_detail_types": [
+        "success_requirement",
+        "failure_handling_requirement",
+        "observability_requirement",
+        "security_requirement",
+        "testability_requirement",
+        "recovery_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "主要状態を Storybook 上で確認でき、検証結果を task-local に残す。",
+          "verification_hint": "SCN-MPC-007"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "review URL、story ID、確認状態、未確認理由がない場合は見た目レビュー未準備として扱う。",
+          "verification_hint": "SCN-MPC-007"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook review URL と確認状態は task-local `storybook-review.md` に記録する方針を Storybook 基盤から継承する。",
+          "verification_hint": "SCN-MPC-007"
+        },
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "review URL、story ID、command 記録に secret、API key、token、ローカル絶対 path、実ユーザーデータを含めない。",
+          "verification_hint": "SCN-MPC-007"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`npm --prefix frontend run build-storybook` と `python3 scripts/harness/run.py --suite frontend-local` を検証入口にする。",
+          "verification_hint": "SCN-MPC-007"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook 表示確認が環境で止まる場合は、未確認理由と再実行 command を review 証跡に残す。",
+          "verification_hint": "SCN-MPC-007"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "Storybook の性能目標は今回の close condition ではない。build 通過と frontend-local を検証入口にする。",
+          "verification_hint": "N/A"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "deferred",
+          "source_or_rationale": "画面設計書正本への反映差分は今回作成しない。UI 設計本文と screen-design-diff の要否を次成果物で確認する。",
+          "deferred_owner": "ui-design",
+          "recheck_condition": "`ui-design.md` 作成時に Storybook review 対象と画面設計書差分の有無を確認する。",
+          "verification_hint": "SCN-MPC-007"
+        }
+      ]
+    }
+  ]
+}

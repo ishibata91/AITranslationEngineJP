@@ -1,0 +1,589 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-MPC-001",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-001",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "生成準備と AI 設定、入力 JSON の props 境界として統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-002",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-002",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "進行状況と生成中の操作可否へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-003",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-003",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-004",
+      "decision_rationale": "一覧、検索、詳細選択の props 境界へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-004",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-004",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "編集と削除の modal 状態 fixture へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-005",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-005",
+      "source_requirement_id": "REQ-MPC-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-MPC-001",
+      "decision_rationale": "controller 接続と表示部品の責務境界として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-006",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-006",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "Storybook fixture matrix と外部接続遮断へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-007",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-007",
+      "source_requirement_id": "REQ-MPC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-007",
+      "decision_rationale": "Storybook review 証跡へ統合する。記録先は Storybook 基盤の `storybook-review.md` 方針を継承する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-MPC-008",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-MPC-008",
+      "source_requirement_id": "REQ-MPC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-007",
+      "decision_rationale": "Storybook build と frontend-local の検証入口へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-001",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-001",
+      "source_requirement_id": "REQ-MPC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-001",
+      "decision_rationale": "初期表示の props 境界を controller 分離シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-002",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-002",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "JSON 選択と preview 反映を生成準備シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-003",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-003",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "実行中 props と操作ロックを進行状態シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-004",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-004",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-004",
+      "decision_rationale": "生成完了後の一覧と詳細確認へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-005",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-005",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "編集 modal の lifecycle と保存後状態へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-006",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-006",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "削除 modal の lifecycle と確認後状態へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-007",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-007",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "preview または生成開始失敗後の戻り先を進行状態の failure handling へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-MPC-LC-008",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-MPC-LC-008",
+      "source_requirement_id": "REQ-MPC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-007",
+      "decision_rationale": "Storybook POC の作成から review 記録までを証跡シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-001",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-001",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "入力待ちから JSON 選択済みへの状態句として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-002",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-002",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "AI 設定更新中の操作固定として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-003",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-003",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "生成開始可能から生成中への状態句として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-004",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-004",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "生成中から非生成中への戻りと操作可否として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-005",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-005",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-004",
+      "decision_rationale": "一覧選択と詳細選択の整合性へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-006",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-006",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "編集 modal の開閉と保存状態へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-007",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-007",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "削除 modal の開閉と削除状態へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-MPSC-008",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-MPSC-008",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "Storybook fixture が controller なしで状態を維持する条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-001",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-001",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "controller または Gateway 要求は Storybook 外部境界違反として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-002",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-002",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "主要状態を表現できない場合の未確認記録として統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-003",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-003",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "JSON 未選択または preview 失敗時の開始拒否へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-004",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-004",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "AI 設定未完了または model list 参照不能時の開始拒否へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-005",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-005",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "生成中の編集、削除、再生成の拒否条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-006",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-006",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "生成状態取得失敗または停止失敗を成功扱いにしない条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-007",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-007",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-004",
+      "decision_rationale": "選択なしで編集または削除を拒否する条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-008",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-008",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "編集入力不足または保存失敗の回復状態へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-009",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-009",
+      "source_requirement_id": "REQ-MPC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-005",
+      "decision_rationale": "削除失敗時に削除済み扱いにしない条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-010",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-010",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "長文 fixture の見た目破綻確認へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-011",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-011",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "secret、絶対 path、実ユーザーデータ混入の拒否条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-MPCF-012",
+      "generator": "failure",
+      "original_candidate_id": "CAND-MPCF-012",
+      "source_requirement_id": "REQ-MPC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-007",
+      "decision_rationale": "review URL または story ID の未記録を review 未準備条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-001",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-001",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "Storybook が Wails binding へ接続しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-002",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-002",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "AI 設定カードの secret 非保持を生成準備シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-003",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-003",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "モデル一覧更新 story が provider network を呼ばない条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-004",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-004",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "入力 JSON パネルが実ファイル path に依存しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-005",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-005",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "ペルソナ作成開始 story が AI 実行を開始しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-006",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-006",
+      "source_requirement_id": "REQ-MPC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-007",
+      "decision_rationale": "Storybook review URL を Storybook 境界だけに限定する条件へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-MPC-EI-007",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-MPC-EI-007",
+      "source_requirement_id": "REQ-MPC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-002",
+      "decision_rationale": "fake provider を利用者向け選択肢として表示しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-MPCOA-001",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-MPCOA-001",
+      "source_requirement_id": "REQ-MPC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-007",
+      "decision_rationale": "Storybook 確認記録の後追い可能性へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-MPCOA-002",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-MPCOA-002",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "主要状態 fixture から UI 状態を再現する条件へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-MPCOA-003",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-MPCOA-003",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "fixture が secret と実データを保存しない条件へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-MPCOA-004",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-MPCOA-004",
+      "source_requirement_id": "REQ-MPC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-001",
+      "decision_rationale": "import 境界の検査結果を責務境界シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-MPCOA-005",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-MPCOA-005",
+      "source_requirement_id": "REQ-MPC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-003",
+      "decision_rationale": "生成実行中の表示と操作不可理由の後追い確認へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-MPCOA-006",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-MPCOA-006",
+      "source_requirement_id": "REQ-MPC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-MPC-006",
+      "decision_rationale": "生成失敗や AI 設定不足の表示が保存禁止情報を含まない条件へ統合する。"
+    }
+  ],
+  "conflicts": [
+    {
+      "conflict_id": "CONFLICT-MPC-001",
+      "status": "resolved",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-007",
+        "lifecycle:CAND-MPC-LC-008",
+        "failure:CAND-MPCF-012",
+        "external-integration:CAND-MPC-EI-006",
+        "operation-audit:CAND-MPCOA-001"
+      ],
+      "conflict_type": "review_record_location",
+      "reason": "Storybook 基盤の完了成果物が `storybook-review.md` を review URL と確認状態の記録先として固定済みであるため、今回も同じ task-local artifact に統合する。"
+    },
+    {
+      "conflict_id": "CONFLICT-MPC-002",
+      "status": "resolved",
+      "candidate_ids": [
+        "failure:CAND-MPCF-001",
+        "external-integration:CAND-MPC-EI-001"
+      ],
+      "conflict_type": "page_story_boundary",
+      "reason": "主要表示領域の story を必須にし、page 合成 story は production controller に接続しない場合だけ任意とする。"
+    }
+  ],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-MPC-001",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-005",
+        "lifecycle:CAND-MPC-LC-001",
+        "operation-audit:CAND-MPCOA-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MPC-002",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-001",
+        "lifecycle:CAND-MPC-LC-002",
+        "state-transition:CAND-MPSC-001",
+        "state-transition:CAND-MPSC-002",
+        "failure:CAND-MPCF-003",
+        "failure:CAND-MPCF-004",
+        "external-integration:CAND-MPC-EI-002",
+        "external-integration:CAND-MPC-EI-004",
+        "external-integration:CAND-MPC-EI-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MPC-003",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-002",
+        "lifecycle:CAND-MPC-LC-003",
+        "lifecycle:CAND-MPC-LC-007",
+        "state-transition:CAND-MPSC-003",
+        "state-transition:CAND-MPSC-004",
+        "failure:CAND-MPCF-005",
+        "failure:CAND-MPCF-006",
+        "operation-audit:CAND-MPCOA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MPC-004",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-003",
+        "lifecycle:CAND-MPC-LC-004",
+        "state-transition:CAND-MPSC-005",
+        "failure:CAND-MPCF-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MPC-005",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-004",
+        "lifecycle:CAND-MPC-LC-005",
+        "lifecycle:CAND-MPC-LC-006",
+        "state-transition:CAND-MPSC-006",
+        "state-transition:CAND-MPSC-007",
+        "failure:CAND-MPCF-008",
+        "failure:CAND-MPCF-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MPC-006",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-006",
+        "state-transition:CAND-MPSC-008",
+        "failure:CAND-MPCF-001",
+        "failure:CAND-MPCF-002",
+        "failure:CAND-MPCF-010",
+        "failure:CAND-MPCF-011",
+        "external-integration:CAND-MPC-EI-001",
+        "external-integration:CAND-MPC-EI-003",
+        "external-integration:CAND-MPC-EI-005",
+        "operation-audit:CAND-MPCOA-002",
+        "operation-audit:CAND-MPCOA-003",
+        "operation-audit:CAND-MPCOA-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-MPC-007",
+      "candidate_ids": [
+        "actor-goal:CAND-MPC-007",
+        "actor-goal:CAND-MPC-008",
+        "lifecycle:CAND-MPC-LC-008",
+        "failure:CAND-MPCF-012",
+        "external-integration:CAND-MPC-EI-006",
+        "operation-audit:CAND-MPCOA-001"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}
