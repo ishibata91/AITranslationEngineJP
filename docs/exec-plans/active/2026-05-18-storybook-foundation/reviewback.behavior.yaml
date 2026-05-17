@@ -1,0 +1,100 @@
+reviewback_version: 1
+task_id: "2026-05-18-storybook-foundation"
+review_yaml_path: "docs/exec-plans/active/2026-05-18-storybook-foundation/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "Storybook dev/build script、Svelte/Vite Storybook 設定、固定 props story、component 横 fixture、既存 lint の Storybook import 禁止判定、task-local review 証跡は、承認済み実装範囲の主要経路と一致している。未解決の挙動不一致は見つからない。"
+  evidence_sufficiency: "十分。実コード、承認済み implementation-scope、scenario-design、Storybook review 証跡、browser confirmation 証跡、呼び出し元の検証証跡を突き合わせた。"
+  violated_conditions: "未解決 issue がないため、破られた条件はない。"
+  cause_candidates: "未解決 issue がないため、原因候補はない。"
+  local_fix_assessment: "未解決 issue がないため、局所修正評価は不要である。"
+  invariant_test_viewpoint: "Storybook script が frontend package root から起動すること、固定 props story が backend/Wails/AI provider/secret store/DB を要求しないこと、プロダクトコードから Storybook package への import が lint で検出されることを確認観点として扱った。"
+
+checked_scope:
+  summary: "Storybook 最小基盤の起動入口、静的 build 入口、固定 props story、fixture 配置、Storybook 依存混入 lint、task-local 表示確認証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/implementation-scope.md"
+      line: 19
+      symbol: "Fixed Decisions"
+      reason: "承認済み範囲が Storybook tooling、lint boundary、review evidence に限定されていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/scenario-design.md"
+      line: 17
+      symbol: "Fixed Requirements"
+      reason: "Storybook 最小基盤、固定 props fixture、backend 非依存、既存 lint 検査、review URL 記録の期待挙動を確認した。"
+    - path: "frontend/package.json"
+      line: 9
+      symbol: "scripts.storybook"
+      reason: "Storybook dev 入口が frontend package root の npm script として追加されていることを確認した。"
+    - path: "frontend/package.json"
+      line: 10
+      symbol: "scripts.build-storybook"
+      reason: "Storybook static build 入口が専用 npm script として追加されていることを確認した。"
+    - path: "frontend/.storybook/main.ts"
+      line: 4
+      symbol: "config"
+      reason: "Svelte/Vite framework、story 検出 pattern、既存 Vite alias と矛盾しない alias 設定を確認した。"
+    - path: "frontend/src/ui/components/AIModelSelectionCard.stories.ts"
+      line: 5
+      symbol: "meta"
+      reason: "最小 story が AIModelSelectionCard と fixed props fixture だけで表示される構成であることを確認した。"
+    - path: "frontend/src/ui/components/__fixtures__/ai-model-selection-card-fixture.ts"
+      line: 8
+      symbol: "aiModelSelectionCardFixture"
+      reason: "fixture が component 横にあり、backend DTO mock、Gateway mock、Wails runtime、AI provider、secret store、DB を参照していないことを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 162
+      symbol: "detectTargetType"
+      reason: "Storybook package と Storybook runtime module の import が lint 判定対象になることを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 358
+      symbol: "isStorybookSourceExempt"
+      reason: "Storybook 専用設定、story、fixture が Storybook import 許可対象になることを確認した。"
+    - path: "scripts/eslint/repository-boundary-plugin.mjs"
+      line: 495
+      symbol: "ImportDeclaration"
+      reason: "許可対象外の source から Storybook import がある場合に forbiddenImport として報告されることを確認した。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 77
+      symbol: "valid Storybook cases"
+      reason: "Storybook 専用 story と fixture の Storybook import が許可される lower-level test を確認した。"
+    - path: "frontend/repository-boundary-plugin.test.mjs"
+      line: 179
+      symbol: "invalid Storybook case"
+      reason: "プロダクト UI code から Storybook package への import が禁止される lower-level test を確認した。"
+    - path: "frontend/eslint.config.js"
+      line: 67
+      symbol: "local/enforce-layer-boundaries"
+      reason: "既存 lint 入口の対象に repository boundary rule が含まれることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 17
+      symbol: "Confirmation Result"
+      reason: "Storybook dev server、story registry、review URL、iframe URL、browser render の確認結果を確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/storybook-review.md"
+      line: 44
+      symbol: "Storybook Build Gate"
+      reason: "Storybook static build gate が pass と記録され、警告は exit code 0 の範囲に収まっていることを確認した。"
+    - path: "docs/exec-plans/active/2026-05-18-storybook-foundation/browser-confirmation.md"
+      line: 17
+      symbol: "Result"
+      reason: "iframe URL が HTTP 200、期待 text 表示、console error なし、page error なしで確認されていることを確認した。"
+
+unchecked_scope:
+  - target: "実 command の再実行"
+    reason: "review_behavior skill はハーネスを実行しないため、呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "現在の作業環境で依存 package や browser 実行環境が変わった場合、Storybook build や browser confirmation の結果が変わる可能性がある。"
+  - target: "Sonar server issue gate"
+    reason: "呼び出し元の実装結果で Sonar server issue gate は未実行と記録されている。挙動正しさの直接判定では lint/test 証跡を優先した。"
+    risk: "Sonar server 固有の指摘が後続で追加される可能性がある。"
+  - target: "agent-browser native snapshot"
+    reason: "browser-confirmation は agent-browser の環境制約により headless Playwright で代替確認している。"
+    risk: "agent-browser 固有の snapshot 形式だけに依存する後続レビューでは再取得が必要になる。"
+  - target: "dynamic import または CommonJS require による Storybook 依存混入"
+    reason: "確認した lint 追加は ImportDeclaration を主対象にしている。現行 frontend source は ESM import を主経路として扱っている。"
+    risk: "将来、動的 import や require が production code に入る場合、同じ禁止判定で検出できない可能性がある。"
+
+issues: []

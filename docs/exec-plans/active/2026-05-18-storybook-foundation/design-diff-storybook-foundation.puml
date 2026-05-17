@@ -1,0 +1,135 @@
+@startuml
+
+title Storybook 最小基盤 設計差分図
+
+top to bottom direction
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam componentStyle rectangle
+skinparam defaultTextAlignment center
+
+skinparam rectangle {
+  BackgroundColor<<existing>> #F7F9FC
+  BorderColor<<existing>> #546E7A
+  FontColor<<existing>> #243447
+  BackgroundColor<<added>> #EEF9EF
+  BorderColor<<added>> #2E7D32
+  FontColor<<added>> #1B5E20
+  BackgroundColor<<removed>> #FFF1F1
+  BorderColor<<removed>> #C62828
+  FontColor<<removed>> #7F1D1D
+  BackgroundColor<<changed>> #FFF8E1
+  BorderColor<<changed>> #F9A825
+  FontColor<<changed>> #4E342E
+  BackgroundColor<<risk>> #F4F7FA
+  BorderColor<<risk>> #607D8B
+  FontColor<<risk>> #1F2933
+}
+
+legend bottom right
+  |= Style |= Meaning |
+  |<#F7F9FC> existing | 変更しない既存要素 |
+  |<#EEF9EF> added | この task で追加予定 |
+  |<#FFF8E1> changed | 既存入口へ差し込む変更 |
+  |<#FFF1F1> removed | この task では削除予定なし |
+  |<#F4F7FA> risk | 境界や記録ルール |
+endlegend
+
+package "frontend package root" {
+  rectangle "frontend/package.json\nStorybook dev / build script 追加" as pkg <<changed>>
+  rectangle ".storybook/\nmain.ts + preview.ts\nVite alias 整合を持つ config" as sbcfg <<added>>
+  rectangle "frontend/src/ui/**\n最小 sample story" as story <<added>>
+  rectangle "frontend/src/ui/**/__fixtures__\ncomponent 横 fixture 方針" as fixtures <<added>>
+  rectangle "frontend/eslint.config.js\nまたは lint:boundaries\n依存混入チェック追加境界" as lint <<changed>>
+  rectangle "frontend/src/ui/components/*.svelte\nfrontend/src/ui/screens/*.svelte" as ui <<existing>>
+}
+
+package "task-local artifact" {
+  rectangle "storybook-review.md\nreview URL / story ID / 確認状態" as review <<added>>
+}
+
+package "変更しない接続先" {
+  rectangle "backend\nWails runtime\ngenerated wailsjs\nGateway" as runtimeA <<existing>>
+  rectangle "RuntimeEventAdapter\nAI provider\nsecret store\nDB" as runtimeB <<existing>>
+}
+
+rectangle "削除予定なし" as noRemoval <<removed>>
+rectangle "制約\nStorybook は UI 表示確認だけを扱う\nbackend mock と実行フロー再現は入れない" as note1 <<risk>>
+
+pkg -[#2E7D32,dashed]-> sbcfg : script から起動
+pkg -[#2E7D32,dashed]-> review : review command を記録
+sbcfg -[#2E7D32,dashed]-> story : story 探索対象
+story -[#2E7D32,dashed]-> fixtures : fixed props / view model fixture
+story -[#546E7A]-> ui : UI component を表示
+lint -[#F9A825]-> story : story は許可対象
+lint -[#F9A825]-> fixtures : fixture は許可対象
+lint -[#F9A825]-> ui : product code から Storybook 依存を検査
+review -[#546E7A]-> story : review 対象を記録
+
+story -[#546E7A,dotted]-> runtimeA : 接続変更なし
+story -[#546E7A,dotted]-> runtimeB : 接続変更なし
+fixtures -[#546E7A,dotted]-> runtimeA : 接続変更なし
+fixtures -[#546E7A,dotted]-> runtimeB : 接続変更なし
+note1 -[#607D8B,dotted]-> story
+noRemoval -[#C62828,dashed]-> pkg : 削除対象は置かない
+
+@enduml
+
+@startuml
+
+title Storybook 最小基盤 設計差分シーケンス
+
+skinparam shadowing false
+skinparam sequenceArrowThickness 1
+skinparam ParticipantPadding 20
+skinparam BoxPadding 10
+
+participant "後続 UI 実装者" as user
+participant "frontend/package.json / Storybook script" as seqPkg
+participant ".storybook config" as seqCfg
+participant "最小 sample story" as seqStory
+participant "__fixtures__" as seqFixtures
+participant "既存 lint" as seqLint
+participant "storybook-review.md" as seqReview
+participant "backend / Wails runtime など非変更接続先" as seqRuntime
+
+== dev 起動と表示確認 ==
+user -> seqPkg : `npm --prefix frontend run storybook`\nまたは同等 dev script を実行
+seqPkg -> seqCfg : Storybook server を起動
+seqCfg -> seqStory : story discovery
+seqStory -> seqFixtures : fixed props / view model fixture を読む
+seqStory -> seqRuntime : 接続しない
+note right of seqRuntime
+backend
+Wails runtime
+generated wailsjs
+Gateway
+RuntimeEventAdapter
+AI provider
+secret store
+DB
+end note
+seqStory --> user : 最小 story を表示
+
+== lint 境界確認 ==
+user -> seqLint : `npm --prefix frontend run lint`
+seqLint -> seqStory : story は Storybook 専用領域として許可
+seqLint -> seqFixtures : fixture は Storybook 専用領域として許可
+seqLint -> seqRuntime : product code からの依存混入を禁止
+seqLint --> user : 依存混入なしを確認
+
+== review 記録 ==
+user -> seqReview : review URL / story ID / 状態を記録
+seqReview -> seqStory : 対象 story を参照
+seqReview --> user : implementation-scope 用の確認入口を残す
+
+note over seqStory, seqFixtures
+削除予定はない。
+Storybook は backend mock や実行フロー再現を扱わない。
+end note
+
+@enduml

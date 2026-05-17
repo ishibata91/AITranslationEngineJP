@@ -1,0 +1,9 @@
+{
+  "task_id": "2026-05-18-storybook-foundation",
+  "status": "missing",
+  "reason": "run 内で固定された transcript_refs.json は見つからなかったため、参照元は task-local artifact と review/back evidence に限定した。",
+  "notes": [
+    "会話ログ参照の正本は未作成。",
+    "改善ログは run 内に別途作成した。"
+  ]
+}

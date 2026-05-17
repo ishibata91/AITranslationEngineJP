@@ -1,0 +1,390 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "actor-goal:CAND-SBF-001",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-SBF-001",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "Storybook dev 入口の最小正常系として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-SBF-002",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-SBF-002",
+      "source_requirement_id": "REQ-SBF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-002",
+      "decision_rationale": "Storybook static build の受け入れ条件へ統合する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-SBF-003",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-SBF-003",
+      "source_requirement_id": "REQ-SBF-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-SBF-003",
+      "decision_rationale": "人間回答により fixture root は `frontend/src/ui/**/__fixtures__` に確定したため、後続 story 追加条件として独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-SBF-004",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-SBF-004",
+      "source_requirement_id": "REQ-SBF-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-SBF-004",
+      "decision_rationale": "人間回答により専用 `storybook-review.md` へ記録する方針が確定したため、review URL 記録シナリオとして独立採用する。"
+    },
+    {
+      "candidate_id": "actor-goal:CAND-SBF-005",
+      "generator": "actor-goal",
+      "original_candidate_id": "CAND-SBF-005",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "既存 Vite alias との互換性は dev 表示と build 検証の共通前提へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-STORYBOOK-FOUNDATION-001",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-STORYBOOK-FOUNDATION-001",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "最小基盤作成は dev 起動可能状態への前提として統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-STORYBOOK-FOUNDATION-002",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-STORYBOOK-FOUNDATION-002",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "dev 起動確認は SCN-SBF-001 へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-STORYBOOK-FOUNDATION-003",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-STORYBOOK-FOUNDATION-003",
+      "source_requirement_id": "REQ-SBF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-002",
+      "decision_rationale": "build lifecycle は Storybook static build 検証へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-STORYBOOK-FOUNDATION-004",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-STORYBOOK-FOUNDATION-004",
+      "source_requirement_id": "REQ-SBF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-003",
+      "decision_rationale": "fixture 配置 root は人間回答で確定したため、後続 story 追加条件へ統合する。"
+    },
+    {
+      "candidate_id": "lifecycle:CAND-STORYBOOK-FOUNDATION-005",
+      "generator": "lifecycle",
+      "original_candidate_id": "CAND-STORYBOOK-FOUNDATION-005",
+      "source_requirement_id": "REQ-SBF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-006",
+      "decision_rationale": "task 終了条件は検証結果と後続引き継ぎの記録へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-STORYBOOK-STATE-001",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-STORYBOOK-STATE-001",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "未導入から設定済みへの遷移は Storybook dev 入口の前提として統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-STORYBOOK-STATE-002",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-STORYBOOK-STATE-002",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "設定済みから dev 起動可能への遷移は SCN-SBF-001 へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-STORYBOOK-STATE-003",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-STORYBOOK-STATE-003",
+      "source_requirement_id": "REQ-SBF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-002",
+      "decision_rationale": "設定済みから build 通過への遷移は SCN-SBF-002 へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-STORYBOOK-STATE-004",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-STORYBOOK-STATE-004",
+      "source_requirement_id": "REQ-SBF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-003",
+      "decision_rationale": "fixture 配置 root は人間回答で確定したため、後続追加可能状態として SCN-SBF-003 へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-STORYBOOK-STATE-005",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-STORYBOOK-STATE-005",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "再実行しても基盤状態が壊れない条件は dev と build の再実行観測へ統合する。"
+    },
+    {
+      "candidate_id": "state-transition:CAND-STORYBOOK-STATE-006",
+      "generator": "state-transition",
+      "original_candidate_id": "CAND-STORYBOOK-STATE-006",
+      "source_requirement_id": "REQ-SBF-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-SBF-005",
+      "decision_rationale": "禁止 mock と実行フロー再現の禁止遷移として独立採用する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-001",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-001",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "dev 起動失敗は SCN-SBF-001 の failure handling と検証入口へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-002",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-002",
+      "source_requirement_id": "REQ-SBF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-002",
+      "decision_rationale": "Storybook build 失敗は SCN-SBF-002 の failure handling へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-003",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-003",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "alias または Svelte plugin 解決失敗は dev 表示と build 検証の互換性条件へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-004",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-004",
+      "source_requirement_id": "REQ-SBF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-003",
+      "decision_rationale": "fixture 配置 root は人間回答で確定したため、後続 story の参照不能リスクとして SCN-SBF-003 へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-005",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-005",
+      "source_requirement_id": "REQ-SBF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-004",
+      "decision_rationale": "review URL 記録 artifact は人間回答で `storybook-review.md` に確定したため、追跡不能リスクとして SCN-SBF-004 へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-006",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-006",
+      "source_requirement_id": "REQ-SBF-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-005",
+      "decision_rationale": "禁止された mock または実行フローの検出は SCN-SBF-005 へ統合する。"
+    },
+    {
+      "candidate_id": "failure:CAND-SBF-007",
+      "generator": "failure",
+      "original_candidate_id": "CAND-SBF-007",
+      "source_requirement_id": "REQ-SBF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-006",
+      "decision_rationale": "人間回答により、後続 task の plan と POC task 成功後に skill、agent、docs へ反映する方針が確定したため、後続引き継ぎへ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-STORYBOOK-EXT-001",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-STORYBOOK-EXT-001",
+      "source_requirement_id": "REQ-SBF-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-001",
+      "decision_rationale": "Storybook dev server と browser の表示境界は SCN-SBF-001 へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-STORYBOOK-EXT-002",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-STORYBOOK-EXT-002",
+      "source_requirement_id": "REQ-SBF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-002",
+      "decision_rationale": "backend なし static build は SCN-SBF-002 へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-STORYBOOK-EXT-003",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-STORYBOOK-EXT-003",
+      "source_requirement_id": "REQ-SBF-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-005",
+      "decision_rationale": "UI Component props と backend adapter の分離境界は SCN-SBF-005 へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-STORYBOOK-EXT-004",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-STORYBOOK-EXT-004",
+      "source_requirement_id": "REQ-SBF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-004",
+      "decision_rationale": "review URL の task-local 記録 artifact は人間回答で `storybook-review.md` に確定したため、SCN-SBF-004 へ統合する。"
+    },
+    {
+      "candidate_id": "external-integration:CAND-STORYBOOK-EXT-005",
+      "generator": "external-integration",
+      "original_candidate_id": "CAND-STORYBOOK-EXT-005",
+      "source_requirement_id": "REQ-SBF-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-005",
+      "decision_rationale": "backend 連携検証の代替にしない境界は SCN-SBF-005 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-STORYBOOK-AUDIT-001",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-STORYBOOK-AUDIT-001",
+      "source_requirement_id": "REQ-SBF-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-006",
+      "decision_rationale": "Storybook build は人間回答で専用 gate に分ける方針に確定したため、検証結果と後続引き継ぎの記録へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-STORYBOOK-AUDIT-002",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-STORYBOOK-AUDIT-002",
+      "source_requirement_id": "REQ-SBF-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-004",
+      "decision_rationale": "review URL と確認状態の記録 artifact は人間回答で `storybook-review.md` に確定したため、SCN-SBF-004 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-STORYBOOK-AUDIT-003",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-STORYBOOK-AUDIT-003",
+      "source_requirement_id": "REQ-SBF-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-003",
+      "decision_rationale": "fixture 配置 root は人間回答で `frontend/src/ui/**/__fixtures__` に確定したため、監査可能な fixture 方針として SCN-SBF-003 へ統合する。"
+    },
+    {
+      "candidate_id": "operation-audit:CAND-STORYBOOK-AUDIT-004",
+      "generator": "operation-audit",
+      "original_candidate_id": "CAND-STORYBOOK-AUDIT-004",
+      "source_requirement_id": "REQ-SBF-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-SBF-006",
+      "decision_rationale": "後続 task が再利用する基盤完了証跡は SCN-SBF-006 へ統合する。"
+    }
+  ],
+  "conflicts": [],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-SBF-001",
+      "candidate_ids": [
+        "actor-goal:CAND-SBF-001",
+        "actor-goal:CAND-SBF-005",
+        "lifecycle:CAND-STORYBOOK-FOUNDATION-001",
+        "lifecycle:CAND-STORYBOOK-FOUNDATION-002",
+        "state-transition:CAND-STORYBOOK-STATE-001",
+        "state-transition:CAND-STORYBOOK-STATE-002",
+        "state-transition:CAND-STORYBOOK-STATE-005",
+        "failure:CAND-SBF-001",
+        "failure:CAND-SBF-003",
+        "external-integration:CAND-STORYBOOK-EXT-001"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-SBF-002",
+      "candidate_ids": [
+        "actor-goal:CAND-SBF-002",
+        "lifecycle:CAND-STORYBOOK-FOUNDATION-003",
+        "state-transition:CAND-STORYBOOK-STATE-003",
+        "failure:CAND-SBF-002",
+        "external-integration:CAND-STORYBOOK-EXT-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-SBF-003",
+      "candidate_ids": [
+        "actor-goal:CAND-SBF-003",
+        "lifecycle:CAND-STORYBOOK-FOUNDATION-004",
+        "state-transition:CAND-STORYBOOK-STATE-004",
+        "failure:CAND-SBF-004",
+        "operation-audit:CAND-STORYBOOK-AUDIT-003"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-SBF-004",
+      "candidate_ids": [
+        "actor-goal:CAND-SBF-004",
+        "failure:CAND-SBF-005",
+        "external-integration:CAND-STORYBOOK-EXT-004",
+        "operation-audit:CAND-STORYBOOK-AUDIT-002"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-SBF-005",
+      "candidate_ids": [
+        "state-transition:CAND-STORYBOOK-STATE-006",
+        "failure:CAND-SBF-006",
+        "external-integration:CAND-STORYBOOK-EXT-003",
+        "external-integration:CAND-STORYBOOK-EXT-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-SBF-006",
+      "candidate_ids": [
+        "lifecycle:CAND-STORYBOOK-FOUNDATION-005",
+        "failure:CAND-SBF-007",
+        "operation-audit:CAND-STORYBOOK-AUDIT-001",
+        "operation-audit:CAND-STORYBOOK-AUDIT-004"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

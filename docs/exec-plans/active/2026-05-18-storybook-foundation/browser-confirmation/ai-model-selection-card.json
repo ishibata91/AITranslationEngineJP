@@ -1,0 +1,17 @@
+{
+  "url": "http://localhost:6006/iframe.html?id=ui-components-aimodelselectioncard--fixed-props&viewMode=story",
+  "status": 200,
+  "title": "",
+  "bodyText": "Storybook sample\n\nAI モデル選択\n\n固定 props だけで表示する Storybook 最小 fixture。\n\n設定済み\nAIサービス\nSample Provider\n\nStorybook 用の表示値です。\n\nモデル\n選んでください\nSample Model\nbackend へ接続しない固定候補です。\n処理方式\n\nこの AI サービスでは一括処理の切り替えはありません。\n\nfixture は component 横の __fixtures__ に置きます。",
+  "consoleMessages": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    }
+  ],
+  "pageErrors": []
+}

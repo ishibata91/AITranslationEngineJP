@@ -1,6 +1,7 @@
 import path from "node:path";
 
 const SOURCE_LAYERS = ["ui", "application", "controller"];
+const STORYBOOK_PACKAGE_SPECIFIER_PREFIXES = ["@storybook/", "storybook/"];
 const ALLOWED_IMPORTS = {
   ui: new Set(["ui", "application"]),
   application: new Set(["application"]),
@@ -159,6 +160,15 @@ function detectResolvedTargetType(resolvedPath) {
 }
 
 function detectTargetType(filename, specifier) {
+  if (
+    specifier === "storybook" ||
+    STORYBOOK_PACKAGE_SPECIFIER_PREFIXES.some((prefix) =>
+      specifier.startsWith(prefix),
+    )
+  ) {
+    return "storybook";
+  }
+
   if (
     specifier === "wailsjs" ||
     specifier.startsWith("wailsjs/") ||
@@ -345,7 +355,22 @@ function isReverseFlowSourceExempt(filename) {
   return normalized.includes("/src/test/") || isTestLikePath(normalized);
 }
 
+function isStorybookSourceExempt(filename) {
+  const normalized = normalizePath(filename);
+
+  return (
+    normalized.includes("/.storybook/") ||
+    normalized.includes("/__fixtures__/") ||
+    normalized.includes("/__stories__/") ||
+    /\.stories\.[^/]+$/u.test(normalized)
+  );
+}
+
 function buildMessage(sourceLayer, targetType) {
+  if (targetType === "storybook") {
+    return `${sourceLayer} production code must not import Storybook packages or Storybook runtime modules directly.`;
+  }
+
   if (targetType === "wails") {
     return `${sourceLayer} code must not import Wails bindings directly. Go through gateway ports or gateway adapters instead.`;
   }
@@ -464,6 +489,21 @@ const enforceLayerBoundariesRule = {
           : detectTargetType(filename, specifier);
 
         if (targetType === null) {
+          return;
+        }
+
+        if (targetType === "storybook") {
+          if (isStorybookSourceExempt(filename)) {
+            return;
+          }
+
+          context.report({
+            node: node.source,
+            messageId: "forbiddenImport",
+            data: {
+              message: buildMessage(sourceLayer, targetType),
+            },
+          });
           return;
         }
 
