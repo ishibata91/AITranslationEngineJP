@@ -98,7 +98,7 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 - `conflict_resolution`: `none`
 - `post_merge_validation`: `git diff --check --cached` pass; `python3 scripts/harness/run.py --suite frontend-local` pass; `python3 scripts/harness/run.py --suite structure` pass
 - `completed_move`: `docs/exec-plans/active/2026-05-17-fake-api-retirement/` から `docs/exec-plans/completed/2026-05-17-fake-api-retirement/` へ移動済み
-- `merge_commit_hash`: `673639d`
+- `merge_commit_hash`: `2071f85`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
