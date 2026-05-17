@@ -1,7 +1,7 @@
 # Task Plan: 2026-05-17-master-persona-componentization
 
-- `workflow`: work
-- `status`: merge-ready
+- `workflow`: completed
+- `status`: completed
 - `lane_owner`: `implement_lane`
 - `task_id`: `2026-05-17-master-persona-componentization`
 - `task_mode`: frontend-refactor
@@ -59,7 +59,7 @@
 
 - `worktree_checkout`: `current-worktree`
 - `branch_ready`: `confirmed-local-branch`
-- `commit_hash`: `f1fdee3`
+- `commit_hash`: `cb5270f`
 - `remote_operation`: `not-performed`
 
 ## HITL Status
@@ -96,11 +96,11 @@
 
 ## Merge Result
 
-- `merge_status`: `pending`
-- `conflict_resolution`: `pending`
-- `post_merge_validation`: `pending`
-- `completed_move`: `pending`
-- `merge_commit_hash`: `pending`
+- `merge_status`: `local-merged`
+- `conflict_resolution`: `none`
+- `post_merge_validation`: `npm --prefix frontend run build-storybook` pass; `python3 scripts/harness/run.py --suite frontend-local` pass; `git diff --check HEAD~1..HEAD` pass
+- `completed_move`: `docs/exec-plans/active/2026-05-17-master-persona-componentization` moved to `docs/exec-plans/completed/2026-05-17-master-persona-componentization`
+- `merge_commit_hash`: `8f9b06b`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
@@ -111,4 +111,4 @@
 
 ## Outcome
 
-- story 作成、story folder 配置、検証まで完了。人間指示により merge-lane close へ進める。
+- story 作成、story folder 配置、local merge、merge 後検証、completed 移動まで完了。
