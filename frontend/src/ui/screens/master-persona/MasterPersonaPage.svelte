@@ -6,6 +6,12 @@
     MasterPersonaEditableFieldMap,
     MasterPersonaScreenControllerContract
   } from "@application/contract/master-persona/master-persona-screen-contract"
+  import type {
+    GenerationSetupPanelProps,
+    PersonaActionModalProps,
+    PersonaReviewPanelProps,
+    RunStatusPanelProps
+  } from "./master-persona-panel-props"
 
   import GenerationSetupPanel from "./GenerationSetupPanel.svelte"
   import PersonaActionModal from "./PersonaActionModal.svelte"
@@ -47,6 +53,69 @@
     viewModel.errorMessage || viewModel.aiSettingsMessage || ""
   )
   const noticeTone = $derived(viewModel.errorMessage ? "error" : "info")
+  const generationSetupPanelProps = $derived<GenerationSetupPanelProps>({
+    aiSettings: viewModel.aiSettings,
+    aiSettingsStatusText: viewModel.aiSettingsStatusText,
+    aiSettingsWarningText: viewModel.aiSettingsWarningText,
+    aiProviderLabel: viewModel.aiProviderLabel,
+    canSelectModel: viewModel.canSelectModel,
+    canStartGeneration: viewModel.canStartGeneration,
+    executionMethodOptions: viewModel.executionMethodOptions,
+    isRunActive: viewModel.isRunActive,
+    modelOptions: viewModel.modelOptions,
+    modelSettingsCardViewModel: viewModel.modelSettingsCardViewModel,
+    preview: viewModel.preview,
+    selectedFileName: viewModel.selectedFileName,
+    selectedFileReference: viewModel.selectedFileReference,
+    isAISettingsRefreshing,
+    handleJsonSelected,
+    chooseJsonFile,
+    resetJsonSelection,
+    handleAIProviderChange,
+    handleAIModelChange,
+    handleAIExecutionMethodChange,
+    refreshAISettings,
+    startGeneration: () => void controller.executeGeneration(),
+    saveAISettings: () => void controller.saveAISettings()
+  })
+  const runStatusPanelProps = $derived<RunStatusPanelProps>({
+    isRunActive: viewModel.isRunActive,
+    progressPercent: viewModel.progressPercent,
+    runStatus: viewModel.runStatus,
+    cancelGeneration: () => void controller.cancelGeneration(),
+    interruptGeneration: () => void controller.interruptGeneration()
+  })
+  const personaReviewPanelProps = $derived<PersonaReviewPanelProps>({
+    canMutate: viewModel.canMutate,
+    items: viewModel.items,
+    keyword: viewModel.keyword,
+    page: viewModel.page,
+    pageSize: viewModel.pageSize,
+    pluginFilter: viewModel.pluginFilter,
+    pluginOptions: viewModel.pluginOptions,
+    selectedEntry: viewModel.selectedEntry,
+    selectedIdentityKey: viewModel.selectedIdentityKey,
+    totalCount: viewModel.totalCount,
+    totalPages: viewModel.totalPages,
+    editCurrent: () => controller.openEditModal(),
+    goToNextPage: () => controller.goToNextPage(),
+    goToPrevPage: () => controller.goToPrevPage(),
+    openDelete: () => controller.openDeleteModal(),
+    selectRow: selectPersonaRow,
+    updateKeyword,
+    updatePluginFilter
+  })
+  const personaActionModalProps = $derived<PersonaActionModalProps>({
+    editForm: viewModel.editForm,
+    errorMessage: viewModel.errorMessage,
+    modalState: viewModel.modalState,
+    selectedEntry: viewModel.selectedEntry,
+    closeDelete: () => controller.closeDeleteModal(),
+    closeEdit: () => controller.closeEditModal(),
+    deleteCurrentEntry: () => void controller.deleteCurrentEntry(),
+    saveCurrentEntry: () => void controller.saveCurrentEntry(),
+    setEditFormField: updateEditFormField
+  })
 
   function chooseJsonFile(): void {
     const input = document.getElementById("masterPersonaJsonInput")
@@ -129,7 +198,11 @@
   <h1 class="sr-only">マスターペルソナ作成</h1>
 
   {#if noticeText}
-    <p class:notice-error={noticeTone === "error"} class="notice-banner" role="status">
+    <p
+      class:notice-error={noticeTone === "error"}
+      class="notice-banner"
+      role="status"
+    >
       {noticeText}
     </p>
   {/if}
@@ -140,50 +213,17 @@
     data-testid="master-persona-screen-status-region"
   >
     <span class="status-label">作成状態</span>
-    <span class="status-pill" role="status">{viewModel.runStatus.runState}</span>
+    <span class="status-pill" role="status">{viewModel.runStatus.runState}</span
+    >
   </div>
 
-  <GenerationSetupPanel
-    {handleAIExecutionMethodChange}
-    {handleAIModelChange}
-    {handleAIProviderChange}
-    {handleJsonSelected}
-    {isAISettingsRefreshing}
-    {refreshAISettings}
-    {resetJsonSelection}
-    {viewModel}
-    chooseJsonFile={chooseJsonFile}
-    saveAISettings={() => void controller.saveAISettings()}
-    startGeneration={() => void controller.executeGeneration()}
-  />
+  <GenerationSetupPanel {...generationSetupPanelProps} />
 
-  <RunStatusPanel
-    {viewModel}
-    cancelGeneration={() => void controller.cancelGeneration()}
-    interruptGeneration={() => void controller.interruptGeneration()}
-  />
+  <RunStatusPanel {...runStatusPanelProps} />
 
-  <PersonaReviewPanel
-    {viewModel}
-    editCurrent={() => controller.openEditModal()}
-    goToNextPage={() => controller.goToNextPage()}
-    goToPrevPage={() => controller.goToPrevPage()}
-    openDelete={() => controller.openDeleteModal()}
-    selectRow={selectPersonaRow}
-    {updateKeyword}
-    {updatePluginFilter}
-  />
+  <PersonaReviewPanel {...personaReviewPanelProps} />
 
-  <PersonaActionModal
-    editForm={viewModel.editForm}
-    modalState={viewModel.modalState}
-    selectedEntry={viewModel.selectedEntry}
-    closeDelete={() => controller.closeDeleteModal()}
-    closeEdit={() => controller.closeEditModal()}
-    deleteCurrentEntry={() => void controller.deleteCurrentEntry()}
-    saveCurrentEntry={() => void controller.saveCurrentEntry()}
-    setEditFormField={updateEditFormField}
-  />
+  <PersonaActionModal {...personaActionModalProps} />
 </section>
 
 <style>
@@ -259,5 +299,4 @@
     border-color: rgba(255, 156, 124, 0.35);
     color: #ffd5cb;
   }
-
 </style>

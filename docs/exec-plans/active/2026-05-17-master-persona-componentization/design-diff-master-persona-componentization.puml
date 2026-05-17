@@ -1,0 +1,202 @@
+@startuml
+title 設計差分図: master-persona componentization - component view
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 70
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+legend bottom right
+    |= Style |= Meaning |
+    |<#F7F9FC> existing | 変更しない接続先または既存再利用 |
+    |<#EEF9EF> added | この task で追加する部品または経路 |
+    |<#FFF1F1> removed | page から減らす責務または禁止経路 |
+    |<#FFF8E1> changed | 責務を薄くする既存要素 |
+    |<#F4F7FA> risk | 人間レビューで確認したい境界 |
+endlegend
+
+package "production screen path" {
+  class "MasterPersonaPage\n<<changed>>\ncontroller mount\nsubscribe\nfile input bridge\nstatus / notice\nprops composition only" as Page <<changed>>
+  class "CreateMasterPersonaScreenController\n<<existing>>" as Factory <<existing>>
+  class "MasterPersonaScreenControllerContract\n<<existing>>" as Controller <<existing>>
+
+  class "GenerationSetupPanel\n<<changed>>\nsmall props + callbacks" as Setup <<changed>>
+  class "RunStatusPanel\n<<changed>>\nsmall props + callbacks" as Run <<changed>>
+  class "PersonaReviewPanel\n<<changed>>\nsmall props + callbacks" as Review <<changed>>
+  class "PersonaActionModal\n<<changed>>\nsmall props + callbacks" as Modal <<changed>>
+
+  class "AIModelSelectionCard\n<<existing>>\nshared component reuse" as AIModelCard <<existing>>
+
+  class "whole viewModel props\n<<removed>>\nscreen local component receives\nMasterPersonaScreenViewModel directly" as WholeViewModel <<removed>>
+  class "page-owned display detail\n<<removed>>\nAI card fallback build\npreview text build\nlist / detail display rules" as PageDetail <<removed>>
+
+  class "screen-local props types\n<<added>>\nGenerationSetupPanelProps\nRunStatusPanelProps\nPersonaReviewPanelProps\nPersonaActionModalProps" as PropsBoundary <<added>>
+}
+
+package "storybook path" {
+  class "GenerationSetupPanel.stories\nRunStatusPanel.stories\nPersonaReviewPanel.stories\nPersonaActionModal.stories\n<<added>>" as Stories <<added>>
+  class "master-persona __fixtures__\nsynthetic props only\n<<added>>" as Fixtures <<added>>
+}
+
+package "unchanged external boundary" {
+  class "Wails runtime\n<<existing>>" as Runtime <<existing>>
+  class "Gateway\n<<existing>>" as Gateway <<existing>>
+  class "RuntimeEventAdapter\n<<existing>>" as EventAdapter <<existing>>
+  class "AI provider / secret store / DB\nbackend DTO / generated wailsjs\n<<existing>>" as External <<existing>>
+}
+
+class "forbidden Storybook route\n<<removed>>\nexternal connection\nsecret\nreal user data" as ForbiddenRoute <<removed>>
+class "review note\n<<risk>>\npage story is optional\npanel and modal stories are required" as ReviewNote <<risk>>
+
+Factory -[#546E7A]-> Controller
+Page -[#546E7A]-> Factory : create on mount
+Page -[#F9A825]-> Setup : compose props
+Page -[#F9A825]-> Run : compose props
+Page -[#F9A825]-> Review : compose props
+Page -[#F9A825]-> Modal : compose props
+Setup -[#546E7A]-> AIModelCard : reuse
+
+WholeViewModel -[#C62828,dashed]-> Setup
+WholeViewModel -[#C62828,dashed]-> Run
+WholeViewModel -[#C62828,dashed]-> Review
+WholeViewModel -[#C62828,dashed]-> Modal
+PageDetail -[#C62828,dashed]-> Page
+
+PropsBoundary -[#2E7D32,dashed]-> Page : derive per panel
+PropsBoundary -[#2E7D32,dashed]-> Setup
+PropsBoundary -[#2E7D32,dashed]-> Run
+PropsBoundary -[#2E7D32,dashed]-> Review
+PropsBoundary -[#2E7D32,dashed]-> Modal
+
+Stories -[#2E7D32]-> Setup
+Stories -[#2E7D32]-> Run
+Stories -[#2E7D32]-> Review
+Stories -[#2E7D32]-> Modal
+Stories -[#2E7D32]-> Fixtures : import fixed props
+Fixtures -[#2E7D32,dashed]-> PropsBoundary : share fixture boundary
+
+Controller -[#546E7A]-> Runtime
+Controller -[#546E7A]-> Gateway
+Controller -[#546E7A]-> EventAdapter
+Gateway -[#546E7A]-> External
+
+ForbiddenRoute -[#C62828,dashed]-> Stories
+ForbiddenRoute -[#C62828,dashed]-> Fixtures
+ReviewNote -[#607D8B,dotted]-> Stories
+ReviewNote -[#607D8B,dotted]-> Page
+
+note right of Page
+変更理由:
+- page を controller 接続と表示合成へ薄くする
+- file input bridge と notice / status は page に残す
+end note
+
+note bottom of Setup
+追加予定:
+- AIModelSelectionCard へ渡す props を panel 側で閉じる
+- Storybook で未選択 / preview 成功 / 設定不足 / 更新中を確認する
+end note
+
+note bottom of Review
+追加予定:
+- 一覧, 詳細, 空状態, page 操作を story で確認する
+- edit / delete 開始は callback 境界へ寄せる
+end note
+
+@enduml
+
+@startuml
+title 設計差分図: master-persona componentization - sequence view
+
+autonumber
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+
+actor "利用者" as User
+participant "MasterPersonaPage\n<<changed>>" as SeqPage
+participant "Controller\n<<existing>>" as SeqController
+participant "GenerationSetupPanel\n<<changed>>" as SeqSetup
+participant "RunStatusPanel\n<<changed>>" as SeqRun
+participant "PersonaReviewPanel\n<<changed>>" as SeqReview
+participant "PersonaActionModal\n<<changed>>" as SeqModal
+participant "AIModelSelectionCard\n<<existing>>" as SeqCard
+participant "Storybook story\n<<added>>" as SeqStory
+participant "__fixtures__\n<<added>>" as SeqFixture
+participant "external runtime / secret / DB\n<<existing>>" as SeqExternal
+
+== production render after componentization ==
+User -> SeqPage : 画面を開く
+SeqPage -> SeqController : createController()\nmount()\nsubscribe()
+SeqController --> SeqPage : viewModel updates
+SeqPage -> SeqPage : notice / status / file input bridge を保持
+SeqPage -> SeqPage : panel ごとの small props を作る
+SeqPage -> SeqSetup : GenerationSetupPanelProps + callbacks
+SeqSetup -> SeqCard : AIModelSelectionCard props + callbacks
+SeqPage -> SeqRun : RunStatusPanelProps + callbacks
+SeqPage -> SeqReview : PersonaReviewPanelProps + callbacks
+SeqPage -> SeqModal : PersonaActionModalProps + callbacks
+
+note right of SeqPage
+[削除予定]
+child へ whole viewModel を直接渡さない
+page で表示詳細を抱え続けない
+end note
+
+User -> SeqSetup : JSON 選択 / AI 設定 / 作成開始
+SeqSetup --> SeqPage : callback
+SeqPage -> SeqController : stageJsonSelection()\nsetAIProvider()\nsetAIModel()\nexecuteGeneration()
+SeqController -> SeqExternal : existing production path
+SeqExternal --> SeqController : existing response
+SeqController --> SeqPage : updated viewModel
+SeqPage -> SeqRun : progress props refresh
+SeqPage -> SeqReview : list / detail props refresh
+SeqPage -> SeqModal : modal props refresh
+
+== Storybook isolated render ==
+SeqStory -> SeqFixture : import synthetic props
+SeqFixture --> SeqStory : fixed props + callback stub
+SeqStory -> SeqSetup : props only
+SeqStory -> SeqRun : props only
+SeqStory -> SeqReview : props only
+SeqStory -> SeqModal : props only
+SeqSetup -> SeqCard : shared card props only
+
+note right of SeqStory
+[追加予定]
+panel / modal ごとに story を持つ
+page story は任意
+end note
+
+note right of SeqFixture
+[禁止]
+Wails runtime
+Gateway
+RuntimeEventAdapter
+AI provider
+secret
+real user data
+end note
+
+@enduml

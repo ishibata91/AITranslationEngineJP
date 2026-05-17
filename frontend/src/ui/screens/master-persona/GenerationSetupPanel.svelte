@@ -1,84 +1,72 @@
 <script lang="ts">
-  import type { MasterPersonaScreenViewModel } from "@application/gateway-contract/master-persona"
+  import type { ModelSettingsCardViewModel } from "@application/gateway-contract/model-settings-card"
   import AIModelSelectionCard from "@ui/components/AIModelSelectionCard.svelte"
-
-  interface Props {
-    viewModel: MasterPersonaScreenViewModel
-    isAISettingsRefreshing: boolean
-    handleAIProviderChange: (event: Event) => void
-    handleAIModelChange: (event: Event) => void
-    handleAIExecutionMethodChange: (event: Event) => void
-    refreshAISettings: () => Promise<void>
-    handleJsonSelected: (event: Event) => void
-    chooseJsonFile: () => void
-    resetJsonSelection: () => void
-    startGeneration: () => void
-    saveAISettings: () => void
-  }
+  import type { GenerationSetupPanelProps } from "./master-persona-panel-props"
 
   let {
-    viewModel,
+    aiSettings,
+    aiSettingsStatusText,
+    aiSettingsWarningText,
+    aiProviderLabel,
+    canSelectModel,
+    canStartGeneration,
+    executionMethodOptions,
+    isRunActive,
+    modelOptions,
+    modelSettingsCardViewModel,
+    preview,
+    selectedFileName,
+    selectedFileReference,
     isAISettingsRefreshing,
+    handleJsonSelected,
+    chooseJsonFile,
+    resetJsonSelection,
     handleAIProviderChange,
     handleAIModelChange,
     handleAIExecutionMethodChange,
     refreshAISettings,
-    handleJsonSelected,
-    chooseJsonFile,
-    resetJsonSelection,
     startGeneration,
     saveAISettings
-  }: Props = $props()
+  }: GenerationSetupPanelProps = $props()
 
-  const isFileSelected = $derived(viewModel.selectedFileReference !== null)
+  const isFileSelected = $derived(selectedFileReference !== null)
   const fileStatusText = $derived(
-    viewModel.isRunActive
-      ? "生成中"
-      : isFileSelected
-        ? "JSON 選択済み"
-        : "入力待ち"
+    isRunActive ? "生成中" : isFileSelected ? "JSON 選択済み" : "入力待ち"
   )
   const helperText = $derived(
-    viewModel.preview
-      ? `候補 ${viewModel.preview.candidateCount} 件のうち、新規 ${viewModel.preview.newlyAddableCount} 件を作成できます。`
+    preview
+      ? `候補 ${preview.candidateCount} 件のうち、新規 ${preview.newlyAddableCount} 件を作成できます。`
       : "ベースゲームや大型 Mod の対象 NPC から、未作成のペルソナだけを追加します。"
   )
-  type ModelCardViewModel = NonNullable<
-    MasterPersonaScreenViewModel["modelSettingsCardViewModel"]
-  >
 
-  function createFallbackModelCard(): ModelCardViewModel {
+  function createFallbackModelCard(): ModelSettingsCardViewModel {
     return {
       referenceId: "master-persona",
-      provider: viewModel.aiSettings.provider,
-      model: viewModel.aiSettings.model,
+      provider: aiSettings.provider,
+      model: aiSettings.model,
       providerOptions: [
         { value: "gemini", label: "Gemini" },
         { value: "lm_studio", label: "LM Studio" },
         { value: "xai", label: "xAI" }
       ],
-      credentialStatusLabel: viewModel.aiSettingsStatusText,
-      credentialStatusTone: viewModel.aiSettingsWarningText
-        ? "warning"
-        : "success",
+      credentialStatusLabel: aiSettingsStatusText,
+      credentialStatusTone: aiSettingsWarningText ? "warning" : "success",
       showCredentialStatus: true,
-      showCredentialWarning: viewModel.aiSettingsWarningText !== "",
+      showCredentialWarning: aiSettingsWarningText !== "",
       credentialWarningText:
         "APIキーが未設定のため、モデル一覧を更新できません。",
       modelListButtonEnabled: true,
       modelListButtonLabel: "モデル一覧を更新",
       modelListButtonAriaLabel: "モデル一覧を更新",
       isModelListRefreshing: isAISettingsRefreshing,
-      modelListStatusText: viewModel.canSelectModel
+      modelListStatusText: canSelectModel
         ? "使うモデルを選んでください。"
         : "モデル一覧を更新してください。",
-      modelOptions: viewModel.modelOptions,
-      modelSelectEnabled: viewModel.canSelectModel,
-      emptyModelLabel: viewModel.canSelectModel
-        ? "選んでください"
-        : "設定が必要",
-      statusLabel: viewModel.aiProviderLabel || "未選択",
-      statusTone: viewModel.aiSettingsWarningText ? "warning" : "neutral",
+      modelOptions,
+      modelSelectEnabled: canSelectModel,
+      emptyModelLabel: canSelectModel ? "選んでください" : "設定が必要",
+      statusLabel: aiProviderLabel || "未選択",
+      statusTone: aiSettingsWarningText ? "warning" : "neutral",
       helperText: "ペルソナ作成に使う AI サービスとモデルを選びます。",
       footerMessage: "",
       footerWarningText: "",
@@ -87,7 +75,7 @@
   }
 
   const modelCard = $derived(
-    viewModel.modelSettingsCardViewModel ?? createFallbackModelCard()
+    modelSettingsCardViewModel ?? createFallbackModelCard()
   )
 </script>
 
@@ -107,7 +95,8 @@
   <div class="setup-grid">
     <div class="model-panel" data-testid="master-persona-ai-settings-card">
       <AIModelSelectionCard
-        actionButtonDisabled={modelCard.actionButtonDisabled || isAISettingsRefreshing}
+        actionButtonDisabled={modelCard.actionButtonDisabled ||
+          isAISettingsRefreshing}
         actionButtonId="saveAiSettingsButton"
         actionButtonLabel="設定を保存"
         credentialStatusLabel={modelCard.credentialStatusLabel}
@@ -115,10 +104,11 @@
         credentialWarningText={modelCard.credentialWarningText}
         eyebrow="AI 設定"
         executionDisabled={isAISettingsRefreshing}
-        executionOptions={viewModel.executionMethodOptions}
+        executionOptions={executionMethodOptions}
         executionSelectId="executionMethodSelect"
-        executionValue={viewModel.aiSettings.executionMethod}
-        footerMessage={modelCard.footerMessage || "モデル設定はこの画面専用です。必要なら保存できます。"}
+        executionValue={aiSettings.executionMethod}
+        footerMessage={modelCard.footerMessage ||
+          "モデル設定はこの画面専用です。必要なら保存できます。"}
         footerWarningText={modelCard.footerWarningText}
         helperText={modelCard.helperText}
         modelDisabled={isAISettingsRefreshing || !modelCard.modelSelectEnabled}
@@ -138,8 +128,10 @@
         providerValue={modelCard.provider}
         refreshButtonAriaLabel={modelCard.modelListButtonAriaLabel}
         refreshButtonLabel={modelCard.modelListButtonLabel}
-        refreshDisabled={!modelCard.modelListButtonEnabled || isAISettingsRefreshing}
-        refreshSpinning={modelCard.isModelListRefreshing || isAISettingsRefreshing}
+        refreshDisabled={!modelCard.modelListButtonEnabled ||
+          isAISettingsRefreshing}
+        refreshSpinning={modelCard.isModelListRefreshing ||
+          isAISettingsRefreshing}
         secondaryControlMode="execution-select"
         showCredentialStatus={modelCard.showCredentialStatus}
         showCredentialWarning={modelCard.showCredentialWarning}
@@ -153,7 +145,8 @@
 
       <div class="model-footer">
         <p class="support-copy">
-          {viewModel.aiSettingsWarningText || "モデル設定はこの画面専用です。必要なら保存できます。"}
+          {aiSettingsWarningText ||
+            "モデル設定はこの画面専用です。必要なら保存できます。"}
         </p>
         <p class="sr-only">
           プロンプトテンプレートは画面入力では変更せず、実装側の説明文として固定しています。
@@ -169,7 +162,7 @@
       <div class="section-head">
         <div>
           <p class="eyebrow">入力 JSON</p>
-          <h3 id="fileHeading">{viewModel.selectedFileName}</h3>
+          <h3 id="fileHeading">{selectedFileName}</h3>
         </div>
       </div>
 
@@ -186,15 +179,15 @@
       <div class="stats-grid" aria-label="対象件数" id="previewStats">
         <article class="stat-card">
           <span>候補数</span>
-          <strong>{viewModel.preview?.candidateCount ?? 0}</strong>
+          <strong>{preview?.candidateCount ?? 0}</strong>
         </article>
         <article class="stat-card">
           <span>新規作成数</span>
-          <strong>{viewModel.preview?.newlyAddableCount ?? 0}</strong>
+          <strong>{preview?.newlyAddableCount ?? 0}</strong>
         </article>
         <article class="stat-card">
           <span>既存スキップ数</span>
-          <strong>{viewModel.preview?.existingCount ?? 0}</strong>
+          <strong>{preview?.existingCount ?? 0}</strong>
         </article>
       </div>
 
@@ -218,7 +211,7 @@
         </button>
         <button
           class="button-primary button-wide"
-          disabled={!viewModel.canStartGeneration}
+          disabled={!canStartGeneration}
           id="executeGenerationButton"
           onclick={startGeneration}
           type="button"

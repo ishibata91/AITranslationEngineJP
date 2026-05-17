@@ -1,20 +1,19 @@
 <script lang="ts">
-  import type { MasterPersonaScreenViewModel } from "@application/gateway-contract/master-persona"
   import type { MasterPersonaListItem } from "@application/gateway-contract/master-persona/master-persona-gateway-contract"
-
-  interface Props {
-    viewModel: MasterPersonaScreenViewModel
-    selectRow: (identityKey: string) => void
-    updateKeyword: (event: Event) => void
-    updatePluginFilter: (event: Event) => void
-    goToPrevPage: () => void
-    goToNextPage: () => void
-    editCurrent: () => void
-    openDelete: () => void
-  }
+  import type { PersonaReviewPanelProps } from "./master-persona-panel-props"
 
   let {
-    viewModel,
+    canMutate,
+    items,
+    keyword,
+    page,
+    pageSize,
+    pluginFilter,
+    pluginOptions,
+    selectedEntry,
+    selectedIdentityKey,
+    totalCount,
+    totalPages,
     selectRow,
     updateKeyword,
     updatePluginFilter,
@@ -22,16 +21,16 @@
     goToNextPage,
     editCurrent,
     openDelete
-  }: Props = $props()
+  }: PersonaReviewPanelProps = $props()
 
   function itemLabel(item: MasterPersonaListItem): string {
     return item.displayName || item.editorId || item.formId
   }
 
   const pageRangeText = $derived(
-    viewModel.totalCount === 0
+    totalCount === 0
       ? "0 件"
-      : `${(viewModel.page - 1) * viewModel.pageSize + 1}-${Math.min(viewModel.page * viewModel.pageSize, viewModel.totalCount)} / ${viewModel.totalCount.toLocaleString("ja-JP")} 件`
+      : `${(page - 1) * pageSize + 1}-${Math.min(page * pageSize, totalCount)} / ${totalCount.toLocaleString("ja-JP")} 件`
   )
 </script>
 
@@ -58,7 +57,7 @@
           oninput={updateKeyword}
           placeholder="名前またはプラグイン名で検索"
           type="search"
-          value={viewModel.keyword}
+          value={keyword}
         />
       </label>
 
@@ -68,9 +67,9 @@
           class="text-field"
           id="masterPersonaPluginSelect"
           onchange={updatePluginFilter}
-          value={viewModel.pluginFilter}
+          value={pluginFilter}
         >
-          {#each viewModel.pluginOptions as option (option.label)}
+          {#each pluginOptions as option (option.label)}
             <option value={option.value}>{option.label}</option>
           {/each}
         </select>
@@ -78,15 +77,16 @@
     </div>
 
     <div class="list-stack" aria-live="polite">
-      {#if viewModel.items.length === 0}
+      {#if items.length === 0}
         <div class="empty-state">
-          生成済みまたは条件に合うペルソナがありません。JSON を選択して作成後に確認できます。
+          生成済みまたは条件に合うペルソナがありません。JSON
+          を選択して作成後に確認できます。
         </div>
       {:else}
-        {#each viewModel.items as item (item.identityKey)}
+        {#each items as item (item.identityKey)}
           <button
-            aria-pressed={viewModel.selectedIdentityKey === item.identityKey}
-            class:is-selected={viewModel.selectedIdentityKey === item.identityKey}
+            aria-pressed={selectedIdentityKey === item.identityKey}
+            class:is-selected={selectedIdentityKey === item.identityKey}
             class="list-row"
             onclick={() => selectRow(item.identityKey)}
             type="button"
@@ -99,11 +99,11 @@
     </div>
 
     <nav class="pager-row" aria-label="ペルソナ一覧のページ操作">
-      <span class="support-copy">{viewModel.page} / {viewModel.totalPages} ページ</span>
+      <span class="support-copy">{page} / {totalPages} ページ</span>
       <div class="pager-actions">
         <button
           class="button-secondary"
-          disabled={viewModel.page <= 1}
+          disabled={page <= 1}
           id="prevPageButton"
           onclick={goToPrevPage}
           type="button"
@@ -112,7 +112,7 @@
         </button>
         <button
           class="button-secondary"
-          disabled={viewModel.page >= viewModel.totalPages}
+          disabled={page >= totalPages}
           id="nextPageButton"
           onclick={goToNextPage}
           type="button"
@@ -131,12 +131,14 @@
     <div class="section-head">
       <div>
         <p class="eyebrow">詳細</p>
-        <h3 id="detailHeading">{viewModel.selectedEntry?.displayName || "選択中のペルソナ"}</h3>
+        <h3 id="detailHeading">
+          {selectedEntry?.displayName || "選択中のペルソナ"}
+        </h3>
       </div>
       <div class="detail-actions">
         <button
           class="button-secondary"
-          disabled={!viewModel.canMutate}
+          disabled={!canMutate}
           id="editButton"
           onclick={editCurrent}
           type="button"
@@ -145,7 +147,7 @@
         </button>
         <button
           class="button-danger"
-          disabled={!viewModel.canMutate}
+          disabled={!canMutate}
           id="deleteButton"
           onclick={openDelete}
           type="button"
@@ -156,8 +158,8 @@
     </div>
 
     <p class="identity-text" id="detailIdentityText">
-      {#if viewModel.selectedEntry}
-        FormID {viewModel.selectedEntry.formId} / EditorID {viewModel.selectedEntry.editorId}
+      {#if selectedEntry}
+        FormID {selectedEntry.formId} / EditorID {selectedEntry.editorId}
       {:else}
         一覧からペルソナを選んでください。
       {/if}
@@ -166,33 +168,36 @@
     <dl class="identity-grid">
       <div class="detail-card">
         <dt>FormID</dt>
-        <dd>{viewModel.selectedEntry?.formId || "-"}</dd>
+        <dd>{selectedEntry?.formId || "-"}</dd>
       </div>
       <div class="detail-card">
         <dt>EditorID</dt>
-        <dd>{viewModel.selectedEntry?.editorId || "-"}</dd>
+        <dd>{selectedEntry?.editorId || "-"}</dd>
       </div>
       <div class="detail-card">
         <dt>対象プラグイン</dt>
-        <dd>{viewModel.selectedEntry?.targetPlugin || "-"}</dd>
+        <dd>{selectedEntry?.targetPlugin || "-"}</dd>
       </div>
       <div class="detail-card">
         <dt>元プラグイン</dt>
-        <dd>{viewModel.selectedEntry?.sourcePlugin || "-"}</dd>
+        <dd>{selectedEntry?.sourcePlugin || "-"}</dd>
       </div>
       <div class="detail-card">
         <dt>声</dt>
-        <dd>{viewModel.selectedEntry?.voiceType || "-"}</dd>
+        <dd>{selectedEntry?.voiceType || "-"}</dd>
       </div>
       <div class="detail-card">
         <dt>話し方</dt>
-        <dd>{viewModel.selectedEntry?.speechStyle || "未入力"}</dd>
+        <dd>{selectedEntry?.speechStyle || "未入力"}</dd>
       </div>
     </dl>
 
     <article class="body-card">
       <span class="field-label">ペルソナ本文</span>
-      <p>{viewModel.selectedEntry?.personaBody || "生成後に一覧から選ぶと、本文を確認できます。"}</p>
+      <p>
+        {selectedEntry?.personaBody ||
+          "生成後に一覧から選ぶと、本文を確認できます。"}
+      </p>
     </article>
   </section>
 </section>

@@ -1,17 +1,17 @@
 <script lang="ts">
-  import type { MasterPersonaScreenViewModel } from "@application/gateway-contract/master-persona"
+  import type { RunStatusPanelProps } from "./master-persona-panel-props"
 
-  interface Props {
-    viewModel: MasterPersonaScreenViewModel
-    interruptGeneration: () => void
-    cancelGeneration: () => void
-  }
+  let {
+    isRunActive,
+    progressPercent,
+    runStatus,
+    interruptGeneration,
+    cancelGeneration
+  }: RunStatusPanelProps = $props()
 
-  let { viewModel, interruptGeneration, cancelGeneration }: Props = $props()
-
-  const statusLabel = $derived(viewModel.isRunActive ? "生成中" : viewModel.runStatus.runState)
+  const statusLabel = $derived(isRunActive ? "生成中" : runStatus.runState)
   const lockText = $derived(
-    viewModel.isRunActive
+    isRunActive
       ? "生成中は編集と削除を行えません。"
       : "一覧と詳細を確認しながら次の操作を選べます。"
   )
@@ -25,43 +25,45 @@
   <div class="section-head">
     <div>
       <p class="eyebrow">進行状況</p>
-      <h2 id="runHeading">{viewModel.runStatus.message}</h2>
+      <h2 id="runHeading">{runStatus.message}</h2>
       <p class="support-copy" role="status">{lockText}</p>
     </div>
-    <span class:status-danger={viewModel.isRunActive} class="status-pill">{statusLabel}</span>
+    <span class:status-danger={isRunActive} class="status-pill"
+      >{statusLabel}</span
+    >
   </div>
 
   <div class="progress-track" aria-label="生成進捗">
     <div
       class="progress-fill"
       id="runProgressFill"
-      style={`width: ${viewModel.progressPercent}%;`}
+      style={`width: ${progressPercent}%;`}
     ></div>
   </div>
 
   <div class="run-grid">
     <article class="run-card">
       <span>処理済み件数</span>
-      <strong>{viewModel.runStatus.processedCount}</strong>
+      <strong>{runStatus.processedCount}</strong>
     </article>
     <article class="run-card">
       <span>作成済み件数</span>
-      <strong>{viewModel.runStatus.successCount}</strong>
+      <strong>{runStatus.successCount}</strong>
     </article>
     <article class="run-card">
       <span>既に作成済み</span>
-      <strong>{viewModel.runStatus.existingSkipCount}</strong>
+      <strong>{runStatus.existingSkipCount}</strong>
     </article>
     <article class="run-card current-card">
       <span>現在の対象</span>
-      <strong>{viewModel.runStatus.currentActorLabel || "-"}</strong>
+      <strong>{runStatus.currentActorLabel || "-"}</strong>
     </article>
   </div>
 
   <div class="button-row">
     <button
       class="button-secondary"
-      disabled={!viewModel.isRunActive}
+      disabled={!isRunActive}
       id="interruptGenerationButton"
       onclick={interruptGeneration}
       type="button"
@@ -70,7 +72,7 @@
     </button>
     <button
       class="button-danger"
-      disabled={!viewModel.isRunActive}
+      disabled={!isRunActive}
       id="cancelGenerationButton"
       onclick={cancelGeneration}
       type="button"

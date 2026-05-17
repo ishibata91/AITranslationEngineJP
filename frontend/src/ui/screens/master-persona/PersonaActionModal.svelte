@@ -1,37 +1,17 @@
 <script lang="ts">
-  import type {
-    MasterPersonaEditableFieldMap
-  } from "@application/contract/master-persona/master-persona-screen-contract"
-  import type {
-    MasterPersonaDetail,
-    MasterPersonaModalState,
-  } from "@application/gateway-contract/master-persona"
-  import type { MasterPersonaUpdateInput } from "@application/gateway-contract/master-persona/master-persona-gateway-contract"
-
-  interface Props {
-    modalState: MasterPersonaModalState
-    selectedEntry: MasterPersonaDetail | null
-    editForm: MasterPersonaUpdateInput
-    closeEdit: () => void
-    closeDelete: () => void
-    saveCurrentEntry: () => void
-    deleteCurrentEntry: () => void
-    setEditFormField: (
-      field: keyof MasterPersonaEditableFieldMap,
-      event: Event
-    ) => void
-  }
+  import type { PersonaActionModalProps } from "./master-persona-panel-props"
 
   let {
     modalState,
     selectedEntry,
     editForm,
+    errorMessage = "",
     closeEdit,
     closeDelete,
     saveCurrentEntry,
     deleteCurrentEntry,
     setEditFormField
-  }: Props = $props()
+  }: PersonaActionModalProps = $props()
 </script>
 
 <div
@@ -61,8 +41,15 @@
 
     <div class="identity-banner">
       <strong>{selectedEntry?.displayName || "未選択"}</strong>
-      <span>{selectedEntry?.targetPlugin || "-"} / {selectedEntry?.editorId || "-"}</span>
+      <span
+        >{selectedEntry?.targetPlugin || "-"} / {selectedEntry?.editorId ||
+          "-"}</span
+      >
     </div>
+
+    {#if errorMessage}
+      <p class="modal-error" role="alert">{errorMessage}</p>
+    {/if}
 
     <div class="form-grid">
       <label class="field-group textarea-group" for="editPersonaSummaryInput">
@@ -135,6 +122,10 @@
     <p class="support-copy">
       削除すると、選択中のペルソナを一覧から外します。必要なら識別情報を確認してから実行してください。
     </p>
+
+    {#if errorMessage}
+      <p class="modal-error" role="alert">{errorMessage}</p>
+    {/if}
 
     <dl class="detail-grid">
       <div class="detail-card">
@@ -241,10 +232,15 @@
   }
 
   .support-copy,
+  .modal-error,
   .detail-card dd,
   .identity-banner span {
     color: var(--muted);
     line-height: 1.7;
+  }
+
+  .modal-error {
+    color: #ffd5cb;
   }
 
   .identity-banner {
