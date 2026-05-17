@@ -57,7 +57,7 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 
 - `worktree_checkout`: `/Users/iorishibata/.codex/worktrees/9da0/AITranslationEngineJP`
 - `branch_ready`: `codex/2026-05-17-fake-api-retirement`
-- `commit_hash`: `pending`
+- `commit_hash`: `342ad69`
 - `remote_operation`: `not-performed`
 
 ## HITL Status
@@ -84,12 +84,12 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 
 ## Merge Readiness
 
-- `merge_ready`: `pending`
+- `merge_ready`: `ready-with-review-pending`
 - `source_branch`: `codex/2026-05-17-fake-api-retirement`
 - `target_branch`: `master`
-- `commit_hash`: `pending`
+- `commit_hash`: `342ad69`
 - `validation_evidence`: `frontend-local pass`, `structure pass`
-- `review_evidence`: `pending`
+- `review_evidence`: `not-run`
 - `residual_risks`: `5 観点 review は未実施。completed artifact の fakeAPI 証跡は履歴として残る。`
 
 ## Merge Result
@@ -111,4 +111,6 @@ fakeAPI は見た目レビューのために gateway mock を使った仕組み�
 
 - fakeAPI runtime、review gateway、fakeAPI 専用 test、現行 docs / workflow 参照を削除または廃止後の実画面状態確認へ置換した。
 - `frontend-local` と `structure` は通過した。
-- 5 観点 review、作業 commit、マージ準備入力は未実施。
+- 作業 commit は `342ad69` で作成済み。
+- マージ準備入力は `Merge Readiness` に記録済み。
+- 5 観点 review は未実施。
