@@ -24,3 +24,13 @@ rm -rf \
   /tmp/aitranslationenginejp-go-mod \
   /tmp/aitranslationenginejp-golangci-lint
 '''
+
+[[actions]]
+name = "storybook build"
+icon = "tool"
+command = "npm --prefix frontend run build-storybook"
+
+[[actions]]
+name = "run storybook"
+icon = "run"
+command = "npm --prefix frontend run storybook"
