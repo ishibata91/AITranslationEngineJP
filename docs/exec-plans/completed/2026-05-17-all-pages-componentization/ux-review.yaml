@@ -1,0 +1,169 @@
+task_id: 2026-05-17-all-pages-componentization
+role: ux_review
+review_status: no_issue
+must_fix_open: false
+max_level: none
+human_review_ready: true
+return_to: implement_lane_frontend_human_review_gate
+
+scope:
+  target: frontend_human_review_precheck
+  ux_review_yaml_path: docs/exec-plans/active/2026-05-17-all-pages-componentization/ux-review.yaml
+  reviewed_difference:
+    - 全ページの Svelte component を page 合成、screen local component、shared component へ分割した。
+    - 主要 page component は controller 接続、購読、dispose、通知、表示部品合成へ寄せた。
+    - panel、card、modal は screen local component または shared component へ分離した。
+    - Storybook story と fixture を追加し、人間見た目レビュー入口を作った。
+  non_target:
+    - product code change in this ux_review
+    - product test change in this ux_review
+    - fixture change in this ux_review
+    - snapshot change in this ux_review
+    - backend
+    - Wails
+    - Gateway
+    - DB
+    - secret store
+    - implementation five-perspective review
+
+source_documents:
+  skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ux-review/SKILL.md
+  agent_definition: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/ux_review.toml
+  ux_standard: docs/UX-standard.md
+  ui_design_skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/ui-design/SKILL.md
+  screen_design: docs/screen-design/README.md
+  agent_browser_reference: docs/references/agent-browser.md
+  ui_design: docs/exec-plans/active/2026-05-17-all-pages-componentization/ui-design.md
+  scenario_design: docs/exec-plans/active/2026-05-17-all-pages-componentization/scenario-design.md
+  component_split_diagram: docs/exec-plans/active/2026-05-17-all-pages-componentization/component-split-by-page.puml
+  component_folder_guideline: docs/exec-plans/active/2026-05-17-all-pages-componentization/component-folder-guideline.md
+  storybook_review: docs/exec-plans/active/2026-05-17-all-pages-componentization/storybook-review.md
+  screen_design_diff: N/A
+
+changed_files_observed:
+  command_sources:
+    - git diff --name-only
+    - git ls-files --others --exclude-standard
+  summary:
+    - active plan documents were changed or added.
+    - frontend shared components, screen local components, stories, and fixtures were added.
+    - frontend page components were changed to compose extracted display components.
+    - frontend validation and boundary tooling files were changed.
+  ux_review_write_scope:
+    - docs/exec-plans/active/2026-05-17-all-pages-componentization/ux-review.yaml
+
+runtime_input:
+  review_url: "http://127.0.0.1:6006"
+  review_surface: Storybook static preview
+  server_state: storybook-review.md records static preview at 127.0.0.1:6006.
+  confirmed_states_source: storybook-review.md Page Review Order.
+  unchecked_states_source: storybook-review.md Human Review State.
+  inherited_validation:
+    - command: python3 scripts/harness/run.py --suite frontend-local
+      status: pass
+      note: implement_lane result and storybook-review.md inherited. ux_review did not rerun harness.
+    - command: npm --prefix frontend run build-storybook
+      status: pass
+      note: implement_lane result and storybook-review.md inherited. ux_review did not rerun harness.
+    - command: node -e "<playwright story smoke>"
+      status: pass
+      note: storybook-review.md records that major 13 stories rendered with body content and no page error.
+  ux_review_execution:
+    harness_rerun: false
+    browser_rerun: false
+    reason: 呼び出し元がハーネス実行禁止と Storybook 確認済み証跡を指定したため、task-local 証跡を根拠にした。
+
+ux_standard_judgement:
+  status: pass_for_storybook_human_review_entry
+  basis:
+    - UI Design の UX Standard Review は、画面目的、主要CTA、情報階層、状態表示、状態別操作、検査可能性を pass としている。
+    - UI Design は、画面責務、エラー状態、UI文言、幅別確認、長文耐性、最小幅保証を caution として Storybook review と人間見た目レビューへ残している。
+    - Storybook review は主要 13 story を confirmed とし、本文あり、page error なしを記録している。
+  judgement:
+    - Storybook review 入口としては、目的、状態、操作、結果を判断する最低限の入口が揃っている。
+    - caution は人間見た目レビュー時の確認対象であり、現時点では major 以上の停止理由ではない。
+
+checked_states:
+  - id: storybook_review_entry_available
+    review_url: "http://127.0.0.1:6006"
+    source:
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/storybook-review.md
+    confirmed:
+      - Storybook static preview の review URL が記録されている。
+      - iframe URL pattern が記録されている。
+      - Page Review Order の 13 件すべてが confirmed である。
+      - 主要 13 story は本文あり、page error なしで描画されたと記録されている。
+    ux_observation:
+      - 人間レビュアーは story ID と review URL から主要ページの見た目確認へ進める。
+  - id: page_review_order_confirmed
+    source:
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/storybook-review.md
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/ui-design.md
+    confirmed:
+      - 翻訳入力確認、ジョブ作成、翻訳ジョブ管理、ジョブ実行、単語翻訳段階、NPC ペルソナ生成段階、本文翻訳段階を確認対象に含む。
+      - 翻訳完了、出力成果物、マスター辞書、Provider 設定、Dashboard、Master Persona を確認対象に含む。
+      - page 合成 story は密度確認と配置確認に限定する方針が記録されている。
+    ux_observation:
+      - 確認順は UI Design の Page Review Order と一致している。
+  - id: storybook_boundary_usable_for_visual_review
+    source:
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/storybook-review.md
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/scenario-design.md
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/component-folder-guideline.md
+    confirmed:
+      - Storybook は props、callback stub、view model fixture だけで表示する境界として記録されている。
+      - backend、Wails runtime、Gateway、RuntimeEventAdapter、AI provider、secret store、DB、実 filesystem flow を要求しない境界が記録されている。
+      - secret、API key、token、実 endpoint、実ユーザーデータ、raw request、raw response、raw prompt、provider 応答原文を review 証跡に含めない境界が記録されている。
+    ux_observation:
+      - Storybook review は実行系検証ではなく、見た目レビュー入口として扱える。
+  - id: componentization_scope_matches_ui_basis
+    source:
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/ui-design.md
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/component-split-by-page.puml
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/component-folder-guideline.md
+    confirmed:
+      - page component は production controller と shell state を持つ方針である。
+      - screen local component は画面固有の表示領域を持つ方針である。
+      - shared component は複数画面で同じ表示規則または操作規則を持つ場合だけ使う方針である。
+      - 既存の 2 カラム、3 カラム、固定フッター、モーダル配置を維持する制約が記録されている。
+    ux_observation:
+      - 既存画面との統一性は、既存配置と既存 shared component を維持する方針で確認可能である。
+  - id: selector_and_accessibility_boundary
+    source:
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/ui-design.md
+      - docs/exec-plans/active/2026-05-17-all-pages-componentization/storybook-review.md
+    confirmed:
+      - UI Design は既存の aria-label と aria-labelledby を削らない制約を記録している。
+      - Storybook review は主要 story の表示確認を完了している。
+      - frontend-local pass が継承証跡として記録されている。
+    ux_observation:
+      - 画面設計差分は N/A であり、新規 selector 契約の追加確認は不要である。
+      - 既存 aria-label の完全な実装一致は、人間見た目レビューではなく frontend-local と後続レビューの確認対象として残る。
+
+unchecked_states:
+  - id: frontend_human_review_approval
+    status: unchecked
+    reason: 人間見た目レビューはこの後に実施されるため。
+    residual_risk:
+      - 人間レビュアーが、密度、余白、視線移動、既存画面との見た目差分を差し戻す可能性がある。
+    impact_on_gate: 人間レビュー前の UX 入口判定は止めない。
+  - id: production_wails_runtime_screen_flow
+    status: unchecked
+    reason: 今回の UX review は Storybook 上の確認範囲を根拠にし、Wails 実画面操作を実施していないため。
+    residual_risk:
+      - production controller 接続後の route、購読、dispose、通知、実 file flow の体験差分はこの UX review の主判定外である。
+    impact_on_gate: Storybook review 入口判定は止めない。
+  - id: exhaustive_state_and_viewport_visual_review
+    status: unchecked
+    reason: 主要 13 story の smoke は確認済みだが、全 story の全 variant、全 viewport、pixel 単位の余白と色調整は人間見た目レビューの対象であるため。
+    residual_risk:
+      - 長い path、model 名、plugin 名、FormID、EditorID、エラー文、原文、訳文で一部 story の折り返しや密度調整が必要になる可能性がある。
+    impact_on_gate: major 以上の既知問題ではなく、人間見た目レビューで確認する残留リスクである。
+  - id: screen_design_diff
+    status: not_applicable
+    reason: UI Design が、表示項目、導線、状態文、操作の恒久仕様を変更しないため screen-design-diff は N/A としている。
+    residual_risk:
+      - 人間レビューで恒久的な文言変更または画面内容変更が必要になった場合は、別途 screen design diff と人間承認へ戻す必要がある。
+    impact_on_gate: 現在の Storybook review 入口判定は止めない。
+
+issues: []

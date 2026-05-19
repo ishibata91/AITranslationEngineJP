@@ -6,6 +6,5 @@ export type {
 export type {
   PersonaGenerationPhaseActionKind,
   PersonaGenerationPhaseScreenState,
-  PersonaGenerationPhaseScreenViewModel,
-  PersonaGenerationPhaseViewState
+  PersonaGenerationPhaseScreenViewModel
 } from "./persona-generation-phase-screen-types"

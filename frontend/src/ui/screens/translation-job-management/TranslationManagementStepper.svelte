@@ -132,6 +132,7 @@
     padding: 24px;
     display: grid;
     gap: 1rem;
+    color: var(--text);
   }
 
   .section-head {
@@ -192,6 +193,7 @@
 
   button.stepper-card {
     cursor: pointer;
+    font: inherit;
   }
 
   button.stepper-card:hover,

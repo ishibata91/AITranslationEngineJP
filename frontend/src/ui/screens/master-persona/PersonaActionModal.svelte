@@ -188,6 +188,7 @@
     background: rgba(17, 13, 12, 0.94);
     border: 0.5px solid var(--line);
     box-shadow: var(--shadow);
+    color: var(--text);
     display: grid;
     gap: 16px;
     max-height: min(88vh, 900px);

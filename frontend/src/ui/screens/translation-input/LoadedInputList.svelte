@@ -110,6 +110,7 @@
     padding: 1.25rem;
     background: rgba(28, 23, 20, 0.74);
     box-shadow: var(--shadow);
+    color: var(--text);
     backdrop-filter: blur(18px);
   }
 

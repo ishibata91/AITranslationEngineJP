@@ -20,6 +20,9 @@
     TermTranslationPhaseScreenControllerContract
   } from "@application/contract/term-translation-phase"
   import BodyTranslationPhasePanel from "@ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
+  import JobRunTargetSummary from "@ui/screens/job-run/JobRunTargetSummary.svelte"
+  import JobUnselectedGuidance from "@ui/screens/job-run/JobUnselectedGuidance.svelte"
+  import PhaseHost from "@ui/screens/job-run/PhaseHost.svelte"
   import PhaseNavigationFooter from "@ui/screens/job-run/PhaseNavigationFooter.svelte"
   import TranslationCompletePage from "@ui/screens/job-run/TranslationCompletePage.svelte"
   import PersonaGenerationPhasePanel from "@ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte"
@@ -299,39 +302,8 @@
 
 <section class="job-run-page" data-testid="job-run-job-run-shell">
   {#if selectedJobTarget}
-    <section
-      class="job-run-target-summary"
-      data-testid="job-run-selected-job-summary"
-    >
-      <div>
-        <p class="eyebrow">選択中のジョブ</p>
-        <h3>ジョブ #{selectedJobTarget.jobId}</h3>
-      </div>
-      <dl class="target-summary-grid">
-        <div>
-          <dt>状態</dt>
-          <dd>{selectedJobTarget.stateLabel} / {selectedJobTarget.stateDescription}</dd>
-        </div>
-        <div>
-          <dt>現在の翻訳段階</dt>
-          <dd>{selectedJobTarget.currentPhaseLabel}</dd>
-        </div>
-        <div>
-          <dt>進捗</dt>
-          <dd>{selectedJobTarget.progressLabel}</dd>
-        </div>
-        <div>
-          <dt>入力</dt>
-          <dd>{selectedJobTarget.inputSourceLabel}</dd>
-        </div>
-      </dl>
-      <details class="target-path">
-        <summary>入力ファイル path</summary>
-        <p>{selectedJobTarget.sourcePath}</p>
-      </details>
-    </section>
-
-    <section class="job-run-phase-region" data-testid="job-run-phase-screen-region">
+    <JobRunTargetSummary target={selectedJobTarget} />
+    <PhaseHost>
       {#if currentPhasePage === "term"}
         <TermTranslationPhasePanel
           {viewModel}
@@ -402,24 +374,9 @@
           titleId="completeNavigationFooter"
         />
       {/if}
-    </section>
+    </PhaseHost>
   {:else}
-    <section
-      class="job-run-target-summary"
-      data-testid="job-run-job-unselected-guidance"
-    >
-      <div>
-        <p class="eyebrow">ジョブ未選択</p>
-        <h3>未完了ジョブ一覧でジョブを選んでください</h3>
-      </div>
-      <p class="selector-copy">
-        翻訳段階の画面は選択済みジョブだけを対象にします。ジョブID
-        の手入力はこのページでは扱いません。
-      </p>
-      <button class="secondary-button" onclick={onOpenJobManagement} type="button">
-        一覧へ戻る
-      </button>
-    </section>
+    <JobUnselectedGuidance {onOpenJobManagement} />
   {/if}
 </section>
 
@@ -431,74 +388,9 @@
     padding-bottom: 7.5rem;
   }
 
-  .job-run-phase-region {
-    display: grid;
-    gap: 1.25rem;
-    min-width: 0;
-  }
-
-  .job-run-target-summary {
-    display: grid;
-    gap: 0.8rem;
-    padding: 1.15rem 1.3rem;
-    border: 1px solid rgba(226, 205, 173, 0.14);
-    border-radius: 20px;
-    background: rgba(33, 27, 24, 0.88);
-    min-width: 0;
-  }
-
-  .eyebrow,
-  .selector-copy,
-  .target-path {
-    color: rgba(236, 223, 205, 0.78);
-  }
-
-  h3 {
-    margin: 0.2rem 0 0;
-    color: #fff6ea;
-  }
-
-  .secondary-button {
-    justify-self: start;
-    min-height: 2.8rem;
-    padding: 0.65rem 0.9rem;
-    border-radius: 14px;
-    border: 1px solid rgba(233, 213, 186, 0.18);
-    background: rgba(255, 255, 255, 0.05);
-    color: #fff6ea;
-    cursor: pointer;
-  }
-
-  .target-summary-grid {
-    display: grid;
-    gap: 0.6rem;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    margin: 0;
-  }
-
-  .target-summary-grid div {
-    display: grid;
-    gap: 0.2rem;
-    min-width: 0;
-  }
-
-  .target-summary-grid dt {
-    color: rgba(236, 223, 205, 0.78);
-  }
-
-  .target-summary-grid dd {
-    margin: 0;
-    color: #fff6ea;
-    overflow-wrap: anywhere;
-  }
-
   @media (max-width: 900px) {
     .job-run-page {
       padding-bottom: 16rem;
-    }
-
-    .target-summary-grid {
-      grid-template-columns: 1fr;
     }
   }
 </style>

@@ -126,6 +126,10 @@ function isTestLikePath(value) {
   return /(^|\/)[^/]+\.test(?:\.[^/]+)?$/u.test(value);
 }
 
+function isStoryLikePath(value) {
+  return /(^|\/)[^/]+\.stories(?:\.|$)/u.test(value);
+}
+
 function detectSourceLayer(filename) {
   const normalized = normalizePath(filename);
 
@@ -144,8 +148,10 @@ function detectResolvedTargetType(resolvedPath) {
   if (
     normalized.includes("/src/test/") ||
     normalized.includes("/fixtures/") ||
+    normalized.includes("/__fixtures__/") ||
     normalized.includes("/generated/") ||
-    isTestLikePath(normalized)
+    isTestLikePath(normalized) ||
+    isStoryLikePath(normalized)
   ) {
     return "reverse-flow";
   }
@@ -347,12 +353,22 @@ function isReverseFlowTargetSpecifier(specifier) {
     return true;
   }
 
-  return isTestLikePath(normalizePath(specifier));
+  const normalized = normalizePath(specifier);
+
+  return (
+    normalized.includes("/__fixtures__/") ||
+    isTestLikePath(normalized) ||
+    isStoryLikePath(normalized)
+  );
 }
 
 function isReverseFlowSourceExempt(filename) {
   const normalized = normalizePath(filename);
-  return normalized.includes("/src/test/") || isTestLikePath(normalized);
+  return (
+    normalized.includes("/src/test/") ||
+    isTestLikePath(normalized) ||
+    isStorybookSourceExempt(normalized)
+  );
 }
 
 function isStorybookSourceExempt(filename) {
@@ -362,7 +378,7 @@ function isStorybookSourceExempt(filename) {
     normalized.includes("/.storybook/") ||
     normalized.includes("/__fixtures__/") ||
     normalized.includes("/__stories__/") ||
-    /\.stories\.[^/]+$/u.test(normalized)
+    isStoryLikePath(normalized)
   );
 }
 

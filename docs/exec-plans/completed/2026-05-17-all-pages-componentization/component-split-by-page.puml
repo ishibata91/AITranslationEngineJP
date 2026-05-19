@@ -1,0 +1,554 @@
+@startuml
+title ページ別コンポーネント分割図: 共通部品方針
+
+top to bottom direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam nodesep 55
+skinparam ranksep 70
+
+skinparam component {
+  BackgroundColor<<page>> #FFF8E1
+  BorderColor<<page>> #F9A825
+  FontColor<<page>> #4E342E
+  BackgroundColor<<local>> #EEF9EF
+  BorderColor<<local>> #2E7D32
+  FontColor<<local>> #1B5E20
+  BackgroundColor<<shared>> #E3F2FD
+  BorderColor<<shared>> #1565C0
+  FontColor<<shared>> #0D47A1
+  BackgroundColor<<candidate>> #F3E5F5
+  BorderColor<<candidate>> #7B1FA2
+  FontColor<<candidate>> #4A148C
+  BackgroundColor<<keep>> #F7F9FC
+  BorderColor<<keep>> #546E7A
+  FontColor<<keep>> #263238
+}
+
+legend bottom right
+  |= Style |= 意味 |
+  |<#FFF8E1> page | page component。controller 接続、購読、dispose、通知、表示部品合成を担当する |
+  |<#EEF9EF> local | 画面専用 component。画面固有の panel、card、modal、list、detail を担当する |
+  |<#E3F2FD> shared | 共通 component。複数画面で同じ表示規則または操作規則を担う |
+  |<#F3E5F5> candidate | 共通候補。props 分岐が増える場合は画面専用へ戻す |
+  |<#F7F9FC> keep | 分けない対象。controller、bridge、状態集約、routing を page 側に残す |
+endlegend
+
+package "共通 component: frontend/src/ui/components/" as SharedLayer {
+  component "AIModelSelectionCard\nAI model 選択カード" as AIModelSelectionCard <<shared>>
+  component "StickyActionFooter\n固定フッター操作" as StickyActionFooter <<shared>>
+
+  component "ActionButton\nprimary / secondary / danger" as ActionButton <<candidate>>
+  component "ButtonGroup\n操作群の並びと間隔" as ButtonGroup <<candidate>>
+  component "IconActionButton\nrefresh / reset / close など" as IconActionButton <<candidate>>
+  component "FormField\nlabel / help / error / required" as FormField <<candidate>>
+  component "TextInputField\ntext / password / path 表示" as TextInputField <<candidate>>
+  component "TextAreaField\n長文編集" as TextAreaField <<candidate>>
+  component "SelectField\nプルダウン" as SelectField <<candidate>>
+  component "CheckboxField\ncheckbox と説明文" as CheckboxField <<candidate>>
+  component "SearchFilterBar\n検索 input と filter select" as SearchFilterBar <<candidate>>
+  component "FileSelectionDisplay\nfile 名 / path label / hash label" as FileSelectionDisplay <<candidate>>
+  component "InlineFeedback\nerror / warning / success" as InlineFeedback <<candidate>>
+  component "EmptyStatePanel\n空状態表示" as EmptyStatePanel <<candidate>>
+  component "ProgressBar\n進捗表示" as ProgressBar <<candidate>>
+  component "StatusPill\n状態ラベル" as StatusPill <<candidate>>
+  component "ConfirmDangerModal\n危険操作確認 modal" as ConfirmDangerModal <<candidate>>
+  component "PaginationControls\nページング操作" as PaginationControls <<candidate>>
+  component "PhaseStatusPanel\nphase 状態表示" as PhaseStatusPanel <<candidate>>
+  component "PhaseActionPanel\nphase 操作群" as PhaseActionPanel <<candidate>>
+  component "PhaseProgressPanel\nphase 進捗表示" as PhaseProgressPanel <<candidate>>
+  component "PhaseFailureInfoCard\nphase 失敗情報" as PhaseFailureInfoCard <<candidate>>
+  component "PhaseMetricCounterGrid\nphase 指標一覧" as PhaseMetricCounterGrid <<candidate>>
+  component "PhaseNavigationFooter\nphase 間 navigation" as PhaseNavigationFooterShared <<candidate>>
+}
+
+component "共通化判断\n複数画面で同じ表示規則または操作規則を持つ場合だけ shared に置く" as SharedRule <<keep>>
+component "戻し判断\nprops が画面固有条件の塊になる場合は screen local に戻す" as SharedRollback <<keep>>
+
+SharedRule ..> AIModelSelectionCard
+SharedRule ..> StickyActionFooter
+SharedRule ..> ActionButton
+SharedRule ..> ButtonGroup
+SharedRule ..> IconActionButton
+SharedRule ..> FormField
+SharedRule ..> TextInputField
+SharedRule ..> TextAreaField
+SharedRule ..> SelectField
+SharedRule ..> CheckboxField
+SharedRule ..> SearchFilterBar
+SharedRule ..> FileSelectionDisplay
+SharedRule ..> InlineFeedback
+SharedRule ..> EmptyStatePanel
+SharedRule ..> ProgressBar
+SharedRule ..> StatusPill
+SharedRule ..> ConfirmDangerModal
+SharedRule ..> PaginationControls
+SharedRule ..> PhaseStatusPanel
+SharedRule ..> PhaseActionPanel
+SharedRule ..> PhaseProgressPanel
+SharedRule ..> PhaseFailureInfoCard
+SharedRule ..> PhaseMetricCounterGrid
+SharedRule ..> PhaseNavigationFooterShared
+
+SharedRollback ..> StatusPill
+SharedRollback ..> ConfirmDangerModal
+SharedRollback ..> SearchFilterBar
+SharedRollback ..> FileSelectionDisplay
+SharedRollback ..> PhaseStatusPanel
+SharedRollback ..> PhaseActionPanel
+SharedRollback ..> PhaseProgressPanel
+SharedRollback ..> PhaseFailureInfoCard
+SharedRollback ..> PhaseMetricCounterGrid
+SharedRollback ..> PhaseNavigationFooterShared
+
+note bottom of SharedLayer
+共通 component は Storybook story を持つ。
+story は fixed props、view model fixture、callback stub だけを使う。
+backend DTO、Gateway、generated wailsjs、RuntimeEventAdapter、secret store、DB、実 filesystem flow は扱わない。
+file picker や secret 保存そのものは共通 component に入れない。
+共通 input は value、disabled、error、help、callback だけを扱う。
+end note
+
+@enduml
+
+@startuml
+title ページ別コンポーネント分割図: 翻訳入力からジョブ実行まで
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam nodesep 45
+skinparam ranksep 55
+
+skinparam component {
+  BackgroundColor<<page>> #FFF8E1
+  BorderColor<<page>> #F9A825
+  FontColor<<page>> #4E342E
+  BackgroundColor<<local>> #EEF9EF
+  BorderColor<<local>> #2E7D32
+  FontColor<<local>> #1B5E20
+  BackgroundColor<<shared>> #E3F2FD
+  BorderColor<<shared>> #1565C0
+  FontColor<<shared>> #0D47A1
+  BackgroundColor<<candidate>> #F3E5F5
+  BorderColor<<candidate>> #7B1FA2
+  FontColor<<candidate>> #4A148C
+  BackgroundColor<<keep>> #F7F9FC
+  BorderColor<<keep>> #546E7A
+  FontColor<<keep>> #263238
+}
+
+package "翻訳入力確認" {
+  component "InputReviewPage\npage 合成" as InputReviewPage <<page>>
+  component "DataLoadHero" as DataLoadHero <<local>>
+  component "DataLoadImportPanel" as DataLoadImportPanel <<local>>
+  component "LoadedInputList" as LoadedInputList <<local>>
+  component "LoadedInputDetail" as LoadedInputDetail <<local>>
+  component "入力登録後導線" as InputRegisteredNav <<local>>
+  component "file input bridge\ncontroller 購読\n日時と状態の表示変換" as InputKeep <<keep>>
+
+  InputReviewPage --> DataLoadHero
+  InputReviewPage --> DataLoadImportPanel
+  InputReviewPage --> LoadedInputList
+  InputReviewPage --> LoadedInputDetail
+  InputReviewPage --> InputRegisteredNav
+  InputReviewPage --> InputKeep
+}
+
+package "ジョブ作成" {
+  component "JobSetupPage\npage 合成" as JobSetupPage <<page>>
+  component "JobSetupPurposeHeader" as JobSetupPurposeHeader <<local>>
+  component "InputSourcePanel" as InputSourcePanel <<local>>
+  component "FoundationDataPanel" as FoundationDataPanel <<local>>
+  component "PhaseSettingsPanel" as PhaseSettingsPanel <<local>>
+  component "CompatibilityPrecheckPanel" as CompatibilityPrecheckPanel <<local>>
+  component "CreatedJobSummaryPanel" as CreatedJobSummaryPanel <<local>>
+  component "PhaseSettingsSummaryPanel" as PhaseSettingsSummaryPanel <<local>>
+  component "作成可否の集約\nphase 別設定の controller 更新\n入力削除中 state" as JobSetupKeep <<keep>>
+
+  JobSetupPage --> JobSetupPurposeHeader
+  JobSetupPage --> InputSourcePanel
+  JobSetupPage --> FoundationDataPanel
+  JobSetupPage --> PhaseSettingsPanel
+  JobSetupPage --> CompatibilityPrecheckPanel
+  JobSetupPage --> CreatedJobSummaryPanel
+  JobSetupPage --> PhaseSettingsSummaryPanel
+  JobSetupPage --> JobSetupKeep
+}
+
+package "翻訳ジョブ管理" {
+  component "TranslationJobManagementPage\npage 合成" as JobManagementPage <<page>>
+  component "JobManagementHeader" as JobManagementHeader <<local>>
+  component "FeedbackPanel" as FeedbackPanel <<local>>
+  component "JobListPanel" as JobListPanel <<local>>
+  component "JobCard" as JobCard <<local>>
+  component "JobOperationGroup" as JobOperationGroup <<local>>
+  component "TranslationJobManagementDeleteModal" as JobDeleteModal <<local>>
+  component "job 選択から job-run へ進む route 同期\n停止と再開の実行判断" as JobManagementKeep <<keep>>
+
+  JobManagementPage --> JobManagementHeader
+  JobManagementPage --> FeedbackPanel
+  JobManagementPage --> JobListPanel
+  JobListPanel --> JobCard
+  JobCard --> JobOperationGroup
+  JobManagementPage --> JobDeleteModal
+  JobManagementPage --> JobManagementKeep
+}
+
+package "ジョブ実行" {
+  component "JobRunPage\npage 合成" as JobRunPage <<page>>
+  component "JobRunTargetSummary" as JobRunTargetSummary <<local>>
+  component "JobUnselectedGuidance" as JobUnselectedGuidance <<local>>
+  component "PhaseHost" as PhaseHost <<local>>
+  component "PhaseNavigationFooter\nscreen local fallback" as PhaseNavigationFooterLocal <<local>>
+  component "複数 controller の mount\njob target 同期\nphase page 切替" as JobRunKeep <<keep>>
+
+  JobRunPage --> JobRunTargetSummary
+  JobRunPage --> JobUnselectedGuidance
+  JobRunPage --> PhaseHost
+  JobRunPage --> PhaseNavigationFooterLocal
+  JobRunPage --> JobRunKeep
+}
+
+component "AIModelSelectionCard\nshared" as AIModelSelectionCard <<shared>>
+component "StickyActionFooter\nshared" as StickyActionFooter <<shared>>
+component "ActionButton\ncandidate shared" as ActionButton <<candidate>>
+component "ButtonGroup\ncandidate shared" as ButtonGroup <<candidate>>
+component "SelectField\ncandidate shared" as SelectField <<candidate>>
+component "SearchFilterBar\ncandidate shared" as SearchFilterBar <<candidate>>
+component "FileSelectionDisplay\ncandidate shared" as FileSelectionDisplay <<candidate>>
+component "InlineFeedback\ncandidate shared" as InlineFeedback <<candidate>>
+component "EmptyStatePanel\ncandidate shared" as EmptyStatePanel <<candidate>>
+component "StatusPill\ncandidate shared" as StatusPill <<candidate>>
+component "ConfirmDangerModal\ncandidate shared" as ConfirmDangerModal <<candidate>>
+component "PhaseNavigationFooter\ncandidate shared" as PhaseNavigationFooterShared <<candidate>>
+
+InputReviewPage ..> StickyActionFooter
+DataLoadImportPanel ..> FileSelectionDisplay
+DataLoadImportPanel ..> ActionButton
+LoadedInputList ..> EmptyStatePanel
+LoadedInputDetail ..> InlineFeedback
+JobSetupPage ..> AIModelSelectionCard
+JobSetupPage ..> StickyActionFooter
+JobSetupPage ..> StatusPill
+InputSourcePanel ..> ActionButton
+FoundationDataPanel ..> SelectField
+CompatibilityPrecheckPanel ..> InlineFeedback
+JobManagementPage ..> StatusPill
+JobManagementPage ..> ConfirmDangerModal
+JobListPanel ..> SearchFilterBar
+JobOperationGroup ..> ButtonGroup
+JobOperationGroup ..> ActionButton
+JobRunPage ..> StickyActionFooter
+PhaseNavigationFooterLocal ..> PhaseNavigationFooterShared : 共通化できる場合だけ
+
+@enduml
+
+@startuml
+title ページ別コンポーネント分割図: phase 実行から出力まで
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam nodesep 45
+skinparam ranksep 55
+
+skinparam component {
+  BackgroundColor<<page>> #FFF8E1
+  BorderColor<<page>> #F9A825
+  FontColor<<page>> #4E342E
+  BackgroundColor<<local>> #EEF9EF
+  BorderColor<<local>> #2E7D32
+  FontColor<<local>> #1B5E20
+  BackgroundColor<<shared>> #E3F2FD
+  BorderColor<<shared>> #1565C0
+  FontColor<<shared>> #0D47A1
+  BackgroundColor<<candidate>> #F3E5F5
+  BorderColor<<candidate>> #7B1FA2
+  FontColor<<candidate>> #4A148C
+  BackgroundColor<<keep>> #F7F9FC
+  BorderColor<<keep>> #546E7A
+  FontColor<<keep>> #263238
+}
+
+package "単語翻訳段階" {
+  component "TermTranslationPhasePanel\npage または phase panel" as TermPage <<page>>
+  component "TermExecutionSettingsCard" as TermExecutionSettingsCard <<local>>
+  component "TermResultSummaryCard" as TermResultSummaryCard <<local>>
+  component "phase action を controller method へ割り当てる処理" as TermKeep <<keep>>
+
+  TermPage --> TermExecutionSettingsCard
+  TermPage --> TermResultSummaryCard
+  TermPage --> TermKeep
+}
+
+package "NPC ペルソナ生成段階" {
+  component "PersonaGenerationPhasePanel\npage または phase panel" as PersonaPhasePage <<page>>
+  component "PersonaTargetSummaryCard" as PersonaTargetSummaryCard <<local>>
+  component "PersonaExecutionSettingsCard" as PersonaExecutionSettingsCard <<local>>
+  component "PersonaResultSummaryCard" as PersonaResultSummaryCard <<local>>
+  component "BodyReadinessInputCard" as BodyReadinessInputCard <<local>>
+  component "本文翻訳 readiness 判断\nphase action の割り当て" as PersonaPhaseKeep <<keep>>
+
+  PersonaPhasePage --> PersonaTargetSummaryCard
+  PersonaPhasePage --> PersonaExecutionSettingsCard
+  PersonaPhasePage --> PersonaResultSummaryCard
+  PersonaPhasePage --> BodyReadinessInputCard
+  PersonaPhasePage --> PersonaPhaseKeep
+}
+
+package "本文翻訳段階" {
+  component "BodyTranslationPhasePanel\npage または phase panel" as BodyPage <<page>>
+  component "BodyInputSummaryCard" as BodyInputSummaryCard <<local>>
+  component "BodyExecutionSummaryCard" as BodyExecutionSummaryCard <<local>>
+  component "BodyResultSummaryCard" as BodyResultSummaryCard <<local>>
+  component "FieldResultListPanel" as FieldResultListPanel <<local>>
+  component "OutputReadinessCard" as OutputReadinessCard <<local>>
+  component "output readiness 判定\nfield result key 生成" as BodyKeep <<keep>>
+
+  BodyPage --> BodyInputSummaryCard
+  BodyPage --> BodyExecutionSummaryCard
+  BodyPage --> BodyResultSummaryCard
+  BodyPage --> FieldResultListPanel
+  BodyPage --> OutputReadinessCard
+  BodyPage --> BodyKeep
+}
+
+package "翻訳完了" {
+  component "TranslationCompletePage\npage 合成" as CompletePage <<page>>
+  component "TranslationCompleteSummaryPanel" as CompleteSummary <<local>>
+  component "TranslationResultListPanel" as TranslationResultListPanel <<local>>
+  component "pageIndex の内部 paging state" as CompleteKeep <<keep>>
+
+  CompletePage --> CompleteSummary
+  CompletePage --> TranslationResultListPanel
+  CompletePage --> CompleteKeep
+}
+
+package "出力成果物" {
+  component "TranslationOutputArtifactPage\npage 合成" as OutputPage <<page>>
+  component "OutputSummaryHeader" as OutputSummaryHeader <<local>>
+  component "CompletedJobListPanel" as CompletedJobListPanel <<local>>
+  component "SelectedJobSummaryCard" as SelectedJobSummaryCard <<local>>
+  component "OutputActionPanel" as OutputActionPanel <<local>>
+  component "LatestOutputResultCard" as LatestOutputResultCard <<local>>
+  component "DiffPreviewPanel" as DiffPreviewPanel <<local>>
+  component "path validation 表示\nartifact 生成可否の集約" as OutputKeep <<keep>>
+
+  OutputPage --> OutputSummaryHeader
+  OutputPage --> CompletedJobListPanel
+  OutputPage --> SelectedJobSummaryCard
+  OutputPage --> OutputActionPanel
+  OutputPage --> LatestOutputResultCard
+  OutputPage --> DiffPreviewPanel
+  OutputPage --> OutputKeep
+}
+
+component "PhaseStatusPanel\ncandidate shared" as PhaseStatusPanel <<candidate>>
+component "PhaseActionPanel\ncandidate shared" as PhaseActionPanel <<candidate>>
+component "PhaseProgressPanel\ncandidate shared" as PhaseProgressPanel <<candidate>>
+component "PhaseFailureInfoCard\ncandidate shared" as PhaseFailureInfoCard <<candidate>>
+component "PhaseMetricCounterGrid\ncandidate shared" as PhaseMetricCounterGrid <<candidate>>
+component "PaginationControls\ncandidate shared" as PaginationControls <<candidate>>
+component "StatusPill\ncandidate shared" as StatusPill <<candidate>>
+component "ActionButton\ncandidate shared" as ActionButton <<candidate>>
+component "ButtonGroup\ncandidate shared" as ButtonGroup <<candidate>>
+component "SelectField\ncandidate shared" as SelectField <<candidate>>
+component "TextInputField\ncandidate shared" as TextInputField <<candidate>>
+component "InlineFeedback\ncandidate shared" as InlineFeedback <<candidate>>
+component "EmptyStatePanel\ncandidate shared" as EmptyStatePanel <<candidate>>
+component "ProgressBar\ncandidate shared" as ProgressBar <<candidate>>
+
+TermPage ..> PhaseStatusPanel
+TermPage ..> PhaseActionPanel
+TermPage ..> PhaseProgressPanel
+TermPage ..> PhaseFailureInfoCard
+TermPage ..> ProgressBar
+
+PersonaPhasePage ..> PhaseStatusPanel
+PersonaPhasePage ..> PhaseActionPanel
+PersonaPhasePage ..> PhaseProgressPanel
+PersonaPhasePage ..> PhaseFailureInfoCard
+PersonaPhasePage ..> PhaseMetricCounterGrid
+PersonaPhasePage ..> ProgressBar
+
+BodyPage ..> PhaseStatusPanel
+BodyPage ..> PhaseActionPanel
+BodyPage ..> PhaseProgressPanel
+BodyPage ..> PhaseFailureInfoCard
+BodyPage ..> PhaseMetricCounterGrid
+BodyPage ..> ProgressBar
+
+CompletePage ..> PaginationControls
+TranslationResultListPanel ..> EmptyStatePanel
+OutputPage ..> StatusPill
+OutputActionPanel ..> SelectField
+OutputActionPanel ..> TextInputField
+OutputActionPanel ..> ButtonGroup
+OutputActionPanel ..> ActionButton
+OutputActionPanel ..> InlineFeedback
+
+@enduml
+
+@startuml
+title ページ別コンポーネント分割図: 基盤データ、設定、Dashboard、Master Persona
+
+left to right direction
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam componentStyle rectangle
+skinparam nodesep 45
+skinparam ranksep 55
+
+skinparam component {
+  BackgroundColor<<page>> #FFF8E1
+  BorderColor<<page>> #F9A825
+  FontColor<<page>> #4E342E
+  BackgroundColor<<local>> #EEF9EF
+  BorderColor<<local>> #2E7D32
+  FontColor<<local>> #1B5E20
+  BackgroundColor<<shared>> #E3F2FD
+  BorderColor<<shared>> #1565C0
+  FontColor<<shared>> #0D47A1
+  BackgroundColor<<candidate>> #F3E5F5
+  BorderColor<<candidate>> #7B1FA2
+  FontColor<<candidate>> #4A148C
+  BackgroundColor<<keep>> #F7F9FC
+  BorderColor<<keep>> #546E7A
+  FontColor<<keep>> #263238
+}
+
+package "マスター辞書" {
+  component "MasterDictionaryPage\npage 合成" as DictionaryPage <<page>>
+  component "DictionaryHeader" as DictionaryHeader <<local>>
+  component "DictionaryImportPanel" as DictionaryImportPanel <<local>>
+  component "DictionaryListPanel" as DictionaryListPanel <<local>>
+  component "DictionaryDetailPanel" as DictionaryDetailPanel <<local>>
+  component "DictionaryEditModal" as DictionaryEditModal <<local>>
+  component "DictionaryDeleteModal" as DictionaryDeleteModal <<local>>
+  component "file input bridge\n一覧検索と詳細選択の一体更新" as DictionaryKeep <<keep>>
+
+  DictionaryPage --> DictionaryHeader
+  DictionaryPage --> DictionaryImportPanel
+  DictionaryPage --> DictionaryListPanel
+  DictionaryPage --> DictionaryDetailPanel
+  DictionaryPage --> DictionaryEditModal
+  DictionaryPage --> DictionaryDeleteModal
+  DictionaryPage --> DictionaryKeep
+}
+
+package "Provider 設定" {
+  component "ProviderSettingsPage\npage 合成" as ProviderSettingsPage <<page>>
+  component "ProviderSettingsSummaryPanel" as ProviderSettingsSummaryPanel <<local>>
+  component "ProviderListPanel" as ProviderListPanel <<local>>
+  component "ProviderDetailPanel" as ProviderDetailPanel <<local>>
+  component "ApiKeyPanel" as ApiKeyPanel <<local>>
+  component "ConnectionCheckPanel" as ConnectionCheckPanel <<local>>
+  component "SettingsActionPanel" as SettingsActionPanel <<local>>
+  component "secret 入力 draft の破棄\ncredential input の controller 同期" as ProviderKeep <<keep>>
+
+  ProviderSettingsPage --> ProviderSettingsSummaryPanel
+  ProviderSettingsPage --> ProviderListPanel
+  ProviderSettingsPage --> ProviderDetailPanel
+  ProviderSettingsPage --> ApiKeyPanel
+  ProviderSettingsPage --> ConnectionCheckPanel
+  ProviderSettingsPage --> SettingsActionPanel
+  ProviderSettingsPage --> ProviderKeep
+}
+
+package "Dashboard" {
+  component "DashboardPage\npage 合成" as DashboardPage <<page>>
+  component "AppHeader" as AppHeader <<local>>
+  component "GlobalNavigation" as GlobalNavigation <<local>>
+  component "CurrentPageHero" as CurrentPageHero <<local>>
+  component "DashboardEntryGrid" as DashboardEntryGrid <<local>>
+  component "DashboardEntryCard" as DashboardEntryCard <<local>>
+  component "AppShell hash 同期\nmobile nav 開閉\n主要 route orchestration" as DashboardKeep <<keep>>
+
+  DashboardPage --> AppHeader
+  DashboardPage --> GlobalNavigation
+  DashboardPage --> CurrentPageHero
+  DashboardPage --> DashboardEntryGrid
+  DashboardEntryGrid --> DashboardEntryCard
+  DashboardPage --> DashboardKeep
+}
+
+package "Master Persona" {
+  component "MasterPersonaPage\npage 合成" as MasterPersonaPage <<page>>
+  component "GenerationSetupPanel\nPOC 済み" as GenerationSetupPanel <<local>>
+  component "RunStatusPanel\nPOC 済み" as RunStatusPanel <<local>>
+  component "PersonaReviewPanel\nPOC 済み" as PersonaReviewPanel <<local>>
+  component "PersonaActionModal\nPOC 済み" as PersonaActionModal <<local>>
+  component "POC 済み部品境界の再設計\nfile input bridge\ncontroller 操作割り当て" as MasterPersonaKeep <<keep>>
+
+  MasterPersonaPage --> GenerationSetupPanel
+  MasterPersonaPage --> RunStatusPanel
+  MasterPersonaPage --> PersonaReviewPanel
+  MasterPersonaPage --> PersonaActionModal
+  MasterPersonaPage --> MasterPersonaKeep
+}
+
+package "翻訳管理シェル" {
+  component "TranslationManagementShell\npage 合成" as TranslationManagementShell <<page>>
+  component "TranslationManagementStepper" as TranslationManagementStepper <<local>>
+  component "現在ページ説明" as CurrentTranslationPageLead <<local>>
+  component "AppShell 内の view 選択\njob-run 直リンク防止\n選択 job target の保持" as TranslationManagementKeep <<keep>>
+
+  TranslationManagementShell --> TranslationManagementStepper
+  TranslationManagementShell --> CurrentTranslationPageLead
+  TranslationManagementShell --> TranslationManagementKeep
+}
+
+component "AIModelSelectionCard\nshared" as AIModelSelectionCard <<shared>>
+component "StickyActionFooter\nshared" as StickyActionFooter <<shared>>
+component "ActionButton\ncandidate shared" as ActionButton <<candidate>>
+component "ButtonGroup\ncandidate shared" as ButtonGroup <<candidate>>
+component "TextInputField\ncandidate shared" as TextInputField <<candidate>>
+component "TextAreaField\ncandidate shared" as TextAreaField <<candidate>>
+component "SelectField\ncandidate shared" as SelectField <<candidate>>
+component "SearchFilterBar\ncandidate shared" as SearchFilterBar <<candidate>>
+component "FileSelectionDisplay\ncandidate shared" as FileSelectionDisplay <<candidate>>
+component "InlineFeedback\ncandidate shared" as InlineFeedback <<candidate>>
+component "EmptyStatePanel\ncandidate shared" as EmptyStatePanel <<candidate>>
+component "StatusPill\ncandidate shared" as StatusPill <<candidate>>
+component "ConfirmDangerModal\ncandidate shared" as ConfirmDangerModal <<candidate>>
+component "PaginationControls\ncandidate shared" as PaginationControls <<candidate>>
+
+DictionaryPage ..> PaginationControls
+DictionaryPage ..> ConfirmDangerModal
+DictionaryImportPanel ..> FileSelectionDisplay
+DictionaryImportPanel ..> ActionButton
+DictionaryListPanel ..> SearchFilterBar
+DictionaryListPanel ..> EmptyStatePanel
+DictionaryEditModal ..> TextInputField
+DictionaryEditModal ..> TextAreaField
+DictionaryEditModal ..> SelectField
+DictionaryEditModal ..> ButtonGroup
+ProviderSettingsPage ..> StatusPill
+ProviderListPanel ..> EmptyStatePanel
+ApiKeyPanel ..> TextInputField
+ApiKeyPanel ..> ButtonGroup
+ConnectionCheckPanel ..> ActionButton
+SettingsActionPanel ..> ButtonGroup
+DashboardPage ..> StatusPill
+MasterPersonaPage ..> AIModelSelectionCard
+GenerationSetupPanel ..> FileSelectionDisplay
+GenerationSetupPanel ..> ActionButton
+PersonaReviewPanel ..> SearchFilterBar
+PersonaReviewPanel ..> SelectField
+PersonaReviewPanel ..> PaginationControls
+PersonaActionModal ..> TextInputField
+PersonaActionModal ..> TextAreaField
+PersonaActionModal ..> ButtonGroup
+TranslationManagementShell ..> StickyActionFooter
+TranslationManagementShell ..> StatusPill
+TranslationManagementStepper ..> ActionButton
+
+@enduml

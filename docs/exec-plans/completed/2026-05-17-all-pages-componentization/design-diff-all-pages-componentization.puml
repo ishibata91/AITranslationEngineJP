@@ -1,0 +1,210 @@
+@startuml
+title 設計差分図: all-pages componentization - component view
+
+top to bottom direction
+hide methods
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam nodesep 65
+skinparam ranksep 80
+skinparam packageStyle rectangle
+skinparam shadowing false
+
+skinparam class {
+    BackgroundColor<<existing>> #F7F9FC
+    BorderColor<<existing>> #546E7A
+    FontColor<<existing>> #243447
+    BackgroundColor<<added>> #EEF9EF
+    BorderColor<<added>> #2E7D32
+    FontColor<<added>> #1B5E20
+    BackgroundColor<<removed>> #FFF1F1
+    BorderColor<<removed>> #C62828
+    FontColor<<removed>> #7F1D1D
+    BackgroundColor<<changed>> #FFF8E1
+    BorderColor<<changed>> #F9A825
+    FontColor<<changed>> #4E342E
+    BackgroundColor<<risk>> #F4F7FA
+    BorderColor<<risk>> #607D8B
+    FontColor<<risk>> #1F2933
+}
+
+legend bottom right
+    |= Style |= Meaning |
+    |<#F7F9FC> existing | 変更しない接続先または既存維持 |
+    |<#EEF9EF> added | この task で追加予定の部品または証跡 |
+    |<#FFF1F1> removed | page から外す責務または禁止経路 |
+    |<#FFF8E1> changed | 責務を寄せ直す既存 page |
+    |<#F4F7FA> risk | 人間レビューで確認する判断注記 |
+endlegend
+
+package "production page boundary" {
+  class "page components\n<<changed>>\nTranslationInputConfirmPage\nJobSetupPage\nTranslationJobManagementPage\nJobRunPage\nTermTranslationPage\nNpcPersonaPage\nBodyTranslationPage\nTranslationCompletePage\nOutputManagementPage\nMasterDictionaryPage\nProviderSettingsPage\nDashboardPage\nMasterPersonaPage" as Pages <<changed>>
+
+  class "page responsibility after refactor\n<<changed>>\ncontroller 接続\nsubscribe\ndispose\nnotice\n表示部品合成" as PageRole <<changed>>
+
+  class "page-owned large markup\n<<removed>>\n一覧 / 詳細 / panel / modal の\n大きな template 直書き" as PageMarkup <<removed>>
+}
+
+package "added screen-local component groups" {
+  class "input / setup / dashboard groups\n<<added>>\nDataLoad*\nInputSourcePanel\nFoundationDataPanel\nPhaseSettingsPanel\nCompatibilityPrecheckPanel\nDashboardEntry*" as ScreenLocalA <<added>>
+
+  class "job management / job run groups\n<<added>>\nJobManagementHeader\nFeedbackPanel\nJobListPanel\nJobCard\nJobOperationGroup\nJobRunTargetSummary\nJobUnselectedGuidance\nPhaseNavigationFooter" as ScreenLocalB <<added>>
+
+  class "phase execution groups\n<<added>>\nTerm*\nPersona*\nBody*\nreadiness / result / failure panels" as ScreenLocalC <<added>>
+
+  class "complete / output / dictionary / provider groups\n<<added>>\nTranslationComplete*\nOutput*\nDictionary*\nProviderSettings*" as ScreenLocalD <<added>>
+}
+
+package "candidate shared components" {
+  class "existing shared reuse\n<<existing>>\nAIModelSelectionCard\nStickyActionFooter" as ExistingShared <<existing>>
+
+  class "candidate shared set\n<<added>>\nStatusPill\nConfirmDangerModal\nPhaseStatusPanel\nPhaseActionPanel\nPhaseProgressPanel\nPhaseFailureInfoCard\nPhaseMetricCounterGrid\nPhaseNavigationFooter\nPaginationControls" as SharedCandidate <<added>>
+}
+
+package "storybook artifact boundary" {
+  class "component stories\n<<added>>\n主要 panel / card / modal story\n一部 page 合成 story" as Stories <<added>>
+  class "view model fixture\ncallback stub\n<<added>>\nfixed props only" as Fixtures <<added>>
+  class "storybook-review.md\n<<added>>\nstory ID\nreview URL\n確認状態\n未確認理由\n再実行 command" as ReviewLog <<added>>
+  class "page composition story overuse\n<<removed>>\n主要部品 story の不足代替" as StorySubstitute <<removed>>
+}
+
+package "unchanged production boundary" {
+  class "production controller\nStore\n<<existing>>" as ControllerStore <<existing>>
+  class "Gateway\nRuntimeEventAdapter\ngenerated wailsjs\n<<existing>>" as RuntimeBridge <<existing>>
+  class "backend\nsecret store\nDB\nfilesystem flow\n<<existing>>" as BackendBoundary <<existing>>
+  class "docs/screen-design 正本\n<<existing>>\n今回の task では直接更新しない" as ScreenDesignCanon <<existing>>
+}
+
+class "forbidden Storybook dependency\n<<removed>>\nruntime adapter\nGateway\ngenerated wailsjs\nsecret store\nDB\n実 filesystem flow" as StoryForbidden <<removed>>
+
+class "review note\n<<risk>>\n共有候補は props 分岐が膨らむ場合\nscreen local へ戻す" as SharedReviewNote <<risk>>
+class "review note\n<<risk>>\n既存表示項目\n状態文\n操作\naria-label は維持" as UiInvariant <<risk>>
+
+Pages -[#F9A825]-> PageRole
+PageMarkup -[#C62828,dashed]-> Pages
+
+PageRole -[#2E7D32]-> ScreenLocalA : compose props + callbacks
+PageRole -[#2E7D32]-> ScreenLocalB : compose props + callbacks
+PageRole -[#2E7D32]-> ScreenLocalC : compose props + callbacks
+PageRole -[#2E7D32]-> ScreenLocalD : compose props + callbacks
+
+ScreenLocalA -[#546E7A]-> ExistingShared : reuse when fit
+ScreenLocalB -[#546E7A]-> ExistingShared : reuse when fit
+ScreenLocalC -[#2E7D32,dashed]-> SharedCandidate : common phase rules only
+ScreenLocalD -[#2E7D32,dashed]-> SharedCandidate : common display rules only
+
+Stories -[#2E7D32]-> ScreenLocalA
+Stories -[#2E7D32]-> ScreenLocalB
+Stories -[#2E7D32]-> ScreenLocalC
+Stories -[#2E7D32]-> ScreenLocalD
+Stories -[#546E7A]-> ExistingShared : reuse story target
+Stories -[#2E7D32,dashed]-> Fixtures : import fixed props
+ReviewLog -[#2E7D32]-> Stories : record review target
+
+StorySubstitute -[#C62828,dashed]-> Stories
+StoryForbidden -[#C62828,dashed]-> Stories
+StoryForbidden -[#C62828,dashed]-> Fixtures
+
+Pages -[#546E7A]-> ControllerStore : existing production path
+ControllerStore -[#546E7A]-> RuntimeBridge : existing production path
+RuntimeBridge -[#546E7A]-> BackendBoundary : existing production path
+UiInvariant -[#607D8B,dotted]-> Pages
+SharedReviewNote -[#607D8B,dotted]-> SharedCandidate
+ScreenDesignCanon -[#546E7A,dotted]-> UiInvariant : source of truth stays unchanged
+
+note right of Pages
+変更理由:
+- page は production wiring と表示合成へ寄せる
+- controller, Store, Gateway, backend は変えない
+end note
+
+note bottom of SharedCandidate
+追加予定は候補である。
+複数画面で同じ表示規則または操作規則を持つ場合だけ共有化する。
+end note
+
+note bottom of Stories
+page 合成 story は密度確認と配置確認だけに使う。
+主要 panel, card, modal の story を省略する理由に使わない。
+end note
+
+@enduml
+
+@startuml
+title 設計差分図: all-pages componentization - sequence view
+
+autonumber
+skinparam shadowing false
+skinparam responseMessageBelowArrow true
+
+actor "利用者" as User
+participant "page component\n<<changed>>" as SeqPage
+participant "production controller / Store\n<<existing>>" as SeqController
+participant "screen local component\n<<added>>" as SeqLocal
+participant "candidate shared component\n<<added>>" as SeqShared
+participant "Storybook story\n<<added>>" as SeqStory
+participant "fixture + callback stub\n<<added>>" as SeqFixture
+participant "storybook-review.md\n<<added>>" as SeqReview
+participant "Gateway / RuntimeEventAdapter /\ngenerated wailsjs / backend\n<<existing>>" as SeqRuntime
+
+== production render after refactor ==
+User -> SeqPage : 対象画面を開く
+SeqPage -> SeqController : create / mount / subscribe
+SeqController --> SeqPage : viewModel updates
+SeqPage -> SeqPage : notice と dispose を保持
+SeqPage -> SeqPage : panel, card, modal ごとの props を作る
+SeqPage -> SeqLocal : small props + callbacks
+SeqLocal -> SeqShared : 共通表示規則がある場合だけ reuse
+
+note right of SeqPage
+[削除予定]
+page 内の大きな markup 直書き
+child への runtime 依存引き渡し
+end note
+
+User -> SeqLocal : 既存操作を実行する
+SeqLocal --> SeqPage : callback
+SeqPage -> SeqController : 既存 controller method
+SeqController -> SeqRuntime : 既存 production path
+SeqRuntime --> SeqController : existing response
+SeqController --> SeqPage : updated viewModel
+SeqPage -> SeqLocal : 状態文, disabled, aria-label を維持した props 更新
+
+== Storybook isolated review path ==
+SeqStory -> SeqFixture : synthetic props を読む
+SeqFixture --> SeqStory : fixed props + view model fixture + callback stub
+SeqStory -> SeqLocal : props only
+SeqLocal -> SeqShared : props only
+
+note right of SeqStory
+[削除予定]
+page 合成 story を主要部品 story の代替にしない
+runtime adapter, Gateway, generated wailsjs を読まない
+end note
+
+note right of SeqFixture
+[禁止]
+secret
+token
+real endpoint
+real user data
+raw request / response / prompt
+実 filesystem flow
+end note
+
+User -> SeqReview : story ID と review URL を記録する
+SeqReview -> SeqStory : 確認対象 story を参照
+SeqReview --> User : 確認状態 / 未確認理由 / 再実行 command を残す
+
+note over SeqPage, SeqReview
+変更しない接続先:
+production controller
+Store
+Gateway
+RuntimeEventAdapter
+generated binding
+backend
+docs/screen-design 正本
+end note
+
+@enduml

@@ -92,6 +92,7 @@
     background: rgba(17, 13, 12, 0.42);
     border: 0.5px solid var(--line);
     box-shadow: var(--shadow);
+    color: var(--text);
     display: grid;
     gap: 14px;
     min-width: 0;

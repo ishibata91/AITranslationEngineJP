@@ -44,6 +44,7 @@
     border: 1px solid var(--line);
     border-radius: 20px;
     padding: 1.25rem;
+    color: var(--text);
     background:
       radial-gradient(
         circle at top right,
