@@ -1,7 +1,7 @@
 # Task Plan: 2026-05-17-all-pages-componentization
 
 - `workflow`: work
-- `status`: merge-ready
+- `status`: completed
 - `lane_owner`: `implement_lane`
 - `task_id`: `2026-05-17-all-pages-componentization`
 - `task_mode`: frontend-refactor
@@ -69,7 +69,7 @@ Storybook 基盤は先行 task で用意済みになる。各ページの部品�
 
 - `worktree_checkout`: `not-used-current-repo`
 - `branch_ready`: `codex/2026-05-17-all-pages-componentization`
-- `commit_hash`: `pending-source-commit`
+- `commit_hash`: `806dc9cad8ad9ef3421814d70bf6e12b6272c3ac`
 - `remote_operation`: `not-performed`
 
 ## HITL Status
@@ -99,23 +99,23 @@ Storybook 基盤は先行 task で用意済みになる。各ページの部品�
 - `merge_ready`: `ready`
 - `source_branch`: `codex/2026-05-17-all-pages-componentization`
 - `target_branch`: `master`
-- `commit_hash`: `pending-source-commit`
+- `commit_hash`: `806dc9cad8ad9ef3421814d70bf6e12b6272c3ac`
 - `validation_evidence`: `python3 scripts/harness/run.py --suite frontend-local` pass; `npm --prefix frontend run build-storybook` pass; `git diff --check` pass; Storybook representative computed style smoke pass.
 - `review_evidence`: `./storybook-review.md`; `./ux-review.yaml`; `2026-05-20 human message: merge-lane として完了させて`
 - `residual_risks`: Storybook story は backend、Wails runtime、Gateway、DB、secret store を要求しない見た目レビュー入口である。
 
 ## Merge Result
 
-- `merge_status`: `pending`
-- `conflict_resolution`: `pending`
-- `post_merge_validation`: `pending`
-- `completed_move`: `pending`
-- `merge_commit_hash`: `pending`
+- `merge_status`: `merged-to-master`
+- `conflict_resolution`: `not-needed`
+- `post_merge_validation`: `python3 scripts/harness/run.py --suite frontend-local` pass; `npm --prefix frontend run build-storybook` pass; `git diff --check --cached` pass.
+- `completed_move`: `done`
+- `merge_commit_hash`: `48829c730b15a3ca30dca33583a3f8c01b059c9f`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: `pending`
+- `canonicalized_artifacts`: `none`
 - `detail_spec_canonicalization`: `N/A`
 - `follow_up`: `Storybook 運用と人間見た目レビュー正本の docs 正本化`
 
@@ -125,4 +125,7 @@ Storybook 基盤は先行 task で用意済みになる。各ページの部品�
 - 人間設計レビューは `2026-05-18 human message: approve` で承認済み。
 - `implementation-scope.md` は `handoff-ready`。
 - frontend 実装、Storybook 証跡、UX 事前確認、frontend 人間見た目レビューは完了。
-- 次は merge-lane が source branch を target branch へ local merge し、completed へ移動する。
+- merge-lane は source branch を target branch へ local merge した。
+- conflict は発生しなかった。
+- merge 後検証は通過した。
+- task folder は `docs/exec-plans/completed/2026-05-17-all-pages-componentization/` へ移動した。
