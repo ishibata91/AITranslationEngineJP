@@ -82,6 +82,16 @@ ruleTester.run("enforce-layer-boundaries", rule, {
       filename:
         "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/__fixtures__/storybook.fixture.ts",
       code: "import { composeStories } from 'storybook/internal/preview-api'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.stories.ts",
+      code: "import { bootstrapPanelFixture } from './__fixtures__/bootstrap-panel-fixture'"
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/__fixtures__/bootstrap-panel-fixture.ts",
+      code: "import type { BootstrapScreenProps } from '../BootstrapScreen.svelte'"
     }
   ],
   invalid: [
@@ -183,6 +193,28 @@ ruleTester.run("enforce-layer-boundaries", rule, {
         {
           message:
             "ui production code must not import Storybook packages or Storybook runtime modules directly."
+        }
+      ]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.svelte",
+      code: "import { BootstrapScreenStory } from './BootstrapScreen.stories'",
+      errors: [
+        {
+          message:
+            "ui production code must not import test, fixture, or generated support files."
+        }
+      ]
+    },
+    {
+      filename:
+        "F:/AITranslationEngineJp/frontend/src/ui/screens/bootstrap/BootstrapScreen.svelte",
+      code: "import { bootstrapPanelFixture } from './__fixtures__/bootstrap-panel-fixture'",
+      errors: [
+        {
+          message:
+            "ui production code must not import test, fixture, or generated support files."
         }
       ]
     }

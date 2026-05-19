@@ -1,7 +1,7 @@
 # Task Plan: 2026-05-17-all-pages-componentization
 
 - `workflow`: work
-- `status`: planned
+- `status`: merge-ready
 - `lane_owner`: `implement_lane`
 - `task_id`: `2026-05-17-all-pages-componentization`
 - `task_mode`: frontend-refactor
@@ -16,14 +16,20 @@
 ## Artifact Index
 
 - `ux_task_frame`: `./plan.md`
-- `ui_design`: `pending`
-- `screen_design_diff`: `pending-per-screen`
+- `ui_design`: `./ui-design.md`
+- `screen_design_diff`: `N/A`
 - `ui_agent_browser_review`: `./ui-design.md#storybook-review` または `./storybook-review.md`
-- `ux_review`: `pending-after-frontend-implementation`
-- `frontend_human_review`: `required-after-frontend-implementation`
-- `approved_frontend_protection`: `pending-after-frontend-human-review`
-- `scenario_design`: `pending`
-- `implementation_scope`: `pending-after-human-review`
+- `ux_review`: `./ux-review.yaml`
+- `frontend_human_review`: `approved`
+- `approved_frontend_protection`: `approved`
+- `scenario_design`: `./scenario-design.md`
+- `scenario_candidate_coverage`: `./scenario-design.candidate-coverage.json`
+- `scenario_requirement_coverage`: `./scenario-design.requirement-coverage.json`
+- `design_diff_diagram`: `./design-diff-all-pages-componentization.puml`
+- `design_diff_svg`: `./design-diff-all-pages-componentization.svg`, `./design-diff-all-pages-componentization_001.svg`
+- `component_split_by_page`: `./component-split-by-page.puml`
+- `component_folder_guideline`: `./component-folder-guideline.md`
+- `implementation_scope`: `./implementation-scope.md`
 - `detail_spec_target`: `N/A`
 
 ## Decision Record
@@ -42,9 +48,7 @@ Storybook 基盤は先行 task で用意済みになる。各ページの部品�
 
 ### 未決事項
 
-- 事前調査で列挙する部品化候補の画面順序。
-- 共通化候補を `frontend/src/ui/components/` へ上げる具体基準。
-- 既存表示項目を削る場合の人間承認粒度。
+- `StatusPill`、`ConfirmDangerModal`、phase 系共通部品は、props が増えすぎる場合に画面専用へ戻す。
 
 ## Pre-design Investigation
 
@@ -63,42 +67,42 @@ Storybook 基盤は先行 task で用意済みになる。各ページの部品�
 
 ## Branch Status
 
-- `worktree_checkout`: `pending`
-- `branch_ready`: `pending`
-- `commit_hash`: `pending`
+- `worktree_checkout`: `not-used-current-repo`
+- `branch_ready`: `codex/2026-05-17-all-pages-componentization`
+- `commit_hash`: `pending-source-commit`
 - `remote_operation`: `not-performed`
 
 ## HITL Status
 
-- `functional_or_design_hitl`: `required-after-design-bundle`
+- `functional_or_design_hitl`: `approved`
 - `ux_review`: `required-before-frontend-human-review`
-- `frontend_human_review`: `required-after-frontend-implementation`
-- `approval_record`: `pending-after-design-bundle`
+- `frontend_human_review`: `approved-for-merge`
+- `approval_record`: `2026-05-18 human message: approve`; `2026-05-20 human message: merge-lane として完了させて`
 
 ## Codex Implementation Result
 
-- `completed_handoffs`: `pending`
+- `completed_handoffs`: `APC-FE-01` through `APC-FE-10`, `APC-UT-11`, `APC-ST-12`
 - `touched_files`: `pending`
-- `implemented_scope`: `pending`
-- `test_results`: `pending`
+- `implemented_scope`: frontend componentization and Storybook review evidence
+- `test_results`: `frontend-local pass`, `build-storybook pass`, `storybook smoke pass`
 - `implementation_investigation`: `pending`
-- `ui_evidence`: `pending`
-- `ux_review_result`: `pending`
-- `approved_frontend_protection`: `pending`
-- `codex_review_result`: `pending`
+- `ui_evidence`: `./storybook-review.md`
+- `ux_review_result`: `./ux-review.yaml`
+- `approved_frontend_protection`: `approved`
+- `codex_review_result`: `not-required-for-this-merge`
 - `sonar_gate_result`: `pending`
-- `residual_risks`: `pending`
-- `docs_changes`: `pending`
+- `residual_risks`: Storybook は見た目レビュー入口であり、Wails 実画面の exhaustive visual review は別対象。
+- `docs_changes`: task-local artifact only
 
 ## Merge Readiness
 
-- `merge_ready`: `pending`
+- `merge_ready`: `ready`
 - `source_branch`: `codex/2026-05-17-all-pages-componentization`
 - `target_branch`: `master`
-- `commit_hash`: `pending`
-- `validation_evidence`: `pending`
-- `review_evidence`: `pending`
-- `residual_risks`: `pending`
+- `commit_hash`: `pending-source-commit`
+- `validation_evidence`: `python3 scripts/harness/run.py --suite frontend-local` pass; `npm --prefix frontend run build-storybook` pass; `git diff --check` pass; Storybook representative computed style smoke pass.
+- `review_evidence`: `./storybook-review.md`; `./ux-review.yaml`; `2026-05-20 human message: merge-lane として完了させて`
+- `residual_risks`: Storybook story は backend、Wails runtime、Gateway、DB、secret store を要求しない見た目レビュー入口である。
 
 ## Merge Result
 
@@ -117,4 +121,8 @@ Storybook 基盤は先行 task で用意済みになる。各ページの部品�
 
 ## Outcome
 
-- 未着手。
+- `branch 準備`、`scenario_candidates`、`シナリオ設計`、`UI設計`、`設計差分図` は完了。
+- 人間設計レビューは `2026-05-18 human message: approve` で承認済み。
+- `implementation-scope.md` は `handoff-ready`。
+- frontend 実装、Storybook 証跡、UX 事前確認、frontend 人間見た目レビューは完了。
+- 次は merge-lane が source branch を target branch へ local merge し、completed へ移動する。

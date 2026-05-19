@@ -1,0 +1,421 @@
+{
+  "requirements": [
+    {
+      "id": "REQ-APC-001",
+      "title": "全ページの部品化候補を分類する",
+      "kind": "frontend_refactor_design",
+      "source_requirement": "plan.md の Pre-design Investigation。全ページの表示領域を調べ、共有部品候補、画面専用部品候補、分けない候補を分類する。",
+      "required_detail_types": [
+        "success_requirement",
+        "data_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は全ページの主要表示領域をパネル、カード、モーダル単位へ部品化すると明示している。",
+          "verification_hint": "UI 設計または component candidate 証跡に、対象画面、候補名、分類、理由があることを確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "deferred",
+          "source_or_rationale": "この起動入力では UI 設計を作らない。画面ごとの最終 candidate list は後続 `ui-design.md` が固定する。",
+          "deferred_owner": "implement_lane が次に起動する ui-design",
+          "recheck_condition": "`ui-design.md` 作成時に全画面の candidate list を確認する。",
+          "verification_hint": "後続 UI 設計で candidate list が揃っているか確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は既存表示項目の維持確認を求める。既存表示削除は非対象として固定した。",
+          "verification_hint": "screen design と story fixture の表示項目対応を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "部品化候補が props 境界と story 対象を持つため、Storybook と lower-level check で確認できる。",
+          "verification_hint": "story path、fixture path、分けない理由を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-002",
+      "title": "ページ component を薄い合成役へ寄せる",
+      "kind": "frontend_boundary",
+      "source_requirement": "plan.md の goal。docs/architecture.md の View と UI Component 境界。",
+      "required_detail_types": [
+        "success_requirement",
+        "state_requirement",
+        "consistency_requirement",
+        "compatibility_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md はページ component を薄くすることを goal にしている。",
+          "verification_hint": "page component が controller 接続、購読、dispose、通知、表示部品合成に寄っているか確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "画面状態は Presenter 後の view model または component props として渡す必要がある。",
+          "verification_hint": "story fixture が component props または view model fixture であることを確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/architecture.md は UI Component が Store、Gateway、generated binding を直接扱わないと定義している。",
+          "verification_hint": "component import と story import を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "derived",
+          "source_or_rationale": "refactor は表示内容変更ではないため、既存表示と操作可否を維持する。",
+          "verification_hint": "既存 screen design と story 表示を照合する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は props 境界と Storybook story を close condition にしている。",
+          "verification_hint": "story args と `build-storybook` 結果を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-003",
+      "title": "主要パネル、カード、モーダルを Storybook で確認する",
+      "kind": "storybook_visual_review",
+      "source_requirement": "plan.md の close_conditions。各ページの主要表示領域が props 境界と Storybook story を持つ。",
+      "required_detail_types": [
+        "success_requirement",
+        "alternative_success_requirement",
+        "state_requirement",
+        "testability_requirement",
+        "observability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "success_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は実装後の Storybook review を求めている。",
+          "verification_hint": "主要 story が review 対象一覧に含まれることを確認する。"
+        },
+        {
+          "type": "alternative_success_requirement",
+          "status": "derived",
+          "source_or_rationale": "page 合成 story は密度確認と配置確認に限定する。主要部品 story の不足は代替しない。",
+          "verification_hint": "page story がある場合は任意の配置確認として記録されているか確認する。"
+        },
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "UX-standard は loading、empty、error、disabled、success の状態確認を求める。",
+          "verification_hint": "代表 fixture に通常、空、読み込み、失敗、長文、選択状態が含まれるか確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "Storybook 基盤と plan.md が `build-storybook` を検証入口にしている。",
+          "verification_hint": "`npm --prefix frontend run build-storybook` を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook review では story ID、review URL、確認状態を task-local に残す。",
+          "verification_hint": "`storybook-review.md` の対象 story 一覧と確認状態を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-004",
+      "title": "job と phase の状態表示、操作可否、navigation を維持する",
+      "kind": "state_transition",
+      "source_requirement": "docs/spec.md の TRANSLATION_JOB.state と JOB_PHASE_RUN.state。候補成果物の job / phase 状態候補。",
+      "required_detail_types": [
+        "state_requirement",
+        "consistency_requirement",
+        "failure_handling_requirement",
+        "recovery_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/spec.md は job state と phase run state を分けている。",
+          "verification_hint": "state label、progress、readiness、disabled reason の fixture を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "操作可否は job state と phase run state に従うため、表示と callback が同時に整合する必要がある。",
+          "verification_hint": "disabled 属性、理由表示、callback stub の発火条件を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "RecoverableFailed、Failed、Canceled の表示と retry / cancel 可否が必要である。",
+          "verification_hint": "失敗状態 fixture と操作可否を確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "Paused と RecoverableFailed は resume または retry の判断状態である。",
+          "verification_hint": "resume、retry、cancel の代表 fixture を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "refactor では既存 job / phase 状態表示を削らない。",
+          "verification_hint": "screen design と story 表示を照合する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-005",
+      "title": "一覧、詳細、モーダル、file 表示の整合を維持する",
+      "kind": "compatibility_regression",
+      "source_requirement": "UX-standard の一覧、詳細、モーダル、file 表示の状態確認。failure 候補の表示欠落と drift。",
+      "required_detail_types": [
+        "state_requirement",
+        "data_requirement",
+        "consistency_requirement",
+        "compatibility_requirement",
+        "recovery_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "state_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧、詳細、modal、file 表示は状態別 fixture を必要とする。",
+          "verification_hint": "空一覧、選択済み、絞り込み後空、保存失敗、削除失敗、file 未選択の fixture を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "既存表示項目、状態文、操作、aria-label の削除は非対象として固定した。",
+          "verification_hint": "screen design と story 表示の対応を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "derived",
+          "source_or_rationale": "一覧から消えた対象を詳細 component が表示しない必要がある。",
+          "verification_hint": "selected id、items、detail props の整合を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は既存表示項目の維持確認を求めている。",
+          "verification_hint": "表示削除がある場合は UI 設計または screen design diff へ戻っているか確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存失敗と削除失敗では、modal を閉じず対象識別情報と入力値を維持する必要がある。",
+          "verification_hint": "modal failure fixture を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-006",
+      "title": "Storybook は外部 runtime と実行系へ遷移しない",
+      "kind": "external_boundary",
+      "source_requirement": "Storybook foundation と frontend 規約。Storybook は backend、Wails runtime、Gateway、generated binding、AI provider、secret store、DB に依存しない。",
+      "required_detail_types": [
+        "security_requirement",
+        "consistency_requirement",
+        "failure_handling_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "security_requirement",
+          "status": "derived",
+          "source_or_rationale": "runtime や provider へ遷移しないことで、Storybook review が実行系に触れない。",
+          "verification_hint": "story callback と imports を確認する。"
+        },
+        {
+          "type": "consistency_requirement",
+          "status": "explicit",
+          "source_or_rationale": "docs/architecture.md は generated binding と Gateway を UI Component に持ち込まないと定義している。",
+          "verification_hint": "component と story import を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "derived",
+          "source_or_rationale": "Storybook build が Wails binding 未接続 error で止まる場合は境界違反として扱う。",
+          "verification_hint": "`build-storybook` の失敗要約と対象 story を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`npm --prefix frontend run build-storybook` を検証入口にする。",
+          "verification_hint": "command exit code を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-007",
+      "title": "Storybook fixture と review 証跡に保存禁止情報を含めない",
+      "kind": "security_data_boundary",
+      "source_requirement": "Storybook foundation と Master Persona POC の固定要件。story、fixture、review 記録は secret と実データを含めない。",
+      "required_detail_types": [
+        "security_requirement",
+        "data_requirement",
+        "observability_requirement",
+        "testability_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "secret、API key、token、実 endpoint、ローカル絶対 path、実ユーザーデータは保存禁止である。",
+          "verification_hint": "story、fixture、review URL、screenshot 名、検証記録を確認する。"
+        },
+        {
+          "type": "data_requirement",
+          "status": "explicit",
+          "source_or_rationale": "raw request、raw response、raw prompt、provider 応答原文は Storybook fixture と review 記録へ残さない。",
+          "verification_hint": "fixture source と review 記録を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存禁止情報の確認対象と結果は task-local 証跡へ短く残す。",
+          "verification_hint": "`storybook-review.md` または実装結果の安全確認欄を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "保存禁止情報は story source、fixture source、review 記録で検査できる。",
+          "verification_hint": "対象 path と検出結果を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-008",
+      "title": "Storybook review と UX / 人間 review の証跡を残す",
+      "kind": "operation_record",
+      "source_requirement": "plan.md の close_conditions と HITL Status。Storybook review、UX review、frontend human review が必要である。",
+      "required_detail_types": [
+        "observability_requirement",
+        "testability_requirement",
+        "recovery_requirement",
+        "compatibility_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "observability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "review URL、story ID、確認状態、未確認理由、再実行 command は task-local に残す。",
+          "verification_hint": "`storybook-review.md` の必須項目を確認する。"
+        },
+        {
+          "type": "testability_requirement",
+          "status": "derived",
+          "source_or_rationale": "review URL と story ID があれば人間レビュアーが同じ表示へ到達できる。",
+          "verification_hint": "Storybook URL と story ID を開けるか確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "story 欠落や確認不能は未確認理由と再実行 command によって再確認できる。",
+          "verification_hint": "未確認理由と再実行 command を確認する。"
+        },
+        {
+          "type": "compatibility_requirement",
+          "status": "explicit",
+          "source_or_rationale": "UX review と frontend human review は混同せず、それぞれの承認状態を残す。",
+          "verification_hint": "review 種別、対象 story、承認状態を確認する。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-009",
+      "title": "Storybook build、frontend-local、指摘対応を再実行できる",
+      "kind": "validation",
+      "source_requirement": "plan.md の validation_commands。`build-storybook` と `frontend-local` を検証入口にする。",
+      "required_detail_types": [
+        "testability_requirement",
+        "failure_handling_requirement",
+        "observability_requirement",
+        "recovery_requirement",
+        "performance_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "testability_requirement",
+          "status": "explicit",
+          "source_or_rationale": "`npm --prefix frontend run build-storybook` と `python3 scripts/harness/run.py --suite frontend-local` が plan.md に明示されている。",
+          "verification_hint": "command の通過または未通過理由を確認する。"
+        },
+        {
+          "type": "failure_handling_requirement",
+          "status": "explicit",
+          "source_or_rationale": "plan.md は通過または未通過理由を close condition にしている。",
+          "verification_hint": "失敗 suite、短い原因、影響画面、再実行 command を確認する。"
+        },
+        {
+          "type": "observability_requirement",
+          "status": "derived",
+          "source_or_rationale": "検証結果は task-local closeout または review 証跡で後から確認できる必要がある。",
+          "verification_hint": "検証記録に command、exit 状態、未実行理由があるか確認する。"
+        },
+        {
+          "type": "recovery_requirement",
+          "status": "derived",
+          "source_or_rationale": "review 指摘後は対象 story と関連検証を再実行する必要がある。",
+          "verification_hint": "再実行 command、再実行結果、未解決指摘を確認する。"
+        },
+        {
+          "type": "performance_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "この task は frontend refactor と Storybook review の成立を扱い、性能目標や時間上限を変更しない。",
+          "verification_hint": "性能要件を実装範囲へ持ち込まない。"
+        }
+      ]
+    },
+    {
+      "id": "REQ-APC-010",
+      "title": "このシナリオ設計で扱わない要求を明示する",
+      "kind": "non_goal_boundary",
+      "source_requirement": "design-bundle と plan.md の非対象。プロダクト実装、docs 正本化、実 AI API、権限差分、同時実行制御はこのシナリオ設計で固定しない。",
+      "required_detail_types": [
+        "authorization_requirement",
+        "concurrency_requirement",
+        "boundary_requirement",
+        "security_requirement"
+      ],
+      "detail_requirements": [
+        {
+          "type": "authorization_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "対象画面に利用者権限差分の新規仕様は含まれていない。refactor では権限仕様を変更しない。",
+          "verification_hint": "権限差分を implementation-scope へ追加しない。"
+        },
+        {
+          "type": "concurrency_requirement",
+          "status": "not_applicable",
+          "source_or_rationale": "Storybook fixture と component props 境界は同時実行制御を扱わない。job 実行の同時実行仕様は既存 backend 仕様の対象である。",
+          "verification_hint": "同時実行仕様を Storybook story の受け入れ条件にしない。"
+        },
+        {
+          "type": "boundary_requirement",
+          "status": "explicit",
+          "source_or_rationale": "UI 設計、screen design diff、implementation-scope は後続成果物である。今回の起動入力では作成しない。",
+          "verification_hint": "次成果物が `ui-design.md` として返されているか確認する。"
+        },
+        {
+          "type": "security_requirement",
+          "status": "explicit",
+          "source_or_rationale": "有料の実 AI API、secret store、実 endpoint、実 filesystem flow を Storybook の前提にしない。",
+          "verification_hint": "story と fixture が external runtime を要求していないか確認する。"
+        }
+      ]
+    }
+  ]
+}

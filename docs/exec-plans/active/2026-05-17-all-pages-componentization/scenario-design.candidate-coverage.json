@@ -1,0 +1,589 @@
+{
+  "generators": [
+    {
+      "name": "actor-goal",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.actor-goal.md"
+    },
+    {
+      "name": "lifecycle",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.lifecycle.md"
+    },
+    {
+      "name": "state-transition",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.state-transition.md"
+    },
+    {
+      "name": "failure",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.failure.md"
+    },
+    {
+      "name": "external-integration",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.external-integration.md"
+    },
+    {
+      "name": "operation-audit",
+      "status": "completed",
+      "artifact_path": "./scenario-candidates.operation-audit.md"
+    }
+  ],
+  "candidates": [
+    {
+      "candidate_id": "CAND-APC-001",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "翻訳入力確認の利用者目的は、画面別主要 story の確認へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-002",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "ジョブ作成画面の確認目的は、画面別主要 story の確認へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-003",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "未完了ジョブ一覧の目的は、画面別 story と状態維持の受け入れ条件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-004",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-004",
+      "decision_rationale": "翻訳段階の進行状況と readiness は、job と phase 状態維持の中心シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-005",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-004",
+      "decision_rationale": "JobRunPage の summary と navigation は、job と phase 状態維持へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-006",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "出力成果物画面の確認目的は、画面別主要 story の確認へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-007",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "マスター辞書画面の一覧、詳細、modal は画面別主要 story へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-008",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "Provider 設定画面の secret 表示禁止は、画面別 story と保存禁止情報のシナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-009",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "人間レビュアーの Storybook 確認入口として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-010",
+      "generator": "actor-goal",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "props 境界と既存表示維持を確認する横断シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-001",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-001",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-001",
+      "decision_rationale": "部品化候補の棚卸しは後続 UI 設計と implementation-scope の前提として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-002",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "ページ component を薄くする更新 lifecycle として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-003",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-001",
+      "decision_rationale": "共有部品候補の判断は、部品化候補分類シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-004",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "主要部品の story と fixture 作成を中心シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-005",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-005",
+      "decision_rationale": "既存表示項目と操作状態の維持確認として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-006",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "Storybook 人間 review は review 証跡シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-007",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-009",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-009",
+      "decision_rationale": "Storybook build と frontend-local の完了判定として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-008",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-009",
+      "decision_rationale": "完了後引き継ぎは、検証と再実行の追跡シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-LC-009",
+      "generator": "lifecycle",
+      "source_requirement_id": "REQ-APC-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-009",
+      "decision_rationale": "review 指摘後の再実行は、検証と再実行の追跡シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-001",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "ページ状態から props 境界への遷移は薄い page 境界シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-002",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "読み込み、空、失敗、通常表示は画面別主要 story の状態 variant へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-003",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-006",
+      "decision_rationale": "story callback が実行系へ遷移しない禁止遷移として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-004",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-004",
+      "decision_rationale": "操作可否状態は job と phase 状態維持シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-005",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-005",
+      "decision_rationale": "選択状態と詳細表示の整合は一覧詳細の回帰防止へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-006",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-005",
+      "decision_rationale": "モーダル状態の対象保持は一覧詳細と modal 整合へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-007",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-005",
+      "decision_rationale": "file 選択と import 表示は一覧詳細と file 表示の整合へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-008",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-004",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-004",
+      "decision_rationale": "job と phase の実行状態表示として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-009",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-004",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-004",
+      "decision_rationale": "phase 間 navigation は job と phase 状態維持へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-010",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-001",
+      "decision_rationale": "AI モデル選択状態は共有 component 候補の分類へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-011",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-003",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-003",
+      "decision_rationale": "出力候補と artifact 状態は画面別主要 story へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-ST-012",
+      "generator": "state-transition",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "story 追加状態と review 対象状態は review 証跡へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-001",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "主要表示領域の story 欠落は review 証跡の未確認理由へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-002",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "controller または Store 要求は薄い page 境界の失敗条件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-003",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "操作可否と disabled 理由のずれは props 境界の整合条件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-004",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-005",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-005",
+      "decision_rationale": "fixture drift は既存表示維持の回帰防止へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-005",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-005",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-005",
+      "decision_rationale": "既存表示項目の削除禁止を回帰防止シナリオとして採用する。"
+    },
+    {
+      "candidate_id": "CAND-APF-006",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-001",
+      "decision_rationale": "過剰な共有 component 化は部品化候補分類の拒否条件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-007",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-007",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-007",
+      "decision_rationale": "Storybook 保存禁止情報の失敗条件として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APF-008",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-006",
+      "decision_rationale": "build-storybook 失敗は Storybook 外部境界の検証条件へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-009",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-009",
+      "decision_rationale": "frontend-local 失敗は検証と再実行シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APF-010",
+      "generator": "failure",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "Storybook review 証跡不足は review 証跡シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-001",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "page component と表示部品の外部境界は薄い page 境界へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-002",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-006",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-006",
+      "decision_rationale": "Wails runtime と generated binding を要求しない条件として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-003",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-007",
+      "decision_rationale": "secret と実 endpoint の禁止は保存禁止情報シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-004",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-001",
+      "decision_rationale": "shared component の外部境界は部品化候補分類へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-005",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-006",
+      "decision_rationale": "page story の production gateway 暗黙生成禁止は Storybook 外部境界へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-006",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-007",
+      "decision_rationale": "file 表示の synthetic fixture 条件は保存禁止情報シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-007",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-006",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-006",
+      "decision_rationale": "runtime event と polling adapter の持ち込み禁止は Storybook 外部境界へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-008",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-002",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-002",
+      "decision_rationale": "backend DTO ではなく view model を story 入力にする条件は props 境界へ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APC-EI-009",
+      "generator": "external-integration",
+      "source_requirement_id": "REQ-APC-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-007",
+      "decision_rationale": "review URL の Storybook 表示先限定は保存禁止情報シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APCOA-001",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "adopted",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "Storybook review 対象と確認状態の追跡として採用する。"
+    },
+    {
+      "candidate_id": "CAND-APCOA-002",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-APC-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-009",
+      "decision_rationale": "frontend-local の検証結果は検証と再実行シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APCOA-003",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-APC-009",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-009",
+      "decision_rationale": "build-storybook の静的 build 証跡は検証と再実行シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APCOA-004",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-APC-001",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-001",
+      "decision_rationale": "部品化変更証跡は部品化候補分類シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APCOA-005",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-APC-008",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-008",
+      "decision_rationale": "UX review と人間 review の証跡は review 証跡シナリオへ統合する。"
+    },
+    {
+      "candidate_id": "CAND-APCOA-006",
+      "generator": "operation-audit",
+      "source_requirement_id": "REQ-APC-007",
+      "decision": "merged",
+      "final_scenario_id": "SCN-APC-007",
+      "decision_rationale": "Storybook fixture と review 証跡の保存禁止情報監査へ統合する。"
+    }
+  ],
+  "conflicts": [],
+  "final_mapping": [
+    {
+      "final_scenario_id": "SCN-APC-001",
+      "candidate_ids": [
+        "CAND-APC-LC-001",
+        "CAND-APC-LC-003",
+        "CAND-APC-ST-010",
+        "CAND-APF-006",
+        "CAND-APC-EI-004",
+        "CAND-APCOA-004"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-002",
+      "candidate_ids": [
+        "CAND-APC-010",
+        "CAND-APC-LC-002",
+        "CAND-APC-ST-001",
+        "CAND-APF-002",
+        "CAND-APF-003",
+        "CAND-APC-EI-001",
+        "CAND-APC-EI-008"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-003",
+      "candidate_ids": [
+        "CAND-APC-001",
+        "CAND-APC-002",
+        "CAND-APC-003",
+        "CAND-APC-006",
+        "CAND-APC-007",
+        "CAND-APC-008",
+        "CAND-APC-LC-004",
+        "CAND-APC-ST-002",
+        "CAND-APC-ST-011"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-004",
+      "candidate_ids": [
+        "CAND-APC-004",
+        "CAND-APC-005",
+        "CAND-APC-ST-004",
+        "CAND-APC-ST-008",
+        "CAND-APC-ST-009"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-005",
+      "candidate_ids": [
+        "CAND-APC-LC-005",
+        "CAND-APC-ST-005",
+        "CAND-APC-ST-006",
+        "CAND-APC-ST-007",
+        "CAND-APF-004",
+        "CAND-APF-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-006",
+      "candidate_ids": [
+        "CAND-APC-ST-003",
+        "CAND-APF-008",
+        "CAND-APC-EI-002",
+        "CAND-APC-EI-005",
+        "CAND-APC-EI-007"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-007",
+      "candidate_ids": [
+        "CAND-APF-007",
+        "CAND-APC-EI-003",
+        "CAND-APC-EI-006",
+        "CAND-APC-EI-009",
+        "CAND-APCOA-006"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-008",
+      "candidate_ids": [
+        "CAND-APC-009",
+        "CAND-APC-LC-006",
+        "CAND-APC-ST-012",
+        "CAND-APF-001",
+        "CAND-APF-010",
+        "CAND-APCOA-001",
+        "CAND-APCOA-005"
+      ]
+    },
+    {
+      "final_scenario_id": "SCN-APC-009",
+      "candidate_ids": [
+        "CAND-APC-LC-007",
+        "CAND-APC-LC-008",
+        "CAND-APC-LC-009",
+        "CAND-APF-009",
+        "CAND-APCOA-002",
+        "CAND-APCOA-003"
+      ]
+    }
+  ],
+  "unresolved_questions": []
+}

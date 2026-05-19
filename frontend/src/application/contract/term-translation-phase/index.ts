@@ -7,6 +7,5 @@ export type {
   TermTranslationPhaseActionCard,
   TermTranslationPhaseActionKind,
   TermTranslationPhaseScreenState,
-  TermTranslationPhaseScreenViewModel,
-  TermTranslationPhaseViewState
+  TermTranslationPhaseScreenViewModel
 } from "./term-translation-phase-screen-types"
