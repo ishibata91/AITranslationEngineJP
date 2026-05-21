@@ -1,6 +1,8 @@
 # agent-browser 利用規約
 
 この文書は `agent-browser` CLI の command 例と利用方針を扱う。  
+標準の UI 証跡取得は `.codex/browser-use.md` の Codex 内蔵ブラウザ利用規約に従う。
+`agent-browser` CLI は、Codex 内蔵ブラウザが使えず、人間が明示した場合だけ代替経路として使う。
 対象 URL、起動 command、証跡の置き場所、合否条件は、呼び出し元の skill または task 成果物で決める。
 
 `agent-browser` は、確定的な E2E テスト実行器ではなく、AI による UI 探索、画面観測、失敗診断、証跡取得のために使う。  

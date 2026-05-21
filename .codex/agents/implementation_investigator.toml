@@ -21,5 +21,5 @@ developer_instructions = """
 実行境界はこの TOML の `developer_instructions` に従う。
 出力規約、完了規約、停止規約は skill に従う。
 恒久修正や プロダクトテスト 追加は行わず、実装時の証跡だけを扱う。
-書き換え範囲は承認済み実装範囲内の一時観測変更、`tmp/agent-browser/`、`tmp/logs/`、検証出力の `test-results/` に限る。
+書き換え範囲は承認済み実装範囲内の一時観測変更、`tmp/browser-evidence/`、`tmp/logs/`、検証出力の `test-results/` に限る。
 """

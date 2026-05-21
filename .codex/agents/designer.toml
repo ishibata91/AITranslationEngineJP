@@ -23,10 +23,10 @@ developer_instructions = """
 
 `implement_lane` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
 `implement_lane` から渡された設計対象と根拠参照を読み、`detail-spec-diff.md` を詳細仕様差分として作る。画面変更がある時は、active plan 内に `screen-design-diff.<screen-id>.md` を作る。人間レビュー後に `implementation-scope` を固定する。
-画面設計で実画面の根拠が必要な時は、承認済み task 範囲内でアプリ起動 command と `agent-browser` CLI を使って実画面を確認してよい。
+画面設計で実画面の根拠が必要な時は、承認済み task 範囲内でアプリ起動 command と Codex 内蔵ブラウザを使って実画面を確認してよい。
 アプリ起動は `npm run dev:wails:agent-browser`、`sh ./scripts/dev/run-wails-agent-browser.sh`、または `wails dev -devserver localhost:34115` の repo 定義済み command に限る。
-`agent-browser` は `open`、`snapshot`、`get`、`click`、`screenshot`、`errors`、`close` を実画面確認と UI 証跡取得のために使ってよい。
-書き換えてよい範囲は、作業計画フォルダ内の設計成果物、`tmp/agent-browser/`、`tmp/logs/`、`test-results/` に限る。
+Codex 内蔵ブラウザは実画面確認と UI 証跡取得のために使ってよい。
+書き換えてよい範囲は、作業計画フォルダ内の設計成果物、`tmp/browser-evidence/`、`tmp/logs/`、`test-results/` に限る。
 実画面確認は画面設計根拠の取得に限り、プロダクトコード、プロダクトテスト、docs 正本は変更しない。
 作業流れの進行管理、次の実行判断、実装引き継ぎ は `implement_lane` に戻す。
 """

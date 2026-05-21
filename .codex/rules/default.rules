@@ -80,6 +80,8 @@ prefix_rule(
             "lint:exports",
             "lint:boundaries",
             "format:check",
+            "storybook",
+            "build-storybook",
         ],
     ],
     decision = "allow",
@@ -222,33 +224,6 @@ prefix_rule(
     ],
     not_match = [
         "wails build",
-    ],
-)
-
-prefix_rule(
-    pattern = [
-        "agent-browser",
-        [
-            "doctor",
-            "open",
-            "snapshot",
-            "get",
-            "click",
-            "screenshot",
-            "close",
-            "errors",
-        ],
-    ],
-    decision = "allow",
-    justification = "agent-browser CLI commands are required for local browser evidence gathering.",
-    match = [
-        "agent-browser doctor --offline --quick",
-        "agent-browser open http://localhost:34115",
-        "agent-browser screenshot tmp/agent-browser/screenshot.png",
-        "agent-browser errors",
-    ],
-    not_match = [
-        "agent-browser install",
     ],
 )
 

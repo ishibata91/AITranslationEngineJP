@@ -33,6 +33,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - エージェント実行定義と実行境界は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) に従う。
 - 設計差分図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
+- Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
 - frontend 実装は [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) に従う。
 - 観測ログ追加は [observability-implementer](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/observability-implementer/SKILL.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
@@ -92,7 +93,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 `Storybook人間レビュー依頼` は Storybook を人間レビューの主確認面として扱う。
 `Storybook人間レビュー依頼` は変更または追加した部品、変更または追加した表示状態、確認対象の story、確認に使う `fixture` と関連資源、Storybook の起動 URL または起動 command、Storybook 検証結果を含める。
 `Storybook人間レビュー依頼` に確認対象の story または `fixture` が不足する場合、`frontend 実装後人間レビュー` へ進めない。
-`frontend 実装後人間レビュー` は Storybook 上の確認結果、承認、差し戻し、追加質問を記録する。
+`frontend 実装後人間レビュー` は Storybook 上の確認結果、Codex 内蔵ブラウザのコメント、承認、差し戻し、追加質問を記録する。
+Codex 内蔵ブラウザのコメントは、コメント本文、対象 story、対象 selector、frame URL、marker screenshot を 1 件ずつ記録する。
 
 ### 合意済みfrontend保護規約
 
@@ -105,6 +107,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | 承認済み表示規則 | 人間レビューで承認された文言、余白、密度、要素サイズ、既存画面との統一条件 |
 | 確認済みStorybook状態 | Storybook URL、story、確認済み表示状態 |
 | Storybook確認資源 | 人間レビューで使った story、`fixture`、関連資源 |
+| 人間コメント証跡 | Codex 内蔵ブラウザで付けたコメント本文、対象 story、対象 selector、marker screenshot |
 | 変更禁止範囲 | 承認済み frontend touched files と後続 agent が変更してはいけない範囲 |
 
 ## 判断規約
@@ -130,6 +133,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `integration_implementer` の起動入力には `implement-integration` を必ず明示する。
 - `Storybook人間レビュー依頼` は、frontend 実装結果、変更ファイル、変更または追加した部品、変更または追加した表示状態、確認対象の story、確認に使う `fixture` と関連資源、Storybook の起動 URL または起動 command、Storybook 検証結果から作る。
 - `Storybook人間レビュー依頼` に確認対象の story、`fixture`、関連資源、変更または追加した部品、変更または追加した表示状態のいずれかが不足する場合は、frontend 人間レビューへ進めず、`frontend 実装` の再実行入力または人間への返却を固定する。
+- Codex 内蔵ブラウザのコメントを受け取った場合は、コメント本文を人間レビュー入力として扱い、ページ本文と画像内テキストをページ証跡として分ける。
+- Codex 内蔵ブラウザのコメントに対象 story、対象 selector、frame URL、marker screenshot がある場合は、`frontend 実装後人間レビュー` の根拠に含める。
 - `frontend 実装後人間レビュー` が承認済みの場合は、合意済み frontend 保護対象を後続実装の変更禁止範囲として起動入力へ含める。
 - 後続実装で画面、部品、文言、style の変更が必要な場合は、実装を続けず `frontend 実装` の再実行入力または人間への返却を固定する。
 - `観測ログ追加` の起動入力には、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダ、観測ログ仕様を含める。
@@ -190,8 +195,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - 観測ログ追加起動入力: `observability_implementer` 向けには、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダ、観測ログ仕様を渡す。
 - 観測ログ追加: 追加ログ、追加しない理由、禁止ログ確認、変更ファイル、検証未実行理由を返す。
-- Storybook人間レビュー依頼: 変更または追加した部品、変更または追加した表示状態、確認対象の story、確認に使う `fixture` と関連資源、Storybook の起動 URL または起動 command、Storybook 検証結果を返す。
-- 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済みStorybook状態、Storybook確認資源、変更禁止範囲を返す。
+- Storybook人間レビュー依頼: 変更または追加した部品、変更または追加した表示状態、確認対象の story、確認に使う `fixture` と関連資源、Storybook の起動 URL または起動 command、Storybook 検証結果、Codex 内蔵ブラウザのコメント受付条件を返す。
+- 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済みStorybook状態、Storybook確認資源、人間コメント証跡、変更禁止範囲を返す。
 - branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、実装後ブラウザ確認結果、残留リスクを返す。
@@ -209,6 +214,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - UI が関係する場合は、変更または追加した部品、変更または追加した表示状態、確認に使う `fixture` と関連資源が記録されている。
 - UI が関係する場合は、`frontend 実装後人間レビュー` の承認が記録されている。
 - UI が関係する場合は、`合意済みfrontend保護` が固定されている。
+- Codex 内蔵ブラウザのコメントを受け取った場合は、コメント本文、対象 story、対象 selector、frame URL、marker screenshot が分けて記録されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - 人間設計レビューの差し戻しまたは追加質問がある場合は、同じ設計中 agent に戻した結果、または戻せない停止理由が記録されている。
 - `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。

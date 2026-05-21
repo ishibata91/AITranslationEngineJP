@@ -7,6 +7,7 @@ Codex は設計 作業流れ、承認済み 対象範囲 からの実装、実�
 作業流れ、skill、agent、引き継ぎ 契約の正本は `.codex/` に置きます。
 live 作業流れ の説明本文と判断基準の正本はこの `README.md` とします。
 `.codex/workflow.md` は補助図であり、live 判断を上書きしません。
+Codex 内蔵ブラウザの利用規約は `.codex/browser-use.md` とします。
 
 ## Live Skills
 
@@ -56,7 +57,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `browser_confirmation` は実装後ブラウザ確認の軽量実行だけを扱う。確認経路と期待値は `implement_lane`、`fix_lane`、`light_change_lane` が定義し、`browser_confirmation` は期待値の妥当性を判断しない
 - `observability_implementer` は `implement_lane` の `観測ログ追加` で、最終検証前に完成済み成果物を読み、実行後に消える原因分離材料を残す恒久ログだけを追加する
 - `designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
-- `implement_lane` は承認済み 実行成果物 を実行正本にし、`designer`、`diagrammer`、`implementation_investigator`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。設計中の `designer` と `diagrammer` は担当する設計成果物が承認済みまたは停止として記録されるまで閉じず、差し戻しまたは追加質問を会話文脈を維持した同じ agent へ返す。UI がある task では frontend 実装後に Storybook 人間レビュー依頼と人間レビューを挟む。観測ログ追加 後に最終検証を行い、実装後ブラウザ確認 後に作業 commit、マージ準備入力を揃える
+- `implement_lane` は承認済み 実行成果物 を実行正本にし、`designer`、`diagrammer`、`implementation_investigator`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。設計中の `designer` と `diagrammer` は担当する設計成果物が承認済みまたは停止として記録されるまで閉じず、差し戻しまたは追加質問を会話文脈を維持した同じ agent へ返す。UI がある task では frontend 実装後に Storybook 人間レビュー依頼と人間レビューを挟む。Storybook 人間レビューでは Codex 内蔵ブラウザのコメントを人間レビュー入力として扱う。観測ログ追加 後に最終検証を行い、実装後ブラウザ確認 後に作業 commit、マージ準備入力を揃える
 - `light_change_lane` は `task 枠` と `軽量変更計画` を実行正本にし、`light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` を 文脈 継承なしで直接 起動 する。完了済みサブエージェントは完了結果を集約した後に閉じる
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
@@ -85,7 +86,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
 - `fix_decider` は修正レーンの修正方針判断と原因箇所シーケンス図を担当し、原因の原因、責務境界、採用する修正方針、禁止する修正、原因箇所の呼び出し順序を分ける。実装 agent が判断し直す余地を残す実装方針、原因未確認の仮説、対症療法は修正実行入力へ進めない
-- `browser_confirmation` は実装後ブラウザ確認で、呼び出し元が定義した確認 URL、操作経路、期待値、安全条件に従い、`snapshot`、`errors`、必要な `screenshot` とログを残す。期待値の追加、仕様判断、原因推定、修正方針作成は扱わない
+- `browser_confirmation` は実装後ブラウザ確認で、呼び出し元が定義した確認 URL、操作経路、期待値、安全条件に従い、Codex 内蔵ブラウザの表示状態、console 異常、必要な screenshot とログを残す。期待値の追加、仕様判断、原因推定、修正方針作成は扱わない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、観測ログ追加、最終検証、実装後ブラウザ確認、作業 commit、マージ準備入力を進める
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う。承認済み実装範囲 外は、今回変更の直接影響を切り分ける観測範囲確認だけを扱う
 - `backend_implementer` は 承認済み backend 実装範囲 と、今回変更の直接影響で backend 責務内プロダクトコードに閉じる影響範囲だけを変更する
@@ -248,7 +249,7 @@ live 作業流れ の説明本文と判断基準の正本はこの `README.md` �
 - human 承認済みの 成果物 だけ `docs_updater` が `updating-docs` を参照して正本へ反映する
 - `detail-spec-diff.md`、`screen-design-diff.<screen-id>.md`、実装結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`implement_lane` が `正本化判断` を必ず記録する
 - 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`docs_updater` が `詳細仕様正本反映` を必ず完了または停止理由付きで返す
-- task 内 詳細仕様差分、画面設計差分、agent-browser 確認結果は task folder に置く
+- task 内 詳細仕様差分、画面設計差分、Codex 内蔵ブラウザ確認結果は task folder に置く
 - UI の確認は、承認済み画面設計差分と実画面確認結果で扱う
 - UI の細かな visual polish は実装後の実物確認で差分を扱う
 - `implementation-scope` は 引き継ぎ 履歴であり docs 正本へ昇格しない
