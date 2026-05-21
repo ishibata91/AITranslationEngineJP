@@ -20,6 +20,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 
 - 単一引き継ぎ入力: `implementation-scope` から切り出された tests-unit 用 引き継ぎ 1 件、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
 - 実行中タスク成果物場所: テスト成果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
+- 仕様根拠: 承認済み `detail-spec-diff.md` または関連する `docs/detail-specs/<detail-spec-id>.md`。
 - 対象テスト範囲: 変更してよい 単体テスト と必要最小限の テスト補助 の path。
 - 実装済み対象: 実装種別別 agent が変更済みのファイル、公開接点、symbol。
 - 証明対象: 公開振る舞い、分岐、エラー経路 のいずれを証明するかを示す対象。
@@ -29,6 +30,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 外部参照規約
 
 - エージェント実行定義と実行境界は [implementation_unit_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_unit_tester.toml) に従う。
+- 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - テストコーディング規約: [coding-guidelines-tests.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-tests.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
@@ -44,6 +46,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 判断規約
 
 - 各テストは 1 つの 公開振る舞い、分岐、エラー経路 のどれか 1 つを証明する
+- 期待結果は仕様根拠、承認済み実装範囲、実装済み対象から導く
 - setup は決定的にする
 - テスト本体に条件分岐を入れない
 - implementation_task_ids の外まで広げない
@@ -63,7 +66,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 出力規約
 
 - 判断結果: 単体テストを実装したか、文脈不足で停止したかを返す。
-- 根拠参照: 単一引き継ぎ入力、実装済み対象、変更ファイルを返す。
+- 根拠参照: 単一引き継ぎ入力、仕様根拠、実装済み対象、変更ファイルを返す。
 - 不足情報: 不足した入力項目、衝突した根拠、戻し先を返す。
 - テスト成果物: 実装済み範囲に対応する 単体テスト と必要最小限の 検証データ / 補助 だけを返す。
 - 証明済み完了条件: テストで証明した 公開振る舞い、分岐、エラー経路、テスト対象ファイル、検証コマンドを返す。
@@ -76,6 +79,7 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 完了規約
 
 - 承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当単体テスト成果物の影響範囲修正 の成果だけが返却されている。
+- 仕様根拠を読み、証明対象の期待結果と対応づけた。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 1 テストで 1 公開振る舞い / 分岐 / エラー経路 だけを証明した。
 - setup の clock、random、ID、repository 応答順序を固定した。
@@ -96,5 +100,6 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - テストのためだけに広い プロダクトコード 変更が必要な時
 - 統合 flow を証明する時
 - 証明対象、対象テスト範囲、実装済み対象 のいずれかが不足している時
+- 仕様根拠が不足している時
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - テスト本体に条件分岐が必要になる場合は停止する。

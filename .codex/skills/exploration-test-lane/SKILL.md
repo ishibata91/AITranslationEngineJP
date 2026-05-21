@@ -14,7 +14,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - `exploration_test_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `branch 準備`、`テストデータ`、`バグ一覧とログ、影響ファイル`、`作業レポート入力`、`作業 commit`、`マージ準備入力` とする。
+- 担当成果物は `branch 準備`、`テストデータ`、`バグ一覧とログ、影響ファイル`、`作業 commit`、`マージ準備入力` とする。
 
 ## 入力規約
 
@@ -56,8 +56,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 | `実装証跡` | 実装種別別 agent | `バグ一覧とログ、影響ファイル` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
 | `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
 | `レビュー通過根拠` | `exploration_test_lane` | `探索計画`, `探索証跡`, `バグ一覧とログ、影響ファイル`, `実装証跡?`, `回帰テスト証跡?` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
-| `作業レポート入力` | `exploration_test_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
-| `作業 commit` | `exploration_test_lane` | `作業レポート入力` | なし |
+| `作業 commit` | `exploration_test_lane` | `レビュー通過根拠` | なし |
 | `マージ準備入力` | `exploration_test_lane` | `作業 commit` | `merge_lane` |
 
 ## 判断規約
@@ -75,7 +74,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - `回帰テスト証跡` は変更範囲と検証目的から `implementation_scenario_tester` または `implementation_unit_tester` へ渡す。
 - `レビュー通過根拠` は探索計画、探索証跡、バグ一覧、実装証跡、回帰テスト証跡を入力にして観点別レビュー agent を起動する。
 - 観点別レビュー agent の結果は `reviewback.<観点>.yaml` に記録する。
-- 作業レポート入力を揃えた後、local commit を作る。
+- レビュー通過根拠を揃えた後、local commit を作る。
 - `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
@@ -98,7 +97,6 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 探索テスト artifact: 更新した探索テスト artifact の path を返す。
 - 計画修正履歴: `planning_blockers` と修正結果を返す。
 - レビュー起動入力: レビュー agent 向けに探索計画、探索証跡、バグ一覧、実装証跡、回帰テスト証跡、レビューYAMLパスを返す。
-- 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
 - branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
@@ -114,7 +112,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 実装証跡が必要な場合は、実装担当 agent の完了結果が確認されている。
 - 回帰テスト証跡が必要な場合は、test agent の完了結果が確認されている。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
-- 終了処理、停止、戻しのいずれでも `作業レポート入力` と 作業観測根拠が作成されている。
+- 終了処理、停止、戻しのいずれでも 作業 commit とマージ準備入力を判断できる根拠が作成されている。
 - 変更が local commit 済みである。
 - `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。

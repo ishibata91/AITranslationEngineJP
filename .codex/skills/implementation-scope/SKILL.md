@@ -20,9 +20,9 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 
 ## 入力規約
 
-- 人間レビュー記録: 承認済みシナリオ設計、承認済み UI 設計、レビュー結果。
-- 承認済みシナリオ: 実装範囲の根拠にするシナリオ設計成果物。
-- UI 要件契約: UI が関係する場合に参照する UI 設計成果物。
+- 人間レビュー記録: 承認済み詳細仕様差分、承認済み画面設計差分、レビュー結果。
+- 承認済み詳細仕様差分: 実装範囲の根拠にする `detail-spec-diff.md`。
+- 画面設計差分: UI が関係する場合に参照する画面設計差分。
 - 承認状態: 呼び出し元が渡す承認済み状態。
 
 ## 外部参照規約
@@ -31,7 +31,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 要件正本: [spec.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/spec.md) とする。
 - ER 正本: [er.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/er.md) と [diagrams/er](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/diagrams/er/) とする。
 - 画面正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) とする。
-- 上位シナリオ詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
+- 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - 実装スコープ雛形: [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/assets/implementation-scope.md)
 - Codex implementation レーン 入口: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
@@ -111,7 +111,7 @@ import、generation、settings save、preview、create / update / delete、expor
 
 同じ受け入れユースケースでも、backend と frontend は 1 引き継ぎ に含めない。
 backend 引き継ぎ は永続化、service / usecase、controller、DTO / gateway 境界までを扱う。
-frontend 引き継ぎ は承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を根拠にし、状態 / UI を扱う。
+frontend 引き継ぎ は承認済み `screen-design-diff.<screen-id>.md` を根拠にし、状態 / UI を扱う。
 統合境界 引き継ぎ は API、Wails、DTO、gateway、adapter 契約 の接続と実画面確認を扱い、backend 実装や frontend UI 実装の代替にしない。
 
 backend 側の 引き継ぎ に含めてよい 層:
@@ -209,15 +209,16 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 引き継ぎ が大きいかどうかは、論理境界に加えて想定変更ファイル数と想定変更行数で判定する
 - 対象範囲、依存、初手、検証、完了条件 を必ず揃える
 - 並列実行可能性は task 出し時に明示する
-- 人間レビュー 済みの詳細要求タイプと質問票回答だけを 引き継ぎ根拠にする
-- frontend 引き継ぎ は承認済み UI 要件契約を 引き継ぎ根拠にする
+- 人間レビュー済みの詳細仕様差分と回答欄だけを引き継ぎ根拠にする
+- frontend 引き継ぎ は承認済み画面設計差分を 引き継ぎ根拠にする
 - 検証コマンド は 引き継ぎ の 承認済み実装範囲 と 完了条件 だけで 通過 できるものにする
 - backend と frontend は必ず別 引き継ぎ に分ける
 - UI がある task では frontend 引き継ぎを必須にし、backend 引き継ぎより先に置く
-- frontend 引き継ぎ は承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を含める
+- frontend 引き継ぎ は承認済み画面設計差分の主要区画、導線、状態表示を維持する完了条件を含める
 - 統合境界 引き継ぎ は backend と frontend の間の公開接点、DTO、gateway、adapter 契約を接続する単位として別に作る
 - 統合境界 引き継ぎ は UI がある task の実画面確認を完了条件に含める
 - シナリオテスト 引き継ぎ と 単体テスト 引き継ぎ は実装成果物の完了後に別成果物として作る
+- 単体テスト 引き継ぎには、期待結果の元ネタとして承認済み詳細仕様差分または詳細仕様正本を含める
 - secret を扱う場合は、参照値、secret 本体、secret 解決責務層、出力禁止値を分ける
 - 必要な場合だけ `本番経路` を 補足 に書き、必須 成果物 や domain 固有欄にはしない
 - `本番経路` は実行時に通る public API / DTO / controller / UI 入口 / persistence path を指す
@@ -226,7 +227,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - Codex implementation レーン に docs 正本化や 作業流れ 変更を渡さない
 
 - 承認済み 成果物 だけを根拠にする
-- 承認済み詳細要求タイプを 検証意図 の根拠にする
+- 承認済み詳細仕様差分を検証意図の根拠にする
 - implementation 引き継ぎ を受け入れユースケースで分ける
 - downstream 引き継ぎ が依存する 公開接点 を各実装成果物の完了条件として固定する
 - 変更ファイル数と変更行数の目安で大きすぎる 引き継ぎ を事前に切る
@@ -266,8 +267,8 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - task 内成果物 が承認状態、根拠参照、未決事項を含んでいる。
 - 人間レビュー が必要な判断を AI だけで完了扱いにしていない。
 - 人間レビュー 承認 を確認した。
-- scenario-design に `needs_human_decision` が残っていないことを確認した。
-- 承認済み詳細要求タイプを 検証意図 の根拠にした。
+- `detail-spec-diff.md` に未回答の未決が残っていないことを確認した。
+- 承認済み詳細仕様差分を検証意図の根拠にした。
 - 引き継ぎ を 承認済み実装範囲、依存対象、検証 で分けた。
 - 各 引き継ぎ が `1 受け入れユースケース × 1 検証意図` に収まっている。
 - 各 検証コマンド が `完了条件` を直接検証している。
@@ -282,11 +283,12 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - domain 名や画面名だけを根拠に、複数 use case を同一 引き継ぎ にまとめていない。
 - 層 をまたぐ 引き継ぎ は、受け入れユースケース 完了条件 で完了判定できる。
 - backend、frontend、統合境界 が必要な場合は別 引き継ぎ として分割されている。
-- frontend 引き継ぎ がある場合は、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を根拠参照に含めた。
-- frontend 引き継ぎ がある場合は、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書いた。
+- frontend 引き継ぎ がある場合は、承認済み `screen-design-diff.<screen-id>.md` を根拠参照に含めた。
+- frontend 引き継ぎ がある場合は、承認済み画面設計差分の主要区画、導線、状態表示を維持する完了条件を書いた。
 - UI がある task では、frontend 引き継ぎを backend 引き継ぎより前の依存対象にした。
 - 統合境界 引き継ぎ がある場合は、接続結果の実画面確認を完了条件に書いた。
 - シナリオテスト 引き継ぎ と 単体テスト 引き継ぎ は、実装成果物の完了後に並列可能な別成果物として分けた。
+- 単体テスト 引き継ぎには、期待結果の元ネタになる承認済み詳細仕様差分または詳細仕様正本を含めた。
 - `依存対象` から依存表を作り、着手可能 wave を `実行グループ` と `ready_wave` にした。
 - 着手可能 wave 表に 引き継ぎ、開始前依存、並列 pair、阻害要因 を書いた。
 - 並列可能な 引き継ぎ だけを `並列可能対象` に列挙した。
@@ -302,10 +304,10 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 承認済み implementation-scope なしで `implement_lane` の `backend 実装`、`frontend 実装`、`統合境界実装` へ 引き継ぎ する時
 - プロダクトコード を直接実装する時
 - 実装時の再現、trace、レビュー 補助を扱う時
-- `needs_human_decision` が残る scenario-design から 引き継ぎ を作る必要がある場合は停止する。
+- 未回答の未決が残る `detail-spec-diff.md` から引き継ぎを作る必要がある場合は停止する。
 - 層だけを根拠に、単体では完了判定できない micro 引き継ぎ を量産する必要がある場合は停止する。
 - backend と frontend を同一引き継ぎに含める必要がある場合は停止する。
-- 承認済み UI 要件契約がないまま frontend 引き継ぎ を開かない。
+- 承認済み画面設計差分がないまま frontend 引き継ぎ を開かない。
 - 統合境界 引き継ぎなしに backend と frontend の接続を実装引き継ぎへ混ぜる必要がある場合は停止する。
 - UI がある task で frontend 引き継ぎを省略する必要がある場合は停止する。
 - UI がある task で backend 引き継ぎを frontend 引き継ぎより先に開始する必要がある場合は停止する。

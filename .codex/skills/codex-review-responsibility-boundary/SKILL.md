@@ -12,7 +12,7 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 ## 対応ロール
 
 - `review_responsibility_boundary` が使う。
-- 呼び出し元は `implement_lane` または `light_change_lane` とする。
+- 呼び出し元はレビューを管理するレーンとする。
 - 返却先は呼び出し元の レビュー 集約 とする。
 - 担当成果物は `codex-review-responsibility-boundary` の出力規約で固定する。
 
@@ -81,7 +81,6 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.responsibility-boundary.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `responsibility-boundary`、`reviewer_agent` は `review_responsibility_boundary` とする。
-- 改善ログ: 作成または追記しない。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
 ## 完了規約

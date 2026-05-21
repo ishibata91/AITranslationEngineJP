@@ -9,12 +9,10 @@
 
 - 非自明な変更は `templates/task-folder/` ベースの folder として作る
 - `plan.md` は索引、状態、HITL、validation、closeout だけを書く
-- skill ごとの内容は `scenario-design.md`、`ui-design.md`、`implementation-scope.md` に分ける
-- UI がある task は `ui-design.md` に UI 要件契約、状態差分、UX 標準確認結果を残す
-- UI がない task は `ui-design.md` を作らない
-- `scenario-design.md` は常に作り、必須要件と受け入れ条件を固定する
-- 詳細要求タイプの仕様網羅は `scenario-design.requirement-coverage.json` に分ける
-- 質問票は `scenario-design.questions.md` に分ける
+- skill ごとの内容は `detail-spec-diff.md`、`screen-design-diff.<screen-id>.md`、`implementation-scope.md` に分ける
+- UI がある task は `screen-design-diff.<screen-id>.md` に画面設計書正本へ反映できる画面別差分を残す
+- UI がない task は `screen-design-diff.<screen-id>.md` を作らない
+- `detail-spec-diff.md` は常に作り、親要件、仕様、未決、回答を固定する
 - `implementation-scope.md` は human review 後だけ作る
 - AI は最初に `plan.md` だけ読み、必要な skill 資料だけ追加で読む
 - 各レーンの完了後も task folder は active に残し、`マージ準備入力` を `plan.md` に記録する

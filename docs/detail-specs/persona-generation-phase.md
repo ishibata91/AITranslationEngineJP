@@ -1,99 +1,105 @@
 # 詳細仕様: NPC ペルソナ生成フェーズ
 
-- `upper_scenario_id`: `persona-generation-phase`
+- `detail_spec_id`: `persona-generation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/persona-generation-phase/scenario-design.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/scenario-design.md`
-- `ui_source`: `docs/exec-plans/completed/persona-generation-phase/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
-- `review_source`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
+- `source_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `implementation_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_artifacts`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
-## 要約
+## 親要件と仕様
 
-NPC ペルソナ生成フェーズは、単語翻訳フェーズ完了後に開始する。
-このフェーズは、NPC の原文発話、NPC 属性メタデータ、会話文脈、共通ペルソナ参照から、ジョブ内で本文翻訳フェーズが参照する persona snapshot を作る。
+### `persona-generation-phase-REQ-001` NPC ペルソナ生成フェーズを開始できる
 
-Job Run は、フェーズの進行、生成対象、生成結果、persona snapshot 参照状態、本文翻訳フェーズの開始可否を表示する。
-provider 失敗、入力不備、保存失敗、partial state は successful Completed として扱わない。
+親要件:
+利用者は単語翻訳フェーズ完了後に NPC ペルソナ生成フェーズを開始できる。
 
-## 対象
+仕様:
+- NPC ペルソナ生成フェーズは、単語翻訳フェーズ完了後に開始する。
+- NPC ペルソナ生成フェーズは、単語翻訳フェーズ `Completed`、終端状態以外の翻訳ジョブ、実行中の翻訳段階なしの場合だけ開始する。
+- フェーズ操作可否は、共通操作規則とフェーズ状態から決まる。
 
-- 対象利用者は、翻訳ジョブを進めるユーザーと、失敗理由を確認する運用確認者である。
-- 開始条件は、単語翻訳フェーズが Completed であり、ジョブが terminal state ではなく、active phase run が存在しないことである。
-- 完了状態は、生成対象の persona または snapshot 参照がそろい、本文翻訳フェーズの readiness が成立することである。
-- 主要データは、NPC record、translation field reference、会話文脈、共通ペルソナ参照、`PERSONA`、`PERSONA_FIELD_EVIDENCE`、`PHASE_RUN_PERSONA`、persona snapshot summary である。
+### `persona-generation-phase-REQ-002` 生成対象と入力条件を固定する
 
-## 仕様
+親要件:
+フェーズは NPC の原文発話、NPC 属性メタデータ、会話文脈、共通ペルソナ参照からペルソナ参照情報を作る。
 
-- 生成対象 summary は、NPC count、入力種類、対象件数、common persona hit / miss、対象外理由を含む。
-- NPC ペルソナ生成フェーズ開始が許可された時だけ、NPC ペルソナ生成用の `JOB_PHASE_RUN` を作成する。
-- 操作可否は `JOB_PHASE_RUN.state` と共通操作規則から決める。
-- NPC ペルソナ生成フェーズ固有の `canRetry`、`canResume`、`canPause`、`canCancel` は持たない。
-- 共通ペルソナ hit 時は新規 `PERSONA` を作らず、ジョブの persona snapshot 参照だけを固定する。
-- persona 生成は 1 NPC を 1 request unit とし、NPC 属性と会話文脈を同じ request で扱う。
-- provider、model、execution mode、batch mode は Job Setup の persona 専用設定を継承する。
-- phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
-- job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
-- valid provider output は、ジョブ内ペルソナまたは persona snapshot 参照へ自動採用する。
-- 生成対象 0 件は Completed とし、対象 0 件、provider 未実行、snapshot 空を result summary に出す。
+仕様:
+- 生成対象は、NPC 件数、入力種類、対象件数、共通ペルソナ一致有無、対象外理由を判断できる状態にする。
+- 共通ペルソナ一致時は、翻訳ジョブのペルソナ参照を固定する。
+- ペルソナ生成は 1 NPC を 1 実行単位とし、NPC 属性と会話文脈を同じ実行単位で扱う。
+- 生成対象 0 件は `Completed` とし、対象 0 件、AIサービス未実行、空のペルソナ参照を判断できる状態にする。
+- 生成対象は NPC レコード、翻訳対象項目、会話文脈、共通ペルソナ参照、ペルソナ参照情報で構成する。
 
-失敗時は、provider failure、invalid response、input missing、save failure を成功として保存しない。
-一部 NPC 失敗時は成功分を維持し、phase は RecoverableFailed として未処理 NPC だけ retry 対象にする。
+### `persona-generation-phase-REQ-003` AI 設定を開始時に再解決する
 
-再送、再開、リトライでは同じ `JOB_PHASE_RUN` を継続する。
-成功済み persona と `PHASE_RUN_PERSONA` は重複作成しない。
-terminal job では persona phase start、persona save、body readiness update を拒否し、既存 state を変更しない。
+親要件:
+フェーズ開始と再試行は最新の AIサービス設定を参照し、秘密値を利用者向け情報から分離する。
 
-本文翻訳フェーズの readiness は、persona phase Completed かつ snapshot 参照成立の両方が true の時だけ成立する。
-persona 未完了、失敗、snapshot 参照不能では本文翻訳フェーズの run を作成しない。
+仕様:
+- AIサービス、モデル、実行方式、一括処理は、ジョブ設定の NPC ペルソナ生成用設定を継承する。
+- フェーズ開始と再試行は、AIサービス設定から最新の接続先と認証状態を再解決する。
+- 実行時に利用者が判断できる接続情報は、AIサービス、モデル、認証状態、実行方式、一括処理設定である。
+- 利用者は入力件数、出力件数、失敗分類を判断できる。
 
-## UI 契約由来の恒久仕様
+### `persona-generation-phase-REQ-004` AIサービス結果をペルソナ参照へ採用する
 
-- Job Run は current phase として `NPC ペルソナ生成` を表示する。
-- Job Run は phase state、progress、target count、generated count、failed count、skipped count を表示する。
-- Job Run は persona snapshot ID または snapshot digest、snapshot 参照状態、missing count、body phase readiness を表示する。
-- Job Run は provider、model、execution mode、batch mode、credential 状態分類、input count、output count、短い error kind を表示する。
-- Job Run 再表示時は redacted phase result summary を復元できる形で表示する。
-- 長い NPC 名、provider 名、model 名、error reason、snapshot digest は desktop と mobile で表示を破綻させない。
+親要件:
+有効な AIサービス出力は本文翻訳フェーズが参照するペルソナ情報として採用される。
 
-操作可否は phase state と readiness から決まる。
-開始は、term phase Completed、非 terminal job、active phase run なしの場合だけ有効にする。
-pause は Running の時だけ有効にする。
-resume は Paused の時だけ有効にする。
-retry は RecoverableFailed かつ retryable failure の時だけ有効にする。
-cancel は Paused の時だけ有効にする。
-body phase 開始は persona phase Completed と snapshot 参照成立が両方 true の時だけ有効にする。
+仕様:
+- 有効な AIサービス出力は、翻訳ジョブ内ペルソナまたはペルソナ参照へ自動採用する。
+- 利用者はペルソナ参照の成立状態、欠落件数、本文翻訳フェーズの開始可否を判断できる。
+- 結果要約は、保護対象を含まない範囲で再判断できる情報として扱う。
 
-phase state、retryable、body readiness は色だけで示さない。
-disabled action は理由を読み取れる text または tooltip を持つ。
-progress は数値と state label を併記する。
+### `persona-generation-phase-REQ-005` 失敗、再試行、終端状態の翻訳ジョブを安全に扱う
 
-## 保護仕様
+親要件:
+AIサービス失敗、入力不備、保存失敗、途中状態は回復可能な失敗として扱える。
 
-secret、API key 平文、credential 参照実値、secret store key、endpoint、provider raw request / response、raw prompt、原文発話全文、会話文脈全文は UI、error summary、structured log、final validation summary に出さない。
-operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
-UI と導出 summary には ID、digest、件数、evidence ref、redacted phase result summary だけを出す。
+仕様:
+- AIサービス失敗、不正応答、入力欠落、保存失敗がある場合、`RecoverableFailed` または `Failed` の対象にする。
+- 一部 NPC 失敗時は成功分を維持し、フェーズは `RecoverableFailed` として未処理 NPC だけ再試行対象にする。
+- 再送、再開、再試行では同じ実行単位を継続する。
+- 成功済みペルソナは、同じ実行単位内で一意に扱う。
+- 終端状態の翻訳ジョブでは、ペルソナ生成開始、ペルソナ採用、本文翻訳開始可否更新を拒否結果にする。
 
-debug log に prompt または request body を出す場合でも、secret と API key は出さない。
-障害調査用の要約では、provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt digest、error kind を確認できる。
+### `persona-generation-phase-REQ-006` 本文翻訳フェーズの開始条件を固定する
 
-## 受け入れ根拠
+親要件:
+本文翻訳フェーズは NPC ペルソナ生成フェーズ完了かつペルソナ参照成立の時だけ開始できる。
 
-- `REQ-PGP-001`: `SCN-PGP-001`, `SCN-PGP-010`
-- `REQ-PGP-002`: `SCN-PGP-002`, `SCN-PGP-003`
-- `REQ-PGP-003`: `SCN-PGP-003`, `SCN-PGP-007`, `SCN-PGP-009`
-- `REQ-PGP-004`: `SCN-PGP-004`, `SCN-PGP-008`
-- `REQ-PGP-005`: `SCN-PGP-001`, `SCN-PGP-005`
-- `REQ-PGP-006`: `SCN-PGP-004`, `SCN-PGP-006`
-- `REQ-PGP-007`: `SCN-PGP-007`, `SCN-PGP-008`
-- `REQ-PGP-008`: `SCN-PGP-005`, `SCN-PGP-009`
+仕様:
+- 本文翻訳フェーズの開始条件は、NPC ペルソナ生成フェーズ `Completed` かつペルソナ参照成立の時だけ成立する。
+- ペルソナ未完了、失敗、参照不能は本文翻訳フェーズの開始拒否理由にする。
+- 本文翻訳フェーズ開始は、NPC ペルソナ生成フェーズ `Completed` とペルソナ参照成立が両方満たされた時だけ成立する。
 
-検証結果は pass である。
-scenario gate、backend、frontend、system test、coverage を含む最終検証は通過済みである。
-5 観点レビューはすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
+### `persona-generation-phase-REQ-007` 操作と状態を利用者が判別できる
 
-## 対象外
+親要件:
+利用者はフェーズの進行、生成対象、生成結果、ペルソナ参照状態、本文翻訳フェーズの開始可否を判断できる。
 
-- 本文翻訳フェーズの訳文生成。
-- 共通ペルソナ構築フローの実行設計。
-- ジョブ内ペルソナ flush の実行設計。
+仕様:
+- 利用者は現在の翻訳段階が NPC ペルソナ生成であることを判断できる。
+- 利用者は進行状況、対象件数、生成済み件数、失敗件数、対象外件数を判断できる。
+- 一時停止は `Running` の時だけ成立する。
+- 再開は `Paused` の時だけ成立する。
+- 再試行は `RecoverableFailed` かつ再試行可能な失敗の時だけ成立する。
+- 取り消しは `Paused` の時だけ成立する。
+- 利用者は翻訳段階の状態、再試行可否、本文翻訳開始可否、進行状況を判断できる。
+
+### `persona-generation-phase-REQ-008` 保護対象を利用者向け情報から分離する
+
+親要件:
+NPC ペルソナ生成フェーズは秘密値、生成指示の原文、原文発話全文、会話文脈全文を利用者向け情報から分離する。
+
+仕様:
+- 秘密値、認証キー平文、認証参照の実値、接続先、外部サービスとの生データ、生成指示の原文、原文発話全文、会話文脈全文は利用者向け情報の対象外にする。
+- 運用上必要な要約は、保存済みの状態事実から導出する。
+- 導出する要約は、識別子、件数、根拠参照、保護対象を含まない結果要約を対象にする。
+- 障害調査用の要約では、AIサービス、モデル、実行方式、一括処理、認証状態、入出力件数、失敗分類を判断できる。
+
+## 根拠
+
+- 検証結果は pass である。
+- 最終検証は通過済みである。
+- 5 観点レビューはすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。

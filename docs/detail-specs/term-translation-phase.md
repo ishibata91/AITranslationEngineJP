@@ -1,121 +1,108 @@
 # 詳細仕様: 単語翻訳フェーズ
 
-- `upper_scenario_id`: `term-translation-phase`
+- `detail_spec_id`: `term-translation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/term-translation-phase/scenario-design.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/scenario-design.md`
-- `ui_source`: `docs/exec-plans/completed/term-translation-phase/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
-- `review_source`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
+- `source_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `implementation_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_artifacts`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
-## 要約
+## 親要件と仕様
 
-単語翻訳フェーズは、本文翻訳フェーズの前に用語と固有名詞の訳語を確定する。
-確定した訳語は対象ジョブのジョブ内辞書へ反映し、後続フェーズの入力にする。
+### `term-translation-phase-REQ-001` 単語翻訳フェーズを開始できる
 
-ユーザーは Job Run で単語翻訳フェーズを開始し、進行状況、結果、失敗理由、後続フェーズへ進める条件を確認する。
-共通辞書に完全一致する語は provider request へ送らず、phase 開始時の snapshot に基づく置換対象として扱う。
+親要件:
+利用者は `Ready` の翻訳ジョブから単語翻訳フェーズを開始し、フェーズ状態と進行状況を判断できる。
 
-## 対象
+仕様:
+- 単語翻訳フェーズは、`Ready` の翻訳ジョブ、終端状態以外の翻訳ジョブ、実行中の翻訳段階なしの場合だけ開始する。
+- `Ready` の翻訳ジョブは、単語翻訳フェーズ開始前には実行中の翻訳段階を持たない。
+- 単語翻訳フェーズ開始が許可された時だけ、単語翻訳の実行単位を開始する。
+- 翻訳ジョブは `Running` のまま維持し、単語翻訳フェーズの状態で完了、中断、回復可能失敗を区別する。
+- フェーズ操作可否は、共通操作規則とフェーズ状態から決まる。
 
-- 対象利用者は、翻訳ジョブを実行するユーザーである。
-- 開始条件は、対象ジョブが Ready であり、active な単語翻訳 phase run が存在しないことである。
-- 完了状態は、単語翻訳フェーズが Completed になり、ジョブ内辞書参照が成立することである。
-- 主要データは、`JOB_PHASE_RUN`、`DICTIONARY_ENTRY`、`PHASE_RUN_DICTIONARY_ENTRY`、共通辞書 snapshot、provider / model / execution mode / batch mode の要約である。
+### `term-translation-phase-REQ-002` AI 設定を開始時に再解決する
 
-## 仕様
+親要件:
+フェーズ開始と再試行は最新の AIサービス設定を参照し、秘密値を利用者向け情報から分離する。
 
-Ready 以外のジョブ、terminal job、既存 active phase run があるジョブでは、単語翻訳フェーズを開始できない。
-Ready job には `JOB_PHASE_RUN` を事前作成しない。
-単語翻訳フェーズ開始が許可された時だけ、単語翻訳用の `JOB_PHASE_RUN` を作成する。
-job は Running のまま維持し、単語翻訳フェーズの状態で完了、中断、回復可能失敗を区別する。
-phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
-job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
-操作可否は `JOB_PHASE_RUN.state` と共通操作規則から決める。
-単語翻訳フェーズ固有の `canRetry`、`canResume`、`canPause`、`canCancel` は持たない。
+仕様:
+- フェーズ開始と再試行は、AIサービス設定から最新の接続先と認証状態を再解決する。
+- 実行時に利用者が判断できる接続情報は、AIサービス、モデル、認証状態、実行方式、一括処理設定である。
+- 秘密値、認証キー平文、復号可能な値、認証参照の実値、接続先、外部サービスとの生データ、翻訳本文全文は利用者向け情報の対象外にする。
+- 運用上必要な要約は、保存済みの状態事実から導出する。
 
-共通辞書は phase 開始時の snapshot で固定する。
-共通辞書に完全一致する語は provider request へ含めず、共通辞書完全一致ではない語は確定済みとして保存しない。
-共通辞書除外後に対象語が 0 件でも、phase result は Completed とし、provider 未実行を結果要約へ表示する。
+### `term-translation-phase-REQ-003` 共通辞書一致で AI 翻訳対象を決める
 
-共通辞書にない用語と固有名詞は provider へ送る。
-provider 実行は 1 対象語 1 request unit を基本とし、Batch API を使う場合も batch item は 1 対象語単位にする。
-provider の valid response は source term と translated term の対応を保持し、自動で確定訳語として扱う。
+親要件:
+共通辞書に完全一致する語は、フェーズ開始時の辞書参照に基づく置換対象として扱う。
 
-確定訳語は対象 job のジョブ内辞書として保存する。
-`DICTIONARY_ENTRY.translation_job_id` と `PHASE_RUN_DICTIONARY_ENTRY` から、対象 job と phase run を追跡できる必要がある。
-同一 job、同一 record type、同一 source term では重複 entry を作らない。
-別 record type の同一 source term は別 entry として扱える。
+仕様:
+- 共通辞書はフェーズ開始時の辞書参照で固定する。
+- 共通辞書に完全一致する語は辞書置換対象にする。
+- 共通辞書の完全一致条件外の語は AI 翻訳対象にする。
+- 共通辞書の対象範囲を判定した後に AI 翻訳対象語が 0 件でも、単語翻訳フェーズは `Completed` として扱う。
+- AI 翻訳対象語が 0 件の場合は、AIサービス未実行を結果として判断できる。
 
-再開、リトライ、開始再送では、同じ `JOB_PHASE_RUN` を使う。
-既存 entry は維持し、未処理 term だけ provider request へ進める。
-retryable failure では最新 error と progress を更新する。
+### `term-translation-phase-REQ-004` AIサービス応答をジョブ内辞書へ反映する
 
-provider 失敗、応答不正、保存失敗は成功扱いにしない。
-invalid response、response 欠落、余分な応答、空訳語は対象語単位の failed / retryable として扱う。
-保存途中失敗では partial dictionary state を成功扱いにしない。
-別 provider への暗黙 fallback は行わない。
+親要件:
+共通辞書対象外の用語と固有名詞は AI 翻訳対象とし、確定訳語を対象の翻訳ジョブ内辞書へ保存する。
 
-単語翻訳フェーズ未完了、失敗中、辞書参照不能の場合、後続 phase run を作成しない。
-単語翻訳フェーズ完了後だけ、後続 phase の入力 summary が成立する。
-terminal job への後書きは拒否する。
+仕様:
+- 共通辞書対象外の用語と固有名詞は AIサービスへ送る。
+- AIサービスへの実行単位は 1 対象語を基本とする。
+- 一括処理を使う場合も、1 項目は 1 対象語に対応する。
+- AIサービスの有効な応答は、原語と訳語の対応を保持し、自動で確定訳語として扱う。
+- 確定訳語は対象の翻訳ジョブ内辞書として保存する。
+- 確定訳語は、対象の翻訳ジョブと単語翻訳の実行単位を追跡できる状態で保持する。
+- 同一翻訳ジョブ、同一レコード種別、同一原語では一意の辞書項目として扱う。
+- 別レコード種別の同一原語は別辞書項目として扱える。
 
-secret、API key 平文、復号可能な値、credential 参照実値、secret store key、endpoint、provider raw request / response、翻訳フィールド本文の全文は表示しない。
-同じ情報は error summary、structured log、fake transport log、保存データにも出さない。
-operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
-監査用に導出できる要約は provider、model、execution mode、batch mode、credential 状態分類、input count、output count、prompt version または digest、共通辞書 snapshot の digest または version を中心にする。
+### `term-translation-phase-REQ-005` 再開、リトライ、失敗を安全に扱う
 
-## UI 契約由来の恒久仕様
+親要件:
+再開、再試行、開始再送では重複作成を避け、途中失敗を回復可能な状態として扱う。
 
-Job Run は current phase、phase state、progress、開始時刻、完了時刻、対象語件数、共通辞書 hit 件数、AI 実行対象語件数を表示する。
-phase result は確定訳語件数、ジョブ内辞書反映件数、置換対象件数、未一致件数、provider / model / execution mode / batch mode / credential 状態分類の要約を表示する。
+仕様:
+- 再開、再試行、開始再送では、同じ実行単位を継続する。
+- 既存の辞書項目は維持し、未処理の用語だけ AI 翻訳対象にする。
+- 再試行可能な失敗では、最新の失敗理由と進行状況を更新する。
+- AIサービス失敗、応答不正、保存失敗がある場合、`RecoverableFailed` または `Failed` の対象にする。
+- 不正応答、応答欠落、余分な応答、空訳語は対象語単位の失敗として扱う。
+- 保存途中失敗では、単語翻訳フェーズを `RecoverableFailed` として扱う。
+- AIサービスはジョブ設定で固定したサービスを使う。
+- 終端状態の翻訳ジョブへの後書きは拒否結果にする。
 
-エラー時は error kind、短い理由、retryable flag、後続 phase 不可理由を表示する。
-secret、API key 平文、provider raw request / response、翻訳フィールド本文の全文は表示しない。
+### `term-translation-phase-REQ-006` 後続フェーズの開始条件を固定する
 
-開始操作は Ready job かつ active な単語翻訳 phase run がない時だけ有効にする。
-後続 phase へ進む操作は、単語翻訳フェーズ完了と辞書参照成立後だけ有効にする。
-pause は Running の時だけ有効にする。
-resume は Paused の時だけ有効にする。
-リトライは RecoverableFailed かつ retryable failure の時だけ有効にする。
-cancel は Paused の時だけ有効にする。
+親要件:
+単語翻訳フェーズ完了後だけ、後続フェーズの入力条件が成立する。
 
-Job Run は `idle_ready`、`running`、`empty_completed`、`completed`、`paused`、`recoverable_failed`、`blocked` の状態差分を示す。
-loading 中は既存 summary を保持し、更新中であることを表示する。
-phase state は色だけでなく text label で示す。
-disabled button は理由を近接表示する。
+仕様:
+- 単語翻訳フェーズ未完了、失敗中、辞書参照不能は、後続フェーズの開始拒否理由にする。
+- 単語翻訳フェーズ完了後だけ、後続フェーズの入力条件が成立する。
+- 利用者は現在の翻訳段階、進行状況、対象語件数、共通辞書一致件数、AI 翻訳対象語件数を判断できる。
+- 単語翻訳結果は、確定訳語件数、ジョブ内辞書反映件数、置換対象件数、未一致件数、AIサービス設定の扱いを判断できる状態にする。
+- 後続フェーズへ進む操作は、単語翻訳フェーズ完了と辞書参照成立後だけ成立する。
 
-desktop と mobile では、長い source term、provider 名、model 名、error reason が横にはみ出さない。
-狭幅では summary を 1 列にし、件数と状態 label が折り返しても操作列を押し出さない。
-table が必要な情報でも、狭幅では key-value list へ落とせる構造にする。
+### `term-translation-phase-REQ-007` 操作と状態を利用者が判別できる
 
-## 受け入れ根拠
+親要件:
+利用者は開始、一時停止、再開、再試行、取り消しの可否と理由を判断できる。
 
-- `SCN-TTP-001`: Ready job から単語翻訳フェーズを開始し、current phase と progress を確認する。
-- `SCN-TTP-002`: 共通辞書の完全一致語を provider request から除外する。
-- `SCN-TTP-003`: provider 応答を確定訳語候補として扱う。
-- `SCN-TTP-004`: 確定訳語をジョブ内辞書へ反映する。
-- `SCN-TTP-005`: Job Run で単語翻訳フェーズ結果を確認する。
-- `SCN-TTP-006`: provider 失敗や応答不正で辞書を汚さない。
-- `SCN-TTP-007`: 単語翻訳フェーズ未完了では後続フェーズへ進めない。
-- `SCN-TTP-008`: phase 再送、再開、リトライで重複作成しない。
-- `SCN-TTP-009`: 監査要約と redaction を確認する。
+仕様:
+- 開始操作は `Ready` の翻訳ジョブかつ実行中の単語翻訳がない時だけ成立する。
+- 一時停止は `Running` の時だけ成立する。
+- 再開は `Paused` の時だけ成立する。
+- 再試行は `RecoverableFailed` かつ再試行可能な失敗の時だけ成立する。
+- 取り消しは `Paused` の時だけ成立する。
+- 利用者は待機中、実行中、空完了、完了、一時停止中、回復可能失敗、阻害中を区別できる。
+- 更新中は既存の状態情報を保持し、更新中であることを区別できる。
+- 利用者は翻訳段階の状態と操作不可理由を判断できる。
 
-## 検証根拠
+## 根拠
 
-`term-translation-phase` の plan は `workflow_state: implementation-review-passed` である。
-design bundle は human approved であり、`implementation-scope.md` は `human_review_status: approved` である。
-
-最終検証では scenario gate、frontend、backend、全体検証が pass している。
-Sonar は coverage 74.6%、line 75.8%、branch 64.4%、security 0、reliability 0、maintainability HIGH 0 である。
-
-5 観点の reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
-trust-boundary reviewback は `hard_gate_result: passed` である。
-`implementation_action` は `close` である。
-
-## 対象外
-
-- 本文翻訳フェーズの訳文生成。
-- NPC ペルソナ生成フェーズの設計。
-- 共通辞書管理 UI、xTranslator import、xTranslator export。
-- task-local 確認用の一時成果物。
+- `term-translation-phase` の plan は `workflow_state: implementation-review-passed` である。
+- design bundle は human approved であり、`implementation-scope.md` は `human_review_status: approved` である。
+- 最終検証では旧設計 gate、frontend、backend、全体検証が pass している。
+- 5 観点の reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。

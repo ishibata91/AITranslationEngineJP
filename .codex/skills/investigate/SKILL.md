@@ -10,7 +10,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 `investigator` agent が設計前に必要な証拠、探索テストレーンの探索証跡、修正レーンの修正前調査を集めるための、観測事実、UI 証跡、ログ、仮説、残り 不足 の分け方を提供する。
 
 設計前調査では UI check 専用 skill / agent は置かない。
-設計前の UI 根拠 は `investigator` が `investigate` の一部として扱う。
+設計前の画面設計根拠は `investigator` が `investigate` の一部として扱う。
 
 ## 対応ロール
 
@@ -24,7 +24,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 
 - 必須入力: 呼び出し元、investigation_goal、known_context を受け取る。
 - 非必須入力: investigation_mode、reproduction_steps、candidate_paths、探索計画、テストデータを受け取る。
-- 非必須調査種別: `investigation_mode` は `再現`、`UI 根拠`、`trace`、`リスク報告`、`探索テスト証跡`、`修正前調査` のいずれかを受け取る。
+- 非必須調査種別: `investigation_mode` は `再現`、`画面設計根拠`、`trace`、`リスク報告`、`探索テスト証跡`、`修正前調査` のいずれかを受け取る。
 - 必須成果物: active task 文脈 または 呼び出し元提供 investigation 文脈を受け取る。
 
 ## 外部参照規約
@@ -47,8 +47,8 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 
 ### 拘束観点
 
-- `再現`、`UI 根拠`、`trace`、`リスク報告` の観点
-- 観測済み事実、UI 根拠、仮説 の分離
+- `再現`、`画面設計根拠`、`trace`、`リスク報告` の観点
+- 観測済み事実、画面設計根拠、仮説 の分離
 - 探索計画、テストデータ、探索証跡 の分離
 - 根拠 path と再現条件の残し方
 - 画面設計を操作経路と期待値の補助参照にする条件
@@ -59,9 +59,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 
 - 根拠 のない結論を書かない
 - 観測事実と仮説を混ぜない
-- 設計前の UI 根拠 は `agent-browser` CLI で確認する
-- UI 根拠 を集める時は、関連する `docs/screen-design/screens/*.md` または active plan の `screen-design-diff.<screen-id>.md` を、操作経路と期待値の補助参照として確認する
-- UI 根拠 は画面状態、console、screenshot、操作条件を分けて残す
+- 設計前の画面設計根拠は `agent-browser` CLI で確認する
+- 画面設計根拠を集める時は、関連する `docs/screen-design/screens/*.md` または active plan の `screen-design-diff.<screen-id>.md` を、操作経路と期待値の補助参照として確認する
+- 画面設計根拠は画面状態、console、screenshot、操作条件を分けて残す
 - 画面要素を操作できない時は、操作経路に対応する画面設計がない、画面ID または セレクタ（`aria-label`）が不足、起動状態が不足、操作経路または期待値と実画面の対応を確認できない、のいずれかで理由を返す
 - frontend log は browser console の観測事実として残す
 - backend log は `tmp/logs/wails-dev.log` の観測事実として残す
@@ -74,7 +74,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 修正前調査では実装方針と変更ファイルを確定しない
 - 修正前調査では観測事実に基づく影響ファイル候補を返してよい
 
-- observed、UI 根拠、inferred を分ける
+- observed、画面設計根拠、inferred を分ける
 - 証跡 path と再現条件を優先する
 - 設計継続可否に効く 不足 を残す
 - active 規約 は agent に対して 1 ファイルだけ置く。調査種別は selector で扱う。
@@ -115,15 +115,15 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 
 - 出力規約を満たし、次の 実行者 が再解釈なしで判断できる。
 - 不足情報または停止理由がある場合は明示されている。
-- 観測事実、UI 根拠、仮説、未観測 不足 を分けた。
+- 観測事実、画面設計根拠、仮説、未観測 不足 を分けた。
 - 根拠 path、再現条件、UI check 対象範囲 を残した。
-- UI 根拠を扱った場合は、参照した画面設計または画面設計差分を返した。
+- 画面設計根拠を扱った場合は、参照した画面設計または画面設計差分を返した。
 - 操作できない画面要素がある場合は、操作不能理由が分類されている。
 - 探索テスト証跡の場合は、探索計画、テストデータ、観測事実、UI 証跡、ログ証跡、未確認事項を分けた。
 - 探索テスト証跡の場合は、`exploration-test-evidence.md` に証跡が記録されている。
 - 修正前調査の場合は、人間観測、観測事実、UI 証跡、ログ証跡、未確認事項を分けた。
 - design continuation に必要な リスク を返した。
-- 必須 根拠: 観測済み事実 根拠, UI 根拠 when mode is UI 根拠, reproduction condition, 根拠 path when used
+- 必須 根拠: 観測済み事実 根拠, 画面設計根拠 when mode is 画面設計根拠, reproduction condition, 根拠 path when used
 - 完了判断材料: designer が設計継続か停止かを判断できる。
 - 残留リスク: 設計判断に残る リスク が返っている。
 

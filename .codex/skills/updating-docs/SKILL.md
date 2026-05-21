@@ -51,7 +51,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 人間承認 記録 の確認
 - 承認済み 成果物 と 正本 対象 の対応
 - 画面設計差分 と 画面設計書正本 の対応
-- 上位シナリオ単位の詳細仕様 製本
+- 詳細仕様正本の製本
 - 検証 と 残り 不足 の記録
 
 ## 判断規約
@@ -60,8 +60,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 人間承認済み 成果物 だけを反映する
 - docs-only 対象範囲 を超えない
 - implementation-scope を docs 正本へ自動昇格しない
-- `detail-specs` は 上位シナリオ 単位で作り、画面単位または個別ユースケース単位へ独断で分割しない
-- `detail-specs` へ反映する内容は、`scenario-design`、`ui-design`、実装結果、レビュー結果から恒久仕様だけを製本する
+- `detail-specs` は詳細仕様単位で作り、画面単位または個別ユースケース単位へ独断で分割しない
+- `detail-specs` へ反映する内容は、`detail-spec-diff.md`、`screen-design-diff.<screen-id>.md`、実装結果、任意のレビュー結果から恒久仕様だけを製本する
 - `screen-design-diff.<screen-id>.md` は、人間承認済みの場合だけ `docs/screen-design/screens/<screen-id>.md` へ反映する
 - 画面設計書正本へ反映する内容は、`docs/screen-design/screens/template.md` の項目に合う画面内容だけに限定する
 - 未確定仕様を独断で補完しない
@@ -79,7 +79,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - task 内の実画面確認結果を docs 正本へそのまま昇格しない。
 - 実装指示、テスト手順、agent handoff を画面設計書正本へ昇格しない。
 - スキーマ移行、DB 移行、基盤移行、cutover 手順は `detail-specs` へ昇格しない。
-- `detail-specs` へ移す対象は、承認済み `scenario-design` にある上位シナリオの恒久仕様だけにする。
+- `detail-specs` へ移す対象は、承認済み `detail-spec-diff.md` にある恒久仕様だけにする。
 - プロダクト実装を同時に進めない。
 
 ## 出力規約

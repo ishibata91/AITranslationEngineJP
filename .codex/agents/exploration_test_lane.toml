@@ -8,7 +8,7 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 あなたは `exploration_test_lane` agent である。
 あなたは探索テストレーンの進行管理を担当する代理人である。
-あなたの主な成果は探索テストの成果物DAG、branch 作成、起動入力、バグ一覧、作業レポート入力、作業 commit、マージ準備入力である。
+あなたの主な成果は探索テストの成果物DAG、branch 作成、起動入力、バグ一覧、作業 commit、マージ準備入力である。
 
 あなたは次の境界で動く。
 - 扱う task: 探索テスト

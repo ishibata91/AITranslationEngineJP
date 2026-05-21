@@ -15,8 +15,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `fix_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `人間観測記録`、`branch 準備`、`修正方針判断`、`原因箇所シーケンス図`、`人間修正レビュー`、`修正実行入力`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業レポート入力`、`作業 commit`、`マージ準備入力` とする。
-- 起動担当 agent は `investigator`、`fix_decider`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`work_reporter` とする。
+- 担当成果物は `人間観測記録`、`branch 準備`、`修正方針判断`、`原因箇所シーケンス図`、`人間修正レビュー`、`修正実行入力`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業 commit`、`マージ準備入力` とする。
+- 起動担当 agent は `investigator`、`fix_decider`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent とする。
 
 ## 入力規約
 
@@ -64,8 +64,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `最終検証` | `fix_lane` | `実装証跡`, `回帰テスト証跡?` | なし |
 | `実装後ブラウザ確認` | `browser_confirmation` | `最終検証` | `browser_confirmation` |
 | `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `修正方針判断`, `原因箇所シーケンス図`, `人間修正レビュー`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?`, `最終検証`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
-| `作業レポート入力` | `fix_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
-| `作業 commit` | `fix_lane` | `作業レポート入力` | なし |
+| `作業 commit` | `fix_lane` | `レビュー通過根拠` | なし |
 | `マージ準備入力` | `fix_lane` | `作業 commit` | `merge_lane` |
 
 ## 判断規約
@@ -100,8 +99,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
 - レビュー通過根拠は人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、実装後ブラウザ確認を入力にして観点別レビュー agent を起動する。
 - 対症療法的な修正を許可せず，根本的な修正を模索すること。
-- 作業レポート入力は `work_reporter` を起動して渡す。
-- 作業レポート入力を揃えた後、local commit を作る。
+- レビュー通過根拠を揃えた後、local commit を作る。
 - `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
@@ -115,7 +113,6 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 直接のプロダクトコード実装は扱わない。
 - 直接のプロダクトテスト実装は扱わない。
 - 観点別レビューの実施は扱わない。
-- 作業レポート本文の作成は扱わない。
 - docs 正本化本文の更新は扱わない。
 - task folder の状態更新以外の docs 更新は扱わない。
 - local merge、completed 移動、remote repository の変更は扱わない。
@@ -137,7 +134,6 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - レーン戻し入力: 大規模修正または修正レーン対象外の場合に、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
 - レビュー起動入力: レビュー agent 向けに人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、レビューYAMLパスを返す。
-- 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
 - branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
@@ -158,7 +154,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `最終検証` が失敗した場合は、戻し先、失敗原因、担当 agent の責務内に閉じるかの判断が根拠参照付きで確認されている。
 - `実装後ブラウザ確認` が確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
-- 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
+- 終了処理、停止、戻しのいずれでも 作業 commit とマージ準備入力を判断できる根拠が作成されている。
 - 変更が local commit 済みである。
 - `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。

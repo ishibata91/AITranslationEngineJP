@@ -34,4 +34,4 @@
 - `decision`: `complete | incomplete | stopped`
 - `evidence_refs`:
 - `missing_info`:
-- `next_artifact`: `work_report_input`
+- `next_artifact`: `merge_readiness_input`

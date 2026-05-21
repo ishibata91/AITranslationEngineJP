@@ -11,11 +11,10 @@
 ## 最小構成
 
 - `plan.md`: task 全体の索引、状態、HITL、validation、closeout
-- `scenario-design.md`: 必須要件、受け入れテスト観点、システムテスト分類、受け入れ条件、観測点
+- `detail-spec-diff.md`: 親要件、仕様、未決、回答
 
 ## 条件付き構成
 
-- `ui-design.md`: UI 要件契約が必要な task だけ作る
 - `screen-design-diff.<screen-id>.md`: 画面構成の変更があり、画面設計書正本へ反映する差分が必要な task だけ作る
 - `implementation-scope.md`: human review 後だけ作る
 
@@ -23,7 +22,8 @@
 
 - AI は最初に `plan.md` だけ読む
 - 追加 context は必要な skill 資料だけ読む
-- 新規実装レーンの frontend implementation handoff では `implementation-scope.md`、`ui-design.md`、関連する `screen-design-diff.<screen-id>.md` を読む
+- 新規実装レーンの frontend implementation handoff では `implementation-scope.md` と関連する `screen-design-diff.<screen-id>.md` を読む
+- frontend 実装後人間レビューでは Storybook の story、`fixture`、変更または追加した部品、変更または追加した表示状態を読む
 - 軽量変更レーンの実装では `plan.md` の `task 枠` と `light-change-planning.md` を読む
 - UI 確認では画面設計または `screen-design-diff.<screen-id>.md` を読み、実画面を `agent-browser` で確認する
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む

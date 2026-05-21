@@ -11,8 +11,8 @@ flowchart TD
     A[implement-lane]
     P[task folder plan.md]
     C[investigate]
-    U[ui-design.md]
-    S[scenario-design.md]
+    U[screen-design-diff.md]
+    S[detail-spec-diff.md]
     F[human review]
     G[implementation-scope.md]
     H[Codex implementation lane implement-lane]
@@ -24,7 +24,6 @@ flowchart TD
     P --> S
     P --> C --> S
     S --> U
-    U --> S
     S --> F
     F --> G
     G --> H

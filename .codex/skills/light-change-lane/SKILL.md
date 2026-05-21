@@ -7,15 +7,15 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 ## 目的
 
 `light-change-lane` は、既存仕様の意味を大きく広げない軽量変更を進める作業プロトコルである。
-`light_change_lane` が task 枠、軽量変更計画、実装証跡、確認結果、テスト修正証跡、レビュー通過根拠、作業レポート入力を管理する時に使う。
+`light_change_lane` が task 枠、軽量変更計画、実装証跡、確認結果、テスト修正証跡、レビュー通過根拠、作業 commit、マージ準備入力を管理する時に使う。
 
 ## 対応ロール
 
 - `light_change_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`branch 準備`、`軽量変更計画`、`設計差分図`、`実装証跡`、`人間確認`、`テスト修正証跡`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`作業レポート入力`、`作業 commit`、`マージ準備入力` とする。
-- 起動担当 agent は `light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater`、`work_reporter` とする。
+- 担当成果物は `task 枠`、`branch 準備`、`軽量変更計画`、`設計差分図`、`実装証跡`、`人間確認`、`テスト修正証跡`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`作業 commit`、`マージ準備入力` とする。
+- 起動担当 agent は `light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` とする。
 
 ## 入力規約
 
@@ -62,8 +62,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 | `レビュー通過根拠` | `light_change_lane` | `軽量変更計画`, `実装証跡`, `人間確認?`, `テスト修正証跡?`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
 | `正本化判断` | 仕様変更または仕様追加あり | `レビュー通過根拠` | `docs_updater?` |
 | `詳細仕様正本反映` | 仕様変更または仕様追加あり | `正本化判断` | `docs_updater?` |
-| `作業レポート入力` | `light_change_lane` / `work_reporter` | 全完了または停止済み成果物, `レビュー通過根拠?` | `work_reporter` |
-| `作業 commit` | `light_change_lane` | `作業レポート入力` | なし |
+| `作業 commit` | `light_change_lane` | `詳細仕様正本反映?`, `レビュー通過根拠` | なし |
 | `マージ準備入力` | `light_change_lane` | `作業 commit` | `merge_lane` |
 
 ### 軽量変更分類
@@ -84,7 +83,8 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - `軽量変更計画` は `light_change_planner` を起動して渡す。
 - `軽量変更計画` が `設計戻し` または `修正レーン戻し` を返す場合は、実装へ進めない。
 - `設計差分図` は `diagrammer` を起動して作る。
-- `設計差分図` は、予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 に限定する。
+- `設計差分図` の標準形は、予定変更箇所だけの追加・削除差分を示すコンポーネント図に限定する。
+- シーケンス図、状態遷移図、その他の図は、ユーザー要求または複雑性がある場合だけ作る。
 - `設計差分図` は、全体構成図、正本図、変更しない箇所の網羅図として作らない。
 - `設計差分図` の起動入力には、軽量変更計画、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、出力先を含める。
 - 実装 agent の起動入力には、`backend_implementer`、`frontend_implementer`、`integration_implementer` のどれを起動するかを必ず明示する。
@@ -100,7 +100,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 起動先 agent には文脈を引き継がず、必要情報を引き継ぎ入力に明示する。
 - 起動先 agent は下位 agent を起動せず、渡された成果物だけを作る。
 - 人間介入が必要な成果物は AI だけで完了にしない。
-- 作業レポート入力を揃えた後、local commit を作る。
+- レビュー通過根拠と正本化判断を揃えた後、local commit を作る。
 - `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
@@ -111,7 +111,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 既存仕様へ戻す恒久修正は扱わない。
 - 探索テストの計画と観測は扱わない。
 - 重い構造整理は扱わない。
-- シナリオ候補生成、シナリオ設計、UI契約作成は扱わない。
+- 詳細仕様差分、画面設計差分、UI 契約作成は扱わない。
 - 起動先 agent の下位 agent 起動は扱わない。
 - 直接のプロダクトコード実装は扱わない。
 - 直接のプロダクトテスト実装は扱わない。
@@ -125,14 +125,13 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - task 枠: 人間依頼、変更禁止範囲、確認したい結果を返す。
 - 軽量変更計画起動入力: `light_change_planner` 向けに task 枠、既存成果物、非必須検証ログ、禁止事項、期待する成果物を返す。
 - 設計差分図起動入力: `diagrammer` 向けに図化目的、軽量変更計画、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、対象作業計画フォルダを返す。
-- 設計差分図: 人間確認前の判断材料として、追加・削除差分のコンポーネント図、追加・削除差分のシーケンス図、根拠参照、検証結果、未決事項を返す。
+- 設計差分図: 人間確認前の判断材料として、追加・削除差分のコンポーネント図、根拠参照、検証結果、未決事項を返す。
 - 実装起動入力: 実装種別別 agent 向けに軽量変更計画、実装 skill、変更対象、検証コマンド、停止条件を返す。
 - 人間確認記録: 人間確認の承認、差し戻し、追加質問、確認根拠を返す。
 - テスト修正起動入力: テスト修正担当 agent 向けに対象テスト範囲、検証目的、実装結果、人間確認結果、検証コマンド、停止条件を返す。
 - 実装後ブラウザ確認起動入力: `browser_confirmation` 向けに確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を返す。
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - レビュー起動入力: レビュー agent 向けにレビュー対象差分、実装目的、軽量変更計画、実装結果、検証証跡、変更ファイル、レビューYAMLパスを返す。
-- 作業レポート入力: 完了または停止した成果物、検証、残留リスク、次に見るべき場所を返す。
 - branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
@@ -146,7 +145,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - `軽量変更計画` が仕様製本、関連 docs、task-local 成果物、既存実装の突き合わせ結果を含んでいる。
 - `軽量変更計画` が `範囲内修正`、`軽量仕様変更`、`設計戻し`、`修正レーン戻し` のいずれかを返している。
 - `設計差分図` が実装着手前に揃っている。
-- `設計差分図` が予定変更箇所だけの追加・削除差分を示す コンポーネント図 と シーケンス図 を含んでいる。
+- `設計差分図` が予定変更箇所だけの追加・削除差分を示すコンポーネント図を含んでいる。
 - `実装証跡` が軽量変更計画、禁止範囲、実装 skill、確認観点を根拠に起動されている。
 - 起動先 agent が文脈継承なしで直接起動され、起動入力だけで成果物を返している。
 - 人間確認が必要な場合は、承認、差し戻し、追加質問のいずれかが記録されている。
@@ -155,7 +154,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 5 観点の `reviewback.<観点>.yaml` が確認されている。
 - 仕様変更または仕様追加がある場合は、`正本化判断` の結果が根拠参照付きで記録されている。
 - human 承認済みの恒久仕様がある場合は、`詳細仕様正本反映` の完了結果または停止理由が根拠参照付きで記録されている。
-- 終了処理、停止、戻しのいずれでも `作業レポート入力` と作業観測根拠が作成されている。
+- 終了処理、停止、戻しのいずれでも 作業 commit とマージ準備入力を判断できる根拠が作成されている。
 - 変更が local commit 済みである。
 - `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。

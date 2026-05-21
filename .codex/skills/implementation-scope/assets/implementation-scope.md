@@ -11,19 +11,15 @@
 
 ## Source Artifacts
 
-- `ui_design`: `./ui-design.md` または `N/A`
+- `detail_spec_diff`: `./detail-spec-diff.md`
 - `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
-- `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
-- `scenario_design`: `./scenario-design.md`
-- `detail_requirement_coverage`: `./scenario-design.requirement-coverage.json`
-- `human_decision_questionnaire`: `./scenario-design.questions.md`
 
 ## Fixed Decisions
 
 - human review 済みの判断だけを書く
-- frontend handoff がある場合は、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を source にする
-- `needs_human_decision`: `0`
-- 承認済み詳細要求タイプと質問票回答だけを handoff source にする
+- frontend handoff がある場合は、承認済み `screen-design-diff.<screen-id>.md` を source にする
+- `unanswered_questions`: `0`
+- 承認済み詳細仕様差分と回答欄だけを handoff source にする
 - downstream handoff が依存する public seam は各実装 handoff の完了条件として固定する
 - secret を扱う handoff は参照値、secret 本体、secret 解決責務層、出力禁止値を分ける
 - backend、frontend、統合境界 は原則として別 handoff に分ける
@@ -43,10 +39,9 @@
 - `implementation_target`:
 - `implementation_artifact`: `backend 実装 | frontend 実装 | 統合境界実装 | シナリオテスト | 単体テスト`
 - `implementation_skill`: `implement-backend | implement-frontend | implement-integration | tests-scenario | tests-unit`
+- `spec_basis`: `./detail-spec-diff.md` または `docs/detail-specs/<detail-spec-id>.md`
 - `frontend_required_sources`:
-  - `ui_design`: `./ui-design.md` または `N/A`
   - `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
-  - `ui_agent_browser_review`: `./ui-design.md#agent-browser-review` または `N/A`
 - `secret_boundary`:
   - `status`: `required | not_required`
   - `reference_values_allowed_in_ui_dto_read_model`:
@@ -67,11 +62,12 @@
 - `execution_stage`: `実装後 | final validation`
 - `notes`:
   - backend と frontend は必ず別 handoff に分ける。UI がある task では frontend handoff を backend handoff より先に置く。
-  - frontend handoff では、承認済み `ui-design.md` と関連する `screen-design-diff.<screen-id>.md` を必須 source にする。
-  - frontend handoff では、承認済み UI 要件契約の主要区画、導線、状態表示を維持する完了条件を書く。
+  - frontend handoff では、承認済み `screen-design-diff.<screen-id>.md` を必須 source にする。
+  - frontend handoff では、承認済み画面設計差分の主要区画、導線、状態表示を維持する完了条件を書く。
   - API / Wails / DTO / gateway / adapter contract の接続と実画面確認は `統合境界実装` handoff に分ける。
   - `implementation_skill` は `implementation_artifact` と一致させ、Codex implementation lane が読む skill を一意にする。
   - `シナリオテスト` と `単体テスト` は実装成果物の完了後に別 handoff として作り、依存対象が揃った後は並列実行できる。
+  - `単体テスト` handoff は、期待結果の元ネタとして `spec_basis` を必ず持つ。
   - `APIテスト` と `UI人間操作E2E` は実装後の `シナリオテスト` で証明する。
   - secret を扱う handoff では、UI / DTO / read model に出してよい参照値と、provider / external API / internal auth に渡す secret 本体を `secret_boundary` に分けて書く。
   - `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名がある場合は、参照値と secret 本体を同じ値として扱わない。
@@ -98,6 +94,6 @@ Codex implementation lane は完了時に次を返す。
 - `sonar_gate_result`: 互換 field 名。意味は repo-local Sonar issue gate であり、Sonar サーバ側 Quality Gate ではない。
 - `harness_gate_result`: system test が Wails / sandbox / OS 権限で止まる場合は `FAIL_ENVIRONMENT` とし、blocked reason、再実行環境、再実行コマンドを残す。
 - `residual_risks`
-- `completion_evidence`: Codex 側 `work_reporter` が読む実装事実。report 文面ではなく、completed_handoffs、touched_files、validation、residual、blocked reason、人間が次に見るべき場所を含める。
+- `completion_evidence`: レーン終了判断で読む実装事実。completed_handoffs、touched_files、validation、residual、blocked reason、人間が次に見るべき場所を含める。
 - `telemetry_events`: `runtime: codex` の response event。速度や欠落は次回改善用であり、初期 close 判定には使わない。
 - `docs_changes: none`

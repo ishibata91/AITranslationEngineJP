@@ -1,5 +1,5 @@
 name = "diagrammer"
-description = "Codex diagram 補助 agent。設計差分図または原因箇所シーケンス図を扱う。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md を読む。"
+description = "Codex 図作成補助 agent。設計差分図または明示された補助図を扱う。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md を読む。"
 
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
@@ -18,6 +18,6 @@ developer_instructions = """
 標準 `implement_lane` flow では、人間設計レビュー前の `設計差分図` に限り `implement_lane` から直接起動される。
 標準 `light_change_lane` flow では、実装着手前の `設計差分図` に限り `light_change_lane` から直接起動される。
 標準 `fix_lane` flow では、`原因箇所シーケンス図` は `fix_decider` が `fix-decision` に従って作る。
-その他の diagram が必要な資料の場合は `designer` agent が `diagramming` skill を参照して扱う。
+その他の図が必要な資料の場合は `designer` agent が `diagramming` skill を参照して扱う。
 この agent は、明示的に diagrammer が指定された補助用途でも使う。
 """

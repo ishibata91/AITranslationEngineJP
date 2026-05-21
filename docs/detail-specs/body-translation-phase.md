@@ -1,90 +1,116 @@
 # 詳細仕様: 本文翻訳フェーズ
 
-- `upper_scenario_id`: `body-translation-phase`
+- `detail_spec_id`: `body-translation-phase`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/body-translation-phase/scenario-design.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/scenario-design.md`
-- `ui_source`: `docs/exec-plans/completed/body-translation-phase/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
-- `review_source`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
+- `source_artifacts`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `implementation_artifacts`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_artifacts`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
-## 要約
+## 親要件と仕様
 
-- 利用者は NPC ペルソナ生成フェーズ完了後に、Job Run から本文翻訳フェーズを開始、監視、回復できる。
-- 本文翻訳フェーズは確定訳語、ジョブ内辞書、ジョブ内ペルソナ、翻訳補助メタデータを同一 phase run の入力として固定する。
-- 本文翻訳フェーズは訳文、出力ステータス、保護要素検証結果を field 単位で保持し、後続の翻訳成果物出力へ渡せる状態を作る。
-- 本文翻訳フェーズの完了時点で翻訳 job 全体は `Completed` になり、完了済み job から成果物を出力できる。
+### `body-translation-phase-REQ-001` 本文翻訳フェーズを開始できる
 
-## 対象
+親要件:
+利用者は NPC ペルソナ生成フェーズ完了後に、本文翻訳フェーズを開始できる。
 
-- 対象利用者は、Skyrim Mod 翻訳 job の本文翻訳を実行し、失敗時に再試行または取り消しを判断する利用者である。
-- 開始条件は、NPC ペルソナ生成フェーズが Completed であり、job が terminal ではなく、active phase run がなく、辞書と persona snapshot の参照が成立していることである。
-- 完了状態は、body phase が Completed であり、訳文、出力ステータス、保護要素検証結果、output readiness を確認できることである。
-- 主要データは `JOB_PHASE_RUN`、`JOB_TRANSLATION_FIELD`、`PHASE_RUN_TRANSLATION_FIELD`、辞書 snapshot、persona snapshot、metadata summary、provider execution summary である。
+仕様:
+- 本文翻訳フェーズは、ジョブ設定で固定した本文翻訳用の AIサービス、モデル、実行方式、一括処理設定を使う。
+- 本文翻訳フェーズは、開始条件が成立した時だけ開始する。
+- 開始後のフェーズ操作可否は、共通操作規則とフェーズ状態から決まる。
+- フェーズ開始と再試行は、AIサービス設定から最新の接続先と認証状態を再解決する。
+- 実行時に利用者が判断できる接続情報は、AIサービス、モデル、認証状態、実行方式、一括処理設定である。
 
-## 仕様
+### `body-translation-phase-REQ-002` 翻訳入力を固定する
 
-- 本文翻訳フェーズは `Job Setup` で設定した本文翻訳用 provider、model、execution mode、batch mode を使う。開始時の再選択 UI は作らない。
-- 本文翻訳フェーズ開始が許可された時だけ、本文翻訳用の `JOB_PHASE_RUN` を作成する。
-- 操作可否は `JOB_PHASE_RUN.state` と共通操作規則から決める。
-- 本文翻訳フェーズ固有の `canRetry`、`canResume`、`canPause`、`canCancel` は持たない。
-- phase 開始と retry は、AIサービス設定から最新 endpoint と credential 参照状態を再解決する。
-- job 側 runtime snapshot は provider、model、credential 状態分類、execution mode、batch mode だけを保存する。
-- 入力 summary は対象 field 件数、辞書 snapshot digest、persona snapshot digest、metadata digest、prompt digest を持つ。
-- 完全一致した辞書 hit は provider request から除外する。部分一致は訳語固定制約として provider request に渡す。
-- 翻訳レコード種別と field type に応じて翻訳指示を構成し、field correlation key と保護要素 digest を失わず provider 境界へ渡す。
-- paid real API は検証前提にしない。fake provider と fixed response で provider 境界を検証できる。
-- provider 失敗、応答不正、correlation error、保存失敗、保護要素検証失敗は successful Completed として扱わない。
-- 保護要素検証に失敗した訳文は保存前に拒否し、失敗訳文は保持しない。該当 field は retry 対象にする。
-- 訳文、出力ステータス、保護要素検証結果は同一 field に対応付ける。
-- 保存失敗または検証失敗では phase state を Completed にしない。
-- 部分失敗では成功済み field result を保持し、phase 全体は `RecoverableFailed` として表示する。
-- retry、resume、開始再送は同じ `JOB_PHASE_RUN` を継続し、`JOB_TRANSLATION_FIELD` と `PHASE_RUN_TRANSLATION_FIELD` を重複作成しない。
-- cancel は `Paused` からだけ可能にする。`Canceled` 後はフェーズ終端とし、途中成功結果は output readiness に使わない。
-- terminal job では body phase run 作成、field save、readiness update、late response 後書きを拒否する。
-- 本文翻訳対象 0 件は Completed として扱う。provider 未実行でも、単語だけの plugin は成果物出力へ進める。
-- body phase Completed、field result 整合、output status 整合を満たす時だけ output readiness を true にする。
-- secret、API key 平文、復号可能値、credential 参照実値、secret store key、endpoint、provider raw request / response、raw prompt は UI、DTO、error summary、structured log、debug log、fake transport log に出さない。
-- operation summary は DB に永続保存せず、必要な時に状態事実から導出する。
-- 原文と訳文がローカル UI に表示されること自体は許容する。
+親要件:
+本文翻訳フェーズは確定訳語、ジョブ内辞書、ジョブ内ペルソナ、翻訳補助情報を同一実行単位の入力として固定する。
 
-## 受け入れ根拠
+仕様:
+- 入力条件は対象翻訳項目件数、辞書参照、ペルソナ参照、翻訳補助情報、生成指示の同一性を持つ。
+- 完全一致した辞書 hit は辞書置換対象にする。
+- AI 翻訳対象は辞書置換対象外の翻訳項目にする。
+- 部分一致は訳語固定制約として AIサービスへ渡す。
+- 翻訳レコード種別と翻訳項目種別に応じて翻訳指示を構成する。
+- 翻訳項目の対応関係と保護要素の同一性を失わず AIサービス境界へ渡す。
 
-- `SCN-BTP-001`: NPC ペルソナ生成フェーズ完了後に本文翻訳フェーズを開始できる。
-- `SCN-BTP-002`: 本文翻訳入力 snapshot と request summary を固定できる。
-- `SCN-BTP-003`: 翻訳レコード種別に応じた provider request を fake transport で実行できる。
-- `SCN-BTP-004`: 保護要素検証後に訳文と出力ステータスを保存できる。
-- `SCN-BTP-005`: 保護要素検証失敗を成功扱いにしない。
-- `SCN-BTP-006`: Job Run で本文翻訳フェーズ result と操作可否を確認できる。
-- `SCN-BTP-007`: provider 失敗、応答不正、保存失敗を成功扱いにしない。
-- `SCN-BTP-008`: retry、再開、開始再送で重複作成しない。
-- `SCN-BTP-009`: `Paused` からの cancel または terminal job には body translation result を後書きしない。
-- `SCN-BTP-010`: 本文翻訳結果 summary を後続成果物出力へ渡せる。
-- `SCN-BTP-011`: 監査要約と secret 非露出を確認できる。
+### `body-translation-phase-REQ-003` 翻訳結果を翻訳項目単位で保存できる
+
+親要件:
+本文翻訳フェーズは訳文、出力状態、保護要素検証結果を翻訳項目単位で保持する。
+
+仕様:
+- 訳文、出力状態、保護要素検証結果は同一翻訳項目に対応付ける。
+- 保護要素検証に失敗した訳文は、採用結果の対象外にする。
+- 保護要素検証に失敗した翻訳項目は再試行対象にする。
+- 保存失敗または検証失敗がある翻訳段階は、`RecoverableFailed` または `Failed` の対象にする。
+- 本文翻訳フェーズ `Completed`、翻訳結果整合、出力状態整合を満たす時だけ成果物出力条件が成立する。
+- 本文翻訳対象 0 件は Completed として扱う。
+- AIサービス未実行でも、単語だけの翻訳対象は成果物出力へ進める。
+
+### `body-translation-phase-REQ-004` 失敗、再試行、取り消しを安全に扱う
+
+親要件:
+AIサービス失敗、応答不正、対応関係不整合、保存失敗、保護要素検証失敗は回復可能な失敗として扱える。
+
+仕様:
+- AIサービス失敗、応答不正、対応関係不整合、保存失敗、保護要素検証失敗がある場合、`RecoverableFailed` または `Failed` の対象にする。
+- 部分失敗では成功済み翻訳結果を保持し、翻訳段階全体は `RecoverableFailed` として扱う。
+- 再試行、再開、開始再送は同じ実行単位を継続する。
+- 同一翻訳項目の結果は、同じ実行単位内で一意に扱う。
+- 取り消しは `Paused` の時だけ成立する。
+- `Canceled` 後はフェーズ終端とし、途中成功結果は成果物出力条件の対象外にする。
+- 終端状態の翻訳ジョブでは、本文翻訳フェーズの開始、翻訳結果採用、成果物出力条件更新、遅延応答採用を拒否結果にする。
+
+### `body-translation-phase-REQ-005` 翻訳ジョブ全体の完了と成果物出力条件を作る
+
+親要件:
+本文翻訳フェーズの完了時点で翻訳ジョブ全体は `Completed` になり、完了済み翻訳ジョブから成果物を出力できる。
+
+仕様:
+- 本文翻訳フェーズの完了時点で翻訳ジョブ全体は `Completed` になる。
+- 本文翻訳フェーズ `Completed`、翻訳結果整合、出力状態整合を満たす時だけ成果物出力条件が成立する。
+- 成果物出力は、成果物出力条件が成立した完了済み翻訳ジョブだけを候補にする。
+
+### `body-translation-phase-REQ-006` 進行と結果を判断できる
+
+親要件:
+利用者は本文翻訳フェーズの進行、結果、失敗理由、成果物出力条件を判断できる。
+
+仕様:
+- 利用者は現在の翻訳段階、進行状況、対象件数、処理済み件数、未処理件数、AIサービス設定の扱い、出力件数を判断できる。
+- 利用者は辞書適用件数、ペルソナ参照件数、翻訳補助情報、訳文、出力状態、保護要素検証結果、成果物出力条件を判断できる。
+- 利用者は失敗状態、失敗分類、再試行可否、影響件数、保護対象を含まない失敗要約を判断できる。
+- 利用者は本文翻訳フェーズ開始、一時停止、再開、再試行、取り消し、翻訳結果確認、保護要素検証結果確認、成果物出力条件確認を行える。
+- 状態差分は、未準備、準備完了、開始中、実行中、一時停止中、回復可能失敗、検証失敗、空完了、完了、取り消し済み、失敗として扱う。
+- AIサービス未実行、AIサービス実行中、AIサービス部分失敗、保存失敗、遅延応答拒否を区別できる。
+
+### `body-translation-phase-REQ-007` 操作可否と状態理由を判断できる
+
+親要件:
+利用者は操作可否と理由を判別できる。
+
+仕様:
+- 開始は開始条件が成立した時だけ成立する。
+- 一時停止は本文翻訳フェーズ `Running` の時だけ成立する。
+- 再開は本文翻訳フェーズ `Paused` の時だけ成立する。
+- 再試行は本文翻訳フェーズ `RecoverableFailed` かつ再試行可能な失敗がある時だけ成立する。
+- 取り消しは本文翻訳フェーズ `Paused` の時だけ成立する。
+- 本文翻訳フェーズ `Running` の取り消し要求は拒否結果になる。
+- 成果物出力条件は本文翻訳フェーズ `Completed` かつ翻訳結果整合時だけ成立する。
+- 利用者は翻訳段階の状態、検証結果、再試行可否、進行状況を判断できる。
+
+### `body-translation-phase-REQ-008` 秘密値と生データを利用者向け情報から分離する
+
+親要件:
+本文翻訳フェーズは秘密値、外部サービスとの生データ、生成指示の原文を利用者向け情報から分離する。
+
+仕様:
+- 秘密値、認証キー平文、復号可能値、認証参照の実値、接続先、外部サービスとの生データ、生成指示の原文は利用者向け情報の対象外にする。
+- 運用上必要な要約は、保存済みの状態事実から導出する。
+- 原文と訳文は、翻訳結果を確認するための情報として扱える。
+
+## 根拠
+
 - human decision は plan の `human_review_status: approved-after-design-bundle` と人間設計レビュー結果 `approved` に記録されている。
 - 最終検証は plan の最終検証通過結果で確認済みである。
 - 5 観点 reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
-
-## UI 契約由来の恒久仕様
-
-- 表示項目は current phase、phase state、progress、対象 field 件数、処理済み件数、未処理件数、provider / model / execution mode / batch mode 要約、credential 状態分類、request unit count、output count である。
-- 表示項目は辞書適用件数、persona 参照件数、metadata summary、prompt digest、field result summary、訳文、出力ステータス、保護要素検証結果、output readiness を含む。
-- 表示項目は failure state、error kind、retryable flag、影響 field 件数、redacted error summary を含む。
-- 主要操作は本文翻訳フェーズ開始、pause、resume、retry、cancel、field result 表示切替、保護要素検証結果の詳細表示、output readiness 確認である。
-- `start` は開始条件が成立した時だけ有効にする。`pause` は body phase Running の時だけ有効にする。
-- `resume` は body phase Paused の時だけ有効にする。`retry` は body phase RecoverableFailed かつ retryable failure ありの時だけ有効にする。
-- `cancel` は body phase Paused の時だけ有効にする。Running から直接 cancel しない。
-- `output readiness` は body phase Completed かつ field result 整合時だけ有効にする。
-- 状態差分は not-ready、ready、starting、running、paused、recoverable failed、validation failed、empty completed、completed、canceled、failed として扱う。
-- provider skipped、provider running、provider partial failure、save failure、late response rejected を区別して表示する。
-- 長い source text、translated text、EditorID、FormID、error kind、provider model 名、複数 validation error は折り返し、表示領域からはみ出さない。
-- mobile 幅では phase header、actions、summary、field result を 1 column にする。
-- phase state と validation result は色だけでなく label と icon で示す。
-- retryable と non-retryable は button enablement と説明 label の両方で示す。
-- progress は数値と状態文を併記する。
-
-## 対象外
-
-- 単語翻訳フェーズ、NPC ペルソナ生成フェーズ、translation-output-artifact の xTranslator row 生成規則の再設計。
-- provider 実装方式、具体 API 名、DB migration、product code、product test、docs 正本以外の作業流れ変更。
-- 結果確認から戻る導線、フィールド単体編集 UI、本文再翻訳とは別の成果物出力 UI。

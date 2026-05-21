@@ -1,79 +1,91 @@
 # 詳細仕様: 翻訳ジョブ設定
 
-- `upper_scenario_id`: `translation-job-setup`
+- `detail_spec_id`: `translation-job-setup`
 - `status`: `approved`
-- `source_plan`: `docs/exec-plans/completed/translation-job-setup/plan.md`, `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/plan.md`, `docs/exec-plans/completed/2026-05-06-job-setup-input-cards/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
-- `scenario_source`: `docs/exec-plans/completed/translation-job-setup/scenario-design.md`, `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/scenario-design.md`
-- `ui_source`: `docs/exec-plans/completed/translation-job-setup/ui-design.md`, `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/ui-design.md`
-- `implementation_source`: `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/plan.md`, `docs/exec-plans/completed/2026-05-06-job-setup-input-cards/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
-- `review_source`: `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/reviewback.*.yaml`, `docs/exec-plans/completed/2026-05-06-job-setup-input-cards/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
+- `source_artifacts`: `docs/exec-plans/completed/translation-job-setup/plan.md`, `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/plan.md`, `docs/exec-plans/completed/2026-05-06-job-setup-input-cards/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`
+- `implementation_artifacts`: `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/plan.md`, `docs/exec-plans/completed/2026-05-06-job-setup-input-cards/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
+- `review_artifacts`: `docs/exec-plans/completed/translation-job-setup-phase-provider-settings/reviewback.*.yaml`, `docs/exec-plans/completed/2026-05-06-job-setup-input-cards/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
-## 要約
+## 親要件と仕様
 
-- 利用者は登録済み入力データを選び、共通基盤と 3 つの翻訳段階の AI 設定を確認して翻訳 job を作成する。
-- Job Setup は master-persona の AI 設定を既定値または保存元として扱わない。
-- Job Setup では job 未作成 input を選択または削除できる。
+### `translation-job-setup-REQ-001` 登録済み入力データから翻訳ジョブを作成できる
 
-## 対象
+親要件:
+利用者は登録済み入力データを選び、`Ready` の翻訳ジョブを作成できる。
 
-- 対象利用者は、翻訳入力データから翻訳 job を作成したい利用者である。
-- 開始条件は、登録済み入力データ、共通辞書、共通ペルソナ、AIサービス設定の参照状態を確認できることである。
-- 完了状態は、選択 input と各翻訳段階の AI 設定を固定し、Ready job を作成できることである。
-- 主要データは入力データ、既存 job summary、共通辞書、共通ペルソナ、phase runtime settings、provider settings 参照状態、モデル一覧鮮度 token である。
+仕様:
+- 入力データ候補は、名称、出自、登録時点、規模を判断できる単位で扱う。
+- 利用者はジョブ設定の対象入力データを選択できる。
+- 既存の翻訳ジョブが参照している入力データも、ジョブ設定の入力候補として扱える。
+- 既存の翻訳ジョブ情報は、ジョブ作成可否とは独立した参考情報として扱う。
+- 同じ入力データの既存翻訳ジョブは参考情報であり、ジョブ作成の許可条件とは分離する。
+- 3 つの翻訳段階で認証状態とモデル選択が充足している時だけ、翻訳ジョブを作成できる。
 
-## 仕様
+### `translation-job-setup-REQ-002` 翻訳ジョブ未作成の入力データを削除できる
 
-- 入力データ選択はプルダウンではなくカード一覧にする。
-- 入力カードは input 名、出自、登録日時、レコード数を表示する。
-- カード選択で Job Setup の対象 input を切り替える。
-- 既存 job が参照している input は Job Setup の入力候補に表示しない。
-- 既存 job summary は候補除外と独立した応答 field として扱う。
-- 同じ input の `existingJob` は参考表示だけに使い、job 作成の block 理由にはしない。
-- 削除ボタンは job 未作成 input だけを削除する。
-- input 削除は `X_EDIT_EXTRACTED_DATA` の親行削除を正本にし、関連行は DB の cascade に任せる。
-- input 削除中は対象カードを操作不能にし、カード内に `削除中...` を表示する。
-- 削除成功後は options 全再読込ではなく、画面状態から対象候補だけを除去する。
-- Job Management の job 削除は input を残す。Job Setup の input 削除と混ぜない。
-- Job Setup は単語翻訳、NPC ペルソナ生成、本文翻訳の 3 つの翻訳段階を扱う。
-- 各翻訳段階は provider、model、execution mode、batch mode、APIキー状態を扱う。
-- model 候補は provider ごとの model list API から取得する。
-- provider model list の `sourceToken` はモデル一覧の非 secret 鮮度 token である。`sourceToken` は credential 参照実値、secret store key、endpoint、secret を含めない。
-- 作成前検証と作成処理は、モデル一覧取得時の非 secret 鮮度 token を使う。古いモデル一覧由来の選択は stale として拒否する。
-- API key が設定済みの場合だけ、API key が必要な provider の model list 外部取得を試みる。
-- LM Studio は API key を要求しないため、API key 入力、API key 未設定 warning、credential select に出さない。
-- batch mode は暗黙推定にしない。対象 provider は Gemini と xAI だけに限定し、checkbox または select で明示する。
-- 3 つの翻訳段階で APIキー不足と model 未選択がない時だけ、翻訳 job を作成できる。
-- Job Setup は credential 参照実値、secret store key、endpoint、APIキー本文を公開 DTO、UI、作成後 summary に出さない。
-- 作成後の設定内容には、翻訳段階ごとの AIサービス、model、APIキー状態、実行方法、一括処理の有無だけを表示する。
-- APIキー文字列、secret、外部サービスの raw data、内部ログ用識別子、モデル一覧鮮度 token は表示しない。
+親要件:
+利用者はジョブ設定で、翻訳ジョブ未作成の入力データを削除できる。
 
-## 受け入れ根拠
+仕様:
+- 入力データ削除は、翻訳ジョブ未作成の入力データだけを対象にする。
+- 入力データ削除の結果は、対象入力データと関連する入力キャッシュの削除である。
+- 削除中の対象入力データは、重複操作の対象外にする。
+- 削除成功後の対象入力データは、ジョブ設定の入力候補から外れる。
+- 翻訳ジョブ削除は入力データを残すため、ジョブ設定の入力データ削除とは別の操作として扱う。
+
+### `translation-job-setup-REQ-003` 翻訳段階ごとの AI 設定を固定できる
+
+親要件:
+利用者は単語翻訳、NPC ペルソナ生成、本文翻訳の 3 段階について AI 設定を判断し、翻訳ジョブ作成時に固定できる。
+
+仕様:
+- ジョブ設定は単語翻訳、NPC ペルソナ生成、本文翻訳の 3 つの翻訳段階を扱う。
+- 各翻訳段階は AIサービス、モデル、実行方式、一括処理、認証状態を扱う。
+- 作成後の設定内容には、翻訳段階ごとの AIサービス、モデル、認証状態、実行方式、一括処理の有無を含める。
+- ジョブ設定の AI 設定と共通ペルソナ管理の AI 設定は分離する。
+- 利用者は入力候補、共通辞書、共通ペルソナ、単語翻訳設定、NPC ペルソナ生成設定、本文翻訳設定、作成後の設定内容を判断できる。
+
+### `translation-job-setup-REQ-004` モデル候補と古い選択を安全に扱う
+
+親要件:
+利用者は AIサービスごとのモデル候補を更新し、古い候補に基づく翻訳ジョブ作成を避けられる。
+
+仕様:
+- モデル候補は AIサービスごとに取得する。
+- モデル候補の取得時点は、認証値や秘密値から分離した鮮度情報として扱う。
+- 作成前確認と作成処理は、モデル候補の取得時点と利用者の選択が一致する時だけ成立する。
+- 古いモデル候補に基づく選択は拒否結果にする。
+- 認証キーが必要な AIサービスでは、認証キー設定済みの場合だけモデル候補を取得できる。
+- モデル選択は、モデル候補取得成功後に成立する。
+- モデル候補は、未更新、更新中、取得済み、取得失敗、認証不足で更新不可を別状態として扱う。
+
+### `translation-job-setup-REQ-005` AIサービス固有の入力規則を扱う
+
+親要件:
+利用者は AIサービスごとの認証キー要否と一括処理可否に沿って翻訳ジョブ設定を選べる。
+
+仕様:
+- LM Studio は認証キーなしで利用できる AIサービスとして扱う。
+- LM Studio の認証状態は、認証不足の警告対象外にする。
+- 一括処理は利用者が明示した設定値として扱う。
+- 一括処理の対象 AIサービスは Gemini と xAI である。
+- 認証キー登録は、認証キーが必要で未設定の AIサービスを選んだ場合だけ成立する。
+- 認証キー登録後のモデル候補は、再更新が必要な状態として扱う。
+
+### `translation-job-setup-REQ-006` 秘密値と内部値を利用者向け情報から分離する
+
+親要件:
+利用者は AI 設定の状態を確認でき、秘密値本体や内部識別子は利用者向け情報から分離される。
+
+仕様:
+- ジョブ設定は、認証参照の実値、秘密値参照、接続先、認証キー本文を利用者向け情報の対象外にする。
+- 認証キー文字列、秘密値、外部サービスの生データ、内部識別子、モデル候補の鮮度情報は利用者向け情報の対象外にする。
+- 設定済み、認証キー未設定、モデル未選択、モデル候補取得失敗、モデル候補更新中は別状態として扱う。
+- 入力確認、共通基盤、翻訳段階別設定、作成前確認、作成実行は、ジョブ設定の利用順序として扱う。
+
+## 根拠
 
 - `translation-job-setup-phase-provider-settings` は 2026-05-04 に人間設計レビュー承認済みである。
-- `translation-job-setup-phase-provider-settings` の最終検証は `python3 scripts/harness/run.py --suite all` 通過済みである。
-- `2026-05-06-job-setup-input-cards` の最終検証は frontend-local、backend-local、all、system test、coverage、Sonar issue gate を通過済みである。
+- `translation-job-setup-phase-provider-settings` の最終検証は通過済みである。
+- `2026-05-06-job-setup-input-cards` の最終検証は通過済みである。
 - `2026-05-06-job-setup-input-cards` の 5 観点 reviewback はすべて `must_fix_open: false` である。
-- `reviewback.contract.yaml` の `existingJob` 契約指摘は解決済みである。
-- `reviewback.state_invariant.yaml` の末尾候補削除時の選択状態指摘は解決済みである。
-
-## UI 契約由来の恒久仕様
-
-- 表示項目は入力カード一覧、共通辞書、共通ペルソナ、単語翻訳設定、NPC ペルソナ生成設定、本文翻訳設定、作成後の設定内容である。
-- 各翻訳段階は AIサービス、model、実行方法、APIキー状態、一括処理、設定済みまたは未設定の状態を表示する。
-- 主要操作は input 選択、job 未作成 input 削除、AIサービス選択、APIキー登録、model list 更新、model 選択、一括処理切り替え、job 作成である。
-- APIキー登録は、APIキーが必要で未設定の AIサービスを選んだ場合だけ表示する。
-- model list 更新は、APIキーが必要な AIサービスで APIキー未設定の場合は押せない。
-- model 選択は、model list 取得に成功した場合だけ表示する。
-- モデル一覧未更新、更新中、取得済み、取得失敗、APIキー未設定で更新不可を分けて表示する。
-- 設定済み、APIキー未設定、model 未選択、model list 取得失敗、model list 更新中を分けて表示する。
-- APIキー登録モーダル保存後は、model list を再更新する必要があることを表示する。
-- stale なモデル一覧に基づく選択は作成できないことを表示する。
-- desktop と mobile の両方で、入力確認、共通基盤、翻訳段階別設定、作成前確認、作成実行の順に読めることを維持する。
-- 長い model 名、長い翻訳データ名、エラー文は表示領域からはみ出さない。
-
-## 対象外
-
-- migration reset、DB 再作成、cutover 手順。
-- translation phase 実行本体。
-- provider SDK 実装方式。
-- task-local UI prototype と一時的な実装運用情報。

@@ -12,8 +12,8 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 ## 対応ロール
 
 - `review_contract` が使う。
-- 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` の レビュー 集約 とする。
+- 呼び出し元はレビューを管理するレーンとする。
+- 返却先は呼び出し元レーンのレビュー集約とする。
 - 担当成果物は `codex-review-contract` の出力規約で固定する。
 
 ## 入力規約
@@ -22,7 +22,7 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 - 実装目的: レビュー対象差分が満たすべき目的を受け取る。
 - implementation-scope の場所: 承認済み実装範囲の参照先を受け取る。
 - 実装結果: 実装 agent が返した実装結果を受け取る。
-- 最終検証結果: `implement_lane` が確認した最終検証結果を受け取る。
+- 最終検証結果: 呼び出し元レーンが確認した最終検証結果を受け取る。
 - 検証証跡: 実行コマンド、証跡位置、成否、coverage 値、issue 数、system test 件数、失敗箇所を受け取る。
 - 変更ファイル: レビュー対象差分に含まれる変更ファイル一覧を受け取る。
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
@@ -81,7 +81,6 @@ description: Codex 実装後 レビュー の契約・互換性グループ作�
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.contract.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `contract`、`reviewer_agent` は `review_contract` とする。
-- 改善ログ: 作成または追記しない。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
 ## 完了規約

@@ -1,50 +1,35 @@
-# 詳細仕様: <上位シナリオ名>
+# 詳細仕様: <詳細仕様名>
 
-- `upper_scenario_id`: `<upper-scenario-id>`
+- `detail_spec_id`: `<detail-spec-id>`
 - `status`: `draft` / `approved`
-- `source_plan`: `<docs/exec-plans/completed/<task-id>/plan.md>`
-- `scenario_source`: `<scenario-design.md>`
-- `ui_source`: `<ui-design.md>` または `N/A`
-- `implementation_source`: `<implementation-result または work report>`
-- `review_source`: `<reviewback または review summary>`
+- `source_artifacts`: `<docs/exec-plans/completed/<task-id>/detail-spec-diff.md>`, `<plan.md>`
+- `implementation_artifacts`: `<implementation-result または plan.md>` または `N/A`
+- `review_artifacts`: `<reviewback または review summary>` または `N/A`
 
-## 要約
+## 親要件と仕様
 
-- 上位シナリオの目的を書く。
-- 利用者またはシステムが開始する大きな作業単位を書く。
-- 下位 scenario を個別ユースケースとして増やさず、仕様本文へ統合する。
+### `<detail-spec-id>-REQ-001` <親要件名>
 
-## 対象
+親要件:
+<利用者またはシステムが満たす必要のある要件を日本語で書く。>
 
-- 対象利用者または対象システム。
-- 開始条件。
-- 完了状態。
-- 関係する主要データ。
+仕様:
+- <成立条件、判断できる状態、処理結果を書く。>
+- <画面、データベース列、公開応答、転送形式、ログの置き場所は書かない。>
+- <英語の固定名を使う場合は、日本語で意味を補う。>
 
-## 仕様
+### `<detail-spec-id>-REQ-002` <親要件名>
 
-- 主要操作または主要処理。
-- 表示または返却する情報。
-- 状態と遷移。
-- 拒否条件、無効条件、再試行条件。
-- 保存条件、非保存条件、露出禁止条件。
+親要件:
+<利用者またはシステムが満たす必要のある要件を日本語で書く。>
 
-## 受け入れ根拠
+仕様:
+- <成立条件、判断できる状態、処理結果を書く。>
+- <画面、データベース列、公開応答、転送形式、ログの置き場所は書かない。>
+- <英語の固定名を使う場合は、日本語で意味を補う。>
 
-- 対応する `scenario-design` の scenario ID。
-- 対応する human decision ID。
-- 対応する検証結果。
+## 根拠
 
-## UI 契約由来の恒久仕様
-
-- 表示項目。
-- 操作可否。
-- 状態差分。
-- overflow、アクセシビリティ、実装後確認で恒久仕様に残す制約。
-
-## 対象外
-
-- 別上位シナリオへ渡す範囲。
-- 未承認の候補。
-- 実装手順。
-- task-local UIプロトタイプ。
+- `source_artifacts`: <正本化元の承認済み成果物>
+- `implementation_artifacts`: <実装完了または検証の根拠>
+- `review_artifacts`: <人間承認またはレビュー根拠>

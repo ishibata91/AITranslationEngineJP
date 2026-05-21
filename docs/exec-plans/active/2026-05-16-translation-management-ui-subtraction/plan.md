@@ -8,7 +8,7 @@
 - `request_summary`: 翻訳管理画面が仕様に対して複雑すぎるため、表示情報、検証表示、操作導線を減らす。
 - `goal`: 翻訳管理画面を、利用者の主要目的に沿った少数の画面責務へ戻す。
 - `constraints`: 旧 `Job Run` 大箱を復活させない。画面上の情報削減を、状態整合性の削除として扱わない。secret や内部状態名を画面へ出さない。
-- `close_conditions`: `ui-design.md` で表示する情報、隠す情報、操作、停止条件が画面ごとに固定される。`scenario-design.md` で主要操作の受け入れ条件が固定される。
+- `close_conditions`: `detail-spec-diff.md` で親要件、仕様、未決、回答が固定される。`screen-design-diff.<screen-id>.md` で表示する情報、隠す情報、操作、停止条件が画面ごとに固定される。
 - `worktree_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP`
 - `source_branch`: `codex/2026-05-16-translation-management-ui-subtraction`
 - `target_branch`: `master`
@@ -16,12 +16,11 @@
 ## Artifact Index
 
 - `ux_task_frame`: `N/A`
-- `ui_design`: `pending`
-- `ui_agent_browser_review`: `pending-after-implementation`
-- `ux_review`: `pending-after-frontend-implementation`
+- `detail_spec_diff`: `pending`
+- `screen_design_diff`: `pending`
+- `storybook_review_request`: `pending-after-frontend-implementation`
 - `frontend_human_review`: `required-after-frontend-implementation`
 - `approved_frontend_protection`: `pending`
-- `scenario_design`: `pending`
 - `implementation_scope`: `pending-after-human-review`
 - `detail_spec_target`: `N/A`
 
@@ -34,7 +33,7 @@
   - `frontend/src/ui/screens/job-run/JobRunPage.svelte`
 - `canonicalization_targets`:
   - UI 設計成果物。docs 正本反映は human 承認後に別判断とする。
-- `detail_spec_upper_scenario_id`: `N/A`
+- `detail_spec_id`: `N/A`
 - `validation_commands`:
   - `python3 scripts/harness/run.py --suite frontend-local`
   - `npm run dev:wails:agent-browser`
@@ -98,8 +97,8 @@
 
 ## HITL Status
 
-- `functional_or_design_hitl`: `required-after-design-bundle`
-- `ux_review`: `required-before-frontend-human-review`
+- `detail_spec_hitl`: `required-after-design-bundle`
+- `storybook_review_request`: `required-after-frontend-implementation`
 - `frontend_human_review`: `required-after-frontend-implementation`
 - `approval_record`: `pending-after-plan`
 
@@ -111,7 +110,8 @@
 - `test_results`: 未着手
 - `implementation_investigation`: 未着手
 - `ui_evidence`: 未着手
-- `ux_review_result`: 未着手
+- `storybook_review_request`: 未着手
+- `storybook_review_resources`: 未着手
 - `approved_frontend_protection`: 未着手
 - `codex_review_result`: 未着手
 - `sonar_gate_result`: 未着手
@@ -126,7 +126,7 @@
 - `commit_hash`: `N/A`
 - `validation_evidence`: 未着手
 - `review_evidence`: 未着手
-- `residual_risks`: UI 削減が必要な状態説明まで削るリスクがある。scenario-design で停止条件を固定する。
+- `residual_risks`: UI 削減が必要な状態説明まで削るリスクがある。`detail-spec-diff.md` で停止条件を固定する。
 
 ## Merge Result
 
