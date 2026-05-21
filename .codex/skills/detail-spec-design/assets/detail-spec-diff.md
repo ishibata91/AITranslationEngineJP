@@ -12,6 +12,7 @@
 ### `<detail-spec-id>-REQ-001` <親要件名>
 
 - `変更種別`: 追加 / 変更 / 削除
+- `要件扱い`: 既存要件 / 追加要件
 - `正本反映先`: `docs/detail-specs/<detail-spec-id>.md`
 
 親要件:
@@ -34,6 +35,7 @@
 ### `<detail-spec-id>-REQ-002` <親要件名>
 
 - `変更種別`: 追加 / 変更 / 削除
+- `要件扱い`: 既存要件 / 追加要件
 - `正本反映先`: `docs/detail-specs/<detail-spec-id>.md`
 
 親要件:
