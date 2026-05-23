@@ -1,13 +1,13 @@
 ---
 name: updating-docs
-description: Codex 側の docs 正本化作業プロトコル。implementation 完了後に、人間承認済み docs-only 成果物 を正本へ反映する判断基準を提供する。
+description: Codex 側の docs 正本化作業プロトコル。呼び出し元レーンの docs 正本化判断後に、人間承認済み docs-only 成果物 を正本へ反映する判断基準を提供する。
 ---
 # Updating Docs
 
 ## 目的
 
 `updating-docs` は作業プロトコルである。
-`docs_updater` agent が implementation 完了後に人間承認済み 成果物 を docs 正本へ反映するための、正本、承認確認、検証 の見方を提供する。
+`docs_updater` agent が呼び出し元レーンの docs 正本化判断後に人間承認済み 成果物 を docs 正本へ反映するための、正本、承認確認、検証 の見方を提供する。
 
 人間可読な実行境界、引き継ぎ、停止 / 戻し はこの skill を正本にする。
 
@@ -20,12 +20,12 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 ## 入力規約
 
 - 呼び出し元: docs 正本化を依頼した agent または人間。
-- 実装完了レポート: implementation 完了後の根拠レポート。
+- docs正本化起動入力: 呼び出し元レーンが docs 正本化判断後に渡す根拠、承認、正本化対象。
 - 承認記録: 人間が docs 正本化を承認した記録。
 - 承認済み成果物: docs 正本へ反映してよい成果物。
 - 正本化対象: 更新してよい docs 正本。
 - 非必須入力: 検証コマンド、根拠 docs を受け取る。
-- 必須成果物: Codex implementation 完了 レポート、承認済み docs-only 成果物、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md` を受け取る。
+- 必須成果物: docs 正本化起動入力、承認済み docs-only 成果物、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md` を受け取る。
 
 ## 外部参照規約
 
@@ -46,7 +46,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 
 ### 拘束観点
 
-- Codex implementation 完了 レポート の確認
+- docs 正本化起動入力の確認
 - docs 正本 の選び方
 - 人間承認 記録 の確認
 - 承認済み 成果物 と 正本 対象 の対応
@@ -56,7 +56,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 
 ## 判断規約
 
-- implementation 完了後にだけ正本化へ進む
+- 呼び出し元レーンの docs 正本化判断後にだけ正本化へ進む
 - 人間承認済み 成果物 だけを反映する
 - docs-only 対象範囲 を超えない
 - implementation-scope を docs 正本へ自動昇格しない
@@ -66,7 +66,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 画面設計書正本へ反映する内容は、`docs/screen-design/screens/template.md` の項目に合う画面内容だけに限定する
 - 未確定仕様を独断で補完しない
 
-- Codex implementation 完了 レポート を根拠として残す
+- docs 正本化起動入力を根拠として残す
 - 承認 記録 を根拠として残す
 - 正本 と task 内成果物 を分ける
 - 検証 結果を残す
@@ -74,7 +74,7 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 ## 非対象規約
 
 - 作業流れ、skill、エージェント実行定義、プロダクトコード、プロダクトテストは変更しない。
-- implementation 完了前の正本化と未承認 draft の正本化は扱わない。
+- 呼び出し元レーンの docs 正本化判断前の正本化と未承認 draft の正本化は扱わない。
 - implementation-scope を docs 正本へ自動昇格しない。
 - task 内の実画面確認結果を docs 正本へそのまま昇格しない。
 - 実装指示、テスト手順、agent handoff を画面設計書正本へ昇格しない。
@@ -87,8 +87,8 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 - 判断結果: docs 正本化の完了、未完了、停止の判定を返す。
 - 根拠参照: docs 更新の根拠にした承認記録と成果物を返す。
 - 不足情報: docs 正本化を完了できない不足項目を返す。
-- 次判断材料: `implement_lane` が次を判断できる材料を返す。
-- 引き継ぎ先: `implement_lane` を返す。
+- 次判断材料: 呼び出し元レーンが次を判断できる材料を返す。
+- 引き継ぎ先: 呼び出し元レーンを返す。
 - 渡す対象範囲: docs 更新結果、検証、残り 不足を返す。
 - 変更 docs: 更新した docs ファイルを返す。
 - 更新した正本: 反映した 正本 を返す。
@@ -100,27 +100,27 @@ description: Codex 側の docs 正本化作業プロトコル。implementation �
 
 - 出力規約を満たし、次の 実行者 が再解釈なしで判断できる。
 - 不足情報または停止理由がある場合は明示されている。
-- Codex implementation 完了 レポート を確認した。
+- docs 正本化起動入力を確認した。
 - 人間承認 記録 を確認した。
 - 承認済み 成果物 と 正本 対象 を対応づけた。
 - 画面設計差分を反映する場合は、対象の `docs/screen-design/screens/<screen-id>.md` と対応づけた。
 - 検証 結果と 残り 不足 を記録した。
-- 必須 根拠: Codex implementation 完了 レポート、承認 記録、根拠成果物パス、検証結果。
-- 完了判断材料: implementation 完了 後の docs 正本が 承認済み 成果物 と同期している。
+- 必須 根拠: docs 正本化起動入力、承認 記録、根拠成果物パス、検証結果。
+- 完了判断材料: docs 正本が 承認済み 成果物 と同期している。
 - 残留リスク: 未反映、未確認、判断待ちが返っている。
 
 ## 停止規約
 
-- Codex implementation レーン の修正完了が未確認の時
+- docs 正本化起動入力が未確認の時
 - 作業流れ / skill / エージェント実行定義 や skill / agent を変更する時
 - プロダクトコードやプロダクトテストの変更が必要な時
 - 人間承認 が不足している時
-- Codex implementation レーン の修正完了が分からない場合は停止する。
+- docs 正本化起動入力が分からない場合は停止する。
 - 承認 がない場合は停止する。
-- 作業流れ 変更なら `implement_lane` へ戻す。
-- プロダクト 実装が必要なら `implement_lane` へ戻す。
+- 作業流れ 変更なら呼び出し元レーンへ戻す。
+- プロダクト 実装が必要なら呼び出し元レーンへ戻す。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- Codex implementation 完了が不足する場合は停止する。
+- docs 正本化起動入力が不足する場合は停止する。
 - 承認が不足する場合は停止する。
 - プロダクト実装が必要な場合は停止する。
 - 作業流れ / skill / エージェント実行定義 の変更が必要な場合は停止する。

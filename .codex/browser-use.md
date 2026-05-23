@@ -18,7 +18,7 @@ Codex app の `Browser` plugin が使える作業では、Codex 本体が Storyb
 
 ## 適用境界
 
-- 対象ロール: Codex 本体と `implement_lane` のオーケストレーション判断。
+- 対象ロール: Codex 本体、`implement_lane`、`ux_maintainance_lane` のオーケストレーション判断。
 - 非対象ロール: サブエージェント。
 - サブエージェントの UI 証跡取得: `agent-browser` CLI と agent 実行定義に従う。
 - 引き継ぎ: Codex 本体が取得したコメント証跡は、サブエージェントへ入力として渡してよい。

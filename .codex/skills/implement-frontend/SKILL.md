@@ -12,14 +12,14 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 対応ロール
 
 - `frontend_implementer` が使う。
-- 呼び出し元は `implement_lane` または `light_change_lane` とする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane` のいずれかとする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-frontend` の出力規約で固定する。
 
 ## 入力規約
 
-- frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、または 軽量変更レーンの `軽量変更計画`。
-- 画面設計根拠: 承認済み `screen-design-diff.<screen-id>.md`、または 軽量変更レーンの軽量変更計画と人間確認観点。
+- frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、修正レーンの `修正実行入力`、探索テストレーンの `バグ一覧とログ、影響ファイル`、軽量変更レーンの `軽量変更計画`、または UX 保守レーンの `frontend修正入力`。
+- 画面設計根拠: 承認済み `screen-design-diff.<screen-id>.md`、修正レーンまたは探索テストレーンの原因根拠、軽量変更レーンの軽量変更計画と人間確認観点、または UX 保守レーンの親要件参照と人間指摘。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
