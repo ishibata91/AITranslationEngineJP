@@ -134,7 +134,7 @@
 - `conflict_resolution`: `N/A`
 - `post_merge_validation`: 後続 plan `2026-05-22-job-setup-model-selection-relocation` の merge 後検証で通過済み。
 - `completed_move`: `docs/exec-plans/active/2026-05-16-translation-management-ui-subtraction/` から `docs/exec-plans/completed/2026-05-16-translation-management-ui-subtraction/` へ移動済み。
-- `merge_commit_hash`: `pending-closeout-commit`
+- `merge_commit_hash`: `707d3084f31f3c8d31a40204def650858bb6ef8f`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes

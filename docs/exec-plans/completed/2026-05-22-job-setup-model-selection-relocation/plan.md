@@ -290,7 +290,7 @@ UI Components:
 - `post_merge_validation`: `python3 scripts/harness/run.py --suite frontend-local` pass。`python3 scripts/harness/run.py --suite backend-local` pass。`python3 scripts/harness/run.py --suite structure` pass。`npm --prefix frontend run build-storybook` pass。
 - `completed_move`: `docs/exec-plans/active/2026-05-22-job-setup-model-selection-relocation/` から `docs/exec-plans/completed/2026-05-22-job-setup-model-selection-relocation/` へ移動済み。
 - `source_commit_hash`: `f4ab8385679e528f53850f8943edc92cb95ad750`
-- `merge_commit_hash`: `pending-closeout-commit`
+- `merge_commit_hash`: `707d3084f31f3c8d31a40204def650858bb6ef8f`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
