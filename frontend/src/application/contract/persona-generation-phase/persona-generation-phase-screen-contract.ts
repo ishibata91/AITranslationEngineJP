@@ -18,6 +18,12 @@ export interface PersonaGenerationPhaseScreenControllerContract {
   cancelPhase(): Promise<void>
   checkBodyReadiness(): Promise<void>
   startBodyPhase(): Promise<void>
+  saveAISettings?: (request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }) => Promise<void>
 }
 
 export type CreatePersonaGenerationPhaseScreenController =

@@ -42,11 +42,20 @@
     <div class="file-title-group">
       <h3>{title}</h3>
       {#if statusLabel}
-        <StatusPill label={statusLabel} tone={statusTone === "danger" ? "danger" : statusTone} />
+        <StatusPill
+          label={statusLabel}
+          tone={statusTone === "danger" ? "danger" : statusTone}
+        />
       {/if}
     </div>
     {#if actionLabel && onAction}
-      <ActionButton label={actionLabel} variant="secondary" {disabled} {busy} onClick={onAction} />
+      <ActionButton
+        label={actionLabel}
+        variant="secondary"
+        {disabled}
+        {busy}
+        onClick={onAction}
+      />
     {/if}
   </div>
 

@@ -38,7 +38,10 @@
     aria-valuenow={boundedValue}
     role="progressbar"
   >
-    <span class={`progress-fill progress-fill-${tone}`} style={`width: ${percent}%`}></span>
+    <span
+      class={`progress-fill progress-fill-${tone}`}
+      style={`width: ${percent}%`}
+    ></span>
   </div>
   {#if helperText}
     <p>{helperText}</p>

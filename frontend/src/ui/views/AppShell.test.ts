@@ -210,17 +210,21 @@ function createTranslationJobManagementScenarioController(): TranslationJobManag
   return {
     mount: vi.fn(async () => {}),
     dispose: vi.fn(() => {}),
-    subscribe: vi.fn((nextListener: TranslationJobManagementScreenViewModelListener) => {
-      listener = nextListener
-      return () => {
-        listener = null
+    subscribe: vi.fn(
+      (nextListener: TranslationJobManagementScreenViewModelListener) => {
+        listener = nextListener
+        return () => {
+          listener = null
+        }
       }
-    }),
+    ),
     getViewModel: vi.fn(() => createTranslationJobManagementViewModelWithJob()),
     reload: vi.fn(async () => {}),
     selectJob: vi.fn((() =>
       Promise.resolve().then(() => {
-        listener?.(createTranslationJobManagementViewModelWithJob(jobOneRunTarget))
+        listener?.(
+          createTranslationJobManagementViewModelWithJob(jobOneRunTarget)
+        )
       })) as TranslationJobManagementScreenControllerContract["selectJob"]),
     setFilter: vi.fn(),
     setSearchQuery: vi.fn(),
@@ -256,7 +260,8 @@ describe("AppShell", () => {
           getViewModel: vi.fn(() => ({
             gatewayStatus: "未接続",
             pageTitle: "AIサービス設定",
-            pageLead: "AIサービスごとのエンドポイントと APIキー状態を管理します。",
+            pageLead:
+              "AIサービスごとのエンドポイントと APIキー状態を管理します。",
             providerCountLabel: "3 件の AIサービスを管理します。",
             phaseLabel: "待機中",
             saveNotice: "",

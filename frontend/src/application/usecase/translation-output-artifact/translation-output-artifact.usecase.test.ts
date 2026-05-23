@@ -151,7 +151,9 @@ describe("TranslationOutputArtifactUseCase", () => {
 interface TranslationOutputArtifactGatewayFixture {
   gateway: TranslationOutputArtifactGatewayContract
   getTranslationOutputReview: ReturnType<
-    typeof vi.fn<TranslationOutputArtifactGatewayContract["getTranslationOutputReview"]>
+    typeof vi.fn<
+      TranslationOutputArtifactGatewayContract["getTranslationOutputReview"]
+    >
   >
   getTranslationOutputDiffPreview: ReturnType<
     typeof vi.fn<

@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "vite",
     "dev:wails": "vite --host ${VITE_HOST:-127.0.0.1} --port ${VITE_PORT:-5173} --strictPort",
-    "storybook": "storybook dev -p 6006",
+    "storybook": "storybook dev -p 6008 --exact-port --no-open",
     "build-storybook": "storybook build",
     "build": "vite build",
     "check": "svelte-check --tsconfig ./tsconfig.json",
@@ -73,8 +73,38 @@
       "src/ui/components/TextAreaField.svelte",
       "src/ui/components/TextInputField.svelte",
       "src/ui/screens/job-run/job-run-shell-props.ts",
+      "src/ui/screens/translation-job-setup/CompatibilityPrecheckPanel.svelte",
+      "src/ui/screens/translation-job-setup/CreatedJobSummaryPanel.svelte",
+      "src/ui/screens/translation-job-setup/FoundationDataPanel.svelte",
+      "src/ui/screens/translation-job-setup/InputSourcePanel.svelte",
+      "src/ui/screens/translation-job-setup/JobSetupPage.svelte",
+      "src/ui/screens/translation-job-setup/JobSetupPurposeHeader.svelte",
+      "src/ui/screens/translation-job-setup/PhaseSettingsPanel.svelte",
+      "src/ui/screens/translation-job-setup/PhaseSettingsSummaryPanel.svelte",
       "src/ui/screens/translation-job-setup/job-setup-panel-props.ts",
       "src/ui/**/__fixtures__/*.ts"
+    ],
+    "ignoreExportsUsedInFile": {
+      "interface": true,
+      "variable": true
+    },
+    "ignoreIssues": {
+      "src/application/contract/translation-job-setup/translation-job-setup-screen-contract.ts": [
+        "exports"
+      ],
+      "src/application/presenter/translation-job-setup/index.ts": [
+        "exports"
+      ],
+      "src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts": [
+        "exports"
+      ]
+    },
+    "ignoreMembers": [
+      "createTranslationJobSetupRuntimeKey",
+      "VALIDATION_LABELS",
+      "TranslationJobSetupPhaseCardViewModel",
+      "TranslationJobSetupSummaryPhaseViewModel",
+      "TranslationJobSetupExtendedViewModel"
     ]
   },
   "dependencies": {

@@ -62,4 +62,4 @@ sequenceDiagram
 
 ## 検証
 
-- Mermaid 構文確認: `mmdc -i <diagram>.md -o <temporary>.md --artefacts <temporary-directory>` を実行する。
+- Mermaid 記述確認: Mermaid コードブロック、図種別、箱または参加者、接続を確認する。

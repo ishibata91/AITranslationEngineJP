@@ -18,6 +18,10 @@ type PersonaGenerationPhaseUsecasePort interface {
 	GetPersonaGenerationBodyReadiness(ctx context.Context, request usecase.GetPersonaGenerationBodyReadinessRequest) (usecase.PersonaGenerationBodyReadinessResult, error)
 }
 
+type personaGenerationPhaseAISettingsUsecasePort interface {
+	SavePersonaGenerationPhaseAISettings(ctx context.Context, request usecase.SavePersonaGenerationPhaseAISettingsRequest) (usecase.PersonaGenerationPhaseAISettingsResult, error)
+}
+
 // PersonaGenerationPhaseController exposes Wails-bound persona generation entrypoints.
 type PersonaGenerationPhaseController struct {
 	personaGenerationPhaseUsecase PersonaGenerationPhaseUsecasePort
@@ -60,6 +64,27 @@ type CancelPersonaGenerationPhaseRequestDTO struct {
 // GetPersonaGenerationBodyReadinessRequestDTO identifies the job whose body readiness is requested.
 type GetPersonaGenerationBodyReadinessRequestDTO struct {
 	JobID int64 `json:"jobId"`
+}
+
+// SavePersonaGenerationPhaseAISettingsRequestDTO carries public AI settings.
+type SavePersonaGenerationPhaseAISettingsRequestDTO struct {
+	JobID         int64  `json:"jobId"`
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
+}
+
+// PersonaGenerationPhaseAISettingsResponseDTO returns public AI settings state.
+type PersonaGenerationPhaseAISettingsResponseDTO struct {
+	JobID            int64  `json:"jobId"`
+	PhaseID          string `json:"phaseId"`
+	Provider         string `json:"provider"`
+	Model            string `json:"model"`
+	CredentialStatus string `json:"credentialStatus"`
+	ExecutionMode    string `json:"executionMode"`
+	BatchMode        string `json:"batchMode"`
+	ModelListStatus  string `json:"modelListStatus"`
 }
 
 // PersonaGenerationPhaseProgressSummaryDTO summarizes one phase run progress snapshot.
@@ -284,6 +309,30 @@ func (controller *PersonaGenerationPhaseController) GetPersonaGenerationBodyRead
 		return toPersonaGenerationBodyReadinessResponseDTO(result), fmt.Errorf("get persona generation body readiness: %w", err)
 	}
 	return toPersonaGenerationBodyReadinessResponseDTO(result), nil
+}
+
+// SavePersonaGenerationPhaseAISettings saves public AI settings for the persona phase.
+func (controller *PersonaGenerationPhaseController) SavePersonaGenerationPhaseAISettings(
+	request SavePersonaGenerationPhaseAISettingsRequestDTO,
+) (PersonaGenerationPhaseAISettingsResponseDTO, error) {
+	settingsUsecase, ok := controller.personaGenerationPhaseUsecase.(personaGenerationPhaseAISettingsUsecasePort)
+	if !ok {
+		return PersonaGenerationPhaseAISettingsResponseDTO{}, fmt.Errorf("save persona generation phase ai settings: usecase is not configured")
+	}
+	result, err := settingsUsecase.SavePersonaGenerationPhaseAISettings(
+		context.Background(),
+		usecase.SavePersonaGenerationPhaseAISettingsRequest{
+			JobID:         request.JobID,
+			Provider:      request.Provider,
+			Model:         request.Model,
+			ExecutionMode: request.ExecutionMode,
+			BatchMode:     request.BatchMode,
+		},
+	)
+	if err != nil {
+		return PersonaGenerationPhaseAISettingsResponseDTO{}, fmt.Errorf("save persona generation phase ai settings: %w", err)
+	}
+	return PersonaGenerationPhaseAISettingsResponseDTO(result), nil
 }
 
 func toPersonaGenerationPhaseSummaryResponseDTO(

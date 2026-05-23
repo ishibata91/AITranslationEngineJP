@@ -4,7 +4,10 @@ import { createTranslationJobManagementGateway } from "./translation-job-managem
 
 type GoRecord = {
   wails?: {
-    TranslationJobManagementController?: Record<string, ReturnType<typeof vi.fn>>
+    TranslationJobManagementController?: Record<
+      string,
+      ReturnType<typeof vi.fn>
+    >
     AppController?: Record<string, ReturnType<typeof vi.fn>>
   }
 }

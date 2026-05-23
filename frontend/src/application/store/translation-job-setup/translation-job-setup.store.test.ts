@@ -59,7 +59,7 @@ function createOptions(): TranslationJobSetupOptionsResponse {
         model: "test-model-a",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "disabled",
+        batchMode: "disabled"
       }
     ]
   }
@@ -104,7 +104,7 @@ function createSummary(): TranslationJobSetupSummaryResponse {
         model: "test-model-a",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "disabled",
+        batchMode: "disabled"
       }
     ]
   }
@@ -211,7 +211,8 @@ describe("TranslationJobSetupStore", () => {
       "test-model-a"
     )
     expect(
-      nextSnapshot.options?.providerCapabilities?.[0]?.supportedExecutionModes[0]
+      nextSnapshot.options?.providerCapabilities?.[0]
+        ?.supportedExecutionModes[0]
     ).toBe("sync")
     expect(nextSnapshot.options?.phaseRuntimeDrafts?.[0]?.model).toBe(
       "test-model-a"

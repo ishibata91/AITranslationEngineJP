@@ -150,7 +150,7 @@ describe("TranslationJobSetupPresenter", () => {
             model: "gpt-5.4-mini",
             credentialStatus: "configured",
             executionMode: "batch",
-            batchMode: "enabled",
+            batchMode: "enabled"
           },
           {
             phaseId: "npc_persona_generation",
@@ -158,7 +158,7 @@ describe("TranslationJobSetupPresenter", () => {
             model: "gpt-5.4-mini",
             credentialStatus: "configured",
             executionMode: "batch",
-            batchMode: "enabled",
+            batchMode: "enabled"
           },
           {
             phaseId: "text_translation",
@@ -166,7 +166,7 @@ describe("TranslationJobSetupPresenter", () => {
             model: "gpt-5.4-mini",
             credentialStatus: "configured",
             executionMode: "batch",
-            batchMode: "enabled",
+            batchMode: "enabled"
           }
         ],
         providerModelLists: [

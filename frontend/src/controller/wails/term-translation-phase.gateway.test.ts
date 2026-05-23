@@ -119,4 +119,53 @@ describe("createTermTranslationPhaseGateway", () => {
       /Wails binding is not wired yet: StartTermTranslationPhase/
     )
   })
+
+  test("save ai settings は公開フィールドだけを受け渡し secret を含まない", async () => {
+    const saveSettings = vi.fn(() =>
+      Promise.resolve({
+        jobId: 5,
+        phaseId: "word_translation",
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMode: "sync",
+        batchMode: "enabled",
+        credentialStatus: "configured",
+        modelListStatus: "success"
+      })
+    )
+    installGo({
+      wails: {
+        TermTranslationPhaseController: {
+          SaveTermTranslationPhaseAISettings: saveSettings
+        }
+      }
+    })
+
+    const gateway = createTermTranslationPhaseGateway()
+    const result = await gateway.saveTermTranslationPhaseAISettings?.({
+      jobId: 5,
+      provider: "gemini",
+      model: "gemini-2.5-pro",
+      executionMode: "sync",
+      batchMode: "enabled"
+    })
+
+    expect(saveSettings).toHaveBeenCalledWith({
+      jobId: 5,
+      provider: "gemini",
+      model: "gemini-2.5-pro",
+      executionMode: "sync",
+      batchMode: "enabled"
+    })
+    expect(result).toMatchObject({
+      jobId: 5,
+      phaseId: "word_translation",
+      credentialStatus: "configured",
+      modelListStatus: "success"
+    })
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain("secret")
+    expect(serialized).not.toContain("apiKey")
+    expect(serialized).not.toContain("credentialRef")
+  })
 })

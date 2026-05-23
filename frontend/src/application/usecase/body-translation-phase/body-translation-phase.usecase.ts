@@ -1,4 +1,5 @@
 import type {
+  BodyTranslationPhaseAISettingsRequest,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseGatewayContract,
   BodyTranslationPhaseSummaryResponse,
@@ -248,6 +249,38 @@ export class BodyTranslationPhaseUseCase {
     }
 
     await this.fetchSummaryAndReadiness(state.jobId, "check-output-readiness")
+  }
+
+  async saveAISettings(
+    request: Omit<BodyTranslationPhaseAISettingsRequest, "jobId">
+  ): Promise<void> {
+    const state = this.store.snapshot()
+    if (state.jobId === null) {
+      this.store.update((draft) => {
+        draft.errorMessage = createNoJobSelectedMessage()
+      })
+      return
+    }
+    if (!this.gateway?.saveBodyTranslationPhaseAISettings) {
+      this.store.update((draft) => {
+        draft.errorMessage = createGatewayDisconnectedMessage()
+      })
+      return
+    }
+    try {
+      await this.gateway.saveBodyTranslationPhaseAISettings({
+        jobId: state.jobId,
+        ...request
+      })
+      await this.refresh()
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "本文翻訳段階の AI 設定保存に失敗しました。"
+        )
+      })
+    }
   }
 
   private async fetchSummaryAndReadiness(

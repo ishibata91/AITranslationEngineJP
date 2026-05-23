@@ -1,3 +1,1 @@
-export type {
-  CreateTranslationJobSetupScreenController
-} from "./translation-job-setup-screen-contract"
+export type { CreateTranslationJobSetupScreenController } from "./translation-job-setup-screen-contract"

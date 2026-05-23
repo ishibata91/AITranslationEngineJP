@@ -106,7 +106,9 @@ export class ProviderSettingsScreenController implements ProviderSettingsScreenC
   }
 
   async saveSettings(): Promise<void> {
-    await this.dependencies.useCase.saveSettings(() => this.credentialInputValue)
+    await this.dependencies.useCase.saveSettings(
+      () => this.credentialInputValue
+    )
     this.clearCredentialInput()
   }
 

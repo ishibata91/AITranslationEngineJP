@@ -7,11 +7,8 @@
   import type { CreatePersonaGenerationPhaseScreenController } from "@application/contract/persona-generation-phase"
   import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
-  import type {
-    CreateTranslationJobManagementScreenController
-  } from "@application/contract/translation-job-management"
+  import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
   import type { TranslationJobManagementJobRunTarget } from "@application/contract/translation-job-management/translation-job-management-screen-types"
-  import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   import AppHeader from "@ui/views/dashboard/AppHeader.svelte"
@@ -24,7 +21,6 @@
   import TranslationManagementStepper from "@ui/screens/translation-job-management/TranslationManagementStepper.svelte"
   import TranslationJobManagementPage from "@ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
   import TranslationOutputArtifactPage from "@ui/screens/translation-output-artifact/TranslationOutputArtifactPage.svelte"
-  import JobSetupPage from "@ui/screens/translation-job-setup/JobSetupPage.svelte"
   import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
   import type {
     ShellRouteContract,
@@ -45,7 +41,6 @@
     createProviderSettingsScreenController: CreateProviderSettingsScreenController | null
     createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController | null
     createTranslationJobManagementScreenController?: CreateTranslationJobManagementScreenController | null
-    createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController | null
     createTranslationOutputArtifactScreenController: CreateTranslationOutputArtifactScreenController | null
     createTranslationInputScreenController: CreateTranslationInputScreenController | null
   }
@@ -62,7 +57,6 @@
     createProviderSettingsScreenController,
     createTermTranslationPhaseScreenController,
     createTranslationJobManagementScreenController = null,
-    createTranslationJobSetupScreenController,
     createTranslationOutputArtifactScreenController,
     createTranslationInputScreenController
   }: Props = $props()
@@ -77,9 +71,8 @@
   let currentRouteId = $state<ShellRouteId>("dashboard")
   let selectedTranslationManagementViewId =
     $state<TranslationManagementViewId | null>(null)
-  let selectedJobRunTarget = $state<TranslationJobManagementJobRunTarget | null>(
-    null
-  )
+  let selectedJobRunTarget =
+    $state<TranslationJobManagementJobRunTarget | null>(null)
   let currentJobRunPhaseViewId =
     $state<TranslationManagementViewId>("term-translation")
   let isMobileNavOpen = $state(false)
@@ -99,7 +92,8 @@
   const currentTranslationManagementViewId = $derived(
     selectedTranslationManagementViewId === "job-run"
       ? currentJobRunPhaseViewId
-      : (selectedTranslationManagementViewId ?? defaultTranslationManagementViewId)
+      : (selectedTranslationManagementViewId ??
+          defaultTranslationManagementViewId)
   )
   const renderedTranslationManagementViewId = $derived(
     selectedTranslationManagementViewId ?? defaultTranslationManagementViewId
@@ -109,9 +103,7 @@
   )
 
   function normalizeRouteId(hashValue: string): ShellRouteId {
-    const routeId = hashValue
-      .replace(/^#/, "")
-      .split("/")[0] as ShellRouteId
+    const routeId = hashValue.replace(/^#/, "").split("/")[0] as ShellRouteId
     return routeById.has(routeId) ? routeId : defaultRouteId
   }
 
@@ -140,7 +132,9 @@
       selectedJobRunTarget = null
       selectedTranslationManagementViewId = "job-management"
       currentJobRunPhaseViewId = "term-translation"
-    } else if (window.location.hash.startsWith("#translation-management/job-run")) {
+    } else if (
+      window.location.hash.startsWith("#translation-management/job-run")
+    ) {
       selectedJobRunTarget = null
       selectedTranslationManagementViewId = "job-management"
       currentJobRunPhaseViewId = "term-translation"
@@ -190,7 +184,9 @@
     }
 
     selectedTranslationManagementViewId = "job-run"
-    currentJobRunPhaseViewId = resolvePhaseViewId(selectedJobRunTarget.currentPhase)
+    currentJobRunPhaseViewId = resolvePhaseViewId(
+      selectedJobRunTarget.currentPhase
+    )
     if (typeof window !== "undefined") {
       window.history.pushState(null, "", "#translation-management/job-run")
     }
@@ -227,10 +223,6 @@
     }
   }
 
-  function openTranslationJobSetup(): void {
-    selectedTranslationManagementViewId = "job-setup"
-  }
-
   function syncJobRunTarget(
     target: TranslationJobManagementJobRunTarget | null
   ): void {
@@ -264,7 +256,10 @@
     {toggleMobileNav}
   />
 
-  <section class="page" data-testid={isDashboard ? "dashboard-dashboard-content" : undefined}>
+  <section
+    class="page"
+    data-testid={isDashboard ? "dashboard-dashboard-content" : undefined}
+  >
     <CurrentPageHero
       {currentRoute}
       dataTestId={isDashboard
@@ -317,14 +312,7 @@
         {#if renderedTranslationManagementViewId === "input-review"}
           <InputReviewPage
             createController={createTranslationInputScreenController}
-            onOpenJobSetup={openTranslationJobSetup}
-          />
-        {/if}
-
-        {#if renderedTranslationManagementViewId === "job-setup"}
-          <JobSetupPage
-            createController={createTranslationJobSetupScreenController}
-            onReturnToInputReview={openTranslationInputReview}
+            onOpenJobRun={openTranslationJobRun}
           />
         {/if}
 

@@ -174,4 +174,52 @@ describe("createPersonaGenerationPhaseGateway", () => {
       /Wails binding is not wired yet: GetPersonaGenerationPhaseSummary/
     )
   })
+
+  test("save ai settings は公開参照値のみを転送し secret 本体を含めない", async () => {
+    const saveSettings = vi.fn(() =>
+      Promise.resolve({
+        jobId: 8,
+        phaseId: "npc_persona_generation",
+        provider: "xai",
+        model: "grok-4",
+        executionMode: "sync",
+        batchMode: "disabled",
+        credentialStatus: "configured",
+        modelListStatus: "success"
+      })
+    )
+    installGo({
+      wails: {
+        PersonaGenerationPhaseController: {
+          SavePersonaGenerationPhaseAISettings: saveSettings
+        }
+      }
+    })
+
+    const gateway = createPersonaGenerationPhaseGateway()
+    const result = await gateway.savePersonaGenerationPhaseAISettings?.({
+      jobId: 8,
+      provider: "xai",
+      model: "grok-4",
+      executionMode: "sync",
+      batchMode: "disabled"
+    })
+
+    expect(saveSettings).toHaveBeenCalledWith({
+      jobId: 8,
+      provider: "xai",
+      model: "grok-4",
+      executionMode: "sync",
+      batchMode: "disabled"
+    })
+    expect(result).toMatchObject({
+      phaseId: "npc_persona_generation",
+      credentialStatus: "configured",
+      modelListStatus: "success"
+    })
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain("secret")
+    expect(serialized).not.toContain("apiKey")
+    expect(serialized).not.toContain("credentialRef")
+  })
 })

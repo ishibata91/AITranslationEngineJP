@@ -16,7 +16,9 @@ const PROVIDER_LABELS: Record<string, string> = {
 
 const USER_VISIBLE_PROVIDERS = new Set(Object.keys(PROVIDER_LABELS))
 
-function isUsableModelList(status: ModelSettingsModelListState["status"]): boolean {
+function isUsableModelList(
+  status: ModelSettingsModelListState["status"]
+): boolean {
   return status === "success" || status === "credential_not_required"
 }
 
@@ -129,7 +131,9 @@ export function applyModelSettingsListResult(
   }
 
   const models = response.models.map((model) => ({ ...model }))
-  const keepsCurrentModel = models.some((model) => model.modelId === state.model)
+  const keepsCurrentModel = models.some(
+    (model) => model.modelId === state.model
+  )
   const nextModel = keepsCurrentModel ? state.model : ""
 
   return {
@@ -216,7 +220,8 @@ export function markModelSettingsSaved(
       provider,
       credentialStatus: state.credentialStatus,
       status: "success",
-      models: options.models ?? (model ? [{ modelId: model, label: model }] : [])
+      models:
+        options.models ?? (model ? [{ modelId: model, label: model }] : [])
     }),
     saveStatus: "saved",
     saveMessage: options.message
@@ -234,9 +239,7 @@ export function markModelSettingsSaveFailed(
   }
 }
 
-function buildCredentialStatusLabel(
-  state: ModelSettingsCardState
-): string {
+function buildCredentialStatusLabel(state: ModelSettingsCardState): string {
   if (state.credentialStatus === "configured") {
     return "設定済み"
   }
@@ -271,9 +274,11 @@ function buildModelListStatusText(state: ModelSettingsCardState): string {
   }
 }
 
-function buildStatus(
-  state: ModelSettingsCardState
-): { label: string; tone: "neutral" | "warning" | "success"; helper: string } {
+function buildStatus(state: ModelSettingsCardState): {
+  label: string
+  tone: "neutral" | "warning" | "success"
+  helper: string
+} {
   if (state.provider === "") {
     return {
       label: "未選択",
@@ -394,7 +399,9 @@ export function buildModelSettingsCardViewModel(options: {
       modelListUsable &&
       state.modelList.models.length > 0 &&
       state.credentialStatus !== "missing",
-    emptyModelLabel: modelListUsable ? "選んでください" : "モデル一覧を更新してください",
+    emptyModelLabel: modelListUsable
+      ? "選んでください"
+      : "モデル一覧を更新してください",
     statusLabel: status.label,
     statusTone: status.tone,
     helperText: status.helper,

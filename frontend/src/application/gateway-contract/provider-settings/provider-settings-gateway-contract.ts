@@ -11,10 +11,7 @@ export type ProviderSettingsValidationState =
   | "validated"
   | "failed"
 
-export type ProviderSettingsSavedState =
-  | "not_saved"
-  | "partial"
-  | "configured"
+export type ProviderSettingsSavedState = "not_saved" | "partial" | "configured"
 
 export type ProviderSettingsErrorKind =
   | "credential_missing"

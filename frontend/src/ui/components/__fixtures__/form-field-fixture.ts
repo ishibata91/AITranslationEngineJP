@@ -48,7 +48,8 @@ export const textInputDisabledFixture: TextInputFieldProps = {
 export const textAreaFieldFixture: TextAreaFieldProps = {
   id: "storybook-text-area",
   label: "備考",
-  value: "長文入力の折り返しを確認するためのサンプル文です。画面固有の保存判断は持ちません。",
+  value:
+    "長文入力の折り返しを確認するためのサンプル文です。画面固有の保存判断は持ちません。",
   rows: 5,
   help: "複数行の入力値を表示します。",
   onInput: ignoreText

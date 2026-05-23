@@ -11,6 +11,8 @@ export type {
   ResumeBodyTranslationPhaseResponseDto,
   RetryBodyTranslationPhaseRequestDto,
   RetryBodyTranslationPhaseResponseDto,
+  SaveBodyTranslationPhaseAISettingsRequestDto,
+  SaveBodyTranslationPhaseAISettingsResponseDto,
   StartBodyTranslationPhaseRequestDto,
   StartBodyTranslationPhaseResponseDto
 } from "./body-translation-phase-gateway-dto"

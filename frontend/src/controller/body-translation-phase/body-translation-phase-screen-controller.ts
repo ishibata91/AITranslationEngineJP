@@ -29,6 +29,12 @@ interface BodyTranslationPhaseUseCaseLike {
   retryPhase(): Promise<void>
   cancelPhase(): Promise<void>
   checkOutputReadiness(): Promise<void>
+  saveAISettings?: (request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }) => Promise<void>
 }
 
 interface BodyTranslationPhaseScreenControllerDependencies {
@@ -99,5 +105,14 @@ export class BodyTranslationPhaseScreenController implements BodyTranslationPhas
 
   async checkOutputReadiness(): Promise<void> {
     await this.dependencies.useCase.checkOutputReadiness()
+  }
+
+  async saveAISettings(request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }): Promise<void> {
+    await this.dependencies.useCase.saveAISettings?.(request)
   }
 }

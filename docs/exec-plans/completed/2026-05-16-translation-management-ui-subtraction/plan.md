@@ -1,8 +1,8 @@
 # Task Plan: 2026-05-16-translation-management-ui-subtraction
 
 - `workflow`: work
-- `status`: planned
-- `lane_owner`: Codex design-bundle
+- `status`: completed
+- `lane_owner`: merge_lane
 - `task_id`: `2026-05-16-translation-management-ui-subtraction`
 - `task_mode`: UI simplification planning
 - `request_summary`: 翻訳管理画面が仕様に対して複雑すぎるため、表示情報、検証表示、操作導線を減らす。
@@ -120,29 +120,32 @@
 
 ## Merge Readiness
 
-- `merge_ready`: `pending`
+- `merge_ready`: `closed-by-successor-plan`
 - `source_branch`: `codex/2026-05-16-translation-management-ui-subtraction`
 - `target_branch`: `master`
 - `commit_hash`: `N/A`
-- `validation_evidence`: 未着手
-- `review_evidence`: 未着手
-- `residual_risks`: UI 削減が必要な状態説明まで削るリスクがある。`detail-spec-diff.md` で停止条件を固定する。
+- `validation_evidence`: 後続 plan `2026-05-22-job-setup-model-selection-relocation` の merge 後検証として、`python3 scripts/harness/run.py --suite frontend-local` pass、`python3 scripts/harness/run.py --suite backend-local` pass、`python3 scripts/harness/run.py --suite structure` pass、`npm --prefix frontend run build-storybook` pass。
+- `review_evidence`: 後続 plan `2026-05-22-job-setup-model-selection-relocation` で人間設計レビューと frontend 人間レビューが承認済みである。
+- `residual_risks`: この plan は計画作成のみで実装 source commit を持たない。同じ UI 削減目的は後続 plan `2026-05-22-job-setup-model-selection-relocation` の実装、レビュー、検証へ吸収済みである。
 
 ## Merge Result
 
-- `merge_status`: `pending`
+- `merge_status`: `closed-with-successor-plan`
 - `conflict_resolution`: `N/A`
-- `post_merge_validation`: `N/A`
-- `completed_move`: `N/A`
-- `merge_commit_hash`: `N/A`
+- `post_merge_validation`: 後続 plan `2026-05-22-job-setup-model-selection-relocation` の merge 後検証で通過済み。
+- `completed_move`: `docs/exec-plans/active/2026-05-16-translation-management-ui-subtraction/` から `docs/exec-plans/completed/2026-05-16-translation-management-ui-subtraction/` へ移動済み。
+- `merge_commit_hash`: `pending-closeout-commit`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
 
-- `canonicalized_artifacts`: 未着手
-- `detail_spec_canonicalization`: 未判断
-- `follow_up`: fake secret store 計画と合わせ、AI による UI 確認が安定する環境を先に用意する可能性がある。
+- `canonicalized_artifacts`: なし。この plan 自体は設計計画のみで正本反映していない。
+- `detail_spec_canonicalization`: 後続 plan `2026-05-22-job-setup-model-selection-relocation` に判断を移譲済みである。
+- `follow_up`: なし。
 
 ## Outcome
 
-- 計画作成のみ。
+- 計画作成のみで完了した。
+- 同じ UI 削減目的は後続 plan `2026-05-22-job-setup-model-selection-relocation` で実装済みである。
+- active plan folder は completed archive へ移動済みである。
+- remote repository は変更していない。

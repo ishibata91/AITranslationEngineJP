@@ -38,10 +38,7 @@ export type TranslationJobManagementReasonCategory =
   | "delete_failed"
   | "resume_failed"
 
-export type TranslationJobManagementOperationKind =
-  | "stop"
-  | "resume"
-  | "delete"
+export type TranslationJobManagementOperationKind = "stop" | "resume" | "delete"
 
 export interface TranslationJobManagementInputSourceSummary {
   inputSourceId: number
@@ -97,8 +94,7 @@ export interface TranslationJobManagementJobSummary {
   deleteAvailability: TranslationJobManagementOperationAvailability
 }
 
-export interface TranslationJobManagementJobDetail
-  extends TranslationJobManagementJobSummary {
+export interface TranslationJobManagementJobDetail extends TranslationJobManagementJobSummary {
   cacheState: TranslationJobManagementCacheState
   cacheStateLabel: string
   runtimeSummary: TranslationJobManagementProtectedSettingSummary

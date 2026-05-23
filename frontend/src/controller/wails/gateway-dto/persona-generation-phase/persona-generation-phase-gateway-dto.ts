@@ -5,6 +5,8 @@ import type {
   PausePersonaGenerationPhaseRequest,
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationPhaseCommandResponse,
+  PersonaGenerationPhaseAISettingsRequest,
+  PersonaGenerationPhaseAISettingsResponse,
   PersonaGenerationPhaseSummaryResponse,
   ResumePersonaGenerationPhaseRequest,
   RetryPersonaGenerationPhaseRequest,
@@ -20,6 +22,11 @@ export type StartPersonaGenerationPhaseRequestDto =
   StartPersonaGenerationPhaseRequest
 export type StartPersonaGenerationPhaseResponseDto =
   PersonaGenerationPhaseCommandResponse
+
+export type SavePersonaGenerationPhaseAISettingsRequestDto =
+  PersonaGenerationPhaseAISettingsRequest
+export type SavePersonaGenerationPhaseAISettingsResponseDto =
+  PersonaGenerationPhaseAISettingsResponse
 
 export type PausePersonaGenerationPhaseRequestDto =
   PausePersonaGenerationPhaseRequest

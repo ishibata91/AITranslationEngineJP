@@ -900,6 +900,23 @@ func (service *BodyTranslationPhaseService) persistRuntimeSnapshot(
 	return nil
 }
 
+// SaveAISettings saves public AI settings for the body translation phase.
+func (service *BodyTranslationPhaseService) SaveAISettings(
+	ctx context.Context,
+	selection PhaseAISettingsSelection,
+) (PhaseAISettingsReadModel, error) {
+	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
+	if !ok {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save body translation ai settings: snapshot store is not configured")
+	}
+	selection.PhaseID = "text_translation"
+	readModel, err := savePhaseAISettings(ctx, store, service.providerSettings, "body_translation_phase", selection)
+	if err != nil {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save body translation ai settings: %w", err)
+	}
+	return readModel, nil
+}
+
 func (service *BodyTranslationPhaseService) startRejection(
 	loaded bodyTranslationLoadedContext,
 ) *bodyTranslationStartRejection {

@@ -20,7 +20,10 @@
   }: Props = $props()
 </script>
 
-<section class={`inline-feedback inline-feedback-${tone}`} role={tone === "error" ? "alert" : "status"}>
+<section
+  class={`inline-feedback inline-feedback-${tone}`}
+  role={tone === "error" ? "alert" : "status"}
+>
   <div class="feedback-copy">
     {#if title}
       <p class="feedback-title">{title}</p>

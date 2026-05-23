@@ -44,7 +44,10 @@ function buildSavedState(provider: {
   requiresCredential: boolean
 }): ProviderSettingsProviderState["savedState"] {
   const hasEndpoint = provider.endpoint.trim().length > 0
-  if (!hasEndpoint && (!provider.requiresCredential || !provider.credentialConfigured)) {
+  if (
+    !hasEndpoint &&
+    (!provider.requiresCredential || !provider.credentialConfigured)
+  ) {
     return "not_saved"
   }
 
@@ -52,9 +55,7 @@ function buildSavedState(provider: {
     return hasEndpoint ? "configured" : "not_saved"
   }
 
-  return hasEndpoint && provider.credentialConfigured
-    ? "configured"
-    : "partial"
+  return hasEndpoint && provider.credentialConfigured ? "configured" : "partial"
 }
 
 function cloneProviderSummary(
@@ -98,9 +99,10 @@ function createDefaultProviders(): ProviderSettingsProviderState[] {
         requiresCredential: requiresCredential(providerId)
       }),
       requestToken: `${providerId}-initial`,
-      lastFailureKind: credentialConfigured || providerId === "lm_studio"
-        ? undefined
-        : "credential_missing"
+      lastFailureKind:
+        credentialConfigured || providerId === "lm_studio"
+          ? undefined
+          : "credential_missing"
     }
   })
 }
@@ -225,7 +227,11 @@ export class ProviderSettingsUseCase {
           draft.phase = "ready"
           return
         }
-        this.applySavedProvider(current, response.provider, credentialInputPresent)
+        this.applySavedProvider(
+          current,
+          response.provider,
+          credentialInputPresent
+        )
         draft.phase = "ready"
         draft.apiKeyPanelOpen = false
         draft.saveNotice = "設定を保存しました。"
@@ -259,10 +265,12 @@ export class ProviderSettingsUseCase {
         requiresCredential: requiresCredential(current.providerId)
       })
       current.credentialReferenceId = credentialConfigured
-        ? current.credentialReferenceId ?? `${current.providerId}-local`
+        ? (current.credentialReferenceId ?? `${current.providerId}-local`)
         : undefined
       current.validationState = "not_validated"
-      current.lastFailureKind = endpoint ? "validation_stale" : "endpoint_missing"
+      current.lastFailureKind = endpoint
+        ? "validation_stale"
+        : "endpoint_missing"
       current.requestToken = this.nextRequestToken(current.providerId)
       draft.phase = "ready"
       draft.apiKeyPanelOpen = false
@@ -365,7 +373,8 @@ export class ProviderSettingsUseCase {
         current.validationState = "not_validated"
         current.lastFailureKind = "endpoint_missing"
         current.requestToken = this.nextRequestToken(current.providerId)
-        draft.errorMessage = "エンドポイントを入力してから接続確認してください。"
+        draft.errorMessage =
+          "エンドポイントを入力してから接続確認してください。"
       })
       return
     }

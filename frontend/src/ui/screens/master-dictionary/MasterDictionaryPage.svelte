@@ -135,9 +135,9 @@
     isImportRunning={viewModel.isImportRunning}
     selectedEntry={viewModel.selectedEntry}
     selectedFileName={viewModel.selectedFileName}
-    chooseXmlFile={chooseXmlFile}
-    handleXmlSelected={handleXmlSelected}
-    resetImportSelection={resetImportSelection}
+    {chooseXmlFile}
+    {handleXmlSelected}
+    {resetImportSelection}
     startImport={() => void controller.startImport()}
   />
 
@@ -156,12 +156,12 @@
       selectedId={viewModel.selectedId}
       selectionStatusText={viewModel.selectionStatusText}
       totalPages={viewModel.totalPages}
-      goToNextPage={goToNextPage}
-      goToPrevPage={goToPrevPage}
-      handleCategoryChange={handleCategoryChange}
-      handleSearchInput={handleSearchInput}
+      {goToNextPage}
+      {goToPrevPage}
+      {handleCategoryChange}
+      {handleSearchInput}
       openCreateModal={() => controller.openCreateModal()}
-      selectRow={selectRow}
+      {selectRow}
     />
 
     <DictionaryDetailPanel
@@ -182,10 +182,10 @@
   modalState={viewModel.modalState}
   closeEditModal={() => controller.closeEditModal()}
   saveCurrentEntry={() => void controller.saveCurrentEntry()}
-  setFormCategory={setFormCategory}
-  setFormOrigin={setFormOrigin}
-  setFormSource={setFormSource}
-  setFormTranslation={setFormTranslation}
+  {setFormCategory}
+  {setFormOrigin}
+  {setFormSource}
+  {setFormTranslation}
 />
 
 <DictionaryDeleteModal

@@ -34,7 +34,10 @@ interface TranslationJobManagementScreenState {
   filterId: TranslationJobManagementStoreFilterId
   searchQuery: string
   isReloading: boolean
-  activeOperation: TranslationJobManagementOperationAvailability["kind"] | "reload" | null
+  activeOperation:
+    | TranslationJobManagementOperationAvailability["kind"]
+    | "reload"
+    | null
   isDeleteConfirmationOpen: boolean
   feedback: TranslationJobManagementFeedbackState | null
 }

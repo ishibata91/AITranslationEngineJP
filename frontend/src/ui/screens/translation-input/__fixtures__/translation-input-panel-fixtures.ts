@@ -1,4 +1,11 @@
-import type { TranslationInputReviewItem } from "@application/gateway-contract/translation-input"
+import type {
+  TranslationInputReviewItem,
+  TranslationInputScreenViewModel
+} from "@application/gateway-contract/translation-input"
+import type {
+  CreateTranslationInputScreenController,
+  TranslationInputScreenControllerContract
+} from "@application/contract/translation-input"
 
 const ignoreAction = (): void => {}
 const ignoreAsyncAction = async (): Promise<void> => {}
@@ -154,7 +161,7 @@ export const translationInputPanelFixtures = {
       selectedItem: baseReviewItem,
       selectionStatusText: "選択中の入力データを確認しています。",
       latestOutcomeTitle: "登録済み",
-      latestOutcomeText: "次に翻訳設定へ進めます。",
+      latestOutcomeText: "次に単語翻訳へ進めます。",
       canRebuildSelected: true,
       isRebuilding: false,
       formatDate: formatStoryDate,
@@ -163,4 +170,45 @@ export const translationInputPanelFixtures = {
       onRebuild: ignoreAsyncAction
     }
   }
+}
+
+export const inputReviewPageSelectedViewModel: TranslationInputScreenViewModel =
+  {
+    items: [baseReviewItem],
+    selectedItemId: baseReviewItem.localId,
+    stagedFile: null,
+    operationState: "ready",
+    errorMessage: "",
+    latestResponse: null,
+    selectedItem: baseReviewItem,
+    gatewayStatus: "接続済み",
+    hasStagedFile: false,
+    canImport: false,
+    isImporting: false,
+    isRebuilding: false,
+    stagedFileName: "未選択",
+    stagedFilePath: "-",
+    stagedFileHash: "-",
+    operationStatusLabel: "登録済み",
+    operationStatusText: "選択した入力データで翻訳ジョブを作成できます。",
+    latestOutcomeTitle: "登録済み",
+    latestOutcomeText: "次に単語翻訳へ進めます。",
+    selectionStatusText: "選択中の入力データを確認しています。",
+    totalItemCountLabel: "1 件",
+    emptyStateText: "読み込み済みデータはありません。",
+    canRebuildSelected: true
+  }
+
+export function createInputReviewPageControllerFixture(): CreateTranslationInputScreenController {
+  return (): TranslationInputScreenControllerContract => ({
+    mount: async () => {},
+    dispose: () => {},
+    subscribe: () => () => {},
+    getViewModel: () => inputReviewPageSelectedViewModel,
+    selectItem: () => {},
+    stageJsonImport: async () => {},
+    resetImportSelection: () => {},
+    startImport: async () => {},
+    rebuildSelected: async () => {}
+  })
 }

@@ -11,9 +11,7 @@ import { ProviderSettingsStore } from "@application/store/provider-settings"
 import { ProviderSettingsUseCase } from "@application/usecase/provider-settings"
 import ProviderSettingsPage from "@ui/screens/provider-settings/ProviderSettingsPage.svelte"
 
-class ProviderSettingsScreenControllerFake
-  implements ProviderSettingsScreenControllerContract
-{
+class ProviderSettingsScreenControllerFake implements ProviderSettingsScreenControllerContract {
   private readonly store = new ProviderSettingsStore()
 
   private readonly presenter = new ProviderSettingsPresenter()
@@ -37,7 +35,11 @@ class ProviderSettingsScreenControllerFake
   }
 
   selectProvider(providerId: string): void {
-    if (providerId === "gemini" || providerId === "xai" || providerId === "lm_studio") {
+    if (
+      providerId === "gemini" ||
+      providerId === "xai" ||
+      providerId === "lm_studio"
+    ) {
       this.useCase.selectProvider(providerId)
     }
   }
@@ -106,9 +108,7 @@ describe("ProviderSettingsPage", () => {
     expect(
       screen.getByRole("button", { name: "接続を確認" })
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "リセット" })
-    ).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "リセット" })).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: "設定を保存" })
     ).toBeInTheDocument()
@@ -136,7 +136,9 @@ describe("ProviderSettingsPage", () => {
     await user.click(screen.getByRole("button", { name: "保存" }))
 
     await waitFor(() => {
-      expect(screen.queryByDisplayValue("top-secret-value")).not.toBeInTheDocument()
+      expect(
+        screen.queryByDisplayValue("top-secret-value")
+      ).not.toBeInTheDocument()
     })
 
     await user.click(screen.getByText("LM Studio"))

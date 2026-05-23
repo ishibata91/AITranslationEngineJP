@@ -17,8 +17,12 @@
     listErrorTitle: string
     listErrorDescription: string
     onSearchQueryChange: (searchQuery: string) => void
-    onFilterChange: (filterId: TranslationJobManagementFilterChipViewModel["id"]) => void
-    onOpenJob: (job: TranslationJobManagementJobCardViewModel) => void | Promise<void>
+    onFilterChange: (
+      filterId: TranslationJobManagementFilterChipViewModel["id"]
+    ) => void
+    onOpenJob: (
+      job: TranslationJobManagementJobCardViewModel
+    ) => void | Promise<void>
     onOperation: (
       job: TranslationJobManagementJobCardViewModel,
       operation: TranslationJobManagementOperationViewModel
@@ -72,7 +76,9 @@
           data-testid="translation-job-management-search-field"
           id="jobManagementSearch"
           oninput={(event) =>
-            onSearchQueryChange((event.currentTarget as HTMLInputElement).value)}
+            onSearchQueryChange(
+              (event.currentTarget as HTMLInputElement).value
+            )}
           placeholder="ジョブID、入力名、翻訳段階で検索"
           type="search"
           value={searchQuery}

@@ -80,7 +80,7 @@ function createPhaseOptions(
         model: "gemini-word-model",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "enabled",
+        batchMode: "enabled"
       },
       {
         phaseId: "npc_persona_generation",
@@ -88,7 +88,7 @@ function createPhaseOptions(
         model: "xai-persona-model",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "disabled",
+        batchMode: "disabled"
       },
       {
         phaseId: "text_translation",
@@ -96,7 +96,7 @@ function createPhaseOptions(
         model: "xai-text-model",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "disabled",
+        batchMode: "disabled"
       }
     ],
     ...overrides
@@ -361,8 +361,10 @@ describe("TranslationJobSetupUseCase", () => {
   })
 
   test("deleteInputSource は削除中 id を保持し、失敗時に解除して errorMessage を残す", async () => {
-    const deferredDelete =
-      createDeferred<{ deletedInputSourceId?: number; errorKind?: never }>()
+    const deferredDelete = createDeferred<{
+      deletedInputSourceId?: number
+      errorKind?: never
+    }>()
     const gateway = createGateway()
     gateway.deleteTranslationJobSetupInput = vi
       .fn()
@@ -900,7 +902,7 @@ describe("TranslationJobSetupUseCase", () => {
             model: "",
             credentialStatus: "missing",
             executionMode: "sync",
-            batchMode: "enabled",
+            batchMode: "enabled"
           },
           {
             phaseId: "npc_persona_generation",
@@ -908,7 +910,7 @@ describe("TranslationJobSetupUseCase", () => {
             model: "xai-persona-model",
             credentialStatus: "configured",
             executionMode: "sync",
-            batchMode: "disabled",
+            batchMode: "disabled"
           },
           {
             phaseId: "text_translation",
@@ -916,7 +918,7 @@ describe("TranslationJobSetupUseCase", () => {
             model: "xai-text-model",
             credentialStatus: "configured",
             executionMode: "sync",
-            batchMode: "disabled",
+            batchMode: "disabled"
           }
         ]
       })
@@ -957,7 +959,7 @@ describe("TranslationJobSetupUseCase", () => {
       expect.objectContaining({
         provider: "gemini",
         credentialStatus: "not_required",
-        model: "gemini-test-safe",
+        model: "gemini-test-safe"
       })
     )
   })
@@ -975,7 +977,12 @@ describe("TranslationJobSetupUseCase", () => {
           requestToken: request.requestToken,
           sourceToken: "text_translation|lm_studio||req-fake-1",
           status: "success",
-          models: [{ modelId: "single-available-model", label: "single-available-model" }]
+          models: [
+            {
+              modelId: "single-available-model",
+              label: "single-available-model"
+            }
+          ]
         })
     )
     const store = createStore(createPhaseDrivenState())
@@ -1012,7 +1019,7 @@ describe("TranslationJobSetupUseCase", () => {
             model: "",
             credentialStatus: "missing",
             executionMode: "sync",
-            batchMode: "unsupported",
+            batchMode: "unsupported"
           }
         ]
       })

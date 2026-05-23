@@ -20,7 +20,9 @@
   }: Props = $props()
 
   const describedBy = $derived(
-    [help ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined
+    [help ? `${id}-help` : "", error ? `${id}-error` : ""]
+      .filter(Boolean)
+      .join(" ") || undefined
   )
 </script>
 
@@ -30,8 +32,8 @@
       aria-describedby={describedBy}
       aria-invalid={error ? "true" : undefined}
       class="checkbox-input"
-      disabled={disabled}
-      id={id}
+      {disabled}
+      {id}
       onchange={(event) => onChange(event.currentTarget.checked)}
       type="checkbox"
       {checked}

@@ -125,6 +125,27 @@ type GetPersonaGenerationBodyReadinessRequest struct {
 	JobID int64
 }
 
+// SavePersonaGenerationPhaseAISettingsRequest carries public AI settings for the persona phase.
+type SavePersonaGenerationPhaseAISettingsRequest struct {
+	JobID         int64
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+}
+
+// PersonaGenerationPhaseAISettingsResult returns public AI settings state.
+type PersonaGenerationPhaseAISettingsResult struct {
+	JobID            int64
+	PhaseID          string
+	Provider         string
+	Model            string
+	CredentialStatus string
+	ExecutionMode    string
+	BatchMode        string
+	ModelListStatus  string
+}
+
 // PersonaGenerationPhaseProgressSummary summarizes current progress for one phase run.
 type PersonaGenerationPhaseProgressSummary struct {
 	Percent        int

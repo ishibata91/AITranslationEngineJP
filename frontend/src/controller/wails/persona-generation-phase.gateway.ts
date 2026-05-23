@@ -12,6 +12,8 @@ import type {
   ResumePersonaGenerationPhaseResponseDto,
   RetryPersonaGenerationPhaseRequestDto,
   RetryPersonaGenerationPhaseResponseDto,
+  SavePersonaGenerationPhaseAISettingsRequestDto,
+  SavePersonaGenerationPhaseAISettingsResponseDto,
   StartPersonaGenerationPhaseRequestDto,
   StartPersonaGenerationPhaseResponseDto
 } from "@controller/wails/gateway-dto/persona-generation-phase"
@@ -19,6 +21,7 @@ import type {
 type PersonaGenerationPhaseBindingName =
   | "GetPersonaGenerationPhaseSummary"
   | "StartPersonaGenerationPhase"
+  | "SavePersonaGenerationPhaseAISettings"
   | "PausePersonaGenerationPhase"
   | "ResumePersonaGenerationPhase"
   | "RetryPersonaGenerationPhase"
@@ -107,6 +110,12 @@ class PersonaGenerationPhaseGateway implements PersonaGenerationPhaseGatewayCont
     request: StartPersonaGenerationPhaseRequestDto
   ): Promise<StartPersonaGenerationPhaseResponseDto> {
     return this.invokeBinding("StartPersonaGenerationPhase", request)
+  }
+
+  savePersonaGenerationPhaseAISettings(
+    request: SavePersonaGenerationPhaseAISettingsRequestDto
+  ): Promise<SavePersonaGenerationPhaseAISettingsResponseDto> {
+    return this.invokeBinding("SavePersonaGenerationPhaseAISettings", request)
   }
 
   pausePersonaGenerationPhase(

@@ -27,6 +27,12 @@ interface TermTranslationPhaseUseCaseLike {
   pausePhase(): Promise<void>
   resumePhase(): Promise<void>
   retryPhase(): Promise<void>
+  saveAISettings?: (request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }) => Promise<void>
 }
 
 interface TermTranslationPhaseScreenControllerDependencies {
@@ -89,5 +95,14 @@ export class TermTranslationPhaseScreenController implements TermTranslationPhas
 
   async retryPhase(): Promise<void> {
     await this.dependencies.useCase.retryPhase()
+  }
+
+  async saveAISettings(request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }): Promise<void> {
+    await this.dependencies.useCase.saveAISettings?.(request)
   }
 }

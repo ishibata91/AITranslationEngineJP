@@ -28,7 +28,9 @@
   }: Props = $props()
 
   const describedBy = $derived(
-    [help ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined
+    [help ? `${id}-help` : "", error ? `${id}-error` : ""]
+      .filter(Boolean)
+      .join(" ") || undefined
   )
 </script>
 
@@ -37,13 +39,13 @@
     aria-describedby={describedBy}
     aria-invalid={error ? "true" : undefined}
     class="text-area"
-    disabled={disabled}
-    id={id}
+    {disabled}
+    {id}
     oninput={(event) => onInput(event.currentTarget.value)}
-    placeholder={placeholder}
-    required={required}
+    {placeholder}
+    {required}
     {rows}
-    value={value}
+    {value}
   ></textarea>
 </FormField>
 

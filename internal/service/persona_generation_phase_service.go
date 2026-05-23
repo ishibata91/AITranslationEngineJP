@@ -1575,6 +1575,23 @@ func (service *PersonaGenerationPhaseService) persistRuntimeSnapshot(
 	return nil
 }
 
+// SaveAISettings saves public AI settings for the persona generation phase.
+func (service *PersonaGenerationPhaseService) SaveAISettings(
+	ctx context.Context,
+	selection PhaseAISettingsSelection,
+) (PhaseAISettingsReadModel, error) {
+	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
+	if !ok {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save persona generation ai settings: snapshot store is not configured")
+	}
+	selection.PhaseID = "npc_persona_generation"
+	readModel, err := savePhaseAISettings(ctx, store, service.providerSettings, "persona_generation_phase", selection)
+	if err != nil {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save persona generation ai settings: %w", err)
+	}
+	return readModel, nil
+}
+
 func personaGenerationInitialRunStatus(snapshot personaGenerationTargetSnapshot, now time.Time) (string, int, *time.Time) {
 	if snapshot.targetCount == 0 {
 		return personaGenerationPhaseStateCompleted, 100, &now

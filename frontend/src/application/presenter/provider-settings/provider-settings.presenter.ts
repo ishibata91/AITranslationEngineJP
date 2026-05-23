@@ -6,9 +6,7 @@ import type {
   ProviderSettingsSelectedProviderViewModel
 } from "@application/gateway-contract/provider-settings"
 
-function buildPhaseLabel(
-  phase: ProviderSettingsScreenState["phase"]
-): string {
+function buildPhaseLabel(phase: ProviderSettingsScreenState["phase"]): string {
   switch (phase) {
     case "loading":
       return "読込中"
@@ -103,7 +101,9 @@ function buildStatus(
   }
 }
 
-function buildApiKeyStateLabel(provider: ProviderSettingsProviderState): string {
+function buildApiKeyStateLabel(
+  provider: ProviderSettingsProviderState
+): string {
   if (provider.credentialState === "not_required") {
     return "不要"
   }
@@ -115,9 +115,7 @@ function buildApiKeyStateLabel(provider: ProviderSettingsProviderState): string 
   return "未保存"
 }
 
-function buildValidationLabel(
-  provider: ProviderSettingsProviderState
-): {
+function buildValidationLabel(provider: ProviderSettingsProviderState): {
   label: string
   tone: "neutral" | "warning" | "success"
   helpText: string

@@ -1,114 +1,93 @@
-import type { ComponentProps } from "svelte"
-import BodyExecutionSummaryCard from "../BodyExecutionSummaryCard.svelte"
-import BodyInputSummaryCard from "../BodyInputSummaryCard.svelte"
-import BodyResultSummaryCard from "../BodyResultSummaryCard.svelte"
-import FieldResultListPanel from "../FieldResultListPanel.svelte"
-import OutputReadinessCard from "../OutputReadinessCard.svelte"
+import type { BodyTranslationPhaseScreenViewModel } from "@application/contract/body-translation-phase"
 
-type BodyInputSummaryCardProps = ComponentProps<typeof BodyInputSummaryCard>
-type BodyExecutionSummaryCardProps = ComponentProps<
-  typeof BodyExecutionSummaryCard
->
-type BodyResultSummaryCardProps = ComponentProps<typeof BodyResultSummaryCard>
-type FieldResultListPanelProps = ComponentProps<typeof FieldResultListPanel>
-type OutputReadinessCardProps = ComponentProps<typeof OutputReadinessCard>
-
-export const bodyInputSummaryCardFixture: BodyInputSummaryCardProps = {
-  readinessReason: "出力準備は本文翻訳結果の整合確認後に可能です。",
-  details: [
-    { label: "dictionary digest", value: "dictionary-digest:sample-body" },
-    { label: "persona digest", value: "persona-digest:sample-body" },
-    { label: "metadata digest", value: "metadata-digest:sample-body" },
-    { label: "prompt digest", value: "prompt-digest:sample-body" },
-    { label: "input snapshot", value: "input-snapshot:body-story" },
-    { label: "skipped reasons", value: "完全一致辞書により 2 件を除外" }
-  ]
-}
-
-export const bodyExecutionSummaryCardFixture: BodyExecutionSummaryCardProps = {
-  providerStateLabel: "provider 実行完了",
-  details: [
-    { label: "provider", value: "Sample Provider" },
-    { label: "model", value: "sample-body-model" },
-    { label: "execution mode", value: "batch" },
-    { label: "credential ref", value: "credential-ref:body-story" },
-    { label: "request unit count", value: "8" },
-    { label: "provider target count", value: "24" },
-    { label: "exact dictionary excluded", value: "2" },
-    { label: "partial dictionary constrained", value: "5" },
-    { label: "output count", value: "22" },
-    { label: "late response rejected", value: "0" }
-  ]
-}
-
-export const bodyResultSummaryCardFixture: BodyResultSummaryCardProps = {
-  outputReadinessLabel: "出力準備完了",
-  details: [
-    { label: "translated count", value: "22" },
-    { label: "failed count", value: "0" },
-    { label: "skipped count", value: "2" },
-    { label: "output ready count", value: "24" },
-    { label: "result output count", value: "22" },
-    { label: "status consistency", value: "整合しています" }
-  ]
-}
-
-export const fieldResultListPanelFixture: FieldResultListPanelProps = {
-  availabilityLabel: "2 件を表示",
-  items: [
-    {
-      fieldId: "field-name-001",
-      fieldLabel: "Name",
-      recordTypeLabel: "NPC_",
-      fieldTypeLabel: "FULL",
-      formIdLabel: "0x00001234",
-      editorIdLabel: "SampleActorOne",
-      sourceExcerpt: "Sample source line for review.",
-      translatedText: "確認用のサンプル訳文です。",
-      outputStatus: "ready",
-      protectionValidation: "passed",
-      retryCountLabel: "0",
-      rawItem: null
+export const bodyTranslationPhasePanelFixture: BodyTranslationPhaseScreenViewModel =
+  {
+    jobId: 101,
+    phase: "ready",
+    summary: null,
+    outputReadiness: null,
+    errorMessage: "",
+    pendingAction: null,
+    hasLoaded: true,
+    gatewayStatus: "接続済み",
+    viewState: "ready",
+    isLoading: false,
+    isRefreshing: false,
+    isSubmitting: false,
+    hasJobSelection: true,
+    currentPhaseLabel: "本文翻訳",
+    phaseStateLabel: "未開始",
+    statusTitle: "本文翻訳を開始できます",
+    statusText: "本文翻訳用の AI 設定を確認してから開始します。",
+    progressPercent: 0,
+    progressLabel: "0 / 24",
+    progressDetail: "開始待ち",
+    startedAtLabel: "-",
+    finishedAtLabel: "-",
+    targetCountLabel: "24",
+    processedCountLabel: "0",
+    translatedCountLabel: "0",
+    failedCountLabel: "0",
+    skippedCountLabel: "2",
+    dictionaryDigestLabel: "-",
+    personaDigestLabel: "-",
+    metadataDigestLabel: "-",
+    promptDigestLabel: "-",
+    inputSnapshotRefLabel: "-",
+    skippedReasonsLabel: "完全一致辞書により 2 件を除外",
+    providerLabel: "OpenAI",
+    modelLabel: "gpt-4.1-mini",
+    executionModeLabel: "通常実行",
+    credentialRefLabel: "認証済み",
+    providerTargetCountLabel: "24",
+    exactDictionaryExclusionCountLabel: "2",
+    partialDictionaryConstraintCountLabel: "5",
+    requestUnitCountLabel: "8",
+    outputCountLabel: "0",
+    resultOutputCountLabel: "0",
+    providerStateLabel: "一括処理なし",
+    lateResponseLabel: "0",
+    outputReadinessLabel: "本文翻訳の完了後に確認できます",
+    outputReadinessBlockedReason: "本文翻訳が未完了です。",
+    outputReadinessCompletedFieldCountLabel: "0",
+    outputReadinessStatusLabel: "未完了",
+    errorKindLabel: "-",
+    errorReasonLabel: "-",
+    retryableLabel: "-",
+    fieldResultAvailabilityLabel: "完了後に表示します",
+    fieldResultItems: [],
+    actionCards: [
+      {
+        id: "start",
+        label: "開始",
+        disabled: false,
+        blockedReason: "",
+        tone: "primary"
+      },
+      {
+        id: "pause",
+        label: "中断",
+        disabled: true,
+        blockedReason: "実行中ではありません。",
+        tone: "default"
+      }
+    ],
+    screenActionEnablement: {
+      canRefresh: true,
+      canStart: true,
+      canPause: false,
+      canResume: false,
+      canRetry: false,
+      canCancel: false,
+      canCheckOutputReadiness: false
     },
-    {
-      fieldId: "field-dialogue-002",
-      fieldLabel: "Dialogue",
-      recordTypeLabel: "INFO",
-      fieldTypeLabel: "NAM1",
-      formIdLabel: "0x00005678",
-      editorIdLabel: "SampleDialogueTopic",
-      sourceExcerpt:
-        "A longer synthetic source line that checks wrapping inside the card.",
-      translatedText: "カード内で折り返しを確認するための長めの合成訳文です。",
-      outputStatus: "ready",
-      protectionValidation: "passed",
-      retryCountLabel: "1",
-      rawItem: null
-    }
-  ]
-}
-
-export const emptyFieldResultListPanelFixture: FieldResultListPanelProps = {
-  availabilityLabel: "0 件",
-  items: []
-}
-
-export const outputReadinessCardFixture: OutputReadinessCardProps = {
-  outputReadinessLabel: "出力準備完了",
-  details: [
-    { label: "readiness", value: "出力準備完了" },
-    { label: "completed field count", value: "24" },
-    { label: "status consistency", value: "整合しています" },
-    { label: "blocked reason", value: "ブロック理由はありません。" }
-  ]
-}
-
-export const blockedOutputReadinessCardFixture: OutputReadinessCardProps = {
-  outputReadinessLabel: "出力準備未達",
-  details: [
-    { label: "readiness", value: "出力準備未達" },
-    { label: "completed field count", value: "18 / 24" },
-    { label: "status consistency", value: "未完了の field result があります" },
-    { label: "blocked reason", value: "失敗項目を再試行してください。" }
-  ]
-}
+    lastErrorSummary: null,
+    actionEnablement: null,
+    latestProgressSummary: null,
+    latestInputSummary: null,
+    latestRequestSummary: null,
+    latestExecutionSummary: null,
+    latestResultSummary: null,
+    latestErrorKind: null,
+    latestOutputReadiness: null
+  }

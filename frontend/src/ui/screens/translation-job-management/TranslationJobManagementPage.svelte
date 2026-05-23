@@ -1,9 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
-  import type {
-    CreateTranslationJobManagementScreenController,
-  } from "@application/contract/translation-job-management"
+  import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
   import type {
     TranslationJobManagementJobRunTarget,
     TranslationJobManagementJobCardViewModel,
@@ -17,7 +15,9 @@
 
   interface Props {
     createController: CreateTranslationJobManagementScreenController | null
-    onJobRunTargetChange?: (target: TranslationJobManagementJobRunTarget | null) => void
+    onJobRunTargetChange?: (
+      target: TranslationJobManagementJobRunTarget | null
+    ) => void
     onOpenInputReview?: () => void
     onOpenJobRun?: (target: TranslationJobManagementJobRunTarget | null) => void
   }
@@ -88,7 +88,9 @@
     controller.openDeleteConfirmation()
   }
 
-  async function handleOpenJob(job: TranslationJobManagementJobCardViewModel): Promise<void> {
+  async function handleOpenJob(
+    job: TranslationJobManagementJobCardViewModel
+  ): Promise<void> {
     if (!job.canOpenPhase || !job.jobRunTarget) {
       await controller.selectJob(job.jobId)
       return
@@ -108,7 +110,6 @@
   ): void {
     controller.setFilter(filterId)
   }
-
 </script>
 
 <section

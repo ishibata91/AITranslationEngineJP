@@ -496,10 +496,7 @@ export class TranslationOutputArtifactUseCase {
       } satisfies GetTranslationOutputReviewRequest)
       const completedJobs = mapCompletedJobs(response)
 
-      if (
-        response.hasSelectedJob === false ||
-        state.selectedJobId === null
-      ) {
+      if (response.hasSelectedJob === false || state.selectedJobId === null) {
         this.store.update((draft) => {
           draft.phase = "ready"
           draft.pendingAction = null

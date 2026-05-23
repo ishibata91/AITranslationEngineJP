@@ -61,7 +61,9 @@ describe("MasterPersonaStore", () => {
     store.update((draft) => {
       const entry = createMasterPersonaDetail()
       draft.items = [entry]
-      draft.pluginGroups = [{ targetPlugin: "TestPersonaPluginA.esp", count: 1 }]
+      draft.pluginGroups = [
+        { targetPlugin: "TestPersonaPluginA.esp", count: 1 }
+      ]
       draft.selectedIdentityKey = entry.identityKey
       draft.selectedEntry = entry
       draft.aiSettings = {

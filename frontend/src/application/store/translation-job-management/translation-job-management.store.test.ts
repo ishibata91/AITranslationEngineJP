@@ -26,7 +26,12 @@ function createState() {
           progressLabel: "20%",
           lastUpdatedLabel: "now"
         },
-        stopAvailability: { kind: "stop", enabled: false, label: "停止", helperText: "" },
+        stopAvailability: {
+          kind: "stop",
+          enabled: false,
+          label: "停止",
+          helperText: ""
+        },
         resumeAvailability: {
           kind: "resume",
           enabled: false,
@@ -35,7 +40,12 @@ function createState() {
           reasonCategory: "cache_missing",
           reasonText: "入力キャッシュがありません"
         },
-        deleteAvailability: { kind: "delete", enabled: true, label: "削除", helperText: "" }
+        deleteAvailability: {
+          kind: "delete",
+          enabled: true,
+          label: "削除",
+          helperText: ""
+        }
       }
     ],
     selectedJobId: 1,
@@ -59,7 +69,12 @@ function createState() {
         progressLabel: "20%",
         lastUpdatedLabel: "now"
       },
-      stopAvailability: { kind: "stop", enabled: false, label: "停止", helperText: "" },
+      stopAvailability: {
+        kind: "stop",
+        enabled: false,
+        label: "停止",
+        helperText: ""
+      },
       resumeAvailability: {
         kind: "resume",
         enabled: false,
@@ -68,7 +83,12 @@ function createState() {
         reasonCategory: "cache_missing",
         reasonText: "入力キャッシュがありません"
       },
-      deleteAvailability: { kind: "delete", enabled: true, label: "削除", helperText: "" },
+      deleteAvailability: {
+        kind: "delete",
+        enabled: true,
+        label: "削除",
+        helperText: ""
+      },
       cacheState: "missing",
       cacheStateLabel: "欠落",
       runtimeSummary: {

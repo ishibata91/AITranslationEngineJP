@@ -32,7 +32,9 @@
   }: Props = $props()
 
   const describedBy = $derived(
-    [help ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined
+    [help ? `${id}-help` : "", error ? `${id}-error` : ""]
+      .filter(Boolean)
+      .join(" ") || undefined
   )
 </script>
 
@@ -40,13 +42,13 @@
   <input
     aria-describedby={describedBy}
     aria-invalid={error ? "true" : undefined}
-    autocomplete={autocomplete}
+    {autocomplete}
     class="text-input"
-    disabled={disabled}
-    id={id}
+    {disabled}
+    {id}
     oninput={(event) => onInput(event.currentTarget.value)}
-    placeholder={placeholder}
-    required={required}
+    {placeholder}
+    {required}
     {type}
     {value}
   />

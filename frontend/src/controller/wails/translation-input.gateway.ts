@@ -1,5 +1,7 @@
 import type { TranslationInputGatewayContract } from "@application/gateway-contract/translation-input"
 import type {
+  CreateTranslationJobFromInputRequestDto,
+  CreateTranslationJobFromInputResponseDto,
   ImportTranslationInputRequestDto,
   ImportTranslationInputResponseDto,
   RebuildTranslationInputCacheRequestDto,
@@ -9,6 +11,7 @@ import type {
 type TranslationInputBindingName =
   | "ImportTranslationInput"
   | "RebuildTranslationInputCache"
+  | "CreateTranslationJobFromInput"
 
 type BindingInvoker = <RequestDto, ResponseDto>(
   bindingName: TranslationInputBindingName,
@@ -92,6 +95,12 @@ class TranslationInputGateway implements TranslationInputGatewayContract {
     request: RebuildTranslationInputCacheRequestDto
   ): Promise<RebuildTranslationInputCacheResponseDto> {
     return this.invokeBinding("RebuildTranslationInputCache", request)
+  }
+
+  createTranslationJobFromInput(
+    request: CreateTranslationJobFromInputRequestDto
+  ): Promise<CreateTranslationJobFromInputResponseDto> {
+    return this.invokeBinding("CreateTranslationJobFromInput", request)
   }
 }
 

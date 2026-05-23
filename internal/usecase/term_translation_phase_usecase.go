@@ -18,6 +18,10 @@ type termTranslationPhaseServicePort interface {
 	ReadNextPhaseReadiness(ctx context.Context, jobID int64) (service.TermTranslationNextPhaseReadinessReadModel, error)
 }
 
+type termTranslationPhaseAISettingsSaver interface {
+	SaveAISettings(ctx context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error)
+}
+
 const termTranslationPhaseUsecaseLogWhere = "backend.usecase.term_translation_phase"
 
 // TermTranslationPhaseUsecase bridges the frozen term phase contract to the service layer.
@@ -56,6 +60,28 @@ func (usecase *TermTranslationPhaseUsecase) StartTermTranslationPhase(
 		return TermTranslationPhaseCommandResult{}, fmt.Errorf("start term translation phase: %w", err)
 	}
 	return toTermTranslationPhaseCommandResult(readModel), nil
+}
+
+// SaveTermTranslationPhaseAISettings saves public AI settings for the term phase.
+func (usecase *TermTranslationPhaseUsecase) SaveTermTranslationPhaseAISettings(
+	ctx context.Context,
+	request SaveTermTranslationPhaseAISettingsRequest,
+) (TermTranslationPhaseAISettingsResult, error) {
+	saver, ok := usecase.service.(termTranslationPhaseAISettingsSaver)
+	if !ok {
+		return TermTranslationPhaseAISettingsResult{}, fmt.Errorf("save term translation phase ai settings: service is not configured")
+	}
+	readModel, err := saver.SaveAISettings(ctx, service.PhaseAISettingsSelection{
+		JobID:         request.JobID,
+		Provider:      request.Provider,
+		Model:         request.Model,
+		ExecutionMode: request.ExecutionMode,
+		BatchMode:     request.BatchMode,
+	})
+	if err != nil {
+		return TermTranslationPhaseAISettingsResult{}, fmt.Errorf("save term translation phase ai settings: %w", err)
+	}
+	return TermTranslationPhaseAISettingsResult(readModel), nil
 }
 
 // PauseTermTranslationPhase pauses one active term phase run and returns the command contract.

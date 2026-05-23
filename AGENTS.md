@@ -108,7 +108,8 @@ agent の 権限 と 契約 は、skill 本文から agent-owned reference を�
 
 - library の書き方は `npx ctx7 library` / `npx ctx7 docs` で Context7 を確認する
 - wails は `npm run dev:wails:agent-browser` で起動する
-- Storybook は `npm --prefix frontend run storybook` で起動する
-- ブラウザ操作は Codex 内蔵ブラウザを使う
-- UI 証跡と Storybook 人間レビューコメントは Codex 内蔵ブラウザから取得する
+- Storybook は `npm --prefix frontend run storybook` で `http://localhost:6008/` に固定して起動する
+- Storybook は変更後に再起動し、別 port で追加起動しない
+- Codex 本体の開発体験確認と Storybook 人間レビューコメント取得は Codex 内蔵ブラウザを使う
+- サブエージェントの UI 証跡取得は `agent-browser` CLI を使う
 - Sonar project は `ishibata91_AITranslationEngineJP`

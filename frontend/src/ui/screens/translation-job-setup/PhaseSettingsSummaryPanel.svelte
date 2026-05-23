@@ -6,10 +6,7 @@
     summaryPhaseCards: TranslationJobSetupSummaryPhaseViewModel[]
   }
 
-  let {
-    legacyValidationPassSlices,
-    summaryPhaseCards
-  }: Props = $props()
+  let { legacyValidationPassSlices, summaryPhaseCards }: Props = $props()
 </script>
 
 <section

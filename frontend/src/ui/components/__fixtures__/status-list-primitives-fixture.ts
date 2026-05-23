@@ -100,8 +100,10 @@ export const fileSelectionBusyFixture: FileSelectionDisplayProps = {
 
 export const fileSelectionLongFixture: FileSelectionDisplayProps = {
   ...fileSelectionDefaultFixture,
-  fileName: "very-long-synthetic-file-name-for-layout-review-and-wrapping-check.json",
-  pathLabel: "project://workspace/input/nested/folder/with/long/path/very-long-synthetic-file-name-for-layout-review-and-wrapping-check.json"
+  fileName:
+    "very-long-synthetic-file-name-for-layout-review-and-wrapping-check.json",
+  pathLabel:
+    "project://workspace/input/nested/folder/with/long/path/very-long-synthetic-file-name-for-layout-review-and-wrapping-check.json"
 }
 
 export const emptyStateDefaultFixture: EmptyStatePanelProps = {
@@ -133,7 +135,8 @@ export const emptyStateBusyFixture: EmptyStatePanelProps = {
 
 export const emptyStateLongFixture: EmptyStatePanelProps = {
   title: "長い説明を持つ空状態",
-  message: "空状態の説明文が長くなっても、文章は枠内で折り返され、操作ボタンと重ならない必要があります。",
+  message:
+    "空状態の説明文が長くなっても、文章は枠内で折り返され、操作ボタンと重ならない必要があります。",
   actionLabel: "長い文言の操作を実行する",
   onAction: noop
 }
@@ -220,6 +223,8 @@ export const confirmDangerFailureFixture: ConfirmDangerModalProps = {
 
 export const confirmDangerLongFixture: ConfirmDangerModalProps = {
   ...confirmDangerDefaultFixture,
-  targetLabel: "Synthetic Job With Very Long Name For Modal Layout Review And Wrapping",
-  message: "対象識別情報と説明文が長い場合でも、確認 modal は横幅を超えず、操作ボタンを押せる状態を維持します。"
+  targetLabel:
+    "Synthetic Job With Very Long Name For Modal Layout Review And Wrapping",
+  message:
+    "対象識別情報と説明文が長い場合でも、確認 modal は横幅を超えず、操作ボタンを押せる状態を維持します。"
 }

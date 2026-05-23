@@ -12,8 +12,7 @@
   import ProviderSettingsSummaryPanel from "./ProviderSettingsSummaryPanel.svelte"
   import SettingsActionPanel from "./SettingsActionPanel.svelte"
 
-  interface ProviderSettingsPageControllerContract
-    extends ProviderSettingsScreenControllerContract {
+  interface ProviderSettingsPageControllerContract extends ProviderSettingsScreenControllerContract {
     updateCredentialInput(nextValue: string): void
     clearCredentialInput(): void
   }
@@ -109,10 +108,7 @@
   />
 
   <section class="provider-layout">
-    <ProviderListPanel
-      providerList={viewModel.providerList}
-      selectProvider={selectProvider}
-    />
+    <ProviderListPanel providerList={viewModel.providerList} {selectProvider} />
 
     {#if viewModel.selectedProvider}
       <section
@@ -121,23 +117,23 @@
       >
         <ProviderDetailPanel
           selectedProvider={viewModel.selectedProvider}
-          updateEndpoint={updateEndpoint}
+          {updateEndpoint}
         />
         <ApiKeyPanel
-          closeApiKeyPanel={closeApiKeyPanel}
-          credentialInputDraft={credentialInputDraft}
-          openApiKeyPanel={openApiKeyPanel}
-          saveSettings={saveSettings}
+          {closeApiKeyPanel}
+          {credentialInputDraft}
+          {openApiKeyPanel}
+          {saveSettings}
           selectedProvider={viewModel.selectedProvider}
-          updateCredentialDraft={updateCredentialDraft}
+          {updateCredentialDraft}
         />
         <ConnectionCheckPanel
           selectedProvider={viewModel.selectedProvider}
-          validateConnection={validateConnection}
+          {validateConnection}
         />
         <SettingsActionPanel
-          resetSettings={resetSettings}
-          saveSettings={saveSettings}
+          {resetSettings}
+          {saveSettings}
           selectedProvider={viewModel.selectedProvider}
         />
       </section>

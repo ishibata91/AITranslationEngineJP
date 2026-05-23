@@ -1,62 +1,89 @@
-import type { ComponentProps } from "svelte"
-import BodyReadinessInputCard from "../BodyReadinessInputCard.svelte"
-import PersonaExecutionSettingsCard from "../PersonaExecutionSettingsCard.svelte"
-import PersonaResultSummaryCard from "../PersonaResultSummaryCard.svelte"
-import PersonaTargetSummaryCard from "../PersonaTargetSummaryCard.svelte"
+import type { PersonaGenerationPhaseScreenViewModel } from "@application/contract/persona-generation-phase"
 
-type PersonaTargetSummaryCardProps = ComponentProps<
-  typeof PersonaTargetSummaryCard
->
-type PersonaExecutionSettingsCardProps = ComponentProps<
-  typeof PersonaExecutionSettingsCard
->
-type PersonaResultSummaryCardProps = ComponentProps<
-  typeof PersonaResultSummaryCard
->
-type BodyReadinessInputCardProps = ComponentProps<typeof BodyReadinessInputCard>
-
-export const personaTargetSummaryCardFixture: PersonaTargetSummaryCardProps = {
-  details: [
-    { label: "NPC count", value: "96" },
-    { label: "common persona hit", value: "24" },
-    { label: "common persona miss", value: "72" },
-    { label: "対象外理由", value: "翻訳対象外 8 件" },
-    { label: "target snapshot", value: "persona-target-snapshot-2026-05-18" }
-  ]
-}
-
-export const personaExecutionSettingsCardFixture: PersonaExecutionSettingsCardProps =
+export const personaGenerationPhasePanelFixture: PersonaGenerationPhaseScreenViewModel =
   {
-    details: [
-      { label: "provider", value: "Sample Provider" },
-      { label: "model", value: "sample-persona-model" },
-      { label: "execution mode", value: "batch" },
-      { label: "credential ref", value: "credential-ref:persona-story" },
-      { label: "input count", value: "96" },
-      { label: "output count", value: "84" },
-      { label: "prompt digest", value: "digest:persona-story" },
-      { label: "error kind", value: "none" }
-    ]
+    jobId: 101,
+    phase: "ready",
+    summary: null,
+    bodyReadiness: null,
+    errorMessage: "",
+    pendingAction: null,
+    hasLoaded: true,
+    gatewayStatus: "接続済み",
+    viewState: "not_started",
+    isLoading: false,
+    isRefreshing: false,
+    isSubmitting: false,
+    hasJobSelection: true,
+    currentPhaseLabel: "NPC ペルソナ生成",
+    phaseStateLabel: "未開始",
+    statusTitle: "NPC ペルソナ生成を開始できます",
+    statusText: "NPC ペルソナ生成用の AI 設定を確認してから開始します。",
+    progressPercent: 0,
+    progressLabel: "0 / 96",
+    progressDetail: "開始待ち",
+    startedAtLabel: "-",
+    finishedAtLabel: "-",
+    targetCountLabel: "96",
+    generatedCountLabel: "0",
+    failedCountLabel: "0",
+    skippedCountLabel: "8",
+    npcCountLabel: "96",
+    commonPersonaHitCountLabel: "24",
+    commonPersonaMissCountLabel: "72",
+    skippedReasonsLabel: "翻訳対象外 8 件",
+    targetSnapshotLabel: "-",
+    providerLabel: "OpenAI",
+    modelLabel: "gpt-4.1-mini",
+    executionModeLabel: "通常実行",
+    credentialRefLabel: "認証済み",
+    inputCountLabel: "96",
+    outputCountLabel: "一括処理なし",
+    evidenceRefsLabel: "-",
+    promptDigestLabel: "-",
+    snapshotLabel: "-",
+    snapshotReferenceStatusLabel: "-",
+    personaCountLabel: "0",
+    missingCountLabel: "96",
+    bodyReadinessLabel: "NPC ペルソナ生成の完了後に確認できます",
+    bodyReadinessBlockedReason: "NPC ペルソナ生成が未完了です。",
+    bodyReadinessInputSummaryLabel: "本文翻訳の入力は未作成です。",
+    errorKindLabel: "-",
+    errorReasonLabel: "-",
+    retryableLabel: "-",
+    actionCards: [
+      {
+        id: "start",
+        label: "開始",
+        disabled: false,
+        blockedReason: "",
+        tone: "primary"
+      },
+      {
+        id: "pause",
+        label: "中断",
+        disabled: true,
+        blockedReason: "実行中ではありません。",
+        tone: "default"
+      }
+    ],
+    screenActionEnablement: {
+      canRefresh: true,
+      canStart: true,
+      canPause: false,
+      canResume: false,
+      canRetry: false,
+      canCancel: false,
+      canCheckBodyReadiness: false,
+      canStartBodyPhase: false
+    },
+    lastErrorSummary: null,
+    actionEnablement: null,
+    latestProgressSummary: null,
+    latestTargetSummary: null,
+    latestResultSummary: null,
+    latestExecutionSummary: null,
+    latestErrorKind: null,
+    latestBodyReadiness: null,
+    latestBodyReadinessInputSummary: null
   }
-
-export const personaResultSummaryCardFixture: PersonaResultSummaryCardProps = {
-  bodyReadinessLabel: "本文翻訳を開始できます",
-  details: [
-    { label: "persona snapshot", value: "persona-result-snapshot-2026-05-18" },
-    { label: "snapshot 参照状態", value: "参照可能" },
-    { label: "persona count", value: "84" },
-    { label: "missing count", value: "12" },
-    {
-      label: "body readiness",
-      value: "本文翻訳を開始できます",
-      note: "ブロック理由はありません。"
-    }
-  ]
-}
-
-export const bodyReadinessInputCardFixture: BodyReadinessInputCardProps = {
-  details: [
-    { label: "入力 summary", value: "辞書、ペルソナ、本文入力が揃っています。" },
-    { label: "evidence refs", value: "term-snapshot, persona-snapshot" }
-  ]
-}

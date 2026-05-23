@@ -16,11 +16,7 @@
     <h2>{pageTitle}</h2>
     <p class="hero-lead">{pageLead}</p>
   </div>
-  <button
-    class="ghost-button"
-    onclick={onOpenInputReview}
-    type="button"
-  >
+  <button class="ghost-button" onclick={onOpenInputReview} type="button">
     新規翻訳を開始
   </button>
 </section>

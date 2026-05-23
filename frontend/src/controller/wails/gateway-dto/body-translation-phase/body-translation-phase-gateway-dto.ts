@@ -1,6 +1,8 @@
 import type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseCommandResponse,
+  BodyTranslationPhaseAISettingsRequest,
+  BodyTranslationPhaseAISettingsResponse,
   BodyTranslationPhaseSummaryResponse,
   CancelBodyTranslationPhaseRequest,
   GetBodyTranslationOutputReadinessRequest,
@@ -20,6 +22,11 @@ export type StartBodyTranslationPhaseRequestDto =
   StartBodyTranslationPhaseRequest
 export type StartBodyTranslationPhaseResponseDto =
   BodyTranslationPhaseCommandResponse
+
+export type SaveBodyTranslationPhaseAISettingsRequestDto =
+  BodyTranslationPhaseAISettingsRequest
+export type SaveBodyTranslationPhaseAISettingsResponseDto =
+  BodyTranslationPhaseAISettingsResponse
 
 export type PauseBodyTranslationPhaseRequestDto =
   PauseBodyTranslationPhaseRequest

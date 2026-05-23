@@ -77,7 +77,6 @@ func newAppControllerWithSeeds(
 		now,
 	)
 	translationInputUsecase := usecase.NewTranslationInputUsecase(translationInputImportService)
-	translationInputController := controllerwails.NewTranslationInputController(translationInputUsecase)
 	queryService := service.NewMasterDictionaryQueryService(repositoryAdapter)
 	commandService := service.NewMasterDictionaryCommandService(repositoryAdapter, now)
 	importService := service.NewMasterDictionaryImportService(
@@ -157,20 +156,25 @@ func newAppControllerWithSeeds(
 		masterPersonaRunStatusService,
 	)
 	masterPersonaController := controllerwails.NewMasterPersonaController(masterPersonaUsecase)
+	translationJobSetupUsecase := usecase.NewTranslationJobSetupUsecase(service.NewPersistentTranslationJobSetupService(
+		jobLifecycleRepository,
+		translationSourceRepository,
+		repositoryAdapter,
+		masterPersonaRepositories.EntryRepository,
+		masterPersonaRepositories.AISettingsRepository,
+		cachedProviderSettingsSecretStore,
+		foundationTransactor,
+		service.WithTranslationJobSetupProviderSettings(providerSettingsService),
+		service.WithTranslationJobSetupProviderModelListLoader(
+			translationJobSetupModelListLoaderAdapter{loader: providerModelListLoader},
+		),
+	))
+	translationInputController := controllerwails.NewTranslationInputControllerWithJobCreate(
+		translationInputUsecase,
+		translationJobSetupUsecase,
+	)
 	translationJobSetupController := controllerwails.NewTranslationJobSetupController(
-		usecase.NewTranslationJobSetupUsecase(service.NewPersistentTranslationJobSetupService(
-			jobLifecycleRepository,
-			translationSourceRepository,
-			repositoryAdapter,
-			masterPersonaRepositories.EntryRepository,
-			masterPersonaRepositories.AISettingsRepository,
-			cachedProviderSettingsSecretStore,
-			foundationTransactor,
-			service.WithTranslationJobSetupProviderSettings(providerSettingsService),
-			service.WithTranslationJobSetupProviderModelListLoader(
-				translationJobSetupModelListLoaderAdapter{loader: providerModelListLoader},
-			),
-		)),
+		translationJobSetupUsecase,
 	)
 	translationJobManagementController := controllerwails.NewTranslationJobManagementController(
 		usecase.NewTranslationJobManagementUsecase(

@@ -6,7 +6,6 @@
   import type { CreateProviderSettingsScreenController } from "@application/contract/provider-settings"
   import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
   import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
-  import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
   import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
   import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
   // eslint-disable-next-line local/enforce-layer-boundaries
@@ -18,13 +17,9 @@
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationJobManagementScreenControllerFactory } from "@controller/translation-job-management"
   // eslint-disable-next-line local/enforce-layer-boundaries
-  import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
-  // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createMasterPersonaGateway } from "@controller/wails/master-persona.gateway"
-  // eslint-disable-next-line local/enforce-layer-boundaries
-  import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
   // eslint-disable-next-line local/enforce-layer-boundaries
   import { createTranslationJobManagementGateway } from "@controller/wails/translation-job-management.gateway"
   // eslint-disable-next-line local/enforce-layer-boundaries
@@ -40,7 +35,6 @@
     createProviderSettingsScreenController?: CreateProviderSettingsScreenController | null
     createTermTranslationPhaseScreenController?: CreateTermTranslationPhaseScreenController | null
     createTranslationJobManagementScreenController?: CreateTranslationJobManagementScreenController | null
-    createTranslationJobSetupScreenController?: CreateTranslationJobSetupScreenController | null
     createTranslationOutputArtifactScreenController?: CreateTranslationOutputArtifactScreenController | null
     createTranslationInputScreenController?: CreateTranslationInputScreenController | null
   }
@@ -53,7 +47,6 @@
     createProviderSettingsScreenController = null,
     createTermTranslationPhaseScreenController = null,
     createTranslationJobManagementScreenController = null,
-    createTranslationJobSetupScreenController = null,
     createTranslationOutputArtifactScreenController = null,
     createTranslationInputScreenController = null
   }: Props = $props()
@@ -79,15 +72,6 @@
       createTranslationInputScreenController ??
       createTranslationInputScreenControllerFactory(
         createTranslationInputGateway()
-      )
-    )
-  }
-
-  function resolveTranslationJobSetupScreenControllerFactory(): CreateTranslationJobSetupScreenController {
-    return (
-      createTranslationJobSetupScreenController ??
-      createTranslationJobSetupScreenControllerFactory(
-        createTranslationJobSetupGateway()
       )
     )
   }
@@ -119,7 +103,6 @@
   createProviderSettingsScreenController={resolveProviderSettingsScreenControllerFactory()}
   {createTermTranslationPhaseScreenController}
   createTranslationJobManagementScreenController={resolveTranslationJobManagementScreenControllerFactory()}
-  createTranslationJobSetupScreenController={resolveTranslationJobSetupScreenControllerFactory()}
   createTranslationOutputArtifactScreenController={resolveTranslationOutputArtifactScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}
   routes={shellState.routes}

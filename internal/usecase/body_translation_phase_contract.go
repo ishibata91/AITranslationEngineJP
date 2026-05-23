@@ -121,6 +121,27 @@ type GetBodyTranslationOutputReadinessRequest struct {
 	JobID int64
 }
 
+// SaveBodyTranslationPhaseAISettingsRequest carries public AI settings for the body phase.
+type SaveBodyTranslationPhaseAISettingsRequest struct {
+	JobID         int64
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+}
+
+// BodyTranslationPhaseAISettingsResult returns public AI settings state.
+type BodyTranslationPhaseAISettingsResult struct {
+	JobID            int64
+	PhaseID          string
+	Provider         string
+	Model            string
+	CredentialStatus string
+	ExecutionMode    string
+	BatchMode        string
+	ModelListStatus  string
+}
+
 // BodyTranslationPhaseProgressSummary summarizes current progress for one phase run.
 type BodyTranslationPhaseProgressSummary struct {
 	Percent         int

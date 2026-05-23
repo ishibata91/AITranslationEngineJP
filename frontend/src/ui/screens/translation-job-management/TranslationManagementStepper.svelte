@@ -275,7 +275,11 @@
   .stepper-item.is-current .stepper-card {
     border-color: rgba(255, 186, 56, 0.26);
     background:
-      linear-gradient(180deg, rgba(255, 186, 56, 0.14), rgba(255, 186, 56, 0.06)),
+      linear-gradient(
+        180deg,
+        rgba(255, 186, 56, 0.14),
+        rgba(255, 186, 56, 0.06)
+      ),
       rgba(17, 13, 12, 0.46);
     box-shadow: inset 0 0 0 1px rgba(255, 186, 56, 0.12);
   }

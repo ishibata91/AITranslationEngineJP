@@ -34,7 +34,9 @@
   }: Props = $props()
 
   const describedBy = $derived(
-    [help ? `${id}-help` : "", error ? `${id}-error` : ""].filter(Boolean).join(" ") || undefined
+    [help ? `${id}-help` : "", error ? `${id}-error` : ""]
+      .filter(Boolean)
+      .join(" ") || undefined
   )
 </script>
 
@@ -43,17 +45,19 @@
     aria-describedby={describedBy}
     aria-invalid={error ? "true" : undefined}
     class="select-field"
-    disabled={disabled}
-    id={id}
+    {disabled}
+    {id}
     onchange={(event) => onChange(event.currentTarget.value)}
-    required={required}
+    {required}
     {value}
   >
     {#if placeholder}
       <option value="">{placeholder}</option>
     {/if}
     {#each options as option (option.value)}
-      <option value={option.value} disabled={option.disabled}>{option.label}</option>
+      <option value={option.value} disabled={option.disabled}
+        >{option.label}</option
+      >
     {/each}
   </select>
 </FormField>

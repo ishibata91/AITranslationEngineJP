@@ -144,17 +144,17 @@
 
   .counter-grid {
     display: grid;
-    gap: 0.75rem;
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.55rem;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .counter-grid div {
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 16px;
+    border-radius: 12px;
     display: grid;
-    gap: 0.3rem;
+    gap: 0.2rem;
     min-width: 0;
-    padding: 0.85rem 0.9rem;
+    padding: 0.65rem 0.7rem;
   }
 
   .counter-grid strong {
@@ -171,12 +171,18 @@
 
   @media (max-width: 900px) {
     .counter-grid {
-      grid-template-columns: 1fr;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .hero-head,
     .status-block {
       flex-direction: column;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .counter-grid {
+      grid-template-columns: 1fr;
     }
   }
 </style>

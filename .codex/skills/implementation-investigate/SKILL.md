@@ -30,7 +30,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 
 - エージェント実行定義と実行境界は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) に従う。
 - エージェント実行定義: [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml)
-- Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
+- `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reproduce/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-trace/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-observe/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reobserve/SKILL.md
 
@@ -41,7 +41,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - 根拠優先の観測
 - 観測済み事実 と 仮説 の分離
 - 一時観測点の除去
-- Codex 内蔵ブラウザによる UI / console / screenshot 根拠
+- `agent-browser` CLI による UI / console / screenshot 根拠
 - 重点 skill の選び方
 
 - 参照 型 は [investigation-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/references/patterns/investigation-patterns.md) とする。
@@ -50,7 +50,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 
 - `単一引き継ぎ入力` 1 件と 承認済み実装範囲 を超えない
 - 根拠 のない結論を固定しない
-- Codex implementation レーン のブラウザ操作は Codex 内蔵ブラウザで行う
+- Codex implementation レーン のブラウザ操作は `agent-browser` CLI で行う
 - 一時観測点は返却前に除去する
 - 恒久修正と プロダクトテスト 追加を混ぜない
 

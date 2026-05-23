@@ -19,6 +19,26 @@ export interface StartPersonaGenerationPhaseRequest {
   jobId: number
 }
 
+export interface PersonaGenerationPhaseAISettingsRequest {
+  jobId: number
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
+}
+
+export interface PersonaGenerationPhaseAISettingsResponse extends PersonaGenerationPhaseAISettingsRequest {
+  phaseId: string
+  credentialStatus: "configured" | "missing" | "not_required"
+  modelListStatus:
+    | "not_updated"
+    | "loading"
+    | "success"
+    | "failed"
+    | "credential_missing"
+    | "credential_not_required"
+}
+
 export interface PausePersonaGenerationPhaseRequest {
   jobId: number
   phaseRunId: number
@@ -161,6 +181,9 @@ export interface PersonaGenerationPhaseGatewayContract {
   startPersonaGenerationPhase(
     request: StartPersonaGenerationPhaseRequest
   ): Promise<PersonaGenerationPhaseCommandResponse>
+  savePersonaGenerationPhaseAISettings?(
+    request: PersonaGenerationPhaseAISettingsRequest
+  ): Promise<PersonaGenerationPhaseAISettingsResponse>
   pausePersonaGenerationPhase(
     request: PausePersonaGenerationPhaseRequest
   ): Promise<PersonaGenerationPhaseCommandResponse>

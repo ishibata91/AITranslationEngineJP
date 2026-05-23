@@ -18,7 +18,10 @@
   }
 </script>
 
-<section class="detail-block" data-testid="provider-settings-api-key-status-region">
+<section
+  class="detail-block"
+  data-testid="provider-settings-api-key-status-region"
+>
   <div class="detail-row">
     <div>
       <p class="field-label">APIキー状態</p>
@@ -33,7 +36,10 @@
   <p class="mini-text">{selectedProvider.apiKeyHelpText}</p>
 
   {#if selectedProvider.apiKeyRequired && selectedProvider.apiKeyPanelOpen}
-    <div class="api-key-panel" data-testid="provider-settings-api-key-input-region">
+    <div
+      class="api-key-panel"
+      data-testid="provider-settings-api-key-input-region"
+    >
       <label class="field-group" for="providerApiKeyInput">
         <span class="field-label">APIキー</span>
         <input
@@ -45,11 +51,18 @@
           value={credentialInputDraft}
         />
       </label>
-      <div class="inline-actions" data-testid="provider-settings-api-key-save-actions">
+      <div
+        class="inline-actions"
+        data-testid="provider-settings-api-key-save-actions"
+      >
         <button class="button-primary" onclick={saveSettings} type="button">
           保存
         </button>
-        <button class="button-secondary" onclick={closeApiKeyPanel} type="button">
+        <button
+          class="button-secondary"
+          onclick={closeApiKeyPanel}
+          type="button"
+        >
           キャンセル
         </button>
       </div>

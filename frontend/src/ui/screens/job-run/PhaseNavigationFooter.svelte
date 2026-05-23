@@ -38,10 +38,10 @@
   <StickyActionFooter
     {description}
     emptyText="次の作業へ進めます。"
-    onPrimary={onPrimary}
-    primaryDisabled={primaryDisabled}
-    primaryLabel={primaryLabel}
-    reasons={reasons}
+    {onPrimary}
+    {primaryDisabled}
+    {primaryLabel}
+    {reasons}
     {dataTestId}
     {title}
     {titleId}

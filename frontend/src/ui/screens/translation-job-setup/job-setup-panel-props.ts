@@ -39,11 +39,7 @@ export interface PhaseSettingsPanelProps {
   selectedRuntimeKey: string | null
   batchSectionText: (phaseCard: TranslationJobSetupPhaseCardViewModel) => string
   createRuntimeKey: (option: TranslationJobSetupRuntimeOption) => string
-  formatRuntimeLabel: (
-    provider: string,
-    model: string,
-    mode: string
-  ) => string
+  formatRuntimeLabel: (provider: string, model: string, mode: string) => string
   onPhaseBatchChange: (
     phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
     event: Event

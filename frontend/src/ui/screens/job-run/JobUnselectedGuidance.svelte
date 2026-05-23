@@ -6,7 +6,10 @@
   let { onOpenJobManagement = () => undefined }: Props = $props()
 </script>
 
-<section class="job-run-target-summary" data-testid="job-run-job-unselected-guidance">
+<section
+  class="job-run-target-summary"
+  data-testid="job-run-job-unselected-guidance"
+>
   <div>
     <p class="eyebrow">ジョブ未選択</p>
     <h3>未完了ジョブ一覧でジョブを選んでください</h3>

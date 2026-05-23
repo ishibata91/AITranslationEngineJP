@@ -1,6 +1,8 @@
 export type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseActionEnablement,
+  BodyTranslationPhaseAISettingsRequest,
+  BodyTranslationPhaseAISettingsResponse,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseErrorKind,
   BodyTranslationPhaseErrorSummary,

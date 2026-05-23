@@ -30,6 +30,12 @@ interface PersonaGenerationPhaseUseCaseLike {
   cancelPhase(): Promise<void>
   checkBodyReadiness(): Promise<void>
   startBodyPhase(): Promise<void>
+  saveAISettings?: (request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }) => Promise<void>
 }
 
 interface PersonaGenerationPhaseScreenControllerDependencies {
@@ -106,5 +112,14 @@ export class PersonaGenerationPhaseScreenController implements PersonaGeneration
 
   async startBodyPhase(): Promise<void> {
     await this.dependencies.useCase.startBodyPhase()
+  }
+
+  async saveAISettings(request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }): Promise<void> {
+    await this.dependencies.useCase.saveAISettings?.(request)
   }
 }

@@ -1,4 +1,7 @@
-import type { TranslationInputScreenViewModel } from "@application/gateway-contract/translation-input"
+import type {
+  CreateTranslationJobFromInputResponse,
+  TranslationInputScreenViewModel
+} from "@application/gateway-contract/translation-input"
 
 export type TranslationInputScreenViewModelListener = (
   viewModel: TranslationInputScreenViewModel
@@ -14,6 +17,7 @@ export interface TranslationInputScreenControllerContract {
   resetImportSelection(): void
   startImport(): Promise<void>
   rebuildSelected(): Promise<void>
+  createTranslationJobFromSelected?: () => Promise<CreateTranslationJobFromInputResponse | null>
 }
 
 export type CreateTranslationInputScreenController =

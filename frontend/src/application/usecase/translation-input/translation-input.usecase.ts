@@ -1,5 +1,6 @@
 import type {
   TranslationInputCommandResponse,
+  CreateTranslationJobFromInputResponse,
   TranslationInputGatewayContract,
   TranslationInputReviewItem,
   TranslationInputReviewStatus,
@@ -310,6 +311,54 @@ export class TranslationInputUseCase {
           "入力データの再構築に失敗しました。"
         )
       })
+    }
+  }
+
+  async createTranslationJobFromSelected(): Promise<CreateTranslationJobFromInputResponse | null> {
+    const state = this.store.snapshot()
+    const selectedItem =
+      state.items.find((item) => item.localId === state.selectedItemId) ?? null
+    if (!selectedItem || selectedItem.inputId === null) {
+      this.store.update((draft) => {
+        draft.errorMessage =
+          "翻訳ジョブを作成する入力データを選択してください。"
+      })
+      return null
+    }
+
+    const gateway = this.gateway
+    if (!gateway?.createTranslationJobFromInput) {
+      this.store.update((draft) => {
+        draft.errorMessage = "translation-input gateway が未接続です。"
+      })
+      return null
+    }
+
+    this.store.update((draft) => {
+      draft.errorMessage = ""
+    })
+
+    try {
+      const response: CreateTranslationJobFromInputResponse =
+        await gateway.createTranslationJobFromInput({
+          inputId: selectedItem.inputId
+        })
+      if (!response.accepted) {
+        this.store.update((draft) => {
+          draft.errorMessage =
+            response.errorKind ?? "翻訳ジョブの作成に失敗しました。"
+        })
+        return response
+      }
+      return response
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.errorMessage = toErrorMessage(
+          error,
+          "翻訳ジョブの作成に失敗しました。"
+        )
+      })
+      return null
     }
   }
 }

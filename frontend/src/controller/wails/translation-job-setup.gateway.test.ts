@@ -67,7 +67,7 @@ describe("createTranslationJobSetupGateway", () => {
       ],
       aiRuntimeOptions: [
         { provider: "openai-compatible", model: "gpt-4.1-mini", mode: "batch" }
-      ],
+      ]
     } satisfies GetTranslationJobSetupOptionsResponseDto
     const getTranslationJobSetupOptions = vi.fn(() => Promise.resolve(response))
 
@@ -95,7 +95,7 @@ describe("createTranslationJobSetupGateway", () => {
         provider: "anthropic",
         model: "claude-3-7-sonnet",
         executionMode: "batch"
-      },
+      }
     }
     const expectedBindingRequest = {
       inputSourceId: 41,
@@ -141,7 +141,7 @@ describe("createTranslationJobSetupGateway", () => {
         provider: "lm_studio",
         model: "local-model",
         executionMode: "sync"
-      },
+      }
     }
     const response = {
       status: "pass",
@@ -186,7 +186,7 @@ describe("createTranslationJobSetupGateway", () => {
         provider: "openai-compatible",
         model: "gpt-4.1-mini",
         executionMode: "batch"
-      },
+      }
     }
     const expectedBindingRequest = {
       inputSourceId: 41,

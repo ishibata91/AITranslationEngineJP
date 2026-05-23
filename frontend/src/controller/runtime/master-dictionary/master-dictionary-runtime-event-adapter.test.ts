@@ -35,10 +35,13 @@ function createRuntimeHarness(options?: { logger?: RuntimeEventLogger }) {
 
   const onImportProgress = vi.fn()
   const onImportCompleted = vi.fn()
-  const adapter = new MasterDictionaryRuntimeEventAdapter({
-    onImportProgress,
-    onImportCompleted
-  }, options?.logger)
+  const adapter = new MasterDictionaryRuntimeEventAdapter(
+    {
+      onImportProgress,
+      onImportCompleted
+    },
+    options?.logger
+  )
 
   return {
     adapter,

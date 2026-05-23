@@ -1,11 +1,17 @@
 <script lang="ts">
   import type { SettingsActionPanelProps } from "./provider-settings-panel-props"
 
-  let { selectedProvider, saveSettings, resetSettings }: SettingsActionPanelProps =
-    $props()
+  let {
+    selectedProvider,
+    saveSettings,
+    resetSettings
+  }: SettingsActionPanelProps = $props()
 </script>
 
-<section class="detail-actions" data-testid="provider-settings-settings-actions-region">
+<section
+  class="detail-actions"
+  data-testid="provider-settings-settings-actions-region"
+>
   <button
     class="button-primary"
     disabled={!selectedProvider.canSave}

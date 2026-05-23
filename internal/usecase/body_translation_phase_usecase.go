@@ -18,6 +18,10 @@ type bodyTranslationPhaseServicePort interface {
 	ReadOutputReadiness(ctx context.Context, jobID int64) (service.BodyTranslationOutputReadinessReadModel, error)
 }
 
+type bodyTranslationPhaseAISettingsSaver interface {
+	SaveAISettings(ctx context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error)
+}
+
 const bodyTranslationPhaseUsecaseLogWhere = "backend.usecase.body_translation_phase"
 
 // BodyTranslationPhaseUsecase bridges the frozen body translation contract to the service layer.
@@ -57,6 +61,28 @@ func (usecase *BodyTranslationPhaseUsecase) StartBodyTranslationPhase(
 		return result, fmt.Errorf("start body translation phase: %w", err)
 	}
 	return result, nil
+}
+
+// SaveBodyTranslationPhaseAISettings saves public AI settings for the body phase.
+func (usecase *BodyTranslationPhaseUsecase) SaveBodyTranslationPhaseAISettings(
+	ctx context.Context,
+	request SaveBodyTranslationPhaseAISettingsRequest,
+) (BodyTranslationPhaseAISettingsResult, error) {
+	saver, ok := usecase.service.(bodyTranslationPhaseAISettingsSaver)
+	if !ok {
+		return BodyTranslationPhaseAISettingsResult{}, fmt.Errorf("save body translation phase ai settings: service is not configured")
+	}
+	readModel, err := saver.SaveAISettings(ctx, service.PhaseAISettingsSelection{
+		JobID:         request.JobID,
+		Provider:      request.Provider,
+		Model:         request.Model,
+		ExecutionMode: request.ExecutionMode,
+		BatchMode:     request.BatchMode,
+	})
+	if err != nil {
+		return BodyTranslationPhaseAISettingsResult{}, fmt.Errorf("save body translation phase ai settings: %w", err)
+	}
+	return BodyTranslationPhaseAISettingsResult(readModel), nil
 }
 
 // PauseBodyTranslationPhase returns the body phase command payload for pause handling.

@@ -4,7 +4,7 @@
     BodyTranslationPhaseScreenViewModel,
     BodyTranslationPhaseViewState
   } from "@application/contract/body-translation-phase"
-  import PhaseActionPanel from "../../components/PhaseActionPanel.svelte"
+  import AIModelSelectionCard from "../../components/AIModelSelectionCard.svelte"
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
   import type {
@@ -12,18 +12,19 @@
     PhaseMetricCounter,
     PhaseStateToken
   } from "../../components/phase-panel-types"
-  import BodyExecutionSummaryCard from "./BodyExecutionSummaryCard.svelte"
-  import BodyInputSummaryCard from "./BodyInputSummaryCard.svelte"
-  import BodyResultSummaryCard from "./BodyResultSummaryCard.svelte"
-  import FieldResultListPanel from "./FieldResultListPanel.svelte"
-  import OutputReadinessCard from "./OutputReadinessCard.svelte"
 
   interface Props {
     viewModel: BodyTranslationPhaseScreenViewModel
     onAction: (actionId: BodyTranslationPhaseActionKind) => void | Promise<void>
+    onAISettingsChange?: (request: {
+      provider: string
+      model: string
+      executionMode: string
+      batchMode: string
+    }) => void | Promise<void>
   }
 
-  let { viewModel, onAction }: Props = $props()
+  let { viewModel, onAction, onAISettingsChange = undefined }: Props = $props()
 
   function resolveStateToken(
     viewState: BodyTranslationPhaseViewState
@@ -35,78 +36,70 @@
   }
 
   const phaseMetrics = $derived<PhaseMetricCounter[]>([
-    { label: "target", value: viewModel.targetCountLabel },
-    { label: "processed", value: viewModel.processedCountLabel },
-    { label: "success", value: viewModel.translatedCountLabel },
-    { label: "failure", value: viewModel.failedCountLabel },
-    { label: "skipped", value: viewModel.skippedCountLabel }
+    { label: "対象", value: viewModel.targetCountLabel },
+    { label: "処理済み", value: viewModel.processedCountLabel },
+    { label: "成功", value: viewModel.translatedCountLabel },
+    { label: "失敗", value: viewModel.failedCountLabel },
+    { label: "スキップ", value: viewModel.skippedCountLabel }
+  ])
+  const canEditAiSettings = $derived(viewModel.viewState !== "running")
+  const aiSettingsBlockedReason = $derived(
+    viewModel.credentialRefLabel === "-"
+      ? "認証状態を確認してください。"
+      : viewModel.modelLabel === "-"
+        ? "モデルを選択してください。"
+        : ""
+  )
+  const aiSettingsStatusLabel = $derived(
+    aiSettingsBlockedReason ? "設定未完了" : "固定済み"
+  )
+  const aiSettingsStatusTone = $derived(
+    aiSettingsBlockedReason ? "warning" : "success"
+  )
+  const aiModelOptions = $derived([
+    { modelId: viewModel.modelLabel, label: viewModel.modelLabel }
   ])
 
   const progressDetails = $derived<PhaseDetailItem[]>([
-    { label: "開始時刻", value: viewModel.startedAtLabel },
-    { label: "完了時刻", value: viewModel.finishedAtLabel },
-    { label: "target count", value: viewModel.targetCountLabel },
-    { label: "processed count", value: viewModel.processedCountLabel },
-    { label: "success count", value: viewModel.translatedCountLabel },
-    { label: "failure count", value: viewModel.failedCountLabel },
-    { label: "skipped count", value: viewModel.skippedCountLabel }
+    { label: "対象件数", value: viewModel.targetCountLabel }
   ])
 
-  const inputDetails = $derived<PhaseDetailItem[]>([
-    { label: "dictionary digest", value: viewModel.dictionaryDigestLabel },
-    { label: "persona digest", value: viewModel.personaDigestLabel },
-    { label: "metadata digest", value: viewModel.metadataDigestLabel },
-    { label: "prompt digest", value: viewModel.promptDigestLabel },
-    { label: "input snapshot", value: viewModel.inputSnapshotRefLabel },
-    { label: "skipped reasons", value: viewModel.skippedReasonsLabel }
-  ])
+  function selectedValue(event: Event): string {
+    const target = event.currentTarget
+    return target instanceof HTMLSelectElement ? target.value : ""
+  }
 
-  const executionDetails = $derived<PhaseDetailItem[]>([
-    { label: "provider", value: viewModel.providerLabel },
-    { label: "model", value: viewModel.modelLabel },
-    { label: "execution mode", value: viewModel.executionModeLabel },
-    { label: "credential ref", value: viewModel.credentialRefLabel },
-    { label: "request unit count", value: viewModel.requestUnitCountLabel },
-    {
-      label: "provider target count",
-      value: viewModel.providerTargetCountLabel
-    },
-    {
-      label: "exact dictionary excluded",
-      value: viewModel.exactDictionaryExclusionCountLabel
-    },
-    {
-      label: "partial dictionary constrained",
-      value: viewModel.partialDictionaryConstraintCountLabel
-    },
-    { label: "output count", value: viewModel.outputCountLabel },
-    { label: "late response rejected", value: viewModel.lateResponseLabel }
-  ])
+  function saveAISettings(
+    overrides: Partial<{
+      provider: string
+      model: string
+      executionMode: string
+      batchMode: string
+    }>
+  ): void {
+    void onAISettingsChange?.({
+      provider: viewModel.providerLabel === "-" ? "" : viewModel.providerLabel,
+      model: viewModel.modelLabel === "-" ? "" : viewModel.modelLabel,
+      executionMode:
+        viewModel.executionModeLabel === "-"
+          ? ""
+          : viewModel.executionModeLabel,
+      batchMode: "disabled",
+      ...overrides
+    })
+  }
 
-  const resultDetails = $derived<PhaseDetailItem[]>([
-    { label: "translated count", value: viewModel.translatedCountLabel },
-    { label: "failed count", value: viewModel.failedCountLabel },
-    { label: "skipped count", value: viewModel.skippedCountLabel },
-    {
-      label: "output ready count",
-      value: viewModel.outputReadinessCompletedFieldCountLabel
-    },
-    { label: "result output count", value: viewModel.resultOutputCountLabel },
-    { label: "status consistency", value: viewModel.outputReadinessStatusLabel }
-  ])
+  function handleProviderChange(event: Event): void {
+    saveAISettings({ provider: selectedValue(event) })
+  }
 
-  const readinessDetails = $derived<PhaseDetailItem[]>([
-    { label: "readiness", value: viewModel.outputReadinessLabel },
-    {
-      label: "completed field count",
-      value: viewModel.outputReadinessCompletedFieldCountLabel
-    },
-    {
-      label: "status consistency",
-      value: viewModel.outputReadinessStatusLabel
-    },
-    { label: "blocked reason", value: viewModel.outputReadinessBlockedReason }
-  ])
+  function handleExecutionChange(event: Event): void {
+    saveAISettings({ executionMode: selectedValue(event) })
+  }
+
+  function handleModelChange(event: Event): void {
+    saveAISettings({ model: selectedValue(event) })
+  }
 </script>
 
 <section class="job-run-shell" id="bodyTranslationPhaseView">
@@ -114,7 +107,7 @@
     title="本文翻訳"
     eyebrow="translation-management"
     gatewayStatus={viewModel.gatewayStatus}
-    lead="現在の翻訳段階、進行状況、項目ごとの結果、失敗情報、出力準備を同じ画面で確認し、開始、中断、再開、回復を判断します。"
+    lead="現在の翻訳段階、進行状況、AI 設定を同じ画面で確認し、開始、中断、再開、回復を判断します。"
     stateLabel={viewModel.phaseStateLabel}
     state={resolveStateToken(viewModel.viewState)}
     statusTitle={viewModel.statusTitle}
@@ -124,83 +117,67 @@
     metrics={phaseMetrics}
   />
 
-  <PhaseActionPanel
-    headingId="bodyPhaseActionsHeading"
-    testId="body-translation-phase-actions"
+  <PhaseProgressPanel
+    headingId="bodyPhaseProgressHeading"
+    testId="body-translation-phase-progress"
+    eyebrow="翻訳段階の進行状況"
+    title="進行状況"
+    progressLabel={viewModel.progressLabel}
+    progressPercent={viewModel.progressPercent}
+    progressDetail={viewModel.progressDetail}
+    details={progressDetails}
     currentPhaseLabel={viewModel.currentPhaseLabel}
+    actionAriaLabel="翻訳段階の操作"
     actions={viewModel.actionCards}
     {onAction}
   />
 
-  <section class="summary-grid">
-    <PhaseProgressPanel
-      headingId="bodyPhaseProgressHeading"
-      testId="body-translation-phase-progress"
-      eyebrow="翻訳段階の進行状況"
-      title="進行状況"
-      progressLabel={viewModel.progressLabel}
-      progressPercent={viewModel.progressPercent}
-      progressDetail={viewModel.progressDetail}
-      details={progressDetails}
-    />
-    <BodyInputSummaryCard
-      readinessReason={viewModel.outputReadinessBlockedReason}
-      details={inputDetails}
+  <section class="summary-grid ai-settings-row">
+    <AIModelSelectionCard
+      dataTestId="body-translation-phase-ai-model-selection"
+      ariaLabel="本文翻訳の AI モデル選択"
+      eyebrow="本文翻訳"
+      title="本文翻訳の AI モデル"
+      titleId="bodyPhaseAiModelHeading"
+      helperText="本文翻訳を開始する前に使う AI サービス、モデル、処理方式を確認します。"
+      statusLabel={aiSettingsStatusLabel}
+      statusTone={aiSettingsStatusTone}
+      providerSelectId="bodyPhaseProviderSelect"
+      providerValue={viewModel.providerLabel}
+      providerOptions={[
+        { value: viewModel.providerLabel, label: viewModel.providerLabel }
+      ]}
+      providerDisabled={!canEditAiSettings}
+      onProviderChange={handleProviderChange}
+      credentialStatusLabel={viewModel.credentialRefLabel}
+      credentialStatusTone={aiSettingsBlockedReason ? "warning" : "success"}
+      showCredentialWarning={Boolean(aiSettingsBlockedReason)}
+      credentialWarningText={aiSettingsBlockedReason}
+      secondaryControlMode="execution-select"
+      executionSelectId="bodyPhaseExecutionModeSelect"
+      executionValue={viewModel.executionModeLabel}
+      executionOptions={[
+        {
+          value: viewModel.executionModeLabel,
+          label: viewModel.executionModeLabel
+        }
+      ]}
+      executionDisabled={!canEditAiSettings}
+      onExecutionChange={handleExecutionChange}
+      modelSelectId="bodyPhaseModelSelect"
+      modelValue={viewModel.modelLabel}
+      modelOptions={aiModelOptions}
+      modelDisabled={!canEditAiSettings}
+      onModelChange={handleModelChange}
+      modelStatusText="モデル一覧は本文翻訳の開始前に更新します。"
+      refreshDisabled={!canEditAiSettings}
+      onRefresh={() => saveAISettings({})}
+      footerMessage={canEditAiSettings
+        ? `一括処理: ${viewModel.providerStateLabel}。設定は本文翻訳の開始時に固定します。`
+        : "実行中は AI 設定を編集できません。"}
+      footerWarningText={aiSettingsBlockedReason}
     />
   </section>
-
-  <section class="summary-grid">
-    <BodyExecutionSummaryCard
-      providerStateLabel={viewModel.providerStateLabel}
-      details={executionDetails}
-    />
-    <BodyResultSummaryCard
-      outputReadinessLabel={viewModel.outputReadinessLabel}
-      details={resultDetails}
-    />
-  </section>
-
-  <section class="summary-grid">
-    <FieldResultListPanel
-      availabilityLabel={viewModel.fieldResultAvailabilityLabel}
-      items={viewModel.fieldResultItems}
-    />
-    <section
-      class="job-run-card"
-      aria-labelledby="bodyErrorHeading"
-      data-testid="body-translation-phase-failure-information"
-    >
-      <div class="section-head">
-        <div>
-          <p class="eyebrow">recovery panel</p>
-          <h3 id="bodyErrorHeading">失敗情報</h3>
-        </div>
-      </div>
-      <dl class="detail-grid compact">
-        <div>
-          <dt>error kind</dt>
-          <dd class="wrap-value">{viewModel.errorKindLabel}</dd>
-        </div>
-        <div>
-          <dt>短い理由</dt>
-          <dd class="wrap-value">{viewModel.errorReasonLabel}</dd>
-        </div>
-        <div>
-          <dt>retryable</dt>
-          <dd>{viewModel.retryableLabel}</dd>
-        </div>
-        <div>
-          <dt>output readiness blocked reason</dt>
-          <dd class="wrap-value">{viewModel.outputReadinessBlockedReason}</dd>
-        </div>
-      </dl>
-    </section>
-  </section>
-
-  <OutputReadinessCard
-    outputReadinessLabel={viewModel.outputReadinessLabel}
-    details={readinessDetails}
-  />
 </section>
 
 <style>
@@ -210,95 +187,23 @@
     min-width: 0;
   }
 
-  .job-run-card {
-    background: rgba(33, 27, 24, 0.88);
-    border: 1px solid rgba(226, 205, 173, 0.14);
-    border-radius: 20px;
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
-    display: grid;
-    gap: 1rem;
-    min-width: 0;
-    padding: 1.4rem;
-  }
-
-  .section-head {
-    align-items: flex-start;
-    display: flex;
-    gap: 0.8rem;
-    justify-content: space-between;
-    min-width: 0;
-  }
-
-  .eyebrow {
-    color: rgba(236, 223, 205, 0.72);
-    font-size: 0.82rem;
-  }
-
-  h3,
-  p {
-    margin: 0;
-  }
-
-  h3 {
-    color: #fff6ea;
-  }
-
-  dd {
-    color: #f1e6d6;
-  }
-
-  .summary-grid,
-  .detail-grid {
+  .summary-grid {
     display: grid;
     gap: 0.8rem;
     min-width: 0;
-  }
-
-  dt {
-    color: rgba(236, 223, 205, 0.78);
-    font-size: 0.82rem;
   }
 
   .summary-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .detail-grid.compact {
-    grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
-  }
-
-  .detail-grid > div {
-    min-width: 0;
-  }
-
-  dd {
-    margin: 0.25rem 0 0;
-    overflow-wrap: anywhere;
-  }
-
-  .wrap-value {
-    overflow-wrap: anywhere;
+  .ai-settings-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   @media (max-width: 900px) {
     .summary-grid {
       grid-template-columns: 1fr;
-    }
-
-    .section-head {
-      flex-direction: column;
-      align-items: stretch;
-    }
-  }
-
-  @media (max-width: 480px) {
-    .job-run-card {
-      padding: 1rem;
-      border-radius: 14px;
-    }
-
-    .detail-grid.compact {
-      grid-template-columns: minmax(0, 1fr);
     }
   }
 </style>

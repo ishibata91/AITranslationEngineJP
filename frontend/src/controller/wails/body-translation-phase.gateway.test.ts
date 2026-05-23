@@ -180,4 +180,52 @@ describe("createBodyTranslationPhaseGateway", () => {
       /Wails binding is not wired yet: StartBodyTranslationPhase/
     )
   })
+
+  test("save ai settings は公開参照値だけを返し secret 本体を含めない", async () => {
+    const saveSettings = vi.fn(() =>
+      Promise.resolve({
+        jobId: 5,
+        phaseId: "text_translation",
+        provider: "openai",
+        model: "gpt-5.4-mini",
+        executionMode: "sync",
+        batchMode: "unsupported",
+        credentialStatus: "configured",
+        modelListStatus: "success"
+      })
+    )
+    installGo({
+      wails: {
+        BodyTranslationPhaseController: {
+          SaveBodyTranslationPhaseAISettings: saveSettings
+        }
+      }
+    })
+
+    const gateway = createBodyTranslationPhaseGateway()
+    const result = await gateway.saveBodyTranslationPhaseAISettings?.({
+      jobId: 5,
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      executionMode: "sync",
+      batchMode: "unsupported"
+    })
+
+    expect(saveSettings).toHaveBeenCalledWith({
+      jobId: 5,
+      provider: "openai",
+      model: "gpt-5.4-mini",
+      executionMode: "sync",
+      batchMode: "unsupported"
+    })
+    expect(result).toMatchObject({
+      phaseId: "text_translation",
+      credentialStatus: "configured",
+      modelListStatus: "success"
+    })
+    const serialized = JSON.stringify(result)
+    expect(serialized).not.toContain("secret")
+    expect(serialized).not.toContain("apiKey")
+    expect(serialized).not.toContain("credentialRef")
+  })
 })

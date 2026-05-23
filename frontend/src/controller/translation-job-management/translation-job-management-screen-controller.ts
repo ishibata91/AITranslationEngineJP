@@ -42,9 +42,7 @@ interface TranslationJobManagementScreenControllerDependencies {
   useCase: TranslationJobManagementUseCaseLike
 }
 
-export class TranslationJobManagementScreenController
-  implements TranslationJobManagementScreenControllerContract
-{
+export class TranslationJobManagementScreenController implements TranslationJobManagementScreenControllerContract {
   constructor(
     private readonly dependencies: TranslationJobManagementScreenControllerDependencies
   ) {}

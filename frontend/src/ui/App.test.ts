@@ -618,9 +618,7 @@ function buildTranslationJobManagementScreenViewModel(): TranslationJobManagemen
   }
 }
 
-class TranslationJobManagementScreenControllerFake
-  implements TranslationJobManagementScreenControllerContract
-{
+class TranslationJobManagementScreenControllerFake implements TranslationJobManagementScreenControllerContract {
   private readonly viewModel = buildTranslationJobManagementScreenViewModel()
 
   readonly mount = vi.fn(async () => {})
@@ -635,7 +633,9 @@ class TranslationJobManagementScreenControllerFake
   readonly closeDeleteConfirmation = vi.fn()
   readonly deleteSelectedJob = vi.fn(async () => {})
 
-  subscribe(listener: TranslationJobManagementScreenViewModelListener): () => void {
+  subscribe(
+    listener: TranslationJobManagementScreenViewModelListener
+  ): () => void {
     void listener
     return () => {}
   }
@@ -938,9 +938,7 @@ describe("App master persona screen", () => {
     expect(
       screen.getByRole("heading", { level: 1, name: "マスターペルソナ作成" })
     ).toBeInTheDocument()
-    expect(
-      screen.getByText("ペルソナを作成")
-    ).toBeInTheDocument()
+    expect(screen.getByText("ペルソナを作成")).toBeInTheDocument()
   })
 
   test("通常表示に Gateway と preview 状態を出さない", () => {
@@ -1015,7 +1013,9 @@ describe("App master persona screen", () => {
     expect(listQuery.getByText("Test NPC A")).toBeInTheDocument()
     expect(listQuery.queryByText("TestClassA")).not.toBeInTheDocument()
     expect(listQuery.queryByText("Skyrim.esm")).not.toBeInTheDocument()
-    expect(listQuery.queryByText("乾いた率直さで応じる。")).not.toBeInTheDocument()
+    expect(
+      listQuery.queryByText("乾いた率直さで応じる。")
+    ).not.toBeInTheDocument()
   })
 
   test("編集モーダルの公開ラベルを維持する", () => {
@@ -1174,8 +1174,14 @@ describe("App master persona screen", () => {
       buildMasterPersonaScreenViewModel({
         pluginOptions: [
           { value: "", label: "すべてのプラグイン" },
-          { value: "TestPersonaPluginA.esp", label: "TestPersonaPluginA.esp (1)" },
-          { value: "TestPersonaPluginB.esp", label: "TestPersonaPluginB.esp (1)" }
+          {
+            value: "TestPersonaPluginA.esp",
+            label: "TestPersonaPluginA.esp (1)"
+          },
+          {
+            value: "TestPersonaPluginB.esp",
+            label: "TestPersonaPluginB.esp (1)"
+          }
         ],
         runStatus: {
           runState: "生成中",
@@ -1282,7 +1288,10 @@ describe("App master persona screen", () => {
       buildMasterPersonaScreenViewModel({
         pluginOptions: [
           { value: "", label: "すべてのプラグイン" },
-          { value: "TestPersonaPluginA.esp", label: "TestPersonaPluginA.esp (1)" }
+          {
+            value: "TestPersonaPluginA.esp",
+            label: "TestPersonaPluginA.esp (1)"
+          }
         ]
       })
     )
@@ -1648,9 +1657,13 @@ describe("App term translation phase screen", () => {
     expect(
       screen.getByRole("heading", { level: 2, name: "未完了ジョブ一覧" })
     ).toBeInTheDocument()
-    expect(screen.queryByRole("tab", { name: /Job Run|実行/ })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("tab", { name: /Job Run|実行/ })
+    ).not.toBeInTheDocument()
     expect(createTermTranslationPhaseScreenController).toHaveBeenCalledTimes(0)
-    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(0)
+    expect(createPersonaGenerationPhaseScreenController).toHaveBeenCalledTimes(
+      0
+    )
     expect(controller.mount).toHaveBeenCalledTimes(0)
     expect(personaController.mount).toHaveBeenCalledTimes(0)
   })

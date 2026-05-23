@@ -39,7 +39,9 @@
     onFilterChange = null
   }: Props = $props()
 
-  const hasFilter = $derived(filterOptions.length > 0 && onFilterChange !== null)
+  const hasFilter = $derived(
+    filterOptions.length > 0 && onFilterChange !== null
+  )
 
   const handleFilterChange = (value: string): void => {
     onFilterChange?.(value)

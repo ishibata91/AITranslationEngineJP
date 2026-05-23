@@ -12,8 +12,7 @@
 >
   <h2>翻訳段階ごとの AI 設定</h2>
   <p class="lead">
-    入力済みデータを確認し、3 つの翻訳段階で使う
-    AIサービスとモデルを選びます。
+    入力済みデータを確認し、3 つの翻訳段階で使う AIサービスとモデルを選びます。
   </p>
   <p class="error-text" hidden={!errorMessage}>
     {errorMessage}

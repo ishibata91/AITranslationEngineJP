@@ -9,10 +9,7 @@
     align?: Align
   }
 
-  let {
-    ariaLabel,
-    align = "end"
-  }: Props = $props()
+  let { ariaLabel, align = "end" }: Props = $props()
 
   const noop = (): void => {}
 </script>

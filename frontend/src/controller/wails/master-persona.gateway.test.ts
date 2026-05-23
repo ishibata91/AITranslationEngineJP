@@ -324,7 +324,11 @@ describe("createMasterPersonaGateway", () => {
     // Act
     const result = await gateway.previewMasterPersonaGeneration({
       filePath: "/tmp/TestPersonaPluginA.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMethod: "single_request"
+      }
     })
 
     // Assert
@@ -426,7 +430,11 @@ describe("createMasterPersonaGateway", () => {
     // Act
     await gateway.executeMasterPersonaGeneration({
       filePath: "/tmp/sample.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMethod: "single_request"
+      }
     })
 
     // Assert
