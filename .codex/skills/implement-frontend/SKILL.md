@@ -24,6 +24,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
 - Storybook確認対象: 人間レビューで確認する部品、表示状態、story、`fixture`、関連資源、または不要理由。
+- Storybookレビュー状態: Storybook 人間レビュー前、差し戻し対応中、承認済みのどれかを示す状態。
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された frontend-local の harness command。
 
@@ -34,7 +35,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
 - UX 観点正本: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
-- Codex 内蔵ブラウザの利用規約: [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) とする。
+- `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
 - Storybook 設定: [main.ts](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/.storybook/main.ts) とする。
 - Storybook command: [package.json](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/package.json) の `storybook` と `build-storybook` とする。
 - 画面設計差分: `screen-design-diff.<screen-id>.md` を受け取る場合は画面ID、画面要素、表示条件、操作、結果、セレクタ（`aria-label`）の根拠にする。
@@ -54,6 +55,13 @@ Storybook 確認資源表は次を拘束する。
 | `fixture` | story が固定表示に使う入力値、前提状態、表示用データ |
 | 関連資源 | story の表示に必要な props 変換、定数、表示専用の補助資源 |
 
+Storybook カテゴリー表は次を拘束する。
+
+| 分類 | 意味 |
+| --- | --- |
+| レビュー分類 | Storybook 人間レビュー前または差し戻し対応中の story を `Review/Changed Screens/...` または `Review/Changed Components/...` に置く一時分類 |
+| 通常分類 | Storybook 人間レビュー承認後の story を `Screens/...` または `UI Components/...` に置く恒久分類 |
+
 ## 判断規約
 
 - 画面導線と 状態 反映を frontend 実行入力 に合わせる
@@ -71,6 +79,8 @@ Storybook 確認資源表は次を拘束する。
 - generated `wailsjs` と backend DTO の import は `frontend/src/controller/wails/` に閉じ込める
 - generated file が `frontend-local` の失敗原因である場合は、generated file を直接編集せず、生成元または公開境界を直す
 - frontend 実装で部品または表示状態を変更または追加する場合は、Storybook 確認資源表に従い、story、`fixture`、関連資源を追加または更新する
+- Storybook 人間レビュー前または差し戻し対応中に変更した story は、Storybook カテゴリー表のレビュー分類へ置く
+- Storybook 人間レビュー承認後に変更した story は、Storybook カテゴリー表の通常分類へ戻す
 - Storybook 確認資源は frontend 人間レビュー用であり、backend 実装、統合境界実装、永続化仕様の代替にしない
 - Storybook の story は固定 props または固定 `fixture` で表示できる状態にする
 - Storybook 確認資源を追加または更新した場合は、変更または追加した部品と表示状態を返却材料に含める
@@ -94,10 +104,11 @@ Storybook 確認資源表は次を拘束する。
 - 実装成果物: frontend 実行入力 の 承認済み実装範囲 に対応する frontend プロダクトコードだけを返す。
 - 影響範囲修正: generated file、生成元、公開境界、または検証を壊した frontend プロダクトコードを修正した場合に、対象、理由、変更結果を返す。
 - Storybook確認資源: 変更または追加した部品、変更または追加した表示状態、確認対象の story、`fixture`、関連資源を返す。
+- Storybookカテゴリー結果: 変更または追加した story のレビュー分類、通常分類、現在分類を返す。
 - Storybook検証結果: `npm --prefix frontend run build-storybook` の結果または未実行理由を返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 画面設計根拠確認結果: 実画面と画面設計根拠 の一致、差分、画面ID と セレクタ（`aria-label`）差分、未確認理由、`docs/UX-standard.md` との対応を返す。
-- UI証跡参照: Codex 内蔵ブラウザの表示状態、screenshot、console 異常、コメント証跡の参照または未取得理由を返す。
+- UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -112,11 +123,13 @@ Storybook 確認資源表は次を拘束する。
 - UI 状態 の初期値と更新条件を確認した。
 - 承認済み画面設計差分、`docs/UX-standard.md`、frontend コーディング規約に合わせて実装した。
 - 変更または追加した部品と表示状態を Storybook で確認できる story、`fixture`、関連資源を準備した。
+- Storybook 人間レビュー前または差し戻し対応中に変更した story が、レビュー分類へ置かれている。
+- Storybook 人間レビュー承認後に変更した story が、通常分類へ戻っている。
 - Storybook 確認資源が不要な場合は、不要理由を返した。
 - Storybook 確認資源を追加または更新した場合は、`npm --prefix frontend run build-storybook` を実行し、通過結果または未実行理由を返した。
 - 実画面と画面設計根拠 の一致確認結果を返した。
 - 画面設計差分がある場合は、画面ID と セレクタ（`aria-label`） の実装差分を確認した。
-- 画面設計根拠確認結果は、Codex 内蔵ブラウザの表示状態、screenshot、console 異常、コメント証跡の根拠または未取得理由を含んでいる。
+- 画面設計根拠確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または許可された 影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 
@@ -127,6 +140,8 @@ Storybook 確認資源表は次を拘束する。
 - UI check だけを行う時
 - frontend 実行入力、画面設計根拠、実装対象、対象変更範囲、依存完了情報、検証コマンドが不足する場合は停止する。
 - Storybook 確認対象が必要な frontend 実装で、確認対象の部品、表示状態、story、`fixture`、関連資源を判断できない場合は停止する。
+- Storybook 確認対象が必要な frontend 実装で、Storybookレビュー状態を判断できない場合は停止する。
+- Storybook 人間レビュー承認後に変更した story を通常分類へ戻せない場合は停止し、戻せない story と理由を返す。
 - 通信境界を迂回する必要がある場合は停止する。
 - View、ScreenController、Frontend UseCase から generated `wailsjs` を直接 import する必要がある場合は停止する。
 - gateway 以外で backend DTO 変換が必要な場合は停止する。

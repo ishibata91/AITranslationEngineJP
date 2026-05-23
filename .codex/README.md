@@ -7,7 +7,7 @@ Codex は設計 作業流れ、承認済み 対象範囲 からの実装、実�
 作業流れ、skill、agent、引き継ぎ 契約の正本は `.codex/` に置きます。
 live 作業流れ の説明本文と判断基準の正本はこの `README.md` とします。
 `.codex/workflow.md` は補助図であり、live 判断を上書きしません。
-Codex 内蔵ブラウザの利用規約は `.codex/browser-use.md` とします。
+Codex 本体の内蔵ブラウザ利用規約は `.codex/browser-use.md` とします。
 
 ## Live Skills
 
@@ -86,7 +86,7 @@ Codex 内蔵ブラウザの利用規約は `.codex/browser-use.md` とします�
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
 - `fix_decider` は修正レーンの修正方針判断と原因箇所シーケンス図を担当し、原因の原因、責務境界、採用する修正方針、禁止する修正、原因箇所の呼び出し順序を分ける。実装 agent が判断し直す余地を残す実装方針、原因未確認の仮説、対症療法は修正実行入力へ進めない
-- `browser_confirmation` は実装後ブラウザ確認で、呼び出し元が定義した確認 URL、操作経路、期待値、安全条件に従い、Codex 内蔵ブラウザの表示状態、console 異常、必要な screenshot とログを残す。期待値の追加、仕様判断、原因推定、修正方針作成は扱わない
+- `browser_confirmation` は実装後ブラウザ確認で、呼び出し元が定義した確認 URL、操作経路、期待値、安全条件に従い、`agent-browser` CLI の `snapshot`、`errors`、必要な `screenshot` とログを残す。期待値の追加、仕様判断、原因推定、修正方針作成は扱わない
 - `implement_lane` は承認済み 実行成果物 DAG に従い、実装時調査、実装、テスト、観測ログ追加、最終検証、実装後ブラウザ確認、作業 commit、マージ準備入力を進める
 - `implementation_investigator` は承認済み実装範囲 内で実装時の証跡だけを扱う。承認済み実装範囲 外は、今回変更の直接影響を切り分ける観測範囲確認だけを扱う
 - `backend_implementer` は 承認済み backend 実装範囲 と、今回変更の直接影響で backend 責務内プロダクトコードに閉じる影響範囲だけを変更する
@@ -249,7 +249,7 @@ Codex 内蔵ブラウザの利用規約は `.codex/browser-use.md` とします�
 - human 承認済みの 成果物 だけ `docs_updater` が `updating-docs` を参照して正本へ反映する
 - `detail-spec-diff.md`、`screen-design-diff.<screen-id>.md`、実装結果のいずれかに仕様変更または仕様追加が少しでも含まれる場合は、`implement_lane` が `正本化判断` を必ず記録する
 - 仕様変更または仕様追加が human 承認済みの恒久仕様である場合は、`docs_updater` が `詳細仕様正本反映` を必ず完了または停止理由付きで返す
-- task 内 詳細仕様差分、画面設計差分、Codex 内蔵ブラウザ確認結果は task folder に置く
+- task 内 詳細仕様差分、画面設計差分、ブラウザ確認結果は task folder に置く
 - UI の確認は、承認済み画面設計差分と実画面確認結果で扱う
 - UI の細かな visual polish は実装後の実物確認で差分を扱う
 - `implementation-scope` は 引き継ぎ 履歴であり docs 正本へ昇格しない

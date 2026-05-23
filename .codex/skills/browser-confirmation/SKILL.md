@@ -19,18 +19,18 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 ## 入力規約
 
 - 呼び出し元: 確認を依頼した lane agent。
-- 確認 URL: Codex 内蔵ブラウザで開く対象 URL。
+- 確認 URL: `agent-browser` で開く対象 URL。
 - 起動状態: アプリ、サーバー、テストデータ、認証状態の準備状況。
 - 操作経路: 実行する画面操作の列。
 - 操作期待値: 各操作後に満たすべき画面状態、表示、状態変化。
 - 禁止操作: 実行してはいけない操作。
-- 証跡出力先: 表示状態、console 異常、必要な screenshot とログを置く path。
+- 証跡出力先: `snapshot`、`errors`、必要な `screenshot` とログを置く path。
 - 画面設計参照: 操作経路、操作前の事前条件、操作期待値の確認先にする画面設計。
 
 ## 外部参照規約
 
 - エージェント実行定義と実行境界は [browser_confirmation.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/browser_confirmation.toml) に従う。
-- Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
+- `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
 - active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
@@ -45,7 +45,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 | 成果物 | 拘束する内容 |
 | --- | --- |
 | 操作確認結果 | 操作経路ごとの実行結果と期待値との差分 |
-| 証跡参照 | 表示状態、console 異常、必要な screenshot とログの path |
+| 証跡参照 | `snapshot`、`errors`、必要な `screenshot` とログの path |
 | 異常記録 | console または network の異常 |
 | 未確認理由 | 確認できなかった操作、期待値、証跡の理由 |
 | 戻し先 | 呼び出し元 lane agent |
@@ -54,7 +54,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 
 - 確認 URL、操作経路、操作期待値、安全条件に従って実行する。
 - 画面設計参照がある場合は、操作経路、操作前の事前条件、操作期待値の確認先として読む。
-- 表示状態と console 異常は必ず確認する。
+- `snapshot` と `errors` は必ず取得する。
 - `screenshot` は画面状態、表示差分、未確認理由の説明に必要な場合に取得する。
 - frontend の観測ログは browser console の証跡として扱う。
 - backend の観測ログは `tmp/logs/wails-dev.log` の証跡として扱う。
@@ -75,7 +75,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 ## 出力規約
 
 - 操作確認結果: 操作経路ごとの実行結果と期待値との差分を返す。
-- 証跡参照: 表示状態、console 異常、必要な screenshot とログの path を返す。
+- 証跡参照: `snapshot`、`errors`、必要な `screenshot` とログの path を返す。
 - 異常記録: console または network の異常を返す。
 - 未確認理由: 確認できなかった操作、期待値、証跡の理由を返す。
 - 戻し先: 呼び出し元 lane agent を返す。
@@ -84,7 +84,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 ## 完了規約
 
 - 操作経路ごとの実行結果が根拠参照付きで返っている。
-- 表示状態と console 異常の証跡参照が返っている。
+- `snapshot` と `errors` の証跡参照が返っている。
 - 必要な screenshot とログの証跡参照または未取得理由が返っている。
 - console または network の異常がある場合は異常記録が返っている。
 - 未確認がある場合は未確認理由と戻し先が返っている。
