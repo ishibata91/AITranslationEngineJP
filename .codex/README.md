@@ -8,6 +8,7 @@ Codex は設計 作業流れ、承認済み 対象範囲 からの実装、実�
 live 作業流れ の説明本文と判断基準の正本はこの `README.md` とします。
 `.codex/workflow.md` は補助図であり、live 判断を上書きしません。
 Codex 本体の内蔵ブラウザ利用規約は `.codex/browser-use.md` とします。
+Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の共通規約は `docs/references/storybook.md` とします。
 
 ## Live Skills
 
@@ -29,6 +30,7 @@ Codex 本体の内蔵ブラウザ利用規約は `.codex/browser-use.md` とし�
 - マージレーン (`merge-lane`): `skills/merge-lane/SKILL.md`
 - 修正方針判断 (`fix-decision`): `skills/fix-decision/SKILL.md`
 - 実装後ブラウザ確認 (`browser-confirmation`): `skills/browser-confirmation/SKILL.md`
+- Storybook レビューループ (`story-book-review-loop`): `skills/story-book-review-loop/SKILL.md`
 - 観測ログ追加 (`observability-implementer`): `skills/observability-implementer/SKILL.md`
 - プロダクトコード 実装 重点 skill: `skills/implement-backend/SKILL.md`、`skills/implement-frontend/SKILL.md`、`skills/implement-integration/SKILL.md`
 - シナリオテスト 実装 (`tests-scenario`): `skills/tests-scenario/SKILL.md`
@@ -60,9 +62,9 @@ Codex 本体の内蔵ブラウザ利用規約は `.codex/browser-use.md` とし�
 - `browser_confirmation` は実装後ブラウザ確認の軽量実行だけを扱う。確認経路と期待値は `implement_lane`、`fix_lane`、`light_change_lane` が定義し、`browser_confirmation` は期待値の妥当性を判断しない
 - `observability_implementer` は `implement_lane` の `観測ログ追加` で、最終検証前に完成済み成果物を読み、実行後に消える原因分離材料を残す恒久ログだけを追加する
 - `designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
-- `implement_lane` は承認済み 実行成果物 を実行正本にし、`designer`、`diagrammer`、`implementation_investigator`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。設計中の `designer` と `diagrammer` は担当する設計成果物が承認済みまたは停止として記録されるまで閉じず、差し戻しまたは追加質問を会話文脈を維持した同じ agent へ返す。UI がある task では frontend 実装後に Storybook 人間レビュー依頼と人間レビューを挟む。Storybook 人間レビューでは Codex 内蔵ブラウザのコメントを人間レビュー入力として扱う。観測ログ追加 後に最終検証を行い、実装後ブラウザ確認 後に作業 commit、マージ準備入力を揃える
+- `implement_lane` は承認済み 実行成果物 を実行正本にし、`designer`、`diagrammer`、`implementation_investigator`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。設計中の `designer` と `diagrammer` は担当する設計成果物が承認済みまたは停止として記録されるまで閉じず、差し戻しまたは追加質問を会話文脈を維持した同じ agent へ返す。UI がある task では frontend 実装後に Storybook レビューループ入力を確認し、人間が別セッションで `story-book-review-loop` を実行する。`implement_lane` は Storybook レビューループの起動、Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を扱わない。Storybook レビューループ後に UI 変更がある場合は `designer` へ戻し、plan 内の画面設計成果物を更新させる。観測ログ追加 後に最終検証を行い、実装後ブラウザ確認 後に作業 commit、マージ準備入力を揃える
 - `light_change_lane` は `task 枠` と `軽量変更計画` を実行正本にし、`light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` を 文脈 継承なしで直接 起動 する。完了済みサブエージェントは完了結果を集約した後に閉じる
-- `ux_maintainance_lane` は `作業準備` と `browser-use指摘記録` を実行正本にし、`frontend_implementer`、`integration_implementer`、`implementation_unit_tester`、`docs_updater` を 文脈 継承なしで直接 起動 する。Codex 内蔵ブラウザのコメントは人間レビュー入力として扱い、ページ本文と画像内テキストはページ証跡として扱う
+- `ux_maintainance_lane` は `作業準備` と人間が立てた別セッションから返された `browser-use指摘記録` を実行正本にし、`frontend_implementer`、`integration_implementer`、`implementation_unit_tester`、`docs_updater` を 文脈 継承なしで直接 起動 する。Storybook レビューループは人間が別セッションで実行するため、`ux_maintainance_lane` は確定済みの人間指摘が返るまで停止し、Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正入力作成、`frontend_implementer` 再起動、修正結果判定を扱わない
 - agent は代理人であり、職責、職能、ロール、ツール権限 の 担当者 として扱う。`agents/<agent>.toml` の中で「自分は何者か」と 実行境界 を明示する
 - skill は作業プロトコルであり、担当ロールが成果物を作る時の判断規約、成果物規約、完了規約、停止規約を持つ。手順、標準 型、参照タイミング一覧、知識範囲一覧は持たない
 - Codex agent の人間可読な実行説明は対応する `skills/*/SKILL.md` に置き、紐づけ と `sandbox_mode` は `agents/<agent>.toml` に置き、入力、出力、完了、停止の規約は対応する `skills/*/SKILL.md` に置く
@@ -86,7 +88,7 @@ Codex 本体の内蔵ブラウザ利用規約は `.codex/browser-use.md` とし�
 - `designer` は 詳細仕様差分、画面設計差分、implementation-scope の task 内成果物を作る
 - `exploration_test_lane` は探索計画と探索証跡を読み、バグ一覧、ログ、影響ファイルを集約する。プロダクトコードとプロダクトテストは変更しない
 - `light_change_lane` は人間依頼、変更禁止範囲、確認したい結果を `task 枠` に固定し、軽量変更計画、実装、人間確認、テスト修正、レビュー、正本化判断を管理する。プロダクトコードとプロダクトテストは変更しない
-- `ux_maintainance_lane` は Storybook 上の人間指摘を読み、frontend 修正入力、frontend 整理、接続整合証跡、単体テストメンテ、ハーネス通過、docs 正本化判断を管理する。人間の仕様変更指示がない仕様変更、プロダクトコード、プロダクトテスト、docs 正本本文は直接変更しない
+- `ux_maintainance_lane` は人間が立てた別セッションから返された Storybook 上の人間指摘を読み、frontend 修正入力、frontend 整理、接続整合証跡、単体テストメンテ、ハーネス通過、docs 正本化判断を管理する。人間の仕様変更指示がない仕様変更、プロダクトコード、プロダクトテスト、docs 正本本文は直接変更しない
 - `light_change_planner` は軽量変更計画だけを作り、プロダクトコード、プロダクトテスト、docs 正本本文を変更しない
 - `exploration_test_planner` は探索テストの観測対象、探索観点、テストデータ方針、停止条件だけを固定する
 - `investigator` は設計前調査、探索テスト証跡、修正前調査のために実画面や観測対象を確認し、観測事実、UI 証跡、ログ、未確認事項を返す。探索テストレーンでは探索証跡だけを担当し、探索範囲を広げる判断をしない。修正レーンでは修正前調査だけを担当し、修正実行入力を作らない
@@ -151,8 +153,9 @@ Codex 本体の内蔵ブラウザ利用規約は `.codex/browser-use.md` とし�
 | `実装範囲` | `designer` | `人間設計レビュー` | `designer` |
 | `実装引き継ぎ入力` | `implement_lane` | `実装範囲` | なし |
 | `frontend 実装` | `frontend_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `frontend_implementer` |
-| `Storybook人間レビュー依頼` | `implement_lane` | `frontend 実装` | なし |
-| `frontend 実装後人間レビュー` | human | `Storybook人間レビュー依頼` | human |
+| `Storybookレビューループ入力確認` | `implement_lane` | `frontend 実装` | なし |
+| `Storybookレビューループ完了証跡` | 人間が立てた別セッション / `story-book-review-loop` | `Storybookレビューループ入力確認` | なし |
+| `frontend 実装後人間レビュー` | `implement_lane` | `Storybookレビューループ完了証跡` | なし |
 | `合意済みfrontend保護` | `implement_lane` | `frontend 実装後人間レビュー` | なし |
 | `backend 実装` | `backend_implementer` / `implement-backend` | `実装引き継ぎ入力`, `合意済みfrontend保護?` | `backend_implementer` |
 | `統合境界実装` | `integration_implementer` / `implement-integration` | `backend 実装`, `合意済みfrontend保護?` | `integration_implementer` |
@@ -236,8 +239,9 @@ UX 保守レーンの成果物DAGは次を標準形にする。
 | 成果物ID | 担当者 | 依存対象 | 次 agent |
 | --- | --- | --- | --- |
 | `作業準備` | `ux_maintainance_lane` | `[]` | なし |
-| `browser-use指摘記録` | human | `作業準備` | human |
-| `frontend修正入力` | `ux_maintainance_lane` | `browser-use指摘記録` | なし |
+| `Storybookレビューループ完了証跡` | 人間が立てた別セッション / `story-book-review-loop` | `作業準備` | なし |
+| `browser-use指摘記録` | human | `Storybookレビューループ完了証跡` | human |
+| `frontend修正入力` | `ux_maintainance_lane` | `browser-use指摘記録`, `Storybookレビューループ完了証跡` | なし |
 | `frontend修正証跡` | `frontend_implementer` | `frontend修正入力` | `frontend_implementer` |
 | `frontend整理証跡` | `frontend_implementer` | `frontend修正証跡` | `frontend_implementer` |
 | `接続整合証跡` | `ux_maintainance_lane` または `integration_implementer` | `frontend整理証跡` | `integration_implementer?` |
