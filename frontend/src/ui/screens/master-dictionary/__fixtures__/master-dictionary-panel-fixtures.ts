@@ -1,10 +1,8 @@
 import type {
   DictionaryDeleteModalProps,
-  DictionaryDetailPanelProps,
   DictionaryEditModalProps,
-  DictionaryHeaderProps,
   DictionaryImportPanelProps,
-  DictionaryListPanelProps
+  DictionaryImportProgressPanelProps
 } from "../dictionary-panel-props"
 
 const noop = (): void => {}
@@ -32,41 +30,16 @@ const longEntry = {
   note: "長文表示確認用の合成メモです。"
 }
 
-const entries = [
-  selectedEntry,
-  {
-    id: "dic-0002",
-    source: "Riverwood Trader",
-    translation: "リバーウッド・トレーダー",
-    category: "Location",
-    origin: "XML取込",
-    updatedAt: "2026-05-18 10:21"
-  },
-  longEntry
-]
-
 const categories = ["すべて", "NPC", "Location", "Dialogue"]
 
-const baseListPanel: DictionaryListPanelProps = {
-  category: "すべて",
-  categoryOptions: categories,
-  entries,
-  listHeadline: "保存済み 3 件を表示しています。",
-  page: 0,
-  pageStatusText: "1 / 2 ページ",
-  query: "",
-  selectedId: selectedEntry.id,
-  selectionStatusText: "選択中: Whiterun Guard",
-  totalPages: 2,
-  goToNextPage: noop,
-  goToPrevPage: noop,
-  handleCategoryChange: noopEvent,
-  handleSearchInput: noopEvent,
-  openCreateModal: noop,
-  selectRow: noop
+const baseImportPanel: DictionaryImportPanelProps = {
+  isImportRunning: true,
+  selectedFileName: "synthetic-master-dictionary.xml",
+  chooseXmlFile: noop,
+  handleXmlSelected: noopEvent
 }
 
-const baseImportPanel: DictionaryImportPanelProps = {
+const baseImportProgressPanel: DictionaryImportProgressPanelProps = {
   hasStagedFile: true,
   importProgress: 72,
   importStatusText: "XML を読み込み中です。",
@@ -75,8 +48,6 @@ const baseImportPanel: DictionaryImportPanelProps = {
   isImportRunning: true,
   selectedEntry,
   selectedFileName: "synthetic-master-dictionary.xml",
-  chooseXmlFile: noop,
-  handleXmlSelected: noopEvent,
   resetImportSelection: noop,
   startImport: noop
 }
@@ -96,23 +67,28 @@ const baseEditModal: DictionaryEditModalProps = {
   setFormTranslation: noopEvent
 }
 
-export const dictionaryHeaderFixtures: Record<string, DictionaryHeaderProps> = {
-  normal: {
-    gatewayStatus: "connected",
-    errorMessage: ""
-  },
-  error: {
-    gatewayStatus: "connected",
-    errorMessage: "保存に失敗しました。入力値を保持したまま再実行できます。"
-  }
-}
-
 export const dictionaryImportPanelFixtures: Record<
   string,
   DictionaryImportPanelProps
 > = {
   noFileSelected: {
     ...baseImportPanel,
+    isImportRunning: false,
+    selectedFileName: "未選択"
+  },
+  selected: {
+    ...baseImportPanel,
+    isImportRunning: false
+  },
+  running: baseImportPanel
+}
+
+export const dictionaryImportProgressPanelFixtures: Record<
+  string,
+  DictionaryImportProgressPanelProps
+> = {
+  noFileSelected: {
+    ...baseImportProgressPanel,
     hasStagedFile: false,
     importProgress: 0,
     importStatusText: "ファイルは選択されていません。",
@@ -120,9 +96,9 @@ export const dictionaryImportPanelFixtures: Record<
     isImportRunning: false,
     selectedFileName: "未選択"
   },
-  running: baseImportPanel,
+  running: baseImportProgressPanel,
   completed: {
-    ...baseImportPanel,
+    ...baseImportProgressPanel,
     importProgress: 100,
     importStatusText: "XML 取り込みが完了しました。",
     importStatusValue: "完了",
@@ -134,62 +110,6 @@ export const dictionaryImportPanelFixtures: Record<
       selectedSource: selectedEntry.source
     },
     isImportRunning: false
-  }
-}
-
-export const dictionaryListPanelFixtures: Record<
-  string,
-  DictionaryListPanelProps
-> = {
-  normal: baseListPanel,
-  empty: {
-    ...baseListPanel,
-    entries: [],
-    listHeadline: "保存済み 0 件を表示しています。",
-    pageStatusText: "0 / 0 ページ",
-    selectedId: null,
-    selectionStatusText: "選択中のエントリはありません。",
-    totalPages: 0
-  },
-  filteredEmpty: {
-    ...baseListPanel,
-    category: "Dialogue",
-    entries: [],
-    listHeadline: "検索条件に一致するエントリはありません。",
-    query: "no-hit-synthetic-text",
-    selectedId: null,
-    selectionStatusText: "検索条件を変更してください。",
-    totalPages: 1
-  },
-  longText: {
-    ...baseListPanel,
-    entries: [longEntry],
-    selectedId: longEntry.id,
-    selectionStatusText: `選択中: ${longEntry.source}`
-  }
-}
-
-export const dictionaryDetailPanelFixtures: Record<
-  string,
-  DictionaryDetailPanelProps
-> = {
-  selected: {
-    detailSublineText: "選択中のエントリを表示しています。",
-    selectedEntry,
-    openDeleteModal: noop,
-    openEditModal: noop
-  },
-  unselected: {
-    detailSublineText: "一覧からエントリを選択してください。",
-    selectedEntry: null,
-    openDeleteModal: noop,
-    openEditModal: noop
-  },
-  longText: {
-    detailSublineText: "長い識別子と訳語を表示しています。",
-    selectedEntry: longEntry,
-    openDeleteModal: noop,
-    openEditModal: noop
   }
 }
 

@@ -4,7 +4,7 @@ import JobCard from "../JobCard.svelte"
 import { jobCardFixtures } from "../__fixtures__/translation-job-management-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Management/JobCard",
+  title: "Screen Components/Translation Job Management/JobCard",
   component: JobCard,
   parameters: {
     layout: "fullscreen"

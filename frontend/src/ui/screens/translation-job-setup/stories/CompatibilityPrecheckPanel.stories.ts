@@ -4,7 +4,7 @@ import CompatibilityPrecheckPanel from "../CompatibilityPrecheckPanel.svelte"
 import { translationJobSetupPanelFixtures } from "../__fixtures__/translation-job-setup-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Setup/CompatibilityPrecheckPanel",
+  title: "Screen Components/Translation Job Setup/CompatibilityPrecheckPanel",
   component: CompatibilityPrecheckPanel,
   parameters: {
     layout: "fullscreen"

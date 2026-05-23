@@ -4,7 +4,7 @@ import GenerationSetupPanel from "../GenerationSetupPanel.svelte"
 import { generationSetupPanelFixtures } from "../__fixtures__/master-persona-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Persona/GenerationSetupPanel",
+  title: "Screen Components/Master Persona/GenerationSetupPanel",
   component: GenerationSetupPanel,
   parameters: {
     layout: "fullscreen"

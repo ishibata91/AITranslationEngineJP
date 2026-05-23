@@ -4,7 +4,7 @@ import PhaseSettingsPanel from "../PhaseSettingsPanel.svelte"
 import { translationJobSetupPanelFixtures } from "../__fixtures__/translation-job-setup-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Setup/PhaseSettingsPanel",
+  title: "Screen Components/Translation Job Setup/PhaseSettingsPanel",
   component: PhaseSettingsPanel,
   parameters: {
     layout: "fullscreen"

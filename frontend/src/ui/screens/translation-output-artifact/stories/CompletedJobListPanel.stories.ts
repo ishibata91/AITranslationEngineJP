@@ -4,7 +4,7 @@ import CompletedJobListPanel from "../CompletedJobListPanel.svelte"
 import { completedJobListPanelFixtures } from "../__fixtures__/translation-output-artifact-fixtures"
 
 const meta = {
-  title: "Screens/Translation Output Artifact/CompletedJobListPanel",
+  title: "Screen Components/Translation Output Artifact/CompletedJobListPanel",
   component: CompletedJobListPanel,
   parameters: {
     layout: "fullscreen"

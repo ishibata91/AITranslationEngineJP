@@ -4,7 +4,7 @@ import PersonaReviewPanel from "../PersonaReviewPanel.svelte"
 import { personaReviewPanelFixtures } from "../__fixtures__/master-persona-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Persona/PersonaReviewPanel",
+  title: "Screen Components/Master Persona/PersonaReviewPanel",
   component: PersonaReviewPanel,
   parameters: {
     layout: "fullscreen"

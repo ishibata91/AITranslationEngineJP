@@ -4,7 +4,7 @@ import OutputSummaryHeader from "../OutputSummaryHeader.svelte"
 import { outputSummaryHeaderFixtures } from "../__fixtures__/translation-output-artifact-fixtures"
 
 const meta = {
-  title: "Screens/Translation Output Artifact/OutputSummaryHeader",
+  title: "Screen Components/Translation Output Artifact/OutputSummaryHeader",
   component: OutputSummaryHeader,
   parameters: {
     layout: "fullscreen"

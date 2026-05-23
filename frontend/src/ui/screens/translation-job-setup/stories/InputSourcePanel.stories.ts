@@ -4,7 +4,7 @@ import InputSourcePanel from "../InputSourcePanel.svelte"
 import { translationJobSetupPanelFixtures } from "../__fixtures__/translation-job-setup-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Setup/InputSourcePanel",
+  title: "Screen Components/Translation Job Setup/InputSourcePanel",
   component: InputSourcePanel,
   parameters: {
     layout: "fullscreen"

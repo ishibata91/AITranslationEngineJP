@@ -4,7 +4,7 @@ import DictionaryEditModal from "../DictionaryEditModal.svelte"
 import { dictionaryEditModalFixtures } from "../__fixtures__/master-dictionary-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Dictionary/DictionaryEditModal",
+  title: "Screen Components/Master Dictionary/DictionaryEditModal",
   component: DictionaryEditModal,
   parameters: {
     layout: "fullscreen"

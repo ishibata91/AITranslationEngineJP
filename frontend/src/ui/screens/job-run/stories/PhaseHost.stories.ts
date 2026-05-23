@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/svelte-vite"
 import PhaseHost from "../PhaseHost.svelte"
 
 const meta = {
-  title: "Screens/Job Run/PhaseHost",
+  title: "Screen Components/Job Run/PhaseHost",
   component: PhaseHost,
   parameters: {
     layout: "fullscreen"

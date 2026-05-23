@@ -4,7 +4,7 @@ import LoadedInputList from "../LoadedInputList.svelte"
 import { translationInputPanelFixtures } from "../__fixtures__/translation-input-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Input/LoadedInputList",
+  title: "Screen Components/Translation Input/LoadedInputList",
   component: LoadedInputList,
   parameters: {
     layout: "fullscreen"

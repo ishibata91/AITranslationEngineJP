@@ -294,14 +294,15 @@
   }
 
   .model-card {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 8px;
+    background: rgba(33, 27, 24, 0.88);
+    border: 1px solid rgba(226, 205, 173, 0.14);
+    border-radius: 20px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
     display: grid;
-    gap: 14px;
+    gap: 1rem;
     grid-template-rows: auto 1fr;
     min-width: 0;
-    padding: 16px;
+    padding: 1.4rem;
   }
 
   .model-card-head,

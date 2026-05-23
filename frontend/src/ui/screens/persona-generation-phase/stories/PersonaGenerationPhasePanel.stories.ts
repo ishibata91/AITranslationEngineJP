@@ -4,7 +4,7 @@ import PersonaGenerationPhasePanel from "../PersonaGenerationPhasePanel.svelte"
 import { personaGenerationPhasePanelFixture } from "../__fixtures__/persona-phase-card-fixture"
 
 const meta = {
-  title: "Screens/Persona Generation Phase/PersonaGenerationPhasePanel",
+  title: "Screen Components/Persona Generation Phase/PersonaGenerationPhasePanel",
   component: PersonaGenerationPhasePanel,
   parameters: {
     layout: "fullscreen"

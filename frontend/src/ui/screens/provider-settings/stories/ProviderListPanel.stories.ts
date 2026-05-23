@@ -4,7 +4,7 @@ import ProviderListPanel from "../ProviderListPanel.svelte"
 import { providerListPanelFixtures } from "../__fixtures__/provider-settings-panel-fixtures"
 
 const meta = {
-  title: "Screens/Provider Settings/ProviderListPanel",
+  title: "Screen Components/Provider Settings/ProviderListPanel",
   component: ProviderListPanel,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof ProviderListPanel>

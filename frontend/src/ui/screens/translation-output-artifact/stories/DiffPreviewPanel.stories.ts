@@ -4,7 +4,7 @@ import DiffPreviewPanel from "../DiffPreviewPanel.svelte"
 import { diffPreviewPanelFixtures } from "../__fixtures__/translation-output-artifact-fixtures"
 
 const meta = {
-  title: "Screens/Translation Output Artifact/DiffPreviewPanel",
+  title: "Screen Components/Translation Output Artifact/DiffPreviewPanel",
   component: DiffPreviewPanel,
   parameters: {
     layout: "fullscreen"

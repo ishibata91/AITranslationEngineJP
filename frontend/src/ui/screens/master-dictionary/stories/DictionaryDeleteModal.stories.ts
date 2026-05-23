@@ -4,7 +4,7 @@ import DictionaryDeleteModal from "../DictionaryDeleteModal.svelte"
 import { dictionaryDeleteModalFixtures } from "../__fixtures__/master-dictionary-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Dictionary/DictionaryDeleteModal",
+  title: "Screen Components/Master Dictionary/DictionaryDeleteModal",
   component: DictionaryDeleteModal,
   parameters: {
     layout: "fullscreen"

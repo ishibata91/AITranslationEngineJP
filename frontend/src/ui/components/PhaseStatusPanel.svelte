@@ -14,6 +14,7 @@
     testId: string
     statusTestId?: string
     metrics?: PhaseMetricCounter[]
+    showGatewayStatus?: boolean
   }
 
   let {
@@ -28,7 +29,8 @@
     errorMessage = "",
     testId,
     statusTestId = undefined,
-    metrics = []
+    metrics = [],
+    showGatewayStatus = true
   }: Props = $props()
 </script>
 
@@ -38,7 +40,9 @@
       <p class="eyebrow">{eyebrow}</p>
       <h2>{title}</h2>
     </div>
-    <p class="gateway-status">Gateway: {gatewayStatus}</p>
+    {#if showGatewayStatus}
+      <p class="gateway-status">Gateway: {gatewayStatus}</p>
+    {/if}
   </div>
   <p class="lead">{lead}</p>
   <div class="status-block" data-testid={statusTestId}>

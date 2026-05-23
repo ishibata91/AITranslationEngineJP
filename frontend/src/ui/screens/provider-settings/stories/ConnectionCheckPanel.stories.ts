@@ -4,7 +4,7 @@ import ConnectionCheckPanel from "../ConnectionCheckPanel.svelte"
 import { connectionCheckPanelFixtures } from "../__fixtures__/provider-settings-panel-fixtures"
 
 const meta = {
-  title: "Screens/Provider Settings/ConnectionCheckPanel",
+  title: "Screen Components/Provider Settings/ConnectionCheckPanel",
   component: ConnectionCheckPanel,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof ConnectionCheckPanel>

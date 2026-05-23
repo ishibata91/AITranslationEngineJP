@@ -4,7 +4,7 @@ import DictionaryImportPanel from "../DictionaryImportPanel.svelte"
 import { dictionaryImportPanelFixtures } from "../__fixtures__/master-dictionary-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Dictionary/DictionaryImportPanel",
+  title: "Screen Components/Master Dictionary/DictionaryImportPanel",
   component: DictionaryImportPanel,
   parameters: {
     layout: "fullscreen"
@@ -21,8 +21,4 @@ export const NoFileSelected: Story = {
 
 export const Running: Story = {
   args: dictionaryImportPanelFixtures.running
-}
-
-export const Completed: Story = {
-  args: dictionaryImportPanelFixtures.completed
 }

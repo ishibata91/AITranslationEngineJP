@@ -27,11 +27,18 @@
   import TranslationCompletePage from "@ui/screens/job-run/TranslationCompletePage.svelte"
   import PersonaGenerationPhasePanel from "@ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte"
   import TermTranslationPhasePanel from "@ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte"
+  import type {
+    JobRunPhaseStepId,
+    ProcessingTargetListItem
+  } from "@ui/screens/job-run/job-run-shell-props"
 
   interface Props {
     createBodyController: CreateBodyTranslationPhaseScreenController | null
     createPersonaController: CreatePersonaGenerationPhaseScreenController | null
     createController: CreateTermTranslationPhaseScreenController | null
+    processingTargetItemsByPhase?: Partial<
+      Record<PhasePageId, ProcessingTargetListItem[]>
+    >
     selectedJobTarget?: TranslationJobManagementJobRunTarget | null
     onOpenJobManagement?: () => void
     onOpenOutputManagement?: () => void
@@ -42,13 +49,14 @@
     createBodyController,
     createPersonaController,
     createController,
+    processingTargetItemsByPhase = {},
     selectedJobTarget = null,
     onOpenJobManagement = () => undefined,
     onOpenOutputManagement = () => undefined,
     onPhaseViewChange = () => undefined
   }: Props = $props()
 
-  type PhasePageId = "term" | "persona" | "body" | "complete"
+  type PhasePageId = JobRunPhaseStepId
 
   function resolveController(): TermTranslationPhaseScreenControllerContract {
     if (!createController) {
@@ -325,17 +333,21 @@
           "完了確認へ進めません。本文翻訳の完了状況と翻訳結果を確認してください。"
         )
   )
+  const currentProcessingTargetItems = $derived(
+    processingTargetItemsByPhase[currentPhasePage] ?? []
+  )
 </script>
 
 <section class="job-run-page" data-testid="job-run-job-run-shell">
   {#if selectedJobTarget}
-    <JobRunTargetSummary target={selectedJobTarget} />
+    <JobRunTargetSummary target={selectedJobTarget} {currentPhasePage} />
     <PhaseHost>
       {#if currentPhasePage === "term"}
         <TermTranslationPhasePanel
           {viewModel}
           onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
             handleAction(actionId)}
+          processingTargetItems={currentProcessingTargetItems}
           onAISettingsChange={handleTermAISettingsChange}
         />
         <PhaseNavigationFooter
@@ -355,6 +367,7 @@
           viewModel={personaViewModel}
           onAction={(actionId: PersonaGenerationPhaseActionKind) =>
             handlePersonaAction(actionId)}
+          processingTargetItems={currentProcessingTargetItems}
           onAISettingsChange={handlePersonaAISettingsChange}
         />
         <PhaseNavigationFooter
@@ -374,6 +387,7 @@
           viewModel={bodyViewModel}
           onAction={(actionId: BodyTranslationPhaseActionKind) =>
             handleBodyAction(actionId)}
+          processingTargetItems={currentProcessingTargetItems}
           onAISettingsChange={handleBodyAISettingsChange}
         />
         <PhaseNavigationFooter

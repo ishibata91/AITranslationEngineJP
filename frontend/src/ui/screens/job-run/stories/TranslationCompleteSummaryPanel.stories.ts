@@ -3,7 +3,7 @@ import TranslationCompleteSummaryPanel from "../TranslationCompleteSummaryPanel.
 import { translationCompleteSummaryPanelFixture } from "../__fixtures__/translation-complete-fixture"
 
 const meta = {
-  title: "Screens/Job Run/TranslationCompleteSummaryPanel",
+  title: "Screen Components/Job Run/TranslationCompleteSummaryPanel",
   component: TranslationCompleteSummaryPanel,
   args: translationCompleteSummaryPanelFixture
 } satisfies Meta<typeof TranslationCompleteSummaryPanel>

@@ -4,7 +4,7 @@ import TermTranslationPhasePanel from "../TermTranslationPhasePanel.svelte"
 import { termTranslationPhasePanelFixture } from "../__fixtures__/term-phase-card-fixture"
 
 const meta = {
-  title: "Screens/Term Translation Phase/TermTranslationPhasePanel",
+  title: "Screen Components/Term Translation Phase/TermTranslationPhasePanel",
   component: TermTranslationPhasePanel,
   parameters: {
     layout: "fullscreen"

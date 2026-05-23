@@ -4,7 +4,7 @@ import SelectedJobSummaryCard from "../SelectedJobSummaryCard.svelte"
 import { selectedJobSummaryCardFixtures } from "../__fixtures__/translation-output-artifact-fixtures"
 
 const meta = {
-  title: "Screens/Translation Output Artifact/SelectedJobSummaryCard",
+  title: "Screen Components/Translation Output Artifact/SelectedJobSummaryCard",
   component: SelectedJobSummaryCard,
   parameters: {
     layout: "fullscreen"

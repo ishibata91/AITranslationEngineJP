@@ -6,14 +6,20 @@
     MasterPersonaEditableFieldMap,
     MasterPersonaScreenControllerContract
   } from "@application/contract/master-persona/master-persona-screen-contract"
+  import PhaseStatusPanel from "@ui/components/PhaseStatusPanel.svelte"
+  import type {
+    PhaseMetricCounter,
+    PhaseStateToken
+  } from "@ui/components/phase-panel-types"
+
+  import GenerationSetupPanel from "./GenerationSetupPanel.svelte"
+  import MasterPersonaAISettingsPanel from "./MasterPersonaAISettingsPanel.svelte"
   import type {
     GenerationSetupPanelProps,
     PersonaActionModalProps,
     PersonaReviewPanelProps,
     RunStatusPanelProps
   } from "./master-persona-panel-props"
-
-  import GenerationSetupPanel from "./GenerationSetupPanel.svelte"
   import PersonaActionModal from "./PersonaActionModal.svelte"
   import PersonaReviewPanel from "./PersonaReviewPanel.svelte"
   import RunStatusPanel from "./RunStatusPanel.svelte"
@@ -78,6 +84,22 @@
     startGeneration: () => void controller.executeGeneration(),
     saveAISettings: () => void controller.saveAISettings()
   })
+  const aiSettingsPanelProps = $derived({
+    aiSettings: viewModel.aiSettings,
+    aiSettingsStatusText: viewModel.aiSettingsStatusText,
+    aiSettingsWarningText: viewModel.aiSettingsWarningText,
+    aiProviderLabel: viewModel.aiProviderLabel,
+    canSelectModel: viewModel.canSelectModel,
+    executionMethodOptions: viewModel.executionMethodOptions,
+    isAISettingsRefreshing,
+    modelOptions: viewModel.modelOptions,
+    modelSettingsCardViewModel: viewModel.modelSettingsCardViewModel,
+    handleAIProviderChange,
+    handleAIModelChange,
+    handleAIExecutionMethodChange,
+    refreshAISettings,
+    saveAISettings: () => void controller.saveAISettings()
+  })
   const runStatusPanelProps = $derived<RunStatusPanelProps>({
     isRunActive: viewModel.isRunActive,
     progressPercent: viewModel.progressPercent,
@@ -116,6 +138,44 @@
     saveCurrentEntry: () => void controller.saveCurrentEntry(),
     setEditFormField: updateEditFormField
   })
+  const personaViewState = $derived<PhaseStateToken>(
+    viewModel.errorMessage
+      ? "failed"
+      : viewModel.isRunActive
+        ? "running"
+        : viewModel.runStatus.runState.includes("完了")
+          ? "completed"
+          : viewModel.runStatus.runState.includes("中止")
+            ? "canceled"
+            : viewModel.runStatus.runState.includes("中断")
+              ? "paused"
+              : "idle_ready"
+  )
+  const personaStatusTitle = $derived(
+    viewModel.isRunActive
+      ? "ペルソナを生成中です"
+      : viewModel.canStartGeneration
+        ? "ペルソナを作成できます"
+        : viewModel.runStatus.message
+  )
+  const personaStatusText = $derived(
+    viewModel.hasPreview
+      ? `候補 ${viewModel.preview?.candidateCount ?? 0} 件を確認できます。`
+      : "JSON と AI 設定を確認してください。"
+  )
+  const personaMetrics = $derived<PhaseMetricCounter[]>([
+    { label: "保存済み", value: String(viewModel.totalCount) },
+    {
+      label: "候補",
+      value: String(viewModel.preview?.candidateCount ?? 0)
+    },
+    {
+      label: "新規作成",
+      value: String(viewModel.preview?.newlyAddableCount ?? 0)
+    },
+    { label: "処理済み", value: String(viewModel.runStatus.processedCount) },
+    { label: "作成済み", value: String(viewModel.runStatus.successCount) }
+  ])
 
   function chooseJsonFile(): void {
     const input = document.getElementById("masterPersonaJsonInput")
@@ -207,19 +267,28 @@
     </p>
   {/if}
 
-  <div
-    class="status-row"
-    aria-label="マスターペルソナ作成状態"
-    data-testid="master-persona-screen-status-region"
-  >
-    <span class="status-label">作成状態</span>
-    <span class="status-pill" role="status">{viewModel.runStatus.runState}</span
-    >
-  </div>
+  <PhaseStatusPanel
+    eyebrow="基盤データ"
+    title="マスターペルソナ"
+    gatewayStatus={viewModel.gatewayStatus}
+    lead="JSON 入力、AI 設定、生成状態、ペルソナ一覧を同じ画面で操作します。"
+    state={personaViewState}
+    stateLabel={viewModel.runStatus.runState}
+    statusTitle={personaStatusTitle}
+    statusText={personaStatusText}
+    errorMessage={viewModel.errorMessage}
+    showGatewayStatus={false}
+    testId="master-persona-screen-status-region"
+    statusTestId="master-persona-status-summary-card"
+    metrics={personaMetrics}
+  />
 
   <GenerationSetupPanel {...generationSetupPanelProps} />
 
-  <RunStatusPanel {...runStatusPanelProps} />
+  <section class="phase-controls-grid">
+    <RunStatusPanel {...runStatusPanelProps} />
+    <MasterPersonaAISettingsPanel {...aiSettingsPanelProps} />
+  </section>
 
   <PersonaReviewPanel {...personaReviewPanelProps} />
 
@@ -257,30 +326,11 @@
     padding: 14px 18px;
   }
 
-  .status-row {
-    align-items: center;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 8px;
-    min-width: 0;
-  }
-
-  .status-label {
-    color: var(--muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .status-pill {
-    align-items: center;
-    background: rgba(255, 255, 255, 0.04);
-    border: 0.5px solid rgba(255, 186, 56, 0.22);
-    border-radius: 999px;
-    color: var(--text);
-    display: inline-flex;
-    min-height: 30px;
-    padding: 0 12px;
+  .phase-controls-grid {
+    align-items: start;
+    display: grid;
+    gap: 1.25rem;
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
   }
 
   .sr-only {
@@ -298,5 +348,11 @@
   .notice-error {
     border-color: rgba(255, 156, 124, 0.35);
     color: #ffd5cb;
+  }
+
+  @media (max-width: 900px) {
+    .phase-controls-grid {
+      grid-template-columns: 1fr;
+    }
   }
 </style>

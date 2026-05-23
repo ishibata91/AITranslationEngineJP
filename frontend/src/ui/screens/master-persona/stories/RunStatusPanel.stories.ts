@@ -4,7 +4,7 @@ import RunStatusPanel from "../RunStatusPanel.svelte"
 import { runStatusPanelFixtures } from "../__fixtures__/master-persona-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Persona/RunStatusPanel",
+  title: "Screen Components/Master Persona/RunStatusPanel",
   component: RunStatusPanel,
   parameters: {
     layout: "fullscreen"

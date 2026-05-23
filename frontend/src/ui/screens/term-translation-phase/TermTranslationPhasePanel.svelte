@@ -2,10 +2,12 @@
   import AIModelSelectionCard from "../../components/AIModelSelectionCard.svelte"
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
+  import ProcessingTargetListWrapper from "../../components/ProcessingTargetListWrapper.svelte"
   import type {
     PhaseDetailItem,
     PhaseMetricCounter
   } from "../../components/phase-panel-types"
+  import type { ProcessingTargetListItem } from "../../components/processing-target-list-panel-types"
   import type {
     TermTranslationPhaseActionKind,
     TermTranslationPhaseScreenViewModel
@@ -16,6 +18,7 @@
   interface Props {
     viewModel: TermTranslationPhaseScreenViewModel
     onAction: (actionId: TermPanelActionKind) => void | Promise<void>
+    processingTargetItems?: ProcessingTargetListItem[]
     onAISettingsChange?: (request: {
       provider: string
       model: string
@@ -24,7 +27,13 @@
     }) => void | Promise<void>
   }
 
-  let { viewModel, onAction, onAISettingsChange = undefined }: Props = $props()
+  let {
+    viewModel,
+    onAction,
+    processingTargetItems: providedProcessingTargetItems = undefined,
+    onAISettingsChange = undefined
+  }: Props = $props()
+  let processingTargetSearchValue = $state("")
   const phaseActionCards = $derived(
     viewModel.actionCards.filter(
       (
@@ -62,6 +71,54 @@
   const progressDetails = $derived<PhaseDetailItem[]>([
     { label: "対象語件数", value: viewModel.totalTermCountLabel }
   ])
+  const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
+    {
+      id: "term-translation-ai-target",
+      name: "原語 / 訳語候補",
+      titleParts: [
+        { text: `原語候補: ${viewModel.totalTermCountLabel} 件` },
+        { text: `AI 訳語候補: ${viewModel.aiTargetCountLabel} 件` }
+      ],
+      detail: "共通辞書に一致しない用語と固有名詞を AI サービスへ送る対象。",
+      metadata: [
+        { label: "対象語件数", value: viewModel.totalTermCountLabel },
+        { label: "共通辞書一致", value: viewModel.dictionaryHitCountLabel },
+        { label: "AI 送信対象", value: viewModel.aiTargetCountLabel },
+        { label: "置換対象", value: viewModel.replacementTargetCountLabel },
+        { label: "未一致", value: viewModel.unmatchedCountLabel },
+        { label: "保存先", value: "翻訳ジョブ内辞書" },
+        { label: "スナップショット", value: viewModel.snapshotLabel }
+      ]
+    }
+  ])
+  const displayedProcessingTargetItems = $derived(
+    providedProcessingTargetItems && providedProcessingTargetItems.length > 0
+      ? providedProcessingTargetItems
+      : summaryProcessingTargetItems
+  )
+  const filteredProcessingTargetItems = $derived(
+    filterProcessingTargetItems(
+      displayedProcessingTargetItems,
+      processingTargetSearchValue
+    )
+  )
+
+  function filterProcessingTargetItems(
+    items: ProcessingTargetListItem[],
+    searchValue: string
+  ): ProcessingTargetListItem[] {
+    const normalizedSearchValue = searchValue.trim().toLocaleLowerCase("ja-JP")
+    if (!normalizedSearchValue) {
+      return items
+    }
+
+    return items.filter((item) =>
+      [item.name, ...(item.titleParts?.map((part) => part.text) ?? [])]
+        .join(" ")
+        .toLocaleLowerCase("ja-JP")
+        .includes(normalizedSearchValue)
+    )
+  }
 
   function selectedValue(event: Event): string {
     const target = event.currentTarget
@@ -99,6 +156,13 @@
   function handleModelChange(event: Event): void {
     saveAISettings({ model: selectedValue(event) })
   }
+
+  function handleProcessingTargetSearchInput(event: Event): void {
+    const target = event.currentTarget
+    if (target instanceof HTMLInputElement) {
+      processingTargetSearchValue = target.value
+    }
+  }
 </script>
 
 <section class="job-run-shell" id="termTranslationPhaseView">
@@ -116,22 +180,23 @@
     metrics={phaseMetrics}
   />
 
-  <PhaseProgressPanel
-    headingId="termPhaseProgressHeading"
-    testId="term-translation-phase-progress-region"
-    eyebrow="翻訳段階の進行状況"
-    title="進行状況"
-    progressLabel={viewModel.progressLabel}
-    progressPercent={viewModel.progressPercent}
-    progressDetail={viewModel.progressDetail}
-    details={progressDetails}
-    currentPhaseLabel={viewModel.currentPhaseLabel}
-    actionAriaLabel="翻訳段階の操作"
-    actions={phaseActionCards}
-    onAction={(actionId: TermTranslationPhaseActionKind) => onAction(actionId)}
-  />
+  <section class="phase-controls-grid">
+    <PhaseProgressPanel
+      headingId="termPhaseProgressHeading"
+      testId="term-translation-phase-progress-region"
+      eyebrow="翻訳段階の進行状況"
+      title="進行状況"
+      progressLabel={viewModel.progressLabel}
+      progressPercent={viewModel.progressPercent}
+      progressDetail={viewModel.progressDetail}
+      details={progressDetails}
+      currentPhaseLabel={viewModel.currentPhaseLabel}
+      actionAriaLabel="翻訳段階の操作"
+      actions={phaseActionCards}
+      onAction={(actionId) =>
+        onAction(actionId as TermTranslationPhaseActionKind)}
+    />
 
-  <section class="summary-grid ai-settings-row">
     <AIModelSelectionCard
       dataTestId="term-translation-phase-ai-model-selection-region"
       ariaLabel="単語翻訳の AI モデル選択"
@@ -177,6 +242,18 @@
       footerWarningText={aiSettingsBlockedReason}
     />
   </section>
+
+  <ProcessingTargetListWrapper
+    items={filteredProcessingTargetItems}
+    pageSize={50}
+    searchId="termPhaseProcessingTargetSearch"
+    searchLabel="検索"
+    searchPlaceholder="名前・原文・訳語で検索"
+    searchValue={processingTargetSearchValue}
+    title="処理対象"
+    titleId="termPhaseProcessingTargetsHeading"
+    onSearchInput={handleProcessingTargetSearchInput}
+  />
 </section>
 
 <style>
@@ -185,18 +262,14 @@
     gap: 1.25rem;
   }
 
-  .summary-grid {
+  .phase-controls-grid {
     display: grid;
     gap: 1.25rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .ai-settings-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   @media (max-width: 900px) {
-    .summary-grid {
+    .phase-controls-grid {
       grid-template-columns: 1fr;
     }
   }
