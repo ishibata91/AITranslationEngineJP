@@ -40,7 +40,7 @@
   class={`action-button action-button-${variant}`}
   disabled={isDisabled}
   onclick={() => onClick?.()}
-  type={type}
+  {type}
 >
   {#if busy}
     <span class="button-spinner" aria-hidden="true"></span>

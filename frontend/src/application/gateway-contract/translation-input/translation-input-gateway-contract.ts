@@ -18,6 +18,10 @@ export interface RebuildTranslationInputCacheRequest {
   inputId: number
 }
 
+export interface CreateTranslationJobFromInputRequest {
+  inputId: number
+}
+
 export interface TranslationInputImportedInput {
   id: number
   sourceFilePath: string
@@ -129,6 +133,14 @@ export interface TranslationInputCommandResponse {
   warnings: TranslationInputWarning[]
 }
 
+export interface CreateTranslationJobFromInputResponse {
+  accepted: boolean
+  jobId?: number
+  jobState?: string
+  currentPhase: "term_translation"
+  errorKind?: string
+}
+
 export interface TranslationInputGatewayContract {
   importTranslationInput(
     request: ImportTranslationInputRequest
@@ -136,4 +148,7 @@ export interface TranslationInputGatewayContract {
   rebuildTranslationInputCache(
     request: RebuildTranslationInputCacheRequest
   ): Promise<TranslationInputCommandResponse>
+  createTranslationJobFromInput?(
+    request: CreateTranslationJobFromInputRequest
+  ): Promise<CreateTranslationJobFromInputResponse>
 }

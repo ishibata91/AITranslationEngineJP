@@ -17,6 +17,26 @@ export interface StartTermTranslationPhaseRequest {
   jobId: number
 }
 
+export interface TermTranslationPhaseAISettingsRequest {
+  jobId: number
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
+}
+
+export interface TermTranslationPhaseAISettingsResponse extends TermTranslationPhaseAISettingsRequest {
+  phaseId: string
+  credentialStatus: "configured" | "missing" | "not_required"
+  modelListStatus:
+    | "not_updated"
+    | "loading"
+    | "success"
+    | "failed"
+    | "credential_missing"
+    | "credential_not_required"
+}
+
 export interface PauseTermTranslationPhaseRequest {
   jobId: number
   phaseRunId: number
@@ -129,6 +149,9 @@ export interface TermTranslationPhaseGatewayContract {
   startTermTranslationPhase(
     request: StartTermTranslationPhaseRequest
   ): Promise<TermTranslationPhaseCommandResponse>
+  saveTermTranslationPhaseAISettings?(
+    request: TermTranslationPhaseAISettingsRequest
+  ): Promise<TermTranslationPhaseAISettingsResponse>
   pauseTermTranslationPhase(
     request: PauseTermTranslationPhaseRequest
   ): Promise<TermTranslationPhaseCommandResponse>

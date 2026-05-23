@@ -193,7 +193,6 @@
       controller.togglePhaseBatchMode(phaseId, target.checked)
     }
   }
-
 </script>
 
 <section class="job-setup-shell" id="translationJobSetupView">

@@ -7,6 +7,8 @@ export type {
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationExecutionSummary,
   PersonaGenerationPhaseActionEnablement,
+  PersonaGenerationPhaseAISettingsRequest,
+  PersonaGenerationPhaseAISettingsResponse,
   PersonaGenerationPhaseCommandResponse,
   PersonaGenerationPhaseErrorKind,
   PersonaGenerationPhaseErrorSummary,

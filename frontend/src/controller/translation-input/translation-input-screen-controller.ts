@@ -3,6 +3,7 @@ import type {
   TranslationInputScreenViewModelListener
 } from "@application/contract/translation-input/translation-input-screen-contract"
 import type {
+  CreateTranslationJobFromInputResponse,
   TranslationInputScreenState,
   TranslationInputScreenViewModel,
   TranslationInputStagedFile
@@ -27,6 +28,7 @@ interface TranslationInputUseCaseLike {
     fileContent?: string
   }): Promise<void>
   rebuildSelected(): Promise<void>
+  createTranslationJobFromSelected?: () => Promise<CreateTranslationJobFromInputResponse | null>
 }
 
 interface TranslationInputScreenControllerDependencies {
@@ -192,7 +194,8 @@ export class TranslationInputScreenController implements TranslationInputScreenC
 
         draft.stagedFile.fileHash = "計算失敗"
         draft.operationState = "idle"
-        draft.errorMessage = "JSON file の読み込み完了を確認できませんでした。もう一度選択してください。"
+        draft.errorMessage =
+          "JSON file の読み込み完了を確認できませんでした。もう一度選択してください。"
       })
     }
   }
@@ -215,7 +218,8 @@ export class TranslationInputScreenController implements TranslationInputScreenC
     const state = this.dependencies.store.snapshot()
     if (state.stagedFile !== null && this.stagedImportDraft === null) {
       this.dependencies.store.update((draft) => {
-        draft.errorMessage = "JSON file の読み込み完了を待ってから登録してください。"
+        draft.errorMessage =
+          "JSON file の読み込み完了を待ってから登録してください。"
       })
       return
     }
@@ -230,5 +234,12 @@ export class TranslationInputScreenController implements TranslationInputScreenC
 
   async rebuildSelected(): Promise<void> {
     await this.dependencies.useCase.rebuildSelected()
+  }
+
+  createTranslationJobFromSelected(): Promise<CreateTranslationJobFromInputResponse | null> {
+    if (!this.dependencies.useCase.createTranslationJobFromSelected) {
+      return Promise.resolve(null)
+    }
+    return this.dependencies.useCase.createTranslationJobFromSelected()
   }
 }

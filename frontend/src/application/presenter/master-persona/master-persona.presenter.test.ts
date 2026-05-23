@@ -29,7 +29,11 @@ function createState(
     aiSettingsMessage: "",
     providerOptions: [
       { value: "gemini", label: "Gemini", credentialStatus: "configured" },
-      { value: "lm_studio", label: "LM Studio", credentialStatus: "not_required" },
+      {
+        value: "lm_studio",
+        label: "LM Studio",
+        credentialStatus: "not_required"
+      },
       { value: "xai", label: "xAI", credentialStatus: "missing" }
     ],
     modelOptions: [],
@@ -71,7 +75,9 @@ describe("MasterPersonaPresenter", () => {
       value: "",
       label: "すべてのプラグイン"
     })
-    expect(viewModel.pluginOptions[1]?.label).toContain("TestPersonaPluginA.esp")
+    expect(viewModel.pluginOptions[1]?.label).toContain(
+      "TestPersonaPluginA.esp"
+    )
   })
 
   test("AI provider label は canonical provider ID を表示名へ変換する", () => {

@@ -8,7 +8,9 @@ import TranslationManagementStepper from "../TranslationManagementStepper.svelte
 
 type JobCardProps = ComponentProps<typeof JobCard>
 type JobListPanelProps = ComponentProps<typeof JobListPanel>
-type DeleteModalProps = ComponentProps<typeof TranslationJobManagementDeleteModal>
+type DeleteModalProps = ComponentProps<
+  typeof TranslationJobManagementDeleteModal
+>
 type StepperProps = ComponentProps<typeof TranslationManagementStepper>
 
 const noop = (): void => {}
@@ -156,7 +158,12 @@ const baseFilterChips = [
   { id: "all", label: "すべて", count: 3, selected: true },
   { id: "Running", label: "実行中", count: 1, selected: false },
   { id: "Paused", label: "停止中", count: 1, selected: false },
-  { id: "RecoverableFailed", label: "再開可能な失敗", count: 1, selected: false }
+  {
+    id: "RecoverableFailed",
+    label: "再開可能な失敗",
+    count: 1,
+    selected: false
+  }
 ] satisfies JobListPanelProps["filterChips"]
 
 const baseJobListProps = {
@@ -260,17 +267,24 @@ export const translationManagementViews = [
     directNavigation: false
   },
   {
-    id: "job-setup",
-    label: "翻訳設定",
-    description: "入力データと AI 設定を確認し、ジョブを作成します。",
+    id: "term-translation",
+    label: "単語翻訳",
+    description: "選択したジョブで、単語翻訳を実行します。",
     stepNumber: 3,
     directNavigation: false
   },
   {
-    id: "term-translation",
-    label: "単語翻訳",
-    description: "選択したジョブで、単語翻訳を実行します。",
+    id: "persona-generation",
+    label: "NPC ペルソナ生成",
+    description: "単語翻訳の完了後に、NPC の話し方や役割を整理します。",
     stepNumber: 4,
+    directNavigation: false
+  },
+  {
+    id: "body-translation",
+    label: "本文翻訳",
+    description: "NPC ペルソナを参照できる状態で、本文の翻訳を実行します。",
+    stepNumber: 5,
     directNavigation: false
   }
 ] satisfies TranslationManagementViewContract[]

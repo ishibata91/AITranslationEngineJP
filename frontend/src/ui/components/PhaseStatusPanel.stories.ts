@@ -3,16 +3,28 @@ import PhaseStatusPanel from "./PhaseStatusPanel.svelte"
 import { phaseStatusPanelFixtures } from "./__fixtures__/phase-panel-fixture"
 
 const meta = {
-  title: "UI Components/PhaseStatusPanel",
+  title: "UI Components/Phase Status Panel/PhaseStatusPanel",
   component: PhaseStatusPanel,
-  args: phaseStatusPanelFixtures.ready
+  args: phaseStatusPanelFixtures.personaAiSettingsReady
 } satisfies Meta<typeof PhaseStatusPanel>
 
 export default meta
 
 type Story = StoryObj<typeof meta>
 
-export const Ready: Story = {}
+export const PersonaAiSettingsReady: Story = {}
+
+export const TermAiSettingsReady: Story = {
+  args: phaseStatusPanelFixtures.termAiSettingsReady
+}
+
+export const BodyAiSettingsReady: Story = {
+  args: phaseStatusPanelFixtures.bodyAiSettingsReady
+}
+
+export const Ready: Story = {
+  args: phaseStatusPanelFixtures.ready
+}
 
 export const Running: Story = {
   args: phaseStatusPanelFixtures.running

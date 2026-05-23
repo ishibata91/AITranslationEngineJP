@@ -10,6 +10,8 @@ import type {
   ResumeTermTranslationPhaseResponseDto,
   RetryTermTranslationPhaseRequestDto,
   RetryTermTranslationPhaseResponseDto,
+  SaveTermTranslationPhaseAISettingsRequestDto,
+  SaveTermTranslationPhaseAISettingsResponseDto,
   StartTermTranslationPhaseRequestDto,
   StartTermTranslationPhaseResponseDto
 } from "@controller/wails/gateway-dto/term-translation-phase"
@@ -17,6 +19,7 @@ import type {
 type TermTranslationPhaseBindingName =
   | "GetTermTranslationPhaseSummary"
   | "StartTermTranslationPhase"
+  | "SaveTermTranslationPhaseAISettings"
   | "PauseTermTranslationPhase"
   | "ResumeTermTranslationPhase"
   | "RetryTermTranslationPhase"
@@ -104,6 +107,12 @@ class TermTranslationPhaseGateway implements TermTranslationPhaseGatewayContract
     request: StartTermTranslationPhaseRequestDto
   ): Promise<StartTermTranslationPhaseResponseDto> {
     return this.invokeBinding("StartTermTranslationPhase", request)
+  }
+
+  saveTermTranslationPhaseAISettings(
+    request: SaveTermTranslationPhaseAISettingsRequestDto
+  ): Promise<SaveTermTranslationPhaseAISettingsResponseDto> {
+    return this.invokeBinding("SaveTermTranslationPhaseAISettings", request)
   }
 
   pauseTermTranslationPhase(

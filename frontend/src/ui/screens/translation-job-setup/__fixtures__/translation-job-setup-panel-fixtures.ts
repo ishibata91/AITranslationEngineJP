@@ -16,7 +16,10 @@ import type {
 } from "../job-setup-panel-props"
 
 const ignoreAction = (): void => {}
-const ignoreEvent = (_phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"], event: Event): void => {
+const ignoreEvent = (
+  _phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
+  event: Event
+): void => {
   void event
 }
 const ignorePhaseAction = (

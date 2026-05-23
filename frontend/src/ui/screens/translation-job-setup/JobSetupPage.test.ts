@@ -91,7 +91,7 @@ function createPhaseOptions(
         model: "gemini-model-core",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "enabled",
+        batchMode: "enabled"
       },
       {
         phaseId: "npc_persona_generation",
@@ -99,7 +99,7 @@ function createPhaseOptions(
         model: "xai-persona-model",
         credentialStatus: "configured",
         executionMode: "sync",
-        batchMode: "disabled",
+        batchMode: "disabled"
       },
       {
         phaseId: "text_translation",
@@ -107,7 +107,7 @@ function createPhaseOptions(
         model: "local-text-model",
         credentialStatus: "not_required",
         executionMode: "sync",
-        batchMode: "unsupported",
+        batchMode: "unsupported"
       }
     ],
     ...overrides
@@ -426,7 +426,7 @@ describe("JobSetupPage", () => {
               model: "gemini-model-core",
               credentialStatus: "configured",
               executionMode: "sync",
-              batchMode: "enabled",
+              batchMode: "enabled"
             },
             {
               phaseId: "npc_persona_generation",
@@ -434,7 +434,7 @@ describe("JobSetupPage", () => {
               model: "xai-persona-model",
               credentialStatus: "configured",
               executionMode: "sync",
-              batchMode: "disabled",
+              batchMode: "disabled"
             },
             {
               phaseId: "text_translation",
@@ -442,7 +442,7 @@ describe("JobSetupPage", () => {
               model: "local-text-model",
               credentialStatus: "not_required",
               executionMode: "sync",
-              batchMode: "unsupported",
+              batchMode: "unsupported"
             }
           ]
         })
@@ -489,7 +489,7 @@ describe("JobSetupPage", () => {
               model: "gemini-ready-model",
               credentialStatus: "configured",
               executionMode: "sync",
-              batchMode: "enabled",
+              batchMode: "enabled"
             },
             {
               phaseId: "npc_persona_generation",
@@ -497,7 +497,7 @@ describe("JobSetupPage", () => {
               model: "xai-ready-model",
               credentialStatus: "configured",
               executionMode: "sync",
-              batchMode: "disabled",
+              batchMode: "disabled"
             },
             {
               phaseId: "text_translation",
@@ -505,7 +505,7 @@ describe("JobSetupPage", () => {
               model: "local-ready-model",
               credentialStatus: "not_required",
               executionMode: "sync",
-              batchMode: "unsupported",
+              batchMode: "unsupported"
             }
           ]
         })
@@ -544,7 +544,7 @@ describe("JobSetupPage", () => {
             model: "",
             credentialStatus: "missing",
             executionMode: "sync",
-            batchMode: "enabled",
+            batchMode: "enabled"
           },
           {
             phaseId: "npc_persona_generation",
@@ -552,7 +552,7 @@ describe("JobSetupPage", () => {
             model: "",
             credentialStatus: "configured",
             executionMode: "sync",
-            batchMode: "disabled",
+            batchMode: "disabled"
           },
           {
             phaseId: "text_translation",
@@ -560,7 +560,7 @@ describe("JobSetupPage", () => {
             model: "",
             credentialStatus: "not_required",
             executionMode: "sync",
-            batchMode: "unsupported",
+            batchMode: "unsupported"
           }
         ],
         providerModelLists: [

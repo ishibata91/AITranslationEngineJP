@@ -90,9 +90,7 @@ function createBindingInvoker(): BindingInvoker {
   }
 }
 
-class TranslationJobManagementGateway
-  implements TranslationJobManagementGatewayContract
-{
+class TranslationJobManagementGateway implements TranslationJobManagementGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
 
   ListIncompleteJobs(): Promise<TranslationJobManagementListResponseDto> {

@@ -6,7 +6,10 @@
 </script>
 
 <section class="hero-grid" id="dashboardView">
-  <section class="panel entry-panel" data-testid="dashboard-primary-page-entry-region">
+  <section
+    class="panel entry-panel"
+    data-testid="dashboard-primary-page-entry-region"
+  >
     <div class="section-head">
       <div>
         <p class="page-label">主要ページ</p>

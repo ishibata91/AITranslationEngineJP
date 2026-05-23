@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest"
 
-import { DEFAULT_CATEGORY, DEFAULT_ORIGIN } from "@application/contract/master-dictionary"
+import {
+  DEFAULT_CATEGORY,
+  DEFAULT_ORIGIN
+} from "@application/contract/master-dictionary"
 
 import { MasterDictionaryStore } from "./master-dictionary.store"
 

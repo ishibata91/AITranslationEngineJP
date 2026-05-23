@@ -8,7 +8,10 @@
   let { target }: Props = $props()
 </script>
 
-<section class="job-run-target-summary" data-testid="job-run-selected-job-summary">
+<section
+  class="job-run-target-summary"
+  data-testid="job-run-selected-job-summary"
+>
   <div>
     <p class="eyebrow">選択中のジョブ</p>
     <h3>ジョブ #{target.jobId}</h3>

@@ -9,6 +9,8 @@ export type {
   ResumeTermTranslationPhaseResponseDto,
   RetryTermTranslationPhaseRequestDto,
   RetryTermTranslationPhaseResponseDto,
+  SaveTermTranslationPhaseAISettingsRequestDto,
+  SaveTermTranslationPhaseAISettingsResponseDto,
   StartTermTranslationPhaseRequestDto,
   StartTermTranslationPhaseResponseDto
 } from "./term-translation-phase-gateway-dto"

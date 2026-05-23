@@ -23,7 +23,8 @@ type MasterPersonaScreenState = MasterPersonaGateway.MasterPersonaScreenState
 type ModelSettingsCardState = NonNullable<
   MasterPersonaScreenState["modelSettingsCard"]
 >
-type ModelSettingsProviderOption = MasterPersonaScreenState["providerOptions"][number]
+type ModelSettingsProviderOption =
+  MasterPersonaScreenState["providerOptions"][number]
 
 interface MasterPersonaStoreLike {
   snapshot(): MasterPersonaScreenState
@@ -118,13 +119,12 @@ function createAISettingsCardState(
     provider,
     model,
     credentialStatus,
-    modelList:
-      modelList ?? {
-        provider,
-        credentialStatus,
-        status: models.length > 0 ? "success" : "not_updated",
-        models
-      },
+    modelList: modelList ?? {
+      provider,
+      credentialStatus,
+      status: models.length > 0 ? "success" : "not_updated",
+      models
+    },
     saveStatus,
     saveMessage
   }

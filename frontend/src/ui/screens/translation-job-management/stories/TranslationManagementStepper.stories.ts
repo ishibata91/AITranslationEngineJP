@@ -4,7 +4,7 @@ import TranslationManagementStepper from "../TranslationManagementStepper.svelte
 import { stepperFixtures } from "../__fixtures__/translation-job-management-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Management/TranslationManagementStepper",
+  title: "UI Components/TranslationManagementStepper",
   component: TranslationManagementStepper,
   parameters: {
     layout: "fullscreen"

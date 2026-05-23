@@ -146,9 +146,9 @@ describe("TranslationInputStore", () => {
     expect(nextSnapshot.latestResponse?.summary?.categories[0]?.category).toBe(
       "NPC_"
     )
-    expect(nextSnapshot.latestResponse?.summary?.sampleFields[0]?.sourceText).toBe(
-      "Test NPC A"
-    )
+    expect(
+      nextSnapshot.latestResponse?.summary?.sampleFields[0]?.sourceText
+    ).toBe("Test NPC A")
     expect(nextSnapshot.latestResponse?.summary?.warnings[0]?.message).toBe(
       "unknown"
     )

@@ -5,10 +5,17 @@
     operation: TranslationJobManagementOperationViewModel
     variant?: "default" | "danger"
     compact?: boolean
-    onAction: (operation: TranslationJobManagementOperationViewModel) => void | Promise<void>
+    onAction: (
+      operation: TranslationJobManagementOperationViewModel
+    ) => void | Promise<void>
   }
 
-  let { operation, variant = "default", compact = false, onAction }: Props = $props()
+  let {
+    operation,
+    variant = "default",
+    compact = false,
+    onAction
+  }: Props = $props()
 
   const disabledReason = $derived(
     !operation.enabled && operation.reasonText ? operation.reasonText : ""
@@ -100,4 +107,4 @@
     z-index: 4;
     pointer-events: none;
   }
-  </style>
+</style>

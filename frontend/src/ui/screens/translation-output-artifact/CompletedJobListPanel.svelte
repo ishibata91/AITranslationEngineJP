@@ -1,7 +1,11 @@
 <script lang="ts">
   import type { TranslationOutputCompletedJobSummary } from "@application/gateway-contract/translation-output-artifact"
 
-  import { formatCount, formatDistribution, formatStatus } from "./output-artifact-formatters"
+  import {
+    formatCount,
+    formatDistribution,
+    formatStatus
+  } from "./output-artifact-formatters"
 
   interface Props {
     completedJobs: TranslationOutputCompletedJobSummary[]

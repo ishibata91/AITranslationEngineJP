@@ -19,6 +19,26 @@ export interface StartBodyTranslationPhaseRequest {
   jobId: number
 }
 
+export interface BodyTranslationPhaseAISettingsRequest {
+  jobId: number
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
+}
+
+export interface BodyTranslationPhaseAISettingsResponse extends BodyTranslationPhaseAISettingsRequest {
+  phaseId: string
+  credentialStatus: "configured" | "missing" | "not_required"
+  modelListStatus:
+    | "not_updated"
+    | "loading"
+    | "success"
+    | "failed"
+    | "credential_missing"
+    | "credential_not_required"
+}
+
 export interface PauseBodyTranslationPhaseRequest {
   jobId: number
   phaseRunId: number
@@ -196,6 +216,9 @@ export interface BodyTranslationPhaseGatewayContract {
   startBodyTranslationPhase(
     request: StartBodyTranslationPhaseRequest
   ): Promise<BodyTranslationPhaseCommandResponse>
+  saveBodyTranslationPhaseAISettings?(
+    request: BodyTranslationPhaseAISettingsRequest
+  ): Promise<BodyTranslationPhaseAISettingsResponse>
   pauseBodyTranslationPhase(
     request: PauseBodyTranslationPhaseRequest
   ): Promise<BodyTranslationPhaseCommandResponse>

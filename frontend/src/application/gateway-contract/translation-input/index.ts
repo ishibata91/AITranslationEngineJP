@@ -1,4 +1,6 @@
 export type {
+  CreateTranslationJobFromInputRequest,
+  CreateTranslationJobFromInputResponse,
   ImportTranslationInputRequest,
   RebuildTranslationInputCacheRequest,
   TranslationInputCommandResponse,

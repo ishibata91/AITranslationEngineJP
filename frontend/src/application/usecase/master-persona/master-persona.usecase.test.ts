@@ -82,7 +82,11 @@ function createStore(initialState?: Partial<MasterPersonaScreenState>) {
     aiSettingsMessage: "",
     providerOptions: [
       { value: "gemini", label: "Gemini", credentialStatus: "configured" },
-      { value: "lm_studio", label: "LM Studio", credentialStatus: "not_required" },
+      {
+        value: "lm_studio",
+        label: "LM Studio",
+        credentialStatus: "not_required"
+      },
       { value: "xai", label: "xAI", credentialStatus: "missing" }
     ],
     modelOptions: [],
@@ -688,7 +692,11 @@ describe("MasterPersonaUseCase", () => {
   test("persona-ai-settings-restart-cutover: loadScreen は aiSettings を backend から復元する", async () => {
     // Arrange
     const store = createStore({
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMethod: "single_request"
+      }
     })
     const gateway = createGateway()
     gateway.loadMasterPersonaAISettings.mockResolvedValueOnce({
@@ -787,7 +795,11 @@ describe("MasterPersonaUseCase", () => {
     // Arrange
     const store = createStore({
       selectedFileReference: "/tmp/sample.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMethod: "single_request"
+      }
     })
     const gateway = createGateway()
     gateway.previewMasterPersonaGeneration.mockResolvedValueOnce({
@@ -820,7 +832,11 @@ describe("MasterPersonaUseCase", () => {
     // Arrange
     const store = createStore({
       selectedFileReference: "/tmp/sample.json",
-      aiSettings: { provider: "gemini", model: "gemini-2.5-pro", executionMethod: "single_request" }
+      aiSettings: {
+        provider: "gemini",
+        model: "gemini-2.5-pro",
+        executionMethod: "single_request"
+      }
     })
     const gateway = createGateway()
     gateway.executeMasterPersonaGeneration.mockRejectedValueOnce(

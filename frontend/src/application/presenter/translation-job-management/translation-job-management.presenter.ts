@@ -22,7 +22,10 @@ interface TranslationJobManagementScreenState {
   selectedJobId: number | null
   filterId: TranslationJobManagementFilterId
   searchQuery: string
-  activeOperation: TranslationJobManagementOperationAvailability["kind"] | "reload" | null
+  activeOperation:
+    | TranslationJobManagementOperationAvailability["kind"]
+    | "reload"
+    | null
   isDeleteConfirmationOpen: boolean
   feedback: {
     tone: "info" | "success" | "warning" | "danger"
@@ -186,7 +189,10 @@ const STATE_DESCRIPTION: Record<string, string> = {
   Canceled: "キャンセル済み"
 }
 
-function matchesFilter(jobState: string, filterId: TranslationJobManagementFilterId): boolean {
+function matchesFilter(
+  jobState: string,
+  filterId: TranslationJobManagementFilterId
+): boolean {
   return filterId === "all" || jobState === filterId
 }
 
@@ -266,8 +272,7 @@ function toJobCard(
   selectedJobId: number | null,
   activeOperation: TranslationJobManagementScreenState["activeOperation"]
 ): TranslationJobManagementJobCardViewModel {
-  const stateLabel =
-    STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
+  const stateLabel = STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
   const canOpenPhase = detail.canOpenPhase !== false
   const openBlockedReason = detail.openBlockedReason ?? null
 
@@ -336,8 +341,7 @@ function toJobRunTarget(
     return null
   }
 
-  const stateLabel =
-    STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
+  const stateLabel = STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
 
   return {
     jobId: detail.jobId,

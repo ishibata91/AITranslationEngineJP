@@ -131,7 +131,9 @@
     void Promise.all([
       controller.setJobId(selectedJobTarget.jobId),
       personaController.setJobId(selectedJobTarget.jobId),
-      ...(bodyController ? [bodyController.setJobId(selectedJobTarget.jobId)] : [])
+      ...(bodyController
+        ? [bodyController.setJobId(selectedJobTarget.jobId)]
+        : [])
     ])
   })
 
@@ -255,6 +257,31 @@
     }
   }
 
+  type PhaseAISettingsRequest = {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }
+
+  async function handleTermAISettingsChange(
+    request: PhaseAISettingsRequest
+  ): Promise<void> {
+    await controller.saveAISettings?.(request)
+  }
+
+  async function handlePersonaAISettingsChange(
+    request: PhaseAISettingsRequest
+  ): Promise<void> {
+    await personaController.saveAISettings?.(request)
+  }
+
+  async function handleBodyAISettingsChange(
+    request: PhaseAISettingsRequest
+  ): Promise<void> {
+    await bodyController?.saveAISettings?.(request)
+  }
+
   function reasonsFrom(...values: Array<string | undefined>): string[] {
     return values.filter((value): value is string => Boolean(value))
   }
@@ -309,6 +336,7 @@
           {viewModel}
           onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
             handleAction(actionId)}
+          onAISettingsChange={handleTermAISettingsChange}
         />
         <PhaseNavigationFooter
           dataTestId="job-run-next-action-footer"
@@ -327,6 +355,7 @@
           viewModel={personaViewModel}
           onAction={(actionId: PersonaGenerationPhaseActionKind) =>
             handlePersonaAction(actionId)}
+          onAISettingsChange={handlePersonaAISettingsChange}
         />
         <PhaseNavigationFooter
           dataTestId="job-run-next-action-footer"
@@ -345,6 +374,7 @@
           viewModel={bodyViewModel}
           onAction={(actionId: BodyTranslationPhaseActionKind) =>
             handleBodyAction(actionId)}
+          onAISettingsChange={handleBodyAISettingsChange}
         />
         <PhaseNavigationFooter
           dataTestId="job-run-next-action-footer"

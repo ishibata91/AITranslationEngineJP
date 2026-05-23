@@ -216,13 +216,16 @@
       </section>
 
       {#if showNextStepGuidance}
-        <section class="detail-section" aria-labelledby="inputReviewNextStepHeading">
+        <section
+          class="detail-section"
+          aria-labelledby="inputReviewNextStepHeading"
+        >
           <div class="section-head section-head-compact issue-head">
             <div class="title-stack">
               <h4 id="inputReviewNextStepHeading">次の手順</h4>
               <p class="support-copy">
-                入力登録だけでは Job Management には表示されません。Job Setup
-                で job を作成してください。
+                入力登録だけでは Job Management には表示されません。Job Setup で
+                job を作成してください。
               </p>
             </div>
           </div>

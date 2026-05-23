@@ -137,35 +137,37 @@ export const dictionaryImportPanelFixtures: Record<
   }
 }
 
-export const dictionaryListPanelFixtures: Record<string, DictionaryListPanelProps> =
-  {
-    normal: baseListPanel,
-    empty: {
-      ...baseListPanel,
-      entries: [],
-      listHeadline: "保存済み 0 件を表示しています。",
-      pageStatusText: "0 / 0 ページ",
-      selectedId: null,
-      selectionStatusText: "選択中のエントリはありません。",
-      totalPages: 0
-    },
-    filteredEmpty: {
-      ...baseListPanel,
-      category: "Dialogue",
-      entries: [],
-      listHeadline: "検索条件に一致するエントリはありません。",
-      query: "no-hit-synthetic-text",
-      selectedId: null,
-      selectionStatusText: "検索条件を変更してください。",
-      totalPages: 1
-    },
-    longText: {
-      ...baseListPanel,
-      entries: [longEntry],
-      selectedId: longEntry.id,
-      selectionStatusText: `選択中: ${longEntry.source}`
-    }
+export const dictionaryListPanelFixtures: Record<
+  string,
+  DictionaryListPanelProps
+> = {
+  normal: baseListPanel,
+  empty: {
+    ...baseListPanel,
+    entries: [],
+    listHeadline: "保存済み 0 件を表示しています。",
+    pageStatusText: "0 / 0 ページ",
+    selectedId: null,
+    selectionStatusText: "選択中のエントリはありません。",
+    totalPages: 0
+  },
+  filteredEmpty: {
+    ...baseListPanel,
+    category: "Dialogue",
+    entries: [],
+    listHeadline: "検索条件に一致するエントリはありません。",
+    query: "no-hit-synthetic-text",
+    selectedId: null,
+    selectionStatusText: "検索条件を変更してください。",
+    totalPages: 1
+  },
+  longText: {
+    ...baseListPanel,
+    entries: [longEntry],
+    selectedId: longEntry.id,
+    selectionStatusText: `選択中: ${longEntry.source}`
   }
+}
 
 export const dictionaryDetailPanelFixtures: Record<
   string,
@@ -191,24 +193,26 @@ export const dictionaryDetailPanelFixtures: Record<
   }
 }
 
-export const dictionaryEditModalFixtures: Record<string, DictionaryEditModalProps> =
-  {
-    create: {
-      ...baseEditModal,
-      formSource: "",
-      formTranslation: "",
-      modalState: "create"
-    },
-    edit: baseEditModal,
-    saveFailed: {
-      ...baseEditModal,
-      formTranslation: "保存失敗後も保持される合成訳語"
-    },
-    closed: {
-      ...baseEditModal,
-      modalState: null
-    }
+export const dictionaryEditModalFixtures: Record<
+  string,
+  DictionaryEditModalProps
+> = {
+  create: {
+    ...baseEditModal,
+    formSource: "",
+    formTranslation: "",
+    modalState: "create"
+  },
+  edit: baseEditModal,
+  saveFailed: {
+    ...baseEditModal,
+    formTranslation: "保存失敗後も保持される合成訳語"
+  },
+  closed: {
+    ...baseEditModal,
+    modalState: null
   }
+}
 
 export const dictionaryDeleteModalFixtures: Record<
   string,

@@ -24,13 +24,22 @@
   }: Props = $props()
 </script>
 
-<section class={`empty-state-panel empty-state-panel-${tone}`} aria-live="polite">
+<section
+  class={`empty-state-panel empty-state-panel-${tone}`}
+  aria-live="polite"
+>
   <div class="empty-copy">
     <h3>{title}</h3>
     <p>{message}</p>
   </div>
   {#if actionLabel && onAction}
-    <ActionButton label={actionLabel} variant={tone === "danger" ? "danger" : "secondary"} {disabled} {busy} onClick={onAction} />
+    <ActionButton
+      label={actionLabel}
+      variant={tone === "danger" ? "danger" : "secondary"}
+      {disabled}
+      {busy}
+      onClick={onAction}
+    />
   {/if}
 </section>
 

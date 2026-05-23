@@ -4,6 +4,8 @@ export type {
   PauseTermTranslationPhaseRequest,
   ResumeTermTranslationPhaseRequest,
   RetryTermTranslationPhaseRequest,
+  TermTranslationPhaseAISettingsRequest,
+  TermTranslationPhaseAISettingsResponse,
   StartTermTranslationPhaseRequest,
   TermTranslationExecutionConfigSummary,
   TermTranslationNextPhaseReadinessResponse,

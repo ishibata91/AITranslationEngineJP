@@ -45,7 +45,11 @@
   <div class="prep-grid">
     <article class="prep-card">
       <span class="prep-label">選択状態</span>
-      <strong>{hasStagedFile ? "登録前の JSON を確認中" : "まだ選択していません"}</strong>
+      <strong
+        >{hasStagedFile
+          ? "登録前の JSON を確認中"
+          : "まだ選択していません"}</strong
+      >
       <p>
         {hasStagedFile
           ? "選択した内容を確認してから登録できます。"

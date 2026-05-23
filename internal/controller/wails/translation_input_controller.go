@@ -27,9 +27,14 @@ type translationInputContentImportUsecasePort interface {
 	) (usecase.TranslationInputImportResult, error)
 }
 
+type translationInputJobCreateUsecasePort interface {
+	CreateTranslationJob(ctx context.Context, request usecase.CreateTranslationJobRequest) (usecase.CreateTranslationJobResult, error)
+}
+
 // TranslationInputController exposes Wails-bound translation input entrypoints.
 type TranslationInputController struct {
 	translationInputUsecase TranslationInputUsecasePort
+	jobCreateUsecase        translationInputJobCreateUsecasePort
 }
 
 // TranslationInputImportRequestDTO requests one xEdit JSON import.
@@ -41,6 +46,11 @@ type TranslationInputImportRequestDTO struct {
 
 // TranslationInputRebuildRequestDTO requests one cache rebuild for an imported input.
 type TranslationInputRebuildRequestDTO struct {
+	InputID int64 `json:"inputId"`
+}
+
+// TranslationInputCreateJobRequestDTO requests job creation from one imported input.
+type TranslationInputCreateJobRequestDTO struct {
 	InputID int64 `json:"inputId"`
 }
 
@@ -98,9 +108,29 @@ type TranslationInputImportResponseDTO struct {
 	Warnings  []TranslationInputWarningDTO      `json:"warnings,omitempty"`
 }
 
+// TranslationInputCreateJobResponseDTO returns the created job handle without phase secrets.
+type TranslationInputCreateJobResponseDTO struct {
+	Accepted     bool   `json:"accepted"`
+	JobID        *int64 `json:"jobId,omitempty"`
+	JobState     string `json:"jobState,omitempty"`
+	CurrentPhase string `json:"currentPhase"`
+	ErrorKind    string `json:"errorKind,omitempty"`
+}
+
 // NewTranslationInputController creates a translation input controller.
 func NewTranslationInputController(usecase TranslationInputUsecasePort) *TranslationInputController {
 	return &TranslationInputController{translationInputUsecase: usecase}
+}
+
+// NewTranslationInputControllerWithJobCreate creates a translation input controller with job creation.
+func NewTranslationInputControllerWithJobCreate(
+	usecase TranslationInputUsecasePort,
+	jobCreateUsecase translationInputJobCreateUsecasePort,
+) *TranslationInputController {
+	return &TranslationInputController{
+		translationInputUsecase: usecase,
+		jobCreateUsecase:        jobCreateUsecase,
+	}
 }
 
 // ImportTranslationInput imports one xEdit JSON file through the usecase boundary.
@@ -150,6 +180,48 @@ func (controller *TranslationInputController) RebuildTranslationInputCache(
 		return TranslationInputImportResponseDTO{}, fmt.Errorf("rebuild translation input cache: %w", err)
 	}
 	return toTranslationInputImportResponseDTO(result), nil
+}
+
+// CreateTranslationJobFromInput creates one translation job from a reviewed input source.
+func (controller *TranslationInputController) CreateTranslationJobFromInput(
+	request TranslationInputCreateJobRequestDTO,
+) (TranslationInputCreateJobResponseDTO, error) {
+	if controller.jobCreateUsecase == nil {
+		return TranslationInputCreateJobResponseDTO{}, fmt.Errorf("create translation job from input: usecase is not configured")
+	}
+	result, err := controller.jobCreateUsecase.CreateTranslationJob(
+		context.Background(),
+		usecase.CreateTranslationJobRequest{
+			InputSourceID: request.InputID,
+			ValidationStatus: usecase.TranslationJobSetupValidationStatus(
+				"pass",
+			),
+			ValidationPassSlices:   []string{"input"},
+			PhaseRuntimeSelections: []usecase.TranslationJobSetupPhaseRuntimeSelection{},
+		},
+	)
+	if err != nil {
+		return TranslationInputCreateJobResponseDTO{}, fmt.Errorf("create translation job from input: %w", err)
+	}
+	return toTranslationInputCreateJobResponseDTO(result), nil
+}
+
+func toTranslationInputCreateJobResponseDTO(
+	result usecase.CreateTranslationJobResult,
+) TranslationInputCreateJobResponseDTO {
+	response := TranslationInputCreateJobResponseDTO{
+		Accepted:     result.ErrorKind == "",
+		JobState:     result.JobState,
+		CurrentPhase: "term_translation",
+		ErrorKind: string(
+			usecase.NormalizeTranslationJobSetupPublicErrorKind(result.ErrorKind),
+		),
+	}
+	if result.ErrorKind == "" {
+		jobID := result.JobID
+		response.JobID = &jobID
+	}
+	return response
 }
 
 func toTranslationInputImportResponseDTO(result usecase.TranslationInputImportResult) TranslationInputImportResponseDTO {

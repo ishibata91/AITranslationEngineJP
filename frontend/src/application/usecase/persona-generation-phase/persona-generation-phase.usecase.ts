@@ -4,6 +4,7 @@ import type {
   GetPersonaGenerationPhaseSummaryRequest,
   PausePersonaGenerationPhaseRequest,
   PersonaGenerationBodyReadinessResponse,
+  PersonaGenerationPhaseAISettingsRequest,
   PersonaGenerationPhaseCommandResponse,
   PersonaGenerationPhaseGatewayContract,
   PersonaGenerationPhaseSummaryResponse,
@@ -145,6 +146,38 @@ export class PersonaGenerationPhaseUseCase {
         phaseRunId
       } satisfies RetryPersonaGenerationPhaseRequest)
     )
+  }
+
+  async saveAISettings(
+    request: Omit<PersonaGenerationPhaseAISettingsRequest, "jobId">
+  ): Promise<void> {
+    const state = this.store.snapshot()
+    if (state.jobId === null) {
+      this.store.update((draft) => {
+        draft.errorMessage = createNoJobSelectedMessage()
+      })
+      return
+    }
+    if (!this.gateway?.savePersonaGenerationPhaseAISettings) {
+      this.store.update((draft) => {
+        draft.errorMessage = createGatewayDisconnectedMessage()
+      })
+      return
+    }
+    try {
+      await this.gateway.savePersonaGenerationPhaseAISettings({
+        jobId: state.jobId,
+        ...request
+      })
+      await this.refresh()
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "NPC ペルソナ生成段階の AI 設定保存に失敗しました。"
+        )
+      })
+    }
   }
 
   async cancelPhase(): Promise<void> {

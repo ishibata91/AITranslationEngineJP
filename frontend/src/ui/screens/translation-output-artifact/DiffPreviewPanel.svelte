@@ -59,8 +59,8 @@
     </div>
   {:else}
     <p class="empty-text">
-      diff preview は未取得です。artifact がない場合、row count 0
-      の場合、または gateway 未接続の場合は一覧を表示しません。
+      diff preview は未取得です。artifact がない場合、row count 0 の場合、または
+      gateway 未接続の場合は一覧を表示しません。
     </p>
   {/if}
 </section>
@@ -119,10 +119,9 @@
   .diff-row {
     display: grid;
     gap: 0.75rem;
-    grid-template-columns: minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(
-        0,
-        0.7fr
-      ) minmax(0, 1fr);
+    grid-template-columns:
+      minmax(0, 1.2fr) minmax(0, 1.2fr) minmax(0, 0.7fr)
+      minmax(0, 1fr);
   }
 
   @media (max-width: 720px) {

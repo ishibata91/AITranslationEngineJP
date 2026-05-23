@@ -15,6 +15,12 @@ export interface TermTranslationPhaseScreenControllerContract {
   pausePhase(): Promise<void>
   resumePhase(): Promise<void>
   retryPhase(): Promise<void>
+  saveAISettings?: (request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }) => Promise<void>
 }
 
 export type CreateTermTranslationPhaseScreenController =

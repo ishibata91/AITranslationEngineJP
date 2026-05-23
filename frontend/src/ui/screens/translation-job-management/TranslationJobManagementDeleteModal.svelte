@@ -28,7 +28,12 @@
           <p class="eyebrow">削除確認</p>
           <h3 id="jobDeleteModalTitle">{confirmation.title}</h3>
         </div>
-        <button class="button-secondary" disabled={confirmation.busy} onclick={onClose} type="button">
+        <button
+          class="button-secondary"
+          disabled={confirmation.busy}
+          onclick={onClose}
+          type="button"
+        >
           閉じる
         </button>
       </div>
@@ -44,10 +49,20 @@
       </ul>
 
       <div class="button-row">
-        <button class="button-secondary" disabled={confirmation.busy} onclick={onClose} type="button">
+        <button
+          class="button-secondary"
+          disabled={confirmation.busy}
+          onclick={onClose}
+          type="button"
+        >
           {confirmation.cancelLabel}
         </button>
-        <button class="button-danger" disabled={confirmation.busy} onclick={onConfirm} type="button">
+        <button
+          class="button-danger"
+          disabled={confirmation.busy}
+          onclick={onConfirm}
+          type="button"
+        >
           {confirmation.busy ? "削除中..." : confirmation.confirmLabel}
         </button>
       </div>

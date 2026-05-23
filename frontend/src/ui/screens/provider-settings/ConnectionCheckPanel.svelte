@@ -5,7 +5,10 @@
     $props()
 </script>
 
-<section class="detail-block" data-testid="provider-settings-connection-check-region">
+<section
+  class="detail-block"
+  data-testid="provider-settings-connection-check-region"
+>
   <div class="detail-row">
     <div>
       <p class="field-label">接続確認</p>

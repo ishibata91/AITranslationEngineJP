@@ -5,6 +5,7 @@
     CreateTranslationInputScreenController,
     TranslationInputScreenControllerContract
   } from "@application/contract/translation-input"
+  import type { TranslationJobManagementJobRunTarget } from "@application/contract/translation-job-management/translation-job-management-screen-types"
   import {
     canOpenJobSetup,
     ERROR_LABELS,
@@ -20,10 +21,10 @@
 
   interface Props {
     createController: CreateTranslationInputScreenController | null
-    onOpenJobSetup?: () => void
+    onOpenJobRun?: (target: TranslationJobManagementJobRunTarget) => void
   }
 
-  let { createController, onOpenJobSetup = undefined }: Props = $props()
+  let { createController, onOpenJobRun = undefined }: Props = $props()
 
   function resolveController(): TranslationInputScreenControllerContract {
     if (!createController) {
@@ -38,7 +39,17 @@
   const controller = resolveController()
   let viewModel = $state(controller.getViewModel())
   let fileInput: HTMLInputElement | null = null
-  const showJobSetupFooter = $derived(canOpenJobSetup(viewModel.selectedItem))
+  const showNextActionFooter = $derived(canOpenJobSetup(viewModel.selectedItem))
+  const selectedInputHasExistingJob = $derived(
+    viewModel.selectedItem?.warnings.some((warning) =>
+      warning.message.includes("既存")
+    ) ?? false
+  )
+  const footerReasons = $derived(
+    showNextActionFooter
+      ? []
+      : ["登録済みまたは警告ありの入力データを選択してください。"]
+  )
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
     viewModel = nextViewModel
@@ -141,6 +152,29 @@
       .replaceAll("xEdit JSON", "xEdit の JSON")
       .replaceAll("JSON file", "JSON")
   }
+
+  async function openTermTranslation(): Promise<void> {
+    const selectedItem = viewModel.selectedItem
+    if (!selectedItem || selectedItem.inputId === null) {
+      return
+    }
+
+    const response = await controller.createTranslationJobFromSelected?.()
+    if (response && (!response.accepted || response.jobId === undefined)) {
+      return
+    }
+
+    onOpenJobRun?.({
+      jobId: response?.jobId ?? selectedItem.inputId,
+      stateLabel: response?.jobState ?? "作成済み",
+      stateDescription: "選択した入力データから翻訳ジョブを作成しました。",
+      currentPhase: response?.currentPhase ?? "term_translation",
+      currentPhaseLabel: "単語翻訳",
+      progressLabel: "未開始",
+      inputSourceLabel: selectedItem.fileName,
+      sourcePath: selectedItem.filePath
+    })
+  }
 </script>
 
 <section class="data-load-shell" id="translationInputReviewView">
@@ -175,9 +209,9 @@
   <section class="content-grid">
     <LoadedInputList
       emptyStateText={localizeUiText(viewModel.emptyStateText)}
-      formatDate={formatDate}
-      formatErrorKind={formatErrorKind}
-      formatStatus={formatStatus}
+      {formatDate}
+      {formatErrorKind}
+      {formatStatus}
       items={viewModel.items}
       selectedItemId={viewModel.selectedItemId}
       totalItemCountLabel={localizeUiText(viewModel.totalItemCountLabel)}
@@ -186,9 +220,9 @@
 
     <LoadedInputDetail
       canRebuildSelected={viewModel.canRebuildSelected}
-      formatDate={formatDate}
-      formatErrorKind={formatErrorKind}
-      formatWarningKind={formatWarningKind}
+      {formatDate}
+      {formatErrorKind}
+      {formatWarningKind}
       isRebuilding={viewModel.isRebuilding}
       latestOutcomeText={localizeUiText(viewModel.latestOutcomeText)}
       latestOutcomeTitle={localizeUiText(viewModel.latestOutcomeTitle)}
@@ -198,16 +232,18 @@
     />
   </section>
 
-  {#if showJobSetupFooter}
+  {#if showNextActionFooter}
     <StickyActionFooter
       dataTestId="translation-input-review-next-action-footer"
       title="次の作業"
       titleId="translationInputNextNavigationHeading"
-      description="選択した入力データで、ジョブの作成確認へ進みます。"
-      reasons={[]}
-      emptyText="入力データを選択済みです。次に翻訳設定を確認します。"
-      primaryLabel="翻訳設定へ進む"
-      onPrimary={() => onOpenJobSetup?.()}
+      description="選択した入力データで翻訳ジョブを作成し、単語翻訳へ進みます。"
+      reasons={footerReasons}
+      emptyText={selectedInputHasExistingJob
+        ? "既存の翻訳ジョブがあります。必要に応じて未完了ジョブ一覧から再開できます。"
+        : "入力データを選択済みです。次に単語翻訳へ進みます。"}
+      primaryLabel="単語翻訳へ進む"
+      onPrimary={openTermTranslation}
     />
   {/if}
 </section>

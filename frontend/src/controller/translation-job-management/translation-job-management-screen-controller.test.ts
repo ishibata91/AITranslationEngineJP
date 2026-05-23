@@ -92,7 +92,9 @@ describe("TranslationJobManagementScreenController", () => {
   })
 
   test("subscribe は presenter を通した view model を通知する", () => {
-    let listener: ((state: TranslationJobManagementScreenState) => void) | undefined
+    let listener:
+      | ((state: TranslationJobManagementScreenState) => void)
+      | undefined
     const controller = new TranslationJobManagementScreenController({
       isGatewayConnected: false,
       store: {
@@ -127,7 +129,9 @@ describe("TranslationJobManagementScreenController", () => {
     listener?.(createState())
 
     expect(sink).toHaveBeenCalled()
-    const lastCall = sink.mock.calls.at(-1) as [TranslationJobManagementScreenViewModel] | undefined
+    const lastCall = sink.mock.calls.at(-1) as
+      | [TranslationJobManagementScreenViewModel]
+      | undefined
     expect(lastCall?.[0].gatewayStatus).toBe("未接続")
   })
 })

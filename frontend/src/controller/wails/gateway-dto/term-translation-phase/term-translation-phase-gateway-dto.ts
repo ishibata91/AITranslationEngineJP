@@ -5,6 +5,8 @@ import type {
   ResumeTermTranslationPhaseRequest,
   RetryTermTranslationPhaseRequest,
   StartTermTranslationPhaseRequest,
+  TermTranslationPhaseAISettingsRequest,
+  TermTranslationPhaseAISettingsResponse,
   TermTranslationNextPhaseReadinessResponse,
   TermTranslationPhaseCommandResponse,
   TermTranslationPhaseSummaryResponse
@@ -19,6 +21,11 @@ export type StartTermTranslationPhaseRequestDto =
   StartTermTranslationPhaseRequest
 export type StartTermTranslationPhaseResponseDto =
   TermTranslationPhaseCommandResponse
+
+export type SaveTermTranslationPhaseAISettingsRequestDto =
+  TermTranslationPhaseAISettingsRequest
+export type SaveTermTranslationPhaseAISettingsResponseDto =
+  TermTranslationPhaseAISettingsResponse
 
 export type PauseTermTranslationPhaseRequestDto =
   PauseTermTranslationPhaseRequest

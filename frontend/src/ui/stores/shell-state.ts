@@ -8,7 +8,6 @@ export type ShellRouteId =
 
 export type TranslationManagementViewId =
   | "input-review"
-  | "job-setup"
   | "job-management"
   | "job-run"
   | "term-translation"
@@ -96,45 +95,38 @@ const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementV
       directNavigation: false
     },
     {
-      id: "job-setup",
-      label: "翻訳設定",
-      description: "入力データと AI 設定を確認し、ジョブを作成します。",
-      stepNumber: 3,
-      directNavigation: false
-    },
-    {
       id: "term-translation",
       label: "単語翻訳",
       description: "選択したジョブで、単語翻訳を実行します。",
-      stepNumber: 4,
+      stepNumber: 3,
       directNavigation: false
     },
     {
       id: "persona-generation",
       label: "NPC ペルソナ生成",
       description: "単語翻訳の完了後に、NPC の話し方や役割を整理します。",
-      stepNumber: 5,
+      stepNumber: 4,
       directNavigation: false
     },
     {
       id: "body-translation",
       label: "本文翻訳",
       description: "NPC ペルソナを参照できる状態で、本文の翻訳を実行します。",
-      stepNumber: 6,
+      stepNumber: 5,
       directNavigation: false
     },
     {
       id: "translation-complete",
       label: "翻訳結果の確認",
       description: "本文翻訳が完了した後に、原文と訳文を確認します。",
-      stepNumber: 7,
+      stepNumber: 6,
       directNavigation: false
     },
     {
       id: "output-management",
       label: "出力管理",
       description: "翻訳結果を確認した後に、出力するジョブを選びます。",
-      stepNumber: 8,
+      stepNumber: 7,
       directNavigation: false
     }
   ]

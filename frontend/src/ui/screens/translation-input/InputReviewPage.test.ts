@@ -191,15 +191,15 @@ describe("InputReviewPage", () => {
     ).not.toBeInTheDocument()
   })
 
-  test("登録成功後は翻訳設定へ進む footer を表示し、クリックで callback を呼ぶ", async () => {
+  test("登録成功後は単語翻訳へ進む footer を表示し、クリックで callback を呼ぶ", async () => {
     const user = userEvent.setup()
-    const onOpenJobSetup = vi.fn()
+    const onOpenJobRun = vi.fn()
     const controller = new TranslationInputScreenControllerFake()
 
     render(InputReviewPage, {
       props: {
         createController: () => controller,
-        onOpenJobSetup
+        onOpenJobRun
       }
     })
 
@@ -214,13 +214,13 @@ describe("InputReviewPage", () => {
     })
 
     await user.click(
-      within(footer).getByRole("button", { name: "翻訳設定へ進む" })
+      within(footer).getByRole("button", { name: "単語翻訳へ進む" })
     )
 
-    expect(onOpenJobSetup).toHaveBeenCalledTimes(1)
+    expect(onOpenJobRun).toHaveBeenCalledTimes(1)
   })
 
-  test("failed item では翻訳設定へ進む button を表示しない", () => {
+  test("failed item では単語翻訳へ進む button を表示しない", () => {
     const failedItem = createItem({
       localId: "failed-item",
       status: "failed",
@@ -248,7 +248,7 @@ describe("InputReviewPage", () => {
     })
 
     expect(
-      screen.queryByRole("button", { name: "翻訳設定へ進む" })
+      screen.queryByRole("button", { name: "単語翻訳へ進む" })
     ).not.toBeInTheDocument()
   })
 

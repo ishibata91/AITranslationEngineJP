@@ -32,7 +32,12 @@
 
 {#if open}
   <div class="modal-backdrop" role="presentation">
-    <div class="confirm-danger-modal" role="dialog" aria-modal="true" aria-labelledby="confirm-danger-title">
+    <div
+      class="confirm-danger-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="confirm-danger-title"
+    >
       <div class="modal-copy">
         <p class="modal-kicker">危険操作</p>
         <h2 id="confirm-danger-title">{title}</h2>
@@ -51,8 +56,18 @@
       {/if}
 
       <ButtonGroup align="end">
-        <ActionButton label={cancelLabel} variant="secondary" disabled={busy} onClick={onCancel} />
-        <ActionButton label={confirmLabel} variant="danger" busy={busy} onClick={onConfirm} />
+        <ActionButton
+          label={cancelLabel}
+          variant="secondary"
+          disabled={busy}
+          onClick={onCancel}
+        />
+        <ActionButton
+          label={confirmLabel}
+          variant="danger"
+          {busy}
+          onClick={onConfirm}
+        />
       </ButtonGroup>
     </div>
   </div>

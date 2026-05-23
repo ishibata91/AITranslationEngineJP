@@ -6,6 +6,7 @@ import type {
   RetryTermTranslationPhaseRequest,
   ResumeTermTranslationPhaseRequest,
   StartTermTranslationPhaseRequest,
+  TermTranslationPhaseAISettingsRequest,
   TermTranslationPhaseCommandResponse,
   TermTranslationPhaseGatewayContract,
   TermTranslationPhaseSummaryResponse
@@ -169,6 +170,39 @@ export class TermTranslationPhaseUseCase {
         phaseRunId
       } satisfies RetryTermTranslationPhaseRequest)
     )
+  }
+
+  async saveAISettings(
+    request: Omit<TermTranslationPhaseAISettingsRequest, "jobId">
+  ): Promise<void> {
+    const state = this.store.snapshot()
+    if (state.jobId === null) {
+      this.store.update((draft) => {
+        draft.errorMessage = createNoJobSelectedMessage()
+      })
+      return
+    }
+    const gateway = this.gateway
+    if (!gateway?.saveTermTranslationPhaseAISettings) {
+      this.store.update((draft) => {
+        draft.errorMessage = createGatewayDisconnectedMessage()
+      })
+      return
+    }
+    try {
+      await gateway.saveTermTranslationPhaseAISettings({
+        jobId: state.jobId,
+        ...request
+      })
+      await this.refresh()
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "単語翻訳段階の AI 設定保存に失敗しました。"
+        )
+      })
+    }
   }
 
   private async fetchSummaryAndReadiness(

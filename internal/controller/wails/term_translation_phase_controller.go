@@ -18,6 +18,10 @@ type TermTranslationPhaseUsecasePort interface {
 	GetTermTranslationNextPhaseReadiness(ctx context.Context, request usecase.GetTermTranslationNextPhaseReadinessRequest) (usecase.TermTranslationNextPhaseReadinessResult, error)
 }
 
+type termTranslationPhaseAISettingsUsecasePort interface {
+	SaveTermTranslationPhaseAISettings(ctx context.Context, request usecase.SaveTermTranslationPhaseAISettingsRequest) (usecase.TermTranslationPhaseAISettingsResult, error)
+}
+
 // TermTranslationPhaseController exposes Wails-bound term translation entrypoints.
 type TermTranslationPhaseController struct {
 	termTranslationPhaseUsecase TermTranslationPhaseUsecasePort
@@ -54,6 +58,27 @@ type RetryTermTranslationPhaseRequestDTO struct {
 // GetTermTranslationNextPhaseReadinessRequestDTO identifies the downstream readiness request target.
 type GetTermTranslationNextPhaseReadinessRequestDTO struct {
 	JobID int64 `json:"jobId"`
+}
+
+// SaveTermTranslationPhaseAISettingsRequestDTO carries public AI settings.
+type SaveTermTranslationPhaseAISettingsRequestDTO struct {
+	JobID         int64  `json:"jobId"`
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
+}
+
+// TermTranslationPhaseAISettingsResponseDTO returns public AI settings state.
+type TermTranslationPhaseAISettingsResponseDTO struct {
+	JobID            int64  `json:"jobId"`
+	PhaseID          string `json:"phaseId"`
+	Provider         string `json:"provider"`
+	Model            string `json:"model"`
+	CredentialStatus string `json:"credentialStatus"`
+	ExecutionMode    string `json:"executionMode"`
+	BatchMode        string `json:"batchMode"`
+	ModelListStatus  string `json:"modelListStatus"`
 }
 
 // TermTranslationExecutionConfigSummaryDTO summarizes execution inputs without exposing secrets.
@@ -246,6 +271,30 @@ func (controller *TermTranslationPhaseController) GetTermTranslationNextPhaseRea
 		return TermTranslationNextPhaseReadinessResponseDTO{}, fmt.Errorf("get term translation next phase readiness: %w", err)
 	}
 	return toTermTranslationNextPhaseReadinessResponseDTO(result), nil
+}
+
+// SaveTermTranslationPhaseAISettings saves public AI settings for the term phase.
+func (controller *TermTranslationPhaseController) SaveTermTranslationPhaseAISettings(
+	request SaveTermTranslationPhaseAISettingsRequestDTO,
+) (TermTranslationPhaseAISettingsResponseDTO, error) {
+	settingsUsecase, ok := controller.termTranslationPhaseUsecase.(termTranslationPhaseAISettingsUsecasePort)
+	if !ok {
+		return TermTranslationPhaseAISettingsResponseDTO{}, fmt.Errorf("save term translation phase ai settings: usecase is not configured")
+	}
+	result, err := settingsUsecase.SaveTermTranslationPhaseAISettings(
+		context.Background(),
+		usecase.SaveTermTranslationPhaseAISettingsRequest{
+			JobID:         request.JobID,
+			Provider:      request.Provider,
+			Model:         request.Model,
+			ExecutionMode: request.ExecutionMode,
+			BatchMode:     request.BatchMode,
+		},
+	)
+	if err != nil {
+		return TermTranslationPhaseAISettingsResponseDTO{}, fmt.Errorf("save term translation phase ai settings: %w", err)
+	}
+	return TermTranslationPhaseAISettingsResponseDTO(result), nil
 }
 
 func toTermTranslationPhaseSummaryResponseDTO(

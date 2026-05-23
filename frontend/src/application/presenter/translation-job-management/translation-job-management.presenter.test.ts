@@ -75,7 +75,8 @@ function createState(): PresenterState {
         inputSourceKindLabel: "xEdit 抽出データ",
         sourcePath:
           "/very/long/path/to/source/that/should/not/be-truncated/by-presenter/input.json",
-        pluginName: "VeryLongPluginNameThatShouldStayVisibleWithoutMutation.esp",
+        pluginName:
+          "VeryLongPluginNameThatShouldStayVisibleWithoutMutation.esp",
         extractedJsonLabel: "抽出データ #100"
       },
       progress: {
@@ -144,7 +145,9 @@ describe("TranslationJobManagementPresenter", () => {
     expect(viewModel.jobs).toHaveLength(1)
     expect(viewModel.jobs[0].title).toBe("input.json")
     expect(viewModel.jobs[0].deleteOperation.enabled).toBe(false)
-    expect(viewModel.jobs[0].deleteOperation.reasonText).toContain("削除できません")
+    expect(viewModel.jobs[0].deleteOperation.reasonText).toContain(
+      "削除できません"
+    )
     expect(viewModel.selectedJob?.cacheStateLabel).toBe("欠落")
     expect(viewModel.selectedJob?.resumeBlockedReasons[0]?.categoryLabel).toBe(
       "入力キャッシュ欠落"
@@ -177,7 +180,9 @@ describe("TranslationJobManagementPresenter", () => {
 
     const viewModel = presenter.toViewModel(state, true)
 
-    expect(viewModel.filterChips.some((chip) => chip.id === ("Completed" as never))).toBe(false)
+    expect(
+      viewModel.filterChips.some((chip) => chip.id === ("Completed" as never))
+    ).toBe(false)
     expect(viewModel.jobRunTarget).toMatchObject({
       jobId: 10,
       currentPhase: "body_translation",

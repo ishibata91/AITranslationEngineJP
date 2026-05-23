@@ -7,7 +7,9 @@
 
   interface Props {
     job: TranslationJobManagementJobCardViewModel
-    onOpenJob: (job: TranslationJobManagementJobCardViewModel) => void | Promise<void>
+    onOpenJob: (
+      job: TranslationJobManagementJobCardViewModel
+    ) => void | Promise<void>
     onOperation: (
       job: TranslationJobManagementJobCardViewModel,
       operation: TranslationJobManagementOperationViewModel
@@ -57,7 +59,9 @@
     data-state-description={job.stateDescription}
     data-state-label={job.stateLabel}
     data-testid="translation-job-management-job-selection-region"
-    href={job.canOpenPhase ? "#translation-management/job-run" : "#translation-management"}
+    href={job.canOpenPhase
+      ? "#translation-management/job-run"
+      : "#translation-management"}
     onclick={(event) => {
       event.preventDefault()
       void handleOpenJob()

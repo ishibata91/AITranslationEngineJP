@@ -9,14 +9,14 @@
     children?: Snippet
   }
 
-  let {
-    ariaLabel = "操作",
-    align = "end",
-    children
-  }: Props = $props()
+  let { ariaLabel = "操作", align = "end", children }: Props = $props()
 </script>
 
-<div class={`button-group button-group-${align}`} aria-label={ariaLabel} role="group">
+<div
+  class={`button-group button-group-${align}`}
+  aria-label={ariaLabel}
+  role="group"
+>
   {@render children?.()}
 </div>
 

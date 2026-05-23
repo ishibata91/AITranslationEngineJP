@@ -19,6 +19,10 @@ type personaGenerationPhaseServicePort interface {
 	ReadBodyReadiness(ctx context.Context, jobID int64) (service.PersonaGenerationBodyReadinessReadModel, error)
 }
 
+type personaGenerationPhaseAISettingsSaver interface {
+	SaveAISettings(ctx context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error)
+}
+
 const personaGenerationPhaseUsecaseLogWhere = "backend.usecase.persona_generation_phase"
 
 // PersonaGenerationPhaseUsecase bridges the persona phase contract to the service layer.
@@ -58,6 +62,28 @@ func (usecase *PersonaGenerationPhaseUsecase) StartPersonaGenerationPhase(
 		return result, fmt.Errorf("start persona generation phase: %w", err)
 	}
 	return result, nil
+}
+
+// SavePersonaGenerationPhaseAISettings saves public AI settings for the persona phase.
+func (usecase *PersonaGenerationPhaseUsecase) SavePersonaGenerationPhaseAISettings(
+	ctx context.Context,
+	request SavePersonaGenerationPhaseAISettingsRequest,
+) (PersonaGenerationPhaseAISettingsResult, error) {
+	saver, ok := usecase.service.(personaGenerationPhaseAISettingsSaver)
+	if !ok {
+		return PersonaGenerationPhaseAISettingsResult{}, fmt.Errorf("save persona generation phase ai settings: service is not configured")
+	}
+	readModel, err := saver.SaveAISettings(ctx, service.PhaseAISettingsSelection{
+		JobID:         request.JobID,
+		Provider:      request.Provider,
+		Model:         request.Model,
+		ExecutionMode: request.ExecutionMode,
+		BatchMode:     request.BatchMode,
+	})
+	if err != nil {
+		return PersonaGenerationPhaseAISettingsResult{}, fmt.Errorf("save persona generation phase ai settings: %w", err)
+	}
+	return PersonaGenerationPhaseAISettingsResult(readModel), nil
 }
 
 // PausePersonaGenerationPhase pauses one active persona phase run.

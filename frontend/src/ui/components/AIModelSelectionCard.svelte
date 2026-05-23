@@ -9,6 +9,8 @@
     title: string
     titleId?: string
     titleTag?: "h3" | "h4"
+    dataTestId?: string
+    ariaLabel?: string
     helperText?: string
     statusLabel?: string
     statusTone?: Tone
@@ -61,6 +63,8 @@
     title,
     titleId = undefined,
     titleTag = "h4",
+    dataTestId = undefined,
+    ariaLabel = undefined,
     helperText = "",
     statusLabel = "",
     statusTone = "neutral",
@@ -109,7 +113,7 @@
   }: Props = $props()
 </script>
 
-<article class="model-card">
+<article class="model-card" aria-label={ariaLabel} data-testid={dataTestId}>
   <div class="model-card-head section-head">
     <div class="heading-copy">
       {#if eyebrow}
@@ -122,11 +126,13 @@
     </div>
     {#if statusLabel}
       <span
-        class={`status-pill ${statusTone === "warning"
-          ? "status-alert"
-          : statusTone === "success"
-            ? "status-success"
-            : ""}`}
+        class={`status-pill ${
+          statusTone === "warning"
+            ? "status-alert"
+            : statusTone === "success"
+              ? "status-success"
+              : ""
+        }`}
       >
         {statusLabel}
       </span>
@@ -246,7 +252,9 @@
         </label>
       {:else}
         <span>処理方式</span>
-        <p class="support-text">この AI サービスでは一括処理の切り替えはありません。</p>
+        <p class="support-text">
+          この AI サービスでは一括処理の切り替えはありません。
+        </p>
       {/if}
     </div>
   </div>

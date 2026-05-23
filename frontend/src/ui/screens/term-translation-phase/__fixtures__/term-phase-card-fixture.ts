@@ -1,34 +1,67 @@
-import type { ComponentProps } from "svelte"
-import TermExecutionSettingsCard from "../TermExecutionSettingsCard.svelte"
-import TermResultSummaryCard from "../TermResultSummaryCard.svelte"
+import type { TermTranslationPhaseScreenViewModel } from "@application/contract/term-translation-phase"
 
-type TermExecutionSettingsCardProps = ComponentProps<
-  typeof TermExecutionSettingsCard
->
-type TermResultSummaryCardProps = ComponentProps<typeof TermResultSummaryCard>
-
-export const termExecutionSettingsCardFixture: TermExecutionSettingsCardProps = {
-  providerSkippedLabel: "provider 実行あり",
-  details: [
-    { label: "provider", value: "Sample Provider" },
-    { label: "model", value: "sample-term-model" },
-    { label: "execution mode", value: "batch" },
-    { label: "credential reference", value: "credential-ref:term-story" },
-    { label: "snapshot", value: "term-snapshot-2026-05-18" }
-  ]
-}
-
-export const termResultSummaryCardFixture: TermResultSummaryCardProps = {
-  nextPhaseStatusLabel: "次の翻訳段階へ進めます",
-  details: [
-    { label: "確定訳語件数", value: "180" },
-    { label: "ジョブ内辞書反映件数", value: "42" },
-    { label: "置換対象件数", value: "168" },
-    { label: "未一致件数", value: "12" },
-    {
-      label: "次の翻訳段階",
-      value: "次の翻訳段階へ進めます",
-      note: "ブロック理由はありません。"
-    }
-  ]
-}
+export const termTranslationPhasePanelFixture: TermTranslationPhaseScreenViewModel =
+  {
+    jobId: 101,
+    phase: "ready",
+    summary: null,
+    nextPhaseReadiness: null,
+    errorMessage: "",
+    pendingAction: null,
+    hasLoaded: true,
+    gatewayStatus: "接続済み",
+    viewState: "idle_ready",
+    isLoading: false,
+    isRefreshing: false,
+    isSubmitting: false,
+    hasJobSelection: true,
+    currentPhaseLabel: "単語翻訳",
+    phaseStateLabel: "未開始",
+    statusTitle: "単語翻訳を開始できます",
+    statusText: "単語翻訳用の AI 設定を確認してから開始します。",
+    progressPercent: 0,
+    progressLabel: "0 / 180",
+    progressDetail: "開始待ち",
+    startedAtLabel: "-",
+    finishedAtLabel: "-",
+    totalTermCountLabel: "180",
+    dictionaryHitCountLabel: "42",
+    aiTargetCountLabel: "138",
+    confirmedCountLabel: "0",
+    jobDictionaryAppliedCountLabel: "0",
+    replacementTargetCountLabel: "168",
+    unmatchedCountLabel: "12",
+    providerLabel: "OpenAI",
+    modelLabel: "gpt-4.1-mini",
+    executionModeLabel: "通常実行",
+    credentialRefLabel: "認証済み",
+    snapshotLabel: "固定前",
+    errorKindLabel: "-",
+    errorReasonLabel: "-",
+    retryableLabel: "-",
+    nextPhaseStatusLabel: "単語翻訳の完了後に進めます",
+    nextPhaseBlockedReason: "単語翻訳が未完了です。",
+    providerSkippedLabel: "一括処理なし",
+    actionCards: [
+      {
+        id: "start",
+        label: "開始",
+        disabled: false,
+        blockedReason: "",
+        tone: "primary"
+      },
+      {
+        id: "pause",
+        label: "中断",
+        disabled: true,
+        blockedReason: "実行中ではありません。",
+        tone: "default"
+      }
+    ],
+    lastErrorSummary: null,
+    actionEnablement: null,
+    latestProgressSummary: null,
+    latestResultSummary: null,
+    latestExecutionSummary: null,
+    latestErrorKind: null
+  }

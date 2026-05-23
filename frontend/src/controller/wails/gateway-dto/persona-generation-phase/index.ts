@@ -11,6 +11,8 @@ export type {
   ResumePersonaGenerationPhaseResponseDto,
   RetryPersonaGenerationPhaseRequestDto,
   RetryPersonaGenerationPhaseResponseDto,
+  SavePersonaGenerationPhaseAISettingsRequestDto,
+  SavePersonaGenerationPhaseAISettingsResponseDto,
   StartPersonaGenerationPhaseRequestDto,
   StartPersonaGenerationPhaseResponseDto
 } from "./persona-generation-phase-gateway-dto"

@@ -957,6 +957,23 @@ func (service *TermTranslationPhaseService) persistRuntimeSnapshot(
 	return nil
 }
 
+// SaveAISettings saves public AI settings for the term translation phase.
+func (service *TermTranslationPhaseService) SaveAISettings(
+	ctx context.Context,
+	selection PhaseAISettingsSelection,
+) (PhaseAISettingsReadModel, error) {
+	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
+	if !ok {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save term translation ai settings: snapshot store is not configured")
+	}
+	selection.PhaseID = "word_translation"
+	readModel, err := savePhaseAISettings(ctx, store, service.providerSettings, "term_translation_phase", selection)
+	if err != nil {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save term translation ai settings: %w", err)
+	}
+	return readModel, nil
+}
+
 func (service *TermTranslationPhaseService) markExecutionPlanJobRunning(
 	ctx context.Context,
 	job repository.TranslationJob,

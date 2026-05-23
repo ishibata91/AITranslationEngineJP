@@ -25,7 +25,10 @@ interface TranslationJobManagementScreenState {
   filterId: TranslationJobManagementFilterId
   searchQuery: string
   isReloading: boolean
-  activeOperation: TranslationJobManagementOperationAvailability["kind"] | "reload" | null
+  activeOperation:
+    | TranslationJobManagementOperationAvailability["kind"]
+    | "reload"
+    | null
   isDeleteConfirmationOpen: boolean
   feedback: {
     tone: "info" | "success" | "warning" | "danger"
@@ -209,7 +212,9 @@ export class TranslationJobManagementUseCase {
         draft.activeOperation = null
         draft.isDeleteConfirmationOpen = false
         if (response.deletedJobId) {
-          draft.jobs = draft.jobs.filter((job) => job.jobId !== response.deletedJobId)
+          draft.jobs = draft.jobs.filter(
+            (job) => job.jobId !== response.deletedJobId
+          )
           draft.selectedJobId = null
           draft.selectedJobDetail = null
           draft.detailPhase = "idle"
@@ -342,7 +347,9 @@ export class TranslationJobManagementUseCase {
           draft.detailPhase = "ready"
         }
         draft.feedback = buildFeedback(
-          operation === "stop" ? "停止要求を更新しました" : "再開結果を更新しました",
+          operation === "stop"
+            ? "停止要求を更新しました"
+            : "再開結果を更新しました",
           response.message,
           response.tone,
           response.reasonCategory ??

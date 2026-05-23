@@ -17,6 +17,7 @@ type fakeTermTranslationPhaseService struct {
 	resumePhaseFunc            func(context.Context, int64, int64) (service.TermTranslationPhaseCommandReadModel, error)
 	retryPhaseFunc             func(context.Context, int64, int64) (service.TermTranslationPhaseCommandReadModel, error)
 	readNextPhaseReadinessFunc func(context.Context, int64) (service.TermTranslationNextPhaseReadinessReadModel, error)
+	saveAISettingsFunc         func(context.Context, service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error)
 }
 
 func (fake fakeTermTranslationPhaseService) ReadSummary(ctx context.Context, jobID int64) (service.TermTranslationPhaseSummaryReadModel, error) {
@@ -54,6 +55,12 @@ func (fake fakeTermTranslationPhaseService) ReadNextPhaseReadiness(ctx context.C
 		return fake.readNextPhaseReadinessFunc(ctx, jobID)
 	}
 	return service.TermTranslationNextPhaseReadinessReadModel{}, nil
+}
+func (fake fakeTermTranslationPhaseService) SaveAISettings(ctx context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error) {
+	if fake.saveAISettingsFunc != nil {
+		return fake.saveAISettingsFunc(ctx, selection)
+	}
+	return service.PhaseAISettingsReadModel{}, nil
 }
 
 func TestTermTranslationPhaseUsecaseGetSummaryMapsPointersAndNormalizesErrorKind(t *testing.T) {
@@ -127,5 +134,41 @@ func TestTermTranslationPhaseUsecaseStartWrapsServiceError(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "start term translation phase") {
 		t.Fatalf("expected wrapped error, got %v", err)
+	}
+}
+
+func TestTermTranslationPhaseUsecaseSaveAISettingsForwardsPublicSelectionOnly(t *testing.T) {
+	var captured service.PhaseAISettingsSelection
+	usecase := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
+		saveAISettingsFunc: func(_ context.Context, selection service.PhaseAISettingsSelection) (service.PhaseAISettingsReadModel, error) {
+			captured = selection
+			return service.PhaseAISettingsReadModel{
+				JobID:            selection.JobID,
+				PhaseID:          "word_translation",
+				Provider:         selection.Provider,
+				Model:            selection.Model,
+				CredentialStatus: "configured",
+				ExecutionMode:    selection.ExecutionMode,
+				BatchMode:        selection.BatchMode,
+				ModelListStatus:  "success",
+			}, nil
+		},
+	})
+
+	result, err := usecase.SaveTermTranslationPhaseAISettings(context.Background(), SaveTermTranslationPhaseAISettingsRequest{
+		JobID:         88,
+		Provider:      "gemini",
+		Model:         "gemini-2.5-pro",
+		ExecutionMode: "sync",
+		BatchMode:     "enabled",
+	})
+	if err != nil {
+		t.Fatalf("expected save ai settings success: %v", err)
+	}
+	if captured.JobID != 88 || captured.Provider != "gemini" || captured.Model != "gemini-2.5-pro" || captured.ExecutionMode != "sync" || captured.BatchMode != "enabled" {
+		t.Fatalf("expected public selection forwarding only, got %#v", captured)
+	}
+	if result.CredentialStatus != "configured" || result.ModelListStatus != "success" {
+		t.Fatalf("expected read model mapping for status fields, got %#v", result)
 	}
 }

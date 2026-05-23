@@ -1,16 +1,11 @@
 <script lang="ts">
-  import PhaseActionPanel from "../../components/PhaseActionPanel.svelte"
-  import PhaseFailureInfoCard from "../../components/PhaseFailureInfoCard.svelte"
+  import AIModelSelectionCard from "../../components/AIModelSelectionCard.svelte"
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
   import type {
     PhaseDetailItem,
     PhaseMetricCounter
   } from "../../components/phase-panel-types"
-  import BodyReadinessInputCard from "./BodyReadinessInputCard.svelte"
-  import PersonaExecutionSettingsCard from "./PersonaExecutionSettingsCard.svelte"
-  import PersonaResultSummaryCard from "./PersonaResultSummaryCard.svelte"
-  import PersonaTargetSummaryCard from "./PersonaTargetSummaryCard.svelte"
   import type {
     PersonaGenerationPhaseActionKind,
     PersonaGenerationPhaseScreenViewModel
@@ -21,67 +16,79 @@
     onAction: (
       actionId: PersonaGenerationPhaseActionKind
     ) => void | Promise<void>
+    onAISettingsChange?: (request: {
+      provider: string
+      model: string
+      executionMode: string
+      batchMode: string
+    }) => void | Promise<void>
   }
 
-  let { viewModel, onAction }: Props = $props()
+  let { viewModel, onAction, onAISettingsChange = undefined }: Props = $props()
   const statusMetrics = $derived<PhaseMetricCounter[]>([
-    { label: "target", value: viewModel.targetCountLabel },
-    { label: "generated", value: viewModel.generatedCountLabel },
-    { label: "failed", value: viewModel.failedCountLabel },
-    { label: "skipped", value: viewModel.skippedCountLabel }
+    { label: "対象", value: viewModel.targetCountLabel },
+    { label: "処理済み", value: viewModel.generatedCountLabel },
+    { label: "成功", value: viewModel.generatedCountLabel },
+    { label: "失敗", value: viewModel.failedCountLabel },
+    { label: "スキップ", value: viewModel.skippedCountLabel }
+  ])
+  const canEditAiSettings = $derived(viewModel.viewState !== "running")
+  const aiSettingsBlockedReason = $derived(
+    viewModel.credentialRefLabel === "-"
+      ? "認証状態を確認してください。"
+      : viewModel.modelLabel === "-"
+        ? "モデルを選択してください。"
+        : ""
+  )
+  const aiSettingsStatusLabel = $derived(
+    aiSettingsBlockedReason ? "設定未完了" : "固定済み"
+  )
+  const aiSettingsStatusTone = $derived(
+    aiSettingsBlockedReason ? "warning" : "success"
+  )
+  const aiModelOptions = $derived([
+    { modelId: viewModel.modelLabel, label: viewModel.modelLabel }
   ])
   const progressDetails = $derived<PhaseDetailItem[]>([
-    { label: "開始時刻", value: viewModel.startedAtLabel },
-    { label: "完了時刻", value: viewModel.finishedAtLabel },
-    { label: "target count", value: viewModel.targetCountLabel },
-    { label: "generated count", value: viewModel.generatedCountLabel },
-    { label: "failed count", value: viewModel.failedCountLabel },
-    { label: "skipped count", value: viewModel.skippedCountLabel }
+    { label: "対象件数", value: viewModel.targetCountLabel }
   ])
-  const targetDetails = $derived<PhaseDetailItem[]>([
-    { label: "NPC count", value: viewModel.npcCountLabel },
-    {
-      label: "common persona hit",
-      value: viewModel.commonPersonaHitCountLabel
-    },
-    {
-      label: "common persona miss",
-      value: viewModel.commonPersonaMissCountLabel
-    },
-    { label: "対象外理由", value: viewModel.skippedReasonsLabel },
-    { label: "target snapshot", value: viewModel.targetSnapshotLabel }
-  ])
-  const executionDetails = $derived<PhaseDetailItem[]>([
-    { label: "provider", value: viewModel.providerLabel },
-    { label: "model", value: viewModel.modelLabel },
-    { label: "execution mode", value: viewModel.executionModeLabel },
-    { label: "credential ref", value: viewModel.credentialRefLabel },
-    { label: "input count", value: viewModel.inputCountLabel },
-    { label: "output count", value: viewModel.outputCountLabel },
-    { label: "prompt digest", value: viewModel.promptDigestLabel },
-    { label: "error kind", value: viewModel.errorKindLabel }
-  ])
-  const resultDetails = $derived<PhaseDetailItem[]>([
-    { label: "persona snapshot", value: viewModel.snapshotLabel },
-    {
-      label: "snapshot 参照状態",
-      value: viewModel.snapshotReferenceStatusLabel
-    },
-    { label: "persona count", value: viewModel.personaCountLabel },
-    { label: "missing count", value: viewModel.missingCountLabel },
-    {
-      label: "body readiness",
-      value: viewModel.bodyReadinessLabel,
-      note: viewModel.bodyReadinessBlockedReason
-    }
-  ])
-  const bodyReadinessDetails = $derived<PhaseDetailItem[]>([
-    {
-      label: "入力 summary",
-      value: viewModel.bodyReadinessInputSummaryLabel
-    },
-    { label: "evidence refs", value: viewModel.evidenceRefsLabel }
-  ])
+
+  function selectedValue(event: Event): string {
+    const target = event.currentTarget
+    return target instanceof HTMLSelectElement ? target.value : ""
+  }
+
+  function saveAISettings(
+    overrides: Partial<{
+      provider: string
+      model: string
+      executionMode: string
+      batchMode: string
+    }>
+  ): void {
+    void onAISettingsChange?.({
+      provider: viewModel.providerLabel === "-" ? "" : viewModel.providerLabel,
+      model: viewModel.modelLabel === "-" ? "" : viewModel.modelLabel,
+      executionMode:
+        viewModel.executionModeLabel === "-"
+          ? ""
+          : viewModel.executionModeLabel,
+      batchMode: "disabled",
+      ...overrides
+    })
+  }
+
+  function handleProviderChange(event: Event): void {
+    saveAISettings({ provider: selectedValue(event) })
+  }
+
+  function handleExecutionChange(event: Event): void {
+    saveAISettings({ executionMode: selectedValue(event) })
+  }
+
+  function handleModelChange(event: Event): void {
+    saveAISettings({ model: selectedValue(event) })
+  }
 </script>
 
 <section class="job-run-shell" id="personaGenerationPhaseView">
@@ -89,7 +96,7 @@
     eyebrow="translation-management"
     title="NPC ペルソナ生成"
     gatewayStatus={viewModel.gatewayStatus}
-    lead="現在の翻訳段階、進行状況、対象 summary、翻訳段階の結果、本文翻訳の開始可否を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。"
+    lead="現在の翻訳段階、進行状況、AI 設定を同じ画面で確認し、開始、中断、再開、リトライ、キャンセルを判断します。"
     state={viewModel.viewState}
     stateLabel={viewModel.phaseStateLabel}
     statusTitle={viewModel.statusTitle}
@@ -100,45 +107,65 @@
     metrics={statusMetrics}
   />
 
-  <PhaseActionPanel
-    headingId="personaPhaseActionsHeading"
-    testId="persona-generation-phase-action-card"
+  <PhaseProgressPanel
+    headingId="personaPhaseProgressHeading"
+    testId="persona-generation-phase-progress-card"
+    eyebrow="翻訳段階の進行状況"
+    title="進行状況"
+    progressLabel={viewModel.progressLabel}
+    progressPercent={viewModel.progressPercent}
+    progressDetail={viewModel.progressDetail}
+    details={progressDetails}
     currentPhaseLabel={viewModel.currentPhaseLabel}
+    actionAriaLabel="翻訳段階の操作"
     actions={viewModel.actionCards}
-    columns={4}
-    onAction={onAction}
+    {onAction}
   />
 
-  <section class="summary-grid">
-    <PhaseProgressPanel
-      headingId="personaPhaseProgressHeading"
-      testId="persona-generation-phase-progress-card"
-      eyebrow="翻訳段階の進行状況"
-      title="進行状況"
-      progressLabel={viewModel.progressLabel}
-      progressPercent={viewModel.progressPercent}
-      progressDetail={viewModel.progressDetail}
-      details={progressDetails}
-    />
-    <PersonaTargetSummaryCard details={targetDetails} />
-  </section>
-
-  <section class="summary-grid">
-    <PersonaExecutionSettingsCard details={executionDetails} />
-    <PersonaResultSummaryCard
-      bodyReadinessLabel={viewModel.bodyReadinessLabel}
-      details={resultDetails}
-    />
-  </section>
-
-  <section class="summary-grid">
-    <BodyReadinessInputCard details={bodyReadinessDetails} />
-    <PhaseFailureInfoCard
-      headingId="personaErrorHeading"
-      testId="persona-generation-phase-failure-information-card"
-      errorKindLabel={viewModel.errorKindLabel}
-      errorReasonLabel={viewModel.errorReasonLabel}
-      retryableLabel={viewModel.retryableLabel}
+  <section class="summary-grid ai-settings-row">
+    <AIModelSelectionCard
+      dataTestId="persona-generation-phase-ai-model-selection-card"
+      ariaLabel="NPC ペルソナ生成の AI モデル選択"
+      eyebrow="NPC ペルソナ生成"
+      title="NPC ペルソナ生成の AI モデル"
+      titleId="personaPhaseAiModelHeading"
+      helperText="NPC ペルソナ生成を開始する前に使う AI サービス、モデル、処理方式を確認します。"
+      statusLabel={aiSettingsStatusLabel}
+      statusTone={aiSettingsStatusTone}
+      providerSelectId="personaPhaseProviderSelect"
+      providerValue={viewModel.providerLabel}
+      providerOptions={[
+        { value: viewModel.providerLabel, label: viewModel.providerLabel }
+      ]}
+      providerDisabled={!canEditAiSettings}
+      onProviderChange={handleProviderChange}
+      credentialStatusLabel={viewModel.credentialRefLabel}
+      credentialStatusTone={aiSettingsBlockedReason ? "warning" : "success"}
+      showCredentialWarning={Boolean(aiSettingsBlockedReason)}
+      credentialWarningText={aiSettingsBlockedReason}
+      secondaryControlMode="execution-select"
+      executionSelectId="personaPhaseExecutionModeSelect"
+      executionValue={viewModel.executionModeLabel}
+      executionOptions={[
+        {
+          value: viewModel.executionModeLabel,
+          label: viewModel.executionModeLabel
+        }
+      ]}
+      executionDisabled={!canEditAiSettings}
+      onExecutionChange={handleExecutionChange}
+      modelSelectId="personaPhaseModelSelect"
+      modelValue={viewModel.modelLabel}
+      modelOptions={aiModelOptions}
+      modelDisabled={!canEditAiSettings}
+      onModelChange={handleModelChange}
+      modelStatusText="モデル一覧は NPC ペルソナ生成の開始前に更新します。"
+      refreshDisabled={!canEditAiSettings}
+      onRefresh={() => saveAISettings({})}
+      footerMessage={canEditAiSettings
+        ? `一括処理: ${viewModel.outputCountLabel}。設定は NPC ペルソナ生成の開始時に固定します。`
+        : "実行中は AI 設定を編集できません。"}
+      footerWarningText={aiSettingsBlockedReason}
     />
   </section>
 </section>
@@ -153,6 +180,10 @@
     display: grid;
     gap: 1.25rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .ai-settings-row {
+    grid-template-columns: minmax(0, 1fr);
   }
 
   @media (max-width: 900px) {

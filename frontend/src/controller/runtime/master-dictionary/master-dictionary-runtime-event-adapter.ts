@@ -243,7 +243,10 @@ export class MasterDictionaryRuntimeEventAdapter {
 
     const payload = parseRuntimePayload<RuntimeImportProgressPayload>(args)
 
-    if (Object.keys(payload).length > 0 && typeof payload.progress !== "number") {
+    if (
+      Object.keys(payload).length > 0 &&
+      typeof payload.progress !== "number"
+    ) {
       this.logRuntimeEvent("warn", "runtime event skipped", {
         event: "runtime_event_progress",
         where: "frontend.runtime.master_dictionary",

@@ -12,6 +12,8 @@ import type {
   ResumeBodyTranslationPhaseResponseDto,
   RetryBodyTranslationPhaseRequestDto,
   RetryBodyTranslationPhaseResponseDto,
+  SaveBodyTranslationPhaseAISettingsRequestDto,
+  SaveBodyTranslationPhaseAISettingsResponseDto,
   StartBodyTranslationPhaseRequestDto,
   StartBodyTranslationPhaseResponseDto
 } from "@controller/wails/gateway-dto/body-translation-phase"
@@ -19,6 +21,7 @@ import type {
 type BodyTranslationPhaseBindingName =
   | "GetBodyTranslationPhaseSummary"
   | "StartBodyTranslationPhase"
+  | "SaveBodyTranslationPhaseAISettings"
   | "PauseBodyTranslationPhase"
   | "ResumeBodyTranslationPhase"
   | "RetryBodyTranslationPhase"
@@ -107,6 +110,12 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: StartBodyTranslationPhaseRequestDto
   ): Promise<StartBodyTranslationPhaseResponseDto> {
     return this.invokeBinding("StartBodyTranslationPhase", request)
+  }
+
+  saveBodyTranslationPhaseAISettings(
+    request: SaveBodyTranslationPhaseAISettingsRequestDto
+  ): Promise<SaveBodyTranslationPhaseAISettingsResponseDto> {
+    return this.invokeBinding("SaveBodyTranslationPhaseAISettings", request)
   }
 
   pauseBodyTranslationPhase(

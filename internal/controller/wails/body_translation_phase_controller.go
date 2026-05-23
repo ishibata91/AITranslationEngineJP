@@ -18,6 +18,10 @@ type BodyTranslationPhaseUsecasePort interface {
 	GetBodyTranslationOutputReadiness(ctx context.Context, request usecase.GetBodyTranslationOutputReadinessRequest) (usecase.BodyTranslationOutputReadinessResult, error)
 }
 
+type bodyTranslationPhaseAISettingsUsecasePort interface {
+	SaveBodyTranslationPhaseAISettings(ctx context.Context, request usecase.SaveBodyTranslationPhaseAISettingsRequest) (usecase.BodyTranslationPhaseAISettingsResult, error)
+}
+
 // BodyTranslationPhaseController exposes Wails-bound body translation entrypoints.
 type BodyTranslationPhaseController struct {
 	bodyTranslationPhaseUsecase BodyTranslationPhaseUsecasePort
@@ -60,6 +64,27 @@ type CancelBodyTranslationPhaseRequestDTO struct {
 // GetBodyTranslationOutputReadinessRequestDTO identifies the downstream readiness request target.
 type GetBodyTranslationOutputReadinessRequestDTO struct {
 	JobID int64 `json:"jobId"`
+}
+
+// SaveBodyTranslationPhaseAISettingsRequestDTO carries public AI settings.
+type SaveBodyTranslationPhaseAISettingsRequestDTO struct {
+	JobID         int64  `json:"jobId"`
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
+}
+
+// BodyTranslationPhaseAISettingsResponseDTO returns public AI settings state.
+type BodyTranslationPhaseAISettingsResponseDTO struct {
+	JobID            int64  `json:"jobId"`
+	PhaseID          string `json:"phaseId"`
+	Provider         string `json:"provider"`
+	Model            string `json:"model"`
+	CredentialStatus string `json:"credentialStatus"`
+	ExecutionMode    string `json:"executionMode"`
+	BatchMode        string `json:"batchMode"`
+	ModelListStatus  string `json:"modelListStatus"`
 }
 
 // BodyTranslationPhaseProgressSummaryDTO summarizes one phase run progress snapshot.
@@ -307,6 +332,30 @@ func (controller *BodyTranslationPhaseController) GetBodyTranslationOutputReadin
 		return toBodyTranslationOutputReadinessResponseDTO(result), fmt.Errorf("get body translation output readiness: %w", err)
 	}
 	return toBodyTranslationOutputReadinessResponseDTO(result), nil
+}
+
+// SaveBodyTranslationPhaseAISettings saves public AI settings for the body phase.
+func (controller *BodyTranslationPhaseController) SaveBodyTranslationPhaseAISettings(
+	request SaveBodyTranslationPhaseAISettingsRequestDTO,
+) (BodyTranslationPhaseAISettingsResponseDTO, error) {
+	settingsUsecase, ok := controller.bodyTranslationPhaseUsecase.(bodyTranslationPhaseAISettingsUsecasePort)
+	if !ok {
+		return BodyTranslationPhaseAISettingsResponseDTO{}, fmt.Errorf("save body translation phase ai settings: usecase is not configured")
+	}
+	result, err := settingsUsecase.SaveBodyTranslationPhaseAISettings(
+		context.Background(),
+		usecase.SaveBodyTranslationPhaseAISettingsRequest{
+			JobID:         request.JobID,
+			Provider:      request.Provider,
+			Model:         request.Model,
+			ExecutionMode: request.ExecutionMode,
+			BatchMode:     request.BatchMode,
+		},
+	)
+	if err != nil {
+		return BodyTranslationPhaseAISettingsResponseDTO{}, fmt.Errorf("save body translation phase ai settings: %w", err)
+	}
+	return BodyTranslationPhaseAISettingsResponseDTO(result), nil
 }
 
 func toBodyTranslationPhaseSummaryResponseDTO(

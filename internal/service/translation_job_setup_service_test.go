@@ -230,6 +230,26 @@ func TestTJSPPS002TranslationJobSetupServiceIgnoresMasterPersonaProviderSettings
 	if loadCalls != 0 {
 		t.Fatalf("SCN-TJSPPS-002: missing phase runtime must not call provider model list loader, got %d", loadCalls)
 	}
+
+	createDecision, err := service.EvaluateCreateRequest(context.Background(), TranslationJobSetupCreateRequest{
+		InputSourceID:    44,
+		ValidationStatus: "fail",
+		ValidatedAt:      time.Date(2026, 5, 4, 12, 0, 0, 0, time.UTC),
+		PhaseRuntimes: []TranslationJobSetupPhaseRuntimeDraftReadModel{
+			{PhaseID: "word_translation"},
+			{PhaseID: "npc_persona_generation"},
+			{PhaseID: "text_translation"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("SCN-TJSPPS-002: expected create decision even when phase runtime is missing: %v", err)
+	}
+	if !createDecision.CanCreate {
+		t.Fatalf("SCN-TJSPPS-002: expected create allowed when input source exists, got %#v", createDecision)
+	}
+	if !reflect.DeepEqual(createDecision.ValidationPassSlices, []string{"input"}) {
+		t.Fatalf("SCN-TJSPPS-002: expected create pass slice to stay input only, got %#v", createDecision.ValidationPassSlices)
+	}
 }
 
 func TestTJSPPS003TranslationJobSetupServiceProviderModelListRunsOnlyAfterCredentialGate(t *testing.T) {

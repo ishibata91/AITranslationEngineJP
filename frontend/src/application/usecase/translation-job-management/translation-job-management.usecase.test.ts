@@ -58,7 +58,12 @@ function createJobSummary(jobId: number) {
       progressLabel: "20%",
       lastUpdatedLabel: "now"
     },
-    stopAvailability: { kind: "stop" as const, enabled: false, label: "停止", helperText: "" },
+    stopAvailability: {
+      kind: "stop" as const,
+      enabled: false,
+      label: "停止",
+      helperText: ""
+    },
     resumeAvailability: {
       kind: "resume" as const,
       enabled: false,
@@ -67,13 +72,24 @@ function createJobSummary(jobId: number) {
       reasonCategory: "cache_missing" as const,
       reasonText: "入力キャッシュがありません"
     },
-    deleteAvailability: { kind: "delete" as const, enabled: true, label: "削除", helperText: "" }
+    deleteAvailability: {
+      kind: "delete" as const,
+      enabled: true,
+      label: "削除",
+      helperText: ""
+    }
   }
 }
 
 function createJobSummaryWithState(
   jobId: number,
-  jobState: "Ready" | "Running" | "Paused" | "RecoverableFailed" | "Failed" | "Canceled"
+  jobState:
+    | "Ready"
+    | "Running"
+    | "Paused"
+    | "RecoverableFailed"
+    | "Failed"
+    | "Canceled"
 ) {
   const summary = createJobSummary(jobId)
   return {
@@ -198,7 +214,9 @@ describe("TranslationJobManagementUseCase", () => {
       deleteImpactLines: ["job のみ削除"]
     }
     const gateway: TranslationJobManagementGatewayContract = {
-      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(11)] }),
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(11)] }),
       GetJobDetail: vi.fn().mockResolvedValue(detail),
       RequestStop: vi.fn().mockRejectedValue(new Error("stop failed")),
       ResumeJob: vi.fn(),
@@ -236,7 +254,9 @@ describe("TranslationJobManagementUseCase", () => {
 
   test("選択後に detail 読み込み失敗で stale_selection を設定する", async () => {
     const gateway: TranslationJobManagementGatewayContract = {
-      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(10)] }),
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(10)] }),
       GetJobDetail: vi.fn().mockRejectedValue(new Error("missing")),
       RequestStop: vi.fn(),
       ResumeJob: vi.fn(),
@@ -270,7 +290,9 @@ describe("TranslationJobManagementUseCase", () => {
       deleteImpactLines: ["job のみ削除"]
     }
     const gateway: TranslationJobManagementGatewayContract = {
-      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(11)] }),
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(11)] }),
       GetJobDetail: vi.fn().mockResolvedValue(detail),
       RequestStop: vi.fn(),
       ResumeJob: vi.fn(),
@@ -311,7 +333,9 @@ describe("TranslationJobManagementUseCase", () => {
       deleteImpactLines: ["job のみ削除"]
     }
     const gateway: TranslationJobManagementGatewayContract = {
-      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(22)] }),
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(22)] }),
       GetJobDetail: vi.fn().mockResolvedValue(detail),
       RequestStop: vi.fn(),
       ResumeJob: vi.fn(),
@@ -351,7 +375,9 @@ describe("TranslationJobManagementUseCase", () => {
       deleteImpactLines: ["job のみ削除"]
     }
     const gateway: TranslationJobManagementGatewayContract = {
-      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(33)] }),
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(33)] }),
       GetJobDetail: vi.fn().mockResolvedValue(detail),
       RequestStop: vi.fn(),
       ResumeJob: vi.fn().mockResolvedValue({
@@ -396,7 +422,9 @@ describe("TranslationJobManagementUseCase", () => {
       deleteImpactLines: ["job のみ削除"]
     }
     const gateway: TranslationJobManagementGatewayContract = {
-      ListIncompleteJobs: vi.fn().mockResolvedValue({ jobs: [createJobSummary(44)] }),
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(44)] }),
       GetJobDetail: vi.fn().mockResolvedValue({
         ...detail,
         canOpenPhase: true,
@@ -423,6 +451,8 @@ describe("TranslationJobManagementUseCase", () => {
     expect(state.jobs[0].openBlockedReason).toEqual(openBlockedReason)
     expect(state.selectedJobDetail?.canOpenPhase).toBe(false)
 
-    expect(state.selectedJobDetail?.openBlockedReason).toEqual(openBlockedReason)
+    expect(state.selectedJobDetail?.openBlockedReason).toEqual(
+      openBlockedReason
+    )
   })
 })

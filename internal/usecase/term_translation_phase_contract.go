@@ -73,6 +73,27 @@ type GetTermTranslationNextPhaseReadinessRequest struct {
 	JobID int64
 }
 
+// SaveTermTranslationPhaseAISettingsRequest carries public AI settings for the term phase.
+type SaveTermTranslationPhaseAISettingsRequest struct {
+	JobID         int64
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+}
+
+// TermTranslationPhaseAISettingsResult returns public AI settings state.
+type TermTranslationPhaseAISettingsResult struct {
+	JobID            int64
+	PhaseID          string
+	Provider         string
+	Model            string
+	CredentialStatus string
+	ExecutionMode    string
+	BatchMode        string
+	ModelListStatus  string
+}
+
 // TermTranslationExecutionConfigSummary summarizes the execution inputs without exposing secrets.
 type TermTranslationExecutionConfigSummary struct {
 	CredentialRef   string

@@ -28,7 +28,9 @@ function credentialStatusForProvider(
   state: MasterPersonaScreenState
 ): ModelSettingsCardState["credentialStatus"] {
   const provider = state.aiSettings.provider.trim()
-  const found = state.providerOptions.find((option) => option.value === provider)
+  const found = state.providerOptions.find(
+    (option) => option.value === provider
+  )
   if (found) {
     return found.credentialStatus
   }
@@ -203,7 +205,8 @@ export class MasterPersonaPresenter {
         actionDisabled: activeRun,
         titleLabel: "マスターペルソナ"
       }),
-      canSelectModel: state.modelOptions.length > 0 && aiSettingsWarningText === "",
+      canSelectModel:
+        state.modelOptions.length > 0 && aiSettingsWarningText === "",
       executionMethodOptions,
       promptTemplateDescription:
         MasterPersonaGateway.MASTER_PERSONA_PROMPT_TEMPLATE_DESCRIPTION,

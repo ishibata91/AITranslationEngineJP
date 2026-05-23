@@ -4,6 +4,16 @@ import { describe, expect, test, vi } from "vitest"
 
 import type { MasterPersonaScreenControllerContract } from "@application/contract/master-persona/master-persona-screen-contract"
 import type {
+  PersonaGenerationPhaseScreenControllerContract,
+  PersonaGenerationPhaseScreenViewModel,
+  PersonaGenerationPhaseScreenViewModelListener
+} from "@application/contract/persona-generation-phase"
+import type {
+  TermTranslationPhaseScreenControllerContract,
+  TermTranslationPhaseScreenViewModel,
+  TermTranslationPhaseScreenViewModelListener
+} from "@application/contract/term-translation-phase"
+import type {
   TranslationJobManagementScreenControllerContract,
   TranslationJobManagementScreenViewModelListener
 } from "@application/contract/translation-job-management/translation-job-management-screen-contract"
@@ -11,6 +21,7 @@ import type { TranslationJobManagementScreenViewModel } from "@application/contr
 import type { TranslationInputScreenControllerContract } from "@application/contract/translation-input"
 import type { TranslationInputScreenViewModelListener } from "@application/contract/translation-input/translation-input-screen-contract"
 import type {
+  CreateTranslationJobFromInputResponse,
   TranslationInputReviewItem,
   TranslationInputScreenViewModel
 } from "@application/gateway-contract/translation-input"
@@ -126,6 +137,9 @@ class TranslationInputScreenControllerFake implements TranslationInputScreenCont
   readonly resetImportSelection = vi.fn(() => {})
   readonly startImport = vi.fn(async () => {})
   readonly rebuildSelected = vi.fn(async () => {})
+  readonly createTranslationJobFromSelected = vi.fn<
+    () => Promise<CreateTranslationJobFromInputResponse | null>
+  >(() => Promise.resolve(null))
 
   constructor(initialViewModel = createViewModel()) {
     this.viewModel = initialViewModel
@@ -167,9 +181,7 @@ function createTranslationJobManagementViewModel(): TranslationJobManagementScre
   }
 }
 
-class TranslationJobManagementScreenControllerFake
-  implements TranslationJobManagementScreenControllerContract
-{
+class TranslationJobManagementScreenControllerFake implements TranslationJobManagementScreenControllerContract {
   private readonly viewModel = createTranslationJobManagementViewModel()
 
   readonly mount = vi.fn(async () => {})
@@ -184,13 +196,94 @@ class TranslationJobManagementScreenControllerFake
   readonly closeDeleteConfirmation = vi.fn()
   readonly deleteSelectedJob = vi.fn(async () => {})
 
-  subscribe(listener: TranslationJobManagementScreenViewModelListener): () => void {
+  subscribe(
+    listener: TranslationJobManagementScreenViewModelListener
+  ): () => void {
     void listener
     return () => {}
   }
 
   getViewModel(): TranslationJobManagementScreenViewModel {
     return this.viewModel
+  }
+}
+
+class TermTranslationPhaseScreenControllerFake implements TermTranslationPhaseScreenControllerContract {
+  readonly mount = vi.fn(async () => {})
+  readonly dispose = vi.fn(() => {})
+  readonly setJobId = vi.fn(async () => {})
+  readonly refresh = vi.fn(async () => {})
+  readonly startPhase = vi.fn(async () => {})
+  readonly pausePhase = vi.fn(async () => {})
+  readonly resumePhase = vi.fn(async () => {})
+  readonly retryPhase = vi.fn(async () => {})
+
+  subscribe(listener: TermTranslationPhaseScreenViewModelListener): () => void {
+    void listener
+    return () => {}
+  }
+
+  getViewModel(): TermTranslationPhaseScreenViewModel {
+    return {
+      jobId: 909,
+      phase: "ready",
+      summary: null,
+      nextPhaseReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      gatewayStatus: "接続準備済み",
+      viewState: "idle_ready",
+      hasJobSelection: true,
+      statusTitle: "単語翻訳",
+      statusText: "単語翻訳を開始できます。",
+      phaseStateLabel: "開始待ち",
+      progressPercent: 0,
+      progressLabel: "0%",
+      actionCards: []
+    } as unknown as TermTranslationPhaseScreenViewModel
+  }
+}
+
+class PersonaGenerationPhaseScreenControllerFake implements PersonaGenerationPhaseScreenControllerContract {
+  readonly mount = vi.fn(async () => {})
+  readonly dispose = vi.fn(() => {})
+  readonly setJobId = vi.fn(async () => {})
+  readonly refresh = vi.fn(async () => {})
+  readonly startPhase = vi.fn(async () => {})
+  readonly pausePhase = vi.fn(async () => {})
+  readonly resumePhase = vi.fn(async () => {})
+  readonly retryPhase = vi.fn(async () => {})
+  readonly cancelPhase = vi.fn(async () => {})
+  readonly checkBodyReadiness = vi.fn(async () => {})
+  readonly startBodyPhase = vi.fn(async () => {})
+
+  subscribe(
+    listener: PersonaGenerationPhaseScreenViewModelListener
+  ): () => void {
+    void listener
+    return () => {}
+  }
+
+  getViewModel(): PersonaGenerationPhaseScreenViewModel {
+    return {
+      jobId: 909,
+      phase: "ready",
+      summary: null,
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      gatewayStatus: "接続準備済み",
+      viewState: "not_started",
+      hasJobSelection: true,
+      statusTitle: "NPC ペルソナ生成",
+      statusText: "NPC ペルソナ生成は待機中です。",
+      phaseStateLabel: "開始待ち",
+      progressPercent: 0,
+      progressLabel: "0%",
+      actionCards: []
+    } as unknown as PersonaGenerationPhaseScreenViewModel
   }
 }
 
@@ -313,5 +406,59 @@ describe("App translation-input route", () => {
     unmount()
 
     expect(controller.dispose).toHaveBeenCalledTimes(2)
+  })
+
+  test("入力データ確認から単語翻訳へ進むと作成済みジョブの単語翻訳画面を開く", async () => {
+    window.history.replaceState(null, "", "#translation-management")
+
+    const user = userEvent.setup()
+    const selectedItem = createItem()
+    const inputController = new TranslationInputScreenControllerFake(
+      createViewModel({
+        items: [selectedItem],
+        selectedItemId: selectedItem.localId,
+        selectedItem,
+        canRebuildSelected: true,
+        latestOutcomeTitle: "結果: 登録済み",
+        latestOutcomeText: "入力データを確認済みです。"
+      })
+    )
+    inputController.createTranslationJobFromSelected.mockResolvedValue({
+      accepted: true,
+      jobId: 909,
+      jobState: "ready",
+      currentPhase: "term_translation"
+    })
+    const jobManagementController =
+      new TranslationJobManagementScreenControllerFake()
+    const termController = new TermTranslationPhaseScreenControllerFake()
+    const personaController = new PersonaGenerationPhaseScreenControllerFake()
+    const masterPersonaStub = (() =>
+      ({}) as MasterPersonaScreenControllerContract) as () => MasterPersonaScreenControllerContract
+
+    render(App, {
+      props: {
+        createMasterPersonaScreenController: masterPersonaStub,
+        createPersonaGenerationPhaseScreenController: () => personaController,
+        createTermTranslationPhaseScreenController: () => termController,
+        createTranslationJobManagementScreenController: () =>
+          jobManagementController,
+        createTranslationInputScreenController: () => inputController
+      }
+    })
+
+    await user.click(screen.getByRole("button", { name: "新規翻訳を開始" }))
+    await user.click(screen.getByRole("button", { name: "単語翻訳へ進む" }))
+
+    await waitFor(() => {
+      expect(
+        inputController.createTranslationJobFromSelected
+      ).toHaveBeenCalledTimes(1)
+      expect(termController.setJobId).toHaveBeenCalledWith(909)
+    })
+    expect(
+      screen.getByRole("heading", { level: 2, name: "単語翻訳" })
+    ).toBeInTheDocument()
+    expect(screen.getByText("ジョブ #909")).toBeInTheDocument()
   })
 })

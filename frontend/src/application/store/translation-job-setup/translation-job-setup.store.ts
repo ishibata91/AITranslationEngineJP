@@ -165,7 +165,9 @@ export class TranslationJobSetupStore {
       phaseRuntimeSelections: clonePhaseSelections(
         this.state.phaseRuntimeSelections
       ),
-      providerModelLists: cloneProviderModelLists(this.state.providerModelLists),
+      providerModelLists: cloneProviderModelLists(
+        this.state.providerModelLists
+      ),
       modelSettingsCards: cloneModelSettingsCardStates(
         this.state.modelSettingsCards
       ),

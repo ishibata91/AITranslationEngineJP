@@ -17,6 +17,12 @@ export interface BodyTranslationPhaseScreenControllerContract {
   retryPhase(): Promise<void>
   cancelPhase(): Promise<void>
   checkOutputReadiness(): Promise<void>
+  saveAISettings?: (request: {
+    provider: string
+    model: string
+    executionMode: string
+    batchMode: string
+  }) => Promise<void>
 }
 
 export type CreateBodyTranslationPhaseScreenController =

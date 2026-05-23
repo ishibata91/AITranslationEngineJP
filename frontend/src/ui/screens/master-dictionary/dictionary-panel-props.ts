@@ -2,7 +2,10 @@ import type {
   MasterDictionaryEntryDetail,
   MasterDictionaryEntrySummary
 } from "@application/gateway-contract/master-dictionary"
-import type { ImportSummary, ModalState } from "@application/contract/master-dictionary/master-dictionary-screen-types"
+import type {
+  ImportSummary,
+  ModalState
+} from "@application/contract/master-dictionary/master-dictionary-screen-types"
 
 export interface DictionaryHeaderProps {
   gatewayStatus: string

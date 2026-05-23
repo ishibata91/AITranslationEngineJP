@@ -21,21 +21,36 @@
     onNext
   }: Props = $props()
 
-  const currentPage = $derived(Math.min(Math.max(page, 1), Math.max(pageCount, 1)))
+  const currentPage = $derived(
+    Math.min(Math.max(page, 1), Math.max(pageCount, 1))
+  )
   const safePageCount = $derived(Math.max(pageCount, 1))
   const previousDisabled = $derived(disabled || busy || currentPage <= 1)
-  const nextDisabled = $derived(disabled || busy || currentPage >= safePageCount)
+  const nextDisabled = $derived(
+    disabled || busy || currentPage >= safePageCount
+  )
 </script>
 
 <nav class="pagination-controls" aria-label="ページ移動">
-  <ActionButton label="前へ" variant="secondary" disabled={previousDisabled} onClick={onPrevious} />
+  <ActionButton
+    label="前へ"
+    variant="secondary"
+    disabled={previousDisabled}
+    onClick={onPrevious}
+  />
   <p aria-live="polite">
     <span>{currentPage} / {safePageCount}</span>
     {#if totalLabel}
       <span>{totalLabel}</span>
     {/if}
   </p>
-  <ActionButton label="次へ" variant="secondary" disabled={nextDisabled} busy={busy} onClick={onNext} />
+  <ActionButton
+    label="次へ"
+    variant="secondary"
+    disabled={nextDisabled}
+    {busy}
+    onClick={onNext}
+  />
 </nav>
 
 <style>
