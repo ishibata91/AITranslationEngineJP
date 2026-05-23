@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `persona-generation-phase`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `source_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -86,6 +86,7 @@ AIサービス失敗、入力不備、保存失敗、途中状態は回復可能
 - 再試行は `RecoverableFailed` かつ再試行可能な失敗の時だけ成立する。
 - 取り消しは `Paused` の時だけ成立する。
 - 利用者は翻訳段階の状態、再試行可否、本文翻訳開始可否、進行状況を判断できる。
+- 利用者は、NPC ペルソナ生成フェーズの処理対象名が NPC ごとのペルソナ生成入力であり、NPC の原文発話、NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作るものであることを判断できる。
 
 ### `persona-generation-phase-REQ-008` 保護対象を利用者向け情報から分離する
 
@@ -103,3 +104,4 @@ NPC ペルソナ生成フェーズは秘密値、生成指示の原文、原文�
 - 検証結果は pass である。
 - 最終検証は通過済みである。
 - 5 観点レビューはすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
+- 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。

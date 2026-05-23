@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `translation-job-management`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/translation-job-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `source_artifacts`: `docs/exec-plans/completed/translation-job-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/translation-job-management/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/translation-job-management/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -85,9 +85,17 @@
 - 登録済みまたは警告ありの選択入力データは、ジョブ設定へ進む条件を満たす。
 - 失敗または再構築が必要な選択入力データは、ジョブ設定へ進む拒否理由にする。
 - 読み込み失敗、古い選択、集約不能は、空状態や成功状態とは別の状態として扱う。
+- 処理対象は、現在段階で処理、生成、確認する実体を表す。
+- 処理対象名は、処理対象を短く表す実体名である。
+- 処理対象詳細は、その実体が現在段階でどう処理、生成、確認されるかを表す利用者向け情報である。
+- 利用者は、選択した翻訳ジョブの現在段階で処理するものと、その詳細を判断できる。
+- 処理対象一覧は、50 件程度を既定ページサイズとして扱う。
+- 利用者は、処理対象一覧のページを切り替え、現在ページの表示範囲を操作できる。
+- 数万件レベルの処理対象でも、画面要素は現在ページの表示範囲に限定し、利用者操作を継続できる。
 
 ## 根拠
 
 - 人間設計レビューは 2026-05-06 に承認済みである。
 - 最終検証は通過済みである。
 - 5 観点 reviewback は再集約後にすべて `no_issue` である。
+- 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。

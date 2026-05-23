@@ -1,12 +1,36 @@
 # 画面設計差分: `persona-generation-phase`
 
 - `skill`: design-bundle
-- `status`: ready-for-human-review
+- `status`: approved
 - `screen_id`: `persona-generation-phase`
 - `source_screen_design`: `docs/screen-design/screens/persona-generation-phase.md`
 - `source_plan`: `./plan.md`
+- `source_storybook_review`: `./storybook-review-loop.md`
 
 ## 画面差分
+
+### E-02 進行状況兼操作
+
+- `変更種別`: 変更
+
+概要:
+進行状況、状態詳細、操作を上詰めで連続表示する領域にする。
+
+表示内容:
+- 見出し、進捗バー、状態、詳細、操作を上から連続して表示する。
+- 詳細と操作は横並びの幅配分で表示する。
+- 操作はパネル内の native button として表示する。
+
+### E-03 AI モデル選択
+
+- `変更種別`: 変更
+
+概要:
+進行状況カードと同じカード面で AI 設定を確認する領域にする。
+
+表示内容:
+- NPC ペルソナ生成の AI モデルを、進行状況と横並びで表示する。
+- カード面、枠、角丸、影は、進行状況カードと同じ見た目で表示する。
 
 ### E-04 処理対象一覧
 
@@ -16,35 +40,49 @@
 NPC ペルソナ生成段階で生成する実体の入力を確認する領域。
 
 配置:
-`job-run` の選択ジョブ概要の下、NPC ペルソナ生成段階の状態概要の上に配置する。
+進行状況と AI 設定の下に配置する。
 
 表示内容:
 - `処理対象`
 - 現在段階名: `NPC ペルソナ生成`
-- 処理対象名: `NPC ごとのペルソナ生成入力`
-- 処理対象詳細: NPC ごとのペルソナ生成入力は、NPC の原文発話、NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作るもの。
+- 処理対象名: NPC ごとのペルソナ生成入力
+- 処理対象詳細: NPC の原文発話、NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作るもの。
+- 検索欄: 名前、原文、訳語を対象に検索する。
+- テーブル見出し: `対象`
+- 対象セル: NPC 名または NPC 識別名
+- metadata: `FormID`、`EditorID`、`対象プラグイン`、`元プラグイン`、`声`、`話し方`、`ペルソナ本文`、`最終更新`
 - 処理対象ページング: 50 件程度を現在ページの表示範囲として扱う。
 
 依存情報:
 - 表示条件: 選択ジョブがあり、現在段階が NPC ペルソナ生成である。
 - 有効条件: NPC ペルソナ生成段階で生成に使う実体を表示できる。
-- データ種別: 表示用の処理対象情報、ページング状態。
+- データ種別: 表示用の処理対象情報、ページング状態、検索状態。
 - 画面非機能要件: 数万件レベルの処理対象でも、画面要素は現在ページの表示範囲に限定し、ページ切替操作を維持する。
 
 操作:
-- なし。
+- 検索語を入力する。
+- 処理対象行を開く。
+- ページを切り替える。
 
 結果:
-- なし。
+- 検索語に一致する処理対象を表示する。
+- 処理対象行の metadata を表示する。
+- 表示する処理対象の範囲が切り替わる。
 
 セレクタ属性:
 - `aria-label`: `処理対象一覧`
 
 依存部品:
-- `ProcessingTargetListPanel`: 各段階で同じ構造の処理対象一覧を表示する。
+- `ProcessingTargetListWrapper`: 検索、件数、ページ操作、処理対象一覧をまとめて表示する。
+- `ProcessingTargetListPanel`: 処理対象一覧を表示する。
 
 ## 根拠
 
-- `docs/screen-design/screens/persona-generation-phase.md` は、状態概要、進行状況兼操作、AI モデル選択を持つ。
+- `docs/screen-design/screens/persona-generation-phase.md` は、進行状況兼操作と AI モデル選択を持つ。
 - `docs/detail-specs/persona-generation-phase.md` は、生成対象を NPC レコード、翻訳対象項目、会話文脈、共通ペルソナ参照、ペルソナ参照情報で構成する。
-- `frontend/src/ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte` は、NPC ペルソナ生成段階の状態概要を画面先頭に表示している。
+- `storybook-review-loop.md` の `翻訳段階画面の配置`、`処理対象一覧の実データ表示`、`フェーズ側メタデータのマスター系整合`、`検索付き処理対象一覧ラッパー`、`ラッパー内の一覧見出し`、`進行状況パネルの内部配置`、`AI モデルカードの背景` は、人間レビュー承認済みの画面仕様を示す。
+- `storybook-review-loop.md` の承認状態は `approved` である。
+
+## 未決
+
+- なし

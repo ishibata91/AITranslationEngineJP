@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `term-translation-phase`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `source_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -99,6 +99,7 @@
 - 利用者は待機中、実行中、空完了、完了、一時停止中、回復可能失敗、阻害中を区別できる。
 - 更新中は既存の状態情報を保持し、更新中であることを区別できる。
 - 利用者は翻訳段階の状態と操作不可理由を判断できる。
+- 利用者は、単語翻訳フェーズの処理対象名が共通辞書対象外の用語と固有名詞であり、AIサービスへ送り、確定訳語として翻訳ジョブ内辞書へ保存するものであることを判断できる。
 
 ## 根拠
 
@@ -106,3 +107,4 @@
 - design bundle は human approved であり、`implementation-scope.md` は `human_review_status: approved` である。
 - 最終検証では旧設計 gate、frontend、backend、全体検証が pass している。
 - 5 観点の reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
+- 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。
