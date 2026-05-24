@@ -19,7 +19,6 @@ import type {
 } from "@application/gateway-contract/persona-generation-phase"
 
 type PersonaGenerationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -100,7 +99,7 @@ export class PersonaGenerationPhaseUseCase {
       return
     }
 
-    await this.refresh()
+    await this.fetchSummaryAndReadiness(state.jobId)
   }
 
   async setJobId(jobId: number | null): Promise<void> {
@@ -116,29 +115,8 @@ export class PersonaGenerationPhaseUseCase {
     })
 
     if (jobId !== null) {
-      await this.refresh()
+      await this.fetchSummaryAndReadiness(jobId)
     }
-  }
-
-  async refresh(): Promise<void> {
-    const state = this.store.snapshot()
-    if (state.jobId === null) {
-      this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.errorMessage = createNoJobSelectedMessage()
-      })
-      return
-    }
-
-    if (!this.gateway) {
-      this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.errorMessage = createGatewayDisconnectedMessage()
-      })
-      return
-    }
-
-    await this.fetchSummaryAndReadiness(state.jobId, "refresh")
   }
 
   async setProcessingTargetSearchQuery(searchQuery: string): Promise<void> {
@@ -205,7 +183,7 @@ export class PersonaGenerationPhaseUseCase {
         jobId: state.jobId,
         ...request
       })
-      await this.refresh()
+      await this.fetchSummaryAndReadiness(state.jobId)
     } catch (error) {
       this.store.update((draft) => {
         draft.errorMessage = sanitizeErrorMessage(
@@ -254,8 +232,17 @@ export class PersonaGenerationPhaseUseCase {
 
   private async fetchSummaryAndReadiness(
     jobId: number,
-    pendingAction: PersonaGenerationPhaseActionKind
+    pendingAction: PersonaGenerationPhaseActionKind | null = null
   ): Promise<void> {
+    if (!this.gateway) {
+      this.store.update((draft) => {
+        draft.phase = "ready"
+        draft.pendingAction = null
+        draft.errorMessage = createGatewayDisconnectedMessage()
+      })
+      return
+    }
+
     const before = this.store.snapshot()
 
     this.store.update((draft) => {
@@ -267,10 +254,10 @@ export class PersonaGenerationPhaseUseCase {
     try {
       const [summary, bodyReadiness, processingTargetPageState] =
         await Promise.all([
-        this.gateway!.getPersonaGenerationPhaseSummary({
+        this.gateway.getPersonaGenerationPhaseSummary({
           jobId
         } satisfies GetPersonaGenerationPhaseSummaryRequest),
-        this.gateway!.getPersonaGenerationBodyReadiness({
+        this.gateway.getPersonaGenerationBodyReadiness({
           jobId
         } satisfies GetPersonaGenerationBodyReadinessRequest),
         this.fetchProcessingTargetListResponse(
@@ -375,7 +362,7 @@ export class PersonaGenerationPhaseUseCase {
   private async runCommand(
     action: Exclude<
       PersonaGenerationPhaseActionKind,
-      "refresh" | "check-body-readiness" | "start-body-phase"
+      "check-body-readiness" | "start-body-phase"
     >,
     execute: (
       jobId: number,
@@ -419,7 +406,7 @@ export class PersonaGenerationPhaseUseCase {
         await execute(state.jobId, state.summary!.phaseRunId!)
       }
 
-      await this.fetchSummaryAndReadiness(state.jobId, "refresh")
+      await this.fetchSummaryAndReadiness(state.jobId, action)
     } catch (error) {
       this.store.update((draft) => {
         draft.phase = "ready"

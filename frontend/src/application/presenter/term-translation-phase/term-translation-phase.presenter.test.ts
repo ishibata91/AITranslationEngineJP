@@ -13,7 +13,7 @@ interface TestScreenState {
   summary: TermTranslationPhaseSummaryResponse | null
   nextPhaseReadiness: TermTranslationNextPhaseReadinessResponse | null
   errorMessage: string
-  pendingAction: "refresh" | "start" | "pause" | "resume" | "retry" | null
+  pendingAction: "start" | "pause" | "resume" | "retry" | null
   hasLoaded: boolean
 }
 
@@ -48,7 +48,6 @@ function createState(
         canPause: false,
         canResume: false,
         canRetry: false,
-        canRefresh: true,
         canStartNextPhase: false
       }
     },
@@ -140,6 +139,14 @@ describe("TermTranslationPhasePresenter", () => {
     expect(viewModel.phaseStateLabel).toBe("開始待ち")
     expect(viewModel.progressDetail).toContain("開始待ち")
     expect(viewModel.progressDetail).not.toContain("pending")
+  })
+
+  test("current phase key は画面表示名へ変換する", () => {
+    const presenter = new TermTranslationPhasePresenter()
+
+    const viewModel = presenter.toViewModel(createState(), true)
+
+    expect(viewModel.currentPhaseLabel).toBe("単語翻訳")
   })
 
   test("loading 中は action card を無効化し readiness の blocked reason を優先する", () => {

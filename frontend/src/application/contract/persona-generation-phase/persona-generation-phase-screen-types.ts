@@ -19,7 +19,6 @@ import type {
 } from "@application/gateway-contract/persona-generation-phase"
 
 export type PersonaGenerationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -60,7 +59,6 @@ export interface PersonaGenerationPhaseActionCard {
 }
 
 export interface PersonaGenerationPhaseScreenActionEnablement {
-  canRefresh: boolean
   canStart: boolean
   canPause: boolean
   canResume: boolean

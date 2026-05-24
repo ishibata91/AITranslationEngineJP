@@ -19,7 +19,6 @@ import type {
 } from "@application/gateway-contract/body-translation-phase"
 
 type BodyTranslationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -202,7 +201,7 @@ export class BodyTranslationPhaseUseCase {
       return
     }
 
-    await this.refresh()
+    await this.fetchSummaryAndReadiness(state.jobId)
   }
 
   async setJobId(jobId: number | null): Promise<void> {
@@ -219,29 +218,8 @@ export class BodyTranslationPhaseUseCase {
     })
 
     if (jobId !== null) {
-      await this.refresh()
+      await this.fetchSummaryAndReadiness(jobId)
     }
-  }
-
-  async refresh(): Promise<void> {
-    const state = this.store.snapshot()
-    if (state.jobId === null) {
-      this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.errorMessage = createNoJobSelectedMessage()
-      })
-      return
-    }
-
-    if (!this.gateway) {
-      this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.errorMessage = createGatewayDisconnectedMessage()
-      })
-      return
-    }
-
-    await this.fetchSummaryAndReadiness(state.jobId, "refresh")
   }
 
   async setProcessingTargetSearchQuery(
@@ -342,7 +320,7 @@ export class BodyTranslationPhaseUseCase {
         jobId: state.jobId,
         ...request
       })
-      await this.refresh()
+      await this.fetchSummaryAndReadiness(state.jobId)
     } catch (error) {
       this.store.update((draft) => {
         draft.errorMessage = sanitizeErrorMessage(
@@ -355,8 +333,17 @@ export class BodyTranslationPhaseUseCase {
 
   private async fetchSummaryAndReadiness(
     jobId: number,
-    pendingAction: BodyTranslationPhaseActionKind
+    pendingAction: BodyTranslationPhaseActionKind | null = null
   ): Promise<void> {
+    if (!this.gateway) {
+      this.store.update((draft) => {
+        draft.phase = "ready"
+        draft.pendingAction = null
+        draft.errorMessage = createGatewayDisconnectedMessage()
+      })
+      return
+    }
+
     const before = this.store.snapshot()
 
     this.store.update((draft) => {
@@ -368,10 +355,10 @@ export class BodyTranslationPhaseUseCase {
     try {
       const [summary, outputReadiness, processingTargetPageState] =
         await Promise.all([
-        this.gateway!.getBodyTranslationPhaseSummary({
+        this.gateway.getBodyTranslationPhaseSummary({
           jobId
         } satisfies GetBodyTranslationPhaseSummaryRequest),
-        this.gateway!.getBodyTranslationOutputReadiness({
+        this.gateway.getBodyTranslationOutputReadiness({
           jobId
         } satisfies GetBodyTranslationOutputReadinessRequest),
         this.fetchProcessingTargetListResponse(
@@ -485,7 +472,7 @@ export class BodyTranslationPhaseUseCase {
   private async runCommand(
     action: Exclude<
       BodyTranslationPhaseActionKind,
-      "refresh" | "check-output-readiness"
+      "check-output-readiness"
     >,
     execute: (
       jobId: number,

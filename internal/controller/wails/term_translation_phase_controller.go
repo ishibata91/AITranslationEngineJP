@@ -127,8 +127,6 @@ type TermTranslationPhaseActionEnablementDTO struct {
 	ResumeBlockedReason    *string `json:"resumeBlockedReason,omitempty"`
 	CanRetry               bool    `json:"canRetry"`
 	RetryBlockedReason     *string `json:"retryBlockedReason,omitempty"`
-	CanRefresh             bool    `json:"canRefresh"`
-	RefreshBlockedReason   *string `json:"refreshBlockedReason,omitempty"`
 	CanStartNextPhase      bool    `json:"canStartNextPhase"`
 	NextPhaseBlockedReason *string `json:"nextPhaseBlockedReason,omitempty"`
 }
@@ -414,8 +412,6 @@ func toTermTranslationPhaseActionEnablementDTO(
 		ResumeBlockedReason:    cloneOptionalString(enablement.ResumeBlockedReason),
 		CanRetry:               enablement.CanRetry,
 		RetryBlockedReason:     cloneOptionalString(enablement.RetryBlockedReason),
-		CanRefresh:             enablement.CanRefresh,
-		RefreshBlockedReason:   cloneOptionalString(enablement.RefreshBlockedReason),
 		CanStartNextPhase:      enablement.CanStartNextPhase,
 		NextPhaseBlockedReason: cloneOptionalString(enablement.NextPhaseBlockedReason),
 	}

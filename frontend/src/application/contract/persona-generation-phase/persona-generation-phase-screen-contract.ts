@@ -10,7 +10,6 @@ export interface PersonaGenerationPhaseScreenControllerContract {
   subscribe(listener: PersonaGenerationPhaseScreenViewModelListener): () => void
   getViewModel(): PersonaGenerationPhaseScreenViewModel
   setJobId(jobId: number | null): Promise<void>
-  refresh(): Promise<void>
   setProcessingTargetSearchQuery?(searchQuery: string): Promise<void>
   setProcessingTargetPage?(page: number): Promise<void>
   startPhase(): Promise<void>

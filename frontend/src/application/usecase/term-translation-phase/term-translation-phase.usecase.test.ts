@@ -36,7 +36,6 @@ function createSummary(
       canPause: false,
       canResume: false,
       canRetry: false,
-      canRefresh: true,
       canStartNextPhase: false
     },
     ...overrides
@@ -61,7 +60,7 @@ interface TermTranslationPhaseScreenStateLike {
   summary: TermTranslationPhaseSummaryResponse | null
   nextPhaseReadiness: TermTranslationNextPhaseReadinessResponse | null
   errorMessage: string
-  pendingAction: "refresh" | "start" | "pause" | "resume" | "retry" | null
+  pendingAction: "start" | "pause" | "resume" | "retry" | null
   hasLoaded: boolean
 }
 
@@ -201,11 +200,11 @@ function createGatewaySpies() {
 }
 
 describe("TermTranslationPhaseUseCase", () => {
-  test("gateway 未接続で refresh は接続エラーメッセージを設定する", async () => {
+  test("gateway 未接続で load は接続エラーメッセージを設定する", async () => {
     const store = createStore({ jobId: 9, phase: "ready" })
     const useCase = new TermTranslationPhaseUseCase(null, store)
 
-    await useCase.refresh()
+    await useCase.load()
 
     expect(store.snapshot().errorMessage).toBe(
       "単語翻訳段階の gateway が未接続です。"
@@ -252,7 +251,7 @@ describe("TermTranslationPhaseUseCase", () => {
     })
   })
 
-  test("summary refresh 失敗時は前回 snapshot を保持する", async () => {
+  test("summary 取得失敗時は前回 snapshot を保持する", async () => {
     const { gateway, spies } = createGatewaySpies()
     spies.getTermTranslationPhaseSummary.mockRejectedValueOnce(
       new Error("timeout")
@@ -268,7 +267,7 @@ describe("TermTranslationPhaseUseCase", () => {
     })
     const useCase = new TermTranslationPhaseUseCase(gateway, store)
 
-    await useCase.refresh()
+    await useCase.load()
 
     const snapshot = store.snapshot()
     expect(snapshot.summary).toMatchObject(oldSummary)
@@ -278,7 +277,7 @@ describe("TermTranslationPhaseUseCase", () => {
     )
   })
 
-  test("start 成功時は start command 実行後に summary refresh する", async () => {
+  test("start 成功時は start command 実行後に summary を再取得する", async () => {
     const { gateway, spies } = createGatewaySpies()
     const store = createStore({
       jobId: 9,

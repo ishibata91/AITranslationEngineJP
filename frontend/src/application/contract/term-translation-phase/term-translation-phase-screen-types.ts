@@ -14,7 +14,6 @@ import type {
 } from "@application/gateway-contract/term-translation-phase"
 
 export type TermTranslationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"

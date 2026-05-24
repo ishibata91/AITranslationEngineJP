@@ -140,8 +140,6 @@ type TermTranslationPhaseActionEnablement struct {
 	ResumeBlockedReason    *string
 	CanRetry               bool
 	RetryBlockedReason     *string
-	CanRefresh             bool
-	RefreshBlockedReason   *string
 	CanStartNextPhase      bool
 	NextPhaseBlockedReason *string
 }

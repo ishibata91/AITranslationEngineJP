@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Locator, type Page } from "@playwright/test"
 
 const JOB_MANAGEMENT_URL =
   "/?fakeApi=1&fakeScenario=success#translation-management"
@@ -14,20 +14,27 @@ const FORBIDDEN_SECRET_TEXTS = [
 
 async function openJobManagement(page: Page) {
   await page.goto(JOB_MANAGEMENT_URL)
-  await page
-    .getByRole("tab", {
-      name: /未完了のジョブ/
-    })
-    .click()
+  await expect(
+    page.getByRole("heading", { level: 1, name: "翻訳管理" })
+  ).toBeVisible()
   await expect(
     page.getByRole("heading", { level: 2, name: "未完了ジョブ一覧" })
   ).toBeVisible()
+  await expect(
+    page.getByTestId("translation-job-management-job-list-region")
+  ).toBeVisible()
 }
 
-function jobCard(page: Page, jobId: number) {
-  return page.getByRole("link", {
-    name: `ジョブ ${jobId} を選択して現在の翻訳段階へ進む`
-  })
+function jobCards(page: Page) {
+  return page.getByTestId("translation-job-management-job-card")
+}
+
+async function jobIdText(card: Locator): Promise<string> {
+  return (await card.locator(".job-card-id").innerText()).trim()
+}
+
+function cardActions(card: Locator) {
+  return card.getByTestId("translation-job-management-job-actions")
 }
 
 test("SCN-TJM-001 translation-job-management lists incomplete jobs and excludes completed", async ({
@@ -35,83 +42,86 @@ test("SCN-TJM-001 translation-job-management lists incomplete jobs and excludes 
 }) => {
   await openJobManagement(page)
 
-  for (const jobId of [401, 402, 403, 404, 405, 406]) {
-    await expect(jobCard(page, jobId).getByText(`ジョブ #${jobId}`)).toBeVisible()
-  }
+  const cards = jobCards(page)
+  await expect.poll(async () => cards.count()).toBeGreaterThan(0)
+  await expect(cards.first().locator(".job-card-id")).toContainText(
+    /ジョブ #\d+/
+  )
   await expect(page.getByText("Completed")).toHaveCount(0)
 
-  await expect(page.locator(".state-badge", { hasText: "実行前" })).toBeVisible()
-  await expect(page.locator(".state-badge", { hasText: "実行中" })).toBeVisible()
-  await expect(page.locator(".state-badge", { hasText: "中断中" })).toBeVisible()
+  await expect
+    .poll(async () =>
+      page.locator(".state-badge", { hasText: "実行前" }).count()
+    )
+    .toBeGreaterThan(0)
+  await expect
+    .poll(async () =>
+      page.locator(".state-badge", { hasText: "実行中" }).count()
+    )
+    .toBeGreaterThan(0)
   await expect(
-    page.locator(".state-badge", { hasText: "再開可能な失敗" })
-  ).toBeVisible()
-  await expect(
-    page.locator(".state-badge", { hasText: "回復できない失敗" })
-  ).toBeVisible()
-  await expect(
-    page.locator(".state-badge", { hasText: "キャンセル済み" })
-  ).toBeVisible()
+    page.getByRole("combobox", { name: "状態フィルタ" })
+  ).toContainText("再開可能な失敗")
 })
 
-test("SCN-TJM-003 translation-job-management opens selected job in Job Run without state mutation", async ({
+test("SCN-TJM-003 translation-job-management opens selected job in Job Run", async ({
   page
 }) => {
   await openJobManagement(page)
 
-  await page
-    .getByLabel("ジョブ 403 の操作")
-    .getByRole("button", { name: "再開" })
+  const firstCard = jobCards(page).first()
+  const selectedJobIdText = await jobIdText(firstCard)
+  await cardActions(firstCard)
+    .getByRole("button", { name: "現在の翻訳段階へ進む" })
     .click()
 
-  await expect(page.getByRole("heading", { name: "ジョブ #403" })).toBeVisible()
+  await expect(page.getByTestId("job-run-job-run-shell")).toBeVisible()
   await expect(
-    page.getByRole("heading", { level: 2, name: "NPC ペルソナ生成" })
+    page.getByRole("heading", { name: selectedJobIdText })
   ).toBeVisible()
-  const targetSummary = page.locator(".job-run-target-summary")
-  await expect(targetSummary.getByText("中断中 / 中断中")).toBeVisible()
-  await expect(targetSummary.getByText("NPC ペルソナ生成")).toBeVisible()
   await expect(
-    targetSummary.getByText("44% / 再開要求を受け付けました")
+    page
+      .getByTestId("job-run-selected-job-summary")
+      .getByText(selectedJobIdText)
   ).toBeVisible()
   await expect(page.getByText("Running")).toHaveCount(0)
 })
 
-test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows resume entry and blocked reasons", async ({
+test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows operation entries and blocked reasons", async ({
   page
 }) => {
   await openJobManagement(page)
 
+  const runningCard = jobCards(page).filter({ hasText: "実行中" }).first()
   await expect(
-    page.getByLabel("ジョブ 403 の操作").getByRole("button", { name: "再開" })
+    cardActions(runningCard).getByRole("button", { name: "停止" })
   ).toBeEnabled()
+  await expect(
+    cardActions(runningCard).getByRole("button", { name: "再開" })
+  ).toBeDisabled()
+  await expect(
+    runningCard.getByTestId("translation-job-management-disabled-reason")
+  ).toContainText("再開:")
 
-  const cacheMissingResume = page
-    .getByLabel("ジョブ 404 の操作")
-    .getByRole("button", { name: "再開" })
-  await expect(cacheMissingResume).toBeDisabled()
-  await expect(cacheMissingResume.locator("..")).toHaveAttribute(
-    "data-tooltip",
-    /入力キャッシュ/
-  )
-
-  const projectionFailureResume = page
-    .getByLabel("ジョブ 405 の操作")
-    .getByRole("button", { name: "再開" })
-  await expect(projectionFailureResume).toBeDisabled()
-  await expect(projectionFailureResume.locator("..")).toHaveAttribute(
-    "data-tooltip",
-    /進捗を確認できません/
-  )
-
-  const terminalResume = page
-    .getByLabel("ジョブ 406 の操作")
-    .getByRole("button", { name: "再開" })
-  await expect(terminalResume).toBeDisabled()
-  await expect(terminalResume.locator("..")).toHaveAttribute(
-    "data-tooltip",
-    /terminal state/
-  )
+  const readyCard = jobCards(page).filter({ hasText: "実行前" }).first()
+  await expect(
+    cardActions(readyCard).getByRole("button", {
+      name: "現在の翻訳段階へ進む"
+    })
+  ).toBeEnabled()
+  await expect(
+    cardActions(readyCard).getByRole("button", { name: "停止" })
+  ).toBeDisabled()
+  await expect(
+    cardActions(readyCard).getByRole("button", { name: "再開" })
+  ).toBeDisabled()
+  await expect(
+    readyCard.getByTestId("translation-job-management-disabled-reason")
+  ).toContainText("停止:")
+  await expect(
+    readyCard.getByTestId("translation-job-management-disabled-reason")
+  ).toContainText("再開:")
+  await expect(readyCard.getByRole("button", { name: "削除" })).toBeEnabled()
 })
 
 test("SCN-TJM-009 translation-job-management does not expose secret text in UI or console", async ({

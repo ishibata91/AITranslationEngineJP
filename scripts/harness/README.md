@@ -9,7 +9,6 @@
 - `python3 scripts/harness/run.py --suite frontend-test`
 - `python3 scripts/harness/run.py --suite backend-test`
 - `python3 scripts/harness/run.py --suite system-test`
-- `python3 scripts/harness/run.py --suite detail-spec-gate`
 - `python3 scripts/harness/run.py --suite coverage`
 - `python3 scripts/harness/run.py --suite structure`
 - `python3 scripts/harness/run.py --suite execution`
@@ -24,7 +23,6 @@
 - `frontend-test`: repo root package の `test:frontend` を入口にして frontend test を実行する
 - `backend-test`: repo root package の `test:backend` を入口にして backend test を実行する
 - `system-test`: repo root package の `test:system` を入口にして Playwright system test を実行する
-- `detail-spec-gate`: active task の `detail-spec-diff.md` にある親要件、仕様、未決、回答を検査する
 - `coverage`: repo root package の `test:frontend:coverage` と `test:backend:coverage` を入口にして Sonar 互換の project coverage を 70% 基準で検査し、Sonar 用 report path、集計値、Sonar issue 詳細を `test-results/coverage-manifest.json` にまとめる
 - `structure`: `docs/index.md` を repo の地図として扱い、リンク切れを検査する
 - `execution`: `lint:backend`、`lint:frontend`、`test:backend`、`test:frontend` をまとめて確認する入口
@@ -36,7 +34,7 @@
 - local validation は実装中の feedback 用であり、`execution`、`coverage`、`system-test`、`all` は final validation lane に残す
 - implementer / tester は local validation の結果、または未実行理由を completion output に残す
 - `execution` suite は repo root の `package.json` を唯一の入口として扱い、`lint:backend`、`lint:frontend`、`test:backend`、`test:frontend` をこの順で実行する
-- `all` suite は `structure`、`detail-spec-gate`、`execution`、`system-test`、`coverage` をこの順で実行する
+- `all` suite は `structure`、`execution`、`system-test`、`coverage` をこの順で実行する
 - `coverage` suite は単独でも実行できる独立 gate として維持しつつ、`all` からも実行する
 - repo root に `sonar-project.properties` がある時、`coverage` suite の Sonar step は repo root の `scan:sonar` script を正本とし、未定義の場合だけ `sonar-scanner` を直接実行する
 - Sonar issue は `coverage` suite で件数と最大 20 件の詳細を取得する。remediation loop は implementation lane の skill 契約で扱う

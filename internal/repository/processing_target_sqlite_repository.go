@@ -30,6 +30,11 @@ const (
 	processingTargetMetadataOutputStatus      = "出力状態"
 	processingTargetMetadataAppliedPersona    = "適用ペルソナ"
 	processingTargetSearchPatternEscapedSlash = `\`
+	processingTargetListLogMessage            = "processing target list repository failed"
+	processingTargetListLogEvent              = "processing_target_list_repository_failed"
+	processingTargetListLogWhere              = "backend.repository.processing_target"
+	processingTargetListLogResultFailed       = "failed"
+	processingTargetListLogJobIDFormat        = "job:%d"
 )
 
 type processingTargetRow struct {
@@ -64,11 +69,11 @@ func (r *SQLiteJobLifecycleRepository) ListProcessingTargets(
 ) (ProcessingTargetListResult, error) {
 	spec, err := processingTargetSQLSpecForPhase(query.Phase)
 	if err != nil {
-		slog.WarnContext(ctx, "processing target list repository failed",
-			slog.String("event", "processing_target_list_repository_failed"),
-			slog.String("where", "backend.repository.processing_target"),
-			slog.String("result", "failed"),
-			slog.String("id", fmt.Sprintf("job:%d", query.JobID)),
+		slog.WarnContext(ctx, processingTargetListLogMessage,
+			slog.String("event", processingTargetListLogEvent),
+			slog.String("where", processingTargetListLogWhere),
+			slog.String("result", processingTargetListLogResultFailed),
+			slog.String("id", fmt.Sprintf(processingTargetListLogJobIDFormat, query.JobID)),
 			slog.String("reason", "unsupported_phase"),
 		)
 		return ProcessingTargetListResult{}, err
@@ -88,22 +93,22 @@ func (r *SQLiteJobLifecycleRepository) ListProcessingTargets(
 	ext := extractTx(ctx, r.db)
 	var totalCount int
 	if err := sqlx.GetContext(ctx, ext, &totalCount, spec.countSQL, query.JobID, searchQuery, searchPattern); err != nil {
-		slog.WarnContext(ctx, "processing target list repository failed",
-			slog.String("event", "processing_target_list_repository_failed"),
-			slog.String("where", "backend.repository.processing_target"),
-			slog.String("result", "failed"),
-			slog.String("id", fmt.Sprintf("job:%d", query.JobID)),
+		slog.WarnContext(ctx, processingTargetListLogMessage,
+			slog.String("event", processingTargetListLogEvent),
+			slog.String("where", processingTargetListLogWhere),
+			slog.String("result", processingTargetListLogResultFailed),
+			slog.String("id", fmt.Sprintf(processingTargetListLogJobIDFormat, query.JobID)),
 			slog.String("reason", "count_failed"),
 		)
 		return ProcessingTargetListResult{}, fmt.Errorf("count processing targets: %w", err)
 	}
 	rows := make([]processingTargetRow, 0, pageSize)
 	if err := sqlx.SelectContext(ctx, ext, &rows, spec.listSQL, query.JobID, searchQuery, searchPattern, pageSize, offset); err != nil {
-		slog.WarnContext(ctx, "processing target list repository failed",
-			slog.String("event", "processing_target_list_repository_failed"),
-			slog.String("where", "backend.repository.processing_target"),
-			slog.String("result", "failed"),
-			slog.String("id", fmt.Sprintf("job:%d", query.JobID)),
+		slog.WarnContext(ctx, processingTargetListLogMessage,
+			slog.String("event", processingTargetListLogEvent),
+			slog.String("where", processingTargetListLogWhere),
+			slog.String("result", processingTargetListLogResultFailed),
+			slog.String("id", fmt.Sprintf(processingTargetListLogJobIDFormat, query.JobID)),
 			slog.String("reason", "list_failed"),
 		)
 		return ProcessingTargetListResult{}, fmt.Errorf("list processing targets: %w", err)
