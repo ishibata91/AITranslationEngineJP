@@ -11,6 +11,11 @@ export interface BodyTranslationPhaseScreenControllerContract {
   getViewModel(): BodyTranslationPhaseScreenViewModel
   setJobId(jobId: number | null): Promise<void>
   refresh(): Promise<void>
+  setProcessingTargetSearchQuery?(
+    searchQuery: string,
+    phase?: string
+  ): Promise<void>
+  setProcessingTargetPage?(page: number, phase?: string): Promise<void>
   startPhase(): Promise<void>
   pausePhase(): Promise<void>
   resumePhase(): Promise<void>

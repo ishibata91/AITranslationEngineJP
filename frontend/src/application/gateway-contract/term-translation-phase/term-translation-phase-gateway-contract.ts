@@ -1,3 +1,8 @@
+import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+
 export type TermTranslationPhaseErrorKind =
   | "ready_required"
   | "terminal_job"
@@ -143,6 +148,9 @@ export interface TermTranslationNextPhaseReadinessResponse {
 }
 
 export interface TermTranslationPhaseGatewayContract {
+  getProcessingTargetList?(
+    request: ProcessingTargetListRequest
+  ): Promise<ProcessingTargetListResponse>
   getTermTranslationPhaseSummary(
     request: GetTermTranslationPhaseSummaryRequest
   ): Promise<TermTranslationPhaseSummaryResponse>

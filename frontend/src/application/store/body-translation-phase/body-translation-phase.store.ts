@@ -1,4 +1,9 @@
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListPageStatesByPhase
+} from "@application/gateway-contract/processing-target"
+
+import type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseFieldResultItem,
   BodyTranslationPhaseSummaryResponse
@@ -20,6 +25,8 @@ interface BodyTranslationPhaseScreenState {
     | "check-output-readiness"
     | null
   hasLoaded: boolean
+  processingTargetPageState: ProcessingTargetListPageState | null
+  processingTargetPageStatesByPhase: ProcessingTargetListPageStatesByPhase
 }
 
 type Listener = (state: BodyTranslationPhaseScreenState) => void
@@ -79,6 +86,35 @@ function cloneOutputReadiness(
   return { ...readiness }
 }
 
+function cloneProcessingTargetPageState(
+  pageState: ProcessingTargetListPageState | null
+): ProcessingTargetListPageState | null {
+  if (!pageState) {
+    return null
+  }
+
+  return {
+    ...pageState,
+    items: pageState.items.map((item) => ({
+      ...item,
+      titleParts: item.titleParts.map((part) => ({ ...part })),
+      metadata: item.metadata.map((metadata) => ({ ...metadata }))
+    })),
+    metadata: pageState.metadata.map((metadata) => ({ ...metadata }))
+  }
+}
+
+function cloneProcessingTargetPageStatesByPhase(
+  pageStates: ProcessingTargetListPageStatesByPhase
+): ProcessingTargetListPageStatesByPhase {
+  return Object.fromEntries(
+    Object.entries(pageStates).map(([phase, pageState]) => [
+      phase,
+      cloneProcessingTargetPageState(pageState ?? null) ?? undefined
+    ])
+  )
+}
+
 function createInitialState(): BodyTranslationPhaseScreenState {
   return {
     jobId: null,
@@ -87,7 +123,9 @@ function createInitialState(): BodyTranslationPhaseScreenState {
     outputReadiness: null,
     errorMessage: "",
     pendingAction: null,
-    hasLoaded: false
+    hasLoaded: false,
+    processingTargetPageState: null,
+    processingTargetPageStatesByPhase: {}
   }
 }
 
@@ -108,7 +146,13 @@ export class BodyTranslationPhaseStore {
     return {
       ...this.state,
       summary: cloneSummary(this.state.summary),
-      outputReadiness: cloneOutputReadiness(this.state.outputReadiness)
+      outputReadiness: cloneOutputReadiness(this.state.outputReadiness),
+      processingTargetPageState: cloneProcessingTargetPageState(
+        this.state.processingTargetPageState
+      ),
+      processingTargetPageStatesByPhase: cloneProcessingTargetPageStatesByPhase(
+        this.state.processingTargetPageStatesByPhase
+      )
     }
   }
 

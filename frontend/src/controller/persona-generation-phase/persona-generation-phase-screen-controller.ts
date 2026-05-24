@@ -23,6 +23,8 @@ interface PersonaGenerationPhaseUseCaseLike {
   load(): Promise<void>
   setJobId(jobId: number | null): Promise<void>
   refresh(): Promise<void>
+  setProcessingTargetSearchQuery?: (searchQuery: string) => Promise<void>
+  setProcessingTargetPage?: (page: number) => Promise<void>
   startPhase(): Promise<void>
   pausePhase(): Promise<void>
   resumePhase(): Promise<void>
@@ -84,6 +86,16 @@ export class PersonaGenerationPhaseScreenController implements PersonaGeneration
 
   async refresh(): Promise<void> {
     await this.dependencies.useCase.refresh()
+  }
+
+  async setProcessingTargetSearchQuery(searchQuery: string): Promise<void> {
+    await this.dependencies.useCase.setProcessingTargetSearchQuery?.(
+      searchQuery
+    )
+  }
+
+  async setProcessingTargetPage(page: number): Promise<void> {
+    await this.dependencies.useCase.setProcessingTargetPage?.(page)
   }
 
   async startPhase(): Promise<void> {

@@ -1,4 +1,8 @@
 import type {
+  ProcessingTargetListPageState
+} from "@application/gateway-contract/processing-target"
+
+import type {
   TermTranslationExecutionConfigSummary,
   TermTranslationNextPhaseReadinessResponse,
   TermTranslationPhaseActionEnablement,
@@ -34,6 +38,7 @@ interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
 interface TermTranslationPhaseActionCard {

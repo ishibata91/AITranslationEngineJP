@@ -11,6 +11,8 @@ export interface PersonaGenerationPhaseScreenControllerContract {
   getViewModel(): PersonaGenerationPhaseScreenViewModel
   setJobId(jobId: number | null): Promise<void>
   refresh(): Promise<void>
+  setProcessingTargetSearchQuery?(searchQuery: string): Promise<void>
+  setProcessingTargetPage?(page: number): Promise<void>
   startPhase(): Promise<void>
   pausePhase(): Promise<void>
   resumePhase(): Promise<void>

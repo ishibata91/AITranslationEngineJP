@@ -1,4 +1,9 @@
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+
+import type {
   CancelPersonaGenerationPhaseRequest,
   GetPersonaGenerationBodyReadinessRequest,
   GetPersonaGenerationPhaseSummaryRequest,
@@ -31,6 +36,7 @@ interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
 interface PersonaGenerationPhaseStoreLike {
@@ -55,6 +61,27 @@ function createNoJobSelectedMessage(): string {
 
 function createGatewayDisconnectedMessage(): string {
   return "NPC ペルソナ生成段階の gateway が未接続です。"
+}
+
+function createDefaultProcessingTargetPageState(): ProcessingTargetListPageState {
+  return {
+    items: [],
+    metadata: [],
+    page: 1,
+    pageSize: 50,
+    totalCount: 0,
+    searchQuery: "",
+    busy: false
+  }
+}
+
+function toProcessingTargetPageState(
+  response: ProcessingTargetListResponse
+): ProcessingTargetListPageState {
+  return {
+    ...response,
+    busy: false
+  }
 }
 
 export class PersonaGenerationPhaseUseCase {
@@ -85,6 +112,7 @@ export class PersonaGenerationPhaseUseCase {
       draft.pendingAction = null
       draft.errorMessage = jobId === null ? createNoJobSelectedMessage() : ""
       draft.phase = "ready"
+      draft.processingTargetPageState = createDefaultProcessingTargetPageState()
     })
 
     if (jobId !== null) {
@@ -111,6 +139,14 @@ export class PersonaGenerationPhaseUseCase {
     }
 
     await this.fetchSummaryAndReadiness(state.jobId, "refresh")
+  }
+
+  async setProcessingTargetSearchQuery(searchQuery: string): Promise<void> {
+    await this.fetchProcessingTargetList({ page: 1, searchQuery })
+  }
+
+  async setProcessingTargetPage(page: number): Promise<void> {
+    await this.fetchProcessingTargetList({ page })
   }
 
   async startPhase(): Promise<void> {
@@ -229,19 +265,25 @@ export class PersonaGenerationPhaseUseCase {
     })
 
     try {
-      const [summary, bodyReadiness] = await Promise.all([
+      const [summary, bodyReadiness, processingTargetPageState] =
+        await Promise.all([
         this.gateway!.getPersonaGenerationPhaseSummary({
           jobId
         } satisfies GetPersonaGenerationPhaseSummaryRequest),
         this.gateway!.getPersonaGenerationBodyReadiness({
           jobId
-        } satisfies GetPersonaGenerationBodyReadinessRequest)
+        } satisfies GetPersonaGenerationBodyReadinessRequest),
+        this.fetchProcessingTargetListResponse(
+          jobId,
+          before.processingTargetPageState ?? null
+        )
       ])
 
       this.store.update((draft) => {
         draft.phase = "ready"
         draft.summary = summary
         draft.bodyReadiness = bodyReadiness
+        draft.processingTargetPageState = processingTargetPageState
         draft.pendingAction = null
         draft.errorMessage = ""
         draft.hasLoaded = true
@@ -258,6 +300,76 @@ export class PersonaGenerationPhaseUseCase {
         )
       })
     }
+  }
+
+  private async fetchProcessingTargetList(
+    next: { page?: number; searchQuery?: string }
+  ): Promise<void> {
+    const state = this.store.snapshot()
+    if (state.jobId === null || !this.gateway?.getProcessingTargetList) {
+      return
+    }
+
+    const current =
+      state.processingTargetPageState ?? createDefaultProcessingTargetPageState()
+    const page = Math.max(1, next.page ?? current.page)
+    const searchQuery = next.searchQuery ?? current.searchQuery
+
+    this.store.update((draft) => {
+      draft.processingTargetPageState = {
+        ...(draft.processingTargetPageState ??
+          createDefaultProcessingTargetPageState()),
+        page,
+        searchQuery,
+        busy: true
+      }
+    })
+
+    try {
+      const response = await this.gateway.getProcessingTargetList({
+        jobId: state.jobId,
+        phase: "persona_generation",
+        page,
+        pageSize: current.pageSize,
+        searchQuery
+      })
+
+      this.store.update((draft) => {
+        draft.processingTargetPageState = toProcessingTargetPageState(response)
+      })
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.processingTargetPageState = {
+          ...(draft.processingTargetPageState ??
+            createDefaultProcessingTargetPageState()),
+          busy: false
+        }
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "NPC ペルソナ生成段階の処理対象一覧取得に失敗しました。"
+        )
+      })
+    }
+  }
+
+  private async fetchProcessingTargetListResponse(
+    jobId: number,
+    currentPageState: ProcessingTargetListPageState | null
+  ): Promise<ProcessingTargetListPageState> {
+    const current = currentPageState ?? createDefaultProcessingTargetPageState()
+    if (!this.gateway?.getProcessingTargetList) {
+      return current
+    }
+
+    const response = await this.gateway.getProcessingTargetList({
+      jobId,
+      phase: "persona_generation",
+      page: current.page,
+      pageSize: current.pageSize,
+      searchQuery: current.searchQuery
+    })
+
+    return toProcessingTargetPageState(response)
   }
 
   private async runCommand(

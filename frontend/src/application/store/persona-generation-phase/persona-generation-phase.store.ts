@@ -1,3 +1,5 @@
+import type { ProcessingTargetListPageState } from "@application/gateway-contract/processing-target"
+
 import type {
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationPhaseSummaryResponse
@@ -21,6 +23,7 @@ interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState: ProcessingTargetListPageState | null
 }
 
 type Listener = (state: PersonaGenerationPhaseScreenState) => void
@@ -69,6 +72,24 @@ function cloneBodyReadiness(
   }
 }
 
+function cloneProcessingTargetPageState(
+  pageState: ProcessingTargetListPageState | null
+): ProcessingTargetListPageState | null {
+  if (!pageState) {
+    return null
+  }
+
+  return {
+    ...pageState,
+    items: pageState.items.map((item) => ({
+      ...item,
+      titleParts: item.titleParts.map((part) => ({ ...part })),
+      metadata: item.metadata.map((metadata) => ({ ...metadata }))
+    })),
+    metadata: pageState.metadata.map((metadata) => ({ ...metadata }))
+  }
+}
+
 function createInitialState(): PersonaGenerationPhaseScreenState {
   return {
     jobId: null,
@@ -77,7 +98,8 @@ function createInitialState(): PersonaGenerationPhaseScreenState {
     bodyReadiness: null,
     errorMessage: "",
     pendingAction: null,
-    hasLoaded: false
+    hasLoaded: false,
+    processingTargetPageState: null
   }
 }
 
@@ -98,7 +120,10 @@ export class PersonaGenerationPhaseStore {
     return {
       ...this.state,
       summary: cloneSummary(this.state.summary),
-      bodyReadiness: cloneBodyReadiness(this.state.bodyReadiness)
+      bodyReadiness: cloneBodyReadiness(this.state.bodyReadiness),
+      processingTargetPageState: cloneProcessingTargetPageState(
+        this.state.processingTargetPageState
+      )
     }
   }
 

@@ -1,3 +1,8 @@
+import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+
 export type BodyTranslationPhaseErrorKind =
   | "persona_phase_incomplete"
   | "terminal_job"
@@ -210,6 +215,9 @@ export interface BodyTranslationOutputReadinessResponse {
 }
 
 export interface BodyTranslationPhaseGatewayContract {
+  getProcessingTargetList?(
+    request: ProcessingTargetListRequest
+  ): Promise<ProcessingTargetListResponse>
   getBodyTranslationPhaseSummary(
     request: GetBodyTranslationPhaseSummaryRequest
   ): Promise<BodyTranslationPhaseSummaryResponse>

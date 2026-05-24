@@ -1,4 +1,6 @@
 export type {
+  GetProcessingTargetListRequestDto,
+  GetProcessingTargetListResponseDto,
   GetTermTranslationNextPhaseReadinessRequestDto,
   GetTermTranslationNextPhaseReadinessResponseDto,
   GetTermTranslationPhaseSummaryRequestDto,

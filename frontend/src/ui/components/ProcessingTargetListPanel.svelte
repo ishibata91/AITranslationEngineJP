@@ -10,8 +10,14 @@
     items: ProcessingTargetListItem[]
     pageSize?: number
     initialPage?: number
+    currentPage?: number
+    totalCount?: number
+    busy?: boolean
     initialExpandedItemId?: string | null
     showHeadingTitle?: boolean
+    onPreviousPage?: () => void
+    onNextPage?: () => void
+    onPageChange?: (page: number) => void
     onSelectItem?: (itemId: string) => void
   }
 
@@ -19,8 +25,14 @@
     items,
     pageSize = DEFAULT_PAGE_SIZE,
     initialPage: providedInitialPage = 1,
+    currentPage: controlledPage = undefined,
+    totalCount: controlledTotalCount = undefined,
+    busy = false,
     initialExpandedItemId = null,
     showHeadingTitle = true,
+    onPreviousPage,
+    onNextPage,
+    onPageChange,
     onSelectItem
   }: Props = $props()
 
@@ -30,20 +42,35 @@
   let expandedItemId = $state<string | null>(null)
 
   const safePageSize = $derived(Math.max(1, pageSize))
-  const pageCount = $derived(
-    Math.max(1, Math.ceil(items.length / safePageSize))
+  const isControlledPage = $derived(
+    controlledPage !== undefined || controlledTotalCount !== undefined
   )
-  const safeCurrentPage = $derived(Math.min(currentPage, pageCount))
+  const itemCount = $derived(
+    controlledTotalCount !== undefined
+      ? Math.max(0, controlledTotalCount)
+      : items.length
+  )
+  const pageCount = $derived(
+    Math.max(1, Math.ceil(itemCount / safePageSize))
+  )
+  const requestedPage = $derived(
+    controlledPage !== undefined ? controlledPage : currentPage
+  )
+  const safeCurrentPage = $derived(
+    Math.min(Math.max(requestedPage, 1), pageCount)
+  )
   const startIndex = $derived((safeCurrentPage - 1) * safePageSize)
-  const endIndex = $derived(Math.min(startIndex + safePageSize, items.length))
-  const visibleItems = $derived(items.slice(startIndex, endIndex))
+  const endIndex = $derived(Math.min(startIndex + safePageSize, itemCount))
+  const visibleItems = $derived(
+    isControlledPage ? items : items.slice(startIndex, endIndex)
+  )
   const expandedItem = $derived(
     visibleItems.find((item) => item.id === expandedItemId) ?? null
   )
   const pageRangeLabel = $derived(
-    items.length === 0
+    itemCount === 0
       ? "0 件"
-      : `${startIndex + 1}-${endIndex} / ${items.length} 件`
+      : `${startIndex + 1}-${endIndex} / ${itemCount} 件`
   )
 
   $effect(() => {
@@ -87,11 +114,21 @@
   }
 
   function showPreviousPage(): void {
-    currentPage = Math.max(1, safeCurrentPage - 1)
+    const previousPage = Math.max(1, safeCurrentPage - 1)
+    onPreviousPage?.()
+    onPageChange?.(previousPage)
+    if (!isControlledPage) {
+      currentPage = previousPage
+    }
   }
 
   function showNextPage(): void {
-    currentPage = Math.min(pageCount, safeCurrentPage + 1)
+    const nextPage = Math.min(pageCount, safeCurrentPage + 1)
+    onNextPage?.()
+    onPageChange?.(nextPage)
+    if (!isControlledPage) {
+      currentPage = nextPage
+    }
   }
 
   function getItemTitleParts(item: ProcessingTargetListItem): string[] {
@@ -252,6 +289,7 @@
     page={safeCurrentPage}
     {pageCount}
     totalLabel={pageRangeLabel}
+    {busy}
     onPrevious={showPreviousPage}
     onNext={showNextPage}
   />

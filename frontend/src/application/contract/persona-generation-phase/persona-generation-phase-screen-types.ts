@@ -1,4 +1,8 @@
 import type {
+  ProcessingTargetListPageState
+} from "@application/gateway-contract/processing-target"
+
+import type {
   GetPersonaGenerationBodyReadinessRequest,
   PausePersonaGenerationPhaseRequest,
   PersonaGenerationBodyReadinessInputSummary,
@@ -44,6 +48,7 @@ export interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
 export interface PersonaGenerationPhaseActionCard {

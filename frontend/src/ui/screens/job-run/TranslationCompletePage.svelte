@@ -1,16 +1,30 @@
 <script lang="ts">
   import type { BodyTranslationFieldResultItem } from "@application/contract/body-translation-phase"
   import ProcessingTargetListPanel from "@ui/components/ProcessingTargetListPanel.svelte"
-  import type { ProcessingTargetListItem } from "@ui/components/processing-target-list-panel-types"
+  import type {
+    ProcessingTargetListItem,
+    ProcessingTargetListPageState
+  } from "@ui/components/processing-target-list-panel-types"
 
   import TranslationCompleteSummaryPanel from "./TranslationCompleteSummaryPanel.svelte"
 
   interface Props {
     jobId: number
     rows: BodyTranslationFieldResultItem[]
+    processingTargetPageState?: ProcessingTargetListPageState
+    onProcessingTargetPreviousPage?: () => void
+    onProcessingTargetNextPage?: () => void
+    onProcessingTargetPageChange?: (page: number) => void
   }
 
-  let { jobId, rows }: Props = $props()
+  let {
+    jobId,
+    rows,
+    processingTargetPageState = undefined,
+    onProcessingTargetPreviousPage = undefined,
+    onProcessingTargetNextPage = undefined,
+    onProcessingTargetPageChange = undefined
+  }: Props = $props()
 
   function buildCompletedTargetItems(
     resultRows: BodyTranslationFieldResultItem[]
@@ -43,6 +57,9 @@
   }
 
   const completedTargetItems = $derived(buildCompletedTargetItems(rows))
+  const displayedTargetItems = $derived(
+    processingTargetPageState?.items ?? completedTargetItems
+  )
 </script>
 
 <section
@@ -51,7 +68,16 @@
   id="translationCompleteView"
 >
   <TranslationCompleteSummaryPanel {jobId} />
-  <ProcessingTargetListPanel items={completedTargetItems} />
+  <ProcessingTargetListPanel
+    items={displayedTargetItems}
+    pageSize={processingTargetPageState?.pageSize ?? 50}
+    currentPage={processingTargetPageState?.page}
+    totalCount={processingTargetPageState?.totalCount}
+    busy={processingTargetPageState?.busy}
+    onPreviousPage={onProcessingTargetPreviousPage}
+    onNextPage={onProcessingTargetNextPage}
+    onPageChange={onProcessingTargetPageChange}
+  />
 </section>
 
 <style>

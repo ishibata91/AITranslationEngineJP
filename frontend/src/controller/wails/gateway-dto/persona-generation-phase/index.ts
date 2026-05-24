@@ -1,6 +1,8 @@
 export type {
   CancelPersonaGenerationPhaseRequestDto,
   CancelPersonaGenerationPhaseResponseDto,
+  GetProcessingTargetListRequestDto,
+  GetProcessingTargetListResponseDto,
   GetPersonaGenerationBodyReadinessRequestDto,
   GetPersonaGenerationBodyReadinessResponseDto,
   GetPersonaGenerationPhaseSummaryRequestDto,

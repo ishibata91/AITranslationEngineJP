@@ -13,12 +13,20 @@
     PhaseMetricCounter,
     PhaseStateToken
   } from "../../components/phase-panel-types"
-  import type { ProcessingTargetListItem } from "../../components/processing-target-list-panel-types"
+  import type {
+    ProcessingTargetListItem,
+    ProcessingTargetListPageState
+  } from "../../components/processing-target-list-panel-types"
 
   interface Props {
     viewModel: BodyTranslationPhaseScreenViewModel
     onAction: (actionId: BodyTranslationPhaseActionKind) => void | Promise<void>
     processingTargetItems?: ProcessingTargetListItem[]
+    processingTargetPageState?: ProcessingTargetListPageState
+    onProcessingTargetSearchInput?: (event: Event) => void
+    onProcessingTargetPreviousPage?: () => void
+    onProcessingTargetNextPage?: () => void
+    onProcessingTargetPageChange?: (page: number) => void
     onAISettingsChange?: (request: {
       provider: string
       model: string
@@ -31,6 +39,11 @@
     viewModel,
     onAction,
     processingTargetItems: providedProcessingTargetItems = undefined,
+    processingTargetPageState = undefined,
+    onProcessingTargetSearchInput = undefined,
+    onProcessingTargetPreviousPage = undefined,
+    onProcessingTargetNextPage = undefined,
+    onProcessingTargetPageChange = undefined,
     onAISettingsChange = undefined
   }: Props = $props()
   let processingTargetSearchValue = $state("")
@@ -100,15 +113,22 @@
     }
   ])
   const displayedProcessingTargetItems = $derived(
-    providedProcessingTargetItems && providedProcessingTargetItems.length > 0
+    processingTargetPageState
+      ? processingTargetPageState.items
+      : providedProcessingTargetItems && providedProcessingTargetItems.length > 0
       ? providedProcessingTargetItems
       : summaryProcessingTargetItems
   )
+  const processingTargetSearchQuery = $derived(
+    processingTargetPageState?.searchQuery ?? processingTargetSearchValue
+  )
   const filteredProcessingTargetItems = $derived(
-    filterProcessingTargetItems(
-      displayedProcessingTargetItems,
-      processingTargetSearchValue
-    )
+    processingTargetPageState
+      ? displayedProcessingTargetItems
+      : filterProcessingTargetItems(
+          displayedProcessingTargetItems,
+          processingTargetSearchQuery
+        )
   )
 
   function filterProcessingTargetItems(
@@ -166,6 +186,7 @@
   }
 
   function handleProcessingTargetSearchInput(event: Event): void {
+    onProcessingTargetSearchInput?.(event)
     const target = event.currentTarget
     if (target instanceof HTMLInputElement) {
       processingTargetSearchValue = target.value
@@ -253,14 +274,20 @@
 
   <ProcessingTargetListWrapper
     items={filteredProcessingTargetItems}
-    pageSize={50}
+    pageSize={processingTargetPageState?.pageSize ?? 50}
+    currentPage={processingTargetPageState?.page}
+    totalCount={processingTargetPageState?.totalCount}
+    busy={processingTargetPageState?.busy}
     searchId="bodyPhaseProcessingTargetSearch"
     searchLabel="検索"
     searchPlaceholder="名前・原文・訳語で検索"
-    searchValue={processingTargetSearchValue}
+    searchValue={processingTargetSearchQuery}
     title="処理対象"
     titleId="bodyPhaseProcessingTargetsHeading"
     onSearchInput={handleProcessingTargetSearchInput}
+    onPreviousPage={onProcessingTargetPreviousPage}
+    onNextPage={onProcessingTargetNextPage}
+    onPageChange={onProcessingTargetPageChange}
   />
 </section>
 

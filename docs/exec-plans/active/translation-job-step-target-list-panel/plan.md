@@ -15,21 +15,105 @@
 | `画面設計差分` | 完了 | `screen-design-diff.*.md` |
 | `設計差分図` | 完了 | `design-diff.translation-job-step-target-list-panel.md` |
 | `人間設計レビュー` | 完了 | 2026-05-23 に人間が `approved` として承認 |
-| `実装範囲` | 完了 | `implementation-scope.md` |
-| `実装引き継ぎ入力` | 完了 | `implementation-handoff.frontend-processing-target-panel.md` |
-| `frontend 実装` | 完了 | `ProcessingTargetListPanel` と Storybook review story を追加 |
+| `実装範囲` | 完了 | `implementation-scope.md`。2026-05-24 の人間指摘後に backend / integration 必須として再作成済み |
+| `実装引き継ぎ入力` | 完了 | `implementation-scope.md` の `Ready Waves` と `Handoffs` |
+| `frontend 実装` | 完了 | controlled UI と production path 接続を完了 |
 | `Storybookレビューループ入力確認` | 完了 | この `plan.md` の `Storybook 人間レビュー依頼` |
 | `Storybookレビューループ完了証跡` | 完了 | `storybook-review-loop.md`。承認状態は `approved` |
 | `frontend 実装後人間レビュー` | 完了 | 2026-05-24 に人間が Storybook フロント実装を承認 |
 | `Storybook後画面設計差分整合` | 完了 | `designer` が `screen-design-diff.*.md` へ反映。未決 0 件 |
 | `合意済みfrontend保護` | 完了 | この `plan.md` の `合意済み frontend 保護` |
-| `観測ログ追加` | 完了 | 追加不要。runtime 分岐と外部境界がないため |
-| `最終検証` | 完了 | frontend-local と Storybook build が通過 |
-| `実装後ブラウザ確認` | 完了 | Storybook 初期表示と Playwright ページ操作確認が通過 |
-| `正本化判断` | 完了 | 人間承認済み詳細仕様差分と画面設計差分の docs 正本化が必要 |
-| `詳細仕様正本反映` | 完了 | `docs_updater` が docs 正本へ反映。残留不足なし |
-| `作業 commit` | 完了予定 | local commit 作成後の hash は `git log -1` で確認する |
-| `マージ準備入力` | 完了 | この `plan.md` の `マージ準備入力` |
+| `backend 実装` | 完了 | `backend-processing-target-list-read-model` を実装 |
+| `統合境界実装` | 完了 | `integration-processing-target-list-public-seam` を実装 |
+| `単体テスト` | 完了 | 承認済み UI 追従 test と phase targeted tests が通過 |
+| `シナリオテスト` | 完了 | `frontend-local`、`backend-local`、Storybook build が通過 |
+| `観測ログ追加` | 完了 | backend の Wails boundary と repository failure へ `slog` を追加 |
+| `最終検証` | 完了 | `frontend-local`、`backend-local`、Storybook build、`git diff --check` が通過 |
+| `実装後ブラウザ確認` | 完了 | サンドボックス外 Wails dev で production `AppShell` と job-run 空状態を確認 |
+| `正本化判断` | 完了 | 追加 docs 正本化は不要 |
+| `詳細仕様正本反映` | 旧範囲完了 | scope 再作成前の docs 正本化は完了。追加反映なし |
+| `作業 commit` | 未完了 | local commit は未作成 |
+| `マージ準備入力` | 未完了 | commit hash が未確定 |
+
+## 2026-05-24 scope 再開記録
+
+- 人間指摘: `バックエンド整合，テスト修正やってなくない？`、`本当にバックエンド不要？`
+- 再確認結果: `implementation-scope.md` は backend / integration / frontend production path を必要と判定した。
+- 旧完了証跡: `最終検証`、`実装後ブラウザ確認`、`マージ準備入力` は frontend-only scope の証跡として残す。
+- 現在の進行単位: `Ready Waves` に従い、`wave-1` から `wave-5` へ順に進める。
+- 次の着手可能成果物: `backend-processing-target-list-read-model`。
+
+## wave-1 実装結果
+
+- `frontend-processing-target-list-controlled-ui`: controlled page state、検索語、件数、ページ操作 callback を frontend 部品と phase panel へ追加した。
+- `unit-tests-translation-input-review-approved-ui`: 翻訳入力画面の unit test を承認済み UI へ追従した。
+- `unit-tests-job-setup-approved-ui`: ジョブセットアップ画面の unit test を承認済み UI へ追従した。
+- 検証: `python3 scripts/harness/run.py --suite frontend-local` は pass。56 files、523 tests passed。
+- 残留確認: `screen-design-diff.translation-input-review.md` 由来の文言 `翻訳設定へ進む` と、現在 product / test の `単語翻訳へ進む` は差分確認が必要である。
+
+## wave-2 backend 実装結果
+
+- `backend-processing-target-list-read-model`: 処理対象一覧の read model 用 repository、service、usecase contract、usecase を追加した。
+- request: `jobId`、`phase`、`page`、`pageSize`、`searchQuery` を受け取る。
+- response: `items`、`page`、`pageSize`、`totalCount`、`searchQuery` を返す。
+- phase: `term_translation`、`persona_generation`、`body_translation`、`translation_complete` を扱う。
+- 検証: `python3 scripts/harness/run.py --suite backend-local` は pass。
+
+## wave-3 統合境界実装結果
+
+- `integration-processing-target-list-public-seam`: phase gateway contract へ `getProcessingTargetList` を追加した。
+- Wails: `ProcessingTargetController` と `GetProcessingTargetList` を追加した。
+- DTO: frontend gateway DTO と backend Wails DTO を追加した。
+- 保持方針: `TranslationJobManagementJobRunTarget` は軽量のまま維持した。
+- 検証: `python3 scripts/harness/run.py --suite backend-local` と frontend phase targeted tests は pass。
+
+## wave-4 frontend production path 実装結果
+
+- `frontend-processing-target-list-production-path`: production gateway から処理対象一覧を取得して `JobRunPage` へ渡す経路を追加した。
+- Storybook: `processingTargetItemsByPhase` がある場合は fixture 表示を優先する。
+- 状態分離: `body_translation` と `translation_complete` の page state は phase key ごとに分離した。
+- 保護: 承認済み画面の layout、文言、style は変更していない。
+- 検証: `python3 scripts/harness/run.py --suite frontend-local` は pass。56 files、523 tests passed。
+
+## 観測ログ追加 再判定
+
+- 結果: 追加済み。
+- backend Wails boundary: usecase 未設定と usecase 失敗を `processing_target_list_boundary_failed` として記録する。
+- backend repository: unsupported phase、count failed、list failed を `processing_target_list_repository_failed` として記録する。
+- 保護: 検索語、DTO 全体、secret、大量本文はログへ出さない。
+- 検証: `python3 scripts/harness/run.py --suite backend-local` と `git diff --check` は pass。
+
+## wave-5 最終検証
+
+- `python3 scripts/harness/run.py --suite frontend-local`: pass。56 files、523 tests passed。
+- `npm --prefix frontend run build-storybook`: pass。Vite chunk size warning あり。
+- `python3 scripts/harness/run.py --suite backend-local`: pass。
+- `git diff --check`: pass。
+- `wails build -clean`: fail。Wails CLI は `exit status 1` を返す。
+- 追加確認: Wails が出した Go build 相当 command は直接実行で pass。
+
+## production path 実装後ブラウザ確認
+
+- 確認 URL: `http://localhost:34115`
+- 結果: 完了。
+- 停止理由: `npm run dev:wails:agent-browser` は `tmp/logs/wails-dev.log` に `Build error - exit status 1` を出し、`34115` が listen しない。
+- 人間確認: 手動の Wails dev 起動は通るため、sandbox 起因の可能性が高い。
+- Codex 再確認: `lsof -nP -iTCP:34115 -sTCP:LISTEN` は listen なし、`curl -I --max-time 5 http://localhost:34115` は connection refused。
+- サンドボックス外起動: `npm run dev:wails:agent-browser` は `34115` listen と HTTP 到達を確認済み。
+- 確認結果: `http://localhost:34115/#translation-management/job-run` へ到達し、`ジョブ #7`、`単語翻訳`、`処理対象`、検索欄、ページング、`処理対象がありません` を確認。
+- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel-production-path/snapshot.txt`
+- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel-production-path/job-run-errors.txt`
+- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel-production-path/job-run-confirmed.png`
+- 異常: `agent-browser errors` では新しい console error は確認されなかった。
+- 未確認理由: なし。
+- 切り分け: 通常 sandbox 起動だけ失敗し、サンドボックス外起動では production 画面確認が通過した。
+
+## 追加正本化判断
+
+- 結果: 追加 docs 正本化は不要。
+- 理由: 今回の再開後実装は、承認済み `implementation-scope.md` の backend、integration、production path 接続を実装した。
+- 理由: 恒久仕様の追加は、既に正本化済みの `detail-spec-diff.md` と `screen-design-diff.*.md` の範囲を超えていない。
+- 対象外: Wails dev 起動不能は環境確認結果であり、詳細仕様正本へ入れない。
 
 ## 判断
 
@@ -139,54 +223,62 @@
 ## 作業 commit
 
 - 対象 branch: `codex/translation-job-step-target-list-panel`
+- 状態: 未作成。
+- 理由: browser confirmation 通過後の local commit は未作成。
 - commit 対象差分: `docs/exec-plans/active/translation-job-step-target-list-panel/`
-- commit 対象差分: `docs/detail-specs/translation-job-management.md`, `docs/detail-specs/term-translation-phase.md`, `docs/detail-specs/persona-generation-phase.md`, `docs/detail-specs/body-translation-phase.md`
-- commit 対象差分: `docs/screen-design/screens/job-run.md`, `docs/screen-design/screens/term-translation-phase.md`, `docs/screen-design/screens/persona-generation-phase.md`, `docs/screen-design/screens/body-translation-phase.md`, `docs/screen-design/screens/translation-complete.md`
-- commit 対象差分: `docs/screen-design/screens/master-dictionary.md`, `docs/screen-design/screens/master-persona.md`, `docs/screen-design/screens/translation-input-review.md`, `docs/screen-design/screens/translation-job-setup.md`, `docs/screen-design/screens/translation-job-management.md`
-- commit hash: local commit 作成後に `git log -1` で確認する。
+- commit 対象差分: 処理対象一覧 read model の backend 実装。
+- commit 対象差分: 処理対象一覧 Wails / gateway 境界の integration 実装。
+- commit 対象差分: 処理対象一覧 production path の frontend 実装と追従 test。
+- 除外差分: 作業開始時点または別作業の `.codex`、`AGENTS.md`、template 差分は今回 commit 対象に含めない。
+- commit hash: 未作成。
 
 ## マージ準備入力
 
 - active plan folder: `docs/exec-plans/active/translation-job-step-target-list-panel/`
 - source branch: `codex/translation-job-step-target-list-panel`
 - target branch: `master`
-- commit hash: local commit 作成後に `git log -1` で確認する。
-- 検証結果: `npm --prefix frontend run test -- ProcessingTargetListPanel` は pass。1 file、4 tests passed。
-- 検証結果: `npm --prefix frontend run build-storybook` は pass。Storybook build completed successfully。Vite chunk size warning あり。
-- 検証結果: `python3 scripts/harness/run.py --suite frontend-local` は pass。56 files、515 tests passed。
-- 検証結果: `git diff --check -- docs/detail-specs docs/screen-design/screens docs/exec-plans/active/translation-job-step-target-list-panel` は pass。
-- 検証結果: `python3 scripts/harness/run.py --suite structure` は pass。
-- 実装後ブラウザ確認結果: Storybook 初期表示と Playwright ページ操作確認が通過。
-- 残留リスク: agent-browser では `次へ` 後の DOM 変化を観測できなかった。Playwright の直接確認と単体テストではページ切替が通過している。
-- 残留リスク: Storybook 起動時の `EMFILE` watcher warning と `.storybook/settings.json` の `EPERM` warning は、Storybook 起動済みの状態で発生した環境警告として扱う。
-- 除外差分: 作業開始時点から存在した `.codex/README.md`, `.codex/agents/implement_lane.toml`, `.codex/skills/implement-lane/SKILL.md`, `docs/exec-plans/templates/task-folder/plan.md` は今回の commit 対象に含めない。
+- 状態: 未作成。
+- commit hash: 未作成。
+- 検証結果: `python3 scripts/harness/run.py --suite frontend-local` は pass。56 files、523 tests passed。
+- 検証結果: `npm --prefix frontend run build-storybook` は pass。Vite chunk size warning あり。
+- 検証結果: `python3 scripts/harness/run.py --suite backend-local` は pass。
+- 検証結果: `git diff --check` は pass。
+- 実装後ブラウザ確認結果: pass。サンドボックス外 Wails dev で `#translation-management/job-run` へ到達した。
+- 実装後ブラウザ確認結果: `ジョブ #7`、`単語翻訳`、`処理対象`、検索欄、ページング、`処理対象がありません` を確認した。
+- 残留リスク: 通常 sandbox の `npm run dev:wails:agent-browser` は `Build error - exit status 1` を返す。
+- 切り分け: サンドボックス外 Wails dev では `34115` listen と HTTP 到達が通過した。
 
 ## 観測ログ追加
 
-- 結果: 追加不要。
-- 理由: 変更は Storybook fixture と UI 表示部品に閉じており、実行後に消える runtime 分岐、外部境界の失敗分類、永続化、Wails bridge を扱わない。
-- 変更ファイル: なし。
+- 結果: 追加済み。
+- 追加先: backend Wails boundary。
+- 追加先: processing target read model repository。
+- event: `processing_target_list_boundary_failed`
+- event: `processing_target_list_repository_failed`
+- 保護: 検索語、DTO 全体、secret、大量本文はログへ出さない。
 
 ## 最終検証
 
-- `npm --prefix frontend run test -- ProcessingTargetListPanel`: pass。1 file、4 tests passed。
-- `npm --prefix frontend run build-storybook`: pass。Storybook build completed successfully。Vite chunk size warning あり。
-- `python3 scripts/harness/run.py --suite frontend-local`: pass。56 files、515 tests passed。
+- `python3 scripts/harness/run.py --suite frontend-local`: pass。56 files、523 tests passed。
+- `npm --prefix frontend run build-storybook`: pass。Vite chunk size warning あり。
+- `python3 scripts/harness/run.py --suite backend-local`: pass。
+- `git diff --check`: pass。
+- `wails build -clean`: fail。Wails CLI は `exit status 1` を返す。
+- 直接 Go build: pass。Wails dev と同等 tag の backend binary は生成できる。
 - coverage 値: 未測定。
 - issue 数: 未測定。
 - system test 件数: frontend-local は system test ではないため該当なし。
 
 ## 実装後ブラウザ確認
 
-- 確認 URL: `http://localhost:6008/iframe.html?id=review-changed-screens-job-run-processingtargetlistpanel--term-translation&viewMode=story`
-- 起動状態: `npm --prefix frontend run storybook` で `http://localhost:6008/` が起動済み。
-- 初期表示: `処理対象一覧`、`単語翻訳`、`用語候補 001`、`用語候補 050`、`1-50 / 125 件` を確認。
-- 非表示確認: 初期表示で `用語候補 051` は表示されないことを確認。
-- 操作確認: Playwright で `次へ` 押下後に `51-100 / 125 件`、`用語候補 051`、`用語候補 100` を確認し、`用語候補 001` が表示されないことを確認。
-- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel/playwright-after-next.png`
-- agent-browser 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel/` と `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel/retry-next/`
-- 注意: agent-browser では `次へ` 後の DOM 変化を観測できなかった。Playwright の直接確認と単体テストではページ切替が通過した。
-- 異常: Storybook 起動時に `EMFILE` watcher warning と `.storybook/settings.json` の `EPERM` warning が出た。Storybook は起動済み。
+- 確認 URL: `http://localhost:34115`
+- 結果: 完了。
+- 起動状態: サンドボックス外 `npm run dev:wails:agent-browser` で `34115` listen と HTTP 到達を確認。
+- 確認結果: `http://localhost:34115/#translation-management/job-run` へ到達した。
+- 確認結果: `ジョブ #7`、`単語翻訳`、`処理対象`、検索欄、ページング、`処理対象がありません` を確認した。
+- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel-production-path/snapshot.txt`
+- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel-production-path/job-run-errors.txt`
+- 証跡: `frontend/test-results/browser-confirmation/translation-job-step-target-list-panel-production-path/job-run-confirmed.png`
 
 ## 人間設計レビュー
 

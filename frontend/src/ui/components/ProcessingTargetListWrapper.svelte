@@ -24,6 +24,9 @@
     filterValue?: string
     initialExpandedItemId?: string | null
     pageSize?: number
+    currentPage?: number
+    totalCount?: number
+    busy?: boolean
     searchPlaceholder?: string
     supportText?: string
     actions?: Snippet
@@ -31,6 +34,9 @@
     summary?: Snippet
     onFilterChange?: (event: Event) => void
     onSearchInput?: (event: Event) => void
+    onPreviousPage?: () => void
+    onNextPage?: () => void
+    onPageChange?: (page: number) => void
     onSelectItem?: (itemId: string) => void
   }
 
@@ -49,6 +55,9 @@
     filterValue = "",
     initialExpandedItemId = null,
     pageSize = 50,
+    currentPage = undefined,
+    totalCount = undefined,
+    busy = false,
     searchPlaceholder = "",
     supportText = "",
     actions,
@@ -56,6 +65,9 @@
     summary,
     onFilterChange,
     onSearchInput,
+    onPreviousPage,
+    onNextPage,
+    onPageChange,
     onSelectItem
   }: Props = $props()
 
@@ -123,9 +135,15 @@
 
   <ProcessingTargetListPanel
     {items}
+    {currentPage}
     {initialExpandedItemId}
     {pageSize}
+    {totalCount}
+    {busy}
     showHeadingTitle={false}
+    {onPreviousPage}
+    {onNextPage}
+    {onPageChange}
     {onSelectItem}
   />
 

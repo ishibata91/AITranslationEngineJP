@@ -1,4 +1,8 @@
 import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   CancelPersonaGenerationPhaseRequest,
   GetPersonaGenerationBodyReadinessRequest,
   GetPersonaGenerationPhaseSummaryRequest,
@@ -12,6 +16,9 @@ import type {
   RetryPersonaGenerationPhaseRequest,
   StartPersonaGenerationPhaseRequest
 } from "@application/gateway-contract/persona-generation-phase"
+
+export type GetProcessingTargetListRequestDto = ProcessingTargetListRequest
+export type GetProcessingTargetListResponseDto = ProcessingTargetListResponse
 
 export type GetPersonaGenerationPhaseSummaryRequestDto =
   GetPersonaGenerationPhaseSummaryRequest

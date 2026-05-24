@@ -22,3 +22,12 @@ export interface ProcessingTargetListItemAction {
   disabled?: boolean
   onAction: () => void
 }
+
+export interface ProcessingTargetListPageState {
+  items: ProcessingTargetListItem[]
+  page: number
+  pageSize: number
+  totalCount: number
+  searchQuery?: string
+  busy?: boolean
+}

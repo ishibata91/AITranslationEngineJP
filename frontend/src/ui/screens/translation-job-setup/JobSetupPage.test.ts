@@ -333,7 +333,7 @@ class TranslationJobSetupScreenControllerFake implements TranslationJobSetupScre
 }
 
 describe("JobSetupPage", () => {
-  test("SCN-TJSPPS-004: LM Studio は API key 登録 UI と未設定 warning を表示しない", () => {
+  test("SCN-TJSPPS-004: 入力データ領域は承認済み項目を表示する", () => {
     const controller = new TranslationJobSetupScreenControllerFake(
       createPresentedPhaseViewModel()
     )
@@ -344,25 +344,18 @@ describe("JobSetupPage", () => {
       }
     })
 
-    const textTranslationCard = screen
-      .getByRole("heading", { name: "本文翻訳" })
-      .closest("article")
-    expect(textTranslationCard).not.toBeNull()
-    expect(textTranslationCard).toHaveTextContent("LM Studio")
-    expect(textTranslationCard).toHaveTextContent("不要")
-    expect(textTranslationCard).not.toHaveTextContent(
-      "APIキーを登録してからモデル一覧を更新してください。"
-    )
     expect(
-      screen.queryByRole("button", { name: "APIキーを登録" })
-    ).not.toBeInTheDocument()
-    expect(
-      screen.queryByPlaceholderText("APIキーを入力してください")
-    ).not.toBeInTheDocument()
-    expect(document.body).not.toHaveTextContent("sk-")
+      screen.getByRole("region", { name: "入力データ" })
+    ).toBeInTheDocument()
+    expect(screen.getAllByText("出自").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("翻訳レコード件数").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("登録日時").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("選択中").length).toBeGreaterThan(0)
+    expect(screen.getByText("既存 job 状態")).toBeInTheDocument()
+    expect(screen.getByText("既存 job はありません。")).toBeInTheDocument()
   })
 
-  test("SCN-TJSPPS-005: Gemini と xAI だけ batch checkbox を表示する", () => {
+  test("SCN-TJSPPS-005: ジョブ作成固定フッターは承認済み文言を表示する", () => {
     const controller = new TranslationJobSetupScreenControllerFake(
       createPresentedPhaseViewModel()
     )
@@ -373,96 +366,66 @@ describe("JobSetupPage", () => {
       }
     })
 
-    const wordTranslationCard = screen
-      .getByRole("heading", { name: "単語翻訳" })
-      .closest("article")
-    const personaCard = screen
-      .getByRole("heading", { name: "NPC ペルソナ生成" })
-      .closest("article")
-    const textTranslationCard = screen
-      .getByRole("heading", { name: "本文翻訳" })
-      .closest("article")
-
-    expect(wordTranslationCard).not.toBeNull()
-    expect(personaCard).not.toBeNull()
-    expect(textTranslationCard).not.toBeNull()
-    expect(wordTranslationCard).toHaveTextContent("Gemini")
-    expect(wordTranslationCard).toHaveTextContent("Batch API")
-    expect(personaCard).toHaveTextContent("xAI")
-    expect(personaCard).toHaveTextContent("Batch API")
-    expect(textTranslationCard).toHaveTextContent("LM Studio")
-    expect(textTranslationCard).toHaveTextContent(
-      "この AI サービスでは一括処理の切り替えはありません。"
-    )
-    expect(textTranslationCard).not.toHaveTextContent("一括処理で実行する")
-  })
-
-  test("SCN-TJSPPS-001: 3 phase 不足なしでは作成実行と phase 別 summary を表示する", async () => {
-    const user = userEvent.setup()
-    const controller = new TranslationJobSetupScreenControllerFake(
-      createPresentedPhaseViewModel()
-    )
-
-    render(JobSetupPage, {
-      props: {
-        createController: () => controller
-      }
-    })
-
+    expect(
+      screen.getByRole("heading", { name: "ジョブの作成確認" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("region", {
+        name: "ジョブの作成確認"
+      })
+    ).toBeInTheDocument()
     expect(
       screen.getByText("作成に必要な確認は完了しています。")
     ).toBeInTheDocument()
-    await user.click(screen.getByRole("button", { name: "単語翻訳へ進む" }))
+    expect(
+      screen.getByRole("button", { name: "単語翻訳へ進む" })
+    ).toBeEnabled()
+    expect(
+      screen.queryByRole("button", { name: "入力データの確認へ戻る" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText("作成前に確認が必要な項目があります。")
+    ).not.toBeInTheDocument()
+  })
 
-    expect(controller.createJob).toHaveBeenCalledTimes(1)
-
-    controller.pushViewModel(
-      createPresentedPhaseViewModel({
-        summary: createSummary({
-          phaseRuntimeSummaries: [
-            {
-              phaseId: "word_translation",
-              provider: "gemini",
-              model: "gemini-model-core",
-              credentialStatus: "configured",
-              executionMode: "sync",
-              batchMode: "enabled"
-            },
-            {
-              phaseId: "npc_persona_generation",
-              provider: "xai",
-              model: "xai-persona-model",
-              credentialStatus: "configured",
-              executionMode: "sync",
-              batchMode: "disabled"
-            },
-            {
-              phaseId: "text_translation",
-              provider: "lm_studio",
-              model: "local-text-model",
-              credentialStatus: "not_required",
-              executionMode: "sync",
-              batchMode: "unsupported"
-            }
-          ]
-        })
+  test("SCN-PSJD-003: 作成不可時フッターは不足理由と戻り導線を表示する", async () => {
+    const user = userEvent.setup()
+    const onReturnToInputReview = vi.fn()
+    const controller = new TranslationJobSetupScreenControllerFake(
+      createViewModel({
+        validationState: "fresh",
+        canCreate: false,
+        showCacheMissingGuidance: true,
+        blockedReasons: [
+          "入力データの確認が必要です。",
+          "blocking failure を解消するまで create できません。"
+        ]
       })
     )
 
+    render(JobSetupPage, {
+      props: {
+        createController: () => controller,
+        onReturnToInputReview
+      }
+    })
+
     expect(
-      await screen.findByRole("heading", { name: "翻訳段階ごとの設定" })
+      screen.getByRole("button", { name: "単語翻訳へ進む" })
+    ).toBeDisabled()
+    expect(
+      screen.getByText("入力データの確認が必要です。入力データの確認画面に戻ってください。")
     ).toBeInTheDocument()
-    expect(screen.getByText("Gemini")).toBeInTheDocument()
-    expect(screen.getByText("xAI")).toBeInTheDocument()
-    expect(screen.getByText("LM Studio")).toBeInTheDocument()
-    expect(screen.getByText("gemini-model-core")).toBeInTheDocument()
-    expect(screen.getByText("xai-persona-model")).toBeInTheDocument()
-    expect(screen.getByText("local-text-model")).toBeInTheDocument()
-    expect(screen.getAllByText("設定済み").length).toBeGreaterThan(0)
-    expect(screen.getByText("APIキー不要")).toBeInTheDocument()
-    expect(screen.queryByText("credential reference")).not.toBeInTheDocument()
-    expect(screen.queryByText("modelListSourceToken")).not.toBeInTheDocument()
-    expect(document.body).not.toHaveTextContent("sk-")
+    expect(
+      screen.getByRole("button", { name: "入力データの確認へ戻る" })
+    ).toBeInTheDocument()
+
+    await user.click(
+      screen.getByRole("button", { name: "入力データの確認へ戻る" })
+    )
+
+    expect(onReturnToInputReview).toHaveBeenCalledTimes(1)
+    expect(controller.createJob).not.toHaveBeenCalled()
   })
 
   test("SCN-PSJD-002: Job Setup の Ready job 作成後要約は選択値だけを表示する", async () => {
@@ -533,118 +496,6 @@ describe("JobSetupPage", () => {
     expect(document.body).not.toHaveTextContent("raw request")
   })
 
-  test("SCN-PSJD-003: Job Setup は APIキー未設定、取得失敗、モデル未選択を分けて表示する", async () => {
-    const user = userEvent.setup()
-    const controller = new TranslationJobSetupScreenControllerFake(
-      createPresentedPhaseViewModel({
-        phaseRuntimeSelections: [
-          {
-            phaseId: "word_translation",
-            provider: "gemini",
-            model: "",
-            credentialStatus: "missing",
-            executionMode: "sync",
-            batchMode: "enabled"
-          },
-          {
-            phaseId: "npc_persona_generation",
-            provider: "xai",
-            model: "",
-            credentialStatus: "configured",
-            executionMode: "sync",
-            batchMode: "disabled"
-          },
-          {
-            phaseId: "text_translation",
-            provider: "lm_studio",
-            model: "",
-            credentialStatus: "not_required",
-            executionMode: "sync",
-            batchMode: "unsupported"
-          }
-        ],
-        providerModelLists: [
-          {
-            phaseId: "word_translation",
-            provider: "gemini",
-            credentialStatus: "missing",
-            requestToken: "",
-            sourceToken: "",
-            status: "credential_missing",
-            models: [],
-            failureKind: "model_list_credential_missing"
-          },
-          {
-            phaseId: "npc_persona_generation",
-            provider: "xai",
-            credentialStatus: "configured",
-            requestToken: "",
-            sourceToken: "",
-            status: "failed",
-            models: [],
-            failureKind: "model_list_failed"
-          },
-          {
-            phaseId: "text_translation",
-            provider: "lm_studio",
-            credentialStatus: "not_required",
-            requestToken: "",
-            sourceToken: "",
-            status: "success",
-            models: [
-              { modelId: "local-ready-model", label: "local-ready-model" }
-            ]
-          }
-        ],
-        validationResult: createValidationResult({
-          status: "fail",
-          blockingFailureCategory: "phase_runtime_missing",
-          targetSlices: ["phase-runtime"],
-          canCreate: false,
-          passSlices: []
-        }),
-        validationState: "fresh",
-        dirty: false
-      })
-    )
-
-    render(JobSetupPage, {
-      props: {
-        createController: () => controller
-      }
-    })
-
-    expect(screen.getAllByText("APIキー未設定").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("モデル一覧取得失敗").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("モデル未選択").length).toBeGreaterThan(0)
-    expect(
-      screen.getByText("単語翻訳: APIキーを設定してください。")
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText("NPC ペルソナ生成: モデル一覧の取得に失敗しました。")
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText(
-        "本文翻訳: モデル一覧を更新して、使うモデルを選んでください。"
-      )
-    ).toBeInTheDocument()
-
-    const blockedRefresh = screen.getByRole("button", {
-      name: "単語翻訳のモデル一覧を更新"
-    })
-    expect(blockedRefresh).toBeEnabled()
-    await user.click(blockedRefresh)
-
-    expect(controller.refreshPhaseModels).toHaveBeenCalledWith(
-      "word_translation"
-    )
-    expect(
-      screen.getByRole("button", { name: "単語翻訳へ進む" })
-    ).toBeDisabled()
-    expect(document.body).not.toHaveTextContent("raw response")
-    expect(document.body).not.toHaveTextContent("sk-")
-  })
-
   test("input metadata の registeredAt supplied 値を表示する", () => {
     const registeredAt = "2026-04-27T00:30:00.000Z"
     const controller = new TranslationJobSetupScreenControllerFake(
@@ -687,12 +538,7 @@ describe("JobSetupPage", () => {
       }
     })
 
-    expect(
-      screen.getByRole("heading", {
-        level: 2,
-        name: "翻訳段階ごとの AI 設定"
-      })
-    ).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "入力データ" })).toBeInTheDocument()
     expect(
       screen.getAllByText(
         "/mods/very/long/path/translation/input-review-export.json"
@@ -702,23 +548,10 @@ describe("JobSetupPage", () => {
     expect(screen.getAllByText("2026/4/27 9:30:00").length).toBeGreaterThan(0)
     expect(screen.getAllByText("128 件").length).toBeGreaterThan(0)
     expect(screen.getByText("既存 job はありません。")).toBeInTheDocument()
+    expect(screen.getByText("ジョブの作成確認")).toBeInTheDocument()
     expect(
-      screen.getByText("Shared Dictionary / Foundation Core")
+      screen.getByText("入力データの確認が必要です。入力データの確認画面に戻ってください。")
     ).toBeInTheDocument()
-    expect(
-      screen.getByText("Foundation Persona / Translation Main")
-    ).toBeInTheDocument()
-    expect(
-      screen.queryByText("credential 参照は設定済みです。")
-    ).not.toBeInTheDocument()
-    expect(screen.getAllByText("要確認").length).toBeGreaterThan(0)
-    expect(screen.getByText("invalid-timestamp")).toBeInTheDocument()
-    expect(screen.getByText("cache missing")).toBeInTheDocument()
-    expect(screen.getByText("再確認が必要")).toBeInTheDocument()
-    expect(screen.getAllByText("credential").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("runtime").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("input").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("foundation").length).toBeGreaterThan(0)
     expect(
       screen.getByRole("button", { name: "単語翻訳へ進む" })
     ).toBeDisabled()
@@ -728,11 +561,13 @@ describe("JobSetupPage", () => {
     expect(
       screen.getByText("blocking failure を解消するまで create できません。")
     ).toBeInTheDocument()
+    expect(screen.getByText("validation が失効しています。")).toBeInTheDocument()
     expect(
-      screen.getByText(
-        "入力データの再構築が必要です。入力データの確認画面に戻ってください。"
-      )
-    ).toBeInTheDocument()
+      screen.queryByRole("heading", { name: "共通辞書と共通ペルソナ" })
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "作成前確認" })
+    ).not.toBeInTheDocument()
 
     await user.click(
       screen.getByRole("button", { name: "入力データの確認へ戻る" })
@@ -744,7 +579,7 @@ describe("JobSetupPage", () => {
     })
   })
 
-  test("入力カード選択、削除、AIサービス・モデル・実行方法の操作を controller へ委譲する", async () => {
+  test("入力カード選択、削除、入力候補確認の操作を controller へ委譲する", async () => {
     const user = userEvent.setup()
     const controller = new TranslationJobSetupScreenControllerFake(
       createViewModel({
@@ -772,19 +607,14 @@ describe("JobSetupPage", () => {
       })
     )
     await user.click(screen.getByRole("button", { name: "削除" }))
-    await user.selectOptions(
-      screen.getByLabelText("AIサービス / モデル / 実行方法"),
-      "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
-    )
-    await user.click(screen.getByRole("button", { name: "確認を実行" }))
+    await user.click(screen.getByRole("button", { name: "選択候補を確認" }))
 
     expect(controller.selectInputSource).toHaveBeenCalledWith(41)
     expect(controller.deleteInputSource).toHaveBeenCalledWith(41)
-    expect(controller.selectRuntime).toHaveBeenCalledWith(
-      "anthropic::claude-3-7-sonnet-with-a-very-long-name::sync"
-    )
+    expect(controller.selectInputSource).toHaveBeenCalledTimes(2)
+    expect(controller.selectRuntime).not.toHaveBeenCalled()
     expect(controller.selectCredentialRef).not.toHaveBeenCalled()
-    expect(controller.runValidation).toHaveBeenCalledTimes(1)
+    expect(controller.runValidation).not.toHaveBeenCalled()
     expect(controller.createJob).not.toHaveBeenCalled()
   })
 

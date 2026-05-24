@@ -119,9 +119,29 @@
     }
   }
 
+  function getBodyProcessingTargetPageState(phase: string) {
+    return bodyViewModel?.processingTargetPageStatesByPhase?.[phase]
+  }
+
+  function getBodyProcessingTargetPage(phase: string): number {
+    return getBodyProcessingTargetPageState(phase)?.page ?? 1
+  }
+
   function setCurrentPhasePage(phasePage: PhasePageId): void {
     currentPhasePage = phasePage
     onPhaseViewChange(toTranslationManagementViewId(phasePage))
+    if (phasePage === "body") {
+      void bodyController?.setProcessingTargetPage?.(
+        getBodyProcessingTargetPage("body_translation"),
+        "body_translation"
+      )
+    }
+    if (phasePage === "complete") {
+      void bodyController?.setProcessingTargetPage?.(
+        getBodyProcessingTargetPage("translation_complete"),
+        "translation_complete"
+      )
+    }
   }
 
   $effect(() => {
@@ -336,6 +356,71 @@
   const currentProcessingTargetItems = $derived(
     processingTargetItemsByPhase[currentPhasePage] ?? []
   )
+  const currentProcessingTargetPageState = $derived.by(() => {
+    if (currentProcessingTargetItems.length > 0) {
+      return undefined
+    }
+
+    switch (currentPhasePage) {
+      case "term":
+        return viewModel.processingTargetPageState ?? undefined
+      case "persona":
+        return personaViewModel.processingTargetPageState ?? undefined
+      case "body":
+        return getBodyProcessingTargetPageState("body_translation")
+      case "complete":
+        return getBodyProcessingTargetPageState("translation_complete")
+      default:
+        return undefined
+    }
+  })
+
+  async function handleProcessingTargetSearchInput(
+    event: Event
+  ): Promise<void> {
+    const target = event.target
+    if (!(target instanceof HTMLInputElement)) {
+      return
+    }
+
+    switch (currentPhasePage) {
+      case "term":
+        await controller.setProcessingTargetSearchQuery?.(target.value)
+        return
+      case "persona":
+        await personaController.setProcessingTargetSearchQuery?.(target.value)
+        return
+      case "body":
+        await bodyController?.setProcessingTargetSearchQuery?.(target.value)
+        return
+      case "complete":
+        await bodyController?.setProcessingTargetSearchQuery?.(
+          target.value,
+          "translation_complete"
+        )
+        return
+    }
+  }
+
+  async function handleProcessingTargetPageChange(page: number): Promise<void> {
+    switch (currentPhasePage) {
+      case "term":
+        await controller.setProcessingTargetPage?.(page)
+        return
+      case "persona":
+        await personaController.setProcessingTargetPage?.(page)
+        return
+      case "body":
+        await bodyController?.setProcessingTargetPage?.(page)
+        return
+      case "complete":
+        await bodyController?.setProcessingTargetPage?.(
+          page,
+          "translation_complete"
+        )
+        return
+    }
+  }
 </script>
 
 <section class="job-run-page" data-testid="job-run-job-run-shell">
@@ -348,6 +433,9 @@
           onAction={(actionId: TermTranslationPhaseActionCard["id"]) =>
             handleAction(actionId)}
           processingTargetItems={currentProcessingTargetItems}
+          processingTargetPageState={currentProcessingTargetPageState}
+          onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
+          onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handleTermAISettingsChange}
         />
         <PhaseNavigationFooter
@@ -368,6 +456,9 @@
           onAction={(actionId: PersonaGenerationPhaseActionKind) =>
             handlePersonaAction(actionId)}
           processingTargetItems={currentProcessingTargetItems}
+          processingTargetPageState={currentProcessingTargetPageState}
+          onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
+          onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handlePersonaAISettingsChange}
         />
         <PhaseNavigationFooter
@@ -388,6 +479,9 @@
           onAction={(actionId: BodyTranslationPhaseActionKind) =>
             handleBodyAction(actionId)}
           processingTargetItems={currentProcessingTargetItems}
+          processingTargetPageState={currentProcessingTargetPageState}
+          onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
+          onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handleBodyAISettingsChange}
         />
         <PhaseNavigationFooter
@@ -406,6 +500,8 @@
         <TranslationCompletePage
           jobId={selectedJobTarget.jobId}
           rows={bodyViewModel.fieldResultItems}
+          processingTargetPageState={currentProcessingTargetPageState}
+          onProcessingTargetPageChange={handleProcessingTargetPageChange}
         />
         <PhaseNavigationFooter
           dataTestId="translation-complete-post-completion-next-action"
