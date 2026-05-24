@@ -9,7 +9,6 @@ export {
   applyModelSettingsListResult,
   buildModelSettingsCardViewModel,
   cloneModelSettingsCardState,
-  cloneModelSettingsCardStates,
   createModelSettingsCardState,
   failModelSettingsListRefresh,
   markModelSettingsSaved,
