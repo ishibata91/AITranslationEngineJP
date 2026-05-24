@@ -32,8 +32,8 @@
 | `実装後ブラウザ確認` | 完了 | サンドボックス外 Wails dev で production `AppShell` と job-run 空状態を確認 |
 | `正本化判断` | 完了 | 追加 docs 正本化は不要 |
 | `詳細仕様正本反映` | 旧範囲完了 | scope 再作成前の docs 正本化は完了。追加反映なし |
-| `作業 commit` | 未完了 | local commit は未作成 |
-| `マージ準備入力` | 未完了 | commit hash が未確定 |
+| `作業 commit` | 完了 | `768d09d` |
+| `マージ準備入力` | 完了 | `merge-ready.md` |
 
 ## 2026-05-24 scope 再開記録
 
@@ -223,22 +223,23 @@
 ## 作業 commit
 
 - 対象 branch: `codex/translation-job-step-target-list-panel`
-- 状態: 未作成。
-- 理由: browser confirmation 通過後の local commit は未作成。
+- 状態: 完了。
 - commit 対象差分: `docs/exec-plans/active/translation-job-step-target-list-panel/`
 - commit 対象差分: 処理対象一覧 read model の backend 実装。
 - commit 対象差分: 処理対象一覧 Wails / gateway 境界の integration 実装。
 - commit 対象差分: 処理対象一覧 production path の frontend 実装と追従 test。
 - 除外差分: 作業開始時点または別作業の `.codex`、`AGENTS.md`、template 差分は今回 commit 対象に含めない。
-- commit hash: 未作成。
+- commit hash: `768d09d`
+- commit message: `Implement processing target production path`
 
 ## マージ準備入力
 
 - active plan folder: `docs/exec-plans/active/translation-job-step-target-list-panel/`
 - source branch: `codex/translation-job-step-target-list-panel`
 - target branch: `master`
-- 状態: 未作成。
-- commit hash: 未作成。
+- 状態: 完了。
+- merge ready file: `merge-ready.md`
+- commit hash: `768d09d`
 - 検証結果: `python3 scripts/harness/run.py --suite frontend-local` は pass。56 files、523 tests passed。
 - 検証結果: `npm --prefix frontend run build-storybook` は pass。Vite chunk size warning あり。
 - 検証結果: `python3 scripts/harness/run.py --suite backend-local` は pass。
