@@ -2,10 +2,15 @@
   import AIModelSelectionCard from "../../components/AIModelSelectionCard.svelte"
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
+  import ProcessingTargetListWrapper from "../../components/ProcessingTargetListWrapper.svelte"
   import type {
     PhaseDetailItem,
     PhaseMetricCounter
   } from "../../components/phase-panel-types"
+  import type {
+    ProcessingTargetListItem,
+    ProcessingTargetListPageState
+  } from "../../components/processing-target-list-panel-types"
   import type {
     PersonaGenerationPhaseActionKind,
     PersonaGenerationPhaseScreenViewModel
@@ -16,6 +21,12 @@
     onAction: (
       actionId: PersonaGenerationPhaseActionKind
     ) => void | Promise<void>
+    processingTargetItems?: ProcessingTargetListItem[]
+    processingTargetPageState?: ProcessingTargetListPageState
+    onProcessingTargetSearchInput?: (event: Event) => void
+    onProcessingTargetPreviousPage?: () => void
+    onProcessingTargetNextPage?: () => void
+    onProcessingTargetPageChange?: (page: number) => void
     onAISettingsChange?: (request: {
       provider: string
       model: string
@@ -24,7 +35,18 @@
     }) => void | Promise<void>
   }
 
-  let { viewModel, onAction, onAISettingsChange = undefined }: Props = $props()
+  let {
+    viewModel,
+    onAction,
+    processingTargetItems: providedProcessingTargetItems = undefined,
+    processingTargetPageState = undefined,
+    onProcessingTargetSearchInput = undefined,
+    onProcessingTargetPreviousPage = undefined,
+    onProcessingTargetNextPage = undefined,
+    onProcessingTargetPageChange = undefined,
+    onAISettingsChange = undefined
+  }: Props = $props()
+  let processingTargetSearchValue = $state("")
   const statusMetrics = $derived<PhaseMetricCounter[]>([
     { label: "対象", value: viewModel.targetCountLabel },
     { label: "処理済み", value: viewModel.generatedCountLabel },
@@ -52,6 +74,64 @@
   const progressDetails = $derived<PhaseDetailItem[]>([
     { label: "対象件数", value: viewModel.targetCountLabel }
   ])
+  const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
+    {
+      id: "persona-generation-npc-target",
+      name: "NPC 名",
+      detail: "NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作る対象。",
+      metadata: [
+        { label: "NPC 件数", value: viewModel.npcCountLabel },
+        { label: "生成対象", value: viewModel.targetCountLabel },
+        {
+          label: "共通ペルソナ一致",
+          value: viewModel.commonPersonaHitCountLabel
+        },
+        {
+          label: "共通ペルソナ未一致",
+          value: viewModel.commonPersonaMissCountLabel
+        },
+        { label: "生成済み", value: viewModel.generatedCountLabel },
+        { label: "未生成", value: viewModel.missingCountLabel },
+        { label: "除外理由", value: viewModel.skippedReasonsLabel },
+        { label: "スナップショット", value: viewModel.targetSnapshotLabel }
+      ]
+    }
+  ])
+  const displayedProcessingTargetItems = $derived(
+    processingTargetPageState
+      ? processingTargetPageState.items
+      : providedProcessingTargetItems && providedProcessingTargetItems.length > 0
+      ? providedProcessingTargetItems
+      : summaryProcessingTargetItems
+  )
+  const processingTargetSearchQuery = $derived(
+    processingTargetPageState?.searchQuery ?? processingTargetSearchValue
+  )
+  const filteredProcessingTargetItems = $derived(
+    processingTargetPageState
+      ? displayedProcessingTargetItems
+      : filterProcessingTargetItems(
+          displayedProcessingTargetItems,
+          processingTargetSearchQuery
+        )
+  )
+
+  function filterProcessingTargetItems(
+    items: ProcessingTargetListItem[],
+    searchValue: string
+  ): ProcessingTargetListItem[] {
+    const normalizedSearchValue = searchValue.trim().toLocaleLowerCase("ja-JP")
+    if (!normalizedSearchValue) {
+      return items
+    }
+
+    return items.filter((item) =>
+      [item.name, ...(item.titleParts?.map((part) => part.text) ?? [])]
+        .join(" ")
+        .toLocaleLowerCase("ja-JP")
+        .includes(normalizedSearchValue)
+    )
+  }
 
   function selectedValue(event: Event): string {
     const target = event.currentTarget
@@ -89,6 +169,14 @@
   function handleModelChange(event: Event): void {
     saveAISettings({ model: selectedValue(event) })
   }
+
+  function handleProcessingTargetSearchInput(event: Event): void {
+    onProcessingTargetSearchInput?.(event)
+    const target = event.currentTarget
+    if (target instanceof HTMLInputElement) {
+      processingTargetSearchValue = target.value
+    }
+  }
 </script>
 
 <section class="job-run-shell" id="personaGenerationPhaseView">
@@ -107,22 +195,23 @@
     metrics={statusMetrics}
   />
 
-  <PhaseProgressPanel
-    headingId="personaPhaseProgressHeading"
-    testId="persona-generation-phase-progress-card"
-    eyebrow="翻訳段階の進行状況"
-    title="進行状況"
-    progressLabel={viewModel.progressLabel}
-    progressPercent={viewModel.progressPercent}
-    progressDetail={viewModel.progressDetail}
-    details={progressDetails}
-    currentPhaseLabel={viewModel.currentPhaseLabel}
-    actionAriaLabel="翻訳段階の操作"
-    actions={viewModel.actionCards}
-    {onAction}
-  />
+  <section class="phase-controls-grid">
+    <PhaseProgressPanel
+      headingId="personaPhaseProgressHeading"
+      testId="persona-generation-phase-progress-card"
+      eyebrow="翻訳段階の進行状況"
+      title="進行状況"
+      progressLabel={viewModel.progressLabel}
+      progressPercent={viewModel.progressPercent}
+      progressDetail={viewModel.progressDetail}
+      details={progressDetails}
+      currentPhaseLabel={viewModel.currentPhaseLabel}
+      actionAriaLabel="翻訳段階の操作"
+      actions={viewModel.actionCards}
+      onAction={(actionId) =>
+        onAction(actionId as PersonaGenerationPhaseActionKind)}
+    />
 
-  <section class="summary-grid ai-settings-row">
     <AIModelSelectionCard
       dataTestId="persona-generation-phase-ai-model-selection-card"
       ariaLabel="NPC ペルソナ生成の AI モデル選択"
@@ -168,6 +257,24 @@
       footerWarningText={aiSettingsBlockedReason}
     />
   </section>
+
+  <ProcessingTargetListWrapper
+    items={filteredProcessingTargetItems}
+    pageSize={processingTargetPageState?.pageSize ?? 50}
+    currentPage={processingTargetPageState?.page}
+    totalCount={processingTargetPageState?.totalCount}
+    busy={processingTargetPageState?.busy}
+    searchId="personaPhaseProcessingTargetSearch"
+    searchLabel="検索"
+    searchPlaceholder="名前で検索"
+    searchValue={processingTargetSearchQuery}
+    title="処理対象"
+    titleId="personaPhaseProcessingTargetsHeading"
+    onSearchInput={handleProcessingTargetSearchInput}
+    onPreviousPage={onProcessingTargetPreviousPage}
+    onNextPage={onProcessingTargetNextPage}
+    onPageChange={onProcessingTargetPageChange}
+  />
 </section>
 
 <style>
@@ -176,18 +283,14 @@
     gap: 1.25rem;
   }
 
-  .summary-grid {
+  .phase-controls-grid {
     display: grid;
     gap: 1.25rem;
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .ai-settings-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   @media (max-width: 900px) {
-    .summary-grid {
+    .phase-controls-grid {
       grid-template-columns: 1fr;
     }
   }

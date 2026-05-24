@@ -1,5 +1,7 @@
 import type { TermTranslationPhaseGatewayContract } from "@application/gateway-contract/term-translation-phase"
 import type {
+  GetProcessingTargetListRequestDto,
+  GetProcessingTargetListResponseDto,
   GetTermTranslationNextPhaseReadinessRequestDto,
   GetTermTranslationNextPhaseReadinessResponseDto,
   GetTermTranslationPhaseSummaryRequestDto,
@@ -17,6 +19,7 @@ import type {
 } from "@controller/wails/gateway-dto/term-translation-phase"
 
 type TermTranslationPhaseBindingName =
+  | "GetProcessingTargetList"
   | "GetTermTranslationPhaseSummary"
   | "StartTermTranslationPhase"
   | "SaveTermTranslationPhaseAISettings"
@@ -55,6 +58,7 @@ function resolveBindingFunction(
   }
 
   const controllerCandidates = [
+    toRecord(wailsRecord["ProcessingTargetController"]),
     toRecord(wailsRecord["TermTranslationPhaseController"]),
     toRecord(wailsRecord["AppController"])
   ]
@@ -96,6 +100,12 @@ function createBindingInvoker(): BindingInvoker {
 
 class TermTranslationPhaseGateway implements TermTranslationPhaseGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
+
+  getProcessingTargetList(
+    request: GetProcessingTargetListRequestDto
+  ): Promise<GetProcessingTargetListResponseDto> {
+    return this.invokeBinding("GetProcessingTargetList", request)
+  }
 
   getTermTranslationPhaseSummary(
     request: GetTermTranslationPhaseSummaryRequestDto

@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `body-translation-phase`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`
+- `source_artifacts`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -70,6 +70,7 @@ AIサービス失敗、応答不正、対応関係不整合、保存失敗、保
 - 本文翻訳フェーズの完了時点で翻訳ジョブ全体は `Completed` になる。
 - 本文翻訳フェーズ `Completed`、翻訳結果整合、出力状態整合を満たす時だけ成果物出力条件が成立する。
 - 成果物出力は、成果物出力条件が成立した完了済み翻訳ジョブだけを候補にする。
+- 利用者は、翻訳完了確認の処理対象名が翻訳項目単位の訳文であり、本文翻訳で保持された訳文として出力管理へ進む前に確認するものであることを判断できる。
 
 ### `body-translation-phase-REQ-006` 進行と結果を判断できる
 
@@ -83,6 +84,7 @@ AIサービス失敗、応答不正、対応関係不整合、保存失敗、保
 - 利用者は本文翻訳フェーズ開始、一時停止、再開、再試行、取り消し、翻訳結果確認、保護要素検証結果確認、成果物出力条件確認を行える。
 - 状態差分は、未準備、準備完了、開始中、実行中、一時停止中、回復可能失敗、検証失敗、空完了、完了、取り消し済み、失敗として扱う。
 - AIサービス未実行、AIサービス実行中、AIサービス部分失敗、保存失敗、遅延応答拒否を区別できる。
+- 利用者は、本文翻訳フェーズの処理対象名が辞書置換対象外の翻訳項目であり、辞書とペルソナを参照して訳文を作るものであることを判断できる。
 
 ### `body-translation-phase-REQ-007` 操作可否と状態理由を判断できる
 
@@ -114,3 +116,4 @@ AIサービス失敗、応答不正、対応関係不整合、保存失敗、保
 - human decision は plan の `human_review_status: approved-after-design-bundle` と人間設計レビュー結果 `approved` に記録されている。
 - 最終検証は plan の最終検証通過結果で確認済みである。
 - 5 観点 reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
+- 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。

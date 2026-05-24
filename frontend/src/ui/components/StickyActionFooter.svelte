@@ -1,6 +1,8 @@
 <script lang="ts">
   import type { Snippet } from "svelte"
 
+  import FloatingTooltipTrigger from "./FloatingTooltipTrigger.svelte"
+
   interface Props {
     title: string
     titleId: string
@@ -49,23 +51,13 @@
       <div class="reason-summary" aria-live="polite">
         <span class="reason-primary">{firstReason}</span>
         {#if remainingCount > 0}
-          <span class="reason-more-shell">
-            <button
-              aria-describedby={tooltipId}
-              class="reason-more"
-              type="button"
-            >
-              ほか {remainingCount} 件の確認が必要です
-            </button>
-            <span class="reason-tooltip" id={tooltipId} role="tooltip">
-              <span class="tooltip-title">確認が必要な項目</span>
-              <ul>
-                {#each remainingReasons as reason (reason)}
-                  <li>{reason}</li>
-                {/each}
-              </ul>
-            </span>
-          </span>
+          <FloatingTooltipTrigger
+            {tooltipId}
+            tooltipItems={remainingReasons}
+            tooltipTitle="確認が必要な項目"
+            triggerClass="reason-more"
+            triggerText={`ほか ${remainingCount} 件の確認が必要です`}
+          />
         {/if}
       </div>
     {/if}
@@ -141,12 +133,7 @@
     white-space: normal;
   }
 
-  .reason-more-shell {
-    display: inline-flex;
-    position: relative;
-  }
-
-  .reason-more {
+  :global(.reason-more) {
     background: rgba(255, 190, 126, 0.08);
     border: 1px dotted rgba(255, 212, 165, 0.42);
     border-radius: 999px;
@@ -161,49 +148,9 @@
     text-underline-offset: 0.18rem;
   }
 
-  .reason-more:focus {
+  :global(.reason-more:focus) {
     outline: 2px solid rgba(255, 204, 136, 0.72);
     outline-offset: 2px;
-  }
-
-  .reason-tooltip {
-    background: rgba(22, 19, 18, 0.98);
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    border-radius: 6px;
-    bottom: calc(100% + 8px);
-    color: #fef3e8;
-    display: none;
-    font-size: 0.8rem;
-    line-height: 1.5;
-    min-width: 18rem;
-    padding: 0.75rem 0.85rem;
-    position: absolute;
-    right: 0;
-    text-align: left;
-    z-index: 30;
-  }
-
-  .reason-more-shell:hover .reason-tooltip,
-  .reason-more-shell:focus-within .reason-tooltip {
-    display: grid;
-    gap: 0.45rem;
-  }
-
-  .tooltip-title {
-    color: rgba(255, 215, 176, 0.72);
-    font-size: 0.76rem;
-  }
-
-  .reason-tooltip ul {
-    display: grid;
-    gap: 0.35rem;
-    margin: 0;
-    padding-left: 1.1rem;
-  }
-
-  .reason-tooltip li {
-    overflow-wrap: anywhere;
-    word-break: break-word;
   }
 
   .button-primary {
@@ -241,10 +188,5 @@
       max-width: 100%;
     }
 
-    .reason-tooltip {
-      left: 0;
-      min-width: min(18rem, 82vw);
-      right: auto;
-    }
   }
 </style>

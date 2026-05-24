@@ -2,6 +2,8 @@ import type { BodyTranslationPhaseGatewayContract } from "@application/gateway-c
 import type {
   CancelBodyTranslationPhaseRequestDto,
   CancelBodyTranslationPhaseResponseDto,
+  GetProcessingTargetListRequestDto,
+  GetProcessingTargetListResponseDto,
   GetBodyTranslationOutputReadinessRequestDto,
   GetBodyTranslationOutputReadinessResponseDto,
   GetBodyTranslationPhaseSummaryRequestDto,
@@ -19,6 +21,7 @@ import type {
 } from "@controller/wails/gateway-dto/body-translation-phase"
 
 type BodyTranslationPhaseBindingName =
+  | "GetProcessingTargetList"
   | "GetBodyTranslationPhaseSummary"
   | "StartBodyTranslationPhase"
   | "SaveBodyTranslationPhaseAISettings"
@@ -58,6 +61,7 @@ function resolveBindingFunction(
   }
 
   const controllerCandidates = [
+    toRecord(wailsRecord["ProcessingTargetController"]),
     toRecord(wailsRecord["BodyTranslationPhaseController"]),
     toRecord(wailsRecord["AppController"])
   ]
@@ -99,6 +103,12 @@ function createBindingInvoker(): BindingInvoker {
 
 class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
+
+  getProcessingTargetList(
+    request: GetProcessingTargetListRequestDto
+  ): Promise<GetProcessingTargetListResponseDto> {
+    return this.invokeBinding("GetProcessingTargetList", request)
+  }
 
   getBodyTranslationPhaseSummary(
     request: GetBodyTranslationPhaseSummaryRequestDto

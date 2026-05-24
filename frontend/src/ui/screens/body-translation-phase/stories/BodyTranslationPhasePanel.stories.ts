@@ -4,7 +4,7 @@ import BodyTranslationPhasePanel from "../BodyTranslationPhasePanel.svelte"
 import { bodyTranslationPhasePanelFixture } from "../__fixtures__/body-phase-card-fixture"
 
 const meta = {
-  title: "Screens/Body Translation Phase/BodyTranslationPhasePanel",
+  title: "Screen Components/Body Translation Phase/BodyTranslationPhasePanel",
   component: BodyTranslationPhasePanel,
   parameters: {
     layout: "fullscreen"

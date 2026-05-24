@@ -17,7 +17,8 @@
 
 - `ux_task_frame`: `task 枠` の記録位置 または `N/A`
 - `screen_design_diff`: `./screen-design-diff.<screen-id>.md` または `N/A`
-- `storybook_review_request`: Storybook 人間レビュー依頼の記録位置 または `N/A`
+- `storybook_review_loop_input`: Storybook レビューループ入力確認の記録位置 または `N/A`
+- `storybook_review_loop_evidence`: `./storybook-review-loop.md` または `N/A`
 - `frontend_human_review`: frontend 実装後人間レビューの記録位置 または `N/A`
 - `approved_frontend_protection`: 合意済み frontend 保護対象の記録位置 または `N/A`
 - `detail_spec_diff`: `./detail-spec-diff.md`
@@ -41,8 +42,9 @@
 ## HITL Status
 
 - `detail_spec_hitl`: `required-after-design-bundle` / `approved` / `not-required`
-- `storybook_review_request`: `required-after-frontend-implementation` / `ready` / `rework-required` / `not-required`
-- `frontend_human_review`: `required-after-frontend-implementation` / `approved` / `rework-requested` / `not-required`
+- `storybook_review_loop_input`: `required-after-frontend-implementation` / `ready` / `rework-required` / `not-required`
+- `storybook_review_loop_evidence`: `required-after-storybook-review-loop` / `ready` / `not-required`
+- `frontend_human_review`: `required-after-storybook-review-loop-evidence` / `approved` / `rework-requested` / `not-required`
 - `approval_record`: `pending-after-design-bundle` または human review の記録
 
 ## Codex Implementation Result
@@ -53,7 +55,8 @@
 - `test_results`:
 - `implementation_investigation`:
 - `ui_evidence`:
-- `storybook_review_request`:
+- `storybook_review_loop_input`:
+- `storybook_review_loop_evidence`:
 - `storybook_review_resources`:
 - `approved_frontend_protection`:
 - `codex_review_result`:

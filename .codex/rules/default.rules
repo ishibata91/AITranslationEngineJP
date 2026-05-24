@@ -235,22 +235,53 @@ prefix_rule(
             "open",
             "snapshot",
             "get",
+            "is",
+            "find",
             "click",
+            "fill",
+            "press",
+            "reload",
             "screenshot",
+            "console",
+            "network",
+            "eval",
+            "set",
+            "batch",
             "close",
             "errors",
         ],
     ],
     decision = "allow",
-    justification = "agent-browser CLI commands are required for sub-agent browser evidence gathering.",
+    justification = "agent-browser CLI commands are required for browser evidence gathering.",
     match = [
         "agent-browser doctor --offline --quick",
         "agent-browser open http://localhost:34115",
+        "agent-browser get text \"#root\"",
+        "agent-browser is visible \"[data-testid='job-form']\"",
+        "agent-browser eval \"document.querySelector('button')?.textContent\"",
+        "agent-browser set viewport 390 844",
         "agent-browser screenshot tmp/agent-browser/screenshot.png",
         "agent-browser errors",
     ],
     not_match = [
         "agent-browser install",
+    ],
+)
+
+prefix_rule(
+    pattern = [
+        "pkill",
+        "-f",
+        "storybook dev -p 6008 --exact-port --no-open",
+    ],
+    decision = "allow",
+    justification = "Storybook review uses one fixed dev server on port 6008 and requires restart after frontend or story changes.",
+    match = [
+        "pkill -f \"storybook dev -p 6008 --exact-port --no-open\"",
+    ],
+    not_match = [
+        "pkill -f node",
+        "pkill -f storybook",
     ],
 )
 

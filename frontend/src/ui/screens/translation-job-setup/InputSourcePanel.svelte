@@ -1,4 +1,6 @@
 <script lang="ts">
+  import FileImportPanel from "@ui/components/FileImportPanel.svelte"
+
   interface InputSourceCandidate {
     id: number
     label: string
@@ -44,18 +46,36 @@
   function isDeletingInputCard(candidateId: number): boolean {
     return deletingInputSourceId === candidateId
   }
+
+  function selectDefaultInputSource(): void {
+    const candidateId = selectedInputSourceId ?? candidates[0]?.id
+    if (candidateId !== undefined) {
+      onSelectInputSource(candidateId)
+    }
+  }
+
+  const selectedInputStats = $derived([
+    { label: "出自", value: selectedInputSourceKind },
+    { label: "登録日時", value: selectedInputRegisteredAtLabel },
+    { label: "翻訳レコード件数", value: selectedInputRecordCountLabel },
+    { label: "既存 job 状態", value: existingJobSummary }
+  ])
 </script>
 
-<section
-  class="job-setup-card"
-  aria-labelledby="jobSetupInputHeading"
-  data-testid="translation-job-setup-input-data-region"
+<FileImportPanel
+  eyebrow="ジョブ入力"
+  helperText="翻訳ジョブで使う入力データを選択します。"
+  primaryActionId="selectInputSourceButton"
+  primaryActionLabel="選択候補を確認"
+  primaryActionDisabled={isCreating || candidates.length === 0}
+  selectedLabel="選択中"
+  selectedName={selectedInputLabel}
+  stats={selectedInputStats}
+  testId="translation-job-setup-input-data-region"
+  title="入力データ"
+  titleId="jobSetupInputHeading"
+  onPrimaryAction={selectDefaultInputSource}
 >
-  <div class="section-head">
-    <div>
-      <h3 id="jobSetupInputHeading">入力データ</h3>
-    </div>
-  </div>
   <div class="input-card-list" aria-label="input data" role="list">
     {#each candidates as candidate (candidate.id)}
       <article
@@ -107,32 +127,9 @@
       </article>
     {/each}
   </div>
-  <dl class="detail-grid compact">
-    <div>
-      <dt>入力データ名</dt>
-      <dd class="wrap-value">{selectedInputLabel}</dd>
-    </div>
-    <div>
-      <dt>出自</dt>
-      <dd class="wrap-value">{selectedInputSourceKind}</dd>
-    </div>
-    <div>
-      <dt>登録日時</dt>
-      <dd>{selectedInputRegisteredAtLabel}</dd>
-    </div>
-    <div>
-      <dt>翻訳レコード件数</dt>
-      <dd>{selectedInputRecordCountLabel}</dd>
-    </div>
-    <div>
-      <dt>既存 job 状態</dt>
-      <dd class="wrap-value">{existingJobSummary}</dd>
-    </div>
-  </dl>
-</section>
+</FileImportPanel>
 
 <style>
-  .job-setup-card,
   .input-card,
   .input-card-actions,
   .input-card-select,
@@ -142,17 +139,6 @@
     gap: 0.75rem;
   }
 
-  .job-setup-card {
-    gap: 1rem;
-    padding: 1.25rem;
-    border: 1px solid rgba(255, 212, 165, 0.18);
-    border-radius: 1.25rem;
-    background: rgba(34, 26, 23, 0.82);
-    box-shadow: 0 20px 40px rgba(6, 4, 3, 0.18);
-    color: var(--text);
-  }
-
-  .section-head,
   .input-card-head {
     display: flex;
     align-items: flex-start;

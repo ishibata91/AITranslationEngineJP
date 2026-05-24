@@ -13,12 +13,12 @@
   const lockText = $derived(
     isRunActive
       ? "生成中は編集と削除を行えません。"
-      : "一覧と詳細を確認しながら次の操作を選べます。"
+      : "一覧のアコーディオンを確認しながら次の操作を選べます。"
   )
 </script>
 
 <section
-  class="panel run-panel"
+  class="phase-card run-panel"
   aria-labelledby="runHeading"
   data-testid="master-persona-progress-panel"
 >
@@ -83,20 +83,22 @@
 </section>
 
 <style>
-  .panel,
   .run-card {
     border-radius: 20px;
   }
 
-  .panel {
-    background: rgba(17, 13, 12, 0.42);
-    border: 0.5px solid var(--line);
-    box-shadow: var(--shadow);
+  .phase-card {
+    align-content: start;
+    background: rgba(33, 27, 24, 0.88);
+    border: 1px solid rgba(226, 205, 173, 0.14);
+    border-radius: 20px;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
     color: var(--text);
     display: grid;
-    gap: 14px;
+    gap: 0.95rem;
+    grid-auto-rows: max-content;
     min-width: 0;
-    padding: clamp(18px, 3vw, 24px);
+    padding: 1.4rem;
   }
 
   .section-head,
@@ -109,7 +111,7 @@
   }
 
   .eyebrow {
-    color: var(--muted);
+    color: rgba(236, 223, 205, 0.72);
     font-size: 12px;
     letter-spacing: 0.1em;
     margin: 0 0 6px;
@@ -128,7 +130,7 @@
   }
 
   .support-copy {
-    color: var(--muted);
+    color: rgba(250, 242, 232, 0.9);
     line-height: 1.7;
     margin-top: 8px;
   }
@@ -183,7 +185,7 @@
   }
 
   .run-card span {
-    color: var(--muted);
+    color: rgba(236, 223, 205, 0.8);
     font-size: 12px;
     letter-spacing: 0.08em;
     text-transform: uppercase;

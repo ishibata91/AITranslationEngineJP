@@ -1,4 +1,10 @@
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListPageStatesByPhase,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+
+import type {
   BodyTranslationPhaseAISettingsRequest,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseGatewayContract,
@@ -43,6 +49,8 @@ interface BodyTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: BodyTranslationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
+  processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
 
 interface BodyTranslationPhaseStoreLike {
@@ -67,6 +75,52 @@ function createNoJobSelectedMessage(): string {
 
 function createGatewayDisconnectedMessage(): string {
   return "本文翻訳段階の gateway が未接続です。"
+}
+
+function createDefaultProcessingTargetPageState(): ProcessingTargetListPageState {
+  return {
+    items: [],
+    metadata: [],
+    page: 1,
+    pageSize: 50,
+    totalCount: 0,
+    searchQuery: "",
+    busy: false
+  }
+}
+
+function toProcessingTargetPageState(
+  response: ProcessingTargetListResponse
+): ProcessingTargetListPageState {
+  return {
+    ...response,
+    busy: false
+  }
+}
+
+function getProcessingTargetPageState(
+  state: BodyTranslationPhaseScreenState,
+  phase: string
+): ProcessingTargetListPageState {
+  return (
+    state.processingTargetPageStatesByPhase?.[phase] ??
+    (phase === "body_translation" ? state.processingTargetPageState : null) ??
+    createDefaultProcessingTargetPageState()
+  )
+}
+
+function setProcessingTargetPageState(
+  draft: BodyTranslationPhaseScreenState,
+  phase: string,
+  pageState: ProcessingTargetListPageState
+): void {
+  draft.processingTargetPageStatesByPhase = {
+    ...(draft.processingTargetPageStatesByPhase ?? {}),
+    [phase]: pageState
+  }
+  if (phase === "body_translation") {
+    draft.processingTargetPageState = pageState
+  }
 }
 
 function patchSummaryFromCommand(
@@ -160,6 +214,8 @@ export class BodyTranslationPhaseUseCase {
       draft.pendingAction = null
       draft.errorMessage = jobId === null ? createNoJobSelectedMessage() : ""
       draft.phase = "ready"
+      draft.processingTargetPageState = createDefaultProcessingTargetPageState()
+      draft.processingTargetPageStatesByPhase = {}
     })
 
     if (jobId !== null) {
@@ -186,6 +242,20 @@ export class BodyTranslationPhaseUseCase {
     }
 
     await this.fetchSummaryAndReadiness(state.jobId, "refresh")
+  }
+
+  async setProcessingTargetSearchQuery(
+    searchQuery: string,
+    phase = "body_translation"
+  ): Promise<void> {
+    await this.fetchProcessingTargetList({ page: 1, searchQuery, phase })
+  }
+
+  async setProcessingTargetPage(
+    page: number,
+    phase = "body_translation"
+  ): Promise<void> {
+    await this.fetchProcessingTargetList({ page, phase })
   }
 
   async startPhase(): Promise<void> {
@@ -296,19 +366,30 @@ export class BodyTranslationPhaseUseCase {
     })
 
     try {
-      const [summary, outputReadiness] = await Promise.all([
+      const [summary, outputReadiness, processingTargetPageState] =
+        await Promise.all([
         this.gateway!.getBodyTranslationPhaseSummary({
           jobId
         } satisfies GetBodyTranslationPhaseSummaryRequest),
         this.gateway!.getBodyTranslationOutputReadiness({
           jobId
-        } satisfies GetBodyTranslationOutputReadinessRequest)
+        } satisfies GetBodyTranslationOutputReadinessRequest),
+        this.fetchProcessingTargetListResponse(
+          jobId,
+          getProcessingTargetPageState(before, "body_translation"),
+          "body_translation"
+        )
       ])
 
       this.store.update((draft) => {
         draft.phase = "ready"
         draft.summary = summary
         draft.outputReadiness = outputReadiness
+        setProcessingTargetPageState(
+          draft,
+          "body_translation",
+          processingTargetPageState
+        )
         draft.pendingAction = null
         draft.errorMessage = ""
         draft.hasLoaded = true
@@ -325,6 +406,80 @@ export class BodyTranslationPhaseUseCase {
         )
       })
     }
+  }
+
+  private async fetchProcessingTargetList(next: {
+    page?: number
+    searchQuery?: string
+    phase: string
+  }): Promise<void> {
+    const state = this.store.snapshot()
+    if (state.jobId === null || !this.gateway?.getProcessingTargetList) {
+      return
+    }
+
+    const current = getProcessingTargetPageState(state, next.phase)
+    const page = Math.max(1, next.page ?? current.page)
+    const searchQuery = next.searchQuery ?? current.searchQuery
+
+    this.store.update((draft) => {
+      setProcessingTargetPageState(draft, next.phase, {
+        ...getProcessingTargetPageState(draft, next.phase),
+        page,
+        searchQuery,
+        busy: true
+      })
+    })
+
+    try {
+      const response = await this.gateway.getProcessingTargetList({
+        jobId: state.jobId,
+        phase: next.phase,
+        page,
+        pageSize: current.pageSize,
+        searchQuery
+      })
+
+      this.store.update((draft) => {
+        setProcessingTargetPageState(
+          draft,
+          next.phase,
+          toProcessingTargetPageState(response)
+        )
+      })
+    } catch (error) {
+      this.store.update((draft) => {
+        setProcessingTargetPageState(draft, next.phase, {
+          ...getProcessingTargetPageState(draft, next.phase),
+          busy: false
+        })
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "本文翻訳段階の処理対象一覧取得に失敗しました。"
+        )
+      })
+    }
+  }
+
+  private async fetchProcessingTargetListResponse(
+    jobId: number,
+    currentPageState: ProcessingTargetListPageState | null,
+    phase: string
+  ): Promise<ProcessingTargetListPageState> {
+    const current = currentPageState ?? createDefaultProcessingTargetPageState()
+    if (!this.gateway?.getProcessingTargetList) {
+      return current
+    }
+
+    const response = await this.gateway.getProcessingTargetList({
+      jobId,
+      phase,
+      page: current.page,
+      pageSize: current.pageSize,
+      searchQuery: current.searchQuery
+    })
+
+    return toProcessingTargetPageState(response)
   }
 
   private async runCommand(

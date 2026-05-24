@@ -1,3 +1,5 @@
+import type { ProcessingTargetListPageState } from "@application/gateway-contract/processing-target"
+
 import type {
   TermTranslationNextPhaseReadinessResponse,
   TermTranslationPhaseSummaryResponse
@@ -18,6 +20,7 @@ interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState: ProcessingTargetListPageState | null
 }
 
 type Listener = (state: TermTranslationPhaseScreenState) => void
@@ -53,6 +56,24 @@ function cloneNextPhaseReadiness(
   return { ...readiness }
 }
 
+function cloneProcessingTargetPageState(
+  pageState: ProcessingTargetListPageState | null
+): ProcessingTargetListPageState | null {
+  if (!pageState) {
+    return null
+  }
+
+  return {
+    ...pageState,
+    items: pageState.items.map((item) => ({
+      ...item,
+      titleParts: item.titleParts.map((part) => ({ ...part })),
+      metadata: item.metadata.map((metadata) => ({ ...metadata }))
+    })),
+    metadata: pageState.metadata.map((metadata) => ({ ...metadata }))
+  }
+}
+
 function createInitialState(): TermTranslationPhaseScreenState {
   return {
     jobId: null,
@@ -61,7 +82,8 @@ function createInitialState(): TermTranslationPhaseScreenState {
     nextPhaseReadiness: null,
     errorMessage: "",
     pendingAction: null,
-    hasLoaded: false
+    hasLoaded: false,
+    processingTargetPageState: null
   }
 }
 
@@ -82,7 +104,12 @@ export class TermTranslationPhaseStore {
     return {
       ...this.state,
       summary: cloneSummary(this.state.summary),
-      nextPhaseReadiness: cloneNextPhaseReadiness(this.state.nextPhaseReadiness)
+      nextPhaseReadiness: cloneNextPhaseReadiness(
+        this.state.nextPhaseReadiness
+      ),
+      processingTargetPageState: cloneProcessingTargetPageState(
+        this.state.processingTargetPageState
+      )
     }
   }
 

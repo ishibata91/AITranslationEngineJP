@@ -4,7 +4,7 @@ import ProviderSettingsSummaryPanel from "../ProviderSettingsSummaryPanel.svelte
 import { providerSettingsSummaryPanelFixtures } from "../__fixtures__/provider-settings-panel-fixtures"
 
 const meta = {
-  title: "Screens/Provider Settings/ProviderSettingsSummaryPanel",
+  title: "Screen Components/Provider Settings/ProviderSettingsSummaryPanel",
   component: ProviderSettingsSummaryPanel,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof ProviderSettingsSummaryPanel>

@@ -23,6 +23,11 @@ interface BodyTranslationPhaseUseCaseLike {
   load(): Promise<void>
   setJobId(jobId: number | null): Promise<void>
   refresh(): Promise<void>
+  setProcessingTargetSearchQuery?: (
+    searchQuery: string,
+    phase?: string
+  ) => Promise<void>
+  setProcessingTargetPage?: (page: number, phase?: string) => Promise<void>
   startPhase(): Promise<void>
   pausePhase(): Promise<void>
   resumePhase(): Promise<void>
@@ -81,6 +86,20 @@ export class BodyTranslationPhaseScreenController implements BodyTranslationPhas
 
   async refresh(): Promise<void> {
     await this.dependencies.useCase.refresh()
+  }
+
+  async setProcessingTargetSearchQuery(
+    searchQuery: string,
+    phase?: string
+  ): Promise<void> {
+    await this.dependencies.useCase.setProcessingTargetSearchQuery?.(
+      searchQuery,
+      phase
+    )
+  }
+
+  async setProcessingTargetPage(page: number, phase?: string): Promise<void> {
+    await this.dependencies.useCase.setProcessingTargetPage?.(page, phase)
   }
 
   async startPhase(): Promise<void> {

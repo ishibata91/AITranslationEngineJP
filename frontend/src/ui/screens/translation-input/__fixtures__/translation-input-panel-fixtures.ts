@@ -27,7 +27,6 @@ export const formatStoryErrorKind = (errorKind: string | null): string => {
 }
 
 export const formatStoryStatus = (status: string): string => status
-export const formatStoryWarningKind = (kind: string): string => kind
 
 export const baseReviewItem: TranslationInputReviewItem = {
   localId: "input-1",
@@ -90,33 +89,30 @@ export const translationInputPanelFixtures = {
   dataLoadImportPanel: {
     noFile: {
       stagedFileName: "未選択",
-      stagedFilePath: "-",
-      stagedFileHash: "-",
       hasStagedFile: false,
       canImport: false,
       isImporting: false,
+      onJsonSelected: ignoreAction,
       onChooseJson: ignoreAction,
       onStartImport: ignoreAsyncAction,
       onResetSelection: ignoreAction
     },
     selectedFile: {
       stagedFileName: "sample-translation-input.json",
-      stagedFilePath: "選択済み JSON",
-      stagedFileHash: "sample-hash-20260518",
       hasStagedFile: true,
       canImport: true,
       isImporting: false,
+      onJsonSelected: ignoreAction,
       onChooseJson: ignoreAction,
       onStartImport: ignoreAsyncAction,
       onResetSelection: ignoreAction
     },
     importing: {
       stagedFileName: "sample-translation-input.json",
-      stagedFilePath: "選択済み JSON",
-      stagedFileHash: "sample-hash-20260518",
       hasStagedFile: true,
       canImport: false,
       isImporting: true,
+      onJsonSelected: ignoreAction,
       onChooseJson: ignoreAction,
       onStartImport: ignoreAsyncAction,
       onResetSelection: ignoreAction
@@ -126,7 +122,6 @@ export const translationInputPanelFixtures = {
     empty: {
       items: [],
       selectedItemId: null,
-      totalItemCountLabel: "0 件",
       emptyStateText: "読み込み済みデータはありません。",
       formatStatus: formatStoryStatus,
       formatDate: formatStoryDate,
@@ -136,38 +131,11 @@ export const translationInputPanelFixtures = {
     selected: {
       items: [baseReviewItem],
       selectedItemId: baseReviewItem.localId,
-      totalItemCountLabel: "1 件",
       emptyStateText: "読み込み済みデータはありません。",
       formatStatus: formatStoryStatus,
       formatDate: formatStoryDate,
       formatErrorKind: formatStoryErrorKind,
       onSelectItem: ignoreAction
-    }
-  },
-  loadedInputDetail: {
-    empty: {
-      selectedItem: null,
-      selectionStatusText: "読み込み済みデータを選んでください。",
-      latestOutcomeTitle: "未選択",
-      latestOutcomeText: "選択後に登録結果を表示します。",
-      canRebuildSelected: false,
-      isRebuilding: false,
-      formatDate: formatStoryDate,
-      formatErrorKind: formatStoryErrorKind,
-      formatWarningKind: formatStoryWarningKind,
-      onRebuild: ignoreAsyncAction
-    },
-    selected: {
-      selectedItem: baseReviewItem,
-      selectionStatusText: "選択中の入力データを確認しています。",
-      latestOutcomeTitle: "登録済み",
-      latestOutcomeText: "次に単語翻訳へ進めます。",
-      canRebuildSelected: true,
-      isRebuilding: false,
-      formatDate: formatStoryDate,
-      formatErrorKind: formatStoryErrorKind,
-      formatWarningKind: formatStoryWarningKind,
-      onRebuild: ignoreAsyncAction
     }
   }
 }
@@ -199,12 +167,19 @@ export const inputReviewPageSelectedViewModel: TranslationInputScreenViewModel =
     canRebuildSelected: true
   }
 
-export function createInputReviewPageControllerFixture(): CreateTranslationInputScreenController {
+export function createInputReviewPageControllerFixture(
+  override: Partial<TranslationInputScreenViewModel> = {}
+): CreateTranslationInputScreenController {
+  const viewModel = {
+    ...inputReviewPageSelectedViewModel,
+    ...override
+  }
+
   return (): TranslationInputScreenControllerContract => ({
     mount: async () => {},
     dispose: () => {},
     subscribe: () => () => {},
-    getViewModel: () => inputReviewPageSelectedViewModel,
+    getViewModel: () => viewModel,
     selectItem: () => {},
     stageJsonImport: async () => {},
     resetImportSelection: () => {},

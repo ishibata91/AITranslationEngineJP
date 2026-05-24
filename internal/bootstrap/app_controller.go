@@ -185,6 +185,15 @@ func newAppControllerWithSeeds(
 			),
 		),
 	)
+	processingTargetRepository, ok := jobLifecycleRepository.(repository.ProcessingTargetReadModelRepository)
+	if !ok {
+		panic("job lifecycle repository does not implement processing target read model repository")
+	}
+	processingTargetController := controllerwails.NewProcessingTargetController(
+		usecase.NewProcessingTargetReadModelUsecase(
+			service.NewProcessingTargetReadModelService(processingTargetRepository),
+		),
+	)
 	termTranslationPhaseController := controllerwails.NewTermTranslationPhaseController(
 		usecase.NewTermTranslationPhaseUsecase(
 			service.NewTermTranslationPhaseService(
@@ -258,6 +267,7 @@ func newAppControllerWithSeeds(
 	appController.ProviderSettingsController = providerSettingsController
 	appController.TranslationJobSetupController = translationJobSetupController
 	appController.TranslationJobManagementController = translationJobManagementController
+	appController.ProcessingTargetController = processingTargetController
 	appController.TermTranslationPhaseController = termTranslationPhaseController
 	appController.PersonaGenerationPhaseController = personaGenerationPhaseController
 	appController.BodyTranslationPhaseController = bodyTranslationPhaseController

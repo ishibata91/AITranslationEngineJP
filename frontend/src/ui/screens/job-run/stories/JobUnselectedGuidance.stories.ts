@@ -4,7 +4,7 @@ import JobUnselectedGuidance from "../JobUnselectedGuidance.svelte"
 import { jobUnselectedGuidanceFixtures } from "../__fixtures__/job-run-shell-fixtures"
 
 const meta = {
-  title: "Screens/Job Run/JobUnselectedGuidance",
+  title: "Screen Components/Job Run/JobUnselectedGuidance",
   component: JobUnselectedGuidance,
   parameters: {
     layout: "fullscreen"

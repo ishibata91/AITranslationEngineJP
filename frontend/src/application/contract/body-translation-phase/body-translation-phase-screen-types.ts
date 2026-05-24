@@ -1,4 +1,9 @@
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListPageStatesByPhase
+} from "@application/gateway-contract/processing-target"
+
+import type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseActionEnablement,
   BodyTranslationPhaseErrorKind,
@@ -47,6 +52,8 @@ export interface BodyTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: BodyTranslationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
+  processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
 
 export interface BodyTranslationPhaseActionCard {

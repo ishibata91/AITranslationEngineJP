@@ -4,7 +4,7 @@ import TranslationJobManagementDeleteModal from "../TranslationJobManagementDele
 import { deleteModalFixtures } from "../__fixtures__/translation-job-management-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Management/DeleteModal",
+  title: "Screen Components/Translation Job Management/DeleteModal",
   component: TranslationJobManagementDeleteModal,
   parameters: {
     layout: "fullscreen"

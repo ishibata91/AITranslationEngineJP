@@ -23,7 +23,9 @@
 - AI は最初に `plan.md` だけ読む
 - 追加 context は必要な skill 資料だけ読む
 - 新規実装レーンの frontend implementation handoff では `implementation-scope.md` と関連する `screen-design-diff.<screen-id>.md` を読む
-- frontend 実装後人間レビューでは Storybook の story、`fixture`、変更または追加した部品、変更または追加した表示状態を読む
+- Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は `docs/references/storybook.md` を読む
+- Storybook レビューループ前は story、`fixture`、変更または追加したコンポーネント、変更または追加した画面、変更または追加した表示状態の所在だけを読む
+- Storybook レビューループ後は `storybook-review-loop.md` と更新済みの画面設計成果物を読む
 - 軽量変更レーンの実装では `plan.md` の `task 枠` と `light-change-planning.md` を読む
 - UI 確認では画面設計または `screen-design-diff.<screen-id>.md` を読み、実画面を `agent-browser` で確認する
 - レーン固有 artifact の雛形は担当 skill の `assets/` を読む

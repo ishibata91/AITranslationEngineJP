@@ -4,7 +4,7 @@ import DataLoadHero from "../DataLoadHero.svelte"
 import { translationInputPanelFixtures } from "../__fixtures__/translation-input-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Input/DataLoadHero",
+  title: "Screen Components/Translation Input/DataLoadHero",
   component: DataLoadHero,
   parameters: {
     layout: "fullscreen"

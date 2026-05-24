@@ -4,7 +4,7 @@ import LatestOutputResultCard from "../LatestOutputResultCard.svelte"
 import { latestOutputResultCardFixtures } from "../__fixtures__/translation-output-artifact-fixtures"
 
 const meta = {
-  title: "Screens/Translation Output Artifact/LatestOutputResultCard",
+  title: "Screen Components/Translation Output Artifact/LatestOutputResultCard",
   component: LatestOutputResultCard,
   parameters: {
     layout: "fullscreen"

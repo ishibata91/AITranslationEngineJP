@@ -23,7 +23,7 @@
       <p class="eyebrow">翻訳管理</p>
       <h2 class="page-title">データロード</h2>
       <p class="lead">
-        JSON を読み込み、登録結果と再構築の要否を同じ画面で確認する。
+        JSON を読み込み、登録結果と次の作業を同じ画面で確認する。
       </p>
     </div>
     <p class="gateway-status">接続状態: {gatewayStatus}</p>

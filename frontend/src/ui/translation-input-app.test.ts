@@ -330,7 +330,7 @@ describe("App translation-input route", () => {
     })
   })
 
-  test("route を離れて戻っても一覧、選択、rebuild 入口を維持する", async () => {
+  test("route を離れて戻っても一覧と選択状態を維持する", async () => {
     window.history.replaceState(null, "", "#translation-management")
 
     const user = userEvent.setup()
@@ -372,8 +372,8 @@ describe("App translation-input route", () => {
     expect(
       screen.getByRole("button", { name: /kept-input.json/ })
     ).toBeInTheDocument()
-    expect(screen.getByText("kept-input.json / 登録済み")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "cache を再構築" })).toBeEnabled()
+    expect(screen.getByText("登録結果")).toBeInTheDocument()
+    expect(screen.getByText("問題区分")).toBeInTheDocument()
 
     await user.click(screen.getByRole("link", { name: "ダッシュボード" }))
 
@@ -398,8 +398,8 @@ describe("App translation-input route", () => {
     expect(
       screen.getByRole("button", { name: /kept-input.json/ })
     ).toBeInTheDocument()
-    expect(screen.getByText("kept-input.json / 登録済み")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "cache を再構築" })).toBeEnabled()
+    expect(screen.getByText("登録結果")).toBeInTheDocument()
+    expect(screen.getByText("問題区分")).toBeInTheDocument()
     expect(createTranslationInputScreenController).toHaveBeenCalledTimes(2)
     expect(controller.mount).toHaveBeenCalledTimes(2)
 

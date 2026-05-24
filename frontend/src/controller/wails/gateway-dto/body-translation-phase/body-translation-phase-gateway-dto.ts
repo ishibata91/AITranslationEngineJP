@@ -1,4 +1,8 @@
 import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseAISettingsRequest,
@@ -12,6 +16,9 @@ import type {
   RetryBodyTranslationPhaseRequest,
   StartBodyTranslationPhaseRequest
 } from "@application/gateway-contract/body-translation-phase"
+
+export type GetProcessingTargetListRequestDto = ProcessingTargetListRequest
+export type GetProcessingTargetListResponseDto = ProcessingTargetListResponse
 
 export type GetBodyTranslationPhaseSummaryRequestDto =
   GetBodyTranslationPhaseSummaryRequest

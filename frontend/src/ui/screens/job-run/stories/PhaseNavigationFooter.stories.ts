@@ -4,7 +4,7 @@ import PhaseNavigationFooter from "../PhaseNavigationFooter.svelte"
 import { phaseNavigationFooterFixtures } from "../__fixtures__/job-run-shell-fixtures"
 
 const meta = {
-  title: "Screens/Job Run/PhaseNavigationFooter",
+  title: "Screen Components/Job Run/PhaseNavigationFooter",
   component: PhaseNavigationFooter,
   parameters: {
     layout: "fullscreen"

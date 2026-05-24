@@ -1,4 +1,8 @@
 import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   GetTermTranslationNextPhaseReadinessRequest,
   GetTermTranslationPhaseSummaryRequest,
   PauseTermTranslationPhaseRequest,
@@ -11,6 +15,9 @@ import type {
   TermTranslationPhaseCommandResponse,
   TermTranslationPhaseSummaryResponse
 } from "@application/gateway-contract/term-translation-phase"
+
+export type GetProcessingTargetListRequestDto = ProcessingTargetListRequest
+export type GetProcessingTargetListResponseDto = ProcessingTargetListResponse
 
 export type GetTermTranslationPhaseSummaryRequestDto =
   GetTermTranslationPhaseSummaryRequest

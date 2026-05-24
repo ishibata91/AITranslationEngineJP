@@ -4,7 +4,7 @@ import JobRunTargetSummary from "../JobRunTargetSummary.svelte"
 import { jobRunTargetSummaryFixtures } from "../__fixtures__/job-run-shell-fixtures"
 
 const meta = {
-  title: "Screens/Job Run/JobRunTargetSummary",
+  title: "Screen Components/Job Run/JobRunTargetSummary",
   component: JobRunTargetSummary,
   parameters: {
     layout: "fullscreen"

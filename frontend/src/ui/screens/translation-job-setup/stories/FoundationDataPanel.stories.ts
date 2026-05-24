@@ -4,7 +4,7 @@ import FoundationDataPanel from "../FoundationDataPanel.svelte"
 import { translationJobSetupPanelFixtures } from "../__fixtures__/translation-job-setup-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Setup/FoundationDataPanel",
+  title: "Screen Components/Translation Job Setup/FoundationDataPanel",
   component: FoundationDataPanel,
   parameters: {
     layout: "fullscreen"

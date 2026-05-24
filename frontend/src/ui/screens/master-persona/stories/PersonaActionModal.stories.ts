@@ -4,7 +4,7 @@ import PersonaActionModal from "../PersonaActionModal.svelte"
 import { personaActionModalFixtures } from "../__fixtures__/master-persona-panel-fixtures"
 
 const meta = {
-  title: "Screens/Master Persona/PersonaActionModal",
+  title: "Screen Components/Master Persona/PersonaActionModal",
   component: PersonaActionModal,
   parameters: {
     layout: "fullscreen"

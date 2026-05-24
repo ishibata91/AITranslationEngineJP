@@ -9,14 +9,12 @@
   import {
     canOpenJobSetup,
     ERROR_LABELS,
-    STATUS_LABELS,
-    WARNING_LABELS
+    STATUS_LABELS
   } from "@application/presenter/translation-input"
   import StickyActionFooter from "@ui/components/StickyActionFooter.svelte"
 
   import DataLoadHero from "./DataLoadHero.svelte"
   import DataLoadImportPanel from "./DataLoadImportPanel.svelte"
-  import LoadedInputDetail from "./LoadedInputDetail.svelte"
   import LoadedInputList from "./LoadedInputList.svelte"
 
   interface Props {
@@ -38,7 +36,6 @@
 
   const controller = resolveController()
   let viewModel = $state(controller.getViewModel())
-  let fileInput: HTMLInputElement | null = null
   const showNextActionFooter = $derived(canOpenJobSetup(viewModel.selectedItem))
   const selectedInputHasExistingJob = $derived(
     viewModel.selectedItem?.warnings.some((warning) =>
@@ -56,8 +53,9 @@
   })
 
   function clearJsonFileInput(): void {
-    if (fileInput) {
-      fileInput.value = ""
+    const input = document.getElementById("translationInputFile")
+    if (input instanceof HTMLInputElement) {
+      input.value = ""
     }
   }
 
@@ -82,7 +80,10 @@
     }
 
     clearJsonFileInput()
-    fileInput?.click()
+    const input = document.getElementById("translationInputFile")
+    if (input instanceof HTMLInputElement) {
+      input.click()
+    }
   }
 
   function handleJsonSelected(event: Event): void {
@@ -104,10 +105,6 @@
     controller.selectItem(localId)
   }
 
-  function rebuildSelectedInput(): Promise<void> {
-    return controller.rebuildSelected()
-  }
-
   function startImport(): Promise<void> {
     return controller.startImport()
   }
@@ -124,10 +121,6 @@
     }
 
     return ERROR_LABELS[errorKind] ?? errorKind
-  }
-
-  function formatWarningKind(kind: string): string {
-    return WARNING_LABELS[kind] ?? kind
   }
 
   function formatDate(timestamp: string): string {
@@ -178,15 +171,6 @@
 </script>
 
 <section class="data-load-shell" id="translationInputReviewView">
-  <input
-    accept=".json,application/json"
-    bind:this={fileInput}
-    class="file-input"
-    id="translationInputFile"
-    onchange={handleJsonSelected}
-    type="file"
-  />
-
   <DataLoadHero
     errorMessage={viewModel.errorMessage}
     gatewayStatus={viewModel.gatewayStatus}
@@ -198,9 +182,8 @@
     canImport={viewModel.canImport}
     hasStagedFile={viewModel.hasStagedFile}
     isImporting={viewModel.isImporting}
-    stagedFileHash={viewModel.stagedFileHash}
     stagedFileName={viewModel.stagedFileName}
-    stagedFilePath={viewModel.stagedFilePath}
+    onJsonSelected={handleJsonSelected}
     onChooseJson={chooseJsonFile}
     onResetSelection={resetImportSelection}
     onStartImport={startImport}
@@ -214,21 +197,7 @@
       {formatStatus}
       items={viewModel.items}
       selectedItemId={viewModel.selectedItemId}
-      totalItemCountLabel={localizeUiText(viewModel.totalItemCountLabel)}
       onSelectItem={selectLoadedInput}
-    />
-
-    <LoadedInputDetail
-      canRebuildSelected={viewModel.canRebuildSelected}
-      {formatDate}
-      {formatErrorKind}
-      {formatWarningKind}
-      isRebuilding={viewModel.isRebuilding}
-      latestOutcomeText={localizeUiText(viewModel.latestOutcomeText)}
-      latestOutcomeTitle={localizeUiText(viewModel.latestOutcomeTitle)}
-      selectedItem={viewModel.selectedItem}
-      selectionStatusText={localizeUiText(viewModel.selectionStatusText)}
-      onRebuild={rebuildSelectedInput}
     />
   </section>
 
@@ -255,14 +224,10 @@
     padding-bottom: 10rem;
   }
 
-  .file-input {
-    display: none;
-  }
-
   .content-grid {
     display: grid;
     gap: 1.25rem;
-    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    grid-template-columns: 1fr;
     align-items: start;
   }
 

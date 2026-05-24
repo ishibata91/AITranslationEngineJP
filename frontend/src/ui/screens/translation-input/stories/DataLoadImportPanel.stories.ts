@@ -4,7 +4,7 @@ import DataLoadImportPanel from "../DataLoadImportPanel.svelte"
 import { translationInputPanelFixtures } from "../__fixtures__/translation-input-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Input/DataLoadImportPanel",
+  title: "Screen Components/Translation Input/DataLoadImportPanel",
   component: DataLoadImportPanel,
   parameters: {
     layout: "fullscreen"

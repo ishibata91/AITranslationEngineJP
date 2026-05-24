@@ -1,4 +1,9 @@
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+
+import type {
   GetTermTranslationNextPhaseReadinessRequest,
   GetTermTranslationPhaseSummaryRequest,
   PauseTermTranslationPhaseRequest,
@@ -27,6 +32,7 @@ interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
 interface TermTranslationPhaseStoreLike {
@@ -51,6 +57,27 @@ function createNoJobSelectedMessage(): string {
 
 function createGatewayDisconnectedMessage(): string {
   return "単語翻訳段階の gateway が未接続です。"
+}
+
+function createDefaultProcessingTargetPageState(): ProcessingTargetListPageState {
+  return {
+    items: [],
+    metadata: [],
+    page: 1,
+    pageSize: 50,
+    totalCount: 0,
+    searchQuery: "",
+    busy: false
+  }
+}
+
+function toProcessingTargetPageState(
+  response: ProcessingTargetListResponse
+): ProcessingTargetListPageState {
+  return {
+    ...response,
+    busy: false
+  }
 }
 
 function patchSummaryFromCommand(
@@ -109,6 +136,7 @@ export class TermTranslationPhaseUseCase {
       draft.pendingAction = null
       draft.errorMessage = jobId === null ? createNoJobSelectedMessage() : ""
       draft.phase = "ready"
+      draft.processingTargetPageState = createDefaultProcessingTargetPageState()
     })
 
     if (jobId !== null) {
@@ -135,6 +163,17 @@ export class TermTranslationPhaseUseCase {
     }
 
     await this.fetchSummaryAndReadiness(state.jobId, "refresh")
+  }
+
+  async setProcessingTargetSearchQuery(searchQuery: string): Promise<void> {
+    await this.fetchProcessingTargetList({
+      page: 1,
+      searchQuery
+    })
+  }
+
+  async setProcessingTargetPage(page: number): Promise<void> {
+    await this.fetchProcessingTargetList({ page })
   }
 
   async startPhase(): Promise<void> {
@@ -218,19 +257,22 @@ export class TermTranslationPhaseUseCase {
     })
 
     try {
-      const [summary, nextPhaseReadiness] = await Promise.all([
+      const [summary, nextPhaseReadiness, processingTargetPageState] =
+        await Promise.all([
         this.gateway!.getTermTranslationPhaseSummary({
           jobId
         } satisfies GetTermTranslationPhaseSummaryRequest),
         this.gateway!.getTermTranslationNextPhaseReadiness({
           jobId
-        } satisfies GetTermTranslationNextPhaseReadinessRequest)
+        } satisfies GetTermTranslationNextPhaseReadinessRequest),
+        this.fetchProcessingTargetListResponse(jobId, before.processingTargetPageState ?? null)
       ])
 
       this.store.update((draft) => {
         draft.phase = "ready"
         draft.summary = summary
         draft.nextPhaseReadiness = nextPhaseReadiness
+        draft.processingTargetPageState = processingTargetPageState
         draft.pendingAction = null
         draft.errorMessage = ""
         draft.hasLoaded = true
@@ -247,6 +289,76 @@ export class TermTranslationPhaseUseCase {
         )
       })
     }
+  }
+
+  private async fetchProcessingTargetList(
+    next: { page?: number; searchQuery?: string }
+  ): Promise<void> {
+    const state = this.store.snapshot()
+    if (state.jobId === null || !this.gateway?.getProcessingTargetList) {
+      return
+    }
+
+    const current =
+      state.processingTargetPageState ?? createDefaultProcessingTargetPageState()
+    const page = Math.max(1, next.page ?? current.page)
+    const searchQuery = next.searchQuery ?? current.searchQuery
+
+    this.store.update((draft) => {
+      draft.processingTargetPageState = {
+        ...(draft.processingTargetPageState ??
+          createDefaultProcessingTargetPageState()),
+        page,
+        searchQuery,
+        busy: true
+      }
+    })
+
+    try {
+      const response = await this.gateway.getProcessingTargetList({
+        jobId: state.jobId,
+        phase: "term_translation",
+        page,
+        pageSize: current.pageSize,
+        searchQuery
+      })
+
+      this.store.update((draft) => {
+        draft.processingTargetPageState = toProcessingTargetPageState(response)
+      })
+    } catch (error) {
+      this.store.update((draft) => {
+        draft.processingTargetPageState = {
+          ...(draft.processingTargetPageState ??
+            createDefaultProcessingTargetPageState()),
+          busy: false
+        }
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "単語翻訳段階の処理対象一覧取得に失敗しました。"
+        )
+      })
+    }
+  }
+
+  private async fetchProcessingTargetListResponse(
+    jobId: number,
+    currentPageState: ProcessingTargetListPageState | null
+  ): Promise<ProcessingTargetListPageState> {
+    const current = currentPageState ?? createDefaultProcessingTargetPageState()
+    if (!this.gateway?.getProcessingTargetList) {
+      return current
+    }
+
+    const response = await this.gateway.getProcessingTargetList({
+      jobId,
+      phase: "term_translation",
+      page: current.page,
+      pageSize: current.pageSize,
+      searchQuery: current.searchQuery
+    })
+
+    return toProcessingTargetPageState(response)
   }
 
   private async runCommand(

@@ -4,7 +4,7 @@ import CreatedJobSummaryPanel from "../CreatedJobSummaryPanel.svelte"
 import { translationJobSetupPanelFixtures } from "../__fixtures__/translation-job-setup-panel-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Setup/CreatedJobSummaryPanel",
+  title: "Screen Components/Translation Job Setup/CreatedJobSummaryPanel",
   component: CreatedJobSummaryPanel,
   parameters: {
     layout: "fullscreen"

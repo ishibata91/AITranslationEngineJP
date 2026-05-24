@@ -1,36 +1,65 @@
 <script lang="ts">
   import type { BodyTranslationFieldResultItem } from "@application/contract/body-translation-phase"
+  import ProcessingTargetListPanel from "@ui/components/ProcessingTargetListPanel.svelte"
+  import type {
+    ProcessingTargetListItem,
+    ProcessingTargetListPageState
+  } from "@ui/components/processing-target-list-panel-types"
+
   import TranslationCompleteSummaryPanel from "./TranslationCompleteSummaryPanel.svelte"
-  import TranslationResultListPanel from "./TranslationResultListPanel.svelte"
 
   interface Props {
     jobId: number
     rows: BodyTranslationFieldResultItem[]
+    processingTargetPageState?: ProcessingTargetListPageState
+    onProcessingTargetPreviousPage?: () => void
+    onProcessingTargetNextPage?: () => void
+    onProcessingTargetPageChange?: (page: number) => void
   }
 
-  let { jobId, rows }: Props = $props()
-  let pageIndex = $state(0)
+  let {
+    jobId,
+    rows,
+    processingTargetPageState = undefined,
+    onProcessingTargetPreviousPage = undefined,
+    onProcessingTargetNextPage = undefined,
+    onProcessingTargetPageChange = undefined
+  }: Props = $props()
 
-  const pageSize = 5
-  const pageCount = $derived(Math.max(1, Math.ceil(rows.length / pageSize)))
-  const currentPageRows = $derived(
-    rows.slice(pageIndex * pageSize, pageIndex * pageSize + pageSize)
+  function buildCompletedTargetItems(
+    resultRows: BodyTranslationFieldResultItem[]
+  ): ProcessingTargetListItem[] {
+    return resultRows.map((row) => {
+      const sourceExcerpt = row.sourceExcerpt || "原文なし"
+      const translatedText = row.translatedText || "訳文なし"
+
+      return {
+        id: row.fieldId,
+        name: `${row.recordTypeLabel} ${row.fieldLabel}`,
+        titleParts: [
+          { text: `原文: ${sourceExcerpt}` },
+          { text: `訳文: ${translatedText}` }
+        ],
+        detail: "本文翻訳で保持された訳文として出力管理へ進む前に確認する訳文。",
+        metadata: [
+          { label: "翻訳項目 ID", value: row.fieldId },
+          { label: "record type", value: row.recordTypeLabel },
+          { label: "field", value: row.fieldLabel },
+          { label: "field type", value: row.fieldTypeLabel },
+          { label: "FormID", value: row.formIdLabel },
+          { label: "EditorID", value: row.editorIdLabel },
+          { label: "出力状態", value: row.outputStatus },
+          { label: "保護検証", value: row.protectionValidation },
+          { label: "retry", value: row.retryCountLabel }
+        ]
+      }
+    })
+  }
+
+  const completedTargetItems = $derived(buildCompletedTargetItems(rows))
+  const displayedTargetItems = $derived(
+    processingTargetPageState?.items ?? completedTargetItems
   )
-  const pageLabel = $derived(`${pageIndex + 1} / ${pageCount}`)
-
-  $effect(() => {
-    if (pageIndex > pageCount - 1) {
-      pageIndex = pageCount - 1
-    }
-  })
-
-  function previousPage(): void {
-    pageIndex = Math.max(0, pageIndex - 1)
-  }
-
-  function nextPage(): void {
-    pageIndex = Math.min(pageCount - 1, pageIndex + 1)
-  }
 </script>
 
 <section
@@ -39,13 +68,15 @@
   id="translationCompleteView"
 >
   <TranslationCompleteSummaryPanel {jobId} />
-  <TranslationResultListPanel
-    rows={currentPageRows}
-    {pageIndex}
-    {pageCount}
-    {pageLabel}
-    onPreviousPage={previousPage}
-    onNextPage={nextPage}
+  <ProcessingTargetListPanel
+    items={displayedTargetItems}
+    pageSize={processingTargetPageState?.pageSize ?? 50}
+    currentPage={processingTargetPageState?.page}
+    totalCount={processingTargetPageState?.totalCount}
+    busy={processingTargetPageState?.busy}
+    onPreviousPage={onProcessingTargetPreviousPage}
+    onNextPage={onProcessingTargetNextPage}
+    onPageChange={onProcessingTargetPageChange}
   />
 </section>
 

@@ -1009,12 +1009,13 @@ describe("App master persona screen", () => {
       throw new Error("ペルソナ一覧 section が見つかりません")
     }
     const listQuery = within(listSection)
-    expect(listQuery.getByText("TestPersonaPluginA.esp")).toBeInTheDocument()
-    expect(listQuery.getByText("Test NPC A")).toBeInTheDocument()
-    expect(listQuery.queryByText("TestClassA")).not.toBeInTheDocument()
-    expect(listQuery.queryByText("Skyrim.esm")).not.toBeInTheDocument()
+    const targetRow = listQuery.getByRole("row", { name: "Test NPC A" })
+    expect(listQuery.getAllByText("TestPersonaPluginA.esp").length).toBeGreaterThan(0)
+    expect(targetRow).toBeInTheDocument()
+    expect(within(targetRow).queryByText("TestClassA")).not.toBeInTheDocument()
+    expect(within(targetRow).queryByText("Skyrim.esm")).not.toBeInTheDocument()
     expect(
-      listQuery.queryByText("乾いた率直さで応じる。")
+      within(targetRow).queryByText("乾いた率直さで応じる。")
     ).not.toBeInTheDocument()
   })
 
@@ -1311,7 +1312,7 @@ describe("App master persona screen", () => {
     expect(within(pluginSelect).getAllByRole("option")).toHaveLength(2)
   })
 
-  test("persona-read-detail-cutover: selectedEntry の FormID と EditorID を詳細に表示する", async () => {
+  test("persona-read-detail-cutover: selectedEntry の FormID と EditorID を一覧の展開行に表示する", async () => {
     // Arrange
     render(App, {
       props: {
@@ -1326,10 +1327,11 @@ describe("App master persona screen", () => {
 
     // Assert
     await waitFor(() => {
-      const identityText = document.querySelector("#detailIdentityText")
-      expect(identityText).toBeInTheDocument()
-      expect(identityText?.textContent).toContain("FE01A812")
-      expect(identityText?.textContent).toContain("TEST_NPC_A")
+      const metadataList = screen.getByLabelText("Test NPC A のメタデータ")
+      expect(metadataList).toBeInTheDocument()
+      expect(metadataList.textContent).toContain("FE01A812")
+      expect(metadataList.textContent).toContain("TEST_NPC_A")
+      expect(metadataList.textContent).toContain("短く本音を置く。")
     })
   })
 

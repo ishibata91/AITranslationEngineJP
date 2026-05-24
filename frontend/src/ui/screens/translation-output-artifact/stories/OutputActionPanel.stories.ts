@@ -4,7 +4,7 @@ import OutputActionPanel from "../OutputActionPanel.svelte"
 import { outputActionPanelFixtures } from "../__fixtures__/translation-output-artifact-fixtures"
 
 const meta = {
-  title: "Screens/Translation Output Artifact/OutputActionPanel",
+  title: "Screen Components/Translation Output Artifact/OutputActionPanel",
   component: OutputActionPanel,
   parameters: {
     layout: "fullscreen"

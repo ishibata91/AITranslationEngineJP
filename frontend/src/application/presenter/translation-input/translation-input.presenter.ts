@@ -8,7 +8,7 @@ const STATUS_LABELS: Record<TranslationInputReviewItem["status"], string> = {
   registered: "登録済み",
   warning: "警告あり",
   failed: "登録失敗",
-  "rebuild-required": "再構築が必要"
+  "rebuild-required": "確認が必要"
 }
 
 const ERROR_LABELS: Record<string, string> = {
@@ -37,7 +37,7 @@ function buildOperationStatusText(
   }
 
   if (state.operationState === "rebuilding") {
-    return "選択した入力データの cache を再構築しています。"
+    return "選択した入力データを更新しています。"
   }
 
   if (state.stagedFile) {
@@ -48,7 +48,7 @@ function buildOperationStatusText(
     return `直近の状態: ${ERROR_LABELS[selectedItem.errorKind] ?? selectedItem.errorKind}`
   }
 
-  return "xEdit JSON を 1 件選び、登録結果と再構築状態をここで確認します。"
+  return "xEdit JSON を 1 件選び、登録結果と次の作業をここで確認します。"
 }
 
 function buildLatestOutcomeTitle(
@@ -93,7 +93,7 @@ function buildSelectionStatusText(
   selectedItem: TranslationInputReviewItem | null
 ): string {
   if (!selectedItem) {
-    return "一覧から選択すると概要を右側へ表示します。"
+    return "一覧から選択すると登録結果を確認できます。"
   }
 
   return `${selectedItem.fileName} / ${STATUS_LABELS[selectedItem.status]}`
@@ -133,7 +133,7 @@ export class TranslationInputPresenter {
         state.operationState === "importing"
           ? "登録中"
           : state.operationState === "rebuilding"
-            ? "再構築中"
+            ? "更新中"
             : state.stagedFile
               ? "登録待ち"
               : "待機中",
@@ -148,4 +148,4 @@ export class TranslationInputPresenter {
   }
 }
 
-export { ERROR_LABELS, STATUS_LABELS, WARNING_LABELS, canOpenJobSetup }
+export { ERROR_LABELS, STATUS_LABELS, canOpenJobSetup }

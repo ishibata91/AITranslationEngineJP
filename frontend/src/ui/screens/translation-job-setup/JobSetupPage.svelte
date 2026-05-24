@@ -1,21 +1,12 @@
 <script lang="ts">
   import { onMount } from "svelte"
 
-  import { createTranslationJobSetupRuntimeKey } from "@application/contract/translation-job-setup/translation-job-setup-screen-contract"
-  import type { TranslationJobSetupPhaseId } from "@application/gateway-contract/translation-job-setup"
-  import type {
-    TranslationJobSetupExtendedViewModel,
-    TranslationJobSetupPhaseCardViewModel
-  } from "@application/presenter/translation-job-setup/translation-job-setup.presenter"
-  import { VALIDATION_LABELS } from "@application/presenter/translation-job-setup"
+  import type { TranslationJobSetupExtendedViewModel } from "@application/presenter/translation-job-setup/translation-job-setup.presenter"
   import StickyActionFooter from "@ui/components/StickyActionFooter.svelte"
 
-  import CompatibilityPrecheckPanel from "./CompatibilityPrecheckPanel.svelte"
   import CreatedJobSummaryPanel from "./CreatedJobSummaryPanel.svelte"
-  import FoundationDataPanel from "./FoundationDataPanel.svelte"
   import InputSourcePanel from "./InputSourcePanel.svelte"
   import JobSetupPurposeHeader from "./JobSetupPurposeHeader.svelte"
-  import PhaseSettingsPanel from "./PhaseSettingsPanel.svelte"
   import PhaseSettingsSummaryPanel from "./PhaseSettingsSummaryPanel.svelte"
 
   type CreateTranslationJobSetupScreenController =
@@ -142,57 +133,6 @@
     return date.toLocaleString("ja-JP")
   }
 
-  function formatRuntimeLabel(
-    provider: string,
-    model: string,
-    mode: string
-  ): string {
-    return `${provider} / ${model} / ${mode}`
-  }
-
-  function resolveValidationLabel(status: string): string {
-    return VALIDATION_LABELS[status as keyof typeof VALIDATION_LABELS] ?? status
-  }
-
-  function batchSectionText(
-    phaseCard: TranslationJobSetupPhaseCardViewModel
-  ): string {
-    if (phaseCard.showBatchToggle) {
-      return phaseCard.batchEnabled ? "有効" : "無効"
-    }
-
-    return "対象外"
-  }
-
-  function handlePhaseProviderChange(
-    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
-    event: Event
-  ): void {
-    const target = event.currentTarget
-    if (target instanceof HTMLSelectElement) {
-      controller.selectPhaseProvider(phaseId, target.value)
-    }
-  }
-
-  function handlePhaseModelChange(
-    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
-    event: Event
-  ): void {
-    const target = event.currentTarget
-    if (target instanceof HTMLSelectElement) {
-      controller.selectPhaseModel(phaseId, target.value)
-    }
-  }
-
-  function handlePhaseBatchChange(
-    phaseId: TranslationJobSetupPhaseCardViewModel["phaseId"],
-    event: Event
-  ): void {
-    const target = event.currentTarget
-    if (target instanceof HTMLInputElement) {
-      controller.togglePhaseBatchMode(phaseId, target.checked)
-    }
-  }
 </script>
 
 <section class="job-setup-shell" id="translationJobSetupView">
@@ -231,56 +171,6 @@
         onSelectInputSource={(candidateId: number) =>
           controller.selectInputSource(candidateId)}
       />
-
-      <FoundationDataPanel
-        dictionaryLabels={viewModel.dictionaryLabels}
-        personaLabels={viewModel.personaLabels}
-      />
-
-      {#if viewModel.phaseCards.length === 0}
-        <PhaseSettingsPanel
-          isCreating={viewModel.isCreating}
-          phaseCards={viewModel.phaseCards}
-          runtimeOptions={viewModel.options?.aiRuntimeOptions ?? []}
-          selectedRuntimeKey={viewModel.selectedRuntimeKey}
-          {batchSectionText}
-          createRuntimeKey={createTranslationJobSetupRuntimeKey}
-          {formatRuntimeLabel}
-          onPhaseBatchChange={handlePhaseBatchChange}
-          onPhaseModelChange={handlePhaseModelChange}
-          onPhaseProviderChange={handlePhaseProviderChange}
-          onRefreshPhaseModels={(phaseId: TranslationJobSetupPhaseId) =>
-            void controller.refreshPhaseModels(phaseId)}
-          onSelectRuntime={(runtimeKey: string) =>
-            controller.selectRuntime(runtimeKey)}
-        />
-
-        <CompatibilityPrecheckPanel
-          canValidate={viewModel.canValidate}
-          dirty={viewModel.dirty}
-          validationResult={viewModel.validationResult}
-          {formatDate}
-          {resolveValidationLabel}
-          onRunValidation={() => void controller.runValidation()}
-        />
-      {:else}
-        <PhaseSettingsPanel
-          isCreating={viewModel.isCreating}
-          phaseCards={viewModel.phaseCards}
-          runtimeOptions={viewModel.options?.aiRuntimeOptions ?? []}
-          selectedRuntimeKey={viewModel.selectedRuntimeKey}
-          {batchSectionText}
-          createRuntimeKey={createTranslationJobSetupRuntimeKey}
-          {formatRuntimeLabel}
-          onPhaseBatchChange={handlePhaseBatchChange}
-          onPhaseModelChange={handlePhaseModelChange}
-          onPhaseProviderChange={handlePhaseProviderChange}
-          onRefreshPhaseModels={(phaseId: TranslationJobSetupPhaseId) =>
-            void controller.refreshPhaseModels(phaseId)}
-          onSelectRuntime={(runtimeKey: string) =>
-            controller.selectRuntime(runtimeKey)}
-        />
-      {/if}
     </section>
 
     <StickyActionFooter
@@ -298,7 +188,7 @@
     >
       {#if viewModel.showCacheMissingGuidance}
         <p class="mini-text">
-          入力データの再構築が必要です。入力データの確認画面に戻ってください。
+          入力データの確認が必要です。入力データの確認画面に戻ってください。
         </p>
       {/if}
       {#if viewModel.showCacheMissingGuidance && onReturnToInputReview}

@@ -2,6 +2,8 @@ import type { PersonaGenerationPhaseGatewayContract } from "@application/gateway
 import type {
   CancelPersonaGenerationPhaseRequestDto,
   CancelPersonaGenerationPhaseResponseDto,
+  GetProcessingTargetListRequestDto,
+  GetProcessingTargetListResponseDto,
   GetPersonaGenerationBodyReadinessRequestDto,
   GetPersonaGenerationBodyReadinessResponseDto,
   GetPersonaGenerationPhaseSummaryRequestDto,
@@ -19,6 +21,7 @@ import type {
 } from "@controller/wails/gateway-dto/persona-generation-phase"
 
 type PersonaGenerationPhaseBindingName =
+  | "GetProcessingTargetList"
   | "GetPersonaGenerationPhaseSummary"
   | "StartPersonaGenerationPhase"
   | "SavePersonaGenerationPhaseAISettings"
@@ -58,6 +61,7 @@ function resolveBindingFunction(
   }
 
   const controllerCandidates = [
+    toRecord(wailsRecord["ProcessingTargetController"]),
     toRecord(wailsRecord["PersonaGenerationPhaseController"]),
     toRecord(wailsRecord["AppController"])
   ]
@@ -99,6 +103,12 @@ function createBindingInvoker(): BindingInvoker {
 
 class PersonaGenerationPhaseGateway implements PersonaGenerationPhaseGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
+
+  getProcessingTargetList(
+    request: GetProcessingTargetListRequestDto
+  ): Promise<GetProcessingTargetListResponseDto> {
+    return this.invokeBinding("GetProcessingTargetList", request)
+  }
 
   getPersonaGenerationPhaseSummary(
     request: GetPersonaGenerationPhaseSummaryRequestDto

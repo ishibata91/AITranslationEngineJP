@@ -7,15 +7,26 @@
   import AIModelSelectionCard from "../../components/AIModelSelectionCard.svelte"
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
+  import ProcessingTargetListWrapper from "../../components/ProcessingTargetListWrapper.svelte"
   import type {
     PhaseDetailItem,
     PhaseMetricCounter,
     PhaseStateToken
   } from "../../components/phase-panel-types"
+  import type {
+    ProcessingTargetListItem,
+    ProcessingTargetListPageState
+  } from "../../components/processing-target-list-panel-types"
 
   interface Props {
     viewModel: BodyTranslationPhaseScreenViewModel
     onAction: (actionId: BodyTranslationPhaseActionKind) => void | Promise<void>
+    processingTargetItems?: ProcessingTargetListItem[]
+    processingTargetPageState?: ProcessingTargetListPageState
+    onProcessingTargetSearchInput?: (event: Event) => void
+    onProcessingTargetPreviousPage?: () => void
+    onProcessingTargetNextPage?: () => void
+    onProcessingTargetPageChange?: (page: number) => void
     onAISettingsChange?: (request: {
       provider: string
       model: string
@@ -24,7 +35,18 @@
     }) => void | Promise<void>
   }
 
-  let { viewModel, onAction, onAISettingsChange = undefined }: Props = $props()
+  let {
+    viewModel,
+    onAction,
+    processingTargetItems: providedProcessingTargetItems = undefined,
+    processingTargetPageState = undefined,
+    onProcessingTargetSearchInput = undefined,
+    onProcessingTargetPreviousPage = undefined,
+    onProcessingTargetNextPage = undefined,
+    onProcessingTargetPageChange = undefined,
+    onAISettingsChange = undefined
+  }: Props = $props()
+  let processingTargetSearchValue = $state("")
 
   function resolveStateToken(
     viewState: BodyTranslationPhaseViewState
@@ -63,6 +85,68 @@
   const progressDetails = $derived<PhaseDetailItem[]>([
     { label: "対象件数", value: viewModel.targetCountLabel }
   ])
+  const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
+    {
+      id: "body-translation-provider-target",
+      name: "原文 / 訳文",
+      titleParts: [
+        { text: `原文対象: ${viewModel.providerTargetCountLabel} 件` },
+        { text: `訳文出力: ${viewModel.outputCountLabel} 件` }
+      ],
+      detail: "辞書とペルソナ参照情報を使って本文訳文を作る対象。",
+      metadata: [
+        { label: "本文翻訳対象", value: viewModel.targetCountLabel },
+        { label: "AI 送信対象", value: viewModel.providerTargetCountLabel },
+        {
+          label: "完全一致辞書除外",
+          value: viewModel.exactDictionaryExclusionCountLabel
+        },
+        {
+          label: "部分一致辞書制約",
+          value: viewModel.partialDictionaryConstraintCountLabel
+        },
+        { label: "リクエスト単位", value: viewModel.requestUnitCountLabel },
+        { label: "出力済み", value: viewModel.outputCountLabel },
+        { label: "参照辞書", value: viewModel.dictionaryDigestLabel },
+        { label: "参照ペルソナ", value: viewModel.personaDigestLabel }
+      ]
+    }
+  ])
+  const displayedProcessingTargetItems = $derived(
+    processingTargetPageState
+      ? processingTargetPageState.items
+      : providedProcessingTargetItems && providedProcessingTargetItems.length > 0
+      ? providedProcessingTargetItems
+      : summaryProcessingTargetItems
+  )
+  const processingTargetSearchQuery = $derived(
+    processingTargetPageState?.searchQuery ?? processingTargetSearchValue
+  )
+  const filteredProcessingTargetItems = $derived(
+    processingTargetPageState
+      ? displayedProcessingTargetItems
+      : filterProcessingTargetItems(
+          displayedProcessingTargetItems,
+          processingTargetSearchQuery
+        )
+  )
+
+  function filterProcessingTargetItems(
+    items: ProcessingTargetListItem[],
+    searchValue: string
+  ): ProcessingTargetListItem[] {
+    const normalizedSearchValue = searchValue.trim().toLocaleLowerCase("ja-JP")
+    if (!normalizedSearchValue) {
+      return items
+    }
+
+    return items.filter((item) =>
+      [item.name, ...(item.titleParts?.map((part) => part.text) ?? [])]
+        .join(" ")
+        .toLocaleLowerCase("ja-JP")
+        .includes(normalizedSearchValue)
+    )
+  }
 
   function selectedValue(event: Event): string {
     const target = event.currentTarget
@@ -100,6 +184,14 @@
   function handleModelChange(event: Event): void {
     saveAISettings({ model: selectedValue(event) })
   }
+
+  function handleProcessingTargetSearchInput(event: Event): void {
+    onProcessingTargetSearchInput?.(event)
+    const target = event.currentTarget
+    if (target instanceof HTMLInputElement) {
+      processingTargetSearchValue = target.value
+    }
+  }
 </script>
 
 <section class="job-run-shell" id="bodyTranslationPhaseView">
@@ -117,22 +209,23 @@
     metrics={phaseMetrics}
   />
 
-  <PhaseProgressPanel
-    headingId="bodyPhaseProgressHeading"
-    testId="body-translation-phase-progress"
-    eyebrow="翻訳段階の進行状況"
-    title="進行状況"
-    progressLabel={viewModel.progressLabel}
-    progressPercent={viewModel.progressPercent}
-    progressDetail={viewModel.progressDetail}
-    details={progressDetails}
-    currentPhaseLabel={viewModel.currentPhaseLabel}
-    actionAriaLabel="翻訳段階の操作"
-    actions={viewModel.actionCards}
-    {onAction}
-  />
+  <section class="phase-controls-grid">
+    <PhaseProgressPanel
+      headingId="bodyPhaseProgressHeading"
+      testId="body-translation-phase-progress"
+      eyebrow="翻訳段階の進行状況"
+      title="進行状況"
+      progressLabel={viewModel.progressLabel}
+      progressPercent={viewModel.progressPercent}
+      progressDetail={viewModel.progressDetail}
+      details={progressDetails}
+      currentPhaseLabel={viewModel.currentPhaseLabel}
+      actionAriaLabel="翻訳段階の操作"
+      actions={viewModel.actionCards}
+      onAction={(actionId) =>
+        onAction(actionId as BodyTranslationPhaseActionKind)}
+    />
 
-  <section class="summary-grid ai-settings-row">
     <AIModelSelectionCard
       dataTestId="body-translation-phase-ai-model-selection"
       ariaLabel="本文翻訳の AI モデル選択"
@@ -178,6 +271,24 @@
       footerWarningText={aiSettingsBlockedReason}
     />
   </section>
+
+  <ProcessingTargetListWrapper
+    items={filteredProcessingTargetItems}
+    pageSize={processingTargetPageState?.pageSize ?? 50}
+    currentPage={processingTargetPageState?.page}
+    totalCount={processingTargetPageState?.totalCount}
+    busy={processingTargetPageState?.busy}
+    searchId="bodyPhaseProcessingTargetSearch"
+    searchLabel="検索"
+    searchPlaceholder="名前・原文・訳語で検索"
+    searchValue={processingTargetSearchQuery}
+    title="処理対象"
+    titleId="bodyPhaseProcessingTargetsHeading"
+    onSearchInput={handleProcessingTargetSearchInput}
+    onPreviousPage={onProcessingTargetPreviousPage}
+    onNextPage={onProcessingTargetNextPage}
+    onPageChange={onProcessingTargetPageChange}
+  />
 </section>
 
 <style>
@@ -187,22 +298,15 @@
     min-width: 0;
   }
 
-  .summary-grid {
+  .phase-controls-grid {
     display: grid;
-    gap: 0.8rem;
+    gap: 1.25rem;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     min-width: 0;
   }
 
-  .summary-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .ai-settings-row {
-    grid-template-columns: minmax(0, 1fr);
-  }
-
   @media (max-width: 900px) {
-    .summary-grid {
+    .phase-controls-grid {
       grid-template-columns: 1fr;
     }
   }

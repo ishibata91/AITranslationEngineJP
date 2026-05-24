@@ -10,15 +10,12 @@ Codex app の `Browser` plugin が使える作業では、Codex 本体が Storyb
 
 ## Storybook 起動
 
-- 固定 URL: `http://localhost:6008/` を Storybook 人間レビューの標準 URL とする。
-- 起動 command: `npm --prefix frontend run storybook` を使う。
-- port 固定: Storybook は `6008` だけを使い、別 port で追加起動しない。
-- 変更反映: Storybook 確認中に frontend または story を変更した場合は、既存 Storybook を停止して同じ command で再起動する。
-- port 使用中: `6008` が使用中の場合は、別 port に逃がさず、既存 Storybook を停止してから再起動する。
+- Storybook の URL、起動 command、port 固定、再起動、分類、確認資源、`fixture` 種類基準は [storybook.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/storybook.md) に従う。
+- Storybook レビューループ: frontend 修正を伴う反復は [story-book-review-loop](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/story-book-review-loop/SKILL.md) に従う。
 
 ## 適用境界
 
-- 対象ロール: Codex 本体、`implement_lane`、`ux_maintainance_lane` のオーケストレーション判断。
+- 対象ロール: Codex 本体、`story-book-review-loop`、`implement_lane`、`ux_maintainance_lane` のオーケストレーション判断。
 - 非対象ロール: サブエージェント。
 - サブエージェントの UI 証跡取得: `agent-browser` CLI と agent 実行定義に従う。
 - 引き継ぎ: Codex 本体が取得したコメント証跡は、サブエージェントへ入力として渡してよい。

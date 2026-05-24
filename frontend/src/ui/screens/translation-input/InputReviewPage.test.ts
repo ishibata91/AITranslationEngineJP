@@ -167,19 +167,22 @@ describe("InputReviewPage", () => {
       screen.getAllByText("/mods/input-review.json").length
     ).toBeGreaterThan(0)
     expect(screen.getAllByText("hash-41").length).toBeGreaterThan(0)
-    expect(screen.getAllByText("invalid-timestamp")).toHaveLength(2)
-    expect(screen.getByText("accepted")).toBeInTheDocument()
-    expect(screen.getByText("rebuild 可")).toBeInTheDocument()
-    expect(screen.getAllByText("5").length).toBeGreaterThan(0)
-    expect(screen.getByText("8")).toBeInTheDocument()
-    expect(screen.getByText("Skyrim.esm")).toBeInTheDocument()
-    expect(screen.getByText("xEdit")).toBeInTheDocument()
-    expect(screen.getByText("record 2 / field 3")).toBeInTheDocument()
-    expect(screen.getByText("record 3 / field 5")).toBeInTheDocument()
-    expect(screen.getByText("NPC_:FULL")).toBeInTheDocument()
-    expect(screen.getByText("Hello there")).toBeInTheDocument()
-    expect(screen.getByText("00012345")).toBeInTheDocument()
-    expect(screen.getByText("SampleNPC")).toBeInTheDocument()
+    expect(screen.getByText("登録結果")).toBeInTheDocument()
+    expect(screen.getByText("読み込み日時")).toBeInTheDocument()
+    expect(screen.getByText("問題区分")).toBeInTheDocument()
+    expect(screen.getByText("選択 JSON")).toBeInTheDocument()
+    expect(screen.getByText("ロード対象を選ぶ")).toBeInTheDocument()
+    expect(screen.getByText("この JSON を登録")).toBeInTheDocument()
+    expect(screen.getByText("選び直す")).toBeInTheDocument()
+    expect(screen.getAllByText("invalid-timestamp")).toHaveLength(1)
+    expect(screen.getAllByText("登録済み").length).toBeGreaterThan(0)
+    expect(screen.queryByText("再構築")).not.toBeInTheDocument()
+    expect(document.querySelector(".detail-panel")).toBeNull()
+    expect(
+      screen.queryByTestId("translation-input-review-selected-input-region")
+    ).not.toBeInTheDocument()
+    expect(screen.queryByText("1 件")).not.toBeInTheDocument()
+    expect(document.querySelector(".count-pill")).toBeNull()
     expect(
       screen.queryByRole("button", { name: "ジョブ作成" })
     ).not.toBeInTheDocument()
@@ -204,9 +207,7 @@ describe("InputReviewPage", () => {
     })
 
     expect(
-      screen.getByText(
-        "入力登録だけでは Job Management には表示されません。Job Setup で job を作成してください。"
-      )
+      screen.getByText("入力データを選択済みです。次に単語翻訳へ進みます。")
     ).toBeInTheDocument()
 
     const footer = screen.getByRole("region", {
@@ -361,10 +362,9 @@ describe("InputReviewPage", () => {
     expect(screen.getByText(/missing required field/)).toBeInTheDocument()
     expect(screen.getByText(/source file missing/)).toBeInTheDocument()
     expect(screen.getByText(/cache missing/)).toBeInTheDocument()
-    expect(
-      screen.getAllByText("unknown field definition").length
-    ).toBeGreaterThan(0)
-    expect(screen.getByText("再構築が必要")).toBeInTheDocument()
+    expect(screen.getByText("警告あり")).toBeInTheDocument()
+    expect(screen.queryByText("unknown field definition")).not.toBeInTheDocument()
+    expect(screen.queryByText("再構築が必要")).not.toBeInTheDocument()
   })
 
   test("JSON upload、選び直し、登録、再構築、一覧選択を controller へ委譲する", async () => {
@@ -405,7 +405,6 @@ describe("InputReviewPage", () => {
     await user.upload(input, file)
     await user.click(screen.getByRole("button", { name: "選び直す" }))
     await user.click(screen.getByRole("button", { name: "この JSON を登録" }))
-    await user.click(screen.getByRole("button", { name: "cache を再構築" }))
 
     const list = screen.getByRole("list")
     await user.click(
@@ -428,14 +427,14 @@ describe("InputReviewPage", () => {
     expect((uploadedFile as File & { path?: string }).path).toBeUndefined()
     expect(controller.resetImportSelection).toHaveBeenCalledTimes(1)
     expect(controller.startImport).toHaveBeenCalledTimes(1)
-    expect(controller.rebuildSelected).toHaveBeenCalledTimes(1)
+    expect(controller.rebuildSelected).not.toHaveBeenCalled()
     expect(controller.selectItem).toHaveBeenCalledWith("input-41")
 
     unmount()
 
     expect(controller.dispose).toHaveBeenCalledTimes(1)
   })
-  test("空配列の view model でも empty state を表示して UI が破綻しない", () => {
+  test("一覧の表示項目を維持し、詳細パネル依存なしで UI が破綻しない", () => {
     const item = createItem({
       warnings: [],
       summary: {
@@ -463,12 +462,12 @@ describe("InputReviewPage", () => {
       }
     })
 
+    expect(screen.getAllByText("読み込み済みデータ").length).toBeGreaterThan(0)
+    expect(screen.getByText("問題区分")).toBeInTheDocument()
+    expect(screen.getByText("-")).toBeInTheDocument()
     expect(
-      screen.getByText("カテゴリ別件数はまだありません。")
-    ).toBeInTheDocument()
-    expect(
-      screen.getByText("sample field はまだありません。")
-    ).toBeInTheDocument()
-    expect(screen.getByText("問題なし")).toBeInTheDocument()
+      screen.queryByTestId("translation-input-review-selected-input-region")
+    ).not.toBeInTheDocument()
+    expect(document.querySelector(".detail-panel")).toBeNull()
   })
 })

@@ -1,3 +1,8 @@
+import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+
 export type PersonaGenerationPhaseErrorKind =
   | "term_phase_incomplete"
   | "terminal_job"
@@ -175,6 +180,9 @@ export interface PersonaGenerationBodyReadinessResponse {
 }
 
 export interface PersonaGenerationPhaseGatewayContract {
+  getProcessingTargetList?(
+    request: ProcessingTargetListRequest
+  ): Promise<ProcessingTargetListResponse>
   getPersonaGenerationPhaseSummary(
     request: GetPersonaGenerationPhaseSummaryRequest
   ): Promise<PersonaGenerationPhaseSummaryResponse>

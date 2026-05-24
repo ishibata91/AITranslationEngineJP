@@ -4,7 +4,7 @@ import JobListPanel from "../JobListPanel.svelte"
 import { jobListPanelFixtures } from "../__fixtures__/translation-job-management-fixtures"
 
 const meta = {
-  title: "Screens/Translation Job Management/JobListPanel",
+  title: "Screen Components/Translation Job Management/JobListPanel",
   component: JobListPanel,
   parameters: {
     layout: "fullscreen"

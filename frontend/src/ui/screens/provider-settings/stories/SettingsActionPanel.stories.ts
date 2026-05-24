@@ -4,7 +4,7 @@ import SettingsActionPanel from "../SettingsActionPanel.svelte"
 import { settingsActionPanelFixtures } from "../__fixtures__/provider-settings-panel-fixtures"
 
 const meta = {
-  title: "Screens/Provider Settings/SettingsActionPanel",
+  title: "Screen Components/Provider Settings/SettingsActionPanel",
   component: SettingsActionPanel,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof SettingsActionPanel>

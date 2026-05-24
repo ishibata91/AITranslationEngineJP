@@ -4,7 +4,7 @@ import ApiKeyPanel from "../ApiKeyPanel.svelte"
 import { apiKeyPanelFixtures } from "../__fixtures__/provider-settings-panel-fixtures"
 
 const meta = {
-  title: "Screens/Provider Settings/ApiKeyPanel",
+  title: "Screen Components/Provider Settings/ApiKeyPanel",
   component: ApiKeyPanel,
   parameters: { layout: "fullscreen" }
 } satisfies Meta<typeof ApiKeyPanel>

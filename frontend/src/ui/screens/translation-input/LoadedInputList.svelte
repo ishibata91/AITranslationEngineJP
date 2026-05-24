@@ -4,7 +4,6 @@
   interface Props {
     items: TranslationInputReviewItem[]
     selectedItemId: string | null
-    totalItemCountLabel: string
     emptyStateText: string
     formatStatus: (status: string) => string
     formatDate: (timestamp: string) => string
@@ -15,7 +14,6 @@
   let {
     items,
     selectedItemId,
-    totalItemCountLabel,
     emptyStateText,
     formatStatus,
     formatDate,
@@ -37,7 +35,6 @@
         登録済みの JSON を選び、状態と次の確認対象を見つける。
       </p>
     </div>
-    <p class="count-pill">{totalItemCountLabel}</p>
   </div>
 
   {#if items.length === 0}
@@ -70,15 +67,6 @@
                   {item.accepted ? "登録済み" : "登録に失敗"}
                   <span class="sr-only">
                     {item.accepted ? "accepted" : "rejected"}
-                  </span>
-                </dd>
-              </div>
-              <div>
-                <dt>再構築</dt>
-                <dd>
-                  {item.canRebuild ? "再構築できます" : "まだ再構築できません"}
-                  <span class="sr-only">
-                    {item.canRebuild ? "rebuild 可" : "不可"}
                   </span>
                 </dd>
               </div>
@@ -156,7 +144,6 @@
     margin: 0;
   }
 
-  .count-pill,
   .status-pill {
     margin: 0;
     padding: 0.32rem 0.7rem;
