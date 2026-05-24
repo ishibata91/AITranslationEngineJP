@@ -6,7 +6,7 @@
 - `worktree_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP`
 - `source_branch`: `codex/frontend-backend-connection-refactor`
 - `target_branch`: `master`
-- `work_commit_hash`: final response の `作業 commit` を参照する。
+- `work_commit_hash`: `1045b7f`
 
 ## マージ準備確認
 
