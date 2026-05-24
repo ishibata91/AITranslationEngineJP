@@ -1,7 +1,7 @@
 # Task Plan: frontend-overall-refactor
 
 - `workflow`: refactor-lane
-- `status`: merge-result-commit-pending
+- `status`: completed
 - `lane_owner`: `refactor_lane`
 - `task_id`: `frontend-overall-refactor`
 - `task_mode`: frontend refactor
@@ -182,7 +182,7 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 - `conflict_resolution`: `none`
 - `post_merge_validation`: `python3 scripts/harness/run.py --suite frontend-local` passed; `python3 scripts/harness/run.py --suite structure` passed; `npm --prefix frontend run build-storybook` passed
 - `completed_move`: `docs/exec-plans/active/frontend-overall-refactor/` moved to `docs/exec-plans/completed/frontend-overall-refactor/`
-- `merge_commit_hash`: `pending-until-commit`
+- `merge_commit_hash`: `982a1d854a99294536ef3ee37448158924799690`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
@@ -210,7 +210,8 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 - `python3 scripts/harness/run.py --suite frontend-local` は通過した。
 - 5 観点レビューは全て `no_issue` である。
 - `FSD-005` の docs 正本化判断を task-local に記録した。docs 正本本文は変更していない。
-- local commit を作成した。commit hash は最終応答で報告する。
+- local commit を作成した。source branch の作業 commit は `fb28236d4f58b0f2c0c738540f3e61bf33509808` である。
 - `codex/frontend-overall-refactor` を `master` へ conflict なしで local merge した。
 - merge 後検証は `frontend-local`, `structure`, `build-storybook` が通過した。
 - active plan folder を completed archive へ移動した。
+- merge 結果 commit を作成した。merge commit は `982a1d854a99294536ef3ee37448158924799690` である。
