@@ -1,0 +1,74 @@
+reviewback_version: 1
+task_id: "frontend-overall-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-overall-refactor/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  behavior_match: "未解決指摘なし。承認済み first unit の目的である translation-job-setup 専用 dead code cleanup と model-settings-card 未使用 export cleanup は、live の翻訳管理導線と model-settings-card の単一 state clone を維持したまま成立している。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、実 diff、frontend/src の対象参照検索、AppShell の描画経路、shell-state の step 並び、model-settings-card policy、呼び出し元の検証証跡を確認した。レビュー agent はハーネスを再実行していない。"
+  hard_gate: false
+
+checked_scope:
+  summary: "frontend overall refactor の承認済み first unit 実装差分を挙動正しさ観点で確認した。translation-job-setup の production wiring、page、screen local component、controller、usecase、presenter、store、gateway、DTO、story、test は frontend/src から参照されていない。翻訳管理 shell は input-review、job-management、job-run の既存経路だけを描画している。"
+  files:
+    - path: "docs/exec-plans/active/frontend-overall-refactor/implementation-scope.md"
+      line: 1
+      symbol: "Implementation Scope"
+      reason: "承認済み実装範囲、除外範囲、変更禁止範囲、検証要件を確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 30
+      symbol: "Props"
+      reason: "root view の props から translation-job-setup controller が消え、残る controller factory は live 画面用だけであることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.svelte"
+      line: 312
+      symbol: "translation-management rendering"
+      reason: "翻訳管理 shell が input-review、job-management、job-run の既存経路だけを描画していることを確認した。"
+    - path: "frontend/src/ui/stores/shell-state.ts"
+      line: 81
+      symbol: "TRANSLATION_MANAGEMENT_VIEW_CONTRACT"
+      reason: "翻訳管理 step 並びが維持されていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 70
+      symbol: "cloneModelSettingsCardState"
+      reason: "live store 用の単一 state clone は残り、未使用の複数 state clone helper だけが削除されていることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 278
+      symbol: "AppShell tests"
+      reason: "test setup から dead controller prop だけが削除され、live shell 導線の期待値が変更されていないことを確認した。"
+
+unchecked_scope:
+  - target: "呼び出し元が検証済みとして提示した harness と Storybook build の再実行"
+    reason: "codex-review-behavior skill はハーネスを実行しないため、呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "レビュー時点のローカル再実行による再現確認はしていない。"
+  - target: "UI browser confirmation"
+    reason: "今回の差分は dead code cleanup と未使用 export cleanup であり、呼び出し元は UI evidence を not-run-dead-code-cleanup-only と記録している。"
+    risk: "実画面の視覚差分はこの観点レビューでは再観測していない。"
+  - target: "docs 正本本文、tasks、backend runtime"
+    reason: "承認済み first unit は frontend/src の cleanup であり、docs 正本本文、tasks、internal は変更禁止または対象外である。"
+    risk: "translation-job-setup の仕様や backend binding の後続整理要否はこの観点レビューでは判定していない。"
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_evaluation:
+  required: false
+  assessment: "追加の局所修正は不要である。未解決の挙動指摘はない。"
+  invariant_test_viewpoint: "translation-job-setup 削除後も翻訳管理の input-review、job-management、job-run 導線が維持され、model-settings-card の live clone 関数が残ること。"
+
+evidence:
+  reference_search:
+    command: "rg -n \"translation-job-setup|TranslationJobSetup|createTranslationJobSetup|JobSetupPage|PhaseSettingsPanel|PhaseSettingsSummaryPanel|cloneModelSettingsCardStates\" frontend/src"
+    summary: "一致なし。削除対象名と未使用 helper 名は frontend/src に残っていない。"
+  validation:
+    summary: "呼び出し元の検証証跡では structure、build-storybook、frontend-local が 2026-05-24 に passed。レビュー agent は再実行していない。"
+
+residual_risk:
+  summary: "docs 正本本文、tasks、backend runtime、UI browser confirmation はこの挙動レビューでは未確認である。"
+  level: "low"

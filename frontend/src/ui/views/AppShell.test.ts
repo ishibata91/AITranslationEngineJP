@@ -278,7 +278,6 @@ describe("AppShell", () => {
           validateConnection: vi.fn(async () => {})
         })),
         createTermTranslationPhaseScreenController: null,
-        createTranslationJobSetupScreenController: null,
         createTranslationOutputArtifactScreenController: null,
         createTranslationInputScreenController: null
       }
@@ -325,7 +324,6 @@ describe("AppShell", () => {
           closeDeleteConfirmation: vi.fn(),
           deleteSelectedJob: vi.fn(async () => {})
         })),
-        createTranslationJobSetupScreenController: null,
         createTranslationOutputArtifactScreenController: null,
         createTranslationInputScreenController: null
       }
@@ -377,7 +375,6 @@ describe("AppShell", () => {
           closeDeleteConfirmation: vi.fn(),
           deleteSelectedJob: vi.fn(async () => {})
         })),
-        createTranslationJobSetupScreenController: null,
         createTranslationOutputArtifactScreenController: null,
         createTranslationInputScreenController: null
       }
@@ -418,7 +415,6 @@ describe("AppShell", () => {
         createTranslationJobManagementScreenController: vi.fn(
           () => translationJobManagementController
         ),
-        createTranslationJobSetupScreenController: null,
         createTranslationOutputArtifactScreenController: null,
         createTranslationInputScreenController: null
       }

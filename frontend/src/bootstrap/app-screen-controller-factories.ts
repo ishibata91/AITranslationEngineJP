@@ -6,7 +6,6 @@ import type { CreateProviderSettingsScreenController } from "@application/contra
 import type { CreateTermTranslationPhaseScreenController } from "@application/contract/term-translation-phase"
 import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
 import type { CreateTranslationInputScreenController } from "@application/contract/translation-input"
-import type { CreateTranslationJobSetupScreenController } from "@application/contract/translation-job-setup"
 import type { CreateTranslationOutputArtifactScreenController } from "@application/contract/translation-output-artifact"
 import {
   createNoopFrontendDiagnosticLogger,
@@ -20,7 +19,6 @@ import { createProviderSettingsScreenControllerFactory } from "@controller/provi
 import { createTermTranslationPhaseScreenControllerFactory } from "@controller/term-translation-phase"
 import { createTranslationJobManagementScreenControllerFactory } from "@controller/translation-job-management"
 import { createTranslationInputScreenControllerFactory } from "@controller/translation-input"
-import { createTranslationJobSetupScreenControllerFactory } from "@controller/translation-job-setup"
 import { createTranslationOutputArtifactScreenControllerFactory } from "@controller/translation-output-artifact"
 import { createBodyTranslationPhaseGateway } from "@controller/wails/body-translation-phase.gateway"
 import { createMasterDictionaryGateway } from "@controller/wails/master-dictionary.gateway"
@@ -30,7 +28,6 @@ import { createProviderSettingsGateway } from "@controller/wails/provider-settin
 import { createTermTranslationPhaseGateway } from "@controller/wails/term-translation-phase.gateway"
 import { createTranslationJobManagementGateway } from "@controller/wails/translation-job-management.gateway"
 import { createTranslationInputGateway } from "@controller/wails/translation-input.gateway"
-import { createTranslationJobSetupGateway } from "@controller/wails/translation-job-setup.gateway"
 import { createTranslationOutputArtifactGateway } from "@controller/wails/translation-output-artifact.gateway"
 
 type FrontendDiagnosticLogger = ReturnType<
@@ -47,7 +44,6 @@ interface AppScreenControllerFactories {
   createTermTranslationPhaseScreenController: CreateTermTranslationPhaseScreenController
   createTranslationJobManagementScreenController: CreateTranslationJobManagementScreenController
   createTranslationInputScreenController: CreateTranslationInputScreenController
-  createTranslationJobSetupScreenController: CreateTranslationJobSetupScreenController
   createTranslationOutputArtifactScreenController: CreateTranslationOutputArtifactScreenController
 }
 
@@ -58,7 +54,6 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
   const personaGenerationPhaseGateway = createPersonaGenerationPhaseGateway()
   const providerSettingsGateway = createProviderSettingsGateway()
   const translationInputGateway = createTranslationInputGateway()
-  const translationJobSetupGateway = createTranslationJobSetupGateway()
   const translationJobManagementGateway =
     createTranslationJobManagementGateway()
   const translationOutputArtifactGateway =
@@ -97,10 +92,6 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
       ),
     createTranslationInputScreenController:
       createTranslationInputScreenControllerFactory(translationInputGateway),
-    createTranslationJobSetupScreenController:
-      createTranslationJobSetupScreenControllerFactory(
-        translationJobSetupGateway
-      ),
     createTranslationOutputArtifactScreenController:
       createTranslationOutputArtifactScreenControllerFactory(
         translationOutputArtifactGateway

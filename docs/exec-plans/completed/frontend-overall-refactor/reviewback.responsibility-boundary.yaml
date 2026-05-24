@@ -1,0 +1,89 @@
+reviewback_version: 1
+task_id: "frontend-overall-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-overall-refactor/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "未解決指摘なし。frontend bootstrap、controller、application、gateway、test、story の変更は、承認済み first unit の translation-job-setup 専用 dead code cleanup と model-settings-card 未使用 export cleanup に閉じている。新しい層責務、依存方向、関数責務の混在は追加されていない。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、実 diff、対象参照検索、変更パス、呼び出し元の検証証跡を確認した。"
+  broken_boundaries: "なし。削除対象は dead page、screen local component、screen controller、usecase、presenter、store、gateway、DTO、story、test に限定されている。"
+  cause_candidates: "なし。責務境界違反の原因候補は確認していない。"
+  local_fix_assessment: "未解決指摘なし。追加修正が必要な局所修正対象はない。"
+
+checked_scope:
+  summary: "frontend overall refactor の承認済み first unit 実装差分を責務境界観点で確認した。frontend bootstrap から translation-job-setup production wiring が削除され、controller、application、gateway、UI screen、test、story の translation-job-setup 専用資源が削除されている。model-settings-card は未使用 export と未使用 helper の削除だけである。"
+  files:
+    - path: "docs/exec-plans/active/frontend-overall-refactor/implementation-scope.md"
+      line: 1
+      symbol: "Implementation Scope"
+      reason: "承認済み実装範囲、除外範囲、frontend/controller/application/gateway/test/story の削除対象を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 13
+      symbol: "mount App props"
+      reason: "root view へ渡す production props から translation-job-setup controller だけが削除され、composition root の責務に閉じていることを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 50
+      symbol: "createProductionAppFactories"
+      reason: "translation-job-setup gateway と screen controller factory の production wiring 削除だけで、Bootstrap 以外の層へ具象生成を移していないことを確認した。"
+    - path: "frontend/src/controller/translation-job-setup/translation-job-setup-screen-controller.ts"
+      line: 1
+      symbol: "TranslationJobSetupScreenController"
+      reason: "dead screen controller の削除であり、別 controller へ画面操作責務を移していないことを確認した。"
+    - path: "frontend/src/application/usecase/translation-job-setup/translation-job-setup.usecase.ts"
+      line: 1
+      symbol: "TranslationJobSetupUseCase"
+      reason: "dead usecase の削除であり、live input review usecase や job run usecase へ責務を混ぜていないことを確認した。"
+    - path: "frontend/src/application/presenter/translation-job-setup/translation-job-setup.presenter.ts"
+      line: 1
+      symbol: "TranslationJobSetupPresenter"
+      reason: "dead presenter の削除であり、表示用値の整形責務を別層へ移していないことを確認した。"
+    - path: "frontend/src/application/store/translation-job-setup/translation-job-setup.store.ts"
+      line: 1
+      symbol: "TranslationJobSetupStore"
+      reason: "dead store の削除であり、画面状態保持責務を View や gateway へ移していないことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 1
+      symbol: "TranslationJobSetupGateway"
+      reason: "dead Wails adapter の削除であり、generated binding や DTO 変換の責務を application 層へ移していないことを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/translation-job-setup/translation-job-setup-gateway-dto.ts"
+      line: 1
+      symbol: "TranslationJobSetupGatewayDto"
+      reason: "dead gateway DTO の削除であり、境界変換を別層へ移していないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/JobSetupPage.svelte"
+      line: 1
+      symbol: "JobSetupPage"
+      reason: "dead page の削除であり、live 画面の表示責務へ translation-job-setup 専用表示を混ぜていないことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/stories/JobSetupPurposeHeader.stories.ts"
+      line: 1
+      symbol: "JobSetupPurposeHeader story"
+      reason: "dead story の削除であり、Storybook 設定や別 story の責務を変更していないことを確認した。"
+    - path: "frontend/src/ui/screens/__fixtures__/screen-page-controller-fixtures.ts"
+      line: 1
+      symbol: "screen page controller fixtures"
+      reason: "translation-job-setup 専用 fixture だけが削除され、他 screen fixture の責務は維持されていることを確認した。"
+    - path: "frontend/src/ui/views/AppShell.test.ts"
+      line: 295
+      symbol: "AppShell translation management tests"
+      reason: "test setup から dead controller prop だけが削除され、live shell 導線の検証責務は維持されていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/index.ts"
+      line: 1
+      symbol: "model-settings-card exports"
+      reason: "未使用 export の削除だけであり、gateway contract の責務を広げていないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 70
+      symbol: "cloneModelSettingsCardState"
+      reason: "未使用の配列 clone helper だけが削除され、残る単一 state clone の責務は維持されていることを確認した。"
+
+unchecked_scope:
+  - target: "呼び出し元が検証済みとして提示した harness と Storybook build の再実行"
+    reason: "codex-review-responsibility-boundary skill はハーネスを実行しないため、呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "検証環境の一時差分はこの観点レビュー内では再観測していない。"
+  - target: "削除済みファイルの全本文精査"
+    reason: "削除差分は承認済み dead code cleanup と参照検索一致なしで境界維持を判断できるため、削除前本文の全行再読は行っていない。"
+    risk: "削除済み dead code 内に残っていた既存の責務混在は、今回の残存コード品質リスクとしては残らない。"
+
+issues: []

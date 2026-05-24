@@ -1,0 +1,59 @@
+reviewback_version: 1
+task_id: "frontend-overall-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-overall-refactor/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "secret、provider credential、Wails bridge、generated binding、remote 操作、信頼境界の観点で未解決指摘なし。差分は translation-job-setup の dead code cleanup と model-settings-card の未使用 export cleanup に閉じている。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、実 diff、対象参照検索、変更パス確認、呼び出し元の検証証跡を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "frontend overall refactor の承認済み first unit 実装差分を確認した。translation-job-setup 専用 Wails adapter、gateway DTO、gateway contract は削除され、frontend/wailsjs と internal は変更されていない。model-settings-card は未使用 export 削除だけで secret 本体の表示、保存、送信、ログ出力を追加していない。"
+  files:
+    - path: "docs/exec-plans/active/frontend-overall-refactor/implementation-scope.md"
+      line: 1
+      symbol: "Implementation Scope"
+      reason: "承認済み範囲、変更禁止範囲、Wails generated binding 非変更条件を確認した。"
+    - path: "frontend/src/main.ts"
+      line: 29
+      symbol: "mount App props"
+      reason: "translation-job-setup controller forwarding の削除だけで、新しい外部入力経路や secret 経路を追加していないことを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 6
+      symbol: "createProductionAppFactories"
+      reason: "translation-job-setup 用 factory と Wails gateway の production wiring 削除だけであることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: 1
+      symbol: "TranslationJobSetupGateway"
+      reason: "Wails bridge adapter が削除され、backend binding 呼び出し経路が増えていないことを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/translation-job-setup/translation-job-setup-gateway-dto.ts"
+      line: 1
+      symbol: "TranslationJobSetup DTO"
+      reason: "credentialRef を DTO から除外していた dead DTO が削除され、secret 本体を DTO へ追加する差分がないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/translation-job-setup/translation-job-setup-gateway-contract.ts"
+      line: 1
+      symbol: "TranslationJobSetupGatewayContract"
+      reason: "provider、model、credentialStatus など参照情報を持つ dead contract が削除され、secret 本体を公開 contract へ追加する差分がないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/index.ts"
+      line: 9
+      symbol: "model-settings-card exports"
+      reason: "未使用 export の削除だけで、provider credential の新しい公開面を追加していないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 79
+      symbol: "cloneModelSettingsCardState"
+      reason: "配列 clone helper の削除だけで、secret 表示、保存、送信、ログ出力を追加していないことを確認した。"
+
+unchecked_scope:
+  - target: "呼び出し元が検証済みとして提示した harness と Storybook build の再実行"
+    reason: "codex-review-trust-boundary skill はハーネスを実行しないため、呼び出し元の検証証跡をレビュー入力として扱った。"
+    risk: "検証環境の一時差分はこの観点レビュー内では再観測していない。"
+  - target: "backend runtime の実動作"
+    reason: "承認済み first unit は frontend dead code cleanup であり、internal と frontend/wailsjs は変更されていないため対象外とした。"
+    risk: "backend 側に既存で残る未使用 binding の運用判断はこの観点レビューでは判定していない。"
+
+issues: []

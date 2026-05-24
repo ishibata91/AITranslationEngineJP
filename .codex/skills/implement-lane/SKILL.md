@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`branch 準備`、`詳細仕様差分`、`画面設計差分`、`設計差分図`、`人間設計レビュー`、`実装範囲`、`実装引き継ぎ入力`、`frontend 実装`、`Storybookレビューループ入力確認`、`frontend 実装後人間レビュー`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`正本化判断`、`詳細仕様正本反映`、`作業 commit`、`マージ準備入力` とする。
+- 担当成果物は `task 枠`、`branch 準備`、`詳細仕様差分`、`画面設計差分`、`設計差分図`、`人間設計レビュー`、`実装範囲`、`実装引き継ぎ入力`、`frontend 実装`、`Storybookレビューループ入力確認`、`frontend 実装後人間レビュー`、`Storybook後画面設計差分整合`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`正本化判断`、`詳細仕様正本反映`、`作業 commit`、`マージ準備入力` とする。
 
 ## 入力規約
 
@@ -38,6 +38,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - frontend 実装は [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) に従う。
 - 観測ログ追加は [observability-implementer](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/observability-implementer/SKILL.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
+- サンドボックス外実行の許可は [default.rules](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/rules/default.rules) に従う。
 - マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 
 ## 内部参照規約
@@ -65,7 +66,8 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `Storybookレビューループ入力確認` | 条件付き | `implement_lane` | `frontend 実装` | なし |
 | `Storybookレビューループ完了証跡` | 条件付き | 人間が立てた別セッション / `story-book-review-loop` | `Storybookレビューループ入力確認` | なし |
 | `frontend 実装後人間レビュー` | 条件付き | `implement_lane` | `Storybookレビューループ完了証跡` | なし |
-| `合意済みfrontend保護` | 条件付き | `implement_lane` | `frontend 実装後人間レビュー` | なし |
+| `Storybook後画面設計差分整合` | Storybook レビューループ後に画面仕様変更あり | `designer` | `frontend 実装後人間レビュー` | `designer` |
+| `合意済みfrontend保護` | 条件付き | `implement_lane` | `frontend 実装後人間レビュー`, `Storybook後画面設計差分整合?` | なし |
 | `backend 実装` | 条件付き | `backend_implementer` / `implement-backend` | `実装引き継ぎ入力`, `合意済みfrontend保護?` | `backend_implementer` |
 | `統合境界実装` | 条件付き | `integration_implementer` / `implement-integration` | `backend 実装`, `合意済みfrontend保護?` | `integration_implementer` |
 | `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_scenario_tester` |
@@ -105,6 +107,15 @@ Storybook レビューループは、人間が立てた別セッションで `st
 `frontend 実装後人間レビュー` が承認済みの場合は、`storybook-review-loop.md` に記録された確定済み story と分類を記録する。
 Storybook レビューループ後に画面仕様が変わった場合は、`designer` に戻して plan 内の `screen-design-diff.<screen-id>.md` など該当する画面設計成果物を更新させる。
 
+### Storybook後画面設計差分整合規約
+
+`Storybook後画面設計差分整合` は、Storybook レビューループ後に画面仕様が変わった場合だけ必要な成果物である。
+`implement_lane` は `storybook-review-loop.md` の変更された画面仕様、反映先、承認状態を根拠に `designer` を起動する。
+`designer` は plan 内の該当する `screen-design-diff.<screen-id>.md` へ変更後の画面仕様を反映する。
+`implement_lane` は `screen-design-diff.<screen-id>.md` の本文を直接作成または更新しない。
+`designer` を起動できる入力が揃っている場合、`implement_lane` は人間への停止返却だけで終わらず `designer` を起動する。
+`designer` を起動できない場合、`implement_lane` は不足項目、衝突箇所、戻し先を記録して停止する。
+
 ### 合意済みfrontend保護規約
 
 `frontend 実装後人間レビュー` が承認された時点で、`implement_lane` は合意済み frontend 保護対象を固定する。
@@ -138,6 +149,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 | `Storybookレビューループ入力確認` | frontend 実装結果と既存成果物から入力の所在と不足項目だけを記録できる。 |
 | `Storybookレビューループ完了証跡` | 作業計画フォルダの `storybook-review-loop.md` の存在と完了状態だけを確認できる。 |
 | `frontend 実装後人間レビュー` | `storybook-review-loop.md` の完了状態を記録できる。 |
+| `Storybook後画面設計差分整合` | `designer` の担当成果物として扱い、本文を直接作成または更新しない。 |
 | `合意済みfrontend保護` | 承認済み frontend レビュー結果から直接作成または更新できる。 |
 | `観測ログ追加` | `observability_implementer` の返却結果を記録できる。 |
 | `最終検証` | 実行結果を直接記録できる。 |
@@ -179,6 +191,8 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - `implement_lane` は Storybook レビューループ中の Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を行わない。
 - 作業計画フォルダに `storybook-review-loop.md` が出来上がっている場合だけ、変更された画面仕様、反映先、現在分類、承認状態を `frontend 実装後人間レビュー` の根拠に含める。
 - `story-book-review-loop` から設計整合入力が返った場合は、`designer` へ戻し、plan 内の `screen-design-diff.<screen-id>.md` など該当する画面設計成果物を更新させる。
+- Storybook レビューループ後に画面仕様が変わり、`designer` を起動できる入力が揃っている場合は、`Storybook後画面設計差分整合` を着手可能成果物として扱う。
+- Storybook レビューループ後に画面仕様が変わり、`designer` を起動できる入力が不足する場合は、`合意済みfrontend保護` へ進めず不足項目を固定する。
 - `frontend 実装後人間レビュー` が承認済みの場合は、合意済み frontend 保護対象を後続実装の変更禁止範囲として起動入力へ含める。
 - `frontend 実装後人間レビュー` が承認済みの場合は、`storybook-review-loop.md` に記録された確定済み story と分類を合意済み frontend 保護対象の根拠に含める。
 - 後続実装で画面、コンポーネント、文言、style の変更が必要な場合は、実装を続けず `frontend 実装` の再実行入力または人間への返却を固定する。
@@ -217,6 +231,10 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - `観測ログ追加` は `event`、`where`、`result` を共通 payload とし、trace ID を使わない。
 - `観測ログ追加` は backend の `slog` 出力と frontend の `pino` 出力を同じ file へ集約しない。
 - `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、承認済み詳細仕様差分、画面設計差分、実装範囲、最終検証観点から `implement_lane` が定義する。
+- `実装後ブラウザ確認` の起動状態は、確認 URL を開くための app または server が listen していること、または HTTP 到達できることを指す。
+- `実装後ブラウザ確認` の app または server 起動 command が `default.rules` の許可対象である場合は、`implement_lane` が `browser_confirmation` へ渡す前に起動状態を用意する。
+- `default.rules` の許可対象 command が通常のサンドボックス実行で起動不能になった場合は、`implement_lane` が同じ command をサンドボックス外実行で再実行してから起動不能を判断する。
+- `実装後ブラウザ確認` の起動不能を記録する場合は、通常のサンドボックス実行結果、サンドボックス外実行結果、listen または HTTP 到達確認結果を根拠に含める。
 - `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
 - `シナリオテスト` と `単体テスト` は別成果物にし、依存対象が揃った後に並列起動できる。
 - タスクの終わったサブエージェントを起動したまま残さず，終わったら逐次で閉じること。
@@ -239,12 +257,13 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - 設計差分図起動入力: `diagrammer` 向けには、図化目的、根拠参照、予定変更箇所、追加予定箇所、削除予定箇所、禁止範囲、対象作業計画フォルダを渡す。
 - 設計差分図: 人間設計レビュー向けには、追加・削除差分のコンポーネント図、根拠参照、検証結果、未決事項を返す。
 - 設計レビュー戻し: 人間設計レビューの差し戻し対象、戻し先 agent、戻し結果、戻せない場合の停止理由を返す。
-- 実装後ブラウザ確認起動入力: `browser_confirmation` 向けには、確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を渡す。
+- 実装後ブラウザ確認起動入力: `browser_confirmation` 向けには、確認 URL、起動 command、起動状態、listen または HTTP 到達確認結果、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を渡す。
 - 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
 - 観測ログ追加起動入力: `observability_implementer` 向けには、完成済み実装成果物、完成済みテスト成果物、変更ファイル、合意済み frontend 保護対象、作業計画フォルダ、観測ログ仕様を渡す。
 - 観測ログ追加: 追加ログ、追加しない理由、禁止ログ確認、変更ファイル、検証未実行理由を返す。
 - Storybookレビューループ入力確認: 作業計画フォルダ、frontend 実装結果、frontend 実装境界の所在と不足項目を返す。
 - Storybookレビューループ完了証跡: 作業計画フォルダの `storybook-review-loop.md` の有無、承認状態、Storybook レビューループ画面仕様、frontend レビュー修正成果物、設計整合入力を返す。
+- Storybook後画面設計差分整合: `designer` の起動入力、更新対象の `screen-design-diff.<screen-id>.md`、更新結果、起動不能理由を返す。
 - 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済みStorybook状態、通常分類へ戻した Storybook確認資源、Storybook画面仕様、変更禁止範囲を返す。
 - branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
@@ -264,13 +283,15 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - UI が関係する場合は、`frontend 実装後人間レビュー` の承認後に確認対象 story が通常分類へ戻っている。
 - UI が関係する場合は、作業計画フォルダに `storybook-review-loop.md` が存在し、Storybook レビューループで変更された画面仕様が記録されている。
 - UI が関係する場合は、Storybook レビューループ後の画面仕様変更が plan 内の該当する画面設計成果物へ反映されている。
+- UI が関係し、Storybook レビューループ後に画面仕様変更がある場合は、`Storybook後画面設計差分整合` の完了結果または停止理由が記録されている。
 - UI が関係する場合は、`合意済みfrontend保護` が固定されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
 - 人間設計レビューの差し戻しまたは追加質問がある場合は、同じ設計中 agent に戻した結果、または戻せない停止理由が記録されている。
 - `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` 後は `観測ログ追加`、`最終検証`、`実装後ブラウザ確認` が 根拠参照 付きで確認されている。
 - `観測ログ追加` は追加ログ、追加しない理由、禁止ログ確認、変更ファイル、検証未実行理由を含んでいる。
-- `実装後ブラウザ確認` は確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
+- `実装後ブラウザ確認` は確認 URL、起動 command、起動状態、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
+- `実装後ブラウザ確認` の起動状態は、listen または HTTP 到達確認結果を根拠参照付きで含んでいる。
 - 影響範囲修正 がある場合は、対象、理由、変更結果、再検証結果が 根拠参照 付きで記録されている。
 - DAGで必須とされている成果物が全て用意できていること。
 - 仕様変更または仕様追加がある場合は、`正本化判断` の結果が 根拠参照 付きで記録されている。
@@ -298,11 +319,13 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - UI が関係する task で作業計画フォルダに `storybook-review-loop.md` が出来上がっていないまま後続成果物へ進みそうな場合は停止する。
 - UI が関係する task で `frontend 実装後人間レビュー` の承認がないまま `合意済みfrontend保護` へ進みそうな場合は停止する。
 - UI が関係する task で確認対象 story が通常分類へ戻っていないまま `合意済みfrontend保護` へ進みそうな場合は停止する。
-- UI が関係する task で Storybook レビューループ後の画面仕様変更が plan 内の該当する画面設計成果物へ反映されないまま `合意済みfrontend保護` へ進みそうな場合は停止する。
+- UI が関係する task で Storybook レビューループ後の画面仕様変更が plan 内の該当する画面設計成果物へ反映されず、`Storybook後画面設計差分整合` の完了結果または起動不能理由もないまま `合意済みfrontend保護` へ進みそうな場合は停止する。
 - UI が関係する task で `合意済みfrontend保護` がないまま `backend 実装`、`統合境界実装`、`最終検証` へ進みそうな場合は停止する。
 - `観測ログ追加` なしで `最終検証` へ進みそうな場合は停止する。
 - `観測ログ追加` の停止理由が未解決のまま `最終検証` へ進みそうな場合は停止する。
 - `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先が不足する場合は停止する。
+- `default.rules` の許可対象 command をサンドボックス外実行で再実行しないまま、サンドボックス起因の起動不能として `実装後ブラウザ確認` を停止しそうな場合は停止する。
+- `実装後ブラウザ確認` の app または server 起動 command が `default.rules` の許可対象ではなく、人間承認もない場合は停止する。
 - `python3 scripts/harness/run.py --suite all` の失敗原因が、対象 agent の許可された 影響範囲修正 に該当しない承認済み実装範囲 外の変更を必要とする場合は停止する。
 - `python3 scripts/harness/run.py --suite backend-local` または `python3 scripts/harness/run.py --suite frontend-local` の失敗原因が、対象 agent の許可された 影響範囲修正 に該当しない承認済み実装範囲 外の変更を必要とする場合は停止する。
 - 検証失敗原因が generated file にある場合は、generated file の直接編集を求めず、生成元または公開境界の修正として担当 agent に渡す。

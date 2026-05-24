@@ -1,26 +1,28 @@
 ---
 name: implementation-scope
-description: Codex 側の実装スコープ作業プロトコル。人間レビュー 後に、人間が Codex implementation レーン へ渡せる 引き継ぎ入力 を 承認済み実装範囲、依存、検証単位へ分ける判断基準を提供する。
+description: Codex 側の実装スコープ作業プロトコル。人間レビュー 後に、人間が Codex 実装系レーンへ渡せる 引き継ぎ入力 を 承認済み実装範囲、依存、検証単位へ分ける判断基準を提供する。
 ---
 # Implementation Scope
 
 ## 目的
 
 `implementation-scope` は作業プロトコルである。
-`designer` agent が 人間レビュー 後に、Codex implementation 引き継ぎ入力 を固定するための、分割粒度、依存、検証、完了条件 の見方を提供する。
+`designer` agent が 人間レビュー 後に、Codex 実装系レーンの引き継ぎ入力を固定するための、分割粒度、依存、検証、完了条件 の見方を提供する。
 
 実行境界、正本、引き継ぎ、停止 / 戻し は [design-bundle](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md) を参照する。
 
 ## 対応ロール
 
 - `designer` が使う。
-- 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` とする。
+- 呼び出し元は `implement_lane` または `refactor_lane` とする。
+- 返却先は呼び出し元レーンとする。
 - 担当成果物は `implementation-scope` の出力規約で固定する。
 
 ## 入力規約
 
 - 人間レビュー記録: 承認済み詳細仕様差分、承認済み画面設計差分、レビュー結果。
+- リファクタ判断記録: `refactor_lane` から呼び出された場合に参照する仕様実装優先判断とリファクタ範囲確認。
+- リファクタ調査記録: `refactor_lane` から呼び出された場合に参照する構造品質調査とテスト品質調査。
 - 承認済み詳細仕様差分: 実装範囲の根拠にする `detail-spec-diff.md`。
 - 画面設計差分: UI が関係する場合に参照する画面設計差分。
 - 承認状態: 呼び出し元が渡す承認済み状態。
@@ -34,7 +36,8 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - scenario 正本: [scenario-tests](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/scenario-tests/README.md) とする。
 - 実装スコープ雛形: [implementation-scope.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-scope/assets/implementation-scope.md)
-- Codex implementation レーン 入口: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
+- 新規実装レーン入口: [implement-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-lane/SKILL.md)
+- リファクタレーン入口: [refactor-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/refactor-lane/SKILL.md)
 - 実行定義 skill: [SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/design-bundle/SKILL.md)
 - 分割参照 architecture: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の層構造、transport boundary、依存方向を参照する。
 - backend 実装規約: [implement-backend/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-backend/SKILL.md) とする。
@@ -51,7 +54,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 検証担当者 判定条件
 - 並列実行 判定条件
 - secret 本体 と 参照値 の分離条件
-- Codex implementation 引き継ぎ入力 の構成
+- Codex 実装系レーン引き継ぎ入力 の構成
 - docs 正本化を 引き継ぎ に混ぜない境界
 
 ### 引き継ぎ分割規約
@@ -143,7 +146,7 @@ frontend 側の 引き継ぎ に含めてよい 層:
 引き継ぎ 作成時は、まず `依存対象` から依存表を作る。
 次に、同じ段階で依存が解消できる 引き継ぎ を `実行グループ` にまとめる。
 `実行グループ` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ連番で作る。
-`実行グループ` は Codex implementation レーン 側の 着手可能 wave であり、同じ wave 内でも `並列可能対象` に列挙されない 引き継ぎ は並列実行しない。
+`実行グループ` は Codex 実装系レーン側の着手可能 wave であり、同じ wave 内でも `並列可能対象` に列挙されない 引き継ぎ は並列実行しない。
 `ready_wave` は `実行グループ` と同じ値を 引き継ぎ ごとに明示し、着手可能 wave 表で 引き継ぎ 一覧、開始前に完了している依存、並列 pair、阻害要因 を確認できる形にする。
 
 並列実行可能な 引き継ぎ は、次をすべて満たす必要がある。
@@ -167,7 +170,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 ### 初手規約
 
 引き継ぎ 作成時は、各 引き継ぎ に `初手` を必ず書く。
-`初手` は Codex implementation レーン が最初に閉じる 1 clause だけを示す。
+`初手` は Codex 実装系レーンが最初に閉じる 1 clause だけを示す。
 広い調査開始、複数 clause、partial な advance は書かない。
 
 `初手` には次を含める。
@@ -224,10 +227,11 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - `本番経路` は実行時に通る public API / DTO / controller / UI 入口 / persistence path を指す
 - `本番経路` は domain 名や画面名の知識ではなく、引き継ぎ の補助語として扱う
 - Codex は承認済み implementation-scope に基づいて 引き継ぎ入力 を作る
-- Codex implementation レーン に docs 正本化や 作業流れ 変更を渡さない
+- Codex 実装系レーンに docs 正本化や 作業流れ 変更を渡さない
 
 - 承認済み 成果物 だけを根拠にする
 - 承認済み詳細仕様差分を検証意図の根拠にする
+- リファクタ調査記録がある場合は、構造品質調査とテスト品質調査を実装範囲の根拠にする
 - implementation 引き継ぎ を受け入れユースケースで分ける
 - downstream 引き継ぎ が依存する 公開接点 を各実装成果物の完了条件として固定する
 - 変更ファイル数と変更行数の目安で大きすぎる 引き継ぎ を事前に切る
@@ -237,21 +241,21 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 初手 を 1 完了条件 clause に固定する
 - 検証コマンド が 承認済み実装範囲 と解消済み 依存対象 だけで 通過 できることを確認する
 - 並列実行可能な 引き継ぎ は 実行グループ、ready_wave、並列可能対象 で明示する
-- 着手可能 wave 表で Codex implementation レーン が読む実行順を先に固定する
+- 着手可能 wave 表で Codex 実装系レーンが読む実行順を先に固定する
 - 並列不可の 引き継ぎ は 並列不可理由 に分類済み理由を書く
 - 広域 検証 を途中 引き継ぎ に置く場合は、必要な downstream 対象範囲 と理由を 補足 に書く
 - backend と frontend を同一 引き継ぎ に入れず、依存対象 で接続する
 - backend、frontend、統合境界 の各 引き継ぎ は、implement-lane の対応する 実装成果物 と実装 skill に接続する
 - `credential_ref`、`secret_ref`、`api_key`、`token` などの field 名を、参照値と secret 本体の両方に使わない
 - `本番経路` が必要な時だけ 補足 に補助情報として書く
-- 人間がそのまま `implement_lane` に渡せる 入力にする
+- 人間がそのまま呼び出し元レーンに渡せる 入力にする
 
 ## 非対象規約
 
 - 人間レビュー前の実装対象範囲確定は扱わない。
 - プロダクトコード実装、実装時の再現、trace、レビュー補助は扱わない。
-- Codex から Codex implementation レーンへ直接引き継ぎしない。
-- docs 正本化を Codex implementation 引き継ぎに含めない。
+- Codex から Codex 実装系レーンへ直接引き継ぎしない。
+- docs 正本化を Codex 実装系レーン引き継ぎに含めない。
 - domain 固有知識を skill や雛形の共通例として増やさない。
 
 ## 出力規約
@@ -259,7 +263,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 判断結果: implementation-scope の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装範囲の根拠にした承認済み成果物を返す。
 - 不足情報: 引き継ぎ入力を固定できない不足項目を返す。
-- 次判断材料: `implement_lane` が実装引き継ぎ入力を作れる材料を返す。
+- 次判断材料: 呼び出し元レーンが実装引き継ぎ入力を作れる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 完了規約
@@ -296,12 +300,12 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 並列可能な 引き継ぎ の 承認済み実装範囲、shared 境界、検証 担当者 が重なっていない。
 - secret を扱う 引き継ぎ には、表示可能参照値、secret 本体、secret 解決責務層、出力禁止値が分かれて書かれている。
 - 広域 検証 を途中 引き継ぎ に置く場合は、必須 downstream 対象範囲 と理由を `補足` に書いた。
-- 人間が Codex implementation レーン に渡す 入口、禁止事項、期待完了報告を明示した。
+- 人間が Codex 実装系レーンに渡す入口、禁止事項、期待完了報告を明示した。
 
 ## 停止規約
 
 - 人間レビュー 前に実装 対象範囲 を決める時
-- 承認済み implementation-scope なしで `implement_lane` の `backend 実装`、`frontend 実装`、`統合境界実装` へ 引き継ぎ する時
+- 承認済み implementation-scope なしで呼び出し元レーンの `backend 実装`、`frontend 実装`、`統合境界実装` へ 引き継ぎ する時
 - プロダクトコード を直接実装する時
 - 実装時の再現、trace、レビュー 補助を扱う時
 - 未回答の未決が残る `detail-spec-diff.md` から引き継ぎを作る必要がある場合は停止する。
@@ -313,7 +317,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - UI がある task で backend 引き継ぎを frontend 引き継ぎより先に開始する必要がある場合は停止する。
 - UI 入口の引き継ぎで、裏側の直接呼び出しだけを完了条件にする必要がある場合は停止する。
 - 変更ファイル数と変更行数が分割必須を超える引き継ぎを 1 件として渡す必要がある場合は停止する。
-- 初手がない引き継ぎを Codex implementation レーンに渡す必要がある場合は停止する。
+- 初手がない引き継ぎを Codex 実装系レーンに渡す必要がある場合は停止する。
 - 初手に複数 clause や曖昧な調査開始を書く必要がある場合は停止する。
 - 未実装の後続引き継ぎを必要とする検証コマンドを途中引き継ぎに入れる必要がある場合は停止する。
 - 最終検証で見るべき広域コマンドをレーン内検証として扱う必要がある場合は停止する。
@@ -323,7 +327,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - secret 本体を DTO、UI、read model、URL、log、error summary、audit、要求捕捉に出す 完了条件 が必要な場合は停止する。
 - 実装時調査を Codex 再計画前提にする必要がある場合は停止する。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
-- docs 正本化を Codex implementation レーン 引き継ぎ に混ぜる必要がある場合は停止する。
+- docs 正本化を Codex 実装系レーン引き継ぎに混ぜる必要がある場合は停止する。
 - 検証コマンドなしの引き継ぎが必要な場合は停止する。
 - 未実装の後続 引き継ぎ を必要とする 検証コマンド を途中 引き継ぎ に入れる必要がある場合は停止する。
 - 最終検証 で見るべき 広域 コマンド を レーン内検証 として扱う必要がある場合は停止する。

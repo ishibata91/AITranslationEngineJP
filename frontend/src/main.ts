@@ -29,8 +29,6 @@ mount(App, {
       appFactories.createTranslationInputScreenController,
     createTranslationOutputArtifactScreenController:
       appFactories.createTranslationOutputArtifactScreenController,
-    createTranslationJobSetupScreenController:
-      appFactories.createTranslationJobSetupScreenController,
     createMasterPersonaScreenController:
       appFactories.createMasterPersonaScreenController
   }

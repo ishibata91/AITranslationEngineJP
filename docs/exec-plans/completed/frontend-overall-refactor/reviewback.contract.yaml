@@ -1,0 +1,81 @@
+reviewback_version: 1
+task_id: "frontend-overall-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-overall-refactor/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "public export、Wails gateway、DTO、Storybook entry の契約破壊は確認されなかった。削除対象は承認済み first unit の dead code cleanup と unused export cleanup に閉じている。"
+  evidence_sufficiency: "十分。呼び出し元の検証証跡と前回レビュー時の差分確認により判定可能である。"
+
+checked_scope:
+  summary: "translation-job-setup 専用の public export、frontend Wails adapter、gateway DTO、Storybook story、model-settings-card の未使用 export を確認した。"
+  files:
+    - path: "frontend/src/main.ts"
+      line: 13
+      symbol: "mount(App)"
+      reason: "production entry から translation-job-setup controller factory の prop forwarding が消えていることを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 37
+      symbol: "AppScreenControllerFactories"
+      reason: "production factory contract から translation-job-setup factory と gateway wiring が消えていることを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 30
+      symbol: "Props"
+      reason: "root view の props に translation-job-setup controller factory が残っていないことを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/index.ts"
+      line: 8
+      symbol: "model-settings-card exports"
+      reason: "cloneModelSettingsCardState は残り、未使用の cloneModelSettingsCardStates だけが export から消えていることを確認した。"
+    - path: "frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts"
+      line: 70
+      symbol: "cloneModelSettingsCardState"
+      reason: "live store が使う単数 clone helper が残っていることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-setup.gateway.ts"
+      line: null
+      symbol: "createTranslationJobSetupGateway"
+      reason: "dead page 専用 frontend Wails adapter が削除され、frontend/src 内に参照が残っていないことを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/translation-job-setup/translation-job-setup-gateway-dto.ts"
+      line: null
+      symbol: "translation-job-setup gateway DTO"
+      reason: "dead page 専用 DTO が gateway adapter と同じ削除単位に含まれていることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-setup/stories"
+      line: null
+      symbol: "translation-job-setup Storybook stories"
+      reason: "dead screen 専用 story entry が削除され、frontend/src の story 参照に残っていないことを確認した。"
+
+unchecked_scope:
+  - target: "repo 外の frontend 内部 import 利用者"
+    reason: "frontend/src 内の internal module は公開 package contract として管理されていないため、repo 外利用者の import は確認対象外とした。"
+    risk: "repo 外から内部 path を直接 import している未管理利用者がある場合だけ、削除 export が breaking change になる可能性がある。"
+  - target: "harness 再実行"
+    reason: "追加依頼で再レビューと harness 実行が不要と指定されたため、呼び出し元の通過証跡を採用した。"
+    risk: "作業後に差分が変わった場合は、通過証跡が古くなる可能性がある。"
+
+issues: []
+
+compatibility_notes:
+  public_export: "translation-job-setup 系 export と cloneModelSettingsCardStates は frontend/src から参照が消えている。cloneModelSettingsCardState は live store 用に残っている。"
+  wails_gateway: "frontend adapter と DTO は削除済みである。frontend/wailsjs は未変更であり、backend binding 契約は変更していない。"
+  dto: "削除された DTO は dead page 専用 gateway 参照と同じ単位で消えている。"
+  storybook_entry: "translation-job-setup 専用 Storybook story は削除済みで、別 screen story への変更は確認されていない。"
+
+validation_evidence:
+  adopted_from_caller:
+    - command: "rg -n \"translation-job-setup|TranslationJobSetup|createTranslationJobSetup|JobSetupPage|PhaseSettingsPanel|PhaseSettingsSummaryPanel|cloneModelSettingsCardStates\" frontend/src"
+      result: "no matches"
+    - command: "python3 scripts/harness/run.py --suite structure"
+      result: "passed"
+    - command: "npm --prefix frontend run build-storybook"
+      result: "passed"
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "passed"
+
+contract_review_closure:
+  broken_conditions: []
+  cause_candidates: []
+  local_fix_assessment: "未解決 issue がないため修正不要である。"
+  invariant_test_viewpoint: "契約互換性観点では、削除対象 export の参照なし確認、Storybook build、frontend-local、structure harness の通過証跡で十分と判断した。"

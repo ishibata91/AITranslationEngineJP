@@ -1,6 +1,6 @@
 ---
 name: implement-integration
-description: Codex implementation レーン 側の API / Wails / DTO / gateway など frontend と backend の統合境界実装作業プロトコル。
+description: Codex 実装系レーン側の API / Wails / DTO / gateway など frontend と backend の統合境界実装作業プロトコル。
 ---
 # Implement Integration
 
@@ -15,7 +15,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 ## 対応ロール
 
 - `integration_implementer` が使う。
-- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane` のいずれかとする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` のいずれかとする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-integration` の出力規約で固定する。
 

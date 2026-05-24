@@ -36,14 +36,6 @@ import type {
   TranslationJobManagementScreenViewModel
 } from "@application/contract/translation-job-management/translation-job-management-screen-types"
 import type {
-  CreateTranslationJobSetupScreenController,
-  TranslationJobSetupScreenControllerContract
-} from "@application/contract/translation-job-setup/translation-job-setup-screen-contract"
-import type {
-  TranslationJobSetupOptionsResponse,
-  TranslationJobSetupScreenViewModel
-} from "@application/gateway-contract/translation-job-setup"
-import type {
   CreateTranslationOutputArtifactScreenController,
   TranslationOutputArtifactScreenControllerContract
 } from "@application/contract/translation-output-artifact"
@@ -57,7 +49,6 @@ import { bodyTranslationPhasePanelFixture } from "../body-translation-phase/__fi
 import { personaGenerationPhasePanelFixture } from "../persona-generation-phase/__fixtures__/persona-phase-card-fixture"
 import { providerDetailPanelFixtures, providerListPanelFixtures, providerSettingsSummaryPanelFixtures } from "../provider-settings/__fixtures__/provider-settings-panel-fixtures"
 import { selectedRunningJob } from "../translation-job-management/__fixtures__/translation-job-management-fixtures"
-import { translationJobSetupPanelFixtures } from "../translation-job-setup/__fixtures__/translation-job-setup-panel-fixtures"
 import { completedJobListPanelFixtures, diffPreviewPanelFixtures, latestOutputResultCardFixtures, outputActionPanelFixtures, outputSummaryHeaderFixtures, selectedJobSummaryCardFixtures } from "../translation-output-artifact/__fixtures__/translation-output-artifact-fixtures"
 import { termTranslationPhasePanelFixture } from "../term-translation-phase/__fixtures__/term-phase-card-fixture"
 
@@ -422,94 +413,6 @@ export function createTranslationOutputArtifactPageControllerFixture(): CreateTr
     refresh: asyncNoop,
     generateArtifact: asyncNoop,
     regenerateArtifact: asyncNoop
-  })
-}
-
-function createTranslationJobSetupViewModel(): TranslationJobSetupScreenViewModel {
-  const inputPanel = translationJobSetupPanelFixtures.inputSourcePanel.selected
-  const foundationPanel =
-    translationJobSetupPanelFixtures.foundationDataPanel.populated
-  const phasePanel =
-    translationJobSetupPanelFixtures.phaseSettingsPanel.phaseCards
-  const validationResult = translationJobSetupPanelFixtures
-    .compatibilityPrecheckPanel.ready
-    .validationResult
-  const options: TranslationJobSetupOptionsResponse = {
-    inputCandidates: inputPanel.candidates,
-    sharedDictionaries: foundationPanel.dictionaryLabels.map((label, index) => ({
-      id: `dictionary-${index + 1}`,
-      label
-    })),
-    sharedPersonas: foundationPanel.personaLabels.map((label, index) => ({
-      id: `persona-${index + 1}`,
-      label
-    })),
-    aiRuntimeOptions: phasePanel.runtimeOptions,
-    providerCapabilities: [],
-    phaseRuntimeDrafts: []
-  }
-
-  return {
-    phase: "ready",
-    options,
-    selectedInputSourceId: inputPanel.selectedInputSourceId,
-    deletingInputSourceId: null,
-    selectedRuntimeKey: phasePanel.selectedRuntimeKey,
-    selectedCredentialRef: "",
-    phaseRuntimeSelections: [],
-    providerModelLists: [],
-    validationResult,
-    validationState: "fresh",
-    dirty: false,
-    errorMessage: "",
-    createErrorKind: null,
-    summary: null,
-    gatewayStatus: "接続済み",
-    selectedInputCandidate: inputPanel.candidates[0] ?? null,
-    selectedRuntimeOption: phasePanel.runtimeOptions[0] ?? null,
-    availableCredentialRefs: [],
-    phaseValidationResults: validationResult.phaseResults ?? [],
-    phaseRuntimeSummaries: [],
-    selectedInputLabel: inputPanel.selectedInputLabel,
-    selectedInputSourceKind: inputPanel.selectedInputSourceKind,
-    selectedInputRecordCountLabel: inputPanel.selectedInputRecordCountLabel,
-    selectedInputRegisteredAtLabel: inputPanel.selectedInputRegisteredAtLabel,
-    existingJobSummary: inputPanel.existingJobSummary,
-    dictionaryLabels: foundationPanel.dictionaryLabels,
-    personaLabels: foundationPanel.personaLabels,
-    validationStatusLabel: "検証済み",
-    validationStatusText: "ジョブを作成できます。",
-    createStatusText: "",
-    blockedReasons: [],
-    canValidate: true,
-    canCreate: true,
-    isLoading: false,
-    isValidating: false,
-    isCreating: false,
-    hasExistingJob: false,
-    showCacheMissingGuidance: false,
-    credentialStateText: "設定済み"
-  }
-}
-
-export function createTranslationJobSetupPageControllerFixture(): CreateTranslationJobSetupScreenController {
-  const viewModel = createTranslationJobSetupViewModel()
-
-  return (): TranslationJobSetupScreenControllerContract => ({
-    mount: asyncNoop,
-    dispose: noop,
-    subscribe: subscribeNoop,
-    getViewModel: () => viewModel,
-    selectInputSource: noop,
-    deleteInputSource: asyncNoop,
-    selectRuntime: noop,
-    selectCredentialRef: noop,
-    selectPhaseProvider: noop,
-    refreshPhaseModels: asyncNoop,
-    selectPhaseModel: noop,
-    togglePhaseBatchMode: noop,
-    runValidation: asyncNoop,
-    createJob: asyncNoop
   })
 }
 

@@ -79,12 +79,6 @@ export function cloneModelSettingsCardState(
   }
 }
 
-export function cloneModelSettingsCardStates(
-  states: ModelSettingsCardState[] | null | undefined
-): ModelSettingsCardState[] {
-  return (states ?? []).map((state) => cloneModelSettingsCardState(state))
-}
-
 export function updateModelSettingsProvider(
   state: ModelSettingsCardState,
   options: {
