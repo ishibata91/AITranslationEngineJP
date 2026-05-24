@@ -20,6 +20,7 @@
 - `storybook_review_loop_input`: Storybook レビューループ入力確認の記録位置 または `N/A`
 - `storybook_review_loop_evidence`: `./storybook-review-loop.md` または `N/A`
 - `frontend_human_review`: frontend 実装後人間レビューの記録位置 または `N/A`
+- `storybook_design_alignment`: Storybook 後画面設計差分整合の記録位置 または `N/A`
 - `approved_frontend_protection`: 合意済み frontend 保護対象の記録位置 または `N/A`
 - `detail_spec_diff`: `./detail-spec-diff.md`
 - `implementation_scope`: `pending-after-human-review` または `./implementation-scope.md`
@@ -45,6 +46,7 @@
 - `storybook_review_loop_input`: `required-after-frontend-implementation` / `ready` / `rework-required` / `not-required`
 - `storybook_review_loop_evidence`: `required-after-storybook-review-loop` / `ready` / `not-required`
 - `frontend_human_review`: `required-after-storybook-review-loop-evidence` / `approved` / `rework-requested` / `not-required`
+- `storybook_design_alignment`: `required-after-storybook-review-loop-changes` / `ready` / `blocked` / `not-required`
 - `approval_record`: `pending-after-design-bundle` または human review の記録
 
 ## Codex Implementation Result
@@ -57,6 +59,7 @@
 - `ui_evidence`:
 - `storybook_review_loop_input`:
 - `storybook_review_loop_evidence`:
+- `storybook_design_alignment`:
 - `storybook_review_resources`:
 - `approved_frontend_protection`:
 - `codex_review_result`:

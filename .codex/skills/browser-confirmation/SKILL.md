@@ -12,7 +12,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 ## 対応ロール
 
 - `browser_confirmation` が使う。
-- 呼び出し元は `implement_lane`、`fix_lane`、`light_change_lane` とする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`light_change_lane`、`refactor_lane` とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `実装後ブラウザ確認` とする。
 

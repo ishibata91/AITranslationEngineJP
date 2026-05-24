@@ -1,6 +1,6 @@
 ---
 name: tests-scenario
-description: Codex implementation レーン 側の シナリオテスト 実装作業プロトコル。
+description: Codex 実装系レーン側の シナリオテスト 実装作業プロトコル。
 ---
 # Tests Scenario
 
@@ -13,8 +13,8 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 ## 対応ロール
 
 - `implementation_scenario_tester` が使う。
-- 呼び出し元は `implement_lane` または `light_change_lane` とする。
-- 返却先は `implement_lane` または `light_change_lane` とする。
+- 呼び出し元は `implement_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
+- 返却先は呼び出し元レーンとする。
 - 担当成果物は `tests-scenario` の出力規約で固定する。
 
 ## 入力規約
@@ -54,8 +54,10 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 - coverage、harness all、repo-local Sonar issue 判定条件 は 最終検証 レーン へ defer する
 
 - Arrange / Act / Assert が body 構造で読めるようにする
+- テスト本体には意味的に何の振る舞いを証明するテストかを短いコメントで書く
 - 成功経路 と 失敗経路 を別 テストケース に分ける
 - 検証データ や補助は シナリオ を支える範囲に限定する
+- テストコーディング規約の良いテストの品質観点に従う
 - UI が入口の場合は、ユーザー入力から得られる値を `UI人間操作E2E` の検証対象にする
 - `APIテスト` では 要求 / 応答契約 と external 入力 start を検証対象にする
 
@@ -85,6 +87,8 @@ description: Codex implementation レーン 側の シナリオテスト 実装�
 - `UI人間操作E2E` は、ユーザー入力の模倣を開始点にした。
 - `APIテスト` は、公開接点 と外部入力開始を開始点にした。
 - 成功経路 と 失敗経路 を別 テストケース にした。
+- テスト本体に意味的に何の振る舞いを証明するテストかを示すコメントがある。
+- テストコーディング規約の良いテストの品質観点に反するテスト品質問題が残っていない。
 - 実行定義 event 完了の観測点を明示した。
 - 変更対象が シナリオテスト と必要最小限の テスト補助だけである。
 - backend 側のシナリオテストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当シナリオテスト成果物の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。

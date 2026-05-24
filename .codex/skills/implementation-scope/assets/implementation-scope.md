@@ -65,7 +65,7 @@
   - frontend handoff では、承認済み `screen-design-diff.<screen-id>.md` を必須 source にする。
   - frontend handoff では、承認済み画面設計差分の主要区画、導線、状態表示を維持する完了条件を書く。
   - API / Wails / DTO / gateway / adapter contract の接続と実画面確認は `統合境界実装` handoff に分ける。
-  - `implementation_skill` は `implementation_artifact` と一致させ、Codex implementation lane が読む skill を一意にする。
+  - `implementation_skill` は `implementation_artifact` と一致させ、Codex 実装系レーンが読む skill を一意にする。
   - `シナリオテスト` と `単体テスト` は実装成果物の完了後に別 handoff として作り、依存対象が揃った後は並列実行できる。
   - `単体テスト` handoff は、期待結果の元ネタとして `spec_basis` を必ず持つ。
   - `APIテスト` と `UI人間操作E2E` は実装後の `シナリオテスト` で証明する。
@@ -74,13 +74,13 @@
   - `forbidden_outputs` には log、error summary、audit、request capture、URL、DTO、UI、read model に出してはいけない値を書く。
   - `execution_group` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ作る。同じ wave 内でも `parallelizable_with` に列挙しない handoff は並列実行しない。
   - `ready_wave` は Ready Waves 表と一致させる。Codex は最小番号の実行可能 wave から開始する。
-  - `first_action` は Codex implementation lane が最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
+  - `first_action` は Codex 実装系レーンが最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
   - 並列不可の理由は `parallel_blockers` に `depends_on`、`owned_scope_overlap`、`shared_contract_change`、`validation_owner_ambiguous`、`backend_frontend_order`、`broad_gate_shared` のいずれかで書く。
   - 必要な場合だけ `本番経路` を書く。`本番経路` は実行時に通る public API / DTO / controller / UI entry / persistence path を指し、domain 固有知識はここへ一般例として増やさない。
 
 ## Completion Packet
 
-Codex implementation lane は完了時に次を返す。
+Codex 実装系レーンは完了時に次を返す。
 
 - `completed_handoffs`
 - `touched_files`
