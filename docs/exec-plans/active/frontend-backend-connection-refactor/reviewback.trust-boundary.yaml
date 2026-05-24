@@ -1,0 +1,136 @@
+reviewback_version: 1
+task_id: "frontend-backend-connection-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-backend-connection-refactor/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "未解決の権限・信頼境界 issue はない。reviewfix 後の gateway は generated AppController binding を正本経路にし、Wails response を gateway で runtime shape validation 後に application contract へ返している。secret 本体は SaveProviderSettings request の backend 送信に限定され、response DTO、runtime shape diagnostic、browser confirmation の画面本文では平文露出を確認していない。"
+  evidence_sufficiency: "十分。承認済み secret_boundary、reviewfix 後の gateway 実装、backend controller DTO 境界、frontend gateway test、system test、browser confirmation、final validation を確認した。ハーネスは実行せず、呼び出し元の検証証跡をレビュー入力として扱った。"
+  hard_gate: true
+
+checked_scope:
+  summary: "provider settings、term translation、body translation、translation job management の Wails gateway と runtime shape error、backend controller の provider settings secret 経路、fake API ではない system test、browser confirmation を権限・信頼境界観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-scope.md"
+      line: 94
+      symbol: "FBC-INT-001 secret_boundary"
+      reason: "API key 平文、credentialInput 実値、認証参照の実値、外部サービス生データ、翻訳本文全文、実行時に解決した接続先が forbidden_outputs であることを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/runtime-shape.ts"
+      line: 16
+      symbol: "createGatewayResponseShapeError"
+      reason: "runtime shape 失敗時の userFacingMessage と internalDiagnostic は binding 名、path、expected だけで構成され、response 実値を含めないことを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 46
+      symbol: "createBindingInvoker"
+      reason: "generated AppController binding の response を unknown として受け、validator 通過後だけ response DTO として返す境界を確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 126
+      symbol: "isProviderSummary"
+      reason: "provider settings response は providerId、endpoint、credentialReferenceId、credentialState、validationState、requestToken などの公開値だけを検証対象にしていることを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 215
+      symbol: "ProviderSettingsGateway.SaveProviderSettings"
+      reason: "credentialInput は gateway 内で表示、保存、ログ化されず、generated binding へ request として渡るだけであることを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 61
+      symbol: "createBindingInvoker"
+      reason: "term translation gateway が generated AppController binding response を runtime shape validation 後に返すことを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 205
+      symbol: "isErrorSummary"
+      reason: "errorSummary は errorKind、reason、retryable、isRedacted の形だけを要求し、raw payload や secret 値を診断へ含める実装ではないことを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 64
+      symbol: "createBindingInvoker"
+      reason: "body translation gateway も generated AppController binding response を unknown として受け、validator 通過後だけ返すことを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 335
+      symbol: "isErrorSummary"
+      reason: "body translation の error summary は既知 error kind と redaction flag を検証し、secret 本体や provider raw payload を診断へ含めないことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 49
+      symbol: "createBindingInvoker"
+      reason: "reviewfix 対象の translation job management gateway で generated AppController binding と runtime shape validation が使われることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 193
+      symbol: "isRuntimeSummary"
+      reason: "runtime summary は providerLabel、modelLabel、executionModeLabel、credentialState などの公開表示値だけを検証対象にしていることを確認した。"
+    - path: "frontend/src/controller/term-translation-phase/term-translation-phase-screen-controller-factory.ts"
+      line: 9
+      symbol: "createTermTranslationPhaseScreenControllerFactory"
+      reason: "screen controller factory から gateway DTO 型依存が除去され、Wails DTO が画面 controller へ広がっていないことを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller.go"
+      line: 117
+      symbol: "ProviderSettingsController.SaveProviderSettings"
+      reason: "credentialInput は secret-aware usecase へ渡され、response DTO は ProviderSettingsSummaryDTO だけを返すことを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.test.ts"
+      line: 132
+      symbol: "runtime shape 検証失敗時は診断に secret 平文を含めない"
+      reason: "provider settings の shape error が raw-secret-value、credentialInput、apiKey を含めない test を確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.test.ts"
+      line: 110
+      symbol: "runtime shape 検証失敗時は診断へ secret 平文を出さない"
+      reason: "term translation の shape error が raw-secret-value、credentialInput、apiKey を含めない test を確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.test.ts"
+      line: 158
+      symbol: "invalid response shape: GatewayResponseShapeError と secret 非露出診断を返す"
+      reason: "body translation の shape error が raw-secret-value、credentialInput、apiKey を含めない test を確認した。"
+    - path: "tests/system/frontend-backend-connection.spec.ts"
+      line: 13
+      symbol: "FBC-SC-001 provider settings production factory reaches AppController binding"
+      reason: "fake API なしで provider settings 画面から AppController binding と Health へ到達する system test を確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/browser-confirmation-result.md"
+      line: 9
+      symbol: "操作確認結果"
+      reason: "provider-settings と translation-management の画面確認、Health 応答、secret string absence が reviewfix 後に記録されていることを確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      line: 8
+      symbol: "実行結果"
+      reason: "frontend-local、backend-local、coverage、structure、system-test、git diff --check の通過証跡を確認した。"
+
+unchecked_scope:
+  - target: "実 provider 外部 API への送信経路"
+    reason: "このレビュー対象は Wails gateway と backend controller 公開境界であり、provider 実通信は変更ファイルに含まれない。"
+    risk: "provider usecase より内側の secret 送信先誤りは、この reviewback 単体では検出しない。"
+  - target: "旧 seam が残る未変更 gateway"
+    reason: "translation-input、translation-output-artifact、persona-generation-phase、master-dictionary、master-persona は承認済み implementation-scope の直接対象外として入力で指定されている。"
+    risk: "今回の直接対象外 gateway に残る旧接続経路の信頼境界リスクは、この reviewback の合否判定には含めない。"
+  - target: "tmp/agent-browser と tmp/logs の実ファイル全量"
+    reason: "呼び出し元が提示した browser-confirmation-result と final-validation を証跡として扱い、ハーネスとブラウザ確認は再実行禁止である。"
+    risk: "証跡ファイル本体の全量再検査はしていないため、記録済み範囲外の console noise や log 行は残留リスクとして残る。"
+  - target: "tenant isolation と role-based authorization"
+    reason: "対象機能はローカル Wails AppController binding であり、変更差分に tenant、role、admin 判定の導入または変更がない。"
+    risk: "将来 multi-user 化された場合の tenant 混在は、この task の差分からは判定しない。"
+
+issues: []
+
+broken_invariants:
+  - condition: "secret 本体は UI、DTO read model、URL、log、error summary、runtime shape diagnostic に出さない。"
+    status: "not_broken"
+    evidence: "runtime-shape.ts は path と expected だけで diagnostic を作る。frontend gateway tests と browser confirmation は secret string absence を確認している。"
+  - condition: "Wails gateway は generated AppController binding を正本経路にし、globalThis.go controller 探索順を主経路にしない。"
+    status: "not_broken"
+    evidence: "provider-settings、term-translation-phase、body-translation-phase、translation-job-management の gateway は wailsjs/go/wails/AppController.js から public function を import している。"
+  - condition: "外部入力の Wails response は gateway 境界で runtime shape validation 後に application contract へ返す。"
+    status: "not_broken"
+    evidence: "各 createBindingInvoker は binding response を validator に通し、失敗時は GatewayResponseShapeError を返す。"
+  - condition: "screen controller factory は gateway DTO と generated binding に依存しない。"
+    status: "not_broken"
+    evidence: "term-translation-phase-screen-controller-factory.ts は TermTranslationPhaseGatewayContract だけを受け取り、gateway DTO import を持たない。"
+
+cause_candidates:
+  - status: "none"
+    reason: "未解決 issue がないため、原因候補はない。"
+
+local_fix_assessment:
+  status: "not_required"
+  reason: "未解決 issue がないため、局所修正評価は不要である。将来 secret 漏えいが見つかった場合は runtime shape error 生成、gateway response DTO、backend controller DTO 写像を分けて評価する必要がある。"
+
+residual_risks:
+  - "credentialInput は SaveProviderSettings request として frontend から backend へ渡る。承認済み範囲では backend usecase/service 側が secret 解決責務を持つため、provider 実送信先の正当性はこの reviewback の主判定外である。"
+  - "runtime shape validation は DTO の型と列挙値を確認する。文字列値の業務的妥当性、provider endpoint の安全性、翻訳本文の表示可否は、この差分の主判定外である。"
+  - "system-test は sandbox 内で Wails dev ready 待ちにより中断し、sandbox 外で通過している。この reviewback は final-validation の sandbox 外通過証跡をレビュー入力として扱う。"

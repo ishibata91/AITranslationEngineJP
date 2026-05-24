@@ -1,0 +1,144 @@
+reviewback_version: 1
+task_id: "frontend-backend-connection-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-backend-connection-refactor/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "公開 API、内部 gateway contract、generated AppController binding、backend public method、runtime response shape validation の互換性を確認した。変更対象 gateway は generated `wailsjs/go/wails/AppController.js` の公開 binding を正本経路として使い、request field、response field、nullable と optional の意味変更は確認されなかった。screen controller factory から gateway DTO 型依存は除去され、application contract 経由の受け渡しに維持されている。"
+  evidence_sufficiency: "十分。承認済み implementation-scope、implementation-handoff-input、reviewfix 実装結果、最終検証、ブラウザ確認、git status、変更ファイルと未追跡の指定ファイルを確認した。レビュー agent は禁止事項に従い、ハーネスを実行していない。"
+
+checked_scope:
+  summary: "frontend と backend の接続境界に限定して、generated binding 経路、runtime shape validation、application contract 型別名、backend public method test、fake API ではない system test の契約互換性を確認した。"
+  files:
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-scope.md"
+      line: 31
+      symbol: "Approved Implementation Scope"
+      reason: "承認済み範囲が generated wailsjs、runtime shape validation、DTO 依存除去、public seam test を対象にしていることを確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-result.FBC-INT-001.reviewfix.md"
+      line: 8
+      symbol: "FBC-INT-001 reviewfix implementation result"
+      reason: "reviewfix が translation job management gateway と body translation phase gateway を generated AppController binding 経路へ移したことを確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-result.FBC-UT-FE-001.reviewfix.md"
+      line: 7
+      symbol: "FBC-UT-FE-001 reviewfix implementation result"
+      reason: "reviewfix 後の frontend gateway test が public seam、binding failure、invalid response shape、secret 非露出を観測していることを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 2
+      symbol: "AppController binding imports"
+      reason: "provider settings gateway が generated AppController binding を正本経路として使うことを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 153
+      symbol: "isListProviderSettingsResponseDto"
+      reason: "provider settings の response field と optional field を gateway 境界で検証していることを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 204
+      symbol: "ProviderSettingsGateway"
+      reason: "List、Save、Reset、Validate の公開 method 名と request forwarding が application contract に沿っていることを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 2
+      symbol: "AppController binding imports"
+      reason: "term translation gateway が generated AppController binding を正本経路として使うことを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 248
+      symbol: "isTermTranslationPhaseSummaryResponseDto"
+      reason: "term translation summary response の必須 field と optional field を gateway 境界で検証していることを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 357
+      symbol: "TermTranslationPhaseGateway"
+      reason: "summary、command、AI settings、next phase readiness の公開 method が application contract と一致することを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 2
+      symbol: "AppController binding imports"
+      reason: "translation job management gateway が generated AppController binding を正本経路として使うことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 288
+      symbol: "isListResponseDto"
+      reason: "job list、job detail、action response の response shape を application contract に沿って検証していることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 323
+      symbol: "TranslationJobManagementGateway"
+      reason: "ListIncompleteJobs、GetJobDetail、RequestStop、ResumeJob、DeleteJob の公開 method と request forwarding を確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 2
+      symbol: "AppController binding imports"
+      reason: "body translation phase gateway が generated AppController binding を正本経路として使うことを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 430
+      symbol: "isBodyTranslationPhaseSummaryResponseDto"
+      reason: "body translation summary、command、output readiness の response shape を application contract に沿って検証していることを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 510
+      symbol: "BodyTranslationPhaseGateway"
+      reason: "body translation phase の公開 method と request forwarding が application contract と一致することを確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/runtime-shape.ts"
+      line: 16
+      symbol: "createGatewayResponseShapeError"
+      reason: "shape validation 失敗時に user-facing message と internal diagnostic を分け、raw response を含めない契約を確認した。"
+    - path: "frontend/src/controller/term-translation-phase/term-translation-phase-screen-controller-factory.ts"
+      line: 1
+      symbol: "createTermTranslationPhaseScreenControllerFactory"
+      reason: "screen controller factory が gateway DTO 型へ依存せず、application gateway contract だけを受けることを確認した。"
+    - path: "frontend/wailsjs/go/wails/AppController.js"
+      line: 1
+      symbol: "generated AppController bindings"
+      reason: "変更対象 gateway が import する公開 binding が generated file に存在し、generated file 自体は変更されていないことを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.test.ts"
+      line: 24
+      symbol: "AppController mock seam"
+      reason: "frontend gateway test が globalThis controller 探索順ではなく generated AppController binding mock を public seam として観測していることを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.test.ts"
+      line: 15
+      symbol: "AppController mock seam"
+      reason: "reviewfix 対象 test が request passthrough、binding failure、invalid response shape を generated binding seam で観測していることを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.test.ts"
+      line: 17
+      symbol: "AppController mock seam"
+      reason: "reviewfix 対象 test が body translation gateway の public seam と invalid response shape を観測していることを確認した。"
+    - path: "internal/controller/wails/provider_settings_controller_unit_test.go"
+      line: 59
+      symbol: "TestProviderSettingsControllerListProviderSettingsMapsResponseDTO"
+      reason: "backend public method の DTO 写像と error wrap が test で保護されていることを確認した。"
+    - path: "internal/controller/wails/translation_job_management_controller_unit_test.go"
+      line: 56
+      symbol: "TestTranslationJobManagementControllerGetJobDetailMapsRequestAndResponse"
+      reason: "translation job management の backend public method の request と response DTO 写像が test で保護されていることを確認した。"
+    - path: "internal/controller/wails/term_translation_phase_controller_unit_test.go"
+      line: 114
+      symbol: "TestTermTranslationPhaseControllerPauseMapsRequestAndResponse"
+      reason: "term translation phase の public method request、response、error wrap が test で保護されていることを確認した。"
+    - path: "tests/system/frontend-backend-connection.spec.ts"
+      line: 13
+      symbol: "FBC-SC-001"
+      reason: "fake API ではない production factory から AppController binding へ到達する system test 観測点を確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      line: 7
+      symbol: "実行結果"
+      reason: "frontend-local、backend-local、coverage、structure、system-test、git diff --check の最終結果を確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/browser-confirmation-result.md"
+      line: 7
+      symbol: "操作確認結果"
+      reason: "provider-settings と translation-management の接続状態、Health binding、HTTP error なし、secret 非表示の証跡を確認した。"
+
+unchecked_scope:
+  - target: "ハーネス再実行"
+    reason: "呼び出し元の禁止事項により、レビュー agent はハーネスを実行していない。"
+    risk: "検証証跡作成後に対象差分へ追加変更があった場合、証跡と作業ツリーがずれる可能性がある。"
+  - target: "今回の承認済み範囲外の旧 Wails seam"
+    reason: "`translation-input.gateway.ts`、`translation-output-artifact.gateway.ts`、`persona-generation-phase.gateway.ts`、`master-dictionary.gateway.ts`、`master-persona.gateway.ts` は呼び出し元入力で直接対象外と指定されている。"
+    risk: "対象外 gateway は旧 seam を残すため、将来同じ契約基準へ揃える場合は別 task の承認済み範囲が必要になる。"
+
+issues: []
+
+review_notes:
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決 issue がないため、局所修正評価の対象はない。後続で契約破壊が見つかった場合は、frontend gateway validator、application gateway contract、backend public DTO のどの境界を変更する必要があるかを分けて評価する。"
+  invariant_test_viewpoint: "public method 名、request field、response field、nullable と optional、error wrap、generated AppController binding 経路、runtime shape validation 失敗時の user-facing message と internal diagnostic の分離を契約不変条件として確認する。"
+  residual_risks:
+    - "レビュー agent はハーネスを再実行していない。判定は `final-validation.md` と `browser-confirmation-result.md` の証跡、および実コード確認に基づく。"
+    - "通常の `git diff` は未追跡ファイルを表示しない。今回のレビューでは指定変更ファイルに含まれる `frontend/src/controller/wails/gateway-dto/runtime-shape.ts` と `tests/system/frontend-backend-connection.spec.ts` を明示的に確認した。"
+    - "承認済み範囲外の gateway に残る旧 seam は今回の互換性判定から除外した。"

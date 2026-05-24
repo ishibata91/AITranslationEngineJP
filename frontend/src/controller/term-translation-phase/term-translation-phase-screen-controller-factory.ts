@@ -3,46 +3,15 @@ import type { TermTranslationPhaseGatewayContract } from "@application/gateway-c
 import { TermTranslationPhasePresenter } from "@application/presenter/term-translation-phase"
 import { TermTranslationPhaseStore } from "@application/store/term-translation-phase"
 import { TermTranslationPhaseUseCase } from "@application/usecase/term-translation-phase"
-import type {
-  GetTermTranslationNextPhaseReadinessRequestDto,
-  GetTermTranslationNextPhaseReadinessResponseDto,
-  GetTermTranslationPhaseSummaryRequestDto,
-  GetTermTranslationPhaseSummaryResponseDto,
-  PauseTermTranslationPhaseRequestDto,
-  PauseTermTranslationPhaseResponseDto,
-  ResumeTermTranslationPhaseRequestDto,
-  ResumeTermTranslationPhaseResponseDto,
-  RetryTermTranslationPhaseRequestDto,
-  RetryTermTranslationPhaseResponseDto,
-  StartTermTranslationPhaseRequestDto,
-  StartTermTranslationPhaseResponseDto
-} from "@controller/wails/gateway-dto/term-translation-phase"
 
 import { TermTranslationPhaseScreenController } from "./term-translation-phase-screen-controller"
-
-type TermTranslationPhaseGatewayDtoCoverage = {
-  getSummaryRequest: GetTermTranslationPhaseSummaryRequestDto
-  getSummaryResponse: GetTermTranslationPhaseSummaryResponseDto
-  startRequest: StartTermTranslationPhaseRequestDto
-  startResponse: StartTermTranslationPhaseResponseDto
-  pauseRequest: PauseTermTranslationPhaseRequestDto
-  pauseResponse: PauseTermTranslationPhaseResponseDto
-  resumeRequest: ResumeTermTranslationPhaseRequestDto
-  resumeResponse: ResumeTermTranslationPhaseResponseDto
-  retryRequest: RetryTermTranslationPhaseRequestDto
-  retryResponse: RetryTermTranslationPhaseResponseDto
-  nextPhaseRequest: GetTermTranslationNextPhaseReadinessRequestDto
-  nextPhaseResponse: GetTermTranslationNextPhaseReadinessResponseDto
-}
 
 export function createTermTranslationPhaseScreenControllerFactory(
   gateway: TermTranslationPhaseGatewayContract | null
 ): CreateTermTranslationPhaseScreenController {
   let controller: TermTranslationPhaseScreenController | null = null
 
-  const factory: CreateTermTranslationPhaseScreenController & {
-    __dtoCoverage?: TermTranslationPhaseGatewayDtoCoverage
-  } = () => {
+  const factory: CreateTermTranslationPhaseScreenController = () => {
     if (controller) {
       return controller
     }

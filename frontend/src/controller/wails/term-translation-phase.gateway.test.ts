@@ -1,114 +1,102 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 
+import {
+  GetTermTranslationNextPhaseReadiness,
+  GetTermTranslationPhaseSummary,
+  SaveTermTranslationPhaseAISettings,
+  StartTermTranslationPhase
+} from "../../../wailsjs/go/wails/AppController.js"
 import { createTermTranslationPhaseGateway } from "./term-translation-phase.gateway"
 
-type GoRecord = {
-  wails: {
-    AppController?: Record<string, ReturnType<typeof vi.fn>>
-    TermTranslationPhaseController?: Record<string, ReturnType<typeof vi.fn>>
-  }
-}
+type GetTermTranslationPhaseSummaryResponse = Awaited<
+  ReturnType<typeof GetTermTranslationPhaseSummary>
+>
+type GetTermTranslationNextPhaseReadinessResponse = Awaited<
+  ReturnType<typeof GetTermTranslationNextPhaseReadiness>
+>
+type SaveTermTranslationPhaseAISettingsResponse = Awaited<
+  ReturnType<typeof SaveTermTranslationPhaseAISettings>
+>
 
-const originalGo: unknown = Reflect.get(globalThis as object, "go")
-
-function installGo(record: GoRecord): void {
-  Object.defineProperty(globalThis, "go", {
-    value: record,
-    configurable: true,
-    writable: true
-  })
-}
+vi.mock("../../../wailsjs/go/wails/AppController.js", () => ({
+  GetProcessingTargetList: vi.fn(),
+  GetTermTranslationNextPhaseReadiness: vi.fn(),
+  GetTermTranslationPhaseSummary: vi.fn(),
+  PauseTermTranslationPhase: vi.fn(),
+  ResumeTermTranslationPhase: vi.fn(),
+  RetryTermTranslationPhase: vi.fn(),
+  SaveTermTranslationPhaseAISettings: vi.fn(),
+  StartTermTranslationPhase: vi.fn()
+}))
 
 afterEach(() => {
   vi.restoreAllMocks()
-  Object.defineProperty(globalThis, "go", {
-    value: originalGo,
-    configurable: true,
-    writable: true
-  })
 })
 
 describe("createTermTranslationPhaseGateway", () => {
-  test("TermTranslationPhaseController binding を優先して summary request を渡す", async () => {
-    const getSummary = vi.fn(() =>
-      Promise.resolve({
-        jobId: 5,
-        currentPhase: "term_translation",
-        phaseState: "ready",
-        progress: {
-          percent: 0,
-          processedCount: 0,
-          totalCount: 1,
-          aiTargetCount: 1,
-          currentStep: "ready"
-        },
-        totalTermCount: 1,
-        dictionaryHitCount: 0,
+  test("summary request を公開 binding wrapper へ渡す", async () => {
+    // 公開 seam: gateway request が wrapper へ転送されることを証明する。
+    vi.mocked(GetTermTranslationPhaseSummary).mockResolvedValue({
+      jobId: 5,
+      currentPhase: "term_translation",
+      phaseState: "ready",
+      progress: {
+        percent: 0,
+        processedCount: 0,
+        totalCount: 1,
         aiTargetCount: 1,
-        execution: {
-          credentialRef: "cred",
-          provider: "openai-compatible",
-          model: "gpt-4.1-mini",
-          executionMode: "batch"
-        },
-        actionEnablement: {
-          canStart: true,
-          canPause: false,
-          canResume: false,
-          canRetry: false,
-          canStartNextPhase: false
-        }
-      })
-    )
-
-    installGo({
-      wails: {
-        TermTranslationPhaseController: {
-          GetTermTranslationPhaseSummary: getSummary
-        },
-        AppController: {
-          GetTermTranslationPhaseSummary: vi.fn(() =>
-            Promise.reject(new Error("must not call"))
-          )
-        }
+        currentStep: "ready"
+      },
+      totalTermCount: 1,
+      dictionaryHitCount: 0,
+      aiTargetCount: 1,
+      execution: {
+        credentialRef: "cred",
+        provider: "openai-compatible",
+        model: "gpt-4.1-mini",
+        executionMode: "batch"
+      },
+      actionEnablement: {
+        canStart: true,
+        canPause: false,
+        canResume: false,
+        canRetry: false,
+        canStartNextPhase: false
       }
-    })
+    } as unknown as GetTermTranslationPhaseSummaryResponse)
 
     const gateway = createTermTranslationPhaseGateway()
     await gateway.getTermTranslationPhaseSummary({ jobId: 5 })
 
-    expect(getSummary).toHaveBeenCalledTimes(1)
-    expect(getSummary).toHaveBeenCalledWith({ jobId: 5 })
+    expect(GetTermTranslationPhaseSummary).toHaveBeenCalledTimes(1)
+    expect(GetTermTranslationPhaseSummary).toHaveBeenCalledWith({ jobId: 5 })
   })
 
-  test("controller binding が無い時は AppController binding に fallback する", async () => {
-    const getReadiness = vi.fn(() =>
-      Promise.resolve({
-        jobId: 5,
-        currentPhase: "term_translation",
-        phaseState: "ready",
-        canStartNextPhase: false,
-        blockedReason: "pending"
-      })
-    )
-
-    installGo({
-      wails: {
-        AppController: {
-          GetTermTranslationNextPhaseReadiness: getReadiness
-        }
-      }
-    })
+  test("next phase readiness は公開 binding wrapper の response を返す", async () => {
+    // 公開 seam: response 形を gateway contract として返す。
+    vi.mocked(GetTermTranslationNextPhaseReadiness).mockResolvedValue({
+      jobId: 5,
+      currentPhase: "term_translation",
+      phaseState: "ready",
+      canStartNextPhase: false,
+      blockedReason: "pending"
+    } as unknown as GetTermTranslationNextPhaseReadinessResponse)
 
     const gateway = createTermTranslationPhaseGateway()
-    await gateway.getTermTranslationNextPhaseReadiness({ jobId: 5 })
-
-    expect(getReadiness).toHaveBeenCalledTimes(1)
-    expect(getReadiness).toHaveBeenCalledWith({ jobId: 5 })
+    await expect(
+      gateway.getTermTranslationNextPhaseReadiness({ jobId: 5 })
+    ).resolves.toMatchObject({
+      jobId: 5,
+      canStartNextPhase: false,
+      blockedReason: "pending"
+    })
   })
 
-  test("binding 未接続時は Wails not wired error を返す", async () => {
-    installGo({ wails: {} })
+  test("binding 未接続時は wrapper 例外を返す", async () => {
+    // 未接続時の error path を公開 seam で観測する。
+    vi.mocked(StartTermTranslationPhase).mockRejectedValue(
+      new Error("Wails binding is not wired yet: StartTermTranslationPhase")
+    )
 
     const gateway = createTermTranslationPhaseGateway()
 
@@ -119,26 +107,71 @@ describe("createTermTranslationPhaseGateway", () => {
     )
   })
 
-  test("save ai settings は公開フィールドだけを受け渡し secret を含まない", async () => {
-    const saveSettings = vi.fn(() =>
-      Promise.resolve({
-        jobId: 5,
-        phaseId: "word_translation",
-        provider: "gemini",
-        model: "gemini-2.5-pro",
-        executionMode: "sync",
-        batchMode: "enabled",
-        credentialStatus: "configured",
-        modelListStatus: "success"
-      })
-    )
-    installGo({
-      wails: {
-        TermTranslationPhaseController: {
-          SaveTermTranslationPhaseAISettings: saveSettings
-        }
+  test("runtime shape 検証失敗時は診断へ secret 平文を出さない", async () => {
+    // runtime shape 検証失敗時も secret は公開値へ含めない。
+    vi.mocked(GetTermTranslationPhaseSummary).mockResolvedValue({
+      jobId: 5,
+      currentPhase: "term_translation",
+      phaseState: "ready",
+      progress: {
+        percent: 0,
+        processedCount: 0,
+        totalCount: 1,
+        aiTargetCount: 1,
+        currentStep: "ready"
+      },
+      totalTermCount: 1,
+      dictionaryHitCount: 0,
+      aiTargetCount: 1,
+      execution: {
+        credentialRef: 123,
+        provider: "openai-compatible",
+        model: "gpt-4.1-mini",
+        executionMode: "batch",
+        credentialInput: "raw-secret-value"
+      },
+      actionEnablement: {
+        canStart: true,
+        canPause: false,
+        canResume: false,
+        canRetry: false,
+        canStartNextPhase: false
       }
+    } as unknown as GetTermTranslationPhaseSummaryResponse)
+
+    const gateway = createTermTranslationPhaseGateway()
+
+    await expect(
+      gateway.getTermTranslationPhaseSummary({ jobId: 5 })
+    ).rejects.toMatchObject({
+      name: "GatewayResponseShapeError",
+      userFacingMessage: "Gateway response shape is invalid."
     })
+
+    try {
+      await gateway.getTermTranslationPhaseSummary({ jobId: 5 })
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(Error)
+      expect(typeof (error as Error & { internalDiagnostic?: unknown }).internalDiagnostic).toBe("string")
+      const diagnostic = JSON.stringify(error)
+      expect(diagnostic).not.toContain("raw-secret-value")
+      expect(diagnostic).not.toContain("credentialInput")
+      expect(diagnostic).not.toContain("apiKey")
+    }
+  })
+
+  test("save ai settings は公開フィールドだけを受け渡し secret を含まない", async () => {
+    // 保存応答に secret 本体が含まれないことを確認する。
+    vi.mocked(SaveTermTranslationPhaseAISettings).mockResolvedValue({
+      jobId: 5,
+      phaseId: "word_translation",
+      provider: "gemini",
+      model: "gemini-2.5-pro",
+      executionMode: "sync",
+      batchMode: "enabled",
+      credentialStatus: "configured",
+      modelListStatus: "success"
+    } as unknown as SaveTermTranslationPhaseAISettingsResponse)
 
     const gateway = createTermTranslationPhaseGateway()
     const result = await gateway.saveTermTranslationPhaseAISettings?.({
@@ -149,7 +182,7 @@ describe("createTermTranslationPhaseGateway", () => {
       batchMode: "enabled"
     })
 
-    expect(saveSettings).toHaveBeenCalledWith({
+    expect(SaveTermTranslationPhaseAISettings).toHaveBeenCalledWith({
       jobId: 5,
       provider: "gemini",
       model: "gemini-2.5-pro",
