@@ -7,7 +7,7 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 ## 目的
 
 `investigate` は作業プロトコルである。
-`investigator` agent が設計前に必要な証拠、探索テストレーンの探索証跡、修正レーンの修正前調査を集めるための、観測事実、UI 証跡、ログ、仮説、残り 不足 の分け方を提供する。
+`investigator` agent が設計前に必要な証拠、探索テストレーンの探索証跡、修正レーンの修正前調査、リファクタレーンの仕様乖離整理、構造品質調査、テスト品質調査を集めるための、観測事実、UI 証跡、ログ、仮説、残り 不足 の分け方を提供する。
 
 設計前調査では UI check 専用 skill / agent は置かない。
 設計前の画面設計根拠は `investigator` が `investigate` の一部として扱う。
@@ -19,12 +19,13 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 担当成果物は `investigate` の出力規約で固定する。
 - 探索テストレーンでは担当成果物を `探索証跡` に限定する。
 - 修正レーンでは担当成果物を `修正前調査` に限定する。
+- リファクタレーンでは担当成果物を `仕様乖離整理`、`構造品質調査`、`テスト品質調査` に限定する。
 
 ## 入力規約
 
 - 必須入力: 呼び出し元、investigation_goal、known_context を受け取る。
 - 非必須入力: investigation_mode、reproduction_steps、candidate_paths、探索計画、テストデータを受け取る。
-- 非必須調査種別: `investigation_mode` は `再現`、`画面設計根拠`、`trace`、`リスク報告`、`探索テスト証跡`、`修正前調査` のいずれかを受け取る。
+- 非必須調査種別: `investigation_mode` は `再現`、`画面設計根拠`、`trace`、`リスク報告`、`探索テスト証跡`、`修正前調査`、`仕様乖離整理`、`構造品質調査`、`テスト品質調査` のいずれかを受け取る。
 - 必須成果物: active task 文脈 または 呼び出し元提供 investigation 文脈を受け取る。
 
 ## 外部参照規約
@@ -40,6 +41,11 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 探索テストレーンの探索計画は [exploration-test-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/exploration-test-planning/SKILL.md) に従う。
 - 探索テスト証跡の雛形は [exploration-test-evidence.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/assets/exploration-test-evidence.md) とする。
 - 探索テスト証跡の task 内 artifact は `docs/exec-plans/active/<task-id>/exploration-test-evidence.md` とする。
+- リファクタレーンは [refactor-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/refactor-lane/SKILL.md) に従う。
+- リファクタ分類表雛形は [refactor-classification.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/refactor-lane/assets/refactor-classification.md) とする。
+- 構造設計正本は [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
+- コーディング規約入口は [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
+- テスト規約は [coding-guidelines-tests.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-tests.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md
 
@@ -50,6 +56,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - `再現`、`画面設計根拠`、`trace`、`リスク報告` の観点
 - 観測済み事実、画面設計根拠、仮説 の分離
 - 探索計画、テストデータ、探索証跡 の分離
+- 仕様参照、実装参照、仕様乖離、人間判断待ち の分離
+- 構造品質観点、根拠参照、対象範囲、変更不要範囲 の分離
+- テスト品質観点、テスト参照、仕様参照、変更不要テスト範囲 の分離
 - 根拠 path と再現条件の残し方
 - 画面設計を操作経路と期待値の補助参照にする条件
 - 画面要素を操作できない理由の分類
@@ -73,6 +82,12 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 修正前調査は人間観測、レビュー非通過、検証失敗を超えない
 - 修正前調査では実装方針と変更ファイルを確定しない
 - 修正前調査では観測事実に基づく影響ファイル候補を返してよい
+- 仕様乖離整理では仕様と実装の差だけを記録し、どちらを正にするかを判断しない
+- 構造品質調査では責務過多、責務分離不足、コーディング規約逸脱、構造設計不整合を根拠別に分ける
+- 構造品質調査では変更不要範囲を実装範囲候補に含めない
+- テスト品質調査では `coding-guidelines-tests.md` の良いテストの品質観点に従う
+- テスト品質調査ではテスト規約違反と仕様整合性の不足を根拠別に分ける
+- テスト品質調査では変更不要テスト範囲を実装範囲候補に含めない
 
 - observed、画面設計根拠、inferred を分ける
 - 証跡 path と再現条件を優先する
@@ -85,6 +100,8 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 恒久修正、プロダクトテスト追加、implementation レビューは扱わない。
 - 承認済み実装範囲や対象 file は確定しない。
 - 修正レーンの修正実行入力、レビュー通過根拠は扱わない。
+- リファクタレーンの仕様実装優先判断、リファクタ範囲確認、implementation-scope は扱わない。
+- テスト修正方針、テスト追加方針、テスト削除方針は確定しない。
 - 設計前調査で UI check 専用 agent を前提にしない。
 - 探索計画の作成、バグ一覧の集約、影響ファイルの確定は扱わない。
 
@@ -106,6 +123,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 探索証跡: 探索テスト証跡の場合は探索計画とテストデータに対応する観測事実を返す。
 - 修正前調査: 修正レーンの場合は人間観測、レビュー非通過、検証失敗に対応する観測事実、ログ、未確認事項を返す。
 - 影響ファイル候補: 修正前調査の場合は観測事実に基づく影響ファイル候補を返す。
+- 仕様乖離整理: リファクタレーンの場合は仕様参照、実装参照、差分内容、影響範囲、人間判断待ちを返す。
+- 構造品質調査: リファクタレーンの場合は責務過多、責務分離不足、コーディング規約逸脱、構造設計不整合、変更不要範囲を返す。
+- テスト品質調査: リファクタレーンの場合はテスト規約観点別結果、仕様整合性、変更不要テスト範囲を返す。
 - 残り不足: 未確認事項と理由を返す。
 - 残留リスク: 設計判断に残る リスク を返す。
 - 推奨 next step: 設計継続、追加調査、停止のどれが妥当かを返す。
@@ -122,6 +142,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 探索テスト証跡の場合は、探索計画、テストデータ、観測事実、UI 証跡、ログ証跡、未確認事項を分けた。
 - 探索テスト証跡の場合は、`exploration-test-evidence.md` に証跡が記録されている。
 - 修正前調査の場合は、人間観測、観測事実、UI 証跡、ログ証跡、未確認事項を分けた。
+- 仕様乖離整理の場合は、仕様参照、実装参照、差分内容、影響範囲、人間判断待ちを分けた。
+- 構造品質調査の場合は、責務過多、責務分離不足、コーディング規約逸脱、構造設計不整合、変更不要範囲を分けた。
+- テスト品質調査の場合は、テスト規約観点別結果、仕様整合性、変更不要テスト範囲を分けた。
 - design continuation に必要な リスク を返した。
 - 必須 根拠: 観測済み事実 根拠, 画面設計根拠 when mode is 画面設計根拠, reproduction condition, 根拠 path when used
 - 完了判断材料: designer が設計継続か停止かを判断できる。
@@ -143,6 +166,9 @@ description: Codex 側の設計前調査、探索テスト証跡、修正前調�
 - 探索計画またはテストデータが不足した探索テスト証跡を扱う場合は停止する。
 - 探索テスト証跡で探索範囲を広げる必要がある場合は停止する。
 - 修正前調査で実装方針または変更ファイルを確定する必要がある場合は停止する。
+- 仕様乖離整理で仕様と実装のどちらを正にするか判断する必要がある場合は停止する。
+- 構造品質調査でリファクタ範囲確認または実装範囲を確定する必要がある場合は停止する。
+- テスト品質調査でリファクタ範囲確認、実装範囲、テスト修正方針を確定する必要がある場合は停止する。
 - 拒否条件: implementation-time investigation
 - 拒否条件: permanent fix request
 - 拒否条件: 根拠成果物 不足

@@ -11,7 +11,7 @@ developer_instructions = """
 あなたの主な成果は frontend 実装成果物、Storybook 確認資源、画面設計根拠確認結果、frontend-local 検証結果、停止理由である。
 
 あなたは次の境界で動く。
-- 扱う task: `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane` から渡された frontend 実装
+- 扱う task: `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` から渡された frontend 実装
 - 扱わない task: backend 実装、統合境界実装、プロダクトテスト、docs 正本化本文の更新
 - 書き換えてよい範囲: 承認済み frontend 実装範囲、Storybook 人間レビューに必要な story と `fixture` と関連資源、generated file、生成元、公開境界、今回変更が直接壊した frontend 責務内プロダクトコード、検証出力の `test-results/`
 - 書き換えてはいけない範囲: `internal/`、root の Wails 起点ファイル、プロダクトテスト、人間承認なしの docs 正本、承認済み実装範囲外の `.codex/` 作業流れ、画面設計根拠を越える UI 表示、画面文言、layout、style

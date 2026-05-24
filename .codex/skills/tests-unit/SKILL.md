@@ -1,6 +1,6 @@
 ---
 name: tests-unit
-description: Codex implementation レーン 側の 単体テスト 実装作業プロトコル。
+description: Codex 実装系レーン側の 単体テスト 実装作業プロトコル。
 ---
 # Tests Unit
 
@@ -12,8 +12,8 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 ## 対応ロール
 
 - `implementation_unit_tester` が使う。
-- 呼び出し元は `implement_lane` または `light_change_lane` とする。
-- 返却先は `implement_lane` または `light_change_lane` とする。
+- 呼び出し元は `implement_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
+- 返却先は呼び出し元レーンとする。
 - 担当成果物は `tests-unit` の出力規約で固定する。
 
 ## 入力規約
@@ -55,8 +55,10 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 網羅率検証は `python3 scripts/harness/run.py --suite coverage` を実行し、全体網羅率が 70.0% を上回ることを確認する
 
 - Arrange / Act / Assert を空行または短いコメントで判別できる状態にする
+- テスト本体には意味的に何の振る舞いを証明するテストかを短いコメントで書く
 - 分岐 ごとに テストケース を分ける
 - clock、random、ID、repository 応答順序を固定する
+- テストコーディング規約の良いテストの品質観点に従う
 
 ## 非対象規約
 
@@ -83,6 +85,8 @@ description: Codex implementation レーン 側の 単体テスト 実装作業�
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
 - 1 テストで 1 公開振る舞い / 分岐 / エラー経路 だけを証明した。
 - setup の clock、random、ID、repository 応答順序を固定した。
+- テスト本体に意味的に何の振る舞いを証明するテストかを示すコメントがある。
+- テストコーディング規約の良いテストの品質観点に反するテスト品質問題が残っていない。
 - implementation_task_ids の外へ広げなかった。
 - 変更対象が 単体テスト と必要最小限の テスト補助だけである。
 - backend 側の単体テストを変更した場合は `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当単体テスト成果物の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。

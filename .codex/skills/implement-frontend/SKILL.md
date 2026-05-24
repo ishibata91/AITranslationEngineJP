@@ -1,6 +1,6 @@
 ---
 name: implement-frontend
-description: Codex implementation レーン 側の frontend 実装作業プロトコル。画面導線、状態、Wails bridge の判断基準を提供する。
+description: Codex 実装系レーン側の frontend 実装作業プロトコル。画面導線、状態、Wails bridge の判断基準を提供する。
 ---
 # Implement Frontend
 
@@ -12,7 +12,7 @@ description: Codex implementation レーン 側の frontend 実装作業プロ�
 ## 対応ロール
 
 - `frontend_implementer` が使う。
-- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane` のいずれかとする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` のいずれかとする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-frontend` の出力規約で固定する。
 

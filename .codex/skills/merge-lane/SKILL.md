@@ -12,7 +12,7 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 ## 対応ロール
 
 - `merge_lane` が使う。
-- 呼び出し元は人間、`implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane` とする。
+- 呼び出し元は人間、`implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` とする。
 - 返却先は人間または呼び出し元レーンとする。
 - 担当成果物は `マージ準備確認`、`local merge`、`conflict 解消`、`merge 後検証`、`completed 移動`、`merge 結果 commit` とする。
 

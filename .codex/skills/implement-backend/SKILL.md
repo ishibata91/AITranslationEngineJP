@@ -1,6 +1,6 @@
 ---
 name: implement-backend
-description: Codex implementation レーン 側の backend 実装作業プロトコル。層 責務、レーン内検証 の判断基準を提供する。
+description: Codex 実装系レーン側の backend 実装作業プロトコル。層 責務、レーン内検証 の判断基準を提供する。
 ---
 # Implement Backend
 
@@ -12,8 +12,8 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 ## 対応ロール
 
 - `backend_implementer` が使う。
-- 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` とする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
+- 返却先は呼び出し元レーンとする。
 - 担当成果物は `implement-backend` の出力規約で固定する。
 
 ## 入力規約
@@ -62,7 +62,7 @@ description: Codex implementation レーン 側の backend 実装作業プロト
 - 判断結果: backend プロダクトコード実装の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装の根拠にした入力、変更箇所、検証結果を返す。
 - 不足情報: 実装を完了できない不足項目を返す。
-- 次判断材料: `implement_lane` が次を判断できる材料を返す。
+- 次判断材料: 呼び出し元レーンが次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する backend プロダクトコードだけを返す。
 - 影響範囲修正: 今回変更が直接壊した生成物、公開境界、検証経路、backend 責務内プロダクトコードを修正した場合に、対象、理由、変更結果を返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時は、承認済み実装範囲 または backend 責務内の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
