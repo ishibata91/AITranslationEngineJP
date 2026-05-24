@@ -9,6 +9,12 @@ import (
 	"aitranslationenginejp/internal/repository"
 )
 
+const (
+	phaseAISettingsLogEvent        = "phase_ai_settings_save"
+	phaseAISettingsLogWhere        = "backend.service.phase_ai_settings"
+	phaseAISettingsLogResultFailed = "failed"
+)
+
 type providerExecutionSnapshot struct {
 	Provider        string
 	Model           string
@@ -124,7 +130,7 @@ func savePhaseAISettings(
 			},
 		})
 		if err != nil {
-			logPhaseAISettingsSave(ctx, "phase_ai_settings_save", "backend.service.phase_ai_settings", "failed", selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "provider_settings_resolve_failed")
+			logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, phaseAISettingsLogResultFailed, selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "provider_settings_resolve_failed")
 			return PhaseAISettingsReadModel{}, fmt.Errorf("resolve phase ai settings: %w", err)
 		}
 		credentialStatus = strings.TrimSpace(resolved.CredentialState)
@@ -155,10 +161,10 @@ func savePhaseAISettings(
 		ExecutionMode:    executionMode,
 		BatchMode:        batchMode,
 	}); err != nil {
-		logPhaseAISettingsSave(ctx, "phase_ai_settings_save", "backend.service.phase_ai_settings", "failed", selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "snapshot_save_failed")
+		logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, phaseAISettingsLogResultFailed, selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "snapshot_save_failed")
 		return PhaseAISettingsReadModel{}, fmt.Errorf("save phase ai settings: %w", err)
 	}
-	logPhaseAISettingsSave(ctx, "phase_ai_settings_save", "backend.service.phase_ai_settings", "accepted", selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "")
+	logPhaseAISettingsSave(ctx, phaseAISettingsLogEvent, phaseAISettingsLogWhere, "accepted", selection.JobID, phaseID, providerID, model, executionMode, batchMode, credentialStatus, modelListStatus, "")
 	return PhaseAISettingsReadModel{
 		JobID:            selection.JobID,
 		PhaseID:          phaseID,
@@ -203,7 +209,7 @@ func logPhaseAISettingsSave(
 		attrs = append(attrs, slog.String("reason", strings.TrimSpace(reason)))
 	}
 	level := slog.LevelInfo
-	if result == "failed" {
+	if result == phaseAISettingsLogResultFailed {
 		level = slog.LevelWarn
 	}
 	slog.LogAttrs(ctx, level, "phase ai settings save completed", attrs...)

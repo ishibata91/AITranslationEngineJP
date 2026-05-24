@@ -18,7 +18,6 @@ import type {
 } from "@application/gateway-contract/body-translation-phase"
 
 type BodyTranslationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -122,7 +121,6 @@ interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreen
     tone: "default" | "primary" | "warning"
   }[]
   screenActionEnablement: {
-    canRefresh: boolean
     canStart: boolean
     canPause: boolean
     canResume: boolean
@@ -158,6 +156,11 @@ const PHASE_STATE_LABELS: Record<string, string> = {
   recoverable_failed: "再試行可能な失敗",
   running: "実行中",
   validation_failed: "検証失敗"
+}
+
+const CURRENT_PHASE_LABELS: Record<string, string> = {
+  body_translation: "本文翻訳",
+  translation_complete: "翻訳完了"
 }
 
 function formatDate(value: string | undefined): string {
@@ -292,6 +295,11 @@ function buildPhaseStateLabel(phaseState: string | undefined): string {
   }
 
   return PHASE_STATE_LABELS[normalizePhaseState(phaseState)] ?? phaseState
+}
+
+function buildCurrentPhaseLabel(currentPhase: string | undefined): string {
+  const normalized = normalizePhaseState(currentPhase)
+  return CURRENT_PHASE_LABELS[normalized] ?? (currentPhase || "本文翻訳")
 }
 
 const CURRENT_STEP_LABELS: Record<string, string> = {
@@ -574,13 +582,6 @@ function buildActionCards(
         readiness?.blockedReason ??
         "",
       tone: readiness?.ready ? "primary" : "default"
-    },
-    {
-      id: "refresh",
-      label: "更新",
-      disabled: isBusy || state.jobId === null,
-      blockedReason: "",
-      tone: "default"
     }
   ]
 }
@@ -616,11 +617,9 @@ function calculateDerivedFailedCount(
 }
 
 function buildScreenActionEnablement(
-  state: BodyTranslationPhaseScreenState,
   summary: BodyTranslationPhaseSummaryResponse | null
 ): BodyTranslationPhaseScreenViewModel["screenActionEnablement"] {
   return {
-    canRefresh: state.jobId !== null,
     canStart: summary?.actionEnablement.canStart ?? false,
     canPause: summary?.actionEnablement.canPause ?? false,
     canResume: summary?.actionEnablement.canResume ?? false,
@@ -661,7 +660,7 @@ export class BodyTranslationPhasePresenter {
       isRefreshing: state.phase === "loading" && state.hasLoaded,
       isSubmitting: state.phase === "submitting",
       hasJobSelection: state.jobId !== null,
-      currentPhaseLabel: summary?.currentPhase ?? "body_translation",
+      currentPhaseLabel: buildCurrentPhaseLabel(summary?.currentPhase),
       phaseStateLabel: buildPhaseStateLabel(summary?.phaseState),
       statusTitle: statusCopy.title,
       statusText: statusCopy.text,
@@ -724,7 +723,7 @@ export class BodyTranslationPhasePresenter {
       ),
       fieldResultItems,
       actionCards: buildActionCards(state),
-      screenActionEnablement: buildScreenActionEnablement(state, summary),
+      screenActionEnablement: buildScreenActionEnablement(summary),
       lastErrorSummary: errorSummary,
       actionEnablement: summary?.actionEnablement ?? null,
       latestProgressSummary: summary?.progress ?? null,

@@ -10,7 +10,6 @@ export interface BodyTranslationPhaseScreenControllerContract {
   subscribe(listener: BodyTranslationPhaseScreenViewModelListener): () => void
   getViewModel(): BodyTranslationPhaseScreenViewModel
   setJobId(jobId: number | null): Promise<void>
-  refresh(): Promise<void>
   setProcessingTargetSearchQuery?(
     searchQuery: string,
     phase?: string

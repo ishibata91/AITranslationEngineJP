@@ -16,7 +16,6 @@ type ScreenState = {
   outputReadiness: BodyTranslationOutputReadinessResponse | null
   errorMessage: string
   pendingAction:
-    | "refresh"
     | "start"
     | "pause"
     | "resume"
@@ -252,11 +251,11 @@ describe("BodyTranslationPhaseUseCase", () => {
     })
   })
 
-  test("refresh は gateway 未接続時にエラーを設定する", async () => {
+  test("load は gateway 未接続時にエラーを設定する", async () => {
     const store = createStore(createState())
     const useCase = new BodyTranslationPhaseUseCase(null, store)
 
-    await useCase.refresh()
+    await useCase.load()
 
     expect(store.getState().errorMessage).toBe(
       "本文翻訳段階の gateway が未接続です。"
@@ -264,7 +263,7 @@ describe("BodyTranslationPhaseUseCase", () => {
     expect(store.getState().phase).toBe("ready")
   })
 
-  test("refresh 取得失敗時は既存 summary と readiness を保持して失敗文言を設定する", async () => {
+  test("summary 取得失敗時は既存 summary と readiness を保持して失敗文言を設定する", async () => {
     const { gateway, spies } = createGateway()
     const currentSummary = createSummary({ phaseState: "running" })
     const currentReadiness = createOutputReadiness({ ready: false })
@@ -280,7 +279,7 @@ describe("BodyTranslationPhaseUseCase", () => {
     )
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
-    await useCase.refresh()
+    await useCase.load()
 
     expect(store.getState().summary).toEqual(currentSummary)
     expect(store.getState().outputReadiness).toEqual(currentReadiness)

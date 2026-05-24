@@ -24,14 +24,6 @@ export interface ShellRouteContract {
   description: string
 }
 
-export interface TranslationManagementViewContract {
-  id: TranslationManagementViewId
-  label: string
-  description: string
-  stepNumber: number
-  directNavigation: boolean
-}
-
 const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   {
     id: "dashboard",
@@ -78,75 +70,16 @@ const SHELL_ROUTE_CONTRACT: ReadonlyArray<ShellRouteContract> = [
   }
 ]
 
-const TRANSLATION_MANAGEMENT_VIEW_CONTRACT: ReadonlyArray<TranslationManagementViewContract> =
-  [
-    {
-      id: "job-management",
-      label: "未完了のジョブ",
-      description: "新しい翻訳を始めるか、途中のジョブを再開します。",
-      stepNumber: 1,
-      directNavigation: true
-    },
-    {
-      id: "input-review",
-      label: "入力データの確認",
-      description: "翻訳に使う入力データを選び、登録結果を確認します。",
-      stepNumber: 2,
-      directNavigation: false
-    },
-    {
-      id: "term-translation",
-      label: "単語翻訳",
-      description: "選択したジョブで、単語翻訳を実行します。",
-      stepNumber: 3,
-      directNavigation: false
-    },
-    {
-      id: "persona-generation",
-      label: "NPC ペルソナ生成",
-      description: "単語翻訳の完了後に、NPC の話し方や役割を整理します。",
-      stepNumber: 4,
-      directNavigation: false
-    },
-    {
-      id: "body-translation",
-      label: "本文翻訳",
-      description: "NPC ペルソナを参照できる状態で、本文の翻訳を実行します。",
-      stepNumber: 5,
-      directNavigation: false
-    },
-    {
-      id: "translation-complete",
-      label: "翻訳結果の確認",
-      description: "本文翻訳が完了した後に、原文と訳文を確認します。",
-      stepNumber: 6,
-      directNavigation: false
-    },
-    {
-      id: "output-management",
-      label: "出力管理",
-      description: "翻訳結果を確認した後に、出力するジョブを選びます。",
-      stepNumber: 7,
-      directNavigation: false
-    }
-  ]
-
 interface ShellState {
   defaultRouteId: ShellRouteId
   routes: ShellRouteContract[]
   defaultTranslationManagementViewId: TranslationManagementViewId
-  translationManagementViews: TranslationManagementViewContract[]
 }
 
 export function createShellState(): ShellState {
   return {
     defaultRouteId: "dashboard",
     routes: SHELL_ROUTE_CONTRACT.map((route) => ({ ...route })),
-    defaultTranslationManagementViewId: "job-management",
-    translationManagementViews: TRANSLATION_MANAGEMENT_VIEW_CONTRACT.map(
-      (view) => ({
-        ...view
-      })
-    )
+    defaultTranslationManagementViewId: "job-management"
   }
 }

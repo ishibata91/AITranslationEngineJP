@@ -14,7 +14,6 @@ import type {
 } from "@application/gateway-contract/term-translation-phase"
 
 type TermTranslationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -106,6 +105,10 @@ const PHASE_STATE_LABELS: Record<string, string> = {
   running: "実行中"
 }
 
+const CURRENT_PHASE_LABELS: Record<string, string> = {
+  term_translation: "単語翻訳"
+}
+
 function formatDate(value: string | undefined): string {
   if (!value) {
     return "-"
@@ -190,6 +193,11 @@ function buildPhaseStateLabel(phaseState: string | undefined): string {
 
   const normalized = normalizePhaseState(phaseState)
   return PHASE_STATE_LABELS[normalized] ?? phaseState
+}
+
+function buildCurrentPhaseLabel(currentPhase: string | undefined): string {
+  const normalized = normalizePhaseState(currentPhase)
+  return CURRENT_PHASE_LABELS[normalized] ?? (currentPhase || "未開始")
 }
 
 const CURRENT_STEP_LABELS: Record<string, string> = {
@@ -374,13 +382,6 @@ function buildActionCards(
       tone: "default"
     },
     {
-      id: "refresh",
-      label: "更新",
-      disabled: isBusy || !(enablement?.canRefresh ?? state.jobId !== null),
-      blockedReason: enablement?.refreshBlockedReason ?? "",
-      tone: "default"
-    },
-    {
       id: "next-phase",
       label: "次の翻訳段階へ進む",
       disabled: isBusy || !canStartNextPhase,
@@ -410,7 +411,7 @@ export class TermTranslationPhasePresenter {
       isRefreshing: state.phase === "loading" && state.hasLoaded,
       isSubmitting: state.phase === "submitting",
       hasJobSelection: state.jobId !== null,
-      currentPhaseLabel: summary?.currentPhase ?? "未開始",
+      currentPhaseLabel: buildCurrentPhaseLabel(summary?.currentPhase),
       phaseStateLabel: buildPhaseStateLabel(summary?.phaseState),
       statusTitle: statusCopy.title,
       statusText: statusCopy.text,

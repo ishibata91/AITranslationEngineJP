@@ -73,7 +73,6 @@ export const bodyTranslationPhasePanelFixture: BodyTranslationPhaseScreenViewMod
       }
     ],
     screenActionEnablement: {
-      canRefresh: true,
       canStart: true,
       canPause: false,
       canResume: false,

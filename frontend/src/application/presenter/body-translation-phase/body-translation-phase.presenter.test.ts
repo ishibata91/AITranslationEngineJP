@@ -14,7 +14,6 @@ interface TestScreenState {
   outputReadiness: BodyTranslationOutputReadinessResponse | null
   errorMessage: string
   pendingAction:
-    | "refresh"
     | "start"
     | "pause"
     | "resume"
@@ -147,6 +146,14 @@ describe("BodyTranslationPhasePresenter", () => {
     expect(viewModel.phaseStateLabel).toBe("開始待ち")
     expect(viewModel.progressDetail).toContain("開始待ち")
     expect(viewModel.progressDetail).not.toContain("pending")
+  })
+
+  test("current phase key は画面表示名へ変換する", () => {
+    const presenter = new BodyTranslationPhasePresenter()
+
+    const viewModel = presenter.toViewModel(createState(), true)
+
+    expect(viewModel.currentPhaseLabel).toBe("本文翻訳")
   })
 
   test("output readiness の上書き値を表示に使う", () => {

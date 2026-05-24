@@ -106,5 +106,4 @@
   createTranslationOutputArtifactScreenController={resolveTranslationOutputArtifactScreenControllerFactory()}
   createTranslationInputScreenController={resolveTranslationInputScreenControllerFactory()}
   routes={shellState.routes}
-  translationManagementViews={shellState.translationManagementViews}
 />

@@ -9,6 +9,13 @@ import (
 	jobsetupservice "aitranslationenginejp/internal/service"
 )
 
+const (
+	translationJobSetupCreateLogEvent          = "translation_job_setup_create_from_input"
+	translationJobSetupCreateLogWhere          = "backend.usecase.translation_job_setup.create"
+	translationJobSetupCreateLogResultRejected = "rejected"
+	translationJobSetupCreateLogInputIDFormat  = "input:%d"
+)
+
 type translationJobSetupServicePort interface {
 	ValidateRequest(ctx context.Context, request jobsetupservice.TranslationJobSetupValidationRequest) (jobsetupservice.TranslationJobSetupValidationDecision, error)
 	EvaluateCreateRequest(ctx context.Context, request jobsetupservice.TranslationJobSetupCreateRequest) (jobsetupservice.TranslationJobSetupCreateDecision, error)
@@ -162,10 +169,10 @@ func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 	request CreateTranslationJobRequest,
 ) (CreateTranslationJobResult, error) {
 	slog.InfoContext(ctx, "translation job setup create requested",
-		slog.String("event", "translation_job_setup_create_from_input"),
-		slog.String("where", "backend.usecase.translation_job_setup.create"),
+		slog.String("event", translationJobSetupCreateLogEvent),
+		slog.String("where", translationJobSetupCreateLogWhere),
 		slog.String("result", "started"),
-		slog.String("id", fmt.Sprintf("input:%d", request.InputSourceID)),
+		slog.String("id", fmt.Sprintf(translationJobSetupCreateLogInputIDFormat, request.InputSourceID)),
 	)
 	serviceRequest := jobsetupservice.TranslationJobSetupCreateRequest{
 		InputSourceID:        request.InputSourceID,
@@ -180,10 +187,10 @@ func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 	}
 	if !decision.CanCreate {
 		slog.WarnContext(ctx, "translation job setup create rejected",
-			slog.String("event", "translation_job_setup_create_from_input"),
-			slog.String("where", "backend.usecase.translation_job_setup.create"),
-			slog.String("result", "rejected"),
-			slog.String("id", fmt.Sprintf("input:%d", request.InputSourceID)),
+			slog.String("event", translationJobSetupCreateLogEvent),
+			slog.String("where", translationJobSetupCreateLogWhere),
+			slog.String("result", translationJobSetupCreateLogResultRejected),
+			slog.String("id", fmt.Sprintf(translationJobSetupCreateLogInputIDFormat, request.InputSourceID)),
 			slog.String("reason", strings.TrimSpace(decision.ErrorKind)),
 		)
 		return CreateTranslationJobResult{ErrorKind: mapTranslationJobSetupCreateErrorKind(decision.ErrorKind)}, nil
@@ -199,17 +206,17 @@ func (usecase *TranslationJobSetupUsecase) CreateTranslationJob(
 	}
 	if created.ErrorKind != "" {
 		slog.WarnContext(ctx, "translation job setup create rejected",
-			slog.String("event", "translation_job_setup_create_from_input"),
-			slog.String("where", "backend.usecase.translation_job_setup.create"),
-			slog.String("result", "rejected"),
-			slog.String("id", fmt.Sprintf("input:%d", request.InputSourceID)),
+			slog.String("event", translationJobSetupCreateLogEvent),
+			slog.String("where", translationJobSetupCreateLogWhere),
+			slog.String("result", translationJobSetupCreateLogResultRejected),
+			slog.String("id", fmt.Sprintf(translationJobSetupCreateLogInputIDFormat, request.InputSourceID)),
 			slog.String("reason", strings.TrimSpace(created.ErrorKind)),
 		)
 		return CreateTranslationJobResult{ErrorKind: mapTranslationJobSetupCreateErrorKind(created.ErrorKind)}, nil
 	}
 	slog.InfoContext(ctx, "translation job setup create accepted",
-		slog.String("event", "translation_job_setup_create_from_input"),
-		slog.String("where", "backend.usecase.translation_job_setup.create"),
+		slog.String("event", translationJobSetupCreateLogEvent),
+		slog.String("where", translationJobSetupCreateLogWhere),
 		slog.String("result", "accepted"),
 		slog.String("id", fmt.Sprintf("job:%d", created.JobID)),
 		slog.Int("count", len(created.PhaseRuntimeSummaries)),

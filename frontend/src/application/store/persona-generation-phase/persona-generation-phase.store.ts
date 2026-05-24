@@ -6,7 +6,6 @@ import type {
 } from "@application/gateway-contract/persona-generation-phase"
 
 type PersonaGenerationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"

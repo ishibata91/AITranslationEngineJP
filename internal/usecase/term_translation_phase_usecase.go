@@ -355,8 +355,6 @@ func toTermTranslationPhaseActionEnablement(
 		ResumeBlockedReason:    cloneStringPointer(readModel.ResumeBlockedReason),
 		CanRetry:               readModel.CanRetry,
 		RetryBlockedReason:     cloneStringPointer(readModel.RetryBlockedReason),
-		CanRefresh:             readModel.CanRefresh,
-		RefreshBlockedReason:   cloneStringPointer(readModel.RefreshBlockedReason),
 		CanStartNextPhase:      readModel.CanStartNextPhase,
 		NextPhaseBlockedReason: cloneStringPointer(readModel.NextPhaseBlockedReason),
 	}

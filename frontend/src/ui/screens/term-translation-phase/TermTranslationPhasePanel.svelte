@@ -3,6 +3,7 @@
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
   import ProcessingTargetListWrapper from "../../components/ProcessingTargetListWrapper.svelte"
+  import { selectPhaseProgressActions } from "../../components/phase-progress-actions"
   import type {
     PhaseDetailItem,
     PhaseMetricCounter
@@ -48,14 +49,11 @@
   }: Props = $props()
   let processingTargetSearchValue = $state("")
   const phaseActionCards = $derived(
-    viewModel.actionCards.filter(
-      (
-        action
-      ): action is Extract<
-        typeof action,
-        { id: TermTranslationPhaseActionKind }
-      > => action.id !== "next-phase"
-    )
+    selectPhaseProgressActions<TermPanelActionKind>(viewModel.actionCards, {
+      hiddenActionIds: ["next-phase"],
+      runActionIds: ["start", "resume", "retry"],
+      alwaysActionIds: ["pause"]
+    })
   )
   const canEditAiSettings = $derived(viewModel.viewState !== "running")
   const aiSettingsBlockedReason = $derived(

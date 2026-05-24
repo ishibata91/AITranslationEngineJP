@@ -18,14 +18,12 @@
   import MasterDictionaryPage from "@ui/screens/master-dictionary/MasterDictionaryPage.svelte"
   import MasterPersonaPage from "@ui/screens/master-persona/MasterPersonaPage.svelte"
   import JobRunPage from "@ui/screens/job-run/JobRunPage.svelte"
-  import TranslationManagementStepper from "@ui/screens/translation-job-management/TranslationManagementStepper.svelte"
   import TranslationJobManagementPage from "@ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
   import TranslationOutputArtifactPage from "@ui/screens/translation-output-artifact/TranslationOutputArtifactPage.svelte"
   import InputReviewPage from "@ui/screens/translation-input/InputReviewPage.svelte"
   import type {
     ShellRouteContract,
     ShellRouteId,
-    TranslationManagementViewContract,
     TranslationManagementViewId
   } from "@ui/stores/shell-state"
 
@@ -33,7 +31,6 @@
     defaultRouteId: ShellRouteId
     defaultTranslationManagementViewId: TranslationManagementViewId
     routes: ShellRouteContract[]
-    translationManagementViews: TranslationManagementViewContract[]
     createBodyTranslationPhaseScreenController: CreateBodyTranslationPhaseScreenController | null
     createMasterDictionaryScreenController: CreateMasterDictionaryScreenController | null
     createMasterPersonaScreenController: CreateMasterPersonaScreenController | null
@@ -49,7 +46,6 @@
     defaultRouteId,
     defaultTranslationManagementViewId,
     routes,
-    translationManagementViews,
     createBodyTranslationPhaseScreenController,
     createMasterDictionaryScreenController,
     createMasterPersonaScreenController,
@@ -73,8 +69,6 @@
     $state<TranslationManagementViewId | null>(null)
   let selectedJobRunTarget =
     $state<TranslationJobManagementJobRunTarget | null>(null)
-  let currentJobRunPhaseViewId =
-    $state<TranslationManagementViewId>("term-translation")
   let isMobileNavOpen = $state(false)
 
   const fallbackRoute: ShellRouteContract = {
@@ -89,12 +83,6 @@
     routeById.get(currentRouteId) ?? routes[0] ?? fallbackRoute
   )
   const isDashboard = $derived(currentRoute.id === "dashboard")
-  const currentTranslationManagementViewId = $derived(
-    selectedTranslationManagementViewId === "job-run"
-      ? currentJobRunPhaseViewId
-      : (selectedTranslationManagementViewId ??
-          defaultTranslationManagementViewId)
-  )
   const renderedTranslationManagementViewId = $derived(
     selectedTranslationManagementViewId ?? defaultTranslationManagementViewId
   )
@@ -131,13 +119,11 @@
     if (isBaseTranslationManagementHash(window.location.hash)) {
       selectedJobRunTarget = null
       selectedTranslationManagementViewId = "job-management"
-      currentJobRunPhaseViewId = "term-translation"
     } else if (
       window.location.hash.startsWith("#translation-management/job-run")
     ) {
       selectedJobRunTarget = null
       selectedTranslationManagementViewId = "job-management"
-      currentJobRunPhaseViewId = "term-translation"
       window.history.replaceState(null, "", "#translation-management")
     }
     isMobileNavOpen = false
@@ -148,23 +134,12 @@
     if (routeId === "translation-management") {
       selectedJobRunTarget = null
       selectedTranslationManagementViewId = "job-management"
-      currentJobRunPhaseViewId = "term-translation"
     }
     isMobileNavOpen = false
   }
 
   function toggleMobileNav(): void {
     isMobileNavOpen = !isMobileNavOpen
-  }
-
-  function selectTranslationManagementView(
-    viewId: TranslationManagementViewId
-  ): void {
-    if (viewId !== "job-management") {
-      return
-    }
-
-    openTranslationJobManagement()
   }
 
   function openTranslationInputReview(): void {
@@ -184,30 +159,14 @@
     }
 
     selectedTranslationManagementViewId = "job-run"
-    currentJobRunPhaseViewId = resolvePhaseViewId(
-      selectedJobRunTarget.currentPhase
-    )
     if (typeof window !== "undefined") {
       window.history.pushState(null, "", "#translation-management/job-run")
     }
   }
 
-  function resolvePhaseViewId(
-    currentPhase: string
-  ): TranslationManagementViewId {
-    if (currentPhase === "persona_generation") {
-      return "persona-generation"
-    }
-    if (currentPhase === "body_translation") {
-      return "body-translation"
-    }
-    return "term-translation"
-  }
-
   function openTranslationJobManagement(): void {
     selectedJobRunTarget = null
     selectedTranslationManagementViewId = "job-management"
-    currentJobRunPhaseViewId = "term-translation"
     if (typeof window !== "undefined") {
       window.history.pushState(null, "", "#translation-management")
     }
@@ -216,7 +175,6 @@
   function openOutputManagementFromJobRun(): void {
     selectedJobRunTarget = null
     selectedTranslationManagementViewId = "job-management"
-    currentJobRunPhaseViewId = "term-translation"
     currentRouteId = "output-management"
     if (typeof window !== "undefined") {
       window.history.pushState(null, "", "#output-management")
@@ -227,10 +185,6 @@
     target: TranslationJobManagementJobRunTarget | null
   ): void {
     selectedJobRunTarget = target
-  }
-
-  function syncJobRunPhaseView(viewId: TranslationManagementViewId): void {
-    currentJobRunPhaseViewId = viewId
   }
 
   onMount(() => {
@@ -296,19 +250,6 @@
         class="translation-management-shell"
         data-testid="translation-management-translation-management-shell"
       >
-        <section
-          class="panel section-switcher"
-          data-testid={renderedTranslationManagementViewId === "job-run"
-            ? "job-run-translation-management-stepper"
-            : "translation-management-translation-management-stepper"}
-        >
-          <TranslationManagementStepper
-            currentViewId={currentTranslationManagementViewId}
-            onSelect={selectTranslationManagementView}
-            views={translationManagementViews}
-          />
-        </section>
-
         {#if renderedTranslationManagementViewId === "input-review"}
           <InputReviewPage
             createController={createTranslationInputScreenController}
@@ -332,7 +273,6 @@
             createPersonaController={createPersonaGenerationPhaseScreenController}
             onOpenJobManagement={openTranslationJobManagement}
             onOpenOutputManagement={openOutputManagementFromJobRun}
-            onPhaseViewChange={syncJobRunPhaseView}
             selectedJobTarget={selectedJobRunTarget}
           />
         {/if}
@@ -468,11 +408,6 @@
   .action-grid {
     display: grid;
     gap: 14px;
-  }
-
-  .section-switcher {
-    padding: 0;
-    overflow: hidden;
   }
 
   .placeholder-content {

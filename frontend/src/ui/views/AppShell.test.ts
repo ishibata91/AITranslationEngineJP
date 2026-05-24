@@ -174,7 +174,6 @@ function createTermTranslationPhaseController(): TermTranslationPhaseScreenContr
     subscribe: vi.fn(() => () => {}),
     getViewModel: vi.fn(() => viewModel),
     setJobId: vi.fn(async () => {}),
-    refresh: vi.fn(async () => {}),
     startPhase: vi.fn(async () => {}),
     pausePhase: vi.fn(async () => {}),
     resumePhase: vi.fn(async () => {}),
@@ -194,7 +193,6 @@ function createPersonaGenerationPhaseController(): PersonaGenerationPhaseScreenC
     subscribe: vi.fn(() => () => {}),
     getViewModel: vi.fn(() => viewModel),
     setJobId: vi.fn(async () => {}),
-    refresh: vi.fn(async () => {}),
     startPhase: vi.fn(async () => {}),
     pausePhase: vi.fn(async () => {}),
     resumePhase: vi.fn(async () => {}),
@@ -248,7 +246,6 @@ describe("AppShell", () => {
         routes: shellState.routes,
         defaultTranslationManagementViewId:
           shellState.defaultTranslationManagementViewId,
-        translationManagementViews: shellState.translationManagementViews,
         createBodyTranslationPhaseScreenController: null,
         createMasterDictionaryScreenController: null,
         createMasterPersonaScreenController: null,
@@ -302,7 +299,6 @@ describe("AppShell", () => {
         routes: shellState.routes,
         defaultTranslationManagementViewId:
           shellState.defaultTranslationManagementViewId,
-        translationManagementViews: shellState.translationManagementViews,
         createBodyTranslationPhaseScreenController: null,
         createMasterDictionaryScreenController: null,
         createMasterPersonaScreenController: null,
@@ -337,6 +333,7 @@ describe("AppShell", () => {
     expect(
       screen.queryByRole("tab", { name: /Job Run|実行/ })
     ).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("翻訳管理の全体進捗")).not.toBeInTheDocument()
   })
 
   test("翻訳段階ページの hash 直リンクは未完了一覧へ戻す", async () => {
@@ -353,7 +350,6 @@ describe("AppShell", () => {
         routes: shellState.routes,
         defaultTranslationManagementViewId:
           shellState.defaultTranslationManagementViewId,
-        translationManagementViews: shellState.translationManagementViews,
         createBodyTranslationPhaseScreenController: null,
         createMasterDictionaryScreenController: null,
         createMasterPersonaScreenController: null,
@@ -401,7 +397,6 @@ describe("AppShell", () => {
         routes: shellState.routes,
         defaultTranslationManagementViewId:
           shellState.defaultTranslationManagementViewId,
-        translationManagementViews: shellState.translationManagementViews,
         createBodyTranslationPhaseScreenController: null,
         createMasterDictionaryScreenController: null,
         createMasterPersonaScreenController: null,

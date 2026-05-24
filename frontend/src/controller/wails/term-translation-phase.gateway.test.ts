@@ -56,7 +56,6 @@ describe("createTermTranslationPhaseGateway", () => {
           canPause: false,
           canResume: false,
           canRetry: false,
-          canRefresh: true,
           canStartNextPhase: false
         }
       })

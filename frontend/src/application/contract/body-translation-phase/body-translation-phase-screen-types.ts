@@ -23,7 +23,6 @@ import type {
 } from "@application/gateway-contract/body-translation-phase"
 
 export type BodyTranslationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -80,7 +79,6 @@ export interface BodyTranslationFieldResultItem {
 }
 
 export interface BodyTranslationPhaseScreenActionEnablement {
-  canRefresh: boolean
   canStart: boolean
   canPause: boolean
   canResume: boolean

@@ -1,17 +1,14 @@
 import type { ComponentProps } from "svelte"
-import type { TranslationManagementViewContract } from "@ui/stores/shell-state"
 
 import JobCard from "../JobCard.svelte"
 import JobListPanel from "../JobListPanel.svelte"
 import TranslationJobManagementDeleteModal from "../TranslationJobManagementDeleteModal.svelte"
-import TranslationManagementStepper from "../TranslationManagementStepper.svelte"
 
 type JobCardProps = ComponentProps<typeof JobCard>
 type JobListPanelProps = ComponentProps<typeof JobListPanel>
 type DeleteModalProps = ComponentProps<
   typeof TranslationJobManagementDeleteModal
 >
-type StepperProps = ComponentProps<typeof TranslationManagementStepper>
 
 const noop = (): void => {}
 const noopAsync = async (): Promise<void> => {}
@@ -250,54 +247,3 @@ export const deleteModalFixtures = {
     onConfirm: noop
   }
 } satisfies Record<string, DeleteModalProps>
-
-export const translationManagementViews = [
-  {
-    id: "job-management",
-    label: "未完了のジョブ",
-    description: "新しい翻訳を始めるか、途中のジョブを再開します。",
-    stepNumber: 1,
-    directNavigation: true
-  },
-  {
-    id: "input-review",
-    label: "入力データの確認",
-    description: "翻訳に使う入力データを選び、登録結果を確認します。",
-    stepNumber: 2,
-    directNavigation: false
-  },
-  {
-    id: "term-translation",
-    label: "単語翻訳",
-    description: "選択したジョブで、単語翻訳を実行します。",
-    stepNumber: 3,
-    directNavigation: false
-  },
-  {
-    id: "persona-generation",
-    label: "NPC ペルソナ生成",
-    description: "単語翻訳の完了後に、NPC の話し方や役割を整理します。",
-    stepNumber: 4,
-    directNavigation: false
-  },
-  {
-    id: "body-translation",
-    label: "本文翻訳",
-    description: "NPC ペルソナを参照できる状態で、本文の翻訳を実行します。",
-    stepNumber: 5,
-    directNavigation: false
-  }
-] satisfies TranslationManagementViewContract[]
-
-export const stepperFixtures = {
-  jobManagementCurrent: {
-    currentViewId: "job-management",
-    views: translationManagementViews,
-    onSelect: noop
-  },
-  termTranslationCurrent: {
-    currentViewId: "term-translation",
-    views: translationManagementViews,
-    onSelect: noop
-  }
-} satisfies Record<string, StepperProps>

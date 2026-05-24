@@ -31,6 +31,51 @@ export const AiSettingsMissing: Story = {
   }
 }
 
+export const ConflictingRunActions: Story = {
+  args: {
+    viewModel: {
+      ...termTranslationPhasePanelFixture,
+      actionCards: [
+        {
+          id: "start",
+          label: "開始",
+          disabled: false,
+          blockedReason: "",
+          tone: "primary"
+        },
+        {
+          id: "pause",
+          label: "中断",
+          disabled: true,
+          blockedReason: "実行中ではありません。",
+          tone: "warning"
+        },
+        {
+          id: "resume",
+          label: "再開",
+          disabled: false,
+          blockedReason: "",
+          tone: "default"
+        },
+        {
+          id: "retry",
+          label: "リトライ",
+          disabled: false,
+          blockedReason: "",
+          tone: "default"
+        },
+        {
+          id: "next-phase",
+          label: "次の翻訳段階へ進む",
+          disabled: false,
+          blockedReason: "",
+          tone: "primary"
+        }
+      ]
+    }
+  }
+}
+
 export const RunningLocked: Story = {
   args: {
     viewModel: {

@@ -166,8 +166,6 @@ type TermTranslationPhaseActionEnablementReadModel struct {
 	ResumeBlockedReason    *string
 	CanRetry               bool
 	RetryBlockedReason     *string
-	CanRefresh             bool
-	RefreshBlockedReason   *string
 	CanStartNextPhase      bool
 	NextPhaseBlockedReason *string
 }
@@ -375,7 +373,6 @@ func (service *TermTranslationPhaseService) ReadSummary(
 			ResumeBlockedReason:    termTranslationResumeBlockedReason(job, run),
 			CanRetry:               availability.CanRetry,
 			RetryBlockedReason:     termTranslationRetryBlockedReason(job, run),
-			CanRefresh:             true,
 			CanStartNextPhase:      readiness.CanStartNextPhase,
 			NextPhaseBlockedReason: cloneStringPointer(readiness.BlockedReason),
 		},

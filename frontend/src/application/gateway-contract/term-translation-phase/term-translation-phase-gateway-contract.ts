@@ -102,8 +102,6 @@ export interface TermTranslationPhaseActionEnablement {
   resumeBlockedReason?: string
   canRetry: boolean
   retryBlockedReason?: string
-  canRefresh: boolean
-  refreshBlockedReason?: string
   canStartNextPhase: boolean
   nextPhaseBlockedReason?: string
 }

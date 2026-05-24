@@ -8,7 +8,6 @@ import type {
 } from "@application/gateway-contract/persona-generation-phase"
 
 type ActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -229,7 +228,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
     })
     const usecase = new PersonaGenerationPhaseUseCase(null, store)
 
-    await usecase.refresh()
+    await usecase.load()
 
     expect(store.snapshot().errorMessage).toContain("gateway が未接続")
   })
@@ -298,7 +297,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
       store
     )
 
-    await usecase.refresh()
+    await usecase.load()
 
     expect(store.snapshot().errorMessage).toContain(
       "Wails binding is not wired yet"

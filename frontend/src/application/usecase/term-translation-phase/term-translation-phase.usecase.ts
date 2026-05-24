@@ -18,7 +18,6 @@ import type {
 } from "@application/gateway-contract/term-translation-phase"
 
 type TermTranslationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -124,7 +123,7 @@ export class TermTranslationPhaseUseCase {
       return
     }
 
-    await this.refresh()
+    await this.fetchSummaryAndReadiness(state.jobId)
   }
 
   async setJobId(jobId: number | null): Promise<void> {
@@ -140,29 +139,8 @@ export class TermTranslationPhaseUseCase {
     })
 
     if (jobId !== null) {
-      await this.refresh()
+      await this.fetchSummaryAndReadiness(jobId)
     }
-  }
-
-  async refresh(): Promise<void> {
-    const state = this.store.snapshot()
-    if (state.jobId === null) {
-      this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.errorMessage = createNoJobSelectedMessage()
-      })
-      return
-    }
-
-    if (!this.gateway) {
-      this.store.update((draft) => {
-        draft.phase = "ready"
-        draft.errorMessage = createGatewayDisconnectedMessage()
-      })
-      return
-    }
-
-    await this.fetchSummaryAndReadiness(state.jobId, "refresh")
   }
 
   async setProcessingTargetSearchQuery(searchQuery: string): Promise<void> {
@@ -233,7 +211,7 @@ export class TermTranslationPhaseUseCase {
         jobId: state.jobId,
         ...request
       })
-      await this.refresh()
+      await this.fetchSummaryAndReadiness(state.jobId)
     } catch (error) {
       this.store.update((draft) => {
         draft.errorMessage = sanitizeErrorMessage(
@@ -246,8 +224,17 @@ export class TermTranslationPhaseUseCase {
 
   private async fetchSummaryAndReadiness(
     jobId: number,
-    pendingAction: TermTranslationPhaseActionKind
+    pendingAction: TermTranslationPhaseActionKind | null = null
   ): Promise<void> {
+    if (!this.gateway) {
+      this.store.update((draft) => {
+        draft.phase = "ready"
+        draft.pendingAction = null
+        draft.errorMessage = createGatewayDisconnectedMessage()
+      })
+      return
+    }
+
     const before = this.store.snapshot()
 
     this.store.update((draft) => {
@@ -259,10 +246,10 @@ export class TermTranslationPhaseUseCase {
     try {
       const [summary, nextPhaseReadiness, processingTargetPageState] =
         await Promise.all([
-        this.gateway!.getTermTranslationPhaseSummary({
+        this.gateway.getTermTranslationPhaseSummary({
           jobId
         } satisfies GetTermTranslationPhaseSummaryRequest),
-        this.gateway!.getTermTranslationNextPhaseReadiness({
+        this.gateway.getTermTranslationNextPhaseReadiness({
           jobId
         } satisfies GetTermTranslationNextPhaseReadinessRequest),
         this.fetchProcessingTargetListResponse(jobId, before.processingTargetPageState ?? null)
@@ -362,7 +349,7 @@ export class TermTranslationPhaseUseCase {
   }
 
   private async runCommand(
-    action: Exclude<TermTranslationPhaseActionKind, "refresh">,
+    action: TermTranslationPhaseActionKind,
     execute: (
       jobId: number,
       phaseRunId: number
@@ -408,7 +395,7 @@ export class TermTranslationPhaseUseCase {
         draft.summary = patchSummaryFromCommand(draft.summary, response)
       })
 
-      await this.fetchSummaryAndReadiness(state.jobId, "refresh")
+      await this.fetchSummaryAndReadiness(state.jobId, action)
     } catch (error) {
       this.store.update((draft) => {
         draft.phase = "ready"

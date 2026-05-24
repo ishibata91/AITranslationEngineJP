@@ -2,7 +2,6 @@
   import { onMount } from "svelte"
 
   import type { TranslationJobManagementJobRunTarget } from "@application/contract/translation-job-management/translation-job-management-screen-types"
-  import type { TranslationManagementViewId } from "@ui/stores/shell-state"
   import type {
     BodyTranslationPhaseActionKind,
     BodyTranslationPhaseScreenViewModel,
@@ -42,7 +41,6 @@
     selectedJobTarget?: TranslationJobManagementJobRunTarget | null
     onOpenJobManagement?: () => void
     onOpenOutputManagement?: () => void
-    onPhaseViewChange?: (viewId: TranslationManagementViewId) => void
   }
 
   let {
@@ -52,8 +50,7 @@
     processingTargetItemsByPhase = {},
     selectedJobTarget = null,
     onOpenJobManagement = () => undefined,
-    onOpenOutputManagement = () => undefined,
-    onPhaseViewChange = () => undefined
+    onOpenOutputManagement = () => undefined
   }: Props = $props()
 
   type PhasePageId = JobRunPhaseStepId
@@ -104,21 +101,6 @@
     return "term"
   }
 
-  function toTranslationManagementViewId(
-    phasePage: PhasePageId
-  ): TranslationManagementViewId {
-    switch (phasePage) {
-      case "persona":
-        return "persona-generation"
-      case "body":
-        return "body-translation"
-      case "complete":
-        return "translation-complete"
-      default:
-        return "term-translation"
-    }
-  }
-
   function getBodyProcessingTargetPageState(phase: string) {
     return bodyViewModel?.processingTargetPageStatesByPhase?.[phase]
   }
@@ -129,7 +111,6 @@
 
   function setCurrentPhasePage(phasePage: PhasePageId): void {
     currentPhasePage = phasePage
-    onPhaseViewChange(toTranslationManagementViewId(phasePage))
     if (phasePage === "body") {
       void bodyController?.setProcessingTargetPage?.(
         getBodyProcessingTargetPage("body_translation"),
@@ -204,9 +185,6 @@
     }
 
     switch (actionId) {
-      case "refresh":
-        await controller.refresh()
-        return
       case "start":
         await controller.startPhase()
         return
@@ -226,9 +204,6 @@
     actionId: PersonaGenerationPhaseActionKind
   ): Promise<void> {
     switch (actionId) {
-      case "refresh":
-        await personaController.refresh()
-        return
       case "start":
         await personaController.startPhase()
         return
@@ -261,9 +236,6 @@
     }
 
     switch (actionId) {
-      case "refresh":
-        await bodyController.refresh()
-        return
       case "start":
         await bodyController.startPhase()
         return

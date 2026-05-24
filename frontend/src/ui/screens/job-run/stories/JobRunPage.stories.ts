@@ -36,8 +36,7 @@ const meta = {
     },
     selectedJobTarget: jobRunTargetSummaryFixtures.termPhase.target,
     onOpenJobManagement: () => undefined,
-    onOpenOutputManagement: () => undefined,
-    onPhaseViewChange: () => undefined
+    onOpenOutputManagement: () => undefined
   }
 } satisfies Meta<typeof JobRunPage>
 
@@ -191,7 +190,6 @@ const personaRunning = {
     }
   ],
   screenActionEnablement: {
-    canRefresh: true,
     canStart: false,
     canPause: true,
     canResume: false,
@@ -224,7 +222,6 @@ const personaCompleted = {
     }
   ],
   screenActionEnablement: {
-    canRefresh: true,
     canStart: false,
     canPause: false,
     canResume: false,
@@ -298,7 +295,6 @@ const bodyRunning = {
     }
   ],
   screenActionEnablement: {
-    canRefresh: true,
     canStart: false,
     canPause: true,
     canResume: false,
@@ -334,7 +330,6 @@ const bodyCompleted = {
     }
   ],
   screenActionEnablement: {
-    canRefresh: true,
     canStart: false,
     canPause: false,
     canResume: false,

@@ -377,7 +377,6 @@ function buildPersonaGenerationPhaseScreenViewModel(
     retryableLabel: "-",
     actionCards: [],
     screenActionEnablement: {
-      canRefresh: true,
       canStart: false,
       canPause: false,
       canResume: false,

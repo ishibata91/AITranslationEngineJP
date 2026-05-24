@@ -22,7 +22,6 @@ interface BodyTranslationPhasePresenterLike {
 interface BodyTranslationPhaseUseCaseLike {
   load(): Promise<void>
   setJobId(jobId: number | null): Promise<void>
-  refresh(): Promise<void>
   setProcessingTargetSearchQuery?: (
     searchQuery: string,
     phase?: string
@@ -82,10 +81,6 @@ export class BodyTranslationPhaseScreenController implements BodyTranslationPhas
 
   async setJobId(jobId: number | null): Promise<void> {
     await this.dependencies.useCase.setJobId(jobId)
-  }
-
-  async refresh(): Promise<void> {
-    await this.dependencies.useCase.refresh()
   }
 
   async setProcessingTargetSearchQuery(

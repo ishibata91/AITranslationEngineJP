@@ -16,7 +16,6 @@ interface BodyTranslationPhaseScreenState {
   outputReadiness: BodyTranslationOutputReadinessResponse | null
   errorMessage: string
   pendingAction:
-    | "refresh"
     | "start"
     | "pause"
     | "resume"

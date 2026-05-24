@@ -8,6 +8,7 @@
   import PhaseProgressPanel from "../../components/PhaseProgressPanel.svelte"
   import PhaseStatusPanel from "../../components/PhaseStatusPanel.svelte"
   import ProcessingTargetListWrapper from "../../components/ProcessingTargetListWrapper.svelte"
+  import { selectPhaseProgressActions } from "../../components/phase-progress-actions"
   import type {
     PhaseDetailItem,
     PhaseMetricCounter,
@@ -85,6 +86,16 @@
   const progressDetails = $derived<PhaseDetailItem[]>([
     { label: "対象件数", value: viewModel.targetCountLabel }
   ])
+  const phaseActionCards = $derived(
+    selectPhaseProgressActions<BodyTranslationPhaseActionKind>(
+      viewModel.actionCards,
+      {
+        hiddenActionIds: ["check-output-readiness"],
+        runActionIds: ["start", "resume", "retry"],
+        alwaysActionIds: ["pause"]
+      }
+    )
+  )
   const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
     {
       id: "body-translation-provider-target",
@@ -221,7 +232,7 @@
       details={progressDetails}
       currentPhaseLabel={viewModel.currentPhaseLabel}
       actionAriaLabel="翻訳段階の操作"
-      actions={viewModel.actionCards}
+      actions={phaseActionCards}
       onAction={(actionId) =>
         onAction(actionId as BodyTranslationPhaseActionKind)}
     />

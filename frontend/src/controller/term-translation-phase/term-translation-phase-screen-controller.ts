@@ -22,7 +22,6 @@ interface TermTranslationPhasePresenterLike {
 interface TermTranslationPhaseUseCaseLike {
   load(): Promise<void>
   setJobId(jobId: number | null): Promise<void>
-  refresh(): Promise<void>
   setProcessingTargetSearchQuery?: (searchQuery: string) => Promise<void>
   setProcessingTargetPage?: (page: number) => Promise<void>
   startPhase(): Promise<void>
@@ -77,10 +76,6 @@ export class TermTranslationPhaseScreenController implements TermTranslationPhas
 
   async setJobId(jobId: number | null): Promise<void> {
     await this.dependencies.useCase.setJobId(jobId)
-  }
-
-  async refresh(): Promise<void> {
-    await this.dependencies.useCase.refresh()
   }
 
   async setProcessingTargetSearchQuery(searchQuery: string): Promise<void> {

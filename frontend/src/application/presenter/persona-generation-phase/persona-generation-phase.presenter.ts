@@ -14,7 +14,6 @@ import type {
 } from "@application/gateway-contract/persona-generation-phase"
 
 type PersonaGenerationPhaseActionKind =
-  | "refresh"
   | "start"
   | "pause"
   | "resume"
@@ -55,7 +54,6 @@ interface PersonaGenerationPhaseActionCard {
 }
 
 interface PersonaGenerationPhaseScreenActionEnablement {
-  canRefresh: boolean
   canStart: boolean
   canPause: boolean
   canResume: boolean
@@ -436,7 +434,6 @@ function buildScreenActionEnablement(
   const isBusy = state.phase === "loading" || state.phase === "submitting"
 
   return {
-    canRefresh: !isBusy && state.jobId !== null,
     canStart: !isBusy && (summaryEnablement?.canStart ?? false),
     canPause: !isBusy && (summaryEnablement?.canPause ?? false),
     canResume: !isBusy && (summaryEnablement?.canResume ?? false),
@@ -507,13 +504,6 @@ function buildActionCards(
       disabled: !screenEnablement.canStartBodyPhase,
       blockedReason: bodyReadinessBlockedReason,
       tone: "primary"
-    },
-    {
-      id: "refresh",
-      label: "更新",
-      disabled: !screenEnablement.canRefresh,
-      blockedReason: state.jobId === null ? "ジョブIDを指定してください。" : "",
-      tone: "default"
     }
   ]
 }

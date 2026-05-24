@@ -100,7 +100,6 @@ function createHarness() {
     setJobId: vi.fn((jobId: number | null) =>
       Promise.resolve(jobId).then(() => undefined)
     ),
-    refresh: vi.fn(async () => {}),
     startPhase: vi.fn(async () => {}),
     pausePhase: vi.fn(async () => {}),
     resumePhase: vi.fn(async () => {}),
@@ -145,14 +144,12 @@ describe("TermTranslationPhaseScreenController", () => {
     const harness = createHarness()
 
     await harness.controller.setJobId(11)
-    await harness.controller.refresh()
     await harness.controller.startPhase()
     await harness.controller.pausePhase()
     await harness.controller.resumePhase()
     await harness.controller.retryPhase()
 
     expect(harness.useCase.setJobId).toHaveBeenCalledWith(11)
-    expect(harness.useCase.refresh).toHaveBeenCalledTimes(1)
     expect(harness.useCase.startPhase).toHaveBeenCalledTimes(1)
     expect(harness.useCase.pausePhase).toHaveBeenCalledTimes(1)
     expect(harness.useCase.resumePhase).toHaveBeenCalledTimes(1)

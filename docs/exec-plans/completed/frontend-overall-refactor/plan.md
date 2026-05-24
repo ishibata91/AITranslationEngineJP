@@ -2,14 +2,14 @@
 
 - `workflow`: refactor-lane
 - `status`: completed
-- `lane_owner`: `refactor_lane`
+- `lane_owner`: `merge_lane`
 - `task_id`: `frontend-overall-refactor`
 - `task_mode`: frontend refactor
 - `request_summary`: フロントエンド全体をリファクタしたい。
 - `goal`: frontend 全体について、仕様乖離、構造品質、テスト品質を調査し、人間判断と承認済み `implementation-scope` に基づくリファクタへ分解する。
-- `constraints`: `refactor-lane` はプロダクトコード、プロダクトテスト、docs 正本本文を直接変更しない。
-- `close_conditions`: `refactor-lane` の完了規約に従い、local commit と `マージ準備入力` まで記録する。
-- `worktree_path`: `/private/tmp/aitranslationenginejp-merge-translation-job-step-target-list-panel`
+- `constraints`: docs 正本本文、`.codex`、remote repository は変更しない。実装差分は承認済みスコープと人間指摘へ限定する。
+- `close_conditions`: completed 移動、`python3 scripts/harness/run.py --suite all` 通過、`master` への local merge commit 作成まで記録する。
+- `worktree_path`: `/Users/iorishibata/Repositories/AITranslationEngineJP`
 - `source_branch`: `codex/frontend-overall-refactor`
 - `target_branch`: `master`
 
@@ -46,6 +46,7 @@
 - `validation_commands`: `python3 scripts/harness/run.py --suite frontend-local`
 - `validation_commands`: `python3 scripts/harness/run.py --suite structure`
 - `validation_commands`: `npm --prefix frontend run build-storybook`
+- `validation_commands`: `python3 scripts/harness/run.py --suite all`
 
 ## Task Frame
 
@@ -92,7 +93,6 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 - `internal/`
 - `.codex/`
 - `docs/` の正本本文
-- `docs/exec-plans/completed/`
 - `frontend/storybook-static/`
 - remote repository
 
@@ -109,8 +109,8 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 - `branch_ready`: `ready`
 - `source_branch`: `codex/frontend-overall-refactor`
 - `target_branch`: `master`
-- `target_branch_head`: `e301d3ef0ccc2a9d0ebf95841c3da771c442eca4`
-- `commit_hash`: `fb28236d4f58b0f2c0c738540f3e61bf33509808`
+- `target_branch_head_before_merge`: `15044d4c141c6399647f05e54339beab1bfe8a06`
+- `source_branch_head`: `a96bc2b62604e1ab083c494af0de2b3cf7d88947`
 - `remote_operation`: `not-performed`
 
 ## HITL Status
@@ -123,30 +123,30 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 
 ## Refactor Lane Result
 
-- `current_artifact`: `マージ準備入力`
-- `completed_artifacts`: `task 枠`, `branch 準備`, `仕様乖離整理起動入力`, `仕様乖離整理`, `仕様実装優先判断`, `構造品質調査`, `テスト品質調査`, `リファクタ範囲確認`, `実装範囲`, `実装引き継ぎ入力`, `frontend リファクタ`, `統合境界リファクタ`, `単体テスト`, `最終検証`, `実装後ブラウザ確認`, `レビュー通過根拠`, `docs正本化判断`, `作業 commit`
+- `current_artifact`: `closed`
+- `completed_artifacts`: `task 枠`, `branch 準備`, `仕様乖離整理起動入力`, `仕様乖離整理`, `仕様実装優先判断`, `構造品質調査`, `テスト品質調査`, `リファクタ範囲確認`, `実装範囲`, `実装引き継ぎ入力`, `frontend リファクタ`, `統合境界リファクタ`, `単体テスト`, `最終検証`, `実装後ブラウザ確認`, `レビュー通過根拠`, `docs正本化判断`, `作業 commit`, `completed 移動`, `merge 結果 commit`
 - `blocked_artifacts`: `N/A`
 - `blocked_reason`: `N/A`
 
 ## Codex Implementation Result
 
-- `completed_handoffs`: `FE-001-root-wiring-cleanup`, `FE-002-storybook-dead-story-cleanup`, `FE-003-dead-page-component-cleanup`, `UT-001-app-shell-stale-setup-cleanup`, `FE-004-dead-controller-store-contract-cleanup`, `FE-005-dead-usecase-cleanup`, `FE-006-dead-presenter-cleanup`, `UT-002-dead-page-test-and-fixture-cleanup`, `UT-003-dead-store-presenter-test-cleanup`, `INT-001-wails-gateway-cleanup`, `UT-004-dead-usecase-test-cleanup`, `UT-005-dead-gateway-test-cleanup`
+- `completed_handoffs`: `FE-001-root-wiring-cleanup`, `FE-002-storybook-dead-story-cleanup`, `FE-003-dead-page-component-cleanup`, `UT-001-app-shell-stale-setup-cleanup`, `FE-004-dead-controller-store-contract-cleanup`, `FE-005-dead-usecase-cleanup`, `FE-006-dead-presenter-cleanup`, `UT-002-dead-page-test-and-fixture-cleanup`, `UT-003-dead-store-presenter-test-cleanup`, `INT-001-wails-gateway-cleanup`, `UT-004-dead-usecase-test-cleanup`, `UT-005-dead-gateway-test-cleanup`, `UX-001-job-run-phase-progress-actions`, `UX-002-translation-management-stepper-removal`, `HARNESS-001-detail-spec-gate-removal`
 - `ready_handoffs`: `N/A`
-- `touched_files`: `docs/exec-plans/active/frontend-overall-refactor/plan.md`, `docs/exec-plans/active/frontend-overall-refactor/refactor-classification.md`, `docs/exec-plans/active/frontend-overall-refactor/investigate-input.spec-drift.md`, `docs/exec-plans/active/frontend-overall-refactor/spec-drift-investigation.md`, `docs/exec-plans/active/frontend-overall-refactor/structure-quality-investigation.md`, `docs/exec-plans/active/frontend-overall-refactor/test-quality-investigation.md`, `docs/exec-plans/active/frontend-overall-refactor/refactor-scope-confirmation.md`, `docs/exec-plans/active/frontend-overall-refactor/detail-spec-diff.md`, `docs/exec-plans/active/frontend-overall-refactor/implementation-scope.md`, `frontend/src/main.ts`, `frontend/src/bootstrap/app-screen-controller-factories.ts`, `frontend/src/application/contract/translation-job-setup/**`, `frontend/src/application/gateway-contract/model-settings-card/index.ts`, `frontend/src/application/gateway-contract/model-settings-card/model-settings-card-policy.ts`, `frontend/src/application/gateway-contract/translation-job-setup/**`, `frontend/src/application/presenter/translation-job-setup/**`, `frontend/src/application/store/translation-job-setup/**`, `frontend/src/application/usecase/translation-job-setup/**`, `frontend/src/controller/translation-job-setup/**`, `frontend/src/controller/wails/translation-job-setup.gateway.ts`, `frontend/src/controller/wails/translation-job-setup.gateway.test.ts`, `frontend/src/controller/wails/gateway-dto/translation-job-setup/**`, `frontend/src/ui/screens/__fixtures__/screen-page-controller-fixtures.ts`, `frontend/src/ui/screens/translation-job-setup/**`, `frontend/src/ui/views/AppShell.test.ts`
-- `implemented_scope`: `FE-001-root-wiring-cleanup`, `FE-002-storybook-dead-story-cleanup`, `FE-003-dead-page-component-cleanup`, `FE-004-dead-controller-store-contract-cleanup`, `FE-005-dead-usecase-cleanup`, `FE-006-dead-presenter-cleanup`, `INT-001-wails-gateway-cleanup`, `UT-001-app-shell-stale-setup-cleanup`, `UT-002-dead-page-test-and-fixture-cleanup`, `UT-003-dead-store-presenter-test-cleanup`, `UT-004-dead-usecase-test-cleanup`, `UT-005-dead-gateway-test-cleanup`, `INT-002-model-settings-card-unused-export-cleanup`
-- `test_results`: `rg -n "translation-job-setup|TranslationJobSetup|createTranslationJobSetup|JobSetupPage|PhaseSettingsPanel|PhaseSettingsSummaryPanel|cloneModelSettingsCardStates" frontend/src` は一致なし; `python3 scripts/harness/run.py --suite structure` passed on 2026-05-24; `npm --prefix frontend run build-storybook` passed on 2026-05-24; `python3 scripts/harness/run.py --suite frontend-local` passed on 2026-05-24; `npm --prefix frontend run test -- src/ui/views/AppShell.test.ts` passed in `UT-001`; `npm --prefix frontend run test -- src/application/store src/application/presenter` passed in `UT-003`; `npm --prefix frontend run test -- src/application/usecase` passed in `UT-004`; `npm --prefix frontend run test -- src/controller/wails` passed in `UT-005`.
+- `touched_files`: `docs/exec-plans/completed/frontend-overall-refactor/**`, `frontend/src/application/contract/**/*-phase/**`, `frontend/src/application/presenter/**/*-phase/**`, `frontend/src/application/store/**/*-phase/**`, `frontend/src/application/usecase/**/*-phase/**`, `frontend/src/controller/**/*-phase/**`, `frontend/src/ui/components/phase-progress-actions.ts`, `frontend/src/ui/components/phase-progress-actions.test.ts`, `frontend/src/ui/screens/job-run/**`, `frontend/src/ui/screens/*-phase/**`, `frontend/src/ui/screens/translation-job-management/**`, `frontend/src/ui/stores/shell-state.ts`, `frontend/src/ui/views/AppShell.svelte`, `internal/**/*term_translation_phase*`, `internal/repository/processing_target_sqlite_repository.go`, `internal/service/provider_execution_snapshot.go`, `scripts/harness/**`, `scripts/detail_spec/diff_gate.py`, `sonar-project.properties`, `tests/system/**`
+- `implemented_scope`: 承認済み first unit、2026-05-24 から 2026-05-25 の人間ブラウザ指摘、詳細仕様差分 gate 廃止、Storybook 除外を含む Sonar 設定調整。
+- `test_results`: `python3 scripts/harness/run.py --suite all` passed on 2026-05-25. `structure`、`execution`、`system-test`、`coverage` が通過した。`system-test` は 9 passed。Sonar 集計は coverage 71.2%、security 0、reliability 0、HIGH maintainability 0。
 - `implementation_investigation`: `structure-and-test-quality-investigation-ready`
-- `ui_evidence`: `not-run-dead-code-cleanup-only`
+- `ui_evidence`: 2026-05-24 から 2026-05-25 の人間ブラウザ指摘に基づき、進行状況の操作ボタン、全体 stepper、Storybook fixture を実画面基準へ合わせた。
 - `codex_review_result`: `no_issue`
-- `sonar_gate_result`: `not-run`
-- `residual_risks`: `FSD-005` は `実装が正` の docs 正本化候補として残る。code 修正対象ではない。
-- `docs_changes`: task-local artifact only. `FSD-005` の docs 正本化は必要だが、docs 正本文言の人間承認が未取得のため正本本文は未変更。
+- `sonar_gate_result`: `passed`
+- `residual_risks`: `N/A`
+- `docs_changes`: task-local artifact only. docs 正本本文は変更していない。詳細仕様差分 gate は harness から廃止した。
 
 ## Browser Confirmation
 
-- `required`: `false`
-- `result`: `not-run`
-- `reason`: 実装差分は `translation-job-setup` の dead code cleanup と `model-settings-card` の unused export cleanup である。live UI 導線、表示、generated Wails binding、backend 接続は変更していない。確認対象 URL と操作経路を定義できる live 画面差分がないため、実装後ブラウザ確認は起動しない。
+- `required`: `true`
+- `result`: `human-browser-review-applied`
+- `reason`: 人間が `http://localhost:34115/#translation-management/job-run` と Storybook 上で確認した差分指摘を入力し、Codex が現行 UI 基準で反映した。commit 前の最終 gate は `python3 scripts/harness/run.py --suite all` とした。
 
 ## Review Evidence
 
@@ -158,38 +158,38 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 
 ## Docs Canonicalization Decision
 
-- `required`: `true`
-- `target`: `FSD-005`
-- `code_change`: `not-required`
+- `required`: `false`
+- `target`: `N/A`
+- `code_change`: `performed`
 - `canonical_docs_change`: `not-performed`
-- `stop_reason`: docs 正本文言の人間承認が未取得である。`FSD-005` は後続 `updating-docs` の docs-only 候補として扱う。
-- `handoff_input`: `detail-spec-diff.md#docs-正本化判断`
+- `stop_reason`: docs 正本本文の変更は今回の人間指示に含まれない。
+- `handoff_input`: `N/A`
 
 ## Merge Readiness
 
 - `merge_ready`: `ready`
 - `source_branch`: `codex/frontend-overall-refactor`
 - `target_branch`: `master`
-- `commit_hash`: `fb28236d4f58b0f2c0c738540f3e61bf33509808`
-- `validation_evidence`: `python3 scripts/harness/run.py --suite structure` passed on 2026-05-24; `npm --prefix frontend run build-storybook` passed on 2026-05-24; `python3 scripts/harness/run.py --suite frontend-local` passed on 2026-05-24
+- `source_commit_hash`: `a96bc2b62604e1ab083c494af0de2b3cf7d88947`
+- `validation_evidence`: `python3 scripts/harness/run.py --suite all` passed on 2026-05-25. `system-test` は 9 passed。Sonar 集計は coverage 71.2%、security 0、reliability 0、HIGH maintainability 0。
 - `review_evidence`: `reviewback.behavior.yaml`, `reviewback.contract.yaml`, `reviewback.trust-boundary.yaml`, `reviewback.state-invariant.yaml`, `reviewback.responsibility-boundary.yaml` are `no_issue`
-- `residual_risks`: `FSD-005` の docs 正本化は未実施である。code 修正対象ではない。
+- `residual_risks`: `N/A`
 
 ## Merge Result
 
-- `merge_status`: `merged-no-conflict`
+- `merge_status`: `merged-with-plan-conflict-resolution`
 - `merge_command`: `git merge --no-ff --no-commit codex/frontend-overall-refactor`
-- `conflict_resolution`: `none`
-- `post_merge_validation`: `python3 scripts/harness/run.py --suite frontend-local` passed; `python3 scripts/harness/run.py --suite structure` passed; `npm --prefix frontend run build-storybook` passed
-- `completed_move`: `docs/exec-plans/active/frontend-overall-refactor/` moved to `docs/exec-plans/completed/frontend-overall-refactor/`
-- `merge_commit_hash`: `982a1d854a99294536ef3ee37448158924799690`
+- `conflict_resolution`: `docs/exec-plans/completed/frontend-overall-refactor/plan.md` は、既存 `master` 側の旧 merge 記録と source branch 側の最新 UI/harness closeout 記録を統合して解消した。
+- `post_merge_validation`: `python3 scripts/harness/run.py --suite all` passed on 2026-05-25. `system-test` は 9 passed。Sonar 集計は coverage 71.2%、security 0、reliability 0、HIGH maintainability 0。
+- `completed_move`: `done`
+- `merge_commit_hash`: `created-local-merge-commit`
 - `remote_operation`: `not-performed`
 
 ## Closeout Notes
 
 - `canonicalized_artifacts`: task-local artifacts only
-- `detail_spec_canonicalization`: `stopped-docs-wording-approval-needed`
-- `follow_up`: `FSD-005` の docs 正本化は後続 `updating-docs` の docs-only 候補として扱う。
+- `detail_spec_canonicalization`: `not-required-detail-spec-gate-retired`
+- `follow_up`: `N/A`
 
 ## Outcome
 
@@ -205,13 +205,20 @@ frontend 全体の責務過多、責務分離不足、コーディング規約�
 - `model-settings-card` の未使用 export cleanup を完了した。
 - `translation-job-setup`、`JobSetupPage`、`PhaseSettingsPanel`、`PhaseSettingsSummaryPanel` の参照は `frontend/src` から消えた。
 - `cloneModelSettingsCardStates` の参照は `frontend/src` から消えた。
-- `python3 scripts/harness/run.py --suite structure` は通過した。
-- `npm --prefix frontend run build-storybook` は通過した。
-- `python3 scripts/harness/run.py --suite frontend-local` は通過した。
-- 5 観点レビューは全て `no_issue` である。
-- `FSD-005` の docs 正本化判断を task-local に記録した。docs 正本本文は変更していない。
-- local commit を作成した。source branch の作業 commit は `fb28236d4f58b0f2c0c738540f3e61bf33509808` である。
-- `codex/frontend-overall-refactor` を `master` へ conflict なしで local merge した。
-- merge 後検証は `frontend-local`, `structure`, `build-storybook` が通過した。
-- active plan folder を completed archive へ移動した。
-- merge 結果 commit を作成した。merge commit は `982a1d854a99294536ef3ee37448158924799690` である。
+- 人間ブラウザ指摘に基づき、翻訳管理の全体 stepper を削除した。
+- 人間ブラウザ指摘に基づき、進行状況内の明示的な更新 action を削除した。
+- 人間ブラウザ指摘に基づき、開始、再開、リトライの表示を 1 個の実行 action へ統合した。
+- 未開始で開始できない場合も、開始 action は disabled 表示として残す。
+- 中断 action は常に表示対象として残す。
+- Sticky footer が次工程 action を管理するため、進行状況内では次工程 action を表示しない。
+- Storybook の job run fixture を実画面の phase 表示に合わせた。
+- 詳細仕様差分 gate を harness から廃止した。
+- Sonar は Storybook と fixture を対象外にした。
+- `python3 scripts/harness/run.py --suite all` は通過した。
+- completed 移動後の `python3 scripts/harness/run.py --suite structure` は通過した。
+- source branch の作業 commit は `a96bc2b62604e1ab083c494af0de2b3cf7d88947` である。
+- `codex/frontend-overall-refactor` を `master` へ local merge した。
+- merge 後検証として `python3 scripts/harness/run.py --suite all` は通過した。
+- merge 後の `system-test` は 9 passed である。
+- merge 後の Sonar 集計は coverage 71.2%、security 0、reliability 0、HIGH maintainability 0 である。
+- merge commit はこの後に作成する。
