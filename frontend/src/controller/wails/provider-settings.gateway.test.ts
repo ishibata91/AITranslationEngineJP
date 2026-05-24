@@ -1,30 +1,32 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 
+import {
+  ListProviderSettings,
+  ResetProviderSettings,
+  SaveProviderSettings,
+  ValidateProviderSettings
+} from "../../../wailsjs/go/wails/AppController.js"
 import { createProviderSettingsGateway } from "./provider-settings.gateway"
 
-type ProviderSettingsBindings = {
-  ListProviderSettings?: ReturnType<typeof vi.fn>
-  SaveProviderSettings?: ReturnType<typeof vi.fn>
-  ResetProviderSettings?: ReturnType<typeof vi.fn>
-  ValidateProviderSettings?: ReturnType<typeof vi.fn>
-}
+type ListProviderSettingsResponse = Awaited<
+  ReturnType<typeof ListProviderSettings>
+>
+type SaveProviderSettingsResponse = Awaited<
+  ReturnType<typeof SaveProviderSettings>
+>
+type ResetProviderSettingsResponse = Awaited<
+  ReturnType<typeof ResetProviderSettings>
+>
+type ValidateProviderSettingsResponse = Awaited<
+  ReturnType<typeof ValidateProviderSettings>
+>
 
-type GoRecord = {
-  wails: {
-    ProviderSettingsController?: ProviderSettingsBindings
-    AppController?: ProviderSettingsBindings
-  }
-}
-
-const originalGo: unknown = Reflect.get(globalThis as object, "go")
-
-function installGo(record: GoRecord): void {
-  Object.defineProperty(globalThis, "go", {
-    value: record,
-    configurable: true,
-    writable: true
-  })
-}
+vi.mock("../../../wailsjs/go/wails/AppController.js", () => ({
+  ListProviderSettings: vi.fn(),
+  SaveProviderSettings: vi.fn(),
+  ResetProviderSettings: vi.fn(),
+  ValidateProviderSettings: vi.fn()
+}))
 
 function providerSummary() {
   return {
@@ -41,66 +43,43 @@ function providerSummary() {
 
 afterEach(() => {
   vi.restoreAllMocks()
-  Object.defineProperty(globalThis, "go", {
-    value: originalGo,
-    configurable: true,
-    writable: true
-  })
 })
 
 describe("createProviderSettingsGateway", () => {
-  test("ListProviderSettings は request 省略時も空 request で Wails binding を呼ぶ", async () => {
-    const listProviderSettings = vi.fn(() =>
-      Promise.resolve({
-        route: {
-          routeId: "provider-settings",
-          label: "Provider Settings",
-          currentRouteState: "ready",
-          dashboardEntryId: "provider-settings"
-        },
-        providers: [providerSummary()]
-      })
-    )
-    installGo({
-      wails: {
-        ProviderSettingsController: {
-          ListProviderSettings: listProviderSettings
-        }
-      }
-    })
+  test("ListProviderSettings は request 省略時も空 request で公開 binding wrapper を呼ぶ", async () => {
+    // 公開 seam: generated binding wrapper 経由で request を送る。
+    vi.mocked(ListProviderSettings).mockResolvedValue({
+      route: {
+        routeId: "provider-settings",
+        label: "Provider Settings",
+        currentRouteState: "ready",
+        dashboardEntryId: "provider-settings"
+      },
+      providers: [providerSummary()]
+    } as unknown as ListProviderSettingsResponse)
 
     const gateway = createProviderSettingsGateway()
 
     await expect(gateway.ListProviderSettings()).resolves.toMatchObject({
       providers: [{ providerId: "gemini" }]
     })
-    expect(listProviderSettings).toHaveBeenCalledTimes(1)
-    expect(listProviderSettings).toHaveBeenCalledWith({})
+    expect(ListProviderSettings).toHaveBeenCalledTimes(1)
+    expect(ListProviderSettings).toHaveBeenCalledWith({})
   })
 
-  test("各 mutation は request を Wails binding へ渡す", async () => {
-    const saveProviderSettings = vi.fn(() =>
-      Promise.resolve({ provider: providerSummary() })
-    )
-    const resetProviderSettings = vi.fn(() =>
-      Promise.resolve({ provider: providerSummary() })
-    )
-    const validateProviderSettings = vi.fn(() =>
-      Promise.resolve({
-        providerId: "gemini",
-        validationState: "validated",
-        requestToken: "token-a"
-      })
-    )
-    installGo({
-      wails: {
-        ProviderSettingsController: {
-          SaveProviderSettings: saveProviderSettings,
-          ResetProviderSettings: resetProviderSettings,
-          ValidateProviderSettings: validateProviderSettings
-        }
-      }
-    })
+  test("各 mutation は request を公開 binding wrapper へ渡す", async () => {
+    // 公開 seam: request payload は gateway で加工せず binding へ渡す。
+    vi.mocked(SaveProviderSettings).mockResolvedValue({
+      provider: providerSummary()
+    } as unknown as SaveProviderSettingsResponse)
+    vi.mocked(ResetProviderSettings).mockResolvedValue({
+      provider: providerSummary()
+    } as unknown as ResetProviderSettingsResponse)
+    vi.mocked(ValidateProviderSettings).mockResolvedValue({
+      providerId: "gemini",
+      validationState: "validated",
+      requestToken: "token-a"
+    } as unknown as ValidateProviderSettingsResponse)
 
     const gateway = createProviderSettingsGateway()
 
@@ -119,16 +98,16 @@ describe("createProviderSettingsGateway", () => {
       requestToken: "token-a"
     })
 
-    expect(saveProviderSettings).toHaveBeenCalledWith({
+    expect(SaveProviderSettings).toHaveBeenCalledWith({
       providerId: "gemini",
       endpoint: "https://example.invalid",
       apiKeyInputPresent: true,
       credentialInput: "secret"
     })
-    expect(resetProviderSettings).toHaveBeenCalledWith({
+    expect(ResetProviderSettings).toHaveBeenCalledWith({
       providerId: "gemini"
     })
-    expect(validateProviderSettings).toHaveBeenCalledWith({
+    expect(ValidateProviderSettings).toHaveBeenCalledWith({
       providerId: "gemini",
       endpoint: "https://example.invalid",
       credentialState: "configured",
@@ -137,43 +116,53 @@ describe("createProviderSettingsGateway", () => {
     })
   })
 
-  test("ProviderSettingsController が未接続なら AppController の binding を使う", async () => {
-    const listProviderSettings = vi.fn(() =>
-      Promise.resolve({
-        route: {
-          routeId: "provider-settings",
-          label: "Provider Settings",
-          currentRouteState: "ready",
-          dashboardEntryId: "provider-settings"
-        },
-        providers: [providerSummary()]
-      })
+  test("binding が未接続なら wrapper 例外をそのまま返す", async () => {
+    // 未接続時は公開 seam で返った例外を返す。
+    vi.mocked(ListProviderSettings).mockRejectedValue(
+      new Error("Wails binding is not wired yet: ListProviderSettings")
     )
-    installGo({
-      wails: {
-        AppController: {
-          ListProviderSettings: listProviderSettings
-        }
-      }
-    })
-
-    const gateway = createProviderSettingsGateway()
-
-    await gateway.ListProviderSettings({})
-
-    expect(listProviderSettings).toHaveBeenCalledTimes(1)
-    expect(listProviderSettings).toHaveBeenCalledWith({})
-  })
-
-  test("binding が未接続なら reject する", async () => {
-    installGo({
-      wails: {}
-    })
 
     const gateway = createProviderSettingsGateway()
 
     await expect(gateway.ListProviderSettings()).rejects.toThrow(
       "Wails binding is not wired yet: ListProviderSettings"
     )
+  })
+
+  test("runtime shape 検証失敗時は診断に secret 平文を含めない", async () => {
+    // runtime shape 失敗時の公開値に secret が漏れないことを確認する。
+    vi.mocked(ListProviderSettings).mockResolvedValue({
+      route: {
+        routeId: "provider-settings",
+        label: "Provider Settings",
+        currentRouteState: "ready",
+        dashboardEntryId: "provider-settings"
+      },
+      providers: [
+        {
+          ...providerSummary(),
+          providerId: "unknown-provider",
+          credentialInput: "raw-secret-value"
+        }
+      ]
+    } as unknown as ListProviderSettingsResponse)
+
+    const gateway = createProviderSettingsGateway()
+
+    await expect(gateway.ListProviderSettings()).rejects.toMatchObject({
+      name: "GatewayResponseShapeError",
+      userFacingMessage: "Gateway response shape is invalid."
+    })
+
+    try {
+      await gateway.ListProviderSettings()
+    } catch (error: unknown) {
+      expect(error).toBeInstanceOf(Error)
+      expect(typeof (error as Error & { internalDiagnostic?: unknown }).internalDiagnostic).toBe("string")
+      const diagnostic = JSON.stringify(error)
+      expect(diagnostic).not.toContain("raw-secret-value")
+      expect(diagnostic).not.toContain("credentialInput")
+      expect(diagnostic).not.toContain("apiKey")
+    }
   })
 })

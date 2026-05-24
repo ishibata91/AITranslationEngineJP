@@ -1,0 +1,204 @@
+reviewback_version: 1
+task_id: "frontend-backend-connection-refactor"
+review_yaml_path: "docs/exec-plans/active/frontend-backend-connection-refactor/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  invariant_maintenance: "維持している。Wails gateway は generated AppController binding の応答を unknown として受け、runtime shape 検証に通った値だけ application contract へ返す。検証失敗時は GatewayResponseShapeError で停止し、不正応答値を画面状態へ反映しない。screen controller factory は singleton controller と gateway 接続状態を従来どおり保持する。backend public method の request / response DTO 写像と error wrap は単体テストで固定されている。"
+  evidence_sufficiency: "十分。承認済み範囲、実装引き継ぎ、reviewfix 実装結果、final-validation、browser-confirmation-result、git diff、対象実コード、対象テストを確認した。人間指示と skill 規約に従い、ハーネスは再実行していない。"
+
+checked_scope:
+  summary: "generated binding 呼び出し、runtime shape 検証、検証失敗時の状態反映停止、screen controller factory の接続状態保持、backend controller public method の DTO 写像、fake API ではない system test、受領済み検証証跡を確認した。"
+  files:
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-scope.md"
+      line: 44
+      symbol: "Approved Implementation Scope"
+      reason: "generated wailsjs、runtime shape 検証、DTO 依存除去、public seam test、backend public method test、fake API ではない接続境界 test が承認済み範囲であることを確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-result.FBC-INT-001.reviewfix.md"
+      line: 8
+      symbol: "FBC-INT-001 reviewfix implementation result"
+      reason: "translation job management gateway と body translation phase gateway が generated AppController binding と runtime shape validation へ移行した記録を確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/implementation-result.FBC-UT-FE-001.reviewfix.md"
+      line: 8
+      symbol: "FBC-UT-FE-001 reviewfix implementation result"
+      reason: "reviewfix 後の frontend gateway test が public seam、valid response、binding failure、invalid response shape を観測している記録を確認した。"
+    - path: "frontend/src/controller/wails/gateway-dto/runtime-shape.ts"
+      line: 16
+      symbol: "createGatewayResponseShapeError"
+      reason: "runtime shape 検証失敗時に user-facing message と internal diagnostic を分け、応答実体をそのまま診断へ混ぜないことを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 46
+      symbol: "createBindingInvoker"
+      reason: "provider settings gateway が generated binding 応答を検証し、DTO shape 不一致時に不正値を返さないことを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.ts"
+      line: 153
+      symbol: "isListProviderSettingsResponseDto"
+      reason: "provider settings の route、providers、providerId、credentialState、validationState、savedState を検証してから状態へ渡すことを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 61
+      symbol: "createBindingInvoker"
+      reason: "term translation gateway が generated binding 応答を検証し、DTO shape 不一致時に不正値を返さないことを確認した。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 248
+      symbol: "isTermTranslationPhaseSummaryResponseDto"
+      reason: "summary の jobId、phaseState、progress、execution、actionEnablement を検証してから画面状態へ渡すことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 49
+      symbol: "createBindingInvoker"
+      reason: "translation job management gateway が generated binding 応答を検証し、ListIncompleteJobs の no-arg binding と request あり binding を分けて扱うことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 288
+      symbol: "isListResponseDto"
+      reason: "job list の jobs 配列と job summary shape を検証してから画面状態へ渡すことを確認した。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.ts"
+      line: 302
+      symbol: "isActionResponseDto"
+      reason: "stop、resume、delete の action 応答が message、tone、detail、deletedJobId、reasonCategory を検証してから返ることを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 64
+      symbol: "createBindingInvoker"
+      reason: "body translation gateway が generated binding 応答を検証し、DTO shape 不一致時に不正値を返さないことを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 401
+      symbol: "hasBodyPhaseBase"
+      reason: "body phase の共通状態、progress、inputSummary、execution、resultSummary、outputReadiness を検証してから状態へ渡すことを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 484
+      symbol: "isBodyTranslationOutputReadinessResponseDto"
+      reason: "output readiness の ready、blockedReason、errorKind、completedFieldCount、statusConsistent、outputCount を検証してから返すことを確認した。"
+    - path: "frontend/src/controller/term-translation-phase/term-translation-phase-screen-controller-factory.ts"
+      line: 9
+      symbol: "createTermTranslationPhaseScreenControllerFactory"
+      reason: "factory が gateway contract だけを受け取り、controller singleton と gateway 接続状態の生成条件を維持することを確認した。"
+    - path: "frontend/src/controller/wails/provider-settings.gateway.test.ts"
+      line: 132
+      symbol: "runtime shape 検証失敗時は診断に secret 平文を含めない"
+      reason: "provider settings の runtime shape 失敗が secret 平文を診断へ残さないことをテストで固定している。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.test.ts"
+      line: 110
+      symbol: "runtime shape 検証失敗時は診断へ secret 平文を出さない"
+      reason: "term translation summary の runtime shape 失敗が secret 平文を診断へ残さないことをテストで固定している。"
+    - path: "frontend/src/controller/wails/translation-job-management.gateway.test.ts"
+      line: 150
+      symbol: "invalid response shape"
+      reason: "translation job management の runtime shape 失敗が GatewayResponseShapeError になり、secret 平文を診断へ残さないことをテストで固定している。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.test.ts"
+      line: 158
+      symbol: "invalid response shape"
+      reason: "body translation phase の runtime shape 失敗が GatewayResponseShapeError になり、secret 平文を診断へ残さないことをテストで固定している。"
+    - path: "internal/controller/wails/provider_settings_controller_unit_test.go"
+      line: 59
+      symbol: "TestProviderSettingsControllerListProviderSettingsMapsResponseDTO"
+      reason: "provider settings public method の response DTO 写像と正規化がテストで固定されている。"
+    - path: "internal/controller/wails/translation_job_management_controller_unit_test.go"
+      line: 56
+      symbol: "TestTranslationJobManagementControllerGetJobDetailMapsRequestAndResponse"
+      reason: "job management の detail 応答、stop、resume、delete の public method DTO 境界がテストで固定されている。"
+    - path: "internal/controller/wails/term_translation_phase_controller_unit_test.go"
+      line: 114
+      symbol: "TestTermTranslationPhaseControllerPauseMapsRequestAndResponse"
+      reason: "pause、resume、retry、save AI settings の request / response DTO 境界と error wrap がテストで固定されている。"
+    - path: "tests/system/frontend-backend-connection.spec.ts"
+      line: 13
+      symbol: "FBC-SC-001 provider settings production factory reaches AppController binding"
+      reason: "fake API なしで provider settings 画面、production factory、generated binding、AppController Health に到達するテストを確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      line: 8
+      symbol: "実行結果"
+      reason: "frontend-local、backend-local、coverage、structure、system-test、git diff --check が通過した受領済み証跡を確認した。"
+    - path: "docs/exec-plans/active/frontend-backend-connection-refactor/browser-confirmation-result.md"
+      line: 10
+      symbol: "操作確認結果"
+      reason: "実画面で Gateway 接続準備済み、provider 行、translation-management、secret 平文非表示、Health ok が確認済みであることを確認した。"
+
+unchecked_scope:
+  - target: "実際の provider settings 保存、reset、validate 操作を伴う手動二重送信"
+    reason: "browser confirmation は初期表示、translation-management 表示、Health の確認であり、保存系操作は実行していないため。"
+    risk: "backend usecase / service 側の保存処理に依存する二重送信耐性は、このレビューの実画面証跡だけでは直接確認していない。"
+  - target: "translation job と translation phase の pause、resume、retry、delete、cancel の同時実行"
+    reason: "今回の差分は gateway と controller test の接続境界が中心であり、phase state machine 本体や repository 更新順序の実装差分を含まないため。"
+    risk: "同時実行時の単一 job / phase run 更新不変条件は既存 service / repository 側の責務として残る。今回差分から新規破壊は確認していない。"
+  - target: "承認済み implementation-scope の直接対象外 gateway"
+    reason: "人間入力で translation-input、translation-output-artifact、persona-generation-phase、master-dictionary、master-persona の旧 seam は今回直接対象外と指定されているため。"
+    risk: "対象外 gateway では runtime shape validation と generated binding 正本経路への移行が未完了のまま残る。今回差分の状態・データ不変条件判定には含めない。"
+  - target: "ハーネス再実行"
+    reason: "人間指示と skill 規約で再実行しないため、final-validation、browser-confirmation-result、実装結果の証跡を採用した。"
+    risk: "実行環境差分による再現性リスクは残るが、受領済み証跡では frontend-local、backend-local、coverage、structure、system-test が通過している。"
+
+issues: []
+
+state_invariant_review:
+  gate_result: "pass"
+  maintained_invariants:
+    - "Wails bridge 応答は gateway 内で runtime shape 検証を通過した場合だけ application contract へ渡る。"
+    - "runtime shape 検証失敗時は user-facing message と internal diagnostic を分け、不正応答値を画面状態へ反映しない。"
+    - "provider settings の providerId、credentialState、validationState、savedState は既知値だけが gateway から返る。"
+    - "term translation の summary、command、AI settings、next phase readiness は必須 field と optional field の shape を検証してから返る。"
+    - "translation job management の list、detail、stop、resume、delete 応答は job state、progress、operation availability、action result の shape を検証してから返る。"
+    - "body translation の summary、command、AI settings、output readiness は phase base、progress、execution、resultSummary、outputReadiness の shape を検証してから返る。"
+    - "screen controller factory は gateway DTO 型を参照せず、controller singleton と gateway 接続状態を既存どおり保持する。"
+    - "fake API ではない system test が production factory から AppController binding までの接続状態を固定する。"
+  broken_invariants: []
+  cause_candidates: []
+  local_fix_assessment: "未解決指摘なし。追加修正は不要である。将来 runtime shape 検証対象を広げる場合は、各 gateway の validator と対応 gateway test の局所追加で閉じる見込みである。backend の同時実行制御、永続化順序、repository 更新を変更する場合は service / repository の状態遷移不変条件として別途確認が必要である。"
+  invariant_test_viewpoints:
+    - "provider settings gateway は invalid providerId や未知 savedState を受けた時に GatewayResponseShapeError を返し、画面状態へ反映しないこと。"
+    - "term translation gateway は progress、execution、actionEnablement の欠落や型違いを受けた時に GatewayResponseShapeError を返すこと。"
+    - "translation job management gateway は jobs、detail、action response の型違いを受けた時に GatewayResponseShapeError を返すこと。"
+    - "body translation gateway は outputReadiness、resultSummary、execution の型違いを受けた時に GatewayResponseShapeError を返すこと。"
+    - "shape 検証失敗時の diagnostic に credentialInput、apiKey、raw secret が含まれないこと。"
+    - "system test は fakeApi query を使わず provider settings 画面を開き、Gateway 接続準備済みと AppController Health ok を確認すること。"
+  validation_evidence:
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite coverage"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      coverage: "Sonar coverage 70.3%, threshold 70.0%"
+      issue_count: "security / reliability / maintainability high issue 0"
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite structure"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "python3 scripts/harness/run.py --suite system-test"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      coverage: null
+      issue_count: null
+      system_test_count: "10 tests passed"
+      failure: "sandbox 内 Wails dev ready 待ちで中断。sandbox 外再実行で通過。"
+    - command: "git diff --check"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/final-validation.md"
+      coverage: null
+      issue_count: null
+      system_test_count: null
+      failure: null
+    - command: "browser confirmation"
+      result: "PASS"
+      evidence_path: "docs/exec-plans/active/frontend-backend-connection-refactor/browser-confirmation-result.md"
+      coverage: null
+      issue_count: "console events 5, network request/response 263, failed request 0, HTTP error なし"
+      system_test_count: null
+      failure: null
