@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `persona-generation-phase`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
+- `source_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`, `docs/exec-plans/active/2026-05-25-phase-prompt-builder-boundary/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/persona-generation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/persona-generation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -27,6 +27,7 @@
 - 生成対象は、NPC 件数、入力種類、対象件数、共通ペルソナ一致有無、対象外理由を判断できる状態にする。
 - 共通ペルソナ一致時は、翻訳ジョブのペルソナ参照を固定する。
 - ペルソナ生成は 1 NPC を 1 実行単位とし、NPC 属性と会話文脈を同じ実行単位で扱う。
+- AIサービスへ渡す生成指示は、NPC 対応識別子、NPC 表示名、NPC 属性、原文発話、会話文脈、共通ペルソナ要約を同じ実行単位に固定する。
 - 生成対象 0 件は `Completed` とし、対象 0 件、AIサービス未実行、空のペルソナ参照を判断できる状態にする。
 - 生成対象は NPC レコード、翻訳対象項目、会話文脈、共通ペルソナ参照、ペルソナ参照情報で構成する。
 
@@ -48,6 +49,9 @@
 
 仕様:
 - 有効な AIサービス出力は、翻訳ジョブ内ペルソナまたはペルソナ参照へ自動採用する。
+- AIサービス応答は、NPC ごとに、要求単位、NPC 対応識別子、ペルソナ本文の対応として検査する。
+- 有効な応答は、要求した NPC と同じ対応識別子を持ち、空ではないペルソナ本文を持つ応答である。
+- 応答欠落、余分な応答、NPC 対応識別子との不一致、空のペルソナ本文は、NPC 単位の失敗分類として扱う。
 - 利用者はペルソナ参照の成立状態、欠落件数、本文翻訳フェーズの開始可否を判断できる。
 - 結果要約は、保護対象を含まない範囲で再判断できる情報として扱う。
 
@@ -98,6 +102,12 @@ NPC ペルソナ生成フェーズは秘密値、生成指示の原文、原文�
 - 運用上必要な要約は、保存済みの状態事実から導出する。
 - 導出する要約は、識別子、件数、根拠参照、保護対象を含まない結果要約を対象にする。
 - 障害調査用の要約では、AIサービス、モデル、実行方式、一括処理、認証状態、入出力件数、失敗分類を判断できる。
+- 利用者向け情報は、AIサービス、モデル、実行方式、認証状態、入力件数、出力件数、失敗分類、保護対象を含まない結果要約を対象にする。
+- AIサービスへ渡す生成指示の全文、原文発話全文、会話文脈全文は、障害調査用の同一性情報へ要約して扱う。
+- `PromptDigest` は、AIサービスへ渡す生成指示の同一性を示す内部情報として扱う。
+- `PromptDigest` は、生成指示の全文、原文発話全文、会話文脈全文を復元できない値として扱う。
+- `PERSONA_GENERATION_REQUEST_V1` は、NPC ペルソナ生成フェーズの AIサービス要求形状を識別する印として扱う。
+- `PERSONA_GENERATION_REQUEST_V1` は、利用者が選択する生成規則の版として扱わない。
 
 ## 根拠
 
@@ -105,3 +115,4 @@ NPC ペルソナ生成フェーズは秘密値、生成指示の原文、原文�
 - 最終検証は通過済みである。
 - 5 観点レビューはすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
 - 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。
+- 生成指示境界の詳細仕様差分は、2026-05-25 の人間設計レビュー承認に基づいて反映済みである。

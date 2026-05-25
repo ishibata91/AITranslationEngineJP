@@ -1596,7 +1596,7 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationRun(
 	}
 	pendingTargets := service.pendingBodyTranslationTargets(loaded)
 	if len(pendingTargets) == 0 {
-		logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 0, "")
+		logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 0, "", loaded.execution.Provider)
 		return service.reloadedBodyTranslationCommand(ctx, loaded.job.ID)
 	}
 	return service.executeBodyTranslationPendingTargets(ctx, loaded, run, pendingTargets)
@@ -1612,7 +1612,7 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationPendingTargets
 		command, err := service.executeBodyTranslationTarget(ctx, loaded, run, target)
 		if err != nil {
 			failureKind := classifyBodyTranslationProviderPersistenceError(err)
-			logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 1, failureKind)
+			logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 1, failureKind, loaded.execution.Provider)
 			return command, err
 		}
 		if command.PhaseState != bodyTranslationPhaseStateRunning && command.PhaseState != bodyTranslationPhaseStateCompleted {
@@ -1622,7 +1622,7 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationPendingTargets
 				failedCount++
 				failureKind = normalizeBodyTranslationFailureKind(command.ErrorSummary.ErrorKind)
 			}
-			logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, command.ResultSummary.OutputCount, failedCount, failureKind)
+			logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, command.ResultSummary.OutputCount, failedCount, failureKind, loaded.execution.Provider)
 			return command, nil
 		}
 		loaded, err = service.loadContext(ctx, loaded.job.ID)
@@ -1634,7 +1634,7 @@ func (service *BodyTranslationPhaseService) executeBodyTranslationPendingTargets
 		}
 		run = *loaded.bodyRun
 	}
-	logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 0, "")
+	logBodyTranslationProviderBulkSummary(ctx, loaded.snapshot.ProviderTargetCount, service.bodyTranslationPersistedOutputCount(loaded), 0, "", loaded.execution.Provider)
 	return service.reloadedBodyTranslationCommand(ctx, loaded.job.ID)
 }
 
@@ -1660,11 +1660,17 @@ func logBodyTranslationProviderBulkSummary(
 	outputCount int,
 	failedCount int,
 	failureKind string,
+	providers ...string,
 ) {
+	provider := ""
+	if len(providers) > 0 {
+		provider = providers[0]
+	}
 	attrs := []slog.Attr{
 		slog.String("event", "body_translation_provider_bulk_summary"),
 		slog.String("where", "backend.service.body_translation_phase.provider_execution"),
 		slog.String("result", "completed"),
+		slog.String("provider", strings.TrimSpace(provider)),
 		slog.Int("input_count", inputCount),
 		slog.Int("output_count", outputCount),
 		slog.Int("skipped_count", maxInt(0, inputCount-outputCount-failedCount)),

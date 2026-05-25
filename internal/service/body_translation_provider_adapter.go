@@ -70,6 +70,7 @@ type BodyTranslationProviderAuditSummary struct {
 	ExecutionMode  string
 	RequestUnitID  string
 	PromptDigest   string
+	RequestShapeID string
 	InputCount     int
 	OutputCount    int
 	RequestSummary BodyTranslationProviderRequestSummary
@@ -205,7 +206,7 @@ func (adapter bodyTranslationProviderAdapter) TranslateBodyField(
 	}
 	baseResult.AuditSummary.ExecutionMode = executionMode
 
-	prompt, err := BuildBodyTranslationPrompt(request)
+	envelope, err := BuildBodyTranslationPromptEnvelope(request)
 	if err != nil {
 		return bodyTranslationProviderFailureResult(
 			baseResult,
@@ -214,7 +215,8 @@ func (adapter bodyTranslationProviderAdapter) TranslateBodyField(
 			false,
 		)
 	}
-	baseResult.AuditSummary.PromptDigest = bodyTranslationPromptDigest(prompt)
+	baseResult.AuditSummary.PromptDigest = string(envelope.Digest)
+	baseResult.AuditSummary.RequestShapeID = envelope.RequestShapeID
 
 	clientResponse, err := invokeBodyTranslationClientGenerateBodyTranslation(
 		ctx,
@@ -224,7 +226,7 @@ func (adapter bodyTranslationProviderAdapter) TranslateBodyField(
 		executionMode,
 		strings.TrimSpace(request.CredentialRef),
 		providerExecutionOptionalString(request.EndpointSummary),
-		prompt,
+		envelope.RawPrompt,
 	)
 	if err != nil {
 		return mapBodyTranslationProviderFailure(baseResult, err)

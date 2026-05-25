@@ -2,8 +2,6 @@ package service
 
 import (
 	"context"
-	"crypto/sha256"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"reflect"
@@ -23,7 +21,6 @@ const (
 	PersonaGenerationExecutionModeSingleRequest = "single_request"
 
 	personaGenerationProviderResponseInvalidReason = "provider response is invalid"
-	personaGenerationPromptFallbackNone            = "- none"
 	personaGenerationInvalidConfigurationReason    = "provider configuration is invalid"
 )
 
@@ -75,6 +72,7 @@ type PersonaGenerationProviderAuditSummary struct {
 	RequestUnitID    string
 	NPCCorrelationID string
 	PromptDigest     string
+	RequestShapeID   string
 	InputCount       int
 	OutputCount      int
 }
@@ -130,58 +128,6 @@ func PersonaGenerationSupportedProviders() []string {
 	}
 	sort.Strings(providers)
 	return providers
-}
-
-// BuildPersonaGenerationPrompt returns the strict JSON-only prompt for one NPC request unit.
-func BuildPersonaGenerationPrompt(request PersonaGenerationProviderRequest) (string, error) {
-	requestUnitID := strings.TrimSpace(request.RequestUnitID)
-	if requestUnitID == "" {
-		return "", fmt.Errorf("persona generation request unit id is required")
-	}
-	npcCorrelationID := strings.TrimSpace(request.NPCCorrelationID)
-	if npcCorrelationID == "" {
-		return "", fmt.Errorf("persona generation npc correlation id is required")
-	}
-	displayName := strings.TrimSpace(request.NPCDisplayName)
-	if displayName == "" {
-		displayName = "unknown"
-	}
-	editorID := strings.TrimSpace(request.NPCEditorID)
-	if editorID == "" {
-		editorID = "unknown"
-	}
-	formID := strings.TrimSpace(request.NPCFormID)
-	if formID == "" {
-		formID = "unknown"
-	}
-	attributes := normalizePersonaGenerationPromptLines(request.NPCAttributes, personaGenerationPromptFallbackNone)
-	conversationContext := normalizePersonaGenerationPromptLines(request.ConversationContext, personaGenerationPromptFallbackNone)
-	recentUtterances := normalizePersonaGenerationPromptLines(request.RecentOriginalUtterances, personaGenerationPromptFallbackNone)
-	commonPersonaSummary := strings.TrimSpace(request.CommonPersonaSummary)
-	if commonPersonaSummary == "" {
-		commonPersonaSummary = "none"
-	}
-
-	return strings.TrimSpace(strings.Join([]string{
-		"PERSONA_GENERATION_REQUEST_V1",
-		"Return strict JSON only.",
-		`Use the exact shape {"personas":[{"request_unit_id":"...","npc_correlation_id":"...","persona_body":"..."}]}.`,
-		"Do not add markdown, commentary, or extra keys.",
-		"input_count=1",
-		"execution_mode=" + PersonaGenerationExecutionModeSingleRequest,
-		"request_unit_id=" + requestUnitID,
-		"npc_correlation_id=" + npcCorrelationID,
-		"npc_display_name=" + displayName,
-		"npc_editor_id=" + editorID,
-		"npc_form_id=" + formID,
-		"common_persona_summary=" + commonPersonaSummary,
-		"npc_attributes:",
-		strings.Join(attributes, "\n"),
-		"conversation_context:",
-		strings.Join(conversationContext, "\n"),
-		"recent_original_utterances:",
-		strings.Join(recentUtterances, "\n"),
-	}, "\n")), nil
 }
 
 type personaGenerationProviderAdapter struct {
@@ -251,7 +197,7 @@ func (adapter personaGenerationProviderAdapter) GeneratePersona(
 	}
 	baseResult.AuditSummary.ExecutionMode = executionMode
 
-	prompt, err := BuildPersonaGenerationPrompt(request)
+	envelope, err := BuildPersonaGenerationPromptEnvelope(request)
 	if err != nil {
 		return personaGenerationProviderFailureResult(
 			baseResult,
@@ -260,7 +206,8 @@ func (adapter personaGenerationProviderAdapter) GeneratePersona(
 			false,
 		)
 	}
-	baseResult.AuditSummary.PromptDigest = personaGenerationPromptDigest(prompt)
+	baseResult.AuditSummary.PromptDigest = string(envelope.Digest)
+	baseResult.AuditSummary.RequestShapeID = envelope.RequestShapeID
 
 	clientResponse, err := invokePersonaGenerationClientGeneratePersona(
 		ctx,
@@ -270,7 +217,7 @@ func (adapter personaGenerationProviderAdapter) GeneratePersona(
 		executionMode,
 		strings.TrimSpace(request.CredentialRef),
 		providerExecutionOptionalString(request.EndpointSummary),
-		prompt,
+		envelope.RawPrompt,
 	)
 	if err != nil {
 		return mapPersonaGenerationProviderFailure(baseResult, err)
@@ -459,23 +406,11 @@ func mapPersonaGenerationDebugLog(value reflect.Value) (PersonaGenerationProvide
 		headers[key.String()] = "[REDACTED]"
 	}
 	return PersonaGenerationProviderDebugLog{
-		Prompt:         personaGenerationDebugDigest("sha256:prompt", promptField.String()),
-		RequestBody:    personaGenerationDebugDigest("sha256:request", requestBodyField.String()),
+		Prompt:         RedactedPromptDiagnostic("prompt", promptField.String()),
+		RequestBody:    RedactedPromptDiagnostic("request", requestBodyField.String()),
 		Headers:        headers,
 		SecretRedacted: secretRedactedField.Bool(),
 	}, nil
-}
-
-func personaGenerationDebugDigest(prefix string, value string) string {
-	trimmed := strings.TrimSpace(value)
-	if trimmed == "" {
-		return ""
-	}
-	if strings.HasPrefix(trimmed, prefix+":") {
-		return trimmed
-	}
-	sum := sha256.Sum256([]byte(trimmed))
-	return prefix + ":" + hex.EncodeToString(sum[:])
 }
 
 func mapPersonaGenerationProviderFailure(
@@ -534,26 +469,6 @@ func personaGenerationProviderFailureResult(
 		IsRedacted: true,
 	}
 	return result
-}
-
-func normalizePersonaGenerationPromptLines(lines []string, fallback string) []string {
-	normalized := make([]string, 0, len(lines))
-	for _, line := range lines {
-		trimmed := strings.TrimSpace(line)
-		if trimmed == "" {
-			continue
-		}
-		normalized = append(normalized, "- "+trimmed)
-	}
-	if len(normalized) == 0 {
-		normalized = append(normalized, fallback)
-	}
-	return normalized
-}
-
-func personaGenerationPromptDigest(prompt string) string {
-	digest := sha256.Sum256([]byte(prompt))
-	return "sha256:" + hex.EncodeToString(digest[:])
 }
 
 func firstNonEmptyPersonaGenerationValue(values ...string) string {

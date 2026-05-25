@@ -1048,11 +1048,11 @@ func (service *TermTranslationPhaseService) applyExecutionPlan(
 	}
 	for _, candidate := range aiTargets {
 		if err := service.applyProviderCandidate(ctx, plan, candidate, apiKey, confirmedTerms, baseConfirmedCount); err != nil {
-			logTermTranslationProviderBulkSummary(ctx, len(plan.Candidates), len(confirmedTerms), 1, classifyTermTranslationBulkFailure(err))
+			logTermTranslationProviderBulkSummary(ctx, len(plan.Candidates), len(confirmedTerms), 1, classifyTermTranslationBulkFailure(err), plan.Execution.Provider)
 			return repository.JobPhaseRun{}, 0, nil, err
 		}
 	}
-	logTermTranslationProviderBulkSummary(ctx, len(plan.Candidates), len(confirmedTerms), 0, "")
+	logTermTranslationProviderBulkSummary(ctx, len(plan.Candidates), len(confirmedTerms), 0, "", plan.Execution.Provider)
 	return service.markPhaseRunCompleted(ctx, plan.Job, plan.PhaseRun, len(plan.Candidates))
 }
 
@@ -1062,11 +1062,17 @@ func logTermTranslationProviderBulkSummary(
 	outputCount int,
 	failedCount int,
 	failureKind string,
+	providers ...string,
 ) {
+	provider := ""
+	if len(providers) > 0 {
+		provider = providers[0]
+	}
 	attrs := []slog.Attr{
 		slog.String("event", "term_translation_provider_bulk_summary"),
 		slog.String("where", "backend.service.term_translation_phase.provider_execution"),
 		slog.String("result", "completed"),
+		slog.String("provider", strings.TrimSpace(provider)),
 		slog.Int("input_count", inputCount),
 		slog.Int("output_count", outputCount),
 		slog.Int("skipped_count", maxInt(0, inputCount-outputCount-failedCount)),
@@ -1210,10 +1216,11 @@ func (service *TermTranslationPhaseService) applyProviderCandidate(
 		Model:           plan.Execution.Model,
 		APIKey:          apiKey,
 		EndpointSummary: providerExecutionEndpointSummary(plan.Execution.EndpointSummary),
+		RequestUnitID:   termTranslationRequestUnitID(candidate),
 		SourceTerm:      candidate.SourceTerm,
 		SourceLanguage:  "English",
 		TargetLanguage:  "Japanese",
-		PromptVersion:   "term-translation-v1",
+		RequestShapeID:  TermTranslationRequestShapeV1,
 	})
 	if err != nil {
 		logProviderBoundaryFailure(ctx, "term_translation_provider_execute", termTranslationPhaseServiceWhere, plan.Execution.Provider, classifyProviderBoundaryError(err, termTranslationErrorKindProviderFailure))
@@ -1316,6 +1323,10 @@ func validateProviderCandidateResult(
 		return ErrTermTranslationInvalidProviderReply
 	}
 	return nil
+}
+
+func termTranslationRequestUnitID(candidate termTranslationCandidate) string {
+	return candidateKey(candidate.RecordType, candidate.SourceTerm)
 }
 
 func (service *TermTranslationPhaseService) markPhaseRunCompleted(

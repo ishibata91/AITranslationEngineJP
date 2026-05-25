@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `body-translation-phase`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
+- `source_artifacts`: `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`, `docs/exec-plans/active/2026-05-25-phase-prompt-builder-boundary/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/body-translation-phase/implementation-scope.md`, `docs/exec-plans/completed/body-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/body-translation-phase/reviewback.behavior.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.contract.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.trust-boundary.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.state-invariant.yaml`, `docs/exec-plans/completed/body-translation-phase/reviewback.responsibility-boundary.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -30,8 +30,12 @@
 - 完全一致した辞書 hit は辞書置換対象にする。
 - AI 翻訳対象は辞書置換対象外の翻訳項目にする。
 - 部分一致は訳語固定制約として AIサービスへ渡す。
+- AIサービスへ渡す本文翻訳の生成指示は、1 翻訳項目を 1 実行単位として扱う。
+- 生成指示は、翻訳項目の対応識別子、レコード種別、フィールド種別、原文、ペルソナ要約、翻訳補助情報、完全一致の辞書置換結果、部分一致の訳語固定制約、保持要素を同じ実行単位に固定する。
 - 翻訳レコード種別と翻訳項目種別に応じて翻訳指示を構成する。
 - 翻訳項目の対応関係と保護要素の同一性を失わず AIサービス境界へ渡す。
+- 生成指示は、翻訳項目の対応関係と保持要素の同一性を AIサービス境界で判断できる状態にする。
+- `PromptDigest` は、AIサービスへ渡す生成指示の同一性を示す内部情報として扱う。
 
 ### `body-translation-phase-REQ-003` 翻訳結果を翻訳項目単位で保存できる
 
@@ -40,7 +44,12 @@
 
 仕様:
 - 訳文、出力状態、保護要素検証結果は同一翻訳項目に対応付ける。
+- AIサービス応答は、翻訳項目ごとに、要求単位、翻訳項目の対応識別子、レコード種別、フィールド種別、訳文、保持要素の同一性として検査する。
+- 有効な応答は、要求した翻訳項目と同じ対応識別子を持ち、空ではない訳文を持ち、保持要素の同一性を満たす応答である。
+- 有効な応答は、翻訳項目単位の訳文と出力状態の候補として採用する。
 - 保護要素検証に失敗した訳文は、採用結果の対象外にする。
+- 保持要素検証に失敗した訳文は、翻訳項目単位の失敗分類として扱う。
+- 応答欠落、余分な応答、翻訳項目との不一致、空訳文、保持要素の欠落、変更、重複、順序変更、余分な追加は、翻訳項目単位の失敗分類として扱う。
 - 保護要素検証に失敗した翻訳項目は再試行対象にする。
 - 保存失敗または検証失敗がある翻訳段階は、`RecoverableFailed` または `Failed` の対象にする。
 - 本文翻訳フェーズ `Completed`、翻訳結果整合、出力状態整合を満たす時だけ成果物出力条件が成立する。
@@ -110,6 +119,12 @@ AIサービス失敗、応答不正、対応関係不整合、保存失敗、保
 - 秘密値、認証キー平文、復号可能値、認証参照の実値、接続先、外部サービスとの生データ、生成指示の原文は利用者向け情報の対象外にする。
 - 運用上必要な要約は、保存済みの状態事実から導出する。
 - 原文と訳文は、翻訳結果を確認するための情報として扱える。
+- 利用者向け情報は、AIサービス、モデル、実行方式、認証状態、入力件数、出力件数、失敗分類、保持要素の件数、保持要素検証結果、保護対象を含まない結果要約を対象にする。
+- AIサービスへ渡す生成指示の全文と外部サービスとの生データは、障害調査用の同一性情報へ要約して扱う。
+- `PromptDigest` は、AIサービスへ渡す生成指示の同一性を示す内部情報として扱う。
+- `PromptDigest` は、生成指示の全文または外部サービスとの生データを復元できない値として扱う。
+- `BODY_TRANSLATION_REQUEST_V1` は、本文翻訳フェーズの AIサービス要求形状を識別する印として扱う。
+- `BODY_TRANSLATION_REQUEST_V1` は、利用者が選択する生成規則の版として扱わない。
 
 ## 根拠
 
@@ -117,3 +132,4 @@ AIサービス失敗、応答不正、対応関係不整合、保存失敗、保
 - 最終検証は plan の最終検証通過結果で確認済みである。
 - 5 観点 reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
 - 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。
+- 生成指示境界の詳細仕様差分は、2026-05-25 の人間設計レビュー承認に基づいて反映済みである。

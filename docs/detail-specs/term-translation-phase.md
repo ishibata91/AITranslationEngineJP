@@ -2,7 +2,7 @@
 
 - `detail_spec_id`: `term-translation-phase`
 - `status`: `approved`
-- `source_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`
+- `source_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/plan.md`, `docs/exec-plans/active/2026-05-10-translation-job-state-machine-redesign/plan.md`, `docs/exec-plans/active/translation-job-step-target-list-panel/detail-spec-diff.md`, `docs/exec-plans/active/2026-05-25-phase-prompt-builder-boundary/detail-spec-diff.md`
 - `implementation_artifacts`: `docs/exec-plans/completed/term-translation-phase/plan.md`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/final-validation.md`
 - `review_artifacts`: `docs/exec-plans/completed/term-translation-phase/reviewback.*.yaml`, `docs/exec-plans/active/2026-05-07-provider-settings-job-decoupling-implement/review-summary.md`
 
@@ -29,6 +29,12 @@
 - フェーズ開始と再試行は、AIサービス設定から最新の接続先と認証状態を再解決する。
 - 実行時に利用者が判断できる接続情報は、AIサービス、モデル、認証状態、実行方式、一括処理設定である。
 - 秘密値、認証キー平文、復号可能な値、認証参照の実値、接続先、外部サービスとの生データ、翻訳本文全文は利用者向け情報の対象外にする。
+- 利用者向け情報は、AIサービス、モデル、認証状態、実行方式、入力件数、出力件数、失敗分類、処理要約を対象にする。
+- AIサービスへ渡す生成指示の全文は、障害調査用の同一性情報へ要約して扱う。
+- `PromptDigest` は、AIサービスへ渡す生成指示の同一性を示す内部情報として扱う。
+- `PromptDigest` は、生成指示の全文を復元できない値として扱う。
+- `TERM_TRANSLATION_REQUEST_V1` は、単語翻訳フェーズの AIサービス要求形状を識別する印として扱う。
+- `TERM_TRANSLATION_REQUEST_V1` は、利用者が選択する生成規則の版として扱わない。
 - 運用上必要な要約は、保存済みの状態事実から導出する。
 
 ### `term-translation-phase-REQ-003` 共通辞書一致で AI 翻訳対象を決める
@@ -52,6 +58,9 @@
 - 共通辞書対象外の用語と固有名詞は AIサービスへ送る。
 - AIサービスへの実行単位は 1 対象語を基本とする。
 - 一括処理を使う場合も、1 項目は 1 対象語に対応する。
+- AIサービスへ渡す生成指示は、対象語、原文言語、訳文言語、応答対応に使う識別子を同じ実行単位に固定する。
+- AIサービス応答は、対象語ごとに、原語と訳語の対応として検査する。
+- 有効な応答は、要求した対象語と同じ原語を持ち、空ではない訳語を持つ応答である。
 - AIサービスの有効な応答は、原語と訳語の対応を保持し、自動で確定訳語として扱う。
 - 確定訳語は対象の翻訳ジョブ内辞書として保存する。
 - 確定訳語は、対象の翻訳ジョブと単語翻訳の実行単位を追跡できる状態で保持する。
@@ -68,7 +77,7 @@
 - 既存の辞書項目は維持し、未処理の用語だけ AI 翻訳対象にする。
 - 再試行可能な失敗では、最新の失敗理由と進行状況を更新する。
 - AIサービス失敗、応答不正、保存失敗がある場合、`RecoverableFailed` または `Failed` の対象にする。
-- 不正応答、応答欠落、余分な応答、空訳語は対象語単位の失敗として扱う。
+- 不正応答、応答欠落、余分な応答、空訳語、対象語との不一致は対象語単位の失敗として扱う。
 - 保存途中失敗では、単語翻訳フェーズを `RecoverableFailed` として扱う。
 - AIサービスはジョブ設定で固定したサービスを使う。
 - 終端状態の翻訳ジョブへの後書きは拒否結果にする。
@@ -108,3 +117,4 @@
 - 最終検証では旧設計 gate、frontend、backend、全体検証が pass している。
 - 5 観点の reviewback はすべて `review_status: no_issue`、`must_fix_open: false`、`max_level: none` である。
 - 翻訳ジョブステップ処理対象一覧表示パネルの詳細仕様差分は、2026-05-23 の人間設計レビュー承認と 2026-05-24 の Storybook フロント実装承認に基づいて反映済みである。
+- 生成指示境界の詳細仕様差分は、2026-05-25 の人間設計レビュー承認に基づいて反映済みである。

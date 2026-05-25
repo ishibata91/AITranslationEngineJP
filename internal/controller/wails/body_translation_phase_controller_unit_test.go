@@ -216,6 +216,60 @@ func TestBodyTranslationPhaseControllerStartCommandSeamForwardsJobID(t *testing.
 	}
 }
 
+func TestBodyTranslationPhaseControllerStartReturnsOnlySafeSummaryForInvalidProviderResponse(t *testing.T) {
+	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
+		startFunc: func(context.Context, usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error) {
+			phaseRunID := int64(42)
+			return usecase.BodyTranslationPhaseCommandResult{
+				JobID:        778,
+				CurrentPhase: "body_translation",
+				PhaseState:   "recoverable_failed",
+				PhaseRunID:   &phaseRunID,
+				InputSummary: usecase.BodyTranslationPhaseInputSummary{
+					TargetCount:  1,
+					PromptDigest: "sha256:public-prompt-digest",
+				},
+				RequestSummary: usecase.BodyTranslationPhaseRequestSummary{
+					ProviderTargetCount: 1,
+				},
+				Execution: usecase.BodyTranslationPhaseExecutionSummary{
+					CredentialRef:    "credential:body:redacted",
+					Provider:         "fake",
+					Model:            "body-model",
+					ExecutionMode:    "single_request",
+					RequestUnitCount: 1,
+					OutputCount:      0,
+				},
+				ErrorSummary: &usecase.BodyTranslationPhaseErrorSummary{
+					ErrorKind:  usecase.BodyTranslationPhaseErrorKindInvalidProviderResponse,
+					Reason:     "provider response failed body translation validation",
+					Retryable:  true,
+					IsRedacted: true,
+				},
+			}, errors.New("provider raw response body included invalid field correlation")
+		},
+	})
+
+	// SCN-01: Wails 公開接点は invalid provider response を分類だけで返す。
+	response, err := controller.StartBodyTranslationPhase(StartBodyTranslationPhaseRequestDTO{JobID: 778})
+	if err != nil {
+		t.Fatalf("expected structured invalid response payload without raw provider error: %v", err)
+	}
+	if response.ErrorSummary == nil || response.ErrorSummary.ErrorKind != "invalid_provider_response" {
+		t.Fatalf("expected invalid provider response kind, got %#v", response.ErrorSummary)
+	}
+	if !response.ErrorSummary.IsRedacted || !response.ErrorSummary.Retryable {
+		t.Fatalf("expected retryable redacted summary, got %#v", response.ErrorSummary)
+	}
+	if response.InputSummary.PromptDigest != "sha256:public-prompt-digest" {
+		t.Fatalf("expected prompt digest without raw prompt, got %#v", response.InputSummary)
+	}
+	if response.RequestSummary.ProviderTargetCount != 1 || response.Execution.RequestUnitCount != 1 {
+		t.Fatalf("expected public counts, got request=%#v execution=%#v", response.RequestSummary, response.Execution)
+	}
+	assertBodyTranslationCommandDTOHasNoForbiddenRawPayload(t, response)
+}
+
 func TestBodyTranslationPhaseControllerPauseCommandSeamForwardsPhaseRunID(t *testing.T) {
 	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
 		pauseFunc: func(_ context.Context, request usecase.PauseBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error) {
@@ -397,6 +451,31 @@ func assertBodyTranslationDTOHasNoForbiddenSecretFields(t *testing.T, response B
 	} {
 		if strings.Contains(serialized, forbidden) {
 			t.Fatalf("expected body translation DTO to omit %q, got %s", forbidden, serialized)
+		}
+	}
+}
+
+func assertBodyTranslationCommandDTOHasNoForbiddenRawPayload(t *testing.T, response BodyTranslationPhaseCommandResponseDTO) {
+	t.Helper()
+	payload, err := json.Marshal(response)
+	if err != nil {
+		t.Fatalf("expected response to marshal, got %v", err)
+	}
+	serialized := string(payload)
+	for _, forbidden := range []string{
+		"apiKey",
+		"authorization",
+		"providerRawRequest",
+		"providerRawResponse",
+		"rawPrompt",
+		"provider raw response body",
+		"raw prompt with protected source text",
+		"sk-live-secret",
+		"Whiterun protected source sentence",
+		"conversation context full text",
+	} {
+		if strings.Contains(serialized, forbidden) {
+			t.Fatalf("expected body translation command DTO to omit %q, got %s", forbidden, serialized)
 		}
 	}
 }

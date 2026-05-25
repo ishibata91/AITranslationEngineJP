@@ -62,22 +62,23 @@ type TermTranslationProviderRequest struct {
 	Model           string
 	APIKey          string
 	EndpointSummary *string
+	RequestUnitID   string
 	SourceTerm      string
 	SourceLanguage  string
 	TargetLanguage  string
-	PromptVersion   string
+	RequestShapeID  string
 	PromptDigest    string
 }
 
 // TermTranslationProviderAuditSummary exposes provider execution metadata without secrets.
 type TermTranslationProviderAuditSummary struct {
-	Provider      string
-	Model         string
-	ExecutionMode string
-	InputCount    int
-	OutputCount   int
-	PromptVersion *string
-	PromptDigest  *string
+	Provider       string
+	Model          string
+	ExecutionMode  string
+	InputCount     int
+	OutputCount    int
+	RequestShapeID *string
+	PromptDigest   *string
 }
 
 // TermTranslationProviderResult defines one correlated translation result.
@@ -170,33 +171,6 @@ func TermTranslationSupportedProviders() []string {
 	return providers
 }
 
-// BuildTermTranslationPrompt returns the strict JSON-only prompt for one source term request unit.
-func BuildTermTranslationPrompt(request TermTranslationProviderRequest) (string, error) {
-	sourceTerm := strings.TrimSpace(request.SourceTerm)
-	if sourceTerm == "" {
-		return "", fmt.Errorf("term translation source term is required")
-	}
-	sourceLanguage := strings.TrimSpace(request.SourceLanguage)
-	if sourceLanguage == "" {
-		sourceLanguage = "source"
-	}
-	targetLanguage := strings.TrimSpace(request.TargetLanguage)
-	if targetLanguage == "" {
-		targetLanguage = "target"
-	}
-	return strings.TrimSpace(strings.Join([]string{
-		"TERM_TRANSLATION_REQUEST_V1",
-		"Return strict JSON only.",
-		`Use the exact shape {"translations":[{"source_term":"...","translated_term":"..."}]}.`,
-		"Do not add markdown, commentary, or extra keys.",
-		"input_count=1",
-		"execution_mode=" + TermTranslationExecutionModeSingleRequest,
-		"source_language=" + sourceLanguage,
-		"target_language=" + targetLanguage,
-		"source_term=" + sourceTerm,
-	}, "\n")), nil
-}
-
 type termTranslationProviderAdapter struct {
 	client any
 }
@@ -244,7 +218,7 @@ func (adapter termTranslationProviderAdapter) TranslateTerm(
 		)
 	}
 
-	prompt, err := BuildTermTranslationPrompt(request)
+	envelope, err := BuildTermTranslationPromptEnvelope(request)
 	if err != nil {
 		return TermTranslationProviderResult{}, NewTermTranslationProviderError(
 			TermTranslationProviderErrorKindProviderFailure,
@@ -261,7 +235,7 @@ func (adapter termTranslationProviderAdapter) TranslateTerm(
 		model,
 		strings.TrimSpace(request.APIKey),
 		providerExecutionOptionalString(request.EndpointSummary),
-		prompt,
+		envelope.RawPrompt,
 	)
 	if err != nil {
 		return TermTranslationProviderResult{}, mapTermTranslationProviderError(err)
@@ -298,13 +272,13 @@ func (adapter termTranslationProviderAdapter) TranslateTerm(
 		TranslatedTerm: strings.TrimSpace(item.TranslatedTerm),
 		Confirmed:      true,
 		AuditSummary: TermTranslationProviderAuditSummary{
-			Provider:      providerID,
-			Model:         model,
-			ExecutionMode: strings.TrimSpace(clientResponse.ExecutionMode),
-			InputCount:    1,
-			OutputCount:   len(clientResponse.Items),
-			PromptVersion: optionalStringPointer(request.PromptVersion),
-			PromptDigest:  optionalStringPointer(request.PromptDigest),
+			Provider:       providerID,
+			Model:          model,
+			ExecutionMode:  strings.TrimSpace(clientResponse.ExecutionMode),
+			InputCount:     1,
+			OutputCount:    len(clientResponse.Items),
+			RequestShapeID: optionalStringPointer(envelope.RequestShapeID),
+			PromptDigest:   optionalStringPointer(firstNonEmptyTermTranslationValue(request.PromptDigest, string(envelope.Digest))),
 		},
 	}, nil
 }
@@ -430,4 +404,14 @@ func optionalStringPointer(value string) *string {
 		return nil
 	}
 	return &trimmed
+}
+
+func firstNonEmptyTermTranslationValue(values ...string) string {
+	for _, value := range values {
+		trimmed := strings.TrimSpace(value)
+		if trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
