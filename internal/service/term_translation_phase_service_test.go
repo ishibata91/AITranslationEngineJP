@@ -1290,6 +1290,9 @@ func TestTermTranslationPhaseServiceStartPhaseReResolvesProviderSettingsBeforeEx
 	if capturedRequests[0].EndpointSummary == nil || *capturedRequests[0].EndpointSummary != "http://localhost:1234/v1" {
 		t.Fatalf("expected provider request to use re-resolved endpoint summary, got %#v", capturedRequests[0])
 	}
+	if capturedRequests[0].RequestUnitID == "" {
+		t.Fatalf("expected provider request to carry request unit id, got %#v", capturedRequests[0])
+	}
 }
 
 func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadStalls(t *testing.T) {

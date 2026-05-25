@@ -1402,7 +1402,7 @@ func (service *PersonaGenerationPhaseService) executePhaseRun(
 		}
 		runSnapshot = nextSnapshot
 	}
-	logPersonaGenerationBulkSummary(ctx, snapshot, runSnapshot, failures)
+	logPersonaGenerationBulkSummary(ctx, snapshot, runSnapshot, failures, run.AIProvider)
 	return service.finishPhaseRun(ctx, run, snapshot, runSnapshot, failures)
 }
 
@@ -1411,11 +1411,17 @@ func logPersonaGenerationBulkSummary(
 	snapshot personaGenerationTargetSnapshot,
 	runSnapshot personaGenerationRunSnapshot,
 	failures []personaGenerationExecutionFailure,
+	providers ...string,
 ) {
+	provider := ""
+	if len(providers) > 0 {
+		provider = providers[0]
+	}
 	attrs := []slog.Attr{
 		slog.String("event", "persona_generation_bulk_summary"),
 		slog.String("where", "backend.service.persona_generation_phase.provider_execution"),
 		slog.String("result", "completed"),
+		slog.String("provider", strings.TrimSpace(provider)),
 		slog.Int("input_count", snapshot.targetCount),
 		slog.Int("output_count", runSnapshot.totalLinkedCount),
 		slog.Int("skipped_count", len(snapshot.skippedReasons)),
@@ -2338,11 +2344,11 @@ func (service *PersonaGenerationPhaseService) aggregatePromptDigest(
 		if err != nil {
 			return ""
 		}
-		prompt, err := BuildPersonaGenerationPrompt(request)
+		envelope, err := BuildPersonaGenerationPromptEnvelope(request)
 		if err != nil {
 			return ""
 		}
-		digests = append(digests, personaGenerationPromptDigest(prompt))
+		digests = append(digests, string(envelope.Digest))
 	}
 	sort.Strings(digests)
 	builder := strings.Builder{}

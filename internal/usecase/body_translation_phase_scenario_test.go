@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
@@ -169,6 +170,100 @@ func TestSCN_BTP_002_InputSnapshotCarriesDigestAndDictionaryRequestSummary(t *te
 	}
 }
 
+func TestSCN_BTP_008_StartPublicResultExposesOnlySafePromptSummary(t *testing.T) {
+	phaseRunID := int64(504)
+	fake := &fakeBodyTranslationScenarioService{
+		startReadiness: service.BodyTranslationPhaseCommandReadModel{
+			JobID:        1005,
+			CurrentPhase: "body_translation",
+			PhaseState:   "running",
+			PhaseRunID:   &phaseRunID,
+			InputSummary: service.BodyTranslationPhaseInputSummaryReadModel{
+				TargetCount:      2,
+				DictionaryDigest: "sha256:dictionary-safe-summary",
+				PersonaDigest:    "sha256:persona-safe-summary",
+				MetadataDigest:   "sha256:metadata-safe-summary",
+				PromptDigest:     "sha256:prompt-safe-summary",
+			},
+			RequestSummary: service.BodyTranslationPhaseRequestSummaryReadModel{
+				ProviderTargetCount:              2,
+				ExactDictionaryExclusionCount:    1,
+				PartialDictionaryConstraintCount: 1,
+			},
+			Execution: service.BodyTranslationPhaseExecutionSummaryReadModel{
+				CredentialRef:    "credential:body:redacted",
+				CredentialState:  "configured",
+				Provider:         "fake",
+				Model:            "body-model",
+				ExecutionMode:    "single_request",
+				RequestUnitCount: 2,
+				OutputCount:      0,
+			},
+		},
+	}
+	phaseUsecase := NewBodyTranslationPhaseUsecase(fake)
+
+	// SCN-01: backend 開始結果は生成指示全文ではなく digest と件数だけを公開する。
+	result, err := phaseUsecase.StartBodyTranslationPhase(context.Background(), StartBodyTranslationPhaseRequest{JobID: 1005})
+	if err != nil {
+		t.Fatalf("SCN-01 expected safe public start summary: %v", err)
+	}
+	if result.InputSummary.PromptDigest != "sha256:prompt-safe-summary" {
+		t.Fatalf("SCN-01 expected prompt digest in public result, got %#v", result.InputSummary)
+	}
+	if result.RequestSummary.ProviderTargetCount != 2 || result.Execution.RequestUnitCount != 2 {
+		t.Fatalf("SCN-01 expected provider counts in public result, got request=%#v execution=%#v", result.RequestSummary, result.Execution)
+	}
+	assertBodyTranslationScenarioJSONOmitsForbiddenValues(t, result)
+}
+
+func TestSCN_BTP_008_StartInvalidProviderResponseReturnsRedactedFailureKind(t *testing.T) {
+	phaseRunID := int64(505)
+	fake := &fakeBodyTranslationScenarioService{
+		startReadiness: service.BodyTranslationPhaseCommandReadModel{
+			JobID:        1006,
+			CurrentPhase: "body_translation",
+			PhaseState:   "recoverable_failed",
+			PhaseRunID:   &phaseRunID,
+			InputSummary: service.BodyTranslationPhaseInputSummaryReadModel{
+				TargetCount:  1,
+				PromptDigest: "sha256:invalid-provider-response-prompt",
+			},
+			Execution: service.BodyTranslationPhaseExecutionSummaryReadModel{
+				Provider:         "fake",
+				Model:            "body-model",
+				ExecutionMode:    "single_request",
+				RequestUnitCount: 1,
+				OutputCount:      0,
+			},
+			ErrorSummary: &service.BodyTranslationPhaseErrorSummaryReadModel{
+				ErrorKind:  " INVALID_PROVIDER_RESPONSE ",
+				Reason:     "provider response failed body translation validation",
+				Retryable:  true,
+				IsRedacted: true,
+			},
+		},
+		err: errors.New("provider response failed validation"),
+	}
+	phaseUsecase := NewBodyTranslationPhaseUsecase(fake)
+
+	// SCN-01: invalid provider response は本文翻訳フェーズの失敗分類だけを公開する。
+	result, err := phaseUsecase.StartBodyTranslationPhase(context.Background(), StartBodyTranslationPhaseRequest{JobID: 1006})
+	if err == nil {
+		t.Fatal("SCN-01 expected invalid provider response failure")
+	}
+	if result.ErrorSummary == nil {
+		t.Fatal("SCN-01 expected redacted error summary")
+	}
+	if result.ErrorSummary.ErrorKind != BodyTranslationPhaseErrorKindInvalidProviderResponse {
+		t.Fatalf("SCN-01 expected invalid provider response kind, got %#v", result.ErrorSummary)
+	}
+	if !result.ErrorSummary.IsRedacted || !result.ErrorSummary.Retryable {
+		t.Fatalf("SCN-01 expected retryable redacted failure, got %#v", result.ErrorSummary)
+	}
+	assertBodyTranslationScenarioJSONOmitsForbiddenValues(t, result)
+}
+
 func TestSCN_BTP_008_ZeroTargetCompletesWithoutProviderAndEnablesOutputReadiness(t *testing.T) {
 	phaseRunID := int64(503)
 	fake := &fakeBodyTranslationScenarioService{
@@ -230,5 +325,31 @@ func assertNonEmptyBodyDigest(t *testing.T, name string, digest string) {
 	t.Helper()
 	if strings.TrimSpace(digest) == "" {
 		t.Fatalf("expected non-empty %s digest", name)
+	}
+}
+
+func assertBodyTranslationScenarioJSONOmitsForbiddenValues(t *testing.T, value any) {
+	t.Helper()
+	payload, err := json.Marshal(value)
+	if err != nil {
+		t.Fatalf("expected scenario result to marshal: %v", err)
+	}
+	serialized := string(payload)
+	for _, forbidden := range []string{
+		"sk-live-secret",
+		"raw prompt with protected source text",
+		"provider raw response body",
+		"api_key",
+		"authorization",
+		"token",
+		"raw_prompt",
+		"provider_raw_request",
+		"provider_raw_response",
+		"Whiterun protected source sentence",
+		"conversation context full text",
+	} {
+		if strings.Contains(serialized, forbidden) {
+			t.Fatalf("expected public scenario result to omit %q, got %s", forbidden, serialized)
+		}
 	}
 }

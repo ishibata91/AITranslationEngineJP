@@ -33,6 +33,81 @@ func TestBuildPersonaGenerationPromptIncludesAttributesAndContext(t *testing.T) 
 	}
 }
 
+func TestPersonaGenerationPromptBuilderBuildsOneNPCEnvelopeWithoutRawPromptSummary(t *testing.T) {
+	builder := NewPersonaGenerationPromptBuilder()
+	input := PersonaGenerationPromptInput{
+		RequestUnitID:            "unit-1",
+		NPCCorrelationID:         "npc-1",
+		NPCDisplayName:           "Lydia",
+		NPCEditorID:              "HousecarlWhiterun",
+		NPCFormID:                "000A2C94",
+		NPCAttributes:            []string{"housecarl", "loyal"},
+		ConversationContext:      []string{"守る対象はドラゴンボーン。"},
+		CommonPersonaSummary:     "使命感が強い。",
+		RecentOriginalUtterances: []string{"I am sworn to carry your burdens."},
+	}
+
+	envelope, err := builder.Build(input)
+	if err != nil {
+		t.Fatalf("expected envelope builder success: %v", err)
+	}
+
+	if !strings.Contains(envelope.RawPrompt, "request_unit_id=unit-1") ||
+		!strings.Contains(envelope.RawPrompt, "npc_correlation_id=npc-1") ||
+		!strings.Contains(envelope.RawPrompt, "npc_display_name=Lydia") {
+		t.Fatalf("expected prompt to include one NPC correlation fields: %s", envelope.RawPrompt)
+	}
+	if !strings.Contains(envelope.RawPrompt, "conversation_context:\n- 守る対象はドラゴンボーン。") ||
+		!strings.Contains(envelope.RawPrompt, "recent_original_utterances:\n- I am sworn to carry your burdens.") {
+		t.Fatalf("expected prompt to include protected source values internally: %s", envelope.RawPrompt)
+	}
+	if envelope.RequestShapeID != PersonaGenerationRequestShapeV1 {
+		t.Fatalf("unexpected request shape id: %#v", envelope)
+	}
+	if envelope.Summary.InputCount != 1 ||
+		envelope.Summary.ExecutionMode != PersonaGenerationExecutionModeSingleRequest {
+		t.Fatalf("unexpected safe summary: %#v", envelope.Summary)
+	}
+	if strings.Contains(strings.Join(envelope.Summary.CorrelationIDs, "\n"), "I am sworn") ||
+		strings.Contains(strings.Join(envelope.Summary.CorrelationIDs, "\n"), "守る対象") {
+		t.Fatalf("safe summary must not include raw utterance or context: %#v", envelope.Summary)
+	}
+	if envelope.Summary.Counts["npc_attributes"] != 2 ||
+		envelope.Summary.Counts["conversation_context"] != 1 ||
+		envelope.Summary.Counts["recent_original_utterances"] != 1 ||
+		envelope.Summary.Counts["common_persona_summary_unit"] != 1 {
+		t.Fatalf("unexpected safe summary counts: %#v", envelope.Summary.Counts)
+	}
+}
+
+func TestBuildPersonaGenerationPromptEnvelopeAdaptsProviderRequestToPromptInput(t *testing.T) {
+	request := PersonaGenerationProviderRequest{
+		RequestUnitID:            "unit-1",
+		NPCCorrelationID:         "npc-1",
+		NPCDisplayName:           "Lydia",
+		NPCEditorID:              "HousecarlWhiterun",
+		NPCFormID:                "000A2C94",
+		NPCAttributes:            []string{"housecarl"},
+		ConversationContext:      []string{"守る対象はドラゴンボーン。"},
+		CommonPersonaSummary:     "使命感が強い。",
+		RecentOriginalUtterances: []string{"I am sworn to carry your burdens."},
+	}
+
+	envelope, err := BuildPersonaGenerationPromptEnvelope(request)
+	if err != nil {
+		t.Fatalf("expected provider request wrapper success: %v", err)
+	}
+
+	if !strings.Contains(envelope.RawPrompt, "npc_editor_id=HousecarlWhiterun") ||
+		!strings.Contains(envelope.RawPrompt, "common_persona_summary=使命感が強い。") {
+		t.Fatalf("expected wrapper to preserve prompt input values: %s", envelope.RawPrompt)
+	}
+	if strings.Contains(strings.Join(envelope.Summary.CorrelationIDs, "\n"), "I am sworn") ||
+		strings.Contains(strings.Join(envelope.Summary.CorrelationIDs, "\n"), "守る対象") {
+		t.Fatalf("safe summary must not include raw utterance or context: %#v", envelope.Summary)
+	}
+}
+
 func TestPersonaGenerationProviderAdapterMapsValidResponse(t *testing.T) {
 	client := stubPersonaGenerationProviderClient{
 		response: stubPersonaGenerationClientResponse{
@@ -83,8 +158,16 @@ func TestPersonaGenerationProviderAdapterMapsValidResponse(t *testing.T) {
 	if result.AuditSummary.CredentialRef != "persona-ref" {
 		t.Fatalf("expected credential ref passthrough, got %#v", result.AuditSummary)
 	}
+	if result.AuditSummary.RequestShapeID != PersonaGenerationRequestShapeV1 ||
+		!strings.HasPrefix(result.AuditSummary.PromptDigest, "sha256:") {
+		t.Fatalf("expected prompt digest and request shape id, got %#v", result.AuditSummary)
+	}
 	if !result.DebugLog.SecretRedacted || result.DebugLog.Headers["Authorization"] != "[REDACTED]" {
 		t.Fatalf("expected redacted debug log, got %#v", result.DebugLog)
+	}
+	if strings.Contains(result.DebugLog.Prompt, PersonaGenerationRequestShapeV1) ||
+		strings.Contains(result.DebugLog.RequestBody, "{\"messages\":[]}") {
+		t.Fatalf("expected redacted debug log payloads, got %#v", result.DebugLog)
 	}
 }
 
@@ -95,6 +178,42 @@ func TestPersonaGenerationProviderAdapterRejectsMismatchedCorrelation(t *testing
 				RequestUnitID:    "unit-1",
 				NPCCorrelationID: "npc-other",
 				PersonaBody:      "persona",
+			}},
+			ExecutionMode: PersonaGenerationExecutionModeSingleRequest,
+			PromptDigest:  "sha256:from-client",
+		},
+	})
+
+	result := adapter.GeneratePersona(context.Background(), PersonaGenerationProviderRequest{
+		Provider:                 PersonaGenerationProviderGemini,
+		Model:                    "gemini-model",
+		ExecutionMode:            PersonaGenerationExecutionModeSingleRequest,
+		RequestUnitID:            "unit-1",
+		NPCCorrelationID:         "npc-1",
+		NPCDisplayName:           "Lydia",
+		ConversationContext:      []string{"ctx"},
+		RecentOriginalUtterances: []string{"line"},
+	})
+
+	if result.Failure == nil {
+		t.Fatal("expected invalid response failure")
+	}
+	if result.Failure.Kind != PersonaGenerationProviderErrorKindInvalidProviderResponse || !result.Failure.Retryable {
+		t.Fatalf("unexpected failure: %#v", result.Failure)
+	}
+	if result.PersonaBody != "" {
+		t.Fatalf("unexpected persona body on invalid response: %q", result.PersonaBody)
+	}
+}
+
+func TestPersonaGenerationProviderAdapterRejectsEmptyPersonaBody(t *testing.T) {
+	// 空ペルソナ本文は NPC 単位の invalid response として扱う。
+	adapter := NewPersonaGenerationProviderAdapter(stubPersonaGenerationProviderClient{
+		response: stubPersonaGenerationClientResponse{
+			Items: []stubPersonaGenerationClientItem{{
+				RequestUnitID:    "unit-1",
+				NPCCorrelationID: "npc-1",
+				PersonaBody:      " ",
 			}},
 			ExecutionMode: PersonaGenerationExecutionModeSingleRequest,
 			PromptDigest:  "sha256:from-client",

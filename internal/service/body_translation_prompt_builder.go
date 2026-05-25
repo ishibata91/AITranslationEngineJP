@@ -13,7 +13,6 @@ const (
 	BodyTranslationExecutionModeSingleRequest = "single_request"
 
 	bodyTranslationPromptFallbackNone         = "- none"
-	bodyTranslationPromptVersionV1            = "BODY_TRANSLATION_REQUEST_V1"
 	bodyTranslationTargetLanguageDefaultValue = "Japanese"
 	bodyTranslationSourceLanguageDefaultValue = "source"
 )
@@ -37,6 +36,30 @@ type BodyTranslationProtectedElement struct {
 	Digest      string
 }
 
+// BodyTranslationPromptInput defines one body translation prompt generation unit.
+type BodyTranslationPromptInput struct {
+	ExecutionMode           string
+	RequestUnitID           string
+	FieldCorrelationKey     string
+	RecordType              string
+	FieldType               string
+	SourceText              string
+	SourceLanguage          string
+	TargetLanguage          string
+	PersonaSummary          string
+	ContextLines            []string
+	CompleteMatchExclusions []BodyTranslationDictionaryExactMatchExclusion
+	PartialMatchConstraints []BodyTranslationPartialMatchConstraint
+	ProtectedElements       []BodyTranslationProtectedElement
+}
+
+// BodyTranslationPromptBuilder builds a prompt envelope for one body translation unit.
+type BodyTranslationPromptBuilder interface {
+	Build(input BodyTranslationPromptInput) (PromptEnvelope, error)
+}
+
+type defaultBodyTranslationPromptBuilder struct{}
+
 // BodyTranslationProviderRequestSummary exposes provider request metadata without secrets or raw prompts.
 type BodyTranslationProviderRequestSummary struct {
 	RequestUnitID               string
@@ -44,74 +67,125 @@ type BodyTranslationProviderRequestSummary struct {
 	RecordType                  string
 	FieldType                   string
 	ProtectionSourceDigest      string
-	ProtectedElementDigests     []string
-	CompleteMatchExclusions     []BodyTranslationDictionaryExactMatchExclusion
-	PartialMatchConstraints     []BodyTranslationPartialMatchConstraint
 	ProtectedElementCount       int
 	CompleteMatchExclusionCount int
 	PartialMatchConstraintCount int
 }
 
+// NewBodyTranslationPromptBuilder creates the default body translation prompt builder.
+func NewBodyTranslationPromptBuilder() BodyTranslationPromptBuilder {
+	return defaultBodyTranslationPromptBuilder{}
+}
+
+// Build returns the internal prompt handoff unit for one body translation field.
+func (builder defaultBodyTranslationPromptBuilder) Build(input BodyTranslationPromptInput) (PromptEnvelope, error) {
+	prompt, summary, err := buildBodyTranslationPrompt(input)
+	if err != nil {
+		return PromptEnvelope{}, err
+	}
+	envelope, err := NewPromptEnvelope(prompt, BodyTranslationRequestShapeV1, summary)
+	if err != nil {
+		return PromptEnvelope{}, fmt.Errorf("build body translation prompt envelope: %w", err)
+	}
+	return envelope, nil
+}
+
 // BuildBodyTranslationPrompt returns the strict JSON-only prompt for one body translation request unit.
 func BuildBodyTranslationPrompt(request BodyTranslationProviderRequest) (string, error) {
-	requestUnitID := strings.TrimSpace(request.RequestUnitID)
-	if requestUnitID == "" {
-		return "", fmt.Errorf("body translation request unit id is required")
-	}
-	fieldCorrelationKey := strings.TrimSpace(request.FieldCorrelationKey)
-	if fieldCorrelationKey == "" {
-		return "", fmt.Errorf("body translation field correlation key is required")
-	}
-	recordType := strings.TrimSpace(request.RecordType)
-	if recordType == "" {
-		return "", fmt.Errorf("body translation record type is required")
-	}
-	fieldType := strings.TrimSpace(request.FieldType)
-	if fieldType == "" {
-		return "", fmt.Errorf("body translation field type is required")
-	}
-	sourceText := strings.TrimSpace(request.SourceText)
-	if sourceText == "" {
-		return "", fmt.Errorf("body translation source text is required")
-	}
-
-	executionMode, err := normalizeBodyTranslationExecutionMode(request.ExecutionMode)
+	envelope, err := BuildBodyTranslationPromptEnvelope(request)
 	if err != nil {
 		return "", err
 	}
+	return envelope.RawPrompt, nil
+}
 
-	sourceLanguage := strings.TrimSpace(request.SourceLanguage)
+// BuildBodyTranslationPromptEnvelope returns the internal prompt handoff unit for one translation field.
+func BuildBodyTranslationPromptEnvelope(request BodyTranslationProviderRequest) (PromptEnvelope, error) {
+	input := bodyTranslationPromptInputFromProviderRequest(request)
+	envelope, err := NewBodyTranslationPromptBuilder().Build(input)
+	if err != nil {
+		return PromptEnvelope{}, fmt.Errorf("build body translation prompt envelope from provider request: %w", err)
+	}
+	return envelope, nil
+}
+
+func bodyTranslationPromptInputFromProviderRequest(request BodyTranslationProviderRequest) BodyTranslationPromptInput {
+	return BodyTranslationPromptInput{
+		ExecutionMode:           request.ExecutionMode,
+		RequestUnitID:           request.RequestUnitID,
+		FieldCorrelationKey:     request.FieldCorrelationKey,
+		RecordType:              request.RecordType,
+		FieldType:               request.FieldType,
+		SourceText:              request.SourceText,
+		SourceLanguage:          request.SourceLanguage,
+		TargetLanguage:          request.TargetLanguage,
+		PersonaSummary:          request.PersonaSummary,
+		ContextLines:            append([]string(nil), request.ContextLines...),
+		CompleteMatchExclusions: append([]BodyTranslationDictionaryExactMatchExclusion(nil), request.CompleteMatchExclusions...),
+		PartialMatchConstraints: append([]BodyTranslationPartialMatchConstraint(nil), request.PartialMatchConstraints...),
+		ProtectedElements:       append([]BodyTranslationProtectedElement(nil), request.ProtectedElements...),
+	}
+}
+
+func buildBodyTranslationPrompt(input BodyTranslationPromptInput) (string, PromptSafeSummary, error) {
+	requestUnitID := strings.TrimSpace(input.RequestUnitID)
+	if requestUnitID == "" {
+		return "", PromptSafeSummary{}, fmt.Errorf("body translation request unit id is required")
+	}
+	fieldCorrelationKey := strings.TrimSpace(input.FieldCorrelationKey)
+	if fieldCorrelationKey == "" {
+		return "", PromptSafeSummary{}, fmt.Errorf("body translation field correlation key is required")
+	}
+	recordType := strings.TrimSpace(input.RecordType)
+	if recordType == "" {
+		return "", PromptSafeSummary{}, fmt.Errorf("body translation record type is required")
+	}
+	fieldType := strings.TrimSpace(input.FieldType)
+	if fieldType == "" {
+		return "", PromptSafeSummary{}, fmt.Errorf("body translation field type is required")
+	}
+	sourceText := strings.TrimSpace(input.SourceText)
+	if sourceText == "" {
+		return "", PromptSafeSummary{}, fmt.Errorf("body translation source text is required")
+	}
+
+	executionMode, err := normalizeBodyTranslationExecutionMode(input.ExecutionMode)
+	if err != nil {
+		return "", PromptSafeSummary{}, err
+	}
+
+	sourceLanguage := strings.TrimSpace(input.SourceLanguage)
 	if sourceLanguage == "" {
 		sourceLanguage = bodyTranslationSourceLanguageDefaultValue
 	}
-	targetLanguage := strings.TrimSpace(request.TargetLanguage)
+	targetLanguage := strings.TrimSpace(input.TargetLanguage)
 	if targetLanguage == "" {
 		targetLanguage = bodyTranslationTargetLanguageDefaultValue
 	}
 
-	personaSummary := strings.TrimSpace(request.PersonaSummary)
+	personaSummary := strings.TrimSpace(input.PersonaSummary)
 	if personaSummary == "" {
 		personaSummary = "none"
 	}
 
-	completeMatchExclusions, err := normalizeBodyTranslationExactMatchExclusions(request.CompleteMatchExclusions)
+	completeMatchExclusions, err := normalizeBodyTranslationExactMatchExclusions(input.CompleteMatchExclusions)
 	if err != nil {
-		return "", err
+		return "", PromptSafeSummary{}, err
 	}
-	partialMatchConstraints, err := normalizeBodyTranslationPartialMatchConstraints(request.PartialMatchConstraints)
+	partialMatchConstraints, err := normalizeBodyTranslationPartialMatchConstraints(input.PartialMatchConstraints)
 	if err != nil {
-		return "", err
+		return "", PromptSafeSummary{}, err
 	}
-	protectedElements, err := normalizeBodyTranslationProtectedElements(request.ProtectedElements)
+	protectedElements, err := normalizeBodyTranslationProtectedElements(input.ProtectedElements)
 	if err != nil {
-		return "", err
+		return "", PromptSafeSummary{}, err
 	}
 
-	contextLines := normalizeBodyTranslationPromptLines(request.ContextLines, bodyTranslationPromptFallbackNone)
+	contextLines := normalizeBodyTranslationPromptLines(input.ContextLines, bodyTranslationPromptFallbackNone)
 	instructionLines := buildBodyTranslationInstructionLines(recordType, fieldType)
 
-	return strings.TrimSpace(strings.Join([]string{
-		bodyTranslationPromptVersionV1,
+	rawPrompt := strings.TrimSpace(strings.Join([]string{
+		BodyTranslationRequestShapeV1,
 		"Return strict JSON only.",
 		`Use the exact shape {"translations":[{"request_unit_id":"...","field_correlation_key":"...","translated_text":"..."}]}.`,
 		"Do not add markdown, commentary, or extra keys.",
@@ -136,22 +210,27 @@ func BuildBodyTranslationPrompt(request BodyTranslationProviderRequest) (string,
 		"protected_elements:",
 		strings.Join(renderBodyTranslationProtectedElements(protectedElements), "\n"),
 		"source_text=" + sourceText,
-	}, "\n")), nil
+	}, "\n"))
+	return rawPrompt, PromptSafeSummary{
+		InputCount:     1,
+		ExecutionMode:  executionMode,
+		CorrelationIDs: []string{requestUnitID, fieldCorrelationKey},
+		Counts: map[string]int{
+			"protected_elements":        len(protectedElements),
+			"complete_match_exclusions": len(completeMatchExclusions),
+			"partial_match_constraints": len(partialMatchConstraints),
+		},
+	}, nil
 }
 
 func bodyTranslationPromptDigest(prompt string) string {
-	digest := sha256.Sum256([]byte(strings.TrimSpace(prompt)))
-	return "sha256:" + hex.EncodeToString(digest[:])
+	return PromptDigestString(prompt)
 }
 
 func buildBodyTranslationRequestSummary(request BodyTranslationProviderRequest) BodyTranslationProviderRequestSummary {
 	exclusions, _ := normalizeBodyTranslationExactMatchExclusions(request.CompleteMatchExclusions)
 	constraints, _ := normalizeBodyTranslationPartialMatchConstraints(request.PartialMatchConstraints)
 	protectedElements, _ := normalizeBodyTranslationProtectedElements(request.ProtectedElements)
-	digests := make([]string, 0, len(protectedElements))
-	for _, element := range protectedElements {
-		digests = append(digests, element.Digest)
-	}
 
 	return BodyTranslationProviderRequestSummary{
 		RequestUnitID:               strings.TrimSpace(request.RequestUnitID),
@@ -159,9 +238,6 @@ func buildBodyTranslationRequestSummary(request BodyTranslationProviderRequest) 
 		RecordType:                  strings.TrimSpace(request.RecordType),
 		FieldType:                   strings.TrimSpace(request.FieldType),
 		ProtectionSourceDigest:      buildBodyTranslationProtectionSourceDigest(protectedElements),
-		ProtectedElementDigests:     digests,
-		CompleteMatchExclusions:     exclusions,
-		PartialMatchConstraints:     constraints,
 		ProtectedElementCount:       len(protectedElements),
 		CompleteMatchExclusionCount: len(exclusions),
 		PartialMatchConstraintCount: len(constraints),

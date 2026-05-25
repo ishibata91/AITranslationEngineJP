@@ -1,7 +1,6 @@
 import { expect, test, type Locator, type Page } from "@playwright/test"
 
-const JOB_MANAGEMENT_URL =
-  "/?fakeApi=1&fakeScenario=success#translation-management"
+const JOB_MANAGEMENT_URL = "/#translation-management"
 
 const FORBIDDEN_SECRET_TEXTS = [
   "api key",
@@ -40,6 +39,7 @@ function cardActions(card: Locator) {
 test("SCN-TJM-001 translation-job-management lists incomplete jobs and excludes completed", async ({
   page
 }) => {
+  // 実 backend の seeded DB から、未完了 job だけが一覧化されることを証明する。
   await openJobManagement(page)
 
   const cards = jobCards(page)
@@ -67,6 +67,7 @@ test("SCN-TJM-001 translation-job-management lists incomplete jobs and excludes 
 test("SCN-TJM-003 translation-job-management opens selected job in Job Run", async ({
   page
 }) => {
+  // 実 backend の一覧で選んだ job が、Job Run の選択状態へ引き継がれることを証明する。
   await openJobManagement(page)
 
   const firstCard = jobCards(page).first()
@@ -90,6 +91,7 @@ test("SCN-TJM-003 translation-job-management opens selected job in Job Run", asy
 test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows operation entries and blocked reasons", async ({
   page
 }) => {
+  // 実 backend の job 状態に応じて、操作可否と理由が表示されることを証明する。
   await openJobManagement(page)
 
   const runningCard = jobCards(page).filter({ hasText: "実行中" }).first()
@@ -127,6 +129,7 @@ test("SCN-TJM-005 and SCN-TJM-007 translation-job-management shows operation ent
 test("SCN-TJM-009 translation-job-management does not expose secret text in UI or console", async ({
   page
 }) => {
+  // 実 backend の read model が、秘密値に相当する文字列を画面と console へ出さないことを証明する。
   const consoleMessages: string[] = []
   page.on("console", (message) => {
     consoleMessages.push(message.text())
