@@ -20,6 +20,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 - 設計前調査: `skills/investigate/SKILL.md`
 - 詳細仕様差分 (`detail-spec-design`): `skills/detail-spec-design/SKILL.md`
 - 実装スコープ (`implementation-scope`): `skills/implementation-scope/SKILL.md`
+- テスト設計 (`test-design`): `skills/test-design/SKILL.md`
 - 探索テスト計画 (`exploration-test-planning`): `skills/exploration-test-planning/SKILL.md`
 - 探索テストレーン (`exploration-test-lane`): `skills/exploration-test-lane/SKILL.md`
 - 軽量変更レーン (`light-change-lane`): `skills/light-change-lane/SKILL.md`
@@ -47,7 +48,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 
 ## Agent / Skill Boundary
 
-- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、修正レーン 進行役 (`fix_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、軽量変更レーン 進行役 (`light_change_lane`)、UX 保守レーン 進行役 (`ux_maintainance_lane`)、リファクタレーン 進行役 (`refactor_lane`)、マージレーン 進行役 (`merge_lane`)、軽量変更計画 agent (`light_change_planner`)、探索テスト計画 agent (`exploration_test_planner`)、設計成果物 agent (`designer`)、図作成 agent (`diagrammer`)、調査 agent (`investigator`)、修正方針判断 agent (`fix_decider`)、実装時調査 agent (`implementation_investigator`)、実装後ブラウザ確認 agent (`browser_confirmation`)、backend 実装 agent (`backend_implementer`)、frontend 実装 agent (`frontend_implementer`)、統合境界実装 agent (`integration_implementer`)、観測ログ追加 agent (`observability_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、観点別 レビュー agent にする
+- live Codex agent は新規実装レーン 進行役 (`implement_lane`)、修正レーン 進行役 (`fix_lane`)、探索テストレーン 進行役 (`exploration_test_lane`)、軽量変更レーン 進行役 (`light_change_lane`)、UX 保守レーン 進行役 (`ux_maintainance_lane`)、リファクタレーン 進行役 (`refactor_lane`)、マージレーン 進行役 (`merge_lane`)、軽量変更計画 agent (`light_change_planner`)、探索テスト計画 agent (`exploration_test_planner`)、設計成果物 agent (`designer`)、テスト設計 agent (`test_designer`)、図作成 agent (`diagrammer`)、調査 agent (`investigator`)、修正方針判断 agent (`fix_decider`)、実装時調査 agent (`implementation_investigator`)、実装後ブラウザ確認 agent (`browser_confirmation`)、backend 実装 agent (`backend_implementer`)、frontend 実装 agent (`frontend_implementer`)、統合境界実装 agent (`integration_implementer`)、観測ログ追加 agent (`observability_implementer`)、シナリオテスト 実装 agent (`implementation_scenario_tester`)、単体テスト 実装 agent (`implementation_unit_tester`)、docs 更新 agent (`docs_updater`)、観点別 レビュー agent にする
 - `implement_lane` は新規実装と機能拡張の task 内成果物 DAG、HITL、引き継ぎ、branch 準備、作業 commit、マージ準備入力を管理する
 - `fix_lane` は人間が確認した不具合、レビュー非通過、検証失敗の task 内成果物 DAG、起動入力、担当 agent 起動、停止、戻し、close 条件を管理する
 - `exploration_test_lane` は探索テストの task 内成果物 DAG、起動入力、停止、戻し、close 条件を管理する。探索計画、探索証跡、実装、回帰確認の担当 agent を分ける
@@ -59,12 +60,13 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 - `light_change_planner` は人間要望、仕様製本、関連 docs、task-local 成果物、既存実装を突き合わせ、軽量変更として進めるか、設計または修正レーンへ戻すかを判断する
 - `exploration_test_planner` は探索計画だけを作り、観測、ログ確認、画面確認、原因仮説の作成を扱わない
 - `designer` は呼び出し元レーンから渡された設計対象と根拠参照を読み、`detail-spec-diff.md` を詳細仕様差分として作る。画面変更がある時は `screen-design-diff.<screen-id>.md` を揃える。人間レビュー後に `implementation-scope` を固定する
+- `test_designer` は `implement_lane` から渡された承認済み詳細仕様差分、承認済み画面設計差分、関連ユースケースを読み、active plan 内の `test-design.csv` を固定する
 - `diagrammer` は `diagramming` に従い、人間設計レビュー前または軽量変更の実装着手前に、予定変更箇所だけの追加・削除差分を示すコンポーネント図を標準形として作る。シーケンス図、状態遷移図、その他の図はユーザー要求または複雑性がある場合だけ扱う。修正レーン標準形の原因箇所シーケンス図は扱わない
 - `fix_decider` は `fix-decision` に従い、修正前調査から原因の原因、責務境界、採用する修正方針、禁止する修正、原因箇所シーケンス図を固定する。修正前調査、人間修正レビュー、修正実行入力は扱わない
 - `browser_confirmation` は実装後ブラウザ確認の軽量実行だけを扱う。確認経路と期待値は `implement_lane`、`fix_lane`、`light_change_lane` が定義し、`browser_confirmation` は期待値の妥当性を判断しない
 - `observability_implementer` は `implement_lane` の `観測ログ追加` で、最終検証前に完成済み成果物を読み、実行後に消える原因分離材料を残す恒久ログだけを追加する
-- `designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
-- `implement_lane` は承認済み 実行成果物 を実行正本にし、`designer`、`diagrammer`、`implementation_investigator`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。設計中の `designer` と `diagrammer` は担当する設計成果物が承認済みまたは停止として記録されるまで閉じず、差し戻しまたは追加質問を会話文脈を維持した同じ agent へ返す。UI がある task では frontend 実装後に Storybook レビューループ入力を確認し、人間が別セッションで `story-book-review-loop` を実行する。`implement_lane` は Storybook レビューループの起動、Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を扱わない。Storybook レビューループ後に UI 変更がある場合は `designer` へ戻し、plan 内の画面設計成果物を更新させる。観測ログ追加 後に最終検証を行い、実装後ブラウザ確認 後に作業 commit、マージ準備入力を揃える
+- `designer`、`test_designer`、`exploration_test_planner`、`investigator`、`docs_updater` は 文脈 を引き継がず、引き継ぎ入力 だけで動く
+- `implement_lane` は承認済み 実行成果物 を実行正本にし、`designer`、`diagrammer`、`test_designer`、`implementation_investigator`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`、`browser_confirmation` を 文脈 継承なしで直接 起動 する。設計中の `designer` と `diagrammer` は担当する設計成果物が承認済みまたは停止として記録されるまで閉じず、差し戻しまたは追加質問を会話文脈を維持した同じ agent へ返す。`test_designer` は人間設計レビュー後に `implementation-scope` と並列で起動する。UI がある task では frontend 実装後に Storybook レビューループ入力を確認し、人間が別セッションで `story-book-review-loop` を実行する。`implement_lane` は Storybook レビューループの起動、Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を扱わない。Storybook レビューループ後に UI 変更がある場合は `designer` へ戻し、plan 内の画面設計成果物を更新させる。観測ログ追加 後に最終検証を行い、実装後ブラウザ確認 後に作業 commit、マージ準備入力を揃える
 - `light_change_lane` は `task 枠` と `軽量変更計画` を実行正本にし、`light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` を 文脈 継承なしで直接 起動 する。完了済みサブエージェントは完了結果を集約した後に閉じる
 - `ux_maintainance_lane` は `作業準備` と人間が立てた別セッションから返された `browser-use指摘記録` を実行正本にし、`frontend_implementer`、`integration_implementer`、`implementation_unit_tester`、`docs_updater` を 文脈 継承なしで直接 起動 する。Storybook レビューループは人間が別セッションで実行するため、`ux_maintainance_lane` は確定済みの人間指摘が返るまで停止し、Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正入力作成、`frontend_implementer` 再起動、修正結果判定を扱わない
 - `refactor_lane` は `task 枠`、`仕様実装優先判断`、`リファクタ範囲確認`、承認済み `implementation-scope` を実行正本にし、`investigator`、`designer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` を 文脈 継承なしで直接 起動 する。DAG 上で `refactor_lane` 以外が担当する成果物は、担当 agent のサブエージェント完了結果または停止結果だけを集約し、`refactor_lane` が本文を代筆しない。仕様と実装のどちらを正とするかは人間判断まで固定せず、実装または docs 正本化へ進めない
@@ -89,6 +91,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 - `implement_lane` は run の 終了処理、停止、戻し 時に、作業 commit とマージ準備入力を判断できる根拠を作る
 - `fix_lane` は人間観測、レビュー非通過、検証失敗、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビューを読み、修正実行入力、最終検証、レビュー通過根拠を管理する。調査、修正方針判断、実装、テスト、レビューは担当 agent を起動して委任し、プロダクトコードとプロダクトテストは変更しない
 - `designer` は 詳細仕様差分、画面設計差分、implementation-scope の task 内成果物を作る
+- `test_designer` は 承認済み詳細仕様差分、承認済み画面設計差分、関連ユースケースから active plan 内の `test-design.csv` を作る
 - `exploration_test_lane` は探索計画と探索証跡を読み、バグ一覧、ログ、影響ファイルを集約する。プロダクトコードとプロダクトテストは変更しない
 - `light_change_lane` は人間依頼、変更禁止範囲、確認したい結果を `task 枠` に固定し、軽量変更計画、実装、人間確認、テスト修正、レビュー、正本化判断を管理する。プロダクトコードとプロダクトテストは変更しない
 - `ux_maintainance_lane` は人間が立てた別セッションから返された Storybook 上の人間指摘を読み、frontend 修正入力、frontend 整理、接続整合証跡、単体テストメンテ、ハーネス通過、docs 正本化判断を管理する。人間の仕様変更指示がない仕様変更、プロダクトコード、プロダクトテスト、docs 正本本文は直接変更しない
@@ -116,7 +119,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 - 観点別 レビュー agent は広い ハーネス 再実行を担当せず、呼び出し元レーンから渡された検証証跡をレビュー入力として扱う
 - 観点別 レビュー agent は 失敗 または 停止 の場合も `reviewback.<観点>.yaml` に結果、根拠、未解決指摘を記録する
 - `reviewback.<観点>.yaml` はゲート判断用レビュー成果物とし、work_history 側に観点別の非通過 YAML は作らない
-- `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane`、`light_change_planner`、`exploration_test_planner`、`designer`、`diagrammer`、`investigator`、`browser_confirmation`、`docs_updater`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
+- `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane`、`light_change_planner`、`exploration_test_planner`、`designer`、`test_designer`、`diagrammer`、`investigator`、`browser_confirmation`、`docs_updater`、レビュー agent は プロダクトコード と プロダクトテスト を変更しない
 - プロダクトコード は `backend_implementer`、`frontend_implementer`、`integration_implementer`、`observability_implementer` だけが 承認済み実装範囲 または担当 agent の責務内に閉じる限定された影響範囲で変更できる
 - シナリオテスト は `implementation_scenario_tester` だけが 承認済み実装範囲 または今回のテスト変更が直接壊した担当テスト成果物の影響範囲で変更できる
 - 単体テスト は `implementation_unit_tester` だけが 承認済み実装範囲 または今回のテスト変更が直接壊した担当テスト成果物の影響範囲で変更できる
@@ -156,6 +159,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 | `設計差分図` | `diagrammer` | `詳細仕様差分`, `画面設計差分?` | `diagrammer` |
 | `人間設計レビュー` | human | `詳細仕様差分`, `画面設計差分?`, `設計差分図` | human |
 | `実装範囲` | `designer` | `人間設計レビュー` | `designer` |
+| `テスト設計` | `test_designer` | `人間設計レビュー` | `test_designer` |
 | `実装引き継ぎ入力` | `implement_lane` | `実装範囲` | なし |
 | `frontend 実装` | `frontend_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `frontend_implementer` |
 | `Storybookレビューループ入力確認` | `implement_lane` | `frontend 実装` | なし |
@@ -165,7 +169,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の
 | `合意済みfrontend保護` | `implement_lane` | `frontend 実装後人間レビュー`, `Storybook後画面設計差分整合?` | なし |
 | `backend 実装` | `backend_implementer` / `implement-backend` | `実装引き継ぎ入力`, `合意済みfrontend保護?` | `backend_implementer` |
 | `統合境界実装` | `integration_implementer` / `implement-integration` | `backend 実装`, `合意済みfrontend保護?` | `integration_implementer` |
-| `シナリオテスト` | `implementation_scenario_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_scenario_tester` |
+| `シナリオテスト` | `implementation_scenario_tester` | `テスト設計`, `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_scenario_tester` |
 | `単体テスト` | `implementation_unit_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_unit_tester` |
 | `観測ログ追加` | `observability_implementer` / `observability-implementer` | `backend 実装?`, `frontend 実装?`, `合意済みfrontend保護?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | `observability_implementer` |
 | `最終検証` | `implement_lane` | `観測ログ追加` | なし |

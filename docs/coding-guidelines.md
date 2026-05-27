@@ -1,6 +1,6 @@
 # コーディング規約
 
-関連文書: [`index.md`](./index.md), [`architecture.md`](./architecture.md), [`tech-selection.md`](./tech-selection.md), [`lint-policy.md`](./lint-policy.md)
+関連文書: [`index.md`](./index.md), [`architecture.md`](./architecture.md), [`tech-selection.md`](./tech-selection.md), [`lint-policy.md`](./lint-policy.md), [`e2e-test-guidelines.md`](./e2e-test-guidelines.md)
 
 本書は、実装規約の入口である。
 実装時に守る規約は、変更対象に合わせて frontend、backend、test の正本を読む。
@@ -11,6 +11,7 @@
 - frontend 実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md)
 - backend 実装規約: [`coding-guidelines-backend.md`](./coding-guidelines-backend.md)
 - test 実装規約: [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
+- UI 人間操作 E2E 規約: [`e2e-test-guidelines.md`](./e2e-test-guidelines.md)
 
 ## 2. ファイル分割方針
 

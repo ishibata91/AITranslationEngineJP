@@ -13,7 +13,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - `implement_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `task 枠`、`branch 準備`、`詳細仕様差分`、`画面設計差分`、`設計差分図`、`人間設計レビュー`、`実装範囲`、`実装引き継ぎ入力`、`frontend 実装`、`Storybookレビューループ入力確認`、`frontend 実装後人間レビュー`、`Storybook後画面設計差分整合`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`正本化判断`、`詳細仕様正本反映`、`作業 commit`、`マージ準備入力` とする。
+- 担当成果物は `task 枠`、`branch 準備`、`詳細仕様差分`、`画面設計差分`、`設計差分図`、`人間設計レビュー`、`実装範囲`、`テスト設計`、`実装引き継ぎ入力`、`frontend 実装`、`Storybookレビューループ入力確認`、`frontend 実装後人間レビュー`、`Storybook後画面設計差分整合`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`正本化判断`、`詳細仕様正本反映`、`作業 commit`、`マージ準備入力` とする。
 
 ## 入力規約
 
@@ -32,6 +32,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - エージェント実行定義 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) とする。
 - エージェント実行定義と実行境界は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) に従う。
 - 設計差分図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
+- テスト設計は [test-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/test-design/SKILL.md) に従う。
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
 - Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
 - Storybook レビューループは [story-book-review-loop](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/story-book-review-loop/SKILL.md) に従う。
@@ -61,6 +62,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `設計差分図` | はい | `diagrammer` | `詳細仕様差分`, `画面設計差分?` | `diagrammer` |
 | `人間設計レビュー` | はい | 人間 | `詳細仕様差分`, `画面設計差分?`, `設計差分図` | 人間 |
 | `実装範囲` | はい | `designer` | `人間設計レビュー` | `designer` |
+| `テスト設計` | はい | `test_designer` | `人間設計レビュー` | `test_designer` |
 | `実装引き継ぎ入力` | はい | `implement_lane` | `実装範囲` | なし |
 | `frontend 実装` | 条件付き | `frontend_implementer` / `implement-frontend` | `実装引き継ぎ入力` | `frontend_implementer` |
 | `Storybookレビューループ入力確認` | 条件付き | `implement_lane` | `frontend 実装` | なし |
@@ -70,7 +72,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 | `合意済みfrontend保護` | 条件付き | `implement_lane` | `frontend 実装後人間レビュー`, `Storybook後画面設計差分整合?` | なし |
 | `backend 実装` | 条件付き | `backend_implementer` / `implement-backend` | `実装引き継ぎ入力`, `合意済みfrontend保護?` | `backend_implementer` |
 | `統合境界実装` | 条件付き | `integration_implementer` / `implement-integration` | `backend 実装`, `合意済みfrontend保護?` | `integration_implementer` |
-| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_scenario_tester` |
+| `シナリオテスト` | 条件付き | `implementation_scenario_tester` | `テスト設計`, `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_scenario_tester` |
 | `単体テスト` | 条件付き | `implementation_unit_tester` | `backend 実装?`, `合意済みfrontend保護?`, `統合境界実装?` | `implementation_unit_tester` |
 | `観測ログ追加` | はい | `observability_implementer` / `observability-implementer` | `backend 実装?`, `frontend 実装?`, `合意済みfrontend保護?`, `統合境界実装?`, `シナリオテスト?`, `単体テスト?` | `observability_implementer` |
 | `最終検証` | 条件付き | `implement_lane` | `観測ログ追加` | なし |
@@ -133,7 +135,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 ### 成果物編集主体規約
 
 `implement_lane` は、`docs/exec-plans/active/<task-id>/` の中でも、担当者が `implement_lane` の成果物だけを直接作成または更新する。
-担当者が `designer`、`diagrammer`、`docs_updater`、実装 agent、テスト agent、`browser_confirmation` の成果物は、担当 agent の返却結果または人間介入状態を記録する場合だけ参照または転記する。
+担当者が `designer`、`diagrammer`、`test_designer`、`docs_updater`、実装 agent、テスト agent、`browser_confirmation` の成果物は、担当 agent の返却結果または人間介入状態を記録する場合だけ参照または転記する。
 担当 agent の成果物本文を `implement_lane` が代筆しない。
 
 | 成果物分類 | `implement_lane` の扱い |
@@ -145,6 +147,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 | `設計差分図` | `diagrammer` の担当成果物として扱い、本文を直接作成または更新しない。 |
 | `人間設計レビュー` | 人間の承認、差し戻し、追加質問を記録できる。 |
 | `実装範囲` | `designer` の担当成果物として扱い、本文を直接作成または更新しない。 |
+| `テスト設計` | `test_designer` の担当成果物として扱い、本文を直接作成または更新しない。 |
 | `実装引き継ぎ入力` | 承認済み `実装範囲` から直接作成または更新できる。 |
 | `Storybookレビューループ入力確認` | frontend 実装結果と既存成果物から入力の所在と不足項目だけを記録できる。 |
 | `Storybookレビューループ完了証跡` | 作業計画フォルダの `storybook-review-loop.md` の存在と完了状態だけを確認できる。 |
@@ -176,6 +179,10 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - 既存の `detail-spec-diff.md` または `screen-design-diff.<screen-id>.md` が不足している場合は、`designer` への戻し入力または人間への停止理由を固定する。
 - `designer` は `詳細仕様差分`、`画面設計差分`、`実装範囲` が承認済みまたは停止として記録されるまで閉じない。
 - `diagrammer` は `設計差分図` が承認済みまたは停止として記録されるまで閉じない。
+- `テスト設計` は `人間設計レビュー` 後、`実装範囲` と並列起動できる成果物として扱う。
+- `テスト設計` の起動入力には、作業計画フォルダ、承認済み詳細仕様差分、承認済み画面設計差分、関連ユースケース、承認記録、出力先 `test-design.csv` を含める。
+- `テスト設計` を起動できない場合は、`test-design.csv` を `implement_lane` が代筆せず、人間へ停止理由を返す。
+- `シナリオテスト` の起動入力には、`test-design.csv` を根拠として含める。
 - 人間設計レビューが差し戻しまたは追加質問の場合は、差し戻し対象を作成した同じ agent に会話文脈を維持したまま返す。
 - 同じ agent に差し戻しを返せない場合は、新規 agent で再作成せず、人間へ停止理由を返す。
 - 実装 agent の起動入力には、`backend_implementer`、`frontend_implementer`、`integration_implementer` のどれを起動するかを必ず明示する。
@@ -264,6 +271,8 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - Storybookレビューループ入力確認: 作業計画フォルダ、frontend 実装結果、frontend 実装境界の所在と不足項目を返す。
 - Storybookレビューループ完了証跡: 作業計画フォルダの `storybook-review-loop.md` の有無、承認状態、Storybook レビューループ画面仕様、frontend レビュー修正成果物、設計整合入力を返す。
 - Storybook後画面設計差分整合: `designer` の起動入力、更新対象の `screen-design-diff.<screen-id>.md`、更新結果、起動不能理由を返す。
+- テスト設計起動入力: `test_designer` 向けには、作業計画フォルダ、承認済み詳細仕様差分、承認済み画面設計差分、関連ユースケース、承認記録、出力先を渡す。
+- テスト設計: `test-design.csv`、根拠参照、不足情報、未決 selector、戻し先を返す。
 - 合意済みfrontend保護: 承認済み画面、承認済み表示規則、確認済みStorybook状態、通常分類へ戻した Storybook確認資源、Storybook画面仕様、変更禁止範囲を返す。
 - branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
 - 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
@@ -286,6 +295,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - UI が関係し、Storybook レビューループ後に画面仕様変更がある場合は、`Storybook後画面設計差分整合` の完了結果または停止理由が記録されている。
 - UI が関係する場合は、`合意済みfrontend保護` が固定されている。
 - 人間レビュー が必要な場合は承認、差し戻し、追加質問のいずれかが記録されている。
+- `テスト設計` が完了しているか、停止理由が記録されている。
 - 人間設計レビューの差し戻しまたは追加質問がある場合は、同じ設計中 agent に戻した結果、または戻せない停止理由が記録されている。
 - `統合境界実装` がある場合は、実画面確認結果が 根拠参照 付きで確認されている。
 - `backend 実装`、`frontend 実装`、`統合境界実装`、`シナリオテスト`、`単体テスト` 後は `観測ログ追加`、`最終検証`、`実装後ブラウザ確認` が 根拠参照 付きで確認されている。
@@ -312,6 +322,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - 人間レビュー が必要な判断を AI だけで確定しそうな場合は停止する。
 - `designer` 担当成果物の本文を `implement_lane` が直接作成または更新しそうな場合は停止する。
 - `diagrammer` 担当成果物の本文を `implement_lane` が直接作成または更新しそうな場合は停止する。
+- `test_designer` 担当成果物の本文を `implement_lane` が直接作成または更新しそうな場合は停止する。
 - `docs_updater` 担当成果物の本文を `implement_lane` が直接作成または更新しそうな場合は停止する。
 - 承認済み `実装範囲` なしで `backend 実装`、`frontend 実装`、`統合境界実装` が必要な場合は停止する。
 - UI が関係する task で作業計画フォルダ、frontend 実装結果、frontend 実装境界の所在が不足するまま `frontend 実装後人間レビュー` へ進みそうな場合は停止する。

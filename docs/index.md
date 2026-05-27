@@ -15,15 +15,17 @@
 5. [`tech-selection.md`](./tech-selection.md)
 6. [`coding-guidelines.md`](./coding-guidelines.md)
 7. 変更対象に対応する実装規約: [`coding-guidelines-frontend.md`](./coding-guidelines-frontend.md), [`coding-guidelines-backend.md`](./coding-guidelines-backend.md), [`coding-guidelines-tests.md`](./coding-guidelines-tests.md)
-8. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
-9. [`UX-standard.md`](./UX-standard.md)
-10. [`lint-policy.md`](./lint-policy.md)
-11. [`er.md`](./er.md)
-12. Relevant file under [`screen-design/`](./screen-design/README.md)
-13. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
-14. Relevant file under [`detail-specs/`](./detail-specs/README.md)
-15. Relevant file under [`exec-plans/`](./exec-plans/)
-16. Relevant file under [`references/`](./references/)
+8. UI 人間操作 E2E を変更する場合: [`e2e-test-guidelines.md`](./e2e-test-guidelines.md)
+9. 観測ログを変更する場合: [`observability-logging.md`](./observability-logging.md)
+10. [`UX-standard.md`](./UX-standard.md)
+11. [`lint-policy.md`](./lint-policy.md)
+12. [`er.md`](./er.md)
+13. Relevant file under [`screen-design/`](./screen-design/README.md)
+14. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
+15. Relevant file under [`detail-specs/`](./detail-specs/README.md)
+16. Relevant file under [`usecases/`](./usecases/README.md)
+17. Relevant file under [`exec-plans/`](./exec-plans/)
+18. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
@@ -37,6 +39,7 @@
 - [`observability-logging.md`](./observability-logging.md): backend / frontend の観測ログ出力先、payload、禁止事項
 - [`coding-guidelines-backend.md`](./coding-guidelines-backend.md): Go / Wails backend の実装規約
 - [`coding-guidelines-tests.md`](./coding-guidelines-tests.md): backend / frontend のテスト実装規約
+- [`e2e-test-guidelines.md`](./e2e-test-guidelines.md): UI 人間操作 E2E とテスト観点表 CSV の規約
 - [`UX-standard.md`](./UX-standard.md): UI 設計で参照する UX プラクティスの正本
 - [`lint-policy.md`](./lint-policy.md): lint と static checks の責務分担1
 - [`er.md`](./er.md): canonical data model と ER 仕様
@@ -48,6 +51,7 @@
 - [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
 - [`scenario-tests/`](./scenario-tests/README.md): Scenario テスト一覧の正本
 - [`detail-specs/`](./detail-specs/README.md): 詳細仕様正本
+- [`usecases/`](./usecases/README.md): 画面操作から見える利用者目的の UC 図と UC 記述の正本
 - [`diagrams/er/`](./diagrams/er/): ER 図の PlantUML source of truth
 - [`references/`](./references/index.md): 外部仕様と参照方針
 - [`references/vendor-api/`](./references/vendor-api/README.md): vendor API 参照ファイルと取得元
@@ -60,6 +64,7 @@
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - 実装規約が変わった場合: [`coding-guidelines.md`](./coding-guidelines.md) と対応する分割文書を更新する
+- UI 人間操作 E2E またはテスト観点表が変わった場合: [`e2e-test-guidelines.md`](./e2e-test-guidelines.md) を更新する
 - 観測ログの出力先、payload、禁止事項が変わった場合: [`observability-logging.md`](./observability-logging.md) を更新する
 - UX 標準が変わった場合: [`UX-standard.md`](./UX-standard.md) を更新する
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
