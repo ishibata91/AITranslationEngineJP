@@ -61,6 +61,31 @@ type WailsBodyTranslationBinding<RequestDto> = (
   request: RequestDto
 ) => Promise<unknown>
 
+function toRecord(value: unknown): Record<string, unknown> | null {
+  if (typeof value !== "object" || value === null) {
+    return null
+  }
+
+  return value as Record<string, unknown>
+}
+
+function appControllerBinding<RequestDto>(
+  bindingName: string,
+  fallback: WailsBodyTranslationBinding<RequestDto>
+): WailsBodyTranslationBinding<RequestDto> {
+  return (request: RequestDto): Promise<unknown> => {
+    const globalRecord = toRecord(globalThis)
+    const goRecord = toRecord(globalRecord?.["go"])
+    const wailsRecord = toRecord(goRecord?.["wails"])
+    const controller = toRecord(wailsRecord?.["AppController"])
+    const binding = controller?.[bindingName]
+    if (typeof binding === "function") {
+      return Promise.resolve((binding as (arg: unknown) => unknown)(request))
+    }
+    return fallback(request)
+  }
+}
+
 function createBindingInvoker(): BindingInvoker {
   return <RequestDto, ResponseDto>(
     binding: WailsBodyTranslationBinding<RequestDto>,
@@ -514,7 +539,7 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: GetProcessingTargetListRequestDto
   ): Promise<GetProcessingTargetListResponseDto> {
     return this.invokeBinding(
-      GetProcessingTargetList,
+      appControllerBinding("GetProcessingTargetList", GetProcessingTargetList),
       "GetProcessingTargetList",
       request,
       isProcessingTargetListResponseDto
@@ -525,7 +550,10 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: GetBodyTranslationPhaseSummaryRequestDto
   ): Promise<GetBodyTranslationPhaseSummaryResponseDto> {
     return this.invokeBinding(
-      GetBodyTranslationPhaseSummary,
+      appControllerBinding(
+        "GetBodyTranslationPhaseSummary",
+        GetBodyTranslationPhaseSummary
+      ),
       "GetBodyTranslationPhaseSummary",
       request,
       isBodyTranslationPhaseSummaryResponseDto
@@ -536,7 +564,7 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: StartBodyTranslationPhaseRequestDto
   ): Promise<StartBodyTranslationPhaseResponseDto> {
     return this.invokeBinding(
-      StartBodyTranslationPhase,
+      appControllerBinding("StartBodyTranslationPhase", StartBodyTranslationPhase),
       "StartBodyTranslationPhase",
       request,
       isBodyTranslationPhaseCommandResponseDto
@@ -547,7 +575,10 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: SaveBodyTranslationPhaseAISettingsRequestDto
   ): Promise<SaveBodyTranslationPhaseAISettingsResponseDto> {
     return this.invokeBinding(
-      SaveBodyTranslationPhaseAISettings,
+      appControllerBinding(
+        "SaveBodyTranslationPhaseAISettings",
+        SaveBodyTranslationPhaseAISettings
+      ),
       "SaveBodyTranslationPhaseAISettings",
       request,
       isBodyTranslationAISettingsResponseDto
@@ -558,7 +589,7 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: PauseBodyTranslationPhaseRequestDto
   ): Promise<PauseBodyTranslationPhaseResponseDto> {
     return this.invokeBinding(
-      PauseBodyTranslationPhase,
+      appControllerBinding("PauseBodyTranslationPhase", PauseBodyTranslationPhase),
       "PauseBodyTranslationPhase",
       request,
       isBodyTranslationPhaseCommandResponseDto
@@ -569,7 +600,10 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: ResumeBodyTranslationPhaseRequestDto
   ): Promise<ResumeBodyTranslationPhaseResponseDto> {
     return this.invokeBinding(
-      ResumeBodyTranslationPhase,
+      appControllerBinding(
+        "ResumeBodyTranslationPhase",
+        ResumeBodyTranslationPhase
+      ),
       "ResumeBodyTranslationPhase",
       request,
       isBodyTranslationPhaseCommandResponseDto
@@ -580,7 +614,7 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: RetryBodyTranslationPhaseRequestDto
   ): Promise<RetryBodyTranslationPhaseResponseDto> {
     return this.invokeBinding(
-      RetryBodyTranslationPhase,
+      appControllerBinding("RetryBodyTranslationPhase", RetryBodyTranslationPhase),
       "RetryBodyTranslationPhase",
       request,
       isBodyTranslationPhaseCommandResponseDto
@@ -591,7 +625,10 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: CancelBodyTranslationPhaseRequestDto
   ): Promise<CancelBodyTranslationPhaseResponseDto> {
     return this.invokeBinding(
-      CancelBodyTranslationPhase,
+      appControllerBinding(
+        "CancelBodyTranslationPhase",
+        CancelBodyTranslationPhase
+      ),
       "CancelBodyTranslationPhase",
       request,
       isBodyTranslationPhaseCommandResponseDto
@@ -602,7 +639,10 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     request: GetBodyTranslationOutputReadinessRequestDto
   ): Promise<GetBodyTranslationOutputReadinessResponseDto> {
     return this.invokeBinding(
-      GetBodyTranslationOutputReadiness,
+      appControllerBinding(
+        "GetBodyTranslationOutputReadiness",
+        GetBodyTranslationOutputReadiness
+      ),
       "GetBodyTranslationOutputReadiness",
       request,
       isBodyTranslationOutputReadinessResponseDto

@@ -5,6 +5,7 @@
   interface Props {
     jobId: number
     canOpenPhase: boolean
+    hasJobRunTarget: boolean
     stopOperation: TranslationJobManagementOperationViewModel
     resumeOperation: TranslationJobManagementOperationViewModel
     deleteOperation: TranslationJobManagementOperationViewModel
@@ -17,6 +18,7 @@
   let {
     jobId,
     canOpenPhase,
+    hasJobRunTarget,
     stopOperation,
     resumeOperation,
     deleteOperation,
@@ -28,6 +30,8 @@
     event.stopPropagation()
     await onOpenPhase()
   }
+
+  const canRunCurrentPhaseAction = $derived(canOpenPhase && hasJobRunTarget)
 </script>
 
 <div
@@ -37,7 +41,12 @@
 >
   <button
     class="continue-button"
-    disabled={!canOpenPhase}
+    data-current-phase-action-state={canRunCurrentPhaseAction
+      ? "ready"
+      : canOpenPhase
+        ? "missing-target"
+        : "blocked"}
+    disabled={!canRunCurrentPhaseAction}
     onclick={(event) => void handleOpenPhase(event)}
     type="button"
   >

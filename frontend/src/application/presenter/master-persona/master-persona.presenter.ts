@@ -115,7 +115,13 @@ function buildAISettingsWarningText(state: MasterPersonaScreenState): string {
     return "AIサービスを選んでください。"
   }
 
-  if (state.modelOptions.length === 0) {
+  const modelSettingsCard =
+    state.modelSettingsCard ?? createFallbackModelSettingsCard(state)
+  const modelList = modelSettingsCard.modelList
+  const hasUsableModelList =
+    modelList.status === "success" ||
+    modelList.status === "credential_not_required"
+  if (!hasUsableModelList || modelList.models.length === 0) {
     return "モデル一覧を更新後に選べる状態で接続します。"
   }
 
@@ -128,6 +134,21 @@ function isAISettingsComplete(state: MasterPersonaScreenState): boolean {
   const hasModel = state.aiSettings.model.trim() !== ""
 
   return hasProvider && hasModel
+}
+
+function canSelectModel(
+  modelSettingsCard: ModelSettingsCardState,
+  aiSettingsWarningText: string
+): boolean {
+  const modelList = modelSettingsCard.modelList
+  const hasUsableModelList =
+    modelList.status === "success" ||
+    modelList.status === "credential_not_required"
+  return (
+    hasUsableModelList &&
+    modelList.models.length > 0 &&
+    aiSettingsWarningText === ""
+  )
 }
 
 function buildExecutionMethodOptions(provider: string) {
@@ -205,8 +226,7 @@ export class MasterPersonaPresenter {
         actionDisabled: activeRun,
         titleLabel: "マスターペルソナ"
       }),
-      canSelectModel:
-        state.modelOptions.length > 0 && aiSettingsWarningText === "",
+      canSelectModel: canSelectModel(modelSettingsCard, aiSettingsWarningText),
       executionMethodOptions,
       promptTemplateDescription:
         MasterPersonaGateway.MASTER_PERSONA_PROMPT_TEMPLATE_DESCRIPTION,

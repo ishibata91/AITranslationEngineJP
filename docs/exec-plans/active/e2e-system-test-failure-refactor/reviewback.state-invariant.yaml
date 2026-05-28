@@ -1,0 +1,90 @@
+reviewback_version: 1
+task_id: "e2e-system-test-failure-refactor"
+review_yaml_path: "docs/exec-plans/active/e2e-system-test-failure-refactor/reviewback.state-invariant.yaml"
+viewpoint: "state-invariant"
+reviewer_agent: "review_state_invariant"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  invariant_maintenance: "修正必須指摘なし。前回指摘の `state-invariant-001` と `state-invariant-002` は閉じた。非検証エラーでは provider settings の validation state と requestToken が保存前状態を維持し、phase navigation の seed DB と scenario mock は同じ job family を参照している。"
+  evidence_sufficiency: "十分。親レーンの system-test は sandbox 外で 60 passed。frontend-local は correction agent 側で通過した。"
+  hard_gate: false
+checked_scope:
+  summary: "provider settings 保存失敗、translation job resume、output artifact、phase navigation、modal open/close、system-test seed、scenario Wails mock を状態不変条件に限定して確認した。"
+  files:
+    - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+      line: 259
+      symbol: "ProviderSettingsUseCase.saveSettings"
+      reason: "保存失敗時の UI 状態更新と requestToken 更新を確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 329
+      symbol: "ProviderSettingsService.saveProviderSettingsLocked"
+      reason: "保存行更新後の secret 保存失敗と補償 rollback 経路を確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 452
+      symbol: "TranslationJobManagementService.ResumeJob"
+      reason: "resume は実行本体を動かさず read model を返す実装であることを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 86
+      symbol: "handleOperation"
+      reason: "resume success feedback と job run 遷移の状態条件を確認した。"
+    - path: "scripts/test/seed-system-test-db/main.go"
+      line: 59
+      symbol: "run"
+      reason: "system-test DB seed の job family と phase 状態を確認した。"
+    - path: "tests/system/support/scenario-wails-mocks.ts"
+      line: 383
+      symbol: "jobDetail"
+      reason: "scenario mock の job family と phase gateway response を確認した。"
+unchecked_scope:
+  - target: "実行済み system-test の raw log"
+    reason: "呼び出し元入力と plan.md の最終結果記録だけを確認した。skill の非対象規約によりハーネス再実行はしない。"
+    risk: "60 passed の内訳と、指摘した fixture 不整合が現在の実行でどの test に覆われているかは raw log では未確認である。"
+issues:
+  - id: "state-invariant-001"
+    level: "major"
+    title: "保存失敗時に非検証エラーでも validation_failed 状態へ進む"
+    problem: "provider settings の保存失敗 catch が error kind を判別せず、現在 provider を validation_failed にし、requestToken も前進させる。"
+    reason: "backend は保存行 upsert 後の secret 保存失敗で補償 rollback を返す経路を持つ。frontend はその非検証失敗でも入力不正として扱うため、UI の validation state と DB の保存済み state/requestToken が対応しなくなる可能性がある。"
+    violated_condition: "保存失敗時は、backend が返した失敗種別と rollback 後の永続状態に対応する UI 状態だけを反映する。"
+    cause_candidate: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts の catch が isSaveValidationFailure を状態更新に使わず、常に applySaveFailure(current, \"validation_failed\") を呼ぶ。"
+    evidence:
+      - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+        line: 259
+        excerpt: "catch 内で current があれば validation_failed と新 requestToken を設定する。"
+      - path: "internal/service/provider_settings_service.go"
+        line: 329
+        excerpt: "secret 保存失敗時は restoreProviderSettingsRecord を試み、非検証エラーとして返る。"
+    local_fix_assessment: "cross-layer。frontend の失敗分類と backend の保存失敗種別の対応確認が必要である。"
+    additional_check_scope: "secret 保存失敗、repository upsert 失敗、validation_failed の 3 経路で UI state と DB state の対応を確認する。"
+    fix_considerations: "入力検証失敗だけ validation_failed にする。不明な保存失敗では、保存済み endpoint、savedState、requestToken を DB と矛盾する値へ進めないことを守る。"
+    verification: "provider settings usecase test は、非 validation エラーで validationState と requestToken が入力不正扱いへ進まない観点を確認した。frontend-local は通過した。"
+    fix_required: false
+    status: "resolved"
+  - id: "state-invariant-002"
+    level: "major"
+    title: "phase navigation の mock job family が DB seed と一致していない"
+    problem: "scenario Wails mock は system-test-body-pending、system-test-completed-term、system-test-body-ready-for-completion を返すが、system-test DB seed は同じ job family を作っていない。"
+    reason: "phase navigation の E2E は mock だけに存在する job と gateway response で通過する。実 DB seed の UI 状態と mock の UI 状態が別 family になるため、DB 状態、UI 状態、gateway response が同じ fixture 集合を表すという不変条件を証明できない。"
+    violated_condition: "system-test seed と scenario mock は、同じ job family と phase 状態を表し、mock は外部境界代替に限定する。"
+    cause_candidate: "scripts/test/seed-system-test-db/main.go は running/ready/completed/paused/failed/canceled/term/persona/body-failed/body-running を作る一方、tests/system/support/scenario-wails-mocks.ts は 301 から 307 の別名 job family を固定している。"
+    evidence:
+      - path: "scripts/test/seed-system-test-db/main.go"
+        line: 59
+        excerpt: "DB seed は running、ready、completed、paused、failed、canceled、term、persona、body-failed、body-running を作成する。"
+      - path: "tests/system/support/scenario-wails-mocks.ts"
+        line: 383
+        excerpt: "mock は system-test-body-ready-for-completion、system-test-completed-term、system-test-body-pending を返す。"
+      - path: "tests/system/job-run-shell.spec.ts"
+        line: 75
+        excerpt: "phase navigation test は mock 側の system-test-completed-term を開く。"
+      - path: "tests/system/translation-phases.spec.ts"
+        line: 66
+        excerpt: "body phase test は mock 側の system-test-body-pending を開く。"
+    local_fix_assessment: "cross-layer。seed、scenario mock、phase navigation tests の fixture family をそろえる必要がある。"
+    additional_check_scope: "output artifact mock の completed job family と DB seed completed job の対応も同じ観点で確認する。"
+    fix_considerations: "completed job を未完了一覧へ恒久復帰させない条件を維持しつつ、phase 完了状態を表す job と output 管理候補を混同しないことを守る。"
+    verification: "DB seed job family と scenario mock job family は同じ fixture 集合へ揃えた。phase navigation targeted test と system-test は通過した。"
+    fix_required: false
+    status: "resolved"

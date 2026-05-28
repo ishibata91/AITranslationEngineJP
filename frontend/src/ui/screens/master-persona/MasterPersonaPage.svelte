@@ -205,6 +205,7 @@
       return
     }
     controller.setAIProvider(event)
+    void refreshAISettings()
   }
 
   function handleAIModelChange(event: Event): void {

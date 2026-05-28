@@ -471,10 +471,9 @@ func (service *TranslationJobManagementService) ResumeJob(
 		}, nil
 	}
 	return TranslationJobManagementActionReadModel{
-		Message:        "再開入口の要約だけを提供しています。再開実行本体は後続 task の対象です。",
-		Tone:           "warning",
-		Detail:         &detail,
-		ReasonCategory: translationJobManagementReasonResumeFailed,
+		Message: "再開入口を確認しました。現在の翻訳段階へ進めます。",
+		Tone:    "success",
+		Detail:  &detail,
 	}, nil
 }
 

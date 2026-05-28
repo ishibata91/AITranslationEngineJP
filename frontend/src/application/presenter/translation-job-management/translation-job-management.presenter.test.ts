@@ -190,6 +190,31 @@ describe("TranslationJobManagementPresenter", () => {
     })
   })
 
+  test("停止結果がある実行中 job は停止結果を状態ラベルへ反映する", () => {
+    const presenter = new TranslationJobManagementPresenter()
+    const state = createState()
+    state.jobs[0].stopAvailability = {
+      ...state.jobs[0].stopAvailability,
+      enabled: true,
+      reasonCategory: "stop_failed",
+      reasonText: "前回の停止要求は失敗しました。"
+    }
+    if (state.selectedJobDetail) {
+      state.selectedJobDetail.stopAvailability = {
+        ...state.selectedJobDetail.stopAvailability,
+        enabled: true,
+        reasonCategory: "stop_failed",
+        reasonText: "前回の停止要求は失敗しました。"
+      }
+    }
+
+    const viewModel = presenter.toViewModel(state, true)
+
+    expect(viewModel.jobs[0].jobState).toBe("Running")
+    expect(viewModel.jobs[0].stateLabel).toBe("停止失敗")
+    expect(viewModel.selectedJob?.stateLabel).toBe("停止失敗")
+  })
+
   test("detail loading 中は一覧 summary から phase page target を維持する", () => {
     const presenter = new TranslationJobManagementPresenter()
     const state = createState()

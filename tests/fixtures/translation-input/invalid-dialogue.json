@@ -1,0 +1,11 @@
+{
+  "target_plugin": "SystemTestInput.esp",
+  "dialogue_groups": [
+    {
+      "id": "",
+      "editor_id": "BrokenDialogue",
+      "type": "DIAL FULL",
+      "player_text": "Missing id"
+    }
+  ]
+}

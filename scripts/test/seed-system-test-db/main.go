@@ -86,6 +86,136 @@ func run(databasePath string, reset bool) error {
 	}); err != nil {
 		return err
 	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "paused",
+		JobState:        "paused",
+		JobProgress:     52,
+		PhaseType:       "body_translation",
+		PhaseState:      "paused",
+		PhaseProgress:   52,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "failed",
+		JobState:        "failed",
+		JobProgress:     68,
+		PhaseType:       "body_translation",
+		PhaseState:      "failed",
+		PhaseProgress:   68,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "canceled",
+		JobState:        "canceled",
+		JobProgress:     12,
+		PhaseType:       "body_translation",
+		PhaseState:      "canceled",
+		PhaseProgress:   12,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "term",
+		JobState:        "ready",
+		JobProgress:     0,
+		PhaseType:       "term_translation",
+		PhaseState:      "pending",
+		PhaseProgress:   0,
+		RuntimePhaseID:  "word_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "persona",
+		JobState:        "ready",
+		JobProgress:     0,
+		PhaseType:       "persona_generation",
+		PhaseState:      "pending",
+		PhaseProgress:   0,
+		RuntimePhaseID:  "npc_persona_generation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "body-pending",
+		JobState:        "ready",
+		JobProgress:     0,
+		PhaseType:       "body_translation",
+		PhaseState:      "pending",
+		PhaseProgress:   0,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "completed-term",
+		JobState:        "ready",
+		JobProgress:     100,
+		PhaseType:       "term_translation",
+		PhaseState:      "completed",
+		PhaseProgress:   100,
+		RuntimePhaseID:  "word_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "body-ready-for-completion",
+		JobState:        "ready",
+		JobProgress:     100,
+		PhaseType:       "body_translation",
+		PhaseState:      "completed",
+		PhaseProgress:   100,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "body-failed",
+		JobState:        "failed",
+		JobProgress:     68,
+		PhaseType:       "body_translation",
+		PhaseState:      "failed",
+		PhaseProgress:   68,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
+	if _, err := createScenarioJob(ctx, sourceRepo, jobRepo, scenarioJobDraft{
+		Suffix:          "body-running",
+		JobState:        "running",
+		JobProgress:     48,
+		PhaseType:       "body_translation",
+		PhaseState:      "running",
+		PhaseProgress:   48,
+		RuntimePhaseID:  "text_translation",
+		RuntimeProvider: "system-test-provider",
+		RuntimeModel:    "system-test-model",
+	}); err != nil {
+		return err
+	}
 	return nil
 }
 

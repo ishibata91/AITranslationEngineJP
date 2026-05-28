@@ -1,0 +1,87 @@
+reviewback_version: 1
+task_id: "e2e-system-test-failure-refactor"
+review_yaml_path: "docs/exec-plans/active/e2e-system-test-failure-refactor/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "修正必須指摘なし。provider settings の secret 本体は保存要求の transient input と backend secret store に閉じており、UI、DTO、read model、URL、log、error summary、audit、要求捕捉へ漏れる差分は確認しなかった。translation phase は system-test seed と scenario mock の境界に閉じており、実外部 API、実 secret、実利用者データへ到達する E2E 経路の追加は確認しなかった。"
+  evidence_sufficiency: "十分。指定された plan、implementation-scope、関連 diff、secret 境界、provider settings 境界、translation phase mock 境界を確認した。ハーネスは skill の非対象規約により実行していない。"
+  hard_gate: true
+
+checked_scope:
+  summary: "provider settings 保存境界、secret 保存前検証、frontend 保存失敗表示、translation job read model、system-test seed、body translation phase Wails mock 境界、scenario mock 境界を確認した。"
+  files:
+    - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/plan.md"
+      line: 36
+      symbol: "変更禁止範囲"
+      reason: "実外部 API、実 secret、実利用者データへ到達する経路を作らない制約を確認した。"
+    - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/implementation-scope.md"
+      line: 44
+      symbol: "Fixed Decisions"
+      reason: "UI 人間操作 E2E の DB seed と Wails mock が外部境界代替に限定される制約を確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 297
+      symbol: "saveProviderSettingsLocked"
+      reason: "endpoint 検証が secret 保存計画と secret store 保存より前に実行されることを確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 981
+      symbol: "validateProviderSettingsSaveEndpoint"
+      reason: "不正 endpoint の error が固定 error kind と固定文言であり、入力 endpoint や API key 本体を含まないことを確認した。"
+    - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+      line: 235
+      symbol: "ProviderSettingsUseCase.saveSettings"
+      reason: "credentialInput は gateway 送信にだけ使われ、保存成功時の read model には response provider summary だけを反映することを確認した。"
+    - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+      line: 259
+      symbol: "ProviderSettingsUseCase.saveSettings catch"
+      reason: "保存失敗時の UI error は固定メッセージに写像され、error summary に secret 本体を出さないことを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 730
+      symbol: "buildTranslationJobManagementRuntimeSummary"
+      reason: "translation job read model が provider label、model label、credential state label だけを返し、credential ref や secret 本体を返さないことを確認した。"
+    - path: "scripts/test/seed-system-test-db/main.go"
+      line: 249
+      symbol: "createScenarioJob"
+      reason: "system-test seed の CredentialRef は test DB 内の参照値であり、runtime summary には credential status だけが出ることを確認した。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 72
+      symbol: "appControllerBinding"
+      reason: "body translation phase の mock 境界は globalThis.go.wails.AppController の既存 Wails 境界または fallback binding に限定され、実外部 API へ直接到達しないことを確認した。"
+    - path: "tests/system/frontend-backend-connection.spec.ts"
+      line: 52
+      symbol: "E2E-UC-003"
+      reason: "API key 保存後に secret テキストが画面へ残らない確認が追加されていることを確認した。"
+    - path: "tests/system/translation-job-management.spec.ts"
+      line: 258
+      symbol: "SCN-TJM-009"
+      reason: "translation job management の UI と console に secret 相当文字列が出ない確認が維持されていることを確認した。"
+    - path: "docs/observability-logging.md"
+      line: 21
+      symbol: "禁止事項"
+      reason: "ログへ secret、API key、provider raw payload、prompt 全文を出さない規約と照合した。"
+
+unchecked_scope:
+  - target: "実行時の実 Wails binary と OS keyring の現物連携"
+    reason: "レビュー skill の非対象規約によりハーネスと実行確認を行っていない。呼び出し元 plan の検証証跡を入力として扱った。"
+    risk: "実行環境固有の Wails binding 差異や keyring backend 差異は、このレビュー単体では再確認していない。"
+  - target: "既存 phase public contract 全体の secret ref 公開方針"
+    reason: "今回の差分範囲は E2E 失敗修正であり、既存 contract 全体の再設計は対象外である。"
+    risk: "既存 contract に残る credential ref 表示方針の是非は、このレビューの未解決指摘には含めていない。"
+
+issues: []
+
+broken_invariants: []
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "修正必須指摘なし。局所修正評価は不要。"
+  reason: "未解決 issue がないため、修正範囲の判断は発生しない。"
+
+residual_risks:
+  - "system-test seed は `system-test-secret` という参照値を DB に保存する。read model は credential state label だけを返すため secret 本体漏れではないが、実行確認は呼び出し元の system-test 証跡に依存する。"
+  - "body translation phase gateway は AppController mock 境界を読む。mock 境界は E2E 用の Wails 境界代替として妥当だが、実 Wails runtime での binding 差異はこのレビューで実行していない。"

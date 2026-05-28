@@ -111,6 +111,9 @@
 
   function setCurrentPhasePage(phasePage: PhasePageId): void {
     currentPhasePage = phasePage
+  }
+
+  function syncBodyProcessingTargetPage(phasePage: PhasePageId): void {
     if (phasePage === "body") {
       void bodyController?.setProcessingTargetPage?.(
         getBodyProcessingTargetPage("body_translation"),
@@ -439,6 +442,7 @@
           onBack={onOpenJobManagement}
           onPrimary={() => {
             setCurrentPhasePage("body")
+            syncBodyProcessingTargetPage("body")
           }}
           primaryDisabled={!canOpenBodyPhase}
           reasons={personaFooterReasons}
@@ -462,6 +466,7 @@
           onBack={onOpenJobManagement}
           onPrimary={() => {
             setCurrentPhasePage("complete")
+            syncBodyProcessingTargetPage("complete")
           }}
           primaryDisabled={!canOpenCompletePage}
           reasons={bodyFooterReasons}

@@ -1,0 +1,107 @@
+reviewback_version: 1
+task_id: "e2e-system-test-failure-refactor"
+review_yaml_path: "docs/exec-plans/active/e2e-system-test-failure-refactor/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "修正必須指摘なし。前回指摘の `responsibility-boundary-001` は閉じた。`App.svelte` は Wails gateway 具象実装を import せず、生成もしていない。production 用の Wails gateway と ScreenController factory 生成は `frontend/src/bootstrap/app-screen-controller-factories.ts` に集約され、`frontend/src/main.ts` から root view へ factory 注入されている。"
+  evidence_sufficiency: "不足だが判定可能。呼び出し元から `frontend-local` 通過と `system-test` 60 passed が渡され、plan に同じ検証記録がある。raw log、coverage 値、issue 数は入力内で未確認である。"
+  hard_gate: false
+
+checked_scope:
+  summary: "前回責務境界指摘の correction 差分に限定し、View、Frontend Bootstrap、production factory、App mount test の依存方向を確認した。"
+  files:
+    - path: "docs/architecture.md"
+      line: 17
+      symbol: "Frontend Bootstrap / View / Gateway"
+      reason: "frontend bootstrap が gateway を生成して root view へ注入し、View は表示と DOM event を扱う責務であることを確認した。"
+    - path: "docs/architecture.md"
+      line: 72
+      symbol: "dependency direction"
+      reason: "`Bootstrap` 以外の層は concrete 実装を new しない制約を確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 1
+      symbol: "App"
+      reason: "App が type import と shell state 生成だけを持ち、Wails gateway 具象 import と生成を持たないことを確認した。"
+    - path: "frontend/src/main.ts"
+      line: 11
+      symbol: "createProductionAppFactories"
+      reason: "production factory を main entry で生成し、App の props へ注入していることを確認した。"
+    - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+      line: 50
+      symbol: "createProductionAppFactories"
+      reason: "Wails gateway と ScreenController factory の production wiring が bootstrap 側に集約されていることを確認した。"
+    - path: "frontend/src/ui/App.test.ts"
+      line: 648
+      symbol: "renderApp"
+      reason: "App test が明示 factory 注入へ追従し、App 内の fallback 具象生成に依存していないことを確認した。"
+    - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/plan.md"
+      line: 371
+      symbol: "Reviewback 修正結果"
+      reason: "`responsibility-boundary-001` の変更ファイルと `frontend-local` 通過記録を確認した。"
+    - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/plan.md"
+      line: 375
+      symbol: "Reviewback 修正後 最終再実行結果"
+      reason: "親レーンの `system-test` が 60 passed である記録を確認した。"
+
+unchecked_scope:
+  - target: "system-test raw log"
+    reason: "呼び出し元入力と plan の結果記録だけを確認し、実行ログ本体は読んでいない。"
+    risk: "責務境界観点では低い。system-test 件数の内訳は未確認である。"
+  - target: "coverage 値と issue 数"
+    reason: "入力と plan に具体値がない。"
+    risk: "責務境界観点では低い。今回の主判定は実コードの依存方向と具象生成位置で可能である。"
+
+issues:
+  - id: "responsibility-boundary-001"
+    level: "major"
+    title: "App View 内の Wails gateway 具象生成"
+    problem: "前回は `App.svelte` が View 内で Wails gateway 具象実装を import し、fallback factory として生成していた。現在の `App.svelte` から該当 import と生成は削除されている。"
+    reason: "architecture は frontend bootstrap が gateway を生成して root view へ注入し、`Bootstrap` 以外の層で concrete 実装を new しないと定める。correction 後の production wiring は `frontend/src/bootstrap/app-screen-controller-factories.ts` と `frontend/src/main.ts` 側に寄っている。"
+    violated_condition: "修正前は View が Wails gateway 具象生成を持たない責務境界に反していた。修正後は境界違反を確認しない。"
+    cause_candidate: "修正前の root `App.svelte` は test fallback と production fallback を同じ View 内に置いたため、View が bootstrap の具象生成責務を持っていた。"
+    evidence:
+      - path: "frontend/src/ui/App.svelte"
+        line: 1
+        excerpt: "App は controller factory を props として受け取り、AppShell へ渡す。Wails gateway 具象 import と生成はない。"
+      - path: "frontend/src/main.ts"
+        line: 11
+        excerpt: "createProductionAppFactories() の結果を App の props へ注入している。"
+      - path: "frontend/src/bootstrap/app-screen-controller-factories.ts"
+        line: 50
+        excerpt: "production 用の Wails gateway と ScreenController factory を生成して返す。"
+      - path: "frontend/src/ui/App.test.ts"
+        line: 648
+        excerpt: "App test は provider settings、translation job management、output artifact の factory を明示注入している。"
+    local_fix_assessment: "resolved-local。変更は App の fallback 具象生成削除と test factory 注入追従に閉じている。bootstrap 側の production wiring は既存の composition root 責務へ収まっている。"
+    additional_check_scope: "none。責務境界観点では、View から Wails gateway 具象 import と生成が消え、production wiring が bootstrap 側にあることを確認済みである。"
+    fix_considerations: "今後 App mount test を追加する場合も、View 内で Wails gateway 具象を生成せず、factory 注入か bootstrap 側の production wiring を使う必要がある。"
+    verification: "`frontend-local` 通過と `system-test` 60 passed が呼び出し元入力と plan に記録されている。責務境界の静的確認では `App.svelte` に Wails gateway 具象 import と生成がない。"
+    fix_required: false
+    status: "resolved"
+
+broken_boundaries:
+  - id: "responsibility-boundary-001"
+    status: "resolved"
+    boundary: "View は Wails gateway 具象実装を生成せず、production wiring は frontend bootstrap 側へ置く。"
+    evidence: "frontend/src/ui/App.svelte:1 と frontend/src/bootstrap/app-screen-controller-factories.ts:50"
+
+cause_candidates:
+  - id: "responsibility-boundary-001"
+    status: "resolved"
+    cause: "View 内 fallback が test 便宜と production 接続を兼ねたため、bootstrap 責務が View へ漏れていた可能性がある。"
+
+local_fix_evaluation:
+  result: "local"
+  reason: "`App.svelte` の具象生成削除と `App.test.ts` の factory 注入追従で閉じている。依存方向の正本変更や横断的な層再設計は不要である。"
+
+boundary_lock_test_viewpoints:
+  - "App mount test は必要な ScreenController factory を props で明示注入し、App View 内の Wails gateway fallback 生成へ依存しない。"
+  - "production entry は `createProductionAppFactories()` を通じて Wails gateway を生成し、root view へ factory を注入する。"
+
+residual_risks:
+  - "system-test raw log、coverage 値、issue 数は未確認である。責務境界判定は実コードの依存方向と plan の検証記録に依存する。"

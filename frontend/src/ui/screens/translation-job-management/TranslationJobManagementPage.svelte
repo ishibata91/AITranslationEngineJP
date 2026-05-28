@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte"
+  import { onMount, tick } from "svelte"
 
   import type { CreateTranslationJobManagementScreenController } from "@application/contract/translation-job-management"
   import type {
@@ -28,6 +28,14 @@
     onOpenInputReview = () => undefined,
     onOpenJobRun = () => undefined
   }: Props = $props()
+
+  const RESUME_SUCCESS_FEEDBACK_PRESENTATION_DELAY_MS = 250
+
+  function waitForResumeSuccessFeedbackPresentation(): Promise<void> {
+    return new Promise((resolve) => {
+      window.setTimeout(resolve, RESUME_SUCCESS_FEEDBACK_PRESENTATION_DELAY_MS)
+    })
+  }
 
   function resolveController() {
     if (!createController) {
@@ -77,9 +85,16 @@
 
     if (operation.kind === "resume") {
       await controller.requestResume()
-      const nextTarget = controller.getViewModel().jobRunTarget
-      if (job.jobState !== "Ready" && nextTarget) {
+      const nextViewModel = controller.getViewModel()
+      const nextTarget = nextViewModel.jobRunTarget
+      if (
+        nextViewModel.feedback?.category === "resume_success" &&
+        nextViewModel.feedback.tone === "success" &&
+        nextTarget
+      ) {
         onJobRunTargetChange(nextTarget)
+        await tick()
+        await waitForResumeSuccessFeedbackPresentation()
         onOpenJobRun(nextTarget)
       }
       return
@@ -91,13 +106,14 @@
   async function handleOpenJob(
     job: TranslationJobManagementJobCardViewModel
   ): Promise<void> {
-    if (!job.canOpenPhase || !job.jobRunTarget) {
+    const jobRunTarget = job.canOpenPhase ? job.jobRunTarget : null
+    if (!jobRunTarget) {
       await controller.selectJob(job.jobId)
       return
     }
 
-    onJobRunTargetChange(job.jobRunTarget)
-    onOpenJobRun(job.jobRunTarget)
+    onJobRunTargetChange(jobRunTarget)
+    onOpenJobRun(jobRunTarget)
     await controller.selectJob(job.jobId)
   }
 

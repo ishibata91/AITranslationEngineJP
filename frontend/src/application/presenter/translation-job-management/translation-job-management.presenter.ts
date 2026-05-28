@@ -189,6 +189,31 @@ const STATE_DESCRIPTION: Record<string, string> = {
   Canceled: "キャンセル済み"
 }
 
+const STOP_RESULT_STATE_LABEL: Partial<
+  Record<TranslationJobManagementReasonCategory, string>
+> = {
+  stop_requested: "停止要求中",
+  stop_failed: "停止失敗"
+}
+
+function resolveStateLabel(
+  state: Pick<
+    TranslationJobManagementScreenState["jobs"][number],
+    "jobState" | "jobStateLabel" | "stopAvailability"
+  >
+): string {
+  const stopResultLabel =
+    state.stopAvailability.reasonCategory !== undefined
+      ? STOP_RESULT_STATE_LABEL[state.stopAvailability.reasonCategory]
+      : undefined
+
+  return (
+    stopResultLabel ??
+    STATE_DESCRIPTION[state.jobState] ??
+    state.jobStateLabel
+  )
+}
+
 function matchesFilter(
   jobState: string,
   filterId: TranslationJobManagementFilterId
@@ -272,7 +297,7 @@ function toJobCard(
   selectedJobId: number | null,
   activeOperation: TranslationJobManagementScreenState["activeOperation"]
 ): TranslationJobManagementJobCardViewModel {
-  const stateLabel = STATE_DESCRIPTION[detail.jobState] ?? detail.jobStateLabel
+  const stateLabel = resolveStateLabel(detail)
   const canOpenPhase = detail.canOpenPhase !== false
   const openBlockedReason = detail.openBlockedReason ?? null
 
@@ -388,54 +413,55 @@ export class TranslationJobManagementPresenter {
       .map((job) => toJobCard(job, state.selectedJobId, state.activeOperation))
 
     const selectedJob = state.selectedJobDetail
-      ? {
-          jobId: state.selectedJobDetail.jobId,
-          jobIdLabel: `ジョブ #${state.selectedJobDetail.jobId}`,
-          jobState: state.selectedJobDetail.jobState,
-          stateLabel:
-            STATE_DESCRIPTION[state.selectedJobDetail.jobState] ??
-            state.selectedJobDetail.jobStateLabel,
-          stateDescription:
-            STATE_DESCRIPTION[state.selectedJobDetail.jobState] ??
-            state.selectedJobDetail.jobStateLabel,
-          stateTone: state.selectedJobDetail.stateTone,
-          inputSourceLabel:
-            state.selectedJobDetail.inputSource.inputSourceLabel,
-          inputSourceKindLabel:
-            state.selectedJobDetail.inputSource.inputSourceKindLabel,
-          sourcePath: state.selectedJobDetail.inputSource.sourcePath,
-          pluginName: state.selectedJobDetail.inputSource.pluginName,
-          extractedJsonLabel:
-            state.selectedJobDetail.inputSource.extractedJsonLabel,
-          currentPhase: state.selectedJobDetail.progress.currentPhase,
-          currentPhaseLabel: state.selectedJobDetail.progress.currentPhaseLabel,
-          progressLabel: state.selectedJobDetail.progress.progressLabel,
-          lastUpdatedLabel: state.selectedJobDetail.progress.lastUpdatedLabel,
-          cacheStateLabel: state.selectedJobDetail.cacheStateLabel,
-          providerLabel: state.selectedJobDetail.runtimeSummary.providerLabel,
-          modelLabel: state.selectedJobDetail.runtimeSummary.modelLabel,
-          executionModeLabel:
-            state.selectedJobDetail.runtimeSummary.executionModeLabel,
-          credentialStateLabel:
-            state.selectedJobDetail.runtimeSummary.credentialStateLabel,
-          stopOperation: toOperationViewModel(
-            state.selectedJobDetail.stopAvailability,
-            state.activeOperation
-          ),
-          resumeOperation: toOperationViewModel(
-            state.selectedJobDetail.resumeAvailability,
-            state.activeOperation
-          ),
-          deleteOperation: toOperationViewModel(
-            state.selectedJobDetail.deleteAvailability,
-            state.activeOperation
-          ),
-          resumeBlockedReasons: toReasonItems(
-            state.selectedJobDetail.resumeBlockedReasons
-          ),
-          warnings: toReasonItems(state.selectedJobDetail.warnings),
-          deleteImpactLines: [...state.selectedJobDetail.deleteImpactLines]
-        }
+      ? (() => {
+          const stateLabel = resolveStateLabel(state.selectedJobDetail)
+
+          return {
+            jobId: state.selectedJobDetail.jobId,
+            jobIdLabel: `ジョブ #${state.selectedJobDetail.jobId}`,
+            jobState: state.selectedJobDetail.jobState,
+            stateLabel,
+            stateDescription: stateLabel,
+            stateTone: state.selectedJobDetail.stateTone,
+            inputSourceLabel:
+              state.selectedJobDetail.inputSource.inputSourceLabel,
+            inputSourceKindLabel:
+              state.selectedJobDetail.inputSource.inputSourceKindLabel,
+            sourcePath: state.selectedJobDetail.inputSource.sourcePath,
+            pluginName: state.selectedJobDetail.inputSource.pluginName,
+            extractedJsonLabel:
+              state.selectedJobDetail.inputSource.extractedJsonLabel,
+            currentPhase: state.selectedJobDetail.progress.currentPhase,
+            currentPhaseLabel:
+              state.selectedJobDetail.progress.currentPhaseLabel,
+            progressLabel: state.selectedJobDetail.progress.progressLabel,
+            lastUpdatedLabel: state.selectedJobDetail.progress.lastUpdatedLabel,
+            cacheStateLabel: state.selectedJobDetail.cacheStateLabel,
+            providerLabel: state.selectedJobDetail.runtimeSummary.providerLabel,
+            modelLabel: state.selectedJobDetail.runtimeSummary.modelLabel,
+            executionModeLabel:
+              state.selectedJobDetail.runtimeSummary.executionModeLabel,
+            credentialStateLabel:
+              state.selectedJobDetail.runtimeSummary.credentialStateLabel,
+            stopOperation: toOperationViewModel(
+              state.selectedJobDetail.stopAvailability,
+              state.activeOperation
+            ),
+            resumeOperation: toOperationViewModel(
+              state.selectedJobDetail.resumeAvailability,
+              state.activeOperation
+            ),
+            deleteOperation: toOperationViewModel(
+              state.selectedJobDetail.deleteAvailability,
+              state.activeOperation
+            ),
+            resumeBlockedReasons: toReasonItems(
+              state.selectedJobDetail.resumeBlockedReasons
+            ),
+            warnings: toReasonItems(state.selectedJobDetail.warnings),
+            deleteImpactLines: [...state.selectedJobDetail.deleteImpactLines]
+          }
+        })()
       : null
 
     return {

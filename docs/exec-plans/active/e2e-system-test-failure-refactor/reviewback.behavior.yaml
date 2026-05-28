@@ -1,0 +1,95 @@
+reviewback_version: 1
+task_id: "e2e-system-test-failure-refactor"
+review_yaml_path: "docs/exec-plans/active/e2e-system-test-failure-refactor/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+assessment:
+  behavior_match: "修正必須指摘なし。前回指摘の `behavior-001` は閉じた。E2E-UC-028 は入力不正表示と保存済み endpoint の非更新を同じシナリオ内で観測している。"
+  evidence_sufficiency: "不足だが判定可能。system-test 60 passed、frontend-local、backend-local の記録はあるが、coverage 値と issue 数の記録は入力内で確認できない。"
+checked_scope:
+  summary: "EF-001 から EF-005 の承認済み証明対象、構造品質調査、テスト品質調査、backend/frontend 実装差分、system-test 差分、最終 system-test 記録を照合した。"
+  files:
+    - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/implementation-scope.md"
+      line: 42
+      symbol: "EF Scope Matrix"
+      reason: "EF-001 から EF-005 の承認済み証明対象を確認した。"
+    - path: "internal/service/provider_settings_service.go"
+      line: 294
+      symbol: "validateProviderSettingsSaveEndpoint"
+      reason: "不正 endpoint の保存拒否が backend 保存前に行われることを確認した。"
+    - path: "frontend/src/application/usecase/provider-settings/provider-settings.usecase.ts"
+      line: 227
+      symbol: "ProviderSettingsUseCase.saveSettings"
+      reason: "保存失敗時に保存成功 notice を消し、エラー表示へ写像することを確認した。"
+    - path: "frontend/src/ui/App.svelte"
+      line: 65
+      symbol: "resolveProviderSettingsScreenControllerFactory"
+      reason: "provider settings と output management の gateway 接続が fallback 経路でも null にならないことを確認した。"
+    - path: "frontend/src/application/presenter/master-persona/master-persona.presenter.ts"
+      line: 115
+      symbol: "buildAISettingsWarningText"
+      reason: "model list の状態に基づき model select の活性条件を決めることを確認した。"
+    - path: "frontend/src/ui/screens/master-persona/MasterPersonaPage.svelte"
+      line: 205
+      symbol: "handleAIProviderChange"
+      reason: "provider 選択後に AI 設定再取得へ進むことを確認した。"
+    - path: "internal/service/translation_job_management_service.go"
+      line: 471
+      symbol: "ResumeJob"
+      reason: "paused job の再開入口が success read model を返すことを確認した。"
+    - path: "frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.svelte"
+      line: 85
+      symbol: "handleOperation"
+      reason: "resume success feedback と job run shell 遷移条件を照合した。"
+    - path: "tests/system/support/scenario-wails-mocks.ts"
+      line: 434
+      symbol: "ListIncompleteJobs"
+      reason: "scenario mock の job family と phase gateway 応答を確認した。"
+    - path: "scripts/test/seed-system-test-db/main.go"
+      line: 86
+      symbol: "run"
+      reason: "real backend system-test seed の job family 追加を確認した。"
+    - path: "tests/system/frontend-backend-connection.spec.ts"
+      line: 145
+      symbol: "E2E-UC-028"
+      reason: "EF-001 の system-test 証明内容を確認した。"
+unchecked_scope:
+  - target: "system-test 実行ログ本体"
+    reason: "レビュー入力には plan の最終記録だけがあり、Playwright trace や標準出力の実体は渡されていない。"
+    risk: "個別 test の実行順、retry、trace 上の UI 表示までは確認できない。"
+  - target: "coverage 値と repo-local issue 数"
+    reason: "入力された plan、implementation-scope、調査結果、差分内に具体値が見当たらない。"
+    risk: "coverage gate や issue gate の挙動根拠は、この観点レビューでは評価できない。"
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "EF-001 の保存済み状態非更新が system-test で証明されていない"
+    problem: "E2E-UC-028 は不正 endpoint 保存後に summary のエラー文言だけを確認し、保存済み detail が更新されないことを確認していない。"
+    reason: "承認済み implementation-scope は、入力不正表示と保存済み状態へ更新されないことの両方を EF-001 の証明対象にしている。現在の test は前者だけで通過できるため、system-test 60 passed が EF-001 完了の偽陽性になりうる。"
+    violated_condition: "EF-001 の証明対象と H-ST-001 の completion_signal。E2E-UC-028 は summary error と detail non-update の両方を観測する必要がある。"
+    cause_candidate: "tests/system/frontend-backend-connection.spec.ts の E2E-UC-028 assertion clause が summaryRegion のみを確認している。test-quality-investigation でも同じ欠落が既知事項として記録されていた。"
+    evidence:
+      - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/implementation-scope.md"
+        line: 42
+        excerpt: "EF-001 は不正 endpoint の保存操作で、入力不正が表示され、保存済み状態へ更新されないことを証明対象にしている。"
+      - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/implementation-scope.md"
+        line: 344
+        excerpt: "H-ST-001 は E2E-UC-028 に detail region 非更新確認を追加することを first_action にしている。"
+      - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/implementation-scope.md"
+        line: 346
+        excerpt: "H-ST-001 の completion_signal は summary error と detail non-update の両方の観測である。"
+      - path: "tests/system/frontend-backend-connection.spec.ts"
+        line: 145
+        excerpt: "E2E-UC-028 は invalid-endpoint を保存し、summaryRegion の不正、エラー、入力文言だけを確認している。"
+      - path: "docs/exec-plans/active/e2e-system-test-failure-refactor/test-quality-investigation.md"
+        line: 47
+        excerpt: "調査結果は summary のみでは保存済み詳細の未更新を確認していないと記録している。"
+    local_fix_assessment: "local。tests/system/frontend-backend-connection.spec.ts と既存 ProviderSettingsPage の settingsDetailRegion で閉じられる可能性が高い。"
+    additional_check_scope: "E2E-UC-028 の保存前 detail 状態、保存後 detail 状態、summary error の 3 点を同じ test 内で確認する。"
+    fix_considerations: "保存失敗時の error 表示だけを成功条件にしない。保存前に有効な endpoint を固定するか、detail の既存 endpoint が invalid-endpoint へ変わっていないことを確認する。"
+    verification: "python3 scripts/harness/run.py --suite system-test は sandbox 外で 60 passed。E2E-UC-028 は summary error と detail non-update の両方を観測して通過した。"
+    fix_required: false
+    status: "resolved"

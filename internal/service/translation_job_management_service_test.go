@@ -368,6 +368,42 @@ func TestTranslationJobManagementServiceResumeJobReturnsCacheMissingReason(t *te
 	}
 }
 
+func TestTranslationJobManagementServiceResumeJobReturnsResumeEntryForPausedCurrentPhase(t *testing.T) {
+	now := time.Date(2026, 5, 6, 10, 0, 0, 0, time.UTC)
+	job := repository.TranslationJob{ID: 51, XEditExtractedDataID: 11, State: "paused", CreatedAt: now}
+	repo := &fakeTranslationJobManagementLifecycleRepository{
+		jobByID: map[int64]repository.TranslationJob{51: job},
+		phaseRunsByJobID: map[int64][]repository.JobPhaseRun{
+			51: {{ID: 510, TranslationJobID: 51, PhaseType: "body_translation", State: "paused", ProgressPercent: 35}},
+		},
+		snapshotsByJobID: map[int64][]repository.TranslationJobPhaseRuntimeSnapshot{51: {
+			{TranslationJobID: 51, PhaseID: "body_translation", Provider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialStatus: "configured"},
+		}},
+	}
+	sourceRepo := &fakeTranslationJobManagementSourceRepository{sourceByID: map[int64]repository.XEditExtractedData{11: {ID: 11, SourceFilePath: "/mods/input.json", TargetPluginName: "Skyrim.esm"}}}
+	service := NewTranslationJobManagementService(repo, sourceRepo, fakeTranslationJobManagementTransactor{})
+	service.cacheReader = fakeTranslationJobManagementCacheReader{available: true}
+
+	detail, err := service.GetJobDetail(context.Background(), 51)
+	if err != nil {
+		t.Fatalf("expected detail, got %v", err)
+	}
+	if detail.Progress.CurrentPhase != "body_translation" || !detail.CanOpenPhase {
+		t.Fatalf("expected paused current phase to be navigable body_translation, got %#v", detail.Progress)
+	}
+
+	result, err := service.ResumeJob(context.Background(), 51)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if result.Tone != "success" || result.ReasonCategory != "" {
+		t.Fatalf("expected resume entry success without failure reason, got %#v", result)
+	}
+	if result.Detail == nil || result.Detail.Progress.CurrentPhase != "body_translation" || !result.Detail.ResumeAvailability.Enabled {
+		t.Fatalf("expected resume detail with current phase and enabled resume, got %#v", result.Detail)
+	}
+}
+
 func TestLogTranslationJobDeleteRejectedUsesSafePayloadOnly(t *testing.T) {
 	var buffer bytes.Buffer
 	previous := slog.Default()

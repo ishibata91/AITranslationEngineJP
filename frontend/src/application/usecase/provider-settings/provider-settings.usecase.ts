@@ -1,5 +1,6 @@
 import type {
   ProviderSettingsGatewayContract,
+  ProviderSettingsErrorKind,
   ProviderSettingsProviderId,
   ProviderSettingsProviderState,
   ProviderSettingsScreenState,
@@ -36,6 +37,22 @@ function defaultEndpoint(providerId: ProviderSettingsProviderId): string {
 
 function requiresCredential(providerId: ProviderSettingsProviderId): boolean {
   return providerId !== "lm_studio"
+}
+
+function isSaveValidationFailure(error: unknown): boolean {
+  if (error instanceof Error) {
+    return error.message.includes("validation_failed")
+  }
+
+  return typeof error === "string" && error.includes("validation_failed")
+}
+
+function providerSettingsSaveErrorMessage(error: unknown): string {
+  if (isSaveValidationFailure(error)) {
+    return "入力内容が不正です。エンドポイントを確認してください。"
+  }
+
+  return "設定の保存に失敗しました。"
 }
 
 function buildSavedState(provider: {
@@ -210,32 +227,48 @@ export class ProviderSettingsUseCase {
     this.store.update((draft) => {
       draft.phase = "saving"
       draft.errorMessage = ""
+      draft.saveNotice = ""
     })
 
     if (this.gateway) {
-      const response = await this.gateway.SaveProviderSettings({
-        providerId: provider.providerId,
-        endpoint: endpoint || undefined,
-        apiKeyInputPresent: credentialInputPresent,
-        credentialInput: credentialInputPresent ? credentialInput : undefined
-      })
-      this.store.update((draft) => {
-        const current = draft.providers.find(
-          (candidate) => candidate.providerId === response.provider.providerId
-        )
-        if (!current) {
+      try {
+        const response = await this.gateway.SaveProviderSettings({
+          providerId: provider.providerId,
+          endpoint: endpoint || undefined,
+          apiKeyInputPresent: credentialInputPresent,
+          credentialInput: credentialInputPresent ? credentialInput : undefined
+        })
+        this.store.update((draft) => {
+          const current = draft.providers.find(
+            (candidate) =>
+              candidate.providerId === response.provider.providerId
+          )
+          if (!current) {
+            draft.phase = "ready"
+            return
+          }
+          this.applySavedProvider(
+            current,
+            response.provider,
+            credentialInputPresent
+          )
           draft.phase = "ready"
-          return
-        }
-        this.applySavedProvider(
-          current,
-          response.provider,
-          credentialInputPresent
-        )
-        draft.phase = "ready"
-        draft.apiKeyPanelOpen = false
-        draft.saveNotice = "設定を保存しました。"
-      })
+          draft.apiKeyPanelOpen = false
+          draft.saveNotice = "設定を保存しました。"
+        })
+      } catch (error) {
+        this.store.update((draft) => {
+          const current = draft.providers.find(
+            (candidate) => candidate.providerId === provider.providerId
+          )
+          if (current && isSaveValidationFailure(error)) {
+            this.applySaveFailure(current, "validation_failed")
+          }
+          draft.phase = "ready"
+          draft.saveNotice = ""
+          draft.errorMessage = providerSettingsSaveErrorMessage(error)
+        })
+      }
       return
     }
 
@@ -461,6 +494,15 @@ export class ProviderSettingsUseCase {
         (provider) => provider.providerId === state.selectedProviderId
       ) ?? null
     )
+  }
+
+  private applySaveFailure(
+    provider: ProviderSettingsProviderState,
+    failureKind: ProviderSettingsErrorKind
+  ): void {
+    provider.validationState = "failed"
+    provider.lastFailureKind = failureKind
+    provider.requestToken = this.nextRequestToken(provider.providerId)
   }
 
   private applySavedProvider(

@@ -234,6 +234,52 @@ describe("TranslationJobManagementUseCase", () => {
     expect(state.feedback?.category).toBe("stop_failed")
   })
 
+  test("stop action response の reasonCategory を一覧 detail へ反映する", async () => {
+    const detail = {
+      ...createJobSummaryWithState(11, "Running"),
+      cacheState: "available" as const,
+      cacheStateLabel: "利用可能",
+      runtimeSummary: {
+        providerLabel: "openai",
+        modelLabel: "gpt-5",
+        executionModeLabel: "batch",
+        credentialState: "configured" as const,
+        credentialStateLabel: "設定済み"
+      },
+      resumeBlockedReasons: [],
+      warnings: [],
+      deleteImpactLines: ["job のみ削除"]
+    }
+    const gateway: TranslationJobManagementGatewayContract = {
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummaryWithState(11, "Running")] }),
+      GetJobDetail: vi.fn().mockResolvedValue(detail),
+      RequestStop: vi.fn().mockResolvedValue({
+        message: "停止要求の表示境界だけを提供しています。",
+        tone: "warning",
+        detail,
+        reasonCategory: "stop_failed"
+      }),
+      ResumeJob: vi.fn(),
+      DeleteJob: vi.fn()
+    }
+    const store = createStore()
+    const usecase = new TranslationJobManagementUseCase(gateway, store)
+
+    await usecase.load()
+    await usecase.selectJob(11)
+    await usecase.requestStop()
+
+    const state = store.snapshot()
+    expect(state.feedback?.category).toBe("stop_failed")
+    expect(state.jobs[0].jobState).toBe("Running")
+    expect(state.jobs[0].stopAvailability.reasonCategory).toBe("stop_failed")
+    expect(state.selectedJobDetail?.stopAvailability.reasonCategory).toBe(
+      "stop_failed"
+    )
+  })
+
   test("一覧読み込み失敗で list_load_failure を設定する", async () => {
     const gateway: TranslationJobManagementGatewayContract = {
       ListIncompleteJobs: vi.fn().mockRejectedValue(new Error("network")),
@@ -396,6 +442,47 @@ describe("TranslationJobManagementUseCase", () => {
 
     const state = store.snapshot()
     expect(state.feedback?.category).toBe("resume_success")
+  })
+
+  test("resume warning で reasonCategory 未指定時に resume_failed を設定する", async () => {
+    const detail = {
+      ...createJobSummary(34),
+      cacheState: "available" as const,
+      cacheStateLabel: "利用可能",
+      runtimeSummary: {
+        providerLabel: "openai",
+        modelLabel: "gpt-5",
+        executionModeLabel: "batch",
+        credentialState: "configured" as const,
+        credentialStateLabel: "設定済み"
+      },
+      resumeBlockedReasons: [],
+      warnings: [],
+      deleteImpactLines: ["job のみ削除"]
+    }
+    const gateway: TranslationJobManagementGatewayContract = {
+      ListIncompleteJobs: vi
+        .fn()
+        .mockResolvedValue({ jobs: [createJobSummary(34)] }),
+      GetJobDetail: vi.fn().mockResolvedValue(detail),
+      RequestStop: vi.fn(),
+      ResumeJob: vi.fn().mockResolvedValue({
+        message: "再開できません",
+        tone: "warning",
+        detail
+      }),
+      DeleteJob: vi.fn()
+    }
+    const store = createStore()
+    const usecase = new TranslationJobManagementUseCase(gateway, store)
+
+    await usecase.load()
+    await usecase.selectJob(34)
+    await usecase.requestResume()
+
+    const state = store.snapshot()
+    expect(state.feedback?.category).toBe("resume_failed")
+    expect(state.feedback?.tone).toBe("warning")
   })
 
   test("action response 後も開けない理由を一覧へ同期し phase page target を再生成しない", async () => {

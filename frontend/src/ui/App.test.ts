@@ -30,6 +30,10 @@ import type {
   MasterPersonaDetail
 } from "@application/gateway-contract/master-persona"
 import type { MasterDictionaryEntryDetail } from "@application/gateway-contract/master-dictionary"
+import {
+  createProviderSettingsPageControllerFixture,
+  createTranslationOutputArtifactPageControllerFixture
+} from "@ui/screens/__fixtures__/screen-page-controller-fixtures"
 import App from "@ui/App.svelte"
 import { vi } from "vitest"
 
@@ -75,9 +79,6 @@ const DASHBOARD_SHELL_PRIMARY_ROUTES = [
 const DASHBOARD_ENTRY_ROUTES = DASHBOARD_SHELL_PRIMARY_ROUTES.filter(
   ({ id }) => id !== "dashboard"
 )
-
-const PLACEHOLDER_LEAD =
-  "このページはまだ準備中です。上のナビゲーションまたは下の移動から別の主要ページへ進めます。"
 
 function createDefaultSelectedEntry(): MasterDictionaryEntryDetail {
   return {
@@ -651,7 +652,13 @@ function renderApp(
   render(App, {
     props: {
       createMasterDictionaryScreenController: () => controller,
-      createMasterPersonaScreenController: () => masterPersonaController
+      createMasterPersonaScreenController: () => masterPersonaController,
+      createProviderSettingsScreenController:
+        createProviderSettingsPageControllerFixture(),
+      createTranslationJobManagementScreenController: () =>
+        new TranslationJobManagementScreenControllerFake(),
+      createTranslationOutputArtifactScreenController:
+        createTranslationOutputArtifactPageControllerFixture()
     }
   })
 
@@ -669,7 +676,13 @@ function renderAppView(
   const view = render(App, {
     props: {
       createMasterDictionaryScreenController: () => controller,
-      createMasterPersonaScreenController: () => masterPersonaController
+      createMasterPersonaScreenController: () => masterPersonaController,
+      createProviderSettingsScreenController:
+        createProviderSettingsPageControllerFixture(),
+      createTranslationJobManagementScreenController: () =>
+        new TranslationJobManagementScreenControllerFake(),
+      createTranslationOutputArtifactScreenController:
+        createTranslationOutputArtifactPageControllerFixture()
     }
   })
 
@@ -862,7 +875,7 @@ describe("App dashboard shell", () => {
     expect(dashboardCardQuery.queryByText("準備中")).not.toBeInTheDocument()
   })
 
-  test("SCN-DAS-004: プレースホルダー画面でも共通 lead を表示する", async () => {
+  test("SCN-DAS-004: 出力管理画面でも画面 lead を表示する", async () => {
     // Arrange
     const user = userEvent.setup()
     renderApp()
@@ -873,7 +886,9 @@ describe("App dashboard shell", () => {
     )
 
     // Assert
-    expect(screen.getByText(PLACEHOLDER_LEAD)).toBeInTheDocument()
+    expect(
+      screen.getByText("生成された成果物を確認するページです。")
+    ).toBeInTheDocument()
   })
 
   test("SCN-DAS-005: プレースホルダー画面から別の主要ページへ再移動できる", async () => {

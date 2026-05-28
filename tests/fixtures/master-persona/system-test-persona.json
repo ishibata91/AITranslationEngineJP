@@ -1,0 +1,11 @@
+{
+  "plugin": "Skyrim.esm",
+  "actors": [
+    {
+      "formId": "000A2C8E",
+      "editorId": "Lydia",
+      "displayName": "Lydia",
+      "voiceType": "FemaleEvenToned"
+    }
+  ]
+}

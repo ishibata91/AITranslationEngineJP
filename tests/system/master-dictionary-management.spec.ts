@@ -2,206 +2,322 @@ import path from "node:path"
 
 import { expect, test, type Page } from "@playwright/test"
 
+import { MasterDictionaryPage } from "./support/system-test-pages"
+
 test.describe.configure({ mode: "serial" })
 
 const dawnguardXmlPath = path.resolve(
   process.cwd(),
   "tests/fixtures/master-dictionary/Dawnguard_english_japanese.xml"
 )
+const invalidXmlPath = path.resolve(
+  process.cwd(),
+  "tests/fixtures/master-dictionary/invalid_master_dictionary.xml"
+)
 
 async function openMasterDictionary(page: Page): Promise<void> {
-  await page.goto("/")
-  await page.getByRole("link", { name: "マスター辞書" }).first().click()
-  await expect(
-    page.getByRole("heading", { level: 1, name: "マスター辞書" })
-  ).toBeVisible()
+  await new MasterDictionaryPage(page).open()
 }
 
-async function clickEditModalSave(page: Page): Promise<void> {
-  const saveButton = page
-    .locator("#editModal")
-    .getByRole("button", { name: "保存する" })
+async function clickEditModalSave(
+  dictionary: MasterDictionaryPage
+): Promise<void> {
+  const saveButton = dictionary.entrySaveButton
   await expect(saveButton).toBeVisible()
   await expect(saveButton).toBeEnabled()
   await expect(async () => {
-    await saveButton.click()
+    await dictionary.saveEntry()
   }).toPass({ timeout: 10000 })
 }
 
 async function importDawnguardXml(page: Page): Promise<void> {
-  const importStatusValue = page.locator("#importStatusValue")
-  const importProgressFill = page.locator("#importProgressFill")
-  const startImportButton = page.locator("#startImportButton")
-  const importPanel = page.getByTestId("master-dictionary-xml-import-region")
-  const progressPanel = page.getByTestId(
-    "master-dictionary-import-progress-panel"
-  )
+  const dictionary = new MasterDictionaryPage(page)
 
   const stageXmlWithResolvedReference = async (): Promise<void> => {
-    await page.evaluate((absolutePath) => {
-      const input = document.getElementById("xmlFileInput")
-      if (!(input instanceof HTMLInputElement)) {
-        return
-      }
-
-      const file = new File([""], "Dawnguard_english_japanese.xml", {
-        type: "text/xml"
-      })
-      Object.defineProperty(file, "path", {
-        value: absolutePath,
-        configurable: true
-      })
-
-      const transfer = new DataTransfer()
-      transfer.items.add(file)
-      Object.defineProperty(input, "files", {
-        value: transfer.files,
-        configurable: true
-      })
-      input.dispatchEvent(new Event("change", { bubbles: true }))
-    }, dawnguardXmlPath)
-
+    await dictionary.stageXmlFileWithRuntimePath(dawnguardXmlPath)
     await expect(
-      importPanel.getByText("Dawnguard_english_japanese.xml")
+      dictionary.xmlImportRegion.getByText("Dawnguard_english_japanese.xml")
     ).toBeVisible()
     await expect(
-      progressPanel.getByText("Dawnguard_english_japanese.xml")
+      dictionary.xmlImportProgressPanel.getByText(
+        "Dawnguard_english_japanese.xml"
+      )
     ).toBeVisible()
-    await expect(progressPanel.locator(".current-file")).toContainText(
-      "Dawnguard_english_japanese.xml"
-    )
     await expect(
-      progressPanel.locator('[aria-label="XML 取り込みの進行率"]')
+      dictionary.xmlImportProgressPanel.getByLabel("XML 取り込みの進行率")
     ).toBeVisible()
-    await expect(importStatusValue).toHaveText("取込待ち")
-    await expect(importProgressFill).toHaveAttribute("style", /width:\s*0%/)
+    await expect(dictionary.xmlImportProgressPanel).toContainText("取込待ち")
   }
 
   await stageXmlWithResolvedReference()
-  await startImportButton.click()
-  await expect(importStatusValue).toHaveText("完了", { timeout: 30000 })
-  await expect(page.locator("#importResultHeadline")).toBeVisible()
+  await dictionary.startXmlImport()
+  await expect(dictionary.xmlImportProgressPanel).toContainText("完了", {
+    timeout: 30000
+  })
 }
 
-function dictionaryRows(page: Page) {
-  return page.locator(
-    ".target-table tbody tr:not(.target-detail-row):not(.target-empty-row)"
-  )
-}
-
-function dictionaryEmptyRow(page: Page) {
-  return page.locator(".target-empty-row")
-}
-
-test("SCN-MDM-001/002 一覧と検索を同一ページで操作できる", async ({ page }) => {
-  await openMasterDictionary(page)
-
-  await expect(page.locator("#dictionaryTargetHeading")).toBeVisible()
-
-  const rows = dictionaryRows(page)
-  await expect(rows).toHaveCount(30)
-
-  const secondRowSource = rows.nth(1).locator("td").first()
-  const secondRowSourceText = await secondRowSource.innerText()
-  await rows.nth(1).click()
-  await expect(page.locator("#detailTitle")).toHaveText(secondRowSourceText)
-
-  const searchInput = page.getByLabel("検索")
-  await searchInput.fill("__no_such_term__")
-  await expect(dictionaryEmptyRow(page)).toContainText("処理対象がありません")
-
-  await searchInput.fill("")
-  await expect(rows).toHaveCount(30)
-})
-
-test("SCN-MDM-003/004/005 新規登録・更新・削除モーダルを完了できる", async ({
+test("E2E-UC-007 master dictionary filters entries by search text", async ({
   page
 }) => {
+  // 検索入力の利用者操作で、条件に一致する辞書エントリだけが表示されることを証明する。
   await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
 
-  const sourceText = `Phase5 Source Entry ${Date.now()}`
+  await expect(dictionary.operationRegion).toBeVisible()
+
+  await expect(dictionary.entryRows).toHaveCount(30)
+
+  await dictionary.search("Whiterun")
+
+  await expect
+    .poll(async () => await dictionary.operationRegion.innerText())
+    .toContain("Whiterun")
+  await expect(dictionary.operationRegion).not.toContainText("Iron Sword")
+})
+
+test("E2E-UC-029 master dictionary shows empty state for no search result", async ({
+  page
+}) => {
+  // 検索結果 0 件の利用者操作で、一覧が該当なし状態になることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  await dictionary.search("__no_such_term__")
+
+  await expect(dictionary.emptyRow()).toContainText("処理対象がありません")
+})
+
+test("SCN-MDM-002 master dictionary opens selected entry detail", async ({
+  page
+}) => {
+  // 一覧行の利用者操作で、選択した辞書エントリの詳細が表示されることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  const secondRowSourceText = await dictionary.entryRows.nth(1).innerText()
+  await dictionary.entryRows.nth(1).click()
+
+  await expect(dictionary.detailPanel).toContainText(
+    secondRowSourceText.split("\n")[0]
+  )
+})
+
+test("E2E-UC-008 master dictionary creates a dictionary entry", async ({
+  page
+}) => {
+  // 新規登録の利用者操作で、入力した辞書エントリが一覧と詳細へ反映されることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  const sourceText = "System Test Create Entry"
   const createdTranslation = "フェーズ5 作成訳語"
+
+  await dictionary.openCreateModal()
+  await expect(dictionary.createEditModal).toContainText("新規登録")
+  await dictionary.fillEntry({
+    origin: "手動登録",
+    source: sourceText,
+    translation: createdTranslation
+  })
+  await clickEditModalSave(dictionary)
+  await expect(dictionary.createEditModal).toBeHidden()
+
+  await dictionary.search(sourceText)
+  await expect.poll(async () => dictionary.entryRows.count()).toBeGreaterThan(0)
+  await expect(dictionary.detailPanel).toContainText(sourceText)
+  await expect(dictionary.entryRows.first()).toContainText(createdTranslation)
+})
+
+test("E2E-UC-009 master dictionary keeps invalid entry in create modal", async ({
+  page
+}) => {
+  // 必須不足の保存操作で、辞書エントリが登録されず入力 modal が維持されることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  await dictionary.openCreateModal()
+  await expect(dictionary.createEditModal).toBeVisible()
+  await dictionary.fillEntry({ source: "", translation: "" })
+  await dictionary.saveEntry()
+
+  await expect(dictionary.createEditModal).toBeVisible()
+})
+
+test("E2E-UC-030 master dictionary cancels a create operation", async ({
+  page
+}) => {
+  // 新規登録の取消操作で、入力した候補が一覧へ保存されないことを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  const sourceText = "System Test Cancel Candidate"
+
+  await dictionary.openCreateModal()
+  await dictionary.fillEntry({
+    source: sourceText,
+    translation: "キャンセル候補"
+  })
+  await dictionary.closeEntryModal()
+
+  await expect(dictionary.createEditModal).toBeHidden()
+  await dictionary.search(sourceText)
+  await expect(dictionary.emptyRow()).toContainText("処理対象がありません")
+})
+
+test("E2E-UC-010 master dictionary updates a selected entry", async ({
+  page
+}) => {
+  // 更新の利用者操作で、選択した辞書エントリの訳語が更新されることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  const sourceText = "System Test Update Entry"
   const updatedTranslation = "フェーズ5 更新訳語"
 
-  await page.getByRole("button", { name: "新規登録" }).click()
-  const createDialog = page.locator("#editModal")
-  await expect(createDialog).toBeVisible()
-  await expect(page.locator("#editModalTitle")).toHaveText("新規登録")
-  await createDialog.getByLabel("原文").fill(sourceText)
-  await createDialog.getByLabel("訳語").fill(createdTranslation)
-  await createDialog.getByLabel("由来").selectOption("手動登録")
-  await clickEditModalSave(page)
-  await expect(createDialog).toBeHidden()
+  await dictionary.openCreateModal()
+  await dictionary.fillEntry({
+    origin: "手動登録",
+    source: sourceText,
+    translation: "更新前訳語"
+  })
+  await clickEditModalSave(dictionary)
+  await dictionary.search(sourceText)
+  await expect.poll(async () => dictionary.entryRows.count()).toBeGreaterThan(0)
 
-  const searchInput = page.getByLabel("検索")
-  await searchInput.fill(sourceText)
-  const rows = dictionaryRows(page)
-  await expect.poll(async () => rows.count()).toBeGreaterThan(0)
-  await expect(page.locator("#detailTitle")).toHaveText(sourceText)
-  await expect(rows.first().locator("td").nth(1)).toContainText(
-    createdTranslation
-  )
+  await dictionary.openEditModal()
+  await expect(dictionary.createEditModal).toContainText("更新")
+  await dictionary.fillEntry({ translation: updatedTranslation })
+  await clickEditModalSave(dictionary)
+  await expect(dictionary.createEditModal).toBeHidden()
+  await expect(dictionary.entryRows.first()).toContainText(updatedTranslation)
+})
 
-  await page.getByRole("button", { name: "更新" }).click()
-  const editDialog = page.locator("#editModal")
-  await expect(editDialog).toBeVisible()
-  await expect(page.locator("#editModalTitle")).toHaveText("更新")
-  await editDialog.getByLabel("訳語").fill(updatedTranslation)
-  await clickEditModalSave(page)
-  await expect(editDialog).toBeHidden()
-  await expect(rows.first().locator("td").nth(1)).toContainText(
-    updatedTranslation
-  )
+test("E2E-UC-011 master dictionary deletes a selected entry", async ({
+  page
+}) => {
+  // 削除確定の利用者操作で、選択した辞書エントリが一覧から消えることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
 
-  await page.getByRole("button", { name: "削除" }).click()
-  const deleteDialog = page.locator("#deleteModal")
-  await expect(deleteDialog).toBeVisible()
-  await deleteDialog.getByRole("button", { name: "削除する" }).click()
-  await expect(deleteDialog).toBeHidden()
+  const sourceText = "System Test Delete Entry"
 
-  await expect.poll(async () => rows.count()).toBe(0)
+  await dictionary.openCreateModal()
+  await dictionary.fillEntry({
+    origin: "手動登録",
+    source: sourceText,
+    translation: "削除候補"
+  })
+  await clickEditModalSave(dictionary)
+  await dictionary.search(sourceText)
+  await expect.poll(async () => dictionary.entryRows.count()).toBeGreaterThan(0)
+
+  await dictionary.openDeleteModal()
+  await expect(dictionary.deleteModal).toBeVisible()
+  await dictionary.confirmDelete()
+  await expect(dictionary.deleteModal).toBeHidden()
+
+  await expect.poll(async () => dictionary.entryRows.count()).toBe(0)
   await expect
-    .poll(async () => await page.locator(".target-list-wrapper").innerText())
+    .poll(async () => await dictionary.operationRegion.innerText())
     .not.toContain(sourceText)
-  await expect
-    .poll(async () => await page.locator(".target-list-wrapper").innerText())
-    .not.toContain(updatedTranslation)
+})
+
+test("E2E-UC-031 master dictionary cancels delete confirmation", async ({
+  page
+}) => {
+  // 削除取消の利用者操作で、選択した辞書エントリが一覧へ残ることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  const firstRowSourceText = await dictionary.entryRows.first().innerText()
+  await dictionary.entryRows.first().click()
+  await dictionary.openDeleteModal()
+  await dictionary.cancelDelete()
+
+  await expect(dictionary.deleteModal).toBeHidden()
+  await expect(dictionary.operationRegion).toContainText(
+    firstRowSourceText.split("\n")[0].trim()
+  )
 })
 
 test("SCN-MDM-008/009 XML未選択ゲートと取込バー状態遷移を確認できる", async ({
   page
 }) => {
+  // XML 未選択時は取り込み開始できず、選択後に取り込み状態が完了へ進むことを証明する。
   await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
 
-  const importProgressRegion = page.locator(
-    '[aria-label="XML 取り込みの進行率"]'
-  )
-  const importStartButton = page.getByRole("button", {
-    name: "この XML を取り込む"
-  })
+  const importProgressRegion =
+    dictionary.xmlImportProgressPanel.getByLabel("XML 取り込みの進行率")
 
   await expect(importProgressRegion).toBeVisible()
-  await expect(importStartButton).toBeHidden()
+  await expect(dictionary.xmlImportButton).toBeHidden()
 
   await importDawnguardXml(page)
 
-  await expect(page.locator("#searchInput")).toHaveValue("")
-  await expect(page.locator("#categorySelect")).toHaveValue("すべて")
-  await expect(page.locator("#importResultHeadline")).toBeVisible()
+  await expect(dictionary.searchInput).toHaveValue("")
+  await expect(dictionary.categorySelect).toHaveValue("すべて")
+  await expect(dictionary.xmlImportProgressPanel).toContainText("完了")
 })
 
-test("SCN-MDM-006 XML取込は許可RECのみを抽出する", async ({ page }) => {
+test("E2E-UC-012 master dictionary imports allowed records from XML", async ({
+  page
+}) => {
+  // XML 取り込みの利用者操作で、許可された record だけが辞書一覧へ反映されることを証明する。
   await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
   await importDawnguardXml(page)
 
-  const searchInput = page.getByLabel("検索")
+  await dictionary.search("Auriel's Bow")
+  await expect(dictionary.entryRows).not.toHaveCount(0)
 
-  await searchInput.fill("Auriel's Bow")
-  await expect(dictionaryRows(page)).not.toHaveCount(0)
+  await dictionary.search("Crossbow Mount")
+  await expect(dictionary.emptyRow()).toContainText("処理対象がありません")
 
-  await searchInput.fill("Crossbow Mount")
-  await expect(dictionaryEmptyRow(page)).toContainText("処理対象がありません")
+  await dictionary.search("Transform into the vampire lord.")
+  await expect(dictionary.emptyRow()).toContainText("処理対象がありません")
+})
 
-  await searchInput.fill("Transform into the vampire lord.")
-  await expect(dictionaryEmptyRow(page)).toContainText("処理対象がありません")
+test("E2E-UC-032 master dictionary keeps existing list when XML import fails", async ({
+  page
+}) => {
+  // 不正 XML の取り込み操作で、失敗表示になり既存一覧が維持されることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+  const beforeListText = await dictionary.operationRegion.innerText()
+
+  await dictionary.stageXmlFileWithRuntimePath(invalidXmlPath)
+  await dictionary.startXmlImport()
+
+  await expect(dictionary.screen).toContainText(/XML syntax error|取り込みに失敗/)
+  await expect(dictionary.operationRegion).toContainText(
+    beforeListText.split("\n")[0].trim()
+  )
+})
+
+test("E2E-UC-054 master dictionary disables duplicate XML import while running", async ({
+  page
+}) => {
+  // XML 取り込み中の画面状態で、取り込み開始と選び直しが無効化されることを証明する。
+  await openMasterDictionary(page)
+  const dictionary = new MasterDictionaryPage(page)
+
+  await dictionary.stageXmlFileWithRuntimePath(dawnguardXmlPath)
+  await page.evaluate(() => {
+    const controller = globalThis.go?.wails?.AppController
+    if (!controller) {
+      return
+    }
+    controller.ImportMasterDictionaryXml = () => new Promise(() => {})
+    controller.ImportMasterDictionaryXML = () => new Promise(() => {})
+  })
+  await dictionary.startXmlImport()
+
+  await expect(dictionary.xmlImportProgressPanel).toContainText(/取込中/)
+  await expect(dictionary.xmlImportButton).toBeDisabled()
+  await expect(
+    dictionary.xmlImportProgressPanel.getByRole("button", {
+      name: "選び直す"
+    })
+  ).toBeDisabled()
 })

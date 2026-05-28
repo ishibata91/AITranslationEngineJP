@@ -173,6 +173,68 @@ func TestProviderSettingsServiceSavePreservesExistingSecretWhenInputMissing(t *t
 	}
 }
 
+func TestProviderSettingsServiceSaveRejectsInvalidEndpointWithoutMutatingState(t *testing.T) {
+	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
+	recordingSecretStore := &recordingProviderSettingsSecretStore{backend: secretStore}
+	service := NewProviderSettingsService(
+		repo,
+		recordingSecretStore,
+		transactor,
+		&fakeProviderSettingsModelListLoader{},
+		fakeProviderSettingsValidator{},
+		func() time.Time { return time.Date(2026, 5, 4, 11, 15, 0, 0, time.UTC) },
+	)
+
+	_, err := service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
+		ProviderID:         "gemini",
+		Endpoint:           stringPointerForProviderSettingsServiceTest("https://gemini.example/v1"),
+		APIKeyInputPresent: true,
+		APIKey:             stringPointerForProviderSettingsServiceTest("stored-secret"),
+	})
+	if err != nil {
+		t.Fatalf("expected initial provider settings save to succeed: %v", err)
+	}
+	recordingSecretStore.saveKeys = nil
+
+	_, err = service.SaveProviderSettings(context.Background(), ProviderSettingsSaveInput{
+		ProviderID:         "gemini",
+		Endpoint:           stringPointerForProviderSettingsServiceTest("invalid-endpoint"),
+		APIKeyInputPresent: true,
+		APIKey:             stringPointerForProviderSettingsServiceTest("rejected-secret"),
+	})
+	if err == nil {
+		t.Fatal("expected invalid endpoint save to be rejected")
+	}
+	errorText := err.Error()
+	if !strings.Contains(errorText, providerSettingsErrorKindValidationFailed) {
+		t.Fatalf("expected validation_failed error kind for invalid endpoint, got %v", err)
+	}
+	forbidden := []string{"invalid-endpoint", "rejected-secret", "stored-secret"}
+	for _, value := range forbidden {
+		if strings.Contains(errorText, value) {
+			t.Fatalf("expected invalid endpoint error to avoid sensitive or raw input value %q, got %v", value, err)
+		}
+	}
+	if len(recordingSecretStore.saveKeys) != 0 {
+		t.Fatalf("expected invalid endpoint save not to update secret store, got %#v", recordingSecretStore.saveKeys)
+	}
+
+	loadedRow, err := repo.GetByProviderID(context.Background(), "gemini")
+	if err != nil {
+		t.Fatalf("expected saved provider settings row to remain readable: %v", err)
+	}
+	if loadedRow.Endpoint == nil || *loadedRow.Endpoint != "https://gemini.example/v1" {
+		t.Fatalf("expected invalid endpoint save not to update persisted endpoint, got %#v", loadedRow)
+	}
+	loadedSecret, err := secretStore.Load(context.Background(), "provider-settings:gemini")
+	if err != nil {
+		t.Fatalf("expected provider settings secret reload to succeed: %v", err)
+	}
+	if loadedSecret != "stored-secret" {
+		t.Fatalf("expected invalid endpoint save not to update stored secret, got %q", loadedSecret)
+	}
+}
+
 func TestProviderSettingsServiceResetKeepsRowAndDeletesSecret(t *testing.T) {
 	repo, secretStore, transactor := openProviderSettingsServiceDependencies(t)
 	service := NewProviderSettingsService(

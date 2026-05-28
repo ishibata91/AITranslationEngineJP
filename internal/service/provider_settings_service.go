@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"log/slog"
+	"net/url"
 	"sort"
 	"strings"
 	"sync"
@@ -293,6 +294,9 @@ func (service *ProviderSettingsService) saveProviderSettingsLocked(
 	spec providerSettingsProviderSpec,
 	input ProviderSettingsSaveInput,
 ) (ProviderSettingsSummary, error) {
+	if err := validateProviderSettingsSaveEndpoint(input.Endpoint); err != nil {
+		return ProviderSettingsSummary{}, err
+	}
 	current, currentExists, err := service.loadRecord(ctx, spec.ID)
 	if err != nil {
 		return ProviderSettingsSummary{}, err
@@ -972,6 +976,24 @@ func normalizeServiceOptionalString(value *string) *string {
 	}
 	cloned := trimmed
 	return &cloned
+}
+
+func validateProviderSettingsSaveEndpoint(endpoint *string) error {
+	normalized := normalizeServiceOptionalString(endpoint)
+	if normalized == nil {
+		return nil
+	}
+	parsed, err := url.ParseRequestURI(*normalized)
+	if err != nil {
+		return fmt.Errorf("%w: %s endpoint format is invalid", ErrProviderSettingsValidation, providerSettingsErrorKindValidationFailed)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return fmt.Errorf("%w: %s endpoint format is invalid", ErrProviderSettingsValidation, providerSettingsErrorKindValidationFailed)
+	}
+	if parsed.Host == "" || parsed.User != nil {
+		return fmt.Errorf("%w: %s endpoint format is invalid", ErrProviderSettingsValidation, providerSettingsErrorKindValidationFailed)
+	}
+	return nil
 }
 
 func providerSettingsStringPointer(value string) *string {

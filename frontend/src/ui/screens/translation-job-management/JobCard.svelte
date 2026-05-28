@@ -40,12 +40,17 @@
     event.preventDefault()
     await handleOpenJob()
   }
+
+  const openPhaseState = $derived(
+    job.canOpenPhase ? (job.jobRunTarget ? "ready" : "missing-target") : "blocked"
+  )
 </script>
 
 <article
   class="job-card"
   class:is-selected={job.isSelected}
   data-job-id={job.jobId}
+  data-open-phase-state={openPhaseState}
   data-testid="translation-job-management-job-card"
 >
   <a
@@ -60,7 +65,7 @@
     data-state-description={job.stateDescription}
     data-state-label={job.stateLabel}
     data-testid="translation-job-management-job-selection-region"
-    href={job.canOpenPhase
+    href={openPhaseState === "ready"
       ? "#translation-management/job-run"
       : "#translation-management"}
     onclick={(event) => {
@@ -94,6 +99,7 @@
     <JobOperationGroup
       jobId={job.jobId}
       canOpenPhase={job.canOpenPhase}
+      hasJobRunTarget={Boolean(job.jobRunTarget)}
       stopOperation={job.stopOperation}
       resumeOperation={job.resumeOperation}
       deleteOperation={job.deleteOperation}

@@ -1,0 +1,20 @@
+{
+  "target_plugin": "SystemTestInput.esp",
+  "dialogue_groups": [
+    {
+      "id": "DIAL-0001",
+      "editor_id": "SystemTestDialogue",
+      "type": "DIAL FULL",
+      "player_text": "Where is the inn?",
+      "responses": [
+        {
+          "id": "INFO-0001",
+          "editor_id": "SystemTestResponse",
+          "type": "INFO NAM1",
+          "text": "The inn is near the market.",
+          "order": 1
+        }
+      ]
+    }
+  ]
+}

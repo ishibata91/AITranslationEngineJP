@@ -80,6 +80,54 @@ function buildFeedback(
   } as const
 }
 
+function resolveActionFeedbackCategory(
+  operation: "stop" | "resume",
+  response: TranslationJobManagementActionResponse
+):
+  | TranslationJobManagementReasonCategory
+  | "stop_requested"
+  | "resume_success" {
+  if (response.reasonCategory) {
+    return response.reasonCategory
+  }
+
+  if (operation === "stop") {
+    return "stop_requested"
+  }
+
+  return response.tone === "success" ? "resume_success" : "resume_failed"
+}
+
+function applyActionResultToDetail(
+  operation: "stop" | "resume",
+  response: TranslationJobManagementActionResponse
+): TranslationJobManagementJobDetail | undefined {
+  if (!response.detail) {
+    return undefined
+  }
+
+  const reasonCategory = resolveActionFeedbackCategory(operation, response)
+  if (operation !== "stop" || reasonCategory === "resume_success") {
+    return response.detail
+  }
+
+  if (reasonCategory !== "stop_requested" && reasonCategory !== "stop_failed") {
+    return response.detail
+  }
+
+  return {
+    ...response.detail,
+    stopAvailability: {
+      ...response.detail.stopAvailability,
+      reasonCategory,
+      reasonText:
+        reasonCategory === "stop_requested"
+          ? "停止要求中"
+          : "前回の停止要求は失敗しました。"
+    }
+  }
+}
+
 export class TranslationJobManagementUseCase {
   constructor(
     private readonly gateway: TranslationJobManagementGatewayContract | null,
@@ -341,9 +389,10 @@ export class TranslationJobManagementUseCase {
       const response = await runner()
       this.store.update((draft) => {
         draft.activeOperation = null
-        if (response.detail) {
-          syncDetailIntoList(draft.jobs, response.detail)
-          draft.selectedJobDetail = response.detail
+        const detail = applyActionResultToDetail(operation, response)
+        if (detail) {
+          syncDetailIntoList(draft.jobs, detail)
+          draft.selectedJobDetail = detail
           draft.detailPhase = "ready"
         }
         draft.feedback = buildFeedback(
@@ -352,8 +401,7 @@ export class TranslationJobManagementUseCase {
             : "再開結果を更新しました",
           response.message,
           response.tone,
-          response.reasonCategory ??
-            (operation === "stop" ? "stop_requested" : "resume_success")
+          resolveActionFeedbackCategory(operation, response)
         )
       })
     } catch (error) {
