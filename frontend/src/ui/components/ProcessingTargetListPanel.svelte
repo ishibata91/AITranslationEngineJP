@@ -19,6 +19,7 @@
     onNextPage?: () => void
     onPageChange?: (page: number) => void
     onSelectItem?: (itemId: string) => void
+    rowTestId?: string
   }
 
   let {
@@ -33,7 +34,8 @@
     onPreviousPage,
     onNextPage,
     onPageChange,
-    onSelectItem
+    onSelectItem,
+    rowTestId = undefined
   }: Props = $props()
 
   let currentPage = $state(1)
@@ -50,9 +52,7 @@
       ? Math.max(0, controlledTotalCount)
       : items.length
   )
-  const pageCount = $derived(
-    Math.max(1, Math.ceil(itemCount / safePageSize))
-  )
+  const pageCount = $derived(Math.max(1, Math.ceil(itemCount / safePageSize)))
   const requestedPage = $derived(
     controlledPage !== undefined ? controlledPage : currentPage
   )
@@ -68,9 +68,7 @@
     visibleItems.find((item) => item.id === expandedItemId) ?? null
   )
   const pageRangeLabel = $derived(
-    itemCount === 0
-      ? "0 件"
-      : `${startIndex + 1}-${endIndex} / ${itemCount} 件`
+    itemCount === 0 ? "0 件" : `${startIndex + 1}-${endIndex} / ${itemCount} 件`
   )
 
   $effect(() => {
@@ -205,6 +203,8 @@
               aria-expanded={isExpanded}
               aria-controls={`processing-target-detail-${item.id}`}
               aria-label={itemTitle}
+              data-item-id={item.id}
+              data-testid={rowTestId}
               onclick={() => toggleItem(item.id)}
               onkeydown={(event) => handleRowKeydown(event, item.id)}
             >
@@ -265,6 +265,7 @@
                             <button
                               class:danger-action={action.variant === "danger"}
                               class="target-detail-action"
+                              data-testid={action.testId}
                               disabled={action.disabled}
                               onclick={action.onAction}
                               type="button"

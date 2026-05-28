@@ -171,3 +171,24 @@
 - セレクタ属性:
   - `data-testid`: `master-dictionary-delete-confirmation-modal`
   - `aria-label`: なし。
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 検索入力 | `master-dictionary-search-input` | `E2E-UC-007`, `E2E-UC-029` |
+| カテゴリ選択 | `master-dictionary-category-select` | `E2E-UC-007` |
+| 辞書行 | `master-dictionary-entry-row.<entry-id>` | `E2E-UC-007`, `E2E-UC-010`, `E2E-UC-011`, `E2E-UC-031` |
+| 新規登録操作 | `master-dictionary-create-button` | `E2E-UC-008`, `E2E-UC-009`, `E2E-UC-030` |
+| 原文入力 | `master-dictionary-entry-source-input` | `E2E-UC-008` から `E2E-UC-010`, `E2E-UC-030` |
+| カテゴリ入力 | `master-dictionary-entry-category-select` | `E2E-UC-008` から `E2E-UC-010`, `E2E-UC-030` |
+| 由来入力 | `master-dictionary-entry-origin-input` | `E2E-UC-008` から `E2E-UC-010`, `E2E-UC-030` |
+| 訳語入力 | `master-dictionary-entry-translation-input` | `E2E-UC-008` から `E2E-UC-010`, `E2E-UC-030` |
+| 保存操作 | `master-dictionary-entry-save-button` | `E2E-UC-008` から `E2E-UC-010` |
+| 必須項目エラー表示 | `master-dictionary-entry-validation-error` | `E2E-UC-009` |
+| 詳細領域の更新操作 | `master-dictionary-detail-edit-button` | `E2E-UC-010` |
+| 詳細領域の削除操作 | `master-dictionary-detail-delete-button` | `E2E-UC-011`, `E2E-UC-031` |
+| 削除確定操作 | `master-dictionary-delete-confirm-button` | `E2E-UC-011`, `E2E-UC-031` |
+| 削除取消操作 | `master-dictionary-delete-cancel-button` | `E2E-UC-011`, `E2E-UC-031` |
+| XML ファイル入力 | `master-dictionary-xml-file-input` | `E2E-UC-012` |
+| XML 取り込み開始操作 | `master-dictionary-xml-import-button` | `E2E-UC-012`, `E2E-UC-032` |

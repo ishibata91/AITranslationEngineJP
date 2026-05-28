@@ -126,3 +126,11 @@
 - セレクタ属性:
   - `data-testid`: `dashboard-primary-page-card`
   - `aria-label`: なし。
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 主要ページカード内の開く操作 | `dashboard-primary-page-open-button` | `E2E-UC-001` |
+| モバイル表示の主要ページ切り替え操作 | `dashboard-mobile-navigation-toggle` | `E2E-UC-002` |
+| グローバルナビゲーション項目 | `dashboard-global-navigation-item` | `E2E-UC-002`, `E2E-UC-026` |

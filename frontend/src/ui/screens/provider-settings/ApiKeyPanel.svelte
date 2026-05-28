@@ -28,7 +28,12 @@
       <strong>{selectedProvider.apiKeyStateLabel}</strong>
     </div>
     {#if selectedProvider.apiKeyRequired}
-      <button class="button-secondary" onclick={openApiKeyPanel} type="button">
+      <button
+        class="button-secondary"
+        data-testid="provider-settings-api-key-open-button"
+        onclick={openApiKeyPanel}
+        type="button"
+      >
         設定
       </button>
     {/if}
@@ -45,6 +50,7 @@
         <input
           autocomplete="off"
           class="text-field"
+          data-testid="provider-settings-api-key-input"
           id="providerApiKeyInput"
           oninput={handleCredentialInput}
           type="password"
@@ -55,7 +61,12 @@
         class="inline-actions"
         data-testid="provider-settings-api-key-save-actions"
       >
-        <button class="button-primary" onclick={saveSettings} type="button">
+        <button
+          class="button-primary"
+          data-testid="provider-settings-api-key-save-button"
+          onclick={saveSettings}
+          type="button"
+        >
           保存
         </button>
         <button

@@ -53,6 +53,7 @@
       eyebrow="入力 JSON"
       helperText={helperText}
       inputId="masterPersonaJsonInput"
+      inputTestId="master-persona-json-file-input"
       primaryActionId="chooseJsonButton"
       primaryActionLabel="JSON を選択"
       primaryActionDisabled={isRunActive}
@@ -77,6 +78,7 @@
         </button>
         <button
           class="button-primary button-wide"
+          data-testid="master-persona-generate-button"
           disabled={!canStartGeneration}
           id="executeGenerationButton"
           onclick={startGeneration}

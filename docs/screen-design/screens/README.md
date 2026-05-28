@@ -13,7 +13,6 @@
 - `master-persona.md`: マスターペルソナ
 - `translation-management.md`: 翻訳管理シェル
 - `translation-input-review.md`: 翻訳入力レビュー
-- `translation-job-setup.md`: 翻訳ジョブ設定
 - `translation-job-management.md`: 未完了ジョブ一覧
 - `job-run.md`: 翻訳実行シェル
 - `term-translation-phase.md`: 単語翻訳

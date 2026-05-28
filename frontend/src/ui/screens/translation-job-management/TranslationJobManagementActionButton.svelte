@@ -5,6 +5,7 @@
     operation: TranslationJobManagementOperationViewModel
     variant?: "default" | "danger"
     compact?: boolean
+    dataTestId?: string
     onAction: (
       operation: TranslationJobManagementOperationViewModel
     ) => void | Promise<void>
@@ -14,6 +15,7 @@
     operation,
     variant = "default",
     compact = false,
+    dataTestId = undefined,
     onAction
   }: Props = $props()
 
@@ -41,6 +43,7 @@
     aria-label={operation.label}
     class="action-button"
     class:is-danger={variant === "danger"}
+    data-testid={dataTestId}
     disabled={!operation.enabled || operation.busy}
     onclick={(event) => void handleClick(event)}
     type="button"

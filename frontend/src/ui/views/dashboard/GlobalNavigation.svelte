@@ -15,6 +15,7 @@
       aria-current={route.id === currentRoute.id ? "page" : undefined}
       class="nav-link"
       class:is-active={route.id === currentRoute.id}
+      data-testid="dashboard-global-navigation-item"
       href={`#${route.id}`}
       onclick={() => selectRoute(route.id)}
     >

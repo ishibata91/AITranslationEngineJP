@@ -188,3 +188,16 @@
 - セレクタ属性:
   - `data-testid`: `provider-settings-settings-actions-region`
   - `aria-label`: なし。
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| AIサービス行 | `provider-settings-ai-service-row.<provider-id>` | `E2E-UC-003` から `E2E-UC-006` |
+| APIキー設定操作 | `provider-settings-api-key-open-button` | `E2E-UC-003` |
+| APIキー入力 | `provider-settings-api-key-input` | `E2E-UC-003` |
+| APIキー保存操作 | `provider-settings-api-key-save-button` | `E2E-UC-003` |
+| 接続確認操作 | `provider-settings-connection-check-button` | `E2E-UC-004`, `E2E-UC-027` |
+| 設定保存操作 | `provider-settings-save-button` | `E2E-UC-005`, `E2E-UC-028` |
+| リセット操作 | `provider-settings-reset-button` | `E2E-UC-006` |
+| 入力不正エラー表示 | `provider-settings-validation-error` | `E2E-UC-028` |

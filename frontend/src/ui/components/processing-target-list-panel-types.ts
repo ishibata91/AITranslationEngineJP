@@ -18,6 +18,7 @@ export interface ProcessingTargetListItemMetadata {
 
 export interface ProcessingTargetListItemAction {
   label: string
+  testId?: string
   variant?: "secondary" | "danger"
   disabled?: boolean
   onAction: () => void

@@ -29,6 +29,7 @@
   eyebrow="ロード準備"
   helperText="取り込みたい JSON を 1 件選び、内容を確認してから登録する。"
   inputId="translationInputFile"
+  inputTestId="translation-input-review-json-file-input"
   primaryActionId="translationInputChooseJsonButton"
   primaryActionLabel="ロード対象を選ぶ"
   primaryActionDisabled={isImporting}
@@ -43,6 +44,7 @@
   {#snippet actions()}
     <button
       class="button-primary"
+      data-testid="translation-input-review-register-button"
       disabled={!canImport}
       onclick={() => void onStartImport()}
       type="button"

@@ -8,6 +8,7 @@
     title?: string
     message: string
     actionLabel?: string
+    dataTestId?: string
     onAction?: (() => void) | null
   }
 
@@ -16,12 +17,14 @@
     title = "",
     message,
     actionLabel = "",
+    dataTestId = undefined,
     onAction = null
   }: Props = $props()
 </script>
 
 <section
   class={`inline-feedback inline-feedback-${tone}`}
+  data-testid={dataTestId}
   role={tone === "error" ? "alert" : "status"}
 >
   <div class="feedback-copy">

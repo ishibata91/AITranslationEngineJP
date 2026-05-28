@@ -14,6 +14,7 @@
 >
   <button
     class="button-primary"
+    data-testid="provider-settings-save-button"
     disabled={!selectedProvider.canSave}
     onclick={saveSettings}
     type="button"
@@ -22,6 +23,7 @@
   </button>
   <button
     class="button-secondary"
+    data-testid="provider-settings-reset-button"
     disabled={!selectedProvider.canReset}
     onclick={resetSettings}
     type="button"

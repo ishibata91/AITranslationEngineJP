@@ -15,6 +15,7 @@
   eyebrow="XMLから取り込み"
   helperText="ファイルを選ぶと進行状況パネルで取り込みを開始できます。"
   inputId="xmlFileInput"
+  inputTestId="master-dictionary-xml-file-input"
   primaryActionId="chooseXmlButton"
   primaryActionLabel="ファイルを選択"
   primaryActionDisabled={isImportRunning}

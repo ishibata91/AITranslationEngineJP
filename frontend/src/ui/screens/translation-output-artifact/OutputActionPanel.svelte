@@ -57,6 +57,7 @@
     </div>
   </div>
   <SelectField
+    dataTestId="output-management-target-game-select"
     id="outputTargetGame"
     label="target game"
     options={targetGameOptions}
@@ -64,6 +65,7 @@
     onChange={onTargetGameChange}
   />
   <TextInputField
+    dataTestId="output-management-output-path-input"
     id="outputPath"
     label="output path"
     value={outputPath}
@@ -73,6 +75,7 @@
   />
   <ButtonGroup ariaLabel="出力操作" align="stretch">
     <ActionButton
+      dataTestId="output-management-export-button"
       label="XML を出力"
       variant="primary"
       disabled={!canGenerate || isSubmitting}
@@ -80,6 +83,7 @@
       onClick={onGenerate}
     />
     <ActionButton
+      dataTestId="output-management-reexport-button"
       label="再出力"
       variant="secondary"
       disabled={!canRegenerate || isSubmitting}
@@ -87,7 +91,11 @@
     />
   </ButtonGroup>
   {#if disabledReason}
-    <InlineFeedback tone="warning" message={disabledReason} />
+    <InlineFeedback
+      dataTestId="output-management-output-path-error"
+      tone="warning"
+      message={disabledReason}
+    />
   {/if}
 </section>
 

@@ -21,6 +21,7 @@
         class="provider-row"
         class:is-selected={provider.selected}
         data-testid="provider-settings-ai-service-row"
+        data-provider-id={provider.providerId}
         onclick={() => selectProvider(provider.providerId)}
         type="button"
       >

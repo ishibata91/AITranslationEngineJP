@@ -48,7 +48,6 @@ active exec-plan で承認された恒久仕様は、close 前にここへ製本
 - [`template.md`](./template.md)
 - [`term-translation-phase.md`](./term-translation-phase.md)
 - [`translation-job-management.md`](./translation-job-management.md)
-- [`translation-job-setup.md`](./translation-job-setup.md)
 - [`translation-input-intake.md`](./translation-input-intake.md)
 - [`translation-output-artifact.md`](./translation-output-artifact.md)
 

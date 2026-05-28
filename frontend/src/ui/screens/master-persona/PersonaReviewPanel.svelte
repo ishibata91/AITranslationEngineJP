@@ -58,11 +58,13 @@
         actions: [
           {
             label: "編集",
+            testId: "master-persona-edit-button",
             disabled: !canMutate,
             onAction: editCurrent
           },
           {
             label: "削除",
+            testId: "master-persona-delete-button",
             variant: "danger" as const,
             disabled: !canMutate,
             onAction: openDelete
@@ -94,6 +96,7 @@
     filterId="masterPersonaPluginSelect"
     filterLabel="プラグイン"
     filterOptions={pluginOptions}
+    filterTestId="master-persona-plugin-select"
     filterValue={pluginFilter}
     initialExpandedItemId={selectedIdentityKey}
     items={personaTargetItems}
@@ -101,6 +104,7 @@
     searchId="masterPersonaSearchInput"
     searchLabel="検索"
     searchPlaceholder="名前またはプラグイン名で検索"
+    searchTestId="master-persona-search-input"
     searchValue={keyword}
     supportText={visiblePluginNames}
     title="ペルソナ一覧"
@@ -108,6 +112,7 @@
     onFilterChange={updatePluginFilter}
     onSearchInput={updateKeyword}
     onSelectItem={selectRow}
+    rowTestId="master-persona-row"
   >
     {#snippet footer()}
       <nav class="pager-row" aria-label="ペルソナ一覧のページ操作">

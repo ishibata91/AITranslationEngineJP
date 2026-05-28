@@ -13,8 +13,10 @@
     ariaLabel?: string
     helperText?: string
     statusLabel?: string
+    statusTestId?: string
     statusTone?: Tone
     providerSelectId: string
+    providerSelectTestId?: string
     providerValue: string
     providerOptions: SelectOption[]
     providerFieldLabel?: string
@@ -33,6 +35,7 @@
     batchHelpText?: string
     onBatchChange?: (event: Event) => void
     executionSelectId?: string
+    executionSelectTestId?: string
     executionValue?: string
     executionOptions?: SelectOption[]
     executionDisabled?: boolean
@@ -44,6 +47,7 @@
     refreshSpinning?: boolean
     onRefresh?: (() => void) | null
     modelSelectId: string
+    modelSelectTestId?: string
     modelValue: string
     modelOptions: ModelOption[]
     modelDisabled?: boolean
@@ -54,6 +58,7 @@
     footerWarningText?: string
     actionButtonLabel?: string
     actionButtonId?: string
+    actionButtonTestId?: string
     actionButtonDisabled?: boolean
     onAction?: (() => void) | null
   }
@@ -67,8 +72,10 @@
     ariaLabel = undefined,
     helperText = "",
     statusLabel = "",
+    statusTestId = undefined,
     statusTone = "neutral",
     providerSelectId,
+    providerSelectTestId = undefined,
     providerValue,
     providerOptions,
     providerFieldLabel = "AIサービス",
@@ -87,6 +94,7 @@
     batchHelpText = "",
     onBatchChange = undefined,
     executionSelectId = undefined,
+    executionSelectTestId = undefined,
     executionValue = "",
     executionOptions = [],
     executionDisabled = false,
@@ -98,6 +106,7 @@
     refreshSpinning = false,
     onRefresh = null,
     modelSelectId,
+    modelSelectTestId = undefined,
     modelValue,
     modelOptions,
     modelDisabled = false,
@@ -108,6 +117,7 @@
     footerWarningText = "",
     actionButtonLabel = "",
     actionButtonId = undefined,
+    actionButtonTestId = undefined,
     actionButtonDisabled = false,
     onAction = null
   }: Props = $props()
@@ -133,6 +143,7 @@
               ? "status-success"
               : ""
         }`}
+        data-testid={statusTestId}
       >
         {statusLabel}
       </span>
@@ -144,6 +155,7 @@
       <span>{providerFieldLabel}</span>
       <select
         aria-label={providerFieldLabel}
+        data-testid={providerSelectTestId}
         disabled={providerDisabled}
         id={providerSelectId}
         onchange={onProviderChange}
@@ -174,6 +186,7 @@
       <div class="model-select-row">
         <select
           aria-labelledby={`${modelSelectId}-label`}
+          data-testid={modelSelectTestId}
           disabled={modelDisabled}
           id={modelSelectId}
           onchange={onModelChange}
@@ -240,6 +253,7 @@
           <span>処理方式</span>
           <select
             aria-label="処理方式"
+            data-testid={executionSelectTestId}
             disabled={executionDisabled}
             id={executionSelectId}
             onchange={onExecutionChange}
@@ -273,6 +287,7 @@
         <button
           id={actionButtonId}
           class="button-secondary"
+          data-testid={actionButtonTestId}
           disabled={actionButtonDisabled}
           onclick={() => onAction?.()}
           type="button"

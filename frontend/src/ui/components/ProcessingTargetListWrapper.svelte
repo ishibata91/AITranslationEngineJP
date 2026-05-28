@@ -14,11 +14,13 @@
     titleId: string
     items: ProcessingTargetListItem[]
     searchId?: string
+    searchTestId?: string
     searchLabel?: string
     searchValue?: string
     countText?: string
     eyebrow?: string
     filterId?: string
+    filterTestId?: string
     filterLabel?: string
     filterOptions?: ProcessingTargetListFilterOption[]
     filterValue?: string
@@ -38,6 +40,7 @@
     onNextPage?: () => void
     onPageChange?: (page: number) => void
     onSelectItem?: (itemId: string) => void
+    rowTestId?: string
   }
 
   let {
@@ -45,11 +48,13 @@
     titleId,
     items,
     searchId = "",
+    searchTestId = undefined,
     searchLabel = "",
     searchValue = "",
     countText = "",
     eyebrow = "",
     filterId = "",
+    filterTestId = undefined,
     filterLabel = "",
     filterOptions = [],
     filterValue = "",
@@ -68,12 +73,15 @@
     onPreviousPage,
     onNextPage,
     onPageChange,
-    onSelectItem
+    onSelectItem,
+    rowTestId = undefined
   }: Props = $props()
 
   const hasSearch = $derived(Boolean(searchId && searchLabel && onSearchInput))
   const hasFilter = $derived(
-    Boolean(filterId && filterLabel && filterOptions.length > 0 && onFilterChange)
+    Boolean(
+      filterId && filterLabel && filterOptions.length > 0 && onFilterChange
+    )
   )
 </script>
 
@@ -104,6 +112,7 @@
           <span class="field-label">{searchLabel}</span>
           <input
             class="text-field"
+            data-testid={searchTestId}
             id={searchId}
             oninput={onSearchInput}
             placeholder={searchPlaceholder}
@@ -118,6 +127,7 @@
           <span class="field-label">{filterLabel}</span>
           <select
             class="text-field"
+            data-testid={filterTestId}
             id={filterId}
             onchange={onFilterChange}
             value={filterValue}
@@ -145,6 +155,7 @@
     {onNextPage}
     {onPageChange}
     {onSelectItem}
+    {rowTestId}
   />
 
   {@render footer?.()}

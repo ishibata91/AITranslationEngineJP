@@ -17,9 +17,11 @@
     selectedName: string
     primaryActionId: string
     primaryActionLabel: string
+    primaryActionTestId?: string
     primaryActionDisabled?: boolean
     accept?: string
     inputId?: string
+    inputTestId?: string
     stats?: FileImportStat[]
     statsId?: string
     onPrimaryAction: () => void
@@ -38,9 +40,11 @@
     selectedName,
     primaryActionId,
     primaryActionLabel,
+    primaryActionTestId = undefined,
     primaryActionDisabled = false,
     accept = "",
     inputId = undefined,
+    inputTestId = undefined,
     stats = [],
     statsId = undefined,
     onPrimaryAction,
@@ -50,7 +54,11 @@
   }: Props = $props()
 </script>
 
-<section class="phase-card file-import-panel" aria-labelledby={titleId} data-testid={testId}>
+<section
+  class="phase-card file-import-panel"
+  aria-labelledby={titleId}
+  data-testid={testId}
+>
   <div class="panel-head">
     <div>
       <p class="eyebrow">{eyebrow}</p>
@@ -58,6 +66,7 @@
     </div>
     <button
       class="button-secondary"
+      data-testid={primaryActionTestId}
       disabled={primaryActionDisabled}
       id={primaryActionId}
       onclick={onPrimaryAction}
@@ -73,6 +82,7 @@
     <input
       {accept}
       class="file-input"
+      data-testid={inputTestId}
       id={inputId}
       onchange={onFileSelected}
       type="file"

@@ -246,6 +246,7 @@
       filterId="categorySelect"
       filterLabel="カテゴリ"
       filterOptions={dictionaryCategoryOptions}
+      filterTestId="master-dictionary-category-select"
       filterValue={viewModel.category}
       initialExpandedItemId={viewModel.selectedEntry?.id ?? viewModel.selectedId}
       items={dictionaryTargetItems}
@@ -253,6 +254,7 @@
       searchId="searchInput"
       searchLabel="検索"
       searchPlaceholder="原文・訳語・IDで検索"
+      searchTestId="master-dictionary-search-input"
       searchValue={viewModel.query}
       supportText={viewModel.listHeadline}
       title="辞書一覧"
@@ -260,17 +262,20 @@
       onFilterChange={handleCategoryChange}
       onSearchInput={handleSearchInput}
       onSelectItem={selectRow}
+      rowTestId="master-dictionary-entry-row"
     >
       {#snippet actions()}
         <div class="toolbar-actions">
           <button
             class="button-primary"
+            data-testid="master-dictionary-create-button"
             id="createButton"
             onclick={() => controller.openCreateModal()}
             type="button">新規登録</button
           >
           <button
             class="button-secondary"
+            data-testid="master-dictionary-detail-edit-button"
             disabled={!viewModel.selectedEntry}
             id="editButton"
             onclick={() => controller.openEditModal()}
@@ -278,6 +283,7 @@
           >
           <button
             class="button-danger"
+            data-testid="master-dictionary-detail-delete-button"
             disabled={!viewModel.selectedEntry}
             id="deleteButton"
             onclick={() => controller.openDeleteModal()}

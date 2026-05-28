@@ -94,7 +94,12 @@
           value={currentFilter?.id ?? "all"}
         >
           {#each filterChips as chip (chip.id)}
-            <option value={chip.id}>{chip.label} ({chip.count})</option>
+            <option
+              data-testid="translation-job-management-state-filter-option"
+              value={chip.id}
+            >
+              {chip.label} ({chip.count})
+            </option>
           {/each}
         </select>
       </label>

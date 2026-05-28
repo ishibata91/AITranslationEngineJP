@@ -14,6 +14,7 @@
     required?: boolean
     disabled?: boolean
     autocomplete?: string
+    dataTestId?: string
     onInput: (value: string) => void
   }
 
@@ -28,6 +29,7 @@
     required = false,
     disabled = false,
     autocomplete = undefined,
+    dataTestId = undefined,
     onInput
   }: Props = $props()
 
@@ -44,6 +46,7 @@
     aria-invalid={error ? "true" : undefined}
     {autocomplete}
     class="text-input"
+    data-testid={dataTestId}
     {disabled}
     {id}
     oninput={(event) => onInput(event.currentTarget.value)}

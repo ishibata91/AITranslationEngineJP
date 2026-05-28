@@ -31,12 +31,14 @@
     <div class="modal-actions">
       <button
         class="button-secondary"
+        data-testid="master-dictionary-delete-cancel-button"
         id="closeDeleteModalButton"
         onclick={closeDeleteModal}
         type="button">やめる</button
       >
       <button
         class="button-danger"
+        data-testid="master-dictionary-delete-confirm-button"
         id="confirmDeleteButton"
         onclick={deleteCurrentEntry}
         type="button">削除する</button

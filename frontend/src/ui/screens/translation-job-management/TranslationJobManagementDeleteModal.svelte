@@ -30,6 +30,7 @@
         </div>
         <button
           class="button-secondary"
+          data-testid="translation-job-management-delete-cancel-button"
           disabled={confirmation.busy}
           onclick={onClose}
           type="button"
@@ -51,6 +52,7 @@
       <div class="button-row">
         <button
           class="button-secondary"
+          data-testid="translation-job-management-delete-cancel-button"
           disabled={confirmation.busy}
           onclick={onClose}
           type="button"
@@ -59,6 +61,7 @@
         </button>
         <button
           class="button-danger"
+          data-testid="translation-job-management-delete-confirm-button"
           disabled={confirmation.busy}
           onclick={onConfirm}
           type="button"

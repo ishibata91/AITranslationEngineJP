@@ -93,6 +93,7 @@
   executionDisabled={isAISettingsRefreshing}
   executionOptions={executionMethodOptions}
   executionSelectId="executionMethodSelect"
+  executionSelectTestId="master-persona-execution-mode-select"
   executionValue={aiSettings.executionMethod}
   footerMessage={modelCard.footerMessage ||
     "モデル設定はこの画面専用です。必要なら保存できます。"}
@@ -101,6 +102,7 @@
   modelDisabled={isAISettingsRefreshing || !modelCard.modelSelectEnabled}
   modelOptions={modelCard.modelOptions}
   modelSelectId="modelInput"
+  modelSelectTestId="master-persona-model-select"
   modelStatusText={modelCard.modelListStatusText}
   modelValue={modelCard.model}
   onAction={saveAISettings}
@@ -112,6 +114,7 @@
   providerOptions={modelCard.providerOptions}
   providerDisabled={isAISettingsRefreshing}
   providerSelectId="providerSelect"
+  providerSelectTestId="master-persona-ai-service-select"
   providerValue={modelCard.provider}
   refreshButtonAriaLabel={modelCard.modelListButtonAriaLabel}
   refreshButtonLabel={modelCard.modelListButtonLabel}

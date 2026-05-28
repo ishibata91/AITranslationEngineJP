@@ -39,10 +39,12 @@
         ? "辞書エントリの内容を入力します。"
         : "選択中の辞書エントリを編集します。"}
     </p>
+    <p data-testid="master-dictionary-entry-validation-error" hidden></p>
     <div class="field-grid">
       <label class="field-label" for="formSource">原文</label>
       <input
         class="text-field"
+        data-testid="master-dictionary-entry-source-input"
         id="formSource"
         type="text"
         value={formSource}
@@ -52,6 +54,7 @@
       <label class="field-label" for="formCategory">カテゴリ</label>
       <select
         class="select-field"
+        data-testid="master-dictionary-entry-category-select"
         id="formCategory"
         value={formCategory}
         onchange={setFormCategory}
@@ -64,6 +67,7 @@
       <label class="field-label" for="formOrigin">由来</label>
       <select
         class="select-field"
+        data-testid="master-dictionary-entry-origin-input"
         id="formOrigin"
         value={formOrigin}
         onchange={setFormOrigin}
@@ -76,6 +80,7 @@
       <label class="field-label" for="formTranslation">訳語</label>
       <textarea
         class="textarea-field"
+        data-testid="master-dictionary-entry-translation-input"
         id="formTranslation"
         value={formTranslation}
         oninput={setFormTranslation}
@@ -90,6 +95,7 @@
       >
       <button
         class="button-primary"
+        data-testid="master-dictionary-entry-save-button"
         id="saveEntryButton"
         onclick={saveCurrentEntry}
         type="button">保存する</button

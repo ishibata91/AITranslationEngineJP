@@ -180,3 +180,16 @@
 | 項目別結果 | 今回の画面構成では常時表示しない。結果は後続の表化対象とする。 |
 | 独立した失敗情報カード | 失敗は状態概要内のエラー文として扱う。 |
 | 後続出力準備カード | 結果・後続判断を大きな別カードとして表示しない。 |
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 画面全体領域 | `body-translation-phase-screen` | `E2E-UC-047` |
+| 状態概要 | `body-translation-phase-status-panel` | `E2E-UC-047` |
+| 開始操作 | `body-translation-phase-start-button` | `E2E-UC-047` |
+| 進捗バー | `body-translation-phase-progress-bar` | `E2E-UC-047` |
+| 進捗件数 | `body-translation-phase-progress-counts` | `E2E-UC-047` |
+| AI モデル固定状態 | `body-translation-phase-ai-model-lock-state` | `E2E-UC-047` |
+| 処理対象行 | `body-translation-phase-processing-target-row.<target-id>` | `E2E-UC-047` |
+| 完了後の後続導線 | `body-translation-phase-complete-next-action` | `E2E-UC-047` |

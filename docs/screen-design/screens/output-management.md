@@ -105,3 +105,15 @@
 - セレクタ属性:
   - `data-testid`: `output-management-diff-preview`
   - `aria-label`: なし。
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 出力候補ジョブ行 | `output-management-output-candidate-row.<job-id>` | `E2E-UC-023` から `E2E-UC-025`, `E2E-UC-042` から `E2E-UC-044` |
+| 対象ゲーム選択 | `output-management-target-game-select` | `E2E-UC-023` |
+| 出力先 path 入力 | `output-management-output-path-input` | `E2E-UC-023`, `E2E-UC-024`, `E2E-UC-042` |
+| XML 出力操作 | `output-management-export-button` | `E2E-UC-023`, `E2E-UC-042` |
+| 再出力操作 | `output-management-reexport-button` | `E2E-UC-024`, `E2E-UC-043` |
+| 差分行 | `output-management-diff-row.<row-id>` | `E2E-UC-025`, `E2E-UC-044` |
+| 出力先 path エラー表示 | `output-management-output-path-error` | `E2E-UC-042` |

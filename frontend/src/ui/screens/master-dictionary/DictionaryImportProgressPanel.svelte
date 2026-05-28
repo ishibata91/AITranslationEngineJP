@@ -70,6 +70,7 @@
     <div class="button-row">
       <button
         class="button-primary"
+        data-testid="master-dictionary-xml-import-button"
         disabled={isImportRunning}
         id="startImportButton"
         onclick={startImport}

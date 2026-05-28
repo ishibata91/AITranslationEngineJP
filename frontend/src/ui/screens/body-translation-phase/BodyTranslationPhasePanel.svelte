@@ -126,9 +126,10 @@
   const displayedProcessingTargetItems = $derived(
     processingTargetPageState
       ? processingTargetPageState.items
-      : providedProcessingTargetItems && providedProcessingTargetItems.length > 0
-      ? providedProcessingTargetItems
-      : summaryProcessingTargetItems
+      : providedProcessingTargetItems &&
+          providedProcessingTargetItems.length > 0
+        ? providedProcessingTargetItems
+        : summaryProcessingTargetItems
   )
   const processingTargetSearchQuery = $derived(
     processingTargetPageState?.searchQuery ?? processingTargetSearchValue
@@ -205,7 +206,11 @@
   }
 </script>
 
-<section class="job-run-shell" id="bodyTranslationPhaseView">
+<section
+  class="job-run-shell"
+  data-testid="body-translation-phase-screen"
+  id="bodyTranslationPhaseView"
+>
   <PhaseStatusPanel
     title="本文翻訳"
     eyebrow="translation-management"
@@ -216,7 +221,7 @@
     statusTitle={viewModel.statusTitle}
     statusText={viewModel.statusText}
     errorMessage={viewModel.errorMessage}
-    testId="body-translation-phase-body-translation-summary"
+    testId="body-translation-phase-status-panel"
     metrics={phaseMetrics}
   />
 
@@ -227,12 +232,15 @@
       eyebrow="翻訳段階の進行状況"
       title="進行状況"
       progressLabel={viewModel.progressLabel}
+      progressBarTestId="body-translation-phase-progress-bar"
+      progressCountsTestId="body-translation-phase-progress-counts"
       progressPercent={viewModel.progressPercent}
       progressDetail={viewModel.progressDetail}
       details={progressDetails}
       currentPhaseLabel={viewModel.currentPhaseLabel}
       actionAriaLabel="翻訳段階の操作"
       actions={phaseActionCards}
+      startButtonTestId="body-translation-phase-start-button"
       onAction={(actionId) =>
         onAction(actionId as BodyTranslationPhaseActionKind)}
     />
@@ -245,6 +253,7 @@
       titleId="bodyPhaseAiModelHeading"
       helperText="本文翻訳を開始する前に使う AI サービス、モデル、処理方式を確認します。"
       statusLabel={aiSettingsStatusLabel}
+      statusTestId="body-translation-phase-ai-model-lock-state"
       statusTone={aiSettingsStatusTone}
       providerSelectId="bodyPhaseProviderSelect"
       providerValue={viewModel.providerLabel}
@@ -299,6 +308,7 @@
     onPreviousPage={onProcessingTargetPreviousPage}
     onNextPage={onProcessingTargetNextPage}
     onPageChange={onProcessingTargetPageChange}
+    rowTestId="body-translation-phase-processing-target-row"
   />
 </section>
 

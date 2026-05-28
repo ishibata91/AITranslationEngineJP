@@ -177,3 +177,15 @@
 | 実行設定カード | AI モデル選択と表示内容が重複する。 |
 | 結果 summary | 未完了状態では判断材料にならない。結果は後続の表化対象とする。 |
 | 独立した失敗情報カード | 失敗は状態概要内のエラー文として扱う。 |
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 画面全体領域 | `term-translation-phase-screen` | `E2E-UC-045` |
+| 状態概要 | `term-translation-phase-status-panel` | `E2E-UC-045` |
+| 開始操作 | `term-translation-phase-start-button` | `E2E-UC-045` |
+| 進捗バー | `term-translation-phase-progress-bar` | `E2E-UC-045` |
+| 進捗件数 | `term-translation-phase-progress-counts` | `E2E-UC-045` |
+| AI モデル固定状態 | `term-translation-phase-ai-model-lock-state` | `E2E-UC-045` |
+| 処理対象行 | `term-translation-phase-processing-target-row.<target-id>` | `E2E-UC-045` |

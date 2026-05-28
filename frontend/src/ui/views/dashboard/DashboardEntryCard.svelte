@@ -18,7 +18,9 @@
     <span class="entry-state">{route.state}</span>
   </div>
   <p>{route.description}</p>
-  <span class="entry-action">開く</span>
+  <span class="entry-action" data-testid="dashboard-primary-page-open-button">
+    開く
+  </span>
 </a>
 
 <style>

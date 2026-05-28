@@ -16,6 +16,7 @@
     </div>
     <button
       class="button-secondary"
+      data-testid="provider-settings-connection-check-button"
       disabled={!selectedProvider.canValidate}
       onclick={validateConnection}
       type="button"

@@ -6,6 +6,9 @@
     testId: string
     eyebrow: string
     title: string
+    progressBarTestId?: string
+    progressCountsTestId?: string
+    startButtonTestId?: string
     progressLabel: string
     progressPercent: number
     progressDetail: string
@@ -21,6 +24,9 @@
     testId,
     eyebrow,
     title,
+    progressBarTestId = undefined,
+    progressCountsTestId = undefined,
+    startButtonTestId = undefined,
     progressLabel,
     progressPercent,
     progressDetail,
@@ -38,7 +44,9 @@
       <p class="eyebrow">{eyebrow}</p>
       <h3 id={headingId}>{title}</h3>
     </div>
-    <span class="progress-count">{progressLabel}</span>
+    <span class="progress-count" data-testid={progressCountsTestId}>
+      {progressLabel}
+    </span>
   </div>
   <p class="support-copy">{progressDetail}</p>
   <div
@@ -47,6 +55,7 @@
     aria-valuemin="0"
     aria-valuenow={progressPercent}
     class="progress-bar"
+    data-testid={progressBarTestId}
     role="progressbar"
   >
     <span style={`width: ${progressPercent}%`}></span>
@@ -71,6 +80,9 @@
               class="button-secondary"
               class:primary={action.tone === "primary"}
               class:warning={action.tone === "warning"}
+              data-testid={action.id === "start"
+                ? startButtonTestId
+                : undefined}
               disabled={action.disabled}
               onclick={() => onAction(action.id)}
               type="button"

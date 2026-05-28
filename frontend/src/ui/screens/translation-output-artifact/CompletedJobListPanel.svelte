@@ -53,6 +53,8 @@
         <button
           class="job-button"
           class:is-selected={job.jobId === selectedJobId}
+          data-job-id={job.jobId}
+          data-testid="output-management-output-candidate-row"
           onclick={() => onSelectJob(job)}
           type="button"
         >

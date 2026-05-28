@@ -220,3 +220,15 @@
 - セレクタ属性:
   - `data-testid`: なし。
   - `aria-label`: なし。
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 状態フィルタ選択肢 | `translation-job-management-state-filter-option` | `E2E-UC-017` |
+| ジョブカード | `translation-job-management-job-card.<job-id>` | `E2E-UC-017` から `E2E-UC-020`, `E2E-UC-036` から `E2E-UC-039` |
+| 停止操作 | `translation-job-management-stop-button` | `E2E-UC-018`, `E2E-UC-037` |
+| 再開操作 | `translation-job-management-resume-button` | `E2E-UC-019`, `E2E-UC-038` |
+| 削除操作 | `translation-job-management-delete-button` | `E2E-UC-020`, `E2E-UC-039` |
+| 削除確定操作 | `translation-job-management-delete-confirm-button` | `E2E-UC-020`, `E2E-UC-039` |
+| 削除取消操作 | `translation-job-management-delete-cancel-button` | `E2E-UC-020`, `E2E-UC-039` |

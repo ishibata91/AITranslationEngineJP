@@ -27,6 +27,7 @@
         aria-controls="globalNav"
         aria-expanded={isMobileNavOpen ? "true" : "false"}
         class="nav-toggle"
+        data-testid="dashboard-mobile-navigation-toggle"
         onclick={toggleMobileNav}
         type="button"
       >

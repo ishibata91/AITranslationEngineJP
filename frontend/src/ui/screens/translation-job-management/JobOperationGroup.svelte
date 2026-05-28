@@ -46,12 +46,16 @@
   {#each [stopOperation, resumeOperation] as operation (operation.kind)}
     <TranslationJobManagementActionButton
       compact={true}
+      dataTestId={operation.kind === "stop"
+        ? "translation-job-management-stop-button"
+        : "translation-job-management-resume-button"}
       {operation}
       onAction={() => onOperation(operation)}
     />
   {/each}
   <TranslationJobManagementActionButton
     compact={true}
+    dataTestId="translation-job-management-delete-button"
     operation={deleteOperation}
     onAction={() => onOperation(deleteOperation)}
     variant="danger"

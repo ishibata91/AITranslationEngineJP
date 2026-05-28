@@ -34,6 +34,8 @@
       {#each diffPreview.rows as row (row.rowDigest)}
         <button
           class="diff-row"
+          data-row-id={row.rowDigest}
+          data-testid="output-management-diff-row"
           onclick={() => onSelectArtifact(diffPreview?.artifactId ?? null)}
           type="button"
         >

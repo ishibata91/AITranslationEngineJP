@@ -29,7 +29,13 @@
   <p class="lead">{pageLead}</p>
   <p class="mini-text">{providerCountLabel}</p>
   <p class="notice-text" hidden={!saveNotice} role="status">{saveNotice}</p>
-  <p class="error-text" hidden={!errorMessage}>{errorMessage}</p>
+  <p
+    class="error-text"
+    data-testid="provider-settings-validation-error"
+    hidden={!errorMessage}
+  >
+    {errorMessage}
+  </p>
 </section>
 
 <style>

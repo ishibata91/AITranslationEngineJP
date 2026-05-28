@@ -34,7 +34,11 @@
     <p>{operationStatusText}</p>
   </div>
 
-  <p class="error-text" hidden={!errorMessage}>
+  <p
+    class="error-text"
+    data-testid="translation-input-review-register-error"
+    hidden={!errorMessage}
+  >
     {errorMessage}
   </p>
 </section>

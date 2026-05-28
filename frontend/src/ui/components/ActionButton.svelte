@@ -12,6 +12,7 @@
     busy?: boolean
     ariaLabel?: string
     describedBy?: string
+    dataTestId?: string
     onClick?: (() => void) | null
     leading?: Snippet
     trailing?: Snippet
@@ -25,6 +26,7 @@
     busy = false,
     ariaLabel = undefined,
     describedBy = undefined,
+    dataTestId = undefined,
     onClick = null,
     leading,
     trailing
@@ -38,6 +40,7 @@
   aria-describedby={describedBy}
   aria-label={ariaLabel}
   class={`action-button action-button-${variant}`}
+  data-testid={dataTestId}
   disabled={isDisabled}
   onclick={() => onClick?.()}
   {type}

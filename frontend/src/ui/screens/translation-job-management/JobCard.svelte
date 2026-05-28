@@ -45,6 +45,7 @@
 <article
   class="job-card"
   class:is-selected={job.isSelected}
+  data-job-id={job.jobId}
   data-testid="translation-job-management-job-card"
 >
   <a

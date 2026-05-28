@@ -179,3 +179,15 @@
 | 結果 summary | 未完了状態では判断材料にならない。結果は後続の表化対象とする。 |
 | 本文翻訳入力カード | 後続入力を大きな別カードとして表示しない。 |
 | 独立した失敗情報カード | 失敗は状態概要内のエラー文として扱う。 |
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| 画面全体領域 | `persona-generation-phase-screen` | `E2E-UC-046` |
+| 状態概要 | `persona-generation-phase-status-panel` | `E2E-UC-046` |
+| 開始操作 | `persona-generation-phase-start-button` | `E2E-UC-046` |
+| 進捗バー | `persona-generation-phase-progress-bar` | `E2E-UC-046` |
+| 進捗件数 | `persona-generation-phase-progress-counts` | `E2E-UC-046` |
+| AI モデル固定状態 | `persona-generation-phase-ai-model-lock-state` | `E2E-UC-046` |
+| 処理対象行 | `persona-generation-phase-processing-target-row.<target-id>` | `E2E-UC-046` |

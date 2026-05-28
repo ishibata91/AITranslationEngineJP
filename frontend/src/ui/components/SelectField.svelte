@@ -17,6 +17,7 @@
     required?: boolean
     disabled?: boolean
     placeholder?: string
+    dataTestId?: string
     onChange: (value: string) => void
   }
 
@@ -30,6 +31,7 @@
     required = false,
     disabled = false,
     placeholder = "",
+    dataTestId = undefined,
     onChange
   }: Props = $props()
 
@@ -45,6 +47,7 @@
     aria-describedby={describedBy}
     aria-invalid={error ? "true" : undefined}
     class="select-field"
+    data-testid={dataTestId}
     {disabled}
     {id}
     onchange={(event) => onChange(event.currentTarget.value)}

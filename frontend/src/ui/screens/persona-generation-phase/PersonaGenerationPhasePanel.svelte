@@ -89,7 +89,8 @@
     {
       id: "persona-generation-npc-target",
       name: "NPC 名",
-      detail: "NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作る対象。",
+      detail:
+        "NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作る対象。",
       metadata: [
         { label: "NPC 件数", value: viewModel.npcCountLabel },
         { label: "生成対象", value: viewModel.targetCountLabel },
@@ -111,9 +112,10 @@
   const displayedProcessingTargetItems = $derived(
     processingTargetPageState
       ? processingTargetPageState.items
-      : providedProcessingTargetItems && providedProcessingTargetItems.length > 0
-      ? providedProcessingTargetItems
-      : summaryProcessingTargetItems
+      : providedProcessingTargetItems &&
+          providedProcessingTargetItems.length > 0
+        ? providedProcessingTargetItems
+        : summaryProcessingTargetItems
   )
   const processingTargetSearchQuery = $derived(
     processingTargetPageState?.searchQuery ?? processingTargetSearchValue
@@ -190,7 +192,11 @@
   }
 </script>
 
-<section class="job-run-shell" id="personaGenerationPhaseView">
+<section
+  class="job-run-shell"
+  data-testid="persona-generation-phase-screen"
+  id="personaGenerationPhaseView"
+>
   <PhaseStatusPanel
     eyebrow="translation-management"
     title="NPC ペルソナ生成"
@@ -201,7 +207,7 @@
     statusTitle={viewModel.statusTitle}
     statusText={viewModel.statusText}
     errorMessage={viewModel.errorMessage}
-    testId="persona-generation-phase-persona-generation-phase-screen"
+    testId="persona-generation-phase-status-panel"
     statusTestId="persona-generation-phase-status-summary-card"
     metrics={statusMetrics}
   />
@@ -213,12 +219,15 @@
       eyebrow="翻訳段階の進行状況"
       title="進行状況"
       progressLabel={viewModel.progressLabel}
+      progressBarTestId="persona-generation-phase-progress-bar"
+      progressCountsTestId="persona-generation-phase-progress-counts"
       progressPercent={viewModel.progressPercent}
       progressDetail={viewModel.progressDetail}
       details={progressDetails}
       currentPhaseLabel={viewModel.currentPhaseLabel}
       actionAriaLabel="翻訳段階の操作"
       actions={phaseActionCards}
+      startButtonTestId="persona-generation-phase-start-button"
       onAction={(actionId) =>
         onAction(actionId as PersonaGenerationPhaseActionKind)}
     />
@@ -231,6 +240,7 @@
       titleId="personaPhaseAiModelHeading"
       helperText="NPC ペルソナ生成を開始する前に使う AI サービス、モデル、処理方式を確認します。"
       statusLabel={aiSettingsStatusLabel}
+      statusTestId="persona-generation-phase-ai-model-lock-state"
       statusTone={aiSettingsStatusTone}
       providerSelectId="personaPhaseProviderSelect"
       providerValue={viewModel.providerLabel}
@@ -285,6 +295,7 @@
     onPreviousPage={onProcessingTargetPreviousPage}
     onNextPage={onProcessingTargetNextPage}
     onPageChange={onProcessingTargetPageChange}
+    rowTestId="persona-generation-phase-processing-target-row"
   />
 </section>
 

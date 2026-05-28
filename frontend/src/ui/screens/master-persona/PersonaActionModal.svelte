@@ -31,6 +31,7 @@
       </div>
       <button
         class="button-secondary"
+        data-testid="master-persona-edit-cancel-button"
         id="closeEditModalButton"
         onclick={closeEdit}
         type="button"
@@ -56,6 +57,7 @@
         <span class="field-label">ペルソナ要約</span>
         <textarea
           class="textarea-field"
+          data-testid="master-persona-summary-input"
           id="editPersonaSummaryInput"
           oninput={(event) => setEditFormField("personaSummary", event)}
           value={editForm.personaSummary ?? ""}
@@ -66,6 +68,7 @@
         <span class="field-label">話し方</span>
         <input
           class="text-field"
+          data-testid="master-persona-speech-style-input"
           id="editSpeechStyleInput"
           oninput={(event) => setEditFormField("speechStyle", event)}
           value={editForm.speechStyle ?? ""}
@@ -76,6 +79,7 @@
         <span class="field-label">ペルソナ本文</span>
         <textarea
           class="textarea-field body-field"
+          data-testid="master-persona-body-input"
           id="editPersonaBodyInput"
           oninput={(event) => setEditFormField("personaBody", event)}
           value={editForm.personaBody}
@@ -84,11 +88,17 @@
     </div>
 
     <div class="button-row">
-      <button class="button-secondary" onclick={closeEdit} type="button">
+      <button
+        class="button-secondary"
+        data-testid="master-persona-edit-cancel-button"
+        onclick={closeEdit}
+        type="button"
+      >
         キャンセル
       </button>
       <button
         class="button-primary"
+        data-testid="master-persona-edit-save-button"
         id="saveEntryButton"
         onclick={saveCurrentEntry}
         type="button"
@@ -114,7 +124,12 @@
         <p class="eyebrow">削除</p>
         <h3>ペルソナを削除しますか</h3>
       </div>
-      <button class="button-secondary" onclick={closeDelete} type="button">
+      <button
+        class="button-secondary"
+        data-testid="master-persona-edit-cancel-button"
+        onclick={closeDelete}
+        type="button"
+      >
         閉じる
       </button>
     </div>
@@ -147,11 +162,17 @@
     </dl>
 
     <div class="button-row">
-      <button class="button-secondary" onclick={closeDelete} type="button">
+      <button
+        class="button-secondary"
+        data-testid="master-persona-edit-cancel-button"
+        onclick={closeDelete}
+        type="button"
+      >
         キャンセル
       </button>
       <button
         class="button-danger"
+        data-testid="master-persona-delete-confirm-button"
         id="confirmDeleteButton"
         onclick={deleteCurrentEntry}
         type="button"

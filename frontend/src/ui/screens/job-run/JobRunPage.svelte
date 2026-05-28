@@ -457,7 +457,7 @@
           onAISettingsChange={handleBodyAISettingsChange}
         />
         <PhaseNavigationFooter
-          dataTestId="job-run-next-action-footer"
+          dataTestId="body-translation-phase-complete-next-action"
           description="本文翻訳が完了し、翻訳結果を確認できる場合だけ完了確認へ進めます。"
           onBack={onOpenJobManagement}
           onPrimary={() => {

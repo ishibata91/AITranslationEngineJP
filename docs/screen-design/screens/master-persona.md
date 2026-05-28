@@ -155,3 +155,24 @@
 - セレクタ属性:
   - `data-testid`: `master-persona-delete-modal`
   - `aria-label`: なし。
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| JSON ファイル入力 | `master-persona-json-file-input` | `E2E-UC-013` |
+| AIサービス選択 | `master-persona-ai-service-select` | `E2E-UC-013` |
+| モデル選択 | `master-persona-model-select` | `E2E-UC-013` |
+| 実行方法選択 | `master-persona-execution-mode-select` | `E2E-UC-013` |
+| ペルソナ作成操作 | `master-persona-generate-button` | `E2E-UC-013`, `E2E-UC-033` |
+| ペルソナ検索入力 | `master-persona-search-input` | `E2E-UC-014`, `E2E-UC-034` |
+| プラグイン選択 | `master-persona-plugin-select` | `E2E-UC-014` |
+| ペルソナ行 | `master-persona-row.<persona-id>` | `E2E-UC-014` から `E2E-UC-016`, `E2E-UC-035` |
+| 詳細領域の編集操作 | `master-persona-edit-button` | `E2E-UC-015`, `E2E-UC-035` |
+| 詳細領域の削除操作 | `master-persona-delete-button` | `E2E-UC-016` |
+| ペルソナ要約入力 | `master-persona-summary-input` | `E2E-UC-015`, `E2E-UC-035` |
+| 話し方入力 | `master-persona-speech-style-input` | `E2E-UC-015`, `E2E-UC-035` |
+| ペルソナ本文入力 | `master-persona-body-input` | `E2E-UC-015`, `E2E-UC-035` |
+| 編集保存操作 | `master-persona-edit-save-button` | `E2E-UC-015`, `E2E-UC-035` |
+| 編集取消操作 | `master-persona-edit-cancel-button` | `E2E-UC-015`, `E2E-UC-035` |
+| 削除確定操作 | `master-persona-delete-confirm-button` | `E2E-UC-016` |

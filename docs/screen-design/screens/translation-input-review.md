@@ -105,3 +105,11 @@
 - セレクタ属性:
   - `data-testid`: `translation-input-review-next-action-footer`
   - `aria-label`: `次の作業: 選択した入力データで、ジョブの作成確認へ進みます。`
+
+## E2E 固定 selector
+
+| 対象 | `data-testid` | 関連テスト |
+| --- | --- | --- |
+| JSON ファイル入力 | `translation-input-review-json-file-input` | `E2E-UC-021` |
+| 登録または読み込み操作 | `translation-input-review-register-button` | `E2E-UC-021`, `E2E-UC-040` |
+| 登録失敗理由表示 | `translation-input-review-register-error` | `E2E-UC-040` |
