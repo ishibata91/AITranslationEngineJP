@@ -21,11 +21,12 @@
 11. [`lint-policy.md`](./lint-policy.md)
 12. [`er.md`](./er.md)
 13. Relevant file under [`screen-design/`](./screen-design/README.md)
-14. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
-15. Relevant file under [`detail-specs/`](./detail-specs/README.md)
-16. Relevant file under [`usecases/`](./usecases/README.md)
-17. Relevant file under [`exec-plans/`](./exec-plans/)
-18. Relevant file under [`references/`](./references/)
+14. Relevant file under [`e2e-test-design/`](./e2e-test-design/README.md)
+15. Relevant file under [`scenario-tests/`](./scenario-tests/README.md)
+16. Relevant file under [`detail-specs/`](./detail-specs/README.md)
+17. Relevant file under [`usecases/`](./usecases/README.md)
+18. Relevant file under [`exec-plans/`](./exec-plans/)
+19. Relevant file under [`references/`](./references/)
 
 ## Directory Contract
 
@@ -49,6 +50,7 @@
 - [`diagrams/components/backend/`](./diagrams/components/backend/): backend component detail 図の正本
 - [`diagrams/components/frontend/`](./diagrams/components/frontend/): frontend component detail 図の正本
 - [`screen-design/`](./screen-design/README.md): 画面構成と visual design の正本
+- [`e2e-test-design/`](./e2e-test-design/README.md): UI 人間操作 E2E テスト観点表の正本
 - [`scenario-tests/`](./scenario-tests/README.md): Scenario テスト一覧の正本
 - [`detail-specs/`](./detail-specs/README.md): 詳細仕様正本
 - [`usecases/`](./usecases/README.md): 画面操作から見える利用者目的の UC 図と UC 記述の正本
@@ -64,7 +66,8 @@
 - Dependency rule or layering changed: update [`architecture.md`](./architecture.md)
 - Technology decision changed: update [`tech-selection.md`](./tech-selection.md)
 - 実装規約が変わった場合: [`coding-guidelines.md`](./coding-guidelines.md) と対応する分割文書を更新する
-- UI 人間操作 E2E またはテスト観点表が変わった場合: [`e2e-test-guidelines.md`](./e2e-test-guidelines.md) を更新する
+- UI 人間操作 E2E の規約が変わった場合: [`e2e-test-guidelines.md`](./e2e-test-guidelines.md) を更新する
+- UI 人間操作 E2E のテスト観点表が変わった場合: [`e2e-test-design/test-design.csv`](./e2e-test-design/test-design.csv) を更新する
 - 観測ログの出力先、payload、禁止事項が変わった場合: [`observability-logging.md`](./observability-logging.md) を更新する
 - UX 標準が変わった場合: [`UX-standard.md`](./UX-standard.md) を更新する
 - Lint / static check ownership changed: update [`lint-policy.md`](./lint-policy.md)
