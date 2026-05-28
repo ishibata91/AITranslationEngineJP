@@ -108,6 +108,8 @@ function patchSummaryFromCommand(
 }
 
 export class TermTranslationPhaseUseCase {
+  private processingTargetListRequestSequence = 0
+
   constructor(
     private readonly gateway: TermTranslationPhaseGatewayContract | null,
     private readonly store: TermTranslationPhaseStoreLike
@@ -244,6 +246,8 @@ export class TermTranslationPhaseUseCase {
     })
 
     try {
+      const processingTargetListRequestSequence =
+        ++this.processingTargetListRequestSequence
       const [summary, nextPhaseReadiness, processingTargetPageState] =
         await Promise.all([
         this.gateway.getTermTranslationPhaseSummary({
@@ -259,7 +263,12 @@ export class TermTranslationPhaseUseCase {
         draft.phase = "ready"
         draft.summary = summary
         draft.nextPhaseReadiness = nextPhaseReadiness
-        draft.processingTargetPageState = processingTargetPageState
+        if (
+          processingTargetListRequestSequence ===
+          this.processingTargetListRequestSequence
+        ) {
+          draft.processingTargetPageState = processingTargetPageState
+        }
         draft.pendingAction = null
         draft.errorMessage = ""
         draft.hasLoaded = true
@@ -290,6 +299,7 @@ export class TermTranslationPhaseUseCase {
       state.processingTargetPageState ?? createDefaultProcessingTargetPageState()
     const page = Math.max(1, next.page ?? current.page)
     const searchQuery = next.searchQuery ?? current.searchQuery
+    const requestSequence = ++this.processingTargetListRequestSequence
 
     this.store.update((draft) => {
       draft.processingTargetPageState = {
@@ -311,10 +321,16 @@ export class TermTranslationPhaseUseCase {
       })
 
       this.store.update((draft) => {
+        if (requestSequence !== this.processingTargetListRequestSequence) {
+          return
+        }
         draft.processingTargetPageState = toProcessingTargetPageState(response)
       })
     } catch (error) {
       this.store.update((draft) => {
+        if (requestSequence !== this.processingTargetListRequestSequence) {
+          return
+        }
         draft.processingTargetPageState = {
           ...(draft.processingTargetPageState ??
             createDefaultProcessingTargetPageState()),

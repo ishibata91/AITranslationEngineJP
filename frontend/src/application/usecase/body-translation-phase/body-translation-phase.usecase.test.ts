@@ -1,6 +1,11 @@
 import { describe, expect, test, vi } from "vitest"
 
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListPageStatesByPhase,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseGatewayContract,
@@ -24,6 +29,8 @@ type ScreenState = {
     | "check-output-readiness"
     | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
+  processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
 
 type StoreLike = {
@@ -172,9 +179,28 @@ function createStore(initial: ScreenState): StoreLike {
 }
 
 function createGateway() {
+  const processingTargetResponse: ProcessingTargetListResponse = {
+    items: [
+      {
+        id: "field:1",
+        name: "FULL",
+        detail: "原文: Hello",
+        titleParts: [{ text: "FULL" }],
+        metadata: [{ label: "訳語", value: "こんにちは" }]
+      }
+    ],
+    metadata: [],
+    page: 4,
+    pageSize: 40,
+    totalCount: 256,
+    searchQuery: "Hello"
+  }
   const spies = {
     getBodyTranslationPhaseSummary: vi.fn(),
     getBodyTranslationOutputReadiness: vi.fn(),
+    getProcessingTargetList: vi.fn(() =>
+      Promise.resolve(processingTargetResponse)
+    ),
     startBodyTranslationPhase: vi.fn(),
     pauseBodyTranslationPhase: vi.fn(),
     resumeBodyTranslationPhase: vi.fn(),
@@ -186,6 +212,15 @@ function createGateway() {
     gateway: spies as BodyTranslationPhaseGatewayContract,
     spies
   }
+}
+
+function createDeferredResponse() {
+  let resolve!: (response: ProcessingTargetListResponse) => void
+  const promise = new Promise<ProcessingTargetListResponse>((resolver) => {
+    resolve = resolver
+  })
+
+  return { promise, resolve }
 }
 
 describe("BodyTranslationPhaseUseCase", () => {
@@ -248,6 +283,282 @@ describe("BodyTranslationPhaseUseCase", () => {
       pendingAction: null,
       errorMessage: "",
       hasLoaded: true
+    })
+  })
+
+  test("load は body_translation の processing target request を送り page state に保持する", async () => {
+    const { gateway, spies } = createGateway()
+    const store = createStore(
+      createState({
+        hasLoaded: false,
+        summary: null,
+        outputReadiness: null,
+        processingTargetPageState: {
+          items: [],
+          metadata: [],
+          page: 4,
+          pageSize: 40,
+          totalCount: 0,
+          searchQuery: "Hello",
+          busy: false
+        }
+      })
+    )
+    const summary = createSummary({ phaseState: "ready" })
+    const readiness = createOutputReadiness({ ready: true, outputCount: 20 })
+    spies.getBodyTranslationPhaseSummary.mockResolvedValue(summary)
+    spies.getBodyTranslationOutputReadiness.mockResolvedValue(readiness)
+    const useCase = new BodyTranslationPhaseUseCase(gateway, store)
+
+    await useCase.load()
+
+    expect(spies.getProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 9,
+      phase: "body_translation",
+      page: 4,
+      pageSize: 40,
+      searchQuery: "Hello"
+    })
+    expect(store.getState().processingTargetPageState).toMatchObject({
+      items: [{ id: "field:1" }],
+      page: 4,
+      pageSize: 40,
+      totalCount: 256,
+      searchQuery: "Hello",
+      busy: false
+    })
+    expect(
+      store.getState().processingTargetPageStatesByPhase?.["body_translation"]
+    ).toMatchObject({
+      totalCount: 256,
+      searchQuery: "Hello"
+    })
+  })
+
+  test("検索語変更は body_translation request を page 1 へ戻して送る", async () => {
+    const { gateway, spies } = createGateway()
+    const store = createStore(
+      createState({
+        processingTargetPageState: {
+          items: [],
+          metadata: [],
+          page: 6,
+          pageSize: 40,
+          totalCount: 0,
+          searchQuery: "",
+          busy: false
+        },
+        processingTargetPageStatesByPhase: {
+          body_translation: {
+            items: [],
+            metadata: [],
+            page: 6,
+            pageSize: 40,
+            totalCount: 0,
+            searchQuery: "",
+            busy: false
+          }
+        }
+      })
+    )
+    const useCase = new BodyTranslationPhaseUseCase(gateway, store)
+
+    await useCase.setProcessingTargetSearchQuery("Quest")
+
+    expect(spies.getProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 9,
+      phase: "body_translation",
+      page: 1,
+      pageSize: 40,
+      searchQuery: "Quest"
+    })
+    expect(store.getState().processingTargetPageState).toMatchObject({
+      page: 4,
+      pageSize: 40,
+      totalCount: 256,
+      searchQuery: "Hello"
+    })
+  })
+
+  test("検索応答の到着順が逆転しても最新検索結果だけを page state に反映する", async () => {
+    const { gateway, spies } = createGateway()
+    const first = createDeferredResponse()
+    const second = createDeferredResponse()
+    spies.getProcessingTargetList
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise)
+    const store = createStore(
+      createState({
+        processingTargetPageState: {
+          items: [],
+          metadata: [],
+          page: 6,
+          pageSize: 40,
+          totalCount: 0,
+          searchQuery: "",
+          busy: false
+        },
+        processingTargetPageStatesByPhase: {
+          body_translation: {
+            items: [],
+            metadata: [],
+            page: 6,
+            pageSize: 40,
+            totalCount: 0,
+            searchQuery: "",
+            busy: false
+          }
+        }
+      })
+    )
+    const useCase = new BodyTranslationPhaseUseCase(gateway, store)
+
+    const firstSearch = useCase.setProcessingTargetSearchQuery("Hello")
+    const secondSearch = useCase.setProcessingTargetSearchQuery("Quest")
+
+    second.resolve({
+      items: [
+        {
+          id: "field:quest",
+          name: "Quest",
+          detail: "原文: Quest",
+          titleParts: [{ text: "Quest" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 40,
+      totalCount: 3,
+      searchQuery: "Quest"
+    })
+    await secondSearch
+
+    first.resolve({
+      items: [
+        {
+          id: "field:hello",
+          name: "Hello",
+          detail: "原文: Hello",
+          titleParts: [{ text: "Hello" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 40,
+      totalCount: 11,
+      searchQuery: "Hello"
+    })
+    await firstSearch
+
+    expect(store.getState().processingTargetPageState).toMatchObject({
+      items: [{ id: "field:quest" }],
+      page: 1,
+      pageSize: 40,
+      totalCount: 3,
+      searchQuery: "Quest",
+      busy: false
+    })
+    expect(
+      store.getState().processingTargetPageStatesByPhase?.["body_translation"]
+    ).toMatchObject({
+      totalCount: 3,
+      searchQuery: "Quest"
+    })
+  })
+
+  test("load の一覧応答が検索応答より遅れても最新検索結果だけを page state に反映する", async () => {
+    const { gateway, spies } = createGateway()
+    const loadResponse = createDeferredResponse()
+    const searchResponse = createDeferredResponse()
+    spies.getProcessingTargetList
+      .mockImplementationOnce(() => loadResponse.promise)
+      .mockImplementationOnce(() => searchResponse.promise)
+    spies.getBodyTranslationPhaseSummary.mockResolvedValue(
+      createSummary({ phaseState: "ready" })
+    )
+    spies.getBodyTranslationOutputReadiness.mockResolvedValue(
+      createOutputReadiness({ ready: true, outputCount: 20 })
+    )
+    const store = createStore(
+      createState({
+        processingTargetPageState: {
+          items: [],
+          metadata: [],
+          page: 6,
+          pageSize: 40,
+          totalCount: 0,
+          searchQuery: "",
+          busy: false
+        },
+        processingTargetPageStatesByPhase: {
+          body_translation: {
+            items: [],
+            metadata: [],
+            page: 6,
+            pageSize: 40,
+            totalCount: 0,
+            searchQuery: "",
+            busy: false
+          }
+        }
+      })
+    )
+    const useCase = new BodyTranslationPhaseUseCase(gateway, store)
+
+    const load = useCase.load()
+    const search = useCase.setProcessingTargetSearchQuery("Quest")
+
+    searchResponse.resolve({
+      items: [
+        {
+          id: "field:quest",
+          name: "Quest",
+          detail: "原文: Quest",
+          titleParts: [{ text: "Quest" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 40,
+      totalCount: 3,
+      searchQuery: "Quest"
+    })
+    await search
+
+    loadResponse.resolve({
+      items: [
+        {
+          id: "field:old",
+          name: "Old",
+          detail: "原文: Old",
+          titleParts: [{ text: "Old" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 6,
+      pageSize: 40,
+      totalCount: 99,
+      searchQuery: ""
+    })
+    await load
+
+    expect(store.getState().processingTargetPageState).toMatchObject({
+      items: [{ id: "field:quest" }],
+      page: 1,
+      pageSize: 40,
+      totalCount: 3,
+      searchQuery: "Quest",
+      busy: false
+    })
+    expect(
+      store.getState().processingTargetPageStatesByPhase?.["body_translation"]
+    ).toMatchObject({
+      totalCount: 3,
+      searchQuery: "Quest"
     })
   })
 

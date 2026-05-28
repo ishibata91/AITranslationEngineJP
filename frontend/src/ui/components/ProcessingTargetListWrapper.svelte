@@ -41,6 +41,8 @@
     onPageChange?: (page: number) => void
     onSelectItem?: (itemId: string) => void
     rowTestId?: string
+    totalCountTestId?: string
+    emptyStateTestId?: string
   }
 
   let {
@@ -74,7 +76,9 @@
     onNextPage,
     onPageChange,
     onSelectItem,
-    rowTestId = undefined
+    rowTestId = undefined,
+    totalCountTestId = undefined,
+    emptyStateTestId = undefined
   }: Props = $props()
 
   const hasSearch = $derived(Boolean(searchId && searchLabel && onSearchInput))
@@ -156,6 +160,8 @@
     {onPageChange}
     {onSelectItem}
     {rowTestId}
+    {totalCountTestId}
+    {emptyStateTestId}
   />
 
   {@render footer?.()}

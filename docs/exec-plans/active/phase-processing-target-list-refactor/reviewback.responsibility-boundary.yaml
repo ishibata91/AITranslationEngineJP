@@ -1,0 +1,167 @@
+reviewback_version: 1
+task_id: "phase-processing-target-list-refactor"
+review_yaml_path: "docs/exec-plans/active/phase-processing-target-list-refactor/reviewback.responsibility-boundary.yaml"
+viewpoint: "responsibility-boundary"
+reviewer_agent: "review_responsibility_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  responsibility_boundary: "今回 task の product/test/task-local 対象範囲では責務境界は維持されている。frontend View は表示と callback 結線、presenter は表示用文言整形、usecase は GatewayContract 呼び出しと Store 更新、gateway は Wails binding と DTO shape 検証、Wails controller test は DTO 境界の受け渡し、repository は SQLite read model query、system-test は Page Object、fixture、scenario spec の分担に収まっている。ProcessingTargetListPanel.svelte のページング計算本体は変更されていない。"
+  evidence_sufficiency: "十分。指定された plan、implementation-scope、既存 reviewback、task-local 成果物、frontend phase panel / presenter / usecase / gateway / component、backend repository / Wails controller test、system-test の差分を確認した。"
+
+checked_scope:
+  summary: "処理対象一覧の表示、件数主語、検索、page state、Wails DTO 変換、repository read model、system-test fixture と scenario spec の分担を責務境界観点で再確認した。今回 task 開始前からの .codex/、docs/e2e-test-design/test-design.csv、e2e-test-design-maintenance は除外した。"
+  files:
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/implementation-scope.md"
+      line: 27
+      symbol: "Fixed Decisions"
+      reason: "3 フェーズの一覧 total、表示件数、検索、対象外範囲、docs 正本文と .codex/ 禁止を確認した。"
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      line: 448
+      symbol: "レビュー再確認 結果"
+      reason: "前回責務境界指摘の対象が今回 task 開始前の未 commit 差分として除外される扱いを確認した。"
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      line: 466
+      symbol: "Frontend Load Response Order 差し戻し 結果"
+      reason: "frontend usecase の最新要求 guard と検証証跡を確認した。"
+    - path: "frontend/src/ui/components/ProcessingTargetListPanel.svelte"
+      line: 50
+      symbol: "safePageSize"
+      reason: "ページング計算本体は既存の UI component 責務として維持され、差分は test id 追加に留まることを確認した。"
+    - path: "frontend/src/ui/components/ProcessingTargetListWrapper.svelte"
+      line: 112
+      symbol: "hasSearch"
+      reason: "検索入力、件数表示 test id、page 操作 callback の受け渡しに留まり、業務判断や gateway 呼び出しを持たないことを確認した。"
+    - path: "frontend/src/ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte"
+      line: 73
+      symbol: "phaseMetrics"
+      reason: "View は表示主語の選択と ProcessingTargetListWrapper への props 結線に留まることを確認した。"
+    - path: "frontend/src/ui/screens/persona-generation-phase/PersonaGenerationPhasePanel.svelte"
+      line: 286
+      symbol: "ProcessingTargetListWrapper"
+      reason: "NPC ペルソナ生成 View は検索表示文言と callback 結線に留まり、backend DTO や Wails binding を直接扱わないことを確認した。"
+    - path: "frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
+      line: 59
+      symbol: "phaseMetrics"
+      reason: "本文翻訳 View は AI 送信対象件数の表示と一覧 props 結線に留まることを確認した。"
+    - path: "frontend/src/application/presenter/term-translation-phase/term-translation-phase.presenter.ts"
+      line: 305
+      symbol: "buildProgressDetail"
+      reason: "Presenter は Store state から画面表示用文字列を組み立てる責務に留まることを確認した。"
+    - path: "frontend/src/application/presenter/body-translation-phase/body-translation-phase.presenter.ts"
+      line: 413
+      symbol: "buildProgressDetail"
+      reason: "Presenter は provider target count の表示整形に留まり、gateway や永続化を扱わないことを確認した。"
+    - path: "frontend/src/application/usecase/term-translation-phase/term-translation-phase.usecase.ts"
+      line: 248
+      symbol: "fetchSummaryAndReadiness"
+      reason: "Frontend UseCase が GatewayContract 呼び出し、最新要求判定、Store 更新手順を担当していることを確認した。"
+    - path: "frontend/src/application/usecase/persona-generation-phase/persona-generation-phase.usecase.ts"
+      line: 256
+      symbol: "fetchSummaryAndReadiness"
+      reason: "Frontend UseCase が phase 固有 request と page state 更新手順を担当し、View や repository の責務を持たないことを確認した。"
+    - path: "frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts"
+      line: 357
+      symbol: "fetchSummaryAndReadiness"
+      reason: "本文翻訳 UseCase が phase 別 request sequence と Store 更新に責務を閉じていることを確認した。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+      line: 150
+      symbol: "isProcessingTargetListResponseDto"
+      reason: "Gateway が Wails binding 呼び出しと processing target list DTO shape 検証を担当し、画面状態更新を持っていないことを確認した。"
+    - path: "internal/controller/wails/processing_target_controller_test.go"
+      line: 35
+      symbol: "TestProcessingTargetControllerGetProcessingTargetListPreservesBoundaryFields"
+      reason: "Wails Controller test が request DTO から usecase request、usecase result から response DTO の境界受け渡しを固定していることを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 247
+      symbol: "processingTargetTermCountSQL"
+      reason: "Repository が SQLite read model query と row 変換に責務を閉じていることを確認した。"
+    - path: "tests/system/support/translation-phase-pages.ts"
+      line: 52
+      symbol: "processingTargetListRegion"
+      reason: "Page Object が locator と操作だけを持ち、fixture data と期待値を持たないことを確認した。"
+    - path: "tests/system/support/scenario-wails-mocks.ts"
+      line: 145
+      symbol: "processingTargetsByPhase"
+      reason: "fixture が phase 別 mock data と mock response 生成を担当していることを確認した。"
+    - path: "tests/system/job-run-shell.spec.ts"
+      line: 48
+      symbol: "expectProcessingTargetListScenario"
+      reason: "scenario spec が利用者操作と期待値 assertion を担当していることを確認した。"
+
+unchecked_scope:
+  - target: ".codex/ 配下の既存未 commit 差分"
+    reason: "呼び出し元が今回 task のレビュー対象から除外したため。"
+    risk: "workflow 契約差分の責務境界評価は今回 reviewback に含まれない。"
+  - target: "docs/e2e-test-design/test-design.csv の既存未 commit 差分"
+    reason: "呼び出し元が今回 task のレビュー対象から除外したため。"
+    risk: "docs 正本文差分の責務境界評価は今回 reviewback に含まれない。"
+  - target: "docs/exec-plans/active/e2e-test-design-maintenance/ の既存未 commit 差分"
+    reason: "呼び出し元が今回 task のレビュー対象から除外したため。"
+    risk: "別 task-local 成果物の責務境界評価は今回 reviewback に含まれない。"
+  - target: "実ブラウザ操作証跡"
+    reason: "plan.md に Playwright 起動権限エラーで未取得と記録されている。"
+    risk: "実画面の視覚配置崩れは未確認である。責務境界上の層混在を示す根拠ではない。"
+
+issues: []
+
+broken_boundaries:
+  - boundary: "frontend View、Presenter、UseCase、Gateway の層責務"
+    status: "maintained"
+    evidence: "View は表示と callback 結線、Presenter は表示整形、UseCase は GatewayContract 呼び出しと Store 更新、Gateway は Wails binding と DTO shape 検証を担当している。"
+  - boundary: "Wails Controller と Repository の層責務"
+    status: "maintained"
+    evidence: "Wails Controller test は DTO 境界の受け渡しを固定し、Repository は SQLite read model query と row 変換に留まっている。"
+  - boundary: "ProcessingTargetListPanel.svelte のページング責務"
+    status: "maintained"
+    evidence: "safePageSize、pageCount、safeCurrentPage、visibleItems、pageRangeLabel の計算本体は変更されず、test id 追加だけである。"
+  - boundary: "system-test の Page Object、fixture、scenario spec の責務"
+    status: "maintained"
+    evidence: "translation-phase-pages.ts は locator と操作、scenario-wails-mocks.ts は mock data と response、job-run-shell.spec.ts は利用者操作と期待値 assertion を担当している。"
+  - boundary: "task-local 成果物と docs 正本 / .codex の境界"
+    status: "maintained_in_review_scope"
+    evidence: "今回 task 開始前からの .codex/、docs/e2e-test-design/test-design.csv、e2e-test-design-maintenance は呼び出し元指定によりレビュー対象外にした。task-local plan と reviewback 以外の docs 正本文は今回判定対象に含めていない。"
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "not_required"
+  reason: "今回指定されたレビュー対象範囲では未解決の責務境界違反を確認していない。"
+
+verification_evidence:
+  commands_from_plan:
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "passed, 53 passed test files, 512 passed tests"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 402
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 403
+    - command: "python3 scripts/harness/run.py --suite system-test"
+      result: "failed inside sandbox due to Wails readiness"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 404
+    - command: "python3 scripts/harness/run.py --suite system-test"
+      result: "passed outside sandbox, 60 passed"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 405
+    - command: "npm --prefix frontend test -- --run src/application/usecase/term-translation-phase/term-translation-phase.usecase.test.ts src/application/usecase/persona-generation-phase/persona-generation-phase.usecase.test.ts src/application/usecase/body-translation-phase/body-translation-phase.usecase.test.ts"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 474
+  boundary_test_viewpoints:
+    - "ProcessingTargetListPanel.svelte のページング計算本体へ仕様外変更が入っていないこと。"
+    - "phase View が backend DTO や generated wailsjs を直接扱わないこと。"
+    - "Frontend UseCase が GatewayContract と Store 更新手順の範囲に留まること。"
+    - "Gateway が Wails binding と runtime shape 検証に留まり、画面状態を直接更新しないこと。"
+    - "Wails Controller test が DTO 境界の受け渡しを固定すること。"
+    - "Repository が SQLite read model query と row 変換に留まること。"
+    - "system-test の fixture と scenario spec が data 生成と assertion を分けること。"
+
+residual_risks:
+  - "実ブラウザ操作証跡は未取得である。plan.md は Storybook 応答と story 存在確認、sandbox 外 system-test 通過を代替根拠としている。"
+  - "今回除外された .codex/、docs/e2e-test-design/test-design.csv、e2e-test-design-maintenance の既存未 commit 差分は、この reviewback の責務境界判定に含めていない。"
+  - "Repository が read model item の日本語 detail と metadata label を生成している。今回の承認済み scope は processing target read model を repository 対象に含めているため issue にはしないが、将来 read model 表示文言の配置を見直す余地はある。"

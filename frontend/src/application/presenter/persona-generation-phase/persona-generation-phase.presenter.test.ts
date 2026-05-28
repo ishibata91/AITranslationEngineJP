@@ -150,4 +150,68 @@ describe("PersonaGenerationPhasePresenter", () => {
     expect(vm.progressDetail).toContain("開始待ち")
     expect(vm.progressDetail).not.toContain("pending")
   })
+
+  test("進行詳細は処理対象件数と一覧 total を別主語として検出できる表示を返す", () => {
+    const vm = presenter.toViewModel(
+      {
+        jobId: 10,
+        phase: "ready",
+        summary: {
+          jobId: 10,
+          currentPhase: "persona_generation",
+          phaseState: "running",
+          progress: {
+            percent: 60,
+            processedCount: 12,
+            totalCount: 30,
+            targetCount: 18,
+            currentStep: "running"
+          },
+          targetSummary: {
+            targetCount: 18,
+            commonPersonaHitCount: 2,
+            commonPersonaMissCount: 16,
+            skippedCount: 0,
+            skippedReasons: [],
+            targetSnapshotDigest: "sha256:1"
+          },
+          execution: {
+            credentialRef: "cred",
+            provider: "fake",
+            model: "m",
+            executionMode: "single_request",
+            promptDigest: "sha256:1",
+            inputCount: 18,
+            outputCount: 12,
+            evidenceRefs: []
+          },
+          actionEnablement: {
+            canStart: false,
+            canPause: true,
+            canResume: false,
+            canRetry: false,
+            canCancel: true,
+            canStartBodyPhase: false
+          }
+        },
+        bodyReadiness: null,
+        errorMessage: "",
+        pendingAction: null,
+        hasLoaded: true,
+        processingTargetPageState: {
+          items: [],
+          metadata: [],
+          page: 1,
+          pageSize: 20,
+          totalCount: 18,
+          searchQuery: "",
+          busy: false
+        }
+      },
+      true
+    )
+
+    expect(vm.progressDetail).toBe("12 / 30 件 / 対象 18 件 / 実行中")
+    expect(vm.targetCountLabel).toBe("18 件")
+  })
 })

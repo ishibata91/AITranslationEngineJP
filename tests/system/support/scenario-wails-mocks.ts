@@ -142,27 +142,142 @@ export async function installScenarioWailsMocks(
     skippedCount: 0,
     currentStep: step
   });
-  const processingTargets = {
-    items: [
+  const processingTargetsByPhase = {
+    term_translation: [
       {
-        id: "target-1",
-        name: "Lydia dialogue",
-        detail: "system-test target",
-        titleParts: [{ text: "Lydia dialogue" }],
-        metadata: [{ label: "FormID", value: "000A2C8E" }]
+        id: "term-target-1",
+        name: "Dragonborn",
+        detail: "共通辞書対象外の固有名詞。AI 翻訳対象語として扱う。",
+        titleParts: [
+          { text: "対象名: Dragonborn" },
+          { text: "訳語候補: ドラゴンボーン" }
+        ],
+        metadata: [
+          { label: "FormID", value: "0001A001" },
+          { label: "原文", value: "Dragonborn" },
+          { label: "種別", value: "固有名詞" }
+        ]
+      },
+      {
+        id: "term-target-2",
+        name: "Whiterun Guard",
+        detail: "共通辞書対象外の用語。AI 翻訳対象語として扱う。",
+        titleParts: [
+          { text: "対象名: Whiterun Guard" },
+          { text: "訳語候補: ホワイトラン衛兵" }
+        ],
+        metadata: [
+          { label: "FormID", value: "0001A002" },
+          { label: "原文", value: "Whiterun Guard" },
+          { label: "種別", value: "用語" }
+        ]
+      },
+      {
+        id: "term-target-3",
+        name: "Riverwood Trader",
+        detail: "辞書にない店舗名。AI 翻訳対象語として扱う。",
+        titleParts: [
+          { text: "対象名: Riverwood Trader" },
+          { text: "訳語候補: リバーウッド・トレーダー" }
+        ],
+        metadata: [
+          { label: "FormID", value: "0001A003" },
+          { label: "原文", value: "Riverwood Trader" },
+          { label: "種別", value: "固有名詞" }
+        ]
       }
     ],
-    metadata: [{ label: "対象件数", value: "1" }],
-    page: 1,
-    pageSize: 30,
-    totalCount: 1,
-    searchQuery: ""
-  };
-  const translationCompleteProcessingTargets = {
-    ...processingTargets,
-    items: [
+    persona_generation: [
       {
-        id: "target-1",
+        id: "persona-target-1",
+        name: "Lydia",
+        detail: "名前、FormID、EditorID、NPC 属性で検索できる生成対象。",
+        titleParts: [
+          { text: "NPC: Lydia" },
+          { text: "属性: FemaleEvenToned Warrior" }
+        ],
+        metadata: [
+          { label: "FormID", value: "000A2C8E" },
+          { label: "EditorID", value: "Lydia" },
+          { label: "属性", value: "FemaleEvenToned Warrior" }
+        ]
+      },
+      {
+        id: "persona-target-2",
+        name: "Hadvar",
+        detail: "名前、FormID、EditorID、NPC 属性で検索できる生成対象。",
+        titleParts: [
+          { text: "NPC: Hadvar" },
+          { text: "属性: MaleEvenToned Soldier" }
+        ],
+        metadata: [
+          { label: "FormID", value: "00013482" },
+          { label: "EditorID", value: "Hadvar" },
+          { label: "属性", value: "MaleEvenToned Soldier" }
+        ]
+      }
+    ],
+    body_translation: [
+      {
+        id: "body-target-1",
+        name: "Lydia burden line",
+        detail: "辞書置換対象外の本文翻訳項目。AI 送信対象として扱う。",
+        titleParts: [
+          { text: "原文: I am sworn to carry your burdens." },
+          { text: "訳文: あなたの荷物を背負うと誓いました。" }
+        ],
+        metadata: [
+          { label: "FormID", value: "000A2C8E" },
+          { label: "EditorID", value: "LydiaLine" },
+          { label: "名前", value: "Lydia burden line" }
+        ]
+      },
+      {
+        id: "body-target-2",
+        name: "Hadvar opening line",
+        detail: "辞書置換対象外の本文翻訳項目。AI 送信対象として扱う。",
+        titleParts: [
+          { text: "原文: You are finally awake." },
+          { text: "訳文: ようやく目が覚めたな。" }
+        ],
+        metadata: [
+          { label: "FormID", value: "00013482" },
+          { label: "EditorID", value: "HadvarLine" },
+          { label: "名前", value: "Hadvar opening line" }
+        ]
+      },
+      {
+        id: "body-target-3",
+        name: "Serana caution line",
+        detail: "辞書置換対象外の本文翻訳項目。AI 送信対象として扱う。",
+        titleParts: [
+          { text: "原文: We should be careful." },
+          { text: "訳文: 慎重に進むべきね。" }
+        ],
+        metadata: [
+          { label: "FormID", value: "02002B74" },
+          { label: "EditorID", value: "SeranaLine" },
+          { label: "名前", value: "Serana caution line" }
+        ]
+      },
+      {
+        id: "body-target-4",
+        name: "Whiterun gate line",
+        detail: "辞書置換対象外の本文翻訳項目。AI 送信対象として扱う。",
+        titleParts: [
+          { text: "原文: The gate is closed." },
+          { text: "訳文: 門は閉まっている。" }
+        ],
+        metadata: [
+          { label: "FormID", value: "0001A004" },
+          { label: "EditorID", value: "WhiterunGateLine" },
+          { label: "名前", value: "Whiterun gate line" }
+        ]
+      }
+    ],
+    translation_complete: [
+      {
+        id: "translation-complete-target-1",
         name: "Lydia dialogue",
         detail: "本文翻訳で保持された訳文として出力管理へ進む前に確認する訳文。",
         titleParts: [
@@ -177,6 +292,48 @@ export async function installScenarioWailsMocks(
       }
     ]
   };
+  const processingTargetPhaseLabels = {
+    term_translation: "単語翻訳",
+    persona_generation: "NPC ペルソナ生成",
+    body_translation: "本文翻訳",
+    translation_complete: "翻訳完了"
+  };
+  const processingTargetSearchText = (item) => [
+    item.name,
+    item.detail,
+    ...(item.titleParts || []).map((part) => part.text),
+    ...(item.metadata || []).flatMap((entry) => [entry.label, entry.value])
+  ].join(" ").toLowerCase();
+  const getProcessingTargets = (request = {}) => {
+    const phase = String(request.phase || "term_translation");
+    const sourceItems =
+      processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
+    const searchQuery = String(request.searchQuery || "");
+    const normalizedSearchQuery = searchQuery.trim().toLowerCase();
+    const page = Math.max(1, Number(request.page) || 1);
+    const pageSize = Math.max(1, Number(request.pageSize) || 30);
+    const filteredItems = normalizedSearchQuery === ""
+      ? sourceItems
+      : sourceItems.filter((item) =>
+          processingTargetSearchText(item).includes(normalizedSearchQuery)
+        );
+    const startIndex = (page - 1) * pageSize;
+    const items = filteredItems.slice(startIndex, startIndex + pageSize);
+    return {
+      items,
+      metadata: [
+        { label: "段階", value: processingTargetPhaseLabels[phase] || phase },
+        { label: "対象件数", value: String(filteredItems.length) },
+        { label: "要求ページ", value: String(page) },
+        { label: "要求ページサイズ", value: String(pageSize) },
+        { label: "検索語", value: searchQuery }
+      ],
+      page,
+      pageSize,
+      totalCount: filteredItems.length,
+      searchQuery
+    };
+  };
   const execution = {
     credentialRef: "-",
     provider: "-",
@@ -186,9 +343,9 @@ export async function installScenarioWailsMocks(
     snapshotVersion: "1"
   };
   const targetSummary = {
-    targetCount: 1,
+    targetCount: 2,
     commonPersonaHitCount: 0,
-    commonPersonaMissCount: 1,
+    commonPersonaMissCount: 2,
     skippedCount: 0,
     skippedReasons: [],
     targetSnapshotId: "persona-snapshot",
@@ -205,7 +362,7 @@ export async function installScenarioWailsMocks(
     evidenceRefs: []
   };
   const inputSummary = {
-    targetCount: 1,
+    targetCount: 4,
     skippedReasons: [],
     inputSnapshotRef: "input-snapshot",
     dictionaryDigest: "dictionary-digest",
@@ -218,11 +375,11 @@ export async function installScenarioWailsMocks(
     provider: "-",
     model: "-",
     executionMode: "batch",
-    requestUnitCount: 1,
+    requestUnitCount: 4,
     outputCount: 0
   };
   const requestSummary = {
-    providerTargetCount: 1,
+    providerTargetCount: 4,
     exactDictionaryExclusionCount: 0,
     partialDictionaryConstraintCount: 0
   };
@@ -239,10 +396,10 @@ export async function installScenarioWailsMocks(
     currentPhase: "term_translation",
     phaseState: state,
     phaseRunId: 1,
-    progress: state === "completed" ? commonProgress(1, 1, "完了") : commonProgress(0, 1, "未開始"),
-    totalTermCount: 1,
+    progress: state === "completed" ? commonProgress(3, 3, "完了") : commonProgress(0, 3, "未開始"),
+    totalTermCount: 3,
     dictionaryHitCount: 0,
-    aiTargetCount: 1,
+    aiTargetCount: 3,
     execution,
     errorSummary: blockedStartError,
     actionEnablement: {
@@ -263,7 +420,7 @@ export async function installScenarioWailsMocks(
     currentPhase: "persona_generation",
     phaseState: state,
     phaseRunId: 2,
-    progress: commonProgress(0, 1, "未開始"),
+    progress: commonProgress(0, 2, "未開始"),
     targetSummary,
     execution: personaExecution,
     errorSummary: blockedStartError,
@@ -294,7 +451,7 @@ export async function installScenarioWailsMocks(
     currentPhase: "body_translation",
     phaseState: state,
     phaseRunId: 3,
-    progress: state === "completed" ? commonProgress(1, 1, "完了") : commonProgress(0, 1, "未開始"),
+    progress: state === "completed" ? commonProgress(4, 4, "完了") : commonProgress(0, 4, "未開始"),
     inputSummary,
     requestSummary,
     execution: bodyExecution,
@@ -506,11 +663,7 @@ export async function installScenarioWailsMocks(
       )
     }),
     GetJobDetail: (request) => Promise.resolve({ ...jobDetail(request.jobId), cacheState: "available", cacheStateLabel: "available", runtimeSummary: { providerLabel: "-", modelLabel: "-", executionModeLabel: "batch", credentialState: "missing", credentialStateLabel: "設定未完了" }, resumeBlockedReasons: [], warnings: [], deleteImpactLines: [] }),
-    GetProcessingTargetList: (request) => Promise.resolve(
-      request.phase === "translation_complete"
-        ? translationCompleteProcessingTargets
-        : processingTargets
-    ),
+    GetProcessingTargetList: (request) => Promise.resolve(getProcessingTargets(request)),
     GetTermTranslationPhaseSummary: (request) => Promise.resolve(request.jobId === 10 ? termSummary("completed", request.jobId) : termSummary("pending", request.jobId)),
     StartTermTranslationPhase: () => Promise.resolve(termSummary()),
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),

@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest"
 
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   TermTranslationNextPhaseReadinessResponse,
   TermTranslationPhaseGatewayContract,
   TermTranslationPhaseSummaryResponse
@@ -62,6 +66,7 @@ interface TermTranslationPhaseScreenStateLike {
   errorMessage: string
   pendingAction: "start" | "pause" | "resume" | "retry" | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
 function cloneState(
@@ -85,7 +90,10 @@ function cloneState(
       : null,
     nextPhaseReadiness: state.nextPhaseReadiness
       ? { ...state.nextPhaseReadiness }
-      : null
+      : null,
+    processingTargetPageState: state.processingTargetPageState
+      ? structuredClone(state.processingTargetPageState)
+      : state.processingTargetPageState
   }
 }
 
@@ -116,12 +124,31 @@ function createStore(
 }
 
 function createGatewaySpies() {
+  const processingTargetResponse: ProcessingTargetListResponse = {
+    items: [
+      {
+        id: "term:1",
+        name: "Dragon",
+        detail: "原文: Dragon",
+        titleParts: [{ text: "Dragon" }],
+        metadata: [{ label: "候補", value: "ドラゴン" }]
+      }
+    ],
+    metadata: [],
+    page: 2,
+    pageSize: 50,
+    totalCount: 137,
+    searchQuery: "Dragon"
+  }
   const spies = {
     getTermTranslationPhaseSummary: vi.fn(() =>
       Promise.resolve(createSummary())
     ),
     getTermTranslationNextPhaseReadiness: vi.fn(() =>
       Promise.resolve(createReadiness())
+    ),
+    getProcessingTargetList: vi.fn(() =>
+      Promise.resolve(processingTargetResponse)
     ),
     startTermTranslationPhase: vi.fn(() =>
       Promise.resolve({
@@ -199,6 +226,15 @@ function createGatewaySpies() {
   }
 }
 
+function createDeferredResponse() {
+  let resolve!: (response: ProcessingTargetListResponse) => void
+  const promise = new Promise<ProcessingTargetListResponse>((resolver) => {
+    resolve = resolver
+  })
+
+  return { promise, resolve }
+}
+
 describe("TermTranslationPhaseUseCase", () => {
   test("gateway 未接続で load は接続エラーメッセージを設定する", async () => {
     const store = createStore({ jobId: 9, phase: "ready" })
@@ -225,6 +261,214 @@ describe("TermTranslationPhaseUseCase", () => {
       jobId: 9
     })
     expect(store.snapshot().hasLoaded).toBe(true)
+  })
+
+  test("load は processing target request を送り totalCount と searchQuery を page state に保持する", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const store = createStore({
+      jobId: 9,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 2,
+        pageSize: 50,
+        totalCount: 0,
+        searchQuery: "Dragon",
+        busy: false
+      }
+    })
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    await useCase.load()
+
+    expect(spies.getProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 9,
+      phase: "term_translation",
+      page: 2,
+      pageSize: 50,
+      searchQuery: "Dragon"
+    })
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      items: [{ id: "term:1" }],
+      page: 2,
+      pageSize: 50,
+      totalCount: 137,
+      searchQuery: "Dragon",
+      busy: false
+    })
+  })
+
+  test("検索語変更は term_translation request を page 1 へ戻して送る", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const store = createStore({
+      jobId: 9,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 4,
+        pageSize: 50,
+        totalCount: 0,
+        searchQuery: "",
+        busy: false
+      }
+    })
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    await useCase.setProcessingTargetSearchQuery("Guard")
+
+    expect(spies.getProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 9,
+      phase: "term_translation",
+      page: 1,
+      pageSize: 50,
+      searchQuery: "Guard"
+    })
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      page: 2,
+      pageSize: 50,
+      searchQuery: "Dragon",
+      totalCount: 137
+    })
+  })
+
+  test("検索応答の到着順が逆転しても最新検索結果だけを page state に反映する", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const first = createDeferredResponse()
+    const second = createDeferredResponse()
+    spies.getProcessingTargetList
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise)
+    const store = createStore({
+      jobId: 9,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 4,
+        pageSize: 50,
+        totalCount: 0,
+        searchQuery: "",
+        busy: false
+      }
+    })
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    const firstSearch = useCase.setProcessingTargetSearchQuery("Dragon")
+    const secondSearch = useCase.setProcessingTargetSearchQuery("Guard")
+
+    second.resolve({
+      items: [
+        {
+          id: "term:guard",
+          name: "Guard",
+          detail: "原文: Guard",
+          titleParts: [{ text: "Guard" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 1,
+      searchQuery: "Guard"
+    })
+    await secondSearch
+
+    first.resolve({
+      items: [
+        {
+          id: "term:dragon",
+          name: "Dragon",
+          detail: "原文: Dragon",
+          titleParts: [{ text: "Dragon" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 9,
+      searchQuery: "Dragon"
+    })
+    await firstSearch
+
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      items: [{ id: "term:guard" }],
+      page: 1,
+      pageSize: 50,
+      totalCount: 1,
+      searchQuery: "Guard",
+      busy: false
+    })
+  })
+
+  test("load の一覧応答が検索応答より遅れても最新検索結果だけを page state に反映する", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const loadResponse = createDeferredResponse()
+    const searchResponse = createDeferredResponse()
+    spies.getProcessingTargetList
+      .mockImplementationOnce(() => loadResponse.promise)
+      .mockImplementationOnce(() => searchResponse.promise)
+    const store = createStore({
+      jobId: 9,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 4,
+        pageSize: 50,
+        totalCount: 0,
+        searchQuery: "",
+        busy: false
+      }
+    })
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    const load = useCase.load()
+    const search = useCase.setProcessingTargetSearchQuery("Guard")
+
+    searchResponse.resolve({
+      items: [
+        {
+          id: "term:guard",
+          name: "Guard",
+          detail: "原文: Guard",
+          titleParts: [{ text: "Guard" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 1,
+      searchQuery: "Guard"
+    })
+    await search
+
+    loadResponse.resolve({
+      items: [
+        {
+          id: "term:old",
+          name: "Old",
+          detail: "原文: Old",
+          titleParts: [{ text: "Old" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 4,
+      pageSize: 50,
+      totalCount: 99,
+      searchQuery: ""
+    })
+    await load
+
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      items: [{ id: "term:guard" }],
+      page: 1,
+      pageSize: 50,
+      totalCount: 1,
+      searchQuery: "Guard",
+      busy: false
+    })
   })
 
   test("setJobId null は phase readiness を取得せず未選択エラーを設定する", async () => {

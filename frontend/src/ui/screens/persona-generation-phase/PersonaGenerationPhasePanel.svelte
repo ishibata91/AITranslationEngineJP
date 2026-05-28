@@ -286,8 +286,9 @@
     totalCount={processingTargetPageState?.totalCount}
     busy={processingTargetPageState?.busy}
     searchId="personaPhaseProcessingTargetSearch"
+    searchTestId="persona-generation-phase-processing-target-search-input"
     searchLabel="検索"
-    searchPlaceholder="名前で検索"
+    searchPlaceholder="名前・FormID・EditorID・NPC 属性で検索"
     searchValue={processingTargetSearchQuery}
     title="処理対象"
     titleId="personaPhaseProcessingTargetsHeading"
@@ -296,6 +297,8 @@
     onNextPage={onProcessingTargetNextPage}
     onPageChange={onProcessingTargetPageChange}
     rowTestId="persona-generation-phase-processing-target-row"
+    totalCountTestId="persona-generation-phase-processing-target-total"
+    emptyStateTestId="persona-generation-phase-processing-target-empty"
   />
 </section>
 

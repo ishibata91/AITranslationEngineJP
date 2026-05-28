@@ -1,0 +1,131 @@
+reviewback_version: 1
+task_id: "phase-processing-target-list-refactor"
+review_yaml_path: "docs/exec-plans/active/phase-processing-target-list-refactor/reviewback.trust-boundary.yaml"
+viewpoint: "trust-boundary"
+reviewer_agent: "review_trust_boundary"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  safety: "実外部 API、実 secret、実利用者データへの到達経路は追加されていない。searchQuery は Wails 境界から repository まで値として渡り、SQL 文字列へ連結されていない。LIKE 用の %、_、\\ は escape され、backend log は job id と失敗分類だけを出す。"
+  evidence_sufficiency: "十分。指定ファイル、変更された frontend gateway、repository SQL、Wails controller、system-test fixture、観測ログ仕様、検証記録を確認した。"
+  hard_gate: true
+
+checked_scope:
+  summary: "処理対象一覧の Wails 境界、frontend gateway runtime shape、repository SQL、system-test fixture、backend log 出力を権限・信頼境界観点で確認した。"
+  files:
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      line: 102
+      symbol: "成果物DAG状態"
+      reason: "frontend-local、backend-local、sandbox 外 system-test の通過と sandbox 内 system-test の環境起因失敗を検証証跡として確認した。"
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/implementation-scope.md"
+      line: 36
+      symbol: "Fixed Decisions"
+      reason: "実外部 API、実 secret、実利用者データを対象外にする境界を確認した。"
+    - path: "internal/controller/wails/processing_target_controller.go"
+      line: 21
+      symbol: "GetProcessingTargetListRequestDTO"
+      reason: "Wails DTO が jobId、phase、page、pageSize、searchQuery だけを受けることを確認した。"
+    - path: "internal/controller/wails/processing_target_controller.go"
+      line: 79
+      symbol: "GetProcessingTargetList"
+      reason: "searchQuery は usecase request へそのまま渡され、controller log には出力されないことを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 81
+      symbol: "ListProcessingTargets"
+      reason: "searchQuery は trim 後に検索 pattern へ変換され、SQL 実行は placeholder 引数で行われることを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 222
+      symbol: "processingTargetSearchPattern"
+      reason: "LIKE wildcard と escape 文字が明示的に escape されることを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 330
+      symbol: "processingTargetTermListSQL"
+      reason: "検索条件が LIKE ? ESCAPE '\\' を使い、query を SQL 文字列へ連結していないことを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 374
+      symbol: "processingTargetPersonaListSQL"
+      reason: "NPC ペルソナ生成の検索条件が placeholder と escape 指定を使うことを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 421
+      symbol: "processingTargetBodyListSQL"
+      reason: "本文翻訳の検索条件が placeholder と escape 指定を使うことを確認した。"
+    - path: "tests/system/support/scenario-wails-mocks.ts"
+      line: 92
+      symbol: "configuredAISettings"
+      reason: "system-test fixture は provider 名と credentialStatus だけを持ち、secret 本体を含まないことを確認した。"
+    - path: "tests/system/support/scenario-wails-mocks.ts"
+      line: 307
+      symbol: "getProcessingTargets"
+      reason: "system-test mock の検索は fixture 配列内の文字列照合で、外部 API、実 DB、実利用者データへ到達しないことを確認した。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+      line: 66
+      symbol: "resolveBindingFunction"
+      reason: "frontend gateway は Wails binding を呼ぶだけで、外部 URL や secret 解決経路を追加していないことを確認した。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+      line: 150
+      symbol: "isProcessingTargetListResponseDto"
+      reason: "processing target response は items、metadata、page、pageSize、totalCount、searchQuery の shape を検証することを確認した。"
+    - path: "docs/observability-logging.md"
+      line: 35
+      symbol: "禁止事項"
+      reason: "ログに secret、API key、provider raw payload、全文入力を出さない規約を確認した。"
+
+unchecked_scope:
+  - target: "実行済み harness の生ログ"
+    reason: "review_trust_boundary skill はハーネスを実行しないため、plan.md に記録された検証結果を入力証跡として扱った。"
+    risk: "検証ログ本文に secret が含まれないことは直接確認していない。確認済みの実装ログは searchQuery、secret、raw payload を出していない。"
+  - target: "実ブラウザ操作証跡"
+    reason: "plan.md では Playwright 起動が mac 権限で失敗し、画面操作証跡は未取得と記録されている。"
+    risk: "実画面で検索語が意図外の場所へ表示される可能性は残る。sandbox 外 system-test が UI 経路を通過しているため、信頼境界上の強制停止理由にはしない。"
+
+issues: []
+
+trust_boundary_invariants:
+  - condition: "実外部 API、実 secret、実利用者データへ到達しない。"
+    status: "maintained"
+    evidence: "implementation-scope.md は実外部 API、実 secret、実利用者データを対象外に固定している。system-test fixture は credentialRef に '-' を使い、provider credential は configured/missing/not_required の状態値だけを扱う。"
+  - condition: "searchQuery を SQL 文字列へ連結しない。"
+    status: "maintained"
+    evidence: "repository は count/list SQL を固定文字列にし、jobId、searchQuery、searchPattern、pageSize、offset を placeholder 引数で渡す。"
+  - condition: "LIKE wildcard と escape 文字を利用者入力として解釈しない。"
+    status: "maintained"
+    evidence: "processingTargetSearchPattern は \\、%、_ を escape し、SQL は LIKE ? ESCAPE '\\' を使う。"
+  - condition: "ログに secret、API key、raw payload、全文入力、searchQuery を出さない。"
+    status: "maintained"
+    evidence: "controller と repository の WarnContext は event、where、result、job id、reason だけを出し、request DTO と searchQuery を出していない。"
+
+cause_candidates: []
+
+local_fix_assessment:
+  result: "not_required"
+  reason: "未解決 issue がないため局所修正は不要である。"
+
+verification_evidence:
+  commands_from_plan:
+    - command: "python3 scripts/harness/run.py --suite frontend-local"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 400
+    - command: "python3 scripts/harness/run.py --suite backend-local"
+      result: "passed"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 401
+    - command: "python3 scripts/harness/run.py --suite system-test"
+      result: "passed outside sandbox, 60 passed"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 403
+    - command: "python3 scripts/harness/run.py --suite system-test"
+      result: "failed inside sandbox due to Wails readiness, treated as environment failure"
+      evidence_path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      evidence_line: 402
+  invariant_test_viewpoints:
+    - "searchQuery に %, _, \\ を含めた場合も SQL wildcard として広がらないこと。"
+    - "Wails 境界失敗時の backend log に searchQuery、secret、raw payload、翻訳本文全文が出ないこと。"
+    - "system-test fixture が実 credential 値を持たず、credentialStatus だけで AI 設定状態を表すこと。"
+
+residual_risks:
+  - "実ブラウザ操作証跡は未取得である。plan.md は Storybook 応答と story 存在確認、sandbox 外 system-test 通過を代替根拠としている。"
+  - "harness 生ログの secret 非含有は直接確認していない。確認済みコードの backend log は searchQuery と secret を出していない。"
+  - "pageSize の上限値は repository 内で固定されていない。今回の主観点である SQL injection と secret leakage の未解決 issue ではないが、Wails 境界の入力制限として将来確認余地がある。"

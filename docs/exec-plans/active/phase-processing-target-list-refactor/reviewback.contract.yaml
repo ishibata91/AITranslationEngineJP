@@ -1,0 +1,91 @@
+reviewback_version: 1
+task_id: "phase-processing-target-list-refactor"
+review_yaml_path: "docs/exec-plans/active/phase-processing-target-list-refactor/reviewback.contract.yaml"
+viewpoint: "contract"
+reviewer_agent: "review_contract"
+review_status: "no_issue"
+must_fix_open: false
+max_level: "none"
+
+assessment:
+  compatibility: "ProcessingTargetListResponse の既存 DTO shape は維持され、totalCount、items、searchQuery は Wails controller、frontend gateway、phase usecase を通して 3 phase で同じ契約として扱われている。"
+  evidence_sufficiency: "十分。指定ファイル、Wails root controller 結線、caller が記録した最終検証結果を確認した。"
+
+checked_scope:
+  summary: "processing target list の DTO、runtime validation、Wails controller、3 phase gateway、3 phase usecase の境界を確認した。"
+  files:
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/implementation-scope.md"
+      line: 191
+      symbol: "integration-processing-target-seam"
+      reason: "一覧 total、items、searchQuery を 3 phase へ正しく届けることが統合境界の完了条件として固定されている。"
+    - path: "frontend/src/application/gateway-contract/processing-target/processing-target-gateway-contract.ts"
+      line: 26
+      symbol: "ProcessingTargetListResponse"
+      reason: "items、metadata、page、pageSize、totalCount、searchQuery の既存 response shape が維持されている。"
+    - path: "internal/controller/wails/processing_target_controller.go"
+      line: 21
+      symbol: "GetProcessingTargetListRequestDTO"
+      reason: "jobId、phase、page、pageSize、searchQuery の request JSON key が frontend contract と一致している。"
+    - path: "internal/controller/wails/processing_target_controller.go"
+      line: 50
+      symbol: "GetProcessingTargetListResponseDTO"
+      reason: "items、metadata、page、pageSize、totalCount、searchQuery の response JSON key が frontend contract と一致している。"
+    - path: "internal/controller/wails/processing_target_controller.go"
+      line: 79
+      symbol: "GetProcessingTargetList"
+      reason: "request の phase、page、pageSize、searchQuery を usecase request へ再解釈なしで渡している。"
+    - path: "internal/controller/wails/processing_target_controller.go"
+      line: 109
+      symbol: "toGetProcessingTargetListResponseDTO"
+      reason: "usecase result の items、totalCount、searchQuery を response DTO へ保持している。"
+    - path: "frontend/src/controller/wails/term-translation-phase.gateway.ts"
+      line: 125
+      symbol: "isProcessingTargetListResponseDto"
+      reason: "単語翻訳 gateway は processing target response の必須 field 型を runtime validation している。"
+    - path: "frontend/src/controller/wails/persona-generation-phase.gateway.ts"
+      line: 150
+      symbol: "isProcessingTargetListResponseDto"
+      reason: "NPC ペルソナ生成 gateway は processing target response の必須 field 型を runtime validation している。"
+    - path: "frontend/src/controller/wails/body-translation-phase.gateway.ts"
+      line: 159
+      symbol: "isProcessingTargetListResponseDto"
+      reason: "本文翻訳 gateway は processing target response の必須 field 型を runtime validation している。"
+    - path: "frontend/src/application/usecase/term-translation-phase/term-translation-phase.usecase.ts"
+      line: 340
+      symbol: "fetchProcessingTargetListResponse"
+      reason: "単語翻訳 usecase は phase、page、pageSize、searchQuery を渡し、response を page state に保持している。"
+    - path: "frontend/src/application/usecase/persona-generation-phase/persona-generation-phase.usecase.ts"
+      line: 351
+      symbol: "fetchProcessingTargetListResponse"
+      reason: "NPC ペルソナ生成 usecase は phase、page、pageSize、searchQuery を渡し、response を page state に保持している。"
+    - path: "frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts"
+      line: 461
+      symbol: "fetchProcessingTargetListResponse"
+      reason: "本文翻訳 usecase は phase、page、pageSize、searchQuery を渡し、phase 別 page state に response を保持している。"
+    - path: "internal/controller/wails/app_controller.go"
+      line: 13
+      symbol: "AppController"
+      reason: "ProcessingTargetController が Wails root controller に埋め込まれ、生成 binding の公開経路が維持されている。"
+    - path: "internal/bootstrap/app_controller.go"
+      line: 270
+      symbol: "BuildAppController"
+      reason: "ProcessingTargetController が AppController へ設定されている。"
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/plan.md"
+      line: 102
+      symbol: "最終検証"
+      reason: "frontend-local、backend-local、sandbox 外 system-test が通過した証跡として caller が記録している。"
+
+unchecked_scope:
+  - target: "実ブラウザ操作証跡"
+    reason: "caller 記録では Playwright 起動が mac 権限で失敗し、画面操作証跡は未取得である。"
+    risk: "runtime binding の契約そのものではなく、実画面操作での表示確認に残留リスクがある。"
+
+issues: []
+
+broken_invariants: []
+cause_candidates: []
+local_fix_assessment: "未解決 issue がないため不要。"
+invariant_test_viewpoints:
+  - "3 phase gateway の runtime validation が items、metadata、page、pageSize、totalCount、searchQuery を必須 field として拒否できること。"
+  - "3 phase usecase が searchQuery と page state を request から response まで保持すること。"
+  - "Wails controller が usecase result の totalCount と searchQuery を response DTO へ保持すること。"

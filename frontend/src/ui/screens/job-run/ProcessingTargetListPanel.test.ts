@@ -69,6 +69,24 @@ describe("ProcessingTargetListPanel", () => {
     ).toBeInTheDocument()
   })
 
+  test("一覧件数と空状態に観測用 test id を付与できる", () => {
+    render(ProcessingTargetListPanel, {
+      props: {
+        items: [],
+        totalCount: 0,
+        totalCountTestId: "phase-processing-target-total",
+        emptyStateTestId: "phase-processing-target-empty"
+      }
+    })
+
+    expect(screen.getByTestId("phase-processing-target-total")).toHaveTextContent(
+      "0 件"
+    )
+    expect(screen.getByTestId("phase-processing-target-empty")).toHaveTextContent(
+      "処理対象がありません"
+    )
+  })
+
   test("単語翻訳の行タイトルに原語と訳語候補を表示する", () => {
     render(ProcessingTargetListPanel, {
       props: processingTargetListPanelFixtures.termTranslationFirstPage

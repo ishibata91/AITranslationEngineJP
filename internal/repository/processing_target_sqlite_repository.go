@@ -246,24 +246,49 @@ func nonBlankStrings(values ...string) []string {
 
 const processingTargetTermCountSQL = `
 SELECT COUNT(1)
-FROM DICTIONARY_ENTRY de
-WHERE de.translation_job_id = ?
-  AND de.dictionary_lifecycle = 'job'
+FROM (
+  SELECT
+    tj.id AS translation_job_id,
+    tr.record_type,
+    trim(tf.source_text) AS source_term
+  FROM TRANSLATION_JOB tj
+  INNER JOIN TRANSLATION_RECORD tr ON tr.x_edit_extracted_data_id = tj.x_edit_extracted_data_id
+  INNER JOIN TRANSLATION_FIELD tf ON tf.translation_record_id = tr.id
+  WHERE tj.id = ?
+    AND trim(tf.source_text) != ''
+  GROUP BY tj.id, tr.record_type, trim(tf.source_text)
+) candidate
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM DICTIONARY_ENTRY shared
+    WHERE shared.dictionary_lifecycle = 'master'
+      AND lower(trim(shared.dictionary_scope)) = lower(trim(candidate.record_type))
+      AND lower(trim(shared.source_term)) = lower(trim(candidate.source_term))
+  )
   AND (
     ? = ''
-    OR lower(de.source_term || ' ' || de.translated_term || ' ' || de.term_kind) LIKE ? ESCAPE '\'
+    OR lower(candidate.source_term || ' ' || COALESCE((
+      SELECT job_entry.translated_term
+      FROM DICTIONARY_ENTRY job_entry
+      WHERE job_entry.translation_job_id = candidate.translation_job_id
+        AND job_entry.dictionary_lifecycle = 'job'
+        AND lower(trim(job_entry.dictionary_scope)) = lower(trim(candidate.record_type))
+        AND lower(trim(job_entry.source_term)) = lower(trim(candidate.source_term))
+      ORDER BY job_entry.id DESC
+      LIMIT 1
+    ), '')) LIKE ? ESCAPE '\'
   )`
 
 const processingTargetTermListSQL = `
 SELECT
-  'dictionary-entry:' || de.id AS id,
-  de.source_term AS name,
+  'term-candidate:' || candidate.record_type || ':' || candidate.source_key AS id,
+  candidate.source_term AS name,
   'AI サービスへ送り、確定訳語として翻訳ジョブ内辞書へ保存する用語です。' AS detail,
-  de.source_term AS title_part_1,
-  de.term_kind AS title_part_2,
-  de.translated_term AS title_part_3,
-  de.term_kind AS metadata_value_1,
-  de.translated_term AS metadata_value_2,
+  candidate.source_term AS title_part_1,
+  candidate.record_type AS title_part_2,
+  COALESCE(job_entry.translated_term, '') AS title_part_3,
+  candidate.record_type AS metadata_value_1,
+  COALESCE(job_entry.translated_term, '') AS metadata_value_2,
   '' AS metadata_value_3,
   '' AS metadata_value_4,
   NULL AS metadata_value_5,
@@ -272,14 +297,41 @@ SELECT
   NULL AS metadata_value_8,
   NULL AS metadata_value_9,
   NULL AS metadata_value_10
-FROM DICTIONARY_ENTRY de
-WHERE de.translation_job_id = ?
-  AND de.dictionary_lifecycle = 'job'
+FROM (
+  SELECT
+    tj.id AS translation_job_id,
+    tr.record_type,
+    trim(tf.source_text) AS source_term,
+    lower(trim(tf.source_text)) AS source_key
+  FROM TRANSLATION_JOB tj
+  INNER JOIN TRANSLATION_RECORD tr ON tr.x_edit_extracted_data_id = tj.x_edit_extracted_data_id
+  INNER JOIN TRANSLATION_FIELD tf ON tf.translation_record_id = tr.id
+  WHERE tj.id = ?
+    AND trim(tf.source_text) != ''
+  GROUP BY tj.id, tr.record_type, trim(tf.source_text)
+) candidate
+LEFT JOIN DICTIONARY_ENTRY job_entry ON job_entry.id = (
+  SELECT latest_job_entry.id
+  FROM DICTIONARY_ENTRY latest_job_entry
+  WHERE latest_job_entry.translation_job_id = candidate.translation_job_id
+    AND latest_job_entry.dictionary_lifecycle = 'job'
+    AND lower(trim(latest_job_entry.dictionary_scope)) = lower(trim(candidate.record_type))
+    AND lower(trim(latest_job_entry.source_term)) = lower(trim(candidate.source_term))
+  ORDER BY latest_job_entry.id DESC
+  LIMIT 1
+)
+WHERE NOT EXISTS (
+    SELECT 1
+    FROM DICTIONARY_ENTRY shared
+    WHERE shared.dictionary_lifecycle = 'master'
+      AND lower(trim(shared.dictionary_scope)) = lower(trim(candidate.record_type))
+      AND lower(trim(shared.source_term)) = lower(trim(candidate.source_term))
+  )
   AND (
     ? = ''
-    OR lower(de.source_term || ' ' || de.translated_term || ' ' || de.term_kind) LIKE ? ESCAPE '\'
+    OR lower(candidate.source_term || ' ' || COALESCE(job_entry.translated_term, '')) LIKE ? ESCAPE '\'
   )
-ORDER BY de.source_term ASC, de.id ASC
+ORDER BY candidate.record_type ASC, candidate.source_key ASC
 LIMIT ? OFFSET ?`
 
 const processingTargetPersonaCountSQL = `
@@ -339,8 +391,8 @@ WHERE jtf.translation_job_id = ?
   AND jtf.output_status != 'dictionary_exact_match'
   AND (
     ? = ''
-    OR lower(tf.source_text || ' ' || jtf.translated_text || ' ' || tr.record_type || ' ' || tf.subrecord_type || ' ' ||
-      tr.form_id || ' ' || tr.editor_id || ' ' || COALESCE(np.display_name, '') || ' ' || jtf.output_status) LIKE ? ESCAPE '\'
+    OR lower((CASE WHEN trim(tf.source_text) = '' THEN tr.editor_id ELSE tf.source_text END) || ' ' ||
+      tf.source_text || ' ' || jtf.translated_text) LIKE ? ESCAPE '\'
   )`
 
 const processingTargetBodyListSQL = `
@@ -370,8 +422,8 @@ WHERE jtf.translation_job_id = ?
   AND jtf.output_status != 'dictionary_exact_match'
   AND (
     ? = ''
-    OR lower(tf.source_text || ' ' || jtf.translated_text || ' ' || tr.record_type || ' ' || tf.subrecord_type || ' ' ||
-      tr.form_id || ' ' || tr.editor_id || ' ' || COALESCE(np.display_name, '') || ' ' || jtf.output_status) LIKE ? ESCAPE '\'
+    OR lower((CASE WHEN trim(tf.source_text) = '' THEN tr.editor_id ELSE tf.source_text END) || ' ' ||
+      tf.source_text || ' ' || jtf.translated_text) LIKE ? ESCAPE '\'
   )
 ORDER BY tr.id ASC, tf.field_order ASC, jtf.id ASC
 LIMIT ? OFFSET ?`

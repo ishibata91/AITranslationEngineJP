@@ -73,14 +73,14 @@
     { modelId: viewModel.modelLabel, label: viewModel.modelLabel }
   ])
   const phaseMetrics = $derived<PhaseMetricCounter[]>([
-    { label: "対象", value: viewModel.totalTermCountLabel },
+    { label: "AI 翻訳対象語", value: viewModel.aiTargetCountLabel },
     { label: "処理済み", value: viewModel.confirmedCountLabel },
     { label: "成功", value: viewModel.confirmedCountLabel },
     { label: "失敗", value: "0" },
     { label: "スキップ", value: "0" }
   ])
   const progressDetails = $derived<PhaseDetailItem[]>([
-    { label: "対象語件数", value: viewModel.totalTermCountLabel }
+    { label: "AI 翻訳対象語件数", value: viewModel.aiTargetCountLabel }
   ])
   const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
     {
@@ -278,6 +278,7 @@
     totalCount={processingTargetPageState?.totalCount}
     busy={processingTargetPageState?.busy}
     searchId="termPhaseProcessingTargetSearch"
+    searchTestId="term-translation-phase-processing-target-search-input"
     searchLabel="検索"
     searchPlaceholder="名前・原文・訳語で検索"
     searchValue={processingTargetSearchQuery}
@@ -288,6 +289,8 @@
     onNextPage={onProcessingTargetNextPage}
     onPageChange={onProcessingTargetPageChange}
     rowTestId="term-translation-phase-processing-target-row"
+    totalCountTestId="term-translation-phase-processing-target-total"
+    emptyStateTestId="term-translation-phase-processing-target-empty"
   />
 </section>
 

@@ -305,7 +305,7 @@ function buildProgressDetail(state: TermTranslationPhaseScreenState): string {
   }
 
   const progress = state.summary.progress
-  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / AI 対象 ${progress.aiTargetCount.toLocaleString("ja-JP")} 件 / ${buildCurrentStepLabel(progress.currentStep)}`
+  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.aiTargetCount.toLocaleString("ja-JP")} 件 / AI 翻訳対象語 ${progress.aiTargetCount.toLocaleString("ja-JP")} 件 / ${buildCurrentStepLabel(progress.currentStep)}`
 }
 
 function buildProviderSkippedLabel(

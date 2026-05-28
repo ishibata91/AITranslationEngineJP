@@ -19,6 +19,22 @@ import type {
   StartPersonaGenerationPhaseRequestDto,
   StartPersonaGenerationPhaseResponseDto
 } from "@controller/wails/gateway-dto/persona-generation-phase"
+import {
+  createGatewayResponseShapeError,
+  isArrayOf,
+  isNumber,
+  isRecord,
+  isString
+} from "@controller/wails/gateway-dto/runtime-shape"
+
+type RuntimeShapeValidator<ResponseDto> = (
+  value: unknown
+) => value is ResponseDto
+
+type RuntimeShapeIssue = {
+  path: string
+  expected: string
+}
 
 type PersonaGenerationPhaseBindingName =
   | "GetProcessingTargetList"
@@ -33,7 +49,8 @@ type PersonaGenerationPhaseBindingName =
 
 type BindingInvoker = <RequestDto, ResponseDto>(
   bindingName: PersonaGenerationPhaseBindingName,
-  request: RequestDto
+  request: RequestDto,
+  isResponseDto?: RuntimeShapeValidator<ResponseDto>
 ) => Promise<ResponseDto>
 
 type BindingFunction = (request: unknown) => Promise<unknown>
@@ -83,10 +100,80 @@ function resolveBindingFunction(
   return null
 }
 
+const responseShapeIssues: RuntimeShapeIssue[] = []
+
+function resetIssues(): void {
+  responseShapeIssues.length = 0
+}
+
+function invalid(path: string, expected: string): false {
+  responseShapeIssues.push({ path, expected })
+  return false
+}
+
+function isMetadata(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+
+  return (
+    (isString(value["label"]) || invalid(`${path}.label`, "string")) &&
+    (isString(value["value"]) || invalid(`${path}.value`, "string"))
+  )
+}
+
+function isProcessingTargetItem(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+
+  return (
+    (isString(value["id"]) || invalid(`${path}.id`, "string")) &&
+    (isString(value["name"]) || invalid(`${path}.name`, "string")) &&
+    (isString(value["detail"]) || invalid(`${path}.detail`, "string")) &&
+    (isArrayOf(value["titleParts"], (item) => {
+      if (!isRecord(item)) {
+        return invalid(`${path}.titleParts[]`, "object")
+      }
+      return (
+        isString(item["text"]) || invalid(`${path}.titleParts[].text`, "string")
+      )
+    }) ||
+      invalid(`${path}.titleParts`, "title part array")) &&
+    (isArrayOf(value["metadata"], (item) =>
+      isMetadata(item, `${path}.metadata[]`)
+    ) ||
+      invalid(`${path}.metadata`, "metadata array"))
+  )
+}
+
+function isProcessingTargetListResponseDto(
+  value: unknown
+): value is GetProcessingTargetListResponseDto {
+  resetIssues()
+  if (!isRecord(value)) {
+    return invalid("$", "object")
+  }
+
+  return (
+    (isArrayOf(value["items"], (item) =>
+      isProcessingTargetItem(item, "$.items[]")
+    ) ||
+      invalid("$.items", "processing target item array")) &&
+    (isArrayOf(value["metadata"], (item) => isMetadata(item, "$.metadata[]")) ||
+      invalid("$.metadata", "metadata array")) &&
+    (isNumber(value["page"]) || invalid("$.page", "number")) &&
+    (isNumber(value["pageSize"]) || invalid("$.pageSize", "number")) &&
+    (isNumber(value["totalCount"]) || invalid("$.totalCount", "number")) &&
+    (isString(value["searchQuery"]) || invalid("$.searchQuery", "string"))
+  )
+}
+
 function createBindingInvoker(): BindingInvoker {
   return <RequestDto, ResponseDto>(
     bindingName: PersonaGenerationPhaseBindingName,
-    request: RequestDto
+    request: RequestDto,
+    isResponseDto?: RuntimeShapeValidator<ResponseDto>
   ): Promise<ResponseDto> => {
     const binding = resolveBindingFunction(bindingName)
     if (!binding) {
@@ -97,7 +184,13 @@ function createBindingInvoker(): BindingInvoker {
       )
     }
 
-    return binding(request).then((response) => response as ResponseDto)
+    return binding(request).then((response) => {
+      if (!isResponseDto || isResponseDto(response)) {
+        return response as ResponseDto
+      }
+
+      throw createGatewayResponseShapeError(bindingName, responseShapeIssues)
+    })
   }
 }
 
@@ -107,7 +200,11 @@ class PersonaGenerationPhaseGateway implements PersonaGenerationPhaseGatewayCont
   getProcessingTargetList(
     request: GetProcessingTargetListRequestDto
   ): Promise<GetProcessingTargetListResponseDto> {
-    return this.invokeBinding("GetProcessingTargetList", request)
+    return this.invokeBinding(
+      "GetProcessingTargetList",
+      request,
+      isProcessingTargetListResponseDto
+    )
   }
 
   getPersonaGenerationPhaseSummary(

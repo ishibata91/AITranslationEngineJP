@@ -186,6 +186,8 @@ function patchSummaryFromCommand(
 }
 
 export class BodyTranslationPhaseUseCase {
+  private processingTargetListRequestSequenceByPhase: Record<string, number> = {}
+
   constructor(
     private readonly gateway: BodyTranslationPhaseGatewayContract | null,
     private readonly store: BodyTranslationPhaseStoreLike
@@ -353,6 +355,11 @@ export class BodyTranslationPhaseUseCase {
     })
 
     try {
+      const processingTargetListRequestSequence =
+        (this.processingTargetListRequestSequenceByPhase["body_translation"] ??
+          0) + 1
+      this.processingTargetListRequestSequenceByPhase["body_translation"] =
+        processingTargetListRequestSequence
       const [summary, outputReadiness, processingTargetPageState] =
         await Promise.all([
         this.gateway.getBodyTranslationPhaseSummary({
@@ -372,11 +379,16 @@ export class BodyTranslationPhaseUseCase {
         draft.phase = "ready"
         draft.summary = summary
         draft.outputReadiness = outputReadiness
-        setProcessingTargetPageState(
-          draft,
-          "body_translation",
-          processingTargetPageState
-        )
+        if (
+          processingTargetListRequestSequence ===
+          this.processingTargetListRequestSequenceByPhase["body_translation"]
+        ) {
+          setProcessingTargetPageState(
+            draft,
+            "body_translation",
+            processingTargetPageState
+          )
+        }
         draft.pendingAction = null
         draft.errorMessage = ""
         draft.hasLoaded = true
@@ -408,6 +420,10 @@ export class BodyTranslationPhaseUseCase {
     const current = getProcessingTargetPageState(state, next.phase)
     const page = Math.max(1, next.page ?? current.page)
     const searchQuery = next.searchQuery ?? current.searchQuery
+    const requestSequence =
+      (this.processingTargetListRequestSequenceByPhase[next.phase] ?? 0) + 1
+    this.processingTargetListRequestSequenceByPhase[next.phase] =
+      requestSequence
 
     this.store.update((draft) => {
       setProcessingTargetPageState(draft, next.phase, {
@@ -428,6 +444,12 @@ export class BodyTranslationPhaseUseCase {
       })
 
       this.store.update((draft) => {
+        if (
+          requestSequence !==
+          this.processingTargetListRequestSequenceByPhase[next.phase]
+        ) {
+          return
+        }
         setProcessingTargetPageState(
           draft,
           next.phase,
@@ -436,6 +458,12 @@ export class BodyTranslationPhaseUseCase {
       })
     } catch (error) {
       this.store.update((draft) => {
+        if (
+          requestSequence !==
+          this.processingTargetListRequestSequenceByPhase[next.phase]
+        ) {
+          return
+        }
         setProcessingTargetPageState(draft, next.phase, {
           ...getProcessingTargetPageState(draft, next.phase),
           busy: false

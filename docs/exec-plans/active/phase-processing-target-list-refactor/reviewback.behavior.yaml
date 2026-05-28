@@ -1,0 +1,91 @@
+reviewback_version: 1
+task_id: "phase-processing-target-list-refactor"
+review_yaml_path: "docs/exec-plans/active/phase-processing-target-list-refactor/reviewback.behavior.yaml"
+viewpoint: "behavior"
+reviewer_agent: "review_behavior"
+review_status: "issues_open"
+must_fix_open: true
+max_level: "major"
+assessment:
+  behavior_match: "3 フェーズの一覧 total、一覧行、検索一致、検索 0 件は実装と system-test で確認できる。一方で、system-test fixture が進行状況の対象件数と一覧 total の一致条件を満たしておらず、人間要望の件数一致を証明しきれていない。"
+  evidence_sufficiency: "不足だが判定可能。backend repository test と phase usecase test は検索と total 伝播を示すが、system-test は画面上の処理対象件数と一覧 total の一致を検証していない。"
+checked_scope:
+  summary: "task-local 仕様、phase panel、presenter、usecase、Wails gateway、repository、system-test fixture と Page Object を、3 フェーズの一覧件数、一覧行、検索一致、検索 0 件の挙動で照合した。"
+  files:
+    - path: "docs/exec-plans/active/phase-processing-target-list-refactor/implementation-scope.md"
+      line: 21
+      symbol: "Fixed Decisions"
+      reason: "3 フェーズの一覧 total と画面上の処理対象件数を同じ母集団にする固定判断を確認した。"
+    - path: "frontend/src/ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte"
+      line: 75
+      symbol: "phaseMetrics"
+      reason: "単語翻訳の画面上の処理対象件数が AI 翻訳対象語を主語にしていることを確認した。"
+    - path: "frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
+      line: 61
+      symbol: "phaseMetrics"
+      reason: "本文翻訳の画面上の処理対象件数が AI 送信対象を主語にしていることを確認した。"
+    - path: "frontend/src/application/usecase/term-translation-phase/term-translation-phase.usecase.ts"
+      line: 247
+      symbol: "fetchSummaryAndReadiness"
+      reason: "summary と処理対象一覧を同時に読み、page state へ total と searchQuery を保持する経路を確認した。"
+    - path: "frontend/src/application/usecase/persona-generation-phase/persona-generation-phase.usecase.ts"
+      line: 233
+      symbol: "fetchSummaryAndReadiness"
+      reason: "NPC ペルソナ生成の処理対象一覧取得経路を確認した。"
+    - path: "frontend/src/application/usecase/body-translation-phase/body-translation-phase.usecase.ts"
+      line: 351
+      symbol: "fetchSummaryAndReadiness"
+      reason: "本文翻訳の処理対象一覧取得経路を確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 247
+      symbol: "processingTargetTermCountSQL"
+      reason: "単語翻訳の一覧母集団が共通辞書一致を除外する候補になっていることを確認した。"
+    - path: "internal/repository/processing_target_sqlite_repository.go"
+      line: 383
+      symbol: "processingTargetBodyCountSQL"
+      reason: "本文翻訳の一覧母集団が dictionary_exact_match を除外する候補になっていることを確認した。"
+    - path: "tests/system/job-run-shell.spec.ts"
+      line: 46
+      symbol: "expectProcessingTargetListScenario"
+      reason: "system-test が一覧領域、一覧 total、行、検索一致、検索 0 件を検証していることを確認した。"
+    - path: "tests/system/support/scenario-wails-mocks.ts"
+      line: 135
+      symbol: "commonProgress"
+      reason: "system-test fixture の進行状況件数が一覧 total と独立していることを確認した。"
+unchecked_scope:
+  - target: "実ブラウザでの Storybook 操作証跡"
+    reason: "plan.md に Playwright 起動権限エラーで未取得と記録されている。"
+    risk: "system-test が通っていても、Storybook 上の視覚的な件数一致や空状態表示は未確認のまま残る。"
+issues:
+  - id: "behavior-001"
+    level: "major"
+    title: "system-test が件数一致を証明していない"
+    problem: "system-test fixture は単語翻訳の進行状況と画面メトリクスを 1 件にしているが、同じ画面の処理対象一覧 total は 3 件を期待している。本文翻訳も AI 送信対象を 1 件にしているが、処理対象一覧 total は 4 件を期待している。"
+    reason: "今回の固定判断は、3 フェーズで一覧 total と画面上の処理対象件数を同じ母集団にすることである。現行 system-test は一覧 total、行、検索一致、検索 0 件を検証するが、進行状況または上部メトリクスの対象件数と一覧 total の一致を検証しないため、単語翻訳の 0 件 vs 4930 件問題の再発を検出できない。"
+    violated_condition: "3 フェーズで、一覧 total と画面上の処理対象件数は同じ母集団を示す。"
+    cause_candidate: "tests/system/support/scenario-wails-mocks.ts の summary fixture が処理対象一覧 fixture と別の件数を返し、tests/system/job-run-shell.spec.ts の expectProcessingTargetListScenario が一覧側だけを検証している。"
+    evidence:
+      - path: "tests/system/support/scenario-wails-mocks.ts"
+        line: 399
+        excerpt: "単語翻訳 summary は commonProgress(0, 1, ...) と aiTargetCount: 1 を返す。"
+      - path: "tests/system/job-run-shell.spec.ts"
+        line: 95
+        excerpt: "単語翻訳 system-test は一覧 total として 1-3 / 3 件を期待する。"
+      - path: "tests/system/support/scenario-wails-mocks.ts"
+        line: 381
+        excerpt: "本文翻訳 summary は providerTargetCount: 1 を返す。"
+      - path: "tests/system/job-run-shell.spec.ts"
+        line: 128
+        excerpt: "本文翻訳 system-test は一覧 total として 1-4 / 4 件を期待する。"
+      - path: "frontend/src/ui/screens/term-translation-phase/TermTranslationPhasePanel.svelte"
+        line: 75
+        excerpt: "単語翻訳の上部メトリクスは viewModel.aiTargetCountLabel を表示する。"
+      - path: "frontend/src/ui/screens/body-translation-phase/BodyTranslationPhasePanel.svelte"
+        line: 61
+        excerpt: "本文翻訳の上部メトリクスは viewModel.providerTargetCountLabel を表示する。"
+    local_fix_assessment: "local。system-test fixture と system-test assertion の範囲で閉じる可能性が高い。product code の母集団修正は現時点の根拠では不要に見える。"
+    additional_check_scope: "修正後に E2E-UC-045/046/047 で、一覧 total と進行状況または上部メトリクスの対象件数が一致することを 3 フェーズ分確認する。"
+    fix_considerations: "検索 0 件では、検索後の一覧 total だけを 0 件にし、進行状況の対象件数は検索前の母集団として維持される条件を壊さない。"
+    verification: "system-test で、初期表示時の画面上の処理対象件数と一覧 total の一致を 3 フェーズ分検証する。不一致 fixture では失敗することを確認できる形が望ましい。"
+    fix_required: true
+    status: "open"

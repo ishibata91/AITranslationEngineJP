@@ -1,10 +1,26 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import {
+  BodyTranslationPhasePage,
   JobRunShellPage,
+  PersonaGenerationPhasePage,
+  TermTranslationPhasePage,
   TranslationJobManagementPage,
+  type TranslationPhasePage,
 } from "./support/system-test-pages";
 import { installScenarioWailsMocks } from "./support/scenario-wails-mocks";
+
+interface ProcessingTargetListScenario {
+  expectedProgressTargetDetail: RegExp;
+  expectedInitialRows: number;
+  expectedInitialTotal: string;
+  expectedMatchingTotal: string;
+  expectedRowText: RegExp | string;
+  expectedScreenTargetMetric: RegExp;
+  hiddenAfterMatchText: RegExp | string;
+  matchingQuery: string;
+  noResultQuery: string;
+}
 
 test.beforeEach(async ({ page }) => {
   await installScenarioWailsMocks(page);
@@ -29,43 +45,126 @@ async function openJobRun(
   return jobRun;
 }
 
+async function expectProcessingTargetListScenario(
+  phase: TranslationPhasePage,
+  scenario: ProcessingTargetListScenario,
+): Promise<void> {
+  await phase.waitForScreen();
+  await expect(phase.processingTargetListRegion).toBeVisible();
+  await expect(phase.processingTargetTotalCount).toHaveText(
+    scenario.expectedInitialTotal,
+  );
+  await expect(phase.statusPanel).toContainText(
+    scenario.expectedScreenTargetMetric,
+  );
+  await expect(phase.progress).toContainText(
+    scenario.expectedProgressTargetDetail,
+  );
+  await expect(phase.processingTargetRows).toHaveCount(
+    scenario.expectedInitialRows,
+  );
+  await expect(phase.processingTargetRows.first()).toContainText(
+    scenario.expectedRowText,
+  );
+
+  await phase.searchProcessingTargets(scenario.matchingQuery);
+
+  await expect(phase.processingTargetTotalCount).toHaveText(
+    scenario.expectedMatchingTotal,
+  );
+  await expect(phase.processingTargetRows).toHaveCount(1);
+  await expect(phase.processingTargetRows.first()).toContainText(
+    scenario.expectedRowText,
+  );
+  await expect(phase.processingTargetRows).not.toContainText(
+    scenario.hiddenAfterMatchText,
+  );
+
+  await phase.searchProcessingTargets(scenario.noResultQuery);
+
+  await expect(phase.processingTargetTotalCount).toHaveText("0 件");
+  await expect(phase.processingTargetRows).toHaveCount(0);
+  await expect(phase.processingTargetEmptyState).toContainText(
+    "処理対象がありません",
+  );
+  await expect(phase.statusPanel).toContainText(
+    scenario.expectedScreenTargetMetric,
+  );
+  await expect(phase.progress).toContainText(
+    scenario.expectedProgressTargetDetail,
+  );
+}
+
 test("E2E-UC-045 opens term phase through current phase action", async ({
   page,
 }) => {
-  // 承認済み現行読み替え: 未完了 job から単語翻訳の現在段階を開けることを証明する。
+  // 単語翻訳段階で、処理対象一覧の件数、行表示、検索結果を利用者操作から証明する。
   const jobRun = await openJobRun(page, "system-test-term");
+  const phase = new TermTranslationPhasePage(page);
 
   await expect(jobRun.selectedJobSummary).toContainText("ジョブ #7");
   await expect(jobRun.phaseScreenRegion).toContainText(
     /単語翻訳|開始待ち|未開始/,
   );
-  await expect(jobRun.phaseScreenRegion).toContainText(/0|1/);
+  await expectProcessingTargetListScenario(phase, {
+    expectedProgressTargetDetail: /AI 翻訳対象語件数\s*3 件/,
+    expectedInitialRows: 3,
+    expectedInitialTotal: "1-3 / 3 件",
+    expectedMatchingTotal: "1-1 / 1 件",
+    expectedRowText: /Dragonborn|ドラゴンボーン/,
+    expectedScreenTargetMetric: /AI 翻訳対象語\s*3/,
+    hiddenAfterMatchText: "Whiterun Guard",
+    matchingQuery: "Dragonborn",
+    noResultQuery: "NoSuchTermTarget",
+  });
 });
 
 test("E2E-UC-046 opens persona generation phase through current phase action", async ({
   page,
 }) => {
-  // 承認済み現行読み替え: 未完了 job から NPC ペルソナ生成段階を開けることを証明する。
+  // NPC ペルソナ生成段階で、処理対象一覧の件数、行表示、検索結果を利用者操作から証明する。
   const jobRun = await openJobRun(page, "system-test-persona");
+  const phase = new PersonaGenerationPhasePage(page);
 
   await expect(jobRun.selectedJobSummary).toContainText("ジョブ #8");
   await expect(jobRun.phaseScreenRegion).toContainText(
     /NPC ペルソナ生成|開始待ち|未開始/,
   );
-  await expect(jobRun.phaseScreenRegion).toContainText(/0|1/);
+  await expectProcessingTargetListScenario(phase, {
+    expectedProgressTargetDetail: /対象件数\s*2 件/,
+    expectedInitialRows: 2,
+    expectedInitialTotal: "1-2 / 2 件",
+    expectedMatchingTotal: "1-1 / 1 件",
+    expectedRowText: /Lydia|FemaleEvenToned|Warrior/,
+    expectedScreenTargetMetric: /対象\s*2/,
+    hiddenAfterMatchText: "Hadvar",
+    matchingQuery: "FemaleEvenToned",
+    noResultQuery: "NoSuchPersonaTarget",
+  });
 });
 
 test("E2E-UC-047 opens body translation phase through current phase action", async ({
   page,
 }) => {
-  // 承認済み現行読み替え: 未完了 job から本文翻訳段階を開けることを証明する。
+  // 本文翻訳段階で、処理対象一覧の件数、行表示、検索結果を利用者操作から証明する。
   const jobRun = await openJobRun(page, "system-test-body-pending");
+  const phase = new BodyTranslationPhasePage(page);
 
   await expect(jobRun.selectedJobSummary).toContainText("ジョブ #9");
   await expect(jobRun.phaseScreenRegion).toContainText(
     /本文翻訳|開始待ち|未開始/,
   );
-  await expect(jobRun.phaseScreenRegion).toContainText(/0|1/);
+  await expectProcessingTargetListScenario(phase, {
+    expectedProgressTargetDetail: /AI 送信対象件数\s*4 件/,
+    expectedInitialRows: 4,
+    expectedInitialTotal: "1-4 / 4 件",
+    expectedMatchingTotal: "1-1 / 1 件",
+    expectedRowText: /I am sworn to carry your burdens|あなたの荷物/,
+    expectedScreenTargetMetric: /AI 送信対象\s*4/,
+    hiddenAfterMatchText: "You are finally awake",
+    matchingQuery: "burdens",
+    noResultQuery: "NoSuchBodyTarget",
+  });
 });
 
 test("E2E-UC-048 job run shell advances from completed term phase to persona phase", async ({

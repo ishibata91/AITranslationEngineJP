@@ -39,7 +39,7 @@ export const bodyTranslationPhasePanelFixture: BodyTranslationPhaseScreenViewMod
     modelLabel: "gpt-4.1-mini",
     executionModeLabel: "通常実行",
     credentialRefLabel: "認証済み",
-    providerTargetCountLabel: "24",
+    providerTargetCountLabel: "22",
     exactDictionaryExclusionCountLabel: "2",
     partialDictionaryConstraintCountLabel: "5",
     requestUnitCountLabel: "8",

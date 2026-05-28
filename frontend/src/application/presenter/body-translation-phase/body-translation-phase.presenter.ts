@@ -413,7 +413,9 @@ function buildProgressDetail(state: BodyTranslationPhaseScreenState): string {
   }
 
   const progress = state.summary.progress
-  return `${progress.processedCount.toLocaleString("ja-JP")} / ${progress.totalCount.toLocaleString("ja-JP")} 件 / 成功 ${progress.translatedCount.toLocaleString("ja-JP")} 件 / スキップ ${progress.skippedCount.toLocaleString("ja-JP")} 件 / ${buildCurrentStepLabel(progress.currentStep)}`
+  const providerTargetCount =
+    state.summary.requestSummary?.providerTargetCount ?? progress.targetCount
+  return `${progress.processedCount.toLocaleString("ja-JP")} / ${providerTargetCount.toLocaleString("ja-JP")} 件 / AI 送信対象 ${providerTargetCount.toLocaleString("ja-JP")} 件 / 成功 ${progress.translatedCount.toLocaleString("ja-JP")} 件 / スキップ ${progress.skippedCount.toLocaleString("ja-JP")} 件 / ${buildCurrentStepLabel(progress.currentStep)}`
 }
 
 function extractFieldResultItems(

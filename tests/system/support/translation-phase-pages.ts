@@ -49,16 +49,40 @@ export class TranslationPhasePage extends SystemTestPageObject {
     return this.byTestId(`${this.prefix}-start-button`)
   }
 
+  get processingTargetListRegion(): Locator {
+    return this.screen.getByRole("region", { name: "処理対象一覧" })
+  }
+
+  get processingTargetSearchInput(): Locator {
+    return this.byTestId(this.processingTargetTestId("search-input"))
+  }
+
+  get processingTargetTotalCount(): Locator {
+    return this.byTestId(this.processingTargetTestId("total"))
+  }
+
+  get processingTargetEmptyState(): Locator {
+    return this.byTestId(this.processingTargetTestId("empty"))
+  }
+
   get processingTargetRows(): Locator {
-    return this.byTestId(`${this.prefix}-processing-target-row`)
+    return this.byTestId(this.processingTargetTestId("row"))
   }
 
   async waitForScreen(): Promise<void> {
     await this.waitFor(this.screen)
   }
 
+  async searchProcessingTargets(query: string): Promise<void> {
+    await this.processingTargetSearchInput.fill(query)
+  }
+
   async start(): Promise<void> {
     await this.startButton.click()
+  }
+
+  private processingTargetTestId(suffix: string): string {
+    return `${this.prefix}-processing-target-${suffix}`
   }
 }
 

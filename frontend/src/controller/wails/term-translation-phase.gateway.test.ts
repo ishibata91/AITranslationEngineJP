@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 import {
+  GetProcessingTargetList,
   GetTermTranslationNextPhaseReadiness,
   GetTermTranslationPhaseSummary,
   SaveTermTranslationPhaseAISettings,
@@ -34,6 +35,52 @@ afterEach(() => {
 })
 
 describe("createTermTranslationPhaseGateway", () => {
+  test("processing target list request と totalCount response をそのまま受け渡す", async () => {
+    vi.mocked(GetProcessingTargetList).mockResolvedValue({
+      items: [
+        {
+          id: "term:1",
+          name: "Dragon",
+          detail: "原文: Dragon",
+          titleParts: [{ text: "Dragon" }],
+          metadata: [{ label: "候補", value: "ドラゴン" }],
+          convertValues: vi.fn()
+        }
+      ],
+      metadata: [],
+      page: 2,
+      pageSize: 50,
+      totalCount: 137,
+      searchQuery: "Dragon",
+      convertValues: vi.fn()
+    })
+
+    const gateway = createTermTranslationPhaseGateway()
+    await expect(
+      gateway.getProcessingTargetList?.({
+        jobId: 5,
+        phase: "term_translation",
+        page: 2,
+        pageSize: 50,
+        searchQuery: "Dragon"
+      })
+    ).resolves.toMatchObject({
+      items: [{ id: "term:1" }],
+      page: 2,
+      pageSize: 50,
+      totalCount: 137,
+      searchQuery: "Dragon"
+    })
+
+    expect(GetProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 5,
+      phase: "term_translation",
+      page: 2,
+      pageSize: 50,
+      searchQuery: "Dragon"
+    })
+  })
+
   test("summary request を公開 binding wrapper へ渡す", async () => {
     // 公開 seam: gateway request が wrapper へ転送されることを証明する。
     vi.mocked(GetTermTranslationPhaseSummary).mockResolvedValue({

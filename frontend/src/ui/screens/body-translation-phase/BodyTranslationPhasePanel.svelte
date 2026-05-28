@@ -59,7 +59,7 @@
   }
 
   const phaseMetrics = $derived<PhaseMetricCounter[]>([
-    { label: "対象", value: viewModel.targetCountLabel },
+    { label: "AI 送信対象", value: viewModel.providerTargetCountLabel },
     { label: "処理済み", value: viewModel.processedCountLabel },
     { label: "成功", value: viewModel.translatedCountLabel },
     { label: "失敗", value: viewModel.failedCountLabel },
@@ -84,7 +84,7 @@
   ])
 
   const progressDetails = $derived<PhaseDetailItem[]>([
-    { label: "対象件数", value: viewModel.targetCountLabel }
+    { label: "AI 送信対象件数", value: viewModel.providerTargetCountLabel }
   ])
   const phaseActionCards = $derived(
     selectPhaseProgressActions<BodyTranslationPhaseActionKind>(
@@ -299,6 +299,7 @@
     totalCount={processingTargetPageState?.totalCount}
     busy={processingTargetPageState?.busy}
     searchId="bodyPhaseProcessingTargetSearch"
+    searchTestId="body-translation-phase-processing-target-search-input"
     searchLabel="検索"
     searchPlaceholder="名前・原文・訳語で検索"
     searchValue={processingTargetSearchQuery}
@@ -309,6 +310,8 @@
     onNextPage={onProcessingTargetNextPage}
     onPageChange={onProcessingTargetPageChange}
     rowTestId="body-translation-phase-processing-target-row"
+    totalCountTestId="body-translation-phase-processing-target-total"
+    emptyStateTestId="body-translation-phase-processing-target-empty"
   />
 </section>
 

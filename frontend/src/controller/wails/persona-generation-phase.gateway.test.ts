@@ -1,4 +1,8 @@
 import type {
+  ProcessingTargetListRequest,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   CancelPersonaGenerationPhaseRequest,
   GetPersonaGenerationBodyReadinessRequest,
   GetPersonaGenerationPhaseSummaryRequest,
@@ -13,6 +17,8 @@ import type {
 import type {
   CancelPersonaGenerationPhaseRequestDto,
   CancelPersonaGenerationPhaseResponseDto,
+  GetProcessingTargetListRequestDto,
+  GetProcessingTargetListResponseDto,
   GetPersonaGenerationBodyReadinessRequestDto,
   GetPersonaGenerationBodyReadinessResponseDto,
   GetPersonaGenerationPhaseSummaryRequestDto,
@@ -34,6 +40,7 @@ type GoRecord = {
   wails: {
     AppController?: Record<string, ReturnType<typeof vi.fn>>
     PersonaGenerationPhaseController?: Record<string, ReturnType<typeof vi.fn>>
+    ProcessingTargetController?: Record<string, ReturnType<typeof vi.fn>>
   }
 }
 
@@ -72,6 +79,98 @@ describe("createPersonaGenerationPhaseGateway", () => {
     expectTypeOf<CancelPersonaGenerationPhaseResponseDto>().toEqualTypeOf<PersonaGenerationPhaseCommandResponse>()
     expectTypeOf<GetPersonaGenerationBodyReadinessRequestDto>().toEqualTypeOf<GetPersonaGenerationBodyReadinessRequest>()
     expectTypeOf<GetPersonaGenerationBodyReadinessResponseDto>().toEqualTypeOf<PersonaGenerationBodyReadinessResponse>()
+    expectTypeOf<GetProcessingTargetListRequestDto>().toEqualTypeOf<ProcessingTargetListRequest>()
+    expectTypeOf<GetProcessingTargetListResponseDto>().toEqualTypeOf<ProcessingTargetListResponse>()
+  })
+
+  test("processing target list は request と totalCount response を保持する", async () => {
+    const getProcessingTargetList = vi.fn(() =>
+      Promise.resolve({
+        items: [
+          {
+            id: "persona:1",
+            name: "Aela",
+            detail: "FormID: 0001A696",
+            titleParts: [{ text: "Aela" }],
+            metadata: [{ label: "種族", value: "Nord" }]
+          }
+        ],
+        metadata: [],
+        page: 3,
+        pageSize: 25,
+        totalCount: 88,
+        searchQuery: "Nord"
+      })
+    )
+
+    installGo({
+      wails: {
+        ProcessingTargetController: {
+          GetProcessingTargetList: getProcessingTargetList
+        }
+      }
+    })
+
+    const gateway = createPersonaGenerationPhaseGateway()
+    await expect(
+      gateway.getProcessingTargetList?.({
+        jobId: 8,
+        phase: "persona_generation",
+        page: 3,
+        pageSize: 25,
+        searchQuery: "Nord"
+      })
+    ).resolves.toMatchObject({
+      items: [{ id: "persona:1" }],
+      page: 3,
+      pageSize: 25,
+      totalCount: 88,
+      searchQuery: "Nord"
+    })
+
+    expect(getProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 8,
+      phase: "persona_generation",
+      page: 3,
+      pageSize: 25,
+      searchQuery: "Nord"
+    })
+  })
+
+  test("processing target list の DTO shape が崩れた時は検証エラーを返す", async () => {
+    const getProcessingTargetList = vi.fn(() =>
+      Promise.resolve({
+        items: [],
+        metadata: [],
+        page: 1,
+        pageSize: 50,
+        totalCount: "88",
+        searchQuery: "Nord"
+      })
+    )
+
+    installGo({
+      wails: {
+        ProcessingTargetController: {
+          GetProcessingTargetList: getProcessingTargetList
+        }
+      }
+    })
+
+    const gateway = createPersonaGenerationPhaseGateway()
+
+    await expect(
+      gateway.getProcessingTargetList?.({
+        jobId: 8,
+        phase: "persona_generation",
+        page: 1,
+        pageSize: 50,
+        searchQuery: "Nord"
+      })
+    ).rejects.toMatchObject({
+      name: "GatewayResponseShapeError",
+      userFacingMessage: "Gateway response shape is invalid."
+    })
   })
 
   test("PersonaGenerationPhaseController binding を優先して start request を渡す", async () => {

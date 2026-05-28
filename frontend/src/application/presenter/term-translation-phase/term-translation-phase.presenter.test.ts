@@ -141,6 +141,34 @@ describe("TermTranslationPhasePresenter", () => {
     expect(viewModel.progressDetail).not.toContain("pending")
   })
 
+  test("進行詳細は AI 翻訳対象語件数を分母として表示する", () => {
+    const presenter = new TermTranslationPhasePresenter()
+    const baseState = createState()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        summary: {
+          ...baseState.summary!,
+          progress: {
+            ...baseState.summary!.progress,
+            processedCount: 2,
+            totalCount: 10,
+            aiTargetCount: 5
+          },
+          totalTermCount: 10,
+          aiTargetCount: 5
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.progressDetail).toBe(
+      "2 / 5 件 / AI 翻訳対象語 5 件 / 開始可能"
+    )
+    expect(viewModel.totalTermCountLabel).toBe("10 件")
+    expect(viewModel.aiTargetCountLabel).toBe("5 件")
+  })
+
   test("current phase key は画面表示名へ変換する", () => {
     const presenter = new TermTranslationPhasePresenter()
 

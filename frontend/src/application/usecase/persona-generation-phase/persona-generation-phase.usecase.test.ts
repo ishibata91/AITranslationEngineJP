@@ -1,6 +1,10 @@
 import { describe, expect, test, vi } from "vitest"
 import { PersonaGenerationPhaseUseCase } from "./persona-generation-phase.usecase"
 import type {
+  ProcessingTargetListPageState,
+  ProcessingTargetListResponse
+} from "@application/gateway-contract/processing-target"
+import type {
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationPhaseCommandResponse,
   PersonaGenerationPhaseGatewayContract,
@@ -24,6 +28,7 @@ interface ScreenState {
   errorMessage: string
   pendingAction: ActionKind | null
   hasLoaded: boolean
+  processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
 interface StoreLike {
@@ -46,6 +51,7 @@ function createStore(initial: ScreenState): StoreLike {
 interface GatewayWithSpies {
   gateway: PersonaGenerationPhaseGatewayContract
   getSummarySpy: ReturnType<typeof vi.fn>
+  getProcessingTargetListSpy: ReturnType<typeof vi.fn>
   startSpy: ReturnType<typeof vi.fn>
   pauseSpy: ReturnType<typeof vi.fn>
   resumeSpy: ReturnType<typeof vi.fn>
@@ -54,6 +60,22 @@ interface GatewayWithSpies {
 }
 
 function createGateway(): GatewayWithSpies {
+  const processingTargetResponse: ProcessingTargetListResponse = {
+    items: [
+      {
+        id: "persona:1",
+        name: "Aela",
+        detail: "FormID: 0001A696",
+        titleParts: [{ text: "Aela" }],
+        metadata: [{ label: "種族", value: "Nord" }]
+      }
+    ],
+    metadata: [],
+    page: 3,
+    pageSize: 25,
+    totalCount: 88,
+    searchQuery: "Nord"
+  }
   const getSummarySpy = vi.fn(
     (request: {
       jobId: number
@@ -114,6 +136,9 @@ function createGateway(): GatewayWithSpies {
       }
     })
   )
+  const getProcessingTargetListSpy = vi.fn(() =>
+    Promise.resolve(processingTargetResponse)
+  )
   const command = (
     phaseState: string
   ): PersonaGenerationPhaseCommandResponse => ({
@@ -158,6 +183,7 @@ function createGateway(): GatewayWithSpies {
     gateway: {
       getPersonaGenerationPhaseSummary: getSummarySpy,
       getPersonaGenerationBodyReadiness: getBodySpy,
+      getProcessingTargetList: getProcessingTargetListSpy,
       startPersonaGenerationPhase: startSpy,
       pausePersonaGenerationPhase: pauseSpy,
       resumePersonaGenerationPhase: resumeSpy,
@@ -165,6 +191,7 @@ function createGateway(): GatewayWithSpies {
       cancelPersonaGenerationPhase: cancelSpy
     },
     getSummarySpy,
+    getProcessingTargetListSpy,
     startSpy,
     pauseSpy,
     resumeSpy,
@@ -213,6 +240,15 @@ function baseSummary(): PersonaGenerationPhaseSummaryResponse {
       canStartBodyPhase: false
     }
   }
+}
+
+function createDeferredResponse() {
+  let resolve!: (response: ProcessingTargetListResponse) => void
+  const promise = new Promise<ProcessingTargetListResponse>((resolver) => {
+    resolve = resolver
+  })
+
+  return { promise, resolve }
 }
 
 describe("PersonaGenerationPhaseUseCase", () => {
@@ -273,6 +309,250 @@ describe("PersonaGenerationPhaseUseCase", () => {
     expect(gatewayBundle.cancelSpy).toHaveBeenCalledWith({
       jobId: 10,
       phaseRunId: 77
+    })
+  })
+
+  test("load は processing target request を送り totalCount と searchQuery を page state に保持する", async () => {
+    const gatewayBundle = createGateway()
+    const store = createStore({
+      jobId: 10,
+      phase: "idle",
+      summary: baseSummary(),
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: false,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 3,
+        pageSize: 25,
+        totalCount: 0,
+        searchQuery: "Nord",
+        busy: false
+      }
+    })
+    const usecase = new PersonaGenerationPhaseUseCase(
+      gatewayBundle.gateway,
+      store
+    )
+
+    await usecase.load()
+
+    expect(gatewayBundle.getProcessingTargetListSpy).toHaveBeenCalledWith({
+      jobId: 10,
+      phase: "persona_generation",
+      page: 3,
+      pageSize: 25,
+      searchQuery: "Nord"
+    })
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      items: [{ id: "persona:1" }],
+      page: 3,
+      pageSize: 25,
+      totalCount: 88,
+      searchQuery: "Nord",
+      busy: false
+    })
+  })
+
+  test("検索語変更は persona_generation request を page 1 へ戻して送る", async () => {
+    const gatewayBundle = createGateway()
+    const store = createStore({
+      jobId: 10,
+      phase: "ready",
+      summary: baseSummary(),
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 5,
+        pageSize: 25,
+        totalCount: 0,
+        searchQuery: "",
+        busy: false
+      }
+    })
+    const usecase = new PersonaGenerationPhaseUseCase(
+      gatewayBundle.gateway,
+      store
+    )
+
+    await usecase.setProcessingTargetSearchQuery("Mage")
+
+    expect(gatewayBundle.getProcessingTargetListSpy).toHaveBeenCalledWith({
+      jobId: 10,
+      phase: "persona_generation",
+      page: 1,
+      pageSize: 25,
+      searchQuery: "Mage"
+    })
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      page: 3,
+      pageSize: 25,
+      totalCount: 88,
+      searchQuery: "Nord"
+    })
+  })
+
+  test("検索応答の到着順が逆転しても最新検索結果だけを page state に反映する", async () => {
+    const gatewayBundle = createGateway()
+    const first = createDeferredResponse()
+    const second = createDeferredResponse()
+    gatewayBundle.getProcessingTargetListSpy
+      .mockReturnValueOnce(first.promise)
+      .mockReturnValueOnce(second.promise)
+    const store = createStore({
+      jobId: 10,
+      phase: "ready",
+      summary: baseSummary(),
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 5,
+        pageSize: 25,
+        totalCount: 0,
+        searchQuery: "",
+        busy: false
+      }
+    })
+    const usecase = new PersonaGenerationPhaseUseCase(
+      gatewayBundle.gateway,
+      store
+    )
+
+    const firstSearch = usecase.setProcessingTargetSearchQuery("Nord")
+    const secondSearch = usecase.setProcessingTargetSearchQuery("Mage")
+
+    second.resolve({
+      items: [
+        {
+          id: "persona:mage",
+          name: "Mage",
+          detail: "EditorID: Mage",
+          titleParts: [{ text: "Mage" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 25,
+      totalCount: 2,
+      searchQuery: "Mage"
+    })
+    await secondSearch
+
+    first.resolve({
+      items: [
+        {
+          id: "persona:nord",
+          name: "Nord",
+          detail: "Race: Nord",
+          titleParts: [{ text: "Nord" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 25,
+      totalCount: 7,
+      searchQuery: "Nord"
+    })
+    await firstSearch
+
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      items: [{ id: "persona:mage" }],
+      page: 1,
+      pageSize: 25,
+      totalCount: 2,
+      searchQuery: "Mage",
+      busy: false
+    })
+  })
+
+  test("load の一覧応答が検索応答より遅れても最新検索結果だけを page state に反映する", async () => {
+    const gatewayBundle = createGateway()
+    const loadResponse = createDeferredResponse()
+    const searchResponse = createDeferredResponse()
+    gatewayBundle.getProcessingTargetListSpy
+      .mockReturnValueOnce(loadResponse.promise)
+      .mockReturnValueOnce(searchResponse.promise)
+    const store = createStore({
+      jobId: 10,
+      phase: "ready",
+      summary: baseSummary(),
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      processingTargetPageState: {
+        items: [],
+        metadata: [],
+        page: 5,
+        pageSize: 25,
+        totalCount: 0,
+        searchQuery: "",
+        busy: false
+      }
+    })
+    const usecase = new PersonaGenerationPhaseUseCase(
+      gatewayBundle.gateway,
+      store
+    )
+
+    const load = usecase.load()
+    const search = usecase.setProcessingTargetSearchQuery("Mage")
+
+    searchResponse.resolve({
+      items: [
+        {
+          id: "persona:mage",
+          name: "Mage",
+          detail: "EditorID: Mage",
+          titleParts: [{ text: "Mage" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 25,
+      totalCount: 2,
+      searchQuery: "Mage"
+    })
+    await search
+
+    loadResponse.resolve({
+      items: [
+        {
+          id: "persona:old",
+          name: "Old",
+          detail: "EditorID: Old",
+          titleParts: [{ text: "Old" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 5,
+      pageSize: 25,
+      totalCount: 99,
+      searchQuery: ""
+    })
+    await load
+
+    expect(store.snapshot().processingTargetPageState).toMatchObject({
+      items: [{ id: "persona:mage" }],
+      page: 1,
+      pageSize: 25,
+      totalCount: 2,
+      searchQuery: "Mage",
+      busy: false
     })
   })
 

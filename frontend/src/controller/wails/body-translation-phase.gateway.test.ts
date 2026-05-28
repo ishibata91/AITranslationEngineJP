@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, test, vi } from "vitest"
 
 import {
+  GetProcessingTargetList,
   GetBodyTranslationPhaseSummary,
   PauseBodyTranslationPhase,
   StartBodyTranslationPhase
@@ -109,6 +110,52 @@ afterEach(() => {
 })
 
 describe("createBodyTranslationPhaseGateway", () => {
+  test("processing target list request と totalCount response をそのまま受け渡す", async () => {
+    vi.mocked(GetProcessingTargetList).mockResolvedValue({
+      items: [
+        {
+          id: "field:1",
+          name: "FULL",
+          detail: "原文: Hello",
+          titleParts: [{ text: "FULL" }],
+          metadata: [{ label: "訳語", value: "こんにちは" }],
+          convertValues: vi.fn()
+        }
+      ],
+      metadata: [],
+      page: 4,
+      pageSize: 40,
+      totalCount: 256,
+      searchQuery: "Hello",
+      convertValues: vi.fn()
+    })
+
+    const gateway = createBodyTranslationPhaseGateway()
+    await expect(
+      gateway.getProcessingTargetList?.({
+        jobId: 5,
+        phase: "body_translation",
+        page: 4,
+        pageSize: 40,
+        searchQuery: "Hello"
+      })
+    ).resolves.toMatchObject({
+      items: [{ id: "field:1" }],
+      page: 4,
+      pageSize: 40,
+      totalCount: 256,
+      searchQuery: "Hello"
+    })
+
+    expect(GetProcessingTargetList).toHaveBeenCalledWith({
+      jobId: 5,
+      phase: "body_translation",
+      page: 4,
+      pageSize: 40,
+      searchQuery: "Hello"
+    })
+  })
+
   test("request passthrough: command request を公開 binding wrapper にそのまま渡す", async () => {
     const response = {
       ...createSummaryResponse(),

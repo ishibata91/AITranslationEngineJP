@@ -20,6 +20,8 @@
     onPageChange?: (page: number) => void
     onSelectItem?: (itemId: string) => void
     rowTestId?: string
+    totalCountTestId?: string
+    emptyStateTestId?: string
   }
 
   let {
@@ -35,7 +37,9 @@
     onNextPage,
     onPageChange,
     onSelectItem,
-    rowTestId = undefined
+    rowTestId = undefined,
+    totalCountTestId = undefined,
+    emptyStateTestId = undefined
   }: Props = $props()
 
   let currentPage = $state(1)
@@ -171,7 +175,7 @@
     {#if showHeadingTitle}
       <h3>処理対象一覧</h3>
     {/if}
-    <p class="target-count">{pageRangeLabel}</p>
+    <p class="target-count" data-testid={totalCountTestId}>{pageRangeLabel}</p>
   </div>
 
   <div class="target-table-frame">
@@ -190,7 +194,9 @@
       <tbody>
         {#if visibleItems.length === 0}
           <tr class="target-empty-row">
-            <td colspan={titleColumnCount}>処理対象がありません</td>
+            <td colspan={titleColumnCount} data-testid={emptyStateTestId}>
+              処理対象がありません
+            </td>
           </tr>
         {:else}
           {#each visibleItems as item (item.id)}

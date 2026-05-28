@@ -1,6 +1,6 @@
 import path from "node:path"
 
-import { expect, test } from "@playwright/test"
+import { expect, test, type Page } from "@playwright/test"
 
 import { MasterPersonaPage } from "./support/system-test-pages"
 import { installScenarioWailsMocks } from "./support/scenario-wails-mocks"
@@ -12,16 +12,21 @@ const personaJsonPath = path.resolve(
   "tests/fixtures/master-persona/system-test-persona.json"
 )
 
-test.beforeEach(async ({ page }) => {
-  await installScenarioWailsMocks(page)
-})
+async function openMasterPersona(
+  page: Page,
+  options: Parameters<typeof installScenarioWailsMocks>[1] = {}
+): Promise<MasterPersonaPage> {
+  await installScenarioWailsMocks(page, options)
+  const masterPersona = new MasterPersonaPage(page)
+  await masterPersona.open()
+  return masterPersona
+}
 
 test("E2E-UC-013 master persona generates personas from selected JSON", async ({
   page
 }) => {
   // JSON 選択と AI 設定の利用者操作で、fake 境界の生成結果が一覧と詳細へ表示されることを証明する。
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page)
 
   await masterPersona.setJsonFile(personaJsonPath)
   await masterPersona.selectAISettings({
@@ -45,8 +50,7 @@ test("E2E-UC-014 master persona filters existing personas", async ({
   page
 }) => {
   // 検索とプラグイン選択の利用者操作で、条件一致したペルソナ詳細を参照できることを証明する。
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page)
 
   await masterPersona.search("Lydia")
   await masterPersona.selectPlugin("Skyrim.esm")
@@ -62,8 +66,7 @@ test("E2E-UC-015 master persona updates selected persona", async ({
   page
 }) => {
   // 編集 modal の利用者操作で、選択したペルソナ本文と metadata が更新されることを証明する。
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page)
 
   await masterPersona.selectPersona("Lydia")
   await masterPersona.openEditModal()
@@ -83,8 +86,7 @@ test("E2E-UC-016 master persona deletes selected persona", async ({
   page
 }) => {
   // 削除確定の利用者操作で、選択したペルソナが一覧から消えることを証明する。
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page)
 
   await masterPersona.search("Lydia")
   await masterPersona.selectPersona("Lydia")
@@ -99,9 +101,9 @@ test("E2E-UC-033 master persona keeps generation disabled when AI settings are i
   page
 }) => {
   // AI 設定不足の前提では、JSON 選択後も生成操作が無効で未実行状態を維持することを証明する。
-  await installScenarioWailsMocks(page, { masterPersonaAISettings: "missing" })
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page, {
+    masterPersonaAISettings: "missing"
+  })
 
   await masterPersona.setJsonFile(personaJsonPath)
 
@@ -114,8 +116,7 @@ test("E2E-UC-034 master persona shows empty state for unmatched search", async (
   page
 }) => {
   // ペルソナ検索が 0 件になる利用者操作で、一覧が該当なし状態になることを証明する。
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page)
 
   await masterPersona.search("NoSuchPersona")
 
@@ -126,8 +127,7 @@ test("E2E-UC-035 master persona cancels edit without changing detail", async ({
   page
 }) => {
   // 編集取消の利用者操作で、入力した本文が詳細へ反映されないことを証明する。
-  const masterPersona = new MasterPersonaPage(page)
-  await masterPersona.open()
+  const masterPersona = await openMasterPersona(page)
 
   await masterPersona.selectPersona("Lydia")
   await masterPersona.openEditModal()

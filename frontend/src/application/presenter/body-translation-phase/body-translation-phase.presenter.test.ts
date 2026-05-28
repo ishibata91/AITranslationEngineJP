@@ -59,6 +59,11 @@ function createState(
         requestUnitCount: 10,
         outputCount: 3
       },
+      requestSummary: {
+        providerTargetCount: 8,
+        exactDictionaryExclusionCount: 2,
+        partialDictionaryConstraintCount: 3
+      },
       actionEnablement: {
         canStart: false,
         canPause: true,
@@ -146,6 +151,39 @@ describe("BodyTranslationPhasePresenter", () => {
     expect(viewModel.phaseStateLabel).toBe("開始待ち")
     expect(viewModel.progressDetail).toContain("開始待ち")
     expect(viewModel.progressDetail).not.toContain("pending")
+  })
+
+  test("進行詳細は AI 送信対象件数を分母として表示する", () => {
+    const presenter = new BodyTranslationPhasePresenter()
+    const base = createState()
+
+    const viewModel = presenter.toViewModel(
+      createState({
+        summary: {
+          ...base.summary!,
+          progress: {
+            ...base.summary!.progress,
+            processedCount: 4,
+            totalCount: 10,
+            targetCount: 10,
+            translatedCount: 3,
+            skippedCount: 1
+          },
+          requestSummary: {
+            providerTargetCount: 8,
+            exactDictionaryExclusionCount: 2,
+            partialDictionaryConstraintCount: 3
+          }
+        }
+      }),
+      true
+    )
+
+    expect(viewModel.progressDetail).toBe(
+      "4 / 8 件 / AI 送信対象 8 件 / 成功 3 件 / スキップ 1 件 / AI 処理中"
+    )
+    expect(viewModel.targetCountLabel).toBe("10 件")
+    expect(viewModel.providerTargetCountLabel).toBe("8 件")
   })
 
   test("current phase key は画面表示名へ変換する", () => {
