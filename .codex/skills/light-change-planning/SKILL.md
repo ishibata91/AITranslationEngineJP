@@ -16,14 +16,14 @@ description: 軽量変更レーンで、人間要望、仕様製本、関連 doc
 - 返却先は `light_change_lane` とする。
 - 担当成果物は `軽量変更計画` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - task 枠: 人間依頼、変更禁止範囲、確認したい結果。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
 - 非必須検証ログ: 軽量変更に関係する既存の検証出力。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [light_change_planner.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/light_change_planner.toml) に従う。
 - docs 入口は [docs/index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md) とする。
@@ -36,7 +36,7 @@ description: 軽量変更レーンで、人間要望、仕様製本、関連 doc
 - 軽量変更計画雛形は [light-change-planning.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/light-change-planning/assets/light-change-planning.md) とする。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 軽量変更判定は次の表に従う。
 
@@ -47,7 +47,7 @@ description: 軽量変更レーンで、人間要望、仕様製本、関連 doc
 | `設計戻し` | 新しいシナリオ、状態遷移、永続仕様、公開契約、外部連携判断が必要な変更 | `design-bundle` |
 | `修正レーン戻し` | 人間観測、レビュー非通過、検証失敗を既存仕様へ戻す恒久修正 | `fix-lane` |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - task 枠、仕様製本、関連 docs、task-local 成果物、既存実装を突き合わせる。
 - 実装変更が backend、frontend、integration のどれに属するかを 1 つに固定する。
@@ -59,14 +59,14 @@ description: 軽量変更レーンで、人間要望、仕様製本、関連 doc
 - 軽量変更として進める場合は、変更対象、禁止範囲、検証コマンド、読む docs を実装 agent が再解釈しない粒度で固定する。
 - プロダクトコードとプロダクトテストは変更しない。
 
-## 非対象規約
+## skill が扱わない対象
 
 - プロダクトコード実装は扱わない。
 - プロダクトテスト実装は扱わない。
 - 詳細仕様差分、画面設計差分、UI 契約作成は扱わない。
 - docs 正本化本文の更新は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: `範囲内修正`、`軽量仕様変更`、`設計戻し`、`修正レーン戻し`、停止のいずれかを返す。
 - 根拠参照: 判断に使った docs、task-local 成果物、既存実装を返す。
@@ -79,7 +79,7 @@ description: 軽量変更レーンで、人間要望、仕様製本、関連 doc
 - 戻し入力: `設計戻し` または `修正レーン戻し` の戻し先と理由を返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 判断結果が根拠参照付きで固定されている。
 - 仕様製本、関連 docs、task-local 成果物、既存実装を確認した。
@@ -87,7 +87,7 @@ description: 軽量変更レーンで、人間要望、仕様製本、関連 doc
 - 仕様変更または仕様追加の有無が固定されている。
 - `設計戻し` または `修正レーン戻し` の場合は、戻し先と理由が固定されている。
 
-## 停止規約
+## 作業を止める条件
 
 - task 枠が不足する場合は停止する。
 - 仕様製本、関連 docs、task-local 成果物、既存実装を確認できない場合は停止する。

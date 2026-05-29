@@ -16,21 +16,21 @@ description: Codex implementation レーン 側の実装中 trace 作業プロ�
 - 返却先は `implement_lane` とする。
 - 担当成果物は `implementation-investigate-trace` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 単一調査入力: 実装時調査用 引き継ぎから切り出された trace 作業 1 件。
 - 実行中タスク成果物場所: trace 結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - trace 対象: 追跡するファイル、symbol、公開接点、処理経路。
 - 対象調査範囲: trace のために読んでよいファイル、symbol、ログ、成果物。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 観測済み事実と仮説を混ぜない
 - trace は 承認済み実装範囲 内に限定する
@@ -41,13 +41,13 @@ description: Codex implementation レーン 側の実装中 trace 作業プロ�
 - observation_points を最小にする
 - recommended_next_step を根拠付きで返す
 
-## 非対象規約
+## skill が扱わない対象
 
 - 実装前再現、一時観測点 add / remove、恒久修正は扱わない。
 - プロダクトテスト追加は扱わない。
 - 根拠のない結論は固定しない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: trace 作業の完了、未完了、停止の判定を返す。
 - 根拠参照: trace の根拠にした入力、ファイル、処理経路を返す。
@@ -55,7 +55,7 @@ description: Codex implementation レーン 側の実装中 trace 作業プロ�
 - 次判断材料: 次 agent が判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -63,7 +63,7 @@ description: Codex implementation レーン 側の実装中 trace 作業プロ�
 - observation_points を最小にした。
 - recommended_next_step を根拠付きで返した。
 
-## 停止規約
+## 作業を止める条件
 
 - 実装前再現だけを行う時
 - 一時観測点の add / remove が主目的の時

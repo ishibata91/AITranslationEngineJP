@@ -18,7 +18,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - 返却先は `implement_lane` とする。
 - 担当成果物は `implementation-investigate` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 単一引き継ぎ入力: `implementation-scope` から切り出された実装時調査用 引き継ぎ 1 件。
 - 実行中タスク成果物場所: 調査結果、観測結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
@@ -26,7 +26,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - 対象調査範囲: 調査してよい実装範囲。
 - 検証コマンド: 調査結果を確認する実行許可済み command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) に従う。
 - エージェント実行定義: [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml)
@@ -34,7 +34,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reproduce/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-trace/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-observe/SKILL.md, /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate-reobserve/SKILL.md
 
-## 内部参照規約
+## skill 内の拘束条件
 
 ### 拘束観点
 
@@ -46,7 +46,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 
 - 参照 型 は [investigation-patterns.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implementation-investigate/references/patterns/investigation-patterns.md) とする。
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - `単一引き継ぎ入力` 1 件と 承認済み実装範囲 を超えない
 - 根拠 のない結論を固定しない
@@ -60,14 +60,14 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - active 規約 は agent 1:1。調査種別の差分は 重点 skill で扱い、出力 obligation はこの 規約 に固定する。
 - 承認済み実装範囲外の観測は、今回変更の直接影響を切り分けるための観測範囲確認だけを扱う。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 恒久修正、プロダクトテスト追加、design-time investigation は扱わない。
 - 承認済み実装範囲外の恒久調査は扱わない。
 - 根拠のない結論は固定しない。
 - 調査種別ごとの個別 JSON 規約は使わない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: 実装時調査の完了、未完了、停止の判定を返す。
 - 根拠参照: 調査の根拠にした入力、コマンド、観測結果を返す。
@@ -88,7 +88,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - 残留リスク: 実装判断に残る リスク を返す。
 - 推奨次対応: 実装、テスト、戻しのどれが妥当かを根拠付きで返す。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 内の成果と、今回変更の直接影響を切り分ける観測範囲確認の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -99,7 +99,7 @@ description: Codex implementation レーン 側の実装時調査の共通作業
 - 完了判断材料: implement_lane が implement、tests、または implement-lane への戻しを判断できる。
 - 残留リスク: 未確認事項と理由が返っている。
 
-## 停止規約
+## 作業を止める条件
 
 - 恒久修正を行う時
 - プロダクトテスト を追加する時

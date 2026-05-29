@@ -16,7 +16,7 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 - 返却先は呼び出し元レーンのレビュー集約とする。
 - 担当成果物は `codex-review-trust-boundary` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - レビュー対象差分: 実装後 レビュー の対象になる差分を受け取る。
 - 実装目的: レビュー対象差分が満たすべき目的を受け取る。
@@ -27,14 +27,14 @@ description: Codex 実装後 レビュー の権限・信頼境界グループ�
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.trust-boundary.yaml` を受け取る。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [review_trust_boundary.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/review_trust_boundary.toml) に従う。
 - レビューYAMLの正本形式は [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 権限・信頼境界観点表は次を拘束する。
 この観点は強制停止条件として扱い、他観点の評価で相殺しない。
@@ -68,7 +68,7 @@ secret 確認表は次を拘束する。
 | `minor` | 局所的な改善で済む問題 |
 | `nit` | 修正してもよいが、必須ではない問題 |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - レビュー問題の重大度は内部参照規約の重大度指標から選ぶ。
 - `blocker`、`critical`、`major` は `fix_required: true` にする。
@@ -83,21 +83,21 @@ secret 確認表は次を拘束する。
 - 観測ログを扱う差分では、trace ID、secret 本体、API key、raw payload、全文入力が出ないことを確認する。
 - 呼び出し元から渡された検証証跡をレビュー入力として扱ってよい。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 実装の短さ、読みやすさ、性能は主判定にしない。
 - テスト妥当性は、権限・信頼境界の直接根拠になる場合だけ扱う。
 - ハーネスを実行しない。
 - 修正範囲の命令やプロダクトコード変更の指示は出力しない。
 
-## 出力規約
+## 返す成果物
 
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.trust-boundary.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `trust-boundary`、`reviewer_agent` は `review_trust_boundary` とする。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - `reviewback.trust-boundary.yaml` に 対象 レビュー 観点の指摘、安全性評価、根拠、残留リスクが記録されている。
 - 権限・信頼境界系の強制停止条件は、他観点の高評価で相殺せず明示されている。
@@ -110,7 +110,7 @@ secret 確認表は次を拘束する。
 - 完了判断材料として、`must_fix_open`、`max_level`、安全性評価、`hard_gate: true`、破られた不変条件、原因候補、局所修正評価、根拠が記録されている。
 - 残留リスクとして、未確認範囲と理由が記録されている。
 
-## 停止規約
+## 作業を止める条件
 
 - `レビュー対象差分` が不足する場合は停止する。
 - `実装目的` が不足する場合は停止する。

@@ -21,7 +21,7 @@ Storybook レビューループは、Storybook を開き、人間コメントを
 - 担当成果物は `作業準備`、`browser-use指摘記録`、`frontend修正入力`、`frontend修正証跡`、`frontend整理証跡`、`接続整合証跡`、`単体テストメンテ証跡`、`docs正本化判断`、`画面設計正本反映`、`詳細仕様正本反映`、`ハーネス通過`、`作業 commit`、`マージ準備入力` とする。
 - 起動担当 agent は `frontend_implementer`、`integration_implementer`、`implementation_unit_tester`、`docs_updater` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 呼び出し元: この skill を呼び出した人間。
 - 依頼要約: UX 保守として扱う依頼内容。
@@ -38,7 +38,7 @@ Storybook レビューループは、Storybook を開き、人間コメントを
 - 非必須検証ログ: frontend 修正に関係する既存の検証出力。
 - ハーネス要件: UX 保守の終了前に通す検証 suite と command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [ux_maintainance_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/ux_maintainance_lane.toml) に従う。
 - Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
@@ -51,7 +51,7 @@ Storybook レビューループは、Storybook を開き、人間コメントを
 - Storybook の起動 URL、起動 command、port 固定、再起動、分類、確認資源、`fixture` 種類基準は Storybook 規約に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 UX 保守レーンの成果物DAGは次を必ず持つ。
 各成果物は、`依存対象` の成果物が揃った時だけ着手できる。
@@ -96,7 +96,7 @@ UX 保守レーンの成果物DAGは次を必ず持つ。
 | Storybook確認資源 | 対象表示を再現または確認するために必要な story、`fixture`、関連資源 |
 | 変更不要範囲 | 指摘原因範囲、表示到達経路、再利用候補、Storybook確認資源のどれにも該当しない frontend 範囲 |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 次の実行判断は成果物DAGの未完了成果物、満たされた `依存対象`、既存成果物、対象 skill の完了規約で決める。
 - `作業準備` は親要件参照、対象Storybook、変更禁止範囲、確認したい結果、作業branch、Storybook 起動状態を含める。
@@ -143,7 +143,7 @@ UX 保守レーンの成果物DAGは次を必ず持つ。
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは直接変更しない。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 人間の仕様変更指示がない親要件の変更は扱わない。
 - 新規実装と機能拡張の初期設計は扱わない。
@@ -160,7 +160,7 @@ UX 保守レーンの成果物DAGは次を必ず持つ。
 - docs 正本化本文の直接更新は扱わない。
 - local merge、completed 移動、remote repository の変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 人間向け返却: 成果物DAGの現在成果物、着手可能成果物、停止中成果物、停止理由を返す。
 - 起動先向け返却: 起動先 agent 向けに対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を返す。
@@ -181,7 +181,7 @@ UX 保守レーンの成果物DAGは次を必ず持つ。
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、ハーネス通過、残留リスクを返す。
 - 禁止事項: 出力に未承認仕様変更、backend プロダクトコード変更、単体テストメンテ以外のプロダクトテスト変更、remote repository 変更を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - UX 保守レーンの次成果物、起動、人間指摘、停止、戻しを再解釈なしで判断できる。
 - `作業準備` が親要件参照、対象Storybook、変更禁止範囲、確認したい結果、作業branch、Storybook 起動状態を含んでいる。
@@ -204,7 +204,7 @@ UX 保守レーンの成果物DAGは次を必ず持つ。
 - `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、ハーネス通過、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
-## 停止規約
+## 作業を止める条件
 
 - 親要件参照が不足する場合は停止する。
 - 対象Storybookを判断できない場合は停止する。

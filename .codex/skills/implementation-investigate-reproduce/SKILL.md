@@ -16,21 +16,21 @@ description: Codex implementation レーン 側の実装前再現作業プロト
 - 返却先は `implement_lane` とする。
 - 担当成果物は `implementation-investigate-reproduce` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 単一調査入力: 実装時調査用 引き継ぎから切り出された再現作業 1 件。
 - 実行中タスク成果物場所: 再現結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 再現対象: 再現する操作、コマンド、入力、公開接点。
 - 対象調査範囲: 再現のために読んでよいファイル、symbol、ログ、成果物。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 再現条件と観測結果を分ける
 - 根拠 のない原因断定をしない
@@ -41,13 +41,13 @@ description: Codex implementation レーン 側の実装前再現作業プロト
 - reproduction_status を明確にする
 - remaining_gaps を次 action へつなげる
 
-## 非対象規約
+## skill が扱わない対象
 
 - 実装中 trace、一時観測点、修正後再観測は扱わない。
 - 恒久修正、実装、test 追加は扱わない。
 - design 不足を実装側で補わない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: 再現作業の完了、未完了、停止の判定を返す。
 - 根拠参照: 再現の根拠にした入力、コマンド、観測結果を返す。
@@ -55,7 +55,7 @@ description: Codex implementation レーン 側の実装前再現作業プロト
 - 次判断材料: 次 agent が判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -63,7 +63,7 @@ description: Codex implementation レーン 側の実装前再現作業プロト
 - reproduction_status を明確にした。
 - 観測済み事実 と 仮説 を分けた。
 
-## 停止規約
+## 作業を止める条件
 
 - 実装中の原因 trace を行う時
 - 一時観測点を入れる時

@@ -16,7 +16,7 @@ description: Codex 実装系レーン側の frontend 実装作業プロトコル
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-frontend` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、修正レーンの `修正実行入力`、探索テストレーンの `バグ一覧とログ、影響ファイル`、軽量変更レーンの `軽量変更計画`、または UX 保守レーンの `frontend修正入力`。
 - 画面設計根拠: 承認済み `screen-design-diff.<screen-id>.md`、修正レーンまたは探索テストレーンの原因根拠、軽量変更レーンの軽量変更計画と人間確認観点、または UX 保守レーンの親要件参照と人間指摘。
@@ -28,7 +28,7 @@ description: Codex 実装系レーン側の frontend 実装作業プロトコル
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された frontend-local の harness command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [frontend_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/frontend_implementer.toml) に従う。
 - コーディング規約: [coding-guidelines-frontend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-frontend.md) とする。
@@ -42,11 +42,11 @@ description: Codex 実装系レーン側の frontend 実装作業プロトコル
 - 画面設計差分: `screen-design-diff.<screen-id>.md` を受け取る場合は画面ID、画面要素、表示条件、操作、結果、セレクタ（`aria-label`）の根拠にする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は [storybook.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/storybook.md) が拘束する。
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 画面導線と 状態 反映を frontend 実行入力 に合わせる
 - Wails bridge 呼び出しの境界を守る
@@ -69,7 +69,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - Storybook の story は固定 props または固定 `fixture` で表示できる状態にする
 - Storybook 確認資源を追加または更新した場合は、変更または追加したコンポーネント、画面、表示状態、確認対象 story、`fixture`、関連資源、Storybook 検証結果、作業中分類、通常分類、現在分類を返却材料に含める
 
-## 非対象規約
+## skill が扱わない対象
 
 - backend だけの変更、design mock 作成、UI check だけの作業は扱わない。
 - 画面設計根拠にない改善は追加しない。
@@ -79,7 +79,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - docs や作業流れ文書は変更しない。
 - coverage、harness all、repo-local Sonar issue 判定条件は必須完了条件にしない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: frontend プロダクトコード実装の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装の根拠にした入力、変更箇所、検証結果を返す。
@@ -95,7 +95,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 または許可された 影響範囲修正 の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -117,7 +117,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または許可された 影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 
-## 停止規約
+## 作業を止める条件
 
 - backend だけの変更を実装する時
 - design mock を作る時

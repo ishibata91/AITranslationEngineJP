@@ -7,18 +7,18 @@ description: Codex 実装系レーン側の 単体テスト 実装作業プロ�
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_unit_tester` agent が実装済み責務 または 軽量変更レーンの `task 枠` の 公開振る舞い、分岐、エラー経路 を 単体テスト で証明する時の判断基準を提供する。
+`implementation_unit_tester` agent が実装済み責務、修正レーンの `修正実行入力`、または軽量変更レーンの `task 枠` の 公開振る舞い、分岐、エラー経路 を 単体テスト で証明する時の判断基準を提供する。
 
 ## 対応ロール
 
 - `implementation_unit_tester` が使う。
-- 呼び出し元は `implement_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
 - 返却先は呼び出し元レーンとする。
 - 担当成果物は `tests-unit` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された tests-unit 用 引き継ぎ 1 件、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された tests-unit 用 引き継ぎ 1 件、修正レーンの `修正実行入力`、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
 - 実行中タスク成果物場所: テスト成果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 仕様根拠: 承認済み `detail-spec-diff.md` または関連する `docs/detail-specs/<detail-spec-id>.md`。
 - 対象テスト範囲: 変更してよい 単体テスト と必要最小限の テスト補助 の path。
@@ -27,7 +27,7 @@ description: Codex 実装系レーン側の 単体テスト 実装作業プロ�
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
 - 網羅率検証コマンド: `python3 scripts/harness/run.py --suite coverage` で実行する harness command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [implementation_unit_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_unit_tester.toml) に従う。
 - 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
@@ -36,14 +36,14 @@ description: Codex 実装系レーン側の 単体テスト 実装作業プロ�
 - architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 - `公開振る舞い`: 公開接点から観測できる最小の振る舞いを証明する。
 - `分岐`: 条件ごとの結果を 1 テスト 1 分岐で証明する。
 - `エラー経路`: 入力不備、依存先失敗、不整合などの戻り方を証明する。
 - `単体テスト`: 実装済み範囲に対応する局所テストとして扱う。
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 各テストは 1 つの 公開振る舞い、分岐、エラー経路 のどれか 1 つを証明する
 - 期待結果は仕様根拠、承認済み実装範囲、実装済み対象から導く
@@ -60,12 +60,12 @@ description: Codex 実装系レーン側の 単体テスト 実装作業プロ�
 - clock、random、ID、repository 応答順序を固定する
 - テストコーディング規約の良いテストの品質観点に従う
 
-## 非対象規約
+## skill が扱わない対象
 
 - シナリオ成果物の結果、統合 flow、新しい要件解釈は扱わない。
 - テストのためだけの広いプロダクトコード変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: 単体テストを実装したか、文脈不足で停止したかを返す。
 - 根拠参照: 単一引き継ぎ入力、仕様根拠、実装済み対象、変更ファイルを返す。
@@ -78,7 +78,7 @@ description: Codex 実装系レーン側の 単体テスト 実装作業プロ�
 - レーン内検証結果: テスト追加または更新後、変更層 に対応する 局所検証 の失敗時は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当単体テスト成果物の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当単体テスト成果物の影響範囲修正 の成果だけが返却されている。
 - 仕様根拠を読み、証明対象の期待結果と対応づけた。
@@ -95,7 +95,7 @@ description: Codex 実装系レーン側の 単体テスト 実装作業プロ�
 - `python3 scripts/harness/run.py --suite coverage` を実行し、全体網羅率が 70.0% を上回る結果または未実行理由を返した。
 - レーン内検証 の失敗時は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当単体テスト成果物の影響範囲修正で直して再実行し、通過結果または未実行理由を返した。
 
-## 停止規約
+## 作業を止める条件
 
 - シナリオ 成果物 の 結果 を テストにする時
 - 局所ハーネスの失敗原因が今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当単体テスト成果物に閉じない時

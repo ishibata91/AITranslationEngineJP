@@ -18,7 +18,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 返却先は呼び出し元レーンとする。
 - 担当成果物は `implementation-scope` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 人間レビュー記録: 承認済み詳細仕様差分、承認済み画面設計差分、レビュー結果。
 - リファクタ判断記録: `refactor_lane` から呼び出された場合に参照する仕様実装優先判断とリファクタ範囲確認。
@@ -27,7 +27,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 画面設計差分: UI が関係する場合に参照する画面設計差分。
 - 承認状態: 呼び出し元が渡す承認済み状態。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [designer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/designer.toml) に従う。
 - 要件正本: [spec.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/spec.md) とする。
@@ -45,7 +45,7 @@ description: Codex 側の実装スコープ作業プロトコル。人間レビ�
 - 統合境界実装規約: [implement-integration/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-integration/SKILL.md) とする。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 ### 拘束観点
 
@@ -200,7 +200,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 途中 引き継ぎ に 広域 検証 を置く場合は、広域 コマンド が必要な理由、必須 downstream 対象範囲、分割しない理由を `補足` に書く。
 この説明を書けない場合、その コマンド は対象 引き継ぎ の 検証 ではなく 最終検証 に移す。
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 人間レビュー 後にだけ作る
 - 1 引き継ぎ は独立検証可能な粒度にする
@@ -250,7 +250,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - `本番経路` が必要な時だけ 補足 に補助情報として書く
 - 人間がそのまま呼び出し元レーンに渡せる 入力にする
 
-## 非対象規約
+## skill が扱わない対象
 
 - 人間レビュー前の実装対象範囲確定は扱わない。
 - プロダクトコード実装、実装時の再現、trace、レビュー補助は扱わない。
@@ -258,7 +258,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - docs 正本化を Codex 実装系レーン引き継ぎに含めない。
 - domain 固有知識を skill や雛形の共通例として増やさない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: implementation-scope の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装範囲の根拠にした承認済み成果物を返す。
@@ -266,7 +266,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 次判断材料: 呼び出し元レーンが実装引き継ぎ入力を作れる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - task 内成果物 が承認状態、根拠参照、未決事項を含んでいる。
 - 人間レビュー が必要な判断を AI だけで完了扱いにしていない。
@@ -302,7 +302,7 @@ backend と frontend は別 引き継ぎ のまま維持し、UI がある task 
 - 広域 検証 を途中 引き継ぎ に置く場合は、必須 downstream 対象範囲 と理由を `補足` に書いた。
 - 人間が Codex 実装系レーンに渡す入口、禁止事項、期待完了報告を明示した。
 
-## 停止規約
+## 作業を止める条件
 
 - 人間レビュー 前に実装 対象範囲 を決める時
 - 承認済み implementation-scope なしで呼び出し元レーンの `backend 実装`、`frontend 実装`、`統合境界実装` へ 引き継ぎ する時

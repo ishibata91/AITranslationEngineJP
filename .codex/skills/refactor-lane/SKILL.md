@@ -19,7 +19,7 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 - `refactor_lane` 以外が担当する成果物は、該当 agent を文脈継承なしのサブエージェントとして直接起動して作る。
 - 起動担当 agent は `investigator`、`designer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 呼び出し元: この skill を呼び出した人間。
 - 依頼要約: リファクタとして扱う依頼内容。
@@ -36,14 +36,14 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 - 人間介入状態: 仕様実装優先判断、リファクタ範囲確認、承認、差し戻し、追加質問の記録。
 - ハーネス要件: リファクタ終了前に通す検証 suite と command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [refactor_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/refactor_lane.toml) に従う。
 - 分類表雛形は [refactor-classification.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/refactor-lane/assets/refactor-classification.md) とする。
 - 入力で渡された対象仕様参照、対象実装範囲、対象テスト範囲、変更禁止範囲を読む。
 - 入力で渡された外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 リファクタレーンの成果物DAGは次を必ず持つ。
 各成果物は、`依存対象` の成果物が揃った時だけ着手できる。
@@ -84,7 +84,7 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 | `判断保留` | 人間判断が不足し、仕様と実装のどちらを正にするか決められない状態 | 停止する |
 | `対象外` | 今回のリファクタ範囲に含めない仕様乖離 | 実装範囲に含めない |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 次の実行判断は成果物DAGの未完了成果物、満たされた `依存対象`、既存成果物、対象 skill の完了規約で決める。
 - `refactor_lane` は DAG 上の担当者が自分以外の成果物を自分で作らない。
@@ -135,7 +135,7 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 - サブエージェントを起動できる入力が揃っている場合は、人間へ停止返却だけで済ませず担当 agent を起動する。
 - サブエージェントを起動できない場合は、不足項目、起動できない担当 agent、戻し先を記録して停止する。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 新規実装と機能拡張の初期設計は扱わない。
 - 人間が確認した不具合、レビュー非通過、検証失敗の恒久修正を主目的にしない。
@@ -150,7 +150,7 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 - 担当 agent の成果物本文を `refactor_lane` が代筆しない。
 - local merge、completed 移動、remote repository の変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 人間向け返却: 成果物DAGの現在成果物、着手可能成果物、停止中成果物、停止理由を返す。
 - 起動先向け返却: 起動先 agent 向けに対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を返す。
@@ -178,7 +178,7 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 - マージ準備入力: active plan folder、作業ブランチ、統合先ブランチ、commit hash、検証結果、レビュー結果、docs 正本化結果、残留リスクを返す。
 - 禁止事項: 出力に未承認仕様変更、承認済み `implementation-scope` 外のプロダクトコード変更、remote repository 変更を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - リファクタレーンの次成果物、起動、人間判断、停止、戻しを再解釈なしで判断できる。
 - `refactor_lane` 以外が担当する成果物は、担当 agent のサブエージェント完了結果または停止結果を根拠にしている。
@@ -202,7 +202,7 @@ description: リファクタレーンで、仕様乖離、人間判断、構造�
 - `マージ準備入力` が active plan folder、作業ブランチ、統合先ブランチ、commit hash、検証結果、レビュー結果、docs 正本化結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
-## 停止規約
+## 作業を止める条件
 
 - task-id を生成できず、作業計画フォルダを作成または確認できない場合は停止する。
 - `task 枠` 作成後も対象仕様参照、対象実装範囲、対象テスト範囲のうち必要な参照が不足する場合は、`仕様乖離整理` へ進まず停止する。

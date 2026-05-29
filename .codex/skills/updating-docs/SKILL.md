@@ -17,7 +17,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 返却先は 呼び出し元 または次 agent とする。
 - 担当成果物は `updating-docs` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 呼び出し元: docs 正本化を依頼した agent または人間。
 - docs正本化起動入力: 呼び出し元レーンが docs 正本化判断後に渡す根拠、承認、正本化対象。
@@ -27,7 +27,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 非必須入力: 検証コマンド、根拠 docs を受け取る。
 - 必須成果物: docs 正本化起動入力、承認済み docs-only 成果物、`/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md` を受け取る。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml) に従う。
 - 紐づけ: [docs_updater.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/docs_updater.toml)
@@ -42,7 +42,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 - 関連 skill: /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/updating-docs/SKILL.md
 
-## 内部参照規約
+## skill 内の拘束条件
 
 ### 拘束観点
 
@@ -54,7 +54,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 詳細仕様正本の製本
 - 検証 と 残り 不足 の記録
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 呼び出し元レーンの docs 正本化判断後にだけ正本化へ進む
 - 人間承認済み 成果物 だけを反映する
@@ -71,7 +71,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 正本 と task 内成果物 を分ける
 - 検証 結果を残す
 
-## 非対象規約
+## skill が扱わない対象
 
 - 作業流れ、skill、エージェント実行定義、プロダクトコード、プロダクトテストは変更しない。
 - 呼び出し元レーンの docs 正本化判断前の正本化と未承認 draft の正本化は扱わない。
@@ -82,7 +82,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - `detail-specs` へ移す対象は、承認済み `detail-spec-diff.md` にある恒久仕様だけにする。
 - プロダクト実装を同時に進めない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: docs 正本化の完了、未完了、停止の判定を返す。
 - 根拠参照: docs 更新の根拠にした承認記録と成果物を返す。
@@ -96,7 +96,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 残留不足: 未反映、未確認、判断待ちを返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 出力規約を満たし、次の 実行者 が再解釈なしで判断できる。
 - 不足情報または停止理由がある場合は明示されている。
@@ -109,7 +109,7 @@ description: Codex 側の docs 正本化作業プロトコル。呼び出し元�
 - 完了判断材料: docs 正本が 承認済み 成果物 と同期している。
 - 残留リスク: 未反映、未確認、判断待ちが返っている。
 
-## 停止規約
+## 作業を止める条件
 
 - docs 正本化起動入力が未確認の時
 - 作業流れ / skill / エージェント実行定義 や skill / agent を変更する時

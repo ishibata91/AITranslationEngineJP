@@ -16,7 +16,7 @@ description: Codex implementation レーン 側の修正後再観測作業プロ
 - 返却先は `implement_lane` とする。
 - 担当成果物は `implementation-investigate-reobserve` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 単一調査入力: 実装時調査用 引き継ぎから切り出された再観測作業 1 件。
 - 実行中タスク成果物場所: 再観測結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
@@ -24,14 +24,14 @@ description: Codex implementation レーン 側の修正後再観測作業プロ
 - 対象調査範囲: 再観測のために読んでよいファイル、symbol、ログ、成果物。
 - 検証コマンド: 再観測結果を確認する実行許可済み command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [implementation_investigator.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_investigator.toml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 事前の reproduction condition と同じ条件で観測する
 - 変更前後の差を 観測済み事実 として返す
@@ -42,13 +42,13 @@ description: Codex implementation レーン 側の修正後再観測作業プロ
 - 残留リスク を根拠付きで残す
 - recommended_next_step を返す
 
-## 非対象規約
+## skill が扱わない対象
 
 - 初回再現、実装中 trace、レビュー判定だけの作業は扱わない。
 - 条件を変えて通過扱いにしない。
 - 実装修正とプロダクトテスト追加は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: 再観測作業の完了、未完了、停止の判定を返す。
 - 根拠参照: 再観測の根拠にした入力、コマンド、観測結果を返す。
@@ -56,7 +56,7 @@ description: Codex implementation レーン 側の修正後再観測作業プロ
 - 次判断材料: 次 agent が判断できる材料を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコードの変更義務を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 内の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -64,7 +64,7 @@ description: Codex implementation レーン 側の修正後再観測作業プロ
 - 変更前後の差を 観測済み事実 として返した。
 - remaining_gaps と residual_risks を分けた。
 
-## 停止規約
+## 作業を止める条件
 
 - 初回再現を行う時
 - 実装中 trace が必要な時

@@ -7,25 +7,25 @@ description: Codex 実装系レーン側の シナリオテスト 実装作業�
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_scenario_tester` agent が承認済み詳細仕様差分または軽量変更レーンの `task 枠` を シナリオテスト で証明する時の判断基準を提供する。
+`implementation_scenario_tester` agent が承認済み詳細仕様差分、修正レーンの `修正実行入力`、または軽量変更レーンの `task 枠` を シナリオテスト で証明する時の判断基準を提供する。
 主対象は `UI人間操作E2E` と `APIテスト` である。
 
 ## 対応ロール
 
 - `implementation_scenario_tester` が使う。
-- 呼び出し元は `implement_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
+- 呼び出し元は `implement_lane`、`fix_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
 - 返却先は呼び出し元レーンとする。
 - 担当成果物は `tests-scenario` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された tests-scenario 用 引き継ぎ 1 件、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された tests-scenario 用 引き継ぎ 1 件、修正レーンの `修正実行入力`、または 軽量変更レーンの `テスト修正証跡` 用 引き継ぎ 1 件。
 - 実行中タスク成果物場所: テスト成果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 対象テスト範囲: 変更してよい シナリオテスト と必要最小限の テスト補助 の path。
 - 証明対象: シナリオ ID、実行テスト種別、入力開始点、主要観測点、期待結果。
 - 検証コマンド: 実行を許可された backend-local または frontend-local の harness command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [implementation_scenario_tester.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_scenario_tester.toml) に従う。
 - テストコーディング規約: [coding-guidelines-tests.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-tests.md) とする。
@@ -33,13 +33,13 @@ description: Codex 実装系レーン側の シナリオテスト 実装作業�
 - architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 - `UI人間操作E2E`: 承認済み詳細仕様差分に対応する開始操作と入力模倣方針を証明する。
 - `APIテスト`: 公開接点、要求 / 応答契約、外部入力開始、主要観測点を証明する。
 - `実装後シナリオテスト`: 実装済み範囲が承認済み詳細仕様差分の結果を満たすことを証明する。
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 各テストは 1 つの シナリオ 結果 だけを証明する
 - setup は決定的にする
@@ -61,13 +61,13 @@ description: Codex 実装系レーン側の シナリオテスト 実装作業�
 - UI が入口の場合は、ユーザー入力から得られる値を `UI人間操作E2E` の検証対象にする
 - `APIテスト` では 要求 / 応答契約 と external 入力 start を検証対象にする
 
-## 非対象規約
+## skill が扱わない対象
 
 - 単体分岐だけの補強、未承認シナリオ、原因未確定の回帰テストは扱わない。
 - プロダクトコード修正、新しい要件解釈、paid real AI API 呼び出しは扱わない。
 - UI 入口の `UI人間操作E2E` を裏側の直接呼び出しだけで代替しない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: シナリオテストを実装したか、文脈不足で停止したかを返す。
 - 根拠参照: 単一引き継ぎ入力、証明対象、変更ファイルを返す。
@@ -79,7 +79,7 @@ description: Codex 実装系レーン側の シナリオテスト 実装作業�
 - レーン内検証結果: テスト追加または更新後、変更層 に対応する 局所検証 の失敗時は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当シナリオテスト成果物の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当シナリオテスト成果物の影響範囲修正 の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -96,10 +96,10 @@ description: Codex 実装系レーン側の シナリオテスト 実装作業�
 - backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当シナリオテスト成果物の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 - レーン内検証 の失敗時は承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊した担当シナリオテスト成果物の影響範囲修正で直して再実行し、通過結果または未実行理由を返した。
 
-## 停止規約
+## 作業を止める条件
 
 - 単体 分岐 だけを補う時
-- 単一引き継ぎ入力が承認済み implementation-scope または 軽量変更レーンの `task 枠` 由来ではない時
+- 単一引き継ぎ入力が承認済み implementation-scope、修正レーンの `修正実行入力`、または 軽量変更レーンの `task 枠` 由来ではない時
 - 局所ハーネスの失敗原因が今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当シナリオテスト成果物に閉じない時
 - プロダクトコード変更、UI 変更、secret / trust boundary 変更、API / DTO / DB / schema の意味拡張、docs 正本化、`.codex` 作業流れの変更が必要な時
 - 原因未確定の 回帰テスト を書く時

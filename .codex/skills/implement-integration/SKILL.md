@@ -19,9 +19,9 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-integration` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された統合境界実装用 引き継ぎ 1 件、または UX 保守レーンの `接続整合証跡`。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された統合境界実装用 引き継ぎ 1 件、修正レーンの `修正実行入力`、または UX 保守レーンの `接続整合証跡`。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい統合境界のファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい統合境界のプロダクトコード範囲。
@@ -31,7 +31,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - UI 確認根拠: UI がある task で参照する承認済み `screen-design-diff.<screen-id>.md`、確認対象画面。
 - 合意済みfrontend保護: UI がある task で承認済み frontend 実装を保護する変更禁止範囲。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [integration_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/integration_implementer.toml) に従う。
 - frontend コーディング規約: frontend 変更がある場合は [coding-guidelines-frontend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-frontend.md) とする。
@@ -41,7 +41,7 @@ integration は広い frontend / backend 同時変更の許可ではない。
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の統合境界だけを参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 secret 分離観点表は次を拘束する。
 
@@ -53,9 +53,9 @@ secret 分離観点表は次を拘束する。
 | 出力禁止 | URL、DTO、UI、error summary、構造化 log、audit、要求捕捉へ secret 本体を出さない |
 | 検証補助 | 偽 secret 保管先、偽送信経路、要求捕捉を使い、出力禁止先への漏れがないことを確認する |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
-- implementation-scope の 承認済み実装範囲 を守る
+- 単一引き継ぎ入力の 承認済み実装範囲 を守る
 - integration の対象を API、Wails 紐づけ、DTO、gateway、adapter 契約 の統合境界だけに限定する
 - 片側だけで閉じない理由を 対象範囲 成果物 で確認する
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
@@ -78,7 +78,7 @@ secret 分離観点表は次を拘束する。
 - frontend / backend / 統合境界 契約 の レーン内検証 根拠 を分ける
 - レーン内検証 コマンド の不足を 残留リスク にする
 
-## 非対象規約
+## skill が扱わない対象
 
 - frontend または backend の片側だけで閉じる変更は扱わない。
 - integration を広い frontend / backend 同時変更の口実にしない。
@@ -88,7 +88,7 @@ secret 分離観点表は次を拘束する。
 - docs や作業流れ文書は変更しない。
 - coverage、harness all、repo-local Sonar issue 判定条件は必須終了処理にしない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: 統合境界プロダクトコード実装の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装の根拠にした入力、変更箇所、検証結果を返す。
@@ -100,7 +100,7 @@ secret 分離観点表は次を拘束する。
 - 実画面確認結果: UI がある task で確認した画面、主要操作、UI 状態、console error、Wails 呼び出し失敗、未確認理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 または承認済み統合境界内の影響範囲修正 の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -120,7 +120,7 @@ secret 分離観点表は次を拘束する。
 - frontend 側の変更がある場合は `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または承認済み統合境界内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 - backend と frontend の両方を含む場合は両方の局所ハーネスを実行し、失敗した場合は承認済み実装範囲 または承認済み統合境界内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 
-## 停止規約
+## 作業を止める条件
 
 - frontend または backend の片側だけで閉じる時
 - API / Wails / DTO / gateway / adapter 契約 の統合境界変更がない時

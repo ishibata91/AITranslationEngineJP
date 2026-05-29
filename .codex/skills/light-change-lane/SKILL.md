@@ -17,7 +17,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 担当成果物は `task 枠`、`branch 準備`、`軽量変更計画`、`設計差分図`、`実装証跡`、`人間確認`、`テスト修正証跡`、`実装後ブラウザ確認`、`レビュー通過根拠`、`正本化判断`、`作業 commit`、`マージ準備入力` とする。
 - 起動担当 agent は `light_change_planner`、`diagrammer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent、`docs_updater` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 軽量変更として扱う依頼内容。
@@ -29,7 +29,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 人間介入状態: 人間確認、承認、差し戻し、追加質問の記録。
 - 非必須検証ログ: 軽量変更に関係する既存の検証出力。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [light_change_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/light_change_lane.toml) に従う。
 - 軽量変更計画は [light-change-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/light-change-planning/SKILL.md) に従う。
@@ -43,7 +43,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 軽量変更レーンの成果物DAGは次を必ず持つ。
 各成果物は、`依存対象` の成果物が揃った時だけ着手できる。
@@ -74,7 +74,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 | `設計戻し` | 新しいシナリオ、状態遷移、永続仕様、公開契約、外部連携判断が必要な変更 | `design-bundle` へ戻す |
 | `修正レーン戻し` | 人間観測、レビュー非通過、検証失敗を既存仕様へ戻す恒久修正 | `fix-lane` へ戻す |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 次の実行判断は成果物DAGの未完了成果物、満たされた `依存対象`、既存成果物、対象 skill の完了規約で決める。
 - `task 枠` は人間依頼、変更禁止範囲、確認したい結果を含める。
@@ -105,7 +105,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 新規実装と機能拡張の初期設計は扱わない。
 - 既存仕様へ戻す恒久修正は扱わない。
@@ -118,7 +118,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - docs 正本化本文の更新は扱わない。
 - local merge、completed 移動、remote repository の変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 人間向け返却: 成果物DAGの現在成果物、着手可能成果物、停止中成果物、停止理由を返す。
 - 起動先向け返却: 起動先 agent 向けに対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を返す。
@@ -137,7 +137,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 軽量変更レーンの次成果物、起動、人間確認、停止、戻しを再解釈なしで判断できる。
 - 作業 branch が `codex/<task-id>` として存在する。
@@ -159,7 +159,7 @@ description: 軽量変更レーンの成果物DAG、起動入力、軽い設計�
 - `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
-## 停止規約
+## 作業を止める条件
 
 - 依頼が軽量変更か判断できない場合は停止する。
 - task 枠なしで軽量変更計画へ進みそうな場合は停止する。

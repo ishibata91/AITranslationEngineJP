@@ -16,7 +16,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 返却先は人間とする。
 - 担当成果物は `branch 準備`、`テストデータ`、`バグ一覧とログ、影響ファイル`、`作業 commit`、`マージ準備入力` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 探索テストとして扱う依頼内容。
@@ -27,7 +27,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
 - 人間介入状態: 人間レビュー、承認、差し戻し、追加質問の記録。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [exploration_test_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/exploration_test_lane.toml) に従う。
 - 探索計画は [exploration-test-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/exploration-test-planning/SKILL.md) に従う。
@@ -41,7 +41,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 探索テストレーンの成果物DAGは次を必ず持つ。
 各成果物は、`依存対象` の成果物が揃った時だけ着手できる。
@@ -59,7 +59,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 | `作業 commit` | `exploration_test_lane` | `レビュー通過根拠` | なし |
 | `マージ準備入力` | `exploration_test_lane` | `作業 commit` | `merge_lane` |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 次の実行判断は成果物DAGの未完了成果物、満たされた `依存対象`、既存成果物、対象 skill の完了規約で決める。
 - 起動先 agent の起動入力には、対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を明示する。
@@ -79,7 +79,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
 - プロダクトコードとプロダクトテストは変更しない。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 探索計画の作成は扱わない。
 - 探索証跡の観測は扱わない。
@@ -88,7 +88,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - docs 正本化本文の更新は扱わない。
 - local merge、completed 移動、remote repository の変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 人間向け返却: 成果物DAGの現在成果物、着手可能成果物、停止中成果物、停止理由を返す。
 - 起動先向け返却: 起動先 agent 向けに対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を返す。
@@ -102,7 +102,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
 - 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 探索テストレーンの次成果物、起動、停止、戻しを再解釈なしで判断できる。
 - 作業 branch が `codex/<task-id>` として存在する。
@@ -117,7 +117,7 @@ description: 探索テストレーンの成果物DAG、起動入力、集約、�
 - `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
-## 停止規約
+## 作業を止める条件
 
 - 依頼が探索テストか判断できない場合は停止する。
 - 探索計画なしでテストデータまたは探索証跡へ進みそうな場合は停止する。

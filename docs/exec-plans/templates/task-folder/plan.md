@@ -10,6 +10,7 @@
 - `constraints`:
 - `close_conditions`:
 - `worktree_path`:
+- `execution_branch`: `codex/<task-id>`
 - `source_branch`: `codex/<task-id>`
 - `target_branch`: `master`
 
@@ -37,6 +38,7 @@
 
 - `worktree_checkout`:
 - `branch_ready`:
+- `execution_branch`:
 - `commit_hash`:
 - `remote_operation`: `not-performed`
 

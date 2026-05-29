@@ -16,16 +16,16 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - 返却先は呼び出し元レーンとする。
 - 担当成果物は `implement-backend` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された backend 実装用 引き継ぎ 1 件。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された backend 実装用 引き継ぎ 1 件、または修正レーンの `修正実行入力`。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい backend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい backend プロダクトコード範囲。
 - 依存完了情報: 着手前に完了している必要がある依存対象の完了結果。
 - 検証コマンド: 実行を許可された backend-local の harness command。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - エージェント実行定義と実行境界は [backend_implementer.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/backend_implementer.toml) に従う。
 - コーディング規約: [coding-guidelines-backend.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-backend.md) とする。
@@ -33,9 +33,9 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の backend 境界だけを参照する。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 層 責務と依存方向を守る
 - エラー経路 と 検証 を 承認済み実装範囲 内で閉じる
@@ -49,7 +49,7 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - usecase から repository concrete、実行定義 concrete、driver API を直接参照しない
 - レーン内検証 を実行した場合は結果を 終了処理 に残す
 
-## 非対象規約
+## skill が扱わない対象
 
 - frontend だけの変更、UI check、backend 境界の再設計は扱わない。
 - 承認済み実装範囲外の層 refactor は扱わない。
@@ -57,7 +57,7 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - docs や作業流れ文書は変更しない。
 - coverage、harness all、repo-local Sonar issue 判定条件は必須終了処理にしない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: backend プロダクトコード実装の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装の根拠にした入力、変更箇所、検証結果を返す。
@@ -68,7 +68,7 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時は、承認済み実装範囲 または backend 責務内の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 承認済み実装範囲 または backend 責務内の影響範囲修正 の成果だけが返却されている。
 - 検証、未実行項目、残留リスク が 根拠参照 付きで整理されている。
@@ -79,7 +79,7 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または backend 責務内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 - 単一引き継ぎ入力 と レーン内検証 を確認した。
 
-## 停止規約
+## 作業を止める条件
 
 - frontend だけの変更を実装する時
 - UI check を行う時

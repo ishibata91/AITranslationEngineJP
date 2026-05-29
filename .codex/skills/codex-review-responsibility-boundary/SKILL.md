@@ -16,7 +16,7 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 返却先は呼び出し元の レビュー 集約 とする。
 - 担当成果物は `codex-review-responsibility-boundary` の出力規約で固定する。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - レビュー対象差分: 実装後 レビュー の対象になる差分を受け取る。
 - 実装目的: レビュー対象差分が満たすべき目的を受け取る。
@@ -27,7 +27,7 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 作業計画フォルダ: `docs/exec-plans/active/<task-id>/` を受け取る。
 - レビューYAMLパス: `docs/exec-plans/active/<task-id>/reviewback.responsibility-boundary.yaml` を受け取る。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - 構造責務の正本は [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) とする。
 - 実装規約の入口は [coding-guidelines.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines.md) とする。
@@ -35,7 +35,7 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - レビューYAMLの正本形式は [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 責務境界観点表は次を拘束する。
 
@@ -58,7 +58,7 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 | `minor` | 局所的な改善で済む問題 |
 | `nit` | 修正してもよいが、必須ではない問題 |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - レビュー問題の重大度は内部参照規約の重大度指標から選ぶ。
 - `blocker`、`critical`、`major` は `fix_required: true` にする。
@@ -69,21 +69,21 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 自動検査で検出済みの境界違反だけに限定せず、実コード上の責務混在を判断対象にする。
 - 呼び出し元から渡された検証証跡をレビュー入力として扱ってよい。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 挙動正しさ、契約・互換性、権限・信頼境界、状態・データ不変条件は主判定にしない。
 - 命名、好みの分割、見た目だけの読みやすさは主判定にしない。
 - 修正範囲の命令やプロダクトコード変更の指示は出力しない。
 - ハーネスを実行しない。
 
-## 出力規約
+## 返す成果物
 
 - レビューYAML: `docs/exec-plans/active/<task-id>/reviewback.responsibility-boundary.yaml` を作成、追記、解決更新、削除する。
 - レビューYAML形式: [reviewback.yaml](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/reviewback.yaml) の項目、説明、記入条件に従う。
 - レビューYAML観点: `viewpoint` は `responsibility-boundary`、`reviewer_agent` は `review_responsibility_boundary` とする。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示、修正範囲の命令を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - `reviewback.responsibility-boundary.yaml` に 対象 レビュー 観点の指摘、責務境界維持度、根拠、残留リスクが記録されている。
 - 内部参照規約の責務境界観点表を確認した。
@@ -94,7 +94,7 @@ description: Codex 実装後 レビュー の責務境界グループ作業プ�
 - 完了判断材料として、`must_fix_open`、`max_level`、責務境界維持度、破られた境界、原因候補、局所修正評価、根拠が記録されている。
 - 残留リスクとして、未確認範囲と理由が記録されている。
 
-## 停止規約
+## 作業を止める条件
 
 - `レビュー対象差分` が不足する場合は停止する。
 - `実装目的` が不足する場合は停止する。

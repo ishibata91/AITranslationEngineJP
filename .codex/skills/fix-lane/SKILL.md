@@ -1,189 +1,110 @@
 ---
 name: fix-lane
-description: 人間が確認した不具合、レビュー非通過、検証失敗の恒久修正レーンを固定する作業プロトコル。
+description: 人間が確認した不具合、レビュー非通過、検証失敗を、UC 差分候補、E2E テスト観点差分、テスト追加、恒久修正へ進める作業プロトコル。
 ---
 # Fix Lane
 
 ## 目的
 
-`fix-lane` は、人間が確認した不具合、レビュー非通過、検証失敗を恒久修正へ渡す進行判断を task 内成果物DAG と起動入力へ固定する作業プロトコルである。
-`fix_lane` が人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰確認、最終検証、レビュー通過根拠を管理する時に使う。
-`fix_lane` は担当 agent を起動し、各 agent の完了結果を集約する。
+`fix-lane` は、確認された不具合を修正するための作業プロトコルである。
+
+### レーン概要
+
+確認された不具合は、実装の局所ミスだけで発生したとは扱わない。
+`fix-lane` は、不具合の背景に UC 記述不足、E2E テスト観点不足、既存テストで検出できない経路がある可能性を前提にする。
+そのため、観測記録から複数の原因仮説を立て、観測ログで仮説を検証し、修正方針と不足していた UC / テスト観点を分けてから修正する。
+
+修正は fail-test ベースで進める。
+先に不具合を検出できるテスト観点とテスト追加を固定し、その後に実装修正を行う。
+これにより、同じ不具合が再発した時に検出できる状態を作ってから、実装を直す。
+
 
 ## 対応ロール
 
 - `fix_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 担当成果物は `人間観測記録`、`branch 準備`、`修正方針判断`、`原因箇所シーケンス図`、`人間修正レビュー`、`修正実行入力`、`最終検証`、`実装後ブラウザ確認`、`レビュー通過根拠`、`作業 commit`、`マージ準備入力` とする。
-- 起動担当 agent は `investigator`、`fix_decider`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation`、観点別レビュー agent とする。
+- 起動担当 agent は `investigator`、`fix_decider`、`test_designer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
-- 呼び出し元: この skill を呼び出した人間または戻し元。
-- 依頼要約: 修正対象として扱う観測内容。
-- 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
-- 作業場所: Codex app が用意した実行場所。
-- 作業branch: 既定名 `codex/<task-id>` の local branch。
-- 統合先branch: 既定名 `master` の local branch。
-- 既存成果物: 作業計画フォルダに既にある task 内成果物。
-- 人間観測: 人間が見た画面、操作、ログ、失敗、期待との差分。
-- 既存レビューYAML: 非必須入力として受け取る修正対象に関係する既存のレビュー結果。
-- 検証ログ: 非必須入力として受け取る修正対象に関係する既存の検証出力。
-- 探索証跡: 非必須入力として受け取る修正対象に関係する既存の探索テスト観測結果。
-- 影響ファイル一覧: 非必須入力として受け取る修正対象に関係する既存の影響ファイル候補。
+- 不具合判断資料: 確認された不具合を判断できる画面、操作、ログ、検証結果、レビュー結果、既存成果物。
 
-## 外部参照規約
+## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [fix_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/fix_lane.toml) に従う。
-- 修正前調査は [investigate](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md) に従う。
-- 修正方針判断と原因箇所シーケンス図は [fix-decision](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/fix-decision/SKILL.md) に従う。
-- プロダクトコード実装は `implement-backend`、`implement-frontend`、`implement-integration` のいずれかに従う。
-- 回帰テスト証跡は `tests-scenario` または `tests-unit` に従う。
-- 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
-- 観点別レビューは `codex-review-behavior`、`codex-review-contract`、`codex-review-trust-boundary`、`codex-review-state-invariant`、`codex-review-responsibility-boundary` に従う。
-- マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
-- 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
+- 作業計画雛形は [plan.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/templates/task-folder/plan.md) を参照する。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 修正レーンの成果物DAGは次を必ず持つ。
 各成果物は、`依存対象` の成果物が揃った時だけ着手できる。
 
-| 成果物ID | 担当者 | 依存対象 | 次 agent |
-| --- | --- | --- | --- |
-| `人間観測記録` | `fix_lane` | `task 枠` | なし |
-| `branch 準備` | `fix_lane` | `人間観測記録` | なし |
-| `修正前調査` | `investigator` | `人間観測記録` | `investigator` |
-| `修正方針判断` | `fix_decider` | `人間観測記録`, `修正前調査` | `fix_decider` |
-| `原因箇所シーケンス図` | `fix_decider` | `人間観測記録`, `修正前調査`, `修正方針判断` | なし |
-| `人間修正レビュー` | human | `修正方針判断`, `原因箇所シーケンス図` | human |
-| `修正実行入力` | `fix_lane` | `人間観測記録`, `修正前調査`, `修正方針判断`, `原因箇所シーケンス図`, `人間修正レビュー` | なし |
-| `実装証跡` | 実装種別別 agent / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
-| `回帰テスト証跡` | `implementation_scenario_tester` または `implementation_unit_tester` | `実装証跡` | `implementation_scenario_tester` または `implementation_unit_tester` |
-| `最終検証` | `fix_lane` | `実装証跡`, `回帰テスト証跡?` | なし |
-| `実装後ブラウザ確認` | `browser_confirmation` | `最終検証` | `browser_confirmation` |
-| `レビュー通過根拠` | `fix_lane` | `人間観測記録`, `修正前調査`, `修正方針判断`, `原因箇所シーケンス図`, `人間修正レビュー`, `修正実行入力`, `実装証跡`, `回帰テスト証跡?`, `最終検証`, `実装後ブラウザ確認` | `review_behavior`, `review_contract`, `review_trust_boundary`, `review_state_invariant`, `review_responsibility_boundary` |
-| `作業 commit` | `fix_lane` | `レビュー通過根拠` | なし |
-| `マージ準備入力` | `fix_lane` | `作業 commit` | `merge_lane` |
+| 成果物ID | 概要 | 担当者 | 依存対象 | 次 agent |
+| --- | --- | --- | --- | --- |
+| `人間観測記録` | 確認された不具合を修正入口として記録する。 | `fix_lane` | `task 枠` | なし |
+| `事前準備` | 作業計画と local branch を準備する。 | `fix_lane` | `人間観測記録` | なし |
+| `修正方針判断` | 観測記録から複数仮説を立て、観測ログで検証し、確定原因、採用方針、禁止修正を判断する。 | `fix_decider` | `人間観測記録`, `事前準備` | `fix_decider` |
+| `UC 差分候補` | UC 記述に不足があるかを差分候補として整理する。 | `investigator` | `人間観測記録`, `修正方針判断` | `investigator` |
+| `E2E テスト観点差分` | E2E テスト観点正本との差分だけを整理する。 | `test_designer` | `人間観測記録`, `修正方針判断`, `UC 差分候補` | `test_designer` |
+| `人間修正レビュー` | 修正方針、UC 差分候補、E2E テスト観点差分を人間が確認する。 | human | `修正方針判断`, `UC 差分候補`, `E2E テスト観点差分` | human |
+| `修正実行入力` | 承認済み判断を実行 agent へ渡す入力にまとめる。 | `fix_lane` | `人間観測記録`, `修正方針判断`, `UC 差分候補`, `E2E テスト観点差分`, `人間修正レビュー` | なし |
+| `テスト追加証跡` | 修正前に追加したテストと確認結果を記録する。 | `implementation_scenario_tester` または `implementation_unit_tester` | `修正実行入力` | `implementation_scenario_tester` または `implementation_unit_tester` |
+| `実装修正証跡` | 不具合修正の実装結果を記録する。 | 実装種別別 agent / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力`, `テスト追加証跡?` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
+| `実装後ブラウザ確認` | 修正後の画面操作確認結果を記録する。 | `browser_confirmation` | `実装修正証跡` | `browser_confirmation` |
+| `ハーネス実行` | 修正後の harness 実行結果を記録する。 | `fix_lane` | `実装修正証跡`, `テスト追加証跡?`, `実装後ブラウザ確認?` | なし |
+| `作業 commit` | 修正作業の local commit を記録する。 | `fix_lane` | `ハーネス実行` | なし |
 
-## 判断規約
+UC 差分候補の分類は次に従う。
 
-- 人間観測は探索テストの探索範囲拡張ではなく、修正入口の根拠として扱う。
-- `branch 準備` は active plan ごとの `codex/<task-id>` の local branch を作成または確認する。
-- 作業 branch を特定できない場合は、後続成果物へ進めない。
-- `修正前調査` は `investigator` を起動して渡す。
-- `修正方針判断` は `fix_decider` を起動して作る。
-- `修正方針判断` は原因の原因、責務境界、採用する修正方針、禁止する修正を分ける。
-- `修正方針判断` は `null` の握りつぶし、新しい状態値の追加、症状だけを隠す分岐を採用または禁止のどちらかへ分類する。
-- `原因箇所シーケンス図` は `fix_decider` が `修正方針判断` と同じ判断材料から作る。
-- `原因箇所シーケンス図` は修正前調査と修正方針判断で確認した原因箇所の呼び出し順序だけを示す。
-- `原因箇所シーケンス図` は何が問題か、どう直すかを説明する。
-- `原因箇所シーケンス図` は全体シーケンス、推測原因、未確認の修正案を含めない。
-- `人間修正レビュー` は修正方針判断と原因箇所シーケンス図を人間が確認する成果物として扱う。
-- `人間修正レビュー` が承認済みではない場合は、修正実行入力へ進めない。
-- `修正実行入力` は人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビューを根拠にする。
-- `修正実行入力` は影響ファイル候補、禁止変更範囲、実装 skill、回帰確認観点を分ける。
-- `fix_lane` は新規実装レーン用の `implementation-scope` を作らない。
-- 原因の原因が未確認の場合は、恒久修正へ進めず、不足項目と戻し先を返す。
-- 人間修正レビューで差し戻しまたは追加確認がある場合は、恒久修正へ進めず、不足項目と戻し先を返す。
-- 大規模修正は、既存仕様へ戻す修正として始まったが、期待状態、回帰確認、修正方針を既存根拠だけで固定できない状態とする。
-- 仕様変更、機能追加、受け入れ条件の新規判断が必要な場合は、修正レーン対象外として扱う。
-- 大規模修正または修正レーン対象外の場合は、恒久修正へ進めず、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
-- 実装 agent を起動する時は、`backend_implementer`、`frontend_implementer`、`integration_implementer` のいずれか 1 つに固定する。
-- 回帰テスト証跡は変更範囲と検証目的から `implementation_scenario_tester` または `implementation_unit_tester` を起動して渡す。
-- `最終検証` は `python3 scripts/harness/run.py --suite all` を `.codex/rules/default.rules` の許可対象として実行した結果にする。
-- `最終検証` が失敗した場合は、失敗原因が修正実行入力または担当 agent の責務内に閉じるかを判断し、閉じる場合だけ該当 agent へ戻す。
-- `最終検証` の失敗原因が修正実行入力または担当 agent の責務内に閉じない場合は、人間へ停止理由を返す。
-- `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先は、人間観測、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、最終検証から `fix_lane` が定義する。
-- `browser_confirmation` は `実装後ブラウザ確認` の実行だけを担当し、期待値の妥当性を判断しない。
-- レビュー通過根拠は人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、実装後ブラウザ確認を入力にして観点別レビュー agent を起動する。
-- 対症療法的な修正を許可せず，根本的な修正を模索すること。
-- レビュー通過根拠を揃えた後、local commit を作る。
-- `マージ準備入力` は active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含める。
-- 作業計画フォルダの completed 移動と local merge は `merge_lane` に渡す。
-- プロダクトコードとプロダクトテストは変更しない。
+| 分類 | 意味 |
+| --- | --- |
+| `差分なし` | 既存ユースケースで問題と期待状態を説明できる状態。 |
+| `記述不足` | 既存期待を説明するフロー、例外、境界の記述が不足している状態。 |
+| `新規判断必要` | 既存期待では説明できない仕様変更または機能追加の判断が必要な状態。 |
 
-## 非対象規約
+E2E テスト観点差分の分類は次に従う。
+
+| 分類 | 意味 |
+| --- | --- |
+| `差分なし` | E2E テスト観点正本に修正対象を証明する観点が既にある状態。 |
+| `追加候補あり` | E2E テスト観点正本に対し、修正対象を証明する観点が不足している状態。 |
+| `判断不足` | 人間レビューで期待値または対象画面を確認しないと観点を固定できない状態。 |
+
+## 担当ロールが判断してよい範囲
+
+### agent 起動判断
+
+- `fix_lane` は依存対象が揃った未完了の成果物について、必ずDAGで定義された担当 agent を起動して作成する。担当 agent に自身が指定されている場合のみ、`fix_lane` での編集を許可する。
+- `fix_lane` は各 agent への指示と handoff を、対象 agent の入力規約を参照して判断する。
+
+### `fix_lane` 担当成果物
+
+- `人間観測記録`: 不具合判断資料から、確認済みの不具合、期待との差分、観測された操作または条件を task 内に固定する。
+- `事前準備`: 作業計画雛形から新規 plan を作成する。
+- `事前準備`: 作業 branch は `codex/<task-id>` とする。
+- `事前準備`: `.codex/rules/default.rules` に従い、elevate 権限で `npm run dev:wails:agent-browser` を起動する。
+- `修正実行入力`: 人間修正レビューで承認された修正方針、UC 差分候補、E2E テスト観点差分を、実装 agent とテスト agent へ渡せる入力として固定する。
+- `ハーネス実行`: `.codex/rules/default.rules` に従い、elevate 権限で `python3 scripts/harness/run.py --suite all` を実行し、成否、証跡位置、失敗箇所を記録する。
+- `作業 commit`: 実行 branch、作業 commit、ハーネス実行結果を `plan.md` に記録する。
+- `fix_lane` はプロダクトコード、プロダクトテスト、docs 正本本文を直接変更しない。
+
+## skill が扱わない対象
 
 - 新規実装と機能拡張は扱わない。
-- 探索テストの計画と観測は扱わない。
-- 修正前調査の実施は扱わない。
-- 修正方針判断の実施は扱わない。
-- 直接のプロダクトコード実装は扱わない。
-- 直接のプロダクトテスト実装は扱わない。
-- 観点別レビューの実施は扱わない。
-- docs 正本化本文の更新は扱わない。
-- task folder の状態更新以外の docs 更新は扱わない。
-- local merge、completed 移動、remote repository の変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
-- 人間向け返却: 成果物DAGの現在成果物、着手可能成果物、停止中成果物、停止理由を返す。
-- 起動先向け返却: 起動先 agent 向けに対象成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する成果物を返す。
-- 人間観測記録: 人間が見た画面、操作、ログ、失敗、期待との差分を返す。
-- 修正前調査起動入力: `investigator` 向けに人間観測記録、既存レビューYAML、検証ログ、禁止事項、期待する成果物を返す。
-- 修正方針判断起動入力: `fix_decider` 向けに人間観測記録、修正前調査、既存レビューYAML、検証ログ、禁止事項、期待する修正方針判断、期待する原因箇所シーケンス図を返す。
-- 修正方針判断: 修正前判断材料として、観測済み問題、原因の原因、責務境界、採用する修正方針、禁止する修正、根拠参照、未決事項を返す。
-- 原因箇所シーケンス図: 修正前判断材料として、原因箇所のシーケンス図、問題点、修正方針、根拠参照、検証結果、未決事項を返す。
-- 人間修正レビュー依頼: 人間向けに修正方針判断、原因箇所シーケンス図、承認対象、差し戻し対象、確認してほしい点を返す。
-- 人間修正レビュー結果: 人間が承認、差し戻し、追加確認のどれを選んだかを返す。
-- 修正実行入力: 実装種別別 agent 向けに人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、影響ファイル候補、禁止変更範囲、実装 skill、回帰確認観点を返す。
-- 最終検証: `python3 scripts/harness/run.py --suite all` の実行コマンド、成否、証跡位置、失敗箇所、戻し先、未実行理由を返す。
-- 実装後ブラウザ確認起動入力: `browser_confirmation` 向けに確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先を返す。
-- 実装後ブラウザ確認: 操作確認結果、証跡参照、console または network 異常、未確認理由、戻し先を返す。
-- レーン戻し入力: 大規模修正または修正レーン対象外の場合に、固定できない判断、戻し先、`implement-lane` 用タスクプロンプト案を返す。
-- レビュー起動入力: レビュー agent 向けに人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証、レビューYAMLパスを返す。
-- branch 準備: 作業場所、作業branch、統合先branch、branch 確認結果を返す。
-- 作業 commit: local commit の hash、対象 branch、commit 対象差分を返す。
-- マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを返す。
-- 禁止事項: 出力にプロダクトコード、プロダクトテスト、docs 正本本文の変更を含めない。
+- 人間対象のためなし。
 
-## 完了規約
+## 作業を完了できる条件
 
-- 修正レーンの次成果物、起動、停止、戻しを再解釈なしで判断できる。
-- 作業 branch が `codex/<task-id>` として存在する。
-- 人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡が根拠参照付きで確認されている。
-- `修正方針判断` が原因の原因、責務境界、採用する修正方針、禁止する修正を含んでいる。
-- `原因箇所シーケンス図` が修正着手前に揃っている。
-- `原因箇所シーケンス図` が原因箇所の呼び出し順序、問題点、修正方針を含んでいる。
-- `人間修正レビュー` が修正実行入力の作成前に承認済みである。
-- 実装 agent と実装 skill が `backend_implementer` / `implement-backend`、`frontend_implementer` / `implement-frontend`、`integration_implementer` / `implement-integration` のいずれか 1 組に固定されている。
-- 回帰テスト証跡が必要な場合は、test agent の完了結果が確認されている。
-- `最終検証` が `python3 scripts/harness/run.py --suite all` の通過結果または未実行理由を含んでいる。
-- `最終検証` が失敗した場合は、戻し先、失敗原因、担当 agent の責務内に閉じるかの判断が根拠参照付きで確認されている。
-- `実装後ブラウザ確認` が確認 URL、操作経路、操作期待値、証跡参照、未確認理由を含んでいる。
-- 5 観点の `reviewback.<観点>.yaml` が確認されている。
-- 終了処理、停止、戻しのいずれでも 作業 commit とマージ準備入力を判断できる根拠が作成されている。
-- 変更が local commit 済みである。
-- `マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、レビュー結果、残留リスクを含んでいる。
-- remote repository を変更する command を実行していない。
+- 成果物DAGの成果物が揃っている。
 
-## 停止規約
+## 作業を止める条件
 
 - 依頼が修正レーン対象か判断できない場合は停止する。
-- 人間観測、レビュー非通過、検証失敗の根拠がない場合は停止する。
-- 原因の原因が未確認なのに恒久修正へ進みそうな場合は停止する。
-- 修正前調査なしで修正実行入力へ進みそうな場合は停止する。
-- `修正方針判断` なしで人間修正レビューへ進みそうな場合は停止する。
-- `原因箇所シーケンス図` なしで修正実行入力へ進みそうな場合は停止する。
-- `原因箇所シーケンス図` に原因未確認の推測または未確認の修正案が含まれる場合は停止する。
-- `人間修正レビュー` なしで修正実行入力へ進みそうな場合は停止する。
-- `人間修正レビュー` が承認済みではないのに修正実行入力へ進みそうな場合は停止する。
-- 修正実行入力を固定できない場合は停止する。
-- 大規模修正なのに恒久修正へ進みそうな場合は停止する。
-- 仕様変更、機能追加、受け入れ条件の新規判断が必要な場合は停止する。
-- 修正レーンで `implementation-scope` を作りそうな場合は停止する。
-- 実装 skill を 1 つに固定できない場合は停止する。
-- `最終検証` なしで `実装後ブラウザ確認` へ進みそうな場合は停止する。
-- `最終検証` なしで `レビュー通過根拠` へ進みそうな場合は停止する。
-- `python3 scripts/harness/run.py --suite all` の失敗原因が修正実行入力または担当 agent の責務内に閉じない場合は停止する。
-- `実装後ブラウザ確認` の確認 URL、起動状態、操作経路、操作期待値、禁止操作、安全条件、証跡出力先が不足する場合は停止する。
-- `実装後ブラウザ確認` なしで `レビュー通過根拠` へ進みそうな場合は停止する。
-- プロダクトコードまたはプロダクトテストを直接変更しそうな場合は停止する。
-- レビュー agent 起動入力に人間観測記録、修正前調査、修正方針判断、原因箇所シーケンス図、人間修正レビュー、修正実行入力、実装証跡、回帰テスト証跡、最終検証の必要分が不足する場合は停止する。
-- local commit を作成できない場合は終了不可とする。
-- `マージ準備入力` が不足する場合は終了不可とする。
-- local merge または completed 移動を実行しそうな場合は停止する。
-- `push`、tag push、remote branch delete など remote repository を変更しそうな場合は停止する。
+- 新規実装や仕様変更が必要だと判断した場合は停止する。
+- 不具合判断資料が不足する場合は停止する。
+- `fix_lane` が担当 agent の成果物を代替作成しそうな場合は停止する。
+- `fix_lane` がプロダクトコード、プロダクトテスト、docs 正本本文、local merge、completed 移動、remote repository を変更しそうな場合は停止する。
 - 停止時は不足項目、衝突箇所、固定できない判断、戻し先を返す。

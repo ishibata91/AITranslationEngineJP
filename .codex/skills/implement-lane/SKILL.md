@@ -15,7 +15,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 返却先は人間とする。
 - 担当成果物は `task 枠`、`branch 準備`、`詳細仕様差分`、`画面設計差分`、`設計差分図`、`人間設計レビュー`、`実装範囲`、`テスト設計`、`実装引き継ぎ入力`、`frontend 実装`、`Storybookレビューループ入力確認`、`frontend 実装後人間レビュー`、`Storybook後画面設計差分整合`、`合意済みfrontend保護`、`観測ログ追加`、`最終検証`、`実装後ブラウザ確認`、`正本化判断`、`詳細仕様正本反映`、`作業 commit`、`マージ準備入力` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - 呼び出し元: この skill を呼び出した人間または戻し元。
 - 依頼要約: 新規実装または機能拡張として扱う依頼内容。
@@ -26,7 +26,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 既存成果物: 作業計画フォルダに既にある task 内成果物。
 - 人間介入状態: 人間レビュー、承認、差し戻し、追加質問の記録。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - 仕様入口は [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md) とする。
 - エージェント実行定義 は [implement_lane.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implement_lane.toml) とする。
@@ -42,7 +42,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - サンドボックス外実行の許可は [default.rules](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/rules/default.rules) に従う。
 - マージレーンは [merge-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/merge-lane/SKILL.md) に従う。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 新規実装レーンの 成果物依存表 は次を必ず持つ。
 各 成果物 は、`依存対象` の 成果物 が揃った時だけ着手できる。
@@ -162,7 +162,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 | `作業 commit` | local commit 結果を直接記録できる。 |
 | `マージ準備入力` | 作業 commit と検証結果から直接作成または更新できる。 |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - 次の実行判断は 成果物依存表 の未完了 成果物、満たされた `依存対象`、既存 成果物、対象 skill の完了規約で決める。
 - 既存 成果物 がある場合は、対象 skill の完了規約を満たすか確認してから後続 成果物 へ進む。
@@ -247,7 +247,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - タスクの終わったサブエージェントを起動したまま残さず，終わったら逐次で閉じること。
 - 設計中 agent は、担当する設計成果物の承認済みまたは停止が記録されるまでタスク完了と扱わない。
 
-## 非対象規約
+## skill が扱わない対象
 
 - 恒久修正、構造整理、探索テスト、軽量変更は詳細化しない。
 - 詳細仕様差分と画面設計差分の人間レビューは扱わない。
@@ -257,7 +257,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - プロダクトコードとプロダクトテストは変更しない。
 - local merge、completed 移動、remote repository の変更は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 人間向け返却: 人間向けには、成果物依存表 の現在 成果物、着手可能 成果物、停止中 成果物、停止理由を短く返す。
 - 起動先向け返却: 起動先 agent 向けには、対象 成果物、満たされた `依存対象`、読むファイル、禁止事項、期待する 成果物 を渡す。
@@ -279,7 +279,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - マージ準備入力: active plan folder、source branch、target branch、commit hash、検証結果、実装後ブラウザ確認結果、残留リスクを返す。
 - 終了処理返却: 終了処理、停止、戻し では、`作業 commit` と `マージ準備入力` を揃えるための 根拠を返す。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 新規実装レーンの次 成果物、起動、人間レビュー、引き継ぎ、正本化、停止、戻し を再解釈なしで判断できる。
 - 作業 branch が `codex/<task-id>` として存在する。
@@ -313,7 +313,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - 完了判断済みの場合は、`マージ準備入力` が active plan folder、source branch、target branch、commit hash、検証結果、実装後ブラウザ確認結果、残留リスクを含んでいる。
 - remote repository を変更する command を実行していない。
 
-## 停止規約
+## 作業を止める条件
 
 - 依頼が新規実装または機能拡張か判断できない場合は停止する。
 - `designer`、`investigator` の必要判定ができない場合は停止する。

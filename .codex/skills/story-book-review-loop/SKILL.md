@@ -17,7 +17,7 @@ frontend を実装する範囲は `implement-frontend` と同等の frontend 実
 - 返却先は人間とする。
 - 担当成果物は `Storybook レビューループ画面仕様`、`frontend レビュー修正成果物`、`設計整合入力` とする。
 
-## 入力規約
+## 呼び出し元から渡される情報
 
 - Storybook レビューループ入力確認: `implement_lane` が確認した対象 story、`fixture`、関連資源、起動 URL、起動 command、作業中分類、通常分類、frontend 実装境界、作業計画フォルダ。
 - frontend 実装結果: `frontend_implementer` が返した変更ファイル、Storybook 確認資源、検証結果、未確認理由。
@@ -27,7 +27,7 @@ frontend を実装する範囲は `implement-frontend` と同等の frontend 実
 - 人間コメント: Codex 内蔵ブラウザで受けたコメント本文、対象 story、対象 selector、frame URL、marker screenshot。
 - 人間承認状態: Storybook レビューの承認、差し戻し、追加質問。
 
-## 外部参照規約
+## 作業前に読む正本
 
 - Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
 - frontend 実装境界は [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) に従う。
@@ -42,7 +42,7 @@ frontend を実装する範囲は `implement-frontend` と同等の frontend 実
 - active plan の証跡規約は [active/README.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/exec-plans/active/README.md) に従う。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
-## 内部参照規約
+## skill 内の拘束条件
 
 Storybook レビューループ画面仕様は次を必ず持つ。
 
@@ -53,7 +53,7 @@ Storybook レビューループ画面仕様は次を必ず持つ。
 | 反映先 | 変更された画面仕様が反映された frontend ファイル、story、`fixture`、関連資源 |
 | 現在状態 | 通常分類へ戻した story、承認状態、未解決事項 |
 
-## 判断規約
+## 担当ロールが判断してよい範囲
 
 - Storybook の URL、起動 command、port 固定、再起動、分類、確認資源、`fixture` 種類基準は Storybook 規約に従う。
 - Storybook レビューループ画面仕様は、Storybook レビューループ画面仕様の雛形に合わせて記録する。
@@ -69,7 +69,7 @@ Storybook レビューループ画面仕様は次を必ず持つ。
 - `story-book-review-loop` は `screen-design-diff.<screen-id>.md` を作成または更新しない。
 - 人間が `story-book-review-loop` の設計整合入力を `implement_lane` へ戻した場合、`implement_lane` は `designer` に画面設計差分の整合を戻す。
 
-## 非対象規約
+## skill が扱わない対象
 
 - backend 実装は行わない。
 - 統合境界実装は扱わない。
@@ -78,7 +78,7 @@ Storybook レビューループ画面仕様は次を必ず持つ。
 - `.codex` 作業流れ契約は変更しない。
 - 画面設計差分と詳細仕様差分の作成または更新は扱わない。
 
-## 出力規約
+## 返す成果物
 
 - 判断結果: Storybook レビューループの完了、未完了、停止の判定を返す。
 - Storybook レビューループ画面仕様: 確定した story、`fixture`、関連資源、現在分類、変更された画面仕様、反映先、承認状態を返す。
@@ -88,7 +88,7 @@ Storybook レビューループ画面仕様は次を必ず持つ。
 - 不足情報: 継続できない不足項目を返す。
 - 禁止事項: 出力に docs 正本本文の変更、プロダクトテスト変更を含めない。
 
-## 完了規約
+## 作業を完了できる条件
 
 - 人間承認または停止理由が記録されている。
 - `docs/exec-plans/active/<task-id>/storybook-review-loop.md` が存在し、変更された画面仕様が記録されている。
@@ -100,7 +100,7 @@ Storybook レビューループ画面仕様は次を必ず持つ。
 - `npm --prefix frontend run build-storybook` を実行し、通過結果または未実行理由を返した。
 - `python3 scripts/harness/run.py --suite frontend-local` を実行し、通過結果または未実行理由を返した。
 
-## 停止規約
+## 作業を止める条件
 
 - Storybook レビューループ入力確認が不足する場合は停止する。
 - frontend 実装結果が不足する場合は停止する。
