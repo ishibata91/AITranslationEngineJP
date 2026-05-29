@@ -25,9 +25,11 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 
 - エージェント実行定義と実行境界は [fix_decider.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/fix_decider.toml) に従う。
 - 修正レーンの進行境界は [fix-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/fix-lane/SKILL.md) に従う。
+- 画面設計書正本は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
 - ユースケース正本は [usecases](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/usecases/README.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
+- `agent-browser` CLI は [.codex/rules/default.rules](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/rules/default.rules) に従い、全 command を elevated 権限で実行する。
 - 外部成果物が不足または衝突する場合は停止し、衝突箇所を返す。
 
 ## skill 内の拘束条件
@@ -37,7 +39,8 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 | 観点 | 拘束する判断 |
 | --- | --- |
 | `観測済み問題` | 人間観測記録から確認できる問題だけを固定する。 |
-| `原因仮説` | 複数の原因候補を立て、検証する順序と根拠を固定する。 |
+| `画面再現確認` | 画面設計のセレクタに従い、人間観測記録のユーザー操作を `agent-browser` で再現する。 |
+| `原因仮説` | 画面操作結果、DB 状態、ログの観測事実から複数の原因候補を立て、検証する順序と根拠を固定する。 |
 | `観測ログ検証` | 仮説を否定または支持するために追加した一時ログ、観測結果、削除確認を固定する。 |
 | `確定原因` | 観測で確定した原因だけを固定する。 |
 | `採用する修正方針` | 仕様が不足していない場合だけ恒久修正を固定する。 |
@@ -46,7 +49,13 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 ## 担当ロールが判断してよい範囲
 
 - 観測事実と仮説を分ける。
-- 人間観測記録から複数の原因仮説を立てる。
+- 人間観測記録の画面操作は、原因仮説を固定する前に `agent-browser` で再現確認する。
+- 画面再現確認では、画面設計書の selector または `data-testid` に従ってユーザー操作を再現する。
+- 画面再現確認では、`agent-browser` の全 command を elevated 権限で実行する。
+- 画面操作結果、DB 状態、ログを観測事実として分けて整理する。
+- 画面操作結果、DB 状態、ログの差分から、どの層で期待と実際が分かれたかを特定する。
+- 特定した分岐点ごとに、複数の原因仮説を立てる。
+- 画面操作結果だけで原因仮説を固定せず、DB 状態またはログで仮説を検証する。
 - 仮説ごとに観測ログを仕込み、観測結果で否定または支持を判断する。
 - 観測ログで否定された仮説は、確定原因から除外する。
 - 観測ログで検証できていない仮説は、確定原因として固定しない。
@@ -69,6 +78,7 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 
 - 判断結果: `修正方針判断` の完了、未完了、停止の判定を返す。
 - 観測済み問題: 根拠から確認できる問題を返す。
+- 画面再現確認: `agent-browser` で再現した操作、画面状態、証跡 path を返す。
 - 確定原因: 観測で確定した原因を返す。
 - 採用する修正方針: 恒久修正として採用する方針を返す。
 - 禁止する修正: 実装 agent に許可しない対症療法を返す。
@@ -76,13 +86,15 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 
 ## 作業を完了できる条件
 
-- 観測済み問題、確定原因、採用する修正方針、禁止する修正が返っている。
+- 観測済み問題、画面再現確認、確定原因、採用する修正方針、禁止する修正が返っている。
 - 追加した一時観測ログが削除されている。
 - 仕様が不足していると判断した場合は停止している。
 
 ## 作業を止める条件
 
 - 人間観測記録が不足する場合は停止する。
+- 画面設計の selector に従ったユーザー操作を `agent-browser` で再現確認できない場合は停止する。
+- `agent-browser` を elevated 権限で実行できない場合は停止する。
 - 観測ログを追加または確認できず、仮説を検証できない場合は停止する。
 - 追加した一時観測ログを削除できない場合は停止する。
 - 原因が仮説に留まり、採用する修正方針を固定できない場合は停止する。
