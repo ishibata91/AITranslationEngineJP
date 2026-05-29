@@ -99,6 +99,7 @@ agent の 権限 と 契約 は、skill 本文から agent-owned reference を�
 
 - library の書き方は `npx ctx7 library` / `npx ctx7 docs` で Context7 を確認する
 - wails は `npm run dev:wails:agent-browser` で起動する
+- `system-test` と `harness all` は elevated 権限で実行しないと成功しない
 - Storybook は `npm --prefix frontend run storybook` で `http://localhost:6008/` に固定して起動する
 - Storybook は変更後に再起動し、別 port で追加起動しない
 - Codex 本体の開発体験確認と Storybook 人間レビューコメント取得は Codex 内蔵ブラウザを使う

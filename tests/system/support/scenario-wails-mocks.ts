@@ -298,6 +298,39 @@ export async function installScenarioWailsMocks(
     body_translation: "本文翻訳",
     translation_complete: "翻訳完了"
   };
+  const lucienInputFileName = "Lucien.esp_Export.json";
+  const lucienInputId = 1401;
+  const lucienJobId = 1401;
+  const lucienTermProcessingTargets = [
+    {
+      id: "lucien-term-target-1",
+      name: "Lucien",
+      detail: "データロードから登録した Lucien の単語翻訳対象。",
+      titleParts: [
+        { text: "対象名: Lucien" },
+        { text: "訳語候補: ルシエン" }
+      ],
+      metadata: [
+        { label: "FormID", value: "0001B001" },
+        { label: "原文", value: "Lucien" },
+        { label: "種別", value: "固有名詞" }
+      ]
+    },
+    {
+      id: "lucien-term-target-2",
+      name: "Dumzbthar",
+      detail: "データロードから登録した Lucien の単語翻訳対象。",
+      titleParts: [
+        { text: "対象名: Dumzbthar" },
+        { text: "訳語候補: ドゥムズブサール" }
+      ],
+      metadata: [
+        { label: "FormID", value: "0001B002" },
+        { label: "原文", value: "Dumzbthar" },
+        { label: "種別", value: "固有名詞" }
+      ]
+    }
+  ];
   const processingTargetSearchText = (item) => [
     item.name,
     item.detail,
@@ -307,7 +340,9 @@ export async function installScenarioWailsMocks(
   const getProcessingTargets = (request = {}) => {
     const phase = String(request.phase || "term_translation");
     const sourceItems =
-      processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
+      Number(request.jobId) === lucienJobId && phase === "term_translation"
+        ? lucienTermProcessingTargets
+        : processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
     const searchQuery = String(request.searchQuery || "");
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
     const page = Math.max(1, Number(request.page) || 1);
@@ -391,15 +426,15 @@ export async function installScenarioWailsMocks(
     isRedacted: true
   };
 
-  const termSummary = (state = "pending", jobId = 301) => ({
+  const termSummary = (state = "pending", jobId = 301, targetCount = 3) => ({
     jobId,
     currentPhase: "term_translation",
     phaseState: state,
     phaseRunId: 1,
-    progress: state === "completed" ? commonProgress(3, 3, "完了") : commonProgress(0, 3, "未開始"),
-    totalTermCount: 3,
+    progress: state === "completed" ? commonProgress(targetCount, targetCount, "完了") : commonProgress(0, targetCount, "未開始"),
+    totalTermCount: targetCount,
     dictionaryHitCount: 0,
-    aiTargetCount: 3,
+    aiTargetCount: targetCount,
     execution,
     errorSummary: blockedStartError,
     actionEnablement: {
@@ -563,6 +598,39 @@ export async function installScenarioWailsMocks(
     return jobsById[jobId] || job(jobId, "system-test-detail", "Ready", "term_translation");
   };
 
+  const lucienImportSummary = (request = {}) => ({
+    accepted: true,
+    summary: {
+      input: {
+        id: lucienInputId,
+        sourceFilePath: request.filePath || request.fileName || lucienInputFileName,
+        sourceTool: "xEdit",
+        targetPluginName: "Lucien.esp",
+        targetPluginType: "ESP",
+        recordCount: 2,
+        importedAt: "2026-05-25T09:00:00Z"
+      },
+      translationRecordCount: 2,
+      translationFieldCount: lucienTermProcessingTargets.length,
+      categories: [
+        { category: "NPC_", recordCount: 1, fieldCount: 1 },
+        { category: "DIAL", recordCount: 1, fieldCount: 1 }
+      ],
+      sampleFields: [
+        {
+          recordType: "NPC_",
+          subrecordType: "FULL",
+          formId: "0001B001",
+          editorId: "Lucien",
+          sourceText: "Lucien",
+          translatable: true
+        }
+      ],
+      warnings: []
+    },
+    warnings: []
+  });
+
   const outputReview = (selectedJobId = 401) => ({
     completedJobs: [
       { jobId: 401, jobStatus: "completed", artifactStatus: "none", outputReady: true, translatedCount: 2, outputStatusDistribution: { ready: 2 } },
@@ -651,6 +719,14 @@ export async function installScenarioWailsMocks(
       if (index >= 0) personaItems.splice(index, 1);
       return Promise.resolve({ ...pageFromPersonaItems(request), deletedEntryId: request.identityKey });
     },
+    ImportTranslationInput: (request) => Promise.resolve(lucienImportSummary(request)),
+    RebuildTranslationInputCache: () => Promise.resolve(lucienImportSummary({ filePath: lucienInputFileName })),
+    CreateTranslationJobFromInput: () => Promise.resolve({
+      accepted: true,
+      jobId: lucienJobId,
+      jobState: "Ready",
+      currentPhase: "term_translation"
+    }),
     ListIncompleteJobs: () => Promise.resolve({
       jobs: seededPhaseJobs.map((seededJob) =>
         job(
@@ -664,7 +740,7 @@ export async function installScenarioWailsMocks(
     }),
     GetJobDetail: (request) => Promise.resolve({ ...jobDetail(request.jobId), cacheState: "available", cacheStateLabel: "available", runtimeSummary: { providerLabel: "-", modelLabel: "-", executionModeLabel: "batch", credentialState: "missing", credentialStateLabel: "設定未完了" }, resumeBlockedReasons: [], warnings: [], deleteImpactLines: [] }),
     GetProcessingTargetList: (request) => Promise.resolve(getProcessingTargets(request)),
-    GetTermTranslationPhaseSummary: (request) => Promise.resolve(request.jobId === 10 ? termSummary("completed", request.jobId) : termSummary("pending", request.jobId)),
+    GetTermTranslationPhaseSummary: (request) => Promise.resolve(request.jobId === 10 ? termSummary("completed", request.jobId) : termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3)),
     StartTermTranslationPhase: () => Promise.resolve(termSummary()),
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),
     ResumeTermTranslationPhase: () => Promise.resolve(termSummary("running")),
@@ -766,6 +842,7 @@ export async function installScenarioWailsMocks(
       }
     });
     wails.MasterPersonaController = wails.AppController;
+    wails.TranslationInputController = wails.AppController;
     wails.TranslationOutputArtifactController = wails.AppController;
     wails.PersonaGenerationPhaseController = wails.AppController;
     wails.ProcessingTargetController = wails.AppController;
