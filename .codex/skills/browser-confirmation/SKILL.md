@@ -31,6 +31,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 
 - エージェント実行定義と実行境界は [browser_confirmation.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/browser_confirmation.toml) に従う。
 - `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
+- `agent-browser` CLI は [.codex/rules/default.rules](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/rules/default.rules) に従い、全 command を elevated 権限で実行する。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
 - active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
@@ -53,6 +54,7 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 ## 担当ロールが判断してよい範囲
 
 - 確認 URL、操作経路、操作期待値、安全条件に従って実行する。
+- `agent-browser` の全 command は `.codex/rules/default.rules` に従い、elevated 権限で実行する。
 - 画面設計参照がある場合は、操作経路、操作前の事前条件、操作期待値の確認先として読む。
 - `snapshot` と `errors` は必ず取得する。
 - `screenshot` は画面状態、表示差分、未確認理由の説明に必要な場合に取得する。
@@ -101,3 +103,4 @@ description: 実装後ブラウザ確認で、呼び出し元が定義した確�
 - 外部送信リスクがある場合は停止する。
 - 破壊的操作リスクがある場合は停止する。
 - ブラウザ操作不能の場合は停止する。
+- `agent-browser` を elevated 権限で実行できない場合は停止する。

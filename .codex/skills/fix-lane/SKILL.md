@@ -91,7 +91,8 @@ E2E テスト観点差分の分類は次に従う。
 - `修正実行入力`: 人間修正レビューで承認された修正方針、UC 差分候補、E2E テスト観点差分、`fix_decider` が返した画面再現確認を、実装 agent とテスト agent と `browser_confirmation` へ渡せる入力として固定する。
 - `実装後ブラウザ確認`: `fix_lane` は再現手順を構築せず、`fix_decider` が返した再現手順を `browser_confirmation` の操作経路として共有する。
 - `実装後ブラウザ確認`: `fix_lane` は期待値を構築せず、`fix_decider` が返した修正前の問題状態と修正後に満たすべき期待状態を `browser_confirmation` の操作期待値として共有する。
-- `ハーネス実行`: `.codex/rules/default.rules` に従い、elevate 権限で `python3 scripts/harness/run.py --suite all` を実行し、失敗した場合は実装エージェントに差し戻す。通過するまで続ける。
+- `ハーネス実行`: `.codex/rules/default.rules` に従い、elevate 権限で `python3 scripts/harness/run.py --suite all` を実行する。
+- `ハーネス実行`: harness が停止または失敗した場合は、原因に対応する担当サブエージェントに差し戻し、解決して通過するまで再実行する。
 - `作業 commit`: 実行 branch、作業 commit、ハーネス実行結果を `plan.md` に記録する。
 - `fix_lane` はプロダクトコード、プロダクトテスト、docs 正本本文を直接変更しない。
 
