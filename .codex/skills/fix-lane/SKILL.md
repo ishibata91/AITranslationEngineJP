@@ -52,7 +52,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `シナリオテスト追加証跡` | 修正前に追加した E2E テストと確認結果を記録する。 | `implementation_scenario_tester` | `修正実行入力` | `implementation_scenario_tester` |
 | `実装修正証跡` | 不具合修正の実装結果を記録する。 | 実装種別別 agent / `implement-backend` または `implement-frontend` または `implement-integration` | `修正実行入力`, `シナリオテスト追加証跡` | `backend_implementer` または `frontend_implementer` または `integration_implementer` |
 | `単体テスト追加証跡` | 実装修正後に追加した単体テストと確認結果を記録する。 | `implementation_unit_tester` | `修正実行入力`, `実装修正証跡` | `implementation_unit_tester` |
-| `実装後ブラウザ確認` | 修正後の画面操作確認結果を記録する。 | `browser_confirmation` | `実装修正証跡`, `単体テスト追加証跡?` | `browser_confirmation` |
+| `実装後ブラウザ確認` | `fix_decider` が返した再現手順を共有し、修正後の画面操作確認結果を記録する。 | `browser_confirmation` | `修正実行入力`, `実装修正証跡`, `単体テスト追加証跡?` | `browser_confirmation` |
 | `ハーネス実行` | 修正後の harness 実行結果を記録する。 | `fix_lane` | `実装修正証跡`, `シナリオテスト追加証跡`, `単体テスト追加証跡?`, `実装後ブラウザ確認?` | なし |
 | `作業 commit` | 修正作業の local commit を記録する。 | `fix_lane` | `ハーネス実行` | なし |
 
@@ -88,7 +88,9 @@ E2E テスト観点差分の分類は次に従う。
 - `事前準備`: 既存の Wails 起動プロセスを確認し、複数起動している場合はレーンで利用する 1 process だけに整理する。
 - `事前準備`: `.codex/rules/default.rules` に従い、elevate 権限で `npm run dev:wails:agent-browser` を起動する。
 - `事前準備`: `fix_decider` がアクセスする Wails process または接続先を固定し、`修正方針判断` の起動入力へ渡す。
-- `修正実行入力`: 人間修正レビューで承認された修正方針、UC 差分候補、E2E テスト観点差分を、実装 agent とテスト agent へ渡せる入力として固定する。
+- `修正実行入力`: 人間修正レビューで承認された修正方針、UC 差分候補、E2E テスト観点差分、`fix_decider` が返した画面再現確認を、実装 agent とテスト agent と `browser_confirmation` へ渡せる入力として固定する。
+- `実装後ブラウザ確認`: `fix_lane` は再現手順を構築せず、`fix_decider` が返した再現手順を `browser_confirmation` の操作経路として共有する。
+- `実装後ブラウザ確認`: `fix_lane` は期待値を構築せず、`fix_decider` が返した修正前の問題状態と修正後に満たすべき期待状態を `browser_confirmation` の操作期待値として共有する。
 - `ハーネス実行`: `.codex/rules/default.rules` に従い、elevate 権限で `python3 scripts/harness/run.py --suite all` を実行し、失敗した場合は実装エージェントに差し戻す。通過するまで続ける。
 - `作業 commit`: 実行 branch、作業 commit、ハーネス実行結果を `plan.md` に記録する。
 - `fix_lane` はプロダクトコード、プロダクトテスト、docs 正本本文を直接変更しない。

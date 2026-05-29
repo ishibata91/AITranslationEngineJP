@@ -26,6 +26,7 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 
 - エージェント実行定義と実行境界は [fix_decider.toml](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/fix_decider.toml) に従う。
 - 修正レーンの進行境界は [fix-lane](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/fix-lane/SKILL.md) に従う。
+- 修正方針判断の報告形式は [fix-decision-report-template.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/fix-decision/fix-decision-report-template.md) に従う。
 - 画面設計書正本は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
 - ユースケース正本は [usecases](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/usecases/README.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
@@ -80,7 +81,7 @@ description: 修正レーンで、観測記録から仮説、観測ログ検証�
 
 - 判断結果: `修正方針判断` の完了、未完了、停止の判定を返す。
 - 観測済み問題: 根拠から確認できる問題を返す。
-- 画面再現確認: `agent-browser` で再現した操作、画面状態、証跡 path を返す。
+- 画面再現確認: `agent-browser` で再現に使った再現手順、操作結果、画面状態、証跡 path を返す。
 - 確定原因: 観測で確定した原因を返す。
 - 採用する修正方針: 恒久修正として採用する方針を返す。
 - 禁止する修正: 実装 agent に許可しない対症療法を返す。
