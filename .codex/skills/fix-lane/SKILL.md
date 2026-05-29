@@ -24,7 +24,7 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 - `fix_lane` が使う。
 - 呼び出し元は人間とする。
 - 返却先は人間とする。
-- 起動担当 agent は `investigator`、`fix_decider`、`test_designer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation` とする。
+- 起動担当 agent は `fix_decider`、`test_designer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`browser_confirmation` とする。
 
 ## 呼び出し元から渡される情報
 
@@ -44,8 +44,8 @@ description: 人間が確認した不具合、レビュー非通過、検証失�
 | `人間観測記録` | 確認された不具合を修正入口として記録する。 | `fix_lane` | `task 枠` | なし |
 | `事前準備` | 作業計画と local branch を準備する。 | `fix_lane` | `人間観測記録` | なし |
 | `修正方針判断` | 観測記録から複数仮説を立て、観測ログで検証し、確定原因、採用方針、禁止修正を判断する。 | `fix_decider` | `人間観測記録`, `事前準備` | `fix_decider` |
-| `UC 差分候補` | UC 記述に不足があるかを差分候補として整理する。 | `investigator` | `人間観測記録`, `修正方針判断` | `investigator` |
-| `E2E テスト観点差分` | E2E テスト観点正本との差分だけを整理する。 | `test_designer` | `人間観測記録`, `修正方針判断`, `UC 差分候補` | `test_designer` |
+| `UC 差分候補` | UC 記述に不足があるかを差分候補として整理する。 | `test_designer` | `人間観測記録`, `修正方針判断` | `test_designer` |
+| `E2E テスト観点差分` | E2E テスト観点正本との差分だけを整理する。 | `test_designer` | `人間観測記録`, `修正方針判断` | `test_designer` |
 | `人間修正レビュー` | 修正方針、UC 差分候補、E2E テスト観点差分を人間が確認する。 | human | `修正方針判断`, `UC 差分候補`, `E2E テスト観点差分` | human |
 | `修正実行入力` | 承認済み判断を実行 agent へ渡す入力にまとめる。 | `fix_lane` | `人間観測記録`, `修正方針判断`, `UC 差分候補`, `E2E テスト観点差分`, `人間修正レビュー` | なし |
 | `テスト追加証跡` | 修正前に追加したテストと確認結果を記録する。 | `implementation_scenario_tester` または `implementation_unit_tester` | `修正実行入力` | `implementation_scenario_tester` または `implementation_unit_tester` |
@@ -75,7 +75,8 @@ E2E テスト観点差分の分類は次に従う。
 ### agent 起動判断
 
 - `fix_lane` は依存対象が揃った未完了の成果物について、必ずDAGで定義された担当 agent を起動して作成する。担当 agent に自身が指定されている場合のみ、`fix_lane` での編集を許可する。
-- `fix_lane` は各 agent への指示と handoff を、対象 agent の入力規約を参照して判断する。
+- `fix_lane` は各 agent への指示と handoff を、対象 agent の「呼び出し元から渡される情報」を参照して判断する。
+- `UC 差分候補` と `E2E テスト観点差分` は、同じ `test_designer` 起動で同時に作成する。
 
 ### `fix_lane` 担当成果物
 
@@ -84,7 +85,7 @@ E2E テスト観点差分の分類は次に従う。
 - `事前準備`: 作業 branch は `codex/<task-id>` とする。
 - `事前準備`: `.codex/rules/default.rules` に従い、elevate 権限で `npm run dev:wails:agent-browser` を起動する。
 - `修正実行入力`: 人間修正レビューで承認された修正方針、UC 差分候補、E2E テスト観点差分を、実装 agent とテスト agent へ渡せる入力として固定する。
-- `ハーネス実行`: `.codex/rules/default.rules` に従い、elevate 権限で `python3 scripts/harness/run.py --suite all` を実行し、成否、証跡位置、失敗箇所を記録する。
+- `ハーネス実行`: `.codex/rules/default.rules` に従い、elevate 権限で `python3 scripts/harness/run.py --suite all` を実行し、失敗した場合は実装エージェントに差し戻す。通過するまで続ける。
 - `作業 commit`: 実行 branch、作業 commit、ハーネス実行結果を `plan.md` に記録する。
 - `fix_lane` はプロダクトコード、プロダクトテスト、docs 正本本文を直接変更しない。
 

@@ -1,5 +1,5 @@
 name = "investigator"
-description = "investigate skill の primary agent。設計前調査、探索テスト証跡、修正レーンの UC 差分候補、リファクタ調査を担当する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md を読む。"
+description = "investigate skill の primary agent。設計前調査、探索テスト証跡、リファクタ調査を担当する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/SKILL.md を読む。"
 
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
