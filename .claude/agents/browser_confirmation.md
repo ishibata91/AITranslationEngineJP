@@ -10,7 +10,7 @@ model: haiku
 あなたは次の境界で動く。
 - 扱う task: `implement_lane`、`fix_lane`、`light_change_lane`、`refactor_lane` から渡された実装後ブラウザ確認
 - 扱わない task: 期待値の妥当性判断、仕様判断、原因推定、修正方針作成、プロダクトコード変更、プロダクトテスト変更、docs 正本化
-- 書き換えてよい範囲: `tmp/agent-browser/`、`tmp/logs/`、`test-results/`
+- 書き換えてよい範囲: `tmp/logs/`、`test-results/`
 - 書き換えてはいけない範囲: プロダクトコード、プロダクトテスト、docs 正本本文、`.codex/` 作業流れ、作業計画フォルダ本文
 - 戻し先: 呼び出し元 lane agent
 

@@ -1,0 +1,76 @@
+# 観測ラウンド2 コンソールログ
+
+## 観測条件
+- 接続先: http://localhost:34115
+- jobId: 6 (Lucien.esp_Export.json, state=failed, 用語翻訳段階)
+- 一時観測ログ追加箇所: term-translation-phase.usecase.ts
+  - load() 開始時
+  - setJobId() 開始時
+  - fetchSummaryAndReadiness() seq-assigned後
+  - 各Promise個別解決時（getSummary, getReadiness, getProcessingTarget）
+  - fetchSummaryAndReadiness() Promise.all解決後
+  - store.update前後のstate
+
+## 観測1: 初回正常解決ケース（前回観測とほぼ同じ状況）
+
+コンソールログ:
+```
+[log] [OBS] setJobId called jobId=6 seq-before=2
+[log] [OBS] fetchSummaryAndReadiness start jobId=6 seq-before=2
+[log] [OBS] fetchSummaryAndReadiness seq-assigned=3 seq-current=3
+[log] [OBS] load called jobId=6 seq-before=3
+[log] [OBS] fetchSummaryAndReadiness start jobId=6 seq-before=3
+[log] [OBS] fetchSummaryAndReadiness seq-assigned=4 seq-current=4
+```
+→ この時点では Promise.all が pending のまま解決せず（長時間待機後も変化なし）
+
+## 観測2: 再試行後の正常解決ケース（リロード後の状態）
+
+コンソールログ（クリア後の新規遷移）:
+```
+[log] [OBS] setJobId called jobId=6 seq-before=0
+[log] [OBS] fetchSummaryAndReadiness start jobId=6 seq-before=0
+[log] [OBS] fetchSummaryAndReadiness seq-assigned=1 seq-current=1
+[log] [OBS] load called jobId=6 seq-before=1
+[log] [OBS] fetchSummaryAndReadiness start jobId=6 seq-before=1
+[log] [OBS] fetchSummaryAndReadiness seq-assigned=2 seq-current=2
+[log] [OBS] getProcessingTarget resolved seq=1 items=4931
+[log] [OBS] getProcessingTarget resolved seq=2 items=4931
+[log] [OBS] getReadiness resolved seq=2
+[log] [OBS] getReadiness resolved seq=1
+[log] [OBS] getSummary resolved seq=2
+[log] [OBS] fetchSummaryAndReadiness resolved seq-assigned=2 seq-current=2 match=true items=4931
+[log] [OBS] getSummary resolved seq=1
+[log] [OBS] fetchSummaryAndReadiness resolved seq-assigned=1 seq-current=2 match=false items=4931
+```
+→ 画面表示: 処理対象「0件」（seq=2が match=true で4931件を書いた後も0件のまま）
+
+## 観測3: 二重起動後の再試行でもハングするケース
+
+コンソールログ（コンソールクリア後の新規遷移）:
+```
+[log] [OBS] setJobId called jobId=6 seq-before=0
+[log] [OBS] fetchSummaryAndReadiness start jobId=6 seq-before=0
+[log] [OBS] fetchSummaryAndReadiness seq-assigned=1 seq-current=1
+[log] [OBS] load called jobId=6 seq-before=1
+[log] [OBS] fetchSummaryAndReadiness start jobId=6 seq-before=1
+[log] [OBS] fetchSummaryAndReadiness seq-assigned=2 seq-current=2
+```
+→ この後 Promise.all が解決しない（pending のまま）
+
+## 直接API呼び出し確認
+- GetTermTranslationPhaseSummary({jobId:6}) → 正常応答（phaseState:failed）
+- GetTermTranslationNextPhaseReadiness({jobId:6}) → 正常応答
+- GetProcessingTargetList 個別呼び出し → 応答（項目数4931確認済み）
+- 6本同時呼び出し状態では一部がハング
+
+## 観測から確定した事実
+1. $effect（setJobId）と onMount（load）が常に二重で fetchSummaryAndReadiness を起動する
+2. 合計6本のWails bridge呼び出しが同時に走る
+3. 症状はケースA（全6本解決→seq=1がskipで0件）またはケースB（一部pending→永続ハング）
+4. seq=2（load）がmatch=trueで4931件をstore.updateしても画面は0件のままになるケースがある
+5. 根本原因は二重起動であり、連番競合skip（前回確定原因）はその一症状
+
+## 一時観測ログ削除確認
+- term-translation-phase.usecase.ts の全[OBS-LOG]を削除した
+- grep -n "OBS|console.log" で0件を確認

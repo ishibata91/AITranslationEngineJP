@@ -86,7 +86,7 @@ E2E テスト観点差分の分類は次に従う。
 - `事前準備`: 作業計画雛形から新規 plan を作成する。
 - `事前準備`: 作業 branch は `codex/<task-id>` とする。
 - `事前準備`: 既存の Wails 起動プロセスを確認し、複数起動している場合はレーンで利用する 1 process だけに整理する。
-- `事前準備`: `.claude/settings.json` の許可済みコマンドに従い、`npm run dev:wails:agent-browser` を起動する。
+- `事前準備`: `.claude/settings.json` の許可済みコマンドに従い、`sh ./scripts/dev/run-wails-agent-browser.sh` を起動する。
 - `事前準備`: `fix_decider` がアクセスする Wails process または接続先を固定し、`修正方針判断` の起動入力へ渡す。
 - `修正実行入力`: 人間修正レビューで承認された修正方針、UC 差分候補、E2E テスト観点差分、`fix_decider` が返した画面再現確認を、実装 agent とテスト agent と `browser_confirmation` へ渡せる入力として固定する。
 - `実装後ブラウザ確認`: `fix_lane` は再現手順を構築せず、`fix_decider` が返した再現手順を `browser_confirmation` の操作経路として共有する。

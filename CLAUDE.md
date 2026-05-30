@@ -77,6 +77,7 @@ agent の 権限 と 契約 は、skill 本文から agent-owned reference を�
 - Codex 入口: `.codex/skills/propose-plans/SKILL.md`
 - Codex implementation lane 実装入口: `.codex/skills/implementation-orchestrate/SKILL.md`
 - Claude 版 修正レーン入口: `.claude/skills/fix-lane/SKILL.md`
+- Claude 版 新規実装レーン入口: `.claude/skills/implement-lane/SKILL.md`
 - Claude 版 agent 定義: `.claude/agents/`
 - Claude 版 許可済みコマンド: `.claude/settings.json`
 - 仕様入口: `docs/index.md`
@@ -87,8 +88,10 @@ agent の 権限 と 契約 は、skill 本文から agent-owned reference を�
 
 ## Claude 変換済みレーン
 
-- `fix-lane` skill と依存 skill は `.claude/skills/` にある。
-- 起動担当 agent は `.claude/agents/` にあり、`fix_lane` が Task ツールで起動する。
+- `fix-lane` と `implement-lane` のレーン skill と依存 skill は `.claude/skills/` にある。
+- 起動担当 agent は `.claude/agents/` にあり、`fix_lane` と `implement_lane` が Task ツールで起動する。
+- `implement_lane` は `designer`、`diagrammer`、`test_designer`、`backend_implementer`、`frontend_implementer`、`integration_implementer`、`observability_implementer`、`browser_confirmation` を Task ツールで起動する。
+- 設計レーンと実装後ブラウザ確認のブラウザ操作は `mcp__Claude_in_Chrome` ツール群を優先する。
 - harness、`agent-browser`、git の許可済みコマンドは `.claude/settings.json` の permissions に固定する。
 
 ## 強い制約

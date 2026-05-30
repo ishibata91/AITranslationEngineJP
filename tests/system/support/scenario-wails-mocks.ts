@@ -2,6 +2,11 @@ import type { Page } from "@playwright/test";
 
 interface ScenarioWailsMockOptions {
   masterPersonaAISettings?: "configured" | "missing";
+  /**
+   * 指定した jobId のジョブは aiTargetCount=0（母数0）として振る舞う。
+   * E2E-LTLE-003（境界: 母数0のとき空状態）専用オプション。
+   */
+  termZeroAITargetJobId?: number;
 }
 
 export async function installScenarioWailsMocks(
@@ -10,6 +15,7 @@ export async function installScenarioWailsMocks(
 ): Promise<void> {
   const masterPersonaAISettings =
     options.masterPersonaAISettings ?? "configured";
+  const termZeroAITargetJobId = options.termZeroAITargetJobId ?? -1;
   await page.addInitScript({
     content: `
 (() => {
@@ -340,9 +346,11 @@ export async function installScenarioWailsMocks(
   const getProcessingTargets = (request = {}) => {
     const phase = String(request.phase || "term_translation");
     const sourceItems =
-      Number(request.jobId) === lucienJobId && phase === "term_translation"
-        ? lucienTermProcessingTargets
-        : processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
+      Number(request.jobId) === termZeroAITargetJobId && phase === "term_translation"
+        ? []
+        : Number(request.jobId) === lucienJobId && phase === "term_translation"
+          ? lucienTermProcessingTargets
+          : processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
     const searchQuery = String(request.searchQuery || "");
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
     const page = Math.max(1, Number(request.page) || 1);
@@ -544,6 +552,7 @@ export async function installScenarioWailsMocks(
     return "failed";
   };
 
+  const termZeroAITargetJobId = ${JSON.stringify(termZeroAITargetJobId)};
   const seededPhaseJobs = [
     { jobId: 7, label: "system-test-term", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
     { jobId: 8, label: "system-test-persona", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
@@ -553,6 +562,9 @@ export async function installScenarioWailsMocks(
     { jobId: 12, label: "system-test-body-failed", state: "Failed", currentPhase: "body_translation", progressPercent: 68 },
     { jobId: 13, label: "system-test-body-running", state: "Running", currentPhase: "body_translation", progressPercent: 48 }
   ];
+  if (termZeroAITargetJobId >= 0) {
+    seededPhaseJobs.push({ jobId: termZeroAITargetJobId, label: "system-test-term-zero-ai-target", state: "Ready", currentPhase: "term_translation", progressPercent: 0 });
+  }
 
   const job = (jobId, label, state, currentPhase, progressPercent = 0) => ({
     jobId,
@@ -740,7 +752,13 @@ export async function installScenarioWailsMocks(
     }),
     GetJobDetail: (request) => Promise.resolve({ ...jobDetail(request.jobId), cacheState: "available", cacheStateLabel: "available", runtimeSummary: { providerLabel: "-", modelLabel: "-", executionModeLabel: "batch", credentialState: "missing", credentialStateLabel: "設定未完了" }, resumeBlockedReasons: [], warnings: [], deleteImpactLines: [] }),
     GetProcessingTargetList: (request) => Promise.resolve(getProcessingTargets(request)),
-    GetTermTranslationPhaseSummary: (request) => Promise.resolve(request.jobId === 10 ? termSummary("completed", request.jobId) : termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3)),
+    GetTermTranslationPhaseSummary: (request) => Promise.resolve(
+      request.jobId === 10
+        ? termSummary("completed", request.jobId)
+        : request.jobId === termZeroAITargetJobId
+          ? termSummary("pending", request.jobId, 0)
+          : termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3)
+    ),
     StartTermTranslationPhase: () => Promise.resolve(termSummary()),
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),
     ResumeTermTranslationPhase: () => Promise.resolve(termSummary("running")),

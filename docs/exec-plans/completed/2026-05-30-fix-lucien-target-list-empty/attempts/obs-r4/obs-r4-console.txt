@@ -1,0 +1,137 @@
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[debug] [vite] connecting...
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connecting...
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] [obs-r4] term fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] term Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] persona Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true
+[log] [obs-r4] term Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true totalCount=4931
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] [obs-r4] term fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] term Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] persona Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true
+[log] [obs-r4] term Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true totalCount=4931
+[log] [obs-r4] term after store.update processingTargetPageState.totalCount=4931
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=undefined
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=undefined
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=0
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=0
+[log] [obs-r4] term fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] term Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] persona Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true
+[log] [obs-r4] term Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true totalCount=4931
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=4931
+[log] [obs-r4] term after store.update processingTargetPageState.totalCount=4931
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=undefined
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=undefined
+[log] [obs-r4] term setJobId called jobId=6
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=0
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=0
+[log] [obs-r4] term fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] term Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] persona Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=undefined
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=undefined
+[log] [obs-r4] term setJobId called jobId=6
+[trace] [obs-r4] term setJobId stack
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=0
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=0
+[log] [obs-r4] term fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] term Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona fetchSummaryAndReadiness START jobId=6 seq-before=0
+[log] [obs-r4] persona Promise.all firing seq-assigned=1 jobId=6
+[log] [obs-r4] persona Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true
+[log] [obs-r4] term Promise.all RESOLVED seq-assigned=1 seq-current=1 match=true totalCount=4931
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=4931
+[log] [obs-r4] term after store.update processingTargetPageState.totalCount=4931
+[debug] [vite] hot updated: /src/ui/screens/job-run/JobRunPage.svelte
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=4931
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=4931
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=4931
+[log] [obs-r4] presenter.toViewModel called processingTargetPageState.totalCount=4931
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
+[debug] [vite] hot updated: /src/ui/screens/job-run/JobRunPage.svelte
+[log] Queueing: runtime:ready
+[debug] [vite] connecting...
+[log] %c wails dev %c Connected to backend  background: #aa0000; color: #fff; border-radius: 3px 0px 0px 3px; padding: 1px; font-size: 0.7rem background: #009900; color: #fff; border-radius: 0px 3px 3px 0px; padding: 1px; font-size: 0.7rem
+[log] sending queued message: runtime:ready
+[debug] [vite] connected.
