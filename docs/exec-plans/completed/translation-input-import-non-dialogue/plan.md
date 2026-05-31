@@ -116,3 +116,16 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 - 作業 commit hash: `6ac9a7c`
 - 最終検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過、実画面確認通過。
 - 残留リスク: docs 正本反映は未承認のため未実行である。
+
+## merge-lane 出口
+
+- source branch: `claude/translation-input-import-non-dialogue`
+- target branch: `master`
+- source branch head: `32e5654fd0966bd0dcbdb5230888387d1c9186a1`
+- target base before merge: `e83cccad85ae294f26e98f81a6de437b0e65f3b9`
+- local merge commit: `3ebb9eec4fa83d65aae7b10fe39764e8550f731c`
+- conflict: なし。
+- merge 後検証: `python3 scripts/harness/run.py --suite backend-local` 通過。
+- completed 移動: `docs/exec-plans/active/translation-input-import-non-dialogue/` から `docs/exec-plans/completed/translation-input-import-non-dialogue/` へ移動した。
+- remote 変更: なし。
+- merge 結果 commit: 作成後に追記する。
