@@ -105,3 +105,17 @@
 - E2E 観点正本反映 commit hash: `5c710fea6cefad3334a61b31055dca47340bddc2`
 - 最終検証結果: `frontend-local` pass、`backend-local` pass、`build-storybook` pass、`E2E-DIFF-LUCIEN-001` pass、`chrome-devtools` で列見出し確認済み。
 - 残留リスク: `E2E-UC-045` の入口操作名差分は別件として残る。task-local E2E 観点と正本 E2E 観点は追加済みである。
+
+## merge-lane 結果
+
+- source branch: `claude/fix-term-target-list-translation-column`
+- target branch: `master`
+- local merge command: `git merge --no-ff claude/fix-term-target-list-translation-column -m "merge fix-term-target-list-translation-column"`
+- local merge commit hash: `e1032c8ffebbd9525e45b7e9ab1fccf8b0f2afeb`
+- conflict 有無: なし。
+- merge 後検証:
+  - `go test ./internal/repository -run 'TestSQLiteProcessingTargetListTermTranslationUsesAITargetTermPopulation|TestProcessingTargetTermSQL_excludesByDictionaryScopeRECORDFIELD|TestProcessingTargetTermSQL_separatesNPCFullAndSHRT|TestProcessingTargetTermSQL_filtersBy13RECTypes' -count=1`: pass。
+  - `npm --prefix frontend run test -- --run src/ui/screens/job-run/ProcessingTargetListPanel.test.ts`: pass。15 tests。
+  - `ruby -rcsv -e 'CSV.foreach(ARGV[0], headers: true).with_index(2) { |row, line| abort("line #{line}: #{row.fields.length} columns") unless row.fields.length == 7 }; puts "ok"' docs/e2e-test-design/test-design.csv`: pass。
+- completed 移動: `docs/exec-plans/active/fix-term-target-list-translation-column/` から `docs/exec-plans/completed/fix-term-target-list-translation-column/` へ移動済み。
+- 残留リスク: `E2E-UC-045` の入口操作名差分は別件として残る。merge conflict は発生していないため、追加の conflict 解消リスクはない。
