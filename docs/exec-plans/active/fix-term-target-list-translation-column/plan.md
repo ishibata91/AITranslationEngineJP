@@ -79,7 +79,8 @@
 - source branch: `claude/fix-term-target-list-translation-column`
 - target branch: `master`
 - active plan folder: `docs/exec-plans/active/fix-term-target-list-translation-column/`
-- commit hash: `85f29e4f64c0411b86ce8e117d1362aa0c8f9fc1`
+- 実装修正 commit hash: `85f29e4f64c0411b86ce8e117d1362aa0c8f9fc1`
+- E2E 観点正本反映 commit hash: `5c710fea6cefad3334a61b31055dca47340bddc2`
 - 変更ファイル一覧:
   - `frontend/src/ui/components/ProcessingTargetListPanel.svelte`
   - `frontend/src/ui/screens/job-run/ProcessingTargetListPanel.test.ts`
@@ -101,5 +102,6 @@
 - source branch: `claude/fix-term-target-list-translation-column`
 - target branch: `master`
 - 作業 commit hash: `85f29e4f64c0411b86ce8e117d1362aa0c8f9fc1`
+- E2E 観点正本反映 commit hash: `5c710fea6cefad3334a61b31055dca47340bddc2`
 - 最終検証結果: `frontend-local` pass、`backend-local` pass、`build-storybook` pass、`E2E-DIFF-LUCIEN-001` pass、`chrome-devtools` で列見出し確認済み。
 - 残留リスク: `E2E-UC-045` の入口操作名差分は別件として残る。task-local E2E 観点と正本 E2E 観点は追加済みである。
