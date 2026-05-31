@@ -46,6 +46,7 @@
 - `internal/repository/processing_target_sqlite_repository_test.go`: backend read model が原語、訳語、レコード種別の順で title part を返すことを追加する。
 - `tests/system/job-run-shell.spec.ts`: Lucien データロード経路でレコード種別列と空訳語を確認する assertion を追加する。
 - `docs/exec-plans/active/fix-term-target-list-translation-column/test-design.csv`: system test 変更に対応する task-local E2E 観点を固定する。
+- `docs/e2e-test-design/test-design.csv`: 承認済み task-local E2E 観点を正本へ反映する。
 
 ## 検証結果
 
@@ -63,15 +64,15 @@
 
 - 分類: 追加候補あり。
 - 成果物: `docs/exec-plans/active/fix-term-target-list-translation-column/test-design.csv`
-- 判断: 今回の system test 変更は、処理対象一覧で「訳語」列へレコード種別が詰まらないことを証明する task 固有の回帰観点である。正本昇格指示はないため、canonical `docs/e2e-test-design/test-design.csv` は変更しない。
+- 判断: 今回の system test 変更は、処理対象一覧で「訳語」列へレコード種別が詰まらないことを証明する回帰観点である。人間が正本反映を承認したため、`docs/e2e-test-design/test-design.csv` へ `E2E-UC-051` と `E2E-UC-052` を追加する。
 - 関連する system test: `tests/system/job-run-shell.spec.ts` の `E2E-DIFF-LUCIEN-001`、`E2E-UC-045`。
 
 ## 正本化判断
 
-- 仕様変更または仕様追加の対象: なし。既存詳細仕様は訳語と REC を別概念として扱っており、今回の作業は既存仕様に対する表示不具合修正である。
-- 対象 docs パス候補: なし。
-- 判断結果: 詳細仕様正本反映は不要。
-- 人間承認状態: 不要。恒久仕様の新規承認は発生していない。
+- 仕様変更または仕様追加の対象: 詳細仕様正本は対象外である。UI 人間操作 E2E の正本観点は対象である。
+- 対象 docs パス候補: `docs/e2e-test-design/test-design.csv`。
+- 判断結果: 詳細仕様正本反映は不要。E2E テスト観点正本へ、単語翻訳の処理対象一覧で「原語」「訳語」「レコード種別」を確認する 2 観点を反映する。
+- 人間承認状態: 承認済み。承認記録はユーザー指示「$finalization-module 正本反映」である。
 
 ## 作業 commit
 
@@ -89,9 +90,10 @@
   - `tests/system/job-run-shell.spec.ts`
   - `tests/system/support/scenario-wails-mocks.ts`
   - `docs/exec-plans/active/fix-term-target-list-translation-column/test-design.csv`
+  - `docs/e2e-test-design/test-design.csv`
   - `docs/exec-plans/active/fix-term-target-list-translation-column/plan.md`
 - 検証結果: 上記「検証結果」を参照する。
-- 残留リスク: `E2E-UC-045` は既存 job card 操作名差分で停止したため、今回追加した列 assertion までは到達していない。Lucien データロード経路の system test では対象列と空訳語を確認済みである。system test 変更に対応する task-local `test-design.csv` は追加済みである。
+- 残留リスク: `E2E-UC-045` は既存 job card 操作名差分で停止したため、今回追加した列 assertion までは到達していない。Lucien データロード経路の system test では対象列と空訳語を確認済みである。system test 変更に対応する task-local `test-design.csv` と正本 `docs/e2e-test-design/test-design.csv` は追加済みである。
 
 ## マージ準備入力
 
@@ -100,4 +102,4 @@
 - target branch: `master`
 - 作業 commit hash: `85f29e4f64c0411b86ce8e117d1362aa0c8f9fc1`
 - 最終検証結果: `frontend-local` pass、`backend-local` pass、`build-storybook` pass、`E2E-DIFF-LUCIEN-001` pass、`chrome-devtools` で列見出し確認済み。
-- 残留リスク: `E2E-UC-045` の入口操作名差分は別件として残る。task-local E2E 観点は `test-design.csv` に追加済みである。
+- 残留リスク: `E2E-UC-045` の入口操作名差分は別件として残る。task-local E2E 観点と正本 E2E 観点は追加済みである。
