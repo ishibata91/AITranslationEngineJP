@@ -388,3 +388,31 @@
 - 人間承認状態: 承認済み（task 入力提出者の継続承認）。
 - 判定: 詳細仕様正本反映 なし、E2E 観点正本反映 後続課題に切り出す、`docs_updater` 起動 なし。
 
+
+## 作業 commit
+
+- commit hash: 0e16117d0a4c0972eb18534e2c5b8ec74c347683
+- 作業 branch: claude/translation-job-list-fix
+- 分岐元: master @ c2643f876e466123894287dd635b85915a03b214
+- 変更ファイル: 11 files changed, 620 insertions(+), 125 deletions(-)
+  - backend: `internal/service/translation_job_management_service.go`、`internal/service/translation_job_management_service_test.go`
+  - frontend gateway/contract/presenter: `frontend/src/controller/wails/translation-job-management.gateway.ts`、`frontend/src/application/gateway-contract/translation-job-management/translation-job-management-gateway-contract.ts`、`frontend/src/application/presenter/translation-job-management/translation-job-management.presenter.ts`
+  - frontend 表示: `frontend/src/ui/screens/translation-job-management/JobCard.svelte`、`frontend/src/ui/screens/translation-job-management/JobOperationGroup.svelte`
+  - 影響テスト: `frontend/src/ui/screens/translation-job-management/TranslationJobManagementPage.test.ts`、`frontend/src/ui/views/AppShell.test.ts`
+  - active plan: `docs/exec-plans/active/translation-job-list-fix/plan.md`、`docs/exec-plans/active/translation-job-list-fix/data-testid-gaps.md`（新規）
+- 検証結果: backend-local 通過、frontend-local 通過（555 テスト）、実画面 GUI 確認通過。
+- 残留リスク:
+  - `resumeOperation` の store / usecase / contract / backend `ResumeJob` 経路は表示から外しただけで、フィールドと関連経路は残置している。完全削除は別 task で扱う。
+  - `data-testid-gaps.md` の selector 未決 3 件と、E2E 観点 E2E-UC-TJL-FIX-1〜3 の正本投入は後続 task に切り出し。
+
+## マージ準備入力
+
+- active plan folder: `docs/exec-plans/active/translation-job-list-fix/`
+- source branch: `claude/translation-job-list-fix`
+- target branch: `master`
+- 作業 commit hash: `0e16117d0a4c0972eb18534e2c5b8ec74c347683`
+- 最終検証結果: backend-local 通過、frontend-local 通過（555 テスト）、実画面 GUI 確認通過。
+- 残留リスク（merge_lane への申し送り）:
+  - `resumeOperation` の経路は frontend 表示からのみ外している。usecase/store/contract/backend ResumeJob は残置のため、merge 後の動作に影響しないことを念のため確認する。
+  - 後続 task: selector 未決 3 件の解消と E2E 観点 E2E-UC-TJL-FIX-1〜3 の `docs/e2e-test-design/test-design.csv` 反映。
+
