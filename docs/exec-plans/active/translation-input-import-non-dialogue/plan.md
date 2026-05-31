@@ -92,6 +92,7 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 
 - `go test ./internal/service`: 通過。
 - `python3 scripts/harness/run.py --suite backend-local`: 通過。
+- 実画面確認: 通過。`dictionaries/Lucien.esp_Export.json` を登録し、単語翻訳画面で `AI 翻訳対象語 206 件` と `1-50 / 206 件` を確認した。
 
 ## finalization-module 正本化判断
 
@@ -102,10 +103,9 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 
 ## finalization-module 作業 commit
 
-- commit 対象: active plan 成果物、`internal/service/translation_input_import_service.go`、`internal/service/translation_input_import_service_test.go`
-- commit 対象外: `CLAUDE.md`。本 task とは別の既存差分である。
-- commit hash: `513a7a2`
-- 検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過。
+- commit 対象: active plan 成果物、`internal/service/translation_input_import_service.go`、`internal/service/translation_input_import_service_test.go`、`CLAUDE.md`、`.claude/settings.json`
+- commit hash: `6ac9a7c`
+- 検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過、実画面確認通過。
 - 残留リスク: docs 正本反映は未承認のため未実行である。
 
 ## finalization-module マージ準備入力
@@ -113,6 +113,6 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 - active plan folder: `docs/exec-plans/active/translation-input-import-non-dialogue/`
 - source branch: `claude/translation-input-import-non-dialogue`
 - target branch: `master`
-- 作業 commit hash: `513a7a2`
-- 最終検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過。
+- 作業 commit hash: `6ac9a7c`
+- 最終検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過、実画面確認通過。
 - 残留リスク: docs 正本反映は未承認のため未実行である。
