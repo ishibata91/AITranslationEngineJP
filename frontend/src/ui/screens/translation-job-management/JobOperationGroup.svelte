@@ -7,7 +7,6 @@
     canOpenPhase: boolean
     hasJobRunTarget: boolean
     stopOperation: TranslationJobManagementOperationViewModel
-    resumeOperation: TranslationJobManagementOperationViewModel
     deleteOperation: TranslationJobManagementOperationViewModel
     onOpenPhase: () => void | Promise<void>
     onOperation: (
@@ -20,7 +19,6 @@
     canOpenPhase,
     hasJobRunTarget,
     stopOperation,
-    resumeOperation,
     deleteOperation,
     onOpenPhase,
     onOperation
@@ -50,18 +48,14 @@
     onclick={(event) => void handleOpenPhase(event)}
     type="button"
   >
-    現在の翻訳段階へ進む
+    再開
   </button>
-  {#each [stopOperation, resumeOperation] as operation (operation.kind)}
-    <TranslationJobManagementActionButton
-      compact={true}
-      dataTestId={operation.kind === "stop"
-        ? "translation-job-management-stop-button"
-        : "translation-job-management-resume-button"}
-      {operation}
-      onAction={() => onOperation(operation)}
-    />
-  {/each}
+  <TranslationJobManagementActionButton
+    compact={true}
+    dataTestId="translation-job-management-stop-button"
+    operation={stopOperation}
+    onAction={() => onOperation(stopOperation)}
+  />
   <TranslationJobManagementActionButton
     compact={true}
     dataTestId="translation-job-management-delete-button"

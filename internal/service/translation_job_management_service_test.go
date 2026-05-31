@@ -404,6 +404,156 @@ func TestTranslationJobManagementServiceResumeJobReturnsResumeEntryForPausedCurr
 	}
 }
 
+// TestBuildTranslationJobManagementRuntimeSummaryReturnsRuntimeSnapshotMissingWhenSnapshotsEmpty は
+// snapshot が空の場合に buildTranslationJobManagementRuntimeSummary が返す warning の
+// Category が runtime_snapshot_missing であり、Title/Detail が新しい表現になることを証明する。
+func TestBuildTranslationJobManagementRuntimeSummaryReturnsRuntimeSnapshotMissingWhenSnapshotsEmpty(t *testing.T) {
+	// Arrange: snapshot が存在しない状態
+	snapshots := []repository.TranslationJobPhaseRuntimeSnapshot{}
+
+	// Act
+	_, warnings := buildTranslationJobManagementRuntimeSummary(snapshots)
+
+	// Assert: warning が 1 件で category が runtime_snapshot_missing
+	if len(warnings) != 1 {
+		t.Fatalf("expected 1 warning, got %d warnings: %#v", len(warnings), warnings)
+	}
+	if warnings[0].Category != translationJobManagementReasonRuntimeSnapshotMissing {
+		t.Fatalf("expected category runtime_snapshot_missing, got %q", warnings[0].Category)
+	}
+	if warnings[0].Title != "snapshot が無いため再開できません" {
+		t.Fatalf("expected title 'snapshot が無いため再開できません', got %q", warnings[0].Title)
+	}
+	if warnings[0].Detail == "" {
+		t.Fatal("expected non-empty Detail")
+	}
+	// Detail には「削除は可能」という文言が含まれていることを確認する
+	if !strings.Contains(warnings[0].Detail, "削除は可能") {
+		t.Fatalf("expected Detail to contain '削除は可能', got %q", warnings[0].Detail)
+	}
+}
+
+// TestBuildTranslationJobManagementDeleteAvailabilityEnabledWhenOnlyRuntimeSnapshotMissingWarning は
+// snapshot 欠落のみ（runtime_snapshot_missing warning だけ）の Ready ジョブで
+// buildTranslationJobManagementDeleteAvailability が削除可（Enabled=true）を返すことを証明する。
+// 境界: Ready 直後（runtime snapshot 欠落のみ、他は健全）。
+func TestBuildTranslationJobManagementDeleteAvailabilityEnabledWhenOnlyRuntimeSnapshotMissingWarning(t *testing.T) {
+	// Arrange: Ready ジョブ、snapshot 欠落由来の runtime_snapshot_missing warning のみ
+	job := repository.TranslationJob{ID: 200, State: "ready"}
+	warnings := []TranslationJobManagementBlockedReasonReadModel{
+		{
+			Category: translationJobManagementReasonRuntimeSnapshotMissing,
+			Title:    "snapshot が無いため再開できません",
+			Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
+		},
+	}
+	phaseRuns := []repository.JobPhaseRun{}
+
+	// Act
+	availability := buildTranslationJobManagementDeleteAvailability(job, warnings, phaseRuns)
+
+	// Assert: runtime_snapshot_missing は削除をブロックしないため Enabled=true
+	if !availability.Enabled {
+		t.Fatalf("expected Enabled=true for ready job with only runtime_snapshot_missing warning, got %#v", availability)
+	}
+	if availability.ReasonCategory != "" {
+		t.Fatalf("expected no ReasonCategory, got %q", availability.ReasonCategory)
+	}
+}
+
+// TestBuildTranslationJobManagementDeleteAvailabilityBlockedWhenStateProjectionInconsistentWarning は
+// 入力参照 NotFound などで state_projection_inconsistent warning が存在する場合に
+// buildTranslationJobManagementDeleteAvailability が削除拒否（Enabled=false）を返すことを証明する。
+// 例外: 真の状態不整合では Ready ジョブでも削除は拒否される。
+func TestBuildTranslationJobManagementDeleteAvailabilityBlockedWhenStateProjectionInconsistentWarning(t *testing.T) {
+	// Arrange: Ready ジョブ、真の state_projection_inconsistent warning
+	job := repository.TranslationJob{ID: 201, State: "ready"}
+	warnings := []TranslationJobManagementBlockedReasonReadModel{
+		{
+			Category: translationJobManagementReasonStateProjectionInconsistent,
+			Title:    "状態不整合",
+			Detail:   "入力参照が存在しないため状態不整合です。",
+		},
+	}
+	phaseRuns := []repository.JobPhaseRun{}
+
+	// Act
+	availability := buildTranslationJobManagementDeleteAvailability(job, warnings, phaseRuns)
+
+	// Assert: state_projection_inconsistent warning は削除をブロックする
+	if availability.Enabled {
+		t.Fatalf("expected Enabled=false when state_projection_inconsistent warning exists, got %#v", availability)
+	}
+	if availability.ReasonCategory != translationJobManagementReasonStateProjectionInconsistent {
+		t.Fatalf("expected ReasonCategory state_projection_inconsistent, got %q", availability.ReasonCategory)
+	}
+	if availability.ReasonText == "" {
+		t.Fatal("expected non-empty ReasonText for blocked delete")
+	}
+}
+
+// TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForPausedJob は
+// Paused ジョブで snapshot 欠落（runtime_snapshot_missing warning）がある場合に
+// buildTranslationJobManagementResumeBlockedReasons が runtime_snapshot_missing を再開ブロック理由に含むことを証明する。
+// 境界2: Paused/RecoverableFailed で snapshot 欠落のみの場合。
+func TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForPausedJob(t *testing.T) {
+	// Arrange: Paused ジョブ、キャッシュあり、runtime_snapshot_missing warning
+	job := repository.TranslationJob{ID: 202, State: "paused"}
+	cacheAvailable := true
+	warnings := []TranslationJobManagementBlockedReasonReadModel{
+		{
+			Category: translationJobManagementReasonRuntimeSnapshotMissing,
+			Title:    "snapshot が無いため再開できません",
+			Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
+		},
+	}
+
+	// Act
+	blocked := buildTranslationJobManagementResumeBlockedReasons(job, cacheAvailable, warnings)
+
+	// Assert: runtime_snapshot_missing が再開ブロック理由に含まれる
+	found := false
+	for _, reason := range blocked {
+		if reason.Category == translationJobManagementReasonRuntimeSnapshotMissing {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected runtime_snapshot_missing in blocked reasons, got %#v", blocked)
+	}
+}
+
+// TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForRecoverableFailedJob は
+// RecoverableFailed ジョブで snapshot 欠落（runtime_snapshot_missing warning）がある場合に
+// buildTranslationJobManagementResumeBlockedReasons が runtime_snapshot_missing を再開ブロック理由に含むことを証明する。
+// 境界2: RecoverableFailed で snapshot 欠落のみの場合。
+func TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForRecoverableFailedJob(t *testing.T) {
+	// Arrange: RecoverableFailed ジョブ、キャッシュあり、runtime_snapshot_missing warning
+	job := repository.TranslationJob{ID: 203, State: "recoverable_failed"}
+	cacheAvailable := true
+	warnings := []TranslationJobManagementBlockedReasonReadModel{
+		{
+			Category: translationJobManagementReasonRuntimeSnapshotMissing,
+			Title:    "snapshot が無いため再開できません",
+			Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
+		},
+	}
+
+	// Act
+	blocked := buildTranslationJobManagementResumeBlockedReasons(job, cacheAvailable, warnings)
+
+	// Assert: runtime_snapshot_missing が再開ブロック理由に含まれる
+	found := false
+	for _, reason := range blocked {
+		if reason.Category == translationJobManagementReasonRuntimeSnapshotMissing {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatalf("expected runtime_snapshot_missing in blocked reasons, got %#v", blocked)
+	}
+}
+
 func TestLogTranslationJobDeleteRejectedUsesSafePayloadOnly(t *testing.T) {
 	var buffer bytes.Buffer
 	previous := slog.Default()

@@ -273,6 +273,8 @@ function toReasonCategoryLabel(
       return "終端状態"
     case "state_projection_inconsistent":
       return "状態投影不整合"
+    case "runtime_snapshot_missing":
+      return "AI 設定要約欠落"
     case "phase_progress_aggregation_failed":
       return "進捗集約失敗"
     case "stale_selection":

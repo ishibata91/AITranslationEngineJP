@@ -29,6 +29,7 @@ export type TranslationJobManagementReasonCategory =
   | "cache_missing"
   | "terminal_state"
   | "state_projection_inconsistent"
+  | "runtime_snapshot_missing"
   | "phase_progress_aggregation_failed"
   | "stale_selection"
   | "list_load_failure"

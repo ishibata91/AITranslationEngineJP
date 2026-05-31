@@ -16,6 +16,7 @@ const (
 	translationJobManagementReasonCacheMissing                   = "cache_missing"
 	translationJobManagementReasonTerminalState                  = "terminal_state"
 	translationJobManagementReasonStateProjectionInconsistent    = "state_projection_inconsistent"
+	translationJobManagementReasonRuntimeSnapshotMissing         = "runtime_snapshot_missing"
 	translationJobManagementReasonPhaseProgressAggregationFailed = "phase_progress_aggregation_failed"
 	translationJobManagementReasonStaleSelection                 = "stale_selection"
 	translationJobManagementReasonRunningDeleteBlocked           = "running_delete_blocked"
@@ -373,6 +374,33 @@ func buildBlockedDeleteActionForDetail(
 	}
 }
 
+func logTranslationJobDeleteAvailabilityEvaluated(
+	ctx context.Context,
+	jobID int64,
+	availability TranslationJobManagementOperationAvailabilityReadModel,
+) {
+	if availability.Enabled {
+		slog.InfoContext(ctx, "translation job delete availability evaluated",
+			slog.String("event", "translation_job_delete_availability_evaluated"),
+			slog.String("where", "backend.service.translation_job_management"),
+			slog.String("result", "allowed"),
+			slog.String("id", fmt.Sprintf("job:%d", jobID)),
+		)
+		return
+	}
+	reason := availability.ReasonCategory
+	if reason == "" {
+		reason = translationJobManagementReasonDeleteFailed
+	}
+	slog.WarnContext(ctx, "translation job delete availability evaluated",
+		slog.String("event", "translation_job_delete_availability_evaluated"),
+		slog.String("where", "backend.service.translation_job_management"),
+		slog.String("result", "rejected"),
+		slog.String("id", fmt.Sprintf("job:%d", jobID)),
+		slog.String("reason", reason),
+	)
+}
+
 func logTranslationJobDeleteResult(
 	ctx context.Context,
 	jobID int64,
@@ -463,6 +491,13 @@ func (service *TranslationJobManagementService) ResumeJob(
 		if category == "" {
 			category = translationJobManagementReasonResumeFailed
 		}
+		slog.WarnContext(ctx, "translation job resume blocked",
+			slog.String("event", "translation_job_resume_blocked"),
+			slog.String("where", "backend.service.translation_job_management"),
+			slog.String("result", "rejected"),
+			slog.String("id", fmt.Sprintf("job:%d", jobID)),
+			slog.String("reason", category),
+		)
 		return TranslationJobManagementActionReadModel{
 			Message:        "現在状態では再開を開始できません。表示中の再開不可理由を確認してください。",
 			Tone:           "warning",
@@ -524,6 +559,7 @@ func (service *TranslationJobManagementService) buildJobDetail(
 	stopAvailability := buildTranslationJobManagementStopAvailability(job, phaseRuns)
 	resumeAvailability := buildTranslationJobManagementResumeAvailability(job, resumeBlockedReasons)
 	deleteAvailability := buildTranslationJobManagementDeleteAvailability(job, warnings, phaseRuns)
+	logTranslationJobDeleteAvailabilityEvaluated(ctx, job.ID, deleteAvailability)
 	canOpenPhase, openBlockedReason := buildTranslationJobManagementPhaseNavigationAvailability(job, phaseRuns)
 
 	detail := TranslationJobManagementJobDetailReadModel{
@@ -740,9 +776,9 @@ func buildTranslationJobManagementRuntimeSummary(
 			},
 			[]TranslationJobManagementBlockedReasonReadModel{
 				{
-					Category: translationJobManagementReasonStateProjectionInconsistent,
-					Title:    "保存済み AI 設定要約が不足しています",
-					Detail:   "runtime snapshot が存在しないため、再開可否を安全側で評価します。",
+					Category: translationJobManagementReasonRuntimeSnapshotMissing,
+					Title:    "snapshot が無いため再開できません",
+					Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
 				},
 			}
 	}
@@ -781,7 +817,14 @@ func buildTranslationJobManagementResumeBlockedReasons(
 		})
 	}
 	for _, warning := range warnings {
-		if warning.Category == translationJobManagementReasonStateProjectionInconsistent || warning.Category == translationJobManagementReasonPhaseProgressAggregationFailed {
+		switch warning.Category {
+		case translationJobManagementReasonRuntimeSnapshotMissing:
+			result = append(result, TranslationJobManagementBlockedReasonReadModel{
+				Category: translationJobManagementReasonRuntimeSnapshotMissing,
+				Title:    warning.Title,
+				Detail:   warning.Detail,
+			})
+		case translationJobManagementReasonStateProjectionInconsistent, translationJobManagementReasonPhaseProgressAggregationFailed:
 			result = append(result, TranslationJobManagementBlockedReasonReadModel{
 				Category: translationJobManagementReasonStateProjectionInconsistent,
 				Title:    warning.Title,
