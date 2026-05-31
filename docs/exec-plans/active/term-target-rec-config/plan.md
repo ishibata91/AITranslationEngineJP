@@ -96,6 +96,24 @@
 
 - 承認済み（design-module の人間設計レビューで 1 回差し戻し後、最終承認）。
 
+## 作業 commit
+
+- commit hash: `038bc5b8eb8e702eac851c654362ebbe32f745a0`
+- branch: `codex/job-run-phase-fetch-redesign`
+- 変更ファイル: 23 件（plan 関連 7、新規プロダクト 4、変更プロダクト 7、docs 正本 4、xEdit 抽出 1）
+- 残留リスク:
+  - Lucien.esp_Export.json をロードしても候補 0 件のまま。原因は import 側が `dialogue_groups` 以外を parse しないこと。別 task（import 拡張）で扱う方針（2026-05-31 人間判断）。
+  - arch lint で `service.mayDependOn` に `infra_sqlite` を追加した。production code が infra_sqlite に依存する余地が広がるため、必要なら追加 task でテスト専用境界へ閉じ直す。
+
+## マージ準備入力
+
+- active plan folder: `docs/exec-plans/active/term-target-rec-config/`
+- source branch: `codex/job-run-phase-fetch-redesign`
+- target branch: `master`
+- 作業 commit hash: `038bc5b8eb8e702eac851c654362ebbe32f745a0`
+- 最終検証結果: `python3 scripts/harness/run.py --suite backend-local` 通過（2026-05-31）
+- 残留リスク: 上記「作業 commit > 残留リスク」と同じ。
+
 ## 後続モジュール引き継ぎ
 
 - task-id: `term-target-rec-config`
