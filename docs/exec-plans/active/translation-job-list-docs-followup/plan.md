@@ -73,3 +73,25 @@
 
 - なし（E2E テスト観点正本反映は前 task から引き続き後続課題に切り出し中。本 task では docs-only 正本反映のみ担当）。
 
+
+## 作業 commit
+
+- commit hash: 3e05f53da23dc8f01e0586110d863717b9e1cf26
+- 作業 branch: claude/translation-job-list-docs-followup
+- 分岐元: master @ 7ecd340ce1773d139770601705762708fa846e3a
+- 変更ファイル: 3 files changed, 84 insertions(+), 10 deletions(-)
+  - `docs/screen-design/screens/translation-job-management.md`
+  - `docs/detail-specs/translation-job-management.md`
+  - `docs/exec-plans/active/translation-job-list-docs-followup/plan.md`
+- 検証結果: docs-only のため harness 実行は省略（コード変更なし）。
+- 残留リスク: なし（E2E 観点正本反映は前 task から継続して別 task に切り出し中）。
+
+## マージ準備入力
+
+- active plan folder: `docs/exec-plans/active/translation-job-list-docs-followup/`
+- source branch: `claude/translation-job-list-docs-followup`
+- target branch: `master`
+- 作業 commit hash: `3e05f53da23dc8f01e0586110d863717b9e1cf26`
+- 最終検証結果: docs-only のため harness 省略（コード変更なし）。
+- 残留リスク: なし。
+
