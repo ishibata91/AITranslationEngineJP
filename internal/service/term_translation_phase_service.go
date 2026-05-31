@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"aitranslationenginejp/internal/recclassification"
 	"aitranslationenginejp/internal/repository"
 )
 
@@ -1683,11 +1684,15 @@ func (service *TermTranslationPhaseService) collectCandidates(
 			if sourceTerm == "" {
 				continue
 			}
-			key := candidateKey(record.RecordType, sourceTerm)
+			rec := record.RecordType + ":" + field.SubrecordType
+			if !recclassification.IsTermTarget(rec) {
+				continue
+			}
+			key := candidateKey(rec, sourceTerm)
 			candidate := candidateMap[key]
 			if candidate.NormalizedSource == "" {
 				candidate = termTranslationCandidate{
-					RecordType:       record.RecordType,
+					RecordType:       rec,
 					SourceTerm:       sourceTerm,
 					NormalizedSource: normalizeTermTranslationText(sourceTerm),
 				}

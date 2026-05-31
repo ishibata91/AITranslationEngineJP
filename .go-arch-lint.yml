@@ -32,6 +32,10 @@ components:
   # production code を置いてはいけない。
   integrationtest:
     in: integrationtest/**
+  # 単語翻訳対象 REC の共通 config。外部 IO を持たない純粋な判定 package。
+  # service と repository の両方から参照される共有 config として最下位に位置付ける。
+  recclassification:
+    in: recclassification/**
 
 deps:
   bootstrap:
@@ -57,6 +61,10 @@ deps:
     mayDependOn:
       - repository
       - notification
+      - recclassification
+      # シナリオテストが処理対象一覧と実行対象の REC 集合一致を検証するために
+      # 同一 SQLite を repository とサービス両方から読む経路だけ許可する。
+      - infra_sqlite
   # API test 専用コンポーネント。
   # public seam から backend graph を観測するため、複数 backend component への依存をここだけに許可する。
   apitest:
@@ -74,6 +82,7 @@ deps:
     mayDependOn:
       - infra_runtime
       - infra_sqlite
+      - recclassification
   infra_ai:
     mayDependOn:
       - infra_runtime
