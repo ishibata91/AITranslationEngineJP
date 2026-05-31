@@ -54,7 +54,7 @@
   data-testid="translation-job-management-job-card"
 >
   <a
-    aria-label={`ジョブ ${job.jobId} を選択して現在の翻訳段階へ進む`}
+    aria-label={`ジョブ ${job.jobId} を選択して再開する`}
     class="job-card-main job-card-select"
     class:is-disabled={!job.canOpenPhase}
     data-current-phase-label={job.currentPhaseLabel}
@@ -101,38 +101,11 @@
       canOpenPhase={job.canOpenPhase}
       hasJobRunTarget={Boolean(job.jobRunTarget)}
       stopOperation={job.stopOperation}
-      resumeOperation={job.resumeOperation}
       deleteOperation={job.deleteOperation}
       onOpenPhase={handleOpenJob}
       onOperation={handleOperation}
     />
 
-    <div
-      class="job-card-reasons"
-      aria-label={`ジョブ ${job.jobId} の無効理由`}
-      data-testid="translation-job-management-disabled-reason"
-    >
-      {#if !job.stopOperation.enabled && job.stopOperation.reasonText}
-        <p class="job-card-reason overflow-text">
-          停止: {job.stopOperation.reasonText}
-        </p>
-      {/if}
-      {#if !job.resumeOperation.enabled && job.resumeOperation.reasonText}
-        <p class="job-card-reason overflow-text">
-          再開: {job.resumeOperation.reasonText}
-        </p>
-      {/if}
-      {#if !job.deleteOperation.enabled && job.deleteOperation.reasonText}
-        <p class="job-card-reason overflow-text danger-text">
-          削除: {job.deleteOperation.reasonText}
-        </p>
-      {/if}
-      {#if !job.canOpenPhase && job.openBlockedReasonText}
-        <p class="job-card-reason overflow-text">
-          翻訳段階: {job.openBlockedReasonText}
-        </p>
-      {/if}
-    </div>
   </div>
 </article>
 

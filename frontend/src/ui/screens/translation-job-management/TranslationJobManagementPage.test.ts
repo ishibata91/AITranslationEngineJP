@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/svelte"
+import { render, screen } from "@testing-library/svelte"
 import userEvent from "@testing-library/user-event"
 import { describe, expect, test, vi } from "vitest"
 
@@ -232,7 +232,7 @@ describe("TranslationJobManagementPage", () => {
       })
 
       await user.click(
-        screen.getByRole("button", { name: "現在の翻訳段階へ進む" })
+        screen.getByRole("button", { name: "再開" })
       )
 
       expect(onOpenJobRun).toHaveBeenCalledWith(target)
@@ -261,7 +261,7 @@ describe("TranslationJobManagementPage", () => {
 
     const jobCard = screen.getByTestId("translation-job-management-job-card")
     const button = screen.getByRole("button", {
-      name: "現在の翻訳段階へ進む"
+      name: "再開"
     })
 
     expect(jobCard).toHaveAttribute("data-open-phase-state", "blocked")
@@ -296,7 +296,7 @@ describe("TranslationJobManagementPage", () => {
 
     const jobCard = screen.getByTestId("translation-job-management-job-card")
     const button = screen.getByRole("button", {
-      name: "現在の翻訳段階へ進む"
+      name: "再開"
     })
 
     expect(jobCard).toHaveAttribute("data-open-phase-state", "missing-target")
@@ -314,78 +314,4 @@ describe("TranslationJobManagementPage", () => {
     expect(onOpenJobRun).not.toHaveBeenCalled()
   })
 
-  test("resume success feedback と job run target がある時だけ shell を開く", async () => {
-    vi.useFakeTimers()
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime })
-    try {
-      const onOpenJobRun = vi.fn()
-      const controller = new TranslationJobManagementPageControllerFake(
-        createViewModel(
-          {
-            title: "再開結果を更新しました",
-            message: "再開を受け付けました",
-            tone: "success",
-            category: "resume_success"
-          },
-          resumeTarget
-        )
-      )
-
-      render(TranslationJobManagementPage, {
-        props: {
-          createController: () => controller,
-          onOpenJobRun
-        }
-      })
-
-      await user.click(
-        screen.getByTestId("translation-job-management-resume-button")
-      )
-
-      await waitFor(() =>
-        expect(
-          screen.getByTestId("translation-job-management-feedback-notification")
-        ).toHaveTextContent("再開を受け付けました")
-      )
-      expect(onOpenJobRun).not.toHaveBeenCalled()
-
-      await vi.advanceTimersByTimeAsync(250)
-
-      await waitFor(() =>
-        expect(onOpenJobRun).toHaveBeenCalledWith(resumeTarget)
-      )
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  test("resume warning feedback では job run target があっても shell を開かない", async () => {
-    const user = userEvent.setup()
-    const onOpenJobRun = vi.fn()
-    const controller = new TranslationJobManagementPageControllerFake(
-      createViewModel(
-        {
-          title: "再開結果を更新しました",
-          message: "再開できません",
-          tone: "warning",
-          category: "resume_failed"
-        },
-        resumeTarget
-      )
-    )
-
-    render(TranslationJobManagementPage, {
-      props: {
-        createController: () => controller,
-        onOpenJobRun
-      }
-    })
-
-    await user.click(
-      screen.getByTestId("translation-job-management-resume-button")
-    )
-
-    await waitFor(() => expect(controller.requestResume).toHaveBeenCalledTimes(1))
-    expect(onOpenJobRun).not.toHaveBeenCalled()
-  })
 })

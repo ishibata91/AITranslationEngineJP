@@ -123,6 +123,7 @@ function isReasonCategory(value: unknown): boolean {
     value === "cache_missing" ||
     value === "terminal_state" ||
     value === "state_projection_inconsistent" ||
+    value === "runtime_snapshot_missing" ||
     value === "phase_progress_aggregation_failed" ||
     value === "stale_selection" ||
     value === "list_load_failure" ||

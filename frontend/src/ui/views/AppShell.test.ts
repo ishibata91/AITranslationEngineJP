@@ -417,7 +417,7 @@ describe("AppShell", () => {
     })
 
     await user.click(
-      screen.getByRole("button", { name: "現在の翻訳段階へ進む" })
+      screen.getByRole("button", { name: "再開" })
     )
 
     await waitFor(() => {
@@ -435,7 +435,7 @@ describe("AppShell", () => {
 
     await user.click(screen.getByRole("button", { name: "未完了一覧へ戻る" }))
     await user.click(
-      screen.getByRole("button", { name: "現在の翻訳段階へ進む" })
+      screen.getByRole("button", { name: "再開" })
     )
 
     await waitFor(() => {
