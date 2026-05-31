@@ -425,5 +425,5 @@
 - conflict: なし
 - merge 後検証: conflict なし、最終検証通過済み（backend-local/frontend-local）のため追加検証を省略。
 - completed 移動: `docs/exec-plans/active/translation-job-list-fix/` → `docs/exec-plans/completed/translation-job-list-fix/`
-- closeout commit hash: （本セクション追記後の commit で確定）
+- closeout commit hash: `78c32bcb`
 
