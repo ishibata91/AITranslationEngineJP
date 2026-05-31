@@ -24,6 +24,7 @@
     ) => void | Promise<void>
     processingTargetItems?: ProcessingTargetListItem[]
     processingTargetPageState?: ProcessingTargetListPageState
+    initialFetchDone?: boolean
     onProcessingTargetSearchInput?: (event: Event) => void
     onProcessingTargetPreviousPage?: () => void
     onProcessingTargetNextPage?: () => void
@@ -41,6 +42,7 @@
     onAction,
     processingTargetItems: providedProcessingTargetItems = undefined,
     processingTargetPageState = undefined,
+    initialFetchDone = true,
     onProcessingTargetSearchInput = undefined,
     onProcessingTargetPreviousPage = undefined,
     onProcessingTargetNextPage = undefined,
@@ -85,37 +87,10 @@
       }
     )
   )
-  const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
-    {
-      id: "persona-generation-npc-target",
-      name: "NPC 名",
-      detail:
-        "NPC 属性、会話文脈、共通ペルソナ参照からペルソナ参照情報を作る対象。",
-      metadata: [
-        { label: "NPC 件数", value: viewModel.npcCountLabel },
-        { label: "生成対象", value: viewModel.targetCountLabel },
-        {
-          label: "共通ペルソナ一致",
-          value: viewModel.commonPersonaHitCountLabel
-        },
-        {
-          label: "共通ペルソナ未一致",
-          value: viewModel.commonPersonaMissCountLabel
-        },
-        { label: "生成済み", value: viewModel.generatedCountLabel },
-        { label: "未生成", value: viewModel.missingCountLabel },
-        { label: "除外理由", value: viewModel.skippedReasonsLabel },
-        { label: "スナップショット", value: viewModel.targetSnapshotLabel }
-      ]
-    }
-  ])
   const displayedProcessingTargetItems = $derived(
     processingTargetPageState
       ? processingTargetPageState.items
-      : providedProcessingTargetItems &&
-          providedProcessingTargetItems.length > 0
-        ? providedProcessingTargetItems
-        : summaryProcessingTargetItems
+      : (providedProcessingTargetItems ?? [])
   )
   const processingTargetSearchQuery = $derived(
     processingTargetPageState?.searchQuery ?? processingTargetSearchValue
@@ -197,6 +172,17 @@
   data-testid="persona-generation-phase-screen"
   id="personaGenerationPhaseView"
 >
+  {#if !initialFetchDone}
+    <div
+      class="phase-loading-overlay"
+      data-testid="persona-generation-phase-processing-target-loading"
+      aria-label="処理対象一覧を取得中"
+      aria-busy="true"
+    >
+      <span class="phase-loading-spinner" aria-hidden="true"></span>
+      <span class="loading-text">処理対象一覧を取得中...</span>
+    </div>
+  {/if}
   <PhaseStatusPanel
     eyebrow="translation-management"
     title="NPC ペルソナ生成"
@@ -279,31 +265,34 @@
     />
   </section>
 
-  <ProcessingTargetListWrapper
-    items={filteredProcessingTargetItems}
-    pageSize={processingTargetPageState?.pageSize ?? 50}
-    currentPage={processingTargetPageState?.page}
-    totalCount={processingTargetPageState?.totalCount}
-    busy={processingTargetPageState?.busy}
-    searchId="personaPhaseProcessingTargetSearch"
-    searchTestId="persona-generation-phase-processing-target-search-input"
-    searchLabel="検索"
-    searchPlaceholder="名前・FormID・EditorID・NPC 属性で検索"
-    searchValue={processingTargetSearchQuery}
-    title="処理対象"
-    titleId="personaPhaseProcessingTargetsHeading"
-    onSearchInput={handleProcessingTargetSearchInput}
-    onPreviousPage={onProcessingTargetPreviousPage}
-    onNextPage={onProcessingTargetNextPage}
-    onPageChange={onProcessingTargetPageChange}
-    rowTestId="persona-generation-phase-processing-target-row"
-    totalCountTestId="persona-generation-phase-processing-target-total"
-    emptyStateTestId="persona-generation-phase-processing-target-empty"
-  />
+  <div class="processing-target-container">
+    <ProcessingTargetListWrapper
+      items={filteredProcessingTargetItems}
+      pageSize={processingTargetPageState?.pageSize ?? 50}
+      currentPage={processingTargetPageState?.page}
+      totalCount={processingTargetPageState?.totalCount}
+      busy={processingTargetPageState?.busy}
+      searchId="personaPhaseProcessingTargetSearch"
+      searchTestId="persona-generation-phase-processing-target-search-input"
+      searchLabel="検索"
+      searchPlaceholder="名前・FormID・EditorID・NPC 属性で検索"
+      searchValue={processingTargetSearchQuery}
+      title="処理対象"
+      titleId="personaPhaseProcessingTargetsHeading"
+      onSearchInput={!initialFetchDone ? undefined : handleProcessingTargetSearchInput}
+      onPreviousPage={!initialFetchDone ? undefined : onProcessingTargetPreviousPage}
+      onNextPage={!initialFetchDone ? undefined : onProcessingTargetNextPage}
+      onPageChange={!initialFetchDone ? undefined : onProcessingTargetPageChange}
+      rowTestId="persona-generation-phase-processing-target-row"
+      totalCountTestId="persona-generation-phase-processing-target-total"
+      emptyStateTestId="persona-generation-phase-processing-target-empty"
+    />
+  </div>
 </section>
 
 <style>
   .job-run-shell {
+    position: relative;
     display: grid;
     gap: 1.25rem;
   }
@@ -317,6 +306,45 @@
   @media (max-width: 900px) {
     .phase-controls-grid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  .phase-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(18, 16, 15, 0.72);
+    backdrop-filter: blur(2px);
+  }
+
+  .phase-loading-spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    border: 3px solid rgba(236, 223, 205, 0.25);
+    border-top-color: #ff9c7c;
+    animation: phase-loading-spin 0.8s linear infinite;
+  }
+
+  .loading-text {
+    font-size: 0.875rem;
+    color: rgba(236, 223, 205, 0.78);
+  }
+
+  @keyframes phase-loading-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .phase-loading-spinner {
+      animation-duration: 1.6s;
     }
   }
 </style>

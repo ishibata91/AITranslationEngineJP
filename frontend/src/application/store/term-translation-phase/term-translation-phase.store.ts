@@ -19,6 +19,7 @@ interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState: ProcessingTargetListPageState | null
 }
 
@@ -82,6 +83,7 @@ function createInitialState(): TermTranslationPhaseScreenState {
     errorMessage: "",
     pendingAction: null,
     hasLoaded: false,
+    initialFetchDone: false,
     processingTargetPageState: null
   }
 }

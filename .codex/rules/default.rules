@@ -382,7 +382,7 @@ prefix_rule(
             "clean",
         ],
     ],
-    decision = "deny",
+    decision = "forbidden",
     justification = "Agents must not change remote repositories or run destructive cleanup commands.",
     match = [
         "git push",
@@ -399,7 +399,7 @@ prefix_rule(
         "reset",
         "--hard",
     ],
-    decision = "deny",
+    decision = "forbidden",
     justification = "Agents must not discard local changes.",
     match = [
         "git reset --hard",
@@ -415,7 +415,7 @@ prefix_rule(
         "checkout",
         "--",
     ],
-    decision = "deny",
+    decision = "forbidden",
     justification = "Agents must not discard file changes with checkout.",
     match = [
         "git checkout -- .",

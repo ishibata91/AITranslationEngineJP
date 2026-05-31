@@ -15,6 +15,7 @@
     busy?: boolean
     initialExpandedItemId?: string | null
     showHeadingTitle?: boolean
+    titleColumnLabels?: string[]
     onPreviousPage?: () => void
     onNextPage?: () => void
     onPageChange?: (page: number) => void
@@ -33,6 +34,7 @@
     busy = false,
     initialExpandedItemId = null,
     showHeadingTitle = true,
+    titleColumnLabels: providedTitleColumnLabels = undefined,
     onPreviousPage,
     onNextPage,
     onPageChange,
@@ -141,14 +143,17 @@
     return getItemTitleParts(item).join(" / ")
   }
 
-  function parseTitlePart(titlePart: string): { label: string; value: string } {
+  function parseTitlePart(
+    titlePart: string,
+    fallbackLabel?: string
+  ): { label: string; value: string } {
     const match = titlePart.match(/^(.+?)(?:\s+\d+)?[:：]\s*(.+)$/)
     if (!match) {
-      return { label: "対象", value: titlePart }
+      return { label: fallbackLabel ?? "対象", value: titlePart }
     }
 
     return {
-      label: (match[1] ?? "対象").trim(),
+      label: (match[1] ?? fallbackLabel ?? "対象").trim(),
       value: (match[2] ?? titlePart).trim()
     }
   }
@@ -157,7 +162,8 @@
     visibleItems.some((item) => getItemTitleParts(item).length > 1) ? 2 : 1
   )
   const titleColumnIndexes = $derived(titleColumnCount === 1 ? [0] : [0, 1])
-  const titleColumnLabels = $derived(
+  const COLUMN_FALLBACK_LABELS = ["対象 1", "対象 2"] as const
+  const derivedTitleColumnLabels = $derived(
     titleColumnCount === 1
       ? ["対象"]
       : (
@@ -166,7 +172,12 @@
             .find((titleParts) => titleParts.length > 1) ?? []
         )
           .slice(0, titleColumnCount)
-          .map((titlePart) => parseTitlePart(titlePart).label)
+          .map((titlePart, i) =>
+            parseTitlePart(titlePart, COLUMN_FALLBACK_LABELS[i]).label
+          )
+  )
+  const resolvedTitleColumnLabels = $derived(
+    providedTitleColumnLabels ?? derivedTitleColumnLabels
   )
 </script>
 
@@ -186,7 +197,7 @@
     >
       <thead>
         <tr>
-          {#each titleColumnLabels as titleColumnLabel (titleColumnLabel)}
+          {#each resolvedTitleColumnLabels as titleColumnLabel, index (`${index}-${titleColumnLabel}`)}
             <th scope="col">{titleColumnLabel}</th>
           {/each}
         </tr>

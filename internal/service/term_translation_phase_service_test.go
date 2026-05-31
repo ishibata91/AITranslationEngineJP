@@ -755,7 +755,7 @@ func TestTermTranslationPhaseServiceRetryPhaseCompletesWhenSnapshotAlreadyConfir
 	if err != nil {
 		t.Fatalf("expected retry success, got %v", err)
 	}
-	if result.PhaseState != termTranslationPhaseStateCompleted || !result.CanStartNextPhase {
+	if result.PhaseState != termTranslationPhaseStateCompleted {
 		t.Fatalf("expected completed retry result, got %#v", result)
 	}
 	if result.ErrorSummary != nil {
@@ -1323,7 +1323,7 @@ func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadSta
 	if time.Since(startedAt) > 150*time.Millisecond {
 		t.Fatalf("expected stalled lm_studio secret load to time out quickly, got %s", time.Since(startedAt))
 	}
-	if result.PhaseState != termTranslationPhaseStateCompleted || !result.CanStartNextPhase {
+	if result.PhaseState != termTranslationPhaseStateCompleted {
 		t.Fatalf("expected completed lm_studio start result, got %#v", result)
 	}
 	if len(capturedAPIKeys) == 0 {
@@ -1477,8 +1477,8 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(
 	if err != nil {
 		t.Fatalf("expected readiness load success, got %v", err)
 	}
-	if readiness.CanStartNextPhase {
-		t.Fatalf("expected candidate coverage guard to remain false, got %#v", readiness)
+	if readiness.ConfirmedCount >= readiness.TotalCount && readiness.TotalCount > 0 {
+		t.Fatalf("expected candidate coverage to be incomplete, got %#v", readiness)
 	}
 }
 
@@ -1491,8 +1491,8 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessKeepsReadyJobWithoutPh
 	if err != nil {
 		t.Fatalf("expected readiness success for ready job without phase runs: %v", err)
 	}
-	if readiness.CanStartNextPhase {
-		t.Fatalf("expected next phase readiness to remain blocked, got %#v", readiness)
+	if readiness.PhaseState == termTranslationPhaseStateCompleted {
+		t.Fatalf("expected phase state to indicate not completed, got %#v", readiness)
 	}
 }
 

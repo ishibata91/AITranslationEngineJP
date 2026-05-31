@@ -96,15 +96,17 @@ func TestTermTranslationPhaseUsecaseGetSummaryMapsPointersAndNormalizesErrorKind
 	}
 }
 
-func TestTermTranslationPhaseUsecaseGetNextPhaseReadinessNormalizesErrorKind(t *testing.T) {
-	reason := "term phase is not completed"
+func TestTermTranslationPhaseUsecaseGetNextPhaseReadinessReturnsFacts(t *testing.T) {
 	usecase := NewTermTranslationPhaseUsecase(fakeTermTranslationPhaseService{
 		readNextPhaseReadinessFunc: func(context.Context, int64) (service.TermTranslationNextPhaseReadinessReadModel, error) {
 			return service.TermTranslationNextPhaseReadinessReadModel{
-				JobID:             31,
-				CanStartNextPhase: false,
-				BlockedReason:     &reason,
-				ErrorKind:         "  TERM_PHASE_INCOMPLETE ",
+				JobID:          31,
+				CurrentPhase:   "term_translation",
+				PhaseState:     "completed",
+				JobIsTerminal:  false,
+				TotalCount:     5,
+				ConfirmedCount: 5,
+				ErrorKind:      "  TERM_PHASE_INCOMPLETE ",
 			}, nil
 		},
 	})
@@ -116,8 +118,11 @@ func TestTermTranslationPhaseUsecaseGetNextPhaseReadinessNormalizesErrorKind(t *
 	if result.ErrorKind != "term_phase_incomplete" {
 		t.Fatalf("expected normalized error kind, got %#v", result)
 	}
-	if result.BlockedReason == &reason {
-		t.Fatal("expected blocked reason pointer clone")
+	if result.TotalCount != 5 || result.ConfirmedCount != 5 {
+		t.Fatalf("expected fact counts to be forwarded, got %#v", result)
+	}
+	if result.JobIsTerminal {
+		t.Fatalf("expected job is not terminal, got %#v", result)
 	}
 }
 

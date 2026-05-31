@@ -117,18 +117,16 @@ type TermTranslationPhaseErrorSummaryDTO struct {
 	IsRedacted bool   `json:"isRedacted"`
 }
 
-// TermTranslationPhaseActionEnablementDTO summarizes Job Run button state.
+// TermTranslationPhaseActionEnablementDTO summarizes Job Run operation button state.
 type TermTranslationPhaseActionEnablementDTO struct {
-	CanStart               bool    `json:"canStart"`
-	StartBlockedReason     *string `json:"startBlockedReason,omitempty"`
-	CanPause               bool    `json:"canPause"`
-	PauseBlockedReason     *string `json:"pauseBlockedReason,omitempty"`
-	CanResume              bool    `json:"canResume"`
-	ResumeBlockedReason    *string `json:"resumeBlockedReason,omitempty"`
-	CanRetry               bool    `json:"canRetry"`
-	RetryBlockedReason     *string `json:"retryBlockedReason,omitempty"`
-	CanStartNextPhase      bool    `json:"canStartNextPhase"`
-	NextPhaseBlockedReason *string `json:"nextPhaseBlockedReason,omitempty"`
+	CanStart            bool    `json:"canStart"`
+	StartBlockedReason  *string `json:"startBlockedReason,omitempty"`
+	CanPause            bool    `json:"canPause"`
+	PauseBlockedReason  *string `json:"pauseBlockedReason,omitempty"`
+	CanResume           bool    `json:"canResume"`
+	ResumeBlockedReason *string `json:"resumeBlockedReason,omitempty"`
+	CanRetry            bool    `json:"canRetry"`
+	RetryBlockedReason  *string `json:"retryBlockedReason,omitempty"`
 }
 
 // TermTranslationPhaseSummaryResponseDTO returns the frozen Job Run summary shape.
@@ -151,26 +149,26 @@ type TermTranslationPhaseSummaryResponseDTO struct {
 
 // TermTranslationPhaseCommandResponseDTO returns the frozen write-seam response shape.
 type TermTranslationPhaseCommandResponseDTO struct {
-	JobID             int64                                  `json:"jobId"`
-	CurrentPhase      string                                 `json:"currentPhase"`
-	PhaseState        string                                 `json:"phaseState"`
-	PhaseRunID        *int64                                 `json:"phaseRunId,omitempty"`
-	StartedAt         *string                                `json:"startedAt,omitempty"`
-	FinishedAt        *string                                `json:"finishedAt,omitempty"`
-	Progress          TermTranslationPhaseProgressSummaryDTO `json:"progress"`
-	Retryable         bool                                   `json:"retryable"`
-	CanStartNextPhase bool                                   `json:"canStartNextPhase"`
-	ErrorSummary      *TermTranslationPhaseErrorSummaryDTO   `json:"errorSummary,omitempty"`
+	JobID        int64                                  `json:"jobId"`
+	CurrentPhase string                                 `json:"currentPhase"`
+	PhaseState   string                                 `json:"phaseState"`
+	PhaseRunID   *int64                                 `json:"phaseRunId,omitempty"`
+	StartedAt    *string                                `json:"startedAt,omitempty"`
+	FinishedAt   *string                                `json:"finishedAt,omitempty"`
+	Progress     TermTranslationPhaseProgressSummaryDTO `json:"progress"`
+	Retryable    bool                                   `json:"retryable"`
+	ErrorSummary *TermTranslationPhaseErrorSummaryDTO   `json:"errorSummary,omitempty"`
 }
 
-// TermTranslationNextPhaseReadinessResponseDTO returns the frozen downstream readiness shape.
+// TermTranslationNextPhaseReadinessResponseDTO returns the frozen downstream phase fact state shape.
 type TermTranslationNextPhaseReadinessResponseDTO struct {
-	JobID             int64   `json:"jobId"`
-	CurrentPhase      string  `json:"currentPhase"`
-	PhaseState        string  `json:"phaseState"`
-	CanStartNextPhase bool    `json:"canStartNextPhase"`
-	BlockedReason     *string `json:"blockedReason,omitempty"`
-	ErrorKind         string  `json:"errorKind,omitempty"`
+	JobID          int64  `json:"jobId"`
+	CurrentPhase   string `json:"currentPhase"`
+	PhaseState     string `json:"phaseState"`
+	JobIsTerminal  bool   `json:"jobIsTerminal"`
+	TotalCount     int    `json:"totalCount"`
+	ConfirmedCount int    `json:"confirmedCount"`
+	ErrorKind      string `json:"errorKind,omitempty"`
 }
 
 // NewTermTranslationPhaseController creates a term translation phase controller.
@@ -320,16 +318,15 @@ func toTermTranslationPhaseCommandResponseDTO(
 	result usecase.TermTranslationPhaseCommandResult,
 ) TermTranslationPhaseCommandResponseDTO {
 	return TermTranslationPhaseCommandResponseDTO{
-		JobID:             result.JobID,
-		CurrentPhase:      result.CurrentPhase,
-		PhaseState:        result.PhaseState,
-		PhaseRunID:        cloneOptionalInt64(result.PhaseRunID),
-		StartedAt:         formatOptionalTime(result.StartedAt),
-		FinishedAt:        formatOptionalTime(result.FinishedAt),
-		Progress:          toTermTranslationPhaseProgressSummaryDTO(result.Progress),
-		Retryable:         result.Retryable,
-		CanStartNextPhase: result.CanStartNextPhase,
-		ErrorSummary:      toOptionalTermTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
+		JobID:        result.JobID,
+		CurrentPhase: result.CurrentPhase,
+		PhaseState:   result.PhaseState,
+		PhaseRunID:   cloneOptionalInt64(result.PhaseRunID),
+		StartedAt:    formatOptionalTime(result.StartedAt),
+		FinishedAt:   formatOptionalTime(result.FinishedAt),
+		Progress:     toTermTranslationPhaseProgressSummaryDTO(result.Progress),
+		Retryable:    result.Retryable,
+		ErrorSummary: toOptionalTermTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
 	}
 }
 
@@ -337,12 +334,13 @@ func toTermTranslationNextPhaseReadinessResponseDTO(
 	result usecase.TermTranslationNextPhaseReadinessResult,
 ) TermTranslationNextPhaseReadinessResponseDTO {
 	return TermTranslationNextPhaseReadinessResponseDTO{
-		JobID:             result.JobID,
-		CurrentPhase:      result.CurrentPhase,
-		PhaseState:        result.PhaseState,
-		CanStartNextPhase: result.CanStartNextPhase,
-		BlockedReason:     cloneOptionalString(result.BlockedReason),
-		ErrorKind:         usecase.NormalizeTermTranslationPhasePublicErrorKind(result.ErrorKind),
+		JobID:          result.JobID,
+		CurrentPhase:   result.CurrentPhase,
+		PhaseState:     result.PhaseState,
+		JobIsTerminal:  result.JobIsTerminal,
+		TotalCount:     result.TotalCount,
+		ConfirmedCount: result.ConfirmedCount,
+		ErrorKind:      usecase.NormalizeTermTranslationPhasePublicErrorKind(result.ErrorKind),
 	}
 }
 
@@ -404,16 +402,14 @@ func toTermTranslationPhaseActionEnablementDTO(
 	enablement usecase.TermTranslationPhaseActionEnablement,
 ) TermTranslationPhaseActionEnablementDTO {
 	return TermTranslationPhaseActionEnablementDTO{
-		CanStart:               enablement.CanStart,
-		StartBlockedReason:     cloneOptionalString(enablement.StartBlockedReason),
-		CanPause:               enablement.CanPause,
-		PauseBlockedReason:     cloneOptionalString(enablement.PauseBlockedReason),
-		CanResume:              enablement.CanResume,
-		ResumeBlockedReason:    cloneOptionalString(enablement.ResumeBlockedReason),
-		CanRetry:               enablement.CanRetry,
-		RetryBlockedReason:     cloneOptionalString(enablement.RetryBlockedReason),
-		CanStartNextPhase:      enablement.CanStartNextPhase,
-		NextPhaseBlockedReason: cloneOptionalString(enablement.NextPhaseBlockedReason),
+		CanStart:            enablement.CanStart,
+		StartBlockedReason:  cloneOptionalString(enablement.StartBlockedReason),
+		CanPause:            enablement.CanPause,
+		PauseBlockedReason:  cloneOptionalString(enablement.PauseBlockedReason),
+		CanResume:           enablement.CanResume,
+		ResumeBlockedReason: cloneOptionalString(enablement.ResumeBlockedReason),
+		CanRetry:            enablement.CanRetry,
+		RetryBlockedReason:  cloneOptionalString(enablement.RetryBlockedReason),
 	}
 }
 

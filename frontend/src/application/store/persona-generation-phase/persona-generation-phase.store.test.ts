@@ -60,8 +60,7 @@ function createSummary(): PersonaGenerationPhaseSummaryResponse {
       canPause: true,
       canResume: false,
       canRetry: true,
-      canCancel: true,
-      canStartBodyPhase: true
+      canCancel: true
     }
   }
 }
@@ -71,7 +70,6 @@ function createBodyReadiness(): PersonaGenerationBodyReadinessResponse {
     jobId: 10,
     currentPhase: "persona_generation",
     phaseState: "ready",
-    ready: true,
     inputSummary: {
       personaCount: 4,
       missingCount: 0,

@@ -69,8 +69,16 @@ export class TranslationPhasePage extends SystemTestPageObject {
     return this.byTestId(this.processingTargetTestId("row"))
   }
 
+  get processingTargetLoadingOverlay(): Locator {
+    return this.byTestId(this.processingTargetTestId("loading"))
+  }
+
   async waitForScreen(): Promise<void> {
     await this.waitFor(this.screen)
+    // 初回取得中は phase-loading-overlay がフェーズ画面全体を覆う。
+    // initialFetchDone=true になるとオーバーレイが消えるため、hidden を待つ。
+    // オーバーレイが最初から存在しない場合（initialFetchDone=true 初期値）も hidden で通過する。
+    await this.processingTargetLoadingOverlay.waitFor({ state: "hidden" })
   }
 
   async searchProcessingTargets(query: string): Promise<void> {

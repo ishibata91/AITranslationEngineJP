@@ -3,13 +3,11 @@ import type {
   ProcessingTargetListResponse
 } from "@application/gateway-contract/processing-target"
 import type {
-  BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseAISettingsRequest,
   BodyTranslationPhaseAISettingsResponse,
   BodyTranslationPhaseSummaryResponse,
   CancelBodyTranslationPhaseRequest,
-  GetBodyTranslationOutputReadinessRequest,
   GetBodyTranslationPhaseSummaryRequest,
   PauseBodyTranslationPhaseRequest,
   ResumeBodyTranslationPhaseRequest,
@@ -55,7 +53,3 @@ export type CancelBodyTranslationPhaseRequestDto =
 export type CancelBodyTranslationPhaseResponseDto =
   BodyTranslationPhaseCommandResponse
 
-export type GetBodyTranslationOutputReadinessRequestDto =
-  GetBodyTranslationOutputReadinessRequest
-export type GetBodyTranslationOutputReadinessResponseDto =
-  BodyTranslationOutputReadinessResponse

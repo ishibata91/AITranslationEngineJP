@@ -179,6 +179,25 @@ export const processingTargetListPanelFixtures = {
     ),
     initialPage: 2
   },
+  valueonlyTitleParts: {
+    items: Array.from({ length: 10 }, (_, index): ProcessingTargetListItem => {
+      const itemNumber = index + 1
+      const paddedNumber = itemNumber.toString().padStart(3, "0")
+      return {
+        id: `valueonly-${paddedNumber}`,
+        name: `用語候補 ${paddedNumber}`,
+        titleParts: [
+          { text: `Dragonborn${paddedNumber}` },
+          { text: `ドラゴンボーン${paddedNumber}` }
+        ],
+        detail: "ラベルなし値のみ形式 titleParts のレンダリング確認。",
+        metadata: [
+          { label: "対象 ID", value: `valueonly-${paddedNumber}` }
+        ]
+      }
+    }),
+    titleColumnLabels: ["原語候補", "AI 訳語候補"]
+  },
   longText: {
     items: [
       {

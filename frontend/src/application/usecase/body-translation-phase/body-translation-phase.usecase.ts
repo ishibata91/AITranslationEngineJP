@@ -1,16 +1,20 @@
+import pino from "pino"
+
 import type {
   ProcessingTargetListPageState,
   ProcessingTargetListPageStatesByPhase,
   ProcessingTargetListResponse
 } from "@application/gateway-contract/processing-target"
 
+const logger = pino({ browser: { asObject: true } })
+
 import type {
+  BodyTranslationOutputReadinessSummary,
   BodyTranslationPhaseAISettingsRequest,
   BodyTranslationPhaseCommandResponse,
   BodyTranslationPhaseGatewayContract,
   BodyTranslationPhaseSummaryResponse,
   CancelBodyTranslationPhaseRequest,
-  GetBodyTranslationOutputReadinessRequest,
   GetBodyTranslationPhaseSummaryRequest,
   PauseBodyTranslationPhaseRequest,
   ResumeBodyTranslationPhaseRequest,
@@ -30,24 +34,11 @@ interface BodyTranslationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
   summary: BodyTranslationPhaseSummaryResponse | null
-  outputReadiness: {
-    jobId: number
-    currentPhase: string
-    phaseState: string
-    ready: boolean
-    blockedReason?: string
-    errorKind?: BodyTranslationPhaseSummaryResponse["errorSummary"] extends infer T
-      ? T extends { errorKind: infer K }
-        ? K
-        : never
-      : never
-    completedFieldCount: number
-    statusConsistent: boolean
-    outputCount: number
-  } | null
+  outputReadiness: BodyTranslationOutputReadinessSummary | null
   errorMessage: string
   pendingAction: BodyTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
   processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
@@ -207,11 +198,29 @@ export class BodyTranslationPhaseUseCase {
   }
 
   async setJobId(jobId: number | null): Promise<void> {
+    const prev = this.processingTargetListRequestSequenceByPhase
+    this.processingTargetListRequestSequenceByPhase = Object.fromEntries(
+      Object.entries(prev).map(([phase, seq]) => [phase, seq + 1])
+    )
+    const nextBodySeq =
+      (this.processingTargetListRequestSequenceByPhase["body_translation"] ??
+        0) + 1
+    logger.info(
+      {
+        event: "phase_fetch_start",
+        where: "frontend.usecase.body",
+        result: "started",
+        id: jobId !== null ? `job:${jobId}` : "job:null",
+        seq: nextBodySeq
+      },
+      "body phase setJobId"
+    )
     this.store.update((draft) => {
       draft.jobId = jobId
       draft.summary = null
       draft.outputReadiness = null
       draft.hasLoaded = false
+      draft.initialFetchDone = false
       draft.pendingAction = null
       draft.errorMessage = jobId === null ? createNoJobSelectedMessage() : ""
       draft.phase = "ready"
@@ -347,6 +356,13 @@ export class BodyTranslationPhaseUseCase {
     }
 
     const before = this.store.snapshot()
+    const processingTargetListRequestSequence =
+      (this.processingTargetListRequestSequenceByPhase["body_translation"] ??
+        0) + 1
+    this.processingTargetListRequestSequenceByPhase["body_translation"] =
+      processingTargetListRequestSequence
+    const id = `job:${jobId}`
+    const seq = processingTargetListRequestSequence
 
     this.store.update((draft) => {
       draft.phase = "loading"
@@ -354,31 +370,66 @@ export class BodyTranslationPhaseUseCase {
       draft.errorMessage = ""
     })
 
-    try {
-      const processingTargetListRequestSequence =
-        (this.processingTargetListRequestSequenceByPhase["body_translation"] ??
-          0) + 1
-      this.processingTargetListRequestSequenceByPhase["body_translation"] =
-        processingTargetListRequestSequence
-      const [summary, outputReadiness, processingTargetPageState] =
-        await Promise.all([
-        this.gateway.getBodyTranslationPhaseSummary({
-          jobId
-        } satisfies GetBodyTranslationPhaseSummaryRequest),
-        this.gateway.getBodyTranslationOutputReadiness({
-          jobId
-        } satisfies GetBodyTranslationOutputReadinessRequest),
-        this.fetchProcessingTargetListResponse(
-          jobId,
-          getProcessingTargetPageState(before, "body_translation"),
-          "body_translation"
-        )
-      ])
+    const summaryStart = performance.now()
+    const summaryPromise = this.gateway.getBodyTranslationPhaseSummary({
+      jobId
+    } satisfies GetBodyTranslationPhaseSummaryRequest)
 
+    const processingTargetStart = performance.now()
+    const processingTargetPromise = this.fetchProcessingTargetListResponse(
+      jobId,
+      getProcessingTargetPageState(before, "body_translation"),
+      "body_translation"
+    )
+
+    try {
+      const summary = await summaryPromise
+      const summaryElapsedMs = Math.round(performance.now() - summaryStart)
+      this.store.update((draft) => {
+        draft.summary = summary
+        draft.errorMessage = ""
+      })
+      logger.info(
+        {
+          event: "bridge_summary_done",
+          where: "frontend.usecase.body",
+          result: "reflected",
+          id,
+          seq,
+          elapsedMs: summaryElapsedMs
+        },
+        "body summary bridge done and store updated"
+      )
+    } catch (error) {
+      const summaryElapsedMs = Math.round(performance.now() - summaryStart)
+      logger.warn(
+        {
+          event: "bridge_summary_done",
+          where: "frontend.usecase.body",
+          result: "failed",
+          id,
+          seq,
+          elapsedMs: summaryElapsedMs
+        },
+        "body summary bridge failed"
+      )
       this.store.update((draft) => {
         draft.phase = "ready"
-        draft.summary = summary
-        draft.outputReadiness = outputReadiness
+        draft.pendingAction = null
+        draft.summary = before.summary
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "本文翻訳段階の summary 取得に失敗しました。"
+        )
+      })
+    }
+
+    try {
+      const processingTargetPageState = await processingTargetPromise
+      const processingTargetElapsedMs = Math.round(
+        performance.now() - processingTargetStart
+      )
+      this.store.update((draft) => {
         if (
           processingTargetListRequestSequence ===
           this.processingTargetListRequestSequenceByPhase["body_translation"]
@@ -388,20 +439,72 @@ export class BodyTranslationPhaseUseCase {
             "body_translation",
             processingTargetPageState
           )
+          logger.info(
+            {
+              event: "bridge_processing_target_done",
+              where: "frontend.usecase.body",
+              result: "reflected",
+              id,
+              seq,
+              elapsedMs: processingTargetElapsedMs
+            },
+            "body processingTarget bridge done and store updated"
+          )
+        } else {
+          logger.warn(
+            {
+              event: "bridge_processing_target_done",
+              where: "frontend.usecase.body",
+              result: "dropped",
+              id,
+              seq,
+              currentSeq:
+                this.processingTargetListRequestSequenceByPhase[
+                  "body_translation"
+                ],
+              elapsedMs: processingTargetElapsedMs,
+              reason: "stale_sequence"
+            },
+            "body processingTarget dropped by stale sequence"
+          )
         }
+        draft.phase = "ready"
         draft.pendingAction = null
-        draft.errorMessage = ""
         draft.hasLoaded = true
+        draft.initialFetchDone = true
       })
+      logger.info(
+        {
+          event: "initial_fetch_done",
+          where: "frontend.usecase.body",
+          result: "completed",
+          id,
+          seq
+        },
+        "body initialFetchDone set to true"
+      )
     } catch (error) {
+      const processingTargetElapsedMs = Math.round(
+        performance.now() - processingTargetStart
+      )
+      logger.warn(
+        {
+          event: "bridge_processing_target_done",
+          where: "frontend.usecase.body",
+          result: "failed",
+          id,
+          seq,
+          elapsedMs: processingTargetElapsedMs
+        },
+        "body processingTarget bridge failed"
+      )
       this.store.update((draft) => {
         draft.phase = "ready"
         draft.pendingAction = null
-        draft.summary = before.summary
-        draft.outputReadiness = before.outputReadiness
+        draft.initialFetchDone = true
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "本文翻訳段階の summary 取得に失敗しました。"
+          "本文翻訳段階の処理対象一覧取得に失敗しました。"
         )
       })
     }
@@ -547,17 +650,7 @@ export class BodyTranslationPhaseUseCase {
         draft.phase = "ready"
         draft.pendingAction = null
         draft.summary = patchSummaryFromCommand(draft.summary, response)
-        draft.outputReadiness = {
-          jobId: response.jobId,
-          currentPhase: response.currentPhase,
-          phaseState: response.phaseState,
-          ready: response.outputReadiness.ready,
-          blockedReason: response.outputReadiness.blockedReason,
-          errorKind: response.outputReadiness.errorKind,
-          completedFieldCount: response.outputReadiness.completedFieldCount,
-          statusConsistent: response.outputReadiness.statusConsistent,
-          outputCount: response.execution.outputCount
-        }
+        draft.outputReadiness = null
         draft.errorMessage = ""
         draft.hasLoaded = true
       })

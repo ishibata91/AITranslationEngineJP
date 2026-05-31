@@ -38,8 +38,8 @@ describe("persona-generation-contract", () => {
         canPause: true,
         canResume: false,
         canRetry: true,
-        canCancel: true,
-        canStartBodyPhase: false
+        canCancel: true
+        // canStartBodyPhase はフロント導出値であり DTO に含まれない
       }
     }
 

@@ -1,10 +1,11 @@
+import pino from "pino"
+
 import type {
   ProcessingTargetListPageState,
   ProcessingTargetListResponse
 } from "@application/gateway-contract/processing-target"
 
 import type {
-  GetTermTranslationNextPhaseReadinessRequest,
   GetTermTranslationPhaseSummaryRequest,
   PauseTermTranslationPhaseRequest,
   TermTranslationNextPhaseReadinessResponse,
@@ -16,6 +17,8 @@ import type {
   TermTranslationPhaseGatewayContract,
   TermTranslationPhaseSummaryResponse
 } from "@application/gateway-contract/term-translation-phase"
+
+const logger = pino({ browser: { asObject: true } })
 
 type TermTranslationPhaseActionKind =
   | "start"
@@ -31,6 +34,7 @@ interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
@@ -101,8 +105,7 @@ function patchSummaryFromCommand(
       : undefined,
     actionEnablement: {
       ...currentSummary.actionEnablement,
-      canRetry: response.retryable,
-      canStartNextPhase: response.canStartNextPhase
+      canRetry: response.retryable
     }
   }
 }
@@ -129,11 +132,24 @@ export class TermTranslationPhaseUseCase {
   }
 
   async setJobId(jobId: number | null): Promise<void> {
+    this.processingTargetListRequestSequence++
+    const seq = this.processingTargetListRequestSequence
+    logger.info(
+      {
+        event: "phase_fetch_start",
+        where: "frontend.usecase.term",
+        result: "started",
+        id: jobId !== null ? `job:${jobId}` : "job:null",
+        seq
+      },
+      "term phase setJobId"
+    )
     this.store.update((draft) => {
       draft.jobId = jobId
       draft.summary = null
       draft.nextPhaseReadiness = null
       draft.hasLoaded = false
+      draft.initialFetchDone = false
       draft.pendingAction = null
       draft.errorMessage = jobId === null ? createNoJobSelectedMessage() : ""
       draft.phase = "ready"
@@ -238,6 +254,10 @@ export class TermTranslationPhaseUseCase {
     }
 
     const before = this.store.snapshot()
+    const processingTargetListRequestSequence =
+      ++this.processingTargetListRequestSequence
+    const id = `job:${jobId}`
+    const seq = processingTargetListRequestSequence
 
     this.store.update((draft) => {
       draft.phase = "loading"
@@ -245,43 +265,133 @@ export class TermTranslationPhaseUseCase {
       draft.errorMessage = ""
     })
 
-    try {
-      const processingTargetListRequestSequence =
-        ++this.processingTargetListRequestSequence
-      const [summary, nextPhaseReadiness, processingTargetPageState] =
-        await Promise.all([
-        this.gateway.getTermTranslationPhaseSummary({
-          jobId
-        } satisfies GetTermTranslationPhaseSummaryRequest),
-        this.gateway.getTermTranslationNextPhaseReadiness({
-          jobId
-        } satisfies GetTermTranslationNextPhaseReadinessRequest),
-        this.fetchProcessingTargetListResponse(jobId, before.processingTargetPageState ?? null)
-      ])
+    const summaryStart = performance.now()
+    const summaryPromise = this.gateway.getTermTranslationPhaseSummary({
+      jobId
+    } satisfies GetTermTranslationPhaseSummaryRequest)
 
+    const processingTargetStart = performance.now()
+    const processingTargetPromise = this.fetchProcessingTargetListResponse(
+      jobId,
+      before.processingTargetPageState ?? null
+    )
+
+    try {
+      const summary = await summaryPromise
+      const summaryElapsedMs = Math.round(performance.now() - summaryStart)
+      this.store.update((draft) => {
+        draft.summary = summary
+        draft.errorMessage = ""
+      })
+      logger.info(
+        {
+          event: "bridge_summary_done",
+          where: "frontend.usecase.term",
+          result: "reflected",
+          id,
+          seq,
+          elapsedMs: summaryElapsedMs
+        },
+        "term summary bridge done and store updated"
+      )
+    } catch (error) {
+      const summaryElapsedMs = Math.round(performance.now() - summaryStart)
+      logger.warn(
+        {
+          event: "bridge_summary_done",
+          where: "frontend.usecase.term",
+          result: "failed",
+          id,
+          seq,
+          elapsedMs: summaryElapsedMs
+        },
+        "term summary bridge failed"
+      )
       this.store.update((draft) => {
         draft.phase = "ready"
-        draft.summary = summary
-        draft.nextPhaseReadiness = nextPhaseReadiness
+        draft.pendingAction = null
+        draft.summary = before.summary
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "単語翻訳段階の summary 取得に失敗しました。"
+        )
+      })
+    }
+
+    try {
+      const processingTargetPageState = await processingTargetPromise
+      const processingTargetElapsedMs = Math.round(
+        performance.now() - processingTargetStart
+      )
+      this.store.update((draft) => {
         if (
           processingTargetListRequestSequence ===
           this.processingTargetListRequestSequence
         ) {
           draft.processingTargetPageState = processingTargetPageState
+          logger.info(
+            {
+              event: "bridge_processing_target_done",
+              where: "frontend.usecase.term",
+              result: "reflected",
+              id,
+              seq,
+              elapsedMs: processingTargetElapsedMs
+            },
+            "term processingTarget bridge done and store updated"
+          )
+        } else {
+          logger.warn(
+            {
+              event: "bridge_processing_target_done",
+              where: "frontend.usecase.term",
+              result: "dropped",
+              id,
+              seq,
+              currentSeq: this.processingTargetListRequestSequence,
+              elapsedMs: processingTargetElapsedMs,
+              reason: "stale_sequence"
+            },
+            "term processingTarget dropped by stale sequence"
+          )
         }
+        draft.phase = "ready"
         draft.pendingAction = null
-        draft.errorMessage = ""
         draft.hasLoaded = true
+        draft.initialFetchDone = true
       })
+      logger.info(
+        {
+          event: "initial_fetch_done",
+          where: "frontend.usecase.term",
+          result: "completed",
+          id,
+          seq
+        },
+        "term initialFetchDone set to true"
+      )
     } catch (error) {
+      const processingTargetElapsedMs = Math.round(
+        performance.now() - processingTargetStart
+      )
+      logger.warn(
+        {
+          event: "bridge_processing_target_done",
+          where: "frontend.usecase.term",
+          result: "failed",
+          id,
+          seq,
+          elapsedMs: processingTargetElapsedMs
+        },
+        "term processingTarget bridge failed"
+      )
       this.store.update((draft) => {
         draft.phase = "ready"
         draft.pendingAction = null
-        draft.summary = before.summary
-        draft.nextPhaseReadiness = before.nextPhaseReadiness
+        draft.initialFetchDone = true
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "単語翻訳段階の summary 取得に失敗しました。"
+          "単語翻訳段階の処理対象一覧取得に失敗しました。"
         )
       })
     }

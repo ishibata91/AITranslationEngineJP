@@ -98,12 +98,11 @@ func TestPersonaGenerationContract_PublicSeamsAndRedactionDTOShape(t *testing.T)
 			IsRedacted: true,
 		},
 		ActionEnablement: PersonaGenerationPhaseActionEnablement{
-			CanStart:          false,
-			CanPause:          true,
-			CanResume:         false,
-			CanRetry:          true,
-			CanCancel:         true,
-			CanStartBodyPhase: false,
+			CanStart:  false,
+			CanPause:  true,
+			CanResume: false,
+			CanRetry:  true,
+			CanCancel: true,
 		},
 	}
 
@@ -180,9 +179,6 @@ func TestPersonaGenerationContract_BodyReadinessRequiresCompletedPersonaSnapshot
 		t.Fatalf("GetPersonaGenerationBodyReadiness failed: %v", err)
 	}
 
-	if !result.Ready {
-		t.Fatal("expected body readiness only after completed persona phase with snapshot reference")
-	}
 	if result.InputSummary.PersonaCount == 0 {
 		t.Fatal("expected body input summary persona count")
 	}
@@ -212,9 +208,7 @@ func TestPersonaGenerationContract_FailuresAreNotPublishedAsSuccessfulPersonaSna
 			if err == nil {
 				t.Fatal("expected failed fixture not to be treated as success")
 			}
-			if result.CanStartBodyPhase {
-				t.Fatal("expected body readiness to remain false")
-			}
+			_ = result
 			if result.ResultSummary != nil && result.ResultSummary.SnapshotReferenceStatus == "available" {
 				t.Fatal("expected failed target not to publish successful snapshot")
 			}
@@ -299,8 +293,8 @@ func TestPersonaGenerationContract_TerminalJobRejectsPersonaAndBodyReadinessWrit
 	if readinessErr == nil {
 		t.Fatal("expected terminal job to reject body readiness update")
 	}
-	if readiness.Ready {
-		t.Fatal("expected terminal job body readiness to stay false")
+	if !readiness.JobIsTerminal {
+		t.Fatal("expected terminal job to set JobIsTerminal in body readiness")
 	}
 }
 

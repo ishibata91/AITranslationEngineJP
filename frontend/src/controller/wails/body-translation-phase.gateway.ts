@@ -1,7 +1,6 @@
 import type { BodyTranslationPhaseGatewayContract } from "@application/gateway-contract/body-translation-phase"
 import {
   CancelBodyTranslationPhase,
-  GetBodyTranslationOutputReadiness,
   GetBodyTranslationPhaseSummary,
   GetProcessingTargetList,
   PauseBodyTranslationPhase,
@@ -15,8 +14,6 @@ import type {
   CancelBodyTranslationPhaseResponseDto,
   GetProcessingTargetListRequestDto,
   GetProcessingTargetListResponseDto,
-  GetBodyTranslationOutputReadinessRequestDto,
-  GetBodyTranslationOutputReadinessResponseDto,
   GetBodyTranslationPhaseSummaryRequestDto,
   GetBodyTranslationPhaseSummaryResponseDto,
   PauseBodyTranslationPhaseRequestDto,
@@ -396,11 +393,7 @@ function isActionEnablement(value: unknown, path: string): boolean {
       invalid(`${path}.retryBlockedReason`, "string or undefined")) &&
     (isBoolean(value["canCancel"]) || invalid(`${path}.canCancel`, "boolean")) &&
     (isOptionalString(value["cancelBlockedReason"]) ||
-      invalid(`${path}.cancelBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canCheckOutputReadiness"]) ||
-      invalid(`${path}.canCheckOutputReadiness`, "boolean")) &&
-    (isOptionalString(value["outputReadinessBlockedReason"]) ||
-      invalid(`${path}.outputReadinessBlockedReason`, "string or undefined"))
+      invalid(`${path}.cancelBlockedReason`, "string or undefined"))
   )
 }
 
@@ -410,16 +403,11 @@ function isOutputReadinessSummary(value: unknown, path: string): boolean {
   }
 
   return (
-    (isBoolean(value["ready"]) || invalid(`${path}.ready`, "boolean")) &&
-    (isOptionalString(value["blockedReason"]) ||
-      invalid(`${path}.blockedReason`, "string or undefined")) &&
-    (value["errorKind"] === undefined ||
-      isBodyPhaseErrorKind(value["errorKind"]) ||
-      invalid(`${path}.errorKind`, "known body phase error kind")) &&
     (isNumber(value["completedFieldCount"]) ||
       invalid(`${path}.completedFieldCount`, "number")) &&
     (isBoolean(value["statusConsistent"]) ||
-      invalid(`${path}.statusConsistent`, "boolean"))
+      invalid(`${path}.statusConsistent`, "boolean")) &&
+    (isNumber(value["outputCount"]) || invalid(`${path}.outputCount`, "number"))
   )
 }
 
@@ -503,32 +491,6 @@ function isBodyTranslationAISettingsResponseDto(
       value["modelListStatus"] === "credential_missing" ||
       value["modelListStatus"] === "credential_not_required" ||
       invalid("$.modelListStatus", "known model list status"))
-  )
-}
-
-function isBodyTranslationOutputReadinessResponseDto(
-  value: unknown
-): value is GetBodyTranslationOutputReadinessResponseDto {
-  resetIssues()
-  if (!isRecord(value)) {
-    return invalid("$", "object")
-  }
-
-  return (
-    (isNumber(value["jobId"]) || invalid("$.jobId", "number")) &&
-    (isString(value["currentPhase"]) || invalid("$.currentPhase", "string")) &&
-    (isString(value["phaseState"]) || invalid("$.phaseState", "string")) &&
-    (isBoolean(value["ready"]) || invalid("$.ready", "boolean")) &&
-    (isOptionalString(value["blockedReason"]) ||
-      invalid("$.blockedReason", "string or undefined")) &&
-    (value["errorKind"] === undefined ||
-      isBodyPhaseErrorKind(value["errorKind"]) ||
-      invalid("$.errorKind", "known body phase error kind")) &&
-    (isNumber(value["completedFieldCount"]) ||
-      invalid("$.completedFieldCount", "number")) &&
-    (isBoolean(value["statusConsistent"]) ||
-      invalid("$.statusConsistent", "boolean")) &&
-    (isNumber(value["outputCount"]) || invalid("$.outputCount", "number"))
   )
 }
 
@@ -635,19 +597,6 @@ class BodyTranslationPhaseGateway implements BodyTranslationPhaseGatewayContract
     )
   }
 
-  getBodyTranslationOutputReadiness(
-    request: GetBodyTranslationOutputReadinessRequestDto
-  ): Promise<GetBodyTranslationOutputReadinessResponseDto> {
-    return this.invokeBinding(
-      appControllerBinding(
-        "GetBodyTranslationOutputReadiness",
-        GetBodyTranslationOutputReadiness
-      ),
-      "GetBodyTranslationOutputReadiness",
-      request,
-      isBodyTranslationOutputReadinessResponseDto
-    )
-  }
 }
 
 export function createBodyTranslationPhaseGateway(): BodyTranslationPhaseGatewayContract {

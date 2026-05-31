@@ -9,6 +9,7 @@ export const bodyTranslationPhasePanelFixture: BodyTranslationPhaseScreenViewMod
     errorMessage: "",
     pendingAction: null,
     hasLoaded: true,
+    initialFetchDone: true,
     gatewayStatus: "接続済み",
     viewState: "ready",
     isLoading: false,

@@ -42,6 +42,7 @@ interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
@@ -186,7 +187,6 @@ function isSnapshotMissing(state: PersonaGenerationPhaseScreenState): boolean {
 
   return (
     state.summary?.errorSummary?.errorKind === "snapshot_missing" ||
-    state.bodyReadiness?.errorKind === "snapshot_missing" ||
     snapshotReferenceStatus.includes("missing")
   )
 }
@@ -402,19 +402,6 @@ function buildSnapshotLabel(state: PersonaGenerationPhaseScreenState): string {
   return result.snapshotId || result.snapshotDigest || "-"
 }
 
-function buildBodyReadinessLabel(
-  state: PersonaGenerationPhaseScreenState
-): string {
-  if (typeof state.bodyReadiness?.ready === "boolean") {
-    return state.bodyReadiness.ready ? "Ready" : "Blocked"
-  }
-
-  if (typeof state.summary?.resultSummary?.bodyReadiness === "boolean") {
-    return state.summary.resultSummary.bodyReadiness ? "Ready" : "Blocked"
-  }
-
-  return "-"
-}
 
 function buildBodyReadinessInputSummaryLabel(
   state: PersonaGenerationPhaseScreenState
@@ -427,68 +414,177 @@ function buildBodyReadinessInputSummaryLabel(
   return `${inputSummary.personaCount.toLocaleString("ja-JP")} 件 / missing ${inputSummary.missingCount.toLocaleString("ja-JP")} 件 / ${inputSummary.snapshotId || inputSummary.snapshotDigest || "-"}`
 }
 
+function isPersonaTerminalJob(
+  summary: PersonaGenerationPhaseSummaryResponse
+): boolean {
+  const startReason = summary.actionEnablement?.startBlockedReason ?? ""
+  return startReason === "terminal_job"
+}
+
+function derivePersonaCanStartBodyPhase(
+  summary: PersonaGenerationPhaseSummaryResponse
+): boolean {
+  if (isPersonaTerminalJob(summary)) {
+    return false
+  }
+  const bodyReadiness = summary.resultSummary?.bodyReadiness
+  return bodyReadiness === true
+}
+
+function derivePersonaBodyReadinessBlockedReason(
+  summary: PersonaGenerationPhaseSummaryResponse
+): string {
+  if (isPersonaTerminalJob(summary)) {
+    return "ジョブが終端状態のため本文翻訳を開始できません。"
+  }
+  const bodyReadiness = summary.resultSummary?.bodyReadiness
+  if (!bodyReadiness) {
+    return "ペルソナ snapshot 参照が準備できていません。"
+  }
+  return ""
+}
+
+function derivePersonaActionEnablement(
+  summary: PersonaGenerationPhaseSummaryResponse
+): PersonaGenerationPhaseActionEnablement {
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const terminal = isPersonaTerminalJob(summary)
+
+  const isRunning =
+    normalizedState === "running" ||
+    normalizedState === "in_progress" ||
+    normalizedState === "processing"
+  const isPaused = normalizedState === "paused"
+  const isRecoverableFailed =
+    normalizedState === "recoverable_failed" ||
+    normalizedState === "retryable_failed" ||
+    summary.errorSummary?.retryable === true
+  const isActive = isRunning || isPaused || isRecoverableFailed
+
+  const canStart = !terminal && !isActive
+  const startBlockedReason = terminal
+    ? "ジョブが終端状態のため開始できません。"
+    : isActive
+      ? "実行中の翻訳段階があるため開始できません。"
+      : undefined
+
+  const canPause = !terminal && isRunning
+  const pauseBlockedReason = terminal
+    ? "ジョブが終端状態のため中断できません。"
+    : !isRunning
+      ? "フェーズが実行中ではありません。"
+      : undefined
+
+  const canResume = !terminal && (isPaused || isRecoverableFailed)
+  const resumeBlockedReason = terminal
+    ? "ジョブが終端状態のため再開できません。"
+    : !isPaused && !isRecoverableFailed
+      ? "フェーズが再開可能な状態ではありません。"
+      : undefined
+
+  const canRetry = !terminal && isRecoverableFailed
+  const retryBlockedReason = terminal
+    ? "ジョブが終端状態のため再試行できません。"
+    : !isRecoverableFailed
+      ? "フェーズが再試行可能な状態ではありません。"
+      : undefined
+
+  const canCancel = !terminal && isActive
+  const cancelBlockedReason = terminal
+    ? "ジョブが終端状態のためキャンセルできません。"
+    : !isActive
+      ? "フェーズがキャンセル可能な状態ではありません。"
+      : undefined
+
+  return {
+    canStart,
+    startBlockedReason,
+    canPause,
+    pauseBlockedReason,
+    canResume,
+    resumeBlockedReason,
+    canRetry,
+    retryBlockedReason,
+    canCancel,
+    cancelBlockedReason
+  }
+}
+
 function buildScreenActionEnablement(
   state: PersonaGenerationPhaseScreenState
 ): PersonaGenerationPhaseScreenActionEnablement {
-  const summaryEnablement = state.summary?.actionEnablement
   const isBusy = state.phase === "loading" || state.phase === "submitting"
 
+  if (!state.summary) {
+    return {
+      canStart: false,
+      canPause: false,
+      canResume: false,
+      canRetry: false,
+      canCancel: false,
+      canCheckBodyReadiness: !isBusy && state.jobId !== null,
+      canStartBodyPhase: false
+    }
+  }
+
+  const derived = derivePersonaActionEnablement(state.summary)
+
   return {
-    canStart: !isBusy && (summaryEnablement?.canStart ?? false),
-    canPause: !isBusy && (summaryEnablement?.canPause ?? false),
-    canResume: !isBusy && (summaryEnablement?.canResume ?? false),
-    canRetry: !isBusy && (summaryEnablement?.canRetry ?? false),
-    canCancel: !isBusy && (summaryEnablement?.canCancel ?? false),
+    canStart: !isBusy && derived.canStart,
+    canPause: !isBusy && derived.canPause,
+    canResume: !isBusy && derived.canResume,
+    canRetry: !isBusy && derived.canRetry,
+    canCancel: !isBusy && derived.canCancel,
     canCheckBodyReadiness: !isBusy && state.jobId !== null,
-    canStartBodyPhase:
-      !isBusy && (summaryEnablement?.canStartBodyPhase ?? false)
+    canStartBodyPhase: !isBusy && derivePersonaCanStartBodyPhase(state.summary)
   }
 }
 
 function buildActionCards(
   state: PersonaGenerationPhaseScreenState
 ): PersonaGenerationPhaseActionCard[] {
-  const enablement = state.summary?.actionEnablement
   const screenEnablement = buildScreenActionEnablement(state)
-  const bodyReadinessBlockedReason =
-    state.bodyReadiness?.blockedReason ??
-    enablement?.bodyPhaseBlockedReason ??
-    ""
+  const derived = state.summary
+    ? derivePersonaActionEnablement(state.summary)
+    : null
+  const bodyReadinessBlockedReason = state.summary
+    ? derivePersonaBodyReadinessBlockedReason(state.summary)
+    : ""
 
   return [
     {
       id: "start",
       label: "開始",
       disabled: !screenEnablement.canStart,
-      blockedReason: enablement?.startBlockedReason ?? "",
+      blockedReason: derived?.startBlockedReason ?? "",
       tone: "primary"
     },
     {
       id: "pause",
       label: "中断",
       disabled: !screenEnablement.canPause,
-      blockedReason: enablement?.pauseBlockedReason ?? "",
+      blockedReason: derived?.pauseBlockedReason ?? "",
       tone: "warning"
     },
     {
       id: "resume",
       label: "再開",
       disabled: !screenEnablement.canResume,
-      blockedReason: enablement?.resumeBlockedReason ?? "",
+      blockedReason: derived?.resumeBlockedReason ?? "",
       tone: "default"
     },
     {
       id: "retry",
       label: "リトライ",
       disabled: !screenEnablement.canRetry,
-      blockedReason: enablement?.retryBlockedReason ?? "",
+      blockedReason: derived?.retryBlockedReason ?? "",
       tone: "default"
     },
     {
       id: "cancel",
       label: "キャンセル",
       disabled: !screenEnablement.canCancel,
-      blockedReason: enablement?.cancelBlockedReason ?? "",
+      blockedReason: derived?.cancelBlockedReason ?? "",
       tone: "warning"
     },
     {
@@ -565,12 +661,16 @@ export class PersonaGenerationPhasePresenter {
         resultSummary?.snapshotReferenceStatus ?? "-",
       personaCountLabel: formatCount(resultSummary?.personaCount),
       missingCountLabel: formatCount(resultSummary?.missingCount),
-      bodyReadinessLabel: buildBodyReadinessLabel(state),
-      bodyReadinessBlockedReason: state.bodyReadiness?.blockedReason ?? "",
+      bodyReadinessLabel: summary
+        ? (derivePersonaCanStartBodyPhase(summary) ? "Ready" : "Blocked")
+        : "-",
+      bodyReadinessBlockedReason: summary
+        ? derivePersonaBodyReadinessBlockedReason(summary)
+        : "",
       bodyReadinessInputSummaryLabel:
         buildBodyReadinessInputSummaryLabel(state),
       errorKindLabel:
-        state.bodyReadiness?.errorKind ?? errorSummary?.errorKind ?? "-",
+        errorSummary?.errorKind ?? "-",
       errorReasonLabel: errorSummary?.reason ?? "-",
       retryableLabel:
         errorSummary === null
@@ -587,7 +687,7 @@ export class PersonaGenerationPhasePresenter {
       latestResultSummary: resultSummary ?? null,
       latestExecutionSummary: executionSummary ?? null,
       latestErrorKind:
-        errorSummary?.errorKind ?? state.bodyReadiness?.errorKind ?? null,
+        errorSummary?.errorKind ?? null,
       latestBodyReadiness: state.bodyReadiness,
       latestBodyReadinessInputSummary: state.bodyReadiness?.inputSummary ?? null
     }

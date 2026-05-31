@@ -9,6 +9,7 @@ export const personaGenerationPhasePanelFixture: PersonaGenerationPhaseScreenVie
     errorMessage: "",
     pendingAction: null,
     hasLoaded: true,
+    initialFetchDone: true,
     gatewayStatus: "接続済み",
     viewState: "not_started",
     isLoading: false,

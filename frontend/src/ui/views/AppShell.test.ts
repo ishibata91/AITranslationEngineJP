@@ -123,6 +123,7 @@ function createTermTranslationPhaseViewModel(): TermTranslationPhaseScreenViewMo
     errorMessage: "",
     pendingAction: null,
     hasLoaded: true,
+    initialFetchDone: false,
     gatewayStatus: "接続済み",
     viewState: "blocked",
     isLoading: false,

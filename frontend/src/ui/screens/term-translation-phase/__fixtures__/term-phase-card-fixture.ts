@@ -9,6 +9,7 @@ export const termTranslationPhasePanelFixture: TermTranslationPhaseScreenViewMod
     errorMessage: "",
     pendingAction: null,
     hasLoaded: true,
+    initialFetchDone: true,
     gatewayStatus: "接続済み",
     viewState: "idle_ready",
     isLoading: false,

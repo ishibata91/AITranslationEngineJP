@@ -444,6 +444,9 @@ export async function installScenarioWailsMocks(
     dictionaryHitCount: 0,
     aiTargetCount: targetCount,
     execution,
+    // wave-3 (BE-fact-only-term) 完了後: frontend が resultSummary.confirmedCount から次段階開始可否を導出する
+    // state=completed では confirmedCount=targetCount (全件確認済み) として次段階開始可を導く
+    resultSummary: state === "completed" ? { confirmedCount: targetCount, jobDictionaryAppliedCount: 0, replacementTargetCount: 0, unmatchedCount: 0, providerSkipped: false } : undefined,
     errorSummary: blockedStartError,
     actionEnablement: {
       canStart: state === "pending",
@@ -453,9 +456,7 @@ export async function installScenarioWailsMocks(
       canResume: false,
       resumeBlockedReason: "未開始です。",
       canRetry: false,
-      retryBlockedReason: "未開始です。",
-      canStartNextPhase: state === "completed",
-      nextPhaseBlockedReason: state === "completed" ? "" : "単語翻訳が完了していません。"
+      retryBlockedReason: "未開始です。"
     }
   });
   const personaSummary = (state = "pending") => ({
@@ -477,14 +478,15 @@ export async function installScenarioWailsMocks(
       canRetry: state === "failed",
       retryBlockedReason: state === "failed" ? "" : "未開始です。",
       canCancel: state === "running",
-      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。",
-      canStartBodyPhase: false,
-      bodyPhaseBlockedReason: "ペルソナ生成が完了していません。"
+      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。"
+      // wave-3 (BE-fact-only-persona) 完了後: canStartBodyPhase は frontend が
+      // derivePersonaCanStartBodyPhase で summary.resultSummary.bodyReadiness から導出するため除去済み。
     }
   });
+  // BodyTranslationOutputReadinessSummary: completedFieldCount / statusConsistent / outputCount
+  // wave-3 (BE-fact-only-body) 完了後は ready / blockedReason を DTO が含まない。
+  // ただし body gateway の hasBodyPhaseBase バリデーションが通るよう型フィールドのみ返す。
   const bodyOutputReadiness = (state = "pending") => ({
-    ready: state === "completed",
-    blockedReason: state === "completed" ? "" : "本文翻訳が完了していません。",
     completedFieldCount: state === "completed" ? 1 : 0,
     statusConsistent: true,
     outputCount: state === "completed" ? 1 : 0
@@ -533,9 +535,9 @@ export async function installScenarioWailsMocks(
       canRetry: state === "failed",
       retryBlockedReason: state === "failed" ? "" : "失敗状態ではありません。",
       canCancel: state === "running",
-      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。",
-      canCheckOutputReadiness: state === "completed",
-      outputReadinessBlockedReason: state === "completed" ? "" : "本文翻訳が完了していません。"
+      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。"
+      // wave-3 (BE-fact-only-body) 完了後: canCheckOutputReadiness は frontend が
+      // deriveBodyOutputReadinessReady で summary.outputReadiness から導出するため除去済み。
     },
     outputReadiness: bodyOutputReadiness(state)
   });
@@ -763,12 +765,11 @@ export async function installScenarioWailsMocks(
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),
     ResumeTermTranslationPhase: () => Promise.resolve(termSummary("running")),
     RetryTermTranslationPhase: () => Promise.resolve(termSummary("running")),
+    // wave-3 (BE-fact-only-term) 完了後: 可否値を含まず事実状態 (phaseState) のみ返す
     GetTermTranslationNextPhaseReadiness: (request) => Promise.resolve({
       jobId: request.jobId,
       currentPhase: "term_translation",
-      phaseState: request.jobId === 10 ? "completed" : "pending",
-      canStartNextPhase: request.jobId === 10,
-      blockedReason: request.jobId === 10 ? "" : "単語翻訳が完了していません。"
+      phaseState: request.jobId === 10 ? "completed" : "pending"
     }),
     SaveTermTranslationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "term", credentialStatus: "missing", modelListStatus: "credential_missing" }),
     GetPersonaGenerationPhaseSummary: () => Promise.resolve(personaSummary()),
@@ -777,7 +778,8 @@ export async function installScenarioWailsMocks(
     ResumePersonaGenerationPhase: () => Promise.resolve(personaSummary("running")),
     RetryPersonaGenerationPhase: () => Promise.resolve(personaSummary("running")),
     CancelPersonaGenerationPhase: () => Promise.resolve(personaSummary("canceled")),
-    GetPersonaGenerationBodyReadiness: () => Promise.resolve({ jobId: 302, currentPhase: "persona_generation", phaseState: "pending", ready: false, blockedReason: "ペルソナ生成が完了していません。", inputSummary: { personaCount: 0, missingCount: 1, snapshotId: "persona-snapshot", snapshotDigest: "persona-digest", evidenceRefs: [] } }),
+    // wave-3 (BE-fact-only-persona) 完了後: 可否値を含まず事実状態 (inputSummary) のみ返す
+    GetPersonaGenerationBodyReadiness: () => Promise.resolve({ jobId: 302, currentPhase: "persona_generation", phaseState: "pending", inputSummary: { personaCount: 0, missingCount: 1, snapshotId: "persona-snapshot", snapshotDigest: "persona-digest", evidenceRefs: [] } }),
     SavePersonaGenerationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "persona", credentialStatus: "missing", modelListStatus: "credential_missing" }),
     GetBodyTranslationPhaseSummary: (request) => Promise.resolve(bodySummary(bodyStateForJob(request.jobId), request.jobId)),
     StartBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("pending", request.jobId)),
@@ -785,15 +787,8 @@ export async function installScenarioWailsMocks(
     ResumeBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("running", request.jobId)),
     RetryBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("running", request.jobId)),
     CancelBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("canceled", request.jobId)),
-    GetBodyTranslationOutputReadiness: (request) => {
-      const state = bodyStateForJob(request.jobId);
-      return Promise.resolve({
-        jobId: request.jobId,
-        currentPhase: "body_translation",
-        phaseState: state,
-        ...bodyOutputReadiness(state)
-      });
-    },
+    // GetBodyTranslationOutputReadiness は wave-3 (BE-fact-only-body) で廃止済み。
+    // 成果物出力確認の事実は GetBodyTranslationPhaseSummary の outputReadiness フィールドから取得する。
     SaveBodyTranslationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "body", credentialStatus: "missing", modelListStatus: "credential_missing" }),
     GetTranslationOutputReview: (request) => Promise.resolve(outputReview(request.selectedJobId || 401)),
     GetTranslationOutputDiffPreview: (request) => Promise.resolve({

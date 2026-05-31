@@ -4,7 +4,7 @@ import ProcessingTargetListPanel from "@ui/components/ProcessingTargetListPanel.
 import { processingTargetListPanelFixtures } from "../__fixtures__/job-run-shell-fixtures"
 
 const meta = {
-  title: "UI Components/ProcessingTargetListPanel",
+  title: "Review/Changed Components/ProcessingTargetListPanel",
   component: ProcessingTargetListPanel,
   args: processingTargetListPanelFixtures.termTranslationFirstPage,
   parameters: {
@@ -44,4 +44,8 @@ export const LongText: Story = {
 
 export const TooltipLongTitle: Story = {
   args: processingTargetListPanelFixtures.longText
+}
+
+export const ValueOnlyTitleParts: Story = {
+  args: processingTargetListPanelFixtures.valueonlyTitleParts
 }

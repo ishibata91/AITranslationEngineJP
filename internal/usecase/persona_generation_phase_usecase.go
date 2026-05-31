@@ -156,20 +156,20 @@ func (usecase *PersonaGenerationPhaseUsecase) CancelPersonaGenerationPhase(
 	return toPersonaGenerationPhaseCommandResult(readModel), nil
 }
 
-// GetPersonaGenerationBodyReadiness returns whether the body phase may start.
+// GetPersonaGenerationBodyReadiness returns the downstream phase fact state for the body phase boundary.
 func (usecase *PersonaGenerationPhaseUsecase) GetPersonaGenerationBodyReadiness(
 	ctx context.Context,
 	request GetPersonaGenerationBodyReadinessRequest,
 ) (PersonaGenerationBodyReadinessResult, error) {
 	readModel, err := usecase.service.ReadBodyReadiness(ctx, request.JobID)
-	logPhaseReadiness(ctx, "persona_generation_body_readiness", personaGenerationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseState, readModel.Ready, readModel.BlockedReason, err)
-	result := PersonaGenerationBodyReadinessResult{
+	if err != nil {
+		return PersonaGenerationBodyReadinessResult{}, fmt.Errorf("get persona generation body readiness: %w", err)
+	}
+	return PersonaGenerationBodyReadinessResult{
 		JobID:         readModel.JobID,
 		CurrentPhase:  readModel.CurrentPhase,
 		PhaseState:    readModel.PhaseState,
-		Ready:         readModel.Ready,
-		BlockedReason: clonePersonaGenerationStringPointer(readModel.BlockedReason),
-		ErrorKind:     NormalizePersonaGenerationPhasePublicErrorKind(readModel.ErrorKind),
+		JobIsTerminal: readModel.JobIsTerminal,
 		InputSummary: PersonaGenerationBodyReadinessInputSummary{
 			PersonaCount:   readModel.InputSummary.PersonaCount,
 			MissingCount:   readModel.InputSummary.MissingCount,
@@ -177,11 +177,7 @@ func (usecase *PersonaGenerationPhaseUsecase) GetPersonaGenerationBodyReadiness(
 			SnapshotDigest: readModel.InputSummary.SnapshotDigest,
 			EvidenceRefs:   append([]string(nil), readModel.InputSummary.EvidenceRefs...),
 		},
-	}
-	if err != nil {
-		return result, fmt.Errorf("get persona generation body readiness: %w", err)
-	}
-	return result, nil
+	}, nil
 }
 
 func personaGenerationReadModelErrorReason(readModel *service.PersonaGenerationPhaseErrorSummaryReadModel) string {
@@ -274,19 +270,18 @@ func personaPolicyReason(
 
 func personaCommandResultFromSummary(summary service.PersonaGenerationPhaseSummaryReadModel) PersonaGenerationPhaseCommandResult {
 	return PersonaGenerationPhaseCommandResult{
-		JobID:             summary.JobID,
-		CurrentPhase:      summary.CurrentPhase,
-		PhaseState:        summary.PhaseState,
-		PhaseRunID:        clonePersonaGenerationInt64Pointer(summary.PhaseRunID),
-		StartedAt:         clonePersonaGenerationTimePointer(summary.StartedAt),
-		FinishedAt:        clonePersonaGenerationTimePointer(summary.FinishedAt),
-		Progress:          toPersonaGenerationPhaseProgressSummary(summary.Progress),
-		TargetSummary:     toPersonaGenerationTargetSummary(summary.TargetSummary),
-		Execution:         toPersonaGenerationExecutionSummary(summary.Execution),
-		ResultSummary:     toPersonaGenerationPhaseResultSummary(summary.ResultSummary),
-		Retryable:         false,
-		CanStartBodyPhase: summary.ActionEnablement.CanStartBodyPhase,
-		ErrorSummary:      toPersonaGenerationPhaseErrorSummary(summary.ErrorSummary),
+		JobID:         summary.JobID,
+		CurrentPhase:  summary.CurrentPhase,
+		PhaseState:    summary.PhaseState,
+		PhaseRunID:    clonePersonaGenerationInt64Pointer(summary.PhaseRunID),
+		StartedAt:     clonePersonaGenerationTimePointer(summary.StartedAt),
+		FinishedAt:    clonePersonaGenerationTimePointer(summary.FinishedAt),
+		Progress:      toPersonaGenerationPhaseProgressSummary(summary.Progress),
+		TargetSummary: toPersonaGenerationTargetSummary(summary.TargetSummary),
+		Execution:     toPersonaGenerationExecutionSummary(summary.Execution),
+		ResultSummary: toPersonaGenerationPhaseResultSummary(summary.ResultSummary),
+		Retryable:     false,
+		ErrorSummary:  toPersonaGenerationPhaseErrorSummary(summary.ErrorSummary),
 	}
 }
 
@@ -368,10 +363,9 @@ func toPersonaGenerationPhaseCommandResult(
 			OutputCount:   readModel.Execution.OutputCount,
 			EvidenceRefs:  append([]string(nil), readModel.Execution.EvidenceRefs...),
 		},
-		ResultSummary:     toPersonaGenerationPhaseResultSummary(readModel.ResultSummary),
-		Retryable:         readModel.Retryable,
-		CanStartBodyPhase: readModel.CanStartBodyPhase,
-		ErrorSummary:      toPersonaGenerationPhaseErrorSummary(readModel.ErrorSummary),
+		ResultSummary: toPersonaGenerationPhaseResultSummary(readModel.ResultSummary),
+		Retryable:     readModel.Retryable,
+		ErrorSummary:  toPersonaGenerationPhaseErrorSummary(readModel.ErrorSummary),
 	}
 }
 
@@ -452,18 +446,16 @@ func toPersonaGenerationPhaseActionEnablement(
 	readModel service.PersonaGenerationPhaseActionEnablementReadModel,
 ) PersonaGenerationPhaseActionEnablement {
 	return PersonaGenerationPhaseActionEnablement{
-		CanStart:               readModel.CanStart,
-		StartBlockedReason:     clonePersonaGenerationStringPointer(readModel.StartBlockedReason),
-		CanPause:               readModel.CanPause,
-		PauseBlockedReason:     clonePersonaGenerationStringPointer(readModel.PauseBlockedReason),
-		CanResume:              readModel.CanResume,
-		ResumeBlockedReason:    clonePersonaGenerationStringPointer(readModel.ResumeBlockedReason),
-		CanRetry:               readModel.CanRetry,
-		RetryBlockedReason:     clonePersonaGenerationStringPointer(readModel.RetryBlockedReason),
-		CanCancel:              readModel.CanCancel,
-		CancelBlockedReason:    clonePersonaGenerationStringPointer(readModel.CancelBlockedReason),
-		CanStartBodyPhase:      readModel.CanStartBodyPhase,
-		BodyPhaseBlockedReason: clonePersonaGenerationStringPointer(readModel.BodyPhaseBlockedReason),
+		CanStart:            readModel.CanStart,
+		StartBlockedReason:  clonePersonaGenerationStringPointer(readModel.StartBlockedReason),
+		CanPause:            readModel.CanPause,
+		PauseBlockedReason:  clonePersonaGenerationStringPointer(readModel.PauseBlockedReason),
+		CanResume:           readModel.CanResume,
+		ResumeBlockedReason: clonePersonaGenerationStringPointer(readModel.ResumeBlockedReason),
+		CanRetry:            readModel.CanRetry,
+		RetryBlockedReason:  clonePersonaGenerationStringPointer(readModel.RetryBlockedReason),
+		CanCancel:           readModel.CanCancel,
+		CancelBlockedReason: clonePersonaGenerationStringPointer(readModel.CancelBlockedReason),
 	}
 }
 

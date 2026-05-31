@@ -77,10 +77,9 @@ function createSummaryResponse(): GetBodyTranslationPhaseSummaryResponse {
       fieldResults: []
     },
     outputReadiness: {
-      ready: false,
-      blockedReason: "pending",
       completedFieldCount: 0,
-      statusConsistent: true
+      statusConsistent: true,
+      outputCount: 0
     },
     errorSummary: {
       errorKind: "provider_failure",
@@ -98,9 +97,7 @@ function createSummaryResponse(): GetBodyTranslationPhaseSummaryResponse {
       canRetry: false,
       retryBlockedReason: "not failed",
       canCancel: false,
-      cancelBlockedReason: "not running",
-      canCheckOutputReadiness: true,
-      outputReadinessBlockedReason: undefined
+      cancelBlockedReason: "not running"
     }
   } as unknown as GetBodyTranslationPhaseSummaryResponse
 }

@@ -37,6 +37,7 @@ export interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 

@@ -12,13 +12,12 @@ import (
 )
 
 type fakeBodyTranslationPhaseUsecase struct {
-	getSummaryFunc      func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error)
-	startFunc           func(context.Context, usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
-	pauseFunc           func(context.Context, usecase.PauseBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
-	resumeFunc          func(context.Context, usecase.ResumeBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
-	retryFunc           func(context.Context, usecase.RetryBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
-	cancelFunc          func(context.Context, usecase.CancelBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
-	outputReadinessFunc func(context.Context, usecase.GetBodyTranslationOutputReadinessRequest) (usecase.BodyTranslationOutputReadinessResult, error)
+	getSummaryFunc func(context.Context, usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error)
+	startFunc      func(context.Context, usecase.StartBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
+	pauseFunc      func(context.Context, usecase.PauseBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
+	resumeFunc     func(context.Context, usecase.ResumeBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
+	retryFunc      func(context.Context, usecase.RetryBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
+	cancelFunc     func(context.Context, usecase.CancelBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 }
 
 func (fake fakeBodyTranslationPhaseUsecase) GetBodyTranslationPhaseSummary(ctx context.Context, request usecase.GetBodyTranslationPhaseSummaryRequest) (usecase.BodyTranslationPhaseSummaryResult, error) {
@@ -61,13 +60,6 @@ func (fake fakeBodyTranslationPhaseUsecase) CancelBodyTranslationPhase(ctx conte
 		return fake.cancelFunc(ctx, request)
 	}
 	return usecase.BodyTranslationPhaseCommandResult{}, nil
-}
-
-func (fake fakeBodyTranslationPhaseUsecase) GetBodyTranslationOutputReadiness(ctx context.Context, request usecase.GetBodyTranslationOutputReadinessRequest) (usecase.BodyTranslationOutputReadinessResult, error) {
-	if fake.outputReadinessFunc != nil {
-		return fake.outputReadinessFunc(ctx, request)
-	}
-	return usecase.BodyTranslationOutputReadinessResult{}, nil
 }
 
 func TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets(t *testing.T) {
@@ -138,16 +130,13 @@ func TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets
 					IsRedacted: true,
 				},
 				ActionEnablement: usecase.BodyTranslationPhaseActionEnablement{
-					CanStart:                false,
-					CanPause:                true,
-					CanResume:               false,
-					CanRetry:                true,
-					CanCancel:               false,
-					CanCheckOutputReadiness: true,
+					CanStart:  false,
+					CanPause:  true,
+					CanResume: false,
+					CanRetry:  true,
+					CanCancel: false,
 				},
 				OutputReadiness: usecase.BodyTranslationOutputReadinessSummary{
-					Ready:               false,
-					BlockedReason:       "phase_running",
 					CompletedFieldCount: 3,
 					StatusConsistent:    true,
 				},
@@ -335,7 +324,7 @@ func TestBodyTranslationPhaseControllerCancelCommandSeamBlocksOutputReadiness(t 
 			}
 			result := bodyTranslationCommandFixture()
 			result.PhaseState = "canceled"
-			result.OutputReadiness.Ready = false
+			result.OutputReadiness.StatusConsistent = false
 			return result, nil
 		},
 	})
@@ -344,8 +333,8 @@ func TestBodyTranslationPhaseControllerCancelCommandSeamBlocksOutputReadiness(t 
 	if err != nil {
 		t.Fatalf("expected cancel success, got %v", err)
 	}
-	if response.OutputReadiness.Ready {
-		t.Fatalf("expected canceled command to block output readiness, got %#v", response.OutputReadiness)
+	if response.OutputReadiness.StatusConsistent {
+		t.Fatalf("expected canceled command to mark status inconsistent, got %#v", response.OutputReadiness)
 	}
 }
 
@@ -372,33 +361,9 @@ func TestBodyTranslationPhaseControllerCommandBusinessRejectionReturnsPayloadWit
 	}
 }
 
-func TestBodyTranslationPhaseControllerOutputReadinessKeepsBlockedPayloadOnUsecaseError(t *testing.T) {
-	controller := NewBodyTranslationPhaseController(fakeBodyTranslationPhaseUsecase{
-		outputReadinessFunc: func(context.Context, usecase.GetBodyTranslationOutputReadinessRequest) (usecase.BodyTranslationOutputReadinessResult, error) {
-			return usecase.BodyTranslationOutputReadinessResult{
-				JobID:               901,
-				CurrentPhase:        "body_translation",
-				PhaseState:          "recoverable_failed",
-				Ready:               false,
-				BlockedReason:       "status_inconsistent",
-				ErrorKind:           " OUTPUT_READINESS_BLOCKED ",
-				CompletedFieldCount: 7,
-				StatusConsistent:    false,
-			}, errors.New("status inconsistent")
-		},
-	})
-
-	response, err := controller.GetBodyTranslationOutputReadiness(GetBodyTranslationOutputReadinessRequestDTO{JobID: 901})
-	if err == nil {
-		t.Fatal("expected error")
-	}
-	if response.Ready || response.ErrorKind != "output_readiness_blocked" || response.StatusConsistent {
-		t.Fatalf("expected blocked readiness payload, got %#v", response)
-	}
-	if !strings.Contains(err.Error(), "get body translation output readiness") {
-		t.Fatalf("expected wrapped error, got %v", err)
-	}
-}
+// TestBodyTranslationPhaseControllerOutputReadinessEndpointRemoved は廃止済み endpoint の確認テスト。
+// GetBodyTranslationOutputReadiness endpoint は INT-body-summary-merge で廃止された。
+// 出力確認可否は段階要約取得の outputReadiness フィールドから事実状態として取得する。
 
 func bodyTranslationCommandFixture() usecase.BodyTranslationPhaseCommandResult {
 	phaseRunID := int64(41)
@@ -419,8 +384,6 @@ func bodyTranslationCommandFixture() usecase.BodyTranslationPhaseCommandResult {
 		InputSnapshotDigest: "sha256:input-snapshot",
 		Retryable:           true,
 		OutputReadiness: usecase.BodyTranslationOutputReadinessSummary{
-			Ready:               false,
-			BlockedReason:       "phase_running",
 			CompletedFieldCount: 4,
 			StatusConsistent:    true,
 		},

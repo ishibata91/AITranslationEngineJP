@@ -3,8 +3,6 @@ export type {
   CancelBodyTranslationPhaseResponseDto,
   GetProcessingTargetListRequestDto,
   GetProcessingTargetListResponseDto,
-  GetBodyTranslationOutputReadinessRequestDto,
-  GetBodyTranslationOutputReadinessResponseDto,
   GetBodyTranslationPhaseSummaryRequestDto,
   GetBodyTranslationPhaseSummaryResponseDto,
   PauseBodyTranslationPhaseRequestDto,

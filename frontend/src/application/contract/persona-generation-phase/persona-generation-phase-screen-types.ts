@@ -47,6 +47,7 @@ export interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 

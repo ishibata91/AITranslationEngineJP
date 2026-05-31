@@ -24,6 +24,7 @@ interface BodyTranslationPhaseScreenState {
     | "check-output-readiness"
     | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState: ProcessingTargetListPageState | null
   processingTargetPageStatesByPhase: ProcessingTargetListPageStatesByPhase
 }
@@ -123,6 +124,7 @@ function createInitialState(): BodyTranslationPhaseScreenState {
     errorMessage: "",
     pendingAction: null,
     hasLoaded: false,
+    initialFetchDone: false,
     processingTargetPageState: null,
     processingTargetPageStatesByPhase: {}
   }

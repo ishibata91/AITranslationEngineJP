@@ -12,7 +12,6 @@ import (
 
 type fakeBodyTranslationScenarioService struct {
 	startReadiness service.BodyTranslationPhaseCommandReadModel
-	readiness      service.BodyTranslationOutputReadinessReadModel
 	err            error
 	capturedJobID  int64
 }
@@ -40,10 +39,6 @@ func (fake *fakeBodyTranslationScenarioService) RetryPhase(context.Context, int6
 
 func (fake *fakeBodyTranslationScenarioService) CancelPhase(context.Context, int64, int64) (service.BodyTranslationPhaseCommandReadModel, error) {
 	return service.BodyTranslationPhaseCommandReadModel{}, nil
-}
-
-func (fake *fakeBodyTranslationScenarioService) ReadOutputReadiness(context.Context, int64) (service.BodyTranslationOutputReadinessReadModel, error) {
-	return fake.readiness, fake.err
 }
 
 func TestSCN_BTP_001_StartCreatesBodyRunWhenPersonaPhaseCompletedAndInputsResolve(t *testing.T) {
@@ -284,19 +279,8 @@ func TestSCN_BTP_008_ZeroTargetCompletesWithoutProviderAndEnablesOutputReadiness
 				OutputCount:      0,
 			},
 			OutputReadiness: service.BodyTranslationOutputReadinessReadModel{
-				JobID:            1004,
-				CurrentPhase:     "body_translation",
-				PhaseState:       "completed",
-				Ready:            true,
 				StatusConsistent: true,
 			},
-		},
-		readiness: service.BodyTranslationOutputReadinessReadModel{
-			JobID:            1004,
-			CurrentPhase:     "body_translation",
-			PhaseState:       "completed",
-			Ready:            true,
-			StatusConsistent: true,
 		},
 	}
 	phaseUsecase := NewBodyTranslationPhaseUsecase(fake)
@@ -311,13 +295,8 @@ func TestSCN_BTP_008_ZeroTargetCompletesWithoutProviderAndEnablesOutputReadiness
 	if result.Execution.RequestUnitCount != 0 {
 		t.Fatalf("SCN-BTP-008 expected no provider request, got %d", result.Execution.RequestUnitCount)
 	}
-
-	readiness, err := phaseUsecase.GetBodyTranslationOutputReadiness(context.Background(), GetBodyTranslationOutputReadinessRequest{JobID: 1004})
-	if err != nil {
-		t.Fatalf("SCN-BTP-008 expected output readiness success: %v", err)
-	}
-	if !readiness.Ready {
-		t.Fatalf("SCN-BTP-008 expected output readiness, got %#v", readiness)
+	if !result.OutputReadiness.StatusConsistent {
+		t.Fatalf("SCN-BTP-008 expected status consistent output readiness from summary, got %#v", result.OutputReadiness)
 	}
 }
 

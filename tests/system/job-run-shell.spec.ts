@@ -225,9 +225,16 @@ test("E2E-UC-048 job run shell advances from completed term phase to persona pha
 }) => {
   // 完了済み単語翻訳段階の次へ進む操作で、NPC ペルソナ生成段階へ遷移することを証明する。
   const jobRun = await openJobRun(page, "system-test-completed-term");
+  const termPhase = new TermTranslationPhasePage(page);
+  // 段階切り替え時は initialFetchDone=false のオーバーレイが表示される。
+  // term 段階の初回取得完了（オーバーレイ消失）を待ってから次へ進む操作を行う。
+  await termPhase.waitForScreen();
 
   await jobRun.clickNext();
 
+  // 遷移先の persona 段階が表示されるまで待つ。
+  const personaPhase = new PersonaGenerationPhasePage(page);
+  await personaPhase.waitForScreen();
   await expect(jobRun.phaseScreenRegion).toContainText("NPC ペルソナ生成");
   await expect(jobRun.selectedJobSummary).toContainText("ジョブ #10");
 });
@@ -240,6 +247,10 @@ test("E2E-UC-049 job run shell advances from completed body phase to completion 
     page,
     "system-test-body-ready-for-completion",
   );
+  const bodyPhase = new BodyTranslationPhasePage(page);
+  // 段階切り替え時は initialFetchDone=false のオーバーレイが表示される。
+  // body 段階の初回取得完了（オーバーレイ消失）を待ってから次へ進む操作を行う。
+  await bodyPhase.waitForScreen();
 
   await jobRun.clickBodyCompleteNext();
 
