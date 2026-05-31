@@ -110,7 +110,32 @@
   }
 
   function setCurrentPhasePage(phasePage: PhasePageId): void {
+    const previous = currentPhasePage
     currentPhasePage = phasePage
+
+    if (!selectedJobTarget || phasePage === previous) {
+      return
+    }
+
+    const jobId = selectedJobTarget.jobId
+    switch (phasePage) {
+      case "term":
+        if (!viewModel.initialFetchDone) {
+          void controller.setJobId(jobId)
+        }
+        break
+      case "persona":
+        if (!personaViewModel.initialFetchDone) {
+          void personaController.setJobId(jobId)
+        }
+        break
+      case "body":
+      case "complete":
+        if (bodyController && !bodyViewModel?.initialFetchDone) {
+          void bodyController.setJobId(jobId)
+        }
+        break
+    }
   }
 
   function syncBodyProcessingTargetPage(phasePage: PhasePageId): void {
@@ -139,14 +164,16 @@
       return
     }
 
-    setCurrentPhasePage(resolveInitialPhasePage(selectedJobTarget))
-    void Promise.all([
-      controller.setJobId(selectedJobTarget.jobId),
-      personaController.setJobId(selectedJobTarget.jobId),
-      ...(bodyController
-        ? [bodyController.setJobId(selectedJobTarget.jobId)]
-        : [])
-    ])
+    const initialPage = resolveInitialPhasePage(selectedJobTarget)
+    setCurrentPhasePage(initialPage)
+
+    if (initialPage === "persona") {
+      void personaController.setJobId(selectedJobTarget.jobId)
+    } else if (initialPage === "body") {
+      void bodyController?.setJobId(selectedJobTarget.jobId)
+    } else {
+      void controller.setJobId(selectedJobTarget.jobId)
+    }
   })
 
   const unsubscribe = controller.subscribe((nextViewModel) => {
@@ -164,12 +191,6 @@
     : () => undefined
 
   onMount(() => {
-    void Promise.all([
-      controller.mount(),
-      personaController.mount(),
-      ...(bodyController ? [bodyController.mount()] : [])
-    ])
-
     return () => {
       unsubscribe()
       unsubscribePersona()
@@ -290,40 +311,41 @@
   }
 
   const canOpenPersonaPhase = $derived(
-    viewModel.nextPhaseReadiness?.canStartNextPhase === true ||
-      viewModel.actionEnablement?.canStartNextPhase === true
+    !(viewModel.actionCards.find((c) => c.id === "next-phase")?.disabled ?? true)
   )
   const termFooterReasons = $derived(
     canOpenPersonaPhase
       ? []
       : reasonsFrom(
-          viewModel.nextPhaseReadiness?.blockedReason,
           viewModel.nextPhaseBlockedReason,
           "次へ進めません。単語翻訳の完了状況と辞書の参照状態を確認してください。"
         )
   )
   const canOpenBodyPhase = $derived(
-    personaViewModel.bodyReadiness?.ready === true ||
-      personaViewModel.latestBodyReadiness?.ready === true
+    !(
+      personaViewModel.actionCards.find((c) => c.id === "start-body-phase")
+        ?.disabled ?? true
+    )
   )
   const personaFooterReasons = $derived(
     canOpenBodyPhase
       ? []
       : reasonsFrom(
-          personaViewModel.bodyReadiness?.blockedReason,
           personaViewModel.bodyReadinessBlockedReason,
           "次へ進めません。ペルソナ生成の完了状況と参照状態を確認してください。"
         )
   )
   const canOpenCompletePage = $derived(
-    bodyViewModel?.latestOutputReadiness?.ready === true &&
-      bodyViewModel.viewState === "completed"
+    !(
+      bodyViewModel?.actionCards.find(
+        (c) => c.id === "check-output-readiness"
+      )?.disabled ?? true
+    ) && bodyViewModel?.viewState === "completed"
   )
   const bodyFooterReasons = $derived(
     canOpenCompletePage
       ? []
       : reasonsFrom(
-          bodyViewModel?.latestOutputReadiness?.blockedReason,
           bodyViewModel?.outputReadinessBlockedReason,
           "完了確認へ進めません。本文翻訳の完了状況と翻訳結果を確認してください。"
         )
@@ -338,13 +360,21 @@
 
     switch (currentPhasePage) {
       case "term":
-        return viewModel.processingTargetPageState ?? undefined
+        return viewModel.initialFetchDone
+          ? (viewModel.processingTargetPageState ?? undefined)
+          : undefined
       case "persona":
-        return personaViewModel.processingTargetPageState ?? undefined
+        return personaViewModel.initialFetchDone
+          ? (personaViewModel.processingTargetPageState ?? undefined)
+          : undefined
       case "body":
-        return getBodyProcessingTargetPageState("body_translation")
+        return bodyViewModel?.initialFetchDone
+          ? getBodyProcessingTargetPageState("body_translation")
+          : undefined
       case "complete":
-        return getBodyProcessingTargetPageState("translation_complete")
+        return bodyViewModel?.initialFetchDone
+          ? getBodyProcessingTargetPageState("translation_complete")
+          : undefined
       default:
         return undefined
     }
@@ -409,6 +439,7 @@
             handleAction(actionId)}
           processingTargetItems={currentProcessingTargetItems}
           processingTargetPageState={currentProcessingTargetPageState}
+          initialFetchDone={viewModel.initialFetchDone}
           onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
           onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handleTermAISettingsChange}
@@ -432,6 +463,7 @@
             handlePersonaAction(actionId)}
           processingTargetItems={currentProcessingTargetItems}
           processingTargetPageState={currentProcessingTargetPageState}
+          initialFetchDone={personaViewModel.initialFetchDone}
           onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
           onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handlePersonaAISettingsChange}
@@ -456,6 +488,7 @@
             handleBodyAction(actionId)}
           processingTargetItems={currentProcessingTargetItems}
           processingTargetPageState={currentProcessingTargetPageState}
+          initialFetchDone={bodyViewModel.initialFetchDone}
           onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
           onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handleBodyAISettingsChange}

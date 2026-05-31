@@ -116,11 +116,6 @@ type CancelBodyTranslationPhaseRequest struct {
 	PhaseRunID int64
 }
 
-// GetBodyTranslationOutputReadinessRequest identifies the job whose output readiness is requested.
-type GetBodyTranslationOutputReadinessRequest struct {
-	JobID int64
-}
-
 // SaveBodyTranslationPhaseAISettingsRequest carries public AI settings for the body phase.
 type SaveBodyTranslationPhaseAISettingsRequest struct {
 	JobID         int64
@@ -233,27 +228,22 @@ type BodyTranslationPhaseErrorSummary struct {
 	IsRedacted bool
 }
 
-// BodyTranslationPhaseActionEnablement summarizes Job Run button state.
+// BodyTranslationPhaseActionEnablement summarizes Job Run operation button state.
 type BodyTranslationPhaseActionEnablement struct {
-	CanStart                     bool
-	StartBlockedReason           *string
-	CanPause                     bool
-	PauseBlockedReason           *string
-	CanResume                    bool
-	ResumeBlockedReason          *string
-	CanRetry                     bool
-	RetryBlockedReason           *string
-	CanCancel                    bool
-	CancelBlockedReason          *string
-	CanCheckOutputReadiness      bool
-	OutputReadinessBlockedReason *string
+	CanStart            bool
+	StartBlockedReason  *string
+	CanPause            bool
+	PauseBlockedReason  *string
+	CanResume           bool
+	ResumeBlockedReason *string
+	CanRetry            bool
+	RetryBlockedReason  *string
+	CanCancel           bool
+	CancelBlockedReason *string
 }
 
-// BodyTranslationOutputReadinessSummary summarizes downstream output readiness.
+// BodyTranslationOutputReadinessSummary summarizes downstream output fact state.
 type BodyTranslationOutputReadinessSummary struct {
-	Ready               bool
-	BlockedReason       string
-	ErrorKind           BodyTranslationPhaseErrorKind
 	CompletedFieldCount int
 	StatusConsistent    bool
 }
@@ -300,19 +290,6 @@ type BodyTranslationPhaseCommandResult struct {
 	Retryable           bool
 	OutputReadiness     BodyTranslationOutputReadinessSummary
 	ErrorSummary        *BodyTranslationPhaseErrorSummary
-}
-
-// BodyTranslationOutputReadinessResult is the frozen downstream readiness contract.
-type BodyTranslationOutputReadinessResult struct {
-	JobID               int64
-	CurrentPhase        string
-	PhaseState          string
-	Ready               bool
-	BlockedReason       string
-	ErrorKind           BodyTranslationPhaseErrorKind
-	CompletedFieldCount int
-	StatusConsistent    bool
-	OutputCount         int
 }
 
 // NewBodyTranslationPhaseContractStub returns a temporary usecase stub for the frozen Wails seam.
@@ -369,14 +346,6 @@ func (BodyTranslationPhaseContractStub) CancelBodyTranslationPhase(
 	CancelBodyTranslationPhaseRequest,
 ) (BodyTranslationPhaseCommandResult, error) {
 	return BodyTranslationPhaseCommandResult{}, errBodyTranslationPhaseNotImplemented
-}
-
-// GetBodyTranslationOutputReadiness returns a not-implemented error for the frozen contract seam.
-func (BodyTranslationPhaseContractStub) GetBodyTranslationOutputReadiness(
-	context.Context,
-	GetBodyTranslationOutputReadinessRequest,
-) (BodyTranslationOutputReadinessResult, error) {
-	return BodyTranslationOutputReadinessResult{}, errBodyTranslationPhaseNotImplemented
 }
 
 var errBodyTranslationPhaseNotImplemented = errors.New("body translation phase usecase is not implemented")

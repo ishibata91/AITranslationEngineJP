@@ -135,23 +135,23 @@ func (usecase *TermTranslationPhaseUsecase) RetryTermTranslationPhase(
 	return toTermTranslationPhaseCommandResult(readModel), nil
 }
 
-// GetTermTranslationNextPhaseReadiness returns whether the next phase may start.
+// GetTermTranslationNextPhaseReadiness returns the downstream phase fact state for the term phase boundary.
 func (usecase *TermTranslationPhaseUsecase) GetTermTranslationNextPhaseReadiness(
 	ctx context.Context,
 	request GetTermTranslationNextPhaseReadinessRequest,
 ) (TermTranslationNextPhaseReadinessResult, error) {
 	readModel, err := usecase.service.ReadNextPhaseReadiness(ctx, request.JobID)
-	logPhaseReadiness(ctx, "term_translation_next_phase_readiness", termTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseState, readModel.CanStartNextPhase, readModel.BlockedReason, err)
 	if err != nil {
 		return TermTranslationNextPhaseReadinessResult{}, fmt.Errorf("get term translation next phase readiness: %w", err)
 	}
 	return TermTranslationNextPhaseReadinessResult{
-		JobID:             readModel.JobID,
-		CurrentPhase:      readModel.CurrentPhase,
-		PhaseState:        readModel.PhaseState,
-		CanStartNextPhase: readModel.CanStartNextPhase,
-		BlockedReason:     cloneStringPointer(readModel.BlockedReason),
-		ErrorKind:         NormalizeTermTranslationPhasePublicErrorKind(readModel.ErrorKind),
+		JobID:          readModel.JobID,
+		CurrentPhase:   readModel.CurrentPhase,
+		PhaseState:     readModel.PhaseState,
+		JobIsTerminal:  readModel.JobIsTerminal,
+		TotalCount:     readModel.TotalCount,
+		ConfirmedCount: readModel.ConfirmedCount,
+		ErrorKind:      NormalizeTermTranslationPhasePublicErrorKind(readModel.ErrorKind),
 	}, nil
 }
 
@@ -244,16 +244,15 @@ func termPolicyReason(
 
 func termCommandResultFromSummary(summary service.TermTranslationPhaseSummaryReadModel) TermTranslationPhaseCommandResult {
 	return TermTranslationPhaseCommandResult{
-		JobID:             summary.JobID,
-		CurrentPhase:      summary.CurrentPhase,
-		PhaseState:        summary.PhaseState,
-		PhaseRunID:        cloneInt64Pointer(summary.PhaseRunID),
-		StartedAt:         cloneTimePointer(summary.StartedAt),
-		FinishedAt:        cloneTimePointer(summary.FinishedAt),
-		Progress:          toTermTranslationPhaseProgressSummary(summary.Progress),
-		Retryable:         false,
-		CanStartNextPhase: summary.ActionEnablement.CanStartNextPhase,
-		ErrorSummary:      toTermTranslationPhaseErrorSummary(summary.ErrorSummary),
+		JobID:        summary.JobID,
+		CurrentPhase: summary.CurrentPhase,
+		PhaseState:   summary.PhaseState,
+		PhaseRunID:   cloneInt64Pointer(summary.PhaseRunID),
+		StartedAt:    cloneTimePointer(summary.StartedAt),
+		FinishedAt:   cloneTimePointer(summary.FinishedAt),
+		Progress:     toTermTranslationPhaseProgressSummary(summary.Progress),
+		Retryable:    false,
+		ErrorSummary: toTermTranslationPhaseErrorSummary(summary.ErrorSummary),
 	}
 }
 
@@ -289,16 +288,15 @@ func toTermTranslationPhaseCommandResult(
 	readModel service.TermTranslationPhaseCommandReadModel,
 ) TermTranslationPhaseCommandResult {
 	return TermTranslationPhaseCommandResult{
-		JobID:             readModel.JobID,
-		CurrentPhase:      readModel.CurrentPhase,
-		PhaseState:        readModel.PhaseState,
-		PhaseRunID:        cloneInt64Pointer(readModel.PhaseRunID),
-		StartedAt:         cloneTimePointer(readModel.StartedAt),
-		FinishedAt:        cloneTimePointer(readModel.FinishedAt),
-		Progress:          toTermTranslationPhaseProgressSummary(readModel.Progress),
-		Retryable:         readModel.Retryable,
-		CanStartNextPhase: readModel.CanStartNextPhase,
-		ErrorSummary:      toTermTranslationPhaseErrorSummary(readModel.ErrorSummary),
+		JobID:        readModel.JobID,
+		CurrentPhase: readModel.CurrentPhase,
+		PhaseState:   readModel.PhaseState,
+		PhaseRunID:   cloneInt64Pointer(readModel.PhaseRunID),
+		StartedAt:    cloneTimePointer(readModel.StartedAt),
+		FinishedAt:   cloneTimePointer(readModel.FinishedAt),
+		Progress:     toTermTranslationPhaseProgressSummary(readModel.Progress),
+		Retryable:    readModel.Retryable,
+		ErrorSummary: toTermTranslationPhaseErrorSummary(readModel.ErrorSummary),
 	}
 }
 
@@ -347,16 +345,14 @@ func toTermTranslationPhaseActionEnablement(
 	readModel service.TermTranslationPhaseActionEnablementReadModel,
 ) TermTranslationPhaseActionEnablement {
 	return TermTranslationPhaseActionEnablement{
-		CanStart:               readModel.CanStart,
-		StartBlockedReason:     cloneStringPointer(readModel.StartBlockedReason),
-		CanPause:               readModel.CanPause,
-		PauseBlockedReason:     cloneStringPointer(readModel.PauseBlockedReason),
-		CanResume:              readModel.CanResume,
-		ResumeBlockedReason:    cloneStringPointer(readModel.ResumeBlockedReason),
-		CanRetry:               readModel.CanRetry,
-		RetryBlockedReason:     cloneStringPointer(readModel.RetryBlockedReason),
-		CanStartNextPhase:      readModel.CanStartNextPhase,
-		NextPhaseBlockedReason: cloneStringPointer(readModel.NextPhaseBlockedReason),
+		CanStart:            readModel.CanStart,
+		StartBlockedReason:  cloneStringPointer(readModel.StartBlockedReason),
+		CanPause:            readModel.CanPause,
+		PauseBlockedReason:  cloneStringPointer(readModel.PauseBlockedReason),
+		CanResume:           readModel.CanResume,
+		ResumeBlockedReason: cloneStringPointer(readModel.ResumeBlockedReason),
+		CanRetry:            readModel.CanRetry,
+		RetryBlockedReason:  cloneStringPointer(readModel.RetryBlockedReason),
 	}
 }
 

@@ -22,6 +22,7 @@ interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState: ProcessingTargetListPageState | null
 }
 
@@ -98,6 +99,7 @@ function createInitialState(): PersonaGenerationPhaseScreenState {
     errorMessage: "",
     pendingAction: null,
     hasLoaded: false,
+    initialFetchDone: false,
     processingTargetPageState: null
   }
 }

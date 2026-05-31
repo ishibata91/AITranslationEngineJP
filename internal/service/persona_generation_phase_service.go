@@ -166,18 +166,16 @@ type PersonaGenerationPhaseErrorSummaryReadModel struct {
 
 // PersonaGenerationPhaseActionEnablementReadModel stores button enablement state.
 type PersonaGenerationPhaseActionEnablementReadModel struct {
-	CanStart               bool
-	StartBlockedReason     *string
-	CanPause               bool
-	PauseBlockedReason     *string
-	CanResume              bool
-	ResumeBlockedReason    *string
-	CanRetry               bool
-	RetryBlockedReason     *string
-	CanCancel              bool
-	CancelBlockedReason    *string
-	CanStartBodyPhase      bool
-	BodyPhaseBlockedReason *string
+	CanStart            bool
+	StartBlockedReason  *string
+	CanPause            bool
+	PauseBlockedReason  *string
+	CanResume           bool
+	ResumeBlockedReason *string
+	CanRetry            bool
+	RetryBlockedReason  *string
+	CanCancel           bool
+	CancelBlockedReason *string
 }
 
 // PersonaGenerationPhaseSummaryReadModel stores the Job Run summary payload.
@@ -199,21 +197,20 @@ type PersonaGenerationPhaseSummaryReadModel struct {
 
 // PersonaGenerationPhaseCommandReadModel stores command response payload fields.
 type PersonaGenerationPhaseCommandReadModel struct {
-	JobID             int64
-	CurrentPhase      string
-	BeforePhaseState  string
-	AfterPhaseState   string
-	PhaseState        string
-	PhaseRunID        *int64
-	StartedAt         *time.Time
-	FinishedAt        *time.Time
-	Progress          PersonaGenerationPhaseProgressReadModel
-	TargetSummary     PersonaGenerationTargetSummaryReadModel
-	Execution         PersonaGenerationExecutionSummaryReadModel
-	ResultSummary     *PersonaGenerationPhaseResultSummaryReadModel
-	Retryable         bool
-	CanStartBodyPhase bool
-	ErrorSummary      *PersonaGenerationPhaseErrorSummaryReadModel
+	JobID            int64
+	CurrentPhase     string
+	BeforePhaseState string
+	AfterPhaseState  string
+	PhaseState       string
+	PhaseRunID       *int64
+	StartedAt        *time.Time
+	FinishedAt       *time.Time
+	Progress         PersonaGenerationPhaseProgressReadModel
+	TargetSummary    PersonaGenerationTargetSummaryReadModel
+	Execution        PersonaGenerationExecutionSummaryReadModel
+	ResultSummary    *PersonaGenerationPhaseResultSummaryReadModel
+	Retryable        bool
+	ErrorSummary     *PersonaGenerationPhaseErrorSummaryReadModel
 }
 
 // PersonaGenerationBodyReadinessInputSummaryReadModel stores downstream input summary fields.
@@ -225,14 +222,12 @@ type PersonaGenerationBodyReadinessInputSummaryReadModel struct {
 	EvidenceRefs   []string
 }
 
-// PersonaGenerationBodyReadinessReadModel stores downstream readiness fields.
+// PersonaGenerationBodyReadinessReadModel stores downstream phase fact state for the body phase boundary.
 type PersonaGenerationBodyReadinessReadModel struct {
 	JobID         int64
 	CurrentPhase  string
 	PhaseState    string
-	Ready         bool
-	BlockedReason *string
-	ErrorKind     string
+	JobIsTerminal bool
 	InputSummary  PersonaGenerationBodyReadinessInputSummaryReadModel
 }
 
@@ -327,9 +322,9 @@ func (service *PersonaGenerationPhaseService) ReadSummary(
 		finishedAt = clonePersonaTimePointer(run.FinishedAt)
 	}
 	progress := service.buildProgress(state, run, snapshot)
-	resultSummary, errorSummary, canStartBodyPhase := service.buildResultState(ctx, run, snapshot)
+	resultSummary, errorSummary := service.buildResultState(ctx, run, snapshot)
 	rejection := service.startRejection(job, run, termRun)
-	actionEnablement := service.buildActionEnablement(job.State, run, state, rejection, canStartBodyPhase)
+	actionEnablement := service.buildActionEnablement(job.State, run, state, rejection)
 	execution := service.buildExecutionSummary(run, &termRun, snapshot, resultSummary)
 	return PersonaGenerationPhaseSummaryReadModel{
 		JobID:        job.ID,
@@ -544,7 +539,7 @@ func (service *PersonaGenerationPhaseService) CancelPhase(
 	return service.mutatePhaseState(ctx, jobID, phaseRunID, personaGenerationPhaseStatePaused, personaGenerationPhaseStateCanceled, nil)
 }
 
-// ReadBodyReadiness reports whether the body phase may start.
+// ReadBodyReadiness returns the downstream phase fact state for the body phase boundary.
 func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 	ctx context.Context,
 	jobID int64,
@@ -553,28 +548,17 @@ func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 	if err != nil {
 		return PersonaGenerationBodyReadinessReadModel{}, err
 	}
-	if isPersonaGenerationTerminalJob(job.State) {
-		return PersonaGenerationBodyReadinessReadModel{
-			JobID:        job.ID,
-			CurrentPhase: personaGenerationCurrentPhase,
-			PhaseState:   personaGenerationPhaseStateRejected,
-			Ready:        false,
-			ErrorKind:    personaGenerationErrorKindTerminalJob,
-		}, errPersonaGenerationPhaseTerminalJob
-	}
+	isTerminal := isPersonaGenerationTerminalJob(job.State)
 	state := personaGenerationPhaseStateNotStarted
 	if run != nil {
 		state = normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
 	}
-	if run == nil || state != personaGenerationPhaseStateCompleted && state != personaGenerationPhaseStateEmptyCompleted {
-		reason := "persona phase completion is required"
+	if isTerminal || run == nil || state != personaGenerationPhaseStateCompleted && state != personaGenerationPhaseStateEmptyCompleted {
 		return PersonaGenerationBodyReadinessReadModel{
 			JobID:         job.ID,
 			CurrentPhase:  personaGenerationCurrentPhase,
 			PhaseState:    state,
-			Ready:         false,
-			BlockedReason: &reason,
-			ErrorKind:     personaGenerationErrorKindBodyBlocked,
+			JobIsTerminal: isTerminal,
 		}, nil
 	}
 	if snapshot.targetCount == 0 {
@@ -582,7 +566,6 @@ func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 			JobID:        job.ID,
 			CurrentPhase: personaGenerationCurrentPhase,
 			PhaseState:   personaGenerationPhaseStateCompleted,
-			Ready:        true,
 			InputSummary: PersonaGenerationBodyReadinessInputSummaryReadModel{
 				PersonaCount:   0,
 				MissingCount:   0,
@@ -596,14 +579,10 @@ func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 	}
 	evidenceRefs := personaGenerationPhaseRunEvidenceRefs(phaseRunPersonas)
 	if len(phaseRunPersonas) == 0 {
-		reason := "persona snapshot reference is missing"
 		return PersonaGenerationBodyReadinessReadModel{
-			JobID:         job.ID,
-			CurrentPhase:  personaGenerationCurrentPhase,
-			PhaseState:    personaGenerationPhaseStateSnapshotMissing,
-			Ready:         false,
-			BlockedReason: &reason,
-			ErrorKind:     personaGenerationErrorKindSnapshotMissing,
+			JobID:        job.ID,
+			CurrentPhase: personaGenerationCurrentPhase,
+			PhaseState:   personaGenerationPhaseStateSnapshotMissing,
 			InputSummary: PersonaGenerationBodyReadinessInputSummaryReadModel{
 				MissingCount:   snapshot.targetCount,
 				SnapshotDigest: snapshot.digest,
@@ -614,12 +593,9 @@ func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 		distinctCount := service.distinctPhaseRunPersonaCount(ctx, phaseRunPersonas)
 		missingCount := personaMax(0, snapshot.targetCount-distinctCount)
 		return PersonaGenerationBodyReadinessReadModel{
-			JobID:         job.ID,
-			CurrentPhase:  personaGenerationCurrentPhase,
-			PhaseState:    personaGenerationPhaseStateSnapshotMissing,
-			Ready:         false,
-			BlockedReason: snapshotDriftReason,
-			ErrorKind:     personaGenerationErrorKindSnapshotMissing,
+			JobID:        job.ID,
+			CurrentPhase: personaGenerationCurrentPhase,
+			PhaseState:   personaGenerationPhaseStateSnapshotMissing,
 			InputSummary: PersonaGenerationBodyReadinessInputSummaryReadModel{
 				PersonaCount:   distinctCount,
 				MissingCount:   missingCount,
@@ -631,14 +607,10 @@ func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 	}
 	runSnapshot, snapshotAvailable := service.tryLoadRunSnapshot(ctx, run)
 	if !snapshotAvailable {
-		reason := "persona snapshot reference is missing"
 		return PersonaGenerationBodyReadinessReadModel{
-			JobID:         job.ID,
-			CurrentPhase:  personaGenerationCurrentPhase,
-			PhaseState:    personaGenerationPhaseStateSnapshotMissing,
-			Ready:         false,
-			BlockedReason: &reason,
-			ErrorKind:     personaGenerationErrorKindSnapshotMissing,
+			JobID:        job.ID,
+			CurrentPhase: personaGenerationCurrentPhase,
+			PhaseState:   personaGenerationPhaseStateSnapshotMissing,
 			InputSummary: PersonaGenerationBodyReadinessInputSummaryReadModel{
 				MissingCount:   snapshot.targetCount,
 				SnapshotID:     personaGenerationSnapshotID(run.ID),
@@ -648,32 +620,13 @@ func (service *PersonaGenerationPhaseService) ReadBodyReadiness(
 		}, nil
 	}
 	missingCount := personaMax(0, snapshot.targetCount-runSnapshot.totalLinkedCount)
-	if missingCount > 0 {
-		reason := "persona snapshot reference is not ready"
-		return PersonaGenerationBodyReadinessReadModel{
-			JobID:         job.ID,
-			CurrentPhase:  personaGenerationCurrentPhase,
-			PhaseState:    personaGenerationPhaseStateCompleted,
-			Ready:         false,
-			BlockedReason: &reason,
-			ErrorKind:     personaGenerationErrorKindBodyBlocked,
-			InputSummary: PersonaGenerationBodyReadinessInputSummaryReadModel{
-				PersonaCount:   runSnapshot.totalLinkedCount,
-				MissingCount:   missingCount,
-				SnapshotID:     personaGenerationSnapshotID(run.ID),
-				SnapshotDigest: snapshot.digest,
-				EvidenceRefs:   evidenceRefs,
-			},
-		}, nil
-	}
 	return PersonaGenerationBodyReadinessReadModel{
 		JobID:        job.ID,
 		CurrentPhase: personaGenerationCurrentPhase,
 		PhaseState:   personaGenerationPhaseStateCompleted,
-		Ready:        true,
 		InputSummary: PersonaGenerationBodyReadinessInputSummaryReadModel{
 			PersonaCount:   runSnapshot.totalLinkedCount,
-			MissingCount:   0,
+			MissingCount:   missingCount,
 			SnapshotID:     personaGenerationSnapshotID(run.ID),
 			SnapshotDigest: snapshot.digest,
 			EvidenceRefs:   evidenceRefs,
@@ -723,7 +676,7 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 	}
 	state := normalizePersonaGenerationPhaseState(updatedRun.State, snapshot.targetCount)
 	progress := service.buildProgress(state, &updatedRun, snapshot)
-	resultSummary, _, canStartBodyPhase := service.buildResultState(ctx, &updatedRun, snapshot)
+	resultSummary, _ := service.buildResultState(ctx, &updatedRun, snapshot)
 	return PersonaGenerationPhaseCommandReadModel{
 		JobID:            job.ID,
 		CurrentPhase:     personaGenerationCurrentPhase,
@@ -742,10 +695,9 @@ func (service *PersonaGenerationPhaseService) mutatePhaseState(
 			SkippedReasons:         append([]string(nil), snapshot.skippedReasons...),
 			TargetSnapshotDigest:   snapshot.digest,
 		},
-		Execution:         service.buildExecutionSummary(&updatedRun, &updatedRun, snapshot, resultSummary),
-		ResultSummary:     resultSummary,
-		Retryable:         personaGenerationRetryAllowed(updatedRun.State, updatedRun.LatestError),
-		CanStartBodyPhase: canStartBodyPhase,
+		Execution:     service.buildExecutionSummary(&updatedRun, &updatedRun, snapshot, resultSummary),
+		ResultSummary: resultSummary,
+		Retryable:     personaGenerationRetryAllowed(updatedRun.State, updatedRun.LatestError),
 	}, nil
 }
 
@@ -1078,9 +1030,9 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 	ctx context.Context,
 	run *repository.JobPhaseRun,
 	snapshot personaGenerationTargetSnapshot,
-) (*PersonaGenerationPhaseResultSummaryReadModel, *PersonaGenerationPhaseErrorSummaryReadModel, bool) {
+) (*PersonaGenerationPhaseResultSummaryReadModel, *PersonaGenerationPhaseErrorSummaryReadModel) {
 	if run == nil {
-		return nil, nil, false
+		return nil, nil
 	}
 	state := normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
 	if snapshot.targetCount == 0 && state == personaGenerationPhaseStateCompleted {
@@ -1088,7 +1040,7 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 			SnapshotDigest:          snapshot.digest,
 			SnapshotReferenceStatus: "empty",
 			BodyReadiness:           true,
-		}, nil, true
+		}, nil
 	}
 	runSnapshot, snapshotErr := service.loadRunSnapshot(ctx, run)
 	if snapshotErr != nil {
@@ -1102,7 +1054,7 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 				Reason:     personaGenerationRedactedPublicSummary,
 				Retryable:  false,
 				IsRedacted: true,
-			}, false
+			}
 	}
 	if snapshotDriftReason := personaGenerationSnapshotDriftReason(run, snapshot); snapshotDriftReason != nil {
 		return &PersonaGenerationPhaseResultSummaryReadModel{
@@ -1116,12 +1068,11 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 				Reason:     *snapshotDriftReason,
 				Retryable:  false,
 				IsRedacted: true,
-			}, false
+			}
 	}
 	missingCount := personaMax(0, snapshot.targetCount-runSnapshot.totalLinkedCount)
 	if state == personaGenerationPhaseStateCompleted {
 		if runSnapshot.totalLinkedCount > 0 || snapshot.targetCount == 0 {
-			ready := missingCount == 0
 			return &PersonaGenerationPhaseResultSummaryReadModel{
 				GeneratedCount:          runSnapshot.generatedCount,
 				PersonaCount:            runSnapshot.totalLinkedCount,
@@ -1129,8 +1080,8 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 				SnapshotID:              personaGenerationSnapshotID(run.ID),
 				SnapshotDigest:          snapshot.digest,
 				SnapshotReferenceStatus: "available",
-				BodyReadiness:           ready,
-			}, nil, ready
+				BodyReadiness:           missingCount == 0,
+			}, nil
 		}
 		return &PersonaGenerationPhaseResultSummaryReadModel{
 				MissingCount:            snapshot.targetCount,
@@ -1142,7 +1093,7 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 				Reason:     personaGenerationRedactedPublicSummary,
 				Retryable:  false,
 				IsRedacted: true,
-			}, false
+			}
 	}
 	if state == personaGenerationPhaseStateFailed || state == personaGenerationPhaseStateRecoverableFail {
 		return &PersonaGenerationPhaseResultSummaryReadModel{
@@ -1158,7 +1109,7 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 				Reason:     personaGenerationRedactedPublicSummary,
 				Retryable:  true,
 				IsRedacted: true,
-			}, false
+			}
 	}
 	return &PersonaGenerationPhaseResultSummaryReadModel{
 		GeneratedCount:          runSnapshot.generatedCount,
@@ -1167,7 +1118,7 @@ func (service *PersonaGenerationPhaseService) buildResultState(
 		SnapshotDigest:          snapshot.digest,
 		SnapshotReferenceStatus: "pending",
 		BodyReadiness:           false,
-	}, nil, false
+	}, nil
 }
 
 func (service *PersonaGenerationPhaseService) buildActionEnablement(
@@ -1175,7 +1126,6 @@ func (service *PersonaGenerationPhaseService) buildActionEnablement(
 	run *repository.JobPhaseRun,
 	state string,
 	rejection *personaGenerationStartRejection,
-	canStartBodyPhase bool,
 ) PersonaGenerationPhaseActionEnablementReadModel {
 	var startBlockedReason *string
 	if rejection != nil {
@@ -1187,23 +1137,17 @@ func (service *PersonaGenerationPhaseService) buildActionEnablement(
 		PhaseRunExists: run != nil,
 		StartAllowed:   rejection == nil,
 	})
-	bodyReason := stringPersonaPointer("persona snapshot reference is not ready")
-	if canStartBodyPhase {
-		bodyReason = nil
-	}
 	return PersonaGenerationPhaseActionEnablementReadModel{
-		CanStart:               availability.CanStart,
-		StartBlockedReason:     clonePersonaStringPointer(startBlockedReason),
-		CanPause:               availability.CanPause,
-		PauseBlockedReason:     personaBlockedReason(availability.CanPause, "persona phase is not running"),
-		CanResume:              availability.CanResume,
-		ResumeBlockedReason:    personaBlockedReason(availability.CanResume, "persona phase is not resumable"),
-		CanRetry:               availability.CanRetry,
-		RetryBlockedReason:     personaBlockedReason(availability.CanRetry, "persona phase is not retryable"),
-		CanCancel:              availability.CanCancel,
-		CancelBlockedReason:    personaBlockedReason(availability.CanCancel, "persona phase is not cancelable"),
-		CanStartBodyPhase:      canStartBodyPhase,
-		BodyPhaseBlockedReason: clonePersonaStringPointer(bodyReason),
+		CanStart:            availability.CanStart,
+		StartBlockedReason:  clonePersonaStringPointer(startBlockedReason),
+		CanPause:            availability.CanPause,
+		PauseBlockedReason:  personaBlockedReason(availability.CanPause, "persona phase is not running"),
+		CanResume:           availability.CanResume,
+		ResumeBlockedReason: personaBlockedReason(availability.CanResume, "persona phase is not resumable"),
+		CanRetry:            availability.CanRetry,
+		RetryBlockedReason:  personaBlockedReason(availability.CanRetry, "persona phase is not retryable"),
+		CanCancel:           availability.CanCancel,
+		CancelBlockedReason: personaBlockedReason(availability.CanCancel, "persona phase is not cancelable"),
 	}
 }
 
@@ -1349,7 +1293,6 @@ func (service *PersonaGenerationPhaseService) rejectedCommand(
 			PromptDigest:  service.aggregatePromptDigest(run, snapshot),
 			InputCount:    snapshot.targetCount,
 		},
-		CanStartBodyPhase: false,
 		ErrorSummary: &PersonaGenerationPhaseErrorSummaryReadModel{
 			ErrorKind:  rejection.kind,
 			Reason:     rejection.reason,
@@ -1514,7 +1457,7 @@ func (service *PersonaGenerationPhaseService) startPhaseCommandReadModel(
 ) PersonaGenerationPhaseCommandReadModel {
 	state := normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
 	progress := service.buildProgress(state, &run, snapshot)
-	resultSummary, _, canStartBodyPhase := service.buildResultState(ctx, &run, snapshot)
+	resultSummary, _ := service.buildResultState(ctx, &run, snapshot)
 	return PersonaGenerationPhaseCommandReadModel{
 		JobID:            job.ID,
 		CurrentPhase:     personaGenerationCurrentPhase,
@@ -1534,10 +1477,9 @@ func (service *PersonaGenerationPhaseService) startPhaseCommandReadModel(
 			TargetSnapshotID:       personaGenerationTargetSnapshotIDPointer(run.ID),
 			TargetSnapshotDigest:   snapshot.digest,
 		},
-		Execution:         service.buildExecutionSummary(&run, &run, snapshot, resultSummary),
-		ResultSummary:     resultSummary,
-		Retryable:         false,
-		CanStartBodyPhase: canStartBodyPhase,
+		Execution:     service.buildExecutionSummary(&run, &run, snapshot, resultSummary),
+		ResultSummary: resultSummary,
+		Retryable:     false,
 	}
 }
 
@@ -2209,7 +2151,7 @@ func (service *PersonaGenerationPhaseService) commandFromRun(
 ) PersonaGenerationPhaseCommandReadModel {
 	state := normalizePersonaGenerationPhaseState(run.State, snapshot.targetCount)
 	progress := service.buildProgress(state, &run, snapshot)
-	resultSummary, errorSummary, canStartBodyPhase := service.buildResultState(ctx, &run, snapshot)
+	resultSummary, errorSummary := service.buildResultState(ctx, &run, snapshot)
 	command := PersonaGenerationPhaseCommandReadModel{
 		JobID:            job.ID,
 		CurrentPhase:     personaGenerationCurrentPhase,
@@ -2228,10 +2170,9 @@ func (service *PersonaGenerationPhaseService) commandFromRun(
 			SkippedReasons:         append([]string(nil), snapshot.skippedReasons...),
 			TargetSnapshotDigest:   snapshot.digest,
 		},
-		ResultSummary:     resultSummary,
-		Retryable:         personaGenerationRetryAllowed(run.State, run.LatestError),
-		CanStartBodyPhase: canStartBodyPhase,
-		ErrorSummary:      errorSummary,
+		ResultSummary: resultSummary,
+		Retryable:     personaGenerationRetryAllowed(run.State, run.LatestError),
+		ErrorSummary:  errorSummary,
 	}
 	if termRun != nil {
 		command.Execution = service.buildExecutionSummary(&run, termRun, snapshot, resultSummary)

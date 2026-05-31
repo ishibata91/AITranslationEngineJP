@@ -2,6 +2,11 @@ import type { Page } from "@playwright/test";
 
 interface ScenarioWailsMockOptions {
   masterPersonaAISettings?: "configured" | "missing";
+  /**
+   * 指定した jobId のジョブは aiTargetCount=0（母数0）として振る舞う。
+   * E2E-LTLE-003（境界: 母数0のとき空状態）専用オプション。
+   */
+  termZeroAITargetJobId?: number;
 }
 
 export async function installScenarioWailsMocks(
@@ -10,6 +15,7 @@ export async function installScenarioWailsMocks(
 ): Promise<void> {
   const masterPersonaAISettings =
     options.masterPersonaAISettings ?? "configured";
+  const termZeroAITargetJobId = options.termZeroAITargetJobId ?? -1;
   await page.addInitScript({
     content: `
 (() => {
@@ -298,6 +304,39 @@ export async function installScenarioWailsMocks(
     body_translation: "本文翻訳",
     translation_complete: "翻訳完了"
   };
+  const lucienInputFileName = "Lucien.esp_Export.json";
+  const lucienInputId = 1401;
+  const lucienJobId = 1401;
+  const lucienTermProcessingTargets = [
+    {
+      id: "lucien-term-target-1",
+      name: "Lucien",
+      detail: "データロードから登録した Lucien の単語翻訳対象。",
+      titleParts: [
+        { text: "対象名: Lucien" },
+        { text: "訳語候補: ルシエン" }
+      ],
+      metadata: [
+        { label: "FormID", value: "0001B001" },
+        { label: "原文", value: "Lucien" },
+        { label: "種別", value: "固有名詞" }
+      ]
+    },
+    {
+      id: "lucien-term-target-2",
+      name: "Dumzbthar",
+      detail: "データロードから登録した Lucien の単語翻訳対象。",
+      titleParts: [
+        { text: "対象名: Dumzbthar" },
+        { text: "訳語候補: ドゥムズブサール" }
+      ],
+      metadata: [
+        { label: "FormID", value: "0001B002" },
+        { label: "原文", value: "Dumzbthar" },
+        { label: "種別", value: "固有名詞" }
+      ]
+    }
+  ];
   const processingTargetSearchText = (item) => [
     item.name,
     item.detail,
@@ -307,7 +346,11 @@ export async function installScenarioWailsMocks(
   const getProcessingTargets = (request = {}) => {
     const phase = String(request.phase || "term_translation");
     const sourceItems =
-      processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
+      Number(request.jobId) === termZeroAITargetJobId && phase === "term_translation"
+        ? []
+        : Number(request.jobId) === lucienJobId && phase === "term_translation"
+          ? lucienTermProcessingTargets
+          : processingTargetsByPhase[phase] || processingTargetsByPhase.term_translation;
     const searchQuery = String(request.searchQuery || "");
     const normalizedSearchQuery = searchQuery.trim().toLowerCase();
     const page = Math.max(1, Number(request.page) || 1);
@@ -391,16 +434,19 @@ export async function installScenarioWailsMocks(
     isRedacted: true
   };
 
-  const termSummary = (state = "pending", jobId = 301) => ({
+  const termSummary = (state = "pending", jobId = 301, targetCount = 3) => ({
     jobId,
     currentPhase: "term_translation",
     phaseState: state,
     phaseRunId: 1,
-    progress: state === "completed" ? commonProgress(3, 3, "完了") : commonProgress(0, 3, "未開始"),
-    totalTermCount: 3,
+    progress: state === "completed" ? commonProgress(targetCount, targetCount, "完了") : commonProgress(0, targetCount, "未開始"),
+    totalTermCount: targetCount,
     dictionaryHitCount: 0,
-    aiTargetCount: 3,
+    aiTargetCount: targetCount,
     execution,
+    // wave-3 (BE-fact-only-term) 完了後: frontend が resultSummary.confirmedCount から次段階開始可否を導出する
+    // state=completed では confirmedCount=targetCount (全件確認済み) として次段階開始可を導く
+    resultSummary: state === "completed" ? { confirmedCount: targetCount, jobDictionaryAppliedCount: 0, replacementTargetCount: 0, unmatchedCount: 0, providerSkipped: false } : undefined,
     errorSummary: blockedStartError,
     actionEnablement: {
       canStart: state === "pending",
@@ -410,9 +456,7 @@ export async function installScenarioWailsMocks(
       canResume: false,
       resumeBlockedReason: "未開始です。",
       canRetry: false,
-      retryBlockedReason: "未開始です。",
-      canStartNextPhase: state === "completed",
-      nextPhaseBlockedReason: state === "completed" ? "" : "単語翻訳が完了していません。"
+      retryBlockedReason: "未開始です。"
     }
   });
   const personaSummary = (state = "pending") => ({
@@ -434,14 +478,15 @@ export async function installScenarioWailsMocks(
       canRetry: state === "failed",
       retryBlockedReason: state === "failed" ? "" : "未開始です。",
       canCancel: state === "running",
-      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。",
-      canStartBodyPhase: false,
-      bodyPhaseBlockedReason: "ペルソナ生成が完了していません。"
+      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。"
+      // wave-3 (BE-fact-only-persona) 完了後: canStartBodyPhase は frontend が
+      // derivePersonaCanStartBodyPhase で summary.resultSummary.bodyReadiness から導出するため除去済み。
     }
   });
+  // BodyTranslationOutputReadinessSummary: completedFieldCount / statusConsistent / outputCount
+  // wave-3 (BE-fact-only-body) 完了後は ready / blockedReason を DTO が含まない。
+  // ただし body gateway の hasBodyPhaseBase バリデーションが通るよう型フィールドのみ返す。
   const bodyOutputReadiness = (state = "pending") => ({
-    ready: state === "completed",
-    blockedReason: state === "completed" ? "" : "本文翻訳が完了していません。",
     completedFieldCount: state === "completed" ? 1 : 0,
     statusConsistent: true,
     outputCount: state === "completed" ? 1 : 0
@@ -490,9 +535,9 @@ export async function installScenarioWailsMocks(
       canRetry: state === "failed",
       retryBlockedReason: state === "failed" ? "" : "失敗状態ではありません。",
       canCancel: state === "running",
-      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。",
-      canCheckOutputReadiness: state === "completed",
-      outputReadinessBlockedReason: state === "completed" ? "" : "本文翻訳が完了していません。"
+      cancelBlockedReason: state === "running" ? "" : "実行中ではありません。"
+      // wave-3 (BE-fact-only-body) 完了後: canCheckOutputReadiness は frontend が
+      // deriveBodyOutputReadinessReady で summary.outputReadiness から導出するため除去済み。
     },
     outputReadiness: bodyOutputReadiness(state)
   });
@@ -509,6 +554,7 @@ export async function installScenarioWailsMocks(
     return "failed";
   };
 
+  const termZeroAITargetJobId = ${JSON.stringify(termZeroAITargetJobId)};
   const seededPhaseJobs = [
     { jobId: 7, label: "system-test-term", state: "Ready", currentPhase: "term_translation", progressPercent: 0 },
     { jobId: 8, label: "system-test-persona", state: "Ready", currentPhase: "persona_generation", progressPercent: 0 },
@@ -518,6 +564,9 @@ export async function installScenarioWailsMocks(
     { jobId: 12, label: "system-test-body-failed", state: "Failed", currentPhase: "body_translation", progressPercent: 68 },
     { jobId: 13, label: "system-test-body-running", state: "Running", currentPhase: "body_translation", progressPercent: 48 }
   ];
+  if (termZeroAITargetJobId >= 0) {
+    seededPhaseJobs.push({ jobId: termZeroAITargetJobId, label: "system-test-term-zero-ai-target", state: "Ready", currentPhase: "term_translation", progressPercent: 0 });
+  }
 
   const job = (jobId, label, state, currentPhase, progressPercent = 0) => ({
     jobId,
@@ -562,6 +611,39 @@ export async function installScenarioWailsMocks(
     );
     return jobsById[jobId] || job(jobId, "system-test-detail", "Ready", "term_translation");
   };
+
+  const lucienImportSummary = (request = {}) => ({
+    accepted: true,
+    summary: {
+      input: {
+        id: lucienInputId,
+        sourceFilePath: request.filePath || request.fileName || lucienInputFileName,
+        sourceTool: "xEdit",
+        targetPluginName: "Lucien.esp",
+        targetPluginType: "ESP",
+        recordCount: 2,
+        importedAt: "2026-05-25T09:00:00Z"
+      },
+      translationRecordCount: 2,
+      translationFieldCount: lucienTermProcessingTargets.length,
+      categories: [
+        { category: "NPC_", recordCount: 1, fieldCount: 1 },
+        { category: "DIAL", recordCount: 1, fieldCount: 1 }
+      ],
+      sampleFields: [
+        {
+          recordType: "NPC_",
+          subrecordType: "FULL",
+          formId: "0001B001",
+          editorId: "Lucien",
+          sourceText: "Lucien",
+          translatable: true
+        }
+      ],
+      warnings: []
+    },
+    warnings: []
+  });
 
   const outputReview = (selectedJobId = 401) => ({
     completedJobs: [
@@ -651,6 +733,14 @@ export async function installScenarioWailsMocks(
       if (index >= 0) personaItems.splice(index, 1);
       return Promise.resolve({ ...pageFromPersonaItems(request), deletedEntryId: request.identityKey });
     },
+    ImportTranslationInput: (request) => Promise.resolve(lucienImportSummary(request)),
+    RebuildTranslationInputCache: () => Promise.resolve(lucienImportSummary({ filePath: lucienInputFileName })),
+    CreateTranslationJobFromInput: () => Promise.resolve({
+      accepted: true,
+      jobId: lucienJobId,
+      jobState: "Ready",
+      currentPhase: "term_translation"
+    }),
     ListIncompleteJobs: () => Promise.resolve({
       jobs: seededPhaseJobs.map((seededJob) =>
         job(
@@ -664,17 +754,22 @@ export async function installScenarioWailsMocks(
     }),
     GetJobDetail: (request) => Promise.resolve({ ...jobDetail(request.jobId), cacheState: "available", cacheStateLabel: "available", runtimeSummary: { providerLabel: "-", modelLabel: "-", executionModeLabel: "batch", credentialState: "missing", credentialStateLabel: "設定未完了" }, resumeBlockedReasons: [], warnings: [], deleteImpactLines: [] }),
     GetProcessingTargetList: (request) => Promise.resolve(getProcessingTargets(request)),
-    GetTermTranslationPhaseSummary: (request) => Promise.resolve(request.jobId === 10 ? termSummary("completed", request.jobId) : termSummary("pending", request.jobId)),
+    GetTermTranslationPhaseSummary: (request) => Promise.resolve(
+      request.jobId === 10
+        ? termSummary("completed", request.jobId)
+        : request.jobId === termZeroAITargetJobId
+          ? termSummary("pending", request.jobId, 0)
+          : termSummary("pending", request.jobId, request.jobId === lucienJobId ? lucienTermProcessingTargets.length : 3)
+    ),
     StartTermTranslationPhase: () => Promise.resolve(termSummary()),
     PauseTermTranslationPhase: () => Promise.resolve(termSummary("paused")),
     ResumeTermTranslationPhase: () => Promise.resolve(termSummary("running")),
     RetryTermTranslationPhase: () => Promise.resolve(termSummary("running")),
+    // wave-3 (BE-fact-only-term) 完了後: 可否値を含まず事実状態 (phaseState) のみ返す
     GetTermTranslationNextPhaseReadiness: (request) => Promise.resolve({
       jobId: request.jobId,
       currentPhase: "term_translation",
-      phaseState: request.jobId === 10 ? "completed" : "pending",
-      canStartNextPhase: request.jobId === 10,
-      blockedReason: request.jobId === 10 ? "" : "単語翻訳が完了していません。"
+      phaseState: request.jobId === 10 ? "completed" : "pending"
     }),
     SaveTermTranslationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "term", credentialStatus: "missing", modelListStatus: "credential_missing" }),
     GetPersonaGenerationPhaseSummary: () => Promise.resolve(personaSummary()),
@@ -683,7 +778,8 @@ export async function installScenarioWailsMocks(
     ResumePersonaGenerationPhase: () => Promise.resolve(personaSummary("running")),
     RetryPersonaGenerationPhase: () => Promise.resolve(personaSummary("running")),
     CancelPersonaGenerationPhase: () => Promise.resolve(personaSummary("canceled")),
-    GetPersonaGenerationBodyReadiness: () => Promise.resolve({ jobId: 302, currentPhase: "persona_generation", phaseState: "pending", ready: false, blockedReason: "ペルソナ生成が完了していません。", inputSummary: { personaCount: 0, missingCount: 1, snapshotId: "persona-snapshot", snapshotDigest: "persona-digest", evidenceRefs: [] } }),
+    // wave-3 (BE-fact-only-persona) 完了後: 可否値を含まず事実状態 (inputSummary) のみ返す
+    GetPersonaGenerationBodyReadiness: () => Promise.resolve({ jobId: 302, currentPhase: "persona_generation", phaseState: "pending", inputSummary: { personaCount: 0, missingCount: 1, snapshotId: "persona-snapshot", snapshotDigest: "persona-digest", evidenceRefs: [] } }),
     SavePersonaGenerationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "persona", credentialStatus: "missing", modelListStatus: "credential_missing" }),
     GetBodyTranslationPhaseSummary: (request) => Promise.resolve(bodySummary(bodyStateForJob(request.jobId), request.jobId)),
     StartBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("pending", request.jobId)),
@@ -691,15 +787,8 @@ export async function installScenarioWailsMocks(
     ResumeBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("running", request.jobId)),
     RetryBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("running", request.jobId)),
     CancelBodyTranslationPhase: (request) => Promise.resolve(bodyCommandSummary("canceled", request.jobId)),
-    GetBodyTranslationOutputReadiness: (request) => {
-      const state = bodyStateForJob(request.jobId);
-      return Promise.resolve({
-        jobId: request.jobId,
-        currentPhase: "body_translation",
-        phaseState: state,
-        ...bodyOutputReadiness(state)
-      });
-    },
+    // GetBodyTranslationOutputReadiness は wave-3 (BE-fact-only-body) で廃止済み。
+    // 成果物出力確認の事実は GetBodyTranslationPhaseSummary の outputReadiness フィールドから取得する。
     SaveBodyTranslationPhaseAISettings: (request) => Promise.resolve({ ...request, phaseId: "body", credentialStatus: "missing", modelListStatus: "credential_missing" }),
     GetTranslationOutputReview: (request) => Promise.resolve(outputReview(request.selectedJobId || 401)),
     GetTranslationOutputDiffPreview: (request) => Promise.resolve({
@@ -766,6 +855,7 @@ export async function installScenarioWailsMocks(
       }
     });
     wails.MasterPersonaController = wails.AppController;
+    wails.TranslationInputController = wails.AppController;
     wails.TranslationOutputArtifactController = wails.AppController;
     wails.PersonaGenerationPhaseController = wails.AppController;
     wails.ProcessingTargetController = wails.AppController;

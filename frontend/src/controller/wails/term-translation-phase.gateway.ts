@@ -237,11 +237,7 @@ function isActionEnablement(value: unknown, path: string): boolean {
       invalid(`${path}.resumeBlockedReason`, "string or undefined")) &&
     (isBoolean(value["canRetry"]) || invalid(`${path}.canRetry`, "boolean")) &&
     (isOptionalString(value["retryBlockedReason"]) ||
-      invalid(`${path}.retryBlockedReason`, "string or undefined")) &&
-    (isBoolean(value["canStartNextPhase"]) ||
-      invalid(`${path}.canStartNextPhase`, "boolean")) &&
-    (isOptionalString(value["nextPhaseBlockedReason"]) ||
-      invalid(`${path}.nextPhaseBlockedReason`, "string or undefined"))
+      invalid(`${path}.retryBlockedReason`, "string or undefined"))
   )
 }
 

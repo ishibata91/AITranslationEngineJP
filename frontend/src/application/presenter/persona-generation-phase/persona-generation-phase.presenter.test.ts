@@ -1,4 +1,7 @@
 import { describe, expect, test } from "vitest"
+import type {
+  PersonaGenerationPhaseSummaryResponse
+} from "@application/gateway-contract/persona-generation-phase"
 import { PersonaGenerationPhasePresenter } from "./persona-generation-phase.presenter"
 
 const presenter = new PersonaGenerationPhasePresenter()
@@ -13,7 +16,8 @@ describe("PersonaGenerationPhasePresenter", () => {
         bodyReadiness: null,
         errorMessage: "",
         pendingAction: null,
-        hasLoaded: false
+        hasLoaded: false,
+        initialFetchDone: false
       },
       false
     )
@@ -77,14 +81,14 @@ describe("PersonaGenerationPhasePresenter", () => {
             canPause: false,
             canResume: false,
             canRetry: true,
-            canCancel: false,
-            canStartBodyPhase: false
+            canCancel: false
           }
         },
         bodyReadiness: null,
         errorMessage: "",
         pendingAction: null,
-        hasLoaded: true
+        hasLoaded: true,
+        initialFetchDone: true
       },
       true
     )
@@ -133,14 +137,14 @@ describe("PersonaGenerationPhasePresenter", () => {
             canPause: false,
             canResume: false,
             canRetry: false,
-            canCancel: false,
-            canStartBodyPhase: false
+            canCancel: false
           }
         },
         bodyReadiness: null,
         errorMessage: "",
         pendingAction: null,
-        hasLoaded: true
+        hasLoaded: true,
+        initialFetchDone: true
       },
       true
     )
@@ -190,14 +194,14 @@ describe("PersonaGenerationPhasePresenter", () => {
             canPause: true,
             canResume: false,
             canRetry: false,
-            canCancel: true,
-            canStartBodyPhase: false
+            canCancel: true
           }
         },
         bodyReadiness: null,
         errorMessage: "",
         pendingAction: null,
         hasLoaded: true,
+        initialFetchDone: true,
         processingTargetPageState: {
           items: [],
           metadata: [],
@@ -213,5 +217,162 @@ describe("PersonaGenerationPhasePresenter", () => {
 
     expect(vm.progressDetail).toBe("12 / 30 件 / 対象 18 件 / 実行中")
     expect(vm.targetCountLabel).toBe("18 件")
+  })
+})
+
+// UT-EQV-008: persona の本文翻訳段階開始可否と操作可否の等価性テスト
+// 期待値は detail-spec persona-generation-phase-REQ-008 成立条件・区別理由から固定する
+describe("PersonaGenerationPhasePresenter - 本文翻訳段階開始可否・操作可否の等価性（UT-EQV-008）", () => {
+  const presenter = new PersonaGenerationPhasePresenter()
+
+  function buildBaseSummary(
+    overrides: Partial<PersonaGenerationPhaseSummaryResponse> = {}
+  ): PersonaGenerationPhaseSummaryResponse {
+    return {
+      jobId: 10,
+      currentPhase: "persona_generation",
+      phaseState: "completed",
+      progress: {
+        percent: 100,
+        processedCount: 5,
+        totalCount: 5,
+        targetCount: 5,
+        currentStep: "completed"
+      },
+      targetSummary: {
+        targetCount: 5,
+        commonPersonaHitCount: 0,
+        commonPersonaMissCount: 5,
+        skippedCount: 0,
+        skippedReasons: [],
+        targetSnapshotDigest: "sha256:1"
+      },
+      execution: {
+        credentialRef: "cred",
+        provider: "fake",
+        model: "m",
+        executionMode: "single_request",
+        promptDigest: "sha256:1",
+        inputCount: 5,
+        outputCount: 5,
+        evidenceRefs: []
+      },
+      resultSummary: {
+        generatedCount: 5,
+        failedCount: 0,
+        personaCount: 5,
+        missingCount: 0,
+        snapshotId: "persona-snapshot",
+        snapshotDigest: "sha256:persona",
+        snapshotReferenceStatus: "ready",
+        bodyReadiness: true
+      },
+      actionEnablement: {
+        canStart: false,
+        canPause: false,
+        canResume: false,
+        canRetry: false,
+        canCancel: false
+      },
+      ...overrides
+    }
+  }
+
+  function buildState(summaryOverrides: Partial<PersonaGenerationPhaseSummaryResponse> = {}) {
+    return {
+      jobId: 10,
+      phase: "ready" as const,
+      summary: buildBaseSummary(summaryOverrides),
+      bodyReadiness: null,
+      errorMessage: "",
+      pendingAction: null,
+      hasLoaded: true,
+      initialFetchDone: true
+    }
+  }
+
+  // UT-EQV-008: 成立条件 - ジョブ終端でない・resultSummary.bodyReadiness=true のとき本文翻訳段階を開始できる
+  test("ジョブ終端でなく bodyReadiness=true のとき本文翻訳段階を開始できる", () => {
+    // 成立条件: isPersonaTerminalJob=false かつ resultSummary.bodyReadiness=true
+    const vm = presenter.toViewModel(buildState(), true)
+
+    const startBodyCard = vm.actionCards.find((c) => c.id === "start-body-phase")
+    expect(startBodyCard?.disabled).toBe(false)
+    expect(vm.bodyReadinessLabel).toBe("Ready")
+  })
+
+  // UT-EQV-008: bodyReadiness=false のとき本文翻訳段階を開始できない（ペルソナ snapshot 参照未準備）
+  test("resultSummary.bodyReadiness=false のとき本文翻訳段階を開始できない", () => {
+    const vm = presenter.toViewModel(
+      buildState({
+        resultSummary: {
+          generatedCount: 5,
+          failedCount: 0,
+          personaCount: 5,
+          missingCount: 0,
+          snapshotId: "persona-snapshot",
+          snapshotDigest: "sha256:persona",
+          snapshotReferenceStatus: "missing",
+          bodyReadiness: false
+        }
+      }),
+      true
+    )
+
+    const startBodyCard = vm.actionCards.find((c) => c.id === "start-body-phase")
+    expect(startBodyCard?.disabled).toBe(true)
+    expect(vm.bodyReadinessLabel).toBe("Blocked")
+    expect(vm.bodyReadinessBlockedReason).toContain("ペルソナ snapshot")
+  })
+
+  // UT-EQV-008: ジョブが終端状態のとき本文翻訳段階を開始できない（terminal_job 相当）
+  test("startBlockedReason=terminal_job のとき本文翻訳段階を開始できずジョブ終端理由を返す", () => {
+    const vm = presenter.toViewModel(
+      buildState({
+        actionEnablement: {
+          canStart: false,
+          startBlockedReason: "terminal_job",
+          canPause: false,
+          canResume: false,
+          canRetry: false,
+          canCancel: false
+        }
+      }),
+      true
+    )
+
+    const startBodyCard = vm.actionCards.find((c) => c.id === "start-body-phase")
+    expect(startBodyCard?.disabled).toBe(true)
+    expect(vm.bodyReadinessBlockedReason).toContain("終端")
+  })
+
+  // UT-EQV-008: 操作可否 - running のとき canPause=true かつ canResume=false
+  test("phaseState=running のとき一時停止可かつ再開不可", () => {
+    const vm = presenter.toViewModel(buildState({ phaseState: "running" }), true)
+
+    const pauseCard = vm.actionCards.find((c) => c.id === "pause")
+    const resumeCard = vm.actionCards.find((c) => c.id === "resume")
+    expect(pauseCard?.disabled).toBe(false)
+    expect(resumeCard?.disabled).toBe(true)
+  })
+
+  // UT-EQV-008: 操作可否 - paused のとき canResume=true かつ canPause=false
+  test("phaseState=paused のとき再開可かつ一時停止不可", () => {
+    const vm = presenter.toViewModel(buildState({ phaseState: "paused" }), true)
+
+    const pauseCard = vm.actionCards.find((c) => c.id === "pause")
+    const resumeCard = vm.actionCards.find((c) => c.id === "resume")
+    expect(pauseCard?.disabled).toBe(true)
+    expect(resumeCard?.disabled).toBe(false)
+  })
+
+  // UT-EQV-008: 操作可否 - recoverable_failed のとき canRetry=true かつ canCancel=true
+  test("phaseState=recoverable_failed のとき再試行可かつキャンセル可", () => {
+    const vm = presenter.toViewModel(buildState({ phaseState: "recoverable_failed" }), true)
+
+    const retryCard = vm.actionCards.find((c) => c.id === "retry")
+    const cancelCard = vm.actionCards.find((c) => c.id === "cancel")
+    expect(retryCard?.disabled).toBe(false)
+    expect(cancelCard?.disabled).toBe(false)
   })
 })

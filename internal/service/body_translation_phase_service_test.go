@@ -895,8 +895,8 @@ func assertBodyPhaseCompletedOutput(
 	if result.PhaseState != bodyTranslationPhaseStateCompleted {
 		return
 	}
-	if !result.OutputReadiness.Ready {
-		t.Fatalf("expected output readiness ready, got %#v", result.OutputReadiness)
+	if !result.OutputReadiness.StatusConsistent {
+		t.Fatalf("expected output readiness status consistent, got %#v", result.OutputReadiness)
 	}
 	if result.Progress.TargetCount != 2 || result.Progress.TranslatedCount != 2 {
 		t.Fatalf("expected two translated targets, got %#v", result.Progress)

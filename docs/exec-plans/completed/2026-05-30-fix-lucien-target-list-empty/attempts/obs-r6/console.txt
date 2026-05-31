@@ -1,0 +1,30 @@
+# obs-r6 console log
+
+## 観測シーケンス（ジョブ6初回遷移）
+
+[log] [obs-r6] setJobId called jobId= 6 seq-before= 0
+[log] [obs-r6] fetchSAR start seq= 1 jobId= 6
+[log] [obs-r6] vm.items= 0 vm.total= 0 cur= 0 curTotal= 0 curItems= 0
+--- 約15秒後 ---
+[log] [obs-r6] processingTargetList resolved items= 50
+[log] [obs-r6] summary resolved
+[log] [obs-r6] readiness resolved
+[log] [obs-r6] fetchSAR resolved seq= 1 cur= 1 items= 50 total= 4931
+
+## subscribe callback 観測（別試行）
+
+[log] [obs-r6] subscribe callback fired vm.items= 50 total= 4931
+
+## 観測点の値まとめ
+
+| 観測点 | 値 |
+|---|---|
+| vm.items (bridge 解決前) | 0 |
+| vm.total (bridge 解決前) | 0 |
+| cur (currentProcessingTargetPageState.items.length) | 0 |
+| curTotal | 0 |
+| curItems (currentProcessingTargetItems.length) | 0 |
+| subscribe callback vm.items (bridge 解決後) | 50 |
+| subscribe callback vm.total | 4931 |
+| bridge pending 時間 | 約15秒 |
+| seq 一致 | seq=1 cur=1 → 一致 |

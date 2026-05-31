@@ -39,8 +39,7 @@ function createSummary(
       canStart: true,
       canPause: false,
       canResume: false,
-      canRetry: false,
-      canStartNextPhase: false
+      canRetry: false
     },
     ...overrides
   }
@@ -53,7 +52,6 @@ function createReadiness(
     jobId: 9,
     currentPhase: "term_translation",
     phaseState: "ready",
-    canStartNextPhase: false,
     ...overrides
   }
 }
@@ -66,6 +64,7 @@ interface TermTranslationPhaseScreenStateLike {
   errorMessage: string
   pendingAction: "start" | "pause" | "resume" | "retry" | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
@@ -108,6 +107,7 @@ function createStore(
     errorMessage: "",
     pendingAction: null,
     hasLoaded: false,
+    initialFetchDone: false,
     ...initialState
   }
 
@@ -247,7 +247,7 @@ describe("TermTranslationPhaseUseCase", () => {
     )
   })
 
-  test("setJobId は summary を再取得し hasLoaded を true に更新する", async () => {
+  test("setJobId は summary を再取得し hasLoaded と initialFetchDone を true に更新する", async () => {
     const { gateway, spies } = createGatewaySpies()
     const store = createStore()
     const useCase = new TermTranslationPhaseUseCase(gateway, store)
@@ -257,10 +257,9 @@ describe("TermTranslationPhaseUseCase", () => {
     expect(spies.getTermTranslationPhaseSummary).toHaveBeenCalledWith({
       jobId: 9
     })
-    expect(spies.getTermTranslationNextPhaseReadiness).toHaveBeenCalledWith({
-      jobId: 9
-    })
+    expect(spies.getTermTranslationNextPhaseReadiness).not.toHaveBeenCalled()
     expect(store.snapshot().hasLoaded).toBe(true)
+    expect(store.snapshot().initialFetchDone).toBe(true)
   })
 
   test("load は processing target request を送り totalCount と searchQuery を page state に保持する", async () => {
@@ -501,7 +500,7 @@ describe("TermTranslationPhaseUseCase", () => {
       new Error("timeout")
     )
     const oldSummary = createSummary({ phaseState: "paused", phaseRunId: 44 })
-    const oldReadiness = createReadiness({ blockedReason: "old" })
+    const oldReadiness = createReadiness({ phaseState: "paused" })
     const store = createStore({
       jobId: 9,
       phase: "ready",
@@ -591,5 +590,226 @@ describe("TermTranslationPhaseUseCase", () => {
       "単語翻訳段階の操作に失敗しました。"
     )
     expect(store.snapshot().phase).toBe("ready")
+  })
+
+  // UT-FETCH-001: setJobId で summary と processingTarget の両方が起動し最大2本に収まる
+  test("setJobId は summary と processingTarget の両方を取得し可否専用取得を呼ばない", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    await useCase.setJobId(9)
+
+    // summary 取得が 1 回起動する
+    expect(spies.getTermTranslationPhaseSummary).toHaveBeenCalledTimes(1)
+    // processingTarget 取得が 1 回起動する（最大2本に収まる）
+    expect(spies.getProcessingTargetList).toHaveBeenCalledTimes(1)
+    // 可否専用取得は起動しない（フロント導出のため取得物でなくなった）
+    expect(spies.getTermTranslationNextPhaseReadiness).not.toHaveBeenCalled()
+    // 両取得完了後に initialFetchDone が true になる
+    expect(store.snapshot().initialFetchDone).toBe(true)
+  })
+
+  // UT-ASYM-001: 後発取得（新しい sequence）が processingTarget を反映し空状態のまま残さない
+  test("後発の processingTarget 取得が先行取得より遅れて解決しても反映され空状態にならない", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const summaryDeferred = { resolve: null as ((v: TermTranslationPhaseSummaryResponse) => void) | null }
+    const processingTargetDeferred = createDeferredResponse()
+
+    // summary は即時解決、processingTarget は遅延
+    spies.getTermTranslationPhaseSummary.mockImplementationOnce(
+      () => Promise.resolve(createSummary())
+    )
+    spies.getProcessingTargetList.mockImplementationOnce(
+      () => processingTargetDeferred.promise
+    )
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    // setJobId 起動（processingTarget は保留中）
+    const setJobIdPromise = useCase.setJobId(9)
+
+    // processingTarget の遅延応答を解決する（後発取得）
+    processingTargetDeferred.resolve({
+      items: [
+        {
+          id: "term:1",
+          name: "Dragon",
+          detail: "原文: Dragon",
+          titleParts: [{ text: "Dragon" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 1,
+      searchQuery: ""
+    })
+
+    await setJobIdPromise
+
+    // processingTarget が反映され空状態のまま残らない
+    expect(store.snapshot().processingTargetPageState?.items.length).toBeGreaterThan(0)
+    expect(store.snapshot().initialFetchDone).toBe(true)
+    void summaryDeferred
+  })
+
+  // UT-ASYM-003: summary 反映は processingTarget と独立（summary 失敗でも processingTarget は反映される）
+  test("summary 取得失敗時も processingTarget の反映は独立して行われる", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    spies.getTermTranslationPhaseSummary.mockRejectedValueOnce(
+      new Error("summary timeout")
+    )
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    await useCase.setJobId(9)
+
+    // summary は失敗するがエラーメッセージが設定される
+    expect(store.snapshot().errorMessage).toContain("summary")
+    // processingTarget は独立して反映される（summary 失敗を理由に取りこぼさない）
+    expect(store.snapshot().processingTargetPageState?.items.length).toBeGreaterThan(0)
+    expect(store.snapshot().initialFetchDone).toBe(true)
+  })
+
+  // UT-REOPEN-001: setJobId で旧 sequence を無効化して再取得し旧遅延応答を破棄する
+  test("setJobId 呼び出し中の旧取得が遅れて解決しても setJobId 後の新 sequence に上書きされない", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const oldProcessingTargetDeferred = createDeferredResponse()
+
+    // 1 回目の setJobId の processingTarget 取得は遅延させる
+    spies.getProcessingTargetList.mockImplementationOnce(
+      () => oldProcessingTargetDeferred.promise
+    )
+
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    // 1 回目の setJobId を開始（processingTarget は保留中のまま）
+    const firstSetJobIdPromise = useCase.setJobId(9)
+
+    // 2 回目の setJobId を呼ぶ（新しい jobId、新しい取得が開始される）
+    // この時点で 1 回目の旧取得はまだ保留中
+    await useCase.setJobId(10)
+
+    // 2 回目の setJobId が完了し、新しい processingTarget が反映されている
+    const stateAfterSecondSetJobId = store.snapshot()
+    expect(stateAfterSecondSetJobId.jobId).toBe(10)
+    expect(stateAfterSecondSetJobId.processingTargetPageState?.items.length).toBeGreaterThan(0)
+
+    // 旧取得（1 回目の保留中応答）を遅れて解決する
+    oldProcessingTargetDeferred.resolve({
+      items: [
+        {
+          id: "old:1",
+          name: "OldItem",
+          detail: "旧取得の応答",
+          titleParts: [{ text: "OldItem" }],
+          metadata: []
+        }
+      ],
+      metadata: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 1,
+      searchQuery: ""
+    })
+
+    await firstSetJobIdPromise
+
+    // 旧取得の応答が新しい sequence の結果を上書きしていないことを確認
+    const finalState = store.snapshot()
+    const items = finalState.processingTargetPageState?.items ?? []
+    const hasOldItem = items.some((item) => item.id === "old:1")
+    expect(hasOldItem).toBe(false)
+  })
+
+  // UT-REOPEN-002: 再取得後に items.length>0（総件数 1 以上の場合）
+  test("setJobId による再取得で総件数1以上の段階では items が反映され空状態にならない", async () => {
+    const { gateway } = createGatewaySpies()
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    // 既存スパイが items を含む応答を返す設定になっている
+    await useCase.setJobId(9)
+
+    // 再取得結果が反映され items が空でない
+    const pageState = store.snapshot().processingTargetPageState
+    expect(pageState).not.toBeNull()
+    expect(pageState!.totalCount).toBeGreaterThan(0)
+    expect(pageState!.items.length).toBeGreaterThan(0)
+  })
+
+  // UT-LOAD-001: summary と processingTarget の両取得完了後のみ initialFetchDone=true
+  test("summary 取得のみ完了で processingTarget 未完了の間は initialFetchDone が false のまま", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    const processingTargetDeferred = createDeferredResponse()
+    spies.getProcessingTargetList.mockImplementationOnce(
+      () => processingTargetDeferred.promise
+    )
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    // setJobId 起動（processingTarget は保留中）
+    const setJobIdPromise = useCase.setJobId(9)
+
+    // summary は即時解決するが processingTarget はまだ保留
+    // この時点では initialFetchDone は false のまま
+    await Promise.resolve() // microtask をフラッシュ
+    expect(store.snapshot().initialFetchDone).toBe(false)
+
+    // processingTarget の取得を完了させる
+    processingTargetDeferred.resolve({
+      items: [],
+      metadata: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 0,
+      searchQuery: ""
+    })
+    await setJobIdPromise
+
+    // 両取得完了後に initialFetchDone が true になる
+    expect(store.snapshot().initialFetchDone).toBe(true)
+  })
+
+  // UT-DISP-001: initialFetchDone=true かつ総件数1以上で空状態判定にならない（items が反映される）
+  test("setJobId 後に initialFetchDone=true かつ processingTarget の totalCount が 1 以上になる", async () => {
+    const { gateway } = createGatewaySpies()
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    // createGatewaySpies の processingTarget は totalCount=137 で items 1 件
+    await useCase.setJobId(9)
+
+    const state = store.snapshot()
+    // initialFetchDone=true を評価条件とした derived 判定の前提が成立している
+    expect(state.initialFetchDone).toBe(true)
+    // 総件数が 1 以上で空状態判定にならない（件数分の items が保持される）
+    expect(state.processingTargetPageState?.totalCount).toBeGreaterThan(0)
+    expect(state.processingTargetPageState?.items.length).toBeGreaterThan(0)
+  })
+
+  // UT-DISP-002: 進捗母数と処理対象一覧の総件数は独立値として保持される
+  test("summary の aiTargetCount と processingTarget の totalCount は独立した値として store に保持される", async () => {
+    const { gateway, spies } = createGatewaySpies()
+    // summary の aiTargetCount = 7（進捗母数）
+    spies.getTermTranslationPhaseSummary.mockResolvedValueOnce(
+      createSummary({ aiTargetCount: 7, progress: { percent: 0, processedCount: 0, totalCount: 10, aiTargetCount: 7, currentStep: "ready" } })
+    )
+    // processingTarget の totalCount = 137（処理対象一覧の総件数）
+    // createGatewaySpies のデフォルトが totalCount=137 を返す
+    const store = createStore()
+    const useCase = new TermTranslationPhaseUseCase(gateway, store)
+
+    await useCase.setJobId(9)
+
+    const state = store.snapshot()
+    // 進捗母数（summary.aiTargetCount = 7）と総件数（processingTarget.totalCount = 137）は別値
+    expect(state.summary?.aiTargetCount).toBe(7)
+    expect(state.processingTargetPageState?.totalCount).toBe(137)
+    // 値が一致しなくても不具合ではない（独立した値として扱う）
+    expect(state.summary?.aiTargetCount).not.toBe(state.processingTargetPageState?.totalCount)
   })
 })

@@ -239,8 +239,7 @@ func TestPersonaGenerationPhaseControllerStartMapsCommandResponseDTO(t *testing.
 					SnapshotReferenceStatus: "ready",
 					BodyReadiness:           true,
 				},
-				Retryable:         false,
-				CanStartBodyPhase: true,
+				Retryable: false,
 				ErrorSummary: &usecase.PersonaGenerationPhaseErrorSummary{
 					ErrorKind:  " SECRET_REDACTED ",
 					Reason:     "redacted public summary",
@@ -273,8 +272,8 @@ func TestPersonaGenerationPhaseControllerStartMapsCommandResponseDTO(t *testing.
 	if response.ErrorSummary == nil || response.ErrorSummary.ErrorKind != "secret_redacted" || !response.ErrorSummary.IsRedacted {
 		t.Fatalf("expected normalized redacted error summary, got %#v", response.ErrorSummary)
 	}
-	if !response.CanStartBodyPhase || response.Retryable {
-		t.Fatalf("expected command flags to map, got %#v", response)
+	if response.Retryable {
+		t.Fatalf("expected retryable to be false, got %#v", response)
 	}
 }
 
@@ -282,9 +281,12 @@ func TestPersonaGenerationPhaseControllerGetBodyReadinessWrapsUsecaseErrorAndKee
 	controller := NewPersonaGenerationPhaseController(fakePersonaGenerationPhaseUsecase{
 		getBodyReadinessFunc: func(context.Context, usecase.GetPersonaGenerationBodyReadinessRequest) (usecase.PersonaGenerationBodyReadinessResult, error) {
 			return usecase.PersonaGenerationBodyReadinessResult{
-				JobID:     2010,
-				Ready:     false,
-				ErrorKind: " TERMINAL_JOB ",
+				JobID:      2010,
+				PhaseState: "recoverable_failed",
+				InputSummary: usecase.PersonaGenerationBodyReadinessInputSummary{
+					PersonaCount: 3,
+					MissingCount: 1,
+				},
 			}, errors.New("terminal job")
 		},
 	})
@@ -293,8 +295,8 @@ func TestPersonaGenerationPhaseControllerGetBodyReadinessWrapsUsecaseErrorAndKee
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if response.ErrorKind != "terminal_job" {
-		t.Fatalf("expected normalized error kind, got %#v", response)
+	if response.JobID != 2010 {
+		t.Fatalf("expected body readiness payload with jobId, got %#v", response)
 	}
 	if !strings.Contains(err.Error(), "get persona generation body readiness") {
 		t.Fatalf("expected wrapped error, got %v", err)

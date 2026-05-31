@@ -18,6 +18,7 @@ function createState(
     errorMessage: "",
     pendingAction: null,
     hasLoaded: true,
+    initialFetchDone: false,
     ...overrides
   }
 }

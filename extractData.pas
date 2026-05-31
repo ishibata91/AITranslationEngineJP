@@ -150,13 +150,14 @@ end;
 // ===== REORDERED NPC LOGIC =====
 procedure ExtractNPC(npc: IInterface);
 var
-  npcID, npcName, race, voice, sexFlag, sex, class_, npcEntry, source: string;
+  npcID, npcName, npcShortName, race, voice, sexFlag, sex, class_, npcEntry, npcShortEntry, source: string;
 begin
   npcID := HexFormID(npc);
   if processedNPCs.IndexOf(npcID) >= 0 then Exit;
   processedNPCs.Add(npcID);
 
   npcName := GetElementValue(npc, 'FULL');
+  npcShortName := GetElementValue(npc, 'SHRT');
   race := GetElementValue(npc, 'RNAM');
   voice := GetElementValue(npc, 'VTCK');
   class_ := GetElementValue(npc, 'CNAM');
@@ -178,6 +179,18 @@ begin
                 '    "class": ' + JsonString(class_) + #13#10 +
                 '  }';
     npcList.Add(npcEntry);
+  end;
+
+  if (npcShortName <> '') then
+  begin
+    npcShortEntry := '  {' + #13#10 +
+                     JsonField('id', JsonString(npcID)) + ',' + #13#10 +
+                     JsonField('editor_id', JsonString(GetElementEditValues(MasterOrSelf(npc), 'EDID'))) + ',' + #13#10 +
+                     JsonField('type', JsonString('NPC_ SHRT')) + ',' + #13#10 +
+                     JsonField('source', JsonString(source)) + ',' + #13#10 +
+                     JsonField('name', JsonString(npcShortName)) + #13#10 +
+                     '  }';
+    systemList.Add(npcShortEntry);
   end;
 end;
 
@@ -840,6 +853,27 @@ begin
   end;
 end;
 
+procedure ExtractNamedRecord(namedRecord: IInterface; targetList: TStringList);
+var
+  recordID, recordName, sig, recordEntry: string;
+begin
+  sig := Signature(namedRecord);
+  recordID := HexFormID(namedRecord);
+  recordName := GetElementValue(namedRecord, 'FULL');
+
+  if recordName <> '' then
+  begin
+    recordEntry := '  {' + #13#10 +
+                   JsonField('id', JsonString(recordID)) + ',' + #13#10 +
+                   JsonField('editor_id', JsonString(GetElementEditValues(MasterOrSelf(namedRecord), 'EDID'))) + ',' + #13#10 +
+                   JsonField('type', JsonString(sig + ' FULL')) + ',' + #13#10 +
+                   JsonField('source', JsonString(GetMasterFileName(namedRecord))) + ',' + #13#10 +
+                   JsonField('name', JsonString(recordName)) + #13#10 +
+                   '  }';
+    targetList.Add(recordEntry);
+  end;
+end;
+
 procedure ExtractMagic(magic: IInterface);
 var
   magicID, magicName, magicDesc, sig, magicEntry: string;
@@ -1029,6 +1063,8 @@ begin
           (sig = 'ALCH') or (sig = 'INGR') or (sig = 'KEYM') or
           (sig = 'MISC') or (sig = 'LIGH') or (sig = 'CONT') or
           (sig = 'SLGM') or (sig = 'BOOK') then ExtractItem(e)
+  else if (sig = 'DOOR') or (sig = 'FLOR') or (sig = 'FURN') then ExtractNamedRecord(e, itemList)
+  else if sig = 'RACE' then ExtractNamedRecord(e, systemList)
   else if (sig = 'SPEL') or (sig = 'MGEF') or (sig = 'ENCH') or
           (sig = 'SCRL') or (sig = 'SHOU') then ExtractMagic(e)
   else if (sig = 'LCTN') or (sig = 'WRLD') or (sig = 'CELL') then ExtractLocation(e);

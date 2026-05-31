@@ -75,13 +75,12 @@ function createSummary(): BodyTranslationPhaseSummaryResponse {
       canPause: true,
       canResume: false,
       canRetry: true,
-      canCancel: true,
-      canCheckOutputReadiness: true
+      canCancel: true
     },
     outputReadiness: {
-      ready: true,
       completedFieldCount: 3,
-      statusConsistent: true
+      statusConsistent: true,
+      outputCount: 3
     }
   }
 }
@@ -147,7 +146,7 @@ describe("BodyTranslationPhaseStore", () => {
       "changed"
     snapshot.summary!.errorSummary!.reason = "changed"
     snapshot.summary!.actionEnablement.canPause = false
-    snapshot.summary!.outputReadiness.ready = false
+    snapshot.summary!.outputReadiness.outputCount = 0
     snapshot.outputReadiness!.ready = false
 
     const nextSnapshot = store.snapshot()
@@ -165,7 +164,7 @@ describe("BodyTranslationPhaseStore", () => {
     ).toBe("FE01A813")
     expect(nextSnapshot.summary?.errorSummary?.reason).toBe("reason")
     expect(nextSnapshot.summary?.actionEnablement.canPause).toBe(true)
-    expect(nextSnapshot.summary?.outputReadiness.ready).toBe(true)
+    expect(nextSnapshot.summary?.outputReadiness.outputCount).toBe(3)
     expect(nextSnapshot.outputReadiness?.ready).toBe(true)
   })
 })

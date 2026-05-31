@@ -29,8 +29,8 @@ func TestSCN_BTP_007_RecoverableProviderFailureIsNotPublishedAsSuccess(t *testin
 	if err != nil {
 		t.Fatalf("SCN-BTP-007 public summary returned error: %v", err)
 	}
-	if result.PhaseState == "completed" || result.OutputReadiness.Ready {
-		t.Fatalf("SCN-BTP-007 failed provider result must not be completed or output-ready: %#v", result)
+	if result.PhaseState == "completed" || result.OutputReadiness.StatusConsistent {
+		t.Fatalf("SCN-BTP-007 failed provider result must not be completed or status-consistent: %#v", result)
 	}
 	if result.ErrorSummary == nil {
 		t.Fatalf("SCN-BTP-007 expected provider failure error summary, got nil")
@@ -402,8 +402,8 @@ func TestSCN_BTP_009_PauseThenCancelPersistsTerminalState(t *testing.T) {
 	if cancelErr != nil {
 		t.Fatalf("SCN-BTP-009 public cancel returned error: %v", cancelErr)
 	}
-	if canceled.PhaseState != "canceled" || canceled.OutputReadiness.Ready {
-		t.Fatalf("SCN-BTP-009 expected canceled state and blocked readiness, got %#v", canceled)
+	if canceled.PhaseState != "canceled" {
+		t.Fatalf("SCN-BTP-009 expected canceled state, got %#v", canceled)
 	}
 }
 
@@ -433,8 +433,8 @@ func TestSCN_BTP_009_RunningCancelIsRejectedBeforeTerminalResultRewrite(t *testi
 	if summaryErr != nil {
 		t.Fatalf("SCN-BTP-009 public summary after rejected cancel returned error: %v", summaryErr)
 	}
-	if summary.PhaseState != "running" || summary.OutputReadiness.Ready {
-		t.Fatalf("SCN-BTP-009 expected running state and blocked readiness after rejected cancel, got %#v", summary)
+	if summary.PhaseState != "running" {
+		t.Fatalf("SCN-BTP-009 expected running state after rejected cancel, got %#v", summary)
 	}
 	if len(fixture.store.phaseRuns) != 2 || len(fixture.store.outputs) != 1 || len(fixture.store.phaseLinks) != 1 {
 		t.Fatalf("SCN-TJSM-003 expected rejected Running cancel not to mutate rows, phaseRuns=%#v outputs=%#v links=%#v", fixture.store.phaseRuns, fixture.store.outputs, fixture.store.phaseLinks)
@@ -509,14 +509,15 @@ func TestSCN_BTP_010_CompletedConsistentResultEnablesOutputReadiness(t *testing.
 	})
 	controller := fixture.controller()
 
-	result, err := controller.GetBodyTranslationOutputReadiness(
-		controllerwails.GetBodyTranslationOutputReadinessRequestDTO{JobID: fixture.job.ID},
+	// GetBodyTranslationOutputReadiness endpoint は廃止。段階要約取得の outputReadiness で確認する。
+	result, err := controller.GetBodyTranslationPhaseSummary(
+		controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
 	)
 	if err != nil {
-		t.Fatalf("SCN-BTP-010 public readiness returned error: %v", err)
+		t.Fatalf("SCN-BTP-010 public summary returned error: %v", err)
 	}
-	if !result.Ready || !result.StatusConsistent || result.CompletedFieldCount != 2 {
-		t.Fatalf("SCN-BTP-010 expected downstream readiness for completed consistent result, got %#v", result)
+	if !result.OutputReadiness.StatusConsistent || result.OutputReadiness.CompletedFieldCount != 2 {
+		t.Fatalf("SCN-BTP-010 expected downstream readiness for completed consistent result, got %#v", result.OutputReadiness)
 	}
 }
 
@@ -531,17 +532,15 @@ func TestSCN_BTP_010_StatusInconsistencyBlocksOutputReadiness(t *testing.T) {
 	})
 	controller := fixture.controller()
 
-	result, err := controller.GetBodyTranslationOutputReadiness(
-		controllerwails.GetBodyTranslationOutputReadinessRequestDTO{JobID: fixture.job.ID},
+	// GetBodyTranslationOutputReadiness endpoint は廃止。段階要約取得の outputReadiness で確認する。
+	result, err := controller.GetBodyTranslationPhaseSummary(
+		controllerwails.GetBodyTranslationPhaseSummaryRequestDTO{JobID: fixture.job.ID},
 	)
 	if err != nil {
-		t.Fatalf("SCN-BTP-010 public readiness returned error: %v", err)
+		t.Fatalf("SCN-BTP-010 public summary returned error: %v", err)
 	}
-	if result.Ready || result.StatusConsistent {
-		t.Fatalf("SCN-BTP-010 expected status inconsistency to block readiness, got %#v", result)
-	}
-	if result.ErrorKind != "output_readiness_blocked" {
-		t.Fatalf("SCN-BTP-010 expected output_readiness_blocked, got %#v", result)
+	if result.OutputReadiness.StatusConsistent {
+		t.Fatalf("SCN-BTP-010 expected status inconsistency to block readiness, got %#v", result.OutputReadiness)
 	}
 }
 

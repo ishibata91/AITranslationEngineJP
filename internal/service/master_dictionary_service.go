@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"aitranslationenginejp/internal/notification"
+	"aitranslationenginejp/internal/recclassification"
 )
 
 var (
@@ -24,25 +25,6 @@ const (
 	masterDictionaryImportOrigin      = "XML取込"
 	masterDictionaryIDValidationError = "%w: id must be greater than zero"
 )
-
-var allowedImportREC = map[string]struct{}{
-	"BOOK:FULL": {},
-	"NPC_:FULL": {},
-	"NPC_:SHRT": {},
-	"ARMO:FULL": {},
-	"WEAP:FULL": {},
-	"LCTN:FULL": {},
-	"CELL:FULL": {},
-	"CONT:FULL": {},
-	"MISC:FULL": {},
-	"ALCH:FULL": {},
-	"FURN:FULL": {},
-	"DOOR:FULL": {},
-	"RACE:FULL": {},
-	"INGR:FULL": {},
-	"FLOR:FULL": {},
-	"SHOU:FULL": {},
-}
 
 // MasterDictionaryEntry describes one dictionary record in service boundary.
 type MasterDictionaryEntry struct {
@@ -207,8 +189,7 @@ func validateMutationInput(input MasterDictionaryMutationInput, now func() time.
 }
 
 func isAllowedImportREC(rec string) bool {
-	_, ok := allowedImportREC[rec]
-	return ok
+	return recclassification.IsTermTarget(rec)
 }
 
 func categoryFromREC(rec string) string {
@@ -219,12 +200,10 @@ func categoryFromREC(rec string) string {
 		return "NPC"
 	case "ARMO:FULL", "WEAP:FULL":
 		return "装備"
-	case "LCTN:FULL", "CELL:FULL", "DOOR:FULL":
+	case "LCTN:FULL", "CELL:FULL":
 		return "地名"
-	case "CONT:FULL", "MISC:FULL", "INGR:FULL", "FLOR:FULL", "ALCH:FULL":
+	case "CONT:FULL", "MISC:FULL", "INGR:FULL", "ALCH:FULL":
 		return "アイテム"
-	case "FURN:FULL":
-		return "設備"
 	case "SHOU:FULL":
 		return "シャウト"
 	default:

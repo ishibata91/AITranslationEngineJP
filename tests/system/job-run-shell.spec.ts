@@ -1,3 +1,5 @@
+import path from "node:path";
+
 import { expect, test, type Page } from "@playwright/test";
 
 import {
@@ -5,6 +7,7 @@ import {
   JobRunShellPage,
   PersonaGenerationPhasePage,
   TermTranslationPhasePage,
+  TranslationInputReviewPage,
   TranslationJobManagementPage,
   type TranslationPhasePage,
 } from "./support/system-test-pages";
@@ -21,6 +24,11 @@ interface ProcessingTargetListScenario {
   matchingQuery: string;
   noResultQuery: string;
 }
+
+const lucienInputPath = path.resolve(
+  process.cwd(),
+  "dictionaries/Lucien.esp_Export.json",
+);
 
 test.beforeEach(async ({ page }) => {
   await installScenarioWailsMocks(page);
@@ -40,6 +48,28 @@ async function openJobRun(
     `current phase action is available: ${jobText}`,
   ).toBeEnabled();
   await management.openCurrentPhase(card);
+  await expect(jobRun.shell).toBeVisible();
+  await expect(jobRun.phaseScreenRegion).toBeVisible();
+  return jobRun;
+}
+
+async function openJobRunFromLucienDataLoad(
+  page: Page,
+): Promise<JobRunShellPage> {
+  const inputReview = new TranslationInputReviewPage(page);
+  const jobRun = new JobRunShellPage(page);
+
+  await inputReview.open();
+  await inputReview.setJsonFile(lucienInputPath);
+  await expect(inputReview.registerButton).toBeEnabled({ timeout: 15000 });
+  await inputReview.register();
+  await expect(inputReview.loadedInputList).toContainText(
+    "Lucien.esp_Export.json",
+  );
+  await expect(inputReview.nextActionFooter).toBeVisible();
+  await inputReview.nextActionFooter
+    .getByRole("button", { name: "単語翻訳へ進む" })
+    .click();
   await expect(jobRun.shell).toBeVisible();
   await expect(jobRun.phaseScreenRegion).toBeVisible();
   return jobRun;
@@ -119,6 +149,29 @@ test("E2E-UC-045 opens term phase through current phase action", async ({
   });
 });
 
+test("E2E-DIFF-LUCIEN-001 keeps processing target list non-empty when term progress target is non-zero", async ({
+  page,
+}) => {
+  // データロードで登録した Lucien の単語翻訳画面が、対象ありの進捗と処理対象一覧を同時に表示することを証明する。
+  const jobRun = await openJobRunFromLucienDataLoad(page);
+  const phase = new TermTranslationPhasePage(page);
+
+  await expect(jobRun.selectedJobSummary).toContainText(/ジョブ #\d+/);
+  await expect(jobRun.phaseScreenRegion).toContainText(
+    /単語翻訳|開始待ち|未開始/,
+  );
+  await phase.waitForScreen();
+  await expect(phase.processingTargetListRegion).toBeVisible();
+  await expect(phase.progress).toContainText(
+    /AI 翻訳対象語件数\s*[1-9]\d*\s*件/,
+  );
+  await expect(phase.processingTargetTotalCount).toContainText(/[1-9]\d*/);
+  await expect(phase.processingTargetEmptyState).toHaveCount(0);
+  await expect
+    .poll(async () => phase.processingTargetRows.count())
+    .toBeGreaterThan(0);
+});
+
 test("E2E-UC-046 opens persona generation phase through current phase action", async ({
   page,
 }) => {
@@ -172,9 +225,16 @@ test("E2E-UC-048 job run shell advances from completed term phase to persona pha
 }) => {
   // 完了済み単語翻訳段階の次へ進む操作で、NPC ペルソナ生成段階へ遷移することを証明する。
   const jobRun = await openJobRun(page, "system-test-completed-term");
+  const termPhase = new TermTranslationPhasePage(page);
+  // 段階切り替え時は initialFetchDone=false のオーバーレイが表示される。
+  // term 段階の初回取得完了（オーバーレイ消失）を待ってから次へ進む操作を行う。
+  await termPhase.waitForScreen();
 
   await jobRun.clickNext();
 
+  // 遷移先の persona 段階が表示されるまで待つ。
+  const personaPhase = new PersonaGenerationPhasePage(page);
+  await personaPhase.waitForScreen();
   await expect(jobRun.phaseScreenRegion).toContainText("NPC ペルソナ生成");
   await expect(jobRun.selectedJobSummary).toContainText("ジョブ #10");
 });
@@ -187,6 +247,10 @@ test("E2E-UC-049 job run shell advances from completed body phase to completion 
     page,
     "system-test-body-ready-for-completion",
   );
+  const bodyPhase = new BodyTranslationPhasePage(page);
+  // 段階切り替え時は initialFetchDone=false のオーバーレイが表示される。
+  // body 段階の初回取得完了（オーバーレイ消失）を待ってから次へ進む操作を行う。
+  await bodyPhase.waitForScreen();
 
   await jobRun.clickBodyCompleteNext();
 

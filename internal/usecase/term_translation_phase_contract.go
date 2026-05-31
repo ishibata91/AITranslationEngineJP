@@ -132,16 +132,14 @@ type TermTranslationPhaseErrorSummary struct {
 
 // TermTranslationPhaseActionEnablement summarizes Job Run button state.
 type TermTranslationPhaseActionEnablement struct {
-	CanStart               bool
-	StartBlockedReason     *string
-	CanPause               bool
-	PauseBlockedReason     *string
-	CanResume              bool
-	ResumeBlockedReason    *string
-	CanRetry               bool
-	RetryBlockedReason     *string
-	CanStartNextPhase      bool
-	NextPhaseBlockedReason *string
+	CanStart            bool
+	StartBlockedReason  *string
+	CanPause            bool
+	PauseBlockedReason  *string
+	CanResume           bool
+	ResumeBlockedReason *string
+	CanRetry            bool
+	RetryBlockedReason  *string
 }
 
 // TermTranslationPhaseSummaryResult is the frozen Job Run summary contract.
@@ -164,26 +162,26 @@ type TermTranslationPhaseSummaryResult struct {
 
 // TermTranslationPhaseCommandResult is the frozen write-seam response contract.
 type TermTranslationPhaseCommandResult struct {
-	JobID             int64
-	CurrentPhase      string
-	PhaseState        string
-	PhaseRunID        *int64
-	StartedAt         *time.Time
-	FinishedAt        *time.Time
-	Progress          TermTranslationPhaseProgressSummary
-	Retryable         bool
-	CanStartNextPhase bool
-	ErrorSummary      *TermTranslationPhaseErrorSummary
+	JobID        int64
+	CurrentPhase string
+	PhaseState   string
+	PhaseRunID   *int64
+	StartedAt    *time.Time
+	FinishedAt   *time.Time
+	Progress     TermTranslationPhaseProgressSummary
+	Retryable    bool
+	ErrorSummary *TermTranslationPhaseErrorSummary
 }
 
-// TermTranslationNextPhaseReadinessResult is the frozen downstream readiness contract.
+// TermTranslationNextPhaseReadinessResult is the frozen downstream phase fact state contract.
 type TermTranslationNextPhaseReadinessResult struct {
-	JobID             int64
-	CurrentPhase      string
-	PhaseState        string
-	CanStartNextPhase bool
-	BlockedReason     *string
-	ErrorKind         TermTranslationPhaseErrorKind
+	JobID          int64
+	CurrentPhase   string
+	PhaseState     string
+	JobIsTerminal  bool
+	TotalCount     int
+	ConfirmedCount int
+	ErrorKind      TermTranslationPhaseErrorKind
 }
 
 // NewTermTranslationPhaseContractStub returns a temporary usecase stub for the frozen Wails seam.

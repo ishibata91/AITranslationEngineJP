@@ -1,18 +1,21 @@
+import pino from "pino"
+
 import type {
   ProcessingTargetListPageState,
   ProcessingTargetListResponse
 } from "@application/gateway-contract/processing-target"
 
+const logger = pino({ browser: { asObject: true } })
+
 import type {
   CancelPersonaGenerationPhaseRequest,
-  GetPersonaGenerationBodyReadinessRequest,
   GetPersonaGenerationPhaseSummaryRequest,
-  PausePersonaGenerationPhaseRequest,
   PersonaGenerationBodyReadinessResponse,
   PersonaGenerationPhaseAISettingsRequest,
   PersonaGenerationPhaseCommandResponse,
   PersonaGenerationPhaseGatewayContract,
   PersonaGenerationPhaseSummaryResponse,
+  PausePersonaGenerationPhaseRequest,
   ResumePersonaGenerationPhaseRequest,
   RetryPersonaGenerationPhaseRequest,
   StartPersonaGenerationPhaseRequest
@@ -35,6 +38,7 @@ interface PersonaGenerationPhaseScreenState {
   errorMessage: string
   pendingAction: PersonaGenerationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
@@ -105,11 +109,24 @@ export class PersonaGenerationPhaseUseCase {
   }
 
   async setJobId(jobId: number | null): Promise<void> {
+    this.processingTargetListRequestSequence++
+    const seq = this.processingTargetListRequestSequence
+    logger.info(
+      {
+        event: "phase_fetch_start",
+        where: "frontend.usecase.persona",
+        result: "started",
+        id: jobId !== null ? `job:${jobId}` : "job:null",
+        seq
+      },
+      "persona phase setJobId"
+    )
     this.store.update((draft) => {
       draft.jobId = jobId
       draft.summary = null
       draft.bodyReadiness = null
       draft.hasLoaded = false
+      draft.initialFetchDone = false
       draft.pendingAction = null
       draft.errorMessage = jobId === null ? createNoJobSelectedMessage() : ""
       draft.phase = "ready"
@@ -246,6 +263,10 @@ export class PersonaGenerationPhaseUseCase {
     }
 
     const before = this.store.snapshot()
+    const processingTargetListRequestSequence =
+      ++this.processingTargetListRequestSequence
+    const id = `job:${jobId}`
+    const seq = processingTargetListRequestSequence
 
     this.store.update((draft) => {
       draft.phase = "loading"
@@ -253,46 +274,133 @@ export class PersonaGenerationPhaseUseCase {
       draft.errorMessage = ""
     })
 
-    try {
-      const processingTargetListRequestSequence =
-        ++this.processingTargetListRequestSequence
-      const [summary, bodyReadiness, processingTargetPageState] =
-        await Promise.all([
-        this.gateway.getPersonaGenerationPhaseSummary({
-          jobId
-        } satisfies GetPersonaGenerationPhaseSummaryRequest),
-        this.gateway.getPersonaGenerationBodyReadiness({
-          jobId
-        } satisfies GetPersonaGenerationBodyReadinessRequest),
-        this.fetchProcessingTargetListResponse(
-          jobId,
-          before.processingTargetPageState ?? null
-        )
-      ])
+    const summaryStart = performance.now()
+    const summaryPromise = this.gateway.getPersonaGenerationPhaseSummary({
+      jobId
+    } satisfies GetPersonaGenerationPhaseSummaryRequest)
 
+    const processingTargetStart = performance.now()
+    const processingTargetPromise = this.fetchProcessingTargetListResponse(
+      jobId,
+      before.processingTargetPageState ?? null
+    )
+
+    try {
+      const summary = await summaryPromise
+      const summaryElapsedMs = Math.round(performance.now() - summaryStart)
+      this.store.update((draft) => {
+        draft.summary = summary
+        draft.errorMessage = ""
+      })
+      logger.info(
+        {
+          event: "bridge_summary_done",
+          where: "frontend.usecase.persona",
+          result: "reflected",
+          id,
+          seq,
+          elapsedMs: summaryElapsedMs
+        },
+        "persona summary bridge done and store updated"
+      )
+    } catch (error) {
+      const summaryElapsedMs = Math.round(performance.now() - summaryStart)
+      logger.warn(
+        {
+          event: "bridge_summary_done",
+          where: "frontend.usecase.persona",
+          result: "failed",
+          id,
+          seq,
+          elapsedMs: summaryElapsedMs
+        },
+        "persona summary bridge failed"
+      )
       this.store.update((draft) => {
         draft.phase = "ready"
-        draft.summary = summary
-        draft.bodyReadiness = bodyReadiness
+        draft.pendingAction = null
+        draft.summary = before.summary
+        draft.errorMessage = sanitizeErrorMessage(
+          error,
+          "NPC ペルソナ生成段階の summary 取得に失敗しました。"
+        )
+      })
+    }
+
+    try {
+      const processingTargetPageState = await processingTargetPromise
+      const processingTargetElapsedMs = Math.round(
+        performance.now() - processingTargetStart
+      )
+      this.store.update((draft) => {
         if (
           processingTargetListRequestSequence ===
           this.processingTargetListRequestSequence
         ) {
           draft.processingTargetPageState = processingTargetPageState
+          logger.info(
+            {
+              event: "bridge_processing_target_done",
+              where: "frontend.usecase.persona",
+              result: "reflected",
+              id,
+              seq,
+              elapsedMs: processingTargetElapsedMs
+            },
+            "persona processingTarget bridge done and store updated"
+          )
+        } else {
+          logger.warn(
+            {
+              event: "bridge_processing_target_done",
+              where: "frontend.usecase.persona",
+              result: "dropped",
+              id,
+              seq,
+              currentSeq: this.processingTargetListRequestSequence,
+              elapsedMs: processingTargetElapsedMs,
+              reason: "stale_sequence"
+            },
+            "persona processingTarget dropped by stale sequence"
+          )
         }
+        draft.phase = "ready"
         draft.pendingAction = null
-        draft.errorMessage = ""
         draft.hasLoaded = true
+        draft.initialFetchDone = true
       })
+      logger.info(
+        {
+          event: "initial_fetch_done",
+          where: "frontend.usecase.persona",
+          result: "completed",
+          id,
+          seq
+        },
+        "persona initialFetchDone set to true"
+      )
     } catch (error) {
+      const processingTargetElapsedMs = Math.round(
+        performance.now() - processingTargetStart
+      )
+      logger.warn(
+        {
+          event: "bridge_processing_target_done",
+          where: "frontend.usecase.persona",
+          result: "failed",
+          id,
+          seq,
+          elapsedMs: processingTargetElapsedMs
+        },
+        "persona processingTarget bridge failed"
+      )
       this.store.update((draft) => {
         draft.phase = "ready"
         draft.pendingAction = null
-        draft.summary = before.summary
-        draft.bodyReadiness = before.bodyReadiness
+        draft.initialFetchDone = true
         draft.errorMessage = sanitizeErrorMessage(
           error,
-          "NPC ペルソナ生成段階の summary 取得に失敗しました。"
+          "NPC ペルソナ生成段階の処理対象一覧取得に失敗しました。"
         )
       })
     }

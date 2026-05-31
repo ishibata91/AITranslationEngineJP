@@ -24,6 +24,7 @@
     onAction: (actionId: TermPanelActionKind) => void | Promise<void>
     processingTargetItems?: ProcessingTargetListItem[]
     processingTargetPageState?: ProcessingTargetListPageState
+    initialFetchDone?: boolean
     onProcessingTargetSearchInput?: (event: Event) => void
     onProcessingTargetPreviousPage?: () => void
     onProcessingTargetNextPage?: () => void
@@ -41,6 +42,7 @@
     onAction,
     processingTargetItems: providedProcessingTargetItems = undefined,
     processingTargetPageState = undefined,
+    initialFetchDone = true,
     onProcessingTargetSearchInput = undefined,
     onProcessingTargetPreviousPage = undefined,
     onProcessingTargetNextPage = undefined,
@@ -82,33 +84,10 @@
   const progressDetails = $derived<PhaseDetailItem[]>([
     { label: "AI 翻訳対象語件数", value: viewModel.aiTargetCountLabel }
   ])
-  const summaryProcessingTargetItems = $derived<ProcessingTargetListItem[]>([
-    {
-      id: "term-translation-ai-target",
-      name: "原語 / 訳語候補",
-      titleParts: [
-        { text: `原語候補: ${viewModel.totalTermCountLabel} 件` },
-        { text: `AI 訳語候補: ${viewModel.aiTargetCountLabel} 件` }
-      ],
-      detail: "共通辞書に一致しない用語と固有名詞を AI サービスへ送る対象。",
-      metadata: [
-        { label: "対象語件数", value: viewModel.totalTermCountLabel },
-        { label: "共通辞書一致", value: viewModel.dictionaryHitCountLabel },
-        { label: "AI 送信対象", value: viewModel.aiTargetCountLabel },
-        { label: "置換対象", value: viewModel.replacementTargetCountLabel },
-        { label: "未一致", value: viewModel.unmatchedCountLabel },
-        { label: "保存先", value: "翻訳ジョブ内辞書" },
-        { label: "スナップショット", value: viewModel.snapshotLabel }
-      ]
-    }
-  ])
   const displayedProcessingTargetItems = $derived(
     processingTargetPageState
       ? processingTargetPageState.items
-      : providedProcessingTargetItems &&
-          providedProcessingTargetItems.length > 0
-        ? providedProcessingTargetItems
-        : summaryProcessingTargetItems
+      : (providedProcessingTargetItems ?? [])
   )
   const processingTargetSearchQuery = $derived(
     processingTargetPageState?.searchQuery ?? processingTargetSearchValue
@@ -190,6 +169,17 @@
   data-testid="term-translation-phase-screen"
   id="termTranslationPhaseView"
 >
+  {#if !initialFetchDone}
+    <div
+      class="phase-loading-overlay"
+      data-testid="term-translation-phase-processing-target-loading"
+      aria-label="処理対象一覧を取得中"
+      aria-busy="true"
+    >
+      <span class="phase-loading-spinner" aria-hidden="true"></span>
+      <span class="loading-text">処理対象一覧を取得中...</span>
+    </div>
+  {/if}
   <PhaseStatusPanel
     eyebrow="translation-management"
     title="単語翻訳"
@@ -271,31 +261,35 @@
     />
   </section>
 
-  <ProcessingTargetListWrapper
-    items={filteredProcessingTargetItems}
-    pageSize={processingTargetPageState?.pageSize ?? 50}
-    currentPage={processingTargetPageState?.page}
-    totalCount={processingTargetPageState?.totalCount}
-    busy={processingTargetPageState?.busy}
-    searchId="termPhaseProcessingTargetSearch"
-    searchTestId="term-translation-phase-processing-target-search-input"
-    searchLabel="検索"
-    searchPlaceholder="名前・原文・訳語で検索"
-    searchValue={processingTargetSearchQuery}
-    title="処理対象"
-    titleId="termPhaseProcessingTargetsHeading"
-    onSearchInput={handleProcessingTargetSearchInput}
-    onPreviousPage={onProcessingTargetPreviousPage}
-    onNextPage={onProcessingTargetNextPage}
-    onPageChange={onProcessingTargetPageChange}
-    rowTestId="term-translation-phase-processing-target-row"
-    totalCountTestId="term-translation-phase-processing-target-total"
-    emptyStateTestId="term-translation-phase-processing-target-empty"
-  />
+  <div class="processing-target-container">
+    <ProcessingTargetListWrapper
+      items={filteredProcessingTargetItems}
+      pageSize={processingTargetPageState?.pageSize ?? 50}
+      currentPage={processingTargetPageState?.page}
+      totalCount={processingTargetPageState?.totalCount}
+      busy={processingTargetPageState?.busy}
+      searchId="termPhaseProcessingTargetSearch"
+      searchTestId="term-translation-phase-processing-target-search-input"
+      searchLabel="検索"
+      searchPlaceholder="名前・原文・訳語で検索"
+      searchValue={processingTargetSearchQuery}
+      title="処理対象"
+      titleId="termPhaseProcessingTargetsHeading"
+      titleColumnLabels={["原語候補", "AI 訳語候補"]}
+      onSearchInput={!initialFetchDone ? undefined : handleProcessingTargetSearchInput}
+      onPreviousPage={!initialFetchDone ? undefined : onProcessingTargetPreviousPage}
+      onNextPage={!initialFetchDone ? undefined : onProcessingTargetNextPage}
+      onPageChange={!initialFetchDone ? undefined : onProcessingTargetPageChange}
+      rowTestId="term-translation-phase-processing-target-row"
+      totalCountTestId="term-translation-phase-processing-target-total"
+      emptyStateTestId="term-translation-phase-processing-target-empty"
+    />
+  </div>
 </section>
 
 <style>
   .job-run-shell {
+    position: relative;
     display: grid;
     gap: 1.25rem;
   }
@@ -309,6 +303,45 @@
   @media (max-width: 900px) {
     .phase-controls-grid {
       grid-template-columns: 1fr;
+    }
+  }
+
+  .phase-loading-overlay {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    background: rgba(18, 16, 15, 0.72);
+    backdrop-filter: blur(2px);
+  }
+
+  .phase-loading-spinner {
+    width: 2.25rem;
+    height: 2.25rem;
+    border-radius: 50%;
+    border: 3px solid rgba(236, 223, 205, 0.25);
+    border-top-color: #ff9c7c;
+    animation: phase-loading-spin 0.8s linear infinite;
+  }
+
+  .loading-text {
+    font-size: 0.875rem;
+    color: rgba(236, 223, 205, 0.78);
+  }
+
+  @keyframes phase-loading-spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .phase-loading-spinner {
+      animation-duration: 1.6s;
     }
   }
 </style>

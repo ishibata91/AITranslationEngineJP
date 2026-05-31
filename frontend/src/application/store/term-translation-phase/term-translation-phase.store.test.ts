@@ -61,8 +61,7 @@ describe("TermTranslationPhaseStore", () => {
           canStart: false,
           canPause: true,
           canResume: false,
-          canRetry: false,
-          canStartNextPhase: false
+          canRetry: false
         }
       }
     })

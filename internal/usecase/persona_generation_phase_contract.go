@@ -198,20 +198,18 @@ type PersonaGenerationPhaseErrorSummary struct {
 	IsRedacted bool
 }
 
-// PersonaGenerationPhaseActionEnablement summarizes Job Run button state.
+// PersonaGenerationPhaseActionEnablement summarizes Job Run operation button state.
 type PersonaGenerationPhaseActionEnablement struct {
-	CanStart               bool
-	StartBlockedReason     *string
-	CanPause               bool
-	PauseBlockedReason     *string
-	CanResume              bool
-	ResumeBlockedReason    *string
-	CanRetry               bool
-	RetryBlockedReason     *string
-	CanCancel              bool
-	CancelBlockedReason    *string
-	CanStartBodyPhase      bool
-	BodyPhaseBlockedReason *string
+	CanStart            bool
+	StartBlockedReason  *string
+	CanPause            bool
+	PauseBlockedReason  *string
+	CanResume           bool
+	ResumeBlockedReason *string
+	CanRetry            bool
+	RetryBlockedReason  *string
+	CanCancel           bool
+	CancelBlockedReason *string
 }
 
 // PersonaGenerationPhaseSummaryResult is the frozen Job Run summary contract.
@@ -232,19 +230,18 @@ type PersonaGenerationPhaseSummaryResult struct {
 
 // PersonaGenerationPhaseCommandResult is the frozen write-seam response contract.
 type PersonaGenerationPhaseCommandResult struct {
-	JobID             int64
-	CurrentPhase      string
-	PhaseState        string
-	PhaseRunID        *int64
-	StartedAt         *time.Time
-	FinishedAt        *time.Time
-	Progress          PersonaGenerationPhaseProgressSummary
-	TargetSummary     PersonaGenerationTargetSummary
-	Execution         PersonaGenerationExecutionSummary
-	ResultSummary     *PersonaGenerationPhaseResultSummary
-	Retryable         bool
-	CanStartBodyPhase bool
-	ErrorSummary      *PersonaGenerationPhaseErrorSummary
+	JobID         int64
+	CurrentPhase  string
+	PhaseState    string
+	PhaseRunID    *int64
+	StartedAt     *time.Time
+	FinishedAt    *time.Time
+	Progress      PersonaGenerationPhaseProgressSummary
+	TargetSummary PersonaGenerationTargetSummary
+	Execution     PersonaGenerationExecutionSummary
+	ResultSummary *PersonaGenerationPhaseResultSummary
+	Retryable     bool
+	ErrorSummary  *PersonaGenerationPhaseErrorSummary
 }
 
 // PersonaGenerationBodyReadinessInputSummary summarizes the body phase inputs.
@@ -256,14 +253,12 @@ type PersonaGenerationBodyReadinessInputSummary struct {
 	EvidenceRefs   []string
 }
 
-// PersonaGenerationBodyReadinessResult is the frozen downstream readiness contract.
+// PersonaGenerationBodyReadinessResult is the frozen downstream phase fact state contract.
 type PersonaGenerationBodyReadinessResult struct {
 	JobID         int64
 	CurrentPhase  string
 	PhaseState    string
-	Ready         bool
-	BlockedReason *string
-	ErrorKind     PersonaGenerationPhaseErrorKind
+	JobIsTerminal bool
 	InputSummary  PersonaGenerationBodyReadinessInputSummary
 }
 
@@ -309,7 +304,6 @@ func (PersonaGenerationPhaseContractStub) PausePersonaGenerationPhase(
 	result := personaGenerationStartedFixture(request.JobID, request.PhaseRunID)
 	result.PhaseState = "paused"
 	result.Progress.CurrentStep = "paused"
-	result.CanStartBodyPhase = false
 	return result, nil
 }
 
@@ -365,7 +359,6 @@ func (PersonaGenerationPhaseContractStub) RetryPersonaGenerationPhase(
 			SnapshotReferenceStatus: "available",
 			BodyReadiness:           false,
 		}
-		result.CanStartBodyPhase = false
 		result.ErrorSummary = nil
 		return result, nil
 	}
@@ -379,33 +372,28 @@ func (PersonaGenerationPhaseContractStub) CancelPersonaGenerationPhase(
 	result := personaGenerationStartedFixture(request.JobID, request.PhaseRunID)
 	result.PhaseState = "canceled"
 	result.Progress.CurrentStep = "canceled"
-	result.CanStartBodyPhase = false
 	return result, nil
 }
 
-// GetPersonaGenerationBodyReadiness returns one frozen body readiness fixture.
+// GetPersonaGenerationBodyReadiness returns one frozen body readiness fact state fixture.
 func (PersonaGenerationPhaseContractStub) GetPersonaGenerationBodyReadiness(
 	_ context.Context,
 	request GetPersonaGenerationBodyReadinessRequest,
 ) (PersonaGenerationBodyReadinessResult, error) {
 	if request.JobID == 2010 {
 		result := PersonaGenerationBodyReadinessResult{
-			JobID:        request.JobID,
-			CurrentPhase: "persona_generation",
-			PhaseState:   "rejected",
-			Ready:        false,
-			ErrorKind:    PersonaGenerationPhaseErrorKindTerminalJob,
+			JobID:         request.JobID,
+			CurrentPhase:  "persona_generation",
+			PhaseState:    "rejected",
+			JobIsTerminal: true,
 		}
 		return result, errPersonaGenerationPhaseTerminalJob
 	}
 
 	return PersonaGenerationBodyReadinessResult{
-		JobID:         request.JobID,
-		CurrentPhase:  "persona_generation",
-		PhaseState:    "completed",
-		Ready:         true,
-		BlockedReason: nil,
-		ErrorKind:     "",
+		JobID:        request.JobID,
+		CurrentPhase: "persona_generation",
+		PhaseState:   "completed",
 		InputSummary: PersonaGenerationBodyReadinessInputSummary{
 			PersonaCount:   4,
 			MissingCount:   1,
@@ -470,12 +458,11 @@ func personaGenerationPhaseSummaryFixture() PersonaGenerationPhaseSummaryResult 
 		},
 		ErrorSummary: personaGenerationErrorSummary(" PROVIDER_FAILURE ", true),
 		ActionEnablement: PersonaGenerationPhaseActionEnablement{
-			CanStart:          false,
-			CanPause:          true,
-			CanResume:         false,
-			CanRetry:          true,
-			CanCancel:         true,
-			CanStartBodyPhase: false,
+			CanStart:  false,
+			CanPause:  true,
+			CanResume: false,
+			CanRetry:  true,
+			CanCancel: true,
 		},
 	}
 }
@@ -529,8 +516,7 @@ func personaGenerationStartedFixture(jobID, phaseRunID int64) PersonaGenerationP
 			SnapshotReferenceStatus: "pending",
 			BodyReadiness:           false,
 		},
-		Retryable:         false,
-		CanStartBodyPhase: false,
+		Retryable: false,
 	}
 	if phaseRunID > 0 {
 		result.PhaseRunID = &phaseRunID
@@ -546,7 +532,6 @@ func personaGenerationFailureFixture(
 	result.PhaseState = "failed"
 	result.Progress.CurrentStep = "failed"
 	result.Retryable = true
-	result.CanStartBodyPhase = false
 	result.ResultSummary = &PersonaGenerationPhaseResultSummary{
 		GeneratedCount:          0,
 		FailedCount:             1,

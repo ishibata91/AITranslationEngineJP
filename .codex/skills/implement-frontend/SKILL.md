@@ -36,7 +36,7 @@ description: Codex 実装系レーン側の frontend 実装作業プロトコル
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
 - UX 観点正本: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - Storybook 規約: [storybook.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/storybook.md) とする。
-- `agent-browser` 利用規約: [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) とする。
+- Chrome DevTools MCP 利用規約: [chrome-devtools-mcp.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/chrome-devtools-mcp.md) とする。
 - Storybook 設定: [main.ts](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/.storybook/main.ts) とする。
 - Storybook command: [package.json](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/package.json) の `storybook` と `build-storybook` とする。
 - 画面設計差分: `screen-design-diff.<screen-id>.md` を受け取る場合は画面ID、画面要素、表示条件、操作、結果、セレクタ（`aria-label`）の根拠にする。
@@ -92,7 +92,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - Storybook検証結果: `npm --prefix frontend run build-storybook` の結果または未実行理由を返す。
 - レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 画面設計根拠確認結果: 実画面と画面設計根拠 の一致、差分、画面ID と セレクタ（`aria-label`）差分、未確認理由、`docs/UX-standard.md` との対応を返す。
-- UI証跡参照: `agent-browser` の snapshot、screenshot、console、errors の参照または未取得理由を返す。
+- UI証跡参照: Chrome DevTools MCP の snapshot、screenshot、console message、network request の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 作業を完了できる条件
@@ -113,7 +113,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - Storybook 確認資源を追加または更新した場合は、`npm --prefix frontend run build-storybook` を実行し、通過結果または未実行理由を返した。
 - 実画面と画面設計根拠 の一致確認結果を返した。
 - 画面設計差分がある場合は、画面ID と セレクタ（`aria-label`） の実装差分を確認した。
-- 画面設計根拠確認結果は、`agent-browser` の snapshot、screenshot、console、errors の根拠または未取得理由を含んでいる。
+- 画面設計根拠確認結果は、Chrome DevTools MCP の snapshot、screenshot、console message、network request の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または許可された 影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 

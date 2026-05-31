@@ -159,28 +159,20 @@ type BodyTranslationPhaseErrorSummaryReadModel struct {
 
 // BodyTranslationPhaseActionEnablementReadModel stores action enablement for Job Run.
 type BodyTranslationPhaseActionEnablementReadModel struct {
-	CanStart                     bool
-	StartBlockedReason           *string
-	CanPause                     bool
-	PauseBlockedReason           *string
-	CanResume                    bool
-	ResumeBlockedReason          *string
-	CanRetry                     bool
-	RetryBlockedReason           *string
-	CanCancel                    bool
-	CancelBlockedReason          *string
-	CanCheckOutputReadiness      bool
-	OutputReadinessBlockedReason *string
+	CanStart            bool
+	StartBlockedReason  *string
+	CanPause            bool
+	PauseBlockedReason  *string
+	CanResume           bool
+	ResumeBlockedReason *string
+	CanRetry            bool
+	RetryBlockedReason  *string
+	CanCancel           bool
+	CancelBlockedReason *string
 }
 
-// BodyTranslationOutputReadinessReadModel stores downstream output readiness fields.
+// BodyTranslationOutputReadinessReadModel stores downstream output fact state fields.
 type BodyTranslationOutputReadinessReadModel struct {
-	JobID               int64
-	CurrentPhase        string
-	PhaseState          string
-	Ready               bool
-	BlockedReason       string
-	ErrorKind           string
 	CompletedFieldCount int
 	StatusConsistent    bool
 	OutputCount         int
@@ -338,7 +330,7 @@ func (service *BodyTranslationPhaseService) ReadSummary(
 		FieldResultSummary: resultSummary,
 		ResultSummary:      resultSummary,
 		FieldResults:       service.buildFieldResultItems(loaded),
-		ErrorSummary:       service.buildPhaseErrorSummary(loaded, outputReadiness),
+		ErrorSummary:       service.buildPhaseErrorSummary(loaded),
 		ActionEnablement:   service.buildActionEnablement(loaded, nil),
 		OutputReadiness:    outputReadiness,
 	}, nil
@@ -682,18 +674,6 @@ func (service *BodyTranslationPhaseService) CancelPhase(
 		bodyTranslationPhaseStateCanceled,
 		bodyTranslationPhaseErrorSummaryRejectCancel,
 	)
-}
-
-// ReadOutputReadiness returns whether body translation output is ready.
-func (service *BodyTranslationPhaseService) ReadOutputReadiness(
-	ctx context.Context,
-	jobID int64,
-) (BodyTranslationOutputReadinessReadModel, error) {
-	loaded, err := service.loadContext(ctx, jobID)
-	if err != nil {
-		return BodyTranslationOutputReadinessReadModel{}, err
-	}
-	return service.buildOutputReadiness(loaded), nil
 }
 
 func (service *BodyTranslationPhaseService) loadContext(
@@ -1216,8 +1196,7 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 	rejection *bodyTranslationStartRejection,
 ) BodyTranslationPhaseActionEnablementReadModel {
 	result := BodyTranslationPhaseActionEnablementReadModel{
-		CanStart:                rejection == nil,
-		CanCheckOutputReadiness: loaded.bodyRun != nil,
+		CanStart: rejection == nil,
 	}
 	if rejection != nil {
 		result.StartBlockedReason = cloneBodyTranslationStringPointer(&rejection.reason)
@@ -1266,46 +1245,22 @@ func (service *BodyTranslationPhaseService) buildActionEnablement(
 func (service *BodyTranslationPhaseService) buildOutputReadiness(
 	loaded bodyTranslationLoadedContext,
 ) BodyTranslationOutputReadinessReadModel {
-	result := BodyTranslationOutputReadinessReadModel{
-		JobID:               loaded.job.ID,
-		CurrentPhase:        bodyTranslationCurrentPhase,
-		PhaseState:          bodyTranslationPhaseStateIdleReady,
-		Ready:               false,
-		BlockedReason:       "body phase is not completed",
-		ErrorKind:           "output_readiness_blocked",
-		CompletedFieldCount: 0,
-		StatusConsistent:    false,
-		OutputCount:         len(loaded.outputFields),
-	}
-	if loaded.bodyRun != nil {
-		result.PhaseState = strings.TrimSpace(loaded.bodyRun.State)
-	}
-	if loaded.bodyRun == nil {
-		return result
-	}
-	if strings.TrimSpace(loaded.bodyRun.State) != bodyTranslationPhaseStateCompleted {
-		return result
-	}
-	if loaded.job.State != bodyTranslationJobStateCompleted {
-		result.BlockedReason = "translation job is not completed"
-		return result
+	outputCount := len(loaded.outputFields)
+	if loaded.bodyRun == nil || strings.TrimSpace(loaded.bodyRun.State) != bodyTranslationPhaseStateCompleted {
+		return BodyTranslationOutputReadinessReadModel{
+			OutputCount: outputCount,
+		}
 	}
 	completedFieldCount, statusConsistent := service.evaluateOutputStatusConsistency(loaded)
-	result.CompletedFieldCount = completedFieldCount
-	result.StatusConsistent = statusConsistent
-	if !statusConsistent {
-		result.BlockedReason = "body translation output status is inconsistent"
-		return result
+	return BodyTranslationOutputReadinessReadModel{
+		CompletedFieldCount: completedFieldCount,
+		StatusConsistent:    statusConsistent,
+		OutputCount:         outputCount,
 	}
-	result.Ready = true
-	result.BlockedReason = ""
-	result.ErrorKind = ""
-	return result
 }
 
 func (service *BodyTranslationPhaseService) buildPhaseErrorSummary(
 	loaded bodyTranslationLoadedContext,
-	outputReadiness BodyTranslationOutputReadinessReadModel,
 ) *BodyTranslationPhaseErrorSummaryReadModel {
 	if loaded.bodyRun == nil {
 		return nil
@@ -1324,7 +1279,7 @@ func (service *BodyTranslationPhaseService) buildPhaseErrorSummary(
 		retryable = true
 		reason = bodyTranslationFieldResultReasonInvalidProviderResponse
 	case "output_readiness_blocked":
-		reason = outputReadiness.BlockedReason
+		reason = "body translation output readiness was blocked"
 	case "protection_validation_failed":
 		reason = bodyTranslationFieldResultReasonProtectionValidationFailed
 	case "save_failed":

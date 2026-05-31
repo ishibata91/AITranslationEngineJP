@@ -126,8 +126,6 @@ export interface PersonaGenerationPhaseActionEnablement {
   retryBlockedReason?: string
   canCancel: boolean
   cancelBlockedReason?: string
-  canStartBodyPhase: boolean
-  bodyPhaseBlockedReason?: string
 }
 
 export interface PersonaGenerationPhaseSummaryResponse {
@@ -173,9 +171,6 @@ export interface PersonaGenerationBodyReadinessResponse {
   jobId: number
   currentPhase: string
   phaseState: string
-  ready: boolean
-  blockedReason?: string
-  errorKind?: PersonaGenerationPhaseErrorKind
   inputSummary: PersonaGenerationBodyReadinessInputSummary
 }
 

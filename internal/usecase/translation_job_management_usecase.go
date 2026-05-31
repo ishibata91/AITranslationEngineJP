@@ -167,38 +167,6 @@ func logPhaseStateCommand(
 	slog.LogAttrs(ctx, slog.LevelInfo, "phase state transition accepted", attrs...)
 }
 
-func logPhaseReadiness(
-	ctx context.Context,
-	event string,
-	where string,
-	jobID int64,
-	phaseState string,
-	ready bool,
-	reason *string,
-	err error,
-) {
-	result := "blocked"
-	level := slog.LevelWarn
-	if err == nil && ready {
-		result = "ready"
-		level = slog.LevelInfo
-	}
-	attrs := []slog.Attr{
-		slog.String("event", event),
-		slog.String("where", where),
-		slog.String("result", result),
-		slog.String("id", fmt.Sprintf(translationJobManagementLogIDFormat, jobID)),
-		slog.String("before_state", normalizeUsecaseLogValue(phaseState, "unknown")),
-		slog.String("after_state", normalizeUsecaseLogValue(phaseState, "unknown")),
-	}
-	if err != nil {
-		attrs = append(attrs, slog.String("reason", "service_error"))
-	} else if reason != nil && strings.TrimSpace(*reason) != "" {
-		attrs = append(attrs, slog.String("reason", strings.TrimSpace(*reason)))
-	}
-	slog.LogAttrs(ctx, level, "phase readiness evaluated", attrs...)
-}
-
 func formatPhaseStateLogID(jobID int64, phaseRunID *int64) string {
 	if phaseRunID == nil {
 		return fmt.Sprintf(translationJobManagementLogIDFormat, jobID)

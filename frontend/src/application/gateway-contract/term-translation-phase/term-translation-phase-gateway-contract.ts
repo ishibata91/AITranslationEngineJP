@@ -102,8 +102,6 @@ export interface TermTranslationPhaseActionEnablement {
   resumeBlockedReason?: string
   canRetry: boolean
   retryBlockedReason?: string
-  canStartNextPhase: boolean
-  nextPhaseBlockedReason?: string
 }
 
 export interface TermTranslationPhaseSummaryResponse {
@@ -140,8 +138,6 @@ export interface TermTranslationNextPhaseReadinessResponse {
   jobId: number
   currentPhase: string
   phaseState: string
-  canStartNextPhase: boolean
-  blockedReason?: string
   errorKind?: TermTranslationPhaseErrorKind
 }
 

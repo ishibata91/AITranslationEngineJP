@@ -31,6 +31,7 @@
     busy?: boolean
     searchPlaceholder?: string
     supportText?: string
+    titleColumnLabels?: string[]
     actions?: Snippet
     footer?: Snippet
     summary?: Snippet
@@ -67,6 +68,7 @@
     busy = false,
     searchPlaceholder = "",
     supportText = "",
+    titleColumnLabels = undefined,
     actions,
     footer,
     summary,
@@ -155,6 +157,7 @@
     {totalCount}
     {busy}
     showHeadingTitle={false}
+    {titleColumnLabels}
     {onPreviousPage}
     {onNextPage}
     {onPageChange}

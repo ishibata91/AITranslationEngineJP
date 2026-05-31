@@ -64,9 +64,6 @@ export interface CancelBodyTranslationPhaseRequest {
   phaseRunId: number
 }
 
-export interface GetBodyTranslationOutputReadinessRequest {
-  jobId: number
-}
 
 export interface BodyTranslationPhaseProgressSummary {
   percent: number
@@ -153,16 +150,12 @@ export interface BodyTranslationPhaseActionEnablement {
   retryBlockedReason?: string
   canCancel: boolean
   cancelBlockedReason?: string
-  canCheckOutputReadiness: boolean
-  outputReadinessBlockedReason?: string
 }
 
 export interface BodyTranslationOutputReadinessSummary {
-  ready: boolean
-  blockedReason?: string
-  errorKind?: BodyTranslationPhaseErrorKind
   completedFieldCount: number
   statusConsistent: boolean
+  outputCount: number
 }
 
 export interface BodyTranslationPhaseSummaryResponse {
@@ -202,6 +195,11 @@ export interface BodyTranslationPhaseCommandResponse {
   errorSummary?: BodyTranslationPhaseErrorSummary
 }
 
+/**
+ * @deprecated 専用取得 endpoint は廃止済み。段階要約取得（getBodyTranslationPhaseSummary）から
+ * outputReadiness フィールドで事実状態（completedFieldCount / statusConsistent / outputCount）を参照する。
+ * この型は既存テストの互換性のために残しており、wave-4 でテスト更新後に完全廃止する。
+ */
 export interface BodyTranslationOutputReadinessResponse {
   jobId: number
   currentPhase: string
@@ -239,7 +237,4 @@ export interface BodyTranslationPhaseGatewayContract {
   cancelBodyTranslationPhase(
     request: CancelBodyTranslationPhaseRequest
   ): Promise<BodyTranslationPhaseCommandResponse>
-  getBodyTranslationOutputReadiness(
-    request: GetBodyTranslationOutputReadinessRequest
-  ): Promise<BodyTranslationOutputReadinessResponse>
 }

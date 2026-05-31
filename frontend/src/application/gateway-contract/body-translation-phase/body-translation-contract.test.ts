@@ -34,9 +34,7 @@ describe("body-translation-contract", () => {
     expectTypeOf<
       BodyTranslationPhaseGatewayContract["cancelBodyTranslationPhase"]
     >().toBeFunction()
-    expectTypeOf<
-      BodyTranslationPhaseGatewayContract["getBodyTranslationOutputReadiness"]
-    >().toBeFunction()
+    // getBodyTranslationOutputReadiness は wave-2/3 で廃止済み。専用取得は段階要約取得へ統合された。
   })
 
   test("summary DTO exposes progress, field result, enablement, and output readiness", () => {
@@ -88,19 +86,19 @@ describe("body-translation-contract", () => {
         canPause: true,
         canResume: false,
         canRetry: true,
-        canCancel: false,
-        canCheckOutputReadiness: true
+        canCancel: false
       },
       outputReadiness: {
-        ready: false,
-        blockedReason: "phase_running",
         completedFieldCount: 3,
-        statusConsistent: true
+        statusConsistent: true,
+        outputCount: 3
       }
     }
 
     expect(response.execution.credentialRef).toBe("credential:body:test")
-    expect(response.outputReadiness.ready).toBe(false)
+    // ready はフロント導出値であり、事実状態（completedFieldCount/statusConsistent/outputCount）から application 層で導出する
+    expect(response.outputReadiness.completedFieldCount).toBe(3)
+    expect(response.outputReadiness.statusConsistent).toBe(true)
     expect(response.errorSummary?.errorKind).toBe("secret_redacted")
     expectBodyTranslationDTOHasNoForbiddenSecretFields(response)
   })
@@ -139,10 +137,9 @@ describe("body-translation-contract", () => {
       inputSnapshotDigest: "sha256:input-snapshot",
       retryable: false,
       outputReadiness: {
-        ready: false,
-        blockedReason: "canceled",
         completedFieldCount: 4,
-        statusConsistent: true
+        statusConsistent: true,
+        outputCount: 4
       },
       errorSummary: {
         errorKind: "late_response_rejected",
@@ -153,7 +150,8 @@ describe("body-translation-contract", () => {
     }
 
     expect(response.phaseRunId).toBe(41)
-    expect(response.outputReadiness.ready).toBe(false)
+    // ready はフロント導出値であり DTO に含まれない。事実状態（completedFieldCount/statusConsistent）から application 層が導出する
+    expect(response.outputReadiness.completedFieldCount).toBe(4)
     expect(response.errorSummary?.errorKind).toBe("late_response_rejected")
   })
 
@@ -235,13 +233,13 @@ describe("body-translation-contract", () => {
         canPause: false,
         canResume: false,
         canRetry: false,
-        canCancel: false,
-        canCheckOutputReadiness: true
+        canCancel: false
+        // canCheckOutputReadiness はフロント導出値であり DTO に含まれない
       },
       outputReadiness: {
-        ready: true,
         completedFieldCount: 2,
-        statusConsistent: true
+        statusConsistent: true,
+        outputCount: 2
       }
     }
 
@@ -251,10 +249,11 @@ describe("body-translation-contract", () => {
       protectionFailedCount: 0,
       outputReadyCount: 2
     })
+    // ready はフロント導出値。事実状態（completedFieldCount/statusConsistent/outputCount）が正しく含まれることを確認する
     expect(summary.outputReadiness).toMatchObject({
-      ready: true,
       completedFieldCount: 2,
-      statusConsistent: true
+      statusConsistent: true,
+      outputCount: 2
     })
     expect(summary.execution.outputCount).toBe(
       summary.resultSummary?.outputReadyCount
@@ -311,15 +310,13 @@ describe("body-translation-contract", () => {
         canPause: false,
         canResume: false,
         canRetry: true,
-        canCancel: true,
-        canCheckOutputReadiness: true
+        canCancel: true
+        // canCheckOutputReadiness はフロント導出値であり DTO に含まれない
       },
       outputReadiness: {
-        ready: false,
-        blockedReason: "protection_validation_failed",
-        errorKind: "protection_validation_failed",
         completedFieldCount: 0,
-        statusConsistent: false
+        statusConsistent: false,
+        outputCount: 0
       }
     }
 
@@ -336,11 +333,10 @@ describe("body-translation-contract", () => {
       isRedacted: true
     })
     expect(summary.actionEnablement.canRetry).toBe(true)
+    // ready/blockedReason/errorKind はフロント導出値。事実状態（completedFieldCount/statusConsistent）から application 層が導出する
     expect(summary.outputReadiness).toMatchObject({
-      ready: false,
-      blockedReason: "protection_validation_failed",
-      errorKind: "protection_validation_failed",
-      completedFieldCount: 0
+      completedFieldCount: 0,
+      statusConsistent: false
     })
   })
 })

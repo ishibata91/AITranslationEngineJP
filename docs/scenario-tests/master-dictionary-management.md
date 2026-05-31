@@ -96,7 +96,7 @@
   1. ファイル選択後にのみ取込バーが表示され、未選択状態では取込開始操作を表示しない。
   2. 取込バーは `取込待ち` から `取込中` を経て `完了` へ遷移し、進捗表示が同一画面で更新される。
   3. 完了後は検索語とカテゴリ絞り込みが解除され、一覧は先頭 30 件へ戻り、取り込み対象エントリが再選択されて詳細へ表示される。
-  4. 単語抽出対象 REC は `BOOK:FULL`, `NPC_:FULL`, `NPC_:SHRT`, `ARMO:FULL`, `WEAP:FULL`, `LCTN:FULL`, `CELL:FULL`, `CONT:FULL`, `MISC:FULL`, `ALCH:FULL`, `FURN:FULL`, `DOOR:FULL`, `RACE:FULL`, `INGR:FULL`, `FLOR:FULL`, `SHOU:FULL` のみであり、`ACTI:FULL` や `MGEF:DNAM` など許可リスト外 REC は抽出しない。
+  4. 辞書取り込み対象 REC は `BOOK:FULL`, `NPC_:FULL`, `NPC_:SHRT`, `ARMO:FULL`, `WEAP:FULL`, `LCTN:FULL`, `CELL:FULL`, `CONT:FULL`, `MISC:FULL`, `ALCH:FULL`, `RACE:FULL`, `INGR:FULL`, `SHOU:FULL` の 13 種別のみであり、`DOOR:FULL`、`FLOR:FULL`、`FURN:FULL`、`ACTI:FULL`、`MGEF:DNAM` など許可リスト外 REC は抽出しない。
 - `責務境界メモ`: XML取り込みは専用カード内で状態を閉じ、別画面へ遷移しない。抽出対象の判定は `REC` 値の許可リストで行う。
 
 ### SCN-MDM-007 検索結果ゼロ件

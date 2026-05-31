@@ -28,6 +28,7 @@ interface ScreenState {
   errorMessage: string
   pendingAction: ActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
@@ -115,8 +116,7 @@ function createGateway(): GatewayWithSpies {
           canPause: true,
           canResume: false,
           canRetry: false,
-          canCancel: true,
-          canStartBodyPhase: false
+          canCancel: true
         }
       })
   )
@@ -125,8 +125,6 @@ function createGateway(): GatewayWithSpies {
       jobId: request.jobId,
       currentPhase: "persona_generation",
       phaseState: "running",
-      ready: false,
-      errorKind: "body_readiness_blocked" as const,
       inputSummary: {
         personaCount: 0,
         missingCount: 10,
@@ -236,8 +234,7 @@ function baseSummary(): PersonaGenerationPhaseSummaryResponse {
       canPause: true,
       canResume: false,
       canRetry: false,
-      canCancel: true,
-      canStartBodyPhase: false
+      canCancel: true
     }
   }
 }
@@ -260,7 +257,8 @@ describe("PersonaGenerationPhaseUseCase", () => {
       bodyReadiness: null,
       errorMessage: "",
       pendingAction: null,
-      hasLoaded: false
+      hasLoaded: false,
+      initialFetchDone: false
     })
     const usecase = new PersonaGenerationPhaseUseCase(null, store)
 
@@ -278,7 +276,8 @@ describe("PersonaGenerationPhaseUseCase", () => {
       bodyReadiness: null,
       errorMessage: "",
       pendingAction: null,
-      hasLoaded: false
+      hasLoaded: false,
+      initialFetchDone: false
     })
     const usecase = new PersonaGenerationPhaseUseCase(
       gatewayBundle.gateway,
@@ -322,6 +321,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
       errorMessage: "",
       pendingAction: null,
       hasLoaded: false,
+      initialFetchDone: false,
       processingTargetPageState: {
         items: [],
         metadata: [],
@@ -366,6 +366,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
       errorMessage: "",
       pendingAction: null,
       hasLoaded: true,
+      initialFetchDone: true,
       processingTargetPageState: {
         items: [],
         metadata: [],
@@ -413,6 +414,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
       errorMessage: "",
       pendingAction: null,
       hasLoaded: true,
+      initialFetchDone: true,
       processingTargetPageState: {
         items: [],
         metadata: [],
@@ -492,6 +494,7 @@ describe("PersonaGenerationPhaseUseCase", () => {
       errorMessage: "",
       pendingAction: null,
       hasLoaded: true,
+      initialFetchDone: true,
       processingTargetPageState: {
         items: [],
         metadata: [],
@@ -570,7 +573,8 @@ describe("PersonaGenerationPhaseUseCase", () => {
       bodyReadiness: null,
       errorMessage: "",
       pendingAction: null,
-      hasLoaded: false
+      hasLoaded: false,
+      initialFetchDone: false
     })
     const usecase = new PersonaGenerationPhaseUseCase(
       gatewayBundle.gateway,

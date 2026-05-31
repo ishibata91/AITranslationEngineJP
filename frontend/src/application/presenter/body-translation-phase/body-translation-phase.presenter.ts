@@ -8,7 +8,6 @@ import type {
   BodyTranslationPhaseErrorKind,
   BodyTranslationPhaseErrorSummary,
   BodyTranslationPhaseExecutionSummary,
-  BodyTranslationOutputReadinessResponse,
   BodyTranslationPhaseFieldResultItem as BodyTranslationPhaseGatewayFieldResultItem,
   BodyTranslationPhaseFieldResultSummary,
   BodyTranslationPhaseInputSummary,
@@ -16,6 +15,18 @@ import type {
   BodyTranslationPhaseRequestSummary,
   BodyTranslationPhaseSummaryResponse
 } from "@application/gateway-contract/body-translation-phase"
+
+interface BodyTranslationEffectiveReadiness {
+  jobId: number
+  currentPhase: string
+  phaseState: string
+  ready: boolean
+  blockedReason?: string
+  errorKind?: BodyTranslationPhaseErrorKind
+  completedFieldCount: number
+  statusConsistent: boolean
+  outputCount: number
+}
 
 type BodyTranslationPhaseActionKind =
   | "start"
@@ -42,10 +53,11 @@ interface BodyTranslationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
   summary: BodyTranslationPhaseSummaryResponse | null
-  outputReadiness: BodyTranslationOutputReadinessResponse | null
+  outputReadiness: BodyTranslationEffectiveReadiness | null
   errorMessage: string
   pendingAction: BodyTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
   processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
@@ -136,7 +148,7 @@ interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreen
   latestExecutionSummary: BodyTranslationPhaseExecutionSummary | null
   latestResultSummary: BodyTranslationPhaseFieldResultSummary | null
   latestErrorKind: BodyTranslationPhaseErrorKind | null
-  latestOutputReadiness: BodyTranslationOutputReadinessResponse | null
+  latestOutputReadiness: BodyTranslationEffectiveReadiness | null
   pauseRequestShape?: { jobId: number; phaseRunId: number }
   resumeRequestShape?: { jobId: number; phaseRunId: number }
   retryRequestShape?: { jobId: number; phaseRunId: number }
@@ -196,28 +208,132 @@ function normalizePhaseState(phaseState: string | undefined): string {
   return phaseState?.trim().toLowerCase().replaceAll(" ", "_") ?? ""
 }
 
+function isBodyTerminalJob(
+  summary: BodyTranslationPhaseSummaryResponse
+): boolean {
+  const startReason = summary.actionEnablement?.startBlockedReason ?? ""
+  return startReason === "terminal_job"
+}
+
+function deriveBodyOutputReadinessReady(
+  summary: BodyTranslationPhaseSummaryResponse
+): boolean {
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const isCompleted =
+    normalizedState === "completed" ||
+    normalizedState === "succeeded" ||
+    normalizedState === "done"
+  if (!isCompleted) {
+    return false
+  }
+  const completedFieldCount = summary.outputReadiness.completedFieldCount
+  const statusConsistent = summary.outputReadiness.statusConsistent
+  return statusConsistent === true && completedFieldCount >= 0
+}
+
+function deriveBodyOutputReadinessBlockedReason(
+  summary: BodyTranslationPhaseSummaryResponse
+): string {
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const isCompleted =
+    normalizedState === "completed" ||
+    normalizedState === "succeeded" ||
+    normalizedState === "done"
+  if (!isCompleted) {
+    return "本文翻訳段階が完了していません。"
+  }
+  const statusConsistent = summary.outputReadiness.statusConsistent
+  if (!statusConsistent) {
+    return "翻訳出力の整合性が確認できません。"
+  }
+  return ""
+}
+
+function deriveBodyActionEnablement(
+  summary: BodyTranslationPhaseSummaryResponse
+): BodyTranslationPhaseActionEnablement {
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const terminal = isBodyTerminalJob(summary)
+
+  const isRunning =
+    normalizedState === "running" ||
+    normalizedState === "in_progress" ||
+    normalizedState === "processing"
+  const isPaused = normalizedState === "paused"
+  const isRecoverableFailed =
+    normalizedState === "recoverable_failed" ||
+    summary.errorSummary?.retryable === true
+  const isActive = isRunning || isPaused || isRecoverableFailed
+
+  const canStart = !terminal && !isActive
+  const startBlockedReason = terminal
+    ? "ジョブが終端状態のため開始できません。"
+    : isActive
+      ? "実行中の翻訳段階があるため開始できません。"
+      : undefined
+
+  const canPause = !terminal && isRunning
+  const pauseBlockedReason = terminal
+    ? "ジョブが終端状態のため中断できません。"
+    : !isRunning
+      ? "フェーズが実行中ではありません。"
+      : undefined
+
+  const canResume = !terminal && (isPaused || isRecoverableFailed)
+  const resumeBlockedReason = terminal
+    ? "ジョブが終端状態のため再開できません。"
+    : !isPaused && !isRecoverableFailed
+      ? "フェーズが再開可能な状態ではありません。"
+      : undefined
+
+  const canRetry = !terminal && isRecoverableFailed
+  const retryBlockedReason = terminal
+    ? "ジョブが終端状態のため再試行できません。"
+    : !isRecoverableFailed
+      ? "フェーズが再試行可能な状態ではありません。"
+      : undefined
+
+  const canCancel = !terminal && isActive
+  const cancelBlockedReason = terminal
+    ? "ジョブが終端状態のためキャンセルできません。"
+    : !isActive
+      ? "フェーズがキャンセル可能な状態ではありません。"
+      : undefined
+
+  return {
+    canStart,
+    startBlockedReason,
+    canPause,
+    pauseBlockedReason,
+    canResume,
+    resumeBlockedReason,
+    canRetry,
+    retryBlockedReason,
+    canCancel,
+    cancelBlockedReason
+  }
+}
+
 function getEffectiveReadiness(
   state: BodyTranslationPhaseScreenState
-): BodyTranslationOutputReadinessResponse | null {
-  if (state.outputReadiness) {
-    return state.outputReadiness
-  }
-
+): BodyTranslationEffectiveReadiness | null {
   const summary = state.summary
   if (!summary) {
     return null
   }
 
+  const ready = deriveBodyOutputReadinessReady(summary)
+  const blockedReason = deriveBodyOutputReadinessBlockedReason(summary) || undefined
+
   return {
     jobId: summary.jobId,
     currentPhase: summary.currentPhase,
     phaseState: summary.phaseState,
-    ready: summary.outputReadiness.ready,
-    blockedReason: summary.outputReadiness.blockedReason,
-    errorKind: summary.outputReadiness.errorKind,
+    ready,
+    blockedReason,
     completedFieldCount: summary.outputReadiness.completedFieldCount,
     statusConsistent: summary.outputReadiness.statusConsistent,
-    outputCount: summary.execution.outputCount
+    outputCount: summary.outputReadiness.outputCount
   }
 }
 
@@ -535,55 +651,63 @@ function buildFieldResultAvailabilityLabel(
 function buildActionCards(
   state: BodyTranslationPhaseScreenState
 ): BodyTranslationPhaseScreenViewModel["actionCards"] {
-  const enablement = state.summary?.actionEnablement
-  const readiness = getEffectiveReadiness(state)
   const isBusy = state.phase === "loading" || state.phase === "submitting"
+
+  if (!state.summary) {
+    return [
+      { id: "start", label: "開始", disabled: true, blockedReason: "", tone: "primary" },
+      { id: "pause", label: "中断", disabled: true, blockedReason: "", tone: "warning" },
+      { id: "resume", label: "再開", disabled: true, blockedReason: "", tone: "default" },
+      { id: "retry", label: "リトライ", disabled: true, blockedReason: "", tone: "default" },
+      { id: "cancel", label: "キャンセル", disabled: true, blockedReason: "", tone: "warning" },
+      { id: "check-output-readiness", label: "出力準備を確認", disabled: true, blockedReason: "", tone: "default" }
+    ]
+  }
+
+  const derived = deriveBodyActionEnablement(state.summary)
 
   return [
     {
       id: "start",
       label: "開始",
-      disabled: isBusy || !(enablement?.canStart ?? false),
-      blockedReason: enablement?.startBlockedReason ?? "",
+      disabled: isBusy || !derived.canStart,
+      blockedReason: derived.startBlockedReason ?? "",
       tone: "primary"
     },
     {
       id: "pause",
       label: "中断",
-      disabled: isBusy || !(enablement?.canPause ?? false),
-      blockedReason: enablement?.pauseBlockedReason ?? "",
+      disabled: isBusy || !derived.canPause,
+      blockedReason: derived.pauseBlockedReason ?? "",
       tone: "warning"
     },
     {
       id: "resume",
       label: "再開",
-      disabled: isBusy || !(enablement?.canResume ?? false),
-      blockedReason: enablement?.resumeBlockedReason ?? "",
+      disabled: isBusy || !derived.canResume,
+      blockedReason: derived.resumeBlockedReason ?? "",
       tone: "default"
     },
     {
       id: "retry",
       label: "リトライ",
-      disabled: isBusy || !(enablement?.canRetry ?? false),
-      blockedReason: enablement?.retryBlockedReason ?? "",
+      disabled: isBusy || !derived.canRetry,
+      blockedReason: derived.retryBlockedReason ?? "",
       tone: "default"
     },
     {
       id: "cancel",
       label: "キャンセル",
-      disabled: isBusy || !(enablement?.canCancel ?? false),
-      blockedReason: enablement?.cancelBlockedReason ?? "",
+      disabled: isBusy || !derived.canCancel,
+      blockedReason: derived.cancelBlockedReason ?? "",
       tone: "warning"
     },
     {
       id: "check-output-readiness",
       label: "出力準備を確認",
-      disabled: isBusy || !(enablement?.canCheckOutputReadiness ?? false),
-      blockedReason:
-        enablement?.outputReadinessBlockedReason ??
-        readiness?.blockedReason ??
-        "",
-      tone: readiness?.ready ? "primary" : "default"
+      disabled: isBusy || !deriveBodyOutputReadinessReady(state.summary),
+      blockedReason: state.summary ? (deriveBodyOutputReadinessBlockedReason(state.summary) || "") : "",
+      tone: state.summary && deriveBodyOutputReadinessReady(state.summary) ? "primary" : "default"
     }
   ]
 }
@@ -621,14 +745,24 @@ function calculateDerivedFailedCount(
 function buildScreenActionEnablement(
   summary: BodyTranslationPhaseSummaryResponse | null
 ): BodyTranslationPhaseScreenViewModel["screenActionEnablement"] {
+  if (!summary) {
+    return {
+      canStart: false,
+      canPause: false,
+      canResume: false,
+      canRetry: false,
+      canCancel: false,
+      canCheckOutputReadiness: false
+    }
+  }
+  const derived = deriveBodyActionEnablement(summary)
   return {
-    canStart: summary?.actionEnablement.canStart ?? false,
-    canPause: summary?.actionEnablement.canPause ?? false,
-    canResume: summary?.actionEnablement.canResume ?? false,
-    canRetry: summary?.actionEnablement.canRetry ?? false,
-    canCancel: summary?.actionEnablement.canCancel ?? false,
-    canCheckOutputReadiness:
-      summary?.actionEnablement.canCheckOutputReadiness ?? false
+    canStart: derived.canStart,
+    canPause: derived.canPause,
+    canResume: derived.canResume,
+    canRetry: derived.canRetry,
+    canCancel: derived.canCancel,
+    canCheckOutputReadiness: deriveBodyOutputReadinessReady(summary)
   }
 }
 
@@ -711,7 +845,7 @@ export class BodyTranslationPhasePresenter {
       outputReadinessStatusLabel:
         outputReadiness?.statusConsistent === true ? "整合" : "不整合",
       errorKindLabel:
-        errorSummary?.errorKind ?? outputReadiness?.errorKind ?? "-",
+        errorSummary?.errorKind ?? "-",
       errorReasonLabel: errorSummary?.reason ?? "-",
       retryableLabel:
         errorSummary === null
@@ -734,7 +868,7 @@ export class BodyTranslationPhasePresenter {
       latestExecutionSummary: summary?.execution ?? null,
       latestResultSummary: resultSummary,
       latestErrorKind:
-        errorSummary?.errorKind ?? outputReadiness?.errorKind ?? null,
+        errorSummary?.errorKind ?? null,
       latestOutputReadiness: outputReadiness,
       pauseRequestShape: phaseRunRequestShape,
       resumeRequestShape: phaseRunRequestShape,

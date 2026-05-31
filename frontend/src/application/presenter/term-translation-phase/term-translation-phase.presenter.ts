@@ -37,6 +37,7 @@ interface TermTranslationPhaseScreenState {
   errorMessage: string
   pendingAction: TermTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
 }
 
@@ -179,7 +180,7 @@ function buildViewState(
     return summary.aiTargetCount === 0 ? "empty_completed" : "completed"
   }
 
-  if (summary.actionEnablement.canStart && !summary.phaseRunId) {
+  if (isExecutionConfigured(summary) && !summary.phaseRunId) {
     return "idle_ready"
   }
 
@@ -337,55 +338,176 @@ function buildSnapshotLabel(state: TermTranslationPhaseScreenState): string {
   return "-"
 }
 
+function isTerminalJob(summary: TermTranslationPhaseSummaryResponse): boolean {
+  const startReason = summary.actionEnablement?.startBlockedReason ?? ""
+  return startReason === "terminal_job"
+}
+
+function isExecutionConfigured(summary: TermTranslationPhaseSummaryResponse): boolean {
+  return Boolean(summary.execution?.provider?.trim()) &&
+    Boolean(summary.execution?.model?.trim()) &&
+    Boolean(summary.execution?.executionMode?.trim())
+}
+
+function deriveCanStartNextPhase(
+  summary: TermTranslationPhaseSummaryResponse
+): boolean {
+  if (isTerminalJob(summary)) {
+    return false
+  }
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const isCompleted =
+    normalizedState === "completed" ||
+    normalizedState === "succeeded" ||
+    normalizedState === "done"
+  if (!isCompleted) {
+    return false
+  }
+  const confirmedCount = summary.resultSummary?.confirmedCount ?? 0
+  const aiTargetCount = summary.aiTargetCount ?? 0
+  return confirmedCount >= aiTargetCount
+}
+
+function deriveNextPhaseBlockedReason(
+  summary: TermTranslationPhaseSummaryResponse
+): string {
+  if (isTerminalJob(summary)) {
+    return "ジョブが終端状態のため次段階を開始できません。"
+  }
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const isCompleted =
+    normalizedState === "completed" ||
+    normalizedState === "succeeded" ||
+    normalizedState === "done"
+  if (!isCompleted) {
+    return "単語翻訳段階が未完了のため次段階を開始できません。"
+  }
+  return ""
+}
+
+function deriveTermActionEnablement(
+  summary: TermTranslationPhaseSummaryResponse
+): TermTranslationPhaseActionEnablement {
+  const normalizedState = normalizePhaseState(summary.phaseState)
+  const terminal = isTerminalJob(summary)
+  const configured = isExecutionConfigured(summary)
+
+  const isIdleReady =
+    normalizedState === "pending" ||
+    normalizedState === "idle_ready" ||
+    normalizedState === "ready"
+  const isRunning =
+    normalizedState === "running" ||
+    normalizedState === "in_progress" ||
+    normalizedState === "processing"
+  const isPaused = normalizedState === "paused"
+  const isRecoverableFailed =
+    normalizedState === "recoverable_failed" ||
+    normalizedState === "retryable_failed" ||
+    summary.errorSummary?.retryable === true
+
+  const activePhaseExists = isRunning
+
+  const canStart =
+    !terminal &&
+    !activePhaseExists &&
+    (isIdleReady || normalizedState === "") &&
+    configured
+
+  const startBlockedReason = terminal
+    ? "ジョブが終端状態のため開始できません。"
+    : activePhaseExists
+      ? "実行中の翻訳段階があるため開始できません。"
+      : !configured
+        ? "実行設定が未構成のため開始できません。"
+        : !isIdleReady && normalizedState !== ""
+          ? "ジョブが開始可能状態ではありません。"
+          : undefined
+
+  const canPause = !terminal && isRunning
+  const pauseBlockedReason = terminal
+    ? "ジョブが終端状態のため中断できません。"
+    : !isRunning
+      ? "フェーズが実行中ではありません。"
+      : undefined
+
+  const canResume = !terminal && (isPaused || isRecoverableFailed)
+  const resumeBlockedReason = terminal
+    ? "ジョブが終端状態のため再開できません。"
+    : !isPaused && !isRecoverableFailed
+      ? "フェーズが再開可能な状態ではありません。"
+      : undefined
+
+  const canRetry = !terminal && isRecoverableFailed
+  const retryBlockedReason = terminal
+    ? "ジョブが終端状態のため再試行できません。"
+    : !isRecoverableFailed
+      ? "フェーズが再試行可能な状態ではありません。"
+      : undefined
+
+  return {
+    canStart,
+    startBlockedReason,
+    canPause,
+    pauseBlockedReason,
+    canResume,
+    resumeBlockedReason,
+    canRetry,
+    retryBlockedReason
+  }
+}
+
 function buildActionCards(
   state: TermTranslationPhaseScreenState
 ): TermTranslationPhaseActionCard[] {
-  const enablement = state.summary?.actionEnablement
-  const nextPhaseReadiness = state.nextPhaseReadiness
   const isBusy = state.phase === "loading" || state.phase === "submitting"
-  const canStartNextPhase =
-    enablement?.canStartNextPhase ??
-    nextPhaseReadiness?.canStartNextPhase ??
-    false
-  const nextPhaseBlockedReason =
-    nextPhaseReadiness?.blockedReason ??
-    enablement?.nextPhaseBlockedReason ??
-    ""
+
+  if (!state.summary) {
+    return [
+      { id: "start", label: "開始", disabled: true, blockedReason: "", tone: "primary" },
+      { id: "pause", label: "中断", disabled: true, blockedReason: "", tone: "warning" },
+      { id: "resume", label: "再開", disabled: true, blockedReason: "", tone: "default" },
+      { id: "retry", label: "リトライ", disabled: true, blockedReason: "", tone: "default" },
+      { id: "next-phase", label: "次の翻訳段階へ進む", disabled: true, blockedReason: "", tone: "primary" }
+    ]
+  }
+
+  const derived = deriveTermActionEnablement(state.summary)
 
   return [
     {
       id: "start",
       label: "開始",
-      disabled: isBusy || !(enablement?.canStart ?? false),
-      blockedReason: enablement?.startBlockedReason ?? "",
+      disabled: isBusy || !derived.canStart,
+      blockedReason: derived.startBlockedReason ?? "",
       tone: "primary"
     },
     {
       id: "pause",
       label: "中断",
-      disabled: isBusy || !(enablement?.canPause ?? false),
-      blockedReason: enablement?.pauseBlockedReason ?? "",
+      disabled: isBusy || !derived.canPause,
+      blockedReason: derived.pauseBlockedReason ?? "",
       tone: "warning"
     },
     {
       id: "resume",
       label: "再開",
-      disabled: isBusy || !(enablement?.canResume ?? false),
-      blockedReason: enablement?.resumeBlockedReason ?? "",
+      disabled: isBusy || !derived.canResume,
+      blockedReason: derived.resumeBlockedReason ?? "",
       tone: "default"
     },
     {
       id: "retry",
       label: "リトライ",
-      disabled: isBusy || !(enablement?.canRetry ?? false),
-      blockedReason: enablement?.retryBlockedReason ?? "",
+      disabled: isBusy || !derived.canRetry,
+      blockedReason: derived.retryBlockedReason ?? "",
       tone: "default"
     },
     {
       id: "next-phase",
       label: "次の翻訳段階へ進む",
-      disabled: isBusy || !canStartNextPhase,
-      blockedReason: nextPhaseBlockedReason,
+      disabled: isBusy || !deriveCanStartNextPhase(state.summary),
+      blockedReason: deriveNextPhaseBlockedReason(state.summary) || "",
       tone: "primary"
     }
   ]
@@ -401,8 +523,6 @@ export class TermTranslationPhasePresenter {
     const summary = state.summary
     const resultSummary = summary?.resultSummary
     const errorSummary = summary?.errorSummary ?? null
-    const readiness = state.nextPhaseReadiness
-
     return {
       ...state,
       gatewayStatus: isGatewayConnected ? "接続準備済み" : "未接続",
@@ -445,14 +565,11 @@ export class TermTranslationPhasePresenter {
             ? "再試行可能"
             : "再試行不可",
       nextPhaseStatusLabel:
-        (readiness?.canStartNextPhase ??
-        summary?.actionEnablement.canStartNextPhase)
+        (summary ? deriveCanStartNextPhase(summary) : false)
           ? "開始可能"
           : "開始不可",
       nextPhaseBlockedReason:
-        readiness?.blockedReason ??
-        summary?.actionEnablement.nextPhaseBlockedReason ??
-        "",
+        summary ? (deriveNextPhaseBlockedReason(summary) || "") : "",
       providerSkippedLabel: buildProviderSkippedLabel(state),
       actionCards: buildActionCards(state),
       lastErrorSummary: errorSummary,

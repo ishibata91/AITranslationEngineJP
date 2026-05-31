@@ -15,7 +15,6 @@ type BodyTranslationPhaseUsecasePort interface {
 	ResumeBodyTranslationPhase(ctx context.Context, request usecase.ResumeBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 	RetryBodyTranslationPhase(ctx context.Context, request usecase.RetryBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
 	CancelBodyTranslationPhase(ctx context.Context, request usecase.CancelBodyTranslationPhaseRequest) (usecase.BodyTranslationPhaseCommandResult, error)
-	GetBodyTranslationOutputReadiness(ctx context.Context, request usecase.GetBodyTranslationOutputReadinessRequest) (usecase.BodyTranslationOutputReadinessResult, error)
 }
 
 type bodyTranslationPhaseAISettingsUsecasePort interface {
@@ -59,11 +58,6 @@ type RetryBodyTranslationPhaseRequestDTO struct {
 type CancelBodyTranslationPhaseRequestDTO struct {
 	JobID      int64 `json:"jobId"`
 	PhaseRunID int64 `json:"phaseRunId"`
-}
-
-// GetBodyTranslationOutputReadinessRequestDTO identifies the downstream readiness request target.
-type GetBodyTranslationOutputReadinessRequestDTO struct {
-	JobID int64 `json:"jobId"`
 }
 
 // SaveBodyTranslationPhaseAISettingsRequestDTO carries public AI settings.
@@ -171,27 +165,23 @@ type BodyTranslationPhaseErrorSummaryDTO struct {
 
 // BodyTranslationPhaseActionEnablementDTO summarizes Job Run button state.
 type BodyTranslationPhaseActionEnablementDTO struct {
-	CanStart                     bool    `json:"canStart"`
-	StartBlockedReason           *string `json:"startBlockedReason,omitempty"`
-	CanPause                     bool    `json:"canPause"`
-	PauseBlockedReason           *string `json:"pauseBlockedReason,omitempty"`
-	CanResume                    bool    `json:"canResume"`
-	ResumeBlockedReason          *string `json:"resumeBlockedReason,omitempty"`
-	CanRetry                     bool    `json:"canRetry"`
-	RetryBlockedReason           *string `json:"retryBlockedReason,omitempty"`
-	CanCancel                    bool    `json:"canCancel"`
-	CancelBlockedReason          *string `json:"cancelBlockedReason,omitempty"`
-	CanCheckOutputReadiness      bool    `json:"canCheckOutputReadiness"`
-	OutputReadinessBlockedReason *string `json:"outputReadinessBlockedReason,omitempty"`
+	CanStart            bool    `json:"canStart"`
+	StartBlockedReason  *string `json:"startBlockedReason,omitempty"`
+	CanPause            bool    `json:"canPause"`
+	PauseBlockedReason  *string `json:"pauseBlockedReason,omitempty"`
+	CanResume           bool    `json:"canResume"`
+	ResumeBlockedReason *string `json:"resumeBlockedReason,omitempty"`
+	CanRetry            bool    `json:"canRetry"`
+	RetryBlockedReason  *string `json:"retryBlockedReason,omitempty"`
+	CanCancel           bool    `json:"canCancel"`
+	CancelBlockedReason *string `json:"cancelBlockedReason,omitempty"`
 }
 
 // BodyTranslationOutputReadinessSummaryDTO summarizes downstream output readiness.
 type BodyTranslationOutputReadinessSummaryDTO struct {
-	Ready               bool   `json:"ready"`
-	BlockedReason       string `json:"blockedReason,omitempty"`
-	ErrorKind           string `json:"errorKind,omitempty"`
-	CompletedFieldCount int    `json:"completedFieldCount"`
-	StatusConsistent    bool   `json:"statusConsistent"`
+	CompletedFieldCount int  `json:"completedFieldCount"`
+	StatusConsistent    bool `json:"statusConsistent"`
+	OutputCount         int  `json:"outputCount"`
 }
 
 // BodyTranslationPhaseSummaryResponseDTO returns the frozen summary response shape.
@@ -231,19 +221,6 @@ type BodyTranslationPhaseCommandResponseDTO struct {
 	Retryable           bool                                       `json:"retryable"`
 	OutputReadiness     BodyTranslationOutputReadinessSummaryDTO   `json:"outputReadiness"`
 	ErrorSummary        *BodyTranslationPhaseErrorSummaryDTO       `json:"errorSummary,omitempty"`
-}
-
-// BodyTranslationOutputReadinessResponseDTO returns the frozen downstream readiness shape.
-type BodyTranslationOutputReadinessResponseDTO struct {
-	JobID               int64  `json:"jobId"`
-	CurrentPhase        string `json:"currentPhase"`
-	PhaseState          string `json:"phaseState"`
-	Ready               bool   `json:"ready"`
-	BlockedReason       string `json:"blockedReason,omitempty"`
-	ErrorKind           string `json:"errorKind,omitempty"`
-	CompletedFieldCount int    `json:"completedFieldCount"`
-	StatusConsistent    bool   `json:"statusConsistent"`
-	OutputCount         int    `json:"outputCount"`
 }
 
 // NewBodyTranslationPhaseController creates a body translation phase controller.
@@ -320,20 +297,6 @@ func (controller *BodyTranslationPhaseController) CancelBodyTranslationPhase(
 	return bodyTranslationCommandResponseOrError(result, err, "cancel body translation phase")
 }
 
-// GetBodyTranslationOutputReadiness returns whether downstream output is ready.
-func (controller *BodyTranslationPhaseController) GetBodyTranslationOutputReadiness(
-	request GetBodyTranslationOutputReadinessRequestDTO,
-) (BodyTranslationOutputReadinessResponseDTO, error) {
-	result, err := controller.bodyTranslationPhaseUsecase.GetBodyTranslationOutputReadiness(
-		context.Background(),
-		usecase.GetBodyTranslationOutputReadinessRequest{JobID: request.JobID},
-	)
-	if err != nil {
-		return toBodyTranslationOutputReadinessResponseDTO(result), fmt.Errorf("get body translation output readiness: %w", err)
-	}
-	return toBodyTranslationOutputReadinessResponseDTO(result), nil
-}
-
 // SaveBodyTranslationPhaseAISettings saves public AI settings for the body phase.
 func (controller *BodyTranslationPhaseController) SaveBodyTranslationPhaseAISettings(
 	request SaveBodyTranslationPhaseAISettingsRequestDTO,
@@ -376,7 +339,7 @@ func toBodyTranslationPhaseSummaryResponseDTO(
 		ResultSummary:    toOptionalBodyTranslationPhaseFieldResultSummaryDTO(firstNonNilBodyTranslationFieldResult(result.ResultSummary, result.FieldResultSummary)),
 		ErrorSummary:     toOptionalBodyTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
 		ActionEnablement: toBodyTranslationPhaseActionEnablementDTO(result.ActionEnablement),
-		OutputReadiness:  toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness),
+		OutputReadiness:  toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, result.Execution.OutputCount),
 	}
 }
 
@@ -413,24 +376,8 @@ func toBodyTranslationPhaseCommandResponseDTO(
 		FieldResults:        toBodyTranslationPhaseFieldResultItemsDTO(result.FieldResults),
 		ResultSummary:       toOptionalBodyTranslationPhaseFieldResultSummaryDTO(firstNonNilBodyTranslationFieldResult(result.ResultSummary, result.FieldResultSummary)),
 		Retryable:           result.Retryable,
-		OutputReadiness:     toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness),
+		OutputReadiness:     toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, result.Execution.OutputCount),
 		ErrorSummary:        toOptionalBodyTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
-	}
-}
-
-func toBodyTranslationOutputReadinessResponseDTO(
-	result usecase.BodyTranslationOutputReadinessResult,
-) BodyTranslationOutputReadinessResponseDTO {
-	return BodyTranslationOutputReadinessResponseDTO{
-		JobID:               result.JobID,
-		CurrentPhase:        result.CurrentPhase,
-		PhaseState:          result.PhaseState,
-		Ready:               result.Ready,
-		BlockedReason:       result.BlockedReason,
-		ErrorKind:           string(usecase.NormalizeBodyTranslationPhasePublicErrorKind(result.ErrorKind)),
-		CompletedFieldCount: result.CompletedFieldCount,
-		StatusConsistent:    result.StatusConsistent,
-		OutputCount:         result.OutputCount,
 	}
 }
 
@@ -551,30 +498,27 @@ func toBodyTranslationPhaseActionEnablementDTO(
 	summary usecase.BodyTranslationPhaseActionEnablement,
 ) BodyTranslationPhaseActionEnablementDTO {
 	return BodyTranslationPhaseActionEnablementDTO{
-		CanStart:                     summary.CanStart,
-		StartBlockedReason:           cloneOptionalString(summary.StartBlockedReason),
-		CanPause:                     summary.CanPause,
-		PauseBlockedReason:           cloneOptionalString(summary.PauseBlockedReason),
-		CanResume:                    summary.CanResume,
-		ResumeBlockedReason:          cloneOptionalString(summary.ResumeBlockedReason),
-		CanRetry:                     summary.CanRetry,
-		RetryBlockedReason:           cloneOptionalString(summary.RetryBlockedReason),
-		CanCancel:                    summary.CanCancel,
-		CancelBlockedReason:          cloneOptionalString(summary.CancelBlockedReason),
-		CanCheckOutputReadiness:      summary.CanCheckOutputReadiness,
-		OutputReadinessBlockedReason: cloneOptionalString(summary.OutputReadinessBlockedReason),
+		CanStart:            summary.CanStart,
+		StartBlockedReason:  cloneOptionalString(summary.StartBlockedReason),
+		CanPause:            summary.CanPause,
+		PauseBlockedReason:  cloneOptionalString(summary.PauseBlockedReason),
+		CanResume:           summary.CanResume,
+		ResumeBlockedReason: cloneOptionalString(summary.ResumeBlockedReason),
+		CanRetry:            summary.CanRetry,
+		RetryBlockedReason:  cloneOptionalString(summary.RetryBlockedReason),
+		CanCancel:           summary.CanCancel,
+		CancelBlockedReason: cloneOptionalString(summary.CancelBlockedReason),
 	}
 }
 
 func toBodyTranslationOutputReadinessSummaryDTO(
 	summary usecase.BodyTranslationOutputReadinessSummary,
+	outputCount int,
 ) BodyTranslationOutputReadinessSummaryDTO {
 	return BodyTranslationOutputReadinessSummaryDTO{
-		Ready:               summary.Ready,
-		BlockedReason:       summary.BlockedReason,
-		ErrorKind:           string(usecase.NormalizeBodyTranslationPhasePublicErrorKind(summary.ErrorKind)),
 		CompletedFieldCount: summary.CompletedFieldCount,
 		StatusConsistent:    summary.StatusConsistent,
+		OutputCount:         outputCount,
 	}
 }
 

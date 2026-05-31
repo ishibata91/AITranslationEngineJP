@@ -16,8 +16,8 @@ func TestSQLiteProcessingTargetListTermTranslationUsesAITargetTermPopulation(t *
 	seedProcessingTargetTranslationField(t, repo, npcRecordID, "FULL", "Guard", 1)
 	seedProcessingTargetTranslationField(t, repo, npcRecordID, "DESC", "Guard", 2)
 	seedProcessingTargetTranslationField(t, repo, weaponRecordID, "FULL", "Iron Sword", 1)
-	seedProcessingTargetDictionaryEntry(t, repo, nil, "master", "NPC_", "Guard", "衛兵", "NPC name")
-	seedProcessingTargetDictionaryEntry(t, repo, &jobID, "job", "WEAP", "Iron Sword", "鉄の剣", "weapon")
+	seedProcessingTargetDictionaryEntry(t, repo, nil, "master", "NPC_:FULL", "Guard", "衛兵", "NPC name")
+	seedProcessingTargetDictionaryEntry(t, repo, &jobID, "job", "WEAP:FULL", "Iron Sword", "鉄の剣", "weapon")
 
 	result, err := repo.ListProcessingTargets(ctx, ProcessingTargetListQuery{
 		JobID:    jobID,
@@ -39,7 +39,7 @@ func TestSQLiteProcessingTargetListTermTranslationUsesAITargetTermPopulation(t *
 	if item.Name != "Iron Sword" {
 		t.Fatalf("expected AI target source term name, got %#v", item)
 	}
-	if !processingTargetTestHasMetadata(item, processingTargetMetadataTermKind, "WEAP") {
+	if !processingTargetTestHasMetadata(item, processingTargetMetadataTermKind, "WEAP:FULL") {
 		t.Fatalf("expected record type metadata for term target, got %#v", item.Metadata)
 	}
 	if !processingTargetTestHasMetadata(item, processingTargetMetadataTranslatedText, "鉄の剣") {
@@ -106,9 +106,9 @@ func TestSQLiteProcessingTargetListSearchesTermTranslationByTargetNameSourceAndT
 	jobID := seedProcessingTargetTranslationJob(t, repo, 8401)
 	recordID := seedProcessingTargetTranslationRecord(t, repo, 8401, "000301", "SearchTerms", "MISC")
 	seedProcessingTargetTranslationField(t, repo, recordID, "FULL", "Moon Sugar", 1)
-	seedProcessingTargetTranslationField(t, repo, recordID, "DESC", "Dwemer Lever", 2)
-	seedProcessingTargetDictionaryEntry(t, repo, &jobID, "job", "MISC", "Moon Sugar", "月の砂糖", "item")
-	seedProcessingTargetDictionaryEntry(t, repo, &jobID, "job", "MISC", "Dwemer Lever", "ドゥーマーのレバー", "item")
+	seedProcessingTargetTranslationField(t, repo, recordID, "FULL", "Dwemer Lever", 2)
+	seedProcessingTargetDictionaryEntry(t, repo, &jobID, "job", "MISC:FULL", "Moon Sugar", "月の砂糖", "item")
+	seedProcessingTargetDictionaryEntry(t, repo, &jobID, "job", "MISC:FULL", "Dwemer Lever", "ドゥーマーのレバー", "item")
 
 	allTargets, err := repo.ListProcessingTargets(ctx, ProcessingTargetListQuery{
 		JobID:    jobID,
@@ -537,6 +537,170 @@ func seedProcessingTargetJobTranslationField(
 		now,
 	); err != nil {
 		t.Fatalf("seed JOB_TRANSLATION_FIELD failed: %v", err)
+	}
+}
+
+// TestProcessingTargetTermSQL_filtersBy13RECTypes は
+// processingTargetTermCountSQL と processingTargetTermListSQL が
+// 13 種別 REC だけを集計・一覧化し、13 種別外 REC（DOOR:FULL / FLOR:FULL / FURN:FULL）を
+// 件数にも一覧にも含まないことを証明する。
+func TestProcessingTargetTermSQL_filtersBy13RECTypes(t *testing.T) {
+	// Arrange: 13 種別 REC と 13 種別外 REC を両方 seed する
+	repo := newSQLiteJobLifecycleRepositoryForTest(t, filepath.Join(t.TempDir(), "db", "rec-filter.sqlite3"))
+	ctx := context.Background()
+	jobID := seedProcessingTargetTranslationJob(t, repo, 9001)
+
+	// 13 種別内: WEAP:FULL
+	weaponRecordID := seedProcessingTargetTranslationRecord(t, repo, 9001, "W00001", "IronSword", "WEAP")
+	seedProcessingTargetTranslationField(t, repo, weaponRecordID, "FULL", "Iron Sword", 1)
+
+	// 13 種別内: MISC:FULL
+	miscRecordID := seedProcessingTargetTranslationRecord(t, repo, 9001, "M00001", "MoonSugar", "MISC")
+	seedProcessingTargetTranslationField(t, repo, miscRecordID, "FULL", "Moon Sugar", 1)
+
+	// 13 種別外: DOOR:FULL（除外対象）
+	doorRecordID := seedProcessingTargetTranslationRecord(t, repo, 9001, "D00001", "OakDoor", "DOOR")
+	seedProcessingTargetTranslationField(t, repo, doorRecordID, "FULL", "Oak Door", 1)
+
+	// 13 種別外: FLOR:FULL（除外対象）
+	florRecordID := seedProcessingTargetTranslationRecord(t, repo, 9001, "F00001", "YellowFlower", "FLOR")
+	seedProcessingTargetTranslationField(t, repo, florRecordID, "FULL", "Yellow Flower", 1)
+
+	// 13 種別外: FURN:FULL（除外対象）
+	furnRecordID := seedProcessingTargetTranslationRecord(t, repo, 9001, "FU0001", "WoodChair", "FURN")
+	seedProcessingTargetTranslationField(t, repo, furnRecordID, "FULL", "Wood Chair", 1)
+
+	// Act: term_translation フェーズで一覧を取得する
+	result, err := repo.ListProcessingTargets(ctx, ProcessingTargetListQuery{
+		JobID:    jobID,
+		Phase:    "term_translation",
+		Page:     1,
+		PageSize: 20,
+	})
+	if err != nil {
+		t.Fatalf("ListProcessingTargets failed: %v", err)
+	}
+
+	// Assert: count と list の両方が 13 種別 REC の 2 件だけを返す
+	// DOOR:FULL / FLOR:FULL / FURN:FULL が結果に出れば REC 絞り込み欠落の退行
+	if result.TotalCount != 2 {
+		t.Errorf("REC 絞り込み欠落: 13 種別 REC 2 件だけを期待, got TotalCount=%d items=%#v", result.TotalCount, result.Items)
+	}
+	if len(result.Items) != 2 {
+		t.Errorf("REC 絞り込み欠落: 13 種別 REC 2 件だけを期待, got len(Items)=%d items=%#v", len(result.Items), result.Items)
+	}
+
+	names := make(map[string]struct{}, len(result.Items))
+	for _, item := range result.Items {
+		names[item.Name] = struct{}{}
+	}
+	if _, ok := names["Iron Sword"]; !ok {
+		t.Errorf("13 種別 REC WEAP:FULL が一覧に含まれていない: items=%#v", result.Items)
+	}
+	if _, ok := names["Moon Sugar"]; !ok {
+		t.Errorf("13 種別 REC MISC:FULL が一覧に含まれていない: items=%#v", result.Items)
+	}
+	for _, name := range []string{"Oak Door", "Yellow Flower", "Wood Chair"} {
+		if _, ok := names[name]; ok {
+			t.Errorf("13 種別外 REC が一覧に含まれている（REC 絞り込み欠落）: name=%q items=%#v", name, result.Items)
+		}
+	}
+}
+
+// TestProcessingTargetTermSQL_excludesByDictionaryScopeRECORDFIELD は
+// dictionary_scope を RECORD:FIELD 形式（例: NPC_:FULL）で投入したデータに対し、
+// 共通辞書一致除外（master lifecycle、同一原語、同一 dictionary_scope）が成立することを証明する。
+// dictionary_scope が RECORD:FIELD でなく record_type 単体で比較されている場合は除外が成立しない退行が発生する。
+func TestProcessingTargetTermSQL_excludesByDictionaryScopeRECORDFIELD(t *testing.T) {
+	// Arrange: NPC_:FULL の原語を共通辞書に登録し、除外が成立するか確認する
+	repo := newSQLiteJobLifecycleRepositoryForTest(t, filepath.Join(t.TempDir(), "db", "dict-scope.sqlite3"))
+	ctx := context.Background()
+	jobID := seedProcessingTargetTranslationJob(t, repo, 9101)
+
+	// NPC_:FULL レコード: "RiverwoodGuard" の FULL フィールド原語 "Guard"
+	npcRecordID := seedProcessingTargetTranslationRecord(t, repo, 9101, "N00001", "RiverwoodGuard", "NPC_")
+	seedProcessingTargetTranslationField(t, repo, npcRecordID, "FULL", "Guard", 1)
+
+	// WEAP:FULL レコード: 共通辞書に登録なし（AI 対象として残るはず）
+	weaponRecordID := seedProcessingTargetTranslationRecord(t, repo, 9101, "W00002", "IronDagger", "WEAP")
+	seedProcessingTargetTranslationField(t, repo, weaponRecordID, "FULL", "Iron Dagger", 1)
+
+	// 共通辞書: NPC_:FULL スコープで "Guard" を登録する（RECORD:FIELD 形式）
+	// この entry に対し dictionary_scope が RECORD:FIELD で比較されれば "Guard" は除外される
+	seedProcessingTargetDictionaryEntry(t, repo, nil, "master", "NPC_:FULL", "Guard", "衛兵", "NPC name")
+
+	// Act: term_translation フェーズで一覧を取得する
+	result, err := repo.ListProcessingTargets(ctx, ProcessingTargetListQuery{
+		JobID:    jobID,
+		Phase:    "term_translation",
+		Page:     1,
+		PageSize: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListProcessingTargets failed: %v", err)
+	}
+
+	// Assert: "Guard" は共通辞書一致で除外され、"Iron Dagger" だけが AI 対象として返る
+	// TotalCount = 2 なら dictionary_scope が RECORD:FIELD でなく比較されている退行（NOT EXISTS 節の REC 比較欠落）
+	if result.TotalCount != 1 {
+		t.Errorf("dictionary_scope が RECORD:FIELD で比較されていない退行: 共通辞書一致 1 件除外後に 1 件を期待, got TotalCount=%d items=%#v", result.TotalCount, result.Items)
+	}
+	if len(result.Items) != 1 {
+		t.Errorf("dictionary_scope が RECORD:FIELD で比較されていない退行: 1 件を期待, got len(Items)=%d items=%#v", len(result.Items), result.Items)
+	}
+	if len(result.Items) == 1 && result.Items[0].Name != "Iron Dagger" {
+		t.Errorf("共通辞書一致除外後に残る項目が期待と異なる: want=Iron Dagger got=%q", result.Items[0].Name)
+	}
+}
+
+// TestProcessingTargetTermSQL_separatesNPCFullAndSHRT は
+// NPC_:FULL と NPC_:SHRT が同一原語を持つ場合でも別 candidate として返ることを証明する。
+// NPC_:FULL と NPC_:SHRT が同一キーで集約されると TotalCount=1 かつ Items の rec が 1 種別になる退行が発生する。
+func TestProcessingTargetTermSQL_separatesNPCFullAndSHRT(t *testing.T) {
+	// Arrange: 同一 NPC_ レコードに FULL と SHRT フィールドを持つ seed データ
+	repo := newSQLiteJobLifecycleRepositoryForTest(t, filepath.Join(t.TempDir(), "db", "npc-sep.sqlite3"))
+	ctx := context.Background()
+	jobID := seedProcessingTargetTranslationJob(t, repo, 9201)
+
+	npcRecordID := seedProcessingTargetTranslationRecord(t, repo, 9201, "N00002", "WhiterunGuard", "NPC_")
+	// NPC_:FULL フィールド: 原語 "Whiterun Guard"
+	seedProcessingTargetTranslationField(t, repo, npcRecordID, "FULL", "Whiterun Guard", 1)
+	// NPC_:SHRT フィールド: 同一原語 "Whiterun Guard"
+	seedProcessingTargetTranslationField(t, repo, npcRecordID, "SHRT", "Whiterun Guard", 2)
+
+	// Act: term_translation フェーズで一覧を取得する
+	result, err := repo.ListProcessingTargets(ctx, ProcessingTargetListQuery{
+		JobID:    jobID,
+		Phase:    "term_translation",
+		Page:     1,
+		PageSize: 10,
+	})
+	if err != nil {
+		t.Fatalf("ListProcessingTargets failed: %v", err)
+	}
+
+	// Assert: NPC_:FULL と NPC_:SHRT が別 candidate（2 件）として返る
+	// TotalCount=1 なら record_type のみで集約されている退行（RECORD:FIELD 分離欠落）
+	if result.TotalCount != 2 {
+		t.Errorf("NPC_:FULL と NPC_:SHRT が別 candidate として返っていない（RECORD:FIELD 分離欠落）: want TotalCount=2 got=%d items=%#v", result.TotalCount, result.Items)
+	}
+	if len(result.Items) != 2 {
+		t.Errorf("NPC_:FULL と NPC_:SHRT が別 candidate として返っていない（RECORD:FIELD 分離欠落）: want len=2 got=%d items=%#v", len(result.Items), result.Items)
+	}
+
+	recValues := make(map[string]struct{}, len(result.Items))
+	for _, item := range result.Items {
+		for _, m := range item.Metadata {
+			if m.Label == processingTargetMetadataTermKind {
+				recValues[m.Value] = struct{}{}
+			}
+		}
+	}
+	if _, ok := recValues["NPC_:FULL"]; !ok {
+		t.Errorf("NPC_:FULL が candidate として含まれていない: recValues=%v items=%#v", recValues, result.Items)
+	}
+	if _, ok := recValues["NPC_:SHRT"]; !ok {
+		t.Errorf("NPC_:SHRT が candidate として含まれていない: recValues=%v items=%#v", recValues, result.Items)
 	}
 }
 

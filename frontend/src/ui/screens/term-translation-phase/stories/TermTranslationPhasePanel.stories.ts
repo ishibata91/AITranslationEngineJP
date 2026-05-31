@@ -2,9 +2,10 @@ import type { Meta, StoryObj } from "@storybook/svelte-vite"
 
 import TermTranslationPhasePanel from "../TermTranslationPhasePanel.svelte"
 import { termTranslationPhasePanelFixture } from "../__fixtures__/term-phase-card-fixture"
+import { processingTargetListPanelFixtures } from "@ui/screens/job-run/__fixtures__/job-run-shell-fixtures"
 
 const meta = {
-  title: "Screen Components/Term Translation Phase/TermTranslationPhasePanel",
+  title: "Review/Changed Screens/TermTranslationPhasePanel",
   component: TermTranslationPhasePanel,
   parameters: {
     layout: "fullscreen"
@@ -96,6 +97,46 @@ export const FailureStatus: Story = {
       statusTitle: "単語翻訳が失敗しました",
       statusText: "失敗理由を確認して再実行を判断します。",
       errorMessage: "AI サービスの応答を取得できませんでした。"
+    }
+  }
+}
+
+export const WithProcessingTargets: Story = {
+  args: {
+    processingTargetPageState: {
+      ...processingTargetListPanelFixtures.termTranslationFirstPage,
+      page: 1,
+      pageSize: 50,
+      totalCount: 125,
+      searchQuery: "",
+      busy: false
+    }
+  }
+}
+
+export const WithValueOnlyTitleParts: Story = {
+  args: {
+    processingTargetPageState: {
+      ...processingTargetListPanelFixtures.valueonlyTitleParts,
+      page: 1,
+      pageSize: 50,
+      totalCount: 10,
+      searchQuery: "",
+      busy: false
+    }
+  }
+}
+
+export const EmptyProcessingTargets: Story = {
+  args: {
+    initialFetchDone: true,
+    processingTargetPageState: {
+      items: [],
+      page: 1,
+      pageSize: 50,
+      totalCount: 0,
+      searchQuery: "",
+      busy: false
     }
   }
 }

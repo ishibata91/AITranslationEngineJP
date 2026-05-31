@@ -139,20 +139,18 @@ type PersonaGenerationPhaseErrorSummaryDTO struct {
 	IsRedacted bool   `json:"isRedacted"`
 }
 
-// PersonaGenerationPhaseActionEnablementDTO summarizes Job Run button state.
+// PersonaGenerationPhaseActionEnablementDTO summarizes Job Run operation button state.
 type PersonaGenerationPhaseActionEnablementDTO struct {
-	CanStart               bool    `json:"canStart"`
-	StartBlockedReason     *string `json:"startBlockedReason,omitempty"`
-	CanPause               bool    `json:"canPause"`
-	PauseBlockedReason     *string `json:"pauseBlockedReason,omitempty"`
-	CanResume              bool    `json:"canResume"`
-	ResumeBlockedReason    *string `json:"resumeBlockedReason,omitempty"`
-	CanRetry               bool    `json:"canRetry"`
-	RetryBlockedReason     *string `json:"retryBlockedReason,omitempty"`
-	CanCancel              bool    `json:"canCancel"`
-	CancelBlockedReason    *string `json:"cancelBlockedReason,omitempty"`
-	CanStartBodyPhase      bool    `json:"canStartBodyPhase"`
-	BodyPhaseBlockedReason *string `json:"bodyPhaseBlockedReason,omitempty"`
+	CanStart            bool    `json:"canStart"`
+	StartBlockedReason  *string `json:"startBlockedReason,omitempty"`
+	CanPause            bool    `json:"canPause"`
+	PauseBlockedReason  *string `json:"pauseBlockedReason,omitempty"`
+	CanResume           bool    `json:"canResume"`
+	ResumeBlockedReason *string `json:"resumeBlockedReason,omitempty"`
+	CanRetry            bool    `json:"canRetry"`
+	RetryBlockedReason  *string `json:"retryBlockedReason,omitempty"`
+	CanCancel           bool    `json:"canCancel"`
+	CancelBlockedReason *string `json:"cancelBlockedReason,omitempty"`
 }
 
 // PersonaGenerationPhaseSummaryResponseDTO returns the frozen summary response shape.
@@ -173,19 +171,18 @@ type PersonaGenerationPhaseSummaryResponseDTO struct {
 
 // PersonaGenerationPhaseCommandResponseDTO returns the frozen write-seam response shape.
 type PersonaGenerationPhaseCommandResponseDTO struct {
-	JobID             int64                                    `json:"jobId"`
-	CurrentPhase      string                                   `json:"currentPhase"`
-	PhaseState        string                                   `json:"phaseState"`
-	PhaseRunID        *int64                                   `json:"phaseRunId,omitempty"`
-	StartedAt         *string                                  `json:"startedAt,omitempty"`
-	FinishedAt        *string                                  `json:"finishedAt,omitempty"`
-	Progress          PersonaGenerationPhaseProgressSummaryDTO `json:"progress"`
-	TargetSummary     PersonaGenerationTargetSummaryDTO        `json:"targetSummary"`
-	Execution         PersonaGenerationExecutionSummaryDTO     `json:"execution"`
-	ResultSummary     *PersonaGenerationPhaseResultSummaryDTO  `json:"resultSummary,omitempty"`
-	Retryable         bool                                     `json:"retryable"`
-	CanStartBodyPhase bool                                     `json:"canStartBodyPhase"`
-	ErrorSummary      *PersonaGenerationPhaseErrorSummaryDTO   `json:"errorSummary,omitempty"`
+	JobID         int64                                    `json:"jobId"`
+	CurrentPhase  string                                   `json:"currentPhase"`
+	PhaseState    string                                   `json:"phaseState"`
+	PhaseRunID    *int64                                   `json:"phaseRunId,omitempty"`
+	StartedAt     *string                                  `json:"startedAt,omitempty"`
+	FinishedAt    *string                                  `json:"finishedAt,omitempty"`
+	Progress      PersonaGenerationPhaseProgressSummaryDTO `json:"progress"`
+	TargetSummary PersonaGenerationTargetSummaryDTO        `json:"targetSummary"`
+	Execution     PersonaGenerationExecutionSummaryDTO     `json:"execution"`
+	ResultSummary *PersonaGenerationPhaseResultSummaryDTO  `json:"resultSummary,omitempty"`
+	Retryable     bool                                     `json:"retryable"`
+	ErrorSummary  *PersonaGenerationPhaseErrorSummaryDTO   `json:"errorSummary,omitempty"`
 }
 
 // PersonaGenerationBodyReadinessInputSummaryDTO summarizes the body phase inputs.
@@ -197,14 +194,12 @@ type PersonaGenerationBodyReadinessInputSummaryDTO struct {
 	EvidenceRefs   []string `json:"evidenceRefs"`
 }
 
-// PersonaGenerationBodyReadinessResponseDTO returns the frozen body readiness shape.
+// PersonaGenerationBodyReadinessResponseDTO returns the frozen body phase fact state shape.
 type PersonaGenerationBodyReadinessResponseDTO struct {
 	JobID         int64                                         `json:"jobId"`
 	CurrentPhase  string                                        `json:"currentPhase"`
 	PhaseState    string                                        `json:"phaseState"`
-	Ready         bool                                          `json:"ready"`
-	BlockedReason *string                                       `json:"blockedReason,omitempty"`
-	ErrorKind     string                                        `json:"errorKind,omitempty"`
+	JobIsTerminal bool                                          `json:"jobIsTerminal"`
 	InputSummary  PersonaGenerationBodyReadinessInputSummaryDTO `json:"inputSummary"`
 }
 
@@ -358,19 +353,18 @@ func toPersonaGenerationPhaseCommandResponseDTO(
 	result usecase.PersonaGenerationPhaseCommandResult,
 ) PersonaGenerationPhaseCommandResponseDTO {
 	return PersonaGenerationPhaseCommandResponseDTO{
-		JobID:             result.JobID,
-		CurrentPhase:      result.CurrentPhase,
-		PhaseState:        result.PhaseState,
-		PhaseRunID:        cloneOptionalInt64(result.PhaseRunID),
-		StartedAt:         formatOptionalTime(result.StartedAt),
-		FinishedAt:        formatOptionalTime(result.FinishedAt),
-		Progress:          toPersonaGenerationPhaseProgressSummaryDTO(result.Progress),
-		TargetSummary:     toPersonaGenerationTargetSummaryDTO(result.TargetSummary),
-		Execution:         toPersonaGenerationExecutionSummaryDTO(result.Execution),
-		ResultSummary:     toOptionalPersonaGenerationPhaseResultSummaryDTO(result.ResultSummary),
-		Retryable:         result.Retryable,
-		CanStartBodyPhase: result.CanStartBodyPhase,
-		ErrorSummary:      toOptionalPersonaGenerationPhaseErrorSummaryDTO(result.ErrorSummary),
+		JobID:         result.JobID,
+		CurrentPhase:  result.CurrentPhase,
+		PhaseState:    result.PhaseState,
+		PhaseRunID:    cloneOptionalInt64(result.PhaseRunID),
+		StartedAt:     formatOptionalTime(result.StartedAt),
+		FinishedAt:    formatOptionalTime(result.FinishedAt),
+		Progress:      toPersonaGenerationPhaseProgressSummaryDTO(result.Progress),
+		TargetSummary: toPersonaGenerationTargetSummaryDTO(result.TargetSummary),
+		Execution:     toPersonaGenerationExecutionSummaryDTO(result.Execution),
+		ResultSummary: toOptionalPersonaGenerationPhaseResultSummaryDTO(result.ResultSummary),
+		Retryable:     result.Retryable,
+		ErrorSummary:  toOptionalPersonaGenerationPhaseErrorSummaryDTO(result.ErrorSummary),
 	}
 }
 
@@ -381,9 +375,7 @@ func toPersonaGenerationBodyReadinessResponseDTO(
 		JobID:         result.JobID,
 		CurrentPhase:  result.CurrentPhase,
 		PhaseState:    result.PhaseState,
-		Ready:         result.Ready,
-		BlockedReason: cloneOptionalString(result.BlockedReason),
-		ErrorKind:     usecase.NormalizePersonaGenerationPhasePublicErrorKind(result.ErrorKind),
+		JobIsTerminal: result.JobIsTerminal,
 		InputSummary: PersonaGenerationBodyReadinessInputSummaryDTO{
 			PersonaCount:   result.InputSummary.PersonaCount,
 			MissingCount:   result.InputSummary.MissingCount,
@@ -478,17 +470,15 @@ func toPersonaGenerationPhaseActionEnablementDTO(
 	enablement usecase.PersonaGenerationPhaseActionEnablement,
 ) PersonaGenerationPhaseActionEnablementDTO {
 	return PersonaGenerationPhaseActionEnablementDTO{
-		CanStart:               enablement.CanStart,
-		StartBlockedReason:     cloneOptionalString(enablement.StartBlockedReason),
-		CanPause:               enablement.CanPause,
-		PauseBlockedReason:     cloneOptionalString(enablement.PauseBlockedReason),
-		CanResume:              enablement.CanResume,
-		ResumeBlockedReason:    cloneOptionalString(enablement.ResumeBlockedReason),
-		CanRetry:               enablement.CanRetry,
-		RetryBlockedReason:     cloneOptionalString(enablement.RetryBlockedReason),
-		CanCancel:              enablement.CanCancel,
-		CancelBlockedReason:    cloneOptionalString(enablement.CancelBlockedReason),
-		CanStartBodyPhase:      enablement.CanStartBodyPhase,
-		BodyPhaseBlockedReason: cloneOptionalString(enablement.BodyPhaseBlockedReason),
+		CanStart:            enablement.CanStart,
+		StartBlockedReason:  cloneOptionalString(enablement.StartBlockedReason),
+		CanPause:            enablement.CanPause,
+		PauseBlockedReason:  cloneOptionalString(enablement.PauseBlockedReason),
+		CanResume:           enablement.CanResume,
+		ResumeBlockedReason: cloneOptionalString(enablement.ResumeBlockedReason),
+		CanRetry:            enablement.CanRetry,
+		RetryBlockedReason:  cloneOptionalString(enablement.RetryBlockedReason),
+		CanCancel:           enablement.CanCancel,
+		CancelBlockedReason: cloneOptionalString(enablement.CancelBlockedReason),
 	}
 }

@@ -29,6 +29,7 @@ type ScreenState = {
     | "check-output-readiness"
     | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
   processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
@@ -77,14 +78,12 @@ function createSummary(
       canPause: true,
       canResume: false,
       canRetry: false,
-      canCancel: true,
-      canCheckOutputReadiness: true
+      canCancel: true
     },
     outputReadiness: {
-      ready: false,
-      blockedReason: "phase_running",
       completedFieldCount: 8,
-      statusConsistent: true
+      statusConsistent: true,
+      outputCount: 8
     },
     ...overrides
   }
@@ -142,10 +141,9 @@ function createCommandResponse(
     },
     retryable: true,
     outputReadiness: {
-      ready: true,
-      blockedReason: "",
       completedFieldCount: 20,
-      statusConsistent: true
+      statusConsistent: true,
+      outputCount: 20
     },
     ...overrides
   }
@@ -160,6 +158,7 @@ function createState(overrides: Partial<ScreenState> = {}): ScreenState {
     errorMessage: "",
     pendingAction: null,
     hasLoaded: true,
+    initialFetchDone: true,
     ...overrides
   }
 }
@@ -256,15 +255,13 @@ describe("BodyTranslationPhaseUseCase", () => {
     })
   })
 
-  test("setJobId number は summary と output readiness を取得して反映する", async () => {
+  test("setJobId number は summary を取得して反映し、outputReadiness 専用取得は行わない", async () => {
     const { gateway, spies } = createGateway()
     const store = createStore(
-      createState({ hasLoaded: false, summary: null, outputReadiness: null })
+      createState({ hasLoaded: false, summary: null, outputReadiness: null, initialFetchDone: false })
     )
     const summary = createSummary({ phaseState: "ready" })
-    const readiness = createOutputReadiness({ ready: true, outputCount: 20 })
     spies.getBodyTranslationPhaseSummary.mockResolvedValue(summary)
-    spies.getBodyTranslationOutputReadiness.mockResolvedValue(readiness)
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
     await useCase.setJobId(55)
@@ -272,17 +269,15 @@ describe("BodyTranslationPhaseUseCase", () => {
     expect(spies.getBodyTranslationPhaseSummary).toHaveBeenCalledWith({
       jobId: 55
     })
-    expect(spies.getBodyTranslationOutputReadiness).toHaveBeenCalledWith({
-      jobId: 55
-    })
+    expect(spies.getBodyTranslationOutputReadiness).not.toHaveBeenCalled()
     expect(store.getState()).toMatchObject({
       jobId: 55,
       phase: "ready",
       summary,
-      outputReadiness: readiness,
       pendingAction: null,
       errorMessage: "",
-      hasLoaded: true
+      hasLoaded: true,
+      initialFetchDone: true
     })
   })
 
@@ -305,9 +300,7 @@ describe("BodyTranslationPhaseUseCase", () => {
       })
     )
     const summary = createSummary({ phaseState: "ready" })
-    const readiness = createOutputReadiness({ ready: true, outputCount: 20 })
     spies.getBodyTranslationPhaseSummary.mockResolvedValue(summary)
-    spies.getBodyTranslationOutputReadiness.mockResolvedValue(readiness)
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
     await useCase.load()
@@ -478,9 +471,6 @@ describe("BodyTranslationPhaseUseCase", () => {
     spies.getBodyTranslationPhaseSummary.mockResolvedValue(
       createSummary({ phaseState: "ready" })
     )
-    spies.getBodyTranslationOutputReadiness.mockResolvedValue(
-      createOutputReadiness({ ready: true, outputCount: 20 })
-    )
     const store = createStore(
       createState({
         processingTargetPageState: {
@@ -574,26 +564,22 @@ describe("BodyTranslationPhaseUseCase", () => {
     expect(store.getState().phase).toBe("ready")
   })
 
-  test("summary 取得失敗時は既存 summary と readiness を保持して失敗文言を設定する", async () => {
+  test("summary 取得失敗時は既存 summary を保持して失敗文言を設定する", async () => {
     const { gateway, spies } = createGateway()
     const currentSummary = createSummary({ phaseState: "running" })
-    const currentReadiness = createOutputReadiness({ ready: false })
     const store = createStore(
       createState({
         summary: currentSummary,
-        outputReadiness: currentReadiness
+        outputReadiness: null
       })
     )
     spies.getBodyTranslationPhaseSummary.mockRejectedValue(new Error("timeout"))
-    spies.getBodyTranslationOutputReadiness.mockResolvedValue(
-      createOutputReadiness({ ready: true })
-    )
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
     await useCase.load()
 
     expect(store.getState().summary).toEqual(currentSummary)
-    expect(store.getState().outputReadiness).toEqual(currentReadiness)
+    expect(store.getState().outputReadiness).toBeNull()
     expect(store.getState().errorMessage).toBe(
       "本文翻訳段階の summary 取得に失敗しました。"
     )
@@ -607,9 +593,6 @@ describe("BodyTranslationPhaseUseCase", () => {
       new Error(
         "Wails binding is not wired yet: GetBodyTranslationPhaseSummary"
       )
-    )
-    spies.getBodyTranslationOutputReadiness.mockResolvedValue(
-      createOutputReadiness({ ready: true })
     )
     const useCase = new BodyTranslationPhaseUseCase(gateway, store)
 
@@ -640,11 +623,7 @@ describe("BodyTranslationPhaseUseCase", () => {
         canRetry: false
       }
     })
-    expect(store.getState().outputReadiness).toMatchObject({
-      jobId: command.jobId,
-      ready: command.outputReadiness.ready,
-      outputCount: command.execution.outputCount
-    })
+    expect(store.getState().outputReadiness).toBeNull()
   })
 
   test.each([
@@ -670,9 +649,7 @@ describe("BodyTranslationPhaseUseCase", () => {
         phaseRunId: 888
       })
       expect(store.getState().summary?.phaseRunId).toBe(888)
-      expect(store.getState().outputReadiness?.outputCount).toBe(
-        command.execution.outputCount
-      )
+      expect(store.getState().outputReadiness).toBeNull()
     }
   )
 

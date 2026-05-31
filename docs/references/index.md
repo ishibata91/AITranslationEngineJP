@@ -26,6 +26,7 @@
   [`Build`](https://vite.dev/guide/build),
   [`Config`](https://vite.dev/config/)
 - [`./xtranslator_ref.md`](./xtranslator_ref.md): xTranslator の入出力形式整理
+- [`./term-translation-target-record-candidates.md`](./term-translation-target-record-candidates.md): 単語翻訳フェーズの単語対象レコード候補と抽出有無の整理
 - [`./agent-browser.md`](./agent-browser.md): サブエージェントの UI 証跡取得用 `agent-browser` CLI 利用規約
 - [`./storybook.md`](./storybook.md): Storybook の作成、起動、分類、確認資源、`fixture` 種類基準の共通規約
 - [`./vendor-api/README.md`](./vendor-api/README.md): vendor API の生参照とダンプ置き場

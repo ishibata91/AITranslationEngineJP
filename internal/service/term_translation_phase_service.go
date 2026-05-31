@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"aitranslationenginejp/internal/recclassification"
 	"aitranslationenginejp/internal/repository"
 )
 
@@ -158,16 +159,14 @@ type TermTranslationPhaseErrorReadModel struct {
 
 // TermTranslationPhaseActionEnablementReadModel summarizes action availability for one phase state.
 type TermTranslationPhaseActionEnablementReadModel struct {
-	CanStart               bool
-	StartBlockedReason     *string
-	CanPause               bool
-	PauseBlockedReason     *string
-	CanResume              bool
-	ResumeBlockedReason    *string
-	CanRetry               bool
-	RetryBlockedReason     *string
-	CanStartNextPhase      bool
-	NextPhaseBlockedReason *string
+	CanStart            bool
+	StartBlockedReason  *string
+	CanPause            bool
+	PauseBlockedReason  *string
+	CanResume           bool
+	ResumeBlockedReason *string
+	CanRetry            bool
+	RetryBlockedReason  *string
 }
 
 // TermTranslationPhaseSummaryReadModel stores summary payload data for the usecase boundary.
@@ -191,28 +190,28 @@ type TermTranslationPhaseSummaryReadModel struct {
 
 // TermTranslationPhaseCommandReadModel stores command payload data for the usecase boundary.
 type TermTranslationPhaseCommandReadModel struct {
-	JobID             int64
-	CurrentPhase      string
-	BeforePhaseState  string
-	AfterPhaseState   string
-	PhaseState        string
-	PhaseRunID        *int64
-	StartedAt         *time.Time
-	FinishedAt        *time.Time
-	Progress          TermTranslationPhaseProgressReadModel
-	Retryable         bool
-	CanStartNextPhase bool
-	ErrorSummary      *TermTranslationPhaseErrorReadModel
+	JobID            int64
+	CurrentPhase     string
+	BeforePhaseState string
+	AfterPhaseState  string
+	PhaseState       string
+	PhaseRunID       *int64
+	StartedAt        *time.Time
+	FinishedAt       *time.Time
+	Progress         TermTranslationPhaseProgressReadModel
+	Retryable        bool
+	ErrorSummary     *TermTranslationPhaseErrorReadModel
 }
 
-// TermTranslationNextPhaseReadinessReadModel stores downstream readiness for the next phase boundary.
+// TermTranslationNextPhaseReadinessReadModel stores downstream phase fact state for the next phase boundary.
 type TermTranslationNextPhaseReadinessReadModel struct {
-	JobID             int64
-	CurrentPhase      string
-	PhaseState        string
-	CanStartNextPhase bool
-	BlockedReason     *string
-	ErrorKind         string
+	JobID          int64
+	CurrentPhase   string
+	PhaseState     string
+	JobIsTerminal  bool
+	TotalCount     int
+	ConfirmedCount int
+	ErrorKind      string
 }
 
 type termTranslationCandidate struct {
@@ -338,11 +337,6 @@ func (service *TermTranslationPhaseService) ReadSummary(
 	if aiTargetCount < 0 {
 		aiTargetCount = 0
 	}
-	confirmedCount := 0
-	if resultSummary != nil {
-		confirmedCount = resultSummary.ConfirmedCount
-	}
-	readiness := service.readinessFromState(job, run, total, confirmedCount, errorSummary)
 	availability := commonPhaseActionAvailability(phaseActionAvailabilityInput{
 		JobState:       job.State,
 		PhaseState:     state,
@@ -365,16 +359,14 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		ResultSummary:      resultSummary,
 		ErrorSummary:       errorSummary,
 		ActionEnablement: TermTranslationPhaseActionEnablementReadModel{
-			CanStart:               availability.CanStart,
-			StartBlockedReason:     termTranslationStartBlockedReason(job, run, execution),
-			CanPause:               availability.CanPause,
-			PauseBlockedReason:     termTranslationPauseBlockedReason(job, run),
-			CanResume:              availability.CanResume,
-			ResumeBlockedReason:    termTranslationResumeBlockedReason(job, run),
-			CanRetry:               availability.CanRetry,
-			RetryBlockedReason:     termTranslationRetryBlockedReason(job, run),
-			CanStartNextPhase:      readiness.CanStartNextPhase,
-			NextPhaseBlockedReason: cloneStringPointer(readiness.BlockedReason),
+			CanStart:            availability.CanStart,
+			StartBlockedReason:  termTranslationStartBlockedReason(job, run, execution),
+			CanPause:            availability.CanPause,
+			PauseBlockedReason:  termTranslationPauseBlockedReason(job, run),
+			CanResume:           availability.CanResume,
+			ResumeBlockedReason: termTranslationResumeBlockedReason(job, run),
+			CanRetry:            availability.CanRetry,
+			RetryBlockedReason:  termTranslationRetryBlockedReason(job, run),
 		},
 	}, nil
 }
@@ -403,7 +395,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 			return err
 		}
 		if termTranslationJobIsTerminal(job.State) {
-			response = termTranslationCommandFromRun(job, run, false, false, &TermTranslationPhaseErrorReadModel{
+			response = termTranslationCommandFromRun(job, run, false, &TermTranslationPhaseErrorReadModel{
 				ErrorKind:  "terminal_job",
 				Reason:     termTranslationReasonTerminalJob,
 				Retryable:  false,
@@ -413,7 +405,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 			return nil
 		}
 		if run.State != termTranslationPhaseStateRunning {
-			response = termTranslationCommandFromRun(job, run, true, false, &TermTranslationPhaseErrorReadModel{
+			response = termTranslationCommandFromRun(job, run, true, &TermTranslationPhaseErrorReadModel{
 				ErrorKind:  "term_phase_incomplete",
 				Reason:     termTranslationReasonPhaseNotRunning,
 				Retryable:  false,
@@ -444,7 +436,7 @@ func (service *TermTranslationPhaseService) PausePhase(
 		if err != nil {
 			return fmt.Errorf("pause translation job: %w", err)
 		}
-		response = termTranslationCommandFromRun(updatedJob, updatedRun, false, false, nil)
+		response = termTranslationCommandFromRun(updatedJob, updatedRun, false, nil)
 		response.BeforePhaseState = run.State
 		return nil
 	})
@@ -472,7 +464,7 @@ func (service *TermTranslationPhaseService) RetryPhase(
 	return service.executePhase(termTranslationRequestContext(ctx), jobID, termTranslationStartModeRetry, phaseRunID)
 }
 
-// ReadNextPhaseReadiness loads whether the next phase may start.
+// ReadNextPhaseReadiness loads the downstream phase fact state for the term phase boundary.
 func (service *TermTranslationPhaseService) ReadNextPhaseReadiness(
 	ctx context.Context,
 	jobID int64,
@@ -481,13 +473,25 @@ func (service *TermTranslationPhaseService) ReadNextPhaseReadiness(
 	if err != nil {
 		return TermTranslationNextPhaseReadinessReadModel{}, err
 	}
-	confirmedTerms, _, _, _, errorSummary, _, _, err := service.buildRunState(termTranslationRequestContext(ctx), job.ID, run, candidates)
+	confirmedTerms, _, _, _, _, _, _, err := service.buildRunState(termTranslationRequestContext(ctx), job.ID, run, candidates)
 	if err != nil {
 		return TermTranslationNextPhaseReadinessReadModel{}, err
 	}
 	confirmedCount, _ := summarizeConfirmedCandidates(candidates, confirmedTerms)
-	readiness := service.readinessFromState(job, run, len(candidates), confirmedCount, errorSummary)
-	return readiness, nil
+	phaseState := termTranslationPhaseStateFromRun(run)
+	errorKind := ""
+	if run != nil && strings.TrimSpace(run.LatestError) != "" {
+		errorKind = run.LatestError
+	}
+	return TermTranslationNextPhaseReadinessReadModel{
+		JobID:          job.ID,
+		CurrentPhase:   termTranslationCurrentPhase,
+		PhaseState:     phaseState,
+		JobIsTerminal:  termTranslationJobIsTerminal(job.State),
+		TotalCount:     len(candidates),
+		ConfirmedCount: confirmedCount,
+		ErrorKind:      errorKind,
+	}, nil
 }
 
 type termTranslationStartMode string
@@ -521,7 +525,6 @@ func (service *TermTranslationPhaseService) executePhase(
 			persistedFailure.job,
 			failedRun,
 			persistedFailure.failure.summary.Retryable,
-			false,
 			&persistedFailure.failure.summary,
 		)
 		failureResponse.BeforePhaseState = persistedFailure.beforePhaseState
@@ -549,7 +552,7 @@ func (service *TermTranslationPhaseService) executePhaseTransaction(
 		}
 		return err
 	}
-	updatedRun, confirmedCount, errSummary, err := service.applyExecutionPlan(ctx, mode, plan)
+	updatedRun, _, errSummary, err := service.applyExecutionPlan(ctx, mode, plan)
 	if err != nil {
 		service.captureAttemptFailure(plan, err, persistedFailure)
 		return err
@@ -558,7 +561,6 @@ func (service *TermTranslationPhaseService) executePhaseTransaction(
 		plan.Job,
 		updatedRun,
 		errSummary != nil && errSummary.Retryable,
-		confirmedCount == len(plan.Candidates),
 		errSummary,
 	)
 	response.BeforePhaseState = plan.BeforePhaseState
@@ -1682,11 +1684,15 @@ func (service *TermTranslationPhaseService) collectCandidates(
 			if sourceTerm == "" {
 				continue
 			}
-			key := candidateKey(record.RecordType, sourceTerm)
+			rec := record.RecordType + ":" + field.SubrecordType
+			if !recclassification.IsTermTarget(rec) {
+				continue
+			}
+			key := candidateKey(rec, sourceTerm)
 			candidate := candidateMap[key]
 			if candidate.NormalizedSource == "" {
 				candidate = termTranslationCandidate{
-					RecordType:       record.RecordType,
+					RecordType:       rec,
 					SourceTerm:       sourceTerm,
 					NormalizedSource: normalizeTermTranslationText(sourceTerm),
 				}
@@ -1828,46 +1834,6 @@ func (service *TermTranslationPhaseService) loadExistingRunForMutation(
 	return job, *run, nil
 }
 
-func (service *TermTranslationPhaseService) readinessFromState(
-	job repository.TranslationJob,
-	run *repository.JobPhaseRun,
-	totalCount int,
-	confirmedCount int,
-	errorSummary *TermTranslationPhaseErrorReadModel,
-) TermTranslationNextPhaseReadinessReadModel {
-	if termTranslationJobIsTerminal(job.State) {
-		reason := termTranslationReasonTerminalJob
-		return TermTranslationNextPhaseReadinessReadModel{
-			JobID:             job.ID,
-			CurrentPhase:      termTranslationCurrentPhase,
-			PhaseState:        termTranslationPhaseStateFromRun(run),
-			CanStartNextPhase: false,
-			BlockedReason:     &reason,
-			ErrorKind:         "terminal_job",
-		}
-	}
-	if run == nil || run.State != termTranslationPhaseStateCompleted || confirmedCount < totalCount {
-		reason := "term phase is not completed"
-		if errorSummary != nil && strings.TrimSpace(errorSummary.Reason) != "" {
-			reason = errorSummary.Reason
-		}
-		return TermTranslationNextPhaseReadinessReadModel{
-			JobID:             job.ID,
-			CurrentPhase:      termTranslationCurrentPhase,
-			PhaseState:        termTranslationPhaseStateFromRun(run),
-			CanStartNextPhase: false,
-			BlockedReason:     &reason,
-			ErrorKind:         "term_phase_incomplete",
-		}
-	}
-	return TermTranslationNextPhaseReadinessReadModel{
-		JobID:             job.ID,
-		CurrentPhase:      termTranslationCurrentPhase,
-		PhaseState:        run.State,
-		CanStartNextPhase: true,
-	}
-}
-
 func termTranslationInitialExecutionPhase(phases []repository.JobPhaseRun) (repository.JobPhaseRun, error) {
 	for _, phase := range phases {
 		if phase.PhaseType == termTranslationInitialPhaseType {
@@ -1972,18 +1938,17 @@ func termTranslationRejectedCommand(jobID int64, plan termTranslationExecutionPl
 		}
 	}
 	return TermTranslationPhaseCommandReadModel{
-		JobID:             jobID,
-		CurrentPhase:      termTranslationCurrentPhase,
-		BeforePhaseState:  plan.BeforePhaseState,
-		AfterPhaseState:   termTranslationPhaseStateFromRun(&plan.PhaseRun),
-		PhaseState:        termTranslationPhaseStateFromRun(&plan.PhaseRun),
-		PhaseRunID:        int64PointerOrNil(plan.PhaseRun.ID),
-		StartedAt:         cloneTimePointer(plan.PhaseRun.StartedAt),
-		FinishedAt:        cloneTimePointer(plan.PhaseRun.FinishedAt),
-		Progress:          TermTranslationPhaseProgressReadModel{Percent: plan.PhaseRun.ProgressPercent},
-		Retryable:         errorSummary.Retryable,
-		CanStartNextPhase: false,
-		ErrorSummary:      errorSummary,
+		JobID:            jobID,
+		CurrentPhase:     termTranslationCurrentPhase,
+		BeforePhaseState: plan.BeforePhaseState,
+		AfterPhaseState:  termTranslationPhaseStateFromRun(&plan.PhaseRun),
+		PhaseState:       termTranslationPhaseStateFromRun(&plan.PhaseRun),
+		PhaseRunID:       int64PointerOrNil(plan.PhaseRun.ID),
+		StartedAt:        cloneTimePointer(plan.PhaseRun.StartedAt),
+		FinishedAt:       cloneTimePointer(plan.PhaseRun.FinishedAt),
+		Progress:         TermTranslationPhaseProgressReadModel{Percent: plan.PhaseRun.ProgressPercent},
+		Retryable:        errorSummary.Retryable,
+		ErrorSummary:     errorSummary,
 	}
 }
 
@@ -1991,22 +1956,20 @@ func termTranslationCommandFromRun(
 	job repository.TranslationJob,
 	run repository.JobPhaseRun,
 	retryable bool,
-	canStartNextPhase bool,
 	errorSummary *TermTranslationPhaseErrorReadModel,
 ) TermTranslationPhaseCommandReadModel {
 	return TermTranslationPhaseCommandReadModel{
-		JobID:             job.ID,
-		CurrentPhase:      termTranslationCurrentPhase,
-		BeforePhaseState:  run.State,
-		AfterPhaseState:   run.State,
-		PhaseState:        run.State,
-		PhaseRunID:        int64Pointer(run.ID),
-		StartedAt:         cloneTimePointer(run.StartedAt),
-		FinishedAt:        cloneTimePointer(run.FinishedAt),
-		Progress:          TermTranslationPhaseProgressReadModel{Percent: run.ProgressPercent},
-		Retryable:         retryable,
-		CanStartNextPhase: canStartNextPhase && run.State == termTranslationPhaseStateCompleted,
-		ErrorSummary:      errorSummary,
+		JobID:            job.ID,
+		CurrentPhase:     termTranslationCurrentPhase,
+		BeforePhaseState: run.State,
+		AfterPhaseState:  run.State,
+		PhaseState:       run.State,
+		PhaseRunID:       int64Pointer(run.ID),
+		StartedAt:        cloneTimePointer(run.StartedAt),
+		FinishedAt:       cloneTimePointer(run.FinishedAt),
+		Progress:         TermTranslationPhaseProgressReadModel{Percent: run.ProgressPercent},
+		Retryable:        retryable,
+		ErrorSummary:     errorSummary,
 	}
 }
 
@@ -2377,14 +2340,6 @@ func cloneTimePointer(value *time.Time) *time.Time {
 }
 
 func cloneInt64Pointer(value *int64) *int64 {
-	if value == nil {
-		return nil
-	}
-	cloned := *value
-	return &cloned
-}
-
-func cloneStringPointer(value *string) *string {
 	if value == nil {
 		return nil
 	}

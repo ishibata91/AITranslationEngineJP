@@ -74,6 +74,7 @@
     currentPage={processingTargetPageState?.page}
     totalCount={processingTargetPageState?.totalCount}
     busy={processingTargetPageState?.busy}
+    titleColumnLabels={["原文", "訳文"]}
     onPreviousPage={onProcessingTargetPreviousPage}
     onNextPage={onProcessingTargetNextPage}
     onPageChange={onProcessingTargetPageChange}

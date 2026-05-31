@@ -610,8 +610,8 @@ func TestPersonaGenerationPhaseService_ReadBodyReadinessBranches(t *testing.T) {
 	if missingErr != nil {
 		t.Fatalf("expected snapshot missing response without error, got %v", missingErr)
 	}
-	if missing.ErrorKind != personaGenerationErrorKindSnapshotMissing || missing.Ready {
-		t.Fatalf("expected snapshot_missing readiness, got %#v", missing)
+	if missing.InputSummary.MissingCount == 0 {
+		t.Fatalf("expected snapshot missing count > 0, got %#v", missing)
 	}
 
 	repo.phaseRunPersonas = []repository.PhaseRunPersona{{ID: 1, PhaseRunID: 20, PersonaID: 777, Role: personaGenerationPhaseLinkRoleApplied}}
@@ -627,8 +627,8 @@ func TestPersonaGenerationPhaseService_ReadBodyReadinessBranches(t *testing.T) {
 	if readyErr != nil {
 		t.Fatalf("expected ready response, got %v", readyErr)
 	}
-	if ready.Ready || ready.ErrorKind != personaGenerationErrorKindBodyBlocked || ready.InputSummary.MissingCount != 1 {
-		t.Fatalf("expected blocked readiness for missing persona, got %#v", ready)
+	if ready.InputSummary.MissingCount != 1 {
+		t.Fatalf("expected missing count 1 for one uncovered persona, got %#v", ready)
 	}
 
 	repo.phaseRunPersonas = append(repo.phaseRunPersonas, repository.PhaseRunPersona{ID: 2, PhaseRunID: 20, PersonaID: 778, Role: personaGenerationPhaseLinkRoleApplied})
@@ -644,8 +644,8 @@ func TestPersonaGenerationPhaseService_ReadBodyReadinessBranches(t *testing.T) {
 	if readyErr != nil {
 		t.Fatalf("expected ready response after complete snapshot, got %v", readyErr)
 	}
-	if !ready.Ready || ready.InputSummary.PersonaCount != 2 {
-		t.Fatalf("expected ready body readiness, got %#v", ready)
+	if ready.InputSummary.PersonaCount != 2 || ready.InputSummary.MissingCount != 0 {
+		t.Fatalf("expected persona count 2 and missing count 0 when all personas linked, got %#v", ready)
 	}
 }
 
@@ -672,12 +672,6 @@ func TestPersonaGenerationPhaseService_ReadBodyReadinessCountsDistinctPersonaCov
 	readiness, err := service.ReadBodyReadiness(context.Background(), 1)
 	if err != nil {
 		t.Fatalf("expected readiness success, got %v", err)
-	}
-	if readiness.Ready {
-		t.Fatalf("expected duplicate links to keep readiness blocked, got %#v", readiness)
-	}
-	if readiness.ErrorKind != personaGenerationErrorKindBodyBlocked {
-		t.Fatalf("expected body blocked error, got %#v", readiness)
 	}
 	if readiness.InputSummary.MissingCount != 1 || readiness.InputSummary.PersonaCount != 1 {
 		t.Fatalf("expected distinct persona coverage counts, got %#v", readiness.InputSummary)
@@ -819,7 +813,7 @@ func TestPersonaGenerationPhaseService_ReadSummaryAndReadinessBlockSnapshotDrift
 	if summary.ResultSummary == nil || summary.ResultSummary.BodyReadiness || summary.ErrorSummary == nil || summary.ErrorSummary.ErrorKind != personaGenerationErrorKindSnapshotMissing {
 		t.Fatalf("expected summary drift block, got %#v", summary)
 	}
-	if summary.ActionEnablement.CanRetry || summary.ActionEnablement.CanCancel || summary.ActionEnablement.CanStartBodyPhase {
+	if summary.ActionEnablement.CanRetry || summary.ActionEnablement.CanCancel {
 		t.Fatalf("expected actions blocked on drift, got %#v", summary.ActionEnablement)
 	}
 
@@ -827,8 +821,8 @@ func TestPersonaGenerationPhaseService_ReadSummaryAndReadinessBlockSnapshotDrift
 	if readinessErr != nil {
 		t.Fatalf("expected readiness block without error, got %v", readinessErr)
 	}
-	if readiness.Ready || readiness.ErrorKind != personaGenerationErrorKindSnapshotMissing {
-		t.Fatalf("expected readiness drift block, got %#v", readiness)
+	if readiness.PhaseState != personaGenerationPhaseStateSnapshotMissing {
+		t.Fatalf("expected snapshot_missing phase state on drift, got %#v", readiness)
 	}
 }
 

@@ -15,7 +15,6 @@ type bodyTranslationPhaseServicePort interface {
 	ResumePhase(ctx context.Context, jobID int64, phaseRunID int64) (service.BodyTranslationPhaseCommandReadModel, error)
 	RetryPhase(ctx context.Context, jobID int64, phaseRunID int64) (service.BodyTranslationPhaseCommandReadModel, error)
 	CancelPhase(ctx context.Context, jobID int64, phaseRunID int64) (service.BodyTranslationPhaseCommandReadModel, error)
-	ReadOutputReadiness(ctx context.Context, jobID int64) (service.BodyTranslationOutputReadinessReadModel, error)
 }
 
 type bodyTranslationPhaseAISettingsSaver interface {
@@ -155,37 +154,6 @@ func (usecase *BodyTranslationPhaseUsecase) CancelBodyTranslationPhase(
 		return result, fmt.Errorf("cancel body translation phase: %w", err)
 	}
 	return result, nil
-}
-
-// GetBodyTranslationOutputReadiness returns whether downstream output is ready.
-func (usecase *BodyTranslationPhaseUsecase) GetBodyTranslationOutputReadiness(
-	ctx context.Context,
-	request GetBodyTranslationOutputReadinessRequest,
-) (BodyTranslationOutputReadinessResult, error) {
-	readModel, err := usecase.service.ReadOutputReadiness(ctx, request.JobID)
-	logPhaseReadiness(ctx, "body_translation_output_readiness", bodyTranslationPhaseUsecaseLogWhere, request.JobID, readModel.PhaseState, readModel.Ready, stringPointerIfNotBlank(readModel.BlockedReason), err)
-	result := BodyTranslationOutputReadinessResult{
-		JobID:               readModel.JobID,
-		CurrentPhase:        readModel.CurrentPhase,
-		PhaseState:          readModel.PhaseState,
-		Ready:               readModel.Ready,
-		BlockedReason:       readModel.BlockedReason,
-		ErrorKind:           NormalizeBodyTranslationPhasePublicErrorKind(BodyTranslationPhaseErrorKind(readModel.ErrorKind)),
-		CompletedFieldCount: readModel.CompletedFieldCount,
-		StatusConsistent:    readModel.StatusConsistent,
-		OutputCount:         readModel.OutputCount,
-	}
-	if err != nil {
-		return result, fmt.Errorf("get body translation output readiness: %w", err)
-	}
-	return result, nil
-}
-
-func stringPointerIfNotBlank(value string) *string {
-	if value == "" {
-		return nil
-	}
-	return &value
 }
 
 func bodyTranslationReadModelErrorReason(readModel *service.BodyTranslationPhaseErrorSummaryReadModel) string {
@@ -461,18 +429,16 @@ func toBodyTranslationPhaseActionEnablement(
 	readModel service.BodyTranslationPhaseActionEnablementReadModel,
 ) BodyTranslationPhaseActionEnablement {
 	return BodyTranslationPhaseActionEnablement{
-		CanStart:                     readModel.CanStart,
-		StartBlockedReason:           cloneStringPointer(readModel.StartBlockedReason),
-		CanPause:                     readModel.CanPause,
-		PauseBlockedReason:           cloneStringPointer(readModel.PauseBlockedReason),
-		CanResume:                    readModel.CanResume,
-		ResumeBlockedReason:          cloneStringPointer(readModel.ResumeBlockedReason),
-		CanRetry:                     readModel.CanRetry,
-		RetryBlockedReason:           cloneStringPointer(readModel.RetryBlockedReason),
-		CanCancel:                    readModel.CanCancel,
-		CancelBlockedReason:          cloneStringPointer(readModel.CancelBlockedReason),
-		CanCheckOutputReadiness:      readModel.CanCheckOutputReadiness,
-		OutputReadinessBlockedReason: cloneStringPointer(readModel.OutputReadinessBlockedReason),
+		CanStart:            readModel.CanStart,
+		StartBlockedReason:  cloneStringPointer(readModel.StartBlockedReason),
+		CanPause:            readModel.CanPause,
+		PauseBlockedReason:  cloneStringPointer(readModel.PauseBlockedReason),
+		CanResume:           readModel.CanResume,
+		ResumeBlockedReason: cloneStringPointer(readModel.ResumeBlockedReason),
+		CanRetry:            readModel.CanRetry,
+		RetryBlockedReason:  cloneStringPointer(readModel.RetryBlockedReason),
+		CanCancel:           readModel.CanCancel,
+		CancelBlockedReason: cloneStringPointer(readModel.CancelBlockedReason),
 	}
 }
 
@@ -480,9 +446,6 @@ func toBodyTranslationOutputReadinessSummary(
 	readModel service.BodyTranslationOutputReadinessReadModel,
 ) BodyTranslationOutputReadinessSummary {
 	return BodyTranslationOutputReadinessSummary{
-		Ready:               readModel.Ready,
-		BlockedReason:       readModel.BlockedReason,
-		ErrorKind:           NormalizeBodyTranslationPhasePublicErrorKind(BodyTranslationPhaseErrorKind(readModel.ErrorKind)),
 		CompletedFieldCount: readModel.CompletedFieldCount,
 		StatusConsistent:    readModel.StatusConsistent,
 	}

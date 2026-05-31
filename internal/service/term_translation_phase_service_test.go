@@ -385,8 +385,8 @@ func newTermTranslationPhaseServiceForTest(provider TermTranslationProvider) (*T
 		records: []repository.TranslationRecord{{ID: 1, RecordType: "NPC_", XEditExtractedDataID: 1}},
 		fields: map[int64][]repository.TranslationField{
 			1: {
-				{ID: 11, TranslationRecordID: 1, SourceText: "Iron Sword"},
-				{ID: 12, TranslationRecordID: 1, SourceText: "Steel Sword"},
+				{ID: 11, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: "Iron Sword"},
+				{ID: 12, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: "Steel Sword"},
 			},
 		},
 	}
@@ -435,7 +435,7 @@ func TestTermTranslationPhaseServiceReadSummaryCountsSnapshotHitsAndConfirmedTer
 
 	snapshot, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          "Iron Sword",
 		TranslatedTerm:      "鉄の剣",
@@ -447,7 +447,7 @@ func TestTermTranslationPhaseServiceReadSummaryCountsSnapshotHitsAndConfirmedTer
 	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		TranslationJobID:    int64Pointer(1),
 		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    termTranslationDictionarySourceSnapshot,
 		SourceTerm:          "Iron Sword",
 		TranslatedTerm:      "鉄の剣",
@@ -459,7 +459,7 @@ func TestTermTranslationPhaseServiceReadSummaryCountsSnapshotHitsAndConfirmedTer
 	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		TranslationJobID:    int64Pointer(1),
 		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    termTranslationDictionarySourceProvider,
 		SourceTerm:          "Steel Sword",
 		TranslatedTerm:      "鋼の剣",
@@ -728,7 +728,7 @@ func TestTermTranslationPhaseServiceRetryPhaseCompletesWhenSnapshotAlreadyConfir
 
 	masterEntry, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          "Iron Sword",
 		TranslatedTerm:      "鉄の剣",
@@ -739,7 +739,7 @@ func TestTermTranslationPhaseServiceRetryPhaseCompletesWhenSnapshotAlreadyConfir
 	}
 	secondMasterEntry, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          "Steel Sword",
 		TranslatedTerm:      "鋼の剣",
@@ -755,7 +755,7 @@ func TestTermTranslationPhaseServiceRetryPhaseCompletesWhenSnapshotAlreadyConfir
 	if err != nil {
 		t.Fatalf("expected retry success, got %v", err)
 	}
-	if result.PhaseState != termTranslationPhaseStateCompleted || !result.CanStartNextPhase {
+	if result.PhaseState != termTranslationPhaseStateCompleted {
 		t.Fatalf("expected completed retry result, got %#v", result)
 	}
 	if result.ErrorSummary != nil {
@@ -777,7 +777,7 @@ func TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurr
 
 	snapshot, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          "Iron Sword",
 		TranslatedTerm:      "鉄の剣",
@@ -790,7 +790,7 @@ func TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurr
 
 	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          "Steel Sword",
 		TranslatedTerm:      "鋼の剣",
@@ -870,7 +870,7 @@ func createTermTranslationSnapshotEntry(
 	t.Helper()
 	snapshot, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          sourceTerm,
 		TranslatedTerm:      translatedTerm,
@@ -929,7 +929,7 @@ func addTermTranslationMasterEntryAfterFailedStart(
 	t.Helper()
 	_, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		DictionaryLifecycle: termTranslationDictionaryLifecycleMaster,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    "seed",
 		SourceTerm:          sourceTerm,
 		TranslatedTerm:      translatedTerm,
@@ -1323,7 +1323,7 @@ func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadSta
 	if time.Since(startedAt) > 150*time.Millisecond {
 		t.Fatalf("expected stalled lm_studio secret load to time out quickly, got %s", time.Since(startedAt))
 	}
-	if result.PhaseState != termTranslationPhaseStateCompleted || !result.CanStartNextPhase {
+	if result.PhaseState != termTranslationPhaseStateCompleted {
 		t.Fatalf("expected completed lm_studio start result, got %#v", result)
 	}
 	if len(capturedAPIKeys) == 0 {
@@ -1451,7 +1451,7 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(
 	_, err := foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		TranslationJobID:    int64Pointer(1),
 		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
-		DictionaryScope:     "MISC",
+		DictionaryScope:     "MISC:FULL",
 		DictionarySource:    termTranslationDictionarySourceProvider,
 		SourceTerm:          "Unrelated Term",
 		TranslatedTerm:      "無関係",
@@ -1463,7 +1463,7 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(
 	_, err = foundation.CreateDictionaryEntry(context.Background(), repository.DictionaryEntryDraft{
 		TranslationJobID:    int64Pointer(1),
 		DictionaryLifecycle: termTranslationDictionaryLifecycleJob,
-		DictionaryScope:     "NPC_",
+		DictionaryScope:     "NPC_:FULL",
 		DictionarySource:    termTranslationDictionarySourceProvider,
 		SourceTerm:          "Iron Sword",
 		TranslatedTerm:      "鉄の剣",
@@ -1477,8 +1477,8 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessUsesCandidateCoverage(
 	if err != nil {
 		t.Fatalf("expected readiness load success, got %v", err)
 	}
-	if readiness.CanStartNextPhase {
-		t.Fatalf("expected candidate coverage guard to remain false, got %#v", readiness)
+	if readiness.ConfirmedCount >= readiness.TotalCount && readiness.TotalCount > 0 {
+		t.Fatalf("expected candidate coverage to be incomplete, got %#v", readiness)
 	}
 }
 
@@ -1491,8 +1491,8 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessKeepsReadyJobWithoutPh
 	if err != nil {
 		t.Fatalf("expected readiness success for ready job without phase runs: %v", err)
 	}
-	if readiness.CanStartNextPhase {
-		t.Fatalf("expected next phase readiness to remain blocked, got %#v", readiness)
+	if readiness.PhaseState == termTranslationPhaseStateCompleted {
+		t.Fatalf("expected phase state to indicate not completed, got %#v", readiness)
 	}
 }
 
@@ -1508,5 +1508,156 @@ func TestTermTranslationPhaseServiceReadNextPhaseReadinessReturnsNotFoundForNonR
 	}
 	if !strings.Contains(err.Error(), "load initial execution phase: not found") {
 		t.Fatalf("expected load initial execution phase not found error, got %v", err)
+	}
+}
+
+// U-TTRC-002: collectCandidates が 13 種別だけを候補化し、13 種別外 REC を除外する
+func TestCollectCandidates_filtersBy13RECTypes(t *testing.T) {
+	// 13 種別 REC と 13 種別外 REC（DOOR:FULL / FLOR:FULL / FURN:FULL）を混在させた入力で
+	// collectCandidates が 13 種別のみを返し、13 種別外を除外することを証明する。
+	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
+
+	// 13 種別外 REC を含む入力: DOOR / FLOR / FURN は除外対象
+	service.translationSourceReader = fakeTermPhaseTranslationSourceRepository{
+		records: []repository.TranslationRecord{
+			{ID: 1, RecordType: "NPC_", XEditExtractedDataID: 1},
+			{ID: 2, RecordType: "BOOK", XEditExtractedDataID: 1},
+			{ID: 3, RecordType: "DOOR", XEditExtractedDataID: 1},
+			{ID: 4, RecordType: "FLOR", XEditExtractedDataID: 1},
+			{ID: 5, RecordType: "FURN", XEditExtractedDataID: 1},
+		},
+		fields: map[int64][]repository.TranslationField{
+			1: {{ID: 11, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: "Nord Warrior"}},
+			2: {{ID: 21, TranslationRecordID: 2, SubrecordType: "FULL", SourceText: "Ancient Tome"}},
+			3: {{ID: 31, TranslationRecordID: 3, SubrecordType: "FULL", SourceText: "Old Door"}},
+			4: {{ID: 41, TranslationRecordID: 4, SubrecordType: "FULL", SourceText: "Garden Plant"}},
+			5: {{ID: 51, TranslationRecordID: 5, SubrecordType: "FULL", SourceText: "Wooden Chair"}},
+		},
+	}
+
+	// Act
+	candidates, err := service.collectCandidates(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error from collectCandidates: %v", err)
+	}
+
+	// Assert: 13 種別に該当する NPC_:FULL と BOOK:FULL だけが候補に残る
+	if len(candidates) != 2 {
+		t.Fatalf("REC 絞り込み: expected 2 candidates (NPC_:FULL, BOOK:FULL), got %d: %#v", len(candidates), candidates)
+	}
+	recTypes := make(map[string]bool, len(candidates))
+	for _, c := range candidates {
+		recTypes[c.RecordType] = true
+	}
+	if !recTypes["NPC_:FULL"] {
+		t.Fatalf("REC 絞り込み: expected NPC_:FULL in candidates, got %#v", recTypes)
+	}
+	if !recTypes["BOOK:FULL"] {
+		t.Fatalf("REC 絞り込み: expected BOOK:FULL in candidates, got %#v", recTypes)
+	}
+	// 13 種別外は除外されている
+	if recTypes["DOOR:FULL"] || recTypes["FLOR:FULL"] || recTypes["FURN:FULL"] {
+		t.Fatalf("REC 絞り込み欠落: expected DOOR/FLOR/FURN to be excluded, got %#v", recTypes)
+	}
+}
+
+// U-TTRC-002 境界: 原語空のレコードは候補から除外される
+func TestCollectCandidates_excludesEmptySourceTerm(t *testing.T) {
+	// 原語が空文字のフィールドは候補化対象外になることを証明する。
+	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
+
+	service.translationSourceReader = fakeTermPhaseTranslationSourceRepository{
+		records: []repository.TranslationRecord{
+			{ID: 1, RecordType: "NPC_", XEditExtractedDataID: 1},
+		},
+		fields: map[int64][]repository.TranslationField{
+			1: {
+				{ID: 11, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: ""},
+				{ID: 12, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: "   "},
+				{ID: 13, TranslationRecordID: 1, SubrecordType: "SHRT", SourceText: "Warrior"},
+			},
+		},
+	}
+
+	candidates, err := service.collectCandidates(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error from collectCandidates: %v", err)
+	}
+
+	// 原語空チェック欠落: 空文字と空白のみのフィールドは除外され、非空の SHRT だけが残る
+	if len(candidates) != 1 {
+		t.Fatalf("原語空チェック欠落: expected 1 candidate (SHRT with non-empty source), got %d: %#v", len(candidates), candidates)
+	}
+	if candidates[0].SourceTerm != "Warrior" {
+		t.Fatalf("expected candidate source term 'Warrior', got %q", candidates[0].SourceTerm)
+	}
+}
+
+// U-TTRC-003: candidate key が RECORD:FIELD 形式であることを証明する
+func TestCollectCandidates_candidateKeyIsRECORDFieldFormat(t *testing.T) {
+	// candidate の RecordType フィールドが "RECORD:FIELD" 形式（例: NPC_:FULL）で組み立てられることを証明する。
+	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
+
+	service.translationSourceReader = fakeTermPhaseTranslationSourceRepository{
+		records: []repository.TranslationRecord{
+			{ID: 1, RecordType: "ARMO", XEditExtractedDataID: 1},
+		},
+		fields: map[int64][]repository.TranslationField{
+			1: {{ID: 11, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: "Iron Armor"}},
+		},
+	}
+
+	candidates, err := service.collectCandidates(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error from collectCandidates: %v", err)
+	}
+
+	if len(candidates) != 1 {
+		t.Fatalf("expected 1 candidate, got %d: %#v", len(candidates), candidates)
+	}
+
+	// candidate の RecordType が "ARMO:FULL" 形式であることを検証する
+	if candidates[0].RecordType != "ARMO:FULL" {
+		t.Fatalf("candidate key 形式違反: expected RecordType 'ARMO:FULL', got %q", candidates[0].RecordType)
+	}
+}
+
+// U-TTRC-003: NPC_:FULL と NPC_:SHRT の同一原語が別候補として保持される
+func TestCollectCandidates_NPC_FULLAndNPC_SHRTAreDistinctCandidates(t *testing.T) {
+	// NPC_:FULL と NPC_:SHRT は異なる REC として扱われ、同一原語でも別候補になることを証明する。
+	// 退行条件: record_type のみで集約すると 1 件になる。
+	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
+
+	service.translationSourceReader = fakeTermPhaseTranslationSourceRepository{
+		records: []repository.TranslationRecord{
+			{ID: 1, RecordType: "NPC_", XEditExtractedDataID: 1},
+		},
+		fields: map[int64][]repository.TranslationField{
+			1: {
+				{ID: 11, TranslationRecordID: 1, SubrecordType: "FULL", SourceText: "Lydia"},
+				{ID: 12, TranslationRecordID: 1, SubrecordType: "SHRT", SourceText: "Lydia"},
+			},
+		},
+	}
+
+	candidates, err := service.collectCandidates(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("unexpected error from collectCandidates: %v", err)
+	}
+
+	// NPC_:FULL と NPC_:SHRT は別候補として 2 件返る
+	if len(candidates) != 2 {
+		t.Fatalf("NPC_ REC 分離: expected 2 candidates (NPC_:FULL and NPC_:SHRT with same source), got %d: %#v", len(candidates), candidates)
+	}
+
+	recTypes := make(map[string]bool, len(candidates))
+	for _, c := range candidates {
+		recTypes[c.RecordType] = true
+	}
+	if !recTypes["NPC_:FULL"] {
+		t.Fatalf("NPC_ REC 分離: expected NPC_:FULL candidate, got %#v", recTypes)
+	}
+	if !recTypes["NPC_:SHRT"] {
+		t.Fatalf("NPC_ REC 分離: expected NPC_:SHRT candidate, got %#v", recTypes)
 	}
 }

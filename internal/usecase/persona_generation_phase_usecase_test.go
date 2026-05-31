@@ -74,7 +74,7 @@ func TestPersonaGenerationPhaseUsecase_MapsSummaryDTO(t *testing.T) {
 func TestPersonaGenerationPhaseUsecase_CommandAndBodyReadinessErrorWrapping(t *testing.T) {
 	port := &fakePersonaGenerationPhaseServicePort{
 		command:   service.PersonaGenerationPhaseCommandReadModel{JobID: 1, PhaseState: "rejected", ErrorSummary: &service.PersonaGenerationPhaseErrorSummaryReadModel{ErrorKind: "provider_failure", IsRedacted: true}},
-		readiness: service.PersonaGenerationBodyReadinessReadModel{JobID: 1, ErrorKind: "snapshot_missing", BlockedReason: stringPersonaGenerationPtr("missing")},
+		readiness: service.PersonaGenerationBodyReadinessReadModel{JobID: 1},
 		err:       errors.New("boom"),
 	}
 	uc := NewPersonaGenerationPhaseUsecase(port)
@@ -89,9 +89,9 @@ func TestPersonaGenerationPhaseUsecase_CommandAndBodyReadinessErrorWrapping(t *t
 		t.Fatal("expected pause error wrapping")
 	}
 
-	readinessResult, readinessErr := uc.GetPersonaGenerationBodyReadiness(context.Background(), GetPersonaGenerationBodyReadinessRequest{JobID: 1})
-	if readinessErr == nil || readinessResult.ErrorKind != PersonaGenerationPhaseErrorKindSnapshotMissing {
-		t.Fatalf("expected readiness mapping and wrapping, result=%#v err=%v", readinessResult, readinessErr)
+	_, readinessErr := uc.GetPersonaGenerationBodyReadiness(context.Background(), GetPersonaGenerationBodyReadinessRequest{JobID: 1})
+	if readinessErr == nil {
+		t.Fatalf("expected readiness error wrapping, got nil err")
 	}
 }
 
@@ -124,5 +124,3 @@ func TestPersonaGenerationPhaseUsecase_SaveAISettingsMapsReadModel(t *testing.T)
 		t.Fatalf("expected public ai settings status mapping, got %#v", result)
 	}
 }
-
-func stringPersonaGenerationPtr(value string) *string { return &value }

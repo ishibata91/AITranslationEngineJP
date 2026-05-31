@@ -4,7 +4,7 @@ import type {
 } from "@application/gateway-contract/processing-target"
 
 import type {
-  BodyTranslationOutputReadinessResponse,
+  BodyTranslationOutputReadinessSummary,
   BodyTranslationPhaseActionEnablement,
   BodyTranslationPhaseErrorKind,
   BodyTranslationPhaseErrorSummary,
@@ -16,7 +16,6 @@ import type {
   BodyTranslationPhaseRequestSummary,
   BodyTranslationPhaseSummaryResponse,
   CancelBodyTranslationPhaseRequest,
-  GetBodyTranslationOutputReadinessRequest,
   PauseBodyTranslationPhaseRequest,
   ResumeBodyTranslationPhaseRequest,
   RetryBodyTranslationPhaseRequest
@@ -47,10 +46,11 @@ export interface BodyTranslationPhaseScreenState {
   jobId: number | null
   phase: "idle" | "loading" | "ready" | "submitting"
   summary: BodyTranslationPhaseSummaryResponse | null
-  outputReadiness: BodyTranslationOutputReadinessResponse | null
+  outputReadiness: BodyTranslationOutputReadinessSummary | null
   errorMessage: string
   pendingAction: BodyTranslationPhaseActionKind | null
   hasLoaded: boolean
+  initialFetchDone: boolean
   processingTargetPageState?: ProcessingTargetListPageState | null
   processingTargetPageStatesByPhase?: ProcessingTargetListPageStatesByPhase
 }
@@ -145,10 +145,11 @@ export interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhas
   latestExecutionSummary: BodyTranslationPhaseExecutionSummary | null
   latestResultSummary: BodyTranslationPhaseFieldResultSummary | null
   latestErrorKind: BodyTranslationPhaseErrorKind | null
-  latestOutputReadiness: BodyTranslationOutputReadinessResponse | null
+  latestOutputReadiness: BodyTranslationOutputReadinessSummary | null
   pauseRequestShape?: PauseBodyTranslationPhaseRequest
   resumeRequestShape?: ResumeBodyTranslationPhaseRequest
   retryRequestShape?: RetryBodyTranslationPhaseRequest
   cancelRequestShape?: CancelBodyTranslationPhaseRequest
-  outputReadinessRequestShape?: GetBodyTranslationOutputReadinessRequest
+  /** @deprecated 専用取得 endpoint 廃止済み。wave-4 でテスト更新後に完全廃止する。 */
+  outputReadinessRequestShape?: { jobId: number }
 }
