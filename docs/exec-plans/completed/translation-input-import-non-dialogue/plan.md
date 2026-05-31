@@ -128,4 +128,4 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 - merge 後検証: `python3 scripts/harness/run.py --suite backend-local` 通過。
 - completed 移動: `docs/exec-plans/active/translation-input-import-non-dialogue/` から `docs/exec-plans/completed/translation-input-import-non-dialogue/` へ移動した。
 - remote 変更: なし。
-- merge 結果 commit: 作成後に追記する。
+- merge 結果 commit: `5b9fb80`
