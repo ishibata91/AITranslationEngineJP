@@ -416,3 +416,14 @@
   - `resumeOperation` の経路は frontend 表示からのみ外している。usecase/store/contract/backend ResumeJob は残置のため、merge 後の動作に影響しないことを念のため確認する。
   - 後続 task: selector 未決 3 件の解消と E2E 観点 E2E-UC-TJL-FIX-1〜3 の `docs/e2e-test-design/test-design.csv` 反映。
 
+## merge 結果
+
+- merge commit hash: `d2dbf3a0` (master)
+- source branch: `claude/translation-job-list-fix`
+- target branch: `master`
+- merge 方式: `git merge --no-ff`
+- conflict: なし
+- merge 後検証: conflict なし、最終検証通過済み（backend-local/frontend-local）のため追加検証を省略。
+- completed 移動: `docs/exec-plans/active/translation-job-list-fix/` → `docs/exec-plans/completed/translation-job-list-fix/`
+- closeout commit hash: （本セクション追記後の commit で確定）
+
