@@ -1,6 +1,6 @@
 ---
 name: merge-lane
-description: active plan ごとの local merge、conflict 解消、merge 後検証、completed 移動、merge 結果 commit を固定する作業プロトコル。
+description: "active plan ごとの local merge、conflict 解消、merge 後検証、completed 移動、merge 結果 commit を固定する作業プロトコル。"
 ---
 # Merge Lane
 

@@ -1,6 +1,6 @@
 ---
 name: workflow-contract-maintenance
-description: .claude 配下の skill / agent 定義 / 許可済みコマンドと CLAUDE.md の作業流れ記述を、再解釈が起きない契約として監査または変更する作業プロトコル。TRIGGER when: .claude 配下の skill、agent 定義、許可済みコマンド、CLAUDE.md の作業流れ記述を編集または監査する時。
+description: ".claude 配下の skill / agent 定義 / 許可済みコマンドと CLAUDE.md の作業流れ記述を、再解釈が起きない契約として監査または変更する作業プロトコル。TRIGGER when: .claude 配下の skill、agent 定義、許可済みコマンド、CLAUDE.md の作業流れ記述を編集または監査する時。"
 ---
 # 作業流れ契約保守
 

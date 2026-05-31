@@ -1,6 +1,6 @@
 ---
 name: design-module
-description: 詳細仕様差分、画面設計差分、設計差分図、人間設計レビュー、実装範囲、テスト設計を decision table で取捨選択する設計モジュール。TRIGGER when: 仕様変更または仕様追加、画面変更のいずれかがあり、設計成果物と実装範囲とテスト設計を固定する必要がある。SKIP when: 仕様も画面も内部構造も変えず、investigation-module だけで完結する修正。
+description: "詳細仕様差分、画面設計差分、設計差分図、人間設計レビュー、実装範囲、テスト設計を decision table で取捨選択する設計モジュール。TRIGGER when: 仕様変更または仕様追加、画面変更のいずれかがあり、設計成果物と実装範囲とテスト設計を固定する必要がある。SKIP when: 仕様も画面も内部構造も変えず、investigation-module だけで完結する修正。"
 ---
 # Design Module
 

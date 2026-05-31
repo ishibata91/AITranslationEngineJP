@@ -1,6 +1,6 @@
 ---
 name: finalization-module
-description: 正本化判断、詳細仕様正本反映、作業 commit、マージ準備入力を固定する出口モジュール。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断、作業 commit、マージ準備入力を固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。
+description: "正本化判断、詳細仕様正本反映、作業 commit、マージ準備入力を固定する出口モジュール。TRIGGER when: 実装モジュールの最終検証が通過し、正本化判断、作業 commit、マージ準備入力を固定する必要がある。SKIP when: 最終検証通過前、または作業 branch が固定されていない。"
 ---
 # Finalization Module
 

@@ -1,6 +1,6 @@
 ---
 name: updating-docs
-description: `finalization-module` 内で `docs_updater` agent が使う docs 正本化作業プロトコル。呼び出し元の docs 正本化判断後に、人間承認済み docs-only 成果物を正本へ反映する判断基準を提供する。
+description: "`finalization-module` 内で `docs_updater` agent が使う docs 正本化作業プロトコル。呼び出し元の docs 正本化判断後に、人間承認済み docs-only 成果物を正本へ反映する判断基準を提供する。"
 ---
 # Updating Docs
 

@@ -5,4 +5,4 @@ model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
-developer_instructions = ""
+developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/merge_lane.md を読む。"

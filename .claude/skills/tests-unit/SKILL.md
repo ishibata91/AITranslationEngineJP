@@ -1,6 +1,6 @@
 ---
 name: tests-unit
-description: `implementation-module` 内で `implementation_unit_tester` agent が使う単体テスト実装作業プロトコル。
+description: "`implementation-module` 内で `implementation_unit_tester` agent が使う単体テスト実装作業プロトコル。"
 ---
 # Tests Unit
 

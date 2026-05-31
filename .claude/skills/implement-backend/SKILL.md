@@ -1,6 +1,6 @@
 ---
 name: implement-backend
-description: `implementation-module` 内で `backend_implementer` agent が使う backend 実装作業プロトコル。層責務、モジュール内検証の判断基準を提供する。
+description: "`implementation-module` 内で `backend_implementer` agent が使う backend 実装作業プロトコル。層責務、モジュール内検証の判断基準を提供する。"
 ---
 # Implement Backend
 

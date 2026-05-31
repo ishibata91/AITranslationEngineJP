@@ -1,6 +1,6 @@
 ---
 name: diagramming
-description: `design-module` 内で `diagrammer` agent が使う図成果物プロトコル。モジュール判断に必要な Mermaid 図、説明、根拠、検証を固定する。
+description: "`design-module` 内で `diagrammer` agent が使う図成果物プロトコル。モジュール判断に必要な Mermaid 図、説明、根拠、検証を固定する。"
 ---
 # Diagramming
 

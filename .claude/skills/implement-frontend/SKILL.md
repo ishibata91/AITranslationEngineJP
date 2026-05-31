@@ -1,6 +1,6 @@
 ---
 name: implement-frontend
-description: `storybook-module` または `implementation-module` 内で `frontend_implementer` agent が使う frontend 実装作業プロトコル。画面導線、状態、Wails bridge の判断基準を提供する。
+description: "`storybook-module` または `implementation-module` 内で `frontend_implementer` agent が使う frontend 実装作業プロトコル。画面導線、状態、Wails bridge の判断基準を提供する。"
 ---
 # Implement Frontend
 

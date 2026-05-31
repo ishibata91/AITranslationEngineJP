@@ -1,6 +1,6 @@
 ---
 name: implement-integration
-description: `implementation-module` 内で `integration_implementer` agent が使う、API / Wails / DTO / gateway など frontend と backend の統合境界実装作業プロトコル。
+description: "`implementation-module` 内で `integration_implementer` agent が使う、API / Wails / DTO / gateway など frontend と backend の統合境界実装作業プロトコル。"
 ---
 # Implement Integration
 

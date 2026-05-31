@@ -1,6 +1,6 @@
 ---
 name: fix-decision
-description: `investigation-module` 内で `fix_decider` agent が使う作業プロトコル。観測記録から仮説、観測ログ検証、確定原因、修正方針、禁止修正を固定する。
+description: "`investigation-module` 内で `fix_decider` agent が使う作業プロトコル。観測記録から仮説、観測ログ検証、確定原因、修正方針、禁止修正を固定する。"
 ---
 # Fix Decision
 

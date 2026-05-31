@@ -1,6 +1,6 @@
 ---
 name: design-bundle
-description: Codex 側の設計成果物進行 skill。詳細仕様差分、画面設計差分、implementation-scope を task 内成果物として固定するための正本、判断、引き継ぎを提供する。
+description: "Codex 側の設計成果物進行 skill。詳細仕様差分、画面設計差分、implementation-scope を task 内成果物として固定するための正本、判断、引き継ぎを提供する。"
 ---
 # Design Bundle
 

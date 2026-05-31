@@ -1,6 +1,6 @@
 ---
 name: storybook-module
-description: Storybook 表示実装（svelte 表示コンポーネント、props、style、story、fixture）、Storybook 人間レビューループ、画面設計差し戻し、合意済み frontend 保護を兼ねるモジュール。state / API / Wails bridge / ルーティング / 副作用 などの frontend ロジックは扱わず implementation-module へ渡す。design-module と双方向に動く。TRIGGER when: 画面の表示変更がある（layout、文言、style、表示構造のいずれか）。SKIP when: 表示を変えない、または state / API / Wails / ルーティング などの frontend ロジックだけの変更。
+description: "Storybook 表示実装（svelte 表示コンポーネント、props、style、story、fixture）、Storybook 人間レビューループ、画面設計差し戻し、合意済み frontend 保護を兼ねるモジュール。state / API / Wails bridge / ルーティング / 副作用 などの frontend ロジックは扱わず implementation-module へ渡す。design-module と双方向に動く。TRIGGER when: 画面の表示変更がある（layout、文言、style、表示構造のいずれか）。SKIP when: 表示を変えない、または state / API / Wails / ルーティング などの frontend ロジックだけの変更。"
 ---
 # Storybook Module
 

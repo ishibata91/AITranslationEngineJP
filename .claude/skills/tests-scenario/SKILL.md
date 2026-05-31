@@ -1,6 +1,6 @@
 ---
 name: tests-scenario
-description: `implementation-module` 内で `implementation_scenario_tester` agent が使うシナリオテスト実装作業プロトコル。
+description: "`implementation-module` 内で `implementation_scenario_tester` agent が使うシナリオテスト実装作業プロトコル。"
 ---
 # Tests Scenario
 

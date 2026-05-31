@@ -1,6 +1,6 @@
 ---
 name: observability-implementer
-description: `implementation-module` 内で `observability_implementer` agent が使う観測ログ追加作業プロトコル。
+description: "`implementation-module` 内で `observability_implementer` agent が使う観測ログ追加作業プロトコル。"
 ---
 # 観測ログ追加
 

@@ -1,6 +1,6 @@
 ---
 name: wall-discussion
-description: Codex 側の設計壁打ち作業プロトコル。読み取り専用 で資料を読み、論点、質問、短い整理を返す基準を提供する。
+description: "Codex 側の設計壁打ち作業プロトコル。読み取り専用 で資料を読み、論点、質問、短い整理を返す基準を提供する。"
 ---
 # Wall Discussion
 

@@ -1,6 +1,6 @@
 ---
 name: preparation-module
-description: プロダクト変更を伴う task の入口で、作業 branch と active plan folder の plan.md を固定するモジュール skill。想定 Y/N、設計、人間確認は本モジュールで扱わず、後続モジュールへ渡す。TRIGGER when: プロダクト変更を伴う task の入口で、作業 branch と plan.md を固定する必要がある。
+description: "プロダクト変更を伴う task の入口で、作業 branch と active plan folder の plan.md を固定するモジュール skill。想定 Y/N、設計、人間確認は本モジュールで扱わず、後続モジュールへ渡す。TRIGGER when: プロダクト変更を伴う task の入口で、作業 branch と plan.md を固定する必要がある。"
 ---
 # Preparation Module
 

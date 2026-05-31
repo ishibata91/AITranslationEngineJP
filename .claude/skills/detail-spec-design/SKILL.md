@@ -1,6 +1,6 @@
 ---
 name: detail-spec-design
-description: Codex 側の詳細仕様差分作業プロトコル。親要件、仕様、未決、回答を task 内成果物として固定する。
+description: "Codex 側の詳細仕様差分作業プロトコル。親要件、仕様、未決、回答を task 内成果物として固定する。"
 ---
 # Detail Spec Design
 

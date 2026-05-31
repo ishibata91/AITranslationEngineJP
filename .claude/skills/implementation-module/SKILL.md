@@ -1,6 +1,6 @@
 ---
 name: implementation-module
-description: frontend ロジック実装、backend 実装、統合境界実装、シナリオテスト、単体テスト、観測ログ追加、最終検証を decision table で取捨選択する実装モジュール。frontend ロジック実装は state / API / Wails bridge / ルーティング / 副作用 / フォーム validation のロジック層だけを扱い、svelte 表示コンポーネント・style・story・fixture は storybook-module で扱う。TRIGGER when: 承認済み実装範囲とテスト設計（または修正実行入力）から backend / frontend ロジック / 統合境界 / テスト / 観測 / 最終検証のいずれかを進める必要がある。SKIP when: 表示変更だけで完結する task は storybook-module で扱い、本モジュールは呼ばない。
+description: "frontend ロジック実装、backend 実装、統合境界実装、シナリオテスト、単体テスト、観測ログ追加、最終検証を decision table で取捨選択する実装モジュール。frontend ロジック実装は state / API / Wails bridge / ルーティング / 副作用 / フォーム validation のロジック層だけを扱い、svelte 表示コンポーネント・style・story・fixture は storybook-module で扱う。TRIGGER when: 承認済み実装範囲とテスト設計（または修正実行入力）から backend / frontend ロジック / 統合境界 / テスト / 観測 / 最終検証のいずれかを進める必要がある。SKIP when: 表示変更だけで完結する task は storybook-module で扱い、本モジュールは呼ばない。"
 ---
 # Implementation Module
 

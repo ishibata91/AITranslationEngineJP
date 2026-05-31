@@ -1,6 +1,6 @@
 ---
 name: investigation-module
-description: 修正方針判断、UC 差分候補、E2E テスト観点差分、修正実行入力を固定する設計モジュールの亜種。fix-decision skill と test-design skill を呼び、観測ログ駆動で確定原因と恒久修正方針を分ける。TRIGGER when: 人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、観測ログ駆動で確定原因と恒久修正方針を固定する必要がある。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、design-module へ迂回する。
+description: "修正方針判断、UC 差分候補、E2E テスト観点差分、修正実行入力を固定する設計モジュールの亜種。fix-decision skill と test-design skill を呼び、観測ログ駆動で確定原因と恒久修正方針を分ける。TRIGGER when: 人間が確認した不具合、レビュー非通過、検証失敗の観測記録から、観測ログ駆動で確定原因と恒久修正方針を固定する必要がある。SKIP when: 仕様変更や機能追加が必要と判明した場合は本モジュールを停止し、design-module へ迂回する。"
 ---
 # Investigation Module
 

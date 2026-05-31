@@ -5,4 +5,4 @@ model = "gpt-5.3-codex"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
-developer_instructions = ""
+developer_instructions = "詳細な実行境界は /Users/iorishibata/Repositories/AITranslationEngineJP/.codex/agents/implementation_unit_tester.md を読む。"
