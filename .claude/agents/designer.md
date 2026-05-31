@@ -20,8 +20,9 @@ model: opus
 
 `design-module` または `storybook-module` から渡された 引き継ぎ入力 だけを入口にし、引き継いでいない会話文脈に依存しない。
 呼び出し元から渡された設計対象と根拠参照を読み、`detail-spec-diff.md` を詳細仕様差分として作る。画面変更がある時は、active plan 内に `screen-design-diff.<screen-id>.md` を作る。人間レビュー後に `implementation-scope` を固定する。
+`design-module` の `設計差分図` と人間が明示した補助図は本 agent が `diagramming` skill を参照して作る。
 画面設計で実画面の根拠が必要な時は、承認済み task 範囲内でアプリ起動 command と `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を使って実画面を確認してよい。
-アプリ起動は `sh ./scripts/dev/run-wails-agent-browser.sh` または `wails dev -devserver localhost:34115` の repo 定義済み command に限る。
+アプリ起動は `npm run dev:wails:run` の repo 定義済み command に限る。`npm run dev:wails:run` は devserver を `localhost:34115` で起動し、同じポートに既存 process がいる場合は pkill で停止してから起動し直す。
 ブラウザ操作は `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行し、`navigate_page`、`take_snapshot`、`list_console_messages`、`take_screenshot` を実画面確認と UI 証跡取得のために使ってよい。
 書き換えてよい範囲は、作業計画フォルダ内の設計成果物、`tmp/agent-browser/`、`tmp/logs/`、`test-results/` に限る。
 実画面確認は画面設計根拠の取得に限り、プロダクトコード、プロダクトテスト、docs 正本は変更しない。

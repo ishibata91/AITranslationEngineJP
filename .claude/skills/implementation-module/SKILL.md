@@ -30,7 +30,7 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
 - モジュールが呼ぶ下位 skill: `implement-frontend`（ロジック層だけ）、`implement-backend`、`implement-integration`、`tests-scenario`、`tests-unit`、`observability-implementer`。
-- モジュールが呼ぶ下位 agent: `frontend_implementer`、`backend_implementer`、`integration_implementer`、`implementation_scenario_tester`、`implementation_unit_tester`、`observability_implementer`。
+- モジュールが呼ぶ下位 agent: `frontend_implementer`、`backend_implementer`、`integration_implementer`、`implementation_tester`（シナリオテスト担当または単体テスト担当として、引き継ぎ入力でどちらを担当するかを 1 つに指定して起動する）。`観測ログ追加` は対象層に応じて `backend_implementer` または `frontend_implementer` が `observability-implementer` skill を参照して担当する。
 
 ## 入口条件
 
@@ -74,16 +74,16 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 | `frontend ロジック実装` | `frontend_implementer` | `実装引き継ぎ入力`, `合意済み frontend 保護?` | `frontend_implementer` |
 | `backend 実装` | `backend_implementer` | `実装引き継ぎ入力`, `合意済み frontend 保護?` | `backend_implementer` |
 | `統合境界実装` | `integration_implementer` | `backend 実装`, `合意済み frontend 保護?` | `integration_implementer` |
-| `シナリオテスト` | `implementation_scenario_tester` | `テスト設計`, `backend 実装?`, `合意済み frontend 保護?`, `統合境界実装?` | `implementation_scenario_tester` |
-| `単体テスト` | `implementation_unit_tester` | `backend 実装?`, `合意済み frontend 保護?`, `統合境界実装?`, `frontend ロジック実装?` | `implementation_unit_tester` |
-| `観測ログ追加` | `observability_implementer` | 完了済み実装・テスト成果物 | `observability_implementer` |
+| `シナリオテスト` | `implementation_tester`（シナリオテスト担当） | `テスト設計`, `backend 実装?`, `合意済み frontend 保護?`, `統合境界実装?` | `implementation_tester`（シナリオテスト担当） |
+| `単体テスト` | `implementation_tester`（単体テスト担当） | `backend 実装?`, `合意済み frontend 保護?`, `統合境界実装?`, `frontend ロジック実装?` | `implementation_tester`（単体テスト担当） |
+| `観測ログ追加` | 対象層に応じて `backend_implementer` または `frontend_implementer` | 完了済み実装・テスト成果物 | 対象層の implementer |
 
 ## 各 artifact の詳細
 
 ### 実装引き継ぎ入力
 
 - 呼び出し元 agent が固定する。
-- `実装範囲`、`テスト設計`、`合意済み frontend 保護?`、想定 Y/N、decision table 結果から、各実装 agent と各テスト agent と `observability_implementer` へ渡す入力を作る。
+- `実装範囲`、`テスト設計`、`合意済み frontend 保護?`、想定 Y/N、decision table 結果から、各実装 agent、`implementation_tester`（テスト種別を明示）、観測ログ追加担当の `backend_implementer` / `frontend_implementer` へ渡す入力を作る。
 - 起動先 agent には会話文脈を引き継がず、必要情報を引き継ぎ入力へ明示する。
 
 ### frontend ロジック実装
@@ -108,19 +108,19 @@ svelte 表示コンポーネント、props、style、story、fixture は本モ�
 
 ### シナリオテスト
 
-- `implementation_scenario_tester` を Task ツールで起動して作らせる。
+- `implementation_tester`（シナリオテスト担当） を Task ツールで起動して作らせる。
 - 下位 skill: `tests-scenario`。
 - 利用者経路を証明する。修正系 task 経路では fail-test ベース（修正前に追加して fail を確認、修正後に pass を確認）で進める。
 
 ### 単体テスト
 
-- `implementation_unit_tester` を Task ツールで起動して作らせる。
+- `implementation_tester`（単体テスト担当） を Task ツールで起動して作らせる。
 - 下位 skill: `tests-unit`。
 - 実装済み責務の公開振る舞い、分岐、エラー経路を証明する。
 
 ### 観測ログ追加
 
-- `observability_implementer` を Task ツールで起動して作らせる。
+- 対象層に応じて `backend_implementer` または `frontend_implementer` を Task ツールで起動して作らせる（backend ログは `backend_implementer`、frontend ログは `frontend_implementer`）。
 - 下位 skill: `observability-implementer`。
 - 完了済み実装・テスト成果物に対し、実行時にしか確定しない値または原因分離が要る分岐へ恒久ログを追加する。
 - `最終検証` の前に固定する。

@@ -10,7 +10,7 @@ go, typescriptを調査するときはLSPプラグインを利用すること。
 ## 実画面確認
 
 プロダクト変更を伴う task は、harness 検証通過後に実 app を chrome-devtools で操作し、想定どおりに動くかを目視で確かめる。
-起動 command は `wails dev`、接続先は `http://localhost:34115`。再起動が要るかは task の変更内容で判断する。
+起動 command は `npm run dev:wails:run`、接続先は `http://localhost:34115`。再起動が要るかは task の変更内容で判断する。`npm run dev:wails:run` は同じ devserver ポートに既存 process がいる場合は pkill で停止してから起動し直す。
 
 ## 日本語出力規約
 

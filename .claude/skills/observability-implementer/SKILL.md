@@ -1,18 +1,19 @@
 ---
 name: observability-implementer
-description: "`implementation-module` 内で `observability_implementer` agent が使う観測ログ追加作業プロトコル。"
+description: "`implementation-module` 内で `backend_implementer` または `frontend_implementer` agent が使う観測ログ追加作業プロトコル。"
 ---
 # 観測ログ追加
 
 ## 目的
 
 `observability-implementer` は作業プロトコルである。
-`observability_implementer` agent が完成済み実装成果物へ、原因候補を分離するための恒久ログを追加する時の判断基準を提供する。
+`backend_implementer` または `frontend_implementer` agent が完成済み実装成果物へ、原因候補を分離するための恒久ログを追加する時の判断基準を提供する。
+追加対象の層で実装を担当した agent が同じ task 内で続けて担当する（backend ログは `backend_implementer`、frontend ログは `frontend_implementer`）。
 
 ## 対応ロール
 
-- `observability_implementer` が使う。
-- 呼び出し元は `implementation-module`、または `observability_implementer` agent を Task ツールで起動した上位 agent とする。
+- `backend_implementer` または `frontend_implementer` が使う。
+- 呼び出し元は `implementation-module`、または同 agent を Task ツールで起動した上位 agent とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `観測ログ追加` とする。
 
@@ -26,7 +27,7 @@ description: "`implementation-module` 内で `observability_implementer` agent �
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [observability_implementer.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/observability_implementer.md) に従う。
+- エージェント実行定義と実行境界は [backend_implementer.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/backend_implementer.md) または [frontend_implementer.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/frontend_implementer.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 外部成果物 が不足または衝突する場合は停止し、衝突箇所を返す。
 

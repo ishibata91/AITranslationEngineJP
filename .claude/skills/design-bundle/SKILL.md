@@ -103,7 +103,7 @@ implementation-scope は [implementation-scope](/Users/iorishibata/Repositories/
 - 作業流れ順序決定や作業計画フォルダ進行管理が主目的なら呼び出し元へ戻す。
 - 作業前の影響範囲、実行計画、検証方法の確認が不足する場合は呼び出し元へ戻す。
 - 画面設計根拠の範囲外で実画面 observation が必要なら `investigator` を使う前提で呼び出し元へ戻す。
-- docs 正本化が必要なら人間承認後に `docs_updater` を使う前提で呼び出し元へ戻す。
+- docs 正本化が必要なら人間承認後に `finalization-module` 内で Claude 本体が `updating-docs` skill を使う前提で呼び出し元へ戻す。
 - プロダクト実装が必要なら呼び出し元へ戻し、人間向け実装引き継ぎの扱いを判断させる。
 - 停止時は不足項目、衝突箇所、戻し先を返す。
 - 作業流れの進行管理要求は停止する。

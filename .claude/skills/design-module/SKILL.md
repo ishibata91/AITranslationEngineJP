@@ -14,7 +14,7 @@ description: "詳細仕様差分、画面設計差分、設計差分図、人間
 - 呼び出し元: 人間、または上位モジュール skill。
 - 返却先: 呼び出し元。
 - モジュールが呼ぶ下位 skill: `design-bundle`、`detail-spec-design`、`diagramming`、`implementation-scope`、`test-design`。
-- モジュールが呼ぶ下位 agent: `designer`、`diagrammer`、`test_designer`。
+- モジュールが呼ぶ下位 agent: `designer`、`test_designer`。`設計差分図`と人間が明示した補助図は `designer` が `diagramming` skill を参照して作る。
 
 ## 入口条件
 
@@ -36,7 +36,7 @@ description: "詳細仕様差分、画面設計差分、設計差分図、人間
 | `想定 Y/N 評価` | 呼び出し元 agent | `preparation-module` の出口 | なし |
 | `詳細仕様差分` | `designer` | `想定 Y/N 評価` | `designer` |
 | `画面設計差分` | `designer` | `想定 Y/N 評価`, `詳細仕様差分?` | `designer` |
-| `設計差分図` | `diagrammer` | `想定 Y/N 評価`, `詳細仕様差分?`, `画面設計差分?` | `diagrammer` |
+| `設計差分図` | `designer` | `想定 Y/N 評価`, `詳細仕様差分?`, `画面設計差分?` | `designer` |
 | `人間設計レビュー` | 人間 | `詳細仕様差分?`, `画面設計差分?`, `設計差分図?` | 人間 |
 | `実装範囲` | `designer` | `人間設計レビュー` | `designer` |
 | `テスト設計` | `test_designer` | `人間設計レビュー` | `test_designer` |
@@ -89,7 +89,7 @@ description: "詳細仕様差分、画面設計差分、設計差分図、人間
 
 ### 設計差分図
 
-- `diagrammer` を Task ツールで起動して作らせる。
+- `designer` を Task ツールで起動して作らせる。
 - 下位 skill: `diagramming`。
 - 「内部構造変更がある」が Y の場合は要。「画面変更がある」が Y の場合は推奨。
 - Mermaid 図と説明、根拠、検証観点を固定する。
@@ -135,7 +135,7 @@ description: "詳細仕様差分、画面設計差分、設計差分図、人間
 - `想定 Y/N 評価` で仕様変更、画面変更、内部構造変更がすべて N と判定された。呼び出し元へ戻す（停止扱いではなく早期出口）。
 - `想定 Y/N 評価` を固定する前に下位 agent を起動しそうな状態になった。
 - `人間設計レビュー` 承認が得られない、または差し戻しを解消できない。
-- `designer`、`diagrammer`、`test_designer` のいずれかが必要なのに起動できない。
+- `designer`、`test_designer` のいずれかが必要なのに起動できない。
 - `設計差分図` の成立条件を満たすのに省略理由を固定できない。
 - 設計判断が AI 単独で確定できる範囲を越え、人間判断が要るのに得られない。
 - 停止時は不足項目、衝突箇所、固定できない判断、戻し先を返す。

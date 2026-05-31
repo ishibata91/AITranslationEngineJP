@@ -23,6 +23,29 @@ log_file="$log_dir/wails-dev.log"
 mkdir -p "$log_dir"
 rm -f "$log_file"
 
+# 既存 process が同じポートを占有していると wails dev の起動に失敗するため、
+# devserver ポートと vite ポートを listen している process を pkill で停止してから起動し直す。
+devserver_port="${devserver_bind##*:}"
+kill_listeners_on_port() {
+  port="$1"
+  if command -v lsof >/dev/null 2>&1; then
+    pids=$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)
+    if [ -n "$pids" ]; then
+      echo "[run-wails] killing existing listeners on port $port: $pids" >&2
+      # shellcheck disable=SC2086
+      kill $pids 2>/dev/null || true
+      sleep 1
+      pids=$(lsof -ti tcp:"$port" -sTCP:LISTEN 2>/dev/null || true)
+      if [ -n "$pids" ]; then
+        # shellcheck disable=SC2086
+        kill -9 $pids 2>/dev/null || true
+      fi
+    fi
+  fi
+}
+kill_listeners_on_port "$devserver_port"
+kill_listeners_on_port "$vite_port"
+
 export GOCACHE="${GOCACHE:-/tmp/aitranslationenginejp-go-build}"
 export GOPATH="${GOPATH:-/tmp/aitranslationenginejp-go}"
 export GOMODCACHE="${GOMODCACHE:-/tmp/aitranslationenginejp-go-mod}"

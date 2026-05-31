@@ -1,18 +1,18 @@
 ---
 name: tests-unit
-description: "`implementation-module` 内で `implementation_unit_tester` agent が使う単体テスト実装作業プロトコル。"
+description: "`implementation-module` 内で `implementation_tester` agent が単体テストを担当する時に使う作業プロトコル。"
 ---
 # Tests Unit
 
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_unit_tester` agent が、実装済み責務または `investigation-module` の `修正実行入力` から、公開振る舞い、分岐、エラー経路を単体テストで証明する時の判断基準を提供する。
+`implementation_tester` agent が、実装済み責務または `investigation-module` の `修正実行入力` から、公開振る舞い、分岐、エラー経路を単体テストで証明する時の判断基準を提供する。
 
 ## 対応ロール
 
-- `implementation_unit_tester` が使う。
-- 呼び出し元は `implementation-module`、または `implementation_unit_tester` agent を Task ツールで起動した上位 agent とする。
+- `implementation_tester` が単体テスト担当として使う。
+- 呼び出し元は `implementation-module`、または `implementation_tester` agent を単体テスト担当として Task ツールで起動した上位 agent とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `tests-unit` の出力規約で固定する。
 
@@ -29,7 +29,7 @@ description: "`implementation-module` 内で `implementation_unit_tester` agent 
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [implementation_unit_tester.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/implementation_unit_tester.md) に従う。
+- エージェント実行定義と実行境界は [implementation_tester.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/implementation_tester.md) に従う。
 - 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md) とする。
 - テストコーディング規約: [coding-guidelines-tests.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-tests.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。

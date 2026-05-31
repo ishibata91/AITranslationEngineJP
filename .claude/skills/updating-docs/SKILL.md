@@ -1,20 +1,20 @@
 ---
 name: updating-docs
-description: "`finalization-module` 内で `docs_updater` agent が使う docs 正本化作業プロトコル。呼び出し元の docs 正本化判断後に、人間承認済み docs-only 成果物を正本へ反映する判断基準を提供する。"
+description: "`finalization-module` 内で Claude 本体が使う docs 正本化作業プロトコル。呼び出し元の docs 正本化判断後に、人間承認済み docs-only 成果物を正本へ反映する判断基準を提供する。"
 ---
 # Updating Docs
 
 ## 目的
 
 `updating-docs` は作業プロトコルである。
-`docs_updater` agent が呼び出し元の docs 正本化判断後に人間承認済み 成果物 を docs 正本へ反映するための、正本、承認確認、検証 の見方を提供する。
+Claude 本体が `finalization-module` の docs 正本化判断後に、人間承認済み 成果物 を docs 正本へ反映するための、正本、承認確認、検証 の見方を提供する。
 
 人間可読な実行境界、引き継ぎ、停止 / 戻し はこの skill を正本にする。
 
 ## 対応ロール
 
-- `docs_updater` が使う。
-- 返却先は 呼び出し元 または次 agent とする。
+- `finalization-module` から呼ばれた Claude 本体が直接使う（サブエージェントを起動しない）。
+- 返却先は 呼び出し元 とする。
 - 担当成果物は `updating-docs` の出力規約で固定する。
 
 ## 呼び出し元から渡される情報
@@ -29,7 +29,7 @@ description: "`finalization-module` 内で `docs_updater` agent が使う docs �
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [docs_updater.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/docs_updater.md) に従う。
+- 実行境界は本 skill と [finalization-module/SKILL.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/finalization-module/SKILL.md) に従う。
 - docs index: [index.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/index.md)
 - 詳細仕様正本: [detail-specs](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/detail-specs/README.md)
 - 画面設計書正本: [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md)

@@ -1,19 +1,19 @@
 ---
 name: tests-scenario
-description: "`implementation-module` 内で `implementation_scenario_tester` agent が使うシナリオテスト実装作業プロトコル。"
+description: "`implementation-module` 内で `implementation_tester` agent がシナリオテストを担当する時に使う作業プロトコル。"
 ---
 # Tests Scenario
 
 ## 目的
 
 この skill は作業プロトコルである。
-`implementation_scenario_tester` agent が、承認済み詳細仕様差分または `investigation-module` の `修正実行入力` をシナリオテストで証明する時の判断基準を提供する。
+`implementation_tester` agent が、承認済み詳細仕様差分または `investigation-module` の `修正実行入力` をシナリオテストで証明する時の判断基準を提供する。
 主対象は `UI人間操作E2E` と `APIテスト` である。
 
 ## 対応ロール
 
-- `implementation_scenario_tester` が使う。
-- 呼び出し元は `implementation-module`、または `implementation_scenario_tester` agent を Task ツールで起動した上位 agent とする。
+- `implementation_tester` がシナリオテスト担当として使う。
+- 呼び出し元は `implementation-module`、または `implementation_tester` agent をシナリオテスト担当として Task ツールで起動した上位 agent とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `tests-scenario` の出力規約で固定する。
 
@@ -27,7 +27,7 @@ description: "`implementation-module` 内で `implementation_scenario_tester` ag
 
 ## 作業前に読む正本
 
-- エージェント実行定義と実行境界は [implementation_scenario_tester.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/implementation_scenario_tester.md) に従う。
+- エージェント実行定義と実行境界は [implementation_tester.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/agents/implementation_tester.md) に従う。
 - テストコーディング規約: [coding-guidelines-tests.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/coding-guidelines-tests.md) とする。
 - lint 規約: [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) とする。
 - architecture 規約: 引き継ぎに architecture constraint がある場合だけ [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) を参照する。
