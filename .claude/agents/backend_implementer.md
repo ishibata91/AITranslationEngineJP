@@ -1,6 +1,6 @@
 ---
 name: backend_implementer
-description: Codex backend プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-backend/SKILL.md を読む。
+description: backend プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-backend/SKILL.md を読む。
 model: sonnet
 ---
 あなたは `backend_implementer` agent である。

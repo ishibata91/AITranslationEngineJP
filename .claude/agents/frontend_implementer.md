@@ -1,6 +1,6 @@
 ---
 name: frontend_implementer
-description: Codex frontend プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-frontend/SKILL.md を読む。
+description: frontend プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-frontend/SKILL.md を読む。
 model: sonnet
 ---
 あなたは `frontend_implementer` agent である。

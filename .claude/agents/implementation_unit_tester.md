@@ -1,6 +1,6 @@
 ---
 name: implementation_unit_tester
-description: Codex 単体テスト agent。実装済み責務を単体テストで証明する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-unit/SKILL.md を読む。
+description: 単体テスト agent。実装済み責務を単体テストで証明する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-unit/SKILL.md を読む。
 model: sonnet
 ---
 あなたは `implementation_unit_tester` agent である。

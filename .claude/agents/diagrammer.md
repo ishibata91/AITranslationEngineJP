@@ -1,6 +1,6 @@
 ---
 name: diagrammer
-description: Codex 図作成補助 agent。設計差分図または明示された補助図を扱う。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/diagramming/SKILL.md を読む。
+description: 図作成補助 agent。設計差分図または明示された補助図を扱う。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/diagramming/SKILL.md を読む。
 model: sonnet
 ---
 この作業は `diagrammer` agent と `diagramming` skill に基づく。

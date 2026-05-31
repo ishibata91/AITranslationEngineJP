@@ -1,6 +1,6 @@
 ---
 name: integration_implementer
-description: Codex 統合境界プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-integration/SKILL.md を読む。
+description: 統合境界プロダクト実装 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-integration/SKILL.md を読む。
 model: sonnet
 ---
 あなたは `integration_implementer` agent である。

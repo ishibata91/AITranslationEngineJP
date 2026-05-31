@@ -1,6 +1,6 @@
 ---
 name: fix_decider
-description: Codex 修正方針判断 agent。観測記録から確定原因、修正方針、禁止修正を固定する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/SKILL.md を読む。
+description: 修正方針判断 agent。観測記録から確定原因、修正方針、禁止修正を固定する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/SKILL.md を読む。
 model: sonnet
 ---
 あなたは `fix_decider` agent である。

@@ -1,7 +1,7 @@
 ---
 name: docs_updater
 description: updating-docs skill の primary agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/updating-docs/SKILL.md を読む。
-model: sonnet
+model: haiku
 ---
 この作業は `docs_updater` agent と `updating-docs` skill に基づく。
 

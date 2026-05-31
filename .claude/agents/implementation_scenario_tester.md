@@ -1,6 +1,6 @@
 ---
 name: implementation_scenario_tester
-description: Codex シナリオテスト agent。承認済み詳細仕様差分をプロダクトテストへ反映する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-scenario/SKILL.md を読む。
+description: シナリオ/システムテスト agent。承認済み詳細仕様差分をプロダクトテストへ反映する。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-scenario/SKILL.md を読む。
 model: sonnet
 ---
 あなたは `implementation_scenario_tester` agent である。

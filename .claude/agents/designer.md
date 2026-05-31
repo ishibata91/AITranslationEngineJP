@@ -1,6 +1,6 @@
 ---
 name: designer
-description: Codex 設計成果物 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/design-bundle/SKILL.md を読む。
+description: 設計成果物 agent。詳細は /Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/design-bundle/SKILL.md を読む。
 model: opus
 ---
 この作業は `designer` agent と `design-bundle` skill に基づく。
