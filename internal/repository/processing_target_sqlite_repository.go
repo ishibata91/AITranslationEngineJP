@@ -156,7 +156,7 @@ func (row processingTargetRow) toProcessingTargetItem(labels []string) Processin
 		ID:         row.ID,
 		Name:       row.Name,
 		Detail:     row.Detail,
-		TitleParts: nonBlankStrings(row.TitlePart1, row.TitlePart2, row.TitlePart3),
+		TitleParts: processingTargetTitleParts(row.TitlePart1, row.TitlePart2, row.TitlePart3),
 		Metadata:   metadata,
 	}
 }
@@ -235,15 +235,20 @@ func processingTargetNullStringValue(value sql.NullString) string {
 	return value.String
 }
 
-func nonBlankStrings(values ...string) []string {
-	result := make([]string, 0, len(values))
-	for _, value := range values {
+func processingTargetTitleParts(values ...string) []string {
+	result := make([]string, len(values))
+	lastNonBlankIndex := -1
+	for index, value := range values {
 		trimmed := strings.TrimSpace(value)
 		if trimmed != "" {
-			result = append(result, trimmed)
+			lastNonBlankIndex = index
 		}
+		result[index] = trimmed
 	}
-	return result
+	if lastNonBlankIndex < 0 {
+		return nil
+	}
+	return result[:lastNonBlankIndex+1]
 }
 
 // processingTargetTermCountSQL は単語翻訳処理対象の件数を返す SQL を生成する。
@@ -310,8 +315,8 @@ SELECT
   candidate.source_term AS name,
   'AI サービスへ送り、確定訳語として翻訳ジョブ内辞書へ保存する用語です。' AS detail,
   candidate.source_term AS title_part_1,
-  candidate.rec AS title_part_2,
-  COALESCE(job_entry.translated_term, '') AS title_part_3,
+  COALESCE(job_entry.translated_term, '') AS title_part_2,
+  candidate.rec AS title_part_3,
   candidate.rec AS metadata_value_1,
   COALESCE(job_entry.translated_term, '') AS metadata_value_2,
   '' AS metadata_value_3,

@@ -147,6 +147,22 @@ test("E2E-UC-045 opens term phase through current phase action", async ({
     matchingQuery: "Dragonborn",
     noResultQuery: "NoSuchTermTarget",
   });
+  await expect(
+    phase.processingTargetListRegion.getByRole("columnheader", {
+      name: "原語",
+    }),
+  ).toBeVisible();
+  await expect(
+    phase.processingTargetListRegion.getByRole("columnheader", {
+      name: "訳語",
+    }),
+  ).toBeVisible();
+  await expect(
+    phase.processingTargetListRegion.getByRole("columnheader", {
+      name: "レコード種別",
+    }),
+  ).toBeVisible();
+  await expect(phase.processingTargetRows.first()).toContainText("NPC_:FULL");
 });
 
 test("E2E-DIFF-LUCIEN-001 keeps processing target list non-empty when term progress target is non-zero", async ({
@@ -170,6 +186,14 @@ test("E2E-DIFF-LUCIEN-001 keeps processing target list non-empty when term progr
   await expect
     .poll(async () => phase.processingTargetRows.count())
     .toBeGreaterThan(0);
+  await expect(
+    phase.processingTargetListRegion.getByRole("columnheader", {
+      name: "レコード種別",
+    }),
+  ).toBeVisible();
+  await expect(phase.processingTargetRows.first()).toContainText("Lucien");
+  await expect(phase.processingTargetRows.first()).toContainText("NPC_:FULL");
+  await expect(phase.processingTargetRows.first()).not.toContainText("ルシエン");
 });
 
 test("E2E-UC-046 opens persona generation phase through current phase action", async ({

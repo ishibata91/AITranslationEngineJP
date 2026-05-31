@@ -39,6 +39,9 @@ func TestSQLiteProcessingTargetListTermTranslationUsesAITargetTermPopulation(t *
 	if item.Name != "Iron Sword" {
 		t.Fatalf("expected AI target source term name, got %#v", item)
 	}
+	if !processingTargetTestStringSlicesEqual(item.TitleParts, []string{"Iron Sword", "鉄の剣", "WEAP:FULL"}) {
+		t.Fatalf("expected term title parts to be source, translation, record type, got %#v", item.TitleParts)
+	}
 	if !processingTargetTestHasMetadata(item, processingTargetMetadataTermKind, "WEAP:FULL") {
 		t.Fatalf("expected record type metadata for term target, got %#v", item.Metadata)
 	}
@@ -651,6 +654,9 @@ func TestProcessingTargetTermSQL_excludesByDictionaryScopeRECORDFIELD(t *testing
 	if len(result.Items) == 1 && result.Items[0].Name != "Iron Dagger" {
 		t.Errorf("共通辞書一致除外後に残る項目が期待と異なる: want=Iron Dagger got=%q", result.Items[0].Name)
 	}
+	if len(result.Items) == 1 && !processingTargetTestStringSlicesEqual(result.Items[0].TitleParts, []string{"Iron Dagger", "", "WEAP:FULL"}) {
+		t.Errorf("訳語未登録の title part が原語、空訳語、レコード種別の順ではない: got=%#v", result.Items[0].TitleParts)
+	}
 }
 
 // TestProcessingTargetTermSQL_separatesNPCFullAndSHRT は
@@ -711,4 +717,16 @@ func processingTargetTestHasMetadata(item ProcessingTargetListItem, label string
 		}
 	}
 	return false
+}
+
+func processingTargetTestStringSlicesEqual(actual []string, expected []string) bool {
+	if len(actual) != len(expected) {
+		return false
+	}
+	for index := range actual {
+		if actual[index] != expected[index] {
+			return false
+		}
+	}
+	return true
 }

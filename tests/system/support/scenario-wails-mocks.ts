@@ -155,13 +155,15 @@ export async function installScenarioWailsMocks(
         name: "Dragonborn",
         detail: "共通辞書対象外の固有名詞。AI 翻訳対象語として扱う。",
         titleParts: [
-          { text: "対象名: Dragonborn" },
-          { text: "訳語候補: ドラゴンボーン" }
+          { text: "原語: Dragonborn" },
+          { text: "訳語: ドラゴンボーン" },
+          { text: "レコード種別: NPC_:FULL" }
         ],
         metadata: [
           { label: "FormID", value: "0001A001" },
           { label: "原文", value: "Dragonborn" },
-          { label: "種別", value: "固有名詞" }
+          { label: "種別", value: "固有名詞" },
+          { label: "レコード種別", value: "NPC_:FULL" }
         ]
       },
       {
@@ -169,13 +171,15 @@ export async function installScenarioWailsMocks(
         name: "Whiterun Guard",
         detail: "共通辞書対象外の用語。AI 翻訳対象語として扱う。",
         titleParts: [
-          { text: "対象名: Whiterun Guard" },
-          { text: "訳語候補: ホワイトラン衛兵" }
+          { text: "原語: Whiterun Guard" },
+          { text: "訳語: ホワイトラン衛兵" },
+          { text: "レコード種別: NPC_:FULL" }
         ],
         metadata: [
           { label: "FormID", value: "0001A002" },
           { label: "原文", value: "Whiterun Guard" },
-          { label: "種別", value: "用語" }
+          { label: "種別", value: "用語" },
+          { label: "レコード種別", value: "NPC_:FULL" }
         ]
       },
       {
@@ -183,13 +187,15 @@ export async function installScenarioWailsMocks(
         name: "Riverwood Trader",
         detail: "辞書にない店舗名。AI 翻訳対象語として扱う。",
         titleParts: [
-          { text: "対象名: Riverwood Trader" },
-          { text: "訳語候補: リバーウッド・トレーダー" }
+          { text: "原語: Riverwood Trader" },
+          { text: "訳語: リバーウッド・トレーダー" },
+          { text: "レコード種別: NPC_:FULL" }
         ],
         metadata: [
           { label: "FormID", value: "0001A003" },
           { label: "原文", value: "Riverwood Trader" },
-          { label: "種別", value: "固有名詞" }
+          { label: "種別", value: "固有名詞" },
+          { label: "レコード種別", value: "NPC_:FULL" }
         ]
       }
     ],
@@ -313,13 +319,15 @@ export async function installScenarioWailsMocks(
       name: "Lucien",
       detail: "データロードから登録した Lucien の単語翻訳対象。",
       titleParts: [
-        { text: "対象名: Lucien" },
-        { text: "訳語候補: ルシエン" }
+        { text: "原語: Lucien" },
+        { text: "" },
+        { text: "レコード種別: NPC_:FULL" }
       ],
       metadata: [
         { label: "FormID", value: "0001B001" },
         { label: "原文", value: "Lucien" },
-        { label: "種別", value: "固有名詞" }
+        { label: "種別", value: "固有名詞" },
+        { label: "レコード種別", value: "NPC_:FULL" }
       ]
     },
     {
@@ -327,13 +335,15 @@ export async function installScenarioWailsMocks(
       name: "Dumzbthar",
       detail: "データロードから登録した Lucien の単語翻訳対象。",
       titleParts: [
-        { text: "対象名: Dumzbthar" },
-        { text: "訳語候補: ドゥムズブサール" }
+        { text: "原語: Dumzbthar" },
+        { text: "" },
+        { text: "レコード種別: MISC:FULL" }
       ],
       metadata: [
         { label: "FormID", value: "0001B002" },
         { label: "原文", value: "Dumzbthar" },
-        { label: "種別", value: "固有名詞" }
+        { label: "種別", value: "固有名詞" },
+        { label: "レコード種別", value: "MISC:FULL" }
       ]
     }
   ];

@@ -275,7 +275,7 @@
       searchValue={processingTargetSearchQuery}
       title="処理対象"
       titleId="termPhaseProcessingTargetsHeading"
-      titleColumnLabels={["原語候補", "AI 訳語候補"]}
+      titleColumnLabels={["原語", "訳語", "レコード種別"]}
       onSearchInput={!initialFetchDone ? undefined : handleProcessingTargetSearchInput}
       onPreviousPage={!initialFetchDone ? undefined : onProcessingTargetPreviousPage}
       onNextPage={!initialFetchDone ? undefined : onProcessingTargetNextPage}
