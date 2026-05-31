@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"aitranslationenginejp/internal/recclassification"
 	"aitranslationenginejp/internal/repository"
 )
 
@@ -308,8 +309,17 @@ func (service *TranslationInputImportService) prepareRebuildImport(
 }
 
 type translationInputDocument struct {
-	TargetPlugin   string                          `json:"target_plugin"`
-	DialogueGroups []translationInputDialogueGroup `json:"dialogue_groups"`
+	TargetPlugin   string                                `json:"target_plugin"`
+	DialogueGroups []translationInputDialogueGroup       `json:"dialogue_groups"`
+	Quests         []translationInputQuestRecord         `json:"quests"`
+	Items          []translationInputTextRecord          `json:"items"`
+	Magic          []translationInputTextRecord          `json:"magic"`
+	Locations      []translationInputTextRecord          `json:"locations"`
+	Cells          []translationInputTextRecord          `json:"cells"`
+	System         []translationInputTextRecord          `json:"system"`
+	Messages       []translationInputTextRecord          `json:"messages"`
+	LoadScreens    []translationInputTextRecord          `json:"load_screens"`
+	NPCs           map[string]translationInputTextRecord `json:"npcs"`
 }
 
 type translationInputDialogueGroup struct {
@@ -326,6 +336,42 @@ type translationInputResponse struct {
 	Type     string `json:"type"`
 	Text     string `json:"text"`
 	Order    int    `json:"order"`
+}
+
+type translationInputTextRecord struct {
+	ID          string `json:"id"`
+	EditorID    string `json:"editor_id"`
+	Type        string `json:"type"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	Text        string `json:"text"`
+	Title       string `json:"title"`
+}
+
+type translationInputQuestRecord struct {
+	ID         string                           `json:"id"`
+	EditorID   string                           `json:"editor_id"`
+	Type       string                           `json:"type"`
+	Name       string                           `json:"name"`
+	Stages     []translationInputQuestStage     `json:"stages"`
+	Objectives []translationInputQuestObjective `json:"objectives"`
+}
+
+type translationInputQuestStage struct {
+	StageIndex     int    `json:"stage_index"`
+	LogIndex       int    `json:"log_index"`
+	Type           string `json:"type"`
+	ParentID       string `json:"parent_id"`
+	ParentEditorID string `json:"parent_editor_id"`
+	Text           string `json:"text"`
+}
+
+type translationInputQuestObjective struct {
+	Index          string `json:"index"`
+	Type           string `json:"type"`
+	ParentID       string `json:"parent_id"`
+	ParentEditorID string `json:"parent_editor_id"`
+	Text           string `json:"text"`
 }
 
 type preparedTranslationInputImport struct {
@@ -362,13 +408,28 @@ func decodeTranslationInputDocument(content []byte) (translationInputDocument, e
 			err:  fmt.Errorf("decode translation input json: %w", err),
 		}
 	}
-	if strings.TrimSpace(document.TargetPlugin) == "" || len(document.DialogueGroups) == 0 {
+	if strings.TrimSpace(document.TargetPlugin) == "" || !document.hasImportableRecords() {
 		return translationInputDocument{}, translationInputImportError{
 			kind: TranslationInputErrorKindUnsupportedExtractShape,
-			err:  fmt.Errorf("translation input json does not contain xEdit dialogue_groups"),
+			err:  fmt.Errorf("translation input json does not contain importable xEdit records"),
 		}
 	}
 	return document, nil
+}
+
+func (document translationInputDocument) hasImportableRecords() bool {
+	if len(document.DialogueGroups) > 0 {
+		return true
+	}
+	return len(document.Quests) > 0 ||
+		len(document.Items) > 0 ||
+		len(document.Magic) > 0 ||
+		len(document.Locations) > 0 ||
+		len(document.Cells) > 0 ||
+		len(document.System) > 0 ||
+		len(document.Messages) > 0 ||
+		len(document.LoadScreens) > 0 ||
+		len(document.NPCs) > 0
 }
 
 func readTranslationInputFile(validatedPath string) ([]byte, error) {
@@ -547,6 +608,87 @@ func (service *TranslationInputImportService) prepareImport(
 		}
 	}
 
+	for _, record := range document.Items {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.Magic {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.Locations {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.Cells {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.System {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.Messages {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.LoadScreens {
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	npcIDs := make([]string, 0, len(document.NPCs))
+	for id := range document.NPCs {
+		npcIDs = append(npcIDs, id)
+	}
+	sort.Strings(npcIDs)
+	for _, id := range npcIDs {
+		record := document.NPCs[id]
+		if strings.TrimSpace(record.ID) == "" {
+			record.ID = id
+		}
+		preparedRecord, err := service.prepareTextRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
+	for _, record := range document.Quests {
+		preparedRecord, err := service.prepareQuestRecord(record, &prepared)
+		if err != nil {
+			return preparedTranslationInputImport{}, err
+		}
+		prepared.records = append(prepared.records, preparedRecord)
+	}
+
 	if len(prepared.records) == 0 {
 		return preparedTranslationInputImport{}, translationInputImportError{
 			kind: TranslationInputErrorKindUnsupportedExtractShape,
@@ -656,6 +798,118 @@ func (service *TranslationInputImportService) prepareDialogueGroup(
 	}
 
 	return record, nil
+}
+
+func (service *TranslationInputImportService) prepareTextRecord(
+	input translationInputTextRecord,
+	prepared *preparedTranslationInputImport,
+) (preparedTranslationRecord, error) {
+	formID := strings.TrimSpace(input.ID)
+	typeValue := strings.TrimSpace(input.Type)
+	if formID == "" || typeValue == "" {
+		return preparedTranslationRecord{}, translationInputImportError{
+			kind: TranslationInputErrorKindMissingRequiredField,
+			err:  fmt.Errorf("translation record requires id and type"),
+		}
+	}
+
+	recordType, subrecordType, err := parseRecordAndSubrecord(typeValue)
+	if err != nil {
+		return preparedTranslationRecord{}, err
+	}
+
+	record := preparedTranslationRecord{
+		formID:     formID,
+		editorID:   strings.TrimSpace(input.EditorID),
+		recordType: recordType,
+	}
+	prepared.incrementCategory(recordType, 1, 0)
+
+	service.appendPreparedFieldIfNotEmpty(&record, prepared, recordType, subrecordType, input.Name, 0)
+	service.appendPreparedFieldIfNotEmpty(&record, prepared, recordType, "DESC", input.Description, 1)
+	service.appendPreparedFieldIfNotEmpty(&record, prepared, recordType, subrecordType, input.Text, 2)
+	service.appendPreparedFieldIfNotEmpty(&record, prepared, recordType, "FULL", input.Title, 3)
+
+	return record, nil
+}
+
+func (service *TranslationInputImportService) prepareQuestRecord(
+	input translationInputQuestRecord,
+	prepared *preparedTranslationInputImport,
+) (preparedTranslationRecord, error) {
+	record, err := service.prepareTextRecord(translationInputTextRecord{
+		ID:       input.ID,
+		EditorID: input.EditorID,
+		Type:     input.Type,
+		Name:     input.Name,
+	}, prepared)
+	if err != nil {
+		return preparedTranslationRecord{}, err
+	}
+
+	for _, stage := range input.Stages {
+		if strings.TrimSpace(stage.Text) == "" {
+			continue
+		}
+		stageRecordType, stageSubrecordType, parseErr := parseRecordAndSubrecord(stage.Type)
+		if parseErr != nil {
+			return preparedTranslationRecord{}, parseErr
+		}
+		if stageRecordType != record.recordType {
+			prepared.incrementCategory(stageRecordType, 0, 0)
+		}
+		fieldOrder := stage.StageIndex*1000 + stage.LogIndex
+		service.appendPreparedFieldIfNotEmpty(&record, prepared, stageRecordType, stageSubrecordType, stage.Text, fieldOrder)
+	}
+
+	for _, objective := range input.Objectives {
+		if strings.TrimSpace(objective.Text) == "" {
+			continue
+		}
+		objectiveRecordType, objectiveSubrecordType, parseErr := parseRecordAndSubrecord(objective.Type)
+		if parseErr != nil {
+			return preparedTranslationRecord{}, parseErr
+		}
+		if objectiveRecordType != record.recordType {
+			prepared.incrementCategory(objectiveRecordType, 0, 0)
+		}
+		fieldOrder := parseQuestObjectiveFieldOrder(objective.Index)
+		service.appendPreparedFieldIfNotEmpty(&record, prepared, objectiveRecordType, objectiveSubrecordType, objective.Text, fieldOrder)
+	}
+
+	return record, nil
+}
+
+func parseQuestObjectiveFieldOrder(index string) int {
+	trimmed := strings.TrimSpace(index)
+	if trimmed == "" {
+		return 0
+	}
+	var fieldOrder int
+	for _, char := range trimmed {
+		if char < '0' || char > '9' {
+			return 0
+		}
+		fieldOrder = fieldOrder*10 + int(char-'0')
+	}
+	return fieldOrder
+}
+
+func (service *TranslationInputImportService) appendPreparedFieldIfNotEmpty(
+	record *preparedTranslationRecord,
+	prepared *preparedTranslationInputImport,
+	recordType string,
+	subrecordType string,
+	sourceText string,
+	fieldOrder int,
+) {
+	text := strings.TrimSpace(sourceText)
+	if text == "" {
+		return
+	}
+	field, warning := service.prepareField(recordType, subrecordType, text, fieldOrder)
+	record.fields = append(record.fields, field)
+	prepared.addField(recordType, warning)
 }
 
 func (service *TranslationInputImportService) prepareResponse(
@@ -797,9 +1051,17 @@ func (service *TranslationInputImportService) updatePreparedInputMetadata(
 	return updatedInput, nil
 }
 
-var defaultTranslationFieldDefinitions = map[string]bool{
-	"DIAL:FULL": true,
-	"INFO:NAM1": true,
+var defaultTranslationFieldDefinitions = newDefaultTranslationFieldDefinitions()
+
+func newDefaultTranslationFieldDefinitions() map[string]bool {
+	definitions := map[string]bool{
+		"DIAL:FULL": true,
+		"INFO:NAM1": true,
+	}
+	for _, rec := range recclassification.TermTargetRECList() {
+		definitions[rec] = true
+	}
+	return definitions
 }
 
 func validateTranslationInputPath(rawPath string) (string, error) {
