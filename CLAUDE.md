@@ -5,7 +5,12 @@
 
 ## MCP
 
-go, typescriptを調査するときはLSPプラグインを利用すること。
+go, typescriptを調査するときはLSPプラグインを利用すること。（claudeのみ）
+
+## 実画面確認
+
+プロダクト変更を伴う task は、harness 検証通過後に実 app を chrome-devtools で操作し、想定どおりに動くかを目視で確かめる。
+起動 command は `wails dev`、接続先は `http://localhost:34115`。再起動が要るかは task の変更内容で判断する。
 
 ## 日本語出力規約
 
