@@ -84,7 +84,8 @@ export const processingTargetListPanelFixtures = {
         name: `用語候補 ${paddedNumber}`,
         titleParts: [
           { text: `原語 ${paddedNumber}: Dragonborn` },
-          { text: `訳語候補 ${paddedNumber}: ドラゴンボーン` }
+          { text: `訳語 ${paddedNumber}: ドラゴンボーン` },
+          { text: `レコード種別 ${paddedNumber}: NPC_:FULL` }
         ],
         detail: "AIサービスへ送り、確定訳語として翻訳ジョブ内辞書へ保存する候補。",
         metadata: [
@@ -196,7 +197,7 @@ export const processingTargetListPanelFixtures = {
         ]
       }
     }),
-    titleColumnLabels: ["原語候補", "AI 訳語候補"]
+    titleColumnLabels: ["原語", "訳語", "レコード種別"]
   },
   longText: {
     items: [

@@ -140,7 +140,12 @@
   }
 
   function getItemTitle(item: ProcessingTargetListItem): string {
-    return getItemTitleParts(item).join(" / ")
+    const nonBlankTitleParts = getItemTitleParts(item).filter(
+      (titlePart) => titlePart.trim() !== ""
+    )
+    return nonBlankTitleParts.length > 0
+      ? nonBlankTitleParts.join(" / ")
+      : item.name
   }
 
   function parseTitlePart(
@@ -158,11 +163,18 @@
     }
   }
 
-  const titleColumnCount = $derived(
-    visibleItems.some((item) => getItemTitleParts(item).length > 1) ? 2 : 1
+  const visibleTitleColumnCount = $derived(
+    Math.max(1, ...visibleItems.map((item) => getItemTitleParts(item).length))
   )
-  const titleColumnIndexes = $derived(titleColumnCount === 1 ? [0] : [0, 1])
-  const COLUMN_FALLBACK_LABELS = ["対象 1", "対象 2"] as const
+  const titleColumnCount = $derived(
+    providedTitleColumnLabels?.length
+      ? providedTitleColumnLabels.length
+      : visibleTitleColumnCount
+  )
+  const titleColumnIndexes = $derived(
+    Array.from({ length: titleColumnCount }, (_, index) => index)
+  )
+  const COLUMN_FALLBACK_LABELS = ["対象 1", "対象 2", "対象 3"] as const
   const derivedTitleColumnLabels = $derived(
     titleColumnCount === 1
       ? ["対象"]
@@ -173,7 +185,10 @@
         )
           .slice(0, titleColumnCount)
           .map((titlePart, i) =>
-            parseTitlePart(titlePart, COLUMN_FALLBACK_LABELS[i]).label
+            parseTitlePart(
+              titlePart,
+              COLUMN_FALLBACK_LABELS[i] ?? `対象 ${i + 1}`
+            ).label
           )
   )
   const resolvedTitleColumnLabels = $derived(

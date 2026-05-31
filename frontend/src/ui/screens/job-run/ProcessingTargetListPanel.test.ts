@@ -38,12 +38,12 @@ describe("ProcessingTargetListPanel", () => {
 
     expect(
       screen.getByRole("row", {
-        name: "原語 001: Dragonborn / 訳語候補 001: ドラゴンボーン"
+        name: "原語 001: Dragonborn / 訳語 001: ドラゴンボーン / レコード種別 001: NPC_:FULL"
       })
     ).toBeInTheDocument()
     expect(
       screen.getByRole("row", {
-        name: "原語 050: Dragonborn / 訳語候補 050: ドラゴンボーン"
+        name: "原語 050: Dragonborn / 訳語 050: ドラゴンボーン / レコード種別 050: NPC_:FULL"
       })
     ).toBeInTheDocument()
     expect(screen.queryByText("原語 051: Dragonborn")).not.toBeInTheDocument()
@@ -87,19 +87,56 @@ describe("ProcessingTargetListPanel", () => {
     )
   })
 
-  test("単語翻訳の行タイトルに原語と訳語候補を表示する", () => {
+  test("単語翻訳の行タイトルに原語、訳語、レコード種別を表示する", () => {
     render(ProcessingTargetListPanel, {
       props: processingTargetListPanelFixtures.termTranslationFirstPage
     })
 
+    expect(screen.getByRole("columnheader", { name: "原語" }))
+      .toBeInTheDocument()
+    expect(screen.getByRole("columnheader", { name: "訳語" }))
+      .toBeInTheDocument()
+    expect(screen.getByRole("columnheader", { name: "レコード種別" }))
+      .toBeInTheDocument()
     expect(
       screen.getByRole("row", {
-        name: "原語 001: Dragonborn / 訳語候補 001: ドラゴンボーン"
+        name: "原語 001: Dragonborn / 訳語 001: ドラゴンボーン / レコード種別 001: NPC_:FULL"
       })
     ).toHaveAttribute(
       "aria-label",
-      "原語 001: Dragonborn / 訳語候補 001: ドラゴンボーン"
+      "原語 001: Dragonborn / 訳語 001: ドラゴンボーン / レコード種別 001: NPC_:FULL"
     )
+  })
+
+  test("単語翻訳の訳語が空でもレコード種別を訳語列へ詰めない", () => {
+    render(ProcessingTargetListPanel, {
+      props: {
+        items: [
+          {
+            id: "term-translation-blank",
+            name: "用語候補",
+            titleParts: [
+              { text: "原語: Lucien" },
+              { text: "" },
+              { text: "レコード種別: NPC_:FULL" }
+            ],
+            detail: "登録直後の単語翻訳候補。",
+            metadata: []
+          }
+        ],
+        titleColumnLabels: ["原語", "訳語", "レコード種別"]
+      }
+    })
+
+    const row = screen.getByRole("row", {
+      name: "原語: Lucien / レコード種別: NPC_:FULL"
+    })
+    const cells = within(row).getAllByRole("cell")
+
+    expect(cells).toHaveLength(3)
+    expect(cells[0]).toHaveTextContent("Lucien")
+    expect(cells[1]?.textContent?.trim()).toBe("")
+    expect(cells[2]).toHaveTextContent("NPC_:FULL")
   })
 
   test("本文翻訳の行タイトルに原文と訳文を表示する", () => {
@@ -201,12 +238,12 @@ describe("ProcessingTargetListPanel", () => {
 
     await user.click(
       screen.getByRole("row", {
-        name: "原語 002: Dragonborn / 訳語候補 002: ドラゴンボーン"
+        name: "原語 002: Dragonborn / 訳語 002: ドラゴンボーン / レコード種別 002: NPC_:FULL"
       })
     )
 
     const secondMetadataRow = screen.getByRole("row", {
-      name: /原語 002: Dragonborn \/ 訳語候補 002: ドラゴンボーン のメタデータ/
+      name: /原語 002: Dragonborn \/ 訳語 002: ドラゴンボーン \/ レコード種別 002: NPC_:FULL のメタデータ/
     })
     expect(within(secondMetadataRow).getByText("term-translation-002"))
       .toBeInTheDocument()
@@ -218,7 +255,7 @@ describe("ProcessingTargetListPanel", () => {
 
     screen
       .getByRole("row", {
-        name: "原語 003: Dragonborn / 訳語候補 003: ドラゴンボーン"
+        name: "原語 003: Dragonborn / 訳語 003: ドラゴンボーン / レコード種別 003: NPC_:FULL"
       })
       .focus()
     await user.keyboard("{Enter}")
@@ -327,12 +364,12 @@ describe("ProcessingTargetListPanel", () => {
     expect(screen.queryByText("原語 001: Dragonborn")).not.toBeInTheDocument()
     expect(
       screen.getByRole("row", {
-        name: "原語 051: Dragonborn / 訳語候補 051: ドラゴンボーン"
+        name: "原語 051: Dragonborn / 訳語 051: ドラゴンボーン / レコード種別 051: NPC_:FULL"
       })
     ).toBeInTheDocument()
     expect(
       screen.getByRole("row", {
-        name: "原語 100: Dragonborn / 訳語候補 100: ドラゴンボーン"
+        name: "原語 100: Dragonborn / 訳語 100: ドラゴンボーン / レコード種別 100: NPC_:FULL"
       })
     )
       .toBeInTheDocument()
@@ -343,7 +380,7 @@ describe("ProcessingTargetListPanel", () => {
 
     expect(
       screen.getByRole("row", {
-        name: "原語 001: Dragonborn / 訳語候補 001: ドラゴンボーン"
+        name: "原語 001: Dragonborn / 訳語 001: ドラゴンボーン / レコード種別 001: NPC_:FULL"
       })
     ).toBeInTheDocument()
     expect(screen.queryByText("原語 051: Dragonborn")).not.toBeInTheDocument()
