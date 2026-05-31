@@ -37,6 +37,7 @@
       "Bash(gofmt -l internal:*)",
       "Bash(npx playwright test:*)",
       "Bash(wails dev:*)",
+      "Bash(pkill -f wails:*)",
       "Bash(agent-browser:*)",
       "Bash(node ./scripts/node/run-sonar-scanner.mjs:*)",
       "Bash(git status:*)",

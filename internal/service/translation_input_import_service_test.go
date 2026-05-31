@@ -152,6 +152,139 @@ func TestTranslationInputImportServiceImportXEditJSONWithContentAllowsDuplicateS
 	}
 }
 
+func TestTranslationInputImportServiceImportXEditJSONWithContentImportsNonDialogueRecords(t *testing.T) {
+	repo := &translationInputRepositoryStub{}
+	service := NewTranslationInputImportService(repo, translationInputTransactorStub{}, nil, fixedTranslationInputNow)
+
+	summary, err := service.ImportXEditJSONWithContent(
+		context.Background(),
+		"/imports/non-dialogue.json",
+		"non-dialogue.json",
+		translationInputNonDialogueFixtureContent,
+	)
+	if err != nil {
+		t.Fatalf("non-dialogue import should succeed: %v", err)
+	}
+
+	if summary.Input.TargetPluginName != "NonDialogue" || summary.Input.TargetPluginType != "ESP" {
+		t.Fatalf("unexpected imported input metadata: %+v", summary.Input)
+	}
+	if summary.TranslationRecordCount != len(repo.recordDrafts) {
+		t.Fatalf("summary record count = %d, persisted records = %d", summary.TranslationRecordCount, len(repo.recordDrafts))
+	}
+	if summary.TranslationFieldCount != len(repo.fieldDrafts) {
+		t.Fatalf("summary field count = %d, persisted fields = %d", summary.TranslationFieldCount, len(repo.fieldDrafts))
+	}
+
+	persistedRECs := persistedTranslationInputRECs(repo)
+	for _, rec := range []string{
+		"BOOK:FULL",
+		"NPC_:FULL",
+		"NPC_:SHRT",
+		"ARMO:FULL",
+		"WEAP:FULL",
+		"LCTN:FULL",
+		"CELL:FULL",
+		"CONT:FULL",
+		"MISC:FULL",
+		"ALCH:FULL",
+		"RACE:FULL",
+		"INGR:FULL",
+		"SHOU:FULL",
+	} {
+		if !persistedRECs[rec] {
+			t.Fatalf("expected non-dialogue import to persist REC %q, got %#v", rec, persistedRECs)
+		}
+	}
+
+	persistedSources := persistedTranslationInputSources(repo)
+	for _, sourceText := range []string{
+		"Arcane Codex",
+		"Steel Harness",
+		"River Watch",
+		"Non Dialogue NPC",
+		"Short NPC",
+		"Quest Name",
+		"Quest stage text",
+		"Quest objective text",
+		"Message body",
+		"Message title",
+		"Load screen text",
+		"Race name",
+	} {
+		if !persistedSources[sourceText] {
+			t.Fatalf("expected source text %q to be persisted, got %#v", sourceText, persistedSources)
+		}
+	}
+	if persistedSources[""] {
+		t.Fatal("empty source text should not be persisted as a translation field")
+	}
+}
+
+func TestTranslationInputImportServiceImportXEditJSONWithContentDoesNotRequireDialogueGroups(t *testing.T) {
+	repo := &translationInputRepositoryStub{}
+	service := NewTranslationInputImportService(repo, translationInputTransactorStub{}, nil, fixedTranslationInputNow)
+
+	summary, err := service.ImportXEditJSONWithContent(
+		context.Background(),
+		"/imports/items-only.json",
+		"items-only.json",
+		`{
+			"target_plugin": "ItemsOnly.esp",
+			"items": [
+				{
+					"id": "01000001",
+					"editor_id": "OnlyBook",
+					"type": "BOOK FULL",
+					"name": "Only Book"
+				}
+			]
+		}`,
+	)
+	if err != nil {
+		t.Fatalf("items-only import should not require dialogue_groups: %v", err)
+	}
+	if summary.TranslationRecordCount != 1 || summary.TranslationFieldCount != 1 {
+		t.Fatalf("unexpected items-only import summary: %+v", summary)
+	}
+	if len(repo.recordDrafts) != 1 || repo.recordDrafts[0].RecordType != "BOOK" {
+		t.Fatalf("expected one BOOK record, got %#v", repo.recordDrafts)
+	}
+}
+
+func TestTranslationInputImportServiceImportXEditJSONWithContentRejectsEmptyImportableRecords(t *testing.T) {
+	repo := &translationInputRepositoryStub{}
+	service := NewTranslationInputImportService(repo, translationInputTransactorStub{}, nil, fixedTranslationInputNow)
+
+	_, err := service.ImportXEditJSONWithContent(
+		context.Background(),
+		"/imports/empty.json",
+		"empty.json",
+		`{
+			"target_plugin": "Empty.esp",
+			"dialogue_groups": [],
+			"items": [],
+			"magic": [],
+			"locations": [],
+			"cells": [],
+			"system": [],
+			"messages": [],
+			"load_screens": [],
+			"npcs": {},
+			"quests": []
+		}`,
+	)
+	if err == nil {
+		t.Fatal("empty importable records should fail")
+	}
+	if kind, ok := TranslationInputErrorKindOf(err); !ok || kind != TranslationInputErrorKindUnsupportedExtractShape {
+		t.Fatalf("expected unsupported_extract_shape, got kind=%q ok=%v err=%v", kind, ok, err)
+	}
+	if len(repo.xEditDrafts) != 0 || len(repo.recordDrafts) != 0 || len(repo.fieldDrafts) != 0 {
+		t.Fatalf("empty import should not persist drafts, got xedit=%d records=%d fields=%d", len(repo.xEditDrafts), len(repo.recordDrafts), len(repo.fieldDrafts))
+	}
+}
+
 func writeTranslationInputFixture(t *testing.T) string {
 	t.Helper()
 
@@ -171,6 +304,165 @@ func writeTranslationInputFixture(t *testing.T) string {
 
 	return workingDir
 }
+
+func persistedTranslationInputRECs(repo *translationInputRepositoryStub) map[string]bool {
+	recs := map[string]bool{}
+	for _, field := range repo.fieldDrafts {
+		recordIndex := int(field.TranslationRecordID) - 1
+		if recordIndex < 0 || recordIndex >= len(repo.recordDrafts) {
+			continue
+		}
+		record := repo.recordDrafts[recordIndex]
+		recs[record.RecordType+":"+field.SubrecordType] = true
+	}
+	return recs
+}
+
+func persistedTranslationInputSources(repo *translationInputRepositoryStub) map[string]bool {
+	sources := map[string]bool{}
+	for _, field := range repo.fieldDrafts {
+		sources[field.SourceText] = true
+	}
+	return sources
+}
+
+const translationInputNonDialogueFixtureContent = `{
+	"target_plugin": "NonDialogue.esp",
+	"items": [
+		{
+			"id": "01000001",
+			"editor_id": "BookArcaneCodex",
+			"type": "BOOK FULL",
+			"name": "Arcane Codex",
+			"description": ""
+		},
+		{
+			"id": "01000002",
+			"editor_id": "ArmorSteelHarness",
+			"type": "ARMO FULL",
+			"name": "Steel Harness"
+		},
+		{
+			"id": "01000003",
+			"editor_id": "WeaponGlassBlade",
+			"type": "WEAP FULL",
+			"name": "Glass Blade"
+		},
+		{
+			"id": "01000004",
+			"editor_id": "ContainerSupplyChest",
+			"type": "CONT FULL",
+			"name": "Supply Chest"
+		},
+		{
+			"id": "01000005",
+			"editor_id": "MiscDwemerGear",
+			"type": "MISC FULL",
+			"name": "Dwemer Gear"
+		},
+		{
+			"id": "01000006",
+			"editor_id": "PotionMoonSugar",
+			"type": "ALCH FULL",
+			"name": "Moon Sugar Draught"
+		},
+		{
+			"id": "01000007",
+			"editor_id": "IngredientFrostRoot",
+			"type": "INGR FULL",
+			"name": "Frost Root"
+		}
+	],
+	"magic": [
+		{
+			"id": "01000008",
+			"editor_id": "ShoutRiverCall",
+			"type": "SHOU FULL",
+			"name": "River Call",
+			"description": "River call description"
+		}
+	],
+	"locations": [
+		{
+			"id": "01000009",
+			"editor_id": "LocationRiverWatch",
+			"type": "LCTN FULL",
+			"name": "River Watch"
+		},
+		{
+			"id": "0100000A",
+			"editor_id": "CellRiverWatchInterior",
+			"type": "CELL FULL",
+			"name": "River Watch Interior"
+		}
+	],
+	"system": [
+		{
+			"id": "0100000B",
+			"editor_id": "RaceRiverFolk",
+			"type": "RACE FULL",
+			"name": "Race name"
+		},
+		{
+			"id": "0100000C",
+			"editor_id": "ShortNPC",
+			"type": "NPC_ SHRT",
+			"name": "Short NPC"
+		}
+	],
+	"messages": [
+		{
+			"id": "0100000D",
+			"editor_id": "MessageWarning",
+			"type": "MESG DESC",
+			"text": "Message body",
+			"title": "Message title"
+		}
+	],
+	"load_screens": [
+		{
+			"id": "0100000E",
+			"editor_id": "LoadRiverWatch",
+			"type": "LSCR DESC",
+			"text": "Load screen text"
+		}
+	],
+	"npcs": {
+		"0100000F": {
+			"id": "0100000F",
+			"editor_id": "NonDialogueNPC",
+			"type": "NPC_ FULL",
+			"name": "Non Dialogue NPC"
+		}
+	},
+	"quests": [
+		{
+			"id": "01000010",
+			"editor_id": "QuestRiverWatch",
+			"type": "QUST FULL",
+			"name": "Quest Name",
+			"stages": [
+				{
+					"stage_index": 10,
+					"log_index": 0,
+					"type": "QUST CNAM",
+					"parent_id": "01000010",
+					"parent_editor_id": "QuestRiverWatch",
+					"text": "Quest stage text"
+				}
+			],
+			"objectives": [
+				{
+					"index": "20",
+					"type": "QUST NNAM",
+					"parent_id": "01000010",
+					"parent_editor_id": "QuestRiverWatch",
+					"text": "Quest objective text"
+				}
+			]
+		}
+	]
+}`
 
 func changeWorkingDirectory(t *testing.T, dir string) {
 	t.Helper()
