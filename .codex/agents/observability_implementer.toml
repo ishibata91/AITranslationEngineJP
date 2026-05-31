@@ -4,3 +4,5 @@ description = "Codex 観測ログ追加 agent。完成済み実装成果物へ�
 model = "gpt-5.5"
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""

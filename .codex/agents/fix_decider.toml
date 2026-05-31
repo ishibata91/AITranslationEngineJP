@@ -4,3 +4,5 @@ description = "Codex 修正方針判断 agent。観測記録から確定原因�
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""

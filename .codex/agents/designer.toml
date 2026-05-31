@@ -4,3 +4,5 @@ description = "Codex 設計成果物 agent。詳細は /Users/iorishibata/Reposi
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""

@@ -4,3 +4,5 @@ description = "Codex 統合境界プロダクト実装 agent。詳細は /Users/
 model = "gpt-5.5"
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""

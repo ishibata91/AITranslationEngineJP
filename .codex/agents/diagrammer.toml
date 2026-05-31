@@ -4,3 +4,5 @@ description = "Codex 図作成補助 agent。設計差分図または明示さ�
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""

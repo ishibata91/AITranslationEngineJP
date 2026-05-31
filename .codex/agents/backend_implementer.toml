@@ -4,3 +4,5 @@ description = "Codex backend プロダクト実装 agent。詳細は /Users/iori
 model = "gpt-5.5"
 model_reasoning_effort = "low"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""

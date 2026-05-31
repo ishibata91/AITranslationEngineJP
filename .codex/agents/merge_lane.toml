@@ -4,3 +4,5 @@ description = "Codex マージレーン進行役。active plan ごとの local m
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
+
+developer_instructions = ""
