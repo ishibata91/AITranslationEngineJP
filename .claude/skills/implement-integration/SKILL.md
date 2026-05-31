@@ -1,6 +1,6 @@
 ---
 name: implement-integration
-description: Codex 実装系レーン側の API / Wails / DTO / gateway など frontend と backend の統合境界実装作業プロトコル。
+description: `implementation-module` 内で `integration_implementer` agent が使う、API / Wails / DTO / gateway など frontend と backend の統合境界実装作業プロトコル。
 ---
 # Implement Integration
 
@@ -15,13 +15,13 @@ integration は広い frontend / backend 同時変更の許可ではない。
 ## 対応ロール
 
 - `integration_implementer` が使う。
-- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` のいずれかとする。
+- 呼び出し元は `implementation-module`、または `integration_implementer` agent を Task ツールで起動した上位 agent とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-integration` の出力規約で固定する。
 
 ## 呼び出し元から渡される情報
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された統合境界実装用 引き継ぎ 1 件、修正レーンの `修正実行入力`、または UX 保守レーンの `接続整合証跡`。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された統合境界実装用 引き継ぎ 1 件、または `investigation-module` の `修正実行入力`。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい統合境界のファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい統合境界のプロダクトコード範囲。
@@ -75,8 +75,8 @@ secret 分離観点表は次を拘束する。
 - UI がある task では、実画面が承認済み `screen-design-diff.<screen-id>.md` の主要区画、導線、状態表示から外れていないことを確認する
 - secret を扱った場合は、偽 secret 保管先、偽送信経路、要求捕捉による漏れ確認を 終了処理 に残す
 - 両側の touched files を 引き継ぎ と対応づける
-- frontend / backend / 統合境界 契約 の レーン内検証 根拠 を分ける
-- レーン内検証 コマンド の不足を 残留リスク にする
+- frontend / backend / 統合境界 契約 の モジュール内検証 根拠 を分ける
+- モジュール内検証 コマンド の不足を 残留リスク にする
 
 ## skill が扱わない対象
 
@@ -96,7 +96,7 @@ secret 分離観点表は次を拘束する。
 - 次判断材料: 呼び出し元が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する統合境界プロダクトコードだけを返す。
 - 影響範囲修正: 今回変更が直接壊した生成物、公開境界、検証経路、承認済み統合境界内プロダクトコードを修正した場合に、対象、理由、変更結果を返す。
-- レーン内検証結果: backend-local と frontend-local の失敗時は、承認済み実装範囲 または承認済み統合境界内の影響範囲修正で直して再実行し、通過結果または未実行理由を変更層別に返す。
+- モジュール内検証結果: backend-local と frontend-local の失敗時は、承認済み実装範囲 または承認済み統合境界内の影響範囲修正で直して再実行し、通過結果または未実行理由を変更層別に返す。
 - 実画面確認結果: UI がある task で確認した画面、主要操作、UI 状態、console error、Wails 呼び出し失敗、未確認理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
@@ -111,7 +111,7 @@ secret 分離観点表は次を拘束する。
 - secret を扱う場合は、参照値、secret 本体、secret 解決責務層、出力禁止値を確認した。
 - secret を扱う場合は、偽 secret 保管先、偽送信経路、要求捕捉を使い、secret 本体が URL、DTO、UI、error summary、構造化 log、audit、要求捕捉に出ないことを確認した。
 - 両側の touched files を 引き継ぎ と対応づけた。
-- 単一引き継ぎ入力 と レーン内検証 根拠 を分けた。
+- 単一引き継ぎ入力 と モジュール内検証 根拠 を分けた。
 - UI がある task では、実画面で主要操作が backend まで到達することを確認した。
 - UI がある task では、実レスポンスが UI 状態へ反映されることを確認した。
 - UI がある task では、console error と Wails 呼び出し失敗が残っていないことを確認した。

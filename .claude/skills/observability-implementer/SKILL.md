@@ -1,6 +1,6 @@
 ---
 name: observability-implementer
-description: Codex 実装レーン 側の観測ログ追加作業プロトコル。
+description: `implementation-module` 内で `observability_implementer` agent が使う観測ログ追加作業プロトコル。
 ---
 # 観測ログ追加
 
@@ -12,8 +12,8 @@ description: Codex 実装レーン 側の観測ログ追加作業プロトコル
 ## 対応ロール
 
 - `observability_implementer` が使う。
-- 呼び出し元は `implement_lane` とする。
-- 返却先は `implement_lane` とする。
+- 呼び出し元は `implementation-module`、または `observability_implementer` agent を Task ツールで起動した上位 agent とする。
+- 返却先は呼び出し元とする。
 - 担当成果物は `観測ログ追加` とする。
 
 ## 呼び出し元から渡される情報

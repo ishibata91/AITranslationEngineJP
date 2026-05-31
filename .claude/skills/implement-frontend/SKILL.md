@@ -1,6 +1,6 @@
 ---
 name: implement-frontend
-description: Codex 実装系レーン側の frontend 実装作業プロトコル。画面導線、状態、Wails bridge の判断基準を提供する。
+description: `storybook-module` または `implementation-module` 内で `frontend_implementer` agent が使う frontend 実装作業プロトコル。画面導線、状態、Wails bridge の判断基準を提供する。
 ---
 # Implement Frontend
 
@@ -12,14 +12,14 @@ description: Codex 実装系レーン側の frontend 実装作業プロトコル
 ## 対応ロール
 
 - `frontend_implementer` が使う。
-- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` のいずれかとする。
+- 呼び出し元は `storybook-module`（`Storybook 表示実装`）、`implementation-module`（`frontend ロジック実装`）、または `frontend_implementer` agent を Task ツールで起動した上位 agent とする。
 - 返却先は呼び出し元とする。
 - 担当成果物は `implement-frontend` の出力規約で固定する。
 
 ## 呼び出し元から渡される情報
 
-- frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、修正レーンの `修正実行入力`、探索テストレーンの `バグ一覧とログ、影響ファイル`、軽量変更レーンの `軽量変更計画`、または UX 保守レーンの `frontend修正入力`。
-- 画面設計根拠: 承認済み `screen-design-diff.<screen-id>.md`、修正レーンまたは探索テストレーンの原因根拠、軽量変更レーンの軽量変更計画と人間確認観点、または UX 保守レーンの親要件参照と人間指摘。
+- frontend 実行入力: `implementation-scope` から切り出された frontend 実装用 引き継ぎ 1 件、`storybook-module` の起動入力、または `investigation-module` の `修正実行入力`。
+- 画面設計根拠: 承認済み `screen-design-diff.<screen-id>.md`、または `investigation-module` の原因根拠。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい frontend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい frontend プロダクトコード範囲。
@@ -36,7 +36,7 @@ description: Codex 実装系レーン側の frontend 実装作業プロトコル
 - architecture 規約: [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界だけを参照する。
 - UX 観点正本: [UX-standard.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/UX-standard.md) とする。
 - Storybook 規約: [storybook.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/storybook.md) とする。
-- ブラウザ操作: `mcp__Claude_in_Chrome` ツール群を MCP ツールとして実行する。
+- ブラウザ操作: `chrome-devtools` MCP ツール群（`mcp__plugin_chrome-devtools-mcp_chrome-devtools__*`）を MCP ツールとして実行する。
 - Storybook 設定: [main.ts](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/.storybook/main.ts) とする。
 - Storybook command: [package.json](/Users/iorishibata/Repositories/AITranslationEngineJP/frontend/package.json) の `storybook` と `build-storybook` とする。
 - 画面設計差分: `screen-design-diff.<screen-id>.md` を受け取る場合は画面ID、画面要素、表示条件、操作、結果、セレクタ（`aria-label`）の根拠にする。
@@ -57,7 +57,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - frontend 実行入力 と 承認済み実装範囲 を確認して プロダクトコード と Storybook 確認資源だけを変更する
 - `frontend-local` の失敗原因が承認済み実装範囲 外にある場合でも、generated file、生成元、公開境界、または検証を壊した frontend プロダクトコードに限り 影響範囲修正 として直す
 - 影響範囲修正は、UI 表示、画面文言、layout、style、承認済み画面設計差分を越える変更に使わない
-- 明確なブロッカーがない限りはレーンを中断せずに成果物の生成を継続すること。
+- 明確なブロッカーがない限りはモジュールを中断せずに成果物の生成を継続すること。
 - UI 状態 の初期値と更新条件を確認する
 - [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の frontend 境界に従い、View、ScreenController、Frontend UseCase、Gateway の責務を跨がない
 - generated `wailsjs` と backend DTO の import は `frontend/src/controller/wails/` に閉じ込める
@@ -90,9 +90,9 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - Storybook確認資源: 変更または追加したコンポーネント、画面、表示状態、確認対象の story、`fixture`、関連資源を返す。
 - Storybookカテゴリー結果: 変更または追加した story の作業中分類、通常分類、現在分類を返す。
 - Storybook検証結果: `npm --prefix frontend run build-storybook` の結果または未実行理由を返す。
-- レーン内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
+- モジュール内検証結果: `python3 scripts/harness/run.py --suite frontend-local` の失敗時はその場で直して再実行し、通過結果または未実行理由を返す。
 - 画面設計根拠確認結果: 実画面と画面設計根拠 の一致、差分、画面ID と セレクタ（`aria-label`）差分、未確認理由、`docs/UX-standard.md` との対応を返す。
-- UI証跡参照: `mcp__Claude_in_Chrome` の `read_page`、スクリーンショット、`read_console_messages` の参照または未取得理由を返す。
+- UI証跡参照: `chrome-devtools` MCP の `take_snapshot`、`take_screenshot`、`list_console_messages` の参照または未取得理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 作業を完了できる条件
@@ -113,7 +113,7 @@ Storybook の作成、起動、分類、確認資源、`fixture` 種類基準は
 - Storybook 確認資源を追加または更新した場合は、`npm --prefix frontend run build-storybook` を実行し、通過結果または未実行理由を返した。
 - 実画面と画面設計根拠 の一致確認結果を返した。
 - 画面設計差分がある場合は、画面ID と セレクタ（`aria-label`） の実装差分を確認した。
-- 画面設計根拠確認結果は、`mcp__Claude_in_Chrome` の `read_page`、スクリーンショット、`read_console_messages` の根拠または未取得理由を含んでいる。
+- 画面設計根拠確認結果は、`chrome-devtools` MCP の `take_snapshot`、`take_screenshot`、`list_console_messages` の根拠または未取得理由を含んでいる。
 - frontend lint と format:check で拾われる境界違反を確認した。
 - frontend 変更として `python3 scripts/harness/run.py --suite frontend-local` を実行し、失敗した場合は承認済み実装範囲 または許可された 影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
 

@@ -8,11 +8,11 @@ model: sonnet
 あなたの主な成果は統合境界実装成果物、実画面接続確認結果、層別検証結果、停止理由である。
 
 あなたは次の境界で動く。
-- 扱う task: `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` から渡された統合境界実装
+- 扱う task: `implementation-module` から渡された統合境界実装
 - 扱わない task: frontend だけで閉じる UI 実装、backend だけで閉じる実装、プロダクトテスト、docs 正本化本文の更新
 - 書き換えてよい範囲: 承認済み統合境界に含まれる `internal/`、`frontend/src/controller/`、root の Wails 起点ファイル、今回変更が直接壊した生成物、公開境界、検証経路、承認済み統合境界内プロダクトコード、検証出力の `test-results/`
 - 書き換えてはいけない範囲: プロダクトテスト、人間承認なしの docs 正本、承認済み実装範囲外の `.codex` 作業流れ、承認済み統合境界外の UI 表示、画面、部品、文言、style、人間承認済み UI 証跡の差分、secret、trust boundary、API / DTO / DB / schema の意味拡張
-- 戻し先: 呼び出し元レーン
+- 戻し先: 呼び出し元
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/implement-integration/SKILL.md`

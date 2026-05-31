@@ -34,7 +34,7 @@ description: 新規実装レーンで task 内成果物依存表、人間介入�
 - 設計差分図は [diagramming](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/diagramming/SKILL.md) に従う。
 - テスト設計は [test-design](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/test-design/SKILL.md) に従う。
 - 実装後ブラウザ確認は [browser-confirmation](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/browser-confirmation/SKILL.md) に従う。
-- Codex 内蔵ブラウザの利用規約は [browser-use.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/browser-use.md) に従う。
+- Chrome DevTools MCP の利用規約は [chrome-devtools-mcp.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/chrome-devtools-mcp.md) に従う。
 - Storybook レビューループは [story-book-review-loop](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/story-book-review-loop/SKILL.md) に従う。
 - frontend 実装は [implement-frontend](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/implement-frontend/SKILL.md) に従う。
 - 観測ログ追加は [observability-implementer](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/observability-implementer/SKILL.md) に従う。
@@ -103,7 +103,7 @@ Storybook の起動、分類、確認資源、`fixture` の妥当性は扱わな
 Storybook レビューループは、人間が立てた別セッションで `story-book-review-loop` に従って実行する。
 `implement_lane` は Storybook レビューループを起動または直接実行しない。
 `implement_lane` は `Storybookレビューループ入力確認` を固定した時点で停止し、人間が立てる別セッションへ渡す入力の所在と不足項目を返す。
-`implement_lane` は Storybook レビューループ中の Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を扱わない。
+`implement_lane` は Storybook レビューループ中の Chrome DevTools MCP 操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を扱わない。
 `Storybookレビューループ完了証跡` は、作業計画フォルダの `storybook-review-loop.md` が存在し、確定した story、変更された画面仕様、反映先、承認状態を持つ状態を指す。
 `frontend 実装後人間レビュー` は、作業計画フォルダの `storybook-review-loop.md` から承認状態、frontend レビュー修正成果物、Storybook レビューループ画面仕様だけを記録する。
 `frontend 実装後人間レビュー` が承認済みの場合は、`storybook-review-loop.md` に記録された確定済み story と分類を記録する。
@@ -195,7 +195,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - `Storybookレビューループ入力確認` は、Storybook の起動状態、分類、確認資源、`fixture` の妥当性を判断しない。
 - `Storybookレビューループ入力確認` に作業計画フォルダ、frontend 実装結果、frontend 実装境界のいずれかが不足する場合は、frontend 人間レビューへ進めず、人間への返却を固定する。
 - Storybook レビューループは人間が立てた別セッションで `story-book-review-loop` に従って実行するため、`implement_lane` は `Storybookレビューループ入力確認` の固定後に停止する。
-- `implement_lane` は Storybook レビューループ中の Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を行わない。
+- `implement_lane` は Storybook レビューループ中の Chrome DevTools MCP 操作、コメント収集、コメント解釈、frontend 修正、修正結果判定を行わない。
 - 作業計画フォルダに `storybook-review-loop.md` が出来上がっている場合だけ、変更された画面仕様、反映先、現在分類、承認状態を `frontend 実装後人間レビュー` の根拠に含める。
 - `story-book-review-loop` から設計整合入力が返った場合は、`designer` へ戻し、plan 内の `screen-design-diff.<screen-id>.md` など該当する画面設計成果物を更新させる。
 - Storybook レビューループ後に画面仕様が変わり、`designer` を起動できる入力が揃っている場合は、`Storybook後画面設計差分整合` を着手可能成果物として扱う。
@@ -252,7 +252,7 @@ Storybook レビューループ後に画面仕様が変わった場合は、`des
 - 恒久修正、構造整理、探索テスト、軽量変更は詳細化しない。
 - 詳細仕様差分と画面設計差分の人間レビューは扱わない。
 - Storybook レビューループの起動と直接実行は扱わない。
-- Storybook レビューループ中の Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定は扱わない。
+- Storybook レビューループ中の Chrome DevTools MCP 操作、コメント収集、コメント解釈、frontend 修正、修正結果判定は扱わない。
 - 起動先 agent の下位 agent 起動は扱わない。
 - プロダクトコードとプロダクトテストは変更しない。
 - local merge、completed 移動、remote repository の変更は扱わない。

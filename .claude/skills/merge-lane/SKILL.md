@@ -6,19 +6,19 @@ description: active plan ごとの local merge、conflict 解消、merge 後検�
 
 ## 目的
 
-`merge-lane` は、各レーンが作成した local branch を統合先 branch へ取り込み、active plan を completed archive へ移す作業プロトコルである。
-`merge_lane` が plan 確認、local merge、conflict 解消、merge 後検証、completed 移動、merge 結果 commit を管理する時に使う。
+`merge-lane` は、`finalization-module` が出力した作業 branch を統合先 branch へ取り込み、active plan を completed archive へ移す作業プロトコルである。
+`merge_lane` agent が plan 確認、local merge、conflict 解消、merge 後検証、completed 移動、merge 結果 commit を管理する時に使う。
 
 ## 対応ロール
 
-- `merge_lane` が使う。
-- 呼び出し元は人間、`implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`ux_maintainance_lane`、`refactor_lane` とする。
-- 返却先は人間または呼び出し元レーンとする。
+- `merge_lane` agent が使う。
+- 呼び出し元は人間、または `finalization-module` の `マージ準備入力` を受け取った上位 agent とする。
+- 返却先は呼び出し元とする。
 - 担当成果物は `plan 確認`、`local merge`、`conflict 解消`、`merge 後検証`、`completed 移動`、`merge 結果 commit` とする。
 
 ## 呼び出し元から渡される情報
 
-- 呼び出し元: この skill を呼び出した人間またはレーン。
+- 呼び出し元: この skill を呼び出した人間または agent。
 - 作業計画フォルダ: task 内成果物を置く `docs/exec-plans/active/<task-id>/`。
 
 ## 作業前に読む正本

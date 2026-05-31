@@ -5,8 +5,8 @@
 - `source_plan`: `./plan.md`
 - `human_review_status`:
 - `approval_record`:
-- `codex_entry`: `.claude/skills/implement-lane/SKILL.md`
-- `handoff_runtime`: `codex`
+- `module_entry`: `.claude/skills/implementation-module/SKILL.md`
+- `handoff_runtime`: `claude-module`
 - `architecture_reference`: `docs/architecture.md`
 
 ## Source Artifacts
@@ -65,7 +65,7 @@
   - frontend handoff では、承認済み `screen-design-diff.<screen-id>.md` を必須 source にする。
   - frontend handoff では、承認済み画面設計差分の主要区画、導線、状態表示を維持する完了条件を書く。
   - API / Wails / DTO / gateway / adapter contract の接続と実画面確認は `統合境界実装` handoff に分ける。
-  - `implementation_skill` は `implementation_artifact` と一致させ、Codex 実装系レーンが読む skill を一意にする。
+  - `implementation_skill` は `implementation_artifact` と一致させ、実装モジュールが読む skill を一意にする。
   - `シナリオテスト` と `単体テスト` は実装成果物の完了後に別 handoff として作り、依存対象が揃った後は並列実行できる。
   - `単体テスト` handoff は、期待結果の元ネタとして `spec_basis` を必ず持つ。
   - `APIテスト` と `UI人間操作E2E` は実装後の `シナリオテスト` で証明する。
@@ -74,13 +74,13 @@
   - `forbidden_outputs` には log、error summary、audit、request capture、URL、DTO、UI、read model に出してはいけない値を書く。
   - `execution_group` は `wave-1`、`wave-2`、`wave-3` のように必要な数だけ作る。同じ wave 内でも `parallelizable_with` に列挙しない handoff は並列実行しない。
   - `ready_wave` は Ready Waves 表と一致させる。Codex は最小番号の実行可能 wave から開始する。
-  - `first_action` は Codex 実装系レーンが最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
+  - `first_action` は 実装モジュールが最初に閉じる 1 clause だけを書く。path、symbol または対象単位、変更種別、対応する `completion_signal` clause を含める。
   - 並列不可の理由は `parallel_blockers` に `depends_on`、`owned_scope_overlap`、`shared_contract_change`、`validation_owner_ambiguous`、`backend_frontend_order`、`broad_gate_shared` のいずれかで書く。
   - 必要な場合だけ `本番経路` を書く。`本番経路` は実行時に通る public API / DTO / controller / UI entry / persistence path を指し、domain 固有知識はここへ一般例として増やさない。
 
 ## Completion Packet
 
-Codex 実装系レーンは完了時に次を返す。
+実装モジュールは完了時に次を返す。
 
 - `completed_handoffs`
 - `touched_files`
@@ -94,6 +94,6 @@ Codex 実装系レーンは完了時に次を返す。
 - `sonar_gate_result`: 互換 field 名。意味は repo-local Sonar issue gate であり、Sonar サーバ側 Quality Gate ではない。
 - `harness_gate_result`: system test が Wails / sandbox / OS 権限で止まる場合は `FAIL_ENVIRONMENT` とし、blocked reason、再実行環境、再実行コマンドを残す。
 - `residual_risks`
-- `completion_evidence`: レーン終了判断で読む実装事実。completed_handoffs、touched_files、validation、residual、blocked reason、人間が次に見るべき場所を含める。
+- `completion_evidence`: モジュール終了判断で読む実装事実。completed_handoffs、touched_files、validation、residual、blocked reason、人間が次に見るべき場所を含める。
 - `telemetry_events`: `runtime: codex` の response event。速度や欠落は次回改善用であり、初期 close 判定には使わない。
 - `docs_changes: none`

@@ -12,7 +12,7 @@ model: sonnet
 - 扱わない task: 修正実行入力、直接の恒久プロダクト実装、直接のプロダクトテスト、docs 正本化本文の更新
 - 書き換えてよい範囲: `docs/exec-plans/active/` の修正方針判断成果物、仮説検証に必要な一時観測ログ追加と削除、`tmp/logs/`
 - 書き換えてはいけない範囲: 一時観測ログ以外のプロダクトコード、プロダクトテスト、docs 正本本文、承認済み対象範囲外の `.codex/` 作業流れ
-- 戻し先: `fix_lane`
+- 戻し先: `investigation-module`
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/fix-decision/SKILL.md`

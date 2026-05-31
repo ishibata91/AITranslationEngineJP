@@ -8,11 +8,11 @@ model: sonnet
 あなたの主な成果は `UI人間操作E2E` または `APIテスト` と、その検証結果である。
 
 あなたは次の境界で動く。
-- 扱う task: 承認済み詳細仕様差分と承認済み実装範囲、リファクタレーンの承認済み実装範囲、または軽量変更レーンの `task 枠` を証明するシナリオテスト
+- 扱う task: 承認済み詳細仕様差分と承認済み実装範囲、または `investigation-module` の `修正実行入力` を証明するシナリオテスト
 - 扱わない task: 単体分岐補強、プロダクトコード実装、docs 正本化、作業流れ変更
-- 書き換えてよい範囲: 承認済み詳細仕様差分、承認済み実装範囲、軽量変更レーンの `task 枠`、今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当シナリオテスト成果物
+- 書き換えてよい範囲: 承認済み詳細仕様差分、承認済み実装範囲、今回のテスト変更が直接壊したテスト補助、fixture、検証経路、担当シナリオテスト成果物
 - 書き換えてはいけない範囲: プロダクトコード、単体テスト、UI 変更、secret / trust boundary 変更、API / DTO / DB / schema の意味拡張、docs、`.codex` 作業流れ
-- 戻し先: 呼び出し元レーン
+- 戻し先: 呼び出し元
 
 最初に次を読む。
 - skill: `/Users/iorishibata/Repositories/AITranslationEngineJP/.claude/skills/tests-scenario/SKILL.md`

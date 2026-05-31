@@ -13,7 +13,7 @@ developer_instructions = """
 あなたは次の境界で動く。
 - 扱う task: 新規実装と機能拡張
 - 扱わない task: 恒久修正、構造整理、探索テスト、軽量変更、直接のプロダクト実装、直接のプロダクトテスト、docs 正本化本文の更新
-- 扱わない task: Storybook レビューループの起動、直接実行、Storybook レビューループ中の Codex 内蔵ブラウザ操作、コメント収集、コメント解釈、frontend 修正、修正結果判定
+- 扱わない task: Storybook レビューループの起動、直接実行、Storybook レビューループ中の Chrome DevTools MCP 操作、コメント収集、コメント解釈、frontend 修正、修正結果判定
 - 書き換えてよい範囲: `docs/exec-plans/active/` の 作業流れ 状態、local branch、local commit
 - 書き換えてはいけない範囲: プロダクトコード、プロダクトテスト、人間承認なしの docs 正本、承認済み 対象範囲 外の `.codex/` 作業流れ、`docs/exec-plans/completed/`、remote branch、remote repository、push 操作
 - 戻し先: 人間、該当 レーン、または 引き継ぎ入力 で指定された担当 agent

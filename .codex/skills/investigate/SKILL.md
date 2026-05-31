@@ -35,7 +35,7 @@ description: Codex 側の設計前調査、探索テスト証跡、リファク�
 - 画面設計は [screen-design](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/screen-design/README.md) に従う。
 - active plan の画面設計差分は `docs/exec-plans/active/<task-id>/screen-design-diff.<screen-id>.md` とする。
 - 画面設計差分と docs の画面設計が両方ある場合は、active plan の画面設計差分を優先して読む。
-- `agent-browser` CLI の利用規約は [agent-browser.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/references/agent-browser.md) に従う。
+- Chrome DevTools MCP の利用規約は [chrome-devtools-mcp.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/chrome-devtools-mcp.md) に従う。
 - 観測ログ仕様は [observability-logging.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/observability-logging.md) に従う。
 - 探索テストレーンの探索計画は [exploration-test-planning](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/exploration-test-planning/SKILL.md) に従う。
 - 探索テスト証跡の雛形は [exploration-test-evidence.md](/Users/iorishibata/Repositories/AITranslationEngineJP/.codex/skills/investigate/assets/exploration-test-evidence.md) とする。
@@ -67,7 +67,7 @@ description: Codex 側の設計前調査、探索テスト証跡、リファク�
 
 - 根拠 のない結論を書かない
 - 観測事実と仮説を混ぜない
-- 設計前の画面設計根拠は `agent-browser` CLI で確認する
+- 設計前の画面設計根拠は Chrome DevTools MCP で確認する
 - 画面設計根拠を集める時は、関連する `docs/screen-design/screens/*.md` または active plan の `screen-design-diff.<screen-id>.md` を、操作経路と期待値の補助参照として確認する
 - 画面設計根拠は画面状態、console、screenshot、操作条件を分けて残す
 - 画面要素を操作できない時は、操作経路に対応する画面設計がない、画面ID または セレクタ（`aria-label`）が不足、起動状態が不足、操作経路または期待値と実画面の対応を確認できない、のいずれかで理由を返す

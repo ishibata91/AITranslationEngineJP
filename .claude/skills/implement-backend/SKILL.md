@@ -1,6 +1,6 @@
 ---
 name: implement-backend
-description: Codex 実装系レーン側の backend 実装作業プロトコル。層 責務、レーン内検証 の判断基準を提供する。
+description: `implementation-module` 内で `backend_implementer` agent が使う backend 実装作業プロトコル。層責務、モジュール内検証の判断基準を提供する。
 ---
 # Implement Backend
 
@@ -12,13 +12,13 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 ## 対応ロール
 
 - `backend_implementer` が使う。
-- 呼び出し元は `implement_lane`、`fix_lane`、`exploration_test_lane`、`light_change_lane`、`refactor_lane` のいずれかとする。
-- 返却先は呼び出し元レーンとする。
+- 呼び出し元は `implementation-module`、または `backend_implementer` agent を Task ツールで起動した上位 agent とする。
+- 返却先は呼び出し元とする。
 - 担当成果物は `implement-backend` の出力規約で固定する。
 
 ## 呼び出し元から渡される情報
 
-- 単一引き継ぎ入力: `implementation-scope` から切り出された backend 実装用 引き継ぎ 1 件、または修正レーンの `修正実行入力`。
+- 単一引き継ぎ入力: `implementation-scope` から切り出された backend 実装用 引き継ぎ 1 件、または `investigation-module` の `修正実行入力`。
 - 実行中タスク成果物場所: 実装結果、検証結果、停止理由を書き戻す作業計画フォルダまたは run 成果物フォルダ。
 - 実装対象: 変更してよい backend ファイル、symbol、公開接点。
 - 対象変更範囲: 実装してよい backend プロダクトコード範囲。
@@ -40,14 +40,14 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - 層 責務と依存方向を守る
 - エラー経路 と 検証 を 承認済み実装範囲 内で閉じる
 - 単一引き継ぎ入力 と 承認済み実装範囲 を確認して プロダクトコード だけを変更する
-- レーン内検証 結果 または未実行理由を返す
+- モジュール内検証 結果 または未実行理由を返す
 - `lint:backend` の format、vet、static、arch、module で落ちる境界違反を事前に避ける
 
 - usecase / service / repository / adapter の責務を確認する
 - [lint-policy.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/lint-policy.md) の backend lint 内訳を確認する
 - [architecture.md](/Users/iorishibata/Repositories/AITranslationEngineJP/docs/architecture.md) の backend 依存方向に従い、usecase、service、repository、adapter concrete の境界を跨がない
 - usecase から repository concrete、実行定義 concrete、driver API を直接参照しない
-- レーン内検証 を実行した場合は結果を 終了処理 に残す
+- モジュール内検証 を実行した場合は結果を 終了処理 に残す
 
 ## skill が扱わない対象
 
@@ -62,10 +62,10 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - 判断結果: backend プロダクトコード実装の完了、未完了、停止の判定を返す。
 - 根拠参照: 実装の根拠にした入力、変更箇所、検証結果を返す。
 - 不足情報: 実装を完了できない不足項目を返す。
-- 次判断材料: 呼び出し元レーンが次を判断できる材料を返す。
+- 次判断材料: 呼び出し元が次を判断できる材料を返す。
 - 実装成果物: 単一引き継ぎ入力 の 承認済み実装範囲 に対応する backend プロダクトコードだけを返す。
 - 影響範囲修正: 今回変更が直接壊した生成物、公開境界、検証経路、backend 責務内プロダクトコードを修正した場合に、対象、理由、変更結果を返す。
-- レーン内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時は、承認済み実装範囲 または backend 責務内の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
+- モジュール内検証結果: `python3 scripts/harness/run.py --suite backend-local` の失敗時は、承認済み実装範囲 または backend 責務内の影響範囲修正で直して再実行し、通過結果または未実行理由を返す。
 - 禁止事項: 出力にツール権限、エージェント実行定義、プロダクトコード変更の指示を含めない。
 
 ## 作業を完了できる条件
@@ -77,7 +77,7 @@ description: Codex 実装系レーン側の backend 実装作業プロトコル�
 - backend lint の format、static、arch、module 観点を確認した。
 - 検証 と エラー経路 を 承認済み実装範囲 または backend 責務内の影響範囲修正 で確認した。
 - backend 変更として `python3 scripts/harness/run.py --suite backend-local` を実行し、失敗した場合は承認済み実装範囲 または backend 責務内の影響範囲修正 でその場で直して再実行し、通過結果または未実行理由を返した。
-- 単一引き継ぎ入力 と レーン内検証 を確認した。
+- 単一引き継ぎ入力 と モジュール内検証 を確認した。
 
 ## 作業を止める条件
 

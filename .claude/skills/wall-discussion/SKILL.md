@@ -14,8 +14,8 @@ description: Codex 側の設計壁打ち作業プロトコル。読み取り専�
 ## 対応ロール
 
 - `designer` が使う。
-- 呼び出し元は `implement_lane` または人間とする。
-- 返却先は 人間レビュー または `implement_lane` とする。
+- 呼び出し元は人間、または `designer` agent を Task ツールで起動した上位 agent とする。
+- 返却先は人間レビューまたは呼び出し元とする。
 - 担当成果物は `wall-discussion` の出力規約で固定する。
 
 ## 呼び出し元から渡される情報

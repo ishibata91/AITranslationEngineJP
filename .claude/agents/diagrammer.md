@@ -12,7 +12,6 @@ model: sonnet
 実行境界はこの agent 定義に従う。
 出力規約、完了規約、停止規約は skill に従う。
 
-標準 `implement_lane` flow では、人間設計レビュー前の `設計差分図` に限り `implement_lane` から直接起動される。
-標準 `light_change_lane` flow では、実装着手前の `設計差分図` に限り `light_change_lane` から直接起動される。
+標準 `design-module` flow では、人間設計レビュー前の `設計差分図` に限り `design-module` から直接起動される。
 その他の図が必要な資料の場合は `designer` agent が `diagramming` skill を参照して扱う。
 この agent は、明示的に diagrammer が指定された補助用途でも使う。
