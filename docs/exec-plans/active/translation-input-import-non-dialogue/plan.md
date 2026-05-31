@@ -104,7 +104,7 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 
 - commit 対象: active plan 成果物、`internal/service/translation_input_import_service.go`、`internal/service/translation_input_import_service_test.go`
 - commit 対象外: `CLAUDE.md`。本 task とは別の既存差分である。
-- commit hash: `1885b4c`
+- commit hash: `513a7a2`
 - 検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過。
 - 残留リスク: docs 正本反映は未承認のため未実行である。
 
@@ -113,6 +113,6 @@ xEdit 抽出 JSON（例: `dictionaries/Lucien.esp_Export.json`）の `dialogue_g
 - active plan folder: `docs/exec-plans/active/translation-input-import-non-dialogue/`
 - source branch: `claude/translation-input-import-non-dialogue`
 - target branch: `master`
-- 作業 commit hash: `1885b4c`
+- 作業 commit hash: `513a7a2`
 - 最終検証結果: `go test ./internal/service` 通過、`python3 scripts/harness/run.py --suite backend-local` 通過。
 - 残留リスク: docs 正本反映は未承認のため未実行である。
