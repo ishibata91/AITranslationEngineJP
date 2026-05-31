@@ -70,7 +70,7 @@
 - source branch: `claude/fix-term-target-list-translation-column`
 - target branch: `master`
 - active plan folder: `docs/exec-plans/active/fix-term-target-list-translation-column/`
-- commit hash: commit 後に確定する。
+- commit hash: `85f29e4f64c0411b86ce8e117d1362aa0c8f9fc1`
 - 変更ファイル一覧:
   - `frontend/src/ui/components/ProcessingTargetListPanel.svelte`
   - `frontend/src/ui/screens/job-run/ProcessingTargetListPanel.test.ts`
@@ -89,6 +89,6 @@
 - active plan folder: `docs/exec-plans/active/fix-term-target-list-translation-column/`
 - source branch: `claude/fix-term-target-list-translation-column`
 - target branch: `master`
-- 作業 commit hash: commit 後に確定する。
+- 作業 commit hash: `85f29e4f64c0411b86ce8e117d1362aa0c8f9fc1`
 - 最終検証結果: `frontend-local` pass、`backend-local` pass、`build-storybook` pass、`E2E-DIFF-LUCIEN-001` pass、`chrome-devtools` で列見出し確認済み。
 - 残留リスク: `E2E-UC-045` の入口操作名差分は別件として残る。
