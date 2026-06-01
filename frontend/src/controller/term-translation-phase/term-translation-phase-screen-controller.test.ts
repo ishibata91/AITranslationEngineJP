@@ -50,10 +50,11 @@ function createViewModel(
     jobDictionaryAppliedCountLabel: "-",
     replacementTargetCountLabel: "-",
     unmatchedCountLabel: "-",
-    providerLabel: "-",
-    modelLabel: "-",
-    executionModeLabel: "-",
-    credentialRefLabel: "-",
+    isExecutionConfigured: false,
+    providerLabel: "設定未完了",
+    modelLabel: "設定未完了",
+    executionModeLabel: "設定未完了",
+    credentialRefLabel: "設定未完了",
     snapshotLabel: "-",
     errorKindLabel: "-",
     errorReasonLabel: "-",
@@ -61,6 +62,9 @@ function createViewModel(
     nextPhaseStatusLabel: "開始不可",
     nextPhaseBlockedReason: "",
     providerSkippedLabel: "-",
+    providerOptions: [],
+    modelOptions: [],
+    executionOptions: [],
     actionCards: [],
     lastErrorSummary: null,
     actionEnablement: null,
@@ -71,7 +75,19 @@ function createViewModel(
   }
 }
 
-function createHarness() {
+interface FakeGateway {
+  listProviderModels?: (request: {
+    provider: string
+    credentialStatus: string
+    requestToken: string
+  }) => Promise<{
+    provider: string
+    status: string
+    models: { modelId: string; label: string }[]
+  }>
+}
+
+function createHarness(gatewayOverride?: FakeGateway | null) {
   const state = createState()
 
   const store = {
@@ -111,7 +127,8 @@ function createHarness() {
     isGatewayConnected: false,
     store,
     presenter,
-    useCase
+    useCase,
+    gateway: gatewayOverride ?? undefined
   })
 
   return { controller, presenter, useCase, state }
@@ -135,7 +152,9 @@ describe("TermTranslationPhaseScreenController", () => {
 
     expect(harness.presenter.toViewModel).toHaveBeenCalledWith(
       harness.state,
-      false
+      false,
+      [],
+      []
     )
     const firstViewModel = listener.mock.calls[0]?.[0]
     expect(firstViewModel?.gatewayStatus).toBe("未接続")
@@ -155,5 +174,64 @@ describe("TermTranslationPhaseScreenController", () => {
     expect(harness.useCase.pausePhase).toHaveBeenCalledTimes(1)
     expect(harness.useCase.resumePhase).toHaveBeenCalledTimes(1)
     expect(harness.useCase.retryPhase).toHaveBeenCalledTimes(1)
+  })
+
+  test("refreshModelList は provider 値付きで gateway.listProviderModels を呼ぶ", async () => {
+    const listProviderModels = vi.fn(() =>
+      Promise.resolve({
+        provider: "gemini",
+        status: "ok",
+        models: [
+          { modelId: "gemini-1.5-flash", label: "Gemini 1.5 Flash" },
+          { modelId: "gemini-1.5-pro", label: "Gemini 1.5 Pro" }
+        ]
+      })
+    )
+    const gateway = { listProviderModels }
+    const harness = createHarness(gateway)
+
+    await harness.controller.refreshModelList("gemini")
+
+    expect(listProviderModels).toHaveBeenCalledTimes(1)
+    expect(listProviderModels).toHaveBeenCalledWith(
+      expect.objectContaining({ provider: "gemini" })
+    )
+  })
+
+  test("refreshModelList は provider が空文字の場合 gateway を呼ばない", async () => {
+    const listProviderModels = vi.fn(() =>
+      Promise.resolve({
+        provider: "",
+        status: "ok",
+        models: [] as { modelId: string; label: string }[]
+      })
+    )
+    const gateway = { listProviderModels }
+    const harness = createHarness(gateway)
+
+    await harness.controller.refreshModelList("")
+
+    expect(listProviderModels).not.toHaveBeenCalled()
+  })
+
+  test("refreshModelList 成功後に availableModels が更新されリスナーへ通知される", async () => {
+    const listProviderModels = vi.fn(() =>
+      Promise.resolve({
+        provider: "gemini",
+        status: "ok",
+        models: [{ modelId: "gemini-1.5-flash", label: "Gemini 1.5 Flash" }]
+      })
+    )
+    const gateway = { listProviderModels }
+    const harness = createHarness(gateway)
+    const listener = vi.fn<(value: TermTranslationPhaseScreenViewModel) => void>()
+    harness.controller.subscribe(listener)
+    listener.mockClear()
+
+    await harness.controller.refreshModelList("gemini")
+
+    expect(listener).toHaveBeenCalledTimes(1)
+    const vmAfterRefresh = listener.mock.calls[0]?.[0]
+    expect(vmAfterRefresh).toBeDefined()
   })
 })

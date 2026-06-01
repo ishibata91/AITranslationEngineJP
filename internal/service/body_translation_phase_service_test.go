@@ -935,3 +935,69 @@ func assertBodyPhaseOutputFieldsWithoutPersonaSnapshot(
 		}
 	}
 }
+
+// ---------------------------------------------------------------------------
+// U-DTO-002: AI 設定 record 不在時に AISettings field が nil を返す（本文翻訳）
+// 根拠: body-translation-phase-REQ-002「JOB_PHASE_AI_SETTINGS record 不在は応答の AI 設定 field 不在で表現する」
+// ---------------------------------------------------------------------------
+
+func TestBodyTranslationPhaseServiceReadSummaryReturnsNilAISettingsWhenRecordAbsent(t *testing.T) {
+	// AI 設定 record が存在しない状態で ReadSummary を呼ぶと AISettings が nil を返すことを証明する。
+	// 空文字代理表現ではなく field 不在（nil）で「未設定」を表す仕様の確認。
+	service, _, _ := newBodyTranslationPhaseServiceForTest(nil)
+	// AI 設定 repository を record 空の InMemory に差し替える（record を保存しない）。
+	service.jobPhaseAISettingsRepository = repository.NewInMemoryJobPhaseAISettingsRepository()
+
+	// Arrange: AI 設定 record が存在しない状態
+
+	// Act
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success when AI settings record absent: %v", err)
+	}
+
+	// Assert: AISettings field が nil であることを確認する（空文字 record ではない）
+	if summary.AISettings != nil {
+		t.Errorf("expected AISettings=nil when record absent, got %#v", summary.AISettings)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// U-DTO-003: AI 設定 record 存在時に AISettings field が値を返す（本文翻訳）
+// 根拠: body-translation-phase-REQ-002「record 存在時は保持 3 値を返す」
+// ---------------------------------------------------------------------------
+
+func TestBodyTranslationPhaseServiceReadSummaryReturnsAISettingsWhenRecordExists(t *testing.T) {
+	// AI 設定 record が存在する状態で ReadSummary を呼ぶと AISettings が値を返すことを証明する。
+	service, _, _ := newBodyTranslationPhaseServiceForTest(nil)
+
+	// Arrange: AI 設定 record を明示的に保存する
+	repo := repository.NewInMemoryJobPhaseAISettingsRepository()
+	if _, err := repo.Save(context.Background(), repository.JobPhaseAISettingsDraft{
+		PhaseType:     "text_translation",
+		AIProvider:    "gemini",
+		ModelName:     "gemini-2.0-flash",
+		ExecutionMode: "standard",
+		BatchMode:     "disabled",
+	}); err != nil {
+		t.Fatalf("prepare AI settings record: %v", err)
+	}
+	service.WithBodyTranslationJobPhaseAISettingsRepository(repo)
+
+	// Act
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success when AI settings record exists: %v", err)
+	}
+
+	// Assert: AISettings field が nil でなく、保存値を返すことを確認する
+	if summary.AISettings == nil {
+		t.Fatal("expected AISettings to be non-nil when record exists")
+	}
+	if summary.AISettings.Provider != "gemini" {
+		t.Errorf("expected AISettings.Provider=gemini, got %q", summary.AISettings.Provider)
+	}
+	if summary.AISettings.Model != "gemini-2.0-flash" {
+		t.Errorf("expected AISettings.Model=gemini-2.0-flash, got %q", summary.AISettings.Model)
+	}
+}

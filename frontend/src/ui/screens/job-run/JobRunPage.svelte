@@ -294,16 +294,28 @@
     await controller.saveAISettings?.(request)
   }
 
+  async function handleTermRefreshModelList(provider: string): Promise<void> {
+    await controller.refreshModelList?.(provider)
+  }
+
   async function handlePersonaAISettingsChange(
     request: PhaseAISettingsRequest
   ): Promise<void> {
     await personaController.saveAISettings?.(request)
   }
 
+  async function handlePersonaRefreshModelList(provider: string): Promise<void> {
+    await personaController.refreshModelList?.(provider)
+  }
+
   async function handleBodyAISettingsChange(
     request: PhaseAISettingsRequest
   ): Promise<void> {
     await bodyController?.saveAISettings?.(request)
+  }
+
+  async function handleBodyRefreshModelList(provider: string): Promise<void> {
+    await bodyController?.refreshModelList?.(provider)
   }
 
   function reasonsFrom(...values: Array<string | undefined>): string[] {
@@ -443,6 +455,7 @@
           onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
           onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handleTermAISettingsChange}
+          onRefreshModelList={handleTermRefreshModelList}
         />
         <PhaseNavigationFooter
           dataTestId="job-run-next-action-footer"
@@ -467,6 +480,7 @@
           onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
           onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handlePersonaAISettingsChange}
+          onRefreshModelList={handlePersonaRefreshModelList}
         />
         <PhaseNavigationFooter
           dataTestId="job-run-next-action-footer"
@@ -492,6 +506,7 @@
           onProcessingTargetSearchInput={handleProcessingTargetSearchInput}
           onProcessingTargetPageChange={handleProcessingTargetPageChange}
           onAISettingsChange={handleBodyAISettingsChange}
+          onRefreshModelList={handleBodyRefreshModelList}
         />
         <PhaseNavigationFooter
           dataTestId="body-translation-phase-complete-next-action"

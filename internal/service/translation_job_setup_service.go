@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log/slog"
 	"path/filepath"
-	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -314,11 +313,6 @@ type translationJobSetupJobLifecycleRepository interface {
 	CreateJobPhaseRun(ctx context.Context, draft repository.JobPhaseRunDraft) (repository.JobPhaseRun, error)
 	GetTranslationJobByID(ctx context.Context, id int64) (repository.TranslationJob, error)
 	ListJobPhaseRunsByJobID(ctx context.Context, jobID int64) ([]repository.JobPhaseRun, error)
-}
-
-type translationJobSetupPhaseRuntimeSnapshotStore interface {
-	SaveTranslationJobPhaseRuntimeSnapshot(ctx context.Context, draft repository.TranslationJobPhaseRuntimeSnapshotDraft) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-	ListTranslationJobPhaseRuntimeSnapshots(ctx context.Context, translationJobID int64) ([]repository.TranslationJobPhaseRuntimeSnapshot, error)
 }
 
 type translationJobSetupTranslationSourceRepository interface {
@@ -792,23 +786,18 @@ func (service *TranslationJobSetupService) createTranslationJobInTransaction(
 	}
 	wordRuntime := sanitizeTranslationJobSetupPhaseRuntime(phaseRuntimes["word_translation"])
 
-	summaries, err := service.savePhaseRuntimeSnapshots(txCtx, job.ID, phaseRuntimes)
-	if err != nil {
-		return TranslationJobSetupCreatedJobReadModel{}, err
-	}
-
 	return TranslationJobSetupCreatedJobReadModel{
-		JobID:                job.ID,
-		JobState:             job.State,
-		InputSource:          translationJobSetupInputSource,
-		ErrorKind:            "",
-		ValidationPassSlices: append([]string(nil), validationPassSlices...),
+		JobID:                 job.ID,
+		JobState:              job.State,
+		InputSource:           translationJobSetupInputSource,
+		ErrorKind:             "",
+		ValidationPassSlices:  append([]string(nil), validationPassSlices...),
+		PhaseRuntimeSummaries: nil,
 		ExecutionSummary: TranslationJobSetupExecutionSummaryReadModel{
 			Provider:      wordRuntime.Provider,
 			Model:         wordRuntime.Model,
 			ExecutionMode: wordRuntime.ExecutionMode,
 		},
-		PhaseRuntimeSummaries: summaries,
 	}, nil
 }
 
@@ -835,47 +824,7 @@ func (service *TranslationJobSetupService) createReadyTranslationJob(
 	return job, nil
 }
 
-func (service *TranslationJobSetupService) savePhaseRuntimeSnapshots(
-	ctx context.Context,
-	jobID int64,
-	phaseRuntimes map[string]TranslationJobSetupPhaseRuntimeDraftReadModel,
-) ([]TranslationJobSetupPhaseRuntimeSummaryReadModel, error) {
-	snapshotStore, ok := service.jobLifecycleRepository.(translationJobSetupPhaseRuntimeSnapshotStore)
-	if !ok {
-		return nil, fmt.Errorf("create translation job phase runtime snapshot: snapshot store is not configured")
-	}
-
-	summaries := make([]TranslationJobSetupPhaseRuntimeSummaryReadModel, 0, len(phaseRuntimes))
-	for _, phaseID := range translationJobSetupPhaseOrder {
-		runtime := sanitizeTranslationJobSetupPhaseRuntime(phaseRuntimes[phaseID])
-		runtime.PhaseID = phaseID
-		if !translationJobSetupPhaseRuntimeConfigured(runtime) {
-			continue
-		}
-		if _, err := snapshotStore.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-			TranslationJobID: jobID,
-			PhaseID:          runtime.PhaseID,
-			Provider:         runtime.Provider,
-			ModelName:        runtime.Model,
-			CredentialStatus: runtime.CredentialStatus,
-			ExecutionMode:    runtime.ExecutionMode,
-			BatchMode:        runtime.BatchMode,
-		}); err != nil {
-			slog.WarnContext(ctx, "translation job setup db save failed",
-				slog.String("event", "translation_job_setup_boundary_failed"),
-				slog.String("where", "backend.service.translation_job_setup.save_phase_runtime_snapshot"),
-				slog.String("result", "failed"),
-				slog.String("id", fmt.Sprintf("job:%d", jobID)),
-				slog.String("reason", "db_save_failed"),
-			)
-			return nil, fmt.Errorf("create translation job phase runtime snapshot: %w", err)
-		}
-		summaries = append(summaries, translationJobSetupPhaseRuntimeSummaryFromDraft(runtime))
-	}
-	return summaries, nil
-}
-
-// ReadSummary loads the ready job summary from the persisted job and snapshots.
+// ReadSummary loads the ready job summary from the persisted job.
 func (service *TranslationJobSetupService) ReadSummary(
 	ctx context.Context,
 	jobID int64,
@@ -887,45 +836,14 @@ func (service *TranslationJobSetupService) ReadSummary(
 	if err != nil {
 		return TranslationJobSetupSummaryReadModel{}, fmt.Errorf("load translation job: %w", err)
 	}
-	snapshotStore, ok := service.jobLifecycleRepository.(translationJobSetupPhaseRuntimeSnapshotStore)
-	if !ok {
-		return TranslationJobSetupSummaryReadModel{}, fmt.Errorf("list translation job phase runtime snapshots: snapshot store is not configured")
-	}
-	snapshots, err := snapshotStore.ListTranslationJobPhaseRuntimeSnapshots(requestContextOrBackground(ctx), jobID)
-	if err != nil {
-		return TranslationJobSetupSummaryReadModel{}, fmt.Errorf("list translation job phase runtime snapshots: %w", err)
-	}
-	summaries := make([]TranslationJobSetupPhaseRuntimeSummaryReadModel, 0, len(snapshots))
-	for _, snapshot := range snapshots {
-		summaries = append(summaries, TranslationJobSetupPhaseRuntimeSummaryReadModel{
-			PhaseID:          snapshot.PhaseID,
-			Provider:         snapshot.Provider,
-			Model:            snapshot.ModelName,
-			CredentialStatus: snapshot.CredentialStatus,
-			ExecutionMode:    snapshot.ExecutionMode,
-			BatchMode:        snapshot.BatchMode,
-		})
-	}
-	sort.SliceStable(summaries, func(i, j int) bool {
-		return translationJobSetupPhaseIndex(summaries[i].PhaseID) < translationJobSetupPhaseIndex(summaries[j].PhaseID)
-	})
-	wordRuntime := TranslationJobSetupPhaseRuntimeSummaryReadModel{}
-	if translationJobSetupPhaseRuntimeSummaryConfigured(firstTranslationJobSetupPhaseSummary(summaries, "word_translation")) {
-		wordRuntime = firstTranslationJobSetupPhaseSummary(summaries, "word_translation")
-	}
 	return TranslationJobSetupSummaryReadModel{
-		JobID:       job.ID,
-		JobState:    job.State,
-		InputSource: translationJobSetupInputSource,
-		CanStartPhase: normalizeTranslationJobSetupField(job.State) == translationJobSetupJobStateReady &&
-			translationJobSetupHasAllConfiguredPhaseSnapshots(summaries),
-		ExecutionSummary: TranslationJobSetupExecutionSummaryReadModel{
-			Provider:      wordRuntime.Provider,
-			Model:         wordRuntime.Model,
-			ExecutionMode: wordRuntime.ExecutionMode,
-		},
+		JobID:                 job.ID,
+		JobState:              job.State,
+		InputSource:           translationJobSetupInputSource,
+		CanStartPhase:         false,
+		ExecutionSummary:      TranslationJobSetupExecutionSummaryReadModel{},
 		ValidationPassSlices:  []string{"input"},
-		PhaseRuntimeSummaries: summaries,
+		PhaseRuntimeSummaries: nil,
 	}, nil
 }
 
@@ -1358,34 +1276,6 @@ func translationJobSetupPhaseRuntimeConfigured(runtime TranslationJobSetupPhaseR
 		sanitized.ExecutionMode != ""
 }
 
-func translationJobSetupPhaseRuntimeSummaryConfigured(summary TranslationJobSetupPhaseRuntimeSummaryReadModel) bool {
-	return strings.TrimSpace(summary.PhaseID) != "" &&
-		strings.TrimSpace(summary.Provider) != "" &&
-		strings.TrimSpace(summary.Model) != "" &&
-		strings.TrimSpace(summary.ExecutionMode) != ""
-}
-
-func translationJobSetupHasAllConfiguredPhaseSnapshots(
-	summaries []TranslationJobSetupPhaseRuntimeSummaryReadModel,
-) bool {
-	if len(summaries) < len(translationJobSetupPhaseOrder) {
-		return false
-	}
-	configured := make(map[string]struct{}, len(summaries))
-	for _, summary := range summaries {
-		if !translationJobSetupPhaseRuntimeSummaryConfigured(summary) {
-			continue
-		}
-		configured[normalizeTranslationJobSetupField(summary.PhaseID)] = struct{}{}
-	}
-	for _, phaseID := range translationJobSetupPhaseOrder {
-		if _, ok := configured[phaseID]; !ok {
-			return false
-		}
-	}
-	return true
-}
-
 func translationJobSetupCredentialStatus(spec translationJobSetupProviderSpec, requested string, credentialRef string) string {
 	if !spec.CredentialRequired {
 		return "not_required"
@@ -1412,33 +1302,6 @@ func translationJobSetupNormalizeCredentialRef(
 		return ""
 	}
 	return normalizedRef
-}
-
-func translationJobSetupPhaseIndex(phaseID string) int {
-	for index, candidate := range translationJobSetupPhaseOrder {
-		if candidate == normalizeTranslationJobSetupField(phaseID) {
-			return index
-		}
-	}
-	return len(translationJobSetupPhaseOrder)
-}
-
-func firstTranslationJobSetupPhaseSummary(
-	summaries []TranslationJobSetupPhaseRuntimeSummaryReadModel,
-	phaseID string,
-) TranslationJobSetupPhaseRuntimeSummaryReadModel {
-	for _, summary := range summaries {
-		if normalizeTranslationJobSetupField(summary.PhaseID) == normalizeTranslationJobSetupField(phaseID) {
-			return summary
-		}
-	}
-	return TranslationJobSetupPhaseRuntimeSummaryReadModel{}
-}
-
-func translationJobSetupPhaseRuntimeSummaryFromDraft(
-	runtime TranslationJobSetupPhaseRuntimeDraftReadModel,
-) TranslationJobSetupPhaseRuntimeSummaryReadModel {
-	return TranslationJobSetupPhaseRuntimeSummaryReadModel(runtime)
 }
 
 func translationJobSetupJobName(inputSourceID int64) string {

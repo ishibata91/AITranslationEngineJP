@@ -23,23 +23,25 @@ export interface StartTermTranslationPhaseRequest {
 }
 
 export interface TermTranslationPhaseAISettingsRequest {
-  jobId: number
   provider: string
   model: string
   executionMode: string
   batchMode: string
 }
 
-export interface TermTranslationPhaseAISettingsResponse extends TermTranslationPhaseAISettingsRequest {
-  phaseId: string
-  credentialStatus: "configured" | "missing" | "not_required"
-  modelListStatus:
-    | "not_updated"
-    | "loading"
-    | "success"
-    | "failed"
-    | "credential_missing"
-    | "credential_not_required"
+export interface TermTranslationPhaseAISettingsResponse {
+  phaseType: string
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
+}
+
+export interface TermTranslationPhaseAISettings {
+  provider: string
+  model: string
+  executionMode: string
+  batchMode: string
 }
 
 export interface PauseTermTranslationPhaseRequest {
@@ -115,7 +117,8 @@ export interface TermTranslationPhaseSummaryResponse {
   totalTermCount: number
   dictionaryHitCount: number
   aiTargetCount: number
-  execution: TermTranslationExecutionConfigSummary
+  aiSettings?: TermTranslationPhaseAISettings
+  execution?: TermTranslationExecutionConfigSummary
   resultSummary?: TermTranslationPhaseResultSummary
   errorSummary?: TermTranslationPhaseErrorSummary
   actionEnablement: TermTranslationPhaseActionEnablement
@@ -141,7 +144,28 @@ export interface TermTranslationNextPhaseReadinessResponse {
   errorKind?: TermTranslationPhaseErrorKind
 }
 
+export interface PhaseProviderModelsRequest {
+  provider: string
+  credentialStatus: string
+  requestToken: string
+}
+
+export interface PhaseProviderModelOption {
+  modelId: string
+  label: string
+}
+
+export interface PhaseProviderModelsResponse {
+  provider: string
+  status: string
+  models: PhaseProviderModelOption[]
+  failureKind?: string
+}
+
 export interface TermTranslationPhaseGatewayContract {
+  listProviderModels?(
+    request: PhaseProviderModelsRequest
+  ): Promise<PhaseProviderModelsResponse>
   getProcessingTargetList?(
     request: ProcessingTargetListRequest
   ): Promise<ProcessingTargetListResponse>

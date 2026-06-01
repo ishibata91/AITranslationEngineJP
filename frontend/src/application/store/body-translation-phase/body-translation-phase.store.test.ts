@@ -140,7 +140,9 @@ describe("BodyTranslationPhaseStore", () => {
     snapshot.summary!.progress.percent = 0
     snapshot.summary!.inputSummary.skippedReasons![0] = "changed"
     snapshot.summary!.requestSummary!.providerTargetCount = 0
-    snapshot.summary!.execution.provider = "changed"
+    if (snapshot.summary?.execution) {
+      snapshot.summary.execution.provider = "changed"
+    }
     snapshot.summary!.fieldResults![0].identity!.formId = "changed"
     snapshot.summary!.resultSummary!.fieldResults![0].identity!.formId =
       "changed"
@@ -155,7 +157,7 @@ describe("BodyTranslationPhaseStore", () => {
       "exact dictionary"
     )
     expect(nextSnapshot.summary?.requestSummary?.providerTargetCount).toBe(5)
-    expect(nextSnapshot.summary?.execution.provider).toBe("gemini")
+    expect(nextSnapshot.summary?.execution?.provider).toBe("gemini")
     expect(nextSnapshot.summary?.fieldResults?.[0]?.identity?.formId).toBe(
       "FE01A812"
     )

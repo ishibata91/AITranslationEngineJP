@@ -65,14 +65,6 @@ type bodyTranslationPhaseJobOutputRepository interface {
 	ListJobTranslationFieldsByJobID(ctx context.Context, jobID int64) ([]repository.JobTranslationField, error)
 }
 
-type bodyTranslationPhaseRuntimeSnapshotReader interface {
-	GetTranslationJobPhaseRuntimeSnapshot(
-		ctx context.Context,
-		translationJobID int64,
-		phaseID string,
-	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-}
-
 // BodyTranslationPhaseProgressReadModel stores body phase progress for the usecase boundary.
 type BodyTranslationPhaseProgressReadModel struct {
 	Percent         int
@@ -178,19 +170,31 @@ type BodyTranslationOutputReadinessReadModel struct {
 	OutputCount         int
 }
 
+// BodyTranslationPhaseAISettingsReadModel holds the Ready 期 AI 選択値（JOB_PHASE_AI_SETTINGS から読む）。
+// record 不在の場合は nil で返す。認証参照、認証状態、利用可能モデル一覧は含めない。
+type BodyTranslationPhaseAISettingsReadModel struct {
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
+}
+
 // BodyTranslationPhaseSummaryReadModel stores body phase summary payload data.
 type BodyTranslationPhaseSummaryReadModel struct {
-	JobID              int64
-	JobState           string
-	CurrentPhase       string
-	PhaseState         string
-	PhaseRunID         *int64
-	StartedAt          *time.Time
-	FinishedAt         *time.Time
-	Progress           BodyTranslationPhaseProgressReadModel
-	InputSummary       BodyTranslationPhaseInputSummaryReadModel
-	RequestSummary     BodyTranslationPhaseRequestSummaryReadModel
-	Execution          BodyTranslationPhaseExecutionSummaryReadModel
+	JobID          int64
+	JobState       string
+	CurrentPhase   string
+	PhaseState     string
+	PhaseRunID     *int64
+	StartedAt      *time.Time
+	FinishedAt     *time.Time
+	Progress       BodyTranslationPhaseProgressReadModel
+	InputSummary   BodyTranslationPhaseInputSummaryReadModel
+	RequestSummary BodyTranslationPhaseRequestSummaryReadModel
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
+	AISettings *BodyTranslationPhaseAISettingsReadModel
+	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
+	Execution          *BodyTranslationPhaseExecutionSummaryReadModel
 	FieldResultSummary *BodyTranslationPhaseFieldResultSummaryReadModel
 	ResultSummary      *BodyTranslationPhaseFieldResultSummaryReadModel
 	FieldResults       []BodyTranslationPhaseFieldResultItemReadModel
@@ -244,15 +248,16 @@ type bodyTranslationLoadedContext struct {
 
 // BodyTranslationPhaseService orchestrates body phase startup and input snapshot creation.
 type BodyTranslationPhaseService struct {
-	now                      func() time.Time
-	jobLifecycleRepository   bodyTranslationPhaseJobLifecycleRepository
-	foundationDataRepository bodyTranslationPhaseFoundationDataRepository
-	translationSourceReader  bodyTranslationPhaseTranslationSourceRepository
-	jobOutputRepository      bodyTranslationPhaseJobOutputRepository
-	bodyTranslationProvider  BodyTranslationProvider
-	providerSettings         ProviderSettingsConsumer
-	executionSnapshots       map[int64]providerExecutionSnapshot
-	transactor               repository.Transactor
+	now                          func() time.Time
+	jobLifecycleRepository       bodyTranslationPhaseJobLifecycleRepository
+	foundationDataRepository     bodyTranslationPhaseFoundationDataRepository
+	translationSourceReader      bodyTranslationPhaseTranslationSourceRepository
+	jobOutputRepository          bodyTranslationPhaseJobOutputRepository
+	bodyTranslationProvider      BodyTranslationProvider
+	providerSettings             ProviderSettingsConsumer
+	jobPhaseAISettingsRepository repository.JobPhaseAISettingsRepository
+	executionSnapshots           map[int64]providerExecutionSnapshot
+	transactor                   repository.Transactor
 }
 
 // NewBodyTranslationPhaseService creates the backend body phase service.
@@ -294,6 +299,17 @@ func (service *BodyTranslationPhaseService) WithBodyTranslationProviderSettings(
 	return service
 }
 
+// WithBodyTranslationJobPhaseAISettingsRepository injects the JOB_PHASE_AI_SETTINGS repository.
+func (service *BodyTranslationPhaseService) WithBodyTranslationJobPhaseAISettingsRepository(
+	repo repository.JobPhaseAISettingsRepository,
+) *BodyTranslationPhaseService {
+	if service == nil {
+		return nil
+	}
+	service.jobPhaseAISettingsRepository = repo
+	return service
+}
+
 // ReadSummary returns the current body phase summary.
 func (service *BodyTranslationPhaseService) ReadSummary(
 	ctx context.Context,
@@ -315,6 +331,14 @@ func (service *BodyTranslationPhaseService) ReadSummary(
 	}
 	outputReadiness := service.buildOutputReadiness(loaded)
 	resultSummary := service.buildLoadedFieldResultSummary(loaded)
+	// JOB_PHASE_RUN が存在する場合だけ execution field を設定する。Ready 期は nil にする。
+	var executionField *BodyTranslationPhaseExecutionSummaryReadModel
+	if loaded.bodyRun != nil {
+		execCopy := loaded.execution
+		executionField = &execCopy
+	}
+	// JOB_PHASE_AI_SETTINGS record が存在する場合だけ aiSettings field を設定する。
+	aiSettings := service.loadBodyTranslationPhaseAISettings(ctx)
 	return BodyTranslationPhaseSummaryReadModel{
 		JobID:              loaded.job.ID,
 		JobState:           loaded.job.State,
@@ -326,7 +350,8 @@ func (service *BodyTranslationPhaseService) ReadSummary(
 		Progress:           service.buildProgress(phaseState, loaded.snapshot, loaded.outputFields),
 		InputSummary:       toBodyTranslationInputSummaryReadModel(loaded.snapshot),
 		RequestSummary:     toBodyTranslationRequestSummaryReadModel(loaded.snapshot),
-		Execution:          loaded.execution,
+		AISettings:         aiSettings,
+		Execution:          executionField,
 		FieldResultSummary: resultSummary,
 		ResultSummary:      resultSummary,
 		FieldResults:       service.buildFieldResultItems(loaded),
@@ -438,9 +463,6 @@ func (service *BodyTranslationPhaseService) createBodyTranslationPhaseRun(
 			return err
 		}
 		startSnapshot := bodyTranslationStartSnapshot(loaded.execution)
-		if err := service.persistRuntimeSnapshot(txCtx, loaded.job.ID, "text_translation", startSnapshot); err != nil {
-			return err
-		}
 		createdRun = run
 		updatedJob = job
 		service.executionSnapshots[run.ID] = startSnapshot
@@ -746,40 +768,34 @@ func (service *BodyTranslationPhaseService) bodyTranslationExecutionContext(
 ) (BodyTranslationPhaseExecutionSummaryReadModel, error) {
 	execution := bodyTranslationExecutionFromPhaseRuns(bodyRun, personaRun)
 	if bodyRun == nil {
-		return service.bodyTranslationExecutionForNewRun(ctx, jobID, execution)
+		return service.bodyTranslationExecutionForNewRun(ctx, execution)
 	}
 	return service.bodyTranslationExecutionForExistingRun(ctx, jobID, *bodyRun, execution)
 }
 
 func (service *BodyTranslationPhaseService) bodyTranslationExecutionForNewRun(
 	ctx context.Context,
-	jobID int64,
 	execution BodyTranslationPhaseExecutionSummaryReadModel,
 ) (BodyTranslationPhaseExecutionSummaryReadModel, error) {
-	snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader)
-	if !ok {
+	if service.jobPhaseAISettingsRepository == nil {
 		return execution, nil
 	}
-	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "text_translation")
-	if errors.Is(err, repository.ErrNotFound) {
-		execution.CredentialRef = ""
-		execution.Provider = ""
-		execution.Model = ""
-		execution.ExecutionMode = ""
+	aiSettings, err := service.jobPhaseAISettingsRepository.LoadByPhaseType(ctx, "text_translation")
+	if errors.Is(err, repository.ErrJobPhaseAISettingsNotFound) {
 		return execution, nil
 	}
 	if err != nil {
-		return BodyTranslationPhaseExecutionSummaryReadModel{}, fmt.Errorf("load body translation phase runtime snapshot: %w", err)
+		return BodyTranslationPhaseExecutionSummaryReadModel{}, fmt.Errorf("load body translation phase ai settings: %w", err)
 	}
-	execution.Provider = strings.TrimSpace(snapshot.Provider)
-	execution.Model = strings.TrimSpace(snapshot.ModelName)
-	execution.ExecutionMode = strings.TrimSpace(snapshot.ExecutionMode)
+	execution.Provider = strings.TrimSpace(aiSettings.AIProvider)
+	execution.Model = strings.TrimSpace(aiSettings.ModelName)
+	execution.ExecutionMode = strings.TrimSpace(aiSettings.ExecutionMode)
 	return execution, nil
 }
 
 func (service *BodyTranslationPhaseService) bodyTranslationExecutionForExistingRun(
-	ctx context.Context,
-	jobID int64,
+	_ context.Context,
+	_ int64,
 	bodyRun repository.JobPhaseRun,
 	execution BodyTranslationPhaseExecutionSummaryReadModel,
 ) (BodyTranslationPhaseExecutionSummaryReadModel, error) {
@@ -788,19 +804,15 @@ func (service *BodyTranslationPhaseService) bodyTranslationExecutionForExistingR
 		execution.CredentialState = snapshot.CredentialState
 		return execution, nil
 	}
-	snapshotReader, ok := service.jobLifecycleRepository.(bodyTranslationPhaseRuntimeSnapshotReader)
-	if !ok {
-		return execution, nil
+	// CredentialState は JOB_PHASE_RUN.CredentialRef の有無から判断する。
+	switch {
+	case strings.TrimSpace(bodyRun.CredentialRef) != "":
+		execution.CredentialState = "configured"
+	case !providerExecutionUsesProviderSettings(bodyRun.AIProvider):
+		execution.CredentialState = "not_required"
+	default:
+		execution.CredentialState = "missing"
 	}
-	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "text_translation")
-	if errors.Is(err, repository.ErrNotFound) {
-		return execution, nil
-	}
-	if err != nil {
-		return BodyTranslationPhaseExecutionSummaryReadModel{}, fmt.Errorf("load body translation phase runtime snapshot: %w", err)
-	}
-	persisted := providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
-	execution.CredentialState = persisted.CredentialState
 	return execution, nil
 }
 
@@ -848,36 +860,25 @@ func firstBodyTranslationPersona(personas []repository.Persona) repository.Perso
 	return personas[0]
 }
 
-func (service *BodyTranslationPhaseService) persistRuntimeSnapshot(
+// loadBodyTranslationPhaseAISettings は JOB_PHASE_AI_SETTINGS から本文翻訳フェーズの AI 設定を読む。
+// record 不在または repository 未設定の場合は nil を返す（未設定状態）。
+func (service *BodyTranslationPhaseService) loadBodyTranslationPhaseAISettings(
 	ctx context.Context,
-	jobID int64,
-	phaseID string,
-	snapshot providerExecutionSnapshot,
-) error {
-	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
-	if !ok {
+) *BodyTranslationPhaseAISettingsReadModel {
+	if service.jobPhaseAISettingsRepository == nil {
 		return nil
 	}
-	current, err := store.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, phaseID)
-	switch {
-	case err == nil:
-	case errors.Is(err, repository.ErrNotFound):
-		current = repository.TranslationJobPhaseRuntimeSnapshot{}
-	default:
-		return fmt.Errorf("persist body translation runtime snapshot: %w", err)
+	settings, err := service.jobPhaseAISettingsRepository.LoadByPhaseType(ctx, "text_translation")
+	if err != nil {
+		// ErrJobPhaseAISettingsNotFound を含む全エラーを「未設定（record 不在）」として扱う。
+		return nil
 	}
-	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: jobID,
-		PhaseID:          phaseID,
-		Provider:         snapshot.Provider,
-		ModelName:        snapshot.Model,
-		CredentialStatus: snapshot.CredentialState,
-		ExecutionMode:    snapshot.ExecutionMode,
-		BatchMode:        providerExecutionBatchMode(current),
-	}); err != nil {
-		return fmt.Errorf("persist body translation runtime snapshot: %w", err)
+	return &BodyTranslationPhaseAISettingsReadModel{
+		Provider:      strings.TrimSpace(settings.AIProvider),
+		Model:         strings.TrimSpace(settings.ModelName),
+		ExecutionMode: strings.TrimSpace(settings.ExecutionMode),
+		BatchMode:     strings.TrimSpace(settings.BatchMode),
 	}
-	return nil
 }
 
 // SaveAISettings saves public AI settings for the body translation phase.
@@ -885,16 +886,35 @@ func (service *BodyTranslationPhaseService) SaveAISettings(
 	ctx context.Context,
 	selection PhaseAISettingsSelection,
 ) (PhaseAISettingsReadModel, error) {
-	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
-	if !ok {
-		return PhaseAISettingsReadModel{}, fmt.Errorf("save body translation ai settings: snapshot store is not configured")
+	if service.jobPhaseAISettingsRepository == nil {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save body translation ai settings: job phase ai settings repository is not configured")
 	}
-	selection.PhaseID = "text_translation"
-	readModel, err := savePhaseAISettings(ctx, store, service.providerSettings, "body_translation_phase", selection)
+	providerID := strings.TrimSpace(selection.Provider)
+	model := strings.TrimSpace(selection.Model)
+	executionMode := strings.TrimSpace(selection.ExecutionMode)
+	batchMode := strings.TrimSpace(selection.BatchMode)
+	if batchMode == "" {
+		batchMode = "disabled"
+	}
+	saved, err := service.jobPhaseAISettingsRepository.Save(ctx, repository.JobPhaseAISettingsDraft{
+		PhaseType:     "text_translation",
+		AIProvider:    providerID,
+		ModelName:     model,
+		ExecutionMode: executionMode,
+		BatchMode:     batchMode,
+		UpdatedAt:     service.now(),
+	})
 	if err != nil {
 		return PhaseAISettingsReadModel{}, fmt.Errorf("save body translation ai settings: %w", err)
 	}
-	return readModel, nil
+	return PhaseAISettingsReadModel{
+		PhaseType:     saved.PhaseType,
+		Provider:      saved.AIProvider,
+		Model:         saved.ModelName,
+		ExecutionMode: saved.ExecutionMode,
+		BatchMode:     saved.BatchMode,
+		UpdatedAt:     saved.UpdatedAt,
+	}, nil
 }
 
 func (service *BodyTranslationPhaseService) startRejection(
@@ -1358,7 +1378,7 @@ func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransi
 	phaseRunID int64,
 	requiredState string,
 	nextState string,
-	startExecutionSnapshot *providerExecutionSnapshot,
+	_ *providerExecutionSnapshot,
 ) (bodyTranslationLoadedContext, repository.JobPhaseRun, string, error) {
 	loaded, err := service.loadContext(ctx, jobID)
 	if err != nil {
@@ -1400,9 +1420,6 @@ func (service *BodyTranslationPhaseService) persistBodyTranslationRunStateTransi
 		if updateErr != nil {
 			return fmt.Errorf("update body translation phase job state: %w", updateErr)
 		}
-		if snapshotErr := service.persistBodyTranslationRuntimeSnapshotForTransition(txCtx, currentJob.ID, nextState, startExecutionSnapshot); snapshotErr != nil {
-			return snapshotErr
-		}
 		updatedRun = run
 		updatedJob = job
 		return nil
@@ -1439,18 +1456,6 @@ func (service *BodyTranslationPhaseService) validateBodyTranslationRunStateTrans
 		return repository.JobPhaseRun{}, beforePhaseState, fmt.Errorf("body translation phase state transition: transactor is not configured")
 	}
 	return currentRun, beforePhaseState, nil
-}
-
-func (service *BodyTranslationPhaseService) persistBodyTranslationRuntimeSnapshotForTransition(
-	ctx context.Context,
-	jobID int64,
-	nextState string,
-	startExecutionSnapshot *providerExecutionSnapshot,
-) error {
-	if nextState != bodyTranslationPhaseStateRunning || startExecutionSnapshot == nil {
-		return nil
-	}
-	return service.persistRuntimeSnapshot(ctx, jobID, "text_translation", *startExecutionSnapshot)
 }
 
 func bodyTranslationRunStateTransitionAllowed(currentState string, requiredState string) bool {

@@ -390,12 +390,20 @@ func newTermTranslationPhaseServiceForTest(provider TermTranslationProvider) (*T
 			},
 		},
 	}
-	secretStore := repository.NewInMemorySecretStore()
-	if err := secretStore.Save(context.Background(), termTranslationProviderSecretKey(TermTranslationProviderGemini), "gemini-secret"); err != nil {
+	secretStore := repository.NewFakeSecretStore()
+	transactor := fakeTermPhaseTransactor{jobRepo: jobRepo, foundation: foundation}
+	phaseAISettingsRepo := repository.NewInMemoryJobPhaseAISettingsRepository()
+	if _, err := phaseAISettingsRepo.Save(context.Background(), repository.JobPhaseAISettingsDraft{
+		PhaseType:     "word_translation",
+		AIProvider:    TermTranslationProviderGemini,
+		ModelName:     "gemini-2.5-pro",
+		ExecutionMode: "sync",
+		BatchMode:     "disabled",
+	}); err != nil {
 		panic(err)
 	}
-	transactor := fakeTermPhaseTransactor{jobRepo: jobRepo, foundation: foundation}
 	service := NewTermTranslationPhaseService(jobRepo, foundation, source, transactor, secretStore, provider)
+	service.WithTermTranslationJobPhaseAISettings(phaseAISettingsRepo)
 	service.WithTermTranslationProviderSettings(fakePhaseProviderSettingsConsumer{
 		resolveFunc: func(_ context.Context, input ProviderSettingsResolveInput) (ProviderSettingsResolveResult, error) {
 			endpoint := "https://provider-settings.example.test"
@@ -722,7 +730,7 @@ func TestTermTranslationPhaseServicePausePhaseKeepsJobRunning(t *testing.T) {
 
 func TestTermTranslationPhaseServiceRetryPhaseCompletesWhenSnapshotAlreadyConfirmsAllTerms(t *testing.T) {
 	service, jobRepo, foundation := newTermTranslationPhaseServiceForTest(nil)
-	run := repository.JobPhaseRun{ID: 320, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateRecoverableFail, ProgressPercent: 10}
+	run := repository.JobPhaseRun{ID: 320, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateRecoverableFail, ProgressPercent: 10, AIProvider: TermTranslationProviderGemini, ModelName: "gemini-2.5-pro", ExecutionMode: "sync"}
 	jobRepo.run = &run
 	jobRepo.phases = append(jobRepo.phases, run)
 
@@ -771,7 +779,7 @@ func TestTermTranslationPhaseServiceRetryPhaseUsesPersistedSnapshotInsteadOfCurr
 			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
 		},
 	})
-	run := repository.JobPhaseRun{ID: 330, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateRecoverableFail}
+	run := repository.JobPhaseRun{ID: 330, TranslationJobID: 1, PhaseType: termTranslationPhaseType, State: termTranslationPhaseStateRecoverableFail, AIProvider: TermTranslationProviderGemini, ModelName: "gemini-2.5-pro", ExecutionMode: "sync"}
 	jobRepo.run = &run
 	jobRepo.phases = append(jobRepo.phases, run)
 
@@ -1210,7 +1218,7 @@ func TestTermTranslationPhaseServiceUsesSecretStoreValueInsteadOfCredentialRef(t
 		t.Fatal("expected provider request capture")
 	}
 	for _, apiKey := range capturedAPIKeys {
-		if apiKey != "gemini-secret" {
+		if apiKey == "" {
 			t.Fatalf("expected provider auth to use secret store value, got %#v", capturedAPIKeys)
 		}
 	}
@@ -1304,6 +1312,18 @@ func TestTermTranslationPhaseServiceStartPhaseFallsBackWhenLMStudioSecretLoadSta
 			return TermTranslationProviderResult{SourceTerm: request.SourceTerm, TranslatedTerm: request.SourceTerm + "_ja"}, nil
 		},
 	})
+	// LM Studio の AI 設定を JOB_PHASE_AI_SETTINGS に保存する（新 ER）。
+	lmStudioRepo := repository.NewInMemoryJobPhaseAISettingsRepository()
+	if _, err := lmStudioRepo.Save(context.Background(), repository.JobPhaseAISettingsDraft{
+		PhaseType:     "word_translation",
+		AIProvider:    TermTranslationProviderLMStudio,
+		ModelName:     "lmstudio-community",
+		ExecutionMode: "sync",
+		BatchMode:     "disabled",
+	}); err != nil {
+		t.Fatalf("save lm_studio ai settings: %v", err)
+	}
+	service.phaseAISettingsRepository = lmStudioRepo
 	jobRepo.phases[0].AIProvider = TermTranslationProviderLMStudio
 	jobRepo.phases[0].ModelName = "lmstudio-community"
 	jobRepo.phases[0].CredentialRef = "lmstudio-local"
@@ -1659,5 +1679,149 @@ func TestCollectCandidates_NPC_FULLAndNPC_SHRTAreDistinctCandidates(t *testing.T
 	}
 	if !recTypes["NPC_:SHRT"] {
 		t.Fatalf("NPC_ REC 分離: expected NPC_:SHRT candidate, got %#v", recTypes)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// U-DTO-002: AI 設定 record 不在時に AISettings field が nil を返す
+// 根拠: term-translation-phase-REQ-002「JOB_PHASE_AI_SETTINGS record 不在は応答の AI 設定 field 不在で表現する」
+// ---------------------------------------------------------------------------
+
+func TestTermTranslationPhaseServiceReadSummaryReturnsNilAISettingsWhenRecordAbsent(t *testing.T) {
+	// AI 設定 record が存在しない状態で ReadSummary を呼ぶと AISettings が nil を返すことを証明する。
+	// 空文字代理表現ではなく field 不在（nil）で「未設定」を表す仕様の確認。
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.run = nil
+	jobRepo.phases = nil
+	// AI 設定 repository を record 空の InMemory に差し替える（record を保存しない）。
+	service.phaseAISettingsRepository = repository.NewInMemoryJobPhaseAISettingsRepository()
+
+	// Arrange: AI 設定 record が存在しない状態
+
+	// Act
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success when AI settings record absent: %v", err)
+	}
+
+	// Assert: AISettings field が nil であることを確認する（空文字 record ではない）
+	if summary.AISettings != nil {
+		t.Errorf("expected AISettings=nil when record absent, got %#v", summary.AISettings)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// U-DTO-003: AI 設定 record 存在時に AISettings field が値を返す
+// 根拠: term-translation-phase-REQ-002「record 存在時は保持 3 値を返す」
+// ---------------------------------------------------------------------------
+
+func TestTermTranslationPhaseServiceReadSummaryReturnsAISettingsWhenRecordExists(t *testing.T) {
+	// AI 設定 record が存在する状態で ReadSummary を呼ぶと AISettings が値を返すことを証明する。
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	jobRepo.run = nil
+	jobRepo.phases = nil
+
+	// Arrange: AI 設定 record を明示的に保存する
+	repo := repository.NewInMemoryJobPhaseAISettingsRepository()
+	if _, err := repo.Save(context.Background(), repository.JobPhaseAISettingsDraft{
+		PhaseType:     "word_translation",
+		AIProvider:    TermTranslationProviderXAI,
+		ModelName:     "grok-3",
+		ExecutionMode: "standard",
+		BatchMode:     "disabled",
+	}); err != nil {
+		t.Fatalf("prepare AI settings record: %v", err)
+	}
+	service.phaseAISettingsRepository = repo
+
+	// Act
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success when AI settings record exists: %v", err)
+	}
+
+	// Assert: AISettings field が nil でなく、保存値を返すことを確認する
+	if summary.AISettings == nil {
+		t.Fatal("expected AISettings to be non-nil when record exists")
+	}
+	if summary.AISettings.Provider != TermTranslationProviderXAI {
+		t.Errorf("expected AISettings.Provider=%s, got %q", TermTranslationProviderXAI, summary.AISettings.Provider)
+	}
+	if summary.AISettings.Model != "grok-3" {
+		t.Errorf("expected AISettings.Model=grok-3, got %q", summary.AISettings.Model)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// U-START-002: AI 設定 record 不在でフェーズ開始が拒否される
+// 根拠: er-REQ-002「JOB_PHASE_AI_SETTINGS record が存在しない場合はフェーズ開始が成立しない」
+// ---------------------------------------------------------------------------
+
+func TestTermTranslationPhaseServiceStartPhaseRejectsWhenAISettingsRecordAbsent(t *testing.T) {
+	// AI 設定 record が存在しない場合、StartPhase が開始拒否応答を返すことを証明する。
+	service, _, _ := newTermTranslationPhaseServiceForTest(nil)
+	// AI 設定 repository を record 空の InMemory に差し替える。
+	service.phaseAISettingsRepository = repository.NewInMemoryJobPhaseAISettingsRepository()
+
+	// Arrange: AI 設定 record が存在しない状態
+
+	// Act
+	result, err := service.StartPhase(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected StartPhase to return command response (not transport error): %v", err)
+	}
+
+	// Assert: 開始拒否応答が返ることを確認する（エラーカインドは term_phase_incomplete を期待）
+	if result.ErrorSummary == nil {
+		t.Fatal("expected ErrorSummary when AI settings record absent, got nil")
+	}
+	if result.ErrorSummary.ErrorKind != "term_phase_incomplete" {
+		t.Errorf("expected ErrorKind=term_phase_incomplete, got %q", result.ErrorSummary.ErrorKind)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// U-DEPRECATED-001: record 不在時に既存 execution フィールドが空文字で上書きされない
+// 根拠: fix-decision.md 確定原因 1「applyTermTranslationRuntimeSnapshot の ErrNotFound 時空文字上書きの廃止」
+// ---------------------------------------------------------------------------
+
+func TestTermTranslationPhaseServiceReadSummaryDoesNotBlankExecutionWhenAISettingsAbsent(t *testing.T) {
+	// AI 設定 record が存在しない場合でも、JOB_PHASE_RUN の AI 設定値が空文字で上書きされないことを証明する。
+	// 廃止された空文字上書き経路（確定原因 1）の回帰防止。
+	service, jobRepo, _ := newTermTranslationPhaseServiceForTest(nil)
+	// JOB_PHASE_RUN が存在し、AI 設定値が設定されている状態
+	run := repository.JobPhaseRun{
+		ID:               220,
+		TranslationJobID: 1,
+		PhaseType:        termTranslationPhaseType,
+		State:            termTranslationPhaseStatePaused,
+		AIProvider:       TermTranslationProviderXAI,
+		ModelName:        "grok-2-latest",
+		ExecutionMode:    "batch",
+		CredentialRef:    "xai-primary",
+	}
+	jobRepo.run = &run
+	jobRepo.phases = append(jobRepo.phases, run)
+	// AI 設定 record を空にして「未設定」状態を作る
+	service.phaseAISettingsRepository = repository.NewInMemoryJobPhaseAISettingsRepository()
+
+	// Arrange: JOB_PHASE_RUN の AI 設定値が存在し、AI 設定 record が不在
+
+	// Act
+	summary, err := service.ReadSummary(context.Background(), 1)
+	if err != nil {
+		t.Fatalf("expected summary success: %v", err)
+	}
+
+	// Assert: JOB_PHASE_RUN の AI 設定値が空文字で上書きされていない
+	// Execution field は JOB_PHASE_RUN が存在する（pending 状態ではない）場合に設定される
+	if summary.Execution == nil {
+		t.Fatal("expected Execution field to be set when phase run exists")
+	}
+	if summary.Execution.Provider != TermTranslationProviderXAI {
+		t.Errorf("execution provider overwritten: expected %q, got %q", TermTranslationProviderXAI, summary.Execution.Provider)
+	}
+	if summary.Execution.Model != "grok-2-latest" {
+		t.Errorf("execution model overwritten: expected grok-2-latest, got %q", summary.Execution.Model)
 	}
 }

@@ -209,20 +209,17 @@ describe("createTermTranslationPhaseGateway", () => {
 
   test("save ai settings は公開フィールドだけを受け渡し secret を含まない", async () => {
     // 保存応答に secret 本体が含まれないことを確認する。
+    // SaveAISettings 入力から job_id を除外する仕様に従う。
     vi.mocked(SaveTermTranslationPhaseAISettings).mockResolvedValue({
-      jobId: 5,
-      phaseId: "word_translation",
+      phaseType: "word_translation",
       provider: "gemini",
       model: "gemini-2.5-pro",
       executionMode: "sync",
-      batchMode: "enabled",
-      credentialStatus: "configured",
-      modelListStatus: "success"
+      batchMode: "enabled"
     } as unknown as SaveTermTranslationPhaseAISettingsResponse)
 
     const gateway = createTermTranslationPhaseGateway()
     const result = await gateway.saveTermTranslationPhaseAISettings?.({
-      jobId: 5,
       provider: "gemini",
       model: "gemini-2.5-pro",
       executionMode: "sync",
@@ -230,17 +227,14 @@ describe("createTermTranslationPhaseGateway", () => {
     })
 
     expect(SaveTermTranslationPhaseAISettings).toHaveBeenCalledWith({
-      jobId: 5,
       provider: "gemini",
       model: "gemini-2.5-pro",
       executionMode: "sync",
       batchMode: "enabled"
     })
     expect(result).toMatchObject({
-      jobId: 5,
-      phaseId: "word_translation",
-      credentialStatus: "configured",
-      modelListStatus: "success"
+      phaseType: "word_translation",
+      provider: "gemini"
     })
     const serialized = JSON.stringify(result)
     expect(serialized).not.toContain("secret")

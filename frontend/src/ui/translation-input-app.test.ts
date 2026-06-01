@@ -240,6 +240,7 @@ class TermTranslationPhaseScreenControllerFake implements TermTranslationPhaseSc
       phaseStateLabel: "開始待ち",
       progressPercent: 0,
       progressLabel: "0%",
+      modelOptions: [],
       actionCards: []
     } as unknown as TermTranslationPhaseScreenViewModel
   }
@@ -282,6 +283,7 @@ class PersonaGenerationPhaseScreenControllerFake implements PersonaGenerationPha
       phaseStateLabel: "開始待ち",
       progressPercent: 0,
       progressLabel: "0%",
+      modelOptions: [],
       actionCards: []
     } as unknown as PersonaGenerationPhaseScreenViewModel
   }

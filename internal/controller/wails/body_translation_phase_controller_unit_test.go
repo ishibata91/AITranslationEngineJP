@@ -89,7 +89,7 @@ func TestBodyTranslationPhaseControllerGetSummaryMapsPublicSeamAndRedactsSecrets
 					MetadataDigest:   "sha256:metadata",
 					PromptDigest:     "sha256:prompt",
 				},
-				Execution: usecase.BodyTranslationExecutionSummary{
+				Execution: &usecase.BodyTranslationExecutionSummary{
 					CredentialRef:    "credential:body:test",
 					Provider:         "fake",
 					Model:            "body-model",
@@ -221,7 +221,7 @@ func TestBodyTranslationPhaseControllerStartReturnsOnlySafeSummaryForInvalidProv
 				RequestSummary: usecase.BodyTranslationPhaseRequestSummary{
 					ProviderTargetCount: 1,
 				},
-				Execution: usecase.BodyTranslationPhaseExecutionSummary{
+				Execution: &usecase.BodyTranslationPhaseExecutionSummary{
 					CredentialRef:    "credential:body:redacted",
 					Provider:         "fake",
 					Model:            "body-model",

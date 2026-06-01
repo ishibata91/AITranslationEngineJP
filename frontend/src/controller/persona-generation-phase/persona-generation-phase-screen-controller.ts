@@ -12,10 +12,17 @@ interface PersonaGenerationPhaseStoreLike {
   snapshot(): PersonaGenerationPhaseScreenState
 }
 
+interface PersonaSelectOption {
+  value: string
+  label: string
+}
+
 interface PersonaGenerationPhasePresenterLike {
   toViewModel(
     state: PersonaGenerationPhaseScreenState,
-    isGatewayConnected: boolean
+    isGatewayConnected: boolean,
+    availableProviders?: PersonaSelectOption[],
+    availableModels?: PersonaSelectOption[]
   ): PersonaGenerationPhaseScreenViewModel
 }
 
@@ -39,17 +46,51 @@ interface PersonaGenerationPhaseUseCaseLike {
   }) => Promise<void>
 }
 
+interface PersonaGenerationPhaseGatewayLike {
+  listProviderModels?(request: {
+    provider: string
+    credentialStatus: string
+    requestToken: string
+  }): Promise<{
+    provider: string
+    status: string
+    models: { modelId: string; label: string }[]
+    failureKind?: string
+  }>
+}
+
 interface PersonaGenerationPhaseScreenControllerDependencies {
   isGatewayConnected: boolean
   store: PersonaGenerationPhaseStoreLike
   presenter: PersonaGenerationPhasePresenterLike
   useCase: PersonaGenerationPhaseUseCaseLike
+  gateway?: PersonaGenerationPhaseGatewayLike | null
 }
 
 export class PersonaGenerationPhaseScreenController implements PersonaGenerationPhaseScreenControllerContract {
+  private availableProviders: PersonaSelectOption[] = []
+  private availableModels: PersonaSelectOption[] = []
+  private modelListRequestToken = 0
+  private readonly listeners: Set<PersonaGenerationPhaseScreenViewModelListener> = new Set()
+
   constructor(
     private readonly dependencies: PersonaGenerationPhaseScreenControllerDependencies
   ) {}
+
+  private notifyListeners(): void {
+    const vm = this.getViewModel()
+    for (const listener of this.listeners) {
+      listener(vm)
+    }
+  }
+
+  setAvailableProviders(providers: PersonaSelectOption[]): void {
+    this.availableProviders = providers
+  }
+
+  setAvailableModels(models: PersonaSelectOption[]): void {
+    this.availableModels = models
+  }
 
   mount(): Promise<void> {
     return this.dependencies.useCase.load()
@@ -62,21 +103,57 @@ export class PersonaGenerationPhaseScreenController implements PersonaGeneration
   subscribe(
     listener: PersonaGenerationPhaseScreenViewModelListener
   ): () => void {
-    return this.dependencies.store.subscribe((state) => {
+    this.listeners.add(listener)
+    const unsubStore = this.dependencies.store.subscribe((state) => {
       listener(
         this.dependencies.presenter.toViewModel(
           state,
-          this.dependencies.isGatewayConnected
+          this.dependencies.isGatewayConnected,
+          this.availableProviders,
+          this.availableModels
         )
       )
     })
+    return () => {
+      this.listeners.delete(listener)
+      unsubStore()
+    }
   }
 
   getViewModel(): PersonaGenerationPhaseScreenViewModel {
     return this.dependencies.presenter.toViewModel(
       this.dependencies.store.snapshot(),
-      this.dependencies.isGatewayConnected
+      this.dependencies.isGatewayConnected,
+      this.availableProviders,
+      this.availableModels
     )
+  }
+
+  async refreshModelList(provider: string): Promise<void> {
+    const gateway = this.dependencies.gateway
+    if (!gateway?.listProviderModels) {
+      return
+    }
+    if (!provider) {
+      return
+    }
+    const token = String(++this.modelListRequestToken)
+    try {
+      const response = await gateway.listProviderModels({
+        provider,
+        credentialStatus: "configured",
+        requestToken: token
+      })
+      if (response.provider === provider) {
+        this.availableModels = response.models.map((m) => ({
+          value: m.modelId,
+          label: m.label
+        }))
+        this.notifyListeners()
+      }
+    } catch {
+      // モデル一覧取得失敗時は既存の選択肢を維持する
+    }
   }
 
   async setJobId(jobId: number | null): Promise<void> {

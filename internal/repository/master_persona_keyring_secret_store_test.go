@@ -393,23 +393,6 @@ func TestNewMasterPersonaKeyringSecretStoreProductionConstructorSupportsFileBack
 	}
 }
 
-func TestInMemorySecretStoreSaveLoadDelete(t *testing.T) {
-	store := NewInMemorySecretStore()
-	if err := store.Save(context.Background(), "master-persona:test", "value"); err != nil {
-		t.Fatalf("expected in-memory save to succeed: %v", err)
-	}
-	loaded, err := store.Load(context.Background(), "master-persona:test")
-	if err != nil {
-		t.Fatalf("expected in-memory load to succeed: %v", err)
-	}
-	if loaded != "value" {
-		t.Fatalf("expected in-memory loaded value, got %q", loaded)
-	}
-	if err := store.Delete(context.Background(), "master-persona:test"); err != nil {
-		t.Fatalf("expected in-memory delete to succeed: %v", err)
-	}
-}
-
 type failingMasterPersonaKeyring struct {
 	getErr    error
 	setErr    error

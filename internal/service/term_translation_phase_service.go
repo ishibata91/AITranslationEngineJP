@@ -69,16 +69,17 @@ var (
 
 // TermTranslationPhaseService orchestrates term phase execution state and job-local dictionary persistence.
 type TermTranslationPhaseService struct {
-	now                      func() time.Time
-	jobLifecycleRepository   termTranslationPhaseJobLifecycleRepository
-	foundationDataRepository termTranslationPhaseFoundationDataRepository
-	translationSourceReader  termTranslationPhaseTranslationSourceRepository
-	transactor               repository.Transactor
-	secretStore              termTranslationPhaseSecretStore
-	provider                 TermTranslationProvider
-	providerSettings         ProviderSettingsConsumer
-	executionSnapshots       map[int64]providerExecutionSnapshot
-	secretLoadTimeout        time.Duration
+	now                       func() time.Time
+	jobLifecycleRepository    termTranslationPhaseJobLifecycleRepository
+	foundationDataRepository  termTranslationPhaseFoundationDataRepository
+	translationSourceReader   termTranslationPhaseTranslationSourceRepository
+	transactor                repository.Transactor
+	secretStore               termTranslationPhaseSecretStore
+	provider                  TermTranslationProvider
+	providerSettings          ProviderSettingsConsumer
+	phaseAISettingsRepository repository.JobPhaseAISettingsRepository
+	executionSnapshots        map[int64]providerExecutionSnapshot
+	secretLoadTimeout         time.Duration
 }
 
 type termTranslationPhaseJobLifecycleRepository interface {
@@ -111,14 +112,6 @@ type termTranslationPhaseSecretStore interface {
 	Load(ctx context.Context, key string) (string, error)
 }
 
-type termTranslationPhaseRuntimeSnapshotReader interface {
-	GetTranslationJobPhaseRuntimeSnapshot(
-		ctx context.Context,
-		translationJobID int64,
-		phaseID string,
-	) (repository.TranslationJobPhaseRuntimeSnapshot, error)
-}
-
 // TermTranslationExecutionConfigReadModel summarizes execution config for one term phase run.
 type TermTranslationExecutionConfigReadModel struct {
 	CredentialRef   string
@@ -129,6 +122,15 @@ type TermTranslationExecutionConfigReadModel struct {
 	ExecutionMode   string
 	SnapshotDigest  *string
 	SnapshotVersion *string
+}
+
+// TermTranslationPhaseAISettingsReadModel holds the Ready 期 AI 選択値（JOB_PHASE_AI_SETTINGS から読む）。
+// record 不在の場合は nil で返す。認証参照、認証状態、利用可能モデル一覧は含めない。
+type TermTranslationPhaseAISettingsReadModel struct {
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
 }
 
 // TermTranslationPhaseProgressReadModel summarizes persisted term phase progress.
@@ -182,10 +184,15 @@ type TermTranslationPhaseSummaryReadModel struct {
 	TotalTermCount     int
 	DictionaryHitCount int
 	AITargetCount      int
-	Execution          TermTranslationExecutionConfigReadModel
-	ResultSummary      *TermTranslationPhaseResultReadModel
-	ErrorSummary       *TermTranslationPhaseErrorReadModel
-	ActionEnablement   TermTranslationPhaseActionEnablementReadModel
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。
+	// record 不在（AI 設定未保存）の場合は nil とする。
+	AISettings *TermTranslationPhaseAISettingsReadModel
+	// Execution は JOB_PHASE_RUN が存在し AI 設定転写済みの場合だけ設定する。
+	// Ready 期（run 未作成または pending 状態）の場合は nil とする。
+	Execution        *TermTranslationExecutionConfigReadModel
+	ResultSummary    *TermTranslationPhaseResultReadModel
+	ErrorSummary     *TermTranslationPhaseErrorReadModel
+	ActionEnablement TermTranslationPhaseActionEnablementReadModel
 }
 
 // TermTranslationPhaseCommandReadModel stores command payload data for the usecase boundary.
@@ -298,6 +305,17 @@ func (service *TermTranslationPhaseService) WithTermTranslationProviderSettings(
 	return service
 }
 
+// WithTermTranslationJobPhaseAISettings injects the JOB_PHASE_AI_SETTINGS repository.
+// repository が nil の場合は変更しない。
+func (service *TermTranslationPhaseService) WithTermTranslationJobPhaseAISettings(
+	repo repository.JobPhaseAISettingsRepository,
+) *TermTranslationPhaseService {
+	if service != nil {
+		service.phaseAISettingsRepository = repo
+	}
+	return service
+}
+
 // ReadSummary loads the current term phase summary for one translation job.
 func (service *TermTranslationPhaseService) ReadSummary(
 	ctx context.Context,
@@ -316,8 +334,6 @@ func (service *TermTranslationPhaseService) ReadSummary(
 	if err != nil {
 		return TermTranslationPhaseSummaryReadModel{}, err
 	}
-	execution.SnapshotDigest = digest
-	execution.SnapshotVersion = version
 	state := termTranslationPhaseStateIdleReady
 	var phaseRunID *int64
 	var startedAt *time.Time
@@ -337,6 +353,16 @@ func (service *TermTranslationPhaseService) ReadSummary(
 	if aiTargetCount < 0 {
 		aiTargetCount = 0
 	}
+	// JOB_PHASE_RUN が存在し AI 設定転写済みの場合は execution field を設定する。
+	// Ready 期（run 未作成または pending 状態）の場合は execution field を nil にする。
+	var executionField *TermTranslationExecutionConfigReadModel
+	if run != nil && strings.TrimSpace(run.State) != termTranslationPhaseStatePending {
+		execution.SnapshotDigest = digest
+		execution.SnapshotVersion = version
+		executionField = &execution
+	}
+	// JOB_PHASE_AI_SETTINGS record が存在する場合だけ aiSettings field を設定する。
+	aiSettings := service.loadPhaseAISettings(termTranslationRequestContext(ctx))
 	availability := commonPhaseActionAvailability(phaseActionAvailabilityInput{
 		JobState:       job.State,
 		PhaseState:     state,
@@ -355,7 +381,8 @@ func (service *TermTranslationPhaseService) ReadSummary(
 		TotalTermCount:     total,
 		DictionaryHitCount: hitCount,
 		AITargetCount:      aiTargetCount,
-		Execution:          execution,
+		AISettings:         aiSettings,
+		Execution:          executionField,
 		ResultSummary:      resultSummary,
 		ErrorSummary:       errorSummary,
 		ActionEnablement: TermTranslationPhaseActionEnablementReadModel{
@@ -719,9 +746,6 @@ func (service *TermTranslationPhaseService) ensureExecutionPlanRun(
 		execution.Model = updatedRun.ModelName
 		execution.ExecutionMode = updatedRun.ExecutionMode
 		startSnapshot := termTranslationProviderExecutionSnapshot(execution)
-		if err := service.persistRuntimeSnapshot(ctx, updatedJob.ID, "word_translation", startSnapshot); err != nil {
-			return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
-		}
 		service.executionSnapshots[updatedRun.ID] = startSnapshot
 		return updatedJob, &updatedRun, execution, true, nil
 	}
@@ -747,9 +771,6 @@ func (service *TermTranslationPhaseService) ensureExecutionPlanRun(
 	execution.Model = createdRun.ModelName
 	execution.ExecutionMode = createdRun.ExecutionMode
 	startSnapshot := termTranslationProviderExecutionSnapshot(execution)
-	if err := service.persistRuntimeSnapshot(ctx, updatedJob.ID, "word_translation", startSnapshot); err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, false, err
-	}
 	service.executionSnapshots[createdRun.ID] = startSnapshot
 	return updatedJob, &createdRun, execution, true, nil
 }
@@ -924,49 +945,18 @@ func termTranslationProviderExecutionSnapshot(
 	}
 }
 
-func (service *TermTranslationPhaseService) persistRuntimeSnapshot(
-	ctx context.Context,
-	jobID int64,
-	phaseID string,
-	snapshot providerExecutionSnapshot,
-) error {
-	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
-	if !ok {
-		return nil
-	}
-	current, err := store.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, phaseID)
-	switch {
-	case err == nil:
-	case errors.Is(err, repository.ErrNotFound):
-		current = repository.TranslationJobPhaseRuntimeSnapshot{}
-	default:
-		return fmt.Errorf("persist term translation runtime snapshot: %w", err)
-	}
-	if _, err := store.SaveTranslationJobPhaseRuntimeSnapshot(ctx, repository.TranslationJobPhaseRuntimeSnapshotDraft{
-		TranslationJobID: jobID,
-		PhaseID:          phaseID,
-		Provider:         snapshot.Provider,
-		ModelName:        snapshot.Model,
-		CredentialStatus: snapshot.CredentialState,
-		ExecutionMode:    snapshot.ExecutionMode,
-		BatchMode:        providerExecutionBatchMode(current),
-	}); err != nil {
-		return fmt.Errorf("persist term translation runtime snapshot: %w", err)
-	}
-	return nil
-}
-
 // SaveAISettings saves public AI settings for the term translation phase.
+// 書き込み先は JOB_PHASE_AI_SETTINGS（phase_type = "word_translation"）。
+// 入力の selection に job_id を含めない。credential_ref は保存しない。
 func (service *TermTranslationPhaseService) SaveAISettings(
 	ctx context.Context,
 	selection PhaseAISettingsSelection,
 ) (PhaseAISettingsReadModel, error) {
-	store, ok := service.jobLifecycleRepository.(translationJobPhaseRuntimeSnapshotStore)
-	if !ok {
-		return PhaseAISettingsReadModel{}, fmt.Errorf("save term translation ai settings: snapshot store is not configured")
+	if service.phaseAISettingsRepository == nil {
+		return PhaseAISettingsReadModel{}, fmt.Errorf("save term translation ai settings: phase ai settings repository is not configured")
 	}
-	selection.PhaseID = "word_translation"
-	readModel, err := savePhaseAISettings(ctx, store, service.providerSettings, "term_translation_phase", selection)
+	selection.PhaseType = "word_translation"
+	readModel, err := savePhaseAISettings(ctx, service.phaseAISettingsRepository, "term_translation_phase", selection)
 	if err != nil {
 		return PhaseAISettingsReadModel{}, fmt.Errorf("save term translation ai settings: %w", err)
 	}
@@ -1019,9 +1009,6 @@ func (service *TermTranslationPhaseService) applyExecutionPlan(
 		return repository.JobPhaseRun{}, 0, nil, err
 	}
 	if plan.StartSnapshot != nil && strings.TrimSpace(updatedRun.State) == termTranslationPhaseStateRunning {
-		if persistErr := service.persistRuntimeSnapshot(ctx, plan.Job.ID, "word_translation", *plan.StartSnapshot); persistErr != nil {
-			return repository.JobPhaseRun{}, 0, nil, persistErr
-		}
 		service.executionSnapshots[updatedRun.ID] = *plan.StartSnapshot
 	}
 	plan.PhaseRun = updatedRun
@@ -1196,6 +1183,11 @@ func (service *TermTranslationPhaseService) updateExecutionPlanRunState(
 		ProgressPercent:     progressPercent,
 		LatestExternalRunID: run.LatestExternalRunID,
 		LatestError:         "",
+		AIProvider:          run.AIProvider,
+		ModelName:           run.ModelName,
+		ExecutionMode:       run.ExecutionMode,
+		CredentialRef:       run.CredentialRef,
+		InstructionKind:     run.InstructionKind,
 		StartedAt:           termTranslationRunStartedAt(run.StartedAt, service.now()),
 		FinishedAt:          nil,
 	})
@@ -1380,6 +1372,11 @@ func (service *TermTranslationPhaseService) markPhaseRunFailure(
 		ProgressPercent:     progressPercent,
 		LatestExternalRunID: run.LatestExternalRunID,
 		LatestError:         errorKind,
+		AIProvider:          run.AIProvider,
+		ModelName:           run.ModelName,
+		ExecutionMode:       run.ExecutionMode,
+		CredentialRef:       run.CredentialRef,
+		InstructionKind:     run.InstructionKind,
 		StartedAt:           termTranslationRunStartedAt(run.StartedAt, now),
 		FinishedAt:          nil,
 	})
@@ -1424,89 +1421,89 @@ func (service *TermTranslationPhaseService) loadExecutionContext(
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, fmt.Errorf("list translation job phases: %w", err)
 	}
-	initial, applyRuntimeSnapshot, err := termTranslationExecutionBasePhase(job.ID, job.State, run, phases)
-	if err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
-	}
-	initial, err = service.applyTermTranslationRuntimeSnapshot(ctx, job.ID, initial, applyRuntimeSnapshot)
-	if err != nil {
-		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
+	if _, _, baseErr := termTranslationExecutionBasePhase(job.ID, job.State, run, phases); baseErr != nil {
+		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, baseErr
 	}
 	candidates, err := service.collectCandidates(ctx, job.XEditExtractedDataID)
 	if err != nil {
 		return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
 	}
-	execution := TermTranslationExecutionConfigReadModel{
-		CredentialRef: initial.CredentialRef,
-		Provider:      initial.AIProvider,
-		Model:         initial.ModelName,
-		ExecutionMode: initial.ExecutionMode,
-	}
-	if run != nil {
-		execution, err = service.applyTermTranslationRunExecution(ctx, job.ID, *run, execution)
-		if err != nil {
-			return repository.TranslationJob{}, nil, TermTranslationExecutionConfigReadModel{}, nil, err
-		}
+	// JOB_PHASE_RUN が存在し AI 設定が転写済みの状態（pending 以外）は JOB_PHASE_RUN から AI 設定を読む。
+	// JOB_PHASE_RUN が存在しない（Ready 期）か pending 状態（AI 設定未転写）の場合は JOB_PHASE_AI_SETTINGS から読む。
+	// record 不在は execution の AI 設定 field を空文字で表現する（未設定状態）。
+	var execution TermTranslationExecutionConfigReadModel
+	if run != nil && strings.TrimSpace(run.State) != termTranslationPhaseStatePending {
+		execution = service.applyTermTranslationRunExecution(ctx, job.ID, *run, execution)
+	} else {
+		execution = service.loadPhaseAISettingsAsExecution(ctx)
 	}
 	return job, run, execution, candidates, nil
 }
 
-func (service *TermTranslationPhaseService) applyTermTranslationRuntimeSnapshot(
+// loadPhaseAISettings は JOB_PHASE_AI_SETTINGS から単語翻訳フェーズの AI 設定を読む。
+// record 不在（ErrJobPhaseAISettingsNotFound）または repository 未設定の場合は nil を返す（未設定状態）。
+// エラーは呼び出し元へ伝播しない（record 不在は正常状態のため）。
+func (service *TermTranslationPhaseService) loadPhaseAISettings(
 	ctx context.Context,
-	jobID int64,
-	initial repository.JobPhaseRun,
-	enabled bool,
-) (repository.JobPhaseRun, error) {
-	if !enabled {
-		return initial, nil
+) *TermTranslationPhaseAISettingsReadModel {
+	if service.phaseAISettingsRepository == nil {
+		return nil
 	}
-	snapshotReader, ok := service.jobLifecycleRepository.(termTranslationPhaseRuntimeSnapshotReader)
-	if !ok {
-		return initial, nil
-	}
-	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "word_translation")
-	if errors.Is(err, repository.ErrNotFound) {
-		initial.AIProvider = ""
-		initial.ModelName = ""
-		initial.ExecutionMode = ""
-		initial.CredentialRef = ""
-		return initial, nil
-	}
+	settings, err := service.phaseAISettingsRepository.LoadByPhaseType(ctx, "word_translation")
 	if err != nil {
-		return repository.JobPhaseRun{}, fmt.Errorf("load term translation phase runtime snapshot: %w", err)
+		// ErrJobPhaseAISettingsNotFound を含む全エラーを「未設定（record 不在）」として扱う。
+		return nil
 	}
-	initial.AIProvider = snapshot.Provider
-	initial.ModelName = snapshot.ModelName
-	initial.ExecutionMode = snapshot.ExecutionMode
-	initial.CredentialRef = ""
-	return initial, nil
+	return &TermTranslationPhaseAISettingsReadModel{
+		Provider:      strings.TrimSpace(settings.AIProvider),
+		Model:         strings.TrimSpace(settings.ModelName),
+		ExecutionMode: strings.TrimSpace(settings.ExecutionMode),
+		BatchMode:     strings.TrimSpace(settings.BatchMode),
+	}
+}
+
+// loadPhaseAISettingsAsExecution は後方互換のために残す内部 helper。
+// loadExecutionContext（start/pause/resume/retry の実行文脈）が AI 設定値を
+// TermTranslationExecutionConfigReadModel として必要とするため存続させる。
+func (service *TermTranslationPhaseService) loadPhaseAISettingsAsExecution(
+	ctx context.Context,
+) TermTranslationExecutionConfigReadModel {
+	if service.phaseAISettingsRepository == nil {
+		return TermTranslationExecutionConfigReadModel{}
+	}
+	settings, err := service.phaseAISettingsRepository.LoadByPhaseType(ctx, "word_translation")
+	if err != nil {
+		return TermTranslationExecutionConfigReadModel{}
+	}
+	return TermTranslationExecutionConfigReadModel{
+		Provider:      strings.TrimSpace(settings.AIProvider),
+		Model:         strings.TrimSpace(settings.ModelName),
+		ExecutionMode: strings.TrimSpace(settings.ExecutionMode),
+	}
 }
 
 func (service *TermTranslationPhaseService) applyTermTranslationRunExecution(
-	ctx context.Context,
-	jobID int64,
+	_ context.Context,
+	_ int64,
 	run repository.JobPhaseRun,
 	execution TermTranslationExecutionConfigReadModel,
-) (TermTranslationExecutionConfigReadModel, error) {
+) TermTranslationExecutionConfigReadModel {
 	execution = termTranslationExecutionFromRun(run, execution)
 	if snapshot, ok := service.executionSnapshots[run.ID]; ok {
 		execution.CredentialState = snapshot.CredentialState
-		return execution, nil
+		return execution
 	}
-	snapshotReader, ok := service.jobLifecycleRepository.(termTranslationPhaseRuntimeSnapshotReader)
-	if !ok {
-		return execution, nil
+	// CredentialState は JOB_PHASE_RUN.CredentialRef の有無から判断する。
+	// snapshot テーブル廃止後は provider-settings 正本を参照する都度解決経路が credential_ref として記録されている。
+	switch {
+	case strings.TrimSpace(run.CredentialRef) != "":
+		execution.CredentialState = "configured"
+	case !providerExecutionUsesProviderSettings(run.AIProvider):
+		execution.CredentialState = "not_required"
+	default:
+		execution.CredentialState = "missing"
 	}
-	snapshot, err := snapshotReader.GetTranslationJobPhaseRuntimeSnapshot(ctx, jobID, "word_translation")
-	if errors.Is(err, repository.ErrNotFound) {
-		return execution, nil
-	}
-	if err != nil {
-		return TermTranslationExecutionConfigReadModel{}, fmt.Errorf("load term translation phase runtime snapshot: %w", err)
-	}
-	persisted := providerExecutionSnapshotFromRuntimeSnapshot(snapshot)
-	execution.CredentialState = persisted.CredentialState
-	return execution, nil
+	return execution
 }
 
 func termTranslationExecutionFromRun(
@@ -2169,6 +2166,15 @@ func (service *TermTranslationPhaseService) persistMarkedAttemptFailure(
 	if err := service.persistFailureSnapshots(ctx, run.ID, failure.snapshots); err != nil {
 		return repository.JobPhaseRun{}, err
 	}
+	// run が conflict により再取得された場合、AI 設定フィールドが空の可能性がある。
+	// その場合は failure.run（plan 時点の PhaseRun）の AI 設定を補完する。
+	if strings.TrimSpace(run.AIProvider) == "" && strings.TrimSpace(failure.run.AIProvider) != "" {
+		run.AIProvider = failure.run.AIProvider
+		run.ModelName = failure.run.ModelName
+		run.ExecutionMode = failure.run.ExecutionMode
+		run.CredentialRef = failure.run.CredentialRef
+		run.InstructionKind = failure.run.InstructionKind
+	}
 	failedRun, err := service.markPhaseRunFailure(
 		ctx,
 		failure.job,
@@ -2300,19 +2306,6 @@ func (service *TermTranslationPhaseService) loadProviderSecret(
 			return "", false, result.err
 		}
 		return result.value, true, nil
-	}
-}
-
-func termTranslationProviderSecretKey(provider string) string {
-	switch normalizeTermTranslationText(provider) {
-	case normalizeTermTranslationText(string(TermTranslationProviderGemini)):
-		return "gemini-primary"
-	case normalizeTermTranslationText(string(TermTranslationProviderXAI)):
-		return "xai-primary"
-	case normalizeTermTranslationText(string(TermTranslationProviderLMStudio)):
-		return "lmstudio-local"
-	default:
-		return normalizeTermTranslationText(provider)
 	}
 }
 

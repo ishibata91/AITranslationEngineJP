@@ -20,5 +20,7 @@ export type {
   PauseBodyTranslationPhaseRequest,
   ResumeBodyTranslationPhaseRequest,
   RetryBodyTranslationPhaseRequest,
-  StartBodyTranslationPhaseRequest
+  StartBodyTranslationPhaseRequest,
+  PhaseProviderModelsRequest,
+  PhaseProviderModelsResponse
 } from "./body-translation-phase-gateway-contract"

@@ -72,7 +72,6 @@ func (usecase *BodyTranslationPhaseUsecase) SaveBodyTranslationPhaseAISettings(
 		return BodyTranslationPhaseAISettingsResult{}, fmt.Errorf("save body translation phase ai settings: service is not configured")
 	}
 	readModel, err := saver.SaveAISettings(ctx, service.PhaseAISettingsSelection{
-		JobID:         request.JobID,
 		Provider:      request.Provider,
 		Model:         request.Model,
 		ExecutionMode: request.ExecutionMode,
@@ -81,7 +80,13 @@ func (usecase *BodyTranslationPhaseUsecase) SaveBodyTranslationPhaseAISettings(
 	if err != nil {
 		return BodyTranslationPhaseAISettingsResult{}, fmt.Errorf("save body translation phase ai settings: %w", err)
 	}
-	return BodyTranslationPhaseAISettingsResult(readModel), nil
+	return BodyTranslationPhaseAISettingsResult{
+		PhaseType:     readModel.PhaseType,
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		BatchMode:     readModel.BatchMode,
+	}, nil
 }
 
 // PauseBodyTranslationPhase returns the body phase command payload for pause handling.
@@ -255,7 +260,7 @@ func bodyCommandResultFromSummary(summary service.BodyTranslationPhaseSummaryRea
 		Progress:           toBodyTranslationPhaseProgressSummary(summary.Progress),
 		InputSummary:       toBodyTranslationPhaseInputSummary(summary.InputSummary),
 		RequestSummary:     toBodyTranslationPhaseRequestSummary(summary.RequestSummary),
-		Execution:          toBodyTranslationPhaseExecutionSummary(summary.Execution),
+		Execution:          toOptionalBodyTranslationPhaseExecutionSummary(summary.Execution),
 		FieldResultSummary: toOptionalBodyTranslationFieldResultSummary(summary.FieldResultSummary),
 		ResultSummary:      toOptionalBodyTranslationFieldResultSummary(summary.ResultSummary),
 		FieldResults:       toBodyTranslationFieldResultItems(summary.FieldResults),
@@ -278,7 +283,8 @@ func toBodyTranslationPhaseSummaryResult(
 		Progress:           toBodyTranslationPhaseProgressSummary(readModel.Progress),
 		InputSummary:       toBodyTranslationPhaseInputSummary(readModel.InputSummary),
 		RequestSummary:     toBodyTranslationPhaseRequestSummary(readModel.RequestSummary),
-		Execution:          toBodyTranslationPhaseExecutionSummary(readModel.Execution),
+		AISettings:         toBodyTranslationPhaseAISettings(readModel.AISettings),
+		Execution:          toOptionalBodyTranslationPhaseExecutionSummary(readModel.Execution),
 		FieldResultSummary: toOptionalBodyTranslationFieldResultSummary(readModel.FieldResultSummary),
 		ResultSummary:      toOptionalBodyTranslationFieldResultSummary(readModel.ResultSummary),
 		FieldResults:       toBodyTranslationFieldResultItems(readModel.FieldResults),
@@ -302,13 +308,16 @@ func toBodyTranslationPhaseCommandResult(
 		InputSnapshotDigest: readModel.InputSnapshotDigest,
 		InputSummary:        toBodyTranslationPhaseInputSummary(readModel.InputSummary),
 		RequestSummary:      toBodyTranslationPhaseRequestSummary(readModel.RequestSummary),
-		Execution:           toBodyTranslationPhaseExecutionSummary(readModel.Execution),
-		FieldResultSummary:  toOptionalBodyTranslationFieldResultSummary(readModel.FieldResultSummary),
-		ResultSummary:       toOptionalBodyTranslationFieldResultSummary(readModel.ResultSummary),
-		FieldResults:        toBodyTranslationFieldResultItems(readModel.FieldResults),
-		Retryable:           readModel.Retryable,
-		OutputReadiness:     toBodyTranslationOutputReadinessSummary(readModel.OutputReadiness),
-		ErrorSummary:        toOptionalBodyTranslationErrorSummary(readModel.ErrorSummary),
+		Execution: func() *BodyTranslationPhaseExecutionSummary {
+			v := toBodyTranslationPhaseExecutionSummary(readModel.Execution)
+			return &v
+		}(),
+		FieldResultSummary: toOptionalBodyTranslationFieldResultSummary(readModel.FieldResultSummary),
+		ResultSummary:      toOptionalBodyTranslationFieldResultSummary(readModel.ResultSummary),
+		FieldResults:       toBodyTranslationFieldResultItems(readModel.FieldResults),
+		Retryable:          readModel.Retryable,
+		OutputReadiness:    toBodyTranslationOutputReadinessSummary(readModel.OutputReadiness),
+		ErrorSummary:       toOptionalBodyTranslationErrorSummary(readModel.ErrorSummary),
 	}
 }
 
@@ -360,6 +369,30 @@ func toBodyTranslationPhaseExecutionSummary(
 		ExecutionMode:    readModel.ExecutionMode,
 		RequestUnitCount: readModel.RequestUnitCount,
 		OutputCount:      readModel.OutputCount,
+	}
+}
+
+func toOptionalBodyTranslationPhaseExecutionSummary(
+	readModel *service.BodyTranslationPhaseExecutionSummaryReadModel,
+) *BodyTranslationPhaseExecutionSummary {
+	if readModel == nil {
+		return nil
+	}
+	summary := toBodyTranslationPhaseExecutionSummary(*readModel)
+	return &summary
+}
+
+func toBodyTranslationPhaseAISettings(
+	readModel *service.BodyTranslationPhaseAISettingsReadModel,
+) *BodyTranslationPhaseAISettings {
+	if readModel == nil {
+		return nil
+	}
+	return &BodyTranslationPhaseAISettings{
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		BatchMode:     readModel.BatchMode,
 	}
 }
 

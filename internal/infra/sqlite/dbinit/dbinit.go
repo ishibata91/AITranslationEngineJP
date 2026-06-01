@@ -212,7 +212,6 @@ func needsCanonicalERCascadeReset(ctx context.Context, database *sqlx.DB) (bool,
 	}{
 		{table: "TRANSLATION_RECORD", column: "x_edit_extracted_data_id"},
 		{table: "TRANSLATION_JOB", column: "x_edit_extracted_data_id"},
-		{table: "TRANSLATION_JOB_PHASE_RUNTIME_SNAPSHOT", column: "translation_job_id"},
 	}
 	for _, key := range requiredCascadeKeys {
 		hasCascade, err := sqliteForeignKeyHasOnDelete(ctx, database, key.table, key.column, "CASCADE")

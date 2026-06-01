@@ -61,27 +61,35 @@ type GetTermTranslationNextPhaseReadinessRequestDTO struct {
 }
 
 // SaveTermTranslationPhaseAISettingsRequestDTO carries public AI settings.
+// job_id を含めない。保存操作はジョブと無関連で phase_type = "word_translation" へ upsert する。
 type SaveTermTranslationPhaseAISettingsRequestDTO struct {
-	JobID         int64  `json:"jobId"`
 	Provider      string `json:"provider"`
 	Model         string `json:"model"`
 	ExecutionMode string `json:"executionMode"`
 	BatchMode     string `json:"batchMode"`
 }
 
-// TermTranslationPhaseAISettingsResponseDTO returns public AI settings state.
+// TermTranslationPhaseAISettingsResponseDTO returns saved AI settings state.
+// credential_status、model_list_status は含まない。
 type TermTranslationPhaseAISettingsResponseDTO struct {
-	JobID            int64  `json:"jobId"`
-	PhaseID          string `json:"phaseId"`
-	Provider         string `json:"provider"`
-	Model            string `json:"model"`
-	CredentialStatus string `json:"credentialStatus"`
-	ExecutionMode    string `json:"executionMode"`
-	BatchMode        string `json:"batchMode"`
-	ModelListStatus  string `json:"modelListStatus"`
+	PhaseType     string `json:"phaseType"`
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
+}
+
+// TermTranslationPhaseAISettingsDTO holds the Ready 期 AI 選択値。
+// JOB_PHASE_AI_SETTINGS record が存在する場合だけ応答に含める。record 不在は SummaryResponseDTO の aiSettings field を omit して表現する。
+type TermTranslationPhaseAISettingsDTO struct {
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
 }
 
 // TermTranslationExecutionConfigSummaryDTO summarizes execution inputs without exposing secrets.
+// JOB_PHASE_RUN が存在する場合だけ応答に含める。未開始（run 未作成）は SummaryResponseDTO の execution field を omit して表現する。
 type TermTranslationExecutionConfigSummaryDTO struct {
 	CredentialRef   string  `json:"credentialRef"`
 	Provider        string  `json:"provider"`
@@ -131,20 +139,23 @@ type TermTranslationPhaseActionEnablementDTO struct {
 
 // TermTranslationPhaseSummaryResponseDTO returns the frozen Job Run summary shape.
 type TermTranslationPhaseSummaryResponseDTO struct {
-	JobID              int64                                    `json:"jobId"`
-	CurrentPhase       string                                   `json:"currentPhase"`
-	PhaseState         string                                   `json:"phaseState"`
-	PhaseRunID         *int64                                   `json:"phaseRunId,omitempty"`
-	StartedAt          *string                                  `json:"startedAt,omitempty"`
-	FinishedAt         *string                                  `json:"finishedAt,omitempty"`
-	Progress           TermTranslationPhaseProgressSummaryDTO   `json:"progress"`
-	TotalTermCount     int                                      `json:"totalTermCount"`
-	DictionaryHitCount int                                      `json:"dictionaryHitCount"`
-	AITargetCount      int                                      `json:"aiTargetCount"`
-	Execution          TermTranslationExecutionConfigSummaryDTO `json:"execution"`
-	ResultSummary      *TermTranslationPhaseResultSummaryDTO    `json:"resultSummary,omitempty"`
-	ErrorSummary       *TermTranslationPhaseErrorSummaryDTO     `json:"errorSummary,omitempty"`
-	ActionEnablement   TermTranslationPhaseActionEnablementDTO  `json:"actionEnablement"`
+	JobID              int64                                  `json:"jobId"`
+	CurrentPhase       string                                 `json:"currentPhase"`
+	PhaseState         string                                 `json:"phaseState"`
+	PhaseRunID         *int64                                 `json:"phaseRunId,omitempty"`
+	StartedAt          *string                                `json:"startedAt,omitempty"`
+	FinishedAt         *string                                `json:"finishedAt,omitempty"`
+	Progress           TermTranslationPhaseProgressSummaryDTO `json:"progress"`
+	TotalTermCount     int                                    `json:"totalTermCount"`
+	DictionaryHitCount int                                    `json:"dictionaryHitCount"`
+	AITargetCount      int                                    `json:"aiTargetCount"`
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ含める。nil は omit される。
+	AISettings *TermTranslationPhaseAISettingsDTO `json:"aiSettings,omitempty"`
+	// Execution は JOB_PHASE_RUN が存在する場合だけ含める。nil は omit される。
+	Execution        *TermTranslationExecutionConfigSummaryDTO `json:"execution,omitempty"`
+	ResultSummary    *TermTranslationPhaseResultSummaryDTO     `json:"resultSummary,omitempty"`
+	ErrorSummary     *TermTranslationPhaseErrorSummaryDTO      `json:"errorSummary,omitempty"`
+	ActionEnablement TermTranslationPhaseActionEnablementDTO   `json:"actionEnablement"`
 }
 
 // TermTranslationPhaseCommandResponseDTO returns the frozen write-seam response shape.
@@ -280,7 +291,6 @@ func (controller *TermTranslationPhaseController) SaveTermTranslationPhaseAISett
 	result, err := settingsUsecase.SaveTermTranslationPhaseAISettings(
 		context.Background(),
 		usecase.SaveTermTranslationPhaseAISettingsRequest{
-			JobID:         request.JobID,
 			Provider:      request.Provider,
 			Model:         request.Model,
 			ExecutionMode: request.ExecutionMode,
@@ -290,7 +300,13 @@ func (controller *TermTranslationPhaseController) SaveTermTranslationPhaseAISett
 	if err != nil {
 		return TermTranslationPhaseAISettingsResponseDTO{}, fmt.Errorf("save term translation phase ai settings: %w", err)
 	}
-	return TermTranslationPhaseAISettingsResponseDTO(result), nil
+	return TermTranslationPhaseAISettingsResponseDTO{
+		PhaseType:     result.PhaseType,
+		Provider:      result.Provider,
+		Model:         result.Model,
+		ExecutionMode: result.ExecutionMode,
+		BatchMode:     result.BatchMode,
+	}, nil
 }
 
 func toTermTranslationPhaseSummaryResponseDTO(
@@ -307,7 +323,8 @@ func toTermTranslationPhaseSummaryResponseDTO(
 		TotalTermCount:     result.TotalTermCount,
 		DictionaryHitCount: result.DictionaryHitCount,
 		AITargetCount:      result.AITargetCount,
-		Execution:          toTermTranslationExecutionConfigSummaryDTO(result.Execution),
+		AISettings:         toOptionalTermTranslationPhaseAISettingsDTO(result.AISettings),
+		Execution:          toOptionalTermTranslationExecutionConfigSummaryDTO(result.Execution),
 		ResultSummary:      toOptionalTermTranslationPhaseResultSummaryDTO(result.ResultSummary),
 		ErrorSummary:       toOptionalTermTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
 		ActionEnablement:   toTermTranslationPhaseActionEnablementDTO(result.ActionEnablement),
@@ -344,10 +361,27 @@ func toTermTranslationNextPhaseReadinessResponseDTO(
 	}
 }
 
-func toTermTranslationExecutionConfigSummaryDTO(
-	summary usecase.TermTranslationExecutionConfigSummary,
-) TermTranslationExecutionConfigSummaryDTO {
-	return TermTranslationExecutionConfigSummaryDTO{
+func toOptionalTermTranslationPhaseAISettingsDTO(
+	settings *usecase.TermTranslationPhaseAISettings,
+) *TermTranslationPhaseAISettingsDTO {
+	if settings == nil {
+		return nil
+	}
+	return &TermTranslationPhaseAISettingsDTO{
+		Provider:      settings.Provider,
+		Model:         settings.Model,
+		ExecutionMode: settings.ExecutionMode,
+		BatchMode:     settings.BatchMode,
+	}
+}
+
+func toOptionalTermTranslationExecutionConfigSummaryDTO(
+	summary *usecase.TermTranslationExecutionConfigSummary,
+) *TermTranslationExecutionConfigSummaryDTO {
+	if summary == nil {
+		return nil
+	}
+	return &TermTranslationExecutionConfigSummaryDTO{
 		CredentialRef:   summary.CredentialRef,
 		Provider:        summary.Provider,
 		Model:           summary.Model,

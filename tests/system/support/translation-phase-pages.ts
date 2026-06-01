@@ -103,6 +103,36 @@ export class TermTranslationPhasePage extends TranslationPhasePage {
       "term-translation-phase-progress-region"
     )
   }
+
+  /** AI モデル設定パネルの状態 pill（「固定済み」または「設定未完了」を表示する要素）。 */
+  get aiSettingsStatusPill(): Locator {
+    return this.byTestId("term-translation-phase-ai-settings-status-pill")
+  }
+
+  /** 開始ボタンの禁止理由を表示する領域。 */
+  get startBlockedReason(): Locator {
+    return this.byTestId("term-translation-phase-start-blocked-reason")
+  }
+
+  /** AI サービス select 要素。 */
+  get aiProviderSelect(): Locator {
+    return this.byTestId("term-translation-phase-ai-provider-select")
+  }
+
+  /** モデル select 要素。 */
+  get aiModelSelect(): Locator {
+    return this.byTestId("term-translation-phase-ai-model-select")
+  }
+
+  /** 処理方式 select 要素。 */
+  get aiExecutionModeSelect(): Locator {
+    return this.byTestId("term-translation-phase-ai-execution-mode-select")
+  }
+
+  /** 「モデル一覧を更新」ボタン。AI 設定を保存して summary を再取得する。 */
+  get refreshAIModelButton(): Locator {
+    return this.aiModelSelection.getByRole("button", { name: "モデル一覧を更新" })
+  }
 }
 
 export class PersonaGenerationPhasePage extends TranslationPhasePage {

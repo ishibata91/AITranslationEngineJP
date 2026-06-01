@@ -62,23 +62,20 @@ type CancelBodyTranslationPhaseRequestDTO struct {
 
 // SaveBodyTranslationPhaseAISettingsRequestDTO carries public AI settings.
 type SaveBodyTranslationPhaseAISettingsRequestDTO struct {
-	JobID         int64  `json:"jobId"`
 	Provider      string `json:"provider"`
 	Model         string `json:"model"`
 	ExecutionMode string `json:"executionMode"`
 	BatchMode     string `json:"batchMode"`
 }
 
-// BodyTranslationPhaseAISettingsResponseDTO returns public AI settings state.
+// BodyTranslationPhaseAISettingsResponseDTO returns saved AI settings state.
+// credential_status、model_list_status は含まない。
 type BodyTranslationPhaseAISettingsResponseDTO struct {
-	JobID            int64  `json:"jobId"`
-	PhaseID          string `json:"phaseId"`
-	Provider         string `json:"provider"`
-	Model            string `json:"model"`
-	CredentialStatus string `json:"credentialStatus"`
-	ExecutionMode    string `json:"executionMode"`
-	BatchMode        string `json:"batchMode"`
-	ModelListStatus  string `json:"modelListStatus"`
+	PhaseType     string `json:"phaseType"`
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
 }
 
 // BodyTranslationPhaseProgressSummaryDTO summarizes one phase run progress snapshot.
@@ -118,6 +115,15 @@ type BodyTranslationPhaseExecutionSummaryDTO struct {
 	ExecutionMode    string `json:"executionMode"`
 	RequestUnitCount int    `json:"requestUnitCount"`
 	OutputCount      int    `json:"outputCount"`
+}
+
+// BodyTranslationPhaseAISettingsDTO summarizes the saved AI settings for this phase.
+// JOB_PHASE_AI_SETTINGS レコードが存在しない場合は省略する。
+type BodyTranslationPhaseAISettingsDTO struct {
+	Provider      string `json:"provider"`
+	Model         string `json:"model"`
+	ExecutionMode string `json:"executionMode"`
+	BatchMode     string `json:"batchMode"`
 }
 
 // BodyTranslationPhaseFieldResultSummaryDTO summarizes stored field results.
@@ -195,7 +201,8 @@ type BodyTranslationPhaseSummaryResponseDTO struct {
 	Progress         BodyTranslationPhaseProgressSummaryDTO     `json:"progress"`
 	InputSummary     BodyTranslationPhaseInputSummaryDTO        `json:"inputSummary"`
 	RequestSummary   BodyTranslationPhaseRequestSummaryDTO      `json:"requestSummary"`
-	Execution        BodyTranslationPhaseExecutionSummaryDTO    `json:"execution"`
+	AISettings       *BodyTranslationPhaseAISettingsDTO         `json:"aiSettings,omitempty"`
+	Execution        *BodyTranslationPhaseExecutionSummaryDTO   `json:"execution,omitempty"`
 	FieldResults     []BodyTranslationPhaseFieldResultItemDTO   `json:"fieldResults,omitempty"`
 	ResultSummary    *BodyTranslationPhaseFieldResultSummaryDTO `json:"resultSummary,omitempty"`
 	ErrorSummary     *BodyTranslationPhaseErrorSummaryDTO       `json:"errorSummary,omitempty"`
@@ -215,7 +222,7 @@ type BodyTranslationPhaseCommandResponseDTO struct {
 	InputSnapshotDigest string                                     `json:"inputSnapshotDigest,omitempty"`
 	InputSummary        BodyTranslationPhaseInputSummaryDTO        `json:"inputSummary"`
 	RequestSummary      BodyTranslationPhaseRequestSummaryDTO      `json:"requestSummary"`
-	Execution           BodyTranslationPhaseExecutionSummaryDTO    `json:"execution"`
+	Execution           *BodyTranslationPhaseExecutionSummaryDTO   `json:"execution,omitempty"`
 	FieldResults        []BodyTranslationPhaseFieldResultItemDTO   `json:"fieldResults,omitempty"`
 	ResultSummary       *BodyTranslationPhaseFieldResultSummaryDTO `json:"resultSummary,omitempty"`
 	Retryable           bool                                       `json:"retryable"`
@@ -308,7 +315,6 @@ func (controller *BodyTranslationPhaseController) SaveBodyTranslationPhaseAISett
 	result, err := settingsUsecase.SaveBodyTranslationPhaseAISettings(
 		context.Background(),
 		usecase.SaveBodyTranslationPhaseAISettingsRequest{
-			JobID:         request.JobID,
 			Provider:      request.Provider,
 			Model:         request.Model,
 			ExecutionMode: request.ExecutionMode,
@@ -318,12 +324,23 @@ func (controller *BodyTranslationPhaseController) SaveBodyTranslationPhaseAISett
 	if err != nil {
 		return BodyTranslationPhaseAISettingsResponseDTO{}, fmt.Errorf("save body translation phase ai settings: %w", err)
 	}
-	return BodyTranslationPhaseAISettingsResponseDTO(result), nil
+	return BodyTranslationPhaseAISettingsResponseDTO{
+		PhaseType:     result.PhaseType,
+		Provider:      result.Provider,
+		Model:         result.Model,
+		ExecutionMode: result.ExecutionMode,
+		BatchMode:     result.BatchMode,
+	}, nil
 }
 
 func toBodyTranslationPhaseSummaryResponseDTO(
 	result usecase.BodyTranslationPhaseSummaryResult,
 ) BodyTranslationPhaseSummaryResponseDTO {
+	executionDTO := toOptionalBodyTranslationPhaseExecutionSummaryDTO(result.Execution)
+	var outputCount int
+	if result.Execution != nil {
+		outputCount = result.Execution.OutputCount
+	}
 	return BodyTranslationPhaseSummaryResponseDTO{
 		JobID:            result.JobID,
 		CurrentPhase:     result.CurrentPhase,
@@ -334,12 +351,13 @@ func toBodyTranslationPhaseSummaryResponseDTO(
 		Progress:         toBodyTranslationPhaseProgressSummaryDTO(result.Progress),
 		InputSummary:     toBodyTranslationPhaseInputSummaryDTO(result.InputSummary),
 		RequestSummary:   toBodyTranslationPhaseRequestSummaryDTO(result.RequestSummary),
-		Execution:        toBodyTranslationPhaseExecutionSummaryDTO(result.Execution),
+		AISettings:       toBodyTranslationPhaseAISettingsDTO(result.AISettings),
+		Execution:        executionDTO,
 		FieldResults:     toBodyTranslationPhaseFieldResultItemsDTO(result.FieldResults),
 		ResultSummary:    toOptionalBodyTranslationPhaseFieldResultSummaryDTO(firstNonNilBodyTranslationFieldResult(result.ResultSummary, result.FieldResultSummary)),
 		ErrorSummary:     toOptionalBodyTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
 		ActionEnablement: toBodyTranslationPhaseActionEnablementDTO(result.ActionEnablement),
-		OutputReadiness:  toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, result.Execution.OutputCount),
+		OutputReadiness:  toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, outputCount),
 	}
 }
 
@@ -361,6 +379,11 @@ func bodyTranslationCommandResponseOrError(
 func toBodyTranslationPhaseCommandResponseDTO(
 	result usecase.BodyTranslationPhaseCommandResult,
 ) BodyTranslationPhaseCommandResponseDTO {
+	executionDTO := toOptionalBodyTranslationPhaseExecutionSummaryDTO(result.Execution)
+	var outputCount int
+	if result.Execution != nil {
+		outputCount = result.Execution.OutputCount
+	}
 	return BodyTranslationPhaseCommandResponseDTO{
 		JobID:               result.JobID,
 		CurrentPhase:        result.CurrentPhase,
@@ -372,11 +395,11 @@ func toBodyTranslationPhaseCommandResponseDTO(
 		InputSnapshotDigest: result.InputSnapshotDigest,
 		InputSummary:        toBodyTranslationPhaseInputSummaryDTO(result.InputSummary),
 		RequestSummary:      toBodyTranslationPhaseRequestSummaryDTO(result.RequestSummary),
-		Execution:           toBodyTranslationPhaseExecutionSummaryDTO(result.Execution),
+		Execution:           executionDTO,
 		FieldResults:        toBodyTranslationPhaseFieldResultItemsDTO(result.FieldResults),
 		ResultSummary:       toOptionalBodyTranslationPhaseFieldResultSummaryDTO(firstNonNilBodyTranslationFieldResult(result.ResultSummary, result.FieldResultSummary)),
 		Retryable:           result.Retryable,
-		OutputReadiness:     toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, result.Execution.OutputCount),
+		OutputReadiness:     toBodyTranslationOutputReadinessSummaryDTO(result.OutputReadiness, outputCount),
 		ErrorSummary:        toOptionalBodyTranslationPhaseErrorSummaryDTO(result.ErrorSummary),
 	}
 }
@@ -429,6 +452,30 @@ func toBodyTranslationPhaseExecutionSummaryDTO(
 		ExecutionMode:    summary.ExecutionMode,
 		RequestUnitCount: summary.RequestUnitCount,
 		OutputCount:      summary.OutputCount,
+	}
+}
+
+func toOptionalBodyTranslationPhaseExecutionSummaryDTO(
+	summary *usecase.BodyTranslationPhaseExecutionSummary,
+) *BodyTranslationPhaseExecutionSummaryDTO {
+	if summary == nil {
+		return nil
+	}
+	v := toBodyTranslationPhaseExecutionSummaryDTO(*summary)
+	return &v
+}
+
+func toBodyTranslationPhaseAISettingsDTO(
+	settings *usecase.BodyTranslationPhaseAISettings,
+) *BodyTranslationPhaseAISettingsDTO {
+	if settings == nil {
+		return nil
+	}
+	return &BodyTranslationPhaseAISettingsDTO{
+		Provider:      settings.Provider,
+		Model:         settings.Model,
+		ExecutionMode: settings.ExecutionMode,
+		BatchMode:     settings.BatchMode,
 	}
 }
 

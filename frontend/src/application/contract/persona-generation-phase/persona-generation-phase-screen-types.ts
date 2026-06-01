@@ -69,6 +69,11 @@ export interface PersonaGenerationPhaseScreenActionEnablement {
   canStartBodyPhase: boolean
 }
 
+export interface PersonaGenerationPhaseSelectOption {
+  value: string
+  label: string
+}
+
 export interface PersonaGenerationPhaseScreenViewModel extends PersonaGenerationPhaseScreenState {
   gatewayStatus: string
   viewState: PersonaGenerationPhaseViewState
@@ -94,10 +99,14 @@ export interface PersonaGenerationPhaseScreenViewModel extends PersonaGeneration
   commonPersonaMissCountLabel: string
   skippedReasonsLabel: string
   targetSnapshotLabel: string
+  isExecutionConfigured: boolean
   providerLabel: string
   modelLabel: string
   executionModeLabel: string
   credentialRefLabel: string
+  providerOptions: PersonaGenerationPhaseSelectOption[]
+  modelOptions: PersonaGenerationPhaseSelectOption[]
+  executionOptions: PersonaGenerationPhaseSelectOption[]
   inputCountLabel: string
   outputCountLabel: string
   evidenceRefsLabel: string

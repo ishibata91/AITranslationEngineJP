@@ -124,7 +124,6 @@ type TranslationJobManagementActionReadModel struct {
 
 type translationJobManagementLifecycleReadRepository interface {
 	ListIncompleteTranslationJobs(ctx context.Context) ([]repository.TranslationJob, error)
-	ListTranslationJobPhaseRuntimeSnapshots(ctx context.Context, translationJobID int64) ([]repository.TranslationJobPhaseRuntimeSnapshot, error)
 	DeleteNonRunningTranslationJob(ctx context.Context, jobID int64) (repository.TranslationJobDeleteResult, error)
 }
 
@@ -544,16 +543,10 @@ func (service *TranslationJobManagementService) buildJobDetail(
 	if err != nil {
 		return TranslationJobManagementJobDetailReadModel{}, fmt.Errorf("list job phase runs by job id: %w", err)
 	}
-	snapshots, err := service.listSnapshots(ctx, job.ID)
-	if err != nil {
-		return TranslationJobManagementJobDetailReadModel{}, fmt.Errorf("list translation job phase runtime snapshots: %w", err)
-	}
-
 	progressSummary, progressWarnings := buildTranslationJobManagementProgress(job, phaseRuns)
 	warnings = append(warnings, progressWarnings...)
 
-	runtimeSummary, runtimeWarnings := buildTranslationJobManagementRuntimeSummary(snapshots)
-	warnings = append(warnings, runtimeWarnings...)
+	runtimeSummary := buildTranslationJobManagementRuntimeSummary(phaseRuns)
 
 	resumeBlockedReasons := buildTranslationJobManagementResumeBlockedReasons(job, cacheAvailable, warnings)
 	stopAvailability := buildTranslationJobManagementStopAvailability(job, phaseRuns)
@@ -664,20 +657,6 @@ func (service *TranslationJobManagementService) buildCacheState(
 	}, nil
 }
 
-func (service *TranslationJobManagementService) listSnapshots(
-	ctx context.Context,
-	jobID int64,
-) ([]repository.TranslationJobPhaseRuntimeSnapshot, error) {
-	if service.managementRepository == nil {
-		return nil, fmt.Errorf("translation job management repository is not configured")
-	}
-	snapshots, err := service.managementRepository.ListTranslationJobPhaseRuntimeSnapshots(ctx, jobID)
-	if err != nil {
-		return nil, fmt.Errorf("list translation job phase runtime snapshots: %w", err)
-	}
-	return snapshots, nil
-}
-
 func buildTranslationJobManagementProgress(
 	job repository.TranslationJob,
 	phaseRuns []repository.JobPhaseRun,
@@ -763,34 +742,42 @@ func translationJobManagementPhaseRunHasNavigablePhase(run repository.JobPhaseRu
 	}
 }
 
+// buildTranslationJobManagementRuntimeSummary は JOB_PHASE_RUN から実行時 AI 設定要約を組み立てる。
+// phaseRuns が空の場合は "未設定" を返す。
+// body_translation → npc_persona_generation → word_translation の優先度で run を選ぶ。
 func buildTranslationJobManagementRuntimeSummary(
-	snapshots []repository.TranslationJobPhaseRuntimeSnapshot,
-) (TranslationJobManagementProtectedSettingSummaryReadModel, []TranslationJobManagementBlockedReasonReadModel) {
-	if len(snapshots) == 0 {
+	phaseRuns []repository.JobPhaseRun,
+) TranslationJobManagementProtectedSettingSummaryReadModel {
+	run, ok := chooseTranslationJobManagementPhaseRun(phaseRuns)
+	if !ok || strings.TrimSpace(run.AIProvider) == "" {
 		return TranslationJobManagementProtectedSettingSummaryReadModel{
-				ProviderLabel:        "未設定",
-				ModelLabel:           "未設定",
-				ExecutionModeLabel:   "未設定",
-				CredentialState:      "missing",
-				CredentialStateLabel: "未設定",
-			},
-			[]TranslationJobManagementBlockedReasonReadModel{
-				{
-					Category: translationJobManagementReasonRuntimeSnapshotMissing,
-					Title:    "snapshot が無いため再開できません",
-					Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
-				},
-			}
+			ProviderLabel:        "未設定",
+			ModelLabel:           "未設定",
+			ExecutionModeLabel:   "未設定",
+			CredentialState:      "missing",
+			CredentialStateLabel: "未設定",
+		}
 	}
-	snapshot := chooseTranslationJobManagementSnapshot(snapshots)
-	credentialState, credentialStateLabel := publicTranslationJobManagementCredentialState(snapshot.CredentialStatus)
+	ref := strings.TrimSpace(run.CredentialRef)
+	var stateKey, stateDisplay string
+	switch {
+	case ref != "":
+		stateKey = "configured"
+		stateDisplay = "設定済み"
+	case !providerExecutionUsesProviderSettings(run.AIProvider):
+		stateKey = "not_required"
+		stateDisplay = "不要"
+	default:
+		stateKey = "missing"
+		stateDisplay = "未設定"
+	}
 	return TranslationJobManagementProtectedSettingSummaryReadModel{
-		ProviderLabel:        strings.TrimSpace(snapshot.Provider),
-		ModelLabel:           strings.TrimSpace(snapshot.ModelName),
-		ExecutionModeLabel:   strings.TrimSpace(snapshot.ExecutionMode),
-		CredentialState:      credentialState,
-		CredentialStateLabel: credentialStateLabel,
-	}, nil
+		ProviderLabel:        strings.TrimSpace(run.AIProvider),
+		ModelLabel:           strings.TrimSpace(run.ModelName),
+		ExecutionModeLabel:   strings.TrimSpace(run.ExecutionMode),
+		CredentialState:      stateKey,
+		CredentialStateLabel: stateDisplay,
+	}
 }
 
 func buildTranslationJobManagementResumeBlockedReasons(
@@ -818,12 +805,6 @@ func buildTranslationJobManagementResumeBlockedReasons(
 	}
 	for _, warning := range warnings {
 		switch warning.Category {
-		case translationJobManagementReasonRuntimeSnapshotMissing:
-			result = append(result, TranslationJobManagementBlockedReasonReadModel{
-				Category: translationJobManagementReasonRuntimeSnapshotMissing,
-				Title:    warning.Title,
-				Detail:   warning.Detail,
-			})
 		case translationJobManagementReasonStateProjectionInconsistent, translationJobManagementReasonPhaseProgressAggregationFailed:
 			result = append(result, TranslationJobManagementBlockedReasonReadModel{
 				Category: translationJobManagementReasonStateProjectionInconsistent,
@@ -966,18 +947,23 @@ func translationJobManagementPhaseRunCompleted(run repository.JobPhaseRun) bool 
 	}
 }
 
-func chooseTranslationJobManagementSnapshot(
-	snapshots []repository.TranslationJobPhaseRuntimeSnapshot,
-) repository.TranslationJobPhaseRuntimeSnapshot {
+// chooseTranslationJobManagementPhaseRun は phaseRuns から表示に使う run を選ぶ。
+// body_translation → npc_persona_generation → word_translation の優先度で選ぶ。
+func chooseTranslationJobManagementPhaseRun(
+	phaseRuns []repository.JobPhaseRun,
+) (repository.JobPhaseRun, bool) {
+	if len(phaseRuns) == 0 {
+		return repository.JobPhaseRun{}, false
+	}
 	priority := []string{"text_translation", "npc_persona_generation", "word_translation"}
-	for _, phaseID := range priority {
-		for _, snapshot := range snapshots {
-			if normalizeTranslationJobManagementValue(snapshot.PhaseID) == phaseID {
-				return snapshot
+	for _, phaseType := range priority {
+		for _, run := range phaseRuns {
+			if normalizeTranslationJobManagementValue(run.PhaseType) == phaseType {
+				return run, true
 			}
 		}
 	}
-	return snapshots[0]
+	return phaseRuns[0], true
 }
 
 func hasTranslationJobManagementLatestError(
@@ -1082,21 +1068,6 @@ func publicTranslationJobManagementPhase(value string) string {
 		return "body_translation"
 	default:
 		return "term_translation"
-	}
-}
-
-func publicTranslationJobManagementCredentialState(value string) (string, string) {
-	switch normalizeTranslationJobManagementValue(value) {
-	case "configured":
-		return "configured", "設定済み"
-	case "missing":
-		return "missing", "未設定"
-	case "inaccessible":
-		return "inaccessible", "参照不可"
-	case "not_required":
-		return "configured", "不要"
-	default:
-		return "missing", "未設定"
 	}
 }
 

@@ -19,5 +19,7 @@ export type {
   PersonaGenerationTargetSummary,
   ResumePersonaGenerationPhaseRequest,
   RetryPersonaGenerationPhaseRequest,
-  StartPersonaGenerationPhaseRequest
+  StartPersonaGenerationPhaseRequest,
+  PhaseProviderModelsRequest,
+  PhaseProviderModelsResponse
 } from "./persona-generation-phase-gateway-contract"

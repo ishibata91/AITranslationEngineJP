@@ -49,6 +49,11 @@ interface TermTranslationPhaseActionCard {
   tone: "default" | "primary" | "warning"
 }
 
+interface SelectOption {
+  value: string
+  label: string
+}
+
 interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreenState {
   gatewayStatus: string
   viewState: TermTranslationPhaseViewState
@@ -72,6 +77,7 @@ interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreen
   jobDictionaryAppliedCountLabel: string
   replacementTargetCountLabel: string
   unmatchedCountLabel: string
+  isExecutionConfigured: boolean
   providerLabel: string
   modelLabel: string
   executionModeLabel: string
@@ -83,6 +89,9 @@ interface TermTranslationPhaseScreenViewModel extends TermTranslationPhaseScreen
   nextPhaseStatusLabel: string
   nextPhaseBlockedReason: string
   providerSkippedLabel: string
+  providerOptions: SelectOption[]
+  modelOptions: SelectOption[]
+  executionOptions: SelectOption[]
   actionCards: TermTranslationPhaseActionCard[]
   lastErrorSummary: TermTranslationPhaseErrorSummary | null
   actionEnablement: TermTranslationPhaseActionEnablement | null
@@ -344,9 +353,58 @@ function isTerminalJob(summary: TermTranslationPhaseSummaryResponse): boolean {
 }
 
 function isExecutionConfigured(summary: TermTranslationPhaseSummaryResponse): boolean {
-  return Boolean(summary.execution?.provider?.trim()) &&
-    Boolean(summary.execution?.model?.trim()) &&
-    Boolean(summary.execution?.executionMode?.trim())
+  if (summary.aiSettings) {
+    return Boolean(summary.aiSettings.provider?.trim()) &&
+      Boolean(summary.aiSettings.model?.trim()) &&
+      Boolean(summary.aiSettings.executionMode?.trim())
+  }
+  if (!summary.execution) {
+    return false
+  }
+  return Boolean(summary.execution.provider?.trim()) &&
+    Boolean(summary.execution.model?.trim()) &&
+    Boolean(summary.execution.executionMode?.trim())
+}
+
+const EXECUTION_OPTIONS: SelectOption[] = [
+  { value: "batch", label: "バッチ処理" },
+  { value: "sync", label: "逐次処理" }
+]
+
+function buildProviderOptions(
+  summary: TermTranslationPhaseSummaryResponse | null,
+  availableProviders: SelectOption[]
+): SelectOption[] {
+  if (availableProviders.length > 0) {
+    const currentProvider = summary?.aiSettings?.provider ?? summary?.execution?.provider
+    if (currentProvider && !availableProviders.some((p) => p.value === currentProvider)) {
+      return [{ value: "", label: "選んでください" }, ...availableProviders]
+    }
+    if (!currentProvider) {
+      return [{ value: "", label: "選んでください" }, ...availableProviders]
+    }
+    return availableProviders
+  }
+  const fallbackLabel = summary?.aiSettings?.provider ?? summary?.execution?.provider ?? "設定未完了"
+  return [{ value: fallbackLabel, label: fallbackLabel }]
+}
+
+function buildModelOptions(
+  summary: TermTranslationPhaseSummaryResponse | null,
+  availableModels: SelectOption[]
+): SelectOption[] {
+  if (availableModels.length > 0) {
+    const currentModel = summary?.aiSettings?.model ?? summary?.execution?.model
+    if (!currentModel || !availableModels.some((m) => m.value === currentModel)) {
+      return [{ value: "", label: "選んでください" }, ...availableModels]
+    }
+    return availableModels
+  }
+  const fallbackLabel = summary?.aiSettings?.model ?? summary?.execution?.model
+  if (fallbackLabel) {
+    return [{ value: fallbackLabel, label: fallbackLabel }]
+  }
+  return [{ value: "", label: "モデル一覧を更新してください" }]
 }
 
 function deriveCanStartNextPhase(
@@ -516,13 +574,27 @@ function buildActionCards(
 export class TermTranslationPhasePresenter {
   toViewModel(
     state: TermTranslationPhaseScreenState,
-    isGatewayConnected: boolean
+    isGatewayConnected: boolean,
+    availableProviders: SelectOption[] = [],
+    availableModels: SelectOption[] = []
   ): TermTranslationPhaseScreenViewModel {
     const viewState = buildViewState(state)
     const statusCopy = buildStatusCopy(state, viewState)
     const summary = state.summary
     const resultSummary = summary?.resultSummary
     const errorSummary = summary?.errorSummary ?? null
+    const providerLabel =
+      summary?.aiSettings?.provider ??
+      summary?.execution?.provider ??
+      "設定未完了"
+    const modelLabel =
+      summary?.aiSettings?.model ??
+      summary?.execution?.model ??
+      "設定未完了"
+    const executionModeLabel =
+      summary?.aiSettings?.executionMode ??
+      summary?.execution?.executionMode ??
+      "設定未完了"
     return {
       ...state,
       gatewayStatus: isGatewayConnected ? "接続準備済み" : "未接続",
@@ -551,10 +623,11 @@ export class TermTranslationPhasePresenter {
         resultSummary?.replacementTargetCount
       ),
       unmatchedCountLabel: formatCount(resultSummary?.unmatchedCount),
-      providerLabel: summary?.execution.provider ?? "-",
-      modelLabel: summary?.execution.model ?? "-",
-      executionModeLabel: summary?.execution.executionMode ?? "-",
-      credentialRefLabel: summary?.execution.credentialRef ?? "-",
+      isExecutionConfigured: summary ? isExecutionConfigured(summary) : false,
+      providerLabel,
+      modelLabel,
+      executionModeLabel,
+      credentialRefLabel: summary?.execution?.credentialRef ?? "設定未完了",
       snapshotLabel: buildSnapshotLabel(state),
       errorKindLabel: errorSummary?.errorKind ?? "-",
       errorReasonLabel: errorSummary?.reason ?? "-",
@@ -571,6 +644,9 @@ export class TermTranslationPhasePresenter {
       nextPhaseBlockedReason:
         summary ? (deriveNextPhaseBlockedReason(summary) || "") : "",
       providerSkippedLabel: buildProviderSkippedLabel(state),
+      providerOptions: buildProviderOptions(summary, availableProviders),
+      modelOptions: buildModelOptions(summary, availableModels),
+      executionOptions: EXECUTION_OPTIONS,
       actionCards: buildActionCards(state),
       lastErrorSummary: errorSummary,
       actionEnablement: summary?.actionEnablement ?? null,

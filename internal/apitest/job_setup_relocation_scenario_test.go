@@ -30,13 +30,6 @@ func TestSCN_JSR_001_InputReviewCreatesJobWithoutPhaseAISettings(t *testing.T) {
 	if !response.Accepted || response.JobID == nil || response.JobState != "ready" || response.CurrentPhase != "term_translation" {
 		t.Fatalf("SCN-JSR-001 expected accepted ready job for term translation, got %#v", response)
 	}
-	snapshots, err := harness.snapshotRepo.ListTranslationJobPhaseRuntimeSnapshots(harness.ctx, *response.JobID)
-	if err != nil {
-		t.Fatalf("SCN-JSR-001 expected runtime snapshot list to load: %v", err)
-	}
-	if len(snapshots) != 0 {
-		t.Fatalf("SCN-JSR-001 expected job creation not to require phase AI settings, got %#v", snapshots)
-	}
 }
 
 func TestSCN_JSR_002_TermPhaseStartRejectsMissingAISettingsThenStartsAfterSave(t *testing.T) {
@@ -67,7 +60,6 @@ func TestSCN_JSR_002_TermPhaseStartRejectsMissingAISettingsThenStartsAfterSave(t
 	}
 
 	saved, err := termController.SaveTermTranslationPhaseAISettings(wails.SaveTermTranslationPhaseAISettingsRequestDTO{
-		JobID:         jobID,
 		Provider:      "gemini",
 		Model:         "gemini-2.5-pro",
 		ExecutionMode: "single_request",
@@ -76,7 +68,7 @@ func TestSCN_JSR_002_TermPhaseStartRejectsMissingAISettingsThenStartsAfterSave(t
 	if err != nil {
 		t.Fatalf("SCN-JSR-002 expected term phase AI settings save to succeed: %v", err)
 	}
-	if saved.PhaseID != "word_translation" || saved.CredentialStatus != "configured" {
+	if saved.PhaseType != "word_translation" || saved.Provider != "gemini" {
 		t.Fatalf("SCN-JSR-002 expected saved term phase AI settings, got %#v", saved)
 	}
 
@@ -92,21 +84,13 @@ func TestSCN_JSR_002_TermPhaseStartRejectsMissingAISettingsThenStartsAfterSave(t
 }
 
 type jobSetupRelocationAPIHarness struct {
-	ctx          context.Context
-	db           *sqlx.DB
-	sourceRepo   repository.TranslationSourceRepository
-	jobRepo      repository.JobLifecycleRepository
-	snapshotRepo jobSetupRelocationSnapshotLister
-	foundation   repository.FoundationDataRepository
-	transactor   repository.Transactor
-	secretStore  *repository.InMemorySecretStore
-}
-
-type jobSetupRelocationSnapshotLister interface {
-	ListTranslationJobPhaseRuntimeSnapshots(
-		ctx context.Context,
-		translationJobID int64,
-	) ([]repository.TranslationJobPhaseRuntimeSnapshot, error)
+	ctx         context.Context
+	db          *sqlx.DB
+	sourceRepo  repository.TranslationSourceRepository
+	jobRepo     repository.JobLifecycleRepository
+	foundation  repository.FoundationDataRepository
+	transactor  repository.Transactor
+	secretStore repository.ProviderSettingsSecretStore
 }
 
 func newJobSetupRelocationAPIHarness(t *testing.T) jobSetupRelocationAPIHarness {
@@ -118,21 +102,17 @@ func newJobSetupRelocationAPIHarness(t *testing.T) jobSetupRelocationAPIHarness 
 	}
 	t.Cleanup(func() { _ = db.Close() })
 
-	secretStore := repository.NewInMemorySecretStore()
-	if err := secretStore.Save(ctx, "provider-settings:gemini", "scenario-secret"); err != nil {
-		t.Fatalf("seed provider settings secret: %v", err)
-	}
+	secretStore := repository.NewFakeSecretStore()
 
 	jobRepo := repository.NewSQLiteJobLifecycleRepository(db)
 	return jobSetupRelocationAPIHarness{
-		ctx:          ctx,
-		db:           db,
-		sourceRepo:   repository.NewSQLiteTranslationSourceRepository(db),
-		jobRepo:      jobRepo,
-		snapshotRepo: jobRepo.(jobSetupRelocationSnapshotLister),
-		foundation:   repository.NewSQLiteFoundationDataRepository(db),
-		transactor:   repository.NewSQLiteTransactor(db),
-		secretStore:  secretStore,
+		ctx:         ctx,
+		db:          db,
+		sourceRepo:  repository.NewSQLiteTranslationSourceRepository(db),
+		jobRepo:     jobRepo,
+		foundation:  repository.NewSQLiteFoundationDataRepository(db),
+		transactor:  repository.NewSQLiteTransactor(db),
+		secretStore: secretStore,
 	}
 }
 
@@ -194,6 +174,7 @@ func (h jobSetupRelocationAPIHarness) newTermTranslationPhaseController() *wails
 		jobSetupRelocationTermProvider{},
 	)
 	termService.WithTermTranslationProviderSettings(jobSetupRelocationProviderSettings{})
+	termService.WithTermTranslationJobPhaseAISettings(repository.NewSQLiteJobPhaseAISettingsRepository(h.db))
 	termUsecase := usecase.NewTermTranslationPhaseUsecase(termService)
 	return wails.NewTermTranslationPhaseController(termUsecase)
 }

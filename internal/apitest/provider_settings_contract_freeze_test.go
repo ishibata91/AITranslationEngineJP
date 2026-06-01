@@ -141,8 +141,7 @@ func TestSCN_DFSS_006_ProviderSettingsSecretBackendRejectsUnsupportedBackend(t *
 
 	requiredSnippets := []string{
 		"providerSettingsSecretBackendEnv",
-		"providerSettingsSecretBackendInMemory",
-		"case providerSettingsSecretBackendInMemory:",
+		`case "fake":`,
 		`case "":`,
 		"unsupported",
 	}

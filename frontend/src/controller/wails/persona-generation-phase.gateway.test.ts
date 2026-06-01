@@ -275,16 +275,14 @@ describe("createPersonaGenerationPhaseGateway", () => {
   })
 
   test("save ai settings は公開参照値のみを転送し secret 本体を含めない", async () => {
+    // SaveAISettings 入力から job_id を除外する仕様に従う。
     const saveSettings = vi.fn(() =>
       Promise.resolve({
-        jobId: 8,
-        phaseId: "npc_persona_generation",
+        phaseType: "npc_persona_generation",
         provider: "xai",
         model: "grok-4",
         executionMode: "sync",
-        batchMode: "disabled",
-        credentialStatus: "configured",
-        modelListStatus: "success"
+        batchMode: "disabled"
       })
     )
     installGo({
@@ -297,7 +295,6 @@ describe("createPersonaGenerationPhaseGateway", () => {
 
     const gateway = createPersonaGenerationPhaseGateway()
     const result = await gateway.savePersonaGenerationPhaseAISettings?.({
-      jobId: 8,
       provider: "xai",
       model: "grok-4",
       executionMode: "sync",
@@ -305,16 +302,14 @@ describe("createPersonaGenerationPhaseGateway", () => {
     })
 
     expect(saveSettings).toHaveBeenCalledWith({
-      jobId: 8,
       provider: "xai",
       model: "grok-4",
       executionMode: "sync",
       batchMode: "disabled"
     })
     expect(result).toMatchObject({
-      phaseId: "npc_persona_generation",
-      credentialStatus: "configured",
-      modelListStatus: "success"
+      phaseType: "npc_persona_generation",
+      provider: "xai"
     })
     const serialized = JSON.stringify(result)
     expect(serialized).not.toContain("secret")

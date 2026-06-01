@@ -1,4 +1,8 @@
-import type { PersonaGenerationPhaseGatewayContract } from "@application/gateway-contract/persona-generation-phase"
+import type {
+  PersonaGenerationPhaseGatewayContract,
+  PhaseProviderModelsRequest,
+  PhaseProviderModelsResponse
+} from "@application/gateway-contract/persona-generation-phase"
 import type {
   CancelPersonaGenerationPhaseRequestDto,
   CancelPersonaGenerationPhaseResponseDto,
@@ -46,6 +50,7 @@ type PersonaGenerationPhaseBindingName =
   | "RetryPersonaGenerationPhase"
   | "CancelPersonaGenerationPhase"
   | "GetPersonaGenerationBodyReadiness"
+  | "ListTranslationJobSetupProviderModels"
 
 type BindingInvoker = <RequestDto, ResponseDto>(
   bindingName: PersonaGenerationPhaseBindingName,
@@ -169,6 +174,39 @@ function isProcessingTargetListResponseDto(
   )
 }
 
+function isProviderModelOption(value: unknown, path: string): boolean {
+  if (!isRecord(value)) {
+    return invalid(path, "object")
+  }
+  return (
+    (isString(value["modelId"]) || invalid(`${path}.modelId`, "string")) &&
+    (isString(value["label"]) || invalid(`${path}.label`, "string"))
+  )
+}
+
+function isListProviderModelsResponseDto(value: unknown): value is {
+  provider: string
+  status: string
+  models: { modelId: string; label: string }[]
+  failureKind?: string
+} {
+  resetIssues()
+  if (!isRecord(value)) {
+    return invalid("$", "object")
+  }
+  return (
+    (isString(value["provider"]) || invalid("$.provider", "string")) &&
+    (isString(value["status"]) || invalid("$.status", "string")) &&
+    (isArrayOf(value["models"], (item) =>
+      isProviderModelOption(item, "$.models[]")
+    ) ||
+      invalid("$.models", "model option array")) &&
+    (value["failureKind"] === undefined ||
+      isString(value["failureKind"]) ||
+      invalid("$.failureKind", "string or undefined"))
+  )
+}
+
 function createBindingInvoker(): BindingInvoker {
   return <RequestDto, ResponseDto>(
     bindingName: PersonaGenerationPhaseBindingName,
@@ -196,6 +234,26 @@ function createBindingInvoker(): BindingInvoker {
 
 class PersonaGenerationPhaseGateway implements PersonaGenerationPhaseGatewayContract {
   constructor(private readonly invokeBinding: BindingInvoker) {}
+
+  listProviderModels(
+    request: PhaseProviderModelsRequest
+  ): Promise<PhaseProviderModelsResponse> {
+    return this.invokeBinding(
+      "ListTranslationJobSetupProviderModels",
+      {
+        phaseId: "npc_persona_generation",
+        provider: request.provider,
+        credentialStatus: request.credentialStatus,
+        requestToken: request.requestToken
+      },
+      isListProviderModelsResponseDto
+    ).then((dto) => ({
+      provider: dto.provider,
+      status: dto.status,
+      models: dto.models.map((m) => ({ modelId: m.modelId, label: m.label })),
+      failureKind: dto.failureKind
+    }))
+  }
 
   getProcessingTargetList(
     request: GetProcessingTargetListRequestDto

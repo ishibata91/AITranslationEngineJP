@@ -63,6 +63,7 @@ func (usecase *TermTranslationPhaseUsecase) StartTermTranslationPhase(
 }
 
 // SaveTermTranslationPhaseAISettings saves public AI settings for the term phase.
+// 入力に job_id を含めない。JOB_PHASE_AI_SETTINGS の phase_type = "word_translation" へ upsert する。
 func (usecase *TermTranslationPhaseUsecase) SaveTermTranslationPhaseAISettings(
 	ctx context.Context,
 	request SaveTermTranslationPhaseAISettingsRequest,
@@ -72,7 +73,6 @@ func (usecase *TermTranslationPhaseUsecase) SaveTermTranslationPhaseAISettings(
 		return TermTranslationPhaseAISettingsResult{}, fmt.Errorf("save term translation phase ai settings: service is not configured")
 	}
 	readModel, err := saver.SaveAISettings(ctx, service.PhaseAISettingsSelection{
-		JobID:         request.JobID,
 		Provider:      request.Provider,
 		Model:         request.Model,
 		ExecutionMode: request.ExecutionMode,
@@ -81,7 +81,13 @@ func (usecase *TermTranslationPhaseUsecase) SaveTermTranslationPhaseAISettings(
 	if err != nil {
 		return TermTranslationPhaseAISettingsResult{}, fmt.Errorf("save term translation phase ai settings: %w", err)
 	}
-	return TermTranslationPhaseAISettingsResult(readModel), nil
+	return TermTranslationPhaseAISettingsResult{
+		PhaseType:     readModel.PhaseType,
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		BatchMode:     readModel.BatchMode,
+	}, nil
 }
 
 // PauseTermTranslationPhase pauses one active term phase run and returns the command contract.
@@ -270,17 +276,41 @@ func toTermTranslationPhaseSummaryResult(
 		TotalTermCount:     readModel.TotalTermCount,
 		DictionaryHitCount: readModel.DictionaryHitCount,
 		AITargetCount:      readModel.AITargetCount,
-		Execution: TermTranslationExecutionConfigSummary{
-			CredentialRef:   readModel.Execution.CredentialRef,
-			Provider:        readModel.Execution.Provider,
-			Model:           readModel.Execution.Model,
-			ExecutionMode:   readModel.Execution.ExecutionMode,
-			SnapshotDigest:  cloneStringPointer(readModel.Execution.SnapshotDigest),
-			SnapshotVersion: cloneStringPointer(readModel.Execution.SnapshotVersion),
-		},
-		ResultSummary:    toTermTranslationPhaseResultSummary(readModel.ResultSummary),
-		ErrorSummary:     toTermTranslationPhaseErrorSummary(readModel.ErrorSummary),
-		ActionEnablement: toTermTranslationPhaseActionEnablement(readModel.ActionEnablement),
+		AISettings:         toTermTranslationPhaseAISettings(readModel.AISettings),
+		Execution:          toTermTranslationExecutionConfigSummary(readModel.Execution),
+		ResultSummary:      toTermTranslationPhaseResultSummary(readModel.ResultSummary),
+		ErrorSummary:       toTermTranslationPhaseErrorSummary(readModel.ErrorSummary),
+		ActionEnablement:   toTermTranslationPhaseActionEnablement(readModel.ActionEnablement),
+	}
+}
+
+func toTermTranslationPhaseAISettings(
+	readModel *service.TermTranslationPhaseAISettingsReadModel,
+) *TermTranslationPhaseAISettings {
+	if readModel == nil {
+		return nil
+	}
+	return &TermTranslationPhaseAISettings{
+		Provider:      readModel.Provider,
+		Model:         readModel.Model,
+		ExecutionMode: readModel.ExecutionMode,
+		BatchMode:     readModel.BatchMode,
+	}
+}
+
+func toTermTranslationExecutionConfigSummary(
+	readModel *service.TermTranslationExecutionConfigReadModel,
+) *TermTranslationExecutionConfigSummary {
+	if readModel == nil {
+		return nil
+	}
+	return &TermTranslationExecutionConfigSummary{
+		CredentialRef:   readModel.CredentialRef,
+		Provider:        readModel.Provider,
+		Model:           readModel.Model,
+		ExecutionMode:   readModel.ExecutionMode,
+		SnapshotDigest:  cloneStringPointer(readModel.SnapshotDigest),
+		SnapshotVersion: cloneStringPointer(readModel.SnapshotVersion),
 	}
 }
 

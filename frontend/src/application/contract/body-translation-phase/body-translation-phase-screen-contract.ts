@@ -27,6 +27,7 @@ export interface BodyTranslationPhaseScreenControllerContract {
     executionMode: string
     batchMode: string
   }) => Promise<void>
+  refreshModelList?(provider: string): Promise<void>
 }
 
 export type CreateBodyTranslationPhaseScreenController =

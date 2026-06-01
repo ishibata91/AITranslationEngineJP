@@ -16,7 +16,6 @@ import (
 type fakeTranslationJobManagementLifecycleRepository struct {
 	jobByID                    map[int64]repository.TranslationJob
 	phaseRunsByJobID           map[int64][]repository.JobPhaseRun
-	snapshotsByJobID           map[int64][]repository.TranslationJobPhaseRuntimeSnapshot
 	deleteResultByJobID        map[int64]repository.TranslationJobDeleteResult
 	listIncompleteJobsResponse []repository.TranslationJob
 	deleteCalls                []int64
@@ -72,9 +71,6 @@ func (repo *fakeTranslationJobManagementLifecycleRepository) ListPhaseRunDiction
 }
 func (repo *fakeTranslationJobManagementLifecycleRepository) ListIncompleteTranslationJobs(context.Context) ([]repository.TranslationJob, error) {
 	return append([]repository.TranslationJob(nil), repo.listIncompleteJobsResponse...), nil
-}
-func (repo *fakeTranslationJobManagementLifecycleRepository) ListTranslationJobPhaseRuntimeSnapshots(_ context.Context, jobID int64) ([]repository.TranslationJobPhaseRuntimeSnapshot, error) {
-	return append([]repository.TranslationJobPhaseRuntimeSnapshot(nil), repo.snapshotsByJobID[jobID]...), nil
 }
 func (repo *fakeTranslationJobManagementLifecycleRepository) DeleteNonRunningTranslationJob(_ context.Context, jobID int64) (repository.TranslationJobDeleteResult, error) {
 	repo.deleteCalls = append(repo.deleteCalls, jobID)
@@ -171,9 +167,6 @@ func TestTranslationJobManagementServiceDeleteJobRejectsRunning(t *testing.T) {
 	running := repository.TranslationJob{ID: 20, XEditExtractedDataID: 5, State: "running", CreatedAt: now}
 	repo := &fakeTranslationJobManagementLifecycleRepository{
 		jobByID: map[int64]repository.TranslationJob{20: running},
-		snapshotsByJobID: map[int64][]repository.TranslationJobPhaseRuntimeSnapshot{20: {
-			{TranslationJobID: 20, PhaseID: "text_translation", Provider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialStatus: "configured"},
-		}},
 		deleteResultByJobID: map[int64]repository.TranslationJobDeleteResult{
 			20: {Outcome: repository.TranslationJobDeleteOutcomeBlockedRunning, Job: &running},
 		},
@@ -202,9 +195,6 @@ func TestTranslationJobManagementServiceDeleteJobDeletesNonRunning(t *testing.T)
 		phaseRunsByJobID: map[int64][]repository.JobPhaseRun{
 			31: {{ID: 310, TranslationJobID: 31, PhaseType: "body_translation", State: "paused", ProgressPercent: 44}},
 		},
-		snapshotsByJobID: map[int64][]repository.TranslationJobPhaseRuntimeSnapshot{31: {
-			{TranslationJobID: 31, PhaseID: "body_translation", Provider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialStatus: "configured"},
-		}},
 		deleteResultByJobID: map[int64]repository.TranslationJobDeleteResult{
 			31: {Outcome: repository.TranslationJobDeleteOutcomeDeleted, Job: &job},
 		},
@@ -233,9 +223,6 @@ func TestTranslationJobManagementServiceDeleteJobRejectsProjectionInconsistentRu
 		phaseRunsByJobID: map[int64][]repository.JobPhaseRun{
 			41: {{ID: 410, TranslationJobID: 41, PhaseType: "body_translation", State: "running", ProgressPercent: 52}},
 		},
-		snapshotsByJobID: map[int64][]repository.TranslationJobPhaseRuntimeSnapshot{41: {
-			{TranslationJobID: 41, PhaseID: "body_translation", Provider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialStatus: "configured"},
-		}},
 		deleteResultByJobID: map[int64]repository.TranslationJobDeleteResult{
 			41: {Outcome: repository.TranslationJobDeleteOutcomeDeleted, Job: &job},
 		},
@@ -348,9 +335,6 @@ func TestTranslationJobManagementServiceResumeJobReturnsCacheMissingReason(t *te
 	job := repository.TranslationJob{ID: 50, XEditExtractedDataID: 10, State: "paused", CreatedAt: now}
 	repo := &fakeTranslationJobManagementLifecycleRepository{
 		jobByID: map[int64]repository.TranslationJob{50: job},
-		snapshotsByJobID: map[int64][]repository.TranslationJobPhaseRuntimeSnapshot{50: {
-			{TranslationJobID: 50, PhaseID: "text_translation", Provider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialStatus: "configured"},
-		}},
 	}
 	sourceRepo := &fakeTranslationJobManagementSourceRepository{sourceByID: map[int64]repository.XEditExtractedData{10: {ID: 10, SourceFilePath: "/mods/long/long/path.json", TargetPluginName: "Skyrim.esm"}}}
 	service := NewTranslationJobManagementService(repo, sourceRepo, fakeTranslationJobManagementTransactor{})
@@ -374,11 +358,8 @@ func TestTranslationJobManagementServiceResumeJobReturnsResumeEntryForPausedCurr
 	repo := &fakeTranslationJobManagementLifecycleRepository{
 		jobByID: map[int64]repository.TranslationJob{51: job},
 		phaseRunsByJobID: map[int64][]repository.JobPhaseRun{
-			51: {{ID: 510, TranslationJobID: 51, PhaseType: "body_translation", State: "paused", ProgressPercent: 35}},
+			51: {{ID: 510, TranslationJobID: 51, PhaseType: "body_translation", State: "paused", ProgressPercent: 35, AIProvider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialRef: "configured-ref"}},
 		},
-		snapshotsByJobID: map[int64][]repository.TranslationJobPhaseRuntimeSnapshot{51: {
-			{TranslationJobID: 51, PhaseID: "body_translation", Provider: "openai", ModelName: "gpt-5", ExecutionMode: "batch", CredentialStatus: "configured"},
-		}},
 	}
 	sourceRepo := &fakeTranslationJobManagementSourceRepository{sourceByID: map[int64]repository.XEditExtractedData{11: {ID: 11, SourceFilePath: "/mods/input.json", TargetPluginName: "Skyrim.esm"}}}
 	service := NewTranslationJobManagementService(repo, sourceRepo, fakeTranslationJobManagementTransactor{})
@@ -404,32 +385,18 @@ func TestTranslationJobManagementServiceResumeJobReturnsResumeEntryForPausedCurr
 	}
 }
 
-// TestBuildTranslationJobManagementRuntimeSummaryReturnsRuntimeSnapshotMissingWhenSnapshotsEmpty は
-// snapshot が空の場合に buildTranslationJobManagementRuntimeSummary が返す warning の
-// Category が runtime_snapshot_missing であり、Title/Detail が新しい表現になることを証明する。
-func TestBuildTranslationJobManagementRuntimeSummaryReturnsRuntimeSnapshotMissingWhenSnapshotsEmpty(t *testing.T) {
-	// Arrange: snapshot が存在しない状態
-	snapshots := []repository.TranslationJobPhaseRuntimeSnapshot{}
+// TestBuildTranslationJobManagementRuntimeSummaryReturnsMissingCredentialStateWhenPhaseRunsEmpty は
+// phaseRuns が空の場合に buildTranslationJobManagementRuntimeSummary が CredentialState="missing" を返すことを証明する。
+func TestBuildTranslationJobManagementRuntimeSummaryReturnsMissingCredentialStateWhenPhaseRunsEmpty(t *testing.T) {
+	// Arrange: phaseRuns が存在しない状態
+	phaseRuns := []repository.JobPhaseRun{}
 
 	// Act
-	_, warnings := buildTranslationJobManagementRuntimeSummary(snapshots)
+	summary := buildTranslationJobManagementRuntimeSummary(phaseRuns)
 
-	// Assert: warning が 1 件で category が runtime_snapshot_missing
-	if len(warnings) != 1 {
-		t.Fatalf("expected 1 warning, got %d warnings: %#v", len(warnings), warnings)
-	}
-	if warnings[0].Category != translationJobManagementReasonRuntimeSnapshotMissing {
-		t.Fatalf("expected category runtime_snapshot_missing, got %q", warnings[0].Category)
-	}
-	if warnings[0].Title != "snapshot が無いため再開できません" {
-		t.Fatalf("expected title 'snapshot が無いため再開できません', got %q", warnings[0].Title)
-	}
-	if warnings[0].Detail == "" {
-		t.Fatal("expected non-empty Detail")
-	}
-	// Detail には「削除は可能」という文言が含まれていることを確認する
-	if !strings.Contains(warnings[0].Detail, "削除は可能") {
-		t.Fatalf("expected Detail to contain '削除は可能', got %q", warnings[0].Detail)
+	// Assert: CredentialState が "missing"
+	if summary.CredentialState != "missing" {
+		t.Fatalf("expected CredentialState=missing, got %q", summary.CredentialState)
 	}
 }
 
@@ -489,68 +456,6 @@ func TestBuildTranslationJobManagementDeleteAvailabilityBlockedWhenStateProjecti
 	}
 	if availability.ReasonText == "" {
 		t.Fatal("expected non-empty ReasonText for blocked delete")
-	}
-}
-
-// TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForPausedJob は
-// Paused ジョブで snapshot 欠落（runtime_snapshot_missing warning）がある場合に
-// buildTranslationJobManagementResumeBlockedReasons が runtime_snapshot_missing を再開ブロック理由に含むことを証明する。
-// 境界2: Paused/RecoverableFailed で snapshot 欠落のみの場合。
-func TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForPausedJob(t *testing.T) {
-	// Arrange: Paused ジョブ、キャッシュあり、runtime_snapshot_missing warning
-	job := repository.TranslationJob{ID: 202, State: "paused"}
-	cacheAvailable := true
-	warnings := []TranslationJobManagementBlockedReasonReadModel{
-		{
-			Category: translationJobManagementReasonRuntimeSnapshotMissing,
-			Title:    "snapshot が無いため再開できません",
-			Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
-		},
-	}
-
-	// Act
-	blocked := buildTranslationJobManagementResumeBlockedReasons(job, cacheAvailable, warnings)
-
-	// Assert: runtime_snapshot_missing が再開ブロック理由に含まれる
-	found := false
-	for _, reason := range blocked {
-		if reason.Category == translationJobManagementReasonRuntimeSnapshotMissing {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("expected runtime_snapshot_missing in blocked reasons, got %#v", blocked)
-	}
-}
-
-// TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForRecoverableFailedJob は
-// RecoverableFailed ジョブで snapshot 欠落（runtime_snapshot_missing warning）がある場合に
-// buildTranslationJobManagementResumeBlockedReasons が runtime_snapshot_missing を再開ブロック理由に含むことを証明する。
-// 境界2: RecoverableFailed で snapshot 欠落のみの場合。
-func TestBuildTranslationJobManagementResumeBlockedReasonsContainsRuntimeSnapshotMissingForRecoverableFailedJob(t *testing.T) {
-	// Arrange: RecoverableFailed ジョブ、キャッシュあり、runtime_snapshot_missing warning
-	job := repository.TranslationJob{ID: 203, State: "recoverable_failed"}
-	cacheAvailable := true
-	warnings := []TranslationJobManagementBlockedReasonReadModel{
-		{
-			Category: translationJobManagementReasonRuntimeSnapshotMissing,
-			Title:    "snapshot が無いため再開できません",
-			Detail:   "保存済み AI 設定要約 (runtime snapshot) が無いため、Paused/RecoverableFailed からの再開時に外部 API 設定を確認できません。削除は可能です。",
-		},
-	}
-
-	// Act
-	blocked := buildTranslationJobManagementResumeBlockedReasons(job, cacheAvailable, warnings)
-
-	// Assert: runtime_snapshot_missing が再開ブロック理由に含まれる
-	found := false
-	for _, reason := range blocked {
-		if reason.Category == translationJobManagementReasonRuntimeSnapshotMissing {
-			found = true
-		}
-	}
-	if !found {
-		t.Fatalf("expected runtime_snapshot_missing in blocked reasons, got %#v", blocked)
 	}
 }
 

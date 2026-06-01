@@ -147,7 +147,7 @@ func newModelSettingsCardProviderSettingsUsecaseWithValidator(
 
 	providerSettingsService := service.NewProviderSettingsService(
 		repository.NewSQLiteProviderSettingsRepository(db),
-		repository.NewInMemorySecretStore(),
+		repository.NewFakeSecretStore(),
 		repository.NewSQLiteTransactor(db),
 		modelSettingsCardFakeProviderModelListAdapter{
 			loader: ai.NewProviderModelListLoader(

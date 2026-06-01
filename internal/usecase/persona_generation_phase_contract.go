@@ -134,16 +134,14 @@ type SavePersonaGenerationPhaseAISettingsRequest struct {
 	BatchMode     string
 }
 
-// PersonaGenerationPhaseAISettingsResult returns public AI settings state.
+// PersonaGenerationPhaseAISettingsResult returns saved AI settings state.
+// credential_status、model_list_status は含まない。
 type PersonaGenerationPhaseAISettingsResult struct {
-	JobID            int64
-	PhaseID          string
-	Provider         string
-	Model            string
-	CredentialStatus string
-	ExecutionMode    string
-	BatchMode        string
-	ModelListStatus  string
+	PhaseType     string
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
 }
 
 // PersonaGenerationPhaseProgressSummary summarizes current progress for one phase run.
@@ -167,6 +165,7 @@ type PersonaGenerationTargetSummary struct {
 }
 
 // PersonaGenerationExecutionSummary summarizes execution inputs without exposing secrets.
+// JOB_PHASE_RUN が存在する場合だけ設定する。Ready 期は nil とする。
 type PersonaGenerationExecutionSummary struct {
 	CredentialRef string
 	Provider      string
@@ -176,6 +175,15 @@ type PersonaGenerationExecutionSummary struct {
 	InputCount    int
 	OutputCount   int
 	EvidenceRefs  []string
+}
+
+// PersonaGenerationPhaseAISettings holds the Ready 期 AI 選択値（JOB_PHASE_AI_SETTINGS から読む）。
+// record 不在（AI 設定未保存）の場合は nil とする。
+type PersonaGenerationPhaseAISettings struct {
+	Provider      string
+	Model         string
+	ExecutionMode string
+	BatchMode     string
 }
 
 // PersonaGenerationPhaseResultSummary summarizes the stored persona snapshot.
@@ -214,15 +222,18 @@ type PersonaGenerationPhaseActionEnablement struct {
 
 // PersonaGenerationPhaseSummaryResult is the frozen Job Run summary contract.
 type PersonaGenerationPhaseSummaryResult struct {
-	JobID            int64
-	CurrentPhase     string
-	PhaseState       string
-	PhaseRunID       *int64
-	StartedAt        *time.Time
-	FinishedAt       *time.Time
-	Progress         PersonaGenerationPhaseProgressSummary
-	TargetSummary    PersonaGenerationTargetSummary
-	Execution        PersonaGenerationExecutionSummary
+	JobID         int64
+	CurrentPhase  string
+	PhaseState    string
+	PhaseRunID    *int64
+	StartedAt     *time.Time
+	FinishedAt    *time.Time
+	Progress      PersonaGenerationPhaseProgressSummary
+	TargetSummary PersonaGenerationTargetSummary
+	// AISettings は JOB_PHASE_AI_SETTINGS record が存在する場合だけ設定する。nil は未設定を意味する。
+	AISettings *PersonaGenerationPhaseAISettings
+	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
+	Execution        *PersonaGenerationExecutionSummary
 	ResultSummary    *PersonaGenerationPhaseResultSummary
 	ErrorSummary     *PersonaGenerationPhaseErrorSummary
 	ActionEnablement PersonaGenerationPhaseActionEnablement
@@ -238,7 +249,8 @@ type PersonaGenerationPhaseCommandResult struct {
 	FinishedAt    *time.Time
 	Progress      PersonaGenerationPhaseProgressSummary
 	TargetSummary PersonaGenerationTargetSummary
-	Execution     PersonaGenerationExecutionSummary
+	// Execution は JOB_PHASE_RUN が存在する場合だけ設定する。nil は未開始を意味する。
+	Execution     *PersonaGenerationExecutionSummary
 	ResultSummary *PersonaGenerationPhaseResultSummary
 	Retryable     bool
 	ErrorSummary  *PersonaGenerationPhaseErrorSummary
@@ -436,7 +448,7 @@ func personaGenerationPhaseSummaryFixture() PersonaGenerationPhaseSummaryResult 
 			SkippedReasons:         []string{"orphan_npc_reference"},
 			TargetSnapshotDigest:   "sha256:target-snapshot",
 		},
-		Execution: PersonaGenerationExecutionSummary{
+		Execution: &PersonaGenerationExecutionSummary{
 			CredentialRef: "credential:persona:test",
 			Provider:      "fake",
 			Model:         "persona-model",
@@ -498,7 +510,7 @@ func personaGenerationStartedFixture(jobID, phaseRunID int64) PersonaGenerationP
 			TargetSnapshotID:       &targetSnapshotID,
 			TargetSnapshotDigest:   fmt.Sprintf("sha256:target-snapshot-%d", jobID),
 		},
-		Execution: PersonaGenerationExecutionSummary{
+		Execution: &PersonaGenerationExecutionSummary{
 			CredentialRef: "credential:persona:test",
 			Provider:      "fake",
 			Model:         "persona-model",

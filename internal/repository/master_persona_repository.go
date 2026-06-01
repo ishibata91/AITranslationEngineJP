@@ -152,12 +152,6 @@ type InMemoryMasterPersonaRepository struct {
 	runStatus  MasterPersonaRunStatusRecord
 }
 
-// InMemorySecretStore provides an in-memory secret seam for tests and local wiring.
-type InMemorySecretStore struct {
-	mu      sync.RWMutex
-	secrets map[string]string
-}
-
 // NewInMemoryMasterPersonaRepository creates an in-memory master persona repository with seed data.
 func NewInMemoryMasterPersonaRepository(seed []MasterPersonaEntry) *InMemoryMasterPersonaRepository {
 	entries := make(map[string]MasterPersonaEntry, len(seed))
@@ -170,16 +164,6 @@ func NewInMemoryMasterPersonaRepository(seed []MasterPersonaEntry) *InMemoryMast
 			RunState: "入力待ち",
 		},
 	}
-}
-
-// NewInMemorySecretStore creates an in-memory secret store.
-func NewInMemorySecretStore() *InMemorySecretStore {
-	return &InMemorySecretStore{secrets: map[string]string{}}
-}
-
-// NewProviderSettingsInMemorySecretStore creates a process-local provider settings secret store.
-func NewProviderSettingsInMemorySecretStore() ProviderSettingsSecretStore {
-	return NewInMemorySecretStore()
 }
 
 // List returns a filtered, paged list of master persona entries.
@@ -344,29 +328,6 @@ func (repository *InMemoryMasterPersonaRepository) SaveRunStatus(_ context.Conte
 	repository.mu.Lock()
 	defer repository.mu.Unlock()
 	repository.runStatus = cloneMasterPersonaRunStatus(status)
-	return nil
-}
-
-// Load returns one secret value by key.
-func (store *InMemorySecretStore) Load(_ context.Context, key string) (string, error) {
-	store.mu.RLock()
-	defer store.mu.RUnlock()
-	return store.secrets[strings.TrimSpace(key)], nil
-}
-
-// Save stores one secret value by key.
-func (store *InMemorySecretStore) Save(_ context.Context, key string, value string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	store.secrets[strings.TrimSpace(key)] = value
-	return nil
-}
-
-// Delete removes one secret value by key.
-func (store *InMemorySecretStore) Delete(_ context.Context, key string) error {
-	store.mu.Lock()
-	defer store.mu.Unlock()
-	delete(store.secrets, strings.TrimSpace(key))
 	return nil
 }
 

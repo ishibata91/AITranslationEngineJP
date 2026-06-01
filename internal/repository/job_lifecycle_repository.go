@@ -51,30 +51,6 @@ type TranslationJobDeleteResult struct {
 	Job     *TranslationJob
 }
 
-// TranslationJobPhaseRuntimeSnapshot は Job Setup で保存した phase 別 runtime snapshot を表す。
-type TranslationJobPhaseRuntimeSnapshot struct {
-	ID               int64
-	TranslationJobID int64
-	PhaseID          string
-	Provider         string
-	ModelName        string
-	CredentialStatus string
-	ExecutionMode    string
-	BatchMode        string
-	CreatedAt        time.Time
-}
-
-// TranslationJobPhaseRuntimeSnapshotDraft は phase 別 runtime snapshot の作成ペイロードを表す。
-type TranslationJobPhaseRuntimeSnapshotDraft struct {
-	TranslationJobID int64
-	PhaseID          string
-	Provider         string
-	ModelName        string
-	CredentialStatus string
-	ExecutionMode    string
-	BatchMode        string
-}
-
 // JobPhaseRun は JOB_PHASE_RUN テーブルの 1 レコードを表す。
 type JobPhaseRun struct {
 	ID                     int64
@@ -227,6 +203,5 @@ type JobLifecycleRepository interface {
 // TranslationJobManagementRepository は未完了 job 一覧と非実行中削除の補助 port を定義する。
 type TranslationJobManagementRepository interface {
 	ListIncompleteTranslationJobs(ctx context.Context) ([]TranslationJob, error)
-	ListTranslationJobPhaseRuntimeSnapshots(ctx context.Context, translationJobID int64) ([]TranslationJobPhaseRuntimeSnapshot, error)
 	DeleteNonRunningTranslationJob(ctx context.Context, jobID int64) (TranslationJobDeleteResult, error)
 }

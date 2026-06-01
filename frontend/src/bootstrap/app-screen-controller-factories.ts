@@ -67,7 +67,8 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
     diagnosticLogger,
     createBodyTranslationPhaseScreenController:
       createBodyTranslationPhaseScreenControllerFactory(
-        bodyTranslationPhaseGateway
+        bodyTranslationPhaseGateway,
+        providerSettingsGateway
       ),
     createMasterDictionaryScreenController:
       createMasterDictionaryScreenControllerFactory(
@@ -78,13 +79,15 @@ export function createProductionAppFactories(): AppScreenControllerFactories {
       createMasterPersonaScreenControllerFactory(masterPersonaGateway),
     createPersonaGenerationPhaseScreenController:
       createPersonaGenerationPhaseScreenControllerFactory(
-        personaGenerationPhaseGateway
+        personaGenerationPhaseGateway,
+        providerSettingsGateway
       ),
     createProviderSettingsScreenController:
       createProviderSettingsScreenControllerFactory(providerSettingsGateway),
     createTermTranslationPhaseScreenController:
       createTermTranslationPhaseScreenControllerFactory(
-        termTranslationPhaseGateway
+        termTranslationPhaseGateway,
+        providerSettingsGateway
       ),
     createTranslationJobManagementScreenController:
       createTranslationJobManagementScreenControllerFactory(

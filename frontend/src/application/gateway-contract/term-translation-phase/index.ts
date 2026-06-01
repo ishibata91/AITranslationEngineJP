@@ -16,5 +16,7 @@ export type {
   TermTranslationPhaseGatewayContract,
   TermTranslationPhaseProgressSummary,
   TermTranslationPhaseResultSummary,
-  TermTranslationPhaseSummaryResponse
+  TermTranslationPhaseSummaryResponse,
+  PhaseProviderModelsRequest,
+  PhaseProviderModelsResponse
 } from "./term-translation-phase-gateway-contract"

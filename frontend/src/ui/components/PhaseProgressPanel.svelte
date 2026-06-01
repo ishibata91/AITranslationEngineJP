@@ -9,6 +9,7 @@
     progressBarTestId?: string
     progressCountsTestId?: string
     startButtonTestId?: string
+    actionHintsTestId?: string
     progressLabel: string
     progressPercent: number
     progressDetail: string
@@ -27,6 +28,7 @@
     progressBarTestId = undefined,
     progressCountsTestId = undefined,
     startButtonTestId = undefined,
+    actionHintsTestId = undefined,
     progressLabel,
     progressPercent,
     progressDetail,
@@ -91,7 +93,7 @@
             </button>
           {/each}
         </div>
-        <div class="action-hints">
+        <div class="action-hints" data-testid={actionHintsTestId}>
           {#each actions as action (action.id)}
             {#if action.disabled && action.blockedReason}
               <p>{action.label}: {action.blockedReason}</p>

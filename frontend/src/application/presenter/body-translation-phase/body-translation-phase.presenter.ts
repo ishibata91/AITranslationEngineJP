@@ -104,10 +104,14 @@ interface BodyTranslationPhaseScreenViewModel extends BodyTranslationPhaseScreen
   promptDigestLabel: string
   inputSnapshotRefLabel: string
   skippedReasonsLabel: string
+  isExecutionConfigured: boolean
   providerLabel: string
   modelLabel: string
   executionModeLabel: string
   credentialRefLabel: string
+  providerOptions: { value: string; label: string }[]
+  modelOptions: { value: string; label: string }[]
+  executionOptions: { value: string; label: string }[]
   providerTargetCountLabel: string
   exactDictionaryExclusionCountLabel: string
   partialDictionaryConstraintCountLabel: string
@@ -206,6 +210,60 @@ function formatReasonList(values: string[] | undefined): string {
 
 function normalizePhaseState(phaseState: string | undefined): string {
   return phaseState?.trim().toLowerCase().replaceAll(" ", "_") ?? ""
+}
+
+function isBodyExecutionConfigured(
+  summary: BodyTranslationPhaseSummaryResponse
+): boolean {
+  if (summary.aiSettings) {
+    return Boolean(summary.aiSettings.provider?.trim()) &&
+      Boolean(summary.aiSettings.model?.trim()) &&
+      Boolean(summary.aiSettings.executionMode?.trim())
+  }
+  if (!summary.execution) {
+    return false
+  }
+  return Boolean(summary.execution.provider?.trim()) &&
+    Boolean(summary.execution.model?.trim()) &&
+    Boolean(summary.execution.executionMode?.trim())
+}
+
+const BODY_EXECUTION_OPTIONS = [
+  { value: "batch", label: "バッチ処理" },
+  { value: "sync", label: "逐次処理" }
+]
+
+function buildBodyProviderOptions(
+  summary: BodyTranslationPhaseSummaryResponse | null,
+  availableProviders: { value: string; label: string }[]
+): { value: string; label: string }[] {
+  if (availableProviders.length > 0) {
+    const currentProvider = summary?.aiSettings?.provider ?? summary?.execution?.provider
+    if (!currentProvider || !availableProviders.some((p) => p.value === currentProvider)) {
+      return [{ value: "", label: "選んでください" }, ...availableProviders]
+    }
+    return availableProviders
+  }
+  const fallbackLabel = summary?.aiSettings?.provider ?? summary?.execution?.provider ?? "設定未完了"
+  return [{ value: fallbackLabel, label: fallbackLabel }]
+}
+
+function buildBodyModelOptions(
+  summary: BodyTranslationPhaseSummaryResponse | null,
+  availableModels: { value: string; label: string }[]
+): { value: string; label: string }[] {
+  if (availableModels.length > 0) {
+    const currentModel = summary?.aiSettings?.model ?? summary?.execution?.model
+    if (!currentModel || !availableModels.some((m) => m.value === currentModel)) {
+      return [{ value: "", label: "選んでください" }, ...availableModels]
+    }
+    return availableModels
+  }
+  const fallbackLabel = summary?.aiSettings?.model ?? summary?.execution?.model
+  if (fallbackLabel) {
+    return [{ value: fallbackLabel, label: fallbackLabel }]
+  }
+  return [{ value: "", label: "モデル一覧を更新してください" }]
 }
 
 function isBodyTerminalJob(
@@ -610,7 +668,7 @@ function buildProviderStateLabel(
   }
 
   const phaseState = normalizePhaseState(summary.phaseState)
-  if (phaseState === "completed" && summary.execution.requestUnitCount === 0) {
+  if (phaseState === "completed" && (summary.execution?.requestUnitCount ?? 0) === 0) {
     return "provider 未実行"
   }
   if (summary.errorSummary?.errorKind === "provider_failure") {
@@ -622,7 +680,7 @@ function buildProviderStateLabel(
   if (phaseState === "running") {
     return "provider 実行中"
   }
-  return summary.execution.requestUnitCount > 0 ? "provider 実行あり" : "-"
+  return (summary.execution?.requestUnitCount ?? 0) > 0 ? "provider 実行あり" : "-"
 }
 
 function buildLateResponseLabel(
@@ -777,7 +835,9 @@ function buildPhaseRunRequestShape(
 export class BodyTranslationPhasePresenter {
   toViewModel(
     state: BodyTranslationPhaseScreenState,
-    isGatewayConnected: boolean
+    isGatewayConnected: boolean,
+    availableProviders: { value: string; label: string }[] = [],
+    availableModels: { value: string; label: string }[] = []
   ): BodyTranslationPhaseScreenViewModel {
     const summary = state.summary
     const resultSummary = summary?.resultSummary ?? null
@@ -818,10 +878,23 @@ export class BodyTranslationPhasePresenter {
       skippedReasonsLabel: formatReasonList(
         summary?.inputSummary.skippedReasons
       ),
-      providerLabel: summary?.execution.provider ?? "-",
-      modelLabel: summary?.execution.model ?? "-",
-      executionModeLabel: summary?.execution.executionMode ?? "-",
-      credentialRefLabel: summary?.execution.credentialRef ?? "-",
+      isExecutionConfigured: summary ? isBodyExecutionConfigured(summary) : false,
+      providerLabel:
+        summary?.aiSettings?.provider ??
+        summary?.execution?.provider ??
+        "設定未完了",
+      modelLabel:
+        summary?.aiSettings?.model ??
+        summary?.execution?.model ??
+        "設定未完了",
+      executionModeLabel:
+        summary?.aiSettings?.executionMode ??
+        summary?.execution?.executionMode ??
+        "設定未完了",
+      credentialRefLabel: summary?.execution?.credentialRef ?? "設定未完了",
+      providerOptions: buildBodyProviderOptions(summary, availableProviders),
+      modelOptions: buildBodyModelOptions(summary, availableModels),
+      executionOptions: BODY_EXECUTION_OPTIONS,
       providerTargetCountLabel: formatCount(
         summary?.requestSummary?.providerTargetCount
       ),
@@ -831,8 +904,8 @@ export class BodyTranslationPhasePresenter {
       partialDictionaryConstraintCountLabel: formatCount(
         summary?.requestSummary?.partialDictionaryConstraintCount
       ),
-      requestUnitCountLabel: formatCount(summary?.execution.requestUnitCount),
-      outputCountLabel: formatCount(summary?.execution.outputCount),
+      requestUnitCountLabel: formatCount(summary?.execution?.requestUnitCount),
+      outputCountLabel: formatCount(summary?.execution?.outputCount),
       resultOutputCountLabel: formatCount(resultSummary?.outputCount),
       providerStateLabel: buildProviderStateLabel(state),
       lateResponseLabel: buildLateResponseLabel(state),

@@ -71,7 +71,7 @@ func TestPersonaGenerationContract_PublicSeamsAndRedactionDTOShape(t *testing.T)
 			SkippedReasons:         []string{"orphan_npc_reference"},
 			TargetSnapshotDigest:   "sha256:target-snapshot",
 		},
-		Execution: PersonaGenerationExecutionSummary{
+		Execution: &PersonaGenerationExecutionSummary{
 			CredentialRef: "credential:persona:test",
 			Provider:      "fake",
 			Model:         "persona-model",
