@@ -134,3 +134,14 @@ investigation-module で固定した想定は backend 側を判断保留とし�
 - branch: claude/fix-term-translation-model-settings-empty-fixed
 - 同 commit に本 task と `fix-phase-ai-model-list-empty` の変更を統合（同 branch 継続使用のため）。
 
+
+## local merge
+
+- target branch: master
+- merge commit: 665fc680a081a69489496dcda21a8c424575650c
+- conflict: なし
+- merge 後検証: backend-local / frontend-local 両 harness 通過。
+
+## merge 結果 commit
+
+- commit hash: a773f28c（completed 移動と merge 後検証結果の記録）

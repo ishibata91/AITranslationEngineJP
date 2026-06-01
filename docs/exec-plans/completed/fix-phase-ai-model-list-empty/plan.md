@@ -132,3 +132,14 @@ implementation-module（backend 中心、frontend は前 task で追加した経
 - branch: claude/fix-term-translation-model-settings-empty-fixed
 - 前 task `fix-term-translation-model-settings-empty-fixed` と同 commit に統合。
 
+
+## local merge
+
+- target branch: master
+- merge commit: 665fc680a081a69489496dcda21a8c424575650c
+- conflict: なし
+- merge 後検証: backend-local / frontend-local 両 harness 通過。
+
+## merge 結果 commit
+
+- commit hash: a773f28c（completed 移動と merge 後検証結果の記録）
